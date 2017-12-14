@@ -293,10 +293,40 @@ defmodule Cloak.DataSource.MongoDBTest do
       """, %{rows: [%{occurrences: 13, row: ["2015-07-26 19:50:03.000000"]}]}
   end
 
-  test "cast boolean", context do
+  test "cast boolean to text", context do
     assert_query context, """
         SELECT v FROM (SELECT _id, CAST(male AS text) AS v FROM #{@table}) AS t ORDER BY 1
       """, %{rows: [%{occurrences: 10, row: ["true"]}, %{occurrences: 9, row: [nil]}]}
+  end
+
+  test "cast boolean to integer", context do
+    assert_query context, """
+        SELECT v FROM (SELECT _id, CAST(male AS integer) AS v FROM #{@table}) AS t ORDER BY 1
+      """, %{rows: [%{occurrences: 10, row: [1]}, %{occurrences: 9, row: [nil]}]}
+  end
+
+  test "cast boolean to real", context do
+    assert_query context, """
+        SELECT v FROM (SELECT _id, CAST(male AS real) AS v FROM #{@table}) AS t ORDER BY 1
+      """, %{rows: [%{occurrences: 10, row: [1.0]}, %{occurrences: 9, row: [nil]}]}
+  end
+
+  test "cast boolean to text to boolean", context do
+    assert_query context, """
+        SELECT v FROM (SELECT _id, CAST(CAST(male AS text) AS boolean) AS v FROM #{@table}) AS t ORDER BY 1
+      """, %{rows: [%{occurrences: 10, row: [true]}, %{occurrences: 9, row: [nil]}]}
+  end
+
+  test "cast integer to boolean", context do
+    assert_query context, """
+        SELECT v FROM (SELECT _id, CAST(trunc(age) AS boolean) AS v FROM #{@table}) AS t ORDER BY 1
+      """, %{rows: [%{occurrences: 10, row: [true]}, %{occurrences: 9, row: [nil]}]}
+  end
+
+  test "cast real to boolean", context do
+    assert_query context, """
+        SELECT v FROM (SELECT _id, CAST(age AS boolean) AS v FROM #{@table}) AS t ORDER BY 1
+      """, %{rows: [%{occurrences: 10, row: [true]}, %{occurrences: 9, row: [nil]}]}
   end
 
   test "round", context do

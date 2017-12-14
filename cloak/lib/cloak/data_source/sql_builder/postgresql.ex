@@ -42,13 +42,25 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   def limit_sql(limit, offset), do: [" LIMIT ", to_string(limit), " OFFSET ", to_string(offset)]
 
   @impl Dialect
-  def sql_type(:real), do: "float"
-  def sql_type(:boolean), do: "bool"
-  def sql_type(type) when is_atom(type), do: Atom.to_string(type)
+  def cast_sql(value, :boolean, :real), do:
+    value |> cast_sql(:boolean, :integer) |> cast_sql(:integer, :real)
+  def cast_sql(value, :real, :boolean), do:
+    value |> cast_sql(:real, :integer) |> cast_sql(:integer, :boolean)
+  def cast_sql(value, _, type), do:
+    ["CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect
   def unicode_literal(value), do: [?', value, ?']
 
   @impl Dialect
   def interval_literal(value), do: ["interval '", Timex.Duration.to_string(value), ?']
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp sql_type(:real), do: "float"
+  defp sql_type(:boolean), do: "bool"
+  defp sql_type(type) when is_atom(type), do: Atom.to_string(type)
 end

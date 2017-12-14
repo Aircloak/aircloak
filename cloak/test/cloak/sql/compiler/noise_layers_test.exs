@@ -258,7 +258,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
     test "no noise layer from sample_users" do
       result = compile!("SELECT COUNT(*) FROM (SELECT uid FROM table SAMPLE_USERS 10%) x")
-      assert [generic_layer()] = result.noise_layers
+      assert [static_layer({"table", "uid", _}), uid_layer({"table", "uid", _})] = result.noise_layers
     end
   end
 
@@ -275,6 +275,24 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "column <> column negative condition" do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric <> numeric")
       assert [generic_layer()] = result.noise_layers
+    end
+
+    test "clear numeric negative condition" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE numeric <> 1")
+
+      assert [
+        %{base: {"table", "numeric", :<>}, expressions: [%Expression{value: 1}, _, _]},
+        %{base: {"table", "numeric", :<>}, expressions: [%Expression{value: 1}, _, _, %Expression{name: "uid"}]},
+      ] = result.noise_layers
+    end
+
+    test "clear numeric negative condition on uid-column" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE uid <> 1")
+
+      assert [
+        %{base: {"table", "uid", :<>}, expressions: [%Expression{value: 1}, _, _]},
+        %{base: {"table", "uid", :<>}, expressions: [%Expression{value: 1}, _, _, %Expression{name: "uid"}]},
+      ] = result.noise_layers
     end
 
     test "clear string negative condition" do
@@ -392,6 +410,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         %{base: {"table", "name", nil}, expressions: [%Expression{name: "name"}, _, _, %Expression{name: "uid"}]},
       ] = compile!("SELECT COUNT(*) FROM table WHERE name IS NOT NULL").noise_layers
     end
+
+    test "no noise for IS NULL on uids", do:
+      assert [generic_layer()] = compile!("SELECT COUNT(*) FROM table WHERE uid IS NULL").noise_layers
+
+    test "no noise for IS NOT NULL on uids", do:
+      assert [generic_layer()] = compile!("SELECT COUNT(*) FROM table WHERE uid IS NOT NULL").noise_layers
   end
 
   describe "noise layers for LIKE" do
@@ -443,87 +467,97 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       ] = compile!("SELECT COUNT(*) FROM table WHERE name = 'bob'").noise_layers
     end
 
-    test "noise layers when ILIKE has no wildcards" do
-      [
-        %{base: base1, expressions: [%{name: "name"}, _, _]},
-        %{base: base2,  expressions: [%{name: "name"}, _, _, %{name: "uid"}]},
-      ] = compile!("SELECT COUNT(*) FROM table WHERE name ILIKE 'bob'").noise_layers
+    for column <- ~w(string uid) do
+      test "noise layers when ILIKE has no wildcards (col: #{column})" do
+        [
+          %{base: base1, expressions: [%{name: unquote(column)}, _, _]},
+          %{base: base2,  expressions: [%{name: unquote(column)}, _, _, %{name: "uid"}]},
+        ] = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} ILIKE 'bob'").noise_layers
 
-      assert [
-        %{base: ^base1, expressions: [%{value: "bob"}, _, _]},
-        %{base: ^base2,  expressions: [%{value: "bob"}, _, _, %{name: "uid"}]},
-      ] = compile!("SELECT COUNT(*) FROM table WHERE name = 'bob'").noise_layers
-    end
+        assert [
+          %{base: ^base1, expressions: [%{value: "bob"}, _, _]},
+          %{base: ^base2,  expressions: [%{value: "bob"}, _, _, %{name: "uid"}]},
+        ] = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} = 'bob'").noise_layers
+      end
 
-    test "noise layers for NOT LIKE" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT LIKE '_bob%'")
-      len = String.length("_bob%") - String.length("%")
+      test "noise layers for NOT LIKE (col: #{column})" do
+        result = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} NOT LIKE '_bob%'")
+        len = String.length("_bob%") - String.length("%")
 
-      assert [
-        %{base: {"table", "name", {:not, :like, "_bob"}}, expressions: [%Expression{name: "name"}, _, _]},
-        %{base: {"table", "name", {:not, :like, {:_, ^len, 0}}}, expressions: [%{name: "name"}, _, _, %{name: "uid"}]},
-        %{base: {"table", "name", {:not, :like, {:%, ^len, 4}}}, expressions: [%{name: "name"}, _, _, %{name: "uid"}]},
-      ] = result.noise_layers
-    end
+        assert [
+          %{base: {"string_uid_table", column, {:not, :like, "_bob"}}, expressions: [%Expression{name: column}, _, _]},
+          %{base: {"string_uid_table", column, {:not, :like, {:_, ^len, 0}}},
+            expressions: [%{name: column}, _, _, %{name: "uid"}]},
+          %{base: {"string_uid_table", column, {:not, :like, {:%, ^len, 4}}},
+            expressions: [%{name: column}, _, _, %{name: "uid"}]},
+        ] = result.noise_layers
+      end
 
-    test "noise layers for NOT ILIKE" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE name NOT ILIKE '_bob%'")
-      len = String.length("_bob%") - String.length("%")
+      test "noise layers for NOT ILIKE (col: #{column})" do
+        result = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} NOT ILIKE '_bob%'")
+        len = String.length("_bob%") - String.length("%")
 
-      assert [
-        %{base: {"table", "name", {:not, :ilike, "_bob"}}, expressions: [%Expression{name: "name"}, _, _]},
-        %{base: {"table", "name", {:not, :ilike, {:_, ^len, 0}}}, expressions: [%{name: "name"}, _, _, %{name: "uid"}]},
-        %{base: {"table", "name", {:not, :ilike, {:%, ^len, 4}}}, expressions: [%{name: "name"}, _, _, %{name: "uid"}]},
-      ] = result.noise_layers
-    end
+        assert [
+          %{base: {"string_uid_table", column, {:not, :ilike, "_bob"}}, expressions: [%Expression{name: column}, _, _]},
+          %{base: {"string_uid_table", column, {:not, :ilike, {:_, ^len, 0}}},
+            expressions: [%{name: column}, _, _, %{name: "uid"}]},
+          %{base: {"string_uid_table", column, {:not, :ilike, {:%, ^len, 4}}},
+            expressions: [%{name: column}, _, _, %{name: "uid"}]},
+        ] = result.noise_layers
+      end
 
-    test "noise layers when NOT LIKE has no wildcards" do
-      result1 = compile!("SELECT COUNT(*) FROM table WHERE name NOT LIKE 'bob'")
-      result2 = compile!("SELECT COUNT(*) FROM table WHERE name <> 'bob'")
+      test "noise layers when NOT LIKE has no wildcards (col: #{column})" do
+        result1 = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} NOT LIKE 'bob'")
+        result2 = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} <> 'bob'")
 
-      assert Enum.map(result1.noise_layers, & &1.base) == Enum.map(result2.noise_layers, & &1.base)
-    end
+        assert Enum.map(result1.noise_layers, & &1.base) == Enum.map(result2.noise_layers, & &1.base)
+      end
 
-    test "noise layers when NOT ILIKE has no wildcards" do
-      result1 = compile!("SELECT COUNT(*) FROM table WHERE name NOT ILIKE 'bOb'")
-      result2 = compile!("SELECT COUNT(*) FROM table WHERE lower(name) <> 'bob'")
+      test "noise layers when NOT ILIKE has no wildcards (col: #{column})" do
+        result1 = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} NOT ILIKE 'bOb'")
+        result2 = compile!("SELECT COUNT(*) FROM string_uid_table WHERE lower(#{unquote(column)}) <> 'bob'")
 
-      assert Enum.map(result1.noise_layers, & &1.base) == Enum.map(result2.noise_layers, & &1.base)
+        assert Enum.map(result1.noise_layers, & &1.base) == Enum.map(result2.noise_layers, & &1.base)
+      end
     end
   end
 
   describe "noise layers from IN" do
-    test "IN (single_value)" do
-      [
-        %{base: base1, expressions: [%{name: name}, _, _]},
-        %{base: base2,  expressions: [%{name: name}, _, _, %{name: "uid"}]},
-      ] = compile!("SELECT COUNT(*) FROM table WHERE name IN ('bob')").noise_layers
-
-      assert [
-        %{base: ^base1, expressions: [%{name: ^name}, _, _]},
-        %{base: ^base2,  expressions: [%{name: ^name}, _, _, %{name: "uid"}]},
-      ] = compile!("SELECT COUNT(*) FROM table WHERE name = 'bob'").noise_layers
-    end
-
-    test "IN (many, values)" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE name IN ('a', 'b')")
-
-      assert [
-        %{base: {"table", "name", nil}, expressions: [%{name: "name"}, _, _]},
-        %{base: {"table", "name", nil}, expressions: [%{value: "a"}, _, _, %{name: "uid"}]},
-        %{base: {"table", "name", nil}, expressions: [%{value: "b"}, _, _, %{name: "uid"}]},
-      ] = result.noise_layers
-    end
-
-    for function <- ~w(upper lower) do
-      test "#{function}(x) IN (many, values)" do
-        result = compile!("SELECT COUNT(*) FROM table WHERE #{unquote(function)}(name) IN ('a', 'b')")
+    for column <- ["uid", "string"] do
+      test "IN (single_value) on column #{column}" do
+        [
+          %{base: base1, expressions: [%{name: name}, _, _]},
+          %{base: base2,  expressions: [%{name: name}, _, _, %{name: "uid"}]},
+        ] = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} IN ('bob')").noise_layers
 
         assert [
-          %{base: {"table", "name", nil}, expressions: [%{name: "name"}, _, _]},
-          %{base: {"table", "name", nil}, expressions: [%{value: "a"}, _, _, %{name: "uid"}]},
-          %{base: {"table", "name", nil}, expressions: [%{value: "b"}, _, _, %{name: "uid"}]},
+          %{base: ^base1, expressions: [%{name: ^name}, _, _]},
+          %{base: ^base2,  expressions: [%{name: ^name}, _, _, %{name: "uid"}]},
+        ] = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} = 'bob'").noise_layers
+      end
+
+      test "IN (many, values) on column #{column}" do
+        result = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} IN ('a', 'b')")
+
+        assert [
+          %{base: {"string_uid_table", unquote(column), nil}, expressions: [%{name: unquote(column)}, _, _]},
+          %{base: {"string_uid_table", unquote(column), nil}, expressions: [%{value: "a"}, _, _, %{name: "uid"}]},
+          %{base: {"string_uid_table", unquote(column), nil}, expressions: [%{value: "b"}, _, _, %{name: "uid"}]},
         ] = result.noise_layers
+      end
+
+      for function <- ~w(upper lower) do
+        test "#{function}(x) IN (many, values) on column #{column}" do
+          result = compile!("""
+            SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(function)}(#{unquote(column)}) IN ('a', 'b')
+          """)
+
+          assert [
+            %{base: {"string_uid_table", unquote(column), nil}, expressions: [%{name: unquote(column)}, _, _]},
+            %{base: {"string_uid_table", unquote(column), nil}, expressions: [%{value: "a"}, _, _, %{name: "uid"}]},
+            %{base: {"string_uid_table", unquote(column), nil}, expressions: [%{value: "b"}, _, _, %{name: "uid"}]},
+          ] = result.noise_layers
+        end
       end
     end
   end
@@ -669,6 +703,29 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         %Expression{name: ^count_alias}
       ]}, &1))
     end
+
+    test "floating aggregated boolean columns " do
+      result = compile!("""
+        SELECT COUNT(*) FROM (SELECT uid FROM
+          (SELECT uid FROM table WHERE dummy = true GROUP BY uid, dummy) foo
+        GROUP BY uid) bar
+      """)
+
+      %{from: {:subquery, %{ast: subquery}}} = result
+
+      assert 1 = Enum.count(subquery.db_columns,
+        &match?(%Expression{function: {:cast, :boolean}, function_args: [
+            %Expression{function: "min", function_args: [
+              %Expression{function: {:cast, :integer}, function_args: [%Expression{type: :boolean}]}
+            ]}
+          ]}, &1))
+      assert 1 = Enum.count(subquery.db_columns,
+        &match?(%Expression{function: {:cast, :boolean}, function_args: [
+            %Expression{function: "max", function_args: [
+              %Expression{function: {:cast, :integer}, function_args: [%Expression{type: :boolean}]}
+            ]}
+          ]}, &1))
+    end
   end
 
   describe "noise layer base data" do
@@ -805,7 +862,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
           db_name: "key_table",
           columns: [Table.column("uid", :integer), Table.column("table_id", :integer)],
           keys: ["table_id"],
-        )
+        ),
+
+        string_uid_table: Cloak.DataSource.Table.new("string_uid_table", "uid",
+          db_name: "string_uid_table",
+          columns: [
+            Table.column("uid", :text),
+            Table.column("string", :text),
+          ]
+        ),
       }
     }
   end

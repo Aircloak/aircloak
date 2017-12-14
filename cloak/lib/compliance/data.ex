@@ -90,7 +90,7 @@ defmodule Compliance.Data do
         addresses: generate_addresses(cities),
         notes: generate_notes(words),
       }
-    end)
+    end, timeout: :timer.minutes(10))
     |> Enum.map(fn({:ok, user}) ->
       output_progress(user.id, num_users)
       user

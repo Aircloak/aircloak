@@ -50,8 +50,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp column_sql(:*, _sql_dialect_module), do: "*"
   defp column_sql({:distinct, column}, sql_dialect_module), do: ["DISTINCT ", column_sql(column, sql_dialect_module)]
-  defp column_sql(%Expression{alias: alias} = column, sql_dialect_module)
-      when alias != nil and alias != "", do:
+  defp column_sql(%Expression{alias: alias} = column, sql_dialect_module) when alias != nil and alias != "", do:
     [column_sql(%Expression{column | alias: nil}, sql_dialect_module), " AS ", quote_name(alias, sql_dialect_module)]
   defp column_sql(%Expression{function?: true, function: fun_name, type: type, function_args: args}, sql_dialect_module)
     when fun_name in ["+", "-"] and type in [:time, :date, :datetime],
@@ -61,9 +60,9 @@ defmodule Cloak.DataSource.SqlBuilder do
     function?: true, function: "-", type: :interval, function_args: args
   }, sql_dialect_module), do:
     sql_dialect_module.date_subtraction_expression(Enum.map(args, &to_fragment(&1, sql_dialect_module)))
-  defp column_sql(%Expression{function?: true, function: fun_name, function_args: args}, sql_dialect_module)
-    when fun_name != nil,
-  do:
+  defp column_sql(%Expression{function: {:cast, to_type}, function_args: [arg]}, sql_dialect_module), do:
+    arg |> to_fragment(sql_dialect_module) |> sql_dialect_module.cast_sql(arg.type, to_type)
+  defp column_sql(%Expression{function?: true, function: fun_name, function_args: args}, sql_dialect_module), do:
     Support.function_sql(fun_name, Enum.map(args, &to_fragment(&1, sql_dialect_module)), sql_dialect_module)
   defp column_sql(%Expression{constant?: true, type: :like_pattern, value: value}, _sql_dialect_module), do:
     like_pattern_to_fragment(value)
@@ -74,7 +73,7 @@ defmodule Cloak.DataSource.SqlBuilder do
       DataDecoder.encoded_type(column) == :text ->
         # Force casting to text ensures we consistently fetch a string column as unicode, regardless of how it's
         # represented in the database (VARCHAR or NVARCHAR).
-        Support.function_sql({:cast, :text}, [column_name(column, sql_dialect_module)], sql_dialect_module)
+        column |> column_name(sql_dialect_module) |> sql_dialect_module.cast_sql(:text, :text)
       column.type == :unknown ->
         sql_dialect_module.cast_unknown_sql(column_name(column, sql_dialect_module))
       true ->

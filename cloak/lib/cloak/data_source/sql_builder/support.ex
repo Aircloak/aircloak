@@ -10,12 +10,12 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
 
   @doc "Generates SQL for a function invocation. Provided arguments list must contain SQL fragments."
   @spec function_sql(Expression.function_name, [iodata], atom) :: iodata
-  def function_sql({:cast, type}, [arg], sql_dialect_module), do:
-    sql_dialect_module.cast_sql(arg, type)
   for name <- ~w(round floor ceil ceiling trunc) do
     def function_sql(unquote(name), [arg], sql_dialect_module) do
-      result = sql_dialect_module.function_sql(synonym(unquote(name)), [arg])
-      function_sql({:cast, :integer}, [result], sql_dialect_module)
+      unquote(name)
+      |> synonym()
+      |> sql_dialect_module.function_sql([arg])
+      |> sql_dialect_module.cast_sql(:real, :integer)
     end
   end
   def function_sql(name, args, sql_dialect_module), do:

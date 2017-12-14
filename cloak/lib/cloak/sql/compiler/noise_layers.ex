@@ -6,6 +6,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   use Lens.Macros
 
+  @noise_layer_alias_fix_part "__ac_nlc__"
+
 
   # -------------------------------------------------------------------
   # API
@@ -134,9 +136,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       do: %{noise_layer | expressions: [min_of_min(min), max_of_max(max), sum_of_count(min, count), user_id]},
       else: noise_layer
 
+  defp cast(expression, type), do: Expression.function({:cast, type}, [expression], type)
+
+  defp min_of_min(%Expression{type: :boolean} = min), do:
+    min |> cast(:integer) |> min_of_min() |> cast(:boolean)
   defp min_of_min(min), do:
     Expression.function("min", [Expression.unalias(min)], min.type, _aggregate = true)
 
+  defp max_of_max(%Expression{type: :boolean} = max), do:
+    max |> cast(:integer) |> max_of_max() |> cast(:boolean)
   defp max_of_max(max), do:
     Expression.function("max", [Expression.unalias(max)], max.type, _aggregate = true)
 
@@ -182,7 +190,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     case Enum.find(selected_columns, &expression == Expression.unalias(&1)) do
       nil ->
         index = Enum.find_index(all_expressions, &expression == &1)
-        %Expression{expression | alias: "__ac_nlc__#{index}"}
+        %Expression{expression | alias: "#{@noise_layer_alias_fix_part}#{index}"}
       expression -> expression
     end
   end
@@ -374,7 +382,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp raw_columns(lens \\ Lens.root(), data), do:
     lens
     |> Query.Lenses.leaf_expressions()
-    |> Lens.satisfy(&match?(%Expression{user_id?: false, constant?: false, function?: false}, &1))
+    |> Lens.satisfy(&match?(%Expression{constant?: false, function?: false}, &1))
     |> Lens.to_list(data)
 
   defp uid_noise_layer(base_column, layer_expression, top_level_uid, extras \\ nil) do
@@ -419,7 +427,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(& not Condition.in?(&1))
     |> Lens.satisfy(& not Condition.like?(&1))
     |> Lens.satisfy(& not fk_pk_condition?(&1))
-    |> Lens.both(Lens.key(:group_by))
+    |> Lens.satisfy(& not uid_null_conditions?(&1))
+    |> Lens.both(non_uid_group_by_clauses())
+
+  deflensp non_uid_group_by_clauses(), do:
+    Lens.key(:group_by)
+    |> Lens.all()
+    |> Lens.satisfy(& not match?(%Expression{user_id?: true}, &1))
 
   deflensp non_range_conditions(query), do:
     Query.Lenses.db_filter_clauses()
@@ -442,12 +456,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.satisfy(& not &1.user_id?)
 
   defp clear_condition?({:comparison,
-    %Expression{user_id?: false, function?: false, constant?: false}, :=, %Expression{constant?: true}}), do: true
+    %Expression{function?: false, constant?: false}, :=, %Expression{constant?: true}}), do: true
   defp clear_condition?(_), do: false
 
   defp fk_pk_condition?({:comparison, lhs, :=, rhs}), do:
     Expression.key?(lhs) and Expression.key?(rhs)
   defp fk_pk_condition?(_), do: false
+
+  defp uid_null_conditions?({:not, {:is, %Expression{user_id?: true}, :null}}), do: true
+  defp uid_null_conditions?({:is, %Expression{user_id?: true}, :null}), do: true
+  defp uid_null_conditions?(_), do: false
 
   defp table_name(_virtual_table = %{db_name: nil, name: name}), do: name
   defp table_name(table), do: table.db_name

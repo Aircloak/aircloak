@@ -32,7 +32,7 @@ defmodule Compliance.DataSources do
   def setup(data_sources, data), do:
     data_sources
     |> Enum.map(&Task.async(fn -> setup_datasource(&1, data) end))
-    |> Enum.each(&Task.await(&1, :timer.minutes(2)))
+    |> Enum.each(&Task.await(&1, :timer.minutes(5)))
 
   @doc "Takes a rawling data source definition and expands it with table definitions"
   @spec complete_data_source_definitions([DataSource.t]) :: [DataSource.t]
