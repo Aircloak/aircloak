@@ -58,7 +58,7 @@ Where:
 
 - `target_type` is either `branch` or `pr`
 - `target_id` is branch name or PR number
-- `job_name` is one of `cloak_test`, `compliance`
+- `job_name` is one of `cloak_compile`, `cloak_test`, `compliance`
 
 For example, to restart the cloak_test build for branch `my_branch`, you can invoke:
 

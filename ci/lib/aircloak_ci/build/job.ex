@@ -45,7 +45,7 @@ defmodule AircloakCI.Build.Job do
         LocalProject.log(project, log_name(queue, opts), "entered queue `#{queue}`")
         result =
           if Enum.member?(Application.get_env(:aircloak_ci, :simulation, []), queue) do
-            IO.puts("simulating #{queue}")
+            IO.puts("simulating job #{log_name(queue, opts)}")
             :timer.sleep(:timer.seconds(1))
             :ok
           else
@@ -55,6 +55,16 @@ defmodule AircloakCI.Build.Job do
         maybe_report_result(queue, opts, result)
         result
       end
+    )
+  end
+
+  @doc "Builds the docker image for the given component by running the given command."
+  @spec build_docker_image(LocalProject.t, String.t, String.t) :: :ok | {:error, String.t}
+  def build_docker_image(project, component_name, build_command) do
+    log_name = "#{component_name}_docker_build"
+    run_queued(:docker_build, project,
+      fn -> LocalProject.cmd(project, log_name, build_command, timeout: :timer.hours(1)) end,
+      log_name: log_name
     )
   end
 
@@ -80,7 +90,7 @@ defmodule AircloakCI.Build.Job do
     end)
   end
 
-  defp handle_exit(:normal, _project, _queue, _opts), do: :ok
+  defp handle_exit(normal, _project, _queue, _opts) when normal in [:normal, :shutdown], do: :ok
   defp handle_exit(crash_reason, project, queue, opts) do
     maybe_report_result(queue, opts, :failure, crash_reason)
     LocalProject.log(project, log_name(queue, opts), "crashed: #{Exception.format_exit(crash_reason)}")

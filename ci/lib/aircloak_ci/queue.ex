@@ -3,12 +3,19 @@ defmodule AircloakCI.Queue do
 
   require Logger
 
-  @type id :: :compile | :standard_test | :compliance
+  @type id :: :docker_build | :compile | :standard_test | :compliance
 
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @doc "Sets up the CI queues."
+  @spec create_queues() :: :ok
+  def create_queues() do
+    for {id, spec} <- Application.fetch_env!(:aircloak_ci, :queues), do: :jobs.add_queue(id, spec)
+    :ok
+  end
 
   @doc """
   Waits in the given queue, executes the function when approved, and returns the function result.
@@ -24,30 +31,4 @@ defmodule AircloakCI.Queue do
       :jobs.done(ref)
     end
   end
-
-  @doc "Sets up the CI queues."
-  @spec create_queues() :: :ok
-  def create_queues(), do:
-    Enum.each([:compile, :standard_test, :compliance], &add_queue/1)
-
-
-  # -------------------------------------------------------------------
-  # Queue specifications
-  # -------------------------------------------------------------------
-
-  defp add_queue(id), do:
-    :jobs.add_queue(id, spec(id))
-
-  defp spec(:compile), do:
-    queue_spec(concurrency: 5, max_waiting_time: :timer.hours(1))
-  defp spec(:standard_test), do:
-    queue_spec(concurrency: 20, max_waiting_time: :timer.hours(1))
-  defp spec(:compliance), do:
-    queue_spec(concurrency: 1, max_waiting_time: :timer.hours(1))
-
-  defp queue_spec(opts), do:
-    [
-      max_time: Keyword.get(opts, :max_waiting_time, :undefined),
-      regulators: [counter: [limit: Keyword.fetch!(opts, :concurrency)]]
-    ]
 end

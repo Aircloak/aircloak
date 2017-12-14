@@ -16,8 +16,8 @@ defmodule AircloakCI.Build.Component.Cloak do
   def name(), do: "cloak"
 
   @impl Job.Compile
-  def compile(project, _name, log_name) do
-    with :ok <- build_cloak_image(project, log_name), do:
+  def compile(project, _name, _log_name) do
+    with :ok <- build_cloak_image(project), do:
       compile_cloak(LocalProject.ci_version(project), project)
   end
 
@@ -37,7 +37,7 @@ defmodule AircloakCI.Build.Component.Cloak do
       &start_test(LocalProject.ci_version(project), &1, self(), project, source)
     )
 
-  defp start_test(ci_version, build_state, build_server, project, source) when ci_version >= 2, do:
+  defp start_test(ci_version, build_state, build_server, project, source) when ci_version >= 3, do:
     Build.Server.start_job(
       build_state,
       standard_test_job_name(),
@@ -52,33 +52,17 @@ defmodule AircloakCI.Build.Component.Cloak do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp build_cloak_image(project, log_name), do:
-    LocalProject.cmd(project, log_name, "ci/scripts/run.sh build_cloak", timeout: :timer.hours(1))
+  defp build_cloak_image(project), do:
+    Job.build_docker_image(project, "cloak", "ci/scripts/run.sh build_cloak")
 
-  defp compile_cloak(1, _project), do: :ok
-  defp compile_cloak(ci_version, project) when ci_version >= 2, do:
-    run_in_cloak(project, [
-      "make deps",
-      "MIX_ENV=dev mix compile",
-      "MIX_ENV=test mix compile",
-      "MIX_ENV=prod mix compile",
-    ])
+  defp compile_cloak(ci_version, project) when ci_version >= 3, do:
+    run_in_cloak(project, commands(project, :compile))
+  defp compile_cloak(_, _project), do: :ok
 
   defp run_standard_test(build_server, project), do:
     Job.run_queued(:standard_test, project,
       fn ->
-        with {:error, reason} <-
-          run_in_cloak(project, [
-            "MIX_ENV=dev mix compile --force --warnings-as-errors",
-            "MIX_ENV=test mix compile --force --warnings-as-errors",
-            "MIX_ENV=prod mix compile --force --warnings-as-errors",
-            "mix lint",
-            "MIX_ENV=test mix lint",
-            # hacky solution for recreating the test database
-            "MIX_ENV=test mix gen.test_data dockerized_ci 1",
-            "mix test",
-          ])
-        do
+        with {:error, reason} <- run_in_cloak(project, commands(project, :standard_test)) do
           LocalProject.log(project, standard_test_job_name(), "error: #{reason}")
           :error
         end
@@ -95,4 +79,14 @@ defmodule AircloakCI.Build.Component.Cloak do
         "ci/scripts/run.sh run_in_cloak_test #{cmds |> Stream.map(&~s("#{&1}")) |> Enum.join(" ")}",
         timeout: :timer.hours(1)
       )
+
+  defp commands(project, type) do
+    {commands_map, _} =
+      project
+      |> LocalProject.src_folder()
+      |> Path.join("ci/scripts/cloak_commands.exs")
+      |> Code.eval_file()
+
+    Map.get(commands_map, type, [])
+  end
 end

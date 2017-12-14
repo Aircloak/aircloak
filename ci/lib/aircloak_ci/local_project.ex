@@ -23,7 +23,7 @@ defmodule AircloakCI.LocalProject do
   # -------------------------------------------------------------------
 
   @doc "Returns the full path to the log file for the given target and job."
-  @spec log_path(String.t, String.t) :: String.t
+  @spec log_path(String.t, String.t, String.t) :: String.t
   def log_path("branch", name, job_name), do:
     Path.join([logs_folder(), branch_folder_name(name), "#{job_name}.log"])
   def log_path("pr", number, job_name), do:
@@ -191,16 +191,6 @@ defmodule AircloakCI.LocalProject do
   def forced?(project, job_name), do:
     state(project).forced_jobs[job_name] == project.target_sha
 
-  @doc "Marks the project component as compiled."
-  @spec mark_compiled(t, String.t) :: :ok
-  def mark_compiled(project, component), do:
-    update_state(project, &put_in(&1.compiled_components[component], current_sha(project)))
-
-  @doc "Returns true if the project component is compiled."
-  @spec compiled?(t, String.t) :: boolean
-  def compiled?(project, component), do:
-    up_to_date?(project) and state(project).compiled_components[component] == project.target_sha
-
   @doc "Executes the command in the project folder."
   @spec cmd(t, String.t, String.t, CmdRunner.opts) :: :ok | {:error, String.t}
   def cmd(project, log_name, cmd, opts \\ []), do:
@@ -225,6 +215,11 @@ defmodule AircloakCI.LocalProject do
       [{:error, _reason} = error] -> error
     end
   end
+
+  @doc "Returns the folder where the source files of the project are contained."
+  @spec src_folder(t) :: String.t
+  def src_folder(project), do:
+    Path.join(project.build_folder, "src")
 
 
   # -------------------------------------------------------------------
@@ -259,9 +254,6 @@ defmodule AircloakCI.LocalProject do
 
   defp state_file(project), do:
     Path.join(project.build_folder, "state_2")
-
-  defp src_folder(project), do:
-    Path.join(project.build_folder, "src")
 
   defp git_folder(project), do:
     Path.join(src_folder(project), ".git")

@@ -94,39 +94,15 @@ function ensure_database_containers {
     microsoft/mssql-server-linux:2017-latest
 }
 
-function release_lock {
-  local exit_status=$?
-
-  # We'll ignore subsequent exit signals to avoid reentrancy.
-  trap ignore_cleanup EXIT TERM INT
-
-  echo "releasing lock for cloak image build"
-  rm -f /tmp/cloak_image_build
-  exit $exit_status
-}
-
-function lock_and_build_cloak_image {
-  if [ $(uname -s) != "Darwin" ]; then
-    echo "acquiring lock for cloak image build"
-    if lockfile -1 -r 3600 /tmp/cloak_image_build; then
-      trap release_lock EXIT TERM INT
-    else
-      echo "couldn't acquire lock"
-      exit 1
-    fi
-  else
-    touch "/tmp/cloak_image_build"
-    trap release_lock EXIT TERM INT
-  fi
-
-  pushd ./cloak && make odbc_drivers && popd
-  common/docker/elixir/build-image.sh
-  build_aircloak_image ci_cloak ci/docker/cloak.dockerfile ci/docker/.cloak.dockerignore
-}
-
 function build_cloak_image {
-  # running build in a separate shell to ensure proper cleanup (removal of lock)
-  bash -c ". ./ci/scripts/cloak.sh && lock_and_build_cloak_image"
+  pushd ./cloak && make odbc_drivers && popd
+
+  # Only build image if it doesn't exist. Since images are tagged with the git sha, the existing image is exactly
+  # the one we need.
+  if [ "$(docker images | grep $(git_head_image_tag))" == "" ]; then
+    common/docker/elixir/build-image.sh
+    build_aircloak_image ci_cloak ci/docker/cloak.dockerfile ci/docker/.cloak.dockerignore
+  fi
 }
 
 function start_cloak_container {
@@ -156,7 +132,7 @@ function start_cloak_container {
 
   export CLOAK_CONTAINER=$(
     docker run -d --network=$CLOAK_NETWORK_ID $mounts -e CLOAK_DATA_SOURCES="$CLOAK_DATA_SOURCES" \
-      aircloak/ci_cloak:$(git_head_image_tag) sleep infinity
+      aircloak/ci_cloak:$(git_head_image_tag) sleep 3600
   )
 }
 
@@ -202,7 +178,9 @@ function run_in_cloak_test {
   export POSTGRESQL_CONTAINER=$(docker run --detach postgres:9.4)
   docker network connect --alias postgres9.4 $CLOAK_NETWORK_ID $POSTGRESQL_CONTAINER
   for cmd in "$@"; do
+    echo "--------------"
     echo "invoking $cmd"
     run_in_cloak "$cmd"
+    echo ""
   done
 }
