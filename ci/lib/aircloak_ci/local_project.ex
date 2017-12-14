@@ -226,6 +226,18 @@ defmodule AircloakCI.LocalProject do
   def src_folder(project), do:
     Path.join(project.build_folder, "src")
 
+  @doc "Retrieves the list of commands for the given job."
+  @spec commands(t, String.t, atom) :: [String.t]
+  def commands(project, component, job) do
+    {commands_map, _} =
+      project
+      |> src_folder()
+      |> Path.join("ci/scripts/#{component}_commands.exs")
+      |> Code.eval_file()
+
+    Map.get(commands_map, job, [])
+  end
+
 
   # -------------------------------------------------------------------
   # Build folders

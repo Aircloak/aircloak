@@ -1,7 +1,7 @@
   defmodule AircloakCI.Build.Job.Compliance do
   @moduledoc "Execution of the compliance test suite."
 
-  alias AircloakCI.{Build, LocalProject}
+  alias AircloakCI.{Container, Build, LocalProject}
   alias AircloakCI.Build.Job
 
 
@@ -69,11 +69,26 @@
 
   defp run_test(build_server, project) do
     Job.run_queued(:compliance, project,
-      fn -> execute_compliance(project) end,
+      fn -> execute_compliance(LocalProject.ci_version(project), project) end,
       report_result: build_server
     )
   end
 
-  defp execute_compliance(project), do:
+  defp execute_compliance(ci_version, project) when ci_version < 4, do:
     LocalProject.cmd(project, "compliance", "ci/scripts/run.sh cloak_compliance", timeout: :timer.hours(1))
+  defp execute_compliance(ci_version, project) when ci_version >= 4, do:
+    Container.with(
+        script(project),
+        LocalProject.log_file(project, "compliance"),
+        fn(cloak) ->
+          with :ok <- prepare_for_compliance(cloak), do:
+            Container.exec(cloak, LocalProject.commands(project, "cloak", :compliance), timeout: :timer.hours(1))
+        end
+      )
+
+  defp prepare_for_compliance(cloak), do:
+    Container.invoke_script(cloak, "prepare_for_compliance #{cloak.name}", timeout: :timer.minutes(30))
+
+  defp script(project), do:
+    project |> LocalProject.src_folder() |> Path.join("ci/scripts/cloak.sh")
 end

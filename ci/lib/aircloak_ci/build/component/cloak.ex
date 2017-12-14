@@ -80,18 +80,24 @@ defmodule AircloakCI.Build.Component.Cloak do
     project |> LocalProject.src_folder() |> Path.join("ci/scripts/cloak.sh")
 
   defp compile_cloak(3, project), do:
-    run_in_cloak(project, commands(project, :compile))
+    run_in_cloak(project, LocalProject.commands(project, "cloak", :compile))
   defp compile_cloak(ci_version, project) when ci_version >= 4, do:
     Container.with(
       script(project),
       LocalProject.log_file(project, "cloak_compile"),
-      &Container.exec(&1, commands(project, :compile), timeout: :timer.hours(1))
+      &Container.exec(&1, LocalProject.commands(project, "cloak", :compile), timeout: :timer.hours(1))
     )
   defp compile_cloak(_, _project), do: :ok
 
   defp run_standard_test(build_server, project), do:
     Job.run_queued(:standard_test, project,
-      fn -> run_test_commands(LocalProject.ci_version(project), project, commands(project, :standard_test)) end,
+      fn ->
+        run_test_commands(
+          LocalProject.ci_version(project),
+          project,
+          LocalProject.commands(project, "cloak", :standard_test)
+        )
+      end,
       job_name: standard_test_job_name(),
       log_name: standard_test_job_name(),
       report_result: build_server,
@@ -117,14 +123,4 @@ defmodule AircloakCI.Build.Component.Cloak do
         "ci/scripts/run.sh run_in_cloak_test #{cmds |> Stream.map(&~s("#{&1}")) |> Enum.join(" ")}",
         timeout: :timer.hours(1)
       )
-
-  defp commands(project, type) do
-    {commands_map, _} =
-      project
-      |> LocalProject.src_folder()
-      |> Path.join("ci/scripts/cloak_commands.exs")
-      |> Code.eval_file()
-
-    Map.get(commands_map, type, [])
-  end
 end
