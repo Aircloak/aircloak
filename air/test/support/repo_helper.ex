@@ -65,6 +65,18 @@ defmodule Air.TestRepoHelper do
     |> Repo.insert!()
   end
 
+  @doc "Inserts a new monitoring token the database."
+  @spec create_monitoring_token!() :: String.t
+  def create_monitoring_token!() do
+    user = create_admin_user!()
+    token = %ApiToken{}
+    |> ApiToken.changeset(%{user_id: user.id, access: :monitoring, description: "some description"})
+    |> Repo.insert!()
+
+    salt = Application.get_env(:air, AirWeb.Endpoint) |> Keyword.fetch!(:api_token_salt)
+    Phoenix.Token.sign(AirWeb.Endpoint, salt, token.id)
+  end
+
   @doc "Inserts a test query into the database"
   @spec create_query!(Air.Schemas.User.t, %{}) :: Air.Schemas.Query.t
   def create_query!(user, params \\ %{statement: "query content", session_id: Ecto.UUID.generate()}), do:
