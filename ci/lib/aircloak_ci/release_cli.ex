@@ -18,7 +18,7 @@ defmodule AircloakCI.ReleaseCLI do
   @doc "Prints the build log of the given pull request."
   @spec print_build_log(String.t, String.t, String.t) :: :ok
   def print_build_log(target_type, target_id, job_name) do
-    case File.read(AircloakCI.LocalProject.log_path(target_type, target_id, job_name)) do
+    case File.read(AircloakCI.LocalProject.log_file(target_type, target_id, job_name)) do
       {:ok, contents} -> IO.puts contents
       {:error, _} -> :ok
     end

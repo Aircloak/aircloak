@@ -64,16 +64,6 @@ defmodule AircloakCI.Build.Job do
     )
   end
 
-  @doc "Builds the docker image for the given component by running the given command."
-  @spec build_docker_image(LocalProject.t, String.t, String.t) :: :ok | {:error, String.t}
-  def build_docker_image(project, component_name, build_command) do
-    log_name = "#{component_name}_docker_build"
-    run_queued(:docker_build, project,
-      fn -> LocalProject.cmd(project, log_name, build_command, timeout: :timer.hours(1)) end,
-      log_name: log_name
-    )
-  end
-
 
   # -------------------------------------------------------------------
   # Internal functions
