@@ -106,7 +106,7 @@ defmodule AircloakCI.LocalProject do
           Logger.info("simulating compliance execution")
           :timer.sleep(:timer.seconds(1))
         else
-          cmd(project, "ci/scripts/run.sh cloak_compliance", timeout: :timer.minutes(10))
+          cmd(project, "ci/scripts/run.sh cloak_compliance", timeout: :timer.hours(1))
         end
       end
     )
