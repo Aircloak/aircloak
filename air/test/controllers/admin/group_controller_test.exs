@@ -1,4 +1,4 @@
-defmodule AirWeb.Admin.GroupControllerTest do
+defmodule AirWeb.Admin.GroupController.Test do
   use AirWeb.ConnCase, async: true
 
   import Air.TestConnHelper
