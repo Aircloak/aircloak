@@ -9,5 +9,5 @@ use Mix.Config
 # Disables noisy console output for each build.
 # config :aircloak_ci, cmd_runner: [console_out: false]
 
-# Simulates compliance execution by sleeping for 1 second. Can be useful to to reduce the build time in local dev.
-config :aircloak_ci, :simulate_compliance, true
+# This can be used to simulate various tests by sleeping for 1 second, and thus reduce the execution in dev.
+config :aircloak_ci, :simulation, [:compliance, :standard_test]

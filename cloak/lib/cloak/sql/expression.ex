@@ -232,10 +232,10 @@ defmodule Cloak.Sql.Expression do
     %__MODULE__{expression | value: String.downcase(value)}
   def lowercase(%__MODULE__{type: :text} = expression), do:
     function("lower", [expression], expression.type)
-  def lowercase(%__MODULE__{type: :like_pattern, value: {pattern, escape}} = expression), do:
-    %__MODULE__{expression | value: {String.downcase(pattern), escape}}
+  def lowercase(%__MODULE__{type: :like_pattern, value: pattern} = expression), do:
+    %__MODULE__{expression | value: LikePattern.lowercase(pattern)}
   def lowercase(_), do:
-    raise "Only textual expression can be made lowercase"
+    raise "Only textual expressions can be made lowercase"
 
 
   # -------------------------------------------------------------------

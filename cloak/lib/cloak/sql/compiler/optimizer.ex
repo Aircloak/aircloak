@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler.Optimizer do
   @moduledoc "Module for optimizing query execution."
 
-  alias Cloak.Sql.{Expression, Query}
+  alias Cloak.Sql.{Expression, Query, Condition}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
 
@@ -21,9 +21,10 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp optimize_query(query) do
-    optimize_columns_from_subqueries(query)
-  end
+  defp optimize_query(query), do:
+    query
+    |> optimize_joins()
+    |> optimize_columns_from_subqueries()
 
   defp optimize_columns_from_subqueries(query), do:
     Lens.map(
@@ -32,15 +33,14 @@ defmodule Cloak.Sql.Compiler.Optimizer do
       &%{&1 | ast: optimized_subquery_ast(&1.ast, used_columns_from_table(query, &1.alias))}
     )
 
-  defp used_columns_from_table(query, table_name) do
+  defp used_columns_from_table(query, table_name), do:
     # all db columns of the outer query which are from this table, except the user id
-    all_terminals = Lens.both(Lenses.terminals(), Lenses.join_conditions_terminals()) |> Lens.to_list(query)
-    Lenses.leaf_expressions()
-    |> Lens.to_list(all_terminals)
+    Lens.both(Lenses.terminals(), Lenses.join_conditions_terminals())
+    |> Lenses.leaf_expressions()
+    |> Lens.to_list(query)
     |> Enum.filter(& &1.table != :unknown and &1.table.name == table_name)
     |> Enum.uniq_by(&Expression.id/1)
     |> Enum.map(& &1.name)
-  end
 
   defp optimized_subquery_ast(ast, required_column_names) do
     {columns, column_titles} =
@@ -48,5 +48,45 @@ defmodule Cloak.Sql.Compiler.Optimizer do
       |> Enum.filter(fn ({column, column_name}) -> column.user_id? or column_name in required_column_names end)
       |> Enum.unzip()
     %Query{ast | columns: columns, column_titles: column_titles}
+  end
+
+  defp optimize_joins(query), do:
+    Lens.map(Lenses.joins(), query, &push_down_simple_conditions/1)
+
+  defp push_down_simple_conditions(join) do
+    {lhs, conditions} = move_simple_conditions_in_subquery(join.lhs, join.conditions)
+    {rhs, conditions} = move_simple_conditions_in_subquery(join.rhs, conditions)
+    %{join | lhs: lhs, rhs: rhs, conditions: conditions}
+  end
+
+  defp move_simple_conditions_in_subquery({:subquery, subquery}, conditions) do
+    {simple_conditions, other_conditions} = Condition.partition(conditions, &condition_from_table?(&1, subquery.alias))
+    simple_conditions = replace_columns_in_conditions(simple_conditions, subquery.ast)
+    ast = case subquery.ast.group_by do
+      [] -> %Query{subquery.ast | where: Condition.combine(:and, subquery.ast.where, simple_conditions)}
+      _ -> %Query{subquery.ast | having: Condition.combine(:and, subquery.ast.having, simple_conditions)}
+    end
+    {{:subquery, %{subquery | ast: ast}}, other_conditions}
+  end
+  defp move_simple_conditions_in_subquery(branch, conditions), do: {branch, conditions}
+
+  defp condition_from_table?(condition, table_name) do
+    Query.Lenses.conditions_terminals()
+    |> Lens.satisfy(&not &1.constant?)
+    |> Lens.to_list(condition)
+    |> case do
+      [%Expression{table: %{name: ^table_name}}] -> true
+      _ -> false
+    end
+  end
+
+  defp replace_columns_in_conditions(conditions, query) do
+    Query.Lenses.conditions_terminals()
+    |> Lens.satisfy(&not &1.constant?)
+    |> Lens.map(conditions, &lookup_column_in_query(&1.name, query))
+  end
+
+  defp lookup_column_in_query(name, query) do
+    Enum.fetch!(query.columns, Enum.find_index(query.column_titles, & &1 == name))
   end
 end

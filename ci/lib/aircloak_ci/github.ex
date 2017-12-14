@@ -20,20 +20,20 @@ defmodule AircloakCI.Github do
   def repo_data(owner, repo), do:
     sync_request!(:repo_data, [owner, repo], type: :read)
 
-  @doc "Returns the data for the given pull request."
-  @spec pull_request(String.t, String.t, integer) :: Github.API.pull_request
-  def pull_request(owner, repo, number), do:
-    sync_request!(:pull_request, [owner, repo, number], type: :read)
-
   @doc "Sets the status check state for the given owner/repo/sha."
   @spec put_status_check_state(String.t, String.t, String.t, String.t, String.t, Github.API.status_check_state) :: :ok
   def put_status_check_state(owner, repo, sha, context, description, state), do:
     async_request(:put_status_check_state, [owner, repo, sha, context, description, state], type: :write)
 
   @doc "Posts a comment to the given issue or pull request."
-  @spec post_comment(String.t, String.t, number, String.t) :: :ok
-  def post_comment(owner, repo, issue_number, body), do:
-    async_request(:post_comment, [owner, repo, issue_number, body], type: :write)
+  @spec comment_on_issue(String.t, String.t, pos_integer, String.t) :: :ok
+  def comment_on_issue(owner, repo, issue_number, body), do:
+    async_request(:comment_on_issue, [owner, repo, issue_number, body], type: :write)
+
+  @doc "Posts a comment to the given issue or pull request."
+  @spec comment_on_commit(String.t, String.t, number, String.t) :: :ok
+  def comment_on_commit(owner, repo, sha, body), do:
+    async_request(:comment_on_commit, [owner, repo, sha, body], type: :write)
 
 
   # -------------------------------------------------------------------
@@ -44,7 +44,7 @@ defmodule AircloakCI.Github do
   def init(nil) do
     Process.flag(:trap_exit, true)
     enqueue_clear()
-    :timer.send_interval(:timer.minutes(1), :log_rate_limits)
+    :timer.send_interval(:timer.minutes(10), :log_rate_limits)
     {:ok, %{clear?: false, current_request: nil, request_job: nil, queue: :queue.new(), rate_limits: %{}}}
   end
 
