@@ -70,6 +70,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   # API
   # -------------------------------------------------------------------
 
+  @doc "Returns the Type struct for the given column in the context of the given query."
+  @spec establish_type(Expression.t, Query.t) :: t
   def establish_type(column, query)
   def establish_type(:null, _query), do: constant()
   def establish_type({:distinct, column}, query), do: establish_type(column, query)
