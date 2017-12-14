@@ -1,4 +1,4 @@
-defmodule AirWeb.Admin.CentralControllerTest do
+defmodule AirWeb.Admin.CentralController.Test do
   use AirWeb.ConnCase, async: false
 
   import Air.{TestRepoHelper, TestConnHelper}
