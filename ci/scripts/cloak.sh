@@ -94,7 +94,7 @@ function run_in_container {
   shift || true
 
   cmd=". ~/.asdf/asdf.sh && $@"
-  docker exec $DOCKER_EXEC_ARGS -i -e DEFAULT_SAP_HANA_SCHEMA="TEST_SCHEMA_$container_name" $cloak_container \
+  docker exec $DOCKER_EXEC_ARGS -i -e DEFAULT_SAP_HANA_SCHEMA="TEST_SCHEMA_$cloak_container" $cloak_container \
     /bin/bash -c "$cmd"
 }
 
