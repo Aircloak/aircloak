@@ -110,7 +110,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       if lhs_type.unclear_string_manipulation?, do:
         raise CompilationError, message: "String manipulation functions cannot be combined with other transformations."
 
-      if lhs_type.string_manipulation? and not Type.cast_raw_column?(rhs_type) and not rhs_type.constant?, do:
+      if Type.string_manipulation?(lhs_type) and not Type.cast_raw_column?(rhs_type) and not rhs_type.constant?, do:
         raise CompilationError, message: "Results of string manipulation functions can only be compared to constants."
     end)
 

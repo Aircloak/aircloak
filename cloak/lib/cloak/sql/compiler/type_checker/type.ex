@@ -38,9 +38,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
     # were constant.
     constant_involved?: boolean,
 
-    # True if this expression includes a string manipulation function.
-    string_manipulation?: boolean,
-
     # True if this expression includes a string manipulation function and any other function except for a single cast.
     unclear_string_manipulation?: boolean,
 
@@ -55,7 +52,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
 
   defstruct [
     constant?: false, constant_involved?: false, raw_column?: false, implicit_range: :none,
-    string_manipulation?: false, unclear_string_manipulation?: false,
+    unclear_string_manipulation?: false,
     applied_functions: [], history_of_restricted_transformations: [], history_of_columns_involved: [],
   ]
 
@@ -86,7 +83,12 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   @spec cast_raw_column?(t) :: boolean
   def cast_raw_column?(type), do:
     transformation_count(type, & not Function.cast?(&1)) <= @allowed_clear_funs and
-      transformation_count(type, &Function.cast?(&1)) <= @allowed_clear_casts
+      transformation_count(type, &Function.cast?/1) <= @allowed_clear_casts
+
+  @doc "Returns true if the expression with the given type contains a string manipulation function, false otherwise."
+  @spec string_manipulation?(t) :: boolean
+  def string_manipulation?(type), do:
+    transformation_count(type, &Function.string_manipulation_function?/1) > 0
 
 
   # -------------------------------------------------------------------
@@ -121,8 +123,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
         implicit_range: implicit_range_type(function, child_types),
         constant_involved?: any_touched_by_constant?(child_types) ||
           math_operations_count(applied_functions) >= @math_operations_before_considered_constant,
-        string_manipulation?: Function.string_manipulation_function?(function) or
-          Enum.any?(child_types, & &1.string_manipulation?),
         unclear_string_manipulation?: unclear_string_manipulation?(function, child_types),
         history_of_columns_involved: combined_columns_involved(child_types),
       }
@@ -155,7 +155,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
     string_fun_of_unclear_expression =
       Function.string_manipulation_function?(function) and Enum.any?(child_types, &unclear_modification?/1)
     unclear_transform_of_string_fun_result =
-      not Function.aggregator?(function) and Enum.any?(child_types, & &1.string_manipulation?)
+      not Function.aggregator?(function) and Enum.any?(child_types, &string_manipulation?(&1))
 
     unclear_argument or string_fun_of_unclear_expression or unclear_transform_of_string_fun_result
   end
