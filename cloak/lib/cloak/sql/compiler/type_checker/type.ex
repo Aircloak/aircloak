@@ -30,9 +30,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
     # that has been simply selected into the outer query.
     raw_column?: boolean,
 
-    # True if the expression is a column from the database without any processing other than casts.
-    cast_raw_column?: boolean,
-
     # Whether the type
     # the inverse is not necessarily the case.
     implicit_range: implicit_range_type,
@@ -57,13 +54,15 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   }
 
   defstruct [
-    constant?: false, constant_involved?: false, raw_column?: false,
-    cast_raw_column?: false, implicit_range: :none,
+    constant?: false, constant_involved?: false, raw_column?: false, implicit_range: :none,
     string_manipulation?: false, unclear_string_manipulation?: false,
     applied_functions: [], history_of_restricted_transformations: [], history_of_columns_involved: [],
   ]
 
   @math_operations_before_considered_constant 2
+
+  @allowed_clear_casts 1
+  @allowed_clear_funs 0
 
 
   # -------------------------------------------------------------------
@@ -79,6 +78,15 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   def establish_type(%Expression{constant?: true}, _query), do: constant()
   def establish_type(%Expression{function: nil} = column, query), do: expand_from_subquery(column, query)
   def establish_type(function = %Expression{function?: true}, query), do: type_for_function(function, query)
+
+  @doc """
+  Returns true if the expression with the given type is a column from the database without any processing other than
+  one cast, false otherwise.
+  """
+  @spec cast_raw_column?(t) :: boolean
+  def cast_raw_column?(type), do:
+    transformation_count(type, & not Function.cast?(&1)) <= @allowed_clear_funs and
+      transformation_count(type, &Function.cast?(&1)) <= @allowed_clear_casts
 
 
   # -------------------------------------------------------------------
@@ -97,7 +105,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   defp column(expression), do:
     %Type{
       raw_column?: true,
-      cast_raw_column?: false,
       constant?: false,
       history_of_columns_involved: [expression],
     }
@@ -111,7 +118,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
       applied_functions = [name | Enum.flat_map(child_types, & &1.applied_functions)]
       %Type{
         applied_functions: applied_functions,
-        cast_raw_column?: Function.cast?(function) and match?([%{raw_column?: true}], child_types),
         implicit_range: implicit_range_type(function, child_types),
         constant_involved?: any_touched_by_constant?(child_types) ||
           math_operations_count(applied_functions) >= @math_operations_before_considered_constant,
@@ -129,7 +135,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
       {:implicit_range, :unclear}
     else
       if Function.has_attribute?(function, :implicit_range) do
-        if Enum.all?(child_types, &(&1.cast_raw_column? || &1.constant? || &1.raw_column?)) do
+        if Enum.all?(child_types, &(cast_raw_column?(&1) || &1.constant? || &1.raw_column?)) do
           {:implicit_range, :clear}
         else
           {:implicit_range, :unclear}
@@ -154,8 +160,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
     unclear_argument or string_fun_of_unclear_expression or unclear_transform_of_string_fun_result
   end
 
-  @allowed_clear_casts 1
-  @allowed_clear_funs 0
   defp unclear_modification?(%Type{constant?: true}), do: false
   defp unclear_modification?(type) do
     casts = transformation_count(type, &Function.cast?/1)
