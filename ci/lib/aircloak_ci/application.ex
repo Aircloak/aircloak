@@ -18,6 +18,7 @@ defmodule AircloakCI.Application do
         AircloakCI.CmdRunner.Supervisor,
         AircloakCI.Github,
         AircloakCI.RepoDataProvider,
+        AircloakCI.Container,
         AircloakCI.Build.Service,
         AircloakCI.BuildCleaner
       ],
