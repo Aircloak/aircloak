@@ -107,7 +107,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       lhs_type = Type.establish_type(lhs, query)
       rhs_type = Type.establish_type(rhs, query)
 
-      if lhs_type.unclear_string_manipulation?, do:
+      if Type.unclear_string_manipulation?(lhs_type), do:
         raise CompilationError, message: "String manipulation functions cannot be combined with other transformations."
 
       if Type.string_manipulation?(lhs_type) and not Type.cast_raw_column?(rhs_type) and not rhs_type.constant?, do:
