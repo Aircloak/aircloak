@@ -15,6 +15,14 @@ function build_image {
   build_aircloak_image ci_cloak ci/docker/cloak.dockerfile ci/docker/.cloak.dockerignore
 }
 
+function is_image_built {
+  if [ "$(docker images -q aircloak/ci_cloak:$(git_head_image_tag))" == "" ]; then
+    echo "no"
+  else
+    echo "yes"
+  fi
+}
+
 function start_container {
   container_name=$1
 
@@ -47,6 +55,13 @@ function start_container {
   docker run -d --name $container_name --network=$container_name $mounts $DOCKER_ARGS \
     -e DEFAULT_SAP_HANA_SCHEMA="TEST_SCHEMA_$container_name" \
     aircloak/ci_cloak:$(git_head_image_tag) sleep 3600 > /dev/null
+}
+
+function prepare_for_test {
+  container_name=$1
+  postgres_container_name="${container_name}_postgres"
+  docker run --detach --name "$postgres_container_name" postgres:9.4 > /dev/null
+  docker network connect --alias postgres9.4 $container_name $postgres_container_name
 }
 
 function prepare_for_compliance {
@@ -102,8 +117,16 @@ case "$command" in
     build_image
     ;;
 
+  is_image_built)
+    is_image_built
+    ;;
+
   start_container)
     start_container $@
+    ;;
+
+  prepare_for_test)
+    prepare_for_test $@
     ;;
 
   prepare_for_compliance)
