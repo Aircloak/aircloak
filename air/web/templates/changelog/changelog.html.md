@@ -1,3 +1,9 @@
+## Version 17.3.4
+
+### Bugfixes
+
+- Fixed selection of columns bug from emulated joined queries.
+
 ## Version 17.3.3
 
 ### Bugfixes

@@ -82,7 +82,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
     {columns, rows}
   end
   defp select_columns(stream, query) do
-    columns = Rows.group_expressions(query)
+    columns = Query.bucket_columns(query)
     {columns,
       stream
       |> Stream.map(fn(row) -> Enum.map(columns, &Expression.value(&1, row)) end)
