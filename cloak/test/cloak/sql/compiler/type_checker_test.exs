@@ -136,8 +136,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
         SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING sqrt(COUNT(float)) BETWEEN 0 AND 10) x
       """)
 
-    test "allows clear implicit ranges within another function", do:
-      assert {:ok, _, _} = compile("SELECT abs(ceil(float)) + 1 FROM table")
+    test "forbids implicit ranges within another function", do:
+      assert {:error, "Only unmodified database columns can be limited by a range."} = compile("SELECT abs(ceil(float)) + 1 FROM table")
 
     test "considers cast to integer as an implicit range", do:
       assert {:error, "Only unmodified database columns can be limited by a range."} =
