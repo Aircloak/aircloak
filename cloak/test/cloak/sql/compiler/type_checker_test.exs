@@ -168,9 +168,12 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "allows clear implicit ranges within another function", do:
       assert {:ok, _, _} = compile("SELECT abs(ceil(float)) + 1 FROM table")
 
-    test "considers cast to integer as an implicit range" do
-      assert {:error, narrative} = compile("SELECT cast(float + 1 as integer) FROM table")
-      assert narrative =~ ~r/Only unmodified database columns can be limited by a range/
+    test "does not consider cast to integer as an implicit range", do:
+      assert {:ok, _, _} = compile("SELECT cast(float + 1 as integer) FROM table")
+
+    for function <- ~w(floor ceil ceiling) do
+      test "does not consider #{function} as an implicit range", do:
+        assert {:ok, _, _} = compile("SELECT #{unquote(function)}(float + 1) FROM table")
     end
 
     test "allows casts in ranges", do:
