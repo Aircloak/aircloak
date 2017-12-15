@@ -44,11 +44,11 @@ The endpoint presents data as the following JSON structure:
         "total_memory": number of bytes,
         "free_memory": {
           "current": number of free bytes,
-          "last_five_seconds": number of free bytes,
-          "last_minute": number of free bytes,
-          "last_five_minutes": number of free bytes,
-          "last_fifteen_minutes": number of free bytes,
-          "last_hour": number of free bytes
+          "last_5_seconds": number of free bytes,
+          "last_1_minute": number of free bytes,
+          "last_5_minutes": number of free bytes,
+          "last_15_minutes": number of free bytes,
+          "last_1_hour": number of free bytes
         }
       }
     },

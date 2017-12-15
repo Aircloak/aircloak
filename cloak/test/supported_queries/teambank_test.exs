@@ -444,26 +444,21 @@ defmodule Cloak.Regressions.TeamBank.Test do
     assert_compiles_successfully(query, data_source_scaffold())
   end
 
-  # Related issue: (#2208)
-  # test "sebastian 9" do
-  #   query = """
-  #   SELECT
-  #     year(buchungsDatum) as year,
-  #     month(buchungsDatum) as month,
-  #     EXTRACT_WORDS(
-  #       UPPER(buchungstext || verwendungszweck || name)
-  #     ) as card,
-  #     count(*),
-  #     count_noise(*)
-  #   FROM umsatz
-  #   WHERE EXTRACT_WORDS(
-  #     UPPER(buchungstext || verwendungszweck || name)
-  #   ) IN ('EC', 'Visa', 'Master', 'Maestro', 'American')
-  #   GROUP BY card, year, month
-  #   ORDER BY year, month, count(*) DESC
-  #   """
-  #   assert_compiles_successfully(query, data_source_scaffold())
-  # end
+  test "sebastian 9" do
+    query = """
+    SELECT
+      year(buchungsDatum) as year,
+      month(buchungsDatum) as month,
+      EXTRACT_WORDS(UPPER(buchungstext)) as card,
+      count(*),
+      count_noise(*)
+    FROM umsatz
+    WHERE EXTRACT_WORDS(UPPER(buchungstext)) IN ('EC', 'Visa', 'Master', 'Maestro', 'American')
+    GROUP BY card, year, month
+    ORDER BY year, month, count(*) DESC
+    """
+    assert_compiles_successfully(query, data_source_scaffold())
+  end
 
   test "sebastian 10" do
     query = """
