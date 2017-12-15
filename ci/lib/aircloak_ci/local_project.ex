@@ -22,11 +22,16 @@ defmodule AircloakCI.LocalProject do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Returns the full path to the desired log file."
+  @spec log_file(t, String.t) :: String.t
+  def log_file(project, log_name), do:
+    Path.join(project.log_folder, "#{log_name}.log")
+
   @doc "Returns the full path to the log file for the given target and job."
-  @spec log_path(String.t, String.t, String.t) :: String.t
-  def log_path("branch", name, job_name), do:
+  @spec log_file(String.t, String.t, String.t) :: String.t
+  def log_file("branch", name, job_name), do:
     Path.join([logs_folder(), branch_folder_name(name), "#{job_name}.log"])
-  def log_path("pr", number, job_name), do:
+  def log_file("pr", number, job_name), do:
     Path.join([logs_folder(), pr_folder_name(%{number: String.to_integer(number)}), "#{job_name}.log"])
 
   @doc "Prepares the local project for the given pull request."
@@ -109,7 +114,7 @@ defmodule AircloakCI.LocalProject do
   @spec log(t, String.t, iodata) :: :ok
   def log(project, log_name, output), do:
     project
-    |> log_path(log_name)
+    |> log_file(log_name)
     |> CmdRunner.file_logger()
     |> apply([["aircloak_ci: #{output}\n"]])
 
@@ -130,13 +135,13 @@ defmodule AircloakCI.LocalProject do
   @spec truncate_log(t, String.t) :: :ok
   def truncate_log(project, log_name), do:
     project
-    |> log_path(log_name)
+    |> log_file(log_name)
     |> File.write("")
 
   @doc "Returns the contents of the project log."
   @spec log_contents(t, String.t) :: binary
   def log_contents(project, log_name) do
-    case File.read(log_path(project, log_name)) do
+    case File.read(log_file(project, log_name)) do
       {:ok, contents} -> contents
       _ -> ""
     end
@@ -197,7 +202,7 @@ defmodule AircloakCI.LocalProject do
     CmdRunner.run(
       cmd,
       Keyword.merge(
-        [cd: src_folder(project), logger: CmdRunner.file_logger(log_path(project, log_name))],
+        [cd: src_folder(project), logger: CmdRunner.file_logger(log_file(project, log_name))],
         opts
       )
     )
@@ -220,6 +225,18 @@ defmodule AircloakCI.LocalProject do
   @spec src_folder(t) :: String.t
   def src_folder(project), do:
     Path.join(project.build_folder, "src")
+
+  @doc "Retrieves the list of commands for the given job."
+  @spec commands(t, String.t, atom) :: [String.t]
+  def commands(project, component, job) do
+    {commands_map, _} =
+      project
+      |> src_folder()
+      |> Path.join("ci/scripts/#{component}_commands.exs")
+      |> Code.eval_file()
+
+    Map.get(commands_map, job, [])
+  end
 
 
   # -------------------------------------------------------------------
@@ -258,9 +275,6 @@ defmodule AircloakCI.LocalProject do
   defp git_folder(project), do:
     Path.join(src_folder(project), ".git")
 
-  defp log_path(project, log_name), do:
-    Path.join(project.log_folder, "#{log_name}.log")
-
   defp remove_except(parent_folder, expected_folder_names) do
     existing_folder_names =
       case File.ls(parent_folder) do
@@ -290,7 +304,7 @@ defmodule AircloakCI.LocalProject do
       CmdRunner.run(
         ~s(git clone git@github.com:#{project.repo.owner}/#{project.repo.name} #{src_folder(project)}),
         timeout: :timer.minutes(5),
-        logger: CmdRunner.file_logger(log_path(project, "main"))
+        logger: CmdRunner.file_logger(log_file(project, "main"))
       )
     end
   end

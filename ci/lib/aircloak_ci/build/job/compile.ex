@@ -57,12 +57,7 @@ defmodule AircloakCI.Build.Job.Compile do
       :ok
     else
       Job.run_queued(:compile, project,
-        fn ->
-          with {:error, reason} <- component_mod.compile(project, component_name, job_name) do
-            LocalProject.log(project, job_name, reason)
-            :error
-          end
-        end,
+        fn -> component_mod.compile(project, component_name, job_name) end,
         log_name: job_name
       )
     end

@@ -33,7 +33,7 @@ defmodule AircloakCI.Build.Job do
   This function will queue the given job in the desired queue, execute it, and log various events, such as start,
   finish, execution time, and crashes.
   """
-  @spec run_queued(Queue.id, LocalProject.t, (() -> result), run_queued_opts) :: result when result: var
+  @spec run_queued(Queue.id, LocalProject.t, (() -> :ok | {:error, String.t}), run_queued_opts) :: :ok | :error
   def run_queued(queue, project, fun, opts \\ []) do
     start_watcher(self(), project, queue, opts)
 
@@ -52,19 +52,15 @@ defmodule AircloakCI.Build.Job do
             fun.()
           end
 
+        result =
+          with {:error, reason} <- result do
+            LocalProject.log(project, log_name(queue, opts), "error: #{reason}")
+            :error
+          end
+
         maybe_report_result(queue, opts, result)
         result
       end
-    )
-  end
-
-  @doc "Builds the docker image for the given component by running the given command."
-  @spec build_docker_image(LocalProject.t, String.t, String.t) :: :ok | {:error, String.t}
-  def build_docker_image(project, component_name, build_command) do
-    log_name = "#{component_name}_docker_build"
-    run_queued(:docker_build, project,
-      fn -> LocalProject.cmd(project, log_name, build_command, timeout: :timer.hours(1)) end,
-      log_name: log_name
     )
   end
 

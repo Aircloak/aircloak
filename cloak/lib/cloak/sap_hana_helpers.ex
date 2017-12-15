@@ -142,7 +142,7 @@ defmodule Cloak.SapHanaHelpers do
         conn
         |> select!(query)
         |> Enum.map(&:unicode.characters_to_binary(&1, {:utf16, :little}))
-        |> Enum.each(&execute!(conn, ~s/drop schema "#{&1}" cascade/))
+        |> Enum.each(&execute(conn, ~s/drop schema "#{&1}" cascade/))
       end
 
       :ok
