@@ -16,6 +16,14 @@ defmodule Mix.Tasks.AircloakCi.ForceBuild do
   ```
 
   Where `job_name` is one of `cloak_test`, `compliance`.
+
+  In addition, you can force a task on a local project with:
+
+  ```
+  mix aircloak_ci.force_build local job_name
+  ```
+
+  This is useful when you're testing local changes.
   """
 
   use Mix.Task
@@ -24,6 +32,7 @@ defmodule Mix.Tasks.AircloakCi.ForceBuild do
   @dialyzer :no_undefined_callbacks
 
   @impl Mix.Task
+  def run(["local", job_name]), do: run(["local", "", job_name])
   def run([target_type, target_id, job_name]) do
     Mix.Task.run("app.start")
 

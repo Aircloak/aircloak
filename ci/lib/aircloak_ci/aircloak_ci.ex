@@ -27,6 +27,10 @@ defmodule AircloakCI do
 
   @doc "Force starts the build of the given pull request."
   @spec force_build(String.t, String.t, String.t) :: :ok | {:error, String.t}
+  def force_build("local", _id, job_name) do
+    AircloakCI.Build.Local.ensure_started()
+    AircloakCI.Build.Local.run_job(job_name)
+  end
   def force_build(target_type, target_id, job_name) do
     with \
       repo_data = AircloakCI.Github.repo_data("aircloak", "aircloak"),

@@ -2,12 +2,16 @@
 
 use Mix.Config
 
-# Enables real Github writes
-# Be very careful with this option, because it will post statuses and comments to real github issues
+# Polls Github for repo changes. Setting this to true, allows you to run the CI server locally.
+# config :aircloak_ci, poll_github: true
+
+# Enables real Github writes.
+# Be very careful with this option, because it will post statuses and comments to Github issues.
 # config :aircloak_ci, :simulate_github_writes, false
+
+# This can be used to simulate various tests by sleeping for 1 second, and thus reduce the execution in dev.
+# If you remove an item from this list, then the real job will be executed locally.
+# config :aircloak_ci, simulated_jobs: [:compile, :compliance, :standard_test]
 
 # Disables noisy console output for each build.
 # config :aircloak_ci, cmd_runner: [console_out: false]
-
-# This can be used to simulate various tests by sleeping for 1 second, and thus reduce the execution in dev.
-config :aircloak_ci, :simulation, [:compliance, :standard_test]
