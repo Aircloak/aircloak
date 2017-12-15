@@ -10,28 +10,41 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "allows clear IN lhs", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric IN (1, 2, 3)")
 
-    test "forbids unclear IN lhs", do:
-      assert {:error, "Only `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim` can be used in the "
-        <> "left-hand side of an IN operator."
-      } = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 IN (1, 2, 3)")
+    test "forbids unclear IN lhs" do
+      assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 IN (1, 2, 3)")
+      assert message =~ ~r[Only .* can be used in the left-hand side of an IN operator]
+    end
 
     test "allows clear IN lhs from subqueries", do:
       assert {:ok, _, _} =
         compile("SELECT COUNT(*) FROM (SELECT numeric AS number FROM table) x WHERE number IN (1, 2, 3)")
 
-    test "forbids unclear IN lhs from subqueries", do:
-      assert {:error, "Only `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim` can be used in the "
-        <> "left-hand side of an IN operator."
-      } = compile("SELECT COUNT(*) FROM (SELECT numeric + 1 AS number FROM table) x WHERE number IN (1, 2, 3)")
+    test "forbids unclear IN lhs from subqueries" do
+      assert {:error, message} =
+        compile("SELECT COUNT(*) FROM (SELECT numeric + 1 AS number FROM table) x WHERE number IN (1, 2, 3)")
+      assert message =~ ~r[Only .* can be used in the left-hand side of an IN operator]
+    end
+
+    for function <- ~w(lower upper trim ltrim btrim extract_words) do
+      test "allows #{function} in IN lhs" do
+        assert {:ok, _, _} =
+          compile("SELECT #{unquote(function)}(string) AS x FROM table WHERE x IN ('a', 'b', 'c')")
+      end
+    end
+
+    test "allows substring in IN lhs" do
+      assert {:ok, _, _} = compile("SELECT SUBSTRING(string FROM 3) AS x FROM table WHERE x IN ('a', 'b', 'c')")
+    end
   end
 
   describe "negative conditions" do
     test "allows clear <> lhs", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> 10")
 
-    test "forbids unclear <> lhs", do:
-      assert {:error, "Only `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim` can be used in the "
-        <> "arguments of an <> operator."} = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 <> 10")
+    test "forbids unclear <> lhs" do
+      assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 <> 10")
+      assert message =~ ~r[Only .* can be used in the arguments of an <> operator]
+    end
 
     test "allows column <> column", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric")
@@ -45,10 +58,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
         SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING COUNT(numeric) <> 10) x
       """)
 
-    test "forbids unclear <> lhs in subquery HAVING", do:
-      assert {:error, "Only `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim` can be used in the "
-        <> "arguments of an <> operator."
-      } = compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING AVG(numeric + 1) <> 10) x")
+    test "forbids unclear <> lhs in subquery HAVING" do
+      assert {:error, message} =
+        compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING AVG(numeric + 1) <> 10) x")
+      assert message =~ ~r[Only .* can be used in the arguments of an <> operator]
+    end
 
     test "allows clear NOT LIKE lhs", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE string NOT LIKE '%some pattern_'")
@@ -63,6 +77,17 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "forbids unclear NOT ILIKE lhs", do:
       assert {:error, "NOT ILIKE can only be applied to an unmodified database column."} =
         compile("SELECT COUNT(*) FROM table WHERE upper(string) NOT ILIKE '%some pattern_'")
+
+    for function <- ~w(lower upper trim ltrim btrim extract_words) do
+      test "allows #{function} in <> lhs" do
+        assert {:ok, _, _} =
+          compile("SELECT #{unquote(function)}(string) AS x FROM table WHERE x <> 'a'")
+      end
+    end
+
+    test "allows substring in <> lhs" do
+      assert {:ok, _, _} = compile("SELECT SUBSTRING(string FROM 3) AS x FROM table WHERE x <> 'a'")
+    end
   end
 
   describe "string-based conditions" do
