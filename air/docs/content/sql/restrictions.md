@@ -116,9 +116,7 @@ Below is an example of the restrictions in action:
 SELECT age / (age + 1) FROM table
 ```
 
-## Inequality restrictions
-
-### Ranges
+## Ranges
 
 Whenever an inequality (`>`, `>=`, `<`, or `<=`) is used in a `WHERE`-, `JOIN`- or `HAVING`-clause that clause actually needs to contain two
 inequalities. These should form a range on a single column or expression. That is, one `>` or `>=` inequality and one `<` or `<=`
@@ -146,7 +144,7 @@ SELECT COUNT(*) FROM table WHERE column BETWEEN 10 AND 20
 SELECT COUNT(*) FROM table WHERE column >= 10 AND column < 20
 ```
 
-### Range alignment
+## Range alignment
 
 The system will adjust ranges provided in queries. The adjustment will "snap" the range to a fixed, predefined grid. It will always
 make sure that the specified range is included in the adjusted range. The range will also be modified to be closed on the left (`>=`)
@@ -186,7 +184,7 @@ SELECT COUNT(*) FROM table WHERE datetime >= '2016-01-01 12:27:00' AND date < '2
 -- Adjusted to 2016-01-01 12:22:30 <= datetime < 2016-01-01 12:37:30
 ```
 
-### Implicit ranges
+## Implicit ranges
 
 Some functions can be used to almost the same effect as a pair of inequalities. For example the following two queries
 are roughly equivalent:
