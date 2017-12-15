@@ -10,6 +10,6 @@ defmodule AirWeb.MonitoringRouter do
   scope "/" do
     pipe_through [:api]
 
-    get "/", Air.API.MonitoringController, :index
+    get "/", AirWeb.API.MonitoringController, :index
   end
 end
