@@ -445,4 +445,16 @@ defmodule Cloak.Query.DBEmulatorTest do
         on t1.user_id = t2.user_id and t1.age = t2.number
     """, %{rows: [%{row: [10]}]}
   end
+
+  test "[BUG]: multiple JOINs with complex filter on encoded columns" do
+    :ok = insert_rows(_user_ids = 1..10, "#{@prefix}emulated", ["value"], ["10"])
+    :ok = insert_rows(_user_ids = 1..10, "#{@prefix}joined", ["age"], [10])
+
+    assert_query """
+      select count(*) from (
+        select t1.user_id from #{@prefix}joined as t1 join #{@prefix}emulated as t2
+        on t1.user_id = t2.user_id where substring(value from 1 for 1) <> '0' and substring(value from 1 for 1) <> '2'
+      ) as t1 join #{@prefix}joined as t2 on t1.user_id = t2.user_id
+    """, %{rows: [%{row: [10]}]}
+  end
 end

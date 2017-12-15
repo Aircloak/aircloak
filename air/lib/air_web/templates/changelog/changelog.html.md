@@ -16,6 +16,7 @@
   subquery and given an alias only differing from the column name in its case.
 - Fixed handling of emulated JOINs when identically-named columns were present.
 - Properly parse Unicode whitespace characters.
+- Fixes incorrect selection of columns for joined emulated queries.
 
 ## Version 17.4.0
 
