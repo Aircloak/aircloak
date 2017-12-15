@@ -287,10 +287,11 @@ defmodule Central.Service.Customer do
       "17.1.0" => {:ok, AirMessage.Default},
       "17.2.0" => {:ok, AirMessage.V170200},
       "17.3.0" => {:ok, AirMessage.V170300},
-      # No change in the communications protocol since 17.3.0. 17.3.{1,2,3} are bug fixes only.
+      # No change in the communications protocol since 17.3.0. 17.3.{1,2,3,4} are bug fixes only.
       "17.3.1" => {:ok, AirMessage.V170300},
       "17.3.2" => {:ok, AirMessage.V170300},
       "17.3.3" => {:ok, AirMessage.V170300},
+      "17.3.4" => {:ok, AirMessage.V170300},
     } |> Map.get(air_version, {:error, :invalid_version})
   end
 end
