@@ -1,39 +1,36 @@
 defmodule AircloakCI.Build.Job.StandardTest do
   @moduledoc "Execution of standard tests."
 
-  alias AircloakCI.Build.Component
-
-
-  # -------------------------------------------------------------------
-  # Behaviour
-  # -------------------------------------------------------------------
-
-  @doc "Invoked to get the standard test job name from the component."
-  @callback standard_test_job_name() :: String.t
-
-  @doc "Invoked to start the standard test for the component the component."
-  @callback standard_test(Server.state) :: Server.state
+  alias AircloakCI.Build
+  alias AircloakCI.Build.{Component, Job}
 
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Returns the job names for all components."
-  @spec job_names() :: [String.t]
-  def job_names(), do:
-    Enum.map(components(), &(&1.standard_test_job_name()))
-
   @spec run(Server.state) :: Server.state
   @doc "Starts test jobs for all components."
   def run(build_state), do:
-    Enum.reduce(components(), build_state, &(&1.standard_test(&2)))
+    Enum.reduce(components(), build_state, &start_standard_test(&2, &1))
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp start_standard_test(%{project: project, source: source} = build_state, component), do:
+    Job.maybe_start(build_state, "#{component}_test", &start_test(&1, self(), project, source, component))
+
+  defp start_test(build_state, build_server, project, source, component), do:
+    Build.Server.start_job(build_state, "#{component}_test",
+      fn ->
+        Component.start_job(project, component, :standard_test,
+          report_result: build_server, job_name: "#{component}_test")
+      end,
+      report_status: {source.repo, source.sha}
+    )
+
   defp components(), do:
-    [Component.Cloak]
+    ["cloak"]
 end

@@ -98,21 +98,17 @@ defmodule AircloakCI.Build.PullRequest do
     "Pull request can be merged #{AircloakCI.Emoji.happy()}"
 
   defp ci_checks_succeeded?(state), do:
-    state.project
-    |> LocalProject.ci_version()
-    |> required_ci_checks()
+    required_ci_checks()
     |> Stream.map(&state.source.status_checks[&1][:status])
     |> Enum.all?(&(&1 == :success))
 
-  defp required_ci_checks(1), do:
+  defp required_ci_checks(), do:
     [
       "continuous-integration/travis-ci/pr",
       "continuous-integration/travis-ci/push",
       "continuous-integration/aircloak/compliance",
+      "continuous-integration/aircloak/cloak_test",
     ]
-
-  defp required_ci_checks(ci_version) when ci_version >= 2, do:
-    ["continuous-integration/aircloak/cloak_test" | required_ci_checks(1)]
 
 
   # -------------------------------------------------------------------
