@@ -133,8 +133,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
           {:implicit_range, :unclear}
         end
       else
-        if Enum.any?(child_types, & &1.implicit_range == {:implicit_range, :clear}) do
-          {:implicit_range, :clear}
+        if Enum.any?(child_types, & match?({:implicit_range, _}, &1.implicit_range)) do
+          {:implicit_range, :unclear}
         else
           :none
         end
