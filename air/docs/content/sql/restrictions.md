@@ -186,3 +186,41 @@ SELECT COUNT(*) FROM table WHERE datetime >= '2016-01-01 12:27:00' AND date < '2
 -- Adjusted to 2016-01-01 12:22:30 <= datetime < 2016-01-01 12:37:30
 ```
 
+### Implicit ranges
+
+Some functions can be used to almost the same effect as a pair of inequalities. For example the following two queries
+are roughly equivalent:
+
+```sql
+SELECT COUNT(*) FROM table WHERE round(number) = 10
+SELECT COUNT(*) FROM table WHERE number >= 9.5 AND number < 10.5
+```
+
+Because of this, usage of such functions must be restricted in a similar way to inequalities and the `BETWEEN` operator.
+The restrictions disallow the usage of any functions or mathematical operations before or after applying an implicit
+range function. The only operations that can be applied are a single `CAST` and any number of aggregations (`MIN`,
+`MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`). The restrictions apply when an implict range function is used in a `WHERE` or
+`JOIN` clause, selected in the top-level `SELECT` clause or used in a non-top-level `HAVING` clause.
+
+```sql
+-- Correct - no other function used
+SELECT COUNT(*) FROM table WHERE round(number) = 10
+
+-- Correct - an aggregate is used
+SELECT COUNT(*) FROM table GROUP BY category WHERE round(max(number)) = 10
+
+-- Incorrect - another operation is used
+SELECT COUNT(*) FROM table WHERE round(number + 1) = 10
+
+-- Correct - used in the top-level HAVING, so restrictions don't apply
+SELECT COUNT(*) FROM table GROUP BY category HAVING round(max(number) + 1) = 10
+
+-- Incorrect - used in a non-top-level HAVING
+SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY category HAVING round(max(number) + 1) = 10) x
+
+-- Incorrect - another operation is used in top-level SELECT
+SELECT round(abs(number)) FROM table
+```
+
+The following functions are treated as implicit range functions: `round`, `trunc`, `date_trunc`, and all date extraction
+functions (`year`, `month`, `quarter`, `day`, `weekday`, `hour`, `minute`, `second`).
