@@ -137,7 +137,16 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       """)
 
     test "forbids implicit ranges within another function", do:
-      assert {:error, "Only unmodified database columns can be limited by a range."} = compile("SELECT abs(ceil(float)) + 1 FROM table")
+      assert {:error, "Only unmodified database columns can be limited by a range."} =
+        compile("SELECT abs(ceil(float)) FROM table")
+
+    test "forbids nested implicit ranges", do:
+      assert {:error, "Only unmodified database columns can be limited by a range."} =
+        compile("SELECT bucket(ceil(float) by 10) FROM table")
+
+    test "forbids implicit ranges on function expressions", do:
+      assert {:error, "Only unmodified database columns can be limited by a range."} =
+        compile("SELECT ceil(float + 1) FROM table")
 
     test "considers cast to integer as an implicit range", do:
       assert {:error, "Only unmodified database columns can be limited by a range."} =
