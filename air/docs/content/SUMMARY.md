@@ -36,7 +36,7 @@
     - [JOINs](sql/restrictions.md#join-restrictions)
     - [Subqueries](sql/restrictions.md#subquery-restrictions)
     - [Math and function application](sql/restrictions.md#math-and-function-application-restrictions)
-    - [Inqualities](sql/restrictions.md#inequality-restrictions)
+    - [Inequalities](sql/restrictions.md#inequality-restrictions)
 - [Understanding query results](sql/query-results.md)
   - [Low-count filtering](sql/query-results.md#low-count-filtering)
   - [Added noise](sql/query-results.md#adding-noise)
