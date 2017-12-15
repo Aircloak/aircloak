@@ -146,6 +146,18 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
 
     test "false for processed columns", do:
       refute type_first_column("SELECT sqrt(numeric) FROM table") |> Type.cast_raw_column?()
+
+    test "ignores allowed functions", do:
+      assert type_first_column("SELECT sqrt(numeric) FROM table") |> Type.cast_raw_column?(["sqrt"])
+
+    test "does not ignore nested, not allowed functions", do:
+      refute type_first_column("SELECT sqrt(abs(numeric)) FROM table") |> Type.cast_raw_column?(["sqrt"])
+
+    test "ignores aggregates", do:
+      assert type_first_column("SELECT max(numeric) FROM table") |> Type.cast_raw_column?()
+
+    test "does not ignore functions in aggregates", do:
+      refute type_first_column("SELECT max(sqrt(numeric)) FROM table") |> Type.cast_raw_column?()
   end
 
   defp constant_involved?(query), do:

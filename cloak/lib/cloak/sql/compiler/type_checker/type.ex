@@ -75,12 +75,17 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
 
   @doc """
   Returns true if the expression with the given type is a column from the database without any processing other than
-  one cast, false otherwise.
+  one cast, false otherwise. Functions in allowed_functions are ignored.
   """
-  @spec cast_raw_column?(t) :: boolean
-  def cast_raw_column?(type), do:
-    transformation_count(type, & not Function.cast?(&1)) <= @allowed_clear_funs and
-      transformation_count(type, &Function.cast?/1) <= @allowed_clear_casts
+  @spec cast_raw_column?(t, [String.t]) :: boolean
+  def cast_raw_column?(type, allowed_functions \\ []) do
+    transforms = transformation_count(type, fn(column) ->
+      not Function.cast?(column) and not Function.aggregator?(column) and not column in allowed_functions
+    end)
+    casts = transformation_count(type, &Function.cast?/1)
+
+    transforms <= @allowed_clear_funs and casts <= @allowed_clear_casts
+  end
 
   @doc "Returns true if the expression with the given type contains a string manipulation function, false otherwise."
   @spec string_manipulation?(t) :: boolean
