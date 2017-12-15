@@ -66,7 +66,7 @@ clean_dangling
 
 container_id="local_ci_$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c 16; echo '')"
 
-#docker_script build_image
+docker_script build_image
 
 docker_script start_container $container_id
 DOCKER_EXEC_ARGS="-t" docker_script prepare_for_compliance $container_id
