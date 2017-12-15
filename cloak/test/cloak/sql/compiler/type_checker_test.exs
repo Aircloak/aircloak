@@ -110,16 +110,18 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "allows clear >=/< arguments", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric > 0 AND numeric < 10")
 
-    test "forbids unclear >=/< arguments", do:
-      assert {:error, "Only unmodified database columns can be limited by a range."} =
-        compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) > 0 AND sqrt(numeric) < 10")
+    test "forbids unclear >=/< arguments" do
+      assert {:error, narrative} = compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) > 0 AND sqrt(numeric) < 10")
+      assert narrative =~ ~r/Only unmodified database columns can be limited by a range/
+    end
 
     test "allows clear between arguments", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric BETWEEN 0 AND 10")
 
-    test "forbids unclear between arguments", do:
-      assert {:error, "Only unmodified database columns can be limited by a range."} =
-        compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) BETWEEN 0 AND 10")
+    test "forbids unclear between arguments" do
+      assert {:error, narrative} = compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) BETWEEN 0 AND 10")
+      assert narrative =~ ~r/Only unmodified database columns can be limited by a range/
+    end
 
     test "allows any ranges in top-level HAVING", do:
       assert {:ok, _, _} = compile("""
@@ -131,17 +133,20 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
         SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING COUNT(float) BETWEEN 0 AND 10) x
       """)
 
-    test "forbids unclear ranges in subquery HAVING", do:
-      assert {:error, "Only unmodified database columns can be limited by a range."} = compile("""
+    test "forbids unclear ranges in subquery HAVING" do
+      assert {:error, narrative} = compile("""
         SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING sqrt(COUNT(float)) BETWEEN 0 AND 10) x
       """)
+      assert narrative =~ ~r/Only unmodified database columns can be limited by a range/
+    end
 
     test "allows clear implicit ranges within another function", do:
       assert {:ok, _, _} = compile("SELECT abs(ceil(float)) + 1 FROM table")
 
-    test "considers cast to integer as an implicit range", do:
-      assert {:error, "Only unmodified database columns can be limited by a range."} =
-        compile("SELECT cast(float + 1 as integer) FROM table")
+    test "considers cast to integer as an implicit range" do
+      assert {:error, narrative} = compile("SELECT cast(float + 1 as integer) FROM table")
+      assert narrative =~ ~r/Only unmodified database columns can be limited by a range/
+    end
 
     test "allows casts in ranges", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE CAST(string AS INTEGER) BETWEEN 0 AND 10")
