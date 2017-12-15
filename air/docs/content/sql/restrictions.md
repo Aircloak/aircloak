@@ -138,6 +138,14 @@ SELECT COUNT(*) FROM table WHERE column > 10 AND column < 0
 SELECT COUNT(*) FROM table WHERE column + 1 > 10 AND column - 1 < 20
 ```
 
+Note that a condition using the `BETWEEN` operator automatically forms a range:
+
+```sql
+-- These two queries are equivalent:
+SELECT COUNT(*) FROM table WHERE column BETWEEN 10 AND 20
+SELECT COUNT(*) FROM table WHERE column >= 10 AND column < 20
+```
+
 ### Range alignment
 
 The system will adjust ranges provided in queries. The adjustment will "snap" the range to a fixed, predefined grid. It will always
