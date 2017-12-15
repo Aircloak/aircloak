@@ -105,7 +105,6 @@ defmodule AircloakCI.Build.PullRequest do
   defp required_ci_checks(), do:
     [
       "continuous-integration/travis-ci/pr",
-      "continuous-integration/travis-ci/push",
       "continuous-integration/aircloak/compliance",
       "continuous-integration/aircloak/cloak_test",
     ]

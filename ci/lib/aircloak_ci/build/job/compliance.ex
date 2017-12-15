@@ -56,8 +56,7 @@
   end
 
   defp travis_succeeded?(pr), do:
-    (pr.status_checks["continuous-integration/travis-ci/pr"] || %{status: nil}).status == :success and
-    (pr.status_checks["continuous-integration/travis-ci/push"] || %{status: nil}).status == :success
+    pr.status_checks["continuous-integration/travis-ci/pr"][:status] == :success
 
   defp start_test(build_server, %{source: pr, project: project} = build_state), do:
     Build.Server.start_job(
