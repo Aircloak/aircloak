@@ -12,7 +12,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
     # The expression contains one or more implicit ranges but each one individually is clear.
     # That is to say each implicit range operated on an expression that was either a constant
     # or raw column.
-    | {:implicit_range, :cleaj}
+    | {:implicit_range, :clear}
     # The expression contains at least one implicit range that operated on an expression that
     # was not a clear expression.
     | {:implicit_range, :unclear}
