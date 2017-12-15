@@ -2,18 +2,7 @@ defmodule AircloakCI.Build.Job.Compile do
   @moduledoc "Compilation of all components in a local project."
 
   alias AircloakCI.{Build, LocalProject}
-  alias AircloakCI.Build.{Component, Job}
-
-
-  # -------------------------------------------------------------------
-  # Behaviour
-  # -------------------------------------------------------------------
-
-  @doc "Invoked to get the component name."
-  @callback name() :: String.t
-
-  @doc "Invoked to compile the component."
-  @callback compile(LocalProject.t, name :: String.t, log_name :: String.t) :: :ok | {:error, String.t}
+  alias AircloakCI.Build.Component
 
 
   # -------------------------------------------------------------------
@@ -31,38 +20,30 @@ defmodule AircloakCI.Build.Job.Compile do
   # -------------------------------------------------------------------
 
   defp compile_project(project), do:
-    component_modules()
+    components()
     # using infinity, since timeout is enforced in each component compilation task
-    |> Task.async_stream(&compile(project, &1), ordered: true, timeout: :infinity)
+    |> Task.async_stream(&{build_image_and_compile(project, &1), &1}, ordered: true, timeout: :infinity)
     |> Stream.map(fn {:ok, result} -> result end)
-    |> Stream.zip(component_modules())
     |> Enum.each(
         fn
-          {:ok, component_mod} ->
+          {:ok, component} ->
             # setting the status here, to avoid concurrency issues
-            LocalProject.mark_finished(project, job_name(component_mod.name()))
+            LocalProject.mark_finished(project, "#{component}_compile")
 
-          {:error, component_mod} ->
-            LocalProject.log(project, "main", "error compiling component #{component_mod.name()}")
+          {:error, component} ->
+            LocalProject.log(project, "main", "error compiling component #{component}")
         end
       )
 
-  defp component_modules(), do:
-    [Component.Cloak]
+  defp components(), do:
+    ["cloak"]
 
-  defp compile(project, component_mod) do
-    component_name = component_mod.name()
-    job_name = job_name(component_name)
+  defp build_image_and_compile(project, component) do
+    job_name = "#{component}_compile"
     if LocalProject.finished?(project, job_name) and not LocalProject.forced?(project, job_name) do
       :ok
     else
-      Job.run_queued(:compile, project,
-        fn -> component_mod.compile(project, component_name, job_name) end,
-        log_name: job_name
-      )
+      Component.start_job(project, component, :compile)
     end
   end
-
-  defp job_name(component_name), do:
-    "#{component_name}_compile"
 end

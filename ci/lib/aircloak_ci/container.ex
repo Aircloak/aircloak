@@ -51,8 +51,8 @@ defmodule AircloakCI.Container do
   @doc "Stops the container, its child containers, and associated networks."
   @spec stop(String.t) :: :ok
   def stop(container_name) do
-    container_name |> running("docker ps --format='{{.Names}}'") |> Enum.each(&remove_container/1)
-    container_name |> running("docker network ls --format='{{.Name}}'") |> Enum.each(&remove_network/1)
+    container_name |> associated_containers() |> Enum.each(&remove_container/1)
+    container_name |> associated_networks() |> Enum.each(&remove_network/1)
   end
 
   @doc "Starts the container, executes the provided lambda, stops the container, and returns the lambda result."
@@ -67,7 +67,12 @@ defmodule AircloakCI.Container do
     end
   end
 
-  @doc "Invokes the container control script."
+  @doc """
+  Invokes the container control script.
+
+  The control script is a bash script exposed by components such as cloak, which can be used to build images, start
+  containers, and executes some commands in the container.
+  """
   @spec invoke_script(t, String.t, CmdRunner.opts) :: :ok | {:error, String.t}
   def invoke_script(container, cmd, opts \\ []), do:
     invoke_script(container.script, cmd, container.log_file, opts)
@@ -107,51 +112,53 @@ defmodule AircloakCI.Container do
   # -------------------------------------------------------------------
 
   defp cleanup() do
-    Enum.each(dangling("docker ps --format='{{.Names}}'"), &stop/1)
-    Enum.each(dangling("docker network ls --format='{{.Name}}'"), &remove_network/1)
+    all_containers() |> dangling() |> Enum.each(&stop/1)
+    all_networks() |> dangling() |> Enum.each(&remove_network/1)
     remove_dangling_volumes()
 
     :timer.sleep(:timer.seconds(10))
     cleanup()
   end
 
-  defp dangling(cmd) do
-    # Need to take the snapshot of running containers first, to avoid race conditions
-    running =
-      cmd
-      |> os_cmd()
-      |> Enum.filter(&String.starts_with?(&1, "aircloak_ci_"))
+  defp dangling(docker_names), do:
+    Enum.reduce(registered_names(), docker_names, &remove_associated(&2, &1))
 
-    Registry.lookup(AircloakCI.Container.Registry, :container)
-    |> Stream.map(fn({_pid, name}) -> name end)
-    |> Enum.reduce(
-        running,
-        # We'll remove all containers which start with known name, since this allow us to have a group of containers
-        # associated to a single name.
-        fn(known_name, running) -> Enum.reject(running, &String.starts_with?(&1, known_name)) end
-      )
-  end
+  defp registered_names(), do:
+    Stream.map(Registry.lookup(AircloakCI.Container.Registry, :container), fn({_pid, name}) -> name end)
 
-  defp running(container_name, list_cmd), do:
+  defp remove_associated(names, name), do:
+    Enum.reject(names, &String.starts_with?(&1, name))
+
+  defp all_containers(), do: associated_containers("aircloak_ci")
+
+  defp all_networks(), do: associated_networks("aircloak_ci")
+
+  defp associated_containers(container_name), do:
+    associated_docker_objects(container_name, "docker ps --format='{{.Names}}'")
+
+  defp associated_networks(container_name), do:
+    associated_docker_objects(container_name, "docker network ls --format='{{.Name}}'")
+
+  defp associated_docker_objects(container_name, list_cmd), do:
     list_cmd |> os_cmd() |> Enum.filter(&String.starts_with?(&1, container_name))
 
   defp remove_container(container_name) do
-    CmdRunner.run("docker kill #{container_name}")
-    CmdRunner.run("docker rm #{container_name}")
+    os_cmd_with_timeout("docker kill #{container_name}")
+    os_cmd_with_timeout("docker rm #{container_name}")
   end
 
   defp remove_network(network_name) do
     network_name
     |> connected()
-    |> Enum.each(&CmdRunner.run("docker network disconnect #{network_name} #{&1}"))
+    |> Enum.each(&os_cmd_with_timeout("docker network disconnect #{network_name} #{&1}"))
 
-    CmdRunner.run("docker network rm #{network_name}")
+    os_cmd_with_timeout("docker network rm #{network_name}")
   end
 
   defp remove_dangling_volumes(), do:
     "docker volume ls -qf dangling=true"
     |> os_cmd()
-    |> Enum.each(&CmdRunner.run("docker volume rm #{&1}"))
+    |> Enum.each(&os_cmd_with_timeout("docker volume rm #{&1}"))
 
   defp connected(network), do:
     os_cmd("docker network inspect #{network} --format '{{range $key, $value := .Containers}} {{println $key}} {{end}}'")
@@ -161,8 +168,12 @@ defmodule AircloakCI.Container do
   # Execution of commands
   # -------------------------------------------------------------------
 
+  defp os_cmd_with_timeout(cmd, opts \\ []), do:
+    CmdRunner.run(cmd, opts)
+
   defp os_cmd(cmd), do:
-    # Using os_cmd since it's more flexible and permissive than `System.cmd`
+    # Unlike `CmdRunner.run`, `os_cmd` returns the command output.
+    # Note that the same could be achieved with `System.cmd`, but `:os.cmd` is more flexible and permissive.
     cmd
     |> to_charlist()
     |> :os.cmd()
@@ -172,6 +183,7 @@ defmodule AircloakCI.Container do
     |> Enum.map(&String.trim/1)
 
   defp invoke_script(script, cmd, log_file, opts), do:
+    # Using CmdRunner here because of its logging and timeout capabilities.
     CmdRunner.run("#{script} #{cmd}", [logger: CmdRunner.file_logger(log_file)] ++ opts)
 
 
