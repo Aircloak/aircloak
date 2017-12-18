@@ -205,17 +205,21 @@ You can now interact with the cloak via the dockerized air (http://localhost:808
 
 #### Running full compliance CI locally
 
-To run the full compliance CI test locally with the command `make ci.compliance`. This will test all supported databases and drivers. The test is fully dockerized, so you can start it on Linux and macOS.
+To run the full compliance CI test locally with the command `make ci.compliance`. This will start the required database containers, start the cloak container, generate test data, and then enter the bash shell in the container. Now, you can run tests with `mix test --only compliance`. The container uses the source files mounted from your host, so you can easily edit those files and repeatedly run the tests without needing to rebuild the image.
 
 If you want to test some specific databases, you can set the `CLOAK_DATA_SOURCES` env variable. For example, to test only PostgreSQL and MongoDB 3.0, you can run the following command:
 
 ```
-CLOAK_DATA_SOURCES="postgres9.4 mongodb3.0"  make ci.compliance
+CLOAK_DATA_SOURCES="postgresql9.4 mongodb3.0" make ci.compliance
 ```
 
-The `CLOAK_DATA_SOURCES` env var is a whitespace separated list of data source names which you want to use in the test suite. For the list of available names, take a look at configuration files in [this folder](priv/config/dockerized_ci/mongo3.0.json).
+The `CLOAK_DATA_SOURCES` env var is a whitespace separated list of data source names which you want to use in the test suite. For the list of available names, take a look at configuration files in [this folder](priv/config/dockerized_ci).
 
-You can also start the CI container in the debug mode by running `make ci.compliance.debug`. This will start the cloak container in the console mode (`bash` shell). Now, you can invoke various project tasks, such as `mix test --only compliance` or `iex -S mix`. The container uses the source files mounted from your host, so you can easily edit those files and repeatedly run the tests.
+The default number of generated users is 10. You can change this by setting the `COMPLIANCE_USERS` env variable:
+
+```
+COMPLIANCE_USERS=50 make ci.compliance
+```
 
 
 #### Deploying

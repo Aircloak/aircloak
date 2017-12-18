@@ -10,28 +10,41 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "allows clear IN lhs", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric IN (1, 2, 3)")
 
-    test "forbids unclear IN lhs", do:
-      assert {:error, "Only `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim` can be used in the "
-        <> "left-hand side of an IN operator."
-      } = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 IN (1, 2, 3)")
+    test "forbids unclear IN lhs" do
+      assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 IN (1, 2, 3)")
+      assert message =~ ~r[Only .* can be used in the left-hand side of an IN operator]
+    end
 
     test "allows clear IN lhs from subqueries", do:
       assert {:ok, _, _} =
         compile("SELECT COUNT(*) FROM (SELECT numeric AS number FROM table) x WHERE number IN (1, 2, 3)")
 
-    test "forbids unclear IN lhs from subqueries", do:
-      assert {:error, "Only `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim` can be used in the "
-        <> "left-hand side of an IN operator."
-      } = compile("SELECT COUNT(*) FROM (SELECT numeric + 1 AS number FROM table) x WHERE number IN (1, 2, 3)")
+    test "forbids unclear IN lhs from subqueries" do
+      assert {:error, message} =
+        compile("SELECT COUNT(*) FROM (SELECT numeric + 1 AS number FROM table) x WHERE number IN (1, 2, 3)")
+      assert message =~ ~r[Only .* can be used in the left-hand side of an IN operator]
+    end
+
+    for function <- ~w(lower upper trim ltrim btrim extract_words) do
+      test "allows #{function} in IN lhs" do
+        assert {:ok, _, _} =
+          compile("SELECT #{unquote(function)}(string) AS x FROM table WHERE x IN ('a', 'b', 'c')")
+      end
+    end
+
+    test "allows substring in IN lhs" do
+      assert {:ok, _, _} = compile("SELECT SUBSTRING(string FROM 3) AS x FROM table WHERE x IN ('a', 'b', 'c')")
+    end
   end
 
   describe "negative conditions" do
     test "allows clear <> lhs", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> 10")
 
-    test "forbids unclear <> lhs", do:
-      assert {:error, "Only `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim` can be used in the "
-        <> "arguments of an <> operator."} = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 <> 10")
+    test "forbids unclear <> lhs" do
+      assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 <> 10")
+      assert message =~ ~r[Only .* can be used in the arguments of an <> operator]
+    end
 
     test "allows column <> column", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric")
@@ -45,10 +58,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
         SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING COUNT(numeric) <> 10) x
       """)
 
-    test "forbids unclear <> lhs in subquery HAVING", do:
-      assert {:error, "Only `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim` can be used in the "
-        <> "arguments of an <> operator."
-      } = compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING AVG(numeric + 1) <> 10) x")
+    test "forbids unclear <> lhs in subquery HAVING" do
+      assert {:error, message} =
+        compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING AVG(numeric + 1) <> 10) x")
+      assert message =~ ~r[Only .* can be used in the arguments of an <> operator]
+    end
 
     test "allows clear NOT LIKE lhs", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE string NOT LIKE '%some pattern_'")
@@ -63,6 +77,17 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "forbids unclear NOT ILIKE lhs", do:
       assert {:error, "NOT ILIKE can only be applied to an unmodified database column."} =
         compile("SELECT COUNT(*) FROM table WHERE upper(string) NOT ILIKE '%some pattern_'")
+
+    for function <- ~w(lower upper trim ltrim btrim extract_words) do
+      test "allows #{function} in <> lhs" do
+        assert {:ok, _, _} =
+          compile("SELECT #{unquote(function)}(string) AS x FROM table WHERE x <> 'a'")
+      end
+    end
+
+    test "allows substring in <> lhs" do
+      assert {:ok, _, _} = compile("SELECT SUBSTRING(string FROM 3) AS x FROM table WHERE x <> 'a'")
+    end
   end
 
   describe "string-based conditions" do
@@ -110,16 +135,18 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "allows clear >=/< arguments", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric > 0 AND numeric < 10")
 
-    test "forbids unclear >=/< arguments", do:
-      assert {:error, "Only unmodified database columns can be limited by a range."} =
-        compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) > 0 AND sqrt(numeric) < 10")
+    test "forbids unclear >=/< arguments" do
+      assert {:error, narrative} = compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) > 0 AND sqrt(numeric) < 10")
+      assert narrative =~ ~r/Only unmodified database columns can be limited by a range/
+    end
 
     test "allows clear between arguments", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric BETWEEN 0 AND 10")
 
-    test "forbids unclear between arguments", do:
-      assert {:error, "Only unmodified database columns can be limited by a range."} =
-        compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) BETWEEN 0 AND 10")
+    test "forbids unclear between arguments" do
+      assert {:error, narrative} = compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) BETWEEN 0 AND 10")
+      assert narrative =~ ~r/Only unmodified database columns can be limited by a range/
+    end
 
     test "allows any ranges in top-level HAVING", do:
       assert {:ok, _, _} = compile("""
@@ -131,17 +158,23 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
         SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING COUNT(float) BETWEEN 0 AND 10) x
       """)
 
-    test "forbids unclear ranges in subquery HAVING", do:
-      assert {:error, "Only unmodified database columns can be limited by a range."} = compile("""
+    test "forbids unclear ranges in subquery HAVING" do
+      assert {:error, narrative} = compile("""
         SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING sqrt(COUNT(float)) BETWEEN 0 AND 10) x
       """)
+      assert narrative =~ ~r/Only unmodified database columns can be limited by a range/
+    end
 
     test "allows clear implicit ranges within another function", do:
       assert {:ok, _, _} = compile("SELECT abs(ceil(float)) + 1 FROM table")
 
-    test "considers cast to integer as an implicit range", do:
-      assert {:error, "Only unmodified database columns can be limited by a range."} =
-        compile("SELECT cast(float + 1 as integer) FROM table")
+    test "does not consider cast to integer as an implicit range", do:
+      assert {:ok, _, _} = compile("SELECT cast(float + 1 as integer) FROM table")
+
+    for function <- ~w(floor ceil ceiling) do
+      test "does not consider #{function} as an implicit range", do:
+        assert {:ok, _, _} = compile("SELECT #{unquote(function)}(float + 1) FROM table")
+    end
 
     test "allows casts in ranges", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE CAST(string AS INTEGER) BETWEEN 0 AND 10")

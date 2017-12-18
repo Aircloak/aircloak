@@ -6,7 +6,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   as checks to validate that columns used in certain filter conditions haven't been altered.
   """
 
-  alias Cloak.Sql.{CompilationError, Condition, Expression, Query, Range}
+  alias Cloak.Sql.{CompilationError, Condition, Expression, Query, Range, Function}
   alias Cloak.Sql.Compiler.TypeChecker.{Narrative, Type}
   alias Cloak.Sql.Compiler.Helpers
 
@@ -80,7 +80,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       end
     end)
 
-  @allowed_in_functions ~w(lower upper substring trim ltrim rtrim btrim)
+  @allowed_in_functions ~w(lower upper substring trim ltrim rtrim btrim extract_words)
   defp verify_lhs_of_in_is_clear(query), do:
     verify_conditions(query, &Condition.in?/1, fn({:in, lhs, _}) ->
       unless Type.establish_type(lhs, query) |> Type.cast_raw_column?(@allowed_in_functions) do
@@ -89,7 +89,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       end
     end)
 
-  @allowed_not_equals_functions ~w(lower upper substring trim ltrim rtrim btrim)
+  @allowed_not_equals_functions ~w(lower upper substring trim ltrim rtrim btrim extract_words)
   defp verify_not_equals_is_clear(query), do:
     verify_conditions(query, &Condition.not_equals?/1, fn({:comparison, lhs, :<>, rhs}) ->
       rhs_type = Type.establish_type(rhs, query)
@@ -136,7 +136,16 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     |> Range.find_ranges()
     |> Enum.each(fn(%Range{column: column, interval: interval}) ->
       unless clear_range_lhs?(column, query, interval) do
-        raise CompilationError, message: "Only unmodified database columns can be limited by a range."
+        type = Type.establish_type(column, query)
+        {implicit_range_functions, other_functions} = type.applied_functions
+        |> Enum.split_with(&Function.has_attribute?(&1, :implicit_range))
+
+        raise CompilationError, message: """
+        Only unmodified database columns can be limited by a range.
+
+        #{Narrative.construct_implicit_range_narrative(implicit_range_functions, other_functions,
+          type.history_of_columns_involved)}
+        """
       end
     end)
 
