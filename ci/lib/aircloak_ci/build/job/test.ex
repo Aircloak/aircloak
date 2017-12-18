@@ -1,7 +1,7 @@
 defmodule AircloakCI.Build.Job.Test do
   @moduledoc "Execution of standard tests."
 
-  alias AircloakCI.Build
+  alias AircloakCI.{Build, LocalProject}
   alias AircloakCI.Build.{Component, Job}
 
 
@@ -12,7 +12,7 @@ defmodule AircloakCI.Build.Job.Test do
   @spec run(Server.state) :: Server.state
   @doc "Starts test jobs for all components."
   def run(build_state), do:
-    Enum.reduce(components(), build_state, &start_test(&2, &1))
+    Enum.reduce(LocalProject.components(build_state.project), build_state, &start_test(&2, &1))
 
 
   # -------------------------------------------------------------------
@@ -30,7 +30,4 @@ defmodule AircloakCI.Build.Job.Test do
       end,
       report_status: {source.repo, source.sha}
     )
-
-  defp components(), do:
-    ["cloak"]
 end

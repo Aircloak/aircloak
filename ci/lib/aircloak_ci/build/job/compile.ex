@@ -20,7 +20,8 @@ defmodule AircloakCI.Build.Job.Compile do
   # -------------------------------------------------------------------
 
   defp compile_project(project), do:
-    components()
+    project
+    |> LocalProject.components()
     # using infinity, since timeout is enforced in each component compilation task
     |> Task.async_stream(&{build_image_and_compile(project, &1), &1}, ordered: true, timeout: :infinity)
     |> Stream.map(fn {:ok, result} -> result end)
@@ -34,9 +35,6 @@ defmodule AircloakCI.Build.Job.Compile do
             LocalProject.log(project, "main", "error compiling component #{component}")
         end
       )
-
-  defp components(), do:
-    ["cloak"]
 
   defp build_image_and_compile(project, component) do
     job_name = "#{component}_compile"

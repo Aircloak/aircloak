@@ -175,16 +175,7 @@ defmodule AircloakCI.LocalProject do
   @doc "Determines if CI can be invoked in this project."
   @spec ci_possible?(t) :: boolean
   def ci_possible?(project), do:
-    update_code(project) == :ok and not is_nil(ci_version(project))
-
-  @doc "Returns the CI version of the project."
-  @spec ci_version(t) :: non_neg_integer() | nil
-  def ci_version(project) do
-    case File.read(Path.join([src_folder(project), "ci", "VERSION"])) do
-      {:ok, contents} -> contents |> String.trim() |> String.to_integer()
-      {:error, _reason} -> nil
-    end
-  end
+    update_code(project) == :ok and not Enum.empty?(components(project))
 
   @doc "Returns true if the project source has been initialized."
   @spec initialized?(t) :: boolean
@@ -245,9 +236,9 @@ defmodule AircloakCI.LocalProject do
   def src_folder(project), do: Path.join(project.build_folder, "src")
 
   @doc "Retrieves the list of commands for the given job."
-  @spec commands(t, String.t, atom) :: [String.t]
+  @spec commands(t, String.t, atom) :: [String.t] | {:error, :no_ci}
   def commands(project, component, job) do
-    [{commands_map, _}] =
+    case \
       [
         Path.join([src_folder(project) | ~w(#{component} ci jobs.exs)]),
         # supported for legacy reasons
@@ -255,16 +246,31 @@ defmodule AircloakCI.LocalProject do
       ]
       |> Stream.filter(&File.exists?/1)
       |> Enum.map(&Code.eval_file/1)
+    do
+      [] -> {:error, :no_ci}
 
-    fallback_key =
-      case job do
-        # supported for legacy reasons
-        :test -> :standard_test
-        _other -> nil
-      end
+      [{commands_map, _}] ->
+        fallback_key =
+          case job do
+            # supported for legacy reasons
+            :test -> :standard_test
+            _other -> nil
+          end
 
-    Map.get(commands_map, job, Map.get(commands_map, fallback_key, []))
+        Map.get(commands_map, job, Map.get(commands_map, fallback_key, []))
+    end
   end
+
+  @doc "Returns the list of components for which CI can be executed."
+  @spec components(t) :: [String.t]
+  def components(project), do:
+    project
+    |> src_folder()
+    |> File.ls!()
+    |> Stream.filter(&File.dir?(Path.join(src_folder(project), &1)))
+    |> Stream.reject(&String.starts_with?(&1, "."))
+    |> Enum.reject(&(&1 in ["tmp"]))
+    |> Enum.reject(&match?({:error, _}, commands(project, &1, :compile)))
 
 
   # -------------------------------------------------------------------
