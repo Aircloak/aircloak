@@ -4,7 +4,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource.Table
-  alias Cloak.Sql.{Compiler, Parser, Compiler.TypeChecker}
+  alias Cloak.Sql.{Compiler, Parser, Compiler.TypeChecker.Type}
 
   describe "records used functions" do
     test "records usage of single functions", do:
@@ -128,6 +128,23 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
     end
   end
 
+  describe "unclear_implicit_range?" do
+    test "false when implicit range by itself", do:
+      refute type_with_functions(["month"]) |> Type.unclear_implicit_range?()
+
+    test "false when no implicit range", do:
+      refute type_with_functions([]) |> Type.unclear_implicit_range?()
+
+    test "true when the implicit range operates on an unclear expression", do:
+      assert type_with_functions(["trunc", "+"]) |> Type.unclear_implicit_range?()
+
+    test "true when the implicit range is later computed on", do:
+      assert type_with_functions(["+", "trunc"]) |> Type.unclear_implicit_range?()
+
+    test "true when nested implicit ranges", do:
+      assert type_with_functions(["date_trunc", "trunc"]) |> Type.unclear_implicit_range?()
+  end
+
   defp constant_involved?(query), do:
     type_first_column(query).constant_involved?
 
@@ -136,7 +153,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
 
   defp type_first_column(query) do
     compiled_query = compile!(query)
-    TypeChecker.Type.establish_type(hd(compiled_query.columns), compiled_query)
+    Type.establish_type(hd(compiled_query.columns), compiled_query)
   end
 
   defp compile!(query_string) do
@@ -146,6 +163,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
 
   defp compile(query_string), do:
     Compiler.compile(data_source(), Parser.parse!(query_string), [], %{})
+
+  defp type_with_functions(functions), do:
+    %Type{applied_functions: functions}
 
   defp data_source() do
     %{
