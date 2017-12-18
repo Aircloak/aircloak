@@ -251,10 +251,10 @@ SELECT COUNT(*) FROM table WHERE LEFT(name, 1) = UPPER(RIGHT(name, 1))
 The following functions are treated as text manipulation functions: `left`, `right`, `rtrim`, `ltrim`, `trim`, and
 `substring`.
 
-## NOT LIKE, NOT IN, and <>
+## IN, NOT IN, NOT LIKE, and <>
 
-Any conditions using `NOT LIKE`, `NOT ILIKE`, or `<>` are subject to additional restrictions. Note that `NOT IN` is
-treated just as `<>`, because there is always an equivalent query using `<>` for every `NOT IN` query:
+Any conditions using `IN`, `NOT LIKE`, `NOT ILIKE`, or `<>` are subject to additional restrictions. Note that `NOT IN`
+is treated just as `<>`, because there is always an equivalent query using `<>` for every `NOT IN` query:
 
 ```sql
 -- These queries are equivalent
@@ -265,8 +265,9 @@ SELECT COUNT(*) FROM table WHERE number <> 1 AND number <> 2 AND number <> 3
 Conditions using `NOT LIKE`, `NOT ILIKE`, or `<>` cannot include any functions nor mathematical operations except the
 following: `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `extract_words`, and all aggregators
 (`MIN`, `MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`). A single `CAST` is allowed. Furthermore, one of the expressions being
-compared must be a constant.  An exception to this is comparing two columns, but in that case no functions can be used
-at all. The top-level `HAVING` clause is exempt from these restrictions.
+compared must be a constant. In the case of `IN` all items on the right-hand side of the `IN` operator must be
+constants. An exception to this is comparing two columns, but in that case no functions can be used at all. The
+top-level `HAVING` clause is exempt from these restrictions.
 
 ```sql
 -- Correct
