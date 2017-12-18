@@ -130,19 +130,19 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
 
   describe "unclear_implicit_range?" do
     test "false when implicit range by itself", do:
-      refute type_with_functions(["month"]) |> Type.unclear_implicit_range?()
+      refute %Type{applied_functions: ["month"]} |> Type.unclear_implicit_range?()
 
     test "false when no implicit range", do:
-      refute type_with_functions([]) |> Type.unclear_implicit_range?()
+      refute %Type{applied_functions: []} |> Type.unclear_implicit_range?()
 
     test "true when the implicit range operates on an unclear expression", do:
-      assert type_with_functions(["trunc", "+"]) |> Type.unclear_implicit_range?()
+      assert %Type{applied_functions: ["trunc", "+"]} |> Type.unclear_implicit_range?()
 
     test "true when the implicit range is later computed on", do:
-      assert type_with_functions(["+", "trunc"]) |> Type.unclear_implicit_range?()
+      assert %Type{applied_functions: ["+", "trunc"]} |> Type.unclear_implicit_range?()
 
     test "true when nested implicit ranges", do:
-      assert type_with_functions(["date_trunc", "trunc"]) |> Type.unclear_implicit_range?()
+      assert %Type{applied_functions: ["date_trunc", "trunc"]} |> Type.unclear_implicit_range?()
   end
 
   defp constant_involved?(query), do:
@@ -163,9 +163,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
 
   defp compile(query_string), do:
     Compiler.compile(data_source(), Parser.parse!(query_string), [], %{})
-
-  defp type_with_functions(functions), do:
-    %Type{applied_functions: functions}
 
   defp data_source() do
     %{
