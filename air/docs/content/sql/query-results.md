@@ -51,16 +51,16 @@ Aircloak provides functions that report the sigma of the zero-mean noise for `co
 
 **Example 1**
 
-The answer to the following query indicates that noise with sigma=1 was added to the count:
+The answer to the following query indicates that noise with `sigma = 2` was added to the count:
 
 ```sql
 SELECT count(*), count_noise(*)
 FROM accounts
-``` 
+```
 
 count  | count_noise
 ------ | ------------------------
-5368   | 1
+5368   | 2
 
 This is because the `accounts` table has only one row per user, and therefore the amount contributed by the most influential user is just 1.
 
@@ -92,13 +92,13 @@ WHERE frequency = 'POPLATEK MESICNE' AND
 
 count  | count_noise
 ------ | ------------------------
-4167   | 2
+4167   | 4
 
-This query has more noise than the query of example 1 above because each of the two conditions adds two noise layers. Each layer has sigma=1, so the resulting cumulative sigma is sqrt(4)=2.
+This query has more noise than the query of example 1 above because each of the two conditions adds two noise layers. Each layer has `sigma = 2`, so the resulting cumulative sigma is `sqrt(4) * 2 = 4`.
 
 **Example 4**
 
-The following query produces answer rows with sigma=4. This represents 16 noise layers: 2 for `acct_date`, 6 for the `LIKE` condition, and 8 for the `IN` condition.
+The following query produces answer rows with `sigma = 4`. This represents 16 noise layers: 2 for `acct_date`, 6 for the `LIKE` condition, and 8 for the `IN` condition.
 
 ```sql
 SELECT acct_date, count(*), count_noise(*)

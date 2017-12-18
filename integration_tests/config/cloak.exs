@@ -19,7 +19,8 @@ config :cloak, :anonymizer,
   outliers_count: {4, 0},
   group_limits: {1, 6},
   top_count: {5, 0},
-  sum_noise_sigma: 0
+  sum_noise_sigma: 0,
+  sum_noise_sigma_scale_params: {2, 1, 0.5}
 
 config :cloak, :sanitize_otp_errors, false
 

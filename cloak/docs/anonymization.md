@@ -83,7 +83,7 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
     the average count of the top Nt users and twice the average count of all the remaining users,
     where Nv is a zero mean noisy number with a standard deviation taken from
     [sum_noise_sigma](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L51)
-    (`total = sum(remaining) + No * avg(top(remaining, Nt)) + Nv * max(0.5 * avg(top(remaining, Nt)), avg(remaining))`).
+    (`total = sum(remaining) + No * avg(top(remaining, Nt)) + Nv * max(scale_factor_min, max(avg_top_scale_factor * avg(top(remaining, Nt)), avg_scale_factor * avg(remaining)))`).
   - Note that an `Nv * ...` factor is added _per noise layer_ - see [Noise Layers](#noise_layers).
   - Note that the No and Nt numbers are also calculated according to the rules in [Noise Layers](#noise_layers), so depending on the query the actual
     SD of these numbers might be bigger than configuerd.
@@ -107,7 +107,7 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
       the average value of the top Nt users and twice the average value of all the remaining users,
       where Nv is a zero mean noisy number with a standard deviation taken from
       [sum_noise_sigma](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L51)
-      (`total = sum(remaining) + No * avg(top(remaining, Nt)) + Nv * max(0.5 * avg(top(remaining, Nt)), avg(remaining))`).
+      (`total = sum(remaining) + No * avg(top(remaining, Nt)) + Nv * max(scale_factor_min, max(avg_top_scale_factor * avg(top(remaining, Nt)), avg_scale_factor * avg(remaining)))`).
     - Note that an `Nv * ...` factor is added _per noise layer_ - see [Noise Layers](#noise_layers).
     - Note that the No and Nt numbers are also calculated according to the rules in [Noise Layers](#noise_layers), so depending on the query the actual
       SD of these numbers might be bigger than configuerd.

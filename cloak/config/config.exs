@@ -47,8 +47,20 @@ config :cloak, :anonymizer,
   # used for computing the average value of the top.
   top_count: {3, 0.5},
 
-  # The standard deviation for the noisy value of max(top_average, 2 * global_average) added to summed values.
-  sum_noise_sigma: 1
+  # The base sigma value used for sum and count calculations.
+  # This base sigma is scaled based on the average values and the `sum_noise_sigma_scale_params`.
+  sum_noise_sigma: 1,
+
+  # `sum_noise_sigma` is scaled based on the values being anonymized following the following formula:
+  #
+  #   max(
+  #     lower_bound,
+  #     max(average_factor * average, top_average_factor * top_average)
+  #   )
+  #
+  # The parameter takes the form:
+  # {lower_bound, average_factor, top_average_factor}
+  sum_noise_sigma_scale_params: {2, 1, 0.5}
 
 config :cloak, :in_development, false
 
