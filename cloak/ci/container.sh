@@ -12,7 +12,7 @@ function build_image {
   pushd ./cloak && make odbc_drivers && popd
 
   common/docker/elixir/build-image.sh
-  build_aircloak_image ci_cloak ci/docker/cloak.dockerfile ci/docker/.cloak.dockerignore
+  build_aircloak_image ci_cloak cloak/ci/dockerfile cloak/ci/.dockerignore
 }
 
 function is_image_built {

@@ -4,7 +4,7 @@ defmodule AircloakCI.Container do
 
   This module allows us to start uniquely named containers, and execute commands on them.
 
-  The actual docker manipulation is done with the help of the shell script. For example, see `ci/scripts/cloak.sh`.
+  The actual docker manipulation is done with the help of the shell script. For example, see `cloak/ci/container.sh`.
   This script has to expose a well defined interface for operations such as image building, container starting, and
   execution of commands in the container.
 

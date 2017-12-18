@@ -247,14 +247,18 @@ defmodule AircloakCI.LocalProject do
   @doc "Retrieves the list of commands for the given job."
   @spec commands(t, String.t, atom) :: [String.t]
   def commands(project, component, job) do
-    {commands_map, _} =
-      project
-      |> src_folder()
-      |> Path.join("ci/scripts/#{component}_commands.exs")
-      |> Code.eval_file()
+    [{commands_map, _}] =
+      [
+        Path.join([src_folder(project) | ~w(#{component} ci jobs.exs)]),
+        # supported for legacy reasons
+        Path.join([src_folder(project) | ~w(ci scripts #{component}_commands.exs)])
+      ]
+      |> Stream.filter(&File.exists?/1)
+      |> Enum.map(&Code.eval_file/1)
 
     fallback_key =
       case job do
+        # supported for legacy reasons
         :test -> :standard_test
         _other -> nil
       end

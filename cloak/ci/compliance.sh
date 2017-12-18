@@ -33,7 +33,7 @@ function cleanup {
 }
 
 function docker_script {
-  ci/scripts/cloak.sh $@
+  cloak/ci/container.sh $@
 }
 
 function clean_dangling {

@@ -63,8 +63,19 @@ defmodule AircloakCI.Build.Component do
     end
   end
 
-  defp script(project, component), do:
-    project |> LocalProject.src_folder() |> Path.join("ci/scripts/#{component}.sh")
+  defp script(project, component) do
+    [path] =
+      Enum.filter(
+        [
+          Path.join([LocalProject.src_folder(project) | ~w(#{component} ci container.sh)]),
+          # supported for legacy reasons
+          Path.join([LocalProject.src_folder(project) | ~w(ci scripts #{component}.sh)])
+        ],
+        &File.exists?/1
+      )
+
+    path
+  end
 
   defp log_name(component, job), do: "#{component}_#{job}"
 end
