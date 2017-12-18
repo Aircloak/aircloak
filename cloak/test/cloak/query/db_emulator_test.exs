@@ -453,7 +453,7 @@ defmodule Cloak.Query.DBEmulatorTest do
     assert_query """
       select count(*) from (
         select t1.user_id from #{@prefix}joined as t1 join #{@prefix}emulated as t2
-        on t1.user_id = t2.user_id where substring(value from 1 for 1) <> '0' and substring(value from 1 for 1) <> '2'
+        on t1.user_id = t2.user_id where substring(value from 1 for 1) in ('1', '2')
       ) as t1 join #{@prefix}joined as t2 on t1.user_id = t2.user_id
     """, %{rows: [%{row: [10]}]}
   end
