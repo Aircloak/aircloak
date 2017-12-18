@@ -101,7 +101,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
             "Only #{function_list(@allowed_not_equals_functions)} can be used in the arguments of an <> operator."
       else
         unless Type.clear_column?(lhs_type) and Type.clear_column?(rhs_type), do:
-          raise CompilationError, message: "When comparing two database columns with <> they cannot be modified."
+          raise CompilationError, message:
+            "No functions or mathematical operations are allowed when comparing two database columns with `<>`."
       end
     end)
 

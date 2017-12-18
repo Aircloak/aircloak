@@ -49,9 +49,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "allows column <> column", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric")
 
-    test "forbids column <> unclear_column", do:
-      assert {:error, "When comparing two database columns with <> they cannot be modified."} =
-        compile("SELECT COUNT(*) FROM table WHERE string <> upper(string)")
+    test "forbids column <> unclear_column" do
+      assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE string <> upper(string)")
+      assert message ==
+        "No functions or mathematical operations are allowed when comparing two database columns with `<>`."
+    end
 
     test "allows clear <> lhs in subquery HAVING", do:
       assert {:ok, _, _} = compile("""
