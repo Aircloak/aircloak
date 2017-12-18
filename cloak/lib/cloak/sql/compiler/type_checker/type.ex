@@ -69,7 +69,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
     implicit_range_count = transformation_count(type, & Function.implicit_range?/1)
 
     implicit_range_count > 1 or
-      implicit_range_count == 1 and has_transformation(type, & not Function.implicit_range?(&1))
+      implicit_range_count == 1 and has_transformation?(type, & not Function.implicit_range?(&1))
   end
 
 
@@ -135,7 +135,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
     (casts > @allowed_clear_casts) or (transformations > @allowed_clear_funs)
   end
 
-  defp has_transformation(type, predicate), do:
+  defp has_transformation?(type, predicate), do:
     transformation_count(type, predicate) > 0
 
   defp transformation_count(type, predicate), do:
