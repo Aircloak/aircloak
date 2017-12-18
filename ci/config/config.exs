@@ -16,7 +16,7 @@ config :aircloak_ci, :queues,
   [
     docker_build: queue_spec.(concurrency: 1, max_waiting_time: :timer.hours(1)),
     compile: queue_spec.(concurrency: 5, max_waiting_time: :timer.hours(1)),
-    standard_test: queue_spec.(concurrency: 20, max_waiting_time: :timer.hours(1)),
+    test: queue_spec.(concurrency: 20, max_waiting_time: :timer.hours(1)),
     compliance: queue_spec.(concurrency: 1, max_waiting_time: :timer.hours(1))
   ]
 

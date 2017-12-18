@@ -5,13 +5,13 @@ defmodule AircloakCI.Build.Component do
   A component is a project in the repo, such as air, cloak, ...
 
   A job is the name under which the component exposes a set of commands to be executed.
-  Examples of job names are `:compile`, `:standard_test`, `:compliance`.
+  Examples of job names are `:compile`, `:test`, `:compliance`.
   """
 
   alias AircloakCI.{Container, LocalProject}
   alias AircloakCI.Build.Job
 
-  @type job :: :compile | :standard_test | :compliance
+  @type job :: :compile | :test | :compliance
 
 
   # -------------------------------------------------------------------
@@ -56,9 +56,8 @@ defmodule AircloakCI.Build.Component do
     Container.with(script(project, component), LocalProject.log_file(project, log_name(component, job)), fun)
 
   defp prepare_for(container, job) do
-    if job in [:standard_test, :compliance] do
-      command_suffix = if job == :standard_test, do: "test", else: to_string(job)
-      Container.invoke_script(container, "prepare_for_#{command_suffix} #{container.name}", timeout: :timer.minutes(1))
+    if job in [:test, :compliance] do
+      Container.invoke_script(container, "prepare_for_#{job} #{container.name}", timeout: :timer.minutes(1))
     else
       :ok
     end
@@ -67,6 +66,5 @@ defmodule AircloakCI.Build.Component do
   defp script(project, component), do:
     project |> LocalProject.src_folder() |> Path.join("ci/scripts/#{component}.sh")
 
-  defp log_name(component, :standard_test), do: "#{component}_test"
   defp log_name(component, job), do: "#{component}_#{job}"
 end

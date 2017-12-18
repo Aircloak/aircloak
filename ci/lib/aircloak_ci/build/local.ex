@@ -85,7 +85,7 @@ defmodule AircloakCI.Build.Local do
   defp empty_repo(), do:
     %{owner: "aircloak", name: "aircloak", branches: [], pull_requests: []}
 
-  defp run_job("cloak_test", state), do: Job.StandardTest.run(state)
+  defp run_job("cloak_test", state), do: Job.Test.run(state)
   defp run_job("cloak_compile", state), do: Job.Compile.run(state)
   defp run_job("compliance", state), do: Job.Compliance.run(state)
 

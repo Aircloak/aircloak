@@ -253,7 +253,13 @@ defmodule AircloakCI.LocalProject do
       |> Path.join("ci/scripts/#{component}_commands.exs")
       |> Code.eval_file()
 
-    Map.get(commands_map, job, [])
+    fallback_key =
+      case job do
+        :test -> :standard_test
+        _other -> nil
+      end
+
+    Map.get(commands_map, job, Map.get(commands_map, fallback_key, []))
   end
 
 

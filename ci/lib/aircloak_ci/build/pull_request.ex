@@ -76,7 +76,7 @@ defmodule AircloakCI.Build.PullRequest do
   defp maybe_start_ci(%{compiled?: true} = state), do:
     state
     |> Job.Compliance.run()
-    |> Job.StandardTest.run()
+    |> Job.Test.run()
 
   defp maybe_report_mergeable(state) do
     if \

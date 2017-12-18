@@ -56,12 +56,12 @@ defmodule AircloakCI.Build.Branch do
 
   @impl Build.Server
   def handle_job_succeeded("compile", state), do: {:noreply, handle_compile_finished(state)}
-  def handle_job_succeeded("standard_test", state), do: {:noreply, maybe_perform_transfers(state)}
+  def handle_job_succeeded("test", state), do: {:noreply, maybe_perform_transfers(state)}
   def handle_job_succeeded(other, state), do: super(other, state)
 
   @impl Build.Server
   def handle_job_failed("compile", _reason, state), do: {:noreply, handle_compile_finished(state)}
-  def handle_job_failed("standard_test", _reason, state), do: {:noreply, maybe_perform_transfers(state)}
+  def handle_job_failed("test", _reason, state), do: {:noreply, maybe_perform_transfers(state)}
   def handle_job_failed(other, reason, state), do: super(other, reason, state)
 
   @impl Build.Server
@@ -89,7 +89,7 @@ defmodule AircloakCI.Build.Branch do
     state |> maybe_perform_transfers() |> maybe_start_ci()
 
   defp maybe_perform_transfers(state) do
-    if state.prepared? and not Enum.any?(["compile", "standard_test"], &Build.Server.running?(state, &1)) do
+    if state.prepared? and not Enum.any?(["compile", "test"], &Build.Server.running?(state, &1)) do
       state.data.pending_transfers
       |> Enum.reverse()
       |> Enum.each(fn({target_project, from}) -> transfer_project(state, target_project, from) end)
@@ -106,7 +106,7 @@ defmodule AircloakCI.Build.Branch do
   end
 
   defp maybe_start_ci(state), do:
-    Job.StandardTest.run(state)
+    Job.Test.run(state)
 
 
   # -------------------------------------------------------------------
