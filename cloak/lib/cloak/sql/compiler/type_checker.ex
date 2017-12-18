@@ -143,7 +143,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       unless clear_range_lhs?(column, query, interval) do
         type = Type.establish_type(column, query)
         {implicit_range_functions, other_functions} = type.applied_functions
-        |> Enum.split_with(&Function.has_attribute?(&1, :implicit_range))
+        |> Enum.split_with(& Function.implicit_range?/1)
 
         raise CompilationError, message: """
         Only unmodified database columns can be limited by a range.

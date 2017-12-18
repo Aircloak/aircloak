@@ -244,6 +244,10 @@ defmodule Cloak.Sql.Function do
   @spec cast?(t | String.t | nil) :: boolean
   def cast?(param), do: has_attribute?(param, :cast)
 
+  @doc "Returns true if the given function exhibits implicit range behaviour"
+  @spec implicit_range?(t | String.t | nil) :: boolean
+  def implicit_range?(param), do: has_attribute?(param, :implicit_range)
+
   @doc "Provides information about alternatives for deprecated functions."
   @spec deprecation_info(t) :: {:error, :function_exists | :not_found} | {:ok, %{alternative: String.t}}
   def deprecation_info({:function, name, _} = function) do
