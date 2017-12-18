@@ -118,8 +118,8 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp conditions_to_fragments({:or, lhs, rhs}, sql_dialect_module), do:
     ["(", conditions_to_fragments(lhs, sql_dialect_module), ") OR (",
       conditions_to_fragments(rhs, sql_dialect_module), ")"]
-  defp conditions_to_fragments({:comparison, %Expression{type: text} = what,
-      comparator, %Expression{type: text} = value}, SQLServer), do:
+  defp conditions_to_fragments({:comparison, %Expression{type: :text} = what,
+      comparator, %Expression{type: :text} = value}, SQLServer), do:
     # SQL Server ignores trailing spaces during text comparisons
     ["(", to_fragment(what, SQLServer), " + N'.') #{comparator} (", to_fragment(value, SQLServer), " + N'.')"]
   defp conditions_to_fragments({:comparison, what, comparator, value}, sql_dialect_module), do:
