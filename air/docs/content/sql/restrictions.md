@@ -222,3 +222,31 @@ SELECT round(abs(number)) FROM table
 
 The following functions are treated as implicit range functions: `round`, `trunc`, `date_trunc`, and all date extraction
 functions (`year`, `month`, `quarter`, `day`, `weekday`, `hour`, `minute`, `second`).
+
+## Text operations
+
+Certain operations on textual data can be used to almost the same effect as a pair of inequalities. For example the
+following two queries are roughly equivalent:
+
+```sql
+SELECT COUNT(*) FROM table WHERE number BETWEEN 10 AND 20
+
+SELECT COUNT(*) FROM table WHERE
+  LEFT(CAST(number AS text), 1) = '1' AND length(CAST(number AS text)) = 2
+```
+
+Because of this, the usage of operations on textual data has to be restricted to prevent circumvention of measures that
+would normally limit what can be done with range conditions. The restrictions on expressions containing text
+manipulation functions are the same as ones described for [implicit ranges](#implicit-ranges). In addition a result of
+text manipulation can only be compared to an untransformed column or a constant.
+
+```sql
+-- Correct
+SELECT COUNT(*) FROM table WHERE LEFT(name, 1) = 'A'
+
+-- Incorrect - the results of a text operation are compared to a complex expression
+SELECT COUNT(*) FROM table WHERE LEFT(name, 1) = UPPER(RIGHT(name, 1))
+```
+
+The following functions are treated as text manipulation functions: `left`, `right`, `rtrim`, `ltrim`, `trim`, and
+`substring`.

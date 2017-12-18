@@ -39,6 +39,7 @@
     - [Ranges](sql/restrictions.md#ranges)
     - [Range alignment](sql/restrictions.md#range-alignment)
     - [Implicit ranges](sql/restrictions.md#implicit-ranges)
+    - [Text operations](sql/restrictions.md#text-operations)
 - [Understanding query results](sql/query-results.md)
   - [Low-count filtering](sql/query-results.md#low-count-filtering)
   - [Added noise](sql/query-results.md#adding-noise)
