@@ -93,8 +93,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
     transformation_count(type, &Function.string_manipulation_function?/1) > 0
 
   @doc """
-  Returns true if the expression with the given type contains a string manipulation function and other transformations
-  together with other transformations, false otherwise. Aggregators and a single cast are ignored.
+  Returns true if the expression with the given type contains a string manipulation function together with other
+  transformations, false otherwise. Aggregators and a single cast are ignored.
   """
   def unclear_string_manipulation?(type) do
     casts = transformation_count(type, &Function.cast?/1)
