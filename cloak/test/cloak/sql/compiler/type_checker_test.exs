@@ -12,7 +12,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
 
     test "forbids unclear IN lhs" do
       assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 IN (1, 2, 3)")
-      assert message =~ ~r[Only .* can be used in the left-hand side of an IN operator]
+      assert message =~ ~r[Only `lower`, `upper`, .*, and `.*` can be used in the left-hand side of an IN operator]
     end
 
     test "allows clear IN lhs from subqueries", do:

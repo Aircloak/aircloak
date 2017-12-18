@@ -126,7 +126,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       end
     end)
 
-  defp function_list(function_names), do: function_names |> Aircloak.OxfordComma.join()
+  defp function_list(function_names), do: function_names |> Enum.map(&"`#{&1}`") |> Aircloak.OxfordComma.join()
 
   defp like_kind_name(:like), do: "LIKE"
   defp like_kind_name(:ilike), do: "ILIKE"
