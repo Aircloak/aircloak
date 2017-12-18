@@ -83,7 +83,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   @allowed_in_functions ~w(lower upper substring trim ltrim rtrim btrim extract_words)
   defp verify_lhs_of_in_is_clear(query), do:
     verify_conditions(query, &Condition.in?/1, fn({:in, lhs, _}) ->
-      unless Type.establish_type(lhs, query) |> Type.cast_raw_column?(@allowed_in_functions) do
+      unless Type.establish_type(lhs, query) |> Type.clear_column?(@allowed_in_functions) do
         raise CompilationError, message:
           "Only #{function_list(@allowed_in_functions)} can be used in the left-hand side of an IN operator."
       end
@@ -96,11 +96,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       lhs_type = Type.establish_type(lhs, query)
 
       if rhs_type.constant? do
-        unless Type.establish_type(lhs, query) |> Type.cast_raw_column?(@allowed_not_equals_functions), do:
+        unless Type.establish_type(lhs, query) |> Type.clear_column?(@allowed_not_equals_functions), do:
           raise CompilationError, message:
             "Only #{function_list(@allowed_not_equals_functions)} can be used in the arguments of an <> operator."
       else
-        unless Type.cast_raw_column?(lhs_type) and Type.cast_raw_column?(rhs_type), do:
+        unless Type.clear_column?(lhs_type) and Type.clear_column?(rhs_type), do:
           raise CompilationError, message: "When comparing two database columns with <> they cannot be modified."
       end
     end)
@@ -113,14 +113,14 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       if Type.unclear_string_manipulation?(lhs_type), do:
         raise CompilationError, message: "String manipulation functions cannot be combined with other transformations."
 
-      if Type.string_manipulation?(lhs_type) and not Type.cast_raw_column?(rhs_type) and not rhs_type.constant?, do:
+      if Type.string_manipulation?(lhs_type) and not Type.clear_column?(rhs_type) and not rhs_type.constant?, do:
         raise CompilationError, message: "Results of string manipulation functions can only be compared to constants."
     end)
 
   @allowed_like_functions []
   defp verify_lhs_of_not_like_is_clear(query), do:
     verify_conditions(query, &Condition.not_like?/1, fn({:not, {kind, lhs, _}}) ->
-      unless Type.establish_type(lhs, query) |> Type.cast_raw_column?(@allowed_like_functions) do
+      unless Type.establish_type(lhs, query) |> Type.clear_column?(@allowed_like_functions) do
         raise CompilationError, message:
           "NOT #{like_kind_name(kind)} can only be applied to an unmodified database column."
       end
@@ -154,7 +154,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp clear_range_lhs?(lhs, query, :implicit), do:
     Type.establish_type(lhs, query).implicit_range in [:none, {:implicit_range, :clear}]
   defp clear_range_lhs?(lhs, query, _), do:
-    Type.establish_type(lhs, query) |> Type.cast_raw_column?()
+    Type.establish_type(lhs, query) |> Type.clear_column?()
 
   defp verify_conditions(query, predicate, action), do:
     Query.Lenses.db_filter_clauses()

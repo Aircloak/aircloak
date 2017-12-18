@@ -77,8 +77,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   Returns true if the expression with the given type is a column from the database without any processing other than
   one cast, false otherwise. Functions in allowed_functions are ignored.
   """
-  @spec cast_raw_column?(t, [String.t]) :: boolean
-  def cast_raw_column?(type, allowed_functions \\ []) do
+  @spec clear_column?(t, [String.t]) :: boolean
+  def clear_column?(type, allowed_functions \\ []) do
     transforms = transformation_count(type, fn(function) ->
       not Function.cast?(function) and not Function.aggregator?(function) and not function in allowed_functions
     end)
@@ -147,7 +147,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
       {:implicit_range, :unclear}
     else
       if Function.has_attribute?(function, :implicit_range) do
-        if Enum.all?(child_types, &(cast_raw_column?(&1) || &1.constant? || &1.raw_column?)) do
+        if Enum.all?(child_types, &(clear_column?(&1) || &1.constant? || &1.raw_column?)) do
           {:implicit_range, :clear}
         else
           {:implicit_range, :unclear}
