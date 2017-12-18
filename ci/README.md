@@ -38,7 +38,7 @@ You can make some changes to the local behavior by creating the `config/dev.loca
 
 All checkouts and logs reside in `~/.aircloak_ci/data`. In case something is terribly broken, you can remove that folder (but not the `~/.aircloak_ci` folder), and try again.
 
-Note that you don't need to use this service to run the CI suite locally. You can invoke shell scripts directly, or via make tasks. For example, to run and debug compliance tests, you can invoke `make ci.compliance` and `make ci.compliance.debug` tasks from the `cloak` folder. See `cloak/README.md` for more details.
+Note that you don't need to use this service to run the CI suite locally. You can invoke shell scripts directly, or via make tasks. For example, to run and debug compliance tests, you can invoke `make ci.compliance` and `make ci.compliance` tasks from the `cloak` folder. See `cloak/README.md` for more details.
 
 
 ## Production
