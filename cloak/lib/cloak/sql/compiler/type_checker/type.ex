@@ -79,8 +79,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   """
   @spec cast_raw_column?(t, [String.t]) :: boolean
   def cast_raw_column?(type, allowed_functions \\ []) do
-    transforms = transformation_count(type, fn(column) ->
-      not Function.cast?(column) and not Function.aggregator?(column) and not column in allowed_functions
+    transforms = transformation_count(type, fn(function) ->
+      not Function.cast?(function) and not Function.aggregator?(function) and not function in allowed_functions
     end)
     casts = transformation_count(type, &Function.cast?/1)
 
