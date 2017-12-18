@@ -123,7 +123,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     verify_conditions(query, &Condition.not_like?/1, fn({:not, {kind, lhs, _}}) ->
       unless Type.establish_type(lhs, query) |> Type.clear_column?(@allowed_like_functions) do
         raise CompilationError, message:
-          "NOT #{like_kind_name(kind)} can only be applied to an unmodified database column."
+          "Expressions with NOT #{like_kind_name(kind)} cannot include any functions except aggregators and a cast."
       end
     end)
 
@@ -142,7 +142,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         |> Enum.split_with(&Function.has_attribute?(&1, :implicit_range))
 
         raise CompilationError, message: """
-        Only unmodified database columns can be limited by a range.
+        Range expressions cannot include any functions except aggregations and a cast.
 
         #{Narrative.construct_implicit_range_narrative(implicit_range_functions, other_functions,
           type.history_of_columns_involved)}
