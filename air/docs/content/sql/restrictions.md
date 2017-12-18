@@ -250,3 +250,37 @@ SELECT COUNT(*) FROM table WHERE LEFT(name, 1) = UPPER(RIGHT(name, 1))
 
 The following functions are treated as text manipulation functions: `left`, `right`, `rtrim`, `ltrim`, `trim`, and
 `substring`.
+
+## NOT LIKE, NOT IN, and <>
+
+Any conditions using `NOT LIKE`, `NOT ILIKE`, or `<>` are subject to additional restrictions. Note that `NOT IN` is
+treated just as `<>`, because there is always an equivalent query using `<>` for every `NOT IN` query:
+
+```sql
+-- These queries are equivalent
+SELECT COUNT(*) FROM table WHERE number NOT IN (1, 2, 3)
+SELECT COUNT(*) FROM table WHERE number <> 1 AND number <> 2 AND number <> 3
+```
+
+Conditions using `NOT LIKE`, `NOT ILIKE`, or `<>` cannot include any functions nor mathematical operations except the
+following: `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `extract_words`, and all aggregators
+(`MIN`, `MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`). A single `CAST` is allowed. Furthermore, one of the expressions being
+compared must be a constant.  An exception to this is comparing two columns, but in that case no functions can be used
+at all. The top-level `HAVING` clause is exempt from these restrictions.
+
+```sql
+-- Correct
+SELECT COUNT(*) FROM table WHERE lower(name) <> 'alice'
+
+-- Incorrect - a disallowed operation was used
+SELECT COUNT(*) FROM table WHERE left(name, 1) <> 'a'
+
+-- Incorrect - a comparison between two complex expressions
+SELECT COUNT(*) FROM table WHERE lower(name) <> lower(surname)
+
+-- Correct - top-level HAVING is exempt from restrictions
+SELECT COUNT(*) FROM table GROUP BY name HAVING left(name) <> 'a'
+
+-- Correct - comparing two database columns
+SELECT COUNT(*) FROM table WHERE name <> surname
+```

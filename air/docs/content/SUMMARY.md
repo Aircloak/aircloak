@@ -40,6 +40,7 @@
     - [Range alignment](sql/restrictions.md#range-alignment)
     - [Implicit ranges](sql/restrictions.md#implicit-ranges)
     - [Text operations](sql/restrictions.md#text-operations)
+    - [NOT LIKE, NOT IN, and <>](sql/restrictions.md#not-like-not-in-and-)
 - [Understanding query results](sql/query-results.md)
   - [Low-count filtering](sql/query-results.md#low-count-filtering)
   - [Added noise](sql/query-results.md#adding-noise)
