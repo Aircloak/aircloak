@@ -196,9 +196,9 @@ SELECT COUNT(*) FROM table WHERE number >= 9.5 AND number < 10.5
 
 Because of this, usage of such functions must be restricted in a similar way to inequalities and the `BETWEEN` operator.
 The restrictions disallow the usage of any functions or mathematical operations before or after applying an implicit
-range function. The only operations that can be applied are a single `CAST` and any number of aggregations (`MIN`,
-`MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`). The restrictions apply when an implict range function is used in a `WHERE` or
-`JOIN` clause, selected in the top-level `SELECT` clause or used in a non-top-level `HAVING` clause.
+range function. The only operations that can be applied are a single `CAST` and any number of aggregators (`MIN`, `MAX`,
+`COUNT`, `SUM`, `AVG`, `STDDEV`). The restrictions apply when an implict range function is used in a `WHERE` or `JOIN`
+clause, selected in the top-level `SELECT` clause or used in a non-top-level `HAVING` clause.
 
 ```sql
 -- Correct - no other function used
@@ -262,12 +262,13 @@ SELECT COUNT(*) FROM table WHERE number NOT IN (1, 2, 3)
 SELECT COUNT(*) FROM table WHERE number <> 1 AND number <> 2 AND number <> 3
 ```
 
-Conditions using `NOT LIKE`, `NOT ILIKE`, or `<>` cannot include any functions nor mathematical operations except the
-following: `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `extract_words`, and all aggregators
-(`MIN`, `MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`). A single `CAST` is allowed. Furthermore, one of the expressions being
-compared must be a constant. In the case of `IN` all items on the right-hand side of the `IN` operator must be
-constants. An exception to this is comparing two columns, but in that case no functions can be used at all. The
-top-level `HAVING` clause is exempt from these restrictions.
+Conditions using `IN` or `<>` cannot include any functions nor mathematical operations except the following: `lower`,
+`upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `extract_words`, and all aggregators (`MIN`, `MAX`, `COUNT`,
+`SUM`, `AVG`, `STDDEV`). Conditions using `NOT LIKE` or `NOT ILIKE` cannot contain any functions except for aggregators.
+A single `CAST` is allowed. Furthermore, one of the expressions being compared must be a constant. In the case of `IN`
+all items on the right-hand side of the `IN` operator must be constants. An exception to this is comparing two columns
+with `<>`, but in that case no functions can be used at all. The top-level `HAVING` clause is exempt from  all these
+restrictions.
 
 ```sql
 -- Correct
