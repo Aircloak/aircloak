@@ -35,6 +35,7 @@
   - [Restrictions](sql/restrictions.md)
     - [JOINs](sql/restrictions.md#join-restrictions)
     - [Subqueries](sql/restrictions.md#subquery-restrictions)
+    - [Top-level HAVING clause](sql/restrictions.md#top-level-having-clause)
     - [Math and function application](sql/restrictions.md#math-and-function-application-restrictions)
     - [Ranges](sql/restrictions.md#ranges)
     - [Range alignment](sql/restrictions.md#range-alignment)

@@ -43,6 +43,14 @@ When using `LIMIT` and `OFFSET` in a subquery:
   adjusted to 200 given a `LIMIT` of 100
 
 
+## Top-level HAVING clause
+
+Any conditions specified in the `HAVING` clause of the top-level query (_not_ a subquery) are "safe" in the sense that
+they will only ever be applied to data that has already been aggregated and anonymized. The clause will merely affect
+which of the anonymized data to display, not how that data is obtained.  Because of this, many of the restrictions
+described in the following sections don't apply to the top-level `HAVING` clause.
+
+
 ## Math and function application restrictions
 
 The usage of some functions is restricted. The scenarios when the restrictions come into effect are when a database
