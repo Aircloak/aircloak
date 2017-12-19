@@ -83,7 +83,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   @allowed_in_functions ~w(lower upper substring trim ltrim rtrim btrim extract_words)
   defp verify_lhs_of_in_is_clear(query), do:
     verify_conditions(query, &Condition.in?/1, fn({:in, lhs, _}) ->
-      unless clear_lhs?(lhs, query, @allowed_in_functions) do
+      unless Type.establish_type(lhs, query) |> Type.clear_column?(@allowed_in_functions) do
         raise CompilationError, message:
           "Only #{function_list(@allowed_in_functions)} can be used in the left-hand side of an IN operator."
       end
@@ -92,13 +92,17 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   @allowed_not_equals_functions ~w(lower upper substring trim ltrim rtrim btrim extract_words)
   defp verify_not_equals_is_clear(query), do:
     verify_conditions(query, &Condition.not_equals?/1, fn({:comparison, lhs, :<>, rhs}) ->
-      if Type.establish_type(rhs, query).constant? do
-        unless clear_lhs?(lhs, query, @allowed_not_equals_functions), do:
+      rhs_type = Type.establish_type(rhs, query)
+      lhs_type = Type.establish_type(lhs, query)
+
+      if rhs_type.constant? do
+        unless Type.establish_type(lhs, query) |> Type.clear_column?(@allowed_not_equals_functions), do:
           raise CompilationError, message:
             "Only #{function_list(@allowed_not_equals_functions)} can be used in the arguments of an <> operator."
       else
-        unless Type.establish_type(lhs, query).raw_column? and Type.establish_type(rhs, query).raw_column?, do:
-          raise CompilationError, message: "When comparing two database columns with <> they cannot be modified."
+        unless Type.clear_column?(lhs_type) and Type.clear_column?(rhs_type), do:
+          raise CompilationError, message:
+            "No functions or mathematical operations are allowed when comparing two database columns with `<>`."
       end
     end)
 
@@ -107,34 +111,26 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       lhs_type = Type.establish_type(lhs, query)
       rhs_type = Type.establish_type(rhs, query)
 
-      if lhs_type.unclear_string_manipulation?, do:
+      if Type.unclear_string_manipulation?(lhs_type), do:
         raise CompilationError, message: "String manipulation functions cannot be combined with other transformations."
 
-      if lhs_type.string_manipulation? and not rhs_type.cast_raw_column? and not rhs_type.constant?, do:
+      if Type.string_manipulation?(lhs_type) and not Type.clear_column?(rhs_type) and not rhs_type.constant?, do:
         raise CompilationError, message: "Results of string manipulation functions can only be compared to constants."
     end)
 
   @allowed_like_functions []
   defp verify_lhs_of_not_like_is_clear(query), do:
     verify_conditions(query, &Condition.not_like?/1, fn({:not, {kind, lhs, _}}) ->
-      unless clear_lhs?(lhs, query, @allowed_like_functions) do
+      unless Type.establish_type(lhs, query) |> Type.clear_column?(@allowed_like_functions) do
         raise CompilationError, message:
-          "NOT #{like_kind_name(kind)} can only be applied to an unmodified database column."
+          "Expressions with NOT #{like_kind_name(kind)} cannot include any functions except aggregators and a cast."
       end
     end)
 
-  defp function_list(function_names), do: function_names |> Enum.map(&"`#{&1}`") |> Enum.join(", ")
+  defp function_list(function_names), do: function_names |> Enum.map(&"`#{&1}`") |> Aircloak.OxfordComma.join()
 
   defp like_kind_name(:like), do: "LIKE"
   defp like_kind_name(:ilike), do: "ILIKE"
-
-  defp clear_lhs?(%Expression{aggregate?: true, function_args: [lhs]}, query, allowed_functions), do:
-    clear_lhs?(lhs, query, allowed_functions)
-  defp clear_lhs?(%Expression{function?: true, function: function, function_args: args}, query, allowed_functions), do:
-    (function in allowed_functions) and clear_lhs?(main_argument(args), query, allowed_functions)
-  defp clear_lhs?(lhs, query, _allowed_functions), do: Type.establish_type(lhs, query).raw_column?
-
-  defp main_argument(args), do: Enum.at(args, 0)
 
   defp verify_ranges_are_clear(query), do:
     query
@@ -146,7 +142,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         |> Enum.split_with(&Function.has_attribute?(&1, :implicit_range))
 
         raise CompilationError, message: """
-        Only unmodified database columns can be limited by a range.
+        Range expressions cannot include any functions except aggregations and a cast.
 
         #{Narrative.construct_implicit_range_narrative(implicit_range_functions, other_functions,
           type.history_of_columns_involved)}
@@ -158,10 +154,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     clear_range_lhs?(lhs, query, interval)
   defp clear_range_lhs?(lhs, query, :implicit), do:
     Type.establish_type(lhs, query).implicit_range in [:none, {:implicit_range, :clear}]
-  defp clear_range_lhs?(lhs, query, _) do
-    type = Type.establish_type(lhs, query)
-    type.cast_raw_column? || type.raw_column?
-  end
+  defp clear_range_lhs?(lhs, query, _), do:
+    Type.establish_type(lhs, query) |> Type.clear_column?()
 
   defp verify_conditions(query, predicate, action), do:
     Query.Lenses.db_filter_clauses()
