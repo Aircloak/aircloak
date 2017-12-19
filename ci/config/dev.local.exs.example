@@ -7,7 +7,7 @@ use Mix.Config
 
 # Enables real Github writes.
 # Be very careful with this option, because it will post statuses and comments to Github issues.
-# config :aircloak_ci, :simulate_github_writes, false
+# config :aircloak_ci, :write_to_github, true
 
 # This can be used to simulate various tests by sleeping for 1 second, and thus reduce the execution in dev.
 # If you remove an item from this list, then the real job will be executed locally.

@@ -1,3 +1,3 @@
 use Mix.Config
 
-config :aircloak_ci, :simulate_github_writes, false
+config :aircloak_ci, :write_to_github, true
