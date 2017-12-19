@@ -6,16 +6,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
 
   @type function_name :: String.t
   @type restricted_transformation :: {:restricted_function | :potentially_crashing_function, function_name}
-  @type implicit_range_type ::
-    # If no implicit range has been detected
-      :none
-    # The expression contains one or more implicit ranges but each one individually is clear.
-    # That is to say each implicit range operated on an expression that was either a constant
-    # or raw column.
-    | {:implicit_range, :clear}
-    # The expression contains at least one implicit range that operated on an expression that
-    # was not a clear expression.
-    | {:implicit_range, :unclear}
 
   @type t :: %__MODULE__{
     # The names of functions that have been applied to a column or an expression
@@ -29,10 +19,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
     # True if the expression is a column from the database without any processing. It might be a column in a subquery
     # that has been simply selected into the outer query.
     raw_column?: boolean,
-
-    # Whether the type
-    # the inverse is not necessarily the case.
-    implicit_range: implicit_range_type,
 
     # True if any of the expressions it has come in contact with through functions
     # were constant.
@@ -48,7 +34,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   }
 
   defstruct [
-    constant?: false, constant_involved?: false, raw_column?: false, implicit_range: :none,
+    constant?: false, constant_involved?: false, raw_column?: false,
     applied_functions: [], history_of_restricted_transformations: [], history_of_columns_involved: [],
   ]
 
@@ -72,6 +58,15 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   def establish_type(%Expression{constant?: true}, _query), do: constant()
   def establish_type(%Expression{function: nil} = column, query), do: expand_from_subquery(column, query)
   def establish_type(function = %Expression{function?: true}, query), do: type_for_function(function, query)
+
+  @doc "Returns true if an implicit range function is used on combination with other functions"
+  @spec unclear_implicit_range?(t) :: boolean
+  def unclear_implicit_range?(type) do
+    implicit_range_count = transformation_count(type, & Function.implicit_range?/1)
+
+    implicit_range_count > 1 or
+      implicit_range_count == 1 and has_transformation?(type, & not Function.implicit_range?(&1))
+  end
 
   @doc """
   Returns true if the expression with the given type is a column from the database without any processing other than
@@ -133,7 +128,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
       applied_functions = [name | Enum.flat_map(child_types, & &1.applied_functions)]
       %Type{
         applied_functions: applied_functions,
-        implicit_range: implicit_range_type(function, child_types),
         constant_involved?: any_touched_by_constant?(child_types) ||
           math_operations_count(applied_functions) >= @math_operations_before_considered_constant,
         history_of_columns_involved: combined_columns_involved(child_types),
@@ -142,25 +136,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
     end
   end
 
-  defp implicit_range_type(function, child_types) do
-    if Enum.any?(child_types, & &1.implicit_range == {:implicit_range, :unclear}) do
-      {:implicit_range, :unclear}
-    else
-      if Function.has_attribute?(function, :implicit_range) do
-        if Enum.all?(child_types, &(clear_column?(&1) || &1.constant? || &1.raw_column?)) do
-          {:implicit_range, :clear}
-        else
-          {:implicit_range, :unclear}
-        end
-      else
-        if Enum.any?(child_types, & &1.implicit_range == {:implicit_range, :clear}) do
-          {:implicit_range, :clear}
-        else
-          :none
-        end
-      end
-    end
-  end
+  defp has_transformation?(type, predicate), do:
+    transformation_count(type, predicate) > 0
 
   defp transformation_count(type, predicate), do:
     Enum.count(type.applied_functions, predicate)

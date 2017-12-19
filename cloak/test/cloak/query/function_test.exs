@@ -12,7 +12,8 @@ defmodule Cloak.Query.FunctionTest do
     insert_rows(_user_ids = 1..50, "heights_ft", ["height", "string_number", "name"], [180, "42", "first second third"])
 
     Cloak.Test.DB.create_table("datetimes_ft", "datetime TIMESTAMP, date_only DATE, time_only TIME, empty text")
-    insert_rows(_user_ids = 1..10, "datetimes_ft", ["datetime"], [~N[2015-02-03 04:05:06.000000]])
+    insert_rows(_user_ids = 1..10, "datetimes_ft", ["datetime", "time_only"],
+      [~N[2015-02-03 04:05:06.000000], ~T[04:05:06.000000]])
 
     Cloak.Test.DB.create_table("types_ft", "fixed DECIMAL(10, 5), frac REAL, num INTEGER, string TEXT, string2 TEXT")
   end
@@ -266,15 +267,15 @@ defmodule Cloak.Query.FunctionTest do
 
   describe "date_trunc for time" do
     test "date_trunc('second')", do:
-      assert "04:05:06.000000" == apply_function("date_trunc('second', cast(datetime as time))", "datetimes_ft")
+      assert "04:05:06.000000" == apply_function("date_trunc('second', time_only)", "datetimes_ft")
     test "date_trunc('minute')", do:
-      assert "04:05:00.000000" == apply_function("date_trunc('minute', cast(datetime as time))", "datetimes_ft")
+      assert "04:05:00.000000" == apply_function("date_trunc('minute', time_only)", "datetimes_ft")
     test "date_trunc('hour')", do:
-      assert "04:00:00.000000" == apply_function("date_trunc('hour', cast(datetime as time))", "datetimes_ft")
+      assert "04:00:00.000000" == apply_function("date_trunc('hour', time_only)", "datetimes_ft")
     test "date_trunc('day')", do:
-      assert "00:00:00.000000" == apply_function("date_trunc('day', cast(datetime as time))", "datetimes_ft")
+      assert "00:00:00.000000" == apply_function("date_trunc('day', time_only)", "datetimes_ft")
     test "date_trunc('quarter')", do:
-      assert "00:00:00.000000" == apply_function("date_trunc('quarter', cast(datetime as time))", "datetimes_ft")
+      assert "00:00:00.000000" == apply_function("date_trunc('quarter', time_only)", "datetimes_ft")
   end
 
   test "length", do: assert 3 == apply_function("length(cast(height as text))", "heights_ft")
