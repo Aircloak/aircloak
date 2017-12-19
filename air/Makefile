@@ -41,7 +41,7 @@ dialyze:
 	mix dialyze_retry
 
 docs:
-	mix docs.all
+	mix docs
 
 release:
 	MIX_ENV=prod mix compile
@@ -66,3 +66,8 @@ eslint:
 
 mocha:
 	cd assets && NODE_PATH=test/js:js npm test
+
+check-warnings:
+	MIX_ENV=dev mix compile --warnings-as-errors --all-warnings
+	MIX_ENV=test mix compile --warnings-as-errors --all-warnings
+	MIX_ENV=prod mix compile --warnings-as-errors --all-warnings
