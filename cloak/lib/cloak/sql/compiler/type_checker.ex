@@ -101,7 +101,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
             "Only #{function_list(@allowed_not_equals_functions)} can be used in the arguments of an <> operator."
       else
         unless Type.clear_column?(lhs_type) and Type.clear_column?(rhs_type), do:
-          raise CompilationError, message: "When comparing two database columns with <> they cannot be modified."
+          raise CompilationError, message:
+            "No functions or mathematical operations are allowed when comparing two database columns with `<>`."
       end
     end)
 
@@ -122,7 +123,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     verify_conditions(query, &Condition.not_like?/1, fn({:not, {kind, lhs, _}}) ->
       unless Type.establish_type(lhs, query) |> Type.clear_column?(@allowed_like_functions) do
         raise CompilationError, message:
-          "NOT #{like_kind_name(kind)} can only be applied to an unmodified database column."
+          "Expressions with NOT #{like_kind_name(kind)} cannot include any functions except aggregators and a cast."
       end
     end)
 
@@ -141,7 +142,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         |> Enum.split_with(& Function.implicit_range?/1)
 
         raise CompilationError, message: """
-        Only unmodified database columns can be limited by a range.
+        Range expressions cannot include any functions except aggregations and a cast.
 
         #{Narrative.construct_implicit_range_narrative(implicit_range_functions, other_functions,
           type.history_of_columns_involved)}
