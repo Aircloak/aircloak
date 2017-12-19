@@ -1,0 +1,10 @@
+FROM aircloak/phoenix:$NODEJS_VERSION
+MAINTAINER Aircloak
+
+ENV CI=true
+ENV DEPLOY_CONFIG=dockerized_ci
+
+# Cloak unit tests expect a local mongodb, so we're installing that as well.
+RUN apt-get update && apt-get install -y calibre
+
+WORKDIR /aircloak/air
