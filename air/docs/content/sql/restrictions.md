@@ -124,6 +124,7 @@ Below is an example of the restrictions in action:
 SELECT age / (age + 1) FROM table
 ```
 
+
 ## Ranges
 
 Whenever an inequality (`>`, `>=`, `<`, or `<=`) is used in a `WHERE`-, `JOIN`- or `HAVING`-clause that clause actually needs to contain two
@@ -151,6 +152,7 @@ Note that a condition using the `BETWEEN` operator automatically forms a range:
 SELECT COUNT(*) FROM table WHERE column BETWEEN 10 AND 20
 SELECT COUNT(*) FROM table WHERE column >= 10 AND column < 20
 ```
+
 
 ## Range alignment
 
@@ -192,6 +194,7 @@ SELECT COUNT(*) FROM table WHERE datetime >= '2016-01-01 12:27:00' AND date < '2
 -- Adjusted to 2016-01-01 12:22:30 <= datetime < 2016-01-01 12:37:30
 ```
 
+
 ## Implicit ranges
 
 Some functions can be used to almost the same effect as a pair of inequalities. For example the following two queries
@@ -231,6 +234,7 @@ SELECT round(abs(number)) FROM table
 The following functions are treated as implicit range functions: `round`, `trunc`, `date_trunc`, and all date extraction
 functions (`year`, `month`, `quarter`, `day`, `weekday`, `hour`, `minute`, `second`).
 
+
 ## Text operations
 
 Certain operations on textual data can be used to almost the same effect as a pair of inequalities. For example the
@@ -258,6 +262,7 @@ SELECT COUNT(*) FROM table WHERE LEFT(name, 1) = UPPER(RIGHT(name, 1))
 
 The following functions are treated as text manipulation functions: `left`, `right`, `rtrim`, `ltrim`, `trim`, and
 `substring`.
+
 
 ## IN, NOT IN, NOT LIKE, and <>
 
