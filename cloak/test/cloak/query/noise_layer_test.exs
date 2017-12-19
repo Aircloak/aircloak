@@ -23,6 +23,8 @@ defmodule Cloak.Query.NoiseLayerTest do
       |> Keyword.put(:outliers_count, {4, 0.5})
       |> Keyword.put(:low_count_soft_lower_bound, {5, 1})
       |> Keyword.put(:sum_noise_sigma, 1)
+      |> Keyword.put(:sum_noise_sigma, 1)
+      |> Keyword.put(:sum_noise_sigma_scale_params, {1, 1, 0.5})
     )
     on_exit(fn() -> Application.put_env(:cloak, :anonymizer, anonymizer_config) end)
 

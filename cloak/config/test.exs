@@ -36,7 +36,11 @@ config :cloak, :anonymizer,
   top_count: {5, 0},
 
   # The standard deviation for the noisy top average added to summed values.
-  sum_noise_sigma: 0
+  sum_noise_sigma: 0,
+
+  # The minimum scale factor for the `sum_noise_sigma`.
+  # Takes the form: {lower_bound, average_factor, top_average_factor}
+  sum_noise_sigma_scale_params: {0, 0, 0}
 
 config :cloak, :data_source,
   timeout: :timer.minutes(15),

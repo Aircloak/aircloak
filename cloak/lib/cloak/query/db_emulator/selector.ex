@@ -107,7 +107,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
     end)
     |> Rows.extract_groups(columns, query)
   end
-  defp select_columns(stream, columns, query) do
+  defp select_columns(stream, columns, _query) do
     Stream.map(stream, fn(row) -> Enum.map(columns, &Expression.value(&1, row)) end)
   end
 

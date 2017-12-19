@@ -79,11 +79,10 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
     Nt is calculated based on mean and SD values from [top_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L48),
     in the limits of [group_limits](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L44).
   - The total count is the sum of all the remaining counts plus No multiplied by
-    the average count of the top Nt users plus Nv multiplied by the maximum value between
-    the average count of the top Nt users and twice the average count of all the remaining users,
-    where Nv is a zero mean noisy number with a standard deviation taken from
+    the average count of the top Nt users plus Nv multiplied by a scale factor described below.
+    Nv is a zero mean noisy number with a standard deviation taken from
     [sum_noise_sigma](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L51)
-    (`total = sum(remaining) + No * avg(top(remaining, Nt)) + Nv * max(0.5 * avg(top(remaining, Nt)), avg(remaining))`).
+   (`total = sum(remaining) + No * avg(top(remaining, Nt)) + Nv * [scale factor]`)
   - Note that an `Nv * ...` factor is added _per noise layer_ - see [Noise Layers](#noise_layers).
   - Note that the No and Nt numbers are also calculated according to the rules in [Noise Layers](#noise_layers), so depending on the query the actual
     SD of these numbers might be bigger than configuerd.
@@ -103,14 +102,30 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
       Nt is calculated based on mean and SD values from [top_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L48),
       in the limits of [group_limits](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L44).
     - The total sum is the sum of all the remaining values plus No multiplied by
-      the average value of the top Nt users plus Nv multiplied by the maximum value between
-      the average value of the top Nt users and twice the average value of all the remaining users,
-      where Nv is a zero mean noisy number with a standard deviation taken from
+      the average sum of the top Nt users plus Nv multiplied by a scale factor described below.
+      Nv is a zero mean noisy number with a standard deviation taken from
       [sum_noise_sigma](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L51)
-      (`total = sum(remaining) + No * avg(top(remaining, Nt)) + Nv * max(0.5 * avg(top(remaining, Nt)), avg(remaining))`).
+     (`total = sum(remaining) + No * avg(top(remaining, Nt)) + Nv * [scale factor]`)
     - Note that an `Nv * ...` factor is added _per noise layer_ - see [Noise Layers](#noise_layers).
     - Note that the No and Nt numbers are also calculated according to the rules in [Noise Layers](#noise_layers), so depending on the query the actual
       SD of these numbers might be bigger than configuerd.
+
+
+## COUNT() and SUM() additional scale factor
+
+  SUMs and COUNTs have an additional noise component that is scaled by a scale factor based on the average values
+  across either the top users or across all users that are part of the answer, whichever is greater.
+  The algorithm for producing this scale factor is as follows:
+
+  - Take TAvg being the average of the values of the top users (either sum or count depending on which is being calculated)
+    multiplied by a scale factor from [sum_noise_sigma_scale_params](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L63)
+  - Take Avg being the global average fo the values across all users (either sum or count depending on which is being calculated)
+    multiplied by a scale factor from [sum_noise_sigma_scale_params](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L63)
+  - Take the largest of TAvg and Avg and call it AvgMax
+  - Use the larger of AvgMax and a lower bound from
+    [sum_noise_sigma_scale_params](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L63)
+  - Expressed as a formula it looks like: `max(lower_bound, max(avg_top_scale_factor * avg(top(remaining, Nt)), avg_scale_factor * avg(remaining)))`
+    where Nt and remaining are as described in the COUNT and SUM anonymization procedures
 
 
 ## AVG()
@@ -180,7 +195,7 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
 - We compute the average of the top Nt remaining users: `TopAverage = (1000 + 1000 + 10) / 3 = 670`.
 - We compute the noisy value for Nv: `Nv = 0.5`.
 - We compute the sum of all the remaining users: `Sum = 10 + 10 + 1000 + 1000 = 2020`.
-- We compute the noise scale: `NoiseScale = max(TopAverage, 2 * GlobalAverage) = max(670, 2 * 505) = 1010`
+- We compute the noise scale: `NoiseScale = max(2, max(TopAverage, 2 * GlobalAverage)) = max(2, max(670, 2 * 505)) = 1010`
 - We compute the final result: `Result = Sum + No * TopAverage + Nv * NoiseScale = 2020 + 3 * 670 + 0.5 * 1010 = 4535`.
 
 ## Low-count filtering

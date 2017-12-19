@@ -99,8 +99,6 @@ defmodule Compliance.DataSources do
   defp config_name(other), do:
     other
 
-  defp env(name), do: System.get_env(name) || ""
-
   defp config_file_path(name), do:
     Path.join([Application.app_dir(:cloak, "priv"), "config", "#{name}.json"])
 
