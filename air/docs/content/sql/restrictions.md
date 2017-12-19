@@ -211,6 +211,9 @@ range function. The only operations that can be applied are a single `CAST` and 
 `COUNT`, `SUM`, `AVG`, `STDDEV`). The restrictions apply when an implict range function is used in a `WHERE` or `JOIN`
 clause, selected in the top-level `SELECT` clause or used in a non-top-level `HAVING` clause.
 
+The following functions are treated as implicit range functions: `round`, `trunc`, `date_trunc`, and all date extraction
+functions (`year`, `month`, `quarter`, `day`, `weekday`, `hour`, `minute`, `second`).
+
 ```sql
 -- Correct - no other function used
 SELECT COUNT(*) FROM table WHERE round(number) = 10
@@ -231,9 +234,6 @@ SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY category HAVING round(max(n
 SELECT round(abs(number)) FROM table
 ```
 
-The following functions are treated as implicit range functions: `round`, `trunc`, `date_trunc`, and all date extraction
-functions (`year`, `month`, `quarter`, `day`, `weekday`, `hour`, `minute`, `second`).
-
 
 ## Text operations
 
@@ -252,6 +252,9 @@ would normally limit what can be done with range conditions. The restrictions on
 manipulation functions are the same as ones described for [implicit ranges](#implicit-ranges). In addition a result of
 text manipulation can only be compared to an untransformed column or a constant.
 
+The following functions are treated as text manipulation functions: `left`, `right`, `rtrim`, `ltrim`, `trim`, and
+`substring`.
+
 ```sql
 -- Correct
 SELECT COUNT(*) FROM table WHERE LEFT(name, 1) = 'A'
@@ -259,9 +262,6 @@ SELECT COUNT(*) FROM table WHERE LEFT(name, 1) = 'A'
 -- Incorrect - the results of a text operation are compared to a complex expression
 SELECT COUNT(*) FROM table WHERE LEFT(name, 1) = UPPER(RIGHT(name, 1))
 ```
-
-The following functions are treated as text manipulation functions: `left`, `right`, `rtrim`, `ltrim`, `trim`, and
-`substring`.
 
 
 ## IN, NOT IN, NOT LIKE, and <>
