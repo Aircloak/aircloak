@@ -11,9 +11,9 @@ defmodule AircloakCI.Build.Local do
     repo: Github.API.repo,
     sha: String.t,
     merge_sha: String.t,
-    mergeable?: true,
+    mergeable?: boolean,
     status_checks: Github.API.statuses,
-    approved?: true
+    approved?: boolean
   }
 
 
