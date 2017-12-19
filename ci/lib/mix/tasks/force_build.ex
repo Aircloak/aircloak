@@ -31,8 +31,13 @@ defmodule Mix.Tasks.AircloakCi.ForceBuild do
   # Mix.Task behaviour is not in PLT since Mix is not a runtime dep, so we disable the warning
   @dialyzer :no_undefined_callbacks
 
+
+  # -------------------------------------------------------------------
+  # Mix.Task callbacks
+  # -------------------------------------------------------------------
+
   @impl Mix.Task
-  def run(["local", job_name]), do: run(["local", "", job_name])
+  def run(["local", job_name]), do: run(["local", repo_root_path(), job_name])
   def run([target_type, target_id, job_name]) do
     Mix.Task.run("app.start")
 
@@ -45,4 +50,12 @@ defmodule Mix.Tasks.AircloakCi.ForceBuild do
   def run(_other) do
     Mix.raise("Usage: `mix aircloak_ci.force_build target_type target_id job_name`")
   end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp repo_root_path(), do:
+    :os.cmd('git rev-parse --show-toplevel') |> to_string() |> String.trim()
 end
