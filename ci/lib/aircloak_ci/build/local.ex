@@ -52,7 +52,7 @@ defmodule AircloakCI.Build.Local do
 
   @impl Build.Server
   def handle_job_succeeded("compile", %{data: pid} = state) do
-    send(pid, :compiled)
+    if pid != nil, do: send(pid, :compiled)
     {:noreply, %{state | data: nil}}
   end
   def handle_job_succeeded(other, state), do: super(other, state)
@@ -87,6 +87,7 @@ defmodule AircloakCI.Build.Local do
 
   defp run_job("cloak_test", state), do: Job.Test.run(state)
   defp run_job("cloak_compile", state), do: Job.Compile.run(state)
+  defp run_job("air_compile", state), do: Job.Compile.run(state)
   defp run_job("compliance", state), do: Job.Compliance.run(state)
 
 
