@@ -209,7 +209,8 @@ Because of this, usage of such functions must be restricted in a similar way to 
 The restrictions disallow the usage of any functions or mathematical operations before or after applying an implicit
 range function. The only operations that can be applied are a single `CAST` and any number of aggregators (`MIN`, `MAX`,
 `COUNT`, `SUM`, `AVG`, `STDDEV`). The restrictions apply when an implict range function is used in a `WHERE` or `JOIN`
-clause, selected in the top-level `SELECT` clause or used in a non-top-level `HAVING` clause.
+clause, selected in the top-level `SELECT` clause or used in a non-top-level `HAVING` clause - see [Top-level HAVING
+clause](#top-level-having-clause).
 
 The following functions are treated as implicit range functions: `round`, `trunc`, `date_trunc`, and all date extraction
 functions (`year`, `month`, `quarter`, `day`, `weekday`, `hour`, `minute`, `second`).
@@ -281,7 +282,7 @@ Conditions using `IN` or `<>` cannot include any functions nor mathematical oper
 A single `CAST` is allowed. Furthermore, one of the expressions being compared must be a constant. In the case of `IN`
 all items on the right-hand side of the `IN` operator must be constants. An exception to this is comparing two columns
 with `<>`, but in that case no functions can be used at all. The top-level `HAVING` clause is exempt from  all these
-restrictions.
+restrictions - see [Top-level HAVING clause](#top-level-having-clause).
 
 ```sql
 -- Correct
