@@ -14,21 +14,12 @@
   @doc "Invokes the compliance job."
   @spec run(Build.Server.state) :: Build.Server.state
   def run(build_state), do:
-    Job.maybe_start(build_state, job_name(),
-      fn(build_state) ->
-        if not mergeable?(build_state.source),
-          do: build_state,
-          else: maybe_start_test(build_state)
-      end
-    )
+    Job.maybe_start(build_state, job_name(), &maybe_start_test/1)
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp mergeable?(pr), do:
-    pr.mergeable? and pr.merge_sha != nil
 
   defp maybe_start_test(%{source: pr} = build_state) do
     case check_start_preconditions(build_state) do
