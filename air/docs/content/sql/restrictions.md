@@ -207,7 +207,7 @@ SELECT COUNT(*) FROM table WHERE round(number) = 10
 -- Correct - an aggregate is used
 SELECT COUNT(*) FROM table GROUP BY category WHERE round(max(number)) = 10
 
--- Incorrect - another operation is used
+-- Incorrect - another operation (+) is applied in the same expression as round
 SELECT COUNT(*) FROM table WHERE round(number + 1) = 10
 
 -- Correct - used in the top-level HAVING, so restrictions don't apply
