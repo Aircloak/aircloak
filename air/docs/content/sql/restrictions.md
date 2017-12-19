@@ -147,16 +147,25 @@ and open on the right (`<`).
 If any such modifications take place an appropriate notice will be displayed in the web interface. When using the API the notice will
 be included under the `info` key of the result. The notice will _not_ appear when using the PostgreSQL interface.
 
-The grids available depend on the type of the column that is being limited by the range. For numerical columns the grid sizes are
-`[..., 0.1, 0.2, 0.5, 1, 2, 5, 10, ...]`. For date/time columns they are `[1, 2, 5, ...]` years, `[1, 2, 6, 12]` months, `[1, 2, 5, ...]` days,
-`[1, 2, 6, 12, 24]` hours, `[1, 2, 5, 15, 30, 60]` minutes, and `[1, 2, 5, 15, 30, 60]` seconds.
+The grid sizes available depend on the type of the column that is being limited by the range. For numerical columns the
+grid sizes are `[..., 0.1, 0.2, 0.5, 1, 2, 5, 10, ...]`. For date/time columns they are `[1, 2, 5, 10, 20, 50, ...]`
+years, `[1, 2, 6, 12]` months, `[1, 2, 5, 10, 20]` days, `[1, 2, 6, 12, 24]` hours, `[1, 2, 5, 15, 30, 60]` minutes, and
+`[1, 2, 5, 15, 30, 60]` seconds.
 
-To arrive at the final range the system finds the smallest grid size that will contain the given range. Then it shifts the lower end of the
-range to be a multiple of half of the grid size. The upper end is just the lower end plus the grid size. In some cases halving the grid size
-is not allowed and the lower end needs to be a multiple of the whole grid size instead - for example it is not allowed to halve days in
-case the underlying data type is `date` and cannot represent such halving. See the examples below for details.
+The adjusted range will have the smallest size from the ones listed that can contain the full range provided in the
+query. Furthermore the starting point of the range will be changed so that it falls on a multiple of the adjusted
+range's size from a zero point. That zero point is the number 0 for numbers, midnight for times, and `1970-01-01 00:00`
+for dates and datetimes.
 
-For best results design your queries so that they take this adjustment into account and mostly use ranges that are already adjusted.
+To better fit the range provided in the query the range might also be shifted by half its size, however this will not
+happen in the following cases:
+
+- A range of 1 day on a date type - the underlying data type cannot represent such a shift
+- A range of 1 second on a time or datetime type - the underlying data type cannot represent such a shift
+- A range of 1 month - months have an irregular number of days and no clear "half-point"
+
+For best results design your queries so that they take this adjustment into account and mostly use ranges that are
+already adjusted.
 
 ```sql
 SELECT COUNT(*) FROM table WHERE column > 10 AND column < 20
@@ -172,9 +181,17 @@ SELECT COUNT(*) FROM table WHERE column >= 16 AND column < 24
 -- Adjusted to 15 <= column < 25
 
 SELECT COUNT(*) FROM table WHERE date >= '2016-01-01' AND date < '2016-01-29'
--- Adjusted to 2016-01-01 <= date < 2016-02-01
+-- Adjusted to a full month - 2016-01-01 <= date < 2016-02-01
 
 SELECT COUNT(*) FROM table WHERE datetime >= '2016-01-01 12:27:00' AND date < '2016-01-01 12:31:00'
--- Adjusted to 2016-01-01 12:22:30 <= datetime < 2016-01-01 12:37:30
+-- Adjusted to a grid size of 5 minutes - 2016-01-01 12:22:30 <= datetime < 2016-01-01 12:37:30
+-- The 5 minute intervals can start on a full five-minute mark or a 2 minutes 30 seconds mark
+
+SELECT COUNT(*) FROM table WHERE date >= '2017-01-10' AND date < '2017-01-20'
+-- Adjusted to 20 days - '2017-01-04' <= date < '2017-01-24'
+-- The day-sized intervals can only start a multiple of their size from 1970-01-01
+
+SELECT COUNT(*) FROM table WHERE date >= '2017-01-04' AND date < '2017-01-14'
+-- Not adjusted -- see previous example
 ```
 
