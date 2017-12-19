@@ -83,12 +83,11 @@ set -eox pipefail
 
   # cloak -------------------------------------------------------------
 
-  if [[ "$TEST" == "cloak" || "$TEST" == "aux" ]]; then
+  if [[ "$TEST" == "aux" ]]; then
 
     pushd cloak
     make odbc_drivers
     make deps
-    mix config_sap_hana_test_schema
     popd
 
   fi

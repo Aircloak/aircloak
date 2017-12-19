@@ -37,22 +37,6 @@ set -eox pipefail
   fi
 
 
-  # cloak -------------------------------------------------------------
-
-  if [[ "$TEST" == "cloak" ]]; then
-
-    pushd cloak
-    make docs
-    make lint
-    make odbc_drivers
-    mix test --include exclude_in_dev --max-cases 10
-    make dialyze
-    make proper-extended
-    popd
-
-  fi
-
-
   # bom ---------------------------------------------------------------
 
   if [[ "$TEST" == "aux" ]]; then
