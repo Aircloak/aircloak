@@ -145,6 +145,38 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
       assert %Type{applied_functions: ["date_trunc", "trunc"]} |> Type.unclear_implicit_range?()
   end
 
+  describe "clear_column?" do
+    test "true for raw columns", do:
+      assert type_first_column("SELECT numeric FROM table") |> Type.clear_column?()
+
+    test "true for raw columns from subqueries", do:
+      assert type_first_column("SELECT n FROM (SELECT numeric AS n FROM table) x") |> Type.clear_column?()
+
+    test "true for columns with one cast", do:
+      assert type_first_column("SELECT CAST(numeric AS text) FROM table") |> Type.clear_column?()
+
+    test "false for columns with multiple casts", do:
+      refute type_first_column("SELECT CAST(CAST(numeric AS text) AS real) FROM table") |> Type.clear_column?()
+
+    test "false for expressions with more than one column", do:
+      refute type_first_column("SELECT numeric + numeric FROM table") |> Type.clear_column?()
+
+    test "false for processed columns", do:
+      refute type_first_column("SELECT sqrt(numeric) FROM table") |> Type.clear_column?()
+
+    test "ignores allowed functions", do:
+      assert type_first_column("SELECT sqrt(numeric) FROM table") |> Type.clear_column?(["sqrt"])
+
+    test "does not ignore nested, not allowed functions", do:
+      refute type_first_column("SELECT sqrt(abs(numeric)) FROM table") |> Type.clear_column?(["sqrt"])
+
+    test "ignores aggregates", do:
+      assert type_first_column("SELECT max(numeric) FROM table") |> Type.clear_column?()
+
+    test "does not ignore functions in aggregates", do:
+      refute type_first_column("SELECT max(sqrt(numeric)) FROM table") |> Type.clear_column?()
+  end
+
   defp constant_involved?(query), do:
     type_first_column(query).constant_involved?
 

@@ -12,7 +12,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
 
     test "forbids unclear IN lhs" do
       assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 IN (1, 2, 3)")
-      assert message =~ ~r[Only .* can be used in the left-hand side of an IN operator]
+      assert message =~ ~r[Only `lower`, `upper`, .*, and `.*` can be used in the left-hand side of an IN operator]
     end
 
     test "allows clear IN lhs from subqueries", do:
@@ -180,9 +180,12 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert narrative =~ ~r/Only unmodified database columns can be limited by a range/
     end
 
-    test "considers cast to integer as an implicit range" do
-      assert {:error, narrative} = compile("SELECT cast(float + 1 as integer) FROM table")
-      assert narrative =~ ~r/Only unmodified database columns can be limited by a range/
+    test "does not consider cast to integer as an implicit range", do:
+      assert {:ok, _, _} = compile("SELECT cast(float + 1 as integer) FROM table")
+
+    for function <- ~w(floor ceil ceiling) do
+      test "does not consider #{function} as an implicit range", do:
+        assert {:ok, _, _} = compile("SELECT #{unquote(function)}(float + 1) FROM table")
     end
 
     test "allows casts in ranges", do:
