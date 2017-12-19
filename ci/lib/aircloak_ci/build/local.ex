@@ -1,5 +1,5 @@
 defmodule AircloakCI.Build.Local do
-  @moduledoc "This module powers can be used to run desired jobs in the current local project."
+  @moduledoc "This module can be used to run desired jobs in the current local project."
 
   use AircloakCI.Build.Server, restart: :temporary
   require Logger
