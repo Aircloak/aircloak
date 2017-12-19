@@ -25,7 +25,7 @@ defmodule AircloakCI.Github.API do
     target_branch: String.t,
     sha: String.t,
     mergeable?: boolean,
-    merge_sha: String.t,
+    merge_sha: String.t | nil,
     approved?: boolean,
     status_checks: statuses
   }

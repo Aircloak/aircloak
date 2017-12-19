@@ -73,10 +73,11 @@ defmodule AircloakCI.Build.PullRequest do
     {:via, Registry, {Build.Registry, {:pull_request, pr.number}}}
 
   defp maybe_start_ci(%{compiled?: false} = state), do: state
-  defp maybe_start_ci(%{compiled?: true} = state), do:
-    state
-    |> Job.Compliance.run()
-    |> Job.Test.run()
+  defp maybe_start_ci(%{compiled?: true} = state) do
+    if state.source.mergeable? and state.source.merge_sha != nil,
+      do: state |> Job.Compliance.run() |> Job.Test.run(),
+      else: state
+  end
 
   defp maybe_report_mergeable(state) do
     if \
