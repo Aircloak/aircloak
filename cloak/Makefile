@@ -106,4 +106,4 @@ priv/odbc/drivers/libodbc-sap-hana-v2.so:
 	wget -P priv/odbc/drivers https://www.dropbox.com/s/aerstjlatecny79/libodbc-sap-hana-v2.so
 
 ci.compliance:
-	scripts/ci_compliance.sh
+	ci/compliance.sh
