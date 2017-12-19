@@ -62,6 +62,8 @@ defmodule AircloakCI.Build.Reporter do
     Github.comment_on_issue(pr.repo.owner, pr.repo.name, pr.number, body)
   defp post_job_comment(%{source_type: :branch, source: branch}, body), do:
     Github.comment_on_commit(branch.repo.owner, branch.repo.name, branch.sha, body)
+  defp post_job_comment(%{source_type: :local, source: local}, body), do:
+    Github.comment_on_commit(local.repo.owner, local.repo.name, local.sha, body)
 
   defp comment_body(build_state, job_name, :error, nil), do:
     error_comment_body(build_state, job_name, "errored")
@@ -84,6 +86,8 @@ defmodule AircloakCI.Build.Reporter do
     "pr #{pr.number}"
   defp target(%{source_type: :branch, source: branch}), do:
     "branch #{branch.name}"
+  defp target(%{source_type: :local, source: local}), do:
+    "local #{local.path}"
 
   defp log_tail(project, job_name) do
     max_lines = 100

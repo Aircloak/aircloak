@@ -1,0 +1,7 @@
+[Unit]
+Description=Permission fixer, see fix_permissions.sh for details
+
+[Service]
+Type=oneshot
+ExecStart=/root/fix_permissions.sh
+User=root

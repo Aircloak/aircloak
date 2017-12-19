@@ -106,7 +106,7 @@ defmodule AircloakCI.Github do
     Process.send_after(self(), :clear, :timer.seconds(1))
 
   defp handle_request(state, request, opts) do
-    if Keyword.fetch!(opts, :type) == :write and Application.get_env(:aircloak_ci, :simulate_github_writes) do
+    if Keyword.fetch!(opts, :type) == :write and not Application.get_env(:aircloak_ci, :write_to_github) do
       IO.puts "simulated github write #{request.fun}(#{request.args |> Enum.map(&inspect/1) |> Enum.join(", ")})"
       state
     else

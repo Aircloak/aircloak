@@ -36,11 +36,11 @@ defmodule AircloakCI.Build.Server do
     compiled?: boolean,
   }
 
-  @type source_type :: :pull_request | :branch
+  @type source_type :: :pull_request | :branch | :local
 
   @type source_id :: any
 
-  @type source :: Github.API.pull_request | Github.API.branch
+  @type source :: Github.API.pull_request | Github.API.branch | AircloakCI.Build.Local.source
 
   @opaque jobs :: %{job_name => pid}
 

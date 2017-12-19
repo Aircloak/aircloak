@@ -4,16 +4,17 @@ defmodule AircloakCI.LocalProject do
   alias AircloakCI.{CmdRunner, Github}
   require Logger
 
-  defstruct [:name, :build_folder, :log_folder, :repo, :base_branch, :update_git_command, :checkout, :target_sha]
+  defstruct [:type, :name, :build_folder, :log_folder, :repo, :base_branch, :update_git_command, :checkout, :target_sha]
 
   @opaque t :: %__MODULE__{
+    type: :branch | :pull_request | :local,
     name: String.t,
     build_folder: String.t,
     log_folder: String.t,
     repo: Github.API.repo,
     base_branch: String.t | nil,
-    update_git_command: String.t,
-    checkout: String.t,
+    update_git_command: String.t | nil,
+    checkout: String.t | nil,
     target_sha: String.t
   }
 
@@ -38,6 +39,7 @@ defmodule AircloakCI.LocalProject do
   @spec for_pull_request(Github.API.pull_request) :: t
   def for_pull_request(pr), do:
     create_project(%__MODULE__{
+      type: :pull_request,
       name: "PR #{pr.title} (##{pr.number})",
       build_folder: Path.join(builds_folder(), pr_folder_name(pr)),
       log_folder: Path.join(logs_folder(), pr_folder_name(pr)),
@@ -52,6 +54,7 @@ defmodule AircloakCI.LocalProject do
   @spec for_branch(Github.API.branch) :: t
   def for_branch(branch), do:
     create_project(%__MODULE__{
+      type: :branch,
       name: "branch #{branch.name}",
       build_folder: Path.join(branches_folder(), branch_folder_name(branch.name)),
       log_folder: Path.join(logs_folder(), branch_folder_name(branch.name)),
@@ -62,8 +65,27 @@ defmodule AircloakCI.LocalProject do
       target_sha: branch.sha
     })
 
+  @doc "Prepares the project for a local folder. Useful only in development."
+  @spec for_local(String.t) :: t
+  def for_local(path) do
+    path = Path.expand(path)
+
+    create_project(%__MODULE__{
+      type: :local,
+      name: "local #{path}",
+      build_folder: path,
+      log_folder: Path.join([path, "tmp", "ci", "log"]),
+      base_branch: nil,
+      repo: %{name: "aircloak", owner: "aircloak"},
+      update_git_command: nil,
+      checkout: nil,
+      target_sha: String.trim(to_string(:os.cmd('git rev-parse HEAD')))
+    })
+  end
+
   @doc "Cleans the entire build folder of the project."
   @spec clean(t) :: :ok
+  def clean(%{type: :local}), do: :ok
   def clean(project) do
     File.rm_rf(project.build_folder)
     File.mkdir_p!(project.build_folder)
@@ -86,11 +108,7 @@ defmodule AircloakCI.LocalProject do
       update_state(project, &%{&1 | initialized?: true})
     else
       log_start_stop(project, "updating local project git repository for #{name(project)}", fn ->
-        with \
-          :ok <- clone_repo(project),
-          :ok <- cmd(project, "main", "git #{project.update_git_command}", timeout: :timer.minutes(5)),
-          :ok <- cmd(project, "main", "git checkout #{project.checkout}"),
-          do: update_state(project, &%{&1 | initialized?: true})
+        with :ok <- do_update_code(project), do: update_state(project, &%{&1 | initialized?: true})
       end)
     end
   end
@@ -157,16 +175,7 @@ defmodule AircloakCI.LocalProject do
   @doc "Determines if CI can be invoked in this project."
   @spec ci_possible?(t) :: boolean
   def ci_possible?(project), do:
-    update_code(project) == :ok and not is_nil(ci_version(project))
-
-  @doc "Returns the CI version of the project."
-  @spec ci_version(t) :: non_neg_integer() | nil
-  def ci_version(project) do
-    case File.read(Path.join([src_folder(project), "ci", "VERSION"])) do
-      {:ok, contents} -> contents |> String.trim() |> String.to_integer()
-      {:error, _reason} -> nil
-    end
-  end
+    update_code(project) == :ok and not Enum.empty?(components(project))
 
   @doc "Returns true if the project source has been initialized."
   @spec initialized?(t) :: boolean
@@ -223,20 +232,45 @@ defmodule AircloakCI.LocalProject do
 
   @doc "Returns the folder where the source files of the project are contained."
   @spec src_folder(t) :: String.t
-  def src_folder(project), do:
-    Path.join(project.build_folder, "src")
+  def src_folder(%{type: :local} = project), do: project.build_folder
+  def src_folder(project), do: Path.join(project.build_folder, "src")
 
   @doc "Retrieves the list of commands for the given job."
-  @spec commands(t, String.t, atom) :: [String.t]
+  @spec commands(t, String.t, atom) :: [String.t] | {:error, :no_ci}
   def commands(project, component, job) do
-    {commands_map, _} =
-      project
-      |> src_folder()
-      |> Path.join("ci/scripts/#{component}_commands.exs")
-      |> Code.eval_file()
+    case \
+      [
+        Path.join([src_folder(project) | ~w(#{component} ci jobs.exs)]),
+        # supported for legacy reasons
+        Path.join([src_folder(project) | ~w(ci scripts #{component}_commands.exs)])
+      ]
+      |> Stream.filter(&File.exists?/1)
+      |> Enum.map(&Code.eval_file/1)
+    do
+      [] -> {:error, :no_ci}
 
-    Map.get(commands_map, job, [])
+      [{commands_map, _}] ->
+        fallback_key =
+          case job do
+            # supported for legacy reasons
+            :test -> :standard_test
+            _other -> nil
+          end
+
+        Map.get(commands_map, job, Map.get(commands_map, fallback_key, []))
+    end
   end
+
+  @doc "Returns the list of components for which CI can be executed."
+  @spec components(t) :: [String.t]
+  def components(project), do:
+    project
+    |> src_folder()
+    |> File.ls!()
+    |> Stream.filter(&File.dir?(Path.join(src_folder(project), &1)))
+    |> Stream.reject(&String.starts_with?(&1, "."))
+    |> Enum.reject(&(&1 in ["tmp"]))
+    |> Enum.reject(&match?({:error, _}, commands(project, &1, :compile)))
 
 
   # -------------------------------------------------------------------
@@ -269,8 +303,8 @@ defmodule AircloakCI.LocalProject do
   defp branch_folder_name(branch_name), do:
     String.replace(branch_name, "/", "-")
 
-  defp state_file(project), do:
-    Path.join(project.build_folder, "state_2")
+  defp state_file(%{type: :local} = project), do: Path.join([project.build_folder, "tmp", "ci", "state"])
+  defp state_file(project), do: Path.join(project.build_folder, "state")
 
   defp git_folder(project), do:
     Path.join(src_folder(project), ".git")
@@ -294,6 +328,14 @@ defmodule AircloakCI.LocalProject do
 
   defp base_branch("master"), do: nil
   defp base_branch(_not_master), do: "master"
+
+  defp do_update_code(%{type: :local}), do: :ok
+  defp do_update_code(project) do
+    with \
+      :ok <- clone_repo(project),
+      :ok <- cmd(project, "main", "git #{project.update_git_command}", timeout: :timer.minutes(5)),
+      do: cmd(project, "main", "git checkout #{project.checkout}")
+  end
 
   defp clone_repo(project) do
     if File.exists?(git_folder(project)) do
@@ -338,8 +380,8 @@ defmodule AircloakCI.LocalProject do
 
   defp deserialize_state(project) do
     try do
-      project
-      |> state_file()
+      [state_file(project), old_state_file(project)]
+      |> Enum.find(&File.exists?/1)
       |> File.read!()
       |> :erlang.binary_to_term()
       |> Map.take(Map.keys(default_state()))
@@ -347,6 +389,10 @@ defmodule AircloakCI.LocalProject do
       %{}
     end
   end
+
+  defp old_state_file(project), do:
+    # supported for legacy reasons
+    project |> state_file() |> Path.dirname() |> Path.join("state_2")
 
   defp default_state(), do:
     %{initialized?: false, compiled_components: %{}, forced_jobs: %{}, finished_jobs: %{}}

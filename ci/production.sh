@@ -75,9 +75,12 @@ function deploy {
 
   # update systemd service file and restart the service
   exec_as_root "
+    cp -rp $build_folder/production/fix_permissions.sh /root/ &&
     cp -rp $build_folder/production/aircloak_ci.service /etc/systemd/system/ &&
+    cp -rp $build_folder/production/aircloak_ci_fix_permissions.* /etc/systemd/system/ &&
     systemctl daemon-reload &&
-    systemctl restart aircloak_ci.service
+    systemctl restart aircloak_ci.service &&
+    systemctl restart aircloak_ci_fix_permissions.timer
   "
 
   # keep the most recent 10 releases

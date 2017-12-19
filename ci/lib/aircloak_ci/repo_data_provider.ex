@@ -51,11 +51,15 @@ defmodule AircloakCI.RepoDataProvider do
     defp loop(previous_repo_data \\ nil) do
       repo_data =
         try do
-          repo_data = Github.repo_data("aircloak", "aircloak")
-          Enum.each(AircloakCI.RepoDataProvider.subscribers(), &send(&1, {:repo_data, repo_data}))
-          ensure_branch_builds(repo_data, previous_repo_data)
-          ensure_pr_builds(repo_data)
-          repo_data
+          if Application.get_env(:aircloak_ci, :poll_github, true) do
+            repo_data = Github.repo_data("aircloak", "aircloak")
+            Enum.each(AircloakCI.RepoDataProvider.subscribers(), &send(&1, {:repo_data, repo_data}))
+            ensure_branch_builds(repo_data, previous_repo_data)
+            ensure_pr_builds(repo_data)
+            repo_data
+          else
+            previous_repo_data
+          end
         catch type, error ->
           Logger.error(Exception.format(type, error, System.stacktrace()))
           nil
