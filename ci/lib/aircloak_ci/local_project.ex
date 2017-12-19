@@ -72,7 +72,7 @@ defmodule AircloakCI.LocalProject do
 
     create_project(%__MODULE__{
       type: :local,
-      name: "local `#{path}`",
+      name: "local #{path}",
       build_folder: path,
       log_folder: Path.join([path, "tmp", "ci", "log"]),
       base_branch: nil,
