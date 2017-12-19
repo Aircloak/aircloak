@@ -24,7 +24,7 @@ defmodule AircloakCI.Build.Local do
   @doc "Makes sure that the server is running and compiled."
   @spec ensure_started() :: :ok
   def ensure_started() do
-    case AircloakCI.Build.Supervisor.start_build(__MODULE__, ["..", self()]) do
+    case AircloakCI.Build.Supervisor.start_build(__MODULE__, [repo_root_path(), self()]) do
       {:ok, pid} -> pid
       {:error, {:already_started, pid}} -> pid
     end
@@ -67,6 +67,9 @@ defmodule AircloakCI.Build.Local do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp repo_root_path(), do:
+    :os.cmd('git rev-parse --show-toplevel') |> to_string() |> String.trim()
 
   defp name(), do:
     {:via, Registry, {AircloakCI.Build.Registry, :local}}
