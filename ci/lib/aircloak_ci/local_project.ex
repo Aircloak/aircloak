@@ -4,7 +4,10 @@ defmodule AircloakCI.LocalProject do
   alias AircloakCI.{CmdRunner, Github}
   require Logger
 
-  defstruct [:type, :name, :build_folder, :log_folder, :repo, :base_branch, :update_git_command, :checkout, :target_sha]
+  defstruct [
+    :type, :name, :build_folder, :log_folder, :repo, :base_branch, :update_git_command, :checkout, :target_sha,
+    :source_sha
+  ]
 
   @opaque t :: %__MODULE__{
     type: :branch | :pull_request | :local,
@@ -15,7 +18,10 @@ defmodule AircloakCI.LocalProject do
     base_branch: String.t | nil,
     update_git_command: String.t | nil,
     checkout: String.t | nil,
-    target_sha: String.t | nil
+    # the commit which we'll checkout
+    target_sha: String.t | nil,
+    # the SHA used to store job states (finished, forced)
+    source_sha: String.t
   }
 
 
@@ -47,7 +53,11 @@ defmodule AircloakCI.LocalProject do
       repo: pr.repo,
       update_git_command: "fetch --force origin pull/#{pr.number}/merge",
       checkout: pr.merge_sha,
-      target_sha: pr.merge_sha
+      # The target SHA is the merge commit.
+      target_sha: pr.merge_sha,
+      # We'll use the SHA of the source branch HEAD. This ensures that we won't restart finished PR jobs when something
+      # has been changed in the target branch.
+      source_sha: pr.sha
     })
 
   @doc "Prepares the project for the given branch."
@@ -62,7 +72,8 @@ defmodule AircloakCI.LocalProject do
       repo: branch.repo,
       update_git_command: "fetch --force origin #{branch.name}",
       checkout: branch.sha,
-      target_sha: branch.sha
+      target_sha: branch.sha,
+      source_sha: branch.sha
     })
 
   @doc "Prepares the project for a local folder. Useful only in development."
@@ -79,7 +90,8 @@ defmodule AircloakCI.LocalProject do
       repo: %{name: "aircloak", owner: "aircloak"},
       update_git_command: nil,
       checkout: nil,
-      target_sha: String.trim(to_string(:os.cmd('git rev-parse HEAD')))
+      target_sha: String.trim(to_string(:os.cmd('git rev-parse HEAD'))),
+      source_sha: String.trim(to_string(:os.cmd('git rev-parse HEAD')))
     })
   end
 
@@ -197,23 +209,23 @@ defmodule AircloakCI.LocalProject do
   def mark_finished(project, job_name), do:
     update_state(project, &%{&1 |
       forced_jobs: Map.put(&1.forced_jobs, job_name, nil),
-      finished_jobs: Map.put(&1.finished_jobs, job_name, current_sha(project)),
+      finished_jobs: Map.put(&1.finished_jobs, job_name, project.source_sha),
     })
 
   @doc "Returns true if the job for this project has finished."
   @spec finished?(t, String.t) :: boolean
   def finished?(project, job_name), do:
-    state(project).finished_jobs[job_name] == project.target_sha
+    state(project).finished_jobs[job_name] in [project.source_sha, project.target_sha]
 
   @doc "Marks the project for the force build."
   @spec mark_forced(t, String.t) :: :ok
   def mark_forced(project, job_name), do:
-    update_state(project, &%{&1 | forced_jobs: Map.put(&1.forced_jobs, job_name, project.target_sha)})
+    update_state(project, &%{&1 | forced_jobs: Map.put(&1.forced_jobs, job_name, project.source_sha)})
 
   @doc "Returns whether the project has been marked for the force build."
   @spec forced?(t, String.t) :: boolean
   def forced?(project, job_name), do:
-    state(project).forced_jobs[job_name] == project.target_sha
+    state(project).forced_jobs[job_name] in [project.source_sha, project.target_sha]
 
   @doc "Executes the command in the project folder."
   @spec cmd(t, String.t, String.t, CmdRunner.opts) :: :ok | {:error, String.t}
