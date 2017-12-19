@@ -15,7 +15,7 @@ defmodule AircloakCI.LocalProject do
     base_branch: String.t | nil,
     update_git_command: String.t | nil,
     checkout: String.t | nil,
-    target_sha: String.t
+    target_sha: String.t | nil
   }
 
 
@@ -104,12 +104,13 @@ defmodule AircloakCI.LocalProject do
   @doc "Brings the local project to the desired sha."
   @spec update_code(t) :: :ok | {:error, String.t}
   def update_code(project) do
-    if up_to_date?(project) do
-      update_state(project, &%{&1 | initialized?: true})
-    else
-      log_start_stop(project, "updating local project git repository for #{name(project)}", fn ->
-        with :ok <- do_update_code(project), do: update_state(project, &%{&1 | initialized?: true})
-      end)
+    cond do
+      up_to_date?(project) -> update_state(project, &%{&1 | initialized?: true})
+      not updatable?(project) -> :ok
+      true ->
+        log_start_stop(project, "updating local project git repository for #{name(project)}", fn ->
+          with :ok <- do_update_code(project), do: update_state(project, &%{&1 | initialized?: true})
+        end)
     end
   end
 
@@ -176,6 +177,15 @@ defmodule AircloakCI.LocalProject do
   @spec ci_possible?(t) :: boolean
   def ci_possible?(project), do:
     update_code(project) == :ok and not Enum.empty?(components(project))
+
+  @doc """
+  Returns true if the project can be updated from Github.
+
+  A non-local project can't be updated if checkout SHA is not provided. This can happen in merge-conflicted PRs.
+  """
+  @spec updatable?(t) :: boolean
+  def updatable?(%{type: :local}), do: true
+  def updatable?(project), do: not is_nil(project.checkout)
 
   @doc "Returns true if the project source has been initialized."
   @spec initialized?(t) :: boolean

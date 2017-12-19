@@ -290,7 +290,9 @@ defmodule AircloakCI.Build.Server do
     invoke_callback(state, :handle_job_failed, [name, reason])
 
   defp maybe_compile_project(state) do
-    if LocalProject.ci_possible?(state.project), do: Job.Compile.run(state), else: state
+    if LocalProject.updatable?(state.project) and LocalProject.ci_possible?(state.project),
+      do: Job.Compile.run(state),
+      else: state
   end
 
   defp invoke_callback(state, fun, args), do:
