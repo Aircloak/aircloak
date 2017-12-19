@@ -303,8 +303,8 @@ defmodule AircloakCI.LocalProject do
   defp branch_folder_name(branch_name), do:
     String.replace(branch_name, "/", "-")
 
-  defp state_file(%{type: :local} = project), do: Path.join([project.build_folder, "tmp", "ci", "state_2"])
-  defp state_file(project), do: Path.join(project.build_folder, "state_2")
+  defp state_file(%{type: :local} = project), do: Path.join([project.build_folder, "tmp", "ci", "state"])
+  defp state_file(project), do: Path.join(project.build_folder, "state")
 
   defp git_folder(project), do:
     Path.join(src_folder(project), ".git")
@@ -380,8 +380,8 @@ defmodule AircloakCI.LocalProject do
 
   defp deserialize_state(project) do
     try do
-      project
-      |> state_file()
+      [state_file(project), old_state_file(project)]
+      |> Enum.find(&File.exists?/1)
       |> File.read!()
       |> :erlang.binary_to_term()
       |> Map.take(Map.keys(default_state()))
@@ -389,6 +389,10 @@ defmodule AircloakCI.LocalProject do
       %{}
     end
   end
+
+  defp old_state_file(project), do:
+    # supported for legacy reasons
+    project |> state_file() |> Path.dirname() |> Path.join("state_2")
 
   defp default_state(), do:
     %{initialized?: false, compiled_components: %{}, forced_jobs: %{}, finished_jobs: %{}}
