@@ -69,6 +69,7 @@ container_id="local_ci_$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c
 docker_script build_image
 
 docker_script start_container $container_id
+DOCKER_EXEC_ARGS="-t" docker_script run_in_container $container_id make deps
 DOCKER_EXEC_ARGS="-t" docker_script prepare_for_compliance $container_id
 
 printf "\ngenerating users...\n"
