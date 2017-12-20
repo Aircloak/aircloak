@@ -4,7 +4,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource.Table
-  alias Cloak.Sql.{Compiler, Parser, Compiler.TypeChecker}
+  alias Cloak.Sql.{Compiler, Parser, Compiler.TypeChecker.Type}
 
   describe "records used functions" do
     test "records usage of single functions", do:
@@ -128,6 +128,55 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
     end
   end
 
+  describe "unclear_implicit_range?" do
+    test "false when implicit range by itself", do:
+      refute %Type{applied_functions: ["month"]} |> Type.unclear_implicit_range?()
+
+    test "false when no implicit range", do:
+      refute %Type{applied_functions: []} |> Type.unclear_implicit_range?()
+
+    test "true when the implicit range operates on an unclear expression", do:
+      assert %Type{applied_functions: ["trunc", "+"]} |> Type.unclear_implicit_range?()
+
+    test "true when the implicit range is later computed on", do:
+      assert %Type{applied_functions: ["+", "trunc"]} |> Type.unclear_implicit_range?()
+
+    test "true when nested implicit ranges", do:
+      assert %Type{applied_functions: ["date_trunc", "trunc"]} |> Type.unclear_implicit_range?()
+  end
+
+  describe "clear_column?" do
+    test "true for raw columns", do:
+      assert type_first_column("SELECT numeric FROM table") |> Type.clear_column?()
+
+    test "true for raw columns from subqueries", do:
+      assert type_first_column("SELECT n FROM (SELECT numeric AS n FROM table) x") |> Type.clear_column?()
+
+    test "true for columns with one cast", do:
+      assert type_first_column("SELECT CAST(numeric AS text) FROM table") |> Type.clear_column?()
+
+    test "false for columns with multiple casts", do:
+      refute type_first_column("SELECT CAST(CAST(numeric AS text) AS real) FROM table") |> Type.clear_column?()
+
+    test "false for expressions with more than one column", do:
+      refute type_first_column("SELECT numeric + numeric FROM table") |> Type.clear_column?()
+
+    test "false for processed columns", do:
+      refute type_first_column("SELECT sqrt(numeric) FROM table") |> Type.clear_column?()
+
+    test "ignores allowed functions", do:
+      assert type_first_column("SELECT sqrt(numeric) FROM table") |> Type.clear_column?(["sqrt"])
+
+    test "does not ignore nested, not allowed functions", do:
+      refute type_first_column("SELECT sqrt(abs(numeric)) FROM table") |> Type.clear_column?(["sqrt"])
+
+    test "ignores aggregates", do:
+      assert type_first_column("SELECT max(numeric) FROM table") |> Type.clear_column?()
+
+    test "does not ignore functions in aggregates", do:
+      refute type_first_column("SELECT max(sqrt(numeric)) FROM table") |> Type.clear_column?()
+  end
+
   defp constant_involved?(query), do:
     type_first_column(query).constant_involved?
 
@@ -136,7 +185,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
 
   defp type_first_column(query) do
     compiled_query = compile!(query)
-    TypeChecker.Type.establish_type(hd(compiled_query.columns), compiled_query)
+    Type.establish_type(hd(compiled_query.columns), compiled_query)
   end
 
   defp compile!(query_string) do

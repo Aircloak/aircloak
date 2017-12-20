@@ -6,16 +6,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
 
   @type function_name :: String.t
   @type restricted_transformation :: {:restricted_function | :potentially_crashing_function, function_name}
-  @type implicit_range_type ::
-    # If no implicit range has been detected
-      :none
-    # The expression contains one or more implicit ranges but each one individually is clear.
-    # That is to say each implicit range operated on an expression that was either a constant
-    # or raw column.
-    | {:implicit_range, :cleaj}
-    # The expression contains at least one implicit range that operated on an expression that
-    # was not a clear expression.
-    | {:implicit_range, :unclear}
 
   @type t :: %__MODULE__{
     # The names of functions that have been applied to a column or an expression
@@ -30,22 +20,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
     # that has been simply selected into the outer query.
     raw_column?: boolean,
 
-    # True if the expression is a column from the database without any processing other than casts.
-    cast_raw_column?: boolean,
-
-    # Whether the type
-    # the inverse is not necessarily the case.
-    implicit_range: implicit_range_type,
-
     # True if any of the expressions it has come in contact with through functions
     # were constant.
     constant_involved?: boolean,
-
-    # True if this expression includes a string manipulation function.
-    string_manipulation?: boolean,
-
-    # True if this expression includes a string manipulation function and any other function except for a single cast.
-    unclear_string_manipulation?: boolean,
 
     # We keep track of the restricted transformations an expression has undergone in order
     # to later produce an explanation outlining the steps that led to a query being rejected.
@@ -58,18 +35,22 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
 
   defstruct [
     constant?: false, constant_involved?: false, raw_column?: false,
-    cast_raw_column?: false, implicit_range: :none,
-    string_manipulation?: false, unclear_string_manipulation?: false,
     applied_functions: [], history_of_restricted_transformations: [], history_of_columns_involved: [],
   ]
 
   @math_operations_before_considered_constant 2
+
+  @allowed_clear_casts 1
+  @allowed_clear_funs 0
+  @allowed_clear_string_manipulations 1
 
 
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
+  @doc "Returns the Type struct for the given column in the context of the given query."
+  @spec establish_type(Expression.t, Query.t) :: t
   def establish_type(column, query)
   def establish_type(:null, _query), do: constant()
   def establish_type({:distinct, column}, query), do: establish_type(column, query)
@@ -77,6 +58,45 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   def establish_type(%Expression{constant?: true}, _query), do: constant()
   def establish_type(%Expression{function: nil} = column, query), do: expand_from_subquery(column, query)
   def establish_type(function = %Expression{function?: true}, query), do: type_for_function(function, query)
+
+  @doc "Returns true if an implicit range function is used on combination with other functions"
+  @spec unclear_implicit_range?(t) :: boolean
+  def unclear_implicit_range?(type) do
+    implicit_range_count = transformation_count(type, & Function.implicit_range?/1)
+
+    implicit_range_count > 1 or
+      implicit_range_count == 1 and has_transformation?(type, & not Function.implicit_range?(&1))
+  end
+
+  @doc """
+  Returns true if the expression with the given type is a column from the database without any processing other than
+  one cast, false otherwise. Functions in allowed_functions are ignored.
+  """
+  @spec clear_column?(t, [String.t]) :: boolean
+  def clear_column?(type, allowed_functions \\ []) do
+    transforms = transformation_count(type, fn(function) ->
+      not Function.cast?(function) and not Function.aggregator?(function) and not function in allowed_functions
+    end)
+    casts = transformation_count(type, &Function.cast?/1)
+
+    transforms <= @allowed_clear_funs and casts <= @allowed_clear_casts
+  end
+
+  @doc "Returns true if the expression with the given type contains a string manipulation function, false otherwise."
+  @spec string_manipulation?(t) :: boolean
+  def string_manipulation?(type), do:
+    transformation_count(type, &Function.string_manipulation_function?/1) > 0
+
+  @doc """
+  Returns true if the expression with the given type contains a string manipulation function together with other
+  transformations, false otherwise. Aggregators and a single cast are ignored.
+  """
+  def unclear_string_manipulation?(type) do
+    casts = transformation_count(type, &Function.cast?/1)
+    transforms = transformation_count(type, & not Function.aggregator?(&1) and not Function.cast?(&1))
+
+    string_manipulation?(type) and (casts > @allowed_clear_casts or transforms > @allowed_clear_string_manipulations)
+  end
 
 
   # -------------------------------------------------------------------
@@ -95,7 +115,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   defp column(expression), do:
     %Type{
       raw_column?: true,
-      cast_raw_column?: false,
       constant?: false,
       history_of_columns_involved: [expression],
     }
@@ -109,58 +128,16 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
       applied_functions = [name | Enum.flat_map(child_types, & &1.applied_functions)]
       %Type{
         applied_functions: applied_functions,
-        cast_raw_column?: Function.cast?(function) and match?([%{raw_column?: true}], child_types),
-        implicit_range: implicit_range_type(function, child_types),
         constant_involved?: any_touched_by_constant?(child_types) ||
           math_operations_count(applied_functions) >= @math_operations_before_considered_constant,
-        string_manipulation?: Function.string_manipulation_function?(function) or
-          Enum.any?(child_types, & &1.string_manipulation?),
-        unclear_string_manipulation?: unclear_string_manipulation?(function, child_types),
         history_of_columns_involved: combined_columns_involved(child_types),
       }
       |> extend_history_of_restricted_transformations(name, child_types)
     end
   end
 
-  defp implicit_range_type(function, child_types) do
-    if Enum.any?(child_types, & &1.implicit_range == {:implicit_range, :unclear}) do
-      {:implicit_range, :unclear}
-    else
-      if Function.has_attribute?(function, :implicit_range) do
-        if Enum.all?(child_types, &(&1.cast_raw_column? || &1.constant? || &1.raw_column?)) do
-          {:implicit_range, :clear}
-        else
-          {:implicit_range, :unclear}
-        end
-      else
-        if Enum.any?(child_types, & &1.implicit_range == {:implicit_range, :clear}) do
-          {:implicit_range, :clear}
-        else
-          :none
-        end
-      end
-    end
-  end
-
-  defp unclear_string_manipulation?(function, child_types) do
-    unclear_argument = Enum.any?(child_types, & &1.unclear_string_manipulation?)
-    string_fun_of_unclear_expression =
-      Function.string_manipulation_function?(function) and Enum.any?(child_types, &unclear_modification?/1)
-    unclear_transform_of_string_fun_result =
-      not Function.aggregator?(function) and Enum.any?(child_types, & &1.string_manipulation?)
-
-    unclear_argument or string_fun_of_unclear_expression or unclear_transform_of_string_fun_result
-  end
-
-  @allowed_clear_casts 1
-  @allowed_clear_funs 0
-  defp unclear_modification?(%Type{constant?: true}), do: false
-  defp unclear_modification?(type) do
-    casts = transformation_count(type, &Function.cast?/1)
-    transformations = transformation_count(type, & not Function.aggregator?(&1) and not Function.cast?(&1))
-
-    (casts > @allowed_clear_casts) or (transformations > @allowed_clear_funs)
-  end
+  defp has_transformation?(type, predicate), do:
+    transformation_count(type, predicate) > 0
 
   defp transformation_count(type, predicate), do:
     Enum.count(type.applied_functions, predicate)

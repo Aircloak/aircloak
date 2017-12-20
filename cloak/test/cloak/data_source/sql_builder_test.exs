@@ -14,16 +14,19 @@ defmodule Cloak.DataSource.SqlBuilderTest do
   test "non-text column is not force casted", do:
     refute sql_string("select int from table") =~ ~r/CAST\("table"\."int"/
 
-  defp sql_string(query, dialect \\ Cloak.DataSource.SqlBuilder.PostgreSQL), do:
-    query
-    |> compile!(data_source())
-    |> SqlBuilder.build(dialect)
+  test "workaround for text comparisons on SQL Server ignoring trailing spaces", do:
+    assert sql_string("select count(*) from table where string = 'ab'", SQLServer) =~ "= (N'ab' + N'.')"
 
-  defp data_source() do
+  defp sql_string(query, dialect \\ PostgreSQL), do:
+    query
+    |> compile!(data_source(Module.concat(Cloak.DataSource, dialect)))
+    |> SqlBuilder.build(Module.concat(Cloak.DataSource.SqlBuilder, dialect))
+
+  defp data_source(driver) do
     %{
-      driver: Cloak.DataSource.PostgreSQL,
+      driver: driver,
       tables: %{
-        table: Cloak.DataSource.Table.new("table", "uid",
+        table: Table.new("table", "uid",
           db_name: "table",
           columns: [
             Table.column("uid", :integer),

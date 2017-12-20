@@ -52,18 +52,13 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   def limit_sql(limit, offset), do: [" OFFSET ", to_string(offset), " ROWS FETCH NEXT ", to_string(limit), " ROWS ONLY"]
 
   @impl Dialect
-  def cast_unknown_sql(column_sql), do:
-    # We can't directly select a field with an unknown type, so convert it to binary
-    # This is needed in the case of using the ODBC driver with a GUID user id,
-    # as the GUID type is not supported by the Erlang ODBC library
-    Cloak.DataSource.SqlBuilder.Support.function_sql({:cast, :varbinary}, [column_sql], __MODULE__)
-
-  @impl Dialect
   def unicode_literal(value), do: ["N'", value, ?']
 
   @impl Dialect
   def cast_sql(value, _, :integer), do:
     ["CAST(", function_sql("round", [value]), " AS integer)"]
+  def cast_sql(value, :unknown, :text), do:
+    ["CAST(", value, " AS varbinary)"]
   def cast_sql(value, _, type), do:
     ["CAST(", value, " AS ", sql_type(type), ")"]
 

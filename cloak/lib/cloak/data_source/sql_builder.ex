@@ -1,9 +1,8 @@
 defmodule Cloak.DataSource.SqlBuilder do
   @moduledoc "Provides functionality for constructing an SQL query from a compiled query."
 
-  alias Cloak.Sql.Query
-  alias Cloak.Sql.Expression
-  alias Cloak.DataSource.SqlBuilder.Support
+  alias Cloak.Sql.{Query, Expression}
+  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer}
   alias Cloak.Query.DataDecoder
 
 
@@ -68,18 +67,14 @@ defmodule Cloak.DataSource.SqlBuilder do
     like_pattern_to_fragment(value)
   defp column_sql(%Expression{constant?: true, value: value}, sql_dialect_module), do:
     constant_to_fragment(value, sql_dialect_module)
-  defp column_sql(%Expression{function?: false, constant?: false} = column, sql_dialect_module) do
-    cond do
-      DataDecoder.encoded_type(column) == :text ->
-        # Force casting to text ensures we consistently fetch a string column as unicode, regardless of how it's
-        # represented in the database (VARCHAR or NVARCHAR).
-        column |> column_name(sql_dialect_module) |> sql_dialect_module.cast_sql(:text, :text)
-      column.type == :unknown ->
-        sql_dialect_module.cast_unknown_sql(column_name(column, sql_dialect_module))
-      true ->
-        column_name(column, sql_dialect_module)
-    end
-  end
+  defp column_sql(%Expression{function?: false, constant?: false} = column, sql_dialect_module), do:
+    column |> column_name(sql_dialect_module) |> cast_type(DataDecoder.encoded_type(column), sql_dialect_module)
+
+  defp cast_type(value, type, sql_dialect_module) when type in [:text, :unknown], do:
+    # Force casting to text ensures we consistently fetch a string column as unicode, regardless of how it's
+    # represented in the database (VARCHAR or NVARCHAR).
+    sql_dialect_module.cast_sql(value, type, :text)
+  defp cast_type(value, _type, _sql_dialect_module), do: value
 
   defp from_clause({:join, join}, query, sql_dialect_module) do
     ["(", from_clause(join.lhs, query, sql_dialect_module), " ", join_sql(join.type), " ",
@@ -118,6 +113,10 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp conditions_to_fragments({:or, lhs, rhs}, sql_dialect_module), do:
     ["(", conditions_to_fragments(lhs, sql_dialect_module), ") OR (",
       conditions_to_fragments(rhs, sql_dialect_module), ")"]
+  defp conditions_to_fragments({:comparison, %Expression{type: :text} = what,
+      comparator, %Expression{type: :text} = value}, SQLServer), do:
+    # SQL Server ignores trailing spaces during text comparisons
+    ["(", to_fragment(what, SQLServer), " + N'.') #{comparator} (", to_fragment(value, SQLServer), " + N'.')"]
   defp conditions_to_fragments({:comparison, what, comparator, value}, sql_dialect_module), do:
     [to_fragment(what, sql_dialect_module), " #{comparator} ", to_fragment(value, sql_dialect_module)]
   defp conditions_to_fragments({:in, what, values}, sql_dialect_module), do:

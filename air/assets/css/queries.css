@@ -12,6 +12,7 @@
   border-top: 1px solid #ccc;
   padding-top: 5px;
   margin-top: -20px;
+  z-index: -1;
 }
 
 .panel-body .ReactCodeMirror {
@@ -61,8 +62,6 @@
 
 .options-menu {
   padding-top: 5px;
-  padding-bottom: 10px;
-  margin-top: -20px;
   font-size: 0.9em;
 }
 

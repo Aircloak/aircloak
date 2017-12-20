@@ -280,11 +280,11 @@ defmodule Cloak.DataSource.MongoDBTest do
         SELECT distinct v1, v2, v3 FROM (
           SELECT _id,
             CAST(debt AS integer) AS v1,
-            CAST(ceil(debt) AS real) AS v2,
+            CAST(debt AS real) AS v2,
             CAST(debt AS text) AS v3
            FROM #{@table}
         ) AS t ORDER BY 1
-      """, %{rows: [%{occurrences: 1, row: [- 11, - 10.0, "-10.55"]}, %{occurrences: 1, row: [nil, nil, nil]}]}
+      """, %{rows: [%{occurrences: 1, row: [- 11, - 10.55, "-10.55"]}, %{occurrences: 1, row: [nil, nil, nil]}]}
   end
 
   test "cast datetime", context do
@@ -319,7 +319,7 @@ defmodule Cloak.DataSource.MongoDBTest do
 
   test "cast integer to boolean", context do
     assert_query context, """
-        SELECT v FROM (SELECT _id, CAST(trunc(age) AS boolean) AS v FROM #{@table}) AS t ORDER BY 1
+        SELECT v FROM (SELECT _id, CAST(age AS boolean) AS v FROM #{@table}) AS t ORDER BY 1
       """, %{rows: [%{occurrences: 10, row: [true]}, %{occurrences: 9, row: [nil]}]}
   end
 

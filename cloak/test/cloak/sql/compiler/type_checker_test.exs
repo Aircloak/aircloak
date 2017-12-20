@@ -12,7 +12,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
 
     test "forbids unclear IN lhs" do
       assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 IN (1, 2, 3)")
-      assert message =~ ~r[Only .* can be used in the left-hand side of an IN operator]
+      assert message =~ ~r[Only `lower`, `upper`, .*, and `.*` can be used in the left-hand side of an IN operator]
     end
 
     test "allows clear IN lhs from subqueries", do:
@@ -49,9 +49,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "allows column <> column", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric")
 
-    test "forbids column <> unclear_column", do:
-      assert {:error, "When comparing two database columns with <> they cannot be modified."} =
-        compile("SELECT COUNT(*) FROM table WHERE string <> upper(string)")
+    test "forbids column <> unclear_column" do
+      assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE string <> upper(string)")
+      assert message ==
+        "No functions or mathematical operations are allowed when comparing two database columns with `<>`."
+    end
 
     test "allows clear <> lhs in subquery HAVING", do:
       assert {:ok, _, _} = compile("""
@@ -70,13 +72,15 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "allows clear NOT ILIKE lhs", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE string NOT ILIKE '%some pattern_'")
 
-    test "forbids unclear NOT LIKE lhs", do:
-      assert {:error, "NOT LIKE can only be applied to an unmodified database column."} =
-        compile("SELECT COUNT(*) FROM table WHERE upper(string) NOT LIKE '%some pattern_'")
+    test "forbids unclear NOT LIKE lhs" do
+      assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE upper(string) NOT LIKE '%some pattern_'")
+      assert message =~ ~r/Expressions with NOT LIKE cannot include any functions/
+    end
 
-    test "forbids unclear NOT ILIKE lhs", do:
-      assert {:error, "NOT ILIKE can only be applied to an unmodified database column."} =
-        compile("SELECT COUNT(*) FROM table WHERE upper(string) NOT ILIKE '%some pattern_'")
+    test "forbids unclear NOT ILIKE lhs" do
+      assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE upper(string) NOT ILIKE '%some pattern_'")
+      assert message =~ ~r/Expressions with NOT ILIKE cannot include any functions/
+    end
 
     for function <- ~w(lower upper trim ltrim btrim extract_words) do
       test "allows #{function} in <> lhs" do
@@ -137,7 +141,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
 
     test "forbids unclear >=/< arguments" do
       assert {:error, narrative} = compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) > 0 AND sqrt(numeric) < 10")
-      assert narrative =~ ~r/Only unmodified database columns can be limited by a range/
+      assert narrative =~ ~r/Range expressions cannot include any functions/
     end
 
     test "allows clear between arguments", do:
@@ -145,7 +149,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
 
     test "forbids unclear between arguments" do
       assert {:error, narrative} = compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) BETWEEN 0 AND 10")
-      assert narrative =~ ~r/Only unmodified database columns can be limited by a range/
+      assert narrative =~ ~r/Range expressions cannot include any functions/
     end
 
     test "allows any ranges in top-level HAVING", do:
@@ -162,15 +166,30 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert {:error, narrative} = compile("""
         SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING sqrt(COUNT(float)) BETWEEN 0 AND 10) x
       """)
-      assert narrative =~ ~r/Only unmodified database columns can be limited by a range/
+      assert narrative =~ ~r/Range expressions cannot include any functions/
     end
 
-    test "allows clear implicit ranges within another function", do:
-      assert {:ok, _, _} = compile("SELECT abs(ceil(float)) + 1 FROM table")
+    test "forbids implicit ranges within another function" do
+      assert {:error, narrative} = compile("SELECT abs(trunc(float)) FROM table")
+      assert narrative =~ ~r/Range expressions cannot include any functions/
+    end
 
-    test "considers cast to integer as an implicit range" do
-      assert {:error, narrative} = compile("SELECT cast(float + 1 as integer) FROM table")
-      assert narrative =~ ~r/Only unmodified database columns can be limited by a range/
+    test "forbids nested implicit ranges" do
+      assert {:error, narrative} = compile("SELECT trunc(trunc(float)) FROM table")
+      assert narrative =~ ~r/Range expressions cannot include any functions/
+    end
+
+    test "forbids implicit ranges on function expressions" do
+      assert {:error, narrative} = compile("SELECT trunc(float + 1) FROM table")
+      assert narrative =~ ~r/Range expressions cannot include any functions/
+    end
+
+    test "does not consider cast to integer as an implicit range", do:
+      assert {:ok, _, _} = compile("SELECT cast(float + 1 as integer) FROM table")
+
+    for function <- ~w(floor ceil ceiling) do
+      test "does not consider #{function} as an implicit range", do:
+        assert {:ok, _, _} = compile("SELECT #{unquote(function)}(float + 1) FROM table")
     end
 
     test "allows casts in ranges", do:

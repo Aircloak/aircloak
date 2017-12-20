@@ -54,8 +54,7 @@ defmodule Cloak.Sql.Function do
       [{:constant, :text}, :time] => :time,
       [{:constant, :text}, {:or, [:datetime, :date]}] => :datetime
     }},
-    ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer},
-      attributes: [:math, :restricted, :implicit_range]},
+    ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer}, attributes: [:math, :restricted]},
     ~w(round trunc) => %{attributes: [:implicit_range, :math, :restricted], type_specs: %{
       [numeric] => :integer,
       [numeric, {:constant, :integer}] => :real,
@@ -107,7 +106,7 @@ defmodule Cloak.Sql.Function do
     ~w(extract_words) => %{type_specs: %{[:text] => :text}, attributes: [:not_in_subquery, :row_splitter]},
     [{:cast, :integer}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer},
-      attributes: [:restricted, :cast, :implicit_range]},
+      attributes: [:restricted, :cast]},
     [{:cast, :real}] =>
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :real},
       attributes: [:restricted, :cast]},
@@ -243,6 +242,10 @@ defmodule Cloak.Sql.Function do
   @doc "Returns true if the given function call is a cast, false otherwise."
   @spec cast?(t | String.t | nil) :: boolean
   def cast?(param), do: has_attribute?(param, :cast)
+
+  @doc "Returns true if the given function exhibits implicit range behaviour"
+  @spec implicit_range?(t | String.t | nil) :: boolean
+  def implicit_range?(param), do: has_attribute?(param, :implicit_range)
 
   @doc "Provides information about alternatives for deprecated functions."
   @spec deprecation_info(t) :: {:error, :function_exists | :not_found} | {:ok, %{alternative: String.t}}
