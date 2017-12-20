@@ -234,11 +234,22 @@ function dockerfile_content {
         echo "RUN echo '$SYSTEM_VERSION' > /tmp/VERSION"
         ;;
 
+      # We need to configure proxy for yarn in a specific way.
+      CONFIG_YARN_PROXY)
+        echo "$(config_yarn_proxy)"
+        ;;
+
       *)
         echo $line
         ;;
     esac
   done
+}
+
+function config_yarn_proxy {
+  if [ "$MPI" == "true" ]; then
+    echo 'RUN bash -c ". ~/.asdf/asdf.sh && yarn config set proxy http://acmirror.mpi-sws.org:3128/ && yarn config set https-proxy http://acmirror.mpi-sws.org:3128/"'
+  fi
 }
 
 function mpi_init {
