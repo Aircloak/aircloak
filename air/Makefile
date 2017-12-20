@@ -10,6 +10,7 @@ compile:
 deps:
 	mix deps.get
 	cd assets && yarn install && cd ..
+	cd docs && yarn install && cd ..
 
 clean:
 	mix clean --deps

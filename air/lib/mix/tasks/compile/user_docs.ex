@@ -11,7 +11,6 @@ defmodule Mix.Tasks.Compile.UserDocs do
   def run(_args) do
     update_version_numbers_in_guide()
     if stale?() do
-      cmd!("yarn", ~w(install))
       conditionally_compile_offline_docs()
       cmd!("yarn", ~w(run gitbook build))
       File.mkdir_p!("priv/static")
