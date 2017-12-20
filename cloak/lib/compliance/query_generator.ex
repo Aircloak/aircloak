@@ -1,4 +1,6 @@
 defmodule Cloak.Compliance.QueryGenerator do
+  @moduledoc "Provides utilities for randomly generating queries into an arbitrary set of tables."
+
   @type ast :: {atom, any, [ast]}
   @type table :: String.t
 
