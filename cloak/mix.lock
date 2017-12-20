@@ -45,7 +45,7 @@
   "phoenix_gen_socket_client": {:hex, :phoenix_gen_socket_client, "2.0.0", "4b26eca3cf3e0dfc2ac7563fbcf8f652efe1753ab227ec365b14fd4c865fe851", [:mix], [{:poison, "~> 2.0 or ~> 3.0", [hex: :poison, repo: "hexpm", optional: true]}, {:websocket_client, "~> 1.2", [hex: :websocket_client, repo: "hexpm", optional: true]}], "hexpm"},
   "phoenix_pubsub": {:hex, :phoenix_pubsub, "1.0.2", "bfa7fd52788b5eaa09cb51ff9fcad1d9edfeb68251add458523f839392f034c1", [], [], "hexpm"},
   "plug": {:hex, :plug, "1.4.3", "236d77ce7bf3e3a2668dc0d32a9b6f1f9b1f05361019946aae49874904be4aed", [:mix], [{:cowboy, "~> 1.0.1 or ~> 1.1", [hex: :cowboy, repo: "hexpm", optional: true]}, {:mime, "~> 1.0", [hex: :mime, repo: "hexpm", optional: false]}], "hexpm"},
-  "poison": {:git, "https://github.com/cristianberneanu/poison.git", "1a6bff505c22047e18a9318e01bda63ede20d649", []},
+  "poison": {:git, "https://github.com/sasa1977/poison.git", "ca619d769815ab2c878cdfbf524c5b6890bcb000", []},
   "poolboy": {:hex, :poolboy, "1.5.1", "6b46163901cfd0a1b43d692657ed9d7e599853b3b21b95ae5ae0a777cf9b6ca8", [:rebar], []},
   "postgrex": {:hex, :postgrex, "0.13.3", "c277cfb2a9c5034d445a722494c13359e361d344ef6f25d604c2353185682bfc", [:mix], [{:connection, "~> 1.0", [hex: :connection, repo: "hexpm", optional: false]}, {:db_connection, "~> 1.1", [hex: :db_connection, repo: "hexpm", optional: false]}, {:decimal, "~> 1.0", [hex: :decimal, repo: "hexpm", optional: false]}], "hexpm"},
   "proper": {:hex, :proper, "1.2.0", "1466492385959412a02871505434e72e92765958c60dba144b43863554b505a4", [:make, :mix, :rebar3], [], "hexpm"},
