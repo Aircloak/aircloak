@@ -14,7 +14,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   @spec generate_ast([Table.t]) :: ast
   def generate_ast(tables) do
     {from_table, from_ast} = generate_from(tables)
-    {:query, nil, [generate_select(from_table), from_ast, generate_conditions(from_table)]}
+    {:query, nil, [generate_select(from_table), from_ast, generate_where(from_table), generate_group_by(from_table)]}
   end
 
   @doc "Generates the SQL query string fro the given AST."
@@ -23,6 +23,8 @@ defmodule Cloak.Compliance.QueryGenerator do
   def ast_to_sql({:select, nil, select_list}), do: [" SELECT ", Enum.map(select_list, &ast_to_sql/1)]
   def ast_to_sql({:from, nil, [{:table, name, []}]}), do: [" FROM ", name]
   def ast_to_sql({:where, nil, conditions}), do: [" WHERE ", Enum.map(conditions, &ast_to_sql/1)]
+  def ast_to_sql({:group_by, nil, group_list}), do:
+    [" GROUP BY ", Enum.map(group_list, &ast_to_sql/1) |> Enum.intersperse(", ")]
   def ast_to_sql({:=, nil, [lhs, rhs]}), do: [ast_to_sql(lhs), " = ", ast_to_sql(rhs)]
   def ast_to_sql({:function, name, args}), do: [name, "(", Enum.map(args, &ast_to_sql/1), ")"]
   def ast_to_sql({:column, name, []}), do: name
@@ -44,17 +46,36 @@ defmodule Cloak.Compliance.QueryGenerator do
     {table, {:from, nil, [{:table, table.name, []}]}}
   end
 
-  defp generate_conditions(table) do
+  defp generate_where(table) do
     [
       fn -> {:empty, nil, []} end,
-      fn -> generate_where(table) end,
+      fn -> {:where, nil, [generate_condition(table)]} end,
     ] |> random_option()
   end
 
-  defp generate_where(table) do
+  defp generate_group_by(table) do
+    [
+      fn -> {:empty, nil, []} end,
+      fn -> {:group_by, nil, generate_group_list(table)} end,
+    ] |> random_option()
+  end
+
+  defp generate_group_list(table) do
+    [
+      fn -> [generate_column(table)] end,
+      fn -> [generate_column(table) | generate_group_list(table)] end
+    ] |> random_option()
+  end
+
+  defp generate_column(table) do
+    column = Enum.random(table.columns)
+    column_expression(column)
+  end
+
+  defp generate_condition(table) do
     column = Enum.random(table.columns)
     value = generate_value(column.type)
-    {:where, nil, [{:=, nil, [column_expression(column), value]}]}
+    {:=, nil, [column_expression(column), value]}
   end
 
   defp generate_value(:boolean), do: {:boolean, [true, false] |> Enum.random(), []}
