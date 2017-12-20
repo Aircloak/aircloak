@@ -60,30 +60,33 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   end
 
   defp move_simple_conditions_in_subquery({:subquery, subquery}, conditions) do
+    # we first separate moveable conditions from the others
     {simple_conditions, other_conditions} = Condition.partition(conditions, &condition_from_table?(&1, subquery.alias))
-    simple_conditions = replace_columns_in_conditions(simple_conditions, subquery.ast)
-    ast = case subquery.ast.group_by do
-      [] -> %Query{subquery.ast | where: Condition.combine(:and, subquery.ast.where, simple_conditions)}
-      _ -> %Query{subquery.ast | having: Condition.combine(:and, subquery.ast.having, simple_conditions)}
-    end
+    # we move the simple conditions into the inner subquery, after expanding the referenced columns
+    ast =
+      Query.Lenses.conditions_terminals()
+      |> Lens.satisfy(&not &1.constant?)
+      |> Lens.map(simple_conditions, &lookup_column_in_query(&1.name, subquery.ast))
+      |> add_conditions_to_query(subquery.ast)
     {{:subquery, %{subquery | ast: ast}}, other_conditions}
   end
   defp move_simple_conditions_in_subquery(branch, conditions), do: {branch, conditions}
+
+  defp add_conditions_to_query(conditions, %Query{group_by: []} = query), do:
+    %Query{query | where: Condition.combine(:and, query.where, conditions)}
+  defp add_conditions_to_query(conditions, %Query{group_by: [_|_]} = query), do:
+    %Query{query | having: Condition.combine(:and, query.having, conditions)}
 
   defp condition_from_table?(condition, table_name) do
     Query.Lenses.conditions_terminals()
     |> Lens.satisfy(&not &1.constant?)
     |> Lens.to_list(condition)
+    |> Enum.map(& &1.table)
+    |> Enum.uniq()
     |> case do
-      [%Expression{table: %{name: ^table_name}}] -> true
+      [%{name: ^table_name}] -> true
       _ -> false
     end
-  end
-
-  defp replace_columns_in_conditions(conditions, query) do
-    Query.Lenses.conditions_terminals()
-    |> Lens.satisfy(&not &1.constant?)
-    |> Lens.map(conditions, &lookup_column_in_query(&1.name, query))
   end
 
   defp lookup_column_in_query(name, query) do
