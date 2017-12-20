@@ -56,7 +56,17 @@ defmodule Mix.Tasks.Compile.UserDocs do
   end
 
   defp conditionally_compile_offline_docs() do
-    if has_ebook_convert_installed() do
+    # We won't build pdfs in static, since this takes quite long, and leads to uncommitted changes. This in turn causes
+    # total rebuild of docs on every CI compile, which takes a couple of minutes. The root cause is that pdf/epub/mobi
+    # files are committed in the content folder, and accounted for when deciding if there are changes. We need to
+    # have a better mechanism here:
+    #
+    #   - recompiling of pdf/epub/mobi shouldn't lead to uncommitted changes
+    #   - these files shouldn't be taken into account when comparing whether something has changed in docs since the
+    #     previous build
+    #
+    # Once we have that in place, we can in fact generate PDFs in CI.
+    if has_ebook_convert_installed() and System.get_env("CI") != "true" do
       # Use a readme that doesn't contain links to the offline content
       cmd!("ln", ~w(-sf README-offline.md content/README.md))
       # Ignore offline assets so we don't recursively bundle the offline assets in themselves

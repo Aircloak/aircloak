@@ -51,7 +51,7 @@ function start_container {
   docker network create --driver bridge $container_name > /dev/null
 
   docker run -d --name $container_name --network=$container_name $mounts $DOCKER_ARGS \
-    -e DEFAULT_SAP_HANA_SCHEMA="TEST_SCHEMA_$container_name" \
+    -e CI=true \
     aircloak/ci_air:$(git_head_image_tag) sleep 3600 > /dev/null
 }
 
