@@ -32,7 +32,7 @@ function start_container {
 
   mounted_from_root="VERSION RELEASE_EXPIRY_DATE common/elixir"
   mounted_from_air=".flowconfig .gitignore assets config datagen docs include lib perftest priv rel test mix.exs mix.lock Makefile README.md"
-  mounted_from_air_cache="deps _build .bash_history docs/_book docs/node_modules"
+  mounted_from_air_cache="deps _build .bash_history docs/_book docs/node_modules priv/static"
 
   local mounts="-v $(pwd)/tmp/ci/air/.bash_history:/root/.bash_history"
 
