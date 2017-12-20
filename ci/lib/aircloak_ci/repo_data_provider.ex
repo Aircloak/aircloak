@@ -74,11 +74,10 @@ defmodule AircloakCI.RepoDataProvider do
       Enum.each(repo_data.pull_requests, &AircloakCI.Build.PullRequest.ensure_started(&1, repo_data))
 
     defp ensure_branch_builds(repo_data, previous_repo_data), do:
-      pr_targets(repo_data)
+      [Enum.find(repo_data.branches, &(&1.name == "master"))]
+      |> Stream.concat(pr_targets(repo_data))
       |> Stream.concat(changed_branches(repo_data, previous_repo_data))
       |> Stream.dedup()
-      # ensure that master branch is started first
-      |> Enum.sort_by(&(if &1.name == "master", do: {0, &1}, else: {1, &1}))
       |> Enum.each(&AircloakCI.Build.Branch.ensure_started(&1, repo_data))
 
     defp pr_targets(repo_data) do
