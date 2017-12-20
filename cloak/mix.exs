@@ -37,7 +37,7 @@ defmodule Cloak.Mixfile do
       {:websocket_client, "~> 1.2.4"},
       {:combine, "~> 0.9.6"},
       {:timex, "~> 3.1"},
-      {:poison, github: "cristianberneanu/poison", override: true},
+      {:poison, github: "sasa1977/poison", override: true},
       {:mongodb, "~> 0.3.0"},
       {:lens, "~> 0.4.0"},
       {:backoff, "~> 1.1.3"},
