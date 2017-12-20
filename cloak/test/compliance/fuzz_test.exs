@@ -5,7 +5,7 @@ defmodule Cloak.Compliance.FuzzTest do
 
   @tag :fuzz
   test "running a generated query", context = %{data_sources: [%{tables: tables} | _other_sources]} do
-    query = QueryGenerator.generate_ast(tables) |> QueryGenerator.ast_to_sql() |> to_string()
+    query = tables |> Map.values() |> QueryGenerator.generate_ast() |> QueryGenerator.ast_to_sql() |> to_string()
     assert_consistent_and_not_failing(context, query)
   end
 end

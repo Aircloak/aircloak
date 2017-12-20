@@ -2,15 +2,15 @@ defmodule Cloak.Compliance.QueryGenerator do
   @moduledoc "Provides utilities for randomly generating queries into an arbitrary set of tables."
 
   @type ast :: {atom, any, [ast]}
-  @type table :: String.t
 
+  alias Cloak.DataSource.Table
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Generates a random AST representing a query into the given tables."
-  @spec generate_ast([table]) :: ast
+  @spec generate_ast([Table.t]) :: ast
   def generate_ast(tables) do
     {from_table, from_ast} = generate_from(tables)
     {:query, nil, [generate_select(from_table), from_ast, generate_conditions(from_table)]}
@@ -30,7 +30,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   # -------------------------------------------------------------------
 
   defp generate_from(tables) do
-    table = tables |> Map.values() |> Enum.random()
+    table = Enum.random(tables)
     {table, {:from, nil, [{:table, table.name, []}]}}
   end
 
