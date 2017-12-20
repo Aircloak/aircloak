@@ -128,6 +128,23 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
     end
   end
 
+  describe "unclear_implicit_range?" do
+    test "false when implicit range by itself", do:
+      refute %Type{applied_functions: ["month"]} |> Type.unclear_implicit_range?()
+
+    test "false when no implicit range", do:
+      refute %Type{applied_functions: []} |> Type.unclear_implicit_range?()
+
+    test "true when the implicit range operates on an unclear expression", do:
+      assert %Type{applied_functions: ["trunc", "+"]} |> Type.unclear_implicit_range?()
+
+    test "true when the implicit range is later computed on", do:
+      assert %Type{applied_functions: ["+", "trunc"]} |> Type.unclear_implicit_range?()
+
+    test "true when nested implicit ranges", do:
+      assert %Type{applied_functions: ["date_trunc", "trunc"]} |> Type.unclear_implicit_range?()
+  end
+
   describe "clear_column?" do
     test "true for raw columns", do:
       assert type_first_column("SELECT numeric FROM table") |> Type.clear_column?()

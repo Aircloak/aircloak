@@ -169,8 +169,20 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert narrative =~ ~r/Range expressions cannot include any functions/
     end
 
-    test "allows clear implicit ranges within another function", do:
-      assert {:ok, _, _} = compile("SELECT abs(ceil(float)) + 1 FROM table")
+    test "forbids implicit ranges within another function" do
+      assert {:error, narrative} = compile("SELECT abs(trunc(float)) FROM table")
+      assert narrative =~ ~r/Range expressions cannot include any functions/
+    end
+
+    test "forbids nested implicit ranges" do
+      assert {:error, narrative} = compile("SELECT trunc(trunc(float)) FROM table")
+      assert narrative =~ ~r/Range expressions cannot include any functions/
+    end
+
+    test "forbids implicit ranges on function expressions" do
+      assert {:error, narrative} = compile("SELECT trunc(float + 1) FROM table")
+      assert narrative =~ ~r/Range expressions cannot include any functions/
+    end
 
     test "does not consider cast to integer as an implicit range", do:
       assert {:ok, _, _} = compile("SELECT cast(float + 1 as integer) FROM table")

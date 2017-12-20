@@ -139,7 +139,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       unless clear_range_lhs?(column, query, interval) do
         type = Type.establish_type(column, query)
         {implicit_range_functions, other_functions} = type.applied_functions
-        |> Enum.split_with(&Function.has_attribute?(&1, :implicit_range))
+        |> Enum.split_with(& Function.implicit_range?/1)
 
         raise CompilationError, message: """
         Range expressions cannot include any functions except aggregations and a cast.
@@ -153,7 +153,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp clear_range_lhs?(%Expression{aggregate?: true, function_args: [lhs]}, query, interval), do:
     clear_range_lhs?(lhs, query, interval)
   defp clear_range_lhs?(lhs, query, :implicit), do:
-    Type.establish_type(lhs, query).implicit_range in [:none, {:implicit_range, :clear}]
+    not (Type.establish_type(lhs, query) |> Type.unclear_implicit_range?())
   defp clear_range_lhs?(lhs, query, _), do:
     Type.establish_type(lhs, query) |> Type.clear_column?()
 

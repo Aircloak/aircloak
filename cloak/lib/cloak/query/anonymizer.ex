@@ -351,10 +351,15 @@ defmodule Cloak.Query.Anonymizer do
       sum = sum + top_values_sum
       count = count + top_length
       average = sum / count
-      {sum + outliers_count * top_average, Kernel.max(average, 0.5 * top_average)}
+      {sum + outliers_count * top_average, noise_sigma_scale_factor(average, top_average)}
     else
       {0, nil} # We don't have enough values to return a result.
     end
+  end
+
+  defp noise_sigma_scale_factor(average, top_average) do
+    {scale_min, average_factor, top_average_factor} = config(:sum_noise_sigma_scale_params)
+    Kernel.max(scale_min, Kernel.max(average_factor * average, top_average_factor * top_average))
   end
 
   defp min_max_groups(anonymizer) do
