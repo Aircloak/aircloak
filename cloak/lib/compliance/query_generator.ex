@@ -26,7 +26,8 @@ defmodule Cloak.Compliance.QueryGenerator do
   @doc "Generates the SQL query string fro the given AST."
   @spec ast_to_sql(ast) :: iolist
   def ast_to_sql({:query, _, items}), do: Enum.map(items, &ast_to_sql/1)
-  def ast_to_sql({:select, nil, select_list}), do: [" SELECT ", Enum.map(select_list, &ast_to_sql/1)]
+  def ast_to_sql({:select, nil, select_list}), do:
+    [" SELECT ", Enum.map(select_list, &ast_to_sql/1) |> Enum.intersperse(", ")]
   def ast_to_sql({:from, nil, [{:table, name, []}]}), do: [" FROM ", name]
   def ast_to_sql({:where, nil, [condition]}), do: [" WHERE ", ast_to_sql(condition)]
   def ast_to_sql({:group_by, nil, group_list}), do:
@@ -114,7 +115,19 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp column_expression(%{name: name}), do: {:column, name, []}
 
-  defp generate_select(_table), do: {:select, nil, [{:function, "COUNT", [{:star, nil, []}]}]}
+  defp generate_select(table), do: {:select, nil, generate_select_list(table)}
+
+  defp generate_select_list(table), do:
+    [
+      fn -> [generate_expression(table)] end,
+      fn -> [generate_expression(table) | generate_select_list(table)] end,
+    ] |> random_option()
+
+  defp generate_expression(table), do:
+    [
+      fn -> {:function, "COUNT", [{:star, nil, []}]} end,
+      fn -> generate_column(table) end,
+    ] |> random_option()
 
 
   # -------------------------------------------------------------------

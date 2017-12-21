@@ -30,6 +30,7 @@ defmodule Cloak.Compliance.FuzzTest do
       error =~ ~r/`HAVING` clause can not be applied over column/ -> true
       error =~ ~r/Inequalities on string values are currently not supported/ -> true
       error =~ ~r/must be limited to a finite, nonempty range/ -> true
+      error =~ ~r/needs to appear in the `GROUP BY` clause/ -> true
       true -> false
     end
   end
