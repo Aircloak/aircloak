@@ -66,25 +66,18 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp generate_having(table), do:
     {:having, nil, [generate_condition(table)]}
 
-  defp generate_group_list(table) do
+  defp generate_group_list(table), do:
     [
       fn -> [generate_column(table)] end,
       fn -> [generate_column(table) | generate_group_list(table)] end
     ] |> random_option()
-  end
 
-  defp generate_column(table) do
-    column = Enum.random(table.columns)
-    column_expression(column)
-  end
-
-  defp generate_condition(table) do
+  defp generate_condition(table), do:
     [
       fn -> generate_equality(table) end,
       fn -> generate_between(table) end,
       fn -> generate_conjunction(table) end,
     ] |> random_option()
-  end
 
   defp generate_conjunction(table), do:
     {:and, nil, [generate_condition(table), generate_condition(table)]}
@@ -106,15 +99,6 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp generate_value(:text), do: {:text, random_text(), []}
   defp generate_value(:datetime), do: {:datetime, "1970-01-01", []}
 
-  defp random_float(), do: (1 - 2 * :rand.uniform()) * :math.pow(10, :rand.uniform(3))
-
-  defp random_text() do
-    len = :rand.uniform(10)
-    1..len |> Enum.map(fn(_) -> Enum.random(?A..?z) end)
-  end
-
-  defp column_expression(%{name: name}), do: {:column, name, []}
-
   defp generate_select(table), do: {:select, nil, generate_select_list(table)}
 
   defp generate_select_list(table), do:
@@ -129,17 +113,30 @@ defmodule Cloak.Compliance.QueryGenerator do
       fn -> generate_column(table) end,
     ] |> random_option()
 
+  defp generate_column(table) do
+    column = Enum.random(table.columns)
+    column_expression(column)
+  end
+
+  defp column_expression(%{name: name}), do: {:column, name, []}
+
 
   # -------------------------------------------------------------------
   # Helpers
   # -------------------------------------------------------------------
 
-  defp random_option(options), do: Enum.random(options).()
-
-  defp optional(generator) do
+  defp optional(generator), do:
     [
       fn -> {:empty, nil, []} end,
       generator
     ] |> random_option()
+
+  defp random_option(options), do: Enum.random(options).()
+
+  defp random_float(), do: (1 - 2 * :rand.uniform()) * :math.pow(10, :rand.uniform(3))
+
+  defp random_text() do
+    len = :rand.uniform(10)
+    1..len |> Enum.map(fn(_) -> Enum.random(?A..?z) end)
   end
 end
