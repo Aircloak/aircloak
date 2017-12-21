@@ -48,9 +48,41 @@ defmodule AircloakCI.Build.Component do
     with_container(project, component, job,
       fn(container) ->
         with :ok <- prepare_for(container, job), do:
-          Container.exec(container, LocalProject.commands(project, component, job), timeout: :timer.hours(1))
+          run_commands(container, LocalProject.commands(project, component, job))
       end
     )
+
+  defp run_commands(container, commands) when is_list(commands), do:
+      run_commands(container, {:sequence, commands})
+  defp run_commands(container, {:sequence, commands}), do:
+    commands
+    |> Stream.map(&run_commands(container, &1))
+    |> ok_or_first_error()
+  defp run_commands(container, {:parallel, commands}), do:
+    commands
+    |> Task.async_stream(&run_commands(container, &1), ordered: false, timeout: :infinity)
+    |> Stream.map(fn {:ok, task_result} -> task_result end)
+    |> ok_or_first_error()
+  defp run_commands(container, command) when is_binary(command) do
+    if Application.get_env(:aircloak_ci, :simulate_commands, false) do
+      IO.puts "simulating execution of `#{command}`"
+      :timer.sleep(1000)
+      :ok
+    else
+      Container.exec(container, [command], timeout: :timer.hours(1))
+    end
+  end
+
+  defp ok_or_first_error(results) do
+    case \
+      results
+      |> Stream.drop_while(&(&1 == :ok))
+      |> Enum.take(1)
+    do
+      [] -> :ok
+      [error] -> error
+    end
+  end
 
   defp with_container(project, component, job, fun), do:
     Container.with(script(project, component), LocalProject.log_file(project, log_name(component, job)), fun)

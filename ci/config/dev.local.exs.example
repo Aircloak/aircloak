@@ -15,3 +15,6 @@ use Mix.Config
 
 # Disables noisy console output for each build.
 # config :aircloak_ci, cmd_runner: [console_out: false]
+
+# Simulates execution of commands in the docker container
+config simulate_commands: true
