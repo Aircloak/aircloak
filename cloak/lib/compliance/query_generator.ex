@@ -33,6 +33,8 @@ defmodule Cloak.Compliance.QueryGenerator do
     [" GROUP BY ", Enum.map(group_list, &ast_to_sql/1) |> Enum.intersperse(", ")]
   def ast_to_sql({:having, nil, [condition]}), do: [" HAVING ", ast_to_sql(condition)]
   def ast_to_sql({:=, nil, [lhs, rhs]}), do: [ast_to_sql(lhs), " = ", ast_to_sql(rhs)]
+  def ast_to_sql({:between, nil, [lhs, low, high]}), do:
+    [ast_to_sql(lhs), " BETWEEN ", ast_to_sql(low), " AND ", ast_to_sql(high)]
   def ast_to_sql({:function, name, args}), do: [name, "(", Enum.map(args, &ast_to_sql/1), ")"]
   def ast_to_sql({:column, name, []}), do: name
   def ast_to_sql({:integer, value, []}), do: to_string(value)
@@ -82,9 +84,21 @@ defmodule Cloak.Compliance.QueryGenerator do
   end
 
   defp generate_condition(table) do
+    [
+      fn -> generate_equality(table) end,
+      fn -> generate_between(table) end,
+    ] |> random_option()
+  end
+
+  defp generate_equality(table) do
     column = Enum.random(table.columns)
     value = generate_value(column.type)
     {:=, nil, [column_expression(column), value]}
+  end
+
+  defp generate_between(table) do
+    column = Enum.random(table.columns)
+    {:between, nil, [column_expression(column), generate_value(column.type), generate_value(column.type)]}
   end
 
   defp generate_value(:boolean), do: {:boolean, [true, false] |> Enum.random(), []}

@@ -28,6 +28,8 @@ defmodule Cloak.Compliance.FuzzTest do
   defp nice_error?(error) do
     cond do
       error =~ ~r/`HAVING` clause can not be applied over column/ -> true
+      error =~ ~r/Inequalities on string values are currently not supported/ -> true
+      error =~ ~r/must be limited to a finite, nonempty range/ -> true
       true -> false
     end
   end
