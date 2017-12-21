@@ -256,4 +256,16 @@ defmodule Cloak.Query.JoinTest do
         group by 1) as t
     """, %{query_id: "1", rows: [%{row: [15]}]}
   end
+
+  test "selecting using multiple joins with extra conditions" do
+    :ok = insert_rows(_user_ids = 1..100, "heights_join", ["height"], [180])
+    :ok = insert_rows(_user_ids = 1..70, "children_join", ["age"], [20])
+
+    assert_query """
+      SELECT count(t2.age)
+      FROM heights_join AS t1 JOIN (SELECT DISTINCT user_id, age FROM children_join) AS t2 ON t1.user_id = t2.user_id
+      LEFT JOIN children_join AS t3 ON t3.user_id = t2.user_id AND t2.age = 20
+    """, %{columns: ["count"], rows: rows}
+    assert [%{row: [70], occurrences: 1}] = rows
+  end
 end

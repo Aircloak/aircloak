@@ -51,6 +51,19 @@ defmodule Cloak.Sql.Compiler.Optimizer.Test do
     assert {:comparison, _, :=, _} = conditions
   end
 
+  test "simple conditions in complex joined subquery are pushed down" do
+    assert %{from: from} = compile!("""
+      SELECT count(*) FROM
+        (SELECT uid, numeric FROM table) AS t1
+        JOIN table AS t2 ON t1.uid = t2.uid
+        LEFT JOIN table AS t3
+        ON t2.uid = t3.uid AND t1.numeric <> 0
+    """, data_source())
+    assert {:join, %{lhs: lhs_branch, conditions: {:comparison, _, :=, _}}} = from
+    assert {:join, %{lhs: {:subquery, %{ast: subquery}}}} = lhs_branch
+    assert {:comparison, %{name: "numeric"}, :<>, %{value: 0}} = subquery.where
+  end
+
   defp data_source() do
     %{
       driver: Cloak.DataSource.PostgreSQL,

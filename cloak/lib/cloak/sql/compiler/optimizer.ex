@@ -5,6 +5,8 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.Sql.Query.Lenses
 
+  use Lens.Macros
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -59,18 +61,34 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     %{join | lhs: lhs, rhs: rhs, conditions: conditions}
   end
 
-  defp move_simple_conditions_in_subquery({:subquery, subquery}, conditions) do
-    # we first separate moveable conditions from the others
-    {simple_conditions, other_conditions} = Condition.partition(conditions, &condition_from_table?(&1, subquery.alias))
-    # we move the simple conditions into the inner subquery, after expanding the referenced columns
-    ast =
-      Query.Lenses.conditions_terminals()
-      |> Lens.satisfy(&not &1.constant?)
-      |> Lens.map(simple_conditions, &lookup_column_in_query(&1.name, subquery.ast))
-      |> add_conditions_to_query(subquery.ast)
-    {{:subquery, %{subquery | ast: ast}}, other_conditions}
+  defp move_simple_conditions_in_subquery(branch, conditions) do
+    branch = Lens.map(subqueries(), branch, fn (subquery) ->
+      simple_conditions = Condition.reject(conditions, &not condition_from_table?(&1, subquery.alias))
+      # we move simple conditions into the inner subquery, after expanding the referenced columns
+      ast =
+        Query.Lenses.conditions_terminals()
+        |> Lens.satisfy(&not &1.constant?)
+        |> Lens.map(simple_conditions, &lookup_column_in_query(&1.name, subquery.ast))
+        |> add_conditions_to_query(subquery.ast)
+      %{subquery | ast: ast}
+    end)
+    conditions =
+      subqueries()
+      |> Lens.to_list(branch)
+      |> Enum.map(& &1.alias)
+      |> Enum.reduce(conditions, fn (name, conditions) ->
+        Condition.reject(conditions, &condition_from_table?(&1, name))
+      end)
+    {branch, conditions}
   end
-  defp move_simple_conditions_in_subquery(branch, conditions), do: {branch, conditions}
+
+  deflensp subqueries() do
+    Lens.match(fn
+      {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> subqueries()
+      {:subquery, _} -> Lens.at(1)
+      _other -> Lens.empty()
+    end)
+  end
 
   defp add_conditions_to_query(conditions, %Query{group_by: []} = query), do:
     %Query{query | where: Condition.combine(:and, query.where, conditions)}
