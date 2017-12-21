@@ -6,22 +6,22 @@ defmodule Cloak.Compliance.FuzzTest do
 
   @tag :fuzz
   test "running a generated query", context = %{data_sources: [%{tables: tables} | _other_sources]} do
-    for _ <- 1..200 do
+    results = Enum.reduce(1..100, %{}, fn(_, results) ->
       query = tables |> Map.values() |> QueryGenerator.generate_ast() |> QueryGenerator.ast_to_sql() |> to_string()
-      assert_consistent_or_failing_nicely(context, query)
-    end
+      IO.inspect(query)
+      result = assert_consistent_or_failing_nicely(context, query)
+      IO.inspect(result)
+      results = Map.update(results, result, 1, & &1 + 1)
+    end)
+
+    IO.inspect(results)
   end
 
   defp assert_consistent_or_failing_nicely(context, query) do
     case assert_query_consistency(query, data_sources: context.data_sources) do
       %{error: error} ->
-        if nice_error?(error) do
-          error
-        else
-          raise ExUnit.AssertionError,
-            message: "Query execution failed. Query was:\n#{query}.\n\nError:\n#{error}"
-        end
-      result -> result
+        if nice_error?(error), do: :error, else: :crash
+      %{rows: rows} -> :ok
     end
   end
 
