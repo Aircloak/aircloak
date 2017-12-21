@@ -35,6 +35,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   def ast_to_sql({:=, nil, [lhs, rhs]}), do: [ast_to_sql(lhs), " = ", ast_to_sql(rhs)]
   def ast_to_sql({:between, nil, [lhs, low, high]}), do:
     [ast_to_sql(lhs), " BETWEEN ", ast_to_sql(low), " AND ", ast_to_sql(high)]
+  def ast_to_sql({:and, nil, [lhs, rhs]}), do: [" (", ast_to_sql(lhs), " AND ", ast_to_sql(rhs), ") "]
   def ast_to_sql({:function, name, args}), do: [name, "(", Enum.map(args, &ast_to_sql/1), ")"]
   def ast_to_sql({:column, name, []}), do: name
   def ast_to_sql({:integer, value, []}), do: to_string(value)
@@ -71,13 +72,6 @@ defmodule Cloak.Compliance.QueryGenerator do
     ] |> random_option()
   end
 
-  defp optional(generator) do
-    [
-      fn -> {:empty, nil, []} end,
-      generator
-    ] |> random_option()
-  end
-
   defp generate_column(table) do
     column = Enum.random(table.columns)
     column_expression(column)
@@ -87,8 +81,12 @@ defmodule Cloak.Compliance.QueryGenerator do
     [
       fn -> generate_equality(table) end,
       fn -> generate_between(table) end,
+      fn -> generate_conjunction(table) end,
     ] |> random_option()
   end
+
+  defp generate_conjunction(table), do:
+    {:and, nil, [generate_condition(table), generate_condition(table)]}
 
   defp generate_equality(table) do
     column = Enum.random(table.columns)
@@ -118,5 +116,17 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp generate_select(_table), do: {:select, nil, [{:function, "COUNT", [{:star, nil, []}]}]}
 
+
+  # -------------------------------------------------------------------
+  # Helpers
+  # -------------------------------------------------------------------
+
   defp random_option(options), do: Enum.random(options).()
+
+  defp optional(generator) do
+    [
+      fn -> {:empty, nil, []} end,
+      generator
+    ] |> random_option()
+  end
 end
