@@ -8,7 +8,7 @@ defmodule AircloakCI.Build.Component do
   Examples of job names are `:compile`, `:test`, `:compliance`.
   """
 
-  alias AircloakCI.{Container, LocalProject}
+  alias AircloakCI.{CmdRunner, Container, LocalProject}
   alias AircloakCI.Build.Job
 
   @type job :: :compile | :test | :compliance
@@ -47,41 +47,90 @@ defmodule AircloakCI.Build.Component do
   defp run_job(project, component, job), do:
     with_container(project, component, job,
       fn(container) ->
-        with :ok <- prepare_for(container, job), do:
-          run_commands(container, LocalProject.commands(project, component, job))
+        with :ok <- prepare_for(container, job) do
+          commands = LocalProject.commands(project, component, job)
+          {result, outputs} = run_commands(project, component, job, container, commands)
+          # dump all outputs to the job log file
+          File.write(container.log_file, ["\n", outputs, "\n"], [:append])
+          result
+        end
       end
     )
 
-  defp run_commands(container, commands) when is_list(commands), do:
-      run_commands(container, {:sequence, commands})
-  defp run_commands(container, {:sequence, commands}), do:
+  defp run_commands(project, component, job, container, commands) when is_list(commands), do:
+      run_commands(project, component, job, container, {:sequence, commands})
+  defp run_commands(project, component, job, container, {:sequence, commands}), do:
     commands
-    |> Stream.map(&run_commands(container, &1))
-    |> ok_or_first_error()
-  defp run_commands(container, {:parallel, commands}), do:
+    |> Stream.map(&run_commands(project, component, job, container, &1))
+    |> collect_results_from_sequence()
+  defp run_commands(project, component, job, container, {:parallel, commands}), do:
     commands
-    |> Task.async_stream(&run_commands(container, &1), ordered: false, timeout: :infinity)
+    |> Task.async_stream(&run_commands(project, component, job, container, &1), ordered: false, timeout: :infinity)
     |> Stream.map(fn {:ok, task_result} -> task_result end)
-    |> ok_or_first_error()
-  defp run_commands(container, command) when is_binary(command) do
+    |> collect_results_from_parallel_commands()
+  defp run_commands(project, component, job, container, command) when is_binary(command) do
+    File.write(container.log_file, "started `#{command}`\n", [:append])
+
     if Application.get_env(:aircloak_ci, :simulate_commands, false) do
       IO.puts "simulating execution of `#{command}`"
       :timer.sleep(1000)
-      :ok
+      {:ok, "`#{command}` succeeded"}
     else
-      Container.exec(container, [command], timeout: :timer.hours(1))
+      # We'll log to the temporary unique file. This allows us to deinterlace log outputs later
+      log_name = "#{component}_#{job}_#{Base.url_encode64(:crypto.strong_rand_bytes(16), padding: false)}"
+      cmd_log_file = LocalProject.log_file(project, log_name)
+      File.write(cmd_log_file, "")
+      try do
+        logger = CmdRunner.file_logger(cmd_log_file)
+        result = Container.exec(container, [command], timeout: :timer.hours(1), logger: logger)
+
+        # return result of command execution, and the output from the file
+        {result, File.read!(cmd_log_file)}
+      after
+        # now we can safely delete the file
+        File.rm(cmd_log_file)
+      end
     end
   end
 
-  defp ok_or_first_error(results) do
-    case \
-      results
-      |> Stream.drop_while(&(&1 == :ok))
-      |> Enum.take(1)
-    do
-      [] -> :ok
-      [error] -> error
-    end
+  defp collect_results_from_sequence(commands_stream) do
+    # In a sequence, we're stopping on first error, and return the outputs in the proper order.
+    {result, outputs} =
+      Enum.reduce_while(
+        commands_stream,
+        {:ok, []},
+        fn
+          {:ok, output}, {:ok, outputs} -> {:cont, {:ok, [output | outputs]}}
+          {{:error, _} = error, output}, {:ok, outputs} -> {:halt, {error, [output | outputs]}}
+        end
+      )
+
+    {result, to_string(Enum.intersperse(Enum.reverse(outputs), "\n"))}
+  end
+
+  defp collect_results_from_parallel_commands(commands_stream) do
+    # With parallel commands, we'll wait for all of them to finish. Since they are parallel, an error in one component
+    # shouldn't affect the other, so we want to collect all possible errors.
+    # We'll also do some heuristic reordering to improve UX. We'll put successes on top, ordering by the output length.
+    # Errors are at the end, ordered by the descending output length. Thus, the shortest error output should be last,
+    # and therefore its more likely to be included in the tail sent to the author.
+    {cmd_results, outputs} =
+      commands_stream
+      |> Enum.sort_by(
+          fn
+            {:ok, output} -> {0, byte_size(output)}
+            {{:error, _}, output} -> {1, -byte_size(output)}
+          end
+        )
+      |> Enum.unzip()
+
+    result =
+      case Enum.filter(cmd_results, &match?({:error, _}, &1)) do
+        [] -> :ok
+        errors -> {:error, "\n" <> (errors |> Enum.map(fn {:error, reason} -> reason end) |> Enum.join("\n"))}
+      end
+
+    {result, to_string(Enum.intersperse(outputs, "\n"))}
   end
 
   defp with_container(project, component, job, fun), do:
