@@ -6,7 +6,7 @@ SHELL=/bin/bash -o pipefail
 .PHONY: sql-server-container sql-server-database
 .PHONY: mysql-server-container mysql-server-database
 .PHONY: mongo-server-container
-.PHONY: ci.compliance ci.compliance.debug
+.PHONY: ci.compliance
 
 define start_container
   if [ "$$(docker ps -a | grep $(1))" ]; then docker start $(1); else docker run --name $(1) $(2); fi
