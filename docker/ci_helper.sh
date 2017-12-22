@@ -34,7 +34,10 @@ function mount_cached_component {
 }
 
 function build_image {
-  common/docker/phoenix/build-image.sh
+  # We won't remove old images here, since we're building one more image at the end. That final build will lead to
+  # removal of old stale images. Since removal of stale images also talks to git, this will reduce the network
+  # communication and will run much faster.
+  PREVENT_OLD_IMAGE_REMOVAL="true" common/docker/phoenix/build-image.sh
   build_aircloak_image $DOCKER_IMAGE $COMPONENT/ci/dockerfile $COMPONENT/ci/.dockerignore
 }
 

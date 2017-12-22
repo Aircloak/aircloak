@@ -520,15 +520,17 @@ function reachable_heads {
 }
 
 function remove_old_git_head_image_tags {
-  # For the given image, removes all version tags which do not correspond to the reachable local or remote HEAD,
-  # including pending pull requests.
+  if [ "$PREVENT_OLD_IMAGE_REMOVAL" != "true" ]; then
+    # For the given image, removes all version tags which do not correspond to the reachable local or remote HEAD,
+    # including pending pull requests.
 
-  image=$1
-  known_heads=$(reachable_heads | uniq)
-  for existing_version in $(docker images | grep $image | awk '{print $2}' | grep 'git_sha_'); do
-    if [[ ! "$known_heads" =~ "$existing_version" ]]; then
-      echo "removing image tag for $image:$existing_version"
-      docker rmi $image:$existing_version || true
-    fi
-  done
+    image=$1
+    known_heads=$(reachable_heads | uniq)
+    for existing_version in $(docker images | grep $image | awk '{print $2}' | grep 'git_sha_'); do
+      if [[ ! "$known_heads" =~ "$existing_version" ]]; then
+        echo "removing image tag for $image:$existing_version"
+        docker rmi $image:$existing_version || true
+      fi
+    done
+  fi
 }
