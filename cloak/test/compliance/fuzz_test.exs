@@ -11,7 +11,7 @@ defmodule Cloak.Compliance.FuzzTest do
       IO.puts(query)
       result = assert_consistent_or_failing_nicely(context, query)
       IO.inspect(result)
-      results = Map.update(results, result, 1, & &1 + 1)
+      Map.update(results, result, 1, & &1 + 1)
     end)
 
     IO.inspect(results)

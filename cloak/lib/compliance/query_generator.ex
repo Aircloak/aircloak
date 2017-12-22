@@ -93,10 +93,7 @@ defmodule Cloak.Compliance.QueryGenerator do
     {:having, nil, [generate_condition(tables)]}
 
   defp generate_group_list(tables), do:
-    [
-      fn -> [generate_column(tables)] end,
-      fn -> [generate_column(tables) | generate_group_list(tables)] end
-    ] |> random_option()
+    many1(fn -> generate_column(tables) end)
 
   defp generate_condition(tables), do:
     [
@@ -131,10 +128,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   end
 
   defp generate_select_list(tables), do:
-    [
-      fn -> [generate_expression_with_info(tables)] end,
-      fn -> [generate_expression_with_info(tables) | generate_select_list(tables)] end,
-    ] |> random_option()
+    many1(fn -> generate_expression_with_info(tables) end)
 
   defp generate_expression_with_info(tables), do:
     [
@@ -158,6 +152,12 @@ defmodule Cloak.Compliance.QueryGenerator do
   # -------------------------------------------------------------------
   # Helpers
   # -------------------------------------------------------------------
+
+  defp many1(generator), do:
+    [
+      fn -> [generator.()] end,
+      fn -> [generator.() | many1(generator)] end,
+    ] |> random_option()
 
   defp optional(generator), do:
     [
