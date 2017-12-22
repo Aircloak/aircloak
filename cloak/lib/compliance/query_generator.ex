@@ -138,7 +138,7 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp generate_expression_with_info(tables), do:
     [
-      fn -> {{:function, "COUNT", [{:star, nil, []}]}, {:integer, "COUNT"}} end,
+      fn -> {{:function, "count", [{:star, nil, []}]}, {:integer, "count"}} end,
       fn -> generate_column_with_info(tables) end,
     ] |> random_option()
 
