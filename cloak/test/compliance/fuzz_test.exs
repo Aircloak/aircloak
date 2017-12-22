@@ -21,7 +21,7 @@ defmodule Cloak.Compliance.FuzzTest do
     case assert_query_consistency(query, data_sources: context.data_sources) do
       %{error: error} ->
         if nice_error?(error), do: :error, else: :crash
-      %{rows: rows} -> :ok
+      %{rows: _} -> :ok
     end
   end
 
