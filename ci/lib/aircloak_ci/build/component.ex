@@ -82,10 +82,12 @@ defmodule AircloakCI.Build.Component do
       File.write(cmd_log_file, "")
       try do
         logger = CmdRunner.file_logger(cmd_log_file)
+        start = :erlang.monotonic_time(:second)
         result = Container.exec(container, [command], timeout: :timer.hours(1), logger: logger)
+        diff_sec = :erlang.monotonic_time(:second) - start
 
         # return result of command execution, and the output from the file
-        {result, File.read!(cmd_log_file)}
+        {result, File.read!(cmd_log_file) <> "=> #{diff_sec} sec\n"}
       after
         # now we can safely delete the file
         File.rm(cmd_log_file)
