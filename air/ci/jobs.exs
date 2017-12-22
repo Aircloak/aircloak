@@ -7,6 +7,7 @@
     "MIX_HOME=_build mix dialyze --no-analyse --no-compile",
   ],
   test: [
+    "make deps",
     "make check-warnings",
     "make docs",
     "make lint",
