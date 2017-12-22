@@ -119,7 +119,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
       history_of_columns_involved: [expression],
     }
 
-  defp type_for_function(function = %Expression{function: name, function_args: args}, query) do
+  defp type_for_function(%Expression{function: name, function_args: args}, query) do
     child_types = args |> Enum.map(&(establish_type(&1, query)))
     # Prune constants, they don't interest us further
     if Enum.all?(child_types, &(&1.constant?)) do
