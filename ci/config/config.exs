@@ -5,19 +5,23 @@ config :logger,
   backends: [:console],
   console: [format: "$time [$level] $metadata$message\n"]
 
-queue_spec = fn(opts) ->
-  [
-    max_time: Keyword.fetch!(opts, :max_waiting_time),
-    regulators: [counter: [limit: Keyword.fetch!(opts, :concurrency)]]
-  ]
+regulator = fn
+  {:concurrent, limit} -> [counter: [limit: limit]]
+  {:per_second, limit} -> [rate: [limit: limit]]
+end
+
+queue_spec = fn(spec) ->
+  {limit, opts} = Keyword.pop(spec, :limit)
+  [max_time: Keyword.get(opts, :max_time, :timer.hours(1)), regulators: regulator.(limit)]
 end
 
 config :aircloak_ci, :queues,
   [
-    docker_build: queue_spec.(concurrency: 1, max_waiting_time: :timer.hours(1)),
-    compile: queue_spec.(concurrency: 5, max_waiting_time: :timer.hours(1)),
-    test: queue_spec.(concurrency: 20, max_waiting_time: :timer.hours(1)),
-    compliance: queue_spec.(concurrency: 1, max_waiting_time: :timer.hours(1))
+    docker_build: queue_spec.(limit: {:concurrent, 1}),
+    compile: queue_spec.(limit: {:concurrent, 5}),
+    test: queue_spec.(limit: {:concurrent, 20}),
+    compliance: queue_spec.(limit: {:concurrent, 1}),
+    github_api: queue_spec.(limit: {:per_second, 1}),
   ]
 
 import_config "#{Mix.env}.exs"
