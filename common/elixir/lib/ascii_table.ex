@@ -44,5 +44,5 @@ defmodule Aircloak.AsciiTable do
     |> hd()
     |> row_lengths()
 
-  defp row_lengths(row), do: Enum.map(row, & String.length/1)
+  defp row_lengths(row), do: Enum.map(row, & String.length(to_string(&1)))
 end
