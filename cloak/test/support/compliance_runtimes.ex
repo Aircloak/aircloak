@@ -127,9 +127,9 @@ defmodule Compliance.Runtime do
   end
 
   defp render_stats(data) do
-    data_as_rows = Enum.map(data, & [&1[:title], &1[:min], &1[:max], &1[:number_measurements],
-      &1[:fifth_percentile], &1[:median], &1[:ninty_fifth_percentile], &1[:ninty_nine_percentile]])
-    header = ["", "min", "max", "#", "5th", "50th", "95th", "99th"]
+    data_as_rows = Enum.map(data, & [&1[:title], &1[:number_measurements], &1[:min], &1[:fifth_percentile],
+      &1[:median], &1[:ninty_fifth_percentile], &1[:ninty_nine_percentile], &1[:max]])
+    header = ["", "#", "min", "5th", "50th", "95th", "99th", "max"]
     IO.puts "\n\n" <> Aircloak.AsciiTable.format([header] ++ data_as_rows)
   end
 
