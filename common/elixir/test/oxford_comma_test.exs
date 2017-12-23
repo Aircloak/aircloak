@@ -3,6 +3,9 @@ defmodule Aircloak.OxfordComma.Test do
 
   alias Aircloak.OxfordComma
 
+  test "an empty list becomes an empty string", do:
+    assert OxfordComma.join([]) == ""
+
   test "a single entity is unchanged", do:
     assert OxfordComma.join(["first"]) == "first"
 
