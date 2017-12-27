@@ -173,7 +173,14 @@ defmodule Cloak.Compliance.QueryGenerator do
     [
       fn -> {{:function, "count", [{:star, nil, []}]}, {:integer, "count"}} end,
       fn -> generate_column_with_info(tables) end,
+      fn -> generate_aliased_column_with_info(tables) end,
     ] |> random_option()
+
+  defp generate_aliased_column_with_info(tables) do
+    {column, {table, _}} = generate_column_with_info(tables)
+    alias = random_name()
+    {generate_as(column, alias), {table, alias}}
+  end
 
   defp generate_column(tables) do
     {column, _} = generate_column_with_info(tables)
