@@ -77,11 +77,6 @@ defmodule Cloak.Compliance.QueryGenerator do
       fn -> generate_from_join(tables) end,
     ] |> random_option()
 
-  defp generate_from_table(tables) do
-    table = Enum.random(tables)
-    {{:table, table.name, []}, [table]}
-  end
-
   defp generate_from_subquery(tables) do
     name = random_name()
     {ast, info} = generate_ast_with_info(tables)
@@ -98,9 +93,21 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp generate_join_element(tables), do:
     [
-      fn -> generate_from_table(tables) end,
+      fn -> generate_aliased_table(tables) end,
       fn -> generate_from_subquery(tables) end,
     ] |> random_option()
+
+  defp generate_aliased_table(tables) do
+    {table_ast, [table_info]} = generate_from_table(tables)
+    alias = random_name()
+
+    {generate_as(table_ast, alias), [%{table_info | name: alias}]}
+  end
+
+  defp generate_from_table(tables) do
+    table = Enum.random(tables)
+    {{:table, table.name, []}, [table]}
+  end
 
   defp generate_as(object, name), do: {:as, name, [object]}
 
