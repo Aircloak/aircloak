@@ -31,6 +31,7 @@ defmodule Cloak.Compliance.FuzzTest do
       error =~ ~r/must be limited to a finite, nonempty range/ -> :incorrect_range
       error =~ ~r/needs to appear in the `GROUP BY` clause/ -> :missing_group_by
       error =~ ~r/Missing a user id column in the select list of subquery/ -> :subquery_no_uid
+      error =~ ~r/Missing where comparison for uid columns/ -> :join_no_uid
       true -> raise error
     end
   end

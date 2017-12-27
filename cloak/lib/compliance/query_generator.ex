@@ -24,7 +24,10 @@ defmodule Cloak.Compliance.QueryGenerator do
     [" SELECT ", Enum.map(select_list, &ast_to_sql/1) |> Enum.intersperse(", ")]
   def ast_to_sql({:from, nil, [from_expression]}), do: [" FROM ", ast_to_sql(from_expression)]
   def ast_to_sql({:table, name, []}), do: name
-  def ast_to_sql({:subquery, name, [definition]}), do: ["( ", ast_to_sql(definition), " ) AS ", name]
+  def ast_to_sql({:subquery, nil, [definition]}), do: ["( ", ast_to_sql(definition), " )"]
+  def ast_to_sql({:join, nil, [lhs, rhs, on]}), do: [ast_to_sql(lhs), " JOIN ", ast_to_sql(rhs), ast_to_sql(on)]
+  def ast_to_sql({:on, nil, [condition]}), do: [" ON ", ast_to_sql(condition)]
+  def ast_to_sql({:as, name, [object]}), do: [ast_to_sql(object), " AS ", name]
   def ast_to_sql({:where, nil, [condition]}), do: [" WHERE ", ast_to_sql(condition)]
   def ast_to_sql({:group_by, nil, group_list}), do:
     [" GROUP BY ", Enum.map(group_list, &ast_to_sql/1) |> Enum.intersperse(", ")]
@@ -32,7 +35,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   def ast_to_sql({:=, nil, [lhs, rhs]}), do: [ast_to_sql(lhs), " = ", ast_to_sql(rhs)]
   def ast_to_sql({:between, nil, [lhs, low, high]}), do:
     [ast_to_sql(lhs), " BETWEEN ", ast_to_sql(low), " AND ", ast_to_sql(high)]
-  def ast_to_sql({:and, nil, [lhs, rhs]}), do: [" (", ast_to_sql(lhs), " AND ", ast_to_sql(rhs), ") "]
+  def ast_to_sql({:and, nil, [lhs, rhs]}), do: [ast_to_sql(lhs), " AND ", ast_to_sql(rhs)]
   def ast_to_sql({:function, name, args}), do: [name, "(", Enum.map(args, &ast_to_sql/1), ")"]
   def ast_to_sql({:column, {column, table}, []}), do: [?", table, ?", ?., ?", column, ?"]
   def ast_to_sql({:integer, value, []}), do: to_string(value)
@@ -62,23 +65,47 @@ defmodule Cloak.Compliance.QueryGenerator do
     {ast, info}
   end
 
-  defp generate_from(tables), do:
+  defp generate_from(tables) do
+    {from_ast, tables} = generate_from_expression(tables)
+    {{:from, nil, [from_ast]}, tables}
+  end
+
+  defp generate_from_expression(tables), do:
     [
       fn -> generate_from_table(tables) end,
       fn -> generate_from_subquery(tables) end,
+      fn -> generate_from_join(tables) end,
     ] |> random_option()
 
   defp generate_from_table(tables) do
     table = Enum.random(tables)
-    {{:from, nil, [{:table, table.name, []}]}, [table]}
+    {{:table, table.name, []}, [table]}
   end
 
   defp generate_from_subquery(tables) do
     name = random_name()
     {ast, info} = generate_ast_with_info(tables)
 
-    {{:from, nil, [{:subquery, name, [ast]}]}, [table_from_ast_info(name, info)]}
+    {generate_as({:subquery, nil, [ast]}, name), [table_from_ast_info(name, info)]}
   end
+
+  defp generate_from_join(tables) do
+    {lhs, lhs_tables} = generate_join_element(tables)
+    {rhs, rhs_tables} = generate_join_element(tables)
+    tables = lhs_tables ++ rhs_tables
+    {{:join, nil, [lhs, rhs, generate_on(tables)]}, tables}
+  end
+
+  defp generate_join_element(tables), do:
+    [
+      fn -> generate_from_table(tables) end,
+      fn -> generate_from_subquery(tables) end,
+    ] |> random_option()
+
+  defp generate_as(object, name), do: {:as, name, [object]}
+
+  defp generate_on(tables), do:
+    {:on, nil, [generate_condition(tables)]}
 
   defp table_from_ast_info(name, ast_info), do:
     %{name: name, columns: Enum.map(ast_info, fn({type, name}) -> %{name: name, type: type} end)}
