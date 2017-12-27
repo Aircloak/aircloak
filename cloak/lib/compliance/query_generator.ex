@@ -203,7 +203,15 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp random_float(), do: (1 - 2 * :rand.uniform()) * :math.pow(10, :rand.uniform(3))
 
-  defp random_name(), do: random_text(?a..?z)
+  @keywords ~w(is as on or from select)
+  defp random_name() do
+    name = random_text(?a..?z) |> to_string()
+    if name in @keywords do
+      random_name()
+    else
+      name
+    end
+  end
 
   defp random_text(allowed_chars \\ ?A..?z) do
     len = :rand.uniform(10)
