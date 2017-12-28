@@ -48,6 +48,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   def ast_to_sql({:real, value, []}), do: to_string(value)
   def ast_to_sql({:star, _, _}), do: "*"
   def ast_to_sql({:empty, _, _}), do: ""
+  def ast_to_sql({:sample_users, size, []}), do: [" SAMPLE_USERS ", to_string(size), "%"]
 
 
   # -------------------------------------------------------------------
@@ -63,10 +64,14 @@ defmodule Cloak.Compliance.QueryGenerator do
       optional(fn -> generate_where(tables) end),
       optional(fn -> generate_group_by(tables) end),
       optional(fn -> generate_having(tables) end),
+      optional(fn -> generate_sample_users() end),
     ]}
 
     {ast, info}
   end
+
+  defp generate_sample_users(), do:
+    {:sample_users, :rand.uniform(100), []}
 
   defp generate_from(tables) do
     {from_ast, tables} = generate_from_expression(tables)
