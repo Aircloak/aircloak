@@ -45,7 +45,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   def ast_to_sql({:integer, value, []}), do: to_string(value)
   def ast_to_sql({:text, value, []}), do: [?', value, ?']
   def ast_to_sql({:boolean, value, []}), do: to_string(value)
-  def ast_to_sql({:datetime, value, []}), do: [?', value, ?']
+  def ast_to_sql({:datetime, value, []}), do: [?', to_string(value), ?']
   def ast_to_sql({:real, value, []}), do: to_string(value)
   def ast_to_sql({:like_pattern, value, []}), do: [?', value, ?']
   def ast_to_sql({:in_set, nil, items}), do: [?(, items |>  Enum.map(&ast_to_sql/1) |> Enum.intersperse(", "), ?)]
@@ -210,7 +210,10 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp generate_value(:integer), do: {:integer, :rand.uniform(1000), []}
   defp generate_value(:real), do: {:real, random_float(), []}
   defp generate_value(:text), do: {:text, random_text(), []}
-  defp generate_value(:datetime), do: {:datetime, "1970-01-01", []}
+  defp generate_value(:datetime), do: {:datetime, %NaiveDateTime{
+    year: :rand.uniform(100) + 1950, month: :rand.uniform(12), day: :rand.uniform(28),
+    hour: :rand.uniform(24) - 1, minute: :rand.uniform(60) - 1, second: :rand.uniform(60) - 1
+  }, []}
   defp generate_value(:like_pattern), do: {:like_pattern, random_text([?% | Enum.to_list(?A..?z)]), []}
 
   defp generate_select(tables) do
