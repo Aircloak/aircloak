@@ -17,6 +17,8 @@ defmodule Cloak.Compliance.QueryGenerator do
     ast
   end
 
+  @infix_operator ~w(= <> < > like ilike not_like not_ilike)a
+
   @doc "Generates the SQL query string fro the given AST."
   @spec ast_to_sql(ast) :: iolist
   def ast_to_sql({:query, _, items}), do: Enum.map(items, &ast_to_sql/1)
@@ -32,10 +34,8 @@ defmodule Cloak.Compliance.QueryGenerator do
   def ast_to_sql({:group_by, nil, group_list}), do:
     [" GROUP BY ", Enum.map(group_list, &ast_to_sql/1) |> Enum.intersperse(", ")]
   def ast_to_sql({:having, nil, [condition]}), do: [" HAVING ", ast_to_sql(condition)]
-  def ast_to_sql({:=, nil, [lhs, rhs]}), do: [ast_to_sql(lhs), " = ", ast_to_sql(rhs)]
-  def ast_to_sql({:<>, nil, [lhs, rhs]}), do: [ast_to_sql(lhs), " <> ", ast_to_sql(rhs)]
-  def ast_to_sql({:<, nil, [lhs, rhs]}), do: [ast_to_sql(lhs), " < ", ast_to_sql(rhs)]
-  def ast_to_sql({:>, nil, [lhs, rhs]}), do: [ast_to_sql(lhs), " > ", ast_to_sql(rhs)]
+  def ast_to_sql({op, nil, [lhs, rhs]}) when op in @infix_operator, do:
+    [ast_to_sql(lhs), binary_operation_to_string(op), ast_to_sql(rhs)]
   def ast_to_sql({:between, nil, [lhs, low, high]}), do:
     [ast_to_sql(lhs), " BETWEEN ", ast_to_sql(low), " AND ", ast_to_sql(high)]
   def ast_to_sql({:and, nil, [lhs, rhs]}), do: ["(", ast_to_sql(lhs), " AND ", ast_to_sql(rhs), ")"]
@@ -47,9 +47,24 @@ defmodule Cloak.Compliance.QueryGenerator do
   def ast_to_sql({:boolean, value, []}), do: to_string(value)
   def ast_to_sql({:datetime, value, []}), do: [?', value, ?']
   def ast_to_sql({:real, value, []}), do: to_string(value)
+  def ast_to_sql({:like_pattern, value, []}), do: [?', value, ?']
   def ast_to_sql({:star, _, _}), do: "*"
   def ast_to_sql({:empty, _, _}), do: ""
   def ast_to_sql({:sample_users, size, []}), do: [" SAMPLE_USERS ", to_string(size), "%"]
+
+
+  # -------------------------------------------------------------------
+  # ast_to_sql helpers
+  # -------------------------------------------------------------------
+
+  defp binary_operation_to_string(:=), do: " = "
+  defp binary_operation_to_string(:<), do: " < "
+  defp binary_operation_to_string(:>), do: " > "
+  defp binary_operation_to_string(:<>), do: " <> "
+  defp binary_operation_to_string(:like), do: " LIKE "
+  defp binary_operation_to_string(:ilike), do: " ILIKE "
+  defp binary_operation_to_string(:not_like), do: " NOT LIKE "
+  defp binary_operation_to_string(:not_ilike), do: " NOT ILIKE "
 
 
   # -------------------------------------------------------------------
@@ -142,9 +157,15 @@ defmodule Cloak.Compliance.QueryGenerator do
     [
       fn -> generate_between(tables) end,
       fn -> generate_conjunction(tables) end,
-      fn -> generate_disjunction(tables) end
+      fn -> generate_disjunction(tables) end,
+      fn -> generate_like(tables) end
       | Enum.map([:=, :<>, :<, :>], &generate_comparison(tables, &1))
     ] |> random_option()
+
+  defp generate_like(tables) do
+    type = Enum.random([:like, :ilike, :not_like, :not_ilike])
+    {type, nil, [generate_column(tables), generate_value(:like_pattern)]}
+  end
 
   defp generate_disjunction(tables), do:
     {:or, nil, [generate_condition(tables), generate_condition(tables)]}
@@ -170,6 +191,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp generate_value(:real), do: {:real, random_float(), []}
   defp generate_value(:text), do: {:text, random_text(), []}
   defp generate_value(:datetime), do: {:datetime, "1970-01-01", []}
+  defp generate_value(:like_pattern), do: {:like_pattern, random_text([?% | Enum.to_list(?A..?z)]), []}
 
   defp generate_select(tables) do
     {select_list, info} = tables |> generate_select_list() |> Enum.unzip()

@@ -34,6 +34,7 @@ defmodule Cloak.Compliance.FuzzTest do
       error =~ ~r/There is no user id column in the subquery/ -> :subquery_no_uid
       error =~ ~r/Missing where comparison for uid columns/ -> :join_no_uid
       error =~ ~r/Combining conditions with `OR` is not allowed/ -> :or_used
+      error =~ ~r/cannot be used in a.*LIKE expression/ -> :mistyped_like
       true -> raise error
     end
   end
