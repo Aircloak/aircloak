@@ -38,7 +38,8 @@ defmodule Cloak.Compliance.QueryGenerator do
   def ast_to_sql({:>, nil, [lhs, rhs]}), do: [ast_to_sql(lhs), " > ", ast_to_sql(rhs)]
   def ast_to_sql({:between, nil, [lhs, low, high]}), do:
     [ast_to_sql(lhs), " BETWEEN ", ast_to_sql(low), " AND ", ast_to_sql(high)]
-  def ast_to_sql({:and, nil, [lhs, rhs]}), do: [ast_to_sql(lhs), " AND ", ast_to_sql(rhs)]
+  def ast_to_sql({:and, nil, [lhs, rhs]}), do: ["(", ast_to_sql(lhs), " AND ", ast_to_sql(rhs), ")"]
+  def ast_to_sql({:or, nil, [lhs, rhs]}), do: ["(", ast_to_sql(lhs), " OR ", ast_to_sql(rhs), ")"]
   def ast_to_sql({:function, name, args}), do: [name, "(", Enum.map(args, &ast_to_sql/1), ")"]
   def ast_to_sql({:column, {column, table}, []}), do: [?", table, ?", ?., ?", column, ?"]
   def ast_to_sql({:integer, value, []}), do: to_string(value)
@@ -140,9 +141,13 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp generate_condition(tables), do:
     [
       fn -> generate_between(tables) end,
-      fn -> generate_conjunction(tables) end
+      fn -> generate_conjunction(tables) end,
+      fn -> generate_disjunction(tables) end
       | Enum.map([:=, :<>, :<, :>], &generate_comparison(tables, &1))
     ] |> random_option()
+
+  defp generate_disjunction(tables), do:
+    {:or, nil, [generate_condition(tables), generate_condition(tables)]}
 
   defp generate_conjunction(tables), do:
     {:and, nil, [generate_condition(tables), generate_condition(tables)]}
