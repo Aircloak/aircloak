@@ -17,7 +17,7 @@ defmodule Cloak.Compliance.QueryGenerator do
     ast
   end
 
-  @infix_operator ~w(= <> < > like ilike not_like not_ilike)a
+  @infix_operator ~w(= <> < > like ilike not_like not_ilike in not_in)a
 
   @doc "Generates the SQL query string fro the given AST."
   @spec ast_to_sql(ast) :: iolist
@@ -48,6 +48,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   def ast_to_sql({:datetime, value, []}), do: [?', value, ?']
   def ast_to_sql({:real, value, []}), do: to_string(value)
   def ast_to_sql({:like_pattern, value, []}), do: [?', value, ?']
+  def ast_to_sql({:in_set, nil, items}), do: [?(, items |>  Enum.map(&ast_to_sql/1) |> Enum.intersperse(", "), ?)]
   def ast_to_sql({:star, _, _}), do: "*"
   def ast_to_sql({:empty, _, _}), do: ""
   def ast_to_sql({:sample_users, size, []}), do: [" SAMPLE_USERS ", to_string(size), "%"]
@@ -65,7 +66,8 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp binary_operation_to_string(:ilike), do: " ILIKE "
   defp binary_operation_to_string(:not_like), do: " NOT LIKE "
   defp binary_operation_to_string(:not_ilike), do: " NOT ILIKE "
-
+  defp binary_operation_to_string(:in), do: " IN "
+  defp binary_operation_to_string(:not_in), do: " NOT IN "
 
   # -------------------------------------------------------------------
   # Generators
@@ -158,9 +160,19 @@ defmodule Cloak.Compliance.QueryGenerator do
       fn -> generate_between(tables) end,
       fn -> generate_conjunction(tables) end,
       fn -> generate_disjunction(tables) end,
-      fn -> generate_like(tables) end
+      fn -> generate_like(tables) end,
+      fn -> generate_in(tables) end
       | Enum.map([:=, :<>, :<, :>], &generate_comparison(tables, &1))
     ] |> random_option()
+
+  defp generate_in(tables) do
+    {column, table} = random_column(tables)
+    type = Enum.random([:in, :not_in])
+    {type, nil, [column_expression(column, table), generate_in_set(column.type)]}
+  end
+
+  defp generate_in_set(type), do:
+    {:in_set, nil, many1(fn -> generate_value(type) end)}
 
   defp generate_like(tables) do
     type = Enum.random([:like, :ilike, :not_like, :not_ilike])
