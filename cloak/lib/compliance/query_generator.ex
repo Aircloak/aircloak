@@ -150,16 +150,24 @@ defmodule Cloak.Compliance.QueryGenerator do
     {:group_by, nil, generate_group_list(tables)}
 
   defp generate_having(tables), do:
-    {:having, nil, [generate_condition(tables)]}
+    {:having, nil, [generate_simple_condition(tables)]}
 
   defp generate_group_list(tables), do:
     many1(fn -> generate_column(tables) end)
 
+  defp generate_simple_condition(tables), do:
+    [
+      fn -> generate_between(tables) end,
+      fn -> generate_conjunction(fn -> generate_simple_condition(tables) end) end,
+      fn -> generate_disjunction(fn -> generate_simple_condition(tables) end) end
+      | Enum.map([:=, :<>, :<, :>], &generate_comparison(tables, &1))
+    ] |> random_option()
+
   defp generate_condition(tables), do:
     [
       fn -> generate_between(tables) end,
-      fn -> generate_conjunction(tables) end,
-      fn -> generate_disjunction(tables) end,
+      fn -> generate_conjunction(fn -> generate_condition(tables) end) end,
+      fn -> generate_disjunction(fn -> generate_condition(tables) end) end,
       fn -> generate_like(tables) end,
       fn -> generate_in(tables) end
       | Enum.map([:=, :<>, :<, :>], &generate_comparison(tables, &1))
@@ -179,11 +187,11 @@ defmodule Cloak.Compliance.QueryGenerator do
     {type, nil, [generate_column(tables), generate_value(:like_pattern)]}
   end
 
-  defp generate_disjunction(tables), do:
-    {:or, nil, [generate_condition(tables), generate_condition(tables)]}
+  defp generate_disjunction(generator), do:
+    {:or, nil, [generator.(), generator.()]}
 
-  defp generate_conjunction(tables), do:
-    {:and, nil, [generate_condition(tables), generate_condition(tables)]}
+  defp generate_conjunction(generator), do:
+    {:and, nil, [generator.(), generator.()]}
 
   defp generate_comparison(tables, type) do
     fn ->
