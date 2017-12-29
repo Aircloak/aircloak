@@ -105,6 +105,18 @@ defmodule Cloak.Query.Rows do
     target = fetch_value!(row, target, columns)
     compare(value, operator, target)
   end
+  defp matches_having_condition?(row, {:is, column, :null}, columns), do:
+    fetch_value!(row, column, columns) == nil
+  defp matches_having_condition?(row, {:not, {:is, column, :null}}, columns), do:
+    fetch_value!(row, column, columns) != nil
+  defp matches_having_condition?(row, {:in, column, values}, columns) do
+    value = fetch_value!(row, column, columns)
+    value != nil and value in values
+  end
+  defp matches_having_condition?(row, {:not, {:in, column, values}}, columns) do
+    value = fetch_value!(row, column, columns)
+    value != nil and value not in values
+  end
 
   defp compare(nil, _op, _target), do: false
   defp compare(_value, _op, nil), do: false
