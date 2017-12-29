@@ -282,10 +282,10 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     end
   end
 
-  defp extract_column_top_from_conditions(conditions, aggregators), do:
+  defp extract_column_top_from_conditions(conditions, aggregators, groups), do:
     Query.Lenses.conditions()
     |> Query.Lenses.operands()
-    |> Lens.map(conditions, &extract_column_top(&1, aggregators, []))
+    |> Lens.map(conditions, &extract_column_top(&1, aggregators, groups))
 
   defp aggregate_and_project(%Query{db_columns: columns, group_by: groups, having: having} = query, top_level?) do
     having_columns =
@@ -307,7 +307,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       column_tops = Enum.map(columns, &extract_column_top(&1, aggregators, groups))
       properties = project_properties(groups)
       group = aggregators |> project_aggregators() |> Enum.into(%{"_id" => properties})
-      having = extract_column_top_from_conditions(having, aggregators)
+      having = extract_column_top_from_conditions(having, aggregators, groups)
       [%{'$group': group}] ++
       parse_conditions(Map.keys(group), having) ++
       project_columns(column_tops, top_level?) ++
