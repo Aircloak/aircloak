@@ -28,6 +28,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
 
   defp optimize_query(query), do:
     query
+    |> optimize_filters()
     |> optimize_joins()
     |> optimize_columns_from_subqueries()
 
@@ -59,36 +60,57 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     Lens.map(Lenses.joins(), query, &push_down_simple_conditions/1)
 
   defp push_down_simple_conditions(join) do
-    {lhs, conditions} = move_simple_conditions_in_subquery(join.lhs, join.conditions)
-    {rhs, conditions} = move_simple_conditions_in_subquery(join.rhs, conditions)
+    {lhs, conditions} = move_simple_conditions_to_subqueries(join.lhs, join.conditions)
+    {rhs, conditions} = move_simple_conditions_to_subqueries(join.rhs, conditions)
     %{join | lhs: lhs, rhs: rhs, conditions: conditions}
   end
 
-  defp move_simple_conditions_in_subquery(branch, conditions) do
+  defp move_simple_conditions_to_subqueries(branch, conditions) do
+    nullable_columns? = has_outer_join?(branch)
+    simple_condition? = if nullable_columns?,
+      do: &Condition.verb(&1) != :is and condition_from_table?(&1, &2),
+    else: &condition_from_table?(&1, &2)
+
     branch = Lens.map(subqueries(), branch, fn (subquery) ->
-      simple_conditions = Condition.reject(conditions, &not condition_from_table?(&1, subquery.alias))
-      # we move simple conditions into the inner subquery, after expanding the referenced columns
-      ast =
-        Query.Lenses.conditions_terminals()
-        |> Lens.satisfy(&not &1.constant?)
-        |> Lens.map(simple_conditions, &lookup_column_in_query(&1.name, subquery.ast))
-        |> add_conditions_to_query(subquery.ast)
-      %{subquery | ast: ast}
+      simple_conditions = Condition.reject(conditions, &not simple_condition?.(&1, subquery.alias))
+      %{subquery | ast: move_conditions_to_subquery(subquery.ast, simple_conditions)}
     end)
-    conditions =
-      subqueries()
-      |> Lens.to_list(branch)
-      |> Enum.map(& &1.alias)
-      |> Enum.reduce(conditions, fn (name, conditions) ->
-        Condition.reject(conditions, &condition_from_table?(&1, name))
+
+    conditions = filter_conditions_from_subqueries(branch, conditions, fn (name, acc) ->
+        if nullable_columns? do
+          Lenses.conditions()
+          |> Lens.satisfy(&simple_condition?.(&1, name))
+          |> Lens.map(acc, &{:not, {:is, Condition.subject(&1), :null}})
+        else
+          Condition.reject(acc, &simple_condition?.(&1, name))
+        end
       end)
+
     {branch, conditions}
   end
+
+  defp move_conditions_to_subquery(subquery, conditions), do:
+    Query.Lenses.conditions_terminals()
+    |> Lens.satisfy(&not &1.constant?)
+    |> Lens.map(conditions, &lookup_column_in_query(&1.name, subquery))
+    |> add_conditions_to_query(subquery)
+
+  defp filter_conditions_from_subqueries(branch, conditions, filter), do:
+    subqueries()
+    |> Lens.to_list(branch)
+    |> Enum.map(& &1.alias)
+    |> Enum.reduce(conditions, filter)
+
+  defp has_outer_join?({:join, join}), do:
+    join.type in [:left_outer_join, :right_outer_join] or
+    has_outer_join?(join.lhs) or
+    has_outer_join?(join.rhs)
+  defp has_outer_join?(_), do: false
 
   deflensp subqueries() do
     Lens.match(fn
       {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> subqueries()
-      {:subquery, _} -> Lens.at(1)
+      {:subquery, %{ast: _}} -> Lens.at(1)
       _other -> Lens.empty()
     end)
   end
@@ -111,6 +133,12 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   end
 
   defp lookup_column_in_query(name, query) do
-    Enum.fetch!(query.columns, Enum.find_index(query.column_titles, & &1 == name))
+    column = Enum.fetch!(query.columns, Enum.find_index(query.column_titles, & &1 == name))
+    %Expression{column | alias: name}
+  end
+
+  defp optimize_filters(query) do
+    {from, conditions} = move_simple_conditions_to_subqueries(query.from, query.where)
+    %Query{query | from: from, where: conditions}
   end
 end
