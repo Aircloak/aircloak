@@ -162,13 +162,13 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       |> Lens.satisfy(&match?(%Expression{function?: true}, &1))
       |> Lens.map(conditions, fn (column) ->
         index = Enum.find_index(extra_columns, & &1 == column)
-        %Expression{name: "projected_condition_#{index}", type: column.type}
+        %Expression{name: "__condition_#{index}", type: column.type}
       end)
     extra_columns =
       extra_columns
       |> Enum.with_index()
       |> Enum.map(fn ({column, index}) ->
-        %Expression{column | alias: "projected_condition_#{index}"}
+        %Expression{column | alias: "__condition_#{index}"}
       end)
     {conditions, extra_columns}
   end
