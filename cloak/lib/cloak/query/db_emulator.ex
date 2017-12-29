@@ -38,13 +38,14 @@ defmodule Cloak.Query.DbEmulator do
         |> Stream.concat()
         |> DataDecoder.decode(query)
         |> rows_processor.()
+        |> Enum.to_list()
       end)
   end
 
   defp select_rows({:subquery, %{ast: %Query{emulated?: false} = query}}) do
     query
     |> Query.debug_log("Executing sub-query through data source")
-    |> offload_select!(&Enum.to_list/1)
+    |> offload_select!(&Rows.filter(&1, query |> Query.emulated_where() |> Condition.to_function()))
   end
   defp select_rows({:subquery, %{ast: %Query{emulated?: true, from: from} = subquery}}) when not is_binary(from) do
     subquery =

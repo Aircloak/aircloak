@@ -24,7 +24,6 @@ defmodule Cloak.Query.DbEmulator.Selector do
     |> Sorter.order_rows(columns, query.order_by)
     |> offset_rows(query)
     |> limit_rows(query)
-    |> Enum.to_list()
   end
 
   @doc "Joins two streams into one using the specified join type and conditions."
