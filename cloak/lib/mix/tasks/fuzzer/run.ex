@@ -34,17 +34,44 @@ defmodule Mix.Tasks.Fuzzer.Run do
 
   defp do_run(queries) do
     initialize()
-    data_sources = [%{tables: tables} | _ ] = data_sources()
+    data_sources = data_sources()
 
-    results = Enum.reduce(1..queries, %{}, fn(_, results) ->
-      query = tables |> Map.values() |> QueryGenerator.generate_ast() |> QueryGenerator.ast_to_sql() |> to_string()
-      IO.puts(query)
-      result = assert_consistent_or_failing_nicely(data_sources, query)
-      IO.inspect(result)
-      Map.update(results, result, 1, & &1 + 1)
+    results = Enum.map(1..queries, fn(_) ->
+      IO.write(".")
+      run_one_query(data_sources)
+    end)
+    IO.puts("\n")
+
+    with_file("all.txt", fn(file) ->
+      for %{query: query, result: result} <- results do
+        IO.puts(file, [query, "\n\n", to_string(result), "\n\n"])
+      end
     end)
 
-    IO.inspect(results)
+    with_file("stats.txt", fn(file) ->
+      results
+      |> Enum.group_by(fn(%{result: result}) -> result end)
+      |> Enum.map(fn({result, items}) -> {result, Enum.count(items)} end)
+      |> Enum.sort_by(fn({_, count}) -> count end, &Kernel.>/2)
+      |> Enum.each(fn({result, count}) -> IO.puts(file, [to_string(result), ": ", to_string(count)]) end)
+    end)
+
+    with_file("crashes.txt", fn(file) ->
+      for %{query: query, result: :unexpected_error, error: error} <- results do
+        IO.puts(file, [query, "\n\n", Exception.format(:error, error)])
+      end
+    end)
+  end
+
+  defp run_one_query(data_sources = [%{tables: tables} | _ ]) do
+    query = tables |> Map.values() |> QueryGenerator.generate_ast() |> QueryGenerator.ast_to_sql() |> to_string()
+
+    try do
+      result = assert_consistent_or_failing_nicely(data_sources, query)
+      %{query: query, result: result, error: nil}
+    rescue
+      e -> %{query: query, result: :unexpected_error, error: e}
+    end
   end
 
   defp assert_consistent_or_failing_nicely(data_sources, query) do
@@ -75,5 +102,10 @@ defmodule Mix.Tasks.Fuzzer.Run do
     Application.ensure_all_started(:cloak)
     Cloak.SapHanaHelpers.delete_test_schemas()
     Cloak.Test.DB.start_link()
+  end
+
+  defp with_file(name, function) do
+    file = File.open!(name, [:write])
+    function.(file)
   end
 end
