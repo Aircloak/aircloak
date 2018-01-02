@@ -21,9 +21,8 @@ defmodule Mix.Tasks.Fuzzer.Run do
   @impl Mix.Task
   def run(args) do
     with \
-      {options, [], []} <- OptionParser.parse(args, strict: [queries: :keep]),
-      {:ok, queries} <- Keyword.fetch(options, :queries),
-      {queries, ""} <- Integer.parse(queries)
+      {options, [], []} <- OptionParser.parse(args, strict: [queries: :integer]),
+      {:ok, queries} <- Keyword.fetch(options, :queries)
     do
       do_run(queries)
     else
