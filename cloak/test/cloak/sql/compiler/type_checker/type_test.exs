@@ -135,6 +135,12 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
     test "false when no implicit range", do:
       refute %Type{applied_functions: []} |> Type.unclear_implicit_range?()
 
+    test "false when in combination with aggregator", do:
+      refute %Type{applied_functions: ["trunc", "avg", "sum"]} |> Type.unclear_implicit_range?()
+
+    test "false when in combination with cast", do:
+      refute %Type{applied_functions: ["trunc", {:cast, :integer}]} |> Type.unclear_implicit_range?()
+
     test "true when the implicit range operates on an unclear expression", do:
       assert %Type{applied_functions: ["trunc", "+"]} |> Type.unclear_implicit_range?()
 
