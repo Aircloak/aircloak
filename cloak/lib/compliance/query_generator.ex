@@ -19,7 +19,7 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   @infix_operator ~w(= <> < > like ilike not_like not_ilike in not_in)a
 
-  @doc "Generates the SQL query string fro the given AST."
+  @doc "Generates the SQL query string from the given AST."
   @spec ast_to_sql(ast) :: iolist
   def ast_to_sql({:query, _, items}), do: Enum.map(items, &ast_to_sql/1)
   def ast_to_sql({:select, nil, select_list}), do:
