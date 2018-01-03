@@ -80,7 +80,7 @@ if Mix.env == :test do
     end
 
     defp normalize_result({:ok, result}), do: result
-    defp normalize_result({:exit, :timeout}), do: %{result: :unexpected_error, error: :timeout}
+    defp normalize_result({:exit, :timeout}), do: %{result: :timeout, error: nil}
 
     defp print_results(results, options) do
       all_path = Keyword.get(options, :all_out, "/tmp/all.txt")
