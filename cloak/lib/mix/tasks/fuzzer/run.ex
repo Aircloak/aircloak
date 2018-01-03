@@ -11,7 +11,11 @@ defmodule Mix.Tasks.Fuzzer.Run do
       --crashes-out specifies where to store a log with unexpected errors, defaults to /tmp/crashes.txt
   """
 
-  @moduledoc "#{@shortdoc}\n\n#{@usage}"
+  @moduledoc """
+  Run many randomly-generated queries in compliance mode (asserting that results from all data sources are the same).
+
+  #{@usage}
+  """
 
   # Mix.Task behaviour is not in PLT since Mix is not a runtime dep, so we disable the warning
   @dialyzer :no_undefined_callbacks
@@ -20,6 +24,11 @@ defmodule Mix.Tasks.Fuzzer.Run do
   import Cloak.Test.QueryHelpers
 
   use Mix.Task
+
+
+  # -------------------------------------------------------------------
+  # Mix task interface
+  # -------------------------------------------------------------------
 
   @impl Mix.Task
   def run(args) do
@@ -35,6 +44,11 @@ defmodule Mix.Tasks.Fuzzer.Run do
         Mix.raise("Invalid usage")
     end
   end
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp do_run(queries, options) do
     initialize()
