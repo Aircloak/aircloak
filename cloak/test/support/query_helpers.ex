@@ -16,7 +16,11 @@ defmodule Cloak.Test.QueryHelpers do
       run_query = &Cloak.Query.Runner.run_sync("1", &1, query, parameters, views)
 
       [{first_data_source, first_result} | other_results] = data_sources
-      |> Task.async_stream(& run_query.(&1), timeout: timeout, on_timeout: :kill_task)
+      |> Task.async_stream(fn(data_source) ->
+        {us, result} = :timer.tc(fn() -> run_query.(data_source) end)
+        Compliance.Runtime.record(data_source, _ms = div(us, 1000))
+        result
+      end, timeout: timeout, on_timeout: :kill_task)
       |> Stream.zip(data_sources)
       |> Enum.map(fn
         ({{:ok, result}, data_source}) -> {data_source, Map.drop(result, [:execution_time, :features])}

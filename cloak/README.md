@@ -11,6 +11,7 @@
         - [Running a specific compliance test](#running-a-specific-compliance-test)
         - [Running a local docker container](#running-a-local-docker-container)
         - [Running full compliance CI locally](#running-full-compliance-ci-locally)
+        - [Using CI container to unit test other databases](#using-ci-container-to-unit-test-other-databases)
         - [Running fuzz tests](#running-fuzz-tests)
         - [Deploying](#deploying)
     - [Installing database servers](#installing-database-servers)
@@ -174,7 +175,7 @@ By default, only native PostgreSQL adapter is tested locally, while MongoDB and 
 
 In order to have working tests on other drivers, you need to start corresponding database servers locally - see [Installing database servers](#installing-database-servers).
 
-Note that SAP HANA tests can't be executed directly on macOS machines. Instead, you need to start a local CI container with `make ci.compliance.debug`.
+Note that SAP HANA tests can't be executed directly on macOS machines. Instead, you need to start a local CI container with `make ci.compliance`. See [Using CI container to unit test other databases](#using-ci-container-to-unit-test-other-databases) for detailed instructions.
 
 #### Running a specific compliance test
 
@@ -220,6 +221,28 @@ The default number of generated users is 10. You can change this by setting the 
 
 ```
 COMPLIANCE_USERS=50 make ci.compliance
+```
+
+#### Using CI container to unit test other databases
+
+CI container can also be used to unit test other databases, such as SAP HANA, or MongoDb. In this configuration, you need to explicitly set the data sources to PostgreSQL, when starting the CI container.
+
+```
+CLOAK_DATA_SOURCES="postgresql9.4" make ci.compliance
+```
+
+In the container, you now need to manually start local MongoDb instance:
+
+```
+mongod --fork --logpath /var/log/mongodb.log
+```
+
+Now you can invoke the following commands:
+
+```
+mix test --include exclude_in_dev
+mix test --only mongodb
+mix test --only saphana
 ```
 
 #### Running fuzz tests
@@ -309,7 +332,7 @@ Note that the tests submit results to InfluxDB - it will be started with `start_
 - Change the memory allowed to docker to at least 3,5 GB
 - `make sql-server-container` - starts the container
 - `DB_NAME=cloaktest2 make sql-server-database` - creates a database named `cloaktest2`
-- Note that connecting to SQL Server will only work in the CI container (`make ci.compliance.debug`)
+- Note that connecting to SQL Server will only work in the CI container (`make ci.compliance`)
 - The following example section will allow you to add an SQL Server datasource to the appropriate config.json:
 
 ```json

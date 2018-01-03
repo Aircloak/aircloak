@@ -8,6 +8,7 @@ defmodule Aircloak.OxfordComma do
 
   @doc "Joins parts with a comma adding an `and` before the last part"
   @spec join([String.t]) :: String.t
+  def join([]), do: ""
   def join(parts), do:
     join(parts, 0)
 

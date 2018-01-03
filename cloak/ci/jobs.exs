@@ -8,6 +8,7 @@
   ],
 
   test: [
+    "make deps",
     "MIX_ENV=dev mix compile --warnings-as-errors --all-warnings",
     "MIX_ENV=test mix compile --warnings-as-errors --all-warnings",
     "MIX_ENV=prod mix compile --warnings-as-errors --all-warnings",
@@ -21,6 +22,7 @@
   ],
 
   compliance: [
+    "make deps",
     "MIX_ENV=test mix gen.test_data dockerized_ci 100",
     "mix test --only compliance --max-cases 10",
   ]

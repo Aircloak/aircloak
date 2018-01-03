@@ -63,9 +63,12 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   @spec unclear_implicit_range?(t) :: boolean
   def unclear_implicit_range?(type) do
     implicit_range_count = transformation_count(type, & Function.implicit_range?/1)
+    has_forbidden_transformation = has_transformation?(type, fn(function) ->
+      not Function.implicit_range?(function) and not Function.aggregator?(function) and not Function.cast?(function)
+    end)
 
     implicit_range_count > 1 or
-      implicit_range_count == 1 and has_transformation?(type, & not Function.implicit_range?(&1))
+      implicit_range_count == 1 and has_forbidden_transformation
   end
 
   @doc """

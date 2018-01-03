@@ -79,7 +79,7 @@ defmodule Cloak.LoggerTranslator do
   defp filter_reason({_exception, stacktrace}), do:
     {"filtered", filtered_stacktrace(stacktrace)}
 
-  defp filtered_stacktrace(stacktrace), do:
+  defp filtered_stacktrace(stacktrace) when is_list(stacktrace), do:
     stacktrace
     |> Enum.map(fn
       {_mod, _fun, arity, _location} = entry when is_integer(arity) -> entry
@@ -87,4 +87,5 @@ defmodule Cloak.LoggerTranslator do
       _other -> nil
     end)
     |> Enum.filter(&(&1 != nil))
+  defp filtered_stacktrace(_), do: []
 end
