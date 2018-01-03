@@ -9,6 +9,7 @@ defmodule Aircloak.AsciiTable do
   # -------------------------------------------------------------------
 
   @doc "Formats a list of rows as a table. The first row is assumed to be the header"
+  @spec format([[any]]) :: String.t
   def format(all_rows) do
     column_lengths = column_lengths(all_rows)
     [header | rows] = for row <- all_rows, do: format_row(row, column_lengths)

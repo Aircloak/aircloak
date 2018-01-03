@@ -3,6 +3,8 @@ defmodule Compliance.Runtime do
 
   use GenServer
 
+  alias Cloak.DataSource
+
   @graph_width 60
   @min_measurements 50
 
@@ -11,14 +13,17 @@ defmodule Compliance.Runtime do
   # API
   # -------------------------------------------------------------------
 
+  @spec start_link() :: GenServer.on_start
   def start_link(), do:
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
 
   @doc "Record an execution time for a data source"
+  @spec record(DataSource.t, non_neg_integer) :: :ok
   def record(data_source, time), do:
     GenServer.cast(__MODULE__, {:record, data_source_name(data_source), time})
 
   @doc "Prints the time results and halts the server"
+  @spec finalize() :: :ok
   def finalize(), do:
     GenServer.call(__MODULE__, :finalize)
 
