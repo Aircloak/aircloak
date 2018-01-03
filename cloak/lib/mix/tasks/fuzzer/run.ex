@@ -59,26 +59,31 @@ if Mix.env == :test do
     # Internal functions
     # -------------------------------------------------------------------
 
-    defp do_run(queries, options) do
+    defp do_run(no_queries, options) do
       initialize()
-      data_sources = ComplianceCase.data_sources()
+
+      data_sources = [%{tables: tables} | _] = ComplianceCase.data_sources()
       concurrency = Keyword.get(options, :concurrency, System.schedulers_online())
       timeout = Keyword.get(options, :timeout, :timer.seconds(30))
 
-      results = Task.async_stream(1..queries, fn(_) ->
+      queries = Enum.map(1..no_queries, fn(_) -> generate_query(tables) end)
+      results = Task.async_stream(queries, fn(query) ->
         IO.write(".")
-        run_one_query(data_sources)
-      end, max_concurrency: concurrency, timeout: timeout)
-      |> Enum.into([])
+        run_query(query, data_sources)
+      end, max_concurrency: concurrency, timeout: timeout, ordered: true, on_timeout: :kill_task)
+      |> Enum.map(&normalize_result/1)
       IO.puts("\n")
 
-      print_results(results, options)
+      print_results(Enum.zip(queries, results), options)
     end
+
+    defp normalize_result({:ok, result}), do: result
+    defp normalize_result({:exit, :timeout}), do: %{result: :unexpected_error, error: :timeout}
 
     defp print_results(results, options) do
       all_path = Keyword.get(options, :all_out, "/tmp/all.txt")
       with_file(all_path, fn(file) ->
-        for %{query: query, result: result} <- results do
+        for {query, %{result: result}} <- results do
           IO.puts(file, [query, "\n\n", to_string(result), "\n\n"])
         end
       end)
@@ -86,7 +91,7 @@ if Mix.env == :test do
       stats_path = Keyword.get(options, :stats_out, "/tmp/stats.txt")
       with_file(stats_path, fn(file) ->
         results
-        |> Enum.group_by(fn(%{result: result}) -> result end)
+        |> Enum.group_by(fn({_, %{result: result}}) -> result end)
         |> Enum.map(fn({result, items}) -> {result, Enum.count(items)} end)
         |> Enum.sort_by(fn({_, count}) -> count end, &Kernel.>/2)
         |> Enum.each(fn({result, count}) -> IO.puts(file, [to_string(result), ": ", to_string(count)]) end)
@@ -94,22 +99,23 @@ if Mix.env == :test do
 
       crashes_path = Keyword.get(options, :crashes_out, "/tmp/crashes.txt")
       with_file(crashes_path, fn(file) ->
-        for %{query: query, result: :unexpected_error, error: error} <- results do
+        for {query, %{result: :unexpected_error, error: error}} <- results do
           IO.puts(file, [query, "\n\n", Exception.format(:error, error)])
         end
       end)
     end
 
-    defp run_one_query(data_sources = [%{tables: tables} | _]) do
-      query = tables |> Map.values() |> QueryGenerator.generate_ast() |> QueryGenerator.ast_to_sql() |> to_string()
-
+    defp run_query(query, data_sources) do
       try do
         result = assert_consistent_or_failing_nicely(data_sources, query)
-        %{query: query, result: result, error: nil}
+        %{result: result, error: nil}
       rescue
-        e -> %{query: query, result: :unexpected_error, error: e}
+        e -> %{result: :unexpected_error, error: e}
       end
     end
+
+    defp generate_query(tables), do:
+      tables |> Map.values() |> QueryGenerator.generate_ast() |> QueryGenerator.ast_to_sql() |> to_string()
 
     defp assert_consistent_or_failing_nicely(data_sources, query) do
       case assert_query_consistency(query, data_sources: data_sources) do
