@@ -17,10 +17,8 @@ defmodule Cloak.Test.QueryHelpers do
 
       [{first_data_source, first_result} | other_results] = data_sources
       |> Task.async_stream(fn(data_source) ->
-        start_time = System.monotonic_time(:millisecond)
-        result = run_query.(data_source)
-        diff_time = System.monotonic_time(:millisecond) - start_time
-        Compliance.Runtime.record(data_source, diff_time)
+        {us, result} = :timer.tc(fn() -> run_query.(data_source) end)
+        Compliance.Runtime.record(data_source, _ms = div(us, 1000))
         result
       end, timeout: timeout, on_timeout: :kill_task)
       |> Stream.zip(data_sources)
