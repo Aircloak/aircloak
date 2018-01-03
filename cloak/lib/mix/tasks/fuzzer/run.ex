@@ -89,7 +89,7 @@ if Mix.env == :test do
       end)
     end
 
-    defp run_one_query(data_sources = [%{tables: tables} | _ ]) do
+    defp run_one_query(data_sources = [%{tables: tables} | _]) do
       query = tables |> Map.values() |> QueryGenerator.generate_ast() |> QueryGenerator.ast_to_sql() |> to_string()
 
       try do
@@ -107,6 +107,7 @@ if Mix.env == :test do
       end
     end
 
+    @lint {Credo.Check.Refactor.CyclomaticComplexity, false}
     defp error_type(error) do
       cond do
         error =~ ~r/`HAVING` clause can not be applied over column/ -> :illegal_having
