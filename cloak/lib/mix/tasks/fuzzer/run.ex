@@ -3,9 +3,12 @@ defmodule Mix.Tasks.Fuzzer.Run do
   @usage """
     Usage:
 
-      mix fuzzer.run --queries N
+      mix fuzzer.run --queries N [--all-out path] [--stats-out path] [--crashes-out path]
 
-      Use the --queries option to specify how many queries to run.
+      --queries specifies how many queries to run.
+      --all-out speciefies where to store a log with all attempted queries, defaults to /tmp/all.txt
+      --stats-out specifies where to store a log with number of failures by reason, defaults to /tmp/stats.txt
+      --crashes-out specifies where to store a log with unexpected errors, defaults to /tmp/crashes.txt
   """
 
   @moduledoc "#{@shortdoc}\n\n#{@usage}"
@@ -21,10 +24,11 @@ defmodule Mix.Tasks.Fuzzer.Run do
   @impl Mix.Task
   def run(args) do
     with \
-      {options, [], []} <- OptionParser.parse(args, strict: [queries: :integer]),
+      option_spec = [queries: :integer, all_out: :string, stats_out: :string, crashes_out: :string],
+      {options, [], []} <- OptionParser.parse(args, strict: option_spec),
       {:ok, queries} <- Keyword.fetch(options, :queries)
     do
-      do_run(queries)
+      do_run(queries, options)
     else
       _ ->
         IO.puts(@usage)
@@ -32,7 +36,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
     end
   end
 
-  defp do_run(queries) do
+  defp do_run(queries, options) do
     initialize()
     data_sources = data_sources()
 
@@ -42,13 +46,19 @@ defmodule Mix.Tasks.Fuzzer.Run do
     end)
     IO.puts("\n")
 
-    with_file("all.txt", fn(file) ->
+    print_results(results, options)
+  end
+
+  defp print_results(results, options) do
+    all_path = Keyword.get(options, :all_out, "/tmp/all.txt")
+    with_file(all_path, fn(file) ->
       for %{query: query, result: result} <- results do
         IO.puts(file, [query, "\n\n", to_string(result), "\n\n"])
       end
     end)
 
-    with_file("stats.txt", fn(file) ->
+    stats_path = Keyword.get(options, :stats_out, "/tmp/stats.txt")
+    with_file(stats_path, fn(file) ->
       results
       |> Enum.group_by(fn(%{result: result}) -> result end)
       |> Enum.map(fn({result, items}) -> {result, Enum.count(items)} end)
@@ -56,7 +66,8 @@ defmodule Mix.Tasks.Fuzzer.Run do
       |> Enum.each(fn({result, count}) -> IO.puts(file, [to_string(result), ": ", to_string(count)]) end)
     end)
 
-    with_file("crashes.txt", fn(file) ->
+    crashes_path = Keyword.get(options, :crashes_out, "/tmp/crashes.txt")
+    with_file(crashes_path, fn(file) ->
       for %{query: query, result: :unexpected_error, error: error} <- results do
         IO.puts(file, [query, "\n\n", Exception.format(:error, error)])
       end
