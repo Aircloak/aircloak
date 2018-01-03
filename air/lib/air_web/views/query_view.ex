@@ -24,29 +24,6 @@ defmodule AirWeb.QueryView do
     end)
 
     header = List.duplicate(" ", (cleaned_data |> hd() |> length()) -2) ++ ["user count", "occurrences"]
-    all_rows = [header] ++ cleaned_data
-
-    column_lengths = column_lengths(all_rows)
-    for row <- all_rows do
-      column_lengths
-      |> Enum.zip(row)
-      |> Enum.map(fn({cell_length, value}) -> String.pad_trailing(to_string(value), cell_length) end)
-      |> Enum.join(" | ")
-    end
-    |> Enum.join("\n")
+    Aircloak.AsciiTable.format([header] ++ cleaned_data)
   end
-
-  def column_lengths(data), do:
-    Enum.reduce(data, initial_row_lengths(data), fn(row, acc) ->
-      acc
-      |> Enum.zip(row_lengths(row))
-      |> Enum.map(fn({a, b}) -> max(a, b) end)
-    end)
-
-  defp initial_row_lengths(data), do:
-    data
-    |> hd()
-    |> row_lengths()
-
-  defp row_lengths(row), do: Enum.map(row, & String.length/1)
 end
