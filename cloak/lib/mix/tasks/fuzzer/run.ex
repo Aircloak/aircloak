@@ -31,11 +31,19 @@ if Mix.env == :test do
     # Mix task interface
     # -------------------------------------------------------------------
 
+    @option_spec [
+      queries: :integer,
+      all_out: :string,
+      stats_out: :string,
+      crashes_out: :string,
+      concurrency: :integer,
+      timeout: :integer,
+    ]
+
     @impl Mix.Task
     def run(args) do
       with \
-        option_spec = [queries: :integer, all_out: :string, stats_out: :string, crashes_out: :string],
-        {options, [], []} <- OptionParser.parse(args, strict: option_spec),
+        {options, [], []} <- OptionParser.parse(args, strict: @option_spec),
         {:ok, queries} <- Keyword.fetch(options, :queries)
       do
         do_run(queries, options)
@@ -54,11 +62,14 @@ if Mix.env == :test do
     defp do_run(queries, options) do
       initialize()
       data_sources = ComplianceCase.data_sources()
+      concurrency = Keyword.get(options, :concurrency, System.schedulers_online())
+      timeout = Keyword.get(options, :timeout, :timer.seconds(30))
 
-      results = Enum.map(1..queries, fn(_) ->
+      results = Task.async_stream(1..queries, fn(_) ->
         IO.write(".")
         run_one_query(data_sources)
-      end)
+      end, max_concurrency: concurrency, timeout: timeout)
+      |> Enum.into([])
       IO.puts("\n")
 
       print_results(results, options)
