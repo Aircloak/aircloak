@@ -61,14 +61,14 @@ if Mix.env == :test do
     # Internal functions
     # -------------------------------------------------------------------
 
-    defp do_run(no_queries, options) do
+    defp do_run(number_of_queries, options) do
       initialize()
 
       data_sources = [%{tables: tables} | _] = ComplianceCase.data_sources()
       concurrency = Keyword.get(options, :concurrency, System.schedulers_online())
       timeout = Keyword.get(options, :timeout, :timer.seconds(30))
 
-      queries = Enum.map(1..no_queries, fn(_) -> generate_query(tables) end)
+      queries = Enum.map(1..number_of_queries, fn(_) -> generate_query(tables) end)
       results = Task.async_stream(queries, fn(query) ->
         IO.write(".")
         run_query(query, data_sources)
