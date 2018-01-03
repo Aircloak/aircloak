@@ -4,12 +4,14 @@ if Mix.env == :test do
     @usage """
       Usage:
 
-        mix fuzzer.run --queries N [--all-out path] [--stats-out path] [--crashes-out path]
+        mix fuzzer.run --queries N
 
         --queries specifies how many queries to run.
         --all-out speciefies where to store a log with all attempted queries, defaults to /tmp/all.txt
         --stats-out specifies where to store a log with number of failures by reason, defaults to /tmp/stats.txt
         --crashes-out specifies where to store a log with unexpected errors, defaults to /tmp/crashes.txt
+        --concurrency specifies how many concurrent queries to run, defaults to System.schedulers_online()
+        --timeout specifies the timeout per query in miliseconds, defaults to 30000
     """
 
     @moduledoc """
