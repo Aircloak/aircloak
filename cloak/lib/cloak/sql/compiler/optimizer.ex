@@ -71,12 +71,12 @@ defmodule Cloak.Sql.Compiler.Optimizer do
       do: &Condition.verb(&1) != :is and condition_from_table?(&1, &2),
     else: &condition_from_table?(&1, &2)
 
-    branch = Lens.map(subqueries(), branch, fn (subquery) ->
+    branch_with_moved_conditions = Lens.map(subqueries(), branch, fn (subquery) ->
       simple_conditions = Condition.reject(conditions, &not simple_condition?.(&1, subquery.alias))
       %{subquery | ast: move_conditions_into_subquery(subquery.ast, simple_conditions)}
     end)
 
-    conditions = filter_conditions_from_subqueries(branch, conditions, fn (name, acc) ->
+    unmovable_conditions = filter_conditions_from_subqueries(branch, conditions, fn (name, acc) ->
         if nullable_columns? do
           Lenses.conditions()
           |> Lens.satisfy(&simple_condition?.(&1, name))
@@ -86,7 +86,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
         end
       end)
 
-    {branch, conditions}
+    {branch_with_moved_conditions, unmovable_conditions}
   end
 
   defp move_conditions_into_subquery(subquery, conditions), do:
