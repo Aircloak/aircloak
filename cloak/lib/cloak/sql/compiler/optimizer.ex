@@ -60,12 +60,12 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     Lens.map(Lenses.joins(), query, &push_down_simple_conditions/1)
 
   defp push_down_simple_conditions(join) do
-    {lhs, conditions} = move_simple_conditions_to_subqueries(join.lhs, join.conditions)
-    {rhs, conditions} = move_simple_conditions_to_subqueries(join.rhs, conditions)
+    {lhs, conditions} = move_simple_conditions_into_subqueries(join.lhs, join.conditions)
+    {rhs, conditions} = move_simple_conditions_into_subqueries(join.rhs, conditions)
     %{join | lhs: lhs, rhs: rhs, conditions: conditions}
   end
 
-  defp move_simple_conditions_to_subqueries(branch, conditions) do
+  defp move_simple_conditions_into_subqueries(branch, conditions) do
     nullable_columns? = has_outer_join?(branch)
     simple_condition? = if nullable_columns?,
       do: &Condition.verb(&1) != :is and condition_from_table?(&1, &2),
@@ -73,7 +73,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
 
     branch = Lens.map(subqueries(), branch, fn (subquery) ->
       simple_conditions = Condition.reject(conditions, &not simple_condition?.(&1, subquery.alias))
-      %{subquery | ast: move_conditions_to_subquery(subquery.ast, simple_conditions)}
+      %{subquery | ast: move_conditions_into_subquery(subquery.ast, simple_conditions)}
     end)
 
     conditions = filter_conditions_from_subqueries(branch, conditions, fn (name, acc) ->
@@ -89,7 +89,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     {branch, conditions}
   end
 
-  defp move_conditions_to_subquery(subquery, conditions), do:
+  defp move_conditions_into_subquery(subquery, conditions), do:
     Query.Lenses.conditions_terminals()
     |> Lens.satisfy(&not &1.constant?)
     |> Lens.map(conditions, &lookup_column_in_query(&1.name, subquery))
@@ -138,7 +138,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   end
 
   defp optimize_filters(query) do
-    {from, conditions} = move_simple_conditions_to_subqueries(query.from, query.where)
+    {from, conditions} = move_simple_conditions_into_subqueries(query.from, query.where)
     %Query{query | from: from, where: conditions}
   end
 end
