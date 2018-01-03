@@ -120,7 +120,8 @@ defmodule ComplianceCase do
         table_uid2 <- table_uids(), do:
       {table_uid1, table_uid2}
 
-  defp data_sources() do
+  @doc false
+  def data_sources() do
     compliance_file = if System.get_env("CI") == "true", do: "dockerized_ci", else: "compliance"
     data_sources = Compliance.DataSources.all_from_config_initialized(compliance_file)
 

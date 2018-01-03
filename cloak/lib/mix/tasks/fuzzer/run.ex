@@ -53,7 +53,7 @@ if Mix.env == :test do
 
     defp do_run(queries, options) do
       initialize()
-      data_sources = data_sources()
+      data_sources = ComplianceCase.data_sources()
 
       results = Enum.map(1..queries, fn(_) ->
         IO.write(".")
@@ -121,8 +121,6 @@ if Mix.env == :test do
         true -> raise error
       end
     end
-
-    defp data_sources(), do: Compliance.DataSources.all_from_config_initialized("fuzzer")
 
     defp initialize() do
       Application.ensure_all_started(:cloak)

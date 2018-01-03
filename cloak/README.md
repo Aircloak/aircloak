@@ -230,9 +230,8 @@ A task is available to run randomly-generated queries against the current versio
 MIX_ENV=test mix fuzzer.run --queries 10
 ```
 
-Note that the `queries` option specifies how many queries to run. This test runs against the configuration specified in
-`priv/config/fuzzer.json`, currently it uses the same data source set as `compliance`. You can use `mix gen.test_data`
-to create these databases:
+Note that the `queries` option specifies how many queries to run. This test runs against the same configuration as the
+compliance tests.  You can use `mix gen.test_data` to create these databases:
 
 ```
 MIX_ENV=test mix gen.test_data compliance 10
