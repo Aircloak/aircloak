@@ -11,6 +11,8 @@
         - [Running a specific compliance test](#running-a-specific-compliance-test)
         - [Running a local docker container](#running-a-local-docker-container)
         - [Running full compliance CI locally](#running-full-compliance-ci-locally)
+        - [Using CI container to unit test other databases](#using-ci-container-to-unit-test-other-databases)
+        - [Running fuzz tests](#running-fuzz-tests)
         - [Deploying](#deploying)
     - [Installing database servers](#installing-database-servers)
 
@@ -243,6 +245,32 @@ mix test --only mongodb
 mix test --only saphana
 ```
 
+#### Running fuzz tests
+
+A task is available to run randomly-generated queries against the current version of cloak (fuzz testing). To invoke it:
+
+```
+MIX_ENV=test mix fuzzer.run --queries 10
+```
+
+Note that the `queries` option specifies how many queries to run. This test runs against the same configuration as the
+compliance tests.  You can use `mix gen.test_data` to create these databases:
+
+```
+MIX_ENV=test mix gen.test_data compliance 10
+```
+
+Or you can run from [inside the compliance container](#running-full-compliance-ci-locally) to have access to different
+data source types.
+
+The fuzzer creates three output files (by default `/tmp/all.txt`, `/tmp/stats.txt`, and `/tmp/crashes.txt`) where the
+results are stored. The `crashes` file contains all queries that failed in an unexpected way along with the details of
+the error - this should be the most interesting output for regular usage, the other outputs are mostly meant for
+debugging the fuzzer itself. Each query in `crashes` is a potential bug; however, it might also be a bug in the fuzzer.
+The `all` file lists all queries executed and the class of result obtained for each of them - `ok` means the query
+executed successfully, `unexpected_error` means the query failed in a way unknown to the fuzzer, and the other
+categories are different kinds of common errors, like anonymity constraint violations. The `stats` file lists the kinds
+of results from the `all` file along with the number of times each result was obtained.
 
 #### Deploying
 
