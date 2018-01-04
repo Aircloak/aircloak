@@ -185,16 +185,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
     end
 
-    test "a column from a subquery is not clear" do
-      result = compile!("SELECT COUNT(*) FROM (SELECT uid, numeric AS number FROM table) x WHERE number = 3")
-
-      assert [
-        %{base: {"table", "numeric", nil}, expressions: [%{name: alias}, %{name: alias}, %{value: 1}]},
-        %{base: {"table", "numeric", nil}, expressions: [%{name: alias}, %{name: alias}, %{value: 1}, %{name: "uid"}]},
-      ] = result.noise_layers
-      refute is_nil(alias)
-    end
-
     test "a comparison of two columns" do
       result = compile!("SELECT COUNT(*) FROM table WHERE numeric = numeric2")
 
@@ -381,8 +371,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM (SELECT uid, numeric FROM table WHERE numeric <> 2) x WHERE numeric = 1")
 
       assert [
-        static_layer({"table", "numeric", {:<>, :override}}), uid_layer({"table", "numeric", {:<>, :override}}),
         static_layer({"table", "numeric", nil}), uid_layer({"table", "numeric", nil}),
+        static_layer({"table", "numeric", {:<>, :override}}), uid_layer({"table", "numeric", {:<>, :override}}),
       ] = result.noise_layers
     end
 

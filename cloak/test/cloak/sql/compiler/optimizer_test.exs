@@ -27,12 +27,6 @@ defmodule Cloak.Sql.Compiler.Optimizer.Test do
     assert ["uid", "numeric"] = subquery.column_titles
   end
 
-  test "filtered columns selected in subquery are kept" do
-    assert %{from: {:subquery, %{ast: subquery}}} =
-      compile!("SELECT COUNT(*) FROM (SELECT * FROM table) x WHERE string = 'aa'", data_source())
-    assert ["uid", "string"] = subquery.column_titles
-  end
-
   test "unused columns selected in joined subquery are dropped" do
     assert %{from: {:join, %{lhs: {:subquery, %{ast: subquery}}}}} = compile!("""
       SELECT avg(t1.numeric) FROM (SELECT * FROM table) AS t1 JOIN table AS t2 ON t1.uid = t2.uid
@@ -49,6 +43,29 @@ defmodule Cloak.Sql.Compiler.Optimizer.Test do
     """, data_source())
     assert {:and, _, _} = subquery.where
     assert {:comparison, _, :=, _} = conditions
+  end
+
+  test "simple conditions in complex joined subquery are pushed down" do
+    assert %{from: from} = compile!("""
+      SELECT count(*) FROM
+        (SELECT uid, numeric FROM table) AS t1
+        JOIN table AS t2 ON t1.uid = t2.uid
+        LEFT JOIN table AS t3
+        ON t2.uid = t3.uid AND t1.numeric <> 0
+    """, data_source())
+    assert {:join, %{lhs: lhs_branch, conditions: {:comparison, _, :=, _}}} = from
+    assert {:join, %{lhs: {:subquery, %{ast: subquery}}}} = lhs_branch
+    assert {:comparison, %{name: "numeric"}, :<>, %{value: 0}} = subquery.where
+  end
+
+  test "simple conditions in upper query are pushed down" do
+    assert %{from: {:subquery, %{ast: subquery}}, where: where} = compile!("""
+      SELECT count(*) FROM
+        (SELECT uid, numeric FROM table) AS t
+      WHERE numeric = 0
+    """, data_source())
+    assert {:not, {:is, %{name: "uid"}, :null}} = where
+    assert {:comparison, %{name: "numeric"}, :=, %{value: 0}} = subquery.where
   end
 
   defp data_source() do

@@ -820,7 +820,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "only needed columns are fetched from a projected table" do
     assert ["table.uid", "projected_table.a"] ==
-      projected_table_db_column_names(compile!("select a from projected_table", data_source()))
+      projected_table_db_column_names(compile!("select a from projected_table where b = 30", data_source()))
 
     assert ["table.uid", "projected_table.a", "projected_table.b"] ==
       projected_table_db_column_names(compile!("select a, b from projected_table", data_source()))
@@ -833,10 +833,6 @@ defmodule Cloak.Sql.Compiler.Test do
     assert [0, 1, 2] ==
       projected_table_db_column_indices(compile!("select a, b from projected_table", data_source()))
   end
-
-  test "filtered column is retrieved from a projected table", do:
-    assert ["table.uid", "projected_table.a"] ==
-      projected_table_db_column_names(compile!("select count(*) from projected_table where a=1", data_source()))
 
   test "rejecting non-aggregated non-selected ORDER BY column in an aggregated function" do
     assert {:error, "Column `float` from table `table` needs to appear in the `GROUP BY` clause" <> _} =

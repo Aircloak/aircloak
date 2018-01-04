@@ -240,6 +240,12 @@ defmodule Cloak.DataSource.MongoDBTest do
     """, %{rows: [%{occurrences: 1, row: [10]}]}
   end
 
+  test "having clauses over grouped columns in subqueries", context do
+    assert_query context, """
+      SELECT COUNT(*) FROM (SELECT _id, name FROM #{@table}_bills GROUP BY _id, name HAVING length(name) = 2) AS t
+    """, %{rows: [%{occurrences: 1, row: [0]}]}
+  end
+
   test "inner functions in having clauses in subqueries", context do
     assert_query context, """
       SELECT COUNT(*) FROM (SELECT _id, COUNT(name) FROM #{@table}_bills
