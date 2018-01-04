@@ -181,6 +181,7 @@ defmodule Cloak.Sql.FixAlign do
   defp datetime_from_units(x, unit) do
     cond do
       unit == :years and @epoch.year + x < @min_date.year -> @min_date
+      unit == :years and @epoch.year + x > @max_date.year -> @max_date
       true ->
         less_significant = (x - Float.floor(x)) * conversion_factor(unit, lower_unit(unit)) |> round()
         more_significant = x |> Float.floor() |> round()
