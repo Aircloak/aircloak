@@ -97,6 +97,12 @@ defmodule Cloak.Sql.FixAlign.Test do
     assert Cloak.Sql.FixAlign.align_interval({~D[1959-09-14], ~D[1963-12-14]}) == {~D[1955-01-01], ~D[1965-01-01]}
   end
 
+  test "1583-01-01 is the minimum date" do
+    assert {~D[1583-01-01], _} = Cloak.Sql.FixAlign.align_interval({~D[1000-01-01], ~D[3000-01-01]})
+    assert {~N[1583-01-01 00:00:00.000000], _} =
+      Cloak.Sql.FixAlign.align_interval({~N[1000-01-01 00:00:00], ~N[3000-01-01 00:00:00]})
+  end
+
   test "align time intervals" do
     assert FixAlign.align_interval({~T[10:20:30], ~T[10:20:34]}) == {~T[10:20:30.000000], ~T[10:20:35.000000]}
     assert FixAlign.align_interval({~T[10:23:30], ~T[10:30:00]}) == {~T[10:22:30.000000], ~T[10:37:30.000000]}
