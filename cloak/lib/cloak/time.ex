@@ -1,6 +1,11 @@
 defmodule Cloak.Time do
   @moduledoc "Contains utilities for normalizing date/times"
 
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
   def datetime_lower_bound(), do: ~N[1583-01-01 00:00:00.000000]
   def datetime_upper_bound(), do: ~N[9999-12-31 23:59:59.999999]
 
@@ -23,16 +28,15 @@ defmodule Cloak.Time do
         _ -> {:error, :invalid_format}
       end
     end
+    |> enforce_gregorian_bound()
   end
 
   @doc "Parses string as an ISO8601 date with time."
   @spec parse_date(String.t) :: {:ok, Calendar.date} | {:error, atom}
   def parse_date(string) do
-    with {:ok, date} <- Date.from_iso8601(string) do
-      if date.year < datetime_lower_bound().year,
-        do: {:error, :pre_gregorian_calendar},
-        else: {:ok, date}
-    end
+    string
+    |> Date.from_iso8601()
+    |> enforce_gregorian_bound()
   end
 
   @doc "Sets the microsecond precision of the given Time or NaiveDateTime to 6."
@@ -59,4 +63,16 @@ defmodule Cloak.Time do
     value |> :calendar.gregorian_days_to_date() |> Date.from_erl!()
   def from_integer(value, :time), do:
     value |> :calendar.seconds_to_time() |> Time.from_erl!() |> max_precision()
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp enforce_gregorian_bound({:ok, date_or_datetime}) do
+    if date_or_datetime.year < datetime_lower_bound().year,
+      do: {:error, :pre_gregorian_calendar},
+      else: {:ok, date_or_datetime}
+  end
+  defp enforce_gregorian_bound(error), do: error
 end

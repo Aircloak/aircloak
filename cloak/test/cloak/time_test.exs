@@ -17,4 +17,9 @@ defmodule Cloak.Time.Test do
 
   test "parsing a date as a datetime", do:
     assert {:ok, ~N[2000-01-01 00:00:00.000000]} = Cloak.Time.parse_datetime("2000-01-01")
+
+  test "1583-01-01 is the minimum parseable datetime" do
+    assert {:ok, ~N[1583-01-01 00:00:00.000000]} = Cloak.Time.parse_datetime("1583-01-01 00:00:00")
+    assert {:error, :pre_gregorian_calendar} = Cloak.Time.parse_datetime("1582-12-31 23:59:59")
+  end
 end
