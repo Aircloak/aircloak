@@ -20,7 +20,7 @@ defmodule Cloak.Time do
       {:ok, result} -> {:ok, max_precision(result)}
       _ -> case Timex.parse(string, "{ISOdate}") do
         {:ok, result} -> {:ok, max_precision(result)}
-        error -> error
+        _ -> {:error, :invalid_format}
       end
     end
   end
