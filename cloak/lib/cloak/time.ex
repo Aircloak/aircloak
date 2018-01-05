@@ -1,6 +1,9 @@
 defmodule Cloak.Time do
   @moduledoc "Contains utilities for normalizing date/times"
 
+  def datetime_lower_bound(), do: ~N[1583-01-01 00:00:00.000000]
+  def datetime_upper_bound(), do: ~N[9999-12-31 23:59:59.999999]
+
   @doc "Parses string as an ISO8601 time."
   @spec parse_time(String.t) :: {:ok, Calendar.time} | {:error, atom}
   def parse_time(string) do
@@ -24,7 +27,13 @@ defmodule Cloak.Time do
 
   @doc "Parses string as an ISO8601 date with time."
   @spec parse_date(String.t) :: {:ok, Calendar.date} | {:error, atom}
-  def parse_date(string), do: Date.from_iso8601(string)
+  def parse_date(string) do
+    with {:ok, date} <- Date.from_iso8601(string) do
+      if date.year < datetime_lower_bound().year,
+        do: {:error, :pre_gregorian_calendar},
+        else: {:ok, date}
+    end
+  end
 
   @doc "Sets the microsecond precision of the given Time or NaiveDateTime to 6."
   @spec max_precision(x) :: x when x: Time.t | NaiveDateTime.t

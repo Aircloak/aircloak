@@ -5,8 +5,6 @@ defmodule Cloak.Sql.FixAlign do
 
   @default_size_factors [1, 2, 5]
   @epoch ~N[1970-01-01 00:00:00]
-  @min_date ~N[1583-01-01 00:00:00]
-  @max_date ~N[9999-12-31 23:59:59.999999]
   @midnight ~T[00:00:00]
   @just_before_midnight ~T[23:59:59.999999]
   @full_day {@midnight, @just_before_midnight}
@@ -180,8 +178,8 @@ defmodule Cloak.Sql.FixAlign do
   defp datetime_from_units({x, y}, unit), do: {datetime_from_units(x, unit), datetime_from_units(y, unit)}
   defp datetime_from_units(x, unit) do
     cond do
-      unit == :years and @epoch.year + x < @min_date.year -> @min_date
-      unit == :years and @epoch.year + x > @max_date.year -> @max_date
+      unit == :years and @epoch.year + x < Cloak.Time.datetime_lower_bound().year -> Cloak.Time.datetime_lower_bound()
+      unit == :years and @epoch.year + x > Cloak.Time.datetime_upper_bound().year -> Cloak.Time.datetime_upper_bound()
       true ->
         less_significant = (x - Float.floor(x)) * conversion_factor(unit, lower_unit(unit)) |> round()
         more_significant = x |> Float.floor() |> round()
