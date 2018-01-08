@@ -23,20 +23,6 @@ set -eox pipefail
   fi
 
 
-  # air ---------------------------------------------------------------
-
-  if [[ "$TEST" == "air" ]]; then
-
-    pushd air
-    make docs
-    make lint
-    make test
-    make dialyze
-    popd
-
-  fi
-
-
   # bom ---------------------------------------------------------------
 
   if [[ "$TEST" == "aux" ]]; then

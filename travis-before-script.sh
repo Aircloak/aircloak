@@ -61,21 +61,10 @@ set -eox pipefail
 
   # air ---------------------------------------------------------------
 
-  if [[ "$TEST" == "air" || "$TEST" == "aux" ]]; then
+  if [[ "$TEST" == "aux" ]]; then
 
     pushd air
     make deps
-    popd
-
-  fi
-
-  if [[ "$TEST" == "air" ]]; then
-
-    pushd air
-
-    mix compile --warnings-as-errors
-    MIX_ENV=test mix compile --warnings-as-errors
-    MIX_ENV=prod mix compile --warnings-as-errors
     popd
 
   fi
