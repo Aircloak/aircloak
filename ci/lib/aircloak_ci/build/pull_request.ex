@@ -108,6 +108,7 @@ defmodule AircloakCI.Build.PullRequest do
       "continuous-integration/travis-ci/pr",
       "continuous-integration/aircloak/compliance",
       "continuous-integration/aircloak/cloak_test",
+      "continuous-integration/aircloak/air_test",
     ]
 
 

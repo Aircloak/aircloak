@@ -6,56 +6,7 @@ set -eo pipefail
 ROOT_DIR=$(cd $(dirname ${BASH_SOURCE[0]})/../.. && pwd)
 cd $ROOT_DIR
 
-. docker/docker_helper.sh
-
-function build_image {
-  pushd ./cloak && make odbc_drivers && popd
-
-  common/docker/elixir/build-image.sh
-  build_aircloak_image ci_cloak cloak/ci/dockerfile cloak/ci/.dockerignore
-}
-
-function is_image_built {
-  if [ "$(docker images -q aircloak/ci_cloak:$(git_head_image_tag))" == "" ]; then
-    echo "no"
-  else
-    echo "yes"
-  fi
-}
-
-function start_container {
-  container_name=$1
-
-  mkdir -p tmp/ci/cloak
-
-  if [ ! -f tmp/ci/cloak/.bash_history ]; then
-    touch tmp/ci/cloak/.bash_history
-  fi
-
-  mounted_from_root="VERSION common/elixir"
-  mounted_from_cloak="config datagen include lib perftest priv rel test mix.exs mix.lock Makefile"
-  mounted_from_cloak_cache="deps _build .bash_history"
-
-  local mounts="-v $(pwd)/tmp/ci/cloak/.bash_history:/root/.bash_history"
-
-  for path in $mounted_from_root; do
-    mounts="$mounts -v $(pwd)/$path:/aircloak/$path"
-  done
-
-  for path in $mounted_from_cloak; do
-    mounts="$mounts -v $(pwd)/cloak/$path:/aircloak/cloak/$path"
-  done
-
-  for path in $mounted_from_cloak_cache; do
-    mounts="$mounts -v $(pwd)/tmp/ci/cloak/$path:/aircloak/cloak/$path"
-  done
-
-  docker network create --driver bridge $container_name > /dev/null
-
-  docker run -d --name $container_name --network=$container_name $mounts $DOCKER_ARGS \
-    -e DEFAULT_SAP_HANA_SCHEMA="TEST_SCHEMA_$container_name" \
-    aircloak/ci_cloak:$(git_head_image_tag) sleep 3600 > /dev/null
-}
+. docker/ci_helper.sh cloak
 
 function prepare_for_test {
   container_name=$1
@@ -74,74 +25,50 @@ function prepare_for_compliance {
   done
 }
 
-function ensure_container {
-  local container_name=$1
-  shift
-
-  if ! named_container_running $container_name ; then
-    if [ ! -z "$(docker ps -a --filter=name=$container_name | grep -w $container_name)" ]; then
-      echo "removing dead container $container_name"
-      docker rm $container_name > /dev/null
-    fi
-
-    echo "starting container $container_name"
-    docker run --detach --name $container_name $@ > /dev/null
-  fi
-}
-
-function run_in_container {
-  cloak_container=$1
-  shift || true
-
-  cmd=". ~/.asdf/asdf.sh && $@"
-  docker exec $DOCKER_EXEC_ARGS -i \
-    -e DEFAULT_SAP_HANA_SCHEMA="TEST_SCHEMA_$cloak_container" \
-    -e CLOAK_DATA_SOURCES="$CLOAK_DATA_SOURCES" \
-    $cloak_container \
-    /bin/bash -c "$cmd"
-}
-
 function ensure_database_containers {
-  ensure_container postgres9.4 postgres:9.4
-  ensure_container mongo3.0 mongo:3.0
-  ensure_container mongo3.2 mongo:3.2
-  ensure_container mongo3.4 mongo:3.4
-  ensure_container mysql5.7 -e MYSQL_ALLOW_EMPTY_PASSWORD=true mysql:5.7.19 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+  ensure_supporting_container postgres9.4 postgres:9.4
+  ensure_supporting_container mongo3.0 mongo:3.0
+  ensure_supporting_container mongo3.2 mongo:3.2
+  ensure_supporting_container mongo3.4 mongo:3.4
+  ensure_supporting_container mysql5.7 -e MYSQL_ALLOW_EMPTY_PASSWORD=true mysql:5.7.19 \
+    --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
 
-  ensure_container sqlserver2017 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' \
+  ensure_supporting_container sqlserver2017 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' \
     microsoft/mssql-server-linux:2017-latest
 }
 
-command=$1
-shift || true
+mount_to_aircloak VERSION common/elixir
+mount_to_component config datagen include lib perftest priv rel test mix.exs mix.lock Makefile
+mount_cached_component deps _build .bash_history
 
-case "$command" in
+case "$1" in
   build_image)
-    build_image
-    ;;
-
-  is_image_built)
-    is_image_built
-    ;;
-
-  start_container)
-    start_container $@
+    pushd ./cloak && make odbc_drivers && popd
+    default_handle "$@"
     ;;
 
   prepare_for_test)
-    prepare_for_test $@
+    prepare_for_test $2
     ;;
 
   prepare_for_compliance)
-    prepare_for_compliance $@
+    prepare_for_compliance $2
+    ;;
+
+  start_container)
+    container_name="$2"
+    push_docker_arg "-e DEFAULT_SAP_HANA_SCHEMA=\"TEST_SCHEMA_$container_name\""
+    default_handle "$@"
     ;;
 
   run_in_container)
-    run_in_container $@
+    container_name="$2"
+    push_docker_arg "-e DEFAULT_SAP_HANA_SCHEMA=\"TEST_SCHEMA_$container_name\""
+    push_docker_arg "-e CLOAK_DATA_SOURCES=\"$CLOAK_DATA_SOURCES\""
+    default_handle "$@"
     ;;
 
   *)
-    echo "invalid args: $command $@"
-    exit 1
+    default_handle "$@"
     ;;
 esac

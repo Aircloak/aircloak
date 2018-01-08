@@ -51,28 +51,6 @@ matrix:
       - odbcinst -i -s -h -f cloak/priv/odbc/odbc.ini
       - ./travis-asdf-setup.sh
       - npm i -g yarn@0.16.1
-    - env: TEST="air"
-      cache:
-        directories:
-        - air/deps
-        - air/_build
-        - air/assets/node_modules
-        - air/docs/node_modules
-        - air/docs/_book
-        - $HOME/.asdf
-        - $HOME/.yarn-cache
-      addons:
-        # Note: this is the minimum version we require for Air. If you're changing this version, make sure
-        # that the installation guide is updated, and all the customers are notified about the new requirements.
-        postgresql: "9.4"
-        apt:
-          packages:
-          - jq
-        hosts:
-        - travis.aircloak.local
-      before_install:
-      - ./travis-asdf-setup.sh
-      - npm i -g yarn@0.16.1
     - env: TEST="aux"
       cache:
         directories:
