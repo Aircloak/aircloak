@@ -126,7 +126,6 @@ if Mix.env == :test do
       end
     end
 
-    @lint {Credo.Check.Refactor.CyclomaticComplexity, false}
     defp error_type(error) do
       cond do
         error =~ ~r/`HAVING` clause can not be applied over column/ -> :illegal_having

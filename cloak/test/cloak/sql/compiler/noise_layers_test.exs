@@ -718,6 +718,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
   end
 
+  test "[Issue #2217] noise layers for expressions on user_id don't alias the user_id", do:
+    assert %{noise_layers: [%{expressions: [%{alias: nil} | _]} | _]} =
+      compile!("SELECT COUNT(*) FROM table WHERE uid BETWEEN 0 AND 10")
+
   describe "noise layer base data" do
     test "insensitive to being aliased" do
       %{noise_layers: [%{base: base}, %{base: base}]} = compile!("""

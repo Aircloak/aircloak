@@ -89,7 +89,7 @@ defmodule Cloak.Mixfile do
   defp ignored_credo_checks(:test), do:
     ["ModuleDoc", "DuplicatedCode" | ignored_credo_checks(:dev)]
   defp ignored_credo_checks(_), do:
-    ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting", "FunctionArity"]
+    ["CyclomaticComplexity", "NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting", "FunctionArity"]
 
   defp otp_version(), do:
     [:code.root_dir(), "releases", :erlang.system_info(:otp_release), "OTP_VERSION"]

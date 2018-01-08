@@ -1,3 +1,13 @@
+## Version 18.2.0
+
+### Enhancements
+
+- Optimization of emulated queries by pushing conditions into bottom sub-queries.
+
+### Changes
+
+### Bugfixes
+
 ## Version 18.1.0
 
 ### Enhancements
