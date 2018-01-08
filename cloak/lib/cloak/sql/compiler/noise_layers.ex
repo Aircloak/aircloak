@@ -187,11 +187,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp set_noise_layer_expression_alias(expression, all_expressions, selected_columns) do
     expression = Expression.unalias(expression)
-    case Enum.find(selected_columns, &expression == Expression.unalias(&1)) do
-      nil ->
+    existing_expression = Enum.find(selected_columns, &expression == Expression.unalias(&1))
+
+    case {expression, existing_expression} do
+      {%{user_id?: true}, _} -> expression
+      {_, nil} ->
         index = Enum.find_index(all_expressions, &expression == &1)
         %Expression{expression | alias: "#{@noise_layer_alias_fix_part}#{index}"}
-      expression -> expression
+      {_, _} -> existing_expression
     end
   end
 

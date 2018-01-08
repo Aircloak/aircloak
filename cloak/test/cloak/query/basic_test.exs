@@ -1075,6 +1075,17 @@ defmodule Cloak.Query.BasicTest do
     )
   end
 
+  test "[Issue #2217] condition on user_id" do
+    :ok = Cloak.Test.DB.create_table("numeric_user_ids", "user_id integer", user_id: "user_id", add_user_id: false)
+    :ok = Cloak.Test.DB.add_users_data("numeric_user_ids", _columns = [], Enum.map(0..9, &[&1]))
+    :ok = Cloak.Test.DB.add_users_data("numeric_user_ids", _columns = [], Enum.map(10..19, &[&1]))
+
+    assert_query(
+      "select count(*) from numeric_user_ids where user_id between 0 and 10",
+      %{rows: [%{row: [10]}]}
+    )
+  end
+
   describe "cast boolean" do
     setup do
       :ok = insert_rows(_user_ids = 1..10, "heights", ["height", "name", "male"], [1, "true", true])

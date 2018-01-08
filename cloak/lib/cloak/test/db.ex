@@ -46,7 +46,7 @@ defmodule Cloak.Test.DB do
     table =
       DataSource.Table.new(
         to_string(table_id),
-        (if Keyword.get(opts, :add_user_id, true), do: "user_id", else: nil),
+        (if Keyword.get(opts, :add_user_id, true), do: "user_id", else: Keyword.get(opts, :user_id)),
         [db_name: db_name] ++ Keyword.take(opts, [:user_id, :decoders, :projection])
       )
 
