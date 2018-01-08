@@ -11,7 +11,7 @@ test = fn
   :dev ->
     sequence.([
       "MIX_ENV=dev mix compile --warnings-as-errors --all-warnings",
-      parallel.(["make docs", "make eslint", "make flow", "mix lint", "MIX_HOME=_build mix dialyze --no-compile"])
+      parallel.(["make docs", "make eslint", "make flow", "mix lint", "MIX_HOME=_build make dialyze"])
     ])
 
   :prod ->
@@ -25,7 +25,7 @@ end
       parallel.([
         "MIX_ENV=test mix compile",
         "MIX_ENV=prod mix compile",
-        "MIX_HOME=_build mix dialyze --no-analyse --no-compile"
+        "MIX_HOME=_build mix dialyze --no-analyse"
       ])
     ]),
 
