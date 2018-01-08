@@ -70,13 +70,17 @@ defmodule Air.TestSocketHelper do
     :ok
   end
 
-  @doc "Awaits a validate_views request with the given query_id and responds with the given result."
-  @spec respond_to_validate_views!(pid, [map], pos_integer) :: :ok
-  def respond_to_validate_views!(socket, results, timeout \\ :timer.seconds(1)) do
+  @doc """
+  Awaits a validate_views request and responds with the result of the given result function, called with the list of
+  view names being validated.
+  """
+  @spec respond_to_validate_views!(pid, ([String.t] -> [map]), pos_integer) :: :ok
+  def respond_to_validate_views!(socket, result_fun, timeout \\ :timer.seconds(1)) do
     {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
-    %{request_id: request_id, event: "validate_views", payload: _} = request
+    %{request_id: request_id, event: "validate_views", payload: %{views: views}} = request
+
     {:ok, _ref} = TestSocket.push(socket, "main", "cloak_response", %{
-      request_id: request_id, status: :ok, result: results})
+      request_id: request_id, status: :ok, result: result_fun.(Map.keys(views))})
     :ok
   end
 
