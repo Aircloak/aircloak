@@ -26,7 +26,7 @@ defmodule Cloak.Query.DbEmulator do
   end
 
   @doc "Prepares an emulated query for execution."
-  @spec compile(Query.t) :: [Enumerable.t]
+  @spec compile(Query.t) :: Query.t
   def compile(%Query{emulated?: true} = query), do:
     Compiler.Helpers.apply_top_down(query, &compile_emulated_joins/1)
 

@@ -27,9 +27,9 @@ defmodule Cloak.Sql.Query do
 
   @type having_clause ::
       nil
-    | comparison
-    | {:not, comparison}
-    | {:and | :or, comparison, comparison}
+    | condition
+    | {:not, condition}
+    | {:and | :or, condition, condition}
 
   @type view_map :: %{view_name :: String.t => view_sql :: String.t}
 
