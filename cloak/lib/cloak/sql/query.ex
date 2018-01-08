@@ -19,17 +19,11 @@ defmodule Cloak.Sql.Query do
     | {:is, Expression.t, :null}
     | {:in, Expression.t, [Expression.t]}
 
-  @type where_clause ::
+  @type filter_clause ::
       nil
     | condition
     | {:not, condition}
     | {:and | :or, condition, condition}
-
-  @type having_clause ::
-      nil
-    | comparison
-    | {:not, comparison}
-    | {:and | :or, comparison, comparison}
 
   @type view_map :: %{view_name :: String.t => view_sql :: String.t}
 
@@ -60,7 +54,7 @@ defmodule Cloak.Sql.Query do
     # where the latter of these two is contained in the row-splitters.
     implicit_count?: boolean,
     group_by: [Function.t],
-    where: where_clause,
+    where: filter_clause,
     order_by: [{Expression.t, :asc | :desc}],
     show: :tables | :columns | nil,
     selected_tables: [DataSource.Table.t],
@@ -69,7 +63,7 @@ defmodule Cloak.Sql.Query do
     subquery?: boolean,
     limit: pos_integer | nil,
     offset: non_neg_integer,
-    having: having_clause,
+    having: filter_clause,
     distinct?: boolean,
     sample_rate: nil | non_neg_integer,
     emulated?: boolean,
@@ -299,12 +293,12 @@ defmodule Cloak.Sql.Query do
   def resolve_db_columns(%__MODULE__{} = query), do: query
 
   @doc "Returns the where clauses that can be applied by the data source."
-  @spec offloaded_where(t) :: where_clause
+  @spec offloaded_where(t) :: filter_clause
   def offloaded_where(query), do:
     Condition.reject(query.where, &emulated_condition?(&1, query))
 
   @doc "Returns the where clauses that must be applied by inside the cloak."
-  @spec emulated_where(t) :: where_clause
+  @spec emulated_where(t) :: filter_clause
   def emulated_where(query), do:
     Condition.reject(query.where, &not emulated_condition?(&1, query))
 
