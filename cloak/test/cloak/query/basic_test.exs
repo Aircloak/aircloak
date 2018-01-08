@@ -1066,6 +1066,21 @@ defmodule Cloak.Query.BasicTest do
     """, %{rows: [%{row: [:*, 8, 154, 176, 163, 167]}]}
   end
 
+  test "aggregation of low-count values with multiple groups" do
+    :ok = insert_rows(_user_ids = 1..3, "heights", ["height", "male"], [180, false])
+    :ok = insert_rows(_user_ids = 4..5, "heights", ["height", "male"], [190, nil])
+    :ok = insert_rows(_user_ids = 3..5, "heights", ["height", "male"], [170, false])
+    :ok = insert_rows(_user_ids = 6..7, "heights", ["height", "male"], [150, true])
+    :ok = insert_rows(_user_ids = 8..9, "heights", ["height", "male"], [150, false])
+    :ok = insert_rows(_user_ids = 10..12, "heights", ["height", "male"], [150, true])
+    :ok = insert_rows(_user_ids = 13..15, "heights", ["height", "male"], [170, false])
+    :ok = insert_rows(_user_ids = 15..17, "heights", ["height", "male"], [160, false])
+    :ok = insert_rows(_user_ids = 17..19, "heights", ["height", "male"], [170, true])
+
+    assert_query "select male, height, count(*) from heights group by 1, 2 order by 1, 2",
+      %{rows: [%{row: [false, 170, 6]}, %{row: [false, :*, 8]}, %{row: [true, 150, 5]}, %{row: [:*, :*, 5]}]}
+  end
+
   test "distinct in subquery with group by" do
     :ok = insert_rows(_user_ids = 1..20, "heights", ["height", "male"], [160, true])
     :ok = insert_rows(_user_ids = 11..30, "heights", ["height", "male"], [170, false])
