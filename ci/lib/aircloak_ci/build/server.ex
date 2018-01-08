@@ -116,9 +116,14 @@ defmodule AircloakCI.Build.Server do
     {:ok, new_job} = Task.start_link(task_fun)
     Logger.info("job #{name} for `#{LocalProject.name(state.project)}` started")
 
-    case Keyword.fetch(opts, :report_status) do
-      :error -> :ok
-      {:ok, {repo, sha}} -> AircloakCI.Build.Reporter.report_status(repo, sha, name, %{}, :pending, "build started")
+    case {state.source_type, Keyword.fetch(opts, :report_status)} do
+      {:pull_request, {:ok, {repo, sha}}} ->
+        # Only report status for PR builds, to avoid possible race conditions, where a branch build could overwrite
+        # the status previously reported by the PR build. We don't care about branch build statuses, since an error
+        # will be properly reported.
+        AircloakCI.Build.Reporter.report_status(repo, sha, name, %{}, :pending, "build started")
+
+      _ -> :ok
     end
 
     put_in(state.jobs[name], new_job)
