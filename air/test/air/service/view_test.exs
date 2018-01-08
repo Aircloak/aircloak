@@ -172,6 +172,22 @@ defmodule Air.Service.ViewTest do
     assert Enum.sort(Enum.map([m1, m2], &(&1.user_id))) == Enum.sort([context.u1.id, context.u2.id])
   end
 
+  test "[Issue #1948] multiple users have views with the same name", context do
+    _same_name_view = insert_view(context.ds2, context.u2, context.v3.name)
+
+    socket = data_source_socket(context.ds2)
+    View.subscribe_to(:revalidated_views)
+    View.revalidate_all_views(context.ds2)
+
+    TestSocketHelper.respond_to_validate_views!(socket, &revalidation_success/1)
+    TestSocketHelper.respond_to_validate_views!(socket, &revalidation_success/1)
+
+    user1_id = context.u1.id
+    assert_receive {:revalidated_views, %{user_id: ^user1_id}}
+    user2_id = context.u2.id
+    assert_receive {:revalidated_views, %{user_id: ^user2_id}}
+  end
+
   defp insert_view(data_source, user, name), do:
     %Air.Schemas.View{}
     |> Ecto.Changeset.cast(
