@@ -21,10 +21,10 @@ defmodule AircloakCI.Build.Component do
   @doc "Starts a job on the desired component."
   @spec start_job(LocalProject.t, String.t, job, Job.run_queued_opts) :: :ok | {:error, String.t}
   def start_job(project, component, job, opts \\ []) do
-    with :ok <- build_image(project, component), do:
-      Job.run_queued(job, project, fn -> run_job(project, component, job) end,
-        Keyword.merge([log_name: log_name(component, job)], opts)
-      )
+    with :ok <- build_image(project, component) do
+      opts = Keyword.merge([log_name: "#{component}_#{job}"], opts)
+      Job.run_queued(job, project, fn -> run_job(project, component, job, opts) end, opts)
+    end
   end
 
 
@@ -44,8 +44,8 @@ defmodule AircloakCI.Build.Component do
     end
   end
 
-  defp run_job(project, component, job), do:
-    with_container(project, component, job,
+  defp run_job(project, component, job, opts), do:
+    with_container(project, component, opts,
       fn(container) ->
         with :ok <- prepare_for(container, job) do
           commands = LocalProject.commands(project, component, job)
@@ -135,8 +135,8 @@ defmodule AircloakCI.Build.Component do
     {result, to_string(Enum.intersperse(outputs, "\n"))}
   end
 
-  defp with_container(project, component, job, fun), do:
-    Container.with(script(project, component), LocalProject.log_file(project, log_name(component, job)), fun)
+  defp with_container(project, component, opts, fun), do:
+    Container.with(script(project, component), LocalProject.log_file(project, Keyword.fetch!(opts, :log_name)), fun)
 
   defp prepare_for(container, job) do
     if job in [:test, :compliance] do
@@ -159,6 +159,4 @@ defmodule AircloakCI.Build.Component do
 
     path
   end
-
-  defp log_name(component, job), do: "#{component}_#{job}"
 end
