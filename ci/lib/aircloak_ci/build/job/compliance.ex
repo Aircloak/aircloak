@@ -9,8 +9,6 @@
   # API functions
   # -------------------------------------------------------------------
 
-  def job_name(), do: "compliance"
-
   @doc "Invokes the compliance job."
   @spec run(Build.Server.state) :: Build.Server.state
   def run(build_state), do:
@@ -20,6 +18,8 @@
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp job_name(), do: "compliance"
 
   defp maybe_start_test(%{source: pr} = build_state) do
     case check_start_preconditions(build_state) do
@@ -53,7 +53,7 @@
     Build.Server.start_job(
       build_state,
       job_name(),
-      fn -> Component.start_job(project, "cloak", :compliance, report_result: build_server) end,
+      fn -> Component.start_job(project, "cloak", :compliance, report_result: build_server, log_name: "compliance") end,
       report_status: {pr.repo, pr.sha}
     )
 end

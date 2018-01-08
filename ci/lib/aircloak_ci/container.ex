@@ -184,7 +184,7 @@ defmodule AircloakCI.Container do
 
   defp invoke_script(script, cmd, log_file, opts), do:
     # Using CmdRunner here because of its logging and timeout capabilities.
-    CmdRunner.run("#{script} #{cmd}", [logger: CmdRunner.file_logger(log_file)] ++ opts)
+    CmdRunner.run("#{script} #{cmd}", Keyword.merge([logger: CmdRunner.file_logger(log_file)], opts))
 
 
   # -------------------------------------------------------------------
