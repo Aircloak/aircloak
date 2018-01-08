@@ -38,7 +38,7 @@ function ensure_database_containers {
 }
 
 mount_to_aircloak VERSION common/elixir
-mount_to_component config datagen include lib perftest priv rel test mix.exs mix.lock Makefile
+mount_to_component config datagen include lib perftest priv rel test mix.exs mix.lock Makefile check_warnings.sh
 mount_cached_component deps _build .bash_history
 
 case "$1" in

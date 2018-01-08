@@ -4,7 +4,7 @@ sequence = fn(commands) -> {:sequence, commands} end
 test = fn
   :test ->
     sequence.([
-      "MIX_ENV=test mix compile --warnings-as-errors --all-warnings",
+      "MIX_ENV=test ./check_warnings.sh",
       parallel.(["MIX_ENV=test mix lint",
         sequence.([
           "mongod --fork --logpath /var/log/mongodb.log",
@@ -17,12 +17,12 @@ test = fn
 
   :dev ->
     sequence.([
-      "MIX_ENV=dev mix compile --warnings-as-errors --all-warnings",
+      "MIX_ENV=dev ./check_warnings.sh",
       parallel.(["mix docs", "mix lint", "MIX_HOME=_build make dialyze"])
     ])
 
   :prod ->
-    sequence.(["MIX_ENV=prod mix compile --warnings-as-errors --all-warnings"])
+    sequence.(["MIX_ENV=prod ./check_warnings.sh"])
 end
 
 # jobs map
