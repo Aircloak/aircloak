@@ -99,14 +99,20 @@ defmodule Cloak.Sql.FixAlign.Test do
 
   test "1583-01-01 is the minimum date" do
     assert {~D[1583-01-01], _} = Cloak.Sql.FixAlign.align_interval({~D[1000-01-01], ~D[3000-01-01]})
+    assert {~D[1583-01-01], _} = Cloak.Sql.FixAlign.align_interval({~D[1583-01-01], ~D[1583-01-12]})
     assert {~N[1583-01-01 00:00:00.000000], _} =
       Cloak.Sql.FixAlign.align_interval({~N[1000-01-01 00:00:00], ~N[3000-01-01 00:00:00]})
+    assert {~N[1583-01-01 00:00:00.000000], _} =
+      Cloak.Sql.FixAlign.align_interval({~N[1583-01-01 00:00:00], ~N[1583-01-12 00:00:00]})
   end
 
   test "9999-12-31 is the maximum date" do
     assert {_, ~D[9999-12-31]} = Cloak.Sql.FixAlign.align_interval({~D[2000-01-01], ~D[9950-01-01]})
+    assert {_, ~D[9999-12-31]} = Cloak.Sql.FixAlign.align_interval({~D[9999-12-20], ~D[9999-12-31]})
     assert {_, ~N[9999-12-31 23:59:59.999999]} =
       Cloak.Sql.FixAlign.align_interval({~N[2000-01-01 00:00:00], ~N[9950-01-01 00:00:00]})
+    assert {_, ~N[9999-12-31 23:59:59.999999]} =
+      Cloak.Sql.FixAlign.align_interval({~N[9999-12-31 20:00:00], ~N[9999-12-31 23:00:00]})
   end
 
   test "align time intervals" do

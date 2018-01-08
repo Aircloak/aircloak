@@ -183,7 +183,18 @@ defmodule Cloak.Sql.FixAlign do
       true ->
         less_significant = (x - Float.floor(x)) * conversion_factor(unit, lower_unit(unit)) |> round()
         more_significant = x |> Float.floor() |> round()
-        Timex.shift(@epoch, [{unit, more_significant}, {lower_unit(unit), less_significant}])
+
+        @epoch
+        |> Timex.shift([{unit, more_significant}, {lower_unit(unit), less_significant}])
+        |> apply_datetime_bounds()
+    end
+  end
+
+  defp apply_datetime_bounds(datetime) do
+    cond do
+      datetime.year < Cloak.Time.datetime_lower_bound().year -> Cloak.Time.datetime_lower_bound()
+      datetime.year > Cloak.Time.datetime_upper_bound().year -> Cloak.Time.datetime_upper_bound()
+      true -> datetime
     end
   end
 
