@@ -35,19 +35,28 @@
     if LocalProject.forced?(build_state.project, job_name()) do
       :ok
     else
-      with \
-        {_status, true} <- {"waiting for Travis builds to succeed", travis_succeeded?(build_state.source)},
-        {_status, true} <- {"waiting for approval", build_state.source.approved?}
-      do
-        :ok
-      else
-        {error, false} -> {:error, error}
-      end
+      with :ok <- verify_required_statuses(build_state), do: verify_approval(build_state)
     end
   end
 
-  defp travis_succeeded?(pr), do:
-    pr.status_checks["continuous-integration/travis-ci/pr"][:status] == :success
+  defp verify_required_statuses(build_state) do
+    case \
+      [
+        "continuous-integration/aircloak/air_test",
+        "continuous-integration/aircloak/cloak_test",
+        "continuous-integration/travis-ci/pr",
+      ]
+      |> Stream.map(&{&1, build_state.source.status_checks[&1][:status]})
+      |> Stream.reject(&match?({_, :success}, &1))
+      |> Enum.map(fn({status, _}) -> String.replace(status, ~r[^continuous\-integration\/], "") end)
+    do
+      [] -> :ok
+      [pending_status | _] -> {:error, "waiting for #{pending_status} to succeed"}
+    end
+  end
+
+  defp verify_approval(%{source: %{approved?: true}}), do: :ok
+  defp verify_approval(%{source: %{approved?: false}}), do: {:error, "waiting for approval"}
 
   defp start_test(build_server, %{source: pr, project: project} = build_state), do:
     Build.Server.start_job(
