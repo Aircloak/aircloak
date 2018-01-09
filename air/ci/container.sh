@@ -11,7 +11,12 @@ cd $ROOT_DIR
 function prepare_for_test {
   container_name=$1
   postgres_container_name="${container_name}_postgres"
-  docker run --detach --name "$postgres_container_name" postgres:9.4 > /dev/null
+
+  docker run \
+    --detach --name "$postgres_container_name" \
+    --tmpfs=/ramdisk:rw,size=1G -e PGDATA=/ramdisk \
+    postgres:9.4 > /dev/null
+
   docker network connect --alias postgres9.4 $container_name $postgres_container_name
 }
 
