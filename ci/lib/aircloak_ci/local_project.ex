@@ -103,6 +103,11 @@ defmodule AircloakCI.LocalProject do
     File.mkdir_p!(project.build_folder)
   end
 
+  @doc "Removes the entire build folder of the project."
+  @spec remove(t) :: :ok
+  def remove(%{type: :local}), do: :ok
+  def remove(project), do: File.rm_rf(project.build_folder)
+
   @doc "Returns the name of the build which uses this project."
   @spec name(t) :: String.t
   def name(project), do:

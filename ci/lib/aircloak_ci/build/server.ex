@@ -198,12 +198,13 @@ defmodule AircloakCI.Build.Server do
   def handle_cast({:force_build, job_name}, state), do:
     {:noreply, restart(state, before_start: &LocalProject.mark_forced(&1.project, job_name))}
 
-
   @impl GenServer
   def handle_info({:repo_data, repo_data}, state) do
     case build_source(state.callback_mod, state.source_id, repo_data) do
       nil ->
         Logger.info("shutting down build server `#{__MODULE__}` for `#{LocalProject.name(state.project)}`")
+        state = terminate_all_jobs(state)
+        LocalProject.remove(state.project)
         {:stop, :shutdown, state}
       build_source ->
         update_source(state, build_source)
