@@ -98,6 +98,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "allows string manipulation functions on clear columns in positive conditions", do:
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE ltrim(string, 'abc') = 'foo'")
 
+    test "forbids string manipulation functions on unclear columns in top-level select", do:
+      assert {:error, "String manipulation functions cannot be combined with other transformations."} =
+        compile("SELECT btrim(string || string, 'abc') FROM table")
+
     test "forbids string manipulation functions on unclear columns in positive conditions", do:
       assert {:error, "String manipulation functions cannot be combined with other transformations."} =
         compile("SELECT COUNT(*) FROM table WHERE btrim(string || string, 'abc') = 'foo'")
