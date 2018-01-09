@@ -81,15 +81,10 @@ defmodule Cloak.Mixfile do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases(env) when env in [:dev, :test] do
     [
-      "lint": ["credo --strict --ignore #{Enum.join(ignored_credo_checks(Mix.env), ",")}"]
+      "lint": ["credo --strict"]
     ]
   end
   defp aliases(_), do: []
-
-  defp ignored_credo_checks(:test), do:
-    ["ModuleDoc", "DuplicatedCode" | ignored_credo_checks(:dev)]
-  defp ignored_credo_checks(_), do:
-    ["CyclomaticComplexity", "NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting", "FunctionArity"]
 
   defp otp_version(), do:
     [:code.root_dir(), "releases", :erlang.system_info(:otp_release), "OTP_VERSION"]
