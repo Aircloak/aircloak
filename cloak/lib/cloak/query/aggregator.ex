@@ -187,6 +187,11 @@ defmodule Cloak.Query.Aggregator do
       |> Rows.group_expressions()
       |> length()
       |> Range.new(1)
+      # We first partition the buckets into low-count and high-count buckets.
+      # Then, starting from right to left, we censor each bucket value sequentially and merge corresponding buckets.
+      # We then split the merged buckets again. We keep the merged buckets that pass the low-count filter and
+      # repeat the process for the next column and the new set of low-count buckets.
+      # When we run out of bucket values, we drop the final low-count bucket, if any.
       |> Enum.reduce(Enum.partition(rows, &low_users_count?/1), fn (index, {low_count_rows, high_count_rows}) ->
         {low_count_grouped_rows, high_count_grouped_rows} =
           low_count_rows

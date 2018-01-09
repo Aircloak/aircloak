@@ -209,9 +209,10 @@ Some buckets are considered too small to report at all. These are ones that meet
 number is selected using the mechanism described in [Noise Layers](#noise_layers) so the configured SD is
 only the base SD per layer - the total SD will depend on the exact query.
 
-Data from all buckets discarded this way is aggregated into a single bucket and reported as a whole. Non-aggregated
-values in this bucket are suppressed (replaced with a `*` in the output). This bucket is also checked for low-count
-using the same procedure, and if it is found too small no data is reported.
+The buckets that fail the low-count filter are re-aggregated, by sequentially censoring each bucket value from right to left,
+and then re-checked for low-counts. When all values are censored, a single bucket will remain containing all low-count
+buckets that couldn't be grouped into a larger bucket that passes the low-count filter.
+This bucket is also checked for low-count using the same procedure, and if it is found too small no data is reported.
 
 ## Fixed alignment
 
