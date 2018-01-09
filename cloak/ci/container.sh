@@ -11,7 +11,12 @@ cd $ROOT_DIR
 function prepare_for_test {
   container_name=$1
   postgres_container_name="${container_name}_postgres"
-  docker run --detach --name "$postgres_container_name" postgres:9.4 > /dev/null
+
+  docker run \
+    --detach --name "$postgres_container_name" \
+    --tmpfs=/ramdisk:rw,size=1G -e PGDATA=/ramdisk \
+    postgres:9.4 > /dev/null
+
   docker network connect --alias postgres9.4 $container_name $postgres_container_name
 }
 
@@ -26,11 +31,12 @@ function prepare_for_compliance {
 }
 
 function ensure_database_containers {
-  ensure_supporting_container postgres9.4 postgres:9.4
-  ensure_supporting_container mongo3.0 mongo:3.0
-  ensure_supporting_container mongo3.2 mongo:3.2
-  ensure_supporting_container mongo3.4 mongo:3.4
-  ensure_supporting_container mysql5.7 -e MYSQL_ALLOW_EMPTY_PASSWORD=true mysql:5.7.19 \
+  ensure_supporting_container postgres9.4 --tmpfs=/ramdisk:rw,size=2G -e PGDATA=/ramdisk postgres:9.4
+  ensure_supporting_container mongo3.0 --tmpfs=/data/db:rw,size=4G mongo:3.0
+  ensure_supporting_container mongo3.2 --tmpfs=/data/db:rw,size=4G mongo:3.2
+  ensure_supporting_container mongo3.4 --tmpfs=/data/db:rw,size=4G mongo:3.4
+  ensure_supporting_container mysql5.7 --tmpfs=/var/lib/mysql:rw,size=2G \
+    -e MYSQL_ALLOW_EMPTY_PASSWORD=true mysql:5.7.19 \
     --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
 
   ensure_supporting_container sqlserver2017 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' \
@@ -58,6 +64,7 @@ case "$1" in
   start_container)
     container_name="$2"
     push_docker_arg "-e DEFAULT_SAP_HANA_SCHEMA=\"TEST_SCHEMA_$container_name\""
+    push_docker_arg "--tmpfs=/data/db:rw,size=1G"
     default_handle "$@"
     ;;
 

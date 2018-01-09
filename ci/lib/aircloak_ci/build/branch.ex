@@ -4,7 +4,6 @@ defmodule AircloakCI.Build.Branch do
   use AircloakCI.Build.Server, restart: :temporary
   require Logger
   alias AircloakCI.{Github, Build, LocalProject}
-  alias AircloakCI.Build.Job
 
 
   # -------------------------------------------------------------------
@@ -84,9 +83,9 @@ defmodule AircloakCI.Build.Branch do
     {:via, Registry, {AircloakCI.Build.Registry, {:branch, branch.name}}}
 
   defp handle_compile_finished(state), do:
-    # Note: we'll perform pending transfers and start the CI even if the compilation failed. If the resulting errors
-    # occur again, they will be properly reported to the author.
-    state |> maybe_perform_transfers() |> maybe_start_ci()
+    # Note: we'll perform pending transfers even if the compilation failed. If the resulting errors occur again, they
+    # will be properly reported to the author.
+    maybe_perform_transfers(state)
 
   defp maybe_perform_transfers(state) do
     if state.prepared? and not Enum.any?(["compile", "test"], &Build.Server.running?(state, &1)) do
@@ -104,9 +103,6 @@ defmodule AircloakCI.Build.Branch do
     LocalProject.initialize_from(target_project, state.project)
     GenServer.reply(from, :ok)
   end
-
-  defp maybe_start_ci(state), do:
-    Job.Test.run(state)
 
 
   # -------------------------------------------------------------------
