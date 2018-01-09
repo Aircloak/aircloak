@@ -45,6 +45,9 @@ defmodule AircloakCI.Build.Component do
   end
 
   defp run_job(project, component, job, opts), do:
+    AircloakCI.Queue.exec(:job, fn -> do_run_job(project, component, job, opts) end)
+
+  defp do_run_job(project, component, job, opts), do:
     with_container(project, component, opts,
       fn(container) ->
         with :ok <- prepare_for(container, job) do
