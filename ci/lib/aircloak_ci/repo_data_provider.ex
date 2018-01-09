@@ -28,7 +28,8 @@ defmodule AircloakCI.RepoDataProvider do
     Supervisor.start_link(
       [
         Aircloak.ChildSpec.registry(:duplicate, __MODULE__.Subscribers),
-        __MODULE__.Poller
+        __MODULE__.Poller,
+        AircloakCI.RepoDataLogger,
       ],
       strategy: :one_for_one, name: __MODULE__
     )
