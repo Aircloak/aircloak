@@ -59,9 +59,11 @@ defmodule AircloakCI.Container do
   @spec with(String.t, String.t, ((t) -> :ok | {:error, String.t})) :: :ok | {:error, String.t}
   def with(script, log_file, fun) do
     with {:ok, container} <- start(script, log_file) do
+      {:ok, cleaner_pid} = start_cleaner(container.name)
       try do
         fun.(container)
       after
+        send(cleaner_pid, {:stop, self()})
         stop(container.name)
       end
     end
@@ -163,6 +165,16 @@ defmodule AircloakCI.Container do
   defp connected(network), do:
     os_cmd("docker network inspect #{network} --format '{{range $key, $value := .Containers}} {{println $key}} {{end}}'")
 
+  defp start_cleaner(container_name) do
+    owner = self()
+    Task.start_link(fn ->
+      Process.flag(:trap_exit, true)
+      receive do
+        {:EXIT, ^owner, _reason} -> stop(container_name)
+        {:stop, ^owner} -> :ok
+      end
+    end)
+  end
 
   # -------------------------------------------------------------------
   # Execution of commands
