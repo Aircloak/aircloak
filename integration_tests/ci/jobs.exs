@@ -8,6 +8,7 @@ sequence = fn(commands) -> {:sequence, commands} end
 
   test:
     sequence.([
+      "MIX_ENV=test mix await_databases",
       parallel.([
         ~s/MIX_ENV=test mix cloak.create_db dockerized_integration/,
         ~s/MIX_ENV=test mix do run --no-start -e Air.Repo.configure, ecto.create -r Air.Repo, ecto.migrate -r Air.Repo/,
