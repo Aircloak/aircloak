@@ -214,6 +214,17 @@ and then re-checked for low-counts. When all values are censored, a single bucke
 buckets that couldn't be grouped into a larger bucket that passes the low-count filter.
 This bucket is also checked for low-count using the same procedure, and if it is found too small no data is reported.
 
+An example output would be something like this:
+
+|   x   | y | count |
+|:-----:|:-:|:-----:|
+| true  | 1 | 100   |
+| true  | * | 50    |
+| false | 2 | 50    |
+| false | 4 | 75    |
+| false | * | 15    |
+| *     | * | 2     |
+
 ## Fixed alignment
 
 Whenever the query includes an inequality on some columns we require that there
