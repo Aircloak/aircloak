@@ -34,6 +34,14 @@ defmodule Compliance.DataSources do
     |> Enum.map(&Task.async(fn -> setup_datasource(&1, data) end))
     |> Enum.each(&Task.await(&1, :timer.minutes(5)))
 
+  @doc "Creates the database described by the given data source."
+  @spec create(DataSource.t) :: :ok
+  def create(data_source) do
+    handler = handler_for_data_source(data_source)
+    conn = handler.setup(data_source)
+    handler.terminate(conn)
+  end
+
   @doc "Takes a rawling data source definition and expands it with table definitions"
   @spec complete_data_source_definitions([DataSource.t]) :: [DataSource.t]
   def complete_data_source_definitions(data_sources), do:
