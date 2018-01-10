@@ -137,22 +137,22 @@ defmodule Cloak.Query.DBEmulatorTest do
 
     test "where inequality" do
       assert_query """
-        select count(*) from
+        select v from
           (select user_id, left(value, 1) as v from #{@prefix}emulated
           where date >= '2015-01-01' and date < '2016-01-01'
           group by user_id, value) as t
-      """, %{rows: [%{occurrences: 1, row: [20]}]}
+      """, %{rows: [%{occurrences: 20, row: ["x"]}]}
     end
 
     test "nested where inequality" do
       assert_query """
-        select count(*) from
+        select v from
           (select user_id, v from
             (select user_id, left(value, 1) as v from #{@prefix}emulated
             where date >= '2015-01-01' and date < '2016-01-01'
             group by user_id, value) as t
           group by user_id, v) as foo
-      """, %{rows: [%{occurrences: 1, row: [20]}]}
+      """, %{rows: [%{occurrences: 20, row: ["x"]}]}
     end
 
     test "having equality" do
