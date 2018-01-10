@@ -6,7 +6,7 @@ defmodule Central.Repo.Migrations.AddRecordOfReceivedRpcs do
       add :id, :string, primary_key: true
       add :result, :binary
 
-      timestamps
+      timestamps()
     end
   end
 end

@@ -4,7 +4,7 @@ defmodule Central.Repo.Migrations.CreateCustomerSchema do
   def change do
     create table(:customers) do
       add :name, :string
-      timestamps
+      timestamps()
     end
 
     create unique_index(:customers, [:name])
