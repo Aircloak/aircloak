@@ -25,6 +25,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     each_subquery(query, &verify_not_equals_is_clear/1)
     each_subquery(query, &verify_lhs_of_not_like_is_clear/1)
     each_subquery(query, &verify_string_based_conditions_are_clear/1)
+    each_subquery(query, &verify_string_based_expressions_are_clear/1)
     each_subquery(query, &verify_ranges_are_clear/1)
     query
   end
@@ -63,7 +64,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   def verify_allowed_usage_of_math(query), do:
     Query.Lenses.analyst_provided_expressions()
     |> Lens.to_list(query)
-    |> List.flatten()
     |> Enum.each(fn(expression) ->
       type = Type.establish_type(expression, query)
       if restricted_transformations_count(type) > @max_allowed_restricted_functions do
@@ -111,12 +111,18 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       lhs_type = Type.establish_type(lhs, query)
       rhs_type = Type.establish_type(rhs, query)
 
-      if Type.unclear_string_manipulation?(lhs_type), do:
-        raise CompilationError, message: "String manipulation functions cannot be combined with other transformations."
-
       if Type.string_manipulation?(lhs_type) and not Type.clear_column?(rhs_type) and not rhs_type.constant?, do:
         raise CompilationError, message: "Results of string manipulation functions can only be compared to constants."
     end)
+
+  defp verify_string_based_expressions_are_clear(query), do:
+    Query.Lenses.analyst_provided_expressions()
+    |> Lens.to_list(query)
+    |> Enum.each(fn(expression) ->
+      if expression |> Type.establish_type(query) |> Type.unclear_string_manipulation?(), do:
+        raise CompilationError, message: "String manipulation functions cannot be combined with other transformations."
+    end)
+
 
   @allowed_like_functions []
   defp verify_lhs_of_not_like_is_clear(query), do:
