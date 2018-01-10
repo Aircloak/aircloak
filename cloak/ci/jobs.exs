@@ -8,8 +8,7 @@ test = fn
       parallel.(["MIX_ENV=test mix lint",
         sequence.([
           "mongod --fork --logpath /var/log/mongodb.log",
-          # hacky solution for recreating the test database
-          "CLOAK_DATA_SOURCES=postgresql9.4 MIX_ENV=test mix gen.test_data dockerized_ci 1",
+          "CLOAK_DATA_SOURCES=postgresql9.4 mix cloak.create_db dockerized_ci",
           "CLOAK_DATA_SOURCES=postgresql9.4 mix test --include exclude_in_dev",
         ])
       ])
