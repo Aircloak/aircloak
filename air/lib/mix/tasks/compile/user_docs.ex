@@ -9,14 +9,16 @@ defmodule Mix.Tasks.Compile.UserDocs do
 
   @impl Mix.Task
   def run(_args) do
-    update_version_numbers_in_guide()
-    if stale?() do
-      conditionally_compile_offline_docs()
-      cmd!("yarn", ~w(run gitbook build))
-      File.mkdir_p!("priv/static")
-      File.rm_rf!("priv/static/docs")
-      File.cp_r!("docs/_book", "priv/static/docs")
-      Mix.Shell.IO.info("Compiled user docs")
+    unless System.get_env("INTEGRATION_TESTS") == "true" do
+      update_version_numbers_in_guide()
+      if stale?() do
+        conditionally_compile_offline_docs()
+        cmd!("yarn", ~w(run gitbook build))
+        File.mkdir_p!("priv/static")
+        File.rm_rf!("priv/static/docs")
+        File.cp_r!("docs/_book", "priv/static/docs")
+        Mix.Shell.IO.info("Compiled user docs")
+      end
     end
   end
 
