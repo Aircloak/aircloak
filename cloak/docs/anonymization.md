@@ -214,16 +214,69 @@ and then re-checked for low-counts. When all values are censored, a single bucke
 buckets that couldn't be grouped into a larger bucket that passes the low-count filter.
 This bucket is also checked for low-count using the same procedure, and if it is found too small no data is reported.
 
-An example output would be something like this:
+For example, for the following input:
 
 |   x   | y | count |
 |:-----:|:-:|:-----:|
-| true  | 1 | 100   |
-| true  | * | 50    |
-| false | 2 | 50    |
-| false | 4 | 75    |
-| false | * | 15    |
-| *     | * | 2     |
+| a     | 1 | 10    |
+| a     | 2 | 2     |
+| a     | 3 | 3     |
+| b     | 2 | 7     |
+| b     | 4 | 8     |
+| b     | 1 | 4     |
+| b     | 7 | 3     |
+| b     | 9 | 4     |
+| b     | 5 | 4     |
+| c     | 1 | 3     |
+| d     | 2 | 3     |
+
+First, the low-count buckets would be extracted:
+
+|   x   | y | count |
+|:-----:|:-:|:-----:|
+| a     | 2 | 2     |
+| a     | 3 | 3     |
+| b     | 1 | 4     |
+| b     | 7 | 3     |
+| b     | 9 | 4     |
+| b     | 5 | 4     |
+| c     | 1 | 3     |
+| d     | 1 | 3     |
+
+Then, the first column from right (`y`) is censored (using `*`), and the low-count buckets are re-aggregated:
+
+|   x   | y | count |
+|:-----:|:-:|:-----:|
+| a     | * | 5     |
+| b     | * | 15    |
+| c     | * | 3     |
+| d     | * | 3     |
+
+The resulting bucket list is low-count filtered again and the high-count buckets are put in list of output buckets.
+The remaining low-count buckets are:
+
+|   x   | y | count |
+|:-----:|:-:|:-----:|
+| c     | * | 3     |
+| d     | * | 3     |
+
+The next column in the list (`x`) is censored and the buckets are re-aggregated, resulting in:
+
+|   x   | y | count |
+|:-----:|:-:|:-----:|
+|   *   | * | 6     |
+
+Which passes the low-count filter and is put in the final output list of buckets, which is:
+
+|   x   | y | count |
+|:-----:|:-:|:-----:|
+| a     | 1 | 10    |
+| a     | * | 5     |
+| b     | 2 | 7     |
+| b     | 4 | 8     |
+| b     | * | 15    |
+| *     | * | 6     |
+
 
 ## Fixed alignment
 
