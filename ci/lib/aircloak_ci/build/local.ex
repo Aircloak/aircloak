@@ -89,6 +89,8 @@ defmodule AircloakCI.Build.Local do
   defp run_job("cloak_compile", state), do: Job.Compile.run(state)
   defp run_job("air_compile", state), do: Job.Compile.run(state)
   defp run_job("air_test", state), do: Job.Test.run(state)
+  defp run_job("integration_tests_compile", state), do: Job.Compile.run(state)
+  defp run_job("integration_tests_test", state), do: Job.Test.run(state)
   defp run_job("compliance", state), do: Job.Compliance.run(state)
 
 
