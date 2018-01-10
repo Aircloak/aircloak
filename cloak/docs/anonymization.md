@@ -209,9 +209,74 @@ Some buckets are considered too small to report at all. These are ones that meet
 number is selected using the mechanism described in [Noise Layers](#noise_layers) so the configured SD is
 only the base SD per layer - the total SD will depend on the exact query.
 
-Data from all buckets discarded this way is aggregated into a single bucket and reported as a whole. Non-aggregated
-values in this bucket are suppressed (replaced with a `*` in the output). This bucket is also checked for low-count
-using the same procedure, and if it is found too small no data is reported.
+The buckets that fail the low-count filter are re-aggregated, by sequentially censoring each bucket value from right to left,
+and then re-checked for low-counts. When all values are censored, a single bucket will remain containing all low-count
+buckets that couldn't be grouped into a larger bucket that passes the low-count filter.
+This bucket is also checked for low-count using the same procedure, and if it is found too small no data is reported.
+
+For example, for the following input:
+
+|   x   | y | count |
+|:-----:|:-:|:-----:|
+| a     | 1 | 10    |
+| a     | 2 | 2     |
+| a     | 3 | 3     |
+| b     | 2 | 7     |
+| b     | 4 | 8     |
+| b     | 1 | 4     |
+| b     | 7 | 3     |
+| b     | 9 | 4     |
+| b     | 5 | 4     |
+| c     | 1 | 3     |
+| d     | 2 | 3     |
+
+First, the low-count buckets would be extracted:
+
+|   x   | y | count |
+|:-----:|:-:|:-----:|
+| a     | 2 | 2     |
+| a     | 3 | 3     |
+| b     | 1 | 4     |
+| b     | 7 | 3     |
+| b     | 9 | 4     |
+| b     | 5 | 4     |
+| c     | 1 | 3     |
+| d     | 1 | 3     |
+
+Then, the first column from right (`y`) is censored (using `*`), and the low-count buckets are re-aggregated:
+
+|   x   | y | count |
+|:-----:|:-:|:-----:|
+| a     | * | 5     |
+| b     | * | 15    |
+| c     | * | 3     |
+| d     | * | 3     |
+
+The resulting bucket list is low-count filtered again and the high-count buckets are put in list of output buckets.
+The remaining low-count buckets are:
+
+|   x   | y | count |
+|:-----:|:-:|:-----:|
+| c     | * | 3     |
+| d     | * | 3     |
+
+The next column in the list (`x`) is censored and the buckets are re-aggregated, resulting in:
+
+|   x   | y | count |
+|:-----:|:-:|:-----:|
+|   *   | * | 6     |
+
+Which passes the low-count filter and is put in the final output list of buckets, which is:
+
+|   x   | y | count |
+|:-----:|:-:|:-----:|
+| a     | 1 | 10    |
+| a     | * | 5     |
+| b     | 2 | 7     |
+| b     | 4 | 8     |
+| b     | * | 15    |
+| *     | * | 6     |
+
 
 ## Fixed alignment
 

@@ -6,6 +6,8 @@
 
 ### Changes
 
+- Low count buckets are grouped sequentially per each subset of columns starting from right to left.
+
 ### Bugfixes
 
 ## Version 18.1.0
