@@ -16,9 +16,10 @@ defmodule Cloak.Sql.Compiler.Normalization do
   * Removes redundant occurences of "%" from LIKE patterns (for example "%%" -> "%")
   * Normalizes sequences of "%" and "_" in like patterns so that the "%" always precedes a sequence of "_"
   * Normalizes `IN (single_value)` to `= single_value`
+  * Expands `BUCKET` calls into equivalent mathematical expressions
 
-  These are useful for noise layers - we want to generate the same layer for semantically identical conditions,
-  otherwise we have to fall back to probing.
+  These are useful (among others) for noise layers - we want to generate the same layer for semantically identical
+  conditions, otherwise we have to fall back to probing.
   """
   @spec normalize(Query.t) :: Query.t
   def normalize(query), do:
