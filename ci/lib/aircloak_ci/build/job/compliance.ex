@@ -44,6 +44,7 @@
       [
         "continuous-integration/aircloak/air_test",
         "continuous-integration/aircloak/cloak_test",
+        "continuous-integration/aircloak/integration_tests_test",
         "continuous-integration/travis-ci/pr",
       ]
       |> Stream.map(&{&1, build_state.source.status_checks[&1][:status]})
