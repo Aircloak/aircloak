@@ -5,7 +5,7 @@
       files: %{
         included:
           case Mix.env do
-            :dev -> ["lib/", "src/", "web/", "apps/"]
+            :dev -> ["lib/", "dev/", "src/", "web/", "apps/"]
             :test -> ["test/"]
           end,
         excluded: []
