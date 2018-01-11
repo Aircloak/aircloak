@@ -13,6 +13,8 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
   @impl SpecialQueries
   def run_query(conn, query) do
     cond do
+      query =~ ~r/^begin$/i ->
+        RanchServer.query_result(conn, command: :begin)
       query =~ ~r/^set /i ->
         RanchServer.query_result(conn, command: :set)
       cursor = close_cursor_query?(query) ->
