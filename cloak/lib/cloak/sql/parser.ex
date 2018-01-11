@@ -171,15 +171,15 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp additive_expression() do
-    infix_expression([keyword(:+), keyword(:-)], multiplicative_expression())
+    left_associative_expression([keyword(:+), keyword(:-)], multiplicative_expression())
   end
 
   defp multiplicative_expression() do
-    infix_expression([keyword(:*), keyword(:/), keyword(:%)], exponentiation_expression())
+    left_associative_expression([keyword(:*), keyword(:/), keyword(:%)], exponentiation_expression())
   end
 
   def exponentiation_expression() do
-    infix_expression([keyword(:^)], unary_expression())
+    left_associative_expression([keyword(:^)], unary_expression())
   end
 
   def unary_expression() do
@@ -196,7 +196,7 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp concat_expression() do
-    infix_expression([keyword(:||)], infix_cast_expression())
+    left_associative_expression([keyword(:||)], infix_cast_expression())
     |> map(&normalize_concat/1)
   end
 
@@ -445,17 +445,19 @@ defmodule Cloak.Sql.Parser do
    )
   end
 
-  defp infix_expression(operators, left_parser, right_parser \\ nil) do
+  defp left_associative_expression(operators, term_parser, normalizer \\ &infix_to_function/3) do
     pipe(
       [
-        left_parser,
-        many(sequence([choice(operators), right_parser || left_parser])),
+        term_parser,
+        many(sequence([choice(operators), term_parser])),
       ],
-      fn[first, rest] -> Enum.reduce(rest, first,
-        fn([operator, right], left) -> {:function, to_string(operator), [left, right]} end)
+      fn[first, rest] -> Enum.reduce(rest, first, fn([operator, right], left) ->
+        normalizer.(operator, left, right) end)
       end
     )
   end
+
+  defp infix_to_function(operator, left, right), do: {:function, to_string(operator), [left, right]}
 
   defp field_or_parameter(), do:
     either(qualified_identifier(), parameter())
