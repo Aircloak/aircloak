@@ -70,8 +70,7 @@ defmodule Cloak.Mixfile do
   defp common_extra_applications(), do:
     [:logger, :runtime_tools, :odbc, :crypto, :ssl, :public_key]
 
-  defp elixirc_paths(:test), do: ["lib", "dev", "test/support"]
-  defp elixirc_paths(:dev), do: ["lib", "dev"]
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
   # Aliases are shortcut or tasks specific to the current project.
