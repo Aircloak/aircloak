@@ -43,7 +43,13 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
 
     params = Messages.convert_params(bind_data.params, bind_data.format_codes, param_types)
 
-    prepared_statement = %{prepared_statement | params: params, result_codes: bind_data.result_codes}
+    result_codes =
+      case bind_data.result_codes do
+        [] -> [:text]
+        [_|_] = result_codes -> result_codes
+      end
+
+    prepared_statement = %{prepared_statement | params: params, result_codes: result_codes}
 
     protocol
     |> put_in([:portals, bind_data.portal], prepared_statement)
