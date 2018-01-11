@@ -48,6 +48,14 @@ defmodule IntegrationTest.PostgrexTest do
       assert param_select(context.conn, nil, unquote(type)) == nil
   end
 
+  test "anonymized text value returns a *", context do
+    assert Enum.uniq(Postgrex.query!(context.conn, "select user_id from users", []).rows) == [["*"]]
+  end
+
+  test "anonymized integer value returns nil", context do
+    assert Enum.uniq(Postgrex.query!(context.conn, "select cast(user_id as integer) from users", []).rows) == [[nil]]
+  end
+
   test "multiple queries on the same connection", context do
     assert {:error, _} = Postgrex.query(context.conn, "select $1 from users", ["foobar"])
     assert {:ok, _} = Postgrex.query(context.conn, "select $1::text from users", ["foobar"])

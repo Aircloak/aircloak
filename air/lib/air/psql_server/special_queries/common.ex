@@ -13,13 +13,24 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
   @impl SpecialQueries
   def run_query(conn, query) do
     cond do
+      query =~ ~r/^begin$/i ->
+        RanchServer.query_result(conn, command: :begin)
       query =~ ~r/^set /i ->
         RanchServer.query_result(conn, command: :set)
       cursor = close_cursor_query?(query) ->
         conn
         |> RanchServer.unassign({:cursor_result, cursor})
         |> RanchServer.query_result(command: :"close cursor")
+      # Issued by Postgrex on older versions to get the type information.
       query =~ ~r/^select t.oid, t.typname, t.typsend, t.typreceive.*FROM pg_type AS t\s*$/is ->
+        return_types_for_postgrex(conn)
+      # Issued by Postgrex on newer versions to get the type information for the types not returned by the next clause.
+      # We're returning an empty result here, because Postgrex crashes if there's an overlap between this result and
+      # the result from the query in the next clause.
+      query =~ ~r/^select t.oid, t.typname, t.typsend, t.typreceive.*WHERE t.oid NOT IN \(.*$/is ->
+        return_types_for_postgrex(conn, [])
+      # Issued by Postgrex on newer versions to get the type information.
+      query =~ ~r/^select t.oid, t.typname, t.typsend, t.typreceive.*FROM pg_attribute AS a.*$/is ->
         return_types_for_postgrex(conn)
       query =~ ~r/^select.+from pg_type/si ->
         RanchServer.query_result(conn, [columns: [%{name: "oid", type: :text}], rows: []])
@@ -78,13 +89,13 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
     end
   end
 
-  defp return_types_for_postgrex(conn), do:
+  defp return_types_for_postgrex(conn, rows \\ nil), do:
     RanchServer.query_result(conn, [
       columns:
         ~w(oid typname typsend typreceive typoutput typinput typelem coalesce array)
         |> Enum.map(&%{name: &1, type: :text}),
       rows:
-        [
+        rows || [
           ~w(16 bool boolsend boolrecv boolout boolin 0 0 {}),
           ~w(21 int2 int2send int2recv int2out int2in 0 0 {}),
           ~w(23 int4 int4send int4recv int4out int4in 0 0 {}),

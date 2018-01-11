@@ -43,7 +43,13 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
 
     params = Messages.convert_params(bind_data.params, bind_data.format_codes, param_types)
 
-    prepared_statement = %{prepared_statement | params: params, result_codes: bind_data.result_codes}
+    result_codes =
+      case bind_data.result_codes do
+        [] -> [:text]
+        [_|_] = result_codes -> result_codes
+      end
+
+    prepared_statement = %{prepared_statement | params: params, result_codes: result_codes}
 
     protocol
     |> put_in([:portals, bind_data.portal], prepared_statement)
@@ -136,11 +142,14 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
   end
   defp send_result(protocol, result) do
     statement = Map.fetch!(protocol.portals, protocol.executing_portal)
-    rows = Keyword.fetch!(result, :rows)
-    info_messages = Keyword.get(result, :info_messages, [])
-    protocol
-    |> send_rows(rows, statement.columns, statement.result_codes)
-    |> send_notices(info_messages)
+    with {:ok, rows} <- Keyword.fetch(result, :rows),
+         info_messages <- Keyword.get(result, :info_messages, []) do
+      protocol
+      |> send_rows(rows, statement.columns, statement.result_codes)
+      |> send_notices(info_messages)
+    else
+      _ -> protocol
+    end
   end
 
   defp send_notices(protocol, info_messages), do:
