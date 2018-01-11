@@ -122,7 +122,6 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
         "SELECT * FROM table WHERE x <> 1 AND (x <> 2 AND x <> 3)"
       )
 
-    @tag :pending
     test "NOT x NOT IN (single_value)", do:
       assert_equivalent(
         "SELECT * FROM table WHERE NOT x NOT IN (1)",
@@ -149,4 +148,10 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
         "SELECT * FROM table WHERE x >= 1 AND x < 2"
       )
   end
+
+  test "normalizing IN(single_value)", do:
+    assert_equivalent(
+      "SELECT * FROM table WHERE string IN ('a')",
+      "SELECT * FROM table WHERE string = 'a'"
+    )
 end

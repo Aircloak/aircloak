@@ -21,6 +21,18 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
     |> apply_to_subqueries(&rewrite_distinct/1)
     |> Helpers.apply_bottom_up(&rewrite_not_in/1)
     |> Helpers.apply_bottom_up(&rewrite_not/1)
+    |> Helpers.apply_bottom_up(&rewrite_in/1)
+
+
+  # -------------------------------------------------------------------
+  # IN rewriting
+  # -------------------------------------------------------------------
+
+  defp rewrite_in(ast), do:
+    update_in(ast, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
+      {:in, lhs, [exp]} -> {:comparison, lhs, :=, exp}
+      other -> other
+    end)
 
 
   # -------------------------------------------------------------------

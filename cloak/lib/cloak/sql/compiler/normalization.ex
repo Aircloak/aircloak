@@ -24,22 +24,10 @@ defmodule Cloak.Sql.Compiler.Normalization do
   @spec normalize(Query.t) :: Query.t
   def normalize(query), do:
     query
-    |> Helpers.apply_bottom_up(&normalize_in/1)
     |> Helpers.apply_bottom_up(&normalize_trivial_like/1)
     |> Helpers.apply_bottom_up(&normalize_constants/1)
     |> Helpers.apply_bottom_up(&normalize_order_by/1)
     |> Helpers.apply_bottom_up(&normalize_bucket/1)
-
-
-  # -------------------------------------------------------------------
-  # IN normalization
-  # -------------------------------------------------------------------
-
-  defp normalize_in(query), do:
-    update_in(query, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
-      {:in, lhs, [exp]} -> {:comparison, lhs, :=, exp}
-      other -> other
-    end)
 
 
   # -------------------------------------------------------------------
