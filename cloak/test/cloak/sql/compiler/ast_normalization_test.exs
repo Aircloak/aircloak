@@ -97,5 +97,56 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
         "SELECT * FROM table WHERE NOT NOT NOT NOT NOT x = y",
         "SELECT * FROM table WHERE x <> y"
       )
+
+    test "NOT x IS NULL is equivalent to x IS NOT NULL", do:
+      assert_equivalent(
+        "SELECT * FROM table WHERE NOT x IS NULL",
+        "SELECT * FROM table WHERE x IS NOT NULL"
+      )
+
+    test "NOT x IS NOT NULL is equivalent to x IS NULL", do:
+      assert_equivalent(
+        "SELECT * FROM table WHERE NOT x IS NOT NULL",
+        "SELECT * FROM table WHERE x IS NULL"
+      )
+
+    test "NOT x IN (single_value)", do:
+      assert_equivalent(
+        "SELECT * FROM table WHERE NOT x IN (1)",
+        "SELECT * FROM table WHERE x <> 1"
+      )
+
+    test "NOT x IN (multiple, values)", do:
+      assert_equivalent(
+        "SELECT * FROM table WHERE NOT x IN (1, 2, 3)",
+        "SELECT * FROM table WHERE x <> 1 AND (x <> 2 AND x <> 3)"
+      )
+
+    @tag :pending
+    test "NOT x NOT IN (single_value)", do:
+      assert_equivalent(
+        "SELECT * FROM table WHERE NOT x NOT IN (1)",
+        "SELECT * FROM table WHERE x = 1"
+      )
+
+    test "NOT x NOT IN (multiple, values)", do:
+      assert_equivalent(
+        "SELECT * FROM table WHERE NOT x NOT IN (1, 2, 3)",
+        "SELECT * FROM table WHERE x IN (1, 2, 3)"
+      )
+
+    @tag :pending
+    test "BETWEEN", do:
+      assert_equivalent(
+        "SELECT * FROM table WHERE NOT x BETWEEN 1 AND 2",
+        "SELECT * FROM table WHERE x < 1 AND x >= 2"
+      )
+
+    @tag :pending
+    test "NOT BETWEEN", do:
+      assert_equivalent(
+        "SELECT * FROM table WHERE NOT x NOT BETWEEN 1 AND 2",
+        "SELECT * FROM table WHERE x >= 1 AND x < 2"
+      )
   end
 end
