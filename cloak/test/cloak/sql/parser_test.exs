@@ -1075,6 +1075,32 @@ defmodule Cloak.Sql.Parser.Test do
   test "sample from table", do:
     assert_parse("select x from foo sample_users 10%", select(sample_rate: 10))
 
+  describe "unary NOT" do
+    test "with a simple condition", do:
+      assert_parse("select * from foo where NOT x = 1", select(where: {
+        :not, {:comparison, identifier("x"), :=, constant(1)}}))
+
+    test "with a complex condition", do:
+      assert_parse("select * from foo where NOT (x = 1 OR y = 2)", select(where: {:not, {:or,
+        {:comparison, identifier("x"), :=, constant(1)},
+        {:comparison, identifier("y"), :=, constant(2)}
+      }}))
+
+    test "in HAVING", do:
+      assert_parse("select count(*) from foo having NOT (x = 1 OR y = 2)", select(having: {:not, {:or,
+        {:comparison, identifier("x"), :=, constant(1)},
+        {:comparison, identifier("y"), :=, constant(2)}
+      }}))
+
+    test "in ON", do:
+      assert_parse("select count(*) from foo join bar ON NOT a = b", select(from: {:join, %{conditions: {:not,
+        {:comparison, identifier("a"), :=, identifier("b")}}}}))
+
+    test "many NOTs", do:
+      assert_parse("select count(*) from foo having NOT NOT NOT x = 1", select(having: {:not, {:not, {:not,
+        {:comparison, identifier("x"), :=, constant(1)}}}}))
+  end
+
   create_test =
     fn(description, statement, expected_error, line, column) ->
       test description do

@@ -870,11 +870,17 @@ defmodule Cloak.Sql.Parser do
     left_associative_expression([keyword(:or)], conjunction_expression(term_parser), &infix_to_boolean_expression/3)
 
   defp conjunction_expression(term_parser), do:
-    left_associative_expression(
-      [keyword(:and)],
+    left_associative_expression([keyword(:and)], unary_not_expression(term_parser), &infix_to_boolean_expression/3)
+
+  defp unary_not_expression(term_parser), do:
+    choice_deepest_error([
+      sequence([keyword(:not), lazy(fn -> unary_not_expression(term_parser) end)]),
       paren_parser(lazy(fn -> disjunction_expression(term_parser) end), term_parser),
-      &infix_to_boolean_expression/3
-    )
+    ])
+    |> map(fn
+      [:not, expr] -> {:not, expr}
+      expr -> expr
+    end)
 
   defp paren_parser(in_parens_parser, term_parser), do:
     switch([
