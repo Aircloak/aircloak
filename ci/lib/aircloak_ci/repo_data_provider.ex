@@ -82,8 +82,8 @@ defmodule AircloakCI.RepoDataProvider do
       |> Enum.each(&AircloakCI.Build.Branch.ensure_started(&1, repo_data))
 
     defp pr_targets(repo_data) do
-      traget_branch_names = Enum.map(repo_data.pull_requests, &(&1.target_branch))
-      Stream.filter(repo_data.branches, &Enum.member?(traget_branch_names, &1.name))
+      target_branch_names = Enum.map(repo_data.pull_requests, &(&1.target_branch))
+      Stream.filter(repo_data.branches, &Enum.member?(target_branch_names, &1.name))
     end
 
     defp changed_branches(_repo_data, nil), do:

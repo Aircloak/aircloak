@@ -26,7 +26,7 @@ set -eox pipefail
 
   # setup database roles ----------------------------------------------
 
-  if [[ "$TEST" == "air" || "$TEST" == "integration" ]]; then
+  if [[ "$TEST" == "air" ]]; then
 
     psql -U postgres -c "CREATE USER airtest CREATEDB;"
     psql -U postgres -c "CREATE DATABASE air_test ENCODING 'UTF8';"
@@ -35,7 +35,7 @@ set -eox pipefail
 
   fi
 
-  if [[ "$TEST" == "central" || "$TEST" == "integration" ]]; then
+  if [[ "$TEST" == "central" ]]; then
 
     psql -U postgres -c "CREATE USER central_test CREATEDB;"
     psql -U postgres -c "CREATE DATABASE central_test ENCODING 'UTF8';"
@@ -105,20 +105,6 @@ set -eox pipefail
     MIX_ENV=test mix compile --warnings-as-errors
     MIX_ENV=prod mix compile --warnings-as-errors
     MIX_ENV=test make recreate-db
-    popd
-
-  fi
-
-
-  # integration_tests ---------------------------------------------------------------
-
-  if [[ "$TEST" == "integration" ]]; then
-
-    pushd integration_tests
-    MIX_ENV=test mix deps.get
-    MIX_ENV=test mix compile
-    # Start Air to let it migrate the DB
-    MIX_ENV=test mix run --no-start -e 'Application.ensure_all_started(:air)'
     popd
 
   fi

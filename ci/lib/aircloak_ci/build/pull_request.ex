@@ -109,6 +109,7 @@ defmodule AircloakCI.Build.PullRequest do
       "continuous-integration/aircloak/compliance",
       "continuous-integration/aircloak/cloak_test",
       "continuous-integration/aircloak/air_test",
+      "continuous-integration/aircloak/integration_tests_test",
     ]
 
 

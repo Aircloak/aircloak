@@ -372,16 +372,11 @@ defmodule Cloak.DataSource do
     %{data_source | errors: [message | data_source.errors]}
 
   if Mix.env == :prod do
-    defp disabled?(_data_source), do:
-      false
+    defp disabled?(data_source), do:
+      explicitly_disabled?(data_source)
   else
     defp disabled?(data_source), do:
       explicitly_disabled?(data_source) || sap_hana_unavailable?(data_source)
-
-    defp explicitly_disabled?(data_source) do
-      env_data_sources = String.split(System.get_env("CLOAK_DATA_SOURCES") || "")
-      not Enum.empty?(env_data_sources) and not Enum.member?(env_data_sources, data_source.name)
-    end
 
     defp sap_hana_unavailable?(%{driver: Cloak.DataSource.SAPHana}) do
       cond do
@@ -398,6 +393,11 @@ defmodule Cloak.DataSource do
     end
     defp sap_hana_unavailable?(_other_data_source), do:
       false
+  end
+
+  defp explicitly_disabled?(data_source) do
+    env_data_sources = String.split(System.get_env("CLOAK_DATA_SOURCES") || "")
+    not Enum.empty?(env_data_sources) and not Enum.member?(env_data_sources, data_source.name)
   end
 
   defp update_data_source_connectivity(%{status: :online} = data_source) do

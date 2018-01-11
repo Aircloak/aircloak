@@ -9,48 +9,6 @@ env:
   - CC="gcc-4.8"
 matrix:
   include:
-    - env: TEST="integration"
-      services:
-      - elasticsearch
-      cache:
-        directories:
-        - common/elixir/deps
-        - common/elixir/_build
-        - air/deps
-        - air/_build
-        - air/assets/node_modules
-        - air/docs/node_modules
-        - air/docs/_book
-        - .mix
-        - cloak/deps
-        - cloak/_build
-        - central/deps
-        - central/_build
-        - central/assets/node_modules
-        - integration_tests/deps
-        - integration_tests/_build
-        - $HOME/.asdf
-        - $HOME/.yarn-cache
-      addons:
-        postgresql: "9.5"
-        apt:
-          sources:
-          - ubuntu-toolchain-r-test
-          packages:
-          - jq
-          - gcc-4.8
-          - g++-4.8
-          - unixodbc
-          - unixodbc-dev
-          - odbc-postgresql
-          - inotify-tools
-        hosts:
-        - travis.aircloak.local
-      before_install:
-      - psql -c "CREATE DATABASE cloaktest1 ENCODING 'UTF8';" -U postgres
-      - odbcinst -i -s -h -f cloak/priv/odbc/odbc.ini
-      - ./travis-asdf-setup.sh
-      - npm i -g yarn@0.16.1
     - env: TEST="aux"
       cache:
         directories:

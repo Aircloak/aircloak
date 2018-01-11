@@ -50,17 +50,6 @@ set -eox pipefail
     popd
 
   fi
-
-
-  # integration_tests -----------------------------------------------------------
-
-  if [[ "$TEST" == "integration" ]]; then
-
-    pushd integration_tests
-    INTEGRATION_TEST=true mix test
-    popd
-
-  fi
 )
 
 set +x

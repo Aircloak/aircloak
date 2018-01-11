@@ -59,4 +59,21 @@ defmodule Aircloak do
   @spec report_long(any, (() -> result), [threshold: non_neg_integer]) :: result when result: var
   def report_long(id, fun, opts \\ []), do:
     measure(id, fun, level: :warn, threshold: Keyword.get(opts, :threshold, 10))
+
+  @doc "Waits for the service on the given host/port to become available."
+  @spec await_service!(String.t, :inet.port_number) :: :ok
+  def await_service!(host, port) do
+    task =
+      Task.async(fn ->
+        fn -> :gen_tcp.connect(to_charlist(host), port, []) end
+        |> Stream.repeatedly()
+        |> Stream.drop_while(&match?({:error, _}, &1))
+        |> Enum.take(1)
+      end)
+
+    case Task.yield(task, :timer.minutes(2)) do
+      nil -> raise("#{host}:#{port} is not available")
+      _ -> :ok
+    end
+  end
 end
