@@ -1,6 +1,6 @@
 defmodule Mix.Tasks.Cloak.CreateDb do
-  @shortdoc "Creates databases from the given json configuration."
   @moduledoc "Creates databases from the given json configuration."
+  @shortdoc @moduledoc
 
   # Mix.Task behaviour is not in PLT since Mix is not a runtime dep, so we disable the warning
   @dialyzer :no_undefined_callbacks
