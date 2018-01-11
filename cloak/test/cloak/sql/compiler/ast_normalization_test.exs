@@ -147,6 +147,24 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
         "SELECT * FROM table WHERE NOT x NOT BETWEEN 1 AND 2",
         "SELECT * FROM table WHERE x >= 1 AND x < 2"
       )
+
+    test "applied to subqueries", do:
+      assert_equivalent(
+        "SELECT * FROM (SELECT * FROM table WHERE NOT x = 1) x",
+        "SELECT * FROM (SELECT * FROM table WHERE x <> 1) x"
+      )
+
+    test "applied in HAVING", do:
+      assert_equivalent(
+        "SELECT COUNT(*) FROM table HAVING NOT x = 1",
+        "SELECT COUNT(*) FROM table HAVING x <> 1"
+      )
+
+    test "applied in ON", do:
+      assert_equivalent(
+        "SELECT COUNT(*) FROM table JOIN table2 ON NOT x = y",
+        "SELECT COUNT(*) FROM table JOIN table2 ON x <> y"
+      )
   end
 
   test "normalizing IN(single_value)", do:
