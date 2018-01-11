@@ -21,10 +21,15 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
         conn
         |> RanchServer.unassign({:cursor_result, cursor})
         |> RanchServer.query_result(command: :"close cursor")
+      # Issued by Postgrex on older versions to get the type information.
       query =~ ~r/^select t.oid, t.typname, t.typsend, t.typreceive.*FROM pg_type AS t\s*$/is ->
         return_types_for_postgrex(conn)
+      # Issued by Postgrex on newer versions to get the type information for the types not returned by the next clause.
+      # We're returning an empty result here, because Postgrex crashes if there's an overlap between this result and
+      # the result from the query in the next clause.
       query =~ ~r/^select t.oid, t.typname, t.typsend, t.typreceive.*WHERE t.oid NOT IN \(.*$/is ->
         return_types_for_postgrex(conn, [])
+      # Issued by Postgrex on newer versions to get the type information.
       query =~ ~r/^select t.oid, t.typname, t.typsend, t.typreceive.*FROM pg_attribute AS a.*$/is ->
         return_types_for_postgrex(conn)
       query =~ ~r/^select.+from pg_type/si ->
