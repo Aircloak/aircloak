@@ -203,13 +203,16 @@ defmodule Cloak.Sql.Parser do
   defp normalize_concat({:function, "||", args}), do: {:function, "concat", Enum.map(args, &normalize_concat/1)}
   defp normalize_concat(other), do: other
 
-  defp infix_cast_expression() do
-    infix_expression([keyword(:"::")], simple_expression(), data_type())
-    |> map(fn
-      {:function, "::", [expr, type]} -> {:function, {:cast, type}, [expr]}
-      other -> other
-    end)
-  end
+  defp infix_cast_expression(), do:
+    sequence([simple_expression(), option(cast_suffix())])
+    |> map(fn([expr, cast_suffix]) -> build_cast(expr, cast_suffix) end)
+
+  defp cast_suffix(), do:
+    sequence([keyword(:"::"), data_type(), lazy(fn -> option(cast_suffix()) end)])
+
+  defp build_cast(expr, nil), do: expr
+  defp build_cast(expr, [:"::", type, next_cast]), do:
+    build_cast({:function, {:cast, type}, [expr]}, next_cast)
 
   defp simple_expression() do
     choice_deepest_error([

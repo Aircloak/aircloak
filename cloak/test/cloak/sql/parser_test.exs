@@ -822,9 +822,17 @@ defmodule Cloak.Sql.Parser.Test do
   test "cast to double precision", do:
     assert_parse "select cast(a as double precision) from bar", select(columns: [{:function, {:cast, :real}, _}])
 
-  test "cast with ::" do
-    assert_parse "select a::integer from bar",
-      select(columns: [{:function, {:cast, :integer}, [identifier("a")]}])
+  describe "::" do
+    test "cast with ::", do:
+      assert_parse "select a::integer from bar",
+        select(columns: [{:function, {:cast, :integer}, [identifier("a")]}])
+
+    test "multiple casts with ::", do:
+      assert_parse "select a::integer::text from bar",
+        select(columns: [{:function, {:cast, :text}, [{:function, {:cast, :integer}, [identifier("a")]}]}])
+
+    test "a non-datatype on RHS of ::", do:
+      assert {:error, _} = Parser.parse("select a::b from bar")
   end
 
   for word <- ~w(date time datetime timestamp) do
