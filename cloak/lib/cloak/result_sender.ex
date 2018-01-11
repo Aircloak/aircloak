@@ -39,6 +39,14 @@ defmodule Cloak.ResultSender do
         {:error, error}
     end
   end
+  def send_result({:process_encoded, pid}, result) do
+    with {:ok, encoded} <- encode_result(result) do
+      send(pid, encoded)
+    else
+      {:error, error} -> send(pid, {:error, error})
+    end
+    :ok
+  end
   def send_result({:process, pid}, result) do
     send(pid, {:result, result})
     :ok
@@ -73,7 +81,7 @@ defmodule Cloak.ResultSender do
     try do
       {:ok,
         result
-        |> Map.take([:query_id, :columns, :features, :error, :cancelled, :info])
+        |> Map.take([:query_id, :columns, :features, :error, :cancelled, :info, :execution_time])
         |> Map.put(:chunks, encode_chunks(result))
         |> Map.put(:row_count, row_count(result[:rows]))
       }
