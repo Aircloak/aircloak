@@ -42,10 +42,8 @@
   defp verify_required_statuses(build_state) do
     case \
       [
-        "continuous-integration/aircloak/air_test",
-        "continuous-integration/aircloak/cloak_test",
-        "continuous-integration/aircloak/integration_tests_test",
-        "continuous-integration/travis-ci/pr",
+        "continuous-integration/travis-ci/pr" |
+        build_state.project |> LocalProject.components() |> Enum.map(&"continuous-integration/aircloak/#{&1}_test")
       ]
       |> Stream.map(&{&1, build_state.source.status_checks[&1][:status]})
       |> Stream.reject(&match?({_, :success}, &1))
