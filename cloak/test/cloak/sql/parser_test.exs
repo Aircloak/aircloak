@@ -365,14 +365,14 @@ defmodule Cloak.Sql.Parser.Test do
         columns: [identifier("foo")], from: unquoted("bar"),
         where:
           {:and,
-            {:comparison, identifier("a"), :=, constant(2)},
             {:and,
-              {:in, identifier("b"), constants([1, 2, 3])},
               {:and,
-                {:like, identifier("c"), {:like_pattern, constant("_o"), constant(nil)}},
-                {:not, {:is, identifier("d"), :null}},
-              }
-            }
+                {:comparison, identifier("a"), :=, constant(2)},
+                {:in, identifier("b"), constants([1, 2, 3])}
+              },
+              {:like, identifier("c"), {:like_pattern, constant("_o"), constant(nil)}}
+            },
+            {:not, {:is, identifier("d"), :null}}
           }
       )
     )
@@ -387,7 +387,7 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "where sub-clause with parens" do
     assert_equal_parse(
-      "select foo from bar where a = 1 and ((b = 2) and c = 3)",
+      "select foo from bar where (((a = 1) and b = 2) and c = 3)",
       "select foo from bar where a = 1 and b = 2 and c = 3"
     )
   end
@@ -405,7 +405,7 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "having clause with parens" do
     assert_equal_parse(
-      "select foo from bar having (a = 1) and (b = 3 and c = 4)",
+      "select foo from bar having (a = 1 and b = 3) and (c = 4)",
       "select foo from bar having a = 1 and b = 3 and c = 4"
     )
   end

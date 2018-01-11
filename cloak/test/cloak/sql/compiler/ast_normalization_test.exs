@@ -58,14 +58,14 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
 
     test "with many elements in LHS" do
       parsed = Parser.parse!("SELECT * FROM table WHERE x NOT IN (1, 2, 3)")
-      expected = Parser.parse!("SELECT * FROM table WHERE x <> 1 AND x <> 2 AND x <> 3")
+      expected = Parser.parse!("SELECT * FROM table WHERE x <> 1 AND (x <> 2 AND x <> 3)")
 
       assert ASTNormalization.normalize(parsed) == expected
     end
 
     test "acts on subqueries" do
       parsed = Parser.parse!("SELECT * FROM (SELECT * FROM Table WHERE x NOT IN (1, 2, 3)) x")
-      expected = Parser.parse!("SELECT * FROM (SELECT * FROM Table WHERE x <> 1 AND x <> 2 AND x <> 3) x")
+      expected = Parser.parse!("SELECT * FROM (SELECT * FROM Table WHERE x <> 1 AND (x <> 2 AND x <> 3)) x")
 
       assert ASTNormalization.normalize(parsed) == expected
     end
