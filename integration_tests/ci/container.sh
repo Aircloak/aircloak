@@ -9,10 +9,10 @@ cd $ROOT_DIR
 . docker/ci_helper.sh integration_tests
 
 function start_postgres_container {
-  owner_container_name=$1
-  postgres_version=$2
+  local owner_container_name=$1
+  local postgres_version=$2
 
-  postgres_container_name="${owner_container_name}_postgres${postgres_version}"
+  local postgres_container_name="${owner_container_name}_postgres${postgres_version}"
 
   docker run \
     --detach --name "$postgres_container_name" \
