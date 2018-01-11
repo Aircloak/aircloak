@@ -136,11 +136,14 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
   end
   defp send_result(protocol, result) do
     statement = Map.fetch!(protocol.portals, protocol.executing_portal)
-    rows = Keyword.fetch!(result, :rows)
-    info_messages = Keyword.get(result, :info_messages, [])
-    protocol
-    |> send_rows(rows, statement.columns, statement.result_codes)
-    |> send_notices(info_messages)
+    with {:ok, rows} <- Keyword.fetch(result, :rows),
+         info_messages <- Keyword.get(result, :info_messages, []) do
+      protocol
+      |> send_rows(rows, statement.columns, statement.result_codes)
+      |> send_notices(info_messages)
+    else
+      _ -> protocol
+    end
   end
 
   defp send_notices(protocol, info_messages), do:
