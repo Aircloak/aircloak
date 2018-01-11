@@ -94,5 +94,12 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
         assert ASTNormalization.normalize(parsed) == expected
       end
     end)
+
+    test "multiple NOTs" do
+      parsed = Parser.parse!("SELECT * FROM table WHERE NOT NOT NOT NOT NOT x = y")
+      expected = Parser.parse!("SELECT * FROM table WHERE x <> y")
+
+      assert ASTNormalization.normalize(parsed) == expected
+    end
   end
 end
