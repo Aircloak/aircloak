@@ -70,4 +70,29 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
       assert ASTNormalization.normalize(parsed) == expected
     end
   end
+
+  describe "rewriting NOT" do
+    %{
+      "=" => "<>",
+      "<" => ">=",
+      ">" => "<=",
+      "LIKE" => "NOT LIKE",
+      "ILIKE" => "NOT ILIKE",
+    }
+    |> Enum.each(fn({op1, op2}) ->
+      test "transforms #{op1} into #{op2}" do
+        parsed = Parser.parse!("SELECT * FROM table WHERE NOT x #{unquote(op1)} 'foo'")
+        expected = Parser.parse!("SELECT * FROM table WHERE x #{unquote(op2)} 'foo'")
+
+        assert ASTNormalization.normalize(parsed) == expected
+      end
+
+      test "transforms #{op2} into #{op1}" do
+        parsed = Parser.parse!("SELECT * FROM table WHERE NOT x #{unquote(op2)} 'foo'")
+        expected = Parser.parse!("SELECT * FROM table WHERE x #{unquote(op1)} 'foo'")
+
+        assert ASTNormalization.normalize(parsed) == expected
+      end
+    end)
+  end
 end

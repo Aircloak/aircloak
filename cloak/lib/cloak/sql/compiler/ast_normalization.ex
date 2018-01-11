@@ -20,6 +20,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
     ast
     |> apply_to_subqueries(&rewrite_distinct/1)
     |> Helpers.apply_bottom_up(&rewrite_not_in/1)
+    |> Helpers.apply_bottom_up(&rewrite_not/1)
 
 
   # -------------------------------------------------------------------
@@ -54,6 +55,25 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   defp aggregator?({:function, name, args}), do:
     Function.has_attribute?(name, :aggregator) or Enum.any?(args, &aggregator?/1)
   defp aggregator?(_), do: false
+
+
+  # -------------------------------------------------------------------
+  # NOT rewriting
+  # -------------------------------------------------------------------
+
+  defp rewrite_not(ast), do:
+    update_in(ast, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
+      {:not, {:comparison, lhs, op, rhs}} -> {:comparison, lhs, negate(op), rhs}
+      {:not, {:not, expr}} -> expr
+      other -> other
+    end)
+
+  defp negate(:=), do: :<>
+  defp negate(:<>), do: :=
+  defp negate(:<), do: :>=
+  defp negate(:>), do: :<=
+  defp negate(:<=), do: :>
+  defp negate(:>=), do: :<
 
 
   # -------------------------------------------------------------------
