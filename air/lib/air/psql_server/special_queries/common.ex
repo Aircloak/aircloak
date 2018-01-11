@@ -21,6 +21,10 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
         |> RanchServer.query_result(command: :"close cursor")
       query =~ ~r/^select t.oid, t.typname, t.typsend, t.typreceive.*FROM pg_type AS t\s*$/is ->
         return_types_for_postgrex(conn)
+      query =~ ~r/^select t.oid, t.typname, t.typsend, t.typreceive.*WHERE t.oid NOT IN \(.*$/is ->
+        return_types_for_postgrex(conn, [])
+      query =~ ~r/^select t.oid, t.typname, t.typsend, t.typreceive.*FROM pg_attribute AS a.*$/is ->
+        return_types_for_postgrex(conn)
       query =~ ~r/^select.+from pg_type/si ->
         RanchServer.query_result(conn, [columns: [%{name: "oid", type: :text}], rows: []])
       query =~ ~r/select current_schema()/i ->
@@ -78,13 +82,13 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
     end
   end
 
-  defp return_types_for_postgrex(conn), do:
+  defp return_types_for_postgrex(conn, rows \\ nil), do:
     RanchServer.query_result(conn, [
       columns:
         ~w(oid typname typsend typreceive typoutput typinput typelem coalesce array)
         |> Enum.map(&%{name: &1, type: :text}),
       rows:
-        [
+        rows || [
           ~w(16 bool boolsend boolrecv boolout boolin 0 0 {}),
           ~w(21 int2 int2send int2recv int2out int2in 0 0 {}),
           ~w(23 int4 int4send int4recv int4out int4in 0 0 {}),
