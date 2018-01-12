@@ -760,7 +760,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "rejects `or` conditions" do
     {:error, error} = compile("select * from table where numeric = 1 or numeric = 2", data_source())
-    assert error == "Combining conditions with `OR` is not allowed."
+    assert error =~ ~r/Combining conditions with `OR` is not allowed./
   end
 
   test "rejects `FULL OUTER JOINs`" do
