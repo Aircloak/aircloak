@@ -15,30 +15,18 @@ defmodule Cloak.Sql.Compiler.Normalization do
   * Switches complex expressions involving constants (like 1 + 2 + 3) to their results (6 in this case)
   * Removes redundant occurences of "%" from LIKE patterns (for example "%%" -> "%")
   * Normalizes sequences of "%" and "_" in like patterns so that the "%" always precedes a sequence of "_"
-  * Normalizes `IN (single_value)` to `= single_value`
+  * Expands `BUCKET` calls into equivalent mathematical expressions
 
-  These are useful for noise layers - we want to generate the same layer for semantically identical conditions,
-  otherwise we have to fall back to probing.
+  These are useful (among others) for noise layers - we want to generate the same layer for semantically identical
+  conditions, otherwise we have to fall back to probing.
   """
   @spec normalize(Query.t) :: Query.t
   def normalize(query), do:
     query
-    |> Helpers.apply_bottom_up(&normalize_in/1)
     |> Helpers.apply_bottom_up(&normalize_trivial_like/1)
     |> Helpers.apply_bottom_up(&normalize_constants/1)
     |> Helpers.apply_bottom_up(&normalize_order_by/1)
     |> Helpers.apply_bottom_up(&normalize_bucket/1)
-
-
-  # -------------------------------------------------------------------
-  # IN normalization
-  # -------------------------------------------------------------------
-
-  defp normalize_in(query), do:
-    update_in(query, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
-      {:in, lhs, [exp]} -> {:comparison, lhs, :=, exp}
-      other -> other
-    end)
 
 
   # -------------------------------------------------------------------
