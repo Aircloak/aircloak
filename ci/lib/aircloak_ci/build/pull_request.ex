@@ -74,7 +74,7 @@ defmodule AircloakCI.Build.PullRequest do
 
   defp maybe_start_ci(%{compiled?: false} = state), do: state
   defp maybe_start_ci(%{compiled?: true} = state) do
-    if state.source.mergeable? and state.source.merge_sha != nil,
+    if state.source.merge_state == :mergeable and state.source.merge_sha != nil,
       do: state |> Job.Compliance.run() |> Job.Test.run(),
       else: state
   end
@@ -111,8 +111,9 @@ defmodule AircloakCI.Build.PullRequest do
   defp check_compiled(%{compiled?: true}), do: :ok
   defp check_compiled(%{compiled?: false}), do: {:pending, "compiling project"}
 
-  defp check_mergeable(%{source: %{mergeable?: true}}), do: :ok
-  defp check_mergeable(%{source: %{mergeable?: false}}), do: {:error, "there are merge conflicts"}
+  defp check_mergeable(%{source: %{merge_state: :mergeable}}), do: :ok
+  defp check_mergeable(%{source: %{merge_state: :unknown}}), do: {:pending, "computing mergeability"}
+  defp check_mergeable(%{source: %{merge_state: :conflicting}}), do: {:error, "there are merge conflicts"}
 
   defp check_approved(%{source: %{approved?: true}}), do: :ok
   defp check_approved(%{source: %{approved?: false}}), do: {:pending, "waiting for approval"}

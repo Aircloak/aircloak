@@ -24,13 +24,15 @@ defmodule AircloakCI.Github.API do
     source_branch: String.t,
     target_branch: String.t,
     sha: String.t,
-    mergeable?: boolean,
+    merge_state: merge_state,
     merge_sha: String.t | nil,
     approved?: boolean,
     status_checks: statuses
   }
 
   @type repo :: %{owner: String.t, name: String.t}
+
+  @type merge_state :: :mergeable | :conflicting | :unknown
 
   @type statuses :: %{String.t => %{status: :expected | status_check_state, description: String.t}}
 
@@ -138,7 +140,12 @@ defmodule AircloakCI.Github.API do
       source_branch: Map.fetch!(raw_pr_data, "headRefName"),
       target_branch: Map.fetch!(raw_pr_data, "baseRefName"),
       approved?: match?(%{"reviews" => %{"nodes" => [%{"state" => "APPROVED"}]}}, raw_pr_data),
-      mergeable?: Map.fetch!(raw_pr_data, "mergeable") == "MERGEABLE",
+      merge_state:
+        case Map.fetch!(raw_pr_data, "mergeable") do
+          "MERGEABLE" -> :mergeable
+          "CONFLICTING" -> :conflicting
+          _ -> :unknown
+        end,
       merge_sha: raw_pr_data["potentialMergeCommit"]["oid"],
       sha:
         raw_pr_data
