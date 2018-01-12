@@ -106,6 +106,7 @@ defmodule BOM.Whitelist do
     "9741c346eef56131163e13b9db1241b3" => :mpl_2_0,       # elixir/jose
     "4d8e2e181d7f8cdc38226f5ee04e5fdd" => :mit,           # elixir/phoenix_gen_socket_server
     "d0d1fe59ece5018a431ad8e694ec6c6a" => :wtfpl,         # elixir/file_system
+    "7c9b6269d40a09414db760aa524bf240" => :mit,           # elixir/idna
   }
 
 
@@ -195,6 +196,8 @@ defmodule BOM.Whitelist do
   end
 
   defp get_text(realm, package) do
-    "licenses" |> Path.join(to_string(realm)) |> Path.join(package) |> File.read!()
+    [Application.app_dir(:bom, "priv"), "licenses", to_string(realm), package]
+    |> Path.join()
+    |> File.read!()
   end
 end

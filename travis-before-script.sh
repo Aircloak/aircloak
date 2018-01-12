@@ -26,15 +26,6 @@ set -eox pipefail
 
   # setup database roles ----------------------------------------------
 
-  if [[ "$TEST" == "air" ]]; then
-
-    psql -U postgres -c "CREATE USER airtest CREATEDB;"
-    psql -U postgres -c "CREATE DATABASE air_test ENCODING 'UTF8';"
-    psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE air_test TO airtest;"
-    psql -U postgres -c "ALTER DATABASE air_test OWNER TO airtest;"
-
-  fi
-
   if [[ "$TEST" == "central" ]]; then
 
     psql -U postgres -c "CREATE USER central_test CREATEDB;"
@@ -43,56 +34,6 @@ set -eox pipefail
     psql -U postgres -c "ALTER DATABASE central_test OWNER TO central_test;"
 
   fi
-
-
-  # common/elixir -----------------------------------------------------
-
-  if [[ "$TEST" == "aux" ]]; then
-
-    # common/elixir
-    pushd common/elixir
-    mix deps.get
-    mix compile --warnings-as-errors
-    MIX_ENV=test make all
-    popd
-
-  fi
-
-
-  # air ---------------------------------------------------------------
-
-  if [[ "$TEST" == "aux" ]]; then
-
-    pushd air
-    make deps
-    popd
-
-  fi
-
-
-  # cloak -------------------------------------------------------------
-
-  if [[ "$TEST" == "aux" ]]; then
-
-    pushd cloak
-    make odbc_drivers
-    make deps
-    popd
-
-  fi
-
-
-  # bom ---------------------------------------------------------------
-
-  if [[ "$TEST" == "aux" ]]; then
-
-    pushd bom
-    make deps
-    mix compile --warnings-as-errors
-    popd
-
-  fi
-
 
   # central -----------------------------------------------------------
 

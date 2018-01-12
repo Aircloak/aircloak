@@ -12,7 +12,7 @@ defmodule Mix.Tasks.Proper do
   ```
 
   Where `some_level` is an arbitrary atom specifying the test level. By default, all
-  levels are included in the test run, but you can use the --level target_level` to
+  levels are included in the test run, but you can use the `--level target_level` to
   run tests from the provided level only.
 
   To test a single module, you can run `mix proper --module target_module`. This
