@@ -14,6 +14,9 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   Performs the following normalizations:
   * Replaces DISTINCT usage in SELECT lists with an equivalent GROUP BY (possibly adding a subquery).
   * Replaces NOT IN with an equivalent conjunction of <>
+  * Replaces all usages of unary NOT by converting the involved expressions into an equivalent form (for example using
+    De Morgan's laws)
+  * Replaces IN (single_element) with = single_element
   """
   @spec normalize(Parser.parsed_query) :: Parser.parsed_query
   def normalize(ast), do:

@@ -15,7 +15,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
   * Switches complex expressions involving constants (like 1 + 2 + 3) to their results (6 in this case)
   * Removes redundant occurences of "%" from LIKE patterns (for example "%%" -> "%")
   * Normalizes sequences of "%" and "_" in like patterns so that the "%" always precedes a sequence of "_"
-  * Normalizes `IN (single_value)` to `= single_value`
   * Expands `BUCKET` calls into equivalent mathematical expressions
 
   These are useful (among others) for noise layers - we want to generate the same layer for semantically identical
