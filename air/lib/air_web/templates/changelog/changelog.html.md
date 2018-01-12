@@ -1,3 +1,9 @@
+## Version 18.1.1
+
+### Bugfixes
+
+- The PostgreSQL interface now works with Python (PyGreSQL and Psycopg2) and Java (JDBC PostgreSQL driver) clients.
+
 ## Version 18.1.0
 
 ### Enhancements
