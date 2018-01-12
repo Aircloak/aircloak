@@ -75,17 +75,22 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
 
   defp rewrite_not(ast), do:
     update_in(ast, [Query.Lenses.filter_clauses() |> Query.Lenses.all_conditions()], fn
-      {:not, {:comparison, lhs, op, rhs}} -> {:comparison, lhs, negate(op), rhs}
-      {:not, {:not, expr}} -> expr
+      {:not, expr} -> negate(expr)
       other -> other
     end)
 
-  defp negate(:=), do: :<>
-  defp negate(:<>), do: :=
-  defp negate(:<), do: :>=
-  defp negate(:>), do: :<=
-  defp negate(:<=), do: :>
-  defp negate(:>=), do: :<
+  defp negate({:not, expr}), do: expr
+  defp negate({:and, lhs, rhs}), do: {:or, negate(lhs), negate(rhs)}
+  defp negate({:or, lhs, rhs}), do: {:and, negate(lhs), negate(rhs)}
+  defp negate({:comparison, lhs, op, rhs}), do: {:comparison, lhs, negate_operator(op), rhs}
+  defp negate(expr), do: {:not, expr}
+
+  defp negate_operator(:=), do: :<>
+  defp negate_operator(:<>), do: :=
+  defp negate_operator(:<), do: :>=
+  defp negate_operator(:>), do: :<=
+  defp negate_operator(:<=), do: :>
+  defp negate_operator(:>=), do: :<
 
 
   # -------------------------------------------------------------------

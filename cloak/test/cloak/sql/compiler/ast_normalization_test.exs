@@ -165,6 +165,24 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
         "SELECT COUNT(*) FROM table JOIN table2 ON NOT x = y",
         "SELECT COUNT(*) FROM table JOIN table2 ON x <> y"
       )
+
+    test "negation of conjunction", do:
+      assert_equivalent(
+        "SELECT COUNT(*) FROM table WHERE NOT (x = 1 AND y = 2)",
+        "SELECT COUNT(*) FROM table WHERE x <> 1 OR y <> 2"
+      )
+
+    test "negation of disjunction", do:
+      assert_equivalent(
+        "SELECT COUNT(*) FROM table WHERE NOT (x = 1 OR y = 2)",
+        "SELECT COUNT(*) FROM table WHERE x <> 1 AND y <> 2"
+      )
+
+    test "negation of complex boolean expression", do:
+      assert_equivalent(
+        "SELECT COUNT(*) FROM table WHERE NOT (x = 1 AND (y = 2 AND NOT z = 3))",
+        "SELECT COUNT(*) FROM table WHERE x <> 1 OR (y <> 2 OR z = 3)"
+      )
   end
 
   test "normalizing IN(single_value)", do:
