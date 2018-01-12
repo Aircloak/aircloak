@@ -14,7 +14,12 @@ test = fn
   :dev ->
     {:sequence, [
       "MIX_ENV=dev ./check_warnings.sh",
-      {:parallel, ["mix docs", "mix lint", "MIX_HOME=_build make dialyze"]}
+      {:parallel, [
+        "mix docs",
+        "mix lint",
+        "mix bom --elixir deps /tmp/",
+        "MIX_HOME=_build make dialyze",
+      ]}
     ]}
 
   :prod ->
