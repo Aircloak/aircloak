@@ -9,20 +9,6 @@ set -eox pipefail
   . ~/.asdf/asdf.sh
 
 
-  # common/elixir -----------------------------------------------------
-
-  if [[ "$TEST" == "aux" ]]; then
-
-    pushd common/elixir
-    make docs
-    make lint
-    make test
-    make dialyze
-    popd
-
-  fi
-
-
   # central -----------------------------------------------------------
 
   if [[ "$TEST" == "central" ]]; then

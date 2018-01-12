@@ -9,28 +9,6 @@ env:
   - CC="gcc-4.8"
 matrix:
   include:
-    - env: TEST="aux"
-      cache:
-        directories:
-        - air/deps
-        - air/assets/node_modules
-        - .mix
-        - cloak/deps
-        - common/elixir/deps
-        - common/elixir/_build
-        - bom/deps
-        - bom/_build
-        - $HOME/.asdf
-        - $HOME/.yarn-cache
-      addons:
-        apt:
-          packages:
-          - jq
-        hosts:
-        - travis.aircloak.local
-      before_install:
-      - ./travis-asdf-setup.sh
-      - npm i -g yarn@0.16.1
     - env: TEST="central"
       services:
       - elasticsearch
