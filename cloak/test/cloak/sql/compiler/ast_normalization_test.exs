@@ -134,18 +134,10 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
         "SELECT * FROM table WHERE x IN (1, 2, 3)"
       )
 
-    @tag :pending
     test "BETWEEN", do:
       assert_equivalent(
         "SELECT * FROM table WHERE NOT x BETWEEN 1 AND 2",
-        "SELECT * FROM table WHERE x < 1 AND x >= 2"
-      )
-
-    @tag :pending
-    test "NOT BETWEEN", do:
-      assert_equivalent(
-        "SELECT * FROM table WHERE NOT x NOT BETWEEN 1 AND 2",
-        "SELECT * FROM table WHERE x >= 1 AND x < 2"
+        "SELECT * FROM table WHERE x < 1 OR x >= 2"
       )
 
     test "applied to subqueries", do:
