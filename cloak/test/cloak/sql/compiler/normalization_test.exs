@@ -90,6 +90,24 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     end
   end
 
+  describe "removing useless casts" do
+    test "a cast of integer to integer" do
+      result1 = remove_noops!("SELECT * FROM table WHERE cast(numeric AS integer) = 1", data_source())
+      result2 = remove_noops!("SELECT * FROM table WHERE numeric = 1", data_source())
+
+      assert result1.where == result2.where
+    end
+  end
+
+  defp remove_noops!(query, data_source, parameters \\ [], views \\ %{}) do
+    {:ok, parsed} = Cloak.Sql.Parser.parse(query)
+
+    parsed
+    |> Cloak.Sql.Compiler.ASTNormalization.normalize()
+    |> Cloak.Sql.Compiler.Specification.compile(data_source, parameters, views)
+    |> Cloak.Sql.Compiler.Normalization.remove_noops()
+  end
+
   defp sql_server_data_source(), do: %{data_source() | driver: Cloak.DataSource.SQLServer}
 
   defp data_source() do

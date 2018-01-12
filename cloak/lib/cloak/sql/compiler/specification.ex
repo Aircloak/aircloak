@@ -3,7 +3,7 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   alias Cloak.DataSource
   alias Cloak.Sql.{Condition, CompilationError, Expression, Function, Query}
-  alias Cloak.Sql.Compiler.{Helpers, Validation}
+  alias Cloak.Sql.Compiler.{Helpers, Normalization, Validation}
   alias Cloak.Sql.Query.Lenses
 
 
@@ -45,8 +45,8 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> compile_aliases()
     |> compile_columns()
     |> compile_references()
-    |> remove_redundant_casts()
     |> cast_where_clauses()
+    |> Normalization.remove_noops()
     |> Validation.verify_query()
 
 
@@ -559,20 +559,6 @@ defmodule Cloak.Sql.Compiler.Specification do
     raise(CompilationError, message: "Non-integer constant is not allowed in `#{clause_name}`.")
   defp compile_reference(expression, _query, _clause_name), do:
     expression
-
-
-  # -------------------------------------------------------------------
-  # UID columns
-  # -------------------------------------------------------------------
-
-  defp remove_redundant_casts(query), do:
-    # A cast which doesn't change the expression type is removed.
-    # The main motivation for doing this is because Tableau explicitly casts string columns to text,
-    # which makes problems for our join condition checks and make function usage restrictions trigger when
-    # they wouldn't strictly speaking be necessary.
-    Lenses.terminals()
-    |> Lens.satisfy(&match?(%Expression{function: {:cast, type}, function_args: [%Expression{type: type}]}, &1))
-    |> Lens.map(query, &hd(&1.function_args))
 
 
   # -------------------------------------------------------------------

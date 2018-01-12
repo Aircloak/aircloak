@@ -29,6 +29,27 @@ defmodule Cloak.Sql.Compiler.Normalization do
     |> Helpers.apply_bottom_up(&normalize_order_by/1)
     |> Helpers.apply_bottom_up(&normalize_bucket/1)
 
+  @doc """
+  Modifies the query to remove expressions that do nothing, like:
+
+  * Casting a value to the same type it already is
+  * Rounding/truncating integers
+  """
+  @spec remove_noops(Query.t) :: Query.t
+  def remove_noops(query), do:
+    remove_redundant_casts(query)
+
+
+  # -------------------------------------------------------------------
+  # Removing useless casts
+  # -------------------------------------------------------------------
+
+  defp remove_redundant_casts(query), do:
+    update_in(query, [Query.Lenses.terminals()], fn
+      %Expression{function: {:cast, type}, function_args: [expr = %Expression{type: type}]} -> expr
+      other -> other
+    end)
+
 
   # -------------------------------------------------------------------
   # IN normalization
