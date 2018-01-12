@@ -24,8 +24,8 @@ end
   compile:
     {:sequence, [
       "make deps",
+      "mix compile",
       {:parallel, [
-        "MIX_ENV=dev mix compile",
         "MIX_ENV=test mix compile",
         "MIX_HOME=_build mix dialyze --no-analyse",
       ]}
