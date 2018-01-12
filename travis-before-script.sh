@@ -82,18 +82,6 @@ set -eox pipefail
   fi
 
 
-  # bom ---------------------------------------------------------------
-
-  if [[ "$TEST" == "aux" ]]; then
-
-    pushd bom
-    make deps
-    mix compile --warnings-as-errors
-    popd
-
-  fi
-
-
   # central -----------------------------------------------------------
 
   if [[ "$TEST" == "central" ]]; then

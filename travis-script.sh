@@ -23,20 +23,6 @@ set -eox pipefail
   fi
 
 
-  # bom ---------------------------------------------------------------
-
-  if [[ "$TEST" == "aux" ]]; then
-
-    pushd bom
-    make docs
-    make lint
-    make test
-    make dialyze
-    popd
-
-  fi
-
-
   # central -----------------------------------------------------------
 
   if [[ "$TEST" == "central" ]]; then
