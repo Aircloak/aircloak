@@ -43,7 +43,13 @@ defmodule BOM.Gather.Elixir.Hex do
   end
 
   defp request_package(name, version) do
-    with {:ok, response} <- HTTPoison.get("#{@endpoint}/#{name}-#{version}.tar"), do:
+    options =
+      case System.get_env("HTTPS_PROXY") do
+        nil -> []
+        proxy -> [proxy: proxy]
+      end
+
+    with {:ok, response} <- HTTPoison.get("#{@endpoint}/#{name}-#{version}.tar", [], options), do:
       {response.status_code, response.body}
   end
 
