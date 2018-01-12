@@ -195,6 +195,8 @@ defmodule BOM.Whitelist do
   end
 
   defp get_text(realm, package) do
-    "licenses" |> Path.join(to_string(realm)) |> Path.join(package) |> File.read!()
+    [Application.app_dir(:bom, "priv"), "licenses", to_string(realm), package]
+    |> Path.join()
+    |> File.read!()
   end
 end

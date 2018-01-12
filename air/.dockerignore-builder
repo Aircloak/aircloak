@@ -24,7 +24,7 @@
 !bom/mix.exs
 !bom/mix.lock
 !bom/lib
-!bom/licenses
+!bom/priv/licenses
 !bom/fetch_deps.sh
 !cloak/mix.exs
 !cloak/mix.lock
