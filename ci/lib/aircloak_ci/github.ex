@@ -21,13 +21,20 @@ defmodule AircloakCI.Github do
 
   @doc "Sets the status check state for the given owner/repo/sha."
   @spec put_status_check_state(String.t, String.t, String.t, String.t, String.t, Github.API.status_check_state) :: :ok
-  def put_status_check_state(owner, repo, sha, context, description, state), do:
-    async_request(:put_status_check_state, [owner, repo, sha, context, description, state], type: :write)
+  def put_status_check_state(owner, repo, sha, context, description, state) do
+    retries = if state == :success, do: 60, else: 0
+
+    async_request(
+      :put_status_check_state,
+      [owner, repo, sha, context, description, state],
+      type: :write, retries: retries
+    )
+  end
 
   @doc "Posts a comment to the given issue or pull request."
   @spec comment_on_issue(String.t, String.t, pos_integer, String.t) :: :ok
   def comment_on_issue(owner, repo, issue_number, body), do:
-    async_request(:comment_on_issue, [owner, repo, issue_number, body], type: :write)
+    async_request(:comment_on_issue, [owner, repo, issue_number, body], type: :write, retries: 10)
 
   @doc "Posts a comment to the given issue or pull request."
   @spec comment_on_commit(String.t, String.t, number, String.t) :: :ok
@@ -39,20 +46,37 @@ defmodule AircloakCI.Github do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp sync_request!(fun, args, opts) do
-    if Keyword.fetch!(opts, :type) == :write and not Application.get_env(:aircloak_ci, :write_to_github) do
-      IO.puts "simulated github write #{fun}(#{args |> Enum.map(&inspect/1) |> Enum.join(", ")})"
-      :ok
-    else
-      {response, rate_limit} = Queue.exec(:github_api, fn -> apply(Github.API, fun, args) end)
-      :ets.insert(__MODULE__, {rate_limit.category, rate_limit})
-      response
-    end
-  end
-
   defp async_request(fun, args, opts) do
     Task.Supervisor.start_child(__MODULE__, fn -> sync_request!(fun, args, opts) end)
     :ok
+  end
+
+  defp sync_request!(fun, args, opts) do
+    {response, rate_limit} = invoke_github_api_with_retries(fun, args, opts, Keyword.get(opts, :retries, 0))
+    :ets.insert(__MODULE__, {rate_limit.category, rate_limit})
+    response
+  end
+
+  defp invoke_github_api_with_retries(fun, args, opts, 0), do: invoke_github_api(fun, args, opts)
+  defp invoke_github_api_with_retries(fun, args, opts, retries) do
+    try do
+      invoke_github_api(fun, args, opts)
+    catch type, error ->
+      formatted_invocation = "#{inspect(fun)}(#{args |> Enum.map(&inspect/1) |> Enum.join(", ")})"
+      formatted_error = Exception.format(type, error, System.stacktrace())
+      Logger.error("Github API error in #{formatted_invocation}: #{formatted_error}")
+      :timer.sleep(:timer.seconds(30))
+      invoke_github_api_with_retries(fun, args, opts, retries - 1)
+    end
+  end
+
+  defp invoke_github_api(fun, args, opts) do
+    if Keyword.fetch!(opts, :type) == :write and not Application.get_env(:aircloak_ci, :write_to_github) do
+      IO.puts "simulated github write #{fun}(#{args |> Enum.map(&inspect/1) |> Enum.join(", ")})"
+      {:ok, %{category: :rest, remaining: 5000, expires_at: DateTime.utc_now()}}
+    else
+      Queue.exec(:github_api, fn -> apply(Github.API, fun, args) end)
+    end
   end
 
   @doc false
