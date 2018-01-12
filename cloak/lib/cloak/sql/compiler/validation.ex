@@ -240,7 +240,10 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_where(query), do: verify_where_clauses(query.where)
 
   defp verify_condition_tree({:or, _, _}), do:
-    raise CompilationError, message: "Combining conditions with `OR` is not allowed."
+    raise CompilationError, message:
+      "Combining conditions with `OR` is not allowed. Note that an `OR` condition may " <>
+      "arise when negating an `AND` condition. For example `NOT (x = 1 AND y = 2)` is equivalent to " <>
+      "`x <> 1 OR y <> 2`."
   defp verify_condition_tree({:and, lhs, rhs}) do
     verify_condition_tree(lhs)
     verify_condition_tree(rhs)
