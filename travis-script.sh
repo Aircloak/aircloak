@@ -32,7 +32,6 @@ set -eox pipefail
     make lint
     make test
     make dialyze
-    mix bom --elixir ../cloak/deps --elixir ../air/deps --node ../air/assets/node_modules ./
     popd
 
   fi
