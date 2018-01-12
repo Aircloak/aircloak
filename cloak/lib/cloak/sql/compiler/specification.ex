@@ -47,7 +47,6 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> compile_references()
     |> cast_where_clauses()
     |> Normalization.remove_noops()
-    |> Validation.verify_query()
 
 
   # -------------------------------------------------------------------

@@ -15,16 +15,16 @@ defmodule Cloak.Sql.Compiler.Validation do
   @spec verify_query(Query.t) :: Query.t
   def verify_query(%Query{command: :show} = query), do: query
   def verify_query(%Query{command: :select} = query) do
-    verify_duplicate_tables(query)
-    verify_aggregated_columns(query)
-    verify_group_by_functions(query)
-    verify_non_selected_where_splitters(query)
-    verify_joins(query)
-    verify_where(query)
-    verify_having(query)
-    verify_limit(query)
-    verify_offset(query)
-    verify_sample_rate(query)
+    Helpers.each_subquery(query, &verify_duplicate_tables/1)
+    Helpers.each_subquery(query, &verify_aggregated_columns/1)
+    Helpers.each_subquery(query, &verify_group_by_functions/1)
+    Helpers.each_subquery(query, &verify_non_selected_where_splitters/1)
+    Helpers.each_subquery(query, &verify_joins/1)
+    Helpers.each_subquery(query, &verify_where/1)
+    Helpers.each_subquery(query, &verify_having/1)
+    Helpers.each_subquery(query, &verify_limit/1)
+    Helpers.each_subquery(query, &verify_offset/1)
+    Helpers.each_subquery(query, &verify_sample_rate/1)
     query
   end
 
