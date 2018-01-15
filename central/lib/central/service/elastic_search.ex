@@ -55,10 +55,10 @@ defmodule Central.Service.ElasticSearch do
     end
   end
 
-  if Mix.env == :test do
-    defp record(_index, _type, _data, _timestamp \\ nil), do: :ok
-  else
-    defp record(index, type, data, timestamp \\ Timex.now()) do
+  defp record(index, type, data, timestamp \\ Timex.now()) do
+    if Application.get_env(:central, :simulate_elastic?, false) do
+      :ok
+    else
       elastic_endpoint = Central.site_setting("elastic_search_endpoint")
       url = "#{elastic_endpoint}/#{index}/#{type}"
       data = Map.put(data, :timestamp, Timex.format!(timestamp, "{ISO:Extended:Z}"))
