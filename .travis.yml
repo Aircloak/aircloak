@@ -1,37 +1,5 @@
 sudo: false
 dist: trusty
 language: c
-env:
-  global:
-  - MIX_HOME=$(pwd)/.mix
-  - COMPILER=g++-4.8
-  - CXX="g++-4.8"
-  - CC="gcc-4.8"
-matrix:
-  include:
-    - env: TEST="central"
-      services:
-      - elasticsearch
-      cache:
-        directories:
-        - central/deps
-        - central/_build
-        - central/assets/node_modules
-        - $HOME/.asdf
-        - $HOME/.yarn-cache
-      addons:
-        postgresql: "9.5"
-        mariadb: "10.0"
-        apt:
-          packages:
-          - jq
-        hosts:
-        - travis.aircloak.local
-      before_install:
-      - ./travis-asdf-setup.sh
-      - npm i -g yarn@0.16.1
-before_script:
-  - source travis-before-script.sh
-script:
-  - ./travis-script.sh
 source_key: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFb3dJQkFBS0NBUUVBdk52V1hEZHBhQ2dWbUJNd2x6amVDZyt0U20wRnVMbHkxTTJGclExTk15cGx3RWhsCmRBYXFqUjVMV25PQVJYM2NVcy8wUGVnWUFrQmxlMFptY253ZzVxT2diZ0krRkVEeklsR0NWcU9iQUdtNG9UUVAKa1V1dUhzYng1d25kbENLWFNKbzU3aEpXUlg3bHN0NHhtb2kva01UYWFiZlpDamUyOXNoR2dGZGg2K0JRM242dApFelFOQ243WlRRczV1MXJXd2tjeS9VWE83VFdzK0tMa3o5Si9jZVAzejJLMGtQaFFMQzdtTHhPSXpkRmpobE9uCjFNTDRwNjQ5aVYzTUgzdGZwSGFyc3JidnBQMXd6S253ZTZOSElpeXJ0SExOR1F5TEZKRHBEdDZadStoTzhEbXcKOUhrSjdvajQ2MnZjWFVpRmY4aVBSL1g5Nlh2ZFZNVWJLUTlZalFJREFRQUJBb0lCQUJzRUc2ci9aajIzRmplMQo3d3FDNFFoeGE2bXM1TmVpOTdGSFlTcjdMeUwxbXE2aDdKbG5acmhmTUFwVllYRVBheGdSbFcvUnByV1R2ckNlCnhvTDBETVRSZlY2ZlJZQWlObVdmWVZUQmZLZlhkOGpmcUtaeFBBdzlDMWV3aXBqcFJkamw3d21HWi83ekF5ck8KTEN4ZUNZRk5GNjF0MWtkbTV1NXdnZDFVSXJiYUZkRnE0S2g0aCtyajZub3ROWHlhcStlbUEyNitwd0Z0VjhoUQo4alArcm9OcnFCQ0hsOXVsQko3a0VIaWFIallZOFY2MElYOXVQWDZ4aWhhMHE2dTFMQXZ4WlVEQ2krb3gxU2UrCjg5UFV0UVpwQnFERDVJekdNNGN4cFR0UnNubTdOUSsrb0F4c3doaUZ6RkI0UlN3MEV4bWYxUnRhTmlEZkFzNmkKK2htb0x1VUNnWUVBNlpSRzVJeGJHQ2pZbTBGNkRUUXlyVjVoYm9GWHNEdDRrNkQ5OGZuQ1l1RWJGSy9ySmxTOQpYMGtmY1QwOHIyVDB0aGxXZXJxMmZ3VDY5dllQdWIxRkhjRGpTZ3pHYUpVazFYN2Z1cUN3NURTMTFQVlN3N25qCnA4MDJGbXhnc2o4cndSRHVNZ253KytLRzI2TUZFZHRaeFpjczgzOElHMG9RYk9SUDY4TXozTk1DZ1lFQXp2eWwKNGJpbVVjUm9rdWxxUG1zK3dmaWNvMWNsVUVEejN0VmZJM2lSYkExdlhObllKL0FoUS9UUmZQUmoxck5MdUl5WQpycUVXWExnM2poeTMrKzFlK25PYk5vM1ZUOHplcU1BUXVsTm93OGY0aEdVM3BmVU5oSzE2R3Nlb2V4OXBPRXRpCkhJQmxUbnVrRENCOWt4YmlQQ0tHOGRtMjBtWjdRakVBd2JlTkdSOENnWUJUQXRKTENTS2FySEdHZzdlWGw3Um0KN3NMYm5mWUcrS3U2YzUyc2NHSEgrRTVDaE42aUtiMS9icUpSQVQxZTdCY1gzRnRpbEphay82VWRQWWVMTUJ1dgpIa3pvbFMreUhVY1E1TjBvRzFHaVdLVkNnTWtnTENFZkVvd2xYZkRqaUJYSnNIV21yT2ZLN00rV29SSDlMYUp5CjJXNHRQemtuVWFRU3Z2VTBTWlJWNXdLQmdRRExBUmRnTGsxUTNLVURrVkhXTGpDNjVTNGJOUmt2Z01TdHcrOHYKUnN5NWdPTzcyUndhNzNSd3hlZS8rYUVCclkrU1RMSmljek1QZE0xbjM5ckNocWdrVXNYajEyOWllTGZZSWFkRwpWdy9sRkhjMHdtQzFyNFcybnIybkRqSzdycTd2dTE5YVBNTWZHanhtZUdjd243ejY1WkljR1Q4cFU4R0h4YS9NClRrMWdXUUtCZ0UvRjdHL2dUSHoxYnRUeDRPVDJpdWpDbXJ2bXNwMzVRQk9IWmpTYXBERWNVTWcrd05pRUdIL3UKNTE3NlhCKzJRT0taVlhvWFIxU0g1NTFNMmdpU1JpQitQUGx0SmErNW1tcHVZVXpSSHNYL1FwMkFTbkoxNUd2ZQpraC9iZW45YTNIdnpPVE9MMCtLTndiT05DMW9ReXc4WHU2SzdCakZaa3lnQzQ2S01adUZsCi0tLS0tRU5EIFJTQSBQUklWQVRFIEtFWS0tLS0tCg==
+script: echo done
