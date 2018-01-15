@@ -113,6 +113,15 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
         refute result1.where == result2.where
       end
     end
+
+    for function <- ~w/ceil ceiling floor/ do
+      test "#{function} of integer is removed" do
+        result1 = remove_noops!("SELECT * FROM table WHERE #{unquote(function)}(numeric) = 1", data_source())
+        result2 = remove_noops!("SELECT * FROM table WHERE numeric = 1", data_source())
+
+        assert result1.where == result2.where
+      end
+    end
   end
 
   defp remove_noops!(query, data_source, parameters \\ [], views \\ %{}) do

@@ -57,10 +57,10 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # Removing useless round/trunc
   # -------------------------------------------------------------------
 
+  @round_funcs ~w/round trunc ceil ceiling floor/
   defp remove_redundant_rounds(query), do:
     update_in(query, [Query.Lenses.terminals()], fn
-      %Expression{function: fun, function_args: [expr = %Expression{type: :integer}]} when fun in ~w/round trunc/ ->
-        expr
+      %Expression{function: fun, function_args: [expr = %Expression{type: :integer}]} when fun in @round_funcs -> expr
       other -> other
     end)
 
