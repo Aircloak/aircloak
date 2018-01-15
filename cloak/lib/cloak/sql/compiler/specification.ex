@@ -242,7 +242,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     columns =
         Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
         |> Enum.map(fn({alias, column}) ->
-          DataSource.Table.column(alias, Function.type(column), visible?: column.visible?) end)
+          DataSource.Table.column(alias, Function.type(column), visible?: not column.synthetic?) end)
         |> Enum.uniq()
     keys =
       Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
@@ -610,7 +610,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         subquery
       uid_column ->
         uid_alias = "__implicitly_selected_#{uid_column.table.name}.#{uid_column.name}__"
-        selected_expression = %Expression{uid_column | alias: uid_alias, visible?: false, synthetic?: true}
+        selected_expression = %Expression{uid_column | alias: uid_alias, synthetic?: true}
         %Query{subquery |
           columns: subquery.columns ++ [selected_expression],
           column_titles: subquery.column_titles ++ [uid_alias]
