@@ -100,10 +100,13 @@ defmodule Cloak.Sql.Compiler.Validation do
     end
   end
 
-  defp invalid_individual_columns(query), do:
-    if Helpers.aggregate?(query),
-      do: query |> Query.bucket_columns() |> Enum.filter(&individual_column?(query, &1)),
-      else: []
+  defp invalid_individual_columns(query) do
+    if Helpers.aggregate?(query) do
+      query |> Query.bucket_columns() |> Enum.reject(& &1.synthetic?) |> Enum.filter(&individual_column?(query, &1))
+    else
+      []
+    end
+  end
 
   defp individual_column?(query, column), do:
     not Expression.constant?(column) and not Helpers.aggregated_column?(query, column)
@@ -164,7 +167,7 @@ defmodule Cloak.Sql.Compiler.Validation do
       Lenses.joined_subqueries(),
       query,
       fn(joined_subquery) ->
-        unless Enum.any?(joined_subquery.ast.columns, &(&1.user_id? && &1.visible?)), do:
+        unless Enum.any?(joined_subquery.ast.columns, &(&1.user_id? && not &1.synthetic?)), do:
           raise CompilationError,
             message: "There is no user id column in the subquery `#{joined_subquery.alias}`."
       end
