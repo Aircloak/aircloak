@@ -1,0 +1,10 @@
+FROM aircloak/phoenix:$NODEJS_VERSION
+MAINTAINER Aircloak
+
+# needed for flow
+RUN apt-get update && apt-get install -y libelf-dev
+
+ENV CI=true
+ENV DEPLOY_CONFIG=dockerized_ci
+
+WORKDIR /aircloak/central

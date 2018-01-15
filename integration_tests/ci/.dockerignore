@@ -1,0 +1,4 @@
+# ignore everything by default
+*
+
+!cloak/priv/odbc/odbc.ini

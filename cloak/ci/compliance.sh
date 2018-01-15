@@ -69,11 +69,12 @@ container_id="local_ci_$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c
 docker_script build_image
 
 docker_script start_container $container_id
-DOCKER_EXEC_ARGS="-t" docker_script prepare_for_compliance $container_id
+DOCKER_ARGS="-t" docker_script run_in_container $container_id make deps
+DOCKER_ARGS="-t" docker_script prepare_for_compliance $container_id
 
 printf "\ngenerating users...\n"
-DOCKER_EXEC_ARGS="-t" docker_script run_in_container $container_id \
+DOCKER_ARGS="-t" docker_script run_in_container $container_id \
   MIX_ENV=test mix gen.test_data dockerized_ci ${COMPLIANCE_USERS:-10}
 
 printf "\nyou can invoke compliance tests with \`mix test --only compliance\`\n\n"
-DOCKER_EXEC_ARGS="-t" docker_script run_in_container $container_id "/bin/bash"
+DOCKER_ARGS="-t" docker_script run_in_container $container_id "/bin/bash"
