@@ -21,15 +21,24 @@
         {Credo.Check.Readability.MaxLineLength, max_length: 120},
         {Credo.Check.Readability.VariableNames},
         {Credo.Check.Refactor.FunctionArity, false},
+        {Credo.Check.Refactor.CyclomaticComplexity, false},
+        {Credo.Check.Warning.NameRedeclarationByDef, false},
+        {Credo.Check.Warning.NameRedeclarationByFn, false},
+        {Credo.Check.Warning.NameRedeclarationByCase, false},
+        {Credo.Check.Warning.NameRedeclarationByAssignment, false},
+        {Credo.Check.Design.AliasUsage, false},
+        {Credo.Check.Refactor.PipeChainStart, false},
+        {Credo.Check.Refactor.ABCSize, false},
+        {Credo.Check.Refactor.Nesting, false},
         {Credo.Check.Design.DuplicatedCode, false},
         {Credo.Check.Warning.IExPry},
         {Credo.Check.Warning.IoInspect}
       ] ++ case Mix.env do
-        :dev ->
-          [
-            {Credo.Check.Readability.ModuleDoc}
-          ]
-        :test -> []
+        :dev -> []
+        :test ->
+        [
+          {Credo.Check.Readability.ModuleDoc, false},
+        ]
       end
     }
   ]
