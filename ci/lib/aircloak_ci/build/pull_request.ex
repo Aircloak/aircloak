@@ -45,12 +45,12 @@ defmodule AircloakCI.Build.PullRequest do
 
   @impl Build.Server
   def init(nil, state), do:
-    {:ok, state}
+    {:ok, report_mergeable(%{state | data: %{mergeable_message: nil}})}
 
   @impl Build.Server
   def handle_source_change(state) do
     state = maybe_start_ci(state)
-    maybe_report_mergeable(state)
+    report_mergeable(state)
     {:noreply, state}
   end
 
@@ -74,37 +74,69 @@ defmodule AircloakCI.Build.PullRequest do
 
   defp maybe_start_ci(%{compiled?: false} = state), do: state
   defp maybe_start_ci(%{compiled?: true} = state) do
-    if state.source.mergeable? and state.source.merge_sha != nil,
+    if state.source.merge_state == :mergeable and state.source.merge_sha != nil,
       do: state |> Job.Compliance.run() |> Job.Test.run(),
       else: state
   end
 
-  defp maybe_report_mergeable(state) do
-    if \
-      state.compiled? and
-      state.source.mergeable? and
-      state.source.approved? and
-      ci_checks_succeeded?(state) and
-      Enum.empty?(Build.Server.running_jobs(state)) and
-      not LocalProject.finished?(state.project, "report_mergeable"),
-      do: report_mergeable(state)
-  end
-
   defp report_mergeable(state) do
-    Github.comment_on_issue(state.source.repo.owner, state.source.repo.name, state.source.number, merge_message())
-    LocalProject.mark_finished(state.project, "report_mergeable")
+    {status, message} =
+      with :ok <- check_mergeable(state),
+           :ok <- check_compiled(state),
+           :ok <- check_required_statuses(state),
+           :ok <- check_approved(state),
+        do: {:success, "pull request can be merged"}
+
+    if status == :success and not LocalProject.finished?(state.project, "report_mergeable") do
+      merge_message = "Pull request can be merged #{AircloakCI.Emoji.happy()}"
+      Github.comment_on_issue(state.source.repo.owner, state.source.repo.name, state.source.number, merge_message)
+      LocalProject.mark_finished(state.project, "report_mergeable")
+    end
+
+    if message != state.data.mergeable_message do
+      Github.put_status_check_state(
+        state.source.repo.owner,
+        state.source.repo.name,
+        state.source.sha,
+        "continuous-integration/aircloak/mergeable",
+        message,
+        status
+      )
+      put_in(state.data.mergeable_message, message)
+    else
+      state
+    end
   end
 
-  defp merge_message(), do:
-    "Pull request can be merged #{AircloakCI.Emoji.happy()}"
+  defp check_compiled(%{compiled?: true}), do: :ok
+  defp check_compiled(%{compiled?: false}), do: {:pending, "compiling project"}
 
-  defp ci_checks_succeeded?(state), do:
-    state
-    |> required_ci_checks()
-    |> Stream.map(&state.source.status_checks[&1][:status])
-    |> Enum.all?(&(&1 == :success))
+  defp check_mergeable(%{source: %{merge_state: :mergeable}}), do: :ok
+  defp check_mergeable(%{source: %{merge_state: :unknown}}), do: {:pending, "computing mergeability"}
+  defp check_mergeable(%{source: %{merge_state: :conflicting}}), do: {:error, "there are merge conflicts"}
 
-  defp required_ci_checks(state), do:
+  defp check_approved(%{source: %{approved?: true}}), do: :ok
+  defp check_approved(%{source: %{approved?: false}}), do: {:pending, "waiting for approval"}
+
+  defp check_required_statuses(state) do
+    statuses =
+      state
+      |> required_statuses()
+      |> Enum.map(&{Map.get(state.source.status_checks, &1, %{status: :pending}).status, &1})
+
+    cond do
+      Enum.all?(statuses, &match?({:success, _}, &1)) -> :ok
+
+      Enum.any?(statuses, fn {status, _} -> status in [:error, :failure] end) ->
+        {:error, "some checks have failed"}
+
+      true ->
+        [{_, name} | _] = Enum.reject(statuses, fn {status, _} -> status in [:success, :error, :failure] end)
+        {:pending, "waiting for #{String.replace(name, ~r[^continuous\-integration\/], "")}"}
+    end
+  end
+
+  defp required_statuses(state), do:
     [
       "continuous-integration/travis-ci/pr",
       "continuous-integration/aircloak/compliance" |
