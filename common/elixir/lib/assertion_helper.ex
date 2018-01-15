@@ -4,7 +4,7 @@ defmodule Aircloak.AssertionHelper do
   """
 
   @doc """
-  Executed until it succeeds or up to a total of 10 attempts with a total timeout of `timeout'.
+  Executed until it succeeds or up to a total of 10 attempts with a total timeout of `timeout`.
 
   Usage:
 

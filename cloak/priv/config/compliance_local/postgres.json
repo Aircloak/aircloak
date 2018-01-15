@@ -1,1 +1,10 @@
-../compliance_all/postgres.json
+{
+  "driver": "postgresql",
+  "name": "postgresql",
+  "parameters": {
+    "hostname": "localhost",
+    "username": "root",
+    "database": "compliance"
+  },
+  "tables": []
+}

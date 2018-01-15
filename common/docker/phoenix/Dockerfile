@@ -29,5 +29,8 @@ RUN \
   apt-key adv --fetch-keys http://dl.yarnpkg.com/debian/pubkey.gpg && \
   echo "deb http://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
   apt-get update && \
-  apt-get install python yarn -y && \
-  bash -c ". ~/.bashrc && yarn global add brunch"
+  apt-get install python yarn -y
+
+CONFIG_YARN_PROXY
+
+RUN bash -c ". ~/.bashrc && yarn global add brunch"
