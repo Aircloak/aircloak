@@ -234,11 +234,22 @@ function dockerfile_content {
         echo "RUN echo '$SYSTEM_VERSION' > /tmp/VERSION"
         ;;
 
+      # We need to configure proxy for yarn in a specific way.
+      CONFIG_YARN_PROXY)
+        echo "$(config_yarn_proxy)"
+        ;;
+
       *)
         echo $line
         ;;
     esac
   done
+}
+
+function config_yarn_proxy {
+  if [ "$MPI" == "true" ]; then
+    echo 'RUN bash -c ". ~/.asdf/asdf.sh && yarn config set proxy http://acmirror.mpi-sws.org:3128/ && yarn config set https-proxy http://acmirror.mpi-sws.org:3128/"'
+  fi
 }
 
 function mpi_init {
@@ -509,15 +520,17 @@ function reachable_heads {
 }
 
 function remove_old_git_head_image_tags {
-  # For the given image, removes all version tags which do not correspond to the reachable local or remote HEAD,
-  # including pending pull requests.
+  if [ "$PREVENT_OLD_IMAGE_REMOVAL" != "true" ]; then
+    # For the given image, removes all version tags which do not correspond to the reachable local or remote HEAD,
+    # including pending pull requests.
 
-  image=$1
-  known_heads=$(reachable_heads | uniq)
-  for existing_version in $(docker images | grep $image | awk '{print $2}' | grep 'git_sha_'); do
-    if [[ ! "$known_heads" =~ "$existing_version" ]]; then
-      echo "removing image tag for $image:$existing_version"
-      docker rmi $image:$existing_version || true
-    fi
-  done
+    image=$1
+    known_heads=$(reachable_heads | uniq)
+    for existing_version in $(docker images | grep $image | awk '{print $2}' | grep 'git_sha_'); do
+      if [[ ! "$known_heads" =~ "$existing_version" ]]; then
+        echo "removing image tag for $image:$existing_version"
+        docker rmi $image:$existing_version || true
+      fi
+    done
+  fi
 }
