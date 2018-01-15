@@ -67,9 +67,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
   """
   @spec apply_bottom_up(q, (q -> q)) :: q when q: Query.t | Parser.parsed_query
   def apply_bottom_up(query, function), do:
-    query
-    |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &apply_bottom_up(&1, function))
-    |> function.()
+    update_in(query, [Query.Lenses.all_queries()], function)
 
   @doc """
   Updates the query and all its subqueries with the given function. Starts from the top-level query going down.
@@ -81,12 +79,11 @@ defmodule Cloak.Sql.Compiler.Helpers do
     |> update_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &apply_top_down(&1, function))
 
   @doc "Runs the given function for its side-effects on the given query and all of its subqueries."
-  @spec each_subquery(q, (q -> any)) :: q when q: Query.t | Parser.parsed_query
-  def each_subquery(query, function), do:
-    apply_bottom_up(query, fn(subquery) ->
-      function.(subquery)
-      subquery
-    end)
+  @spec each_subquery(q, (q -> any)) :: :ok when q: Query.t | Parser.parsed_query
+  def each_subquery(query, function) do
+    Lens.each(Query.Lenses.all_queries(), query, function)
+    :ok
+  end
 
 
   # -------------------------------------------------------------------

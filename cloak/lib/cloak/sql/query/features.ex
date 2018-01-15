@@ -96,7 +96,7 @@ defmodule Cloak.Sql.Query.Features do
   defp extract_column(%Expression{} = column), do: [column]
 
   defp extract_decoders(query) do
-    Lens.both(Lens.root(), Query.Lenses.subqueries() |> Lens.key(:ast))
+    Query.Lenses.all_queries()
     |> Query.Lenses.query_expressions()
     |> Lens.satisfy(&match?(%Expression{function?: false, constant?: false, table: %{decoders: [_|_]}}, &1))
     |> Lens.satisfy(&decoded?/1)
