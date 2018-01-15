@@ -37,7 +37,9 @@ defmodule Cloak.Sql.Compiler.Normalization do
   """
   @spec remove_noops(Query.t) :: Query.t
   def remove_noops(query), do:
-    remove_redundant_casts(query)
+    query
+    |> remove_redundant_casts()
+    |> remove_redundant_rounds()
 
 
   # -------------------------------------------------------------------
@@ -47,6 +49,18 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp remove_redundant_casts(query), do:
     update_in(query, [Query.Lenses.terminals()], fn
       %Expression{function: {:cast, type}, function_args: [expr = %Expression{type: type}]} -> expr
+      other -> other
+    end)
+
+
+  # -------------------------------------------------------------------
+  # Removing useless round/trunc
+  # -------------------------------------------------------------------
+
+  defp remove_redundant_rounds(query), do:
+    update_in(query, [Query.Lenses.terminals()], fn
+      %Expression{function: fun, function_args: [expr = %Expression{type: :integer}]} when fun in ~w/round trunc/ ->
+        expr
       other -> other
     end)
 

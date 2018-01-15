@@ -90,12 +90,28 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     end
   end
 
-  describe "removing useless casts" do
+  describe "remove_noops" do
     test "a cast of integer to integer" do
       result1 = remove_noops!("SELECT * FROM table WHERE cast(numeric AS integer) = 1", data_source())
       result2 = remove_noops!("SELECT * FROM table WHERE numeric = 1", data_source())
 
       assert result1.where == result2.where
+    end
+
+    for function <- ~w/round trunc/ do
+      test "#{function} of integer without precision is removed" do
+        result1 = remove_noops!("SELECT * FROM table WHERE #{unquote(function)}(numeric) = 1", data_source())
+        result2 = remove_noops!("SELECT * FROM table WHERE numeric = 1", data_source())
+
+        assert result1.where == result2.where
+      end
+
+      test "#{function} of integer with precision isn't removed" do
+        result1 = remove_noops!("SELECT * FROM table WHERE #{unquote(function)}(numeric, 0) = 1", data_source())
+        result2 = remove_noops!("SELECT * FROM table WHERE numeric = 1", data_source())
+
+        refute result1.where == result2.where
+      end
     end
   end
 
@@ -105,6 +121,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     parsed
     |> Cloak.Sql.Compiler.ASTNormalization.normalize()
     |> Cloak.Sql.Compiler.Specification.compile(data_source, parameters, views)
+    |> Cloak.Sql.Compiler.Validation.verify_query()
     |> Cloak.Sql.Compiler.Normalization.remove_noops()
   end
 
