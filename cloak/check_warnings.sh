@@ -3,6 +3,7 @@
 set -eo pipefail
 
 # --all-warnings prints all warnings to stderr, but returns exit status 0, so we need to capture it and analyze
+mix compile
 warnings=$(mix compile --all-warnings 2>&1 > /dev/null)
 
 if [ "$warnings" != "" ]; then
