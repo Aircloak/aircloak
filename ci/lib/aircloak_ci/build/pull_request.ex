@@ -138,7 +138,6 @@ defmodule AircloakCI.Build.PullRequest do
 
   defp required_statuses(state), do:
     [
-      "continuous-integration/travis-ci/pr",
       "continuous-integration/aircloak/compliance" |
       state.project |> LocalProject.components() |> Enum.map(&"continuous-integration/aircloak/#{&1}_test")
     ]

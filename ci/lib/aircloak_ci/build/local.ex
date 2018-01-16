@@ -78,7 +78,7 @@ defmodule AircloakCI.Build.Local do
       sha: String.trim(to_string(:os.cmd('git rev-parse HEAD'))),
       merge_sha: String.trim(to_string(:os.cmd('git rev-parse HEAD'))),
       merge_state: :mergeable,
-      status_checks: %{"continuous-integration/travis-ci/pr" => %{status: :success, description: ""}},
+      status_checks: %{},
       approved?: true
     }
 
