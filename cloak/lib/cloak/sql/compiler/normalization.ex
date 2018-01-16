@@ -37,8 +37,8 @@ defmodule Cloak.Sql.Compiler.Normalization do
   @spec remove_noops(Query.t) :: Query.t
   def remove_noops(query), do:
     query
-    |> remove_redundant_casts()
-    |> remove_redundant_rounds()
+    |> Helpers.apply_bottom_up(&remove_redundant_casts/1)
+    |> Helpers.apply_bottom_up(&remove_redundant_rounds/1)
 
 
   # -------------------------------------------------------------------

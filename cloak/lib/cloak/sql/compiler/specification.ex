@@ -3,7 +3,7 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   alias Cloak.DataSource
   alias Cloak.Sql.{Condition, CompilationError, Expression, Function, Query}
-  alias Cloak.Sql.Compiler.{Helpers, Normalization, Validation}
+  alias Cloak.Sql.Compiler.{Helpers, Validation}
   alias Cloak.Sql.Query.Lenses
 
 
@@ -46,7 +46,6 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> compile_columns()
     |> compile_references()
     |> cast_where_clauses()
-    |> Normalization.remove_noops()
 
 
   # -------------------------------------------------------------------
