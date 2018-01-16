@@ -122,7 +122,6 @@ defmodule Cloak.SapHanaHelpers do
   @doc "Deletes old test schemas from the database."
   @spec delete_test_schemas() :: :ok
   def delete_test_schemas() do
-    # Note: checking for CI instead of TRAVIS env, to allow local `make test_all` to work.
     if System.get_env("CI") == "true" do
       {:ok, conn} =
         Application.fetch_env!(:cloak, :sap_hana)
@@ -153,11 +152,7 @@ defmodule Cloak.SapHanaHelpers do
   # -------------------------------------------------------------------
 
   defp driver_option() do
-    if System.get_env("TRAVIS") == "true" do
-      [dsn: "SAPHANA"]
-    else
-      [driver: "#{Application.app_dir(:cloak, "priv/odbc/drivers")}/libodbc-sap-hana-v2.so"]
-    end
+    [driver: "#{Application.app_dir(:cloak, "priv/odbc/drivers")}/libodbc-sap-hana-v2.so"]
   end
 
   defp table_exists?(conn, schema_name, table_name), do:

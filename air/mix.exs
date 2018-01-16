@@ -90,6 +90,7 @@ defmodule Air.Mixfile do
       {:remote_ip, "~> 0.1.0"},
       {:ecto_enum, "~> 1.0.0"},
       {:jiffy, "~> 0.14.1"},
+      {:bom, path: "../bom", runtime: false, only: :dev},
     ]
   end
 

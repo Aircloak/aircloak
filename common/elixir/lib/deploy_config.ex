@@ -9,9 +9,8 @@ defmodule Aircloak.DeployConfig do
 
   The parameters are fetched from files which are residing in the `priv/config`
   folder of the caller app. The name of the file is obtained from the
-  `:deploy_config_file` configuration of the application. In test environment on
-  travis the file `travis.json` is used. For integration tests on travis, the file
-  `integration_tests.json` is used.
+  `DEPLOY_CONFIG` OS environment variable,or `:deploy_config_file` configuration of
+  the application.
 
   You shouldn't keep production config file in the repository, because it is
   specific for each deployment. In contrast, test and development configurations
@@ -81,18 +80,10 @@ defmodule Aircloak.DeployConfig do
   end
 
   defp config_file_name(app) do
-    case {
-      Application.fetch_env!(:aircloak_common, :env),
-      System.get_env("TRAVIS"),
-      System.get_env("INTEGRATION_TEST"),
-      System.get_env("PERFORMANCE_TEST"),
-      System.get_env("DEPLOY_CONFIG"),
-    } do
-      {_, _, _, _, config} when config != nil -> "#{config}.json"
-      {_, _, _, "true", _} -> "performance_tests.json"
-      {:test, "true", "true", _, _} -> "integration_tests.json"
-      {:test, "true", _, _, _} -> "travis.json"
-      _ -> Application.fetch_env!(app, :deploy_config_file)
+    cond do
+      (config = System.get_env("DEPLOY_CONFIG")) != nil -> "#{config}.json"
+      System.get_env("PERFORMANCE_TEST") == "true" -> "performance_tests.json"
+      true -> Application.fetch_env!(app, :deploy_config_file)
     end
   end
 end

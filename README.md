@@ -1,9 +1,6 @@
 Aircloak
 ========
 
-[![Build
-Status](https://travis-ci.com/Aircloak/aircloak.svg?token=SwtqZyez24jMwX5xQx9U&branch=develop)](https://magnum.travis-ci.com/Aircloak/aircloak)
-
 This repository contains the entirety of the Aircloak system.
 A system that allows databases to be queried while enforcing
 the anonymity of the individuals in the dataset.
@@ -17,7 +14,7 @@ There are two main components:
 
 You need to have Erlang, Elixir, and NodeJS installed. The required versions are stated in [this file](.tool-versions).
 Please use the [asdf version manager](https://github.com/asdf-vm/asdf) to install the correct versions. `asdf` is also
-used on travis as well as when building docker containers.
+used on CI as well as when building docker containers.
 This way you can ensure the version you are using locally is the same as the one being used in production and during testing.
 You need to install [asdf](https://github.com/asdf-vm/asdf), together with the [Erlang](https://github.com/asdf-vm/asdf-erlang),
 [Elixir](https://github.com/asdf-vm/asdf-elixir),

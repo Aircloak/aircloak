@@ -726,7 +726,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "offset requires limit in subqueries" do
     assert {:error, error} = compile("select count(*) from (select * from table order by numeric offset 20) foo",
       data_source())
-    assert error =~ ~r/Subquery `foo` has an OFFSET clause without a LIMIT clause/
+    assert error =~ ~r/Subquery has an `OFFSET` clause without a `LIMIT` clause/
   end
 
   test "offset must be a multiple of limit post-alignment" do
@@ -760,7 +760,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "rejects `or` conditions" do
     {:error, error} = compile("select * from table where numeric = 1 or numeric = 2", data_source())
-    assert error == "Combining conditions with `OR` is not allowed."
+    assert error =~ ~r/Combining conditions with `OR` is not allowed./
   end
 
   test "rejects `FULL OUTER JOINs`" do
@@ -798,7 +798,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "view is treated as a subquery" do
     assert {:error, error} = compile("select numeric from table_view", data_source(),
-      views: %{"table_view" => "select numeric from table"})
+      views: %{"table_view" => "select numeric from table group by numeric"})
 
     assert error =~ ~r/Missing a user id column in the select list of subquery `table_view`./
   end

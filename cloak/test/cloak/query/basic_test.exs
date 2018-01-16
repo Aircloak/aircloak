@@ -1101,6 +1101,16 @@ defmodule Cloak.Query.BasicTest do
     )
   end
 
+  test "unary NOT" do
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height", "male"], [160, true])
+    :ok = insert_rows(_user_ids = 1..5, "heights", ["height", "male"], [160, false])
+
+    assert_query(
+      "SELECT count(*) from heights where NOT (height <> 160 OR male <> true)",
+      %{rows: [%{row: [20]}]}
+    )
+  end
+
   describe "cast boolean" do
     setup do
       :ok = insert_rows(_user_ids = 1..10, "heights", ["height", "name", "male"], [1, "true", true])

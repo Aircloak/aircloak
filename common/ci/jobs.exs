@@ -2,18 +2,18 @@ test = fn
   :test ->
     {:sequence, [
       "MIX_ENV=test ./check_warnings.sh",
-      {:parallel, ["MIX_ENV=test mix lint", {:sequence, ["MIX_ENV=test mix recreate_db", "mix test"]}]}
+      {:parallel, [
+        "MIX_ENV=test mix lint",
+        "MIX_ENV=test mix test"
+      ]}
     ]}
 
   :dev ->
     {:sequence, [
       "MIX_ENV=dev ./check_warnings.sh",
       {:parallel, [
-        "make docs",
-        "make eslint",
-        "make flow",
+        "mix docs",
         "mix lint",
-        "mix bom --elixir deps --node assets/node_modules /tmp",
         "MIX_HOME=_build make dialyze",
       ]}
     ]}

@@ -59,7 +59,9 @@ defmodule Cloak.Mixfile do
       {:triq, github: "triqng/triq", only: :test},
 
       # Only used for perf tests
-      {:httpoison, "~> 0.13.0", runtime: false},
+      {:httpoison, "~> 0.13.0", runtime: false, override: true},
+
+      {:bom, path: "../bom", runtime: false, only: :dev},
     ]
   end
 

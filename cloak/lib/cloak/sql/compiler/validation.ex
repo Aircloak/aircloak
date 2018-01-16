@@ -36,14 +36,6 @@ defmodule Cloak.Sql.Compiler.Validation do
     function
   end
 
-  @doc "Checks that the subquery specification is valid."
-  @spec verify_subquery(Query.t, String.t) :: Query.t
-  def verify_subquery(subquery, alias) do
-    verify_subquery_uid(subquery, alias)
-    verify_subquery_offset(subquery, alias)
-    subquery
-  end
-
 
   # -------------------------------------------------------------------
   # Duplicate tables
@@ -243,7 +235,10 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_where(query), do: verify_where_clauses(query.where)
 
   defp verify_condition_tree({:or, _, _}), do:
-    raise CompilationError, message: "Combining conditions with `OR` is not allowed."
+    raise CompilationError, message:
+      "Combining conditions with `OR` is not allowed. Note that an `OR` condition may " <>
+      "arise when negating an `AND` condition. For example `NOT (x = 1 AND y = 2)` is equivalent to " <>
+      "`x <> 1 OR y <> 2`."
   defp verify_condition_tree({:and, lhs, rhs}) do
     verify_condition_tree(lhs)
     verify_condition_tree(rhs)
@@ -312,36 +307,13 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_offset(%Query{order_by: [], offset: amount}) when amount > 0, do:
     raise CompilationError, message: "Using the `OFFSET` clause requires the `ORDER BY` clause to be specified."
+  defp verify_offset(%Query{offset: offset, limit: nil, subquery?: true}) when offset > 0, do:
+    raise CompilationError, message: "Subquery has an `OFFSET` clause without a `LIMIT` clause."
   defp verify_offset(_query), do: :ok
 
   defp verify_sample_rate(%Query{sample_rate: amount}) when is_integer(amount) and (amount < 0 or amount > 100), do:
     raise CompilationError, message: "The `SAMPLE` clause expects an integer value between 1 and 100."
   defp verify_sample_rate(_query), do: :ok
-
-
-  # -------------------------------------------------------------------
-  # Subqueries
-  # -------------------------------------------------------------------
-
-  defp verify_subquery_uid(subquery, alias) do
-    unless Helpers.uid_column_selected?(subquery) do
-      possible_uid_columns =
-        Helpers.all_id_columns_from_tables(subquery)
-        |> Enum.map(&Expression.display_name/1)
-        |> case do
-          [column] -> "the column #{column}"
-          columns -> "one of the columns #{Enum.join(columns, ", ")}"
-        end
-
-      raise CompilationError, message:
-        "Missing a user id column in the select list of #{"subquery `#{alias}`"}. " <>
-        "To fix this error, add #{possible_uid_columns} to the subquery select list."
-    end
-  end
-
-  defp verify_subquery_offset(%{offset: offset, limit: limit}, alias) when is_nil(limit) and offset > 0, do:
-    raise CompilationError, message: "Subquery `#{alias}` has an OFFSET clause without a LIMIT clause."
-  defp verify_subquery_offset(subquery, _), do: subquery
 
 
   # -------------------------------------------------------------------

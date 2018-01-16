@@ -155,6 +155,15 @@ defmodule Cloak.Sql.Query.Lenses do
       _ -> Lens.root()
     end)
 
+  @doc "Lens focusing on all conditions, both leaf and intermediate nodes (AND, OR, NOT)."
+  deflens all_conditions(), do:
+    Lens.match(fn
+      {:or, _, _} -> Lens.multiple([Lens.at(1) |> all_conditions(), Lens.at(2) |> all_conditions(), Lens.root()])
+      {:and, _, _} -> Lens.multiple([Lens.at(1) |> all_conditions(), Lens.at(2) |> all_conditions(), Lens.root()])
+      {:not, _} -> Lens.both(Lens.at(1) |> all_conditions(), Lens.root())
+      _ -> Lens.root()
+    end)
+
   @doc "Lens focusing on all conditions in joins."
   deflens join_conditions(), do: joins() |> Lens.key(:conditions)
 

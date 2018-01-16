@@ -50,6 +50,7 @@ defmodule Cloak.Sql.Compiler do
       |> Compiler.Optimizer.optimize()
       |> Compiler.Execution.prepare()
       |> Compiler.Normalization.normalize()
+      |> Query.set_emulation_flag()
 
     {final_query, %{features | emulated: final_query.emulated?}}
   end

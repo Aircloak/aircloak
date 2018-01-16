@@ -163,7 +163,10 @@ defmodule AircloakCI.Container do
     |> Enum.each(&os_cmd_with_timeout("docker volume rm #{&1}"))
 
   defp connected(network), do:
-    os_cmd("docker network inspect #{network} --format '{{range $key, $value := .Containers}} {{println $key}} {{end}}'")
+    os_cmd(
+      "docker network inspect #{network} " <>
+      "--format '{{range $key, $value := .Containers}} {{println $key}} {{end}}'"
+    )
 
   defp start_cleaner(container_name) do
     owner = self()

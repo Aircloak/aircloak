@@ -11,7 +11,7 @@ defmodule AircloakCI.Build.Local do
     repo: Github.API.repo,
     sha: String.t,
     merge_sha: String.t,
-    mergeable?: boolean,
+    merge_state: Github.API.merge_state,
     status_checks: Github.API.statuses,
     approved?: boolean
   }
@@ -77,8 +77,8 @@ defmodule AircloakCI.Build.Local do
       repo: %{owner: repo_data.owner, name: repo_data.name},
       sha: String.trim(to_string(:os.cmd('git rev-parse HEAD'))),
       merge_sha: String.trim(to_string(:os.cmd('git rev-parse HEAD'))),
-      mergeable?: true,
-      status_checks: %{"continuous-integration/travis-ci/pr" => %{status: :success, description: ""}},
+      merge_state: :mergeable,
+      status_checks: %{},
       approved?: true
     }
 
