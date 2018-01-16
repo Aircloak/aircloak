@@ -76,7 +76,7 @@ defmodule AircloakCI.CmdRunner do
     {:stop, :shutdown, state}
   end
   def handle_info({:DOWN, owner_mref, :process, _pid, _reason}, %{owner_mref: owner_mref} = state) do
-    :exec.stop(state.pid)
+    exec_mod().stop(state.pid)
     {:stop, :shutdown, nil}
   end
   def handle_info(other, state), do:
@@ -104,11 +104,13 @@ defmodule AircloakCI.CmdRunner do
     log_output("aircloak_ci: `#{cmd}`\n", opts)
     print_output = fn(_stdout_or_err, _os_pid, output) -> log_output(output, opts) end
 
-    {:ok, pid, _os_pid} = :exec.run_link(to_charlist(cmd),
+    {:ok, pid, _os_pid} = exec_mod().run_link(to_charlist(cmd),
       [stdout: print_output, stderr: print_output] ++ Keyword.take(opts, [:kill_timeout, :cd]))
 
     pid
   end
+
+  defp exec_mod(), do: Application.fetch_env!(:aircloak_ci, :exec_mod)
 
   defp log_output(output, opts) do
     case Keyword.fetch(opts, :logger) do
