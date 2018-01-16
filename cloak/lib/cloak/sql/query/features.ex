@@ -14,7 +14,7 @@ defmodule Cloak.Sql.Query.Features do
       num_db_columns: num_db_columns(query.columns),
       num_tables: num_tables(query.selected_tables),
       num_group_by: num_group_by(query),
-      functions: extract_functions(query.columns),
+      functions: extract_functions(query),
       where_conditions: extract_where_conditions(query.where),
       column_types: extract_column_types(query.columns),
       selected_types: selected_types(query.columns),
@@ -48,16 +48,14 @@ defmodule Cloak.Sql.Query.Features do
 
   defp num_group_by(%{group_by: clauses}), do: length(clauses)
 
-  defp extract_functions([:*]), do: []
-  defp extract_functions(columns), do:
-    columns
-    |> Enum.flat_map(&extract_function/1)
+  defp extract_functions(query), do:
+    query
+    |> get_in([Query.Lenses.terminals()])
+    |> Enum.flat_map(fn
+      %Expression{function?: true, function: function} -> [Function.readable_name(function)]
+      _ -> []
+    end)
     |> Enum.uniq()
-
-  defp extract_function(%Expression{function?: true, function: function, function_args: args}), do:
-    [Function.readable_name(function) | extract_functions(args)]
-  defp extract_function(%Expression{}), do: []
-  defp extract_function({:distinct, param}), do: extract_function(param)
 
   defp extract_where_conditions(clause), do:
     Query.Lenses.conditions()

@@ -66,8 +66,12 @@ defmodule Cloak.Sql.QueryTest do
     assert %{functions: ["abs", "cast"]} = features_from("SELECT abs(height), CAST(height AS text) FROM feat_users")
   end
 
+  test "extracts types of functions used - function used in WHERE" do
+    assert %{functions: ["sqrt"]} = features_from("SELECT * FROM feat_users WHERE sqrt(height) = 10")
+  end
+
   test "extracts types of functions used - multiple functions used" do
-    assert %{functions: ["min", "sqrt"]} = features_from("SELECT min(sqrt(height)) FROM feat_users")
+    assert ["min", "sqrt"] = features_from("SELECT min(sqrt(height)) FROM feat_users").functions |> Enum.sort()
   end
 
   test "extracts types of functions used - deduplicates functions used" do
