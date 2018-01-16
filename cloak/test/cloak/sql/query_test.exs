@@ -230,37 +230,6 @@ defmodule Cloak.Sql.QueryTest do
     assert error == "The type for parameter `$1` cannot be determined."
   end
 
-  defp describe_query(statement, parameters \\ nil), do:
-    Query.describe_query(hd(Cloak.DataSource.all()), statement, parameters, %{})
-
-  defp validate_view(name, sql, views \\ %{}) do
-    [first_ds | rest_ds] = Cloak.DataSource.all()
-    result = Query.validate_view(first_ds, name, sql, views)
-    Enum.each(rest_ds, &assert(result == Query.validate_view(&1, name, sql, views)))
-    result
-  end
-
-  defp features_from(statement) do
-    [first_ds | rest_ds] = Cloak.DataSource.all()
-    {query, features} = make_query(first_ds, statement)
-
-    for data_source <- rest_ds do
-      {other_query, other_features} = make_query(data_source, statement)
-      assert Map.drop(query, [:features]) == Map.drop(other_query, [:features])
-      assert Map.drop(features, [:driver, :driver_dialect]) == Map.drop(other_features, [:driver, :driver_dialect])
-    end
-
-    features
-  end
-
-  defp make_query(data_source, statement) do
-    {query, features} = Query.make!(data_source, statement, [], %{})
-    {
-      scrub_data_sources(query),
-      features
-    }
-  end
-
   test "db_columns resolving simple column" do
     uid_column = Table.column("uid", :integer)
     string_column = Table.column("string", :text)
@@ -318,5 +287,36 @@ defmodule Cloak.Sql.QueryTest do
 
     assert ^condition = Query.emulated_where(query)
     assert nil == Query.offloaded_where(query)
+  end
+
+  defp make_query(data_source, statement) do
+    {query, features} = Query.make!(data_source, statement, [], %{})
+    {
+      scrub_data_sources(query),
+      features
+    }
+  end
+
+  defp describe_query(statement, parameters \\ nil), do:
+    Query.describe_query(hd(Cloak.DataSource.all()), statement, parameters, %{})
+
+  defp validate_view(name, sql, views \\ %{}) do
+    [first_ds | rest_ds] = Cloak.DataSource.all()
+    result = Query.validate_view(first_ds, name, sql, views)
+    Enum.each(rest_ds, &assert(result == Query.validate_view(&1, name, sql, views)))
+    result
+  end
+
+  defp features_from(statement) do
+    [first_ds | rest_ds] = Cloak.DataSource.all()
+    {query, features} = make_query(first_ds, statement)
+
+    for data_source <- rest_ds do
+      {other_query, other_features} = make_query(data_source, statement)
+      assert Map.drop(query, [:features]) == Map.drop(other_query, [:features])
+      assert Map.drop(features, [:driver, :driver_dialect]) == Map.drop(other_features, [:driver, :driver_dialect])
+    end
+
+    features
   end
 end
