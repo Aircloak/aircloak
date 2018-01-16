@@ -51,10 +51,8 @@ defmodule Cloak.Sql.Query.Features do
   defp extract_functions(query), do:
     query
     |> get_in([Query.Lenses.all_queries() |> Query.Lenses.terminals()])
-    |> Enum.flat_map(fn
-      %Expression{function?: true, function: function} -> [Function.readable_name(function)]
-      _ -> []
-    end)
+    |> Enum.filter(&match?(%Expression{function?: true}, &1))
+    |> Enum.map(&Function.readable_name(&1.function))
     |> Enum.uniq()
 
   defp extract_where_conditions(clause), do:
