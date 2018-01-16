@@ -67,7 +67,7 @@ defmodule Cloak.Sql.QueryTest do
   end
 
   test "extracts types of functions used - multiple functions used" do
-    assert %{functions: ["min", "trunc"]} = features_from("SELECT min(trunc(height)) FROM feat_users")
+    assert %{functions: ["min", "sqrt"]} = features_from("SELECT min(sqrt(height)) FROM feat_users")
   end
 
   test "extracts types of functions used - deduplicates functions used" do
