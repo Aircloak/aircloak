@@ -54,6 +54,7 @@ defmodule Cloak.Query.Runner.Engine do
     compiled_query
     |> Sql.Compiler.NoiseLayers.compile()
     |> Sql.Query.resolve_db_columns()
+    |> Query.DbEmulator.compile()
 
   defp run_statement(%Sql.Query{command: :show, show: :tables} = query, features, _state_updater), do:
     (Map.keys(query.data_source.tables) ++ Map.keys(query.views))
@@ -70,12 +71,10 @@ defmodule Cloak.Query.Runner.Engine do
       %Sql.Query{query | where: Sql.Query.offloaded_where(query)},
       &process_final_rows(&1, query, features, state_updater)
     )
-  defp run_statement(%Sql.Query{command: :select, emulated?: true} = query, features, state_updater) do
-    query = Query.DbEmulator.compile(query)
+  defp run_statement(%Sql.Query{command: :select, emulated?: true} = query, features, state_updater), do:
     query
     |> Query.DbEmulator.select()
     |> process_final_rows(query, features, state_updater)
-  end
 
   defp sorted_table_columns(table) do
     {[uid], other_columns} = Enum.split_with(table.columns, &(&1.name == table.user_id))

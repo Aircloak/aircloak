@@ -247,7 +247,7 @@ defmodule Cloak.Sql.Query do
   @doc "Updates the emulation flag to reflect whether the query needs to be emulated."
   @spec set_emulation_flag(t) :: t
   def set_emulation_flag(query), do:
-    %__MODULE__{query | emulated?: needs_emulation?(query)}
+    Compiler.Helpers.apply_bottom_up(query, &%__MODULE__{&1 | emulated?: needs_emulation?(&1)})
 
   @doc "Returns the list of outermost selected splitters."
   @spec outermost_selected_splitters(t) :: [Expression.t]
