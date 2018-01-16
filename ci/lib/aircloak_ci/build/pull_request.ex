@@ -44,14 +44,15 @@ defmodule AircloakCI.Build.PullRequest do
   end
 
   @impl Build.Server
-  def init(nil, state), do:
-    {:ok, report_mergeable(%{state | data: %{mergeable_message: nil}})}
+  def init(nil, state) do
+    :timer.send_interval(:timer.seconds(5), self(), :report_mergeable)
+    {:ok, report_mergeable(%{state | data: %{mergeable_info: nil}})}
+  end
 
   @impl Build.Server
   def handle_source_change(state) do
     state = maybe_start_ci(state)
-    report_mergeable(state)
-    {:noreply, state}
+    {:noreply, report_mergeable(state)}
   end
 
   @impl Build.Server
@@ -63,6 +64,10 @@ defmodule AircloakCI.Build.PullRequest do
   # reported to the author.
   def handle_job_failed("compile", _reason, state), do: {:noreply, maybe_start_ci(state)}
   def handle_job_failed(other, reason, state), do: super(other, reason, state)
+
+  @impl Build.Server
+  def handle_info(:report_mergeable, state), do: {:noreply, report_mergeable(state)}
+  def handle_info(other, state), do: super(other, state)
 
 
   # -------------------------------------------------------------------
@@ -93,7 +98,9 @@ defmodule AircloakCI.Build.PullRequest do
       LocalProject.mark_finished(state.project, "report_mergeable")
     end
 
-    if message != state.data.mergeable_message do
+    new_info = {state.source.sha, message, status}
+
+    if new_info != state.data.mergeable_info do
       Github.put_status_check_state(
         state.source.repo.owner,
         state.source.repo.name,
@@ -102,7 +109,8 @@ defmodule AircloakCI.Build.PullRequest do
         message,
         status
       )
-      put_in(state.data.mergeable_message, message)
+
+      put_in(state.data.mergeable_info, new_info)
     else
       state
     end
@@ -137,10 +145,10 @@ defmodule AircloakCI.Build.PullRequest do
   end
 
   defp required_statuses(state), do:
-    [
-      "continuous-integration/aircloak/compliance" |
-      state.project |> LocalProject.components() |> Enum.map(&"continuous-integration/aircloak/#{&1}_test")
-    ]
+    state.project
+    |> LocalProject.components()
+    |> Enum.map(&"continuous-integration/aircloak/#{&1}_test")
+    |> Enum.concat(["continuous-integration/aircloak/compliance"])
 
 
   # -------------------------------------------------------------------
