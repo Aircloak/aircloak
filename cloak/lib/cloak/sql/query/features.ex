@@ -50,7 +50,7 @@ defmodule Cloak.Sql.Query.Features do
 
   defp extract_functions(query), do:
     query
-    |> get_in([Query.Lenses.terminals()])
+    |> get_in([Query.Lenses.all_queries() |> Query.Lenses.terminals()])
     |> Enum.flat_map(fn
       %Expression{function?: true, function: function} -> [Function.readable_name(function)]
       _ -> []

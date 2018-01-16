@@ -78,6 +78,10 @@ defmodule Cloak.Sql.QueryTest do
     assert %{functions: ["min"]} = features_from("SELECT min(height), min(height) FROM feat_users")
   end
 
+  test "extracts types of functions used in subqueries" do
+    assert %{functions: ["sqrt"]} = features_from("SELECT * FROM (SELECT sqrt(height) FROM feat_users) x")
+  end
+
   test "extracts types of where conditions used - no where conditions" do
     assert %{where_conditions: []} = features_from("SELECT count(*) FROM feat_users")
   end
