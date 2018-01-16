@@ -29,7 +29,6 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> align_ranges(Lens.key(:where))
     |> align_join_ranges()
     |> compile_sample_rate()
-    |> Query.set_emulation_flag()
     |> reject_null_user_ids()
     |> compute_aggregators()
 

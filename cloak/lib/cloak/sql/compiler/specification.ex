@@ -223,8 +223,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     parsed_subquery
     |> Map.put(:subquery?, true)
     |> compile(parent_query.data_source, parent_query.parameters, parent_query.views)
-    |> ensure_uid_selected()
-    |> Validation.verify_subquery(alias)
+    |> ensure_uid_selected(alias)
 
 
   # -------------------------------------------------------------------
@@ -619,12 +618,24 @@ defmodule Cloak.Sql.Compiler.Specification do
   # UID selection in a subquery
   # -------------------------------------------------------------------
 
-  defp ensure_uid_selected(subquery) do
-    case uid_column_to_implicitly_select?(subquery) do
-      nil ->
-        subquery
+  defp ensure_uid_selected(subquery, alias) do
+    case auto_select_uid_column(subquery) do
+      nil -> subquery
+
+      :error ->
+        possible_uid_columns =
+          Helpers.all_id_columns_from_tables(subquery)
+          |> Enum.map(&Expression.display_name/1)
+          |> case do
+            [column] -> "the column #{column}"
+            columns -> "one of the columns #{Enum.join(columns, ", ")}"
+          end
+        raise CompilationError, message:
+          "Missing a user id column in the select list of #{"subquery `#{alias}`"}. " <>
+          "To fix this error, add #{possible_uid_columns} to the subquery select list."
+
       uid_column ->
-        uid_alias = "__implicitly_selected_#{uid_column.table.name}.#{uid_column.name}__"
+        uid_alias = "__auto_selected_#{uid_column.table.name}.#{uid_column.name}__"
         selected_expression = %Expression{uid_column | alias: uid_alias, visible?: false}
         %Query{subquery |
           columns: subquery.columns ++ [selected_expression],
@@ -633,11 +644,8 @@ defmodule Cloak.Sql.Compiler.Specification do
     end
   end
 
-  defp uid_column_to_implicitly_select?(subquery) do
+  defp auto_select_uid_column(subquery) do
     cond do
-      # we're not auto appending uid columns to views
-      subquery.view? -> nil
-
       # uid column is already explicitly selected
       Helpers.uid_column_selected?(subquery) -> nil
 
@@ -650,7 +658,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         uid_column
 
       # we can't select a uid column
-      true -> nil
+      true -> :error
     end
   end
 end
