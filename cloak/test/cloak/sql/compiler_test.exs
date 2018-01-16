@@ -531,7 +531,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "missing group by in a subquery" do
-    assert {:error, error} = compile("select c1 from (select uid, count(*) from t1) alias", data_source())
+    assert {:error, error} = compile("select c1 from (select uid, count(*) as c1 from t1) alias", data_source())
     assert error =~ "Column `uid` from table `t1` needs to appear in the `GROUP BY`"
   end
 

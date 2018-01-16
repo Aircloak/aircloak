@@ -39,6 +39,8 @@ defmodule Cloak.Sql.Compiler do
       parsed_query
       |> Compiler.ASTNormalization.normalize()
       |> Compiler.Specification.compile(data_source, parameters, views)
+      |> Compiler.Validation.verify_query()
+      |> Compiler.Normalization.remove_noops()
       |> Compiler.TypeChecker.validate_allowed_usage_of_math_and_functions()
 
     features = Query.features(compiled_query)

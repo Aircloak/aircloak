@@ -179,7 +179,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     end
 
     test "forbids nested implicit ranges" do
-      assert {:error, narrative} = compile("SELECT trunc(trunc(float)) FROM table")
+      assert {:error, narrative} = compile("SELECT trunc(trunc(float), -11) FROM table")
       assert narrative =~ ~r/Range expressions cannot include any functions/
     end
 
