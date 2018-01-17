@@ -177,6 +177,9 @@ defmodule Cloak.Sql.QueryTest do
     test "resolves references into subqueries", do:
       assert ["(min (+ col const))"] =
         features_from("SELECT min(x) FROM (SELECT user_id, height + 1 AS x FROM feat_users) foo").expressions
+
+    test "distinct", do:
+      assert ["(count (distinct col))"] = features_from("SELECT count(distinct height) FROM feat_users").expressions
   end
 
   test "marks non-emulated queries as such", do:
