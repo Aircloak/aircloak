@@ -180,6 +180,9 @@ defmodule Cloak.Sql.QueryTest do
 
     test "distinct", do:
       assert ["(count (distinct col))"] = features_from("SELECT count(distinct height) FROM feat_users").expressions
+
+    test "*", do:
+      assert ["(count *)"] = features_from("SELECT count(*) FROM feat_users").expressions
   end
 
   test "marks non-emulated queries as such", do:
