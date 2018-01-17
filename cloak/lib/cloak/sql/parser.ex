@@ -178,11 +178,11 @@ defmodule Cloak.Sql.Parser do
     left_associative_expression([keyword(:*), keyword(:/), keyword(:%)], exponentiation_expression())
   end
 
-  def exponentiation_expression() do
+  defp exponentiation_expression() do
     left_associative_expression([keyword(:^)], unary_expression())
   end
 
-  def unary_expression() do
+  defp unary_expression() do
     choice_deepest_error([
       sequence([keyword(:+), concat_expression()]),
       sequence([keyword(:-), concat_expression()]),
