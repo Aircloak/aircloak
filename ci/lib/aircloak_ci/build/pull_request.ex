@@ -78,8 +78,14 @@ defmodule AircloakCI.Build.PullRequest do
 
   defp maybe_start_ci(%{compiled?: false} = state), do: state
   defp maybe_start_ci(%{compiled?: true} = state) do
-    if state.source.merge_state == :mergeable and state.source.merge_sha != nil,
-      do: state |> Job.Compliance.run() |> Job.Test.run(),
+    if check_mergeable(state) == :ok,
+      do: state |> Job.Test.run() |> maybe_start_compliance(),
+      else: state
+  end
+
+  defp maybe_start_compliance(state) do
+    if check_standard_tests(state) == :ok or LocalProject.forced?(state.project, "compliance"),
+      do: Job.Compliance.run(state),
       else: state
   end
 
