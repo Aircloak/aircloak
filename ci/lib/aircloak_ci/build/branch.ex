@@ -54,6 +54,15 @@ defmodule AircloakCI.Build.Branch do
     {:ok, %{state | data: %{pending_transfers: []}}}
 
   @impl Build.Server
+  def handle_job_succeeded("prepare", state) do
+    state =
+      # we're always compiling master and release branches, because they serve as a base (cache) for pull requests
+      if state.source.name == "master" or String.starts_with?(state.source.name, "release_"),
+        do: Build.Job.Compile.start(state),
+        else: state
+
+    {:noreply, maybe_perform_transfers(state)}
+  end
   def handle_job_succeeded(_job, state), do: {:noreply, maybe_perform_transfers(state)}
 
   @impl Build.Server
