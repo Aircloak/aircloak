@@ -51,8 +51,7 @@ defmodule AircloakCI.Build.PullRequest do
 
   @impl Build.Server
   def handle_source_change(state) do
-    state = maybe_start_ci(state)
-    {:noreply, report_mergeable(state)}
+    {:noreply, maybe_start_ci(state)}
   end
 
   @impl Build.Server
@@ -87,9 +86,9 @@ defmodule AircloakCI.Build.PullRequest do
   defp report_mergeable(state) do
     {status, message} =
       with :ok <- check_mergeable(state),
-           :ok <- check_compiled(state),
-           :ok <- check_required_statuses(state),
+           :ok <- check_standard_tests(state),
            :ok <- check_approved(state),
+           :ok <- check_compliance(state),
         do: {:success, "pull request can be merged"}
 
     if status == :success and not LocalProject.finished?(state.project, "report_mergeable") do
@@ -116,39 +115,50 @@ defmodule AircloakCI.Build.PullRequest do
     end
   end
 
-  defp check_compiled(%{compiled?: true}), do: :ok
-  defp check_compiled(%{compiled?: false}), do: {:pending, "compiling project"}
-
   defp check_mergeable(%{source: %{merge_state: :mergeable}}), do: :ok
-  defp check_mergeable(%{source: %{merge_state: :unknown}}), do: {:pending, "computing mergeability"}
+  defp check_mergeable(%{source: %{merge_state: :unknown}}), do: {:pending, "awaiting merge status"}
   defp check_mergeable(%{source: %{merge_state: :conflicting}}), do: {:error, "there are merge conflicts"}
 
   defp check_approved(%{source: %{approved?: true}}), do: :ok
-  defp check_approved(%{source: %{approved?: false}}), do: {:pending, "waiting for approval"}
+  defp check_approved(%{source: %{approved?: false}}), do: {:pending, "awaiting approval"}
 
-  defp check_required_statuses(state) do
-    statuses =
-      state
-      |> required_statuses()
-      |> Enum.map(&{Map.get(state.source.status_checks, &1, %{status: :pending}).status, &1})
-
-    cond do
-      Enum.all?(statuses, &match?({:success, _}, &1)) -> :ok
-
-      Enum.any?(statuses, fn {status, _} -> status in [:error, :failure] end) ->
-        {:error, "some checks have failed"}
-
-      true ->
-        [{_, name} | _] = Enum.reject(statuses, fn {status, _} -> status in [:success, :error, :failure] end)
-        {:pending, "waiting for #{String.replace(name, ~r[^continuous\-integration\/], "")}"}
+  defp check_compliance(state) do
+    case state.project |> LocalProject.job_outcomes() |> Map.get("compliance", :pending) do
+      :ok -> :ok
+      :pending -> {:pending, "awaiting compliance"}
+      _ -> {:error, "compliance test failed"}
     end
   end
 
-  defp required_statuses(state), do:
-    state.project
-    |> LocalProject.components()
-    |> Enum.map(&"continuous-integration/aircloak/#{&1}_test")
-    |> Enum.concat(["continuous-integration/aircloak/compliance"])
+  defp check_standard_tests(state) do
+    job_outcomes = LocalProject.job_outcomes(state.project)
+
+    statuses =
+      state.project
+      |> LocalProject.components()
+      |> Enum.map(&"#{&1}_test")
+      |> Enum.map(&{&1, Map.get(job_outcomes, &1, :pending)})
+
+    with :ok <- check_failures(statuses), do: check_pending(statuses)
+  end
+
+  defp check_failures(statuses) do
+    case \
+      statuses
+      |> Enum.reject(fn({_, status}) -> status in [:ok, :pending] end)
+      |> Enum.map(fn({name, _}) -> name end)
+    do
+      [] -> :ok
+      failed_jobs -> {:error, "#{Enum.join(failed_jobs, ", ")} failed"}
+    end
+  end
+
+  defp check_pending(statuses) do
+    case statuses |> Enum.filter(&match?({_, :pending}, &1)) |> Enum.map(fn({name, _}) -> name end) do
+      [] -> :ok
+      pending_jobs -> {:pending, "awaiting #{Enum.join(pending_jobs, ", ")}"}
+    end
+  end
 
 
   # -------------------------------------------------------------------
