@@ -144,7 +144,7 @@ defmodule AircloakCI.Build.PullRequest do
     statuses =
       state.project
       |> LocalProject.components()
-      |> Enum.map(&"#{&1}_test")
+      |> Enum.flat_map(&["#{&1}_compile", "#{&1}_test"])
       |> Enum.map(&{&1, Map.get(job_outcomes, &1, :pending)})
 
     with :ok <- check_failures(statuses), do: check_pending(statuses)
