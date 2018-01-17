@@ -169,6 +169,12 @@ defmodule Cloak.Sql.QueryTest do
       features_from("SELECT height FROM feat_emulated_users").decoders
   end
 
+  describe "features->expressions" do
+    test "includes representations of expressions used", do:
+      assert ["(min (+ const (sqrt col)))", "(+ col const)", "const"] =
+        features_from("SELECT min(1 + sqrt(height)) FROM feat_emulated_users WHERE height + 1 = 2").expressions
+  end
+
   test "marks non-emulated queries as such", do:
     refute features_from("SELECT count(*) FROM feat_emulated_users").emulated
 
