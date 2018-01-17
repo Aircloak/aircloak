@@ -209,18 +209,10 @@ defmodule AircloakCI.LocalProject do
   def initialized?(project), do:
     state(project).initialized?
 
-  @doc "Marks the job as finished, and clears the corresponding force flag."
-  @spec mark_finished(t, String.t) :: :ok
-  def mark_finished(project, job_name), do:
-    update_state(project, &%{&1 |
-      forced_jobs: Map.put(&1.forced_jobs, job_name, nil),
-      finished_jobs: Map.put(&1.finished_jobs, job_name, project.source_sha),
-    })
-
   @doc "Returns true if the job for this project has finished."
   @spec finished?(t, String.t) :: boolean
   def finished?(project, job_name), do:
-    state(project).finished_jobs[job_name] in [project.source_sha, project.target_sha]
+    project |> job_outcomes() |> Enum.any?(&match?({^job_name, _}, &1))
 
   @doc "Marks the project for the force build."
   @spec mark_forced(t, String.t) :: :ok
@@ -246,10 +238,13 @@ defmodule AircloakCI.LocalProject do
     |> Enum.map(fn({job_name, {outcome, ^source_sha}}) -> {job_name, outcome} end)
     |> Map.new()
 
-  @doc "Stores the outcome of the given job."
+  @doc "Stores the outcome of the given job and clears the force flag for the job."
   @spec set_job_outcome(t, String.t, any) :: :ok
   def set_job_outcome(project, job_name, outcome), do:
-    update_state(project, &put_in(&1.job_outcomes[job_name], {outcome, project.source_sha}))
+    update_state(project, &%{&1 |
+      forced_jobs: Map.put(&1.forced_jobs, job_name, nil),
+      job_outcomes: Map.put(&1.job_outcomes, job_name, {outcome, project.source_sha}),
+    })
 
   @doc "Clears the outcome of the given job."
   @spec clear_job_outcome(t, String.t) :: :ok
@@ -451,7 +446,7 @@ defmodule AircloakCI.LocalProject do
     project |> state_file() |> Path.dirname() |> Path.join("state_2")
 
   defp default_state(), do:
-    %{initialized?: false, compiled_components: %{}, forced_jobs: %{}, finished_jobs: %{}, job_outcomes: %{}}
+    %{initialized?: false, compiled_components: %{}, forced_jobs: %{}, job_outcomes: %{}}
 
   defp up_to_date?(project), do:
     current_sha(project) == project.target_sha

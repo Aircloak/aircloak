@@ -100,7 +100,7 @@ defmodule AircloakCI.Build.PullRequest do
     if status == :success and not LocalProject.finished?(state.project, "report_mergeable") do
       merge_message = "Pull request can be merged #{AircloakCI.Emoji.happy()}"
       Github.comment_on_issue(state.source.repo.owner, state.source.repo.name, state.source.number, merge_message)
-      LocalProject.mark_finished(state.project, "report_mergeable")
+      LocalProject.set_job_outcome(state.project, "report_mergeable", :ok)
     end
 
     new_info = {state.source.sha, message, status}

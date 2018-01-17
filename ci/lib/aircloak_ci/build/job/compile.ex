@@ -27,9 +27,7 @@ defmodule AircloakCI.Build.Job.Compile do
     |> Stream.map(fn {:ok, result} -> result end)
     |> Enum.each(
         fn
-          {:ok, component} ->
-            # setting the status here, to avoid concurrency issues
-            LocalProject.mark_finished(project, "#{component}_compile")
+          {:ok, _component} -> :ok
 
           {:error, component} ->
             LocalProject.log(project, "main", "error compiling component #{component}")

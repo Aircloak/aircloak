@@ -182,7 +182,6 @@ defmodule AircloakCI.Build.Server do
 
   @impl GenServer
   def handle_cast({:report_result, job_name, result, extra_info}, state) do
-    LocalProject.mark_finished(state.project, job_name)
     AircloakCI.Build.Reporter.report_result(state, job_name, result, extra_info)
     {:noreply, state}
   end
@@ -212,7 +211,6 @@ defmodule AircloakCI.Build.Server do
   def handle_info({:EXIT, pid, reason} = exit_message, state) do
     case Enum.find(state.jobs, &match?({_name, ^pid}, &1)) do
       {name, ^pid} ->
-        LocalProject.mark_finished(state.project, name)
         new_state = update_in(state.jobs, &Map.delete(&1, name))
         case reason do
           :normal ->
