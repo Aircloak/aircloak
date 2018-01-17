@@ -1,7 +1,7 @@
   defmodule AircloakCI.Build.Job.Compliance do
   @moduledoc "Execution of the compliance test suite."
 
-  alias AircloakCI.Build
+  alias AircloakCI.{Build, LocalProject}
   alias AircloakCI.Build.{Component, Job}
 
 
@@ -10,9 +10,14 @@
   # -------------------------------------------------------------------
 
   @doc "Invokes the compliance job."
-  @spec run(Build.Server.state) :: Build.Server.state
-  def run(build_state), do:
-    Job.maybe_start(build_state, "compliance", &start_test(&1, self()))
+  @spec start(Build.Server.state) :: Build.Server.state
+  def start(build_state) do
+    case LocalProject.job_outcome(build_state.project, "cloak_compile") do
+      nil -> Job.Compile.start(build_state, "cloak")
+      :ok -> Job.maybe_start(build_state, "compliance", &start_test(&1, self()))
+      _ -> build_state
+    end
+  end
 
 
   # -------------------------------------------------------------------

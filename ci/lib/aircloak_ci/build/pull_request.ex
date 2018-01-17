@@ -51,18 +51,14 @@ defmodule AircloakCI.Build.PullRequest do
 
   @impl Build.Server
   def handle_source_change(state) do
-    {:noreply, maybe_start_ci(state)}
+    {:noreply, report_mergeable(state)}
   end
 
   @impl Build.Server
-  def handle_job_succeeded("compile", state), do: {:noreply, maybe_start_ci(state)}
-  def handle_job_succeeded(other, state), do: super(other, state)
+  def handle_job_succeeded(job_name, state), do: {:noreply, state |> start_next_job(job_name) |> report_mergeable()}
 
   @impl Build.Server
-  # Note: we'll start the CI even if the compilation failed. If the resulting errors occur again, they will be properly
-  # reported to the author.
-  def handle_job_failed("compile", _reason, state), do: {:noreply, maybe_start_ci(state)}
-  def handle_job_failed(other, reason, state), do: super(other, reason, state)
+  def handle_job_failed(_job, _reason, state), do: {:noreply, report_mergeable(state)}
 
   @impl Build.Server
   def handle_info(:report_mergeable, state), do: {:noreply, report_mergeable(state)}
@@ -76,16 +72,22 @@ defmodule AircloakCI.Build.PullRequest do
   defp name(pr), do:
     {:via, Registry, {Build.Registry, {:pull_request, pr.number}}}
 
-  defp maybe_start_ci(%{compiled?: false} = state), do: state
-  defp maybe_start_ci(%{compiled?: true} = state) do
-    if check_mergeable(state) == :ok,
-      do: state |> Job.Test.run() |> maybe_start_compliance(),
-      else: state
+  defp start_next_job(state, job_name) do
+    if check_mergeable(state) == :ok do
+      case Build.Server.job_type(job_name) do
+        "prepare" -> Job.Compile.start(state)
+        "compile" -> state |> Job.Test.start() |> maybe_start_compliance()
+        "test" -> maybe_start_compliance(state)
+        _other -> state
+      end
+    else
+      state
+    end
   end
 
   defp maybe_start_compliance(state) do
-    if check_standard_tests(state) == :ok or LocalProject.forced?(state.project, "compliance"),
-      do: Job.Compliance.run(state),
+    if check_standard_tests(state) == :ok and check_approved(state) == :ok,
+      do: Job.Compliance.start(state),
       else: state
   end
 
@@ -129,9 +131,9 @@ defmodule AircloakCI.Build.PullRequest do
   defp check_approved(%{source: %{approved?: false}}), do: {:pending, "awaiting approval"}
 
   defp check_compliance(state) do
-    case state.project |> LocalProject.job_outcomes() |> Map.get("compliance", :pending) do
+    case LocalProject.job_outcome(state.project, "compliance") do
       :ok -> :ok
-      :pending -> {:pending, "awaiting compliance"}
+      nil -> {:pending, "awaiting compliance"}
       _ -> {:error, "compliance test failed"}
     end
   end

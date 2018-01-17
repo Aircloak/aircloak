@@ -230,13 +230,25 @@ defmodule AircloakCI.LocalProject do
   def forced?(project, job_name), do:
     state(project).forced_jobs[job_name] in [project.source_sha, project.target_sha]
 
+  @doc "Returns the list of forced jobs."
+  @spec forced_jobs(t) :: [String.t]
+  def forced_jobs(project), do:
+    state(project).forced_jobs
+    |> Enum.filter(fn({_job_name, sha}) -> sha in [project.source_sha, project.target_sha] and sha != nil end)
+    |> Enum.map(fn({job_name, _sha}) -> job_name end)
+
   @doc "Returns all known job outcomes."
   @spec job_outcomes(t) :: %{String.t => any}
   def job_outcomes(%{source_sha: source_sha} = project), do:
     state(project).job_outcomes
-    |> Enum.filter(&match?({_job_name, {_outcome, ^source_sha}}, &1))
+    |> Enum.filter(fn({_job_name, {_, sha}}) -> sha in [project.source_sha, project.target_sha] and sha != nil end)
     |> Enum.map(fn({job_name, {outcome, ^source_sha}}) -> {job_name, outcome} end)
     |> Map.new()
+
+  @doc "Returns the outcome of the job, or nil if the job didn't finish."
+  @spec job_outcome(t, String.t) :: nil | :ok | any
+  def job_outcome(project, job_name), do:
+    project |> job_outcomes() |> Map.get(job_name)
 
   @doc "Stores the outcome of the given job and clears the force flag for the job."
   @spec set_job_outcome(t, String.t, any) :: :ok
@@ -446,7 +458,7 @@ defmodule AircloakCI.LocalProject do
     project |> state_file() |> Path.dirname() |> Path.join("state_2")
 
   defp default_state(), do:
-    %{initialized?: false, compiled_components: %{}, forced_jobs: %{}, job_outcomes: %{}}
+    %{initialized?: false, forced_jobs: %{}, job_outcomes: %{}}
 
   defp up_to_date?(project), do:
     current_sha(project) == project.target_sha

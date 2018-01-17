@@ -54,14 +54,10 @@ defmodule AircloakCI.Build.Branch do
     {:ok, %{state | data: %{pending_transfers: []}}}
 
   @impl Build.Server
-  def handle_job_succeeded("compile", state), do: {:noreply, handle_compile_finished(state)}
-  def handle_job_succeeded("test", state), do: {:noreply, maybe_perform_transfers(state)}
-  def handle_job_succeeded(other, state), do: super(other, state)
+  def handle_job_succeeded(_job, state), do: {:noreply, maybe_perform_transfers(state)}
 
   @impl Build.Server
-  def handle_job_failed("compile", _reason, state), do: {:noreply, handle_compile_finished(state)}
-  def handle_job_failed("test", _reason, state), do: {:noreply, maybe_perform_transfers(state)}
-  def handle_job_failed(other, reason, state), do: super(other, reason, state)
+  def handle_job_failed(_job, _reason, state), do: {:noreply, maybe_perform_transfers(state)}
 
   @impl Build.Server
   def handle_call({:transfer_project, target_project}, from, state), do:
@@ -82,13 +78,8 @@ defmodule AircloakCI.Build.Branch do
   defp name(branch), do:
     {:via, Registry, {AircloakCI.Build.Registry, {:branch, branch.name}}}
 
-  defp handle_compile_finished(state), do:
-    # Note: we'll perform pending transfers even if the compilation failed. If the resulting errors occur again, they
-    # will be properly reported to the author.
-    maybe_perform_transfers(state)
-
   defp maybe_perform_transfers(state) do
-    if state.prepared? and not Enum.any?(["compile", "test"], &Build.Server.running?(state, &1)) do
+    if Build.Server.running_jobs(state) == [] do
       state.data.pending_transfers
       |> Enum.reverse()
       |> Enum.each(fn({target_project, from}) -> transfer_project(state, target_project, from) end)

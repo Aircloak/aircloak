@@ -10,8 +10,7 @@ defmodule AircloakCI.Build.Server do
   of these jobs, and notify the callback module when they terminate. The behaviour also takes care of the proper
   cleanup of all child jobs.
 
-  The behaviour immediately starts the project preparation job (powered by `AircloakCI.Build.Job.Prepare`). Once this
-  job is done, the behaviour will start the compilation job (powered by `AircloakCI.Build.Job.Compile`).
+  The behaviour immediately starts the project preparation job (powered by `AircloakCI.Build.Job.Prepare`).
 
   The behaviour will also subscribe to notifications from `AircloakCI.RepoDataProvider`, and handle changes. If the
   related PR is no longer pending, the behaviour will terminate the process. If some new commits are pushed to the PR,
@@ -33,7 +32,6 @@ defmodule AircloakCI.Build.Server do
     data: any,
     jobs: jobs,
     prepared?: boolean,
-    compiled?: boolean,
   }
 
   @type source_type :: :pull_request | :branch | :local
@@ -121,13 +119,8 @@ defmodule AircloakCI.Build.Server do
   end
 
   @doc "Terminates all currently running child jobs, and restarts the build from scratch."
-  @spec restart(state, [before_start: ((state) -> any)]) :: state
-  def restart(state, opts \\ []) do
-    new_state = terminate_all_jobs(state)
-    before_start = Keyword.get(opts, :before_start, &(&1))
-    before_start.(new_state)
-    start_preparation_job(new_state)
-  end
+  @spec restart(state) :: state
+  def restart(state), do: state |> terminate_all_jobs() |> start_preparation_job()
 
   @doc "Returns true if the given job is running."
   @spec running?(state, job_name) :: boolean
@@ -144,8 +137,20 @@ defmodule AircloakCI.Build.Server do
   def report_result(pid, job_name, result, extra_info \\ nil), do:
     GenServer.cast(pid, {:report_result, job_name, result, extra_info})
 
+  @doc "Forces a build of the given job."
+  @spec force_build(pid, job_name) :: :ok | {:error, String.t}
   def force_build(pid, job_name), do:
-    GenServer.cast(pid, {:force_build, job_name})
+    GenServer.call(pid, {:force_build, job_name})
+
+  @doc "Returns the job type, which is the name of the job without the component prefix."
+  @spec job_type(job_name) :: String.t
+  def job_type(job_name) do
+    case String.split(job_name, "_") do
+      [_component, "compile"] -> "compile"
+      [_component, "test"] -> "test"
+      _other -> job_name
+    end
+  end
 
 
   # -------------------------------------------------------------------
@@ -170,13 +175,20 @@ defmodule AircloakCI.Build.Server do
       data: nil,
       jobs: %{},
       prepared?: false,
-      compiled?: false,
     }
     |> start_preparation_job()
     |> invoke_callback(:init, [arg])
   end
 
   @impl GenServer
+  def handle_call({:force_build, job_name}, _from, state) do
+    if job_type(job_name) in ["prepare", "compile", "test", "compliance"] do
+      LocalProject.mark_forced(state.project, job_name)
+      {:reply, :ok, start_new_jobs(state)}
+    else
+      {:reply, {:error, "don't know how to start job `#{job_name}`"}, state}
+    end
+  end
   def handle_call(request, from, state), do:
     invoke_callback(state, :handle_call, [request, from])
 
@@ -185,8 +197,6 @@ defmodule AircloakCI.Build.Server do
     AircloakCI.Build.Reporter.report_result(state, job_name, result, extra_info)
     {:noreply, state}
   end
-  def handle_cast({:force_build, job_name}, state), do:
-    {:noreply, restart(state, before_start: &LocalProject.mark_forced(&1.project, job_name))}
 
   @impl GenServer
   def handle_info({:repo_data, repo_data}, state) do
@@ -203,6 +213,14 @@ defmodule AircloakCI.Build.Server do
   def handle_info({:job_outcome, name, outcome}, state) do
     LocalProject.set_job_outcome(state.project, name, outcome)
 
+    await_shutdown_or_kill(Map.fetch!(state.jobs, name))
+
+    state = state.jobs |> update_in(&Map.delete(&1, name))
+    Logger.info("job #{name} for `#{LocalProject.name(state.project)}` finished")
+
+    state = if name == "prepare" and outcome == :ok, do: %{state | prepared?: true}, else: state
+    state = start_new_jobs(state)
+
     case outcome do
       :ok -> handle_job_succeeded(state, name)
       error -> handle_job_failed(state, name, error)
@@ -213,14 +231,12 @@ defmodule AircloakCI.Build.Server do
       {name, ^pid} ->
         new_state = update_in(state.jobs, &Map.delete(&1, name))
         case reason do
-          :normal ->
-            Logger.info("job #{name} for `#{LocalProject.name(state.project)}` finished")
-            {:noreply, state}
+          :normal -> {:noreply, state}
 
           _other ->
             Logger.error("job #{name} for `#{LocalProject.name(state.project)}` crashed")
             LocalProject.set_job_outcome(state.project, name, :failure)
-            handle_job_failed(new_state, name, reason)
+            new_state |> start_new_jobs() |> handle_job_failed(name, reason)
         end
 
       nil -> invoke_callback(state, :handle_info, [exit_message])
@@ -248,6 +264,30 @@ defmodule AircloakCI.Build.Server do
     send(server, {:job_outcome, name, outcome})
   end
 
+  defp start_new_jobs(state) do
+    cond do
+      LocalProject.forced?(state.project, "prepare") and not running?(state, "prepare") -> restart(state)
+      state.prepared? -> state |> start_forced_jobs()
+      true -> state
+    end
+  end
+
+  defp start_forced_jobs(state) do
+    state.project |> LocalProject.forced_jobs() |> Enum.reduce(state, &start_forced_job(&2, &1))
+  end
+
+  defp start_forced_job(state, job_name) do
+    cond do
+      job_name == "prepare" -> state
+      job_name == "compliance" -> Job.Compliance.start(state)
+      String.ends_with?(job_name, "_test") -> Job.Test.start(state, String.replace(job_name, ~r/_test$/, ""))
+      String.ends_with?(job_name, "_compile") -> Job.Compile.start(state, String.replace(job_name, ~r/_compile$/, ""))
+      true ->
+        Logger.warn("unknown forced job `#{job_name}`")
+        state
+    end
+  end
+
   defp build_source(callback_mod, source_id, repo_data), do:
     callback_mod.build_source(source_id, repo_data)
 
@@ -259,7 +299,7 @@ defmodule AircloakCI.Build.Server do
   end
 
   defp start_preparation_job(state, opts \\ []), do:
-    Job.Prepare.run(%{state | prepared?: false, compiled?: false}, opts)
+    Job.Prepare.start(%{state | prepared?: false}, opts)
 
   defp update_source(state, %{source: source, base_branch: base_branch, project: project}) do
     new_state = %{state | source: source, base_branch: base_branch, project: project}
@@ -287,9 +327,7 @@ defmodule AircloakCI.Build.Server do
   end
 
   defp handle_job_succeeded(state, "prepare"), do:
-    {:noreply, maybe_compile_project(%{state | prepared?: true})}
-  defp handle_job_succeeded(state, "compile" = job_name), do:
-    invoke_callback(%{state | compiled?: true}, :handle_job_succeeded, [job_name])
+    invoke_callback(state, :handle_job_succeeded, ["prepare"])
   defp handle_job_succeeded(state, job_name), do:
     invoke_callback(state, :handle_job_succeeded, [job_name])
 
@@ -299,12 +337,6 @@ defmodule AircloakCI.Build.Server do
   end
   defp handle_job_failed(state, name, reason), do:
     invoke_callback(state, :handle_job_failed, [name, reason])
-
-  defp maybe_compile_project(state) do
-    if LocalProject.updatable?(state.project) and LocalProject.ci_possible?(state.project),
-      do: Job.Compile.run(state),
-      else: state
-  end
 
   defp invoke_callback(state, fun, args), do:
     apply(state.callback_mod, fun, args ++ [state])
@@ -321,7 +353,6 @@ defmodule AircloakCI.Build.Server do
 
       @impl behaviour_mod
       def handle_job_succeeded(job_name, state) do
-        Logger.info("job #{job_name} finished")
         {:noreply, state}
       end
 
