@@ -111,9 +111,12 @@ defmodule AircloakCI.Build.Server do
 
   @doc "Starts the provided function as a child job of the build server."
   @spec start_job(state, job_name, (() -> any), start_job_opts) :: state
-  def start_job(state, name, task_fun, opts \\ []) do
+  def start_job(state, name, job_fun, opts \\ []) do
     :error = Map.fetch(state.jobs, name)
-    {:ok, new_job} = Task.start_link(task_fun)
+
+    LocalProject.clear_job_outcome(state.project, name)
+    server = self()
+    {:ok, new_job} = Task.start_link(fn -> run_job(server, name, job_fun) end)
     Logger.info("job #{name} for `#{LocalProject.name(state.project)}` started")
 
     case {state.source_type, Keyword.fetch(opts, :report_status)} do
@@ -210,6 +213,14 @@ defmodule AircloakCI.Build.Server do
         update_source(state, build_source)
     end
   end
+  def handle_info({:job_outcome, name, outcome}, state) do
+    LocalProject.set_job_outcome(state.project, name, outcome)
+
+    case outcome do
+      :ok -> handle_job_succeeded(state, name)
+      error -> handle_job_failed(state, name, error)
+    end
+  end
   def handle_info({:EXIT, pid, reason} = exit_message, state) do
     case Enum.find(state.jobs, &match?({_name, ^pid}, &1)) do
       {name, ^pid} ->
@@ -218,10 +229,11 @@ defmodule AircloakCI.Build.Server do
         case reason do
           :normal ->
             Logger.info("job #{name} for `#{LocalProject.name(state.project)}` finished")
-            handle_job_succeeded(new_state, name)
+            {:noreply, state}
 
           _other ->
             Logger.error("job #{name} for `#{LocalProject.name(state.project)}` crashed")
+            LocalProject.set_job_outcome(state.project, name, :failure)
             handle_job_failed(new_state, name, reason)
         end
 
@@ -245,6 +257,11 @@ defmodule AircloakCI.Build.Server do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp run_job(server, name, job_fun) do
+    outcome = job_fun.()
+    send(server, {:job_outcome, name, outcome})
+  end
+
   defp build_source(callback_mod, source_id, repo_data), do:
     callback_mod.build_source(source_id, repo_data)
 
@@ -262,7 +279,9 @@ defmodule AircloakCI.Build.Server do
     new_state = %{state | source: source, base_branch: base_branch, project: project}
     cond do
       LocalProject.target_sha(new_state.project) != LocalProject.target_sha(state.project) ->
-        {:noreply, new_state |> terminate_all_jobs() |> start_preparation_job()}
+        state_after_job_termination = terminate_all_jobs(new_state)
+        LocalProject.clear_job_outcomes(state_after_job_termination.project)
+        {:noreply, start_preparation_job(state_after_job_termination)}
 
       new_state.source != state.source ->
         invoke_callback(new_state, :handle_source_change, [])

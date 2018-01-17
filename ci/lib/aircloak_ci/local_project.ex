@@ -225,12 +225,41 @@ defmodule AircloakCI.LocalProject do
   @doc "Marks the project for the force build."
   @spec mark_forced(t, String.t) :: :ok
   def mark_forced(project, job_name), do:
-    update_state(project, &%{&1 | forced_jobs: Map.put(&1.forced_jobs, job_name, project.source_sha)})
+    update_state(
+      project,
+      &%{&1 |
+        forced_jobs: Map.put(&1.forced_jobs, job_name, project.source_sha),
+        job_outcomes: Map.delete(&1.job_outcomes, job_name)
+      }
+    )
 
   @doc "Returns whether the project has been marked for the force build."
   @spec forced?(t, String.t) :: boolean
   def forced?(project, job_name), do:
     state(project).forced_jobs[job_name] in [project.source_sha, project.target_sha]
+
+  @doc "Returns all known job outcomes."
+  @spec job_outcomes(t) :: %{String.t => any}
+  def job_outcomes(%{source_sha: source_sha} = project), do:
+    state(project).job_outcomes
+    |> Enum.filter(&match?({_job_name, {_outcome, ^source_sha}}, &1))
+    |> Enum.map(fn({job_name, {outcome, ^source_sha}}) -> {job_name, outcome} end)
+    |> Map.new()
+
+  @doc "Stores the outcome of the given job."
+  @spec set_job_outcome(t, String.t, any) :: :ok
+  def set_job_outcome(project, job_name, outcome), do:
+    update_state(project, &put_in(&1.job_outcomes[job_name], {outcome, project.source_sha}))
+
+  @doc "Clears the outcome of the given job."
+  @spec clear_job_outcome(t, String.t) :: :ok
+  def clear_job_outcome(project, job_name), do:
+    update_state(project, &%{&1 | job_outcomes: Map.delete(&1.job_outcomes, job_name)})
+
+  @doc "Clears all known outcomes."
+  @spec clear_job_outcomes(t) :: :ok
+  def clear_job_outcomes(project), do:
+    update_state(project, &%{&1 | job_outcomes: %{}})
 
   @doc "Executes the command in the project folder."
   @spec cmd(t, String.t, String.t, CmdRunner.opts) :: :ok | {:error, String.t}
@@ -422,7 +451,7 @@ defmodule AircloakCI.LocalProject do
     project |> state_file() |> Path.dirname() |> Path.join("state_2")
 
   defp default_state(), do:
-    %{initialized?: false, compiled_components: %{}, forced_jobs: %{}, finished_jobs: %{}}
+    %{initialized?: false, compiled_components: %{}, forced_jobs: %{}, finished_jobs: %{}, job_outcomes: %{}}
 
   defp up_to_date?(project), do:
     current_sha(project) == project.target_sha
