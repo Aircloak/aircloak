@@ -182,11 +182,18 @@ defmodule AircloakCI.Build.Server do
 
   @impl GenServer
   def handle_call({:force_build, job_name}, _from, state) do
-    if job_type(job_name) in ["prepare", "compile", "test", "compliance"] do
-      LocalProject.mark_forced(state.project, job_name)
-      {:reply, :ok, start_new_jobs(state)}
-    else
-      {:reply, {:error, "don't know how to start job `#{job_name}`"}, state}
+    cond do
+      job_name == "all" ->
+        state_after_job_termination = terminate_all_jobs(state)
+        LocalProject.clear_job_outcomes(state_after_job_termination.project)
+        {:reply, :ok, restart(state_after_job_termination)}
+
+      job_type(job_name) in ["prepare", "compile", "test", "compliance"] ->
+        LocalProject.mark_forced(state.project, job_name)
+        {:reply, :ok, start_new_jobs(state)}
+
+      true ->
+        {:reply, {:error, "don't know how to start job `#{job_name}`"}, state}
     end
   end
   def handle_call(request, from, state), do:
