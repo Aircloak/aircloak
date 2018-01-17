@@ -172,7 +172,11 @@ defmodule Cloak.Sql.QueryTest do
   describe "features->expressions" do
     test "includes representations of expressions used", do:
       assert ["(min (+ const (sqrt col)))", "(+ col const)", "const"] =
-        features_from("SELECT min(1 + sqrt(height)) FROM feat_emulated_users WHERE height + 1 = 2").expressions
+        features_from("SELECT min(1 + sqrt(height)) FROM feat_users WHERE height + 1 = 2").expressions
+
+    test "resolves references into subqueries", do:
+      assert ["(min (+ col const))"] =
+        features_from("SELECT min(x) FROM (SELECT user_id, height + 1 AS x FROM feat_users) foo").expressions
   end
 
   test "marks non-emulated queries as such", do:

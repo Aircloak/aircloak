@@ -69,7 +69,12 @@ defmodule Cloak.Sql.Query.Features do
   defp build_expression_tree(%Expression{function?: true, function: function, function_args: args}, query), do:
     [Function.readable_name(function) | Enum.map(args, &build_expression_tree(&1, query))]
   defp build_expression_tree(%Expression{constant?: true}, _query), do: :const
-  defp build_expression_tree(_expression, _query), do: :col
+  defp build_expression_tree(other, query) do
+    case Query.resolve_subquery_column(other, query) do
+      :database_column -> :col
+      {column, subquery} -> build_expression_tree(column, subquery)
+    end
+  end
 
   defp extract_where_conditions(clause), do:
     Query.Lenses.conditions()
