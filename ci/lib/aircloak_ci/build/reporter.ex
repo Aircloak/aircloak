@@ -8,14 +8,6 @@ defmodule AircloakCI.Build.Reporter do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Asynchronously reports the status of the given job."
-  @spec report_status(Github.API.repo, String.t, String.t, Github.API.status, Github.API.status, String.t) :: :ok
-  def report_status(repo, sha, job_name, previous_statuses, status, description) do
-    unless description == previous_statuses[job_name][:description], do:
-      Github.put_status_check_state(repo.owner, repo.name, sha, full_github_context(job_name), description, status)
-    :ok
-  end
-
   @doc "Asynchronously reports the result of the given job."
   @spec report_result(Build.Server.state, String.t, :ok | :error | :failure, any) :: :ok
   def report_result(build_state, job_name, result, extra_info \\ nil) do
@@ -28,29 +20,7 @@ defmodule AircloakCI.Build.Reporter do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp full_github_context(context), do:
-    "continuous-integration/aircloak/#{context}"
-
-  defp github_status(:ok), do: :success
-  defp github_status(:error), do: :error
-  defp github_status(:failure), do: :failure
-
-  defp result_description(:ok), do: "succeeded"
-  defp result_description(:error), do: "errored"
-  defp result_description(:failure), do: "failed"
-
   defp post_result_to_github(build_state, job_name, result, extra_info) do
-    # Only set status for PR builds. Plain commit statuses can't be viewed in GH UI, so they don't make much sense.
-    if build_state.source_type == :pull_request, do:
-      report_status(
-        build_state.source.repo,
-        build_state.source.sha,
-        job_name,
-        Map.get(build_state.source, :status_checks, %{}),
-        github_status(result),
-        result_description(result)
-      )
-
     # Only report error/failure to reduce the noise in PR builds.
     if result in [:error, :failure], do:
       post_job_comment(build_state, comment_body(build_state, job_name, result, extra_info))

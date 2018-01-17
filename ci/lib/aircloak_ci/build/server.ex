@@ -51,8 +51,6 @@ defmodule AircloakCI.Build.Server do
     {:noreply, state, timeout | :hibernate} |
     {:stop, reason :: any, state}
 
-  @type start_job_opts :: [report_status: {Github.API.repo, sha::String.t}]
-
 
   # -------------------------------------------------------------------
   # Behaviour
@@ -110,24 +108,14 @@ defmodule AircloakCI.Build.Server do
     GenServer.call(server, request, timeout)
 
   @doc "Starts the provided function as a child job of the build server."
-  @spec start_job(state, job_name, (() -> any), start_job_opts) :: state
-  def start_job(state, name, job_fun, opts \\ []) do
+  @spec start_job(state, job_name, (() -> any)) :: state
+  def start_job(state, name, job_fun) do
     :error = Map.fetch(state.jobs, name)
 
     LocalProject.clear_job_outcome(state.project, name)
     server = self()
     {:ok, new_job} = Task.start_link(fn -> run_job(server, name, job_fun) end)
     Logger.info("job #{name} for `#{LocalProject.name(state.project)}` started")
-
-    case {state.source_type, Keyword.fetch(opts, :report_status)} do
-      {:pull_request, {:ok, {repo, sha}}} ->
-        # Only report status for PR builds, to avoid possible race conditions, where a branch build could overwrite
-        # the status previously reported by the PR build. We don't care about branch build statuses, since an error
-        # will be properly reported.
-        AircloakCI.Build.Reporter.report_status(repo, sha, name, %{}, :pending, "build started")
-
-      _ -> :ok
-    end
 
     put_in(state.jobs[name], new_job)
   end

@@ -19,11 +19,10 @@
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp start_test(%{source: pr, project: project} = build_state, build_server), do:
+  defp start_test(%{project: project} = build_state, build_server), do:
     Build.Server.start_job(
       build_state,
       "compliance",
-      fn -> Component.start_job(project, "cloak", :compliance, report_result: build_server, log_name: "compliance") end,
-      report_status: {pr.repo, pr.sha}
+      fn -> Component.start_job(project, "cloak", :compliance, report_result: build_server, log_name: "compliance") end
     )
 end
