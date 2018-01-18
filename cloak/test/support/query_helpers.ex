@@ -1,8 +1,6 @@
 defmodule Cloak.Test.QueryHelpers do
   @moduledoc false
 
-  import Lens.Macros
-
   alias Cloak.Sql.{Compiler, Parser, Query}
 
   defmacro assert_query_consistency(query, options \\ []) do
@@ -69,14 +67,8 @@ defmodule Cloak.Test.QueryHelpers do
     Cloak.Test.DB.add_users_data(table, columns, [[nil | values]])
   end
 
-  deflens all_column_titles(), do:
-    all_subqueries() |> Lens.key(:column_titles) |> Lens.all()
-
-  deflens all_subqueries(), do:
-    Lens.both(Lens.recur(Query.Lenses.direct_subqueries() |> Lens.key(:ast)), Lens.root())
-
   def scrub_data_sources(query), do:
-    put_in(query, [all_subqueries() |> Lens.key(:data_source)], nil)
+    put_in(query, [Query.Lenses.all_queries() |> Lens.key(:data_source)], nil)
 
   def compile!(query_string, data_source, options \\ []) do
     {:ok, result} = compile(query_string, data_source, options)

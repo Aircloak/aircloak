@@ -930,7 +930,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   defp projected_table_db_columns(query), do:
     query
-    |> get_in([all_subqueries()])
+    |> get_in([Query.Lenses.all_queries()])
     |> Enum.find(&match?({:join, %{lhs: "projected_table"}}, &1.from))
     |> Map.fetch!(:db_columns)
 
