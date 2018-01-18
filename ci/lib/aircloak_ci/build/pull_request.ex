@@ -51,7 +51,7 @@ defmodule AircloakCI.Build.PullRequest do
 
   @impl Build.Server
   def handle_source_change(state) do
-    {:noreply, report_mergeable(state)}
+    {:noreply, state |> report_mergeable() |> maybe_start_compliance()}
   end
 
   @impl Build.Server
