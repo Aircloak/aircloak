@@ -58,7 +58,8 @@ Where:
 
 - `target_type` is either `branch` or `pr`
 - `target_id` is branch name or PR number
-- `job_name` is one of `air_compile`, `air_test`, `cloak_compile`, `cloak_test`, `compliance`
+- `job_name` is one of `component_compile`, `component_test`, `compliance`, or `all`
+- `component` is one of `air`, `cloak`, `central`, `bom`, `common`, `ci`, `integration_test`
 
 For example, to restart the cloak_test build for branch `my_branch`, you can invoke:
 

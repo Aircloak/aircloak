@@ -79,7 +79,7 @@ defmodule AircloakCI.Github.API do
         "/repos/#{owner}/#{repo}/statuses/#{sha}",
         %{
           context: context,
-          description: description,
+          description: normalize_status_description(description),
           state: encode_status_check_state(state),
         }
       )
@@ -237,5 +237,18 @@ defmodule AircloakCI.Github.API do
       )
 
     {:ok, rate_limit}
+  end
+
+  defp normalize_status_description(description) do
+    max_allowed_length = 140
+
+    case String.split_at(description, max_allowed_length) do
+      {_, ""} -> description
+
+      _ ->
+        suffix = " ..."
+        {displayed, _} = String.split_at(description, max_allowed_length - String.length(suffix))
+        "#{displayed}#{suffix}"
+    end
   end
 end
