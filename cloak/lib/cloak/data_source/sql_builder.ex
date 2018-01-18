@@ -24,10 +24,8 @@ defmodule Cloak.DataSource.SqlBuilder do
   # Transformation of query AST to query specification
   # -------------------------------------------------------------------
 
-  defp column_name(%Expression{table: :unknown, name: name}, sql_dialect_module), do:
-    quote_name(name, sql_dialect_module)
-  defp column_name(column, sql_dialect_module), do:
-    "#{quote_name(column.table.name, sql_dialect_module)}.#{quote_name(column.name, sql_dialect_module)}"
+  defp column_name(%Expression{table: :unknown, name: name}), do: quote_name(name)
+  defp column_name(column), do: "#{quote_name(column.table.name)}.#{quote_name(column.name)}"
 
   defp build_fragments(query, sql_dialect_module) do
     [
@@ -50,7 +48,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(:*, _sql_dialect_module), do: "*"
   defp column_sql({:distinct, column}, sql_dialect_module), do: ["DISTINCT ", column_sql(column, sql_dialect_module)]
   defp column_sql(%Expression{alias: alias} = column, sql_dialect_module) when alias != nil and alias != "", do:
-    [column_sql(%Expression{column | alias: nil}, sql_dialect_module), " AS ", quote_name(alias, sql_dialect_module)]
+    [column_sql(%Expression{column | alias: nil}, sql_dialect_module), " AS ", quote_name(alias)]
   defp column_sql(%Expression{function?: true, function: fun_name, type: type, function_args: args}, sql_dialect_module)
     when fun_name in ["+", "-"] and type in [:time, :date, :datetime],
   do:
@@ -68,7 +66,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(%Expression{constant?: true, value: value}, sql_dialect_module), do:
     constant_to_fragment(value, sql_dialect_module)
   defp column_sql(%Expression{function?: false, constant?: false} = column, sql_dialect_module), do:
-    column |> column_name(sql_dialect_module) |> cast_type(DataDecoder.encoded_type(column), sql_dialect_module)
+    column |> column_name() |> cast_type(DataDecoder.encoded_type(column), sql_dialect_module)
 
   defp cast_type(value, type, sql_dialect_module) when type in [:text, :unknown], do:
     # Force casting to text ensures we consistently fetch a string column as unicode, regardless of how it's
@@ -81,12 +79,12 @@ defmodule Cloak.DataSource.SqlBuilder do
       from_clause(join.rhs, query, sql_dialect_module), on_clause(join.conditions, sql_dialect_module), ")"]
   end
   defp from_clause({:subquery, subquery}, _query, sql_dialect_module) do
-    ["(", build_fragments(subquery.ast, sql_dialect_module), ") AS ", quote_name(subquery.alias, sql_dialect_module)]
+    ["(", build_fragments(subquery.ast, sql_dialect_module), ") AS ", quote_name(subquery.alias)]
   end
-  defp from_clause(table_name, query, sql_dialect_module) when is_binary(table_name) do
+  defp from_clause(table_name, query, _sql_dialect_module) when is_binary(table_name) do
     query.selected_tables
     |> Enum.find(&(&1.name == table_name))
-    |> table_to_from(sql_dialect_module)
+    |> table_to_from()
   end
 
   defp on_clause(nil, _sql_dialect_module), do: []
@@ -98,10 +96,8 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp join_sql(:left_outer_join), do: "LEFT OUTER JOIN"
   defp join_sql(:right_outer_join), do: "RIGHT OUTER JOIN"
 
-  defp table_to_from(%{name: table_name, db_name: table_name}, sql_dialect_module), do:
-    quote_name(table_name, sql_dialect_module)
-  defp table_to_from(table, sql_dialect_module), do:
-    "#{table.db_name} AS #{quote_name(table.name, sql_dialect_module)}"
+  defp table_to_from(%{name: table_name, db_name: table_name}), do: quote_name(table_name)
+  defp table_to_from(table), do: "#{table.db_name} AS #{quote_name(table.name)}"
 
   defp where_fragments(nil, _sql_dialect_module), do: []
   defp where_fragments(where_clause, sql_dialect_module),
@@ -182,7 +178,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   end
   defp order_by_fragments(_query, _sql_dialect_module), do: []
 
-  defp quote_name(name, _sql_dialect_module), do: "\"#{name}\""
+  defp quote_name(name), do: "\"#{name}\""
 
   defp range_fragments(%Query{subquery?: true, order_by: []}, _sql_dialect_module), do:
     []
