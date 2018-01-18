@@ -77,6 +77,13 @@ su ci
 /home/ci/aircloak_ci/production/current/bin/aircloak_ci remote_console
 ```
 
+In case you need to stop/start/restart the service, you can do it with the following command sequence:
+
+```
+ssh acatlas4.mpi-sws.org
+systemctl stop/start/restart aircloak_ci.service
+```
+
 ### Starting a component CI container
 
 It is possible to start a component CI container, both locally and in production, and then manually run various commands, such as compile, test, ...
