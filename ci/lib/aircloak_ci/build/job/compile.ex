@@ -10,13 +10,13 @@ defmodule AircloakCI.Build.Job.Compile do
   # -------------------------------------------------------------------
 
   @doc "Starts the compilation job for all the components in the given project."
-  @spec start(Build.Server.state) :: Build.Server.state
-  def start(build_state), do:
-    Enum.reduce(LocalProject.components(build_state.project), build_state, &start(&2, &1))
+  @spec start_if_possible(Build.Server.state) :: Build.Server.state
+  def start_if_possible(build_state), do:
+    Enum.reduce(LocalProject.components(build_state.project), build_state, &start_if_possible(&2, &1))
 
   @doc "Starts the compilation job for the given component in the given project."
-  @spec start(Build.Server.state, String.t) :: Build.Server.state
-  def start(%{project: project} = build_state, component), do:
+  @spec start_if_possible(Build.Server.state, String.t) :: Build.Server.state
+  def start_if_possible(%{project: project} = build_state, component), do:
     Job.maybe_start(build_state, "#{component}_compile", &start_compilation(&1, self(), project, component))
 
   # -------------------------------------------------------------------
