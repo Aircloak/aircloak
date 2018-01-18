@@ -228,6 +228,7 @@ defmodule AircloakCI.LocalProject do
   @doc "Returns whether the project has been marked for the force build."
   @spec forced?(t, String.t) :: boolean
   def forced?(project, job_name), do:
+    state(project).forced_jobs[job_name] != nil and
     state(project).forced_jobs[job_name] in [project.source_sha, project.target_sha]
 
   @doc "Returns the list of forced jobs."
