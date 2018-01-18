@@ -151,21 +151,23 @@ defmodule AircloakCI.Build.PullRequest do
   end
 
   defp check_failures(statuses) do
-    case \
-      statuses
-      |> Enum.reject(fn({_, status}) -> status in [:ok, :pending] end)
-      |> Enum.map(fn({name, _}) -> name end)
-    do
-      [] -> :ok
-      failed_jobs -> {:error, "#{Enum.join(failed_jobs, ", ")} failed"}
-    end
+    statuses
+    |> Enum.reject(fn({_, status}) -> status in [:ok, :pending] end)
+    |> Enum.map(fn({name, _}) -> name end)
+    |> case do
+        [] -> :ok
+        failed_jobs -> {:error, "#{Enum.join(failed_jobs, ", ")} failed"}
+      end
   end
 
   defp check_pending(statuses) do
-    case statuses |> Enum.filter(&match?({_, :pending}, &1)) |> Enum.map(fn({name, _}) -> name end) do
-      [] -> :ok
-      pending_jobs -> {:pending, "awaiting #{Enum.join(pending_jobs, ", ")}"}
-    end
+    statuses
+    |> Enum.filter(&match?({_, :pending}, &1))
+    |> Enum.map(fn({name, _}) -> name end)
+    |> case do
+        [] -> :ok
+        pending_jobs -> {:pending, "awaiting #{Enum.join(pending_jobs, ", ")}"}
+      end
   end
 
 
