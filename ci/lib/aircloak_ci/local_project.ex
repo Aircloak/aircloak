@@ -231,10 +231,10 @@ defmodule AircloakCI.LocalProject do
 
   @doc "Returns all known job outcomes."
   @spec job_outcomes(t) :: %{String.t => any}
-  def job_outcomes(%{source_sha: source_sha} = project), do:
+  def job_outcomes(project), do:
     state(project).job_outcomes
     |> Enum.filter(fn({_job_name, {_, sha}}) -> sha in [project.source_sha, project.target_sha] and sha != nil end)
-    |> Enum.map(fn({job_name, {outcome, ^source_sha}}) -> {job_name, outcome} end)
+    |> Enum.map(fn({job_name, {outcome, _sha}}) -> {job_name, outcome} end)
     |> Map.new()
 
   @doc "Returns the outcome of the job, or nil if the job didn't finish."
