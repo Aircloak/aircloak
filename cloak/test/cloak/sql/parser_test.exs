@@ -74,13 +74,19 @@ defmodule Cloak.Sql.Parser.Test do
 
   defmacrop identifier(name) do
     quote do
-      {:identifier, _, unquoted(unquote(name))}
+      {:identifier, _, unquoted(unquote(name)), _}
+    end
+  end
+
+  defmacrop identifier(name, location) do
+    quote do
+      {:identifier, _, unquoted(unquote(name)), unquote(location)}
     end
   end
 
   defmacrop quoted_identifier(name) do
     quote do
-      {:identifier, _, quoted(unquote(name))}
+      {:identifier, _, quoted(unquote(name)), location}
     end
   end
 
@@ -130,6 +136,14 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "simple select query" do
     assert_parse("select foo from baz", select(columns: [identifier("foo")], from: unquoted("baz")))
+  end
+
+  test "identifier location in source" do
+    assert_parse("select foo\n, bar from baz", select(columns: [identifier("foo", {1, 7}), identifier("bar", {2, 2})]))
+  end
+
+  test "qualified identifier location in source" do
+    assert_parse(~s[select baz.foo from baz], select(columns: [identifier("foo", {1, 7})]))
   end
 
   test "fully qualified table name" do

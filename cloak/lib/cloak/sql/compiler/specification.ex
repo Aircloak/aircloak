@@ -6,6 +6,8 @@ defmodule Cloak.Sql.Compiler.Specification do
   alias Cloak.Sql.Compiler.{Helpers, Validation}
   alias Cloak.Sql.Query.Lenses
 
+  @dummy_location {1, 0}
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -207,8 +209,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     {column_ast(table_name, column_name), :as, projection[:user_id_alias] || column_name}
 
   defp column_ast(table_name, column_name), do:
-    {:identifier, {:quoted, table_name}, {:quoted, column_name}}
-
+    {:identifier, {:quoted, table_name}, {:quoted, column_name}, @dummy_location}
 
   # -------------------------------------------------------------------
   # Subqueries
@@ -343,12 +344,13 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> Enum.filter(&(&1.column.visible?))
 
   defp columns_to_identifiers(columns), do:
-    Enum.map(columns, &{:identifier, &1.table.name, {:unquoted, &1.column.name}})
+    Enum.map(columns, &{:identifier, &1.table.name, {:unquoted, &1.column.name}, @dummy_location})
 
   defp compile_aliases(%Query{columns: [_|_] = columns} = query) do
     verify_aliases(query)
     column_titles = Enum.map(columns, &column_title(&1, query.selected_tables))
-    aliases = for {column, :as, name} <- columns, into: %{}, do: {{:identifier, :unknown, {:unquoted, name}}, column}
+    aliases = for {column, :as, name} <- columns, into: %{}, do:
+      {{:identifier, :unknown, {:unquoted, name}, @dummy_location}, column}
     columns = Enum.map(columns, fn ({column, :as, _name}) -> column; (column) -> column end)
     order_by = for {column, direction} <- query.order_by, do: {Map.get(aliases, column, column), direction}
     group_by = for identifier <- query.group_by, do: Map.get(aliases, identifier, identifier)
@@ -365,9 +367,9 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp column_title({:function, name, _}, _selected_tables), do: name
   defp column_title({:distinct, identifier}, selected_tables), do: column_title(identifier, selected_tables)
   # This is needed for data sources that support dotted names for fields (MongoDB)
-  defp column_title({:identifier, {:unquoted, table}, {:unquoted, column}}, selected_tables), do:
+  defp column_title({:identifier, {:unquoted, table}, {:unquoted, column}, _}, selected_tables), do:
     if find_table(selected_tables, {:unquoted, table}) == nil, do: "#{table}.#{column}", else: column
-  defp column_title({:identifier, _table, {_, column}}, _selected_tables), do: column
+  defp column_title({:identifier, _table, {_, column}, _}, _selected_tables), do: column
   defp column_title({:constant, _, _}, _selected_tables), do: ""
   defp column_title({:parameter, _}, _selected_tables), do: ""
 
@@ -382,7 +384,7 @@ defmodule Cloak.Sql.Compiler.Specification do
       (for {identifier, _direction} <- query.order_by, do: identifier) ++
       query.group_by ++
       Lens.to_list(Lenses.conditions_terminals(), [query.where, query.having])
-    ambiguous_names = for {:identifier, :unknown, {_, name}} <- referenced_identifiers,
+    ambiguous_names = for {:identifier, :unknown, {_, name}, _} <- referenced_identifiers,
       Enum.count(possible_identifiers, &name == &1) > 1, do: name
     case ambiguous_names do
       [] -> :ok
@@ -403,15 +405,15 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp map_terminal_elements(query, mapper_fun), do:
     Lens.map(Lenses.terminals(), query, mapper_fun)
 
-  defp normalize_table_name({:identifier, table_identifier = {_, name}, column}, selected_tables) do
+  defp normalize_table_name({:identifier, table_identifier = {_, name}, column, location}, selected_tables) do
     case find_table(selected_tables, table_identifier) do
-      nil -> {:identifier, name, column}
-      table -> {:identifier, table.name, column}
+      nil -> {:identifier, name, column, location}
+      table -> {:identifier, table.name, column, location}
     end
   end
   defp normalize_table_name(x, _), do: x
 
-  defp identifier_to_column({:identifier, :unknown, identifier = {_, column_name}}, columns_by_name, _query) do
+  defp identifier_to_column({:identifier, :unknown, identifier = {_, column_name}, _loc}, columns_by_name, _query) do
     case get_columns(columns_by_name, identifier) do
       [column] -> column
       [_|_] -> raise CompilationError, message: "Column `#{column_name}` is ambiguous."
@@ -429,7 +431,7 @@ defmodule Cloak.Sql.Compiler.Specification do
           end
     end
   end
-  defp identifier_to_column({:identifier, table, identifier = {_, column_name}}, columns_by_name, query) do
+  defp identifier_to_column({:identifier, table, identifier = {_, column_name}, _loc}, columns_by_name, query) do
     if Enum.any?(query.selected_tables, &(&1.name == table)) do
       case get_columns(columns_by_name, identifier) do
         nil ->

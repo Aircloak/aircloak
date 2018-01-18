@@ -198,7 +198,7 @@ defmodule Cloak.Sql.Compiler.Validation do
       fn
         (%Cloak.Sql.Expression{table: %{name: table_name}, name: column_name}) ->
           verify_scope(selected_tables, table_name, column_name)
-        ({:identifier, table_name, {_, column_name}}) ->
+        ({:identifier, table_name, {_, column_name}, _}) ->
           verify_scope(selected_tables, table_name, column_name)
         (_) -> :ok
       end
