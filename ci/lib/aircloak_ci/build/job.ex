@@ -11,7 +11,21 @@ defmodule AircloakCI.Build.Job do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Starts the job using the provided lambda if mandatory conditions are met."
+  @doc """
+  Starts the job using the provided lambda if mandatory conditions are met.
+
+  Notes:
+
+  - if the job is already running it is not started
+  - if the job has finished, it is started only if the build is forced
+
+  It's worth noting that the finished status is tied to a particular commit. Therefore, if new commits are pushed,
+  the finished status is reset.
+
+  This function can therefore be safely called repeatedly for the same job, and it will still lead to the single
+  execution of that job. Once the job is finished, it won't be restarted again as long as nothing is pushed to the
+  corresponding branch.
+  """
   @spec maybe_start(Build.Server.state, Build.Server.job_name, ((Build.Server.state) -> Build.Server.state)) ::
     Build.Server.state
   def maybe_start(build_state, job_name, fun) do

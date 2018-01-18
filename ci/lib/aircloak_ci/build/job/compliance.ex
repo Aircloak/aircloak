@@ -10,10 +10,10 @@
   # -------------------------------------------------------------------
 
   @doc "Invokes the compliance job."
-  @spec start(Build.Server.state) :: Build.Server.state
-  def start(build_state) do
+  @spec start_if_possible(Build.Server.state) :: Build.Server.state
+  def start_if_possible(build_state) do
     case LocalProject.job_outcome(build_state.project, "cloak_compile") do
-      nil -> Job.Compile.start(build_state, "cloak")
+      nil -> Job.Compile.start_if_possible(build_state, "cloak")
       :ok -> Job.maybe_start(build_state, "compliance", &start_test(&1, self()))
       _ -> build_state
     end

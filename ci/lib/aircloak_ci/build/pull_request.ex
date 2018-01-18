@@ -75,8 +75,8 @@ defmodule AircloakCI.Build.PullRequest do
   defp start_next_jobs(state) do
     if state.prepared? and check_mergeable(state) == :ok do
       state
-      |> Job.Compile.start()
-      |> Job.Test.start()
+      |> Job.Compile.start_if_possible()
+      |> Job.Test.start_if_possible()
       |> maybe_start_compliance()
     else
       state
@@ -85,7 +85,7 @@ defmodule AircloakCI.Build.PullRequest do
 
   defp maybe_start_compliance(state) do
     if check_standard_tests(state) == :ok and check_approved(state) == :ok,
-      do: Job.Compliance.start(state),
+      do: Job.Compliance.start_if_possible(state),
       else: state
   end
 
