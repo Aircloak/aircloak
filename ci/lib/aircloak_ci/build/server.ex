@@ -190,7 +190,7 @@ defmodule AircloakCI.Build.Server do
 
       job_type(job_name) in ["prepare", "compile", "test", "compliance"] ->
         LocalProject.mark_forced(state.project, job_name)
-        {:reply, :ok, start_new_jobs(state)}
+        {:reply, :ok, start_forced_jobs(state)}
 
       true ->
         {:reply, {:error, "don't know how to start job `#{job_name}`"}, state}
@@ -226,7 +226,7 @@ defmodule AircloakCI.Build.Server do
     Logger.info("job #{name} for `#{LocalProject.name(state.project)}` finished")
 
     state = if name == "prepare" and outcome == :ok, do: %{state | prepared?: true}, else: state
-    state = start_new_jobs(state)
+    state = start_forced_jobs(state)
 
     case outcome do
       :ok -> handle_job_succeeded(state, name)
@@ -243,7 +243,7 @@ defmodule AircloakCI.Build.Server do
           _other ->
             Logger.error("job #{name} for `#{LocalProject.name(state.project)}` crashed")
             LocalProject.set_job_outcome(state.project, name, :failure)
-            new_state |> start_new_jobs() |> handle_job_failed(name, reason)
+            new_state |> start_forced_jobs() |> handle_job_failed(name, reason)
         end
 
       nil -> invoke_callback(state, :handle_info, [exit_message])
@@ -271,16 +271,12 @@ defmodule AircloakCI.Build.Server do
     send(server, {:job_outcome, name, outcome})
   end
 
-  defp start_new_jobs(state) do
+  defp start_forced_jobs(state) do
     cond do
       LocalProject.forced?(state.project, "prepare") and not running?(state, "prepare") -> restart(state)
-      state.prepared? -> state |> start_forced_jobs()
+      state.prepared? -> state.project |> LocalProject.forced_jobs() |> Enum.reduce(state, &start_forced_job(&2, &1))
       true -> state
     end
-  end
-
-  defp start_forced_jobs(state) do
-    state.project |> LocalProject.forced_jobs() |> Enum.reduce(state, &start_forced_job(&2, &1))
   end
 
   defp start_forced_job(state, job_name) do
