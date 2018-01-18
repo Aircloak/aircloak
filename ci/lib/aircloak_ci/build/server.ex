@@ -308,7 +308,7 @@ defmodule AircloakCI.Build.Server do
     cond do
       LocalProject.target_sha(new_state.project) != LocalProject.target_sha(state.project) ->
         state_after_job_termination = terminate_all_jobs(new_state)
-        LocalProject.clear_job_outcomes(state_after_job_termination.project)
+        LocalProject.clear_job_outcome(state_after_job_termination.project, "prepare")
         {:noreply, start_preparation_job(state_after_job_termination)}
 
       new_state.source != state.source ->
