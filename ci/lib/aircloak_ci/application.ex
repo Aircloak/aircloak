@@ -20,7 +20,8 @@ defmodule AircloakCI.Application do
         AircloakCI.RepoDataProvider,
         AircloakCI.Container,
         AircloakCI.Build.Service,
-        AircloakCI.BuildCleaner
+        AircloakCI.BuildCleaner,
+        AircloakCI.LogCleaner,
       ],
       strategy: :one_for_one,
       name: AircloakCI.Supervisor

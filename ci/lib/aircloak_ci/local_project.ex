@@ -327,6 +327,11 @@ defmodule AircloakCI.LocalProject do
     |> Enum.reject(&(&1 in ["tmp"]))
     |> Enum.reject(&match?({:error, _}, commands(project, &1, :compile)))
 
+  @doc "Returns the location of logs folder."
+  @spec logs_folder() :: String.t
+  def logs_folder(), do:
+    Path.join(AircloakCI.data_folder(), "logs")
+
 
   # -------------------------------------------------------------------
   # Build folders
@@ -338,9 +343,6 @@ defmodule AircloakCI.LocalProject do
     File.mkdir_p!(project.log_folder)
     project
   end
-
-  defp logs_folder(), do:
-    Path.join(AircloakCI.data_folder(), "logs")
 
   defp cache_folder(), do:
     Path.join(AircloakCI.data_folder(), "cache")
