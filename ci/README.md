@@ -76,3 +76,25 @@ ssh acatlas4.mpi-sws.org
 su ci
 /home/ci/aircloak_ci/production/current/bin/aircloak_ci remote_console
 ```
+
+### Starting a component CI container
+
+It is possible to start a component CI container, both locally and in production, and then manually run various commands, such as compile, test, ...
+
+To start a local CI container for a component, you can invoke `ci/start_component.sh component_name`. For example, to start a container for the `bom` component, you can invoke `ci/start_component.sh bom`.
+
+To start a CI container on a production, you need to invoke the following commands:
+
+```
+$ ssh acatlas4.mpi-sws.org
+$ su ci
+$ cd /home/ci/.aircloak_ci/data/cache/builds/pr-XYZ/src
+$ ci/start_component.sh component_name
+```
+
+Notes:
+
+- `start_component.sh` is not available for PRs targeting the release 18.1 branch.
+- `start_component.sh` also starts the supporting containers, such as database server.
+- No initialization is performed. You need to manually fetch dependencies, and initialize database.
+- Refer to `component_folder/ci/jobs.exs` for the exact shape of test commands.
