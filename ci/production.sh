@@ -62,6 +62,10 @@ function deploy {
     git checkout $build_branch
     git reset --hard origin/$build_branch
 
+    pushd .. && asdf install && popd
+    mix local.hex --force
+    mix local.rebar --force
+
     # build release and make the current folder point to it
     make release
     mkdir -p $production_folder/releases/
