@@ -56,14 +56,12 @@ defmodule AircloakCI.RepoDataProvider do
           Enum.each(AircloakCI.RepoDataProvider.subscribers(), &send(&1, {:repo_data, repo_data}))
           ensure_branch_builds(repo_data)
           ensure_pr_builds(repo_data)
-          repo_data
         end
       catch type, error ->
         Logger.error(Exception.format(type, error, System.stacktrace()))
       end
 
       :timer.sleep(:timer.seconds(5))
-
       loop()
     end
 
