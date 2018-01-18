@@ -1,3 +1,5 @@
+test change 1
+
 This document serves to describe breaking changes and provide upgrade hints when major changes are introduced. When you're creating a pull with some major changes, please add brief upgrade instructions here.
 
 ## Upgraded local central database image to PostgreSQL 9.5
