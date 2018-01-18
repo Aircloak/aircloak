@@ -1,12 +1,15 @@
 defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
   alias Cloak.Sql.{Compiler.ASTNormalization, Parser}
+  alias Cloak.Test.QueryHelpers
 
   use ExUnit.Case, async: true
 
   defmacrop assert_equivalent(to_normalize, expected) do
     quote bind_quoted: [to_normalize: to_normalize, expected: expected] do
-      parsed = Parser.parse!(to_normalize)
-      assert ASTNormalization.normalize(parsed) == Parser.parse!(expected)
+      parsed = to_normalize |> Parser.parse!() |> ASTNormalization.normalize() |> QueryHelpers.scrub_locations()
+      expected = expected |> Parser.parse!() |> QueryHelpers.scrub_locations()
+
+      assert parsed == expected
     end
   end
 

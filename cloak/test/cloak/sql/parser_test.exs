@@ -2,6 +2,7 @@ defmodule Cloak.Sql.Parser.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.Sql.Parser
+  alias Cloak.Test.QueryHelpers
 
 
   # -------------------------------------------------------------------
@@ -23,7 +24,10 @@ defmodule Cloak.Sql.Parser.Test do
 
   defmacrop assert_equal_parse(query1, query2) do
     quote do
-      assert Parser.parse(unquote(query1)) == Parser.parse(unquote(query2))
+      result1 = unquote(query1) |> Parser.parse!() |> QueryHelpers.scrub_locations()
+      result2 = unquote(query2) |> Parser.parse!() |> QueryHelpers.scrub_locations()
+
+      assert result1 == result2
     end
   end
 

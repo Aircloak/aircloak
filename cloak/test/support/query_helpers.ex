@@ -70,6 +70,12 @@ defmodule Cloak.Test.QueryHelpers do
   def scrub_data_sources(query), do:
     put_in(query, [Query.Lenses.all_queries() |> Lens.key(:data_source)], nil)
 
+  def scrub_locations(ast), do:
+    update_in(ast, [Query.Lenses.all_queries() |> Query.Lenses.terminals()], fn
+      {:identifier, table, column, _location} -> {:identifier, table, column, nil}
+      other -> other
+    end)
+
   def compile!(query_string, data_source, options \\ []) do
     {:ok, result} = compile(query_string, data_source, options)
     result
