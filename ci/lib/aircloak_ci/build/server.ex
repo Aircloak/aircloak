@@ -226,10 +226,9 @@ defmodule AircloakCI.Build.Server do
     Logger.info("job #{name} for `#{LocalProject.name(state.project)}` finished")
 
     state = if name == "prepare" and outcome == :ok, do: %{state | prepared?: true}, else: state
-    state = start_forced_jobs(state)
 
     case outcome do
-      :ok -> handle_job_succeeded(state, name)
+      :ok -> state |> start_forced_jobs() |> handle_job_succeeded(name)
       error -> handle_job_failed(state, name, error)
     end
   end
@@ -243,7 +242,7 @@ defmodule AircloakCI.Build.Server do
           _other ->
             Logger.error("job #{name} for `#{LocalProject.name(state.project)}` crashed")
             LocalProject.set_job_outcome(state.project, name, :failure)
-            new_state |> start_forced_jobs() |> handle_job_failed(name, reason)
+            handle_job_failed(new_state, name, reason)
         end
 
       nil -> invoke_callback(state, :handle_info, [exit_message])
