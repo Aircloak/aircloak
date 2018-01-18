@@ -374,7 +374,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp column_title({:identifier, {:unquoted, table}, {:unquoted, column}, _}, selected_tables), do:
     if find_table(selected_tables, {:unquoted, table}) == nil, do: "#{table}.#{column}", else: column
   defp column_title({:identifier, _table, {_, column}, _}, _selected_tables), do: column
-  defp column_title({:constant, _, _}, _selected_tables), do: ""
+  defp column_title({:constant, _, _, _}, _selected_tables), do: ""
   defp column_title({:parameter, _}, _selected_tables), do: ""
 
   # Subqueries can produce column-names that are not actually in the table. Without understanding what
@@ -470,9 +470,9 @@ defmodule Cloak.Sql.Compiler.Specification do
     if param_type == :unknown, do: parameter_error(index)
     Expression.constant(param_type, param_value)
   end
-  defp identifier_to_column({:constant, type, value}, _columns_by_name, _query), do:
+  defp identifier_to_column({:constant, type, value, _location}, _columns_by_name, _query), do:
     Expression.constant(type, value)
-  defp identifier_to_column({:like_pattern, {:constant, _, pattern}, {:constant, _, escape}}, _, _) do
+  defp identifier_to_column({:like_pattern, {:constant, _, pattern, _}, {:constant, _, escape, _}}, _, _) do
     if escape == nil or String.length(escape) == 1 do
       Expression.like_pattern(pattern, escape)
     else

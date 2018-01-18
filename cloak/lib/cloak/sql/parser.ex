@@ -21,7 +21,7 @@ defmodule Cloak.Sql.Parser do
 
   @type function_name :: String.t | {:bucket, atom} | {:cast, data_type}
 
-  @type constant :: {:constant, data_type, any}
+  @type constant :: {:constant, data_type, any, location}
 
   @type column ::
       qualified_identifier
@@ -81,6 +81,8 @@ defmodule Cloak.Sql.Parser do
     subquery?: boolean,
     sample_rate: integer,
   }
+
+  @no_location {1, 0}
 
 
   # -------------------------------------------------------------------
@@ -191,7 +193,7 @@ defmodule Cloak.Sql.Parser do
       concat_expression()
     ])
     |> map(fn
-      [:-, inner] -> {:function, "-", [{:constant, :integer, 0}, inner]}
+      [:-, inner] -> {:function, "-", [{:constant, :integer, 0, @no_location}, inner]}
       [:+, inner] -> inner
       other -> other
     end)
@@ -434,8 +436,8 @@ defmodule Cloak.Sql.Parser do
      fn
        [:substring, :"(", column, [_, from, _, for_count], :")"] ->
          {:function, "substring", [column, from, for_count]}
-       [:substring, :"(", column, [:for, for_count], :")"] ->
-         {:function, "substring", [column, {:constant, :integer, 1}, for_count]}
+       [:substring, :"(", column, [:for, for_count = {:constant, _, _, location}], :")"] ->
+         {:function, "substring", [column, {:constant, :integer, 1, location}, for_count]}
        [:substring, :"(", column, [_, from], :")"] ->
          {:function, "substring", [column, from]}
      end
@@ -664,7 +666,7 @@ defmodule Cloak.Sql.Parser do
     option(sequence([keyword(:escape), constant(:string)]))
     |> map(fn
       [_, constant] -> constant
-      nil -> {:constant, :string, nil}
+      nil -> {:constant, :string, nil, @no_location}
     end)
   end
 
@@ -693,10 +695,10 @@ defmodule Cloak.Sql.Parser do
         keyword(:interval),
         constant_of([:string]),
       ],
-      fn([:interval, {:constant, :string, value}]) -> Timex.Duration.parse(value) end
+      fn([:interval, {:constant, :string, value, location}]) -> {Timex.Duration.parse(value), location} end
     )
-    |> satisfy(&match?({:ok, _}, &1))
-    |> map(fn({:ok, result}) -> {:constant, :interval, result} end)
+    |> satisfy(&match?({{:ok, _}, _}, &1))
+    |> map(fn({{:ok, result}, location}) -> {:constant, :interval, result, location} end)
   end
 
   defp any_constant() do
@@ -715,23 +717,23 @@ defmodule Cloak.Sql.Parser do
     map(
       sequence([option(keyword_of([:+, :-])), constant_of([:integer, :float])]),
       fn
-        [nil, {:constant, _type, _value} = constant] -> constant
-        [:+, {:constant, _type, _value} = constant] -> constant
-        [:-, {:constant, type, value}] -> {:constant, type, value * -1}
+        [nil, {:constant, _type, _value, _location} = constant] -> constant
+        [:+, {:constant, _type, _value, _location} = constant] -> constant
+        [:-, {:constant, type, value, location}] -> {:constant, type, value * -1, location}
       end
     )
-    |> satisfy(fn({:constant, type, _value}) -> expected_type == :numeric || type == expected_type end)
+    |> satisfy(fn({:constant, type, _value, _location}) -> expected_type == :numeric || type == expected_type end)
     |> label("#{expected_type} constant")
   end
 
   defp non_neg_integer(), do:
     numeric_constant(:integer)
-    |> satisfy(fn({:constant, :integer, value}) -> value >= 0 end)
+    |> satisfy(fn({:constant, :integer, value, _location}) -> value >= 0 end)
     |> label("non-negative integer constant")
 
   defp pos_integer(), do:
     numeric_constant(:integer)
-    |> satisfy(fn({:constant, :integer, value}) -> value > 0 end)
+    |> satisfy(fn({:constant, :integer, value, _location}) -> value > 0 end)
     |> label("positive integer constant")
 
   defp constant_of(expected_types) do
@@ -742,7 +744,7 @@ defmodule Cloak.Sql.Parser do
   defp constant(expected_type) do
     token(:constant)
     |> satisfy(fn(token) -> token.value.type == expected_type end)
-    |> map(&{:constant, &1.value.type, &1.value.value})
+    |> map(&{:constant, &1.value.type, &1.value.value, {&1.line, &1.column}})
     |> label("#{expected_type} constant")
   end
 
@@ -837,7 +839,7 @@ defmodule Cloak.Sql.Parser do
       {keyword(:limit), pos_integer()},
       {:else, noop()}
     ])
-    |> map(fn {[:limit], [{:constant, :integer, amount}]} -> {:limit, amount} end)
+    |> map(fn {[:limit], [{:constant, :integer, amount, _}]} -> {:limit, amount} end)
   end
 
   defp optional_offset() do
@@ -845,7 +847,7 @@ defmodule Cloak.Sql.Parser do
       {keyword(:offset), non_neg_integer()},
       {:else, noop()}
     ])
-    |> map(fn {[:offset], [{:constant, :integer, amount}]} -> {:offset, amount} end)
+    |> map(fn {[:offset], [{:constant, :integer, amount, _}]} -> {:offset, amount} end)
   end
 
   defp optional_having() do
@@ -922,7 +924,7 @@ defmodule Cloak.Sql.Parser do
   defp invert_inequality(:=), do: :=
   defp invert_inequality(:<>), do: :<>
 
-  defp create_comparison({:constant, _, _} = lhs, comparator, rhs), do:
+  defp create_comparison({:constant, _, _, _} = lhs, comparator, rhs), do:
     {:comparison, rhs, invert_inequality(comparator), lhs}
   defp create_comparison(lhs, comparator, rhs), do:
     {:comparison, lhs, comparator, rhs}
@@ -932,6 +934,6 @@ defmodule Cloak.Sql.Parser do
       {keyword(:sample_users), pair_both(numeric_constant(:integer), keyword(:%))},
       {:else, noop()}
     ])
-    |> map(fn {[:sample_users], [{{:constant, :integer, amount}, :%}]} -> {:sample_rate, amount} end)
+    |> map(fn {[:sample_users], [{{:constant, :integer, amount, _}, :%}]} -> {:sample_rate, amount} end)
   end
 end

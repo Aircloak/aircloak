@@ -54,14 +54,21 @@ defmodule Cloak.Sql.Parser.Test do
   # Produces a pattern which matches an AST of a constant.
   defmacrop constant(value) do
     quote do
-      {:constant, _, unquote(value)}
+      {:constant, _, unquote(value), _}
     end
   end
 
   # Produces a pattern which matches an AST of a constant with type
   defmacrop constant(type, value) do
     quote do
-      {:constant, unquote(type), unquote(value)}
+      {:constant, unquote(type), unquote(value), _}
+    end
+  end
+
+  # Produces a pattern which matches an AST of a constant with type and location
+  defmacrop constant(type, value, location) do
+    quote do
+      {:constant, unquote(type), unquote(value), unquote(location)}
     end
   end
 
@@ -148,6 +155,10 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "qualified identifier location in source" do
     assert_parse(~s[select baz.foo from baz], select(columns: [identifier("foo", {1, 7})]))
+  end
+
+  test "constant location in source" do
+    assert_parse("select 1 from baz", select(columns: [constant(:integer, 1, {1, 7})]))
   end
 
   test "fully qualified table name" do

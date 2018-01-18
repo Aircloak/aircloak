@@ -73,6 +73,7 @@ defmodule Cloak.Test.QueryHelpers do
   def scrub_locations(ast), do:
     update_in(ast, [Query.Lenses.all_queries() |> Query.Lenses.terminals()], fn
       {:identifier, table, column, _location} -> {:identifier, table, column, nil}
+      {:constant, type, value, _location} -> {:constant, type, value, nil}
       other -> other
     end)
 
