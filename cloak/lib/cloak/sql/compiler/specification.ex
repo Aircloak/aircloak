@@ -352,14 +352,18 @@ defmodule Cloak.Sql.Compiler.Specification do
     aliases = for {column, :as, name} <- columns, into: %{}, do:
       {{:identifier, :unknown, {:unquoted, name}, @dummy_location}, column}
     columns = Enum.map(columns, fn ({column, :as, _name}) -> column; (column) -> column end)
-    order_by = for {column, direction} <- query.order_by, do: {Map.get(aliases, column, column), direction}
-    group_by = for identifier <- query.group_by, do: Map.get(aliases, identifier, identifier)
-    where = update_in(query.where, [Lenses.conditions_terminals()], &Map.get(aliases, &1, &1))
-    having = update_in(query.having, [Lenses.conditions_terminals()], &Map.get(aliases, &1, &1))
+    order_by = for {column, direction} <- query.order_by, do: {resolve_alias(aliases, column), direction}
+    group_by = for identifier <- query.group_by, do: resolve_alias(aliases, identifier)
+    where = update_in(query.where, [Lenses.conditions_terminals()], &resolve_alias(aliases, &1))
+    having = update_in(query.having, [Lenses.conditions_terminals()], &resolve_alias(aliases, &1))
     %Query{query | columns: columns, column_titles: column_titles,
       group_by: group_by, order_by: order_by, where: where, having: having}
   end
   defp compile_aliases(query), do: query
+
+  defp resolve_alias(aliases, identifier = {:identifier, table, column, _loc}), do:
+    Map.get(aliases, {:identifier, table, column, @dummy_location}, identifier)
+  defp resolve_alias(_aliases, other), do: other
 
   defp column_title({_identifier, :as, alias}, _selected_tables), do: alias
   defp column_title({:function, {:cast, _}, _}, _selected_tables), do: "cast"
