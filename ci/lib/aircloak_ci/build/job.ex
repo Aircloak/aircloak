@@ -16,11 +16,10 @@ defmodule AircloakCI.Build.Job do
 
   Notes:
 
-  - if the job is already running it is not started
-  - if the job has finished, it is started only if the build is forced
-
-  It's worth noting that the finished status is tied to a particular commit. Therefore, if new commits are pushed,
-  the finished status is reset.
+  - If the job is already running it is not started.
+  - If the job has finished, it is started only if the build is forced.
+  - The finished status is tied to a particular commit. Therefore, if new commits are pushed, the finished status is
+    reset.
 
   This function can therefore be safely called repeatedly for the same job, and it will still lead to the single
   execution of that job. Once the job is finished, it won't be restarted again as long as nothing is pushed to the
