@@ -240,7 +240,7 @@ defmodule Cloak.Sql.Expression do
   @doc "Checks if a string is a valid name for a column."
   @spec valid_alias?(String.t) :: boolean
   def valid_alias?(name), do:
-    String.match?(name, ~r/^[a-zA-Z_#][a-zA-Z0-9_.#]*$/) and
+    String.match?(name, ~r/^[_#]*[a-zA-Z][a-zA-Z0-9_.#]*$/) and
     not String.contains?(name, "..") and
     String.last(name) != "."
 
