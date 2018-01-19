@@ -78,6 +78,8 @@ defmodule Cloak.DataSource.Table do
 
   defp scan_virtual_tables(data_source, connection) do
     tables = Enum.map(data_source.tables, &parse_virtual_table/1)
+    # in order to compile the raw SQL queries that generate virtual tables,
+    # we need to create a virtual data source containing the real database tables referenced by those queries
     virtual_tables =
       tables
       |> Enum.flat_map(&get_virtual_table_db_names/1)
