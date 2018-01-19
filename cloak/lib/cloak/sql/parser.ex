@@ -30,7 +30,7 @@ defmodule Cloak.Sql.Parser do
     | constant
     | {:parameter, pos_integer}
 
-  @type function_spec :: {:function, function_name, [column]}
+  @type function_spec :: {:function, function_name, [column], location}
 
   @type comparison :: {:comparison, column, comparator, any}
 
