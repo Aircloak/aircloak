@@ -25,7 +25,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   # -------------------------------------------------------------------
 
   defp column_name(%Expression{table: :unknown, name: name}), do: quote_name(name)
-  defp column_name(column), do: "#{quote_name(column.table.name)}.#{quote_name(column.name)}"
+  defp column_name(column), do: "#{quote_table_name(column.table.name)}.#{quote_name(column.name)}"
 
   defp build_fragments(query, sql_dialect_module) do
     [
@@ -96,8 +96,15 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp join_sql(:left_outer_join), do: "LEFT OUTER JOIN"
   defp join_sql(:right_outer_join), do: "RIGHT OUTER JOIN"
 
-  defp table_to_from(%{name: table_name, db_name: table_name}), do: quote_name(table_name)
+  defp table_to_from(%{name: table_name, db_name: table_name}), do: quote_table_name(table_name)
   defp table_to_from(table), do: "#{table.db_name} AS #{quote_name(table.name)}"
+
+  defp quote_table_name(table_name) do
+    case String.split(table_name, ".") do
+      [^table_name] -> quote_name(table_name)
+      [schema_name, table_name] -> quote_name(schema_name) <> "." <> quote_name(table_name)
+    end
+  end
 
   defp where_fragments(nil, _sql_dialect_module), do: []
   defp where_fragments(where_clause, sql_dialect_module),
