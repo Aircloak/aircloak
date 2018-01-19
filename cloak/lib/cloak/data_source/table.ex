@@ -124,7 +124,7 @@ defmodule Cloak.DataSource.Table do
     columns =
       Enum.zip(compiled_query.column_titles, compiled_query.columns)
       |> Enum.map(fn ({title, column}) -> %{name: title, type: column.type, visible?: true} end)
-    table = new(to_string(name), user_id, %{query: compiled_query, columns: columns})
+    table = new(to_string(name), user_id, query: compiled_query, columns: columns)
     {name, table}
   end
   defp compile_virtual_table(table, _data_source), do: table
