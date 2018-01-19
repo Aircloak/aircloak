@@ -39,12 +39,12 @@ defmodule AircloakCI.LogCleaner do
       folders
       |> Stream.reject(&Enum.member?(valid_log_names, &1))
       |> Stream.map(&Path.join(AircloakCI.LocalProject.logs_folder(), &1))
-      |> Stream.filter(&(age(&1) > days(30)))
+      |> Stream.filter(&(age_in_seconds(&1) > days_to_seconds(30)))
       |> Enum.each(&remove_log_folder/1)
     end
   end
 
-  defp age(path) do
+  defp age_in_seconds(path) do
     case File.lstat(path) do
       {:ok, stat} ->
         mtime = NaiveDateTime.from_erl!(stat.mtime)
@@ -54,7 +54,7 @@ defmodule AircloakCI.LogCleaner do
     end
   end
 
-  defp days(count), do: div(count * :timer.hours(24), 1000)
+  defp days_to_seconds(days), do: System.convert_time_unit(days * :timer.hours(24), :millisecond, :second)
 
   defp remove_log_folder(path) do
     case File.rm_rf(path) do
