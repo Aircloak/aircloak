@@ -32,7 +32,7 @@ defmodule AircloakCI.Container do
   @doc "Returns true if the image for the container is built."
   @spec built?(String.t) :: boolean
   def built?(script), do:
-    os_cmd("#{script} is_image_built") == ["yes"]
+    CmdRunner.run_with_output!("#{script} is_image_built") == "yes"
 
   @doc "Builds the container image."
   @spec build(String.t, String.t) :: :ok | {:error, String.t}
@@ -44,7 +44,7 @@ defmodule AircloakCI.Container do
   def start(script, log_file) do
     container = new(script, log_file)
     register(container)
-    with :ok <- invoke_script(container, "start_container #{container.name}", timeout: :timer.seconds(30)), do:
+    with :ok <- invoke_script(container, "start_container #{container.name}"), do:
       {:ok, container}
   end
 
@@ -144,31 +144,34 @@ defmodule AircloakCI.Container do
     associated_docker_objects(container_name, "docker network ls --format='{{.Name}}'")
 
   defp associated_docker_objects(container_name, list_cmd), do:
-    list_cmd |> os_cmd() |> Enum.filter(&String.starts_with?(&1, container_name))
+    list_cmd
+    |> CmdRunner.run_with_output!()
+    |> lines()
+    |> Enum.filter(&String.starts_with?(&1, container_name))
 
   defp remove_container(container_name) do
-    os_cmd_with_timeout("docker kill #{container_name}")
-    os_cmd_with_timeout("docker rm #{container_name}")
+    CmdRunner.run("docker kill #{container_name}")
+    CmdRunner.run("docker rm #{container_name}")
   end
 
   defp remove_network(network_name) do
     network_name
     |> connected()
-    |> Enum.each(&os_cmd_with_timeout("docker network disconnect #{network_name} #{&1}"))
+    |> Enum.each(&CmdRunner.run("docker network disconnect #{network_name} #{&1}"))
 
-    os_cmd_with_timeout("docker network rm #{network_name}")
+    CmdRunner.run("docker network rm #{network_name}")
   end
 
   defp remove_dangling_volumes(), do:
     "docker volume ls -qf dangling=true"
-    |> os_cmd()
-    |> Enum.each(&os_cmd_with_timeout("docker volume rm #{&1}"))
+    |> CmdRunner.run_with_output!()
+    |> lines()
+    |> Enum.each(&CmdRunner.run("docker volume rm #{&1}"))
 
   defp connected(network), do:
-    os_cmd(
-      "docker network inspect #{network} " <>
-      "--format '{{range $key, $value := .Containers}} {{println $key}} {{end}}'"
-    )
+    "docker network inspect #{network} --format '{{range $key, $value := .Containers}} {{println $key}} {{end}}'"
+    |> CmdRunner.run_with_output!()
+    |> lines()
 
   defp start_cleaner(container_name) do
     owner = self()
@@ -185,16 +188,8 @@ defmodule AircloakCI.Container do
   # Execution of commands
   # -------------------------------------------------------------------
 
-  defp os_cmd_with_timeout(cmd, opts \\ []), do:
-    CmdRunner.run(cmd, opts)
-
-  defp os_cmd(cmd), do:
-    # Unlike `CmdRunner.run`, `os_cmd` returns the command output.
-    # Note that the same could be achieved with `System.cmd`, but `:os.cmd` is more flexible and permissive.
-    cmd
-    |> to_charlist()
-    |> :os.cmd()
-    |> to_string()
+  defp lines(string), do:
+    string
     |> String.trim()
     |> String.split("\n")
     |> Enum.map(&String.trim/1)

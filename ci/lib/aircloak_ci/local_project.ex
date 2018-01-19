@@ -80,6 +80,7 @@ defmodule AircloakCI.LocalProject do
   @spec for_local(String.t) :: t
   def for_local(path) do
     path = Path.expand(path)
+    head_sha = String.trim(CmdRunner.run_with_output!("git rev-parse HEAD", timeout: :timer.minutes(1)))
 
     create_project(%__MODULE__{
       type: :local,
@@ -90,8 +91,8 @@ defmodule AircloakCI.LocalProject do
       repo: %{name: "aircloak", owner: "aircloak"},
       update_git_command: nil,
       checkout: nil,
-      target_sha: String.trim(to_string(:os.cmd('git rev-parse HEAD'))),
-      source_sha: String.trim(to_string(:os.cmd('git rev-parse HEAD')))
+      target_sha: head_sha,
+      source_sha: head_sha
     })
   end
 
@@ -413,8 +414,7 @@ defmodule AircloakCI.LocalProject do
     destination = Path.join(src_folder(target_project), folder)
     File.mkdir_p(Path.dirname(destination))
     # Using `cp -a` instead of File.cp_r, since `cp -a` properly handles symlinks
-    # `:os.cmd` is used since `System.cmd` starts a port which causes an :EXIT message to be delivered to the process.
-    :os.cmd('cp -a #{source} #{destination}')
+    CmdRunner.run("cp -a #{source} #{destination}")
   end
 
   defp update_state(project, updater) do
@@ -458,10 +458,8 @@ defmodule AircloakCI.LocalProject do
     current_sha(project) == project.target_sha
 
   defp current_sha(project), do:
-    # `:os.cmd` is used since `System.cmd` starts a port which causes an :EXIT message to be delivered to the process.
-    'cd #{src_folder(project)} && git rev-parse HEAD'
-    |> :os.cmd()
-    |> to_string()
+    "cd #{src_folder(project)} && git rev-parse HEAD"
+    |> CmdRunner.run_with_output!()
     |> String.trim()
 
   defp component_cmd(project, component, log_name, {cmd, opts}), do:
