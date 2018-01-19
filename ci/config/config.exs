@@ -21,7 +21,12 @@ config :aircloak_ci, :queues,
     compile: queue_spec.(limit: {:concurrent, 10}),
     test: queue_spec.(limit: {:concurrent, 10}),
     compliance: queue_spec.(limit: {:concurrent, 1}),
-    github_api: queue_spec.(limit: {:per_second, 1}),
+    github_api:
+      if Mix.env == :test do
+        queue_spec.(limit: {:concurrent, 1000})
+      else
+        queue_spec.(limit: {:per_second, 1})
+      end,
     job: queue_spec.(limit: {:concurrent, 10}),
   ]
 
