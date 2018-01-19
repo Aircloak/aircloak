@@ -325,7 +325,7 @@ defmodule AircloakCI.LocalProject do
     |> File.ls!()
     |> Stream.filter(&File.dir?(Path.join(src_folder(project), &1)))
     |> Stream.reject(&String.starts_with?(&1, "."))
-    |> Enum.reject(&(&1 in ["tmp"]))
+    |> filter_components()
     |> Enum.reject(&match?({:error, _}, commands(project, &1, :compile)))
 
   @doc "Returns the location of logs folder."
@@ -469,4 +469,14 @@ defmodule AircloakCI.LocalProject do
 
   defp component_cmd(project, component, log_name, cmd, opts), do:
     cmd(project, log_name, cmd, [cd: Path.join(src_folder(project), to_string(component))] ++ opts)
+
+  defp filter_components(components) do
+    components
+    |> Enum.reject(&(&1 in ["tmp"]))
+    |> Enum.filter(&include_component?(&1, Application.get_env(:aircloak_ci, :components_filter, :all)))
+  end
+
+  defp include_component?(_component, :all), do: true
+  defp include_component?(component, {:except, blacklisted}), do: not Enum.member?(blacklisted, component)
+  defp include_component?(component, {:only, whitelisted}), do: Enum.member?(whitelisted, component)
 end

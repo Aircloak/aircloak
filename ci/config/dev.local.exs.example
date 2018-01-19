@@ -17,4 +17,10 @@ use Mix.Config
 # config :aircloak_ci, cmd_runner: [console_out: false]
 
 # Simulates execution of commands in the docker container
-config simulate_commands: true
+config :aircloak_ci, simulate_commands: true
+
+# Run CI only for some  components:
+config :aircloak_ci, components_filter: {:only, ["air", "cloak"]}
+
+# Exclude some components from CI:
+config :aircloak_ci, components_filter: {:except, ["air", "cloak"]}
