@@ -118,7 +118,14 @@ The build sources are stored in the `~/.aircloak_ci/data/cache`. In this folder,
 
 The initial configuration of the production server is manual. This section describes the needed steps to set up a new CI server.
 
-You need a Debian system with a root access. Docker (at least 17.12) should be installed.
+#### Prerequisites
+
+- Debian
+- Docker (at least 17.12)
+- git
+- [asdf](https://github.com/asdf-vm/asdf) and the required plug-ins (Erlang, Elixir, node)
+
+#### Setup
 
 1. Create a non-root user with the login `ci` and add it to the `docker` group.
 2. For the `ci` user, upload the Github private key, and setup ssh access in `/home/ci/.ssh/config`:
@@ -140,7 +147,6 @@ You need a Debian system with a root access. Docker (at least 17.12) should be i
     ```
 
 5. As the `ci` user, create the `/home/ci/aircloak_ci` folder, and in that folder invoke `git clone git@github.com:aircloak/aircloak build`
-6. Install the [asdf](https://github.com/asdf-vm/asdf) tool and the required plug-ins (Erlang, Elixir, node).
-7. If the server name has changed, you need to update the `ci/production.sh` on the development machine.
+6. If the server name has changed, you need to update the `ci/production.sh` on the development machine.
 
 At this point, you can deploy the system from your development machine.
