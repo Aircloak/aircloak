@@ -97,7 +97,7 @@ defmodule Cloak.DataSource.Table do
   defp parse_virtual_table(table), do: table
 
   defp get_virtual_table_db_names({_, %{query: parsed_query}}), do:
-    Lens.both(Lens.root(), Lenses.subqueries() |> Lens.key(:ast))
+    Lenses.all_queries()
     |> Lenses.ast_tables()
     |> Lens.to_list(parsed_query)
     |> Enum.map(&ast_table_name/1)
