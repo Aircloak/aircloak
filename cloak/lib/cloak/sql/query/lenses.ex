@@ -232,7 +232,7 @@ defmodule Cloak.Sql.Query.Lenses do
 
   defp filters_operands(), do: filter_clauses() |> conditions() |> operands()
 
-  deflensp terminal_elements(), do:
+  deflens terminal_elements(), do:
     Lens.match(fn
       {:function, "count", :*} -> Lens.empty()
       {:function, "count_noise", :*} -> Lens.empty()

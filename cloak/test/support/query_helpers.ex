@@ -74,6 +74,8 @@ defmodule Cloak.Test.QueryHelpers do
     update_in(ast, [Query.Lenses.all_queries() |> Query.Lenses.terminals()], fn
       {:identifier, table, column, _location} -> {:identifier, table, column, nil}
       {:constant, type, value, _location} -> {:constant, type, value, nil}
+      {:like_pattern, {:constant, type1, value1, _loc1}, {:constant, type2, value2, _loc2}} ->
+        {:like_pattern, {:constant, type1, value1, nil}, {:constant, type2, value2, nil}}
       other -> other
     end)
 

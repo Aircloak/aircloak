@@ -3,6 +3,8 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
 
   alias Cloak.Sql.{Function, Parser, Compiler.Helpers, Query}
 
+  @no_location {1, 0}
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -65,7 +67,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   defp rewrite_distinct(ast), do: ast
 
   defp grouping_clause(columns), do:
-    Enum.map(1..length(columns), &{:constant, :integer, &1})
+    Enum.map(1..length(columns), &{:constant, :integer, &1, @no_location})
 
   defp aggregator?({:function, name, args}), do:
     Function.has_attribute?(name, :aggregator) or Enum.any?(args, &aggregator?/1)
