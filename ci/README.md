@@ -118,7 +118,7 @@ The build sources are stored in the `~/.aircloak_ci/data/cache`. In this folder,
 
 The initial configuration of the production server is manual. This section describes the needed steps to set up a new CI server.
 
-You need a Debain system with a root access. Docker (at least 17.12) should be installed.
+You need a Debian system with a root access. Docker (at least 17.12) should be installed.
 
 1. Create a non-root user with the login `ci` and add it to the `docker` group.
 2. For the `ci` user, upload the Github private key, and setup ssh access in `/home/ci/.ssh/config`:
