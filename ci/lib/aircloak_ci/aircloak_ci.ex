@@ -88,6 +88,9 @@ defmodule AircloakCI do
   defp config_file(), do:
     Path.join(home_folder(), "config.json")
 
-  defp home_folder(), do:
-    Path.join(System.user_home(), ".aircloak_ci")
+  if Mix.env() == :test do
+    defp home_folder(), do: ".test_data"
+  else
+    defp home_folder(), do: Path.join(System.user_home(), ".aircloak_ci")
+  end
 end
