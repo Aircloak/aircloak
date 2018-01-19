@@ -21,7 +21,7 @@ defmodule AircloakCI.Build.Job do
   - The finished status is tied to a particular commit. Therefore, if new commits are pushed, the finished status is
     reset.
 
-  This function can therefore be safely called repeatedly for the same job, and it will still lead to the single
+  This function can therefore be safely called repeatedly for the same job, and it will still lead to a single
   execution of that job. Once the job is finished, it won't be restarted again as long as nothing is pushed to the
   corresponding branch.
   """
