@@ -123,7 +123,7 @@ defmodule AircloakCI.LocalProject do
   def update_code(project) do
     cond do
       up_to_date?(project) -> update_state(project, &%{&1 | initialized?: true})
-      not updatable?(project) -> :ok
+      is_nil(project.checkout) -> :ok
       true ->
         log_start_stop(project, "updating local project git repository for #{name(project)}", fn ->
           with :ok <- do_update_code(project), do: update_state(project, &%{&1 | initialized?: true})
@@ -195,42 +195,70 @@ defmodule AircloakCI.LocalProject do
   def ci_possible?(project), do:
     update_code(project) == :ok and not Enum.empty?(components(project))
 
-  @doc """
-  Returns true if the project can be updated from Github.
-
-  A non-local project can't be updated if checkout SHA is not provided. This can happen in merge-conflicted PRs.
-  """
-  @spec updatable?(t) :: boolean
-  def updatable?(%{type: :local}), do: true
-  def updatable?(project), do: not is_nil(project.checkout)
-
   @doc "Returns true if the project source has been initialized."
   @spec initialized?(t) :: boolean
   def initialized?(project), do:
     state(project).initialized?
 
-  @doc "Marks the job as finished, and clears the corresponding force flag."
-  @spec mark_finished(t, String.t) :: :ok
-  def mark_finished(project, job_name), do:
-    update_state(project, &%{&1 |
-      forced_jobs: Map.put(&1.forced_jobs, job_name, nil),
-      finished_jobs: Map.put(&1.finished_jobs, job_name, project.source_sha),
-    })
-
   @doc "Returns true if the job for this project has finished."
   @spec finished?(t, String.t) :: boolean
   def finished?(project, job_name), do:
-    state(project).finished_jobs[job_name] in [project.source_sha, project.target_sha]
+    project |> job_outcomes() |> Enum.any?(&match?({^job_name, _}, &1))
 
   @doc "Marks the project for the force build."
   @spec mark_forced(t, String.t) :: :ok
   def mark_forced(project, job_name), do:
-    update_state(project, &%{&1 | forced_jobs: Map.put(&1.forced_jobs, job_name, project.source_sha)})
+    update_state(
+      project,
+      &%{&1 |
+        forced_jobs: Map.put(&1.forced_jobs, job_name, project.source_sha),
+        job_outcomes: Map.delete(&1.job_outcomes, job_name)
+      }
+    )
 
   @doc "Returns whether the project has been marked for the force build."
   @spec forced?(t, String.t) :: boolean
   def forced?(project, job_name), do:
+    state(project).forced_jobs[job_name] != nil and
     state(project).forced_jobs[job_name] in [project.source_sha, project.target_sha]
+
+  @doc "Returns the list of forced jobs."
+  @spec forced_jobs(t) :: [String.t]
+  def forced_jobs(project), do:
+    state(project).forced_jobs
+    |> Enum.filter(fn({_job_name, sha}) -> sha in [project.source_sha, project.target_sha] and sha != nil end)
+    |> Enum.map(fn({job_name, _sha}) -> job_name end)
+
+  @doc "Returns all known job outcomes."
+  @spec job_outcomes(t) :: %{String.t => any}
+  def job_outcomes(project), do:
+    state(project).job_outcomes
+    |> Enum.filter(fn({_job_name, {_, sha}}) -> sha in [project.source_sha, project.target_sha] and sha != nil end)
+    |> Enum.map(fn({job_name, {outcome, _sha}}) -> {job_name, outcome} end)
+    |> Map.new()
+
+  @doc "Returns the outcome of the job, or nil if the job didn't finish."
+  @spec job_outcome(t, String.t) :: nil | :ok | any
+  def job_outcome(project, job_name), do:
+    project |> job_outcomes() |> Map.get(job_name)
+
+  @doc "Stores the outcome of the given job and clears the force flag for the job."
+  @spec set_job_outcome(t, String.t, any) :: :ok
+  def set_job_outcome(project, job_name, outcome), do:
+    update_state(project, &%{&1 |
+      forced_jobs: Map.put(&1.forced_jobs, job_name, nil),
+      job_outcomes: Map.put(&1.job_outcomes, job_name, {outcome, project.source_sha}),
+    })
+
+  @doc "Clears the outcome of the given job."
+  @spec clear_job_outcome(t, String.t) :: :ok
+  def clear_job_outcome(project, job_name), do:
+    update_state(project, &%{&1 | job_outcomes: Map.delete(&1.job_outcomes, job_name)})
+
+  @doc "Clears all known outcomes."
+  @spec clear_job_outcomes(t) :: :ok
+  def clear_job_outcomes(project), do:
+    update_state(project, &%{&1 | job_outcomes: %{}})
 
   @doc "Executes the command in the project folder."
   @spec cmd(t, String.t, String.t, CmdRunner.opts) :: :ok | {:error, String.t}
@@ -422,7 +450,7 @@ defmodule AircloakCI.LocalProject do
     project |> state_file() |> Path.dirname() |> Path.join("state_2")
 
   defp default_state(), do:
-    %{initialized?: false, compiled_components: %{}, forced_jobs: %{}, finished_jobs: %{}}
+    %{initialized?: false, forced_jobs: %{}, job_outcomes: %{}}
 
   defp up_to_date?(project), do:
     current_sha(project) == project.target_sha

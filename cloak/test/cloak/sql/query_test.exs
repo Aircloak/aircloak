@@ -66,12 +66,20 @@ defmodule Cloak.Sql.QueryTest do
     assert %{functions: ["abs", "cast"]} = features_from("SELECT abs(height), CAST(height AS text) FROM feat_users")
   end
 
+  test "extracts types of functions used - function used in WHERE" do
+    assert %{functions: ["sqrt"]} = features_from("SELECT * FROM feat_users WHERE sqrt(height) = 10")
+  end
+
   test "extracts types of functions used - multiple functions used" do
-    assert %{functions: ["min", "trunc"]} = features_from("SELECT min(trunc(height)) FROM feat_users")
+    assert ["min", "sqrt"] = features_from("SELECT min(sqrt(height)) FROM feat_users").functions |> Enum.sort()
   end
 
   test "extracts types of functions used - deduplicates functions used" do
     assert %{functions: ["min"]} = features_from("SELECT min(height), min(height) FROM feat_users")
+  end
+
+  test "extracts types of functions used in subqueries" do
+    assert %{functions: ["sqrt"]} = features_from("SELECT * FROM (SELECT sqrt(height) FROM feat_users) x")
   end
 
   test "extracts types of where conditions used - no where conditions" do
@@ -161,6 +169,22 @@ defmodule Cloak.Sql.QueryTest do
       features_from("SELECT height FROM feat_emulated_users").decoders
   end
 
+  describe "features->expressions" do
+    test "includes representations of expressions used", do:
+      assert ["(min (+ const (sqrt col)))", "(+ col const)", "const"] =
+        features_from("SELECT min(1 + sqrt(height)) FROM feat_users WHERE height + 1 = 2").expressions
+
+    test "resolves references into subqueries", do:
+      assert ["(min (+ col const))"] =
+        features_from("SELECT min(x) FROM (SELECT user_id, height + 1 AS x FROM feat_users) foo").expressions
+
+    test "distinct", do:
+      assert ["(count (distinct col))"] = features_from("SELECT count(distinct height) FROM feat_users").expressions
+
+    test "*", do:
+      assert ["(count *)"] = features_from("SELECT count(*) FROM feat_users").expressions
+  end
+
   test "marks non-emulated queries as such", do:
     refute features_from("SELECT count(*) FROM feat_emulated_users").emulated
 
@@ -222,37 +246,6 @@ defmodule Cloak.Sql.QueryTest do
     assert error == "The type for parameter `$1` cannot be determined."
   end
 
-  defp describe_query(statement, parameters \\ nil), do:
-    Query.describe_query(hd(Cloak.DataSource.all()), statement, parameters, %{})
-
-  defp validate_view(name, sql, views \\ %{}) do
-    [first_ds | rest_ds] = Cloak.DataSource.all()
-    result = Query.validate_view(first_ds, name, sql, views)
-    Enum.each(rest_ds, &assert(result == Query.validate_view(&1, name, sql, views)))
-    result
-  end
-
-  defp features_from(statement) do
-    [first_ds | rest_ds] = Cloak.DataSource.all()
-    {query, features} = make_query(first_ds, statement)
-
-    for data_source <- rest_ds do
-      {other_query, other_features} = make_query(data_source, statement)
-      assert Map.drop(query, [:features]) == Map.drop(other_query, [:features])
-      assert Map.drop(features, [:driver, :driver_dialect]) == Map.drop(other_features, [:driver, :driver_dialect])
-    end
-
-    features
-  end
-
-  defp make_query(data_source, statement) do
-    {query, features} = Query.make!(data_source, statement, [], %{})
-    {
-      scrub_data_sources(query),
-      features
-    }
-  end
-
   test "db_columns resolving simple column" do
     uid_column = Table.column("uid", :integer)
     string_column = Table.column("string", :text)
@@ -310,5 +303,36 @@ defmodule Cloak.Sql.QueryTest do
 
     assert ^condition = Query.emulated_where(query)
     assert nil == Query.offloaded_where(query)
+  end
+
+  defp make_query(data_source, statement) do
+    {query, features} = Query.make!(data_source, statement, [], %{})
+    {
+      scrub_data_sources(query),
+      features
+    }
+  end
+
+  defp describe_query(statement, parameters \\ nil), do:
+    Query.describe_query(hd(Cloak.DataSource.all()), statement, parameters, %{})
+
+  defp validate_view(name, sql, views \\ %{}) do
+    [first_ds | rest_ds] = Cloak.DataSource.all()
+    result = Query.validate_view(first_ds, name, sql, views)
+    Enum.each(rest_ds, &assert(result == Query.validate_view(&1, name, sql, views)))
+    result
+  end
+
+  defp features_from(statement) do
+    [first_ds | rest_ds] = Cloak.DataSource.all()
+    {query, features} = make_query(first_ds, statement)
+
+    for data_source <- rest_ds do
+      {other_query, other_features} = make_query(data_source, statement)
+      assert Map.drop(query, [:features]) == Map.drop(other_query, [:features])
+      assert Map.drop(features, [:driver, :driver_dialect]) == Map.drop(other_features, [:driver, :driver_dialect])
+    end
+
+    features
   end
 end

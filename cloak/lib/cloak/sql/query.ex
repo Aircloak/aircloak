@@ -83,6 +83,7 @@ defmodule Cloak.Sql.Query do
     num_tables: pos_integer,
     num_group_by: non_neg_integer,
     functions: [String.t],
+    expressions: [String.t],
     where_conditions: [String.t],
     column_types: [String.t],
     selected_types: [String.t],

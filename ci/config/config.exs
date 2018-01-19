@@ -5,6 +5,8 @@ config :logger,
   backends: [:console],
   console: [format: "$time [$level] $metadata$message\n"]
 
+config :aircloak_ci, :exec_mod, :exec
+
 regulator = fn
   {:concurrent, limit} -> [counter: [limit: limit]]
   {:per_second, limit} -> [rate: [limit: limit]]
@@ -18,11 +20,11 @@ end
 config :aircloak_ci, :queues,
   [
     docker_build: queue_spec.(limit: {:concurrent, 1}),
-    compile: queue_spec.(limit: {:concurrent, 4}),
-    test: queue_spec.(limit: {:concurrent, 4}),
+    compile: queue_spec.(limit: {:concurrent, 10}),
+    test: queue_spec.(limit: {:concurrent, 10}),
     compliance: queue_spec.(limit: {:concurrent, 1}),
     github_api: queue_spec.(limit: {:per_second, 1}),
-    job: queue_spec.(limit: {:concurrent, 8}),
+    job: queue_spec.(limit: {:concurrent, 10}),
   ]
 
 import_config "#{Mix.env}.exs"

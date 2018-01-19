@@ -72,7 +72,7 @@ defmodule AircloakCI.Github do
 
   defp invoke_github_api(fun, args, opts) do
     if Keyword.fetch!(opts, :type) == :write and not Application.get_env(:aircloak_ci, :write_to_github) do
-      IO.puts "simulated github write #{fun}(#{args |> Enum.map(&inspect/1) |> Enum.join(", ")})"
+      IO.puts "\nsimulated github write #{fun}(#{args |> Enum.map(&inspect/1) |> Enum.join(", ")})\n"
       {:ok, %{category: :rest, remaining: 5000, expires_at: DateTime.utc_now()}}
     else
       Queue.exec(:github_api, fn -> apply(Github.API, fun, args) end)

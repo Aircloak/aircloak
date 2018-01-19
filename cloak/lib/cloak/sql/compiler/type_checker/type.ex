@@ -59,7 +59,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   def establish_type(%Expression{function: nil} = column, query), do: expand_from_subquery(column, query)
   def establish_type(function = %Expression{function?: true}, query), do: type_for_function(function, query)
 
-  @doc "Returns true if an implicit range function is used on combination with other functions"
+  @doc "Returns true if an implicit range function is used in combination with other functions"
   @spec unclear_implicit_range?(t) :: boolean
   def unclear_implicit_range?(type) do
     implicit_range_count = transformation_count(type, & Function.implicit_range?/1)

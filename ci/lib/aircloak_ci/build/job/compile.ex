@@ -2,46 +2,32 @@ defmodule AircloakCI.Build.Job.Compile do
   @moduledoc "Compilation of all components in a local project."
 
   alias AircloakCI.{Build, LocalProject}
-  alias AircloakCI.Build.Component
+  alias AircloakCI.Build.{Component, Job}
 
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Compiles all the components in the given project."
-  @spec run(Build.Server.state) :: Build.Server.state
-  def run(%{project: project} = build_state), do:
-    Build.Server.start_job(build_state, "compile", fn -> compile_project(project) end)
+  @doc "Starts the compilation job for all the components in the given project."
+  @spec start(Build.Server.state) :: Build.Server.state
+  def start(build_state), do:
+    Enum.reduce(LocalProject.components(build_state.project), build_state, &start(&2, &1))
 
+  @doc "Starts the compilation job for the given component in the given project."
+  @spec start(Build.Server.state, String.t) :: Build.Server.state
+  def start(%{project: project} = build_state, component), do:
+    Job.maybe_start(build_state, "#{component}_compile", &start_compilation(&1, self(), project, component))
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp compile_project(project), do:
-    project
-    |> LocalProject.components()
-    # using infinity, since timeout is enforced in each component compilation task
-    |> Task.async_stream(&{build_image_and_compile(project, &1), &1}, ordered: true, timeout: :infinity)
-    |> Stream.map(fn {:ok, result} -> result end)
-    |> Enum.each(
-        fn
-          {:ok, component} ->
-            # setting the status here, to avoid concurrency issues
-            LocalProject.mark_finished(project, "#{component}_compile")
-
-          {:error, component} ->
-            LocalProject.log(project, "main", "error compiling component #{component}")
-        end
-      )
-
-  defp build_image_and_compile(project, component) do
-    job_name = "#{component}_compile"
-    if LocalProject.finished?(project, job_name) and not LocalProject.forced?(project, job_name) do
-      :ok
-    else
-      Component.start_job(project, component, :compile)
-    end
-  end
+  defp start_compilation(build_state, build_server, project, component), do:
+    Build.Server.start_job(build_state, "#{component}_compile",
+      fn ->
+        Component.start_job(project, component, :compile,
+          report_result: build_server, job_name: "#{component}_compile")
+      end
+    )
 end

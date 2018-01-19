@@ -37,9 +37,13 @@ defmodule AircloakCI.Application do
     check_github_access!()
   end
 
-  defp check_github_access!() do
-    with {:error, reason} <- AircloakCI.github_token(), do:
-      raise(reason)
+  if Mix.env() != :test do
+    defp check_github_access!() do
+      with {:error, reason} <- AircloakCI.github_token(), do:
+        raise(reason)
+    end
+  else
+    defp check_github_access!(), do: :ok
   end
 
   defp init_data_folder!() do

@@ -19,14 +19,14 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   @spec validate_allowed_usage_of_math_and_functions(Query.t) :: Query.t
   def validate_allowed_usage_of_math_and_functions(query) do
-    each_subquery(query, &verify_usage_of_potentially_crashing_functions/1)
-    each_subquery(query, &verify_allowed_usage_of_math/1)
-    each_subquery(query, &verify_lhs_of_in_is_clear/1)
-    each_subquery(query, &verify_not_equals_is_clear/1)
-    each_subquery(query, &verify_lhs_of_not_like_is_clear/1)
-    each_subquery(query, &verify_string_based_conditions_are_clear/1)
-    each_subquery(query, &verify_string_based_expressions_are_clear/1)
-    each_subquery(query, &verify_ranges_are_clear/1)
+    Helpers.each_subquery(query, &verify_usage_of_potentially_crashing_functions/1)
+    Helpers.each_subquery(query, &verify_allowed_usage_of_math/1)
+    Helpers.each_subquery(query, &verify_lhs_of_in_is_clear/1)
+    Helpers.each_subquery(query, &verify_not_equals_is_clear/1)
+    Helpers.each_subquery(query, &verify_lhs_of_not_like_is_clear/1)
+    Helpers.each_subquery(query, &verify_string_based_conditions_are_clear/1)
+    Helpers.each_subquery(query, &verify_string_based_expressions_are_clear/1)
+    Helpers.each_subquery(query, &verify_ranges_are_clear/1)
     query
   end
 
@@ -174,12 +174,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp each_subquery(query, function), do:
-    Helpers.apply_bottom_up(query, fn(subquery) ->
-      function.(subquery)
-      subquery
-    end)
 
   defp potentially_crashing_function?(type), do:
     Enum.any?(type.history_of_restricted_transformations, fn
