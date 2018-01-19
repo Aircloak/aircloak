@@ -5,8 +5,6 @@ config :logger,
   backends: [:console],
   console: [format: "$time [$level] $metadata$message\n"]
 
-config :aircloak_ci, :exec_mod, :exec
-
 regulator = fn
   {:concurrent, limit} -> [counter: [limit: limit]]
   {:per_second, limit} -> [rate: [limit: limit]]

@@ -139,7 +139,7 @@ defmodule AircloakCI.CmdRunner do
     Map.merge(state, %{cmd: cmd, from: from, pid: pid, os_pid: os_pid, output: [], return_output?: return_output?})
   end
 
-  defp exec_mod(), do: Application.fetch_env!(:aircloak_ci, :exec_mod)
+  defp exec_mod(), do: Application.get_env(:aircloak_ci, :exec_mod, :exec)
 
   defp log_output(output, opts) do
     case Keyword.fetch(opts, :logger) do
