@@ -1,5 +1,7 @@
 use Mix.Config
 
+config :logger, level: :error
+
 config :aircloak_ci,
   exec_mod: AircloakCI.TestExec,
   github_api: AircloakCI.TestGithubAPI,
