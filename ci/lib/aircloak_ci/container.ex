@@ -114,11 +114,9 @@ defmodule AircloakCI.Container do
   # -------------------------------------------------------------------
 
   defp cleanup() do
-    if Application.get_env(:aircloak_ci, :docker_cleanup?, true) do
-      all_containers() |> dangling() |> Enum.each(&stop/1)
-      all_networks() |> dangling() |> Enum.each(&remove_network/1)
-      remove_dangling_volumes()
-    end
+    all_containers() |> dangling() |> Enum.each(&stop/1)
+    all_networks() |> dangling() |> Enum.each(&remove_network/1)
+    remove_dangling_volumes()
 
     :timer.sleep(:timer.seconds(10))
     cleanup()

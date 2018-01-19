@@ -2,7 +2,6 @@ use Mix.Config
 
 config :aircloak_ci,
   exec_mod: AircloakCI.TestExec,
-  docker_cleanup?: false,
   poll_github: false,
   write_to_github: false,
   simulate_commands: true,
