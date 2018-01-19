@@ -74,27 +74,28 @@ defmodule AircloakCI.Build.Component do
   defp run_commands(project, component, job, container, command) when is_binary(command) do
     File.write(container.log_file, "started `#{command}`\n", [:append])
 
-    if Application.get_env(:aircloak_ci, :simulate_commands, false) do
-      IO.puts "simulating execution of `#{command}`"
-      :timer.sleep(1000)
-      {:ok, "`#{command}` succeeded"}
-    else
-      # We'll log to the temporary unique file. This allows us to deinterlace log outputs later
-      log_name = "#{component}_#{job}_#{Base.url_encode64(:crypto.strong_rand_bytes(16), padding: false)}"
-      cmd_log_file = LocalProject.log_file(project, log_name)
-      File.write(cmd_log_file, "")
-      try do
-        logger = CmdRunner.file_logger(cmd_log_file)
-        start = :erlang.monotonic_time(:second)
-        result = Container.exec(container, [command], timeout: :timer.hours(1), logger: logger)
-        diff_sec = :erlang.monotonic_time(:second) - start
-
-        # return result of command execution, and the output from the file
-        {result, File.read!(cmd_log_file) <> "=> #{diff_sec} sec\n"}
-      after
-        # now we can safely delete the file
-        File.rm(cmd_log_file)
+    command =
+      if Application.get_env(:aircloak_ci, :simulate_commands, false) do
+        "echo simulating #{command}"
+      else
+        command
       end
+
+    # We'll log to the temporary unique file. This allows us to deinterlace log outputs later
+    log_name = "#{component}_#{job}_#{Base.url_encode64(:crypto.strong_rand_bytes(16), padding: false)}"
+    cmd_log_file = LocalProject.log_file(project, log_name)
+    File.write(cmd_log_file, "")
+    try do
+      logger = CmdRunner.file_logger(cmd_log_file)
+      start = :erlang.monotonic_time(:second)
+      result = Container.exec(container, [command], timeout: :timer.hours(1), logger: logger)
+      diff_sec = :erlang.monotonic_time(:second) - start
+
+      # return result of command execution, and the output from the file
+      {result, File.read!(cmd_log_file) <> "=> #{diff_sec} sec\n"}
+    after
+      # now we can safely delete the file
+      File.rm(cmd_log_file)
     end
   end
 
