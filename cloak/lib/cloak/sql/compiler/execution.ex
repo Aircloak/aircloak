@@ -280,7 +280,7 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp expand_virtual_tables(query) do
     query.selected_tables
-    |> Enum.reject(&is_nil(&1[:query]))
+    |> Enum.reject(& &1.query == nil)
     |> Enum.reduce(query, fn (%{query: table_query, name: table_name}, query) ->
       Lenses.leaf_tables()
       |> Lens.satisfy(& &1 == table_name)
