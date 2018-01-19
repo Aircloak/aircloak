@@ -222,6 +222,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp compile_subquery(parsed_subquery, alias, parent_query), do:
     parsed_subquery
     |> Map.put(:subquery?, true)
+    |> Map.put(:virtual_table?, parent_query.virtual_table?)
     |> compile(parent_query.data_source, parent_query.parameters, parent_query.views)
     |> ensure_uid_selected(alias)
 
@@ -236,9 +237,14 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp selected_tables({:join, join}, query), do:
     selected_tables(join.lhs, query) ++ selected_tables(join.rhs, query)
   defp selected_tables({:subquery, subquery}, _query) do
-    # In a subquery we should have the `user_id` already in the list of selected columns.
-    user_id_index = Enum.find_index(subquery.ast.columns, &(&1.user_id?))
-    user_id_name = Enum.at(subquery.ast.column_titles, user_id_index)
+    user_id_name =
+      if subquery.ast.virtual_table? do
+        nil
+      else
+        # In a subquery we should have the `user_id` already in the list of selected columns.
+        user_id_index = Enum.find_index(subquery.ast.columns, &(&1.user_id?))
+        Enum.at(subquery.ast.column_titles, user_id_index)
+      end
     columns =
         Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
         |> Enum.map(fn({alias, column}) ->
@@ -646,6 +652,9 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp auto_select_uid_column(subquery) do
     cond do
+      # virtual table queries don't require user ids
+      subquery.virtual_table? -> nil
+
       # uid column is already explicitly selected
       Helpers.uid_column_selected?(subquery) -> nil
 

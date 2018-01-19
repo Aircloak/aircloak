@@ -32,7 +32,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     |> optimize_joins()
     |> optimize_columns_from_subqueries()
 
-  defp optimize_columns_from_subqueries(query), do:
+  def optimize_columns_from_subqueries(query), do:
     Lens.map(
       Query.Lenses.direct_subqueries(),
       query,
