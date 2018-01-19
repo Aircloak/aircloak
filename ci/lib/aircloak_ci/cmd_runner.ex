@@ -113,7 +113,10 @@ defmodule AircloakCI.CmdRunner do
   defp start_cmd(state, cmd, from, opts) do
     return_output? = Keyword.fetch!(opts, :return_output)
 
-    case Keyword.get(opts, :timeout, :timer.seconds(5)) do
+    # The default timeout of 1 minutes is chosen as a value which is neither "too long" nor "too short". A one minute
+    # timeout should suffice for "short-running" commands, even if the system is a bit overloaded, while at the same
+    # time it ensures that a command eventually stops within a "reasonable" time.
+    case Keyword.get(opts, :timeout, :timer.minutes(1)) do
       :infinity -> :ok
       timeout when is_integer(timeout) and timeout > 0 ->
         Process.send_after(self(), :timeout, timeout)
