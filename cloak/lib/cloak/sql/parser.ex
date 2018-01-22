@@ -466,7 +466,7 @@ defmodule Cloak.Sql.Parser do
   defp qualified_identifier() do
     map(
       pair_both(
-        identifier_with_location(),
+        pair_both(position(), identifier()),
         many(
           pair_both(
             keyword(:"."),
@@ -475,11 +475,11 @@ defmodule Cloak.Sql.Parser do
         )
       ),
       fn
-        ({{column, location}, []}) ->
+        ({{location, column}, []}) ->
           {:identifier, :unknown, column, location}
-        ({{table, location}, [{:., column}]}) ->
+        ({{location, table}, [{:., column}]}) ->
           {:identifier, table, column, location}
-        ({{table, location}, parts}) ->
+        ({{location, table}, parts}) ->
           column = parts |> Enum.map(fn ({:., {:unquoted, part}}) -> part end) |> Enum.join(".")
           {:identifier, table, {:unquoted, column}, location}
       end
@@ -782,14 +782,8 @@ defmodule Cloak.Sql.Parser do
 
   defp identifier(parser \\ noop()) do
     parser
-    |> identifier_with_location()
-    |> map(fn({identifier, _location}) -> identifier end)
-  end
-
-  defp identifier_with_location(parser \\ noop()) do
-    parser
     |> either(token(:quoted), token(:unquoted))
-    |> map(&{{&1.category, &1.value}, {&1.line, &1.column}})
+    |> map(&{&1.category, &1.value})
     |> label("identifier")
   end
 
