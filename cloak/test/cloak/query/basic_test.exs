@@ -790,13 +790,7 @@ defmodule Cloak.Query.BasicTest do
   test "cast" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [10])
     assert_query "select cast(height as text) from heights",
-      %{columns: ["cast"], rows: [%{row: ["10"], occurrences: 10}]}
-  end
-
-  test "optimization of a redundant cast doesn't affect the column name" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [10])
-    assert_query "select cast(height as integer) from heights",
-      %{columns: ["cast"], rows: [%{row: [10], occurrences: 10}]}
+      %{columns: ["height"], rows: [%{row: ["10"], occurrences: 10}]}
   end
 
   test "quoting table and column names" do
