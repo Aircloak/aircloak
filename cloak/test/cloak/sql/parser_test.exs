@@ -103,7 +103,13 @@ defmodule Cloak.Sql.Parser.Test do
 
   defmacrop function(name, arguments) do
     quote do
-      {:function, unquote(name), unquote(arguments)}
+      {:function, unquote(name), unquote(arguments), _}
+    end
+  end
+
+  defmacrop function(name, arguments, location) do
+    quote do
+      {:function, unquote(name), unquote(arguments), unquote(location)}
     end
   end
 
@@ -165,6 +171,42 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "constant location in source" do
     assert_parse("select 1 from baz", select(columns: [constant(:integer, 1, {1, 7})]))
+  end
+
+  test "function location in source" do
+    assert_parse("select foo(bar, baz) from baz", select(columns: [function("foo", _, {1, 7})]))
+  end
+
+  test "extract location in source" do
+    assert_parse("select extract(month from foo) from bar", select(columns: [function("month", _, {1, 7})]))
+  end
+
+  test "trim location in source" do
+    assert_parse("select trim(leading foo) from bar", select(columns: [function("ltrim", _, {1, 7})]))
+  end
+
+  test "substring location in source" do
+    assert_parse("select substring(foo from 1) from bar", select(columns: [function("substring", _, {1, 7})]))
+  end
+
+  test "infix operator location in source" do
+    assert_parse("select foo + bar from baz", select(columns: [function("+", _, {1, 11})]))
+  end
+
+  test "unary minus location in source" do
+    assert_parse("select -foo(bar) from baz", select(columns: [function("-", _, {1, 7})]))
+  end
+
+  test "cast location in source" do
+    assert_parse("select cast(foo as text) from bar", select(columns: [function({:cast, :text}, _, {1, 7})]))
+  end
+
+  test "cast with :: location in source" do
+    assert_parse("select foo :: text from bar", select(columns: [function({:cast, :text}, _, {1, 11})]))
+  end
+
+  test "bucket location in source" do
+    assert_parse("select bucket(foo by 10) from bar", select(columns: [function({:bucket, _}, _, {1, 7})]))
   end
 
   test "fully qualified table name" do
