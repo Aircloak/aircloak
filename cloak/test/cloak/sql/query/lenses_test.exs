@@ -4,6 +4,8 @@ defmodule Cloak.Sql.Query.Lenses.Test do
   alias Cloak.Sql.Query
   alias Cloak.Sql.Query.Lenses
 
+  @no_location {1, 0}
+
   describe "terminals" do
     test "returns expressions" do
       query = %Query{columns: [:expression]}
@@ -11,13 +13,13 @@ defmodule Cloak.Sql.Query.Lenses.Test do
     end
 
     test "focuses on function arguments as well as function" do
-      query = %Query{columns: [{:function, "name", [:args]}]}
-      assert [:args, {:function, "name", [:args]}] == Lenses.terminals() |> normalize_elements(query)
+      query = %Query{columns: [{:function, "name", [:args], @no_location}]}
+      assert [:args, {:function, "name", [:args], @no_location}] == Lenses.terminals() |> normalize_elements(query)
     end
 
     test "recurses inside aliases" do
-      query = %Query{columns: [{{:function, "name", [:args]}, :as, "alias"}]}
-      assert [:args, {:function, "name", [:args]}] == Lenses.terminals() |> normalize_elements(query)
+      query = %Query{columns: [{{:function, "name", [:args], @no_location}, :as, "alias"}]}
+      assert [:args, {:function, "name", [:args], @no_location}] == Lenses.terminals() |> normalize_elements(query)
     end
   end
 

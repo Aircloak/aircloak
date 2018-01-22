@@ -293,7 +293,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     Enum.reduce(
       get_in(query, [Lenses.raw_parameter_casts()]),
       query,
-      fn({:function, {:cast, type}, [{:parameter, index}]}, query) ->
+      fn({:function, {:cast, type}, [{:parameter, index}], _location}, query) ->
         Query.set_parameter_type(query, index, type)
       end
     )
@@ -366,9 +366,9 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp resolve_alias(_aliases, other), do: other
 
   defp column_title({_identifier, :as, alias}, _selected_tables), do: alias
-  defp column_title({:function, {:cast, _}, _}, _selected_tables), do: "cast"
-  defp column_title({:function, {:bucket, _}, _}, _selected_tables), do: "bucket"
-  defp column_title({:function, name, _}, _selected_tables), do: name
+  defp column_title({:function, {:cast, _}, _, _}, _selected_tables), do: "cast"
+  defp column_title({:function, {:bucket, _}, _, _}, _selected_tables), do: "bucket"
+  defp column_title({:function, name, _, _}, _selected_tables), do: name
   defp column_title({:distinct, identifier}, selected_tables), do: column_title(identifier, selected_tables)
   # This is needed for data sources that support dotted names for fields (MongoDB)
   defp column_title({:identifier, {:unquoted, table}, {:unquoted, column}, _}, selected_tables), do:
@@ -455,7 +455,7 @@ defmodule Cloak.Sql.Compiler.Specification do
       end
     end
   end
-  defp identifier_to_column({:function, name, args} = function, _columns_by_name, query) do
+  defp identifier_to_column({:function, name, args, _location} = function, _columns_by_name, query) do
     function
     |> Validation.verify_function(query.subquery?)
     |> Function.return_type()
@@ -492,7 +492,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   end
   defp get_columns(columns_by_name, {:quoted, name}), do: Map.get(columns_by_name, name)
 
-  defp function_argument_error_message({:function, name, _} = function_call) do
+  defp function_argument_error_message({:function, name, _, _} = function_call) do
     cond do
       Function.cast?(function_call) ->
         [cast_source] = actual_types(function_call)

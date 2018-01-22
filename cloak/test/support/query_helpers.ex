@@ -76,6 +76,7 @@ defmodule Cloak.Test.QueryHelpers do
       {:constant, type, value, _location} -> {:constant, type, value, nil}
       {:like_pattern, {:constant, type1, value1, _loc1}, {:constant, type2, value2, _loc2}} ->
         {:like_pattern, {:constant, type1, value1, nil}, {:constant, type2, value2, nil}}
+      {:function, name, arguments, _location} -> {:function, name, arguments, nil}
       other -> other
     end)
 

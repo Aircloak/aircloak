@@ -58,7 +58,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   # Columns and expressions
   # -------------------------------------------------------------------
 
-  defp verify_function_exists(function = {_, name, _}) do
+  defp verify_function_exists(function = {:function, name, _, _}) do
     unless Function.exists?(function) do
       case Function.deprecation_info(function) do
         {:error, :not_found} ->
@@ -70,13 +70,13 @@ defmodule Cloak.Sql.Compiler.Validation do
     end
   end
 
-  defp verify_function_usage({:function, name, [argument]}, _subquery? = false) when name in ["min", "max", "median"] do
-    if Function.type(argument) == :text, do:
+  defp verify_function_usage({:function, name, [arg], _}, _subquery? = false) when name in ["min", "max", "median"] do
+    if Function.type(arg) == :text, do:
       raise CompilationError, message:
         "Function `#{name}` is allowed over arguments of type `text` only in subqueries."
     :ok
   end
-  defp verify_function_usage({:function, name, _}, _subquery? = true) do
+  defp verify_function_usage({:function, name, _, _}, _subquery? = true) do
     if Function.has_attribute?(name, :not_in_subquery), do:
       raise CompilationError, message: "Function `#{name}` is not allowed in subqueries."
     :ok
@@ -103,9 +103,9 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp individual_column?(query, column), do:
     not Expression.constant?(column) and not Helpers.aggregated_column?(query, column)
 
-  defp aggregated_expression_display({:function, _function, [arg]}), do:
+  defp aggregated_expression_display({:function, _function, [arg], _location}), do:
     "Column `#{arg.name}` needs"
-  defp aggregated_expression_display({:function, _function, args}), do:
+  defp aggregated_expression_display({:function, _function, args, _location}), do:
     "Columns (#{args |> Enum.map(&"`#{&1.name}`") |> Enum.join(", ")}) need"
   defp aggregated_expression_display(%Expression{function: fun, function_args: args}) when fun != nil do
     [column | _] = for %Expression{constant?: false} = column <- args, do: column

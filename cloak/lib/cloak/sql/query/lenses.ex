@@ -57,7 +57,7 @@ defmodule Cloak.Sql.Query.Lenses do
   @doc "Lens focusing on raw (uncompiled) casts of parameters."
   deflens raw_parameter_casts(), do:
     terminals()
-    |> Lens.satisfy(&match?({:function, {:cast, _type}, [{:parameter, _index}]}, &1))
+    |> Lens.satisfy(&match?({:function, {:cast, _type}, [{:parameter, _index}], _}, &1))
 
   @doc "Lens focusing on invocations of the bucket function"
   deflens buckets(), do: terminals() |> Lens.satisfy(&Function.bucket?/1)
@@ -234,9 +234,9 @@ defmodule Cloak.Sql.Query.Lenses do
 
   deflens terminal_elements(), do:
     Lens.match(fn
-      {:function, "count", :*} -> Lens.empty()
-      {:function, "count_noise", :*} -> Lens.empty()
-      {:function, _, _} -> Lens.both(Lens.at(2) |> terminal_elements(), Lens.root())
+      {:function, "count", :*, _} -> Lens.empty()
+      {:function, "count_noise", :*, _} -> Lens.empty()
+      {:function, _, _, _} -> Lens.both(Lens.at(2) |> terminal_elements(), Lens.root())
       {:distinct, _} -> Lens.both(Lens.at(1) |> terminal_elements(), Lens.root())
       {_, :as, _} -> Lens.at(0) |> terminal_elements()
       elements when is_list(elements) -> Lens.all() |> terminal_elements()
