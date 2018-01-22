@@ -237,6 +237,13 @@ defmodule Cloak.Sql.Expression do
   def lowercase(_), do:
     raise "Only textual expressions can be made lowercase"
 
+  @doc "Checks if a string is a valid name for a column."
+  @spec valid_alias?(String.t) :: boolean
+  def valid_alias?(name), do:
+    String.match?(name, ~r/^[_#]*[a-zA-Z][a-zA-Z0-9_.#]*$/) and
+    not String.contains?(name, "..") and
+    String.last(name) != "."
+
 
   # -------------------------------------------------------------------
   # Internal functions

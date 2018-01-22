@@ -150,8 +150,11 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_joins(query) do
     verify_join_types(query)
     verify_join_conditions_scope(query.from, [])
-    verify_all_joined_subqueries_have_explicit_uids(query)
-    verify_all_uid_columns_are_compared_in_joins(query)
+    # user id checks have no meaning for queries representing a virtual table, as those can be arbitrary SQL statements
+    unless query.virtual_table? do
+      verify_all_joined_subqueries_have_explicit_uids(query)
+      verify_all_uid_columns_are_compared_in_joins(query)
+    end
   end
 
   defp verify_all_joined_subqueries_have_explicit_uids(query) do

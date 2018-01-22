@@ -374,4 +374,20 @@ defmodule Cloak.Sql.Expression.Test do
     result = pow(x, div(n, 2))
     result * result
   end
+
+  test "expression alias validation" do
+    refute Expression.valid_alias?("")
+    refute Expression.valid_alias?("-")
+    refute Expression.valid_alias?("_")
+    refute Expression.valid_alias?(".")
+    refute Expression.valid_alias?("asda..dsd")
+    refute Expression.valid_alias?("asdad.")
+    refute Expression.valid_alias?("21a")
+    refute Expression.valid_alias?("#_")
+    refute Expression.valid_alias?("_2")
+
+    assert Expression.valid_alias?("_as")
+    assert Expression.valid_alias?("aa33.d")
+    assert Expression.valid_alias?("a_22")
+  end
 end

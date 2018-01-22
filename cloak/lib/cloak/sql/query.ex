@@ -74,6 +74,7 @@ defmodule Cloak.Sql.Query do
     noise_layers: [NoiseLayer.t],
     view?: boolean,
     table_aliases: %{String.t => DataSource.Table.t},
+    virtual_table?: boolean,
   }
 
   @type features :: %{
@@ -98,7 +99,7 @@ defmodule Cloak.Sql.Query do
     info: [], selected_tables: [], implicit_count?: false, data_source: nil, command: nil,
     show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: nil, distinct?: false,
     parameters: [], views: %{}, emulated?: false, sample_rate: nil, projected?: false,
-    next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false, table_aliases: %{},
+    next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false, table_aliases: %{}, virtual_table?: false,
   ]
 
 
