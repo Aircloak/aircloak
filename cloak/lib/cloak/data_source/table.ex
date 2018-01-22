@@ -137,7 +137,7 @@ defmodule Cloak.DataSource.Table do
   defp verify_column_name(table, name) do
     if not Expression.valid_alias?(name), do:
       DataSource.raise_error("Invalid column name `#{name}` in virtual table `#{table}`. " <>
-        "Complex expressions have to be aliased with a valid column name.")
+        "Complex selected expressions have to be aliased with a valid column name.")
   end
 
   defp drop_duplicate_columns(query) do
