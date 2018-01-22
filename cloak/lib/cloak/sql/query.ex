@@ -346,8 +346,7 @@ defmodule Cloak.Sql.Query do
       |> needed_columns()
       |> extract_columns()
       |> Enum.reject(& &1.constant?)
-
-    [Compiler.Helpers.id_column(query) | used_columns]
+    List.wrap(Compiler.Helpers.id_column(query)) ++ used_columns
   end
 
   defp needed_columns(query), do:
