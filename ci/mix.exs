@@ -29,6 +29,7 @@ defmodule AircloakCI.Mixfile do
       {:erlexec, "~> 1.7", only: [:dev, :prod]},
       {:jobs, "~> 0.7"},
       {:recon, "~> 2.0"},
+      {:lens, "~> 0.4.0", only: :test},
     ]
   end
 
