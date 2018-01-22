@@ -216,7 +216,7 @@ defmodule Cloak.Sql.QueryTest do
 
   test "describe query with late binding" do
     assert {:ok, columns, capabilities} = describe_query("select cast($1 as boolean) from feat_users")
-    assert columns == ["cast"]
+    assert columns == [""]
     assert capabilities.selected_types == ["boolean"]
     assert capabilities.parameter_types == ["boolean"]
   end

@@ -366,7 +366,8 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp compile_aliases(query), do: query
 
   defp column_title({_identifier, :as, alias}, _selected_tables), do: alias
-  defp column_title({:function, {:cast, _}, _}, _selected_tables), do: "cast"
+  defp column_title({:function, {:cast, _}, [expression]}, selected_tables), do:
+    column_title(expression, selected_tables)
   defp column_title({:function, {:bucket, _}, _}, _selected_tables), do: "bucket"
   defp column_title({:function, name, _}, _selected_tables), do: name
   defp column_title({:distinct, identifier}, selected_tables), do: column_title(identifier, selected_tables)
