@@ -91,28 +91,27 @@ defmodule Cloak.DataSource.Table do
     %{data_source | tables: Enum.into(tables, %{})}
   end
 
-  defp parse_virtual_table({_, %{query: nil}} = table), do: table
-  defp parse_virtual_table({name, table}) do
-    case Parser.parse(table.query) do
+  defp parse_virtual_table({name, %{query: statement} = table}) when statement != nil do
+    case Parser.parse(statement) do
       {:ok, parsed_query} ->
         {name, %{table| query: parsed_query}}
       {:error, reason} ->
         DataSource.raise_error("Failed to parse the query for virtual table `#{name}`: `#{reason}`")
     end
   end
+  defp parse_virtual_table(table), do: table
 
-  defp get_virtual_table_db_names({_, %{query: nil}}), do: []
-  defp get_virtual_table_db_names({_, table}), do:
+  defp get_virtual_table_db_names({_, %{query: parsed_query}}) when parsed_query != nil, do:
     Lenses.all_queries()
     |> Lenses.ast_tables()
-    |> Lens.to_list(table.query)
+    |> Lens.to_list(parsed_query)
     |> Enum.map(&ast_table_name/1)
+  defp get_virtual_table_db_names(_), do: []
 
   defp ast_table_name({_, name}), do: name
   defp ast_table_name({table, :as, _alias}), do: ast_table_name(table)
 
-  defp compile_virtual_table({_, %{query: nil}} = table, _data_source), do: table
-  defp compile_virtual_table({name, %{query: parsed_query, user_id: user_id}}, data_source) do
+  defp compile_virtual_table({name, %{query: parsed_query, user_id: user_id}}, data_source) when parsed_query != nil do
     compiled_query =
       try do
         parsed_query
@@ -133,6 +132,7 @@ defmodule Cloak.DataSource.Table do
     table = new(to_string(name), user_id, query: compiled_query, columns: columns)
     {name, table}
   end
+  defp compile_virtual_table(table, _data_source), do: table
 
   defp verify_column_name(table, name) do
     if not Expression.valid_alias?(name), do:
