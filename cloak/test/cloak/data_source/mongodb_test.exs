@@ -15,7 +15,7 @@ defmodule Cloak.DataSource.MongoDBTest do
     Mongo.delete_many(conn, @table, %{})
     date = DateTime.from_unix!(1_437_940_203)
     for i <- 1..10 do
-      value = %{name: "user#{i}", age: 30, male: true, date: date, bills: [%{issuer: "vendor", ids: ["1", "2"]}]}
+      value = %{name: "user#{i}", age: 30, male: true, date: date, bills: [%{issuer: "vendor", ids: [1, 2]}]}
       Mongo.insert_one!(conn, @table, value)
     end
     Mongo.insert_one!(conn, @table, %{name: nil, male: nil, mixed: true, bills: nil})
@@ -25,12 +25,10 @@ defmodule Cloak.DataSource.MongoDBTest do
     for _i <- 11..15 do
       Mongo.insert_one!(conn, @table, %{debt: -10.55})
     end
-    decoder = %{method: "text_to_real", columns: ["bills.ids"]}
-    table_config = Table.new(@table, "_id", db_name: @table, decoders: [decoder])
+    table_config = Table.new(@table, "_id", db_name: @table)
     tables =
       conn
       |> MongoDB.load_tables(table_config)
-      |> Enum.map(&Cloak.Query.DataDecoder.init/1)
       |> Enum.map(&{&1.name, &1})
       |> Enum.into(%{})
     GenServer.stop(conn)

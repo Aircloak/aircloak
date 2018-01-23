@@ -294,6 +294,13 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("substring", [string, from, count]), do: substring(string, from, count)
   defp do_apply("concat", args), do: Enum.join(args)
   defp do_apply("hex", [string]), do: Base.encode16(string, case: :lower)
+  defp do_apply("dec_b64", [nil]), do: nil
+  defp do_apply("dec_b64", [string]) do
+    case Base.decode64(string, ignore: :whitespace, padding: false) do
+      {:ok, string} -> string
+      :error -> nil
+    end
+  end
   defp do_apply("hash", [value]) do
     <<hash::60, _::4, _::64>> = :crypto.hash(:md5, to_string(value))
     hash
