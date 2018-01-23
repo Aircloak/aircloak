@@ -40,14 +40,14 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     result1 = compile!("SELECT * FROM table WHERE string ILIKE 'Abc'", data_source())
     result2 = compile!("SELECT * FROM table WHERE lower(string) = 'abc'", data_source())
 
-    assert result1.where == result2.where
+    assert scrub_locations(result1).where == scrub_locations(result2).where
   end
 
   test "normalizing trivial not ilike patterns <>" do
     result1 = compile!("SELECT * FROM table WHERE string NOT ILIKE 'Abc'", data_source())
     result2 = compile!("SELECT * FROM table WHERE lower(string) <> 'abc'", data_source())
 
-    assert result1.where == result2.where
+    assert scrub_locations(result1).where == scrub_locations(result2).where
   end
 
   describe "normalizing ORDER BY" do

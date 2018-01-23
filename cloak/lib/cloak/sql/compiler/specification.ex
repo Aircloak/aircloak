@@ -455,13 +455,15 @@ defmodule Cloak.Sql.Compiler.Specification do
       end
     end
   end
-  defp identifier_to_column({:function, name, args, _location} = function, _columns_by_name, query) do
+  defp identifier_to_column({:function, name, args, location} = function, _columns_by_name, query) do
     function
     |> Validation.verify_function(query.subquery?)
     |> Function.return_type()
     |> case do
       nil -> raise CompilationError, message: function_argument_error_message(function)
-      type -> Expression.function(name, args, type, Function.has_attribute?(name, :aggregator))
+      type ->
+        Expression.function(name, args, type, Function.has_attribute?(name, :aggregator))
+        |> Expression.set_location(location)
     end
   end
   defp identifier_to_column({:parameter, index}, _columns_by_name, query) do

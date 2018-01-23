@@ -1,7 +1,7 @@
 defmodule Cloak.Test.QueryHelpers do
   @moduledoc false
 
-  alias Cloak.Sql.{Compiler, Parser, Query}
+  alias Cloak.Sql.{Compiler, Parser, Query, Expression}
 
   defmacro assert_query_consistency(query, options \\ []) do
     quote bind_quoted: [
@@ -77,6 +77,7 @@ defmodule Cloak.Test.QueryHelpers do
       {:like_pattern, {:constant, type1, value1, _loc1}, {:constant, type2, value2, _loc2}} ->
         {:like_pattern, {:constant, type1, value1, nil}, {:constant, type2, value2, nil}}
       {:function, name, arguments, _location} -> {:function, name, arguments, nil}
+      expression = %Expression{} -> %{expression | source_location: nil}
       other -> other
     end)
 

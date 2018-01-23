@@ -8,6 +8,8 @@ defmodule Cloak.Sql.Expression do
   alias Cloak.Sql.LikePattern
   alias Timex.Duration
 
+  @no_location {1, 0}
+
   @type column_type :: DataSource.Table.data_type | :like_pattern | :interval | nil
   @type function_name ::
     String.t |
@@ -29,11 +31,12 @@ defmodule Cloak.Sql.Expression do
     parameter_index: pos_integer | nil,
     synthetic?: boolean,
     key?: boolean,
+    source_location: Cloak.Sql.Parser.location,
   }
   defstruct [
     table: :unknown, name: nil, alias: nil, type: nil, user_id?: false, row_index: nil, constant?: false,
     value: nil, function: nil, function_args: [], aggregate?: false, function?: false, parameter_index: nil,
-    synthetic?: false, key?: false
+    synthetic?: false, key?: false, source_location: @no_location
   ]
 
   @doc "Returns an expression representing a reference to the given column in the given table."
@@ -76,6 +79,10 @@ defmodule Cloak.Sql.Expression do
   def constant?(%__MODULE__{function?: true, function_args: args} = function), do:
     not row_splitter?(function) and Enum.all?(args, &constant?/1)
   def constant?(_), do: false
+
+  @doc "Sets the source location of the given expression to the given location."
+  @spec set_location(t, Cloak.Sql.Parser.location) :: t
+  def set_location(expression, location), do: %{expression | source_location: location}
 
   @doc "Returns true if the given column is a key (public/private/user_id), false otherwise."
   @spec key?(t) :: boolean
@@ -217,6 +224,17 @@ defmodule Cloak.Sql.Expression do
   def unalias(expression), do:
     %__MODULE__{expression | alias: nil}
 
+  @doc """
+  Removes data from the given expression that does not contribute to its semantics for the query. Currently that's only
+  source_location.
+  """
+  @spec semantic(x) :: x when x: t | :* | {:distinct, t}
+  def semantic(expression = %__MODULE__{function?: true, function_args: function_args}), do:
+    %__MODULE__{expression | source_location: @no_location, function_args: Enum.map(function_args, &semantic/1)}
+  def semantic(expression = %__MODULE__{}), do:
+    %__MODULE__{expression | source_location: @no_location}
+  def semantic({:distinct, expression}), do: {:distinct, semantic(expression)}
+  def semantic(other), do: other
 
   @doc "Recursively evaluates a split expression and returns all the values yielded by the splitter."
   @spec splitter_values(t, DataSource.row) :: [DataSource.field]

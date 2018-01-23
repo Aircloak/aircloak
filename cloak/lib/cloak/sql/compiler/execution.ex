@@ -246,7 +246,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     Lenses.conditions()
     |> Lens.to_list(where_clause)
     |> Enum.filter(&Condition.inequality?/1)
-    |> Enum.group_by(&Condition.subject/1)
+    |> Enum.group_by(& &1 |> Condition.subject() |> Expression.semantic())
     |> Enum.map(&discard_redundant_inequalities/1)
     |> Enum.into(%{})
   end
