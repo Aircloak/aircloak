@@ -39,8 +39,9 @@ defmodule Cloak.Sql.Compiler.Helpers do
 
   @doc "Returns true if the provided expression is aggregated."
   @spec aggregated_column?(partial_query, Expression.t) :: boolean
-  def aggregated_column?(query, column), do:
-    Enum.member?(Enum.map(query.group_by, &Expression.unalias/1), Expression.unalias(column)) or
+  def aggregated_column?(query, column) do
+    normalizer = &(&1 |> Expression.unalias() |> Expression.semantic())
+    Enum.member?(Enum.map(query.group_by, normalizer), normalizer.(column)) or
     (
       column.function? and
       (
@@ -48,6 +49,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
         Enum.any?(column.function_args, &aggregated_column?(query, &1))
       )
     )
+  end
 
   @doc "Returns true if any of the query's bucket columns is aggregated."
   @spec aggregate?(partial_query) :: boolean
