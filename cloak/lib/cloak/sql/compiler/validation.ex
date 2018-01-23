@@ -129,8 +129,8 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_non_selected_where_splitters(query) do
     non_selected_where_splitters =
       MapSet.difference(
-        MapSet.new(Query.outermost_where_splitters(query)),
-        MapSet.new(Query.outermost_selected_splitters(query))
+        MapSet.new(Query.outermost_where_splitters(query) |> Enum.map(&Expression.semantic/1)),
+        MapSet.new(Query.outermost_selected_splitters(query) |> Enum.map(&Expression.semantic/1))
       )
 
     if MapSet.size(non_selected_where_splitters) > 0 do
