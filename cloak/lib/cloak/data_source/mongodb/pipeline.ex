@@ -351,6 +351,6 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   def used_array_size_columns(query) do
     Query.Lenses.query_expressions()
     |> Lens.satisfy(& &1.name != nil and Schema.is_array_size?(&1.name))
-    |> Lens.get(query)
+    |> Lens.to_list(query)
   end
 end
