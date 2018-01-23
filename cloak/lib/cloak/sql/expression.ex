@@ -228,13 +228,9 @@ defmodule Cloak.Sql.Expression do
   Removes data from the given expression that does not contribute to its semantics for the query. Currently that's only
   source_location.
   """
-  @spec semantic(x) :: x when x: t | :* | {:distinct, t}
-  def semantic(expression = %__MODULE__{function?: true, function_args: function_args}), do:
-    %__MODULE__{expression | source_location: @no_location, function_args: Enum.map(function_args, &semantic/1)}
-  def semantic(expression = %__MODULE__{}), do:
-    %__MODULE__{expression | source_location: @no_location}
-  def semantic({:distinct, expression}), do: {:distinct, semantic(expression)}
-  def semantic(other), do: other
+  @spec semantic(t) :: t
+  def semantic(expression), do:
+    put_in(expression, [Cloak.Sql.Query.Lenses.all_expressions() |> Lens.key(:source_location)], @no_location)
 
   @doc "Recursively evaluates a split expression and returns all the values yielded by the splitter."
   @spec splitter_values(t, DataSource.row) :: [DataSource.field]
