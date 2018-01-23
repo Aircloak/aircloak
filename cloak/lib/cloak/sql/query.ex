@@ -396,7 +396,7 @@ defmodule Cloak.Sql.Query do
 
  defp has_emulated_expressions?(query), do:
    Lenses.all_expressions()
-   |> Lens.to_list([query.columns, query.group_by, query.having, query.where])
+   |> Lens.to_list([query.columns, query.group_by, query.having, query.where, order_by_expressions(query)])
    |> Enum.any?(&emulated_expression?(&1, query.data_source))
 
  defp has_emulated_join_conditions?(query), do:
