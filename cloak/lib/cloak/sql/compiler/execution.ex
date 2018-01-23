@@ -181,7 +181,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> Enum.reduce(query, fn(lens, query) -> align_ranges(query, lens) end)
 
   defp align_ranges(query, lens) do
-    clause = Lens.get(lens, query)
+    clause = Lens.one!(lens, query)
     grouped_inequalities = inequalities_by_column(clause)
     range_columns = Map.keys(grouped_inequalities)
 
