@@ -40,7 +40,7 @@
   "jiffy": {:hex, :jiffy, "0.14.11", "919a87d491c5a6b5e3bbc27fafedc3a0761ca0b4c405394f121f582fd4e3f0e5", [:rebar3], [], "hexpm"},
   "jose": {:hex, :jose, "1.8.4", "7946d1e5c03a76ac9ef42a6e6a20001d35987afd68c2107bcd8f01a84e75aa73", [:mix, :rebar3], [{:base64url, "~> 0.0.1", [hex: :base64url, repo: "hexpm", optional: false]}], "hexpm"},
   "jsx": {:hex, :jsx, "2.8.0", "749bec6d205c694ae1786d62cea6cc45a390437e24835fd16d12d74f07097727", [:mix, :rebar], [], "hexpm"},
-  "lens": {:hex, :lens, "0.4.0", "c2bff2fbb38093b6195d3198d9fe22a5d1751fedc92749003c60aebdc35feac8", [:mix], [], "hexpm"},
+  "lens": {:hex, :lens, "0.6.0", "9b0f30ddaedabf1126b2f1b71e8334260451bd539271c0eb6da5ef8a5b39b1cd", [:mix], [], "hexpm"},
   "lhttpc": {:git, "https://github.com/esl/lhttpc.git", "6530ef818bf904bf4ef615f384d2fc7bae44a6dc", []},
   "mariaex": {:hex, :mariaex, "0.8.3", "bf51ff4d480f68400bad69d1ebe778b6edbcafa4dd0429826ae1dd89cb90c8ad", [:mix], [{:db_connection, "~> 1.1", [hex: :db_connection, repo: "hexpm", optional: false]}, {:decimal, "~> 1.0", [hex: :decimal, repo: "hexpm", optional: false]}], "hexpm"},
   "meck": {:git, "https://github.com/eproxus/meck.git", "dde759050eff19a1a80fd854d7375174b191665d", [tag: "0.8.2"]},

@@ -14,7 +14,7 @@
   "idna": {:hex, :idna, "5.1.0", "d72b4effeb324ad5da3cab1767cb16b17939004e789d8c0ad5b70f3cea20c89a", [], [{:unicode_util_compat, "0.3.1", [hex: :unicode_util_compat, repo: "hexpm", optional: false]}], "hexpm"},
   "jobs": {:hex, :jobs, "0.7.1", "132e4bed856ce774b008b31c1aa809c17fa6c2c20be03e010ace273ca057a5de", [:rebar3], [{:parse_trans, "3.0.0", [hex: :parse_trans, repo: "hexpm", optional: false]}], "hexpm"},
   "jsx": {:hex, :jsx, "2.8.3", "a05252d381885240744d955fbe3cf810504eb2567164824e19303ea59eef62cf", [], [], "hexpm"},
-  "lens": {:hex, :lens, "0.4.0", "c2bff2fbb38093b6195d3198d9fe22a5d1751fedc92749003c60aebdc35feac8", [], [], "hexpm"},
+  "lens": {:hex, :lens, "0.6.0", "9b0f30ddaedabf1126b2f1b71e8334260451bd539271c0eb6da5ef8a5b39b1cd", [:mix], [], "hexpm"},
   "meck": {:git, "https://github.com/eproxus/meck.git", "dde759050eff19a1a80fd854d7375174b191665d", [tag: "0.8.2"]},
   "metrics": {:hex, :metrics, "1.0.1", "25f094dea2cda98213cecc3aeff09e940299d950904393b2a29d191c346a8486", [], [], "hexpm"},
   "mimerl": {:hex, :mimerl, "1.0.2", "993f9b0e084083405ed8252b99460c4f0563e41729ab42d9074fd5e52439be88", [], [], "hexpm"},
