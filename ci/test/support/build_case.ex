@@ -152,7 +152,7 @@ defmodule AircloakCI.BuildCase do
   def update_pr(repo_data, pr, updater) do
     update_in(
       repo_data,
-      [Lens.key!(:pull_requests) |> Lens.filter(&(&1.number == pr.number))],
+      [Lens.key!(:pull_requests) |> Lens.all() |> Lens.filter(&(&1.number == pr.number))],
       updater
     )
   end
