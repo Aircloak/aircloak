@@ -66,7 +66,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     Query.Lenses.direct_subqueries()
     |> Lens.satisfy(&(&1.alias == table))
     |> Lens.key(:ast)
-    |> Lens.satisfy(&(not &1.projected?))
+    |> Lens.satisfy(&(not &1.projected? and not &1.virtual_table?))
 
   defp push_noise_layer(query, %NoiseLayer{base: {_table, column, extras}, expressions: [_min, _max | rest]}) do
     {:ok, expression} = find_column(column, query)
@@ -159,6 +159,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   # -------------------------------------------------------------------
 
   defp calculate_base_noise_layers(query = %{projected?: true}, _top_level_uid), do: query
+  defp calculate_base_noise_layers(query = %{virtual_table?: true}, _top_level_uid), do: query
   defp calculate_base_noise_layers(query, top_level_uid) do
     noise_layers =
       select_noise_layers(query, top_level_uid) ++

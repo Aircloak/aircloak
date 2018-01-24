@@ -3,13 +3,12 @@ defmodule Cloak.Sql.Compiler.Execution do
   Makes the compiled query specification ready for execution.
 
   This is strictly speaking a post-compilation step where we do some transformation
-  to the query, in order to be able to safely execute it. Here, we figure out
-  things such as noise layers, alignments, or db column positions.
+  to the query, in order to be able to safely execute it.
   """
 
   alias Cloak.DataSource
   alias Cloak.Sql.{CompilationError, Condition, Expression, FixAlign, Function, Query}
-  alias Cloak.Sql.Compiler.Helpers
+  alias Cloak.Sql.Compiler.{Helpers, Optimizer}
   alias Cloak.Sql.Query.Lenses
 
 
@@ -31,6 +30,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> compile_sample_rate()
     |> reject_null_user_ids()
     |> compute_aggregators()
+    |> expand_virtual_tables()
 
   @doc "Creates an executable query which describes a SELECT statement from a single table."
   @spec make_select_query(DataSource.t, DataSource.Table.t, [Expression.t]) :: Query.t
@@ -181,7 +181,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> Enum.reduce(query, fn(lens, query) -> align_ranges(query, lens) end)
 
   defp align_ranges(query, lens) do
-    clause = Lens.get(lens, query)
+    clause = Lens.one!(lens, query)
     grouped_inequalities = inequalities_by_column(clause)
     range_columns = Map.keys(grouped_inequalities)
 
@@ -272,4 +272,20 @@ defmodule Cloak.Sql.Compiler.Execution do
     %Query{query | where: Condition.combine(:and, sample_condition, query.where)}
   end
   defp compile_sample_rate(query), do: query
+
+
+  # -------------------------------------------------------------------
+  # Virtual tables
+  # -------------------------------------------------------------------
+
+  defp expand_virtual_tables(query) do
+    query.selected_tables
+    |> Enum.reject(& &1.query == nil)
+    |> Enum.reduce(query, fn (%{query: table_query, name: table_name}, query) ->
+      Lenses.leaf_tables()
+      |> Lens.satisfy(& &1 == table_name)
+      |> Lens.map(query, &{:subquery, %{alias: &1, ast: table_query}})
+    end)
+    |> Optimizer.optimize_columns_from_subqueries()
+  end
 end
