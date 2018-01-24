@@ -1,4 +1,5 @@
-To run the tool locally, you need to install go, version 1.9 or higher.
+To run the tool locally, you need to install go with `asdf install`.
+
 You first need to configure the tool, as explained in `user_guide.md`. Then, you can start it with `go run batch_queries.go`.
 
 To produce a standalone binary for Windows you can invoke the following command:
