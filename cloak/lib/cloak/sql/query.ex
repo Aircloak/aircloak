@@ -69,7 +69,6 @@ defmodule Cloak.Sql.Query do
     emulated?: boolean,
     parameters: [parameter] | nil,
     views: view_map,
-    projected?: boolean,
     next_row_index: row_index,
     noise_layers: [NoiseLayer.t],
     view?: boolean,
@@ -97,8 +96,8 @@ defmodule Cloak.Sql.Query do
     columns: [], where: nil, group_by: [], order_by: [], column_titles: [], aggregators: [],
     info: [], selected_tables: [], implicit_count?: false, data_source: nil, command: nil,
     show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: nil, distinct?: false,
-    parameters: [], views: %{}, emulated?: false, sample_rate: nil, projected?: false,
-    next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false, table_aliases: %{}, virtual_table?: false,
+    parameters: [], views: %{}, emulated?: false, sample_rate: nil, next_row_index: 0, parameter_types: %{},
+    noise_layers: [], view?: false, table_aliases: %{}, virtual_table?: false,
   ]
 
 

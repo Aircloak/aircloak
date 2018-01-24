@@ -34,7 +34,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
   @spec all_id_columns_from_tables(partial_query) :: [Expression.t]
   def all_id_columns_from_tables(%Query{command: :select, selected_tables: tables}) do
     Enum.flat_map(tables, fn
-      (%{projection: nil, user_id: user_id} = table) when user_id != nil ->
+      (%{user_id: user_id} = table) when user_id != nil ->
         column = Enum.find(table.columns, &insensitive_equal?(user_id, &1.name))
         [%Expression{table: table, name: user_id, type: column.type, user_id?: true}]
       (_) -> []

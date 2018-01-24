@@ -51,7 +51,7 @@ defmodule Cloak.Test.DB do
       DataSource.Table.new(
         to_string(table_id),
         (if Keyword.get(opts, :add_user_id, true), do: "user_id", else: Keyword.get(opts, :user_id)),
-        [db_name: db_name] ++ Keyword.take(opts, [:user_id, :projection, :query])
+        [db_name: db_name] ++ Keyword.take(opts, [:user_id, :query])
       )
 
     data_source_names_to_update = case opts[:data_source] do
