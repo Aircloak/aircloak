@@ -40,7 +40,7 @@ defmodule Cloak.Sql.Query.Features do
   defp num_db_columns(columns), do:
     columns
     |> extract_columns()
-    |> Enum.uniq()
+    |> Enum.uniq_by(&Expression.semantic/1)
     |> Enum.reject(&(&1.constant?))
     |> Enum.count()
 

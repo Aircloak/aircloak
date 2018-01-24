@@ -417,7 +417,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   end
   defp normalize_table_name(x, _), do: x
 
-  defp identifier_to_column({:identifier, :unknown, identifier = {_, column_name}, _loc}, columns_by_name, _query) do
+  defp identifier_to_column({:identifier, :unknown, identifier = {_, column_name}, loc}, columns_by_name, _query) do
     case get_columns(columns_by_name, identifier) do
       [column] -> column
       [_|_] -> raise CompilationError, message: "Column `#{column_name}` is ambiguous."
@@ -434,8 +434,9 @@ defmodule Cloak.Sql.Compiler.Specification do
               raise CompilationError, message: "Column `#{column_name}` doesn't exist in any of the selected tables."
           end
     end
+    |> Expression.set_location(loc)
   end
-  defp identifier_to_column({:identifier, table, identifier = {_, column_name}, _loc}, columns_by_name, query) do
+  defp identifier_to_column({:identifier, table, identifier = {_, column_name}, loc}, columns_by_name, query) do
     if Enum.any?(query.selected_tables, &(&1.name == table)) do
       case get_columns(columns_by_name, identifier) do
         nil ->
@@ -454,6 +455,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         nil -> raise CompilationError, message: "Missing FROM clause entry for table `#{table}`."
       end
     end
+    |> Expression.set_location(loc)
   end
   defp identifier_to_column({:function, name, args, location} = function, _columns_by_name, query) do
     function
