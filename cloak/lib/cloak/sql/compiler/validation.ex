@@ -86,9 +86,9 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_aggregated_columns(query) do
     case invalid_individual_columns(query) do
       [] -> :ok
-      [column = %{source_location: {line, col}} | _rest] ->
-        raise CompilationError, message: "#{aggregated_expression_display(column)} " <>
-          "to appear in the `GROUP BY` clause or be used in an aggregate function, at line #{line}, column #{col}."
+      [column = %{source_location: location} | _rest] ->
+        raise CompilationError, source_location: location, message: "#{aggregated_expression_display(column)} " <>
+          "to appear in the `GROUP BY` clause or be used in an aggregate function."
     end
   end
 

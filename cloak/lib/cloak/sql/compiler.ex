@@ -18,7 +18,7 @@ defmodule Cloak.Sql.Compiler do
       {query, features} = do_compile(data_source, parsed_query, parameters, views)
       {:ok, query, features}
     rescue
-      e in CompilationError -> {:error, e.message}
+      e in CompilationError -> {:error, CompilationError.message(e)}
     end
   end
 
