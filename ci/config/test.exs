@@ -3,6 +3,7 @@ use Mix.Config
 config :logger, level: :error
 
 config :aircloak_ci,
+  home_folder: ".test_data",
   exec_mod: AircloakCI.TestExec,
   github_api: AircloakCI.TestGithubAPI,
   poll_github: false,
