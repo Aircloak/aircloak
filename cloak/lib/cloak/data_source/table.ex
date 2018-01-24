@@ -15,7 +15,6 @@ defmodule Cloak.DataSource.Table do
     :db_name => String.t | nil, # table name in the database
     :user_id => String.t,
     :query => Query.t | nil, # the SQL query for a virtual table
-    :ignore_unsupported_types => boolean,
     :columns => [column],
     :decoders => [Map.t],
     :projection => projection | nil,
@@ -27,7 +26,6 @@ defmodule Cloak.DataSource.Table do
 
   @type option ::
     {:db_name, String.t} |
-    {:ignore_unsupported_types, boolean} |
     {:columns, [column]} |
     {:decoders, [Map.t]} |
     {:projection, projection} |
@@ -48,7 +46,6 @@ defmodule Cloak.DataSource.Table do
         name: name,
         user_id: user_id_column_name,
         db_name: nil,
-        ignore_unsupported_types: false,
         columns: [],
         decoders: [],
         projection: nil,
@@ -232,21 +229,15 @@ defmodule Cloak.DataSource.Table do
   defp supported?(%{type: {:unsupported, _db_type}}), do: false
   defp supported?(_column), do: true
 
-  defp validate_unsupported_columns([], _data_source, _table), do: nil
+  defp validate_unsupported_columns([], _data_source, _table), do: :ok
   defp validate_unsupported_columns(unsupported, data_source, table) do
     columns_string =
       unsupported
       |> Enum.map(fn(column) -> "`#{column.name}`::#{inspect(column.type)}" end)
       |> Enum.join(", ")
-
-    if table[:ignore_unsupported_types] do
-      Logger.warn("The following columns from table `#{table[:db_name]}` in data source `#{data_source.name}` " <>
-        "have unsupported types:\n" <> columns_string)
-      nil
-    else
-      DataSource.raise_error("unsupported types for columns: #{columns_string} "
-        <> "(to ignore these columns set 'ignore_unsupported_types: true' in your table settings)")
-    end
+    Logger.warn("The following columns from table `#{table[:db_name]}` in data source `#{data_source.name}` " <>
+      "have unsupported types:\n" <> columns_string)
+    :ok
   end
 
   defp resolve_projected_tables(data_source) do
