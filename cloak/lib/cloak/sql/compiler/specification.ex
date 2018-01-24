@@ -463,10 +463,9 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> Function.return_type()
     |> case do
       nil -> raise CompilationError, message: function_argument_error_message(function)
-      type ->
-        Expression.function(name, args, type, Function.has_attribute?(name, :aggregator))
-        |> Expression.set_location(location)
+      type -> Expression.function(name, args, type, Function.has_attribute?(name, :aggregator))
     end
+    |> Expression.set_location(location)
   end
   defp identifier_to_column({:parameter, index}, _columns_by_name, query) do
     param_value = if query.parameters != nil, do: Enum.at(query.parameters, index - 1).value
@@ -474,14 +473,15 @@ defmodule Cloak.Sql.Compiler.Specification do
     if param_type == :unknown, do: parameter_error(index)
     Expression.constant(param_type, param_value)
   end
-  defp identifier_to_column({:constant, type, value, _location}, _columns_by_name, _query), do:
-    Expression.constant(type, value)
-  defp identifier_to_column({:like_pattern, {:constant, _, pattern, _}, {:constant, _, escape, _}}, _, _) do
+  defp identifier_to_column({:constant, type, value, location}, _columns_by_name, _query), do:
+    Expression.constant(type, value) |> Expression.set_location(location)
+  defp identifier_to_column({:like_pattern, {:constant, _, pattern, location}, {:constant, _, escape, _}}, _, _) do
     if escape == nil or String.length(escape) == 1 do
       Expression.like_pattern(pattern, escape)
     else
       raise CompilationError, message: "Escape string must be one character."
     end
+    |> Expression.set_location(location)
   end
   defp identifier_to_column(other, _columns_by_name, _query), do: other
 
