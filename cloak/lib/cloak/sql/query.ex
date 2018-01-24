@@ -266,7 +266,9 @@ defmodule Cloak.Sql.Query do
   @doc "Replaces all occurrences of one expression with another expression."
   @spec replace_expression(t, Expression.t, Expression.t) :: t
   def replace_expression(query, expression, new_expression), do:
-    put_in(query, [Lenses.expression_instances(expression)], new_expression)
+    Lenses.query_expressions()
+    |> Lens.satisfy(& Expression.semantic(&1) == Expression.semantic(expression))
+    |> Lens.map(query, fn(_) -> new_expression end)
 
   @doc """
   Finds the subquery a given column comes from.

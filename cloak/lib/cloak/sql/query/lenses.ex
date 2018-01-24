@@ -34,10 +34,6 @@ defmodule Cloak.Sql.Query.Lenses do
   @doc "Lens focusing on all column elements in the query (subqueries are not included)."
   deflens query_expressions(), do: terminals() |> expressions()
 
-  @doc "Lens focusing on all instances of the given expression."
-  deflens expression_instances(expression), do:
-    Lens.satisfy(query_expressions(), &(&1 == expression))
-
   @doc "Lens focusing on leaf (non-functions) expressions in a list of expressions."
   deflens leaf_expressions(), do: all_expressions() |> do_leaf_expressions()
 
