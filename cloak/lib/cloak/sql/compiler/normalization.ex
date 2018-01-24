@@ -27,6 +27,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
     |> Helpers.apply_bottom_up(&normalize_constants/1)
     |> Helpers.apply_bottom_up(&normalize_order_by/1)
     |> Helpers.apply_bottom_up(&normalize_bucket/1)
+    |> Helpers.apply_bottom_up(&strip_source_location/1)
 
   @doc """
   Modifies the query to remove expressions that do nothing, like:
@@ -39,6 +40,14 @@ defmodule Cloak.Sql.Compiler.Normalization do
     query
     |> Helpers.apply_bottom_up(&remove_redundant_casts/1)
     |> Helpers.apply_bottom_up(&remove_redundant_rounds/1)
+
+
+  # -------------------------------------------------------------------
+  # Removing source location
+  # -------------------------------------------------------------------
+
+  defp strip_source_location(query), do:
+    update_in(query, [Query.Lenses.query_expressions()], &Expression.semantic/1)
 
 
   # -------------------------------------------------------------------

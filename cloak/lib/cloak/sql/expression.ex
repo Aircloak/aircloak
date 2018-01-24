@@ -212,7 +212,7 @@ defmodule Cloak.Sql.Expression do
   def unique_except(expressions, except_fun), do:
     Enum.uniq_by(
       expressions,
-      fn(expression) -> if except_fun.(expression), do: :erlang.unique_integer(), else: expression end
+      fn(expression) -> if except_fun.(expression), do: :erlang.unique_integer(), else: semantic(expression) end
     )
 
   @doc """

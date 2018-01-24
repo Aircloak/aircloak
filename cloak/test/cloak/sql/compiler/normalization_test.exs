@@ -117,6 +117,13 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     end
   end
 
+  test "stripping source locations" do
+    result1 = compile!("SELECT    count(*)    FROM table WHERE   abs(numeric) = 1", data_source())
+    result2 = compile!("SELECT count(*) FROM table WHERE abs(numeric) = 1", data_source())
+
+    assert result1 == result2
+  end
+
   defp remove_noops!(query, data_source, parameters \\ [], views \\ %{}) do
     {:ok, parsed} = Cloak.Sql.Parser.parse(query)
 
