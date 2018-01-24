@@ -454,13 +454,12 @@ defmodule AircloakCI.LocalProject do
   defp default_state(), do:
     %{initialized?: false, forced_jobs: %{}, job_outcomes: %{}}
 
-  defp up_to_date?(project), do:
-    current_sha(project) == project.target_sha
-
-  defp current_sha(project), do:
-    "cd #{src_folder(project)} && git rev-parse HEAD"
-    |> CmdRunner.run_with_output!()
-    |> String.trim()
+  defp up_to_date?(project) do
+    case CmdRunner.run_with_output("cd #{src_folder(project)} && git rev-parse HEAD") do
+      {:ok, sha} -> String.trim(sha) == project.target_sha
+      {:error, _} -> false
+    end
+  end
 
   defp component_cmd(project, component, log_name, {cmd, opts}), do:
     component_cmd(project, component, log_name, cmd, opts)
