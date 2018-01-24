@@ -270,13 +270,13 @@ defmodule Cloak.Sql.Compiler.Test do
     assert {:error, error} = compile("select column from table group by day(column)", data_source())
     assert error ==
       "Column `column` from table `table` needs to appear in the `GROUP BY` clause" <>
-      " or be used in an aggregate function."
+      " or be used in an aggregate function, at line 1, column 7."
   end
 
   test "rejecting a function in select when another function is grouped" do
     assert {:error, error} = compile("select pow(numeric, numeric) from table group by abs(numeric)", data_source())
     assert error == "Column `numeric` from table `table` needs to appear in the `GROUP BY` clause or be used in an " <>
-      "aggregate function."
+      "aggregate function, at line 1, column 7."
   end
 
   test "rejecting concat on non-strings" do
