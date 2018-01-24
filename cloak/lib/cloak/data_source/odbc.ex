@@ -6,7 +6,6 @@ defmodule Cloak.DataSource.ODBC do
 
   alias Cloak.DataSource.Table
   alias Cloak.DataSource
-  alias Cloak.Query.DataDecoder
 
   use Cloak.DataSource.Driver.SQL
 
@@ -51,7 +50,7 @@ defmodule Cloak.DataSource.ODBC do
   def select(connection, sql_query, result_processor) do
     statement = sql_query |> SqlBuilder.build() |> to_charlist()
     field_mappers = for column <- sql_query.db_columns, do:
-      column |> DataDecoder.encoded_type() |> type_to_field_mapper(sql_query.data_source)
+      type_to_field_mapper(column.type, sql_query.data_source)
     case :odbc.select_count(connection, statement, Driver.timeout()) do
       {:ok, _count} ->
         data_stream = Stream.resource(

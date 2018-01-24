@@ -38,7 +38,6 @@ defmodule Cloak.DataSource.MongoDB do
   alias Cloak.Sql.{Query, Expression}
   alias Cloak.DataSource
   alias Cloak.DataSource.{Driver, MongoDB.Schema, MongoDB.Pipeline}
-  alias Cloak.Query.DataDecoder
 
 
   # -------------------------------------------------------------------
@@ -130,7 +129,7 @@ defmodule Cloak.DataSource.MongoDB do
       batch_size: Driver.batch_size(), allow_disk_use: true]
     mappers =
       query.db_columns
-      |> Enum.map(& &1 |> DataDecoder.encoded_type() |> type_to_field_mapper())
+      |> Enum.map(&type_to_field_mapper(&1.type))
       |> Enum.with_index()
     result =
       connection

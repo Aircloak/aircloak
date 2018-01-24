@@ -7,7 +7,7 @@ defmodule Cloak.Sql.Query do
   database, perform anonymized aggregation, and produce the final output.
   """
 
-  alias Cloak.{DataSource, Query.DataDecoder}
+  alias Cloak.DataSource
   alias Cloak.Sql.{Expression, Compiler, Function, Parser, Query.Lenses, NoiseLayer, Condition}
   require Logger
 
@@ -88,7 +88,6 @@ defmodule Cloak.Sql.Query do
     column_types: [String.t],
     selected_types: [String.t],
     parameter_types: [String.t],
-    decoders: [String.t],
     driver: String.t,
     driver_dialect: String.t,
     emulated: boolean,
@@ -385,8 +384,7 @@ defmodule Cloak.Sql.Query do
  end
 
  defp emulated_expression?(expression, data_source), do:
-   DataDecoder.needs_decoding?(expression) or
-   (expression.function? and not data_source.driver.supports_function?(expression, data_source))
+   expression.function? and not data_source.driver.supports_function?(expression, data_source)
 
  defp emulated_expression_condition?(condition, data_source) do
    Lenses.conditions_terminals()

@@ -101,15 +101,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "emulated WHERE" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE lower(decoded) = 'a'")
+      result = compile!("SELECT COUNT(*) FROM table WHERE dec_b64(encoded) = 'a'")
 
       assert [
-        %{base: {"table", "decoded", nil}, expressions: [
-          %Expression{name: "decoded"}, %Expression{name: "decoded"}, %Expression{value: 1}]},
-        %{base: {"table", "decoded", nil}, expressions: [
-          %Expression{name: "decoded"}, %Expression{name: "decoded"}, %Expression{value: 1}, %Expression{name: "uid"}]},
+        %{base: {"table", "encoded", nil}, expressions: [
+          %Expression{name: "encoded"}, %Expression{name: "encoded"}, %Expression{value: 1}]},
+        %{base: {"table", "encoded", nil}, expressions: [
+          %Expression{name: "encoded"}, %Expression{name: "encoded"}, %Expression{value: 1}, %Expression{name: "uid"}]},
       ] = result.noise_layers
-      assert Enum.any?(result.db_columns, &match?(%Expression{name: "decoded"}, &1))
+      assert Enum.any?(result.db_columns, &match?(%Expression{name: "encoded"}, &1))
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
     end
 
@@ -615,9 +615,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "* expansion doesn't include the carry columns" do
-      result = compile!("SELECT * FROM (SELECT uid, decoded FROM table GROUP BY uid, decoded) foo")
+      result = compile!("SELECT * FROM (SELECT uid, numeric as n FROM table GROUP BY uid, numeric) foo")
 
-      assert [%Expression{value: :*}, %Expression{name: "decoded"}] = result.columns
+      assert [%Expression{value: :*}, %Expression{name: "n"}] = result.columns
     end
   end
 
@@ -768,10 +768,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
     test "insensitive to being aliased in emulated queries" do
       %{noise_layers: [%{base: base}, %{base: base}]} = compile!("""
-        SELECT COUNT(*) FROM (SELECT uid, decoded AS bar FROM table) foo WHERE bar = 'a'
+        SELECT COUNT(*) FROM (SELECT uid, dec_b64(encoded) AS bar FROM table) foo WHERE bar = 'a'
       """)
 
-      assert {"table", "decoded", nil} = base
+      assert {"table", "encoded", nil} = base
     end
 
     test "insensitive to the query casing" do
@@ -831,14 +831,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
             Table.column("uid", :integer),
             Table.column("numeric", :integer),
             Table.column("numeric2", :integer),
-            Table.column("decoded", :text),
+            Table.column("encoded", :text),
             Table.column("dummy", :boolean),
             Table.column("dummy2", :boolean),
             Table.column("name", :text),
             Table.column("name2", :text),
             Table.column("id", :integer),
           ],
-          decoders: [%{method: "base64", spec: &Base.decode64/1, columns: ["decoded"]}],
           keys: ["id"],
         ),
 

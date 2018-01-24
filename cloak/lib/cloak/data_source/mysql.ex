@@ -6,7 +6,6 @@ defmodule Cloak.DataSource.MySQL do
 
   alias Cloak.DataSource.Table
   alias Cloak.DataSource
-  alias Cloak.Query.DataDecoder
 
   use Cloak.DataSource.Driver.SQL
 
@@ -47,8 +46,7 @@ defmodule Cloak.DataSource.MySQL do
   @impl Driver
   def select(connection, sql_query, result_processor) do
     statement = SqlBuilder.build(sql_query)
-    field_mappers = for column <- sql_query.db_columns, do:
-      column |> DataDecoder.encoded_type() |> type_to_field_mapper()
+    field_mappers = Enum.map(sql_query.db_columns, &type_to_field_mapper(&1.type))
     run_query(connection, statement, &map_fields(&1, field_mappers), result_processor)
   end
 

@@ -2,7 +2,7 @@ defmodule Cloak.DataSource.Table do
   @moduledoc "Provides functionality for working with tables."
 
   alias Cloak.DataSource
-  alias Cloak.Query.{DataDecoder, ExecutionError}
+  alias Cloak.Query.ExecutionError
   alias Cloak.Sql.{Compiler, Parser, Query.Lenses, CompilationError, Expression, Query}
 
   require Logger
@@ -17,7 +17,7 @@ defmodule Cloak.DataSource.Table do
     :query => Query.t | nil, # the SQL query for a virtual table
     :ignore_unsupported_types => boolean,
     :columns => [column],
-    :decoders => [DataDecoder.t],
+    :decoders => [Map.t],
     :projection => projection | nil,
     :keys => [String.t],
     optional(any) => any,
@@ -29,7 +29,7 @@ defmodule Cloak.DataSource.Table do
     {:db_name, String.t} |
     {:ignore_unsupported_types, boolean} |
     {:columns, [column]} |
-    {:decoders, [DataDecoder.t]} |
+    {:decoders, [Map.t]} |
     {:projection, projection} |
     {:keys, [String.t]} |
     {:query, Query.t} |
@@ -171,7 +171,6 @@ defmodule Cloak.DataSource.Table do
 
     data_source.driver.load_tables(connection, table)
     |> Enum.map(&parse_columns(data_source, &1))
-    |> Enum.map(&DataDecoder.init/1)
     |> Enum.map(&{String.to_atom(&1.name), &1})
   end
 
