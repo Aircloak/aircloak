@@ -14,7 +14,7 @@ defmodule AircloakCI.Application do
     AircloakCI.Queue.create_queues()
 
     Supervisor.start_link(
-      [
+      test_processes() ++ [
         AircloakCI.CmdRunner.Supervisor,
         AircloakCI.Github,
         AircloakCI.RepoDataProvider,
@@ -43,8 +43,12 @@ defmodule AircloakCI.Application do
       with {:error, reason} <- AircloakCI.github_token(), do:
         raise(reason)
     end
+
+    defp test_processes(), do: []
   else
     defp check_github_access!(), do: :ok
+
+    def test_processes, do: [AircloakCI.TestExec]
   end
 
   defp init_data_folder!() do

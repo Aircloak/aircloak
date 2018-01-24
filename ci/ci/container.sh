@@ -8,7 +8,7 @@ cd $ROOT_DIR
 
 . docker/ci_helper.sh ci
 
-mount_to_aircloak VERSION common/elixir
+mount_to_aircloak VERSION common/elixir air cloak
 mount_to_component .gitignore config lib rel test mix.exs mix.lock Makefile README.md check_warnings.sh
 mount_cached_component deps _build .bash_history
 
