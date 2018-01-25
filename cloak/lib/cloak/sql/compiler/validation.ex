@@ -222,7 +222,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_join_types(query) do
     Lenses.joins()
-    |> Lens.satisfy(& &1.type == :full_outer_join)
+    |> Lens.filter(& &1.type == :full_outer_join)
     |> Lens.to_list(query)
     |> case do
       [] -> :ok
@@ -328,6 +328,6 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp aggregate_subexpressions(expression), do:
     Query.Lenses.all_expressions()
-    |> Lens.satisfy(&match?(%{aggregate?: true}, &1))
+    |> Lens.filter(&match?(%{aggregate?: true}, &1))
     |> Lens.to_list(expression)
 end
