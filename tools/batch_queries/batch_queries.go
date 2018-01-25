@@ -45,13 +45,21 @@ var configuration = config{}
 var resultsPath = fmt.Sprintf("results/%s", time.Now().Format("20060102150405"))
 
 func main() {
+	failedQueries := 0
+
 	defer func() {
 		r := recover()
-		if r != nil && r != "stop" {
-			fmt.Printf("Error: %s", r)
+		if r != nil {
+			if r != "stop" {
+				fmt.Printf("Error: %s\n", r)
+			}
+		} else if failedQueries > 0 {
+			fmt.Printf("%d queries failed!\nYou can see the errors in %s/errors.txt\n", failedQueries, resultsPath)
+		} else {
+			fmt.Printf("All queries completed successfully!\nYou can see the results in %s\n", resultsPath)
 		}
 
-		fmt.Print("\nPress Enter to finish")
+		fmt.Print("\nPress Enter to finish...")
 		bufio.NewReader(os.Stdin).ReadString('\n')
 	}()
 
@@ -68,6 +76,10 @@ func main() {
 	for index, query := range queries {
 		fmt.Printf("%d/%d\n\n%s\n", index+1, len(queries), query)
 		queryResult := runQuerySync(query)
+		if queryResult.Query.Error != nil {
+			fmt.Printf("Error: %s\n\n", *(queryResult.Query.Error))
+			failedQueries = failedQueries + 1
+		}
 		storeResult(index, query, queryResult)
 	}
 }
