@@ -106,17 +106,6 @@ defmodule Cloak.Sql.Query do
   # -------------------------------------------------------------------
 
   @doc """
-  Creates a compiled query from a string representation.
-
-  Raises on error.
-  """
-  @spec make!(DataSource.t, String.t, [parameter], view_map) :: {t, features}
-  def make!(data_source, string, parameters, views) do
-    {:ok, query, features} = make_query(data_source, string, parameters, views)
-    {query, features}
-  end
-
-  @doc """
   Describes the result of a parameterized query.
 
   This function will return the description of the result, such as column names
