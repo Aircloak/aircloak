@@ -18,10 +18,8 @@ defmodule Cloak.Query.Runner.Engine do
   def run(data_source, statement, parameters, views, state_updater, feature_updater,
       {query_killer_reg, query_killer_unreg}) do
     try do
-      with \
-        {:ok, parsed_query} <- parse(statement, state_updater),
-        {:ok, compiled_query, features} <- compile(data_source, parsed_query, parameters, views, state_updater)
-      do
+      with {:ok, parsed_query} <- parse(statement, state_updater) do
+        {compiled_query, features} = compile!(data_source, parsed_query, parameters, views, state_updater)
         feature_updater.(features)
         query = prepare_for_execution(compiled_query)
         state_updater.(:awaiting_data)
@@ -30,8 +28,9 @@ defmodule Cloak.Query.Runner.Engine do
         query_killer_unreg.()
         {:ok, result, Sql.Query.info_messages(query)}
       end
-    rescue e in Cloak.Query.ExecutionError ->
-      {:error, e.message}
+    rescue
+      e in Cloak.Query.ExecutionError -> {:error, e.message}
+      e in Cloak.Sql.CompilationError -> {:error, Cloak.Sql.CompilationError.message(e)}
     end
   end
 
@@ -45,9 +44,9 @@ defmodule Cloak.Query.Runner.Engine do
     Sql.Parser.parse(statement)
   end
 
-  defp compile(data_source, parsed_query, parameters, views, state_updater) do
+  defp compile!(data_source, parsed_query, parameters, views, state_updater) do
     state_updater.(:compiling)
-    Sql.Compiler.compile(data_source, parsed_query, parameters, views)
+    Sql.Compiler.compile!(data_source, parsed_query, parameters, views)
   end
 
   defp prepare_for_execution(compiled_query), do:
