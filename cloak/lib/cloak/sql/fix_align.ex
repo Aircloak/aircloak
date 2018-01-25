@@ -136,7 +136,7 @@ defmodule Cloak.Sql.FixAlign do
   defp allow_half?(_, _), do: true
 
   defp size_factors(:years), do: @default_size_factors
-  defp size_factors(:months), do: [1, 2, 6]
+  defp size_factors(:months), do: [1, 2, 6, 12]
   defp size_factors(:days), do: @default_size_factors
   defp size_factors(:hours), do: [1, 2, 6, 12, 24]
   defp size_factors(:minutes), do: [1, 2, 5, 15, 30, 60]
