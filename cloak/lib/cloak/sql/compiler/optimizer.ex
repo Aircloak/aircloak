@@ -79,7 +79,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     unmovable_conditions = filter_conditions_from_subqueries(branch, conditions, fn (name, acc) ->
         if nullable_columns? do
           Lenses.conditions()
-          |> Lens.satisfy(&simple_condition?.(&1, name))
+          |> Lens.filter(&simple_condition?.(&1, name))
           |> Lens.map(acc, &{:not, {:is, Condition.subject(&1), :null}})
         else
           Condition.reject(acc, &simple_condition?.(&1, name))
@@ -91,7 +91,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
 
   defp move_conditions_into_subquery(subquery, conditions), do:
     Query.Lenses.conditions_terminals()
-    |> Lens.satisfy(&not &1.constant?)
+    |> Lens.reject(& &1.constant?)
     |> Lens.map(conditions, &lookup_column_in_query(&1.name, subquery))
     |> add_conditions_to_query(subquery)
 
@@ -122,7 +122,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
 
   defp condition_from_table?(condition, table_name) do
     Query.Lenses.conditions_terminals()
-    |> Lens.satisfy(&not &1.constant?)
+    |> Lens.reject(& &1.constant?)
     |> Lens.to_list(condition)
     |> Enum.map(& &1.table)
     |> Enum.uniq()

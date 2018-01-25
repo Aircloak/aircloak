@@ -117,8 +117,8 @@ defmodule Cloak.Sql.Query.Features do
   defp extract_decoders(query) do
     Query.Lenses.all_queries()
     |> Query.Lenses.query_expressions()
-    |> Lens.satisfy(&match?(%Expression{function?: false, constant?: false, table: %{decoders: [_|_]}}, &1))
-    |> Lens.satisfy(&decoded?/1)
+    |> Lens.filter(&match?(%Expression{function?: false, constant?: false, table: %{decoders: [_|_]}}, &1))
+    |> Lens.filter(&decoded?/1)
     |> Lens.to_list(query)
     |> Enum.map(&decoder/1)
     |> Enum.uniq()

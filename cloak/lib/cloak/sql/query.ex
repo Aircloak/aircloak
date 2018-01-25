@@ -182,7 +182,7 @@ defmodule Cloak.Sql.Query do
         {next_row_index, query} = next_row_index(query)
 
         %__MODULE__{query | db_columns: query.db_columns ++ [column]}
-        |> put_in([Lenses.query_expressions() |> Lens.satisfy(column_matcher) |> Lens.key(:row_index)], next_row_index)
+        |> put_in([Lenses.query_expressions() |> Lens.filter(column_matcher) |> Lens.key(:row_index)], next_row_index)
       _ ->
         query
     end

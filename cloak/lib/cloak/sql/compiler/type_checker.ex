@@ -166,7 +166,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp verify_conditions(query, predicate, action), do:
     Query.Lenses.db_filter_clauses()
     |> Query.Lenses.conditions()
-    |> Lens.satisfy(predicate)
+    |> Lens.filter(predicate)
     |> Lens.to_list(query)
     |> Enum.each(action)
 
