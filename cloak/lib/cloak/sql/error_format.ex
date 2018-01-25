@@ -5,9 +5,21 @@ defmodule Cloak.Sql.ErrorFormat do
   defp do_format(query, message, {line, column}), do:
     to_string([
       message, "\n\nThe error was detected at line ", to_string(line), ", column ", to_string(column),
-      ":\n\n", error_indicator(query, line, column)
+      error_indicator(query, line, column)
     ])
 
-  defp error_indicator(query, line, column), do:
-    [query, ?\n, String.duplicate(" ", column), "^ HERE"]
+  @platform_independent_newline ~r/(*ANY)\n/
+  defp error_indicator(query, line, column) do
+    context = query |> String.split(@platform_independent_newline) |> Enum.drop(max(line - 2, 0))
+
+    case {line, context} do
+      {1, [line_with_error, line_after | _]} ->
+        [":\n\n", line_with_error, ?\n, String.duplicate(" ", column), "^ HERE\n", line_after]
+      {1, [line_with_error | _]} ->
+        [":\n\n", line_with_error, ?\n, String.duplicate(" ", column), "^ HERE"]
+      {_, [line_before, line_with_error, line_after | _]} ->
+        [":\n\n", line_before, ?\n, line_with_error, ?\n, String.duplicate(" ", column), "^ HERE\n", line_after]
+      _invalid_location -> "."
+    end
+  end
 end

@@ -22,9 +22,36 @@ defmodule Cloak.Sql.ErrorFormat.Test do
       """ |> String.trim())
     end
 
-    test "two-line query"
+    test "error in first line of multiline query" do
+      error = ErrorFormat.format(
+        "the query\nanother line\nmore lines",
+        %{message: "Some message.", source_location: {1, 3}}
+      )
 
-    test "multi-line query"
+      assert String.contains?(error, """
+      the query
+         ^ HERE
+      another line
+      """ |> String.trim())
+    end
+
+    test "error in second line of two-line query"
+
+    test "error in middle line of multiline query" do
+      error = ErrorFormat.format(
+        "first line\nsecond line\nthird line\nanother line\nmore lines",
+        %{message: "Some message.", source_location: {3, 5}}
+      )
+
+      assert String.contains?(error, """
+      second line
+      third line
+           ^ HERE
+      another line
+      """ |> String.trim())
+    end
+
+    test "error in the last line of a multiline query"
 
     test "location points beyond line end"
 
