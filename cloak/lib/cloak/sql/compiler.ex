@@ -12,7 +12,7 @@ defmodule Cloak.Sql.Compiler do
 
   @doc "Prepares the parsed SQL query for execution."
   @spec compile(DataSource.t, Parser.parsed_query, [Query.parameter] | nil, Query.view_map) ::
-    {:ok, Query.t} | {:error, String.t}
+    {:ok, Query.t, Query.features} | {:error, String.t}
   def compile(data_source, parsed_query, parameters, views) do
     try do
       {query, features} = do_compile(data_source, parsed_query, parameters, views)
