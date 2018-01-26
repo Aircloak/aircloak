@@ -253,8 +253,11 @@ defmodule Cloak.DataSource.MongoDB do
 
   defp supports_join_branches?(selected_tables, lhs, rhs), do:
     (is_binary(lhs) or is_binary(rhs)) and
-    not sharded_table?(selected_tables, lhs) and
-    not sharded_table?(selected_tables, rhs)
+    simple_branch?(lhs) and simple_branch?(rhs) and
+    not sharded_table?(selected_tables, lhs) and not sharded_table?(selected_tables, rhs)
+
+  defp simple_branch?({:join, _}), do: false
+  defp simple_branch?(_), do: true
 
   defp sharded_table?(selected_tables, table) when is_binary(table) do
     table = Enum.find(selected_tables, & &1.name == table)
