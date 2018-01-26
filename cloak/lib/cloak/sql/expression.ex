@@ -301,6 +301,8 @@ defmodule Cloak.Sql.Expression do
       :error -> nil
     end
   end
+  defp do_apply("dec_aes_cbc128", [string]), do: dec_aes_cbc128(string, Application.get_env(:cloak, :aes_key))
+  defp do_apply("dec_aes_cbc128", [string, key]), do: dec_aes_cbc128(string, key)
   defp do_apply("hash", [value]) do
     <<hash::60, _::4, _::64>> = :crypto.hash(:md5, to_string(value))
     hash
@@ -492,5 +494,15 @@ defmodule Cloak.Sql.Expression do
     else
       [value(%{function | function_args: args})]
     end
+  end
+
+  @zero_iv String.duplicate(<<0>>, 16)
+  defp dec_aes_cbc128(value, key) when value in [nil, ""] or key in [nil, ""], do: nil
+  defp dec_aes_cbc128(value, _key) when rem(byte_size(value), 16) != 0, do: nil
+  defp dec_aes_cbc128(value, key) do
+   value = :crypto.block_decrypt(:aes_cbc128, key, @zero_iv, value)
+   last = :binary.last(value)
+   {value, padding} = String.split_at(value, -last)
+   if padding == String.duplicate(<<last>>, last), do: value, else: nil
   end
 end

@@ -12,6 +12,8 @@ defmodule Cloak do
     if Aircloak.DeployConfig.fetch("debug") === {:ok, true} do Logger.configure(level: :debug) end
     with {:ok, concurrency} <- Aircloak.DeployConfig.fetch("concurrency"), do:
       Application.put_env(:cloak, :concurrency, concurrency)
+    with {:ok, aes_key} <- Aircloak.DeployConfig.fetch("aes_key"), do:
+      Application.put_env(:cloak, :aes_key, aes_key)
     configure_periodic_jobs()
     Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor)
   end
