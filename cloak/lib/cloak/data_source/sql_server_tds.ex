@@ -38,6 +38,7 @@ defmodule Cloak.DataSource.SQLServerTds do
           DataSource.raise_error(error.message)
 
         _error ->
+          # We're not logging or returning an error, since it might leak database password.
           DataSource.raise_error("Unknown failure during database connection process")
       end
     after
