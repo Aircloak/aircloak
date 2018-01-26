@@ -2,15 +2,10 @@ defmodule Cloak.DataSource.SQLServerTdsTest do
   use ExUnit.Case, async: true
   alias Cloak.DataSource.SQLServerTds
 
-  test "reporting error on conncection" do
-    assert_raise Cloak.Query.ExecutionError, "Unknown failure during database connection process",
+  test "reporting error on connection" do
+    assert_raise Cloak.Query.ExecutionError, "tcp connect: nxdomain",
       fn ->
-        SQLServerTds.connect!(%{
-          database: "db", hostname: "unknown_host",
-          odbc_parameters: %{Port: "1433"},
-          password: "some_password",
-          username: "user"
-        })
+        SQLServerTds.connect!(%{hostname: "unknown_host", username: "user", password: "some_password",database: "db"})
       end
   end
 end

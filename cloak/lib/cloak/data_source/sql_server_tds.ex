@@ -34,6 +34,9 @@ defmodule Cloak.DataSource.SQLServerTds do
               DataSource.raise_error("Unknown failure during database connection process")
           end
 
+        {:error, {:function_clause, [{Tds.Utils, :reply, [%Tds.Error{} = error | _args], _location} | _stack]}} ->
+          DataSource.raise_error(error.message)
+
         _error ->
           DataSource.raise_error("Unknown failure during database connection process")
       end
