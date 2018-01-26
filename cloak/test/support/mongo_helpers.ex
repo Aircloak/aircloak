@@ -8,7 +8,7 @@ defmodule Cloak.Test.MongoHelpers do
       [first_response | other_responses] =
         ["3.0.0", "3.2.0", "3.4.0"] # mongo pipeline versions that we want to test against
         |> Enum.map(&Task.async(fn ->
-          data_source = set_mongo_version(unquote(context).data_source, &1)
+          data_source = Map.put(unquote(context).data_source, :driver_info, &1)
           run_query!(data_source, unquote(query))
         end))
         |> Enum.map(&Task.await(&1, :timer.seconds(60)))
@@ -26,11 +26,5 @@ defmodule Cloak.Test.MongoHelpers do
     receive do
       {:result, response} -> response
     end
-  end
-
-  def set_mongo_version(data_source, version) do
-    tables = for {name, table} <- data_source.tables, into: %{}, do:
-      {name, %{table | mongo_version: version}}
-    %{data_source | tables: tables}
   end
 end

@@ -51,6 +51,7 @@ defmodule Cloak.DataSource do
     name: String.t,
     driver: module,
     parameters: Driver.parameters,
+    driver_info: Driver.driver_info,
     tables: %{atom => Table.t},
     errors: [String.t],
     status: :online | :offline,
@@ -208,6 +209,7 @@ defmodule Cloak.DataSource do
       connection = driver.connect!(data_source.parameters)
       try do
         data_source
+        |> Map.put(:driver_info, driver.driver_info(connection))
         |> Table.load(connection)
         |> Map.put(:status, :online)
       after

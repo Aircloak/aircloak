@@ -48,6 +48,9 @@ defmodule Cloak.DataSource.SAPHana do
   @impl Driver
   defdelegate select(connection, sql_query, result_processor), to: ODBC
 
+  @impl Driver
+  defdelegate driver_info(connection), to: ODBC
+
 
   # -------------------------------------------------------------------
   # Internal functions

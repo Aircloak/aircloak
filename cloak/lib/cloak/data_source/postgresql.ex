@@ -54,6 +54,9 @@ defmodule Cloak.DataSource.PostgreSQL do
     run_query(connection, statement, &map_fields(&1, field_mappers), result_processor)
   end
 
+  @impl Driver
+  def driver_info(_connection), do: nil
+
 
   # -------------------------------------------------------------------
   # Internal functions

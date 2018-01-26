@@ -71,10 +71,7 @@ defmodule Cloak.DataSource.MongoDB do
 
   @impl Driver
   def load_tables(connection, table) do
-    table =
-      table
-      |> Map.put(:mongo_version, get_server_version(connection))
-      |> Map.put(:sharded?, is_sharded?(connection, table.db_name))
+    table = Map.put(table, :sharded?, is_sharded?(connection, table.db_name))
     sample_rate = table[:sample_rate] || 100
     unless is_integer(sample_rate) and sample_rate >= 1 and sample_rate <= 100, do:
       DataSource.raise_error("Sample rate for schema detection has to be an integer between 1 and 100.")
@@ -145,7 +142,13 @@ defmodule Cloak.DataSource.MongoDB do
 
   @impl Driver
   def supports_function?(expression, data_source), do:
-    function_signature(expression) in (data_source |> get_mongo_version() |> supported_functions())
+    function_signature(expression) in (data_source |> mongo_version() |> supported_functions())
+
+  @impl Driver
+  def driver_info(connection) do
+    {:ok, %{"version" => version}} = Mongo.command(connection, [{:buildInfo, true}])
+    version
+  end
 
 
   # -------------------------------------------------------------------
@@ -200,15 +203,7 @@ defmodule Cloak.DataSource.MongoDB do
     end)
   end
 
-  defp get_server_version(connection) do
-    {:ok, %{"version" => version}} = Mongo.command(connection, [{:buildInfo, true}])
-    version
-  end
-
-  defp get_mongo_version(data_source) do
-    {_name, %{mongo_version: version}} = Enum.at(data_source.tables, 0)
-    version
-  end
+  defp mongo_version(%{driver_info: version}) when is_binary(version), do: version
 
   defp is_sharded?(connection, collection) do
     {:ok, stats} = Mongo.command(connection, [{:collStats, collection}])
@@ -246,7 +241,7 @@ defmodule Cloak.DataSource.MongoDB do
   defp supports_joins?(_query), do: true
 
   defp mongo_version_supports_joins?(%{data_source: data_source}), do:
-    data_source |> get_mongo_version() |> Version.compare("3.2.0") != :lt
+    data_source |> mongo_version() |> Version.compare("3.2.0") != :lt
 
   defp supports_join_conditions?({:comparison, lhs, :=, rhs}), do: lhs.name != nil and rhs.name != nil
   defp supports_join_conditions?(_conditions), do: false

@@ -69,6 +69,9 @@ defmodule Cloak.DataSource.ODBC do
     end
   end
 
+  @impl Driver
+  def driver_info(_connection), do: nil
+
 
   # -------------------------------------------------------------------
   # Internal functions
