@@ -1,6 +1,6 @@
 defmodule Cloak.Query.Rows do
   @moduledoc "Functions for row processing, such as filtering and grouping."
-  alias Cloak.Sql.{Expression, Query}
+  alias Cloak.Sql.{Expression, Query, Condition}
 
   @type groups :: %{Cloak.DataSource.row => group_data}
   @type group_updater :: ((group_data, Cloak.DataSource.row) -> group_data)
@@ -23,15 +23,21 @@ defmodule Cloak.Query.Rows do
   """
   @spec extract_groups(Enumerable.t, [Expression.t], Query.t) :: Enumerable.t
   def extract_groups(rows, columns_to_select, query) do
-    columns =
+    source =
       (group_expressions(query) ++ query.aggregators)
       |> Enum.map(&clear/1)
       |> Enum.with_index()
       |> Enum.into(%{})
 
+    columns_to_select = Enum.map(columns_to_select, &update_row_index(&1, source))
+    filters =
+      Query.Lenses.operands()
+      |> Lens.map(query.having, &update_row_index(&1, source))
+      |> Condition.to_function()
+
     rows
-    |> Enum.filter(&filter_group(&1, columns, query))
-    |> Enum.map(&selected_values(&1, columns, columns_to_select))
+    |> filter(filters)
+    |> Enum.map(&select_values(&1, columns_to_select))
   end
 
   @doc "Groups input rows according to the query specification."
@@ -72,58 +78,23 @@ defmodule Cloak.Query.Rows do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp non_selected_order_by_expressions(query), do:
-    query |> Query.order_by_expressions() |> Enum.reject(& &1 in query.columns)
-
-  defp selected_values(row, expressions, columns_to_select), do:
-    Enum.map(columns_to_select, &fetch_value!(row, &1, expressions))
-
-  defp clear(expression), do: %Expression{expression | alias: nil, row_index: nil}
-
-  defp fetch_value!(row, expression, expressions) do
-    case Map.fetch(expressions, clear(expression)) do
-      {:ok, index} -> Enum.at(row, index)
+  defp update_row_index(column, source) do
+    case Map.fetch(source, clear(column)) do
+      {:ok, index} -> %Expression{column| row_index: index}
       :error ->
-        if expression.function? do
-          args = Enum.map(expression.function_args, &fetch_value!(row, &1, expressions))
-          Expression.apply_function(expression, args)
+        if column.function? do
+          args = Enum.map(column.function_args, &update_row_index(&1, source))
+          %Expression{column| function_args: args}
         else
-          Expression.value(expression, row)
+          column
         end
     end
   end
 
-  defp filter_group(row, columns, query), do: matches_having_condition?(row, query.having, columns)
+  defp non_selected_order_by_expressions(query), do:
+    query |> Query.order_by_expressions() |> Enum.reject(& &1 in query.columns)
 
-  defp matches_having_condition?(_row, nil, _columns), do: true
-  defp matches_having_condition?(row, {:and, lhs, rhs}, columns), do:
-    matches_having_condition?(row, lhs, columns) and matches_having_condition?(row, rhs, columns)
-  defp matches_having_condition?(row, {:or, lhs, rhs}, columns), do:
-    matches_having_condition?(row, lhs, columns) or matches_having_condition?(row, rhs, columns)
-  defp matches_having_condition?(row, {:comparison, column, operator, target}, columns) do
-    value = fetch_value!(row, column, columns)
-    target = fetch_value!(row, target, columns)
-    compare(value, operator, target)
-  end
-  defp matches_having_condition?(row, {:is, column, :null}, columns), do:
-    fetch_value!(row, column, columns) == nil
-  defp matches_having_condition?(row, {:not, {:is, column, :null}}, columns), do:
-    fetch_value!(row, column, columns) != nil
-  defp matches_having_condition?(row, {:in, column, values}, columns) do
-    value = fetch_value!(row, column, columns)
-    value != nil and value in values
-  end
-  defp matches_having_condition?(row, {:not, {:in, column, values}}, columns) do
-    value = fetch_value!(row, column, columns)
-    value != nil and value not in values
-  end
+  defp select_values(row, expressions), do: Enum.map(expressions, &Expression.value(&1, row))
 
-  defp compare(nil, _op, _target), do: false
-  defp compare(_value, _op, nil), do: false
-  defp compare(value, :=, target), do: value == target
-  defp compare(value, :<, target), do: value < target
-  defp compare(value, :<=, target), do: value <= target
-  defp compare(value, :>, target), do: value > target
-  defp compare(value, :>=, target), do: value >= target
-  defp compare(value, :<>, target), do: value != target
+  defp clear(expression), do: %Expression{expression | alias: nil, row_index: nil}
 end

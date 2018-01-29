@@ -166,16 +166,6 @@ defmodule Cloak.Sql.Expression do
   @spec first_argument!(t) :: t
   def first_argument!(%__MODULE__{function?: true, function_args: [arg | _]}), do: arg
 
-  @doc "Returns the result of applying the given function expression to the given list of arguments."
-  @spec apply_function(t, [any]) :: any
-  def apply_function(expression = %__MODULE__{function?: true}, args) do
-    try do
-      if Enum.member?(args, :*), do: :*, else: do_apply(expression.function, args)
-    rescue
-      _ -> nil
-    end
-  end
-
   @doc "Returns the first instance of a database column from the given expression. Nil if none can be found."
   @spec first_column(t) :: t | nil
   def first_column(%__MODULE__{constant?: true}), do: nil
@@ -248,6 +238,14 @@ defmodule Cloak.Sql.Expression do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp apply_function(expression = %__MODULE__{function?: true}, args) do
+    try do
+      if Enum.member?(args, :*), do: :*, else: do_apply(expression.function, args)
+    rescue
+      _ -> nil
+    end
+  end
 
   defp normalize_type(:string), do: :text
   defp normalize_type(:float), do: :real
