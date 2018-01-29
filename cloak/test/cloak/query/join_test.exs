@@ -256,4 +256,16 @@ defmodule Cloak.Query.JoinTest do
         group by 1) as t
     """, %{query_id: "1", rows: [%{row: [15]}]}
   end
+
+  test "bugfix: join with multiple user id conditions" do
+    :ok = insert_rows(_user_ids = 1..10, "heights_join", [], [])
+    :ok = insert_rows(_user_ids = 5..15, "heights_join", [], [])
+
+    assert_query """
+      select count(*) from
+        (select user_id as uid1, user_id as uid2 from heights_join) as t1
+        join heights_join as t2
+        on uid1 = user_id and uid2 = user_id
+    """, %{query_id: "1", rows: [%{row: [25]}]}
+  end
 end

@@ -247,7 +247,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         |> Enum.uniq()
     keys =
       Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
-      |> Enum.filter(fn({_, column}) -> column.key? end)
+      |> Enum.filter(fn({_, column}) -> Expression.key?(column) end)
       |> Enum.map(fn({title, _}) -> title end)
 
     [DataSource.Table.new(subquery.alias, user_id_name, columns: columns, keys: keys)]
