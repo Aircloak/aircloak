@@ -1,3 +1,11 @@
+## Version 18.1.2
+
+### Bugfixes
+
+- Fixes cloak crash when creating error message on some invalid queries.
+- Fixes cloak crash when aliasing the user id multiple times.
+- Fixes alignment of intervals to 6 - 10 months.
+
 ## Version 18.1.1
 
 ### Bugfixes
