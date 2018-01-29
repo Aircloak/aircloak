@@ -10,19 +10,24 @@ exec_on_prod() {
 }
 
 case "$command" in
+  force_build)
+    exec_on_prod "force_build(<<\"$1\">>, <<\"$2\">>, <<\"$3\">>)"
+    ;;
+
+  # backwards compatibility
   force_start)
-    exec_on_prod "force_start_build($1)"
+    exec_on_prod "force_build(<<\"pr\">>, <<\"$1\">>, <<\"compliance\">>)"
     ;;
 
   log)
-    exec_on_prod "print_build_log($1)"
+    exec_on_prod "print_build_log(<<\"$1\">>, <<\"$2\">>, <<\"$3\">>)"
     ;;
 
   *)
     echo "Commands:"
     echo ""
-    echo "  force_start pull_request_number"
-    echo "  log pull_request_number"
+    echo "  force_build target_type target_id job_name"
+    echo "  log target_type target_id job_name"
     echo ""
     exit 1
     ;;

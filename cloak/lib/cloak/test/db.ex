@@ -20,6 +20,10 @@ defmodule Cloak.Test.DB do
     GenServer.call(__MODULE__, {:create_table, table_name, definition, opts}, :infinity)
   end
 
+  def delete_table(table_name) do
+    GenServer.call(__MODULE__, {:delete_table, table_name}, :infinity)
+  end
+
   def add_users_data(table_name, columns, rows, data_source \\ nil), do:
     insert_data(table_name, ["user_id" | columns], rows, data_source)
 
@@ -46,8 +50,8 @@ defmodule Cloak.Test.DB do
     table =
       DataSource.Table.new(
         to_string(table_id),
-        (if Keyword.get(opts, :add_user_id, true), do: "user_id", else: nil),
-        [db_name: db_name] ++ Keyword.take(opts, [:user_id, :decoders, :projection])
+        (if Keyword.get(opts, :add_user_id, true), do: "user_id", else: Keyword.get(opts, :user_id)),
+        [db_name: db_name] ++ Keyword.take(opts, [:user_id, :decoders, :projection, :query])
       )
 
     data_source_names_to_update = case opts[:data_source] do
@@ -67,6 +71,15 @@ defmodule Cloak.Test.DB do
     |> DataSource.replace_all_data_source_configs()
   end
 
+  def unregister_test_table(table_id) do
+    DataSource.all()
+    |> Enum.map(fn (data_source) ->
+      {_table, data_source} = pop_in(data_source, [:initial_tables, table_id])
+      data_source
+    end)
+    |> DataSource.replace_all_data_source_configs()
+  end
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
@@ -80,8 +93,12 @@ defmodule Cloak.Test.DB do
   def handle_call({:create_table, table_name, definition, opts}, _from, state) do
     db_name = opts[:db_name] || table_name
     create_db_table(db_name, definition, opts)
-    register_test_table(String.to_atom(table_name), full_table_name(db_name), opts)
-    {:reply, :ok, state}
+    status = register_test_table(String.to_atom(table_name), full_table_name(db_name), opts)
+    {:reply, status, state}
+  end
+  def handle_call({:delete_table, table_name}, _from, state) do
+    status = unregister_test_table(String.to_atom(table_name))
+    {:reply, status, state}
   end
 
 

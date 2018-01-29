@@ -24,13 +24,17 @@ defmodule AircloakCI.Github.API do
     source_branch: String.t,
     target_branch: String.t,
     sha: String.t,
-    mergeable?: boolean,
-    merge_sha: String.t,
+    merge_state: merge_state,
+    merge_sha: String.t | nil,
     approved?: boolean,
-    status_checks: %{String.t => %{status: :expected | status_check_state, description: String.t}}
+    status_checks: statuses
   }
 
   @type repo :: %{owner: String.t, name: String.t}
+
+  @type merge_state :: :mergeable | :conflicting | :unknown
+
+  @type statuses :: %{String.t => %{status: :expected | status_check_state, description: String.t}}
 
   @type status_check_state :: :error | :failure | :pending | :success
 
@@ -66,20 +70,6 @@ defmodule AircloakCI.Github.API do
     {repo_data, result.rate_limit}
   end
 
-  @doc "Returns the data for the given pull request."
-  @spec pull_request(String.t, String.t, integer) :: {pull_request, rate_limit}
-  def pull_request(owner, repo, number) do
-    result = graphql_request("query {#{repo_query(owner, repo, pr_query(number))}}")
-
-    pr_data =
-      result.response
-      |> Map.fetch!("repository")
-      |> Map.fetch!("pullRequest")
-      |> to_pr_data(%{owner: owner, name: repo})
-
-    {pr_data, result.rate_limit}
-  end
-
   @doc "Sets the status check state for the given owner/repo/sha."
   @spec put_status_check_state(String.t, String.t, String.t, String.t, String.t, status_check_state) ::
     {:ok, rate_limit}
@@ -89,7 +79,7 @@ defmodule AircloakCI.Github.API do
         "/repos/#{owner}/#{repo}/statuses/#{sha}",
         %{
           context: context,
-          description: description,
+          description: normalize_status_description(description),
           state: encode_status_check_state(state),
         }
       )
@@ -98,16 +88,14 @@ defmodule AircloakCI.Github.API do
   end
 
   @doc "Posts a comment to the given issue or pull request."
-  @spec post_comment(String.t, String.t, number, String.t) :: {:ok, rate_limit}
-  def post_comment(owner, repo, issue_number, body) do
-    %{response: %{status_code: 201}, rate_limit: rate_limit} =
-      post_rest_request(
-        "/repos/#{owner}/#{repo}/issues/#{issue_number}/comments",
-        %{body: body}
-      )
+  @spec comment_on_issue(String.t, String.t, pos_integer, String.t) :: {:ok, rate_limit}
+  def comment_on_issue(owner, repo, issue_number, body), do:
+    comment_on_commit(owner, repo, "issues", issue_number, body)
 
-    {:ok, rate_limit}
-  end
+  @doc "Posts a comment to the given commit."
+  @spec comment_on_commit(String.t, String.t, String.t, String.t) :: {:ok, rate_limit}
+  def comment_on_commit(owner, repo, sha, body), do:
+    comment_on_commit(owner, repo, "commits", sha, body)
 
 
   # -------------------------------------------------------------------
@@ -126,9 +114,6 @@ defmodule AircloakCI.Github.API do
         nodes{#{pr_fields_query()}}
       }
     /
-
-  defp pr_query(number), do:
-    ~s/pullRequest(number: #{number}){#{pr_fields_query()}}/
 
   defp pr_fields_query(), do:
     ~s/
@@ -155,7 +140,12 @@ defmodule AircloakCI.Github.API do
       source_branch: Map.fetch!(raw_pr_data, "headRefName"),
       target_branch: Map.fetch!(raw_pr_data, "baseRefName"),
       approved?: match?(%{"reviews" => %{"nodes" => [%{"state" => "APPROVED"}]}}, raw_pr_data),
-      mergeable?: Map.fetch!(raw_pr_data, "mergeable") == "MERGEABLE",
+      merge_state:
+        case Map.fetch!(raw_pr_data, "mergeable") do
+          "MERGEABLE" -> :mergeable
+          "CONFLICTING" -> :conflicting
+          _ -> :unknown
+        end,
       merge_sha: raw_pr_data["potentialMergeCommit"]["oid"],
       sha:
         raw_pr_data
@@ -236,6 +226,29 @@ defmodule AircloakCI.Github.API do
       }
     else
       _ -> nil
+    end
+  end
+
+  defp comment_on_commit(owner, repo, type, id, body) do
+    %{response: %{status_code: 201}, rate_limit: rate_limit} =
+      post_rest_request(
+        "/repos/#{owner}/#{repo}/#{type}/#{id}/comments",
+        %{body: body}
+      )
+
+    {:ok, rate_limit}
+  end
+
+  defp normalize_status_description(description) do
+    max_allowed_length = 140
+
+    case String.split_at(description, max_allowed_length) do
+      {_, ""} -> description
+
+      _ ->
+        suffix = " ..."
+        {displayed, _} = String.split_at(description, max_allowed_length - String.length(suffix))
+        "#{displayed}#{suffix}"
     end
   end
 end

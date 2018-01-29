@@ -155,7 +155,7 @@ defmodule Air.Service.View do
     {:ok, results} = DataSource.validate_views({:id, data_source_id}, user, user_views_map(user, data_source_id))
 
     for {name, result} <- results do
-      view = View |> by_data_source_id(data_source_id) |> Repo.get_by!(name: name)
+      view = View |> by_data_source_id(data_source_id) |> by_user_id(user.id) |> Repo.get_by!(name: name)
       case view_status(result) do
         {:ok, valid} -> view |> apply_view_changeset(%{broken: not valid}) |> Repo.update()
         :error -> :do_nothing

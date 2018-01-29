@@ -11,6 +11,8 @@
         - [Running a specific compliance test](#running-a-specific-compliance-test)
         - [Running a local docker container](#running-a-local-docker-container)
         - [Running full compliance CI locally](#running-full-compliance-ci-locally)
+        - [Using CI container to unit test other databases](#using-ci-container-to-unit-test-other-databases)
+        - [Running fuzz tests](#running-fuzz-tests)
         - [Deploying](#deploying)
     - [Installing database servers](#installing-database-servers)
 
@@ -169,11 +171,11 @@ By default, only native PostgreSQL adapter is tested locally, while MongoDB and 
 - `mix test --only mongodb` - to run only MongoDB tests
 - `mix test --only saphana` - to run only SAP HANA tests
 - `mix test --only compliance` - to run only the compliance tests
-- `make test_all` - to run all tests which are running on Travis: standard tests, MongoDB tests, and tests for all other database adapters (MySQL, PostgreSQL through ODBC, ...). Note however that compliance tests are going to be executed on a reduced database set (as specified in `compliance.json`).
+- `make test_all` - to run all tests which are running on CI: standard tests, MongoDB tests, and tests for all other database adapters (MySQL, PostgreSQL through ODBC, ...). Note however that compliance tests are going to be executed on a reduced database set (as specified in `compliance.json`).
 
 In order to have working tests on other drivers, you need to start corresponding database servers locally - see [Installing database servers](#installing-database-servers).
 
-Note that SAP HANA tests can't be executed directly on macOS machines. Instead, you need to start a local CI container with `make ci.compliance.debug`.
+Note that SAP HANA tests can't be executed directly on macOS machines. Instead, you need to start a local CI container with `make ci.compliance`. See [Using CI container to unit test other databases](#using-ci-container-to-unit-test-other-databases) for detailed instructions.
 
 #### Running a specific compliance test
 
@@ -221,6 +223,54 @@ The default number of generated users is 10. You can change this by setting the 
 COMPLIANCE_USERS=50 make ci.compliance
 ```
 
+#### Using CI container to unit test other databases
+
+CI container can also be used to unit test other databases, such as SAP HANA, or MongoDb. In this configuration, you need to explicitly set the data sources to PostgreSQL, when starting the CI container.
+
+```
+CLOAK_DATA_SOURCES="postgresql9.4" make ci.compliance
+```
+
+In the container, you now need to manually start local MongoDb instance:
+
+```
+mongod --fork --logpath /var/log/mongodb.log
+```
+
+Now you can invoke the following commands:
+
+```
+mix test --include exclude_in_dev
+mix test --only mongodb
+mix test --only saphana
+```
+
+#### Running fuzz tests
+
+A task is available to run randomly-generated queries against the current version of cloak (fuzz testing). To invoke it:
+
+```
+MIX_ENV=test mix fuzzer.run --queries 10
+```
+
+Note that the `queries` option specifies how many queries to run. This test runs against the same configuration as the
+compliance tests.  You can use `mix gen.test_data` to create these databases:
+
+```
+MIX_ENV=test mix gen.test_data compliance 10
+```
+
+Or you can run from [inside the compliance container](#running-full-compliance-ci-locally) to have access to different
+data source types.
+
+The fuzzer creates three output files (by default `/tmp/all.txt`, `/tmp/stats.txt`, and `/tmp/crashes.txt`) where the
+results are stored. The `crashes` file contains all queries that failed in an unexpected way along with the details of
+the error - this should be the most interesting output for regular usage, the other outputs are mostly meant for
+debugging the fuzzer itself. Each query in `crashes` is a potential bug; however, it might also be a bug in the fuzzer.
+The `all` file lists all queries executed and the class of result obtained for each of them - `ok` means the query
+executed successfully, `unexpected_error` means the query failed in a way unknown to the fuzzer, and the other
+categories are different kinds of common errors, like anonymity constraint violations. The `stats` file lists the kinds
+of results from the `all` file along with the number of times each result was obtained.
 
 #### Deploying
 
@@ -282,7 +332,7 @@ Note that the tests submit results to InfluxDB - it will be started with `start_
 - Change the memory allowed to docker to at least 3,5 GB
 - `make sql-server-container` - starts the container
 - `DB_NAME=cloaktest2 make sql-server-database` - creates a database named `cloaktest2`
-- Note that connecting to SQL Server will only work in the CI container (`make ci.compliance.debug`)
+- Note that connecting to SQL Server will only work in the CI container (`make ci.compliance`)
 - The following example section will allow you to add an SQL Server datasource to the appropriate config.json:
 
 ```json

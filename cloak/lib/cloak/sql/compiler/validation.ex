@@ -15,16 +15,16 @@ defmodule Cloak.Sql.Compiler.Validation do
   @spec verify_query(Query.t) :: Query.t
   def verify_query(%Query{command: :show} = query), do: query
   def verify_query(%Query{command: :select} = query) do
-    verify_duplicate_tables(query)
-    verify_aggregated_columns(query)
-    verify_group_by_functions(query)
-    verify_non_selected_where_splitters(query)
-    verify_joins(query)
-    verify_where(query)
-    verify_having(query)
-    verify_limit(query)
-    verify_offset(query)
-    verify_sample_rate(query)
+    Helpers.each_subquery(query, &verify_duplicate_tables/1)
+    Helpers.each_subquery(query, &verify_aggregated_columns/1)
+    Helpers.each_subquery(query, &verify_group_by_functions/1)
+    Helpers.each_subquery(query, &verify_non_selected_where_splitters/1)
+    Helpers.each_subquery(query, &verify_joins/1)
+    Helpers.each_subquery(query, &verify_where/1)
+    Helpers.each_subquery(query, &verify_having/1)
+    Helpers.each_subquery(query, &verify_limit/1)
+    Helpers.each_subquery(query, &verify_offset/1)
+    Helpers.each_subquery(query, &verify_sample_rate/1)
     query
   end
 
@@ -34,14 +34,6 @@ defmodule Cloak.Sql.Compiler.Validation do
     verify_function_exists(function)
     verify_function_usage(function, subquery?)
     function
-  end
-
-  @doc "Checks that the subquery specification is valid."
-  @spec verify_subquery(Query.t, String.t) :: Query.t
-  def verify_subquery(subquery, alias) do
-    verify_subquery_uid(subquery, alias)
-    verify_subquery_offset(subquery, alias)
-    subquery
   end
 
 
@@ -100,10 +92,13 @@ defmodule Cloak.Sql.Compiler.Validation do
     end
   end
 
-  defp invalid_individual_columns(query), do:
-    if Helpers.aggregate?(query),
-      do: query |> Query.bucket_columns() |> Enum.filter(&individual_column?(query, &1)),
-      else: []
+  defp invalid_individual_columns(query) do
+    if Helpers.aggregate?(query) do
+      query |> Query.bucket_columns() |> Enum.reject(& &1.synthetic?) |> Enum.filter(&individual_column?(query, &1))
+    else
+      []
+    end
+  end
 
   defp individual_column?(query, column), do:
     not Expression.constant?(column) and not Helpers.aggregated_column?(query, column)
@@ -155,8 +150,11 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_joins(query) do
     verify_join_types(query)
     verify_join_conditions_scope(query.from, [])
-    verify_all_joined_subqueries_have_explicit_uids(query)
-    verify_all_uid_columns_are_compared_in_joins(query)
+    # user id checks have no meaning for queries representing a virtual table, as those can be arbitrary SQL statements
+    unless query.virtual_table? do
+      verify_all_joined_subqueries_have_explicit_uids(query)
+      verify_all_uid_columns_are_compared_in_joins(query)
+    end
   end
 
   defp verify_all_joined_subqueries_have_explicit_uids(query) do
@@ -164,7 +162,7 @@ defmodule Cloak.Sql.Compiler.Validation do
       Lenses.joined_subqueries(),
       query,
       fn(joined_subquery) ->
-        unless Enum.any?(joined_subquery.ast.columns, &(&1.user_id? && &1.visible?)), do:
+        unless Enum.any?(joined_subquery.ast.columns, &(&1.user_id? && not &1.synthetic?)), do:
           raise CompilationError,
             message: "There is no user id column in the subquery `#{joined_subquery.alias}`."
       end
@@ -224,7 +222,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_join_types(query) do
     Lenses.joins()
-    |> Lens.satisfy(& &1.type == :full_outer_join)
+    |> Lens.filter(& &1.type == :full_outer_join)
     |> Lens.to_list(query)
     |> case do
       [] -> :ok
@@ -240,7 +238,10 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_where(query), do: verify_where_clauses(query.where)
 
   defp verify_condition_tree({:or, _, _}), do:
-    raise CompilationError, message: "Combining conditions with `OR` is not allowed."
+    raise CompilationError, message:
+      "Combining conditions with `OR` is not allowed. Note that an `OR` condition may " <>
+      "arise when negating an `AND` condition. For example `NOT (x = 1 AND y = 2)` is equivalent to " <>
+      "`x <> 1 OR y <> 2`."
   defp verify_condition_tree({:and, lhs, rhs}) do
     verify_condition_tree(lhs)
     verify_condition_tree(rhs)
@@ -309,36 +310,13 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_offset(%Query{order_by: [], offset: amount}) when amount > 0, do:
     raise CompilationError, message: "Using the `OFFSET` clause requires the `ORDER BY` clause to be specified."
+  defp verify_offset(%Query{offset: offset, limit: nil, subquery?: true}) when offset > 0, do:
+    raise CompilationError, message: "Subquery has an `OFFSET` clause without a `LIMIT` clause."
   defp verify_offset(_query), do: :ok
 
   defp verify_sample_rate(%Query{sample_rate: amount}) when is_integer(amount) and (amount < 0 or amount > 100), do:
     raise CompilationError, message: "The `SAMPLE` clause expects an integer value between 1 and 100."
   defp verify_sample_rate(_query), do: :ok
-
-
-  # -------------------------------------------------------------------
-  # Subqueries
-  # -------------------------------------------------------------------
-
-  defp verify_subquery_uid(subquery, alias) do
-    unless Helpers.uid_column_selected?(subquery) do
-      possible_uid_columns =
-        Helpers.all_id_columns_from_tables(subquery)
-        |> Enum.map(&Expression.display_name/1)
-        |> case do
-          [column] -> "the column #{column}"
-          columns -> "one of the columns #{Enum.join(columns, ", ")}"
-        end
-
-      raise CompilationError, message:
-        "Missing a user id column in the select list of #{"subquery `#{alias}`"}. " <>
-        "To fix this error, add #{possible_uid_columns} to the subquery select list."
-    end
-  end
-
-  defp verify_subquery_offset(%{offset: offset, limit: limit}, alias) when is_nil(limit) and offset > 0, do:
-    raise CompilationError, message: "Subquery `#{alias}` has an OFFSET clause without a LIMIT clause."
-  defp verify_subquery_offset(subquery, _), do: subquery
 
 
   # -------------------------------------------------------------------
@@ -350,6 +328,6 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp aggregate_subexpressions(expression), do:
     Query.Lenses.all_expressions()
-    |> Lens.satisfy(&match?(%{aggregate?: true}, &1))
+    |> Lens.filter(&match?(%{aggregate?: true}, &1))
     |> Lens.to_list(expression)
 end

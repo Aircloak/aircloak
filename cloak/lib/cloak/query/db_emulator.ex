@@ -9,8 +9,9 @@ defmodule Cloak.Query.DbEmulator do
   require Logger
 
   alias Cloak.{DataSource, DataSource.Table}
-  alias Cloak.Sql.{Query, Expression, Function}
-  alias Cloak.Query.{DbEmulator.Selector, DataDecoder}
+  alias Cloak.Sql.{Query, Expression, Function, Condition}
+  alias Cloak.Query.{DbEmulator.Selector, DataDecoder, Rows}
+  alias Cloak.Sql.Compiler
 
 
   # -------------------------------------------------------------------
@@ -20,9 +21,14 @@ defmodule Cloak.Query.DbEmulator do
   @doc "Retrieves rows according to the specification in the emulated query."
   @spec select(Query.t) :: [Enumerable.t]
   def select(%Query{emulated?: true} = query) do
-    query = compile_emulated_joins(query)
+    Logger.debug("Emulating query ...")
     [query.from |> select_rows() |> Selector.pick_db_columns(query)]
   end
+
+  @doc "Prepares a query for emulation."
+  @spec compile(Query.t) :: Query.t
+  def compile(query), do:
+    Compiler.Helpers.apply_top_down(query, &compile_emulated_joins/1)
 
 
   # -------------------------------------------------------------------
@@ -37,19 +43,17 @@ defmodule Cloak.Query.DbEmulator do
         |> Stream.concat()
         |> DataDecoder.decode(query)
         |> rows_processor.()
+        |> Enum.to_list()
       end)
   end
 
   defp select_rows({:subquery, %{ast: %Query{emulated?: false} = query}}) do
     query
     |> Query.debug_log("Executing sub-query through data source")
-    |> offload_select!(&Enum.to_list/1)
+    |> offload_select!(&Rows.filter(&1, query |> Query.emulated_where() |> Condition.to_function()))
   end
   defp select_rows({:subquery, %{ast: %Query{emulated?: true, from: from} = subquery}}) when not is_binary(from) do
-    subquery =
-      subquery
-      |> Query.debug_log("Emulating intermediate sub-query")
-      |> compile_emulated_joins()
+    Query.debug_log(subquery, "Emulating intermediate sub-query")
     subquery.from
     |> select_rows()
     |> Selector.pick_db_columns(subquery)
@@ -77,6 +81,8 @@ defmodule Cloak.Query.DbEmulator do
   defp compile_emulated_joins(%Query{emulated?: true, from: {:join, _}} = query) do
     query
     |> update_in([Query.Lenses.leaf_tables()], &joined_table_to_subquery(&1, query))
+    |> Compiler.Optimizer.optimize()
+    |> update_in([Lens.root(), Query.Lenses.direct_subqueries() |> Lens.key(:ast)], &Query.resolve_db_columns/1)
     |> update_in([Query.Lenses.joins()], &compute_columns_to_select/1)
     |> update_in([Query.Lenses.joins()], &update_join_conditions/1)
   end
@@ -85,7 +91,7 @@ defmodule Cloak.Query.DbEmulator do
   defp joined_table_to_subquery(table_name, query) do
     required_columns = required_columns_from_table(query, table_name)
     {:ok, table} = Query.resolve_table(query, table_name)
-    query = Cloak.Sql.Compiler.make_select_query(query.data_source, table, required_columns)
+    query = Compiler.make_select_query(query.data_source, table, required_columns)
     {:subquery, %{ast: query, alias: table_name}}
   end
 
@@ -94,7 +100,8 @@ defmodule Cloak.Query.DbEmulator do
     |> get_in([Query.Lenses.leaf_expressions()])
     |> Enum.filter(&(&1.table != :unknown))
     |> Enum.filter(&(&1.table.name == table_name))
-    |> Enum.uniq_by(&{&1.name, &1.alias})
+    |> Enum.map(&Expression.unalias/1)
+    |> Enum.uniq_by(& &1.name)
 
   defp compute_columns_to_select(join), do:
     Map.put(join, :columns, columns_needed_for_join({:join, join}))

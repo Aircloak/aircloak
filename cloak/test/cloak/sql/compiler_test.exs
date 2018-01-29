@@ -531,7 +531,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "missing group by in a subquery" do
-    assert {:error, error} = compile("select c1 from (select uid, count(*) from t1) alias", data_source())
+    assert {:error, error} = compile("select c1 from (select uid, count(*) as c1 from t1) alias", data_source())
     assert error =~ "Column `uid` from table `t1` needs to appear in the `GROUP BY`"
   end
 
@@ -726,7 +726,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "offset requires limit in subqueries" do
     assert {:error, error} = compile("select count(*) from (select * from table order by numeric offset 20) foo",
       data_source())
-    assert error =~ ~r/Subquery `foo` has an OFFSET clause without a LIMIT clause/
+    assert error =~ ~r/Subquery has an `OFFSET` clause without a `LIMIT` clause/
   end
 
   test "offset must be a multiple of limit post-alignment" do
@@ -760,7 +760,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "rejects `or` conditions" do
     {:error, error} = compile("select * from table where numeric = 1 or numeric = 2", data_source())
-    assert error == "Combining conditions with `OR` is not allowed."
+    assert error =~ ~r/Combining conditions with `OR` is not allowed./
   end
 
   test "rejects `FULL OUTER JOINs`" do
@@ -798,7 +798,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "view is treated as a subquery" do
     assert {:error, error} = compile("select numeric from table_view", data_source(),
-      views: %{"table_view" => "select numeric from table"})
+      views: %{"table_view" => "select numeric from table group by numeric"})
 
     assert error =~ ~r/Missing a user id column in the select list of subquery `table_view`./
   end
@@ -820,7 +820,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "only needed columns are fetched from a projected table" do
     assert ["table.uid", "projected_table.a"] ==
-      projected_table_db_column_names(compile!("select a from projected_table", data_source()))
+      projected_table_db_column_names(compile!("select a from projected_table where b = 30", data_source()))
 
     assert ["table.uid", "projected_table.a", "projected_table.b"] ==
       projected_table_db_column_names(compile!("select a, b from projected_table", data_source()))
@@ -833,10 +833,6 @@ defmodule Cloak.Sql.Compiler.Test do
     assert [0, 1, 2] ==
       projected_table_db_column_indices(compile!("select a, b from projected_table", data_source()))
   end
-
-  test "filtered column is retrieved from a projected table", do:
-    assert ["table.uid", "projected_table.a"] ==
-      projected_table_db_column_names(compile!("select count(*) from projected_table where a=1", data_source()))
 
   test "rejecting non-aggregated non-selected ORDER BY column in an aggregated function" do
     assert {:error, "Column `float` from table `table` needs to appear in the `GROUP BY` clause" <> _} =

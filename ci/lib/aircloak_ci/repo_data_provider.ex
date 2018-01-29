@@ -28,7 +28,8 @@ defmodule AircloakCI.RepoDataProvider do
     Supervisor.start_link(
       [
         Aircloak.ChildSpec.registry(:duplicate, __MODULE__.Subscribers),
-        __MODULE__.Poller
+        __MODULE__.Poller,
+        AircloakCI.RepoDataLogger,
       ],
       strategy: :one_for_one, name: __MODULE__
     )
@@ -50,16 +51,32 @@ defmodule AircloakCI.RepoDataProvider do
 
     defp loop() do
       try do
-        repo_data = Github.repo_data("aircloak", "aircloak")
-        Enum.each(AircloakCI.RepoDataProvider.subscribers(), &send(&1, {:repo_data, repo_data}))
-        Enum.each(repo_data.pull_requests, &AircloakCI.Build.ensure_started(&1, repo_data))
+        if Application.get_env(:aircloak_ci, :poll_github, true) do
+          repo_data = Github.repo_data("aircloak", "aircloak")
+          Enum.each(AircloakCI.RepoDataProvider.subscribers(), &send(&1, {:repo_data, repo_data}))
+          ensure_branch_builds(repo_data)
+          ensure_pr_builds(repo_data)
+        end
       catch type, error ->
         Logger.error(Exception.format(type, error, System.stacktrace()))
       end
 
       :timer.sleep(:timer.seconds(5))
-
       loop()
+    end
+
+    defp ensure_pr_builds(repo_data), do:
+      Enum.each(repo_data.pull_requests, &AircloakCI.Build.PullRequest.ensure_started(&1, repo_data))
+
+    defp ensure_branch_builds(repo_data), do:
+      [Enum.find(repo_data.branches, &(&1.name == "master" or &1.name =~ ~r/^release_\d+$/))]
+      |> Stream.concat(pr_targets(repo_data))
+      |> Stream.dedup()
+      |> Enum.each(&AircloakCI.Build.Branch.ensure_started(&1, repo_data))
+
+    defp pr_targets(repo_data) do
+      target_branch_names = Enum.map(repo_data.pull_requests, &(&1.target_branch))
+      Stream.filter(repo_data.branches, &Enum.member?(target_branch_names, &1.name))
     end
   end
 end

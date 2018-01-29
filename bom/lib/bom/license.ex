@@ -28,7 +28,7 @@ defmodule BOM.License do
 
   @doc "Returns true if we can use the given license type in the product, false otherwise."
   @spec allowed_type?(atom) :: boolean
-  for path <- Path.wildcard("./licenses/generic/*") do
+  for path <- Path.wildcard("priv/licenses/generic/*") do
     name = Path.basename(path) |> String.to_atom
     def allowed_type?(unquote(name)), do: true
   end
@@ -77,7 +77,7 @@ defmodule BOM.License do
   defp do_name_to_type("cc0-1.0"), do: :"cc0-1.0"
   defp do_name_to_type(_), do: :unknown
 
-  for path <- Path.wildcard("./licenses/generic/*") do
+  for path <- Path.wildcard("priv/licenses/generic/*") do
     name = Path.basename(path) |> String.to_atom
     text = File.read!(path)
 

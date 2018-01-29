@@ -50,13 +50,6 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     assert result1.where == result2.where
   end
 
-  test "normalizing IN(single_value)" do
-    result1 = compile!("SELECT * FROM table WHERE string IN ('a')", data_source())
-    result2 = compile!("SELECT * FROM table WHERE string = 'a'", data_source())
-
-    assert result1.where == result2.where
-  end
-
   describe "normalizing ORDER BY" do
     test "normalizing unordered queries" do
       assert %{from: {:subquery, %{ast: %{order_by: []}}}} =
@@ -88,6 +81,50 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
         ) x
       """, sql_server_data_source())
     end
+  end
+
+  describe "remove_noops" do
+    test "a cast of integer to integer" do
+      result1 = remove_noops!("SELECT * FROM table WHERE cast(numeric AS integer) = 1", data_source())
+      result2 = remove_noops!("SELECT * FROM table WHERE numeric = 1", data_source())
+
+      assert result1.where == result2.where
+    end
+
+    for function <- ~w/round trunc/ do
+      test "#{function} of integer without precision is removed" do
+        result1 = remove_noops!("SELECT * FROM table WHERE #{unquote(function)}(numeric) = 1", data_source())
+        result2 = remove_noops!("SELECT * FROM table WHERE numeric = 1", data_source())
+
+        assert result1.where == result2.where
+      end
+
+      test "#{function} of integer with precision isn't removed" do
+        result1 = remove_noops!("SELECT * FROM table WHERE #{unquote(function)}(numeric, 0) = 1", data_source())
+        result2 = remove_noops!("SELECT * FROM table WHERE numeric = 1", data_source())
+
+        refute result1.where == result2.where
+      end
+    end
+
+    for function <- ~w/ceil ceiling floor/ do
+      test "#{function} of integer is removed" do
+        result1 = remove_noops!("SELECT * FROM table WHERE #{unquote(function)}(numeric) = 1", data_source())
+        result2 = remove_noops!("SELECT * FROM table WHERE numeric = 1", data_source())
+
+        assert result1.where == result2.where
+      end
+    end
+  end
+
+  defp remove_noops!(query, data_source, parameters \\ [], views \\ %{}) do
+    {:ok, parsed} = Cloak.Sql.Parser.parse(query)
+
+    parsed
+    |> Cloak.Sql.Compiler.ASTNormalization.normalize()
+    |> Cloak.Sql.Compiler.Specification.compile(data_source, parameters, views)
+    |> Cloak.Sql.Compiler.Validation.verify_query()
+    |> Cloak.Sql.Compiler.Normalization.remove_noops()
   end
 
   defp sql_server_data_source(), do: %{data_source() | driver: Cloak.DataSource.SQLServer}

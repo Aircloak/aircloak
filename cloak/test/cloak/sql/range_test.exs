@@ -39,23 +39,23 @@ defmodule Cloak.Sql.Range.Test do
     end
 
     test "function range on expression in SELECT" do
-      query = compile("SELECT trunc(number + 1) FROM table")
+      query = compile("SELECT trunc(float + 1) FROM table")
       assert [%Range{column: %{function: "trunc"}, interval: :implicit}] = Range.find_ranges(query)
     end
 
     test "function range in WHERE" do
-      query = compile("SELECT COUNT(*) FROM table WHERE trunc(number) = 10")
+      query = compile("SELECT COUNT(*) FROM table WHERE trunc(float) = 10")
       assert [%Range{column: %{function: "trunc"}, interval: :implicit}] = Range.find_ranges(query)
     end
 
     test "no function ranges from top-level HAVING" do
-      query = compile("SELECT COUNT(*) FROM table GROUP BY number HAVING trunc(number) = 10")
+      query = compile("SELECT COUNT(*) FROM table GROUP BY number HAVING trunc(float) = 10")
       assert [] = Range.find_ranges(query)
     end
 
     test "function ranges from subquery HAVING" do
       %{from: {:subquery, %{ast: subquery}}} =
-        compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid, number HAVING trunc(number) = 10) x")
+        compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid, number HAVING trunc(float) = 10) x")
       assert [%Range{column: %{function: "trunc"}, interval: :implicit}] = Range.find_ranges(subquery)
     end
 
@@ -77,29 +77,29 @@ defmodule Cloak.Sql.Range.Test do
     end
 
     test "subquery selected columns later ignored" do
-      query = compile("SELECT COUNT(*) FROM (SELECT uid, trunc(number) AS trunced FROM table) x")
+      query = compile("SELECT COUNT(*) FROM (SELECT uid, trunc(float) AS trunced FROM table) x")
       assert [] = Range.find_ranges(query)
     end
 
     test "subquery selected columns later filtered" do
-      query = compile("SELECT COUNT(*) FROM (SELECT uid, trunc(number) AS trunced FROM table) x WHERE trunced = 10")
+      query = compile("SELECT COUNT(*) FROM (SELECT uid, trunc(float) AS trunced FROM table) x WHERE trunced = 10")
       assert [%Range{column: %{name: "trunced"}, interval: :implicit}] = Range.find_ranges(query)
     end
 
     test "subquery selected columns later selected top-level" do
-      query = compile("SELECT trunced FROM (SELECT uid, trunc(number) AS trunced FROM table) x")
+      query = compile("SELECT trunced FROM (SELECT uid, trunc(float) AS trunced FROM table) x")
       assert [%Range{column: %{name: "trunced"}, interval: :implicit}] = Range.find_ranges(query)
     end
 
     test "subquery distinct aggregate later selected top-level" do
       query = compile("""
-        SELECT result FROM (SELECT uid, count(distinct round(number)) AS result FROM table GROUP BY uid) x
+        SELECT result FROM (SELECT uid, count(distinct round(float)) AS result FROM table GROUP BY uid) x
       """)
       assert [%Range{column: %{name: "result"}, interval: :implicit}] = Range.find_ranges(query)
     end
 
     test "range_function() + range_function()" do
-      query = compile("SELECT trunc(number) + trunc(number) FROM table")
+      query = compile("SELECT trunc(float) + trunc(float) FROM table")
       assert [%Range{column: %{function: "+"}, interval: :implicit}] = Range.find_ranges(query)
     end
 

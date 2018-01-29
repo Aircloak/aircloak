@@ -365,14 +365,14 @@ defmodule Cloak.Sql.Parser.Test do
         columns: [identifier("foo")], from: unquoted("bar"),
         where:
           {:and,
-            {:comparison, identifier("a"), :=, constant(2)},
             {:and,
-              {:in, identifier("b"), constants([1, 2, 3])},
               {:and,
-                {:like, identifier("c"), {:like_pattern, constant("_o"), constant(nil)}},
-                {:not, {:is, identifier("d"), :null}},
-              }
-            }
+                {:comparison, identifier("a"), :=, constant(2)},
+                {:in, identifier("b"), constants([1, 2, 3])}
+              },
+              {:like, identifier("c"), {:like_pattern, constant("_o"), constant(nil)}}
+            },
+            {:not, {:is, identifier("d"), :null}}
           }
       )
     )
@@ -387,7 +387,7 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "where sub-clause with parens" do
     assert_equal_parse(
-      "select foo from bar where a = 1 and ((b = 2) and c = 3)",
+      "select foo from bar where (((a = 1) and b = 2) and c = 3)",
       "select foo from bar where a = 1 and b = 2 and c = 3"
     )
   end
@@ -405,7 +405,7 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "having clause with parens" do
     assert_equal_parse(
-      "select foo from bar having (a = 1) and (b = 3 and c = 4)",
+      "select foo from bar having (a = 1 and b = 3) and (c = 4)",
       "select foo from bar having a = 1 and b = 3 and c = 4"
     )
   end
@@ -822,9 +822,17 @@ defmodule Cloak.Sql.Parser.Test do
   test "cast to double precision", do:
     assert_parse "select cast(a as double precision) from bar", select(columns: [{:function, {:cast, :real}, _}])
 
-  test "cast with ::" do
-    assert_parse "select a::integer from bar",
-      select(columns: [{:function, {:cast, :integer}, [identifier("a")]}])
+  describe "::" do
+    test "cast with ::", do:
+      assert_parse "select a::integer from bar",
+        select(columns: [{:function, {:cast, :integer}, [identifier("a")]}])
+
+    test "multiple casts with ::", do:
+      assert_parse "select a::integer::text from bar",
+        select(columns: [{:function, {:cast, :text}, [{:function, {:cast, :integer}, [identifier("a")]}]}])
+
+    test "a non-datatype on RHS of ::", do:
+      assert {:error, _} = Parser.parse("select a::b from bar")
   end
 
   for word <- ~w(date time datetime timestamp) do
@@ -1066,6 +1074,32 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "sample from table", do:
     assert_parse("select x from foo sample_users 10%", select(sample_rate: 10))
+
+  describe "unary NOT" do
+    test "with a simple condition", do:
+      assert_parse("select * from foo where NOT x = 1", select(where: {
+        :not, {:comparison, identifier("x"), :=, constant(1)}}))
+
+    test "with a complex condition", do:
+      assert_parse("select * from foo where NOT (x = 1 OR y = 2)", select(where: {:not, {:or,
+        {:comparison, identifier("x"), :=, constant(1)},
+        {:comparison, identifier("y"), :=, constant(2)}
+      }}))
+
+    test "in HAVING", do:
+      assert_parse("select count(*) from foo having NOT (x = 1 OR y = 2)", select(having: {:not, {:or,
+        {:comparison, identifier("x"), :=, constant(1)},
+        {:comparison, identifier("y"), :=, constant(2)}
+      }}))
+
+    test "in ON", do:
+      assert_parse("select count(*) from foo join bar ON NOT a = b", select(from: {:join, %{conditions: {:not,
+        {:comparison, identifier("a"), :=, identifier("b")}}}}))
+
+    test "many NOTs", do:
+      assert_parse("select count(*) from foo having NOT NOT NOT x = 1", select(having: {:not, {:not, {:not,
+        {:comparison, identifier("x"), :=, constant(1)}}}}))
+  end
 
   create_test =
     fn(description, statement, expected_error, line, column) ->

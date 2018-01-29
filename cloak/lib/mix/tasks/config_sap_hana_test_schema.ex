@@ -3,7 +3,7 @@ defmodule Mix.Tasks.ConfigSapHanaTestSchema do
   Generates local configuration with a random test schema for SAP HANA.
 
   This task can only work in CI builds, and it helps ensuring that different builds use different schemas.
-  This helps us to avoid collisions, while at the same time it allows us to use the same schema within a single Travis
+  This helps us to avoid collisions, while at the same time it allows us to use the same schema within a single CI
   build. This is critical for the compliance tests, where we need to populate the data with a `gen.test_data` mix task,
   and we need to query that data from the tests.
   """

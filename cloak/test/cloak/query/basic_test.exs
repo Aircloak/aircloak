@@ -790,13 +790,7 @@ defmodule Cloak.Query.BasicTest do
   test "cast" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [10])
     assert_query "select cast(height as text) from heights",
-      %{columns: ["cast"], rows: [%{row: ["10"], occurrences: 10}]}
-  end
-
-  test "optimization of a redundant cast doesn't affect the column name" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [10])
-    assert_query "select cast(height as integer) from heights",
-      %{columns: ["cast"], rows: [%{row: [10], occurrences: 10}]}
+      %{columns: ["height"], rows: [%{row: ["10"], occurrences: 10}]}
   end
 
   test "quoting table and column names" do
@@ -1066,12 +1060,48 @@ defmodule Cloak.Query.BasicTest do
     """, %{rows: [%{row: [:*, 8, 154, 176, 163, 167]}]}
   end
 
+  test "aggregation of low-count values with multiple groups" do
+    :ok = insert_rows(_user_ids = 1..3, "heights", ["height", "male"], [180, false])
+    :ok = insert_rows(_user_ids = 4..5, "heights", ["height", "male"], [190, nil])
+    :ok = insert_rows(_user_ids = 3..5, "heights", ["height", "male"], [170, false])
+    :ok = insert_rows(_user_ids = 6..7, "heights", ["height", "male"], [150, true])
+    :ok = insert_rows(_user_ids = 8..9, "heights", ["height", "male"], [150, false])
+    :ok = insert_rows(_user_ids = 10..12, "heights", ["height", "male"], [150, true])
+    :ok = insert_rows(_user_ids = 13..15, "heights", ["height", "male"], [170, false])
+    :ok = insert_rows(_user_ids = 15..17, "heights", ["height", "male"], [160, false])
+    :ok = insert_rows(_user_ids = 17..19, "heights", ["height", "male"], [170, true])
+
+    assert_query "select male, height, count(*) from heights group by 1, 2 order by 1, 2",
+      %{rows: [%{row: [false, 170, 6]}, %{row: [false, :*, 8]}, %{row: [true, 150, 5]}, %{row: [:*, :*, 5]}]}
+  end
+
   test "distinct in subquery with group by" do
     :ok = insert_rows(_user_ids = 1..20, "heights", ["height", "male"], [160, true])
     :ok = insert_rows(_user_ids = 11..30, "heights", ["height", "male"], [170, false])
     assert_query(
       "select count(*) from (select distinct user_id, male from heights group by user_id, height, male) alias",
       %{rows: [%{row: [40]}]}
+    )
+  end
+
+  test "[Issue #2217] condition on user_id" do
+    :ok = Cloak.Test.DB.create_table("numeric_user_ids", "user_id integer", user_id: "user_id", add_user_id: false)
+    :ok = Cloak.Test.DB.add_users_data("numeric_user_ids", _columns = [], Enum.map(0..9, &[&1]))
+    :ok = Cloak.Test.DB.add_users_data("numeric_user_ids", _columns = [], Enum.map(10..19, &[&1]))
+
+    assert_query(
+      "select count(*) from numeric_user_ids where user_id between 0 and 10",
+      %{rows: [%{row: [10]}]}
+    )
+  end
+
+  test "unary NOT" do
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height", "male"], [160, true])
+    :ok = insert_rows(_user_ids = 1..5, "heights", ["height", "male"], [160, false])
+
+    assert_query(
+      "SELECT count(*) from heights where NOT (height <> 160 OR male <> true)",
+      %{rows: [%{row: [20]}]}
     )
   end
 

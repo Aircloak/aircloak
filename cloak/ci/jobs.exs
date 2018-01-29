@@ -1,19 +1,29 @@
 test = fn
   :test ->
-    {:parallel, ["MIX_ENV=test mix lint",
-      {:sequence, [
-        "mongod --fork --logpath /var/log/mongodb.log",
-        "CLOAK_DATA_SOURCES=postgresql9.4 mix cloak.create_db dockerized_ci",
-        "CLOAK_DATA_SOURCES=postgresql9.4 mix test --include exclude_in_dev",
+    {:sequence, [
+      "MIX_ENV=test ./check_warnings.sh",
+      {:parallel, ["MIX_ENV=test mix lint",
+        {:sequence, [
+          "mongod --fork --logpath /var/log/mongodb.log",
+          "CLOAK_DATA_SOURCES=postgresql9.4 mix cloak.create_db dockerized_ci",
+          "CLOAK_DATA_SOURCES=postgresql9.4 mix test --include exclude_in_dev",
+        ]}
       ]}
     ]}
 
   :dev ->
-    {:parallel, [
-      "mix docs",
-      "mix lint",
-      "MIX_HOME=_build make dialyze",
+    {:sequence, [
+      "MIX_ENV=dev ./check_warnings.sh",
+      {:parallel, [
+        "mix docs",
+        "mix lint",
+        "mix bom --elixir deps /tmp/",
+        "MIX_HOME=_build make dialyze",
+      ]}
     ]}
+
+  :prod ->
+    {:sequence, ["MIX_ENV=prod ./check_warnings.sh"]}
 end
 
 # jobs map
@@ -32,7 +42,7 @@ end
   test:
     {:sequence, [
       "make deps",
-      {:parallel, [test.(:test), test.(:dev)]}
+      {:parallel, [test.(:test), test.(:dev), test.(:prod)]}
     ]},
 
   compliance:

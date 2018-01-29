@@ -19,17 +19,11 @@ defmodule Cloak.Sql.Query do
     | {:is, Expression.t, :null}
     | {:in, Expression.t, [Expression.t]}
 
-  @type where_clause ::
+  @type filter_clause ::
       nil
     | condition
     | {:not, condition}
     | {:and | :or, condition, condition}
-
-  @type having_clause ::
-      nil
-    | comparison
-    | {:not, comparison}
-    | {:and | :or, comparison, comparison}
 
   @type view_map :: %{view_name :: String.t => view_sql :: String.t}
 
@@ -60,7 +54,7 @@ defmodule Cloak.Sql.Query do
     # where the latter of these two is contained in the row-splitters.
     implicit_count?: boolean,
     group_by: [Function.t],
-    where: where_clause,
+    where: filter_clause,
     order_by: [{Expression.t, :asc | :desc}],
     show: :tables | :columns | nil,
     selected_tables: [DataSource.Table.t],
@@ -69,7 +63,7 @@ defmodule Cloak.Sql.Query do
     subquery?: boolean,
     limit: pos_integer | nil,
     offset: non_neg_integer,
-    having: having_clause,
+    having: filter_clause,
     distinct?: boolean,
     sample_rate: nil | non_neg_integer,
     emulated?: boolean,
@@ -80,6 +74,7 @@ defmodule Cloak.Sql.Query do
     noise_layers: [NoiseLayer.t],
     view?: boolean,
     table_aliases: %{String.t => DataSource.Table.t},
+    virtual_table?: boolean,
   }
 
   @type features :: %{
@@ -88,6 +83,7 @@ defmodule Cloak.Sql.Query do
     num_tables: pos_integer,
     num_group_by: non_neg_integer,
     functions: [String.t],
+    expressions: [String.t],
     where_conditions: [String.t],
     column_types: [String.t],
     selected_types: [String.t],
@@ -103,7 +99,7 @@ defmodule Cloak.Sql.Query do
     info: [], selected_tables: [], implicit_count?: false, data_source: nil, command: nil,
     show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: nil, distinct?: false,
     parameters: [], views: %{}, emulated?: false, sample_rate: nil, projected?: false,
-    next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false, table_aliases: %{},
+    next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false, table_aliases: %{}, virtual_table?: false,
   ]
 
 
@@ -186,7 +182,7 @@ defmodule Cloak.Sql.Query do
         {next_row_index, query} = next_row_index(query)
 
         %__MODULE__{query | db_columns: query.db_columns ++ [column]}
-        |> put_in([Lenses.query_expressions() |> Lens.satisfy(column_matcher) |> Lens.key(:row_index)], next_row_index)
+        |> put_in([Lenses.query_expressions() |> Lens.filter(column_matcher) |> Lens.key(:row_index)], next_row_index)
       _ ->
         query
     end
@@ -253,7 +249,7 @@ defmodule Cloak.Sql.Query do
   @doc "Updates the emulation flag to reflect whether the query needs to be emulated."
   @spec set_emulation_flag(t) :: t
   def set_emulation_flag(query), do:
-    %__MODULE__{query | emulated?: needs_emulation?(query)}
+    Compiler.Helpers.apply_bottom_up(query, &%__MODULE__{&1 | emulated?: needs_emulation?(&1)})
 
   @doc "Returns the list of outermost selected splitters."
   @spec outermost_selected_splitters(t) :: [Expression.t]
@@ -299,12 +295,12 @@ defmodule Cloak.Sql.Query do
   def resolve_db_columns(%__MODULE__{} = query), do: query
 
   @doc "Returns the where clauses that can be applied by the data source."
-  @spec offloaded_where(t) :: where_clause
+  @spec offloaded_where(t) :: filter_clause
   def offloaded_where(query), do:
     Condition.reject(query.where, &emulated_condition?(&1, query))
 
   @doc "Returns the where clauses that must be applied by inside the cloak."
-  @spec emulated_where(t) :: where_clause
+  @spec emulated_where(t) :: filter_clause
   def emulated_where(query), do:
     Condition.reject(query.where, &not emulated_condition?(&1, query))
 
@@ -361,6 +357,7 @@ defmodule Cloak.Sql.Query do
       emulated_where(query),
       query.having,
       order_by_expressions(query),
+      Compiler.NoiseLayers.noise_layer_columns(query)
     ]
 
   defp extract_columns(columns), do: Lenses.leaf_expressions() |> Lens.to_list(columns)

@@ -10,7 +10,7 @@ defmodule Mix.Tasks.DialyzeRetry do
   case, as it can't remove the missing module.
 
   The error can be manually solved by deleting the PLT file and retrying.
-  However, this is quite cumbersome, especially in Travis builds, where one has
+  However, this is quite cumbersome, especially in CI builds, where one has
   to find and delete the correct cache folder. This hacky wrapper will detect
   such error and try to fix it by removing the PLT file and retrying PLT check
   once more.

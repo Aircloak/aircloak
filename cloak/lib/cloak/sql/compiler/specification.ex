@@ -45,9 +45,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> compile_aliases()
     |> compile_columns()
     |> compile_references()
-    |> remove_redundant_casts()
     |> cast_where_clauses()
-    |> Validation.verify_query()
 
 
   # -------------------------------------------------------------------
@@ -222,9 +220,9 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp compile_subquery(parsed_subquery, alias, parent_query), do:
     parsed_subquery
     |> Map.put(:subquery?, true)
+    |> Map.put(:virtual_table?, parent_query.virtual_table?)
     |> compile(parent_query.data_source, parent_query.parameters, parent_query.views)
-    |> ensure_uid_selected()
-    |> Validation.verify_subquery(alias)
+    |> ensure_uid_selected(alias)
 
 
   # -------------------------------------------------------------------
@@ -237,13 +235,18 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp selected_tables({:join, join}, query), do:
     selected_tables(join.lhs, query) ++ selected_tables(join.rhs, query)
   defp selected_tables({:subquery, subquery}, _query) do
-    # In a subquery we should have the `user_id` already in the list of selected columns.
-    user_id_index = Enum.find_index(subquery.ast.columns, &(&1.user_id?))
-    user_id_name = Enum.at(subquery.ast.column_titles, user_id_index)
+    user_id_name =
+      if subquery.ast.virtual_table? do
+        nil
+      else
+        # In a subquery we should have the `user_id` already in the list of selected columns.
+        user_id_index = Enum.find_index(subquery.ast.columns, &(&1.user_id?))
+        Enum.at(subquery.ast.column_titles, user_id_index)
+      end
     columns =
         Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
         |> Enum.map(fn({alias, column}) ->
-          DataSource.Table.column(alias, Function.type(column), visible?: column.visible?) end)
+          DataSource.Table.column(alias, Function.type(column), visible?: not column.synthetic?) end)
         |> Enum.uniq()
     keys =
       Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
@@ -363,7 +366,8 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp compile_aliases(query), do: query
 
   defp column_title({_identifier, :as, alias}, _selected_tables), do: alias
-  defp column_title({:function, {:cast, _}, _}, _selected_tables), do: "cast"
+  defp column_title({:function, {:cast, _}, [expression]}, selected_tables), do:
+    column_title(expression, selected_tables)
   defp column_title({:function, {:bucket, _}, _}, _selected_tables), do: "bucket"
   defp column_title({:function, name, _}, _selected_tables), do: name
   defp column_title({:distinct, identifier}, selected_tables), do: column_title(identifier, selected_tables)
@@ -562,20 +566,6 @@ defmodule Cloak.Sql.Compiler.Specification do
 
 
   # -------------------------------------------------------------------
-  # UID columns
-  # -------------------------------------------------------------------
-
-  defp remove_redundant_casts(query), do:
-    # A cast which doesn't change the expression type is removed.
-    # The main motivation for doing this is because Tableau explicitly casts string columns to text,
-    # which makes problems for our join condition checks and make function usage restrictions trigger when
-    # they wouldn't strictly speaking be necessary.
-    Lenses.terminals()
-    |> Lens.satisfy(&match?(%Expression{function: {:cast, type}, function_args: [%Expression{type: type}]}, &1))
-    |> Lens.map(query, &hd(&1.function_args))
-
-
-  # -------------------------------------------------------------------
   # Where clauses
   # -------------------------------------------------------------------
 
@@ -619,13 +609,25 @@ defmodule Cloak.Sql.Compiler.Specification do
   # UID selection in a subquery
   # -------------------------------------------------------------------
 
-  defp ensure_uid_selected(subquery) do
-    case uid_column_to_implicitly_select?(subquery) do
-      nil ->
-        subquery
+  defp ensure_uid_selected(subquery, alias) do
+    case auto_select_uid_column(subquery) do
+      nil -> subquery
+
+      :error ->
+        possible_uid_columns =
+          Helpers.all_id_columns_from_tables(subquery)
+          |> Enum.map(&Expression.display_name/1)
+          |> case do
+            [column] -> "the column #{column}"
+            columns -> "one of the columns #{Enum.join(columns, ", ")}"
+          end
+        raise CompilationError, message:
+          "Missing a user id column in the select list of #{"subquery `#{alias}`"}. " <>
+          "To fix this error, add #{possible_uid_columns} to the subquery select list."
+
       uid_column ->
-        uid_alias = "__implicitly_selected_#{uid_column.table.name}.#{uid_column.name}__"
-        selected_expression = %Expression{uid_column | alias: uid_alias, visible?: false}
+        uid_alias = "__auto_selected_#{uid_column.table.name}.#{uid_column.name}__"
+        selected_expression = %Expression{uid_column | alias: uid_alias, synthetic?: true}
         %Query{subquery |
           columns: subquery.columns ++ [selected_expression],
           column_titles: subquery.column_titles ++ [uid_alias]
@@ -633,10 +635,10 @@ defmodule Cloak.Sql.Compiler.Specification do
     end
   end
 
-  defp uid_column_to_implicitly_select?(subquery) do
+  defp auto_select_uid_column(subquery) do
     cond do
-      # we're not auto appending uid columns to views
-      subquery.view? -> nil
+      # virtual table queries don't require user ids
+      subquery.virtual_table? -> nil
 
       # uid column is already explicitly selected
       Helpers.uid_column_selected?(subquery) -> nil
@@ -650,7 +652,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         uid_column
 
       # we can't select a uid column
-      true -> nil
+      true -> :error
     end
   end
 end

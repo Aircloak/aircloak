@@ -80,7 +80,8 @@ defmodule Cloak.DataSource.SAPHanaTest do
           name: table_name,
           db_name: db_name,
           user_id: "uid",
-          ignore_unsupported_types: true
+          ignore_unsupported_types: true,
+          query: nil,
         }
       }
     end

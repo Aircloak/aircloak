@@ -15,28 +15,51 @@ defmodule Cloak.Sql.Compiler.Normalization do
   * Switches complex expressions involving constants (like 1 + 2 + 3) to their results (6 in this case)
   * Removes redundant occurences of "%" from LIKE patterns (for example "%%" -> "%")
   * Normalizes sequences of "%" and "_" in like patterns so that the "%" always precedes a sequence of "_"
-  * Normalizes `IN (single_value)` to `= single_value`
+  * Expands `BUCKET` calls into equivalent mathematical expressions
 
-  These are useful for noise layers - we want to generate the same layer for semantically identical conditions,
-  otherwise we have to fall back to probing.
+  These are useful (among others) for noise layers - we want to generate the same layer for semantically identical
+  conditions, otherwise we have to fall back to probing.
   """
   @spec normalize(Query.t) :: Query.t
   def normalize(query), do:
     query
-    |> Helpers.apply_bottom_up(&normalize_in/1)
     |> Helpers.apply_bottom_up(&normalize_trivial_like/1)
     |> Helpers.apply_bottom_up(&normalize_constants/1)
     |> Helpers.apply_bottom_up(&normalize_order_by/1)
     |> Helpers.apply_bottom_up(&normalize_bucket/1)
 
+  @doc """
+  Modifies the query to remove expressions that do nothing, like:
+
+  * Casting a value to the same type it already is
+  * Rounding/truncating integers
+  """
+  @spec remove_noops(Query.t) :: Query.t
+  def remove_noops(query), do:
+    query
+    |> Helpers.apply_bottom_up(&remove_redundant_casts/1)
+    |> Helpers.apply_bottom_up(&remove_redundant_rounds/1)
+
 
   # -------------------------------------------------------------------
-  # IN normalization
+  # Removing useless casts
   # -------------------------------------------------------------------
 
-  defp normalize_in(query), do:
-    update_in(query, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
-      {:in, lhs, [exp]} -> {:comparison, lhs, :=, exp}
+  defp remove_redundant_casts(query), do:
+    update_in(query, [Query.Lenses.terminals()], fn
+      %Expression{function: {:cast, type}, function_args: [expr = %Expression{type: type}]} -> expr
+      other -> other
+    end)
+
+
+  # -------------------------------------------------------------------
+  # Removing useless round/trunc
+  # -------------------------------------------------------------------
+
+  @round_funcs ~w/round trunc ceil ceiling floor/
+  defp remove_redundant_rounds(query), do:
+    update_in(query, [Query.Lenses.terminals()], fn
+      %Expression{function: fun, function_args: [expr = %Expression{type: :integer}]} when fun in @round_funcs -> expr
       other -> other
     end)
 
@@ -65,7 +88,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   defp normalize_trivial_like(query), do:
     Query.Lenses.like_clauses()
-    |> Lens.satisfy(&trivial_like?/1)
+    |> Lens.filter(&trivial_like?/1)
     |> Lens.map(query, fn
       {:like, lhs, rhs} -> {:comparison, lhs, :=, LikePattern.trivial_to_string(rhs)}
       {:ilike, lhs, rhs} ->

@@ -182,22 +182,42 @@ defmodule Cloak.Query.Aggregator do
   @spec process_low_count_users([group], Query.t) :: [group]
   defp process_low_count_users(rows, query) do
     Logger.debug("Processing low count users ...")
-    {low_count_rows, high_count_rows} = Enum.partition(rows, &low_users_count?/1)
-
-    lcf_users_rows = Enum.reduce(low_count_rows, %{},
-    fn ({_values, _anonymizer, users_rows}, accumulator) ->
-      Map.merge(accumulator, users_rows, fn (_user, columns1, columns2) ->
-        Enum.zip(columns1, columns2) |> Enum.map(&merge_accumulators/1)
+    {_low_count_rows, high_count_rows} =
+      query
+      |> Rows.group_expressions()
+      |> length()
+      |> Range.new(1)
+      # We first partition the buckets into low-count and high-count buckets.
+      # Then, starting from right to left, we censor each bucket value sequentially and merge corresponding buckets.
+      # We then split the merged buckets again. We keep the merged buckets that pass the low-count filter and
+      # repeat the process for the next column and the new set of low-count buckets.
+      # When we run out of bucket values, we drop the final low-count bucket, if any.
+      |> Enum.reduce(Enum.partition(rows, &low_users_count?/1), fn (index, {low_count_rows, high_count_rows}) ->
+        {low_count_grouped_rows, high_count_grouped_rows} =
+          low_count_rows
+          |> Enum.group_by(fn ({values, _anonymizer, _users_rows}) -> List.replace_at(values, index - 1, :*) end)
+          |> Enum.map(&collapse_grouped_rows/1)
+          |> Enum.partition(&low_users_count?/1)
+        {low_count_grouped_rows, high_count_grouped_rows ++ high_count_rows}
       end)
-    end)
+    high_count_rows
+  end
 
-    anonymizer = anonymizer_from_groups(low_count_rows, query)
-    lcf_values = List.duplicate(:*, length(Rows.group_expressions(query)))
-    lcf_row = {lcf_values, anonymizer, lcf_users_rows}
-
-    if low_users_count?(lcf_row),
-      do: high_count_rows,
-      else: [lcf_row | high_count_rows]
+  defp collapse_grouped_rows({values, grouped_rows}) do
+    user_rows =
+      grouped_rows
+      |> Enum.map(fn ({_values, _anonymizer, users_rows}) -> users_rows end)
+      |> Enum.reduce(fn (users_rows1, users_rows2) ->
+        Map.merge(users_rows1, users_rows2, fn (_user, columns1, columns2) ->
+          Enum.zip(columns1, columns2) |> Enum.map(&merge_accumulators/1)
+        end)
+      end)
+    anonymizer =
+      grouped_rows
+      |> Enum.map(fn ({_values, anonymizer, _users_rows}) -> anonymizer.layers end)
+      |> Enum.reduce(&merge_layers/2)
+      |> Anonymizer.new()
+    {values, anonymizer, user_rows}
   end
 
   @spec aggregate_groups([group], Query.t) :: [DataSource.row]
@@ -351,16 +371,6 @@ defmodule Cloak.Query.Aggregator do
       %{row: row, occurrences: count, users_count: users_count}
     end)
   end
-
-  defp anonymizer_from_groups(groups, query), do:
-    Anonymizer.new(noise_layers_from_groups(groups, query))
-
-  defp noise_layers_from_groups([], query), do:
-    NoiseLayer.new_accumulator(query.noise_layers)
-  defp noise_layers_from_groups(groups, _query), do:
-    groups
-    |> Enum.map(fn({_values, anonymizer, _users_rows}) -> anonymizer.layers end)
-    |> Enum.reduce(&merge_layers/2)
 
   defp merge_layers(layers1, layers2), do: Enum.zip(layers1, layers2) |> Enum.map(&merge_layer/1)
 

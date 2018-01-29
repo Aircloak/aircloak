@@ -27,7 +27,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     join_table = %{name: "join", db_name: "join", columns: join_info.lhs_table.columns ++ rhs_table_columns}
     query =
       Query.Lenses.query_expressions()
-      |> Lens.satisfy(& &1.name != nil and &1.table == join_info.rhs_table)
+      |> Lens.filter(& &1.name != nil and &1.table == join_info.rhs_table)
       |> Lens.map(query, &%Expression{&1 | name: namespace <> "." <> &1.name})
     {collection, pipeline, conditions} = start_pipeline(join_info.lhs, join_info.lhs_table, query.where)
     pipeline =
@@ -159,16 +159,16 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     conditions =
       Query.Lenses.conditions()
       |> Query.Lenses.operands()
-      |> Lens.satisfy(&match?(%Expression{function?: true}, &1))
+      |> Lens.filter(&match?(%Expression{function?: true}, &1))
       |> Lens.map(conditions, fn (column) ->
         index = Enum.find_index(extra_columns, & &1 == column)
-        %Expression{name: "projected_condition_#{index}", type: column.type}
+        %Expression{name: "__condition_#{index}", type: column.type}
       end)
     extra_columns =
       extra_columns
       |> Enum.with_index()
       |> Enum.map(fn ({column, index}) ->
-        %Expression{column | alias: "projected_condition_#{index}"}
+        %Expression{column | alias: "__condition_#{index}"}
       end)
     {conditions, extra_columns}
   end
@@ -282,10 +282,10 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     end
   end
 
-  defp extract_column_top_from_conditions(conditions, aggregators), do:
+  defp extract_column_top_from_conditions(conditions, aggregators, groups), do:
     Query.Lenses.conditions()
     |> Query.Lenses.operands()
-    |> Lens.map(conditions, &extract_column_top(&1, aggregators, []))
+    |> Lens.map(conditions, &extract_column_top(&1, aggregators, groups))
 
   defp aggregate_and_project(%Query{db_columns: columns, group_by: groups, having: having} = query, top_level?) do
     having_columns =
@@ -307,7 +307,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       column_tops = Enum.map(columns, &extract_column_top(&1, aggregators, groups))
       properties = project_properties(groups)
       group = aggregators |> project_aggregators() |> Enum.into(%{"_id" => properties})
-      having = extract_column_top_from_conditions(having, aggregators)
+      having = extract_column_top_from_conditions(having, aggregators, groups)
       [%{'$group': group}] ++
       parse_conditions(Map.keys(group), having) ++
       project_columns(column_tops, top_level?) ++
@@ -350,7 +350,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   def used_array_size_columns(query) do
     Query.Lenses.query_expressions()
-    |> Lens.satisfy(& &1.name != nil and Schema.is_array_size?(&1.name))
-    |> Lens.get(query)
+    |> Lens.filter(& &1.name != nil and Schema.is_array_size?(&1.name))
+    |> Lens.to_list(query)
   end
 end

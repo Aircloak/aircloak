@@ -152,7 +152,7 @@ defmodule Cloak.DataSource.MongoDBTest do
   test "functions in sub-queries", context do
     assert_query context, "SELECT AVG(age) FROM (SELECT _id, age * 2 + 1 AS age FROM #{@table}) AS t",
       %{rows: [%{occurrences: 1, row: [61.0]}]}
-    assert_query context, "SELECT name FROM (SELECT _id, lower(left(name, 4)) AS name FROM #{@table}) AS t",
+    assert_query context, "SELECT name FROM (SELECT _id, left(name, 4) AS name FROM #{@table}) AS t",
       %{rows: [%{occurrences: 9, row: [nil]}, %{occurrences: 10, row: ["user"]}]}
   end
 
@@ -240,6 +240,12 @@ defmodule Cloak.DataSource.MongoDBTest do
     """, %{rows: [%{occurrences: 1, row: [10]}]}
   end
 
+  test "having clauses over grouped columns in subqueries", context do
+    assert_query context, """
+      SELECT COUNT(*) FROM (SELECT _id, name FROM #{@table}_bills GROUP BY _id, name HAVING length(name) = 2) AS t
+    """, %{rows: [%{occurrences: 1, row: [0]}]}
+  end
+
   test "inner functions in having clauses in subqueries", context do
     assert_query context, """
       SELECT COUNT(*) FROM (SELECT _id, COUNT(name) FROM #{@table}_bills
@@ -269,10 +275,16 @@ defmodule Cloak.DataSource.MongoDBTest do
       """, %{rows: [%{occurrences: 10, row: ["ser"]}]}
   end
 
-  test "left & right", context do
+  test "left", context do
     assert_query context, """
-        SELECT v FROM (SELECT _id, left(right(name, 3), 2) AS v FROM #{@table}) AS t WHERE v IS NOT NULL
-      """, %{rows: [%{occurrences: 9, row: ["er"]}]}
+        SELECT x FROM (SELECT _id, left(name, 2) AS x FROM #{@table}) AS t WHERE x IS NOT NULL
+      """, %{rows: [%{occurrences: 10, row: ["us"]}]}
+  end
+
+  test "right", context do
+    assert_query context, """
+        SELECT x FROM (SELECT _id, right("bills.issuer", 2) AS x FROM #{@table}_bills) AS t WHERE x IS NOT NULL
+      """, %{rows: [%{occurrences: 10, row: ["or"]}]}
   end
 
   test "cast numbers", context do

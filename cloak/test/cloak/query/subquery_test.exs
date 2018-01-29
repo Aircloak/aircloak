@@ -120,7 +120,7 @@ defmodule Cloak.Query.SubqueryTest do
     assert_query "select height from (select user_id, height from heights_sq order by height limit 50) alias",
       %{columns: ["height"], rows: [%{row: [180], occurrences: 50}]}
     assert_query "select height from (select user_id, height from heights_sq order by height offset 50) alias",
-      %{error: "Subquery `alias` has an OFFSET clause without a LIMIT clause."}
+      %{error: "Subquery has an `OFFSET` clause without a `LIMIT` clause."}
     assert_query "select height from (select user_id, height from heights_sq order by height limit 50 offset 100)"
       <> " alias", %{columns: ["height"], rows: [%{row: [190], occurrences: 50}]}
   end

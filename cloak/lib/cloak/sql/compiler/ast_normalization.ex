@@ -14,12 +14,28 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   Performs the following normalizations:
   * Replaces DISTINCT usage in SELECT lists with an equivalent GROUP BY (possibly adding a subquery).
   * Replaces NOT IN with an equivalent conjunction of <>
+  * Replaces all usages of unary NOT by converting the involved expressions into an equivalent form (for example using
+    De Morgan's laws)
+  * Replaces IN (single_element) with = single_element
   """
   @spec normalize(Parser.parsed_query) :: Parser.parsed_query
   def normalize(ast), do:
     ast
     |> apply_to_subqueries(&rewrite_distinct/1)
     |> Helpers.apply_bottom_up(&rewrite_not_in/1)
+    |> Helpers.apply_bottom_up(&rewrite_not/1)
+    |> Helpers.apply_bottom_up(&rewrite_in/1)
+
+
+  # -------------------------------------------------------------------
+  # IN rewriting
+  # -------------------------------------------------------------------
+
+  defp rewrite_in(ast), do:
+    update_in(ast, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
+      {:in, lhs, [exp]} -> {:comparison, lhs, :=, exp}
+      other -> other
+    end)
 
 
   # -------------------------------------------------------------------
@@ -54,6 +70,30 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   defp aggregator?({:function, name, args}), do:
     Function.has_attribute?(name, :aggregator) or Enum.any?(args, &aggregator?/1)
   defp aggregator?(_), do: false
+
+
+  # -------------------------------------------------------------------
+  # NOT rewriting
+  # -------------------------------------------------------------------
+
+  defp rewrite_not(ast), do:
+    update_in(ast, [Query.Lenses.filter_clauses() |> Query.Lenses.all_conditions()], fn
+      {:not, expr} -> negate(expr)
+      other -> other
+    end)
+
+  defp negate({:not, expr}), do: expr
+  defp negate({:and, lhs, rhs}), do: {:or, negate(lhs), negate(rhs)}
+  defp negate({:or, lhs, rhs}), do: {:and, negate(lhs), negate(rhs)}
+  defp negate({:comparison, lhs, op, rhs}), do: {:comparison, lhs, negate_operator(op), rhs}
+  defp negate(expr), do: {:not, expr}
+
+  defp negate_operator(:=), do: :<>
+  defp negate_operator(:<>), do: :=
+  defp negate_operator(:<), do: :>=
+  defp negate_operator(:>), do: :<=
+  defp negate_operator(:<=), do: :>
+  defp negate_operator(:>=), do: :<
 
 
   # -------------------------------------------------------------------

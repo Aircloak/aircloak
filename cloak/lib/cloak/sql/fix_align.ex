@@ -177,9 +177,25 @@ defmodule Cloak.Sql.FixAlign do
 
   defp datetime_from_units({x, y}, unit), do: {datetime_from_units(x, unit), datetime_from_units(y, unit)}
   defp datetime_from_units(x, unit) do
-    less_significant = (x - Float.floor(x)) * conversion_factor(unit, lower_unit(unit)) |> round()
-    more_significant = x |> Float.floor() |> round()
-    Timex.shift(@epoch, [{unit, more_significant}, {lower_unit(unit), less_significant}])
+    cond do
+      unit == :years and @epoch.year + x < Cloak.Time.datetime_lower_bound().year -> Cloak.Time.datetime_lower_bound()
+      unit == :years and @epoch.year + x > Cloak.Time.datetime_upper_bound().year -> Cloak.Time.datetime_upper_bound()
+      true ->
+        less_significant = (x - Float.floor(x)) * conversion_factor(unit, lower_unit(unit)) |> round()
+        more_significant = x |> Float.floor() |> round()
+
+        @epoch
+        |> Timex.shift([{unit, more_significant}, {lower_unit(unit), less_significant}])
+        |> apply_datetime_bounds()
+    end
+  end
+
+  defp apply_datetime_bounds(datetime) do
+    cond do
+      datetime.year < Cloak.Time.datetime_lower_bound().year -> Cloak.Time.datetime_lower_bound()
+      datetime.year > Cloak.Time.datetime_upper_bound().year -> Cloak.Time.datetime_upper_bound()
+      true -> datetime
+    end
   end
 
   defp conversion_factor(:years, :months), do: @months_in_year

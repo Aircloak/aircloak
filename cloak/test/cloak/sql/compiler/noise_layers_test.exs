@@ -137,7 +137,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}, _, _]},
         %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}, _, _, %Expression{name: "uid"}]},
       ] = result.noise_layers
-      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
+      assert 2 = Enum.count(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
     end
 
@@ -183,16 +183,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       ] = result.noise_layers
       refute Enum.any?(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
-    end
-
-    test "a column from a subquery is not clear" do
-      result = compile!("SELECT COUNT(*) FROM (SELECT uid, numeric AS number FROM table) x WHERE number = 3")
-
-      assert [
-        %{base: {"table", "numeric", nil}, expressions: [%{name: alias}, %{name: alias}, %{value: 1}]},
-        %{base: {"table", "numeric", nil}, expressions: [%{name: alias}, %{name: alias}, %{value: 1}, %{name: "uid"}]},
-      ] = result.noise_layers
-      refute is_nil(alias)
     end
 
     test "a comparison of two columns" do
@@ -247,7 +237,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "noise layer from an implicit range" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE trunc(numeric) = 10")
+      result = compile!("SELECT COUNT(*) FROM table WHERE trunc(numeric, -1) = 10")
 
       assert [
         %{base: {"table", "numeric", :implicit}, expressions: [%Expression{name: "numeric"}, _, _]},
@@ -381,8 +371,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       result = compile!("SELECT COUNT(*) FROM (SELECT uid, numeric FROM table WHERE numeric <> 2) x WHERE numeric = 1")
 
       assert [
-        static_layer({"table", "numeric", {:<>, :override}}), uid_layer({"table", "numeric", {:<>, :override}}),
         static_layer({"table", "numeric", nil}), uid_layer({"table", "numeric", nil}),
+        static_layer({"table", "numeric", {:<>, :override}}), uid_layer({"table", "numeric", {:<>, :override}}),
       ] = result.noise_layers
     end
 
@@ -728,6 +718,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
   end
 
+  test "[Issue #2217] noise layers for expressions on user_id don't alias the user_id", do:
+    assert %{noise_layers: [%{expressions: [%{alias: nil} | _]} | _]} =
+      compile!("SELECT COUNT(*) FROM table WHERE uid BETWEEN 0 AND 10")
+
   describe "noise layer base data" do
     test "insensitive to being aliased" do
       %{noise_layers: [%{base: base}, %{base: base}]} = compile!("""
@@ -825,6 +819,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   defp compile!(query, opts \\ []), do:
     Cloak.Test.QueryHelpers.compile!(query, data_source(), opts)
     |> Cloak.Sql.Compiler.NoiseLayers.compile()
+    |> Cloak.Sql.Query.resolve_db_columns()
 
   defp data_source() do
     %{

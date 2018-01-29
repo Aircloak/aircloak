@@ -10,6 +10,7 @@ defmodule AircloakCI.Mixfile do
       deps: deps(),
       aliases: aliases(Mix.env),
       preferred_cli_env: [dialyze: :dev, release: :prod],
+      elixirc_paths: elixirc_paths(Mix.env),
     ]
   end
 
@@ -25,7 +26,7 @@ defmodule AircloakCI.Mixfile do
       {:httpoison, "~> 0.13.0"},
       {:poison, "~> 2.0"},
       {:aircloak_common, path: "../common/elixir"},
-      {:erlexec, "~> 1.7"},
+      {:erlexec, "~> 1.7", only: [:dev, :prod]},
       {:jobs, "~> 0.7"},
       {:recon, "~> 2.0"},
     ]
@@ -42,4 +43,7 @@ defmodule AircloakCI.Mixfile do
     ["ModuleDoc", "DuplicatedCode" | ignored_credo_checks(:dev)]
   defp ignored_credo_checks(_), do:
     ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting", "FunctionArity"]
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 end

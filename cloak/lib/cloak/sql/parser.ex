@@ -171,15 +171,15 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp additive_expression() do
-    infix_expression([keyword(:+), keyword(:-)], multiplicative_expression())
+    left_associative_expression([keyword(:+), keyword(:-)], multiplicative_expression())
   end
 
   defp multiplicative_expression() do
-    infix_expression([keyword(:*), keyword(:/), keyword(:%)], exponentiation_expression())
+    left_associative_expression([keyword(:*), keyword(:/), keyword(:%)], exponentiation_expression())
   end
 
   def exponentiation_expression() do
-    infix_expression([keyword(:^)], unary_expression())
+    left_associative_expression([keyword(:^)], unary_expression())
   end
 
   def unary_expression() do
@@ -196,24 +196,29 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp concat_expression() do
-    infix_expression([keyword(:||)], infix_cast_expression())
+    left_associative_expression([keyword(:||)], infix_cast_expression())
     |> map(&normalize_concat/1)
   end
 
   defp normalize_concat({:function, "||", args}), do: {:function, "concat", Enum.map(args, &normalize_concat/1)}
   defp normalize_concat(other), do: other
 
-  defp infix_cast_expression() do
-    infix_expression([keyword(:"::")], simple_expression(), data_type())
-    |> map(fn
-      {:function, "::", [expr, type]} -> {:function, {:cast, type}, [expr]}
-      other -> other
-    end)
-  end
+  defp infix_cast_expression(), do:
+    sequence([parenthesised_expression(), option(cast_suffix())])
+    |> map(fn([expr, cast_suffix]) -> build_cast(expr, cast_suffix) end)
+
+  defp cast_suffix(), do:
+    sequence([keyword(:"::"), data_type(), lazy(fn -> option(cast_suffix()) end)])
+
+  defp build_cast(expr, nil), do: expr
+  defp build_cast(expr, [:"::", type, next_cast]), do:
+    build_cast({:function, {:cast, type}, [expr]}, next_cast)
+
+  defp parenthesised_expression(), do:
+    paren_parser(column(), simple_expression())
 
   defp simple_expression() do
     choice_deepest_error([
-      parenthesised_expression(),
       cast_expression(),
       bucket_expression(),
       function_expression(),
@@ -223,13 +228,6 @@ defmodule Cloak.Sql.Parser do
       field_or_parameter(),
       constant_column() |> label("column definition")
     ])
-  end
-
-  defp parenthesised_expression() do
-    pipe(
-      [keyword(:"("), column(), keyword(:")")],
-      fn([:"(", result, :")"]) -> result end
-    )
   end
 
   defp constant_column() do
@@ -442,17 +440,21 @@ defmodule Cloak.Sql.Parser do
    )
   end
 
-  defp infix_expression(operators, left_parser, right_parser \\ nil) do
+  defp left_associative_expression(operators, term_parser, normalizer \\ &infix_to_function/3) do
     pipe(
       [
-        left_parser,
-        many(sequence([choice(operators), right_parser || left_parser])),
+        term_parser,
+        many(sequence([choice(operators), term_parser])),
       ],
-      fn[first, rest] -> Enum.reduce(rest, first,
-        fn([operator, right], left) -> {:function, to_string(operator), [left, right]} end)
+      fn[first, rest] -> Enum.reduce(rest, first, fn([operator, right], left) ->
+        normalizer.(operator, left, right) end)
       end
     )
   end
+
+  defp infix_to_function(operator, left, right), do: {:function, to_string(operator), [left, right]}
+
+  defp infix_to_boolean_expression(operator, left, right), do: {operator, left, right}
 
   defp field_or_parameter(), do:
     either(qualified_identifier(), parameter())
@@ -623,7 +625,7 @@ defmodule Cloak.Sql.Parser do
         end)
   end
 
-  defp where_expressions(), do: conjunction_expression(where_expression(), "Invalid where expression.")
+  defp where_expressions(), do: disjunction_expression(where_expression())
 
   defp where_expression() do
     switch([
@@ -814,39 +816,6 @@ defmodule Cloak.Sql.Parser do
     sep_by1_eager(term_parser, keyword(:","))
   end
 
-  defp conjunction_expression_parser(term_parser, error_message) do
-    recur = lazy(fn -> conjunction_expression_parser(term_parser, error_message) end)
-
-    choice_deepest_error([
-      sequence([term_parser, keyword_of([:and, :or]), recur]),
-      sequence([keyword(:"("), recur, keyword(:")"), keyword_of([:and, :or]), recur]),
-      sequence([keyword(:"("), recur, keyword(:")")]),
-      term_parser,
-      error_message(fail(""), error_message),
-    ])
-    |> map(fn
-      [:"(", terms, :")"] -> terms
-      [:"(", terms, :")", op, rest] when op in [:and, :or] -> [terms, op | rest]
-      [term, op, rest] when op in [:and, :or] -> [term, op | rest]
-      term -> [term]
-    end)
-  end
-
-  defp conjunction_expression(term_parser, error_message), do:
-    conjunction_expression_parser(term_parser, error_message)
-    |> map(&build_expression_tree/1)
-
-  defp build_expression_tree([term]), do: build_expression_tree(term)
-  defp build_expression_tree(terms) when is_list(terms) do
-    terms
-    |> Enum.split_while(& &1 != :or)
-    |> case do
-      {[lhs, :and | rhs], []} -> {:and, build_expression_tree(lhs), build_expression_tree(rhs)}
-      {lhs, [:or | rhs]} -> {:or, build_expression_tree(lhs), build_expression_tree(rhs)}
-    end
-  end
-  defp build_expression_tree(term), do: term
-
   defp end_of_input(parser) do
     parser
     |> error_message(token(:eof), "Expected end of input.")
@@ -882,7 +851,7 @@ defmodule Cloak.Sql.Parser do
     end)
   end
 
-  defp having_expressions(), do: conjunction_expression(having_expression(), "Invalid having expression.")
+  defp having_expressions(), do: disjunction_expression(having_expression())
 
   defp having_expression() do
     switch([
@@ -896,6 +865,32 @@ defmodule Cloak.Sql.Parser do
         {:and, {:comparison, column, :>=, min}, {:comparison, column, :<=, max}}
     end)
   end
+
+  defp disjunction_expression(term_parser), do:
+    left_associative_expression([keyword(:or)], conjunction_expression(term_parser), &infix_to_boolean_expression/3)
+
+  defp conjunction_expression(term_parser), do:
+    left_associative_expression([keyword(:and)], unary_not_expression(term_parser), &infix_to_boolean_expression/3)
+
+  defp unary_not_expression(term_parser), do:
+    choice_deepest_error([
+      sequence([keyword(:not), lazy(fn -> unary_not_expression(term_parser) end)]),
+      paren_parser(lazy(fn -> disjunction_expression(term_parser) end), term_parser),
+    ])
+    |> map(fn
+      [:not, expr] -> {:not, expr}
+      expr -> expr
+    end)
+
+  defp paren_parser(in_parens_parser, term_parser), do:
+    switch([
+      {keyword(:"("), in_parens_parser |> keyword(:")")},
+      {:else, term_parser}
+    ])
+    |> map(fn
+      {[:"("], [result, :")"]} -> result
+      result -> result
+    end)
 
   defp optional_distinct() do
     keyword(:distinct)

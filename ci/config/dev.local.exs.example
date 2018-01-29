@@ -2,12 +2,25 @@
 
 use Mix.Config
 
-# Enables real Github writes
-# Be very careful with this option, because it will post statuses and comments to real github issues
-# config :aircloak_ci, :simulate_github_writes, false
+# Polls Github for repo changes. Setting this to true, allows you to run the CI server locally.
+# config :aircloak_ci, poll_github: true
+
+# Enables real Github writes.
+# Be very careful with this option, because it will post statuses and comments to Github issues.
+# config :aircloak_ci, :write_to_github, true
+
+# This can be used to simulate various tests by sleeping for 1 second, and thus reduce the execution in dev.
+# If you remove an item from this list, then the real job will be executed locally.
+# config :aircloak_ci, simulated_jobs: [:compile, :compliance, :test]
 
 # Disables noisy console output for each build.
 # config :aircloak_ci, cmd_runner: [console_out: false]
 
-# Simulates compliance execution by sleeping for 1 second. Can be useful to to reduce the build time in local dev.
-config :aircloak_ci, :simulate_compliance, true
+# Simulates execution of commands in the docker container
+config :aircloak_ci, simulate_commands: true
+
+# Run CI only for some  components:
+config :aircloak_ci, components_filter: {:only, ["air", "cloak"]}
+
+# Exclude some components from CI:
+config :aircloak_ci, components_filter: {:except, ["air", "cloak"]}

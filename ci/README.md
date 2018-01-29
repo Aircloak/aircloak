@@ -30,7 +30,7 @@ Finally, you need to create the personal access token for your Github account. Y
 
 ### Running
 
-You can force start a build with `mix aircloak_ci.force_build pr_number`. The pull request needs to be mergeable (no conflicts with the target branch).
+You can force start a build with `mix aircloak_ci.force_pr_build pr_number`. The pull request needs to be mergeable (no conflicts with the target branch).
 
 You can start the local service by invoking `make start`. This will behave exactly as the real service, except it will use your credentials, and it will not post comments and status changes to Github.
 
@@ -38,7 +38,7 @@ You can make some changes to the local behavior by creating the `config/dev.loca
 
 All checkouts and logs reside in `~/.aircloak_ci/data`. In case something is terribly broken, you can remove that folder (but not the `~/.aircloak_ci` folder), and try again.
 
-Note that you don't need to use this service to run the CI suite locally. You can invoke shell scripts directly, or via make tasks. For example, to run and debug compliance tests, you can invoke `make ci.compliance` and `make ci.compliance.debug` tasks from the `cloak` folder. See `cloak/README.md` for more details.
+Note that you don't need to use this service to run the CI suite locally. You can invoke shell scripts directly, or via make tasks. For example, to run and debug compliance tests, you can invoke `make ci.compliance` and `make ci.compliance` tasks from the `cloak` folder. See `cloak/README.md` for more details.
 
 
 ## Production
@@ -46,10 +46,26 @@ Note that you don't need to use this service to run the CI suite locally. You ca
 The service is running as a systemd service called `aircloak_ci` on acatlas4.mpi-sws.org. The service definition file is located [here](./production/aircloak_ci.service). You can use standard systemd tools, such as `journalctl` and `systemctl` to manage the service. There is also the local `production.sh` script, which simplifies some common tasks:
 
 - reading the service log: `./production.sh service_log`. This command is a wrapper around `ssh acatlas4 "journalctl -u aircloak_ci --no-pager ..."`, so you can pass standard `journalctl` arguments. For example, to tail the production log, you can invoke `./production.sh service_log -f`
-- getting the snapshot of the PR build log: `./production.sh build_log pr_number`
-- force starting a PR build: `./production.sh force_build pr_number`
 - deploying the new version: `./production.sh deploy`
 - rolling back to the previously deployed version: `./production.sh rollback`
+
+Following commands allow you to work with a particular build job (e.g. compliance test for PR 1234):
+
+- getting the snapshot of the build log: `./production.sh target_type target_id job_name`
+- force starting a build: `./production.sh force_build target_type target_id job_name`
+
+Where:
+
+- `target_type` is either `branch` or `pr`
+- `target_id` is branch name or PR number
+- `job_name` is one of `component_compile`, `component_test`, `compliance`, or `all`
+- `component` is one of `air`, `cloak`, `central`, `bom`, `common`, `ci`, `integration_test`
+
+For example, to restart the cloak_test build for branch `my_branch`, you can invoke:
+
+```
+./production.sh branch my_branch cloak_test
+```
 
 The service is running under the `ci` user. Releases reside in the `/home/ci/aircloak_ci` folder. All temporary files (local caches and logs) reside in the `/home/ci/.aircloak_ci/data/` folder.
 
@@ -60,3 +76,77 @@ ssh acatlas4.mpi-sws.org
 su ci
 /home/ci/aircloak_ci/production/current/bin/aircloak_ci remote_console
 ```
+
+In case you need to stop/start/restart the service, you can do it with the following command sequence:
+
+```
+ssh acatlas4.mpi-sws.org
+systemctl stop/start/restart aircloak_ci.service
+```
+
+### Starting a component CI container
+
+It is possible to start a component CI container, both locally and in production, and then manually run various commands, such as compile, test, ...
+
+To start a local CI container for a component, you can invoke `ci/start_component.sh component_name`. For example, to start a container for the `bom` component, you can invoke `ci/start_component.sh bom`.
+
+To start a CI container on a production, you need to invoke the following commands:
+
+```
+$ ssh acatlas4.mpi-sws.org
+$ su ci
+$ cd /home/ci/.aircloak_ci/data/cache/builds/pr-XYZ/src
+$ ci/start_component.sh component_name
+```
+
+Notes:
+
+- `start_component.sh` is not available for PRs targeting the release 18.1 branch.
+- `start_component.sh` also starts the supporting containers, such as database server.
+- No initialization is performed. You need to manually fetch dependencies, and initialize database.
+- Refer to `component_folder/ci/jobs.exs` for the exact shape of test commands.
+
+### Internal folder structure
+
+The component keeps all the data in the `~/.aircloak_ci/data` folder. In production, this is the `/home/ci/.aircloak_ci/data` folder.
+
+The `~/.aircloak_ci/data/logs` folder contains the build logs. The folder name for a pull requests is in the shape of `pr-XYZ`. For example, build logs for PR 1234 are in the folder `~/.aircloak_ci/data/logs/pr-1234`. In the log folder, you'll find a bunch of logs, which are plain text files. You can analyze these logs, in case the default report doesn't provide enough information.
+
+The build sources are stored in the `~/.aircloak_ci/data/cache`. In this folder, you'll find two subfolders: `branches` (branches sources) and `builds` (PR sources). The actual source is then stored in the `src` folder of the target. For example, source for the PR 1234 sits in the folder `~/.aircloak_ci/data/cache/builds/pr-1234/src/`. In this folder, you can start CI containers, as explained in the previous section.
+
+### Setting up the server
+
+The initial configuration of the production server is manual. This section describes the needed steps to set up a new CI server.
+
+#### Prerequisites
+
+- Debian
+- Docker (at least 17.12)
+- git
+- [asdf](https://github.com/asdf-vm/asdf) and the required plug-ins (Erlang, Elixir, node)
+
+#### Setup
+
+1. Create a non-root user with the login `ci` and add it to the `docker` group.
+2. For the `ci` user, upload the Github private key, and setup ssh access in `/home/ci/.ssh/config`:
+
+    ```
+    Host github.com
+    User git
+    PreferredAuthentications publickey
+    IdentityFile ~/.ssh/github/id_rsa
+    ```
+
+3. Make sure that proxies are properly configured at `/home/ci/.docker/config.json`
+4. Create the `/home/ci/.aircloak_ci/config.json` with the following content:
+
+    ```
+    {
+      "github_access_token": github_api_access_token
+    }
+    ```
+
+5. As the `ci` user, create the `/home/ci/aircloak_ci` folder, and in that folder invoke `git clone git@github.com:aircloak/aircloak build`
+6. If the server name has changed, you need to update the `ci/production.sh` on the development machine.
+
+At this point, you can deploy the system from your development machine.

@@ -52,8 +52,9 @@ defmodule Cloak.Query.Runner.Engine do
 
   defp prepare_for_execution(compiled_query), do:
     compiled_query
-    |> Sql.Query.resolve_db_columns()
     |> Sql.Compiler.NoiseLayers.compile()
+    |> Sql.Query.resolve_db_columns()
+    |> Query.DbEmulator.compile()
 
   defp run_statement(%Sql.Query{command: :show, show: :tables} = query, features, _state_updater), do:
     (Map.keys(query.data_source.tables) ++ Map.keys(query.views))
@@ -65,16 +66,15 @@ defmodule Cloak.Query.Runner.Engine do
     |> sorted_table_columns()
     |> Enum.map(&%{occurrences: 1, row: [&1.name, to_string(&1.type)]})
     |> Query.Result.new(query, features)
-  defp run_statement(%Sql.Query{command: :select} = query, features, state_updater), do:
-    select(query, &process_final_rows(&1, query, features, state_updater))
-
-  defp select(%Sql.Query{emulated?: true} = query, rows_processor) do
-    Logger.debug("Emulating query ...")
-    query |> Query.DbEmulator.select() |> rows_processor.()
-  end
-  defp select(%Sql.Query{emulated?: false} = query, rows_processor) do
-    DataSource.select!(%Sql.Query{query | where: Sql.Query.offloaded_where(query)}, rows_processor)
-  end
+  defp run_statement(%Sql.Query{command: :select, emulated?: false} = query, features, state_updater), do:
+    DataSource.select!(
+      %Sql.Query{query | where: Sql.Query.offloaded_where(query)},
+      &process_final_rows(&1, query, features, state_updater)
+    )
+  defp run_statement(%Sql.Query{command: :select, emulated?: true} = query, features, state_updater), do:
+    query
+    |> Query.DbEmulator.select()
+    |> process_final_rows(query, features, state_updater)
 
   defp sorted_table_columns(table) do
     {[uid], other_columns} = Enum.split_with(table.columns, &(&1.name == table.user_id))

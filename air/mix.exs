@@ -90,6 +90,7 @@ defmodule Air.Mixfile do
       {:remote_ip, "~> 0.1.0"},
       {:ecto_enum, "~> 1.0.0"},
       {:jiffy, "~> 0.14.1"},
+      {:bom, path: "../bom", runtime: false, only: :dev},
     ]
   end
 
@@ -105,15 +106,10 @@ defmodule Air.Mixfile do
       "migrate": ["app.start", "ecto.migrate"],
       "seed": ["app.start", "run priv/repo/seeds.exs"],
       "test.standard": ["test", "eunit"],
-      "lint": ["credo --strict --ignore #{Enum.join(ignored_credo_checks(Mix.env), ",")}"]
+      "lint": ["credo --strict"]
     ]
   end
   defp aliases(:prod), do: []
-
-  defp ignored_credo_checks(:test), do:
-    ["ModuleDoc" | ignored_credo_checks(:dev)]
-  defp ignored_credo_checks(_), do:
-    ["CyclomaticComplexity", "NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting", "FunctionArity"]
 
   defp extra_applications(:test), do: [:odbc | extra_common_applications()]
   defp extra_applications(:dev), do: extra_common_applications() ++ dialyzer_required_deps()

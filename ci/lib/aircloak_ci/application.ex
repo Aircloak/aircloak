@@ -11,13 +11,17 @@ defmodule AircloakCI.Application do
   def start(_type, _args) do
     startup_check()
 
+    AircloakCI.Queue.create_queues()
+
     Supervisor.start_link(
-      [
+      test_processes() ++ [
         AircloakCI.CmdRunner.Supervisor,
         AircloakCI.Github,
         AircloakCI.RepoDataProvider,
-        AircloakCI.Build,
-        AircloakCI.BuildCleaner
+        AircloakCI.Container,
+        AircloakCI.Build.Service,
+        AircloakCI.BuildCleaner,
+        AircloakCI.LogCleaner,
       ],
       strategy: :one_for_one,
       name: AircloakCI.Supervisor
@@ -34,9 +38,17 @@ defmodule AircloakCI.Application do
     check_github_access!()
   end
 
-  defp check_github_access!() do
-    with {:error, reason} <- AircloakCI.github_token(), do:
-      raise(reason)
+  if Mix.env() != :test do
+    defp check_github_access!() do
+      with {:error, reason} <- AircloakCI.github_token(), do:
+        raise(reason)
+    end
+
+    defp test_processes(), do: []
+  else
+    defp check_github_access!(), do: :ok
+
+    def test_processes, do: [AircloakCI.TestExec]
   end
 
   defp init_data_folder!() do

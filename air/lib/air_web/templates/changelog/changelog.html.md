@@ -1,3 +1,15 @@
+## Version 18.2.0
+
+### Enhancements
+
+- Optimization of emulated queries by pushing conditions into bottom sub-queries.
+
+### Changes
+
+- Low count buckets are grouped sequentially per each subset of columns starting from right to left.
+
+### Bugfixes
+
 ## Version 18.1.2
 
 ### Bugfixes

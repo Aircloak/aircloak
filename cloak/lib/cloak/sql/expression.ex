@@ -27,13 +27,13 @@ defmodule Cloak.Sql.Expression do
     function?: boolean,
     aggregate?: boolean,
     parameter_index: pos_integer | nil,
-    visible?: boolean,
+    synthetic?: boolean,
     key?: boolean,
   }
   defstruct [
     table: :unknown, name: nil, alias: nil, type: nil, user_id?: false, row_index: nil, constant?: false,
     value: nil, function: nil, function_args: [], aggregate?: false, function?: false, parameter_index: nil,
-    visible?: true, key?: false
+    synthetic?: false, key?: false
   ]
 
   @doc "Returns an expression representing a reference to the given column in the given table."
@@ -232,10 +232,17 @@ defmodule Cloak.Sql.Expression do
     %__MODULE__{expression | value: String.downcase(value)}
   def lowercase(%__MODULE__{type: :text} = expression), do:
     function("lower", [expression], expression.type)
-  def lowercase(%__MODULE__{type: :like_pattern, value: {pattern, escape}} = expression), do:
-    %__MODULE__{expression | value: {String.downcase(pattern), escape}}
+  def lowercase(%__MODULE__{type: :like_pattern, value: pattern} = expression), do:
+    %__MODULE__{expression | value: LikePattern.lowercase(pattern)}
   def lowercase(_), do:
-    raise "Only textual expression can be made lowercase"
+    raise "Only textual expressions can be made lowercase"
+
+  @doc "Checks if a string is a valid name for a column."
+  @spec valid_alias?(String.t) :: boolean
+  def valid_alias?(name), do:
+    String.match?(name, ~r/^[_#]*[a-zA-Z][a-zA-Z0-9_.#]*$/) and
+    not String.contains?(name, "..") and
+    String.last(name) != "."
 
 
   # -------------------------------------------------------------------

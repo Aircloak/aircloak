@@ -1,15 +1,25 @@
 test = fn
   :test ->
-    {:parallel, ["MIX_ENV=test mix lint", {:sequence, ["MIX_ENV=test mix recreate_db", "mix test"]}]}
+    {:sequence, [
+      "MIX_ENV=test ./check_warnings.sh",
+      {:parallel, ["MIX_ENV=test mix lint", {:sequence, ["MIX_ENV=test mix recreate_db", "mix test"]}]}
+    ]}
 
   :dev ->
-    {:parallel, [
-      "make docs",
-      "make eslint",
-      "make flow",
-      "mix lint",
-      "MIX_HOME=_build make dialyze",
+    {:sequence, [
+      "MIX_ENV=dev ./check_warnings.sh",
+      {:parallel, [
+        "make docs",
+        "make eslint",
+        "make flow",
+        "mix lint",
+        "mix bom --elixir deps --node assets/node_modules /tmp",
+        "MIX_HOME=_build make dialyze",
+      ]}
     ]}
+
+  :prod ->
+    {:sequence, ["MIX_ENV=prod ./check_warnings.sh"]}
 end
 
 # jobs map
@@ -28,6 +38,6 @@ end
   test:
     {:sequence, [
       "make deps",
-      {:parallel, [test.(:test), test.(:dev)]}
+      {:parallel, [test.(:test), test.(:dev), test.(:prod)]}
     ]},
 }

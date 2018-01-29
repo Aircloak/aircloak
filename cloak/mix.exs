@@ -37,9 +37,8 @@ defmodule Cloak.Mixfile do
       {:websocket_client, "~> 1.2.4"},
       {:combine, "~> 0.9.6"},
       {:timex, "~> 3.1"},
-      {:poison, github: "cristianberneanu/poison", override: true},
+      {:poison, github: "sasa1977/poison", override: true},
       {:mongodb, "~> 0.3.0"},
-      {:lens, "~> 0.4.0"},
       {:backoff, "~> 1.1.3"},
       {:jiffy, "~> 0.14.1"},
       {:tds, github: "cristianberneanu/tds"},
@@ -59,7 +58,9 @@ defmodule Cloak.Mixfile do
       {:triq, github: "triqng/triq", only: :test},
 
       # Only used for perf tests
-      {:httpoison, "~> 0.13.0", runtime: false},
+      {:httpoison, "~> 0.13.0", runtime: false, override: true},
+
+      {:bom, path: "../bom", runtime: false, only: :dev},
     ]
   end
 
@@ -81,15 +82,10 @@ defmodule Cloak.Mixfile do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases(env) when env in [:dev, :test] do
     [
-      "lint": ["credo --strict --ignore #{Enum.join(ignored_credo_checks(Mix.env), ",")}"]
+      "lint": ["credo --strict"]
     ]
   end
   defp aliases(_), do: []
-
-  defp ignored_credo_checks(:test), do:
-    ["ModuleDoc", "DuplicatedCode" | ignored_credo_checks(:dev)]
-  defp ignored_credo_checks(_), do:
-    ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting", "FunctionArity"]
 
   defp otp_version(), do:
     [:code.root_dir(), "releases", :erlang.system_info(:otp_release), "OTP_VERSION"]
