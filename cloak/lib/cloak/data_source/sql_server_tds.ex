@@ -20,29 +20,15 @@ defmodule Cloak.DataSource.SQLServerTds do
     self = self()
     parameters = Enum.to_list(parameters) ++ [sync_connect: true,
       pool: DBConnection.Connection, after_connect: fn (_) -> send self, :connected end]
-    trap_exit = Process.flag(:trap_exit, true)
-    try do
-      case Tds.start_link(parameters) do
-        {:ok, connection} ->
-          receive do
-            :connected ->
-              Tds.query!(connection, "SET ANSI_DEFAULTS ON", [])
-              connection
-          after :timer.seconds(5)
-            ->
-              GenServer.stop(connection)
-              DataSource.raise_error("Unknown failure during database connection process")
-          end
-
-        {:error, {:function_clause, [{Tds.Utils, :reply, [%Tds.Error{} = error | _args], _location} | _stack]}} ->
-          DataSource.raise_error(error.message)
-
-        _error ->
-          # We're not logging or returning an error, since it might leak database password.
-          DataSource.raise_error("Unknown failure during database connection process")
-      end
-    after
-      Process.flag(:trap_exit, trap_exit)
+    {:ok, connection} = Tds.start_link(parameters)
+    receive do
+      :connected ->
+        Tds.query!(connection, "SET ANSI_DEFAULTS ON", [])
+        connection
+    after :timer.seconds(5)
+      ->
+        GenServer.stop(connection)
+        DataSource.raise_error("Unknown failure during database connection process")
     end
   end
 
