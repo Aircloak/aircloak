@@ -437,6 +437,7 @@ defmodule Cloak.DataSource do
       [
         gen_server(__MODULE__, load_data_source_configs(), name: __MODULE__),
         Cloak.DataSource.SerializingUpdater,
+        Cloak.DataSource.PostgrexAutoRepair
       ],
       strategy: :one_for_one,
       name: Cloak.DataSource.Supervisor
