@@ -34,14 +34,10 @@ are `year`, `quarter`, `month`, `day`, `hour`, `minute`, and `second`.
 
 2 ^ 3
 -- 8
-
-7 % 3
--- 1
 ```
 
 The operators `+`, `-`, `/`, and `*` have their usual meaning of addition, subtraction, division, and
-multiplication respectively. The operator `^` denotes exponentiation. The operator `%` denotes the division
-remainder.
+multiplication respectively. The operator `^` denotes exponentiation.
 
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
