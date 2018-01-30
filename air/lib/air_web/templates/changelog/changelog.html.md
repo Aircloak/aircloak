@@ -17,6 +17,7 @@
 - Fixes cloak crash when creating error message on some invalid queries.
 - Fixes cloak crash when aliasing the user id multiple times.
 - Fixes alignment of intervals to 6 - 10 months.
+- Fixes hanging queries on PostgreSQL data sources.
 
 ## Version 18.1.1
 
