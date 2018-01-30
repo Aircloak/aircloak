@@ -250,7 +250,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         |> Enum.uniq()
     keys =
       Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
-      |> Enum.filter(fn({_, column}) -> column.key? end)
+      |> Enum.filter(fn({_, column}) -> Expression.key?(column) end)
       |> Enum.map(fn({title, _}) -> title end)
 
     [DataSource.Table.new(subquery.alias, user_id_name, columns: columns, keys: keys)]
@@ -519,8 +519,8 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp quoted_types(items), do: items |> Enum.map(&quoted_type/1) |> Enum.join(", ")
 
-  defp quoted_type({:optional, type}), do: "[`#{type}`]"
-  defp quoted_type({:many1, type}), do: "[`#{type}`]+"
+  defp quoted_type({:optional, type}), do: "[" <> quoted_type(type) <> "]"
+  defp quoted_type({:many1, type}), do: "[" <> quoted_type(type) <> "]+"
   defp quoted_type({:or, types}), do: types |> Enum.map(&quoted_type/1) |> Enum.join(" | ")
   defp quoted_type({:constant, type}), do: "`constant #{type}`"
   defp quoted_type(type), do: "`#{type}`"
