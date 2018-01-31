@@ -77,7 +77,9 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
 
   test "function in inner join condition", context do
     assert_query context, """
-      SELECT AVG(cast(dec_b64(salary) AS real)) FROM "left" INNER JOIN "right" ON "left".id = "right".id AND age + 1 = 31
+      SELECT AVG(cast(dec_b64(salary) AS real))
+      FROM "left" INNER JOIN "right"
+      ON "left".id = "right".id AND age + 1 = 31
     """, %{rows: [%{occurrences: 1, row: [95.0]}]}
   end
 

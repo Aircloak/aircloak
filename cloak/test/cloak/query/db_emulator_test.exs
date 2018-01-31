@@ -22,8 +22,9 @@ defmodule Cloak.Query.DBEmulatorTest do
     :ok = insert_rows(_user_ids = 11..20, "#{@prefix}emulated", ["value"], [Base.encode64("bbb")])
     :ok = insert_rows(_user_ids = 21..30, "#{@prefix}emulated", ["value"], [nil])
 
-    assert_query "select count(v) from (select user_id, dec_b64(value) AS v from #{@prefix}emulated where v = 'aaa') as t",
-      %{rows: [%{occurrences: 1, row: [10]}]}
+    assert_query """
+      select count(v) from (select user_id, dec_b64(value) AS v from #{@prefix}emulated where v = 'aaa') as t
+    """, %{rows: [%{occurrences: 1, row: [10]}]}
     assert_query """
       select count(v) from (select user_id, dec_b64(value) AS v from #{@prefix}emulated where v is not null) as t
     """, %{rows: [%{occurrences: 1, row: [20]}]}
