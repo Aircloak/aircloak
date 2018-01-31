@@ -64,9 +64,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp subquery_for_noise_layer(%{base: {table, _column, _extras}}), do:
     Query.Lenses.direct_subqueries()
-    |> Lens.satisfy(&(&1.alias == table))
+    |> Lens.filter(&(&1.alias == table))
     |> Lens.key(:ast)
-    |> Lens.satisfy(&(not &1.virtual_table?))
+    |> Lens.reject(& &1.virtual_table?)
 
   defp push_noise_layer(query, %NoiseLayer{base: {_table, column, extras}, expressions: [_min, _max | rest]}) do
     {:ok, expression} = find_column(column, query)
@@ -181,7 +181,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     Lens.all()
     |> Lens.key(:expressions)
     |> Lens.all()
-    |> Lens.satisfy(&not &1.constant?)
+    |> Lens.reject(& &1.constant?)
     |> Lens.map(noise_layers, &set_noise_layer_expression_alias(&1, all_expressions, selected_columns))
   end
 
@@ -202,7 +202,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp select_noise_layers(query, top_level_uid), do:
     Lens.key(:columns)
     |> Lens.all()
-    |> Lens.satisfy(& not needs_aggregation?(query, &1))
+    |> Lens.reject(& needs_aggregation?(query, &1))
     |> raw_columns(query)
     |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
 
@@ -385,7 +385,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp raw_columns(lens \\ Lens.root(), data), do:
     lens
     |> Query.Lenses.leaf_expressions()
-    |> Lens.satisfy(&match?(%Expression{constant?: false, function?: false}, &1))
+    |> Lens.filter(&match?(%Expression{constant?: false, function?: false}, &1))
     |> Lens.to_list(data)
 
   defp uid_noise_layer(base_column, layer_expression, top_level_uid, extras \\ nil) do
@@ -404,7 +404,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp count_of_one(), do: Expression.constant(:integer, 1)
 
   defp conditions_satisfying(query, predicate), do:
-    query |> non_range_conditions() |> Lens.satisfy(predicate)
+    query |> non_range_conditions() |> Lens.filter(predicate)
 
   defp normalize_datasource_case(query) do
     Lens.key(:noise_layers)
@@ -416,32 +416,32 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   end
 
   deflensp clear_conditions(query), do:
-    query |> basic_conditions() |> Lens.satisfy(&clear_condition?/1)
+    query |> basic_conditions() |> Lens.filter(&clear_condition?/1)
 
   deflensp unclear_conditions(query), do:
-    query |> basic_conditions() |> Lens.satisfy(& not clear_condition?(&1))
+    query |> basic_conditions() |> Lens.reject(&clear_condition?/1)
 
   deflensp basic_conditions(query), do:
     query
     |> non_range_conditions()
-    |> Lens.satisfy(& not Condition.inequality?(&1))
-    |> Lens.satisfy(& not Condition.not_equals?(&1))
-    |> Lens.satisfy(& not Condition.not_like?(&1))
-    |> Lens.satisfy(& not Condition.in?(&1))
-    |> Lens.satisfy(& not Condition.like?(&1))
-    |> Lens.satisfy(& not fk_pk_condition?(&1))
-    |> Lens.satisfy(& not uid_null_conditions?(&1))
+    |> Lens.reject(&Condition.inequality?/1)
+    |> Lens.reject(&Condition.not_equals?/1)
+    |> Lens.reject(&Condition.not_like?/1)
+    |> Lens.reject(&Condition.in?/1)
+    |> Lens.reject(&Condition.like?/1)
+    |> Lens.reject(&fk_pk_condition?/1)
+    |> Lens.reject(&uid_null_conditions?/1)
     |> Lens.both(non_uid_group_by_clauses())
 
   deflensp non_uid_group_by_clauses(), do:
     Lens.key(:group_by)
     |> Lens.all()
-    |> Lens.satisfy(& not match?(%Expression{user_id?: true}, &1))
+    |> Lens.filter(& not match?(%Expression{user_id?: true}, &1))
 
   deflensp non_range_conditions(query), do:
     Query.Lenses.db_filter_clauses()
     |> Query.Lenses.conditions()
-    |> Lens.satisfy(&non_range_condition?(&1, query))
+    |> Lens.filter(&non_range_condition?(&1, query))
 
   defp non_range_condition?(condition, query) do
     ranges = query |> Range.find_ranges() |> Enum.map(& &1.column)
@@ -455,8 +455,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     Lens.all()
     |> Lens.key(:expressions)
     |> Lens.all()
-    |> Lens.satisfy(& not &1.constant?)
-    |> Lens.satisfy(& not &1.user_id?)
+    |> Lens.reject(& &1.constant?)
+    |> Lens.reject(& &1.user_id?)
 
   defp clear_condition?({:comparison,
     %Expression{function?: false, constant?: false}, :=, %Expression{constant?: true}}), do: true

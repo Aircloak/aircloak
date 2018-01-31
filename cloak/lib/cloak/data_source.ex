@@ -273,11 +273,22 @@ defmodule Cloak.DataSource do
     |> Cloak.DataSource.Utility.load_individual_data_source_configs()
     |> initialize_data_source_configs()
 
-  defp initialize_data_source_configs(data_source_configs), do:
-    data_source_configs
-    |> config_to_datasources()
-    |> Task.async_stream(&add_tables/1, timeout: :timer.minutes(30))
-    |> Enum.map(fn({:ok, data_source}) -> data_source end)
+  defp initialize_data_source_configs(data_source_configs) do
+    data_sources = config_to_datasources(data_source_configs)
+
+    data_sources
+    |> Task.async_stream(&add_tables/1, timeout: :timer.minutes(30), ordered: true)
+    |> Enum.zip(data_sources)
+    |> Enum.map(&handle_add_tables_result/1)
+  end
+
+  defp handle_add_tables_result({{:ok, data_source}, _original_data_source}), do: data_source
+  defp handle_add_tables_result({{:exit, _}, original_data_source}) do
+    # If we came here, then the task running `add_tables` has crashed. We won't log the exit reason since it might
+    # contain database password.
+    Logger.error("Data source `#{original_data_source.name}` is offline")
+    add_error_message(%{original_data_source | tables: %{}, status: :offline}, "connection error")
+  end
 
   defp to_data_source(data_source) do
     data_source

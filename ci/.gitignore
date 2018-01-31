@@ -24,3 +24,4 @@ erl_crash.dump
 config/dev.local.exs
 config/test.local.exs
 config/prod.local.exs
+.test_data

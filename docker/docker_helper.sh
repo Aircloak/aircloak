@@ -526,11 +526,14 @@ function remove_old_git_head_image_tags {
 
     image=$1
     known_heads=$(reachable_heads | uniq)
-    for existing_version in $(docker images | grep $image | awk '{print $2}' | grep 'git_sha_'); do
-      if [[ ! "$known_heads" =~ "$existing_version" ]]; then
-        echo "removing image tag for $image:$existing_version"
-        docker rmi $image:$existing_version || true
-      fi
-    done
+    echo "$(docker images | grep $image | awk '{print $1 " " $2}' | grep 'git_sha_')" |
+      while IFS=$'\n' read -r existing_image; do
+        full_image_name=$(echo $existing_image | awk '{print $1}')
+        existing_version=$(echo $existing_image | awk '{print $2}')
+        if [[ ! "$known_heads" =~ "$existing_version" ]]; then
+          echo "removing image tag for $full_image_name:$existing_version"
+          docker rmi $full_image_name:$existing_version || true
+        fi
+      done
   fi
 }

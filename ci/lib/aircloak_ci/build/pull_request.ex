@@ -51,11 +51,11 @@ defmodule AircloakCI.Build.PullRequest do
 
   @impl Build.Server
   def handle_source_change(state) do
-    {:noreply, state |> report_mergeable() |> maybe_start_compliance()}
+    {:noreply, state |> start_next_jobs() |> report_mergeable()}
   end
 
   @impl Build.Server
-  def handle_job_succeeded(job_name, state), do: {:noreply, state |> start_next_job(job_name) |> report_mergeable()}
+  def handle_job_succeeded(_job_name, state), do: {:noreply, state |> start_next_jobs() |> report_mergeable()}
 
   @impl Build.Server
   def handle_job_failed(_job, _reason, state), do: {:noreply, report_mergeable(state)}
@@ -72,14 +72,12 @@ defmodule AircloakCI.Build.PullRequest do
   defp name(pr), do:
     {:via, Registry, {Build.Registry, {:pull_request, pr.number}}}
 
-  defp start_next_job(state, job_name) do
-    if check_mergeable(state) == :ok do
-      case Build.Server.job_type(job_name) do
-        "prepare" -> Job.Compile.start(state)
-        "compile" -> state |> Job.Test.start() |> maybe_start_compliance()
-        "test" -> maybe_start_compliance(state)
-        _other -> state
-      end
+  defp start_next_jobs(state) do
+    if state.prepared? and check_mergeable(state) == :ok do
+      state
+      |> Job.Compile.start_if_possible()
+      |> Job.Test.start_if_possible()
+      |> maybe_start_compliance()
     else
       state
     end
@@ -87,7 +85,7 @@ defmodule AircloakCI.Build.PullRequest do
 
   defp maybe_start_compliance(state) do
     if check_standard_tests(state) == :ok and check_approved(state) == :ok,
-      do: Job.Compliance.start(state),
+      do: Job.Compliance.start_if_possible(state),
       else: state
   end
 

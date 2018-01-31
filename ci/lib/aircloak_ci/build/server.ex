@@ -281,9 +281,15 @@ defmodule AircloakCI.Build.Server do
   defp start_forced_job(state, job_name) do
     cond do
       job_name == "prepare" -> state
-      job_name == "compliance" -> Job.Compliance.start(state)
-      String.ends_with?(job_name, "_test") -> Job.Test.start(state, String.replace(job_name, ~r/_test$/, ""))
-      String.ends_with?(job_name, "_compile") -> Job.Compile.start(state, String.replace(job_name, ~r/_compile$/, ""))
+
+      job_name == "compliance" -> Job.Compliance.start_if_possible(state)
+
+      String.ends_with?(job_name, "_test") ->
+        Job.Test.start_if_possible(state, String.replace(job_name, ~r/_test$/, ""))
+
+      String.ends_with?(job_name, "_compile") ->
+        Job.Compile.start_if_possible(state, String.replace(job_name, ~r/_compile$/, ""))
+
       true ->
         Logger.warn("unknown forced job `#{job_name}`")
         state

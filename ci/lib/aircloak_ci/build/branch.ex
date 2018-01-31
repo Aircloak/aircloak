@@ -58,7 +58,7 @@ defmodule AircloakCI.Build.Branch do
     state =
       # we're always compiling master and release branches, because they serve as a base (cache) for pull requests
       if state.source.name == "master" or String.starts_with?(state.source.name, "release_"),
-        do: Build.Job.Compile.start(state),
+        do: Build.Job.Compile.start_if_possible(state),
         else: state
 
     {:noreply, maybe_perform_transfers(state)}

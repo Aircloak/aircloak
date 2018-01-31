@@ -65,7 +65,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     # not possible without this replacement.
     Lens.key(:columns)
     |> Lens.all()
-    |> Lens.satisfy(&non_aggregated_uid_expression?/1)
+    |> Lens.filter(&non_aggregated_uid_expression?/1)
     |> Lens.map(query, &Expression.constant(&1.type, :*))
   end
   defp censor_selected_uids(query), do: query
@@ -181,7 +181,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> Enum.reduce(query, fn(lens, query) -> align_ranges(query, lens) end)
 
   defp align_ranges(query, lens) do
-    clause = Lens.get(lens, query)
+    clause = Lens.one!(lens, query)
     grouped_inequalities = inequalities_by_column(clause)
     range_columns = Map.keys(grouped_inequalities)
 
@@ -283,7 +283,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> Enum.reject(& &1.query == nil)
     |> Enum.reduce(query, fn (%{query: table_query, name: table_name}, query) ->
       Lenses.leaf_tables()
-      |> Lens.satisfy(& &1 == table_name)
+      |> Lens.filter(& &1 == table_name)
       |> Lens.map(query, &{:subquery, %{alias: &1, ast: table_query}})
     end)
     |> Optimizer.optimize_columns_from_subqueries()

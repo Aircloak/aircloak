@@ -80,6 +80,7 @@ defmodule AircloakCI.LocalProject do
   @spec for_local(String.t) :: t
   def for_local(path) do
     path = Path.expand(path)
+    head_sha = String.trim(CmdRunner.run_with_output!("git rev-parse HEAD", timeout: :timer.minutes(1)))
 
     create_project(%__MODULE__{
       type: :local,
@@ -90,8 +91,8 @@ defmodule AircloakCI.LocalProject do
       repo: %{name: "aircloak", owner: "aircloak"},
       update_git_command: nil,
       checkout: nil,
-      target_sha: String.trim(to_string(:os.cmd('git rev-parse HEAD'))),
-      source_sha: String.trim(to_string(:os.cmd('git rev-parse HEAD')))
+      target_sha: head_sha,
+      source_sha: head_sha
     })
   end
 
@@ -324,8 +325,13 @@ defmodule AircloakCI.LocalProject do
     |> File.ls!()
     |> Stream.filter(&File.dir?(Path.join(src_folder(project), &1)))
     |> Stream.reject(&String.starts_with?(&1, "."))
-    |> Enum.reject(&(&1 in ["tmp"]))
+    |> filter_components()
     |> Enum.reject(&match?({:error, _}, commands(project, &1, :compile)))
+
+  @doc "Returns the location of logs folder."
+  @spec logs_folder() :: String.t
+  def logs_folder(), do:
+    Path.join(AircloakCI.data_folder(), "logs")
 
 
   # -------------------------------------------------------------------
@@ -338,9 +344,6 @@ defmodule AircloakCI.LocalProject do
     File.mkdir_p!(project.log_folder)
     project
   end
-
-  defp logs_folder(), do:
-    Path.join(AircloakCI.data_folder(), "logs")
 
   defp cache_folder(), do:
     Path.join(AircloakCI.data_folder(), "cache")
@@ -411,8 +414,7 @@ defmodule AircloakCI.LocalProject do
     destination = Path.join(src_folder(target_project), folder)
     File.mkdir_p(Path.dirname(destination))
     # Using `cp -a` instead of File.cp_r, since `cp -a` properly handles symlinks
-    # `:os.cmd` is used since `System.cmd` starts a port which causes an :EXIT message to be delivered to the process.
-    :os.cmd('cp -a #{source} #{destination}')
+    CmdRunner.run("cp -a #{source} #{destination}")
   end
 
   defp update_state(project, updater) do
@@ -452,15 +454,12 @@ defmodule AircloakCI.LocalProject do
   defp default_state(), do:
     %{initialized?: false, forced_jobs: %{}, job_outcomes: %{}}
 
-  defp up_to_date?(project), do:
-    current_sha(project) == project.target_sha
-
-  defp current_sha(project), do:
-    # `:os.cmd` is used since `System.cmd` starts a port which causes an :EXIT message to be delivered to the process.
-    'cd #{src_folder(project)} && git rev-parse HEAD'
-    |> :os.cmd()
-    |> to_string()
-    |> String.trim()
+  defp up_to_date?(project) do
+    case CmdRunner.run_with_output("cd #{src_folder(project)} && git rev-parse HEAD") do
+      {:ok, sha} -> String.trim(sha) == project.target_sha
+      {:error, _} -> false
+    end
+  end
 
   defp component_cmd(project, component, log_name, {cmd, opts}), do:
     component_cmd(project, component, log_name, cmd, opts)
@@ -469,4 +468,14 @@ defmodule AircloakCI.LocalProject do
 
   defp component_cmd(project, component, log_name, cmd, opts), do:
     cmd(project, log_name, cmd, [cd: Path.join(src_folder(project), to_string(component))] ++ opts)
+
+  defp filter_components(components) do
+    components
+    |> Enum.reject(&(&1 in ["tmp"]))
+    |> Enum.filter(&include_component?(&1, Application.get_env(:aircloak_ci, :components_filter, :all)))
+  end
+
+  defp include_component?(_component, :all), do: true
+  defp include_component?(component, {:except, blacklisted}), do: not Enum.member?(blacklisted, component)
+  defp include_component?(component, {:only, whitelisted}), do: Enum.member?(whitelisted, component)
 end

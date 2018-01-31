@@ -89,5 +89,5 @@ defmodule AircloakCI do
     Path.join(home_folder(), "config.json")
 
   defp home_folder(), do:
-    Path.join(System.user_home(), ".aircloak_ci")
+    Application.get_env(:aircloak_ci, :home_folder, Path.join(System.user_home(), ".aircloak_ci"))
 end

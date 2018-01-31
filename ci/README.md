@@ -76,3 +76,77 @@ ssh acatlas4.mpi-sws.org
 su ci
 /home/ci/aircloak_ci/production/current/bin/aircloak_ci remote_console
 ```
+
+In case you need to stop/start/restart the service, you can do it with the following command sequence:
+
+```
+ssh acatlas4.mpi-sws.org
+systemctl stop/start/restart aircloak_ci.service
+```
+
+### Starting a component CI container
+
+It is possible to start a component CI container, both locally and in production, and then manually run various commands, such as compile, test, ...
+
+To start a local CI container for a component, you can invoke `ci/start_component.sh component_name`. For example, to start a container for the `bom` component, you can invoke `ci/start_component.sh bom`.
+
+To start a CI container on a production, you need to invoke the following commands:
+
+```
+$ ssh acatlas4.mpi-sws.org
+$ su ci
+$ cd /home/ci/.aircloak_ci/data/cache/builds/pr-XYZ/src
+$ ci/start_component.sh component_name
+```
+
+Notes:
+
+- `start_component.sh` is not available for PRs targeting the release 18.1 branch.
+- `start_component.sh` also starts the supporting containers, such as database server.
+- No initialization is performed. You need to manually fetch dependencies, and initialize database.
+- Refer to `component_folder/ci/jobs.exs` for the exact shape of test commands.
+
+### Internal folder structure
+
+The component keeps all the data in the `~/.aircloak_ci/data` folder. In production, this is the `/home/ci/.aircloak_ci/data` folder.
+
+The `~/.aircloak_ci/data/logs` folder contains the build logs. The folder name for a pull requests is in the shape of `pr-XYZ`. For example, build logs for PR 1234 are in the folder `~/.aircloak_ci/data/logs/pr-1234`. In the log folder, you'll find a bunch of logs, which are plain text files. You can analyze these logs, in case the default report doesn't provide enough information.
+
+The build sources are stored in the `~/.aircloak_ci/data/cache`. In this folder, you'll find two subfolders: `branches` (branches sources) and `builds` (PR sources). The actual source is then stored in the `src` folder of the target. For example, source for the PR 1234 sits in the folder `~/.aircloak_ci/data/cache/builds/pr-1234/src/`. In this folder, you can start CI containers, as explained in the previous section.
+
+### Setting up the server
+
+The initial configuration of the production server is manual. This section describes the needed steps to set up a new CI server.
+
+#### Prerequisites
+
+- Debian
+- Docker (at least 17.12)
+- git
+- [asdf](https://github.com/asdf-vm/asdf) and the required plug-ins (Erlang, Elixir, node)
+
+#### Setup
+
+1. Create a non-root user with the login `ci` and add it to the `docker` group.
+2. For the `ci` user, upload the Github private key, and setup ssh access in `/home/ci/.ssh/config`:
+
+    ```
+    Host github.com
+    User git
+    PreferredAuthentications publickey
+    IdentityFile ~/.ssh/github/id_rsa
+    ```
+
+3. Make sure that proxies are properly configured at `/home/ci/.docker/config.json`
+4. Create the `/home/ci/.aircloak_ci/config.json` with the following content:
+
+    ```
+    {
+      "github_access_token": github_api_access_token
+    }
+    ```
+
+5. As the `ci` user, create the `/home/ci/aircloak_ci` folder, and in that folder invoke `git clone git@github.com:aircloak/aircloak build`
+6. If the server name has changed, you need to update the `ci/production.sh` on the development machine.
+
+At this point, you can deploy the system from your development machine.

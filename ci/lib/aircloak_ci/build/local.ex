@@ -3,7 +3,7 @@ defmodule AircloakCI.Build.Local do
 
   use AircloakCI.Build.Server, restart: :temporary
   require Logger
-  alias AircloakCI.{Build, Github, LocalProject}
+  alias AircloakCI.{Build, CmdRunner, Github, LocalProject}
 
   @type source :: %{
     path: String.t,
@@ -54,8 +54,8 @@ defmodule AircloakCI.Build.Local do
     %{
       path: path,
       repo: %{owner: repo_data.owner, name: repo_data.name},
-      sha: String.trim(to_string(:os.cmd('git rev-parse HEAD'))),
-      merge_sha: String.trim(to_string(:os.cmd('git rev-parse HEAD'))),
+      sha: String.trim(CmdRunner.run_with_output!("git rev-parse HEAD")),
+      merge_sha: String.trim(CmdRunner.run_with_output!("git rev-parse HEAD")),
       merge_state: :mergeable,
       status_checks: %{},
       approved?: true
