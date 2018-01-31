@@ -16,8 +16,6 @@ defmodule Cloak.DataSource.Table do
     :user_id => String.t,
     :query => Query.t | nil, # the SQL query for a virtual table
     :columns => [column],
-    :decoders => [Map.t],
-    :projection => projection | nil,
     :keys => [String.t],
     optional(any) => any,
   }
@@ -64,9 +62,10 @@ defmodule Cloak.DataSource.Table do
   @spec load(DataSource.t, DataSource.Driver.connection) :: DataSource.t
   def load(data_source, connection), do:
     data_source
-    |> scan_virtual_tables(connection)
     |> scan_tables(connection)
     |> resolve_projected_tables()
+    |> translate_projections_and_decoders()
+    |> scan_virtual_tables(connection)
 
 
   # -------------------------------------------------------------------
@@ -81,8 +80,11 @@ defmodule Cloak.DataSource.Table do
       tables
       |> Enum.flat_map(&get_virtual_table_db_names/1)
       |> Enum.uniq()
-      |> Enum.flat_map(&load_tables(data_source, connection, {&1, %{}}))
-      |> Enum.into(%{})
+      |> Enum.reduce(%{}, fn (table, acc) ->
+        if String.to_atom(table) in Map.keys(acc),
+          do: acc,
+          else: data_source |> load_tables(connection, {table, %{}}) |> Enum.into(acc)
+      end)
     virtual_data_source = %{data_source | tables: virtual_tables}
     tables = Enum.map(tables, &compile_virtual_table(&1, virtual_data_source))
     %{data_source | tables: Enum.into(tables, %{})}
@@ -245,8 +247,8 @@ defmodule Cloak.DataSource.Table do
     tables =
       data_source.tables
       |> Enum.map(fn
-        ({id, %{projection: nil} = table}) -> {id, table}
-        ({id, table}) -> {id, %{table | user_id: nil}}
+        ({id, %{projection: %{}} = table}) -> {id, %{table | user_id: nil}}
+        ({id, table}) -> {id, table}
       end)
       |> Enum.into(%{})
     data_source = %{data_source | tables: tables}
@@ -255,6 +257,7 @@ defmodule Cloak.DataSource.Table do
     |> Enum.reduce(data_source, &resolve_projected_table(Map.fetch!(&2.tables, &1), &2))
   end
 
+  defp resolve_projected_table(%{query: query}, data_source) when query != nil, do: data_source
   defp resolve_projected_table(%{projection: nil}, data_source), do: data_source
   defp resolve_projected_table(%{user_id: uid, columns: [%{name: uid} | _]}, data_source), do:
     data_source # uid column is resolved
@@ -325,5 +328,60 @@ defmodule Cloak.DataSource.Table do
         }
       %{type: ^foreign_key_type} -> :ok
     end
+  end
+
+  defp translate_projections_and_decoders(%{tables: tables} = data_source), do:
+    %{data_source| tables: Enum.map(tables, &translate_projection_and_decoders(&1, tables))}
+
+  defp translate_projection_and_decoders({id, %{projection: %{}, decoders: [_ | _]} = table}, tables) do
+    {user_id, alias, source} = translate_projection({id, table}, tables)
+    columns =
+      table.decoders
+      |> translate_decoders(id)
+      |> Enum.reduce("\"#{id}\".*\n", fn({name, expression}, acc) ->
+        "#{expression} AS \"#{name}\",\n #{acc}"
+      end)
+    query = "SELECT #{user_id} AS #{alias},\n #{columns} FROM #{source}"
+    {id, table |> Map.drop([:projection, :decoders]) |> Map.put(:query, query)}
+  end
+  defp translate_projection_and_decoders(table, _), do: table
+
+  defp translate_decoders(decoders, table_name) do
+    Enum.reduce(decoders, %{}, fn (decoder, acc) ->
+     Enum.reduce(decoder.columns, acc, fn (column, acc) ->
+       current_expression = Map.get(acc, column, "\"#{table_name}\".\"#{column}\"")
+       Map.put(acc, column, translate_decoder(decoder, current_expression))
+     end)
+   end)
+  end
+
+  defp translate_decoder(%{method: "aes_cbc_128", key: key}, column), do:
+    "dec_aes_cbc128(#{column}, '#{String.replace(key, "'", "''")}')"
+  defp translate_decoder(%{method: "text_to_integer"}, column), do: "CAST(#{column} AS integer)"
+  defp translate_decoder(%{method: "text_to_real"}, column), do: "CAST(#{column} AS real)"
+  defp translate_decoder(%{method: "text_to_datetime"}, column), do: "CAST(#{column} AS datetime)"
+  defp translate_decoder(%{method: "text_to_date"}, column), do: "CAST(#{column} AS date)"
+  defp translate_decoder(%{method: "text_to_boolean"}, column), do: "CAST(#{column} AS boolean)"
+  defp translate_decoder(%{method: "base64"}, column), do: "dec_b64(#{column})"
+  defp translate_decoder(%{method: method}, _column), do:
+    DataSource.raise_error("Invalid decoding method specified: #{method}")
+
+  defp translate_projection({id, %{projection: nil, user_id: user_id}}, _), do:
+    {"\"#{user_id}\"", "\"#{user_id}\"", "\"#{id}\""}
+  defp translate_projection({id, %{projection: projection}}, tables) do
+    projection_id = String.to_atom(projection.table)
+    {user_id, alias, from} = translate_projection({projection_id, tables[projection_id]}, tables)
+    {user_id, alias, from} = if tables[projection_id].projection != nil do
+        # for mongodb data sources, it is faster to use a subquery here as the driver doesn't support complex joins
+        from = "(SELECT #{user_id} AS #{alias}, \"#{projection_id}\".\"#{projection.primary_key}\" " <>
+          "FROM #{from}) AS \"#{projection_id}\""
+        {alias, alias, from}
+      else
+        {user_id, alias, from}
+      end
+    from = "#{from} JOIN \"#{id}\" ON \"#{id}\".\"#{projection.foreign_key}\" " <>
+      "= \"#{projection_id}\".\"#{projection.primary_key}\""
+    alias = if projection[:user_id_alias] != nil, do: "\"#{projection.user_id_alias}\"", else: alias
+    {user_id, alias, from}
   end
 end
