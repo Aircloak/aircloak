@@ -148,6 +148,9 @@ defmodule Cloak.DataSource.MongoDB do
   def supports_function?(expression, data_source), do:
     function_signature(expression) in (data_source |> get_mongo_version() |> supported_functions())
 
+  @impl Driver
+  def supports_connection_sharing?(), do: true
+
 
   # -------------------------------------------------------------------
   # Internal functions

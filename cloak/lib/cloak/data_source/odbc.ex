@@ -70,6 +70,9 @@ defmodule Cloak.DataSource.ODBC do
     end
   end
 
+  @impl Driver
+  def supports_connection_sharing?(), do: false
+
 
   # -------------------------------------------------------------------
   # Internal functions

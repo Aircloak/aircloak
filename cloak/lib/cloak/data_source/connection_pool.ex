@@ -34,10 +34,20 @@ defmodule Cloak.DataSource.ConnectionPool do
   @doc "Acquires a connection, invokes the provided lambda, and returns its result."
   @spec execute!(Cloak.DataSource.t, ((Driver.connection) -> result)) :: result when result: var
   def execute!(data_source, fun) do
-    data_source
-    |> pool_server()
-    |> GenServer.call(:checkout)
-    |> on_connection(fun)
+    if data_source.driver.supports_connection_sharing?() do
+      data_source
+      |> pool_server()
+      |> GenServer.call(:checkout)
+      |> on_connection(fun)
+    else
+      # needed for drivers which don't support connection sharing, such as ODBC
+      connection = data_source.driver.connect!(data_source.parameters)
+      try do
+        fun.(connection)
+      after
+        data_source.driver.disconnect(connection)
+      end
+    end
   end
 
 

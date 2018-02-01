@@ -48,4 +48,7 @@ defmodule Cloak.DataSource.Driver do
 
   @doc "Checks to see if the driver is able to handle specified function natively."
   @callback supports_function?(Expression.t, Cloak.DataSource.t) :: boolean
+
+  @doc "Returns true if the connection can be used from processes other than the creator process."
+  @callback supports_connection_sharing?() :: boolean
 end

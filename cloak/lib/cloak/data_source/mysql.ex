@@ -52,6 +52,9 @@ defmodule Cloak.DataSource.MySQL do
     run_query(connection, statement, &map_fields(&1, field_mappers), result_processor)
   end
 
+  @impl Driver
+  def supports_connection_sharing?(), do: true
+
 
   # -------------------------------------------------------------------
   # Internal functions
