@@ -9,6 +9,11 @@ defmodule Cloak.DataSource.Driver do
   def connect_timeout(), do:
     Application.get_env(:cloak, :data_source) |> Keyword.fetch!(:connect_timeout)
 
+  @doc "Returns the configured time for keeping the connection alive for potential reuse."
+  @spec connection_keep_time() :: pos_integer
+  def connection_keep_time(), do:
+    Application.get_env(:cloak, :data_source) |> Keyword.fetch!(:connection_keep_time)
+
   @doc "Returns the configured maximum timeout for a database operation."
   @spec timeout() :: pos_integer
   def timeout(), do:
