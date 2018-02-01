@@ -4,6 +4,11 @@ defmodule Cloak.DataSource.Driver do
   alias Cloak.Sql.{Query, Expression}
   alias Cloak.DataSource.Table
 
+  @doc "Returns the configured database connection timeout."
+  @spec connect_timeout() :: pos_integer
+  def connect_timeout(), do:
+    Application.get_env(:cloak, :data_source) |> Keyword.fetch!(:connect_timeout)
+
   @doc "Returns the configured maximum timeout for a database operation."
   @spec timeout() :: pos_integer
   def timeout(), do:

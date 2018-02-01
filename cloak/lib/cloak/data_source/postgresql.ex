@@ -25,7 +25,7 @@ defmodule Cloak.DataSource.PostgreSQL do
       :connected ->
         {:ok, %Postgrex.Result{}} = Postgrex.query(connection, "SET standard_conforming_strings = ON", [])
         connection
-    after :timer.seconds(5)
+    after Driver.connect_timeout()
       ->
         GenServer.stop(connection)
         DataSource.raise_error("Unknown failure during database connection process")

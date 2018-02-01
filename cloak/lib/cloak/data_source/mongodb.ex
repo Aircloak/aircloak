@@ -59,7 +59,7 @@ defmodule Cloak.DataSource.MongoDB do
     {:ok, connection} = Mongo.start_link(parameters)
     receive do
       :connected -> connection
-    after :timer.seconds(5)
+    after Driver.connect_timeout()
       ->
         GenServer.stop(connection)
         DataSource.raise_error("Unknown failure during database connection process")

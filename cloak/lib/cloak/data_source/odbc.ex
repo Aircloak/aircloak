@@ -24,7 +24,7 @@ defmodule Cloak.DataSource.ODBC do
 
   @impl Driver
   def connect!(parameters) do
-    options = [auto_commit: :on, binary_strings: :on, tuple_row: :off]
+    options = [auto_commit: :on, binary_strings: :on, tuple_row: :off, timeout: Driver.connect_timeout()]
     with {:ok, connection} <- parameters |> to_connection_string() |> :odbc.connect(options) do
       parameters |> sql_dialect_module() |> init_connection(connection)
       connection
