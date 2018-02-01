@@ -145,8 +145,10 @@ defmodule Cloak.DataSource.MySQL do
     def execute(connection, statement, parameters \\ [])
     def execute(connection, "DROP SCHEMA " <> _rest = statement, []), do:
       Mariaex.query(connection, String.replace(statement, "CASCADE", ""))
-    def execute(connection, "CREATE TABLE " <> _rest = statement, []), do:
-      Mariaex.query(connection, String.replace(statement, " BOOLEAN", " BIT"))
+    def execute(connection, "CREATE TABLE " <> _rest = statement, []) do
+      statement = statement |> String.replace(" BOOLEAN", " BIT") |> String.replace(" TIMESTAMP", " DATETIME")
+      Mariaex.query(connection, statement)
+    end
     def execute(connection, statement, parameters) do
       parameters = Enum.map(parameters, &parameter_mapper/1)
       statement = statement |> to_string() |> String.replace(~r/\$\d+/, "?")

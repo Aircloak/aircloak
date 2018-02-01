@@ -265,7 +265,7 @@ defmodule Cloak.Sql.Function.Test do
     refute well_typed?({:cast, :datetime}, [:real])
     refute well_typed?({:cast, :datetime}, [:integer])
     assert well_typed?({:cast, :datetime}, [:datetime])
-    refute well_typed?({:cast, :datetime}, [:date])
+    assert well_typed?({:cast, :datetime}, [:date])
     refute well_typed?({:cast, :datetime}, [:time])
     refute well_typed?({:cast, :datetime}, [:interval])
   end
