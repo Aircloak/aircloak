@@ -367,21 +367,21 @@ defmodule Cloak.DataSource.Table do
     DataSource.raise_error("Invalid decoding method specified: #{method}")
 
   defp translate_projection({id, %{projection: nil, user_id: user_id}}, _), do:
-    {"\"#{user_id}\"", "\"#{user_id}\"", "\"#{id}\""}
+    {~s/"#{user_id}"/, ~s/"#{user_id}"/, ~s/"#{id}"/}
   defp translate_projection({id, %{projection: projection}}, tables) do
     projection_id = String.to_atom(projection.table)
     {user_id, alias, from} = translate_projection({projection_id, tables[projection_id]}, tables)
     {user_id, alias, from} = if tables[projection_id].projection != nil do
         # for mongodb data sources, it is faster to use a subquery here as the driver doesn't support complex joins
-        from = "(SELECT #{user_id} AS #{alias}, \"#{projection_id}\".\"#{projection.primary_key}\" " <>
-          "FROM #{from}) AS \"#{projection_id}\""
+        from = ~s/(SELECT #{user_id} AS #{alias}, "#{projection_id}"."#{projection.primary_key}" / <>
+          ~s/FROM #{from}) AS "#{projection_id}"/
         {alias, alias, from}
       else
         {user_id, alias, from}
       end
-    from = "#{from} JOIN \"#{id}\" ON \"#{id}\".\"#{projection.foreign_key}\" " <>
-      "= \"#{projection_id}\".\"#{projection.primary_key}\""
-    alias = if projection[:user_id_alias] != nil, do: "\"#{projection.user_id_alias}\"", else: alias
+    from = ~s/#{from} JOIN "#{id}" ON "#{id}"."#{projection.foreign_key}" = / <>
+      ~s/"#{projection_id}"."#{projection.primary_key}"/
+    alias = if projection[:user_id_alias] != nil, do: ~s/"#{projection.user_id_alias}"/, else: alias
     {user_id, alias, from}
   end
 end
