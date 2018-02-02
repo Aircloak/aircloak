@@ -20,6 +20,8 @@ defmodule Mix.Tasks.Compile.UserDocs do
         Mix.Shell.IO.info("Compiled user docs")
       end
     end
+
+    :ok
   end
 
   defp stale?() do
