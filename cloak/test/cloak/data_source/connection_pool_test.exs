@@ -82,6 +82,22 @@ defmodule Cloak.DataSource.ConnectionPoolTest do
     end)
   end
 
+  test "unhandled exception" do
+    assert_raise(
+      ArgumentError,
+      "some error",
+      fn -> execute!(fn(_conn) -> raise ArgumentError.exception("some error") end) end
+    )
+  end
+
+  test "unhandled throw" do
+    assert_raise(
+      RuntimeError,
+      ~s/Connection error :throw: "some throw"/,
+      fn -> execute!(fn(_conn) -> throw "some throw" end) end
+    )
+  end
+
   defp execute!(extra_params \\ %{}, fun) do
     Cloak.DataSource.all()
     |> hd()
