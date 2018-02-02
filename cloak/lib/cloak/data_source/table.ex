@@ -371,7 +371,7 @@ defmodule Cloak.DataSource.Table do
 
   defp translate_projection({id, %{projection: nil, user_id: user_id, db_name: db_name}}, _), do:
     {~s/"#{id}"."#{user_id}"/, ~s/"#{user_id}"/, ~s/"#{db_name}" AS "#{id}"/}
-  defp translate_projection({id, %{projection: projection}}, tables) do
+  defp translate_projection({id, %{projection: projection, db_name: db_name}}, tables) do
     projection_id = String.to_atom(projection.table)
     {user_id, alias, from} = translate_projection({projection_id, tables[projection_id]}, tables)
     {user_id, alias, from} = if tables[projection_id].projection != nil do
@@ -382,7 +382,7 @@ defmodule Cloak.DataSource.Table do
       else
         {user_id, alias, from}
       end
-    from = ~s/#{from} JOIN "#{id}" ON "#{id}"."#{projection.foreign_key}" = / <>
+    from = ~s/#{from} JOIN "#{db_name}" AS "#{id}" ON "#{id}"."#{projection.foreign_key}" = / <>
       ~s/"#{projection_id}"."#{projection.primary_key}"/
     alias = if projection[:user_id_alias] != nil, do: ~s/"#{projection.user_id_alias}"/, else: alias
     {user_id, alias, from}
