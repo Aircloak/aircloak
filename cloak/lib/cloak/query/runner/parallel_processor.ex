@@ -90,7 +90,6 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
     @moduledoc false
 
     use GenServer
-    @behaviour GenServer
 
     @impl GenServer
     def init(job) do
