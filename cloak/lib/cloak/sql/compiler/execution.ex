@@ -252,7 +252,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   end
 
   defp discard_redundant_inequalities({column, inequalities}) do
-    case {bottom, top} = Enum.partition(inequalities, &(Condition.direction(&1) == :>)) do
+    case {bottom, top} = Enum.split_with(inequalities, &(Condition.direction(&1) == :>)) do
       {[], []} -> {column, []}
       {_, []} -> {column, [Enum.max_by(bottom, &Condition.value/1)]}
       {[], _} -> {column, [Enum.min_by(top, &Condition.value/1)]}

@@ -20,7 +20,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   def project_array_sizes(%{columns: columns, db_name: name}) when is_binary(name) do # table is collection
     columns
     |> Enum.map(&(&1.name))
-    |> Enum.partition(&Schema.is_array_size?/1)
+    |> Enum.split_with(&Schema.is_array_size?/1)
     |> case do
       {[], _regular_columns} -> []
       {array_sizes, regular_columns} ->
