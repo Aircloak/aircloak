@@ -333,10 +333,11 @@ defmodule Cloak.DataSource.Table do
   defp translate_projections_and_decoders(%{tables: tables} = data_source), do:
     %{data_source| tables: Enum.map(tables, &translate_projection_and_decoders(&1, tables))}
 
-  defp translate_projection_and_decoders({id, %{projection: %{}, decoders: [_ | _]} = table}, tables) do
+  defp translate_projection_and_decoders({id, %{projection: projection, decoders: decoders} = table}, tables)
+      when is_map(projection) or (is_list(decoders) and length(decoders) > 0) do
     {user_id, alias, source} = translate_projection({id, table}, tables)
     columns =
-      table.decoders
+      decoders
       |> translate_decoders(id)
       |> Enum.reduce("\"#{id}\".*\n", fn({name, expression}, acc) ->
         "#{expression} AS \"#{name}\",\n #{acc}"
