@@ -44,7 +44,8 @@ config :cloak, :anonymizer,
 
 config :cloak, :data_source,
   timeout: :timer.minutes(15),
-  batch_size: 100
+  batch_size: 100,
+  connection_keep_time: 50
 
 config :excheck, :number_iterations, 200
 config :cloak, :sanitize_otp_errors, false
