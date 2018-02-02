@@ -135,6 +135,15 @@ defmodule Cloak.Query.DatetimeTest do
       %{rows: [%{row: ["0001-02-03"]}]}
   end
 
+  test "automatic conversion of text to datetime" do
+    :ok = insert_rows(_user_ids = 1..10, "datetimes", ["datetime"], [~N[2017-02-03 01:00:00]])
+
+    assert_query """
+      select count(*) from datetimes as t1 join datetimes as t2
+      on t1.user_id = t2.user_id and t1.datetime = '2017-02-03 01:00:00'
+    """, %{rows: [%{row: [10]}]}
+  end
+
   describe "aggregators over date/time" do
     setup do
       :ok = insert_rows(_user_ids = 1..10, "datetimes", ["datetime"], [~N[2015-01-02 10:00:05.000000]])

@@ -570,7 +570,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   # -------------------------------------------------------------------
 
   defp cast_where_clauses(query), do:
-    %Query{query | where: Lens.map(Lenses.conditions(), query.where, &cast_where_clause/1)}
+    Lens.map(Lenses.filter_clauses() |> Lenses.conditions(), query, &cast_where_clause/1)
 
   defp cast_where_clause(clause) do
     column = Condition.subject(clause)
