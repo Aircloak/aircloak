@@ -89,7 +89,7 @@ defmodule Compliance.DataSource.SQLServerTds do
         password: params.password,
         database: "master",
         sync_connect: true,
-        pool: DBConnection.Connection,
+        pool: DBConnection.Connection
       )
 
     case execute!(conn, "select count(*) from sys.databases where name='#{params.database}'").rows do

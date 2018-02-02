@@ -14,7 +14,7 @@ defmodule Cloak.Query.AliasedProjectionTest do
         foreign_key: "user_id",
         primary_key: "user_id",
         user_id_alias: "uid",
-      },
+      }
     )
     :ok = Cloak.Test.DB.create_table(
       "#{@prefix}projected_emulated", "value TEXT",
@@ -26,7 +26,7 @@ defmodule Cloak.Query.AliasedProjectionTest do
         foreign_key: "user_id",
         primary_key: "user_id",
         user_id_alias: "uid",
-      },
+      }
     )
     :ok
   end

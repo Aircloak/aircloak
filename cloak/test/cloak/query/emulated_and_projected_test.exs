@@ -18,7 +18,7 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
         table: "#{@prefix}main",
         foreign_key: "user_id_fk",
         primary_key: "user_id",
-      },
+      }
     )
     :ok = Cloak.Test.DB.create_table(
       "#{@prefix}emulated2", "foreign_key INTEGER, value TEXT",
@@ -28,7 +28,7 @@ defmodule Cloak.Query.EmulatedAndProjectedTest do
         table: "#{@prefix}emulated",
         foreign_key: "foreign_key",
         primary_key: "id",
-      },
+      }
     )
     :ok = Cloak.Test.DB.create_table("#{@prefix}joined", "age INTEGER")
     :ok

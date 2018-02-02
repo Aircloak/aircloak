@@ -32,7 +32,7 @@ defmodule AirWeb.Admin.AuditLogController do
       full_width: true,
       users: AuditLog.users(service_params),
       event_types: AuditLog.event_types(service_params),
-      data_sources: AuditLog.data_sources(service_params),
+      data_sources: AuditLog.data_sources(service_params)
     )
   end
 

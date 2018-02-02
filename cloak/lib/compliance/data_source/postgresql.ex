@@ -109,7 +109,7 @@ defmodule Compliance.DataSource.PostgreSQL do
       database: "postgres",
       hostname: params.hostname,
       username: "postgres",
-      sync_connect: true,
+      sync_connect: true
     )
 
     case Postgrex.query!(

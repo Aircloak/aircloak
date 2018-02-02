@@ -459,7 +459,7 @@ defmodule Air.Service.DataSource do
         {Air.ProcessQueue, {__MODULE__.Queue, size: 5}},
         task_supervisor(name: @task_supervisor, restart: :temporary),
       ],
-      strategy: :one_for_one, name: __MODULE__,
+      strategy: :one_for_one, name: __MODULE__
     )
   end
 end

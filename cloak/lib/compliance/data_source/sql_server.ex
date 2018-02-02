@@ -87,7 +87,7 @@ defmodule Compliance.DataSource.SQLServer do
         hostname: params.hostname,
         username: params.username,
         password: params.password,
-        database: "master",
+        database: "master"
       )
 
     :odbc.sql_query(conn, ~c/
