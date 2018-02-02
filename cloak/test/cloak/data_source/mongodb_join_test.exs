@@ -8,7 +8,7 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
   @moduletag :exclude_in_dev
   @moduletag :mongodb
 
-  setup do
+  setup_all do
     parameters = [hostname: "localhost", database: "cloaktest"]
     {:ok, conn} = Mongo.start_link(parameters)
     Mongo.delete_many(conn, "left", %{})
