@@ -42,8 +42,8 @@ defmodule Air.Service.Central.RpcQueueTest do
   test "message is sent after the socket is connected" do
     me = self()
     connected_fun = fn ->
-      {:dictionary, [connected: connected]} = Process.info(me, :dictionary)
-      connected
+      {:dictionary, dictionary} = Process.info(me, :dictionary)
+      Keyword.fetch!(dictionary, :connected)
     end
 
     Process.put(:connected, false)
