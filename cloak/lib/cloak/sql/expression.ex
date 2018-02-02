@@ -438,6 +438,8 @@ defmodule Cloak.Sql.Expression do
   end
   # cast to datetime
   defp cast(value = %NaiveDateTime{}, :datetime), do: value
+  defp cast(value = %Date{}, :datetime), do:
+    value |> NaiveDateTime.new(~T[00:00:00.000000]) |> error_to_nil()
   defp cast(value, :datetime) when is_binary(value), do:
     value |> Cloak.Time.parse_datetime() |> error_to_nil()
   # cast to time

@@ -167,18 +167,18 @@ defmodule Cloak.DataSource do
   @spec select!(Query.t, result_processor) :: processed_result
   def select!(%{data_source: data_source} = select_query, result_processor) do
     driver = data_source.driver
-    Logger.debug("Connecting to `#{data_source.name}` ...")
-    connection = driver.connect!(data_source.parameters)
-    try do
-      Logger.debug("Selecting data ...")
-      case driver.select(connection, select_query, result_processor) do
-        {:ok, processed_result} -> processed_result
-        {:error, reason} -> raise_error(reason)
+    Logger.debug("Acquiring connection to `#{data_source.name}` ...")
+
+    Cloak.DataSource.ConnectionPool.execute!(
+      data_source,
+      fn(connection) ->
+        Logger.debug("Selecting data ...")
+        case driver.select(connection, select_query, result_processor) do
+          {:ok, processed_result} -> processed_result
+          {:error, reason} -> raise_error(reason)
+        end
       end
-    after
-      Logger.debug("Disconnecting ...")
-      driver.disconnect(connection)
-    end
+    )
   end
 
   @doc "Raises an error when something goes wrong during data processing."
@@ -206,6 +206,7 @@ defmodule Cloak.DataSource do
     data_source = restore_init_fields(data_source)
     driver = data_source.driver
     try do
+      # Not using the connection pool, since this function is invoked before the supervision tree is started.
       connection = driver.connect!(data_source.parameters)
       try do
         data_source
@@ -416,6 +417,7 @@ defmodule Cloak.DataSource do
   defp update_data_source_connectivity(%{status: :online} = data_source) do
     driver = data_source.driver
     try do
+      # Connection pool is not used here, since we want to always open the new connection to verify the connectivity.
       data_source.parameters |> driver.connect!() |> driver.disconnect()
       data_source
     rescue
@@ -449,7 +451,9 @@ defmodule Cloak.DataSource do
     supervisor(
       [
         gen_server(__MODULE__, load_data_source_configs(), name: __MODULE__),
+        Cloak.DataSource.ConnectionPool,
         Cloak.DataSource.SerializingUpdater,
+        Cloak.DataSource.PostgrexAutoRepair
       ],
       strategy: :one_for_one,
       name: Cloak.DataSource.Supervisor

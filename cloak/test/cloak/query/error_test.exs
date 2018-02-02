@@ -97,6 +97,11 @@ defmodule Cloak.Query.ErrorTest do
     assert error == "Expected `positive integer constant` at line 1, column 27."
   end
 
+  test "substring with invalid argument" do
+    assert_query "select substring(height FROM 3 FOR 2) from test_errors", %{error: error}
+    assert error =~ ~r/Function `substring` requires arguments of type (.*), but got (.*)./
+  end
+
   test "query reports error on invalid limit parameters" do
     assert_query "select name from test_errors limit -1", %{error: error}
     assert error =~ ~r/Expected `positive integer constant`.*/

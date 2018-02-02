@@ -62,5 +62,6 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
 
   defp sql_type(:real), do: "float"
   defp sql_type(:boolean), do: "bool"
+  defp sql_type(:datetime), do: "timestamp"
   defp sql_type(type) when is_atom(type), do: Atom.to_string(type)
 end

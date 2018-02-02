@@ -51,6 +51,9 @@ defmodule Cloak.DataSource.SAPHana do
   @impl Driver
   defdelegate driver_info(connection), to: ODBC
 
+  @impl Driver
+  defdelegate supports_connection_sharing?(), to: ODBC
+
 
   # -------------------------------------------------------------------
   # Internal functions

@@ -4,6 +4,16 @@ defmodule Cloak.DataSource.Driver do
   alias Cloak.Sql.{Query, Expression}
   alias Cloak.DataSource.Table
 
+  @doc "Returns the configured database connection timeout."
+  @spec connect_timeout() :: pos_integer
+  def connect_timeout(), do:
+    Application.get_env(:cloak, :data_source) |> Keyword.fetch!(:connect_timeout)
+
+  @doc "Returns the configured time for keeping the connection alive for potential reuse."
+  @spec connection_keep_time() :: pos_integer
+  def connection_keep_time(), do:
+    Application.get_env(:cloak, :data_source) |> Keyword.fetch!(:connection_keep_time)
+
   @doc "Returns the configured maximum timeout for a database operation."
   @spec timeout() :: pos_integer
   def timeout(), do:
@@ -42,4 +52,7 @@ defmodule Cloak.DataSource.Driver do
 
   @doc "Returns the driver specific information to be stored inside the data source structure."
   @callback driver_info(connection) :: driver_info
+
+  @doc "Returns true if the connection can be used from processes other than the creator process."
+  @callback supports_connection_sharing?() :: boolean
 end

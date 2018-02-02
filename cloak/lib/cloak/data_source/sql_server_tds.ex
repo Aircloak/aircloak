@@ -24,7 +24,7 @@ defmodule Cloak.DataSource.SQLServerTds do
       :connected ->
         Tds.query!(connection, "SET ANSI_DEFAULTS ON", [])
         connection
-    after :timer.seconds(5)
+    after Driver.connect_timeout()
       ->
         GenServer.stop(connection)
         DataSource.raise_error("Unknown failure during database connection process")
@@ -56,6 +56,9 @@ defmodule Cloak.DataSource.SQLServerTds do
 
   @impl Driver
   def driver_info(_connection), do: nil
+
+  @impl Driver
+  def supports_connection_sharing?(), do: true
 
 
   # -------------------------------------------------------------------

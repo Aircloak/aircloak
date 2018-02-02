@@ -35,7 +35,7 @@ column_expression :=
   column_expression::data_type
 
 binary_operator :=
-  + | - | * | / | ^ | %
+  + | - | * | / | ^
 
 data_type :=
   integer | real | text | boolean | datetime | date | time
