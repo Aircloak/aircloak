@@ -136,7 +136,11 @@ defmodule Cloak.DataSource.ConnectionPool do
   defp raise_client_error(:exit, {{%Cloak.Query.ExecutionError{} = error, _}, _}, _stacktrace), do: raise(error)
   defp raise_client_error(:error, error, stacktrace), do: reraise(error, stacktrace)
   defp raise_client_error(type, error, stacktrace) do
-    reraise(RuntimeError.exception("Connection error #{inspect(type)}: #{inspect(error)}"), stacktrace)
+    :erlang.raise(
+      :error,
+      RuntimeError.exception("Connection error #{inspect(type)}: #{inspect(error)}"),
+      stacktrace
+    )
   end
 
 
