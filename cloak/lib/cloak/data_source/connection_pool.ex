@@ -115,7 +115,7 @@ defmodule Cloak.DataSource.ConnectionPool do
     try do
       res =
         connection_owner
-        |> GenServer.call(:start_client_usage, 2 * Driver.connect_timeout())
+        |> GenServer.call(:start_client_usage, :timer.minutes(1) + Driver.connect_timeout())
         |> fun.()
 
       # To avoid possible corrupt state, we're returning the connection back only on success.
