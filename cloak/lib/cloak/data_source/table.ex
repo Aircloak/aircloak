@@ -359,10 +359,12 @@ defmodule Cloak.DataSource.Table do
   defp translate_decoder(%{method: "aes_cbc_128", key: key}, column), do:
     "dec_aes_cbc128(#{column}, '#{String.replace(key, "'", "''")}')"
   defp translate_decoder(%{method: "text_to_integer"}, column), do: "CAST(#{column} AS integer)"
+  defp translate_decoder(%{method: "real_to_integer"}, column), do: "CAST(#{column} AS integer)"
   defp translate_decoder(%{method: "text_to_real"}, column), do: "CAST(#{column} AS real)"
   defp translate_decoder(%{method: "text_to_datetime"}, column), do: "CAST(#{column} AS datetime)"
   defp translate_decoder(%{method: "text_to_date"}, column), do: "CAST(#{column} AS date)"
   defp translate_decoder(%{method: "text_to_boolean"}, column), do: "CAST(#{column} AS boolean)"
+  defp translate_decoder(%{method: "real_to_boolean"}, column), do: "CAST(#{column} AS boolean)"
   defp translate_decoder(%{method: "base64"}, column), do: "dec_b64(#{column})"
   defp translate_decoder(%{method: method}, _column), do:
     DataSource.raise_error("Invalid decoding method specified: #{method}")
