@@ -367,8 +367,8 @@ defmodule Cloak.DataSource.Table do
   defp translate_decoder(%{method: method}, _column), do:
     DataSource.raise_error("Invalid decoding method specified: #{method}")
 
-  defp translate_projection({id, %{projection: nil, user_id: user_id}}, _), do:
-    {~s/"#{user_id}"/, ~s/"#{user_id}"/, ~s/"#{id}"/}
+  defp translate_projection({id, %{projection: nil, user_id: user_id, db_name: db_name}}, _), do:
+    {~s/"#{id}"."#{user_id}"/, ~s/"#{user_id}"/, ~s/"#{db_name}" AS "#{id}"/}
   defp translate_projection({id, %{projection: projection}}, tables) do
     projection_id = String.to_atom(projection.table)
     {user_id, alias, from} = translate_projection({projection_id, tables[projection_id]}, tables)
@@ -376,7 +376,7 @@ defmodule Cloak.DataSource.Table do
         # for mongodb data sources, it is faster to use a subquery here as the driver doesn't support complex joins
         from = ~s/(SELECT #{user_id} AS #{alias}, "#{projection_id}"."#{projection.primary_key}" / <>
           ~s/FROM #{from}) AS "#{projection_id}"/
-        {alias, alias, from}
+        {~s/"#{projection_id}".#{alias}/, alias, from}
       else
         {user_id, alias, from}
       end
