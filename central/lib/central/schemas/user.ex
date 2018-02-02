@@ -91,7 +91,7 @@ defmodule Central.Schemas.User do
     worrying we'll leek some sensitive data.
     """
     def inspect(user, opts) do
-      Inspect.Map.inspect(Map.take(user, [:id]), Inspect.Atom.inspect(user.__struct__), opts)
+      Inspect.Map.inspect(Map.take(user, [:id]), inspect(user.__struct__), opts)
     end
   end
 end
