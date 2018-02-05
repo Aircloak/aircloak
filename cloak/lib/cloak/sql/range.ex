@@ -44,7 +44,7 @@ defmodule Cloak.Sql.Range do
   defp inequalities_by_column(query), do:
     Query.Lenses.db_filter_clauses()
     |> Query.Lenses.conditions()
-    |> Lens.satisfy(&Condition.inequality?/1)
+    |> Lens.filter(&Condition.inequality?/1)
     |> Lens.to_list(query)
     |> Enum.group_by(& &1 |> Condition.subject() |> Expression.semantic())
 
@@ -59,7 +59,7 @@ defmodule Cloak.Sql.Range do
   defp equality_ranges(query), do:
     Query.Lenses.db_filter_clauses()
     |> Query.Lenses.conditions()
-    |> Lens.satisfy(&Condition.equals?/1)
+    |> Lens.filter(&Condition.equals?/1)
     |> Lens.to_list(query)
     |> Enum.map(fn({:comparison, lhs, :=, _}) -> lhs end)
     |> Enum.filter(&implicit_range?(&1, query))
@@ -68,7 +68,7 @@ defmodule Cloak.Sql.Range do
   defp top_level_select_ranges(query), do:
      top_level_select(query)
      |> Lens.all()
-     |> Lens.satisfy(& not aggregate?(&1))
+     |> Lens.reject(& aggregate?(&1))
      |> Lens.to_list(query)
      |> Enum.filter(&implicit_range?(&1, query))
      |> Enum.map(&function_range/1)

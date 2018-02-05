@@ -74,6 +74,7 @@ defmodule Cloak.Sql.Query do
     noise_layers: [NoiseLayer.t],
     view?: boolean,
     table_aliases: %{String.t => DataSource.Table.t},
+    virtual_table?: boolean,
   }
 
   @type features :: %{
@@ -82,6 +83,7 @@ defmodule Cloak.Sql.Query do
     num_tables: pos_integer,
     num_group_by: non_neg_integer,
     functions: [String.t],
+    expressions: [String.t],
     where_conditions: [String.t],
     column_types: [String.t],
     selected_types: [String.t],
@@ -97,7 +99,7 @@ defmodule Cloak.Sql.Query do
     info: [], selected_tables: [], implicit_count?: false, data_source: nil, command: nil,
     show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: nil, distinct?: false,
     parameters: [], views: %{}, emulated?: false, sample_rate: nil, projected?: false,
-    next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false, table_aliases: %{},
+    next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false, table_aliases: %{}, virtual_table?: false,
   ]
 
 
@@ -163,7 +165,7 @@ defmodule Cloak.Sql.Query do
         {next_row_index, query} = next_row_index(query)
 
         %__MODULE__{query | db_columns: query.db_columns ++ [column]}
-        |> put_in([Lenses.query_expressions() |> Lens.satisfy(column_matcher) |> Lens.key(:row_index)], next_row_index)
+        |> put_in([Lenses.query_expressions() |> Lens.filter(column_matcher) |> Lens.key(:row_index)], next_row_index)
       _ ->
         query
     end

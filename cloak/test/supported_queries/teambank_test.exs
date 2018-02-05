@@ -802,6 +802,23 @@ defmodule Cloak.Regressions.TeamBank.Test do
   #   assert_compiles_successfully(query, data_source_scaffold())
   # end
 
+  test "comparison of months with math" do
+    query = """
+      SELECT umsatz1.Monat, count(distinct umsatz1.inhaberId) FROM
+      (SELECT inhaberId, MONTH(buchungsDatum) AS Monat FROM umsatz
+      WHERE UPPER(umsatzeigenschaften.spezifizierung) = 'EASYCREDIT' AND
+      buchungsDatum BETWEEN '2017-01-01' AND '2018-01-01' GROUP BY 1,2) AS umsatz1
+      LEFT JOIN
+      (SELECT inhaberId, MONTH(buchungsDatum) AS Monat FROM umsatz
+      WHERE UPPER(umsatzeigenschaften.spezifizierung) = 'EASYCREDIT' AND
+      buchungsDatum BETWEEN '2017-01-01' AND '2018-01-01' GROUP BY 1,2) AS umsatz2
+      ON umsatz1.inhaberId = umsatz2.inhaberId AND umsatz1.Monat = umsatz2.Monat - 1
+      WHERE umsatz2.inhaberId IS NULL
+      GROUP BY 1
+    """
+    assert_compiles_successfully(query, data_source_scaffold())
+  end
+
   defp data_source_scaffold() do
     %{
       umsatz: [

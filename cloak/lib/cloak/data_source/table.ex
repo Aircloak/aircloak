@@ -3,6 +3,7 @@ defmodule Cloak.DataSource.Table do
 
   alias Cloak.DataSource
   alias Cloak.Query.{DataDecoder, ExecutionError}
+  alias Cloak.Sql.{Compiler, Parser, Query.Lenses, CompilationError, Expression, Query}
 
   require Logger
 
@@ -13,6 +14,7 @@ defmodule Cloak.DataSource.Table do
     :name => String.t, # table name as seen by the user
     :db_name => String.t | nil, # table name in the database
     :user_id => String.t,
+    :query => Query.t | nil, # the SQL query for a virtual table
     :ignore_unsupported_types => boolean,
     :columns => [column],
     :decoders => [DataDecoder.t],
@@ -30,6 +32,7 @@ defmodule Cloak.DataSource.Table do
     {:decoders, [DataDecoder.t]} |
     {:projection, projection} |
     {:keys, [String.t]} |
+    {:query, Query.t} |
     {atom, any}
 
 
@@ -50,6 +53,7 @@ defmodule Cloak.DataSource.Table do
         decoders: [],
         projection: nil,
         keys: [],
+        query: nil,
       },
       Map.new(opts)
     )
@@ -62,12 +66,87 @@ defmodule Cloak.DataSource.Table do
   @doc "Given a data source and a connection to it, it will load all configured tables from the data set. "
   @spec load(DataSource.t, DataSource.Driver.connection) :: DataSource.t
   def load(data_source, connection), do:
-    data_source |> scan_tables(connection) |> resolve_projected_tables()
+    data_source
+    |> scan_virtual_tables(connection)
+    |> scan_tables(connection)
+    |> resolve_projected_tables()
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp scan_virtual_tables(data_source, connection) do
+    tables = Enum.map(data_source.tables, &parse_virtual_table/1)
+    # in order to compile the raw SQL queries that generate virtual tables,
+    # we need to create a virtual data source containing the real database tables referenced by those queries
+    virtual_tables =
+      tables
+      |> Enum.flat_map(&get_virtual_table_db_names/1)
+      |> Enum.uniq()
+      |> Enum.flat_map(&load_tables(data_source, connection, {&1, %{}}))
+      |> Enum.into(%{})
+    virtual_data_source = %{data_source | tables: virtual_tables}
+    tables = Enum.map(tables, &compile_virtual_table(&1, virtual_data_source))
+    %{data_source | tables: Enum.into(tables, %{})}
+  end
+
+  defp parse_virtual_table({name, %{query: statement} = table}) when statement != nil do
+    case Parser.parse(statement) do
+      {:ok, parsed_query} ->
+        {name, %{table| query: parsed_query}}
+      {:error, reason} ->
+        DataSource.raise_error("Failed to parse the query for virtual table `#{name}`: `#{reason}`")
+    end
+  end
+  defp parse_virtual_table(table), do: table
+
+  defp get_virtual_table_db_names({_, %{query: parsed_query}}) when parsed_query != nil, do:
+    Lenses.all_queries()
+    |> Lenses.ast_tables()
+    |> Lens.to_list(parsed_query)
+    |> Enum.map(&ast_table_name/1)
+  defp get_virtual_table_db_names(_), do: []
+
+  defp ast_table_name({_, name}), do: name
+  defp ast_table_name({table, :as, _alias}), do: ast_table_name(table)
+
+  defp compile_virtual_table({name, %{query: parsed_query, user_id: user_id}}, data_source) when parsed_query != nil do
+    compiled_query =
+      try do
+        parsed_query
+        |> Map.put(:virtual_table?, true)
+        |> Compiler.Specification.compile(data_source, nil, %{})
+        |> drop_duplicate_columns()
+        |> Map.put(:subquery?, true)
+      rescue
+        error in CompilationError ->
+          reason = Exception.message(error)
+          DataSource.raise_error("Failed to compile the query for virtual table `#{name}`: `#{reason}`")
+      end
+
+    Enum.each(compiled_query.column_titles, &verify_column_name(name, &1))
+    columns =
+      Enum.zip(compiled_query.column_titles, compiled_query.columns)
+      |> Enum.map(fn ({title, column}) -> %{name: title, type: column.type, visible?: true} end)
+    table = new(to_string(name), user_id, query: compiled_query, columns: columns)
+    {name, table}
+  end
+  defp compile_virtual_table(table, _data_source), do: table
+
+  defp verify_column_name(table, name) do
+    if not Expression.valid_alias?(name), do:
+      DataSource.raise_error("Invalid column name `#{name}` in virtual table `#{table}`. " <>
+        "Complex selected expressions have to be aliased with a valid column name.")
+  end
+
+  defp drop_duplicate_columns(query) do
+    {column_titles, columns} =
+      Enum.zip(query.column_titles, query.columns)
+      |> Enum.uniq_by(fn ({title, _column}) -> title end)
+      |> Enum.unzip()
+    %Query{query| columns: columns, column_titles: column_titles}
+  end
 
   defp scan_tables(%{errors: existing_errors} = data_source, connection) do
     {tables, errors} =
@@ -85,6 +164,7 @@ defmodule Cloak.DataSource.Table do
     %{data_source | errors: existing_errors ++ errors, tables: Enum.into(tables, %{})}
   end
 
+  defp load_tables(_data_source, _connection, {_, %{query: query}} = table) when query != nil, do: [table]
   defp load_tables(data_source, connection, {table_id, table}) do
     table_id = to_string(table_id)
     table = new(table_id, Map.get(table, :user_id), [db_name: table_id] ++ Map.to_list(table))
@@ -111,6 +191,7 @@ defmodule Cloak.DataSource.Table do
     if table.columns == [], do: DataSource.raise_error("no data columns found in table")
   end
 
+  defp verify_user_id(_data_source, %{user_id: nil}), do: :ok
   defp verify_user_id(data_source, %{projection: projection} = table) when not is_nil(projection) do
     projected_uid_name = get_uid_name(data_source, projection.table, projection)
     case Enum.find(table.columns, &(&1.name == projected_uid_name)) do
@@ -122,8 +203,7 @@ defmodule Cloak.DataSource.Table do
     end
   end
   defp verify_user_id(_data_source, table) do
-    user_id = table.user_id
-    case Enum.find(table.columns, &(&1.name == user_id)) do
+    case Enum.find(table.columns, &(&1.name == table.user_id)) do
       %{} = column ->
         unless column.type in [:integer, :text, :real, :unknown], do:
           DataSource.raise_error("unsupported user id type: #{column.type}")
@@ -132,7 +212,7 @@ defmodule Cloak.DataSource.Table do
           table.columns
           |> Enum.map(&"`#{&1.name}`")
           |> Enum.join(", ")
-        DataSource.raise_error("the user id column `#{user_id}` for table `#{table.name}` does not exist. " <>
+        DataSource.raise_error("the user id column `#{table.user_id}` for table `#{table.name}` does not exist. " <>
           "Available columns are: #{columns_string}.")
     end
   end

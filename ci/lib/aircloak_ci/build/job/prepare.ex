@@ -7,9 +7,9 @@ defmodule AircloakCI.Build.Job.Prepare do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Compiles all the components in the given project."
-  @spec run(Build.Server.t, [delay: non_neg_integer]) :: Build.Server.t
-  def run(%{project: project, base_branch: base_branch} = build_state, opts \\ []), do:
+  @doc "Prepares the source code for the given project."
+  @spec start(Build.Server.t, [delay: non_neg_integer]) :: Build.Server.t
+  def start(%{project: project, base_branch: base_branch} = build_state, opts \\ []), do:
     Build.Server.start_job(build_state, "prepare", fn -> initialize_repo(project, base_branch, opts) end)
 
 

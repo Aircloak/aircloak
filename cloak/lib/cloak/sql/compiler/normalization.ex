@@ -97,7 +97,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   defp normalize_trivial_like(query), do:
     Query.Lenses.like_clauses()
-    |> Lens.satisfy(&trivial_like?/1)
+    |> Lens.filter(&trivial_like?/1)
     |> Lens.map(query, fn
       {:like, lhs, rhs} -> {:comparison, lhs, :=, LikePattern.trivial_to_string(rhs)}
       {:ilike, lhs, rhs} ->

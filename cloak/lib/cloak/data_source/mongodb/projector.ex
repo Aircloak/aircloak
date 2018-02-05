@@ -72,13 +72,8 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   end
   defp begin_parse_column(column), do: parse_column(column)
 
-  defp valid_alias?(name), do:
-    String.match?(name, ~r/^[a-zA-Z_#][a-zA-Z0-9_.#]*$/) and
-    not String.contains?(name, "..") and
-    String.last(name) != "."
-
   defp project_alias(name) do
-    if not valid_alias?(name), do:
+    if not Expression.valid_alias?(name), do:
       DataSource.raise_error("MongoDB column alias `#{name}` contains invalid character(s).")
     name
   end

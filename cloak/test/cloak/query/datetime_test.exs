@@ -119,6 +119,31 @@ defmodule Cloak.Query.DatetimeTest do
     assert date_time_string == NaiveDateTime.to_iso8601(date_time)
   end
 
+  test "casting date to datetime" do
+    :ok = insert_rows(_user_ids = 1..10, "datetimes", ["date_only"], [~D[0001-02-03]])
+
+    assert_query "select cast(date_only as datetime) from datetimes", %{rows: [%{row: ["0001-02-03T00:00:00.000000"]}]}
+    assert_query "select dt from (select cast(date_only as datetime) as dt from datetimes) t",
+      %{rows: [%{row: ["0001-02-03T00:00:00.000000"]}]}
+  end
+
+  test "casting datetime to date" do
+    :ok = insert_rows(_user_ids = 1..10, "datetimes", ["datetime"], [~N[0001-02-03 01:00:00]])
+
+    assert_query "select cast(datetime as date) from datetimes", %{rows: [%{row: ["0001-02-03"]}]}
+    assert_query "select d from (select cast(datetime as date) as d from datetimes) t",
+      %{rows: [%{row: ["0001-02-03"]}]}
+  end
+
+  test "automatic conversion of text to datetime" do
+    :ok = insert_rows(_user_ids = 1..10, "datetimes", ["datetime"], [~N[2017-02-03 01:00:00]])
+
+    assert_query """
+      select count(*) from datetimes as t1 join datetimes as t2
+      on t1.user_id = t2.user_id and t1.datetime = '2017-02-03 01:00:00'
+    """, %{rows: [%{row: [10]}]}
+  end
+
   describe "aggregators over date/time" do
     setup do
       :ok = insert_rows(_user_ids = 1..10, "datetimes", ["datetime"], [~N[2015-01-02 10:00:05.000000]])

@@ -27,7 +27,7 @@ defmodule Cloak.DataSource.MySQL do
         {:ok, %Mariaex.Result{}} = Mariaex.query(connection, "SET sql_mode = 'ANSI,NO_BACKSLASH_ESCAPES'", [])
         {:ok, %Mariaex.Result{}} = Mariaex.query(connection, "SET div_precision_increment = 30", [])
         connection
-    after :timer.seconds(5)
+    after Driver.connect_timeout()
       ->
         GenServer.stop(connection)
         DataSource.raise_error("Unknown failure during database connection process")
@@ -51,6 +51,9 @@ defmodule Cloak.DataSource.MySQL do
       column |> DataDecoder.encoded_type() |> type_to_field_mapper()
     run_query(connection, statement, &map_fields(&1, field_mappers), result_processor)
   end
+
+  @impl Driver
+  def supports_connection_sharing?(), do: true
 
 
   # -------------------------------------------------------------------
@@ -145,8 +148,10 @@ defmodule Cloak.DataSource.MySQL do
     def execute(connection, statement, parameters \\ [])
     def execute(connection, "DROP SCHEMA " <> _rest = statement, []), do:
       Mariaex.query(connection, String.replace(statement, "CASCADE", ""))
-    def execute(connection, "CREATE TABLE " <> _rest = statement, []), do:
-      Mariaex.query(connection, String.replace(statement, " BOOLEAN", " BIT"))
+    def execute(connection, "CREATE TABLE " <> _rest = statement, []) do
+      statement = statement |> String.replace(" BOOLEAN", " BIT") |> String.replace(" TIMESTAMP", " DATETIME")
+      Mariaex.query(connection, statement)
+    end
     def execute(connection, statement, parameters) do
       parameters = Enum.map(parameters, &parameter_mapper/1)
       statement = statement |> to_string() |> String.replace(~r/\$\d+/, "?")

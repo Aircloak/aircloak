@@ -116,7 +116,7 @@ defmodule Cloak.Sql.Function do
       %{type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :boolean},
       attributes: [:restricted, :cast]},
     [{:cast, :datetime}] =>
-      %{type_specs: %{[{:or, [:text, :datetime]}] => :datetime},
+      %{type_specs: %{[{:or, [:text, :datetime, :date]}] => :datetime},
       attributes: [:restricted, :cast]},
     [{:cast, :time}] =>
       %{type_specs: %{[{:or, [:text, :datetime, :time]}] => :time},

@@ -166,18 +166,18 @@ defmodule Cloak.DataSource do
   @spec select!(Query.t, result_processor) :: processed_result
   def select!(%{data_source: data_source} = select_query, result_processor) do
     driver = data_source.driver
-    Logger.debug("Connecting to `#{data_source.name}` ...")
-    connection = driver.connect!(data_source.parameters)
-    try do
-      Logger.debug("Selecting data ...")
-      case driver.select(connection, select_query, result_processor) do
-        {:ok, processed_result} -> processed_result
-        {:error, reason} -> raise_error(reason)
+    Logger.debug("Acquiring connection to `#{data_source.name}` ...")
+
+    Cloak.DataSource.ConnectionPool.execute!(
+      data_source,
+      fn(connection) ->
+        Logger.debug("Selecting data ...")
+        case driver.select(connection, select_query, result_processor) do
+          {:ok, processed_result} -> processed_result
+          {:error, reason} -> raise_error(reason)
+        end
       end
-    after
-      Logger.debug("Disconnecting ...")
-      driver.disconnect(connection)
-    end
+    )
   end
 
   @doc "Raises an error when something goes wrong during data processing."
@@ -205,6 +205,7 @@ defmodule Cloak.DataSource do
     data_source = restore_init_fields(data_source)
     driver = data_source.driver
     try do
+      # Not using the connection pool, since this function is invoked before the supervision tree is started.
       connection = driver.connect!(data_source.parameters)
       try do
         data_source
@@ -215,7 +216,7 @@ defmodule Cloak.DataSource do
       end
     rescue
       error in ExecutionError ->
-        message = "Connection error: #{Exception.message(error)}."
+        message = "Table load error: #{Exception.message(error)}."
         Logger.error("Data source `#{data_source.name}` is offline: #{message}")
         add_error_message(%{data_source | tables: %{}, status: :offline}, message)
     end
@@ -271,11 +272,22 @@ defmodule Cloak.DataSource do
     |> Cloak.DataSource.Utility.load_individual_data_source_configs()
     |> initialize_data_source_configs()
 
-  defp initialize_data_source_configs(data_source_configs), do:
-    data_source_configs
-    |> config_to_datasources()
-    |> Task.async_stream(&add_tables/1, timeout: :timer.minutes(30))
-    |> Enum.map(fn({:ok, data_source}) -> data_source end)
+  defp initialize_data_source_configs(data_source_configs) do
+    data_sources = config_to_datasources(data_source_configs)
+
+    data_sources
+    |> Task.async_stream(&add_tables/1, timeout: :timer.minutes(30), ordered: true)
+    |> Enum.zip(data_sources)
+    |> Enum.map(&handle_add_tables_result/1)
+  end
+
+  defp handle_add_tables_result({{:ok, data_source}, _original_data_source}), do: data_source
+  defp handle_add_tables_result({{:exit, _}, original_data_source}) do
+    # If we came here, then the task running `add_tables` has crashed. We won't log the exit reason since it might
+    # contain database password.
+    Logger.error("Data source `#{original_data_source.name}` is offline")
+    add_error_message(%{original_data_source | tables: %{}, status: :offline}, "connection error")
+  end
 
   defp to_data_source(data_source) do
     data_source
@@ -403,6 +415,7 @@ defmodule Cloak.DataSource do
   defp update_data_source_connectivity(%{status: :online} = data_source) do
     driver = data_source.driver
     try do
+      # Connection pool is not used here, since we want to always open the new connection to verify the connectivity.
       data_source.parameters |> driver.connect!() |> driver.disconnect()
       data_source
     rescue
@@ -436,7 +449,9 @@ defmodule Cloak.DataSource do
     supervisor(
       [
         gen_server(__MODULE__, load_data_source_configs(), name: __MODULE__),
+        Cloak.DataSource.ConnectionPool,
         Cloak.DataSource.SerializingUpdater,
+        Cloak.DataSource.PostgrexAutoRepair
       ],
       strategy: :one_for_one,
       name: Cloak.DataSource.Supervisor

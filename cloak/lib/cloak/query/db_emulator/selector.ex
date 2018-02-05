@@ -48,36 +48,20 @@ defmodule Cloak.Query.DbEmulator.Selector do
   defp do_pick_db_columns(stream, %Query{db_columns: db_columns, from: from}) do
     # The column titles in a subquery are not guaranteed to be unique, but that is fine
     # since, if they are not, they can't be referenced exactly either.
-    evaluators =
+    columns =
       db_columns
       |> Enum.sort_by(& &1.row_index)
-      |> make_contiguous()
-      |> Enum.map(&build_evaluator(&1, from))
+      |> Enum.map(&update_row_index(&1, from))
 
     Stream.map(stream, fn (row) ->
-      Enum.map(evaluators, fn (evaluator) -> evaluator.(row) end)
+      Enum.map(columns, &Expression.value(&1, row))
     end)
   end
 
-  defp make_contiguous(list, next_index \\ 0)
-  defp make_contiguous([], _any), do: []
-  defp make_contiguous(all = [%Expression{row_index: index} | _], next_index) when next_index < index, do:
-    [nil | make_contiguous(all, next_index + 1)]
-  defp make_contiguous([exp = %Expression{row_index: index} | rest], next_index) when next_index == index, do:
-    [exp | make_contiguous(rest, next_index + 1)]
-
-  defp build_evaluator(nil, _source), do: fn (_row) -> nil end
-  defp build_evaluator(column = %{function?: true, function_args: function_args}, source) do
-    arg_evaluators = Enum.map(function_args, &build_evaluator(&1, source))
-    fn (row) ->
-      args = Enum.map(arg_evaluators, fn(evaluator) -> evaluator.(row) end)
-      Expression.apply_function(column, args)
-    end
-  end
-  defp build_evaluator(column, from) do
-    index = index_in_from(column, from)
-    fn (row) -> Enum.at(row, index) end
-  end
+  defp update_row_index(column = %{function?: true, function_args: function_args}, source), do:
+    %Expression{column| function_args: Enum.map(function_args, &update_row_index(&1, source))}
+  defp update_row_index(column, from), do:
+    %Expression{column | row_index: index_in_from(column, from)}
 
 
   # -------------------------------------------------------------------

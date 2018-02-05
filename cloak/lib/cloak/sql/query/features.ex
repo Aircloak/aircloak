@@ -14,7 +14,8 @@ defmodule Cloak.Sql.Query.Features do
       num_db_columns: num_db_columns(query.columns),
       num_tables: num_tables(query.selected_tables),
       num_group_by: num_group_by(query),
-      functions: extract_functions(query.columns),
+      functions: extract_functions(query),
+      expressions: extract_expressions(query),
       where_conditions: extract_where_conditions(query.where),
       column_types: extract_column_types(query.columns),
       selected_types: selected_types(query.columns),
@@ -48,16 +49,34 @@ defmodule Cloak.Sql.Query.Features do
 
   defp num_group_by(%{group_by: clauses}), do: length(clauses)
 
-  defp extract_functions([:*]), do: []
-  defp extract_functions(columns), do:
-    columns
-    |> Enum.flat_map(&extract_function/1)
+  defp extract_functions(query), do:
+    query
+    |> get_in([Query.Lenses.all_queries() |> Query.Lenses.terminals()])
+    |> Enum.filter(&match?(%Expression{function?: true}, &1))
+    |> Enum.map(&Function.readable_name(&1.function))
     |> Enum.uniq()
 
-  defp extract_function(%Expression{function?: true, function: function, function_args: args}), do:
-    [Function.readable_name(function) | extract_functions(args)]
-  defp extract_function(%Expression{}), do: []
-  defp extract_function({:distinct, param}), do: extract_function(param)
+  defp extract_expressions(query), do:
+    query
+    |> get_in([Query.Lenses.analyst_provided_expressions()])
+    |> Enum.map(&build_expression_tree(&1, query))
+    |> Enum.map(&expression_tree_to_lisp/1)
+
+  defp expression_tree_to_lisp(list) when is_list(list), do:
+    to_string([?(, list |> Enum.map(&expression_tree_to_lisp/1) |> Enum.intersperse(" "), ?)])
+  defp expression_tree_to_lisp(other), do: to_string(other)
+
+  defp build_expression_tree(%Expression{function?: true, function: function, function_args: args}, query), do:
+    [Function.readable_name(function) | Enum.map(args, &build_expression_tree(&1, query))]
+  defp build_expression_tree(%Expression{constant?: true}, _query), do: :const
+  defp build_expression_tree({:distinct, expr}, query), do: [:distinct, build_expression_tree(expr, query)]
+  defp build_expression_tree(:*, _query), do: :*
+  defp build_expression_tree(other, query) do
+    case Query.resolve_subquery_column(other, query) do
+      :database_column -> :col
+      {column, subquery} -> build_expression_tree(column, subquery)
+    end
+  end
 
   defp extract_where_conditions(clause), do:
     Query.Lenses.conditions()
@@ -98,8 +117,8 @@ defmodule Cloak.Sql.Query.Features do
   defp extract_decoders(query) do
     Query.Lenses.all_queries()
     |> Query.Lenses.query_expressions()
-    |> Lens.satisfy(&match?(%Expression{function?: false, constant?: false, table: %{decoders: [_|_]}}, &1))
-    |> Lens.satisfy(&decoded?/1)
+    |> Lens.filter(&match?(%Expression{function?: false, constant?: false, table: %{decoders: [_|_]}}, &1))
+    |> Lens.filter(&decoded?/1)
     |> Lens.to_list(query)
     |> Enum.map(&decoder/1)
     |> Enum.uniq()

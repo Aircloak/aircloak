@@ -221,6 +221,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp compile_subquery(parsed_subquery, alias, parent_query), do:
     parsed_subquery
     |> Map.put(:subquery?, true)
+    |> Map.put(:virtual_table?, parent_query.virtual_table?)
     |> compile(parent_query.data_source, parent_query.parameters, parent_query.views)
     |> ensure_uid_selected(alias)
 
@@ -235,9 +236,14 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp selected_tables({:join, join}, query), do:
     selected_tables(join.lhs, query) ++ selected_tables(join.rhs, query)
   defp selected_tables({:subquery, subquery}, _query) do
-    # In a subquery we should have the `user_id` already in the list of selected columns.
-    user_id_index = Enum.find_index(subquery.ast.columns, &(&1.user_id?))
-    user_id_name = Enum.at(subquery.ast.column_titles, user_id_index)
+    user_id_name =
+      if subquery.ast.virtual_table? do
+        nil
+      else
+        # In a subquery we should have the `user_id` already in the list of selected columns.
+        user_id_index = Enum.find_index(subquery.ast.columns, &(&1.user_id?))
+        Enum.at(subquery.ast.column_titles, user_id_index)
+      end
     columns =
         Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
         |> Enum.map(fn({alias, column}) ->
@@ -245,7 +251,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         |> Enum.uniq()
     keys =
       Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
-      |> Enum.filter(fn({_, column}) -> column.key? end)
+      |> Enum.filter(fn({_, column}) -> Expression.key?(column) end)
       |> Enum.map(fn({title, _}) -> title end)
 
     [DataSource.Table.new(subquery.alias, user_id_name, columns: columns, keys: keys)]
@@ -366,7 +372,8 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp resolve_alias(_aliases, other), do: other
 
   defp column_title({_identifier, :as, alias}, _selected_tables), do: alias
-  defp column_title({:function, {:cast, _}, _, _}, _selected_tables), do: "cast"
+  defp column_title({:function, {:cast, _}, [expression], _}, selected_tables), do:
+    column_title(expression, selected_tables)
   defp column_title({:function, {:bucket, _}, _, _}, _selected_tables), do: "bucket"
   defp column_title({:function, name, _, _}, _selected_tables), do: name
   defp column_title({:distinct, identifier}, selected_tables), do: column_title(identifier, selected_tables)
@@ -522,8 +529,8 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp quoted_types(items), do: items |> Enum.map(&quoted_type/1) |> Enum.join(", ")
 
-  defp quoted_type({:optional, type}), do: "[`#{type}`]"
-  defp quoted_type({:many1, type}), do: "[`#{type}`]+"
+  defp quoted_type({:optional, type}), do: "[" <> quoted_type(type) <> "]"
+  defp quoted_type({:many1, type}), do: "[" <> quoted_type(type) <> "]+"
   defp quoted_type({:or, types}), do: types |> Enum.map(&quoted_type/1) |> Enum.join(" | ")
   defp quoted_type({:constant, type}), do: "`constant #{type}`"
   defp quoted_type(type), do: "`#{type}`"
@@ -573,7 +580,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   # -------------------------------------------------------------------
 
   defp cast_where_clauses(query), do:
-    %Query{query | where: Lens.map(Lenses.conditions(), query.where, &cast_where_clause/1)}
+    Lens.map(Lenses.filter_clauses() |> Lenses.conditions(), query, &cast_where_clause/1)
 
   defp cast_where_clause(clause) do
     column = Condition.subject(clause)
@@ -640,6 +647,9 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp auto_select_uid_column(subquery) do
     cond do
+      # virtual table queries don't require user ids
+      subquery.virtual_table? -> nil
+
       # uid column is already explicitly selected
       Helpers.uid_column_selected?(subquery) -> nil
 

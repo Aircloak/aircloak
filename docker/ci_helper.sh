@@ -38,7 +38,8 @@ function build_image {
   # removal of old stale images. Since removal of stale images also talks to git, this will reduce the network
   # communication and will run much faster.
   PREVENT_OLD_IMAGE_REMOVAL="true" common/docker/phoenix/build-image.sh
-  build_aircloak_image $DOCKER_IMAGE $COMPONENT/ci/dockerfile $COMPONENT/ci/.dockerignore
+  PREVENT_OLD_IMAGE_REMOVAL="true" build_aircloak_image $DOCKER_IMAGE $COMPONENT/ci/dockerfile $COMPONENT/ci/.dockerignore
+  remove_old_git_head_image_tags "aircloak"
 }
 
 function is_image_built {

@@ -39,7 +39,6 @@ defmodule Cloak.Mixfile do
       {:timex, "~> 3.1"},
       {:poison, github: "sasa1977/poison", override: true},
       {:mongodb, "~> 0.3.0"},
-      {:lens, "~> 0.4.0"},
       {:backoff, "~> 1.1.3"},
       {:jiffy, "~> 0.14.1"},
       {:tds, github: "cristianberneanu/tds"},

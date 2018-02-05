@@ -48,15 +48,15 @@ defmodule Cloak.Sql.Query.Lenses do
       %Query{subquery?: true} -> query_expressions()
       %Query{subquery?: false} -> db_filter_clauses() |> conditions_terminals() |> expressions()
     end)
-    |> Lens.satisfy(& &1.function?)
+    |> Lens.filter(& &1.function?)
 
   @doc "Lens focusing on raw (uncompiled) casts of parameters."
   deflens raw_parameter_casts(), do:
     terminals()
-    |> Lens.satisfy(&match?({:function, {:cast, _type}, [{:parameter, _index}], _}, &1))
+    |> Lens.filter(&match?({:function, {:cast, _type}, [{:parameter, _index}], _}, &1))
 
   @doc "Lens focusing on invocations of the bucket function"
-  deflens buckets(), do: terminals() |> Lens.satisfy(&Function.bucket?/1)
+  deflens buckets(), do: terminals() |> Lens.filter(&Function.bucket?/1)
 
   @doc "Lens focusing on all noise layers of subqueries of the query."
   deflens subquery_noise_layers(), do:
@@ -70,7 +70,7 @@ defmodule Cloak.Sql.Query.Lenses do
   deflens direct_subqueries(), do:
     Lens.key(:from)
     |> join_elements()
-    |> Lens.satisfy(&match?({:subquery, _}, &1))
+    |> Lens.filter(&match?({:subquery, _}, &1))
     |> Lens.at(1)
 
   @doc "Lens focusing on all inequality condition-clauses in a query."
@@ -87,21 +87,21 @@ defmodule Cloak.Sql.Query.Lenses do
   deflens leaf_tables(), do:
     Lens.key(:from)
     |> join_elements()
-    |> Lens.satisfy(&is_binary/1)
+    |> Lens.filter(&is_binary/1)
 
   @doc "Lens focusing on all join elements of a query."
   deflens joins(), do:
     Lens.key(:from)
     |> join_elements()
-    |> Lens.satisfy(&match?({:join, _}, &1))
+    |> Lens.filter(&match?({:join, _}, &1))
     |> Lens.at(1)
 
   @doc "Lens focusing on all subqueries which are part of a join."
   deflens joined_subqueries(), do:
     Lens.key(:from)
-    |> Lens.satisfy(&match?({:join, _}, &1))
+    |> Lens.filter(&match?({:join, _}, &1))
     |> join_elements()
-    |> Lens.satisfy(&match?({:subquery, _}, &1))
+    |> Lens.filter(&match?({:subquery, _}, &1))
     |> Lens.at(1)
 
   @doc "Lens focusing on all terminal elements in all join conditions of a query."
@@ -190,7 +190,7 @@ defmodule Cloak.Sql.Query.Lenses do
   def like_clauses(), do:
     filter_clauses()
     |> conditions()
-    |> Lens.satisfy(& Condition.like?(&1) or Condition.not_like?(&1))
+    |> Lens.filter(& Condition.like?(&1) or Condition.not_like?(&1))
 
   @doc "Lens focusing on all like/ilike/not like/not ilike patterns in the query conditions."
   @spec like_patterns() :: Lens.t
@@ -241,9 +241,9 @@ defmodule Cloak.Sql.Query.Lenses do
     end)
 
   deflensp expressions(), do:
-    Lens.satisfy(Lens.root(), &match?(%Expression{}, &1))
+    Lens.filter(Lens.root(), &match?(%Expression{}, &1))
 
-  defp do_leaf_expressions(lens), do: lens |> Lens.satisfy(&match?(%Expression{function?: false}, &1))
+  defp do_leaf_expressions(lens), do: lens |> Lens.filter(&match?(%Expression{function?: false}, &1))
 
   deflensp join_elements(), do:
     Lens.match(fn

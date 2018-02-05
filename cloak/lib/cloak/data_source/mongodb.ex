@@ -59,7 +59,7 @@ defmodule Cloak.DataSource.MongoDB do
     {:ok, connection} = Mongo.start_link(parameters)
     receive do
       :connected -> connection
-    after :timer.seconds(5)
+    after Driver.connect_timeout()
       ->
         GenServer.stop(connection)
         DataSource.raise_error("Unknown failure during database connection process")
@@ -147,6 +147,9 @@ defmodule Cloak.DataSource.MongoDB do
   @impl Driver
   def supports_function?(expression, data_source), do:
     function_signature(expression) in (data_source |> get_mongo_version() |> supported_functions())
+
+  @impl Driver
+  def supports_connection_sharing?(), do: true
 
 
   # -------------------------------------------------------------------

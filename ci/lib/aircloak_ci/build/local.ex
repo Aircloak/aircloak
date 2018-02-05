@@ -3,8 +3,7 @@ defmodule AircloakCI.Build.Local do
 
   use AircloakCI.Build.Server, restart: :temporary
   require Logger
-  alias AircloakCI.{Build, Github, LocalProject}
-  alias AircloakCI.Build.Job
+  alias AircloakCI.{Build, CmdRunner, Github, LocalProject}
 
   @type source :: %{
     path: String.t,
@@ -22,20 +21,13 @@ defmodule AircloakCI.Build.Local do
   # -------------------------------------------------------------------
 
   @doc "Makes sure that the server is running and compiled."
-  @spec ensure_started(String.t) :: :ok
+  @spec ensure_started(String.t) :: pid
   def ensure_started(path) do
     case AircloakCI.Build.Supervisor.start_build(__MODULE__, [path, self()]) do
       {:ok, pid} -> pid
       {:error, {:already_started, pid}} -> pid
     end
-
-    receive do :compiled -> :ok end
   end
-
-  @doc "Starts the given job."
-  @spec run_job(Build.Server.job_name) :: :ok
-  def run_job(job_name), do:
-    GenServer.call(name(), {:run_job, job_name})
 
 
   # -------------------------------------------------------------------
@@ -50,19 +42,6 @@ defmodule AircloakCI.Build.Local do
   def init(pid, state), do:
     {:ok, %{state | data: pid}}
 
-  @impl Build.Server
-  def handle_job_succeeded("compile", %{data: pid} = state) do
-    if pid != nil, do: send(pid, :compiled)
-    {:noreply, %{state | data: nil}}
-  end
-  def handle_job_succeeded(other, state), do: super(other, state)
-
-  @impl Build.Server
-  def handle_call({:run_job, job_name}, _from, state) do
-    LocalProject.mark_forced(state.project, job_name)
-    {:reply, :ok, run_job(job_name, state)}
-  end
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -75,8 +54,8 @@ defmodule AircloakCI.Build.Local do
     %{
       path: path,
       repo: %{owner: repo_data.owner, name: repo_data.name},
-      sha: String.trim(to_string(:os.cmd('git rev-parse HEAD'))),
-      merge_sha: String.trim(to_string(:os.cmd('git rev-parse HEAD'))),
+      sha: String.trim(CmdRunner.run_with_output!("git rev-parse HEAD")),
+      merge_sha: String.trim(CmdRunner.run_with_output!("git rev-parse HEAD")),
       merge_state: :mergeable,
       status_checks: %{},
       approved?: true
@@ -84,14 +63,6 @@ defmodule AircloakCI.Build.Local do
 
   defp empty_repo(), do:
     %{owner: "aircloak", name: "aircloak", branches: [], pull_requests: []}
-
-  defp run_job("cloak_test", state), do: Job.Test.run(state)
-  defp run_job("cloak_compile", state), do: Job.Compile.run(state)
-  defp run_job("air_compile", state), do: Job.Compile.run(state)
-  defp run_job("air_test", state), do: Job.Test.run(state)
-  defp run_job("integration_tests_compile", state), do: Job.Compile.run(state)
-  defp run_job("integration_tests_test", state), do: Job.Test.run(state)
-  defp run_job("compliance", state), do: Job.Compliance.run(state)
 
 
   # -------------------------------------------------------------------
