@@ -55,6 +55,14 @@ defmodule Aircloak.ChildSpec do
       id: name
     )
 
+  @doc "Specifies a child powered by the `Task` module."
+  @spec task((() -> any), Keyword.t) :: Supervisor.child_spec
+  def task(fun, overrides \\ []), do:
+    Supervisor.child_spec(
+      %{id: Task, start: {Task, :start_link, [fun]}, shutdown: :brutal_kill},
+      overrides
+    )
+
   defmodule Supervisor do
     @moduledoc """
     Simplifies the `child_spec/2` definition for a supervisor module.
