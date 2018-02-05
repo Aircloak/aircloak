@@ -78,18 +78,16 @@ defmodule Cloak.ResultSender do
   end
 
   defp encode_result(result) do
-    try do
-      {:ok,
-        result
-        |> Map.take([:query_id, :columns, :features, :error, :cancelled, :info, :execution_time])
-        |> Map.put(:chunks, encode_chunks(result))
-        |> Map.put(:row_count, row_count(result[:rows]))
-      }
-    rescue
-      _ -> {:error, :encoding_error}
-    catch
-      _ -> {:error, :encoding_error}
-    end
+    {:ok,
+      result
+      |> Map.take([:query_id, :columns, :features, :error, :cancelled, :info, :execution_time])
+      |> Map.put(:chunks, encode_chunks(result))
+      |> Map.put(:row_count, row_count(result[:rows]))
+    }
+  rescue
+    _ -> {:error, :encoding_error}
+  catch
+    _ -> {:error, :encoding_error}
   end
 
   defp row_count(nil), do:

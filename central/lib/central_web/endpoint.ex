@@ -65,13 +65,11 @@ defmodule CentralWeb.Endpoint do
   # -------------------------------------------------------------------
 
   defp reset_air_statuses() do
-    try do
-      Central.Service.Customer.reset_air_statuses()
-    catch type, error ->
-      Logger.error([
-        "Error resetting air statuses: #{inspect(type)}:#{inspect(error)}\n",
-        Exception.format_stacktrace(System.stacktrace())
-      ])
-    end
+    Central.Service.Customer.reset_air_statuses()
+  catch type, error ->
+    Logger.error([
+      "Error resetting air statuses: #{inspect(type)}:#{inspect(error)}\n",
+      Exception.format_stacktrace(System.stacktrace())
+    ])
   end
 end

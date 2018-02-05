@@ -61,15 +61,13 @@ defmodule Cloak.DataSource.MySQL do
   # -------------------------------------------------------------------
 
   defp run_query(pool, statement, decode_mapper, result_processor) do
-    try do
-      Mariaex.transaction(pool, fn(connection) ->
-        Mariaex.stream(connection, statement, [], [decode_mapper: decode_mapper, max_rows: Driver.batch_size])
-        |> Stream.map(fn (%Mariaex.Result{rows: rows}) -> rows end)
-        |> result_processor.()
-      end, [timeout: Driver.timeout()])
-    rescue
-      error in Mariaex.Error -> DataSource.raise_error("Driver exception: `#{Exception.message(error)}`")
-    end
+    Mariaex.transaction(pool, fn(connection) ->
+      Mariaex.stream(connection, statement, [], [decode_mapper: decode_mapper, max_rows: Driver.batch_size])
+      |> Stream.map(fn (%Mariaex.Result{rows: rows}) -> rows end)
+      |> result_processor.()
+    end, [timeout: Driver.timeout()])
+  rescue
+    error in Mariaex.Error -> DataSource.raise_error("Driver exception: `#{Exception.message(error)}`")
   end
 
   defp parse_type("varchar" <> _size), do: :text

@@ -44,15 +44,13 @@ defmodule Cloak.LoggerTranslator do
   # -------------------------------------------------------------------
 
   defp sanitize(min_level, level, kind, message) do
-    try do
-      with {:ok, filtered_message} <- filter_message(level, kind, message) do
-        Logger.Translator.translate(min_level, level, kind, filtered_message)
-      else
-        _ -> {:ok, "sanitized `#{level}`:`#{kind}` log entry"}
-      end
-    catch type, _reason ->
-      {:ok, translation_error(level, kind, type, :erlang.get_stacktrace())}
+    with {:ok, filtered_message} <- filter_message(level, kind, message) do
+      Logger.Translator.translate(min_level, level, kind, filtered_message)
+    else
+      _ -> {:ok, "sanitized `#{level}`:`#{kind}` log entry"}
     end
+  catch type, _reason ->
+    {:ok, translation_error(level, kind, type, :erlang.get_stacktrace())}
   end
 
   defp translation_error(level, kind, error_type, error_stacktrace), do:

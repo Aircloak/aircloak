@@ -14,12 +14,10 @@ defmodule Cloak.Sql.Compiler do
   @spec compile(DataSource.t, Parser.parsed_query, [Query.parameter] | nil, Query.view_map) ::
     {:ok, Query.t} | {:error, String.t}
   def compile(data_source, parsed_query, parameters, views) do
-    try do
-      {query, features} = do_compile(data_source, parsed_query, parameters, views)
-      {:ok, query, features}
-    rescue
-      e in CompilationError -> {:error, e.message}
-    end
+    {query, features} = do_compile(data_source, parsed_query, parameters, views)
+    {:ok, query, features}
+  rescue
+    e in CompilationError -> {:error, e.message}
   end
 
   @doc "Validates a user-defined view."

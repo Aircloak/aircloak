@@ -116,25 +116,23 @@ defmodule Cloak.DataSource.ConnectionPool do
   end
 
   defp on_connection(connection_owner, fun) do
-    try do
-      res =
-        connection_owner
-        |> GenServer.call(:start_client_usage, :timer.minutes(1) + Driver.connect_timeout())
-        |> fun.()
+    res =
+      connection_owner
+      |> GenServer.call(:start_client_usage, :timer.minutes(1) + Driver.connect_timeout())
+      |> fun.()
 
-      # To avoid possible corrupt state, we're returning the connection back only on success.
-      # On error, we'll terminate the connection owner, and reraise. Finally, this process (client), is monitored
-      # by the connection owner, so if it's killed from the outside, the connection owner will terminate.
-      # This ensures proper cleanup in all situations.
-      GenServer.call(connection_owner, :checkin)
+    # To avoid possible corrupt state, we're returning the connection back only on success.
+    # On error, we'll terminate the connection owner, and reraise. Finally, this process (client), is monitored
+    # by the connection owner, so if it's killed from the outside, the connection owner will terminate.
+    # This ensures proper cleanup in all situations.
+    GenServer.call(connection_owner, :checkin)
 
-      res
-    catch
-      type, error ->
-        stacktrace = System.stacktrace()
-        Process.exit(connection_owner, :kill)
-        raise_client_error(type, error, stacktrace)
-    end
+    res
+  catch
+    type, error ->
+      stacktrace = System.stacktrace()
+      Process.exit(connection_owner, :kill)
+      raise_client_error(type, error, stacktrace)
   end
 
   defp raise_client_error(:exit, {{%Cloak.Query.ExecutionError{} = error, _}, _}, _stacktrace), do: raise(error)

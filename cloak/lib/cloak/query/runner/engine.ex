@@ -17,22 +17,20 @@ defmodule Cloak.Query.Runner.Engine do
     Cloak.MemoryReader.query_killer_callbacks) :: {:ok, Sql.Query.Result.t, [String.t]} | {:error, String.t}
   def run(data_source, statement, parameters, views, state_updater, feature_updater,
       {query_killer_reg, query_killer_unreg}) do
-    try do
-      with \
-        {:ok, parsed_query} <- parse(statement, state_updater),
-        {:ok, compiled_query, features} <- compile(data_source, parsed_query, parameters, views, state_updater)
-      do
-        feature_updater.(features)
-        query = prepare_for_execution(compiled_query)
-        state_updater.(:awaiting_data)
-        query_killer_reg.()
-        result = run_statement(query, features, state_updater)
-        query_killer_unreg.()
-        {:ok, result, Sql.Query.info_messages(query)}
-      end
-    rescue e in Cloak.Query.ExecutionError ->
-      {:error, e.message}
+    with \
+      {:ok, parsed_query} <- parse(statement, state_updater),
+      {:ok, compiled_query, features} <- compile(data_source, parsed_query, parameters, views, state_updater)
+    do
+      feature_updater.(features)
+      query = prepare_for_execution(compiled_query)
+      state_updater.(:awaiting_data)
+      query_killer_reg.()
+      result = run_statement(query, features, state_updater)
+      query_killer_unreg.()
+      {:ok, result, Sql.Query.info_messages(query)}
     end
+  rescue e in Cloak.Query.ExecutionError ->
+    {:error, e.message}
   end
 
 

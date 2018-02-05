@@ -414,16 +414,14 @@ defmodule Air.Service.DataSource do
     Base.encode16(:erlang.term_to_binary(parameters))
 
   defp exception_to_tuple(fun) do
-    try do
-      fun.()
-    catch type, error ->
-      Logger.error([
-        "Error encountered #{inspect(type)} : #{inspect(error)}\n",
-        Exception.format_stacktrace(System.stacktrace())
-      ])
+    fun.()
+  catch type, error ->
+    Logger.error([
+      "Error encountered #{inspect(type)} : #{inspect(error)}\n",
+      Exception.format_stacktrace(System.stacktrace())
+    ])
 
-      {:error, :internal_error}
-    end
+    {:error, :internal_error}
   end
 
   defp update_data_source(data_source, name, tables, errors), do:
