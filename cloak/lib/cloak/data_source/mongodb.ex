@@ -71,7 +71,12 @@ defmodule Cloak.DataSource.MongoDB do
 
   @impl Driver
   def load_tables(connection, table) do
-    table = Map.put(table, :sharded?, is_sharded?(connection, table.db_name))
+    table =
+      table
+      |> Map.put(:sharded?, is_sharded?(connection, table.db_name))
+      # db_name is used for translating projections and decoders, so it needs to be adjusted in order to support
+      # fake tables representing arrays, this means we need to save the original value under a different field
+      |> Map.put(:collection, table.db_name)
     sample_rate = table[:sample_rate] || 100
     unless is_integer(sample_rate) and sample_rate >= 1 and sample_rate <= 100, do:
       DataSource.raise_error("Sample rate for schema detection has to be an integer between 1 and 100.")
@@ -110,7 +115,7 @@ defmodule Cloak.DataSource.MongoDB do
       }
     """
     connection
-    |> execute!([{:mapreduce, table.db_name}, {:map, map_code}, {:reduce, reduce_code}, {:out, %{inline: 1}}])
+    |> execute!([{:mapreduce, table.collection}, {:map, map_code}, {:reduce, reduce_code}, {:out, %{inline: 1}}])
     # 'array' and 'object' type values are only used for detection of 'mixed' type fields
     |> Enum.reject(fn (%{"value" => type}) -> type == "array" or type == "object" end)
     |> Enum.map(fn (%{"_id" => name, "value" => type}) -> {name, parse_type(type)} end)

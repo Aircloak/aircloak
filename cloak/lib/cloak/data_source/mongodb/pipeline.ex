@@ -32,7 +32,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     {collection, pipeline, conditions} = start_pipeline(join_info.lhs, join_info.lhs_table, query.where)
     pipeline =
       pipeline ++
-      lookup_table(join_info.rhs_table.db_name, join_info.lhs_field, join_info.rhs_field, namespace) ++
+      lookup_table(join_info.rhs_table.collection, join_info.lhs_field, join_info.rhs_field, namespace) ++
       unwind_arrays(join_info.rhs_table.array_path, namespace <> ".") ++
       finish_pipeline(%Query{query | where: conditions, selected_tables: [join_table]}, top_level?)
     {collection, pipeline}
@@ -46,7 +46,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp start_pipeline(table_name, table, conditions) when is_binary(table_name) do
     {complex_conditions, basic_conditions} = extract_basic_conditions(table, conditions)
     pipeline = filter_data(basic_conditions) ++ unwind_arrays(table.array_path)
-    {table.db_name, pipeline, complex_conditions}
+    {table.collection, pipeline, complex_conditions}
   end
   defp start_pipeline({:subquery, subquery}, _table, conditions) do
     {collection, pipeline} = build(subquery.ast, false)
