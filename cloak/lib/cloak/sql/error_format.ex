@@ -17,6 +17,8 @@ defmodule Cloak.Sql.ErrorFormat do
         [":\n\n", line_with_error, ?\n, String.duplicate(" ", column), "^ HERE\n", line_after]
       {1, [line_with_error | _]} ->
         [":\n\n", line_with_error, ?\n, String.duplicate(" ", column), "^ HERE"]
+      {_, [line_before, line_with_error]} ->
+        [":\n\n", line_before, ?\n, line_with_error, ?\n, String.duplicate(" ", column), "^ HERE\n"]
       {_, [line_before, line_with_error, line_after | _]} ->
         [":\n\n", line_before, ?\n, line_with_error, ?\n, String.duplicate(" ", column), "^ HERE\n", line_after]
       _invalid_location -> "."
