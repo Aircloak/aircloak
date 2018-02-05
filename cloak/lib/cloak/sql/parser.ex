@@ -543,7 +543,7 @@ defmodule Cloak.Sql.Parser do
 
   defp next_join() do
     switch([
-      {cross_join(),join_expression()},
+      {cross_join(), join_expression()},
       {either_deepest_error(inner_join(), outer_join()), join_expression_with_on_clause()},
       {:else, noop()}
     ])

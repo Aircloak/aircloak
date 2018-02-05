@@ -43,7 +43,7 @@ defmodule Mix.Tasks.Compile.UserDocs do
     catch
       # For some unknown reason, File.stat! fails on a local docker build. Since it is not critical,
       # here we're just suppressing the error and assuming that the target is stale.
-      _,_ -> true
+      _, _ -> true
     end
   end
 

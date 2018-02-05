@@ -31,7 +31,7 @@ defmodule Cloak.MemoryReader.ReadingsTest do
 
   describe "Adding measurements" do
     test "increments counter", do:
-      assert %Readings{update_counter: 3} = add_values([1,2,3])
+      assert %Readings{update_counter: 3} = add_values([1, 2, 3])
 
     test "for an empty record, adds the value to all levels" do
       assert %Readings{values: values} = add_values([1])

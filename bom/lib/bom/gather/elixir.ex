@@ -1,7 +1,7 @@
 defmodule BOM.Gather.Elixir do
   @moduledoc "Logic for reading elixir dependency information."
 
-  alias BOM.{Gather,License}
+  alias BOM.{Gather, License}
   require Logger
 
   # -------------------------------------------------------------------

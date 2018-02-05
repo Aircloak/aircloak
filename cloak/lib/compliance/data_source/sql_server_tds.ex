@@ -59,6 +59,7 @@ defmodule Compliance.DataSource.SQLServerTds do
     value_literals =
       rows
       |> Stream.map(&cast_types/1)
+      # credo:disable-for-next-line Credo.Check.Readability.SpaceAfterCommas
       |> Stream.map(&"(#{Enum.join(&1, ",")})")
       |> Enum.join(", ")
 

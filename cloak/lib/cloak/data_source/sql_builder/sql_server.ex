@@ -39,7 +39,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   for binary_operator <- ~w(+ - * %) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
-  def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", ") ,")"]
+  def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", ") , ")"]
 
   @impl Dialect
   def like_sql(what, match), do: super([what, " COLLATE Latin1_General_CS_AS"], match)
