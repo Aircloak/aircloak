@@ -59,7 +59,7 @@ defmodule Air.CentralClient.Socket do
       reconnect_interval: initial_interval,
       rejoin_interval: initial_interval
     }
-    Logger.debug("Trying to connect to Central on #{central_socket_url}")
+    Logger.debug(fn -> "Trying to connect to Central on #{central_socket_url}" end)
     {:connect, central_socket_url, params, state}
   end
 

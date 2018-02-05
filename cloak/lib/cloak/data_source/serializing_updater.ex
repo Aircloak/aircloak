@@ -45,12 +45,12 @@ defmodule Cloak.DataSource.SerializingUpdater do
     {:noreply, state}
   end
   def handle_cast({:process_update, file_path}, state) do
-    Logger.debug("Reloading data source configuration at #{file_path}.")
+    Logger.debug(fn -> "Reloading data source configuration at #{file_path}." end)
     DataSource.initialize_data_source_from_path(file_path)
     {:noreply, state}
   end
   def handle_cast({:process_removal, _file_path}, state) do
-    Logger.debug("Data source removal detected. Reloading all data source configurations.")
+    Logger.debug(fn -> "Data source removal detected. Reloading all data source configurations." end)
     DataSource.reinitialize_all_data_sources()
     {:noreply, state}
   end

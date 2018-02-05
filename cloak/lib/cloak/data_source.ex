@@ -167,7 +167,7 @@ defmodule Cloak.DataSource do
   @spec select!(Query.t, result_processor) :: processed_result
   def select!(%{data_source: data_source} = select_query, result_processor) do
     driver = data_source.driver
-    Logger.debug("Acquiring connection to `#{data_source.name}` ...")
+    Logger.debug(fn -> "Acquiring connection to `#{data_source.name}` ..." end)
 
     Cloak.DataSource.ConnectionPool.execute!(
       data_source,

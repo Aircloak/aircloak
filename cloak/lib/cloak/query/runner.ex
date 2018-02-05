@@ -117,7 +117,7 @@ defmodule Cloak.Query.Runner do
     {:stop, :normal, state}
   end
   def handle_info({:send_state, query_id, query_state}, state) do
-    Logger.debug("Query #{query_id} state changed to: #{query_state}...")
+    Logger.debug(fn -> "Query #{query_id} state changed to: #{query_state}..." end)
     ResultSender.send_state(state.result_target, query_id, query_state)
     {:noreply, state}
   end
@@ -143,7 +143,7 @@ defmodule Cloak.Query.Runner do
 
   defp run_query(query_id, owner, data_source, statement, parameters, views, memory_callbacks) do
     Logger.metadata(query_id: query_id)
-    Logger.debug("Running statement `#{statement}` ...")
+    Logger.debug(fn -> "Running statement `#{statement}` ..." end)
 
     Engine.run(data_source, statement, parameters, views,
       _state_updater = &send(owner, {:send_state, query_id, &1}),
