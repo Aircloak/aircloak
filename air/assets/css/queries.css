@@ -88,3 +88,7 @@
   top: 8px;
   overflow: hidden;
 }
+
+.panel pre code {
+  white-space: pre;
+}
