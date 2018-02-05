@@ -33,13 +33,11 @@ defmodule Cloak.Query.Runner do
     {:ok, _} =
       DynamicSupervisor.start_child(
         @supervisor_name,
-        Supervisor.child_spec(
-          ChildSpec.gen_server(
-            __MODULE__,
-            {query_id, data_source, statement, parameters, views, result_target},
-            name: worker_name(query_id)
-          ),
-          restart: :temporary
+        ChildSpec.gen_server(
+          __MODULE__,
+          {query_id, data_source, statement, parameters, views, result_target},
+          [name: worker_name(query_id)],
+          [restart: :temporary]
         )
       )
 

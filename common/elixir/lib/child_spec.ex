@@ -40,12 +40,15 @@ defmodule Aircloak.ChildSpec do
     )
 
   @doc "Specifies a child powered by the `GenServer` module."
-  @spec gen_server(module, any, GenServer.options) :: Supervisor.child_spec
-  def gen_server(module, arg, gen_server_options \\ []), do:
-    %{
-      id: module, restart: :permanent, shutdown: 5000, type: :worker,
-      start: {GenServer, :start_link, [module, arg, gen_server_options]},
-    }
+  @spec gen_server(module, any, GenServer.options, Keyword.t) :: Supervisor.child_spec
+  def gen_server(module, arg, gen_server_options \\ [], overrides \\ []), do:
+    Supervisor.child_spec(
+      %{
+        id: module, restart: :permanent, shutdown: 5000, type: :worker,
+        start: {GenServer, :start_link, [module, arg, gen_server_options]},
+      },
+      overrides
+    )
 
   @doc "Specifies a child powered by the `Registry` module."
   @spec registry(Registry.keys, Registry.registry, Keyword.t) :: Supervisor.child_spec
