@@ -17,7 +17,7 @@ defmodule Cloak.DataSource.Driver.SQL do
 
       @impl Driver
       def disconnect(connection), do:
-        GenServer.stop(connection)
+        GenServer.stop(connection, :normal, :timer.seconds(5))
 
       @impl Driver
       def supports_query?(_query), do: true
