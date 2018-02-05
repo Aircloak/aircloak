@@ -30,7 +30,7 @@ defmodule Cloak.Query.Runner.Engine do
       end
     rescue
       e in Cloak.Query.ExecutionError -> {:error, e.message}
-      e in Cloak.Sql.CompilationError -> {:error, Cloak.Sql.CompilationError.message(e)}
+      e in Cloak.Sql.CompilationError -> {:error, Cloak.Sql.ErrorFormat.format(statement, e)}
     end
   end
 
