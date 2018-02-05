@@ -7,6 +7,7 @@ defmodule Air.Service.Query.Lifecycle do
   while events for different queries are handled in different processes.
   """
 
+  alias Aircloak.ChildSpec
   alias Air.Service.Query
   require Logger
   use GenServer
@@ -109,13 +110,11 @@ defmodule Air.Service.Query.Lifecycle do
 
   @doc false
   def child_spec(_arg) do
-    import Aircloak.ChildSpec, warn: false
-
-    supervisor(
+    ChildSpec.supervisor(
       [
-        registry(:unique, __MODULE__.Registry),
+        ChildSpec.registry(:unique, __MODULE__.Registry),
         {Air.ProcessQueue, {__MODULE__.Queue, size: 5}},
-        dynamic_supervisor(name: __MODULE__.QuerySupervisor)
+        ChildSpec.dynamic_supervisor(name: __MODULE__.QuerySupervisor)
       ],
       strategy: :rest_for_one, name: __MODULE__
     )

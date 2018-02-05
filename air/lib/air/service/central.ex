@@ -2,6 +2,7 @@ defmodule Air.Service.Central do
   @moduledoc "Service functions related to central calls."
   require Logger
   import Ecto.Query, only: [from: 2]
+  alias Aircloak.ChildSpec
   alias Air.Repo
   alias Air.Schemas.{CentralCall, ExportForAircloak}
   alias Air.Service.Central.RpcQueue
@@ -198,11 +199,9 @@ defmodule Air.Service.Central do
 
   @doc false
   def child_spec(_arg) do
-    import Aircloak.ChildSpec
-
     children =
       Enum.concat([
-        [registry(:unique, Air.Service.Central.Registry),],
+        [ChildSpec.registry(:unique, Air.Service.Central.Registry),],
         case auto_export?() do
           false -> []
           true -> [RpcQueue]
@@ -210,6 +209,6 @@ defmodule Air.Service.Central do
         [Air.CentralClient]
       ])
 
-    supervisor(children, strategy: :one_for_one, name: __MODULE__)
+    ChildSpec.supervisor(children, strategy: :one_for_one, name: __MODULE__)
   end
 end

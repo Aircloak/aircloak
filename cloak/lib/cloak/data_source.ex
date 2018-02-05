@@ -37,6 +37,7 @@ defmodule Cloak.DataSource do
   The data source schema will also be sent to air, so it can be referenced by incoming tasks.
   """
 
+  alias Aircloak.ChildSpec
   alias Cloak.Sql.Query
   alias Cloak.DataSource.{Validations, Parameters, Driver, Table}
   alias Cloak.Query.ExecutionError
@@ -445,10 +446,9 @@ defmodule Cloak.DataSource do
 
   @doc false
   def child_spec(_options \\ []) do
-    import Aircloak.ChildSpec
-    supervisor(
+    ChildSpec.supervisor(
       [
-        gen_server(__MODULE__, load_data_source_configs(), name: __MODULE__),
+        ChildSpec.gen_server(__MODULE__, load_data_source_configs(), name: __MODULE__),
         Cloak.DataSource.ConnectionPool,
         Cloak.DataSource.SerializingUpdater,
         Cloak.DataSource.PostgrexAutoRepair

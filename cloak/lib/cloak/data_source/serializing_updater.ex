@@ -5,6 +5,7 @@ defmodule Cloak.DataSource.SerializingUpdater do
   """
 
   use GenServer, start: {__MODULE__, :start_link, []}
+  alias Aircloak.ChildSpec
   alias Cloak.DataSource
 
   require Logger
@@ -61,9 +62,8 @@ defmodule Cloak.DataSource.SerializingUpdater do
 
   @doc false
   def child_spec(_options \\ []) do
-    import Aircloak.ChildSpec
-    supervisor([
-        gen_server(__MODULE__, [], name: __MODULE__),
+    ChildSpec.supervisor([
+        ChildSpec.gen_server(__MODULE__, [], name: __MODULE__),
         Cloak.DataSource.FileSystemMonitor,
       ], strategy: :one_for_all, name: __MODULE__.Supervisor
     )

@@ -5,7 +5,7 @@ defmodule Cloak.DataSource.FileSystemMonitor do
   """
 
   use GenServer
-
+  alias Aircloak.ChildSpec
   require Logger
   require Aircloak.{DeployConfig, File}
 
@@ -80,19 +80,17 @@ defmodule Cloak.DataSource.FileSystemMonitor do
 
   @doc false
   def child_spec(_options \\ []) do
-    import Aircloak.ChildSpec
-    supervisor(child_specs(), strategy: :one_for_all, name: __MODULE__.Supervisor)
+    ChildSpec.supervisor(child_specs(), strategy: :one_for_all, name: __MODULE__.Supervisor)
   end
 
   defp child_specs() do
-    import Aircloak.ChildSpec
     if configured_with_individual_configurations?() do
       [
         %{
           id: FileSystem,
           start: {FileSystem, :start_link, [[dirs: [config_path()], name: @file_system_monitor_name]]},
         },
-        gen_server(__MODULE__, [], name: __MODULE__),
+        ChildSpec.gen_server(__MODULE__, [], name: __MODULE__),
       ]
     else
       []

@@ -1,6 +1,7 @@
 defmodule Air.Service.DataSource do
   @moduledoc "Service module for working with data sources"
 
+  alias Aircloak.ChildSpec
   alias Air.Schemas.{DataSource, Group, Query, User, ResultChunk}
   alias Air.{PsqlServer.Protocol, Repo}
   alias Air.Service.{Version, Cloak, View}
@@ -452,12 +453,10 @@ defmodule Air.Service.DataSource do
 
   @doc false
   def child_spec(_arg) do
-    import Aircloak.ChildSpec
-
-    supervisor(
+    ChildSpec.supervisor(
       [
         {Air.ProcessQueue, {__MODULE__.Queue, size: 5}},
-        task_supervisor(name: @task_supervisor, restart: :temporary),
+        ChildSpec.task_supervisor(name: @task_supervisor, restart: :temporary),
       ],
       strategy: :one_for_one, name: __MODULE__
     )

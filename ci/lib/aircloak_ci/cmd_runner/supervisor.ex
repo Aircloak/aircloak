@@ -1,6 +1,8 @@
 defmodule AircloakCI.CmdRunner.Supervisor do
   @moduledoc "Supervisor of commands started by `AircloakCI.CmdRunner`."
 
+  alias Aircloak.ChildSpec
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -17,8 +19,6 @@ defmodule AircloakCI.CmdRunner.Supervisor do
 
   @doc false
   def child_spec(_arg) do
-    import Aircloak.ChildSpec, warn: false
-
-    dynamic_supervisor(name: __MODULE__)
+    ChildSpec.dynamic_supervisor(name: __MODULE__)
   end
 end

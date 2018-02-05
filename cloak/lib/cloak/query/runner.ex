@@ -9,6 +9,7 @@ defmodule Cloak.Query.Runner do
 
   use GenServer
   require Logger
+  alias Aircloak.ChildSpec
   alias Cloak.{Sql.Query, DataSource, Query.Runner.Engine, ResultSender}
 
   @supervisor_name __MODULE__.Supervisor
@@ -29,13 +30,11 @@ defmodule Cloak.Query.Runner do
   """
   @spec start(String.t, DataSource.t, String.t, [DataSource.field], Query.view_map, ResultSender.target) :: :ok
   def start(query_id, data_source, statement, parameters, views, result_target \\ :air_socket) do
-    import Aircloak.ChildSpec
-
     {:ok, _} =
       DynamicSupervisor.start_child(
         @supervisor_name,
         Supervisor.child_spec(
-          gen_server(
+          ChildSpec.gen_server(
             __MODULE__,
             {query_id, data_source, statement, parameters, views, result_target},
             name: worker_name(query_id)
@@ -214,13 +213,11 @@ defmodule Cloak.Query.Runner do
 
   @doc false
   def child_spec(_arg) do
-    import Aircloak.ChildSpec
-
-    supervisor(
+    ChildSpec.supervisor(
       [
-        registry(:unique, @runner_registry_name),
-        registry(:duplicate, @queries_registry_name),
-        dynamic_supervisor(name: @supervisor_name),
+        ChildSpec.registry(:unique, @runner_registry_name),
+        ChildSpec.registry(:duplicate, @queries_registry_name),
+        ChildSpec.dynamic_supervisor(name: @supervisor_name),
       ],
       strategy: :rest_for_one
     )

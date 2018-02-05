@@ -23,6 +23,7 @@ defmodule Cloak.DataSource.ConnectionPool do
 
   use GenServer
   require Logger
+  alias Aircloak.ChildSpec
   alias Cloak.DataSource.Driver
   alias Cloak.DataSource.ConnectionPool.ConnectionOwner
 
@@ -153,12 +154,10 @@ defmodule Cloak.DataSource.ConnectionPool do
 
   @doc false
   def child_spec(_) do
-    import Aircloak.ChildSpec
-
-    supervisor(
+    ChildSpec.supervisor(
       [
-        registry(:unique, __MODULE__.Registry),
-        dynamic_supervisor(name: __MODULE__.Supervisor),
+        ChildSpec.registry(:unique, __MODULE__.Registry),
+        ChildSpec.dynamic_supervisor(name: __MODULE__.Supervisor),
       ],
       strategy: :one_for_one,
       name: __MODULE__
