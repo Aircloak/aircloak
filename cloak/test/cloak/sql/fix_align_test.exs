@@ -40,6 +40,8 @@ defmodule Cloak.Sql.FixAlign.Test do
   property "an aligned interval is not much larger than the input" do
     for_all {x, y} in float_interval() do
       interval = {x / 10, y / 10}
+      # Credo wrongly reports that we're missing spaces around operators in this function.
+      # credo:disable-for-next-line Credo.Check.Consistency.SpaceAroundOperators
       10 * width(interval) >= interval |> FixAlign.align_interval() |> width()
     end
   end
