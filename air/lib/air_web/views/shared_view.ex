@@ -1,5 +1,5 @@
 defmodule AirWeb.SharedView do
-  @moduledoc false;
+  @moduledoc false
   use Air.Web, :view
 
   def version() do
