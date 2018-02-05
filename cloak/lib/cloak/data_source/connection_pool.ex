@@ -104,7 +104,10 @@ defmodule Cloak.DataSource.ConnectionPool do
     case Registry.lookup(__MODULE__.Registry, {data_source.driver, data_source.parameters}) do
       [{pid, _}] -> pid
       [] ->
-        case Supervisor.start_child(__MODULE__.Supervisor, [data_source.driver, data_source.parameters]) do
+        case DynamicSupervisor.start_child(
+          __MODULE__.Supervisor,
+          %{id: __MODULE__.Server, start: {__MODULE__, :start_server, [data_source.driver, data_source.parameters]}}
+        ) do
           {:ok, pid} -> pid
           {:error, {:already_started, pid}} -> pid
         end
@@ -155,10 +158,7 @@ defmodule Cloak.DataSource.ConnectionPool do
     supervisor(
       [
         registry(:unique, __MODULE__.Registry),
-        supervisor(
-          [%{id: __MODULE__.Server, start: {__MODULE__, :start_server, []}}],
-          name: __MODULE__.Supervisor, strategy: :simple_one_for_one
-        )
+        dynamic_supervisor(name: __MODULE__.Supervisor),
       ],
       strategy: :one_for_one,
       name: __MODULE__

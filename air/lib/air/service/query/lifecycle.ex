@@ -91,7 +91,10 @@ defmodule Air.Service.Query.Lifecycle do
 
   defp enqueue(query_id, message) do
     server_pid =
-      case Supervisor.start_child(__MODULE__.QuerySupervisor, [query_id]) do
+      case DynamicSupervisor.start_child(
+        __MODULE__.QuerySupervisor,
+        %{start: {__MODULE__, :start_link, [query_id]}, restart: :temporary, id: __MODULE__}
+      ) do
         {:ok, pid} -> pid
         {:error, {:already_started, pid}} -> pid
       end
@@ -112,10 +115,7 @@ defmodule Air.Service.Query.Lifecycle do
       [
         registry(:unique, __MODULE__.Registry),
         {Air.ProcessQueue, {__MODULE__.Queue, size: 5}},
-        supervisor(
-          [Supervisor.Spec.worker(__MODULE__, [], restart: :temporary)],
-          strategy: :simple_one_for_one, name: __MODULE__.QuerySupervisor
-        )
+        dynamic_supervisor(name: __MODULE__.QuerySupervisor)
       ],
       strategy: :rest_for_one, name: __MODULE__
     )

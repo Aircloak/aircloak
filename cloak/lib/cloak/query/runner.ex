@@ -29,8 +29,21 @@ defmodule Cloak.Query.Runner do
   """
   @spec start(String.t, DataSource.t, String.t, [DataSource.field], Query.view_map, ResultSender.target) :: :ok
   def start(query_id, data_source, statement, parameters, views, result_target \\ :air_socket) do
-    {:ok, _} = Supervisor.start_child(@supervisor_name,
-      [{query_id, data_source, statement, parameters, views, result_target}, [name: worker_name(query_id)]])
+    import Aircloak.ChildSpec
+
+    {:ok, _} =
+      DynamicSupervisor.start_child(
+        @supervisor_name,
+        Supervisor.child_spec(
+          gen_server(
+            __MODULE__,
+            {query_id, data_source, statement, parameters, views, result_target},
+            name: worker_name(query_id)
+          ),
+          restart: :temporary
+        )
+      )
+
     :ok
   end
 
@@ -207,10 +220,7 @@ defmodule Cloak.Query.Runner do
       [
         registry(:unique, @runner_registry_name),
         registry(:duplicate, @queries_registry_name),
-        supervisor(
-          [Supervisor.Spec.worker(GenServer, [__MODULE__], restart: :temporary)],
-          name: @supervisor_name, strategy: :simple_one_for_one
-        )
+        dynamic_supervisor(name: @supervisor_name),
       ],
       strategy: :rest_for_one
     )

@@ -21,6 +21,17 @@ defmodule Aircloak.ChildSpec do
     supervisor(Supervisor, :start_link, [children, supervisor_options],
       id: Keyword.get(supervisor_options, :name, Supervisor))
 
+  @doc "Specifies a child powered by the `DynamicSupervisor` module."
+  @spec dynamic_supervisor([DynamicSupervisor.option]) :: Supervisor.child_spec
+  def dynamic_supervisor(supervisor_options \\ []) do
+    default_options =
+      [
+        strategy: :one_for_one,
+        id: Keyword.get(supervisor_options, :name, DynamicSupervisor)
+      ]
+    Supervisor.child_spec({DynamicSupervisor, Keyword.merge(default_options, supervisor_options)}, [])
+  end
+
   @doc "Specifies a child powered by the `Task.Supervisor` module."
   @spec task_supervisor([Task.Supervisor.option]) :: Supervisor.child_spec
   def task_supervisor(task_supervisor_options), do:
