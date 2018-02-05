@@ -1290,4 +1290,20 @@ defmodule Cloak.Sql.Parser.Test do
         create_test.(description, statement, expected_error, line, column)
     end
   )
+
+  describe "parse!" do
+    test "returns parsed query if OK", do:
+      assert select([]) = Parser.parse!("select foo from bar")
+
+    test "raises ParseError with location if error" do
+      error = try do
+        Parser.parse!("select select")
+        nil
+      rescue
+        e in Cloak.Sql.ParseError -> e
+      end
+
+      assert %Cloak.Sql.ParseError{message: "Expected `column definition`.", source_location: {1, 8}} = error
+    end
+  end
 end

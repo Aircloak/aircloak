@@ -42,11 +42,11 @@ defmodule Cloak.Query.ErrorTest do
 
   test "reports an error on collision between alias and column in group by" do
     assert_query "select abs(height) as height from test_errors group by height", %{error: error}
-    assert ~s/Usage of `height` is ambiguous./ == error
+    assert error =~ ~r/Usage of `height` is ambiguous./
   end
 
   test "query reports an error on invalid statement" do
-    assert_query "invalid statement", %{error: "Expected `select or show` at line 1, column 1."}
+    assert_query "invalid statement", %{error: "Expected `select or show`" <> _}
   end
 
   test "query reports an error on invalid column" do
@@ -82,19 +82,21 @@ defmodule Cloak.Query.ErrorTest do
 
   test "substring with neither for nor from" do
     assert_query "select substring(name) from test_errors", %{error: error}
-    assert error == "Expected `from or for or ,` at line 1, column 22."
+    assert error =~ ~r/Expected `from or for or ,`/
   end
 
   test "substring with invalid from" do
     assert_query "select substring(name FROM 0) from test_errors", %{error: error}
-    assert_query "select substring(name ,    0) from test_errors", %{error: ^error}
-    assert error == "Expected `positive integer constant` at line 1, column 28."
+    assert error =~ ~r/Expected `positive integer constant`/
+    assert_query "select substring(name ,    0) from test_errors", %{error: error}
+    assert error =~ ~r/Expected `positive integer constant`/
   end
 
   test "substring with invalid for" do
     assert_query "select substring(name FOR -1) from test_errors", %{error: error}
-    assert_query "select substring(name ,   -1) from test_errors", %{error: ^error}
-    assert error == "Expected `positive integer constant` at line 1, column 27."
+    assert error =~ ~r/Expected `positive integer constant`/
+    assert_query "select substring(name ,   -1) from test_errors", %{error: error}
+    assert error =~ ~r/Expected `positive integer constant`/
   end
 
   test "substring with invalid argument" do

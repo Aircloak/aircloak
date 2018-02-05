@@ -84,6 +84,8 @@ defmodule Cloak.Sql.Parser do
 
   @no_location {1, 0}
 
+  @combine_error_regex ~r/(?<error>.*) at line (?<line>\d+), column (?<column>\d+)/
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -92,8 +94,17 @@ defmodule Cloak.Sql.Parser do
   @doc "Parses a SQL query in text form. Raises on error."
   @spec parse!(String.t) :: parsed_query
   def parse!(string) do
-    {:ok, query} = parse(string)
-    query
+    case parse(string) do
+      {:ok, query} -> query
+      {:error, error} ->
+        case Regex.named_captures(@combine_error_regex, error) do
+          %{"error" => simple_error, "line" => line, "column" => column} ->
+            raise Cloak.Sql.ParseError,
+              message: "#{simple_error}.", source_location: {String.to_integer(line), String.to_integer(column)}
+          _ ->
+            raise Cloak.Sql.ParseError, message: error
+        end
+    end
   end
 
   @doc "Parses a SQL query in text form."
