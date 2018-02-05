@@ -13,14 +13,14 @@ defmodule Cloak.Sql.ErrorFormat do
     context = query |> String.split(@platform_independent_newline) |> Enum.drop(max(line - 2, 0))
 
     case {line, context} do
-      {1, [line_with_error, line_after | _]} ->
-        [":\n\n", line_with_error, ?\n, String.duplicate(" ", column), "^ HERE\n", line_after]
-      {1, [line_with_error | _]} ->
-        [":\n\n", line_with_error, ?\n, String.duplicate(" ", column), "^ HERE"]
-      {_, [line_before, line_with_error]} ->
-        [":\n\n", line_before, ?\n, line_with_error, ?\n, String.duplicate(" ", column), "^ HERE\n"]
-      {_, [line_before, line_with_error, line_after | _]} ->
-        [":\n\n", line_before, ?\n, line_with_error, ?\n, String.duplicate(" ", column), "^ HERE\n", line_after]
+      {1, [error_line, line_after | _]} ->
+        [":\n\n\t", error_line, "\n\t", String.duplicate(" ", column), "^ HERE\n\t", line_after]
+      {1, [error_line | _]} ->
+        [":\n\n\t", error_line, "\n\t", String.duplicate(" ", column), "^ HERE\n"]
+      {_, [line_before, error_line]} ->
+        [":\n\n\t", line_before, "\n\t", error_line, "\n\t", String.duplicate(" ", column), "^ HERE\n"]
+      {_, [line_before, error_line, line_after | _]} ->
+        [":\n\n\t", line_before, "\n\t", error_line, "\n\t", String.duplicate(" ", column), "^ HERE\n\t", line_after]
       _invalid_location -> "."
     end
   end
