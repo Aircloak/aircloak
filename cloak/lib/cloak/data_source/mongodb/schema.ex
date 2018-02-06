@@ -62,8 +62,8 @@ defmodule Cloak.DataSource.MongoDB.Schema do
     array_tables =
       for array <- arrays do
         decoders = reject_array_decoders(table.decoders, table.array_path, arrays -- [array])
-        array_table = %{table | name: build_table_name(table.name, array),
-          array_path: table.array_path ++ [array], decoders: decoders}
+        array_table = %{table | array_path: table.array_path ++ [array], decoders: decoders,
+          name: build_table_name(table.name, array), db_name: build_table_name(table.db_name, array)}
         build_tables(schema[array], array_table, columns)
       end
     decoders = reject_array_decoders(table.decoders, table.array_path, arrays)

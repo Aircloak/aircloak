@@ -20,7 +20,6 @@ defmodule Cloak.Sql.Query.Features do
       column_types: extract_column_types(query.columns),
       selected_types: selected_types(query.columns),
       parameter_types: Enum.map(Query.parameter_types(query), &stringify/1),
-      decoders: extract_decoders(query),
       driver: to_string(query.data_source.driver),
       driver_dialect: sql_dialect_name(query.data_source),
       emulated: false,
@@ -113,25 +112,6 @@ defmodule Cloak.Sql.Query.Features do
   defp extract_column(%Expression{function?: true, function_args: [:*]}), do: []
   defp extract_column(%Expression{function?: true, function_args: args}), do: extract_columns(args)
   defp extract_column(%Expression{} = column), do: [column]
-
-  defp extract_decoders(query) do
-    Query.Lenses.all_queries()
-    |> Query.Lenses.query_expressions()
-    |> Lens.filter(&match?(%Expression{function?: false, constant?: false, table: %{decoders: [_|_]}}, &1))
-    |> Lens.filter(&decoded?/1)
-    |> Lens.to_list(query)
-    |> Enum.map(&decoder/1)
-    |> Enum.uniq()
-  end
-
-  defp decoder(%{name: name, table: %{decoders: decoders}}) do
-    case Enum.find(decoders, &(name in &1.columns)) do
-      nil -> nil
-      decoder -> stringify(decoder.spec)
-    end
-  end
-
-  defp decoded?(column), do: decoder(column) != nil
 
   defp stringify(string) when is_binary(string), do: string
   defp stringify(atom) when is_atom(atom), do: Atom.to_string(atom)

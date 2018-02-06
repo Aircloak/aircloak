@@ -32,7 +32,7 @@ defmodule Cloak.DataSource do
 
   The keys field in each table can be used to list fields that refer to other tables. That way when a join
   condition of the form fk = pk will be added, no additional noise layers will be generated, resulting in less overall
-  noise in those cases. There is no need to add the projection (if any) to this list - it's included automatically.
+  noise in those cases.
 
   The data source schema will also be sent to air, so it can be referenced by incoming tasks.
   """
@@ -52,6 +52,7 @@ defmodule Cloak.DataSource do
     name: String.t,
     driver: module,
     parameters: Driver.parameters,
+    driver_info: Driver.driver_info,
     tables: %{atom => Table.t},
     errors: [String.t],
     status: :online | :offline,
@@ -210,6 +211,7 @@ defmodule Cloak.DataSource do
       connection = driver.connect!(data_source.parameters)
       try do
         data_source
+        |> Map.put(:driver_info, driver.driver_info(connection))
         |> Table.load(connection)
         |> Map.put(:status, :online)
       after

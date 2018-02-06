@@ -100,14 +100,10 @@ defmodule Cloak.Query.Runner.Engine do
 
   defp consume_rows(stream, query) do
     stream
-    |> decode_rows(query)
     |> Query.RowSplitters.split(query)
     |> Query.Rows.filter(query |> Sql.Query.emulated_where() |> Condition.to_function())
     |> Query.Aggregator.group(query)
   end
-
-  defp decode_rows(stream, %Sql.Query{emulated?: true}), do: stream
-  defp decode_rows(stream, query), do: Query.DataDecoder.decode(stream, query)
 
   defp concurrency(query), do:
     query.data_source.concurrency || Application.get_env(:cloak, :concurrency, 0)

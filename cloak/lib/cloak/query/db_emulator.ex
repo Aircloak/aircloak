@@ -10,7 +10,7 @@ defmodule Cloak.Query.DbEmulator do
 
   alias Cloak.{DataSource, DataSource.Table}
   alias Cloak.Sql.{Query, Expression, Function, Condition}
-  alias Cloak.Query.{DbEmulator.Selector, DataDecoder, Rows}
+  alias Cloak.Query.{DbEmulator.Selector, Rows}
   alias Cloak.Sql.Compiler
 
 
@@ -41,7 +41,6 @@ defmodule Cloak.Query.DbEmulator do
       fn(rows) ->
         rows
         |> Stream.concat()
-        |> DataDecoder.decode(query)
         |> rows_processor.()
         |> Enum.to_list()
       end)

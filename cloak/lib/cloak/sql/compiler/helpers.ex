@@ -13,11 +13,16 @@ defmodule Cloak.Sql.Compiler.Helpers do
   @doc "Returns one id column of the query."
   @spec id_column(partial_query) :: Expression.t
   def id_column(query) do
-    id_columns = all_id_columns_from_tables(query)
-    id_column = if any_outer_join?(query.from),
-      do: %Expression{Expression.function("coalesce", id_columns) | alias: "__ac_coalesce__", user_id?: true},
-      else: hd(id_columns)
-    %Expression{id_column | row_index: 0}
+    query
+    |> all_id_columns_from_tables()
+    |> case do
+      [] -> nil
+      id_columns ->
+        id_column = if any_outer_join?(query.from),
+          do: %Expression{Expression.function("coalesce", id_columns) | alias: "__ac_coalesce__", user_id?: true},
+          else: hd(id_columns)
+        %Expression{id_column | row_index: 0}
+    end
   end
 
   @doc "Returns true if any uid column is selected."
@@ -29,8 +34,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
   @spec all_id_columns_from_tables(partial_query) :: [Expression.t]
   def all_id_columns_from_tables(%Query{command: :select, selected_tables: tables}) do
     Enum.flat_map(tables, fn
-      (%{projection: nil} = table) ->
-        user_id = table.user_id
+      (%{user_id: user_id} = table) when user_id != nil ->
         column = Enum.find(table.columns, &insensitive_equal?(user_id, &1.name))
         [%Expression{table: table, name: user_id, type: column.type, user_id?: true}]
       (_) -> []

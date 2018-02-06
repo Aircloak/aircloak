@@ -2,7 +2,7 @@ defmodule Cloak.DataSource.Table do
   @moduledoc "Provides functionality for working with tables."
 
   alias Cloak.DataSource
-  alias Cloak.Query.{DataDecoder, ExecutionError}
+  alias Cloak.Query.ExecutionError
   alias Cloak.Sql.{Compiler, Parser, Query.Lenses, CompilationError, Expression, Query}
 
   require Logger
@@ -15,10 +15,7 @@ defmodule Cloak.DataSource.Table do
     :db_name => String.t | nil, # table name in the database
     :user_id => String.t,
     :query => Query.t | nil, # the SQL query for a virtual table
-    :ignore_unsupported_types => boolean,
     :columns => [column],
-    :decoders => [DataDecoder.t],
-    :projection => projection | nil,
     :keys => [String.t],
     optional(any) => any,
   }
@@ -27,9 +24,8 @@ defmodule Cloak.DataSource.Table do
 
   @type option ::
     {:db_name, String.t} |
-    {:ignore_unsupported_types, boolean} |
     {:columns, [column]} |
-    {:decoders, [DataDecoder.t]} |
+    {:decoders, [Map.t]} |
     {:projection, projection} |
     {:keys, [String.t]} |
     {:query, Query.t} |
@@ -48,7 +44,6 @@ defmodule Cloak.DataSource.Table do
         name: name,
         user_id: user_id_column_name,
         db_name: nil,
-        ignore_unsupported_types: false,
         columns: [],
         decoders: [],
         projection: nil,
@@ -67,9 +62,10 @@ defmodule Cloak.DataSource.Table do
   @spec load(DataSource.t, DataSource.Driver.connection) :: DataSource.t
   def load(data_source, connection), do:
     data_source
-    |> scan_virtual_tables(connection)
     |> scan_tables(connection)
     |> resolve_projected_tables()
+    |> translate_projections_and_decoders()
+    |> scan_virtual_tables(connection)
 
 
   # -------------------------------------------------------------------
@@ -84,8 +80,11 @@ defmodule Cloak.DataSource.Table do
       tables
       |> Enum.flat_map(&get_virtual_table_db_names/1)
       |> Enum.uniq()
-      |> Enum.flat_map(&load_tables(data_source, connection, {&1, %{}}))
-      |> Enum.into(%{})
+      |> Enum.reduce(%{}, fn (table, acc) ->
+        if String.to_atom(table) in Map.keys(acc),
+          do: acc,
+          else: data_source |> load_tables(connection, {table, %{}}) |> Enum.into(acc)
+      end)
     virtual_data_source = %{data_source | tables: virtual_tables}
     tables = Enum.map(tables, &compile_virtual_table(&1, virtual_data_source))
     %{data_source | tables: Enum.into(tables, %{})}
@@ -171,7 +170,6 @@ defmodule Cloak.DataSource.Table do
 
     data_source.driver.load_tables(connection, table)
     |> Enum.map(&parse_columns(data_source, &1))
-    |> Enum.map(&DataDecoder.init/1)
     |> Enum.map(&{String.to_atom(&1.name), &1})
   end
 
@@ -233,21 +231,15 @@ defmodule Cloak.DataSource.Table do
   defp supported?(%{type: {:unsupported, _db_type}}), do: false
   defp supported?(_column), do: true
 
-  defp validate_unsupported_columns([], _data_source, _table), do: nil
+  defp validate_unsupported_columns([], _data_source, _table), do: :ok
   defp validate_unsupported_columns(unsupported, data_source, table) do
     columns_string =
       unsupported
       |> Enum.map(fn(column) -> "`#{column.name}`::#{inspect(column.type)}" end)
       |> Enum.join(", ")
-
-    if table[:ignore_unsupported_types] do
-      Logger.warn("The following columns from table `#{table[:db_name]}` in data source `#{data_source.name}` " <>
-        "have unsupported types:\n" <> columns_string)
-      nil
-    else
-      DataSource.raise_error("unsupported types for columns: #{columns_string} "
-        <> "(to ignore these columns set 'ignore_unsupported_types: true' in your table settings)")
-    end
+    Logger.warn("The following columns from table `#{table[:db_name]}` in data source `#{data_source.name}` " <>
+      "have unsupported types:\n" <> columns_string)
+    :ok
   end
 
   defp resolve_projected_tables(data_source) do
@@ -255,8 +247,8 @@ defmodule Cloak.DataSource.Table do
     tables =
       data_source.tables
       |> Enum.map(fn
-        ({id, %{projection: nil} = table}) -> {id, table}
-        ({id, table}) -> {id, %{table | user_id: nil}}
+        ({id, %{projection: %{}} = table}) -> {id, %{table | user_id: nil}}
+        ({id, table}) -> {id, table}
       end)
       |> Enum.into(%{})
     data_source = %{data_source | tables: tables}
@@ -265,6 +257,7 @@ defmodule Cloak.DataSource.Table do
     |> Enum.reduce(data_source, &resolve_projected_table(Map.fetch!(&2.tables, &1), &2))
   end
 
+  defp resolve_projected_table(%{query: query}, data_source) when query != nil, do: data_source
   defp resolve_projected_table(%{projection: nil}, data_source), do: data_source
   defp resolve_projected_table(%{user_id: uid, columns: [%{name: uid} | _]}, data_source), do:
     data_source # uid column is resolved
@@ -335,5 +328,66 @@ defmodule Cloak.DataSource.Table do
         }
       %{type: ^foreign_key_type} -> :ok
     end
+  end
+
+  defp translate_projections_and_decoders(%{tables: tables} = data_source), do:
+    %{data_source| tables: Enum.map(tables, &translate_projection_and_decoders(&1, tables))}
+
+  defp translate_projection_and_decoders({id, %{projection: projection, decoders: decoders} = table}, tables)
+      when is_map(projection) or (is_list(decoders) and length(decoders) > 0) do
+    {user_id, alias, source} = translate_projection({id, table}, tables)
+    columns =
+      decoders
+      |> translate_decoders(id)
+      |> Enum.reduce("\"#{id}\".*\n", fn({name, expression}, acc) ->
+        "#{expression} AS \"#{name}\",\n #{acc}"
+      end)
+    query = "SELECT #{user_id} AS #{alias},\n #{columns} FROM #{source}"
+    {id, table |> Map.drop([:projection, :decoders]) |> Map.put(:query, query)}
+  end
+  defp translate_projection_and_decoders(table, _), do: table
+
+  defp translate_decoders(decoders, table_name) do
+    Enum.reduce(decoders, %{}, fn (decoder, acc) ->
+     Enum.reduce(decoder.columns, acc, fn (column, acc) ->
+       current_expression = Map.get(acc, column, "\"#{table_name}\".\"#{column}\"")
+       Map.put(acc, column, translate_decoder(decoder, current_expression))
+     end)
+   end)
+  end
+
+  defp translate_decoder(%{method: "aes_cbc_128", key: key}, column), do:
+    "dec_aes_cbc128(#{column}, '#{String.replace(key, "'", "''")}')"
+  defp translate_decoder(%{method: "text_to_integer"}, column), do: "CAST(#{column} AS integer)"
+  defp translate_decoder(%{method: "real_to_integer"}, column), do: "CAST(#{column} AS integer)"
+  defp translate_decoder(%{method: "text_to_real"}, column), do: "CAST(#{column} AS real)"
+  defp translate_decoder(%{method: "text_to_datetime"}, column), do: "CAST(#{column} AS datetime)"
+  defp translate_decoder(%{method: "text_to_date"}, column), do: "CAST(#{column} AS date)"
+  defp translate_decoder(%{method: "text_to_boolean"}, column), do: "CAST(#{column} AS boolean)"
+  defp translate_decoder(%{method: "real_to_boolean"}, column), do: "CAST(#{column} AS boolean)"
+  defp translate_decoder(%{method: "base64"}, column), do: "dec_b64(#{column})"
+  defp translate_decoder(%{method: method}, _column), do:
+    DataSource.raise_error("Invalid decoding method specified: #{method}")
+
+  defp quote_db_name("\"" <> _ = name), do: name
+  defp quote_db_name(name), do: ~s/"#{name}"/
+
+  defp translate_projection({id, %{projection: nil, user_id: user_id, db_name: db_name}}, _), do:
+    {~s/"#{id}"."#{user_id}"/, ~s/"#{user_id}"/, ~s/#{quote_db_name(db_name)} AS "#{id}"/}
+  defp translate_projection({id, %{projection: projection, db_name: db_name}}, tables) do
+    projection_id = String.to_atom(projection.table)
+    {user_id, alias, from} = translate_projection({projection_id, tables[projection_id]}, tables)
+    {user_id, alias, from} = if tables[projection_id].projection != nil do
+        # for mongodb data sources, it is faster to use a subquery here as the driver doesn't support complex joins
+        from = ~s/(SELECT #{user_id} AS #{alias}, "#{projection_id}"."#{projection.primary_key}" / <>
+          ~s/FROM #{from}) AS "#{projection_id}"/
+        {~s/"#{projection_id}".#{alias}/, alias, from}
+      else
+        {user_id, alias, from}
+      end
+    from = ~s/#{from} JOIN #{quote_db_name(db_name)} AS "#{id}" ON "#{id}"."#{projection.foreign_key}" = / <>
+      ~s/"#{projection_id}"."#{projection.primary_key}"/
+    alias = if projection[:user_id_alias] != nil, do: ~s/"#{projection.user_id_alias}"/, else: alias
+    {user_id, alias, from}
   end
 end

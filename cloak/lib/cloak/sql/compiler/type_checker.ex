@@ -80,7 +80,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       end
     end)
 
-  @allowed_in_functions ~w(lower upper substring trim ltrim rtrim btrim extract_words)
+  @allowed_in_functions ~w(lower upper substring trim ltrim rtrim btrim extract_words dec_b64)
   defp verify_lhs_of_in_is_clear(query), do:
     verify_conditions(query, &Condition.in?/1, fn({:in, lhs, _}) ->
       unless Type.establish_type(lhs, query) |> Type.clear_column?(@allowed_in_functions) do
@@ -89,7 +89,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       end
     end)
 
-  @allowed_not_equals_functions ~w(lower upper substring trim ltrim rtrim btrim extract_words)
+  @allowed_not_equals_functions ~w(lower upper substring trim ltrim rtrim btrim extract_words dec_b64)
   defp verify_not_equals_is_clear(query), do:
     verify_conditions(query, &Condition.not_equals?/1, fn({:comparison, lhs, :<>, rhs}) ->
       rhs_type = Type.establish_type(rhs, query)

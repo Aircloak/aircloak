@@ -26,6 +26,7 @@ defmodule Cloak.DataSource.Driver do
 
   @type connection :: any
   @type parameters :: any
+  @type driver_info :: any
 
   @doc "Returns an atom describing the query dialect of this specific driver implementation."
   @callback sql_dialect_module(parameters) :: module | nil
@@ -48,6 +49,9 @@ defmodule Cloak.DataSource.Driver do
 
   @doc "Checks to see if the driver is able to handle specified function natively."
   @callback supports_function?(Expression.t, Cloak.DataSource.t) :: boolean
+
+  @doc "Returns the driver specific information to be stored inside the data source structure."
+  @callback driver_info(connection) :: driver_info
 
   @doc "Returns true if the connection can be used from processes other than the creator process."
   @callback supports_connection_sharing?() :: boolean
