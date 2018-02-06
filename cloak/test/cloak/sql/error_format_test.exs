@@ -18,7 +18,7 @@ defmodule Cloak.Sql.ErrorFormat.Test do
       error = ErrorFormat.format("the query", %{message: "Some message.", source_location: {1, 3}})
       assert String.contains?(error, """
       \tthe query
-      \t   ^ HERE
+      \t   ^
       """ |> String.trim())
     end
 
@@ -30,7 +30,7 @@ defmodule Cloak.Sql.ErrorFormat.Test do
 
       assert String.contains?(error, """
       \tthe query
-      \t   ^ HERE
+      \t   ^
       \tanother line
       """ |> String.trim())
     end
@@ -44,7 +44,7 @@ defmodule Cloak.Sql.ErrorFormat.Test do
       assert String.contains?(error, """
       \tthe query
       \tanother line
-      \t   ^ HERE
+      \t   ^
       """ |> String.trim())
     end
 
@@ -57,7 +57,7 @@ defmodule Cloak.Sql.ErrorFormat.Test do
       assert String.contains?(error, """
       \tsecond line
       \tthird line
-      \t     ^ HERE
+      \t     ^
       \tanother line
       """ |> String.trim())
     end
@@ -71,14 +71,14 @@ defmodule Cloak.Sql.ErrorFormat.Test do
       assert String.contains?(error, """
       \tanother line
       \tlast line
-      \t     ^ HERE
+      \t     ^
       """ |> String.trim())
     end
 
     test "location points beyond last line" do
       error = ErrorFormat.format("one line", %{message: "Some message.", source_location: {5, 5}})
       assert String.contains?(error, "The error was detected at line 5, column 5.")
-      refute String.contains?(error, "^HERE")
+      refute String.contains?(error, "^")
     end
   end
 end

@@ -14,13 +14,13 @@ defmodule Cloak.Sql.ErrorFormat do
 
     case {line, context} do
       {1, [error_line, line_after | _]} ->
-        [":\n\n\t", error_line, "\n\t", String.duplicate(" ", column), "^ HERE\n\t", line_after]
+        [":\n\n\t", error_line, "\n\t", String.duplicate(" ", column), "^\n\t", line_after]
       {1, [error_line | _]} ->
-        [":\n\n\t", error_line, "\n\t", String.duplicate(" ", column), "^ HERE\n"]
+        [":\n\n\t", error_line, "\n\t", String.duplicate(" ", column), "^\n"]
       {_, [line_before, error_line]} ->
-        [":\n\n\t", line_before, "\n\t", error_line, "\n\t", String.duplicate(" ", column), "^ HERE\n"]
+        [":\n\n\t", line_before, "\n\t", error_line, "\n\t", String.duplicate(" ", column), "^\n"]
       {_, [line_before, error_line, line_after | _]} ->
-        [":\n\n\t", line_before, "\n\t", error_line, "\n\t", String.duplicate(" ", column), "^ HERE\n\t", line_after]
+        [":\n\n\t", line_before, "\n\t", error_line, "\n\t", String.duplicate(" ", column), "^\n\t", line_after]
       _invalid_location -> "."
     end
   end
