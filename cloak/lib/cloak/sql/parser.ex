@@ -463,20 +463,28 @@ defmodule Cloak.Sql.Parser do
     map(
       pair_both(
         identifier(),
-        many(
-          pair_both(
-            keyword(:"."),
-            identifier()
+        either(
+          many1(
+            pair_both(
+              keyword(:"."),
+              unquoted_identifier()
+            )
+          ),
+          option(
+            pair_both(
+              keyword(:"."),
+              identifier()
+            )
           )
         )
       ),
       fn
-        ({column, []}) ->
+        ({column, nil}) ->
           {:identifier, :unknown, column}
-        ({table, [{:., column}]}) ->
+        ({table, {:., column}}) ->
           {:identifier, table, column}
         ({table, parts}) ->
-          column = parts |> Enum.map(fn ({:., {:unquoted, part}}) -> part end) |> Enum.join(".")
+          column = parts |> Enum.map(fn ({:., part}) -> part end) |> Enum.join(".")
           {:identifier, table, {:unquoted, column}}
       end
     )
