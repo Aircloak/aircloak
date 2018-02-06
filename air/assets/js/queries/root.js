@@ -215,7 +215,7 @@ export default class QueriesView extends React.PureComponent {
   runQuery() {
     if (! this.runEnabled()) return;
 
-    window.showErrorLocation(-1, -1); // clear error marker
+    window.clearErrorLocation();
 
     const queryId = uuidv4();
     const statement = this.state.statement;

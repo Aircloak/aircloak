@@ -25,6 +25,7 @@ export class CodeEditor extends React.Component {
     this.completionList = this.completionList.bind(this);
     window.insertWordInEditor = this.insertWordInEditor.bind(this);
     window.showErrorLocation = this.showErrorLocation.bind(this);
+    window.clearErrorLocation = this.clearErrorLocation.bind(this);
   }
 
   props: Props;
@@ -34,6 +35,7 @@ export class CodeEditor extends React.Component {
   completionList: () => void;
   insertWordInEditor: () => void;
   showErrorLocation: () => void;
+  clearErrorLocation: () => void;
   errorMarker: null;
 
   setupComponent(codeMirrorComponent: {getCodeMirrorInstance: () => Codemirror}) {
@@ -72,12 +74,15 @@ export class CodeEditor extends React.Component {
     editor.focus();
   }
 
-  showErrorLocation(line: number, ch: number) {
+  clearErrorLocation() {
     if (this.errorMarker) {
       this.errorMarker.clear();
       this.errorMarker = null;
     }
-    if (line < 0 || ch < 0) return;
+  }
+
+  showErrorLocation(line: number, ch: number) {
+    this.clearErrorLocation();
     const editor = this.reactCodeMirrorComponent.getCodeMirror();
     const doc = editor.getDoc();
     this.errorMarker = doc.markText({line, ch}, {line, ch: ch + 1}, {className: "error-location"});
