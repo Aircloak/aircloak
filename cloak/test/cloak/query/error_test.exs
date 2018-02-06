@@ -143,6 +143,7 @@ defmodule Cloak.Query.ErrorTest do
   test "query reports error on cast in a where clause" do
     assert_query "select name from test_errors where cast(name as integer) >= 100", %{error: error}
     assert error =~ ~r/Column `cast` must be limited to a finite, nonempty range./
+    assert error =~ ~r/line 1, column 35/
   end
 
   test "query reports error on invalid group by position" do

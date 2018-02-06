@@ -228,7 +228,8 @@ defmodule Cloak.Sql.Compiler.Execution do
     grouped_inequalities
     |> Enum.reject(fn({_, comparisons}) -> valid_range?(comparisons) end)
     |> case do
-      [{column, _} | _] ->
+      [{_, [inequality | _]} | _] ->
+        column = Condition.subject(inequality)
         raise CompilationError, source_location: column.source_location, message:
           "Column #{Expression.display_name(column)} must be limited to a finite, nonempty range."
       _ -> :ok
