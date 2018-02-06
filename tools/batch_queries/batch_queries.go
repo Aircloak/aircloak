@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/csv"
 	"encoding/json"
@@ -40,21 +41,45 @@ type row struct {
 	Occurrences int           `json:"occurrences"`
 }
 
-var configuration = readConfig()
+var configuration = config{}
 var resultsPath = fmt.Sprintf("results/%s", time.Now().Format("20060102150405"))
 
 func main() {
+	failedQueries := 0
+
+	defer func() {
+		r := recover()
+		if r != nil {
+			if r != "stop" {
+				fmt.Printf("Error: %s\n", r)
+			}
+		} else if failedQueries > 0 {
+			fmt.Printf("%d queries failed!\nYou can see the errors in %s/errors.txt\n", failedQueries, resultsPath)
+		} else {
+			fmt.Printf("All queries completed successfully!\nYou can see the results in %s\n", resultsPath)
+		}
+
+		fmt.Print("\nPress Enter to finish...")
+		bufio.NewReader(os.Stdin).ReadString('\n')
+	}()
+
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	configuration = readConfig()
 
 	err := os.MkdirAll(resultsPath, os.ModePerm)
 	if err != nil {
-		log.Fatal(err)
+		reportError(err)
 	}
 
 	queries := readQueries()
 	for index, query := range queries {
 		fmt.Printf("%d/%d\n\n%s\n", index+1, len(queries), query)
 		queryResult := runQuerySync(query)
+		if queryResult.Query.Error != nil {
+			fmt.Printf("Error: %s\n\n", *(queryResult.Query.Error))
+			failedQueries = failedQueries + 1
+		}
 		storeResult(index, query, queryResult)
 	}
 }
@@ -62,13 +87,13 @@ func main() {
 func readConfig() config {
 	raw, err := ioutil.ReadFile("config.json")
 	if err != nil {
-		log.Fatal(err)
+		reportError(err)
 	}
 
 	var decoded config
 	err = json.Unmarshal(raw, &decoded)
 	if err != nil {
-		log.Fatal(err)
+		reportError(err)
 	}
 
 	return decoded
@@ -77,7 +102,7 @@ func readConfig() config {
 func readQueries() []string {
 	buffer, err := ioutil.ReadFile("queries.sql")
 	if err != nil {
-		log.Fatal(err)
+		reportError(err)
 	}
 
 	return regexp.MustCompile(`(?m)^\s*$`).Split(string(buffer), -1)
@@ -132,7 +157,7 @@ func jsonRequest(method string, path string, payload interface{}, out interface{
 	if payload != nil {
 		err := json.NewEncoder(buffer).Encode(payload)
 		if err != nil {
-			log.Fatal(err)
+			reportError(err)
 		}
 	}
 
@@ -140,7 +165,7 @@ func jsonRequest(method string, path string, payload interface{}, out interface{
 	client := &http.Client{}
 	req, err := http.NewRequest(method, fullPath, buffer)
 	if err != nil {
-		log.Fatal(err)
+		reportError(err)
 	}
 
 	req.Header.Add("auth-token", configuration.APIToken)
@@ -148,23 +173,23 @@ func jsonRequest(method string, path string, payload interface{}, out interface{
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Fatal(err)
+		reportError(err)
 	}
 
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 401 {
-		log.Fatal(fmt.Sprintf("Unauthorized request %s %s. Check if API token is valid.", method, fullPath))
+		reportError(fmt.Sprintf("Unauthorized request %s %s. Check if API token is valid.", method, fullPath))
 	}
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Fatal(err)
+		reportError(err)
 	}
 
 	err = json.Unmarshal(bodyBytes, out)
 	if err != nil {
-		log.Fatal(string(bodyBytes))
+		reportError(string(bodyBytes))
 	}
 }
 
@@ -179,7 +204,7 @@ func storeResult(index int, query string, queryResult queryResult) {
 func storeSuccess(index int, queryResult queryResult) {
 	file, err := os.Create(fmt.Sprintf("%s/query_%d.csv", resultsPath, index+1))
 	if err != nil {
-		log.Fatal(err)
+		reportError(err)
 	}
 	defer file.Close()
 
@@ -188,7 +213,7 @@ func storeSuccess(index int, queryResult queryResult) {
 
 	err = writer.Write(queryResult.Query.Columns)
 	if err != nil {
-		log.Fatal(err)
+		reportError(err)
 	}
 
 	for _, row := range queryResult.Query.Rows {
@@ -200,7 +225,7 @@ func storeSuccess(index int, queryResult queryResult) {
 		for i := 0; i < row.Occurrences; i++ {
 			err = writer.Write(strings)
 			if err != nil {
-				log.Fatal(err)
+				reportError(err)
 			}
 		}
 	}
@@ -213,9 +238,14 @@ func storeError(query string, queryResult queryResult) {
 		0644,
 	)
 	if err != nil {
-		log.Fatal(err)
+		reportError(err)
 	}
 	defer file.Close()
 
 	file.Write([]byte(fmt.Sprintf("----\nError runninq query\n%s\n%s\n----\n\n", query, *queryResult.Query.Error)))
+}
+
+func reportError(v ...interface{}) {
+	log.Output(2, fmt.Sprint(v...))
+	panic("stop")
 }
