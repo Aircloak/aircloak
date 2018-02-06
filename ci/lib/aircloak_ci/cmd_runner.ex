@@ -7,7 +7,7 @@ defmodule AircloakCI.CmdRunner do
   BEAM is taken down. This is achieved with the help of the [erlexec](https://github.com/saleyn/erlexec) library.
   """
 
-  use GenServer, start: {__MODULE__, :start_link, []}, restart: :temporary
+  use GenServer, restart: :temporary
   require Logger
 
   @type run_option ::

@@ -37,10 +37,7 @@ defmodule Air.ProcessQueue do
     # Dummy worker module which we need for dummy poolboy processes. We're not really using these
     # processes, but we need it so we can piggyback on poolboy's queue logic.
 
-    use GenServer
-
-    def start_link(_), do:
-      GenServer.start_link(__MODULE__, [])
+    def start_link(_), do: Agent.start_link(fn -> :ok end)
   end
 
 

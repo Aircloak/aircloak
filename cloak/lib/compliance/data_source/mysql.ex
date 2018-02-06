@@ -108,7 +108,7 @@ defmodule Compliance.DataSource.MySQL do
         database: "mysql",
         hostname: params.hostname,
         username: "root",
-        sync_connect: true,
+        sync_connect: true
       )
 
     case Mariaex.query!(

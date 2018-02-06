@@ -39,13 +39,11 @@ defmodule Cloak.AirSocket do
   """
   @spec send_query_result(GenServer.server, map) :: :ok | {:error, any}
   def send_query_result(socket \\ __MODULE__, result) do
-    try do
-      Logger.info("sending query result to Air", query_id: result.query_id)
-      call_air(socket, "main", "query_result", result, :timer.minutes(1))
-      Logger.info("query result sent", query_id: result.query_id)
-    catch :exit, {:timeout, _} ->
-      {:error, :timeout}
-    end
+    Logger.info("sending query result to Air", query_id: result.query_id)
+    call_air(socket, "main", "query_result", result, :timer.minutes(1))
+    Logger.info("query result sent", query_id: result.query_id)
+  catch :exit, {:timeout, _} ->
+    {:error, :timeout}
   end
 
   @doc """
@@ -257,21 +255,19 @@ defmodule Cloak.AirSocket do
   # -------------------------------------------------------------------
 
   defp push(transport, topic, event, payload) do
-    try do
-      GenSocketClient.push(transport, topic, event, payload)
-      :ok
-    rescue
-      error in Poison.EncodeError ->
-        error =
-          if Aircloak.DeployConfig.override_app_env!(:cloak, :sanitize_otp_errors) do
-            Poison.EncodeError.exception(message: "Poison encode error", value: "`sanitized`")
-          else
-            error
-          end
+    GenSocketClient.push(transport, topic, event, payload)
+    :ok
+  rescue
+    error in Poison.EncodeError ->
+      error =
+        if Aircloak.DeployConfig.override_app_env!(:cloak, :sanitize_otp_errors) do
+          Poison.EncodeError.exception(message: "Poison encode error", value: "`sanitized`")
+        else
+          error
+        end
 
-        Logger.error("Message could not be encoded: #{Exception.message(error)}")
-        {:error, error}
-    end
+      Logger.error("Message could not be encoded: #{Exception.message(error)}")
+      {:error, error}
   end
 
   defp decode_params(params), do: :erlang.binary_to_term(Base.decode16!(params))

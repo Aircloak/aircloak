@@ -79,8 +79,8 @@ defmodule Air.Service.DataSourceTest do
   test "fetching history filters by context", context do
     Enum.map(1..5, fn(_) -> create_query(context.user1, context.ds2, %{context: :psql}) end)
 
-    assert {:ok, []} == DataSource.history({:id, context.ds2.id}, context.user1, :http, 1,NaiveDateTime.utc_now())
-    assert {:ok, [_|_]} = DataSource.history({:id, context.ds2.id}, context.user1, :psql, 1,NaiveDateTime.utc_now())
+    assert {:ok, []} == DataSource.history({:id, context.ds2.id}, context.user1, :http, 1, NaiveDateTime.utc_now())
+    assert {:ok, [_|_]} = DataSource.history({:id, context.ds2.id}, context.user1, :psql, 1, NaiveDateTime.utc_now())
   end
 
   test "fetching history for the unavailable data source", context, do:

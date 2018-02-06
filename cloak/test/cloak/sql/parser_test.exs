@@ -57,7 +57,7 @@ defmodule Cloak.Sql.Parser.Test do
   # Produces a pattern which matches an AST of a constant with type
   defmacrop constant(type, value) do
     quote do
-      {:constant, type, value}
+      {:constant, unquote(type), unquote(value)}
     end
   end
 
@@ -694,7 +694,7 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "extended with character set" do
     assert_parse "select trim(both 'xyz' from foo) from bar",
-      select(columns: [{:function, "btrim", [identifier("foo"), constant(:text, "xyz")]}])
+      select(columns: [{:function, "btrim", [identifier("foo"), constant(:string, "xyz")]}])
   end
 
   test "substring from" do
@@ -854,9 +854,9 @@ defmodule Cloak.Sql.Parser.Test do
   end
 
   test "string literals containing escaped single-quotes" do
-    assert_parse "select 'O''Brian' from names", select(columns: [constant(:text, "O'Brian")])
-    assert_parse "select 'O'\n'Brian' from names", select(columns: [constant(:text, "O'Brian")])
-    assert_parse ~S(select 'O\Brian' from names), select(columns: [constant(:text, ~S(O\Brian))])
+    assert_parse "select 'O''Brian' from names", select(columns: [constant(:string, "O'Brian")])
+    assert_parse "select 'O'\n'Brian' from names", select(columns: [constant(:string, "OBrian")])
+    assert_parse ~S(select 'O\Brian' from names), select(columns: [constant(:string, ~S(O\Brian))])
   end
 
   for type <- ~w(lower upper middle)a do

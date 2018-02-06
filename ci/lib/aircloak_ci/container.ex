@@ -206,7 +206,7 @@ defmodule AircloakCI.Container do
     ChildSpec.supervisor(
       [
         ChildSpec.registry(:duplicate, __MODULE__.Registry),
-        Supervisor.Spec.worker(Task, [&cleanup/0], id: __MODULE__.Cleanup, shutdown: :brutal_kill)
+        ChildSpec.task(&cleanup/0, id: __MODULE__.Cleanup),
       ],
       name: __MODULE__,
       strategy: :rest_for_one

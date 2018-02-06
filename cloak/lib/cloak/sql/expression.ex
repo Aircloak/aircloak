@@ -240,11 +240,9 @@ defmodule Cloak.Sql.Expression do
   # -------------------------------------------------------------------
 
   defp apply_function(expression = %__MODULE__{function?: true}, args) do
-    try do
-      if Enum.member?(args, :*), do: :*, else: do_apply(expression.function, args)
-    rescue
-      _ -> nil
-    end
+    if Enum.member?(args, :*), do: :*, else: do_apply(expression.function, args)
+  rescue
+    _ -> nil
   end
 
   defp normalize_type(:string), do: :text
@@ -399,11 +397,9 @@ defmodule Cloak.Sql.Expression do
   end
   # cast to real
   defp cast(value, :real) when is_integer(value) do
-    try do
-      :erlang.float(value)
-    rescue
-      _ in ArgumentError -> nil
-    end
+    :erlang.float(value)
+  rescue
+    _ in ArgumentError -> nil
   end
   defp cast(value, :real) when is_float(value), do: value
   defp cast(true, :real), do: 1.0

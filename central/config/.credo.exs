@@ -21,7 +21,11 @@
         {Credo.Check.Readability.MaxLineLength, max_length: 120},
         {Credo.Check.Readability.VariableNames},
         {Credo.Check.Warning.IExPry},
-        {Credo.Check.Warning.IoInspect}
+        {Credo.Check.Warning.IoInspect},
+        {Credo.Check.Readability.RedundantBlankLines, max_blank_lines: 2},
+        {Credo.Check.Readability.ParenthesesOnZeroArityDefs, false},
+        {Credo.Check.Consistency.ParameterPatternMatching, false},
+        {Credo.Check.Readability.Semicolons, false},
       ] ++ case Mix.env do
         :dev ->
           [

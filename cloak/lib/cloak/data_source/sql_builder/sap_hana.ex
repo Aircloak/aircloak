@@ -41,7 +41,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
     ["AVG(DISTINCT TO_DECIMAL(", arg |> to_string() |> String.replace(~r/DISTINCT /, ""), "))"]
   def function_sql("avg", [arg]), do: ["AVG(TO_DECIMAL(", arg, "))"]
   def function_sql("stddev", [arg]), do: ["STDDEV_SAMP(", arg, ")"]
-  def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", ") ,")"]
+  def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", ") , ")"]
 
   @impl Dialect
   def native_support_for_ilike?(), do: false

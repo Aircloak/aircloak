@@ -854,7 +854,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         key_table: Cloak.DataSource.Table.new("key_table", "uid",
           db_name: "key_table",
           columns: [Table.column("uid", :integer), Table.column("table_id", :integer)],
-          keys: ["table_id"],
+          keys: ["table_id"]
         ),
 
         string_uid_table: Cloak.DataSource.Table.new("string_uid_table", "uid",

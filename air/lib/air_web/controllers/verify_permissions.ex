@@ -58,11 +58,9 @@ defmodule AirWeb.VerifyPermissions do
   end
 
   defp permissions(controller) do
-    try do
-      controller.permissions()
-    rescue UndefinedFunctionError ->
-      Logger.error(fn -> "#{inspect controller} doesn't implement the `permissions/0` function" end)
-      %{}
-    end
+    controller.permissions()
+  rescue UndefinedFunctionError ->
+    Logger.error(fn -> "#{inspect controller} doesn't implement the `permissions/0` function" end)
+    %{}
   end
 end

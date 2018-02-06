@@ -1,5 +1,5 @@
 defmodule AirWeb.Admin.DataSourceView do
-  @moduledoc false;
+  @moduledoc false
   use Air.Web, :view
 
   alias Air.Repo

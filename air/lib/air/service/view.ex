@@ -1,6 +1,7 @@
 defmodule Air.Service.View do
   @moduledoc "Service module for working with views."
 
+  alias Aircloak.ChildSpec
   alias Air.Schemas.{User, View}
   alias Air.{Repo, Service.DataSource, Version}
   import Ecto.Query
@@ -241,12 +242,10 @@ defmodule Air.Service.View do
 
   @doc false
   def child_spec(_arg) do
-    import Aircloak.ChildSpec
-
-    supervisor(
+    ChildSpec.supervisor(
       [
-        task_supervisor(name: @cloak_validations_sup),
-        registry(:duplicate, @notifications_registry),
+        ChildSpec.task_supervisor(name: @cloak_validations_sup),
+        ChildSpec.registry(:duplicate, @notifications_registry),
       ],
       strategy: :one_for_one, name: __MODULE__
     )

@@ -1,7 +1,7 @@
 defmodule BOM.Validate.Test do
   use ExUnit.Case, async: true
 
-  alias BOM.{License,Package}
+  alias BOM.{License, Package}
 
   @valid_package %Package{
     name: "the name",

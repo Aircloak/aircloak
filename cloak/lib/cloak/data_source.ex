@@ -37,6 +37,7 @@ defmodule Cloak.DataSource do
   The data source schema will also be sent to air, so it can be referenced by incoming tasks.
   """
 
+  alias Aircloak.ChildSpec
   alias Cloak.Sql.Query
   alias Cloak.DataSource.{Validations, Parameters, Driver, Table}
   alias Cloak.Query.ExecutionError
@@ -167,7 +168,7 @@ defmodule Cloak.DataSource do
   @spec select!(Query.t, result_processor) :: processed_result
   def select!(%{data_source: data_source} = select_query, result_processor) do
     driver = data_source.driver
-    Logger.debug("Acquiring connection to `#{data_source.name}` ...")
+    Logger.debug(fn -> "Acquiring connection to `#{data_source.name}` ..." end)
 
     Cloak.DataSource.ConnectionPool.execute!(
       data_source,
@@ -223,7 +224,6 @@ defmodule Cloak.DataSource do
         add_error_message(%{data_source | tables: %{}, status: :offline}, message)
     end
   end
-
 
 
   # -------------------------------------------------------------------
@@ -447,10 +447,9 @@ defmodule Cloak.DataSource do
 
   @doc false
   def child_spec(_options \\ []) do
-    import Aircloak.ChildSpec
-    supervisor(
+    ChildSpec.supervisor(
       [
-        gen_server(__MODULE__, load_data_source_configs(), name: __MODULE__),
+        ChildSpec.gen_server(__MODULE__, load_data_source_configs(), name: __MODULE__),
         Cloak.DataSource.ConnectionPool,
         Cloak.DataSource.SerializingUpdater,
         Cloak.DataSource.PostgrexAutoRepair

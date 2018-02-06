@@ -29,35 +29,33 @@ defmodule Central.Service.Customer.AirMessage do
   @doc "Decodes an Air export."
   @spec decode_exported_data(binary) :: {:ok, export} | {:error, :invalid_format}
   def decode_exported_data(air_export) do
-    try do
-      %{id: id, payload: payload, created_at: created_at} = :erlang.binary_to_term(air_export)
+    %{id: id, payload: payload, created_at: created_at} = :erlang.binary_to_term(air_export)
 
-      decoded = %{
-        "last_exported_id" => last_exported_id,
-        "air_name" => air_name,
-        "customer_token" => customer_token,
-        "rpcs" => rpcs,
-      } =
-        payload
-        |> :zlib.gunzip()
-        |> Poison.decode!()
+    decoded = %{
+      "last_exported_id" => last_exported_id,
+      "air_name" => air_name,
+      "customer_token" => customer_token,
+      "rpcs" => rpcs,
+    } =
+      payload
+      |> :zlib.gunzip()
+      |> Poison.decode!()
 
-      {:ok, %{
-        id: id,
-        last_exported_id: last_exported_id,
-        created_at: created_at,
-        air_name: air_name,
-        air_version: Map.get(decoded, "air_version", "Unknown"),
-        customer_token: customer_token,
-        rpcs: rpcs,
-      }}
-    catch type, error ->
-      Logger.error([
-        "Error decoding Air data: #{inspect(type)}:#{inspect(error)}\n",
-        Exception.format_stacktrace(System.stacktrace())
-      ])
-      {:error, :invalid_format}
-    end
+    {:ok, %{
+      id: id,
+      last_exported_id: last_exported_id,
+      created_at: created_at,
+      air_name: air_name,
+      air_version: Map.get(decoded, "air_version", "Unknown"),
+      customer_token: customer_token,
+      rpcs: rpcs,
+    }}
+  catch type, error ->
+    Logger.error([
+      "Error decoding Air data: #{inspect(type)}:#{inspect(error)}\n",
+      Exception.format_stacktrace(System.stacktrace())
+    ])
+    {:error, :invalid_format}
   end
 
   @doc "Validates an Air export."

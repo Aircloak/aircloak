@@ -21,6 +21,17 @@ defmodule Aircloak.ChildSpec do
     supervisor(Supervisor, :start_link, [children, supervisor_options],
       id: Keyword.get(supervisor_options, :name, Supervisor))
 
+  @doc "Specifies a child powered by the `DynamicSupervisor` module."
+  @spec dynamic_supervisor([DynamicSupervisor.option]) :: Supervisor.child_spec
+  def dynamic_supervisor(supervisor_options \\ []) do
+    default_options =
+      [
+        strategy: :one_for_one,
+        id: Keyword.get(supervisor_options, :name, DynamicSupervisor)
+      ]
+    Supervisor.child_spec({DynamicSupervisor, Keyword.merge(default_options, supervisor_options)}, [])
+  end
+
   @doc "Specifies a child powered by the `Task.Supervisor` module."
   @spec task_supervisor([Task.Supervisor.option]) :: Supervisor.child_spec
   def task_supervisor(task_supervisor_options), do:
@@ -29,12 +40,15 @@ defmodule Aircloak.ChildSpec do
     )
 
   @doc "Specifies a child powered by the `GenServer` module."
-  @spec gen_server(module, any, GenServer.options) :: Supervisor.child_spec
-  def gen_server(module, arg, gen_server_options \\ []), do:
-    %{
-      id: module, restart: :permanent, shutdown: 5000, type: :worker,
-      start: {GenServer, :start_link, [module, arg, gen_server_options]},
-    }
+  @spec gen_server(module, any, GenServer.options, Keyword.t) :: Supervisor.child_spec
+  def gen_server(module, arg, gen_server_options \\ [], overrides \\ []), do:
+    Supervisor.child_spec(
+      %{
+        id: module, restart: :permanent, shutdown: 5000, type: :worker,
+        start: {GenServer, :start_link, [module, arg, gen_server_options]},
+      },
+      overrides
+    )
 
   @doc "Specifies a child powered by the `Registry` module."
   @spec registry(Registry.keys, Registry.registry, Keyword.t) :: Supervisor.child_spec
@@ -42,6 +56,14 @@ defmodule Aircloak.ChildSpec do
     Supervisor.child_spec(
       {Registry, Keyword.merge([keys: keys, name: name], registry_options)},
       id: name
+    )
+
+  @doc "Specifies a child powered by the `Task` module."
+  @spec task((() -> any), Keyword.t) :: Supervisor.child_spec
+  def task(fun, overrides \\ []), do:
+    Supervisor.child_spec(
+      %{id: Task, start: {Task, :start_link, [fun]}, shutdown: :brutal_kill},
+      overrides
     )
 
   defmodule Supervisor do

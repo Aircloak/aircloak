@@ -931,7 +931,7 @@ defmodule Cloak.Sql.Compiler.Test do
             Table.column("string", :text),
             Table.column("key", :integer),
           ],
-          keys: ["key"],
+          keys: ["key"]
         ),
         other_table: Cloak.DataSource.Table.new("other_table", "uid",
           db_name: "other_table",

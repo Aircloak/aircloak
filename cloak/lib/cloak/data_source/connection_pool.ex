@@ -23,6 +23,7 @@ defmodule Cloak.DataSource.ConnectionPool do
 
   use GenServer
   require Logger
+  alias Aircloak.ChildSpec
   alias Cloak.DataSource.Driver
   alias Cloak.DataSource.ConnectionPool.ConnectionOwner
 
@@ -104,7 +105,10 @@ defmodule Cloak.DataSource.ConnectionPool do
     case Registry.lookup(__MODULE__.Registry, {data_source.driver, data_source.parameters}) do
       [{pid, _}] -> pid
       [] ->
-        case Supervisor.start_child(__MODULE__.Supervisor, [data_source.driver, data_source.parameters]) do
+        case DynamicSupervisor.start_child(
+          __MODULE__.Supervisor,
+          %{id: __MODULE__.Server, start: {__MODULE__, :start_server, [data_source.driver, data_source.parameters]}}
+        ) do
           {:ok, pid} -> pid
           {:error, {:already_started, pid}} -> pid
         end
@@ -112,25 +116,23 @@ defmodule Cloak.DataSource.ConnectionPool do
   end
 
   defp on_connection(connection_owner, fun) do
-    try do
-      res =
-        connection_owner
-        |> GenServer.call(:start_client_usage, :timer.minutes(1) + Driver.connect_timeout())
-        |> fun.()
+    res =
+      connection_owner
+      |> GenServer.call(:start_client_usage, :timer.minutes(1) + Driver.connect_timeout())
+      |> fun.()
 
-      # To avoid possible corrupt state, we're returning the connection back only on success.
-      # On error, we'll terminate the connection owner, and reraise. Finally, this process (client), is monitored
-      # by the connection owner, so if it's killed from the outside, the connection owner will terminate.
-      # This ensures proper cleanup in all situations.
-      GenServer.call(connection_owner, :checkin)
+    # To avoid possible corrupt state, we're returning the connection back only on success.
+    # On error, we'll terminate the connection owner, and reraise. Finally, this process (client), is monitored
+    # by the connection owner, so if it's killed from the outside, the connection owner will terminate.
+    # This ensures proper cleanup in all situations.
+    GenServer.call(connection_owner, :checkin)
 
-      res
-    catch
-      type, error ->
-        stacktrace = System.stacktrace()
-        Process.exit(connection_owner, :kill)
-        raise_client_error(type, error, stacktrace)
-    end
+    res
+  catch
+    type, error ->
+      stacktrace = System.stacktrace()
+      Process.exit(connection_owner, :kill)
+      raise_client_error(type, error, stacktrace)
   end
 
   defp raise_client_error(:exit, {{%Cloak.Query.ExecutionError{} = error, _}, _}, _stacktrace), do: raise(error)
@@ -150,15 +152,10 @@ defmodule Cloak.DataSource.ConnectionPool do
 
   @doc false
   def child_spec(_) do
-    import Aircloak.ChildSpec
-
-    supervisor(
+    ChildSpec.supervisor(
       [
-        registry(:unique, __MODULE__.Registry),
-        supervisor(
-          [%{id: __MODULE__.Server, start: {__MODULE__, :start_server, []}}],
-          name: __MODULE__.Supervisor, strategy: :simple_one_for_one
-        )
+        ChildSpec.registry(:unique, __MODULE__.Registry),
+        ChildSpec.dynamic_supervisor(name: __MODULE__.Supervisor),
       ],
       strategy: :one_for_one,
       name: __MODULE__

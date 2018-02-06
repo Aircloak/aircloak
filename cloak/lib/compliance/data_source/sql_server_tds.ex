@@ -59,6 +59,7 @@ defmodule Compliance.DataSource.SQLServerTds do
     value_literals =
       rows
       |> Stream.map(&cast_types/1)
+      # credo:disable-for-next-line Credo.Check.Readability.SpaceAfterCommas
       |> Stream.map(&"(#{Enum.join(&1, ",")})")
       |> Enum.join(", ")
 
@@ -89,7 +90,7 @@ defmodule Compliance.DataSource.SQLServerTds do
         password: params.password,
         database: "master",
         sync_connect: true,
-        pool: DBConnection.Connection,
+        pool: DBConnection.Connection
       )
 
     case execute!(conn, "select count(*) from sys.databases where name='#{params.database}'").rows do

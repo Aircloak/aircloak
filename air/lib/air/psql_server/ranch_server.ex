@@ -192,7 +192,7 @@ defmodule Air.PsqlServer.RanchServer do
   end
 
   defp extract_output_chunks(actions) do
-    {send_actions, other_actions} = Enum.partition(actions, &match?({:send, _}, &1))
+    {send_actions, other_actions} = Enum.split_with(actions, &match?({:send, _}, &1))
 
     {
       Enum.map(send_actions, fn({:send, buffer}) -> buffer end),

@@ -72,14 +72,12 @@ defmodule Air.Service.Query do
   @doc "Returns a query if accessible by the given user, without associations preloaded."
   @spec get_as_user(User.t, query_id) :: {:ok, Query.t} | {:error, :not_found | :invalid_id}
   def get_as_user(user, id) do
-    try do
-      user
-      |> Repo.preload([:groups])
-      |> query_scope()
-      |> get(id)
-    rescue Ecto.Query.CastError ->
-      {:error, :invalid_id}
-    end
+    user
+    |> Repo.preload([:groups])
+    |> query_scope()
+    |> get(id)
+  rescue Ecto.Query.CastError ->
+    {:error, :invalid_id}
   end
 
   @doc """

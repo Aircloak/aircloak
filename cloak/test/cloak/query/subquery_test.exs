@@ -68,7 +68,7 @@ defmodule Cloak.Query.SubqueryTest do
   end
 
   test "fully qualified names with a quoted alias" do
-    assert_query "select \"ali as\".height from (select user_id, height from heights_sq) \"ali as\"",
+    assert_query ~s/select "ali as".height from (select user_id, height from heights_sq) "ali as"/,
       %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
   end
 

@@ -7,6 +7,7 @@ defmodule Air.Service.Cloak do
 
   use GenServer
 
+  alias Aircloak.ChildSpec
   alias Air.Service.DataSource
 
   @serializer_name __MODULE__.Serializer
@@ -199,14 +200,12 @@ defmodule Air.Service.Cloak do
 
   @doc false
   def child_spec(_arg) do
-    import Aircloak.ChildSpec
-
-    supervisor(
+    ChildSpec.supervisor(
       [
-        gen_server(__MODULE__, [], name: @serializer_name),
-        registry(:duplicate, @data_source_registry_name),
-        registry(:unique, @memory_registry_name),
-        registry(:duplicate, @all_cloak_registry_name),
+        ChildSpec.gen_server(__MODULE__, [], name: @serializer_name),
+        ChildSpec.registry(:duplicate, @data_source_registry_name),
+        ChildSpec.registry(:unique, @memory_registry_name),
+        ChildSpec.registry(:duplicate, @all_cloak_registry_name),
       ],
       strategy: :one_for_one, name: __MODULE__
     )

@@ -61,7 +61,7 @@ defmodule Air.PsqlServer.ConnectionRegistry do
         user = User.load(user_id)
         case Query.get_as_user(user, query_id) do
           {:ok, query} ->
-            Logger.debug("Issued request to cancel query: #{query_id} on behalf of user #{user_id}")
+            Logger.debug(fn -> "Issued request to cancel query: #{query_id} on behalf of user #{user_id}" end)
             DataSource.stop_query(query, user)
             :ok
           {:error, _reason} -> :ok

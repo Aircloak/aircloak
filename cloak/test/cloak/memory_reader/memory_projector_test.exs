@@ -14,7 +14,7 @@ defmodule Cloak.MemoryReader.MemoryProjectorTest do
     end
 
     test "maintains a sequence of rates of changes", do:
-      assert %MemoryProjector{changes: [1,1,1,1,1,1]} = add_measurements([1,2,3,4,5,6,7])
+      assert %MemoryProjector{changes: [1, 1, 1, 1, 1, 1]} = add_measurements([1, 2, 3, 4, 5, 6, 7])
 
     test "maintains last 20 readings" do
       %MemoryProjector{changes: changes} = add_measurements(1..100)
