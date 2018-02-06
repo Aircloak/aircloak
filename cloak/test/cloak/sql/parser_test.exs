@@ -1207,6 +1207,10 @@ defmodule Cloak.Sql.Parser.Test do
         "select bucket(foo by 10 by) from baz", "Expected `)`", {1, 25}},
       {"error on incomplete qualified select column",
         "select foo. from bar", "Expected `from`", {1, 11}},
+      {"invalid quoted column name",
+        "select \"x\".\"y\".\"z\" from baz", "Expected `from`", {1, 15}},
+      {"invalid mixed quote column name",
+        "select \"x\".y.\"z\" from baz", "Expected `from`", {1, 13}},
     ],
     fn
       {description, statement, expected_error, {line, column}} ->
