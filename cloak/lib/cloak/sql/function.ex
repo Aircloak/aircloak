@@ -100,7 +100,8 @@ defmodule Cloak.Sql.Function do
     ~w(substring) => %{type_specs: %{[:text, {:constant, :integer}, {:optional, {:constant, :integer}}] => :text},
       attributes: [:restricted, :string_manipulation]},
     ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
-    ~w(hex) => %{type_specs: %{[:text] => :text}},
+    ~w(hex dec_b64) => %{type_specs: %{[:text] => :text}},
+    ~w(dec_aes_cbc128) => %{type_specs: %{[:text] => :text, [:text, :text] => :text}},
     ~w(hash) => %{type_specs: %{[:text] => :integer, [:integer] => :integer, [:real] => :integer}},
     # NOTICE: The `not_in_subquery` is set for `extract_words` because we are not yet sure it's safe in subqueries.
     ~w(extract_words) => %{type_specs: %{[:text] => :text}, attributes: [:not_in_subquery, :row_splitter]},

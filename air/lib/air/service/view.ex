@@ -192,6 +192,8 @@ defmodule Air.Service.View do
         {:error, :sql, sql_error} ->
           # SQL error returned by the cloak -> we'll convert into a changeset
           {:error, Ecto.Changeset.add_error(changeset, :sql, sql_error)}
+        {:error, :internal_error} ->
+          {:error, Ecto.Changeset.add_error(changeset, :sql, "Internal error.")}
         {:error, :not_connected} ->
           # Cloak not available
           {:error, Ecto.Changeset.add_error(changeset, :sql,

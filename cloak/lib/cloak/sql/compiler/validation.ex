@@ -146,7 +146,6 @@ defmodule Cloak.Sql.Compiler.Validation do
   # Joins
   # -------------------------------------------------------------------
 
-  defp verify_joins(%Query{projected?: true} = query), do: query
   defp verify_joins(query) do
     verify_join_types(query)
     verify_join_conditions_scope(query.from, [])
