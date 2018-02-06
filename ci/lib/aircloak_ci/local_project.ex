@@ -436,15 +436,13 @@ defmodule AircloakCI.LocalProject do
     Map.merge(default_state(), deserialize_state(project))
 
   defp deserialize_state(project) do
-    try do
-      [state_file(project), old_state_file(project)]
-      |> Enum.find(&File.exists?/1)
-      |> File.read!()
-      |> :erlang.binary_to_term()
-      |> Map.take(Map.keys(default_state()))
-    catch _, _ ->
-      %{}
-    end
+    [state_file(project), old_state_file(project)]
+    |> Enum.find(&File.exists?/1)
+    |> File.read!()
+    |> :erlang.binary_to_term()
+    |> Map.take(Map.keys(default_state()))
+  catch _, _ ->
+    %{}
   end
 
   defp old_state_file(project), do:

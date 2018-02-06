@@ -36,10 +36,10 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
   end
 
   defp dispatch_chunks(workers, chunks) do
-    Logger.debug("Processing data using #{length(workers)} processes ...")
+    Logger.debug(fn -> "Processing data using #{length(workers)} processes ..." end)
     Enum.each(chunks, &send_more_reply({:data, &1}))
     for _worker <- workers, do: send_more_reply(:end_of_data)
-    Logger.debug("Integrating partial results ...")
+    Logger.debug(fn -> "Integrating partial results ..." end)
     workers
   end
 
@@ -90,7 +90,6 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
     @moduledoc false
 
     use GenServer
-    @behaviour GenServer
 
     @impl GenServer
     def init(job) do

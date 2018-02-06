@@ -7,7 +7,7 @@ defmodule Cloak.Sql.Query do
   database, perform anonymized aggregation, and produce the final output.
   """
 
-  alias Cloak.{DataSource, Query.DataDecoder}
+  alias Cloak.DataSource
   alias Cloak.Sql.{Expression, Compiler, Function, Parser, Query.Lenses, NoiseLayer, Condition}
   require Logger
 
@@ -69,7 +69,6 @@ defmodule Cloak.Sql.Query do
     emulated?: boolean,
     parameters: [parameter] | nil,
     views: view_map,
-    projected?: boolean,
     next_row_index: row_index,
     noise_layers: [NoiseLayer.t],
     view?: boolean,
@@ -88,7 +87,6 @@ defmodule Cloak.Sql.Query do
     column_types: [String.t],
     selected_types: [String.t],
     parameter_types: [String.t],
-    decoders: [String.t],
     driver: String.t,
     driver_dialect: String.t,
     emulated: boolean,
@@ -98,8 +96,8 @@ defmodule Cloak.Sql.Query do
     columns: [], where: nil, group_by: [], order_by: [], column_titles: [], aggregators: [],
     info: [], selected_tables: [], implicit_count?: false, data_source: nil, command: nil,
     show: nil, db_columns: [], from: nil, subquery?: false, limit: nil, offset: 0, having: nil, distinct?: false,
-    parameters: [], views: %{}, emulated?: false, sample_rate: nil, projected?: false,
-    next_row_index: 0, parameter_types: %{}, noise_layers: [], view?: false, table_aliases: %{}, virtual_table?: false,
+    parameters: [], views: %{}, emulated?: false, sample_rate: nil, next_row_index: 0, parameter_types: %{},
+    noise_layers: [], view?: false, table_aliases: %{}, virtual_table?: false,
   ]
 
 
@@ -331,8 +329,7 @@ defmodule Cloak.Sql.Query do
       |> needed_columns()
       |> extract_columns()
       |> Enum.reject(& &1.constant?)
-
-    [Compiler.Helpers.id_column(query) | used_columns]
+    List.wrap(Compiler.Helpers.id_column(query)) ++ used_columns
   end
 
   defp needed_columns(query), do:
@@ -371,8 +368,7 @@ defmodule Cloak.Sql.Query do
  end
 
  defp emulated_expression?(expression, data_source), do:
-   DataDecoder.needs_decoding?(expression) or
-   (expression.function? and not data_source.driver.supports_function?(expression, data_source))
+   expression.function? and not data_source.driver.supports_function?(expression, data_source)
 
  defp emulated_expression_condition?(condition, data_source) do
    Lenses.conditions_terminals()
@@ -382,7 +378,7 @@ defmodule Cloak.Sql.Query do
 
  defp has_emulated_expressions?(query), do:
    Lenses.all_expressions()
-   |> Lens.to_list([query.columns, query.group_by, query.having, query.where])
+   |> Lens.to_list([query.columns, query.group_by, query.having, query.where, order_by_expressions(query)])
    |> Enum.any?(&emulated_expression?(&1, query.data_source))
 
  defp has_emulated_join_conditions?(query), do:

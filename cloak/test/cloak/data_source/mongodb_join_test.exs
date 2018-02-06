@@ -8,27 +8,25 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
   @moduletag :exclude_in_dev
   @moduletag :mongodb
 
-  setup do
+  setup_all do
     parameters = [hostname: "localhost", database: "cloaktest"]
     {:ok, conn} = Mongo.start_link(parameters)
     Mongo.delete_many(conn, "left", %{})
     Mongo.delete_many(conn, "right", %{})
     for i <- 1..20 do
       Mongo.insert_one!(conn, "left", %{id: i, name: "user#{i}", age: 30})
-      Mongo.insert_one!(conn, "right", %{id: i, salary: "#{rem(i, 3)*100}"})
+      Mongo.insert_one!(conn, "right", %{id: i, salary: Base.encode64("#{rem(i, 3)*100}")})
     end
     for i <- 21..25 do
       Mongo.insert_one!(conn, "left", %{id: i})
     end
-    decoder = %{method: "text_to_integer", columns: ["salary"]}
     tables_config = [
       Cloak.DataSource.Table.new("left", "id", db_name: "left"),
-      Cloak.DataSource.Table.new("right", "id", db_name: "right", decoders: [decoder])
+      Cloak.DataSource.Table.new("right", "id", db_name: "right")
     ]
     tables =
       tables_config
       |> Enum.flat_map(&MongoDB.load_tables(conn, &1))
-      |> Enum.map(&Cloak.Query.DataDecoder.init/1)
       |> Enum.map(&{&1.name, &1})
       |> Enum.into(%{})
     GenServer.stop(conn)
@@ -45,47 +43,50 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
 
   test "inner join with tables in top-query", context do
     assert_query context, """
-      SELECT AVG(salary) FROM "left" INNER JOIN "right" ON "left".id = "right".id WHERE age = 30
+      SELECT AVG(cast(dec_b64(salary) AS real)) FROM "left" INNER JOIN "right" ON "left".id = "right".id WHERE age = 30
     """, %{rows: [%{occurrences: 1, row: [95.0]}]}
   end
 
   test "left join with table and sub-query in top-query", context do
     assert_query context, """
-      SELECT age FROM "left" LEFT JOIN (SELECT id AS rid, salary FROM "right") AS t ON id = rid
+      SELECT age FROM "left" LEFT JOIN (SELECT id AS rid FROM "right") AS t ON id = rid
     """, %{rows: [%{occurrences: 20, row: [30]}, %{occurrences: 5, row: [nil]}]}
   end
 
   test "join in top-query with emulated where", context do
     assert_query context, """
-      SELECT count(age) FROM "left" INNER JOIN "right" ON "left".id = "right".id WHERE salary <> 200
+      SELECT count(age) FROM "left" INNER JOIN "right" ON "left".id = "right".id WHERE dec_b64(salary) <> '200'
     """, %{rows: [%{occurrences: 1, row: [13]}]}
   end
 
   test "left join with table and filtered sub-query in filtered top-query", context do
     assert_query context, """
       SELECT age FROM "left" LEFT JOIN
-      (SELECT id AS rid, salary FROM "right" WHERE salary >= 0 AND salary < 500) AS t
-      ON id = rid WHERE salary = 100
+      (SELECT id AS rid, cast(dec_b64(salary) AS real) AS s FROM "right" WHERE s <> 200) AS t
+      ON id = rid WHERE s = 100
     """, %{rows: [%{occurrences: 7, row: [30]}]}
   end
 
   test "left join with tables in sub-query", context do
     assert_query context, """
       SELECT COUNT(name) FROM
-      (SELECT "left".id, name, salary FROM "left" LEFT JOIN "right" ON "left".id = "right".id) AS t
-      WHERE salary IN (100, 200)
+      (SELECT "left".id, name, dec_b64(salary) AS salary FROM "left" LEFT JOIN "right" ON "left".id = "right".id) AS t
+      WHERE salary IN ('100', '200')
     """, %{rows: [%{occurrences: 1, row: [14]}]}
   end
 
   test "function in inner join condition", context do
     assert_query context, """
-      SELECT AVG(salary) FROM "left" INNER JOIN "right" ON "left".id = "right".id AND age + 1 = 31
+      SELECT AVG(cast(dec_b64(salary) AS real))
+      FROM "left" INNER JOIN "right"
+      ON "left".id = "right".id AND age + 1 = 31
     """, %{rows: [%{occurrences: 1, row: [95.0]}]}
   end
 
   test "complex function in inner join condition", context do
     assert_query context, """
-      SELECT AVG(salary) FROM "left" INNER JOIN "right" ON "left".id = "right".id AND -abs(salary) = -100
+      SELECT AVG(cast(dec_b64(salary) AS real))
+      FROM "left" INNER JOIN "right" ON "left".id = "right".id AND dec_b64(salary) = '100'
     """, %{rows: [%{occurrences: 1, row: [100.0]}]}
   end
 

@@ -1,5 +1,5 @@
 defmodule AirWeb.Admin.ActivityMonitorView do
-  @moduledoc false;
+  @moduledoc false
   use Air.Web, :view
 
   alias Air.Repo

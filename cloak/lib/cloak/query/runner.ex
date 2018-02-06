@@ -9,6 +9,7 @@ defmodule Cloak.Query.Runner do
 
   use GenServer
   require Logger
+  alias Aircloak.ChildSpec
   alias Cloak.{Sql.Query, DataSource, Query.Runner.Engine, ResultSender}
 
   @supervisor_name __MODULE__.Supervisor
@@ -29,8 +30,17 @@ defmodule Cloak.Query.Runner do
   """
   @spec start(String.t, DataSource.t, String.t, [DataSource.field], Query.view_map, ResultSender.target) :: :ok
   def start(query_id, data_source, statement, parameters, views, result_target \\ :air_socket) do
-    {:ok, _} = Supervisor.start_child(@supervisor_name,
-      [{query_id, data_source, statement, parameters, views, result_target}, [name: worker_name(query_id)]])
+    {:ok, _} =
+      DynamicSupervisor.start_child(
+        @supervisor_name,
+        ChildSpec.gen_server(
+          __MODULE__,
+          {query_id, data_source, statement, parameters, views, result_target},
+          [name: worker_name(query_id)],
+          [restart: :temporary]
+        )
+      )
+
     :ok
   end
 
@@ -107,7 +117,7 @@ defmodule Cloak.Query.Runner do
     {:stop, :normal, state}
   end
   def handle_info({:send_state, query_id, query_state}, state) do
-    Logger.debug("Query #{query_id} state changed to: #{query_state}...")
+    Logger.debug(fn -> "Query #{query_id} state changed to: #{query_state}..." end)
     ResultSender.send_state(state.result_target, query_id, query_state)
     {:noreply, state}
   end
@@ -133,7 +143,7 @@ defmodule Cloak.Query.Runner do
 
   defp run_query(query_id, owner, data_source, statement, parameters, views, memory_callbacks) do
     Logger.metadata(query_id: query_id)
-    Logger.debug("Running statement `#{statement}` ...")
+    Logger.debug(fn -> "Running statement `#{statement}` ..." end)
 
     Engine.run(data_source, statement, parameters, views,
       _state_updater = &send(owner, {:send_state, query_id, &1}),
@@ -201,16 +211,11 @@ defmodule Cloak.Query.Runner do
 
   @doc false
   def child_spec(_arg) do
-    import Aircloak.ChildSpec
-
-    supervisor(
+    ChildSpec.supervisor(
       [
-        registry(:unique, @runner_registry_name),
-        registry(:duplicate, @queries_registry_name),
-        supervisor(
-          [Supervisor.Spec.worker(GenServer, [__MODULE__], restart: :temporary)],
-          name: @supervisor_name, strategy: :simple_one_for_one
-        )
+        ChildSpec.registry(:unique, @runner_registry_name),
+        ChildSpec.registry(:duplicate, @queries_registry_name),
+        ChildSpec.dynamic_supervisor(name: @supervisor_name),
       ],
       strategy: :rest_for_one
     )

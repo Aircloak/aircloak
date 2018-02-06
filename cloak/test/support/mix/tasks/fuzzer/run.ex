@@ -107,12 +107,10 @@ defmodule Mix.Tasks.Fuzzer.Run do
   end
 
   defp run_query(query, data_sources) do
-    try do
-      result = assert_consistent_or_failing_nicely(data_sources, query)
-      %{result: result, error: nil}
-    rescue
-      e -> %{result: :unexpected_error, error: e}
-    end
+    result = assert_consistent_or_failing_nicely(data_sources, query)
+    %{result: result, error: nil}
+  rescue
+    e -> %{result: :unexpected_error, error: e}
   end
 
   defp generate_query(tables), do:

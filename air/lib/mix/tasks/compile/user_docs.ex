@@ -20,29 +20,29 @@ defmodule Mix.Tasks.Compile.UserDocs do
         Mix.Shell.IO.info("Compiled user docs")
       end
     end
+
+    :ok
   end
 
   defp stale?() do
-    try do
-      source_mtime =
-        Path.wildcard("docs/**")
-        |> Enum.reject(& &1 =~ ~r/aircloak-docs/)
-        |> Enum.map(&File.stat!(&1).mtime)
-        |> Enum.max()
-
-      Path.wildcard("priv/static/docs/**")
+    source_mtime =
+      Path.wildcard("docs/**")
       |> Enum.reject(& &1 =~ ~r/aircloak-docs/)
       |> Enum.map(&File.stat!(&1).mtime)
-      |> Enum.sort(&(&1 > &2))
-      |> case do
-        [] -> true
-        [target_mtime | _] -> target_mtime < source_mtime
-      end
-    catch
-      # For some unknown reason, File.stat! fails on a local docker build. Since it is not critical,
-      # here we're just suppressing the error and assuming that the target is stale.
-      _,_ -> true
+      |> Enum.max()
+
+    Path.wildcard("priv/static/docs/**")
+    |> Enum.reject(& &1 =~ ~r/aircloak-docs/)
+    |> Enum.map(&File.stat!(&1).mtime)
+    |> Enum.sort(&(&1 > &2))
+    |> case do
+      [] -> true
+      [target_mtime | _] -> target_mtime < source_mtime
     end
+  catch
+    # For some unknown reason, File.stat! fails on a local docker build. Since it is not critical,
+    # here we're just suppressing the error and assuming that the target is stale.
+    _, _ -> true
   end
 
   defp cmd!(cmd, args) do
@@ -85,13 +85,12 @@ defmodule Mix.Tasks.Compile.UserDocs do
   end
 
   defp has_ebook_convert_installed() do
-    try do
-      case System.cmd("ebook-convert", ~w(--version)) do
-        {_, 0} -> true
-        {_, _} -> false
-      end
-    rescue _ -> false
+    case System.cmd("ebook-convert", ~w(--version)) do
+      {_, 0} -> true
+      {_, _} -> false
     end
+  rescue
+    _ -> false
   end
 
   @book_config_path "docs/book.json"

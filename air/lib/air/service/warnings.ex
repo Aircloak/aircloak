@@ -82,11 +82,11 @@ defmodule Air.Service.Warnings do
 
   defp no_group(data_sources, severity), do:
     data_sources
-    |> Enum.filter(&(length(&1.groups) == 0))
+    |> Enum.filter(&Enum.empty?(&1.groups))
     |> Enum.map(&problem(&1, "No groups have been given access to the data source. It cannot be queried", severity))
 
   defp no_users(data_sources, severity), do:
     data_sources
-    |> Enum.filter(fn(data_source) -> Enum.all?(data_source.groups, &(length(&1.users) == 0)) end)
+    |> Enum.filter(fn(data_source) -> Enum.all?(data_source.groups, &Enum.empty?(&1.users)) end)
     |> Enum.map(&problem(&1, "No users have access to this data source", severity))
 end

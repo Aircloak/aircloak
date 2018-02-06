@@ -147,7 +147,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
             Table.column("numeric", :integer),
             Table.column("string", :text),
           ],
-          keys: ["key"],
+          keys: ["key"]
         ),
       }
     }

@@ -28,18 +28,16 @@ defmodule Cloak.DataSource.PostgrexAutoRepair do
   defp initial_state(), do: %{check_interval: :timer.seconds(10), allowed_consecutive_failed_checks: 6}
 
   defp analyze_postgrex_liveness(state) do
-    try do
-      if inconsistent_postgrex_state?() do
-        state.allowed_consecutive_failed_checks
-        |> update_in(&(&1 - 1))
-        |> handle_failed_check()
-      else
-        initial_state()
-      end
-    catch type, error ->
-      Logger.error(Exception.format(type, error))
-      state
+    if inconsistent_postgrex_state?() do
+      state.allowed_consecutive_failed_checks
+      |> update_in(&(&1 - 1))
+      |> handle_failed_check()
+    else
+      initial_state()
     end
+  catch type, error ->
+    Logger.error(Exception.format(type, error))
+    state
   end
 
   defp handle_failed_check(%{allowed_consecutive_failed_checks: 0}) do

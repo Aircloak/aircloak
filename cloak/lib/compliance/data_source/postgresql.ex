@@ -51,6 +51,7 @@ defmodule Compliance.DataSource.PostgreSQL do
       |> Stream.with_index(1)
       |> Stream.map(fn({_value, index}) -> "$#{index}" end)
       |> Stream.chunk_every(length(hd(rows)))
+      # credo:disable-for-next-line Credo.Check.Readability.SpaceAfterCommas
       |> Stream.map(&"(#{Enum.join(&1, ",")})")
       |> Enum.join(", ")
 
@@ -109,7 +110,7 @@ defmodule Compliance.DataSource.PostgreSQL do
       database: "postgres",
       hostname: params.hostname,
       username: "postgres",
-      sync_connect: true,
+      sync_connect: true
     )
 
     case Postgrex.query!(

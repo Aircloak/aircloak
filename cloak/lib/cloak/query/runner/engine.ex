@@ -17,20 +17,18 @@ defmodule Cloak.Query.Runner.Engine do
     Cloak.MemoryReader.query_killer_callbacks) :: {:ok, Sql.Query.Result.t, [String.t]} | {:error, String.t}
   def run(data_source, statement, parameters, views, state_updater, feature_updater,
       {query_killer_reg, query_killer_unreg}) do
-    try do
-      parsed_query = parse!(statement, state_updater)
-      {compiled_query, features} = compile!(data_source, parsed_query, parameters, views, state_updater)
-      feature_updater.(features)
-      query = prepare_for_execution(compiled_query)
-      state_updater.(:awaiting_data)
-      query_killer_reg.()
-      result = run_statement(query, features, state_updater)
-      query_killer_unreg.()
-      {:ok, result, Sql.Query.info_messages(query)}
-    rescue
-      e in Cloak.Query.ExecutionError -> {:error, e.message}
-      e in [Cloak.Sql.CompilationError, Cloak.Sql.ParseError] -> {:error, Cloak.Sql.ErrorFormat.format(statement, e)}
-    end
+    parsed_query = parse!(statement, state_updater)
+    {compiled_query, features} = compile!(data_source, parsed_query, parameters, views, state_updater)
+    feature_updater.(features)
+    query = prepare_for_execution(compiled_query)
+    state_updater.(:awaiting_data)
+    query_killer_reg.()
+    result = run_statement(query, features, state_updater)
+    query_killer_unreg.()
+    {:ok, result, Sql.Query.info_messages(query)}
+  rescue
+    e in Cloak.Query.ExecutionError -> {:error, e.message}
+    e in [Cloak.Sql.CompilationError, Cloak.Sql.ParseError] -> {:error, Cloak.Sql.ErrorFormat.format(statement, e)}
   end
 
 
@@ -100,14 +98,10 @@ defmodule Cloak.Query.Runner.Engine do
 
   defp consume_rows(stream, query) do
     stream
-    |> decode_rows(query)
     |> Query.RowSplitters.split(query)
     |> Query.Rows.filter(query |> Sql.Query.emulated_where() |> Condition.to_function())
     |> Query.Aggregator.group(query)
   end
-
-  defp decode_rows(stream, %Sql.Query{emulated?: true}), do: stream
-  defp decode_rows(stream, query), do: Query.DataDecoder.decode(stream, query)
 
   defp concurrency(query), do:
     query.data_source.concurrency || Application.get_env(:cloak, :concurrency, 0)

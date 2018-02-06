@@ -44,7 +44,7 @@ defmodule Mix.Tasks.Bom do
     |> Enum.filter(&BOM.Whitelist.shipped?(&1.realm, &1.name))
     |> Enum.map(&BOM.Whitelist.update_license_type/1)
     |> Enum.map(&BOM.Validate.run/1)
-    |> Enum.partition(&(&1.error))
+    |> Enum.split_with(&(&1.error))
 
     if Enum.empty?(invalid) do
       json = Poison.encode!(valid)

@@ -20,6 +20,8 @@ defmodule Air.Service.Version do
       days_until_expiry < 0 -> :expired
       days_until_expiry < 7 -> :imminent
       days_until_expiry < 14 -> :expires_shortly
+      # Credo wrongly reports that we're missing spaces around operators in this function.
+      # credo:disable-for-next-line Credo.Check.Consistency.SpaceAroundOperators
       days_until_expiry < 30 -> :will_expire
       true -> :valid
     end

@@ -794,7 +794,7 @@ defmodule Cloak.Query.BasicTest do
   end
 
   test "quoting table and column names" do
-    assert_query "select \"thing as thing\" from \"weird things\"",
+    assert_query ~s/select "thing as thing" from "weird things"/,
       %{columns: ["thing as thing"], rows: []}
   end
 

@@ -3,7 +3,6 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   alias Cloak.Sql.{Query, Expression}
   alias Cloak.DataSource.SqlBuilder.{Support, SQLServer}
-  alias Cloak.Query.DataDecoder
 
 
   # -------------------------------------------------------------------
@@ -66,7 +65,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(%Expression{constant?: true, value: value}, sql_dialect_module), do:
     constant_to_fragment(value, sql_dialect_module)
   defp column_sql(%Expression{function?: false, constant?: false} = column, sql_dialect_module), do:
-    column |> column_name() |> cast_type(DataDecoder.encoded_type(column), sql_dialect_module)
+    column |> column_name() |> cast_type(column.type, sql_dialect_module)
 
   defp cast_type(value, type, sql_dialect_module) when type in [:text, :unknown], do:
     # Force casting to text ensures we consistently fetch a string column as unicode, regardless of how it's

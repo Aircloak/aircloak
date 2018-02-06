@@ -14,12 +14,10 @@ defmodule Cloak.Sql.Compiler do
   @spec compile(DataSource.t, Parser.parsed_query, [Query.parameter] | nil, Query.view_map) ::
     {:ok, Query.t, Query.features} | {:error, String.t}
   def compile(data_source, parsed_query, parameters, views) do
-    try do
-      {query, features} = compile!(data_source, parsed_query, parameters, views)
-      {:ok, query, features}
-    rescue
-      e in CompilationError -> {:error, CompilationError.message(e)}
-    end
+    {query, features} = compile!(data_source, parsed_query, parameters, views)
+    {:ok, query, features}
+  rescue
+    e in CompilationError -> {:error, CompilationError.message(e)}
   end
 
   @doc "Prepares the parsed SQL query for execution. Raises CompilationErrors instead of returning `{:error, message}`"

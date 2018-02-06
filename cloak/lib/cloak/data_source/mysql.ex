@@ -6,7 +6,6 @@ defmodule Cloak.DataSource.MySQL do
 
   alias Cloak.DataSource.Table
   alias Cloak.DataSource
-  alias Cloak.Query.DataDecoder
 
   use Cloak.DataSource.Driver.SQL
 
@@ -47,10 +46,12 @@ defmodule Cloak.DataSource.MySQL do
   @impl Driver
   def select(connection, sql_query, result_processor) do
     statement = SqlBuilder.build(sql_query)
-    field_mappers = for column <- sql_query.db_columns, do:
-      column |> DataDecoder.encoded_type() |> type_to_field_mapper()
+    field_mappers = Enum.map(sql_query.db_columns, &type_to_field_mapper(&1.type))
     run_query(connection, statement, &map_fields(&1, field_mappers), result_processor)
   end
+
+  @impl Driver
+  def driver_info(_connection), do: nil
 
   @impl Driver
   def supports_connection_sharing?(), do: true
@@ -61,15 +62,13 @@ defmodule Cloak.DataSource.MySQL do
   # -------------------------------------------------------------------
 
   defp run_query(pool, statement, decode_mapper, result_processor) do
-    try do
-      Mariaex.transaction(pool, fn(connection) ->
-        Mariaex.stream(connection, statement, [], [decode_mapper: decode_mapper, max_rows: Driver.batch_size])
-        |> Stream.map(fn (%Mariaex.Result{rows: rows}) -> rows end)
-        |> result_processor.()
-      end, [timeout: Driver.timeout()])
-    rescue
-      error in Mariaex.Error -> DataSource.raise_error("Driver exception: `#{Exception.message(error)}`")
-    end
+    Mariaex.transaction(pool, fn(connection) ->
+      Mariaex.stream(connection, statement, [], [decode_mapper: decode_mapper, max_rows: Driver.batch_size])
+      |> Stream.map(fn (%Mariaex.Result{rows: rows}) -> rows end)
+      |> result_processor.()
+    end, [timeout: Driver.timeout()])
+  rescue
+    error in Mariaex.Error -> DataSource.raise_error("Driver exception: `#{Exception.message(error)}`")
   end
 
   defp parse_type("varchar" <> _size), do: :text

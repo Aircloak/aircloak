@@ -17,10 +17,10 @@ defmodule Cloak.DataSource.MongoDB.Projector do
 
   @doc "Creates a MongoDB projection for a table containing array size columns."
   @spec project_array_sizes(map) :: [map]
-  def project_array_sizes(%{columns: columns, db_name: name}) when is_binary(name) do # table is collection
+  def project_array_sizes(%{columns: columns, collection: name}) when is_binary(name) do # table is collection
     columns
     |> Enum.map(&(&1.name))
-    |> Enum.partition(&Schema.is_array_size?/1)
+    |> Enum.split_with(&Schema.is_array_size?/1)
     |> case do
       {[], _regular_columns} -> []
       {array_sizes, regular_columns} ->

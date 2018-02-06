@@ -58,7 +58,6 @@ defmodule Cloak.Sql.Compiler.Specification do
     query
     |> compile_views()
     |> normalize_from()
-    |> compile_projected_tables()
     |> compile_subqueries()
     |> compile_selected_tables()
 
@@ -155,61 +154,6 @@ defmodule Cloak.Sql.Compiler.Specification do
     end
   end
 
-
-  # -------------------------------------------------------------------
-  # Projected tables
-  # -------------------------------------------------------------------
-
-  defp compile_projected_tables(%Query{projected?: true} = query), do: query
-  defp compile_projected_tables(query), do:
-    Lens.map(Lenses.leaf_tables(), query, &compile_projected_table(&1, query))
-
-  defp compile_projected_table(table_name, query) do
-    case table_from_name_or_alias!(query, table_name) do
-      %{projection: nil} -> table_name
-      projected_table -> projected_table_ast(projected_table, table_name, :all, query)
-    end
-  end
-
-  defp projected_table_ast(%{projection: nil}, table_alias, _column_to_select, _query), do:
-    {:quoted, table_alias}
-  defp projected_table_ast(table, table_alias, columns_to_select, query) do
-    # note that we're fetching the table from the data source, because projection name is not an alias
-    joined_table = DataSource.table(query.data_source, table.projection.table)
-    {:subquery, %{
-      alias: table_alias,
-      table_name: table.name,
-      ast: %{
-        command: :select,
-        projected?: true,
-        columns:
-          [uid_column_ast(joined_table.name, joined_table.user_id, table) |
-            table.columns
-            |> Enum.map(&(&1.name))
-            |> Enum.reject(&(&1 == table.user_id))
-            |> Enum.filter(&(columns_to_select == :all || Enum.member?(columns_to_select, &1)))
-            |> Enum.map(&column_ast(table.name, &1))
-          ],
-        from:
-          {:join, %{
-            type: :inner_join,
-            lhs: {:quoted, table.name},
-            rhs: projected_table_ast(joined_table, joined_table.name, [table.projection.primary_key], query),
-            conditions: {:comparison,
-              column_ast(table.name, table.projection.foreign_key),
-              :=,
-              column_ast(joined_table.name, table.projection.primary_key)
-            }
-          }}
-      }
-    }}
-  end
-
-  defp uid_column_ast(table_name, column_name, %{projection: projection}), do:
-    {column_ast(table_name, column_name), :as, projection[:user_id_alias] || column_name}
-
-  defp column_ast(table_name, column_name), do:
-    {:identifier, {:quoted, table_name}, {:quoted, column_name}, @dummy_location}
 
   # -------------------------------------------------------------------
   # Subqueries

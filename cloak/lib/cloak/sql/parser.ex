@@ -489,20 +489,28 @@ defmodule Cloak.Sql.Parser do
     map(
       pair_both(
         pair_both(next_position(), identifier()),
-        many(
-          pair_both(
-            keyword(:"."),
-            identifier()
+        either(
+          many1(
+            pair_both(
+              keyword(:"."),
+              unquoted_identifier()
+            )
+          ),
+          option(
+            pair_both(
+              keyword(:"."),
+              identifier()
+            )
           )
         )
       ),
       fn
-        ({{location, column}, []}) ->
+        ({{location, column}, nil}) ->
           {:identifier, :unknown, column, location}
-        ({{location, table}, [{:., column}]}) ->
+        ({{location, table}, {:., column}}) ->
           {:identifier, table, column, location}
         ({{location, table}, parts}) ->
-          column = parts |> Enum.map(fn ({:., {:unquoted, part}}) -> part end) |> Enum.join(".")
+          column = parts |> Enum.map(fn ({:., part}) -> part end) |> Enum.join(".")
           {:identifier, table, {:unquoted, column}, location}
       end
     )
@@ -569,7 +577,7 @@ defmodule Cloak.Sql.Parser do
 
   defp next_join() do
     switch([
-      {cross_join(),join_expression()},
+      {cross_join(), join_expression()},
       {either_deepest_error(inner_join(), outer_join()), join_expression_with_on_clause()},
       {:else, noop()}
     ])

@@ -13,10 +13,7 @@ defmodule Cloak.Sql.QueryTest do
     )
     :ok = Cloak.Test.DB.create_table("feat_users", "height INTEGER, name TEXT, male BOOLEAN")
     :ok = Cloak.Test.DB.create_table("feat_purchases", "price INTEGER, name TEXT, datetime TIMESTAMP")
-    :ok = Cloak.Test.DB.create_table("feat_emulated_users", "height TEXT, width TEXT", decoders: [
-      %{method: "text_to_integer", columns: ["height"]},
-      %{in: :text, out: :integer, method: &Base.decode64/1, columns: ["width"]},
-    ])
+    :ok = Cloak.Test.DB.create_table("feat_emulated_users", "height TEXT")
     :ok
   end
 
@@ -156,19 +153,6 @@ defmodule Cloak.Sql.QueryTest do
     assert %{selected_types: ["integer"]} = features_from("SELECT length(name) FROM feat_users")
   end
 
-  test "returns a list of used decoders" do
-    assert %{decoders: ["text_to_integer"]} = features_from("SELECT height FROM feat_emulated_users")
-  end
-
-  test "handles decoders specified as a function" do
-    assert %{decoders: ["&Base.decode64/1"]} = features_from("SELECT width FROM feat_emulated_users")
-  end
-
-  test "returns a list of decoders used in subqueries" do
-    assert features_from("SELECT * FROM (SELECT user_id, height FROM feat_emulated_users) foo").decoders ==
-      features_from("SELECT height FROM feat_emulated_users").decoders
-  end
-
   describe "features->expressions" do
     test "includes representations of expressions used", do:
       assert ["(min (+ const (sqrt col)))", "(+ col const)", "const"] =
@@ -189,7 +173,7 @@ defmodule Cloak.Sql.QueryTest do
     refute features_from("SELECT count(*) FROM feat_emulated_users").emulated
 
   test "marks emulated queries as such", do:
-    assert features_from("SELECT * FROM (SELECT user_id, width FROM feat_emulated_users) x").emulated
+    assert features_from("SELECT * FROM (SELECT user_id, dec_b64(height) FROM feat_emulated_users) x").emulated
 
   test "successful view validation" do
     assert {:ok, [col1, col2]} = validate_view("v1", "select user_id, name from feat_users")
@@ -295,11 +279,13 @@ defmodule Cloak.Sql.QueryTest do
 
   test "emulated where clauses extraction" do
     uid_column = Table.column("uid", :integer)
-    numeric_column = Table.column("numeric", :integer)
-    decoders = [%{method: "text_to_integer", columns: ["numeric"]}]
-    table = Table.new("table", "uid", columns: [uid_column, numeric_column], decoders: decoders)
-    condition = {:comparison, Expression.column(numeric_column, table), :=, Expression.constant(:integer, 3)}
-    query = %Query{command: :select, where: condition, selected_tables: [table], from: "table"}
+    text_column = Table.column("text", :text)
+    table = Table.new("table", "uid", columns: [uid_column, text_column])
+
+    decoded_column = Expression.function("dec_b64", [Expression.column(text_column, table)])
+    condition = {:comparison, decoded_column, :=, Expression.constant(:text, "a")}
+    query = %Query{command: :select, where: condition, selected_tables: [table],
+      from: "table", data_source: hd(Cloak.DataSource.all())}
 
     assert ^condition = Query.emulated_where(query)
     assert nil == Query.offloaded_where(query)

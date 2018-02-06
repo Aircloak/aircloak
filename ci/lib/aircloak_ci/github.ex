@@ -59,15 +59,13 @@ defmodule AircloakCI.Github do
 
   defp invoke_github_api_with_retries(fun, args, opts, 0), do: invoke_github_api(fun, args, opts)
   defp invoke_github_api_with_retries(fun, args, opts, retries) do
-    try do
-      invoke_github_api(fun, args, opts)
-    catch type, error ->
-      formatted_invocation = "#{inspect(fun)}(#{args |> Enum.map(&inspect/1) |> Enum.join(", ")})"
-      formatted_error = Exception.format(type, error, System.stacktrace())
-      Logger.error("Github API error in #{formatted_invocation}: #{formatted_error}")
-      :timer.sleep(:timer.seconds(30))
-      invoke_github_api_with_retries(fun, args, opts, retries - 1)
-    end
+    invoke_github_api(fun, args, opts)
+  catch type, error ->
+    formatted_invocation = "#{inspect(fun)}(#{args |> Enum.map(&inspect/1) |> Enum.join(", ")})"
+    formatted_error = Exception.format(type, error, System.stacktrace())
+    Logger.error("Github API error in #{formatted_invocation}: #{formatted_error}")
+    :timer.sleep(:timer.seconds(30))
+    invoke_github_api_with_retries(fun, args, opts, retries - 1)
   end
 
   defp invoke_github_api(fun, args, opts) do

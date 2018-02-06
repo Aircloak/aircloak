@@ -1,5 +1,5 @@
 defmodule AirWeb.ProfileView do
-  @moduledoc false;
+  @moduledoc false
   use Air.Web, :view
 
   defp number_format_settings(conn), do:

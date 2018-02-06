@@ -819,22 +819,6 @@ defmodule Cloak.Sql.Compiler.Test do
     assert Enum.any?(query.db_columns, &match?(%Expression{name: "string"}, &1))
   end
 
-  test "only needed columns are fetched from a projected table" do
-    assert ["table.uid", "projected_table.a"] ==
-      projected_table_db_column_names(compile!("select a from projected_table where b = 30", data_source()))
-
-    assert ["table.uid", "projected_table.a", "projected_table.b"] ==
-      projected_table_db_column_names(compile!("select a, b from projected_table", data_source()))
-  end
-
-  test "reindexing in projected tables" do
-    assert [0, 1] ==
-      projected_table_db_column_indices(compile!("select a from projected_table", data_source()))
-
-    assert [0, 1, 2] ==
-      projected_table_db_column_indices(compile!("select a, b from projected_table", data_source()))
-  end
-
   test "rejecting non-aggregated non-selected ORDER BY column in an aggregated function" do
     assert {:error, "Column `float` from table `table` needs to appear in the `GROUP BY` clause" <> _} =
       compile("SELECT SUM(numeric) FROM table ORDER BY float", data_source())
@@ -929,18 +913,6 @@ defmodule Cloak.Sql.Compiler.Test do
     end)
   end
 
-  defp projected_table_db_columns(query), do:
-    query
-    |> get_in([Query.Lenses.all_queries()])
-    |> Enum.find(&match?({:join, %{lhs: "projected_table"}}, &1.from))
-    |> Map.fetch!(:db_columns)
-
-  defp projected_table_db_column_names(query), do:
-    Enum.map(projected_table_db_columns(query), &"#{&1.table.name}.#{&1.name}")
-
-  defp projected_table_db_column_indices(query), do:
-    Enum.map(projected_table_db_columns(query), &(&1.row_index))
-
   defp validate_view(view_sql, data_source, options \\ []) do
     with {:ok, parsed_view} <- Parser.parse(view_sql), do:
       Compiler.validate_view(data_source, parsed_view, Keyword.get(options, :views, %{}))
@@ -960,7 +932,7 @@ defmodule Cloak.Sql.Compiler.Test do
             Table.column("string", :text),
             Table.column("key", :integer),
           ],
-          keys: ["key"],
+          keys: ["key"]
         ),
         other_table: Cloak.DataSource.Table.new("other_table", "uid",
           db_name: "other_table",
@@ -968,15 +940,6 @@ defmodule Cloak.Sql.Compiler.Test do
             Table.column("uid", :integer),
             Table.column("other_column", :datetime)
           ]
-        ),
-        projected_table: Cloak.DataSource.Table.new("projected_table", "uid",
-          db_name: "projected_table",
-          columns: [
-            Table.column("fk", :integer),
-            Table.column("a", :integer),
-            Table.column("b", :integer)
-          ],
-          projection: %{table: "table", foreign_key: "fk", primary_key: "numeric"}
         ),
         t1: Cloak.DataSource.Table.new("t1", "uid",
           db_name: "t1",

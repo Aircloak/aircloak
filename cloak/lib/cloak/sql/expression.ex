@@ -254,11 +254,9 @@ defmodule Cloak.Sql.Expression do
   # -------------------------------------------------------------------
 
   defp apply_function(expression = %__MODULE__{function?: true}, args) do
-    try do
-      if Enum.member?(args, :*), do: :*, else: do_apply(expression.function, args)
-    rescue
-      _ -> nil
-    end
+    if Enum.member?(args, :*), do: :*, else: do_apply(expression.function, args)
+  rescue
+    _ -> nil
   end
 
   defp normalize_type(:string), do: :text
@@ -306,6 +304,15 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("substring", [string, from, count]), do: substring(string, from, count)
   defp do_apply("concat", args), do: Enum.join(args)
   defp do_apply("hex", [string]), do: Base.encode16(string, case: :lower)
+  defp do_apply("dec_b64", [nil]), do: nil
+  defp do_apply("dec_b64", [string]) do
+    case Base.decode64(string, ignore: :whitespace, padding: false) do
+      {:ok, string} -> string
+      :error -> nil
+    end
+  end
+  defp do_apply("dec_aes_cbc128", [string]), do: dec_aes_cbc128(string, Application.get_env(:cloak, :aes_key))
+  defp do_apply("dec_aes_cbc128", [string, key]), do: dec_aes_cbc128(string, key)
   defp do_apply("hash", [value]) do
     <<hash::60, _::4, _::64>> = :crypto.hash(:md5, to_string(value))
     hash
@@ -404,11 +411,9 @@ defmodule Cloak.Sql.Expression do
   end
   # cast to real
   defp cast(value, :real) when is_integer(value) do
-    try do
-      :erlang.float(value)
-    rescue
-      _ in ArgumentError -> nil
-    end
+    :erlang.float(value)
+  rescue
+    _ in ArgumentError -> nil
   end
   defp cast(value, :real) when is_float(value), do: value
   defp cast(true, :real), do: 1.0
@@ -499,5 +504,15 @@ defmodule Cloak.Sql.Expression do
     else
       [value(%{function | function_args: args})]
     end
+  end
+
+  @zero_iv String.duplicate(<<0>>, 16)
+  defp dec_aes_cbc128(value, key) when value in [nil, ""] or key in [nil, ""], do: nil
+  defp dec_aes_cbc128(value, _key) when rem(byte_size(value), 16) != 0, do: nil
+  defp dec_aes_cbc128(value, key) do
+   value = :crypto.block_decrypt(:aes_cbc128, key, @zero_iv, value)
+   last = :binary.last(value)
+   {value, padding} = String.split_at(value, -last)
+   if padding == String.duplicate(<<last>>, last), do: value, else: nil
   end
 end
