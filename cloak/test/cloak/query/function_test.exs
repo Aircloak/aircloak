@@ -186,7 +186,7 @@ defmodule Cloak.Query.FunctionTest do
       assert_query("SELECT extract_words(name) FROM heights_ft WHERE extract_words(string_number) = 'first'",
         %{error: "Row splitter functions used in the `WHERE`-clause"
           <> " have to be used identically in the `SELECT`-clause first."
-          <> "\n\nThe error was detected at line 1, column 49" <> _})
+          <> "\n\nThe error was detected at line 1, column 50" <> _})
     end
   end
 

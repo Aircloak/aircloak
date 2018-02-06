@@ -82,7 +82,7 @@ defmodule Cloak.Sql.Parser do
     sample_rate: integer,
   }
 
-  @no_location {1, 0}
+  @no_location {1, 1}
 
   @combine_error_regex ~r/(?<error>.*) at line (?<line>\d+), column (?<column>\d+)/
 
@@ -200,7 +200,7 @@ defmodule Cloak.Sql.Parser do
   defp unary_expression() do
     choice_deepest_error([
       sequence([keyword(:+), concat_expression()]),
-      sequence([position(), keyword(:-), concat_expression()]),
+      sequence([next_position(), keyword(:-), concat_expression()]),
       concat_expression()
     ])
     |> map(fn
@@ -224,7 +224,7 @@ defmodule Cloak.Sql.Parser do
     |> map(fn([expr, cast_suffix]) -> build_cast(expr, cast_suffix) end)
 
   defp cast_suffix(), do:
-    sequence([position(), keyword(:"::"), data_type(), lazy(fn -> option(cast_suffix()) end)])
+    sequence([next_position(), keyword(:"::"), data_type(), lazy(fn -> option(cast_suffix()) end)])
 
   defp build_cast(expr, nil), do: expr
   defp build_cast(expr, [location, :"::", type, next_cast]), do:
@@ -296,7 +296,7 @@ defmodule Cloak.Sql.Parser do
   defp cast_expression() do
     pipe(
       [
-        position(),
+        next_position(),
         keyword(:cast),
         keyword(:"("),
         column(),
@@ -326,7 +326,7 @@ defmodule Cloak.Sql.Parser do
   defp bucket_expression() do
     pipe(
       [
-        position(),
+        next_position(),
         keyword(:bucket),
         keyword(:"("),
         column(),
@@ -368,7 +368,7 @@ defmodule Cloak.Sql.Parser do
 
   defp function_expression() do
     switch([
-      {position() |> function_name() |> keyword(:"("), lazy(fn -> function_arguments() end) |> keyword(:")")},
+      {next_position() |> function_name() |> keyword(:"("), lazy(fn -> function_arguments() end) |> keyword(:")")},
       {:else, error_message(fail(""), "Expected an argument list")}
     ])
     |> map(fn
@@ -401,7 +401,7 @@ defmodule Cloak.Sql.Parser do
   defp extract_expression() do
     pipe(
       [
-        position(),
+        next_position(),
         keyword(:extract),
         keyword(:"("),
         unquoted_identifier(),
@@ -418,7 +418,7 @@ defmodule Cloak.Sql.Parser do
   defp trim_expression() do
     pipe(
       [
-        position(),
+        next_position(),
         keyword(:trim),
         keyword(:"("),
         option(choice([keyword(:both), keyword(:leading), keyword(:trailing)])),
@@ -444,7 +444,7 @@ defmodule Cloak.Sql.Parser do
   defp substring_expression() do
     pipe(
       [
-        position(),
+        next_position(),
         keyword(:substring),
         keyword(:"("),
         column(),
@@ -470,7 +470,7 @@ defmodule Cloak.Sql.Parser do
     pipe(
       [
         term_parser,
-        many(sequence([position(), choice(operators), term_parser])),
+        many(sequence([next_position(), choice(operators), term_parser])),
       ],
       fn[first, rest] -> Enum.reduce(rest, first, fn([location, operator, right], left) ->
         normalizer.(operator, left, right, location) end)
@@ -488,7 +488,7 @@ defmodule Cloak.Sql.Parser do
   defp qualified_identifier() do
     map(
       pair_both(
-        pair_both(position(), identifier()),
+        pair_both(next_position(), identifier()),
         many(
           pair_both(
             keyword(:"."),
@@ -766,7 +766,7 @@ defmodule Cloak.Sql.Parser do
   defp constant(expected_type) do
     token(:constant)
     |> satisfy(fn(token) -> token.value.type == expected_type end)
-    |> map(&{:constant, &1.value.type, &1.value.value, {&1.line, &1.column}})
+    |> map(&{:constant, &1.value.type, &1.value.value, {&1.line, &1.column + 1}})
     |> label("#{expected_type} constant")
   end
 
@@ -952,4 +952,8 @@ defmodule Cloak.Sql.Parser do
     ])
     |> map(fn {[:sample_users], [{{:constant, :integer, amount, _}, :%}]} -> {:sample_rate, amount} end)
   end
+
+  defp next_position(), do:
+    position()
+    |> map(fn ({line, column}) -> {line, column + 1} end)
 end

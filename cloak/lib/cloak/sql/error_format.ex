@@ -11,16 +11,17 @@ defmodule Cloak.Sql.ErrorFormat do
   @platform_independent_newline ~r/(*ANY)\n/
   defp error_indicator(query, line, column) do
     context = query |> String.split(@platform_independent_newline) |> Enum.drop(max(line - 2, 0))
+    filler = String.duplicate(" ", column - 1)
 
     case {line, context} do
       {1, [error_line, line_after | _]} ->
-        [":\n\n\t", error_line, "\n\t", String.duplicate(" ", column), "^\n\t", line_after]
+        [":\n\n\t", error_line, "\n\t", filler, "^\n\t", line_after]
       {1, [error_line | _]} ->
-        [":\n\n\t", error_line, "\n\t", String.duplicate(" ", column), "^\n"]
+        [":\n\n\t", error_line, "\n\t", filler, "^\n"]
       {_, [line_before, error_line]} ->
-        [":\n\n\t", line_before, "\n\t", error_line, "\n\t", String.duplicate(" ", column), "^\n"]
+        [":\n\n\t", line_before, "\n\t", error_line, "\n\t", filler, "^\n"]
       {_, [line_before, error_line, line_after | _]} ->
-        [":\n\n\t", line_before, "\n\t", error_line, "\n\t", String.duplicate(" ", column), "^\n\t", line_after]
+        [":\n\n\t", line_before, "\n\t", error_line, "\n\t", filler, "^\n\t", line_after]
       _invalid_location -> "."
     end
   end

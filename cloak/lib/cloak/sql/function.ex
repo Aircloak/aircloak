@@ -20,7 +20,7 @@ defmodule Cloak.Sql.Function do
     "div" => %{alternative: "/"},
   }
 
-  @no_location {1, 0}
+  @no_location {1, 1}
 
   @functions %{
     ~w(count) => %{attributes: [:aggregator], type_specs: %{[:any] => :integer}},

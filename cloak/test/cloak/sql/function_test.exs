@@ -3,7 +3,7 @@ defmodule Cloak.Sql.Function.Test do
 
   alias Cloak.Sql.{Expression, Function}
 
-  @no_location {1, 0}
+  @no_location {1, 1}
 
   @restricted_functions ~w(abs ceil ceiling floor length round trunc btrim left ltrim right rtrim
     substring year quarter month day weekday hour minute second date_trunc) ++ [

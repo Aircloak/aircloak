@@ -8,7 +8,7 @@ defmodule Cloak.Sql.Expression do
   alias Cloak.Sql.LikePattern
   alias Timex.Duration
 
-  @no_location {1, 0}
+  @no_location {1, 1}
 
   @type column_type :: DataSource.Table.data_type | :like_pattern | :interval | nil
   @type function_name ::

@@ -18,7 +18,7 @@ defmodule Cloak.Sql.ErrorFormat.Test do
       error = ErrorFormat.format("the query", %{message: "Some message.", source_location: {1, 3}})
       assert String.contains?(error, """
       \tthe query
-      \t   ^
+      \t  ^
       """ |> String.trim())
     end
 
@@ -30,7 +30,7 @@ defmodule Cloak.Sql.ErrorFormat.Test do
 
       assert String.contains?(error, """
       \tthe query
-      \t   ^
+      \t  ^
       \tanother line
       """ |> String.trim())
     end
@@ -44,7 +44,7 @@ defmodule Cloak.Sql.ErrorFormat.Test do
       assert String.contains?(error, """
       \tthe query
       \tanother line
-      \t   ^
+      \t  ^
       """ |> String.trim())
     end
 
@@ -57,7 +57,7 @@ defmodule Cloak.Sql.ErrorFormat.Test do
       assert String.contains?(error, """
       \tsecond line
       \tthird line
-      \t     ^
+      \t    ^
       \tanother line
       """ |> String.trim())
     end
@@ -71,7 +71,7 @@ defmodule Cloak.Sql.ErrorFormat.Test do
       assert String.contains?(error, """
       \tanother line
       \tlast line
-      \t     ^
+      \t    ^
       """ |> String.trim())
     end
 

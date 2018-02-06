@@ -4,7 +4,7 @@ defmodule Cloak.Sql.Query.Lenses.Test do
   alias Cloak.Sql.Query
   alias Cloak.Sql.Query.Lenses
 
-  @no_location {1, 0}
+  @no_location {1, 1}
 
   describe "terminals" do
     test "returns expressions" do

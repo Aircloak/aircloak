@@ -162,51 +162,51 @@ defmodule Cloak.Sql.Parser.Test do
   end
 
   test "identifier location in source" do
-    assert_parse("select foo\n, bar from baz", select(columns: [identifier("foo", {1, 7}), identifier("bar", {2, 2})]))
+    assert_parse("select foo\n, bar from baz", select(columns: [identifier("foo", {1, 8}), identifier("bar", {2, 3})]))
   end
 
   test "qualified identifier location in source" do
-    assert_parse(~s[select baz.foo from baz], select(columns: [identifier("foo", {1, 7})]))
+    assert_parse(~s[select baz.foo from baz], select(columns: [identifier("foo", {1, 8})]))
   end
 
   test "constant location in source" do
-    assert_parse("select 1 from baz", select(columns: [constant(:integer, 1, {1, 7})]))
+    assert_parse("select 1 from baz", select(columns: [constant(:integer, 1, {1, 8})]))
   end
 
   test "function location in source" do
-    assert_parse("select foo(bar, baz) from baz", select(columns: [function("foo", _, {1, 7})]))
+    assert_parse("select foo(bar, baz) from baz", select(columns: [function("foo", _, {1, 8})]))
   end
 
   test "extract location in source" do
-    assert_parse("select extract(month from foo) from bar", select(columns: [function("month", _, {1, 7})]))
+    assert_parse("select extract(month from foo) from bar", select(columns: [function("month", _, {1, 8})]))
   end
 
   test "trim location in source" do
-    assert_parse("select trim(leading foo) from bar", select(columns: [function("ltrim", _, {1, 7})]))
+    assert_parse("select trim(leading foo) from bar", select(columns: [function("ltrim", _, {1, 8})]))
   end
 
   test "substring location in source" do
-    assert_parse("select substring(foo from 1) from bar", select(columns: [function("substring", _, {1, 7})]))
+    assert_parse("select substring(foo from 1) from bar", select(columns: [function("substring", _, {1, 8})]))
   end
 
   test "infix operator location in source" do
-    assert_parse("select foo + bar from baz", select(columns: [function("+", _, {1, 11})]))
+    assert_parse("select foo + bar from baz", select(columns: [function("+", _, {1, 12})]))
   end
 
   test "unary minus location in source" do
-    assert_parse("select -foo(bar) from baz", select(columns: [function("-", _, {1, 7})]))
+    assert_parse("select -foo(bar) from baz", select(columns: [function("-", _, {1, 8})]))
   end
 
   test "cast location in source" do
-    assert_parse("select cast(foo as text) from bar", select(columns: [function({:cast, :text}, _, {1, 7})]))
+    assert_parse("select cast(foo as text) from bar", select(columns: [function({:cast, :text}, _, {1, 8})]))
   end
 
   test "cast with :: location in source" do
-    assert_parse("select foo :: text from bar", select(columns: [function({:cast, :text}, _, {1, 11})]))
+    assert_parse("select foo :: text from bar", select(columns: [function({:cast, :text}, _, {1, 12})]))
   end
 
   test "bucket location in source" do
-    assert_parse("select bucket(foo by 10) from bar", select(columns: [function({:bucket, _}, _, {1, 7})]))
+    assert_parse("select bucket(foo by 10) from bar", select(columns: [function({:bucket, _}, _, {1, 8})]))
   end
 
   test "fully qualified table name" do

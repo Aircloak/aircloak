@@ -3,7 +3,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
 
   alias Cloak.Sql.{Function, Parser, Compiler.Helpers, Query}
 
-  @no_location {1, 0}
+  @no_location {1, 1}
 
 
   # -------------------------------------------------------------------
