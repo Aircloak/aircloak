@@ -1,5 +1,43 @@
 defmodule Cloak.Sql.ErrorFormat do
+  @moduledoc """
+  Deals with formatting errors as strings with an indication of where they originated from in the query. For example
+  given the query:
+
+  ```sql
+  select
+  count(*) from
+  ```
+
+  and an error with message "Expected column definition." and source_location of `{2, 14}` it will produce the following
+  error message:
+
+  ```
+  Expected table name.
+
+  The error was detected at line 2, column 14:
+
+    select
+    count(*) from
+                 ^
+  ```
+
+  Note that the code snippet in the error message will be indented with tabs, so that it's treated as a code block if
+  formatted with markdown.
+  """
+
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Formats an error as a string in the context of the given query."
+  @spec format(String.t, map()) :: String.t
   def format(query, error), do: do_format(query, error.message, Map.get(error, :source_location))
+
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp do_format(_query, message, nil), do: message
   defp do_format(query, message, {line, column}), do:
