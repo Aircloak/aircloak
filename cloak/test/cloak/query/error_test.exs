@@ -10,9 +10,25 @@ defmodule Cloak.Query.ErrorTest do
     :ok = Cloak.Test.DB.create_table("test_errors2", "height INTEGER")
   end
 
+  test "parse errors include a location indicator" do
+    assert_query "select select", %{error: error}
+    assert String.contains?(error, """
+      \tselect select
+      \t        ^
+      """ |> String.trim())
+  end
+
+  test "compiler errors include a location indicator" do
+    assert_query "select nonexistent from test_errors", %{error: error}
+    assert String.contains?(error, """
+      \tselect nonexistent from test_errors
+      \t       ^
+      """)
+  end
+
   test "query reports an error on invalid where clause identifier" do
     assert_query "select height from test_errors where nonexistant > 10", %{error: error}
-    assert ~s/Column `nonexistant` doesn't exist in table `test_errors`./ == error
+    assert error =~ ~r/Column `nonexistant` doesn't exist in table `test_errors`./
   end
 
   test "query reports an error on unknown function" do
@@ -51,7 +67,7 @@ defmodule Cloak.Query.ErrorTest do
 
   test "query reports an error on invalid column" do
     assert_query "select invalid_column from test_errors", %{error: error}
-    assert ~s/Column `invalid_column` doesn't exist in table `test_errors`./ == error
+    assert error =~ ~r/Column `invalid_column` doesn't exist in table `test_errors`./
   end
 
   test "query reports an error on invalid table" do

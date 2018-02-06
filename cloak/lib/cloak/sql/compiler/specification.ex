@@ -436,9 +436,11 @@ defmodule Cloak.Sql.Compiler.Specification do
         |> Enum.uniq()
         |> case do
             [table] ->
-              raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table.name}`."
+              raise CompilationError,
+                message: "Column `#{column_name}` doesn't exist in table `#{table.name}`.", source_location: loc
             [_|_] ->
-              raise CompilationError, message: "Column `#{column_name}` doesn't exist in any of the selected tables."
+              raise CompilationError,
+                message: "Column `#{column_name}` doesn't exist in any of the selected tables.", source_location: loc
           end
     end
     |> Expression.set_location(loc)
