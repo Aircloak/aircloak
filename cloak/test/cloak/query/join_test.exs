@@ -145,8 +145,8 @@ defmodule Cloak.Query.JoinTest do
       SELECT count(*) FROM heights_join LEFT OUTER JOIN children_join ON heights_join.user_id = children_join.user_id
       AND heights_join.name = children_join.age
     """, %{error: error}
-    assert error == "Column `name` from table `heights_join` of type `text` and column `age` from table "
-      <> "`children_join` of type `integer` cannot be compared."
+    assert "Column `name` from table `heights_join` of type `text` and column `age` from table "
+      <> "`children_join` of type `integer` cannot be compared." <> _ = error
   end
 
   test "functions in JOIN condition" do

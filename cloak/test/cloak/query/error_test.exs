@@ -33,27 +33,27 @@ defmodule Cloak.Query.ErrorTest do
 
   test "query reports an error on unknown function" do
     assert_query "select invalid_function(height) from test_errors", %{error: error}
-    assert ~s/Unknown function `invalid_function`./ == error
+    assert error =~ ~r/Unknown function `invalid_function`./
   end
 
   test "reports an error on wrong cast" do
     assert_query "select * from test_errors where datetime > 0", %{error: error}
-    assert ~s/Cannot cast `0` to datetime./ == error
+    assert error =~ ~r/Cannot cast `0` to datetime./
   end
 
   test "reports an error on ambigous usage of an alias occurring multiple times" do
     assert_query "select count(*) as x, count(height) as x from test_errors order by x", %{error: error}
-    assert ~s/Usage of `x` is ambiguous./ == error
+    assert error =~ ~r/Usage of `x` is ambiguous./
   end
 
   test "reports an error on collision between alias and column in order by" do
     assert_query "select count(height) as height from test_errors order by height", %{error: error}
-    assert ~s/Usage of `height` is ambiguous./ == error
+    assert error =~ ~r/Usage of `height` is ambiguous./
   end
 
   test "reports an error on collision between alias and column in where" do
     assert_query "select abs(height) as height from test_errors where height = 20", %{error: error}
-    assert ~s/Usage of `height` is ambiguous./ == error
+    assert error =~ ~s/Usage of `height` is ambiguous./
   end
 
   test "reports an error on collision between alias and column in group by" do
@@ -132,38 +132,40 @@ defmodule Cloak.Query.ErrorTest do
 
   test "query reports error on invalid having clause" do
     assert_query "select name from test_errors group by name having height >= 100", %{error: error}
-    assert ~s/`HAVING` clause can not be applied over column `height` from table `test_errors`./ == error
+    assert error =~ ~r/`HAVING` clause can not be applied over column `height` from table `test_errors`./
   end
 
   test "query reports error on invalid where clause" do
     assert_query "select name from test_errors where max(height) >= 100", %{error: error}
-    assert ~s/Expression `max` is not valid in the `WHERE` clause./ == error
+    assert error =~ ~r/Expression `max` is not valid in the `WHERE` clause./
   end
 
   test "query reports error on cast in a where clause" do
     assert_query "select name from test_errors where cast(name as integer) >= 100", %{error: error}
-    assert ~s/Column `cast` must be limited to a finite, nonempty range./ == error
+    assert error =~ ~r/Column `cast` must be limited to a finite, nonempty range./
   end
 
   test "query reports error on invalid group by position" do
     assert_query "select name from test_errors group by 0",
-      %{error: "`GROUP BY` position `0` is out of the range of selected columns."}
+      %{error: "`GROUP BY` position `0` is out of the range of selected columns." <> _}
     assert_query "select name from test_errors group by 2",
-      %{error: "`GROUP BY` position `2` is out of the range of selected columns."}
+      %{error: "`GROUP BY` position `2` is out of the range of selected columns." <> _}
   end
+
   test "non-integer constants are not allowed in group by" do
     assert_query "select name from test_errors group by 1.0",
-      %{error: "Non-integer constant is not allowed in `GROUP BY`."}
+      %{error: "Non-integer constant is not allowed in `GROUP BY`." <> _}
   end
 
   test "query reports error on invalid order by position" do
     assert_query "select name from test_errors order by 0",
-      %{error: "`ORDER BY` position `0` is out of the range of selected columns."}
+      %{error: "`ORDER BY` position `0` is out of the range of selected columns." <> _}
     assert_query "select name from test_errors order by 2",
-      %{error: "`ORDER BY` position `2` is out of the range of selected columns."}
+      %{error: "`ORDER BY` position `2` is out of the range of selected columns." <> _}
   end
+
   test "non-integer constants are not allowed in order by" do
     assert_query "select name from test_errors order by 1.0",
-      %{error: "Non-integer constant is not allowed in `ORDER BY`."}
+      %{error: "Non-integer constant is not allowed in `ORDER BY`." <> _}
   end
 end

@@ -395,11 +395,12 @@ defmodule Cloak.Sql.Compiler.Specification do
       (for {identifier, _direction} <- query.order_by, do: identifier) ++
       query.group_by ++
       Lens.to_list(Lenses.conditions_terminals(), [query.where, query.having])
-    ambiguous_names = for {:identifier, :unknown, {_, name}, _} <- referenced_identifiers,
-      Enum.count(possible_identifiers, &name == &1) > 1, do: name
+    ambiguous_names = for {:identifier, :unknown, {_, name}, location} <- referenced_identifiers,
+      Enum.count(possible_identifiers, &name == &1) > 1, do: {name, location}
     case ambiguous_names do
       [] -> :ok
-      [name | _rest] -> raise CompilationError, message: "Usage of `#{name}` is ambiguous."
+      [{name, location} | _rest] ->
+        raise CompilationError, source_location: location, message: "Usage of `#{name}` is ambiguous."
     end
   end
 
@@ -427,7 +428,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp identifier_to_column({:identifier, :unknown, identifier = {_, column_name}, loc}, columns_by_name, _query) do
     case get_columns(columns_by_name, identifier) do
       [column] -> column
-      [_|_] -> raise CompilationError, message: "Column `#{column_name}` is ambiguous."
+      [_|_] -> raise CompilationError, source_location: loc, message: "Column `#{column_name}` is ambiguous."
       nil ->
         columns_by_name
         |> Map.values()
@@ -449,19 +450,21 @@ defmodule Cloak.Sql.Compiler.Specification do
     if Enum.any?(query.selected_tables, &(&1.name == table)) do
       case get_columns(columns_by_name, identifier) do
         nil ->
-          raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
+          raise CompilationError, source_location: loc, message:
+            "Column `#{column_name}` doesn't exist in table `#{table}`."
         columns ->
           case Enum.find(columns, &insensitive_equal?(&1.table.name, table)) do
             nil ->
-              raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
+              raise CompilationError, source_location: loc, message:
+                "Column `#{column_name}` doesn't exist in table `#{table}`."
             column -> column
           end
       end
     else
       case get_columns(columns_by_name, {:unquoted, "#{table}.#{column_name}"}) do
         [column] -> column
-        [_|_] -> raise CompilationError, message: "Column `#{table}.#{column_name}` is ambiguous."
-        nil -> raise CompilationError, message: "Missing FROM clause entry for table `#{table}`."
+        [_|_] -> raise CompilationError, source_location: loc, message: "Column `#{table}.#{column_name}` is ambiguous."
+        nil -> raise CompilationError, source_location: loc, message: "Missing FROM clause entry for table `#{table}`."
       end
     end
     |> Expression.set_location(loc)
@@ -488,7 +491,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     if escape == nil or String.length(escape) == 1 do
       Expression.like_pattern(pattern, escape)
     else
-      raise CompilationError, message: "Escape string must be one character."
+      raise CompilationError, source_location: location, message: "Escape string must be one character."
     end
     |> Expression.set_location(location)
   end
@@ -566,13 +569,14 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp compile_reference(%Expression{constant?: true, type: :integer} = reference, query, clause_name) do
     unless reference.value in 1..length(query.columns), do:
-      raise(CompilationError,
-        message: "`#{clause_name}` position `#{reference.value}` is out of the range of selected columns.")
+      raise CompilationError, source_location: reference.source_location, message:
+        "`#{clause_name}` position `#{reference.value}` is out of the range of selected columns."
 
     Enum.at(query.columns, reference.value - 1)
   end
-  defp compile_reference(%Expression{constant?: true, type: _}, _query, clause_name), do:
-    raise(CompilationError, message: "Non-integer constant is not allowed in `#{clause_name}`.")
+  defp compile_reference(%Expression{constant?: true, type: _} = constant, _query, clause_name), do:
+    raise CompilationError, source_location: constant.source_location, message:
+      "Non-integer constant is not allowed in `#{clause_name}`."
   defp compile_reference(expression, _query, _clause_name), do:
     expression
 
@@ -607,7 +611,9 @@ defmodule Cloak.Sql.Compiler.Specification do
 
     case do_parse_time(value, type) do
       {:ok, result} -> Expression.constant(type, result)
-      _ -> raise CompilationError, message: "Cannot cast `#{value}` to #{type}."
+      _ ->
+        raise CompilationError, source_location: expression.source_location, message:
+          "Cannot cast `#{value}` to #{type}."
     end
   end
 

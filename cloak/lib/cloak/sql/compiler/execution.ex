@@ -87,7 +87,8 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp align_bucket(column) do
     if Function.bucket_size(column) <= 0 do
-      raise CompilationError, message: "Bucket size #{Function.bucket_size(column)} must be > 0"
+      raise CompilationError, source_location: column.source_location, message:
+        "Bucket size #{Function.bucket_size(column)} must be > 0"
     end
 
     aligned = Function.update_bucket_size(column, &FixAlign.align/1)
@@ -228,7 +229,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> Enum.reject(fn({_, comparisons}) -> valid_range?(comparisons) end)
     |> case do
       [{column, _} | _] ->
-        raise CompilationError, message:
+        raise CompilationError, source_location: column.source_location, message:
           "Column #{Expression.display_name(column)} must be limited to a finite, nonempty range."
       _ -> :ok
     end
