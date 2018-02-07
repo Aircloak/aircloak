@@ -3,8 +3,6 @@ defmodule Cloak.Sql.Function.Test do
 
   alias Cloak.Sql.{Expression, Function}
 
-  @no_location {1, 1}
-
   @restricted_functions ~w(abs ceil ceiling floor length round trunc btrim left ltrim right rtrim
     substring year quarter month day weekday hour minute second date_trunc) ++ [
       {:bucket, :lower}, {:bucket, :middle}, {:bucket, :upper},
@@ -206,8 +204,8 @@ defmodule Cloak.Sql.Function.Test do
 
   test "typechecking a nested function call" do
     assert Function.well_typed?(
-      {:function, "avg", [{:function, "abs", [Expression.constant(:integer, 3)], @no_location}], @no_location})
-    refute Function.well_typed?({:function, "avg", [{:function, "concat", [], @no_location}], @no_location})
+      {:function, "avg", [{:function, "abs", [Expression.constant(:integer, 3)], nil}], nil})
+    refute Function.well_typed?({:function, "avg", [{:function, "concat", [], nil}], nil})
   end
 
   for function <- ~w(round trunc) do
@@ -313,42 +311,42 @@ defmodule Cloak.Sql.Function.Test do
     refute Function.has_attribute?("substring", :row_splitter)
 
   test "knows `ceil` is allowed in a subquery", do:
-    refute Function.has_attribute?({:function, "ceil", [], @no_location}, :not_in_subquery)
+    refute Function.has_attribute?({:function, "ceil", [], nil}, :not_in_subquery)
 
-  test "returns true if function exists", do: assert Function.exists?({:function, "*", [], @no_location})
+  test "returns true if function exists", do: assert Function.exists?({:function, "*", [], nil})
 
-  test "returns false if function does not exists", do: refute Function.exists?({:function, "foobar", [], @no_location})
+  test "returns false if function does not exists", do: refute Function.exists?({:function, "foobar", [], nil})
 
   describe "well_typed?" do
     test "constant expression is treated as a constant" do
       assert Function.well_typed?({:function, "round", [
         %Expression{type: :real},
         Expression.function("+", [Expression.constant(:integer, 1), Expression.constant(:integer, 2)], :integer)
-      ], @no_location})
+      ], nil})
     end
   end
 
   describe "deprecation" do
     test "no deprecation info for existing functions", do:
-      assert {:error, :function_exists} = Function.deprecation_info({:function, "abs", [], @no_location})
+      assert {:error, :function_exists} = Function.deprecation_info({:function, "abs", [], nil})
 
     test "no deprecation info for non-existent functions", do:
-      assert {:error, :not_found} = Function.deprecation_info({:function, "foo", [], @no_location})
+      assert {:error, :not_found} = Function.deprecation_info({:function, "foo", [], nil})
 
     test "extract_match is deprecated", do:
       assert {:ok, %{alternative: "extract_words"}} =
-        Function.deprecation_info({:function, "extract_match", [], @no_location})
+        Function.deprecation_info({:function, "extract_match", [], nil})
 
     test "extract_matches is deprecated", do:
       assert {:ok, %{alternative: "extract_words"}} =
-        Function.deprecation_info({:function, "extract_match", [], @no_location})
+        Function.deprecation_info({:function, "extract_match", [], nil})
   end
 
   defp return_type(name, arg_types), do:
-    Function.return_type({:function, name, simulate_types(arg_types), @no_location})
+    Function.return_type({:function, name, simulate_types(arg_types), nil})
 
   defp well_typed?(name, types), do:
-    Function.well_typed?({:function, name, simulate_types(types), @no_location})
+    Function.well_typed?({:function, name, simulate_types(types), nil})
 
   defp simulate_types(types) do
     Enum.map(types, fn

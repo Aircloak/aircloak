@@ -82,8 +82,6 @@ defmodule Cloak.Sql.Parser do
     sample_rate: integer,
   }
 
-  @no_location {1, 1}
-
   @combine_error_regex ~r/(?<error>.*) at line (?<line>\d+), column (?<column>\d+)/
 
 
@@ -204,7 +202,7 @@ defmodule Cloak.Sql.Parser do
       concat_expression()
     ])
     |> map(fn
-      [location, :-, inner] -> {:function, "-", [{:constant, :integer, 0, @no_location}, inner], location}
+      [location, :-, inner] -> {:function, "-", [{:constant, :integer, 0, _location = nil}, inner], location}
       [:+, inner] -> inner
       other -> other
     end)
@@ -459,7 +457,7 @@ defmodule Cloak.Sql.Parser do
        [location, :substring, :"(", column, [_, from, _, for_count], :")"] ->
          {:function, "substring", [column, from, for_count], location}
        [location, :substring, :"(", column, [:for, for_count], :")"] ->
-         {:function, "substring", [column, {:constant, :integer, 1, @no_location}, for_count], location}
+         {:function, "substring", [column, {:constant, :integer, 1, _location = nil}, for_count], location}
        [location, :substring, :"(", column, [_, from], :")"] ->
          {:function, "substring", [column, from], location}
      end
@@ -696,7 +694,7 @@ defmodule Cloak.Sql.Parser do
     option(sequence([keyword(:escape), constant(:string)]))
     |> map(fn
       [_, constant] -> constant
-      nil -> {:constant, :string, nil, @no_location}
+      nil -> {:constant, :string, nil, _location = nil}
     end)
   end
 

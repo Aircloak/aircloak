@@ -8,8 +8,6 @@ defmodule Cloak.Sql.Expression do
   alias Cloak.Sql.LikePattern
   alias Timex.Duration
 
-  @no_location {1, 1}
-
   @type column_type :: DataSource.Table.data_type | :like_pattern | :interval | nil
   @type function_name ::
     String.t |
@@ -36,7 +34,7 @@ defmodule Cloak.Sql.Expression do
   defstruct [
     table: :unknown, name: nil, alias: nil, type: nil, user_id?: false, row_index: nil, constant?: false,
     value: nil, function: nil, function_args: [], aggregate?: false, function?: false, parameter_index: nil,
-    synthetic?: false, key?: false, source_location: @no_location
+    synthetic?: false, key?: false, source_location: nil
   ]
 
   @doc "Returns an expression representing a reference to the given column in the given table."
@@ -220,7 +218,7 @@ defmodule Cloak.Sql.Expression do
   """
   @spec semantic(t) :: t
   def semantic(expression), do:
-    put_in(expression, [Cloak.Sql.Query.Lenses.all_expressions() |> Lens.key(:source_location)], @no_location)
+    put_in(expression, [Cloak.Sql.Query.Lenses.all_expressions() |> Lens.key(:source_location)], nil)
 
   @doc "Recursively evaluates a split expression and returns all the values yielded by the splitter."
   @spec splitter_values(t, DataSource.row) :: [DataSource.field]

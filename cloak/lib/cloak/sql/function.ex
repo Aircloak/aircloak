@@ -20,8 +20,6 @@ defmodule Cloak.Sql.Function do
     "div" => %{alternative: "/"},
   }
 
-  @no_location {1, 1}
-
   @functions %{
     ~w(count) => %{attributes: [:aggregator], type_specs: %{[:any] => :integer}},
     ~w(count_noise) => %{attributes: [:aggregator, :not_in_subquery], type_specs: %{[:any] => :real}},
@@ -183,7 +181,7 @@ defmodule Cloak.Sql.Function do
   @doc "Returns the return type of the given function call or nil if it is badly typed."
   @spec return_type(t) :: data_type | nil
   def return_type(%Expression{function?: true, function: name, function_args: args}), do:
-    return_type({:function, name, args, @no_location})
+    return_type({:function, name, args, nil})
   def return_type(function = {:function, name, _, _}) do
     @functions[name].type_specs
     |> Enum.find(fn({arguments, _}) -> do_well_typed?(function, arguments) end)
