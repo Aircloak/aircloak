@@ -5,20 +5,25 @@ defmodule Cloak.Sql.ErrorFormat do
 
   ```sql
   select
-  count(*) from
+  count(*) from purchases
+  where price > 10
+  and price > 5
+  and price > 0
   ```
 
-  and an error with message "Expected column definition." and source_location of `{2, 14}` it will produce the following
-  error message:
+  and an error with message "Column price from table purchases must be limited to a finite, nonempty range." and
+  source_location of `{3, 7}` it will produce the following error message:
 
   ```
   Expected table name.
 
-  The error was detected at line 2, column 14:
+  The error was detected at line 3, column 7:
 
-    select
-    count(*) from
-                 ^
+
+    count(*) from purchases
+    where price > 10
+          ^
+    and price > 5
   ```
 
   Note that the code snippet in the error message will be indented with tabs, so that it's treated as a code block if
