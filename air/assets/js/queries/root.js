@@ -49,6 +49,10 @@ const emptyHistory = {
   loading: false,
 };
 
+function setDefaultResultFields(result: Result) : Result {
+  return Object.assign({}, result, {columns: result.columns || [], types: result.types || [], rows: result.rows || []});
+}
+
 export default class QueriesView extends React.PureComponent {
   constructor(props: Props) {
     super(props);
@@ -129,7 +133,7 @@ export default class QueriesView extends React.PureComponent {
     const recentResults = _.takeWhile(results, (result) => {
       if (isFinished(result.query_state)) { completed++; }
       return completed <= recentResultsToShow;
-    });
+    }).map(setDefaultResultFields);
 
     if (_.isEmpty(recentResults)) {
       this.setState({sessionResults: recentResults});
@@ -266,7 +270,7 @@ export default class QueriesView extends React.PureComponent {
           loaded: false,
           loading: false,
         };
-        const sessionResults = _.uniqBy(this.state.sessionResults.concat(response), "id");
+        const sessionResults = _.uniqBy(this.state.sessionResults.concat(response.map(setDefaultResultFields)), "id");
         this.setState({sessionResults, history: successHistory});
       },
 
