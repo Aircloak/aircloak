@@ -51,9 +51,9 @@ defmodule Cloak.Sql.ErrorFormat do
       error_indicator(query, line, column)
     ])
 
-  @platform_independent_newline ~r/(*ANY)\n/
   defp error_indicator(query, line, column) do
-    context = query |> String.split(@platform_independent_newline) |> Enum.drop(max(line - 2, 0))
+    platform_independent_newline = ~r/(*ANY)\n/
+    context = query |> String.split(platform_independent_newline) |> Enum.drop(max(line - 2, 0))
     filler = String.duplicate(" ", column - 1)
 
     case {line, context} do
