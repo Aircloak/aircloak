@@ -13,7 +13,7 @@ defmodule Cloak.Sql.Parser do
 
   @type unqualified_identifier :: {:quoted, String.t} | {:unquoted, String.t}
 
-  @type location :: {integer, integer}
+  @type location :: {integer, integer} | nil
 
   @type qualified_identifier :: {:identifier, :unknown | table, unqualified_identifier, location}
 
