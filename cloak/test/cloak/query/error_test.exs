@@ -10,48 +10,64 @@ defmodule Cloak.Query.ErrorTest do
     :ok = Cloak.Test.DB.create_table("test_errors2", "height INTEGER")
   end
 
+  test "parse errors include a location indicator" do
+    assert_query "select select", %{error: error}
+    assert String.contains?(error, """
+      \tselect select
+      \t       ^
+      """ |> String.trim())
+  end
+
+  test "compiler errors include a location indicator" do
+    assert_query "select nonexistent from test_errors", %{error: error}
+    assert String.contains?(error, """
+      \tselect nonexistent from test_errors
+      \t       ^
+      """)
+  end
+
   test "query reports an error on invalid where clause identifier" do
     assert_query "select height from test_errors where nonexistant > 10", %{error: error}
-    assert ~s/Column `nonexistant` doesn't exist in table `test_errors`./ == error
+    assert error =~ ~r/Column `nonexistant` doesn't exist in table `test_errors`./
   end
 
   test "query reports an error on unknown function" do
     assert_query "select invalid_function(height) from test_errors", %{error: error}
-    assert ~s/Unknown function `invalid_function`./ == error
+    assert error =~ ~r/Unknown function `invalid_function`./
   end
 
   test "reports an error on wrong cast" do
     assert_query "select * from test_errors where datetime > 0", %{error: error}
-    assert ~s/Cannot cast `0` to datetime./ == error
+    assert error =~ ~r/Cannot cast `0` to datetime./
   end
 
   test "reports an error on ambigous usage of an alias occurring multiple times" do
     assert_query "select count(*) as x, count(height) as x from test_errors order by x", %{error: error}
-    assert ~s/Usage of `x` is ambiguous./ == error
+    assert error =~ ~r/Usage of `x` is ambiguous./
   end
 
   test "reports an error on collision between alias and column in order by" do
     assert_query "select count(height) as height from test_errors order by height", %{error: error}
-    assert ~s/Usage of `height` is ambiguous./ == error
+    assert error =~ ~r/Usage of `height` is ambiguous./
   end
 
   test "reports an error on collision between alias and column in where" do
     assert_query "select abs(height) as height from test_errors where height = 20", %{error: error}
-    assert ~s/Usage of `height` is ambiguous./ == error
+    assert error =~ ~s/Usage of `height` is ambiguous./
   end
 
   test "reports an error on collision between alias and column in group by" do
     assert_query "select abs(height) as height from test_errors group by height", %{error: error}
-    assert ~s/Usage of `height` is ambiguous./ == error
+    assert error =~ ~r/Usage of `height` is ambiguous./
   end
 
   test "query reports an error on invalid statement" do
-    assert_query "invalid statement", %{error: "Expected `select or show` at line 1, column 1."}
+    assert_query "invalid statement", %{error: "Expected `select or show`" <> _}
   end
 
   test "query reports an error on invalid column" do
     assert_query "select invalid_column from test_errors", %{error: error}
-    assert ~s/Column `invalid_column` doesn't exist in table `test_errors`./ == error
+    assert error =~ ~r/Column `invalid_column` doesn't exist in table `test_errors`./
   end
 
   test "query reports an error on invalid table" do
@@ -82,19 +98,21 @@ defmodule Cloak.Query.ErrorTest do
 
   test "substring with neither for nor from" do
     assert_query "select substring(name) from test_errors", %{error: error}
-    assert error == "Expected `from or for or ,` at line 1, column 22."
+    assert error =~ ~r/Expected `from or for or ,`/
   end
 
   test "substring with invalid from" do
     assert_query "select substring(name FROM 0) from test_errors", %{error: error}
-    assert_query "select substring(name ,    0) from test_errors", %{error: ^error}
-    assert error == "Expected `positive integer constant` at line 1, column 28."
+    assert error =~ ~r/Expected `positive integer constant`/
+    assert_query "select substring(name ,    0) from test_errors", %{error: error}
+    assert error =~ ~r/Expected `positive integer constant`/
   end
 
   test "substring with invalid for" do
     assert_query "select substring(name FOR -1) from test_errors", %{error: error}
-    assert_query "select substring(name ,   -1) from test_errors", %{error: ^error}
-    assert error == "Expected `positive integer constant` at line 1, column 27."
+    assert error =~ ~r/Expected `positive integer constant`/
+    assert_query "select substring(name ,   -1) from test_errors", %{error: error}
+    assert error =~ ~r/Expected `positive integer constant`/
   end
 
   test "substring with invalid argument" do
@@ -114,38 +132,41 @@ defmodule Cloak.Query.ErrorTest do
 
   test "query reports error on invalid having clause" do
     assert_query "select name from test_errors group by name having height >= 100", %{error: error}
-    assert ~s/`HAVING` clause can not be applied over column `height` from table `test_errors`./ == error
+    assert error =~ ~r/`HAVING` clause can not be applied over column `height` from table `test_errors`./
   end
 
   test "query reports error on invalid where clause" do
     assert_query "select name from test_errors where max(height) >= 100", %{error: error}
-    assert ~s/Expression `max` is not valid in the `WHERE` clause./ == error
+    assert error =~ ~r/Expression `max` is not valid in the `WHERE` clause./
   end
 
   test "query reports error on cast in a where clause" do
     assert_query "select name from test_errors where cast(name as integer) >= 100", %{error: error}
-    assert ~s/Column `cast` must be limited to a finite, nonempty range./ == error
+    assert error =~ ~r/Column `cast` must be limited to a finite, nonempty range./
+    assert error =~ ~r/line 1, column 36/
   end
 
   test "query reports error on invalid group by position" do
     assert_query "select name from test_errors group by 0",
-      %{error: "`GROUP BY` position `0` is out of the range of selected columns."}
+      %{error: "`GROUP BY` position `0` is out of the range of selected columns." <> _}
     assert_query "select name from test_errors group by 2",
-      %{error: "`GROUP BY` position `2` is out of the range of selected columns."}
+      %{error: "`GROUP BY` position `2` is out of the range of selected columns." <> _}
   end
+
   test "non-integer constants are not allowed in group by" do
     assert_query "select name from test_errors group by 1.0",
-      %{error: "Non-integer constant is not allowed in `GROUP BY`."}
+      %{error: "Non-integer constant is not allowed in `GROUP BY`." <> _}
   end
 
   test "query reports error on invalid order by position" do
     assert_query "select name from test_errors order by 0",
-      %{error: "`ORDER BY` position `0` is out of the range of selected columns."}
+      %{error: "`ORDER BY` position `0` is out of the range of selected columns." <> _}
     assert_query "select name from test_errors order by 2",
-      %{error: "`ORDER BY` position `2` is out of the range of selected columns."}
+      %{error: "`ORDER BY` position `2` is out of the range of selected columns." <> _}
   end
+
   test "non-integer constants are not allowed in order by" do
     assert_query "select name from test_errors order by 1.0",
-      %{error: "Non-integer constant is not allowed in `ORDER BY`."}
+      %{error: "Non-integer constant is not allowed in `ORDER BY`." <> _}
   end
 end

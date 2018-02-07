@@ -40,14 +40,14 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     result1 = compile!("SELECT * FROM table WHERE string ILIKE 'Abc'", data_source())
     result2 = compile!("SELECT * FROM table WHERE lower(string) = 'abc'", data_source())
 
-    assert result1.where == result2.where
+    assert scrub_locations(result1).where == scrub_locations(result2).where
   end
 
   test "normalizing trivial not ilike patterns <>" do
     result1 = compile!("SELECT * FROM table WHERE string NOT ILIKE 'Abc'", data_source())
     result2 = compile!("SELECT * FROM table WHERE lower(string) <> 'abc'", data_source())
 
-    assert result1.where == result2.where
+    assert scrub_locations(result1).where == scrub_locations(result2).where
   end
 
   describe "normalizing ORDER BY" do
@@ -88,7 +88,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
       result1 = remove_noops!("SELECT * FROM table WHERE cast(numeric AS integer) = 1", data_source())
       result2 = remove_noops!("SELECT * FROM table WHERE numeric = 1", data_source())
 
-      assert result1.where == result2.where
+      assert scrub_locations(result1).where == scrub_locations(result2).where
     end
 
     for function <- ~w/round trunc/ do
@@ -96,14 +96,14 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
         result1 = remove_noops!("SELECT * FROM table WHERE #{unquote(function)}(numeric) = 1", data_source())
         result2 = remove_noops!("SELECT * FROM table WHERE numeric = 1", data_source())
 
-        assert result1.where == result2.where
+        assert scrub_locations(result1).where == scrub_locations(result2).where
       end
 
       test "#{function} of integer with precision isn't removed" do
         result1 = remove_noops!("SELECT * FROM table WHERE #{unquote(function)}(numeric, 0) = 1", data_source())
         result2 = remove_noops!("SELECT * FROM table WHERE numeric = 1", data_source())
 
-        refute result1.where == result2.where
+        refute scrub_locations(result1).where == scrub_locations(result2).where
       end
     end
 
@@ -112,9 +112,16 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
         result1 = remove_noops!("SELECT * FROM table WHERE #{unquote(function)}(numeric) = 1", data_source())
         result2 = remove_noops!("SELECT * FROM table WHERE numeric = 1", data_source())
 
-        assert result1.where == result2.where
+        assert scrub_locations(result1).where == scrub_locations(result2).where
       end
     end
+  end
+
+  test "stripping source locations" do
+    result1 = compile!("SELECT    count(*)    FROM table WHERE   abs(numeric) = 1", data_source())
+    result2 = compile!("SELECT count(*) FROM table WHERE abs(numeric) = 1", data_source())
+
+    assert result1 == result2
   end
 
   defp remove_noops!(query, data_source, parameters \\ [], views \\ %{}) do

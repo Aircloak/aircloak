@@ -29,11 +29,12 @@ defmodule Cloak.Sql.Expression do
     parameter_index: pos_integer | nil,
     synthetic?: boolean,
     key?: boolean,
+    source_location: Cloak.Sql.Parser.location,
   }
   defstruct [
     table: :unknown, name: nil, alias: nil, type: nil, user_id?: false, row_index: nil, constant?: false,
     value: nil, function: nil, function_args: [], aggregate?: false, function?: false, parameter_index: nil,
-    synthetic?: false, key?: false
+    synthetic?: false, key?: false, source_location: nil
   ]
 
   @doc "Returns an expression representing a reference to the given column in the given table."
@@ -76,6 +77,10 @@ defmodule Cloak.Sql.Expression do
   def constant?(%__MODULE__{function?: true, function_args: args} = function), do:
     not row_splitter?(function) and Enum.all?(args, &constant?/1)
   def constant?(_), do: false
+
+  @doc "Sets the source location of the given expression to the given location."
+  @spec set_location(t, Cloak.Sql.Parser.location) :: t
+  def set_location(expression, location), do: %{expression | source_location: location}
 
   @doc "Returns true if the given column is a key (public/private/user_id), false otherwise."
   @spec key?(t) :: boolean
@@ -195,7 +200,7 @@ defmodule Cloak.Sql.Expression do
   def unique_except(expressions, except_fun), do:
     Enum.uniq_by(
       expressions,
-      fn(expression) -> if except_fun.(expression), do: :erlang.unique_integer(), else: expression end
+      fn(expression) -> if except_fun.(expression), do: :erlang.unique_integer(), else: semantic(expression) end
     )
 
   @doc """
@@ -207,6 +212,13 @@ defmodule Cloak.Sql.Expression do
   def unalias(expression), do:
     %__MODULE__{expression | alias: nil}
 
+  @doc """
+  Removes data from the given expression that does not contribute to its semantics for the query. Currently that's only
+  source_location.
+  """
+  @spec semantic(t) :: t
+  def semantic(expression), do:
+    put_in(expression, [Cloak.Sql.Query.Lenses.all_expressions() |> Lens.key(:source_location)], nil)
 
   @doc "Recursively evaluates a split expression and returns all the values yielded by the splitter."
   @spec splitter_values(t, DataSource.row) :: [DataSource.field]

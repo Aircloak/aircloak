@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.QueryTest do
   use ExUnit.Case, async: false
 
-  alias Cloak.Sql.{Query, Expression}
+  alias Cloak.Sql.{Query, Expression, Parser, Compiler}
   alias Cloak.DataSource.Table
 
   import Cloak.Test.QueryHelpers
@@ -291,14 +291,6 @@ defmodule Cloak.Sql.QueryTest do
     assert nil == Query.offloaded_where(query)
   end
 
-  defp make_query(data_source, statement) do
-    {query, features} = Query.make!(data_source, statement, [], %{})
-    {
-      scrub_data_sources(query),
-      features
-    }
-  end
-
   defp describe_query(statement, parameters \\ nil), do:
     Query.describe_query(hd(Cloak.DataSource.all()), statement, parameters, %{})
 
@@ -311,14 +303,20 @@ defmodule Cloak.Sql.QueryTest do
 
   defp features_from(statement) do
     [first_ds | rest_ds] = Cloak.DataSource.all()
-    {query, features} = make_query(first_ds, statement)
+    {query, features} = compile_with_features(first_ds, statement)
 
     for data_source <- rest_ds do
-      {other_query, other_features} = make_query(data_source, statement)
+      {other_query, other_features} = compile_with_features(data_source, statement)
       assert Map.drop(query, [:features]) == Map.drop(other_query, [:features])
       assert Map.drop(features, [:driver, :driver_dialect]) == Map.drop(other_features, [:driver, :driver_dialect])
     end
 
     features
+  end
+
+  defp compile_with_features(data_source, statement) do
+    {:ok, parsed_query} = Parser.parse(statement)
+    {:ok, query, features} = Compiler.compile(data_source, parsed_query, _parameters = [], _views = %{})
+    {scrub_data_sources(query), features}
   end
 end

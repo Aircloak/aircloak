@@ -754,7 +754,8 @@ defmodule Cloak.Sql.Compiler.Test do
       select count(*) from (select uid from table group by uid having avg(numeric) > 0.1 and avg(numeric) <= 4.9) x
     """, data_source())
 
-    assert Map.drop(aligned, [:info, :column_titles]) == Map.drop(unaligned, [:info, :column_titles])
+    assert aligned |> Map.drop([:info, :column_titles]) |> scrub_locations() ==
+      unaligned |> Map.drop([:info, :column_titles]) |> scrub_locations()
     assert unaligned.info == ["The range for column `avg` has been adjusted to 0.0 <= `avg` < 5.0."]
   end
 

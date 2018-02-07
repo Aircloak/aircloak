@@ -106,17 +106,6 @@ defmodule Cloak.Sql.Query do
   # -------------------------------------------------------------------
 
   @doc """
-  Creates a compiled query from a string representation.
-
-  Raises on error.
-  """
-  @spec make!(DataSource.t, String.t, [parameter], view_map) :: {t, features}
-  def make!(data_source, string, parameters, views) do
-    {:ok, query, features} = make_query(data_source, string, parameters, views)
-    {query, features}
-  end
-
-  @doc """
   Describes the result of a parameterized query.
 
   This function will return the description of the result, such as column names
@@ -167,13 +156,7 @@ defmodule Cloak.Sql.Query do
   def add_db_column(query, column) do
     # A db column we're adding has to have a well-defined id
     false = is_nil(Expression.id(column))
-
-    column_matcher =
-      fn(candidate) ->
-        Expression.id(candidate) != nil and
-        Expression.id(candidate) == Expression.id(column) and
-        candidate.alias == column.alias
-      end
+    column_matcher = &(Expression.id(&1) == Expression.id(column) and &1.alias == column.alias)
 
     case Enum.find(query.db_columns, column_matcher) do
       nil ->
@@ -266,7 +249,9 @@ defmodule Cloak.Sql.Query do
   @doc "Replaces all occurrences of one expression with another expression."
   @spec replace_expression(t, Expression.t, Expression.t) :: t
   def replace_expression(query, expression, new_expression), do:
-    put_in(query, [Lenses.expression_instances(expression)], new_expression)
+    Lenses.query_expressions()
+    |> Lens.satisfy(& Expression.semantic(&1) == Expression.semantic(expression))
+    |> Lens.map(query, fn(_) -> new_expression end)
 
   @doc """
   Finds the subquery a given column comes from.

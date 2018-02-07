@@ -1,9 +1,7 @@
 defmodule Cloak.Test.QueryHelpers do
   @moduledoc false
 
-  import Lens.Macros
-
-  alias Cloak.Sql.{Compiler, Parser, Query}
+  alias Cloak.Sql.{Compiler, Parser, Query, Expression}
 
   defmacro assert_query_consistency(query, options \\ []) do
     quote bind_quoted: [
@@ -69,14 +67,19 @@ defmodule Cloak.Test.QueryHelpers do
     Cloak.Test.DB.add_users_data(table, columns, [[nil | values]])
   end
 
-  deflens all_column_titles(), do:
-    all_subqueries() |> Lens.key(:column_titles) |> Lens.all()
-
-  deflens all_subqueries(), do:
-    Lens.both(Lens.recur(Query.Lenses.direct_subqueries() |> Lens.key(:ast)), Lens.root())
-
   def scrub_data_sources(query), do:
-    put_in(query, [all_subqueries() |> Lens.key(:data_source)], nil)
+    put_in(query, [Query.Lenses.all_queries() |> Lens.key(:data_source)], nil)
+
+  def scrub_locations(ast), do:
+    update_in(ast, [Query.Lenses.all_queries() |> Query.Lenses.terminals()], fn
+      {:identifier, table, column, _location} -> {:identifier, table, column, nil}
+      {:constant, type, value, _location} -> {:constant, type, value, nil}
+      {:like_pattern, {:constant, type1, value1, _loc1}, {:constant, type2, value2, _loc2}} ->
+        {:like_pattern, {:constant, type1, value1, nil}, {:constant, type2, value2, nil}}
+      {:function, name, arguments, _location} -> {:function, name, arguments, nil}
+      expression = %Expression{} -> %{expression | source_location: nil}
+      other -> other
+    end)
 
   def compile!(query_string, data_source, options \\ []) do
     {:ok, result} = compile(query_string, data_source, options)

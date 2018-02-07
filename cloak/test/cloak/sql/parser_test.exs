@@ -2,6 +2,7 @@ defmodule Cloak.Sql.Parser.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.Sql.Parser
+  alias Cloak.Test.QueryHelpers
 
 
   # -------------------------------------------------------------------
@@ -23,7 +24,10 @@ defmodule Cloak.Sql.Parser.Test do
 
   defmacrop assert_equal_parse(query1, query2) do
     quote do
-      assert Parser.parse(unquote(query1)) == Parser.parse(unquote(query2))
+      result1 = unquote(query1) |> Parser.parse!() |> QueryHelpers.scrub_locations()
+      result2 = unquote(query2) |> Parser.parse!() |> QueryHelpers.scrub_locations()
+
+      assert result1 == result2
     end
   end
 
@@ -50,14 +54,21 @@ defmodule Cloak.Sql.Parser.Test do
   # Produces a pattern which matches an AST of a constant.
   defmacrop constant(value) do
     quote do
-      {:constant, _, unquote(value)}
+      {:constant, _, unquote(value), _}
     end
   end
 
   # Produces a pattern which matches an AST of a constant with type
   defmacrop constant(type, value) do
     quote do
-      {:constant, unquote(type), unquote(value)}
+      {:constant, unquote(type), unquote(value), _}
+    end
+  end
+
+  # Produces a pattern which matches an AST of a constant with type and location
+  defmacrop constant(type, value, location) do
+    quote do
+      {:constant, unquote(type), unquote(value), unquote(location)}
     end
   end
 
@@ -74,13 +85,31 @@ defmodule Cloak.Sql.Parser.Test do
 
   defmacrop identifier(name) do
     quote do
-      {:identifier, _, unquoted(unquote(name))}
+      {:identifier, _, unquoted(unquote(name)), _}
+    end
+  end
+
+  defmacrop identifier(name, location) do
+    quote do
+      {:identifier, _, unquoted(unquote(name)), unquote(location)}
     end
   end
 
   defmacrop quoted_identifier(name) do
     quote do
-      {:identifier, _, quoted(unquote(name))}
+      {:identifier, _, quoted(unquote(name)), _}
+    end
+  end
+
+  defmacrop function(name, arguments) do
+    quote do
+      {:function, unquote(name), unquote(arguments), _}
+    end
+  end
+
+  defmacrop function(name, arguments, location) do
+    quote do
+      {:function, unquote(name), unquote(arguments), unquote(location)}
     end
   end
 
@@ -130,6 +159,54 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "simple select query" do
     assert_parse("select foo from baz", select(columns: [identifier("foo")], from: unquoted("baz")))
+  end
+
+  test "identifier location in source" do
+    assert_parse("select foo\n, bar from baz", select(columns: [identifier("foo", {1, 8}), identifier("bar", {2, 3})]))
+  end
+
+  test "qualified identifier location in source" do
+    assert_parse(~s[select baz.foo from baz], select(columns: [identifier("foo", {1, 8})]))
+  end
+
+  test "constant location in source" do
+    assert_parse("select 1 from baz", select(columns: [constant(:integer, 1, {1, 8})]))
+  end
+
+  test "function location in source" do
+    assert_parse("select foo(bar, baz) from baz", select(columns: [function("foo", _, {1, 8})]))
+  end
+
+  test "extract location in source" do
+    assert_parse("select extract(month from foo) from bar", select(columns: [function("month", _, {1, 8})]))
+  end
+
+  test "trim location in source" do
+    assert_parse("select trim(leading foo) from bar", select(columns: [function("ltrim", _, {1, 8})]))
+  end
+
+  test "substring location in source" do
+    assert_parse("select substring(foo from 1) from bar", select(columns: [function("substring", _, {1, 8})]))
+  end
+
+  test "infix operator location in source" do
+    assert_parse("select foo + bar from baz", select(columns: [function("+", _, {1, 12})]))
+  end
+
+  test "unary minus location in source" do
+    assert_parse("select -foo(bar) from baz", select(columns: [function("-", _, {1, 8})]))
+  end
+
+  test "cast location in source" do
+    assert_parse("select cast(foo as text) from bar", select(columns: [function({:cast, :text}, _, {1, 8})]))
+  end
+
+  test "cast with :: location in source" do
+    assert_parse("select foo :: text from bar", select(columns: [function({:cast, :text}, _, {1, 12})]))
+  end
+
+  test "bucket location in source" do
+    assert_parse("select bucket(foo by 10) from bar", select(columns: [function({:bucket, _}, _, {1, 8})]))
   end
 
   test "fully qualified table name" do
@@ -421,19 +498,19 @@ defmodule Cloak.Sql.Parser.Test do
   test "date extraction" do
     assert_parse(
       "SELECT extract(year FROM column) FROM table",
-      select(columns: [{:function, "year", [identifier("column")]}])
+      select(columns: [function("year", [identifier("column")])])
     )
   end
 
   test "count(*)" do
-    assert_parse("select count(*) from foo", select(columns: [{:function, "count", [:*]}], from: unquoted("foo")))
+    assert_parse("select count(*) from foo", select(columns: [function("count", [:*])], from: unquoted("foo")))
   end
 
   test "aggregation functions" do
     assert_parse(
       "select sum(price), min(value) from foo",
-      select(columns: [{:function, "sum", [identifier("price")]},
-        {:function, "min", [identifier("value")]}], from: unquoted("foo"))
+      select(columns: [function("sum", [identifier("price")]),
+        function("min", [identifier("value")])], from: unquoted("foo"))
     )
   end
 
@@ -523,7 +600,7 @@ defmodule Cloak.Sql.Parser.Test do
   test "count(distinct column)" do
     assert_parse(
       "select count(distinct foo) from bar",
-      select(columns: [{:function, "count", [{:distinct, identifier("foo")}]}])
+      select(columns: [function("count", [{:distinct, identifier("foo")}])])
     )
   end
 
@@ -539,14 +616,14 @@ defmodule Cloak.Sql.Parser.Test do
       select(
         columns: [
           identifier("column"),
-          {:function, "count", [identifier("column")]},
-          {:function, "count", [{:distinct, identifier("column")}]}
+          function("count", [identifier("column")]),
+          function("count", [{:distinct, identifier("column")}])
         ],
         where: {:comparison, identifier("column"), :=, _},
         group_by: [identifier("column")],
         order_by: [
           {identifier("column"), :desc},
-          {{:function, "count", [{:distinct, identifier("column")}]}, :nil}
+          {function("count", [{:distinct, identifier("column")}]), :nil}
         ]
       )
     )
@@ -663,7 +740,7 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "function in group by" do
     assert_parse("select * from foo group by bar(x)",
-      select(group_by: [{:function, "bar", [identifier("x")]}])
+      select(group_by: [function("bar", [identifier("x")])])
     )
   end
 
@@ -673,113 +750,113 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "multi-argument function" do
     assert_parse("select foo(x, y, z) from bar", select(columns:
-      [{:function, "foo", [identifier("x"), identifier("y"), identifier("z")]}]
+      [function("foo", [identifier("x"), identifier("y"), identifier("z")])]
     ))
   end
 
   test "extended btrim" do
     assert_parse "select trim(both from foo) from bar",
-      select(columns: [{:function, "btrim", [identifier("foo")]}])
+      select(columns: [function("btrim", [identifier("foo")])])
   end
 
   test "extended ltrim" do
     assert_parse "select trim(leading from foo) from bar",
-      select(columns: [{:function, "ltrim", [identifier("foo")]}])
+      select(columns: [function("ltrim", [identifier("foo")])])
   end
 
   test "extended rtrim" do
     assert_parse "select trim(trailing from foo) from bar",
-      select(columns: [{:function, "rtrim", [identifier("foo")]}])
+      select(columns: [function("rtrim", [identifier("foo")])])
   end
 
   test "extended with character set" do
     assert_parse "select trim(both 'xyz' from foo) from bar",
-      select(columns: [{:function, "btrim", [identifier("foo"), constant(:string, "xyz")]}])
+      select(columns: [function("btrim", [identifier("foo"), constant(:string, "xyz")])])
   end
 
   test "substring from" do
     assert_parse "select substring(foo from 3) from bar",
-      select(columns: [{:function, "substring", [identifier("foo"), constant(:integer, 3)]}])
+      select(columns: [function("substring", [identifier("foo"), constant(:integer, 3)])])
   end
 
   test "substring from ... for ..." do
     assert_parse "select substring(foo from 3 for 10) from bar",
-      select(columns: [{:function, "substring", [
-        identifier("foo"), constant(:integer, 3), constant(:integer, 10)]}])
+      select(columns: [function("substring", [
+        identifier("foo"), constant(:integer, 3), constant(:integer, 10)])])
   end
 
   test "substring for" do
     assert_parse "select substring(foo for 3) from bar",
-      select(columns: [{:function, "substring", [identifier("foo"), constant(:integer, 1), constant(:integer, 3)]}])
+      select(columns: [function("substring", [identifier("foo"), constant(:integer, 1), constant(:integer, 3)])])
   end
 
   test "|| compiled as concat" do
     assert_parse "select a || b || c from bar",
-      select(columns: [{:function, "concat", [
-        {:function, "concat", [identifier("a"), identifier("b")]},
-        identifier("c")]}])
+      select(columns: [function("concat", [
+        function("concat", [identifier("a"), identifier("b")]),
+        identifier("c")])])
   end
 
   test "|| of complex expressions" do
     assert_parse "select lower(a) || upper(b) from bar",
-      select(columns: [{:function, "concat", [
-        {:function, "lower", [identifier("a")]},
-        {:function, "upper", [identifier("b")]}]}])
+      select(columns: [function("concat", [
+        function("lower", [identifier("a")]),
+        function("upper", [identifier("b")])])])
   end
 
   test "+ and -" do
     assert_parse "select a + b - c + d from bar",
-      select(columns: [{:function, "+", [
-        {:function, "-", [
-          {:function, "+", [identifier("a"), identifier("b")]},
-          identifier("c")]},
-        identifier("d")]}])
+      select(columns: [function("+", [
+        function("-", [
+          function("+", [identifier("a"), identifier("b")]),
+          identifier("c")]),
+        identifier("d")])])
   end
 
   test "*, /, and %" do
     assert_parse "select a * b / c % d from bar",
-      select(columns: [{:function, "%", [
-        {:function, "/", [
-          {:function, "*", [identifier("a"), identifier("b")]},
-          identifier("c")]},
-        identifier("d")]}])
+      select(columns: [function("%", [
+        function("/", [
+          function("*", [identifier("a"), identifier("b")]),
+          identifier("c")]),
+        identifier("d")])])
   end
 
   test "^" do
     assert_parse "select a ^ b ^ c from bar",
-      select(columns: [{:function, "^", [
-        {:function, "^", [identifier("a"), identifier("b")]},
-        identifier("c")]}])
+      select(columns: [function("^", [
+        function("^", [identifier("a"), identifier("b")]),
+        identifier("c")])])
   end
 
   test "()" do
     assert_parse "select a ^ ((b + c) * (d - e)) from foo",
-      select(columns: [{:function, "^", [
+      select(columns: [function("^", [
         identifier("a"),
-        {:function, "*", [
-          {:function, "+", [identifier("b"), identifier("c")]},
-          {:function, "-", [identifier("d"), identifier("e")]}]}]}])
+        function("*", [
+          function("+", [identifier("b"), identifier("c")]),
+          function("-", [identifier("d"), identifier("e")])])])])
   end
 
   test "* and / have higher precedence than + and -" do
     assert_parse "select a * b + c / d - e from bar",
-      select(columns: [{:function, "-", [
-        {:function, "+", [
-          {:function, "*", [identifier("a"), identifier("b")]},
-          {:function, "/", [identifier("c"), identifier("d")]}]},
-        identifier("e")]}])
+      select(columns: [function("-", [
+        function("+", [
+          function("*", [identifier("a"), identifier("b")]),
+          function("/", [identifier("c"), identifier("d")])]),
+        identifier("e")])])
   end
 
   test "^ has a higher precedence than *" do
     assert_parse "select a ^ b * c from bar",
-      select(columns: [{:function, "*", [
-        {:function, "^", [identifier("a"), identifier("b")]},
-        identifier("c")]}])
+      select(columns: [function("*", [
+        function("^", [identifier("a"), identifier("b")]),
+        identifier("c")])])
   end
 
   test "unary minus" do
     assert_parse "select -a from bar",
-      select(columns: [{:function, "-", [constant(:integer, 0), identifier("a")]}])
+      select(columns: [function("-", [constant(:integer, 0), identifier("a")])])
   end
 
   test "unary plus" do
@@ -788,26 +865,26 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "unary minus has higher precedence than ^" do
     assert_parse "select - a ^ - b from bar",
-      select(columns: [{:function, "^", [
-        {:function, "-", [constant(:integer, 0), identifier("a")]},
-        {:function, "-", [constant(:integer, 0), identifier("b")]}]}])
+      select(columns: [function("^", [
+        function("-", [constant(:integer, 0), identifier("a")]),
+        function("-", [constant(:integer, 0), identifier("b")])])])
   end
 
   test "cast" do
     assert_parse "select cast(a, integer) from bar",
-      select(columns: [{:function, {:cast, :integer}, [identifier("a")]}])
+      select(columns: [function({:cast, :integer}, [identifier("a")])])
   end
 
   test "cast to interval", do:
-    assert_parse "select cast(a, interval) from bar", select(columns: [{:function, {:cast, :interval}, _}])
+    assert_parse "select cast(a, interval) from bar", select(columns: [function({:cast, :interval}, _)])
 
   test "extended cast" do
     assert_parse "select cast(a as text) from bar",
-      select(columns: [{:function, {:cast, :text}, [identifier("a")]}])
+      select(columns: [function({:cast, :text}, [identifier("a")])])
   end
 
   test "cast to datetime", do:
-    assert_parse "select cast(a as datetime) from bar", select(columns: [{:function, {:cast, :datetime}, _}])
+    assert_parse "select cast(a as datetime) from bar", select(columns: [function({:cast, :datetime}, _)])
 
   test "cast to timestamp" do
     result1 = Parser.parse!("select cast(a as datetime) from bar")
@@ -817,19 +894,19 @@ defmodule Cloak.Sql.Parser.Test do
   end
 
   test "cast to float", do:
-    assert_parse "select cast(a as float) from bar", select(columns: [{:function, {:cast, :real}, _}])
+    assert_parse "select cast(a as float) from bar", select(columns: [function({:cast, :real}, _)])
 
   test "cast to double precision", do:
-    assert_parse "select cast(a as double precision) from bar", select(columns: [{:function, {:cast, :real}, _}])
+    assert_parse "select cast(a as double precision) from bar", select(columns: [function({:cast, :real}, _)])
 
   describe "::" do
     test "cast with ::", do:
       assert_parse "select a::integer from bar",
-        select(columns: [{:function, {:cast, :integer}, [identifier("a")]}])
+        select(columns: [function({:cast, :integer}, [identifier("a")])])
 
     test "multiple casts with ::", do:
       assert_parse "select a::integer::text from bar",
-        select(columns: [{:function, {:cast, :text}, [{:function, {:cast, :integer}, [identifier("a")]}]}])
+        select(columns: [function({:cast, :text}, [function({:cast, :integer}, [identifier("a")])])])
 
     test "a non-datatype on RHS of ::", do:
       assert {:error, _} = Parser.parse("select a::b from bar")
@@ -862,7 +939,7 @@ defmodule Cloak.Sql.Parser.Test do
   for type <- ~w(lower upper middle)a do
     test "bucket(*, *, #{type})" do
       assert_parse "select bucket(foo by 10 align #{unquote(type)}) from bar", select(columns: [
-        {:function, {:bucket, unquote(type)}, [identifier("foo"), constant(:integer, 10)]}
+        function({:bucket, unquote(type)}, [identifier("foo"), constant(:integer, 10)])
       ])
     end
   end
@@ -880,7 +957,7 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "align type case insensivity" do
     assert_parse "select bucket(foo by 10 align MIDDlE) from bar", select(columns: [
-      {:function, {:bucket, :middle}, [identifier("foo"), constant(:integer, 10)]}
+      function({:bucket, :middle}, [identifier("foo"), constant(:integer, 10)])
     ])
   end
 
@@ -888,7 +965,7 @@ defmodule Cloak.Sql.Parser.Test do
     assert_parse(
       "select $1, $2 + 1 FROM foo WHERE $3 = $4",
       select(
-        columns: [parameter(1), {:function, "+", [parameter(2), constant(1)]}],
+        columns: [parameter(1), function("+", [parameter(2), constant(1)])],
         where: {:comparison, parameter(3), :=, parameter(4)}
       )
     )
@@ -898,15 +975,15 @@ defmodule Cloak.Sql.Parser.Test do
       "select 1+2, -3, +4, -5--6, -7++8, 9 + 10 FROM foo",
       select(
         columns: [
-          {:function, "+", [constant(1), constant(2)]},
-          {:function, "-", [constant(0), constant(3)]},
+          function("+", [constant(1), constant(2)]),
+          function("-", [constant(0), constant(3)]),
           constant(4),
-          {:function, "-", [
-            {:function, "-", [constant(0), constant(5)]},
-            {:function, "-", [constant(0), constant(6)]},
-          ]},
-          {:function, "+", [{:function, "-", [constant(0), constant(7)]}, constant(8)]},
-          {:function, "+", [constant(9), constant(10)]}
+          function("-", [
+            function("-", [constant(0), constant(5)]),
+            function("-", [constant(0), constant(6)]),
+          ]),
+          function("+", [function("-", [constant(0), constant(7)]), constant(8)]),
+          function("+", [constant(9), constant(10)])
         ]
       )
     )
@@ -917,15 +994,15 @@ defmodule Cloak.Sql.Parser.Test do
       "select 1.1+2.1, -3.1, +4.1, -5.1--6.1, -7.1++8.1, 9.1 + 10.1 FROM foo",
       select(
         columns: [
-          {:function, "+", [constant(1.1), constant(2.1)]},
-          {:function, "-", [constant(0), constant(3.1)]},
+          function("+", [constant(1.1), constant(2.1)]),
+          function("-", [constant(0), constant(3.1)]),
           constant(4.1),
-          {:function, "-", [
-            {:function, "-", [constant(0), constant(5.1)]},
-            {:function, "-", [constant(0), constant(6.1)]}
-          ]},
-          {:function, "+", [{:function, "-", [constant(0), constant(7.1)]}, constant(8.1)]},
-          {:function, "+", [constant(9.1), constant(10.1)]}
+          function("-", [
+            function("-", [constant(0), constant(5.1)]),
+            function("-", [constant(0), constant(6.1)])
+          ]),
+          function("+", [function("-", [constant(0), constant(7.1)]), constant(8.1)]),
+          function("+", [constant(9.1), constant(10.1)])
         ]
       )
     )
@@ -1217,4 +1294,20 @@ defmodule Cloak.Sql.Parser.Test do
         create_test.(description, statement, expected_error, line, column)
     end
   )
+
+  describe "parse!" do
+    test "returns parsed query if OK", do:
+      assert select([]) = Parser.parse!("select foo from bar")
+
+    test "raises ParseError with location if error" do
+      error = try do
+        Parser.parse!("select select")
+        nil
+      rescue
+        e in Cloak.Sql.ParseError -> e
+      end
+
+      assert %Cloak.Sql.ParseError{message: "Expected `column definition`.", source_location: {1, 8}} = error
+    end
+  end
 end

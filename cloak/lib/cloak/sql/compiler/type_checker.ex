@@ -47,7 +47,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         explanation = type.history_of_restricted_transformations
         |> filter_transformations([:potentially_crashing_function])
         |> Narrative.construct(type.history_of_columns_involved)
-        raise CompilationError, message: """
+        raise CompilationError, source_location: column.source_location, message: """
           #{explanation}
 
           Functions are not allowed to be used in ways that could cause a database exception.
@@ -70,7 +70,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         explanation = type.history_of_restricted_transformations
         |> filter_transformations([:restricted_function])
         |> Narrative.construct(type.history_of_columns_involved)
-        raise CompilationError, message: """
+        raise CompilationError, source_location: expression.source_location, message: """
           #{explanation}
 
           Queries containing expressions with a high number of functions that are used in combination
@@ -84,7 +84,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp verify_lhs_of_in_is_clear(query), do:
     verify_conditions(query, &Condition.in?/1, fn({:in, lhs, _}) ->
       unless Type.establish_type(lhs, query) |> Type.clear_column?(@allowed_in_functions) do
-        raise CompilationError, message:
+        raise CompilationError, source_location: lhs.source_location, message:
           "Only #{function_list(@allowed_in_functions)} can be used in the left-hand side of an IN operator."
       end
     end)
@@ -97,11 +97,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
       if rhs_type.constant? do
         unless Type.establish_type(lhs, query) |> Type.clear_column?(@allowed_not_equals_functions), do:
-          raise CompilationError, message:
+          raise CompilationError, source_location: lhs.source_location, message:
             "Only #{function_list(@allowed_not_equals_functions)} can be used in the arguments of an <> operator."
       else
         unless Type.clear_column?(lhs_type) and Type.clear_column?(rhs_type), do:
-          raise CompilationError, message:
+          raise CompilationError, source_location: lhs.source_location, message:
             "No functions or mathematical operations are allowed when comparing two database columns with `<>`."
       end
     end)
@@ -112,7 +112,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       rhs_type = Type.establish_type(rhs, query)
 
       if Type.string_manipulation?(lhs_type) and not Type.clear_column?(rhs_type) and not rhs_type.constant?, do:
-        raise CompilationError, message: "Results of string manipulation functions can only be compared to constants."
+        raise CompilationError, source_location: lhs.source_location, message:
+          "Results of string manipulation functions can only be compared to constants."
     end)
 
   defp verify_string_based_expressions_are_clear(query), do:
@@ -120,7 +121,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     |> Lens.to_list(query)
     |> Enum.each(fn(expression) ->
       if expression |> Type.establish_type(query) |> Type.unclear_string_manipulation?(), do:
-        raise CompilationError, message: "String manipulation functions cannot be combined with other transformations."
+        raise CompilationError, source_location: expression.source_location, message:
+          "String manipulation functions cannot be combined with other transformations."
     end)
 
 
@@ -128,7 +130,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp verify_lhs_of_not_like_is_clear(query), do:
     verify_conditions(query, &Condition.not_like?/1, fn({:not, {kind, lhs, _}}) ->
       unless Type.establish_type(lhs, query) |> Type.clear_column?(@allowed_like_functions) do
-        raise CompilationError, message:
+        raise CompilationError, source_location: lhs.source_location, message:
           "Expressions with NOT #{like_kind_name(kind)} cannot include any functions except aggregators and a cast."
       end
     end)
@@ -147,7 +149,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         {implicit_range_functions, other_functions} = type.applied_functions
         |> Enum.split_with(& Function.implicit_range?/1)
 
-        raise CompilationError, message: """
+        raise CompilationError, source_location: column.source_location, message: """
         Range expressions cannot include any functions except aggregations and a cast.
 
         #{Narrative.construct_implicit_range_narrative(implicit_range_functions, other_functions,

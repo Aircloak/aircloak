@@ -31,7 +31,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Narrative do
     list_columns(columns) <> "."
   end
   def construct_implicit_range_narrative([implicit_range], functions, columns) do
-    "Functions that implicitly produces ranges (in this case `#{Function.readable_name(implicit_range)}`), " <>
+    "Functions that implicitly produce ranges (in this case `#{Function.readable_name(implicit_range)}`), " <>
     "are not allowed to be used in combination with other functions. In your query " <>
     naive_plural("function ", "functions ", length(functions)) <> joined_functions(functions) <>
     naive_plural(" was ", " were ", length(functions)) <> "used in the expression on " <>

@@ -65,9 +65,9 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   defp rewrite_distinct(ast), do: ast
 
   defp grouping_clause(columns), do:
-    Enum.map(1..length(columns), &{:constant, :integer, &1})
+    Enum.map(1..length(columns), &{:constant, :integer, &1, _location = nil})
 
-  defp aggregator?({:function, name, args}), do:
+  defp aggregator?({:function, name, args, _location}), do:
     Function.has_attribute?(name, :aggregator) or Enum.any?(args, &aggregator?/1)
   defp aggregator?(_), do: false
 

@@ -14,8 +14,8 @@ defmodule Cloak.Sql.Query.Lenses do
   deflens terminals(), do:
     Lens.multiple([
       Lens.keys([:columns, :group_by, :db_columns, :property, :aggregators]),
-      Lens.key(:noise_layers) |> Lens.all() |> Lens.key(:expressions),
-      Lens.key(:order_by) |> Lens.all() |> Lens.at(0),
+      Lens.key(:noise_layers) |> Lens.satisfy(&is_list/1) |> Lens.all() |> Lens.key(:expressions),
+      Lens.key(:order_by) |> Lens.satisfy(&is_list/1) |> Lens.all() |> Lens.at(0),
       filters_operands(),
     ])
     |> terminal_elements()
@@ -33,10 +33,6 @@ defmodule Cloak.Sql.Query.Lenses do
 
   @doc "Lens focusing on all column elements in the query (subqueries are not included)."
   deflens query_expressions(), do: terminals() |> expressions()
-
-  @doc "Lens focusing on all instances of the given expression."
-  deflens expression_instances(expression), do:
-    Lens.filter(query_expressions(), &(&1 == expression))
 
   @doc "Lens focusing on leaf (non-functions) expressions in a list of expressions."
   deflens leaf_expressions(), do: all_expressions() |> do_leaf_expressions()
@@ -57,7 +53,7 @@ defmodule Cloak.Sql.Query.Lenses do
   @doc "Lens focusing on raw (uncompiled) casts of parameters."
   deflens raw_parameter_casts(), do:
     terminals()
-    |> Lens.filter(&match?({:function, {:cast, _type}, [{:parameter, _index}]}, &1))
+    |> Lens.filter(&match?({:function, {:cast, _type}, [{:parameter, _index}], _}, &1))
 
   @doc "Lens focusing on invocations of the bucket function"
   deflens buckets(), do: terminals() |> Lens.filter(&Function.bucket?/1)
@@ -234,9 +230,9 @@ defmodule Cloak.Sql.Query.Lenses do
 
   deflensp terminal_elements(), do:
     Lens.match(fn
-      {:function, "count", :*} -> Lens.empty()
-      {:function, "count_noise", :*} -> Lens.empty()
-      {:function, _, _} -> Lens.both(Lens.at(2) |> terminal_elements(), Lens.root())
+      {:function, "count", :*, _} -> Lens.empty()
+      {:function, "count_noise", :*, _} -> Lens.empty()
+      {:function, _, _, _} -> Lens.both(Lens.at(2) |> terminal_elements(), Lens.root())
       {:distinct, _} -> Lens.both(Lens.at(1) |> terminal_elements(), Lens.root())
       {_, :as, _} -> Lens.at(0) |> terminal_elements()
       elements when is_list(elements) -> Lens.all() |> terminal_elements()

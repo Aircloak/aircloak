@@ -6,6 +6,8 @@ defmodule Cloak.Sql.Compiler.Specification do
   alias Cloak.Sql.Compiler.{Helpers, Validation}
   alias Cloak.Sql.Query.Lenses
 
+  @dummy_location {1, 0}
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -241,7 +243,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     Enum.reduce(
       get_in(query, [Lenses.raw_parameter_casts()]),
       query,
-      fn({:function, {:cast, type}, [{:parameter, index}]}, query) ->
+      fn({:function, {:cast, type}, [{:parameter, index}], _location}, query) ->
         Query.set_parameter_type(query, index, type)
       end
     )
@@ -292,33 +294,38 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> Enum.filter(&(&1.column.visible?))
 
   defp columns_to_identifiers(columns), do:
-    Enum.map(columns, &{:identifier, &1.table.name, {:unquoted, &1.column.name}})
+    Enum.map(columns, &{:identifier, &1.table.name, {:unquoted, &1.column.name}, @dummy_location})
 
   defp compile_aliases(%Query{columns: [_|_] = columns} = query) do
     verify_aliases(query)
     column_titles = Enum.map(columns, &column_title(&1, query.selected_tables))
-    aliases = for {column, :as, name} <- columns, into: %{}, do: {{:identifier, :unknown, {:unquoted, name}}, column}
+    aliases = for {column, :as, name} <- columns, into: %{}, do:
+      {{:identifier, :unknown, {:unquoted, name}, @dummy_location}, column}
     columns = Enum.map(columns, fn ({column, :as, _name}) -> column; (column) -> column end)
-    order_by = for {column, direction} <- query.order_by, do: {Map.get(aliases, column, column), direction}
-    group_by = for identifier <- query.group_by, do: Map.get(aliases, identifier, identifier)
-    where = update_in(query.where, [Lenses.conditions_terminals()], &Map.get(aliases, &1, &1))
-    having = update_in(query.having, [Lenses.conditions_terminals()], &Map.get(aliases, &1, &1))
+    order_by = for {column, direction} <- query.order_by, do: {resolve_alias(aliases, column), direction}
+    group_by = for identifier <- query.group_by, do: resolve_alias(aliases, identifier)
+    where = update_in(query.where, [Lenses.conditions_terminals()], &resolve_alias(aliases, &1))
+    having = update_in(query.having, [Lenses.conditions_terminals()], &resolve_alias(aliases, &1))
     %Query{query | columns: columns, column_titles: column_titles,
       group_by: group_by, order_by: order_by, where: where, having: having}
   end
   defp compile_aliases(query), do: query
 
+  defp resolve_alias(aliases, identifier = {:identifier, table, column, _loc}), do:
+    Map.get(aliases, {:identifier, table, column, @dummy_location}, identifier)
+  defp resolve_alias(_aliases, other), do: other
+
   defp column_title({_identifier, :as, alias}, _selected_tables), do: alias
-  defp column_title({:function, {:cast, _}, [expression]}, selected_tables), do:
+  defp column_title({:function, {:cast, _}, [expression], _}, selected_tables), do:
     column_title(expression, selected_tables)
-  defp column_title({:function, {:bucket, _}, _}, _selected_tables), do: "bucket"
-  defp column_title({:function, name, _}, _selected_tables), do: name
+  defp column_title({:function, {:bucket, _}, _, _}, _selected_tables), do: "bucket"
+  defp column_title({:function, name, _, _}, _selected_tables), do: name
   defp column_title({:distinct, identifier}, selected_tables), do: column_title(identifier, selected_tables)
   # This is needed for data sources that support dotted names for fields (MongoDB)
-  defp column_title({:identifier, {:unquoted, table}, {:unquoted, column}}, selected_tables), do:
+  defp column_title({:identifier, {:unquoted, table}, {:unquoted, column}, _}, selected_tables), do:
     if find_table(selected_tables, {:unquoted, table}) == nil, do: "#{table}.#{column}", else: column
-  defp column_title({:identifier, _table, {_, column}}, _selected_tables), do: column
-  defp column_title({:constant, _, _}, _selected_tables), do: ""
+  defp column_title({:identifier, _table, {_, column}, _}, _selected_tables), do: column
+  defp column_title({:constant, _, _, _}, _selected_tables), do: ""
   defp column_title({:parameter, _}, _selected_tables), do: ""
 
   # Subqueries can produce column-names that are not actually in the table. Without understanding what
@@ -332,11 +339,12 @@ defmodule Cloak.Sql.Compiler.Specification do
       (for {identifier, _direction} <- query.order_by, do: identifier) ++
       query.group_by ++
       Lens.to_list(Lenses.conditions_terminals(), [query.where, query.having])
-    ambiguous_names = for {:identifier, :unknown, {_, name}} <- referenced_identifiers,
-      Enum.count(possible_identifiers, &name == &1) > 1, do: name
+    ambiguous_names = for {:identifier, :unknown, {_, name}, location} <- referenced_identifiers,
+      Enum.count(possible_identifiers, &name == &1) > 1, do: {name, location}
     case ambiguous_names do
       [] -> :ok
-      [name | _rest] -> raise CompilationError, message: "Usage of `#{name}` is ambiguous."
+      [{name, location} | _rest] ->
+        raise CompilationError, source_location: location, message: "Usage of `#{name}` is ambiguous."
     end
   end
 
@@ -353,18 +361,18 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp map_terminal_elements(query, mapper_fun), do:
     Lens.map(Lenses.terminals(), query, mapper_fun)
 
-  defp normalize_table_name({:identifier, table_identifier = {_, name}, column}, selected_tables) do
+  defp normalize_table_name({:identifier, table_identifier = {_, name}, column, location}, selected_tables) do
     case find_table(selected_tables, table_identifier) do
-      nil -> {:identifier, name, column}
-      table -> {:identifier, table.name, column}
+      nil -> {:identifier, name, column, location}
+      table -> {:identifier, table.name, column, location}
     end
   end
   defp normalize_table_name(x, _), do: x
 
-  defp identifier_to_column({:identifier, :unknown, identifier = {_, column_name}}, columns_by_name, _query) do
+  defp identifier_to_column({:identifier, :unknown, identifier = {_, column_name}, loc}, columns_by_name, _query) do
     case get_columns(columns_by_name, identifier) do
       [column] -> column
-      [_|_] -> raise CompilationError, message: "Column `#{column_name}` is ambiguous."
+      [_|_] -> raise CompilationError, source_location: loc, message: "Column `#{column_name}` is ambiguous."
       nil ->
         columns_by_name
         |> Map.values()
@@ -373,33 +381,39 @@ defmodule Cloak.Sql.Compiler.Specification do
         |> Enum.uniq()
         |> case do
             [table] ->
-              raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table.name}`."
+              raise CompilationError,
+                message: "Column `#{column_name}` doesn't exist in table `#{table.name}`.", source_location: loc
             [_|_] ->
-              raise CompilationError, message: "Column `#{column_name}` doesn't exist in any of the selected tables."
+              raise CompilationError,
+                message: "Column `#{column_name}` doesn't exist in any of the selected tables.", source_location: loc
           end
     end
+    |> Expression.set_location(loc)
   end
-  defp identifier_to_column({:identifier, table, identifier = {_, column_name}}, columns_by_name, query) do
+  defp identifier_to_column({:identifier, table, identifier = {_, column_name}, loc}, columns_by_name, query) do
     if Enum.any?(query.selected_tables, &(&1.name == table)) do
       case get_columns(columns_by_name, identifier) do
         nil ->
-          raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
+          raise CompilationError, source_location: loc, message:
+            "Column `#{column_name}` doesn't exist in table `#{table}`."
         columns ->
           case Enum.find(columns, &insensitive_equal?(&1.table.name, table)) do
             nil ->
-              raise CompilationError, message: "Column `#{column_name}` doesn't exist in table `#{table}`."
+              raise CompilationError, source_location: loc, message:
+                "Column `#{column_name}` doesn't exist in table `#{table}`."
             column -> column
           end
       end
     else
       case get_columns(columns_by_name, {:unquoted, "#{table}.#{column_name}"}) do
         [column] -> column
-        [_|_] -> raise CompilationError, message: "Column `#{table}.#{column_name}` is ambiguous."
-        nil -> raise CompilationError, message: "Missing FROM clause entry for table `#{table}`."
+        [_|_] -> raise CompilationError, source_location: loc, message: "Column `#{table}.#{column_name}` is ambiguous."
+        nil -> raise CompilationError, source_location: loc, message: "Missing FROM clause entry for table `#{table}`."
       end
     end
+    |> Expression.set_location(loc)
   end
-  defp identifier_to_column({:function, name, args} = function, _columns_by_name, query) do
+  defp identifier_to_column({:function, name, args, location} = function, _columns_by_name, query) do
     function
     |> Validation.verify_function(query.subquery?)
     |> Function.return_type()
@@ -407,6 +421,7 @@ defmodule Cloak.Sql.Compiler.Specification do
       nil -> raise CompilationError, message: function_argument_error_message(function)
       type -> Expression.function(name, args, type, Function.has_attribute?(name, :aggregator))
     end
+    |> Expression.set_location(location)
   end
   defp identifier_to_column({:parameter, index}, _columns_by_name, query) do
     param_value = if query.parameters != nil, do: Enum.at(query.parameters, index - 1).value
@@ -414,14 +429,15 @@ defmodule Cloak.Sql.Compiler.Specification do
     if param_type == :unknown, do: parameter_error(index)
     Expression.constant(param_type, param_value)
   end
-  defp identifier_to_column({:constant, type, value}, _columns_by_name, _query), do:
-    Expression.constant(type, value)
-  defp identifier_to_column({:like_pattern, {:constant, _, pattern}, {:constant, _, escape}}, _, _) do
+  defp identifier_to_column({:constant, type, value, location}, _columns_by_name, _query), do:
+    Expression.constant(type, value) |> Expression.set_location(location)
+  defp identifier_to_column({:like_pattern, {:constant, _, pattern, location}, {:constant, _, escape, _}}, _, _) do
     if escape == nil or String.length(escape) == 1 do
       Expression.like_pattern(pattern, escape)
     else
-      raise CompilationError, message: "Escape string must be one character."
+      raise CompilationError, source_location: location, message: "Escape string must be one character."
     end
+    |> Expression.set_location(location)
   end
   defp identifier_to_column(other, _columns_by_name, _query), do: other
 
@@ -436,7 +452,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   end
   defp get_columns(columns_by_name, {:quoted, name}), do: Map.get(columns_by_name, name)
 
-  defp function_argument_error_message({:function, name, _} = function_call) do
+  defp function_argument_error_message({:function, name, _, _} = function_call) do
     cond do
       Function.cast?(function_call) ->
         [cast_source] = actual_types(function_call)
@@ -497,13 +513,14 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp compile_reference(%Expression{constant?: true, type: :integer} = reference, query, clause_name) do
     unless reference.value in 1..length(query.columns), do:
-      raise(CompilationError,
-        message: "`#{clause_name}` position `#{reference.value}` is out of the range of selected columns.")
+      raise CompilationError, source_location: reference.source_location, message:
+        "`#{clause_name}` position `#{reference.value}` is out of the range of selected columns."
 
     Enum.at(query.columns, reference.value - 1)
   end
-  defp compile_reference(%Expression{constant?: true, type: _}, _query, clause_name), do:
-    raise(CompilationError, message: "Non-integer constant is not allowed in `#{clause_name}`.")
+  defp compile_reference(%Expression{constant?: true, type: _} = constant, _query, clause_name), do:
+    raise CompilationError, source_location: constant.source_location, message:
+      "Non-integer constant is not allowed in `#{clause_name}`."
   defp compile_reference(expression, _query, _clause_name), do:
     expression
 
@@ -538,7 +555,9 @@ defmodule Cloak.Sql.Compiler.Specification do
 
     case do_parse_time(value, type) do
       {:ok, result} -> Expression.constant(type, result)
-      _ -> raise CompilationError, message: "Cannot cast `#{value}` to #{type}."
+      _ ->
+        raise CompilationError, source_location: expression.source_location, message:
+          "Cannot cast `#{value}` to #{type}."
     end
   end
 

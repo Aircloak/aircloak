@@ -54,7 +54,7 @@ defmodule Cloak.Query.FunctionTest do
   test "detect unknown function" do
     assert_query(
       "select foo(height) from heights_ft",
-      %{error: "Unknown function `foo`."}
+      %{error: "Unknown function `foo`." <> _}
     )
   end
 
@@ -62,7 +62,7 @@ defmodule Cloak.Query.FunctionTest do
     assert_subquery_function(
       "foo(height)",
       "heights_ft",
-      %{error: "Unknown function `foo`."}
+      %{error: "Unknown function `foo`." <> _}
     )
   end
 
@@ -85,7 +85,7 @@ defmodule Cloak.Query.FunctionTest do
 
     test "forbidden in subquery" do
       assert_query("SELECT count(*) FROM (SELECT user_id, extract_words(name) FROM heights_ft) x",
-        %{error: "Function `extract_words` is not allowed in subqueries."})
+        %{error: "Function `extract_words` is not allowed in subqueries." <> _})
     end
 
     test "extract_words surrounded by aggregate function" do
@@ -185,7 +185,8 @@ defmodule Cloak.Query.FunctionTest do
     test "invalid extract_words usage in where clause" do
       assert_query("SELECT extract_words(name) FROM heights_ft WHERE extract_words(string_number) = 'first'",
         %{error: "Row splitter functions used in the `WHERE`-clause"
-          <> " have to be used identically in the `SELECT`-clause first."})
+          <> " have to be used identically in the `SELECT`-clause first."
+          <> "\n\nThe error was detected at line 1, column 50" <> _})
     end
   end
 

@@ -87,7 +87,8 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp align_bucket(column) do
     if Function.bucket_size(column) <= 0 do
-      raise CompilationError, message: "Bucket size #{Function.bucket_size(column)} must be > 0"
+      raise CompilationError, source_location: column.source_location, message:
+        "Bucket size #{Function.bucket_size(column)} must be > 0"
     end
 
     aligned = Function.update_bucket_size(column, &FixAlign.align/1)
@@ -186,7 +187,8 @@ defmodule Cloak.Sql.Compiler.Execution do
     range_columns = Map.keys(grouped_inequalities)
 
     verify_ranges(grouped_inequalities)
-    non_range_conditions = Condition.reject(clause, &Enum.member?(range_columns, Condition.subject(&1)))
+    non_range_conditions =
+      Condition.reject(clause, &Enum.member?(range_columns, &1 |> Condition.subject() |> Expression.semantic()))
 
     query = put_in(query, [lens], non_range_conditions)
     Enum.reduce(grouped_inequalities, query, &add_aligned_range(&1, &2, lens))
@@ -226,8 +228,9 @@ defmodule Cloak.Sql.Compiler.Execution do
     grouped_inequalities
     |> Enum.reject(fn({_, comparisons}) -> valid_range?(comparisons) end)
     |> case do
-      [{column, _} | _] ->
-        raise CompilationError, message:
+      [{_, [inequality | _]} | _] ->
+        column = Condition.subject(inequality)
+        raise CompilationError, source_location: column.source_location, message:
           "Column #{Expression.display_name(column)} must be limited to a finite, nonempty range."
       _ -> :ok
     end
@@ -246,7 +249,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     Lenses.conditions()
     |> Lens.to_list(where_clause)
     |> Enum.filter(&Condition.inequality?/1)
-    |> Enum.group_by(&Condition.subject/1)
+    |> Enum.group_by(& &1 |> Condition.subject() |> Expression.semantic())
     |> Enum.map(&discard_redundant_inequalities/1)
     |> Enum.into(%{})
   end

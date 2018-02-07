@@ -13,13 +13,15 @@ defmodule Cloak.Sql.Parser do
 
   @type unqualified_identifier :: {:quoted, String.t} | {:unquoted, String.t}
 
-  @type qualified_identifier :: {:identifier, :unknown | table, unqualified_identifier}
+  @type location :: {integer, integer} | nil
+
+  @type qualified_identifier :: {:identifier, :unknown | table, unqualified_identifier, location}
 
   @type data_type :: Cloak.DataSource.data_type | :interval
 
   @type function_name :: String.t | {:bucket, atom} | {:cast, data_type}
 
-  @type constant :: {:constant, data_type, any}
+  @type constant :: {:constant, data_type, any, location}
 
   @type column ::
       qualified_identifier
@@ -28,7 +30,7 @@ defmodule Cloak.Sql.Parser do
     | constant
     | {:parameter, pos_integer}
 
-  @type function_spec :: {:function, function_name, [column]}
+  @type function_spec :: {:function, function_name, [column], location}
 
   @type comparison :: {:comparison, column, comparator, any}
 
@@ -80,6 +82,8 @@ defmodule Cloak.Sql.Parser do
     sample_rate: integer,
   }
 
+  @combine_error_regex ~r/(?<error>.*) at line (?<line>\d+), column (?<column>\d+)/
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -88,8 +92,17 @@ defmodule Cloak.Sql.Parser do
   @doc "Parses a SQL query in text form. Raises on error."
   @spec parse!(String.t) :: parsed_query
   def parse!(string) do
-    {:ok, query} = parse(string)
-    query
+    case parse(string) do
+      {:ok, query} -> query
+      {:error, error} ->
+        case Regex.named_captures(@combine_error_regex, error) do
+          %{"error" => simple_error, "line" => line, "column" => column} ->
+            raise Cloak.Sql.ParseError,
+              message: "#{simple_error}.", source_location: {String.to_integer(line), String.to_integer(column)}
+          _ ->
+            raise Cloak.Sql.ParseError, message: error
+        end
+    end
   end
 
   @doc "Parses a SQL query in text form."
@@ -178,18 +191,18 @@ defmodule Cloak.Sql.Parser do
     left_associative_expression([keyword(:*), keyword(:/), keyword(:%)], exponentiation_expression())
   end
 
-  def exponentiation_expression() do
+  defp exponentiation_expression() do
     left_associative_expression([keyword(:^)], unary_expression())
   end
 
-  def unary_expression() do
+  defp unary_expression() do
     choice_deepest_error([
       sequence([keyword(:+), concat_expression()]),
-      sequence([keyword(:-), concat_expression()]),
+      sequence([next_position(), keyword(:-), concat_expression()]),
       concat_expression()
     ])
     |> map(fn
-      [:-, inner] -> {:function, "-", [{:constant, :integer, 0}, inner]}
+      [location, :-, inner] -> {:function, "-", [{:constant, :integer, 0, _location = nil}, inner], location}
       [:+, inner] -> inner
       other -> other
     end)
@@ -200,7 +213,8 @@ defmodule Cloak.Sql.Parser do
     |> map(&normalize_concat/1)
   end
 
-  defp normalize_concat({:function, "||", args}), do: {:function, "concat", Enum.map(args, &normalize_concat/1)}
+  defp normalize_concat({:function, "||", args, location}), do:
+    {:function, "concat", Enum.map(args, &normalize_concat/1), location}
   defp normalize_concat(other), do: other
 
   defp infix_cast_expression(), do:
@@ -208,11 +222,11 @@ defmodule Cloak.Sql.Parser do
     |> map(fn([expr, cast_suffix]) -> build_cast(expr, cast_suffix) end)
 
   defp cast_suffix(), do:
-    sequence([keyword(:"::"), data_type(), lazy(fn -> option(cast_suffix()) end)])
+    sequence([next_position(), keyword(:"::"), data_type(), lazy(fn -> option(cast_suffix()) end)])
 
   defp build_cast(expr, nil), do: expr
-  defp build_cast(expr, [:"::", type, next_cast]), do:
-    build_cast({:function, {:cast, type}, [expr]}, next_cast)
+  defp build_cast(expr, [location, :"::", type, next_cast]), do:
+    build_cast({:function, {:cast, type}, [expr], location}, next_cast)
 
   defp parenthesised_expression(), do:
     paren_parser(column(), simple_expression())
@@ -280,6 +294,7 @@ defmodule Cloak.Sql.Parser do
   defp cast_expression() do
     pipe(
       [
+        next_position(),
         keyword(:cast),
         keyword(:"("),
         column(),
@@ -287,7 +302,7 @@ defmodule Cloak.Sql.Parser do
         data_type(),
         keyword(:")"),
       ],
-      fn [:cast, :"(", expr, _, type, :")"] -> {:function, {:cast, type}, [expr]} end
+      fn [location, :cast, :"(", expr, _, type, :")"] -> {:function, {:cast, type}, [expr], location} end
     )
   end
 
@@ -309,6 +324,7 @@ defmodule Cloak.Sql.Parser do
   defp bucket_expression() do
     pipe(
       [
+        next_position(),
         keyword(:bucket),
         keyword(:"("),
         column(),
@@ -321,8 +337,10 @@ defmodule Cloak.Sql.Parser do
         keyword(:")"),
       ],
       fn
-        [:bucket, :"(", arg1, :by, arg2, [:align, type], :")"] -> {:function, {:bucket, type}, [arg1, arg2]}
-        [:bucket, :"(", arg1, :by, arg2, nil, :")"] -> {:function, {:bucket, :lower}, [arg1, arg2]}
+        [location, :bucket, :"(", arg1, :by, arg2, [:align, type], :")"] ->
+          {:function, {:bucket, type}, [arg1, arg2], location}
+        [location, :bucket, :"(", arg1, :by, arg2, nil, :")"] ->
+          {:function, {:bucket, :lower}, [arg1, arg2], location}
       end
     )
   end
@@ -348,16 +366,17 @@ defmodule Cloak.Sql.Parser do
 
   defp function_expression() do
     switch([
-      {function_name() |> keyword(:"("), lazy(fn -> function_arguments() end) |> keyword(:")")},
+      {next_position() |> function_name() |> keyword(:"("), lazy(fn -> function_arguments() end) |> keyword(:")")},
       {:else, error_message(fail(""), "Expected an argument list")}
     ])
     |> map(fn
-      {[function, :"("], [arguments, :")"]} -> {:function, String.downcase(function), arguments}
+      {[location, function, :"("], [arguments, :")"]} -> {:function, String.downcase(function), arguments, location}
     end)
   end
 
-  defp function_name() do
-    choice([
+  defp function_name(previous_parser) do
+    previous_parser
+    |> choice([
       unquoted_identifier(),
       keyword(:left),
       keyword(:right),
@@ -380,6 +399,7 @@ defmodule Cloak.Sql.Parser do
   defp extract_expression() do
     pipe(
       [
+        next_position(),
         keyword(:extract),
         keyword(:"("),
         unquoted_identifier(),
@@ -387,13 +407,16 @@ defmodule Cloak.Sql.Parser do
         lazy(fn -> map(column(), &[&1]) end),
         keyword(:")"),
       ],
-      fn([:extract, :"(", part, :from, column, :")"]) -> {:function, String.downcase(part), column} end
+      fn([location, :extract, :"(", part, :from, column, :")"]) ->
+        {:function, String.downcase(part), column, location}
+      end
     )
   end
 
   defp trim_expression() do
     pipe(
       [
+        next_position(),
         keyword(:trim),
         keyword(:"("),
         option(choice([keyword(:both), keyword(:leading), keyword(:trailing)])),
@@ -403,10 +426,10 @@ defmodule Cloak.Sql.Parser do
         keyword(:")"),
      ],
      fn
-       [:trim, :"(", trim_type, nil, _, column, :")"] ->
-         {:function, trim_function(trim_type), [column]}
-       [:trim, :"(", trim_type, chars, _, column, :")"] ->
-         {:function, trim_function(trim_type), [column, chars]}
+       [location, :trim, :"(", trim_type, nil, _, column, :")"] ->
+         {:function, trim_function(trim_type), [column], location}
+       [location, :trim, :"(", trim_type, chars, _, column, :")"] ->
+         {:function, trim_function(trim_type), [column, chars], location}
      end
    )
   end
@@ -419,6 +442,7 @@ defmodule Cloak.Sql.Parser do
   defp substring_expression() do
     pipe(
       [
+        next_position(),
         keyword(:substring),
         keyword(:"("),
         column(),
@@ -430,31 +454,31 @@ defmodule Cloak.Sql.Parser do
         keyword(:")"),
      ],
      fn
-       [:substring, :"(", column, [_, from, _, for_count], :")"] ->
-         {:function, "substring", [column, from, for_count]}
-       [:substring, :"(", column, [:for, for_count], :")"] ->
-         {:function, "substring", [column, {:constant, :integer, 1}, for_count]}
-       [:substring, :"(", column, [_, from], :")"] ->
-         {:function, "substring", [column, from]}
+       [location, :substring, :"(", column, [_, from, _, for_count], :")"] ->
+         {:function, "substring", [column, from, for_count], location}
+       [location, :substring, :"(", column, [:for, for_count], :")"] ->
+         {:function, "substring", [column, {:constant, :integer, 1, _location = nil}, for_count], location}
+       [location, :substring, :"(", column, [_, from], :")"] ->
+         {:function, "substring", [column, from], location}
      end
    )
   end
 
-  defp left_associative_expression(operators, term_parser, normalizer \\ &infix_to_function/3) do
+  defp left_associative_expression(operators, term_parser, normalizer \\ &infix_to_function/4) do
     pipe(
       [
         term_parser,
-        many(sequence([choice(operators), term_parser])),
+        many(sequence([next_position(), choice(operators), term_parser])),
       ],
-      fn[first, rest] -> Enum.reduce(rest, first, fn([operator, right], left) ->
-        normalizer.(operator, left, right) end)
+      fn[first, rest] -> Enum.reduce(rest, first, fn([location, operator, right], left) ->
+        normalizer.(operator, left, right, location) end)
       end
     )
   end
 
-  defp infix_to_function(operator, left, right), do: {:function, to_string(operator), [left, right]}
+  defp infix_to_function(operator, left, right, location), do: {:function, to_string(operator), [left, right], location}
 
-  defp infix_to_boolean_expression(operator, left, right), do: {operator, left, right}
+  defp infix_to_boolean_expression(operator, left, right, _location), do: {operator, left, right}
 
   defp field_or_parameter(), do:
     either(qualified_identifier(), parameter())
@@ -462,7 +486,7 @@ defmodule Cloak.Sql.Parser do
   defp qualified_identifier() do
     map(
       pair_both(
-        identifier(),
+        pair_both(next_position(), identifier()),
         either(
           many1(
             pair_both(
@@ -479,13 +503,13 @@ defmodule Cloak.Sql.Parser do
         )
       ),
       fn
-        ({column, nil}) ->
-          {:identifier, :unknown, column}
-        ({table, {:., column}}) ->
-          {:identifier, table, column}
-        ({table, parts}) ->
+        ({{location, column}, nil}) ->
+          {:identifier, :unknown, column, location}
+        ({{location, table}, {:., column}}) ->
+          {:identifier, table, column, location}
+        ({{location, table}, parts}) ->
           column = parts |> Enum.map(fn ({:., part}) -> part end) |> Enum.join(".")
-          {:identifier, table, {:unquoted, column}}
+          {:identifier, table, {:unquoted, column}, location}
       end
     )
   end
@@ -670,7 +694,7 @@ defmodule Cloak.Sql.Parser do
     option(sequence([keyword(:escape), constant(:string)]))
     |> map(fn
       [_, constant] -> constant
-      nil -> {:constant, :string, nil}
+      nil -> {:constant, :string, nil, _location = nil}
     end)
   end
 
@@ -699,10 +723,10 @@ defmodule Cloak.Sql.Parser do
         keyword(:interval),
         constant_of([:string]),
       ],
-      fn([:interval, {:constant, :string, value}]) -> Timex.Duration.parse(value) end
+      fn([:interval, {:constant, :string, value, location}]) -> {Timex.Duration.parse(value), location} end
     )
-    |> satisfy(&match?({:ok, _}, &1))
-    |> map(fn({:ok, result}) -> {:constant, :interval, result} end)
+    |> satisfy(&match?({{:ok, _}, _}, &1))
+    |> map(fn({{:ok, result}, location}) -> {:constant, :interval, result, location} end)
   end
 
   defp any_constant() do
@@ -721,23 +745,23 @@ defmodule Cloak.Sql.Parser do
     map(
       sequence([option(keyword_of([:+, :-])), constant_of([:integer, :float])]),
       fn
-        [nil, {:constant, _type, _value} = constant] -> constant
-        [:+, {:constant, _type, _value} = constant] -> constant
-        [:-, {:constant, type, value}] -> {:constant, type, value * -1}
+        [nil, {:constant, _type, _value, _location} = constant] -> constant
+        [:+, {:constant, _type, _value, _location} = constant] -> constant
+        [:-, {:constant, type, value, location}] -> {:constant, type, value * -1, location}
       end
     )
-    |> satisfy(fn({:constant, type, _value}) -> expected_type == :numeric || type == expected_type end)
+    |> satisfy(fn({:constant, type, _value, _location}) -> expected_type == :numeric || type == expected_type end)
     |> label("#{expected_type} constant")
   end
 
   defp non_neg_integer(), do:
     numeric_constant(:integer)
-    |> satisfy(fn({:constant, :integer, value}) -> value >= 0 end)
+    |> satisfy(fn({:constant, :integer, value, _location}) -> value >= 0 end)
     |> label("non-negative integer constant")
 
   defp pos_integer(), do:
     numeric_constant(:integer)
-    |> satisfy(fn({:constant, :integer, value}) -> value > 0 end)
+    |> satisfy(fn({:constant, :integer, value, _location}) -> value > 0 end)
     |> label("positive integer constant")
 
   defp constant_of(expected_types) do
@@ -748,7 +772,7 @@ defmodule Cloak.Sql.Parser do
   defp constant(expected_type) do
     token(:constant)
     |> satisfy(fn(token) -> token.value.type == expected_type end)
-    |> map(&{:constant, &1.value.type, &1.value.value})
+    |> map(&{:constant, &1.value.type, &1.value.value, {&1.line, &1.column + 1}})
     |> label("#{expected_type} constant")
   end
 
@@ -837,7 +861,7 @@ defmodule Cloak.Sql.Parser do
       {keyword(:limit), pos_integer()},
       {:else, noop()}
     ])
-    |> map(fn {[:limit], [{:constant, :integer, amount}]} -> {:limit, amount} end)
+    |> map(fn {[:limit], [{:constant, :integer, amount, _}]} -> {:limit, amount} end)
   end
 
   defp optional_offset() do
@@ -845,7 +869,7 @@ defmodule Cloak.Sql.Parser do
       {keyword(:offset), non_neg_integer()},
       {:else, noop()}
     ])
-    |> map(fn {[:offset], [{:constant, :integer, amount}]} -> {:offset, amount} end)
+    |> map(fn {[:offset], [{:constant, :integer, amount, _}]} -> {:offset, amount} end)
   end
 
   defp optional_having() do
@@ -875,10 +899,10 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp disjunction_expression(term_parser), do:
-    left_associative_expression([keyword(:or)], conjunction_expression(term_parser), &infix_to_boolean_expression/3)
+    left_associative_expression([keyword(:or)], conjunction_expression(term_parser), &infix_to_boolean_expression/4)
 
   defp conjunction_expression(term_parser), do:
-    left_associative_expression([keyword(:and)], unary_not_expression(term_parser), &infix_to_boolean_expression/3)
+    left_associative_expression([keyword(:and)], unary_not_expression(term_parser), &infix_to_boolean_expression/4)
 
   defp unary_not_expression(term_parser), do:
     choice_deepest_error([
@@ -922,7 +946,7 @@ defmodule Cloak.Sql.Parser do
   defp invert_inequality(:=), do: :=
   defp invert_inequality(:<>), do: :<>
 
-  defp create_comparison({:constant, _, _} = lhs, comparator, rhs), do:
+  defp create_comparison({:constant, _, _, _} = lhs, comparator, rhs), do:
     {:comparison, rhs, invert_inequality(comparator), lhs}
   defp create_comparison(lhs, comparator, rhs), do:
     {:comparison, lhs, comparator, rhs}
@@ -932,6 +956,10 @@ defmodule Cloak.Sql.Parser do
       {keyword(:sample_users), pair_both(numeric_constant(:integer), keyword(:%))},
       {:else, noop()}
     ])
-    |> map(fn {[:sample_users], [{{:constant, :integer, amount}, :%}]} -> {:sample_rate, amount} end)
+    |> map(fn {[:sample_users], [{{:constant, :integer, amount, _}, :%}]} -> {:sample_rate, amount} end)
   end
+
+  defp next_position(), do:
+    position()
+    |> map(fn ({line, column}) -> {line, column + 1} end)
 end

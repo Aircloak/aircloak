@@ -11,13 +11,13 @@ defmodule Cloak.Sql.Query.Lenses.Test do
     end
 
     test "focuses on function arguments as well as function" do
-      query = %Query{columns: [{:function, "name", [:args]}]}
-      assert [:args, {:function, "name", [:args]}] == Lenses.terminals() |> normalize_elements(query)
+      query = %Query{columns: [{:function, "name", [:args], nil}]}
+      assert [:args, {:function, "name", [:args], nil}] == Lenses.terminals() |> normalize_elements(query)
     end
 
     test "recurses inside aliases" do
-      query = %Query{columns: [{{:function, "name", [:args]}, :as, "alias"}]}
-      assert [:args, {:function, "name", [:args]}] == Lenses.terminals() |> normalize_elements(query)
+      query = %Query{columns: [{{:function, "name", [:args], nil}, :as, "alias"}]}
+      assert [:args, {:function, "name", [:args], nil}] == Lenses.terminals() |> normalize_elements(query)
     end
   end
 

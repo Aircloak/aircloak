@@ -58,27 +58,29 @@ defmodule Cloak.Sql.Compiler.Validation do
   # Columns and expressions
   # -------------------------------------------------------------------
 
-  defp verify_function_exists(function = {_, name, _}) do
+  defp verify_function_exists(function = {:function, name, _, location}) do
     unless Function.exists?(function) do
       case Function.deprecation_info(function) do
         {:error, :not_found} ->
-          raise CompilationError, message: "Unknown function `#{Function.readable_name(name)}`."
+          raise CompilationError, source_location: location, message:
+            "Unknown function `#{Function.readable_name(name)}`."
         {:ok, %{alternative: alternative}} ->
-          raise CompilationError, message: "Function `#{Function.readable_name(name)}` has been deprecated. " <>
+          raise CompilationError, source_location: location, message:
+            "Function `#{Function.readable_name(name)}` has been deprecated. " <>
             "Depending on your use case, consider using `#{Function.readable_name(alternative)}` instead."
       end
     end
   end
 
-  defp verify_function_usage({:function, name, [argument]}, _subquery? = false) when name in ["min", "max", "median"] do
-    if Function.type(argument) == :text, do:
-      raise CompilationError, message:
+  defp verify_function_usage({:function, name, [arg], location}, _subquery? = false) when name in ["min", "max", "median"] do
+    if Function.type(arg) == :text, do:
+      raise CompilationError, source_location: location, message:
         "Function `#{name}` is allowed over arguments of type `text` only in subqueries."
     :ok
   end
-  defp verify_function_usage({:function, name, _}, _subquery? = true) do
+  defp verify_function_usage({:function, name, _, location}, _subquery? = true) do
     if Function.has_attribute?(name, :not_in_subquery), do:
-      raise CompilationError, message: "Function `#{name}` is not allowed in subqueries."
+      raise CompilationError, source_location: location, message: "Function `#{name}` is not allowed in subqueries."
     :ok
   end
   defp verify_function_usage(_function, _subquery?), do: :ok
@@ -86,8 +88,8 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_aggregated_columns(query) do
     case invalid_individual_columns(query) do
       [] -> :ok
-      [column | _rest] ->
-        raise CompilationError, message: "#{aggregated_expression_display(column)} " <>
+      [column = %{source_location: location} | _rest] ->
+        raise CompilationError, source_location: location, message: "#{aggregated_expression_display(column)} " <>
           "to appear in the `GROUP BY` clause or be used in an aggregate function."
     end
   end
@@ -103,9 +105,9 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp individual_column?(query, column), do:
     not Expression.constant?(column) and not Helpers.aggregated_column?(query, column)
 
-  defp aggregated_expression_display({:function, _function, [arg]}), do:
+  defp aggregated_expression_display({:function, _function, [arg], _location}), do:
     "Column `#{arg.name}` needs"
-  defp aggregated_expression_display({:function, _function, args}), do:
+  defp aggregated_expression_display({:function, _function, args, _location}), do:
     "Columns (#{args |> Enum.map(&"`#{&1.name}`") |> Enum.join(", ")}) need"
   defp aggregated_expression_display(%Expression{function: fun, function_args: args}) when fun != nil do
     [column | _] = for %Expression{constant?: false} = column <- args, do: column
@@ -121,24 +123,22 @@ defmodule Cloak.Sql.Compiler.Validation do
       [] -> :ok
       [expression | _] ->
         [aggregate | _] = aggregate_subexpressions(expression)
-        raise CompilationError, message:
+        raise CompilationError, source_location: aggregate.source_location, message:
           "Aggregate function `#{Function.readable_name(aggregate.function)}` can not be used in the `GROUP BY` clause."
     end
   end
 
   defp verify_non_selected_where_splitters(query) do
-    non_selected_where_splitters =
-      MapSet.difference(
-        MapSet.new(Query.outermost_where_splitters(query)),
-        MapSet.new(Query.outermost_selected_splitters(query))
-      )
+    selected_splitters = Query.outermost_selected_splitters(query) |> Enum.map(&Expression.semantic/1)
 
-    if MapSet.size(non_selected_where_splitters) > 0 do
-      raise CompilationError, message:
-        "Row splitter functions used in the `WHERE`-clause have to be used identically in the `SELECT`-clause first."
+    Query.outermost_where_splitters(query)
+    |> Enum.reject(& Expression.semantic(&1) in selected_splitters)
+    |> case do
+      [] -> query
+      [non_selected_where_splitter | _] ->
+        raise CompilationError, source_location: non_selected_where_splitter.source_location, message:
+          "Row splitter functions used in the `WHERE`-clause have to be used identically in the `SELECT`-clause first."
     end
-
-    query
   end
 
 
@@ -182,11 +182,10 @@ defmodule Cloak.Sql.Compiler.Validation do
       end
 
       with [{{table1, column1}, {table2, column2}} | _] <- CyclicGraph.disconnected_pairs(graph) do
-        raise CompilationError,
-          message:
-            "Missing where comparison for uid columns of tables `#{table1}` and `#{table2}`. " <>
-            "You can fix the error by adding `#{table1}.#{column1} = #{table2}.#{column2}` " <>
-            "condition to the `WHERE` clause."
+        raise CompilationError, message:
+          "Missing where comparison for uid columns of tables `#{table1}` and `#{table2}`. " <>
+          "You can fix the error by adding `#{table1}.#{column1} = #{table2}.#{column2}` " <>
+          "condition to the `WHERE` clause."
       end
     end)
 
@@ -198,10 +197,10 @@ defmodule Cloak.Sql.Compiler.Validation do
       Lenses.conditions_terminals(),
       join.conditions,
       fn
-        (%Cloak.Sql.Expression{table: %{name: table_name}, name: column_name}) ->
-          verify_scope(selected_tables, table_name, column_name)
-        ({:identifier, table_name, {_, column_name}}) ->
-          verify_scope(selected_tables, table_name, column_name)
+        (%Cloak.Sql.Expression{table: %{name: table_name}, name: column_name, source_location: location}) ->
+          verify_scope(selected_tables, table_name, column_name, location)
+        ({:identifier, table_name, {_, column_name}, location}) ->
+          verify_scope(selected_tables, table_name, column_name, location)
         (_) -> :ok
       end
     )
@@ -214,9 +213,10 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_join_conditions_scope(table_name, selected_tables) when is_binary(table_name),
     do: [table_name | selected_tables]
 
-  defp verify_scope(tables_in_scope, table_name, column_name) do
+  defp verify_scope(tables_in_scope, table_name, column_name, location) do
     unless Enum.member?(tables_in_scope, table_name), do:
-      raise CompilationError, message: "Column `#{column_name}` of table `#{table_name}` is used out of scope."
+      raise CompilationError, source_location: location, message:
+        "Column `#{column_name}` of table `#{table_name}` is used out of scope."
   end
 
   defp verify_join_types(query) do
@@ -260,7 +260,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     |> case do
       [] -> :ok
       [column | _rest] ->
-        raise CompilationError, message:
+        raise CompilationError, source_location: column.source_location, message:
           "Expression #{Expression.display_name(column)} is not valid in the `WHERE` clause."
     end
   end
@@ -272,7 +272,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_where_condition({verb, column, _}) when verb in [:like, :ilike] do
     if column.type != :text do
       verb = verb |> to_string() |> String.upcase()
-      raise CompilationError, message:
+      raise CompilationError, source_location: column.source_location, message:
         "Column #{Expression.display_name(column)} of type `#{column.type}` cannot be used in a #{verb} expression."
     end
   end
@@ -281,7 +281,8 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_where_condition_types(column_a, column_b) do
     unless comparable?(column_a.type, column_b.type) do
-      raise CompilationError, message: "Column #{Expression.display_name(column_a)} of type `#{column_a.type}` and "
+      raise CompilationError, source_location: column_a.source_location, message:
+        "Column #{Expression.display_name(column_a)} of type `#{column_a.type}` and "
         <> "column #{Expression.display_name(column_b)} of type `#{column_b.type}` cannot be compared."
     end
   end
@@ -290,8 +291,10 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp comparable?(:real, :integer), do: true
   defp comparable?(type1, type2), do: type1 == type2
 
-  defp check_for_string_inequalities(comparator, %Expression{type: :text}) when comparator in [:>, :>=, :<, :<=], do:
-    raise CompilationError, message: "Inequalities on string values are currently not supported."
+  defp check_for_string_inequalities(comparator, %Expression{type: :text, source_location: location})
+    when comparator in [:>, :>=, :<, :<=], do:
+      raise CompilationError, source_location: location, message:
+        "Inequalities on string values are currently not supported."
   defp check_for_string_inequalities(_, _), do: :ok
 
   defp verify_having(query) do
@@ -299,7 +302,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
     for condition <- Lens.to_list(Query.Lenses.conditions(), query.having),
         term <- Condition.targets(condition), individual_column?(query, term), do:
-      raise CompilationError,
+      raise CompilationError, source_location: term.source_location,
         message: "`HAVING` clause can not be applied over column #{Expression.display_name(term)}."
   end
 

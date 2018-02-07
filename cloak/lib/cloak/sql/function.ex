@@ -144,13 +144,13 @@ defmodule Cloak.Sql.Function do
 
   @doc "Returns true if the given column definition is a function call, false otherwise."
   @spec function?(t) :: boolean
-  def function?({:function, _, _}), do: true
+  def function?({:function, _, _, _}), do: true
   def function?(_), do: false
 
   @doc "Returns true if the function has the specified attribute, false otherise."
   @spec has_attribute?(t | String.t | nil, atom) :: boolean
   def has_attribute?("coalesce", _attribute), do: false # coalesce is only used internally
-  def has_attribute?({:function, name, _}, attribute), do: has_attribute?(name, attribute)
+  def has_attribute?({:function, name, _, _}, attribute), do: has_attribute?(name, attribute)
   def has_attribute?(%Expression{function?: true, function: name}, attribute), do: has_attribute?(name, attribute)
   def has_attribute?(name, attribute) do
     case Map.get(@functions, name) do
@@ -161,15 +161,15 @@ defmodule Cloak.Sql.Function do
 
   @doc "Returns the target type of the given cast."
   @spec cast_target(t) :: argument_type
-  def cast_target({:function, {:cast, target}, _}), do: target
+  def cast_target({:function, {:cast, target}, _, _}), do: target
 
   @doc "Returns a list of possible argument lists required by the given function call."
   @spec argument_types(t) :: [[argument_type]]
-  def argument_types({:function, function, _}), do: @functions[function].type_specs |> Map.keys()
+  def argument_types({:function, function, _, _}), do: @functions[function].type_specs |> Map.keys()
 
   @doc "Returns the argument specifiaction of the given function call."
   @spec arguments(t) :: [Expression.t]
-  def arguments({:function, _, arguments}), do: arguments
+  def arguments({:function, _, arguments, _}), do: arguments
   def arguments(_), do: []
 
   @doc "Returns a stringified version of the given function identifier."
@@ -181,8 +181,8 @@ defmodule Cloak.Sql.Function do
   @doc "Returns the return type of the given function call or nil if it is badly typed."
   @spec return_type(t) :: data_type | nil
   def return_type(%Expression{function?: true, function: name, function_args: args}), do:
-    return_type({:function, name, args})
-  def return_type(function = {:function, name, _}) do
+    return_type({:function, name, args, nil})
+  def return_type(function = {:function, name, _, _}) do
     @functions[name].type_specs
     |> Enum.find(fn({arguments, _}) -> do_well_typed?(function, arguments) end)
     |> case do
@@ -193,7 +193,7 @@ defmodule Cloak.Sql.Function do
 
   @doc "Returns the type of the given expression."
   @spec type(t) :: data_type
-  def type(function = {:function, _, _}), do: return_type(function)
+  def type(function = {:function, _, _, _}), do: return_type(function)
   def type({column, :as, _}), do: type(column)
   def type({:distinct, column}), do: type(column)
   def type(%Expression{type: type}), do: type
@@ -222,7 +222,7 @@ defmodule Cloak.Sql.Function do
 
   @doc "Returns true if the function is a valid cloak function"
   @spec exists?(t) :: boolean
-  def exists?({:function, function, _}), do: @functions[function] !== nil
+  def exists?({:function, function, _, _}), do: @functions[function] !== nil
 
   @doc "Returns true if a function is a math function"
   @spec math_function?(t | String.t | nil) :: boolean
@@ -250,7 +250,7 @@ defmodule Cloak.Sql.Function do
 
   @doc "Provides information about alternatives for deprecated functions."
   @spec deprecation_info(t) :: {:error, :function_exists | :not_found} | {:ok, %{alternative: String.t}}
-  def deprecation_info({:function, name, _} = function) do
+  def deprecation_info({:function, name, _, _} = function) do
     case {exists?(function), @deprecated_functions[name]} do
       {true, _} -> {:error, :function_exists}
       {false, nil} -> {:error, :not_found}
@@ -272,7 +272,7 @@ defmodule Cloak.Sql.Function do
       |> Enum.all?(fn({type, index}) -> type_matches?(type, Enum.at(arguments(function), index)) end)
   end
 
-  defp type_matches?(type, function = {:function, _, _}), do: type_matches?(type, %{type: return_type(function)})
+  defp type_matches?(type, function = {:function, _, _, _}), do: type_matches?(type, %{type: return_type(function)})
   defp type_matches?(type, {:distinct, column}), do: type_matches?(type, column)
   defp type_matches?({:optional, _}, nil), do: true
   defp type_matches?(_, nil), do: false

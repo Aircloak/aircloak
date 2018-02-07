@@ -219,7 +219,7 @@ export default class QueriesView extends React.PureComponent {
   runQuery() {
     if (! this.runEnabled()) return;
 
-    window.showErrorLocation(-1, -1); // clear error marker
+    window.clearErrorLocation();
 
     const queryId = uuidv4();
     const statement = this.state.statement;
@@ -243,7 +243,7 @@ export default class QueriesView extends React.PureComponent {
 
   parseResultError(error: string) {
     if (!error) return;
-    const matches = error.match(/at line (\d+), column (\d+)\./i);
+    const matches = error.match(/at line (\d+), column (\d+)/i);
     if (!matches) return;
     const line = parseInt(matches[1], 10);
     const char = parseInt(matches[2], 10);

@@ -46,7 +46,7 @@ defmodule Cloak.Sql.Range do
     |> Query.Lenses.conditions()
     |> Lens.filter(&Condition.inequality?/1)
     |> Lens.to_list(query)
-    |> Enum.group_by(&Condition.subject/1)
+    |> Enum.group_by(& &1 |> Condition.subject() |> Expression.semantic())
 
 
   # -------------------------------------------------------------------
