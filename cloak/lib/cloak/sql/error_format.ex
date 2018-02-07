@@ -20,10 +20,10 @@ defmodule Cloak.Sql.ErrorFormat do
   The error was detected at line 3, column 7:
 
 
-    count(*) from purchases
-    where price > 10
-          ^
-    and price > 5
+    1:    count(*) from purchases
+    2:    where price > 10
+                ^
+    3:    and price > 5
   ```
 
   Note that the code snippet in the error message will be indented with tabs, so that it's treated as a code block if
