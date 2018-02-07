@@ -13,16 +13,16 @@ defmodule Cloak.Query.ErrorTest do
   test "parse errors include a location indicator" do
     assert_query "select select", %{error: error}
     assert String.contains?(error, """
-      \tselect select
-      \t       ^
+      \t1:    select select
+      \t             ^
       """ |> String.trim())
   end
 
   test "compiler errors include a location indicator" do
     assert_query "select nonexistent from test_errors", %{error: error}
     assert String.contains?(error, """
-      \tselect nonexistent from test_errors
-      \t       ^
+      \t1:    select nonexistent from test_errors
+      \t             ^
       """)
   end
 

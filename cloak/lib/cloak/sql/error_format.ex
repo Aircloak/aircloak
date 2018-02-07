@@ -30,6 +30,8 @@ defmodule Cloak.Sql.ErrorFormat do
   formatted with markdown.
   """
 
+  @line_number_width 6
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -54,18 +56,25 @@ defmodule Cloak.Sql.ErrorFormat do
   defp error_indicator(query, line, column) do
     platform_independent_newline = ~r/(*ANY)\n/
     context = query |> String.split(platform_independent_newline) |> Enum.drop(max(line - 2, 0))
-    filler = String.duplicate(" ", column - 1)
+    [prev_line_no, line_no, next_line_no] = [line - 1, line, line + 1] |> Enum.map(&pad_line_number/1)
+    filler = String.duplicate(" ", column - 1 + @line_number_width)
 
     case {line, context} do
-      {1, [error_line, line_after | _]} ->
-        [":\n\n\t", error_line, "\n\t", filler, "^\n\t", line_after]
+      {1, [error_line, next_line | _]} ->
+        [":\n\n\t", line_no, error_line, "\n\t", filler, "^\n\t", next_line_no, next_line]
       {1, [error_line | _]} ->
-        [":\n\n\t", error_line, "\n\t", filler, "^\n"]
-      {_, [line_before, error_line]} ->
-        [":\n\n\t", line_before, "\n\t", error_line, "\n\t", filler, "^\n"]
-      {_, [line_before, error_line, line_after | _]} ->
-        [":\n\n\t", line_before, "\n\t", error_line, "\n\t", filler, "^\n\t", line_after]
+        [":\n\n\t", line_no, error_line, "\n\t", filler, "^\n"]
+      {_, [prev_line, error_line]} ->
+        [":\n\n\t", prev_line_no, prev_line, "\n\t", line_no, error_line, "\n\t", filler, "^\n"]
+      {_, [prev_line, error_line, next_line | _]} ->
+        [
+          ":\n\n\t", prev_line_no, prev_line, "\n\t", line_no, error_line, "\n\t", filler, "^\n\t", next_line_no,
+          next_line
+        ]
       _invalid_location -> "."
     end
   end
+
+  defp pad_line_number(line), do:
+    String.pad_trailing("#{to_string(line)}:", @line_number_width)
 end
