@@ -6,8 +6,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   as checks to validate that columns used in certain filter conditions haven't been altered.
   """
 
-  alias Cloak.Sql.{CompilationError, Condition, Expression, Query, Range, Function}
-  alias Cloak.Sql.Compiler.TypeChecker.{Narrative, Type}
+  alias Cloak.Sql.{CompilationError, Condition, Expression, Query, Range}
+  alias Cloak.Sql.Compiler.TypeChecker.Type
   alias Cloak.Sql.Compiler.Helpers
 
   @max_allowed_restricted_functions 5
@@ -44,12 +44,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     |> Enum.each(fn(column) ->
       type = Type.establish_type(column, query)
       if potentially_crashing_function?(type) do
-        explanation = type.history_of_restricted_transformations
-        |> filter_transformations([:potentially_crashing_function])
-        |> Narrative.construct(type.history_of_columns_involved)
         raise CompilationError, source_location: column.source_location, message: """
-          #{explanation}
-
           Functions are not allowed to be used in ways that could cause a database exception.
           This situation arises when a column or constant value is divided (`/`)
           by an expression that both contains a database column as well as a constant value
@@ -67,12 +62,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     |> Enum.each(fn(expression) ->
       type = Type.establish_type(expression, query)
       if restricted_transformations_count(type) > @max_allowed_restricted_functions do
-        explanation = type.history_of_restricted_transformations
-        |> filter_transformations([:restricted_function])
-        |> Narrative.construct(type.history_of_columns_involved)
         raise CompilationError, source_location: expression.source_location, message: """
-          #{explanation}
-
           Queries containing expressions with a high number of functions that are used in combination
           with constant values are prohibited. For further information about when this condition is
           triggered, please check the restrictions section of the user guides.
@@ -145,15 +135,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     |> Range.find_ranges()
     |> Enum.each(fn(%Range{column: column, interval: interval}) ->
       unless clear_range_lhs?(column, query, interval) do
-        type = Type.establish_type(column, query)
-        {implicit_range_functions, other_functions} = type.applied_functions
-        |> Enum.split_with(& Function.implicit_range?/1)
-
         raise CompilationError, source_location: column.source_location, message: """
         Range expressions cannot include any functions except aggregations and a cast.
-
-        #{Narrative.construct_implicit_range_narrative(implicit_range_functions, other_functions,
-          type.history_of_columns_involved)}
         """
       end
     end)
@@ -190,10 +173,4 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       (_) -> false
     end)
     |> Enum.count()
-
-  defp filter_transformations(history_of_transformations, required_types), do:
-    history_of_transformations
-    |> Enum.filter(fn({type, _}) -> type in required_types end)
-    |> Enum.group_by(fn({type, _}) -> type end, fn({_, name}) -> name end)
-    |> Enum.map(fn({type, names}) -> {type, Enum.uniq(names)} end)
 end

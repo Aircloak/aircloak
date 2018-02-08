@@ -86,7 +86,7 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
     case compile(query, data_source()) do
       {:ok, _} -> true
       {:error, reason} ->
-        if reason =~ ~r/restricted function/ do
+        if reason =~ ~r/Queries containing expressions with a high number of functions/ do
           false
         else
           raise "Compilation failed with other reason than illegal filtering condition: #{inspect reason}"
