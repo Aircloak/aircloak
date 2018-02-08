@@ -398,7 +398,8 @@ GRANT ALL ON TABLE purchases TO cloak;
 CREATE TABLE demographics (
     uid integer,
     name character varying(40),
-    age integer
+    age integer,
+    alive boolean
 );
 
 ALTER TABLE public.demographics OWNER TO cloak;
@@ -409,38 +410,38 @@ CREATE INDEX ON demographics (uid);
 -- Data for Name: demographics; Type: TABLE DATA; Schema: public; Owner: cloak
 --
 
-COPY demographics (uid, name, age) FROM stdin;
-1	Sebastian	31
-2	Cristian	10
-3	Sasa	10
-4	Pascal	10
-5	Pawel	10
-6	Felix	29
-7	Paul	10
-8	Mamiko	10
-9	Fred	20
-10	Bob	25
-11	Lisa	15
-12	Laura	30
-13	Bob	45
-14	Bob	50
-15	George	60
-16	Lisa	25
-17	Steven	50
-18	Isabel	27
-19	Isabel	28
-20	Isabel	29
-21	Isabel	30
-22	Isabel	31
-23	Isabel	32
-24	Isabel	33
-25	Lisa	34
-26	Weronika	24
-27	Muni	28
-28	Melanie	27
-29	Elena	32
-30	Isabel	26
-31	Isabel	25
+COPY demographics (uid, name, age, alive) FROM stdin;
+1	Sebastian	31	TRUE
+2	Cristian	10	TRUE
+3	Sasa	10	TRUE
+4	Pascal	10	TRUE
+5	Pawel	10	FALSE
+6	Felix	29	TRUE
+7	Paul	10	TRUE
+8	Mamiko	10	TRUE
+9	Fred	20	FALSE
+10	Bob	25	FALSE
+11	Lisa	15	FALSE
+12	Laura	30	FALSE
+13	Bob	45	FALSE
+14	Bob	50	FALSE
+15	George	60	FALSE
+16	Lisa	25	FALSE
+17	Steven	50	TRUE
+18	Isabel	27	TRUE
+19	Isabel	28	TRUE
+20	Isabel	29	TRUE
+21	Isabel	30	TRUE
+22	Isabel	31	TRUE
+23	Isabel	32	TRUE
+24	Isabel	33	TRUE
+25	Lisa	34	FALSE
+26	Weronika	24	FALSE
+27	Muni	28	FALSE
+28	Melanie	27	FALSE
+29	Elena	32	FALSE
+30	Isabel	26	FALSE
+31	Isabel	25	FALSE
 \.
 
 REVOKE ALL ON TABLE demographics FROM PUBLIC;
