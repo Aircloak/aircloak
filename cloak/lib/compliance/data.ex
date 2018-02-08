@@ -85,7 +85,7 @@ defmodule Compliance.Data do
         user_id: :erlang.unique_integer([:positive]),
         name: generate_name(names),
         age: :rand.uniform(70) + 10,
-        height: :rand.uniform() * 30 + 170,
+        height: nullable(:rand.uniform() * 30 + 170),
         active: :rand.uniform() < 0.80,
         addresses: generate_addresses(cities),
         notes: generate_notes(words),
@@ -96,6 +96,9 @@ defmodule Compliance.Data do
       user
     end)
   end
+
+  defp nullable(item), do:
+    if :rand.uniform() < 0.80, do: item, else: nil
 
   defp output_progress(num, total) do
     percent = round((num/total) * 100)
