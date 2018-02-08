@@ -47,6 +47,7 @@ defmodule Cloak.Sql.FixAlign do
   """
   @spec align_interval(interval(x), Keyword.t) :: interval(x) when x: var
   def align_interval(interval, opts \\ [])
+  def align_interval({x, y}, _) when is_boolean(x) and is_boolean(y), do: {x, y}
   def align_interval({x, y}, _) when is_number(x) and is_number(y) and x > y, do: raise "Invalid interval"
   def align_interval(interval = {x, y}, opts) when is_number(x) and is_number(y) do
     allow_fractions = Keyword.get(opts, :allow_fractions, true)

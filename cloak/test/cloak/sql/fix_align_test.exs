@@ -4,6 +4,9 @@ defmodule Cloak.Sql.FixAlign.Test do
 
   alias Cloak.Sql.FixAlign
 
+  test "aligning a boolean interval", do:
+    assert {false, true} = FixAlign.align_interval({false, true})
+
   for interval_type <- [:int, :float] do
     property "aligned #{interval_type} interval contains both ends of input" do
       for_all {x, y} in interval(unquote(interval_type)) do
