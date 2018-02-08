@@ -69,10 +69,10 @@ defmodule Cloak.Sql.Parser do
   @type parsed_query :: %{
     command: :select | :show,
     columns: [column | {column, :as, String.t} | {:*, String.t} | :*],
-    group_by: [String.t],
+    group_by: [column],
     from: from_clause,
     where: where_clause,
-    order_by: [{String.t, :asc | :desc}],
+    order_by: [{column, :asc | :desc}],
     having: having_clause,
     show: :tables | :columns,
     limit: integer,
