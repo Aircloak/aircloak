@@ -50,8 +50,14 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric")
 
     test "forbids column <> unclear_column" do
-      assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE string <> upper(string)")
-      assert message =~
+      assert {error, {1, 44}} = error_with_location("SELECT COUNT(*) FROM table WHERE string <> upper(string)")
+      assert error =~
+        ~r/No functions or mathematical operations are allowed when comparing two database columns with `<>`./
+    end
+
+    test "forbids unclear_column <> column" do
+      assert {error, {1, 34}} = error_with_location("SELECT COUNT(*) FROM table WHERE upper(string) <> string")
+      assert error =~
         ~r/No functions or mathematical operations are allowed when comparing two database columns with `<>`./
     end
 
@@ -222,6 +228,13 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert {:ok, _, _} =
         compile("SELECT COUNT(*) FROM table WHERE substring(string FROM 1 FOR 10) NOT IN ('foo', 'bar', 'baz')")
     end
+  end
+
+  defp error_with_location(query_string) do
+    Compiler.compile!(data_source(), Parser.parse!(query_string), [], %{})
+    flunk "Expected an error"
+  rescue e in Cloak.Sql.CompilationError ->
+    {e.message, e.source_location}
   end
 
   defp compile(query_string), do:

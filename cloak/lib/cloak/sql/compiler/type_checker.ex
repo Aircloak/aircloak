@@ -94,8 +94,14 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
             For more information see the "Restrictions" section of the user guides.
             """
       else
-        unless Type.clear_column?(lhs_type) and Type.clear_column?(rhs_type), do:
-          raise CompilationError, source_location: lhs.source_location, message: """
+        {error, location} = cond do
+          not Type.clear_column?(lhs_type) -> {true, lhs.source_location}
+          not Type.clear_column?(rhs_type) -> {true, rhs.source_location}
+          true -> {false, nil}
+        end
+
+        if error, do:
+          raise CompilationError, source_location: location, message: """
             No functions or mathematical operations are allowed when comparing two database columns with `<>`.
             For more information see the "Restrictions" section of the user guides.
             """
