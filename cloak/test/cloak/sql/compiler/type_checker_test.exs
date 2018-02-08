@@ -50,9 +50,15 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric")
 
     test "forbids column <> unclear_column" do
-      assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE string <> upper(string)")
-      assert message ==
-        "No functions or mathematical operations are allowed when comparing two database columns with `<>`."
+      assert {error, {1, 44}} = error_with_location("SELECT COUNT(*) FROM table WHERE string <> upper(string)")
+      assert error =~
+        ~r/No functions or mathematical operations are allowed when comparing two database columns with `<>`./
+    end
+
+    test "forbids unclear_column <> column" do
+      assert {error, {1, 34}} = error_with_location("SELECT COUNT(*) FROM table WHERE upper(string) <> string")
+      assert error =~
+        ~r/No functions or mathematical operations are allowed when comparing two database columns with `<>`./
     end
 
     test "allows clear <> lhs in subquery HAVING", do:
@@ -99,19 +105,19 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE ltrim(string, 'abc') = 'foo'")
 
     test "forbids string manipulation functions on unclear columns in top-level select", do:
-      assert {:error, "String manipulation functions cannot be combined with other transformations."} =
+      assert {:error, "String manipulation functions cannot be combined with other transformations." <> _} =
         compile("SELECT btrim(string || string, 'abc') FROM table")
 
     test "forbids string manipulation functions on unclear columns in positive conditions", do:
-      assert {:error, "String manipulation functions cannot be combined with other transformations."} =
+      assert {:error, "String manipulation functions cannot be combined with other transformations." <> _} =
         compile("SELECT COUNT(*) FROM table WHERE btrim(string || string, 'abc') = 'foo'")
 
     test "forbids operations after a string manipulation function", do:
-      assert {:error, "String manipulation functions cannot be combined with other transformations."} =
+      assert {:error, "String manipulation functions cannot be combined with other transformations." <> _} =
         compile("SELECT COUNT(*) FROM table WHERE rtrim(string) || string = 'foo'")
 
     test "forbids complex expressions on the RHS of conditions with string manipulation functions", do:
-      assert {:error, "Results of string manipulation functions can only be compared to constants."} =
+      assert {:error, "Results of string manipulation functions can only be compared to constants." <> _} =
         compile("SELECT COUNT(*) FROM table WHERE substring(string from 1) = lower(string)")
 
     test "allows raw cast columns on the RHS of conditions with string manipulation functions", do:
@@ -222,6 +228,13 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert {:ok, _, _} =
         compile("SELECT COUNT(*) FROM table WHERE substring(string FROM 1 FOR 10) NOT IN ('foo', 'bar', 'baz')")
     end
+  end
+
+  defp error_with_location(query_string) do
+    Compiler.compile!(data_source(), Parser.parse!(query_string), [], %{})
+    flunk "Expected an error"
+  rescue e in Cloak.Sql.CompilationError ->
+    {e.message, e.source_location}
   end
 
   defp compile(query_string), do:
