@@ -145,10 +145,10 @@ defmodule AircloakCI.Build.Server do
   @doc "Returns the job type, which is the name of the job without the component prefix."
   @spec job_type(job_name) :: String.t
   def job_type(job_name) do
-    case String.split(job_name, "_") do
-      [_component, "compile"] -> "compile"
-      [_component, "test"] -> "test"
-      _other -> job_name
+    case Regex.named_captures(~r/.*_(?<job_type>[^_]+)$/, job_name) do
+      %{"job_type" => "compile"} -> "compile"
+      %{"job_type" => "test"} -> "test"
+      _ -> job_name
     end
   end
 
