@@ -806,6 +806,10 @@ defmodule Cloak.Sql.Parser do
         keyword(:desc)
       )
     )
+    |> map(fn
+      nil -> :asc
+      other -> other
+    end)
   end
 
   defp identifier(parser \\ noop()) do

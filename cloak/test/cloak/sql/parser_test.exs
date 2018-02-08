@@ -533,7 +533,7 @@ defmodule Cloak.Sql.Parser.Test do
           identifier("a"), identifier("b"), identifier("c")
         ], from: unquoted("foo"), order_by: [
           {identifier("a"), :desc}, {identifier("b"), :asc},
-          {identifier("c"), nil}
+          {identifier("c"), :asc}
         ])
     )
   end
@@ -623,7 +623,7 @@ defmodule Cloak.Sql.Parser.Test do
         group_by: [identifier("column")],
         order_by: [
           {identifier("column"), :desc},
-          {function("count", [{:distinct, identifier("column")}]), :nil}
+          {function("count", [{:distinct, identifier("column")}]), :asc}
         ]
       )
     )
