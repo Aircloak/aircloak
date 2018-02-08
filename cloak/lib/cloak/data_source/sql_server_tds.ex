@@ -27,7 +27,7 @@ defmodule Cloak.DataSource.SQLServerTds do
         connection
     after :timer.seconds(5)
       ->
-        GenServer.stop(connection)
+        GenServer.stop(connection, :normal, :timer.seconds(5))
         DataSource.raise_error("Unknown failure during database connection process")
     end
   end
