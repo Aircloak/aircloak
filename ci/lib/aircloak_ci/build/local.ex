@@ -11,7 +11,6 @@ defmodule AircloakCI.Build.Local do
     sha: String.t,
     merge_sha: String.t,
     merge_state: Github.API.merge_state,
-    status_checks: Github.API.statuses,
     approved?: boolean
   }
 
@@ -57,7 +56,6 @@ defmodule AircloakCI.Build.Local do
       sha: String.trim(CmdRunner.run_with_output!("git rev-parse HEAD")),
       merge_sha: String.trim(CmdRunner.run_with_output!("git rev-parse HEAD")),
       merge_state: :mergeable,
-      status_checks: %{},
       approved?: true
     }
 
