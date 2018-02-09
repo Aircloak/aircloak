@@ -174,7 +174,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> Lens.to_list(query.having)
 
   defp order_by_columns(order_by_clauses), do:
-    Enum.map(order_by_clauses, fn({column, _direction}) -> column end)
+    Enum.map(order_by_clauses, fn({column, _direction, _nulls}) -> column end)
 
   defp align_join_ranges(query), do:
     query

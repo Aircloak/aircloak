@@ -55,7 +55,7 @@ defmodule Cloak.Sql.Query do
     implicit_count?: boolean,
     group_by: [Function.t],
     where: filter_clause,
-    order_by: [{Expression.t, :asc | :desc}],
+    order_by: [{Expression.t, :asc | :desc, :nulls_first | :nulls_last}],
     show: :tables | :columns | nil,
     selected_tables: [DataSource.Table.t],
     db_columns: [Expression.t],
@@ -211,7 +211,7 @@ defmodule Cloak.Sql.Query do
 
   @doc "Returns the list of order by expressions."
   def order_by_expressions(query), do:
-    Enum.map(query.order_by, fn({column, _}) -> column end)
+    Enum.map(query.order_by, fn({column, _, _}) -> column end)
 
   @doc "Returns the ordered list of bucket columns."
   @spec bucket_columns(t) :: [Expression.t]

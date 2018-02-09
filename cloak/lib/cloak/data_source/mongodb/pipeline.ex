@@ -192,7 +192,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   defp order_rows([]), do: []
   defp order_rows(order_by) do
-    order_by = for {column, dir} <- order_by, into: %{} do
+    order_by = for {column, dir, _nulls} <- order_by, into: %{} do
       dir = if dir == :desc do -1 else 1 end
       {column.alias || column.name, dir}
     end
@@ -221,9 +221,9 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
         alias = column.alias || column.name || "__unknown_#{index}"
         %Expression{column | alias: alias}
       end)
-    order_by = for {column, dir} <- query.order_by do
+    order_by = for {column, dir, nulls} <- query.order_by do
       column_with_alias = Enum.find(needed_columns, column, &%Expression{&1 | alias: nil} == column)
-      {column_with_alias, dir}
+      {column_with_alias, dir, nulls}
     end
     %Query{query | db_columns: needed_columns, order_by: order_by}
   end

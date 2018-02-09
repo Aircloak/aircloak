@@ -302,7 +302,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     aliases = for {column, :as, name} <- columns, into: %{}, do:
       {{:identifier, :unknown, {:unquoted, name}, @dummy_location}, column}
     columns = Enum.map(columns, fn ({column, :as, _name}) -> column; (column) -> column end)
-    order_by = for {column, direction} <- query.order_by, do: {resolve_alias(aliases, column), direction}
+    order_by = for {column, direction, nulls} <- query.order_by, do: {resolve_alias(aliases, column), direction, nulls}
     group_by = for identifier <- query.group_by, do: resolve_alias(aliases, identifier)
     where = update_in(query.where, [Lenses.conditions_terminals()], &resolve_alias(aliases, &1))
     having = update_in(query.having, [Lenses.conditions_terminals()], &resolve_alias(aliases, &1))
@@ -336,7 +336,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     all_columns = query |> all_visible_columns() |> Enum.map(&(&1.column.name))
     possible_identifiers = aliases ++ all_columns
     referenced_identifiers =
-      (for {identifier, _direction} <- query.order_by, do: identifier) ++
+      (for {identifier, _direction, _nulls} <- query.order_by, do: identifier) ++
       query.group_by ++
       Lens.to_list(Lenses.conditions_terminals(), [query.where, query.having])
     ambiguous_names = for {:identifier, :unknown, {_, name}, location} <- referenced_identifiers,
@@ -507,7 +507,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     %Query{query | order_by:
       Enum.map(
         query.order_by,
-        fn({expression, direction}) -> {compile_reference(expression, query, "ORDER BY"), direction} end
+        fn({expression, direction, nulls}) -> {compile_reference(expression, query, "ORDER BY"), direction, nulls} end
       )
     }
 

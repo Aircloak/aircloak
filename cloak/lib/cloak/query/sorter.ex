@@ -17,10 +17,10 @@ defmodule Cloak.Query.Sorter do
   def order_rows(rows, _columns, [], _mapper), do: rows
   def order_rows(rows, columns, order_by, mapper) do
     order_by_indices = Enum.map(order_by,
-      fn({expression, direction}) ->
+      fn({expression, direction, nulls}) ->
         index = Enum.find_index(columns, &(&1 == expression))
         true = (index != nil)
-        {index, direction}
+        {index, direction, nulls}
       end
     )
 
@@ -39,7 +39,7 @@ defmodule Cloak.Query.Sorter do
       true -> row1 < row2
     end
   end
-  defp compare_rows(row1, row2, [{index, direction} | remaining_order]) do
+  defp compare_rows(row1, row2, [{index, direction, _nulls} | remaining_order]) do
     field1 = Enum.at(row1, index)
     field2 = Enum.at(row2, index)
     case field1 === field2 do
