@@ -795,42 +795,31 @@ defmodule Cloak.Sql.Parser do
   defp order_by_field() do
     sequence([
       column(),
-      order_by_direction(),
-      nulls_specifier()
+      option(order_by_direction()),
+      option(nulls_specifier()),
     ])
     |> map(fn
-      [col, :asc, nil] -> {col, :asc, :nulls_last}
-      [col, :desc, nil] -> {col, :desc, :nulls_first}
+      [col, nil, nulls] -> {col, :asc, nulls}
       [col, direction, nulls] -> {col, direction, nulls}
     end)
-  end
-
-  defp order_by_direction() do
-    option(
-      either(
-        keyword(:asc),
-        keyword(:desc)
-      )
-    )
     |> map(fn
-      nil -> :asc
-      other -> other
+      {col, :asc, nil} -> {col, :asc, :nulls_last}
+      {col, :desc, nil} -> {col, :desc, :nulls_first}
+      {col, direction, nulls} -> {col, direction, nulls}
     end)
   end
+
+  defp order_by_direction(), do:
+    either(keyword(:asc), keyword(:desc))
 
   defp nulls_specifier() do
-    option(sequence([keyword(:nulls), token(:unquoted) |> map(& &1.value)]))
-    |> satisfy(fn
-      nil -> true
-      [:nulls, token] -> String.downcase(token) in ~w/first last/
-    end)
-    |> map(fn
-      nil -> nil
-      [:nulls, token] ->
-        case String.downcase(token) do
-          "first" -> :nulls_first
-          "last" -> :nulls_last
-        end
+    sequence([keyword(:nulls), token(:unquoted) |> map(& &1.value)])
+    |> satisfy(fn([:nulls, token]) -> String.downcase(token) in ~w/first last/ end)
+    |> map(fn([:nulls, token]) ->
+      case String.downcase(token) do
+        "first" -> :nulls_first
+        "last" -> :nulls_last
+      end
     end)
   end
 
