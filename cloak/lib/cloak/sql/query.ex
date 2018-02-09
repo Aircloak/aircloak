@@ -319,7 +319,8 @@ defmodule Cloak.Sql.Query do
 
   defp required_expressions(%__MODULE__{command: :select, subquery?: true, emulated?: false} = query) do
     # non-emulated subquery -> the selected columns are all selected expressions
-    Enum.zip(query.column_titles, query.columns)
+    query.column_titles
+    |> Enum.zip(query.columns)
     |> Enum.map(fn({column_alias, column}) -> %Expression{column | alias: column_alias} end)
   end
   defp required_expressions(%__MODULE__{command: :select} = query) do
