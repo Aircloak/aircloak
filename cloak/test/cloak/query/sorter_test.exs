@@ -20,11 +20,19 @@ defmodule Cloak.Query.SorterTest do
     end
   end)
 
-  test "nil is ordered after present values and before anonymized values", do:
-    assert Sorter.order_rows(
-      [[nil], [:*], ["aaa"], [nil]],
-      [:a], [{:a, :asc, :nulls_last}]
-    ) == [["aaa"], [nil], [nil], [:*]]
+  for order <- [:asc, :desc] do
+    test "nil is ordered after present values with nulls last and #{order} and before anonymized values", do:
+      assert Sorter.order_rows(
+        [[nil], [:*], ["aaa"], [nil]],
+        [:a], [{:a, unquote(order), :nulls_last}]
+      ) == [["aaa"], [nil], [nil], [:*]]
+
+    test "nil is ordered before present values with nulls first and #{order} and before anonymized values", do:
+      assert Sorter.order_rows(
+        [[nil], [:*], ["aaa"], [nil]],
+        [:a], [{:a, unquote(order), :nulls_first}]
+      ) == [[nil], [nil], ["aaa"], [:*]]
+  end
 
   test "rows with :* are ordered after other rows in the default order", do:
     assert Sorter.order_rows(

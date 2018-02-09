@@ -39,22 +39,21 @@ defmodule Cloak.Query.Sorter do
       true -> row1 < row2
     end
   end
-  defp compare_rows(row1, row2, [{index, direction, _nulls} | remaining_order]) do
+  defp compare_rows(row1, row2, [{index, direction, nulls} | remaining_order]) do
     field1 = Enum.at(row1, index)
     field2 = Enum.at(row2, index)
     case field1 === field2 do
       :true -> compare_rows(row1, row2, remaining_order)
-      :false -> compare_fields(field1, field2, direction)
+      :false -> compare_fields(field1, field2, direction, nulls)
     end
   end
 
-  defp compare_fields(field1, field2, nil), do: compare_fields(field1, field2, :asc)
-  defp compare_fields(:*, _, _), do: false
-  defp compare_fields(_, :*, _), do: true
-  defp compare_fields(nil, _, :asc), do: false
-  defp compare_fields(_, nil, :asc), do: true
-  defp compare_fields(nil, _, :desc), do: true
-  defp compare_fields(_, nil, :desc), do: false
-  defp compare_fields(field1, field2, :asc), do: Cloak.Data.lt_eq(field1, field2)
-  defp compare_fields(field1, field2, :desc), do: Cloak.Data.lt_eq(field2, field1)
+  defp compare_fields(:*, _, _, _), do: false
+  defp compare_fields(_, :*, _, _), do: true
+  defp compare_fields(nil, _, _, :nulls_last), do: false
+  defp compare_fields(_, nil, _, :nulls_last), do: true
+  defp compare_fields(nil, _, _, :nulls_first), do: true
+  defp compare_fields(_, nil, _, :nulls_first), do: false
+  defp compare_fields(field1, field2, :asc, _), do: Cloak.Data.lt_eq(field1, field2)
+  defp compare_fields(field1, field2, :desc, _), do: Cloak.Data.lt_eq(field2, field1)
 end
