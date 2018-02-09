@@ -528,12 +528,12 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "order by clause" do
     assert_parse(
-      "select a, b, c from foo order by a desc, b asc, c",
+      "select a, b, c from foo order by a desc, b asc nulls first, c nulls last, d asc",
       select(columns: [
           identifier("a"), identifier("b"), identifier("c")
         ], from: unquoted("foo"), order_by: [
-          {identifier("a"), :desc}, {identifier("b"), :asc},
-          {identifier("c"), :asc}
+          {identifier("a"), :desc, :nulls_first}, {identifier("b"), :asc, :nulls_first},
+          {identifier("c"), :asc, :nulls_last}, {identifier("d"), :asc, :nulls_last}
         ])
     )
   end
@@ -622,8 +622,8 @@ defmodule Cloak.Sql.Parser.Test do
         where: {:comparison, identifier("column"), :=, _},
         group_by: [identifier("column")],
         order_by: [
-          {identifier("column"), :desc},
-          {function("count", [{:distinct, identifier("column")}]), :asc}
+          {identifier("column"), :desc, :nulls_first},
+          {function("count", [{:distinct, identifier("column")}]), :asc, :nulls_last}
         ]
       )
     )

@@ -72,7 +72,7 @@ defmodule Cloak.Sql.Parser do
     group_by: [column],
     from: from_clause,
     where: where_clause,
-    order_by: [{column, :asc | :desc}],
+    order_by: [{column, :asc | :desc, :nulls_first | :nulls_last}],
     having: having_clause,
     show: :tables | :columns,
     limit: integer,
@@ -793,10 +793,16 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp order_by_field() do
-    pair_both(
+    sequence([
       column(),
-      order_by_direction()
-    )
+      order_by_direction(),
+      nulls_specifier()
+    ])
+    |> map(fn
+      [col, :asc, nil] -> {col, :asc, :nulls_last}
+      [col, :desc, nil] -> {col, :desc, :nulls_first}
+      [col, direction, nulls] -> {col, direction, nulls}
+    end)
   end
 
   defp order_by_direction() do
@@ -809,6 +815,22 @@ defmodule Cloak.Sql.Parser do
     |> map(fn
       nil -> :asc
       other -> other
+    end)
+  end
+
+  defp nulls_specifier() do
+    option(sequence([keyword(:nulls), token(:unquoted) |> map(& &1.value)]))
+    |> satisfy(fn
+      nil -> true
+      [:nulls, token] -> String.downcase(token) in ~w/first last/
+    end)
+    |> map(fn
+      nil -> nil
+      [:nulls, token] ->
+        case String.downcase(token) do
+          "first" -> :nulls_first
+          "last" -> :nulls_last
+        end
     end)
   end
 

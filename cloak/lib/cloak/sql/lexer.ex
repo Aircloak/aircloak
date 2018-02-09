@@ -15,7 +15,7 @@ defmodule Cloak.Sql.Lexer do
     "CAST", "BUCKET", "ALIGN",
     "INTERVAL",
     "LIKE", "ILIKE", "ESCAPE", "IN", "IS", "BETWEEN",
-    "ORDER", "GROUP", "BY",
+    "ORDER", "GROUP", "BY", "NULLS",
     "ASC", "DESC", "AS",
     "NULL", "TRUE", "FALSE",
     "DISTINCT",
