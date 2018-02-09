@@ -52,7 +52,5 @@ defmodule Cloak.Sql.Compiler do
   @doc "Creates the query which describes a SELECT statement from a single table."
   @spec make_select_query(DataSource.t, DataSource.Table.t, [Expression.t]) :: Query.t
   def make_select_query(data_source, table, select_expressions), do:
-    data_source
-    |> Compiler.Execution.make_select_query(table, select_expressions)
-    |> Query.resolve_db_columns()
+    Compiler.Execution.make_select_query(data_source, table, select_expressions)
 end
