@@ -118,10 +118,10 @@ defmodule AircloakCI.Github.API do
       title
       mergeable
       potentialMergeCommit {oid}
+      headRefOid
       headRefName
       baseRefName
       reviews(states: [APPROVED, DISMISSED, CHANGES_REQUESTED], last: 1) {nodes {state}}
-      commits(last: 1) {nodes {commit {oid status {contexts {context state description}}}}}
     /
 
 
@@ -144,13 +144,7 @@ defmodule AircloakCI.Github.API do
           _ -> :unknown
         end,
       merge_sha: raw_pr_data["potentialMergeCommit"]["oid"],
-      sha:
-        raw_pr_data
-        |> Map.fetch!("commits")
-        |> Map.fetch!("nodes")
-        |> hd()
-        |> Map.fetch!("commit")
-        |> Map.fetch!("oid"),
+      sha: Map.fetch!(raw_pr_data, "headRefOid"),
     }
   end
 
