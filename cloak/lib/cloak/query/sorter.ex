@@ -55,9 +55,6 @@ defmodule Cloak.Query.Sorter do
   defp compare_fields(_, nil, :asc), do: true
   defp compare_fields(nil, _, :desc), do: true
   defp compare_fields(_, nil, :desc), do: false
-  defp compare_fields(%NaiveDateTime{} = field1, %NaiveDateTime{} = field2, direction) do
-    compare_fields(NaiveDateTime.to_erl(field1), NaiveDateTime.to_erl(field2), direction)
-  end
-  defp compare_fields(field1, field2, :asc), do: field1 < field2
-  defp compare_fields(field1, field2, :desc), do: field1 > field2
+  defp compare_fields(field1, field2, :asc), do: Cloak.Data.lt_eq(field1, field2)
+  defp compare_fields(field1, field2, :desc), do: Cloak.Data.lt_eq(field2, field1)
 end
