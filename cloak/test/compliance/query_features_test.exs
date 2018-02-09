@@ -30,4 +30,30 @@ defmodule Compliance.QueryFeatures.Test do
       """)
     end
   end)
+
+  Enum.each(nullable_columns(), fn({column, table, uid}) ->
+    for direction <- ["ASC", "DESC", ""], nulls <- ["NULLS FIRST", "NULLS LAST", ""] do
+      @tag compliance: "order by #{direction} #{nulls} on #{column} in #{table}"
+      test "order by #{direction} #{nulls} on #{column} in #{table}", context do
+        context
+        |> assert_consistent_and_not_failing("""
+          SELECT #{unquote(column)}
+          FROM #{unquote(table)}
+          ORDER BY 1 #{unquote(direction)} #{unquote(nulls)}
+        """)
+      end
+
+      @tag compliance: "order by #{direction} #{nulls} on #{column} in #{table} subquery"
+      test "order by #{direction} #{nulls} on #{column} in #{table} subquery", context do
+        context
+        |> assert_consistent_and_not_failing("""
+          SELECT * FROM (
+            SELECT #{unquote(uid)}, #{unquote(column)}
+            FROM #{unquote(table)}
+            ORDER BY 1 #{unquote(direction)} #{unquote(nulls)}
+          ) x
+        """)
+      end
+    end
+  end)
 end
