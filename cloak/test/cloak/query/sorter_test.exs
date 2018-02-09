@@ -31,4 +31,10 @@ defmodule Cloak.Query.SorterTest do
       [[:*], ["some value"], [:*]],
       [:a], [{:a, :asc, :nulls_last}]
     ) == [["some value"], [:*], [:*]]
+
+  test "regular values are ordered naturally", do:
+    assert Sorter.order_rows(
+      [["b"], ["a"], ["c"]],
+      [:a], [{:a, :asc, :nulls_last}]
+    ) == [["a"], ["b"], ["c"]]
 end
