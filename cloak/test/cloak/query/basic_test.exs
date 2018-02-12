@@ -161,6 +161,21 @@ defmodule Cloak.Query.BasicTest do
     assert Enum.map(rows, &(&1[:row])) == [[180.0, 180.0], [170.0, 170.0], [160.0, 160.0]]
   end
 
+  test "order by nulls first" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [nil])
+    :ok = insert_rows(_user_ids = 11..20, "heights", ["height"], [170])
+
+    assert_query "select height from heights order by 1 asc nulls first", %{rows: [%{row: [nil]}, %{row: [170]}]}
+  end
+
+  test "order by nulls directive in subquery" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [nil])
+    :ok = insert_rows(_user_ids = 11..20, "heights", ["height"], [170])
+
+    assert_query "select height from (select height from heights order by 1 asc nulls first limit 10) foo",
+      %{rows: [%{row: [nil]}]}
+  end
+
   test "should return LCF property when sufficient rows are filtered" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..3, "heights", ["height"], [160])
