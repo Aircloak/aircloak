@@ -31,7 +31,8 @@ defmodule Cloak.Query.Rows do
 
     columns_to_select = Enum.map(columns_to_select, &update_row_index(&1, source))
     filters =
-      Query.Lenses.operands()
+      Query.Lenses.conditions()
+      |> Query.Lenses.operands()
       |> Lens.map(query.having, &update_row_index(&1, source))
       |> Condition.to_function()
 
