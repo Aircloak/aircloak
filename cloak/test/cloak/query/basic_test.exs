@@ -856,7 +856,7 @@ defmodule Cloak.Query.BasicTest do
         %{columns: ["name", "count"], rows: [%{row: ["dan", 30], occurrences: 1}]}
     end
 
-    test "BUG: count(*) with range" do
+    test "BUG: range in having" do
       assert_query "select height, count(*) as c from heights group by height having c between 20 and 100",
         %{columns: ["height", "c"], rows: [%{row: [150, 30], occurrences: 1}, %{row: [160, 20], occurrences: 1}]}
     end
