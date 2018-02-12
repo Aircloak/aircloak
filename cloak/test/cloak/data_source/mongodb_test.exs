@@ -31,7 +31,7 @@ defmodule Cloak.DataSource.MongoDBTest do
       |> MongoDB.load_tables(table_config)
       |> Enum.map(&{&1.name, &1})
       |> Enum.into(%{})
-    GenServer.stop(conn)
+    GenServer.stop(conn, :normal, :timer.seconds(5))
 
     data_source = %{
       name: "mongo_db_standard",
