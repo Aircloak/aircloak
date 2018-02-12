@@ -255,7 +255,10 @@ defmodule Compliance.Data do
     Enum.reduce(fixup_keys(keys), map, &update_in(&2, &1, fn(v) -> v |> encrypt() |> base64() end))
 
   defp stringify_keys(map, keys), do:
-    Enum.reduce(fixup_keys(keys), map, &update_in(&2, &1, fn(v) -> to_string(v) end))
+    Enum.reduce(fixup_keys(keys), map, &update_in(&2, &1, fn
+      nil -> nil
+      other -> to_string(other)
+    end))
 
   defp fixup_keys([[_|_] | _] = keys), do: keys
   defp fixup_keys(keys), do:
