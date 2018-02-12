@@ -19,16 +19,12 @@ defmodule Cloak.Query.DbEmulator do
   # -------------------------------------------------------------------
 
   @doc "Retrieves rows according to the specification in the emulated query."
-  @spec select(Query.t) :: [Enumerable.t]
+  @spec select(Query.t) :: {[Enumerable.t], Query.t}
   def select(%Query{emulated?: true} = query) do
     Logger.debug("Emulating query ...")
-    [query.from |> select_rows() |> Selector.pick_db_columns(query)]
+    query = Compiler.Helpers.apply_top_down(query, &compile_emulated_joins/1)
+    {[query.from |> select_rows() |> Selector.pick_db_columns(query)], query}
   end
-
-  @doc "Prepares a query for emulation."
-  @spec compile(Query.t) :: Query.t
-  def compile(query), do:
-    Compiler.Helpers.apply_top_down(query, &compile_emulated_joins/1)
 
 
   # -------------------------------------------------------------------

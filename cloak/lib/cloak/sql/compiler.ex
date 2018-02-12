@@ -52,7 +52,13 @@ defmodule Cloak.Sql.Compiler do
   @doc "Creates the query which describes a SELECT statement from a single table."
   @spec make_select_query(DataSource.t, DataSource.Table.t, [Expression.t]) :: Query.t
   def make_select_query(data_source, table, select_expressions), do:
-    data_source
-    |> Compiler.Execution.make_select_query(table, select_expressions)
-    |> Query.resolve_db_columns()
+    %Query{
+      command: :select,
+      subquery?: true,
+      columns: select_expressions,
+      column_titles: Enum.map(select_expressions, &(&1.alias || &1.name)),
+      from: table.name,
+      data_source: data_source,
+      selected_tables: [table],
+    }
 end

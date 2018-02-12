@@ -6,7 +6,6 @@ defmodule Cloak.Sql.Compiler.Execution do
   to the query, in order to be able to safely execute it.
   """
 
-  alias Cloak.DataSource
   alias Cloak.Sql.{CompilationError, Condition, Expression, FixAlign, Function, Query}
   alias Cloak.Sql.Compiler.{Helpers, Optimizer}
   alias Cloak.Sql.Query.Lenses
@@ -31,21 +30,6 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> reject_null_user_ids()
     |> compute_aggregators()
     |> expand_virtual_tables()
-
-  @doc "Creates an executable query which describes a SELECT statement from a single table."
-  @spec make_select_query(DataSource.t, DataSource.Table.t, [Expression.t]) :: Query.t
-  def make_select_query(data_source, table, select_expressions) do
-    column_titles = for expression <- select_expressions, do: expression.alias || expression.name
-    %Query{
-      command: :select,
-      subquery?: true,
-      columns: select_expressions,
-      column_titles: column_titles,
-      from: table.name,
-      data_source: data_source,
-      selected_tables: [table]
-    }
-  end
 
 
   # -------------------------------------------------------------------
