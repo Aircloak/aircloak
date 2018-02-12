@@ -1,3 +1,9 @@
+## Version 18.1.3
+
+### Bugfixes
+
+- Reduces the chance of overflow when casting a float into an integer.
+
 ## Version 18.1.2
 
 ### Bugfixes
