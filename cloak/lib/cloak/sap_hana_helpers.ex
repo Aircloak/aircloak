@@ -172,6 +172,7 @@ defmodule Cloak.SapHanaHelpers do
   defp cast_types(float) when is_float(float), do: {:sql_real, [float]}
   defp cast_types(boolean) when is_boolean(boolean), do: {:sql_bit, [boolean]}
   defp cast_types(%{calendar: Calendar.ISO} = datetime), do: datetime |> to_string() |> cast_types()
+  defp cast_types(nil), do: {:sql_bit, [:null]}
 
   defp length_null_terminated(binary), do: byte_size(binary) + 1
 end
