@@ -46,8 +46,10 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
     cast_sql(value, :boolean, :int32)
   def cast_sql(value, :boolean, :real), do:
     value |> cast_sql(:boolean, :integer) |> cast_sql(:integer, :real)
+  def cast_sql(value, :integer, :boolean), do:
+    ["CASE WHEN ", value, " IS NULL THEN NULL WHEN ", value, " = 0 THEN FALSE ELSE TRUE END"]
   def cast_sql(value, :real, :boolean), do:
-    value |> cast_sql(:real, :int32) |> cast_sql(:integer, :boolean)
+    ["CASE WHEN ", value, " IS NULL THEN NULL WHEN ", value, " = 0.0 THEN FALSE ELSE TRUE END"]
   def cast_sql(value, _, type), do:
     ["CAST(", value, " AS ", sql_type(type), ")"]
 
