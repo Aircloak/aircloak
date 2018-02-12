@@ -2,7 +2,7 @@
 
 ### Bugfixes
 
-- Reduces the chance of overflow when casting a float into an integer.
+- Reduces the chance of integer overflows.
 
 ## Version 18.1.2
 
