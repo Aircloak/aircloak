@@ -66,7 +66,7 @@ defmodule Compliance.DataSource.SQLServer do
   end
 
   defp cast_type(binary) when is_binary(binary) do
-  binary = :unicode.characters_to_binary(binary, :utf8, {:utf16, :little})
+    binary = :unicode.characters_to_binary(binary, :utf8, {:utf16, :little})
     {{:sql_wvarchar, byte_size(binary) + 1}, [binary]}
   end
   defp cast_type(integer) when is_integer(integer), do: {:sql_integer, [integer]}
