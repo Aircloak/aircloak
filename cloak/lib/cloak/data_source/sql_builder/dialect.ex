@@ -37,7 +37,7 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @callback date_subtraction_expression(iodata) :: iodata
 
   @doc "Returns the dialect-specific ORDER BY clause SQL for the given column, order and nulls directive."
-  @callback order_by(iodata, :asc | :desc, :nulls_first | :nulls_last) :: iodata
+  @callback order_by(iodata, :asc | :desc, :nulls_first | :nulls_last | :nulls_natural) :: iodata
 
   alias Cloak.Query.ExecutionError
 
@@ -76,6 +76,8 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       def interval_literal(duration), do: duration |> Timex.Duration.to_seconds() |> to_string()
 
       @impl unquote(__MODULE__)
+      def order_by(column, :asc, :nulls_natural), do: [column, " ASC"]
+      def order_by(column, :desc, :nulls_natural), do: [column, " DESC"]
       def order_by(column, :asc, :nulls_first), do: [column, " ASC NULLS FIRST"]
       def order_by(column, :desc, :nulls_first), do: [column, " DESC NULLS FIRST"]
       def order_by(column, :asc, :nulls_last), do: [column, " ASC NULLS LAST"]

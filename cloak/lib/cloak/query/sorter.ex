@@ -54,6 +54,10 @@ defmodule Cloak.Query.Sorter do
   defp compare_fields(_, nil, _, :nulls_last), do: true
   defp compare_fields(nil, _, _, :nulls_first), do: true
   defp compare_fields(_, nil, _, :nulls_first), do: false
+  defp compare_fields(nil, _, :asc, :nulls_natural), do: false
+  defp compare_fields(_, nil, :asc, :nulls_natural), do: true
+  defp compare_fields(nil, _, :desc, :nulls_natural), do: true
+  defp compare_fields(_, nil, :desc, :nulls_natural), do: false
   defp compare_fields(field1, field2, :asc, _), do: Cloak.Data.lt_eq(field1, field2)
   defp compare_fields(field1, field2, :desc, _), do: Cloak.Data.lt_eq(field2, field1)
 end

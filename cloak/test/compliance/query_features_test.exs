@@ -42,7 +42,9 @@ defmodule Compliance.QueryFeatures.Test do
           ORDER BY 1 #{unquote(direction)} #{unquote(nulls)}
         """)
       end
+    end
 
+    for direction <- ["ASC", "DESC", ""], nulls <- ["NULLS FIRST", "NULLS LAST"] do
       @tag compliance: "order by #{direction} #{nulls} on #{column} in #{table} subquery"
       test "order by #{direction} #{nulls} on #{column} in #{table} subquery", context do
         context
