@@ -22,7 +22,7 @@ SELECT [DISTINCT]
   [ WHERE where_expression [AND ...] ]
   [ GROUP BY column_expression | position [, ...] ]
   [ HAVING having_expression [AND ...] ]
-  [ ORDER BY column_name [ASC | DESC] | position [, ...] [ LIMIT amount ] [ OFFSET amount ] ]
+  [ ORDER BY column_name  | position [ASC | DESC] [NULLS FIRST | LAST] [, ...] [ LIMIT amount ] [ OFFSET amount ] ]
 
 field_expression :=
   * | table_name.* | column_expression [AS alias]
@@ -96,3 +96,9 @@ inequality_operator :=
   number of users, but the same users will be included each time a query is executed. Aggregates present in the query
   are not automatically adjusted. For example the `COUNT` returned when `SAMPLE_USERS 10%` is used will be approximately
   10% of the count returned when the `SAMPLE_USERS`-clause is omitted.
+- The subquery order by is not guaranteed to be preserved in the outer query, and in fact will most likely not be. Add
+  an `ORDER BY` clause in the outer query if you want a specific order.
+- When `NULL` handling is not specified in an `ORDER BY` in a subquery (either `NULLS FIRST` or `NULLS LAST`) the
+  default handling for the underlying datasource will be used. For postgres that means that `NULL` values will be
+  treated as larger than all other values. For SAP HANA, MySQL, SQL Server, and MongoDB they will be treated as smaller
+  than all other values. The top-level query always defaults to treating `NULL` values as larger than othre values.
