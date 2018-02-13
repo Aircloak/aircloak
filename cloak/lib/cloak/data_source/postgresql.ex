@@ -26,7 +26,7 @@ defmodule Cloak.DataSource.PostgreSQL do
         connection
     after Driver.connect_timeout()
       ->
-        GenServer.stop(connection)
+        GenServer.stop(connection, :normal, :timer.seconds(5))
         DataSource.raise_error("Unknown failure during database connection process")
     end
   end

@@ -29,7 +29,7 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
       |> Enum.flat_map(&MongoDB.load_tables(conn, &1))
       |> Enum.map(&{&1.name, &1})
       |> Enum.into(%{})
-    GenServer.stop(conn)
+    GenServer.stop(conn, :normal, :timer.seconds(5))
 
     data_source = %{
       name: "mongo_db_join",

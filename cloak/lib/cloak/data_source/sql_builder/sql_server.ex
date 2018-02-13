@@ -56,7 +56,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
 
   @impl Dialect
   def cast_sql(value, _, :integer), do:
-    ["CAST(", function_sql("round", [value]), " AS integer)"]
+    ["CAST(", function_sql("round", [value]), " AS bigint)"]
   def cast_sql(value, :unknown, :text), do:
     ["CAST(", value, " AS varbinary)"]
   def cast_sql(value, _, type), do:
