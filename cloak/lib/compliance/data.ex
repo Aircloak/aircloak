@@ -163,8 +163,9 @@ defmodule Compliance.Data do
     |> Enum.map(fn(_) -> sample_one(samples) end)
     |> Enum.join(" ")
 
-  defp sample_one(options), do:
-    Enum.random(options)
+  defp sample_one(options) do
+    Map.fetch!(options, :rand.uniform(Map.size(options) - 1))
+  end
 
   defp words(), do:
     lines_from_file("lib/compliance/words.txt")
@@ -178,6 +179,9 @@ defmodule Compliance.Data do
     |> Enum.reverse()
     # Get rid of empty entry due to empty line at the end of file
     |> tl()
+    |> Stream.with_index()
+    |> Stream.map(fn({word, index}) -> {index, word} end)
+    |> Map.new()
 
 
   # -------------------------------------------------------------------
