@@ -532,8 +532,8 @@ defmodule Cloak.Sql.Parser.Test do
       select(columns: [
           identifier("a"), identifier("b"), identifier("c")
         ], from: unquoted("foo"), order_by: [
-          {identifier("a"), :desc, :nulls_first}, {identifier("b"), :asc, :nulls_first},
-          {identifier("c"), :asc, :nulls_last}, {identifier("d"), :asc, :nulls_last}
+          {identifier("a"), :desc, :nulls_natural}, {identifier("b"), :asc, :nulls_first},
+          {identifier("c"), :asc, :nulls_last}, {identifier("d"), :asc, :nulls_natural}
         ])
     )
   end
@@ -622,8 +622,8 @@ defmodule Cloak.Sql.Parser.Test do
         where: {:comparison, identifier("column"), :=, _},
         group_by: [identifier("column")],
         order_by: [
-          {identifier("column"), :desc, :nulls_first},
-          {function("count", [{:distinct, identifier("column")}]), :asc, :nulls_last}
+          {identifier("column"), :desc, :nulls_natural},
+          {function("count", [{:distinct, identifier("column")}]), :asc, :nulls_natural}
         ]
       )
     )

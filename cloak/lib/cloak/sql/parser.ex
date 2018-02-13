@@ -72,7 +72,7 @@ defmodule Cloak.Sql.Parser do
     group_by: [column],
     from: from_clause,
     where: where_clause,
-    order_by: [{column, :asc | :desc, :nulls_first | :nulls_last}],
+    order_by: [{column, :asc | :desc, :nulls_first | :nulls_last | :nulls_natural}],
     having: having_clause,
     show: :tables | :columns,
     limit: integer,
@@ -803,8 +803,7 @@ defmodule Cloak.Sql.Parser do
       [col, direction, nulls] -> {col, direction, nulls}
     end)
     |> map(fn
-      {col, :asc, nil} -> {col, :asc, :nulls_last}
-      {col, :desc, nil} -> {col, :desc, :nulls_first}
+      {col, direction, nil} -> {col, direction, :nulls_natural}
       {col, direction, nulls} -> {col, direction, nulls}
     end)
   end
