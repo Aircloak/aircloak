@@ -48,9 +48,9 @@ defmodule Compliance.QueryFeatures.Test do
         context
         |> assert_consistent_and_not_failing("""
           SELECT foo FROM (
-            SELECT #{unquote(uid)}, BUCKET(#{unquote(column)} BY 10) AS foo
+            SELECT #{unquote(uid)}, BUCKET(#{unquote(column)} BY 100) AS foo
             FROM #{unquote(table)}
-            ORDER BY 1 #{unquote(direction)} #{unquote(nulls)}
+            ORDER BY 2 #{unquote(direction)} #{unquote(nulls)}
             LIMIT 10
           ) x
         """)
