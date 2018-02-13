@@ -192,7 +192,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   defp order_rows([]), do: []
   defp order_rows(order_by) do
-    order_by = for {column, dir, _nulls} <- order_by, into: %{} do
+    order_by = for {column, dir, :nulls_natural} <- order_by, into: %{} do
       dir = if dir == :desc do -1 else 1 end
       {column.alias || column.name, dir}
     end
