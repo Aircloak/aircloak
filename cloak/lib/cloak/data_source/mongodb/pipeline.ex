@@ -190,9 +190,13 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     offset_rows(query.offset) ++
     limit_rows(query.limit)
 
+  @supported_orders [{:asc, :nulls_first}, {:desc, :nulls_last}, {:asc, :nulls_natural}, {:desc, :nulls_natural}]
+
   defp order_rows([]), do: []
   defp order_rows(order_by) do
-    order_by = for {column, dir, :nulls_natural} <- order_by, into: %{} do
+    order_by = for {column, dir, nulls} <- order_by, into: %{} do
+      true = {dir, nulls} in @supported_orders
+
       dir = if dir == :desc do -1 else 1 end
       {column.alias || column.name, dir}
     end

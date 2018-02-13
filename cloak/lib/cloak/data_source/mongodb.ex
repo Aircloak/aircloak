@@ -250,7 +250,12 @@ defmodule Cloak.DataSource.MongoDB do
 
   defp supports_order_by?(%{subquery?: false}), do: true
   defp supports_order_by?(%{subquery?: true, order_by: order_by}), do:
-    Enum.all?(order_by, fn({_, _, nulls}) -> nulls == :nulls_natural end)
+    Enum.all?(order_by, fn
+      {_, _, :nulls_natural} -> true
+      {_, :asc, :nulls_first} -> true
+      {_, :desc, :nulls_last} -> true
+      _ -> false
+    end)
 
   defp mongo_version_supports_joins?(%{data_source: data_source}), do:
     data_source |> mongo_version() |> Version.compare("3.2.0") != :lt
