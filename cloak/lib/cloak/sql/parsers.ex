@@ -220,8 +220,7 @@ defmodule Cloak.Sql.Parsers do
   end
 
   @doc "Creates a parser that consumes no input and always returns the given value."
-  @spec return(any) :: Base.parser
-  @spec return(Base.parser, any) :: Base.parser
+  @spec return(Combine.previous_parser, any) :: Combine.parser
   defparser return(%ParserState{status: :ok} = state, value) do
     %{state | results: [value | state.results]}
   end
