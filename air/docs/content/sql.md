@@ -101,4 +101,4 @@ inequality_operator :=
 - When `NULL` handling is not specified in an `ORDER BY` in a subquery (either `NULLS FIRST` or `NULLS LAST`) the
   default handling for the underlying datasource will be used. For postgres that means that `NULL` values will be
   treated as larger than all other values. For SAP HANA, MySQL, SQL Server, and MongoDB they will be treated as smaller
-  than all other values. The top-level query always defaults to treating `NULL` values as larger than othre values.
+  than all other values. The top-level query always defaults to treating `NULL` values as larger than other values.
