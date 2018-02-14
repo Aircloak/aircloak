@@ -154,7 +154,12 @@ This section lists the functions which will cause a query to be emulated.
 | trim          | emulated | emulated | emulated |
 | trunc         | emulated |  &nbsp;  |  &nbsp;  |
 
-__Note__: The `SAMPLE_USERS`-clause is not natively supported on this data source and it will require emulation.
+__Notes__
+
+The following constructs are not natively supported on this data source and will require emulation:
+
+* The `SAMPLE_USERS`-clause
+* Using an `ASC` order with `NULLS LAST` or a `DESC` order with `NULLS FIRST`
 
 #### MySQL and MariaDB
 
