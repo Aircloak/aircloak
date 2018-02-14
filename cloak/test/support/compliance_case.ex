@@ -108,7 +108,7 @@ defmodule ComplianceCase do
   def nullable_columns(), do:
     [
       # {column name, table name, uid column in table}
-      {"height", "users", "user_id"},
+      {"nullable", "users", "user_id"},
     ]
 
   @doc false

@@ -115,6 +115,7 @@ defmodule Compliance.TableDefinitions do
           height: %{type: :real, decoders: [:text_to_real]},
           active: %{type: :boolean, decoders: [:text_to_boolean]},
           name: %{type: :text, decoders: [:base64, aes_cbc_128: [key: Data.encryption_key()]]},
+          nullable: %{type: :real, decoders: [:text_to_real]},
         },
       },
       addresses: %{
