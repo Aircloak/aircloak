@@ -870,6 +870,11 @@ defmodule Cloak.Query.BasicTest do
       assert_query "select name, count(*) from heights group by name having avg(height) <> min(height)",
         %{columns: ["name", "count"], rows: [%{row: ["dan", 30], occurrences: 1}]}
     end
+
+    test "BUG: range in having" do
+      assert_query "select height, count(*) as c from heights group by height having c between 20 and 100",
+        %{columns: ["height", "c"], rows: [%{row: [150, 30], occurrences: 1}, %{row: [160, 20], occurrences: 1}]}
+    end
   end
 
   test "having without group by" do

@@ -29,14 +29,18 @@ defmodule Compliance.Data do
   # -------------------------------------------------------------------
 
   @doc """
-  Generates a random dataset that can be imported into a database for compliance testing.
+  Returns a lazy random enumerable of users that can be imported into a database for compliance testing.
   For more information on the structure and expected usage, see the module doc.
   """
-  @spec generate(non_neg_integer) :: {Map.t, Map.t}
-  def generate(num_users) do
-    normal = generate_users(num_users)
-    encoded = encode(normal)
-    {normal, encoded}
+  @spec users(non_neg_integer) :: Enumerable.t()
+  def users(num_users) do
+    words = words()
+    names = names()
+    cities = cities()
+
+    1..num_users
+    |> Task.async_stream(&generate_user(&1, words, names, cities), timeout: :timer.minutes(10))
+    |> Stream.map(fn({:ok, user_data}) -> user_data end)
   end
 
   @doc "Flattens the data down into structures that can be inserted into a relational database."
@@ -69,16 +73,10 @@ defmodule Compliance.Data do
   # Internal functions - data generation
   # -------------------------------------------------------------------
 
-  defp generate_users(num_users) do
-    words = words()
-    names = names()
-    cities = cities()
+  defp generate_user(user_num, words, names, cities) do
+    :rand.seed(:exsplus, {0, 0, user_num})
 
-    output_progress(0, num_users)
-
-    Enum.to_list(1..num_users)
-    |> Task.async_stream(fn(user_num) ->
-      :rand.seed(:exsplus, {0, 0, user_num})
+    user =
       %{
         id: user_num,
         user_id: :erlang.unique_integer([:positive]),
@@ -90,23 +88,14 @@ defmodule Compliance.Data do
         notes: generate_notes(words),
         nullable: nullable(:rand.uniform() * 30),
       }
-    end, timeout: :timer.minutes(10))
-    |> Enum.map(fn({:ok, user}) ->
-      output_progress(user.id, num_users)
-      user
-    end)
+    {user, encode_user(user)}
   end
 
   defp nullable(item), do:
     if :rand.uniform() < 0.80, do: item, else: nil
 
-  defp output_progress(num, total) do
-    percent = round((num/total) * 100)
-    :io.format(to_charlist("Generating users #{percent}% complete.\r"))
-  end
-
   defp generate_addresses(cities) do
-    for _ <- rand_range_list(@min_addresses, @max_addresses) do
+    for _ <- rand_range(@min_addresses, @max_addresses) do
       %{
         home: %{
           city: sample_one(cities),
@@ -121,7 +110,7 @@ defmodule Compliance.Data do
   end
 
   defp generate_notes(words) do
-    for _ <- rand_range_list(@min_notes, @max_notes) do
+    for _ <- rand_range(@min_notes, @max_notes) do
       note_id = :erlang.unique_integer([:positive, :monotonic])
       %{
         id: note_id,
@@ -134,7 +123,7 @@ defmodule Compliance.Data do
   end
 
   defp generate_note_changes(note_id, words) do
-    for _ <- rand_range_list(@min_note_changes, @max_note_changes) do
+    for _ <- rand_range(@min_note_changes, @max_note_changes) do
       %{
         note_id: note_id,
         date: random_date(),
@@ -146,11 +135,10 @@ defmodule Compliance.Data do
   defp random_date(), do:
     1_500_000_000 + :rand.uniform(100_026_704) |> DateTime.from_unix!() |> DateTime.to_naive()
 
-  defp rand_range_list(min, max) when min > max, do:
+  defp rand_range(min, max) when min > max, do:
     raise "Max must be greater or equal to min"
-  defp rand_range_list(min, max), do:
-    (min..:rand.uniform(max - min + 1) + min)
-    |> Enum.to_list()
+  defp rand_range(min, max), do:
+    min..(:rand.uniform(max - min + 1) + min)
 
   defp cities(), do:
     lines_from_file("lib/compliance/cities.txt")
@@ -162,12 +150,13 @@ defmodule Compliance.Data do
     sample_randomly(names, 2, 3)
 
   defp sample_randomly(samples, min, max), do:
-    rand_range_list(min, max)
+    rand_range(min, max)
     |> Enum.map(fn(_) -> sample_one(samples) end)
     |> Enum.join(" ")
 
-  defp sample_one(options), do:
-    Enum.random(options)
+  defp sample_one(options) do
+    Map.fetch!(options, :rand.uniform(Map.size(options) - 1))
+  end
 
   defp words(), do:
     lines_from_file("lib/compliance/words.txt")
@@ -181,6 +170,9 @@ defmodule Compliance.Data do
     |> Enum.reverse()
     # Get rid of empty entry due to empty line at the end of file
     |> tl()
+    |> Stream.with_index()
+    |> Stream.map(fn({word, index}) -> {index, word} end)
+    |> Map.new()
 
 
   # -------------------------------------------------------------------
@@ -276,14 +268,12 @@ defmodule Compliance.Data do
   defp base64(value), do:
     Base.encode64(value)
 
-  defp encode(users) do
-    for user <- users do
-      user
-      |> encrypt_keys([:name])
-      |> stringify_keys([:age, :height, :active, :nullable])
-      |> Map.put(:addresses, encode_addresses(user[:addresses]))
-      |> Map.put(:notes, encode_notes(user[:notes]))
-    end
+  defp encode_user(user) do
+    user
+    |> encrypt_keys([:name])
+    |> stringify_keys([:age, :height, :active, :nullable])
+    |> Map.put(:addresses, encode_addresses(user[:addresses]))
+    |> Map.put(:notes, encode_notes(user[:notes]))
   end
 
   defp encode_addresses(addresses) do

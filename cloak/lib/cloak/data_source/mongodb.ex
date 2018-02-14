@@ -60,14 +60,14 @@ defmodule Cloak.DataSource.MongoDB do
       :connected -> connection
     after Driver.connect_timeout()
       ->
-        GenServer.stop(connection)
+        GenServer.stop(connection, :normal, :timer.seconds(5))
         DataSource.raise_error("Unknown failure during database connection process")
     end
   end
 
   @impl Driver
   def disconnect(connection), do:
-    GenServer.stop(connection)
+    GenServer.stop(connection, :normal, :timer.seconds(5))
 
   @impl Driver
   def load_tables(connection, table) do

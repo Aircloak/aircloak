@@ -10,6 +10,12 @@
 
 ### Bugfixes
 
+## Version 18.1.3
+
+### Bugfixes
+
+- Reduces the chance of integer overflows.
+
 ## Version 18.1.2
 
 ### Bugfixes

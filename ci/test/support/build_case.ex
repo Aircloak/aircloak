@@ -66,7 +66,6 @@ defmodule AircloakCI.BuildCase do
         merge_sha: new_sha(),
         merge_state: :mergeable,
         approved?: false,
-        status_checks: []
       }
     Map.merge(defaults, Map.new(data))
   end

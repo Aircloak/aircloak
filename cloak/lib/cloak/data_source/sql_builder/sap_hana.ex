@@ -55,7 +55,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
 
   @impl Dialect
   def cast_sql(value, _, :integer), do:
-    ["CAST(", function_sql("round", [value]), " AS integer)"]
+    ["CAST(", function_sql("round", [value]), " AS bigint)"]
   def cast_sql(value, _, type), do:
     ["CAST(", value, " AS ", sql_type(type), ")"]
 

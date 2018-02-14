@@ -27,14 +27,11 @@ defmodule AircloakCI.Github.API do
     merge_state: merge_state,
     merge_sha: String.t | nil,
     approved?: boolean,
-    status_checks: statuses
   }
 
   @type repo :: %{owner: String.t, name: String.t}
 
   @type merge_state :: :mergeable | :conflicting | :unknown
-
-  @type statuses :: %{String.t => %{status: :expected | status_check_state, description: String.t}}
 
   @type status_check_state :: :error | :failure | :pending | :success
 
@@ -121,10 +118,10 @@ defmodule AircloakCI.Github.API do
       title
       mergeable
       potentialMergeCommit {oid}
+      headRefOid
       headRefName
       baseRefName
       reviews(states: [APPROVED, DISMISSED, CHANGES_REQUESTED], last: 1) {nodes {state}}
-      commits(last: 1) {nodes {commit {oid status {contexts {context state description}}}}}
     /
 
 
@@ -147,30 +144,9 @@ defmodule AircloakCI.Github.API do
           _ -> :unknown
         end,
       merge_sha: raw_pr_data["potentialMergeCommit"]["oid"],
-      sha:
-        raw_pr_data
-        |> Map.fetch!("commits")
-        |> Map.fetch!("nodes")
-        |> hd()
-        |> Map.fetch!("commit")
-        |> Map.fetch!("oid"),
-      status_checks:
-        raw_pr_data
-        |> Map.fetch!("commits")
-        |> Map.fetch!("nodes")
-        |> Enum.flat_map(&(Map.fetch!(&1, "commit")["status"]["contexts"] || []))
-        |> Enum.map(fn(%{"context" => context, "state" => state, "description" => description}) ->
-            {context, %{status: decode_status_check_state(state), description: description}}
-          end)
-        |> Enum.into(%{})
+      sha: Map.fetch!(raw_pr_data, "headRefOid"),
     }
   end
-
-  defp decode_status_check_state("EXPECTED"), do: :expected
-  defp decode_status_check_state("ERROR"), do: :error
-  defp decode_status_check_state("FAILURE"), do: :failure
-  defp decode_status_check_state("PENDING"), do: :pending
-  defp decode_status_check_state("SUCCESS"), do: :success
 
   defp encode_status_check_state(:error), do: "error"
   defp encode_status_check_state(:failure), do: "failure"
