@@ -795,17 +795,10 @@ defmodule Cloak.Sql.Parser do
   defp order_by_field() do
     sequence([
       column(),
-      option(order_by_direction()),
-      option(nulls_specifier()),
+      either(order_by_direction(), return(:asc)),
+      either(nulls_specifier(), return(:nulls_natural)),
     ])
-    |> map(fn
-      [col, nil, nulls] -> {col, :asc, nulls}
-      [col, direction, nulls] -> {col, direction, nulls}
-    end)
-    |> map(fn
-      {col, direction, nil} -> {col, direction, :nulls_natural}
-      {col, direction, nulls} -> {col, direction, nulls}
-    end)
+    |> map(&List.to_tuple/1)
   end
 
   defp order_by_direction(), do:
