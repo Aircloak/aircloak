@@ -35,9 +35,10 @@ defmodule Compliance.Data do
   """
   @spec generate(non_neg_integer) :: {Map.t, Map.t}
   def generate(num_users) do
-    normal = generate_users(num_users)
-    encoded = encode(normal)
-    {normal, encoded}
+    num_users
+    |> generate_users()
+    |> output_progress(num_users)
+    |> Enum.unzip()
   end
 
   @doc "Flattens the data down into structures that can be inserted into a relational database."
@@ -75,11 +76,13 @@ defmodule Compliance.Data do
     names = names()
     cities = cities()
 
-    output_progress(0, num_users)
+    Task.async_stream(1..num_users, &generate_user(&1, words, names, cities), timeout: :timer.minutes(10))
+  end
 
-    Enum.to_list(1..num_users)
-    |> Task.async_stream(fn(user_num) ->
-      :rand.seed(:exsplus, {0, 0, user_num})
+  defp generate_user(user_num, words, names, cities) do
+    :rand.seed(:exsplus, {0, 0, user_num})
+
+    user =
       %{
         id: user_num,
         user_id: :erlang.unique_integer([:positive]),
@@ -90,16 +93,19 @@ defmodule Compliance.Data do
         addresses: generate_addresses(cities),
         notes: generate_notes(words),
       }
-    end, timeout: :timer.minutes(10))
-    |> Enum.map(fn({:ok, user}) ->
-      output_progress(user.id, num_users)
-      user
-    end)
+
+    {user, encode_user(user)}
   end
 
-  defp output_progress(num, total) do
-    percent = round((num/total) * 100)
-    :io.format(to_charlist("Generating users #{percent}% complete.\r"))
+  defp output_progress(enumerable, total) do
+    enumerable
+    |> Stream.with_index(1)
+    |> Stream.map(fn({element, index}) ->
+      percent = round((index/total) * 100)
+      :io.format(to_charlist("Generating users #{percent}% complete.\r"))
+      element
+    end)
+
   end
 
   defp generate_addresses(cities) do
@@ -273,14 +279,12 @@ defmodule Compliance.Data do
   defp base64(value), do:
     Base.encode64(value)
 
-  defp encode(users) do
-    for user <- users do
-      user
-      |> encrypt_keys([:name])
-      |> stringify_keys([:age, :height, :active])
-      |> Map.put(:addresses, encode_addresses(user[:addresses]))
-      |> Map.put(:notes, encode_notes(user[:notes]))
-    end
+  defp encode_user(user) do
+    user
+    |> encrypt_keys([:name])
+    |> stringify_keys([:age, :height, :active])
+    |> Map.put(:addresses, encode_addresses(user[:addresses]))
+    |> Map.put(:notes, encode_notes(user[:notes]))
   end
 
   defp encode_addresses(addresses) do
