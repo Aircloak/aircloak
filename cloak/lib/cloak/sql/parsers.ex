@@ -219,13 +219,11 @@ defmodule Cloak.Sql.Parsers do
     end
   end
 
-  @doc """
-  Shorthand for `map(fn(_) -> value end)`
-  """
+  @doc "Creates a parser that consumes no input and always returns the given value."
   @spec return(any) :: Base.parser
   @spec return(Base.parser, any) :: Base.parser
-  def return(previous \\ noop(), value) do
-    previous |> Base.map(fn(_) -> value end)
+  defparser return(%ParserState{status: :ok} = state, value) do
+    %{state | results: [value | state.results]}
   end
 
   @doc """

@@ -168,15 +168,15 @@ defmodule Cloak.Sql.Lexer do
 
   defp string_content() do
     choice([
-      string("''") |> return("'"),
+      pair_right(string("''"), return("'")),
       word_of(~r/[^']+/),
     ])
   end
 
   defp boolean_constant() do
     choice([
-      word_of(~r/true/i) |> return(true),
-      word_of(~r/false/i) |> return(false)
+      pair_right(word_of(~r/true/i), return(true)),
+      pair_right(word_of(~r/false/i), return(false))
     ])
     |> output_constant(:boolean)
   end
