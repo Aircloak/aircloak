@@ -103,7 +103,7 @@ defmodule Compliance.Data do
   end
 
   defp generate_addresses(cities) do
-    for _ <- rand_range_list(@min_addresses, @max_addresses) do
+    for _ <- rand_range(@min_addresses, @max_addresses) do
       %{
         home: %{
           city: sample_one(cities),
@@ -118,7 +118,7 @@ defmodule Compliance.Data do
   end
 
   defp generate_notes(words) do
-    for _ <- rand_range_list(@min_notes, @max_notes) do
+    for _ <- rand_range(@min_notes, @max_notes) do
       note_id = :erlang.unique_integer([:positive, :monotonic])
       %{
         id: note_id,
@@ -131,7 +131,7 @@ defmodule Compliance.Data do
   end
 
   defp generate_note_changes(note_id, words) do
-    for _ <- rand_range_list(@min_note_changes, @max_note_changes) do
+    for _ <- rand_range(@min_note_changes, @max_note_changes) do
       %{
         note_id: note_id,
         date: random_date(),
@@ -143,11 +143,10 @@ defmodule Compliance.Data do
   defp random_date(), do:
     1_500_000_000 + :rand.uniform(100_026_704) |> DateTime.from_unix!() |> DateTime.to_naive()
 
-  defp rand_range_list(min, max) when min > max, do:
+  defp rand_range(min, max) when min > max, do:
     raise "Max must be greater or equal to min"
-  defp rand_range_list(min, max), do:
-    (min..:rand.uniform(max - min + 1) + min)
-    |> Enum.to_list()
+  defp rand_range(min, max), do:
+    min..(:rand.uniform(max - min + 1) + min)
 
   defp cities(), do:
     lines_from_file("lib/compliance/cities.txt")
@@ -159,7 +158,7 @@ defmodule Compliance.Data do
     sample_randomly(names, 2, 3)
 
   defp sample_randomly(samples, min, max), do:
-    rand_range_list(min, max)
+    rand_range(min, max)
     |> Enum.map(fn(_) -> sample_one(samples) end)
     |> Enum.join(" ")
 
