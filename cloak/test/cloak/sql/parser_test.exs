@@ -1288,6 +1288,10 @@ defmodule Cloak.Sql.Parser.Test do
         "select \"x\".\"y\".\"z\" from baz", "Expected `from`", {1, 15}},
       {"invalid mixed quote column name",
         "select \"x\".y.\"z\" from baz", "Expected `from`", {1, 13}},
+      {"invalid nulls directive",
+        "select foo from bar order by baz nulls whatever", "Expected end of input", {1, 34}},
+      {"nulls directive with a quoted identifier",
+        "select foo from bar order by baz nulls \"first\"", "Expected end of input", {1, 34}},
     ],
     fn
       {description, statement, expected_error, {line, column}} ->
