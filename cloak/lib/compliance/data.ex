@@ -30,15 +30,18 @@ defmodule Compliance.Data do
   # -------------------------------------------------------------------
 
   @doc """
-  Generates a random dataset that can be imported into a database for compliance testing.
+  Returns a lazy random enumerable of users that can be imported into a database for compliance testing.
   For more information on the structure and expected usage, see the module doc.
   """
-  @spec generate(non_neg_integer) :: {Map.t, Map.t}
-  def generate(num_users) do
-    num_users
-    |> generate_users()
-    |> output_progress(num_users)
-    |> Enum.unzip()
+  @spec users(non_neg_integer) :: Enumerable.t()
+  def users(num_users) do
+    words = words()
+    names = names()
+    cities = cities()
+
+    1..num_users
+    |> Task.async_stream(&generate_user(&1, words, names, cities), timeout: :timer.minutes(10))
+    |> Stream.map(fn({:ok, user_data}) -> user_data end)
   end
 
   @doc "Flattens the data down into structures that can be inserted into a relational database."
@@ -71,14 +74,6 @@ defmodule Compliance.Data do
   # Internal functions - data generation
   # -------------------------------------------------------------------
 
-  defp generate_users(num_users) do
-    words = words()
-    names = names()
-    cities = cities()
-
-    Task.async_stream(1..num_users, &generate_user(&1, words, names, cities), timeout: :timer.minutes(10))
-  end
-
   defp generate_user(user_num, words, names, cities) do
     :rand.seed(:exsplus, {0, 0, user_num})
 
@@ -95,17 +90,6 @@ defmodule Compliance.Data do
       }
 
     {user, encode_user(user)}
-  end
-
-  defp output_progress(enumerable, total) do
-    enumerable
-    |> Stream.with_index(1)
-    |> Stream.map(fn({element, index}) ->
-      percent = round((index/total) * 100)
-      :io.format(to_charlist("Generating users #{percent}% complete.\r"))
-      element
-    end)
-
   end
 
   defp generate_addresses(cities) do

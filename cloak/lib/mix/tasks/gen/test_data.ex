@@ -28,11 +28,10 @@ defmodule Mix.Tasks.Gen.TestData do
     def run([config_name, num_users]) do
       num_users = String.to_integer(num_users)
       IO.puts "Generating data for #{num_users} users."
-      data = Compliance.Data.generate(num_users)
 
       config_name
       |> Compliance.DataSources.all_from_config()
-      |> Compliance.DataSources.setup(data)
+      |> Compliance.DataSources.setup(Compliance.Data.users(num_users), num_users)
     end
     def run(_) do
       IO.puts """
