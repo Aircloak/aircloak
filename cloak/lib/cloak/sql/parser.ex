@@ -792,28 +792,23 @@ defmodule Cloak.Sql.Parser do
     |> map(fn {_, [{:by, columns}]} -> {:group_by, columns} end)
   end
 
-  defp order_by_field() do
+  defp order_by_field(), do:
     sequence([
       column(),
       either(order_by_direction(), return(:asc)),
       either(nulls_specifier(), return(:nulls_natural)),
     ])
     |> map(&List.to_tuple/1)
-  end
 
   defp order_by_direction(), do:
     either(keyword(:asc), keyword(:desc))
 
-  defp nulls_specifier() do
-    sequence([keyword(:nulls), token(:unquoted) |> map(& &1.value)])
-    |> satisfy(fn([:nulls, token]) -> String.downcase(token) in ~w/first last/ end)
-    |> map(fn([:nulls, token]) ->
-      case String.downcase(token) do
-        "first" -> :nulls_first
-        "last" -> :nulls_last
-      end
+  defp nulls_specifier(), do:
+    pair_both(keyword(:nulls), raw_identifier_of(~w(first last)))
+    |> map(fn
+      {:nulls, :first} -> :nulls_first
+      {:nulls, :last} -> :nulls_last
     end)
-  end
 
   defp identifier(parser \\ noop()) do
     parser
