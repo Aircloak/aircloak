@@ -3,7 +3,7 @@ defmodule Compliance.DataSources do
 
   alias Compliance.{Data, TableDefinitions}
 
-  @normal_name_postfix ""
+  @plain_name_postfix ""
   @encoded_name_postfix "_encoded"
 
 
@@ -28,11 +28,24 @@ defmodule Compliance.DataSources do
     |> Cloak.DataSource.config_to_datasources()
 
   @doc "Creates tables for a normal and a encoded dataset and inserts data into them."
-  @spec setup([DataSource.t], Map.t) :: :ok
-  def setup(data_sources, data), do:
-    data_sources
-    |> Enum.map(&Task.async(fn -> setup_datasource(&1, data) end))
-    |> Enum.each(&Task.await(&1, :timer.minutes(5)))
+  @spec setup([DataSource.t], Map.t, non_neg_integer) :: :ok
+  def setup(data_sources, data, num_users) do
+    insert_servers = Enum.map(data_sources, &start_insert_server!/1)
+
+    chunk_size = 1000
+    num_chunks = Float.ceil(num_users/chunk_size)
+
+    data
+    |> Stream.chunk_every(chunk_size)
+    |> Stream.map(&Enum.unzip(&1))
+    |> Stream.map(fn(chunk) -> Enum.each(insert_servers, &send_chunk(&1, chunk)) end)
+    |> Stream.with_index()
+    |> Stream.map(fn({_, chunk_index}) -> IO.write("inserted users #{round((chunk_index / num_chunks) * 100)}%\r") end)
+    |> Stream.run()
+
+    Enum.each(insert_servers, &stop_insert_server/1)
+    IO.puts("\rinserted #{num_users} users                                   ")
+  end
 
   @doc "Creates the database described by the given data source."
   @spec create(DataSource.t) :: :ok
@@ -61,29 +74,74 @@ defmodule Compliance.DataSources do
   # Internal functions - Creating tables
   # -------------------------------------------------------------------
 
-  defp setup_datasource(%{name: name} = data_source, {normal_data, encoded_data}) do
-    IO.puts "Setting up #{name}"
-    handler = handler_for_data_source(data_source)
+  defp start_insert_server!(data_source) do
+    {:ok, insert_server} = Agent.start_link(fn -> nil end)
 
-    data_source
-    |> handler.setup()
-    |> handle_setup(table_definitions(&TableDefinitions.plain/1, data_source),
-      handler, @normal_name_postfix, normal_data)
-    |> handle_setup(table_definitions(&TableDefinitions.encoded/1, data_source),
-      handler, @encoded_name_postfix, encoded_data)
-    |> handler.terminate()
+    Agent.cast(
+      insert_server,
+      fn(nil) ->
+        handler = handler_for_data_source(data_source)
+        conn = handler.setup(data_source)
 
-    IO.puts "#{name} done"
+        plain_definitions = table_definitions(&TableDefinitions.plain/1, data_source)
+        create_tables(handler, conn, plain_definitions, @plain_name_postfix)
+
+        encoded_definitions = table_definitions(&TableDefinitions.encoded/1, data_source)
+        create_tables(handler, conn, encoded_definitions, @encoded_name_postfix)
+
+        %{
+          data_source: data_source,
+          handler: handler,
+          conn: conn,
+          plain_definitions: plain_definitions,
+          encoded_definitions: encoded_definitions
+        }
+      end
+    )
+
+    insert_server
   end
 
-  defp handle_setup(state, definitions, handler, table_postfix, data) do
+  defp create_tables(handler, conn, definitions, table_postfix) do
+    Enum.each(
+      definitions,
+      fn({name, %{columns: columns}}) ->
+        handler.create_table("#{name}#{table_postfix}", columns, conn)
+      end
+    )
+  end
+
+  defp stop_insert_server(insert_server) do
+    Agent.get(insert_server, &(&1.handler.terminate(&1.conn)), :timer.minutes(5))
+  end
+
+  defp send_chunk(insert_server, {plain_data, encoded_data}) do
+    # The get followed by cast ensures simple buffering. We don't immediately wait for the outcome of the insertion,
+    # which allows us to prepare the next chunk while the insertion is running. Then with this dummy sync lookup,
+    # we make sure we don't send the next chunk until the current one has been processed.
+    Agent.get(insert_server, fn(_state) -> :ok end, :timer.minutes(1))
+
+    Agent.cast(
+      insert_server,
+      fn(state) ->
+        insert_data(state, state.plain_definitions, plain_data, @plain_name_postfix)
+        insert_data(state, state.encoded_definitions, encoded_data, @encoded_name_postfix)
+        state
+      end
+    )
+  end
+
+  defp insert_data(state, definitions, data, table_postfix) do
     flattened_data = Data.flatten(data)
     collections = Data.to_collections(data)
-    Enum.reduce(definitions, state, fn({name, %{columns: columns}}, state) ->
-      state = handler.create_table("#{name}#{table_postfix}", columns, state)
-      state = handler.insert_rows("#{name}#{table_postfix}", flattened_data[name], state)
-      handler.insert_documents("#{name}#{table_postfix}", collections[name], state)
-    end)
+
+    Enum.each(
+      definitions,
+      fn({name, _}) ->
+        state.handler.insert_rows("#{name}#{table_postfix}", flattened_data[name], state.conn)
+        state.handler.insert_documents("#{name}#{table_postfix}", collections[name], state.conn)
+      end
+    )
   end
 
   defp handler_for_data_source(%{driver: Cloak.DataSource.SAPHana}), do:
@@ -112,16 +170,16 @@ defmodule Compliance.DataSources do
 
   defp expand_and_add_table_definitions(data_source_scaffolds) do
     Enum.flat_map(data_source_scaffolds, fn(data_source_scaffold) ->
-      normal_tables = table_definitions(&TableDefinitions.plain/1, data_source_scaffold)
-      |> create_table_structure(@normal_name_postfix, data_source_scaffold)
+      plain_tables = table_definitions(&TableDefinitions.plain/1, data_source_scaffold)
+      |> create_table_structure(@plain_name_postfix, data_source_scaffold)
 
       encoded_tables = table_definitions(&TableDefinitions.encoded/1, data_source_scaffold)
       |> create_table_structure(@encoded_name_postfix, data_source_scaffold)
 
-      normal_data_source = data_source_scaffold
-      |> Map.put(:tables, normal_tables)
-      |> Map.put(:initial_tables, normal_tables)
-      |> Map.put(:name, "#{data_source_scaffold.name}#{@normal_name_postfix}")
+      plain_data_source = data_source_scaffold
+      |> Map.put(:tables, plain_tables)
+      |> Map.put(:initial_tables, plain_tables)
+      |> Map.put(:name, "#{data_source_scaffold.name}#{@plain_name_postfix}")
       |> Map.put(:marker, "normal")
 
       encoded_data_source = data_source_scaffold
@@ -130,7 +188,7 @@ defmodule Compliance.DataSources do
       |> Map.put(:name, "#{data_source_scaffold.name}#{@encoded_name_postfix}")
       |> Map.put(:marker, "encoded")
 
-      [normal_data_source, encoded_data_source]
+      [plain_data_source, encoded_data_source]
     end)
   end
 
