@@ -779,6 +779,11 @@ defmodule Cloak.Sql.Parser.Test do
       select(columns: [function("substring", [identifier("foo"), constant(:integer, 3)])])
   end
 
+  test "substr" do
+    assert_parse "select substr(foo from 3) from bar",
+      select(columns: [function("substring", [identifier("foo"), constant(:integer, 3)])])
+  end
+
   test "substring from ... for ..." do
     assert_parse "select substring(foo from 3 for 10) from bar",
       select(columns: [function("substring", [
