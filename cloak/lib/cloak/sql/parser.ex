@@ -449,7 +449,7 @@ defmodule Cloak.Sql.Parser do
         choice_deepest_error([
           sequence([keyword(:from), pos_integer(), keyword(:for), pos_integer()]),
           sequence([keyword(:","), pos_integer(), keyword(:","), pos_integer()]),
-          sequence([keyword_of([:from, :for, :","]), pos_integer()])
+          sequence([keyword_of([:from, :for, :","]) |> label("substring arguments"), pos_integer()]),
         ]),
         keyword(:")"),
      ],
@@ -669,7 +669,6 @@ defmodule Cloak.Sql.Parser do
       {any_constant() |> inequality_comparator(), column()},
       {column() |> inequality_comparator(), any_constant()},
       {column() |> equality_comparator(), allowed_where_value()},
-      {:else, error_message(fail(""), "Invalid where expression.")}
     ])
     |> map(fn
           {[identifier, nil, :like], [[string_constant, escape]]} ->
@@ -891,7 +890,6 @@ defmodule Cloak.Sql.Parser do
     switch([
       {column() |> keyword(:between), allowed_where_range()},
       {column(), pair_both(comparator(), column())},
-      {:else, error_message(fail(""), "Invalid having expression.")}
     ])
     |> map(fn
       {[column], [{comparator, value}]} -> create_comparison(column, comparator, value)

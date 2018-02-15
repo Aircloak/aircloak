@@ -98,7 +98,7 @@ defmodule Cloak.Query.ErrorTest do
 
   test "substring with neither for nor from" do
     assert_query "select substring(name) from test_errors", %{error: error}
-    assert error =~ ~r/Expected `from or for or ,`/
+    assert error =~ ~r/Expected `substring arguments`/
   end
 
   test "substring with invalid from" do
