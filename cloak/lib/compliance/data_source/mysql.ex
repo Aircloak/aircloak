@@ -14,6 +14,11 @@ defmodule Compliance.DataSource.MySQL do
     Application.ensure_all_started(:mariaex)
     Connector.await_port(params.hostname, 3306)
     setup_database(params)
+    :ok
+  end
+
+  @impl Connector
+  def connect(%{parameters: params}) do
     {:ok, conn} = Mariaex.start_link(
       database: params.database,
       hostname: params.hostname,

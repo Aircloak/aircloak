@@ -11,8 +11,13 @@ defmodule Compliance.DataSource.SAPHana do
   # -------------------------------------------------------------------
 
   @impl Connector
-  def setup(%{parameters: params}) do
+  def setup(_datasource) do
     Application.ensure_all_started(:odbc)
+    :ok
+  end
+
+  @impl Connector
+  def connect(%{parameters: params}) do
     {:ok, conn} = SapHanaHelpers.connect(params)
     SapHanaHelpers.ensure_schema!(conn, schema())
     conn

@@ -81,7 +81,8 @@ defmodule Compliance.DataSources do
       insert_server,
       fn(nil) ->
         handler = handler_for_data_source(data_source)
-        conn = handler.setup(data_source)
+        handler.setup(data_source)
+        conn = handler.connect(data_source)
 
         plain_definitions = table_definitions(&TableDefinitions.plain/1, data_source)
         create_tables(handler, conn, plain_definitions, @plain_name_postfix)

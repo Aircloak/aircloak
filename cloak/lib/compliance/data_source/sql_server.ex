@@ -14,6 +14,11 @@ defmodule Compliance.DataSource.SQLServer do
     Application.ensure_all_started(:odbc)
     Connector.await_port(params.hostname, 1433)
     setup_database(params)
+    :ok
+  end
+
+  @impl Connector
+  def connect(%{parameters: params}) do
     conn = Cloak.DataSource.SQLServer.connect!(params)
     Enum.each(Common.setup_queries(), &execute!(conn, &1))
     conn

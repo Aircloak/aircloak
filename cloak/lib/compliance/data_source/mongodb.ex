@@ -15,6 +15,10 @@ defmodule Compliance.DataSource.MongoDB do
   def setup(%{parameters: params}) do
     Application.ensure_all_started(:mongodb)
     Connector.await_port(params.hostname, 27_017)
+  end
+
+  @impl Connector
+  def connect(%{parameters: params}) do
     {:ok, conn} = Mongo.start_link(
       database: params.database,
       hostname: params.hostname,
