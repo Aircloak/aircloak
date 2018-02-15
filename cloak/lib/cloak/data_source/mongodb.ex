@@ -143,7 +143,7 @@ defmodule Cloak.DataSource.MongoDB do
   end
 
   @impl Driver
-  def supports_query?(query), do: supports_joins?(query)
+  def supports_query?(query), do: supports_joins?(query) and supports_order_by?(query)
 
   @impl Driver
   def supports_function?(expression, data_source), do:
@@ -247,6 +247,15 @@ defmodule Cloak.DataSource.MongoDB do
     supports_join_branches?(query.selected_tables, join.lhs, join.rhs)
   end
   defp supports_joins?(_query), do: true
+
+  defp supports_order_by?(%{subquery?: false}), do: true
+  defp supports_order_by?(%{subquery?: true, order_by: order_by}), do:
+    Enum.all?(order_by, fn
+      {_, _, :nulls_natural} -> true
+      {_, :asc, :nulls_first} -> true
+      {_, :desc, :nulls_last} -> true
+      _ -> false
+    end)
 
   defp mongo_version_supports_joins?(%{data_source: data_source}), do:
     data_source |> mongo_version() |> Version.compare("3.2.0") != :lt

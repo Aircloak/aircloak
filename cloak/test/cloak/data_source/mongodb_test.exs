@@ -147,6 +147,12 @@ defmodule Cloak.DataSource.MongoDBTest do
       """, %{rows: [%{occurrences: 1, row: [10]}]}
   end
 
+  test "explicit nulls directive gets emulated", context do
+    assert_query context, """
+      SELECT name FROM (SELECT _id, name FROM #{@table} ORDER BY 2 ASC NULLS LAST LIMIT 10) t
+    """, %{rows: [%{occurrences: 10, row: [:*]}]}
+  end
+
   test "functions in sub-queries", context do
     assert_query context, "SELECT AVG(age) FROM (SELECT _id, age * 2 + 1 AS age FROM #{@table}) AS t",
       %{rows: [%{occurrences: 1, row: [61.0]}]}

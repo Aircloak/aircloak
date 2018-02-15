@@ -66,13 +66,14 @@ defmodule Compliance.DataSource.SQLServer do
   end
 
   defp cast_type(binary) when is_binary(binary) do
-  binary = :unicode.characters_to_binary(binary, :utf8, {:utf16, :little})
+    binary = :unicode.characters_to_binary(binary, :utf8, {:utf16, :little})
     {{:sql_wvarchar, byte_size(binary) + 1}, [binary]}
   end
   defp cast_type(integer) when is_integer(integer), do: {:sql_integer, [integer]}
   defp cast_type(float) when is_float(float), do: {:sql_real, [float]}
   defp cast_type(boolean) when is_boolean(boolean), do: {:sql_bit, [boolean]}
   defp cast_type(%{calendar: Calendar.ISO} = datetime), do: datetime |> to_string() |> cast_type()
+  defp cast_type(nil), do: {{:sql_wvarchar, 10}, [:null]}
 
   defp execute!(conn, query, params \\ []) do
     case :odbc.param_query(conn, String.to_charlist(query), Enum.map(params, &cast_type/1)) do

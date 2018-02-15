@@ -79,6 +79,7 @@ defmodule Compliance.DataSource.SQLServerTds do
   defp cast_type(true), do: 1
   defp cast_type(false), do: 0
   defp cast_type(%{calendar: Calendar.ISO} = datetime), do: datetime |> to_string() |> cast_type()
+  defp cast_type(nil), do: "NULL"
 
   defp execute!(conn, query), do: Tds.query!(conn, query, [])
 

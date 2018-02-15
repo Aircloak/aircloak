@@ -148,11 +148,11 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp normalize_order_by(query) do
     case {query.order_by, remove_constant_ordering(query.order_by)} do
       {[], _} -> query
-      {_, []} -> %{query | order_by: [{Helpers.id_column(query), :asc}]}
+      {_, []} -> %{query | order_by: [{Helpers.id_column(query), :asc, :nulls_last}]}
       {_, order_list} -> %{query | order_by: order_list}
     end
   end
 
   defp remove_constant_ordering(order_list), do:
-    Enum.reject(order_list, fn({expression, _direction}) -> expression.constant? end)
+    Enum.reject(order_list, fn({expression, _direction, _nulls}) -> expression.constant? end)
 end

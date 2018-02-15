@@ -105,6 +105,12 @@ defmodule ComplianceCase do
       {"changes.change", "notes_changes", "uid"},
     ]
 
+  def nullable_columns(), do:
+    [
+      # {column name, table name, uid column in table}
+      {"nullable", "users", "user_id"},
+    ]
+
   @doc false
   def table_uids(), do:
     [

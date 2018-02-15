@@ -430,7 +430,7 @@ defmodule Cloak.Sql.Compiler.Test do
     assert Enum.any?(conditions, &match?({:not, {:is, column("table", "uid"), :null}}, &1))
     assert Enum.any?(conditions, &match?({:comparison, column("table", "column"), :<>, _}, &1))
     assert [column("table", "column")] = result.group_by
-    assert [{expr_1, :desc}, {expr_2, :desc}] = result.order_by
+    assert [{expr_1, :desc, _}, {expr_2, :desc, _}] = result.order_by
     assert %Expression{function: "count"} = expr_1
     assert %Expression{function: "count"} = expr_2
   end
@@ -475,7 +475,7 @@ defmodule Cloak.Sql.Compiler.Test do
     assert Enum.any?(conditions, &match?({:comparison, column("t1", "c2"), :<, _}, &1))
     assert Enum.any?(conditions, &match?({:comparison, column("t1", "uid"), :=, column("t2", "uid")}, &1))
     assert [column("t1", "c1"), column("t2", "c3")] = result.group_by
-    assert [{column("t1", "c1"), :desc}] = result.order_by
+    assert [{column("t1", "c1"), :desc, _}] = result.order_by
   end
 
   test "complains when conditions not on columns of JOINed tables" do

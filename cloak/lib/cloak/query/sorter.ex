@@ -17,10 +17,10 @@ defmodule Cloak.Query.Sorter do
   def order_rows(rows, _columns, [], _mapper), do: rows
   def order_rows(rows, columns, order_by, mapper) do
     order_by_indices = Enum.map(order_by,
-      fn({expression, direction}) ->
+      fn({expression, direction, nulls}) ->
         index = Enum.find_index(columns, &(&1 == expression))
         true = (index != nil)
-        {index, direction}
+        {index, direction, nulls}
       end
     )
 
@@ -39,25 +39,25 @@ defmodule Cloak.Query.Sorter do
       true -> row1 < row2
     end
   end
-  defp compare_rows(row1, row2, [{index, direction} | remaining_order]) do
+  defp compare_rows(row1, row2, [{index, direction, nulls} | remaining_order]) do
     field1 = Enum.at(row1, index)
     field2 = Enum.at(row2, index)
     case field1 === field2 do
       :true -> compare_rows(row1, row2, remaining_order)
-      :false -> compare_fields(field1, field2, direction)
+      :false -> compare_fields(field1, field2, direction, nulls)
     end
   end
 
-  defp compare_fields(field1, field2, nil), do: compare_fields(field1, field2, :asc)
-  defp compare_fields(:*, _, _), do: false
-  defp compare_fields(_, :*, _), do: true
-  defp compare_fields(nil, _, :asc), do: false
-  defp compare_fields(_, nil, :asc), do: true
-  defp compare_fields(nil, _, :desc), do: true
-  defp compare_fields(_, nil, :desc), do: false
-  defp compare_fields(%NaiveDateTime{} = field1, %NaiveDateTime{} = field2, direction) do
-    compare_fields(NaiveDateTime.to_erl(field1), NaiveDateTime.to_erl(field2), direction)
-  end
-  defp compare_fields(field1, field2, :asc), do: field1 < field2
-  defp compare_fields(field1, field2, :desc), do: field1 > field2
+  defp compare_fields(:*, _, _, _), do: false
+  defp compare_fields(_, :*, _, _), do: true
+  defp compare_fields(nil, _, _, :nulls_last), do: false
+  defp compare_fields(_, nil, _, :nulls_last), do: true
+  defp compare_fields(nil, _, _, :nulls_first), do: true
+  defp compare_fields(_, nil, _, :nulls_first), do: false
+  defp compare_fields(nil, _, :asc, :nulls_natural), do: false
+  defp compare_fields(_, nil, :asc, :nulls_natural), do: true
+  defp compare_fields(nil, _, :desc, :nulls_natural), do: true
+  defp compare_fields(_, nil, :desc, :nulls_natural), do: false
+  defp compare_fields(field1, field2, :asc, _), do: Cloak.Data.lt_eq(field1, field2)
+  defp compare_fields(field1, field2, :desc, _), do: Cloak.Data.lt_eq(field2, field1)
 end

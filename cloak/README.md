@@ -21,7 +21,8 @@
 
 ## What it does
 
-This component acts as a query layer over sensitive data. It works together with the [air system](../air/) to allow users to issue queries which return aggregated anonymized statistics (properties and counts).
+This component acts as a query layer over sensitive data. It works together with the [air system](../air/) to allow
+users to issue queries which return aggregated anonymized statistics (properties and counts).
 
 
 ## Getting started
@@ -52,29 +53,35 @@ the cloak, respectively.
 
 ### Local configuration
 
-You can override some of the configuration settings by creating a `config/dev.local.exs` file. The format is the same as `config/dev.exs`.
+You can override some of the configuration settings by creating a `config/dev.local.exs` file. The format is the same as
+`config/dev.exs`.
 
 ### Preparing the database
 
-You need a local PostgreSQL instance listening on port 5432. It is assumed that you have a user called `postgres` that is a superuser. You can create such user with `CREATE USER postgres WITH SUPERUSER`.
+You need a local PostgreSQL instance listening on port 5432. It is assumed that you have a user called `postgres` that
+is a superuser. You can create such user with `CREATE USER postgres WITH SUPERUSER`.
 
 You can create the empty database by running `make recreate-db`.
 
-If you want to run cloak in a local docker container, you need to run this command once more to create the database in the PostgreSQL container: `DB_PORT=20002 ./regenerate-db.sh`.
+If you want to run cloak in a local docker container, you need to run this command once more to create the database in
+the PostgreSQL container: `DB_PORT=20002 ./regenerate-db.sh`.
 
 If everything is properly installed and setup, standard tests invoked with `make test` should pass.
 
 #### Working with SAP HANA data sources on local machine
 
-In order to work with SAP HANA data source, you need to choose a schema you'll work on. You can define your schema in the `dev.local.exs` file:
+In order to work with SAP HANA data source, you need to choose a schema you'll work on. You can define your schema in
+the `dev.local.exs` file:
 
 ```elixir
 config :cloak, :sap_hana, default_schema: your_schema_name
 ```
 
-Make sure to choose something unique for the schema name, such as your own name. Once you configured the schema, you need to run `make regenerate-db` again.
+Make sure to choose something unique for the schema name, such as your own name. Once you configured the schema, you
+need to run `make regenerate-db` again.
 
-If you want to run SAP HANA tests locally, you'll also need to add a `test.local.exs` file with the same configuration. You can safely use the same schema in the test environment.
+If you want to run SAP HANA tests locally, you'll also need to add a `test.local.exs` file with the same configuration.
+You can safely use the same schema in the test environment.
 
 ### Cloak configuration
 
@@ -160,26 +167,36 @@ Occasionally you may want to run only some tests. Depending on the kind of test,
 - `make proper` - runs all property tests
 - `make proper-std` - runs only simple property tests
 - `make proper-extended` - runs extended (longer running) property tests
-- `mix test/some_test_script.exs` to run a single ExUnit test suite. See [here](http://elixir-lang.org/docs/stable/mix/Mix.Tasks.Test.html) for more information.
+- `mix test/some_test_script.exs` to run a single ExUnit test suite. See
+  [here](http://elixir-lang.org/docs/stable/mix/Mix.Tasks.Test.html) for more information.
 - `mix eunit --module erlang_module` EUnit test of a single Erlang module.
 - `mix proper --module erlang_module` PropEr test of a single module.
 
-Note that when specifying Erlang modules, you need to provide the name of the real module and not the test one. For example, let's say you have the module `anonymizer` and property tests are residing in the `anonymizer_test` module. The corresponding command is `mix proper --module anonymizer` (without the `_test` suffix).
+Note that when specifying Erlang modules, you need to provide the name of the real module and not the test one. For
+example, let's say you have the module `anonymizer` and property tests are residing in the `anonymizer_test` module. The
+corresponding command is `mix proper --module anonymizer` (without the `_test` suffix).
 
-By default, only native PostgreSQL adapter is tested locally, while MongoDB and other drivers are excluded. To change this you can run following commands:
+By default, only native PostgreSQL adapter is tested locally, while MongoDB and other drivers are excluded. To change
+this you can run following commands:
 
 - `mix test --only mongodb` - to run only MongoDB tests
 - `mix test --only saphana` - to run only SAP HANA tests
 - `mix test --only compliance` - to run only the compliance tests
-- `make test_all` - to run all tests which are running on CI: standard tests, MongoDB tests, and tests for all other database adapters (MySQL, PostgreSQL through ODBC, ...). Note however that compliance tests are going to be executed on a reduced database set (as specified in `compliance.json`).
+- `make test_all` - to run all tests which are running on CI: standard tests, MongoDB tests, and tests for all other
+  database adapters (MySQL, PostgreSQL through ODBC, ...). Note however that compliance tests are going to be executed
+  on a reduced database set (as specified in `compliance.json`).
 
-In order to have working tests on other drivers, you need to start corresponding database servers locally - see [Installing database servers](#installing-database-servers).
+In order to have working tests on other drivers, you need to start corresponding database servers locally - see
+[Installing database servers](#installing-database-servers).
 
-Note that SAP HANA tests can't be executed directly on macOS machines. Instead, you need to start a local CI container with `make ci.compliance`. See [Using CI container to unit test other databases](#using-ci-container-to-unit-test-other-databases) for detailed instructions.
+Note that SAP HANA tests can't be executed directly on macOS machines. Instead, you need to start a local CI container
+with `make ci.compliance`. See [Using CI container to unit test other
+databases](#using-ci-container-to-unit-test-other-databases) for detailed instructions.
 
 #### Running a specific compliance test
 
-Each compliance test gets its tag which is reported for each failing test. This simplifies running a single compliance test. Example:
+Each compliance test gets its tag which is reported for each failing test. This simplifies running a single compliance
+test. Example:
 
 ```
 mix test --only "compliance:upper(<col>) changes.change notes_changes"
@@ -207,15 +224,20 @@ You can now interact with the cloak via the dockerized air (http://localhost:808
 
 #### Running full compliance CI locally
 
-To run the full compliance CI test locally with the command `make ci.compliance`. This will start the required database containers, start the cloak container, generate test data, and then enter the bash shell in the container. Now, you can run tests with `mix test --only compliance`. The container uses the source files mounted from your host, so you can easily edit those files and repeatedly run the tests without needing to rebuild the image.
+To run the full compliance CI test locally with the command `make ci.compliance`. This will start the required database
+containers, start the cloak container, generate test data, and then enter the bash shell in the container. Now, you can
+run tests with `mix test --only compliance`. The container uses the source files mounted from your host, so you can
+easily edit those files and repeatedly run the tests without needing to rebuild the image.
 
-If you want to test some specific databases, you can set the `CLOAK_DATA_SOURCES` env variable. For example, to test only PostgreSQL and MongoDB 3.0, you can run the following command:
+If you want to test some specific databases, you can set the `CLOAK_DATA_SOURCES` env variable. For example, to test
+only PostgreSQL and MongoDB 3.0, you can run the following command:
 
 ```
 CLOAK_DATA_SOURCES="postgresql9.4 mongodb3.0" make ci.compliance
 ```
 
-The `CLOAK_DATA_SOURCES` env var is a whitespace separated list of data source names which you want to use in the test suite. For the list of available names, take a look at configuration files in [this folder](priv/config/dockerized_ci).
+The `CLOAK_DATA_SOURCES` env var is a whitespace separated list of data source names which you want to use in the test
+suite. For the list of available names, take a look at configuration files in [this folder](priv/config/dockerized_ci).
 
 The default number of generated users is 10. You can change this by setting the `COMPLIANCE_USERS` env variable:
 
@@ -225,7 +247,8 @@ COMPLIANCE_USERS=50 make ci.compliance
 
 #### Using CI container to unit test other databases
 
-CI container can also be used to unit test other databases, such as SAP HANA, or MongoDb. In this configuration, you need to explicitly set the data sources to PostgreSQL, when starting the CI container.
+CI container can also be used to unit test other databases, such as SAP HANA, or MongoDb. In this configuration, you
+need to explicitly set the data sources to PostgreSQL, when starting the CI container.
 
 ```
 CLOAK_DATA_SOURCES="postgresql9.4" make ci.compliance

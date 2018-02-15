@@ -9,8 +9,7 @@ defmodule Compliance.Data do
   - Each user may have a list of notes
   - Each note may have a list of changes made to the notes
 
-  If you update the schema, please make sure the reference schema on queries_test.exs is still
-  correct and up to date!
+  If you change the schema you will need to update `Compliance.TableDefinitions`.
   """
 
   @min_addresses 0
@@ -87,10 +86,13 @@ defmodule Compliance.Data do
         active: :rand.uniform() < 0.80,
         addresses: generate_addresses(cities),
         notes: generate_notes(words),
+        nullable: nullable(:rand.uniform() * 30 + 170),
       }
-
     {user, encode_user(user)}
   end
+
+  defp nullable(item), do:
+    if :rand.uniform() < 0.80, do: item, else: nil
 
   defp generate_addresses(cities) do
     for _ <- rand_range(@min_addresses, @max_addresses) do
@@ -193,7 +195,7 @@ defmodule Compliance.Data do
     end)
 
   defp flatten_users(users), do:
-    Enum.map(users, & Map.take(&1, [:id, :user_id, :name, :age, :height, :active]))
+    Enum.map(users, & Map.take(&1, [:id, :user_id, :name, :age, :height, :active, :nullable]))
 
   defp flatten_addresses(users) do
     Enum.flat_map(users, fn(user) ->
@@ -245,7 +247,10 @@ defmodule Compliance.Data do
     Enum.reduce(fixup_keys(keys), map, &update_in(&2, &1, fn(v) -> v |> encrypt() |> base64() end))
 
   defp stringify_keys(map, keys), do:
-    Enum.reduce(fixup_keys(keys), map, &update_in(&2, &1, fn(v) -> to_string(v) end))
+    Enum.reduce(fixup_keys(keys), map, &update_in(&2, &1, fn
+      nil -> nil
+      other -> to_string(other)
+    end))
 
   defp fixup_keys([[_|_] | _] = keys), do: keys
   defp fixup_keys(keys), do:
@@ -266,7 +271,7 @@ defmodule Compliance.Data do
   defp encode_user(user) do
     user
     |> encrypt_keys([:name])
-    |> stringify_keys([:age, :height, :active])
+    |> stringify_keys([:age, :height, :active, :nullable])
     |> Map.put(:addresses, encode_addresses(user[:addresses]))
     |> Map.put(:notes, encode_notes(user[:notes]))
   end

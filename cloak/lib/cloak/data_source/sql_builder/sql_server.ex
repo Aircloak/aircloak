@@ -69,6 +69,12 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   @impl Dialect
   def date_subtraction_expression([arg1, arg2]), do: ["DATEDIFF(s, ", arg2, ", ", arg1, ")"]
 
+  @impl Dialect
+  def order_by(column, :asc, :nulls_last), do: ["CASE WHEN ", column, " IS NULL THEN 1 ELSE 0 END, ", column, " ASC"]
+  def order_by(column, :desc, :nulls_first), do: ["CASE WHEN ", column, " IS NULL THEN 0 ELSE 1 END, ", column, " DESC"]
+  def order_by(column, :asc, _), do: [column, " ASC"]
+  def order_by(column, :desc, _), do: [column, " DESC"]
+
 
   # -------------------------------------------------------------------
   # Internal functions

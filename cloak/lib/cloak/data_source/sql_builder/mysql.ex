@@ -66,6 +66,12 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   @impl Dialect
   def unicode_literal(value), do: ["N'", value, ?']
 
+  @impl Dialect
+  def order_by(column, :asc, :nulls_last), do: [column, " IS NULL, ", column, " ASC"]
+  def order_by(column, :desc, :nulls_first), do: [column, " IS NOT NULL, ", column, " DESC"]
+  def order_by(column, :asc, _), do: [column, " ASC"]
+  def order_by(column, :desc, _), do: [column, " DESC"]
+
 
   # -------------------------------------------------------------------
   # Internal functions

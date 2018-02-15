@@ -69,10 +69,10 @@ defmodule Cloak.Sql.Parser do
   @type parsed_query :: %{
     command: :select | :show,
     columns: [column | {column, :as, String.t} | {:*, String.t} | :*],
-    group_by: [String.t],
+    group_by: [column],
     from: from_clause,
     where: where_clause,
-    order_by: [{String.t, :asc | :desc}],
+    order_by: [{column, :asc | :desc, :nulls_first | :nulls_last | :nulls_natural}],
     having: having_clause,
     show: :tables | :columns,
     limit: integer,
@@ -792,21 +792,23 @@ defmodule Cloak.Sql.Parser do
     |> map(fn {_, [{:by, columns}]} -> {:group_by, columns} end)
   end
 
-  defp order_by_field() do
-    pair_both(
+  defp order_by_field(), do:
+    sequence([
       column(),
-      order_by_direction()
-    )
-  end
+      either(order_by_direction(), return(:asc)),
+      either(nulls_specifier(), return(:nulls_natural)),
+    ])
+    |> map(&List.to_tuple/1)
 
-  defp order_by_direction() do
-    option(
-      either(
-        keyword(:asc),
-        keyword(:desc)
-      )
-    )
-  end
+  defp order_by_direction(), do:
+    either(keyword(:asc), keyword(:desc))
+
+  defp nulls_specifier(), do:
+    pair_both(keyword(:nulls), raw_identifier_of(~w(first last)))
+    |> map(fn
+      {:nulls, :first} -> :nulls_first
+      {:nulls, :last} -> :nulls_last
+    end)
 
   defp identifier(parser \\ noop()) do
     parser

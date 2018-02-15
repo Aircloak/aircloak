@@ -528,12 +528,12 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "order by clause" do
     assert_parse(
-      "select a, b, c from foo order by a desc, b asc, c",
+      "select a, b, c from foo order by a desc, b asc nulls first, c nulls last, d asc",
       select(columns: [
           identifier("a"), identifier("b"), identifier("c")
         ], from: unquoted("foo"), order_by: [
-          {identifier("a"), :desc}, {identifier("b"), :asc},
-          {identifier("c"), nil}
+          {identifier("a"), :desc, :nulls_natural}, {identifier("b"), :asc, :nulls_first},
+          {identifier("c"), :asc, :nulls_last}, {identifier("d"), :asc, :nulls_natural}
         ])
     )
   end
@@ -622,8 +622,8 @@ defmodule Cloak.Sql.Parser.Test do
         where: {:comparison, identifier("column"), :=, _},
         group_by: [identifier("column")],
         order_by: [
-          {identifier("column"), :desc},
-          {function("count", [{:distinct, identifier("column")}]), :nil}
+          {identifier("column"), :desc, :nulls_natural},
+          {function("count", [{:distinct, identifier("column")}]), :asc, :nulls_natural}
         ]
       )
     )
@@ -1288,6 +1288,10 @@ defmodule Cloak.Sql.Parser.Test do
         "select \"x\".\"y\".\"z\" from baz", "Expected `from`", {1, 15}},
       {"invalid mixed quote column name",
         "select \"x\".y.\"z\" from baz", "Expected `from`", {1, 13}},
+      {"invalid nulls directive",
+        "select foo from bar order by baz nulls whatever", "Expected end of input", {1, 34}},
+      {"nulls directive with a quoted identifier",
+        "select foo from bar order by baz nulls \"first\"", "Expected end of input", {1, 34}},
     ],
     fn
       {description, statement, expected_error, {line, column}} ->

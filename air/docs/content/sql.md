@@ -22,7 +22,7 @@ SELECT [DISTINCT]
   [ WHERE where_expression [AND ...] ]
   [ GROUP BY column_expression | position [, ...] ]
   [ HAVING having_expression [AND ...] ]
-  [ ORDER BY column_name [ASC | DESC] | position [, ...] [ LIMIT amount ] [ OFFSET amount ] ]
+  [ ORDER BY column_name  | position [ASC | DESC] [NULLS FIRST | LAST] [, ...] [ LIMIT amount ] [ OFFSET amount ] ]
 
 field_expression :=
   * | table_name.* | column_expression [AS alias]
@@ -82,10 +82,23 @@ inequality_operator :=
 - The operator `OR` is not supported.
 - The operator `NOT` can only be used in the cases mentioned above (`IS NOT NULL`, `NOT LIKE`, and `NOT ILIKE`).
 - You can restrict the range of returned rows by a query using the `LIMIT` and/or `OFFSET` clauses, but you need to
- provide the `ORDER BY` clause to ensure a stable order for the rows.
+  provide the `ORDER BY` clause to ensure a stable order for the rows.
 - Conditions in the `HAVING` clause must not refer to non-aggregated fields.
 - Aliases can be used in the `WHERE`, `GROUP BY`, `ORDER BY` and `HAVING` clauses, as long as the alias doesn't conflict
- with a column name in one of the selected tables.
-- If an integer is specified in the `GROUP BY` clause, it represents a 1-based position in the select list. The corresponding expression from the select list is used as the grouping expression.
-- Values of type `datetime with timezone` are not supported. The timezone information will be dropped and the value will be exposed as a simple `datetime` in the UTC format.
-- The `SAMPLE_USERS` clause is an Aircloak specific feature that can be used to reduce the amount of users queried. This speeds up query execution and is useful for estimating the results when querying large datasets. The sampling is not 100% exact, but it is deterministic. The included users are an approximation of the requested percent from the total number of users, but the same users will be included each time a query is executed. Aggregates present in the query are not automatically adjusted. For example the `COUNT` returned when `SAMPLE_USERS 10%` is used will be approximately 10% of the count returned when the `SAMPLE_USERS`-clause is omitted.
+  with a column name in one of the selected tables.
+- If an integer is specified in the `GROUP BY` clause, it represents a 1-based position in the select list. The
+  corresponding expression from the select list is used as the grouping expression.
+- Values of type `datetime with timezone` are not supported. The timezone information will be dropped and the value will
+  be exposed as a simple `datetime` in the UTC format.
+- The `SAMPLE_USERS` clause is an Aircloak specific feature that can be used to reduce the amount of users queried. This
+  speeds up query execution and is useful for estimating the results when querying large datasets. The sampling is not
+  100% exact, but it is deterministic. The included users are an approximation of the requested percent from the total
+  number of users, but the same users will be included each time a query is executed. Aggregates present in the query
+  are not automatically adjusted. For example the `COUNT` returned when `SAMPLE_USERS 10%` is used will be approximately
+  10% of the count returned when the `SAMPLE_USERS`-clause is omitted.
+- The subquery order by is not guaranteed to be preserved in the outer query, and in fact will most likely not be. Add
+  an `ORDER BY` clause in the outer query if you want a specific order.
+- When `NULL` handling is not specified in an `ORDER BY` in a subquery (either `NULLS FIRST` or `NULLS LAST`) the
+  default handling for the underlying datasource will be used. For postgres that means that `NULL` values will be
+  treated as larger than all other values. For SAP HANA, MySQL, SQL Server, and MongoDB they will be treated as smaller
+  than all other values. The top-level query always defaults to treating `NULL` values as larger than other values.

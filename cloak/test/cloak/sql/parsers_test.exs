@@ -45,4 +45,12 @@ defmodule Cloak.Sql.Parsers.Test do
       assert error =~ ~r/Expected `b`, but found `c`/
     end
   end
+
+  describe "return" do
+    test "works outside of a pipeline", do:
+      assert [:value] = Combine.parse("abc", return(:value))
+
+    test "works in a pipeline", do:
+      assert [:value] = Combine.parse("abc", Combine.Parsers.Base.ignore(char("a")) |> return(:value))
+  end
 end
