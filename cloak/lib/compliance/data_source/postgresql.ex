@@ -12,10 +12,13 @@ defmodule Compliance.DataSource.PostgreSQL do
   @impl Connector
   def setup(%{parameters: params}) do
     Application.ensure_all_started(:postgrex)
-
     Connector.await_port(params.hostname, 5432)
     setup_database(params)
+    :ok
+  end
 
+  @impl Connector
+  def connect(%{parameters: params}) do
     {:ok, conn} = Postgrex.start_link(
       database: params.database,
       hostname: params.hostname,

@@ -9,6 +9,9 @@ defmodule Mix.Tasks.Gen.TestData do
     - the name of the data source config file to be used
     - the number of users to be generated
 
+    Optionally, you can also provide the `--concurrency positive_integer` option to specify the number of concurrent
+    insert processes used in each data source. The default value for this parameter is the number of online schedulers.
+
     The config file is expected to be found in `priv/config`
 
     Example usage:
@@ -25,25 +28,27 @@ defmodule Mix.Tasks.Gen.TestData do
     use Mix.Task
 
     @impl Mix.Task
-    def run([config_name, num_users]) do
-      num_users = String.to_integer(num_users)
-      IO.puts "Generating data for #{num_users} users."
+    def run(args) do
+      # this ensures that protocols are consolidated, which improves the overall running time
+      Mix.Task.run("app.start", ["--no-start"])
 
-      config_name
-      |> Compliance.DataSources.all_from_config()
-      |> Compliance.DataSources.setup(Compliance.Data.users(num_users), num_users)
+      case OptionParser.parse!(args, switches: [concurrency: :integer]) do
+        {options, [config_name, num_users]} ->
+          concurrency = Keyword.get(options, :concurrency, System.schedulers_online())
+          num_users = String.to_integer(num_users)
+          IO.puts "Generating data for #{num_users} users."
+
+          config_name
+          |> Compliance.DataSources.all_from_config()
+          |> Compliance.DataSources.setup(Compliance.Data.users(num_users), num_users, concurrency)
+
+        _ ->
+          IO.puts """
+
+          Please run as:
+            mix gen.test_data <config-name> <num-users>
+          """
+      end
     end
-    def run(_) do
-      IO.puts """
-
-      Please run as:
-        mix gen.test_data <config-name> <num-users>
-      """
-    end
-
-
-    # -------------------------------------------------------------------
-    # Internal functions
-    # -------------------------------------------------------------------
   end
 end
