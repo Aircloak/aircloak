@@ -449,8 +449,8 @@ defmodule Cloak.Sql.Parser do
         choice_deepest_error([
           sequence([keyword(:from), pos_integer(), keyword(:for), pos_integer()]),
           sequence([keyword(:","), pos_integer(), keyword(:","), pos_integer()]),
-          sequence([keyword_of([:from, :for, :","]), pos_integer()])
-        ]) |> label("substring arguments"),
+          sequence([keyword_of([:from, :for, :","]) |> label("substring arguments"), pos_integer()]),
+        ]),
         keyword(:")"),
      ],
      fn
