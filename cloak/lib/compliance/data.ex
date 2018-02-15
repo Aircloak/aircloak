@@ -86,7 +86,7 @@ defmodule Compliance.Data do
         active: :rand.uniform() < 0.80,
         addresses: generate_addresses(cities),
         notes: generate_notes(words),
-        nullable: nullable(:rand.uniform() * 30),
+        nullable: nullable(:rand.uniform() * 30 + 170),
       }
     {user, encode_user(user)}
   end
