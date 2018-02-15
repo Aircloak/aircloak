@@ -164,6 +164,8 @@ defmodule Cloak.DataSource.ODBC do
   defp error_to_nil({:error, _reason}), do: nil
 
   defp real_field_mapper(:null), do: nil
+  defp real_field_mapper("." <> rest), do: real_field_mapper("0." <> rest)
+  defp real_field_mapper("-." <> rest), do: real_field_mapper("-0." <> rest)
   defp real_field_mapper(value) when is_binary(value) do
     value
     |> Float.parse()

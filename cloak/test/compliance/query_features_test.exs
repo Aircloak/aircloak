@@ -37,7 +37,7 @@ defmodule Compliance.QueryFeatures.Test do
       test "order by #{direction} #{nulls} on #{column} in #{table}", context do
         context
         |> assert_consistent_and_not_failing("""
-          SELECT BUCKET(#{unquote(column)} BY 10)
+          SELECT BUCKET(#{unquote(column)} BY 0.1)
           FROM #{unquote(table)}
           ORDER BY 1 #{unquote(direction)} #{unquote(nulls)}
         """)
@@ -50,7 +50,7 @@ defmodule Compliance.QueryFeatures.Test do
         context
         |> assert_consistent_and_not_failing("""
           SELECT foo FROM (
-            SELECT #{unquote(uid)}, BUCKET(#{unquote(column)} BY 100) AS foo
+            SELECT #{unquote(uid)}, BUCKET(#{unquote(column)} BY 0.1) AS foo
             FROM #{unquote(table)}
             ORDER BY 2 #{unquote(direction)} #{unquote(nulls)}
             LIMIT 10
