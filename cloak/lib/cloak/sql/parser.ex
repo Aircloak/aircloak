@@ -443,7 +443,7 @@ defmodule Cloak.Sql.Parser do
     pipe(
       [
         next_position(),
-        keyword(:substring),
+        either(keyword(:substring), raw_identifier("substr")),
         keyword(:"("),
         column(),
         choice_deepest_error([
@@ -454,11 +454,11 @@ defmodule Cloak.Sql.Parser do
         keyword(:")"),
      ],
      fn
-       [location, :substring, :"(", column, [_, from, _, for_count], :")"] ->
+       [location, _, :"(", column, [_, from, _, for_count], :")"] ->
          {:function, "substring", [column, from, for_count], location}
-       [location, :substring, :"(", column, [:for, for_count], :")"] ->
+       [location, _, :"(", column, [:for, for_count], :")"] ->
          {:function, "substring", [column, {:constant, :integer, 1, _location = nil}, for_count], location}
-       [location, :substring, :"(", column, [_, from], :")"] ->
+       [location, _, :"(", column, [_, from], :")"] ->
          {:function, "substring", [column, from], location}
      end
    )
