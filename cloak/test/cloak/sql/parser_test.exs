@@ -1292,6 +1292,8 @@ defmodule Cloak.Sql.Parser.Test do
         "select foo from bar order by baz nulls whatever", "Expected end of input", {1, 34}},
       {"nulls directive with a quoted identifier",
         "select foo from bar order by baz nulls \"first\"", "Expected end of input", {1, 34}},
+      {"incomplete substring in where",
+        "select * from foo where substring(lower(bar, 1, 1) = 3", "Expected `substring arguments`", {1, 52}},
     ],
     fn
       {description, statement, expected_error, {line, column}} ->

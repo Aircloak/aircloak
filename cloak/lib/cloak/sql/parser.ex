@@ -450,7 +450,7 @@ defmodule Cloak.Sql.Parser do
           sequence([keyword(:from), pos_integer(), keyword(:for), pos_integer()]),
           sequence([keyword(:","), pos_integer(), keyword(:","), pos_integer()]),
           sequence([keyword_of([:from, :for, :","]), pos_integer()])
-        ]),
+        ]) |> label("substring arguments"),
         keyword(:")"),
      ],
      fn
