@@ -30,14 +30,16 @@ defmodule Compliance.DataSources do
   @doc "Creates tables for a normal and a encoded dataset and inserts data into them."
   @spec setup([DataSource.t], Map.t, non_neg_integer, pos_integer) :: :ok
   def setup(data_sources, data, num_users, concurrency) do
+    chunk_size = 100
+    # normalizes concurrency for smaller data sets to avoid opening needless connections
+    concurrency = min(div(num_users + 1, chunk_size) + 1, concurrency)
+    num_steps = Float.ceil(num_users / (chunk_size * concurrency))
+
     data_sources
     |> Enum.map(&Task.async(fn -> setup_data_source(&1) end))
     |> Enum.each(&Task.await(&1, :timer.minutes(1)))
 
     insert_servers = Enum.map(data_sources, &start_insert_servers!(&1, concurrency))
-
-    chunk_size = 100
-    num_steps = Float.ceil(num_users / (chunk_size * concurrency))
 
     data
     |> Stream.chunk_every(chunk_size)

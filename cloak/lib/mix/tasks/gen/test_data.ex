@@ -10,7 +10,7 @@ defmodule Mix.Tasks.Gen.TestData do
     - the number of users to be generated
 
     Optionally, you can also provide the `--concurrency positive_integer` option to specify the number of concurrent
-    insert processes used in each data source. The default value for this parameter is 1.
+    insert processes used in each data source. The default value for this parameter is the number of online schedulers.
 
     The config file is expected to be found in `priv/config`
 
@@ -34,7 +34,7 @@ defmodule Mix.Tasks.Gen.TestData do
 
       case OptionParser.parse!(args, switches: [concurrency: :integer]) do
         {options, [config_name, num_users]} ->
-          concurrency = Keyword.get(options, :concurrency, 1)
+          concurrency = Keyword.get(options, :concurrency, System.schedulers_online())
           num_users = String.to_integer(num_users)
           IO.puts "Generating data for #{num_users} users."
 
