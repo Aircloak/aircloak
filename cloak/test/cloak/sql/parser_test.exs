@@ -1294,9 +1294,9 @@ defmodule Cloak.Sql.Parser.Test do
         "select foo from bar order by baz nulls \"first\"", "Expected `one of first, last`", {1, 40}},
       {"incomplete substring in where",
         "select * from foo where substring(lower(bar, 1, 1) = 3", "Expected `substring arguments`", {1, 52}},
-      {"condition with improper constant",
+      {"inequality with non-constant RHS",
         "select * from foo where bar < baz + 1 and x = 1", "Expected `constant`", {1, 31}},
-      {"condition with improper constant ant end of boolean expression",
+      {"condition with non-constant RHS at end of boolean expression",
         "select * from foo where x = 1 and bar < baz + 1", "Expected `constant`", {1, 41}},
     ],
     fn
