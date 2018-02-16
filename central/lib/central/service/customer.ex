@@ -306,7 +306,8 @@ defmodule Central.Service.Customer do
           Version.match?(version, ">=17.2.0 and <17.3.0") -> {:ok, AirMessage.V170200}
           Version.match?(version, ">=17.3.0 and <17.4.0") -> {:ok, AirMessage.V170300}
           Version.match?(version, ">=17.4.0 and <18.1.0") -> {:ok, AirMessage.V170400}
-          Version.match?(version, ">=18.1.0") -> {:ok, AirMessage.V180100}
+          Version.match?(version, ">=18.1.0 and <18.2.0") -> {:ok, AirMessage.V180100}
+          Version.match?(version, ">=18.2.0") -> {:ok, AirMessage.V180200}
           true -> {:error, :invalid_version}
         end
     end
