@@ -60,22 +60,14 @@ defmodule Central.Service.Customer.AirMessage.Default do
     Customer.record_query(message.customer, params)
   end
 
-  defp handle_cloak_online(message), do:
-    Central.Service.Customer.update_cloak(message.customer, message.air_name,
-      Map.fetch!(message.payload, "name"),
-      status: :online, data_source_names: Map.get(message.payload, "data_source_names", []),
-        version: Map.get(message.payload, "version", "Unknown")
-    )
 
-  defp handle_cloak_offline(message), do:
-    Central.Service.Customer.update_cloak(message.customer, message.air_name,
-      Map.fetch!(message.payload, "name"), status: :offline)
+  # -------------------------------------------------------------------
+  # Deprecated information - we no longer want to record this information
+  # -------------------------------------------------------------------
 
-  defp handle_usage_info(message), do:
-    Central.Service.Customer.store_uptime_info(
-      message.customer,
-      message.air_name,
-      NaiveDateTime.from_iso8601!(Map.fetch!(message.payload, "air_utc_time")),
-      Map.delete(message.payload, "air_utc_time")
-    )
+  defp handle_cloak_online(message), do: :ok
+
+  defp handle_cloak_offline(message), do: :ok
+
+  defp handle_usage_info(message), do: :ok
 end
