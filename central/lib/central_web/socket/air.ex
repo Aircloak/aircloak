@@ -46,6 +46,7 @@ defmodule CentralWeb.Socket.Air do
   def id(socket),
     do: "air_socket:#{socket.assigns.customer.id}"
 
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

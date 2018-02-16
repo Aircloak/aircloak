@@ -229,6 +229,7 @@ defmodule Air.CentralClient.Socket do
 
   defp version(), do: Aircloak.Version.for_app(:air) |> Aircloak.Version.to_string()
 
+
   # -------------------------------------------------------------------
   # Supervision tree
   # -------------------------------------------------------------------
