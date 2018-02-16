@@ -465,15 +465,14 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp left_associative_expression(operators, term_parser, normalizer \\ &infix_to_function/4) do
-    pipe(
-      [
-        term_parser,
-        many(sequence([next_position(), choice_deepest_error(operators), term_parser])),
-      ],
-      fn[first, rest] -> Enum.reduce(rest, first, fn([location, operator, right], left) ->
-        normalizer.(operator, left, right, location) end)
-      end
-    )
+    sep_by1_eager(term_parser, pair_both(next_position(), choice_deepest_error(operators)))
+    |> map(fn([first | rest]) ->
+      rest
+      |> Enum.chunk_every(2)
+      |> Enum.reduce(first, fn([{location, operator}, right], left) ->
+        normalizer.(operator, left, right, location)
+      end)
+    end)
   end
 
   defp infix_to_function(operator, left, right, location), do: {:function, to_string(operator), [left, right], location}
@@ -847,6 +846,7 @@ defmodule Cloak.Sql.Parser do
 
   defp comma_delimited(term_parser) do
     sep_by1_eager(term_parser, keyword(:","))
+    |> map(fn([first | rest]) -> [first | Enum.drop_every(rest, 2)] end)
   end
 
   defp end_of_input(parser) do

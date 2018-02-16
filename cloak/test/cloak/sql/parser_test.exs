@@ -1222,7 +1222,7 @@ defmodule Cloak.Sql.Parser.Test do
       {"on clause not allowed in a cross join",
         "select a from b cross join c on foo=bar", "Expected end of input", {1, 30}},
       {"count requires parens",
-        "select count * from foo", "Expected `from`", {1, 14}},
+        "select count * from foo", "Expected `column definition`", {1, 16}},
       {"aggregation function requires parens",
           "select sum price from foo", "Expected `from`", {1, 12}},
       {"'by' has to follow 'order'",
@@ -1294,6 +1294,10 @@ defmodule Cloak.Sql.Parser.Test do
         "select foo from bar order by baz nulls \"first\"", "Expected end of input", {1, 34}},
       {"incomplete substring in where",
         "select * from foo where substring(lower(bar, 1, 1) = 3", "Expected `substring arguments`", {1, 52}},
+      {"condition with improper constant",
+        "select * from foo where bar < baz + 1 and x = 1", "Expected `constant`", {1, 31}},
+      {"condition with improper constant ant end of boolean expression",
+        "select * from foo where x = 1 and bar < baz + 1", "Expected `constant`", {1, 41}},
     ],
     fn
       {description, statement, expected_error, {line, column}} ->
