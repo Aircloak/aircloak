@@ -23,26 +23,6 @@ defmodule Central.Service.ElasticSearch do
     record(:customer, :query, data, parse_time(params[:aux]["finished_at"] || ""))
   end
 
-  @doc "Records air presence in elastic search."
-  @spec record_air_presence(Air.t) :: :ok | :error
-  def record_air_presence(air) do
-    air = Repo.preload(air, [:customer, :cloaks])
-
-    record(:statuses, :air, %{
-      name: air.name,
-      status: air.status,
-      online_cloaks: air.cloaks |> Enum.filter(&(&1.status == :online)) |> Enum.count(),
-      customer: %{id: air.customer.id, name: air.customer.name}
-    })
-
-    Enum.each(air.cloaks, &record(:statuses, :cloak, %{
-      name: &1.name,
-      status: &1.status,
-      data_source_names: &1.data_source_names,
-      air_name: air.name,
-      customer: %{id: air.customer.id, name: air.customer.name}
-    }))
-  end
 
   # -------------------------------------------------------------------
   # Internal functions
