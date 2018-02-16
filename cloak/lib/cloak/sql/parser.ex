@@ -362,6 +362,7 @@ defmodule Cloak.Sql.Parser do
     |> map(&String.downcase/1)
     |> satisfy(&Enum.member?(words, &1))
     |> map(&String.to_atom/1)
+    |> label("one of #{words |> Enum.join(", ")}")
   end
 
   defp function_expression() do
@@ -791,21 +792,21 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp order_by_field(), do:
-    sequence([
-      column(),
-      either_deepest_error(order_by_direction(), return(:asc)),
-      either_deepest_error(nulls_specifier(), return(:nulls_natural)),
-    ])
+    sequence([column(), order_by_direction(), nulls_specifier()])
     |> map(&List.to_tuple/1)
 
   defp order_by_direction(), do:
-    either_deepest_error(keyword(:asc), keyword(:desc))
+    choice_deepest_error([keyword(:asc), keyword(:desc), return(:asc)])
 
   defp nulls_specifier(), do:
-    pair_both(keyword(:nulls), raw_identifier_of(~w(first last)))
+    switch([
+      {keyword(:nulls), raw_identifier_of(~w(first last))},
+      {:else, return(:nulls_natural)}
+    ])
     |> map(fn
-      {:nulls, :first} -> :nulls_first
-      {:nulls, :last} -> :nulls_last
+      {[:nulls], [:first]} -> :nulls_first
+      {[:nulls], [:last]} -> :nulls_last
+      other -> other
     end)
 
   defp identifier(parser \\ noop()) do
