@@ -6,7 +6,7 @@ defmodule Central.Service.Customer do
 
   alias Ecto.Changeset
   alias Central.Repo
-  alias Central.Schemas.{Air, AirRPC, Cloak, Customer, CustomerExport, Query, OnlineStatus}
+  alias Central.Schemas.{AirRPC, Customer, CustomerExport, Query}
   alias Central.Service.ElasticSearch
   alias Central.Service.Customer.AirMessage
 
@@ -31,8 +31,6 @@ defmodule Central.Service.Customer do
       {:ok, _} = Repo.transaction(
         fn ->
           try do
-            ensure_air_record_exists(customer, export.air_name, export.air_version)
-
             # We don't need to check for duplicate rpcs, because we verified that the export has not already been
             # imported, and because the export is imported atomically (all or nothing).
             num_rpcs = length(export.rpcs)
@@ -65,9 +63,8 @@ defmodule Central.Service.Customer do
 
   @doc "Returns all registered customers"
   @spec all() :: [Customer.t]
-  def all() do
-    Repo.all(from Customer, preload: [{:airs, :cloaks}])
-  end
+  def all(), do:
+    Repo.all(Customer)
 
   @doc "Creates a customer"
   @spec create(Map.t) :: {:ok, Customer.t} | {:error, Changeset.t}
@@ -97,7 +94,7 @@ defmodule Central.Service.Customer do
   def get(id) do
     case Repo.get(Customer, id) do
       nil -> {:error, :not_found}
-      customer -> {:ok, Repo.preload(customer, [{:airs, :cloaks}])}
+      customer -> {:ok, customer}
     end
   end
 
@@ -141,92 +138,6 @@ defmodule Central.Service.Customer do
           inspect(changeset))
         :error
     end
-  end
-
-  @doc "Marks air and associated cloaks as online."
-  @spec mark_air_online(Customer.t, String.t, Central.AirStats.air_info) :: :ok
-  def mark_air_online(customer, air_name, air_info) do
-    {:ok, air} = Repo.transaction(fn ->
-      version = air_info[:air_version]
-      air = Repo.insert!(
-        %Air{name: air_name, customer: customer, status: :online, version: version},
-        on_conflict: [set: [status: :online, version: version]],
-        conflict_target: [:name, :customer_id]
-      )
-      air_info[:online_cloaks]
-      |> Enum.each(&update_cloak(customer, air_name, &1.name,
-        status: :online, data_source_names: &1.data_source_names, version: &1.version))
-      air
-    end)
-
-    ElasticSearch.record_air_presence(air)
-
-    :ok
-  end
-
-  @doc "Marks air and all known cloaks as offline."
-  @spec mark_air_offline(Customer.t, String.t) :: :ok
-  def mark_air_offline(customer, air_name) do
-    {:ok, air} = Repo.transaction(fn ->
-      air = Repo.insert!(
-        %Air{name: air_name, customer: customer, status: :offline, version: "Unknown"},
-        on_conflict: [set: [status: :offline]],
-        conflict_target: [:name, :customer_id]
-      )
-      Repo.update_all(from(c in Cloak, where: c.air_id == ^air.id), set: [status: :offline])
-      air
-    end)
-
-    ElasticSearch.record_air_presence(air)
-
-    :ok
-  end
-
-  @doc "Resets statuses of all known airs and associated cloaks to offline."
-  @spec reset_air_statuses() :: :ok
-  def reset_air_statuses() do
-    {:ok, _} =
-      Ecto.Multi.new()
-      |> Ecto.Multi.update_all(:set_airs_offline, Air, set: [status: :offline])
-      |> Ecto.Multi.update_all(:set_cloaks_offline, Cloak, set: [status: :offline])
-      |> Repo.transaction()
-
-    :ok
-  end
-
-  @doc "Returns the list of all known airs."
-  @spec airs() :: [Air.t]
-  def airs(), do:
-    Repo.all(from Air, preload: [:customer, :cloaks])
-
-  @doc "Updates the cloak status."
-  @spec update_cloak(Customer.t, String.t, String.t,
-      [status: OnlineStatus.t, data_source_names: [String.t], version: String.t]) :: :ok
-  def update_cloak(customer, air_name, cloak_name, updates) do
-    cloak = Map.merge(
-      %Cloak{air: Repo.get_by!(Ecto.assoc(customer, :airs), name: air_name), name: cloak_name},
-      updates |> Enum.into(%{})
-    )
-    Repo.insert!(cloak, on_conflict: [set: updates], conflict_target: [:name, :air_id])
-
-    :ok
-  end
-
-  @doc "Stores the uptime info sent from air."
-  @spec store_uptime_info(Customer.t, String.t, NaiveDateTime.t, Map.t) :: :ok
-  def store_uptime_info(customer, air_name, air_utc_time, data) do
-    mtime = NaiveDateTime.utc_now()
-
-    Repo.insert_all("usage_info", [[
-      customer_id: customer.id,
-      air_id: Repo.get_by!(Ecto.assoc(customer, :airs), name: air_name).id,
-      air_utc_time: air_utc_time,
-      data: data,
-      inserted_at: mtime,
-      updated_at: mtime,
-    ]])
-
-    :ok
   end
 
   @doc "Returns true if the given export has been imported"
@@ -274,13 +185,6 @@ defmodule Central.Service.Customer do
     # Phoenix warns if we're not validating the token age, so we need to pass some integer value.
     # Therefore, we're simulating infinity by using a ridiculously large value (10,000 years).
     60 * 60 * 24 * 365 * 10_000
-
-  defp ensure_air_record_exists(customer, air_name, version), do:
-    Repo.insert!(
-      %Air{name: air_name, customer: customer, status: :offline, version: version},
-      on_conflict: :nothing,
-      conflict_target: [:name, :customer_id]
-    )
 
   defp rpc_id(customer, air_name, message_id), do:
     Enum.join([customer.id, air_name, message_id], "|")

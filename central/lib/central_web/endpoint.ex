@@ -12,10 +12,8 @@ defmodule CentralWeb.Endpoint do
 
   @doc "Starts the site supervision tree."
   @spec start_site() :: Supervisor.on_start
-  def start_site() do
-    reset_air_statuses()
+  def start_site(), do:
     start_link()
-  end
 
 
   # -------------------------------------------------------------------
@@ -58,18 +56,4 @@ defmodule CentralWeb.Endpoint do
     signing_salt: "hkTRmL2h"
 
   plug CentralWeb.Router
-
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp reset_air_statuses() do
-    Central.Service.Customer.reset_air_statuses()
-  catch type, error ->
-    Logger.error([
-      "Error resetting air statuses: #{inspect(type)}:#{inspect(error)}\n",
-      Exception.format_stacktrace(System.stacktrace())
-    ])
-  end
 end
