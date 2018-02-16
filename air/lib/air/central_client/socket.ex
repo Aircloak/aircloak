@@ -139,10 +139,7 @@ defmodule Air.CentralClient.Socket do
     {:connect, state}
   end
   def handle_info({:join, topic}, transport, state) do
-    join_message = %{
-      air_version: version(),
-      online_cloaks: online_cloaks(),
-    }
+    join_message = %{air_version: version()}
     case GenSocketClient.join(transport, topic, join_message) do
       {:error, reason} ->
         Logger.error("error joining the topic #{topic}: #{inspect reason}")
@@ -220,14 +217,6 @@ defmodule Air.CentralClient.Socket do
   defp config(key) do
     Application.get_env(:air, :central) |> Keyword.fetch!(key)
   end
-
-  defp online_cloaks(), do:
-    Air.Service.Cloak.all_cloak_infos()
-    |> Enum.map(&%{
-      name: &1.name,
-      data_source_names: Map.keys(&1.data_sources),
-      version: &1.version,
-    })
 
   if Mix.env == :dev do
     # suppressing of some common log messages in dev env to avoid excessive noise
