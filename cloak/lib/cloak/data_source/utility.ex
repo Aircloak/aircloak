@@ -44,6 +44,7 @@ defmodule Cloak.DataSource.Utility do
     {"postgresql", Cloak.DataSource.PostgreSQL},
     {"sqlserver", Cloak.DataSource.SQLServer},
     {"sqlserver_tds", Cloak.DataSource.SQLServerTds},
+    {"sqlserver_rodbc", Cloak.DataSource.SQLServerRODBC},
     {"saphana", Cloak.DataSource.SAPHana},
   ]
 
