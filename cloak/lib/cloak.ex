@@ -15,6 +15,7 @@ defmodule Cloak do
     with {:ok, aes_key} <- Aircloak.DeployConfig.fetch("aes_key"), do:
       Application.put_env(:cloak, :aes_key, aes_key)
     configure_periodic_jobs()
+    Cloak.DataSource.RODBC.Driver.init!()
     Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor)
   end
 
