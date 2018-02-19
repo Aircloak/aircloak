@@ -12,7 +12,7 @@ defmodule Cloak.Sql.Parsers.Test do
       assert {:error, _} = Combine.parse("b", sep_by1_eager(char("a"), char(",")))
 
     test "multiple items", do:
-      assert [["a", "a", "a"]] = Combine.parse("a,a,a", sep_by1_eager(char("a"), char(",")))
+      assert [["a", ",", "a", ",", "a"]] = Combine.parse("a,a,a", sep_by1_eager(char("a"), char(",")))
 
     test "multiple items with a wrong one", do:
       assert {:error, _} = Combine.parse("a,b,a", sep_by1_eager(char("a"), char(",")))

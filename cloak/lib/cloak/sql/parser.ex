@@ -298,7 +298,7 @@ defmodule Cloak.Sql.Parser do
         keyword(:cast),
         keyword(:"("),
         column(),
-        either(keyword(:","), keyword(:as)),
+        either_deepest_error(keyword(:","), keyword(:as)),
         data_type(),
         keyword(:")"),
       ],
@@ -307,7 +307,7 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp data_type() do
-    choice([
+    choice_deepest_error([
       raw_identifier_of(~w(integer real float text boolean datetime timestamp date time)),
       sequence([raw_identifier("double"), raw_identifier("precision")]),
       keyword(:interval)
@@ -362,6 +362,7 @@ defmodule Cloak.Sql.Parser do
     |> map(&String.downcase/1)
     |> satisfy(&Enum.member?(words, &1))
     |> map(&String.to_atom/1)
+    |> label("one of #{words |> Enum.join(", ")}")
   end
 
   defp function_expression() do
@@ -376,7 +377,7 @@ defmodule Cloak.Sql.Parser do
 
   defp function_name(previous_parser) do
     previous_parser
-    |> choice([
+    |> choice_deepest_error([
       unquoted_identifier(),
       keyword(:left),
       keyword(:right),
@@ -419,7 +420,7 @@ defmodule Cloak.Sql.Parser do
         next_position(),
         keyword(:trim),
         keyword(:"("),
-        option(choice([keyword(:both), keyword(:leading), keyword(:trailing)])),
+        option(choice_deepest_error([keyword(:both), keyword(:leading), keyword(:trailing)])),
         option(constant(:string)),
         option(keyword(:from)),
         column(),
@@ -465,15 +466,14 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp left_associative_expression(operators, term_parser, normalizer \\ &infix_to_function/4) do
-    pipe(
-      [
-        term_parser,
-        many(sequence([next_position(), choice(operators), term_parser])),
-      ],
-      fn[first, rest] -> Enum.reduce(rest, first, fn([location, operator, right], left) ->
-        normalizer.(operator, left, right, location) end)
-      end
-    )
+    sep_by1_eager(term_parser, pair_both(next_position(), choice_deepest_error(operators)))
+    |> map(fn([first | rest]) ->
+      rest
+      |> Enum.chunk_every(2)
+      |> Enum.reduce(first, fn([{location, operator}, right], left) ->
+        normalizer.(operator, left, right, location)
+      end)
+    end)
   end
 
   defp infix_to_function(operator, left, right, location), do: {:function, to_string(operator), [left, right], location}
@@ -481,13 +481,13 @@ defmodule Cloak.Sql.Parser do
   defp infix_to_boolean_expression(operator, left, right, _location), do: {operator, left, right}
 
   defp field_or_parameter(), do:
-    either(qualified_identifier(), parameter())
+    either_deepest_error(qualified_identifier(), parameter())
 
   defp qualified_identifier() do
     map(
       pair_both(
         pair_both(next_position(), identifier()),
-        either(
+        either_deepest_error(
           many1(
             pair_both(
               keyword(:"."),
@@ -594,7 +594,7 @@ defmodule Cloak.Sql.Parser do
     do: replace(pair_both(option(keyword(:inner)), keyword(:join)), :inner_join)
 
   defp outer_join(),
-    do: choice([outer_join(:left), outer_join(:right), outer_join(:full)])
+    do: choice_deepest_error([outer_join(:left), outer_join(:right), outer_join(:full)])
 
   defp outer_join(type) do
     sequence([keyword(type), option(keyword(:outer)), keyword(:join)])
@@ -661,7 +661,7 @@ defmodule Cloak.Sql.Parser do
 
   defp where_expression() do
     switch([
-      {column() |> option(keyword(:not)) |> choice([keyword(:like), keyword(:ilike)]),
+      {column() |> option(keyword(:not)) |> choice_deepest_error([keyword(:like), keyword(:ilike)]),
         sequence([constant(:string), like_escape()])},
       {column() |> option(keyword(:not)) |> keyword(:in), in_values()},
       {column() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
@@ -698,7 +698,7 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp allowed_where_value() do
-    either(column(), any_constant())
+    either_deepest_error(column(), any_constant())
     |> label("comparison value")
   end
 
@@ -729,7 +729,7 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp any_constant() do
-    either(
+    either_deepest_error(
       constant_of([:string, :boolean]),
       numeric_constant()
     )
@@ -764,7 +764,7 @@ defmodule Cloak.Sql.Parser do
     |> label("positive integer constant")
 
   defp constant_of(expected_types) do
-    choice(Enum.map(expected_types, &constant/1))
+    choice_deepest_error(Enum.map(expected_types, &constant/1))
     |> label(expected_types |> Enum.map(&"#{&1} constant") |> Enum.join(" or "))
   end
 
@@ -792,26 +792,26 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp order_by_field(), do:
-    sequence([
-      column(),
-      either(order_by_direction(), return(:asc)),
-      either(nulls_specifier(), return(:nulls_natural)),
-    ])
+    sequence([column(), order_by_direction(), nulls_specifier()])
     |> map(&List.to_tuple/1)
 
   defp order_by_direction(), do:
-    either(keyword(:asc), keyword(:desc))
+    choice_deepest_error([keyword(:asc), keyword(:desc), return(:asc)])
 
   defp nulls_specifier(), do:
-    pair_both(keyword(:nulls), raw_identifier_of(~w(first last)))
+    switch([
+      {keyword(:nulls), raw_identifier_of(~w(first last))},
+      {:else, return(:nulls_natural)}
+    ])
     |> map(fn
-      {:nulls, :first} -> :nulls_first
-      {:nulls, :last} -> :nulls_last
+      {[:nulls], [:first]} -> :nulls_first
+      {[:nulls], [:last]} -> :nulls_last
+      other -> other
     end)
 
   defp identifier(parser \\ noop()) do
     parser
-    |> either(token(:quoted), token(:unquoted))
+    |> either_deepest_error(token(:quoted), token(:unquoted))
     |> map(&{&1.category, &1.value})
     |> label("identifier")
   end
@@ -824,7 +824,7 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp comparator(parser \\ noop()), do:
-    parser |> either(equality_comparator(), inequality_comparator()) |> label("comparator")
+    parser |> either_deepest_error(equality_comparator(), inequality_comparator()) |> label("comparator")
 
   defp equality_comparator(parser \\ noop()), do:
     parser |> keyword_of([:=, :<>]) |> label("equality comparator")
@@ -834,7 +834,7 @@ defmodule Cloak.Sql.Parser do
 
   defp keyword_of(parser \\ noop(), types) do
     parser
-    |> choice(Enum.map(types, &keyword(&1)))
+    |> choice_deepest_error(Enum.map(types, &keyword(&1)))
     |> label(types |> Enum.join(" or "))
   end
 
@@ -847,6 +847,7 @@ defmodule Cloak.Sql.Parser do
 
   defp comma_delimited(term_parser) do
     sep_by1_eager(term_parser, keyword(:","))
+    |> map(fn([first | rest]) -> [first | Enum.drop_every(rest, 2)] end)
   end
 
   defp end_of_input(parser) do

@@ -259,10 +259,12 @@ defmodule Cloak.Sql.Parsers do
   end
 
   @doc """
-  Parses one or more instances of `term` separated by `separator`. Unlike the combine `sep_by1` consumes
-  separators eagerly, making it possible to detect wrong `term`s that are later in the chain. For example for
-  input of `"a,b,a"` `sep_by1` will consume only the first `a` and succeed while this one will fail on the
-  `b`.
+  Parses one or more instances of `term` separated by `separator`. Unlike the combine `sep_by1` consumes separators
+  eagerly, making it possible to detect wrong `term`s that are later in the chain. For example for input of `"a,b,a"`
+  `sep_by1(char("a"), char(","))` will consume only the first `a` and succeed while this one will fail on the `b`.
+
+  Another significant difference from `sep_by1` is that this function returns the separators as part of the output, so
+  parsing "a,a,a" with `sep_by1_eager(char("a"), char(","))` gives `["a", ",", "a", ",", "a"]`.
   """
   @spec sep_by1_eager(Combine.previous_parser, Combine.parser, Combine.parser) :: Combine.parser
   defparser sep_by1_eager(state, term, separator) do
@@ -275,7 +277,7 @@ defmodule Cloak.Sql.Parsers do
         ])
       )
       |> Base.map(fn
-        {first, {_sep, [rest]}} -> [first | rest]
+        {first, {[sep], [rest]}} -> [first, sep | rest]
         {single, {[], []}} -> [single]
       end)
     ).(state)
