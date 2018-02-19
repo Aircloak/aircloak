@@ -185,4 +185,10 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
       "SELECT * FROM table WHERE string IN ('a')",
       "SELECT * FROM table WHERE string = 'a'"
     )
+
+  test "normalizing date_trunc's first argument", do:
+    assert_equivalent(
+      "SELECT date_trunc('YEAR', column) FROM table",
+      "SELECT date_trunc(lower('YEAR'), column) FROM table"
+    )
 end

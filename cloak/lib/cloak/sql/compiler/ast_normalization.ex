@@ -17,6 +17,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   * Replaces all usages of unary NOT by converting the involved expressions into an equivalent form (for example using
     De Morgan's laws)
   * Replaces IN (single_element) with = single_element
+  * Lowercases the first argument of date_trunc
   """
   @spec normalize(Parser.parsed_query) :: Parser.parsed_query
   def normalize(ast), do:
@@ -25,6 +26,19 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
     |> Helpers.apply_bottom_up(&rewrite_not_in/1)
     |> Helpers.apply_bottom_up(&rewrite_not/1)
     |> Helpers.apply_bottom_up(&rewrite_in/1)
+    |> Helpers.apply_bottom_up(&rewrite_date_trunc/1)
+
+
+  # -------------------------------------------------------------------
+  # date_trunc rewriting
+  # -------------------------------------------------------------------
+
+  defp rewrite_date_trunc(ast), do:
+    update_in(ast, [Query.Lenses.terminals()], fn
+      {:function, "date_trunc", [spec, argument], location} ->
+        {:function, "date_trunc", [{:function, "lower", [spec], nil}, argument], location}
+      other -> other
+    end)
 
 
   # -------------------------------------------------------------------
