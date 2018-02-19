@@ -39,6 +39,8 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
       "lcase" -> "lower"
       "ucase" -> "upper"
       "ceiling" -> "ceil"
+      "pow" -> "^"
+      "mod" -> "%"
       other -> other
     end)
 

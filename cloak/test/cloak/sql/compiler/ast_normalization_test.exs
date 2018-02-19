@@ -204,4 +204,16 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
         "SELECT #{unquote(function)}(column) FROM table"
       )
   end)
+
+  %{
+    "mod" => "%",
+    "pow" => "^",
+  }
+  |> Enum.each(fn({synonym, operator}) ->
+    test "#{synonym} is a synonym for #{operator}", do:
+      assert_equivalent(
+        "SELECT #{unquote(synonym)}(column, 10) FROM table",
+        "SELECT column #{unquote(operator)} 10 FROM table"
+      )
+  end)
 end

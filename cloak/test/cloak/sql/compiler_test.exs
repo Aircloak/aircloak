@@ -250,7 +250,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "multiarg function argument verification" do
     assert {:error, error} = compile("select pow(numeric, column) from table", data_source())
-    assert error == "Function `pow` requires arguments of type (`integer` | `real`, `integer` | `real`), " <>
+    assert error == "Function `^` requires arguments of type (`integer` | `real`, `integer` | `real`), " <>
       "but got (`integer`, `datetime`)."
   end
 
@@ -262,7 +262,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   test "rejecting a function with too few arguments" do
     assert {:error, error} = compile("select pow(numeric) from table", data_source())
-    assert error == "Function `pow` requires arguments of type (`integer` | `real`, `integer` | `real`), " <>
+    assert error == "Function `^` requires arguments of type (`integer` | `real`, `integer` | `real`), " <>
       "but got (`integer`)."
   end
 
