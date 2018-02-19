@@ -18,7 +18,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
     De Morgan's laws)
   * Replaces IN (single_element) with = single_element
   * Lowercases the first argument of date_trunc
-  * Normalizes lcase/ucase to lower/upper
+  * Normalizes function name synonyms, like lcase to lower
   """
   @spec normalize(Parser.parsed_query) :: Parser.parsed_query
   def normalize(ast), do:
