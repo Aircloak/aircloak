@@ -1,8 +1,8 @@
 SHELL=/bin/bash -o pipefail
 
-.PHONY: sandbox deps docs proper proper-std proper-extended test clean all compile
+.PHONY: deps docs proper proper-std proper-extended test clean all compile
 .PHONY: recreate-db recreate-perf-db dialyze lint release release-local perftest
-.PHONY: odbc_drivers odbc_drivers_folder
+.PHONY: odbc_drivers odbc_drivers_folder rodbc
 .PHONY: sql-server-container sql-server-database
 .PHONY: mysql-server-container mysql-server-database
 .PHONY: mongo-server-container
@@ -18,15 +18,13 @@ compile: odbc_drivers
 	mix compile
 	mix compile.app --force
 
-sandbox:
-	mix compile.sandbox
-
 deps:
 	mix deps.get
 
 clean:
 	mix clean --deps
 	rm -rf odbc_drivers
+	cd src/rodbc && cargo clean
 
 start: compile
 	iex -S mix
@@ -97,13 +95,19 @@ mysql-server-database:
 mongo-server-container:
 	$(call start_container, aircloak_mongodb_server, -p 27017:27017 -d mongo)
 
-odbc_drivers: odbc_drivers_folder priv/odbc/drivers/libodbc-sap-hana-v2.so
+odbc_drivers: odbc_drivers_folder rodbc priv/odbc/drivers/libodbc-sap-hana-v2.so
 
 odbc_drivers_folder:
 	mkdir -p priv/odbc/drivers
 
 priv/odbc/drivers/libodbc-sap-hana-v2.so:
 	wget -P priv/odbc/drivers https://www.dropbox.com/s/aerstjlatecny79/libodbc-sap-hana-v2.so
+
+priv/odbc/drivers/librodbc.so:
+	ln -fs ../../../src/rodbc/target/release/librodbc.so priv/odbc/drivers/librodbc.so
+
+rodbc: priv/odbc/drivers/librodbc.so
+	cd src/rodbc &&	cargo build --release
 
 ci.compliance:
 	ci/compliance.sh
