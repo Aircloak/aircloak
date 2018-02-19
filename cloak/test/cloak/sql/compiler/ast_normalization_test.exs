@@ -191,4 +191,16 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
       "SELECT date_trunc('YEAR', column) FROM table",
       "SELECT date_trunc(lower('YEAR'), column) FROM table"
     )
+
+  test "lcase is a synonym for lower", do:
+    assert_equivalent(
+      "SELECT lcase(column) FROM table",
+      "SELECT lower(column) FROM table"
+    )
+
+  test "ucase is a synonym for upper", do:
+    assert_equivalent(
+      "SELECT ucase(column) FROM table",
+      "SELECT upper(column) FROM table"
+    )
 end
