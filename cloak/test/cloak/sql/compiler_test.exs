@@ -224,7 +224,7 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
-  for function <- ~w(floor ceil ceiling) do
+  for function <- ~w(floor ceil) do
     test "allowing #{function} on real columns" do
       assert {:ok, _} = compile("select #{unquote(function)}(float) from table", data_source())
     end

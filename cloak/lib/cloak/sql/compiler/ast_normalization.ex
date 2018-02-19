@@ -35,9 +35,10 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   # -------------------------------------------------------------------
 
   defp normalize_function_names(ast), do:
-    update_in(ast, [Query.Lenses.terminals()], fn
-      {:function, "lcase", args, location} -> {:function, "lower", args, location}
-      {:function, "ucase", args, location} -> {:function, "upper", args, location}
+    update_in(ast, [Query.Lenses.terminals() |> Lens.filter(&Function.function?/1) |> Lens.at(1)], fn
+      "lcase" -> "lower"
+      "ucase" -> "upper"
+      "ceiling" -> "ceil"
       other -> other
     end)
 
