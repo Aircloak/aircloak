@@ -7,6 +7,13 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
 
   alias Air.CentralClient.Socket
 
+  @type performance_result :: [%{
+    statement: String.t,
+    db_time: non_neg_integer,
+    plain_cloak_time: non_neg_integer,
+    encoded_cloak_time: non_neg_integer,
+  }]
+
 
   # -------------------------------------------------------------------
   # API functions
@@ -56,6 +63,10 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   @spec running_queries(pid | nil) :: {:ok, [String.t]} | {:error, any}
   def running_queries(channel_pid), do:
     call(channel_pid, "running_queries", nil, :timer.minutes(4))
+
+  @doc "Synchronously runs the performance measurement on the cloak."
+  @spec performance(pid) :: {:ok, performance_result} | {:error, any}
+  def performance(channel_pid), do: call(channel_pid, "performance", nil, :timer.minutes(65))
 
 
   # -------------------------------------------------------------------

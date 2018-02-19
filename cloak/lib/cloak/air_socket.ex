@@ -73,12 +73,16 @@ defmodule Cloak.AirSocket do
 
   @impl GenSocketClient
   def init({air_socket_url, params}) do
+    Process.flag(:trap_exit, true)
     initial_interval = config(:min_reconnect_interval)
+
     state = %{
       pending_calls: %{},
       reconnect_interval: initial_interval,
-      rejoin_interval: initial_interval
+      rejoin_interval: initial_interval,
+      air_call_async_handlers: %{},
     }
+
     {:connect, air_socket_url, params, state}
   end
 
@@ -172,8 +176,30 @@ defmodule Cloak.AirSocket do
     Logger.warn("#{request_id} sync call timeout")
     {:ok, update_in(state.pending_calls, &Map.delete(&1, request_id))}
   end
+  def handle_info({ref, {:async_air_call_result, result}}, _transport, state) do
+    state.air_call_async_handlers
+    |> Map.fetch!(ref)
+    |> respond_to_air(:ok, result)
+
+    {:ok, state}
+  end
+  def handle_info({:DOWN, ref, :process, _pid, reason} = down_message, _transport, state) do
+    case Map.fetch(state.air_call_async_handlers, ref) do
+      {:ok, from} ->
+        if reason != :normal, do: respond_to_air(from, :error, "Unknown cloak error")
+        {:ok, update_in(state.air_call_async_handlers, &Map.delete(&1, ref))}
+
+      :error ->
+        Logger.warn("unknown :DOWN message #{inspect(down_message)}")
+        {:ok, state}
+    end
+  end
+  def handle_info({:EXIT, _pid, _reason}, _transport, state) do
+    # Ignoring :EXIT messages which can be caused by the transport process or by async air call handlers
+    {:ok, state}
+  end
   def handle_info(message, _transport, state) do
-    Logger.warn("unhandled message #{inspect message}")
+    Logger.warn("unhandled message #{inspect(message)}")
     {:ok, state}
   end
 
@@ -248,7 +274,12 @@ defmodule Cloak.AirSocket do
     respond_to_air(from, :ok, Cloak.Query.Runner.running_queries())
     {:ok, state}
   end
+  defp handle_air_call("performance", _, from, state) do
+    task = start_async_air_call_handler(&Cloak.Performance.run/0)
+    {:ok, put_in(state.air_call_async_handlers[task.ref], from)}
+  end
 
+  defp start_async_air_call_handler(fun), do: Task.async(fn -> {:async_air_call_result, fun.()} end)
 
   # -------------------------------------------------------------------
   # Internal functions
