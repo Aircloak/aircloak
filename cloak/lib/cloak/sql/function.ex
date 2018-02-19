@@ -54,7 +54,7 @@ defmodule Cloak.Sql.Function do
       [{:constant, :text}, :time] => :time,
       [{:constant, :text}, {:or, [:datetime, :date]}] => :datetime
     }},
-    ~w(floor ceil ceiling) => %{type_specs: %{[numeric] => :integer}, attributes: [:math, :restricted]},
+    ~w(floor ceil) => %{type_specs: %{[numeric] => :integer}, attributes: [:math, :restricted]},
     ~w(round trunc) => %{attributes: [:implicit_range, :math, :restricted], type_specs: %{
       [numeric] => :integer,
       [numeric, {:constant, :integer}] => :real,
@@ -64,7 +64,7 @@ defmodule Cloak.Sql.Function do
     ~w(abs) => %{type_specs: %{[:real] => :real, [:integer] => :integer},
       attributes: [:math, :restricted]},
     ~w(sqrt) => %{type_specs: %{[numeric] => :real}},
-    ~w(pow ^) => %{type_specs: %{[numeric, numeric] => :real}, attributes: [:math]},
+    ~w(^) => %{type_specs: %{[numeric, numeric] => :real}, attributes: [:math]},
     ~w(+) => %{type_specs: Map.merge(arithmetic_operation, %{
       [:date, :interval] => :datetime,
       [:time, :interval] => :time,
@@ -92,7 +92,7 @@ defmodule Cloak.Sql.Function do
       [:interval, {:or, [:integer, :real]}] => :interval,
     }, attributes: [:math]},
     ~w(length) => %{type_specs: %{[:text] => :integer}, attributes: [:restricted]},
-    ~w(lower lcase upper ucase) => %{type_specs: %{[:text] => :text}},
+    ~w(lower upper) => %{type_specs: %{[:text] => :text}},
     ~w(left right) => %{type_specs: %{[:text, {:constant, :integer}] => :text},
       attributes: [:restricted, :string_manipulation]},
     ~w(btrim ltrim rtrim) => %{type_specs: %{[:text, {:optional, {:constant, :text}}] => :text},
