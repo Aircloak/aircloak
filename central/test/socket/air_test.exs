@@ -65,7 +65,7 @@ defmodule CentralWeb.Socket.AirTest do
           aux: %{"some" => "data"},
         }
 
-        assert 0 == length(Repo.all(Query)), "No queries recorded initially"
+        assert Enum.empty?(Repo.all(Query)), "No queries recorded initially"
 
         push_air_call(socket, "query_execution", message, message_id, request_id)
         push_air_call(socket, "query_execution", message, message_id, request_id)
