@@ -1,0 +1,15 @@
+{
+  "driver": "sqlserver_rodbc",
+  "name": "sqlserver2017_rodbc",
+  "parameters": {
+    "hostname": "sqlserver2017",
+    "username": "sa",
+    "password": "7fNBjlaeoRwz*zH9",
+    "database": "cloak_compliance_rodbc",
+    "odbc_parameters": {
+      "Port": "1433"
+    }
+  },
+  "tables": {
+  }
+}
