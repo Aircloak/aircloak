@@ -95,7 +95,6 @@ defmodule IntegrationTest.Manager do
   end
 
   defp setup_central() do
-    Central.Repo.delete_all("usage_info")
     Central.Repo.delete_all(Central.Schemas.AirRPC)
     Central.Repo.delete_all(Central.Schemas.CustomerExport)
     Central.Repo.delete_all(Central.Schemas.Customer)
