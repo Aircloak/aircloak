@@ -12,7 +12,7 @@ defmodule Cloak.DataSource.RODBC.Driver do
   @doc "Loads the port driver module."
   @spec init!() :: :ok
   def init!() do
-    :ok = :erl_ddll.load_driver('priv/odbc/drivers', @port_name)
+    :ok = Application.app_dir(:cloak, "priv/odbc/drivers") |> to_charlist() |> :erl_ddll.load_driver(@port_name)
     :ok
   end
 
