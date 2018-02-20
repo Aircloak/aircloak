@@ -4,10 +4,6 @@ defmodule Central.Service.CustomerTest do
   alias Central.Schemas
   alias Central.Service.Customer
 
-  @air_version "21.1.0"
-  @cloak1_version "22.1.0"
-  @cloak2_version "23.1.0"
-
   test "returns customers - none when none exist" do
     assert Customer.all() == []
   end
