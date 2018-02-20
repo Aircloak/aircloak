@@ -108,7 +108,7 @@ defmodule Cloak.Query.BasicTest do
   test "a binary function of two columns" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [2])
     assert_query "select pow(height, height) from heights",
-      %{columns: ["pow"], rows: [%{occurrences: 10, row: [4.0]}]}
+      %{columns: ["^"], rows: [%{occurrences: 10, row: [4.0]}]}
   end
 
   test "select all and order query" do

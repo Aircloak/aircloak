@@ -3,7 +3,7 @@ defmodule Cloak.Sql.Function.Test do
 
   alias Cloak.Sql.{Expression, Function}
 
-  @restricted_functions ~w(abs ceil ceiling floor length round trunc btrim left ltrim right rtrim
+  @restricted_functions ~w(abs ceil floor length round trunc btrim left ltrim right rtrim
     substring year quarter month day weekday hour minute second date_trunc) ++ [
       {:bucket, :lower}, {:bucket, :middle}, {:bucket, :upper},
       {:cast, :integer}, {:cast, :real}, {:cast, :boolean}, {:cast, :datetime}, {:cast, :time},
@@ -14,7 +14,7 @@ defmodule Cloak.Sql.Function.Test do
       assert Function.restricted_function?(unquote(restricted_function))
   end)
 
-  @math_functions ~w(+ - / * ^ pow abs ceil ceiling floor round trunc)
+  @math_functions ~w(+ - / * ^ abs ceil floor round trunc)
   Enum.each(@math_functions, fn(math_function) ->
     test "#{math_function} is registered as a math function", do:
       assert Function.math_function?(unquote(math_function))
@@ -39,7 +39,7 @@ defmodule Cloak.Sql.Function.Test do
       assert Function.implicit_range?(unquote(function))
   end)
 
-  for function <- ~w(floor ceil ceiling) do
+  for function <- ~w(floor ceil) do
     test "#{function} argument types" do
       assert well_typed?(unquote(function), [:integer])
       assert well_typed?(unquote(function), [:real])
@@ -59,15 +59,11 @@ defmodule Cloak.Sql.Function.Test do
     refute well_typed?("right", [:text, :integer])
   end
 
-  test "lower" do
+  test "lower", do:
     assert well_typed?("lower", [:text])
-    assert well_typed?("lcase", [:text])
-  end
 
-  test "upper" do
+  test "upper", do:
     assert well_typed?("upper", [:text])
-    assert well_typed?("ucase", [:text])
-  end
 
   test "btrim" do
     assert well_typed?("btrim", [:text])

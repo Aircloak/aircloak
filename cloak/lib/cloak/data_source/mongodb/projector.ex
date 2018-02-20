@@ -130,10 +130,10 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   end
   for {name, translation} <- %{
     "*" => "$multiply", "/" => "$divide", "+" => "$add", "-" => "$subtract",
-    "^" => "$pow", "pow" => "$pow", "%" => "$mod", "mod" => "$mod", "sqrt" => "$sqrt",
+    "^" => "$pow", "%" => "$mod", "sqrt" => "$sqrt",
     "floor" => "$floor", "ceil" => "$ceil", "trunc" => "$trunc", "abs" => "$abs",
     "||" => "$concat", "concat" => "$concat", "length" => "$strLenCP",
-    "lower" => "$toLower", "lcase" => "$toLower", "upper" => "$toUpper", "ucase" => "$toUpper",
+    "lower" => "$toLower", "upper" => "$toUpper",
     "year" => "$year", "month" => "$month", "day" => "$dayOfMonth", "weekday" => "$dayOfWeek",
     "hour" => "$hour", "minute" => "$minute", "second" => "$second",
     "sum" => "$sum", "avg" => "$avg", "min" => "$min", "max" => "$max", "stddev" => "$stdDevPop", "size" => "$size",

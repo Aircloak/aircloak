@@ -273,7 +273,6 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("sqrt", [value]), do: :math.sqrt(value)
   defp do_apply("floor", [value]) when is_integer(value), do: value
   defp do_apply("floor", [value]), do: value |> Float.floor() |> round()
-  defp do_apply("ceiling", [value]), do: do_apply("ceil", [value])
   defp do_apply("ceil", [value]) when is_integer(value), do: value
   defp do_apply("ceil", [value]), do: value |> Float.ceil() |> round()
   defp do_apply("abs", [value]), do: abs(value)
@@ -283,13 +282,9 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("trunc", [value, precision]), do: do_trunc(value, precision)
   defp do_apply("div", [x, y]), do: div(x, y)
   defp do_apply("%", [x, y]), do: rem(x, y)
-  defp do_apply("mod", [x, y]), do: rem(x, y)
-  defp do_apply("pow", [x, y]), do: :math.pow(x, y)
   defp do_apply("length", [string]), do: String.length(string)
   defp do_apply("lower", [string]), do: String.downcase(string)
-  defp do_apply("lcase", [string]), do: String.downcase(string)
   defp do_apply("upper", [string]), do: String.upcase(string)
-  defp do_apply("ucase", [string]), do: String.upcase(string)
   defp do_apply("btrim", [string]), do: trim(string, " ")
   defp do_apply("btrim", [string, chars]), do: trim(string, chars)
   defp do_apply("ltrim", [string]), do: ltrim(string, " ")
