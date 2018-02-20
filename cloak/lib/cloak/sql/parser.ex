@@ -19,7 +19,7 @@ defmodule Cloak.Sql.Parser do
 
   @type data_type :: Cloak.DataSource.data_type | :interval
 
-  @type function_name :: String.t | {:bucket, atom} | {:cast, data_type}
+  @type function_name :: String.t | {:bucket, atom} | {:cast, data_type} | %{name: String.t, synonym_used: String.t}
 
   @type constant :: {:constant, data_type, any, location}
 

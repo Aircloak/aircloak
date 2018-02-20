@@ -226,27 +226,27 @@ defmodule Cloak.Sql.Function do
   def exists?({:function, function, _, _}), do: @functions[actual_name(function)] !== nil
 
   @doc "Returns true if a function is a math function"
-  @spec math_function?(t | String.t | nil) :: boolean
+  @spec math_function?(t | Parser.function_name | nil) :: boolean
   def math_function?(param), do: has_attribute?(param, :math)
 
   @doc "Returns true if a function is restricted"
-  @spec restricted_function?(t | String.t | nil) :: boolean
+  @spec restricted_function?(t | Parser.function_name | nil) :: boolean
   def restricted_function?(param), do: has_attribute?(param, :restricted)
 
   @doc "Returns true if a function is a string manipulation function"
-  @spec string_manipulation_function?(t | String.t | nil) :: boolean
+  @spec string_manipulation_function?(t | Parser.function_name | nil) :: boolean
   def string_manipulation_function?(param), do: has_attribute?(param, :string_manipulation)
 
   @doc "Returns true if a function is an aggregator"
-  @spec aggregator?(t | String.t | nil) :: boolean
+  @spec aggregator?(t | Parser.function_name | nil) :: boolean
   def aggregator?(param), do: has_attribute?(param, :aggregator)
 
   @doc "Returns true if the given function call is a cast, false otherwise."
-  @spec cast?(t | String.t | nil) :: boolean
+  @spec cast?(t | Parser.function_name | nil) :: boolean
   def cast?(param), do: has_attribute?(param, :cast)
 
   @doc "Returns true if the given function exhibits implicit range behaviour"
-  @spec implicit_range?(t | String.t | nil) :: boolean
+  @spec implicit_range?(t | Parser.function_name | nil) :: boolean
   def implicit_range?(param), do: has_attribute?(param, :implicit_range)
 
   @doc "Provides information about alternatives for deprecated functions."
@@ -260,7 +260,7 @@ defmodule Cloak.Sql.Function do
   end
 
   @doc "Resolves synonyms to canonical names."
-  @spec actual_name(String.t | %{name: String.t, synonym_used: String.t}) :: String.t
+  @spec actual_name(Parser.function_name) :: Parser.function_name
   def actual_name(%{name: name, synonym_used: _}), do: name
   def actual_name(other), do: other
 
