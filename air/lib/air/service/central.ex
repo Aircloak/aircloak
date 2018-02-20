@@ -34,21 +34,6 @@ defmodule Air.Service.Central do
   def record_query(payload), do:
     enqueue_pending_call("query_execution", payload)
 
-  @doc "Records a connection of a cloak in the central."
-  @spec record_cloak_online(String.t, [String.t], String.t) :: :ok
-  def record_cloak_online(cloak_name, data_source_names, version), do:
-    enqueue_pending_call("cloak_online", %{name: cloak_name, data_source_names: data_source_names, version: version})
-
-  @doc "Records a disconnection of a cloak in the central."
-  @spec record_cloak_offline(String.t) :: :ok
-  def record_cloak_offline(cloak_name), do:
-    enqueue_pending_call("cloak_offline", %{name: cloak_name})
-
-  @doc "Sends usage info to central."
-  @spec send_usage_info(Map.t) :: :ok
-  def send_usage_info(usage_info), do:
-    enqueue_pending_call("usage_info", usage_info)
-
   @doc "Persists a pending central call."
   @spec store_pending_call(String.t, map) :: {:ok, CentralCall.t} | :error
   def store_pending_call(event, payload) do

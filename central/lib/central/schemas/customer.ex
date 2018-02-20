@@ -4,7 +4,7 @@ defmodule Central.Schemas.Customer do
   use Central.Web, :model
 
   alias Ecto.Changeset
-  alias Central.Schemas.{Air, Query, Cloak}
+  alias Central.Schemas.Query
 
   @type t :: %__MODULE__{}
 
@@ -12,7 +12,6 @@ defmodule Central.Schemas.Customer do
     field :name, :string
 
     has_many :queries, Query
-    has_many :airs, Air
 
     timestamps()
   end
@@ -52,52 +51,4 @@ defmodule Central.Schemas.Customer do
   def empty_changeset() do
     changeset(%__MODULE__{})
   end
-
-  @doc "Returns the list of online airs."
-  @spec online_airs(t) :: [Air.t]
-  def online_airs(customer), do:
-    onlines(customer.airs)
-
-  @doc "Returns the list of all cloaks."
-  @spec cloaks(t) :: [Cloak.t]
-  def cloaks(customer), do:
-    all_cloaks(customer.airs)
-
-  @doc "Returns the list of online cloaks."
-  @spec online_cloaks(t) :: [Cloak.t]
-  def online_cloaks(customer), do:
-    customer
-    |> online_airs()
-    |> all_cloaks()
-    |> onlines()
-
-  @doc "Returns the list of all known data sources."
-  @spec data_sources(t) :: [String.t]
-  def data_sources(customer), do:
-    customer
-    |> cloaks()
-    |> all_data_sources()
-    |> Enum.uniq()
-
-  @doc "Returns the list of online data sources."
-  @spec online_data_sources(t) :: [String.t]
-  def online_data_sources(customer), do:
-    customer
-    |> online_cloaks()
-    |> all_data_sources()
-    |> Enum.uniq()
-
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp all_cloaks(airs), do:
-    Enum.flat_map(airs, &(&1.cloaks))
-
-  defp all_data_sources(cloaks), do:
-    Enum.flat_map(cloaks, &(&1.data_source_names))
-
-  defp onlines(collection), do:
-    Enum.filter(collection, &(&1.status == :online))
 end
