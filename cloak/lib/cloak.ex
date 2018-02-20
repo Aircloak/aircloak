@@ -24,14 +24,27 @@ defmodule Cloak do
     Application.put_env(:cloak, :anonymizer, new_env)
   end
 
-  defp children, do: common_processes() ++ system_processes()
+  # Conditional definition of top-level processes, since we don't want to run
+  # all of them in the test environment.
+  case Mix.env do
+    :test -> defp children, do: common_processes()
+    :dev -> defp children, do: common_processes() ++ system_processes()
+    :prod -> defp children, do: common_processes() ++ system_processes()
+  end
 
-  defp common_processes(), do: [Cloak.DataSource, Cloak.Query.Runner, Cloak.Performance]
+  defp common_processes, do:
+    [
+      Cloak.DataSource,
+      Cloak.Query.Runner
+    ]
 
-  if Mix.env == :test do
-    defp system_processes(), do: []
-  else
-    defp system_processes, do: [Cloak.AirSocket, Cloak.MemoryReader]
+  unless Mix.env in [:test] do
+    # Processes which we don't want to start in the test environment
+    defp system_processes, do:
+      [
+        Cloak.AirSocket,
+        Cloak.MemoryReader,
+      ]
   end
 
   defp get_salt() do

@@ -6,9 +6,9 @@ defmodule Air.Service.Cloak do
   require Logger
 
   use GenServer
+
   alias Aircloak.ChildSpec
   alias Air.Service.DataSource
-  alias AirWeb.Socket.Cloak.MainChannel
 
   @serializer_name __MODULE__.Serializer
   @data_source_registry_name __MODULE__.DataSourceRegistry
@@ -71,22 +71,10 @@ defmodule Air.Service.Cloak do
   def running_queries(), do:
     Registry.lookup(@all_cloak_registry_name, :all_cloaks)
     |> Stream.map(fn({pid, _}) -> pid end)
-    |> Enum.map(&Task.async(fn -> MainChannel.running_queries(&1) end))
+    |> Enum.map(&Task.async(fn -> AirWeb.Socket.Cloak.MainChannel.running_queries(&1) end))
     |> Stream.map(&Task.await/1)
     |> Stream.filter(&match?({:ok, _}, &1))
     |> Enum.flat_map(fn({:ok, query_ids}) -> query_ids end)
-
-  @doc "Synchronously runs the performance measurement on the cloak."
-  @spec performance!(String.t) :: MainChannel.performance_result
-  def performance!(cloak_name) do
-    {pid, _cloak_info} =
-      @all_cloak_registry_name
-      |> Registry.lookup(:all_cloaks)
-      |> Enum.find(fn({_pid, cloak_info}) -> cloak_info.name == cloak_name end)
-
-    {:ok, result} = MainChannel.performance(pid)
-    result
-  end
 
 
   # -------------------------------------------------------------------
