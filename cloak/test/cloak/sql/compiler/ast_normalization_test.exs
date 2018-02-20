@@ -199,10 +199,8 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
   }
   |> Enum.each(fn({synonym, function}) ->
     test "#{synonym} is a synonym for #{function}", do:
-      assert_equivalent(
-        "SELECT #{unquote(synonym)}(column) FROM table",
-        "SELECT #{unquote(function)}(column) FROM table"
-      )
+      assert %{columns: [{:function, %{name: unquote(function), synonym_used: unquote(synonym)}, _, _}]} =
+        Parser.parse!("SELECT #{unquote(synonym)}(column) FROM table") |> ASTNormalization.normalize()
   end)
 
   %{
@@ -211,9 +209,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
   }
   |> Enum.each(fn({synonym, operator}) ->
     test "#{synonym} is a synonym for #{operator}", do:
-      assert_equivalent(
-        "SELECT #{unquote(synonym)}(column, 10) FROM table",
-        "SELECT column #{unquote(operator)} 10 FROM table"
-      )
+      assert %{columns: [{:function, %{name: unquote(operator), synonym_used: unquote(synonym)}, _, _}]} =
+        Parser.parse!("SELECT #{unquote(synonym)}(column, 10) FROM table") |> ASTNormalization.normalize()
   end)
 end

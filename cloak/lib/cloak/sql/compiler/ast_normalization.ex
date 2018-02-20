@@ -36,11 +36,11 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
 
   defp normalize_function_names(ast), do:
     update_in(ast, [Query.Lenses.terminals() |> Lens.filter(&Function.function?/1) |> Lens.at(1)], fn
-      "lcase" -> "lower"
-      "ucase" -> "upper"
-      "ceiling" -> "ceil"
-      "pow" -> "^"
-      "mod" -> "%"
+      "lcase" -> %{name: "lower", synonym_used: "lcase"}
+      "ucase" -> %{name: "upper", synonym_used: "ucase"}
+      "ceiling" -> %{name: "ceil", synonym_used: "ceiling"}
+      "pow" -> %{name: "^", synonym_used: "pow"}
+      "mod" -> %{name: "%", synonym_used: "mod"}
       other -> other
     end)
 
