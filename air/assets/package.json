@@ -8,6 +8,7 @@
     "clean-css-brunch": "~1.8.0",
     "codemirror": "^5.13.4",
     "css-brunch": "~1.7.0",
+    "eonasdan-bootstrap-datetimepicker": "^4.17.47",
     "javascript-brunch": "~1.8.0",
     "jquery": "^2.2.3",
     "lodash": "^4.11.1",

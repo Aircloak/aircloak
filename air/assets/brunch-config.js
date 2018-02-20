@@ -6,7 +6,8 @@ exports.config = {
 
       order: {
         before: [
-          "jquery"
+          "jquery",
+          "moment",
         ]
       }
 
@@ -82,11 +83,19 @@ exports.config = {
       "jquery",
       "mousetrap",
       "plotly.js",
-      "react-date-picker"
+      "react-date-picker",
+      "moment.js",
+      "eonasdan-bootstrap-datetimepicker"
     ],
+
     globals: {
       $: "jquery",
-      jQuery: "jquery"
-    }
+      jQuery: "jquery",
+      moment: "moment",
+    },
+
+    static: [
+      "node_modules/eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js",
+    ]
   }
 };
