@@ -2,8 +2,7 @@ defmodule Central.Service.ElasticSearch do
   @moduledoc "Service module for interacting with elasticsearch"
 
   require Logger
-  alias Central.Repo
-  alias Central.Schemas.{Air, Customer}
+  alias Central.Schemas.Customer
 
 
   # -------------------------------------------------------------------
@@ -35,7 +34,7 @@ defmodule Central.Service.ElasticSearch do
     end
   end
 
-  defp record(index, type, data, timestamp \\ Timex.now()) do
+  defp record(index, type, data, timestamp) do
     if Application.get_env(:central, :simulate_elastic?, false) do
       :ok
     else

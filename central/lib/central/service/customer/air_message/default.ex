@@ -65,9 +65,9 @@ defmodule Central.Service.Customer.AirMessage.Default do
   # Deprecated information - we no longer want to record this information
   # -------------------------------------------------------------------
 
-  defp handle_cloak_online(message), do: :ok
+  defp handle_cloak_online(_message), do: :ok
 
-  defp handle_cloak_offline(message), do: :ok
+  defp handle_cloak_offline(_message), do: :ok
 
-  defp handle_usage_info(message), do: :ok
+  defp handle_usage_info(_message), do: :ok
 end

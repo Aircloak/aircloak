@@ -7,7 +7,7 @@ defmodule CentralWeb.Socket.AirTest do
   alias GenSocketClient.TestSocket
   alias Central.{TestSocketHelper, Repo}
   alias Central.Service.Customer
-  alias Central.Schemas.{Air, Cloak, Query}
+  alias Central.Schemas.Query
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
