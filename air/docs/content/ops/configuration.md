@@ -141,8 +141,8 @@ cat /dev/urandom |
 
 The `data_sources` parameter should give the path to subfolder within the folder where the Insights Cloak config is stored that contains the datasource configurations.
 
-Each datasource configuration should be in JSON format and put in an individual file. The configuration takes the
-following form:
+Each datasource configuration should be in JSON format and put in an individual file with the `.json` extension.
+The configuration takes the following form:
 
 ```
 {
