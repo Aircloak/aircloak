@@ -160,6 +160,7 @@ function build_aircloak_image {
       sed "s/\$DEBIAN_VERSION/$(debian_version)/" |
       sed "s/\$ERLANG_VERSION/$(erlang_version)/" |
       sed "s/\$ELIXIR_VERSION/$(elixir_version)/" |
+      sed "s/\$RUST_VERSION/$(rust_version)/" |
       sed "s/\$NODEJS_VERSION/$(nodejs_version)/" > "$temp_docker_file"
     docker build $build_args
 
@@ -471,6 +472,10 @@ function elixir_version {
 
 function nodejs_version {
   cat "$(dirname ${BASH_SOURCE[0]})/../.tool-versions" | grep nodejs | sed s/'nodejs '//
+}
+
+function rust_version {
+  cat "$(dirname ${BASH_SOURCE[0]})/../.tool-versions" | grep rust | sed s/'rust '//
 }
 
 function published_images {
