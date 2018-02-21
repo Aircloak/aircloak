@@ -89,53 +89,43 @@ impl<'a> State<'a> {
             for (i, field_type) in self.field_types.iter().enumerate() {
                 let i = (i + 1) as u16;
                 match *field_type {
-                    TYPE_I32 => {
-                        if let Some(val) = cursor.get_data::<i32>(i)? {
-                            let raw_bytes: [u8; 4] = unsafe { transmute(val) };
-                            buf.push(TYPE_I32);
-                            buf.extend_from_slice(&raw_bytes);
-                        } else {
-                            buf.push(TYPE_NULL);
-                        }
-                    }
-                    TYPE_I64 => {
-                        if let Some(val) = cursor.get_data::<i64>(i)? {
-                            let raw_bytes: [u8; 8] = unsafe { transmute(val) };
-                            buf.push(TYPE_I64);
-                            buf.extend_from_slice(&raw_bytes);
-                        } else {
-                            buf.push(TYPE_NULL);
-                        }
-                    }
-                    TYPE_F32 => {
-                        if let Some(val) = cursor.get_data::<f32>(i)? {
-                            let raw_bytes: [u8; 4] = unsafe { transmute(val) };
-                            buf.push(TYPE_F32);
-                            buf.extend_from_slice(&raw_bytes);
-                        } else {
-                            buf.push(TYPE_NULL);
-                        }
-                    }
-                    TYPE_F64 => {
-                        if let Some(val) = cursor.get_data::<f64>(i)? {
-                            let raw_bytes: [u8; 8] = unsafe { transmute(val) };
-                            buf.push(TYPE_F64);
-                            buf.extend_from_slice(&raw_bytes);
-                        } else {
-                            buf.push(TYPE_NULL);
-                        }
-                    }
-                    TYPE_BIN => {
-                        if let Some(val) = cursor.get_data::<&str>(i)? {
-                            buf.push(TYPE_BIN);
-                            let val_bytes = val.as_bytes();
-                            let size_bytes: [u8; 4] = unsafe { transmute(val_bytes.len() as u32) };
-                            buf.extend_from_slice(&size_bytes);
-                            buf.extend_from_slice(val_bytes);
-                        } else {
-                            buf.push(TYPE_NULL);
-                        }
-                    }
+                    TYPE_I32 => if let Some(val) = cursor.get_data::<i32>(i)? {
+                        let raw_bytes: [u8; 4] = unsafe { transmute(val) };
+                        buf.push(TYPE_I32);
+                        buf.extend_from_slice(&raw_bytes);
+                    } else {
+                        buf.push(TYPE_NULL);
+                    },
+                    TYPE_I64 => if let Some(val) = cursor.get_data::<i64>(i)? {
+                        let raw_bytes: [u8; 8] = unsafe { transmute(val) };
+                        buf.push(TYPE_I64);
+                        buf.extend_from_slice(&raw_bytes);
+                    } else {
+                        buf.push(TYPE_NULL);
+                    },
+                    TYPE_F32 => if let Some(val) = cursor.get_data::<f32>(i)? {
+                        let raw_bytes: [u8; 4] = unsafe { transmute(val) };
+                        buf.push(TYPE_F32);
+                        buf.extend_from_slice(&raw_bytes);
+                    } else {
+                        buf.push(TYPE_NULL);
+                    },
+                    TYPE_F64 => if let Some(val) = cursor.get_data::<f64>(i)? {
+                        let raw_bytes: [u8; 8] = unsafe { transmute(val) };
+                        buf.push(TYPE_F64);
+                        buf.extend_from_slice(&raw_bytes);
+                    } else {
+                        buf.push(TYPE_NULL);
+                    },
+                    TYPE_BIN => if let Some(val) = cursor.get_data::<&str>(i)? {
+                        buf.push(TYPE_BIN);
+                        let val_bytes = val.as_bytes();
+                        let size_bytes: [u8; 4] = unsafe { transmute(val_bytes.len() as u32) };
+                        buf.extend_from_slice(&size_bytes);
+                        buf.extend_from_slice(val_bytes);
+                    } else {
+                        buf.push(TYPE_NULL);
+                    },
                     _ => panic!("Unexpected field type!"), // unreachable
                 };
             }

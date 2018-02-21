@@ -7,7 +7,7 @@ extern crate libc;
 extern crate odbc;
 extern crate simple_error;
 
-use libc::{c_int, c_uint, c_char, c_schar};
+use libc::{c_char, c_int, c_schar, c_uint};
 use c_vec::CVec;
 
 mod erl_driver;
@@ -44,9 +44,13 @@ extern "C" fn stop(drv_data: ErlDrvData) {
     unsafe { Box::from_raw(drv_data as *mut State) };
 }
 
-unsafe fn reply(message: &[u8], rbuf: *mut *mut c_char, rlen: ErlDrvSizeT) -> ErlDrvSSizeT {
-    if message.len() < rlen {
-        ptr::copy(message.as_ptr(), *rbuf as *mut u8, message.len());
+unsafe fn reply(
+    message: &[u8],
+    reply_buffer: *mut *mut c_char,
+    reply_length: ErlDrvSizeT,
+) -> ErlDrvSSizeT {
+    if message.len() < reply_length {
+        ptr::copy(message.as_ptr(), *reply_buffer as *mut u8, message.len());
     } else {
         let binary = driver_alloc_binary(message.len());
         if binary as usize == 0 {
@@ -61,7 +65,7 @@ unsafe fn reply(message: &[u8], rbuf: *mut *mut c_char, rlen: ErlDrvSizeT) -> Er
             &mut (*binary).orig_bytes[0],
             message.len(),
         );
-        *rbuf = binary as *mut c_char;
+        *reply_buffer = binary as *mut c_char;
     }
     message.len() as isize
 }
@@ -69,41 +73,39 @@ unsafe fn reply(message: &[u8], rbuf: *mut *mut c_char, rlen: ErlDrvSizeT) -> Er
 extern "C" fn control(
     drv_data: ErlDrvData,
     command: c_uint,
-    buf: *mut c_char,
-    len: ErlDrvSizeT,
-    rbuf: *mut *mut c_char,
-    rlen: ErlDrvSizeT,
+    buffer: *mut c_char,
+    length: ErlDrvSizeT,
+    reply_buffer: *mut *mut c_char,
+    reply_length: ErlDrvSizeT,
 ) -> ErlDrvSSizeT {
     let state = unsafe { &mut *(drv_data as *mut State) };
     let mut message = Vec::<u8>::new();
     match command {
         COMMAND_CONNECT => {
-            let buf = unsafe { CVec::new(buf as *mut u8, len) };
-            if let Err(error) = state.connect(&buf) {
+            let buffer = unsafe { CVec::new(buffer as *mut u8, length) };
+            if let Err(error) = state.connect(&buffer) {
                 message.push(STATUS_ERROR);
                 message.extend_from_slice(error.to_string().as_bytes());
             }
         }
         COMMAND_EXECUTE => {
-            let buf = unsafe { CVec::new(buf as *mut u8, len) };
-            if let Err(error) = state.execute(&buf) {
+            let buffer = unsafe { CVec::new(buffer as *mut u8, length) };
+            if let Err(error) = state.execute(&buffer) {
                 message.push(STATUS_ERROR);
                 message.extend_from_slice(error.to_string().as_bytes());
             }
         }
-        COMMAND_FETCH => {
-            if let Err(error) = state.fetch(&mut message) {
-                message.push(STATUS_ERROR);
-                message.extend_from_slice(error.to_string().as_bytes());
-            }
-        }
+        COMMAND_FETCH => if let Err(error) = state.fetch(&mut message) {
+            message.push(STATUS_ERROR);
+            message.extend_from_slice(error.to_string().as_bytes());
+        },
         _ => {
             let error = format!("Invalid command received: {}", command);
             message.push(STATUS_ERROR);
             message.extend_from_slice(error.as_bytes());
         }
     };
-    unsafe { reply(&message, rbuf, rlen) }
+    unsafe { reply(&message, reply_buffer, reply_length) }
 }
 
 static DRIVER_NAME: &'static [u8] = b"librodbc\0";
@@ -116,7 +118,7 @@ static mut DRIVER_ENTRY: ErlDrvEntry = erl_drv_entry {
     output: None,
     ready_input: None,
     ready_output: None,
-    driver_name: 0 as *mut c_schar, // set latter
+    driver_name: 0 as *mut c_schar, // set later
     finish: None,
     handle: 0 as *mut c_void,
     timeout: None,
