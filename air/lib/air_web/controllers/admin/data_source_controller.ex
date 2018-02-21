@@ -79,15 +79,8 @@ defmodule AirWeb.Admin.DataSourceController do
 
   defp load_data_source(conn, _) do
     case DataSource.by_name(conn.params["id"]) do
-      nil ->
-        conn
-        |> put_layout(false)
-        |> put_status(:not_found)
-        |> put_view(AirWeb.ErrorView)
-        |> render("404.html")
-        |> halt()
-      data_source ->
-        assign(conn, :data_source, data_source)
+      nil -> not_found(conn)
+      data_source -> assign(conn, :data_source, data_source)
     end
   end
 
