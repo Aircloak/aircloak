@@ -6,40 +6,8 @@
       admin_audit_log_path(@conn, :index, Map.put(@conn.query_params, :page, Keyword.get(opts, :page)))
     end %>
 
-    <table class="table table-condensed">
-      <thead>
-        <tr>
-          <th>Event</th>
-          <th>User</th>
-          <th>Time</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <%= for audit_log <- @audit_logs do %>
-          <tr>
-            <td><%= audit_log.event %></td>
-            <td><%= audit_log.user %></td>
-            <td>
-              <span class="time"><%= absolute_time(audit_log) %></span>
-              <span class="time">(<%= time_ago(audit_log) %>)</span>
-            </td>
-            <td>
-              <ul>
-                <%= for {name, value} <- humanize_names(audit_log.metadata) do %>
-                  <li><strong><%= name %></strong>: <%= value %></li>
-                <% end %>
-              </ul>
-            </td>
-          </tr>
-        <% end %>
-        <%= if @audit_logs.total_entries == 0 do %>
-          <tr>
-            <td colspan="4">There are no audit log entries for the current set of filters.</td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
+    <div id="audit-log">
+    </div>
 
     <%= if @audit_logs.total_pages > 1, do: pagination_links @audit_logs, path: fn(_conn, _action, opts) ->
       admin_audit_log_path(@conn, :index, Map.put(@conn.query_params, :page, Keyword.get(opts, :page)))
@@ -105,3 +73,12 @@
     <% end %>
   </div>
 </div>
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      var props = {auditLogs: <%= audit_logs_to_json(@audit_logs) %>};
+      App.auditLog(props, document.getElementById("audit-log"));
+    }
+  };
+</script>

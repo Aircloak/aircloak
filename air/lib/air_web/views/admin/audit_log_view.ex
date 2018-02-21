@@ -34,4 +34,17 @@ defmodule AirWeb.Admin.AuditLogView do
 
   defp glyph(true), do: {:safe, "<span class='glyphicon glyphicon-remove' aria-hidden='true'></span> "}
   defp glyph(false), do: {:safe, ""}
+
+  defp audit_logs_to_json(audit_logs) do
+    audit_logs.entries
+    |> Enum.map(fn(audit_log) ->
+      %{
+        event: audit_log.event,
+        user: audit_log.user,
+        time: audit_log.inserted_at,
+        show_path: "#",
+      }
+    end)
+    |> to_json()
+  end
 end
