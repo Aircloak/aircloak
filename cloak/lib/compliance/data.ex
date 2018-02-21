@@ -12,6 +12,10 @@ defmodule Compliance.Data do
   If you change the schema you will need to update `Compliance.TableDefinitions`.
   """
 
+  @external_resource "lib/compliance/words.txt"
+  @external_resource "lib/compliance/names.txt"
+  @external_resource "lib/compliance/cities.txt"
+
   @min_addresses 0
   @max_addresses 2
   @min_postal_code 10_000
@@ -140,9 +144,6 @@ defmodule Compliance.Data do
   defp rand_range(min, max), do:
     min..(:rand.uniform(max - min + 1) + min)
 
-  defp cities(), do:
-    lines_from_file("lib/compliance/cities.txt")
-
   defp random_postcode(), do:
     :rand.uniform(@max_postal_code - @min_postal_code) + @min_postal_code
 
@@ -158,22 +159,32 @@ defmodule Compliance.Data do
     Map.fetch!(options, :rand.uniform(Map.size(options) - 1))
   end
 
+
+  # -------------------------------------------------------------------
+  # Internal functions - data samples
+  # -------------------------------------------------------------------
+
+  lines_from_file =
+    fn(file) ->
+      File.read!(file)
+      |> String.split("\n")
+      |> Enum.reverse()
+      # Get rid of empty entry due to empty line at the end of file
+      |> tl()
+      |> Stream.with_index()
+      |> Stream.map(fn({word, index}) -> {index, word} end)
+      |> Map.new()
+      |> Macro.escape()
+    end
+
   defp words(), do:
-    lines_from_file("lib/compliance/words.txt")
+    unquote(lines_from_file.("lib/compliance/words.txt"))
 
   defp names(), do:
-    lines_from_file("lib/compliance/names.txt")
+    unquote(lines_from_file.("lib/compliance/names.txt"))
 
-  defp lines_from_file(file), do:
-    File.read!(file)
-    |> String.split("\n")
-    |> Enum.reverse()
-    # Get rid of empty entry due to empty line at the end of file
-    |> tl()
-    |> Stream.with_index()
-    |> Stream.map(fn({word, index}) -> {index, word} end)
-    |> Map.new()
-
+  defp cities(), do:
+    unquote(lines_from_file.("lib/compliance/cities.txt"))
 
   # -------------------------------------------------------------------
   # Internal functions - flattening to tables
