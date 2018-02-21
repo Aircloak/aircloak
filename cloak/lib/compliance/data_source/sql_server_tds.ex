@@ -12,7 +12,7 @@ defmodule Compliance.DataSource.SQLServerTds do
   @impl Connector
   def setup(%{parameters: params}) do
     Application.ensure_all_started(:tds)
-    Connector.await_port(params.hostname, 1433)
+    Connector.await_port(params.hostname, Map.get(params, :port, 1433))
     setup_database(params)
     :ok
   end
@@ -94,6 +94,7 @@ defmodule Compliance.DataSource.SQLServerTds do
         hostname: params.hostname,
         username: params.username,
         password: params.password,
+        port: Map.get(params, :port, 1433),
         database: "master",
         sync_connect: true,
         pool: DBConnection.Connection

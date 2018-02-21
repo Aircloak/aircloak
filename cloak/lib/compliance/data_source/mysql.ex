@@ -12,7 +12,7 @@ defmodule Compliance.DataSource.MySQL do
   @impl Connector
   def setup(%{parameters: params}) do
     Application.ensure_all_started(:mariaex)
-    Connector.await_port(params.hostname, 3306)
+    Connector.await_port(params.hostname, Map.get(params, :port, 3306))
     setup_database(params)
     :ok
   end
@@ -22,6 +22,7 @@ defmodule Compliance.DataSource.MySQL do
     {:ok, conn} = Mariaex.start_link(
       database: params.database,
       hostname: params.hostname,
+      port: Map.get(params, :port, 3306),
       username: params.username,
       password: params[:password]
     )
@@ -112,6 +113,7 @@ defmodule Compliance.DataSource.MySQL do
       Mariaex.start_link(
         database: "mysql",
         hostname: params.hostname,
+        port: Map.get(params, :port, 3306),
         username: "root",
         sync_connect: true
       )
