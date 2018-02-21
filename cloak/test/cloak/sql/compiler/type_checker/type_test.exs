@@ -83,18 +83,18 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
 
     test "for function with discontinuious function pow" do
       type = type_first_column("SELECT pow(numeric, 10) FROM table")
-      assert type.history_of_restricted_transformations == [{:restricted_function, "pow"}]
+      assert type.history_of_restricted_transformations == [{:restricted_function, "^"}]
     end
 
     test "even when multiple occur" do
       type = type_first_column("SELECT abs(pow(numeric, 10)) FROM table")
       assert type.history_of_restricted_transformations ==
-        [{:restricted_function, "abs"}, {:restricted_function, "pow"}]
+        [{:restricted_function, "abs"}, {:restricted_function, "^"}]
     end
 
     test "does not record discontinuous functions when they appear in an un-restricted form" do
       type = type_first_column("SELECT pow(cast(sqrt(numeric) as float), 10) FROM table")
-      assert type.history_of_restricted_transformations == [{:restricted_function, "pow"}]
+      assert type.history_of_restricted_transformations == [{:restricted_function, "^"}]
     end
 
     test "records math influenced by a constant as a potential offense" do

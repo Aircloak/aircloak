@@ -1,9 +1,10 @@
-defmodule Central.Service.Customer.AirMessage.Default do
-  @moduledoc "Decoding and handling of messages sent by air pre-versioning."
+defmodule Central.Service.Customer.AirMessage.V180200 do
+  @moduledoc "Decoding and handling of messages sent by air in version 18.2.0"
+
   require Logger
   alias Central.Service.Customer
 
-  known_messages = ~w(query_execution cloak_online cloak_offline usage_info)
+  known_messages = ~w(query_execution)
 
   @type options :: [check_duplicate_rpc?: boolean]
 
@@ -45,8 +46,9 @@ defmodule Central.Service.Customer.AirMessage.Default do
       :ok
     end
   end
-  def do_handle(unknown_message) do
-    Logger.error("unknown air message: #{inspect unknown_message}")
+  def do_handle(unknown_message, customer, air_name) do
+    Logger.error("unknown air message: #{inspect unknown_message} from #{inspect customer} and air: " <>
+      "#{inspect air_name}")
     :error
   end
 
@@ -59,15 +61,4 @@ defmodule Central.Service.Customer.AirMessage.Default do
     }
     Customer.record_query(message.customer, params)
   end
-
-
-  # -------------------------------------------------------------------
-  # Deprecated information - we no longer want to record this information
-  # -------------------------------------------------------------------
-
-  defp handle_cloak_online(_message), do: :ok
-
-  defp handle_cloak_offline(_message), do: :ok
-
-  defp handle_usage_info(_message), do: :ok
 end

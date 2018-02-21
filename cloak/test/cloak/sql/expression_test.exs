@@ -28,9 +28,6 @@ defmodule Cloak.Sql.Expression.Test do
     assert apply_function("ceil", [3.99]) === 4
     assert apply_function("ceil", [3.01]) === 4
     assert apply_function("ceil", [3]) === 3
-    assert apply_function("ceiling", [3.99]) === 4
-    assert apply_function("ceiling", [3.01]) === 4
-    assert apply_function("ceiling", [3]) === 3
     assert apply_function("ceil", [pow(10, 5000)]) === pow(10, 5000)
     assert apply_function("ceil", [nil]) === nil
   end
@@ -93,16 +90,16 @@ defmodule Cloak.Sql.Expression.Test do
     assert apply_function("div", [2, nil]) == nil
   end
 
-  test "mod" do
-    assert apply_function("mod", [13, 3]) == 1
-    assert apply_function("mod", [nil, 3]) == nil
-    assert apply_function("mod", [13, nil]) == nil
+  test "%" do
+    assert apply_function("%", [13, 3]) == 1
+    assert apply_function("%", [nil, 3]) == nil
+    assert apply_function("%", [13, nil]) == nil
   end
 
-  test "pow" do
-    assert apply_function("pow", [2, 3]) == 8
-    assert apply_function("pow", [2, nil]) == nil
-    assert apply_function("pow", [nil, 3]) == nil
+  test "^" do
+    assert apply_function("^", [2, 3]) == 8
+    assert apply_function("^", [2, nil]) == nil
+    assert apply_function("^", [nil, 3]) == nil
   end
 
   test "length" do
@@ -128,13 +125,11 @@ defmodule Cloak.Sql.Expression.Test do
 
   test "lower" do
     assert apply_function("lower", ["A sTrinG"]) == "a string"
-    assert apply_function("lcase", ["A sTrinG"]) == "a string"
     assert apply_function("lower", [nil]) == nil
   end
 
   test "upper" do
     assert apply_function("upper", ["A sTrinG"]) == "A STRING"
-    assert apply_function("ucase", ["A sTrinG"]) == "A STRING"
     assert apply_function("upper", [nil]) == nil
   end
 

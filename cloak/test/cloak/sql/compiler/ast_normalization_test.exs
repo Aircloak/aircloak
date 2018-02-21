@@ -191,4 +191,29 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
       "SELECT date_trunc('YEAR', column) FROM table",
       "SELECT date_trunc(lower('YEAR'), column) FROM table"
     )
+
+  %{
+    "ceiling" => "ceil",
+    "lcase" => "lower",
+    "ucase" => "upper",
+  }
+  |> Enum.each(fn({synonym, function}) ->
+    test "#{synonym} is a synonym for #{function}", do:
+      assert_equivalent(
+        "SELECT #{unquote(synonym)}(column) FROM table",
+        "SELECT #{unquote(function)}(column) FROM table"
+      )
+  end)
+
+  %{
+    "mod" => "%",
+    "pow" => "^",
+  }
+  |> Enum.each(fn({synonym, operator}) ->
+    test "#{synonym} is a synonym for #{operator}", do:
+      assert_equivalent(
+        "SELECT #{unquote(synonym)}(column, 10) FROM table",
+        "SELECT column #{unquote(operator)} 10 FROM table"
+      )
+  end)
 end

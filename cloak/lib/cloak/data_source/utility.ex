@@ -20,6 +20,7 @@ defmodule Cloak.DataSource.Utility do
     case Aircloak.File.ls(config_path) do
       {:ok, data_source_config_files} ->
         data_source_config_files
+        |> Stream.filter(&(Path.extname(&1) == ".json"))
         |> Enum.map(fn(file_name) ->
           path = Path.join(config_path, file_name)
           case Aircloak.File.read_config_file(path) do

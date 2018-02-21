@@ -1,14 +1,9 @@
-<% alias Central.Schemas.Customer %>
-
 <h2>Customers</h2>
 
 <table class="table table-striped">
   <thead>
     <tr>
       <th>Name</th>
-      <th>Airs</th>
-      <th>Cloaks</th>
-      <th>Data sources</th>
       <th></th>
     </tr>
   </thead>
@@ -20,10 +15,7 @@
   <% else %>
     <%= for customer <- @customers do %>
       <tr>
-        <td><a href="<%= customer_path(@conn, :show, customer) %>"><%= customer.name %></a></td>
-        <td><%= length(Customer.online_airs(customer)) %> / <%= length(customer.airs) %></td>
-        <td><%= length(Customer.online_cloaks(customer)) %> / <%= length(Customer.cloaks(customer)) %></td>
-        <td><%= length(Customer.online_data_sources(customer)) %> / <%= length(Customer.data_sources(customer)) %></td>
+        <td><%= customer.name %></td>
         <td>
           <%= link "Token", to: customer_token_path(@conn, :token, customer), class: "btn btn-default btn-xs" %>
           <%= link "Edit", to: customer_path(@conn, :edit, customer), class: "btn btn-default btn-xs" %>

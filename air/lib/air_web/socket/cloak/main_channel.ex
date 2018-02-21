@@ -72,8 +72,6 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
     |> Air.Service.Cloak.register(cloak_info.data_sources)
     |> revalidate_views()
 
-    report_online_status_to_central(cloak, cloak_info.data_sources, socket.assigns.version)
-
     {:ok, %{}, assign(socket, :pending_calls, %{})}
   end
 
@@ -229,17 +227,6 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
         exit(reason)
     after timeout ->
       {:error, :timeout}
-    end
-  end
-
-  if Mix.env == :test do
-    # do nothing in tests to suppress a lot of noisy errors
-    defp report_online_status_to_central(_cloak, _data_sources, _version), do: :ok
-  else
-    defp report_online_status_to_central(cloak, data_sources, version) do
-      alias Air.Service.Central
-      Central.record_cloak_online(cloak.name, Enum.map(data_sources, &(&1.name)), version)
-      Aircloak.ProcessMonitor.on_exit(fn -> Central.record_cloak_offline(cloak.name) end)
     end
   end
 

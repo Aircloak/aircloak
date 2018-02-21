@@ -238,7 +238,7 @@ defmodule Compliance.DataSources do
     definitions
     |> Enum.map(fn({name, definition}) ->
       db_table_name = handler_for_data_source(data_source_scaffold).db_table_name(name)
-      rawling = %{decoders: Map.get(definition, :decoders, %{}), query: nil}
+      rawling = %{decoders: Map.get(definition, :decoders, []), query: nil}
       |> add_uid_construct(name)
       |> Map.put(:db_name, "#{db_table_name}#{table_postfix}")
       {name, rawling}

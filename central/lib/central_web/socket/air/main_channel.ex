@@ -22,19 +22,7 @@ defmodule CentralWeb.Socket.Air.MainChannel do
     Logger.metadata(customer: socket.assigns.customer.name, air: socket.assigns.air_name)
     Process.flag(:trap_exit, true)
     Logger.info("joined central")
-    online_cloaks = raw_air_info
-    |> Map.get("online_cloaks", [])
-    |> Enum.map(&%{
-      name: Map.fetch!(&1, "name"),
-      version: Map.get(&1, "version", "Unknown"),
-      data_source_names: Map.get(&1, "data_source_names", []),
-    })
     air_version = Map.get(raw_air_info, "air_version", "Unknown")
-    air_info = %{
-      air_version: air_version,
-      online_cloaks: online_cloaks,
-    }
-    monitor_channel(socket.assigns.customer, socket.assigns.air_name, air_info)
     {:ok, %{}, socket |> assign(:air_version, air_version)}
   end
 
@@ -110,14 +98,5 @@ defmodule CentralWeb.Socket.Air.MainChannel do
       status: status,
       result: result
     })
-  end
-
-  if Mix.env == :test do
-    # We avoid monitoring in test env, since this will start asynchronous processes storing
-    # to the database, which will in turn lead to noisy errors in test output.
-    defp monitor_channel(_customer, _air_name, _air_info), do: :ok
-  else
-    defp monitor_channel(customer, air_name, air_info), do:
-      Central.AirStats.register(customer, air_name, air_info)
   end
 end
