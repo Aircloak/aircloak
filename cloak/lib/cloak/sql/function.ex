@@ -150,7 +150,7 @@ defmodule Cloak.Sql.Function do
   @doc "Returns true if the function has the specified attribute, false otherise."
   @spec has_attribute?(t | String.t | nil, atom) :: boolean
   def has_attribute?("coalesce", _attribute), do: false # coalesce is only used internally
-  def has_attribute?({:function, name, _, _}, attribute), do: has_attribute?(name, attribute)
+  def has_attribute?({:function, name, _, _}, attribute), do: has_attribute?(canonical_name(name), attribute)
   def has_attribute?(%Expression{function?: true, function: name}, attribute), do: has_attribute?(name, attribute)
   def has_attribute?(name, attribute) do
     case Map.get(@functions, name) do
@@ -165,7 +165,7 @@ defmodule Cloak.Sql.Function do
 
   @doc "Returns a list of possible argument lists required by the given function call."
   @spec argument_types(t) :: [[argument_type]]
-  def argument_types({:function, function, _, _}), do: @functions[function].type_specs |> Map.keys()
+  def argument_types({:function, function, _, _}), do: @functions[canonical_name(function)].type_specs |> Map.keys()
 
   @doc "Returns the argument specifiaction of the given function call."
   @spec arguments(t) :: [Expression.t]
@@ -176,6 +176,7 @@ defmodule Cloak.Sql.Function do
   @spec readable_name(Parser.function_name) :: String.t
   def readable_name({:cast, _}), do: "cast"
   def readable_name({:bucket, _}), do: "bucket"
+  def readable_name(%{canonical_name: _, synonym_used: synonym}), do: synonym
   def readable_name(name), do: name
 
   @doc "Returns the return type of the given function call or nil if it is badly typed."
@@ -183,7 +184,7 @@ defmodule Cloak.Sql.Function do
   def return_type(%Expression{function?: true, function: name, function_args: args}), do:
     return_type({:function, name, args, nil})
   def return_type(function = {:function, name, _, _}) do
-    @functions[name].type_specs
+    @functions[canonical_name(name)].type_specs
     |> Enum.find(fn({arguments, _}) -> do_well_typed?(function, arguments) end)
     |> case do
       {_arguments, return_type} -> return_type
@@ -222,41 +223,46 @@ defmodule Cloak.Sql.Function do
 
   @doc "Returns true if the function is a valid cloak function"
   @spec exists?(t) :: boolean
-  def exists?({:function, function, _, _}), do: @functions[function] !== nil
+  def exists?({:function, function, _, _}), do: @functions[canonical_name(function)] !== nil
 
   @doc "Returns true if a function is a math function"
-  @spec math_function?(t | String.t | nil) :: boolean
+  @spec math_function?(t | Parser.function_name | nil) :: boolean
   def math_function?(param), do: has_attribute?(param, :math)
 
   @doc "Returns true if a function is restricted"
-  @spec restricted_function?(t | String.t | nil) :: boolean
+  @spec restricted_function?(t | Parser.function_name | nil) :: boolean
   def restricted_function?(param), do: has_attribute?(param, :restricted)
 
   @doc "Returns true if a function is a string manipulation function"
-  @spec string_manipulation_function?(t | String.t | nil) :: boolean
+  @spec string_manipulation_function?(t | Parser.function_name | nil) :: boolean
   def string_manipulation_function?(param), do: has_attribute?(param, :string_manipulation)
 
   @doc "Returns true if a function is an aggregator"
-  @spec aggregator?(t | String.t | nil) :: boolean
+  @spec aggregator?(t | Parser.function_name | nil) :: boolean
   def aggregator?(param), do: has_attribute?(param, :aggregator)
 
   @doc "Returns true if the given function call is a cast, false otherwise."
-  @spec cast?(t | String.t | nil) :: boolean
+  @spec cast?(t | Parser.function_name | nil) :: boolean
   def cast?(param), do: has_attribute?(param, :cast)
 
   @doc "Returns true if the given function exhibits implicit range behaviour"
-  @spec implicit_range?(t | String.t | nil) :: boolean
+  @spec implicit_range?(t | Parser.function_name | nil) :: boolean
   def implicit_range?(param), do: has_attribute?(param, :implicit_range)
 
   @doc "Provides information about alternatives for deprecated functions."
   @spec deprecation_info(t) :: {:error, :function_exists | :not_found} | {:ok, %{alternative: String.t}}
   def deprecation_info({:function, name, _, _} = function) do
-    case {exists?(function), @deprecated_functions[name]} do
+    case {exists?(function), @deprecated_functions[canonical_name(name)]} do
       {true, _} -> {:error, :function_exists}
       {false, nil} -> {:error, :not_found}
       {false, value} -> {:ok, value}
     end
   end
+
+  @doc "Resolves synonyms to canonical names."
+  @spec canonical_name(Parser.function_name) :: Parser.function_name
+  def canonical_name(%{canonical_name: name, synonym_used: _}), do: name
+  def canonical_name(other), do: other
 
 
   # -------------------------------------------------------------------

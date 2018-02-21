@@ -318,8 +318,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp column_title({_identifier, :as, alias}, _selected_tables), do: alias
   defp column_title({:function, {:cast, _}, [expression], _}, selected_tables), do:
     column_title(expression, selected_tables)
-  defp column_title({:function, {:bucket, _}, _, _}, _selected_tables), do: "bucket"
-  defp column_title({:function, name, _, _}, _selected_tables), do: name
+  defp column_title({:function, name, _, _}, _selected_tables), do: Function.readable_name(name)
   defp column_title({:distinct, identifier}, selected_tables), do: column_title(identifier, selected_tables)
   # This is needed for data sources that support dotted names for fields (MongoDB)
   defp column_title({:identifier, {:unquoted, table}, {:unquoted, column}, _}, selected_tables), do:
@@ -419,7 +418,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> Function.return_type()
     |> case do
       nil -> raise CompilationError, source_location: location, message: function_argument_error_message(function)
-      type -> Expression.function(name, args, type, Function.has_attribute?(name, :aggregator))
+      type -> Expression.function(Function.canonical_name(name), args, type, Function.has_attribute?(name, :aggregator))
     end
     |> Expression.set_location(location)
   end

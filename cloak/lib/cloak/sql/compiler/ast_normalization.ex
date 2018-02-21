@@ -28,19 +28,19 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
     |> Helpers.apply_bottom_up(&rewrite_not/1)
     |> Helpers.apply_bottom_up(&rewrite_in/1)
     |> Helpers.apply_bottom_up(&rewrite_date_trunc/1)
-    |> Helpers.apply_bottom_up(&normalize_function_names/1)
+    |> Helpers.apply_bottom_up(&normalize_synonyms/1)
 
   # -------------------------------------------------------------------
   # function name normalization
   # -------------------------------------------------------------------
 
-  defp normalize_function_names(ast), do:
+  defp normalize_synonyms(ast), do:
     update_in(ast, [Query.Lenses.terminals() |> Lens.filter(&Function.function?/1) |> Lens.at(1)], fn
-      "lcase" -> "lower"
-      "ucase" -> "upper"
-      "ceiling" -> "ceil"
-      "pow" -> "^"
-      "mod" -> "%"
+      "lcase" -> %{canonical_name: "lower", synonym_used: "lcase"}
+      "ucase" -> %{canonical_name: "upper", synonym_used: "ucase"}
+      "ceiling" -> %{canonical_name: "ceil", synonym_used: "ceiling"}
+      "pow" -> %{canonical_name: "^", synonym_used: "pow"}
+      "mod" -> %{canonical_name: "%", synonym_used: "mod"}
       other -> other
     end)
 
