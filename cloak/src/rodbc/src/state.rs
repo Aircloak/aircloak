@@ -10,8 +10,6 @@ use odbc::ffi::SqlDataType::*;
 
 use simple_error::SimpleError;
 
-type GenError = Result<(), Box<Error>>;
-
 const TYPE_NULL: u8 = 0;
 const TYPE_I32: u8 = 1;
 const TYPE_I64: u8 = 2;
@@ -26,7 +24,7 @@ pub struct State<'a> {
     field_types: Vec<u8>,
 }
 
-fn error(message: &str) -> GenError {
+fn error(message: &str) -> Result<(), Box<Error>> {
     Err(Box::new(SimpleError::new(message)))
 }
 
@@ -41,7 +39,7 @@ impl<'a> State<'a> {
         })
     }
 
-    pub fn connect(&'a mut self, connection_string: &CVec<u8>) -> GenError {
+    pub fn connect(&'a mut self, connection_string: &CVec<u8>) -> Result<(), Box<Error>> {
         self.stmt = None;
         self.conn = None;
         let connection_string = from_utf8(connection_string.as_ref())?;
@@ -60,7 +58,7 @@ impl<'a> State<'a> {
         }
     }
 
-    pub fn execute(&'a mut self, statement_text: &CVec<u8>) -> GenError {
+    pub fn execute(&'a mut self, statement_text: &CVec<u8>) -> Result<(), Box<Error>> {
         self.stmt = None;
         self.field_types.clear();
         let statement_text = from_utf8(statement_text.as_ref())?;
@@ -79,7 +77,7 @@ impl<'a> State<'a> {
         Ok(())
     }
 
-    pub fn fetch(&'a mut self, buf: &mut Vec<u8>) -> GenError {
+    pub fn fetch(&'a mut self, buf: &mut Vec<u8>) -> Result<(), Box<Error>> {
         let stmt = match self.stmt {
             None => return error("No statement executed!"),
             Some(ref mut stmt) => stmt,
