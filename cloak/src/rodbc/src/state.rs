@@ -1,16 +1,16 @@
 use std::mem::transmute;
 use std::str::from_utf8;
 use std::error::Error;
-use std::result;
+use std::result::Result;
 
-use c_vec::*;
+use c_vec::CVec;
 
 use odbc::*;
 use odbc::ffi::SqlDataType::*;
 
-use simple_error::*;
+use simple_error::SimpleError;
 
-type GenError = result::Result<(), Box<Error>>;
+type GenError = Result<(), Box<Error>>;
 
 const TYPE_NULL: u8 = 0;
 const TYPE_I32: u8 = 1;
@@ -31,7 +31,7 @@ fn error(message: &str) -> GenError {
 }
 
 impl<'a> State<'a> {
-    pub fn new() -> result::Result<State<'a>, Option<DiagnosticRecord>> {
+    pub fn new() -> Result<State<'a>, Option<DiagnosticRecord>> {
         let env = create_environment_v3()?;
         Ok(State {
             env: env,

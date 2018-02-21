@@ -7,8 +7,8 @@ extern crate libc;
 extern crate odbc;
 extern crate simple_error;
 
-use libc::*;
-use c_vec::*;
+use libc::{c_int, c_uint, c_char, c_schar};
+use c_vec::CVec;
 
 mod erl_driver;
 use erl_driver::*;
