@@ -30,11 +30,10 @@ end
 %{
   compile:
     {:sequence, [
-      "make deps",
-      "make compile",
+      "make",
       {:parallel, [
-        "MIX_ENV=test make compile",
-        "MIX_ENV=prod make compile",
+        "MIX_ENV=test make",
+        "MIX_ENV=prod make",
         "MIX_HOME=_build mix dialyze --no-analyse",
       ]}
     ]},
