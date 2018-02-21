@@ -39,15 +39,10 @@ end
       ]}
     ]},
 
-  test:
-    {:sequence, [
-      "make deps",
-      {:parallel, [test.(:test), test.(:dev), test.(:prod)]}
-    ]},
+  test: {:parallel, [test.(:test), test.(:dev), test.(:prod)]},
 
   compliance:
     {:sequence, [
-      "make deps",
       "MIX_ENV=test mix gen.test_data dockerized_ci 100",
       "mix test --only compliance --max-cases 10",
     ]},
