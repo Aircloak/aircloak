@@ -136,7 +136,7 @@ impl<'a> State<'a> {
                             buf.push(TYPE_NULL);
                         }
                     }
-                    _ => (), // unreachable
+                    _ => panic!("Unexpected field type!"), // unreachable
                 };
             }
         }
