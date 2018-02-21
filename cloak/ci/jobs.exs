@@ -40,13 +40,17 @@ end
 
   test:
     {:sequence, [
-      "make deps",
+      # Invoking `make` ensures that dependencies are up to date. Normally, this already happens during compilation.
+      # However, if in the meantime something new has been committed to the target branch, we need to refetch deps.
+      "MIX_ENV=test make",
       {:parallel, [test.(:test), test.(:dev), test.(:prod)]}
     ]},
 
   compliance:
     {:sequence, [
-      "make deps",
+      # Invoking `make` ensures that dependencies are up to date. Normally, this already happens during compilation.
+      # However, if in the meantime something new has been committed to the target branch, we need to refetch deps.
+      "MIX_ENV=test make",
       "MIX_ENV=test mix gen.test_data dockerized_ci 100",
       "mix test --only compliance --max-cases 10",
     ]},
