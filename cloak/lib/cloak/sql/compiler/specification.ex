@@ -418,7 +418,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> Function.return_type()
     |> case do
       nil -> raise CompilationError, source_location: location, message: function_argument_error_message(function)
-      type -> Expression.function(Function.actual_name(name), args, type, Function.has_attribute?(name, :aggregator))
+      type -> Expression.function(Function.canonical_name(name), args, type, Function.has_attribute?(name, :aggregator))
     end
     |> Expression.set_location(location)
   end
