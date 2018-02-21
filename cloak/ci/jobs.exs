@@ -30,24 +30,18 @@ end
 %{
   compile:
     {:sequence, [
-      "make deps",
-      "mix compile",
+      "make",
       {:parallel, [
-        "MIX_ENV=test mix compile",
-        "MIX_ENV=prod mix compile",
+        "MIX_ENV=test make",
+        "MIX_ENV=prod make",
         "MIX_HOME=_build mix dialyze --no-analyse",
       ]}
     ]},
 
-  test:
-    {:sequence, [
-      "make deps",
-      {:parallel, [test.(:test), test.(:dev), test.(:prod)]}
-    ]},
+  test: {:parallel, [test.(:test), test.(:dev), test.(:prod)]},
 
   compliance:
     {:sequence, [
-      "make deps",
       "MIX_ENV=test mix gen.test_data dockerized_ci 100",
       "mix test --only compliance --max-cases 10",
     ]},
