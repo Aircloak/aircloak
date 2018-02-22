@@ -65,7 +65,7 @@ defmodule Air.Performance do
         username: user_name,
         password: password,
         database: data_source_name,
-        ssl: true
+        ssl: false
       )
 
     conn
