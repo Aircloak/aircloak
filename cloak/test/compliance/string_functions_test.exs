@@ -39,6 +39,7 @@ Enum.each([
         context
         |> disable_for(Cloak.DataSource.SQLServer, match?("hex" <> _, unquote(function)))
         |> disable_for(Cloak.DataSource.SQLServerTds, match?("hex" <> _, unquote(function)))
+        |> disable_for(Cloak.DataSource.SQLServerRODBC, match?("hex" <> _, unquote(function)))
         |> disallowed_in_subqueries("extract_words", unquote(function))
         |> assert_consistent_and_not_failing("""
           SELECT

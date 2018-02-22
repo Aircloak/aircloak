@@ -10,6 +10,13 @@ RUN \
 COPY cloak/priv/odbc/odbc.ini /tmp
 RUN odbcinst -i -s -h -f /tmp/odbc.ini
 
+# Install Rust
+RUN \
+  . /tmp/build_config/proxies.sh && \
+  echo 'rust $RUST_VERSION' >> ~/.tool-versions && \
+  bash -c ". ~/.asdf/asdf.sh && asdf plugin-add rust https://github.com/code-lever/asdf-rust.git" && \
+  bash -c ". ~/.asdf/asdf.sh && cd ~ && asdf install"
+
 ENV CI=true
 ENV INTEGRATION_TESTS=true
 ENV DEPLOY_CONFIG=dockerized_integration

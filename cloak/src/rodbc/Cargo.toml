@@ -1,0 +1,15 @@
+[package]
+name = "rodbc"
+version = "0.1.0"
+authors = ["Aircloak GmbH <solutions@aircloak.com>"]
+
+[lib]
+crate-type = ["dylib"]
+
+[dependencies]
+log = "*"
+env_logger = "*"
+odbc = "0.9.3"
+libc = "*"
+c_vec = "*"
+simple-error = "*"

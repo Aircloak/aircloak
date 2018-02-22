@@ -191,6 +191,8 @@ defmodule Compliance.DataSources do
     Compliance.DataSource.MongoDB
   defp handler_for_data_source(%{driver: Cloak.DataSource.SQLServerTds}), do:
     Compliance.DataSource.SQLServerTds
+  defp handler_for_data_source(%{driver: Cloak.DataSource.SQLServerRODBC}), do:
+    Compliance.DataSource.SQLServer
 
 
   # -------------------------------------------------------------------
