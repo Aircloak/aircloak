@@ -24,7 +24,6 @@ deps:
 clean:
 	mix clean --deps
 	rm -rf odbc_drivers
-	cd src/rodbc && cargo clean
 
 start: compile
 	iex -S mix
