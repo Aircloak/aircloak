@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Gen.DevData do
   @impl Mix.Task
   def run(_args) do
     generate_integers()
-    generate_performance()
+    Cloak.PerformanceData.generate()
   end
 
 
@@ -179,59 +179,4 @@ defmodule Mix.Tasks.Gen.DevData do
     table_spec.columns
     |> Enum.map(fn({name, type}) -> ~s/"#{name}" #{type}/ end)
     |> Enum.join(", ")
-
-
-  # -------------------------------------------------------------------
-  # Performance database
-  # -------------------------------------------------------------------
-
-  defp generate_performance() do
-    num_users = 10_000
-
-    [performance_config()]
-    |> Cloak.DataSource.config_to_datasources()
-    |> Compliance.DataSources.setup(Compliance.Data.users(num_users), num_users, System.schedulers_online())
-
-    [performance_config()]
-    |> Cloak.DataSource.config_to_datasources()
-    |> Compliance.DataSources.complete_data_source_definitions()
-    |> Enum.map(&store_json_config/1)
-  end
-
-  defp performance_config() do
-    %{
-      "driver" => "postgresql",
-      "name" => "cloak_performance",
-      "parameters" => %{
-        "database" => "cloak_performance",
-        "hostname" => "localhost",
-        "username" => "cloak"
-      },
-      "tables" => []
-    }
-  end
-
-  defp store_json_config(data_source) do
-    [
-      Aircloak.File.config_dir_path(:cloak),
-      Aircloak.DeployConfig.fetch!("data_sources"),
-      "#{data_source.name}.json"
-    ]
-    |> Path.join()
-    |> File.write!(json_config(data_source))
-  end
-
-  defp json_config(data_source) do
-    data_source
-    |> Map.take([:name, :parameters])
-    |> Map.put(:driver, "postgresql")
-    |> Map.put(:tables, tables_map(data_source.tables))
-    |> Poison.encode!(pretty: true)
-  end
-
-  defp tables_map(tables) do
-    tables
-    |> Enum.map(fn({name, table}) -> {name, Map.take(table, [:db_name, :user_id, :projection, :decoders])} end)
-    |> Enum.into(%{})
-  end
 end

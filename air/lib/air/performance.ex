@@ -30,7 +30,7 @@ defmodule Air.Performance do
     result =
       fn -> Enum.map(@test_queries, &measure_query(conns, &1)) end
       |> Task.async()
-      |> Task.await(:timer.hours(1))
+      |> Task.await(:timer.hours(10))
 
     # closing connections in background to avoid possible disconnect error to prevent returning the result
     Enum.each(
@@ -53,7 +53,7 @@ defmodule Air.Performance do
   end
 
   defp measure_conn({key, conn}, statement) do
-    {time, _result} = :timer.tc(fn -> Postgrex.query(conn, statement, []) end)
+    {time, _result} = :timer.tc(fn -> Postgrex.query(conn, statement, [], timeout: :timer.hours(1)) end)
     {:"#{key}_time", :erlang.convert_time_unit(time, :microsecond, :millisecond)}
   end
 
@@ -65,7 +65,7 @@ defmodule Air.Performance do
         username: user_name,
         password: password,
         database: data_source_name,
-        ssl: true
+        ssl: false
       )
 
     conn
