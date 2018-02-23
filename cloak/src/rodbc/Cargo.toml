@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Aircloak GmbH <solutions@aircloak.com>"]
 
 [lib]
+name = "rodbc"
 crate-type = ["dylib"]
 
 [dependencies]

@@ -151,7 +151,7 @@ defmodule BOM.Whitelist do
   end
 
   @not_shipped %{
-    elixir: ~w(proper triq excheck),
+    elixir: ~w(proper triq excheck rustler),
     node: ~w(
       eslint eslint-config-airbnb eslint-plugin-import eslint-plugin-jsx-a11y eslint-plugin-react
       eslint-config-airbnb-base eslint-import-resolver-node
