@@ -182,7 +182,11 @@ defmodule Air.PsqlServer.Protocol do
   @doc "Adds a send message action to the list of pending actions."
   @spec send_to_client(t, Messages.server_message) :: t
   def send_to_client(protocol, message) do
-    log_details(protocol, fn -> ["psql server: sending ", inspect(message)] end)
+    # We won't log each row sent to client, since this might significantly affect latency for a large number of
+    # returned rows.
+    unless match?({:data_row, _rows, _types, _formats}, message), do:
+      log_details(protocol, fn -> ["psql server: sending ", inspect(message)] end)
+
     add_action(protocol, {:send, Messages.encode_message(message)})
   end
 
@@ -219,6 +223,11 @@ defmodule Air.PsqlServer.Protocol do
     protocol
     |> add_action({:close, reason})
     |> next_state(:closed)
+
+  @doc "Logs debug message if detailed_log configuration setting is enabled."
+  @spec log_details(t, (() -> Logger.message)) :: :ok
+  def log_details(%{detailed_log?: false}, _lambda), do: :ok
+  def log_details(_protocol, lambda), do: Logger.info(lambda)
 
 
   # -------------------------------------------------------------------
@@ -290,9 +299,6 @@ defmodule Air.PsqlServer.Protocol do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp log_details(%{detailed_log?: false}, _lambda), do: nil
-  defp log_details(_protocol, lambda), do: Logger.info(lambda)
 
   defp protocol_handler(state) when state in [:initial, :negotiating_ssl, :ssl_negotiated, :cancelling_query], do:
     Air.PsqlServer.Protocol.ConnectionSetup

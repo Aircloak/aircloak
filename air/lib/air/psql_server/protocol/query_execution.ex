@@ -194,8 +194,10 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
   defp send_row_description(protocol, columns, formats), do:
     Protocol.send_to_client(protocol, {:row_description, columns, formats})
 
-  defp send_rows(protocol, rows, columns, formats), do:
+  defp send_rows(protocol, rows, columns, formats) do
+    Protocol.log_details(protocol, fn -> "psql server: sending #{length(rows)} rows" end)
     Enum.reduce(rows, protocol, &Protocol.send_to_client(&2, {:data_row, &1, column_types(columns), formats}))
+  end
 
   defp column_types(nil), do: Stream.cycle([:text])
   defp column_types(columns), do: Enum.map(columns, &(&1.type))
