@@ -29,7 +29,7 @@ cd $ROOT_DIR
 # the image so we rely on the docker layers caching. If neither sources, nor deps
 # have been changed, the existing image will be reused.
 
-common/docker/elixir/build-image.sh
+PREVENT_OLD_IMAGE_REMOVAL=true common/docker/elixir/build-image.sh
 
 # build deps
 echo "Building dependencies"
@@ -49,7 +49,7 @@ docker run --rm -i \
 
 # build the release
 echo "Building the release"
-build_aircloak_image \
+PREVENT_OLD_IMAGE_REMOVAL=true build_aircloak_image \
   cloak_release_builder \
   cloak/docker/release-builder.dockerfile \
   cloak/docker/.dockerignore-release-builder
@@ -70,5 +70,7 @@ cd artifacts/rel && \
   rm cloak.tar.gz
 
 cd $ROOT_DIR
-SYSTEM_VERSION=$current_version \
+SYSTEM_VERSION=$current_version PREVENT_OLD_IMAGE_REMOVAL=true \
   build_aircloak_image cloak cloak/docker/release.dockerfile cloak/docker/.dockerignore-release
+
+remove_old_git_head_image_tags "aircloak"
