@@ -8,7 +8,7 @@ cd $ROOT_DIR
 
 . docker/docker_helper.sh
 
-common/docker/erlang/build-image.sh
+common/docker/elixir/build-image.sh
 
 # build the base image
 IMAGE_CATEGORY="" build_aircloak_image \

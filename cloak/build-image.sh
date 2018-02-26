@@ -29,7 +29,7 @@ cd $ROOT_DIR
 # the image so we rely on the docker layers caching. If neither sources, nor deps
 # have been changed, the existing image will be reused.
 
-PREVENT_OLD_IMAGE_REMOVAL=true common/docker/elixir/build-image.sh
+PREVENT_OLD_IMAGE_REMOVAL=true common/docker/rust/build-image.sh
 
 # build deps
 echo "Building dependencies"
