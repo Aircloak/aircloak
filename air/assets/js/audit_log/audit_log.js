@@ -4,8 +4,24 @@ import React from "react";
 import Moment from "moment";
 import _ from "lodash";
 
+export type AuditLog = {
+  event: string,
+  user: string,
+  time: string,
+  metadata: {},
+};
+
+type Props = {auditLog: AuditLog};
+
+type State = {details: boolean};
+
+const formatTime = (isoTime) => {
+  const time = new Moment(isoTime);
+  return `${time.format("YYYY-MM-DD HH:mm:ss")} (${time.fromNow()})`;
+};
+
 export default class AuditLogEntry extends React.Component {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     this.state = {details: false};
@@ -14,6 +30,11 @@ export default class AuditLogEntry extends React.Component {
     this.renderDetails = this.renderDetails.bind(this);
     this.renderMetadata = this.renderMetadata.bind(this);
   }
+
+  state: State;
+  toggleDetails: () => void;
+  renderDetails: () => void;
+  renderMetadata: () => void;
 
   toggleDetails() {
     this.setState({details: !this.state.details});
@@ -49,9 +70,4 @@ export default class AuditLogEntry extends React.Component {
       ))}
     </dl>);
   }
-}
-
-const formatTime = (isoTime) => {
-  const time = Moment(isoTime);
-  return `${time.format("YYYY-MM-DD HH:mm:ss")} (${time.fromNow()})`;
 }

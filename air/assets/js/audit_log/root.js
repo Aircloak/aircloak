@@ -1,9 +1,14 @@
 // @flow
 
 import React from "react";
-import AuditLog from "./audit_log";
+import AuditLogEntry from "./audit_log";
+import _ from "lodash";
 
-export default (props) =>
+import type {AuditLog} from "./audit_log";
+
+type Props = {auditLogs: [AuditLog]};
+
+export default (props: Props) =>
   <table className="table table-condensed">
     <thead>
       <tr>
@@ -14,12 +19,12 @@ export default (props) =>
       </tr>
     </thead>
     {(() => {
-      if (props.auditLogs.length == 0) {
-        return (<tr>
+      if (_.isEmpty(props.auditLogs)) {
+        return (<tbody><tr>
           <td colSpan="4">There are no audit log entries for the current set of filters.</td>
-          </tr>);
+        </tr></tbody>);
       } else {
-        return props.auditLogs.map((auditLog, id) => <AuditLog key={id} auditLog={auditLog} />);
+        return props.auditLogs.map((auditLog, id) => <AuditLogEntry key={id} auditLog={auditLog} />);
       }
     })()}
-  </table>
+  </table>;
