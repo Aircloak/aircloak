@@ -16,6 +16,7 @@
 !cloak/rel
 !cloak/priv/odbc/drivers
 !docker_cache/cloak
+!docker_cache/.cargo
 
 
 # Additional ignores

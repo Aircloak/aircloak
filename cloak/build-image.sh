@@ -44,11 +44,14 @@ cp VERSION cloak/
 echo "Building dependencies"
 mkdir -p docker_cache/cloak/deps
 mkdir -p docker_cache/cloak/_build
+mkdir -p docker_cache/cargo
+
 docker run --rm -i \
   -v $(pwd)/common:/aircloak/common \
   -v $(pwd)/cloak:/aircloak/cloak \
   -v $(pwd)/docker_cache/cloak/deps:/aircloak/cloak/deps \
   -v $(pwd)/docker_cache/cloak/_build:/aircloak/cloak/_build \
+  -v $(pwd)/docker_cache/.cargo:/root/.cargo \
   aircloak/rust:$(rust_version) \
   /bin/bash -c ". ~/.asdf/asdf.sh && mv /aircloak/cloak/VERSION /aircloak/ && cd /aircloak/cloak && MIX_ENV=prod ./fetch_deps.sh --only prod && MIX_ENV=prod mix compile"
 

@@ -9,6 +9,7 @@ COPY cloak/rel /aircloak/cloak/rel
 COPY VERSION /aircloak/
 COPY docker_cache/cloak/deps /aircloak/cloak/deps
 COPY docker_cache/cloak/_build /aircloak/cloak/_build
+COPY docker_cache/.cargo /root/.cargo
 
 RUN \
   . /tmp/build_config/proxies.sh && \
