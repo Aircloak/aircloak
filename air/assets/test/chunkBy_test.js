@@ -28,4 +28,9 @@ describe("chunkBy", () => {
     const input = [{name: 1, some: "data"}, {name: 1}];
     assert.deepEqual(chunkBy(input, key), [input]);
   });
+
+  it("works for complex keys", () => {
+    const input = [{a: 1, b: 2}, {a: 1, b: 2}, {a: 1, b: 3}];
+    assert.deepEqual(chunkBy(input, (x) => [x.a, x.b]), [[{a: 1, b: 2}, {a: 1, b: 2}], [{a: 1, b: 3}]]);
+  });
 });

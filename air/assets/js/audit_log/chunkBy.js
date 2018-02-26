@@ -9,7 +9,7 @@ export default (events, key) => {
 
   events.forEach((event) => {
     const nextKey = key(event);
-    if (lastKey === null || nextKey === lastKey) {
+    if (_.isNull(lastKey) || _.isEqual(nextKey, lastKey)) {
       chunk.push(event);
     } else {
       result.push(chunk);
