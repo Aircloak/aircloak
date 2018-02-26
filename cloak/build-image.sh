@@ -33,10 +33,6 @@ PREVENT_OLD_IMAGE_REMOVAL=true common/docker/rust/build-image.sh
 
 # build deps
 echo "Building dependencies"
-mkdir -p docker_cache/cloak/deps
-mkdir -p docker_cache/cloak/_build
-mkdir -p docker_cache/cargo
-
 docker run --rm -i \
   -v $(pwd)/VERSION:/aircloak/VERSION \
   -v $(pwd)/common:/aircloak/common \
