@@ -13,15 +13,13 @@ export default (props) =>
         <th></th>
       </tr>
     </thead>
-    <tbody>
-      {(() => {
-        if (props.auditLogs.length == 0) {
-          return (<tr>
-            <td colSpan="4">There are no audit log entries for the current set of filters.</td>
+    {(() => {
+      if (props.auditLogs.length == 0) {
+        return (<tr>
+          <td colSpan="4">There are no audit log entries for the current set of filters.</td>
           </tr>);
-        } else {
-          return props.auditLogs.map((auditLog, id) => <AuditLog key={id} auditLog={auditLog} />);
-        }
-      })()}
-    </tbody>
+      } else {
+        return props.auditLogs.map((auditLog, id) => <AuditLog key={id} auditLog={auditLog} />);
+      }
+    })()}
   </table>

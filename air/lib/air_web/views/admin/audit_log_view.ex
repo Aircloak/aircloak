@@ -42,7 +42,7 @@ defmodule AirWeb.Admin.AuditLogView do
         event: audit_log.event,
         user: audit_log.user,
         time: audit_log.inserted_at,
-        show_path: "#",
+        metadata: audit_log.metadata,
       }
     end)
     |> to_json()
