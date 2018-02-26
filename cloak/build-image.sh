@@ -31,15 +31,6 @@ cd $ROOT_DIR
 
 common/docker/elixir/build-image.sh
 
-# We need the VERSION file to exist inside the container that is used to
-# fetch and build the cloak dependencies. Due to how we are mounting a
-# variety of distinct folders, we resort to the hacky approach of first
-# copying it into the cloak directory and then inside the container
-# moving the file from the mounted directory into the container itself.
-# This results in the cleanup of the exdtra VERSION file happening as part of the
-# dependency building and resolution phase.
-cp VERSION cloak/
-
 # build deps
 echo "Building dependencies"
 mkdir -p docker_cache/cloak/deps
@@ -47,13 +38,14 @@ mkdir -p docker_cache/cloak/_build
 mkdir -p docker_cache/cargo
 
 docker run --rm -i \
+  -v $(pwd)/VERSION:/aircloak/VERSION \
   -v $(pwd)/common:/aircloak/common \
   -v $(pwd)/cloak:/aircloak/cloak \
   -v $(pwd)/docker_cache/cloak/deps:/aircloak/cloak/deps \
   -v $(pwd)/docker_cache/cloak/_build:/aircloak/cloak/_build \
   -v $(pwd)/docker_cache/.cargo:/root/.cargo \
   aircloak/rust:$(rust_version) \
-  /bin/bash -c ". ~/.asdf/asdf.sh && mv /aircloak/cloak/VERSION /aircloak/ && cd /aircloak/cloak && MIX_ENV=prod ./fetch_deps.sh --only prod && MIX_ENV=prod mix compile"
+  /bin/bash -c ". ~/.asdf/asdf.sh && cd /aircloak/cloak && MIX_ENV=prod ./fetch_deps.sh --only prod && MIX_ENV=prod mix compile"
 
 # build the release
 echo "Building the release"
