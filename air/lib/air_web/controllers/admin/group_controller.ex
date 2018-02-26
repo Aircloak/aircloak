@@ -78,15 +78,8 @@ defmodule AirWeb.Admin.GroupController do
 
   defp load_group(conn, _) do
     case User.load_group(conn.params["id"]) do
-      nil ->
-        conn
-        |> put_layout(false)
-        |> put_status(:not_found)
-        |> put_view(AirWeb.ErrorView)
-        |> render("404.html")
-        |> halt()
-      group ->
-        assign(conn, :group, group)
+      nil -> not_found(conn)
+      group -> assign(conn, :group, group)
     end
   end
 

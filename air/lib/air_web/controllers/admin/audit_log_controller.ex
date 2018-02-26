@@ -27,8 +27,9 @@ defmodule AirWeb.Admin.AuditLogController do
       events: params["events"] || [],
       data_sources: (params["data_sources"] || []),
     }
+    audit_logs = AuditLog.for(service_params)
     render(conn, "index.html",
-      audit_logs: AuditLog.for(service_params),
+      audit_logs: audit_logs,
       full_width: true,
       users: AuditLog.users(service_params),
       event_types: AuditLog.event_types(service_params),

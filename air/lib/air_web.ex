@@ -56,6 +56,15 @@ defmodule Air.Web do
             end
         }
       end
+
+      defp not_found(conn) do
+        conn
+        |> put_layout(false)
+        |> put_status(:not_found)
+        |> put_view(AirWeb.ErrorView)
+        |> render("404.html")
+        |> halt()
+      end
     end
   end
 

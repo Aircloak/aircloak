@@ -33,13 +33,7 @@ defmodule AirWeb.Admin.QueryController do
           number_format: Air.Service.User.number_format_settings(conn.assigns.current_user),
           debug_mode_enabled: conn.assigns.current_user.debug_mode_enabled,
         })
-      {:error, _} ->
-        conn
-        |> put_layout(false)
-        |> put_status(:not_found)
-        |> put_view(AirWeb.ErrorView)
-        |> render("404.html")
-        |> halt()
+      {:error, _} -> not_found(conn)
     end
   end
 
