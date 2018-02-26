@@ -1,4 +1,4 @@
-FROM aircloak/elixir:$ELIXIR_VERSION
+FROM aircloak/rust:$RUST_VERSION
 MAINTAINER Aircloak
 
 ENV CI=true
@@ -10,13 +10,6 @@ RUN \
   echo "deb http://repo.mongodb.org/apt/debian jessie/mongodb-org/3.4 main" | tee /etc/apt/sources.list.d/mongodb-org-3.4.list && \
   apt-get update && \
   apt-get install -y unixodbc odbc-postgresql libmyodbc libaio1 inotify-tools mongodb-org
-
-# Install Rust
-RUN \
-  . /tmp/build_config/proxies.sh && \
-  echo 'rust $RUST_VERSION' >> ~/.tool-versions && \
-  bash -c ". ~/.asdf/asdf.sh && asdf plugin-add rust https://github.com/code-lever/asdf-rust.git" && \
-  bash -c ". ~/.asdf/asdf.sh && cd ~ && asdf install"
 
 COPY cloak/priv/odbc/docker/odbc.ini /etc/
 COPY cloak/priv/odbc/docker/sqlserver_setup.sh /aircloak/
