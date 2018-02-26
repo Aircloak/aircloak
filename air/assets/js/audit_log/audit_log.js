@@ -36,7 +36,8 @@ export default class AuditLogEntry extends React.Component {
   renderDetails: () => void;
   renderMetadata: () => void;
 
-  toggleDetails() {
+  toggleDetails(event: Event) {
+    event.preventDefault();
     this.setState({details: !this.state.details});
   }
 
