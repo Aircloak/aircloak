@@ -1,12 +1,15 @@
 // @flow
 
 import React from "react";
-import AuditLogEntry from "./audit_log";
+import AuditLogChunk from "./audit_log_chunk";
 import _ from "lodash";
+import chunkBy from "./chunkBy";
 
 import type {AuditLog} from "./audit_log";
 
 type Props = {auditLogs: [AuditLog]};
+
+const auditLogKey = (auditLog) => [auditLog.event, auditLog.user];
 
 export default (props: Props) =>
   <table className="table table-condensed">
@@ -24,7 +27,8 @@ export default (props: Props) =>
           <td colSpan="4">There are no audit log entries for the current set of filters.</td>
         </tr></tbody>);
       } else {
-        return props.auditLogs.map((auditLog, id) => <AuditLogEntry key={id} auditLog={auditLog} />);
+        return chunkBy(props.auditLogs, auditLogKey).map(
+          (auditLogs, id) => <AuditLogChunk key={id} auditLogs={auditLogs} />);
       }
     })()}
   </table>;

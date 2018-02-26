@@ -1,7 +1,7 @@
 // @flow
 
 import React from "react";
-import Moment from "moment";
+import moment from "moment";
 import _ from "lodash";
 
 export type AuditLog = {
@@ -16,7 +16,7 @@ type Props = {auditLog: AuditLog};
 type State = {details: boolean};
 
 const formatTime = (isoTime) => {
-  const time = new Moment(isoTime);
+  const time = moment(isoTime);
   return `${time.format("YYYY-MM-DD HH:mm:ss")} (${time.fromNow()})`;
 };
 
