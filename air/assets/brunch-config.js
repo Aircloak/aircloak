@@ -30,7 +30,10 @@ exports.config = {
     stylesheets: {
       joinTo: {
         "css/app.css": /^(css)/,
-        "css/vendor.css": /^(css\/vendor)/
+        "css/vendor.css": [
+          /^(css\/vendor)/,
+          /bootstrap-datetimepicker/,
+        ],
       }
     },
     templates: {
@@ -92,6 +95,10 @@ exports.config = {
       $: "jquery",
       jQuery: "jquery",
       moment: "moment",
+    },
+
+    styles: {
+      "eonasdan-bootstrap-datetimepicker": ["build/css/bootstrap-datetimepicker.min.css"],
     },
 
     static: [
