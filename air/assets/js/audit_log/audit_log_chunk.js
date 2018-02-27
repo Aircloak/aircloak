@@ -11,7 +11,6 @@ const formatTime = (isoTime) => {
   return time.format("YYYY-MM-DD HH:mm:ss");
 };
 
-
 export default class AuditLogChunk extends React.Component {
   constructor(props) {
     super(props);
@@ -21,6 +20,8 @@ export default class AuditLogChunk extends React.Component {
     this.numberOfEvents = this.numberOfEvents.bind(this);
     this.eventName = this.eventName.bind(this);
     this.user = this.user.bind(this);
+    this.toggleCollapsed = this.toggleCollapsed.bind(this);
+    this.renderEvents = this.renderEvents.bind(this);
   }
 
   numberOfEvents() {
@@ -39,16 +40,40 @@ export default class AuditLogChunk extends React.Component {
     return this.props.auditLogs.map((auditLog) => formatTime(auditLog.time));
   }
 
-  render() {
-    if (this.numberOfEvents() === 1) {
-      return (<AuditLogEntry auditLog={this.props.auditLogs[0]} />);
+  toggleCollapsed(event) {
+    event.preventDefault();
+    this.setState({collapsed: !this.state.collapsed});
+  }
+
+  renderEvents() {
+    if (this.state.collapsed) {
+      return null;
     } else {
-      return (<tbody><tr>
-        <td>{this.eventName()} ({this.numberOfEvents()} times)</td>
+      return (<tr><td colSpan="5">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th></th>
+            </tr>
+          </thead>
+          {this.props.auditLogs.map((auditLog, i) =>
+            <AuditLogEntry key={i} auditLog={auditLog} />)}
+        </table>
+      </td></tr>)
+    }
+  }
+
+  render() {
+    return (<tbody className="panel panel-default">
+      <tr className="panel-heading">
+        <td>{this.eventName()}</td>
+        <td>{this.numberOfEvents()}</td>
         <td>{this.user()}</td>
         <td>{_.min(this.times())} - {_.max(this.times())}</td>
-        <td></td>
-      </tr></tbody>);
-    }
+        <td><a href="#" onClick={this.toggleCollapsed}>Events</a></td>
+      </tr>
+      {this.renderEvents()}
+    </tbody>);
   }
 };

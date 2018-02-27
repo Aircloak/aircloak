@@ -16,6 +16,7 @@ export default (props: Props) =>
     <thead>
       <tr>
         <th>Event</th>
+        <th>Occurences</th>
         <th>User</th>
         <th>Time</th>
         <th></th>
@@ -24,7 +25,7 @@ export default (props: Props) =>
     {(() => {
       if (_.isEmpty(props.auditLogs)) {
         return (<tbody><tr>
-          <td colSpan="4">There are no audit log entries for the current set of filters.</td>
+          <td colSpan="5">There are no audit log entries for the current set of filters.</td>
         </tr></tbody>);
       } else {
         return chunkBy(props.auditLogs, auditLogKey).map(
