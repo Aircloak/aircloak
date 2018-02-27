@@ -12,8 +12,6 @@ defmodule Cloak.DataSource.RODBC do
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
-  def sql_dialect_module(%{dialect: dialect}), do: dialect
-
   def connect!(parameters) do
     port = Driver.open()
     with :ok <- Driver.connect(port, to_connection_string(parameters)) do
