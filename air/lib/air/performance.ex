@@ -8,14 +8,6 @@ defmodule Air.Performance do
     encoded_time: non_neg_integer,
   }
 
-  @test_queries [
-    "select name, count(*) from users group by name",
-    %{
-      db: "select ('x0' || substr(md5(name::text), 1, 15))::bit(64)::bigint, count(*) from users group by 1",
-      cloak: "select hash(name), count(*) from users group by 1"
-    }
-  ]
-
 
   # -------------------------------------------------------------------
   # API functions
@@ -32,7 +24,7 @@ defmodule Air.Performance do
       }
 
     result =
-      fn -> Enum.map(@test_queries, &measure_query(conns, &1)) end
+      fn -> Enum.map(Air.Performance.Queries.queries(), &measure_query(conns, &1)) end
       |> Task.async()
       |> Task.await(:timer.hours(10))
 
