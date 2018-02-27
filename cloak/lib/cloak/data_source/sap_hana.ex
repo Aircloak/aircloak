@@ -22,6 +22,9 @@ defmodule Cloak.DataSource.SAPHana do
   # -------------------------------------------------------------------
 
   @impl Driver
+  def sql_dialect_module(_), do: Cloak.DataSource.SqlBuilder.SAPHana
+
+  @impl Driver
   def connect!(parameters) do
     normalized_parameters = for {key, value} <- parameters, into: %{}, do:
       {key |> Atom.to_string() |> String.downcase() |> String.to_atom(), value}
@@ -31,9 +34,9 @@ defmodule Cloak.DataSource.SAPHana do
       "Uid": normalized_parameters[:username],
       "Pwd": normalized_parameters[:password],
       "databasename": normalized_parameters[:database],
+      "DSN": "SAPHana",
     }
     |> Map.merge(schema_option(default_schema()))
-    |> Map.merge(driver_option())
     |> add_optional_parameters(parameters)
     ODBC.connect!(odbc_parameters)
   end
@@ -84,13 +87,6 @@ defmodule Cloak.DataSource.SAPHana do
 
   defp schema_option(nil), do: %{}
   defp schema_option(schema), do: %{cs: ~s/"#{schema}"/}
-
-  defp driver_option() do
-    Map.merge(
-      %{driver: "#{Application.app_dir(:cloak, "priv/odbc/drivers")}/libodbc-sap-hana-v2.so"},
-      %{dialect: Cloak.DataSource.SqlBuilder.SAPHana}
-    )
-  end
 
   # Allows for adding additional ODBC connection parameters in the case where
   # a SQL Server installation requires additional parameters.
