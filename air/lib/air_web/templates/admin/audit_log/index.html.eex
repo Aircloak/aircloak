@@ -6,6 +6,26 @@
       admin_audit_log_path(@conn, :index, Map.put(@conn.query_params, :page, Keyword.get(opts, :page)))
     end %>
 
+    <div class="form-group">
+      <label for="from">From</label>
+      <div class="input-group date datetimepicker">
+        <input id="from" type="text" class="form-control" />
+        <span class="input-group-addon">
+          <span class="glyphicon glyphicon-calendar"></span>
+        </span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="to">To</label>
+      <div class="input-group date datetimepicker">
+        <input id="to" type="text" class="form-control" />
+        <span class="input-group-addon">
+          <span class="glyphicon glyphicon-calendar"></span>
+        </span>
+      </div>
+    </div>
+
     <div id="audit-log">
     </div>
 
@@ -79,6 +99,7 @@
     onLoad: function(App) {
       var props = {auditLogs: <%= audit_logs_to_json(@audit_logs) %>};
       App.auditLog(props, document.getElementById("audit-log"));
+      App.activateDatetimePickers();
     }
   };
 </script>
