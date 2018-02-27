@@ -1,7 +1,7 @@
 // @flow
 
 import React from "react";
-import Moment from "moment";
+import moment from "moment";
 import _ from "lodash";
 
 export type AuditLog = {
@@ -16,7 +16,7 @@ type Props = {auditLog: AuditLog};
 type State = {details: boolean};
 
 const formatTime = (isoTime) => {
-  const time = new Moment(isoTime);
+  const time = moment(isoTime);
   return `${time.format("YYYY-MM-DD HH:mm:ss")} (${time.fromNow()})`;
 };
 
@@ -44,8 +44,6 @@ export default class AuditLogEntry extends React.Component {
   render() {
     return (<tbody>
       <tr>
-        <td>{this.props.auditLog.event}</td>
-        <td>{this.props.auditLog.user}</td>
         <td>{formatTime(this.props.auditLog.time)}</td>
         <td><a href="#" onClick={this.toggleDetails}>Details</a></td>
       </tr>
@@ -55,7 +53,7 @@ export default class AuditLogEntry extends React.Component {
 
   renderDetails() {
     if (this.state.details) {
-      return (<tr><td colSpan="4">{this.renderMetadata()}</td></tr>);
+      return (<tr><td colSpan="2">{this.renderMetadata()}</td></tr>);
     } else {
       return null;
     }
