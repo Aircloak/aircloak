@@ -7,7 +7,7 @@ import chunkBy from "./chunkBy";
 
 import type {AuditLog} from "./audit_log";
 
-type Props = {auditLogs: [AuditLog]};
+type Props = {auditLogs: Array<AuditLog>};
 
 const auditLogKey = (auditLog) => [auditLog.event, auditLog.user];
 

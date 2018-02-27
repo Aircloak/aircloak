@@ -2,25 +2,25 @@
 
 import _ from "lodash";
 
-export default (events, key) => {
+export default <T>(items: Array<T>, key: (item: T) => any): Array<Array<T>> => {
   const result = [];
   let chunk = [];
   let lastKey = null;
 
-  events.forEach((event) => {
-    const nextKey = key(event);
+  items.forEach((item) => {
+    const nextKey = key(item);
     if (_.isNull(lastKey) || _.isEqual(nextKey, lastKey)) {
-      chunk.push(event);
+      chunk.push(item);
     } else {
       result.push(chunk);
-      chunk = [event];
+      chunk = [item];
     }
     lastKey = nextKey;
-  })
+  });
 
   if (!_.isEmpty(chunk)) {
     result.push(chunk);
   }
 
   return result;
-}
+};

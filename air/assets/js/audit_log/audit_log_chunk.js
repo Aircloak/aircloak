@@ -6,13 +6,19 @@ import _ from "lodash";
 
 import AuditLogEntry from "./audit_log";
 
+import type {AuditLog} from "./audit_log";
+
+type Props = {auditLogs: Array<AuditLog>};
+
+type State = {collapsed: boolean};
+
 const formatTime = (isoTime) => {
   const time = moment(isoTime);
   return time.format("YYYY-MM-DD HH:mm:ss");
 };
 
 export default class AuditLogChunk extends React.Component {
-  constructor(props) {
+  constructor(props: Props) {
     super(props);
 
     this.state = {collapsed: true};
@@ -23,6 +29,13 @@ export default class AuditLogChunk extends React.Component {
     this.toggleCollapsed = this.toggleCollapsed.bind(this);
     this.renderEvents = this.renderEvents.bind(this);
   }
+
+  state: State;
+  numberOfEvents: () => number;
+  eventName: () => string;
+  user: () => string;
+  toggleCollapsed: (event: Event) => void;
+  renderEvents: () => Node;
 
   numberOfEvents() {
     return this.props.auditLogs.length;
@@ -40,7 +53,7 @@ export default class AuditLogChunk extends React.Component {
     return this.props.auditLogs.map((auditLog) => formatTime(auditLog.time));
   }
 
-  toggleCollapsed(event) {
+  toggleCollapsed(event: Event) {
     event.preventDefault();
     this.setState({collapsed: !this.state.collapsed});
   }
@@ -60,7 +73,7 @@ export default class AuditLogChunk extends React.Component {
           {this.props.auditLogs.map((auditLog, i) =>
             <AuditLogEntry key={i} auditLog={auditLog} />)}
         </table>
-      </td></tr>)
+      </td></tr>);
     }
   }
 
@@ -76,4 +89,4 @@ export default class AuditLogChunk extends React.Component {
       {this.renderEvents()}
     </tbody>);
   }
-};
+}
