@@ -29,32 +29,23 @@ cd $ROOT_DIR
 # the image so we rely on the docker layers caching. If neither sources, nor deps
 # have been changed, the existing image will be reused.
 
-common/docker/elixir/build-image.sh
-
-# We need the VERSION file to exist inside the container that is used to
-# fetch and build the cloak dependencies. Due to how we are mounting a
-# variety of distinct folders, we resort to the hacky approach of first
-# copying it into the cloak directory and then inside the container
-# moving the file from the mounted directory into the container itself.
-# This results in the cleanup of the exdtra VERSION file happening as part of the
-# dependency building and resolution phase.
-cp VERSION cloak/
+PREVENT_OLD_IMAGE_REMOVAL=true common/docker/rust/build-image.sh
 
 # build deps
 echo "Building dependencies"
-mkdir -p docker_cache/cloak/deps
-mkdir -p docker_cache/cloak/_build
 docker run --rm -i \
+  -v $(pwd)/VERSION:/aircloak/VERSION \
   -v $(pwd)/common:/aircloak/common \
   -v $(pwd)/cloak:/aircloak/cloak \
   -v $(pwd)/docker_cache/cloak/deps:/aircloak/cloak/deps \
   -v $(pwd)/docker_cache/cloak/_build:/aircloak/cloak/_build \
-  aircloak/elixir:$(elixir_version) \
-  /bin/bash -c ". ~/.asdf/asdf.sh && mv /aircloak/cloak/VERSION /aircloak/ && cd /aircloak/cloak && MIX_ENV=prod ./fetch_deps.sh --only prod"
+  -v $(pwd)/docker_cache/.cargo:/root/.cargo \
+  aircloak/rust:$(rust_version) \
+  /bin/bash -c ". ~/.asdf/asdf.sh && cd /aircloak/cloak && MIX_ENV=prod ./fetch_deps.sh --only prod && MIX_ENV=prod mix compile"
 
 # build the release
 echo "Building the release"
-build_aircloak_image \
+PREVENT_OLD_IMAGE_REMOVAL=true build_aircloak_image \
   cloak_release_builder \
   cloak/docker/release-builder.dockerfile \
   cloak/docker/.dockerignore-release-builder
@@ -75,5 +66,7 @@ cd artifacts/rel && \
   rm cloak.tar.gz
 
 cd $ROOT_DIR
-SYSTEM_VERSION=$current_version \
+SYSTEM_VERSION=$current_version PREVENT_OLD_IMAGE_REMOVAL=true \
   build_aircloak_image cloak cloak/docker/release.dockerfile cloak/docker/.dockerignore-release
+
+remove_old_git_head_image_tags "aircloak"

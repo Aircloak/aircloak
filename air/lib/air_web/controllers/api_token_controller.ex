@@ -50,12 +50,7 @@ defmodule AirWeb.ApiTokenController do
         conn
         |> put_flash(:info, "Token revoked")
         |> redirect(to: api_token_path(conn, :index))
-      false ->
-        conn
-        |> put_status(:not_found)
-        |> put_view(AirWeb.ErrorView)
-        |> render("404.html")
-        |> halt
+      false -> not_found(conn)
     end
   end
 

@@ -124,6 +124,10 @@ function run_production_command {
       start_component $container_name latest
       ;;
 
+    restart)
+      start_component $container_name latest
+      ;;
+
     start_at_version)
       start_at_version $container_name $2
       ;;
