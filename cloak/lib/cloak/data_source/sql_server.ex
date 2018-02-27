@@ -24,7 +24,6 @@ defmodule Cloak.DataSource.SQLServer do
       "Uid": normalized_parameters[:username],
       "Pwd": normalized_parameters[:password],
       "Database": normalized_parameters[:database],
-      dialect: Cloak.DataSource.SqlBuilder.SQLServer,
     }
     |> add_optional_parameters(parameters)
 
