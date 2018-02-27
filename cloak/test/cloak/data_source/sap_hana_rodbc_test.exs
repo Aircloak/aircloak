@@ -1,4 +1,4 @@
-defmodule Cloak.DataSource.SAPHanaTest do
+defmodule Cloak.DataSource.SAPHanaRODBCTest do
   use ExUnit.Case, async: false
 
   alias Cloak.Query.Runner
@@ -61,7 +61,7 @@ defmodule Cloak.DataSource.SAPHanaTest do
         |> Keyword.merge(table_def)
         |> Enum.map(fn({column_name, type}) -> {to_string(column_name), type} end)
 
-      db_name = "ExUnit.SAPHana.#{table_name}"
+      db_name = "ExUnit.SAPHanaRODBC.#{table_name}"
 
       SapHanaHelpers.recreate_table!(conn, schema(), db_name,
         table_def
@@ -108,7 +108,7 @@ defmodule Cloak.DataSource.SAPHanaTest do
   defp data_source(tables_def), do:
     Cloak.DataSource.add_tables(%{
       name: "saphana_test",
-      driver: Cloak.DataSource.SAPHana,
+      driver: Cloak.DataSource.SAPHanaRODBC,
       concurrency: 0,
       parameters: test_schema_connection_params(),
       tables: [],
