@@ -39,7 +39,8 @@ defmodule Air.Performance.Queries do
           count(*)
         FROM users u INNER JOIN notes n ON u.user_id = n.uid
         GROUP BY 1, 2
-      ", db: "
+      ",
+      db: "
         SELECT
           length(title) as title_length,
           name,
@@ -58,7 +59,8 @@ defmodule Air.Performance.Queries do
           GROUP BY 1
         ) note_counts
         GROUP BY 1
-      ", db: "
+      ",
+      db: "
         SELECT trunc(div(notes_count, 5) * 5 + 2.5, 2), count(*)
         FROM (
           SELECT user_fk, count(*) as notes_count
@@ -75,7 +77,8 @@ defmodule Air.Performance.Queries do
          FROM addresses a INNER JOIN notes n ON a.uid = n.uid
            INNER JOIN notes_changes nc ON n.uid = nc.uid
            INNER JOIN users u ON a.uid = u.user_id
-      ", db: "
+      ",
+      db: "
         SELECT count(*)
         FROM addresses a INNER JOIN notes n ON a.user_fk = n.user_fk
           INNER JOIN notes_changes nc ON n.user_fk = nc.user_fk
@@ -94,7 +97,8 @@ defmodule Air.Performance.Queries do
         ) a INNER JOIN users u ON a.uid = u.user_id
         GROUP BY name
         ORDER BY name ASC
-      ", db: "
+      ",
+      db: "
         SELECT name, min(per_user_address_count), max(per_user_address_count)
         FROM (
           SELECT user_fk as uid, count(*) as per_user_address_count
@@ -118,7 +122,8 @@ defmodule Air.Performance.Queries do
           ) changes
           GROUP BY 1
         ) changes_per_user
-      ", db: "
+      ",
+      db: "
         SELECT avg(changes_per_note_per_user)
         FROM (
           SELECT user_fk, avg(note_changes) as changes_per_note_per_user
@@ -146,7 +151,8 @@ defmodule Air.Performance.Queries do
           GROUP BY 1
         ) cpu INNER JOIN users u ON u.user_id = cpu.uid
         WHERE name ILIKE 'a%' and age IN (14,15,16,17,18,19)
-      ", db: "
+      ",
+      db: "
         SELECT avg(changes_per_note_per_user), min(changes_per_note_per_user)
         FROM (
           SELECT uid, avg(note_changes) as changes_per_note_per_user
