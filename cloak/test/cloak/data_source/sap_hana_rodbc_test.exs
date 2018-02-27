@@ -1,5 +1,5 @@
 defmodule Cloak.DataSource.SAPHanaTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias Cloak.Query.Runner
   alias Cloak.SapHanaHelpers
