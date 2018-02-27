@@ -9,7 +9,11 @@ defmodule Air.Performance do
   }
 
   @test_queries [
-    "select name, count(*) from users group by name"
+    "select name, count(*) from users group by name",
+    %{
+      db: "select ('x0' || substr(md5(name::text), 1, 15))::bit(64)::bigint, count(*) from users group by 1",
+      cloak: "select hash(name), count(*) from users group by 1"
+    }
   ]
 
 
@@ -53,9 +57,14 @@ defmodule Air.Performance do
   end
 
   defp measure_conn({key, conn}, statement) do
-    {time, _result} = :timer.tc(fn -> Postgrex.query(conn, statement, [], timeout: :timer.hours(1)) end)
+    statement = parse_statement(key, statement)
+    {time, _result} = :timer.tc(fn -> Postgrex.query!(conn, statement, [], timeout: :timer.hours(1))end)
     {:"#{key}_time", :erlang.convert_time_unit(time, :microsecond, :millisecond)}
   end
+
+  def parse_statement(_key, statement) when is_binary(statement), do: statement
+  def parse_statement(:db, %{} = statement), do: statement.db
+  def parse_statement(_key, %{} = statement), do: statement.cloak
 
   defp connect_aircloak!(data_source_name, user_name, password) do
     {:ok, conn} =
