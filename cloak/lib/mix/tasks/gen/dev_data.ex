@@ -16,7 +16,7 @@ defmodule Mix.Tasks.Gen.DevData do
   @impl Mix.Task
   def run(_args) do
     generate_integers()
-    Cloak.PerformanceData.generate()
+    Cloak.PerformanceData.generate(num_users: 100)
   end
 
 
