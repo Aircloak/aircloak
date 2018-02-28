@@ -43,7 +43,8 @@ defmodule AirWeb.Admin.AuditLogController do
       event_types: AuditLog.event_types(filters),
       data_sources: AuditLog.data_sources(filters),
       from: from,
-      to: to
+      to: to,
+      max_results: max_results,
     )
   end
 
