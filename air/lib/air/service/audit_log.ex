@@ -69,6 +69,7 @@ defmodule Air.Service.AuditLog do
   @spec event_types(filter_params) :: [event_name]
   def event_types(params) do
     event_types = AuditLog
+      |> for_time(params.from, params.to)
       |> for_user(params.users)
       |> for_data_sources(params.data_sources)
       |> select_event_types()
@@ -91,6 +92,7 @@ defmodule Air.Service.AuditLog do
   @spec data_sources(filter_params) :: [%{id: data_source_id, name: String.t}]
   def data_sources(params) do
     data_sources = AuditLog
+      |> for_time(params.from, params.to)
       |> for_user(params.users)
       |> for_event(params.events)
       |> select_data_sources()
@@ -114,6 +116,7 @@ defmodule Air.Service.AuditLog do
   @spec users(filter_params) :: [%{name: String.t, email: email}]
   def users(params) do
     users = AuditLog
+      |> for_time(params.from, params.to)
       |> for_event(params.events)
       |> for_data_sources(params.data_sources)
       |> select_users()
