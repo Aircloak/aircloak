@@ -7,7 +7,7 @@ defmodule Compliance.DataSource.SQLServer do
   # -------------------------------------------------------------------
 
   use Compliance.DataSource.Connector
-  alias Compliance.DataSource.{Connector, SQLServer.Common}
+  alias Compliance.DataSource.Connector
 
   @impl Connector
   def setup(%{parameters: params}) do
@@ -20,13 +20,14 @@ defmodule Compliance.DataSource.SQLServer do
   @impl Connector
   def connect(%{parameters: params}) do
     conn = Cloak.DataSource.SQLServer.connect!(params)
-    Enum.each(Common.setup_queries(), &execute!(conn, &1))
+    execute!(conn, "SET IMPLICIT_TRANSACTIONS off")
     conn
   end
 
   @impl Connector
   def create_table(table_name, columns, conn) do
-    Enum.each(Common.create_table_queries(table_name, columns), &execute!(conn, &1))
+    execute!(conn, "DROP TABLE IF EXISTS #{table_name}")
+    execute!(conn, "CREATE TABLE #{table_name} (#{columns_sql(columns)})")
     conn
   end
 
@@ -50,16 +51,16 @@ defmodule Compliance.DataSource.SQLServer do
   # -------------------------------------------------------------------
 
   def chunks_to_insert(table_name, data) do
-    column_names = Common.column_names(data)
+    column_names = column_names(data)
 
     data
-    |> Common.rows(column_names)
+    |> rows(column_names)
     |> Stream.chunk_every(100)
     |> Enum.map(&chunk_to_insert(table_name, column_names, &1))
   end
 
   defp chunk_to_insert(table_name, column_names, rows) do
-    columns = column_names |> Common.escaped_column_names() |> Enum.join(", ")
+    columns = column_names |> escaped_column_names() |> Enum.join(", ")
     row_placeholders = column_names |> Stream.map(fn(_column) -> "?" end) |> Enum.join(",")
     all_placeholders = rows |> Stream.map(fn(_row) -> "(#{row_placeholders})" end) |> Enum.join(", ")
     query = "
@@ -104,4 +105,37 @@ defmodule Compliance.DataSource.SQLServer do
       CREATE DATABASE #{params.database}
     /)
   end
+
+  defp column_names(data), do:
+    data
+    |> hd()
+    |> Map.keys()
+    |> Enum.sort()
+
+  defp rows(data, column_names), do:
+    Enum.map(data, fn(entry) ->
+      Enum.map(column_names, &Map.get(entry, &1))
+    end)
+
+  defp escaped_column_names(column_names), do:
+    column_names
+    |> Enum.map(&Atom.to_string/1)
+    |> Enum.map(&escape_name/1)
+
+  defp columns_sql(columns), do:
+    columns
+    |> Enum.map(& column_sql/1)
+    |> Enum.join(", ")
+
+  defp column_sql({name, type}), do:
+    "#{escape_name(name)} #{sql_type(type)}"
+
+  defp escape_name(name), do:
+    ~s("#{name}")
+
+  defp sql_type(:integer), do: "integer"
+  defp sql_type(:real), do: "real"
+  defp sql_type(:boolean), do: "bit"
+  defp sql_type(:text), do: "nvarchar(4000)"
+  defp sql_type(:datetime), do: "datetime2"
 end

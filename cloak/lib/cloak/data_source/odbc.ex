@@ -14,18 +14,9 @@ defmodule Cloak.DataSource.ODBC do
   # -------------------------------------------------------------------
 
   @impl Driver
-  def sql_dialect_module(%{dialect: dialect}), do: dialect
-  def sql_dialect_module(%{'DSN': dsn}), do:
-    # Only needed for dev/test, where we access PostgreSQL through an ODBC data source.
-    dsn
-    |> String.downcase()
-    |> dialect_module()
-
-  @impl Driver
   def connect!(parameters) do
     options = [auto_commit: :on, binary_strings: :on, tuple_row: :off, timeout: Driver.connect_timeout()]
     with {:ok, connection} <- parameters |> to_connection_string() |> :odbc.connect(options) do
-      parameters |> sql_dialect_module() |> init_connection(connection)
       connection
     else
       {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
@@ -80,8 +71,6 @@ defmodule Cloak.DataSource.ODBC do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp dialect_module("postgresql"), do: SqlBuilder.PostgreSQL
-
   defp to_connection_string(parameters) do
     parameters
     |> Enum.map(fn({key, value}) ->
@@ -92,11 +81,6 @@ defmodule Cloak.DataSource.ODBC do
     |> Enum.join(";")
     |> to_charlist()
   end
-
-  defp init_connection(SqlBuilder.PostgreSQL, connection), do:
-    {:updated, _} = :odbc.sql_query(connection, 'SET standard_conforming_strings = ON')
-  defp init_connection(_, _connection), do:
-    :ok
 
   defp parse_type(:sql_integer), do: :integer
   defp parse_type(:sql_smallint), do: :integer

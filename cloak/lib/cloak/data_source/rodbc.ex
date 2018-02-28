@@ -12,8 +12,6 @@ defmodule Cloak.DataSource.RODBC do
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
-  def sql_dialect_module(%{dialect: dialect}), do: dialect
-
   def connect!(parameters) do
     port = Driver.open()
     with :ok <- Driver.connect(port, to_connection_string(parameters)) do
@@ -114,7 +112,7 @@ defmodule Cloak.DataSource.RODBC do
 
   defp integer_field_mapper(nil), do: nil
   defp integer_field_mapper(value) when is_binary(value) do
-    {value, ""} = Integer.parse(value)
+    {value, _} = Integer.parse(value)
     value
   end
   defp integer_field_mapper(value) when is_integer(value), do: value

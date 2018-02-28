@@ -35,6 +35,9 @@ defmodule Compliance.DataSources do
     concurrency = min(div(num_users + 1, chunk_size) + 1, concurrency)
     num_steps = Float.ceil(num_users / (chunk_size * concurrency))
 
+    data_sources = Enum.uniq_by(data_sources,
+      &{handler_for_data_source(&1), &1.parameters.hostname, &1.parameters.database})
+
     data_sources
     |> Enum.map(&Task.async(fn -> setup_data_source(&1) end))
     |> Enum.each(&Task.await(&1, :timer.minutes(1)))
@@ -181,6 +184,8 @@ defmodule Compliance.DataSources do
 
   defp handler_for_data_source(%{driver: Cloak.DataSource.SAPHana}), do:
     Compliance.DataSource.SAPHana
+  defp handler_for_data_source(%{driver: Cloak.DataSource.SAPHanaRODBC}), do:
+    Compliance.DataSource.SAPHana
   defp handler_for_data_source(%{driver: Cloak.DataSource.PostgreSQL}), do:
     Compliance.DataSource.PostgreSQL
   defp handler_for_data_source(%{driver: Cloak.DataSource.MySQL}), do:
@@ -190,7 +195,7 @@ defmodule Compliance.DataSources do
   defp handler_for_data_source(%{driver: Cloak.DataSource.MongoDB}), do:
     Compliance.DataSource.MongoDB
   defp handler_for_data_source(%{driver: Cloak.DataSource.SQLServerTds}), do:
-    Compliance.DataSource.SQLServerTds
+    Compliance.DataSource.SQLServer
   defp handler_for_data_source(%{driver: Cloak.DataSource.SQLServerRODBC}), do:
     Compliance.DataSource.SQLServer
 

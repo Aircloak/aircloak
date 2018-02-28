@@ -5,7 +5,7 @@
     "hostname": "sqlserver2017",
     "username": "sa",
     "password": "7fNBjlaeoRwz*zH9",
-    "database": "cloak_compliance_rodbc",
+    "database": "cloak_compliance",
     "odbc_parameters": {
       "Port": "1433"
     }
