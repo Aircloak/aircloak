@@ -29,7 +29,8 @@ function build_image {
     $(lock_command "build_$1")
 
     echo 'Pulling the latest version'
-    cd $(build_folder $2)
+    mkdir -p $(build_folder $2)
+    cd $(build_folder $2)/..
     git reset --hard HEAD
     git fetch
     git checkout $(build_branch)
