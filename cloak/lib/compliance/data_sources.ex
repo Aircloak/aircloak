@@ -35,7 +35,8 @@ defmodule Compliance.DataSources do
     concurrency = min(div(num_users + 1, chunk_size) + 1, concurrency)
     num_steps = Float.ceil(num_users / (chunk_size * concurrency))
 
-    data_sources = Enum.uniq_by(data_sources, &handler_for_data_source/1)
+    data_sources = Enum.uniq_by(data_sources,
+      &{handler_for_data_source(&1), &1.parameters.hostname, &1.parameters.database})
 
     data_sources
     |> Enum.map(&Task.async(fn -> setup_data_source(&1) end))
