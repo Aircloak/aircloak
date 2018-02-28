@@ -49,7 +49,10 @@ const App = {
   },
 
   activateDatetimePickers: () => {
-    $(".datetimepicker").datetimepicker();
+    $(".datetimepicker").datetimepicker({
+      allowInputToggle: true,
+      format: "YYYY-MM-DD HH:mm:ss",
+    });
   },
 
   renderPage: (page, props) => {
