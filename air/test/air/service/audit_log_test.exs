@@ -30,6 +30,13 @@ defmodule Air.Service.AuditLogTest do
     assert entries_count(params(%{from: from, to: to}), 1)
   end
 
+  test "limiting number of results" do
+    user = create_user!()
+    for _ <- 1..3, do: AuditLog.log(user, "event1", %{})
+
+    assert entries_count(params(%{max_results: 2}), 2)
+  end
+
   test "filter audit logs by user" do
     user1 = create_user!()
     user2 = create_user!()
@@ -187,9 +194,10 @@ defmodule Air.Service.AuditLogTest do
     |> Map.put(:data_sources, Map.get(provided, :data_sources, []))
     |> Map.put(:from, Map.get(provided, :from, Timex.now() |> Timex.shift(days: -1)))
     |> Map.put(:to, Map.get(provided, :to, Timex.now() |> Timex.shift(days: 1)))
+    |> Map.put(:max_results, Map.get(provided, :max_results, 100))
   end
 
   defp entries_count(params, count) do
-    length(AuditLog.for(params).entries) == count
+    params |> AuditLog.for() |> length() == count
   end
 end

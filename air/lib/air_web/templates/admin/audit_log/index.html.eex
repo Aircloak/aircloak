@@ -2,17 +2,10 @@
   <div class="col-md-9">
     <h2>Audit log</h2>
 
-    <%= if @audit_logs.total_pages > 1, do: pagination_links @audit_logs, path: fn(_conn, _action, opts) ->
-      admin_audit_log_path(@conn, :index, Map.put(@conn.query_params, :page, Keyword.get(opts, :page)))
-    end %>
-
     <div id="audit-log">
     </div>
-
-    <%= if @audit_logs.total_pages > 1, do: pagination_links @audit_logs, path: fn(_conn, _action, opts) ->
-      admin_audit_log_path(@conn, :index, Map.put(@conn.query_params, :page, Keyword.get(opts, :page)))
-    end %>
   </div>
+
   <div class="col-md-3">
     <div class="panel panel-default">
       <div class="panel-heading">

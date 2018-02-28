@@ -23,6 +23,7 @@ defmodule AirWeb.Admin.AuditLogController do
   def index(conn, params) do
     from = parse_time(params["from"], Timex.now() |> Timex.shift(days: -1))
     to = parse_time(params["to"], Timex.now())
+    max_results = 1000
     filters = %{
       from: from,
       to: to,
@@ -30,6 +31,7 @@ defmodule AirWeb.Admin.AuditLogController do
       users: params["users"] || [],
       events: params["events"] || [],
       data_sources: (params["data_sources"] || []),
+      max_results: max_results,
     }
 
     audit_logs = AuditLog.for(filters)

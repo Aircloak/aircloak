@@ -2,8 +2,6 @@ defmodule AirWeb.Admin.AuditLogView do
   @moduledoc false
   use Air.Web, :view
 
-  import Scrivener.HTML
-
   defp selected?(%Plug.Conn{query_params: query_params}, name, param), do:
     selected?(query_params, name, param)
   defp selected?(query_params, name, param) do
@@ -26,7 +24,7 @@ defmodule AirWeb.Admin.AuditLogView do
   defp glyph(false), do: {:safe, ""}
 
   defp audit_logs_to_json(audit_logs) do
-    audit_logs.entries
+    audit_logs
     |> Enum.map(fn(audit_log) ->
       %{
         event: audit_log.event,

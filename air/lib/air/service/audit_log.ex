@@ -2,7 +2,7 @@ defmodule Air.Service.AuditLog do
   @moduledoc "Services for using the audit log."
 
   alias Air.{Repo, Schemas.AuditLog, Schemas.DataSource, Schemas.User}
-  import Ecto.Query, only: [from: 2]
+  import Ecto.Query, only: [limit: 2, from: 2]
   require Logger
 
   @type email :: String.t
@@ -48,7 +48,7 @@ defmodule Air.Service.AuditLog do
 
   Returned entries are descending sorted by the creation date.
   """
-  @spec for(filter_params) :: Scrivener.Page.t
+  @spec for(filter_params) :: [AuditLog.t]
   def for(params) do
     AuditLog
     |> for_time(params.from, params.to)
@@ -56,7 +56,8 @@ defmodule Air.Service.AuditLog do
     |> for_event(params.events)
     |> for_data_sources(params.data_sources)
     |> order_by_event()
-    |> Repo.paginate(page: params.page)
+    |> limit(^params.max_results)
+    |> Repo.all()
   end
 
   @doc """
