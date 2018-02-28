@@ -51,6 +51,8 @@ const App = {
   activateDatetimePickers: () => {
     $(".datetimepicker").datetimepicker({
       allowInputToggle: true,
+      showTodayButton: true,
+      showClose: true,
       format: "YYYY-MM-DD HH:mm:ss",
     });
   },
