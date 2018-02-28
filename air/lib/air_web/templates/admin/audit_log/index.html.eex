@@ -42,23 +42,25 @@
     end %>
   </div>
   <div class="col-md-3">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        Filter by users
+    <%= if length(@users) > 0 do %>
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          Filter by users
+        </div>
+        <table class="table">
+          <tbody>
+            <%= for user <- @users do %>
+              <tr class="<%= if selected?(@conn, :users, user.email), do: "warning", else: "" %>">
+                <td>
+                  <%= link [glyph(selected?(@conn, :users, user.email)), user.name],
+                    to: admin_audit_log_path(@conn, :index, toggle_item(@conn, :users, user.email)) %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
       </div>
-      <table class="table">
-        <tbody>
-          <%= for user <- @users do %>
-            <tr class="<%= if selected?(@conn, :users, user.email), do: "warning", else: "" %>">
-              <td>
-                <%= link [glyph(selected?(@conn, :users, user.email)), user.name],
-                  to: admin_audit_log_path(@conn, :index, toggle_item(@conn, :users, user.email)) %>
-              </td>
-            </tr>
-          <% end %>
-        </tbody>
-      </table>
-    </div>
+    <% end %>
 
     <%= if length(@event_types) > 0 do %>
       <div class="panel panel-default">
