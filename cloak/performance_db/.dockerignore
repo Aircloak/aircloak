@@ -1,0 +1,5 @@
+# ignore everything by default
+*
+
+# whitelist only needed folders
+!cloak/performance_db/postgresql.conf

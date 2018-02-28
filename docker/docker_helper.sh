@@ -397,7 +397,11 @@ function verify_version() {
     head -n 1
   )
 
-  new_version=$(cat ../VERSION)
+  if [ -f "./VERSION" ]; then
+    new_version=$(cat ./VERSION)
+  else
+    new_version=$(cat ../VERSION)
+  fi
 
   more_recent_version=$(
     printf '%s\n' $new_version $latest_pushed_version |
