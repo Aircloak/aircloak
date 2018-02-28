@@ -23,8 +23,10 @@ defmodule Air.Performance do
         encoded: connect_aircloak!("cloak_performance_encoded", user_name, password),
       }
 
+    aircloak_latency = aircloak_latency(conns)
+
     result =
-      fn -> Enum.map(Air.Performance.Queries.queries(), &measure_query(conns, &1)) end
+      fn -> Enum.map(Air.Performance.Queries.queries(), &measure_query(conns, aircloak_latency, &1)) end
       |> Task.async()
       |> Task.await(:timer.hours(10))
 
@@ -42,16 +44,29 @@ defmodule Air.Performance do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp measure_query(conns, statement) do
+  defp aircloak_latency(conns) do
+    num_measurements = 10
+
+    1..num_measurements
+    |> Stream.map(fn(_) -> measure_statement(conns.unencoded, "select count(*) from users where id=-1") end)
+    # we'll take the smallest observed latency, which leads to the most pessimistic overall results
+    |> Enum.min()
+  end
+
+  defp measure_query(conns, aircloak_latency, statement) do
     conns
     |> Enum.map(&measure_conn(&1, statement))
-    |> Enum.into(%{statement: statement})
+    |> Enum.into(%{aircloak_latency: aircloak_latency, statement: statement})
   end
 
   defp measure_conn({key, conn}, statement) do
     statement = parse_statement(key, statement)
+    {:"#{key}_time", measure_statement(conn, statement)}
+  end
+
+  defp measure_statement(conn, statement) do
     {time, _result} = :timer.tc(fn -> Postgrex.query!(conn, statement, [], timeout: :timer.hours(1))end)
-    {:"#{key}_time", :erlang.convert_time_unit(time, :microsecond, :millisecond)}
+    :erlang.convert_time_unit(time, :microsecond, :millisecond)
   end
 
   def parse_statement(_key, statement) when is_binary(statement), do: statement
