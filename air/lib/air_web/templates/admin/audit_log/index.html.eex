@@ -14,7 +14,7 @@
       <div class="form-group">
         <label for="from">From</label>
         <div class="input-group date datetimepicker">
-          <input id="from" name="from" type="text" class="form-control" value="<%= from(@conn) %>" />
+          <input id="from" name="from" type="text" class="form-control" value="<%= @from %>" />
           <span class="input-group-addon">
             <span class="glyphicon glyphicon-calendar"></span>
           </span>
@@ -24,7 +24,7 @@
       <div class="form-group">
         <label for="to">To</label>
         <div class="input-group date datetimepicker">
-          <input id="to" name="to" type="text" class="form-control" value="<%= to(@conn) %>" />
+          <input id="to" name="to" type="text" class="form-control" value="<%= @to %>" />
           <span class="input-group-addon">
             <span class="glyphicon glyphicon-calendar"></span>
           </span>

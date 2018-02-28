@@ -21,19 +21,27 @@ defmodule AirWeb.Admin.AuditLogController do
   # -------------------------------------------------------------------
 
   def index(conn, params) do
-    service_params = %{
+    from = parse_time(params["from"], Timex.now() |> Timex.shift(days: -1))
+    to = parse_time(params["to"], Timex.now())
+    filters = %{
+      from: from,
+      to: to,
       page: String.to_integer(params["page"] || "1"),
       users: params["users"] || [],
       events: params["events"] || [],
       data_sources: (params["data_sources"] || []),
     }
-    audit_logs = AuditLog.for(service_params)
+
+    audit_logs = AuditLog.for(filters)
+
     render(conn, "index.html",
       audit_logs: audit_logs,
       full_width: true,
-      users: AuditLog.users(service_params),
-      event_types: AuditLog.event_types(service_params),
-      data_sources: AuditLog.data_sources(service_params)
+      users: AuditLog.users(filters),
+      event_types: AuditLog.event_types(filters),
+      data_sources: AuditLog.data_sources(filters),
+      from: from,
+      to: to
     )
   end
 
@@ -45,5 +53,17 @@ defmodule AirWeb.Admin.AuditLogController do
     conn
     |> put_flash(:info, "All audit log entries have been deleted")
     |> redirect(to: admin_settings_path(conn, :show))
+  end
+
+
+  # -------------------------------------------------------------------
+  # Helpers
+  # -------------------------------------------------------------------
+
+  defp parse_time(value, default) do
+    case Timex.parse(value, "{ISOdate} {ISOtime}") do
+      {:ok, result} -> result
+      _error -> default
+    end
   end
 end

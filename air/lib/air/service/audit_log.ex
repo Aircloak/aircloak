@@ -10,6 +10,8 @@ defmodule Air.Service.AuditLog do
   @type data_source_id :: non_neg_integer
   @type page_number :: non_neg_integer
   @type filter_params :: %{
+    from: DateTime.t,
+    to: DateTime.t,
     page: page_number,
     users: [email],
     events: [event_name],
@@ -49,6 +51,7 @@ defmodule Air.Service.AuditLog do
   @spec for(filter_params) :: Scrivener.Page.t
   def for(params) do
     AuditLog
+    |> for_time(params.from, params.to)
     |> for_user(params.users)
     |> for_event(params.events)
     |> for_data_sources(params.data_sources)
@@ -156,6 +159,11 @@ defmodule Air.Service.AuditLog do
     data_sources = data_sources |> Enum.map(&to_string/1)
     from a in query,
     where: fragment("?->>'data_source'", a.metadata) in ^data_sources
+  end
+
+  defp for_time(query, from, to) do
+    from a in query,
+    where: a.inserted_at >= ^from and a.inserted_at <= ^to
   end
 
   defp select_event_types(query) do

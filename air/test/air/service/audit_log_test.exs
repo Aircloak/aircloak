@@ -3,6 +3,7 @@ defmodule Air.Service.AuditLogTest do
 
   import Air.TestRepoHelper
   alias Air.{Repo, Service.AuditLog}
+  import Ecto.Query
 
   test "creating audit log entries should save a db record" do
     user = create_user!()
@@ -13,6 +14,20 @@ defmodule Air.Service.AuditLogTest do
     assert entry.event == "event"
     assert entry.user == user.email
     assert %{"meta" => true} = entry.metadata
+  end
+
+  test "filter audit logs by time" do
+    user = create_user!()
+
+    AuditLog.log(user, "event1", %{})
+    AuditLog.log(user, "event1", %{})
+    AuditLog.log(user, "event1", %{})
+
+    [first, _, last] = Repo.all(Air.Schemas.AuditLog |> order_by(:inserted_at))
+
+    from = first.inserted_at |> Timex.shift(milliseconds: 1)
+    to = last.inserted_at |> Timex.shift(milliseconds: -1)
+    assert entries_count(params(%{from: from, to: to}), 1)
   end
 
   test "filter audit logs by user" do
@@ -170,6 +185,8 @@ defmodule Air.Service.AuditLogTest do
     |> Map.put(:users, Map.get(provided, :users, []))
     |> Map.put(:events, Map.get(provided, :events, []))
     |> Map.put(:data_sources, Map.get(provided, :data_sources, []))
+    |> Map.put(:from, Map.get(provided, :from, Timex.now() |> Timex.shift(days: -1)))
+    |> Map.put(:to, Map.get(provided, :to, Timex.now() |> Timex.shift(days: 1)))
   end
 
   defp entries_count(params, count) do
