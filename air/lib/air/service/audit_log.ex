@@ -2,18 +2,19 @@ defmodule Air.Service.AuditLog do
   @moduledoc "Services for using the audit log."
 
   alias Air.{Repo, Schemas.AuditLog, Schemas.DataSource, Schemas.User}
-  import Ecto.Query, only: [from: 2]
+  import Ecto.Query, only: [limit: 2, from: 2]
   require Logger
 
   @type email :: String.t
   @type event_name :: String.t
   @type data_source_id :: non_neg_integer
-  @type page_number :: non_neg_integer
   @type filter_params :: %{
-    page: page_number,
+    from: DateTime.t,
+    to: DateTime.t,
     users: [email],
     events: [event_name],
-    data_sources: [data_source_id]
+    data_sources: [data_source_id],
+    max_results: non_neg_integer,
   }
 
 
@@ -46,14 +47,16 @@ defmodule Air.Service.AuditLog do
 
   Returned entries are descending sorted by the creation date.
   """
-  @spec for(filter_params) :: Scrivener.Page.t
+  @spec for(filter_params) :: [AuditLog.t]
   def for(params) do
     AuditLog
+    |> for_time(params.from, params.to)
     |> for_user(params.users)
     |> for_event(params.events)
     |> for_data_sources(params.data_sources)
     |> order_by_event()
-    |> Repo.paginate(page: params.page)
+    |> limit(^params.max_results)
+    |> Repo.all()
   end
 
   @doc """
@@ -66,6 +69,7 @@ defmodule Air.Service.AuditLog do
   @spec event_types(filter_params) :: [event_name]
   def event_types(params) do
     event_types = AuditLog
+      |> for_time(params.from, params.to)
       |> for_user(params.users)
       |> for_data_sources(params.data_sources)
       |> select_event_types()
@@ -88,6 +92,7 @@ defmodule Air.Service.AuditLog do
   @spec data_sources(filter_params) :: [%{id: data_source_id, name: String.t}]
   def data_sources(params) do
     data_sources = AuditLog
+      |> for_time(params.from, params.to)
       |> for_user(params.users)
       |> for_event(params.events)
       |> select_data_sources()
@@ -111,6 +116,7 @@ defmodule Air.Service.AuditLog do
   @spec users(filter_params) :: [%{name: String.t, email: email}]
   def users(params) do
     users = AuditLog
+      |> for_time(params.from, params.to)
       |> for_event(params.events)
       |> for_data_sources(params.data_sources)
       |> select_users()
@@ -156,6 +162,11 @@ defmodule Air.Service.AuditLog do
     data_sources = data_sources |> Enum.map(&to_string/1)
     from a in query,
     where: fragment("?->>'data_source'", a.metadata) in ^data_sources
+  end
+
+  defp for_time(query, from, to) do
+    from a in query,
+    where: a.inserted_at >= ^from and a.inserted_at <= ^to
   end
 
   defp select_event_types(query) do

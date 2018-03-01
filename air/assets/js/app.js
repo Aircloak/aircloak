@@ -16,6 +16,7 @@
 import "phoenix_html";
 import React from "react";
 import ReactDOM from "react-dom";
+import $ from "jquery";
 
 import Queries from "./queries/root";
 import SingleQuery from "./queries/single_query_root";
@@ -45,6 +46,15 @@ const App = {
       </AuthenticationProvider>,
       elem
     );
+  },
+
+  activateDatetimePickers: () => {
+    $(".datetimepicker").datetimepicker({
+      allowInputToggle: true,
+      showTodayButton: true,
+      showClose: true,
+      format: "YYYY-MM-DD HH:mm:ss",
+    });
   },
 
   renderPage: (page, props) => {

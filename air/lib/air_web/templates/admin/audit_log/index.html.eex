@@ -2,35 +2,73 @@
   <div class="col-md-9">
     <h2>Audit log</h2>
 
-    <%= if @audit_logs.total_pages > 1, do: pagination_links @audit_logs, path: fn(_conn, _action, opts) ->
-      admin_audit_log_path(@conn, :index, Map.put(@conn.query_params, :page, Keyword.get(opts, :page)))
-    end %>
+    <%= if length(@audit_logs) >= @max_results do %>
+      <div class="alert alert-warning" role="alert">
+        There are more than <strong><%= @max_results %></strong> entries matching your filters. Only the most recent
+        <strong><%= @max_results %></strong> are shown. Consider narrowing your search criteria.
+      </div>
+    <% end %>
 
     <div id="audit-log">
     </div>
-
-    <%= if @audit_logs.total_pages > 1, do: pagination_links @audit_logs, path: fn(_conn, _action, opts) ->
-      admin_audit_log_path(@conn, :index, Map.put(@conn.query_params, :page, Keyword.get(opts, :page)))
-    end %>
   </div>
+
   <div class="col-md-3">
     <div class="panel panel-default">
       <div class="panel-heading">
-        Filter by users
+        Filter by time
       </div>
-      <table class="table">
-        <tbody>
-          <%= for user <- @users do %>
-            <tr class="<%= if selected?(@conn, :users, user.email), do: "warning", else: "" %>">
-              <td>
-                <%= link [glyph(selected?(@conn, :users, user.email)), user.name],
-                  to: admin_audit_log_path(@conn, :index, toggle_item(@conn, :users, user.email)) %>
-              </td>
-            </tr>
+
+      <div class="panel-body">
+        <form>
+          <%= for {name, value} <- serialize_params(@conn), name not in ~w(from to) do %>
+            <input type="hidden" name="<%= name %>" value="<%= value %>" />
           <% end %>
-        </tbody>
-      </table>
+
+          <div class="form-group">
+            <label for="from">From</label>
+            <div class="input-group date datetimepicker">
+              <input id="from" name="from" type="text" class="form-control" value="<%= @from %>" />
+              <span class="input-group-addon">
+                <span class="glyphicon glyphicon-calendar"></span>
+              </span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="to">To</label>
+            <div class="input-group date datetimepicker">
+              <input id="to" name="to" type="text" class="form-control" value="<%= @to %>" />
+              <span class="input-group-addon">
+                <span class="glyphicon glyphicon-calendar"></span>
+              </span>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary">Filter</button>
+        </form>
+      </div>
     </div>
+
+    <%= if length(@users) > 0 do %>
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          Filter by users
+        </div>
+        <table class="table">
+          <tbody>
+            <%= for user <- @users do %>
+              <tr class="<%= if selected?(@conn, :users, user.email), do: "warning", else: "" %>">
+                <td>
+                  <%= link [glyph(selected?(@conn, :users, user.email)), user.name],
+                    to: admin_audit_log_path(@conn, :index, toggle_item(@conn, :users, user.email)) %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
 
     <%= if length(@event_types) > 0 do %>
       <div class="panel panel-default">
@@ -79,6 +117,7 @@
     onLoad: function(App) {
       var props = {auditLogs: <%= audit_logs_to_json(@audit_logs) %>};
       App.auditLog(props, document.getElementById("audit-log"));
+      App.activateDatetimePickers();
     }
   };
 </script>

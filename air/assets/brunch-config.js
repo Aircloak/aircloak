@@ -6,7 +6,8 @@ exports.config = {
 
       order: {
         before: [
-          "jquery"
+          "jquery",
+          "moment",
         ]
       }
 
@@ -29,7 +30,10 @@ exports.config = {
     stylesheets: {
       joinTo: {
         "css/app.css": /^(css)/,
-        "css/vendor.css": /^(css\/vendor)/
+        "css/vendor.css": [
+          /^(css\/vendor)/,
+          /bootstrap-datetimepicker/,
+        ],
       }
     },
     templates: {
@@ -82,11 +86,23 @@ exports.config = {
       "jquery",
       "mousetrap",
       "plotly.js",
-      "react-date-picker"
+      "react-date-picker",
+      "moment.js",
+      "eonasdan-bootstrap-datetimepicker"
     ],
+
     globals: {
       $: "jquery",
-      jQuery: "jquery"
-    }
+      jQuery: "jquery",
+      moment: "moment",
+    },
+
+    styles: {
+      "eonasdan-bootstrap-datetimepicker": ["build/css/bootstrap-datetimepicker.min.css"],
+    },
+
+    static: [
+      "node_modules/eonasdan-bootstrap-datetimepicker/build/js/bootstrap-datetimepicker.min.js",
+    ]
   }
 };
