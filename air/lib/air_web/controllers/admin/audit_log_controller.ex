@@ -21,8 +21,8 @@ defmodule AirWeb.Admin.AuditLogController do
   # -------------------------------------------------------------------
 
   def index(conn, params) do
-    from = parse_time(params["from"], Timex.now() |> Timex.shift(days: -1))
-    to = parse_time(params["to"], Timex.now())
+    from = parse_datetime(params["from"], Timex.now() |> Timex.shift(days: -1))
+    to = parse_datetime(params["to"], Timex.now())
     max_results = 1000
     filters = %{
       from: from,
@@ -62,7 +62,7 @@ defmodule AirWeb.Admin.AuditLogController do
   # Helpers
   # -------------------------------------------------------------------
 
-  defp parse_time(value, default) do
+  defp parse_datetime(value, default) do
     case Timex.parse(value, "{ISOdate} {ISOtime}") do
       {:ok, result} -> result
       _error -> default
