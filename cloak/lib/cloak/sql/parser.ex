@@ -419,7 +419,7 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp date_part(), do:
-    raw_identifier_of(~w(hour minute second year quarter month day weekday))
+    raw_identifier_of(~w(hour minute second year quarter month day weekday dow))
     |> label("date part")
 
   defp trim_expression() do

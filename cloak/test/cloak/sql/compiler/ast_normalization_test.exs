@@ -196,6 +196,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
     "ceiling" => "ceil",
     "lcase" => "lower",
     "ucase" => "upper",
+    "dow" => "weekday",
   }
   |> Enum.each(fn({synonym, function}) ->
     test "#{synonym} is a synonym for #{function}", do:
@@ -212,4 +213,8 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
       assert %{columns: [{:function, %{canonical_name: unquote(operator), synonym_used: unquote(synonym)}, _, _}]} =
         Parser.parse!("SELECT #{unquote(synonym)}(column, 10) FROM table") |> ASTNormalization.normalize()
   end)
+
+  test "dow is a synonym for weekday in extract", do:
+    assert %{columns: [{:function, %{canonical_name: "weekday", synonym_used: "dow"}, _, _}]} =
+      Parser.parse!("SELECT EXTRACT(dow FROM column) FROM table") |> ASTNormalization.normalize()
 end
