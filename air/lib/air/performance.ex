@@ -1,26 +1,18 @@
 defmodule Air.Performance do
   @moduledoc "Module for running a performance comparison between cloak queries and raw database queries."
 
-  @type result :: %{
-    statement: String.t,
-    db_time: non_neg_integer,
-    unencoded_time: non_neg_integer,
-    encoded_time: non_neg_integer,
-  }
-
-
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Synchronously executes the performance comparison and return observed measurements."
-  @spec run(String.t, String.t, String.t) :: [result]
+  @spec run(String.t, String.t, String.t) :: :ok
   def run(cloak_datasource_folder, user_name, password) do
     conns =
       %{
         db: connect_db!(cloak_datasource_folder),
-        unencoded: connect_aircloak!("cloak_performance", user_name, password),
-        encoded: connect_aircloak!("cloak_performance_encoded", user_name, password),
+        cloak_unencoded: connect_aircloak!("cloak_performance", user_name, password),
+        cloak_encoded: connect_aircloak!("cloak_performance_encoded", user_name, password),
       }
 
     aircloak_latency = aircloak_latency(conns)
@@ -36,7 +28,12 @@ defmodule Air.Performance do
       fn({_key, conn}) -> Task.async(fn -> GenServer.stop(conn, :normal, :timer.seconds(5)) end) end
     )
 
+    fields = [:num_users, :db_time, :cloak_unencoded_time, :cloak_encoded_time, :aircloak_latency, :statement]
+
     result
+    |> CSV.encode(headers: fields)
+    |> Enum.to_list()
+    |> IO.puts()
   end
 
 
@@ -48,7 +45,7 @@ defmodule Air.Performance do
     num_measurements = 10
 
     1..num_measurements
-    |> Stream.map(fn(_) -> measure_statement(conns.unencoded, "select count(*) from users where id=-1") end)
+    |> Stream.map(fn(_) -> measure_statement(conns.cloak_unencoded, "select count(*) from users where id=-1") end)
     # we'll take the smallest observed latency, which leads to the most pessimistic overall results
     |> Enum.min()
   end
@@ -56,7 +53,16 @@ defmodule Air.Performance do
   defp measure_query(conns, aircloak_latency, statement) do
     conns
     |> Enum.map(&measure_conn(&1, statement))
-    |> Enum.into(%{aircloak_latency: aircloak_latency, statement: statement})
+    |> Enum.into(%{num_users: 10_000, aircloak_latency: aircloak_latency, statement: display_statement(statement)})
+  end
+
+  defp display_statement(%{cloak: statement}), do: normalize_whitespaces(statement)
+  defp display_statement(statement) when is_binary(statement), do: normalize_whitespaces(statement)
+
+  defp normalize_whitespaces(statement) do
+    statement
+    |> String.trim()
+    |> String.replace(~r/\s+/, " ")
   end
 
   defp measure_conn({key, conn}, statement) do
