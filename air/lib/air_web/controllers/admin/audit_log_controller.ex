@@ -27,7 +27,6 @@ defmodule AirWeb.Admin.AuditLogController do
     filters = %{
       from: from,
       to: to,
-      page: String.to_integer(params["page"] || "1"),
       users: params["users"] || [],
       events: params["events"] || [],
       data_sources: (params["data_sources"] || []),

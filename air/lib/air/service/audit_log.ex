@@ -8,11 +8,9 @@ defmodule Air.Service.AuditLog do
   @type email :: String.t
   @type event_name :: String.t
   @type data_source_id :: non_neg_integer
-  @type page_number :: non_neg_integer
   @type filter_params :: %{
     from: DateTime.t,
     to: DateTime.t,
-    page: page_number,
     users: [email],
     events: [event_name],
     data_sources: [data_source_id]
