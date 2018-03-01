@@ -44,7 +44,7 @@ defmodule AirWeb.Admin.AuditLogController do
       data_sources: AuditLog.data_sources(filters),
       from: from,
       to: to,
-      max_results: max_results,
+      max_results: max_results
     )
   end
 
