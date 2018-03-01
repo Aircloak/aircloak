@@ -13,7 +13,8 @@ defmodule Air.Service.AuditLog do
     to: DateTime.t,
     users: [email],
     events: [event_name],
-    data_sources: [data_source_id]
+    data_sources: [data_source_id],
+    max_results: non_neg_integer,
   }
 
 
