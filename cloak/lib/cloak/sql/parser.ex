@@ -407,16 +407,20 @@ defmodule Cloak.Sql.Parser do
         next_position(),
         keyword(:extract),
         keyword(:"("),
-        unquoted_identifier(),
+        date_part(),
         keyword(:from),
         lazy(fn -> map(column(), &[&1]) end),
         keyword(:")"),
       ],
       fn([location, :extract, :"(", part, :from, column, :")"]) ->
-        {:function, String.downcase(part), column, location}
+        {:function, to_string(part), column, location}
       end
     )
   end
+
+  defp date_part(), do:
+    raw_identifier_of(~w(hour minute second year quarter month day weekday))
+    |> label("date part")
 
   defp trim_expression() do
     pipe(

@@ -1303,6 +1303,8 @@ defmodule Cloak.Sql.Parser.Test do
         "select * from foo where bar < baz + 1 and x = 1", "Expected `constant`", {1, 31}},
       {"condition with non-constant RHS at end of boolean expression",
         "select * from foo where x = 1 and bar < baz + 1", "Expected `constant`", {1, 41}},
+      {"invalid extract part",
+        "select extract(invalid from date) from table", "Expected `date part`", {1, 16}},
     ],
     fn
       {description, statement, expected_error, {line, column}} ->
