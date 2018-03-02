@@ -2,7 +2,7 @@
   "driver": "saphana",
   "name": "saphana",
   "parameters": {
-    "hostname": "achanaproxy.mpi-sws.org",
+    "hostname": "achana.mpi-sws.org",
     "port": 39013,
     "username": "acdev",
     "database": "SYSTEMDB",
