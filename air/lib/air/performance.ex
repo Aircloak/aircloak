@@ -16,9 +16,10 @@ defmodule Air.Performance do
       }
 
     aircloak_latency = aircloak_latency(conns)
+    num_users = num_users(conns)
 
     result =
-      fn -> Enum.map(Air.Performance.Queries.queries(), &measure_query(conns, aircloak_latency, &1)) end
+      fn -> Enum.map(Air.Performance.Queries.queries(), &measure_query(conns, aircloak_latency, num_users, &1)) end
       |> Task.async()
       |> Task.await(:timer.hours(10))
 
@@ -50,10 +51,15 @@ defmodule Air.Performance do
     |> Enum.min()
   end
 
-  defp measure_query(conns, aircloak_latency, statement) do
+  defp num_users(conns) do
+    %Postgrex.Result{rows: [[count]]} = Postgrex.query!(conns.db, "select count(*) from users", [])
+    count
+  end
+
+  defp measure_query(conns, aircloak_latency, num_users, statement) do
     conns
     |> Enum.map(&measure_conn(&1, statement))
-    |> Enum.into(%{num_users: 10_000, aircloak_latency: aircloak_latency, statement: display_statement(statement)})
+    |> Enum.into(%{num_users: num_users, aircloak_latency: aircloak_latency, statement: display_statement(statement)})
   end
 
   defp display_statement(%{cloak: statement}), do: normalize_whitespaces(statement)
@@ -71,7 +77,7 @@ defmodule Air.Performance do
   end
 
   defp measure_statement(conn, statement) do
-    {time, _result} = :timer.tc(fn -> Postgrex.query!(conn, statement, [], timeout: :timer.hours(1))end)
+    {time, _result} = :timer.tc(fn -> Postgrex.query!(conn, statement, [], timeout: :timer.hours(1)) end)
     :erlang.convert_time_unit(time, :microsecond, :millisecond)
   end
 
