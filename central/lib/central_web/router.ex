@@ -46,6 +46,7 @@ defmodule CentralWeb.Router do
     resources "/users", UserController
     resources "/customers", CustomerController do
       get "/token", CustomerController, :token, as: :token
+      resources "/licenses", LicenseController, only: [:index]
     end
     resources "/stats", StatsController
 
