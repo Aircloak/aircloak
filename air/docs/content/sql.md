@@ -15,7 +15,7 @@ The `SELECT` statement can be used to obtain anonymized data from tables. See [U
 The syntax conforms to the standard SQL syntax (with some exceptions), but only a subset of features is supported. The general shape of the query looks like:
 
 ```SQL
-SELECT [DISTINCT]
+SELECT [DISTINCT | ALL]
   field_expression [, ...]
   FROM from_expression [, ...]
   [ SAMPLE_USERS <1..100>% ]
@@ -29,7 +29,7 @@ field_expression :=
 
 column_expression :=
   [table_name.]column_name |
-  aggregation_function([DISTINCT] column_name) |
+  aggregation_function([DISTINCT | ALL] column_name) |
   function(column_expression) |
   column_expression binary_operator column_expression |
   column_expression::data_type

@@ -161,6 +161,14 @@ defmodule Cloak.Sql.Parser.Test do
     assert_parse("select foo from baz", select(columns: [identifier("foo")], from: unquoted("baz")))
   end
 
+  test "select distinct" do
+    assert_parse("select distinct foo from bar", select(columns: [identifier("foo")], distinct?: true))
+  end
+
+  test "select all" do
+    assert_parse("select all foo from bar", select(columns: [identifier("foo")], distinct?: false))
+  end
+
   test "identifier location in source" do
     assert_parse("select foo\n, bar from baz", select(columns: [identifier("foo", {1, 8}), identifier("bar", {2, 3})]))
   end
@@ -601,6 +609,13 @@ defmodule Cloak.Sql.Parser.Test do
     assert_parse(
       "select count(distinct foo) from bar",
       select(columns: [function("count", [{:distinct, identifier("foo")}])])
+    )
+  end
+
+  test "count(all column)" do
+    assert_parse(
+      "select count(all foo) from bar",
+      select(columns: [function("count", [identifier("foo")])])
     )
   end
 

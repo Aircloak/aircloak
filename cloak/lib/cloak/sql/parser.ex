@@ -393,6 +393,7 @@ defmodule Cloak.Sql.Parser do
     choice_deepest_error([
       comma_delimited(column()),
       distinct_identifier(),
+      all_identifier(),
       keyword(:*)
     ])
     |> map(fn
@@ -522,9 +523,11 @@ defmodule Cloak.Sql.Parser do
     )
   end
 
-  defp distinct_identifier() do
+  defp distinct_identifier(), do:
     pair_both(keyword(:distinct), column())
-  end
+
+  defp all_identifier(), do:
+    pair_right(keyword(:all), column())
 
   defp from() do
     pair_both(
@@ -934,11 +937,11 @@ defmodule Cloak.Sql.Parser do
     end)
 
   defp optional_distinct() do
-    keyword(:distinct)
+    either_deepest_error(keyword(:distinct), keyword(:all))
     |> option()
     |> map(fn
-      (:distinct) -> {:distinct?, true}
-      (nil) -> {:distinct?, false}
+      :distinct -> {:distinct?, true}
+      _ -> {:distinct?, false}
     end)
   end
 
