@@ -27,6 +27,7 @@ function prepare_for_test {
   start_postgres_container $1 "9.5"
 }
 
+mount $(pwd)/tmp/ci/integration_tests/.cargo /root/.cargo
 mount_to_aircloak VERSION RELEASE_EXPIRY_DATE common/elixir air cloak central
 mount_to_component .gitignore config lib test mix.exs mix.lock
 mount_cached_component deps _build .bash_history
