@@ -223,7 +223,7 @@ defmodule AirWeb.Plug.Session do
 
     @doc false
     def already_authenticated(conn, _params) do
-      Plug.Conn.send_resp(conn, Plug.Conn.Status.code(:bad_request), "already authenticated")
+      Phoenix.Controller.redirect(conn, to: "/")
     end
   end
 end

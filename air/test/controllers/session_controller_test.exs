@@ -36,11 +36,11 @@ defmodule AirWeb.SessionControllerTest do
   test "logged in user can't log in" do
     user = TestRepoHelper.create_user!()
 
-    response = login(user) |> get("/auth") |> response(400)
-    assert response =~ "already authenticated"
+    response = login(user) |> get("/auth") |> response(302)
+    assert response =~ ~s(href="/")
 
-    response = login(user) |> post("/auth", email: "", password: "") |> response(400)
-    assert response =~ "already authenticated"
+    response = login(user) |> post("/auth", email: "", password: "") |> response(302)
+    assert response =~ ~s(href="/")
   end
 
   test "anonymous user can't log out", %{conn: conn} do
