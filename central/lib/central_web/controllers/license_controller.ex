@@ -21,13 +21,7 @@ defmodule CentralWeb.LicenseController do
 
   defp load_customer(conn, _) do
     case Service.Customer.get(conn.params["customer_id"]) do
-      {:error, :not_found} ->
-        conn
-        |> put_layout(false)
-        |> put_status(:not_found)
-        |> put_view(CentralWeb.ErrorView)
-        |> render("404.html")
-        |> halt()
+      {:error, :not_found} -> not_found(conn)
       {:ok, customer} -> assign(conn, :customer, customer)
     end
   end

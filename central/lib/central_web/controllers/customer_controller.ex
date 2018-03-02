@@ -71,13 +71,7 @@ defmodule CentralWeb.CustomerController do
   defp load_customer(conn, _) do
     id = conn.params["id"] || conn.params["customer_id"]
     case Service.Customer.get(id) do
-      {:error, :not_found} ->
-        conn
-        |> put_layout(false)
-        |> put_status(:not_found)
-        |> put_view(CentralWeb.ErrorView)
-        |> render("404.html")
-        |> halt()
+      {:error, :not_found} -> not_found(conn)
       {:ok, customer} -> assign(conn, :customer, customer)
     end
   end
