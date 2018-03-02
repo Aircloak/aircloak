@@ -8,6 +8,7 @@
     "database": "SYSTEMDB",
     "password": "Aircloakdev1"
   },
+  "encoded": false,
   "tables": {
   }
 }

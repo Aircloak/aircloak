@@ -215,22 +215,26 @@ defmodule Compliance.DataSources do
       plain_tables = table_definitions(&TableDefinitions.plain/1, data_source_scaffold)
       |> create_table_structure(@plain_name_postfix, data_source_scaffold)
 
-      encoded_tables = table_definitions(&TableDefinitions.encoded/1, data_source_scaffold)
-      |> create_table_structure(@encoded_name_postfix, data_source_scaffold)
-
       plain_data_source = data_source_scaffold
       |> Map.put(:tables, plain_tables)
       |> Map.put(:initial_tables, plain_tables)
       |> Map.put(:name, "#{data_source_scaffold.name}#{@plain_name_postfix}")
       |> Map.put(:marker, "normal")
 
-      encoded_data_source = data_source_scaffold
-      |> Map.put(:tables, encoded_tables)
-      |> Map.put(:initial_tables, encoded_tables)
-      |> Map.put(:name, "#{data_source_scaffold.name}#{@encoded_name_postfix}")
-      |> Map.put(:marker, "encoded")
+      unless data_source_scaffold[:encoded] == false do
+        encoded_tables = table_definitions(&TableDefinitions.encoded/1, data_source_scaffold)
+        |> create_table_structure(@encoded_name_postfix, data_source_scaffold)
 
-      [plain_data_source, encoded_data_source]
+        encoded_data_source = data_source_scaffold
+        |> Map.put(:tables, encoded_tables)
+        |> Map.put(:initial_tables, encoded_tables)
+        |> Map.put(:name, "#{data_source_scaffold.name}#{@encoded_name_postfix}")
+        |> Map.put(:marker, "encoded")
+
+        [plain_data_source, encoded_data_source]
+      else
+        [plain_data_source]
+      end
     end)
   end
 
