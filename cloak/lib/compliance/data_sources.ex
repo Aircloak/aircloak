@@ -221,7 +221,9 @@ defmodule Compliance.DataSources do
       |> Map.put(:name, "#{data_source_scaffold.name}#{@plain_name_postfix}")
       |> Map.put(:marker, "normal")
 
-      unless data_source_scaffold[:encoded] == false do
+      if data_source_scaffold[:encoded] == false do
+        [plain_data_source]
+      else
         encoded_tables = table_definitions(&TableDefinitions.encoded/1, data_source_scaffold)
         |> create_table_structure(@encoded_name_postfix, data_source_scaffold)
 
@@ -232,8 +234,6 @@ defmodule Compliance.DataSources do
         |> Map.put(:marker, "encoded")
 
         [plain_data_source, encoded_data_source]
-      else
-        [plain_data_source]
       end
     end)
   end
