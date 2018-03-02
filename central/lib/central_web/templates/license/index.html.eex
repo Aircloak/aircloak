@@ -1,1 +1,25 @@
 <h2>Licenses for <%= @customer.name %></h2>
+
+<div class="col-sm-4">
+  <div class="panel panel-default">
+    <div class="panel-body">
+      <%= form_for @conn, customer_license_path(@conn, :create, @customer.id), [as: :license], fn _ -> %>
+        <div class="form-group">
+          <label for="name">Name</label>
+          <input type="text" id="name" name="name" class="form-control" />
+        </div>
+        <button class="btn btn-primary" type="submit">Create new license</button>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Expires</th>
+      <th>Auto-renew</th>
+    </tr>
+  </thead>
+</table>

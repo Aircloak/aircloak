@@ -1,7 +1,7 @@
 defmodule CentralWeb.LicenseController do
   @moduledoc false
   use Central.Web, :controller
-  alias Central.{Schemas, Service}
+  alias Central.{Service}
 
   plug :load_customer
 
@@ -12,6 +12,10 @@ defmodule CentralWeb.LicenseController do
 
   def index(conn, _params) do
     render(conn, "index.html", customer: conn.assigns.customer)
+  end
+
+  def create(conn, _params) do
+    redirect(conn, to: customer_license_path(conn, :index, conn.assigns.customer.id))
   end
 
 
