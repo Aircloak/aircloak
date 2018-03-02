@@ -4,8 +4,8 @@
 
 ### Date extraction functions
 
-The functions `year`, `quarter`, `month`, `day`, `hour`, `minute`, `second`, and `weekday` are supported. They extract
-the named part from a date or time column.
+The functions `year`, `quarter`, `month`, `day`, `hour`, `minute`, `second`, `weekday`, and `dow` (a synonym for
+`weekday`) are supported. They extract the named part from a date or time column.
 
 ```sql
 SELECT YEAR(date_column), MONTH(date_column), DAY(date_column) FROM table;
