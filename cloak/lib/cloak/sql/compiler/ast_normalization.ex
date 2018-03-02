@@ -41,6 +41,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
       "ceiling" -> %{canonical_name: "ceil", synonym_used: "ceiling"}
       "pow" -> %{canonical_name: "^", synonym_used: "pow"}
       "mod" -> %{canonical_name: "%", synonym_used: "mod"}
+      "dow" -> %{canonical_name: "weekday", synonym_used: "dow"}
       other -> other
     end)
 

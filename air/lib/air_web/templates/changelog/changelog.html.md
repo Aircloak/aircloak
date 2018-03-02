@@ -3,6 +3,7 @@
 ### Enhancements
 
 - Optimization of emulated queries by pushing conditions into bottom sub-queries.
+- DOW (synonym for weekday) is supported both as a function and in EXTRACT
 
 ### Changes
 
