@@ -604,6 +604,13 @@ defmodule Cloak.Sql.Parser.Test do
     )
   end
 
+  test "count(all column)" do
+    assert_parse(
+      "select count(all foo) from bar",
+      select(columns: [function("count", [identifier("foo")])])
+    )
+  end
+
   test "fully qualified identifiers" do
     assert_parse(
       """
