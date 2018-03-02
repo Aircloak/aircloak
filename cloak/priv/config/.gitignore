@@ -1,0 +1,3 @@
+compliance_local/*.json
+dev/*.json
+test/*.json
