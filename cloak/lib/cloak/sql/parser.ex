@@ -937,11 +937,11 @@ defmodule Cloak.Sql.Parser do
     end)
 
   defp optional_distinct() do
-    keyword(:distinct)
+    either_deepest_error(keyword(:distinct), keyword(:all))
     |> option()
     |> map(fn
-      (:distinct) -> {:distinct?, true}
-      (nil) -> {:distinct?, false}
+      :distinct -> {:distinct?, true}
+      _ -> {:distinct?, false}
     end)
   end
 
