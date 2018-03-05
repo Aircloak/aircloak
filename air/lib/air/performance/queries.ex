@@ -165,6 +165,92 @@ defmodule Air.Performance.Queries do
         ) cpu INNER JOIN users u ON u.user_id = cpu.uid
         WHERE name ILIKE 'a%' and age IN (14,15,16,17,18,19)
       "
+    },
+
+    "SELECT height, max(age) FROM users WHERE active = true GROUP BY height",
+
+    %{
+      cloak: "
+        SELECT left(title, 4), count(*), sum(notes_count)
+        FROM (
+          SELECT
+            uid,
+            title,
+            count(*) as notes_count
+          FROM notes
+          GROUP BY 1, 2
+        ) notes
+        GROUP BY 1
+      ",
+      db: "
+        SELECT left(title, 4), count(*), sum(notes_count)
+        FROM (
+          SELECT
+            user_fk,
+            title,
+            count(*) as notes_count
+          FROM notes
+          GROUP BY 1, 2
+        ) notes
+        GROUP BY 1
+      "
+    },
+
+    %{
+      cloak: "
+        SELECT active, \"home.city\", \"work.postal_code\", count(*)
+        FROM addresses a INNER JOIN users u ON u.user_id = a.uid
+        GROUP BY 1, 2, 3
+      ",
+      db: "
+        SELECT active, \"home.city\", \"work.postal_code\", count(*)
+        FROM addresses a INNER JOIN users u ON u.user_id = a.user_fk
+        GROUP BY 1, 2, 3
+      "
+    },
+
+    %{
+      cloak: "
+        SELECT num_changes, count(*)
+        FROM (
+          SELECT
+            uid,
+            note_id,
+            count(*) as num_changes
+          FROM notes_changes
+          GROUP BY 1, 2
+        ) changes
+        GROUP BY 1
+        ORDER BY num_changes ASC
+      ",
+      db: "
+        SELECT num_changes, count(*)
+        FROM (
+          SELECT
+            user_fk,
+            note_id,
+            count(*) as num_changes
+          FROM notes_changes
+          GROUP BY 1, 2
+        ) changes
+        GROUP BY 1
+        ORDER BY num_changes ASC
+      "
+    },
+
+    %{
+      cloak: "
+        SELECT year(changes.date), month(changes.date), count(*)
+        FROM notes_changes
+        GROUP BY 1, 2
+        ORDER BY 1 ASC, 2 ASC
+      ",
+      db: "
+        SELECT date_part('year', \"changes.date\"), date_part('month', \"changes.date\"), count(*)
+        FROM notes_changes
+        GROUP BY 1, 2
+        ORDER BY 1 ASC, 2 ASC
+      "
     }
   ]
 end
