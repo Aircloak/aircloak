@@ -11,10 +11,14 @@ defmodule CentralWeb.LicenseController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    render(conn, "index.html", customer: conn.assigns.customer)
+    customer = conn.assigns.customer
+    licenses =  Service.License.for_customer(customer)
+
+    render(conn, "index.html", customer: customer, licenses: licenses)
   end
 
-  def create(conn, _params) do
+  def create(conn, %{"license" => %{"name" => name}}) do
+    Service.License.create(conn.assigns.customer, %{name: name})
     redirect(conn, to: customer_license_path(conn, :index, conn.assigns.customer.id))
   end
 

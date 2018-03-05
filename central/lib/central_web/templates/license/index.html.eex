@@ -3,13 +3,13 @@
 <div class="col-sm-4">
   <div class="panel panel-default">
     <div class="panel-body">
-      <%= form_for @conn, customer_license_path(@conn, :create, @customer.id), [as: :license], fn _ -> %>
+      <%= form_for(@conn, customer_license_path(@conn, :create, @customer.id), [as: :license], fn form -> %>
         <div class="form-group">
           <label for="name">Name</label>
-          <input type="text" id="name" name="name" class="form-control" />
+          <%= text_input(form, :name, class: "form-control") %>
         </div>
         <button class="btn btn-primary" type="submit">Create new license</button>
-      <% end %>
+      <% end) %>
     </div>
   </div>
 </div>
@@ -22,4 +22,13 @@
       <th>Auto-renew</th>
     </tr>
   </thead>
+  <tbody>
+    <%= for license <- @licenses do %>
+      <tr>
+        <td><%= license.name %></td>
+        <td></td>
+        <td></td>
+      </tr>
+    <% end %>
+  </tbody>
 </table>
