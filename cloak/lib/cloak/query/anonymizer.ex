@@ -71,9 +71,13 @@ defmodule Cloak.Query.Anonymizer do
   """
   @spec sufficiently_large?(t, non_neg_integer) :: boolean
   def sufficiently_large?(anonymizer, count) do
-    {noisy_lower_bound, _anonymizer} = add_noise(anonymizer, config(:low_count_soft_lower_bound))
-    noisy_lower_bound = Kernel.max(round(noisy_lower_bound), config(:low_count_absolute_lower_bound))
-    count >= noisy_lower_bound
+    absolute_lower_bound = config(:low_count_absolute_lower_bound)
+    if count < absolute_lower_bound do
+      false
+    else
+      {noisy_lower_bound, _anonymizer} = add_noise(anonymizer, config(:low_count_soft_lower_bound))
+      count >= round(noisy_lower_bound)
+    end
   end
 
   @doc """
