@@ -1,18 +1,16 @@
-defmodule Central.Schemas.Customer do
+defmodule Central.Schemas.License do
   @moduledoc "The customer schema."
 
   use Central.Web, :model
 
-  alias Ecto.Changeset
-  alias Central.Schemas.{License, Query}
+  alias Central.Schemas.Customer
 
   @type t :: %__MODULE__{}
 
-  schema "customers" do
+  schema "licenses" do
     field :name, :string
 
-    has_many :queries, Query
-    has_many :licenses, License
+    belongs_to :customer, Customer
 
     timestamps()
   end
@@ -35,21 +33,5 @@ defmodule Central.Schemas.Customer do
   def changeset(model, params \\ %{}) do
     model
     |> cast(params, @required_fields ++ @optional_fields)
-    |> unique_constraint(:name)
-  end
-
-  @doc "Validates a changeset for insertion"
-  @spec new_customer_changeset(t | Changeset.t, Map.t) :: Changeset.t
-  def new_customer_changeset(model, params \\ %{}) do
-    model
-    |> changeset(params)
-    |> validate_required(@required_fields)
-    |> validate_length(:name, min: 2)
-  end
-
-  @doc "Returns an empty changeset to use in forms"
-  @spec empty_changeset() :: Changeset.t
-  def empty_changeset() do
-    changeset(%__MODULE__{})
   end
 end
