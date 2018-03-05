@@ -11,13 +11,17 @@ defmodule Central.Service.License.Test do
   end
 
   test "creates a license", %{customer: customer} do
-    :ok = License.create(customer, %{name: "some license"})
+    {:ok, _} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
     assert [%{name: "some license"}] = License.for_customer(customer)
   end
 
   test "returns no licenses for a customer when other customers have licenses", %{customer: customer} do
-    :ok = License.create(customer, %{name: "some license"})
+    {:ok, _} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
     assert [] = License.for_customer(create_customer("Some other guy"))
+  end
+
+  test "creating an invalid license", %{customer: customer} do
+    assert {:error, _} = License.create(customer, %{name: ""})
   end
 
   defp setup_customer(_) do

@@ -9,13 +9,15 @@ defmodule Central.Schemas.License do
 
   schema "licenses" do
     field :name, :string
+    field :length_in_days, :integer
+    field :auto_renew, :boolean
 
     belongs_to :customer, Customer
 
     timestamps()
   end
 
-  @required_fields ~w(name)a
+  @required_fields ~w(name length_in_days auto_renew)a
   @optional_fields ~w()a
 
 
@@ -33,5 +35,7 @@ defmodule Central.Schemas.License do
   def changeset(model, params \\ %{}) do
     model
     |> cast(params, @required_fields ++ @optional_fields)
+    |> validate_required(@required_fields)
+    |> validate_length(:name, min: 1)
   end
 end
