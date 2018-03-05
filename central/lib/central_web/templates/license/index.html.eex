@@ -35,7 +35,6 @@
     <tr>
       <th>Name</th>
       <th>Length (days)</th>
-      <th>Expires</th>
       <th>Auto-renew</th>
       <th></th>
     </tr>
@@ -45,8 +44,14 @@
       <tr>
         <td><%= license.name %></td>
         <td><%= license.length_in_days %></td>
-        <td></td>
-        <td><%= license.auto_renew %></td>
+        <td>
+          <%= if license.auto_renew do %>
+            <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+          <% else %>
+            <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+          <% end %>
+          <div class="sr-only"><%= license.auto_renew %>u</div>
+        </td>
         <td>
           <a href="#">Edit</a>
         </td>
