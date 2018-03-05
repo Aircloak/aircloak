@@ -1,6 +1,5 @@
 defmodule Central.Service.License do
   alias Central.{Repo, Schemas.License}
-  alias Ecto.Changeset
   import Ecto.Query
 
   def create(customer, params), do:

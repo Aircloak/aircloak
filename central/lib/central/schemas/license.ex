@@ -37,5 +37,6 @@ defmodule Central.Schemas.License do
     |> cast(params, @required_fields ++ @optional_fields)
     |> validate_required(@required_fields)
     |> validate_length(:name, min: 1)
+    |> validate_number(:length_in_days, greater_than: 0)
   end
 end
