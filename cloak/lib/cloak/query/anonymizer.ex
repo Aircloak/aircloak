@@ -59,8 +59,7 @@ defmodule Cloak.Query.Anonymizer do
     }
 
   @doc """
-  Returns a `{boolean, anonymizer}` tuple, where the boolean value is
-  true if the passed bucket size is sufficiently large to be reported.
+  Returns true if the passed bucket size is sufficiently large to be reported.
 
   Sufficiently large means the bucket size is greater or equal to the:
 
@@ -70,20 +69,11 @@ defmodule Cloak.Query.Anonymizer do
   See config/config.exs for the parameters of the distribution used. The PRNG is seeded based
   on the user list provided, giving the same answer every time for the given list of users.
   """
-  @spec sufficiently_large?(t, non_neg_integer) :: {boolean, t}
+  @spec sufficiently_large?(t, non_neg_integer) :: boolean
   def sufficiently_large?(anonymizer, count) do
-    {noisy_lower_bound, anonymizer} = noisy_lower_bound(anonymizer)
-    {count >= noisy_lower_bound, anonymizer}
-  end
-
-  @doc """
-  Returns a lower bound distributed as described in `sufficently_large?`.
-  """
-  @spec noisy_lower_bound(t) :: {non_neg_integer, t}
-  def noisy_lower_bound(anonymizer) do
-    {noisy_lower_bound, anonymizer} = add_noise(anonymizer, config(:low_count_soft_lower_bound))
+    {noisy_lower_bound, _anonymizer} = add_noise(anonymizer, config(:low_count_soft_lower_bound))
     noisy_lower_bound = Kernel.max(round(noisy_lower_bound), config(:low_count_absolute_lower_bound))
-    {noisy_lower_bound, anonymizer}
+    count >= noisy_lower_bound
   end
 
   @doc """

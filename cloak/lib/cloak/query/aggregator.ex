@@ -172,10 +172,8 @@ defmodule Cloak.Query.Aggregator do
   defp low_users_count?({_values, anonymizer, users_rows}), do:
     low_users_count?(users_rows, anonymizer)
 
-  defp low_users_count?(count, anonymizer) when is_integer(count) do
-    {sufficiently_large?, _} = Anonymizer.sufficiently_large?(anonymizer, count)
-    not sufficiently_large?
-  end
+  defp low_users_count?(count, anonymizer) when is_integer(count), do:
+    not Anonymizer.sufficiently_large?(anonymizer, count)
   defp low_users_count?(values, anonymizer), do:
     values |> Enum.count() |> low_users_count?(anonymizer)
 

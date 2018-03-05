@@ -8,8 +8,8 @@ defmodule Cloak.Query.AnonimyzerTest do
   end
 
   test "sufficiently_large?" do
-    assert {true, _} = Anonymizer.new([MapSet.new()]) |> Anonymizer.sufficiently_large?(20)
-    assert {false, _} = Anonymizer.new([MapSet.new()]) |> Anonymizer.sufficiently_large?(2)
+    assert Anonymizer.new([MapSet.new()]) |> Anonymizer.sufficiently_large?(20)
+    refute Anonymizer.new([MapSet.new()]) |> Anonymizer.sufficiently_large?(2)
   end
 
   describe "aggregators return nil on too few users" do
