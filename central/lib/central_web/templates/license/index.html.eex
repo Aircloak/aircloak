@@ -53,7 +53,10 @@
           <div class="sr-only"><%= license.auto_renew %>u</div>
         </td>
         <td>
-          <a href="#">Edit</a>
+          <a class="btn btn-xs btn-primary" download="<%= license.name %>.txt" href="<%= customer_license_path(@conn, :show, @customer.id, license.id) %>">
+            Export
+          </a>
+          <a class="btn btn-xs btn-default" href="#">Edit</a>
         </td>
       </tr>
     <% end %>

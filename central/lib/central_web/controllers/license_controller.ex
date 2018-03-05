@@ -26,6 +26,13 @@ defmodule CentralWeb.LicenseController do
     end
   end
 
+  def show(conn, %{"id" => id}) do
+    case Service.License.export(id) do
+      {:ok, result} -> send_resp(conn, 200, result)
+      :not_found -> not_found(conn)
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions

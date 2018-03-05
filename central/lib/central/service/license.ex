@@ -14,4 +14,6 @@ defmodule Central.Service.License do
     |> Repo.all()
 
   def empty_changeset(), do: License.changeset(%License{})
+
+  def export(id), do: {:ok, ""}
 end
