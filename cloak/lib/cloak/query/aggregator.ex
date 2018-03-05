@@ -194,7 +194,7 @@ defmodule Cloak.Query.Aggregator do
         {low_count_grouped_rows, high_count_grouped_rows} =
           low_count_rows
           |> Enum.group_by(fn ({values, _anonymizer, _users_rows}) -> List.replace_at(values, index - 1, :*) end)
-          |> Enum.map(&collapse_grouped_rows/1)
+          |> Stream.map(&collapse_grouped_rows/1)
           |> Enum.split_with(&low_users_count?/1)
         {low_count_grouped_rows, high_count_grouped_rows ++ high_count_rows}
       end)
@@ -204,7 +204,7 @@ defmodule Cloak.Query.Aggregator do
   defp collapse_grouped_rows({values, grouped_rows}) do
     user_rows =
       grouped_rows
-      |> Enum.map(fn ({_values, _anonymizer, users_rows}) -> users_rows end)
+      |> Stream.map(fn ({_values, _anonymizer, users_rows}) -> users_rows end)
       |> Enum.reduce(fn (users_rows1, users_rows2) ->
         Map.merge(users_rows1, users_rows2, fn (_user, columns1, columns2) ->
           Enum.zip(columns1, columns2) |> Enum.map(&merge_accumulators/1)
@@ -212,7 +212,7 @@ defmodule Cloak.Query.Aggregator do
       end)
     anonymizer =
       grouped_rows
-      |> Enum.map(fn ({_values, anonymizer, _users_rows}) -> anonymizer.layers end)
+      |> Stream.map(fn ({_values, anonymizer, _users_rows}) -> anonymizer.layers end)
       |> Enum.reduce(&merge_layers/2)
       |> Anonymizer.new()
     {values, anonymizer, user_rows}
