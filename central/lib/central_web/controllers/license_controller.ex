@@ -33,6 +33,13 @@ defmodule CentralWeb.LicenseController do
     end
   end
 
+  def edit(conn, %{"id" => id}) do
+    case Service.License.get(conn.assigns.customer, id) do
+      {:ok, license} -> render(conn, "edit.html", changeset: Service.License.empty_changeset(license))
+      :not_found -> not_found(conn)
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -42,7 +49,7 @@ defmodule CentralWeb.LicenseController do
     customer = conn.assigns.customer
     licenses =  Service.License.for_customer(customer)
 
-    render(conn, "index.html", license: license_changeset, customer: customer, licenses: licenses)
+    render(conn, "index.html", changeset: license_changeset, customer: customer, licenses: licenses)
   end
 
   defp load_customer(conn, _) do

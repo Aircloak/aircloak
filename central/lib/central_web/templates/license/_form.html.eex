@@ -1,0 +1,29 @@
+<div class="col-sm-4">
+  <div class="panel panel-default">
+    <div class="panel-body">
+      <%= form_for(@changeset, customer_license_path(@conn, :create, @customer.id), fn form -> %>
+        <div class="form-group">
+          <label for="name">Name</label>
+          <%= text_input(form, :name, class: "form-control") %>
+          <%= error_tag(form, :name) %>
+        </div>
+
+        <div class="form-group">
+          <label for="length_in_days">Length in days</label>
+          <%= text_input(form, :length_in_days, class: "form-control") %>
+          <%= error_tag(form, :length_in_days) %>
+        </div>
+
+        <div class="checkbox">
+          <label>
+            <%= checkbox(form, :auto_renew) %>
+            <strong>Auto-renew</strong>
+          </label>
+          <%= error_tag(form, :auto_renew) %>
+        </div>
+
+        <button class="btn btn-primary" type="submit"><%= @button %></button>
+      <% end) %>
+    </div>
+  </div>
+</div>

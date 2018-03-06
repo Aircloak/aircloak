@@ -1,34 +1,6 @@
 <h2>Licenses for <%= @customer.name %></h2>
 
-<div class="col-sm-4">
-  <div class="panel panel-default">
-    <div class="panel-body">
-      <%= form_for(@license, customer_license_path(@conn, :create, @customer.id), [as: :license], fn form -> %>
-        <div class="form-group">
-          <label for="name">Name</label>
-          <%= text_input(form, :name, class: "form-control") %>
-          <%= error_tag(form, :name) %>
-        </div>
-
-        <div class="form-group">
-          <label for="length_in_days">Length in days</label>
-          <%= text_input(form, :length_in_days, class: "form-control") %>
-          <%= error_tag(form, :length_in_days) %>
-        </div>
-
-        <div class="checkbox">
-          <label>
-            <%= checkbox(form, :auto_renew) %>
-            <strong>Auto-renew</strong>
-          </label>
-          <%= error_tag(form, :auto_renew) %>
-        </div>
-
-        <button class="btn btn-primary" type="submit">Create new license</button>
-      <% end) %>
-    </div>
-  </div>
-</div>
+<%= render("_form.html", conn: @conn, changeset: @changeset, customer: @customer, button: "Create new license") %>
 
 <table class="table table-striped table-hover">
   <thead>
@@ -56,7 +28,9 @@
           <a class="btn btn-xs btn-primary" download="<%= license.name %>.lic" href="<%= customer_license_path(@conn, :show, @customer.id, license.id) %>">
             Export
           </a>
-          <a class="btn btn-xs btn-default" href="#">Edit</a>
+          <a class="btn btn-xs btn-default" href="<%= customer_license_path(@conn, :edit, @customer.id, license.id) %>">
+            Edit
+          </a>
         </td>
       </tr>
     <% end %>

@@ -13,15 +13,22 @@ defmodule Central.Service.License do
     |> for_customer_id(customer.id)
     |> Repo.all()
 
-  def empty_changeset(), do: License.changeset(%License{})
+  def empty_changeset(license \\ %License{}), do: License.changeset(license)
 
   def export(customer, id) do
+    case get(customer, id) do
+      {:ok, license} -> {:ok, format_export(license) |> Poison.encode!() |> encrypt!()}
+      :not_found -> :not_found
+    end
+  end
+
+  def get(customer, id) do
     License
     |> for_customer_id(customer.id)
     |> Repo.get(id)
     |> case do
       nil -> :not_found
-      license -> {:ok, format_export(license) |> Poison.encode!() |> encrypt!()}
+      license -> {:ok, license}
     end
   end
 
