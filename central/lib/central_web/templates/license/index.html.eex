@@ -1,6 +1,7 @@
 <h2>Licenses for <%= @customer.name %></h2>
 
-<%= render("_form.html", conn: @conn, changeset: @changeset, customer: @customer, button: "Create new license") %>
+<%= render("_form.html", conn: @conn, changeset: @changeset, customer: @customer, button: "Create new license",
+  action: customer_license_path(@conn, :create, @customer.id)) %>
 
 <table class="table table-striped table-hover">
   <thead>
@@ -25,10 +26,12 @@
           <div class="sr-only"><%= license.auto_renew %>u</div>
         </td>
         <td>
-          <a class="btn btn-xs btn-primary" download="<%= license.name %>.lic" href="<%= customer_license_path(@conn, :show, @customer.id, license.id) %>">
+          <a class="btn btn-xs btn-primary" download="<%= license.name %>.lic"
+            href="<%= customer_license_path(@conn, :show, @customer.id, license.id) %>">
             Export
           </a>
-          <a class="btn btn-xs btn-default" href="<%= customer_license_path(@conn, :edit, @customer.id, license.id) %>">
+          <a class="btn btn-xs btn-default"
+            href="<%= customer_license_path(@conn, :edit, @customer.id, license.id) %>">
             Edit
           </a>
         </td>

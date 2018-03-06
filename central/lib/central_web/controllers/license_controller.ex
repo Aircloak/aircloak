@@ -14,13 +14,8 @@ defmodule CentralWeb.LicenseController do
     render_index(conn, Service.License.empty_changeset())
   end
 
-  def create(conn, %{"license" => %{"name" => name, "length_in_days" => length_in_days, "auto_renew" => auto_renew}}) do
-    Service.License.create(conn.assigns.customer, %{
-      name: name,
-      length_in_days: length_in_days,
-      auto_renew: auto_renew,
-    })
-    |> case do
+  def create(conn, %{"license" => params}) do
+    case Service.License.create(conn.assigns.customer, params) do
       {:ok, _} -> redirect(conn, to: customer_license_path(conn, :index, conn.assigns.customer.id))
       {:error, changeset} -> render_index(conn, changeset)
     end
@@ -35,8 +30,19 @@ defmodule CentralWeb.LicenseController do
 
   def edit(conn, %{"id" => id}) do
     case Service.License.get(conn.assigns.customer, id) do
-      {:ok, license} -> render(conn, "edit.html", changeset: Service.License.empty_changeset(license))
+      {:ok, license} -> render(conn, "edit.html", license_id: id, changeset: Service.License.empty_changeset(license))
       :not_found -> not_found(conn)
+    end
+  end
+
+  def update(conn, %{"id" => id, "license" => params}) do
+    with {:ok, license} <- Service.License.get(conn.assigns.customer, id), \
+      {:ok, _} <- Service.License.update(license, params)
+    do
+      redirect(conn, to: customer_license_path(conn, :index, conn.assigns.customer.id))
+    else
+      :not_found -> not_found(conn)
+      {:error, changeset} -> render(conn, "edit.html", license_id: id, changeset: changeset)
     end
   end
 

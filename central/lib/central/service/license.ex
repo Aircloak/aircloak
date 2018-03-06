@@ -8,6 +8,11 @@ defmodule Central.Service.License do
     |> License.changeset(params)
     |> Repo.insert()
 
+  def update(license, params), do:
+    license
+    |> License.changeset(params)
+    |> Repo.update()
+
   def for_customer(customer), do:
     License
     |> for_customer_id(customer.id)
