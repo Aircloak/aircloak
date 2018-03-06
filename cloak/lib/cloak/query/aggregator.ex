@@ -180,25 +180,26 @@ defmodule Cloak.Query.Aggregator do
   @spec process_low_count_users([group], Query.t) :: [group]
   defp process_low_count_users(rows, query) do
     Logger.debug("Processing low count users ...")
+    bucket_size = query |> Rows.group_expressions() |> length()
     {_low_count_rows, high_count_rows} =
-      query
-      |> Rows.group_expressions()
-      |> length()
-      |> Range.new(1)
       # We first partition the buckets into low-count and high-count buckets.
       # Then, starting from right to left, we censor each bucket value sequentially and merge corresponding buckets.
       # We then split the merged buckets again. We keep the merged buckets that pass the low-count filter and
       # repeat the process for the next column and the new set of low-count buckets.
       # When we run out of bucket values, we drop the final low-count bucket, if any.
-      |> Enum.reduce(Enum.split_with(rows, &low_users_count?/1), fn (index, {low_count_rows, high_count_rows}) ->
-        {low_count_grouped_rows, high_count_grouped_rows} =
-          low_count_rows
-          |> Enum.group_by(fn ({values, _anonymizer, _users_rows}) -> List.replace_at(values, index - 1, :*) end)
-          |> Stream.map(&collapse_grouped_rows/1)
-          |> Enum.split_with(&low_users_count?/1)
-        {low_count_grouped_rows, high_count_grouped_rows ++ high_count_rows}
-      end)
+      Enum.reduce(bucket_size..1, Enum.split_with(rows, &low_users_count?/1), &group_low_count_rows/2)
     high_count_rows
+  end
+
+  defp group_low_count_rows(column_index, {low_count_rows, high_count_rows}) do
+    {low_count_grouped_rows, high_count_grouped_rows} =
+      low_count_rows
+      |> Enum.group_by(fn ({values, _anonymizer, _users_rows}) ->
+        List.replace_at(values, column_index - 1, :*)
+      end)
+      |> Stream.map(&collapse_grouped_rows/1)
+      |> Enum.split_with(&low_users_count?/1)
+    {low_count_grouped_rows, high_count_grouped_rows ++ high_count_rows}
   end
 
   defp collapse_grouped_rows({values, grouped_rows}) do
