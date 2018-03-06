@@ -21,7 +21,7 @@ defmodule Central.Service.License do
     |> Repo.get(id)
     |> case do
       nil -> :not_found
-      license -> {:ok, format_export(license) |> Poison.encode!()}
+      license -> {:ok, format_export(license) |> Poison.encode!() |> encrypt!()}
     end
   end
 
@@ -34,6 +34,13 @@ defmodule Central.Service.License do
   defp expires_at(license), do:
     Timex.now() |> Timex.shift(days: license.length_in_days) |> Timex.format!("{ISO:Basic}")
 
+  defp encrypt!(text) do
+    {:ok, encrypted} = ExPublicKey.encrypt_private(text, private_key())
+    encrypted
+  end
+
+  defp private_key(), do:
+    Agent.get(__MODULE__, fn %{private_key: private_key} -> private_key end)
 
   # -------------------------------------------------------------------
   # Supervision tree
