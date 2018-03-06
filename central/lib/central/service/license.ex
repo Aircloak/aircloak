@@ -33,4 +33,29 @@ defmodule Central.Service.License do
 
   defp expires_at(license), do:
     Timex.now() |> Timex.shift(days: license.length_in_days) |> Timex.format!("{ISO:Basic}")
+
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg), do:
+    Aircloak.ChildSpec.agent(&load_keys/0)
+
+  defp load_keys() do
+    {:ok, public_key} = ExPublicKey.load(path(:public_key))
+    {:ok, private_key} = ExPublicKey.load(path(:private_key))
+
+    %{
+      private_key: private_key,
+      public_key: public_key,
+    }
+  end
+
+  defp path(key) do
+    root_path = Application.app_dir(:central)
+    file_name = Application.get_env(:central, :license) |> Keyword.fetch!(key)
+    Path.join([root_path, file_name])
+  end
 end

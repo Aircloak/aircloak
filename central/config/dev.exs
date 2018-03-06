@@ -28,6 +28,10 @@ config :central, CentralWeb.Endpoint,
 # Do not include metadata nor timestamps in development logs
 config :logger, :console, format: "[$level] $metadata $message\n", metadata: [:customer, :air]
 
+config :central, :license,
+  public_key: "priv/mock_key_public.pem",
+  private_key: "priv/mock_key_private.pem"
+
 # Set a higher stacktrace during development.
 # Do not configure such in production as keeping
 # and calculating stacktraces is usually expensive.
