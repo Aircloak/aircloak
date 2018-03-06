@@ -16,7 +16,10 @@ defmodule CentralWeb.LicenseController do
 
   def create(conn, %{"license" => params}) do
     case Service.License.create(conn.assigns.customer, params) do
-      {:ok, _} -> redirect(conn, to: customer_license_path(conn, :index, conn.assigns.customer.id))
+      {:ok, _} ->
+        conn
+        |> put_flash(:info, "License created")
+        |> redirect(to: customer_license_path(conn, :index, conn.assigns.customer.id))
       {:error, changeset} -> render_index(conn, changeset)
     end
   end
@@ -39,7 +42,9 @@ defmodule CentralWeb.LicenseController do
     with {:ok, license} <- Service.License.get(conn.assigns.customer, id), \
       {:ok, _} <- Service.License.update(license, params)
     do
-      redirect(conn, to: customer_license_path(conn, :index, conn.assigns.customer.id))
+      conn
+      |> put_flash(:info, "License updated")
+      |> redirect(to: customer_license_path(conn, :index, conn.assigns.customer.id))
     else
       :not_found -> not_found(conn)
       {:error, changeset} -> render(conn, "edit.html", license_id: id, changeset: changeset)
