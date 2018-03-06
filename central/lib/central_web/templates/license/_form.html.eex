@@ -27,3 +27,29 @@
     </div>
   </div>
 </div>
+
+<div class="col-sm-8">
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <strong>Help</strong>
+    </div>
+    <div class="panel-body">
+      <ul>
+        <li>Name is just for our identification purposes.</li>
+        <li>
+          Length determines how long air can work without contacting central. For systems without central access or
+          where auto-renew is set to false this will decide the duration of the license's validity
+          <strong>from the moment of creation</strong>.
+        </li>
+        <li>
+          An auto-renew license is effectively valid forever. Air will periodically contact central to get an updated
+          version of the license.
+        </li>
+        <li>
+          A warning will show up in air if the license is to expire in the next two weeks. You should make auto-renew
+          licenses longer than that. But probably not too long, so that they eventually expire if revoked.
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
