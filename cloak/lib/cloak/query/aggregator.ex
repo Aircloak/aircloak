@@ -181,13 +181,13 @@ defmodule Cloak.Query.Aggregator do
   defp process_low_count_users(rows, query) do
     Logger.debug("Processing low count users ...")
     bucket_size = query |> Rows.group_expressions() |> length()
-    {_low_count_rows, high_count_rows} =
-      # We first partition the buckets into low-count and high-count buckets.
-      # Then, starting from right to left, we censor each bucket value sequentially and merge corresponding buckets.
-      # We then split the merged buckets again. We keep the merged buckets that pass the low-count filter and
-      # repeat the process for the next column and the new set of low-count buckets.
-      # When we run out of bucket values, we drop the final low-count bucket, if any.
-      Enum.reduce(bucket_size..1, Enum.split_with(rows, &low_users_count?/1), &group_low_count_rows/2)
+    # We first partition the buckets into low-count and high-count buckets.
+    # Then, starting from right to left, we censor each bucket value sequentially and merge corresponding buckets.
+    # We then split the merged buckets again. We keep the merged buckets that pass the low-count filter and
+    # repeat the process for the next column and the new set of low-count buckets.
+    # When we run out of bucket values, we drop the final low-count bucket, if any.
+    splitted_rows = Enum.split_with(rows, &low_users_count?/1)
+    {_low_count_rows, high_count_rows} = Enum.reduce(bucket_size..1, splitted_rows, &group_low_count_rows/2)
     high_count_rows
   end
 
