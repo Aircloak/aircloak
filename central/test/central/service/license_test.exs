@@ -36,7 +36,6 @@ defmodule Central.Service.License.Test do
     assert {:ok, %{"customer_id" => ^customer_id}} = decode(text, public_key)
   end
 
-
   test "exporting an auto-renew license", %{customer: customer, public_key: public_key} do
     {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
 
@@ -46,6 +45,19 @@ defmodule Central.Service.License.Test do
     assert {:ok, expires_at} = Timex.parse(expires_at, "{ISO:Basic}")
     assert Timex.diff(expires_at, Timex.now(), :days) >= 9
     assert Timex.diff(expires_at, Timex.now(), :days) <= 11
+  end
+
+  test "exporting a non-auto-renew license", %{customer: customer, public_key: public_key} do
+    {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: false})
+    creation = Timex.now() |> Timex.shift(days: -100)
+    Ecto.Adapters.SQL.query!(Repo, "UPDATE licenses SET inserted_at = $1 WHERE id = $2", [creation, license.id])
+
+    {:ok, text} = License.export(customer, license.id)
+
+    assert {:ok, %{"expires_at" => expires_at}} = decode(text, public_key)
+    assert {:ok, expires_at} = Timex.parse(expires_at, "{ISO:Basic}")
+    assert Timex.diff(expires_at, creation, :days) >= 9
+    assert Timex.diff(expires_at, creation, :days) <= 11
   end
 
   test "exporting a specific license", %{customer: customer, public_key: public_key} do

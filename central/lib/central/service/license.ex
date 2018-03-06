@@ -32,7 +32,10 @@ defmodule Central.Service.License do
     where(query, [q], q.customer_id == ^customer_id)
 
   defp expires_at(license), do:
-    Timex.now() |> Timex.shift(days: license.length_in_days) |> Timex.format!("{ISO:Basic}")
+    base_time(license) |> Timex.shift(days: license.length_in_days) |> Timex.format!("{ISO:Basic:Z}")
+
+  defp base_time(%{auto_renew: true}), do: Timex.now()
+  defp base_time(%{inserted_at: inserted_at}), do: inserted_at
 
   defp encrypt!(text) do
     {:ok, encrypted} = ExPublicKey.encrypt_private(text, private_key())
