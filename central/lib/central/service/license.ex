@@ -41,7 +41,7 @@ defmodule Central.Service.License do
 
   @doc false
   def child_spec(_arg), do:
-    Aircloak.ChildSpec.agent(&load_keys/0)
+    Aircloak.ChildSpec.agent(&load_keys/0, name: __MODULE__)
 
   defp load_keys() do
     {:ok, public_key} = ExPublicKey.load(path(:public_key))
