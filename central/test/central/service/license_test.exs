@@ -26,10 +26,21 @@ defmodule Central.Service.License.Test do
   test "exporting a non-existent license", %{customer: customer}, do:
     assert :not_found = License.export(customer, 123)
 
+  test "exported license includes customer id", %{customer: customer} do
+    {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
+
+    {:ok, text} = License.export(customer, license.id)
+
+    customer_id = customer.id
+    assert {:ok, %{"customer_id" => ^customer_id}} = Poison.decode(text)
+  end
+
+
   test "exporting an auto-renew license", %{customer: customer} do
     {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
 
-    assert {:ok, text} = License.export(customer, license.id)
+    {:ok, text} = License.export(customer, license.id)
+
     assert {:ok, %{"expires_at" => expires_at}} = Poison.decode(text)
     assert {:ok, expires_at} = Timex.parse(expires_at, "{ISO:Basic}")
     assert Timex.diff(expires_at, Timex.now(), :days) >= 9
@@ -40,7 +51,8 @@ defmodule Central.Service.License.Test do
     {:ok, _} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
     {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
 
-    assert {:ok, text} = License.export(customer, license.id)
+    {:ok, text} = License.export(customer, license.id)
+
     assert {:ok, %{"id" => license_id}} = Poison.decode(text)
     assert license_id == license.id
   end

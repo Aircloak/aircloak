@@ -21,9 +21,12 @@ defmodule Central.Service.License do
     |> Repo.get(id)
     |> case do
       nil -> :not_found
-      license -> {:ok, %{id: license.id, expires_at: expires_at(license)} |> Poison.encode!()}
+      license -> {:ok, format_export(license) |> Poison.encode!()}
     end
   end
+
+  defp format_export(license), do:
+    %{id: license.id, customer_id: license.customer_id, expires_at: expires_at(license)}
 
   defp for_customer_id(query, customer_id), do:
     where(query, [q], q.customer_id == ^customer_id)
