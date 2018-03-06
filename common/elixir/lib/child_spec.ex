@@ -66,6 +66,14 @@ defmodule Aircloak.ChildSpec do
       overrides
     )
 
+  @doc "Specifies a child powered by the `Agent` module."
+  @spec agent((() -> any), Keyword.t) :: Supervisor.child_spec
+  def agent(fun, overrides \\ []), do:
+    Supervisor.child_spec(
+      %{id: Agent, start: {Agent, :start_link, [fun]}, shutdown: :brutal_kill},
+      overrides
+    )
+
   defmodule Supervisor do
     @moduledoc """
     Simplifies the `child_spec/2` definition for a supervisor module.
