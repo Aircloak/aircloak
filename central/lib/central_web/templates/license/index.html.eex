@@ -28,14 +28,10 @@
         </td>
         <td><%= expires(license) %></td>
         <td>
-          <a class="btn btn-xs btn-primary" download="<%= license.name %>.lic"
-            href="<%= customer_license_path(@conn, :show, @customer.id, license.id) %>">
-            Export
-          </a>
-          <a class="btn btn-xs btn-default"
-            href="<%= customer_license_path(@conn, :edit, @customer.id, license.id) %>">
-            Edit
-          </a>
+          <%= link("Export", to: customer_license_path(@conn, :show, @customer.id, license.id),
+            class: "btn btn-xs btn-primary", download: license.name <> ".lic") %>
+          <%= link("Edit", to: customer_license_path(@conn, :edit, @customer.id, license.id),
+            class: "btn btn-xs btn-default") %>
         </td>
       </tr>
     <% end %>
