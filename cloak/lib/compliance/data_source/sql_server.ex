@@ -32,6 +32,9 @@ defmodule Compliance.DataSource.SQLServer do
   end
 
   @impl Connector
+  def after_tables_created(state), do: state
+
+  @impl Connector
   def insert_rows(table_name, data, conn) do
     table_name
     |> chunks_to_insert(data)

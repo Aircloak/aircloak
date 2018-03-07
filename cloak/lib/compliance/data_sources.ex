@@ -96,7 +96,9 @@ defmodule Compliance.DataSources do
     encoded_definitions = table_definitions(&TableDefinitions.encoded/1, data_source)
     create_tables(handler, conn, encoded_definitions, @encoded_name_postfix)
 
-    handler.terminate(conn)
+    conn
+    |> handler.after_tables_created()
+    |> handler.terminate()
   end
 
   defp create_tables(handler, conn, definitions, table_postfix) do

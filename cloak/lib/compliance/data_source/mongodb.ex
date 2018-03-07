@@ -38,6 +38,9 @@ defmodule Compliance.DataSource.MongoDB do
   end
 
   @impl Connector
+  def after_tables_created(state), do: state
+
+  @impl Connector
   def insert_rows(_table_name, _data, conn), do: conn
 
   @impl Connector
