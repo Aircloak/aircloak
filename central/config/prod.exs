@@ -50,3 +50,7 @@ config :logger, level: :info
 #     config :central, CentralWeb.Endpoint, root: "."
 
 config :phoenix, :serve_endpoints, true
+
+config :central, :license,
+  public_key: "priv/config/license_key_public.pem",
+  private_key: "priv/config/license_key_private.pem"
