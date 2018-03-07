@@ -53,7 +53,7 @@ defmodule CentralWeb.LicenseController do
 
   def revoke(conn, %{"license_id" => id}) do
     with {:ok, license} <- Service.License.get(conn.assigns.customer, id) do
-      :ok = Service.License.revoke(license)
+      {:ok, _} = Service.License.revoke(license)
 
       conn
       |> put_flash(:info, "License revoked")
@@ -70,7 +70,9 @@ defmodule CentralWeb.LicenseController do
 
   defp render_index(conn, license_changeset) do
     customer = conn.assigns.customer
-    licenses =  Service.License.for_customer(customer)
+    licenses =
+      Service.License.for_customer(customer)
+      |> Enum.sort_by(fn(license) -> {license.revoked, license.inserted_at} end)
 
     render(conn, "index.html", changeset: license_changeset, customer: customer, licenses: licenses)
   end

@@ -15,7 +15,7 @@
   </thead>
   <tbody>
     <%= for license <- @licenses do %>
-      <tr>
+      <tr class="<%= revoke_class(license) %>">
         <td><%= license.name %></td>
         <td><%= license.length_in_days %></td>
         <td>
@@ -28,12 +28,17 @@
         </td>
         <td><%= expires(license) %></td>
         <td>
-          <%= link("Export", to: customer_license_path(@conn, :show, @customer.id, license.id),
-            class: "btn btn-xs btn-primary", download: license.name <> ".lic") %>
-          <%= link("Edit", to: customer_license_path(@conn, :edit, @customer.id, license.id),
-            class: "btn btn-xs btn-default") %>
-          <%= link("Revoke", to: customer_license_revoke_path(@conn, :revoke, @customer.id, license.id),
-            method: :put, class: "btn btn-danger btn-xs") %>
+          <%= if license.revoked do %>
+            <%= link("Restore", to: customer_license_restore_path(@conn, :restore, @customer.id, license.id),
+              method: :put, class: "btn btn-danger btn-xs") %>
+          <% else %>
+            <%= link("Export", to: customer_license_path(@conn, :show, @customer.id, license.id),
+              class: "btn btn-xs btn-primary", download: license.name <> ".lic") %>
+            <%= link("Edit", to: customer_license_path(@conn, :edit, @customer.id, license.id),
+              class: "btn btn-xs btn-default") %>
+            <%= link("Revoke", to: customer_license_revoke_path(@conn, :revoke, @customer.id, license.id),
+              method: :put, class: "btn btn-danger btn-xs") %>
+          <% end %>
         </td>
       </tr>
     <% end %>

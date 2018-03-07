@@ -7,4 +7,7 @@ defmodule CentralWeb.LicenseView do
     expiry = Central.Service.License.expires_at(license)
     "#{Timex.format!(expiry, "{ISOdate} {h24}:{m}:{s}")} #{Timex.format!(expiry, "({relative})", :relative)}"
   end
+
+  defp revoke_class(%{revoked: true}), do: "danger"
+  defp revoke_class(_), do: ""
 end

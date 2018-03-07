@@ -48,6 +48,7 @@ defmodule CentralWeb.Router do
       get "/token", CustomerController, :token, as: :token
       resources "/licenses", LicenseController, only: [:index, :create, :show, :edit, :update] do
         put "/revoke", LicenseController, :revoke, as: :revoke
+        put "/restore", LicenseController, :restore, as: :restore
       end
     end
     resources "/stats", StatsController
