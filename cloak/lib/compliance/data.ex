@@ -239,7 +239,6 @@ defmodule Compliance.Data do
           %{
             id: note.id,
             note_id: change.note_id,
-            user_fk: user.id,
             title: note.title,
             content: note.content,
             'changes.change': change.change,

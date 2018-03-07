@@ -139,7 +139,6 @@ defmodule Compliance.TableDefinitions do
         sub_collection_of: :notes, # I.e. this collection is really part of notes if considering it as a document
         columns: %{
           id: %{type: :integer},
-          user_fk: %{type: :integer},
           note_id: %{type: :integer},
           title: %{type: :text, decoders: [:base64, aes_cbc_128: [key: Data.encryption_key()]]},
           content: %{type: :text, decoders: [:base64, aes_cbc_128: [key: Data.encryption_key()]]},
