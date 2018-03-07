@@ -162,7 +162,7 @@ defmodule Cloak.Query.Aggregator do
     Logger.debug("Initializing anonymizer ...")
     grouped_rows
     |> Stream.map(fn ({_property, {_users_rows, noise_layers}}) -> noise_layers end)
-    |> Task.async_stream(&Anonymizer.new/1, timeout: :infinity)
+    |> Task.async_stream(&Anonymizer.new/1, timeout: :infinity, ordered: true)
     |> Stream.zip(grouped_rows)
     |> Enum.map(fn ({{:ok, anonymizer}, {property, {users_rows, _noise_layers}}}) ->
       {property, anonymizer, users_rows}
