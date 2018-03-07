@@ -22,8 +22,9 @@ defmodule CentralWeb.LicenseController do
   end
 
   def show(conn, %{"id" => id}) do
-    case Service.License.export(conn.assigns.customer, id) do
-      {:ok, result} -> send_resp(conn, 200, result)
+    with {:ok, license} <- Service.License.get(conn.assigns.customer, id) do
+      send_resp(conn, 200, Service.License.export(license))
+    else
       :not_found -> not_found(conn)
     end
   end

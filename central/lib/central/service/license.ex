@@ -22,12 +22,14 @@ defmodule Central.Service.License do
 
   def empty_changeset(license \\ %License{}), do: License.changeset(license)
 
-  def export(customer, id) do
-    case get(customer, id) do
-      {:ok, license} -> {:ok, format_export(license) |> Poison.encode!() |> encrypt!()}
-      :not_found -> :not_found
-    end
-  end
+  def export(license), do:
+    %{
+      id: license.id,
+      customer_id: license.customer_id,
+      expires_at: expires_at(license) |> Timex.format!("{ISO:Basic:Z}")
+    }
+    |> Poison.encode!()
+    |> encrypt!()
 
   def get(customer, id) do
     License
@@ -43,13 +45,6 @@ defmodule Central.Service.License do
     license |> base_time() |> Timex.shift(days: license.length_in_days)
 
   def revoke(license), do: __MODULE__.update(license, %{revoked: true})
-
-  defp format_export(license), do:
-    %{
-      id: license.id,
-      customer_id: license.customer_id,
-      expires_at: expires_at(license) |> Timex.format!("{ISO:Basic:Z}")
-    }
 
   defp for_customer_id(query, customer_id), do:
     where(query, [q], q.customer_id == ^customer_id)
