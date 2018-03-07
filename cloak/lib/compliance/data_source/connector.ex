@@ -18,6 +18,9 @@ defmodule Compliance.DataSource.Connector do
   @doc "Is expected to insert the provided documents into the data source."
   @callback insert_documents(String.t, [Map.t], state) :: state
 
+  @doc "Invoked after all the tables have been created."
+  @callback after_tables_created(state) :: state
+
   @doc "Is supposed to do any cleanup if required."
   @callback terminate(state) :: :ok
 

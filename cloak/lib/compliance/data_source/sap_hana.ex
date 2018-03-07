@@ -32,6 +32,9 @@ defmodule Compliance.DataSource.SAPHana do
   end
 
   @impl Connector
+  def after_tables_created(state), do: state
+
+  @impl Connector
   def insert_rows(table_name, data, conn) do
     column_names = column_names(data)
     rows = rows(data, column_names)

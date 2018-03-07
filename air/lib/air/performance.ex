@@ -98,7 +98,6 @@ defmodule Air.Performance do
 
     conn
   end
-
   defp connect_db!(cloak_datasource_folder) do
     parameters =
       cloak_datasource_folder
@@ -107,6 +106,7 @@ defmodule Air.Performance do
       |> Poison.decode!()
       |> Map.fetch!("parameters")
       |> Enum.map(fn({name, value}) -> {String.to_atom(name), value} end)
+      |> Enum.concat([after_connect: &Postgrex.query!(&1, "set search_path to projections, public", [])])
 
     {:ok, conn} = Postgrex.start_link(parameters)
     conn

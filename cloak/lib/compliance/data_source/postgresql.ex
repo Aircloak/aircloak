@@ -37,6 +37,9 @@ defmodule Compliance.DataSource.PostgreSQL do
   end
 
   @impl Connector
+  def after_tables_created(conn), do: create_views(conn)
+
+  @impl Connector
   def insert_rows(table_name, data, conn) do
     column_names = column_names(data)
 
@@ -130,5 +133,50 @@ defmodule Compliance.DataSource.PostgreSQL do
     Postgrex.query!(conn, "DROP DATABASE IF EXISTS #{params.database}", [])
     Postgrex.query!(conn, "CREATE DATABASE #{params.database} ENCODING 'UTF8'", [])
     Postgrex.query!(conn, "GRANT ALL PRIVILEGES ON DATABASE #{params.database} TO #{params.username}", [])
+
+    # Creating the projections schema, where we'll keep views for all the projected tables. The structure of these
+    # views will correspond to the structure of the tables, as seen by Aircloak users. This allows us to use uniform
+    # select statements in some internal tests, such as performance comparisons.
+    conn = connect(%{parameters: params})
+    Postgrex.query!(conn, "CREATE SCHEMA projections", [])
+  end
+
+  defp create_views(conn) do
+    projected_tables =
+      Compliance.TableDefinitions.uid_definitions()
+      |> Stream.filter(fn({_table_name, table_spec}) -> Map.has_key?(table_spec, :projection) end)
+      |> Stream.map(fn({table_name, table_spec}) -> {to_string(table_name), table_spec.projection} end)
+      |> Enum.into(%{})
+
+    Enum.each(
+      projected_tables,
+      fn({table_name, projection}) ->
+        Postgrex.query!(conn, create_view_sql(table_name, projection, projected_tables), [])
+      end
+    )
+  end
+
+  defp create_view_sql(table_name, projection, projected_tables) do
+    to_string([
+      "CREATE VIEW projections.#{table_name} AS ",
+      "SELECT #{uid_column(projection, projected_tables)} AS #{projection.user_id_alias}, public.#{table_name}.* ",
+      "FROM public.#{table_name} ", inner_join(table_name, projection, projected_tables)
+    ])
+  end
+
+  defp inner_join(_table_name, nil, _projected_tables), do: ""
+  defp inner_join(table_name, projection, projected_tables) do
+    [
+      "INNER JOIN public.#{projection.table} ",
+      "ON public.#{table_name}.#{projection.foreign_key} = public.#{projection.table}.#{projection.primary_key} ",
+      inner_join(projection.table, Map.get(projected_tables, projection.table), projected_tables)
+    ]
+  end
+
+  defp uid_column(projection, projected_tables) do
+    case Map.fetch(projected_tables, projection.table) do
+      :error -> "public.#{projection.table}.#{projection.primary_key}"
+      {:ok, projection} -> uid_column(projection, projected_tables)
+    end
   end
 end
