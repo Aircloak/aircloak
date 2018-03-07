@@ -16,10 +16,7 @@ defmodule CentralWeb.LicenseController do
 
   def create(conn, %{"license" => params}) do
     case Service.License.create(conn.assigns.customer, params) do
-      {:ok, _} ->
-        conn
-        |> put_flash(:info, "License created")
-        |> redirect(to: customer_license_path(conn, :index, conn.assigns.customer.id))
+      {:ok, _} -> redirect_to_index(conn, "License created")
       {:error, changeset} -> render_index(conn, changeset)
     end
   end
@@ -42,9 +39,7 @@ defmodule CentralWeb.LicenseController do
     with {:ok, license} <- Service.License.get(conn.assigns.customer, id), \
       {:ok, _} <- Service.License.update(license, params)
     do
-      conn
-      |> put_flash(:info, "License updated")
-      |> redirect(to: customer_license_path(conn, :index, conn.assigns.customer.id))
+      redirect_to_index(conn, "License updated")
     else
       :not_found -> not_found(conn)
       {:error, changeset} -> render(conn, "edit.html", license_id: id, changeset: changeset)
@@ -54,10 +49,7 @@ defmodule CentralWeb.LicenseController do
   def revoke(conn, %{"license_id" => id}) do
     with {:ok, license} <- Service.License.get(conn.assigns.customer, id) do
       {:ok, _} = Service.License.revoke(license)
-
-      conn
-      |> put_flash(:info, "License revoked")
-      |> redirect(to: customer_license_path(conn, :index, conn.assigns.customer.id))
+      redirect_to_index(conn, "License revoked")
     else
       :not_found -> not_found(conn)
     end
@@ -67,6 +59,12 @@ defmodule CentralWeb.LicenseController do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  def redirect_to_index(conn, flash) do
+    conn
+    |> put_flash(:info, flash)
+    |> redirect(to: customer_license_path(conn, :index, conn.assigns.customer.id))
+  end
 
   defp render_index(conn, license_changeset) do
     customer = conn.assigns.customer
