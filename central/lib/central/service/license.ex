@@ -46,6 +46,8 @@ defmodule Central.Service.License do
 
   def revoke(license), do: __MODULE__.update(license, %{revoked: true})
 
+  def restore(license), do: __MODULE__.update(license, %{revoked: false})
+
   defp for_customer_id(query, customer_id), do:
     where(query, [q], q.customer_id == ^customer_id)
 

@@ -64,6 +64,15 @@ defmodule Central.Service.License.Test do
     assert %{revoked: true} = Repo.get(Schemas.License, license.id)
   end
 
+  test "restoring a license", %{customer: customer} do
+    {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 1, auto_renew: true})
+
+    {:ok, license} = License.revoke(license)
+    {:ok, _} = License.restore(license)
+
+    assert %{revoked: false} = Repo.get(Schemas.License, license.id)
+  end
+
   defp setup_customer(_) do
     {:ok, %{customer: create_customer()}}
   end

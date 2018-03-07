@@ -49,6 +49,13 @@ defmodule CentralWeb.LicenseController do
     end)
   end
 
+  def restore(conn, %{"license_id" => id}) do
+    with_license(conn, id, fn(license) ->
+      {:ok, _} = Service.License.restore(license)
+      redirect_to_index(conn, "License restored")
+    end)
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
