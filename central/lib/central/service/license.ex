@@ -40,6 +40,8 @@ defmodule Central.Service.License do
   def expires_at(license), do:
     license |> base_time() |> Timex.shift(days: license.length_in_days)
 
+  def revoke(license), do: :ok
+
   defp format_export(license), do:
     %{
       id: license.id,

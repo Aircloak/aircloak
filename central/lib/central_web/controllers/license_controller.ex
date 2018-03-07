@@ -51,6 +51,18 @@ defmodule CentralWeb.LicenseController do
     end
   end
 
+  def revoke(conn, %{"license_id" => id}) do
+    with {:ok, license} <- Service.License.get(conn.assigns.customer, id) do
+      :ok = Service.License.revoke(license)
+
+      conn
+      |> put_flash(:info, "License revoked")
+      |> redirect(to: customer_license_path(conn, :index, conn.assigns.customer.id))
+    else
+      :not_found -> not_found(conn)
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
