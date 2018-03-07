@@ -9,6 +9,7 @@
       <th>Name</th>
       <th>Length (days)</th>
       <th>Auto-renew</th>
+      <th>Expires</th>
       <th></th>
     </tr>
   </thead>
@@ -25,6 +26,7 @@
           <% end %>
           <div class="sr-only"><%= license.auto_renew %>u</div>
         </td>
+        <td><%= expires(license) %></td>
         <td>
           <a class="btn btn-xs btn-primary" download="<%= license.name %>.lic"
             href="<%= customer_license_path(@conn, :show, @customer.id, license.id) %>">

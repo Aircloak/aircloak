@@ -37,14 +37,18 @@ defmodule Central.Service.License do
     end
   end
 
+  def expires_at(license), do:
+    license |> base_time() |> Timex.shift(days: license.length_in_days)
+
   defp format_export(license), do:
-    %{id: license.id, customer_id: license.customer_id, expires_at: expires_at(license)}
+    %{
+      id: license.id,
+      customer_id: license.customer_id,
+      expires_at: expires_at(license) |> Timex.format!("{ISO:Basic:Z}")
+    }
 
   defp for_customer_id(query, customer_id), do:
     where(query, [q], q.customer_id == ^customer_id)
-
-  defp expires_at(license), do:
-    base_time(license) |> Timex.shift(days: license.length_in_days) |> Timex.format!("{ISO:Basic:Z}")
 
   defp base_time(%{auto_renew: true}), do: Timex.now()
   defp base_time(%{inserted_at: inserted_at}), do: inserted_at
