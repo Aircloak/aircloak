@@ -1,10 +1,12 @@
 defmodule Central.Service.License do
   alias Central.{Repo, Schemas.License}
+  alias Ecto.Changeset
   import Ecto.Query
 
   def create(customer, params), do:
     customer
     |> Ecto.build_assoc(:licenses)
+    |> Changeset.change(revoked: false)
     |> License.changeset(params)
     |> Repo.insert()
 
@@ -40,7 +42,7 @@ defmodule Central.Service.License do
   def expires_at(license), do:
     license |> base_time() |> Timex.shift(days: license.length_in_days)
 
-  def revoke(license), do: :ok
+  def revoke(license), do: __MODULE__.update(license, %{revoked: true})
 
   defp format_export(license), do:
     %{

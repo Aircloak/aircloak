@@ -7,6 +7,7 @@ defmodule Central.License.Test do
     name: "Some name",
     length_in_days: 12,
     auto_renew: true,
+    revoked: false,
   }
   @invalid_attrs %{}
 

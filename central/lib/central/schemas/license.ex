@@ -11,13 +11,14 @@ defmodule Central.Schemas.License do
     field :name, :string
     field :length_in_days, :integer
     field :auto_renew, :boolean
+    field :revoked, :boolean
 
     belongs_to :customer, Customer
 
     timestamps()
   end
 
-  @required_fields ~w(name length_in_days auto_renew)a
+  @required_fields ~w(name length_in_days auto_renew revoked)a
   @optional_fields ~w()a
 
 
