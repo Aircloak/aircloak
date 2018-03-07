@@ -54,7 +54,7 @@ defmodule Cloak.Query.Anonymizer do
   @spec new([MapSet.t | %{String.t => any}]) :: t
   def new([_|_] = layers), do:
     %{
-      rngs: layers |> noise_layers_to_seeds() |> Enum.map(&build_rng/1),
+      rngs: noise_layers_to_rngs(layers),
       layers: layers,
     }
 
@@ -226,11 +226,11 @@ defmodule Cloak.Query.Anonymizer do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp noise_layers_to_seeds(layers) do
+  defp noise_layers_to_rngs(layers) do
     layers
     |> Enum.map(&crypto_sum/1)
-    |> Enum.uniq_by(&(&1))
-    |> Enum.map(&binary_to_seed/1)
+    |> Enum.uniq()
+    |> Enum.map(&build_rng/1)
   end
 
   defp crypto_sum(%MapSet{} = values), do: do_crypto_sum(values)
@@ -246,13 +246,11 @@ defmodule Cloak.Query.Anonymizer do
     end)
   end
 
-  defp compute_hash(data), do: :crypto.hash(:sha256, :erlang.term_to_binary(data))
+  defp compute_hash(data), do:
+    :crypto.hash(:md4, :erlang.term_to_binary(data))
 
-  defp binary_to_seed(binary) do
-    <<left :: bitstring - size(128), right :: bitstring - size(128)>> = binary
-    <<a::32, b::32, c::64>> = :crypto.exor(left, right)
-    {a, b, c}
-  end
+  defp build_rng(<<a::32, b::32, c::64>>), do:
+    :rand.seed(:exsplus, {a, b, c})
 
   # Produces random number with given mean. The number is a sum of the mean and a gaussian-distributed 0-mean number
   # with the given standard deviation _per noise layer_.
@@ -413,8 +411,6 @@ defmodule Cloak.Query.Anonymizer do
   defp sum_noise_sigmas(sigma1, nil), do: sigma1
   defp sum_noise_sigmas(nil, sigma2), do: sigma2
   defp sum_noise_sigmas(sigma1, sigma2), do: :math.sqrt(sigma1 * sigma1 + sigma2 * sigma2)
-
-  defp build_rng(seed), do: :rand.seed(:exsplus, seed)
 
   defp get_group_count(anonymizer, mean_sigma) do
     {min_count, max_count} = config(:group_limits)
