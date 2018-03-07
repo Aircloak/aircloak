@@ -22,44 +22,45 @@ defmodule CentralWeb.LicenseController do
   end
 
   def show(conn, %{"id" => id}) do
-    with {:ok, license} <- Service.License.get(conn.assigns.customer, id) do
+    with_license(conn, id, fn(license) ->
       send_resp(conn, 200, Service.License.export(license))
-    else
-      :not_found -> not_found(conn)
-    end
+    end)
   end
 
   def edit(conn, %{"id" => id}) do
-    case Service.License.get(conn.assigns.customer, id) do
-      {:ok, license} -> render(conn, "edit.html", license_id: id, changeset: Service.License.empty_changeset(license))
-      :not_found -> not_found(conn)
-    end
+    with_license(conn, id, fn(license) ->
+      render(conn, "edit.html", license_id: id, changeset: Service.License.empty_changeset(license))
+    end)
   end
 
   def update(conn, %{"id" => id, "license" => params}) do
-    with {:ok, license} <- Service.License.get(conn.assigns.customer, id), \
-      {:ok, _} <- Service.License.update(license, params)
-    do
-      redirect_to_index(conn, "License updated")
-    else
-      :not_found -> not_found(conn)
-      {:error, changeset} -> render(conn, "edit.html", license_id: id, changeset: changeset)
-    end
+    with_license(conn, id, fn(license) ->
+      case Service.License.update(license, params) do
+        {:error, changeset} -> render(conn, "edit.html", license_id: id, changeset: changeset)
+        {:ok, _} -> redirect_to_index(conn, "License updated")
+      end
+    end)
   end
 
   def revoke(conn, %{"license_id" => id}) do
-    with {:ok, license} <- Service.License.get(conn.assigns.customer, id) do
+    with_license(conn, id, fn(license) ->
       {:ok, _} = Service.License.revoke(license)
       redirect_to_index(conn, "License revoked")
-    else
-      :not_found -> not_found(conn)
-    end
+    end)
   end
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  def with_license(conn, id, processor) do
+    with {:ok, license} <- Service.License.get(conn.assigns.customer, id) do
+      processor.(license)
+    else
+      :not_found -> not_found(conn)
+    end
+  end
 
   def redirect_to_index(conn, flash) do
     conn
