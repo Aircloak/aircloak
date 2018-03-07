@@ -51,6 +51,7 @@ defmodule Central.Service.License do
   defp for_customer_id(query, customer_id), do:
     where(query, [q], q.customer_id == ^customer_id)
 
+  defp base_time(%{revoked: true, inserted_at: inserted_at}), do: inserted_at
   defp base_time(%{auto_renew: true}), do: Timex.now()
   defp base_time(%{inserted_at: inserted_at}), do: inserted_at
 

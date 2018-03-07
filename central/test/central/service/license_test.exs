@@ -56,6 +56,19 @@ defmodule Central.Service.License.Test do
     assert Timex.diff(expires_at, creation, :days) <= 11
   end
 
+  test "revoked auto-renew licenses are treated as non-auto-renew", %{customer: customer, public_key: public_key} do
+    {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
+    creation = Timex.now() |> Timex.shift(days: -100)
+
+    {:ok, license} = License.revoke(license)
+    text = License.export(%{license | inserted_at: creation})
+
+    assert {:ok, %{"expires_at" => expires_at}} = decode(text, public_key)
+    assert {:ok, expires_at} = Timex.parse(expires_at, "{ISO:Basic}")
+    assert Timex.diff(expires_at, creation, :days) >= 9
+    assert Timex.diff(expires_at, creation, :days) <= 11
+  end
+
   test "revoking a license", %{customer: customer} do
     {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 1, auto_renew: true})
 
