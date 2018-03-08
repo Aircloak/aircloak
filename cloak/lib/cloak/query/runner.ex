@@ -116,7 +116,9 @@ defmodule Cloak.Query.Runner do
   def handle_info({:EXIT, runner_pid, reason}, %{runner: %Task{pid: runner_pid}} = state) do
     state =
       if reason != :normal do
-        send_result_report(state, {:error, "Unknown cloak error."})
+        state
+        |> update_in([:log], &[&1, crash_log(reason), ?\n])
+        |> send_result_report({:error, "Unknown cloak error."})
       else
         state
       end
@@ -173,6 +175,11 @@ defmodule Cloak.Query.Runner do
   # -------------------------------------------------------------------
   # Result reporting
   # -------------------------------------------------------------------
+
+  defp crash_log({_exit_reason, stacktrace}) when is_list(stacktrace) do
+    Exception.format_exit({"filtered exit reason", Cloak.LoggerTranslator.filtered_stacktrace(stacktrace)})
+  end
+  defp crash_log(_other_reason), do: "query process crashed"
 
   defp send_result_report(state, result) do
     result =

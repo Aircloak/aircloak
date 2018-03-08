@@ -23,6 +23,18 @@ defmodule Cloak.LoggerTranslator do
   def install(), do:
     Logger.add_translator({__MODULE__, :translate})
 
+  @doc "Removes sensitive information from the stacktrace."
+  @spec filtered_stacktrace(any) :: iodata
+  def filtered_stacktrace(stacktrace) when is_list(stacktrace), do:
+    stacktrace
+    |> Enum.map(fn
+      {_mod, _fun, arity, _location} = entry when is_integer(arity) -> entry
+      {mod, fun, args, location} when is_list(args) -> {mod, fun, length(args), location}
+      _other -> nil
+    end)
+    |> Enum.filter(&(&1 != nil))
+  def filtered_stacktrace(_), do: []
+
 
   # -------------------------------------------------------------------
   ## Logger translator callbacks
@@ -76,14 +88,4 @@ defmodule Cloak.LoggerTranslator do
 
   defp filter_reason({_exception, stacktrace}), do:
     {"filtered", filtered_stacktrace(stacktrace)}
-
-  defp filtered_stacktrace(stacktrace) when is_list(stacktrace), do:
-    stacktrace
-    |> Enum.map(fn
-      {_mod, _fun, arity, _location} = entry when is_integer(arity) -> entry
-      {mod, fun, args, location} when is_list(args) -> {mod, fun, length(args), location}
-      _other -> nil
-    end)
-    |> Enum.filter(&(&1 != nil))
-  defp filtered_stacktrace(_), do: []
 end
