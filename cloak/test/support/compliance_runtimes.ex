@@ -55,7 +55,7 @@ defmodule Compliance.Runtime do
     |> Enum.split_with(fn({_, measurements}) -> length(measurements) > @min_measurements end)
 
     max_value = Enum.reduce(measurements, 1, fn({_data_source, dm}, acc) -> max(acc, percentile(dm, 95)) end)
-    scale_fn = fn(val) -> trunc(val * @graph_width / max_value) end
+    scale_fn = fn(val) -> trunc(val * (@graph_width - 1) / max_value) end
 
     IO.puts ""
     print_header(max_value, "(max 95th percentile)")
