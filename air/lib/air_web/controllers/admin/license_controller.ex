@@ -16,7 +16,7 @@ defmodule AirWeb.Admin.LicenseController do
   # Actions
   # -------------------------------------------------------------------
 
-  def edit(conn, params) do
+  def edit(conn, _params) do
     render(conn, "edit.html")
   end
 end

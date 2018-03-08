@@ -25,6 +25,10 @@ defmodule AirWeb.Router do
     plug AirWeb.Plug.Session.Authenticated
   end
 
+  pipeline :validate_license do
+    plug AirWeb.Plug.ValidateLicense
+  end
+
   scope "/auth", AirWeb do
     pipe_through [:browser, :anonymous_only] # Use the default browser stack
 
@@ -33,7 +37,7 @@ defmodule AirWeb.Router do
   end
 
   scope "/", AirWeb, private: %{context: :http} do
-    pipe_through [:browser, :browser_auth]
+    pipe_through [:browser, :browser_auth, :validate_license]
 
     get "/", DataSourceController, :redirect_to_last_used
 
