@@ -76,6 +76,12 @@ defmodule Cloak.Query.Runner do
     end
   end
 
+  @doc "Sends the query-specific log entry to the query runner."
+  @spec send_log_entry(String.t, Logger.level, Logger.message, Logger.Formatter.time, Keyword.t) :: :ok
+  def send_log_entry(query_id, level, message, timestamp, metadata) do
+    GenServer.cast(worker_name(query_id), {:send_log_entry, level, message, timestamp, metadata})
+  end
+
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -94,6 +100,9 @@ defmodule Cloak.Query.Runner do
       start_time: :erlang.monotonic_time(:milli_seconds),
       execution_time: nil,
       features: nil,
+      log_format: Logger.Formatter.compile(Application.get_env(:logger, :console)[:format]),
+      log_metadata: Application.get_env(:logger, :console)[:metadata],
+      log: [],
       # We're starting the runner as a direct child.
       # This GenServer will wait for the runner to return or crash. Such approach allows us to
       # detect a failure no matter how the query fails (even if the runner process is for example killed).
@@ -130,6 +139,15 @@ defmodule Cloak.Query.Runner do
     {:noreply, state}
 
   @impl GenServer
+  def handle_cast({:send_log_entry, level, message, timestamp, metadata}, state) do
+    metadata = metadata |> Keyword.take(state.log_metadata) |> Keyword.delete(:query_id)
+    state =
+      update_in(
+        state.log,
+        &[&1, Logger.Formatter.format(state.log_format, level, message, timestamp, metadata)]
+      )
+    {:noreply, state}
+  end
   def handle_cast({:stop_query, reason}, %{runner: task} = state) do
     Task.shutdown(task)
     Logger.warn("Asked to stop query. Reason: #{inspect reason}")
@@ -160,6 +178,7 @@ defmodule Cloak.Query.Runner do
     result =
       result
       |> format_result(state)
+      |> Map.put(:log, to_string(state.log))
       |> Map.put(:query_id, state.query_id)
       |> Map.put(:execution_time, :erlang.monotonic_time(:milli_seconds) - state.start_time)
 
