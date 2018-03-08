@@ -29,6 +29,7 @@ defmodule Air.Service.DebugExport do
       views: View.user_views_map(user, query.data_source_id),
       tables: query.data_source.tables |> Poison.decode!() |> Aircloak.atomize_keys(),
       result: Query.buckets(query, :all) |> Poison.encode!(pretty: true),
+      log: query.result["log"] || ""
     }
   end
 end

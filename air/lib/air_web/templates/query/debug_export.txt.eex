@@ -48,3 +48,9 @@ Export by <%= get_in(@data, [:metadata, :user]) %> (<%= get_in(@data, [:metadata
 
 
 <%= get_in(@data, [:result]) %>
+
+
+<%= banner("LOG", "=") %>
+
+
+<%= get_in(@data, [:log]) %>

@@ -271,6 +271,7 @@ defmodule Air.Service.Query do
       "error" => error_text(result),
       "info" => result[:info],
       "row_count" => result.row_count || 0,
+      "log" => result[:log] || ""
     }
 
     changeset =

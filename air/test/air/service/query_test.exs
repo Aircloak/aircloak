@@ -187,6 +187,7 @@ defmodule Air.Service.QueryTest do
         "row_count" => 10,
         "error" => nil,
         "types" => ["some types"],
+        "log" => "",
       }
 
       assert Query.buckets(query, :all) == [%{"occurrences" => 10, "row" => [1, 1]}]
