@@ -79,7 +79,8 @@ defmodule CentralWeb.LicenseController do
     customer = conn.assigns.customer
     licenses =
       Service.License.for_customer(customer)
-      |> Enum.sort_by(fn(license) -> {license.revoked, license.inserted_at} end)
+      |> Enum.sort_by(& NaiveDateTime.to_iso8601(&1.inserted_at), &Kernel.>/2)
+      |> Enum.sort_by(& &1.revoked)
 
     render(conn, "index.html", changeset: license_changeset, customer: customer, licenses: licenses)
   end
