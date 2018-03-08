@@ -90,6 +90,8 @@ defmodule AirWeb.Router do
     get "/central/download_export/:export_id", CentralController, :download_export
 
     get "/warnings", WarningsController, :index
+
+    resources "/license", LicenseController, only: [:edit, :update], singleton: true
   end
 
   scope "/onboarding", AirWeb.Onboarding, as: :onboarding do
