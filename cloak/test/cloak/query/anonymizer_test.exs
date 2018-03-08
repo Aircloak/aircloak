@@ -117,8 +117,8 @@ defmodule Cloak.Query.AnonimyzerTest do
     assert anonymizer1.rngs == anonymizer2.rngs
   end
 
-  test "min/max/median sanity check" do
-    data = [1, 1, -10, 40, 2, 5, 6, 6, 7, 10, 10, -2, 12]
+  test "min/max/median/avg sanity check" do
+    data = [1, -1, -10, 40, 2, 5, 6, 6, 7, 10, 10, -2, 12, -6, 7, 6, 1, 9]
     anonymizer = Anonymizer.new([MapSet.new()])
     min = Anonymizer.min(anonymizer, Enum.map(data, &{:min, &1}))
     max = Anonymizer.max(anonymizer, Enum.map(data, &{:max, &1}))
