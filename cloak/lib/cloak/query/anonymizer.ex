@@ -34,7 +34,7 @@ defmodule Cloak.Query.Anonymizer do
 
   @type t :: %{
     rngs: rng_state,
-    layers: [MapSet.t | %{}],
+    hashes: [MapSet.t],
   }
 
   import Kernel, except: [max: 2]
@@ -51,12 +51,19 @@ defmodule Cloak.Query.Anonymizer do
   Such types ensure that the values in the noise layers are unique without the need to check
   that again if the calling code already keeps the values in such a structure.
   """
-  @spec new([MapSet.t | %{String.t => any}]) :: t
-  def new([_|_] = layers), do:
-    %{
-      rngs: noise_layers_to_rngs(layers),
-      layers: layers,
-    }
+  @spec new([MapSet.t]) :: t
+  def new([_|_] = layers) do
+    hashes = Enum.map(layers, &hash_layer/1)
+    rngs = build_rngs_from_hashes(hashes)
+    %{rngs: rngs, hashes: hashes}
+  end
+
+  @spec from_hashes_list([[MapSet.t]]) :: t
+  def from_hashes_list(hashes_list) do
+    hashes = Enum.reduce(hashes_list, &merge_hashed_layers/2)
+    rngs = build_rngs_from_hashes(hashes)
+    %{rngs: rngs, hashes: hashes}
+  end
 
   @doc """
   Returns true if the passed bucket size is sufficiently large to be reported.
@@ -226,31 +233,29 @@ defmodule Cloak.Query.Anonymizer do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp noise_layers_to_rngs(layers) do
-    layers
-    |> Enum.map(&crypto_sum/1)
-    |> Enum.uniq()
-    |> Enum.map(&build_rng/1)
-  end
+  defp crypto_sum(hashes), do:
+    # since the list is not sorted, using `xor` (which is commutative) will get us consistent results
+    Enum.reduce(hashes, compute_hash(config(:salt)), &:crypto.exor/2)
 
-  defp crypto_sum(%MapSet{} = values), do: do_crypto_sum(values)
-  defp crypto_sum(%{} = values), do: values |> Map.keys() |> do_crypto_sum()
+  defp hash_layer(%MapSet{} = layer), do:
+    MapSet.new(layer, &compute_hash/1)
 
-  defp do_crypto_sum(unique_values) do
-    unique_values
-    |> Enum.reduce(compute_hash(config(:salt)), fn (value, accumulator) ->
-      value
-      |> compute_hash()
-      # since the list is not sorted, using `xor` (which is commutative) will get us consistent results
-      |> :crypto.exor(accumulator)
+  defp merge_hashed_layers(layer1, layer2), do:
+    Stream.zip(layer1, layer2)
+    |> Enum.map(fn ({hash1, hash2}) ->
+      MapSet.union(hash1, hash2)
     end)
-  end
 
   defp compute_hash(data), do:
     :crypto.hash(:md4, :erlang.term_to_binary(data))
 
-  defp build_rng(<<a::32, b::32, c::64>>), do:
+  defp build_rng(hashes) do
+    <<a::32, b::32, c::64>> = crypto_sum(hashes)
     :rand.seed(:exsplus, {a, b, c})
+  end
+
+  defp build_rngs_from_hashes(hashes), do:
+    hashes |> Enum.map(&build_rng/1) |> Enum.uniq()
 
   # Produces random number with given mean. The number is a sum of the mean and a gaussian-distributed 0-mean number
   # with the given standard deviation _per noise layer_.
