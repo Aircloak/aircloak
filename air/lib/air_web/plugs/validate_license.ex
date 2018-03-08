@@ -20,7 +20,7 @@ defmodule AirWeb.Plug.ValidateLicense do
         conn
       else
         conn
-        |> Phoenix.Controller.redirect(to: AirWeb.Router.Helpers.admin_license_path(conn, :edit))
+        |> Phoenix.Controller.redirect(to: AirWeb.Router.Helpers.admin_license_invalid_path(conn, :invalid))
         |> halt()
       end
     end

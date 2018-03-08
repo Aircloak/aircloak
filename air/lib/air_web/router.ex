@@ -95,7 +95,9 @@ defmodule AirWeb.Router do
 
     get "/warnings", WarningsController, :index
 
-    resources "/license", LicenseController, only: [:edit, :update], singleton: true
+    resources "/license", LicenseController, only: [:edit, :update], singleton: true do
+      get "/invalid", LicenseController, :invalid, as: :invalid
+    end
   end
 
   scope "/onboarding", AirWeb.Onboarding, as: :onboarding do
