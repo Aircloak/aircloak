@@ -35,19 +35,23 @@
     </div>
     <div class="panel-body">
       <ul>
-        <li>Name is just for our identification purposes.</li>
+        <li><strong>Name</strong> is just for our identification purposes.</li>
         <li>
-          Length determines how long air can work without contacting central. For systems without central access or
-          where auto-renew is set to false this will decide the duration of the license's validity
-          <strong>from the moment of creation</strong>.
+          <strong>Length in days</strong> determines how long air can work without contacting central. For systems
+          without central access or where auto-renew is set to false this will decide the duration of the license's
+          validity <strong>from the moment of creation</strong>.
         </li>
         <li>
-          An auto-renew license is effectively valid forever. Air will periodically contact central to get an updated
-          version of the license.
+          An <strong>auto-renew</strong> license is effectively <strong>valid forever</strong>. Air will periodically
+          contact central to get an updated version of the license.
         </li>
         <li>
           A warning will show up in air if the license is to expire in the next two weeks. You should make auto-renew
           licenses longer than that. But probably not too long, so that they eventually expire if revoked.
+        </li>
+        <li>
+          If you <strong>revoke</strong> a license it will behave like non-auto-renew, but will retain all of its
+          attributes if you want to <strong>restore</strong> it later.
         </li>
       </ul>
     </div>
