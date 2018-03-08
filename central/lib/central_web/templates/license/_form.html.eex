@@ -10,7 +10,7 @@
 
         <div class="form-group">
           <label for="length_in_days">Length in days</label>
-          <%= text_input(form, :length_in_days, class: "form-control") %>
+          <%= text_input(form, :length_in_days, type: "number", min: 1, class: "form-control") %>
           <%= error_tag(form, :length_in_days) %>
         </div>
 
