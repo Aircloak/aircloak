@@ -62,3 +62,5 @@ config :air, :central,
   max_reconnect_interval: :timer.minutes(5)
 
 config :air, :auto_aircloak_export, true
+
+config :air, :license, public_key: "priv/config/license_key_public.pem",

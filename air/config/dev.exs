@@ -56,3 +56,5 @@ config :air, Air.Repo,
   loggers: []
 
 config :air, :auto_aircloak_export, true
+
+config :air, :license, public_key: "priv/mock_key_public.pem"

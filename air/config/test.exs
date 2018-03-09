@@ -21,3 +21,5 @@ config :air, Air.PsqlServer,
   port: 8433
 
 config :air, :auto_aircloak_export, false
+
+config :air, :license, public_key: "priv/mock_key_public.pem"
