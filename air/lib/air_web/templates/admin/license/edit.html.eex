@@ -10,8 +10,14 @@
         Your Aircloak license is valid until <strong><%= license_expiry() %></strong>. The system will attempt to renew
         it automatically via the Internet before it expires.
       <% else %>
-        Your Aircloak license has <strong>expired</strong> and the system was unable to renew it automatically via the
-        Internet. Please upload a license file obtained from Aircloak. Please contact
+        <%= if not license_present?() do %>
+          You have not uploaded an Aircloak license yet.
+        <% else %>
+          Your Aircloak license has <strong>expired</strong> and the system was unable to renew it automatically via the
+          Internet.
+        <% end %>
+
+        Please upload a license file obtained from Aircloak. Please contact
         <a href="mailto:support@aircloak.com">support@aircloak.com</a> if you don't have a license file.
       <% end %>
     </div>

@@ -17,8 +17,8 @@ defmodule Air.Service.License.FSM do
     |> Enum.find({:error, state}, & &1)
   end
 
-  def license_present?(:no_license), do: false
-  def license_present?(_), do: true
+  def present?(:no_license), do: false
+  def present?(_), do: true
 
   def valid?(state), do: Timex.diff(expiry(state), Timex.now()) > 0
 

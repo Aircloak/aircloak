@@ -9,6 +9,8 @@ defmodule Air.Service.License do
 
   def expiry(), do: GenServer.call(__MODULE__, :expiry)
 
+  def present?(), do: GenServer.call(__MODULE__, :present?)
+
   @impl GenServer
   def init(_), do:
     {:ok, %{public_key: load_public_key!(), fsm: FSM.initial()}}
@@ -22,6 +24,8 @@ defmodule Air.Service.License do
   end
   def handle_call(:expiry, _from, state), do:
     {:reply, FSM.expiry(state.fsm), state}
+  def handle_call(:present?, _from, state), do:
+    {:reply, FSM.present?(state.fsm), state}
 
   defp load_public_key!() do
     root_path = Application.app_dir(:air)

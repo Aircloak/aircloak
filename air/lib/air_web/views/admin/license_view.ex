@@ -4,7 +4,9 @@ defmodule AirWeb.Admin.LicenseView do
 
   alias Air.Service.License
 
-  def license_valid?(), do: License.valid?()
+  defp license_valid?(), do: License.valid?()
 
-  def license_expiry(), do: License.expiry()
+  defp license_expiry(), do: License.expiry()
+
+  defp license_present?(), do: License.present?()
 end
