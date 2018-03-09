@@ -15,6 +15,7 @@ defmodule AirWeb.QueryView do
     String.duplicate(delimeter, @banner_initial) <> " " <> word <> " " <>
       String.duplicate(delimeter, max(0, @banner_length - @banner_initial - 2 - String.length(word)))
 
+  def print_rows([]), do: ""
   def print_rows(data) do
     cleaned_data = data
     |> Enum.map(fn(raw_row) ->

@@ -80,7 +80,7 @@ defmodule Cloak.ResultSender do
   defp encode_result(result) do
     {:ok,
       result
-      |> Map.take([:query_id, :columns, :features, :error, :cancelled, :info, :execution_time])
+      |> Map.take([:query_id, :columns, :features, :error, :cancelled, :info, :execution_time, :log])
       |> Map.put(:chunks, encode_chunks(result))
       |> Map.put(:row_count, row_count(result[:rows]))
     }

@@ -76,6 +76,16 @@ defmodule Cloak.Query.Runner do
     end
   end
 
+  @doc "Sends the query-specific log entry to the query runner."
+  @spec send_log_entry(String.t, Logger.level, Logger.message, Logger.Formatter.time, Keyword.t) :: :ok
+  def send_log_entry(query_id, level, message, timestamp, metadata) do
+    {:via, Registry, {registry_name, registered_alias}} = worker_name(query_id)
+    case Registry.lookup(registry_name, registered_alias) do
+      [{pid, _}] -> send(pid, {:send_log_entry, level, message, timestamp, metadata})
+      _ -> :ok
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -94,6 +104,9 @@ defmodule Cloak.Query.Runner do
       start_time: :erlang.monotonic_time(:milli_seconds),
       execution_time: nil,
       features: nil,
+      log_format: Logger.Formatter.compile(Application.get_env(:logger, :console)[:format]),
+      log_metadata: Application.get_env(:logger, :console)[:metadata],
+      log: [],
       # We're starting the runner as a direct child.
       # This GenServer will wait for the runner to return or crash. Such approach allows us to
       # detect a failure no matter how the query fails (even if the runner process is for example killed).
@@ -107,7 +120,9 @@ defmodule Cloak.Query.Runner do
   def handle_info({:EXIT, runner_pid, reason}, %{runner: %Task{pid: runner_pid}} = state) do
     state =
       if reason != :normal do
-        send_result_report(state, {:error, "Unknown cloak error."})
+        state
+        |> update_in([:log], &[&1, crash_log(reason), ?\n])
+        |> send_result_report({:error, "Unknown cloak error."})
       else
         state
       end
@@ -126,6 +141,9 @@ defmodule Cloak.Query.Runner do
   end
   def handle_info({runner_ref, result}, %{runner: %Task{ref: runner_ref}} = state), do:
     {:noreply, send_result_report(state, result)}
+  def handle_info({:send_log_entry, level, message, timestamp, metadata}, state) do
+    {:noreply, add_log_entry(state, level, message, timestamp, metadata)}
+  end
   def handle_info(_other, state), do:
     {:noreply, state}
 
@@ -156,6 +174,20 @@ defmodule Cloak.Query.Runner do
   # Result reporting
   # -------------------------------------------------------------------
 
+  defp add_log_entry(state, level, message, timestamp, metadata) do
+    metadata = metadata |> Keyword.take(state.log_metadata) |> Keyword.delete(:query_id)
+
+    update_in(
+      state.log,
+      &[&1, Logger.Formatter.format(state.log_format, level, message, timestamp, metadata)]
+    )
+  end
+
+  defp crash_log({_exit_reason, stacktrace}) when is_list(stacktrace) do
+    Exception.format_exit({"filtered exit reason", Cloak.LoggerTranslator.filtered_stacktrace(stacktrace)})
+  end
+  defp crash_log(_other_reason), do: "query process crashed"
+
   defp send_result_report(state, result) do
     result =
       result
@@ -164,6 +196,8 @@ defmodule Cloak.Query.Runner do
       |> Map.put(:execution_time, :erlang.monotonic_time(:milli_seconds) - state.start_time)
 
     log_completion(result)
+    state = flush_log_messages(state)
+    result = Map.put(result, :log, to_string(state.log))
 
     ResultSender.send_result(state.result_target, %{result | execution_time: timing_attack_safe(result.execution_time)})
     |> case do
@@ -184,6 +218,25 @@ defmodule Cloak.Query.Runner do
     })
 
     Logger.info("JSON_LOG #{message}")
+  end
+
+  defp flush_log_messages(state) do
+    # producing one final log message, so we know when to stop flushing messages
+    Logger.info("query finished")
+    do_flush_log_messages(state)
+  end
+
+  defp do_flush_log_messages(state) do
+    # We're trying to flush all the log messages, stopping at the very last message logged in flush_log_messages/1.
+    receive do
+      {:send_log_entry, level, message, timestamp, metadata} ->
+        message = to_string(message)
+        state = add_log_entry(state, level, message, timestamp, metadata)
+        if String.starts_with?(message, "query finished"), do: state, else: do_flush_log_messages(state)
+    after 500 ->
+      # To avoid blocking the query execution for too long, we'll timeout quickly if no new log messages arrive.
+      state
+    end
   end
 
   defp format_result({:ok, result, info}, _state), do:
