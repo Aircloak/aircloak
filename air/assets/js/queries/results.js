@@ -20,9 +20,9 @@ export const Results = (props: {results: Result[], numberFormat: NumberFormat, d
             debugModeEnabled={props.debugModeEnabled}
           />);
         case "cancelled":
-          return <Cancelled key={result.id} {...result} />;
+          return <Cancelled key={result.id} debugModeEnabled={props.debugModeEnabled} {...result} />;
         case "error":
-          return <Error key={result.id} {...result} />;
+          return <Error key={result.id} debugModeEnabled={props.debugModeEnabled} {...result} />;
         default:
           return <PendingResult key={result.id} result={result} />;
       }
