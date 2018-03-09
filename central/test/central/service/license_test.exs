@@ -90,10 +90,8 @@ defmodule Central.Service.License.Test do
     {:ok, %{customer: create_customer()}}
   end
 
-  defp create_customer(name \\ "Some name") do
-    {:ok, customer} = Repo.insert(Schemas.Customer.changeset(%Schemas.Customer{}, %{name: name}))
-    customer
-  end
+  defp create_customer(name \\ "Some name"), do:
+    Repo.insert!(Schemas.Customer.changeset(%Schemas.Customer{}, %{name: name}))
 
   defp read_public_key(_) do
     root_path = Application.app_dir(:central)
