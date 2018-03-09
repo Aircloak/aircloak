@@ -71,9 +71,9 @@ defmodule Cloak.LoggerTranslator do
       Exception.format_stacktrace(filtered_stacktrace(error_stacktrace))
     ]
 
-  def filter_message(:error, :format, message), do:
+  defp filter_message(:error, :format, message), do:
     filter_error_message(message)
-  def filter_message(_level, _kind, _message), do:
+  defp filter_message(_level, _kind, _message), do:
     :skip
 
   defp filter_error_message({'** Generic server ' ++ _ = msg, [name, _last, _state, reason]}), do:
