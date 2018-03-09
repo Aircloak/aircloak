@@ -221,12 +221,18 @@ defmodule Cloak.Query.Runner do
   end
 
   defp flush_log_messages(state) do
-    # We're trying to flush all the log messages, stopping at the very last message (which starts with JSON_LOG).
+    # producing one final log message, so we know when to stop flushing messages
+    Logger.info("query finished")
+    do_flush_log_messages(state)
+  end
+
+  defp do_flush_log_messages(state) do
+    # We're trying to flush all the log messages, stopping at the very last message logged in flush_log_messages/1.
     receive do
       {:send_log_entry, level, message, timestamp, metadata} ->
         message = to_string(message)
         state = add_log_entry(state, level, message, timestamp, metadata)
-        if message =~ ~r/^JSON_LOG.*/, do: state, else: flush_log_messages(state)
+        if String.starts_with?(message, "query finished"), do: state, else: do_flush_log_messages(state)
     after 500 ->
       # To avoid blocking the query execution for too long, we'll timeout quickly if no new log messages arrive.
       state
