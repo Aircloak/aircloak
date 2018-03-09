@@ -136,7 +136,9 @@ defmodule Cloak.DataSource.ConnectionPool do
   end
 
   defp raise_client_error(:exit, {{%Cloak.Query.ExecutionError{} = error, _}, _}, _stacktrace), do: raise(error)
-  defp raise_client_error(:error, error, stacktrace), do: reraise(error, stacktrace)
+  defp raise_client_error(:error, %{__exception__: true} = error, stacktrace), do: reraise(error, stacktrace)
+  defp raise_client_error(:error, error, stacktrace)
+    when is_atom(error) or is_binary(error), do: reraise(error, stacktrace)
   defp raise_client_error(type, error, stacktrace) do
     :erlang.raise(
       :error,
