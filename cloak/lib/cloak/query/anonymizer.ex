@@ -233,7 +233,7 @@ defmodule Cloak.Query.Anonymizer do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp crypto_sum(hashes), do:
+  defp crypto_sum(%MapSet{} = hashes), do:
     # since the list is not sorted, using `xor` (which is commutative) will get us consistent results
     Enum.reduce(hashes, compute_hash(config(:salt)), &:crypto.exor/2)
 
@@ -255,7 +255,7 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   defp build_rngs_from_hashes(hashes), do:
-    hashes |> Enum.map(&build_rng/1) |> Enum.uniq()
+    hashes |> Enum.uniq() |> Enum.map(&build_rng/1)
 
   # Produces random number with given mean. The number is a sum of the mean and a gaussian-distributed 0-mean number
   # with the given standard deviation _per noise layer_.
