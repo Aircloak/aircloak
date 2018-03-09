@@ -79,7 +79,11 @@ defmodule Cloak.Query.Runner do
   @doc "Sends the query-specific log entry to the query runner."
   @spec send_log_entry(String.t, Logger.level, Logger.message, Logger.Formatter.time, Keyword.t) :: :ok
   def send_log_entry(query_id, level, message, timestamp, metadata) do
-    GenServer.cast(worker_name(query_id), {:send_log_entry, level, message, timestamp, metadata})
+    {:via, Registry, {registry_name, registered_alias}} = worker_name(query_id)
+    case Registry.lookup(registry_name, registered_alias) do
+      [{pid, _}] -> send(pid, {:send_log_entry, level, message, timestamp, metadata})
+      _ -> :ok
+    end
   end
 
 
@@ -137,19 +141,13 @@ defmodule Cloak.Query.Runner do
   end
   def handle_info({runner_ref, result}, %{runner: %Task{ref: runner_ref}} = state), do:
     {:noreply, send_result_report(state, result)}
+  def handle_info({:send_log_entry, level, message, timestamp, metadata}, state) do
+    {:noreply, add_log_entry(state, level, message, timestamp, metadata)}
+  end
   def handle_info(_other, state), do:
     {:noreply, state}
 
   @impl GenServer
-  def handle_cast({:send_log_entry, level, message, timestamp, metadata}, state) do
-    metadata = metadata |> Keyword.take(state.log_metadata) |> Keyword.delete(:query_id)
-    state =
-      update_in(
-        state.log,
-        &[&1, Logger.Formatter.format(state.log_format, level, message, timestamp, metadata)]
-      )
-    {:noreply, state}
-  end
   def handle_cast({:stop_query, reason}, %{runner: task} = state) do
     Task.shutdown(task)
     Logger.warn("Asked to stop query. Reason: #{inspect reason}")
@@ -176,6 +174,15 @@ defmodule Cloak.Query.Runner do
   # Result reporting
   # -------------------------------------------------------------------
 
+  defp add_log_entry(state, level, message, timestamp, metadata) do
+    metadata = metadata |> Keyword.take(state.log_metadata) |> Keyword.delete(:query_id)
+
+    update_in(
+      state.log,
+      &[&1, Logger.Formatter.format(state.log_format, level, message, timestamp, metadata)]
+    )
+  end
+
   defp crash_log({_exit_reason, stacktrace}) when is_list(stacktrace) do
     Exception.format_exit({"filtered exit reason", Cloak.LoggerTranslator.filtered_stacktrace(stacktrace)})
   end
@@ -185,11 +192,12 @@ defmodule Cloak.Query.Runner do
     result =
       result
       |> format_result(state)
-      |> Map.put(:log, to_string(state.log))
       |> Map.put(:query_id, state.query_id)
       |> Map.put(:execution_time, :erlang.monotonic_time(:milli_seconds) - state.start_time)
 
     log_completion(result)
+    state = flush_log_messages(state)
+    result = Map.put(result, :log, to_string(state.log))
 
     ResultSender.send_result(state.result_target, %{result | execution_time: timing_attack_safe(result.execution_time)})
     |> case do
@@ -210,6 +218,19 @@ defmodule Cloak.Query.Runner do
     })
 
     Logger.info("JSON_LOG #{message}")
+  end
+
+  defp flush_log_messages(state) do
+    # We're trying to flush all the log messages, stopping at the very last message (which starts with JSON_LOG).
+    receive do
+      {:send_log_entry, level, message, timestamp, metadata} ->
+        message = to_string(message)
+        state = add_log_entry(state, level, message, timestamp, metadata)
+        if message =~ ~r/^JSON_LOG.*/, do: state, else: flush_log_messages(state)
+    after 500 ->
+      # To avoid blocking the query execution for too long, we'll timeout quickly if no new log messages arrive.
+      state
+    end
   end
 
   defp format_result({:ok, result, info}, _state), do:
