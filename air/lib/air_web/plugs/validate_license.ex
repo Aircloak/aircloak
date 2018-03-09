@@ -10,18 +10,14 @@ defmodule AirWeb.Plug.ValidateLicense do
   def init(opts), do: opts
 
   if Mix.env() != :test do
-    import Plug.Conn
-
-    alias Air.Service.License
-
     @impl Plug
     def call(conn, _opts) do
-      if License.valid?() do
+      if Air.Service.License.valid?() do
         conn
       else
         conn
         |> Phoenix.Controller.redirect(to: AirWeb.Router.Helpers.admin_license_invalid_path(conn, :invalid))
-        |> halt()
+        |> Plug.Conn.halt()
       end
     end
   else
