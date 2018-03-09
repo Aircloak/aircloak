@@ -84,7 +84,8 @@ defmodule Compliance.Runtime do
   end
 
   defp percentile(measurements, percentilerank) do
-    index = length(measurements) * percentilerank / 100 |> trunc()
+    num_measurements = length(measurements)
+    index = trunc(num_measurements * percentilerank / 100)
     Enum.at(measurements, index)
   end
 
