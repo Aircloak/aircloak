@@ -11,6 +11,7 @@ defmodule Air.Supervisor do
         Air.Service.View,
         Air.Service.Query,
         Air.Service.Central,
+        Air.Service.License,
         Air.ApiTokenTimestampUpdater,
         AirWeb.Endpoint,
         AirWeb.MonitoringEndpoint,

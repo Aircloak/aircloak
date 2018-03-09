@@ -20,7 +20,7 @@ defmodule Air.Service.License.FSM do
   def license_present?(:no_license), do: false
   def license_present?(_), do: true
 
-  def expired?(state), do: Timex.diff(expiry(state), Timex.now()) < 0
+  def valid?(state), do: Timex.diff(expiry(state), Timex.now()) > 0
 
   def expiry(:no_license), do: Timex.now() |> Timex.shift(years: -1)
   def expiry(state), do: state.expires_at

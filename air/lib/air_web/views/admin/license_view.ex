@@ -6,5 +6,5 @@ defmodule AirWeb.Admin.LicenseView do
 
   def license_valid?(), do: License.valid?()
 
-  def license_expiry(), do: Liense.expiry()
+  def license_expiry(), do: License.expiry()
 end

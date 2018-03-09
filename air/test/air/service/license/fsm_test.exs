@@ -7,7 +7,7 @@ defmodule Air.Service.License.FSM.Test do
     state = FSM.initial()
 
     refute FSM.license_present?(state)
-    assert FSM.expired?(state)
+    refute FSM.valid?(state)
     assert Timex.diff(FSM.expiry(state), Timex.now()) < 0
     assert is_nil(FSM.customer_id(state))
     assert is_nil(FSM.license_id(state))
@@ -23,7 +23,7 @@ defmodule Air.Service.License.FSM.Test do
       {:ok, state} = FSM.initial() |> FSM.load(public_key, valid_license)
 
       assert FSM.license_present?(state)
-      refute FSM.expired?(state)
+      assert FSM.valid?(state)
       assert Timex.diff(FSM.expiry(state), Timex.now()) > 0
       assert 1 == FSM.customer_id(state)
       assert 18 == FSM.license_id(state)
@@ -41,7 +41,7 @@ defmodule Air.Service.License.FSM.Test do
       {:ok, state} = FSM.initial() |> FSM.load(public_key, expired_license)
 
       assert FSM.license_present?(state)
-      assert FSM.expired?(state)
+      refute FSM.valid?(state)
       assert Timex.diff(FSM.expiry(state), Timex.now()) < 0
       assert 1 == FSM.customer_id(state)
       assert 19 == FSM.license_id(state)
