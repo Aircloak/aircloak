@@ -1,0 +1,4 @@
+<h2>Edit license</h2>
+
+<%= render("_form.html", conn: @conn, changeset: @changeset, customer: @customer, button: "Save",
+  action: customer_license_path(@conn, :update, @customer.id, @license_id)) %>

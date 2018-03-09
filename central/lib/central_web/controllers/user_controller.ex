@@ -64,13 +64,7 @@ defmodule CentralWeb.UserController do
 
   defp load_user(conn, _) do
     case Service.User.get(conn.params["id"]) do
-      {:error, :not_found} ->
-        conn
-        |> put_layout(false)
-        |> put_status(:not_found)
-        |> put_view(CentralWeb.ErrorView)
-        |> render("404.html")
-        |> halt()
+      {:error, :not_found} -> not_found(conn)
       {:ok, user} -> assign(conn, :user, user)
     end
   end

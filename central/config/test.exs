@@ -18,3 +18,7 @@ config :central, Central.Repo, pool: Ecto.Adapters.SQL.Sandbox
 config :comeonin, :pbkdf2_rounds, 1
 
 config :central, :simulate_elastic?, true
+
+config :central, :license,
+  public_key: "priv/mock_key_public.pem",
+  private_key: "priv/mock_key_private.pem"

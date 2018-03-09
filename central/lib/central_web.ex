@@ -36,6 +36,15 @@ defmodule Central.Web do
 
       import CentralWeb.Router.Helpers
       import CentralWeb.Gettext
+
+      defp not_found(conn) do
+        conn
+        |> put_layout(false)
+        |> put_status(:not_found)
+        |> put_view(CentralWeb.ErrorView)
+        |> render("404.html")
+        |> halt()
+      end
     end
   end
 
