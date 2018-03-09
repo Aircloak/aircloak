@@ -34,7 +34,7 @@ defmodule Cloak.Query.Anonymizer do
 
   @type t :: %{
     rngs: rng_state,
-    hashes: [MapSet.t],
+    hashed_noise_layers: [MapSet.t],
   }
 
   import Kernel, except: [max: 2]
@@ -53,16 +53,16 @@ defmodule Cloak.Query.Anonymizer do
   """
   @spec new([MapSet.t]) :: t
   def new([_|_] = layers) do
-    hashes = Enum.map(layers, &hash_layer/1)
-    rngs = build_rngs_from_hashes(hashes)
-    %{rngs: rngs, hashes: hashes}
+    hashed_noise_layers = Enum.map(layers, &hash_layer/1)
+    rngs = build_rngs_from_hashed_noise_layers(hashed_noise_layers)
+    %{rngs: rngs, hashed_noise_layers: hashed_noise_layers}
   end
 
-  @spec from_hashes_list([[MapSet.t]]) :: t
-  def from_hashes_list(hashes_list) do
-    hashes = Enum.reduce(hashes_list, &merge_hashed_layers/2)
-    rngs = build_rngs_from_hashes(hashes)
-    %{rngs: rngs, hashes: hashes}
+  @spec from_hashed_noise_layers_list([[MapSet.t]]) :: t
+  def from_hashed_noise_layers_list(hashed_noise_layers_list) do
+    hashed_noise_layers = Enum.reduce(hashed_noise_layers_list, &merge_hashed_layers/2)
+    rngs = build_rngs_from_hashed_noise_layers(hashed_noise_layers)
+    %{rngs: rngs, hashed_noise_layers: hashed_noise_layers}
   end
 
   @doc """
@@ -233,9 +233,9 @@ defmodule Cloak.Query.Anonymizer do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp crypto_sum(%MapSet{} = hashes), do:
+  defp crypto_sum(%MapSet{} = hashed_noise_layers), do:
     # since the list is not sorted, using `xor` (which is commutative) will get us consistent results
-    Enum.reduce(hashes, compute_hash(config(:salt)), &:crypto.exor/2)
+    Enum.reduce(hashed_noise_layers, compute_hash(config(:salt)), &:crypto.exor/2)
 
   defp hash_layer(%MapSet{} = layer), do:
     MapSet.new(layer, &compute_hash/1)
@@ -249,13 +249,13 @@ defmodule Cloak.Query.Anonymizer do
   defp compute_hash(data), do:
     :crypto.hash(:md4, :erlang.term_to_binary(data))
 
-  defp build_rng(hashes) do
-    <<a::32, b::32, c::64>> = crypto_sum(hashes)
+  defp build_rng(hashed_noise_layers) do
+    <<a::32, b::32, c::64>> = crypto_sum(hashed_noise_layers)
     :rand.seed(:exsplus, {a, b, c})
   end
 
-  defp build_rngs_from_hashes(hashes), do:
-    hashes |> Enum.uniq() |> Enum.map(&build_rng/1)
+  defp build_rngs_from_hashed_noise_layers(hashed_noise_layers), do:
+    hashed_noise_layers |> Enum.uniq() |> Enum.map(&build_rng/1)
 
   # Produces random number with given mean. The number is a sum of the mean and a gaussian-distributed 0-mean number
   # with the given standard deviation _per noise layer_.

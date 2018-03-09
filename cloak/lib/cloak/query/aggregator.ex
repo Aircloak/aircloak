@@ -205,10 +205,10 @@ defmodule Cloak.Query.Aggregator do
   defp process_grouped_low_count_rows(groups) do
     groups = Enum.map(groups, &collapse_grouped_rows/1)
     groups
-    |> Stream.map(fn ({_values, hashes_list, _user_rows}) -> hashes_list end)
-    |> Task.async_stream(&Anonymizer.from_hashes_list/1, timeout: :infinity, ordered: true)
+    |> Stream.map(fn ({_values, hashed_noise_layers_list, _user_rows}) -> hashed_noise_layers_list end)
+    |> Task.async_stream(&Anonymizer.from_hashed_noise_layers_list/1, timeout: :infinity, ordered: true)
     |> Stream.zip(groups)
-    |> Enum.map(fn ({{:ok, anonymizer}, {values, _hashes_list, user_rows}}) ->
+    |> Enum.map(fn ({{:ok, anonymizer}, {values, _hashed_noise_layers_list, user_rows}}) ->
       {values, anonymizer, user_rows}
     end)
   end
@@ -222,8 +222,9 @@ defmodule Cloak.Query.Aggregator do
           Enum.zip(columns1, columns2) |> Enum.map(&merge_accumulators/1)
         end)
       end)
-    hashes_list = Enum.map(grouped_rows, fn ({_values, anonymizer, _users_rows}) -> anonymizer.hashes end)
-    {values, hashes_list, user_rows}
+    hashed_noise_layers_list =
+      Enum.map(grouped_rows, fn ({_values, anonymizer, _users_rows}) -> anonymizer.hashed_noise_layers end)
+    {values, hashed_noise_layers_list, user_rows}
   end
 
   @spec aggregate_groups([group], Query.t) :: [DataSource.row]
