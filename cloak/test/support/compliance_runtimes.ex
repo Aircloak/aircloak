@@ -54,11 +54,11 @@ defmodule Compliance.Runtime do
     end)
     |> Enum.split_with(fn({_, measurements}) -> length(measurements) > @min_measurements end)
 
-    max_value = Enum.reduce(measurements, 1, fn({_data_source, dm}, acc) -> max(acc, Enum.max(dm)) end)
-    scale_fn = fn(val) -> trunc(val * @graph_width / max_value) end
+    max_value = Enum.reduce(measurements, 1, fn({_data_source, dm}, acc) -> max(acc, percentile(dm, 95)) end)
+    scale_fn = fn(val) -> trunc(val * (@graph_width - 1) / max_value) end
 
     IO.puts ""
-    print_header(max_value)
+    print_header(max_value, "(max 95th percentile)")
 
     measurements
     |> Enum.map(& stats_for_data_source(&1, scale_fn))
@@ -78,32 +78,32 @@ defmodule Compliance.Runtime do
     IO.puts ""
   end
 
-  defp print_header(max_value) do
-    max_value = to_string(max_value) <> "ms"
-    IO.puts "0ms" <> repeat(" ", @graph_width - 3 - String.length(max_value)) <> max_value
+  defp print_header(max_value, additional_text) do
+    max_value_label = to_string(max_value) <> "ms #{additional_text}"
+    IO.puts "0ms" <> repeat(" ", @graph_width - 3 - String.length(max_value_label)) <> max_value_label
+  end
+
+  defp percentile(measurements, percentilerank) do
+    num_measurements = length(measurements)
+    index = trunc(num_measurements * percentilerank / 100)
+    Enum.at(measurements, index)
   end
 
   defp stats_for_data_source({data_source_name, measurements}, scale_fn) do
-    num_measurements = length(measurements)
-    fifth_percentile_index = num_measurements * 5 / 100 |> trunc()
-    ninty_fifth_percentile_index = num_measurements * 95 / 100 |> trunc()
-    ninty_nine_percentile_index = num_measurements * 99 / 100 |> trunc()
-    median_index = num_measurements / 2 |> trunc()
-
     %{
       # Values for reporting
-      fifth_percentile: Enum.at(measurements, fifth_percentile_index),
-      median: Enum.at(measurements, median_index),
-      ninty_fifth_percentile: Enum.at(measurements, ninty_fifth_percentile_index),
-      ninty_nine_percentile: Enum.at(measurements, ninty_nine_percentile_index),
+      fifth_percentile: percentile(measurements, 5),
+      median: percentile(measurements, 50),
+      ninty_fifth_percentile: percentile(measurements, 95),
+      ninty_nine_percentile: percentile(measurements, 99),
       min: hd(measurements),
       max: List.last(measurements),
-      number_measurements: num_measurements,
+      number_measurements: length(measurements),
 
       # Values for rendering a graph
-      graph_lower_bound: Enum.at(measurements, fifth_percentile_index) |> scale_fn.(),
-      graph_upper_bound: Enum.at(measurements, ninty_fifth_percentile_index) |> scale_fn.(),
-      graph_middle: Enum.at(measurements, median_index) |> scale_fn.(),
+      graph_lower_bound: percentile(measurements, 5) |> scale_fn.(),
+      graph_upper_bound: percentile(measurements, 95) |> scale_fn.(),
+      graph_middle: percentile(measurements, 50) |> scale_fn.(),
 
       title: data_source_name,
     }
