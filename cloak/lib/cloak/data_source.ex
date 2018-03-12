@@ -166,18 +166,16 @@ defmodule Cloak.DataSource do
   @spec select!(Query.t, result_processor) :: processed_result
   def select!(%{data_source: data_source} = select_query, result_processor) do
     driver = data_source.driver
-    Logger.debug("Connecting to `#{data_source.name}` ...")
-    connection = driver.connect!(data_source.parameters)
-    try do
-      Logger.debug("Selecting data ...")
-      case driver.select(connection, select_query, result_processor) do
-        {:ok, processed_result} -> processed_result
-        {:error, reason} -> raise_error(reason)
+    Cloak.DataSource.DbConnection.with_connection(
+      data_source,
+      fn(connection) ->
+        Logger.debug("Selecting data ...")
+        case driver.select(connection, select_query, result_processor) do
+          {:ok, processed_result} -> processed_result
+          {:error, reason} -> raise_error(reason)
+        end
       end
-    after
-      Logger.debug("Disconnecting ...")
-      driver.disconnect(connection)
-    end
+    )
   end
 
   @doc "Raises an error when something goes wrong during data processing."
