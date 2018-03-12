@@ -26,7 +26,7 @@ defmodule Air.Service.WarningsTest do
   test "broken data source produce warnings" do
     start_cloak_channel(@data_sources_with_errors)
 
-    assert hd(Warnings.problems()).resource.name == @data_source_name
+    assert hd(data_source_problems()).resource.name == @data_source_name
     assert problem_with_description(~r/broken/).resource.name == @data_source_name
   end
 
@@ -35,7 +35,7 @@ defmodule Air.Service.WarningsTest do
     @data_sources
     |> add_group()
     |> add_user()
-    assert Warnings.problems() == []
+    assert data_source_problems() == []
   end
 
   test "warning when data source has no groups" do
@@ -110,4 +110,7 @@ defmodule Air.Service.WarningsTest do
       ^ref -> pid
     end
   end
+
+  defp data_source_problems(), do:
+    Warnings.problems() |> Enum.filter(&match?(%{resource: %DataSource{}}, &1))
 end
