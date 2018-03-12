@@ -4,7 +4,7 @@ defmodule Air.Service.DataSource do
   alias Aircloak.ChildSpec
   alias Air.Schemas.{DataSource, Group, Query, User, ResultChunk}
   alias Air.{PsqlServer.Protocol, Repo}
-  alias Air.Service.{Version, Cloak, View}
+  alias Air.Service.{Version, License, Cloak, View}
   alias Air.Service
   alias AirWeb.Socket.{Cloak.MainChannel, Frontend.UserChannel}
   import Ecto.Query, only: [from: 2]
@@ -379,10 +379,10 @@ defmodule Air.Service.DataSource do
   end
 
   defp on_available_cloak(data_source_id, user, fun) do
-    if Version.expired?() do
-      {:error, :expired}
-    else
-      do_on_available_cloak(data_source_id, user, fun)
+    cond do
+      Version.expired?() -> {:error, :expired}
+      not License.valid?() -> {:error, :license_invalid}
+      true -> do_on_available_cloak(data_source_id, user, fun)
     end
   end
 

@@ -3,7 +3,11 @@ defmodule Air.Service.License do
 
   alias __MODULE__.FSM
 
-  def valid?(), do: GenServer.call(__MODULE__, :valid?)
+  if Mix.env() == :test do
+    def valid?(), do: true
+  else
+    def valid?(), do: GenServer.call(__MODULE__, :valid?)
+  end
 
   def load(text), do: GenServer.call(__MODULE__, {:load, text})
 
