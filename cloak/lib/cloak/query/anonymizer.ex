@@ -246,8 +246,10 @@ defmodule Cloak.Query.Anonymizer do
       MapSet.union(hash1, hash2)
     end)
 
-  defp compute_hash(data), do:
-    :crypto.hash(:md4, :erlang.term_to_binary(data))
+  defp compute_hash(data) do
+    <<a::16-binary, b::16-binary>> = :crypto.hash(:sha256, :erlang.term_to_binary(data))
+    :crypto.exor(a, b)
+  end
 
   defp build_rng(hashed_noise_layers) do
     <<a::32, b::32, c::64>> = crypto_sum(hashed_noise_layers)
