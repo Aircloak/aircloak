@@ -20,9 +20,6 @@ config :air, AirWeb.Endpoint,
   pubsub: [name: Air.PubSub,
            adapter: Phoenix.PubSub.PG2]
 
-config :air, Air.Service.Version,
-  version_expiry: File.read!("../RELEASE_EXPIRY_DATE") |> String.trim() |> Date.from_iso8601!()
-
 config :air, AirWeb.MonitoringEndpoint,
   check_origin: false,
   http: [port: 8081],

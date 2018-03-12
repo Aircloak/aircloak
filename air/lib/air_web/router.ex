@@ -8,12 +8,10 @@ defmodule AirWeb.Router do
     plug :fetch_flash
     plug :protect_from_forgery
     plug :put_secure_browser_headers
-    plug AirWeb.Plug.Expiration
   end
 
   pipeline :api do
     plug :accepts, ["json"]
-    plug AirWeb.Plug.Expiration
     plug AirWeb.Plug.Session.ApiAuth, access: :api
   end
 

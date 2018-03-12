@@ -1,5 +1,0 @@
-<%= unless Air.Service.Version.expiry_status == :valid do %>
-  <div class="expiry-bar <%= Air.Service.Version.expiry_status %>">
-    <%= expiry_message() %>
-  </div>
-<% end %>

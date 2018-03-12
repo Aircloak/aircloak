@@ -22,7 +22,7 @@ defmodule Air.PsqlServer do
   end
 
   alias Air.PsqlServer.{Protocol, RanchServer, ConnectionRegistry}
-  alias Air.Service.{User, DataSource, Version}
+  alias Air.Service.{User, DataSource}
   require Logger
   require Aircloak.DeployConfig
 
@@ -246,9 +246,6 @@ defmodule Air.PsqlServer do
     {:error, "Data source is not available!"}
   defp do_decode_cloak_query_result({:error, :license_invalid}), do:
     {:error, "Your Aircloak license has expired. Please contact your administrator."}
-  defp do_decode_cloak_query_result({:error, :expired}), do:
-    {:error, "Your Aircloak installation is running version #{AirWeb.SharedView.version()} " <>
-      "which expired on #{Version.expiry_date()}."}
   defp do_decode_cloak_query_result({:ok, %{error: error}}), do:
     {:error, error}
   defp do_decode_cloak_query_result({:ok, query_result}), do:
