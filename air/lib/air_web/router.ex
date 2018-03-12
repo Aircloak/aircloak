@@ -95,9 +95,7 @@ defmodule AirWeb.Router do
 
     get "/warnings", WarningsController, :index
 
-    resources "/license", LicenseController, only: [:edit, :update], singleton: true do
-      get "/invalid", LicenseController, :invalid, as: :invalid
-    end
+    resources "/license", LicenseController, only: [:edit, :update], singleton: true
   end
 
   scope "/onboarding", AirWeb.Onboarding, as: :onboarding do
@@ -109,7 +107,7 @@ defmodule AirWeb.Router do
   end
 
   scope "/api", private: %{context: :api} do
-    pipe_through [:api]
+    pipe_through [:api, :validate_license]
 
     resources "/queries", AirWeb.QueryController, only: [:create, :show]
     post "/queries/:id/cancel", AirWeb.QueryController, :cancel
