@@ -25,8 +25,12 @@ defmodule AirWeb.Router do
     plug AirWeb.Plug.Session.Authenticated
   end
 
-  pipeline :validate_license do
-    plug AirWeb.Plug.ValidateLicense
+  pipeline :validate_license_browser do
+    plug AirWeb.Plug.ValidateLicense.Browser
+  end
+
+  pipeline :validate_license_api do
+    plug AirWeb.Plug.ValidateLicense.API
   end
 
   scope "/auth", AirWeb do
@@ -37,7 +41,7 @@ defmodule AirWeb.Router do
   end
 
   scope "/", AirWeb, private: %{context: :http} do
-    pipe_through [:browser, :browser_auth, :validate_license]
+    pipe_through [:browser, :browser_auth, :validate_license_browser]
 
     get "/", DataSourceController, :redirect_to_last_used
 
@@ -107,7 +111,7 @@ defmodule AirWeb.Router do
   end
 
   scope "/api", private: %{context: :api} do
-    pipe_through [:api, :validate_license]
+    pipe_through [:api, :validate_license_api]
 
     resources "/queries", AirWeb.QueryController, only: [:create, :show]
     post "/queries/:id/cancel", AirWeb.QueryController, :cancel
