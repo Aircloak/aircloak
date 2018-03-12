@@ -38,10 +38,10 @@ defmodule AirWeb.Admin.LicenseController do
 
 
   # -------------------------------------------------------------------
-  # Actions
+  # Helpers
   # -------------------------------------------------------------------
 
-  def redirect_to_edit(conn, flash_level, flash) do
+  defp redirect_to_edit(conn, flash_level, flash) do
     conn
     |> put_flash(flash_level, flash)
     |> redirect(to: admin_license_path(conn, :edit))
