@@ -7,83 +7,89 @@ defmodule Central.Service.License.Test do
   setup_all [:read_public_key]
   setup [:setup_customer]
 
-  test "returns no licenses for a customer when none exist", %{customer: customer} do
-    assert [] = License.for_customer(customer)
+  describe "creation and listing" do
+    test "returns no licenses for a customer when none exist", %{customer: customer} do
+      assert [] = License.for_customer(customer)
+    end
+
+    test "creates a license", %{customer: customer} do
+      {:ok, _} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
+      assert [%{name: "some license"}] = License.for_customer(customer)
+    end
+
+    test "returns no licenses for a customer when other customers have licenses", %{customer: customer} do
+      {:ok, _} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
+      assert [] = License.for_customer(create_customer("Some other guy"))
+    end
+
+    test "creating an invalid license", %{customer: customer}, do:
+      assert {:error, _} = License.create(customer, %{name: ""})
   end
 
-  test "creates a license", %{customer: customer} do
-    {:ok, _} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
-    assert [%{name: "some license"}] = License.for_customer(customer)
+  describe "export" do
+    test "exported license includes customer id", %{customer: customer, public_key: public_key} do
+      {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
+
+      text = License.export(license)
+
+      customer_id = customer.id
+      assert {:ok, %{"customer_id" => ^customer_id}} = decode(text, public_key)
+    end
+
+    test "exporting an auto-renew license", %{customer: customer, public_key: public_key} do
+      {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
+
+      text = License.export(license)
+
+      assert {:ok, %{"expires_at" => expires_at}} = decode(text, public_key)
+      assert {:ok, expires_at} = Timex.parse(expires_at, "{ISO:Basic}")
+      assert Timex.diff(expires_at, Timex.now(), :days) >= 9
+      assert Timex.diff(expires_at, Timex.now(), :days) <= 11
+    end
+
+    test "exporting a non-auto-renew license", %{customer: customer, public_key: public_key} do
+      {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: false})
+      creation = Timex.now() |> Timex.shift(days: -100)
+
+      text = License.export(%{license | inserted_at: creation})
+
+      assert {:ok, %{"expires_at" => expires_at}} = decode(text, public_key)
+      assert {:ok, expires_at} = Timex.parse(expires_at, "{ISO:Basic}")
+      assert Timex.diff(expires_at, creation, :days) >= 9
+      assert Timex.diff(expires_at, creation, :days) <= 11
+    end
   end
 
-  test "returns no licenses for a customer when other customers have licenses", %{customer: customer} do
-    {:ok, _} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
-    assert [] = License.for_customer(create_customer("Some other guy"))
-  end
+  describe "revocation" do
+    test "revoked auto-renew licenses are treated as non-auto-renew", %{customer: customer, public_key: public_key} do
+      {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
+      creation = Timex.now() |> Timex.shift(days: -100)
 
-  test "creating an invalid license", %{customer: customer}, do:
-    assert {:error, _} = License.create(customer, %{name: ""})
+      {:ok, license} = License.revoke(license)
+      text = License.export(%{license | inserted_at: creation})
 
-  test "exported license includes customer id", %{customer: customer, public_key: public_key} do
-    {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
+      assert {:ok, %{"expires_at" => expires_at}} = decode(text, public_key)
+      assert {:ok, expires_at} = Timex.parse(expires_at, "{ISO:Basic}")
+      assert Timex.diff(expires_at, creation, :days) >= 9
+      assert Timex.diff(expires_at, creation, :days) <= 11
+    end
 
-    text = License.export(license)
+    test "revoking a license", %{customer: customer} do
+      {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 1, auto_renew: true})
 
-    customer_id = customer.id
-    assert {:ok, %{"customer_id" => ^customer_id}} = decode(text, public_key)
-  end
+      {:ok, _} = License.revoke(license)
 
-  test "exporting an auto-renew license", %{customer: customer, public_key: public_key} do
-    {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
+      assert %{revoked: true} = Repo.get(Schemas.License, license.id)
+    end
 
-    text = License.export(license)
+    test "restoring a license", %{customer: customer} do
+      {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 1, auto_renew: true})
 
-    assert {:ok, %{"expires_at" => expires_at}} = decode(text, public_key)
-    assert {:ok, expires_at} = Timex.parse(expires_at, "{ISO:Basic}")
-    assert Timex.diff(expires_at, Timex.now(), :days) >= 9
-    assert Timex.diff(expires_at, Timex.now(), :days) <= 11
-  end
+      {:ok, license} = License.revoke(license)
+      {:ok, _} = License.restore(license)
 
-  test "exporting a non-auto-renew license", %{customer: customer, public_key: public_key} do
-    {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: false})
-    creation = Timex.now() |> Timex.shift(days: -100)
-
-    text = License.export(%{license | inserted_at: creation})
-
-    assert {:ok, %{"expires_at" => expires_at}} = decode(text, public_key)
-    assert {:ok, expires_at} = Timex.parse(expires_at, "{ISO:Basic}")
-    assert Timex.diff(expires_at, creation, :days) >= 9
-    assert Timex.diff(expires_at, creation, :days) <= 11
-  end
-
-  test "revoked auto-renew licenses are treated as non-auto-renew", %{customer: customer, public_key: public_key} do
-    {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
-    creation = Timex.now() |> Timex.shift(days: -100)
-
-    {:ok, license} = License.revoke(license)
-    text = License.export(%{license | inserted_at: creation})
-
-    assert {:ok, %{"expires_at" => expires_at}} = decode(text, public_key)
-    assert {:ok, expires_at} = Timex.parse(expires_at, "{ISO:Basic}")
-    assert Timex.diff(expires_at, creation, :days) >= 9
-    assert Timex.diff(expires_at, creation, :days) <= 11
-  end
-
-  test "revoking a license", %{customer: customer} do
-    {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 1, auto_renew: true})
-
-    {:ok, _} = License.revoke(license)
-
-    assert %{revoked: true} = Repo.get(Schemas.License, license.id)
-  end
-
-  test "restoring a license", %{customer: customer} do
-    {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 1, auto_renew: true})
-
-    {:ok, license} = License.revoke(license)
-    {:ok, _} = License.restore(license)
-
-    assert %{revoked: false} = Repo.get(Schemas.License, license.id)
+      assert %{revoked: false} = Repo.get(Schemas.License, license.id)
+    end
   end
 
   defp setup_customer(_) do
