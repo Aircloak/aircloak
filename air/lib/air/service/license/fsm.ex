@@ -9,7 +9,7 @@ defmodule Air.Service.License.FSM do
            {:ok, map} <- Poison.decode(plain_text),
            {:ok, license} <- unpack(map)
       do
-        {:ok, license}
+        {:ok, Map.put(license, :text, encrypted_license)}
       else
         _ -> nil
       end
@@ -30,6 +30,9 @@ defmodule Air.Service.License.FSM do
 
   def license_id(:no_license), do: nil
   def license_id(state), do: state.license_id
+
+  def text(:no_license), do: ""
+  def text(state), do: state.text
 
   defp unpack(%{"customer_id" => customer_id, "id" => license_id, "expires_at" => expires_at}) do
     case Timex.parse(expires_at, "{ISO:Basic}") do

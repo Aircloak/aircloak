@@ -11,6 +11,7 @@ defmodule Air.Service.License.FSM.Test do
     assert Timex.diff(FSM.expiry(state), Timex.now()) < 0
     assert is_nil(FSM.customer_id(state))
     assert is_nil(FSM.license_id(state))
+    assert "" = FSM.text(state)
   end
 
   describe "load" do
@@ -25,16 +26,19 @@ defmodule Air.Service.License.FSM.Test do
       assert FSM.present?(state)
       assert FSM.valid?(state)
       assert Timex.diff(FSM.expiry(state), Timex.now()) > 0
-      assert 1 == FSM.customer_id(state)
-      assert 18 == FSM.license_id(state)
+      assert 1 = FSM.customer_id(state)
+      assert 18 = FSM.license_id(state)
+      assert FSM.text(state) == valid_license
     end
 
     test "text contains multiple licenses, one of which is valid (used for rotating keys)",
       %{public_key: public_key, valid_license: valid_license}
     do
-      {:ok, state} = FSM.initial() |> FSM.load(public_key, invalid_license() <> "\n" <> valid_license)
+      license_text = invalid_license() <> "\n" <> valid_license
+      {:ok, state} = FSM.initial() |> FSM.load(public_key, license_text)
 
       assert FSM.present?(state)
+      assert FSM.text(state) == license_text
     end
 
     test "expired license", %{public_key: public_key, expired_license: expired_license} do
@@ -43,8 +47,9 @@ defmodule Air.Service.License.FSM.Test do
       assert FSM.present?(state)
       refute FSM.valid?(state)
       assert Timex.diff(FSM.expiry(state), Timex.now()) < 0
-      assert 1 == FSM.customer_id(state)
-      assert 19 == FSM.license_id(state)
+      assert 1 = FSM.customer_id(state)
+      assert 19 = FSM.license_id(state)
+      assert FSM.text(state) == expired_license
     end
 
     test "loading another license overwrites the previous one",
