@@ -92,6 +92,24 @@ defmodule Central.Service.License.Test do
     end
   end
 
+  describe "renewal" do
+    test "invalid license", do:
+      assert :error = IO.inspect(License.renew("invalid"))
+
+    test "valid license", %{customer: customer, public_key: public_key} do
+      {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 1, auto_renew: true})
+      old_text = License.export(license)
+      {:ok, new_text} = License.renew(old_text)
+
+      {:ok, %{"expires_at" => old_expires_at}} = decode(old_text, public_key)
+      {:ok, %{"expires_at" => new_expires_at}} = decode(new_text, public_key)
+      {:ok, old_expires_at} = Timex.parse(old_expires_at, "{ISO:Basic}")
+      {:ok, new_expires_at} = Timex.parse(new_expires_at, "{ISO:Basic}")
+
+      assert Timex.diff(new_expires_at, old_expires_at) > 0
+    end
+  end
+
   defp setup_customer(_) do
     {:ok, %{customer: create_customer()}}
   end

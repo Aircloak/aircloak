@@ -86,7 +86,10 @@ defmodule CentralWeb.Socket.Air.MainChannel do
     {:noreply, socket}
   end
   defp handle_air_call("renew_license", license_text, request_id, socket) do
-    respond_to_air(socket, request_id, License.renew(license_text))
+    case License.renew(license_text) do
+      {:ok, new_text} -> respond_to_air(socket, request_id, :ok, new_text)
+      :error -> respond_to_air(socket, request_id, :error)
+    end
     {:noreply, socket}
   end
 

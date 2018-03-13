@@ -1,7 +1,7 @@
 defmodule Central.Service.License do
   @moduledoc "Service module for working with licenses."
 
-  alias Central.{Repo, Schemas.License, Schemas.Customer}
+  alias Central.{Repo, Service, Schemas.License, Schemas.Customer}
   alias Ecto.Changeset
   import Ecto.Query
 
@@ -76,7 +76,19 @@ defmodule Central.Service.License do
   @spec restore(License.t) :: {:ok, License.t} | {:error, Changeset.t}
   def restore(license), do: __MODULE__.update(license, %{revoked: false})
 
-  def renew(text), do: :error
+  @doc "Renews the license given by text."
+  @spec renew(String.t) :: {:ok, String.t} | :error
+  def renew(text) do
+    with \
+         {:ok, %{customer_id: customer_id, license_id: license_id}} <- Aircloak.License.decrypt(public_key(), text),
+         {:ok, customer} <- Service.Customer.get(customer_id),
+         {:ok, license} <- get(customer, license_id)
+    do
+      {:ok, export(license)}
+    else
+      _ -> :error
+    end
+  end
 
 
   # -------------------------------------------------------------------
@@ -102,6 +114,9 @@ defmodule Central.Service.License do
 
   defp private_key(), do:
     Agent.get(__MODULE__, fn %{private_key: private_key} -> private_key end)
+
+  defp public_key(), do:
+    Agent.get(__MODULE__, fn %{public_key: public_key} -> public_key end)
 
   # -------------------------------------------------------------------
   # Supervision tree
