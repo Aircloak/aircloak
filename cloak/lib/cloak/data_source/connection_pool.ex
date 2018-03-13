@@ -118,7 +118,7 @@ defmodule Cloak.DataSource.ConnectionPool do
   defp on_connection(connection_owner, fun) do
     res =
       connection_owner
-      |> GenServer.call(:start_client_usage, :timer.minutes(1) + Driver.connect_timeout())
+      |> start_client_usage()
       |> fun.()
 
     # To avoid possible corrupt state, we're returning the connection back only on success.
@@ -133,6 +133,15 @@ defmodule Cloak.DataSource.ConnectionPool do
       stacktrace = System.stacktrace()
       Process.exit(connection_owner, :kill)
       raise_client_error(type, error, stacktrace)
+  end
+
+  defp start_client_usage(connection_owner) do
+    GenServer.call(connection_owner, :start_client_usage, :timer.minutes(1) + Driver.connect_timeout())
+  catch
+    # If this call fails, then we failed to connect to the database, so we're raising an informative exception.
+    # This prevents reporting "Unknown cloak error" when connecting to the database fails. Note that the real
+    # exit reason will still be properly included in the crash log of the connection owner process.
+    _type, _error -> Cloak.DataSource.raise_error("Failed connecting to the database")
   end
 
   defp raise_client_error(:exit, {{%Cloak.Query.ExecutionError{} = error, _}, _}, _stacktrace), do: raise(error)
