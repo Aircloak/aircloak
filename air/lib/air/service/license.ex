@@ -49,12 +49,12 @@ defmodule Air.Service.License do
          {:ok, text} <- state.fsm |> FSM.text() |> CentralClient.Socket.renew_license(),
          {:ok, fsm} <- FSM.load(state.fsm, state.public_key, text)
     do
+      save_to_db(text)
       {:noreply, %{state | fsm: fsm}}
     else
       _ -> {:noreply, state}
     end
   end
-
 
   defp load_public_key!() do
     root_path = Application.app_dir(:air)
