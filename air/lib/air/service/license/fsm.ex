@@ -2,19 +2,10 @@ defmodule Air.Service.License.FSM do
   def initial(), do: :no_license
 
   def load(state, public_key, encrypted_license) do
-    encrypted_license
-    |> String.split("\n")
-    |> Enum.map(fn(line) ->
-      with {:ok, plain_text} <- ExPublicKey.decrypt_public(line, public_key),
-           {:ok, map} <- Poison.decode(plain_text),
-           {:ok, license} <- unpack(map)
-      do
-        {:ok, Map.put(license, :text, encrypted_license)}
-      else
-        _ -> nil
-      end
-    end)
-    |> Enum.find({:error, state}, & &1)
+    case Aircloak.License.decrypt(public_key, encrypted_license) do
+      {:ok, license} -> {:ok, Map.put(license, :text, encrypted_license)}
+      :error -> {:error, state}
+    end
   end
 
   def present?(:no_license), do: false
@@ -33,12 +24,4 @@ defmodule Air.Service.License.FSM do
 
   def text(:no_license), do: ""
   def text(state), do: state.text
-
-  defp unpack(%{"customer_id" => customer_id, "id" => license_id, "expires_at" => expires_at}) do
-    case Timex.parse(expires_at, "{ISO:Basic}") do
-      {:ok, expires_at} -> {:ok, %{customer_id: customer_id, license_id: license_id, expires_at: expires_at}}
-      _ -> :error
-    end
-  end
-  defp unpack(_), do: :error
 end
