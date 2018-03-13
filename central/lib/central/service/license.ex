@@ -76,6 +76,8 @@ defmodule Central.Service.License do
   @spec restore(License.t) :: {:ok, License.t} | {:error, Changeset.t}
   def restore(license), do: __MODULE__.update(license, %{revoked: false})
 
+  def renew(text), do: :error
+
 
   # -------------------------------------------------------------------
   # Scopes

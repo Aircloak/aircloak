@@ -2,7 +2,7 @@ defmodule Air.Service.License do
   use GenServer
 
   alias __MODULE__.FSM
-  alias Air.{Repo, Schemas}
+  alias Air.{Repo, Schemas, CentralClient}
   import Ecto.Query
 
   if Mix.env() == :test do
@@ -16,6 +16,8 @@ defmodule Air.Service.License do
   def expiry(), do: GenServer.call(__MODULE__, :expiry)
 
   def present?(), do: GenServer.call(__MODULE__, :present?)
+
+  def renew(), do: GenServer.cast(__MODULE__, :renew)
 
   @impl GenServer
   def init(_) do
@@ -39,6 +41,20 @@ defmodule Air.Service.License do
     {:reply, FSM.expiry(state.fsm), state}
   def handle_call(:present?, _from, state), do:
     {:reply, FSM.present?(state.fsm), state}
+
+  @impl GenServer
+  def handle_cast(:renew, state) do
+    with \
+         true <- CentralClient.Socket.connected?(),
+         {:ok, text} <- state.fsm |> FSM.text() |> CentralClient.Socket.renew_license(),
+         {:ok, fsm} <- FSM.load(state.fsm, state.public_key, text)
+    do
+      {:noreply, %{state | fsm: fsm}}
+    else
+      _ -> {:noreply, state}
+    end
+  end
+
 
   defp load_public_key!() do
     root_path = Application.app_dir(:air)
