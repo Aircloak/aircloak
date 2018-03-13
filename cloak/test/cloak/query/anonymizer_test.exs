@@ -8,8 +8,8 @@ defmodule Cloak.Query.AnonimyzerTest do
   end
 
   test "sufficiently_large?" do
-    assert {true, _} = Anonymizer.new([MapSet.new()]) |> Anonymizer.sufficiently_large?(20)
-    assert {false, _} = Anonymizer.new([MapSet.new()]) |> Anonymizer.sufficiently_large?(2)
+    assert Anonymizer.new([MapSet.new()]) |> Anonymizer.sufficiently_large?(20)
+    refute Anonymizer.new([MapSet.new()]) |> Anonymizer.sufficiently_large?(2)
   end
 
   describe "aggregators return nil on too few users" do
@@ -117,8 +117,8 @@ defmodule Cloak.Query.AnonimyzerTest do
     assert anonymizer1.rngs == anonymizer2.rngs
   end
 
-  test "min/max/median sanity check" do
-    data = [1, 1, -10, 40, 2, 5, 6, 6, 7, 10, 10, -2, 12]
+  test "min/max/median/avg sanity check" do
+    data = [1, -1, -10, 40, 2, 5, 6, 6, 7, 10, 10, -2, 12, -6, 7, 6, 1, 9]
     anonymizer = Anonymizer.new([MapSet.new()])
     min = Anonymizer.min(anonymizer, Enum.map(data, &{:min, &1}))
     max = Anonymizer.max(anonymizer, Enum.map(data, &{:max, &1}))

@@ -162,7 +162,7 @@ defmodule Cloak.Query.Aggregator do
     Logger.debug("Initializing anonymizer ...")
     grouped_rows
     |> Stream.map(fn ({_property, {_users_rows, noise_layers}}) -> noise_layers end)
-    |> Task.async_stream(&Anonymizer.new/1, timeout: :infinity)
+    |> Task.async_stream(&Anonymizer.new/1, timeout: :infinity, ordered: true)
     |> Stream.zip(grouped_rows)
     |> Enum.map(fn ({{:ok, anonymizer}, {property, {users_rows, _noise_layers}}}) ->
       {property, anonymizer, users_rows}
@@ -172,52 +172,59 @@ defmodule Cloak.Query.Aggregator do
   defp low_users_count?({_values, anonymizer, users_rows}), do:
     low_users_count?(users_rows, anonymizer)
 
-  defp low_users_count?(count, anonymizer) when is_integer(count) do
-    {sufficiently_large?, _} = Anonymizer.sufficiently_large?(anonymizer, count)
-    not sufficiently_large?
-  end
+  defp low_users_count?(count, anonymizer) when is_integer(count), do:
+    not Anonymizer.sufficiently_large?(anonymizer, count)
   defp low_users_count?(values, anonymizer), do:
     values |> Enum.count() |> low_users_count?(anonymizer)
 
   @spec process_low_count_users([group], Query.t) :: [group]
   defp process_low_count_users(rows, query) do
     Logger.debug("Processing low count users ...")
-    {_low_count_rows, high_count_rows} =
-      query
-      |> Rows.group_expressions()
-      |> length()
-      |> Range.new(1)
-      # We first partition the buckets into low-count and high-count buckets.
-      # Then, starting from right to left, we censor each bucket value sequentially and merge corresponding buckets.
-      # We then split the merged buckets again. We keep the merged buckets that pass the low-count filter and
-      # repeat the process for the next column and the new set of low-count buckets.
-      # When we run out of bucket values, we drop the final low-count bucket, if any.
-      |> Enum.reduce(Enum.split_with(rows, &low_users_count?/1), fn (index, {low_count_rows, high_count_rows}) ->
-        {low_count_grouped_rows, high_count_grouped_rows} =
-          low_count_rows
-          |> Enum.group_by(fn ({values, _anonymizer, _users_rows}) -> List.replace_at(values, index - 1, :*) end)
-          |> Enum.map(&collapse_grouped_rows/1)
-          |> Enum.split_with(&low_users_count?/1)
-        {low_count_grouped_rows, high_count_grouped_rows ++ high_count_rows}
-      end)
+    bucket_size = query |> Rows.group_expressions() |> length()
+    # We first partition the buckets into low-count and high-count buckets.
+    # Then, starting from right to left, we censor each bucket value sequentially and merge corresponding buckets.
+    # We then split the merged buckets again. We keep the merged buckets that pass the low-count filter and
+    # repeat the process for the next column and the new set of low-count buckets.
+    # When we run out of bucket values, we drop the final low-count bucket, if any.
+    splitted_rows = Enum.split_with(rows, &low_users_count?/1)
+    {_low_count_rows, high_count_rows} = Enum.reduce(bucket_size..1, splitted_rows, &group_low_count_rows/2)
     high_count_rows
+  end
+
+  defp group_low_count_rows(column_index, {low_count_rows, high_count_rows}) do
+    {low_count_grouped_rows, high_count_grouped_rows} =
+      low_count_rows
+      |> Enum.group_by(fn ({values, _anonymizer, _users_rows}) ->
+        List.replace_at(values, column_index - 1, :*)
+      end)
+      |> process_grouped_low_count_rows()
+      |> Enum.split_with(&low_users_count?/1)
+    {low_count_grouped_rows, high_count_grouped_rows ++ high_count_rows}
+  end
+
+  defp process_grouped_low_count_rows(groups) do
+    groups = Enum.map(groups, &collapse_grouped_rows/1)
+    groups
+    |> Stream.map(fn ({_values, hashed_noise_layers_list, _user_rows}) -> hashed_noise_layers_list end)
+    |> Task.async_stream(&Anonymizer.from_hashed_noise_layers_list/1, timeout: :infinity, ordered: true)
+    |> Stream.zip(groups)
+    |> Enum.map(fn ({{:ok, anonymizer}, {values, _hashed_noise_layers_list, user_rows}}) ->
+      {values, anonymizer, user_rows}
+    end)
   end
 
   defp collapse_grouped_rows({values, grouped_rows}) do
     user_rows =
       grouped_rows
-      |> Enum.map(fn ({_values, _anonymizer, users_rows}) -> users_rows end)
+      |> Stream.map(fn ({_values, _anonymizer, users_rows}) -> users_rows end)
       |> Enum.reduce(fn (users_rows1, users_rows2) ->
         Map.merge(users_rows1, users_rows2, fn (_user, columns1, columns2) ->
           Enum.zip(columns1, columns2) |> Enum.map(&merge_accumulators/1)
         end)
       end)
-    anonymizer =
-      grouped_rows
-      |> Enum.map(fn ({_values, anonymizer, _users_rows}) -> anonymizer.layers end)
-      |> Enum.reduce(&merge_layers/2)
-      |> Anonymizer.new()
-    {values, anonymizer, user_rows}
+    hashed_noise_layers_list =
+      Enum.map(grouped_rows, fn ({_values, anonymizer, _users_rows}) -> anonymizer.hashed_noise_layers end)
+    {values, hashed_noise_layers_list, user_rows}
   end
 
   @spec aggregate_groups([group], Query.t) :: [DataSource.row]
