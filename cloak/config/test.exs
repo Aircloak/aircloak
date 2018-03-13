@@ -56,3 +56,6 @@ config :cloak, :sap_hana,
   username: "acdev",
   password: "Aircloakdev1",
   database: "SYSTEMDB"
+
+# Using 0 timeout in tests, since due to the log level, log message won't be captured anyway.
+config :cloak, :flush_query_log_timeout, 0

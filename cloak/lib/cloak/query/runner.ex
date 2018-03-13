@@ -233,7 +233,7 @@ defmodule Cloak.Query.Runner do
         message = to_string(message)
         state = add_log_entry(state, level, message, timestamp, metadata)
         if String.starts_with?(message, "query finished"), do: state, else: do_flush_log_messages(state)
-    after 500 ->
+    after Application.fetch_env!(:cloak, :flush_query_log_timeout) ->
       # To avoid blocking the query execution for too long, we'll timeout quickly if no new log messages arrive.
       state
     end

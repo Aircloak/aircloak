@@ -48,3 +48,5 @@ config :cloak, :data_source,
   batch_size: 100,
   connect_timeout: :timer.seconds(5),
   connection_keep_time: :timer.minutes(1)
+
+  config :cloak, :flush_query_log_timeout, 0
