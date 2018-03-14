@@ -88,7 +88,7 @@ defmodule Cloak.DataSource.ConnectionPoolTest do
     with_short_connection_timeout(fn ->
       assert_raise(
         Cloak.Query.ExecutionError,
-        "Unknown failure during database connection process",
+        "Failed connecting to the database",
         fn -> ExUnit.CaptureLog.capture_log(fn -> execute!(%{hostname: "invalid_host"}, &(&1)) end) end
       )
     end)
