@@ -9,6 +9,7 @@
 ### Changes
 
 - Low count buckets are grouped sequentially per each subset of columns starting from right to left.
+- The system now requires a license file provided by Aircloak
 
 ### Bugfixes
 
