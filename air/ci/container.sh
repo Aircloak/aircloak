@@ -20,7 +20,7 @@ function prepare_for_test {
   docker network connect --alias postgres9.4 $container_name $postgres_container_name
 }
 
-mount_to_aircloak VERSION RELEASE_EXPIRY_DATE common/elixir bom
+mount_to_aircloak VERSION common/elixir bom
 mount_to_component \
   .flowconfig .gitignore assets config datagen docs include lib perftest priv rel test mix.exs mix.lock Makefile \
   README.md check_warnings.sh

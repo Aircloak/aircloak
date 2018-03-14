@@ -14,7 +14,6 @@ COPY common /aircloak/common
 COPY air/fetch_deps.sh /aircloak/air/
 COPY air/docs /aircloak/air/docs
 COPY VERSION /aircloak/
-COPY RELEASE_EXPIRY_DATE /aircloak/
 
 RUN \
   . /tmp/build_config/proxies.sh && \
