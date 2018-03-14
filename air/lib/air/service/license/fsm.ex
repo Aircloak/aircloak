@@ -33,12 +33,6 @@ defmodule Air.Service.License.FSM do
   def expiry(:no_license), do: Timex.now() |> Timex.shift(years: -1)
   def expiry(state), do: state.expires_at
 
-  def customer_id(:no_license), do: nil
-  def customer_id(state), do: state.customer_id
-
-  def license_id(:no_license), do: nil
-  def license_id(state), do: state.license_id
-
   @doc "Returns the original text of the license before decryption."
   @spec text(t) :: String.t
   def text(:no_license), do: ""
