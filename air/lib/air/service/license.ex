@@ -1,23 +1,48 @@
 defmodule Air.Service.License do
+  @moduledoc """
+  Maintains the single instance of a license for the system. Forwards its logic to Air.Service.License.FSM.
+  (De)serializes the license from/to the database as needed.
+  """
+
   use GenServer
 
   alias __MODULE__.FSM
   alias Air.{Repo, Schemas, CentralClient}
   import Ecto.Query
 
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Returns true if the system license is valid, false otherwise."
+  @spec valid?() :: boolean
   if Mix.env() == :test do
     def valid?(), do: true
   else
     def valid?(), do: GenServer.call(__MODULE__, :valid?)
   end
 
+  @doc "Tries to load the given license text as the system license."
+  @spec load(String.t) :: :ok | :error
   def load(text), do: GenServer.call(__MODULE__, {:load, text})
 
+  @doc "Returns the expiry time for the system license."
+  @spec expiry() :: DateTime.t
   def expiry(), do: GenServer.call(__MODULE__, :expiry)
 
+  @doc "Returns true if a system license has ever been loaded, false otherwise."
+  @spec present?() :: boolean
   def present?(), do: GenServer.call(__MODULE__, :present?)
 
+  @doc "Calls central to renew the system license."
+  @spec renew() :: :ok
   def renew(), do: GenServer.cast(__MODULE__, :renew)
+
+
+  # -------------------------------------------------------------------
+  # GenServer callbacks
+  # -------------------------------------------------------------------
 
   @impl GenServer
   def init(_) do
@@ -56,6 +81,11 @@ defmodule Air.Service.License do
     end
   end
 
+
+  # -------------------------------------------------------------------
+  # Private functions
+  # -------------------------------------------------------------------
+
   defp load_public_key!() do
     root_path = Application.app_dir(:air)
     file_name = Application.get_env(:air, :license) |> Keyword.fetch!(:public_key)
@@ -76,6 +106,11 @@ defmodule Air.Service.License do
   defp save_to_db(text), do:
     Schemas.License.changeset(%Schemas.License{}, %{text: text})
     |> Repo.insert!()
+
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
 
   @doc false
   def child_spec(_arg), do:

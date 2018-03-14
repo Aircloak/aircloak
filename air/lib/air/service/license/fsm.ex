@@ -10,8 +10,11 @@ defmodule Air.Service.License.FSM do
   @spec initial() :: t
   def initial(), do: :no_license
 
-  @doc "Tries to load the given license text using the given public key for decryption."
-  @spec load(t, ExPublicKey.RSAPublicKey.t, String.t) :: t
+  @doc """
+  Tries to load the given license text using the given public key for decryption. Returns `{:ok, new_license}` if
+  loading succeeded or `{:error, old_state}` if it failed.
+  """
+  @spec load(t, ExPublicKey.RSAPublicKey.t, String.t) :: {:ok, t} | {:error, t}
   def load(state, public_key, encrypted_license) do
     case Aircloak.License.decrypt(public_key, encrypted_license) do
       {:ok, license} -> {:ok, Map.put(license, :text, encrypted_license)}
