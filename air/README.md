@@ -74,6 +74,10 @@ it with `make migrate` and `make rollback` respectively.
 If you need to repopulate the database, you can run `make recreate-db`. Keep in mind that this will erase all
 of your existing data, so use with caution. To recreate the test database, you can run `MIX_ENV=test make recreate-db`
 
+The `priv` folder contains two pre-generated licenses that are valid in the dev envirnoment. `dev_license.lic` is valid
+until 2018, while `expired_dev_license.lic` is expired. You can use them to test the licensing system. `dev_license.lic`
+is loaded as part of database seeding.
+
 #### HTTPS endpoint
 
 The site also accepts HTTPS requests on port 8443. Self-signed certificates are provided for the site insights.air-local, meaning you need to add `/etc/hosts` entry which points this hostname to 127.0.0.1. You'll also need to import the certificate (located in `./priv/config/ssl_cert.pem`) into your browser. Once all is setup, you can access the site over HTTPS at https://insights.air-local:8443.
