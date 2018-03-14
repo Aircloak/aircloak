@@ -9,7 +9,6 @@ themselves to be deployed in managed docker environments like Kubernetes and Mes
 For information on how many instances of the different containers are required for your setup,
 please consult the [scaling](scaling.md) section of this guide.
 
-
 ### Configuration
 
 All Aircloak components have a base set of configuration parameters that are statically configured. For Insights Air
@@ -25,6 +24,12 @@ Insights Datasource Connector derives its configuration from that of Insights Cl
 
 The static configuration is stored in configuration files made available to the docker containers through
 [volumes](https://docs.docker.com/engine/tutorials/dockervolumes/).
+
+### License file
+
+When running your Insights Air instance for the first time you will need to initialize it with a license file provided
+by Aircloak. You can do that in the Aircloak license section of the Admin panel. If you don't have a license file,
+please email support at <support@aircloak.com>.
 
 ## Resource requirements
 
