@@ -6,7 +6,7 @@ defmodule Air.Service.License do
 
   use GenServer
 
-  alias __MODULE__.FSM
+  alias __MODULE__.{FSM, Key}
   alias Air.{Repo, Schemas, CentralClient}
   import Ecto.Query
 
@@ -46,7 +46,7 @@ defmodule Air.Service.License do
 
   @impl GenServer
   def init(_) do
-    public_key = load_public_key!()
+    public_key = Key.public_key()
     {_res, fsm} = FSM.initial() |> FSM.load(public_key, read_from_db())
     {:ok, %{public_key: public_key, fsm: fsm}}
   end
@@ -85,13 +85,6 @@ defmodule Air.Service.License do
   # -------------------------------------------------------------------
   # Private functions
   # -------------------------------------------------------------------
-
-  defp load_public_key!() do
-    root_path = Application.app_dir(:air)
-    file_name = Application.get_env(:air, :license) |> Keyword.fetch!(:public_key)
-    {:ok, public_key} = ExPublicKey.load(Path.join([root_path, file_name]))
-    public_key
-  end
 
   defp read_from_db() do
     Schemas.License
