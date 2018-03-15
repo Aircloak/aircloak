@@ -104,10 +104,12 @@ defmodule Air.Service.Warnings do
   @license_warn_in_days 14
 
   defp license_problems() do
-    if Timex.diff(License.expiry(), Timex.now(), :days) < @license_warn_in_days do
-      [problem(:aircloak, "Your Aircloak license will expire in less than #{@license_warn_in_days} days.", :medium)]
-    else
-      []
+    cond do
+      not License.valid?() ->
+        [problem(:aircloak, "Your system doesn't have a valid license.", :high)]
+      Timex.diff(License.expiry(), Timex.now(), :days) < @license_warn_in_days ->
+        [problem(:aircloak, "Your license will expire in less than #{@license_warn_in_days} days.", :medium)]
+      true -> []
     end
   end
 
