@@ -87,6 +87,13 @@ defmodule IntegrationTest.Manager do
     |> Repo.preload([:groups])
     |> Air.Service.DataSource.update!(%{groups: [admin_group.id], name: @data_source_name})
 
+    # load license
+    :ok =
+      Application.app_dir(:integration_tests)
+      |> Path.join("priv/integration_test_license.lic")
+      |> File.read!()
+      |> Air.Service.License.load()
+
     Repo.delete_all(ExportForAircloak)
   end
 
