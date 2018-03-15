@@ -21,7 +21,7 @@ defmodule Cloak.Sql.NoiseLayer.Normalizer do
   """
   @spec normalize_number(number) :: term
   def normalize_number(number), do:
-    <<sign(number), normalize_float(abs(:erlang.float(number)), 6, 0)::binary>>
+    <<sign(number), normalize_float(abs(:erlang.float(number)), _significant_digits = 6, 0)::binary>>
 
 
   # -------------------------------------------------------------------
