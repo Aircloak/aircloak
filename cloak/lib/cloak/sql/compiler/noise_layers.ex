@@ -29,6 +29,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Helpers.apply_top_down(&normalize_datasource_case/1)
     |> remove_meaningless_negative_noise_layers()
     |> add_generic_uid_layer_if_needed(top_level_uid)
+    |> drop_redundant_noise_layers()
   end
 
   @doc "Returns the columns required to compute the noise layers for the specified query."
@@ -477,4 +478,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         Enum.at(query.column_titles, index)
     end
   end
+
+  defp drop_redundant_noise_layers(%Query{noise_layers: noise_layers} = query), do:
+    %Query{query | noise_layers: Enum.uniq(noise_layers)}
 end

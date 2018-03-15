@@ -134,8 +134,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       assert [
         %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}, _, _]},
         %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}, _, _, %Expression{name: "uid"}]},
-        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}, _, _]},
-        %{base: {"table", "numeric", nil}, expressions: [%Expression{name: "numeric"}, _, _, %Expression{name: "uid"}]},
       ] = result.noise_layers
       assert 2 = Enum.count(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
