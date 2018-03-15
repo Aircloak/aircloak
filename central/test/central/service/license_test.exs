@@ -27,13 +27,14 @@ defmodule Central.Service.License.Test do
   end
 
   describe "export" do
-    test "exported license includes customer id", %{customer: customer, public_key: public_key} do
+    test "exported license includes customer and license id", %{customer: customer, public_key: public_key} do
       {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
 
       text = License.export(license)
 
       customer_id = customer.id
-      assert {:ok, %{"customer_id" => ^customer_id}} = decode(text, public_key)
+      license_id = license.id
+      assert {:ok, %{"customer_id" => ^customer_id, "id" => ^license_id}} = decode(text, public_key)
     end
 
     test "exporting an auto-renew license", %{customer: customer, public_key: public_key} do
