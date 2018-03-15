@@ -34,6 +34,6 @@ defmodule Cloak.Sql.NoiseLayer do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp normalize(number) when is_number(number), do: Normalizer.normalize_number(number, 6)
+  defp normalize(number) when is_number(number), do: Normalizer.normalize_number(number)
   defp normalize(data), do: data
 end

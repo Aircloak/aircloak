@@ -19,19 +19,22 @@ defmodule Cloak.Sql.NoiseLayer.Normalizer do
   produce different results. It will also return the same result for floats
   and integers denoting the same number, like 1 and 1.0.
   """
-  @spec normalize_number(number, non_neg_integer) :: term
-  def normalize_number(number, significant_digits), do:
-    {normalize_float(abs(:erlang.float(number)), significant_digits, 0), number < 0}
+  @spec normalize_number(number) :: term
+  def normalize_number(number), do:
+    <<sign(number), normalize_float(abs(:erlang.float(number)), 6, 0)::binary>>
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp sign(number) when number < 0, do: ?-
+  defp sign(number) when number >= 0, do: ?+
+
   defp normalize_float(0.0, _n, exponent), do:
-    {0.0, exponent}
+    <<exponent::8, 0::64-float>>
   defp normalize_float(number, n, exponent) when number >= 1 and number < 10, do:
-    {Float.round(number, n - 1), exponent}
+    <<exponent::8, Float.round(number, n - 1)::64-float>>
   defp normalize_float(number, n, exponent) when number >= 10, do:
     normalize_float(number / 10, n, exponent + 1)
   defp normalize_float(number, n, exponent) when number < 1, do:
