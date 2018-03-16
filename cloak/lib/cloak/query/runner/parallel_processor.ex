@@ -71,6 +71,11 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
   # until only a single worker remains, which will send the final result back to the parent process.
   # Once a worker reports a result, it will automatically exit. Each worker will report exactly once.
   defp merge_results([worker], _state_merger), do: Worker.report!(worker)
+  defp merge_results([worker1, worker2], state_merger) do
+    state1 = Worker.report!(worker1)
+    state2 = Worker.report!(worker2)
+    state_merger.(state1, state2)
+  end
   defp merge_results(workers, state_merger) do
     workers
     |> Enum.chunk_every(2)
