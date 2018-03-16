@@ -145,7 +145,8 @@ defmodule Cloak.Query.Aggregator do
   defp per_user_aggregator_and_column(aggregator), do:
     {per_user_aggregator(aggregator), aggregated_column(aggregator)}
 
-  defp group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query), do:
+  defp group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query) do
+    processed_noise_layers = NoiseLayer.pre_process_layers(query.noise_layers)
     fn({user_rows, noise_accumulator}, row) ->
       user_id = user_id(row)
       values = Enum.map(aggregated_columns, &Expression.value(&1, row))
@@ -155,8 +156,11 @@ defmodule Cloak.Query.Aggregator do
         |> Map.put_new(user_id, default_accumulators)
         |> Map.update!(user_id, &aggregate_values(values, &1, per_user_aggregators))
 
-      {user_rows, NoiseLayer.accumulate(query.noise_layers, noise_accumulator, row)}
+      noise_accumulator = NoiseLayer.accumulate(processed_noise_layers, noise_accumulator, row)
+
+      {user_rows, noise_accumulator}
     end
+  end
 
   defp init_anonymizer(grouped_rows) do
     Logger.debug("Initializing anonymizer ...")

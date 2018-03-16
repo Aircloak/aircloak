@@ -23,13 +23,22 @@ defmodule Cloak.Sql.NoiseLayer do
   def new_accumulator(layers), do:
     Enum.map(layers, &MapSet.new([&1.base |> :erlang.term_to_binary() |> compute_hash()]))
 
+  @doc "Pre-processes the noise layers so that expressions are computed only once during accumulation."
+  @spec pre_process_layers([t]) :: {[Expression.t], [[integer()]]}
+  def pre_process_layers(layers) do
+    unique_expressions = layers |> Enum.flat_map(& &1.expressions) |> Enum.uniq()
+    indices_list = Enum.map(layers, &expressions_to_indices(&1.expressions, unique_expressions))
+    {unique_expressions, indices_list}
+  end
+
   @doc "Adds the values from the given row to the noise layer accumulator."
-  @spec accumulate([t], accumulator, Row.t) :: accumulator
-  def accumulate(layers, accumulator, row) do
-    for {layer, set} <- Enum.zip(layers, accumulator) do
+  @spec accumulate({[Expression.t], [[integer()]]}, accumulator, Row.t) :: accumulator
+  def accumulate({unique_expressions, indices_list}, accumulator, row) do
+    values = Enum.map(unique_expressions, &normalize(Expression.value(&1, row)))
+    for {indices, set} <- Enum.zip(indices_list, accumulator) do
       hash =
-        layer.expressions
-        |> Enum.map(&normalize(Expression.value(&1, row)))
+        indices
+        |> Enum.map(&Enum.at(values, &1))
         |> compute_hash()
       MapSet.put(set, hash)
     end
@@ -72,4 +81,10 @@ defmodule Cloak.Sql.NoiseLayer do
     <<a::58-unsigned, b::58-unsigned, _c::12>> = :crypto.exor(a, b)
     a ^^^ b
   end
+
+  defp expressions_to_indices(layer_expressions, unique_expressions), do:
+    Enum.map(layer_expressions, &expression_index(&1, unique_expressions))
+
+  defp expression_index(expression, expressions), do:
+    Enum.find_index(expressions, & &1 == expression)
 end
