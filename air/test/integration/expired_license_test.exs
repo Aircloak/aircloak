@@ -37,4 +37,12 @@ defmodule ExpiredLicenseTest do
     result = create_admin_user!() |> login() |> get("/admin/license/edit")
     assert response(result, 200) =~ "Upload license file"
   end
+
+  test "uploading a license" do
+    upload = %Plug.Upload{path: "priv/dev_license.lic", filename: "dev_license.lic"}
+    result = create_admin_user!() |> login() |> put("/admin/license", %{license: %{text: upload}})
+
+    assert response(result, 302) =~ "/admin/license/edit"
+    assert Air.Service.License.valid?()
+  end
 end
