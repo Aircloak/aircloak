@@ -16,12 +16,7 @@ defmodule Air.Service.License do
   # -------------------------------------------------------------------
 
   @doc "Returns true if the system license is valid, false otherwise."
-  @spec valid?() :: boolean
-  if Mix.env() == :test do
-    def valid?(), do: true
-  else
-    def valid?(), do: GenServer.call(__MODULE__, :valid?)
-  end
+  def valid?(), do: GenServer.call(__MODULE__, :valid?)
 
   @doc "Tries to load the given license text as the system license."
   @spec load(String.t) :: :ok | :error
