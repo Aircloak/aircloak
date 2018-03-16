@@ -106,11 +106,11 @@ defmodule Cloak.Query.AnonimyzerTest do
       [1, 2], [3], [4, 2, -3], [2, 4], [0], [-3, -2], [3], [4, -2, 1], [5], [-4], [-5, 4], [3],
       [-1, 2], [4], [5, -2, 3], [-2, -1], [2], [-1, -3], [-3], [2, 6, 3], [-6], [4], [5, -4], [-3],
     ]
-    assert 1 = Anonymizer.new([MapSet.new()]) |> Anonymizer.median(rows) |> round()
+    assert 2 = Anonymizer.new([MapSet.new()]) |> Anonymizer.median(rows) |> round()
   end
 
   test "same noise layers are collapsed" do
-    noise_layer = MapSet.new(["a", "b"])
+    noise_layer = MapSet.new([3, 4])
     anonymizer1 = Anonymizer.new([noise_layer])
     anonymizer2 = Anonymizer.new([noise_layer, noise_layer])
 
