@@ -58,6 +58,7 @@ defmodule Air.Service.License do
     case FSM.load(state.fsm, state.public_key, text) do
       {:ok, fsm} ->
         save_to_db(text)
+        renew()
         {:reply, :ok, %{state | fsm: fsm}}
       {:error, fsm} -> {:reply, :error, %{state | fsm: fsm}}
     end
