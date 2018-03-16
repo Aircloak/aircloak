@@ -97,7 +97,8 @@ defmodule Air.Service.License do
   end
 
   defp save_to_db(text), do:
-    Schemas.License.changeset(%Schemas.License{}, %{text: text})
+    %Schemas.License{}
+    |> Schemas.License.changeset(%{text: text})
     |> Repo.insert!()
 
 
