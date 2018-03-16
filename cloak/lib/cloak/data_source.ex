@@ -63,7 +63,7 @@ defmodule Cloak.DataSource do
   }
 
   @type num_rows :: non_neg_integer
-  @type field :: String.t | number | boolean | nil
+  @type field :: String.t | number | boolean | nil | Date.t | Time.t | NaiveDateTime.t
   @type row :: [field]
   @type query_result :: Enumerable.t
   @type processed_result :: any
