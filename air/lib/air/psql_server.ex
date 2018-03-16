@@ -245,7 +245,7 @@ defmodule Air.PsqlServer do
   defp do_decode_cloak_query_result({:error, :not_connected}), do:
     {:error, "Data source is not available!"}
   defp do_decode_cloak_query_result({:error, :license_invalid}), do:
-    {:error, "Your Aircloak license has expired. Please contact your administrator."}
+    {:error, "The license for this Aircloak instance has expired."}
   defp do_decode_cloak_query_result({:ok, %{error: error}}), do:
     {:error, error}
   defp do_decode_cloak_query_result({:ok, query_result}), do:
