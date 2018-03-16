@@ -110,6 +110,7 @@ defmodule Air do
         {"0 * * * *", {Air.Service.Cleanup, :cleanup_old_queries}},
         {"*/5 * * * *", {Air.Service.Cleanup, :cleanup_dead_queries}},
         {~e[*/10 * * * * * *]e, {AirWeb.Socket.Frontend.DataSourceChannel, :push_updates}},
+        {"0 */12 * * *", {Air.Service.License, :renew}},
       ]
       |> Enum.each(fn({schedule, job}) -> Quantum.add_job(schedule, job) end)
     end

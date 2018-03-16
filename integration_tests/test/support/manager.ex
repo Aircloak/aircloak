@@ -50,6 +50,11 @@ defmodule IntegrationTest.Manager do
     })
   end
 
+  def load_valid_license(), do:
+    :ok = load_license("priv/integration_test_license.lic")
+
+  def load_expired_license(), do:
+    :ok = load_license("priv/integration_test_expired_license.lic")
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -87,6 +92,8 @@ defmodule IntegrationTest.Manager do
     |> Repo.preload([:groups])
     |> Air.Service.DataSource.update!(%{groups: [admin_group.id], name: @data_source_name})
 
+    load_valid_license()
+
     Repo.delete_all(ExportForAircloak)
   end
 
@@ -102,4 +109,10 @@ defmodule IntegrationTest.Manager do
     {:ok, token} = Central.Service.Customer.generate_token(customer)
     Aircloak.DeployConfig.update(:air, "site", &%{&1 | "customer_token" => token})
   end
+
+  defp load_license(path), do:
+    Application.app_dir(:integration_tests)
+    |> Path.join(path)
+    |> File.read!()
+    |> Air.Service.License.load()
 end

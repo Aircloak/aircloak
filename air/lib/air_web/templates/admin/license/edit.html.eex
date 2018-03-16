@@ -1,0 +1,42 @@
+<h2>Aircloak license</h2>
+
+<div class="col-sm-8">
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h3 class="panel-title">License status</h3>
+    </div>
+    <div class="panel-body">
+      <%= if license_valid?() do %>
+        Your Aircloak license is valid until <strong><%= license_expiry() %></strong>. The system will attempt to renew
+        it automatically via the Internet before it expires.
+      <% else %>
+        <%= if not license_present?() do %>
+          You have not uploaded an Aircloak license yet.
+        <% else %>
+          Your Aircloak license has <strong>expired</strong> and the system was unable to renew it automatically via the
+          Internet.
+        <% end %>
+
+        Please upload a license file obtained from Aircloak. Please contact
+        <a href="mailto:support@aircloak.com">support@aircloak.com</a> if you don't have a license file.
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<div class="col-sm-4">
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h3 class="panel-title">Upload license file</h3>
+    </div>
+    <div class="panel-body">
+      <%= form_for(@conn, admin_license_path(@conn, :update), [as: :license, method: :put, multipart: true], fn(form) -> %>
+        <div class="form-group">
+          <label>Select license file</label>
+          <%= file_input(form, :text, accept: ".lic", required: true) %>
+        </div>
+        <button type="submit" class="btn btn-primary">Upload</button>
+      <% end) %>
+    </div>
+  </div>
+</div>

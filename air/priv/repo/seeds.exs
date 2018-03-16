@@ -12,7 +12,7 @@
 # is meant to be forward only. If existing rows have to be changed, for example
 # if the database structure changes, it's advised to recreate the entire database.
 
-alias Air.Service.User
+alias Air.Service.{User, License}
 
 # admin user
 admin_group = case User.admin_groups() do
@@ -39,3 +39,5 @@ User.create!(%{
   password_confirmation: "1234",
   name: "Test client regular user",
 })
+
+:ok = License.load(File.read!("priv/dev_license.lic"))

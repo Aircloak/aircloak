@@ -30,8 +30,6 @@
       <%= render AirWeb.SharedView, "full_footer.html", conn: @conn %>
     </div>
 
-    <%= render "_expirybar.html", conn: @conn %>
-
     <script src="<%= static_path(@conn, "/js/app.js") %>"></script>
   </body>
 </html>

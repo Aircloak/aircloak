@@ -9,7 +9,7 @@ defmodule Air.Service.Warnings do
     severity: severity_class
   }
 
-  alias Air.Service.{DataSource, Cloak}
+  alias Air.Service.{DataSource, Cloak, License}
   alias Air.{Schemas, Repo}
 
 
@@ -23,7 +23,11 @@ defmodule Air.Service.Warnings do
   """
   @spec problems() :: [problem]
   def problems(), do:
-    data_source_problems(DataSource.all()) |> order_problems()
+    (
+      data_source_problems(DataSource.all()) ++
+        license_problems()
+    )
+    |> order_problems()
 
   @doc """
   Returns a list of a problem for a particular resource.
@@ -42,7 +46,7 @@ defmodule Air.Service.Warnings do
 
 
   # -------------------------------------------------------------------
-  # Internal functions
+  # Ordering
   # -------------------------------------------------------------------
 
   defp order_problems(problems), do:
@@ -52,6 +56,11 @@ defmodule Air.Service.Warnings do
   defp severity_to_number(:medium), do: 2
   defp severity_to_number(:low), do: 3
 
+
+  # -------------------------------------------------------------------
+  # Data Source problems
+  # -------------------------------------------------------------------
+
   defp data_source_problems(data_sources) do
     data_sources = Repo.preload(data_sources, [groups: :users])
     offline_datasources(data_sources, :high)
@@ -59,9 +68,6 @@ defmodule Air.Service.Warnings do
       ++ no_group(data_sources, :low)
       ++ no_users(data_sources, :low)
   end
-
-  defp problem(resource, description, severity), do:
-    %{resource: resource, description: description, severity: severity}
 
   defp offline_datasources(data_sources, severity), do:
     data_sources
@@ -89,4 +95,29 @@ defmodule Air.Service.Warnings do
     data_sources
     |> Enum.filter(fn(data_source) -> Enum.all?(data_source.groups, &Enum.empty?(&1.users)) end)
     |> Enum.map(&problem(&1, "No users have access to this data source", severity))
+
+
+  # -------------------------------------------------------------------
+  # License problems
+  # -------------------------------------------------------------------
+
+  @license_warn_in_days 14
+
+  defp license_problems() do
+    cond do
+      not License.valid?() ->
+        [problem(:aircloak, "Your system doesn't have a valid license.", :high)]
+      Timex.diff(License.expiry(), Timex.now(), :days) < @license_warn_in_days ->
+        [problem(:aircloak, "Your license will expire in less than #{@license_warn_in_days} days.", :medium)]
+      true -> []
+    end
+  end
+
+
+  # -------------------------------------------------------------------
+  # Helpers
+  # -------------------------------------------------------------------
+
+  defp problem(resource, description, severity), do:
+    %{resource: resource, description: description, severity: severity}
 end

@@ -1,4 +1,4 @@
-defmodule AirWeb.OutOfDateView do
+defmodule AirWeb.LicenseInvalidView do
   @moduledoc false
   use Air.Web, :view
 end

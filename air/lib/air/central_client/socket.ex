@@ -33,6 +33,11 @@ defmodule Air.CentralClient.Socket do
   def rpc(rpc), do:
     call_central(__MODULE__, "call_with_retry", rpc)
 
+  @doc "Asks central for a newer version of the given license text."
+  @spec renew_license(String.t) :: {:ok, String.t} | :error
+  def renew_license(text), do:
+    call_central(__MODULE__, "renew_license", text)
+
   @doc "Starts the socket client."
   @spec start_link(Map.t, GenServer.options) :: GenServer.on_start
   def start_link(air_params \\ air_params(), gen_server_opts \\ [name: __MODULE__]) do

@@ -142,65 +142,12 @@ h2 {
 }
 
 /********************************************************************
- * Styles for outdated Aircloak installations
+ * Styles for Aircloak installations with an invalid license
  *******************************************************************/
 
-body.outdated {
-  background-color: red;
-  color: white;
+.invalid.jumbotron {
+  margin-top: 10em;
 }
-
-.outdated h1 {
-  padding-bottom: 20px;
-}
-
-.outdated h2 {
-  margin-top: 50px;
-  border-bottom-color: rgba(255, 255, 255, 0.4);
-  font-size: 1.4em;
-}
-
-.outdated a {
-  color: #ccc;
-}
-
-.expiry-bar {
-  padding: 10px;
-  width: 100vw;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  z-index: 1000;
-}
-
-.will_expire {
-  background-color: green;
-  color: white;
-  font-size: 1.2em;
-}
-
-.expires_shortly {
-  background-color: orange;
-  color: black;
-  font-size: 1.4em;
-}
-
-.imminent {
-  background-color: red;
-  color: white;
-  font-size: 2em;
-}
-
-.tooltip {
-  position: fixed;
-}
-
-.form-control-inline {
-  min-width: 0;
-  width: auto;
-  display: inline;
-}
-
 
 /* ******************************************************************
  * Extensions to bootstrap to provide warning elements in the navbar

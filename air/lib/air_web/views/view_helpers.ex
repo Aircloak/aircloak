@@ -120,27 +120,6 @@ defmodule AirWeb.ViewHelpers do
     conn.assigns.current_user != nil
   end
 
-  def expiry_date(), do: Date.to_string(Air.Service.Version.expiry_date())
-
-  def expiry_message(), do: expiry_message_for_status(Air.Service.Version.expiry_status())
-
-  defp expiry_message_for_status(:will_expire), do:
-    """
-    Please note that the Aircloak version you are using expires on #{expiry_date()}.
-    Please update to a newer version.
-    """
-  defp expiry_message_for_status(:expires_shortly), do:
-    """
-    The version of Aircloak you are using expires in #{Air.Service.Version.days_until_expiry()} days.
-    Please update to a newer version. Not updating in time will cause disruption to service.
-    """
-  defp expiry_message_for_status(:imminent), do:
-    """
-    Your Aircloak expires in #{Air.Service.Version.days_until_expiry()} days!
-    Please update to the latest version.
-    Failing to do so will leave you without the ability to query your data sources.
-    """
-
   def severity_class(:high), do: "danger"
   def severity_class(:medium), do: "warning"
   def severity_class(_), do: ""

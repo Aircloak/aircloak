@@ -3,7 +3,7 @@ defmodule Air.Service.View do
 
   alias Aircloak.ChildSpec
   alias Air.Schemas.{User, View}
-  alias Air.{Repo, Service.DataSource, Version}
+  alias Air.{Repo, Service.DataSource}
   import Ecto.Query
   require Logger
 
@@ -200,11 +200,6 @@ defmodule Air.Service.View do
           {:error, Ecto.Changeset.add_error(changeset, :sql,
             "The view cannot be saved because no cloak is currently available for the given data source. " <>
             "Please contact your administrator."
-          )}
-        {:error, :expired} ->
-          {:error, Ecto.Changeset.add_error(changeset, :sql,
-            "Your Aircloak installation is running version #{AirWeb.SharedView.version()} " <>
-            "which expired on #{Version.expiry_date()}."
           )}
       end
     else

@@ -6,7 +6,8 @@
     "master_password": "super_secret_master_password",
     "customer_token": "SFMyNTY.g3QAAAACZAAEZGF0YWEBZAAGc2lnbmVkbgYAcXTfBFgB.j7yqABozbJTUvf8rnMHUtfbmTlzD1ScLwYMHbwiIT6I",
     "certfile": "ssl_cert.pem",
-    "keyfile": "ssl_key.pem"
+    "keyfile": "ssl_key.pem",
+    "use_staging_license_key": true
   },
 
   "psql_server": {

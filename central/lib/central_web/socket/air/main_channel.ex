@@ -4,7 +4,7 @@ defmodule CentralWeb.Socket.Air.MainChannel do
   """
   use Phoenix.Channel
   require Logger
-  alias Central.Service.Customer
+  alias Central.Service.{Customer, License}
 
 
   # -------------------------------------------------------------------
@@ -83,6 +83,13 @@ defmodule CentralWeb.Socket.Air.MainChannel do
     )
 
     respond_to_air(socket, request_id, :ok)
+    {:noreply, socket}
+  end
+  defp handle_air_call("renew_license", license_text, request_id, socket) do
+    case License.renew(license_text) do
+      {:ok, new_text} -> respond_to_air(socket, request_id, :ok, new_text)
+      :error -> respond_to_air(socket, request_id, :error)
+    end
     {:noreply, socket}
   end
 

@@ -8,12 +8,10 @@ defmodule AirWeb.Router do
     plug :fetch_flash
     plug :protect_from_forgery
     plug :put_secure_browser_headers
-    plug AirWeb.Plug.Expiration
   end
 
   pipeline :api do
     plug :accepts, ["json"]
-    plug AirWeb.Plug.Expiration
     plug AirWeb.Plug.Session.ApiAuth, access: :api
   end
 
@@ -25,6 +23,14 @@ defmodule AirWeb.Router do
     plug AirWeb.Plug.Session.Authenticated
   end
 
+  pipeline :validate_license_browser do
+    plug AirWeb.Plug.ValidateLicense.Browser
+  end
+
+  pipeline :validate_license_api do
+    plug AirWeb.Plug.ValidateLicense.API
+  end
+
   scope "/auth", AirWeb do
     pipe_through [:browser, :anonymous_only] # Use the default browser stack
 
@@ -33,7 +39,7 @@ defmodule AirWeb.Router do
   end
 
   scope "/", AirWeb, private: %{context: :http} do
-    pipe_through [:browser, :browser_auth]
+    pipe_through [:browser, :browser_auth, :validate_license_browser]
 
     get "/", DataSourceController, :redirect_to_last_used
 
@@ -90,6 +96,8 @@ defmodule AirWeb.Router do
     get "/central/download_export/:export_id", CentralController, :download_export
 
     get "/warnings", WarningsController, :index
+
+    resources "/license", LicenseController, only: [:edit, :update], singleton: true
   end
 
   scope "/onboarding", AirWeb.Onboarding, as: :onboarding do
@@ -101,7 +109,7 @@ defmodule AirWeb.Router do
   end
 
   scope "/api", private: %{context: :api} do
-    pipe_through [:api]
+    pipe_through [:api, :validate_license_api]
 
     resources "/queries", AirWeb.QueryController, only: [:create, :show]
     post "/queries/:id/cancel", AirWeb.QueryController, :cancel
