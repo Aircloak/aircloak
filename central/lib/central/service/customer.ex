@@ -6,7 +6,7 @@ defmodule Central.Service.Customer do
 
   alias Ecto.Changeset
   alias Central.Repo
-  alias Central.Schemas.{AirRPC, Customer, CustomerExport, Query}
+  alias Central.Schemas.{AirRPC, Customer, CustomerExport, Query, License}
   alias Central.Service.ElasticSearch
   alias Central.Service.Customer.AirMessage
 
@@ -121,6 +121,19 @@ defmodule Central.Service.Customer do
           other -> other
         end
       _ -> {:error, :invalid_token}
+    end
+  end
+
+  @doc """
+  Returns the customer associated with the given license.
+  """
+  @spec from_license(License.t) :: {:ok, Customer.t} | :error
+  def from_license(license) do
+    Customer
+    |> Repo.get(license.customer_id)
+    |> case do
+      nil -> :error
+      customer -> {:ok, customer}
     end
   end
 

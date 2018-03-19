@@ -6,7 +6,7 @@ defmodule CentralWeb.Socket.AirTest do
   alias Phoenix.Channels.GenSocketClient
   alias GenSocketClient.TestSocket
   alias Central.{TestSocketHelper, Repo}
-  alias Central.Service.Customer
+  alias Central.Service.{Customer, License}
   alias Central.Schemas.Query
 
   setup do
@@ -29,6 +29,14 @@ defmodule CentralWeb.Socket.AirTest do
   test "main topic" do
     socket = connect!()
     assert {:ok, %{}} == join_main_channel(socket)
+  end
+
+  test "authenticating with a license" do
+    customer = create_customer!()
+    {:ok, license} = customer |> License.create(%{length_in_days: 10, auto_renew: true, name: "a license"})
+
+    socket = TestSocketHelper.connect!(%{air_name: "air_1", license: License.export(license)})
+    assert {:ok, %{}} = join_main_channel(socket)
   end
 
   # These tests are used to lock down the API for a given air version. Unless there is a bug they should probably not
@@ -90,9 +98,12 @@ defmodule CentralWeb.Socket.AirTest do
     %{air_name: "air_1", token: token}
   end
 
-  defp with_customer(_context) do
+  defp with_customer(_context), do:
+    {:ok, customer: create_customer!()}
+
+  defp create_customer!() do
     {:ok, customer} = Customer.create(%{name: "test customer"})
-    {:ok, customer: customer}
+    customer
   end
 
   defp joined_main(%{join_options: join_options, customer: customer}) do

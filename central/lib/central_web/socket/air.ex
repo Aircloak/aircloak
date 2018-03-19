@@ -14,7 +14,7 @@ defmodule CentralWeb.Socket.Air do
   use Phoenix.Socket
   require Logger
 
-  alias Central.Service.Customer
+  alias Central.Service.{Customer, License}
 
   transport :websocket, Phoenix.Transports.WebSocket, serializer: [{CentralWeb.Socket.Air.Serializer, "~> 2.0.0"}]
 
@@ -29,8 +29,7 @@ defmodule CentralWeb.Socket.Air do
   @impl Phoenix.Socket
   def connect(params, socket) do
     Logger.info("Air connecting #{inspect params}")
-    with {:ok, token, air_name} <- values_from_params(params),
-         {:ok, customer} <- Customer.from_token(token) do
+    with {:ok, customer, air_name} <- customer_from_params(params) do
       socket = socket
         |> assign(:customer, customer)
         |> assign(:air_name, air_name)
@@ -51,6 +50,15 @@ defmodule CentralWeb.Socket.Air do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp values_from_params(%{"token" => token, "air_name" => air_name}), do: {:ok, token, air_name}
-  defp values_from_params(_), do: :error
+  defp customer_from_params(%{"token" => token, "air_name" => air_name}), do:
+    with {:ok, customer} <- Customer.from_token(token), do: {:ok, customer, air_name}
+  defp customer_from_params(%{"license" => license, "air_name" => air_name}) do
+    with \
+         {:ok, license} <- License.decrypt(license),
+         {:ok, customer} <- Customer.from_license(license)
+    do
+      {:ok, customer, air_name}
+    end
+  end
+  defp customer_from_params(_), do: :error
 end
