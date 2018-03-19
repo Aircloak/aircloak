@@ -9,17 +9,17 @@ defmodule IntegrationTest.Manager do
   @data_source_name "data_source_name"
 
   def start(_type, _args) do
-    Application.ensure_all_started(:central)
+    {:ok, _} = Application.ensure_all_started(:central)
     setup_central()
 
     # Setting up the cloak database injects the tables into
     # the cloak data source config. This needs to happen
     # prior to the cloak sendings its data sources to the air.
     # Otherwise the air operates with stale data source definitions
-    Application.ensure_all_started(:cloak)
+    {:ok, _} = Application.ensure_all_started(:cloak)
     setup_cloak_database()
 
-    Application.ensure_all_started(:air)
+    {:ok, _} = Application.ensure_all_started(:air)
     await_data_source()
     setup_air_database()
 
