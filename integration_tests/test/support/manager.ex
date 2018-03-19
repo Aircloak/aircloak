@@ -51,10 +51,22 @@ defmodule IntegrationTest.Manager do
   end
 
   def load_valid_license(), do:
-    :ok = load_license("priv/integration_test_license.lic")
+    :ok = create_license() |> Central.Service.License.export() |> Air.Service.License.load()
 
-  def load_expired_license(), do:
-    :ok = load_license("priv/integration_test_expired_license.lic")
+  def load_expired_license() do
+    license = create_license()
+    {:ok, _} = Ecto.Adapters.SQL.query(
+      Central.Repo,
+      "UPDATE licenses SET inserted_at = '2000-01-01 00:00:00' WHERE id = $1",
+      [license.id]
+    )
+
+    :ok =
+      Central.Schemas.License
+      |> Central.Repo.get!(license.id)
+      |> Central.Service.License.export()
+      |> Air.Service.License.load()
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -102,6 +114,7 @@ defmodule IntegrationTest.Manager do
   end
 
   defp setup_central() do
+    Central.Repo.delete_all(Central.Schemas.License)
     Central.Repo.delete_all(Central.Schemas.AirRPC)
     Central.Repo.delete_all(Central.Schemas.CustomerExport)
     Central.Repo.delete_all(Central.Schemas.Customer)
@@ -110,9 +123,11 @@ defmodule IntegrationTest.Manager do
     Aircloak.DeployConfig.update(:air, "site", &%{&1 | "customer_token" => token})
   end
 
-  defp load_license(path), do:
-    Application.app_dir(:integration_tests)
-    |> Path.join(path)
-    |> File.read!()
-    |> Air.Service.License.load()
+  defp create_license() do
+    {:ok, license} =
+      Central.Schemas.Customer
+      |> Central.Repo.one!()
+      |> Central.Service.License.create(%{name: "test license", length_in_days: 10, auto_renew: false})
+    license
+  end
 end
