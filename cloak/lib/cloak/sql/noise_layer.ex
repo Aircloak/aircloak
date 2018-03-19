@@ -5,7 +5,8 @@ defmodule Cloak.Sql.NoiseLayer do
   use Bitwise
 
   @type t :: %__MODULE__{base: any, expressions: [Expression.t]}
-  @type accumulator :: [MapSet.t]
+  @type hash_set :: MapSet.t
+  @type accumulator :: [hash_set]
 
   defstruct [:base, :expressions]
 
@@ -46,17 +47,17 @@ defmodule Cloak.Sql.NoiseLayer do
 
   @doc "Combines the state of two noise layers accumulators into one."
   @spec merge_accumulators(accumulator, accumulator) :: accumulator
-  def merge_accumulators(layers1, layers2), do:
-    Stream.zip(layers1, layers2)
+  def merge_accumulators(accumulator1, accumulator2), do:
+    Stream.zip(accumulator1, accumulator2)
     |> Enum.map(fn ({hash_set1, hash_set2}) ->
       MapSet.union(hash_set1, hash_set2)
     end)
 
   @doc "Computes a cryptographic sum of the previously accumulated values, starting from the given salt."
-  @spec sum(MapSet.t, String.t) :: integer()
-  def sum(layer, salt), do:
+  @spec sum(hash_set, String.t) :: integer()
+  def sum(hash_set, salt), do:
     # since the list is not salt, using `xor` (which is commutative) will get us consistent results
-    Enum.reduce(layer, compute_hash(salt), &bxor/2)
+    Enum.reduce(hash_set, compute_hash(salt), &bxor/2)
 
 
   # -------------------------------------------------------------------
