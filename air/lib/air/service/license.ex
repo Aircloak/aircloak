@@ -34,6 +34,10 @@ defmodule Air.Service.License do
   @spec renew() :: :ok
   def renew(), do: GenServer.cast(__MODULE__, :renew)
 
+  @doc "Returns the text of the system license."
+  @spec text() :: String.t
+  def text(), do: GenServer.call(__MODULE__, :text)
+
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -62,6 +66,8 @@ defmodule Air.Service.License do
     {:reply, FSM.expiry(state.fsm), state}
   def handle_call(:present?, _from, state), do:
     {:reply, FSM.present?(state.fsm), state}
+  def handle_call(:text, _from, state), do:
+    {:reply, FSM.text(state.fsm), state}
 
   @impl GenServer
   def handle_cast(:renew, state) do

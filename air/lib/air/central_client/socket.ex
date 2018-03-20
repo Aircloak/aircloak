@@ -212,7 +212,7 @@ defmodule Air.CentralClient.Socket do
   end
 
   defp air_params() do
-    %{air_name: Air.instance_name(), token: Air.customer_token()}
+    %{air_name: Air.instance_name(), license: Air.Service.License.text()}
   end
 
   defp next_interval(current_interval) do
