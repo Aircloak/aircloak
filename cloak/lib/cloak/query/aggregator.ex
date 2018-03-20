@@ -72,7 +72,7 @@ defmodule Cloak.Query.Aggregator do
   @spec merge_groups(Rows.groups, Rows.groups) :: Rows.groups
   def merge_groups(groups1, groups2), do:
     Map.merge(groups1, groups2, fn (_key, {user_values1, noise_layers1}, {user_values2, noise_layers2}) ->
-      {merge_user_values(user_values1, user_values2), merge_layers(noise_layers1, noise_layers2)}
+      {merge_user_values(user_values1, user_values2), NoiseLayer.merge_accumulators(noise_layers1, noise_layers2)}
     end)
 
 
@@ -145,7 +145,8 @@ defmodule Cloak.Query.Aggregator do
   defp per_user_aggregator_and_column(aggregator), do:
     {per_user_aggregator(aggregator), aggregated_column(aggregator)}
 
-  defp group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query), do:
+  defp group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query) do
+    processed_noise_layers = NoiseLayer.pre_process_layers(query.noise_layers)
     fn({user_rows, noise_accumulator}, row) ->
       user_id = user_id(row)
       values = Enum.map(aggregated_columns, &Expression.value(&1, row))
@@ -155,17 +156,16 @@ defmodule Cloak.Query.Aggregator do
         |> Map.put_new(user_id, default_accumulators)
         |> Map.update!(user_id, &aggregate_values(values, &1, per_user_aggregators))
 
-      {user_rows, NoiseLayer.accumulate(query.noise_layers, noise_accumulator, row)}
+      noise_accumulator = NoiseLayer.accumulate(processed_noise_layers, noise_accumulator, row)
+
+      {user_rows, noise_accumulator}
     end
+  end
 
   defp init_anonymizer(grouped_rows) do
     Logger.debug("Initializing anonymizer ...")
-    grouped_rows
-    |> Stream.map(fn ({_property, {_users_rows, noise_layers}}) -> noise_layers end)
-    |> Task.async_stream(&Anonymizer.new/1, timeout: :infinity, ordered: true)
-    |> Stream.zip(grouped_rows)
-    |> Enum.map(fn ({{:ok, anonymizer}, {property, {users_rows, _noise_layers}}}) ->
-      {property, anonymizer, users_rows}
+    Enum.map(grouped_rows, fn ({property, {users_rows, noise_layers}}) ->
+      {property, Anonymizer.new(noise_layers), users_rows}
     end)
   end
 
@@ -197,20 +197,9 @@ defmodule Cloak.Query.Aggregator do
       |> Enum.group_by(fn ({values, _anonymizer, _users_rows}) ->
         List.replace_at(values, column_index - 1, :*)
       end)
-      |> process_grouped_low_count_rows()
+      |> Enum.map(&collapse_grouped_rows/1)
       |> Enum.split_with(&low_users_count?/1)
     {low_count_grouped_rows, high_count_grouped_rows ++ high_count_rows}
-  end
-
-  defp process_grouped_low_count_rows(groups) do
-    groups = Enum.map(groups, &collapse_grouped_rows/1)
-    groups
-    |> Stream.map(fn ({_values, hashed_noise_layers_list, _user_rows}) -> hashed_noise_layers_list end)
-    |> Task.async_stream(&Anonymizer.from_hashed_noise_layers_list/1, timeout: :infinity, ordered: true)
-    |> Stream.zip(groups)
-    |> Enum.map(fn ({{:ok, anonymizer}, {values, _hashed_noise_layers_list, user_rows}}) ->
-      {values, anonymizer, user_rows}
-    end)
   end
 
   defp collapse_grouped_rows({values, grouped_rows}) do
@@ -222,9 +211,12 @@ defmodule Cloak.Query.Aggregator do
           Enum.zip(columns1, columns2) |> Enum.map(&merge_accumulators/1)
         end)
       end)
-    hashed_noise_layers_list =
-      Enum.map(grouped_rows, fn ({_values, anonymizer, _users_rows}) -> anonymizer.hashed_noise_layers end)
-    {values, hashed_noise_layers_list, user_rows}
+    anonymizer =
+      grouped_rows
+      |> Enum.map(fn ({_values, anonymizer, _users_rows}) -> anonymizer.noise_layers end)
+      |> Enum.reduce(&NoiseLayer.merge_accumulators/2)
+      |> Anonymizer.new()
+    {values, anonymizer, user_rows}
   end
 
   @spec aggregate_groups([group], Query.t) :: [DataSource.row]
@@ -378,11 +370,6 @@ defmodule Cloak.Query.Aggregator do
       %{row: row, occurrences: count, users_count: users_count}
     end)
   end
-
-  defp merge_layers(layers1, layers2), do: Enum.zip(layers1, layers2) |> Enum.map(&merge_layer/1)
-
-  @dialyzer {:nowarn_function, merge_layer: 1} # disable dialyzer warning because of `MapSet.union/2` call
-  defp merge_layer({%MapSet{} = layer1, %MapSet{} = layer2}), do: MapSet.union(layer1, layer2)
 
   defp merge_user_values(user_values1, user_values2), do:
     Map.merge(user_values1, user_values2, fn (_user, columns1, columns2) ->

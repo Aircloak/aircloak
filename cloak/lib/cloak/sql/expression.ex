@@ -110,7 +110,7 @@ defmodule Cloak.Sql.Expression do
   def display_name(%__MODULE__{constant?: true, value: value}), do: "`#{value}`"
 
   @doc "Returns the column value of a database row."
-  @spec value(t, DataSource.row) :: DataSource.field | LikePattern.t
+  @spec value(t, DataSource.row) :: DataSource.field
   def value(expression, row \\ [])
   def value(%__MODULE__{constant?: true, value: value}, _row), do: value
   def value(expression = %__MODULE__{function?: true, function_args: args, row_index: nil}, row), do:
@@ -139,7 +139,7 @@ defmodule Cloak.Sql.Expression do
   def value(column, row), do: Enum.at(row, column.row_index)
 
   @doc "Returns the value of a constant expression."
-  @spec const_value(t) :: DataSource.field | LikePattern.t
+  @spec const_value(t) :: DataSource.field
   def const_value(%__MODULE__{constant?: true, value: value}), do: value
   def const_value(expression = %__MODULE__{function?: true, function_args: args}), do:
     apply_function(expression, Enum.map(args, &const_value/1))

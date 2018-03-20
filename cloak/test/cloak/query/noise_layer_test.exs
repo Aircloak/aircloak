@@ -120,7 +120,7 @@ defmodule Cloak.Query.NoiseLayerTest do
   test "noise layers in hiding the low-count row" do
     other = 33
 
-    for i <- 1..5, do:
+    for i <- 1..6, do:
       :ok = insert_rows(_user_ids = [i], "noise_layers", ["number", "other"], [i, other])
 
     assert_query "select number from noise_layers where other = #{other}", %{rows: rows1}
