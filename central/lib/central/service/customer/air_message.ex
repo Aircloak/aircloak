@@ -34,7 +34,7 @@ defmodule Central.Service.Customer.AirMessage do
     decoded = %{
       "last_exported_id" => last_exported_id,
       "air_name" => air_name,
-      "customer_token" => customer_token,
+      "license" => license,
       "rpcs" => rpcs,
     } =
       payload
@@ -47,7 +47,7 @@ defmodule Central.Service.Customer.AirMessage do
       created_at: created_at,
       air_name: air_name,
       air_version: Map.get(decoded, "air_version", "Unknown"),
-      customer_token: customer_token,
+      license: license,
       rpcs: rpcs,
     }}
   catch type, error ->

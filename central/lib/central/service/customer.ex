@@ -24,7 +24,8 @@ defmodule Central.Service.Customer do
     {:ok, pos_integer} | {:error, AirMessage.import_error} | {:error, :invalid_version}
   def import_customer_data(air_export) do
     with {:ok, export} <- AirMessage.decode_exported_data(air_export),
-         {:ok, customer} <- from_token(export.customer_token),
+         {:ok, license} <- Central.Service.License.decrypt(export.license),
+         {:ok, customer} <- from_license(license),
          :ok <- AirMessage.validate_export(customer, export),
          {:ok, handler} <- air_handler(export.air_version)
         do
