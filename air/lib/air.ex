@@ -25,10 +25,6 @@ defmodule Air do
     "#{vm_short_name}@#{hostname}"
   end
 
-  @doc "Returns the customer token"
-  @spec customer_token() :: String.t
-  def customer_token(), do: site_setting("customer_token")
-
 
   # -------------------------------------------------------------------
   # Application behaviour functions

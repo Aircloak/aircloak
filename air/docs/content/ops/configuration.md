@@ -52,7 +52,6 @@ This part of the configuration is used to configure the web server of the Insigh
   "auth_secret": secret_string,
   "endpoint_key_base": secret_string,
   "api_token_salt": secret_string,
-  "customer_token": string,
   "master_password": string,
   "certfile": string,
   "keyfile": string
@@ -67,8 +66,6 @@ cat /dev/urandom |
   fold -w 64 |
   head -n 1
 ```
-
-The customer token is the token provided by Aircloak. This value uniquely identifies your Insights Air installation with the central Aircloak systems.
 
 The `master_password` parameter specifies the password (in clear text) which is required when creating the first administrator user. When you attempt to access the site for the very first time, there are no users in the database. At this point, the system will ask you to create the first administrator user, and it will require you to enter the `master_password`. Once the first administrator is created, this password will not be needed anymore.
 

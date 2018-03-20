@@ -118,9 +118,7 @@ defmodule IntegrationTest.Manager do
     Central.Repo.delete_all(Central.Schemas.AirRPC)
     Central.Repo.delete_all(Central.Schemas.CustomerExport)
     Central.Repo.delete_all(Central.Schemas.Customer)
-    {:ok, customer} = Central.Service.Customer.create(%{name: "integration tests customer"})
-    {:ok, token} = Central.Service.Customer.generate_token(customer)
-    Aircloak.DeployConfig.update(:air, "site", &%{&1 | "customer_token" => token})
+    {:ok, _} = Central.Service.Customer.create(%{name: "integration tests customer"})
   end
 
   defp create_license() do
