@@ -95,7 +95,7 @@ defmodule Central.Service.License.Test do
 
   describe "renewal" do
     test "invalid license", do:
-      assert :error = License.renew("invalid")
+      assert {:error, :invalid_license} = License.renew("invalid")
 
     test "valid license", %{customer: customer, public_key: public_key} do
       {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 1, auto_renew: true})

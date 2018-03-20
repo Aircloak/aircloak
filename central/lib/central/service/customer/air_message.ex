@@ -9,7 +9,7 @@ defmodule Central.Service.Customer.AirMessage do
     created_at: NaiveDateTime.t,
     air_name: String.t,
     air_version: String.t,
-    customer_token: String.t,
+    license: String.t,
     rpcs: [rpc]
   }
 
@@ -17,7 +17,7 @@ defmodule Central.Service.Customer.AirMessage do
 
   @type import_error ::
     :invalid_format |
-    :invalid_token |
+    :invalid_license |
     :already_imported |
     {:missing_previous_export, NaiveDateTime.t | nil}
 

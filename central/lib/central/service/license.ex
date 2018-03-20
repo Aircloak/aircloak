@@ -77,7 +77,7 @@ defmodule Central.Service.License do
   def restore(license), do: __MODULE__.update(license, %{revoked: false})
 
   @doc "Returns the license object matching the given license text."
-  @spec decrypt(String.t) :: {:ok, License.t} | :error
+  @spec decrypt(String.t) :: {:ok, License.t} | {:error, :invalid_license}
   def decrypt(text) do
     with \
          {:ok, %{customer_id: customer_id, license_id: license_id}} <- Aircloak.License.decrypt(public_key(), text),
@@ -86,12 +86,12 @@ defmodule Central.Service.License do
     do
       {:ok, license}
     else
-      _ -> :error
+      _ -> {:error, :invalid_license}
     end
   end
 
   @doc "Returns a renewed version of the given license text."
-  @spec renew(String.t) :: {:ok, String.t} | :error
+  @spec renew(String.t) :: {:ok, String.t} | {:error, :invalid_license}
   def renew(text) do
     with {:ok, license} <- decrypt(text) do
       {:ok, export(license)}

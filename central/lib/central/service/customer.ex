@@ -128,7 +128,7 @@ defmodule Central.Service.Customer do
   @doc """
   Returns the customer associated with the given license.
   """
-  @spec from_license(License.t) :: {:ok, Customer.t} | :error
+  @spec from_license(License.t) :: {:ok, Customer.t} | {:error, :invalid_license}
   def from_license(license) do
     Customer
     |> Repo.get(license.customer_id)
