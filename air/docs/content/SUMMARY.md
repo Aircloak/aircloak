@@ -49,6 +49,7 @@
   - [Aggregates](sql/query-results.md#anonymizing-aggregation-functions)
 - [Supported functions](sql/functions.md)
   - [Date/time functions](sql/functions.md#datetime-functions)
+  - [Working with intervals](sql/functions.md#working-with-intervals)
   - [Mathematical operators](sql/functions.md#mathematical-operators)
   - [Mathematical functions](sql/functions.md#mathematical-functions)
   - [String functions](sql/functions.md#string-functions)

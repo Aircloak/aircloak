@@ -26,6 +26,65 @@ DATE_TRUNC('hour', time)
 "Rounds" the date or time to the given precision. Supported precision levels
 are `year`, `quarter`, `month`, `day`, `hour`, `minute`, and `second`.
 
+## Working with intervals
+
+When subtracting two date or time columns the result is an interval. The format Aircloak follows when representing
+intervals is [ISO-8601](https://en.wikipedia.org/wiki/ISO_8601#Durations).
+
+```sql
+cast('2017-01-02' as date) - cast('2017-01-01' as date)
+-- P1D
+
+cast('12:33:44' as time) - cast('11:22:33' as time)
+-- PT1H11M11S
+
+cast('2017-02-03 11:22:33' as timestamp) - cast('2016-01-02 12:33:44' as timestamp)
+-- P1Y1M2DT22H48M49S
+
+-- Intervals do not have a sign
+cast('12:00:00' as time) - cast('13:00:00' as time)
+-- PT1H
+cast('13:00:00' as time) - cast('12:00:00' as time)
+-- PT1H
+```
+
+Similarly, an interval can be added or subtracted from a date or time column.
+
+```sql
+cast('13:00:00' as time) + interval 'PT1H2M3S'
+-- 14:02:03
+
+cast('2015-07-06 12:00:00' as timestamp) - interval 'P1Y1M1DT1H1M1S'
+-- 2014-06-05 10:58:59
+
+-- Note that months in intervals will always have 30 days
+cast('2015-06-06' as date) - interval 'P1M'
+-- 2015-05-07 00:00:00
+cast('2015-07-06' as date) - interval 'P1M'
+-- 2015-06-06 00:00:00
+
+-- Similarly years will always have 365 days
+cast('2015-06-06' as date) + interval 'P1Y'
+-- 2016-06-05 00:00:00
+cast('2016-06-06' as date) + interval 'P1Y'
+-- 2017-06-06 00:00:00
+```
+
+Intervals can be multiplied or divided by numbers to yield bigger or smaller intervals.
+
+```sql
+2 * interval 'P1Y'
+-- P2Y
+
+0.5 * interval 'P1M'
+-- P15D
+
+interval 'PT1H' / 2
+-- PT30M
+```
+
+[Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
+
 ## Mathematical operators
 
 ```sql
