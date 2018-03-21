@@ -54,8 +54,8 @@ defmodule CentralWeb.Socket.Air do
     with {:ok, customer} <- Customer.from_token(token), do: {:ok, customer, air_name}
   defp customer_from_params(%{"license" => license, "air_name" => air_name}) do
     with \
-         {:ok, license} <- License.decrypt(license),
-         {:ok, customer} <- Customer.from_license(license)
+      {:ok, license} <- License.decrypt(license),
+      {:ok, customer} <- Customer.from_license(license)
     do
       {:ok, customer, air_name}
     end
