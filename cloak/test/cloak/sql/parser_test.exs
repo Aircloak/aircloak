@@ -276,6 +276,13 @@ defmodule Cloak.Sql.Parser.Test do
     )
   end
 
+  test "where clause with implied = TRUE" do
+    assert_parse(
+      "select foo from bar where is_baz",
+      select(where: {:comparison, identifier("is_baz"), :=, constant(true)})
+    )
+  end
+
   test "where clause with <" do
     assert_parse(
       "select foo from bar where a < 10",
@@ -1232,7 +1239,7 @@ defmodule Cloak.Sql.Parser.Test do
       {"show columns works only with one table",
         "show columns from foo, bar", "Expected end of input", {1, 22}},
       {"!= is an illegal comparator in where clause",
-        "select a from b where a != b", "Expected `equality comparator`", {1, 25}},
+        "select a from b where a != b", "Expected end of input", {1, 25}},
       {"=> is an illegal comparator in where clause",
         "select a from b where a => b", "Expected `comparison value`", {1, 26}},
       {"=< is an illegal comparator in where clause",
@@ -1262,9 +1269,9 @@ defmodule Cloak.Sql.Parser.Test do
       {"invalid comparison",
         "select foo from bar where baz =", "Expected `comparison value`", {1, 32}},
       {"missing where expression",
-        "select foo from bar where", "Expected `equality comparator`", {1, 26}},
+        "select foo from bar where", "Expected `column definition`", {1, 26}},
       {"invalid where expression",
-        "select foo from bar where foo bar", "Expected `equality comparator`", {1, 31}},
+        "select foo from bar where foo bar", "Expected end of input", {1, 31}},
       {"no input allowed after the statement",
         "select foo from bar baz qux", "Expected end of input", {1, 25}},
       {"error after spaces",

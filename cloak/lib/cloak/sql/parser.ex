@@ -680,6 +680,7 @@ defmodule Cloak.Sql.Parser do
       {any_constant() |> inequality_comparator(), column()},
       {column() |> inequality_comparator(), any_constant()},
       {column() |> equality_comparator(), allowed_where_value()},
+      {sequence([next_position(), column()]), return(:implicit)},
     ])
     |> map(fn
           {[identifier, nil, :like], [[string_constant, escape]]} ->
@@ -696,6 +697,7 @@ defmodule Cloak.Sql.Parser do
           {[identifier, :is, :not], [:null]} -> {:not, {:is, identifier, :null}}
           {[identifier, :between], [{min, max}]} ->
             {:and, {:comparison, identifier, :>=, min}, {:comparison, identifier, :<, max}}
+          {[[location, column]], [:implicit]} -> {:comparison, column, :=, {:constant, :boolean, true, location}}
           {[lhs, comparator], [rhs]} -> create_comparison(lhs, comparator, rhs)
         end)
   end
