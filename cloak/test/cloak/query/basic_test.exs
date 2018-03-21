@@ -1077,7 +1077,7 @@ defmodule Cloak.Query.BasicTest do
       select
         height, count(distinct height), min(height), max(height), median(height), round(avg(height))
       from heights group by height
-    """, %{rows: [%{row: [:*, 8, 154, 176, 163, 167]}]}
+    """, %{rows: [%{row: [:*, 8, 154, 176, 167, 167]}]}
   end
 
   test "aggregation of low-count values with multiple groups" do
