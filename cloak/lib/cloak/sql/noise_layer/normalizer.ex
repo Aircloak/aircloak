@@ -21,22 +21,18 @@ defmodule Cloak.Sql.NoiseLayer.Normalizer do
   """
   @spec normalize_number(number) :: term
   def normalize_number(number), do:
-    <<sign(number), normalize_float(abs(:erlang.float(number)), _significant_digits = 6, 0)::binary>>
+    number |> :erlang.float() |> normalize_float()
 
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp sign(number) when number < 0, do: ?-
-  defp sign(number) when number >= 0, do: ?+
-
-  defp normalize_float(0.0, _n, exponent), do:
-    <<exponent::8, 0::64-float>>
-  defp normalize_float(number, n, exponent) when number >= 1 and number < 10, do:
-    <<exponent::8, Float.round(number, n - 1)::64-float>>
-  defp normalize_float(number, n, exponent) when number >= 10, do:
-    normalize_float(number / 10, n, exponent + 1)
-  defp normalize_float(number, n, exponent) when number < 1, do:
-    normalize_float(number * 10, n, exponent - 1)
+  # We want to keep only the sign bit, the exponent and 6 significant decimal digits
+  # The format of a 64-bit float is [1-bit sign, 11-bit exponent, 52-bit mantissa]
+  # Since 10^6 ~= 2^20, it means we roughly need to keep the first half of number only.
+  defp normalize_float(number) do
+    <<normalized::4-binary, _dropped_digits::4-binary>> = <<number::64-float>>
+    normalized
+  end
 end
