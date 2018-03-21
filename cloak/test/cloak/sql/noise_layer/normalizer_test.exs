@@ -9,7 +9,7 @@ defmodule Cloak.Sql.NoiseLayer.Normalizer.Test do
 
     test "same after normalization if difference in insignificant digits" do
       assert same(1.1231231, 1.123123123)
-      assert same(1.123123123, 1.123123124)
+      assert same(12341234.123123123, 12341234.123123124)
     end
 
     test "should not conflate similar looking numbers" do
