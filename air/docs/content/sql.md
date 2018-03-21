@@ -1,18 +1,23 @@
 # Query Language
 
-To write queries you use SQL. Aircloak supports a subset of standard SQL, implemented in a way that prevents leakage of sensitive data.
+To write queries you use SQL. Aircloak supports a subset of standard SQL, implemented in a way that prevents leakage of
+sensitive data.
 
 
 ## Exploring the database
 
-You can discover database tables and their structure using the `SHOW` statement. To list the tables in the database, you can use the `SHOW TABLES` statement. If you want to see the columns of a particular table, you can invoke `SHOW COLUMNS FROM table_name`.
+You can discover database tables and their structure using the `SHOW` statement. To list the tables in the database, you
+can use the `SHOW TABLES` statement. If you want to see the columns of a particular table, you can invoke `SHOW COLUMNS
+FROM table_name`.
 
 
 ## Querying the database
 
-The `SELECT` statement can be used to obtain anonymized data from tables. See [Understanding query results](sql/query-results.md) for an explanation of the effects of anonymization on the results.
+The `SELECT` statement can be used to obtain anonymized data from tables. See [Understanding query
+results](sql/query-results.md) for an explanation of the effects of anonymization on the results.
 
-The syntax conforms to the standard SQL syntax (with some exceptions), but only a subset of features is supported. The general shape of the query looks like:
+The syntax conforms to the standard SQL syntax (with some exceptions), but only a subset of features is supported. The
+general shape of the query looks like:
 
 ```SQL
 SELECT [DISTINCT | ALL]
@@ -75,7 +80,7 @@ inequality_operator :=
     > | >= | < | <=
 ```
 
-## Notes
+## Considerations
 
 - The `*` argument can only be provided to the `COUNT` and `COUNT_NOISE` aggregators and it specifies counting rows
   instead of otherwise counting only non-`NULL` values. `NULL` values are ignored by all other aggregators.
