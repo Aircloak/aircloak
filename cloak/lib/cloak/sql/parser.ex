@@ -836,8 +836,8 @@ defmodule Cloak.Sql.Parser do
     |> label("identifier")
   end
 
-  defp comparator(parser \\ noop()), do:
-    parser |> either_deepest_error(equality_comparator(), inequality_comparator()) |> label("comparator")
+  defp comparator(previous_parser), do:
+    previous_parser |> either_deepest_error(equality_comparator(), inequality_comparator()) |> label("comparator")
 
   defp equality_comparator(parser \\ noop()), do:
     parser |> keyword_of([:=, :<>]) |> label("equality comparator")
@@ -903,12 +903,14 @@ defmodule Cloak.Sql.Parser do
   defp having_expression() do
     switch([
       {column() |> keyword(:between), allowed_where_range()},
-      {column(), pair_both(comparator(), column())},
+      {column() |> comparator(), column()},
+      {sequence([next_position(), column()]), return(:implicit)},
     ])
     |> map(fn
-      {[column], [{comparator, value}]} -> create_comparison(column, comparator, value)
       {[column, :between], [{min, max}]} ->
         {:and, {:comparison, column, :>=, min}, {:comparison, column, :<=, max}}
+      {[[location, column]], [:implicit]} -> {:comparison, column, :=, {:constant, :boolean, true, location}}
+      {[column, comparator], [value]} -> create_comparison(column, comparator, value)
     end)
   end
 

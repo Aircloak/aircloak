@@ -495,6 +495,13 @@ defmodule Cloak.Sql.Parser.Test do
     )
   end
 
+  test "having clause with implied = TRUE" do
+    assert_parse(
+      "select foo from bar having is_baz",
+      select(having: {:comparison, identifier("is_baz"), :=, constant(true)})
+    )
+  end
+
   test "having clause with parens" do
     assert_equal_parse(
       "select foo from bar having (a = 1 and b = 3) and (c = 4)",
