@@ -125,9 +125,7 @@ defmodule Central.Service.Customer do
     end
   end
 
-  @doc """
-  Returns the customer associated with the given license.
-  """
+  @doc "Returns the customer associated with the given license."
   @spec from_license(License.t) :: {:ok, Customer.t} | {:error, :invalid_license}
   def from_license(license) do
     Customer
