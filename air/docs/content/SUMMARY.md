@@ -31,7 +31,7 @@
 ## Technical documentation
 
 - [Core language features](sql.md)
-  - [Considerations](sql.md#notes)
+  - [Considerations](sql.md#considerations)
 - [Restrictions](sql/restrictions.md)
   - [JOINs](sql/restrictions.md#join-restrictions)
   - [Subqueries](sql/restrictions.md#subquery-restrictions)

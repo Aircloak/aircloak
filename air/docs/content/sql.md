@@ -80,7 +80,7 @@ inequality_operator :=
     > | >= | < | <=
 ```
 
-## Notes
+## Considerations
 
 - The `*` argument can only be provided to the `COUNT` and `COUNT_NOISE` aggregators and it specifies counting rows
   instead of otherwise counting only non-`NULL` values. `NULL` values are ignored by all other aggregators.
