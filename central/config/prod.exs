@@ -51,6 +51,4 @@ config :logger, level: :info
 
 config :phoenix, :serve_endpoints, true
 
-config :central, :license,
-  public_key: "priv/config/license_key_public.pem",
-  private_key: "priv/config/license_key_private.pem"
+config :central, :license, private_key: "priv/config/license_key_private.pem"

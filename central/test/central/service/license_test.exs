@@ -119,8 +119,10 @@ defmodule Central.Service.License.Test do
 
   defp read_public_key(_) do
     root_path = Application.app_dir(:central)
-    file_name = Application.get_env(:central, :license) |> Keyword.fetch!(:public_key)
+    file_name = Application.get_env(:central, :license) |> Keyword.fetch!(:private_key)
     {:ok, key} = ExPublicKey.load(Path.join([root_path, file_name]))
+    {:ok, key} = ExPublicKey.public_key_from_private_key(key)
+
     {:ok, public_key: key}
   end
 

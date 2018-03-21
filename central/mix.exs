@@ -70,7 +70,6 @@ defmodule Central.Mixfile do
       {:quantum, "~> 1.9"},
       {:phoenix_gen_socket_client, "~> 2.0", only: :test},
       {:websocket_client, "~> 1.2.4", only: :test},
-      {:ex_crypto, "~> 0.8.0"}
     ]
   end
 

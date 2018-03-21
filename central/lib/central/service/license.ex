@@ -112,11 +112,27 @@ defmodule Central.Service.License do
     encrypted
   end
 
+  # -------------------------------------------------------------------
+  # Keys
+  # -------------------------------------------------------------------
+
   defp private_key(), do:
-    Agent.get(__MODULE__, fn %{private_key: private_key} -> private_key end)
+    Agent.get(__MODULE__, & &1)
 
   defp public_key(), do:
-    Agent.get(__MODULE__, fn %{public_key: public_key} -> public_key end)
+    Agent.get(__MODULE__, fn(private_key) ->
+      {:ok, public_key} = ExPublicKey.public_key_from_private_key(private_key)
+      public_key
+    end)
+
+  defp load_key() do
+    root_path = Application.app_dir(:central)
+    file_name = Application.get_env(:central, :license) |> Keyword.fetch!(:private_key)
+
+    {:ok, private_key} = ExPublicKey.load(Path.join([root_path, file_name]))
+    private_key
+  end
+
 
   # -------------------------------------------------------------------
   # Supervision tree
@@ -124,21 +140,5 @@ defmodule Central.Service.License do
 
   @doc false
   def child_spec(_arg), do:
-    Aircloak.ChildSpec.agent(&load_keys/0, name: __MODULE__)
-
-  defp load_keys() do
-    {:ok, public_key} = ExPublicKey.load(path(:public_key))
-    {:ok, private_key} = ExPublicKey.load(path(:private_key))
-
-    %{
-      private_key: private_key,
-      public_key: public_key,
-    }
-  end
-
-  defp path(key) do
-    root_path = Application.app_dir(:central)
-    file_name = Application.get_env(:central, :license) |> Keyword.fetch!(key)
-    Path.join([root_path, file_name])
-  end
+    Aircloak.ChildSpec.agent(&load_key/0, name: __MODULE__)
 end
