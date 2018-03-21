@@ -5,7 +5,7 @@ defmodule Air.Service.Central do
   alias Aircloak.ChildSpec
   alias Air.Repo
   alias Air.Schemas.{CentralCall, ExportForAircloak}
-  alias Air.Service.Central.RpcQueue
+  alias Air.Service.{Central.RpcQueue, License}
 
   @type rpc :: %{id: String.t, event: String.t, payload: map}
 
@@ -169,7 +169,7 @@ defmodule Air.Service.Central do
       rpcs: Enum.map(calls_to_export, &new_rpc(&1.id, &1.event, &1.payload)),
       air_name: Air.instance_name(),
       air_version: Aircloak.Version.for_app(:air) |> Aircloak.Version.to_string(),
-      customer_token: Air.customer_token(),
+      license: License.text(),
     }
     |> Poison.encode!()
     |> :zlib.gzip()

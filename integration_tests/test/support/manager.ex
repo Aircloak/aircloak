@@ -9,17 +9,17 @@ defmodule IntegrationTest.Manager do
   @data_source_name "data_source_name"
 
   def start(_type, _args) do
-    Application.ensure_all_started(:central)
+    {:ok, _} = Application.ensure_all_started(:central)
     setup_central()
 
     # Setting up the cloak database injects the tables into
     # the cloak data source config. This needs to happen
     # prior to the cloak sendings its data sources to the air.
     # Otherwise the air operates with stale data source definitions
-    Application.ensure_all_started(:cloak)
+    {:ok, _} = Application.ensure_all_started(:cloak)
     setup_cloak_database()
 
-    Application.ensure_all_started(:air)
+    {:ok, _} = Application.ensure_all_started(:air)
     await_data_source()
     setup_air_database()
 
@@ -51,10 +51,22 @@ defmodule IntegrationTest.Manager do
   end
 
   def load_valid_license(), do:
-    :ok = load_license("priv/integration_test_license.lic")
+    :ok = create_license() |> Central.Service.License.export() |> Air.Service.License.load()
 
-  def load_expired_license(), do:
-    :ok = load_license("priv/integration_test_expired_license.lic")
+  def load_expired_license() do
+    license = create_license()
+    {:ok, _} = Ecto.Adapters.SQL.query(
+      Central.Repo,
+      "UPDATE licenses SET inserted_at = '2000-01-01 00:00:00' WHERE id = $1",
+      [license.id]
+    )
+
+    :ok =
+      Central.Schemas.License
+      |> Central.Repo.get!(license.id)
+      |> Central.Service.License.export()
+      |> Air.Service.License.load()
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -102,17 +114,18 @@ defmodule IntegrationTest.Manager do
   end
 
   defp setup_central() do
+    Central.Repo.delete_all(Central.Schemas.License)
     Central.Repo.delete_all(Central.Schemas.AirRPC)
     Central.Repo.delete_all(Central.Schemas.CustomerExport)
     Central.Repo.delete_all(Central.Schemas.Customer)
-    {:ok, customer} = Central.Service.Customer.create(%{name: "integration tests customer"})
-    {:ok, token} = Central.Service.Customer.generate_token(customer)
-    Aircloak.DeployConfig.update(:air, "site", &%{&1 | "customer_token" => token})
+    {:ok, _} = Central.Service.Customer.create(%{name: "integration tests customer"})
   end
 
-  defp load_license(path), do:
-    Application.app_dir(:integration_tests)
-    |> Path.join(path)
-    |> File.read!()
-    |> Air.Service.License.load()
+  defp create_license() do
+    {:ok, license} =
+      Central.Schemas.Customer
+      |> Central.Repo.one!()
+      |> Central.Service.License.create(%{name: "test license", length_in_days: 10, auto_renew: false})
+    license
+  end
 end

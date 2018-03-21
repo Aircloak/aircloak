@@ -28,7 +28,7 @@ defmodule IntegrationTests.Mixfile do
   defp deps do
     [
       {:cloak, path: "../cloak", runtime: false},
-      {:air, path: "../air", runtime: false},
+      {:air, path: "../air", runtime: false, env: :dev},
       {:central, path: "../central", runtime: false},
       # resolving clashed dependencies
       {:mariaex, "~> 0.8", override: true},
@@ -36,6 +36,9 @@ defmodule IntegrationTests.Mixfile do
       {:postgrex, "~> 0.13.0", override: true},
       {:poison, github: "cristianberneanu/poison", override: true},
       {:httpoison, "~> 0.12.0", override: true},
+      {:hackney, ">= 1.8.6", override: true},
+      # Needed when running air in dev
+      {:phoenix_live_reload, "~> 1.0"},
     ]
   end
 

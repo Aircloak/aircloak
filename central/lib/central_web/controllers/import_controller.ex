@@ -48,7 +48,7 @@ defmodule CentralWeb.ImportController do
   end
 
   defp import_error(:invalid_format), do: "Invalid file format!"
-  defp import_error(:invalid_token), do: "Invalid customer token!"
+  defp import_error(:invalid_license), do: "Invalid license!"
   defp import_error(:already_imported), do: "Already imported!"
   defp import_error(:invalid_version), do: "Invalid version specification!"
   defp import_error({:missing_previous_export, nil}), do: "Missing all previous exports for this customer!"

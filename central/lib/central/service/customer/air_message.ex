@@ -9,7 +9,7 @@ defmodule Central.Service.Customer.AirMessage do
     created_at: NaiveDateTime.t,
     air_name: String.t,
     air_version: String.t,
-    customer_token: String.t,
+    license: String.t,
     rpcs: [rpc]
   }
 
@@ -17,7 +17,7 @@ defmodule Central.Service.Customer.AirMessage do
 
   @type import_error ::
     :invalid_format |
-    :invalid_token |
+    :invalid_license |
     :already_imported |
     {:missing_previous_export, NaiveDateTime.t | nil}
 
@@ -34,7 +34,7 @@ defmodule Central.Service.Customer.AirMessage do
     decoded = %{
       "last_exported_id" => last_exported_id,
       "air_name" => air_name,
-      "customer_token" => customer_token,
+      "license" => license,
       "rpcs" => rpcs,
     } =
       payload
@@ -47,7 +47,7 @@ defmodule Central.Service.Customer.AirMessage do
       created_at: created_at,
       air_name: air_name,
       air_version: Map.get(decoded, "air_version", "Unknown"),
-      customer_token: customer_token,
+      license: license,
       rpcs: rpcs,
     }}
   catch type, error ->

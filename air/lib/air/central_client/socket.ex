@@ -39,12 +39,12 @@ defmodule Air.CentralClient.Socket do
     call_central(__MODULE__, "renew_license", text)
 
   @doc "Starts the socket client."
-  @spec start_link(Map.t, GenServer.options) :: GenServer.on_start
-  def start_link(air_params \\ air_params(), gen_server_opts \\ [name: __MODULE__]) do
+  @spec start_link(GenServer.options) :: GenServer.on_start
+  def start_link(gen_server_opts \\ [name: __MODULE__]) do
     GenSocketClient.start_link(
       __MODULE__,
       GenSocketClient.Transport.WebSocketClient,
-      {central_socket_url(), Enum.to_list(air_params)},
+      nil,
       [serializer: config(:serializer)],
       gen_server_opts
     )
@@ -56,7 +56,7 @@ defmodule Air.CentralClient.Socket do
   # -------------------------------------------------------------------
 
   @impl GenSocketClient
-  def init({central_socket_url, params}) do
+  def init(_) do
     {:ok, _} = Registry.register(Air.Service.Central.Registry, __MODULE__, false)
     initial_interval = config(:min_reconnect_interval)
     state = %{
@@ -64,8 +64,8 @@ defmodule Air.CentralClient.Socket do
       reconnect_interval: initial_interval,
       rejoin_interval: initial_interval
     }
-    Logger.debug(fn -> "Trying to connect to Central on #{central_socket_url}" end)
-    {:connect, central_socket_url, params, state}
+    Logger.debug(fn -> "Trying to connect to Central on #{central_socket_url()}" end)
+    {:connect, central_socket_url(), air_params(), state}
   end
 
   @impl GenSocketClient
@@ -141,7 +141,7 @@ defmodule Air.CentralClient.Socket do
   @impl GenSocketClient
   def handle_info(:connect, _transport, state) do
     log_connect()
-    {:connect, state}
+    {:connect, central_socket_url(), air_params(), state}
   end
   def handle_info({:join, topic}, transport, state) do
     join_message = %{air_version: version()}
@@ -212,7 +212,7 @@ defmodule Air.CentralClient.Socket do
   end
 
   defp air_params() do
-    %{air_name: Air.instance_name(), token: Air.customer_token()}
+    [air_name: Air.instance_name(), license: Air.Service.License.text()]
   end
 
   defp next_interval(current_interval) do
