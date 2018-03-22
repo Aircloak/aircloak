@@ -257,10 +257,11 @@ defmodule Cloak.Sql.Function do
   @doc "Provides information about alternatives for deprecated functions."
   @spec deprecation_info(t) :: {:error, :function_exists | :not_found} | {:ok, %{alternative: String.t}}
   def deprecation_info({:function, name, _, _} = function) do
-    case {exists?(function), @deprecated_functions[canonical_name(name)]} do
-      {true, _} -> {:error, :function_exists}
-      {false, nil} -> {:error, :not_found}
-      {false, value} -> {:ok, value}
+    case {internal?(function),  exists?(function), @deprecated_functions[canonical_name(name)]} do
+      {true, _, _} -> {:error, :internal_function}
+      {_, true, _} -> {:error, :function_exists}
+      {_, false, nil} -> {:error, :not_found}
+      {_, false, value} -> {:ok, value}
     end
   end
 
