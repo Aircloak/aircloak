@@ -15,20 +15,21 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
     Mongo.delete_many(conn, "right", %{})
     for i <- 1..20 do
       Mongo.insert_one!(conn, "left", %{id: i, name: "user#{i}", age: 30})
-      Mongo.insert_one!(conn, "right", %{id: i, salary: Base.encode64("#{rem(i, 3)*100}")})
+      Mongo.insert_one!(conn, "right", %{id: i, salary: rem(i, 3) * 100})
     end
     for i <- 21..25 do
       Mongo.insert_one!(conn, "left", %{id: i})
     end
     tables_config = [
       Cloak.DataSource.Table.new("left", "id", db_name: "left"),
-      Cloak.DataSource.Table.new("right", "id", db_name: "right")
+      Cloak.DataSource.Table.new("right", "id", db_name: "right"),
     ]
     tables =
       tables_config
       |> Enum.flat_map(&MongoDB.load_tables(conn, &1))
       |> Enum.map(&{&1.name, &1})
       |> Enum.into(%{})
+
     GenServer.stop(conn, :normal, :timer.seconds(5))
 
     data_source = %{
@@ -36,14 +37,14 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
       concurrency: 0,
       driver: MongoDB,
       parameters: parameters,
-      tables: tables
+      tables: tables,
     }
     {:ok, data_source: data_source}
   end
 
   test "inner join with tables in top-query", context do
     assert_query context, """
-      SELECT AVG(cast(dec_b64(salary) AS real)) FROM "left" INNER JOIN "right" ON "left".id = "right".id WHERE age = 30
+      SELECT AVG(salary) FROM "left" INNER JOIN "right" ON "left".id = "right".id WHERE age = 30
     """, %{rows: [%{occurrences: 1, row: [95.0]}]}
   end
 
@@ -55,14 +56,14 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
 
   test "join in top-query with emulated where", context do
     assert_query context, """
-      SELECT count(age) FROM "left" INNER JOIN "right" ON "left".id = "right".id WHERE dec_b64(salary) <> '200'
+      SELECT count(age) FROM "left" INNER JOIN "right" ON "left".id = "right".id WHERE salary <> 200
     """, %{rows: [%{occurrences: 1, row: [13]}]}
   end
 
   test "left join with table and filtered sub-query in filtered top-query", context do
     assert_query context, """
       SELECT age FROM "left" LEFT JOIN
-      (SELECT id AS rid, cast(dec_b64(salary) AS real) AS s FROM "right" WHERE s <> 200) AS t
+      (SELECT id AS rid, salary AS s FROM "right" WHERE s <> 200) AS t
       ON id = rid WHERE s = 100
     """, %{rows: [%{occurrences: 7, row: [30]}]}
   end
@@ -70,14 +71,14 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
   test "left join with tables in sub-query", context do
     assert_query context, """
       SELECT COUNT(name) FROM
-      (SELECT "left".id, name, dec_b64(salary) AS salary FROM "left" LEFT JOIN "right" ON "left".id = "right".id) AS t
-      WHERE salary IN ('100', '200')
+      (SELECT "left".id, name, salary FROM "left" LEFT JOIN "right" ON "left".id = "right".id) AS t
+      WHERE salary IN (100, 200)
     """, %{rows: [%{occurrences: 1, row: [14]}]}
   end
 
   test "function in inner join condition", context do
     assert_query context, """
-      SELECT AVG(cast(dec_b64(salary) AS real))
+      SELECT AVG(salary)
       FROM "left" INNER JOIN "right"
       ON "left".id = "right".id AND age + 1 = 31
     """, %{rows: [%{occurrences: 1, row: [95.0]}]}
@@ -85,8 +86,8 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
 
   test "complex function in inner join condition", context do
     assert_query context, """
-      SELECT AVG(cast(dec_b64(salary) AS real))
-      FROM "left" INNER JOIN "right" ON "left".id = "right".id AND dec_b64(salary) = '100'
+      SELECT AVG(salary)
+      FROM "left" INNER JOIN "right" ON "left".id = "right".id AND salary = 100
     """, %{rows: [%{occurrences: 1, row: [100.0]}]}
   end
 
