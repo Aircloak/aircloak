@@ -13,7 +13,10 @@ defmodule Cloak.Sql.QueryTest do
     )
     :ok = Cloak.Test.DB.create_table("feat_users", "height INTEGER, name TEXT, male BOOLEAN")
     :ok = Cloak.Test.DB.create_table("feat_purchases", "price INTEGER, name TEXT, datetime TIMESTAMP")
-    :ok = Cloak.Test.DB.create_table("feat_emulated_users", "height TEXT")
+    :ok = Cloak.Test.DB.create_table("feat_emulated_users_real", "height TEXT")
+    :ok = Cloak.Test.DB.create_table("feat_emulated_users", nil, skip_db_create: true, query: """
+      SELECT user_id, dec_b64(height) as decoded_height FROM cloak_test.feat_emulated_users_real
+    """)
     :ok
   end
 
@@ -173,7 +176,7 @@ defmodule Cloak.Sql.QueryTest do
     refute features_from("SELECT count(*) FROM feat_emulated_users").emulated
 
   test "marks emulated queries as such", do:
-    assert features_from("SELECT * FROM (SELECT user_id, dec_b64(height) FROM feat_emulated_users) x").emulated
+    assert features_from("SELECT * FROM (SELECT user_id, decoded_height FROM feat_emulated_users) x").emulated
 
   test "successful view validation" do
     assert {:ok, [col1, col2]} = validate_view("v1", "select user_id, name from feat_users")
