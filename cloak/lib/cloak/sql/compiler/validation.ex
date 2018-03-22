@@ -249,10 +249,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_where_clauses(clauses) do
     verify_condition_tree(clauses)
-
-    Lenses.conditions()
-    |> Lens.to_list(clauses)
-    |> Enum.each(&verify_where_condition/1)
+    verify_conditions(clauses)
 
     Lenses.conditions_terminals()
     |> Lens.to_list(clauses)
@@ -265,19 +262,24 @@ defmodule Cloak.Sql.Compiler.Validation do
     end
   end
 
-  defp verify_where_condition({:comparison, column_a, comparator, column_b}) do
+  defp verify_conditions(clauses), do:
+    Lenses.conditions()
+    |> Lens.to_list(clauses)
+    |> Enum.each(&verify_condition/1)
+
+  defp verify_condition({:comparison, column_a, comparator, column_b}) do
     verify_where_condition_types(column_a, column_b)
     check_for_string_inequalities(comparator, column_b)
   end
-  defp verify_where_condition({verb, column, _}) when verb in [:like, :ilike] do
+  defp verify_condition({verb, column, _}) when verb in [:like, :ilike] do
     if column.type != :text do
       verb = verb |> to_string() |> String.upcase()
       raise CompilationError, source_location: column.source_location, message:
         "Column #{Expression.display_name(column)} of type `#{column.type}` cannot be used in a #{verb} expression."
     end
   end
-  defp verify_where_condition({:not, condition}), do: verify_where_condition(condition)
-  defp verify_where_condition(_), do: :ok
+  defp verify_condition({:not, condition}), do: verify_condition(condition)
+  defp verify_condition(_), do: :ok
 
   defp verify_where_condition_types(column_a, column_b) do
     unless comparable?(column_a.type, column_b.type) do
@@ -299,6 +301,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_having(query) do
     verify_condition_tree(query.having)
+    verify_conditions(query.having)
 
     for condition <- Lens.to_list(Query.Lenses.conditions(), query.having),
         term <- Condition.targets(condition), individual_column?(query, term), do:
