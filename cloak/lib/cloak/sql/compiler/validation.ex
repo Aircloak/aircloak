@@ -29,9 +29,9 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   @doc "Checks that a function specification is valid."
-  @spec verify_function(Function.t, boolean) :: Function.t
-  def verify_function(function, subquery?) do
-    verify_function_exists(function)
+  @spec verify_function(Function.t, boolean, boolean) :: Function.t
+  def verify_function(function, subquery?, virtual_table?) do
+    verify_function_exists(function, virtual_table?)
     verify_function_usage(function, subquery?)
     function
   end
@@ -58,8 +58,8 @@ defmodule Cloak.Sql.Compiler.Validation do
   # Columns and expressions
   # -------------------------------------------------------------------
 
-  defp verify_function_exists(function = {:function, name, _, location}) do
-    unless Function.exists?(function) and not Function.internal?(function) do
+  defp verify_function_exists(function = {:function, name, _, location}, virtual_table?) do
+    unless Function.exists?(function) and (virtual_table? or not Function.internal?(function)) do
       case Function.deprecation_info(function) do
         {:error, error} when error in [:not_found, :internal_function] ->
           raise CompilationError, source_location: location, message:
