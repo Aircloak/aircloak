@@ -64,11 +64,13 @@ where_expression :=
   column_expression inequality_operator (numerical_value | datetime_value) |
   column_expression BETWEEN value AND value |
   column_expression IS [NOT] NULL |
-  column_expression [NOT] IN (constant [, ...])
-  column_expression [NOT] LIKE | ILIKE string_pattern [ESCAPE escape_string]
+  column_expression [NOT] IN (constant [, ...]) |
+  column_expression [NOT] LIKE | ILIKE string_pattern [ESCAPE escape_string] |
+  column_expression
 
 having_expression :=
-    column_expression comparison_operator (value | column_expression)
+    column_expression comparison_operator (value | column_expression) |
+    column_expression
 
 comparison_operator :=
     equality_operator | inequality_operator
@@ -107,3 +109,5 @@ inequality_operator :=
   default handling for the underlying datasource will be used. For postgres that means that `NULL` values will be
   treated as larger than all other values. For SAP HANA, MySQL, SQL Server, and MongoDB they will be treated as smaller
   than all other values. The top-level query always defaults to treating `NULL` values as larger than other values.
+- Using a `column_expression` in place of a `where_expression` or a `having_expression` will implicitly compare the
+  value of that `column_expression` to `TRUE`.
