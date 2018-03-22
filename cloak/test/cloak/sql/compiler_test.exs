@@ -48,6 +48,25 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error == "Column `numeric` from table `table` of type `integer` cannot be used in a LIKE expression."
   end
 
+  test "rejects mistyped having conditions" do
+    {:error, error} = compile("""
+      select count(*) from table group by numeric, column having numeric = column
+    """, data_source())
+
+    assert error == "Column `numeric` from table `table` of type `integer` and column `column` from table `table` "
+      <> "of type `datetime` cannot be compared."
+  end
+
+  test "rejects mistyped having conditions in subqueries" do
+    {:error, error} = compile("""
+      select count(*) from (
+        select uid from table group by uid, numeric, column having numeric = column) x
+    """, data_source())
+
+    assert error == "Column `numeric` from table `table` of type `integer` and column `column` from table `table` "
+      <> "of type `datetime` cannot be compared."
+  end
+
   test "rejects escape strings longer than 1" do
     {:error, error} = compile("select * from table where string like 'something' escape 'abc'", data_source())
     assert error == "Escape string must be one character."
