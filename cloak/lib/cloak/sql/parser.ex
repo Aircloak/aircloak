@@ -680,6 +680,7 @@ defmodule Cloak.Sql.Parser do
       {any_constant() |> inequality_comparator(), column()},
       {column() |> inequality_comparator(), any_constant()},
       {column() |> equality_comparator(), allowed_where_value()},
+      {sequence([next_position(), column()]), return(:implicit)},
     ])
     |> map(fn
           {[identifier, nil, :like], [[string_constant, escape]]} ->
@@ -696,6 +697,7 @@ defmodule Cloak.Sql.Parser do
           {[identifier, :is, :not], [:null]} -> {:not, {:is, identifier, :null}}
           {[identifier, :between], [{min, max}]} ->
             {:and, {:comparison, identifier, :>=, min}, {:comparison, identifier, :<, max}}
+          {[[location, column]], [:implicit]} -> {:comparison, column, :=, {:constant, :boolean, true, location}}
           {[lhs, comparator], [rhs]} -> create_comparison(lhs, comparator, rhs)
         end)
   end
@@ -834,8 +836,8 @@ defmodule Cloak.Sql.Parser do
     |> label("identifier")
   end
 
-  defp comparator(parser \\ noop()), do:
-    parser |> either_deepest_error(equality_comparator(), inequality_comparator()) |> label("comparator")
+  defp comparator(previous_parser), do:
+    previous_parser |> either_deepest_error(equality_comparator(), inequality_comparator()) |> label("comparator")
 
   defp equality_comparator(parser \\ noop()), do:
     parser |> keyword_of([:=, :<>]) |> label("equality comparator")
@@ -901,12 +903,14 @@ defmodule Cloak.Sql.Parser do
   defp having_expression() do
     switch([
       {column() |> keyword(:between), allowed_where_range()},
-      {column(), pair_both(comparator(), column())},
+      {column() |> comparator(), column()},
+      {sequence([next_position(), column()]), return(:implicit)},
     ])
     |> map(fn
-      {[column], [{comparator, value}]} -> create_comparison(column, comparator, value)
       {[column, :between], [{min, max}]} ->
         {:and, {:comparison, column, :>=, min}, {:comparison, column, :<=, max}}
+      {[[location, column]], [:implicit]} -> {:comparison, column, :=, {:constant, :boolean, true, location}}
+      {[column, comparator], [value]} -> create_comparison(column, comparator, value)
     end)
   end
 
