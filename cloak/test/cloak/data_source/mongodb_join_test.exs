@@ -12,10 +12,10 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
     parameters = [hostname: "localhost", database: "cloaktest"]
     {:ok, conn} = Mongo.start_link(parameters)
     Mongo.delete_many(conn, "left", %{})
-    Mongo.delete_many(conn, "right_enc", %{})
+    Mongo.delete_many(conn, "right", %{})
     for i <- 1..20 do
       Mongo.insert_one!(conn, "left", %{id: i, name: "user#{i}", age: 30})
-      Mongo.insert_one!(conn, "right_enc", %{id: i, salary: Base.encode64("#{rem(i, 3)*100}")})
+      Mongo.insert_one!(conn, "right", %{id: i, salary: rem(i, 3) * 100})
     end
     for i <- 21..25 do
       Mongo.insert_one!(conn, "left", %{id: i})
@@ -23,9 +23,7 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
 
     tables = %{
       "left" => Cloak.DataSource.Table.new("left", "id", db_name: "left"),
-      "right" => Cloak.DataSource.Table.new("right", "id", query: """
-        SELECT id, CAST(dec_b64(salary) AS integer) AS salary FROM right_enc
-      """),
+      "right" => Cloak.DataSource.Table.new("right", "id", db_name: "right"),
     }
 
     data_source =
@@ -58,14 +56,14 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
 
   test "join in top-query with emulated where", context do
     assert_query context, """
-      SELECT count(age) FROM "left" INNER JOIN "right" ON "left".id = "right".id WHERE salary <> 200
-    """, %{rows: [%{occurrences: 1, row: [13]}]}
+      SELECT count(age) FROM "left" INNER JOIN "right" ON "left".id = "right".id WHERE abs(salary) = 100
+    """, %{rows: [%{occurrences: 1, row: [7]}]}
   end
 
   test "left join with table and filtered sub-query in filtered top-query", context do
     assert_query context, """
       SELECT age FROM "left" LEFT JOIN
-      (SELECT id AS rid, salary AS s FROM "right" WHERE s <> 200) AS t
+      (SELECT id AS rid, abs(salary) AS s FROM "right" WHERE s = 100) AS t
       ON id = rid WHERE s = 100
     """, %{rows: [%{occurrences: 7, row: [30]}]}
   end
@@ -73,7 +71,7 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
   test "left join with tables in sub-query", context do
     assert_query context, """
       SELECT COUNT(name) FROM
-      (SELECT "left".id, name, salary FROM "left" LEFT JOIN "right" ON "left".id = "right".id) AS t
+      (SELECT "left".id, name, salary as salary FROM "left" LEFT JOIN "right" ON "left".id = "right".id) AS t
       WHERE salary IN (100, 200)
     """, %{rows: [%{occurrences: 1, row: [14]}]}
   end
@@ -89,7 +87,7 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
   test "complex function in inner join condition", context do
     assert_query context, """
       SELECT AVG(salary)
-      FROM "left" INNER JOIN "right" ON "left".id = "right".id AND salary = 100
+      FROM "left" INNER JOIN "right" ON "left".id = "right".id AND abs(salary) = 100
     """, %{rows: [%{occurrences: 1, row: [100.0]}]}
   end
 
