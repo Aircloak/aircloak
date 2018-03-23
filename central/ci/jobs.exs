@@ -28,8 +28,10 @@ end
       "make deps",
       "mix compile",
       {:parallel, [
-        "MIX_ENV=test mix compile",
-        "MIX_ENV=prod mix compile",
+        {:sequence, [
+          "MIX_ENV=test mix compile",
+          "MIX_ENV=prod mix compile",
+        ]},
         "MIX_HOME=_build mix dialyze --no-analyse",
       ]}
     ]},
