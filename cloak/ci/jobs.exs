@@ -32,8 +32,10 @@ end
     {:sequence, [
       "make",
       {:parallel, [
-        "MIX_ENV=test make",
-        "MIX_ENV=prod make",
+        {:sequence, [
+          "MIX_ENV=test make",
+          "MIX_ENV=prod make",
+        ]},
         "MIX_HOME=_build mix dialyze --no-analyse",
       ]}
     ]},
