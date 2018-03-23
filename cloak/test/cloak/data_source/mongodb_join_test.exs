@@ -12,33 +12,35 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
     parameters = [hostname: "localhost", database: "cloaktest"]
     {:ok, conn} = Mongo.start_link(parameters)
     Mongo.delete_many(conn, "left", %{})
-    Mongo.delete_many(conn, "right", %{})
+    Mongo.delete_many(conn, "right_enc", %{})
     for i <- 1..20 do
       Mongo.insert_one!(conn, "left", %{id: i, name: "user#{i}", age: 30})
-      Mongo.insert_one!(conn, "right", %{id: i, salary: rem(i, 3) * 100})
+      Mongo.insert_one!(conn, "right_enc", %{id: i, salary: Base.encode64("#{rem(i, 3)*100}")})
     end
     for i <- 21..25 do
       Mongo.insert_one!(conn, "left", %{id: i})
     end
-    tables_config = [
-      Cloak.DataSource.Table.new("left", "id", db_name: "left"),
-      Cloak.DataSource.Table.new("right", "id", db_name: "right"),
-    ]
-    tables =
-      tables_config
-      |> Enum.flat_map(&MongoDB.load_tables(conn, &1))
-      |> Enum.map(&{&1.name, &1})
-      |> Enum.into(%{})
+
+    tables = %{
+      "left" => Cloak.DataSource.Table.new("left", "id", db_name: "left"),
+      "right" => Cloak.DataSource.Table.new("right", "id", query: """
+        SELECT id, CAST(dec_b64(salary) AS integer) AS salary FROM right_enc
+      """),
+    }
+
+    data_source =
+      %{
+        name: "mongo_db_join",
+        concurrency: 0,
+        driver: MongoDB,
+        driver_info: MongoDB.driver_info(conn),
+        parameters: parameters,
+        tables: tables,
+        errors: [],
+      }
+      |> Cloak.DataSource.Table.load(conn)
 
     GenServer.stop(conn, :normal, :timer.seconds(5))
-
-    data_source = %{
-      name: "mongo_db_join",
-      concurrency: 0,
-      driver: MongoDB,
-      parameters: parameters,
-      tables: tables,
-    }
     {:ok, data_source: data_source}
   end
 
