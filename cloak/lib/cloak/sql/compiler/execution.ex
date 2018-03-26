@@ -251,7 +251,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     Query.Lenses.leaf_expressions() |> Lens.to_list(columns)
 
   defp compile_sample_rate(%Query{sample_rate: amount} = query) when amount != nil do
-    {enumerator, denominator} = normalize_sample_rate(amount)
+    {enumerator, denominator} = sample_rate_to_ratio(amount)
     user_id_hash = Expression.function("hash", [Helpers.id_column(query)])
     user_id_ranged_hash = Expression.function("%", [user_id_hash, Expression.constant(:integer, denominator)])
     sample_condition = {:comparison, user_id_ranged_hash, :<, Expression.constant(:integer, enumerator)}
@@ -259,7 +259,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   end
   defp compile_sample_rate(query), do: query
 
-  defp normalize_sample_rate(sample_rate) do
+  defp sample_rate_to_ratio(sample_rate) do
     denominator = 1_000_000_000_000
     enumerator = sample_rate / 100 * denominator
     {enumerator |> round() |> FixAlign.align(), denominator}
