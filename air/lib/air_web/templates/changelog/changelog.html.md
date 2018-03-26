@@ -6,6 +6,7 @@
 - DOW (synonym for weekday) is supported both as a function and in EXTRACT
 - Support ALL (explicitly stating the default) in places where DISTINCT can be used
 - Boolean columns can be used in WHERE and HAVING as standalone conditions, implicitly assuming "= TRUE"
+- Fractional values are now allowed in the SAMPLE_USERS clause
 
 ### Changes
 

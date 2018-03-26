@@ -83,7 +83,7 @@ defmodule Cloak.Sql.Parser do
     offset: integer,
     distinct?: boolean,
     subquery?: boolean,
-    sample_rate: integer,
+    sample_rate: number,
   }
 
   @combine_error_regex ~r/(?<error>.*) at line (?<line>\d+), column (?<column>\d+)/
@@ -969,10 +969,10 @@ defmodule Cloak.Sql.Parser do
 
   defp optional_sample_users() do
     switch([
-      {keyword(:sample_users), pair_both(numeric_constant(:integer), keyword(:%))},
+      {keyword(:sample_users), pair_both(numeric_constant(), keyword(:%))},
       {:else, noop()}
     ])
-    |> map(fn {[:sample_users], [{{:constant, :integer, amount, _}, :%}]} -> {:sample_rate, amount} end)
+    |> map(fn {[:sample_users], [{{:constant, _, amount, _}, :%}]} -> {:sample_rate, amount} end)
   end
 
   defp next_position(), do:
