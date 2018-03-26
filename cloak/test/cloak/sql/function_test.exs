@@ -4,45 +4,54 @@ defmodule Cloak.Sql.Function.Test do
   alias Cloak.Sql.{Expression, Function}
 
   @restricted_functions ~w(abs ceil floor length round trunc btrim left ltrim right rtrim
-    substring year quarter month day weekday hour minute second date_trunc) ++ [
-      {:bucket, :lower}, {:bucket, :middle}, {:bucket, :upper},
-      {:cast, :integer}, {:cast, :real}, {:cast, :boolean}, {:cast, :datetime}, {:cast, :time},
-      {:cast, :date}, {:cast, :text}, {:cast, :interval}
-    ]
-  Enum.each(@restricted_functions, fn(restricted_function) ->
-    test "#{inspect(restricted_function)} is registered as a restricted function", do:
-      assert Function.restricted_function?(unquote(restricted_function))
+    substring year quarter month day weekday hour minute second date_trunc) ++
+                          [
+                            {:bucket, :lower},
+                            {:bucket, :middle},
+                            {:bucket, :upper},
+                            {:cast, :integer},
+                            {:cast, :real},
+                            {:cast, :boolean},
+                            {:cast, :datetime},
+                            {:cast, :time},
+                            {:cast, :date},
+                            {:cast, :text},
+                            {:cast, :interval}
+                          ]
+  Enum.each(@restricted_functions, fn restricted_function ->
+    test "#{inspect(restricted_function)} is registered as a restricted function",
+      do: assert(Function.restricted_function?(unquote(restricted_function)))
   end)
 
   @math_functions ~w(+ - / * ^ abs ceil floor round trunc)
-  Enum.each(@math_functions, fn(math_function) ->
-    test "#{math_function} is registered as a math function", do:
-      assert Function.math_function?(unquote(math_function))
+  Enum.each(@math_functions, fn math_function ->
+    test "#{math_function} is registered as a math function",
+      do: assert(Function.math_function?(unquote(math_function)))
   end)
 
   @string_manipulation_functions ~w(substring ltrim rtrim btrim left right)
-  Enum.each(@string_manipulation_functions, fn(string_function) ->
-    test "#{string_function} is registered as a string manipulation function", do:
-      assert Function.string_manipulation_function?(unquote(string_function))
+  Enum.each(@string_manipulation_functions, fn string_function ->
+    test "#{string_function} is registered as a string manipulation function",
+      do: assert(Function.string_manipulation_function?(unquote(string_function)))
   end)
 
   @aggregators ~w(count min max avg stddev median)
-  Enum.each(@aggregators, fn(aggregator) ->
-    test "#{aggregator} is registered as an aggregator", do:
-      assert Function.aggregator?(unquote(aggregator))
+  Enum.each(@aggregators, fn aggregator ->
+    test "#{aggregator} is registered as an aggregator",
+      do: assert(Function.aggregator?(unquote(aggregator)))
   end)
 
   @implicit_ranges ~w(hour minute second year quarter month day weekday date_trunc round trunc) ++
-    [{:bucket, :lower}, {:bucket, :middle}, {:bucket, :upper}]
-  Enum.each(@implicit_ranges, fn(function) ->
-    test "#{inspect(function)} has implicit range behaviuor", do:
-      assert Function.implicit_range?(unquote(function))
+                     [{:bucket, :lower}, {:bucket, :middle}, {:bucket, :upper}]
+  Enum.each(@implicit_ranges, fn function ->
+    test "#{inspect(function)} has implicit range behaviuor",
+      do: assert(Function.implicit_range?(unquote(function)))
   end)
 
   @internal_functions ~w(coalesce dec_b64 dec_aes_cbc128)
-  Enum.each(@internal_functions, fn(internal_function) ->
-    test "#{internal_function} is registered as an internal function", do:
-      assert Function.internal?(unquote(internal_function))
+  Enum.each(@internal_functions, fn internal_function ->
+    test "#{internal_function} is registered as an internal function",
+      do: assert(Function.internal?(unquote(internal_function)))
   end)
 
   for function <- ~w(floor ceil) do
@@ -52,8 +61,7 @@ defmodule Cloak.Sql.Function.Test do
     end
   end
 
-  test "length", do:
-    assert well_typed?("length", [:text])
+  test "length", do: assert(well_typed?("length", [:text]))
 
   test "left" do
     assert well_typed?("left", [:text, {:constant, :integer}])
@@ -65,11 +73,9 @@ defmodule Cloak.Sql.Function.Test do
     refute well_typed?("right", [:text, :integer])
   end
 
-  test "lower", do:
-    assert well_typed?("lower", [:text])
+  test "lower", do: assert(well_typed?("lower", [:text]))
 
-  test "upper", do:
-    assert well_typed?("upper", [:text])
+  test "upper", do: assert(well_typed?("upper", [:text]))
 
   test "btrim" do
     assert well_typed?("btrim", [:text])
@@ -166,15 +172,17 @@ defmodule Cloak.Sql.Function.Test do
     assert return_type("+", [:datetime, :interval]) == :datetime
   end
 
-  for {type, _value} <- %{time: ~T[10:20:30], date: ~D[2015-01-02], datetime: ~N[2015-01-02 10:20:30]} do
-    test "#{type} - interval", do:
-      assert well_typed?("-", [unquote(type), :interval])
+  for {type, _value} <- %{
+        time: ~T[10:20:30],
+        date: ~D[2015-01-02],
+        datetime: ~N[2015-01-02 10:20:30]
+      } do
+    test "#{type} - interval", do: assert(well_typed?("-", [unquote(type), :interval]))
 
-    test "interval - #{type} is ill-typed", do:
-      refute well_typed?("-", [:interval, unquote(type)])
+    test "interval - #{type} is ill-typed",
+      do: refute(well_typed?("-", [:interval, unquote(type)]))
 
-    test "interval + #{type}", do:
-      assert well_typed?("+", [:interval, unquote(type)])
+    test "interval + #{type}", do: assert(well_typed?("+", [:interval, unquote(type)]))
   end
 
   test "interval + interval" do
@@ -206,7 +214,10 @@ defmodule Cloak.Sql.Function.Test do
 
   test "typechecking a nested function call" do
     assert Function.well_typed?(
-      {:function, "avg", [{:function, "abs", [Expression.constant(:integer, 3)], nil}], nil})
+             {:function, "avg", [{:function, "abs", [Expression.constant(:integer, 3)], nil}],
+              nil}
+           )
+
     refute Function.well_typed?({:function, "avg", [{:function, "concat", [], nil}], nil})
   end
 
@@ -306,49 +317,66 @@ defmodule Cloak.Sql.Function.Test do
     assert well_typed?({:cast, :interval}, [:interval])
   end
 
-  test "can tell when a function splits rows", do:
-    assert Function.has_attribute?("extract_words", :row_splitter)
+  test "can tell when a function splits rows",
+    do: assert(Function.has_attribute?("extract_words", :row_splitter))
 
-  test "can tell when a function does not split rows", do:
-    refute Function.has_attribute?("substring", :row_splitter)
+  test "can tell when a function does not split rows",
+    do: refute(Function.has_attribute?("substring", :row_splitter))
 
-  test "knows `ceil` is allowed in a subquery", do:
-    refute Function.has_attribute?({:function, "ceil", [], nil}, :not_in_subquery)
+  test "knows `ceil` is allowed in a subquery",
+    do: refute(Function.has_attribute?({:function, "ceil", [], nil}, :not_in_subquery))
 
-  test "returns true if function exists", do: assert Function.exists?({:function, "*", [], nil})
+  test "returns true if function exists", do: assert(Function.exists?({:function, "*", [], nil}))
 
-  test "returns false if function does not exists", do: refute Function.exists?({:function, "foobar", [], nil})
+  test "returns false if function does not exists",
+    do: refute(Function.exists?({:function, "foobar", [], nil}))
 
   describe "well_typed?" do
     test "constant expression is treated as a constant" do
-      assert Function.well_typed?({:function, "round", [
-        %Expression{type: :real},
-        Expression.function("+", [Expression.constant(:integer, 1), Expression.constant(:integer, 2)], :integer)
-      ], nil})
+      assert Function.well_typed?(
+               {:function, "round",
+                [
+                  %Expression{type: :real},
+                  Expression.function(
+                    "+",
+                    [Expression.constant(:integer, 1), Expression.constant(:integer, 2)],
+                    :integer
+                  )
+                ], nil}
+             )
     end
   end
 
   describe "deprecation" do
-    test "no deprecation info for existing functions", do:
-      assert {:error, :function_exists} = Function.deprecation_info({:function, "abs", [], nil})
+    test "no deprecation info for existing functions",
+      do:
+        assert(
+          {:error, :function_exists} = Function.deprecation_info({:function, "abs", [], nil})
+        )
 
-    test "no deprecation info for non-existent functions", do:
-      assert {:error, :not_found} = Function.deprecation_info({:function, "foo", [], nil})
+    test "no deprecation info for non-existent functions",
+      do: assert({:error, :not_found} = Function.deprecation_info({:function, "foo", [], nil}))
 
-    test "extract_match is deprecated", do:
-      assert {:ok, %{alternative: "extract_words"}} =
-        Function.deprecation_info({:function, "extract_match", [], nil})
+    test "extract_match is deprecated",
+      do:
+        assert(
+          {:ok, %{alternative: "extract_words"}} =
+            Function.deprecation_info({:function, "extract_match", [], nil})
+        )
 
-    test "extract_matches is deprecated", do:
-      assert {:ok, %{alternative: "extract_words"}} =
-        Function.deprecation_info({:function, "extract_match", [], nil})
+    test "extract_matches is deprecated",
+      do:
+        assert(
+          {:ok, %{alternative: "extract_words"}} =
+            Function.deprecation_info({:function, "extract_match", [], nil})
+        )
   end
 
-  defp return_type(name, arg_types), do:
-    Function.return_type({:function, name, simulate_types(arg_types), nil})
+  defp return_type(name, arg_types),
+    do: Function.return_type({:function, name, simulate_types(arg_types), nil})
 
-  defp well_typed?(name, types), do:
-    Function.well_typed?({:function, name, simulate_types(types), nil})
+  defp well_typed?(name, types),
+    do: Function.well_typed?({:function, name, simulate_types(types), nil})
 
   defp simulate_types(types) do
     Enum.map(types, fn

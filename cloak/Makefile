@@ -7,6 +7,7 @@ SHELL=/bin/bash -o pipefail
 .PHONY: mysql-server-container mysql-server-database
 .PHONY: mongo-server-container
 .PHONY: ci.compliance
+.PHONY: format check-format
 
 define start_container
   if [ "$$(docker ps -a | grep $(1))" ]; then docker start $(1); else docker run --name $(1) $(2); fi
@@ -104,3 +105,9 @@ priv/odbc/drivers/libodbc-sap-hana-v2.so:
 
 ci.compliance:
 	ci/compliance.sh
+
+format:
+	mix format --check-equivalent
+
+check-format:
+	mix format --check-formatted

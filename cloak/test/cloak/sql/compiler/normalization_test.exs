@@ -14,10 +14,11 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
   end
 
   test "normalization in subqueries" do
-    %{from: {:subquery, %{ast: result1}}} = compile!(
-      "SELECT * FROM (SELECT * FROM table WHERE numeric = 2 * 3 + 4) x", data_source())
-    %{from: {:subquery, %{ast: result2}}} = compile!(
-      "SELECT * FROM (SELECT * FROM table WHERE numeric = 10) x", data_source())
+    %{from: {:subquery, %{ast: result1}}} =
+      compile!("SELECT * FROM (SELECT * FROM table WHERE numeric = 2 * 3 + 4) x", data_source())
+
+    %{from: {:subquery, %{ast: result2}}} =
+      compile!("SELECT * FROM (SELECT * FROM table WHERE numeric = 10) x", data_source())
 
     assert result1.where == result2.where
   end
@@ -53,39 +54,58 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
   describe "normalizing ORDER BY" do
     test "normalizing unordered queries" do
       assert %{from: {:subquery, %{ast: %{order_by: []}}}} =
-        compile!("SELECT COUNT(*) FROM (SELECT 'constant' FROM table) x", sql_server_data_source())
+               compile!(
+                 "SELECT COUNT(*) FROM (SELECT 'constant' FROM table) x",
+                 sql_server_data_source()
+               )
     end
 
     test "removing constant ORDER BY clauses" do
       assert %{from: {:subquery, %{ast: %{order_by: [{%Expression{name: "uid"}, _, _}]}}}} =
-        compile!("SELECT COUNT(*) FROM (SELECT 'constant' FROM table ORDER BY 1, uid) x", sql_server_data_source())
+               compile!(
+                 "SELECT COUNT(*) FROM (SELECT 'constant' FROM table ORDER BY 1, uid) x",
+                 sql_server_data_source()
+               )
     end
 
     test "ordering by uid if all clauses are removed" do
       assert %{from: {:subquery, %{ast: %{order_by: [{%Expression{name: "uid"}, _, _}]}}}} =
-        compile!("SELECT COUNT(*) FROM (SELECT 'constant' FROM table ORDER BY 1) x", sql_server_data_source())
+               compile!(
+                 "SELECT COUNT(*) FROM (SELECT 'constant' FROM table ORDER BY 1) x",
+                 sql_server_data_source()
+               )
     end
 
     test "ordering by uid from a join if all clauses are removed" do
-      assert %{from: {:subquery, %{ast: %{order_by: [{%Expression{name: "uid"}, _, _}]}}}} = compile!("""
-        SELECT COUNT(*) FROM (
-          SELECT 'constant' FROM table AS t1 JOIN table AS t2 ON t1.uid = t2.uid ORDER BY 1
-        ) x
-      """, sql_server_data_source())
+      assert %{from: {:subquery, %{ast: %{order_by: [{%Expression{name: "uid"}, _, _}]}}}} =
+               compile!(
+                 """
+                   SELECT COUNT(*) FROM (
+                     SELECT 'constant' FROM table AS t1 JOIN table AS t2 ON t1.uid = t2.uid ORDER BY 1
+                   ) x
+                 """,
+                 sql_server_data_source()
+               )
     end
 
     test "ordering by uid from a subquery if all clauses are removed" do
-      assert %{from: {:subquery, %{ast: %{order_by: [{%Expression{name: "uid"}, _, _}]}}}} = compile!("""
-        SELECT COUNT(*) FROM (
-          SELECT 'constant' FROM (SELECT uid FROM table) x ORDER BY 1
-        ) x
-      """, sql_server_data_source())
+      assert %{from: {:subquery, %{ast: %{order_by: [{%Expression{name: "uid"}, _, _}]}}}} =
+               compile!(
+                 """
+                   SELECT COUNT(*) FROM (
+                     SELECT 'constant' FROM (SELECT uid FROM table) x ORDER BY 1
+                   ) x
+                 """,
+                 sql_server_data_source()
+               )
     end
   end
 
   describe "remove_noops" do
     test "a cast of integer to integer" do
-      result1 = remove_noops!("SELECT * FROM table WHERE cast(numeric AS integer) = 1", data_source())
+      result1 =
+        remove_noops!("SELECT * FROM table WHERE cast(numeric AS integer) = 1", data_source())
+
       result2 = remove_noops!("SELECT * FROM table WHERE numeric = 1", data_source())
 
       assert scrub_locations(result1).where == scrub_locations(result2).where
@@ -93,14 +113,24 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
 
     for function <- ~w/round trunc/ do
       test "#{function} of integer without precision is removed" do
-        result1 = remove_noops!("SELECT * FROM table WHERE #{unquote(function)}(numeric) = 1", data_source())
+        result1 =
+          remove_noops!(
+            "SELECT * FROM table WHERE #{unquote(function)}(numeric) = 1",
+            data_source()
+          )
+
         result2 = remove_noops!("SELECT * FROM table WHERE numeric = 1", data_source())
 
         assert scrub_locations(result1).where == scrub_locations(result2).where
       end
 
       test "#{function} of integer with precision isn't removed" do
-        result1 = remove_noops!("SELECT * FROM table WHERE #{unquote(function)}(numeric, 0) = 1", data_source())
+        result1 =
+          remove_noops!(
+            "SELECT * FROM table WHERE #{unquote(function)}(numeric, 0) = 1",
+            data_source()
+          )
+
         result2 = remove_noops!("SELECT * FROM table WHERE numeric = 1", data_source())
 
         refute scrub_locations(result1).where == scrub_locations(result2).where
@@ -109,7 +139,12 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
 
     for function <- ~w/ceil ceiling floor/ do
       test "#{function} of integer is removed" do
-        result1 = remove_noops!("SELECT * FROM table WHERE #{unquote(function)}(numeric) = 1", data_source())
+        result1 =
+          remove_noops!(
+            "SELECT * FROM table WHERE #{unquote(function)}(numeric) = 1",
+            data_source()
+          )
+
         result2 = remove_noops!("SELECT * FROM table WHERE numeric = 1", data_source())
 
         assert scrub_locations(result1).where == scrub_locations(result2).where
@@ -140,15 +175,18 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     %{
       driver: Cloak.DataSource.PostgreSQL,
       tables: %{
-        table: Cloak.DataSource.Table.new("table", "uid",
-          db_name: "table",
-          columns: [
-            Table.column("uid", :integer),
-            Table.column("numeric", :integer),
-            Table.column("string", :text),
-          ],
-          keys: ["key"]
-        ),
+        table:
+          Cloak.DataSource.Table.new(
+            "table",
+            "uid",
+            db_name: "table",
+            columns: [
+              Table.column("uid", :integer),
+              Table.column("numeric", :integer),
+              Table.column("string", :text)
+            ],
+            keys: ["key"]
+          )
       }
     }
   end

@@ -3,7 +3,6 @@ defmodule Cloak.DataSource.Parameters do
   Module for working with database parameters, accounting for varied spellings
   """
 
-
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
@@ -16,7 +15,7 @@ defmodule Cloak.DataSource.Parameters do
 
     assert "value" === get(%{:key => "value"}, "KEY")
   """
-  @spec get(map, String.t | atom) :: String.t
+  @spec get(map, String.t() | atom) :: String.t()
   def get(parameters, name) do
     [value] = all(parameters, name)
     value
@@ -26,11 +25,10 @@ defmodule Cloak.DataSource.Parameters do
   Looks up a value under one of many possible keys. Returns the first value that is found
   or nil if none is found. Like `get/2`, the case of the key is not important.
   """
-  @spec get_one_of(map, [String.t | atom]) :: String.t | nil
+  @spec get_one_of(map, [String.t() | atom]) :: String.t() | nil
   def get_one_of(parameters, names) do
     Enum.find_value(names, &find_parameter_by_name(parameters, &1))
   end
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -45,13 +43,15 @@ defmodule Cloak.DataSource.Parameters do
 
   defp all(parameters, name) do
     name = normalize_key(name)
+
     parameters
-    |> Enum.map(fn({key, value}) -> {normalize_key(key), value} end)
-    |> Enum.filter(fn({key, _value}) -> key === name end)
-    |> Enum.map(fn({_key, value}) -> value end)
+    |> Enum.map(fn {key, value} -> {normalize_key(key), value} end)
+    |> Enum.filter(fn {key, _value} -> key === name end)
+    |> Enum.map(fn {_key, value} -> value end)
   end
 
   defp normalize_key(key) when is_atom(key), do: normalize_key(Atom.to_string(key))
+
   defp normalize_key(key) do
     key
     |> String.trim()

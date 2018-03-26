@@ -12,7 +12,11 @@ defmodule Cloak.DataSource.RODBC.Driver do
   @doc "Loads the port driver module."
   @spec init!() :: :ok
   def init!() do
-    :ok = Application.app_dir(:cloak, "priv/native") |> to_charlist() |> :erl_ddll.load_driver(@port_name)
+    :ok =
+      Application.app_dir(:cloak, "priv/native")
+      |> to_charlist()
+      |> :erl_ddll.load_driver(@port_name)
+
     :ok
   end
 
@@ -25,24 +29,23 @@ defmodule Cloak.DataSource.RODBC.Driver do
   def close(port), do: :erlang.port_close(port)
 
   @doc "Connects to a data source."
-  @spec connect(port(), String.t) :: :ok | {:error, String.t}
-  def connect(port, connection_string), do:
-    port |> :erlang.port_control(@command_connect, connection_string) |> decode_response()
+  @spec connect(port(), String.t()) :: :ok | {:error, String.t()}
+  def connect(port, connection_string),
+    do: port |> :erlang.port_control(@command_connect, connection_string) |> decode_response()
 
   @doc "Executes an SQL statement on the connected backend."
-  @spec execute(port(), String.t) :: :ok | {:error, String.t}
-  def execute(port, statement), do:
-    port |> :erlang.port_control(@command_execute, statement) |> decode_response()
+  @spec execute(port(), String.t()) :: :ok | {:error, String.t()}
+  def execute(port, statement),
+    do: port |> :erlang.port_control(@command_execute, statement) |> decode_response()
 
   @doc "Returns all rows selected by the previous statement."
-  @spec fetch_all(port(), (row -> row)) :: {:ok, [row]} | {:error, String.t}
+  @spec fetch_all(port(), (row -> row)) :: {:ok, [row]} | {:error, String.t()}
   def fetch_all(port, row_mapper), do: fetch_all(port, row_mapper, [])
 
   @doc "Returns a new batch, with the specified size, from the rows selected by the previous statement."
-  @spec fetch_batch(port(), (row -> row), pos_integer) :: {:ok, [row]} | {:error, String.t}
-  def fetch_batch(port, row_mapper, size) when size > 0, do:
-    fetch_batch(port, row_mapper, size, [], 0)
-
+  @spec fetch_batch(port(), (row -> row), pos_integer) :: {:ok, [row]} | {:error, String.t()}
+  def fetch_batch(port, row_mapper, size) when size > 0,
+    do: fetch_batch(port, row_mapper, size, [], 0)
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -64,15 +67,26 @@ defmodule Cloak.DataSource.RODBC.Driver do
 
   defp decode_data(<<>>, acc), do: :lists.reverse(acc)
   defp decode_data(<<@type_null, data::binary>>, acc), do: decode_data(data, [nil | acc])
-  defp decode_data(<<@type_i32, num::signed-little-32, data::binary>>, acc), do: decode_data(data, [num | acc])
-  defp decode_data(<<@type_i64, num::signed-little-64, data::binary>>, acc), do: decode_data(data, [num | acc])
-  defp decode_data(<<@type_f32, num::float-little-32, data::binary>>, acc), do: decode_data(data, [num | acc])
-  defp decode_data(<<@type_f64, num::float-little-64, data::binary>>, acc), do: decode_data(data, [num | acc])
-  defp decode_data(<<@type_bin, len::unsigned-little-32, str::bytes-size(len), data::binary>>, acc), do:
-    decode_data(data, [str | acc])
 
-  defp fetch_row(port), do:
-    port |> :erlang.port_control(@command_fetch, "") |> decode_response()
+  defp decode_data(<<@type_i32, num::signed-little-32, data::binary>>, acc),
+    do: decode_data(data, [num | acc])
+
+  defp decode_data(<<@type_i64, num::signed-little-64, data::binary>>, acc),
+    do: decode_data(data, [num | acc])
+
+  defp decode_data(<<@type_f32, num::float-little-32, data::binary>>, acc),
+    do: decode_data(data, [num | acc])
+
+  defp decode_data(<<@type_f64, num::float-little-64, data::binary>>, acc),
+    do: decode_data(data, [num | acc])
+
+  defp decode_data(
+         <<@type_bin, len::unsigned-little-32, str::bytes-size(len), data::binary>>,
+         acc
+       ),
+       do: decode_data(data, [str | acc])
+
+  defp fetch_row(port), do: port |> :erlang.port_control(@command_fetch, "") |> decode_response()
 
   defp fetch_all(port, row_mapper, acc) do
     case fetch_row(port) do
@@ -83,6 +97,7 @@ defmodule Cloak.DataSource.RODBC.Driver do
   end
 
   defp fetch_batch(_port, _row_mapper, size, acc, size), do: {:ok, :lists.reverse(acc)}
+
   defp fetch_batch(port, row_mapper, size, acc, count) do
     case fetch_row(port) do
       :ok -> {:ok, :lists.reverse(acc)}

@@ -164,9 +164,9 @@ defmodule Cloak.Sql.Expression.Test do
       {"09", 3},
       {"10", 4},
       {"11", 4},
-      {"12", 4},
+      {"12", 4}
     ]
-    |> Enum.each(fn({month, quarter}) ->
+    |> Enum.each(fn {month, quarter} ->
       date = Date.from_iso8601!("2017-#{month}-01")
       assert apply_function("quarter", [date]) == quarter
     end)
@@ -179,44 +179,74 @@ defmodule Cloak.Sql.Expression.Test do
     assert apply_function("substring", ["  ", nil]) == nil
   end
 
-  test "concat", do:
-    assert apply_function("concat", ["a", " ", "string"]) == "a string"
+  test "concat", do: assert(apply_function("concat", ["a", " ", "string"]) == "a string")
 
-  test "subtracting dates", do:
-    assert apply_function("-", [~D[2015-01-30], ~D[2015-01-20]]) === Duration.from_days(10)
+  test "subtracting dates",
+    do: assert(apply_function("-", [~D[2015-01-30], ~D[2015-01-20]]) === Duration.from_days(10))
 
-  test "subtracting times", do:
-    assert apply_function("-", [~T[10:20:00], ~T[10:00:00]]) === Duration.from_minutes(20)
+  test "subtracting times",
+    do: assert(apply_function("-", [~T[10:20:00], ~T[10:00:00]]) === Duration.from_minutes(20))
 
-  test "subtracting datetimes", do:
-    assert apply_function("-", [~N[2015-01-02 10:20:00], ~N[2015-01-01 10:00:00]]) ===
-      Duration.parse!("P1DT20M")
+  test "subtracting datetimes",
+    do:
+      assert(
+        apply_function("-", [~N[2015-01-02 10:20:00], ~N[2015-01-01 10:00:00]]) ===
+          Duration.parse!("P1DT20M")
+      )
 
-  test "date + interval", do:
-    assert apply_function("+", [~D[2015-01-01], Duration.parse!("P10DT10M")]) === ~N[2015-01-11 00:10:00]
+  test "date + interval",
+    do:
+      assert(
+        apply_function("+", [~D[2015-01-01], Duration.parse!("P10DT10M")]) ===
+          ~N[2015-01-11 00:10:00]
+      )
 
-  test "time + interval", do:
-    assert apply_function("+", [~T[10:20:30], Duration.parse!("P10DT1H10M")]) === ~T[11:30:30]
+  test "time + interval",
+    do:
+      assert(apply_function("+", [~T[10:20:30], Duration.parse!("P10DT1H10M")]) === ~T[11:30:30])
 
-  test "datetime + interval", do:
-    assert apply_function("+", [~N[2015-01-01 10:20:30], Duration.parse!("P10DT10M")]) === ~N[2015-01-11 10:30:30]
+  test "datetime + interval",
+    do:
+      assert(
+        apply_function("+", [~N[2015-01-01 10:20:30], Duration.parse!("P10DT10M")]) ===
+          ~N[2015-01-11 10:30:30]
+      )
 
-  for {type, value} <- %{time: ~T[10:20:30], date: ~D[2015-01-02], datetime: ~N[2015-01-02 10:20:30]} do
+  for {type, value} <- %{
+        time: ~T[10:20:30],
+        date: ~D[2015-01-02],
+        datetime: ~N[2015-01-02 10:20:30]
+      } do
     @value value
     @interval Duration.parse!("P10DT10M")
 
-    test "#{type} - interval", do:
-      assert apply_function("-", [@value, @interval]) === apply_function("+", [@value, Duration.scale(@interval, -1)])
+    test "#{type} - interval",
+      do:
+        assert(
+          apply_function("-", [@value, @interval]) ===
+            apply_function("+", [@value, Duration.scale(@interval, -1)])
+        )
 
-    test "interval + #{type}", do:
-      assert apply_function("+", [@interval, @value]) == apply_function("+", [@value, @interval])
+    test "interval + #{type}",
+      do:
+        assert(
+          apply_function("+", [@interval, @value]) == apply_function("+", [@value, @interval])
+        )
   end
 
-  test "interval + interval", do:
-    assert apply_function("+", [Duration.parse!("P10D"), Duration.parse!("PT10M")]) === Duration.parse!("P10DT10M")
+  test "interval + interval",
+    do:
+      assert(
+        apply_function("+", [Duration.parse!("P10D"), Duration.parse!("PT10M")]) ===
+          Duration.parse!("P10DT10M")
+      )
 
-  test "interval - interval", do:
-    assert apply_function("-", [Duration.parse!("P10DT10M"), Duration.parse!("P1DT1M")]) === Duration.parse!("P9DT9M")
+  test "interval - interval",
+    do:
+      assert(
+        apply_function("-", [Duration.parse!("P10DT10M"), Duration.parse!("P1DT1M")]) ===
+          Duration.parse!("P9DT9M")
+      )
 
   test "interval * number" do
     assert apply_function("*", [Duration.parse!("P1DT1M"), 10]) === Duration.parse!("P10DT10M")
@@ -229,8 +259,8 @@ defmodule Cloak.Sql.Expression.Test do
     assert apply_function("/", [Duration.parse!("P10DT10M"), 0.5]) === Duration.parse!("P20DT20M")
   end
 
-  test "any function with one of the arguments being :*", do:
-    assert apply_function("whatever", [1, :*, "thing"]) == :*
+  test "any function with one of the arguments being :*",
+    do: assert(apply_function("whatever", [1, :*, "thing"]) == :*)
 
   test "cast to integer" do
     assert apply_function({:cast, :integer}, [123]) === 123
@@ -331,30 +361,44 @@ defmodule Cloak.Sql.Expression.Test do
   end
 
   describe "first_column" do
-    test "nil if given constant column", do: assert nil == Expression.first_column(%Expression{constant?: true})
+    test "nil if given constant column",
+      do: assert(nil == Expression.first_column(%Expression{constant?: true}))
 
     test "first db column if one present" do
       return_column = %Expression{row_index: 1}
-      assert return_column == Expression.first_column(Expression.function("f", [
-        Expression.function("f", [%Expression{constant?: true}]),
-        Expression.function("f", [%Expression{constant?: true}, return_column]),
-      ]))
+
+      assert return_column ==
+               Expression.first_column(
+                 Expression.function("f", [
+                   Expression.function("f", [%Expression{constant?: true}]),
+                   Expression.function("f", [%Expression{constant?: true}, return_column])
+                 ])
+               )
     end
   end
 
   describe "lowercase" do
-    test "wraps expressions in lower case functions", do:
-      assert %Expression{function: "lower"} = Expression.lowercase(%Expression{type: :text})
+    test "wraps expressions in lower case functions",
+      do: assert(%Expression{function: "lower"} = Expression.lowercase(%Expression{type: :text}))
 
-    test "makes constant text lowercase", do:
-      assert %Expression{value: "case"} = Expression.lowercase(Expression.constant(:text, "CaSe"))
+    test "makes constant text lowercase",
+      do:
+        assert(
+          %Expression{value: "case"} = Expression.lowercase(Expression.constant(:text, "CaSe"))
+        )
 
-    test "lowercases like patterns", do:
-      assert Expression.like_pattern("a%b_c", nil) ==
-        Expression.like_pattern("A%b_C", nil) |> Expression.lowercase()
+    test "lowercases like patterns",
+      do:
+        assert(
+          Expression.like_pattern("a%b_c", nil) ==
+            Expression.like_pattern("A%b_C", nil) |> Expression.lowercase()
+        )
 
-    test "fails if not a textual expression", do:
-      assert_raise RuntimeError, fn() -> Expression.lowercase(Expression.constant(:integer, 1)) end
+    test "fails if not a textual expression",
+      do:
+        assert_raise(RuntimeError, fn ->
+          Expression.lowercase(Expression.constant(:integer, 1))
+        end)
   end
 
   defp apply_function(name, args) do
@@ -365,6 +409,7 @@ defmodule Cloak.Sql.Expression.Test do
 
   defp pow(_, 0), do: 1
   defp pow(x, n) when Integer.is_odd(n), do: x * pow(x, n - 1)
+
   defp pow(x, n) do
     result = pow(x, div(n, 2))
     result * result

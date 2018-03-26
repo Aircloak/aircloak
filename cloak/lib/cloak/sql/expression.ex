@@ -8,63 +8,81 @@ defmodule Cloak.Sql.Expression do
   alias Cloak.Sql.LikePattern
   alias Timex.Duration
 
-  @type column_type :: DataSource.Table.data_type | :like_pattern | :interval | nil
+  @type column_type :: DataSource.Table.data_type() | :like_pattern | :interval | nil
   @type function_name ::
-    String.t |
-    {:cast, DataSource.Table.data_type | :varbinary} |
-    {:bucket, :lower | :upper | :middle}
+          String.t()
+          | {:cast, DataSource.Table.data_type() | :varbinary}
+          | {:bucket, :lower | :upper | :middle}
   @type t :: %__MODULE__{
-    table: :unknown | DataSource.Table.t,
-    name: String.t | nil,
-    alias: String.t | nil,
-    type: column_type,
-    user_id?: boolean,
-    row_index: nil | Cloak.Sql.Query.row_index,
-    constant?: boolean,
-    value: any,
-    function: function_name | nil,
-    function_args: [t],
-    function?: boolean,
-    aggregate?: boolean,
-    parameter_index: pos_integer | nil,
-    synthetic?: boolean,
-    key?: boolean,
-    source_location: Cloak.Sql.Parser.location,
-  }
-  defstruct [
-    table: :unknown, name: nil, alias: nil, type: nil, user_id?: false, row_index: nil, constant?: false,
-    value: nil, function: nil, function_args: [], aggregate?: false, function?: false, parameter_index: nil,
-    synthetic?: false, key?: false, source_location: nil
-  ]
+          table: :unknown | DataSource.Table.t(),
+          name: String.t() | nil,
+          alias: String.t() | nil,
+          type: column_type,
+          user_id?: boolean,
+          row_index: nil | Cloak.Sql.Query.row_index(),
+          constant?: boolean,
+          value: any,
+          function: function_name | nil,
+          function_args: [t],
+          function?: boolean,
+          aggregate?: boolean,
+          parameter_index: pos_integer | nil,
+          synthetic?: boolean,
+          key?: boolean,
+          source_location: Cloak.Sql.Parser.location()
+        }
+  defstruct table: :unknown,
+            name: nil,
+            alias: nil,
+            type: nil,
+            user_id?: false,
+            row_index: nil,
+            constant?: false,
+            value: nil,
+            function: nil,
+            function_args: [],
+            aggregate?: false,
+            function?: false,
+            parameter_index: nil,
+            synthetic?: false,
+            key?: false,
+            source_location: nil
 
   @doc "Returns an expression representing a reference to the given column in the given table."
-  @spec column(DataSource.column, DataSource.table) :: t
-  def column(column, table), do:
-    %__MODULE__{
+  @spec column(DataSource.column(), DataSource.table()) :: t
+  def column(column, table),
+    do: %__MODULE__{
       table: table,
       name: column.name,
       type: column.type,
       user_id?: table.user_id == column.name,
-      key?: column.name in Map.get(table, :keys, []),
+      key?: column.name in Map.get(table, :keys, [])
     }
 
   @doc "Returns a column struct representing the constant `value`."
   @spec constant(column_type, any, pos_integer | nil) :: t
-  def constant(type, value, parameter_index \\ nil), do:
-    %__MODULE__{
-      constant?: true, value: value, type: normalize_type(type), parameter_index: parameter_index
+  def constant(type, value, parameter_index \\ nil),
+    do: %__MODULE__{
+      constant?: true,
+      value: value,
+      type: normalize_type(type),
+      parameter_index: parameter_index
     }
 
   @doc "Returns an expression representing the given like pattern with the given escape character."
-  @spec like_pattern(String.t, String.t | nil) :: t
-  def like_pattern(pattern, escape_character), do:
-    constant(:like_pattern, Cloak.Sql.LikePattern.new(pattern, escape_character))
+  @spec like_pattern(String.t(), String.t() | nil) :: t
+  def like_pattern(pattern, escape_character),
+    do: constant(:like_pattern, Cloak.Sql.LikePattern.new(pattern, escape_character))
 
   @doc "Creates a column representing a function call."
   @spec function(function_name, [t | :*], column_type, boolean) :: t
-  def function(function_name, function_args, type \\ nil, aggregate? \\ false), do:
-    %__MODULE__{
-      function: function_name, function_args: function_args, type: type, aggregate?: aggregate?, function?: true
+  def function(function_name, function_args, type \\ nil, aggregate? \\ false),
+    do: %__MODULE__{
+      function: function_name,
+      function_args: function_args,
+      type: type,
+      aggregate?: aggregate?,
+      function?: true
     }
 
   @doc "Returns an expression representing a count(*)."
@@ -72,14 +90,16 @@ defmodule Cloak.Sql.Expression do
   def count_star(), do: function("count", [:*], nil, true)
 
   @doc "Returns true if the given term is a constant column, false otherwise."
-  @spec constant?(Cloak.Sql.Parser.column | t) :: boolean
+  @spec constant?(Cloak.Sql.Parser.column() | t) :: boolean
   def constant?(%__MODULE__{constant?: true}), do: true
-  def constant?(%__MODULE__{function?: true, function_args: args} = function), do:
-    not row_splitter?(function) and Enum.all?(args, &constant?/1)
+
+  def constant?(%__MODULE__{function?: true, function_args: args} = function),
+    do: not row_splitter?(function) and Enum.all?(args, &constant?/1)
+
   def constant?(_), do: false
 
   @doc "Sets the source location of the given expression to the given location."
-  @spec set_location(t, Cloak.Sql.Parser.location) :: t
+  @spec set_location(t, Cloak.Sql.Parser.location()) :: t
   def set_location(expression, location), do: %{expression | source_location: location}
 
   @doc "Returns true if the given column is a key (public/private/user_id), false otherwise."
@@ -92,7 +112,7 @@ defmodule Cloak.Sql.Expression do
 
   This function should mostly be used when producing error messages.
   """
-  @spec short_name(t) :: String.t
+  @spec short_name(t) :: String.t()
   def short_name(%__MODULE__{name: name}) when is_binary(name), do: "`#{name}`"
   def short_name(x), do: display_name(x)
 
@@ -101,22 +121,26 @@ defmodule Cloak.Sql.Expression do
 
   This function should mostly be used when producing error messages.
   """
-  @spec display_name(t) :: String.t
-  def display_name(%__MODULE__{name: name, table: table}) when is_binary(name), do:
-    "`#{name}` from table `#{table.name}`"
+  @spec display_name(t) :: String.t()
+  def display_name(%__MODULE__{name: name, table: table}) when is_binary(name),
+    do: "`#{name}` from table `#{table.name}`"
+
   def display_name(%__MODULE__{alias: alias}) when is_binary(alias), do: "`#{alias}`"
   def display_name(%__MODULE__{function: {:cast, _type}}), do: "`cast`"
   def display_name(%__MODULE__{function: function}) when is_binary(function), do: "`#{function}`"
   def display_name(%__MODULE__{constant?: true, value: value}), do: "`#{value}`"
 
   @doc "Returns the column value of a database row."
-  @spec value(t, DataSource.row) :: DataSource.field
+  @spec value(t, DataSource.row()) :: DataSource.field()
   def value(expression, row \\ [])
   def value(%__MODULE__{constant?: true, value: value}, _row), do: value
-  def value(expression = %__MODULE__{function?: true, function_args: args, row_index: nil}, row), do:
-    apply_function(expression, Enum.map(args, &value(&1, row)))
-  def value(%__MODULE__{row_index: nil} = column, _row), do:
-    raise "Unindexed column specified: #{inspect(column, pretty: true)}"
+
+  def value(expression = %__MODULE__{function?: true, function_args: args, row_index: nil}, row),
+    do: apply_function(expression, Enum.map(args, &value(&1, row)))
+
+  def value(%__MODULE__{row_index: nil} = column, _row),
+    do: raise("Unindexed column specified: #{inspect(column, pretty: true)}")
+
   for position <- 0..99 do
     # Generates pattern matching clauses to improve sequential access to a value:
     #
@@ -133,31 +157,36 @@ defmodule Cloak.Sql.Expression do
     def value(%__MODULE__{row_index: unquote(position)}, unquote(matched_row)),
       do: unquote(matched_value)
   end
+
   def value(%__MODULE__{row_index: index}, row) when index >= length(row),
-    do: raise "Index #{index} too large for row #{inspect(row)}"
+    do: raise("Index #{index} too large for row #{inspect(row)}")
+
   # Fallback to `Enum.at` for larger positions
   def value(column, row), do: Enum.at(row, column.row_index)
 
   @doc "Returns the value of a constant expression."
-  @spec const_value(t) :: DataSource.field
+  @spec const_value(t) :: DataSource.field()
   def const_value(%__MODULE__{constant?: true, value: value}), do: value
-  def const_value(expression = %__MODULE__{function?: true, function_args: args}), do:
-    apply_function(expression, Enum.map(args, &const_value/1))
+
+  def const_value(expression = %__MODULE__{function?: true, function_args: args}),
+    do: apply_function(expression, Enum.map(args, &const_value/1))
 
   @doc "Checks two columns for equality."
   @spec equals(any, any) :: boolean
   def equals({:distinct, c1}, {:distinct, c2}), do: equals(c1, c2)
   def equals(:*, :*), do: true
-  def equals(%__MODULE__{} = c1, %__MODULE__{} = c2), do:
-    c1.table == c2.table and
-    c1.name == c2.name and
-    c1.value == c2.value and
-    c1.function == c2.function and
-    Enum.zip(c1.function_args, c2.function_args) |> Enum.all?(fn ({arg1, arg2}) -> equals(arg1, arg2) end)
+
+  def equals(%__MODULE__{} = c1, %__MODULE__{} = c2),
+    do:
+      c1.table == c2.table and c1.name == c2.name and c1.value == c2.value and
+        c1.function == c2.function and
+        Enum.zip(c1.function_args, c2.function_args)
+        |> Enum.all?(fn {arg1, arg2} -> equals(arg1, arg2) end)
+
   def equals(_c1, _c2), do: false
 
   @doc "Returns a string id for the specified column."
-  @spec id(t) :: nil | String.t
+  @spec id(t) :: nil | String.t()
   def id(%__MODULE__{table: :unknown, name: nil, alias: alias}), do: alias
   def id(%__MODULE__{table: :unknown, name: name}), do: name
   def id(%__MODULE__{table: table, name: name}), do: "#{table.name}.#{name}"
@@ -174,21 +203,24 @@ defmodule Cloak.Sql.Expression do
   @doc "Returns the first instance of a database column from the given expression. Nil if none can be found."
   @spec first_column(t) :: t | nil
   def first_column(%__MODULE__{constant?: true}), do: nil
+
   def first_column(%__MODULE__{function?: true, function_args: args}) do
     args
     |> Enum.map(&first_column/1)
-    |> Enum.filter(&(&1))
+    |> Enum.filter(& &1)
     |> case do
       [] -> nil
-      [column|_] -> column
+      [column | _] -> column
     end
   end
+
   def first_column(%__MODULE__{} = column), do: column
 
   @doc "Returns true if the given expression is the row splitting function."
   @spec row_splitter?(t) :: boolean
-  def row_splitter?(%__MODULE__{function?: true} = function), do:
-    Cloak.Sql.Function.has_attribute?(function, :row_splitter)
+  def row_splitter?(%__MODULE__{function?: true} = function),
+    do: Cloak.Sql.Function.has_attribute?(function, :row_splitter)
+
   def row_splitter?(_), do: false
 
   @doc """
@@ -196,12 +228,12 @@ defmodule Cloak.Sql.Expression do
 
   Expressions for which the provided lambda returns true are not deduplicated.
   """
-  @spec unique_except([t], ((t) -> boolean)) :: [t]
-  def unique_except(expressions, except_fun), do:
-    Enum.uniq_by(
-      expressions,
-      fn(expression) -> if except_fun.(expression), do: :erlang.unique_integer(), else: semantic(expression) end
-    )
+  @spec unique_except([t], (t -> boolean)) :: [t]
+  def unique_except(expressions, except_fun),
+    do:
+      Enum.uniq_by(expressions, fn expression ->
+        if except_fun.(expression), do: :erlang.unique_integer(), else: semantic(expression)
+      end)
 
   @doc """
   Removes the alias from the given expression.
@@ -209,43 +241,48 @@ defmodule Cloak.Sql.Expression do
   This can be useful if we want to check whether two expressions are the same.
   """
   @spec unalias(t) :: t
-  def unalias(expression), do:
-    %__MODULE__{expression | alias: nil}
+  def unalias(expression), do: %__MODULE__{expression | alias: nil}
 
   @doc """
   Removes data from the given expression that does not contribute to its semantics for the query. Currently that's only
   source_location.
   """
   @spec semantic(t) :: t
-  def semantic(expression), do:
-    put_in(expression, [Cloak.Sql.Query.Lenses.all_expressions() |> Lens.key(:source_location)], nil)
+  def semantic(expression),
+    do:
+      put_in(
+        expression,
+        [Cloak.Sql.Query.Lenses.all_expressions() |> Lens.key(:source_location)],
+        nil
+      )
 
   @doc "Recursively evaluates a split expression and returns all the values yielded by the splitter."
-  @spec splitter_values(t, DataSource.row) :: [DataSource.field]
-  def splitter_values(splitter, row), do:
-    Enum.map(
-      eval_split_expression(splitter, row),
-      fn(%__MODULE__{constant?: true, value: value}) -> value end
-    )
+  @spec splitter_values(t, DataSource.row()) :: [DataSource.field()]
+  def splitter_values(splitter, row),
+    do:
+      Enum.map(eval_split_expression(splitter, row), fn %__MODULE__{constant?: true, value: value} ->
+        value
+      end)
 
   @doc "Wraps a string expression in the lower case function"
   @spec lowercase(t) :: t
-  def lowercase(%__MODULE__{constant?: true, type: :text, value: value} = expression), do:
-    %__MODULE__{expression | value: String.downcase(value)}
-  def lowercase(%__MODULE__{type: :text} = expression), do:
-    function("lower", [expression], expression.type)
-  def lowercase(%__MODULE__{type: :like_pattern, value: pattern} = expression), do:
-    %__MODULE__{expression | value: LikePattern.lowercase(pattern)}
-  def lowercase(_), do:
-    raise "Only textual expressions can be made lowercase"
+  def lowercase(%__MODULE__{constant?: true, type: :text, value: value} = expression),
+    do: %__MODULE__{expression | value: String.downcase(value)}
+
+  def lowercase(%__MODULE__{type: :text} = expression),
+    do: function("lower", [expression], expression.type)
+
+  def lowercase(%__MODULE__{type: :like_pattern, value: pattern} = expression),
+    do: %__MODULE__{expression | value: LikePattern.lowercase(pattern)}
+
+  def lowercase(_), do: raise("Only textual expressions can be made lowercase")
 
   @doc "Checks if a string is a valid name for a column."
-  @spec valid_alias?(String.t) :: boolean
-  def valid_alias?(name), do:
-    String.match?(name, ~r/^[_#]*[a-zA-Z][a-zA-Z0-9_.#]*$/) and
-    not String.contains?(name, "..") and
-    String.last(name) != "."
-
+  @spec valid_alias?(String.t()) :: boolean
+  def valid_alias?(name),
+    do:
+      String.match?(name, ~r/^[_#]*[a-zA-Z][a-zA-Z0-9_.#]*$/) and not String.contains?(name, "..") and
+        String.last(name) != "."
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -298,18 +335,24 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("concat", args), do: Enum.join(args)
   defp do_apply("hex", [string]), do: Base.encode16(string, case: :lower)
   defp do_apply("dec_b64", [nil]), do: nil
+
   defp do_apply("dec_b64", [string]) do
     case Base.decode64(string, ignore: :whitespace, padding: false) do
       {:ok, string} -> string
       :error -> nil
     end
   end
-  defp do_apply("dec_aes_cbc128", [string]), do: dec_aes_cbc128(string, Application.get_env(:cloak, :aes_key))
+
+  defp do_apply("dec_aes_cbc128", [string]),
+    do: dec_aes_cbc128(string, Application.get_env(:cloak, :aes_key))
+
   defp do_apply("dec_aes_cbc128", [string, key]), do: dec_aes_cbc128(string, key)
+
   defp do_apply("hash", [value]) do
     <<hash::60, _::4, _::64>> = :crypto.hash(:md5, to_string(value))
     hash
   end
+
   defp do_apply("extract_words", [nil]), do: [nil]
   defp do_apply("extract_words", [string]), do: String.split(string)
   defp do_apply("^", [x, y]), do: :math.pow(x, y)
@@ -318,45 +361,62 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("*", [x, y]), do: x * y
   defp do_apply("/", [x = %Duration{}, y]), do: Duration.scale(x, 1 / y)
   defp do_apply("/", [x, y]), do: x / y
-  defp do_apply("+", [x = %Date{}, y = %Duration{}]), do:
-    x |> Timex.to_naive_datetime() |> Timex.add(y)
-  defp do_apply("+", [x = %NaiveDateTime{}, y = %Duration{}]), do:
-    Timex.add(x, y)
+
+  defp do_apply("+", [x = %Date{}, y = %Duration{}]),
+    do: x |> Timex.to_naive_datetime() |> Timex.add(y)
+
+  defp do_apply("+", [x = %NaiveDateTime{}, y = %Duration{}]), do: Timex.add(x, y)
   defp do_apply("+", [x = %Duration{}, y = %Duration{}]), do: Duration.add(x, y)
   defp do_apply("+", [x = %Duration{}, y]), do: do_apply("+", [y, x])
   defp do_apply("+", [x = %Time{}, y = %Duration{}]), do: add_to_time(x, y)
   defp do_apply("+", [x, y]), do: x + y
   defp do_apply("-", [x = %Date{}, y = %Date{}]), do: Timex.diff(x, y, :duration)
-  defp do_apply("-", [x = %NaiveDateTime{}, y = %NaiveDateTime{}]), do: Timex.diff(x, y, :duration)
-  defp do_apply("-", [x = %Time{}, y = %Time{}]), do:
-    Duration.sub(Duration.from_time(x), Duration.from_time(y))
+
+  defp do_apply("-", [x = %NaiveDateTime{}, y = %NaiveDateTime{}]),
+    do: Timex.diff(x, y, :duration)
+
+  defp do_apply("-", [x = %Time{}, y = %Time{}]),
+    do: Duration.sub(Duration.from_time(x), Duration.from_time(y))
+
   defp do_apply("-", [x, y = %Duration{}]), do: do_apply("+", [x, Duration.scale(y, -1)])
   defp do_apply("-", [x, y]), do: x - y
   defp do_apply({:cast, target}, [value]), do: cast(value, target)
-  defp do_apply("coalesce", values), do: Enum.find(values, &(&1))
+  defp do_apply("coalesce", values), do: Enum.find(values, & &1)
 
   defp do_trunc(value, 0), do: trunc(value)
-  defp do_trunc(value, precision) when precision < 0, do:
-    trunc(value * :math.pow(10, precision)) * :math.pow(10, -precision)
+
+  defp do_trunc(value, precision) when precision < 0,
+    do: trunc(value * :math.pow(10, precision)) * :math.pow(10, -precision)
+
   defp do_trunc(value, _precision) when is_integer(value), do: value
-  defp do_trunc(value, precision) when value < 0, do: value |> :erlang.float() |> Float.ceil(precision)
+
+  defp do_trunc(value, precision) when value < 0,
+    do: value |> :erlang.float() |> Float.ceil(precision)
+
   defp do_trunc(value, precision), do: value |> :erlang.float() |> Float.floor(precision)
 
-  defp do_round(value, precision) when precision < 0, do:
-    round(value * :math.pow(10, precision)) * :math.pow(10, -precision)
+  defp do_round(value, precision) when precision < 0,
+    do: round(value * :math.pow(10, precision)) * :math.pow(10, -precision)
+
   defp do_round(value, _precision) when is_integer(value), do: value
   defp do_round(value, precision), do: Float.round(value, precision)
 
   defp left(nil, _), do: nil
   defp left(_, nil), do: nil
-  defp left(string, count) when count < 0, do:
-    String.slice(string, 0, max(String.length(string) + count, 0))
+
+  defp left(string, count) when count < 0,
+    do: String.slice(string, 0, max(String.length(string) + count, 0))
+
   defp left(string, count), do: String.slice(string, 0, count)
 
   defp right(nil, _), do: nil
   defp right(_, nil), do: nil
-  defp right(string, count) when count < 0, do: String.slice(string, -count, String.length(string))
-  defp right(string, count), do: String.slice(string, String.length(string) - count |> max(0), count)
+
+  defp right(string, count) when count < 0,
+    do: String.slice(string, -count, String.length(string))
+
+  defp right(string, count),
+    do: String.slice(string, (String.length(string) - count) |> max(0), count)
 
   defp trim(string, chars), do: string |> ltrim(chars) |> rtrim(chars)
 
@@ -368,7 +428,10 @@ defmodule Cloak.Sql.Expression do
   @midnight ~T[00:00:00.000000]
   defp date_trunc(scope, %Time{}) when scope in ~w(year quarter month day), do: @midnight
   defp date_trunc("year", date), do: date_trunc("month", %{date | month: 1})
-  defp date_trunc("quarter", date), do: date_trunc("month", %{date | month: first_month_of_quarter(date)})
+
+  defp date_trunc("quarter", date),
+    do: date_trunc("month", %{date | month: first_month_of_quarter(date)})
+
   defp date_trunc("month", date), do: date_trunc("day", %{date | day: 1})
   defp date_trunc("day", date), do: date_trunc("hour", %{date | hour: 0})
   defp date_trunc("hour", date), do: date_trunc("minute", %{date | minute: 0})
@@ -376,18 +439,18 @@ defmodule Cloak.Sql.Expression do
   defp date_trunc("second", date), do: %{date | microsecond: @max_precision_zero}
 
   @month_in_quarter 3
-  defp first_month_of_quarter(%{month: month}), do: div(month - 1, @month_in_quarter) * @month_in_quarter + 1
+  defp first_month_of_quarter(%{month: month}),
+    do: div(month - 1, @month_in_quarter) * @month_in_quarter + 1
 
   defp substring(string, from, count \\ nil)
   defp substring(nil, _, _), do: nil
   defp substring(string, from, nil), do: substring(string, from, String.length(string))
-  defp substring(string, from, count), do:
-    String.slice(string, from - 1, count)
+  defp substring(string, from, count), do: String.slice(string, from - 1, count)
 
   defp add_to_time(time, duration) do
     NaiveDateTime.from_erl!({_arbitrary_date = {100, 1, 1}, Time.to_erl(time)})
     |> Timex.add(duration_time_part(duration))
-    |> NaiveDateTime.to_time
+    |> NaiveDateTime.to_time()
   end
 
   defp cast(nil, _), do: nil
@@ -396,42 +459,50 @@ defmodule Cloak.Sql.Expression do
   defp cast(value, :integer) when is_float(value), do: round(value)
   defp cast(true, :integer), do: 1
   defp cast(false, :integer), do: 0
+
   defp cast(value, :integer) when is_binary(value) do
     case Integer.parse(value) do
       {number, _rest} -> number
       :error -> nil
     end
   end
+
   # cast to real
   defp cast(value, :real) when is_integer(value) do
     :erlang.float(value)
   rescue
     _ in ArgumentError -> nil
   end
+
   defp cast(value, :real) when is_float(value), do: value
   defp cast(true, :real), do: 1.0
   defp cast(false, :real), do: 0.0
+
   defp cast(value, :real) when is_binary(value) do
     case Float.parse(value) do
       {number, _rest} -> number
       :error -> nil
     end
   end
+
   # cast to text
   defp cast(true, :text), do: "TRUE"
   defp cast(false, :text), do: "FALSE"
   defp cast(value = %Duration{}, :text), do: Duration.to_string(value)
+
   defp cast(value = %NaiveDateTime{}, :text) do
     case Timex.format(value, "{ISOdate} {ISOtime}") do
       {:ok, result} -> result
       {:error, _} -> nil
     end
   end
+
   defp cast(value, :text), do: to_string(value)
   # cast to boolean
   defp cast(value, :boolean) when is_integer(value), do: value != 0
   defp cast(value, :boolean) when is_float(value), do: round(value) != 0
   defp cast(value, :boolean) when is_boolean(value), do: value
+
   defp cast(value, :boolean) when is_binary(value) do
     case String.downcase(value) do
       "true" -> true
@@ -439,26 +510,35 @@ defmodule Cloak.Sql.Expression do
       _ -> nil
     end
   end
+
   # cast to datetime
   defp cast(value = %NaiveDateTime{}, :datetime), do: value
-  defp cast(value = %Date{}, :datetime), do:
-    value |> NaiveDateTime.new(~T[00:00:00.000000]) |> error_to_nil()
-  defp cast(value, :datetime) when is_binary(value), do:
-    value |> Cloak.Time.parse_datetime() |> error_to_nil()
+
+  defp cast(value = %Date{}, :datetime),
+    do: value |> NaiveDateTime.new(~T[00:00:00.000000]) |> error_to_nil()
+
+  defp cast(value, :datetime) when is_binary(value),
+    do: value |> Cloak.Time.parse_datetime() |> error_to_nil()
+
   # cast to time
   defp cast(value = %Time{}, :time), do: value
   defp cast(value = %NaiveDateTime{}, :time), do: NaiveDateTime.to_time(value)
-  defp cast(value, :time) when is_binary(value), do:
-    value |> Cloak.Time.parse_time() |> error_to_nil()
+
+  defp cast(value, :time) when is_binary(value),
+    do: value |> Cloak.Time.parse_time() |> error_to_nil()
+
   # cast to date
   defp cast(value = %Date{}, :date), do: value
   defp cast(value = %NaiveDateTime{}, :date), do: NaiveDateTime.to_date(value)
-  defp cast(value, :date) when is_binary(value), do:
-    value |> Cloak.Time.parse_date() |> error_to_nil()
+
+  defp cast(value, :date) when is_binary(value),
+    do: value |> Cloak.Time.parse_date() |> error_to_nil()
+
   # cast to interval
   defp cast(value = %Duration{}, :interval), do: value
-  defp cast(value, :interval) when is_binary(value), do:
-    value |> Duration.parse() |> error_to_nil()
+
+  defp cast(value, :interval) when is_binary(value),
+    do: value |> Duration.parse() |> error_to_nil()
 
   defp duration_time_part(duration) do
     {hours, days, seconds, microseconds} = Duration.to_clock(duration)
@@ -468,28 +548,32 @@ defmodule Cloak.Sql.Expression do
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _}), do: nil
 
-  defp eval_split_expression(%__MODULE__{constant?: true} = expression, _row), do:
-    [expression]
-  defp eval_split_expression(%__MODULE__{function?: false} = expression, row), do:
-    [constant(expression.type, value(expression, row))]
+  defp eval_split_expression(%__MODULE__{constant?: true} = expression, _row), do: [expression]
+
+  defp eval_split_expression(%__MODULE__{function?: false} = expression, row),
+    do: [constant(expression.type, value(expression, row))]
+
   defp eval_split_expression(%__MODULE__{function?: true} = expression, row) do
     apply_args_instances(expression, eval_args(expression.function_args, row))
   end
 
   defp eval_args([], _row), do: [[]]
+
   defp eval_args([arg | rest], row) do
-    for arg_value <- eval_split_expression(arg, row), remaining_arg_values <- eval_args(rest, row), do:
-      [arg_value | remaining_arg_values]
+    for arg_value <- eval_split_expression(arg, row),
+        remaining_arg_values <- eval_args(rest, row),
+        do: [arg_value | remaining_arg_values]
   end
 
   defp apply_args_instances(function, args_instances) do
     Enum.flat_map(args_instances, &invoke_fun(function, &1))
   end
 
-  defp invoke_fun(function, args), do:
-    function
-    |> function_results(args)
-    |> Enum.map(&constant(function.type, &1))
+  defp invoke_fun(function, args),
+    do:
+      function
+      |> function_results(args)
+      |> Enum.map(&constant(function.type, &1))
 
   defp function_results(function, args) do
     if row_splitter?(function) do
@@ -502,10 +586,11 @@ defmodule Cloak.Sql.Expression do
   @zero_iv String.duplicate(<<0>>, 16)
   defp dec_aes_cbc128(value, key) when value in [nil, ""] or key in [nil, ""], do: nil
   defp dec_aes_cbc128(value, _key) when rem(byte_size(value), 16) != 0, do: nil
+
   defp dec_aes_cbc128(value, key) do
-   value = :crypto.block_decrypt(:aes_cbc128, key, @zero_iv, value)
-   last = :binary.last(value)
-   {value, padding} = String.split_at(value, -last)
-   if padding == String.duplicate(<<last>>, last), do: value, else: nil
+    value = :crypto.block_decrypt(:aes_cbc128, key, @zero_iv, value)
+    last = :binary.last(value)
+    {value, padding} = String.split_at(value, -last)
+    if padding == String.duplicate(<<last>>, last), do: value, else: nil
   end
 end

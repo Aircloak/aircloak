@@ -1,5 +1,5 @@
 defmodule Mix.Tasks.Gen.DataSourceConfig do
-  if Mix.env == :dev do
+  if Mix.env() == :dev do
     @shortdoc "Generates a database JSON schema for a test data source."
     @moduledoc """
     Generates a complete data source definition for the datasets generated
@@ -59,30 +59,32 @@ defmodule Mix.Tasks.Gen.DataSourceConfig do
 
     @impl Mix.Task
     def run([config_name, output_dir]) do
-      IO.puts "Writing data source definitions for #{config_name} to directory #{output_dir}"
+      IO.puts("Writing data source definitions for #{config_name} to directory #{output_dir}")
+
       build_data_source_definitions(config_name)
-      |> Enum.each(fn(data_source_config) ->
+      |> Enum.each(fn data_source_config ->
         path = Path.join([output_dir, data_source_config[:name] <> ".json"])
         File.write!(path, Poison.encode!(data_source_config, pretty: true))
-        IO.puts "OK: #{path}"
+        IO.puts("OK: #{path}")
       end)
     end
+
     def run([config_name]) do
       build_data_source_definitions(config_name)
-      |> Enum.each(fn(data_source_config) ->
+      |> Enum.each(fn data_source_config ->
         IO.puts("# #{data_source_config[:name]}:")
         IO.puts(Poison.encode!(data_source_config, pretty: true))
         IO.puts("\n")
       end)
     end
+
     def run(_) do
-      IO.puts """
+      IO.puts("""
 
       Please run as:
         mix gen.data_source_config <config-name>
-      """
+      """)
     end
-
 
     # -------------------------------------------------------------------
     # Internal functions
@@ -92,11 +94,11 @@ defmodule Mix.Tasks.Gen.DataSourceConfig do
       config_name
       |> Compliance.DataSources.all_from_config()
       |> Compliance.DataSources.complete_data_source_definitions()
-      |> Enum.map(fn(data_source) ->
+      |> Enum.map(fn data_source ->
         {:ok, name} = Cloak.DataSource.Utility.driver_to_name(data_source.driver)
         Map.put(data_source, :driver, name)
       end)
-      |> Enum.map(& Map.take(&1, [:marker, :name, :parameters, :tables, :driver]))
+      |> Enum.map(&Map.take(&1, [:marker, :name, :parameters, :tables, :driver]))
     end
   end
 end

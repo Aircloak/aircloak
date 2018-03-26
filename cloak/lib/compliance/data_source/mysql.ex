@@ -1,7 +1,6 @@
 defmodule Compliance.DataSource.MySQL do
   @moduledoc false
 
-
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
@@ -19,13 +18,15 @@ defmodule Compliance.DataSource.MySQL do
 
   @impl Connector
   def connect(%{parameters: params}) do
-    {:ok, conn} = Mariaex.start_link(
-      database: params.database,
-      hostname: params.hostname,
-      port: Map.get(params, :port, 3306),
-      username: params.username,
-      password: params[:password]
-    )
+    {:ok, conn} =
+      Mariaex.start_link(
+        database: params.database,
+        hostname: params.hostname,
+        port: Map.get(params, :port, 3306),
+        username: params.username,
+        password: params[:password]
+      )
+
     conn
   end
 
@@ -56,54 +57,57 @@ defmodule Compliance.DataSource.MySQL do
     :ok
   end
 
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   defp insert_chunk(conn, table_name, column_names, rows) do
     columns = column_names |> escaped_column_names() |> Enum.join(", ")
-    row_placeholders = column_names |> Stream.map(fn(_column) -> "?" end) |> Enum.join(",")
-    all_placeholders = rows |> Stream.map(fn(_row) -> "(#{row_placeholders})" end) |> Enum.join(", ")
+    row_placeholders = column_names |> Stream.map(fn _column -> "?" end) |> Enum.join(",")
+
+    all_placeholders =
+      rows |> Stream.map(fn _row -> "(#{row_placeholders})" end) |> Enum.join(", ")
+
     query = "INSERT INTO #{table_name}(#{columns}) values #{all_placeholders}"
 
     Mariaex.query!(conn, query, List.flatten(rows))
   end
 
-  defp execute!(conn, query, params \\ []), do:
-    Mariaex.query!(conn, query, params)
+  defp execute!(conn, query, params \\ []), do: Mariaex.query!(conn, query, params)
 
-  defp column_names(data), do:
-    data
-    |> hd()
-    |> Map.keys()
-    |> Enum.sort()
+  defp column_names(data),
+    do:
+      data
+      |> hd()
+      |> Map.keys()
+      |> Enum.sort()
 
-  defp rows(data, column_names), do:
-    Enum.map(data, fn(entry) ->
-      column_names
-      |> Enum.map(& Map.get(entry, &1))
-      |> Enum.map(& cast_types/1)
-    end)
+  defp rows(data, column_names),
+    do:
+      Enum.map(data, fn entry ->
+        column_names
+        |> Enum.map(&Map.get(entry, &1))
+        |> Enum.map(&cast_types/1)
+      end)
 
   defp cast_types(%{calendar: Calendar.ISO} = datetime), do: NaiveDateTime.to_erl(datetime)
   defp cast_types(value), do: value
 
-  defp escaped_column_names(column_names), do:
-    column_names
-    |> Enum.map(& Atom.to_string/1)
-    |> Enum.map(& escape_name/1)
+  defp escaped_column_names(column_names),
+    do:
+      column_names
+      |> Enum.map(&Atom.to_string/1)
+      |> Enum.map(&escape_name/1)
 
-  defp columns_sql(columns), do:
-    columns
-    |> Enum.map(& column_sql/1)
-    |> Enum.join(", ")
+  defp columns_sql(columns),
+    do:
+      columns
+      |> Enum.map(&column_sql/1)
+      |> Enum.join(", ")
 
-  defp column_sql({name, type}), do:
-    "#{escape_name(name)} #{sql_type(type)}"
+  defp column_sql({name, type}), do: "#{escape_name(name)} #{sql_type(type)}"
 
-  defp escape_name(name), do:
-    "`#{name}`"
+  defp escape_name(name), do: "`#{name}`"
 
   defp sql_type(:integer), do: "integer"
   defp sql_type(:real), do: "real"
@@ -122,11 +126,16 @@ defmodule Compliance.DataSource.MySQL do
       )
 
     case Mariaex.query!(
-      conn,
-      "SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '#{params.database}'"
-    ).rows do
-      [[1]] -> :ok
-      [[0]] -> Mariaex.query!(conn, "CREATE DATABASE #{params.database} DEFAULT CHARACTER SET utf8")
+           conn,
+           "SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '#{
+             params.database
+           }'"
+         ).rows do
+      [[1]] ->
+        :ok
+
+      [[0]] ->
+        Mariaex.query!(conn, "CREATE DATABASE #{params.database} DEFAULT CHARACTER SET utf8")
     end
   end
 end

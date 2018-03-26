@@ -12,7 +12,6 @@ defmodule Cloak.DataSource.PostgrexAutoRepair do
   """
   require Logger
 
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -25,7 +24,8 @@ defmodule Cloak.DataSource.PostgrexAutoRepair do
     |> loop()
   end
 
-  defp initial_state(), do: %{check_interval: :timer.seconds(10), allowed_consecutive_failed_checks: 6}
+  defp initial_state(),
+    do: %{check_interval: :timer.seconds(10), allowed_consecutive_failed_checks: 6}
 
   defp analyze_postgrex_liveness(state) do
     if inconsistent_postgrex_state?() do
@@ -35,9 +35,10 @@ defmodule Cloak.DataSource.PostgrexAutoRepair do
     else
       initial_state()
     end
-  catch type, error ->
-    Logger.error(Exception.format(type, error))
-    state
+  catch
+    type, error ->
+      Logger.error(Exception.format(type, error))
+      state
   end
 
   defp handle_failed_check(%{allowed_consecutive_failed_checks: 0}) do
@@ -48,6 +49,7 @@ defmodule Cloak.DataSource.PostgrexAutoRepair do
 
     initial_state()
   end
+
   defp handle_failed_check(state), do: state
 
   defp inconsistent_postgrex_state?() do
@@ -57,7 +59,6 @@ defmodule Cloak.DataSource.PostgrexAutoRepair do
     dead_type_managers = Enum.reject(type_managers, &Process.alive?/1)
     not Enum.empty?(dead_type_managers)
   end
-
 
   # -------------------------------------------------------------------
   # Supervision tree

@@ -2,7 +2,7 @@
 # and its dependencies with the aid of the Mix.Config module.
 use Mix.Config
 
-config :aircloak_common, :env, Mix.env
+config :aircloak_common, :env, Mix.env()
 
 # Turn off sasl error logger. Do not change this, because data privacy might be compromised.
 config :sasl, :sasl_error_logger, false
@@ -23,8 +23,7 @@ config :kernel,
 
 config :cloak, :api, port: 8098
 
-config :cloak, :air,
-  serializer: Air.CloakSocketSerializer
+config :cloak, :air, serializer: Air.CloakSocketSerializer
 
 config :cloak, :anonymizer,
   # The mean and standard deviation for the lower bound of the number
@@ -72,7 +71,8 @@ config :cloak, :data_source,
 
 config :cloak, :flush_query_log_timeout, 500
 
-import_config "#{Mix.env}.exs"
-if File.exists?("config/#{Mix.env}.local.exs") do
-  import_config "#{Mix.env}.local.exs"
+import_config "#{Mix.env()}.exs"
+
+if File.exists?("config/#{Mix.env()}.local.exs") do
+  import_config "#{Mix.env()}.local.exs"
 end

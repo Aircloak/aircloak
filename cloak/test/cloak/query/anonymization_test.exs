@@ -27,15 +27,19 @@ defmodule Cloak.Query.AnonymizationTest do
     end
 
     test "counting values represented by many users" do
-      assert_query "select count(distinct number) from anonymizations",
-        %{columns: ["count"], rows: [%{row: [5], occurrences: 1}]}
+      assert_query("select count(distinct number) from anonymizations", %{
+        columns: ["count"],
+        rows: [%{row: [5], occurrences: 1}]
+      })
     end
 
     test "ignoring nils" do
       :ok = insert_rows(_user_ids = 41..49, "anonymizations", ["number"], [nil])
 
-      assert_query "select count(distinct number) from anonymizations",
-        %{columns: ["count"], rows: [%{row: [5], occurrences: 1}]}
+      assert_query("select count(distinct number) from anonymizations", %{
+        columns: ["count"],
+        rows: [%{row: [5], occurrences: 1}]
+      })
     end
 
     test "hiding users with many distinct values" do
@@ -43,19 +47,22 @@ defmodule Cloak.Query.AnonymizationTest do
       :ok = insert_rows(_user_ids = 40..40, "anonymizations", ["number"], [152])
       :ok = insert_rows(_user_ids = 40..40, "anonymizations", ["number"], [153])
 
-      assert_query "select count(distinct number) from anonymizations",
-        %{columns: ["count"], rows: [%{row: [5], occurrences: 1}]}
+      assert_query("select count(distinct number) from anonymizations", %{
+        columns: ["count"],
+        rows: [%{row: [5], occurrences: 1}]
+      })
     end
 
     test "a user with many non-unique values should be treated as one with few distinct values" do
       :ok = insert_rows(_user_ids = 40..40, "anonymizations", ["number"], [151])
       :ok = insert_rows(_user_ids = 40..40, "anonymizations", ["number"], [152])
       :ok = insert_rows(_user_ids = 40..40, "anonymizations", ["number"], [153])
-      for _ <- 1..10, do:
-        :ok = insert_rows(_user_ids = [60], "anonymizations", ["number"], [151])
+      for _ <- 1..10, do: :ok = insert_rows(_user_ids = [60], "anonymizations", ["number"], [151])
 
-      assert_query "select count(distinct number) from anonymizations",
-        %{columns: ["count"], rows: [%{row: [6], occurrences: 1}]}
+      assert_query("select count(distinct number) from anonymizations", %{
+        columns: ["count"],
+        rows: [%{row: [6], occurrences: 1}]
+      })
     end
   end
 end

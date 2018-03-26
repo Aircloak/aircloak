@@ -9,7 +9,6 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   use Cloak.DataSource.Driver.SQL
 
-
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
@@ -17,15 +16,26 @@ defmodule Cloak.DataSource.PostgreSQL do
   @impl Driver
   def connect!(parameters) do
     self = self()
-    parameters = Enum.to_list(parameters) ++ [types: Postgrex.DefaultTypes, sync_connect: true,
-      pool: DBConnection.Connection, after_connect: fn (_) -> send self, :connected end]
+
+    parameters =
+      Enum.to_list(parameters) ++
+        [
+          types: Postgrex.DefaultTypes,
+          sync_connect: true,
+          pool: DBConnection.Connection,
+          after_connect: fn _ -> send(self, :connected) end
+        ]
+
     {:ok, connection} = Postgrex.start_link(parameters)
+
     receive do
       :connected ->
-        {:ok, %Postgrex.Result{}} = Postgrex.query(connection, "SET standard_conforming_strings = ON", [])
+        {:ok, %Postgrex.Result{}} =
+          Postgrex.query(connection, "SET standard_conforming_strings = ON", [])
+
         connection
-    after Driver.connect_timeout()
-      ->
+    after
+      Driver.connect_timeout() ->
         GenServer.stop(connection, :normal, :timer.seconds(5))
         DataSource.raise_error("Unknown failure during database connection process")
     end
@@ -33,13 +43,18 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   @impl Driver
   def load_tables(connection, table) do
-    {schema_name, table_name} = case String.split(table.db_name, ".") do
-      [full_table_name] -> {"public", full_table_name}
-      [schema_name, table_name] -> {schema_name, table_name}
-    end
-    query = "SELECT column_name, udt_name FROM information_schema.columns " <>
-      "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}'"
+    {schema_name, table_name} =
+      case String.split(table.db_name, ".") do
+        [full_table_name] -> {"public", full_table_name}
+        [schema_name, table_name] -> {schema_name, table_name}
+      end
+
+    query =
+      "SELECT column_name, udt_name FROM information_schema.columns " <>
+        "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}'"
+
     row_mapper = fn [name, type_name] -> Table.column(name, parse_type(type_name)) end
+
     case run_query(connection, query, row_mapper, &Enum.concat/1) do
       {:ok, []} -> DataSource.raise_error("Table `#{table.db_name}` does not exist")
       {:ok, columns} -> [%{table | columns: columns}]
@@ -60,25 +75,35 @@ defmodule Cloak.DataSource.PostgreSQL do
   @impl Driver
   def supports_connection_sharing?(), do: true
 
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   defp run_query(pool, statement, decode_mapper, result_processor) do
-    Postgrex.transaction(pool, fn(connection) ->
-      with {:ok, query} <- Postgrex.prepare(connection, "data select", statement, []) do
-        try do
-          Postgrex.stream(connection, query, [], [decode_mapper: decode_mapper, max_rows: Driver.batch_size()])
-          |> Stream.map(fn (%Postgrex.Result{rows: rows}) -> rows end)
-          |> result_processor.()
-        after
-          Postgrex.close(connection, query)
+    Postgrex.transaction(
+      pool,
+      fn connection ->
+        with {:ok, query} <- Postgrex.prepare(connection, "data select", statement, []) do
+          try do
+            Postgrex.stream(
+              connection,
+              query,
+              [],
+              decode_mapper: decode_mapper,
+              max_rows: Driver.batch_size()
+            )
+            |> Stream.map(fn %Postgrex.Result{rows: rows} -> rows end)
+            |> result_processor.()
+          after
+            Postgrex.close(connection, query)
+          end
+        else
+          {:error, error} ->
+            DataSource.raise_error("Driver exception: `#{Exception.message(error)}`")
         end
-      else
-        {:error, error} -> DataSource.raise_error("Driver exception: `#{Exception.message(error)}`")
-      end
-    end, [timeout: Driver.timeout()])
+      end,
+      timeout: Driver.timeout()
+    )
   end
 
   defp parse_type("varchar"), do: :text
@@ -101,14 +126,14 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp parse_type("date"), do: :date
   defp parse_type(type), do: {:unsupported, type}
 
-
   # -------------------------------------------------------------------
   # Selected data mapping functions
   # -------------------------------------------------------------------
 
   defp map_fields([], []), do: []
-  defp map_fields([field | rest_fields], [mapper | rest_mappers]), do:
-    [mapper.(field) | map_fields(rest_fields, rest_mappers)]
+
+  defp map_fields([field | rest_fields], [mapper | rest_mappers]),
+    do: [mapper.(field) | map_fields(rest_fields, rest_mappers)]
 
   defp type_to_field_mapper(:integer), do: &integer_field_mapper/1
   defp type_to_field_mapper(:real), do: &real_field_mapper/1
@@ -126,21 +151,23 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp real_field_mapper(value) when is_float(value), do: value
   defp real_field_mapper(value) when is_integer(value), do: value * 1.0
 
-  defp time_field_mapper(%Postgrex.Interval{days: 0, months: 0, secs: secs}), do: Cloak.Time.from_integer(secs, :time)
+  defp time_field_mapper(%Postgrex.Interval{days: 0, months: 0, secs: secs}),
+    do: Cloak.Time.from_integer(secs, :time)
+
   defp time_field_mapper(value), do: value
 
-  defp interval_field_mapper(%Postgrex.Interval{months: m, days: d, secs: s}), do:
-    Timex.Duration.parse!("P#{m}M#{d}DT#{s}S")
+  defp interval_field_mapper(%Postgrex.Interval{months: m, days: d, secs: s}),
+    do: Timex.Duration.parse!("P#{m}M#{d}DT#{s}S")
+
   defp interval_field_mapper(value), do: value
 
   defp generic_field_mapper(value), do: value
-
 
   # -------------------------------------------------------------------
   # Test functions
   # -------------------------------------------------------------------
 
   @doc false
-  def execute(connection, statement, parameters), do:
-    Postgrex.query(connection, statement, parameters, [timeout: :timer.minutes(2)])
+  def execute(connection, statement, parameters),
+    do: Postgrex.query(connection, statement, parameters, timeout: :timer.minutes(2))
 end

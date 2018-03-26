@@ -13,15 +13,18 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
   require Logger
 
   @doc "Helper function for parallel processing of a chunked data stream. See module docs for details."
-  @spec execute(Enumerable.t, non_neg_integer, ((Enumerable.t) -> any), ((any, any) -> any)) :: any
+  @spec execute(Enumerable.t(), non_neg_integer, (Enumerable.t() -> any), (any, any -> any)) ::
+          any
   def execute(chunks, 0, processor, _state_merger), do: chunks |> Stream.concat() |> processor.()
   def execute([chunk], _proc_count, processor, _state_merger), do: processor.(chunk)
-  def execute(chunks, proc_count, processor, state_merger) when is_integer(proc_count) and proc_count > 0, do:
-    proc_count
-    |> start_workers(processor)
-    |> dispatch_chunks(chunks)
-    |> merge_results(state_merger)
 
+  def execute(chunks, proc_count, processor, state_merger)
+      when is_integer(proc_count) and proc_count > 0,
+      do:
+        proc_count
+        |> start_workers(processor)
+        |> dispatch_chunks(chunks)
+        |> merge_results(state_merger)
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -29,9 +32,11 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
 
   defp start_workers(count, processor) do
     parent = self()
-    job = fn () ->
+
+    job = fn ->
       parent |> stream_rows() |> processor.()
     end
+
     for _i <- 1..count, do: Worker.start_link!(job)
   end
 
@@ -51,17 +56,18 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
 
   defp stream_rows(source) do
     Stream.resource(
-      fn () -> send(source, {:send_more, self()}) end,
-      fn (_) ->
+      fn -> send(source, {:send_more, self()}) end,
+      fn _ ->
         receive do
           :end_of_data ->
             {:halt, :ok}
+
           {:data, chunk} ->
             send(source, {:send_more, self()})
             {chunk, :ok}
         end
       end,
-      fn (_) -> :ok end
+      fn _ -> :ok end
     )
   end
 
@@ -71,11 +77,13 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
   # until only a single worker remains, which will send the final result back to the parent process.
   # Once a worker reports a result, it will automatically exit. Each worker will report exactly once.
   defp merge_results([worker], _state_merger), do: Worker.report!(worker)
+
   defp merge_results([worker1, worker2], state_merger) do
     state1 = Worker.report!(worker1)
     state2 = Worker.report!(worker2)
     state_merger.(state1, state2)
   end
+
   defp merge_results(workers, state_merger) do
     workers
     |> Enum.chunk_every(2)
@@ -85,7 +93,6 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
     end)
     |> merge_results(state_merger)
   end
-
 
   # -------------------------------------------------------------------
   # Worker implementation
@@ -104,8 +111,9 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
 
     @impl GenServer
     def handle_cast({:execute, job}, nil), do: {:noreply, job.()}
-    def handle_cast({:merge, from, state_merger}, result), do:
-      {:noreply, state_merger.(result, report!(from))}
+
+    def handle_cast({:merge, from, state_merger}, result),
+      do: {:noreply, state_merger.(result, report!(from))}
 
     @impl GenServer
     def handle_call(:report, _from, result), do: {:stop, :normal, result, nil}

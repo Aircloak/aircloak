@@ -12,17 +12,29 @@ defmodule Cloak.LoggerTranslatorTest do
       [pid: pid]
     end
 
-    test "stacktrace is logged on crash", %{pid: pid}, do:
-      assert crash_agent(pid, fn(_) -> raise "foo" end) =~ ~r/#{Path.basename(__ENV__.file)}:#{__ENV__.line}/
+    test(
+      "stacktrace is logged on crash",
+      %{pid: pid},
+      do:
+        assert(
+          crash_agent(pid, fn _ -> raise "foo" end) =~
+            ~r/#{Path.basename(__ENV__.file)}:#{__ENV__.line}/
+        )
+    )
 
-    test "sensitive data is removed from the exception message", %{pid: pid}, do:
-      refute crash_agent(pid, fn(_) -> Enum.count("sensitive data") end) =~ ~r/sensitive data/
+    test(
+      "sensitive data is removed from the exception message",
+      %{pid: pid},
+      do: refute(crash_agent(pid, fn _ -> Enum.count("sensitive data") end) =~ ~r/sensitive data/)
+    )
 
-    test "sensitive data is removed from the stacktrace", %{pid: pid}, do:
-      refute crash_agent(pid, fn(_) -> List.last("sensitive data") end) =~ ~r/sensitive data/
+    test(
+      "sensitive data is removed from the stacktrace",
+      %{pid: pid},
+      do: refute(crash_agent(pid, fn _ -> List.last("sensitive data") end) =~ ~r/sensitive data/)
+    )
 
-    defp crash_agent(pid, fun), do:
-      capture_process_failure(pid, &Agent.cast(&1, fun))
+    defp crash_agent(pid, fun), do: capture_process_failure(pid, &Agent.cast(&1, fun))
   end
 
   describe "Task" do
@@ -31,17 +43,29 @@ defmodule Cloak.LoggerTranslatorTest do
       [pid: pid]
     end
 
-    test "stacktrace is logged on crash", %{pid: pid}, do:
-      assert crash_task(pid, fn(_) -> raise "foo" end) =~ ~r/#{Path.basename(__ENV__.file)}:#{__ENV__.line}/
+    test(
+      "stacktrace is logged on crash",
+      %{pid: pid},
+      do:
+        assert(
+          crash_task(pid, fn _ -> raise "foo" end) =~
+            ~r/#{Path.basename(__ENV__.file)}:#{__ENV__.line}/
+        )
+    )
 
-    test "sensitive data is removed from the exception message", %{pid: pid}, do:
-      refute crash_task(pid, fn(_) -> Enum.count("sensitive data") end) =~ ~r/sensitive data/
+    test(
+      "sensitive data is removed from the exception message",
+      %{pid: pid},
+      do: refute(crash_task(pid, fn _ -> Enum.count("sensitive data") end) =~ ~r/sensitive data/)
+    )
 
-    test "sensitive data is removed from the stacktrace", %{pid: pid}, do:
-      refute crash_task(pid, fn(_) -> List.last("sensitive data") end) =~ ~r/sensitive data/
+    test(
+      "sensitive data is removed from the stacktrace",
+      %{pid: pid},
+      do: refute(crash_task(pid, fn _ -> List.last("sensitive data") end) =~ ~r/sensitive data/)
+    )
 
-    defp crash_task(pid, fun), do:
-      capture_process_failure(pid, &send(&1, {:fun, fun}))
+    defp crash_task(pid, fun), do: capture_process_failure(pid, &send(&1, {:fun, fun}))
 
     def task_loop(state) do
       receive do
@@ -56,14 +80,27 @@ defmodule Cloak.LoggerTranslatorTest do
       [pid: pid]
     end
 
-    test "stacktrace is logged on crash", %{pid: pid}, do:
-      assert crash_task(pid, fn(_) -> raise "foo" end) =~ ~r/#{Path.basename(__ENV__.file)}:#{__ENV__.line}/
+    test(
+      "stacktrace is logged on crash",
+      %{pid: pid},
+      do:
+        assert(
+          crash_task(pid, fn _ -> raise "foo" end) =~
+            ~r/#{Path.basename(__ENV__.file)}:#{__ENV__.line}/
+        )
+    )
 
-    test "sensitive data is removed from the exception message", %{pid: pid}, do:
-      refute crash_task(pid, fn(_) -> Enum.count("sensitive data") end) =~ ~r/sensitive data/
+    test(
+      "sensitive data is removed from the exception message",
+      %{pid: pid},
+      do: refute(crash_task(pid, fn _ -> Enum.count("sensitive data") end) =~ ~r/sensitive data/)
+    )
 
-    test "sensitive data is removed from the stacktrace", %{pid: pid}, do:
-      refute crash_task(pid, fn(_) -> List.last("sensitive data") end) =~ ~r/sensitive data/
+    test(
+      "sensitive data is removed from the stacktrace",
+      %{pid: pid},
+      do: refute(crash_task(pid, fn _ -> List.last("sensitive data") end) =~ ~r/sensitive data/)
+    )
 
     def start_task_loop(arg) do
       :proc_lib.init_ack({:ok, self()})
@@ -79,21 +116,42 @@ defmodule Cloak.LoggerTranslatorTest do
       [pid: pid]
     end
 
-    test "stacktrace is logged on crash", %{pid: pid}, do:
-      assert crash_event_handler(pid, fn(_) -> raise "foo" end) =~ ~r/#{Path.basename(__ENV__.file)}:#{__ENV__.line}/
+    test(
+      "stacktrace is logged on crash",
+      %{pid: pid},
+      do:
+        assert(
+          crash_event_handler(pid, fn _ -> raise "foo" end) =~
+            ~r/#{Path.basename(__ENV__.file)}:#{__ENV__.line}/
+        )
+    )
 
-    test "sensitive data is removed from the exception message", %{pid: pid}, do:
-      refute crash_event_handler(pid, fn(_) -> Enum.count("sensitive data") end) =~ ~r/sensitive data/
+    test(
+      "sensitive data is removed from the exception message",
+      %{pid: pid},
+      do:
+        refute(
+          crash_event_handler(pid, fn _ -> Enum.count("sensitive data") end) =~ ~r/sensitive data/
+        )
+    )
 
-    test "sensitive data is removed from the stacktrace", %{pid: pid}, do:
-      refute crash_event_handler(pid, fn(_) -> List.last("sensitive data") end) =~ ~r/sensitive data/
+    test(
+      "sensitive data is removed from the stacktrace",
+      %{pid: pid},
+      do:
+        refute(
+          crash_event_handler(pid, fn _ -> List.last("sensitive data") end) =~ ~r/sensitive data/
+        )
+    )
 
     defp crash_event_handler(pid, fun) do
       ExUnit.CaptureLog.capture_log(fn ->
         :gen_event.notify(pid, {:fun, fun})
+
         receive do
           {:gen_event_EXIT, _handler, _reason} -> :ok
-          after :timer.seconds(1) -> raise "GenEvent handler didn't exit."
+        after
+          :timer.seconds(1) -> raise "GenEvent handler didn't exit."
         end
       end)
     end
@@ -101,14 +159,11 @@ defmodule Cloak.LoggerTranslatorTest do
     defmodule GenEventHandler do
       @behaviour :gen_event
 
-      def init(_), do:
-        {:ok, nil}
+      def init(_), do: {:ok, nil}
 
-      def handle_event({:fun, fun}, state), do:
-        {:ok, fun.(state)}
+      def handle_event({:fun, fun}, state), do: {:ok, fun.(state)}
 
-      def handle_call(_request, _state), do:
-        raise "not supported"
+      def handle_call(_request, _state), do: raise("not supported")
     end
   end
 
@@ -116,9 +171,11 @@ defmodule Cloak.LoggerTranslatorTest do
     ExUnit.CaptureLog.capture_log(fn ->
       mref = Process.monitor(pid)
       fun.(pid)
+
       receive do
         {:DOWN, ^mref, _, _, _} -> :ok
-        after timeout -> raise "Process didn't exit"
+      after
+        timeout -> raise "Process didn't exit"
       end
     end)
   end

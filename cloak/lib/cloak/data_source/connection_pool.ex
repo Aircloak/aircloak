@@ -27,13 +27,12 @@ defmodule Cloak.DataSource.ConnectionPool do
   alias Cloak.DataSource.Driver
   alias Cloak.DataSource.ConnectionPool.ConnectionOwner
 
-
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
   @doc "Acquires a connection, invokes the provided lambda, and returns its result."
-  @spec execute!(Cloak.DataSource.t, ((Driver.connection) -> result)) :: result when result: var
+  @spec execute!(Cloak.DataSource.t(), (Driver.connection() -> result)) :: result when result: var
   def execute!(data_source, fun) do
     if data_source.driver.supports_connection_sharing?() do
       data_source
@@ -43,6 +42,7 @@ defmodule Cloak.DataSource.ConnectionPool do
     else
       # needed for drivers which don't support connection sharing, such as ODBC
       connection = data_source.driver.connect!(data_source.parameters)
+
       try do
         fun.(connection)
       after
@@ -50,7 +50,6 @@ defmodule Cloak.DataSource.ConnectionPool do
       end
     end
   end
-
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -69,10 +68,13 @@ defmodule Cloak.DataSource.ConnectionPool do
         {:reply, connection, %{state | connections: rest}}
 
       [] ->
-        {:ok, connection} = GenServer.start_link(ConnectionOwner, {self(), state.driver, state.connection_params})
+        {:ok, connection} =
+          GenServer.start_link(ConnectionOwner, {self(), state.driver, state.connection_params})
+
         {:reply, connection, state}
     end
   end
+
   def handle_call({:checkin, connection}, _from, state) do
     {:reply, :ok, update_in(state.connections, &[connection | &1])}
   end
@@ -94,8 +96,8 @@ defmodule Cloak.DataSource.ConnectionPool do
   def handle_info({:EXIT, connection, _}, state) do
     {:noreply, %{state | connections: Enum.reject(state.connections, &(&1 == connection))}}
   end
-  def handle_info(other, state), do: super(other, state)
 
+  def handle_info(other, state), do: super(other, state)
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -103,12 +105,14 @@ defmodule Cloak.DataSource.ConnectionPool do
 
   defp pool_server(data_source) do
     case Registry.lookup(__MODULE__.Registry, {data_source.driver, data_source.parameters}) do
-      [{pid, _}] -> pid
+      [{pid, _}] ->
+        pid
+
       [] ->
-        case DynamicSupervisor.start_child(
-          __MODULE__.Supervisor,
-          %{id: __MODULE__.Server, start: {__MODULE__, :start_server, [data_source.driver, data_source.parameters]}}
-        ) do
+        case DynamicSupervisor.start_child(__MODULE__.Supervisor, %{
+               id: __MODULE__.Server,
+               start: {__MODULE__, :start_server, [data_source.driver, data_source.parameters]}
+             }) do
           {:ok, pid} -> pid
           {:error, {:already_started, pid}} -> pid
         end
@@ -136,16 +140,25 @@ defmodule Cloak.DataSource.ConnectionPool do
   end
 
   defp start_client_usage(connection_owner) do
-    GenServer.call(connection_owner, :start_client_usage, :timer.minutes(1) + Driver.connect_timeout())
+    GenServer.call(
+      connection_owner,
+      :start_client_usage,
+      :timer.minutes(1) + Driver.connect_timeout()
+    )
   catch
     # If this call fails, then we failed to connect to the database, so we're raising an informative exception.
     # This prevents reporting "Unknown cloak error" when connecting to the database fails. Note that the real
     # exit reason will still be properly included in the crash log of the connection owner process.
-    _type, _error -> Cloak.DataSource.raise_error("Failed connecting to the database")
+    _type, _error ->
+      Cloak.DataSource.raise_error("Failed connecting to the database")
   end
 
-  defp raise_client_error(:exit, {{%Cloak.Query.ExecutionError{} = error, _}, _}, _stacktrace), do: raise(error)
-  defp raise_client_error(:error, %{__exception__: true} = error, stacktrace), do: reraise(error, stacktrace)
+  defp raise_client_error(:exit, {{%Cloak.Query.ExecutionError{} = error, _}, _}, _stacktrace),
+    do: raise(error)
+
+  defp raise_client_error(:error, %{__exception__: true} = error, stacktrace),
+    do: reraise(error, stacktrace)
+
   defp raise_client_error(type, error, stacktrace) do
     :erlang.raise(
       :error,
@@ -153,7 +166,6 @@ defmodule Cloak.DataSource.ConnectionPool do
       stacktrace
     )
   end
-
 
   # -------------------------------------------------------------------
   # Supervision tree
@@ -164,7 +176,7 @@ defmodule Cloak.DataSource.ConnectionPool do
     ChildSpec.supervisor(
       [
         ChildSpec.registry(:unique, __MODULE__.Registry),
-        ChildSpec.dynamic_supervisor(name: __MODULE__.Supervisor),
+        ChildSpec.dynamic_supervisor(name: __MODULE__.Supervisor)
       ],
       strategy: :one_for_one,
       name: __MODULE__

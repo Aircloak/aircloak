@@ -1,5 +1,5 @@
 defmodule Mix.Tasks.Gen.TestData do
-  if Mix.env in [:test, :dev] do
+  if Mix.env() in [:test, :dev] do
     @shortdoc "Generates an interlinked dataset for cloak testing."
     @moduledoc """
     Generates a test dataset of users and items related to these users.
@@ -36,18 +36,22 @@ defmodule Mix.Tasks.Gen.TestData do
         {options, [config_name, num_users]} ->
           concurrency = Keyword.get(options, :concurrency, System.schedulers_online())
           num_users = String.to_integer(num_users)
-          IO.puts "Generating data for #{num_users} users."
+          IO.puts("Generating data for #{num_users} users.")
 
           config_name
           |> Compliance.DataSources.all_from_config()
-          |> Compliance.DataSources.setup(Compliance.Data.users(num_users), num_users, concurrency)
+          |> Compliance.DataSources.setup(
+            Compliance.Data.users(num_users),
+            num_users,
+            concurrency
+          )
 
         _ ->
-          IO.puts """
+          IO.puts("""
 
           Please run as:
             mix gen.test_data <config-name> <num-users>
-          """
+          """)
       end
     end
   end
