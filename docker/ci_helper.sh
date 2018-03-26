@@ -29,16 +29,12 @@ function mount_to_component {
 
 function mount_cached_component {
   for mounted in $@; do
-    mount $(tmp_folder)/$COMPONENT/$mounted /aircloak/$COMPONENT/$mounted
+    mount $(ci_tmp_folder)/$COMPONENT/$mounted /aircloak/$COMPONENT/$mounted
   done
 }
 
-function tmp_folder {
-  echo "$(pwd)/tmp/ci/$(tools_versions_md5)"
-}
-
-function tools_versions_md5 {
-  cat .tool-versions | md5sum | awk '{print $1}'
+function ci_tmp_folder {
+  component_tmp_folder "ci"
 }
 
 function build_image {
@@ -64,7 +60,7 @@ function is_image_built {
 
 function start_container {
   container_name=$1
-  local mounts="-v $(tmp_folder)/$COMPONENT/.bash_history:/root/.bash_history $MOUNTS"
+  local mounts="-v $(ci_tmp_folder)/$COMPONENT/.bash_history:/root/.bash_history $MOUNTS"
   docker network create --driver bridge $container_name > /dev/null
 
   # need to use eval, to properly escape everything

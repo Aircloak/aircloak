@@ -482,6 +482,14 @@ function rust_version {
   cat "$(dirname ${BASH_SOURCE[0]})/../.tool-versions" | grep rust | sed s/'rust '//
 }
 
+function tools_versions_md5 {
+  cat "$(dirname ${BASH_SOURCE[0]})/../.tool-versions" | md5sum | awk '{print $1}'
+}
+
+function component_tmp_folder {
+  echo "$(pwd)/tmp/$1/$(tools_versions_md5)"
+}
+
 function published_images {
   registry_v2_req _catalog |
     jq --raw-output ".repositories []" |
