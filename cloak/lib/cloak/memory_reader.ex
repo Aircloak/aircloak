@@ -113,7 +113,7 @@ defmodule Cloak.MemoryReader do
       memory_projector: projector} = state, available_memory) do
     case MemoryProjector.time_until_limit(projector, memory_limit) do
       {:ok, time} when time <= time_limit ->
-        Logger.error("Dangerous memory situation. Anticipating reaching the low memory threshold " <>
+        Logger.warn("Dangerous memory situation. Anticipating reaching the low memory threshold " <>
           "(#{to_mb(memory_limit)} MB) in #{to_sec(time)} seconds. Available memory: #{to_mb(available_memory)} MB")
         kill_query(state)
       _ -> {:noreply, state}
