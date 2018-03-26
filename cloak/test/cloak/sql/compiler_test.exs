@@ -886,9 +886,21 @@ defmodule Cloak.Sql.Compiler.Test do
     assert reason == "Expression `count` is not valid in the `WHERE` clause."
   end
 
-  test "sample amount is validated" do
-    assert {:error, error} = compile("select count(*) from table sample_users 101%", data_source())
-    assert error =~ ~r/The `SAMPLE` clause expects an integer value between 1 and 100./
+  describe "sample amount" do
+    test "validation" do
+      assert {:error, error} = compile("select count(*) from table sample_users 101%", data_source())
+      assert error =~ ~r/The `SAMPLE` clause expects an integer value between 1 and 100./
+    end
+
+    test "needs alignment" do
+      result = compile!("select count(*) from table sample_users 0.4%", data_source())
+      assert ["Sample rate adjusted from 0.4% to 0.5%"] = result.info
+    end
+
+    test "does not need alignment" do
+      result = compile!("select count(*) from table sample_users 0.5%", data_source())
+      assert [] = result.info
+    end
   end
 
   describe "key columns" do
