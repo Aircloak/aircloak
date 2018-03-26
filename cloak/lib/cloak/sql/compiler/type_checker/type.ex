@@ -17,8 +17,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
           # it ceases to be constant.
           constant?: boolean,
 
-          # True if the expression is a column from the database without any processing. It might be a column in a subquery
-          # that has been simply selected into the outer query.
+          # True if the expression is a column from the database without any processing. It might be a column in a
+          # subquery that has been simply selected into the outer query.
           raw_column?: boolean,
 
           # True if any of the expressions it has come in contact with through functions

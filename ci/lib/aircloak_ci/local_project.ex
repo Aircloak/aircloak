@@ -68,8 +68,8 @@ defmodule AircloakCI.LocalProject do
         checkout: pr.merge_sha,
         # The target SHA is the merge commit.
         target_sha: pr.merge_sha,
-        # We'll use the SHA of the source branch HEAD. This ensures that we won't restart finished PR jobs when something
-        # has been changed in the target branch.
+        # We'll use the SHA of the source branch HEAD. This ensures that we won't restart finished PR jobs when
+        # something has been changed in the target branch.
         source_sha: pr.sha
       })
 

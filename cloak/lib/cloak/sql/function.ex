@@ -163,7 +163,8 @@ defmodule Cloak.Sql.Function do
                ~w(hash) => %{
                  type_specs: %{[:text] => :integer, [:integer] => :integer, [:real] => :integer}
                },
-               # NOTICE: The `not_in_subquery` is set for `extract_words` because we are not yet sure it's safe in subqueries.
+               # NOTICE: The `not_in_subquery` is set for `extract_words` because we are not yet sure it's safe in
+               # subqueries.
                ~w(extract_words) => %{
                  type_specs: %{[:text] => :text},
                  attributes: [:not_in_subquery, :row_splitter]
