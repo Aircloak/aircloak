@@ -108,9 +108,7 @@ extern "C" fn control(
     unsafe { reply(&message, reply_buffer, reply_length) }
 }
 
-static DRIVER_NAME: &'static [u8] = b"librodbc\0";
-
-static mut DRIVER_ENTRY: ErlDrvEntry = erl_drv_entry {
+static mut DRIVER_ENTRY: ErlDrvEntry = ErlDrvEntry {
     init: None,
     start: Some(start),
     stop: Some(stop),
@@ -118,7 +116,7 @@ static mut DRIVER_ENTRY: ErlDrvEntry = erl_drv_entry {
     output: None,
     ready_input: None,
     ready_output: None,
-    driver_name: 0 as *mut c_schar, // set later
+    driver_name: "librodbc\0" as *const str as *mut c_schar,
     finish: None,
     handle: 0 as *mut c_void,
     timeout: None,
@@ -139,8 +137,5 @@ static mut DRIVER_ENTRY: ErlDrvEntry = erl_drv_entry {
 
 #[no_mangle]
 pub extern "C" fn driver_init() -> *mut ErlDrvEntry {
-    unsafe {
-        DRIVER_ENTRY.driver_name = transmute(&DRIVER_NAME[0]);
-        transmute::<&ErlDrvEntry, *mut ErlDrvEntry>(&DRIVER_ENTRY)
-    }
+    unsafe { transmute(&DRIVER_ENTRY) }
 }
