@@ -29,8 +29,12 @@ function mount_to_component {
 
 function mount_cached_component {
   for mounted in $@; do
-    mount $(pwd)/tmp/ci/$COMPONENT/$mounted /aircloak/$COMPONENT/$mounted
+    mount $(ci_tmp_folder)/$COMPONENT/$mounted /aircloak/$COMPONENT/$mounted
   done
+}
+
+function ci_tmp_folder {
+  component_tmp_folder "ci"
 }
 
 function build_image {
@@ -56,7 +60,7 @@ function is_image_built {
 
 function start_container {
   container_name=$1
-  local mounts="-v $(pwd)/tmp/ci/$COMPONENT/.bash_history:/root/.bash_history $MOUNTS"
+  local mounts="-v $(ci_tmp_folder)/$COMPONENT/.bash_history:/root/.bash_history $MOUNTS"
   docker network create --driver bridge $container_name > /dev/null
 
   # need to use eval, to properly escape everything
@@ -116,3 +120,7 @@ function default_handle {
       ;;
   esac
 }
+
+# Dummy execution to verify that tools_versions_md5 returns without an error. We need to do this because the result of
+# this function is used only in command interpolations, and the non-zero exit code is swallowed in such cases.
+tools_versions_md5 > /dev/null

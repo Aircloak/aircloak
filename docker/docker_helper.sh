@@ -137,7 +137,8 @@ function build_aircloak_image {
 
   dockerignore_file=${3:-"$(dirname $dockerfile)/.dockerignore"}
   if [ -f $dockerignore_file ]; then
-    cp -rp $dockerignore_file .dockerignore
+    cat $dockerignore_file |
+      sed "s#\\\$CLOAK_CACHE#$(cloak_cache_folder)#" > .dockerignore
   else
     if [ -f .dockerignore ]; then rm .dockerignore; fi
   fi
@@ -161,7 +162,8 @@ function build_aircloak_image {
       sed "s/\$ERLANG_VERSION/$(erlang_version)/" |
       sed "s/\$ELIXIR_VERSION/$(elixir_version)/" |
       sed "s/\$RUST_VERSION/$(rust_version)/" |
-      sed "s/\$NODEJS_VERSION/$(nodejs_version)/" > "$temp_docker_file"
+      sed "s/\$NODEJS_VERSION/$(nodejs_version)/" |
+      sed "s#\\\$CLOAK_CACHE#$(cloak_cache_folder)#" > "$temp_docker_file"
     docker build $build_args
 
     # We'll also tag the image with the current git head sha, and remove all obsolete git_sha_* image tags, which point
@@ -480,6 +482,20 @@ function nodejs_version {
 
 function rust_version {
   cat "$(dirname ${BASH_SOURCE[0]})/../.tool-versions" | grep rust | sed s/'rust '//
+}
+
+function tools_versions_md5 {
+  cat "$(dirname ${BASH_SOURCE[0]})/../.tool-versions" | md5sum | awk '{print $1}'
+}
+
+function component_tmp_folder {
+  echo "$(pwd)/tmp/$1/$(tools_versions_md5)"
+}
+
+function cloak_cache_folder {
+  folder=$(component_tmp_folder cloak)
+  mkdir -p $folder
+  realpath --relative-to "." $folder
 }
 
 function published_images {

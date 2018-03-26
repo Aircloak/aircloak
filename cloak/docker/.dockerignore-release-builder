@@ -15,8 +15,7 @@
 !cloak/include
 !cloak/rel
 !cloak/priv/odbc/drivers
-!docker_cache/cloak
-!docker_cache/.cargo
+!$CLOAK_CACHE
 
 
 # Additional ignores
@@ -25,8 +24,8 @@
 # environment. Since the base image is needed only to build deps, we'll ignore
 # these folders. Otherwise, a release would be rebuilt even if there were no
 # changes in the source.
-docker_cache/cloak/_build/prod/consolidated
-docker_cache/cloak/_build/prod/lib/cloak
+$CLOAK_CACHE/_build/prod/consolidated
+$CLOAK_CACHE/_build/prod/lib/cloak
 
 # We don't want runtime config included. It needs to be provided through a
 # mounted volume

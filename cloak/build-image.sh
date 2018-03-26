@@ -17,7 +17,7 @@ cd $ROOT_DIR
 # To reduce the final image size, we build in a few steps:
 #
 # 1. We start the base Elixir image, and fetch and build the dependencies. The result
-#    is stored in the ../docker_cache/cloak folder which is mounted.
+#    is stored in the ../tmp folder which is mounted.
 # 2. Then we build the release image, where sources as well as deps
 #    are copied, and the OTP release is built.
 # 3. Finally, we briefly start the release image, fetch the release locally,
@@ -37,9 +37,9 @@ docker run --rm -i \
   -v $(pwd)/VERSION:/aircloak/VERSION \
   -v $(pwd)/common:/aircloak/common \
   -v $(pwd)/cloak:/aircloak/cloak \
-  -v $(pwd)/docker_cache/cloak/deps:/aircloak/cloak/deps \
-  -v $(pwd)/docker_cache/cloak/_build:/aircloak/cloak/_build \
-  -v $(pwd)/docker_cache/.cargo:/root/.cargo \
+  -v $(pwd)/$(cloak_cache_folder)/deps:/aircloak/cloak/deps \
+  -v $(pwd)/$(cloak_cache_folder)/_build:/aircloak/cloak/_build \
+  -v $(pwd)/$(cloak_cache_folder)/.cargo:/root/.cargo \
   aircloak/rust:$(rust_version) \
   /bin/bash -c ". ~/.asdf/asdf.sh && cd /aircloak/cloak && MIX_ENV=prod ./fetch_deps.sh --only prod && MIX_ENV=prod mix compile"
 
