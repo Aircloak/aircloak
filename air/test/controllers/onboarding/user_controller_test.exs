@@ -3,12 +3,13 @@ defmodule AirWeb.Onboarding.UserController.Test do
 
   alias Air.Schemas.{User, Group}
 
-  @valid_params %{user: %{
+  @valid_params %{
+    user: %{
       email: "admin@admin.com",
       name: "admin",
       password: "1234",
       password_confirmation: "1234",
-      master_password: "super_secret_master_password",
+      master_password: "super_secret_master_password"
     }
   }
 
@@ -26,7 +27,7 @@ defmodule AirWeb.Onboarding.UserController.Test do
     post(conn, "/onboarding/", @valid_params)
     [user | _] = users = Repo.all(User) |> Repo.preload([:groups])
     assert length(users) == 1
-    assert Enum.any?(user.groups, &(&1.admin))
+    assert Enum.any?(user.groups, & &1.admin)
   end
 
   test "re-uses admin group if it exists", %{conn: conn} do
@@ -37,14 +38,21 @@ defmodule AirWeb.Onboarding.UserController.Test do
   end
 
   test "redirects to users admin page", %{conn: conn} do
-    assert post(conn, onboarding_user_path(conn, :create), @valid_params) |> redirected_to() === "/admin/users"
+    assert post(conn, onboarding_user_path(conn, :create), @valid_params) |> redirected_to() ===
+             "/admin/users"
   end
 
   test "requires correct master password", %{conn: conn} do
-    invalid_params = %{@valid_params | user: %{@valid_params[:user] | master_password: "WRONG PASSWORD"}}
-    html = conn
-    |> post("/onboarding/", invalid_params)
-    |> response(200)
+    invalid_params = %{
+      @valid_params
+      | user: %{@valid_params[:user] | master_password: "WRONG PASSWORD"}
+    }
+
+    html =
+      conn
+      |> post("/onboarding/", invalid_params)
+      |> response(200)
+
     assert html =~ "The master password is incorrect"
   end
 
@@ -56,7 +64,7 @@ defmodule AirWeb.Onboarding.UserController.Test do
       email: "test@example.com",
       password: "1234",
       password_confirmation: "1234",
-      groups: [group.id],
+      groups: [group.id]
     })
 
     assert get(conn, "/onboarding/") |> redirected_to() === "/onboarding/already_setup"

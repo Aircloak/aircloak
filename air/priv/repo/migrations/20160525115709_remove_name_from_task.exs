@@ -3,13 +3,13 @@ defmodule Air.Repo.Migrations.RemoveNameFromTask do
 
   def up do
     alter table(:tasks) do
-      remove :name
+      remove(:name)
     end
   end
 
   def down do
     alter table(:tasks) do
-      add :name, :string
+      add(:name, :string)
     end
   end
 end

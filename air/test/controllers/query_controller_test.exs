@@ -13,19 +13,22 @@ defmodule AirWeb.QueryController.Test do
 
     user = create_user!(%{groups: [group.id]})
 
-    tables = [%{
-      id: "table",
-      columns: [
-        %{user_id: true, type: :string, name: "uid"},
-        %{user_id: false, type: :integer, name: "age"},
-      ]
-    }]
+    tables = [
+      %{
+        id: "table",
+        columns: [
+          %{user_id: true, type: :string, name: "uid"},
+          %{user_id: false, type: :integer, name: "age"}
+        ]
+      }
+    ]
 
     params = %{
       "name" => "data source name",
       "tables" => Poison.encode!(tables),
-      "groups" => [group.id],
+      "groups" => [group.id]
     }
+
     data_source = Air.Service.DataSource.create!(params)
     {:ok, data_source: data_source, user: user}
   end
@@ -36,7 +39,11 @@ defmodule AirWeb.QueryController.Test do
     query_data_params = %{
       query: %{statement: "Query code", data_source_id: context[:data_source].id}
     }
-    task = Task.async(fn -> login(context[:user]) |> post("/queries", query_data_params) |> response(200) end)
+
+    task =
+      Task.async(fn ->
+        login(context[:user]) |> post("/queries", query_data_params) |> response(200)
+      end)
 
     TestSocketHelper.respond_to_start_task_request!(socket, :ok)
 
@@ -47,10 +54,15 @@ defmodule AirWeb.QueryController.Test do
     socket = open_cloak_mock_socket(context.data_source)
 
     query_id = "d44aecdb-b87b-43bd-a35b-3fd4a5be0bcd"
+
     query_data_params = %{
       query: %{statement: "Query code", data_source_id: context[:data_source].id, id: query_id}
     }
-    task = Task.async(fn -> login(context[:user]) |> post("/queries", query_data_params) |> response(200) end)
+
+    task =
+      Task.async(fn ->
+        login(context[:user]) |> post("/queries", query_data_params) |> response(200)
+      end)
 
     TestSocketHelper.respond_to_start_task_request!(socket, :ok)
 
@@ -61,28 +73,41 @@ defmodule AirWeb.QueryController.Test do
     socket = open_cloak_mock_socket(context.data_source)
 
     query_id = "d44aecdb-b87b-43bd-a35b-3fd4a5be0bcd"
+
     query_data_params = %{
       query: %{statement: "Query code", data_source_id: context[:data_source].id, id: query_id}
     }
-    task = Task.async(fn -> login(context[:user]) |> post("/queries", query_data_params) |> response(200) end)
+
+    task =
+      Task.async(fn ->
+        login(context[:user]) |> post("/queries", query_data_params) |> response(200)
+      end)
 
     TestSocketHelper.respond_to_start_task_request!(socket, :ok)
 
     assert %{"success" => true, "query_id" => ^query_id} = Poison.decode!(Task.await(task))
 
-    rerun_task = Task.async(fn -> login(context[:user]) |> post("/queries", query_data_params) |> response(200) end)
-    assert %{"success" => false, "reason" => "unable_to_create_query"} = Poison.decode!(Task.await(rerun_task))
+    rerun_task =
+      Task.async(fn ->
+        login(context[:user]) |> post("/queries", query_data_params) |> response(200)
+      end)
+
+    assert %{"success" => false, "reason" => "unable_to_create_query"} =
+             Poison.decode!(Task.await(rerun_task))
   end
 
   test "can cancel a query", context do
     socket = open_cloak_mock_socket(context.data_source)
     query = create_query!(context.user, %{data_source_id: context.data_source.id})
 
-    Task.start_link(fn -> login(context[:user]) |> post("/queries/#{query.id}/cancel") |> response(200) end)
+    Task.start_link(fn ->
+      login(context[:user]) |> post("/queries/#{query.id}/cancel") |> response(200)
+    end)
 
     query_id = query.id
+
     assert {:ok, {"main", "air_call", %{event: "stop_query", payload: ^query_id}}} =
-      TestSocket.await_message(socket)
+             TestSocket.await_message(socket)
   end
 
   test "returns unauthorized when not authorized to query data source", context do
@@ -91,6 +116,7 @@ defmodule AirWeb.QueryController.Test do
     query_data_params = %{
       query: %{statement: "Query code", data_source_id: context[:data_source].id}
     }
+
     assert login(user) |> post("/queries", query_data_params) |> response(401)
   end
 
@@ -98,14 +124,17 @@ defmodule AirWeb.QueryController.Test do
     query_data_params = %{
       query: %{statement: "Query code", data_source_id: context[:data_source].id}
     }
+
     login(context[:user]) |> post("/queries", query_data_params) |> response(503)
   end
 
   test "fetching desired chunk", context do
-    query = create_query!(
-      context.user,
-      %{statement: "text of the query", query_state: :started, data_source_id: context.data_source.id}
-    )
+    query =
+      create_query!(context.user, %{
+        statement: "text of the query",
+        query_state: :started,
+        data_source_id: context.data_source.id
+      })
 
     send_query_result(
       query.id,
@@ -119,10 +148,12 @@ defmodule AirWeb.QueryController.Test do
   end
 
   test "fetching all chunks", context do
-    query = create_query!(
-      context.user,
-      %{statement: "text of the query", query_state: :started, data_source_id: context.data_source.id}
-    )
+    query =
+      create_query!(context.user, %{
+        statement: "text of the query",
+        query_state: :started,
+        data_source_id: context.data_source.id
+      })
 
     send_query_result(
       query.id,
@@ -139,8 +170,7 @@ defmodule AirWeb.QueryController.Test do
       assert get_query_export(context, %{statement: statement}) =~ statement
     end
 
-    test "contains the query results", context, do:
-      assert get_query_export(context) =~ " | 1 "
+    test("contains the query results", context, do: assert(get_query_export(context) =~ " | 1 "))
 
     test "contains the available views", context do
       view = create_view!(context.user, context.data_source)
@@ -158,13 +188,14 @@ defmodule AirWeb.QueryController.Test do
     default_params = %{
       statement: "SELECT count(*) FROM table",
       query_state: :started,
-      data_source_id: context.data_source.id,
+      data_source_id: context.data_source.id
     }
 
-    query = create_query!(
-      context.user,
-      Map.merge(default_params, params)
-    )
+    query =
+      create_query!(
+        context.user,
+        Map.merge(default_params, params)
+      )
 
     send_query_result(
       query.id,
@@ -177,14 +208,19 @@ defmodule AirWeb.QueryController.Test do
 
   defp open_cloak_mock_socket(data_source) do
     socket = TestSocketHelper.connect!(%{cloak_name: "cloak_1"})
-    TestSocketHelper.join!(socket, "main", %{data_sources: [%{name: data_source.name, tables: []}]})
+
+    TestSocketHelper.join!(socket, "main", %{
+      data_sources: [%{name: data_source.name, tables: []}]
+    })
+
     socket
   end
 
-  defp chunk_values(context, query_id, chunk), do:
-    login(context.user)
-    |> get(query_path(context.conn, :buckets, query_id, chunk: chunk))
-    |> response(200)
-    |> Poison.decode!()
-    |> Enum.map(&(&1 |> Map.fetch!("row") |> hd()))
+  defp chunk_values(context, query_id, chunk),
+    do:
+      login(context.user)
+      |> get(query_path(context.conn, :buckets, query_id, chunk: chunk))
+      |> response(200)
+      |> Poison.decode!()
+      |> Enum.map(&(&1 |> Map.fetch!("row") |> hd()))
 end

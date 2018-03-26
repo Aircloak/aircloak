@@ -13,30 +13,35 @@ defmodule Air.Schemas.User do
   @type permissions :: %{role_key => [operation] | :all}
 
   schema "users" do
-    field :email, :string
-    field :hashed_password, :string
-    field :name, :string
+    field(:email, :string)
+    field(:hashed_password, :string)
+    field(:name, :string)
 
-    has_many :queries, Air.Schemas.Query
-    many_to_many :groups, Group,
+    has_many(:queries, Air.Schemas.Query)
+
+    many_to_many(
+      :groups,
+      Group,
       join_through: "groups_users",
       on_delete: :delete_all,
       on_replace: :delete
-    has_many :views, Air.Schemas.View
+    )
+
+    has_many(:views, Air.Schemas.View)
 
     timestamps()
 
     # number format overrides
-    field :decimal_sep, :string
-    field :thousand_sep, :string
-    field :decimal_digits, :integer
+    field(:decimal_sep, :string)
+    field(:thousand_sep, :string)
+    field(:decimal_digits, :integer)
 
-    field :debug_mode_enabled, :boolean
+    field(:debug_mode_enabled, :boolean)
 
     # These virtual fields are used for validation,
     # but never persisted to the database
-    field :password, :string, virtual: true
-    field :password_confirmation, :string, virtual: true
+    field(:password, :string, virtual: true)
+    field(:password_confirmation, :string, virtual: true)
   end
 
   @roles %{
@@ -49,15 +54,14 @@ defmodule Air.Schemas.User do
     admin: [:user, :anonymous]
   }
 
-
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Returns all user's roles."
   @spec roles(nil | t) :: [role_key]
-  def roles(nil),
-    do: [:anonymous]
+  def roles(nil), do: [:anonymous]
+
   def roles(user) do
     if admin?(user) do
       expand_role(:admin)
@@ -72,7 +76,7 @@ defmodule Air.Schemas.User do
   """
   @spec admin?(nil | t) :: boolean
   def admin?(nil), do: false
-  def admin?(user), do: Enum.any?(user.groups, &(&1.admin))
+  def admin?(user), do: Enum.any?(user.groups, & &1.admin)
 
   @doc "Verifies whether the provided user has permission for the given operation"
   @spec permitted?(nil | t, operation, permissions) :: boolean
@@ -80,19 +84,16 @@ defmodule Air.Schemas.User do
     user
     |> roles()
     |> Stream.map(&Map.get(permissions, &1, []))
-    |> Enum.any?(
-      fn
-        :all -> true
-        allowed -> Enum.member?(allowed, operation)
-      end
-    )
+    |> Enum.any?(fn
+      :all -> true
+      allowed -> Enum.member?(allowed, operation)
+    end)
   end
 
   @doc "Validates the user password."
-  @spec validate_password(nil | t, String.t) :: boolean
-  def validate_password(nil, _password), do: Hash.dummy_checkpw
+  @spec validate_password(nil | t, String.t()) :: boolean
+  def validate_password(nil, _password), do: Hash.dummy_checkpw()
   def validate_password(user, password), do: Hash.checkpw(password, user.hashed_password)
-
 
   # -------------------------------------------------------------------
   # Internal functions

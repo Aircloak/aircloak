@@ -4,7 +4,6 @@ defmodule AirWeb.Socket.Frontend.DataSourceChannel do
 
   alias Air.Service.DataSource
 
-
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
@@ -13,12 +12,13 @@ defmodule AirWeb.Socket.Frontend.DataSourceChannel do
   @spec push_updates() :: :ok
   def push_updates() do
     for data_source <- DataSource.all() do
-      AirWeb.Endpoint.broadcast!("data_source:#{data_source.name}", "status", %{status: DataSource.status(data_source)})
+      AirWeb.Endpoint.broadcast!("data_source:#{data_source.name}", "status", %{
+        status: DataSource.status(data_source)
+      })
     end
 
     :ok
   end
-
 
   # -------------------------------------------------------------------
   # Phoenix.Channel callback functions
@@ -27,8 +27,11 @@ defmodule AirWeb.Socket.Frontend.DataSourceChannel do
   @doc false
   def join("data_source:" <> name, _, socket) do
     case DataSource.fetch_as_user({:name, name}, socket.assigns.user) do
-      {:ok, _} -> {:ok, socket}
-      {:error, :unauthorized} -> {:error, %{success: false, description: "Unauthorized to access channel"}}
+      {:ok, _} ->
+        {:ok, socket}
+
+      {:error, :unauthorized} ->
+        {:error, %{success: false, description: "Unauthorized to access channel"}}
     end
   end
 end

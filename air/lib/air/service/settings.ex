@@ -6,28 +6,28 @@ defmodule Air.Service.Settings do
   @required_fields ~w(audit_log_enabled decimal_sep decimal_digits)a
   @optional_fields ~w(query_retention_days thousand_sep)a
 
-
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Returns the current version of the settings."
-  @spec read() :: Air.Settings.t
+  @spec read() :: Air.Settings.t()
   def read(), do: parse(latest_settings())
 
   @doc "Saves the specified settings."
-  @spec save(%{optional(atom) => any()}) :: {:ok, Air.Schemas.Settings.t} | {:error, Ecto.Changeset.t}
+  @spec save(%{optional(atom) => any()}) ::
+          {:ok, Air.Schemas.Settings.t()} | {:error, Ecto.Changeset.t()}
   def save(params) do
     changeset = latest_settings() |> changeset(params)
+
     if changeset.data.id,
       do: Air.Repo.update(changeset),
       else: Air.Repo.insert(changeset)
   end
 
   @doc "Returns the changeset for the latest settings."
-  @spec latest_changeset() :: Ecto.Changeset.t
+  @spec latest_changeset() :: Ecto.Changeset.t()
   def latest_changeset(), do: changeset(latest_settings())
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -39,7 +39,7 @@ defmodule Air.Service.Settings do
       audit_log_enabled: schema.audit_log_enabled,
       decimal_sep: schema.decimal_sep,
       thousand_sep: schema.thousand_sep || "",
-      decimal_digits: schema.decimal_digits,
+      decimal_digits: schema.decimal_digits
     }
   end
 
@@ -61,12 +61,12 @@ defmodule Air.Service.Settings do
     |> validate_number(:decimal_digits, greater_than_or_equal_to: 1, less_than_or_equal_to: 9)
   end
 
-  defp default(), do:
-    %Air.Schemas.Settings{
+  defp default(),
+    do: %Air.Schemas.Settings{
       query_retention_days: nil,
       audit_log_enabled: true,
       decimal_sep: ".",
       thousand_sep: " ",
-      decimal_digits: 3,
+      decimal_digits: 3
     }
 end

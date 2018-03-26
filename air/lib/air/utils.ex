@@ -11,9 +11,11 @@ defmodule Air.Utils do
   for description).
   """
   @spec update_app_env(
-    Application.app, Application.key, [timeout: timeout, persistent: boolean],
-    ((Application.value) -> Application.value)
-  ) :: :ok
+          Application.app(),
+          Application.key(),
+          [timeout: timeout, persistent: boolean],
+          (Application.value() -> Application.value())
+        ) :: :ok
   def update_app_env(app, key, put_env_opts \\ [], updater_fn),
     do: Application.put_env(app, key, updater_fn.(Application.get_env(app, key)), put_env_opts)
 end

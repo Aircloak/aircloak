@@ -12,7 +12,9 @@ defmodule AirWeb.LayoutView do
 
   defp help_links(conn) do
     case AirWeb.Plug.HelpPages.help_pages(conn) do
-      [] -> ""
+      [] ->
+        ""
+
       pages ->
         content_tag(:div, class: "container-fluid text-right help-links") do
           [
@@ -25,7 +27,7 @@ defmodule AirWeb.LayoutView do
   end
 
   defp help_links(conn, pages) do
-    Stream.map(pages, fn(page) ->
+    Stream.map(pages, fn page ->
       link(
         Air.HelpGuideView.page_title(page),
         to: help_guide_path(conn, :article, page),
@@ -33,11 +35,9 @@ defmodule AirWeb.LayoutView do
         rel: "help"
       )
     end)
-    |> Enum.reduce([],
-          fn
-            (link, []) -> link
-            (link, acc) -> [acc, ", ", link]
-          end
-        )
+    |> Enum.reduce([], fn
+      link, [] -> link
+      link, acc -> [acc, ", ", link]
+    end)
   end
 end

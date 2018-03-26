@@ -3,10 +3,9 @@ defmodule Air.Repo.Migrations.CreateOrganisation do
 
   def change do
     create table(:organisations) do
-      add :name, :string
+      add(:name, :string)
 
       timestamps()
     end
-
   end
 end

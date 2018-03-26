@@ -18,10 +18,11 @@ defmodule Air.Service.CentralTest do
   test "retrieving calls" do
     {:ok, _} = Central.store_pending_call("event1", %{some: "payload"})
     {:ok, _} = Central.store_pending_call("event2", %{another: "payload"})
+
     assert ["event1", "event2"] ==
-      Central.pending_calls()
-      |> Enum.map(&(&1.event))
-      |> Enum.sort()
+             Central.pending_calls()
+             |> Enum.map(& &1.event)
+             |> Enum.sort()
   end
 
   test "exporting pending calls" do

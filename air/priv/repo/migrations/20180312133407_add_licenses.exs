@@ -3,7 +3,7 @@ defmodule Air.Repo.Migrations.AddLicenses do
 
   def change do
     create table(:licenses) do
-      add :text, :text
+      add(:text, :text)
 
       timestamps()
     end

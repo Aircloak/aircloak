@@ -3,7 +3,7 @@ defmodule Air.Repo.Migrations.AddResultsToQueries do
 
   def change do
     alter table(:queries) do
-      add :result, :text
+      add(:result, :text)
     end
   end
 end

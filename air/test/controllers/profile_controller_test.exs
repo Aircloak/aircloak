@@ -10,10 +10,14 @@ defmodule Air.ProfileController.Test do
 
     changed_email = "foo@bar.baz"
 
-    conn = login(user)
-    |> put("/profile", user: %{
-      email: changed_email
-    })
+    conn =
+      login(user)
+      |> put(
+        "/profile",
+        user: %{
+          email: changed_email
+        }
+      )
 
     assert redirected_to(conn) == "/profile/edit"
     assert Repo.get!(User, user.id).email == changed_email
@@ -24,9 +28,12 @@ defmodule Air.ProfileController.Test do
     group = TestRepoHelper.create_group!()
 
     login(user)
-    |> put("/profile", user: %{
-      groups: [group.id]
-    })
+    |> put(
+      "/profile",
+      user: %{
+        groups: [group.id]
+      }
+    )
 
     user = User |> Repo.get!(user.id) |> Repo.preload([:groups])
     assert user.groups == []
@@ -37,11 +44,14 @@ defmodule Air.ProfileController.Test do
     old_password_hash = user.hashed_password
 
     login(user)
-    |> put("/profile", user: %{
-      old_password: "incorrect",
-      password: "new password",
-      password_confirmation: "new password"
-    })
+    |> put(
+      "/profile",
+      user: %{
+        old_password: "incorrect",
+        password: "new password",
+        password_confirmation: "new password"
+      }
+    )
 
     assert Repo.get!(User, user.id).hashed_password == old_password_hash
   end
@@ -51,11 +61,14 @@ defmodule Air.ProfileController.Test do
     old_password_hash = user.hashed_password
 
     login(user)
-    |> put("/profile", user: %{
-      old_password: "1234",
-      password: "new password",
-      password_confirmation: "new password"
-    })
+    |> put(
+      "/profile",
+      user: %{
+        old_password: "1234",
+        password: "new password",
+        password_confirmation: "new password"
+      }
+    )
 
     assert Repo.get!(User, user.id).hashed_password != old_password_hash
   end

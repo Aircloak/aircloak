@@ -31,7 +31,9 @@ defmodule AirWeb.ApiTokenControllerTest do
     other_user = create_user!()
     other_user_token = create_token_entity!(other_user)
 
-    not_found_html = login(user) |> delete(api_token_path(conn, :delete, other_user_token)) |> response(404)
+    not_found_html =
+      login(user) |> delete(api_token_path(conn, :delete, other_user_token)) |> response(404)
+
     assert not_found_html =~ "Not found"
   end
 
@@ -40,7 +42,9 @@ defmodule AirWeb.ApiTokenControllerTest do
     user = create_user!()
     token = create_token_entity!(user)
 
-    assert "/api_tokens" == login(user) |> delete(api_token_path(conn, :delete, token)) |> redirected_to()
+    assert "/api_tokens" ==
+             login(user) |> delete(api_token_path(conn, :delete, token)) |> redirected_to()
+
     refute Repo.get(ApiToken, token.id)
   end
 end

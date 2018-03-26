@@ -3,13 +3,13 @@ defmodule Air.Repo.Migrations.RemovePermanentFromTasks do
 
   def up do
     alter table(:tasks) do
-      remove :permanent
+      remove(:permanent)
     end
   end
 
   def down do
     alter table(:tasks) do
-      add :permanent, :boolean, default: false
+      add(:permanent, :boolean, default: false)
     end
   end
 end

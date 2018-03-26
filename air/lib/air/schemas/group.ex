@@ -13,17 +13,24 @@ defmodule Air.Schemas.Group do
   @type t :: %__MODULE__{}
 
   schema "groups" do
-    field :name, :string
-    field :admin, :boolean
+    field(:name, :string)
+    field(:admin, :boolean)
 
-    many_to_many :users, User,
+    many_to_many(
+      :users,
+      User,
       join_through: "groups_users",
       on_delete: :delete_all,
       on_replace: :delete
-    many_to_many :data_sources, DataSource,
+    )
+
+    many_to_many(
+      :data_sources,
+      DataSource,
       join_through: "data_sources_groups",
       on_delete: :delete_all,
       on_replace: :delete
+    )
 
     timestamps()
   end

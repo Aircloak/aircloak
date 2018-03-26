@@ -14,13 +14,20 @@ defmodule AirWeb.Socket.Frontend.DataSourceChannel.Test do
   describe "joining a data source channel" do
     setup [:with_user, :with_socket, :with_data_source]
 
-    test "allows joining when user can see data source", %{user: user, socket: socket, data_source: data_source} do
+    test "allows joining when user can see data source", %{
+      user: user,
+      socket: socket,
+      data_source: data_source
+    } do
       assign_data_source_to_user(data_source, user)
-      assert {:ok, _, _} = subscribe_and_join(socket, DataSourceChannel, "data_source:#{data_source.name}")
+
+      assert {:ok, _, _} =
+               subscribe_and_join(socket, DataSourceChannel, "data_source:#{data_source.name}")
     end
 
     test "can't join when user can't see data source", %{socket: socket, data_source: data_source} do
-      assert {:error, _} = subscribe_and_join(socket, DataSourceChannel, "data_source:#{data_source.id}")
+      assert {:error, _} =
+               subscribe_and_join(socket, DataSourceChannel, "data_source:#{data_source.id}")
     end
   end
 
@@ -30,14 +37,14 @@ defmodule AirWeb.Socket.Frontend.DataSourceChannel.Test do
     test "pushes an offline message for offline data sources" do
       DataSourceChannel.push_updates()
 
-      assert_push "status", %{status: :offline}
+      assert_push("status", %{status: :offline})
     end
 
     test "pushes an online message for online data sources", %{data_source: data_source} do
       register_data_source!(data_source)
       DataSourceChannel.push_updates()
 
-      assert_push "status", %{status: :online}
+      assert_push("status", %{status: :online})
     end
   end
 
@@ -49,10 +56,13 @@ defmodule AirWeb.Socket.Frontend.DataSourceChannel.Test do
 
   defp joined_channel(%{user: user, socket: socket, data_source: data_source}) do
     assign_data_source_to_user(data_source, user)
-    {:ok, _, socket} = subscribe_and_join(socket, DataSourceChannel, "data_source:#{data_source.name}")
+
+    {:ok, _, socket} =
+      subscribe_and_join(socket, DataSourceChannel, "data_source:#{data_source.name}")
+
     {:ok, socket: socket}
   end
 
-  defp assign_data_source_to_user(data_source, user), do:
-    create_group!(%{users: [user.id], data_sources: [data_source.id]})
+  defp assign_data_source_to_user(data_source, user),
+    do: create_group!(%{users: [user.id], data_sources: [data_source.id]})
 end

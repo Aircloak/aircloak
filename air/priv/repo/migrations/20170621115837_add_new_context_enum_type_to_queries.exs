@@ -11,7 +11,7 @@ defmodule Air.Repo.Migrations.AddNewContextEnumTypeToQueries do
   @disable_ddl_transaction true
 
   def up do
-    Ecto.Migration.execute "ALTER TYPE query_context ADD VALUE 'api'"
+    Ecto.Migration.execute("ALTER TYPE query_context ADD VALUE 'api'")
   end
 
   def down do

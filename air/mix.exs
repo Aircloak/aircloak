@@ -6,25 +6,39 @@ defmodule Air.Mixfile do
       app: :air,
       version: File.read!("../VERSION") |> String.trim(),
       elixir: "~> 1.3",
-      elixirc_paths: elixirc_paths(Mix.env),
+      elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [
-        :phoenix, :gettext, :yecc, :leex, :erlang, :elixir, :user_docs, :app
+        :phoenix,
+        :gettext,
+        :yecc,
+        :leex,
+        :erlang,
+        :elixir,
+        :user_docs,
+        :app
       ],
-      build_embedded: Mix.env == :prod,
-      start_permanent: Mix.env == :prod,
-      aliases: aliases(Mix.env),
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
+      aliases: aliases(Mix.env()),
       deps: deps(),
-      elixirc_options: elixirc_options(Mix.env),
-      erlc_paths: erlc_paths(Mix.env),
-      erlc_options: erlc_options(Mix.env),
+      elixirc_options: elixirc_options(Mix.env()),
+      erlc_paths: erlc_paths(Mix.env()),
+      erlc_options: erlc_options(Mix.env()),
       eunit_options: [
         :no_tty,
         {:report, {:eunit_progress, [:colored]}}
       ],
       preferred_cli_env: [
-        eunit: :test, "coveralls.html": :test, dialyze: :dev, docs: :dev, release: :prod,
-        "phoenix.digest": :prod, site_release: :prod, "test.standard": :test, dialyze_retry: :dev,
-        version: :prod,
+        eunit: :test,
+        "coveralls.html": :test,
+        dialyze: :dev,
+        docs: :dev,
+        release: :prod,
+        "phoenix.digest": :prod,
+        site_release: :prod,
+        "test.standard": :test,
+        dialyze_retry: :dev,
+        version: :prod
       ],
       test_coverage: [tool: ExCoveralls],
       docs: [
@@ -39,13 +53,13 @@ defmodule Air.Mixfile do
   def application do
     [
       mod: {Air, []},
-      extra_applications: extra_applications(Mix.env)
+      extra_applications: extra_applications(Mix.env())
     ]
   end
 
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_),     do: ["lib"]
+  defp elixirc_paths(_), do: ["lib"]
 
   # Specifies your project dependencies.
   #
@@ -63,8 +77,11 @@ defmodule Air.Mixfile do
       # NOTE: Since this is a non-hex dependency it needed to be manually classified in the BOM.
       #       When reverting to a hex dependency, please clean up the classification in
       #       lib/bom/gatherer/elixir.ex
-      {:earmark, github: "pragdave/earmark", ref: "2bc90510ddc6245ff6afcaf6cfb526e3a9fadf89",
-        runtime: false, override: true},
+      {:earmark,
+       github: "pragdave/earmark",
+       ref: "2bc90510ddc6245ff6afcaf6cfb526e3a9fadf89",
+       runtime: false,
+       override: true},
       {:postgrex, "~> 0.13.0", override: true},
       {:phoenix, "~> 1.3.0"},
       {:phoenix_pubsub, "~> 1.0"},
@@ -89,7 +106,7 @@ defmodule Air.Mixfile do
       {:remote_ip, "~> 0.1.0"},
       {:ecto_enum, "~> 1.0.0"},
       {:jiffy, "~> 0.14.1"},
-      {:bom, path: "../bom", runtime: false, only: :dev},
+      {:bom, path: "../bom", runtime: false, only: :dev}
     ]
   end
 
@@ -101,21 +118,21 @@ defmodule Air.Mixfile do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases(env) when env in [:dev, :test] do
     [
-      "rollback": ["app.start", "ecto.rollback"],
-      "migrate": ["app.start", "ecto.migrate"],
-      "seed": ["app.start", "run priv/repo/seeds.exs"],
+      rollback: ["app.start", "ecto.rollback"],
+      migrate: ["app.start", "ecto.migrate"],
+      seed: ["app.start", "run priv/repo/seeds.exs"],
       "test.standard": ["test", "eunit"],
-      "lint": ["credo --strict"]
+      lint: ["credo --strict"]
     ]
   end
+
   defp aliases(:prod), do: []
 
   defp extra_applications(:test), do: [:odbc | extra_common_applications()]
   defp extra_applications(:dev), do: extra_common_applications() ++ dialyzer_required_deps()
   defp extra_applications(:prod), do: extra_common_applications()
 
-  defp extra_common_applications(), do:
-    [:logger, :inets, :crontab]
+  defp extra_common_applications(), do: [:logger, :inets, :crontab]
 
   # These are indirect dependencies (deps of deps) which are not automatically included in the generated PLT.
   # By adding them explicitly to the applications list, we make sure that they are included in the PLT.

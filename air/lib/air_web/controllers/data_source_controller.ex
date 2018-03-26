@@ -9,7 +9,6 @@ defmodule AirWeb.DataSourceController do
   alias Air.Service.DataSource
   alias Plug.CSRFProtection
 
-
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
@@ -21,14 +20,16 @@ defmodule AirWeb.DataSourceController do
     }
   end
 
-
   # -------------------------------------------------------------------
   # Actions
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
     user_data_sources = DataSource.for_user(conn.assigns.current_user)
-    render(conn, "index.html",
+
+    render(
+      conn,
+      "index.html",
       user_data_sources: user_data_sources,
       data_source_count: DataSource.count(),
       conn: conn
@@ -37,10 +38,11 @@ defmodule AirWeb.DataSourceController do
 
   def show(conn, %{"id" => name}) do
     with {:ok, data_source} <- DataSource.fetch_as_user({:name, name}, conn.assigns.current_user),
-         {:ok, last_query} <- DataSource.last_query({:name, name}, conn.assigns.current_user, :http)
-    do
-      pending_queries = Air.Service.Query.currently_running(conn.assigns.current_user, data_source, :http)
-      |> Enum.map(&Air.Schemas.Query.for_display/1)
+         {:ok, last_query} <-
+           DataSource.last_query({:name, name}, conn.assigns.current_user, :http) do
+      pending_queries =
+        Air.Service.Query.currently_running(conn.assigns.current_user, data_source, :http)
+        |> Enum.map(&Air.Schemas.Query.for_display/1)
 
       conn
       |> put_layout("raw.html")
@@ -50,7 +52,7 @@ defmodule AirWeb.DataSourceController do
         pending_queries: pending_queries,
         guardian_token: Guardian.Plug.current_token(conn),
         csrf_token: CSRFProtection.get_csrf_token(),
-        last_query: (if last_query != nil, do: Air.Schemas.Query.for_display(last_query)),
+        last_query: if(last_query != nil, do: Air.Schemas.Query.for_display(last_query)),
         session_id: Ecto.UUID.generate(),
         number_format: Air.Service.User.number_format_settings(conn.assigns.current_user),
         debug_mode_enabled: conn.assigns.current_user.debug_mode_enabled

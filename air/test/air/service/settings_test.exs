@@ -11,13 +11,13 @@ defmodule Air.Service.Settings.Test do
 
   test "reading default settings" do
     assert Air.Service.Settings.read() ==
-      %Air.Settings{
-        query_retention_days: :unlimited,
-        audit_log_enabled: true,
-        decimal_digits: 3,
-        decimal_sep: ".",
-        thousand_sep: " "
-      }
+             %Air.Settings{
+               query_retention_days: :unlimited,
+               audit_log_enabled: true,
+               decimal_digits: 3,
+               decimal_sep: ".",
+               thousand_sep: " "
+             }
   end
 
   describe "update settings" do

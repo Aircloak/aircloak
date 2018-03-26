@@ -18,7 +18,11 @@ defmodule AirWeb.API.QueryController.Test do
       query_data_params = %{
         query: %{statement: "Query code", data_source_name: context.data_source.name}
       }
-      task = Task.async(fn -> api_conn(context.token) |> post("/api/queries", query_data_params) |> response(200) end)
+
+      task =
+        Task.async(fn ->
+          api_conn(context.token) |> post("/api/queries", query_data_params) |> response(200)
+        end)
 
       TestSocketHelper.respond_to_start_task_request!(context.socket, :ok)
 
@@ -39,17 +43,21 @@ defmodule AirWeb.API.QueryController.Test do
   test "showing the result of the query" do
     user = create_user!()
     token = create_token!(user)
-    query = create_query!(
-      user,
-      %{statement: "text of the query", query_state: :started, data_source_id: create_data_source!().id}
-    )
+
+    query =
+      create_query!(user, %{
+        statement: "text of the query",
+        query_state: :started,
+        data_source_id: create_data_source!().id
+      })
+
     send_query_result(
       query.id,
       %{
         columns: ["col1", "col2"],
         info: ["some info"],
         features: %{selected_types: ["some types"]},
-        execution_time: 123,
+        execution_time: 123
       },
       [%{occurrences: 10, row: [1, 1]}]
     )
@@ -57,7 +65,10 @@ defmodule AirWeb.API.QueryController.Test do
     result = api_conn(token) |> get("/api/queries/#{query.id}") |> response(200) |> JSON.decode!()
     assert result |> Map.fetch!("query") |> Map.fetch!("columns") == ["col1", "col2"]
     assert result |> Map.fetch!("query") |> Map.fetch!("row_count") == 10
-    assert result |> Map.fetch!("query") |> Map.fetch!("rows") == [%{"occurrences" => 10, "row" => [1, 1]}]
+
+    assert result |> Map.fetch!("query") |> Map.fetch!("rows") == [
+             %{"occurrences" => 10, "row" => [1, 1]}
+           ]
   end
 
   test "show a query of another user fails" do
@@ -72,8 +83,7 @@ defmodule AirWeb.API.QueryController.Test do
 
   defp with_group(_context), do: {:ok, group: create_group!()}
 
-  defp with_user(%{group: group}), do:
-    {:ok, user: create_user!(%{groups: [group.id]})}
+  defp with_user(%{group: group}), do: {:ok, user: create_user!(%{groups: [group.id]})}
 
   defp with_token(%{user: user}), do: %{token: create_token!(user)}
 

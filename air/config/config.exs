@@ -9,7 +9,7 @@ use Mix.Config
 # adds to the noise.
 config :sasl, :sasl_error_logger, false
 
-config :aircloak_common, :env, Mix.env
+config :aircloak_common, :env, Mix.env()
 
 # Configures the endpoint
 config :air, AirWeb.Endpoint,
@@ -17,8 +17,7 @@ config :air, AirWeb.Endpoint,
   http: [port: 8080],
   root: Path.dirname(__DIR__),
   render_errors: [accepts: ~w(html json)],
-  pubsub: [name: Air.PubSub,
-           adapter: Phoenix.PubSub.PG2]
+  pubsub: [name: Air.PubSub, adapter: Phoenix.PubSub.PG2]
 
 config :air, AirWeb.MonitoringEndpoint,
   check_origin: false,
@@ -44,12 +43,11 @@ config :guardian, Guardian,
   allowed_algos: ["HS512"],
   verify_module: Guardian.JWT,
   issuer: "Aircloak Air",
-  ttl: { 30, :days },
+  ttl: {30, :days},
   verify_issuer: true,
   serializer: Air.GuardianSerializer
 
-config :scrivener_html,
-  routes_helper: AirWeb.Router.Helpers
+config :scrivener_html, routes_helper: AirWeb.Router.Helpers
 
 config :air, Air.Repo,
   adapter: Ecto.Adapters.Postgres,
@@ -69,7 +67,7 @@ config :air, Air.PsqlServer,
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
-import_config "#{Mix.env}.exs"
+import_config "#{Mix.env()}.exs"
 
 config :air, :central,
   serializer: Phoenix.Channels.GenSocketClient.Serializer.GzipJson,
@@ -79,6 +77,6 @@ config :air, :central_queue,
   retry_delay: :timer.minutes(1),
   max_size: 1000
 
-if File.exists?("config/#{Mix.env}.local.exs") do
-  import_config "#{Mix.env}.local.exs"
+if File.exists?("config/#{Mix.env()}.local.exs") do
+  import_config "#{Mix.env()}.local.exs"
 end

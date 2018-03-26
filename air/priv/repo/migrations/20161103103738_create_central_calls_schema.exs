@@ -3,8 +3,8 @@ defmodule Air.Repo.Migrations.CreateCentralCallsSchema do
 
   def change do
     create table(:central_calls) do
-      add :event, :string
-      add :payload, :map, default: fragment("'{}'::jsonb")
+      add(:event, :string)
+      add(:payload, :map, default: fragment("'{}'::jsonb"))
 
       timestamps()
     end

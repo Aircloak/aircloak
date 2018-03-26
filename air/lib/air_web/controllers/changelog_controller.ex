@@ -3,7 +3,6 @@ defmodule AirWeb.ChangelogController do
 
   use Air.Web, :controller
 
-
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
@@ -11,10 +10,9 @@ defmodule AirWeb.ChangelogController do
   def permissions do
     %{
       user: :all,
-      admin: :all,
+      admin: :all
     }
   end
-
 
   # -------------------------------------------------------------------
   # Actions

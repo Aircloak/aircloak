@@ -17,7 +17,7 @@ defmodule AirWeb.Admin.UserController.Test do
 
   test "listing users" do
     admin = TestRepoHelper.create_admin_user!()
-    users = Enum.map(1..4, fn(_) -> TestRepoHelper.create_user!() end)
+    users = Enum.map(1..4, fn _ -> TestRepoHelper.create_user!() end)
 
     users_html = login(admin) |> get("/admin/users") |> response(200)
     Enum.each([admin | users], &assert(users_html =~ &1.email))
@@ -35,13 +35,17 @@ defmodule AirWeb.Admin.UserController.Test do
 
     new_user_email = "foo@bar.baz"
 
-    conn = login(admin)
-    |> post("/admin/users", user: %{
-      email: new_user_email,
-      name: "foobarbaz",
-      password: "1234",
-      password_confirmation: "1234",
-    })
+    conn =
+      login(admin)
+      |> post(
+        "/admin/users",
+        user: %{
+          email: new_user_email,
+          name: "foobarbaz",
+          password: "1234",
+          password_confirmation: "1234"
+        }
+      )
 
     assert "/admin/users" == redirected_to(conn)
     users_html = login(admin) |> get("/admin/users") |> response(200)
@@ -53,11 +57,15 @@ defmodule AirWeb.Admin.UserController.Test do
 
     changed_email = "foo@bar.baz"
 
-    conn = login(admin)
-    |> put("/admin/users/#{admin.id}", user: %{
-      email: changed_email,
-      name: admin.name
-    })
+    conn =
+      login(admin)
+      |> put(
+        "/admin/users/#{admin.id}",
+        user: %{
+          email: changed_email,
+          name: admin.name
+        }
+      )
 
     assert "/admin/users" == redirected_to(conn)
     users_html = login(%{email: changed_email}) |> get("/admin/users") |> response(200)
@@ -71,8 +79,10 @@ defmodule AirWeb.Admin.UserController.Test do
     conn = login(admin) |> put("/admin/users/#{admin.id}", user: %{groups: []})
 
     assert "/admin/users" == redirected_to(conn)
+
     assert get_flash(conn)["error"] ==
-      "The given action cannot be performed, because it would remove the only administrator."
+             "The given action cannot be performed, because it would remove the only administrator."
+
     assert Air.Service.User.admin_user_exists?()
   end
 
@@ -90,8 +100,10 @@ defmodule AirWeb.Admin.UserController.Test do
     conn = login(admin) |> delete("/admin/users/#{admin.id}")
 
     assert redirected_to(conn) == "/admin/users"
+
     assert get_flash(conn)["error"] ==
-      "The given action cannot be performed, because it would remove the only administrator."
+             "The given action cannot be performed, because it would remove the only administrator."
+
     assert Air.Service.User.load(admin.id) != nil
     assert Air.Service.User.admin_user_exists?()
   end
@@ -103,9 +115,10 @@ defmodule AirWeb.Admin.UserController.Test do
 
   test "render 404 on attempting to update a non-existent user" do
     admin = TestRepoHelper.create_admin_user!()
+
     assert login(admin)
-    |> put("/admin/users/99999", user: %{email: "some@email.com", name: "some name"})
-    |> response(404)
+           |> put("/admin/users/99999", user: %{email: "some@email.com", name: "some name"})
+           |> response(404)
   end
 
   test "render 404 on attempting to delete a non-existent user" do

@@ -2,7 +2,6 @@ defmodule AirWeb.HelpGuideController do
   @moduledoc false
   use Air.Web, :controller
 
-
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
@@ -12,7 +11,6 @@ defmodule AirWeb.HelpGuideController do
       user: :all
     }
   end
-
 
   # -------------------------------------------------------------------
   # Actions

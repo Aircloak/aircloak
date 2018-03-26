@@ -11,8 +11,14 @@ config :air, :deploy_config_file, "dev.json"
 config :air, AirWeb.Endpoint,
   debug_errors: true,
   code_reloader: true,
-  watchers: [node: ["node_modules/brunch/bin/brunch", "watch", "--stdin",
-    cd: Path.expand("../assets", __DIR__)]]
+  watchers: [
+    node: [
+      "node_modules/brunch/bin/brunch",
+      "watch",
+      "--stdin",
+      cd: Path.expand("../assets", __DIR__)
+    ]
+  ]
 
 # Watch static and templates for browser reloading.
 config :air, AirWeb.Endpoint,
@@ -45,11 +51,9 @@ config :air, AirWeb.Endpoint,
   http: [acceptors: 2],
   https: [acceptors: 2]
 
-config :air, AirWeb.MonitoringEndpoint,
-  http: [acceptors: 2]
+config :air, AirWeb.MonitoringEndpoint, http: [acceptors: 2]
 
-config :air, Air.PsqlServer,
-  ranch_opts: [num_acceptors: 2]
+config :air, Air.PsqlServer, ranch_opts: [num_acceptors: 2]
 
 config :air, Air.Repo,
   pool_size: 2,

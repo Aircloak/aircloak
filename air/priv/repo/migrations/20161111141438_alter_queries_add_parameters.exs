@@ -3,7 +3,7 @@ defmodule Air.Repo.Migrations.AlterQueriesAddParameters do
 
   def change do
     alter table(:queries) do
-      add :parameters, :map, default: fragment("'{\"values\": []}'::jsonb")
+      add(:parameters, :map, default: fragment("'{\"values\": []}'::jsonb"))
     end
   end
 end

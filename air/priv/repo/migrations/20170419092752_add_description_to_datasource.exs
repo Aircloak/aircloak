@@ -3,7 +3,7 @@ defmodule Air.Repo.Migrations.AddDescriptionToDatasource do
 
   def change do
     alter table(:data_sources) do
-      add :description, :text
+      add(:description, :text)
     end
   end
 end

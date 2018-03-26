@@ -14,12 +14,13 @@ defmodule AirWeb.API.MonitoringController.Test do
   test "returns monitoring blog as JSON", %{conn: conn} do
     token = create_monitoring_token!()
 
-    body = conn
-    |> get("/?auth_token=#{token}")
-    |> response(200)
-    |> Poison.decode!()
+    body =
+      conn
+      |> get("/?auth_token=#{token}")
+      |> response(200)
+      |> Poison.decode!()
 
-    for expected_key <- ~w(cloaks data_sources groups users version), do:
-      assert Map.has_key?(body, expected_key)
+    for expected_key <- ~w(cloaks data_sources groups users version),
+        do: assert(Map.has_key?(body, expected_key))
   end
 end

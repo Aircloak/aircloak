@@ -10,7 +10,6 @@ defmodule Air.PsqlServer.ConnectionRegistry do
 
   @type key_data :: %{process_id: integer, secret_key: integer}
 
-
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
@@ -32,17 +31,20 @@ defmodule Air.PsqlServer.ConnectionRegistry do
   end
 
   @doc "Registers a running query, so that it can be cancelled"
-  @spec register_query(key_data, non_neg_integer, String.t) :: :ok
+  @spec register_query(key_data, non_neg_integer, String.t()) :: :ok
   def register_query(key, user_id, query_id) do
     value = {user_id, query_id}
+
     case Registry.register(__MODULE__, key, value) do
-      {:ok, _} -> :ok
+      {:ok, _} ->
+        :ok
+
       {:error, {:already_registered, pid}} ->
         if pid != self() do
           Logger.warn("Key collision in cancellation registry. This query won't be cancellable.")
           :ok
         else
-          Registry.update_value(__MODULE__, key, fn(_) -> value end)
+          Registry.update_value(__MODULE__, key, fn _ -> value end)
           :ok
         end
     end
@@ -56,15 +58,23 @@ defmodule Air.PsqlServer.ConnectionRegistry do
   @spec cancel_query(key_data) :: :ok
   def cancel_query(key) do
     case Registry.lookup(__MODULE__, key) do
-      [] -> :ok
+      [] ->
+        :ok
+
       [{_pid, {user_id, query_id}}] ->
         user = User.load(user_id)
+
         case Query.get_as_user(user, query_id) do
           {:ok, query} ->
-            Logger.debug(fn -> "Issued request to cancel query: #{query_id} on behalf of user #{user_id}" end)
+            Logger.debug(fn ->
+              "Issued request to cancel query: #{query_id} on behalf of user #{user_id}"
+            end)
+
             DataSource.stop_query(query, user)
             :ok
-          {:error, _reason} -> :ok
+
+          {:error, _reason} ->
+            :ok
         end
     end
   end
@@ -74,6 +84,5 @@ defmodule Air.PsqlServer.ConnectionRegistry do
   # -------------------------------------------------------------------
 
   @doc false
-  def child_spec(_arg), do:
-    Aircloak.ChildSpec.registry(:unique, __MODULE__)
+  def child_spec(_arg), do: Aircloak.ChildSpec.registry(:unique, __MODULE__)
 end

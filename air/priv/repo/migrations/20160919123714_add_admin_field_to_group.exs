@@ -3,7 +3,7 @@ defmodule Air.Repo.Migrations.AddAdminFieldToGroup do
 
   def change do
     alter table(:groups) do
-      add :admin, :boolean, default: false
+      add(:admin, :boolean, default: false)
     end
   end
 end

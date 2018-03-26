@@ -11,12 +11,14 @@ defmodule AirWeb.Admin.GroupController.Test do
     assert login(user) |> get(admin_group_path(conn, :index)) |> redirected_to() === "/"
     assert login(user) |> post(admin_group_path(conn, :create)) |> redirected_to() === "/"
     assert login(user) |> get(admin_group_path(conn, :edit, group)) |> redirected_to() === "/"
-    assert login(user) |> delete(admin_group_path(conn, :delete, group)) |> redirected_to() === "/"
+
+    assert login(user) |> delete(admin_group_path(conn, :delete, group)) |> redirected_to() ===
+             "/"
   end
 
   test "listing groups" do
     admin = TestRepoHelper.create_admin_user!()
-    groups = Enum.map(1..4, fn(_) -> TestRepoHelper.create_group!() end)
+    groups = Enum.map(1..4, fn _ -> TestRepoHelper.create_group!() end)
     groups_html = login(admin) |> get("/admin/groups") |> response(200)
     Enum.each(groups, &assert(groups_html =~ &1.name))
   end
@@ -27,8 +29,8 @@ defmodule AirWeb.Admin.GroupController.Test do
     group_name = "test group"
 
     assert login(admin)
-    |> post("/admin/groups", group: %{name: group_name, admin: false})
-    |> redirected_to() == admin_group_path(build_conn(), :index)
+           |> post("/admin/groups", group: %{name: group_name, admin: false})
+           |> redirected_to() == admin_group_path(build_conn(), :index)
 
     groups_html = login(admin) |> get("/admin/groups") |> response(200)
     assert groups_html =~ group_name
@@ -38,8 +40,8 @@ defmodule AirWeb.Admin.GroupController.Test do
     admin = TestRepoHelper.create_admin_user!()
 
     assert login(admin)
-    |> post("/admin/groups", group: %{admin: false})
-    |> response(200) =~ ~r/something went wrong/
+           |> post("/admin/groups", group: %{admin: false})
+           |> response(200) =~ ~r/something went wrong/
   end
 
   test "access edit page for group", %{conn: conn} do
@@ -56,8 +58,11 @@ defmodule AirWeb.Admin.GroupController.Test do
     new_group_name = "new group name"
 
     assert login(admin)
-    |> put(admin_group_path(conn, :update, group), group: %{name: new_group_name, admin: !group.admin})
-    |> redirected_to() === admin_group_path(conn, :index)
+           |> put(
+             admin_group_path(conn, :update, group),
+             group: %{name: new_group_name, admin: !group.admin}
+           )
+           |> redirected_to() === admin_group_path(conn, :index)
 
     updated_group = Repo.get(Group, group.id)
     assert updated_group.name === new_group_name
@@ -70,8 +75,10 @@ defmodule AirWeb.Admin.GroupController.Test do
     conn = put(conn, admin_group_path(conn, :update, hd(admin.groups)), group: %{admin: false})
 
     assert redirected_to(conn) == "/admin/groups"
+
     assert get_flash(conn)["error"] ==
-      "The given action cannot be performed, because it would remove the only administrator."
+             "The given action cannot be performed, because it would remove the only administrator."
+
     assert Air.Service.User.admin_user_exists?()
   end
 
@@ -79,7 +86,9 @@ defmodule AirWeb.Admin.GroupController.Test do
     admin = TestRepoHelper.create_admin_user!()
     group = TestRepoHelper.create_group!()
 
-    assert "/admin/groups" == login(admin) |> delete("/admin/groups/#{group.id}") |> redirected_to()
+    assert "/admin/groups" ==
+             login(admin) |> delete("/admin/groups/#{group.id}") |> redirected_to()
+
     groups_html = login(admin) |> get("/admin/groups") |> response(200)
     refute groups_html =~ group.name
   end
@@ -89,8 +98,10 @@ defmodule AirWeb.Admin.GroupController.Test do
     conn = login(admin) |> delete("/admin/groups/#{hd(admin.groups).id}")
 
     assert redirected_to(conn) == "/admin/groups"
+
     assert get_flash(conn)["error"] ==
-      "The given action cannot be performed, because it would remove the only administrator."
+             "The given action cannot be performed, because it would remove the only administrator."
+
     assert Air.Service.User.admin_user_exists?()
   end
 
@@ -101,9 +112,10 @@ defmodule AirWeb.Admin.GroupController.Test do
 
   test "render 404 on attempting to update a non-existent group" do
     admin = TestRepoHelper.create_admin_user!()
+
     assert login(admin)
-    |> put("/admin/groups/99999", group: %{name: "group name"})
-    |> response(404)
+           |> put("/admin/groups/99999", group: %{name: "group name"})
+           |> response(404)
   end
 
   test "render 404 on attempting to delete a non-existent group" do

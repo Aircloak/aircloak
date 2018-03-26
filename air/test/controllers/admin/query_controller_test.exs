@@ -8,10 +8,12 @@ defmodule AirWeb.Admin.QueryController.Test do
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
+
     params = %{
       "name" => "data source name",
-      "tables" => "[]",
+      "tables" => "[]"
     }
+
     data_source = Air.Service.DataSource.create!(params)
     {:ok, data_source: data_source}
   end
@@ -33,17 +35,17 @@ defmodule AirWeb.Admin.QueryController.Test do
 
   test "user can't fetch failed queries" do
     assert "/" ==
-      create_user!()
-      |> login()
-      |> get("/admin/queries/failed")
-      |> redirected_to()
+             create_user!()
+             |> login()
+             |> get("/admin/queries/failed")
+             |> redirected_to()
   end
 
   defp insert_query(user, data_source, statement, result) do
     create_query!(user, %{
       statement: statement,
       data_source_id: data_source.id,
-      result: result,
+      result: result
     })
   end
 end
