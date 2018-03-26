@@ -4,7 +4,7 @@ defmodule BOM.Whitelist.Test do
   alias BOM.{License, Package, Whitelist}
 
   test "guessing license type without text" do
-    package = %Package{license: License.unknown}
+    package = %Package{license: License.unknown()}
     assert Whitelist.update_license_type(package) == package
   end
 end

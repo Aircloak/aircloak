@@ -3,19 +3,17 @@ defmodule BOM.Gather.Node do
 
   alias BOM.{Gather, License, Whitelist}
 
-
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
   @doc "Returns a list of packages contained in the given `node_modules` directory."
-  @spec run(String.t) :: [Package.t]
+  @spec run(String.t()) :: [Package.t()]
   def run(path) do
     path
     |> list_packages()
     |> Enum.map(&package/1)
   end
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -29,17 +27,15 @@ defmodule BOM.Gather.Node do
       name: package_json(path, "name"),
       path: path,
       license: license(path, version),
-      version: version,
+      version: version
     }
   end
 
   defp license(path, version) do
     type = license_type(path)
 
-    Gather.public_domain_license(type) ||
-      babel_license(path) ||
-      Gather.license_from_file(path, type) ||
-      Gather.license_from_readme(path, type) ||
+    Gather.public_domain_license(type) || babel_license(path) ||
+      Gather.license_from_file(path, type) || Gather.license_from_readme(path, type) ||
       Whitelist.find(:node, Path.basename(path), version)
   end
 
@@ -49,6 +45,7 @@ defmodule BOM.Gather.Node do
         package_json(path, "licenses", [])
         |> Enum.map(&package_license_to_type/1)
         |> Enum.find(&License.allowed_type?/1)
+
       value ->
         package_license_to_type(value)
     end
@@ -57,13 +54,14 @@ defmodule BOM.Gather.Node do
   defp package_license_to_type(%{"type" => type}), do: package_license_to_type(type)
   defp package_license_to_type(type), do: License.name_to_type(type)
 
-  defp babel_license(path), do:
-    if babel_package?(path), do: Whitelist.babel_license(), else: nil
+  defp babel_license(path), do: if(babel_package?(path), do: Whitelist.babel_license(), else: nil)
 
   defp package_json(path, field), do: package_json(path, field, nil)
 
-  defp package_json(path, field, default), do:
-    Gather.if_matching_file(path, "package.json", fn text -> Poison.decode!(text)[field] end) || default
+  defp package_json(path, field, default),
+    do:
+      Gather.if_matching_file(path, "package.json", fn text -> Poison.decode!(text)[field] end) ||
+        default
 
   @babel_packages ~w(
     babel babel-cli babel-code-frame babel-core babel-generator babel-helper-bindify-decorators
@@ -116,7 +114,8 @@ defmodule BOM.Gather.Node do
   end
 
   defp list_packages(path) do
-    sub_paths = path
+    sub_paths =
+      path
       |> Path.join("*")
       |> Path.wildcard()
 
@@ -125,12 +124,13 @@ defmodule BOM.Gather.Node do
     |> case do
       true ->
         # This is a normal node_modules folder with sub-packages
-        Enum.flat_map(sub_paths, fn(package_path) ->
+        Enum.flat_map(sub_paths, fn package_path ->
           [
-            package_path |
-            package_path |> Path.join("node_modules") |> list_packages()
+            package_path
+            | package_path |> Path.join("node_modules") |> list_packages()
           ]
         end)
+
       false ->
         # This seems to be a folder which contains a package embedded directly
         # inside of it. `clean-pslg` is an example. We here have to treat the
