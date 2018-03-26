@@ -9,7 +9,6 @@ defmodule Cloak.Mixfile do
       build_embedded: Mix.env == :prod,
       start_permanent: Mix.env == :prod,
       deps: deps(),
-      deps_path: Path.join(["deps", otp_version(), elixir_version()]),
       elixirc_paths: elixirc_paths(Mix.env),
       preferred_cli_env: [
         dialyze: :dev, "coveralls.html": :test, release: :prod, dialyze_retry: :dev, compliance: :test
@@ -91,15 +90,6 @@ defmodule Cloak.Mixfile do
     ]
   end
   defp aliases(_), do: []
-
-  defp otp_version(), do:
-    [:code.root_dir(), "releases", :erlang.system_info(:otp_release), "OTP_VERSION"]
-    |> Path.join()
-    |> File.read!()
-    |> String.trim("\n")
-
-  defp elixir_version(), do:
-    System.version()
 
   defp rustler_crates(), do:
     [librodbc: [
