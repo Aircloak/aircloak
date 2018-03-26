@@ -34,7 +34,11 @@ function mount_cached_component {
 }
 
 function tmp_folder {
-  echo "$(pwd)/tmp/ci"
+  echo "$(pwd)/tmp/ci/$(tools_versions_md5)"
+}
+
+function tools_versions_md5 {
+  cat .tool-versions | md5sum | awk '{print $1}'
 }
 
 function build_image {
@@ -120,3 +124,7 @@ function default_handle {
       ;;
   esac
 }
+
+# Dummy execution to verify that tools_versions_md5 returns without an error. We need to do this because the result of
+# this function is used only in command interpolations, and the non-zero exit code is swallowed in such cases.
+tools_versions_md5 > /dev/null
