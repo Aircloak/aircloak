@@ -13,21 +13,23 @@ defmodule Air.CloakSocketSerializer do
   alias Phoenix.Channels.GenSocketClient.Serializer
   @behaviour Serializer
 
-
   # -------------------------------------------------------------------
   # Phoenix.Channels.GenSocketClient.Serializer callbacks
   # -------------------------------------------------------------------
 
   @impl Serializer
-  def decode_message(encoded_message), do:
-    encoded_message
-    |> :erlang.binary_to_term()
-    |> adapt_phoenix_reply()
+  def decode_message(encoded_message),
+    do:
+      encoded_message
+      |> :erlang.binary_to_term()
+      |> adapt_phoenix_reply()
 
   @impl Serializer
-  def encode_message(message), do:
-    Aircloak.report_long(:encode_cloak_message, fn -> {:ok, {:binary, :erlang.term_to_binary(message)}} end)
-
+  def encode_message(message),
+    do:
+      Aircloak.report_long(:encode_cloak_message, fn ->
+        {:ok, {:binary, :erlang.term_to_binary(message)}}
+      end)
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -37,9 +39,17 @@ defmodule Air.CloakSocketSerializer do
     # phoenix_gen_socket_client expects string keys for status and response, and a string value for response.
     status = Map.get(payload, :status, payload["status"])
     response = Map.get(payload, :response, payload["response"])
-    [join_ref, ref, topic, "phx_reply", Map.merge(payload, %{"status" => to_string(status), "response" => response})]
+
+    [
+      join_ref,
+      ref,
+      topic,
+      "phx_reply",
+      Map.merge(payload, %{"status" => to_string(status), "response" => response})
+    ]
   end
-  defp adapt_phoenix_reply(other), do:
+
+  defp adapt_phoenix_reply(other),
     # For all other cases, we'll leave atomized keys.
-    other
+    do: other
 end

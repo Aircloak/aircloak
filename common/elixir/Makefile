@@ -1,6 +1,6 @@
 SHELL=/bin/bash -o pipefail
 
-.PHONY: deps docs test clean all compile dialyze lint
+.PHONY: deps docs test clean all compile dialyze lint format check-format
 
 all: deps compile
 
@@ -43,3 +43,9 @@ lint:
 release:
 	rm -rf rel/cloak
 	MIX_ENV=prod mix do compile, release --no-confirm-missing
+
+format:
+	mix format --check-equivalent
+
+check-format:
+	mix format --check-formatted

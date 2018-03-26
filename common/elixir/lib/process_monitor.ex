@@ -2,13 +2,12 @@ defmodule Aircloak.ProcessMonitor do
   @moduledoc "Allows invoking a custom function when a process terminates."
   use GenServer
 
-
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Starts the supervisor for process monitors."
-  @spec start_link() :: Supervisor.on_start
+  @spec start_link() :: Supervisor.on_start()
   def start_link() do
     import Supervisor.Spec, warn: false
 
@@ -26,23 +25,24 @@ defmodule Aircloak.ProcessMonitor do
     :ok
   end
 
-
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init({monitored_process, exit_callback}), do:
-    {:ok, %{
-      mref: Process.monitor(monitored_process),
-      exit_callback: exit_callback
-    }}
+  def init({monitored_process, exit_callback}),
+    do:
+      {:ok,
+       %{
+         mref: Process.monitor(monitored_process),
+         exit_callback: exit_callback
+       }}
 
   @impl GenServer
   def handle_info({:DOWN, mref, :process, _, _}, %{mref: mref} = state) do
     state.exit_callback.()
     {:stop, :normal, %{state | mref: nil}}
   end
-  def handle_info(_, state), do:
-    {:noreply, state}
+
+  def handle_info(_, state), do: {:noreply, state}
 end
