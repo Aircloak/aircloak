@@ -262,7 +262,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp normalize_sample_rate(sample_rate) do
     denominator = 1_000_000_000_000
     enumerator = sample_rate / 100 * denominator
-    {round(enumerator), denominator}
+    {enumerator |> round() |> FixAlign.align(), denominator}
   end
 
 
