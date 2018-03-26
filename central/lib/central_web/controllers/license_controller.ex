@@ -3,8 +3,7 @@ defmodule CentralWeb.LicenseController do
   use Central.Web, :controller
   alias Central.{Service}
 
-  plug :load_customer
-
+  plug(:load_customer)
 
   # -------------------------------------------------------------------
   # Actions
@@ -22,19 +21,24 @@ defmodule CentralWeb.LicenseController do
   end
 
   def show(conn, %{"id" => id}) do
-    with_license(conn, id, fn(license) ->
+    with_license(conn, id, fn license ->
       send_resp(conn, 200, Service.License.export(license))
     end)
   end
 
   def edit(conn, %{"id" => id}) do
-    with_license(conn, id, fn(license) ->
-      render(conn, "edit.html", license_id: id, changeset: Service.License.empty_changeset(license))
+    with_license(conn, id, fn license ->
+      render(
+        conn,
+        "edit.html",
+        license_id: id,
+        changeset: Service.License.empty_changeset(license)
+      )
     end)
   end
 
   def update(conn, %{"id" => id, "license" => params}) do
-    with_license(conn, id, fn(license) ->
+    with_license(conn, id, fn license ->
       case Service.License.update(license, params) do
         {:error, changeset} -> render(conn, "edit.html", license_id: id, changeset: changeset)
         {:ok, _} -> redirect_to_index(conn, "License updated")
@@ -43,19 +47,18 @@ defmodule CentralWeb.LicenseController do
   end
 
   def revoke(conn, %{"license_id" => id}) do
-    with_license(conn, id, fn(license) ->
+    with_license(conn, id, fn license ->
       {:ok, _} = Service.License.revoke(license)
       redirect_to_index(conn, "License revoked")
     end)
   end
 
   def restore(conn, %{"license_id" => id}) do
-    with_license(conn, id, fn(license) ->
+    with_license(conn, id, fn license ->
       {:ok, _} = Service.License.restore(license)
       redirect_to_index(conn, "License restored")
     end)
   end
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -77,12 +80,19 @@ defmodule CentralWeb.LicenseController do
 
   defp render_index(conn, license_changeset) do
     customer = conn.assigns.customer
+
     licenses =
       Service.License.for_customer(customer)
-      |> Enum.sort_by(& NaiveDateTime.to_iso8601(&1.inserted_at), &Kernel.>/2)
+      |> Enum.sort_by(&NaiveDateTime.to_iso8601(&1.inserted_at), &Kernel.>/2)
       |> Enum.sort_by(& &1.revoked)
 
-    render(conn, "index.html", changeset: license_changeset, customer: customer, licenses: licenses)
+    render(
+      conn,
+      "index.html",
+      changeset: license_changeset,
+      customer: customer,
+      licenses: licenses
+    )
   end
 
   defp load_customer(conn, _) do

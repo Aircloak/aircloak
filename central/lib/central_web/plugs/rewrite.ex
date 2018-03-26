@@ -25,7 +25,6 @@ defmodule CentralWeb.Plug.Rewrite do
   @behaviour Plug
   alias Plug.Conn
 
-
   # -------------------------------------------------------------------
   # Plug callbacks
   # -------------------------------------------------------------------

@@ -3,8 +3,8 @@ defmodule Central.Repo.Migrations.AddRenewalToLicenses do
 
   def change do
     alter table(:licenses) do
-      add :auto_renew, :boolean
-      add :length_in_days, :integer
+      add(:auto_renew, :boolean)
+      add(:length_in_days, :integer)
     end
   end
 end

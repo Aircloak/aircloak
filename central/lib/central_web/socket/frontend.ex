@@ -16,12 +16,11 @@ defmodule CentralWeb.Socket.Frontend do
   use Phoenix.Socket
   require Logger
 
-  transport :websocket, Phoenix.Transports.WebSocket
-  transport :longpoll, Phoenix.Transports.LongPoll
+  transport(:websocket, Phoenix.Transports.WebSocket)
+  transport(:longpoll, Phoenix.Transports.LongPoll)
 
   # List of exposed channels
-  channel "user:*", CentralWeb.Socket.Frontend.UserChannel
-
+  channel("user:*", CentralWeb.Socket.Frontend.UserChannel)
 
   # -------------------------------------------------------------------
   # Phoenix.Socket callback functions
@@ -31,15 +30,16 @@ defmodule CentralWeb.Socket.Frontend do
   def connect(%{"token" => token}, socket) do
     case Guardian.decode_and_verify(token) do
       {:ok, %{"sub" => subject}} ->
-        case Guardian.serializer.from_token(subject) do
+        case Guardian.serializer().from_token(subject) do
           {:ok, %Central.Schemas.User{} = user} -> {:ok, assign(socket, :user, user)}
           {:error, _reason} -> :error
         end
-      {:error, _reason} -> :error
+
+      {:error, _reason} ->
+        :error
     end
   end
 
   @impl Phoenix.Socket
-  def id(socket),
-    do: "user:#{socket.assigns.user.id}"
+  def id(socket), do: "user:#{socket.assigns.user.id}"
 end

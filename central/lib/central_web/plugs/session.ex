@@ -1,7 +1,6 @@
 defmodule CentralWeb.Plug.Session do
   @moduledoc false
 
-
   # -------------------------------------------------------------------
   # Browser
   # -------------------------------------------------------------------
@@ -32,7 +31,6 @@ defmodule CentralWeb.Plug.Session do
     # 30 days in seconds (30*24*60*60) - the time before a user has to login again.
     @cookie_max_age_s 2_592_000
 
-
     # -------------------------------------------------------------------
     # Plug callbacks
     # -------------------------------------------------------------------
@@ -45,19 +43,19 @@ defmodule CentralWeb.Plug.Session do
       case Plug.Conn.get_session(conn, session_key()) do
         nil ->
           conditionally_restore_session(conn)
+
         _ ->
           # A session already exists, so we don't need to do anything at all
           conn
       end
     end
 
-
     # -------------------------------------------------------------------
     # Utility functions
     # -------------------------------------------------------------------
 
     @doc "Persists the user session in the cookie."
-    @spec persist_token(Plug.Conn.t) :: Plug.Conn.t
+    @spec persist_token(Plug.Conn.t()) :: Plug.Conn.t()
     def persist_token(conn) do
       Logger.debug("The user wants us to remember that s/he is logged in")
       jwt = Plug.Conn.get_session(conn, session_key())
@@ -65,7 +63,7 @@ defmodule CentralWeb.Plug.Session do
     end
 
     @doc "Removes the persisted session from the cookie."
-    @spec remove_token(Plug.Conn.t) :: Plug.Conn.t
+    @spec remove_token(Plug.Conn.t()) :: Plug.Conn.t()
     def remove_token(conn) do
       Logger.debug("The user wants us to forget that s/he was logged in")
       Plug.Conn.delete_resp_cookie(conn, @cookie_key, max_age: @cookie_max_age_s)
@@ -73,10 +71,12 @@ defmodule CentralWeb.Plug.Session do
 
     defp conditionally_restore_session(conn) do
       %Plug.Conn{req_cookies: req_cookies} = Plug.Conn.fetch_cookies(conn)
+
       case req_cookies[@cookie_key] do
         nil ->
           # The user isn't logged in, or didn't use the remember-me feature
           conn
+
         jwt ->
           Logger.debug("Restoring user session from cookie, logging in the user")
           Plug.Conn.put_session(conn, session_key(), jwt)
@@ -96,12 +96,11 @@ defmodule CentralWeb.Plug.Session do
     """
     use Plug.Builder
 
-    plug CentralWeb.Plug.Session.Restoration
-    plug Guardian.Plug.VerifySession
-    plug Guardian.Plug.EnsureAuthenticated, handler: __MODULE__
-    plug Guardian.Plug.LoadResource
-    plug CentralWeb.Plug.Session.AssignCurrentUser
-
+    plug(CentralWeb.Plug.Session.Restoration)
+    plug(Guardian.Plug.VerifySession)
+    plug(Guardian.Plug.EnsureAuthenticated, handler: __MODULE__)
+    plug(Guardian.Plug.LoadResource)
+    plug(CentralWeb.Plug.Session.AssignCurrentUser)
 
     # -------------------------------------------------------------------
     # Callback for Guardian.Plug.EnsureAuthenticated
@@ -125,10 +124,9 @@ defmodule CentralWeb.Plug.Session do
     """
     use Plug.Builder
 
-    plug Guardian.Plug.VerifySession
-    plug Guardian.Plug.EnsureNotAuthenticated, handler: __MODULE__
-    plug CentralWeb.Plug.Session.AssignCurrentUser
-
+    plug(Guardian.Plug.VerifySession)
+    plug(Guardian.Plug.EnsureNotAuthenticated, handler: __MODULE__)
+    plug(CentralWeb.Plug.Session.AssignCurrentUser)
 
     # -------------------------------------------------------------------
     # Callback for Guardian.Plug.EnsureNotAuthenticated

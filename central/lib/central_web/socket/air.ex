@@ -16,11 +16,14 @@ defmodule CentralWeb.Socket.Air do
 
   alias Central.Service.{Customer, License}
 
-  transport :websocket, Phoenix.Transports.WebSocket, serializer: [{CentralWeb.Socket.Air.Serializer, "~> 2.0.0"}]
+  transport(
+    :websocket,
+    Phoenix.Transports.WebSocket,
+    serializer: [{CentralWeb.Socket.Air.Serializer, "~> 2.0.0"}]
+  )
 
   # List of exposed channels
-  channel "main", CentralWeb.Socket.Air.MainChannel
-
+  channel("main", CentralWeb.Socket.Air.MainChannel)
 
   # -------------------------------------------------------------------
   # Phoenix.Socket callback functions
@@ -28,11 +31,14 @@ defmodule CentralWeb.Socket.Air do
 
   @impl Phoenix.Socket
   def connect(params, socket) do
-    Logger.info("Air connecting #{inspect params}")
+    Logger.info("Air connecting #{inspect(params)}")
+
     with {:ok, customer, air_name} <- customer_from_params(params) do
-      socket = socket
+      socket =
+        socket
         |> assign(:customer, customer)
         |> assign(:air_name, air_name)
+
       {:ok, socket}
     else
       _ ->
@@ -42,23 +48,21 @@ defmodule CentralWeb.Socket.Air do
   end
 
   @impl Phoenix.Socket
-  def id(socket),
-    do: "air_socket:#{socket.assigns.customer.id}"
-
+  def id(socket), do: "air_socket:#{socket.assigns.customer.id}"
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp customer_from_params(%{"token" => token, "air_name" => air_name}), do:
-    with {:ok, customer} <- Customer.from_token(token), do: {:ok, customer, air_name}
+  defp customer_from_params(%{"token" => token, "air_name" => air_name}),
+    do: with({:ok, customer} <- Customer.from_token(token), do: {:ok, customer, air_name})
+
   defp customer_from_params(%{"license" => license, "air_name" => air_name}) do
-    with \
-      {:ok, license} <- License.decrypt(license),
-      {:ok, customer} <- Customer.from_license(license)
-    do
+    with {:ok, license} <- License.decrypt(license),
+         {:ok, customer} <- Customer.from_license(license) do
       {:ok, customer, air_name}
     end
   end
+
   defp customer_from_params(_), do: :error
 end

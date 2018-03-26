@@ -4,8 +4,7 @@ defmodule CentralWeb.CustomerController do
 
   alias Central.{Schemas, Service}
 
-  plug :load_customer when action in [:edit, :update, :delete, :token]
-
+  plug(:load_customer when action in [:edit, :update, :delete, :token])
 
   # -------------------------------------------------------------------
   # Actions
@@ -36,7 +35,9 @@ defmodule CentralWeb.CustomerController do
         conn
         |> put_flash(:info, "Customer created")
         |> redirect(to: customer_path(conn, :index))
-      {:error, changeset} -> render(conn, "new.html", changeset: changeset)
+
+      {:error, changeset} ->
+        render(conn, "new.html", changeset: changeset)
     end
   end
 
@@ -46,7 +47,9 @@ defmodule CentralWeb.CustomerController do
         conn
         |> put_flash(:info, "Customer updated")
         |> redirect(to: customer_path(conn, :index))
-      {:error, changeset} -> render(conn, "edit.html", changeset: changeset)
+
+      {:error, changeset} ->
+        render(conn, "edit.html", changeset: changeset)
     end
   end
 
@@ -56,6 +59,7 @@ defmodule CentralWeb.CustomerController do
         conn
         |> put_flash(:info, "Customer deleted")
         |> redirect(to: customer_path(conn, :index))
+
       :error ->
         conn
         |> put_flash(:error, "Could not delete the customer")
@@ -63,13 +67,13 @@ defmodule CentralWeb.CustomerController do
     end
   end
 
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   defp load_customer(conn, _) do
     id = conn.params["id"] || conn.params["customer_id"]
+
     case Service.Customer.get(id) do
       {:error, :not_found} -> not_found(conn)
       {:ok, customer} -> assign(conn, :customer, customer)

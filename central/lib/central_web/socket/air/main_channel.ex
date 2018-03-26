@@ -6,7 +6,6 @@ defmodule CentralWeb.Socket.Air.MainChannel do
   require Logger
   alias Central.Service.{Customer, License}
 
-
   # -------------------------------------------------------------------
   # Phoenix.Channel callback functions
   # -------------------------------------------------------------------
@@ -30,6 +29,7 @@ defmodule CentralWeb.Socket.Air.MainChannel do
   def handle_in("air_call", request, socket) do
     handle_air_call(request["event"], request["payload"], request["request_id"], socket)
   end
+
   def handle_in(event, _payload, socket) do
     Logger.warn("unknown event #{event}")
     {:noreply, socket}
@@ -40,11 +40,15 @@ defmodule CentralWeb.Socket.Air.MainChannel do
     request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
     push(socket, "air_call", %{request_id: request_id, event: event, payload: payload})
     timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
+
     {:noreply,
-      assign(socket, :pending_calls,
-        Map.put(socket.assigns.pending_calls, request_id, %{from: from, timeout_ref: timeout_ref}))
-    }
+     assign(
+       socket,
+       :pending_calls,
+       Map.put(socket.assigns.pending_calls, request_id, %{from: from, timeout_ref: timeout_ref})
+     )}
   end
+
   def handle_info({:call_timeout, request_id}, socket) do
     # We're just removing entries here without responding. It is the responsibility of the
     # client code to give up at some point.
@@ -52,17 +56,22 @@ defmodule CentralWeb.Socket.Air.MainChannel do
     pending_calls = Map.delete(socket.assigns.pending_calls, request_id)
     {:noreply, assign(socket, :pending_calls, pending_calls)}
   end
+
   def handle_info({:EXIT, _, :normal}, socket) do
     # probably the linked reporter terminated successfully
     {:noreply, socket}
   end
-  def handle_info({:DOWN, ref, :process, _pid, _reason}, socket = %{assigns: %{manager_ref: ref}}), do:
-    {:stop, :data_source_manager_down, socket}
+
+  def handle_info(
+        {:DOWN, ref, :process, _pid, _reason},
+        socket = %{assigns: %{manager_ref: ref}}
+      ),
+      do: {:stop, :data_source_manager_down, socket}
+
   def handle_info(message, socket) do
     Logger.info("unhandled info #{inspect(message)}")
     {:noreply, socket}
   end
-
 
   # -------------------------------------------------------------------
   # Handling air sync calls
@@ -79,20 +88,21 @@ defmodule CentralWeb.Socket.Air.MainChannel do
     respond_to_air(socket, request_id, :ok)
     {:noreply, socket}
   end
+
   defp handle_air_call("renew_license", license_text, request_id, socket) do
     case License.renew(license_text) do
       {:ok, new_text} -> respond_to_air(socket, request_id, :ok, new_text)
       _ -> respond_to_air(socket, request_id, :error)
     end
+
     {:noreply, socket}
   end
-
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  @spec respond_to_air(Socket.t, request_id::String.t, :ok | :error, any) :: :ok
+  @spec respond_to_air(Socket.t(), request_id :: String.t(), :ok | :error, any) :: :ok
   defp respond_to_air(socket, request_id, status, result \\ nil) do
     push(socket, "central_response", %{
       request_id: request_id,

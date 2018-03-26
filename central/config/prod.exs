@@ -2,8 +2,7 @@ use Mix.Config
 
 config :central, :deploy_config_file, "config.json"
 
-config :central, CentralWeb.Endpoint,
-  cache_static_manifest: "priv/static/cache_manifest.json"
+config :central, CentralWeb.Endpoint, cache_static_manifest: "priv/static/cache_manifest.json"
 
 # Do not print debug messages in production
 config :logger, level: :info

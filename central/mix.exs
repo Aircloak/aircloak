@@ -6,24 +6,37 @@ defmodule Central.Mixfile do
       app: :central,
       version: "0.0.1",
       elixir: "~> 1.3",
-      elixirc_paths: elixirc_paths(Mix.env),
+      elixirc_paths: elixirc_paths(Mix.env()),
       compilers: [
-        :phoenix, :gettext, :yecc, :leex, :erlang, :elixir, :app
+        :phoenix,
+        :gettext,
+        :yecc,
+        :leex,
+        :erlang,
+        :elixir,
+        :app
       ],
-      build_embedded: Mix.env == :prod,
-      start_permanent: Mix.env == :prod,
-      aliases: aliases(Mix.env),
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
+      aliases: aliases(Mix.env()),
       deps: deps(),
-      elixirc_options: elixirc_options(Mix.env),
-      erlc_paths: erlc_paths(Mix.env),
-      erlc_options: erlc_options(Mix.env),
+      elixirc_options: elixirc_options(Mix.env()),
+      erlc_paths: erlc_paths(Mix.env()),
+      erlc_options: erlc_options(Mix.env()),
       eunit_options: [
         :no_tty,
         {:report, {:eunit_progress, [:colored]}}
       ],
       preferred_cli_env: [
-        eunit: :test, "coveralls.html": :test, dialyze: :dev, docs: :dev, release: :prod,
-        "phoenix.digest": :prod, site_release: :prod, "test.standard": :test, dialyze_retry: :dev,
+        eunit: :test,
+        "coveralls.html": :test,
+        dialyze: :dev,
+        docs: :dev,
+        release: :prod,
+        "phoenix.digest": :prod,
+        site_release: :prod,
+        "test.standard": :test,
+        dialyze_retry: :dev
       ],
       test_coverage: [tool: ExCoveralls],
       docs: [
@@ -38,13 +51,13 @@ defmodule Central.Mixfile do
   def application do
     [
       mod: {Central, []},
-      extra_applications: extra_applications(Mix.env)
+      extra_applications: extra_applications(Mix.env())
     ]
   end
 
   # Specifies which paths to compile per environment.
   defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_),     do: ["lib"]
+  defp elixirc_paths(_), do: ["lib"]
 
   # Specifies your project dependencies.
   #
@@ -68,7 +81,7 @@ defmodule Central.Mixfile do
       {:httpoison, "~> 0.12.0"},
       {:quantum, "~> 1.9"},
       {:phoenix_gen_socket_client, "~> 2.0", only: :test},
-      {:websocket_client, "~> 1.2.4", only: :test},
+      {:websocket_client, "~> 1.2.4", only: :test}
     ]
   end
 
@@ -80,26 +93,26 @@ defmodule Central.Mixfile do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases(env) when env in [:dev, :test] do
     [
-      "rollback": ["app.start", "ecto.rollback"],
-      "migrate": ["app.start", "ecto.migrate"],
-      "seed": ["app.start", "run priv/repo/seeds.exs"],
+      rollback: ["app.start", "ecto.rollback"],
+      migrate: ["app.start", "ecto.migrate"],
+      seed: ["app.start", "run priv/repo/seeds.exs"],
       "test.standard": ["test", "eunit"],
-      "lint": ["credo --strict --ignore #{Enum.join(ignored_credo_checks(Mix.env), ",")}"]
+      lint: ["credo --strict --ignore #{Enum.join(ignored_credo_checks(Mix.env()), ",")}"]
     ]
   end
+
   defp aliases(:prod), do: []
 
-  defp ignored_credo_checks(:test), do:
-    ["ModuleDoc" | ignored_credo_checks(:dev)]
-  defp ignored_credo_checks(_), do:
-    ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
+  defp ignored_credo_checks(:test), do: ["ModuleDoc" | ignored_credo_checks(:dev)]
+
+  defp ignored_credo_checks(_),
+    do: ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
 
   defp extra_applications(:test), do: common_extra_applications()
   defp extra_applications(:dev), do: common_extra_applications() ++ dialyzer_required_deps()
   defp extra_applications(:prod), do: common_extra_applications()
 
-  defp common_extra_applications(), do:
-    [:logger, :inets, :crontab]
+  defp common_extra_applications(), do: [:logger, :inets, :crontab]
 
   # These are indirect dependencies (deps of deps) which are not automatically included in the generated PLT.
   # By adding them explicitly to the applications list, we make sure that they are included in the PLT.
