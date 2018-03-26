@@ -172,9 +172,6 @@ defmodule Air.Service.Query do
 
   @doc "Returns the buckets describing the desired range of rows."
   @spec buckets(Query.t, non_neg_integer | :all) :: [map]
-  def buckets(%Query{result: %{"rows" => buckets}}, _desired_chunk), do:
-    # Old style results (before 2017 Q4), where buckets are stored in the query table.
-    buckets
   def buckets(query, desired_chunk), do:
     query.id
     |> result_chunks(desired_chunk)
@@ -357,7 +354,6 @@ defmodule Air.Service.Query do
       [
         Air.Service.Query.Events,
         Air.Service.Query.Lifecycle,
-        Air.Service.Query.ResultConverter,
       ],
       strategy: :one_for_one, name: __MODULE__
     )
