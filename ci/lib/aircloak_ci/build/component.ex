@@ -13,20 +13,19 @@ defmodule AircloakCI.Build.Component do
 
   @type job :: :compile | :test | :compliance
 
-
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Starts a job on the desired component."
-  @spec start_job(LocalProject.t, String.t, job, Job.run_queued_opts) :: :ok | {:error, String.t}
+  @spec start_job(LocalProject.t(), String.t(), job, Job.run_queued_opts()) ::
+          :ok | {:error, String.t()}
   def start_job(project, component, job, opts \\ []) do
     with :ok <- build_image(project, component) do
       opts = Keyword.merge([log_name: "#{component}_#{job}"], opts)
       Job.run_queued(job, project, fn -> run_job(project, component, job, opts) end, opts)
     end
   end
-
 
   # -------------------------------------------------------------------
   # Private functions
@@ -37,19 +36,24 @@ defmodule AircloakCI.Build.Component do
       :ok
     else
       log_name = "#{component}_docker_build"
-      Job.run_queued(:docker_build, project,
-        fn -> Container.build(script(project, component), LocalProject.log_file(project, log_name)) end,
+
+      Job.run_queued(
+        :docker_build,
+        project,
+        fn ->
+          Container.build(script(project, component), LocalProject.log_file(project, log_name))
+        end,
         log_name: log_name
       )
     end
   end
 
-  defp run_job(project, component, job, opts), do:
-    AircloakCI.Queue.exec(:job, fn -> do_run_job(project, component, job, opts) end)
+  defp run_job(project, component, job, opts),
+    do: AircloakCI.Queue.exec(:job, fn -> do_run_job(project, component, job, opts) end)
 
-  defp do_run_job(project, component, job, opts), do:
-    with_container(project, component, opts,
-      fn(container) ->
+  defp do_run_job(project, component, job, opts),
+    do:
+      with_container(project, component, opts, fn container ->
         with :ok <- prepare_for(container, job) do
           commands = LocalProject.commands(project, component, job)
           {result, outputs} = run_commands(project, component, job, container, commands)
@@ -57,20 +61,28 @@ defmodule AircloakCI.Build.Component do
           File.write(container.log_file, ["\n", outputs, "\n"], [:append])
           result
         end
-      end
-    )
+      end)
 
-  defp run_commands(project, component, job, container, commands) when is_list(commands), do:
-      run_commands(project, component, job, container, {:sequence, commands})
-  defp run_commands(project, component, job, container, {:sequence, commands}), do:
-    commands
-    |> Stream.map(&run_commands(project, component, job, container, &1))
-    |> collect_results_from_sequence()
-  defp run_commands(project, component, job, container, {:parallel, commands}), do:
-    commands
-    |> Task.async_stream(&run_commands(project, component, job, container, &1), ordered: false, timeout: :infinity)
-    |> Stream.map(fn {:ok, task_result} -> task_result end)
-    |> collect_results_from_parallel_commands()
+  defp run_commands(project, component, job, container, commands) when is_list(commands),
+    do: run_commands(project, component, job, container, {:sequence, commands})
+
+  defp run_commands(project, component, job, container, {:sequence, commands}),
+    do:
+      commands
+      |> Stream.map(&run_commands(project, component, job, container, &1))
+      |> collect_results_from_sequence()
+
+  defp run_commands(project, component, job, container, {:parallel, commands}),
+    do:
+      commands
+      |> Task.async_stream(
+        &run_commands(project, component, job, container, &1),
+        ordered: false,
+        timeout: :infinity
+      )
+      |> Stream.map(fn {:ok, task_result} -> task_result end)
+      |> collect_results_from_parallel_commands()
+
   defp run_commands(project, component, job, container, command) when is_binary(command) do
     File.write(container.log_file, "started `#{command}`\n", [:append])
 
@@ -82,9 +94,12 @@ defmodule AircloakCI.Build.Component do
       end
 
     # We'll log to the temporary unique file. This allows us to deinterlace log outputs later
-    log_name = "#{component}_#{job}_#{Base.url_encode64(:crypto.strong_rand_bytes(16), padding: false)}"
+    log_name =
+      "#{component}_#{job}_#{Base.url_encode64(:crypto.strong_rand_bytes(16), padding: false)}"
+
     cmd_log_file = LocalProject.log_file(project, log_name)
     File.write(cmd_log_file, "")
+
     try do
       logger = CmdRunner.file_logger(cmd_log_file)
       start = :erlang.monotonic_time(:second)
@@ -102,14 +117,10 @@ defmodule AircloakCI.Build.Component do
   defp collect_results_from_sequence(commands_stream) do
     # In a sequence, we're stopping on first error, and return the outputs in the proper order.
     {result, outputs} =
-      Enum.reduce_while(
-        commands_stream,
-        {:ok, []},
-        fn
-          {:ok, output}, {:ok, outputs} -> {:cont, {:ok, [output | outputs]}}
-          {{:error, _} = error, output}, {:ok, outputs} -> {:halt, {error, [output | outputs]}}
-        end
-      )
+      Enum.reduce_while(commands_stream, {:ok, []}, fn
+        {:ok, output}, {:ok, outputs} -> {:cont, {:ok, [output | outputs]}}
+        {{:error, _} = error, output}, {:ok, outputs} -> {:halt, {error, [output | outputs]}}
+      end)
 
     {result, to_string(Enum.intersperse(Enum.reverse(outputs), "\n"))}
   end
@@ -122,29 +133,40 @@ defmodule AircloakCI.Build.Component do
     # and therefore its more likely to be included in the tail sent to the author.
     {cmd_results, outputs} =
       commands_stream
-      |> Enum.sort_by(
-          fn
-            {:ok, output} -> {0, byte_size(output)}
-            {{:error, _}, output} -> {1, -byte_size(output)}
-          end
-        )
+      |> Enum.sort_by(fn
+        {:ok, output} -> {0, byte_size(output)}
+        {{:error, _}, output} -> {1, -byte_size(output)}
+      end)
       |> Enum.unzip()
 
     result =
       case Enum.filter(cmd_results, &match?({:error, _}, &1)) do
-        [] -> :ok
-        errors -> {:error, "\n" <> (errors |> Enum.map(fn {:error, reason} -> reason end) |> Enum.join("\n"))}
+        [] ->
+          :ok
+
+        errors ->
+          {:error,
+           "\n" <> (errors |> Enum.map(fn {:error, reason} -> reason end) |> Enum.join("\n"))}
       end
 
     {result, to_string(Enum.intersperse(outputs, "\n"))}
   end
 
-  defp with_container(project, component, opts, fun), do:
-    Container.with(script(project, component), LocalProject.log_file(project, Keyword.fetch!(opts, :log_name)), fun)
+  defp with_container(project, component, opts, fun),
+    do:
+      Container.with(
+        script(project, component),
+        LocalProject.log_file(project, Keyword.fetch!(opts, :log_name)),
+        fun
+      )
 
   defp prepare_for(container, job) do
     if job in [:test, :compliance] do
-      Container.invoke_script(container, "prepare_for_#{job} #{container.name}", timeout: :timer.minutes(1))
+      Container.invoke_script(
+        container,
+        "prepare_for_#{job} #{container.name}",
+        timeout: :timer.minutes(1)
+      )
     else
       :ok
     end

@@ -4,7 +4,6 @@ defmodule AircloakCI.Build.Service do
   alias Aircloak.ChildSpec
   use ChildSpec.Supervisor
 
-
   # -------------------------------------------------------------------
   # Supervision tree
   # -------------------------------------------------------------------
@@ -16,7 +15,8 @@ defmodule AircloakCI.Build.Service do
         ChildSpec.registry(:unique, AircloakCI.Build.Registry),
         AircloakCI.Build.Supervisor
       ],
-      strategy: :one_for_one, name: __MODULE__
+      strategy: :one_for_one,
+      name: __MODULE__
     )
   end
 end
