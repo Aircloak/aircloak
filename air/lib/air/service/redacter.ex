@@ -43,6 +43,7 @@ defmodule Air.Service.Redacter do
     error
     |> filter_sensitive_fields()
     |> replace_line_numbers()
+    |> replace_query_excerpt()
 
 
   # -------------------------------------------------------------------
@@ -56,6 +57,9 @@ defmodule Air.Service.Redacter do
 
   defp filter_sensitive_fields(error), do:
     Regex.replace(~r/`.*?`/, error, &redaction_checker/1, global: true)
+
+  defp replace_query_excerpt(error), do:
+    Regex.replace(~r/\t.*/, error, &redaction_checker/1, global: true)
 
   defp redaction_checker(string) do
     if String.downcase(string) in @safe_terms do

@@ -26,4 +26,14 @@ defmodule Air.Service.RedacterTest do
     error = "Expected `select or show` at line 1, column 1."
     assert Redacter.filter_query_error(error) =~ ~r/at line X, column Y/
   end
+
+  test "should replace the query excerpt" do
+    error = "The error was detected at line 1, column 2:\n\t1:  select *\n\t2: from table\n\t      ^"
+
+    refute Redacter.filter_query_error(error) =~ ~r/1:/
+    refute Redacter.filter_query_error(error) =~ ~r/2:/
+    refute Redacter.filter_query_error(error) =~ ~r/select \*/
+    refute Redacter.filter_query_error(error) =~ ~r/from table/
+    refute Redacter.filter_query_error(error) =~ ~r/\^/
+  end
 end
