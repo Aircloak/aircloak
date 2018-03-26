@@ -100,8 +100,7 @@ defmodule Cloak.Sql.Function do
     ~w(substring) => %{type_specs: %{[:text, {:constant, :integer}, {:optional, {:constant, :integer}}] => :text},
       attributes: [:restricted, :string_manipulation]},
     ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
-    ~w(hex dec_b64) => %{type_specs: %{[:text] => :text}},
-    ~w(dec_aes_cbc128) => %{type_specs: %{[:text] => :text, [:text, :text] => :text}},
+    ~w(hex) => %{type_specs: %{[:text] => :text}},
     ~w(hash) => %{type_specs: %{[:text] => :integer, [:integer] => :integer, [:real] => :integer}},
     # NOTICE: The `not_in_subquery` is set for `extract_words` because we are not yet sure it's safe in subqueries.
     ~w(extract_words) => %{type_specs: %{[:text] => :text}, attributes: [:not_in_subquery, :row_splitter]},
@@ -129,6 +128,9 @@ defmodule Cloak.Sql.Function do
     [{:cast, :interval}] =>
       %{type_specs: %{[{:or, [:text, :interval]}] => :interval},
       attributes: [:restricted, :cast]},
+    ~w(dec_b64) => %{type_specs: %{[:text] => :text}, attributes: [:internal]},
+    ~w(dec_aes_cbc128) => %{type_specs: %{[:text] => :text, [:text, :text] => :text}, attributes: [:internal]},
+    ~w(coalesce) => %{type_specs: %{{:many1, :any} => :any}, attributes: [:internal]},
   }
   |> Enum.flat_map(fn({functions, traits}) -> Enum.map(functions, &{&1, traits}) end)
   |> Enum.into(%{})
@@ -149,7 +151,6 @@ defmodule Cloak.Sql.Function do
 
   @doc "Returns true if the function has the specified attribute, false otherise."
   @spec has_attribute?(t | String.t | nil, atom) :: boolean
-  def has_attribute?("coalesce", _attribute), do: false # coalesce is only used internally
   def has_attribute?({:function, name, _, _}, attribute), do: has_attribute?(canonical_name(name), attribute)
   def has_attribute?(%Expression{function?: true, function: name}, attribute), do: has_attribute?(name, attribute)
   def has_attribute?(name, attribute) do
@@ -245,17 +246,22 @@ defmodule Cloak.Sql.Function do
   @spec cast?(t | Parser.function_name | nil) :: boolean
   def cast?(param), do: has_attribute?(param, :cast)
 
-  @doc "Returns true if the given function exhibits implicit range behaviour"
+  @doc "Returns true if the given function exhibits implicit range behaviour, false otherwise."
   @spec implicit_range?(t | Parser.function_name | nil) :: boolean
   def implicit_range?(param), do: has_attribute?(param, :implicit_range)
+
+  @doc "Returns true if the given function is internal, false otherwise."
+  @spec internal?(t | Parser.function_name | nil) :: boolean
+  def internal?(param), do: has_attribute?(param, :internal)
 
   @doc "Provides information about alternatives for deprecated functions."
   @spec deprecation_info(t) :: {:error, :function_exists | :not_found} | {:ok, %{alternative: String.t}}
   def deprecation_info({:function, name, _, _} = function) do
-    case {exists?(function), @deprecated_functions[canonical_name(name)]} do
-      {true, _} -> {:error, :function_exists}
-      {false, nil} -> {:error, :not_found}
-      {false, value} -> {:ok, value}
+    case {internal?(function),  exists?(function), @deprecated_functions[canonical_name(name)]} do
+      {true, _, _} -> {:error, :internal_function}
+      {_, true, _} -> {:error, :function_exists}
+      {_, false, nil} -> {:error, :not_found}
+      {_, false, value} -> {:ok, value}
     end
   end
 

@@ -932,6 +932,11 @@ defmodule Cloak.Sql.Compiler.Test do
     end)
   end
 
+  test "internal functions don't exist from the analyst's perspective" do
+    assert {:error, error} = compile("SELECT dec_b64(string) FROM table", data_source())
+    assert error =~ "Unknown function `dec_b64`"
+  end
+
   defp validate_view(view_sql, data_source, options \\ []) do
     with {:ok, parsed_view} <- Parser.parse(view_sql), do:
       Compiler.validate_view(data_source, parsed_view, Keyword.get(options, :views, %{}))
