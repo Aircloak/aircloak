@@ -1186,6 +1186,9 @@ defmodule Cloak.Sql.Parser.Test do
   test "sample from table", do:
     assert_parse("select x from foo sample_users 10%", select(sample_rate: 10))
 
+  test "sample under 1%", do:
+    assert_parse("select x from foo sample_users 0.44%", select(sample_rate: 0.44))
+
   describe "unary NOT" do
     test "with a simple condition", do:
       assert_parse("select * from foo where NOT x = 1", select(where: {
