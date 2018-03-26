@@ -38,7 +38,7 @@ defmodule IntegrationTest.Manager do
   def user_password(), do: @user_password
 
   def create_air_user() do
-    admin_group = Repo.one!(from group in Group, where: group.name == @admin_group_name)
+    admin_group = Repo.one!(from(group in Group, where: group.name == @admin_group_name))
 
     # create user
     Air.Service.User.create!(%{
@@ -50,16 +50,18 @@ defmodule IntegrationTest.Manager do
     })
   end
 
-  def load_valid_license(), do:
-    :ok = create_license() |> Central.Service.License.export() |> Air.Service.License.load()
+  def load_valid_license(),
+    do: :ok = create_license() |> Central.Service.License.export() |> Air.Service.License.load()
 
   def load_expired_license() do
     license = create_license()
-    {:ok, _} = Ecto.Adapters.SQL.query(
-      Central.Repo,
-      "UPDATE licenses SET inserted_at = '2000-01-01 00:00:00' WHERE id = $1",
-      [license.id]
-    )
+
+    {:ok, _} =
+      Ecto.Adapters.SQL.query(
+        Central.Repo,
+        "UPDATE licenses SET inserted_at = '2000-01-01 00:00:00' WHERE id = $1",
+        [license.id]
+      )
 
     :ok =
       Central.Schemas.License
@@ -125,7 +127,12 @@ defmodule IntegrationTest.Manager do
     {:ok, license} =
       Central.Schemas.Customer
       |> Central.Repo.one!()
-      |> Central.Service.License.create(%{name: "test license", length_in_days: 10, auto_renew: false})
+      |> Central.Service.License.create(%{
+        name: "test license",
+        length_in_days: 10,
+        auto_renew: false
+      })
+
     license
   end
 end

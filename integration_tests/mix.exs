@@ -6,11 +6,11 @@ defmodule IntegrationTests.Mixfile do
       app: :integration_tests,
       version: "0.1.0",
       elixir: "~> 1.3",
-      build_embedded: Mix.env == :prod,
-      start_permanent: Mix.env == :prod,
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
       deps: deps(),
-      elixirc_paths: elixirc_paths(Mix.env),
-      preferred_cli_env: ["deps.get": :test],
+      elixirc_paths: elixirc_paths(Mix.env()),
+      preferred_cli_env: ["deps.get": :test]
     ]
   end
 
@@ -20,7 +20,7 @@ defmodule IntegrationTests.Mixfile do
       # We're not starting these apps automatically, since we need to do additional setup before they are
       # started. However, we're specifying them as included to ensure they are loaded and configured.
       included_applications: [:cloak, :air, :central],
-      extra_applications: [:logger, :odbc],
+      extra_applications: [:logger, :odbc]
     ]
   end
 
@@ -37,7 +37,7 @@ defmodule IntegrationTests.Mixfile do
       {:httpoison, "~> 0.12.0", override: true},
       {:hackney, ">= 1.8.6", override: true},
       # Needed when running air in dev
-      {:phoenix_live_reload, "~> 1.0"},
+      {:phoenix_live_reload, "~> 1.0"}
     ]
   end
 

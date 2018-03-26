@@ -19,15 +19,18 @@ defmodule IntegrationTest.QueryTest do
     {:ok, result} = run_query(context.user, "show columns from users")
 
     assert result.buckets == [
-      %{"occurrences" => 1, "row" => ["user_id", "text"]},
-      %{"occurrences" => 1, "row" => ["name", "text"]},
-      %{"occurrences" => 1, "row" => ["height", "integer"]}
-    ]
+             %{"occurrences" => 1, "row" => ["user_id", "text"]},
+             %{"occurrences" => 1, "row" => ["name", "text"]},
+             %{"occurrences" => 1, "row" => ["height", "integer"]}
+           ]
   end
 
   test "select", context do
     {:ok, result} = run_query(context.user, "select name, height from users")
-    assert result.buckets == [%{"occurrences" => 100, "row" => ["john", 180], "users_count" => 100}]
+
+    assert result.buckets == [
+             %{"occurrences" => 100, "row" => ["john", 180], "users_count" => 100}
+           ]
   end
 
   test "retrieval of query results as csv", context do
@@ -37,12 +40,12 @@ defmodule IntegrationTest.QueryTest do
     :timer.sleep(200)
 
     assert [["name", "height"], ["john", "180"]] ==
-      air_api_get!(context.user, "queries/#{query_id}.csv")
-      |> Map.fetch!(:body)
-      |> String.split("\r\n")
-      |> Enum.reject(&(&1 == ""))
-      |> CSV.decode()
-      |> Enum.uniq()
+             air_api_get!(context.user, "queries/#{query_id}.csv")
+             |> Map.fetch!(:body)
+             |> String.split("\r\n")
+             |> Enum.reject(&(&1 == ""))
+             |> CSV.decode()
+             |> Enum.uniq()
   end
 
   test "query context is properly set", context do
@@ -51,16 +54,17 @@ defmodule IntegrationTest.QueryTest do
     assert query.context == :http
   end
 
-  defp air_api_get!(user, path), do:
-    HTTPoison.get!(
-      "http://localhost:#{air_http_port()}/api/#{path}",
-      %{"auth-token" => Air.Token.create_api_token(user, :api, "test token")}
-    )
+  defp air_api_get!(user, path),
+    do:
+      HTTPoison.get!("http://localhost:#{air_http_port()}/api/#{path}", %{
+        "auth-token" => Air.Token.create_api_token(user, :api, "test token")
+      })
 
-  defp air_http_port(), do:
-    Application.fetch_env!(:air, AirWeb.Endpoint)
-    |> Keyword.fetch!(:http)
-    |> Keyword.fetch!(:port)
+  defp air_http_port(),
+    do:
+      Application.fetch_env!(:air, AirWeb.Endpoint)
+      |> Keyword.fetch!(:http)
+      |> Keyword.fetch!(:port)
 
   defp run_query(user, query, params \\ []) do
     {:ok, query} = Air.Service.Query.create(:autogenerate, user, :http, query, params, [])

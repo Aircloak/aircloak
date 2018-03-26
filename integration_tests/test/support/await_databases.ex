@@ -7,7 +7,6 @@ defmodule Mix.Tasks.AwaitDatabases do
 
   use Mix.Task
 
-
   # -------------------------------------------------------------------
   # Mix task interface
   # -------------------------------------------------------------------
@@ -16,10 +15,18 @@ defmodule Mix.Tasks.AwaitDatabases do
   def run(_) do
     Air.Repo.configure()
     repo_config = Application.fetch_env!(:air, Air.Repo)
-    Aircloak.await_service!(Keyword.fetch!(repo_config, :hostname), Keyword.fetch!(repo_config, :port))
+
+    Aircloak.await_service!(
+      Keyword.fetch!(repo_config, :hostname),
+      Keyword.fetch!(repo_config, :port)
+    )
 
     Central.Repo.configure()
     repo_config = Application.fetch_env!(:central, Central.Repo)
-    Aircloak.await_service!(Keyword.fetch!(repo_config, :hostname), Keyword.fetch!(repo_config, :port))
+
+    Aircloak.await_service!(
+      Keyword.fetch!(repo_config, :hostname),
+      Keyword.fetch!(repo_config, :port)
+    )
   end
 end
