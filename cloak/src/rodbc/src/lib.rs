@@ -1,4 +1,3 @@
-use std::mem::transmute;
 use std::os::raw::c_void;
 use std::ptr;
 
@@ -136,6 +135,6 @@ static mut DRIVER_ENTRY: ErlDrvEntry = ErlDrvEntry {
 };
 
 #[no_mangle]
-pub extern "C" fn driver_init() -> *mut ErlDrvEntry {
-    unsafe { transmute(&DRIVER_ENTRY) }
+pub unsafe extern "C" fn driver_init() -> *mut ErlDrvEntry {
+    &mut DRIVER_ENTRY as *mut ErlDrvEntry
 }
