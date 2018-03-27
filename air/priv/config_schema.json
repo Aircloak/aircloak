@@ -1,0 +1,46 @@
+{
+  "type": "object",
+  "properties": {
+    "database": {
+      "type": "object",
+      "properties": {
+        "host": {"type": "string", "minLength": 1},
+        "port": {"type": "integer", "minimum": 1},
+        "ssl": {"type": "boolean"},
+        "user": {"type": "string", "minLength": 1},
+        "password": {"type": "string"},
+        "name": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false,
+      "required": ["host", "port", "ssl", "user", "password", "name"]
+    },
+
+    "site": {
+      "type": "object",
+      "properties": {
+        "auth_secret": {"type": "string", "minLength": 60},
+        "endpoint_key_base": {"type": "string", "minLength": 60},
+        "api_token_salt": {"type": "string", "minLength": 60},
+        "master_password": {"type": "string", "minLength": 1},
+        "certfile": {"type": "string"},
+        "keyfile": {"type": "string"},
+        "use_staging_license_key": {"type": "boolean"}
+      },
+      "additionalProperties": false,
+      "required": ["auth_secret", "endpoint_key_base", "api_token_salt", "master_password"]
+    },
+
+    "psql_server": {
+      "type": "object",
+      "properties": {
+        "require_ssl": {"type": "boolean"},
+        "certfile": {"type": "string", "minLength": 1},
+        "keyfile": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false,
+      "required": ["require_ssl"]
+    }
+  },
+  "additionalProperties": false,
+  "required": ["database", "site"]
+}
