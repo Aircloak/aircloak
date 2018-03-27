@@ -17,32 +17,33 @@ defmodule Aircloak.DeployConfig do
   should be committed to have out-of-the-box default configurations for developers.
   """
 
-
   # -------------------------------------------------------------------
   # API macros and functions
   # -------------------------------------------------------------------
 
   @doc "Retrieves a deploy-specific configuration value of the calling app, raises if it's not found."
-  defmacro fetch!(key), do:
-    quote(do: unquote(__MODULE__).fetch!(unquote(Mix.Project.config[:app]), unquote(key)))
+  defmacro fetch!(key),
+    do: quote(do: unquote(__MODULE__).fetch!(unquote(Mix.Project.config()[:app]), unquote(key)))
 
   @doc "Retrieves a deploy-specific configuration value of the calling app."
-  defmacro fetch(key), do:
-    quote(do: unquote(__MODULE__).fetch(unquote(Mix.Project.config[:app]), unquote(key)))
+  defmacro fetch(key),
+    do: quote(do: unquote(__MODULE__).fetch(unquote(Mix.Project.config()[:app]), unquote(key)))
 
   @doc "Retrieves a deploy-specific configuration or the value from the calling app environment."
-  defmacro override_app_env!(key), do:
-    quote(do: unquote(__MODULE__).override_app_env!(unquote(Mix.Project.config[:app]), unquote(key)))
+  defmacro override_app_env!(key),
+    do:
+      quote(
+        do:
+          unquote(__MODULE__).override_app_env!(unquote(Mix.Project.config()[:app]), unquote(key))
+      )
 
   @doc "Retrieves a deploy-specific configuration value of the given app, raises if it's not found."
   @spec fetch!(atom, any) :: any
-  def fetch!(app, key), do:
-    app |> read_config!() |> Map.fetch!(key)
+  def fetch!(app, key), do: app |> read_config!() |> Map.fetch!(key)
 
   @doc "Retrieves a deploy-specific configuration value of the given app."
   @spec fetch(atom, any) :: {:ok, any} | :error
-  def fetch(app, key), do:
-    app |> read_config!() |> Map.fetch(key)
+  def fetch(app, key), do: app |> read_config!() |> Map.fetch(key)
 
   @doc "Retrieves a deploy-specific configuration or the value from the application environment."
   @spec override_app_env!(atom, atom) :: any
@@ -54,13 +55,21 @@ defmodule Aircloak.DeployConfig do
   end
 
   @doc "Updates cached configuration value of the calling app."
-  defmacro update(key, fun), do:
-    quote(do: unquote(__MODULE__).update(unquote(Mix.Project.config[:app]), unquote(key), unquote(fun)))
+  defmacro update(key, fun),
+    do:
+      quote(
+        do:
+          unquote(__MODULE__).update(
+            unquote(Mix.Project.config()[:app]),
+            unquote(key),
+            unquote(fun)
+          )
+      )
 
   @doc "Updates cached configuration value of the given app."
   @spec update(atom, any, (any -> any)) :: :ok
-  def update(app, key, fun), do:
-    Application.put_env(app, __MODULE__, Map.update!(read_config!(app), key, fun))
+  def update(app, key, fun),
+    do: Application.put_env(app, __MODULE__, Map.update!(read_config!(app), key, fun))
 
   @doc "Validates the schema of the config.json according to priv/config_schema.json file."
   @spec validate!(atom, Map.t | nil) :: :ok
@@ -83,7 +92,6 @@ defmodule Aircloak.DeployConfig do
       raise("Configuration file is not valid:\n#{formatted_errors}")
     end
   end
-
 
   # -------------------------------------------------------------------
   # Internal functions

@@ -3,16 +3,16 @@ defmodule Air.Repo.Migrations.AddCompletedToQueries do
 
   def up do
     alter table(:queries) do
-      add :completed, :boolean, default: false
+      add(:completed, :boolean, default: false)
     end
 
     # All past queries should be considered completed
-    execute "UPDATE queries SET completed = true;"
+    execute("UPDATE queries SET completed = true;")
   end
 
   def down do
     alter table(:queries) do
-      remove :completed
+      remove(:completed)
     end
   end
 end

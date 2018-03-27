@@ -13,7 +13,6 @@ defmodule AirWeb.Socket.Cloak.Serializer do
   alias Phoenix.Socket.Message
   alias Phoenix.Socket.Broadcast
 
-
   # -------------------------------------------------------------------
   # Phoenix.Transports.Serializer callbacks
   # -------------------------------------------------------------------
@@ -24,33 +23,40 @@ defmodule AirWeb.Socket.Cloak.Serializer do
   end
 
   @doc false
-  def encode!(%Reply{} = reply), do:
-    encode(%Message{
-      join_ref: reply.join_ref,
-      ref: reply.ref,
-      topic: reply.topic,
-      event: "phx_reply",
-      payload: %{status: reply.status, response: reply.payload},
-    })
-  def encode!(%Message{} = msg),
-    do: encode(msg)
+  def encode!(%Reply{} = reply),
+    do:
+      encode(%Message{
+        join_ref: reply.join_ref,
+        ref: reply.ref,
+        topic: reply.topic,
+        event: "phx_reply",
+        payload: %{status: reply.status, response: reply.payload}
+      })
+
+  def encode!(%Message{} = msg), do: encode(msg)
 
   @doc false
-  def decode!(message, _opts), do:
-    Aircloak.report_long(
-      :decode_cloak_message,
-      fn -> message |> :erlang.binary_to_term() |> to_message() end
-    )
-
+  def decode!(message, _opts),
+    do:
+      Aircloak.report_long(:decode_cloak_message, fn ->
+        message |> :erlang.binary_to_term() |> to_message()
+      end)
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp encode(message), do:
-    {:socket_push, :binary,
-      :erlang.term_to_binary([message.join_ref, message.ref, message.topic, message.event, message.payload])}
+  defp encode(message),
+    do:
+      {:socket_push, :binary,
+       :erlang.term_to_binary([
+         message.join_ref,
+         message.ref,
+         message.topic,
+         message.event,
+         message.payload
+       ])}
 
-  defp to_message([join_ref, ref, topic, event, payload]), do:
-    %Message{join_ref: join_ref, ref: ref, topic: topic, event: event, payload: payload}
+  defp to_message([join_ref, ref, topic, event, payload]),
+    do: %Message{join_ref: join_ref, ref: ref, topic: topic, event: event, payload: payload}
 end

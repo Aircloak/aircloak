@@ -3,12 +3,11 @@ defmodule Air.Repo.Migrations.CreateAuditLog do
 
   def change do
     create table(:audit_logs) do
-      add :event, :string
-      add :user, :string
-      add :metadata, :text
+      add(:event, :string)
+      add(:user, :string)
+      add(:metadata, :text)
 
       timestamps()
     end
-
   end
 end

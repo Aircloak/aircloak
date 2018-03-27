@@ -3,13 +3,13 @@ defmodule Air.Repo.Migrations.RemoveRows do
 
   def up do
     alter table(:queries) do
-      remove :rows
+      remove(:rows)
     end
   end
 
   def down do
     alter table(:queries) do
-      add :rows, :binary
+      add(:rows, :binary)
     end
   end
 end

@@ -14,13 +14,12 @@ defmodule Cloak.AirSocket do
 
   @behaviour GenSocketClient
 
-
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Starts the socket client."
-  @spec start_link(map, GenServer.options) :: GenServer.on_start
+  @spec start_link(map, GenServer.options()) :: GenServer.on_start()
   def start_link(cloak_params \\ cloak_params(), gen_server_opts \\ [name: __MODULE__]) do
     GenSocketClient.start_link(
       __MODULE__,
@@ -37,13 +36,14 @@ defmodule Cloak.AirSocket do
   The function returns when the Air responds. If the timeout occurs, it is
   still possible that the Air has received the request.
   """
-  @spec send_query_result(GenServer.server, map) :: :ok | {:error, any}
+  @spec send_query_result(GenServer.server(), map) :: :ok | {:error, any}
   def send_query_result(socket \\ __MODULE__, result) do
     Logger.info("sending query result to Air", query_id: result.query_id)
     call_air(socket, "main", "query_result", result, :timer.minutes(1))
     Logger.info("query result sent", query_id: result.query_id)
-  catch :exit, {:timeout, _} ->
-    {:error, :timeout}
+  catch
+    :exit, {:timeout, _} ->
+      {:error, :timeout}
   end
 
   @doc """
@@ -52,20 +52,19 @@ defmodule Cloak.AirSocket do
   The function returns when the Air responds. If the timeout occurs, it is
   still possible that the Air has received the request.
   """
-  @spec send_query_state(GenServer.server, String.t, atom) :: :ok | {:error, any}
-  def send_query_state(socket \\ __MODULE__, query_id, query_state), do:
-    cast_air(socket, "main", "query_state", %{query_id: query_id, query_state: query_state})
+  @spec send_query_state(GenServer.server(), String.t(), atom) :: :ok | {:error, any}
+  def send_query_state(socket \\ __MODULE__, query_id, query_state),
+    do: cast_air(socket, "main", "query_state", %{query_id: query_id, query_state: query_state})
 
   @doc "Sends cloak memory stats to the air."
-  @spec send_memory_stats(GenServer.server, Keyword.t) :: :ok | {:error, any}
-  def send_memory_stats(socket \\ __MODULE__, memory_reading), do:
-    cast_air(socket, "main", "memory_reading", memory_reading |> Enum.into(%{}))
+  @spec send_memory_stats(GenServer.server(), Keyword.t()) :: :ok | {:error, any}
+  def send_memory_stats(socket \\ __MODULE__, memory_reading),
+    do: cast_air(socket, "main", "memory_reading", memory_reading |> Enum.into(%{}))
 
   @doc "Updates the configuration of the current cloak in the air."
-  @spec update_config(GenServer.server, DataSource.t) :: :ok | {:error, any}
-  def update_config(socket \\ __MODULE__, data_sources), do:
-    cast_air(socket, "main", "update_config", get_join_info(data_sources))
-
+  @spec update_config(GenServer.server(), DataSource.t()) :: :ok | {:error, any}
+  def update_config(socket \\ __MODULE__, data_sources),
+    do: cast_air(socket, "main", "update_config", get_join_info(data_sources))
 
   # -------------------------------------------------------------------
   # GenSocketClient callbacks
@@ -74,11 +73,13 @@ defmodule Cloak.AirSocket do
   @impl GenSocketClient
   def init({air_socket_url, params}) do
     initial_interval = config(:min_reconnect_interval)
+
     state = %{
       pending_calls: %{},
       reconnect_interval: initial_interval,
       rejoin_interval: initial_interval
     }
+
     {:connect, air_socket_url, params, state}
   end
 
@@ -106,13 +107,13 @@ defmodule Cloak.AirSocket do
 
   @impl GenSocketClient
   def handle_join_error(topic, payload, _transport, state) do
-    Logger.error("join error on the topic #{topic}: #{inspect payload}")
+    Logger.error("join error on the topic #{topic}: #{inspect(payload)}")
     {:ok, state}
   end
 
   @impl GenSocketClient
   def handle_channel_closed(topic, payload, _transport, %{rejoin_interval: interval} = state) do
-    Logger.error("disconnected from the topic #{topic}: #{inspect payload}")
+    Logger.error("disconnected from the topic #{topic}: #{inspect(payload)}")
     Process.send_after(self(), {:join, topic}, interval)
     {:ok, %{state | rejoin_interval: next_interval(interval)}}
   end
@@ -121,30 +122,38 @@ defmodule Cloak.AirSocket do
   def handle_message("main", "air_call", request, transport, state) do
     handle_air_call(request.event, request.payload, {transport, request.request_id}, state)
   end
+
   def handle_message("main", "air_response", payload, _transport, state) do
     request_id = payload.request_id
+
     case Map.fetch(state.pending_calls, request_id) do
       {:ok, request_data} ->
         Process.cancel_timer(request_data.timeout_ref)
-        response = case payload.status do
-          :ok -> {:ok, payload.result}
-          :error -> {:error, payload.result}
-          _other -> {:error, {:invalid_status, payload}}
-        end
+
+        response =
+          case payload.status do
+            :ok -> {:ok, payload.result}
+            :error -> {:error, payload.result}
+            _other -> {:error, {:invalid_status, payload}}
+          end
+
         GenSocketClient.reply(request_data.from, response)
+
       :error ->
-        Logger.warn("unknown sync call response: #{inspect payload}")
+        Logger.warn("unknown sync call response: #{inspect(payload)}")
     end
+
     {:ok, update_in(state.pending_calls, &Map.delete(&1, request_id))}
   end
+
   def handle_message(topic, event, payload, _transport, state) do
-    Logger.warn("unhandled message on topic #{topic}: #{event} #{inspect payload}")
+    Logger.warn("unhandled message on topic #{topic}: #{event} #{inspect(payload)}")
     {:ok, state}
   end
 
   @impl GenSocketClient
   def handle_reply(topic, _ref, payload, _transport, state) do
-    Logger.warn("unhandled reply on topic #{topic}: #{inspect payload}")
+    Logger.warn("unhandled reply on topic #{topic}: #{inspect(payload)}")
     {:ok, state}
   end
 
@@ -153,42 +162,54 @@ defmodule Cloak.AirSocket do
     log_connect()
     {:connect, state}
   end
+
   def handle_info({:join, topic}, transport, state) do
     case GenSocketClient.join(transport, topic, get_join_info(Cloak.DataSource.all())) do
       {:error, reason} ->
-        Logger.error("error joining the topic #{topic}: #{inspect reason}")
+        Logger.error("error joining the topic #{topic}: #{inspect(reason)}")
         Process.send_after(self(), {:join, topic}, config(:rejoin_interval))
-      {:ok, _ref} -> :ok
+
+      {:ok, _ref} ->
+        :ok
     end
+
     {:ok, state}
   end
+
   def handle_info({{__MODULE__, :cast_air}, topic, event, payload}, transport, state) do
     push(transport, topic, event, payload)
     {:ok, state}
   end
+
   def handle_info({:call_timeout, request_id}, _transport, state) do
     # We're just removing entries here without responding. It is the responsibility of the
     # client code to give up at some point.
     Logger.warn("#{request_id} sync call timeout")
     {:ok, update_in(state.pending_calls, &Map.delete(&1, request_id))}
   end
+
   def handle_info(message, _transport, state) do
-    Logger.warn("unhandled message #{inspect message}")
+    Logger.warn("unhandled message #{inspect(message)}")
     {:ok, state}
   end
 
-
   @impl GenSocketClient
   def handle_call({:call_air, request_id, topic, event, payload, timeout}, from, transport, state) do
-    case push(transport, topic, "cloak_call", %{request_id: request_id, event: event, payload: payload}) do
+    case push(transport, topic, "cloak_call", %{
+           request_id: request_id,
+           event: event,
+           payload: payload
+         }) do
       :ok ->
         timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
-        {:noreply, put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
+
+        {:noreply,
+         put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
+
       {:error, error} ->
         {:reply, {:error, error}, state}
     end
   end
-
 
   # -------------------------------------------------------------------
   # Handling air sync calls
@@ -201,6 +222,7 @@ defmodule Cloak.AirSocket do
 
       {:ok, data_source} ->
         Logger.info("starting query", query_id: serialized_query.id)
+
         Cloak.Query.Runner.start(
           serialized_query.id,
           data_source,
@@ -208,10 +230,13 @@ defmodule Cloak.AirSocket do
           decode_params(serialized_query.parameters),
           serialized_query.views
         )
+
         respond_to_air(from, :ok)
     end
+
     {:ok, state}
   end
+
   defp handle_air_call("describe_query", serialized_query, from, state) do
     case Cloak.DataSource.fetch(serialized_query.data_source) do
       :error ->
@@ -219,36 +244,45 @@ defmodule Cloak.AirSocket do
 
       {:ok, data_source} ->
         case Cloak.Sql.Query.describe_query(
-          data_source,
-          serialized_query.statement || "",
-          decode_params(serialized_query.parameters),
-          serialized_query.views
-        ) do
-          {:ok, columns, features} -> respond_to_air(from, :ok, %{columns: columns, features: features})
-          {:error, reason} -> respond_to_air(from, :ok, %{error: reason})
+               data_source,
+               serialized_query.statement || "",
+               decode_params(serialized_query.parameters),
+               serialized_query.views
+             ) do
+          {:ok, columns, features} ->
+            respond_to_air(from, :ok, %{columns: columns, features: features})
+
+          {:error, reason} ->
+            respond_to_air(from, :ok, %{error: reason})
         end
-    end
-    {:ok, state}
-  end
-  defp handle_air_call("validate_views", serialized_view, from, state) do
-    case Cloak.DataSource.fetch(serialized_view.data_source) do
-      :error -> respond_to_air(from, :error, "Unknown data source.")
-      {:ok, data_source} -> respond_to_air(from, :ok, validate_views(data_source, serialized_view.views))
     end
 
     {:ok, state}
   end
+
+  defp handle_air_call("validate_views", serialized_view, from, state) do
+    case Cloak.DataSource.fetch(serialized_view.data_source) do
+      :error ->
+        respond_to_air(from, :error, "Unknown data source.")
+
+      {:ok, data_source} ->
+        respond_to_air(from, :ok, validate_views(data_source, serialized_view.views))
+    end
+
+    {:ok, state}
+  end
+
   defp handle_air_call("stop_query", query_id, from, state) do
     Logger.info("stopping query ...", query_id: query_id)
     Cloak.Query.Runner.stop(query_id, :cancelled)
     respond_to_air(from, :ok)
     {:ok, state}
   end
+
   defp handle_air_call("running_queries", _, from, state) do
     respond_to_air(from, :ok, Cloak.Query.Runner.running_queries())
     {:ok, state}
   end
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -275,9 +309,12 @@ defmodule Cloak.AirSocket do
   defp air_socket_url() do
     full_path =
       case Aircloak.DeployConfig.fetch("air_site") do
-        {:ok, air_site} -> air_site
-        :error -> raise "The air_site is not configured in config.json. Please consult the " <>
-          "\"Configuring the system\" section of the User Guide."
+        {:ok, air_site} ->
+          air_site
+
+        :error ->
+          raise "The air_site is not configured in config.json. Please consult the " <>
+                  "\"Configuring the system\" section of the User Guide."
       end
 
     full_path
@@ -286,36 +323,45 @@ defmodule Cloak.AirSocket do
     |> URI.to_string()
   end
 
-  @spec respond_to_air({GenSocketClient.transport, request_id::String.t}, :ok | :error, any) ::
-      :ok | {:error, any}
+  @spec respond_to_air({GenSocketClient.transport(), request_id :: String.t()}, :ok | :error, any) ::
+          :ok | {:error, any}
   defp respond_to_air({transport, request_id}, status, result \\ nil) do
     case GenSocketClient.push(transport, "main", "cloak_response", %{
-          request_id: request_id,
-          status: status,
-          result: result
-        }) do
+           request_id: request_id,
+           status: status,
+           result: result
+         }) do
       {:ok, _} -> :ok
       error -> error
     end
   end
 
-  @spec cast_air(GenServer.server, String.t, String.t, map) :: :ok
+  @spec cast_air(GenServer.server(), String.t(), String.t(), map) :: :ok
   defp cast_air(socket, topic, event, payload) do
     send(socket, {{__MODULE__, :cast_air}, topic, event, payload})
     :ok
   end
 
-  @spec call_air(GenServer.server, String.t, String.t, map, pos_integer) :: :ok | {:error, any}
+  @spec call_air(GenServer.server(), String.t(), String.t(), map, pos_integer) ::
+          :ok | {:error, any}
   defp call_air(socket, topic, event, payload, timeout) do
     request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
-    case GenSocketClient.call(socket, {:call_air, request_id, topic, event, payload, timeout}, timeout) do
+
+    case GenSocketClient.call(
+           socket,
+           {:call_air, request_id, topic, event, payload, timeout},
+           timeout
+         ) do
       {:ok, _} -> :ok
       error -> error
     end
   end
 
   defp cloak_params() do
-    %{cloak_name: cloak_name(), version: Aircloak.Version.for_app(:cloak) |> Aircloak.Version.to_string()}
+    %{
+      cloak_name: cloak_name(),
+      version: Aircloak.Version.for_app(:cloak) |> Aircloak.Version.to_string()
+    }
   end
 
   defp cloak_name() do
@@ -324,25 +370,32 @@ defmodule Cloak.AirSocket do
       |> Atom.to_string()
       |> String.split("@")
       |> hd()
+
     {:ok, hostname} = :inet.gethostname()
 
     "#{vm_short_name}@#{hostname}"
   end
 
   defp get_join_info(data_sources) do
-    data_sources = for data_source <- data_sources do
-      tables = for {id, table} <- data_source.tables do
-        columns = for column <- table.columns do
-          %{name: column.name, type: column.type, user_id: column.name == table.user_id}
-        end
-        %{id: id, columns: columns}
+    data_sources =
+      for data_source <- data_sources do
+        tables =
+          for {id, table} <- data_source.tables do
+            columns =
+              for column <- table.columns do
+                %{name: column.name, type: column.type, user_id: column.name == table.user_id}
+              end
+
+            %{id: id, columns: columns}
+          end
+
+        %{
+          name: data_source.name,
+          tables: tables,
+          errors: data_source.errors
+        }
       end
-      %{
-        name: data_source.name,
-        tables: tables,
-        errors: data_source.errors,
-      }
-    end
+
     %{data_sources: data_sources, salt_hash: get_salt_hash()}
   end
 
@@ -356,7 +409,7 @@ defmodule Cloak.AirSocket do
 
   defp validate_views(data_source, views) do
     for {name, sql} <- views do
-      Task.async(fn() ->
+      Task.async(fn ->
         case Cloak.Sql.Query.validate_view(data_source, name, sql, views) do
           {:ok, columns} -> %{name: name, valid: true, columns: columns}
           {:error, field, reason} -> %{name: name, valid: false, field: field, error: reason}
@@ -366,23 +419,22 @@ defmodule Cloak.AirSocket do
     |> Enum.map(&Task.await/1)
   end
 
-  defp get_salt_hash(), do: :crypto.hash(:sha256, Cloak.Query.Anonymizer.config(:salt)) |> Base.encode16()
+  defp get_salt_hash(),
+    do: :crypto.hash(:sha256, Cloak.Query.Anonymizer.config(:salt)) |> Base.encode16()
 
-  if Mix.env == :dev do
+  if Mix.env() == :dev do
     # suppressing of some common log messages in dev env to avoid excessive noise
     defp log_connect(), do: :ok
     defp log_disconnected(_reason), do: :ok
   else
     defp log_connect(), do: Logger.info("connecting")
-    defp log_disconnected(reason), do: Logger.error("disconnected: #{inspect reason}")
+    defp log_disconnected(reason), do: Logger.error("disconnected: #{inspect(reason)}")
   end
-
 
   # -------------------------------------------------------------------
   # Supervision tree
   # -------------------------------------------------------------------
 
   @doc false
-  def child_spec(_arg), do:
-    Supervisor.Spec.worker(__MODULE__, [])
+  def child_spec(_arg), do: Supervisor.Spec.worker(__MODULE__, [])
 end

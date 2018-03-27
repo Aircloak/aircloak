@@ -15,20 +15,27 @@ defmodule Air.PsqlServer.Protocol.Value do
     date: %{oid: 1082, len: 4, postgrex_extension: {Date, :elixir}},
     time: %{oid: 1083, len: 8, postgrex_extension: {Time, :elixir}},
     timestamp: %{oid: 1114, len: 8, postgrex_extension: {Timestamp, :elixir}},
-    numeric: %{oid: 1700, len: -1, postgrex_extension: {Numeric, nil}},
+    numeric: %{oid: 1700, len: -1, postgrex_extension: {Numeric, nil}}
   }
 
-  @type type :: unquote(
-    @types
-    |> Map.keys()
-    |> Enum.reduce(nil, fn
-      type, nil -> quote do unquote(type) end
-      type, acc -> quote do unquote(type) | unquote(acc) end
-    end)
-  )
+  @type type ::
+          unquote(
+            @types
+            |> Map.keys()
+            |> Enum.reduce(nil, fn
+              type, nil ->
+                quote do
+                  unquote(type)
+                end
+
+              type, acc ->
+                quote do
+                  unquote(type) | unquote(acc)
+                end
+            end)
+          )
 
   @type format :: :text | :binary
-
 
   # -------------------------------------------------------------------
   # API functions
@@ -49,24 +56,29 @@ defmodule Air.PsqlServer.Protocol.Value do
   @doc "Encodes the value, using the provided encoding format and desired type."
   @spec encode(any, format, type) :: binary
   def encode(nil, _, _), do: <<-1::32>>
-  def encode(value, :text, type), do:
-    value
-    |> text_encode(type)
-    |> with_size()
-  def encode(value, :binary, type), do:
-    value
-    |> normalize_for_postgrex_encoding(type)
-    |> binary_encode(type)
+
+  def encode(value, :text, type),
+    do:
+      value
+      |> text_encode(type)
+      |> with_size()
+
+  def encode(value, :binary, type),
+    do:
+      value
+      |> normalize_for_postgrex_encoding(type)
+      |> binary_encode(type)
 
   @doc "Decodes the value encoded with the given format and type."
   @spec decode(nil | binary, format, type) :: any
   def decode(nil, _, _), do: nil
   def decode(value, :text, type), do: text_decode(value, type)
-  def decode(value, :binary, type), do:
-    value
-    |> binary_decode(type)
-    |> normalize_postgrex_decoded_value()
 
+  def decode(value, :binary, type),
+    do:
+      value
+      |> binary_decode(type)
+      |> normalize_postgrex_decoded_value()
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -109,6 +121,5 @@ defmodule Air.PsqlServer.Protocol.Value do
     end
   end
 
-  defp with_size(encoded), do:
-    <<byte_size(encoded)::32, encoded::binary>>
+  defp with_size(encoded), do: <<byte_size(encoded)::32, encoded::binary>>
 end

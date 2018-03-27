@@ -3,7 +3,7 @@ defmodule Air.Repo.Migrations.AddUsersCountToQuery do
 
   def change do
     alter table(:queries) do
-      add :users_count, :integer
+      add(:users_count, :integer)
     end
   end
 end

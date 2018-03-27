@@ -3,7 +3,7 @@ defmodule Central.Repo.Migrations.AddAuxFieldToQueries do
 
   def change do
     alter table(:queries) do
-      add :aux, :map, default: fragment("'{}'::jsonb")
+      add(:aux, :map, default: fragment("'{}'::jsonb"))
     end
   end
 end

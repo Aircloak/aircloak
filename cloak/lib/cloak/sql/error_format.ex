@@ -32,49 +32,69 @@ defmodule Cloak.Sql.ErrorFormat do
 
   @line_number_width 6
 
-
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Formats an error as a string in the context of the given query."
-  @spec format(String.t, map()) :: String.t
+  @spec format(String.t(), map()) :: String.t()
   def format(query, error), do: do_format(query, error.message, Map.get(error, :source_location))
-
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   defp do_format(_query, message, nil), do: message
-  defp do_format(query, message, {line, column}), do:
-    to_string([
-      message, "\n\nThe error was detected at line ", to_string(line), ", column ", to_string(column),
-      error_indicator(query, line, column)
-    ])
+
+  defp do_format(query, message, {line, column}),
+    do:
+      to_string([
+        message,
+        "\n\nThe error was detected at line ",
+        to_string(line),
+        ", column ",
+        to_string(column),
+        error_indicator(query, line, column)
+      ])
 
   defp error_indicator(query, line, column) do
     platform_independent_newline = ~r/(*ANY)\n/
     context = query |> String.split(platform_independent_newline) |> Enum.drop(max(line - 2, 0))
-    [prev_line_no, line_no, next_line_no] = [line - 1, line, line + 1] |> Enum.map(&pad_line_number/1)
+
+    [prev_line_no, line_no, next_line_no] =
+      [line - 1, line, line + 1] |> Enum.map(&pad_line_number/1)
+
     filler = String.duplicate(" ", column - 1 + @line_number_width)
 
     case {line, context} do
       {1, [error_line, next_line | _]} ->
         [":\n\n\t", line_no, error_line, "\n\t", filler, "^\n\t", next_line_no, next_line]
+
       {1, [error_line | _]} ->
         [":\n\n\t", line_no, error_line, "\n\t", filler, "^\n"]
+
       {_, [prev_line, error_line]} ->
         [":\n\n\t", prev_line_no, prev_line, "\n\t", line_no, error_line, "\n\t", filler, "^\n"]
+
       {_, [prev_line, error_line, next_line | _]} ->
         [
-          ":\n\n\t", prev_line_no, prev_line, "\n\t", line_no, error_line, "\n\t", filler, "^\n\t", next_line_no,
+          ":\n\n\t",
+          prev_line_no,
+          prev_line,
+          "\n\t",
+          line_no,
+          error_line,
+          "\n\t",
+          filler,
+          "^\n\t",
+          next_line_no,
           next_line
         ]
-      _invalid_location -> "."
+
+      _invalid_location ->
+        "."
     end
   end
 
-  defp pad_line_number(line), do:
-    String.pad_trailing("#{to_string(line)}:", @line_number_width)
+  defp pad_line_number(line), do: String.pad_trailing("#{to_string(line)}:", @line_number_width)
 end

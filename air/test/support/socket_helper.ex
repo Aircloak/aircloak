@@ -10,30 +10,41 @@ defmodule Air.TestSocketHelper do
   alias GenSocketClient.TestSocket
 
   @doc "Opens a socket and waits for the connection status."
-  @spec connect!(%{}) :: {status::any, GenServer.on_start}
+  @spec connect!(%{}) :: {status :: any, GenServer.on_start()}
   def connect(params) do
-    params = case params["version"] do
-      nil ->
-        # We default to the current version. Tests that explicitly
-        # set the version are likely to want to test connection
-        # failure upon a wrong version number
-        Map.put(params, "version", File.read!("../VERSION"))
-      _ -> params
-    end
-    {:ok, socket} = TestSocket.start_link(GenSocketClient.Transport.WebSocketClient, url(), Enum.to_list(params), true,
-        serializer: Air.CloakSocketSerializer)
+    params =
+      case params["version"] do
+        nil ->
+          # We default to the current version. Tests that explicitly
+          # set the version are likely to want to test connection
+          # failure upon a wrong version number
+          Map.put(params, "version", File.read!("../VERSION"))
+
+        _ ->
+          params
+      end
+
+    {:ok, socket} =
+      TestSocket.start_link(
+        GenSocketClient.Transport.WebSocketClient,
+        url(),
+        Enum.to_list(params),
+        true,
+        serializer: Air.CloakSocketSerializer
+      )
+
     {TestSocket.wait_connect_status(socket), socket}
   end
 
   @doc "Opens a socket and waits for the connection to be successfully established."
-  @spec connect!(%{}) :: GenServer.on_start
+  @spec connect!(%{}) :: GenServer.on_start()
   def connect!(params) do
     {:connected, socket} = connect(params)
     socket
   end
 
   @doc "Joins a topic and wait for the successful response."
-  @spec join!(pid, String.t, %{}) :: {:ok, %{}}
+  @spec join!(pid, String.t(), %{}) :: {:ok, %{}}
   def join!(socket, topic, params \\ %{}) do
     params = Map.merge(%{salt_hash: "foobar"}, params)
     {:ok, {^topic, response}} = TestSocket.join(socket, topic, params)
@@ -41,32 +52,44 @@ defmodule Air.TestSocketHelper do
   end
 
   @doc "Awaits run_query request and responds with a given status."
-  @spec respond_to_start_task_request!(pid, String.t, String.t) :: :ok
+  @spec respond_to_start_task_request!(pid, String.t(), String.t()) :: :ok
   def respond_to_start_task_request!(socket, task_id, status) do
     timeout = :timer.seconds(1)
     {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
     %{event: "run_query", payload: %{id: ^task_id}, request_id: request_id} = request
-    {:ok, _ref} = TestSocket.push(socket, "main", "cloak_response", %{request_id: request_id, status: status})
+
+    {:ok, _ref} =
+      TestSocket.push(socket, "main", "cloak_response", %{request_id: request_id, status: status})
+
     :ok
   end
 
   @doc "Awaits run_query request with any task_id and responds with the given status."
-  @spec respond_to_start_task_request!(pid, String.t) :: :ok
+  @spec respond_to_start_task_request!(pid, String.t()) :: :ok
   def respond_to_start_task_request!(socket, status) do
     timeout = :timer.seconds(1)
     {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
     %{event: "run_query", request_id: request_id} = request
-    {:ok, _ref} = TestSocket.push(socket, "main", "cloak_response", %{request_id: request_id, status: status})
+
+    {:ok, _ref} =
+      TestSocket.push(socket, "main", "cloak_response", %{request_id: request_id, status: status})
+
     :ok
   end
 
   @doc "Awaits an is_alive request with the given query_id and responds with the given result."
-  @spec respond_to_running_queries!(pid, [String.t], pos_integer) :: :ok
+  @spec respond_to_running_queries!(pid, [String.t()], pos_integer) :: :ok
   def respond_to_running_queries!(socket, result, timeout \\ :timer.seconds(1)) do
     {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
     %{request_id: request_id, event: "running_queries", payload: nil} = request
-    {:ok, _ref} = TestSocket.push(socket, "main", "cloak_response", %{
-      request_id: request_id, status: :ok, result: result})
+
+    {:ok, _ref} =
+      TestSocket.push(socket, "main", "cloak_response", %{
+        request_id: request_id,
+        status: :ok,
+        result: result
+      })
+
     :ok
   end
 
@@ -74,18 +97,23 @@ defmodule Air.TestSocketHelper do
   Awaits a validate_views request and responds with the result of the given result function, called with the list of
   view names being validated.
   """
-  @spec respond_to_validate_views!(pid, ([String.t] -> [map]), pos_integer) :: :ok
+  @spec respond_to_validate_views!(pid, ([String.t()] -> [map]), pos_integer) :: :ok
   def respond_to_validate_views!(socket, result_fun, timeout \\ :timer.seconds(1)) do
     {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
     %{request_id: request_id, event: "validate_views", payload: %{views: views}} = request
 
-    {:ok, _ref} = TestSocket.push(socket, "main", "cloak_response", %{
-      request_id: request_id, status: :ok, result: result_fun.(Map.keys(views))})
+    {:ok, _ref} =
+      TestSocket.push(socket, "main", "cloak_response", %{
+        request_id: request_id,
+        status: :ok,
+        result: result_fun.(Map.keys(views))
+      })
+
     :ok
   end
 
   @doc "Runs the action while a cloak with the given name and data source exists and returns its result."
-  @spec with_cloak(String.t, String.t, (() -> any)) :: any
+  @spec with_cloak(String.t(), String.t(), (() -> any)) :: any
   def with_cloak(cloak_name, data_source_name, action) do
     socket = connect!(%{cloak_name: cloak_name})
 
@@ -99,7 +127,7 @@ defmodule Air.TestSocketHelper do
   end
 
   defp url() do
-    "#{AirWeb.Endpoint.url}/cloak/socket/websocket"
+    "#{AirWeb.Endpoint.url()}/cloak/socket/websocket"
     |> String.replace(~r(http://), "ws://")
     |> String.replace(~r(https://), "wss://")
   end

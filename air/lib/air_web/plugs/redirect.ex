@@ -18,7 +18,6 @@ defmodule AirWeb.Plug.Redirect do
 
   @behaviour Plug
 
-
   # -------------------------------------------------------------------
   # Plug callbacks
   # -------------------------------------------------------------------
@@ -29,7 +28,9 @@ defmodule AirWeb.Plug.Redirect do
   @impl Plug
   def call(conn, opts) do
     case Map.fetch(opts[:rules], conn.request_path) do
-      :error -> conn
+      :error ->
+        conn
+
       {:ok, transformed_path} ->
         Phoenix.Controller.redirect(conn, to: transformed_path)
     end

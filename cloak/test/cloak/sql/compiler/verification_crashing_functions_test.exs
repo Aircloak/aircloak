@@ -13,6 +13,7 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
         FROM table
       ) t
       """
+
       assert compiles_without_potential_crash_error(query)
     end
 
@@ -25,6 +26,7 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
         ) t
       ) t
       """
+
       assert compiles_without_potential_crash_error(query)
     end
 
@@ -35,6 +37,7 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
         FROM table
       ) t INNER JOIN table ON table.uid = t.uid and t.calc_val = 0
       """
+
       assert compiles_without_potential_crash_error(query)
     end
 
@@ -45,6 +48,7 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
         FROM table
       ) t INNER JOIN table ON table.uid = t.uid and t.calc_val >= 0 and t.calc_val < 10
       """
+
       assert compiles_without_potential_crash_error(query)
     end
 
@@ -59,6 +63,7 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
         HAVING calc_val = 0
       ) t
       """
+
       assert compiles_without_potential_crash_error(query)
     end
 
@@ -73,6 +78,7 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
         HAVING calc_val >= 0 and calc_val < 10
       ) t
       """
+
       assert compiles_without_potential_crash_error(query)
     end
 
@@ -86,6 +92,7 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
         WHERE calc_val = 10
       ) t
       """
+
       assert compiles_without_potential_crash_error(query)
     end
 
@@ -99,6 +106,7 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
         WHERE calc_val >= 0 and calc_val < 10
       ) t
       """
+
       assert compiles_without_potential_crash_error(query)
     end
 
@@ -109,11 +117,12 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
         FROM table
       ) t
       """
+
       assert expressions_potentially_crash(query)
     end
 
     test "/ is not allowed when selected only in a subquery with constant infected expression, " <>
-        "but not top-level-query" do
+           "but not top-level-query" do
       query = """
       SELECT count(*) FROM (
         SELECT uid, value FROM (
@@ -122,6 +131,7 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
         ) t
       ) t
       """
+
       assert expressions_potentially_crash(query)
     end
 
@@ -132,6 +142,7 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
         FROM table
       ) t INNER JOIN table ON table.uid = t.uid and t.calc_val = 0
       """
+
       assert expressions_potentially_crash(query)
     end
 
@@ -142,6 +153,7 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
         FROM table
       ) t INNER JOIN table ON table.uid = t.uid and t.calc_val >= 0 and t.calc_val < 10
       """
+
       assert expressions_potentially_crash(query)
     end
 
@@ -156,6 +168,7 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
         HAVING calc_val = 0
       ) t
       """
+
       assert expressions_potentially_crash(query)
     end
 
@@ -170,6 +183,7 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
         HAVING calc_val >= 0 and calc_val < 10
       ) t
       """
+
       assert expressions_potentially_crash(query)
     end
 
@@ -183,6 +197,7 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
         WHERE calc_val = 10
       ) t
       """
+
       assert expressions_potentially_crash(query)
     end
 
@@ -196,6 +211,7 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
         WHERE calc_val >= 0 and calc_val < 10
       ) t
       """
+
       assert expressions_potentially_crash(query)
     end
   end
@@ -212,12 +228,16 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
 
   defp expressions_potentially_crash(query) do
     case compile(query, data_source()) do
-      {:ok, _} -> raise "Expected query compilation failure due to potentially crashing function usage."
+      {:ok, _} ->
+        raise "Expected query compilation failure due to potentially crashing function usage."
+
       {:error, reason} ->
         if reason =~ ~r/database exception/ do
           true
         else
-          raise "Compilation failed with other reason than illegal potential crash: #{inspect reason}"
+          raise "Compilation failed with other reason than illegal potential crash: #{
+                  inspect(reason)
+                }"
         end
     end
   end
@@ -233,16 +253,19 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
     %{
       driver: Cloak.DataSource.PostgreSQL,
       tables: %{
-        table: Cloak.DataSource.Table.new("table", "uid",
-          db_name: "table",
-          columns: [
-            Table.column("uid", :integer),
-            Table.column("column", :datetime),
-            Table.column("numeric", :integer),
-            Table.column("float", :real),
-            Table.column("string", :text)
-          ]
-        )
+        table:
+          Cloak.DataSource.Table.new(
+            "table",
+            "uid",
+            db_name: "table",
+            columns: [
+              Table.column("uid", :integer),
+              Table.column("column", :datetime),
+              Table.column("numeric", :integer),
+              Table.column("float", :real),
+              Table.column("string", :text)
+            ]
+          )
       }
     }
   end

@@ -16,9 +16,9 @@ Central.Service.User.create(%{
   name: "Admin user",
   email: "admin@aircloak.com",
   password: "1234",
-  password_confirmation: "1234",
+  password_confirmation: "1234"
 })
 
 Central.Service.Customer.create(%{
-  name: "Test customer",
+  name: "Test customer"
 })

@@ -11,6 +11,7 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
         SELECT value
         FROM #{offensive_subquery()}
       """
+
       refute transformations_valid?(query)
     end
 
@@ -20,6 +21,7 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
         FROM #{offensive_subquery()}
         GROUP BY value
       """
+
       refute transformations_valid?(query)
     end
 
@@ -29,6 +31,7 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
         FROM #{offensive_subquery()}
         ORDER BY value ASC
       """
+
       refute transformations_valid?(query)
     end
 
@@ -38,6 +41,7 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
         FROM #{offensive_subquery()}
         WHERE value <> 0
       """
+
       refute transformations_valid?(query)
     end
 
@@ -47,6 +51,7 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
         FROM #{offensive_subquery()}
         HAVING count(value) > 0
       """
+
       refute transformations_valid?(query)
     end
 
@@ -56,12 +61,13 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
         FROM #{offensive_subquery()} INNER JOIN table
           ON c.uid = table.uid and c.value <> 0
       """
+
       refute transformations_valid?(query)
     end
   end
 
-  defp offensive_subquery(), do:
-    """
+  defp offensive_subquery(),
+    do: """
     (
       SELECT
         a.uid,
@@ -84,12 +90,16 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
 
   defp transformations_valid?(query) do
     case compile(query, data_source()) do
-      {:ok, _} -> true
+      {:ok, _} ->
+        true
+
       {:error, reason} ->
         if reason =~ ~r/Queries containing expressions with a high number of functions/ do
           false
         else
-          raise "Compilation failed with other reason than illegal filtering condition: #{inspect reason}"
+          raise "Compilation failed with other reason than illegal filtering condition: #{
+                  inspect(reason)
+                }"
         end
     end
   end
@@ -98,14 +108,17 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
     %{
       driver: Cloak.DataSource.PostgreSQL,
       tables: %{
-        table: Cloak.DataSource.Table.new("table", "uid",
-          db_name: "table",
-          columns: [
-            Table.column("uid", :integer),
-            Table.column("numeric", :integer),
-            Table.column("string", :text)
-          ]
-        )
+        table:
+          Cloak.DataSource.Table.new(
+            "table",
+            "uid",
+            db_name: "table",
+            columns: [
+              Table.column("uid", :integer),
+              Table.column("numeric", :integer),
+              Table.column("string", :text)
+            ]
+          )
       }
     }
   end

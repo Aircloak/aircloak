@@ -12,7 +12,7 @@ mount_to_aircloak VERSION
 
 mount_to_component \
   elixir/config elixir/lib elixir/priv elixir/test elixir/mix.exs elixir/mix.lock elixir/Makefile \
-  elixir/check_warnings.sh elixir/include
+  elixir/check_warnings.sh elixir/include elixir/.formatter.exs
 
 mount_cached_component elixir/deps elixir/_build .bash_history
 

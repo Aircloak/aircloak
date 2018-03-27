@@ -6,7 +6,6 @@ defmodule Cloak.DataSource.SQLServerTds do
 
   use Cloak.DataSource.Driver.SQL
 
-
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
@@ -17,15 +16,23 @@ defmodule Cloak.DataSource.SQLServerTds do
   @impl Driver
   def connect!(parameters) do
     self = self()
-    parameters = Enum.to_list(parameters) ++ [sync_connect: true,
-      pool: DBConnection.Connection, after_connect: fn (_) -> send self, :connected end]
+
+    parameters =
+      Enum.to_list(parameters) ++
+        [
+          sync_connect: true,
+          pool: DBConnection.Connection,
+          after_connect: fn _ -> send(self, :connected) end
+        ]
+
     {:ok, connection} = Tds.start_link(parameters)
+
     receive do
       :connected ->
         Tds.query!(connection, "SET ANSI_DEFAULTS ON", [])
         connection
-    after Driver.connect_timeout()
-      ->
+    after
+      Driver.connect_timeout() ->
         GenServer.stop(connection, :normal, :timer.seconds(5))
         DataSource.raise_error("Unknown failure during database connection process")
     end
@@ -33,13 +40,18 @@ defmodule Cloak.DataSource.SQLServerTds do
 
   @impl Driver
   def load_tables(connection, table) do
-    {schema_name, table_name} = case String.split(table.db_name, ".") do
-      [full_table_name] -> {"dbo", full_table_name}
-      [schema_name, table_name] -> {schema_name, table_name}
-    end
-    query = "SELECT column_name, data_type FROM information_schema.columns " <>
-      "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}' ORDER BY ordinal_position DESC"
-    row_mapper = fn ([name, type_name]) -> Table.column(name, parse_type(type_name)) end
+    {schema_name, table_name} =
+      case String.split(table.db_name, ".") do
+        [full_table_name] -> {"dbo", full_table_name}
+        [schema_name, table_name] -> {schema_name, table_name}
+      end
+
+    query =
+      "SELECT column_name, data_type FROM information_schema.columns " <>
+        "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}' ORDER BY ordinal_position DESC"
+
+    row_mapper = fn [name, type_name] -> Table.column(name, parse_type(type_name)) end
+
     case run_query(connection, query, row_mapper, &Enum.concat/1) do
       {:ok, []} -> DataSource.raise_error("Table `#{table.db_name}` does not exist")
       {:ok, columns} -> [%{table | columns: columns}]
@@ -60,25 +72,30 @@ defmodule Cloak.DataSource.SQLServerTds do
   @impl Driver
   def supports_connection_sharing?(), do: true
 
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   defp run_query(pool, statement, decode_mapper, result_processor) do
-    Tds.transaction(pool, fn(connection) ->
-      with {:ok, query} <- Tds.prepare(connection, statement, []) do
-        try do
-          with {:ok, %Tds.Result{rows: rows}} <- Tds.execute(connection, query, [], [decode_mapper: decode_mapper]) do
-            {:ok, result_processor.([rows])}
+    Tds.transaction(
+      pool,
+      fn connection ->
+        with {:ok, query} <- Tds.prepare(connection, statement, []) do
+          try do
+            with {:ok, %Tds.Result{rows: rows}} <-
+                   Tds.execute(connection, query, [], decode_mapper: decode_mapper) do
+              {:ok, result_processor.([rows])}
+            end
+          after
+            Tds.close(connection, query)
           end
-        after
-          Tds.close(connection, query)
+        else
+          {:error, error} ->
+            DataSource.raise_error("Driver exception: `#{Exception.message(error)}`")
         end
-      else
-        {:error, error} -> DataSource.raise_error("Driver exception: `#{Exception.message(error)}`")
-      end
-    end, [timeout: Driver.timeout()])
+      end,
+      timeout: Driver.timeout()
+    )
   end
 
   defp parse_type("varchar"), do: :text
@@ -106,14 +123,14 @@ defmodule Cloak.DataSource.SQLServerTds do
   defp parse_type("datetimeoffset"), do: :datetime
   defp parse_type(type), do: {:unsupported, type}
 
-
   # -------------------------------------------------------------------
   # Selected data mapping functions
   # -------------------------------------------------------------------
 
   defp map_fields([], []), do: []
-  defp map_fields([field | rest_fields], [mapper | rest_mappers]), do:
-    [mapper.(field) | map_fields(rest_fields, rest_mappers)]
+
+  defp map_fields([field | rest_fields], [mapper | rest_mappers]),
+    do: [mapper.(field) | map_fields(rest_fields, rest_mappers)]
 
   defp type_to_field_mapper(:integer), do: &integer_field_mapper/1
   defp type_to_field_mapper(:real), do: &real_field_mapper/1
@@ -135,16 +152,17 @@ defmodule Cloak.DataSource.SQLServerTds do
 
   defp datetime_field_mapper(nil), do: nil
   defp datetime_field_mapper({date, time, _offset}), do: datetime_field_mapper({date, time})
-  defp datetime_field_mapper({{year, month, day}, {hour, min, sec, fsec}}), do:
-    NaiveDateTime.new(year, month, day, hour, min, sec, {div(fsec, 10), 6}) |> error_to_nil()
+
+  defp datetime_field_mapper({{year, month, day}, {hour, min, sec, fsec}}),
+    do: NaiveDateTime.new(year, month, day, hour, min, sec, {div(fsec, 10), 6}) |> error_to_nil()
 
   defp date_field_mapper(nil), do: nil
-  defp date_field_mapper({year, month, day}), do:
-    Date.new(year, month, day) |> error_to_nil()
+  defp date_field_mapper({year, month, day}), do: Date.new(year, month, day) |> error_to_nil()
 
   defp time_field_mapper(nil), do: nil
-  defp time_field_mapper({hour, min, sec, fsec}), do:
-    Time.new(hour, min, sec, {div(fsec, 10), 6}) |> error_to_nil()
+
+  defp time_field_mapper({hour, min, sec, fsec}),
+    do: Time.new(hour, min, sec, {div(fsec, 10), 6}) |> error_to_nil()
 
   defp interval_field_mapper(nil), do: nil
   defp interval_field_mapper(number), do: Timex.Duration.from_seconds(number)

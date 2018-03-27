@@ -14,9 +14,11 @@ defmodule Cloak.DataSource.SAPHanaRODBC do
 
   This is useful in development, to allow different developers to work on different schemas.
   """
-  @spec default_schema() :: nil | String.t
-  def default_schema(), do:
-    non_empty_schema(default_schema_from_os_env()) || non_empty_schema(default_schema_from_app_config())
+  @spec default_schema() :: nil | String.t()
+  def default_schema(),
+    do:
+      non_empty_schema(default_schema_from_os_env()) ||
+        non_empty_schema(default_schema_from_app_config())
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
@@ -27,18 +29,22 @@ defmodule Cloak.DataSource.SAPHanaRODBC do
 
   @impl Driver
   def connect!(parameters) do
-    normalized_parameters = for {key, value} <- parameters, into: %{}, do:
-      {key |> Atom.to_string() |> String.downcase() |> String.to_atom(), value}
+    normalized_parameters =
+      for {key, value} <- parameters,
+          into: %{},
+          do: {key |> Atom.to_string() |> String.downcase() |> String.to_atom(), value}
 
-    odbc_parameters = %{
-      "servernode": "#{normalized_parameters[:hostname]}:#{normalized_parameters[:port]}",
-      "Uid": normalized_parameters[:username],
-      "Pwd": normalized_parameters[:password],
-      "databasename": normalized_parameters[:database],
-      "DSN": "SAPHana",
-    }
-    |> Map.merge(schema_option(default_schema()))
-    |> add_optional_parameters(parameters)
+    odbc_parameters =
+      %{
+        servernode: "#{normalized_parameters[:hostname]}:#{normalized_parameters[:port]}",
+        Uid: normalized_parameters[:username],
+        Pwd: normalized_parameters[:password],
+        databasename: normalized_parameters[:database],
+        DSN: "SAPHana"
+      }
+      |> Map.merge(schema_option(default_schema()))
+      |> add_optional_parameters(parameters)
+
     RODBC.connect!(odbc_parameters)
   end
 
@@ -47,9 +53,12 @@ defmodule Cloak.DataSource.SAPHanaRODBC do
 
   @impl Driver
   def load_tables(connection, table) do
-    statement = "SELECT column_name, lower(data_type_name) FROM table_columns " <>
-      "WHERE table_name = '#{table.db_name}' AND schema_name = '#{default_schema() || "SYS"}' ORDER BY position DESC"
-    row_mapper = fn ([name, type_name]) -> Table.column(name, parse_type(type_name)) end
+    statement =
+      "SELECT column_name, lower(data_type_name) FROM table_columns " <>
+        "WHERE table_name = '#{table.db_name}' AND schema_name = '#{default_schema() || "SYS"}' ORDER BY position DESC"
+
+    row_mapper = fn [name, type_name] -> Table.column(name, parse_type(type_name)) end
+
     case RODBC.Driver.execute(connection, statement) do
       :ok ->
         case RODBC.Driver.fetch_all(connection, row_mapper) do
@@ -57,7 +66,9 @@ defmodule Cloak.DataSource.SAPHanaRODBC do
           {:ok, columns} -> [%{table | columns: columns, db_name: ~s/"#{table.db_name}"/}]
           {:error, reason} -> DataSource.raise_error("`#{to_string(reason)}`")
         end
-      {:error, reason} -> DataSource.raise_error("`#{to_string(reason)}`")
+
+      {:error, reason} ->
+        DataSource.raise_error("`#{to_string(reason)}`")
     end
   end
 
@@ -70,24 +81,20 @@ defmodule Cloak.DataSource.SAPHanaRODBC do
   @impl Driver
   defdelegate supports_connection_sharing?(), to: RODBC
 
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  if Mix.env == :prod do
+  if Mix.env() == :prod do
     # We don't allow env based override in prod
     defp default_schema_from_os_env(), do: nil
   else
-    defp default_schema_from_os_env(), do:
-      System.get_env("DEFAULT_SAP_HANA_SCHEMA")
+    defp default_schema_from_os_env(), do: System.get_env("DEFAULT_SAP_HANA_SCHEMA")
   end
 
   defp default_schema_from_app_config() do
-    with \
-      {:ok, saphana_settings} <- Application.fetch_env(:cloak, :sap_hana),
-      {:ok, default_schema} <- Keyword.fetch(saphana_settings, :default_schema)
-    do
+    with {:ok, saphana_settings} <- Application.fetch_env(:cloak, :sap_hana),
+         {:ok, default_schema} <- Keyword.fetch(saphana_settings, :default_schema) do
       default_schema
     else
       _ -> nil
@@ -103,8 +110,9 @@ defmodule Cloak.DataSource.SAPHanaRODBC do
 
   # Allows for adding additional ODBC connection parameters in the case where
   # a SQL Server installation requires additional parameters.
-  defp add_optional_parameters(default_params, %{odbc_parameters: additonal_parameters}), do:
-    Map.merge(default_params, additonal_parameters)
+  defp add_optional_parameters(default_params, %{odbc_parameters: additonal_parameters}),
+    do: Map.merge(default_params, additonal_parameters)
+
   defp add_optional_parameters(default_params, _), do: default_params
 
   defp parse_type("varchar"), do: :text

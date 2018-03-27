@@ -6,32 +6,33 @@ defmodule Cloak.MemoryReader.ReadingsTest do
   describe "Creating a reading struct" do
     test "adjusts layers to account for inserts per change in higher levels" do
       assert %Readings{
-        level_config: [
-          {"first_level", 1, 1},
-          {"second_level", 5, 5},
-          {"third_level", 3, 15},
-        ]
-      } = Readings.new([
-        {"first_level", 1},
-        {"second_level", 5},
-        {"third_level", 3},
-      ])
+               level_config: [
+                 {"first_level", 1, 1},
+                 {"second_level", 5, 5},
+                 {"third_level", 3, 15}
+               ]
+             } =
+               Readings.new([
+                 {"first_level", 1},
+                 {"second_level", 5},
+                 {"third_level", 3}
+               ])
     end
 
     test "sets the max count property" do
       assert %Readings{
-        update_max: 15,
-      } = Readings.new([
-        {"first_level", 1},
-        {"second_level", 5},
-        {"third_level", 3},
-      ])
+               update_max: 15
+             } =
+               Readings.new([
+                 {"first_level", 1},
+                 {"second_level", 5},
+                 {"third_level", 3}
+               ])
     end
   end
 
   describe "Adding measurements" do
-    test "increments counter", do:
-      assert %Readings{update_counter: 3} = add_values([1, 2, 3])
+    test "increments counter", do: assert(%Readings{update_counter: 3} = add_values([1, 2, 3]))
 
     test "for an empty record, adds the value to all levels" do
       assert %Readings{values: values} = add_values([1])
@@ -58,10 +59,10 @@ defmodule Cloak.MemoryReader.ReadingsTest do
   describe "Reading values" do
     test "returns the lowest per group" do
       assert %{
-        "first": 8,
-        "fourth": 1,
-        "second": 5,
-      } = Readings.values(add_values(1..8)) |> Enum.sort()
+               first: 8,
+               fourth: 1,
+               second: 5
+             } = Readings.values(add_values(1..8)) |> Enum.sort()
     end
   end
 
@@ -69,10 +70,10 @@ defmodule Cloak.MemoryReader.ReadingsTest do
     Readings.new([
       {"first", 1},
       {"second", 2},
-      {"fourth", 2},
+      {"fourth", 2}
     ])
   end
 
-  defp add_values(storage \\ default_readings(), values), do:
-    Enum.reduce(values, storage, & Readings.add_reading(&2, &1))
+  defp add_values(storage \\ default_readings(), values),
+    do: Enum.reduce(values, storage, &Readings.add_reading(&2, &1))
 end

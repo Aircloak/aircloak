@@ -17,21 +17,29 @@ defmodule Air.PsqlServer.RanchServer do
 
   alias Air.PsqlServer.Protocol
 
-  defstruct [:ref, :socket, :transport, :opts, :behaviour_mod, :protocol, :login_params, assigns: %{}]
-
-  @type t :: %__MODULE__{
-    # Only fields open to clients are specified here
-    login_params: %{String.t => String.t},
-    assigns: %{any => any}
-  }
-
-  @type opts :: [
-    ssl: [:ssl.ssl_option],
-    num_acceptors: pos_integer
+  defstruct [
+    :ref,
+    :socket,
+    :transport,
+    :opts,
+    :behaviour_mod,
+    :protocol,
+    :login_params,
+    assigns: %{}
   ]
 
-  @type behaviour_init_arg :: any
+  @type t :: %__MODULE__{
+          # Only fields open to clients are specified here
+          login_params: %{String.t() => String.t()},
+          assigns: %{any => any}
+        }
 
+  @type opts :: [
+          ssl: [:ssl.ssl_option()],
+          num_acceptors: pos_integer
+        ]
+
+  @type behaviour_init_arg :: any
 
   # -------------------------------------------------------------------
   # Behaviour callbacks
@@ -41,73 +49,75 @@ defmodule Air.PsqlServer.RanchServer do
   @callback init(t, behaviour_init_arg) :: {:ok, t} | {:error, any}
 
   @doc "Invoked to login the user."
-  @callback login(t, String.t) :: {:ok, t} | :error
+  @callback login(t, String.t()) :: {:ok, t} | :error
 
   @doc "Invoked to run the query."
-  @callback run_query(t, String.t, [Protocol.db_value], pos_integer) :: t
+  @callback run_query(t, String.t(), [Protocol.db_value()], pos_integer) :: t
 
   @doc "Invoked to cancel a query on a backend."
-  @callback cancel_query(t, ConnectionRegistry.key_data) :: t
+  @callback cancel_query(t, ConnectionRegistry.key_data()) :: t
 
   @doc "Invoked to describe the statement result."
-  @callback describe_statement(t, String.t, [Protocol.db_value]) :: t
+  @callback describe_statement(t, String.t(), [Protocol.db_value()]) :: t
 
   @doc "Invoked when a message is received by the connection process."
   @callback handle_message(t, any) :: t
-
 
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
   @doc "Starts the TCP server as the linked child of the caller process."
-  @spec start_embedded_server(pos_integer, module, behaviour_init_arg, opts) :: Supervisor.on_start
+  @spec start_embedded_server(pos_integer, module, behaviour_init_arg, opts) ::
+          Supervisor.on_start()
   def start_embedded_server(port, behaviour_mod, behaviour_init_arg, opts \\ []) do
     opts = Keyword.merge([num_acceptors: 100], opts)
     Logger.info("Accepting PostgreSQL requests on port #{port}")
+
     :ranch_listener_sup.start_link(
       {__MODULE__, port},
       Keyword.fetch!(opts, :num_acceptors),
       :ranch_tcp,
       [port: port],
-      __MODULE__, {opts, behaviour_mod, behaviour_init_arg}
+      __MODULE__,
+      {opts, behaviour_mod, behaviour_init_arg}
     )
   end
 
   @doc "Stores an arbitrary key-value pair into a connection state."
   @spec assign(t, any, any) :: t
-  def assign(conn, key, value), do:
-    put_in(conn.assigns[key], value)
+  def assign(conn, key, value), do: put_in(conn.assigns[key], value)
 
   @doc "Removes the value under the given key from the connection state."
   @spec unassign(t, any) :: t
-  def unassign(conn, key), do:
-    update_in(conn.assigns, &Map.delete(&1, key))
+  def unassign(conn, key), do: update_in(conn.assigns, &Map.delete(&1, key))
 
   @doc "Passes the query result to the protocol state."
-  @spec query_result(t, Protocol.query_result) :: t
-  def query_result(conn, query_result), do:
-    update_protocol(conn, &Protocol.query_result(&1, query_result))
+  @spec query_result(t, Protocol.query_result()) :: t
+  def query_result(conn, query_result),
+    do: update_protocol(conn, &Protocol.query_result(&1, query_result))
 
   @doc "Passes the query description to the protocol state."
-  @spec describe_result(t, Protocol.describe_result) :: t
-  def describe_result(conn, describe_result), do:
-    update_protocol(conn, &Protocol.describe_result(&1, describe_result))
+  @spec describe_result(t, Protocol.describe_result()) :: t
+  def describe_result(conn, describe_result),
+    do: update_protocol(conn, &Protocol.describe_result(&1, describe_result))
 
   @doc "Updates the protocol state."
-  @spec update_protocol(t, ((Protocol.t) -> Protocol.t)) :: t
-  def update_protocol(conn, fun), do:
-    handle_protocol_actions(%__MODULE__{conn | protocol: fun.(conn.protocol)})
-
+  @spec update_protocol(t, (Protocol.t() -> Protocol.t())) :: t
+  def update_protocol(conn, fun),
+    do: handle_protocol_actions(%__MODULE__{conn | protocol: fun.(conn.protocol)})
 
   # -------------------------------------------------------------------
   # :ranch_protocol callback functions
   # -------------------------------------------------------------------
 
   @impl :ranch_protocol
-  def start_link(ref, socket, transport, {opts, behaviour_mod, behaviour_init_arg}), do:
-    GenServer.start_link(__MODULE__, {ref, socket, transport, opts, behaviour_mod, behaviour_init_arg})
-
+  def start_link(ref, socket, transport, {opts, behaviour_mod, behaviour_init_arg}),
+    do:
+      GenServer.start_link(
+        __MODULE__,
+        {ref, socket, transport, opts, behaviour_mod, behaviour_init_arg}
+      )
 
   # -------------------------------------------------------------------
   # GenServer callback functions
@@ -116,14 +126,16 @@ defmodule Air.PsqlServer.RanchServer do
   @impl GenServer
   def init({ref, socket, transport, opts, behaviour_mod, behaviour_init_arg}) do
     send(self(), {:after_init, behaviour_init_arg})
-    {:ok, %__MODULE__{
-      ref: ref,
-      socket: socket,
-      transport: transport,
-      behaviour_mod: behaviour_mod,
-      opts: opts,
-      protocol: Protocol.new()
-    }}
+
+    {:ok,
+     %__MODULE__{
+       ref: ref,
+       socket: socket,
+       transport: transport,
+       behaviour_mod: behaviour_mod,
+       opts: opts,
+       protocol: Protocol.new()
+     }}
   end
 
   @impl GenServer
@@ -138,21 +150,25 @@ defmodule Air.PsqlServer.RanchServer do
       {:error, reason} -> {:stop, reason, conn}
     end
   end
+
   def handle_info(:close, conn) do
     conn.transport.close(conn.socket)
     {:stop, :normal, conn}
   end
+
   for transport <- [:tcp, :ssl] do
     def handle_info({unquote(transport), _socket, input}, conn) do
       conn = update_protocol(conn, &Protocol.process(&1, input))
       set_active_mode(conn)
       {:noreply, conn}
     end
-    def handle_info({unquote(:"#{transport}_closed"), _socket}, conn), do:
-      {:stop, :normal, conn}
-    def handle_info({unquote(:"#{transport}_error"), _socket, reason}, conn), do:
-      {:stop, reason, conn}
+
+    def handle_info({unquote(:"#{transport}_closed"), _socket}, conn), do: {:stop, :normal, conn}
+
+    def handle_info({unquote(:"#{transport}_error"), _socket, reason}, conn),
+      do: {:stop, reason, conn}
   end
+
   def handle_info(:upgrade_to_ssl, conn) do
     with {:ok, ssl_opts} <- Keyword.fetch(conn.opts, :ssl),
          :ok <- conn.transport.setopts(conn.socket, active: false),
@@ -169,22 +185,21 @@ defmodule Air.PsqlServer.RanchServer do
       _ -> {:stop, :ssl_error, conn}
     end
   end
-  def handle_info(msg, conn), do:
-    {:noreply, conn.behaviour_mod.handle_message(conn, msg)}
 
+  def handle_info(msg, conn), do: {:noreply, conn.behaviour_mod.handle_message(conn, msg)}
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp set_active_mode(conn), do:
-    conn.transport.setopts(conn.socket, active: :once)
+  defp set_active_mode(conn), do: conn.transport.setopts(conn.socket, active: :once)
 
   defp handle_protocol_actions(conn) do
     {actions, protocol} = Protocol.actions(conn.protocol)
     conn = %__MODULE__{conn | protocol: protocol}
     {output_chunks, other_actions} = extract_output_chunks(actions)
     conn.transport.send(conn.socket, output_chunks)
+
     case other_actions do
       [] -> conn
       _ -> Enum.reduce(other_actions, conn, &handle_protocol_action/2)
@@ -195,7 +210,7 @@ defmodule Air.PsqlServer.RanchServer do
     {send_actions, other_actions} = Enum.split_with(actions, &match?({:send, _}, &1))
 
     {
-      Enum.map(send_actions, fn({:send, buffer}) -> buffer end),
+      Enum.map(send_actions, fn {:send, buffer} -> buffer end),
       other_actions
     }
   end
@@ -204,40 +219,51 @@ defmodule Air.PsqlServer.RanchServer do
     send(self(), :close)
     conn
   end
+
   defp handle_protocol_action(:upgrade_to_ssl, conn) do
     send(self(), :upgrade_to_ssl)
     conn
   end
-  defp handle_protocol_action({:login_params, login_params}, conn), do:
-    conn
-    |> Map.put(:login_params, login_params)
-    |> update_protocol(&Protocol.authentication_method(&1, :cleartext))
+
+  defp handle_protocol_action({:login_params, login_params}, conn),
+    do:
+      conn
+      |> Map.put(:login_params, login_params)
+      |> update_protocol(&Protocol.authentication_method(&1, :cleartext))
+
   defp handle_protocol_action({:authenticate, password}, conn) do
     case conn.behaviour_mod.login(conn, password) do
       {:ok, conn} ->
         update_protocol(conn, &Protocol.authenticated(&1, true))
+
       :error ->
         update_protocol(conn, &Protocol.authenticated(&1, false))
     end
   end
-  defp handle_protocol_action({:run_query, query, params, max_rows}, conn), do:
-    conn.behaviour_mod.run_query(conn, query, params, max_rows)
-  defp handle_protocol_action({:cancel_query, key}, conn), do:
-    conn.behaviour_mod.cancel_query(conn, key)
-  defp handle_protocol_action({:register_key_data, key_data}, conn), do:
-    assign(conn, :key_data, key_data)
-  defp handle_protocol_action({:describe_statement, query, params}, conn), do:
-    conn.behaviour_mod.describe_statement(conn, query, params)
 
+  defp handle_protocol_action({:run_query, query, params, max_rows}, conn),
+    do: conn.behaviour_mod.run_query(conn, query, params, max_rows)
+
+  defp handle_protocol_action({:cancel_query, key}, conn),
+    do: conn.behaviour_mod.cancel_query(conn, key)
+
+  defp handle_protocol_action({:register_key_data, key_data}, conn),
+    do: assign(conn, :key_data, key_data)
+
+  defp handle_protocol_action({:describe_statement, query, params}, conn),
+    do: conn.behaviour_mod.describe_statement(conn, query, params)
 
   # -------------------------------------------------------------------
   # Supervision tree
   # -------------------------------------------------------------------
 
   @doc false
-  def child_spec({port, behaviour_mod, behaviour_init_arg, opts}), do:
-    Aircloak.ChildSpec.supervisor(
-      __MODULE__, :start_embedded_server,
-      [port, behaviour_mod, behaviour_init_arg, opts]
-    )
+  def child_spec({port, behaviour_mod, behaviour_init_arg, opts}),
+    do:
+      Aircloak.ChildSpec.supervisor(__MODULE__, :start_embedded_server, [
+        port,
+        behaviour_mod,
+        behaviour_init_arg,
+        opts
+      ])
 end

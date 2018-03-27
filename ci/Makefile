@@ -1,6 +1,6 @@
 SHELL=/bin/bash -o pipefail
 
-.PHONY: deps test clean all compile dialyze lint docs release
+.PHONY: deps test clean all compile dialyze lint docs release format check-format
 
 all: deps compile
 
@@ -31,3 +31,9 @@ release: deps
 lint:
 	MIX_ENV=dev mix lint
 	MIX_ENV=test mix lint
+
+format:
+	mix format --check-equivalent
+
+check-format:
+	mix format --check-formatted

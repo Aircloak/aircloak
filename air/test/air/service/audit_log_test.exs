@@ -90,8 +90,10 @@ defmodule Air.Service.AuditLogTest do
     AuditLog.log(user2, "event2", %{meta: true})
     assert AuditLog.event_types(params(%{users: [user1.email]})) == ["event1"]
     assert AuditLog.event_types(params(%{users: [user2.email]})) == ["event2"]
+
     assert AuditLog.event_types(params(%{users: [user1.email, user2.email]})) ==
-      ["event1", "event2"]
+             ["event1", "event2"]
+
     assert AuditLog.event_types(params(%{users: [user3.email]})) == []
   end
 
@@ -102,7 +104,10 @@ defmodule Air.Service.AuditLogTest do
     AuditLog.log(user1, "event1", %{meta: true})
     AuditLog.log(user2, "event2", %{meta: true})
 
-    assert AuditLog.event_types(params(%{users: [user1.email], events: ["event2"]})) == ["event1", "event2"]
+    assert AuditLog.event_types(params(%{users: [user1.email], events: ["event2"]})) == [
+             "event1",
+             "event2"
+           ]
   end
 
   test "users for audit logs is not dependent on user filtering" do
@@ -112,11 +117,13 @@ defmodule Air.Service.AuditLogTest do
     AuditLog.log(user1, "event1", %{meta: true})
     AuditLog.log(user2, "event2", %{meta: true})
 
-    emails = [user1, user2]
-      |> Enum.sort_by(&(&1.name))
-      |> Enum.map(&(&1.email))
+    emails =
+      [user1, user2]
+      |> Enum.sort_by(& &1.name)
+      |> Enum.map(& &1.email)
+
     assert AuditLog.users(params(%{users: [user1.email]}))
-      |> Enum.map(&(&1.email)) == emails
+           |> Enum.map(& &1.email) == emails
   end
 
   test "lists all users for audit logs" do
@@ -128,7 +135,7 @@ defmodule Air.Service.AuditLogTest do
     AuditLog.log(user2, "event2", %{meta: true, data_source: data_source.name})
 
     assert AuditLog.users(params(%{events: ["event1"]}))
-      |> Enum.map(&(&1.email)) == [user1.email]
+           |> Enum.map(& &1.email) == [user1.email]
   end
 
   test "includes selected users irrespective of filters" do
@@ -138,9 +145,11 @@ defmodule Air.Service.AuditLogTest do
     AuditLog.log(user1, "event1", %{meta: true})
     AuditLog.log(user2, "event2", %{meta: true})
 
-    expected = [user1, user2]
-      |> Enum.sort_by(&(&1.name))
-      |> Enum.map(&(%{name: &1.name, email: &1.email}))
+    expected =
+      [user1, user2]
+      |> Enum.sort_by(& &1.name)
+      |> Enum.map(&%{name: &1.name, email: &1.email})
+
     assert AuditLog.users(params(%{users: [user1.email], events: ["event2"]})) == expected
   end
 
@@ -153,7 +162,7 @@ defmodule Air.Service.AuditLogTest do
     AuditLog.log(user, "event", %{data_source: data_source2.name})
 
     names = [data_source1.name, data_source2.name] |> Enum.sort()
-    assert AuditLog.data_sources(params()) |> Enum.map(&(&1.name)) == names
+    assert AuditLog.data_sources(params()) |> Enum.map(& &1.name) == names
   end
 
   test "data source list filters with other filters" do
@@ -166,11 +175,14 @@ defmodule Air.Service.AuditLogTest do
     AuditLog.log(user1, "event2", %{data_source: data_source2.name})
 
     names = [data_source1.name, data_source2.name] |> Enum.sort()
+
     assert AuditLog.data_sources(params(%{users: [user1.email]}))
-     |> Enum.map(&(&1.name)) == names
+           |> Enum.map(& &1.name) == names
+
     assert AuditLog.data_sources(params(%{users: [user2.email]})) == []
+
     assert AuditLog.data_sources(params(%{users: [user1.email], events: ["event1"]}))
-     |> Enum.map(&(&1.name)) == [data_source1.name]
+           |> Enum.map(& &1.name) == [data_source1.name]
   end
 
   test "includes selected data sources irrespecitve of filters" do
@@ -182,8 +194,11 @@ defmodule Air.Service.AuditLogTest do
     AuditLog.log(user2, "event2", %{data_source: data_source2.name})
 
     names = [data_source1.name, data_source2.name] |> Enum.sort()
-    assert AuditLog.data_sources(params(%{users: [user1.email], data_sources: [data_source2.name]}))
-     |> Enum.map(&(&1.name)) == names
+
+    assert AuditLog.data_sources(
+             params(%{users: [user1.email], data_sources: [data_source2.name]})
+           )
+           |> Enum.map(& &1.name) == names
   end
 
   defp params(provided \\ %{}) do

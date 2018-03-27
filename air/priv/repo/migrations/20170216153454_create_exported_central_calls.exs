@@ -3,7 +3,7 @@ defmodule Air.Repo.Migrations.CreateExportedCentralCalls do
 
   def change do
     create table(:exported_central_calls) do
-      add :payload, :binary
+      add(:payload, :binary)
 
       timestamps()
     end

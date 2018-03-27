@@ -2,7 +2,6 @@ defmodule CentralWeb.SessionController do
   @moduledoc false
   use Central.Web, :controller
 
-
   # -------------------------------------------------------------------
   # Actions
   # -------------------------------------------------------------------
@@ -15,12 +14,14 @@ defmodule CentralWeb.SessionController do
     case Central.Service.User.login(params["email"], params["password"]) do
       {:ok, user} ->
         return_path = get_session(conn, :return_path) || "/"
+
         conn
         |> Guardian.Plug.sign_in(user)
         |> conditionally_create_persistent_login(params)
         |> put_session(:return_path, nil)
         |> put_flash(:info, "Logged in successfully. Welcome back!")
         |> redirect(to: return_path)
+
       _ ->
         conn
         |> put_flash(:error, "Invalid e-mail or password.")
@@ -36,7 +37,6 @@ defmodule CentralWeb.SessionController do
     |> redirect(to: session_path(conn, :new))
   end
 
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -44,5 +44,6 @@ defmodule CentralWeb.SessionController do
   defp conditionally_create_persistent_login(conn, %{"remember" => "on"}) do
     CentralWeb.Plug.Session.Restoration.persist_token(conn)
   end
+
   defp conditionally_create_persistent_login(conn, _params), do: conn
 end

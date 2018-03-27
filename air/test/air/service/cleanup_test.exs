@@ -14,7 +14,7 @@ defmodule Air.Service.Cleanup.Test do
     test "does nothing with unlimited retention" do
       query = create_query!()
       Cleanup.cleanup_old_queries(%Settings{query_retention_days: :unlimited})
-      assert Repo.all(Query) |> Enum.map(&(&1.id)) == [query.id]
+      assert Repo.all(Query) |> Enum.map(& &1.id) == [query.id]
     end
 
     test "removes queries older than retention days" do
@@ -26,7 +26,7 @@ defmodule Air.Service.Cleanup.Test do
     test "leaves queries not older than retention days" do
       query = create_query!()
       Cleanup.cleanup_old_queries(%Settings{query_retention_days: 10}, _now = in_days(9))
-      assert Repo.all(Query) |> Enum.map(&(&1.id)) == [query.id]
+      assert Repo.all(Query) |> Enum.map(& &1.id) == [query.id]
     end
   end
 
@@ -36,7 +36,8 @@ defmodule Air.Service.Cleanup.Test do
       Cleanup.cleanup_dead_queries()
       :timer.sleep(100)
 
-      assert %Query{query_state: :error, result: %{"error" => "Query died."}} = Repo.get!(Query, query.id)
+      assert %Query{query_state: :error, result: %{"error" => "Query died."}} =
+               Repo.get!(Query, query.id)
     end
 
     test "not erroring a query found in connected cloaks" do
@@ -58,9 +59,9 @@ defmodule Air.Service.Cleanup.Test do
     Timex.shift(NaiveDateTime.utc_now(), days: days)
   end
 
-  defp create_query!(), do:
-    TestRepoHelper.create_query!(
-      TestRepoHelper.create_user!(),
-      %{data_source_id: TestRepoHelper.create_data_source!().id}
-    )
+  defp create_query!(),
+    do:
+      TestRepoHelper.create_query!(TestRepoHelper.create_user!(), %{
+        data_source_id: TestRepoHelper.create_data_source!().id
+      })
 end

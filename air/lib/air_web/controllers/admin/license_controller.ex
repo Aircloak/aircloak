@@ -4,7 +4,6 @@ defmodule AirWeb.Admin.LicenseController do
 
   alias Air.Service.License
 
-
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
@@ -12,10 +11,9 @@ defmodule AirWeb.Admin.LicenseController do
   def permissions do
     %{
       admin: :all,
-      user: [:invalid],
+      user: [:invalid]
     }
   end
-
 
   # -------------------------------------------------------------------
   # Actions
@@ -35,7 +33,6 @@ defmodule AirWeb.Admin.LicenseController do
       _ -> redirect_to_edit(conn, :error, "Unknown error. Please try again.")
     end
   end
-
 
   # -------------------------------------------------------------------
   # Helpers

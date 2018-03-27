@@ -12,7 +12,9 @@ defmodule Central.SessionControllerTest do
     user = TestRepoHelper.create_user!()
 
     # invalid e-mail
-    html = build_conn() |> post("/auth", email: "foo@aircloak.com", password: "1234") |> response(200)
+    html =
+      build_conn() |> post("/auth", email: "foo@aircloak.com", password: "1234") |> response(200)
+
     assert html =~ "Invalid e-mail or password"
 
     # invalid password

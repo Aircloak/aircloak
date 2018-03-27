@@ -10,4 +10,3 @@ defmodule Central.Schemas.AirRPC do
     timestamps()
   end
 end
-

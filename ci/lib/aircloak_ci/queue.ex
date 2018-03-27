@@ -5,7 +5,6 @@ defmodule AircloakCI.Queue do
 
   @type id :: :docker_build | :compile | :test | :compliance | :github_api | :job
 
-
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -25,6 +24,7 @@ defmodule AircloakCI.Queue do
   @spec exec(id, (() -> result)) :: result when result: var
   def exec(id, fun) do
     {:ok, ref} = :jobs.ask(id)
+
     try do
       fun.()
     after

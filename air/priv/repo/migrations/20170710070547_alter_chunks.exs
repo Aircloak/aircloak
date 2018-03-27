@@ -4,17 +4,19 @@ defmodule Air.Repo.Migrations.AlterChunks do
   def change do
     Air.Repo.delete_all("result_chunks")
 
-    rename table(:result_chunks), :offset, to: :index
+    rename(table(:result_chunks), :offset, to: :index)
+
     alter table(:result_chunks) do
-      remove :row_count
+      remove(:row_count)
     end
   end
 
   def down do
     Air.Repo.delete_all("result_chunks")
-    rename table(:result_chunks), :index, to: :offset
+    rename(table(:result_chunks), :index, to: :offset)
+
     alter table(:result_chunks) do
-      add :row_count, :integer, null: false
+      add(:row_count, :integer, null: false)
     end
   end
 end

@@ -9,7 +9,15 @@ defmodule AircloakCI.TestGithubAPI do
   def put_status_check_state(owner, repo, sha, context, description, state) do
     send(
       __MODULE__.Subscriber,
-      {:posted_status, %{owner: owner, repo: repo, sha: sha, context: context, description: description, state: state}}
+      {:posted_status,
+       %{
+         owner: owner,
+         repo: repo,
+         sha: sha,
+         context: context,
+         description: description,
+         state: state
+       }}
     )
 
     {:ok, %{category: :rest, remaining: 5000, expires_at: NaiveDateTime.utc_now()}}

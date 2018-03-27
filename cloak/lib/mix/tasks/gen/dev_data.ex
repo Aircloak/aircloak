@@ -8,7 +8,6 @@ defmodule Mix.Tasks.Gen.DevData do
   use Mix.Task
   require Aircloak.DeployConfig
 
-
   # -------------------------------------------------------------------
   # Mix.Task callbacks
   # -------------------------------------------------------------------
@@ -19,23 +18,22 @@ defmodule Mix.Tasks.Gen.DevData do
     Cloak.PerformanceData.generate(num_users: 100)
   end
 
-
   # -------------------------------------------------------------------
   # Integers table
   # -------------------------------------------------------------------
 
   defp generate_integers() do
-    IO.puts "generating data"
+    IO.puts("generating data")
     data = integers_data()
 
     [:postgresql, :saphana]
     |> Enum.map(&{&1, open_connection(&1)})
-    |> Enum.filter(fn({_adapter, connect_result}) -> match?({:ok, _conn}, connect_result) end)
-    |> Enum.map(fn({adapter, {:ok, conn}}) -> {adapter, conn} end)
-    |> Enum.each(fn({adapter, _} = descriptor) ->
-      IO.puts "importing to #{adapter}"
+    |> Enum.filter(fn {_adapter, connect_result} -> match?({:ok, _conn}, connect_result) end)
+    |> Enum.map(fn {adapter, {:ok, conn}} -> {adapter, conn} end)
+    |> Enum.each(fn {adapter, _} = descriptor ->
+      IO.puts("importing to #{adapter}")
       insert(descriptor, data)
-      IO.puts "#{IO.ANSI.green()}done#{IO.ANSI.reset()}\n"
+      IO.puts("#{IO.ANSI.green()}done#{IO.ANSI.reset()}\n")
     end)
   end
 
@@ -43,11 +41,7 @@ defmodule Mix.Tasks.Gen.DevData do
     %{
       name: "integers",
       columns: [{"user_id", "integer"}, {"value", "integer"}],
-      data:
-        Stream.flat_map(
-          1..10_000,
-          fn(value) -> Stream.map(1..10, &[&1, value]) end
-        )
+      data: Stream.flat_map(1..10_000, fn value -> Stream.map(1..10, &[&1, value]) end)
     }
   end
 
@@ -56,12 +50,26 @@ defmodule Mix.Tasks.Gen.DevData do
     Postgrex.query!(conn, create_statement(table_spec), [])
     insert_chunks(table_spec.data, &postgresql_insert_rows(conn, table_spec, &1))
   end
+
   defp insert({:saphana, conn}, table_spec) do
-    Cloak.SapHanaHelpers.recreate_table!(conn, default_sap_hana_schema!(), table_spec.name, table_def(table_spec))
+    Cloak.SapHanaHelpers.recreate_table!(
+      conn,
+      default_sap_hana_schema!(),
+      table_spec.name,
+      table_def(table_spec)
+    )
+
     column_names = Enum.map(table_spec.columns, &elem(&1, 0))
+
     insert_chunks(
       table_spec.data,
-      &Cloak.SapHanaHelpers.insert_rows!(conn, default_sap_hana_schema!(), table_spec.name, column_names, &1)
+      &Cloak.SapHanaHelpers.insert_rows!(
+        conn,
+        default_sap_hana_schema!(),
+        table_spec.name,
+        column_names,
+        &1
+      )
     )
   end
 
@@ -71,28 +79,32 @@ defmodule Mix.Tasks.Gen.DevData do
 
     chunks
     |> Enum.with_index()
-    |> Enum.each(fn({rows, index}) ->
-      IO.write "\rchunk #{index+1}/#{num_chunks}"
+    |> Enum.each(fn {rows, index} ->
+      IO.write("\rchunk #{index + 1}/#{num_chunks}")
       inserter.(rows)
     end)
 
-    IO.puts "\n"
+    IO.puts("\n")
   end
 
-  defp postgresql_insert_rows(conn, table_spec, rows), do:
-    Postgrex.query!(
-      conn,
-      [
-        "
-          INSERT INTO #{table_spec.name} (#{table_spec.columns |> Enum.map(&elem(&1, 0)) |> Enum.join(", ")})
+  defp postgresql_insert_rows(conn, table_spec, rows),
+    do:
+      Postgrex.query!(
+        conn,
+        [
+          "
+          INSERT INTO #{table_spec.name} (#{
+            table_spec.columns |> Enum.map(&elem(&1, 0)) |> Enum.join(", ")
+          })
           VALUES #{rows |> Stream.map(&"(#{Enum.join(&1, ", ")})") |> Enum.join(",")}
         "
-      ],
-      []
-    )
+        ],
+        []
+      )
 
   defp open_connection(:postgresql) do
     Application.ensure_all_started(:postgrex)
+
     db_params =
       Aircloak.DeployConfig.fetch!(:cloak, "data_sources")
       |> Cloak.DataSource.Utility.load_individual_data_source_configs()
@@ -106,15 +118,14 @@ defmodule Mix.Tasks.Gen.DevData do
       password: db_params["password"]
     )
   end
+
   defp open_connection(:saphana) do
-    with \
-      :ok <- sap_hana_connectivity_possible(),
-      {:ok, _} <- Application.ensure_all_started(:odbc),
-      {:ok, default_schema} <- default_sap_hana_schema(),
-      connection_params = sap_hana_connection_params(default_schema),
-      :ok <- Cloak.SapHanaHelpers.ensure_schema(connection_params, default_schema),
-    do:
-      Cloak.SapHanaHelpers.connect(connection_params)
+    with :ok <- sap_hana_connectivity_possible(),
+         {:ok, _} <- Application.ensure_all_started(:odbc),
+         {:ok, default_schema} <- default_sap_hana_schema(),
+         connection_params = sap_hana_connection_params(default_schema),
+         :ok <- Cloak.SapHanaHelpers.ensure_schema(connection_params, default_schema),
+         do: Cloak.SapHanaHelpers.connect(connection_params)
   end
 
   defp default_sap_hana_schema!() do
@@ -133,7 +144,7 @@ defmodule Mix.Tasks.Gen.DevData do
           "  config :cloak, :sap_hana, default_schema: your_schema_name",
           "",
           "See `README.md` for more details.",
-          "",
+          ""
         ]
         |> Enum.join("\n")
         |> IO.puts()
@@ -152,7 +163,7 @@ defmodule Mix.Tasks.Gen.DevData do
         "Can't connect to SAP HANA data source from a macOS machine. SAP HANA data will not be recreated.",
         "To work with SAP HANA data sources, start a CI container with `make ci.compliance.debug`.",
         "See `README.md` for more details.",
-        "#{IO.ANSI.reset()}",
+        "#{IO.ANSI.reset()}"
       ]
       |> Enum.join("\n")
       |> IO.puts()
@@ -163,20 +174,22 @@ defmodule Mix.Tasks.Gen.DevData do
     end
   end
 
-  defp sap_hana_connection_params(default_schema), do:
-    Aircloak.DeployConfig.fetch!(:cloak, "data_sources")
-    |> Cloak.DataSource.Utility.load_individual_data_source_configs()
-    |> Enum.find(&(&1["name"] == "saphana"))
-    |> Map.fetch!("parameters")
-    |> Enum.map(fn({key, value}) -> {String.to_atom(key), value} end)
-    |> Enum.into(%{})
-    |> Map.put(:default_schema, default_schema)
+  defp sap_hana_connection_params(default_schema),
+    do:
+      Aircloak.DeployConfig.fetch!(:cloak, "data_sources")
+      |> Cloak.DataSource.Utility.load_individual_data_source_configs()
+      |> Enum.find(&(&1["name"] == "saphana"))
+      |> Map.fetch!("parameters")
+      |> Enum.map(fn {key, value} -> {String.to_atom(key), value} end)
+      |> Enum.into(%{})
+      |> Map.put(:default_schema, default_schema)
 
-  defp create_statement(table_spec), do:
-    "CREATE TABLE #{table_spec.name} (#{table_def(table_spec)})"
+  defp create_statement(table_spec),
+    do: "CREATE TABLE #{table_spec.name} (#{table_def(table_spec)})"
 
-  defp table_def(table_spec), do:
-    table_spec.columns
-    |> Enum.map(fn({name, type}) -> ~s/"#{name}" #{type}/ end)
-    |> Enum.join(", ")
+  defp table_def(table_spec),
+    do:
+      table_spec.columns
+      |> Enum.map(fn {name, type} -> ~s/"#{name}" #{type}/ end)
+      |> Enum.join(", ")
 end

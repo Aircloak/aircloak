@@ -5,14 +5,17 @@ defmodule Cloak.Sql.Compiler do
   alias Cloak.Sql.{CompilationError, Expression, Query}
   alias __MODULE__
 
-
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Prepares the parsed SQL query for execution."
-  @spec compile(DataSource.t, Parser.parsed_query, [Query.parameter] | nil, Query.view_map) ::
-    {:ok, Query.t, Query.features} | {:error, String.t}
+  @spec compile(
+          DataSource.t(),
+          Parser.parsed_query(),
+          [Query.parameter()] | nil,
+          Query.view_map()
+        ) :: {:ok, Query.t(), Query.features()} | {:error, String.t()}
   def compile(data_source, parsed_query, parameters, views) do
     {query, features} = compile!(data_source, parsed_query, parameters, views)
     {:ok, query, features}
@@ -21,8 +24,12 @@ defmodule Cloak.Sql.Compiler do
   end
 
   @doc "Prepares the parsed SQL query for execution. Raises CompilationErrors instead of returning `{:error, message}`"
-  @spec compile!(DataSource.t, Parser.parsed_query, [Query.parameter] | nil, Query.view_map) ::
-    {Query.t, Query.features}
+  @spec compile!(
+          DataSource.t(),
+          Parser.parsed_query(),
+          [Query.parameter()] | nil,
+          Query.view_map()
+        ) :: {Query.t(), Query.features()}
   def compile!(data_source, parsed_query, parameters, views) do
     compiled_query =
       parsed_query
@@ -45,20 +52,21 @@ defmodule Cloak.Sql.Compiler do
   end
 
   @doc "Validates a user-defined view."
-  @spec validate_view(DataSource.t, Parser.parsed_query, Query.view_map) :: :ok | {:error, String.t}
-  def validate_view(data_source, parsed_query, views), do:
-    compile(data_source, Map.put(parsed_query, :subquery?, true), [], views)
+  @spec validate_view(DataSource.t(), Parser.parsed_query(), Query.view_map()) ::
+          :ok | {:error, String.t()}
+  def validate_view(data_source, parsed_query, views),
+    do: compile(data_source, Map.put(parsed_query, :subquery?, true), [], views)
 
   @doc "Creates the query which describes a SELECT statement from a single table."
-  @spec make_select_query(DataSource.t, DataSource.Table.t, [Expression.t]) :: Query.t
-  def make_select_query(data_source, table, select_expressions), do:
-    %Query{
+  @spec make_select_query(DataSource.t(), DataSource.Table.t(), [Expression.t()]) :: Query.t()
+  def make_select_query(data_source, table, select_expressions),
+    do: %Query{
       command: :select,
       subquery?: true,
       columns: select_expressions,
       column_titles: Enum.map(select_expressions, &(&1.alias || &1.name)),
       from: table.name,
       data_source: data_source,
-      selected_tables: [table],
+      selected_tables: [table]
     }
 end

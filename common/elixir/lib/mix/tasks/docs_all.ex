@@ -15,7 +15,7 @@ defmodule Mix.Tasks.Docs.All do
   @impl Mix.Task
   def run(_args) do
     Mix.Task.run("docs", ["--output", "doc/elixir"])
-    :ok = :edoc.application(Mix.Project.config[:app], '.', preprocess: true, dir: 'doc/erlang')
-    Mix.shell.info([:green, "Erlang docs can be found at doc/erlang/index.html"])
+    :ok = :edoc.application(Mix.Project.config()[:app], '.', preprocess: true, dir: 'doc/erlang')
+    Mix.shell().info([:green, "Erlang docs can be found at doc/erlang/index.html"])
   end
 end

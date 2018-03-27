@@ -29,11 +29,13 @@ defmodule Air.Web do
 
       # Each controller must verify permissions
       @behaviour AirWeb.VerifyPermissions
-      plug AirWeb.VerifyPermissions, controller: __MODULE__
+      plug(AirWeb.VerifyPermissions, controller: __MODULE__)
 
       @doc false
       def audit_log(conn, event, metadata \\ []) do
-        Air.Service.AuditLog.log(conn.assigns.current_user, event,
+        Air.Service.AuditLog.log(
+          conn.assigns.current_user,
+          event,
           conn
           |> audit_log_meta()
           |> Map.merge(Enum.into(metadata, %{}))
@@ -48,7 +50,6 @@ defmodule Air.Web do
               {{a, b, c, d}, port} -> "#{a}.#{b}.#{c}.#{d}:#{port}"
               _ -> "Unknown"
             end,
-
           remote_ip:
             case conn.remote_ip do
               {a, b, c, d} -> "#{a}.#{b}.#{c}.#{d}"
@@ -72,7 +73,7 @@ defmodule Air.Web do
     quote do
       use Air.Web, :controller
 
-      plug :put_layout, "admin.html"
+      plug(:put_layout, "admin.html")
     end
   end
 

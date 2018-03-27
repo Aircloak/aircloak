@@ -12,17 +12,24 @@ defmodule Cloak.ResultSender.Test do
     end
 
     test "provides a total row count" do
-      ResultSender.send_result({:process_encoded, self()}, %{rows: [%{occurrences: 3}, %{occurrences: 5}]})
+      ResultSender.send_result({:process_encoded, self()}, %{
+        rows: [%{occurrences: 3}, %{occurrences: 5}]
+      })
+
       assert_receive %{row_count: 8}
     end
 
     test "encodes rows in chunks" do
-      rows = Enum.map(1..1001, fn(n) -> %{occurrences: 1, row: [n]} end)
+      rows = Enum.map(1..1001, fn n -> %{occurrences: 1, row: [n]} end)
       ResultSender.send_result({:process_encoded, self()}, %{rows: rows})
 
       assert_receive %{chunks: [%{encoded_data: chunk1}, %{encoded_data: chunk2}]}
-      assert [%{"occurrences" => 1, "row" => [1]} | _] = chunk1 |> :zlib.gunzip() |> Poison.decode!()
-      assert [%{"occurrences" => 1, "row" => [1001]}] = chunk2 |> :zlib.gunzip() |> Poison.decode!()
+
+      assert [%{"occurrences" => 1, "row" => [1]} | _] =
+               chunk1 |> :zlib.gunzip() |> Poison.decode!()
+
+      assert [%{"occurrences" => 1, "row" => [1001]}] =
+               chunk2 |> :zlib.gunzip() |> Poison.decode!()
     end
   end
 end

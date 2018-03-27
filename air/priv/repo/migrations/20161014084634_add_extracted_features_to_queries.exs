@@ -3,7 +3,7 @@ defmodule Air.Repo.Migrations.AddExtractedFeaturesToQueries do
 
   def change do
     alter table(:queries) do
-      add :features, :map
+      add(:features, :map)
     end
   end
 end

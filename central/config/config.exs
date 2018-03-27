@@ -9,7 +9,7 @@ use Mix.Config
 # adds to the noise.
 config :sasl, :sasl_error_logger, false
 
-config :aircloak_common, :env, Mix.env
+config :aircloak_common, :env, Mix.env()
 
 # Configures the endpoint
 config :central, CentralWeb.Endpoint,
@@ -17,8 +17,7 @@ config :central, CentralWeb.Endpoint,
   http: [port: 7080],
   root: Path.dirname(__DIR__),
   render_errors: [accepts: ~w(html json)],
-  pubsub: [name: CentralWeb.PubSub,
-           adapter: Phoenix.PubSub.PG2]
+  pubsub: [name: CentralWeb.PubSub, adapter: Phoenix.PubSub.PG2]
 
 config :central, :https_port, 7443
 
@@ -39,7 +38,7 @@ config :guardian, Guardian,
   allowed_algos: ["HS512"],
   verify_module: Guardian.JWT,
   issuer: "Aircloak Central",
-  ttl: { 30, :days },
+  ttl: {30, :days},
   verify_issuer: true,
   serializer: Central.GuardianSerializer
 
@@ -55,12 +54,13 @@ config :central, air_status_logging_interval: :timer.seconds(10)
 
 config :central, :delete_air_rpcs_after, :timer.hours(24) * 7
 
-config :quantum, central: [
-  cron: [
-    "@daily": {Central.Service.Customer, :delete_old_rpcs},
+config :quantum,
+  central: [
+    cron: [
+      "@daily": {Central.Service.Customer, :delete_old_rpcs}
+    ]
   ]
-]
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
-import_config "#{Mix.env}.exs"
+import_config "#{Mix.env()}.exs"

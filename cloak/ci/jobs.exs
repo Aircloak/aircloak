@@ -17,6 +17,7 @@ test = fn
       {:parallel, [
         "mix docs",
         "mix lint",
+        "make check-format",
         "mix bom --elixir deps /tmp/",
         "MIX_HOME=_build make dialyze",
       ]}

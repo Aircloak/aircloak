@@ -12,11 +12,11 @@ defmodule AirWeb.Admin.GroupView do
     end
   end
 
-  def group_row_class(group), do: if group.admin, do: "danger"
+  def group_row_class(group), do: if(group.admin, do: "danger")
 
   def names(groups) do
     groups
-    |> Enum.map(&(&1.name))
+    |> Enum.map(& &1.name)
     |> Enum.map(&shorten_name/1)
     |> format_names()
   end
@@ -25,9 +25,11 @@ defmodule AirWeb.Admin.GroupView do
   def format_names([group]), do: group
   def format_names([group1, group2]), do: "#{group1}, #{group2}"
   def format_names([group1, group2, group3]), do: "#{group1}, #{group2}, and #{group3}"
+
   def format_names(groups) do
     {first_groups, rest} = Enum.split(groups, 2)
-    first_groups ++ ["and #{length(rest)} other groups"]
+
+    (first_groups ++ ["and #{length(rest)} other groups"])
     |> Enum.join(", ")
   end
 

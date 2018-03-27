@@ -12,11 +12,14 @@ defmodule AirWeb.Plug.ValidateLicense.Browser do
   @impl Plug
   def call(conn, _opts) do
     cond do
-      Air.Service.License.valid?() -> conn
+      Air.Service.License.valid?() ->
+        conn
+
       Air.Schemas.User.admin?(conn.assigns.current_user) ->
         conn
         |> Phoenix.Controller.redirect(to: AirWeb.Router.Helpers.admin_license_path(conn, :edit))
         |> Plug.Conn.halt()
+
       true ->
         conn
         |> Plug.Conn.put_status(Plug.Conn.Status.code(:payment_required))

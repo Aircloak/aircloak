@@ -21,7 +21,8 @@ function prepare_for_test {
 }
 
 mount_to_aircloak VERSION common/elixir
-mount_to_component .gitignore assets config lib priv rel test mix.exs mix.lock Makefile README.md check_warnings.sh
+mount_to_component \
+  .gitignore assets config lib priv rel test mix.exs mix.lock Makefile README.md check_warnings.sh .formatter.exs
 mount_cached_component deps _build .bash_history docs/_book docs/node_modules priv/static
 
 case "$1" in

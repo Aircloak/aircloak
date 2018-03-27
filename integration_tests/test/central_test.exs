@@ -39,17 +39,22 @@ defmodule IntegrationTest.CentralTest do
       import_to_central(export1)
       _export2 = poll_for_export()
       export3 = poll_for_export()
-      assert {:error, {:missing_previous_export, export1.inserted_at}} == import_to_central(export3)
+
+      assert {:error, {:missing_previous_export, export1.inserted_at}} ==
+               import_to_central(export3)
     end
 
-    defp import_to_central(export), do:
-      export
-      |> Air.Schemas.ExportForAircloak.content()
-      |> Central.Service.Customer.import_customer_data()
+    defp import_to_central(export),
+      do:
+        export
+        |> Air.Schemas.ExportForAircloak.content()
+        |> Central.Service.Customer.import_customer_data()
 
     defp poll_for_export() do
       case Air.Service.Central.export_pending_calls() do
-        {:ok, export} -> export
+        {:ok, export} ->
+          export
+
         {:error, :nothing_to_export} ->
           :timer.sleep(10)
           poll_for_export()
@@ -57,18 +62,19 @@ defmodule IntegrationTest.CentralTest do
     end
   end
 
-  defp start_inserting_exportable_calls(), do:
-    Task.start_link(fn -> create_exportable_call() end)
+  defp start_inserting_exportable_calls(), do: Task.start_link(fn -> create_exportable_call() end)
 
   defp create_exportable_call() do
     receive do
       :stop -> :ok
-    after 0 ->
-      %Air.Schemas.CentralCall{}
-      |> Air.Schemas.CentralCall.changeset(%{event: "test event", payload: %{}})
-      |> Air.Repo.insert!()
-      :timer.sleep(10)
-      create_exportable_call()
+    after
+      0 ->
+        %Air.Schemas.CentralCall{}
+        |> Air.Schemas.CentralCall.changeset(%{event: "test event", payload: %{}})
+        |> Air.Repo.insert!()
+
+        :timer.sleep(10)
+        create_exportable_call()
     end
   end
 end

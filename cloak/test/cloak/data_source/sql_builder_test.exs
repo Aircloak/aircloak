@@ -6,34 +6,45 @@ defmodule Cloak.DataSource.SqlBuilderTest do
 
   test "text column is force casted to text" do
     assert sql_string("select string from table") =~ ~r/CAST\("table"\."string" AS text\)/
+
     assert sql_string("select * from (select upper(string) as s from table) t") =~
-      ~r/UPPER\(CAST\("table"\."string" AS text\)\)/
-    assert sql_string("select int from table where string=''") =~ ~r/CAST\("table"\."string" AS text\) = ''/
+             ~r/UPPER\(CAST\("table"\."string" AS text\)\)/
+
+    assert sql_string("select int from table where string=''") =~
+             ~r/CAST\("table"\."string" AS text\) = ''/
   end
 
-  test "non-text column is not force casted", do:
-    refute sql_string("select int from table") =~ ~r/CAST\("table"\."int"/
+  test "non-text column is not force casted",
+    do: refute(sql_string("select int from table") =~ ~r/CAST\("table"\."int"/)
 
-  test "workaround for text comparisons on SQL Server ignoring trailing spaces", do:
-    assert sql_string("select count(*) from table where string = 'ab'", SQLServer) =~ "= (N'ab' + N'.')"
+  test "workaround for text comparisons on SQL Server ignoring trailing spaces",
+    do:
+      assert(
+        sql_string("select count(*) from table where string = 'ab'", SQLServer) =~
+          "= (N'ab' + N'.')"
+      )
 
-  defp sql_string(query, dialect \\ PostgreSQL), do:
-    query
-    |> compile!(data_source(Module.concat(Cloak.DataSource, dialect)))
-    |> SqlBuilder.build(Module.concat(Cloak.DataSource.SqlBuilder, dialect))
+  defp sql_string(query, dialect \\ PostgreSQL),
+    do:
+      query
+      |> compile!(data_source(Module.concat(Cloak.DataSource, dialect)))
+      |> SqlBuilder.build(Module.concat(Cloak.DataSource.SqlBuilder, dialect))
 
   defp data_source(driver) do
     %{
       driver: driver,
       tables: %{
-        table: Table.new("table", "uid",
-          db_name: "table",
-          columns: [
-            Table.column("uid", :integer),
-            Table.column("string", :text),
-            Table.column("int", :integer),
-          ]
-        )
+        table:
+          Table.new(
+            "table",
+            "uid",
+            db_name: "table",
+            columns: [
+              Table.column("uid", :integer),
+              Table.column("string", :text),
+              Table.column("int", :integer)
+            ]
+          )
       }
     }
   end

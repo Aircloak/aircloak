@@ -15,21 +15,24 @@
 alias Air.Service.{User, License}
 
 # admin user
-admin_group = case User.admin_groups() do
-  [] ->
-    User.create_group!(%{
-      name: "admin",
-      admin: true,
-    })
-  [group | _] -> group
-end
+admin_group =
+  case User.admin_groups() do
+    [] ->
+      User.create_group!(%{
+        name: "admin",
+        admin: true
+      })
+
+    [group | _] ->
+      group
+  end
 
 User.create!(%{
   email: "admin@aircloak.com",
   password: "1234",
   password_confirmation: "1234",
   name: "Aircloak test administrator",
-  groups: [admin_group.id],
+  groups: [admin_group.id]
 })
 
 # plain user
@@ -37,7 +40,7 @@ User.create!(%{
   email: "user@aircloak.com",
   password: "1234",
   password_confirmation: "1234",
-  name: "Test client regular user",
+  name: "Test client regular user"
 })
 
 :ok = License.load(File.read!("priv/dev_license.lic"))

@@ -1,4 +1,4 @@
-.PHONY: all compile deps clean start start2 start3 test recreate-db migrate rollback dialyze docs release release-local lint mocha
+.PHONY: all compile deps clean start start2 start3 test recreate-db migrate rollback dialyze docs release release-local lint mocha format check-format
 
 all: deps compile
 
@@ -55,3 +55,9 @@ eslint:
 
 mocha:
 	cd assets && npm test
+
+format:
+	mix format --check-equivalent
+
+check-format:
+	mix format --check-formatted

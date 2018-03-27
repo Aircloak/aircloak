@@ -1,9 +1,8 @@
 defmodule Cloak.CyclicGraph do
   @moduledoc "Implements an undirected cyclic graph."
 
-  @opaque t :: :digraph.graph
+  @opaque t :: :digraph.graph()
   @type vertex :: any
-
 
   # -------------------------------------------------------------------
   # API functions
@@ -17,8 +16,7 @@ defmodule Cloak.CyclicGraph do
   use `with/1`.
   """
   @spec new() :: t
-  def new(), do:
-    :digraph.new([:private, :cyclic])
+  def new(), do: :digraph.new([:private, :cyclic])
 
   @doc "Deletes the graph instance."
   @spec delete(t) :: :ok
@@ -28,7 +26,7 @@ defmodule Cloak.CyclicGraph do
   end
 
   @doc "Creates a graph, invokes the lambda, deletes the graph, and returns the result of the lambda."
-  @spec with(((t) -> result)) :: result when result: var
+  @spec with((t -> result)) :: result when result: var
   def with(fun) do
     graph = new()
     try do: fun.(graph), after: delete(graph)
@@ -72,12 +70,12 @@ defmodule Cloak.CyclicGraph do
     - `{v1, v2}` < `{v3, v4}`
   """
   @spec disconnected_pairs(t) :: [{vertex, vertex}]
-  def disconnected_pairs(graph), do:
-    :digraph.vertices(graph)
-    |> Enum.sort()
-    |> pair_combinations()
-    |> Enum.filter(fn({v1, v2}) -> :digraph.get_path(graph, v1, v2) == false end)
-
+  def disconnected_pairs(graph),
+    do:
+      :digraph.vertices(graph)
+      |> Enum.sort()
+      |> pair_combinations()
+      |> Enum.filter(fn {v1, v2} -> :digraph.get_path(graph, v1, v2) == false end)
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -85,6 +83,7 @@ defmodule Cloak.CyclicGraph do
 
   defp pair_combinations([]), do: []
   defp pair_combinations([_]), do: []
-  defp pair_combinations([el | rest]), do:
-    Stream.concat(Stream.map(rest, &{el, &1}), pair_combinations(rest))
+
+  defp pair_combinations([el | rest]),
+    do: Stream.concat(Stream.map(rest, &{el, &1}), pair_combinations(rest))
 end

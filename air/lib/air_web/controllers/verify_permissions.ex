@@ -25,18 +25,20 @@ defmodule AirWeb.VerifyPermissions do
   require Logger
 
   @doc "Called to retrieve the permissions for the current controller"
-  @callback permissions :: Air.Schemas.User.permissions
+  @callback permissions :: Air.Schemas.User.permissions()
 
   @behaviour Plug
 
   @doc "Verifies if the currently logged-in user has permissions on the given action."
-  @spec check_permission(Plug.Conn.t, module, atom) :: :ok | {:error, formatted_error::String.t}
+  @spec check_permission(Plug.Conn.t(), module, atom) ::
+          :ok | {:error, formatted_error :: String.t()}
   def check_permission(conn, controller, action) do
     user = conn.assigns.current_user
+
     if Air.Schemas.User.permitted?(user, action, permissions(controller)) do
       :ok
     else
-      {:error, "action #{controller}.#{action} not permitted for #{inspect user || :anonymous}"}
+      {:error, "action #{controller}.#{action} not permitted for #{inspect(user || :anonymous)}"}
     end
   end
 
@@ -48,6 +50,7 @@ defmodule AirWeb.VerifyPermissions do
     case check_permission(conn, opts[:controller], Phoenix.Controller.action_name(conn)) do
       :ok ->
         conn
+
       {:error, formatted_error} ->
         Logger.info(formatted_error)
 
@@ -59,8 +62,12 @@ defmodule AirWeb.VerifyPermissions do
 
   defp permissions(controller) do
     controller.permissions()
-  rescue UndefinedFunctionError ->
-    Logger.error(fn -> "#{inspect controller} doesn't implement the `permissions/0` function" end)
-    %{}
+  rescue
+    UndefinedFunctionError ->
+      Logger.error(fn ->
+        "#{inspect(controller)} doesn't implement the `permissions/0` function"
+      end)
+
+      %{}
   end
 end

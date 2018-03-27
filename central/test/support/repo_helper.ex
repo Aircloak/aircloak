@@ -5,7 +5,7 @@ defmodule Central.TestRepoHelper do
   alias Central.Schemas.User
 
   @doc "Inserts the new user with default parameters into the database."
-  @spec create_user!(%{}) :: User.t
+  @spec create_user!(%{}) :: User.t()
   def create_user!(additional_changes \\ %{}) do
     User.changeset(%User{}, %{
       email: "#{random_string()}@aircloak.com",
@@ -17,6 +17,5 @@ defmodule Central.TestRepoHelper do
     |> Repo.insert!()
   end
 
-  defp random_string,
-    do: Base.encode16(:crypto.strong_rand_bytes(10))
+  defp random_string, do: Base.encode16(:crypto.strong_rand_bytes(10))
 end

@@ -3,7 +3,6 @@ defmodule AircloakCI.BuildCleaner do
 
   use GenServer, start: {__MODULE__, :start_link, []}
 
-
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -19,15 +18,13 @@ defmodule AircloakCI.BuildCleaner do
     AircloakCI.LocalProject.remove_old_folders(repo_data)
     {:noreply, state}
   end
-  def handle_info(message, state), do:
-    super(message, state)
 
+  def handle_info(message, state), do: super(message, state)
 
   # -------------------------------------------------------------------
   # Supervision tree
   # -------------------------------------------------------------------
 
   @doc false
-  def start_link(), do:
-    GenServer.start_link(__MODULE__, nil, name: __MODULE__)
+  def start_link(), do: GenServer.start_link(__MODULE__, nil, name: __MODULE__)
 end

@@ -8,8 +8,7 @@ config :central, CentralWeb.Endpoint,
   server: true,
   root: Path.dirname(__DIR__),
   render_errors: [accepts: ~w(html json)],
-  pubsub: [name: CentralWeb.PubSub,
-           adapter: Phoenix.PubSub.PG2]
+  pubsub: [name: CentralWeb.PubSub, adapter: Phoenix.PubSub.PG2]
 
 config :central, Central.Repo,
   adapter: Ecto.Adapters.Postgres,

@@ -8,24 +8,26 @@ defmodule Cloak.DataSource.SQLServer do
 
   use Cloak.DataSource.Driver.SQL
 
-
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
   @impl Driver
   def connect!(parameters) do
-    normalized_parameters = for {key, value} <- parameters, into: %{}, do:
-      {key |> Atom.to_string() |> String.downcase() |> String.to_atom(), value}
+    normalized_parameters =
+      for {key, value} <- parameters,
+          into: %{},
+          do: {key |> Atom.to_string() |> String.downcase() |> String.to_atom(), value}
 
-    odbc_parameters = %{
-      "DSN": "SQLServer",
-      "Server": normalized_parameters[:hostname],
-      "Uid": normalized_parameters[:username],
-      "Pwd": normalized_parameters[:password],
-      "Database": normalized_parameters[:database],
-    }
-    |> add_optional_parameters(parameters)
+    odbc_parameters =
+      %{
+        DSN: "SQLServer",
+        Server: normalized_parameters[:hostname],
+        Uid: normalized_parameters[:username],
+        Pwd: normalized_parameters[:password],
+        Database: normalized_parameters[:database]
+      }
+      |> add_optional_parameters(parameters)
 
     connection = ODBC.connect!(odbc_parameters)
     {:updated, _} = :odbc.sql_query(connection, 'SET ANSI_DEFAULTS ON')
@@ -47,14 +49,14 @@ defmodule Cloak.DataSource.SQLServer do
   @impl Driver
   defdelegate supports_connection_sharing?(), to: ODBC
 
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   # Allows for adding additional ODBC connection parameters in the case where
   # a SQL Server installation requires additional parameters.
-  defp add_optional_parameters(default_params, %{odbc_parameters: additonal_parameters}), do:
-    Map.merge(default_params, additonal_parameters)
+  defp add_optional_parameters(default_params, %{odbc_parameters: additonal_parameters}),
+    do: Map.merge(default_params, additonal_parameters)
+
   defp add_optional_parameters(default_params, _), do: default_params
 end

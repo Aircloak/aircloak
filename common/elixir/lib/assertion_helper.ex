@@ -13,12 +13,16 @@ defmodule Aircloak.AssertionHelper do
   """
   defmacro soon(check, timeout \\ 100) do
     quote do
-      Aircloak.AssertionHelper.perform_soon_check(fn -> unquote(check) end, 10,
-        div(unquote(timeout), 10))
+      Aircloak.AssertionHelper.perform_soon_check(
+        fn -> unquote(check) end,
+        10,
+        div(unquote(timeout), 10)
+      )
     end
   end
 
   def perform_soon_check(_check, 0, _repeat_wait_time), do: false
+
   def perform_soon_check(check, remaining_attempts, repeat_wait_time) do
     if check.() do
       true

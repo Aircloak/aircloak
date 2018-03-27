@@ -5,7 +5,6 @@ defmodule Central.TestUtils do
 
   use ExUnit.CaseTemplate
 
-
   # -------------------------------------------------------------------
   # Helper functions
   # -------------------------------------------------------------------
@@ -37,7 +36,13 @@ defmodule Central.TestUtils do
     end
   """
   def temporary_process() do
-    pid = spawn_link(fn -> receive do :stop -> :ok end end)
+    pid =
+      spawn_link(fn ->
+        receive do
+          :stop -> :ok
+        end
+      end)
+
     {fn -> send(pid, :stop) end, pid}
   end
 
@@ -58,18 +63,29 @@ defmodule Central.TestUtils do
     assert expected_count == join_table_count()
   end
 
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   defp join_table_count() do
-    %{rows: [[actual_count_groups_users]]} = Ecto.Adapters.SQL.query!(Central.Repo, """
-      SELECT count(*) FROM groups_users
-    """, [])
-    %{rows: [[actual_count_data_sources_groups]]} = Ecto.Adapters.SQL.query!(Central.Repo, """
-      SELECT count(*) FROM data_sources_groups
-    """, [])
+    %{rows: [[actual_count_groups_users]]} =
+      Ecto.Adapters.SQL.query!(
+        Central.Repo,
+        """
+          SELECT count(*) FROM groups_users
+        """,
+        []
+      )
+
+    %{rows: [[actual_count_data_sources_groups]]} =
+      Ecto.Adapters.SQL.query!(
+        Central.Repo,
+        """
+          SELECT count(*) FROM data_sources_groups
+        """,
+        []
+      )
+
     actual_count_groups_users + actual_count_data_sources_groups
   end
 end

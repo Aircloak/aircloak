@@ -16,8 +16,7 @@ defmodule Cloak.DataSource.Driver.SQL do
       def sql_dialect_module(_parameters), do: unquote(dialect)
 
       @impl Driver
-      def disconnect(connection), do:
-        GenServer.stop(connection, :normal, :timer.seconds(5))
+      def disconnect(connection), do: GenServer.stop(connection, :normal, :timer.seconds(5))
 
       @impl Driver
       def supports_query?(_query), do: true
@@ -25,7 +24,10 @@ defmodule Cloak.DataSource.Driver.SQL do
       @impl Driver
       defdelegate supports_function?(expression, data_source), to: SqlBuilder.Support
 
-      defoverridable sql_dialect_module: 1, disconnect: 1, supports_query?: 1, supports_function?: 2
+      defoverridable sql_dialect_module: 1,
+                     disconnect: 1,
+                     supports_query?: 1,
+                     supports_function?: 2
     end
   end
 end

@@ -23,9 +23,8 @@ defmodule Air.ProcessQueue do
   run forever.
   """
   @spec run(atom, (() -> result), pos_integer | :infinity) :: result when result: var
-  def run(pool_name, fun, timeout \\ :infinity), do:
-    :poolboy.transaction(pool_name, fn(_worker) -> fun.() end, timeout)
-
+  def run(pool_name, fun, timeout \\ :infinity),
+    do: :poolboy.transaction(pool_name, fn _worker -> fun.() end, timeout)
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -40,18 +39,18 @@ defmodule Air.ProcessQueue do
     def start_link(_), do: Agent.start_link(fn -> :ok end)
   end
 
-
   # -------------------------------------------------------------------
   # Supervision tree
   # -------------------------------------------------------------------
 
   @doc false
-  def child_spec({name, size}), do:
-    :poolboy.child_spec(
-      name,
-      name: {:local, name},
-      worker_module: __MODULE__.Worker,
-      max_overflow: 0,
-      size: size
-    )
+  def child_spec({name, size}),
+    do:
+      :poolboy.child_spec(
+        name,
+        name: {:local, name},
+        worker_module: __MODULE__.Worker,
+        max_overflow: 0,
+        size: size
+      )
 end

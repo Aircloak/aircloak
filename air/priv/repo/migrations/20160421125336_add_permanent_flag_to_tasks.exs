@@ -3,7 +3,7 @@ defmodule Air.Repo.Migrations.AddPermanentFlagToTasks do
 
   def change do
     alter table(:tasks) do
-      add :permanent, :boolean, default: false
+      add(:permanent, :boolean, default: false)
     end
   end
 end

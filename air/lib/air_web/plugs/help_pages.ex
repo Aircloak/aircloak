@@ -19,7 +19,6 @@ defmodule AirWeb.Plug.HelpPages do
   @behaviour Plug
   alias Plug.Conn
 
-
   # -------------------------------------------------------------------
   # Plug callbacks
   # -------------------------------------------------------------------
@@ -29,9 +28,7 @@ defmodule AirWeb.Plug.HelpPages do
 
   @impl Plug
   def call(conn, opts) do
-    Conn.assign(conn, :help_pages,
-      Keyword.get(opts, Phoenix.Controller.action_name(conn), [])
-    )
+    Conn.assign(conn, :help_pages, Keyword.get(opts, Phoenix.Controller.action_name(conn), []))
   end
 
   def help_pages(conn) do

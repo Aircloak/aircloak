@@ -10,51 +10,49 @@ defmodule Cloak.DataSource.SerializingUpdater do
 
   require Logger
 
-
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
   @doc "Asynchronously runs a check to figure out if we can still connect to the data sources"
   @spec run_liveness_check() :: :ok
-  def run_liveness_check(), do:
-    GenServer.cast(__MODULE__, :run_liveness_check)
+  def run_liveness_check(), do: GenServer.cast(__MODULE__, :run_liveness_check)
 
   @doc "Processes a change event to a data source definition file"
-  @spec process_update(String.t) :: :ok
-  def process_update(path), do:
-    GenServer.cast(__MODULE__, {:process_update, path})
+  @spec process_update(String.t()) :: :ok
+  def process_update(path), do: GenServer.cast(__MODULE__, {:process_update, path})
 
   @doc "Processes a removal event to a data source definition file"
-  @spec process_removal(String.t) :: :ok
-  def process_removal(path), do:
-    GenServer.cast(__MODULE__, {:process_removal, path})
-
+  @spec process_removal(String.t()) :: :ok
+  def process_removal(path), do: GenServer.cast(__MODULE__, {:process_removal, path})
 
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(_), do:
-    {:ok, nil}
+  def init(_), do: {:ok, nil}
 
   @impl GenServer
   def handle_cast(:run_liveness_check, state) do
     DataSource.perform_data_source_availability_checks()
     {:noreply, state}
   end
+
   def handle_cast({:process_update, file_path}, state) do
     Logger.debug(fn -> "Reloading data source configuration at #{file_path}." end)
     DataSource.initialize_data_source_from_path(file_path)
     {:noreply, state}
   end
+
   def handle_cast({:process_removal, _file_path}, state) do
-    Logger.debug(fn -> "Data source removal detected. Reloading all data source configurations." end)
+    Logger.debug(fn ->
+      "Data source removal detected. Reloading all data source configurations."
+    end)
+
     DataSource.reinitialize_all_data_sources()
     {:noreply, state}
   end
-
 
   # -------------------------------------------------------------------
   # Supervison tree callback
@@ -62,10 +60,13 @@ defmodule Cloak.DataSource.SerializingUpdater do
 
   @doc false
   def child_spec(_options \\ []) do
-    ChildSpec.supervisor([
+    ChildSpec.supervisor(
+      [
         ChildSpec.gen_server(__MODULE__, [], name: __MODULE__),
-        Cloak.DataSource.FileSystemMonitor,
-      ], strategy: :one_for_all, name: __MODULE__.Supervisor
+        Cloak.DataSource.FileSystemMonitor
+      ],
+      strategy: :one_for_all,
+      name: __MODULE__.Supervisor
     )
   end
 end

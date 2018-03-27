@@ -4,7 +4,7 @@ defmodule Air.Schemas.License.Test do
   alias Air.Schemas.License
 
   @valid_attrs %{
-    text: "Some text",
+    text: "Some text"
   }
 
   test "changeset with valid attributes" do

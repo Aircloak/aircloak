@@ -3,7 +3,6 @@ defmodule AirWeb.Onboarding.UserController do
   use Air.Web, :controller
   alias Air.Service.User
 
-
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
@@ -13,7 +12,6 @@ defmodule AirWeb.Onboarding.UserController do
       anonymous: [:new, :create, :already_setup]
     }
   end
-
 
   # -------------------------------------------------------------------
   # Actions
@@ -36,11 +34,11 @@ defmodule AirWeb.Onboarding.UserController do
       {:ok, user} ->
         audit_log(conn, "Created onboarding admin user", user: user.email, name: user.name)
         login(conn, params["user"])
+
       {:error, changeset} ->
         render(conn, "new.html", changeset: changeset, errors: true)
     end
   end
-
 
   # -------------------------------------------------------------------
   # Internal functions

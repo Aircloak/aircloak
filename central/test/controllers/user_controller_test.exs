@@ -6,7 +6,7 @@ defmodule Central.UserControllerTest do
 
   test "listing users" do
     user = TestRepoHelper.create_user!()
-    users = Enum.map(1..4, fn(_) -> TestRepoHelper.create_user!() end)
+    users = Enum.map(1..4, fn _ -> TestRepoHelper.create_user!() end)
 
     users_html = login(user) |> get("/users") |> response(200)
     Enum.each([user | users], &assert(users_html =~ &1.email))
@@ -24,13 +24,17 @@ defmodule Central.UserControllerTest do
 
     new_user_email = "foo@bar.baz"
 
-    conn = login(user)
-    |> post("/users", user: %{
-      email: new_user_email,
-      name: "foobarbaz",
-      password: "1234",
-      password_confirmation: "1234",
-    })
+    conn =
+      login(user)
+      |> post(
+        "/users",
+        user: %{
+          email: new_user_email,
+          name: "foobarbaz",
+          password: "1234",
+          password_confirmation: "1234"
+        }
+      )
 
     assert "/users" == redirected_to(conn)
     users_html = login(user) |> get("/users") |> response(200)
@@ -42,11 +46,15 @@ defmodule Central.UserControllerTest do
 
     changed_email = "foo@bar.baz"
 
-    conn = login(user)
-    |> put("/users/#{user.id}", user: %{
-      email: changed_email,
-      name: user.name
-    })
+    conn =
+      login(user)
+      |> put(
+        "/users/#{user.id}",
+        user: %{
+          email: changed_email,
+          name: user.name
+        }
+      )
 
     assert "/users" == redirected_to(conn)
     users_html = login(%{email: changed_email}) |> get("/users") |> response(200)
@@ -70,9 +78,10 @@ defmodule Central.UserControllerTest do
 
   test "render 404 on attempting to update a non-existent user" do
     user = TestRepoHelper.create_user!()
+
     assert login(user)
-    |> put("/users/99999", user: %{email: "some@email.com", name: "some name"})
-    |> response(404)
+           |> put("/users/99999", user: %{email: "some@email.com", name: "some name"})
+           |> response(404)
   end
 
   test "render 404 on attempting to delete a non-existent user" do

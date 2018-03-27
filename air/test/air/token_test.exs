@@ -39,6 +39,5 @@ defmodule Air.Token.Test do
     end
   end
 
-  def create_user(context), do:
-    {:ok, Map.put(context, :user, create_user!())}
+  def create_user(context), do: {:ok, Map.put(context, :user, create_user!())}
 end

@@ -3,8 +3,7 @@ defmodule BOM.License do
 
   defstruct [:type, :text]
 
-  @type t :: %__MODULE__{type: atom, text: String.t}
-
+  @type t :: %__MODULE__{type: atom, text: String.t()}
 
   # -------------------------------------------------------------------
   # API
@@ -23,19 +22,22 @@ defmodule BOM.License do
   Converts common ways a license is specified by name to the same atom. For example returns :apache2 for both
   "Apache-2.0" and "Apache version 2.0".
   """
-  @spec name_to_type(String.t) :: atom
+  @spec name_to_type(String.t()) :: atom
   def name_to_type(name), do: name |> String.downcase() |> do_name_to_type()
 
   @doc "Returns true if we can use the given license type in the product, false otherwise."
   @spec allowed_type?(atom) :: boolean
   for path <- Path.wildcard("priv/licenses/generic/*") do
-    name = Path.basename(path) |> String.to_atom
+    name = Path.basename(path) |> String.to_atom()
     def allowed_type?(unquote(name)), do: true
   end
+
   def allowed_type?(:zlib), do: true
   def allowed_type?(:mpl_2_0), do: true
+
   # Avoid dependencies with epl license for legal reasons (see https://github.com/Aircloak/aircloak/issues/753)
   def allowed_type?(:epl_1_1), do: false
+
   # Avoid dependencies with boost license for legal reasons (see https://github.com/Aircloak/aircloak/issues/752)
   def allowed_type?(:boost), do: false
   def allowed_type?(_), do: false
@@ -48,7 +50,6 @@ defmodule BOM.License do
   @spec empty?(t) :: boolean
   def empty?(%__MODULE__{text: nil}), do: true
   def empty?(%__MODULE__{text: text}), do: String.trim(text) == ""
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -78,7 +79,7 @@ defmodule BOM.License do
   defp do_name_to_type(_), do: :unknown
 
   for path <- Path.wildcard("priv/licenses/generic/*") do
-    name = Path.basename(path) |> String.to_atom
+    name = Path.basename(path) |> String.to_atom()
     text = File.read!(path)
 
     defp text(unquote(name)) do

@@ -8,7 +8,9 @@ defmodule IntegrationTest.ExpiredLicenseTest do
     on_exit(fn -> Manager.load_valid_license() end)
     {:ok, conn} = connect(Manager.create_air_user())
 
-    assert {:error, %{postgres: %{message: message}}} = Postgrex.query(conn, "select * from users", [])
+    assert {:error, %{postgres: %{message: message}}} =
+             Postgrex.query(conn, "select * from users", [])
+
     assert message =~ "The license for this Aircloak instance has expired."
   end
 

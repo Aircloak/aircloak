@@ -6,37 +6,46 @@ defmodule Air.Performance do
   # -------------------------------------------------------------------
 
   @doc "Synchronously executes the performance comparison and return observed measurements."
-  @spec run(String.t, String.t, String.t) :: :ok
+  @spec run(String.t(), String.t(), String.t()) :: :ok
   def run(cloak_datasource_folder, user_name, password) do
-    conns =
-      %{
-        db: connect_db!(cloak_datasource_folder),
-        cloak_unencoded: connect_aircloak!("cloak_performance", user_name, password),
-        cloak_encoded: connect_aircloak!("cloak_performance_encoded", user_name, password),
-      }
+    conns = %{
+      db: connect_db!(cloak_datasource_folder),
+      cloak_unencoded: connect_aircloak!("cloak_performance", user_name, password),
+      cloak_encoded: connect_aircloak!("cloak_performance_encoded", user_name, password)
+    }
 
     aircloak_latency = aircloak_latency(conns)
     num_users = num_users(conns)
 
     result =
-      fn -> Enum.map(Air.Performance.Queries.queries(), &measure_query(conns, aircloak_latency, num_users, &1)) end
+      fn ->
+        Enum.map(
+          Air.Performance.Queries.queries(),
+          &measure_query(conns, aircloak_latency, num_users, &1)
+        )
+      end
       |> Task.async()
       |> Task.await(:timer.hours(10))
 
     # closing connections in background to avoid possible disconnect error to prevent returning the result
-    Enum.each(
-      conns,
-      fn({_key, conn}) -> Task.async(fn -> GenServer.stop(conn, :normal, :timer.seconds(5)) end) end
-    )
+    Enum.each(conns, fn {_key, conn} ->
+      Task.async(fn -> GenServer.stop(conn, :normal, :timer.seconds(5)) end)
+    end)
 
-    fields = [:num_users, :db_time, :cloak_unencoded_time, :cloak_encoded_time, :aircloak_latency, :statement]
+    fields = [
+      :num_users,
+      :db_time,
+      :cloak_unencoded_time,
+      :cloak_encoded_time,
+      :aircloak_latency,
+      :statement
+    ]
 
     result
     |> CSV.encode(headers: fields)
     |> Enum.to_list()
     |> IO.puts()
   end
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -46,24 +55,34 @@ defmodule Air.Performance do
     num_measurements = 10
 
     1..num_measurements
-    |> Stream.map(fn(_) -> measure_statement(conns.cloak_unencoded, "select count(*) from users where id=-1") end)
+    |> Stream.map(fn _ ->
+      measure_statement(conns.cloak_unencoded, "select count(*) from users where id=-1")
+    end)
     # we'll take the smallest observed latency, which leads to the most pessimistic overall results
     |> Enum.min()
   end
 
   defp num_users(conns) do
-    %Postgrex.Result{rows: [[count]]} = Postgrex.query!(conns.db, "select count(*) from users", [])
+    %Postgrex.Result{rows: [[count]]} =
+      Postgrex.query!(conns.db, "select count(*) from users", [])
+
     count
   end
 
   defp measure_query(conns, aircloak_latency, num_users, statement) do
     conns
     |> Enum.map(&measure_conn(&1, statement))
-    |> Enum.into(%{num_users: num_users, aircloak_latency: aircloak_latency, statement: display_statement(statement)})
+    |> Enum.into(%{
+      num_users: num_users,
+      aircloak_latency: aircloak_latency,
+      statement: display_statement(statement)
+    })
   end
 
   defp display_statement(%{cloak: statement}), do: normalize_whitespaces(statement)
-  defp display_statement(statement) when is_binary(statement), do: normalize_whitespaces(statement)
+
+  defp display_statement(statement) when is_binary(statement),
+    do: normalize_whitespaces(statement)
 
   defp normalize_whitespaces(statement) do
     statement
@@ -77,7 +96,9 @@ defmodule Air.Performance do
   end
 
   defp measure_statement(conn, statement) do
-    {time, _result} = :timer.tc(fn -> Postgrex.query!(conn, statement, [], timeout: :timer.hours(1)) end)
+    {time, _result} =
+      :timer.tc(fn -> Postgrex.query!(conn, statement, [], timeout: :timer.hours(1)) end)
+
     :erlang.convert_time_unit(time, :microsecond, :millisecond)
   end
 
@@ -98,6 +119,7 @@ defmodule Air.Performance do
 
     conn
   end
+
   defp connect_db!(cloak_datasource_folder) do
     parameters =
       cloak_datasource_folder
@@ -105,8 +127,10 @@ defmodule Air.Performance do
       |> File.read!()
       |> Poison.decode!()
       |> Map.fetch!("parameters")
-      |> Enum.map(fn({name, value}) -> {String.to_atom(name), value} end)
-      |> Enum.concat([after_connect: &Postgrex.query!(&1, "set search_path to projections, public", [])])
+      |> Enum.map(fn {name, value} -> {String.to_atom(name), value} end)
+      |> Enum.concat(
+        after_connect: &Postgrex.query!(&1, "set search_path to projections, public", [])
+      )
 
     {:ok, conn} = Postgrex.start_link(parameters)
     conn

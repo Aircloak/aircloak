@@ -18,13 +18,12 @@ defmodule Mix.Tasks.ConfigSapHanaTestSchema do
     if System.get_env("CI") == "true" do
       schema_name = "test_schema_#{Base.encode16(:crypto.strong_rand_bytes(10))}"
 
-      IO.puts "configured SAP HANA schema `#{schema_name}`"
+      IO.puts("configured SAP HANA schema `#{schema_name}`")
 
-      local_config =
-        """
-          use Mix.Config
-          config :cloak, :sap_hana, default_schema: "#{schema_name}"
-        """
+      local_config = """
+        use Mix.Config
+        config :cloak, :sap_hana, default_schema: "#{schema_name}"
+      """
 
       Enum.each(
         [:dev, :test],

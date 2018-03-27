@@ -3,7 +3,6 @@ defmodule Cloak.Sql.NoiseLayer.Normalizer do
   Normalizes values for producing consistent seeds.
   """
 
-
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
@@ -20,9 +19,7 @@ defmodule Cloak.Sql.NoiseLayer.Normalizer do
   and integers denoting the same number, like 1 and 1.0.
   """
   @spec normalize_number(number) :: term
-  def normalize_number(number), do:
-    number |> :erlang.float() |> normalize_float()
-
+  def normalize_number(number), do: number |> :erlang.float() |> normalize_float()
 
   # -------------------------------------------------------------------
   # Internal functions

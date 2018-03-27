@@ -1,4 +1,4 @@
-.PHONY: all compile deps clean test dialyze docs lint
+.PHONY: all compile deps clean test dialyze docs lint format check-format
 
 all: deps compile
 
@@ -23,3 +23,9 @@ docs:
 lint:
 	MIX_ENV=dev mix lint
 	MIX_ENV=test mix lint
+
+format:
+	mix format --check-equivalent
+
+check-format:
+	mix format --check-formatted

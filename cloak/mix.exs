@@ -6,23 +6,27 @@ defmodule Cloak.Mixfile do
       app: :cloak,
       version: File.read!("../VERSION") |> String.trim(),
       elixir: "~> 1.3",
-      build_embedded: Mix.env == :prod,
-      start_permanent: Mix.env == :prod,
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
       deps: deps(),
-      elixirc_paths: elixirc_paths(Mix.env),
+      elixirc_paths: elixirc_paths(Mix.env()),
       preferred_cli_env: [
-        dialyze: :dev, "coveralls.html": :test, release: :prod, dialyze_retry: :dev, compliance: :test
+        dialyze: :dev,
+        "coveralls.html": :test,
+        release: :prod,
+        dialyze_retry: :dev,
+        compliance: :test
       ],
-      aliases: aliases(Mix.env),
+      aliases: aliases(Mix.env()),
       test_coverage: [tool: ExCoveralls],
       compilers: [:rustler] ++ Mix.compilers(),
-      rustler_crates: rustler_crates(),
+      rustler_crates: rustler_crates()
     ]
   end
 
   def application do
     [
-      extra_applications: extra_applications(Mix.env),
+      extra_applications: extra_applications(Mix.env()),
       mod: {Cloak, []}
     ]
   end
@@ -63,8 +67,7 @@ defmodule Cloak.Mixfile do
 
       # Only used for perf tests
       {:httpoison, "~> 0.13.0", runtime: false, override: true},
-
-      {:bom, path: "../bom", runtime: false, only: :dev},
+      {:bom, path: "../bom", runtime: false, only: :dev}
     ]
   end
 
@@ -72,8 +75,8 @@ defmodule Cloak.Mixfile do
   defp extra_applications(:dev), do: [:os_mon | common_extra_applications()]
   defp extra_applications(:prod), do: [:os_mon | common_extra_applications()]
 
-  defp common_extra_applications(), do:
-    [:logger, :runtime_tools, :odbc, :crypto, :ssl, :public_key]
+  defp common_extra_applications(),
+    do: [:logger, :runtime_tools, :odbc, :crypto, :ssl, :public_key]
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
@@ -86,14 +89,17 @@ defmodule Cloak.Mixfile do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases(env) when env in [:dev, :test] do
     [
-      "lint": ["credo --strict"]
+      lint: ["credo --strict"]
     ]
   end
+
   defp aliases(_), do: []
 
-  defp rustler_crates(), do:
-    [librodbc: [
-      path: "src/rodbc",
-      mode: :release
-    ]]
+  defp rustler_crates(),
+    do: [
+      librodbc: [
+        path: "src/rodbc",
+        mode: :release
+      ]
+    ]
 end

@@ -4,7 +4,6 @@ defmodule AircloakCI.LogCleaner do
   use GenServer, start: {__MODULE__, :start_link, []}
   require Logger
 
-
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -20,9 +19,8 @@ defmodule AircloakCI.LogCleaner do
     clean_logs(repo_data)
     {:noreply, state}
   end
-  def handle_info(message, state), do:
-    super(message, state)
 
+  def handle_info(message, state), do: super(message, state)
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -50,11 +48,13 @@ defmodule AircloakCI.LogCleaner do
         mtime = NaiveDateTime.from_erl!(stat.mtime)
         NaiveDateTime.diff(NaiveDateTime.utc_now(), mtime, :second)
 
-      _ -> 0
+      _ ->
+        0
     end
   end
 
-  defp days_to_seconds(days), do: System.convert_time_unit(days * :timer.hours(24), :millisecond, :second)
+  defp days_to_seconds(days),
+    do: System.convert_time_unit(days * :timer.hours(24), :millisecond, :second)
 
   defp remove_log_folder(path) do
     case File.rm_rf(path) do
@@ -63,12 +63,10 @@ defmodule AircloakCI.LogCleaner do
     end
   end
 
-
   # -------------------------------------------------------------------
   # Supervision tree
   # -------------------------------------------------------------------
 
   @doc false
-  def start_link(), do:
-    GenServer.start_link(__MODULE__, nil, name: __MODULE__)
+  def start_link(), do: GenServer.start_link(__MODULE__, nil, name: __MODULE__)
 end

@@ -43,7 +43,7 @@ defmodule Air.Service.License.Key do
   end
 
   @doc "Returns the public key that should be used for license verification."
-  @spec public_key() :: ExPublicKey.RSAPublicKey.t
+  @spec public_key() :: ExPublicKey.RSAPublicKey.t()
   if Mix.env() == :prod do
     def public_key() do
       require Aircloak.DeployConfig

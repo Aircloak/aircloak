@@ -3,14 +3,14 @@ defmodule Air.Repo.Migrations.CreateResult do
 
   def change do
     create table(:results) do
-      add :buckets, :text
-      add :exceptions, :text
-      add :post_processed, :text
-      add :task_id, references(:tasks, on_delete: :delete_all, type: :uuid)
+      add(:buckets, :text)
+      add(:exceptions, :text)
+      add(:post_processed, :text)
+      add(:task_id, references(:tasks, on_delete: :delete_all, type: :uuid))
 
       timestamps()
     end
-    create index(:results, [:task_id])
 
+    create(index(:results, [:task_id]))
   end
 end

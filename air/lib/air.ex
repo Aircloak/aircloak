@@ -13,18 +13,18 @@ defmodule Air do
   def site_setting(name), do: Map.fetch!(Aircloak.DeployConfig.fetch!("site"), name)
 
   @doc "Returns the name of this air instance"
-  @spec instance_name() :: String.t
+  @spec instance_name() :: String.t()
   def instance_name() do
     vm_short_name =
       Node.self()
       |> Atom.to_string()
       |> String.split("@")
       |> hd()
+
     {:ok, hostname} = :inet.gethostname()
 
     "#{vm_short_name}@#{hostname}"
   end
-
 
   # -------------------------------------------------------------------
   # Application behaviour functions
@@ -45,17 +45,22 @@ defmodule Air do
     :ok
   end
 
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   defp configure_secrets do
-    Air.Utils.update_app_env(:guardian, Guardian,
-      &[{:secret_key, site_setting("auth_secret")} | &1])
+    Air.Utils.update_app_env(
+      :guardian,
+      Guardian,
+      &[{:secret_key, site_setting("auth_secret")} | &1]
+    )
 
-    Air.Utils.update_app_env(:air, AirWeb.Endpoint,
-      &Keyword.merge(&1,
+    Air.Utils.update_app_env(
+      :air,
+      AirWeb.Endpoint,
+      &Keyword.merge(
+        &1,
         secret_key_base: site_setting("endpoint_key_base"),
         api_token_salt: site_setting("api_token_salt"),
         https: https_config(Keyword.get(&1, :https, []))
@@ -85,11 +90,17 @@ defmodule Air do
 
         case {File.exists?(keyfile_path), File.exists?(certfile_path)} do
           {true, true} ->
-            Keyword.merge(previous_https_config,
-              port: Application.fetch_env!(:air, :https_port), keyfile: keyfile_path, certfile: certfile_path)
+            Keyword.merge(
+              previous_https_config,
+              port: Application.fetch_env!(:air, :https_port),
+              keyfile: keyfile_path,
+              certfile: certfile_path
+            )
+
           {false, _} ->
             Logger.warn("the file `#{keyfile}` is missing")
             nil
+
           {_, false} ->
             Logger.warn("the file `#{certfile}` is missing")
             nil
@@ -97,7 +108,7 @@ defmodule Air do
     end
   end
 
-  if Mix.env == :test do
+  if Mix.env() == :test do
     defp configure_periodic_jobs(), do: :ok
   else
     defp configure_periodic_jobs() do
@@ -107,9 +118,9 @@ defmodule Air do
         {"0 * * * *", {Air.Service.Cleanup, :cleanup_old_queries}},
         {"*/5 * * * *", {Air.Service.Cleanup, :cleanup_dead_queries}},
         {~e[*/10 * * * * * *]e, {AirWeb.Socket.Frontend.DataSourceChannel, :push_updates}},
-        {"0 */12 * * *", {Air.Service.License, :renew}},
+        {"0 */12 * * *", {Air.Service.License, :renew}}
       ]
-      |> Enum.each(fn({schedule, job}) -> Quantum.add_job(schedule, job) end)
+      |> Enum.each(fn {schedule, job} -> Quantum.add_job(schedule, job) end)
     end
   end
 end
