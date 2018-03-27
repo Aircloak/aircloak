@@ -350,12 +350,4 @@ defmodule Air.Service.QueryTest do
   def with_data_source(_context) do
     {:ok, data_source: create_data_source!()}
   end
-
-  defp create_old_result(user, data_source, buckets),
-    do:
-      create_query!(user, %{
-        query_state: :completed,
-        data_source_id: data_source.id,
-        result: %{"columns" => ["value"], "rows" => buckets}
-      })
 end

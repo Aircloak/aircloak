@@ -7,6 +7,7 @@
 !air/brunch-config.js
 !air/priv/repo
 !air/priv/task_post_processor
+!air/priv/config_schema.json
 !air/Makefile
 !air/mix.exs
 !air/mix.lock
