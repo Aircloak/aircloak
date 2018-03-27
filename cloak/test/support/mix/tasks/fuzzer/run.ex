@@ -154,6 +154,9 @@ defmodule Mix.Tasks.Fuzzer.Run do
       error =~ ~r/Missing where comparison for uid columns/ -> :join_no_uid
       error =~ ~r/Combining conditions with `OR` is not allowed/ -> :or_used
       error =~ ~r/cannot be used in a.*LIKE expression/ -> :mistyped_like
+      error =~ ~r/Function .* requires arguments of type/ -> :mistyped_function
+      error =~ ~r/Function .* is allowed over arguments/ -> :restricted_aggregate
+      error =~ ~r/Function .* is not allowed in subqueries/ -> :restricted_aggregate
       true -> raise error
     end
   end

@@ -260,11 +260,26 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp generate_expression_with_info(tables),
     do:
       [
-        fn -> {{:function, "count", [{:star, nil, []}]}, {:integer, "count"}} end,
+        fn -> generate_aggregate_with_info(tables) end,
         fn -> generate_column_with_info(tables) end,
         fn -> generate_aliased_column_with_info(tables) end
       ]
       |> random_option()
+
+  @aggregates ~w(count avg min max stddev count_noise avg_noise stddev_noise)
+  defp generate_aggregate_with_info(tables) do
+    {aggregated, {type, _}} = generate_expression_with_info(tables)
+
+    @aggregates
+    |> Enum.map(fn aggregate ->
+      {{:function, aggregate, [aggregated]}, {aggregate_type(aggregate, type), aggregate}}
+    end)
+    |> Enum.random()
+  end
+
+  defp aggregate_type(aggregate, type) when aggregate in ~w(min max), do: type
+  defp aggregate_type(aggregate, _) when aggregate in ~w(count count_noise), do: :integer
+  defp aggregate_type(_, _), do: :real
 
   defp generate_aliased_column_with_info(tables) do
     {column, {table, _}} = generate_column_with_info(tables)
