@@ -6,6 +6,7 @@ defmodule Air.ConfigValidationTest do
     Enum.each(~w(host user name), &assert_missing_field_reported("database/#{&1}"))
 
     assert_missing_field_reported("site")
+
     Enum.each(
       ~w(auth_secret endpoint_key_base api_token_salt master_password),
       &assert_missing_field_reported("site/#{&1}")
@@ -16,7 +17,11 @@ defmodule Air.ConfigValidationTest do
 
   test "optional fields are not required" do
     Enum.each(~w(port ssl password), &refute_missing_field_reported("database/#{&1}"))
-    Enum.each(~w(certfile keyfile use_staging_license_key), &refute_missing_field_reported("site/#{&1}"))
+
+    Enum.each(
+      ~w(certfile keyfile use_staging_license_key),
+      &refute_missing_field_reported("site/#{&1}")
+    )
 
     refute_missing_field_reported("psql_server")
     Enum.each(~w(certfile keyfile), &refute_missing_field_reported("psql_server/#{&1}"))
@@ -28,7 +33,6 @@ defmodule Air.ConfigValidationTest do
     assert_invalid_field_reported("psql_server")
     assert_invalid_field_reported("database")
   end
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -45,10 +49,12 @@ defmodule Air.ConfigValidationTest do
   end
 
   defp assert_invalid_field_reported(path \\ nil) do
-    path = (if is_nil(path), do: [], else: String.split(path, "/")) ++ ["invalid_field"]
+    path = if(is_nil(path), do: [], else: String.split(path, "/")) ++ ["invalid_field"]
     json = generate_object(path)
     error = assert_raise(RuntimeError, fn -> Aircloak.DeployConfig.validate!(:air, json) end)
-    assert error.message =~ ~r[#/#{Enum.join(path, "/")}: Schema does not allow additional properties.]
+
+    assert error.message =~
+             ~r[#/#{Enum.join(path, "/")}: Schema does not allow additional properties.]
   end
 
   defp validate_with_missing_child(path) do
@@ -65,6 +71,6 @@ defmodule Air.ConfigValidationTest do
   defp generate_object(parents) do
     parents
     |> Enum.reverse()
-    |> Enum.reduce(%{}, fn(el, acc) -> %{el => acc} end)
+    |> Enum.reduce(%{}, fn el, acc -> %{el => acc} end)
   end
 end

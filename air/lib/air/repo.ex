@@ -33,7 +33,9 @@ defmodule Air.Repo do
 
   defp db_setting(name, default) do
     case Map.fetch(Aircloak.DeployConfig.fetch!("database"), name) do
-      {:ok, value} -> value
+      {:ok, value} ->
+        value
+
       :error ->
         Logger.info("using default value for database `#{name}` parameter")
         default

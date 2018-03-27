@@ -6,7 +6,7 @@ defmodule Aircloak.Json do
   # -------------------------------------------------------------------
 
   @doc "Decodes a JSON file, capturing a wide wariety of potential errors."
-  @spec safe_decode!(String.t) :: Map.t
+  @spec safe_decode!(String.t()) :: Map.t()
   def safe_decode!(raw_json) do
     {:ok, result} = safe_decode(raw_json)
     result
