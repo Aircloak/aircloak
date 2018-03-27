@@ -16,72 +16,9 @@ defmodule Cloak.Compliance.QueryGenerator do
     ast
   end
 
-  @infix_operator ~w(= <> < > like ilike not_like not_ilike in not_in)a
-
   @doc "Generates the SQL query string from the given AST."
   @spec ast_to_sql(ast) :: iolist
-  def ast_to_sql({:query, _, items}), do: Enum.map(items, &ast_to_sql/1)
-
-  def ast_to_sql({:select, nil, select_list}),
-    do: [" SELECT ", Enum.map(select_list, &ast_to_sql/1) |> Enum.intersperse(", ")]
-
-  def ast_to_sql({:from, nil, [from_expression]}), do: [" FROM ", ast_to_sql(from_expression)]
-  def ast_to_sql({:table, name, []}), do: name
-  def ast_to_sql({:subquery, nil, [definition]}), do: ["( ", ast_to_sql(definition), " )"]
-
-  def ast_to_sql({:join, nil, [lhs, rhs, on]}),
-    do: [ast_to_sql(lhs), " JOIN ", ast_to_sql(rhs), ast_to_sql(on)]
-
-  def ast_to_sql({:on, nil, [condition]}), do: [" ON ", ast_to_sql(condition)]
-  def ast_to_sql({:as, name, [object]}), do: [ast_to_sql(object), " AS ", name]
-  def ast_to_sql({:where, nil, [condition]}), do: [" WHERE ", ast_to_sql(condition)]
-
-  def ast_to_sql({:group_by, nil, group_list}),
-    do: [" GROUP BY ", Enum.map(group_list, &ast_to_sql/1) |> Enum.intersperse(", ")]
-
-  def ast_to_sql({:having, nil, [condition]}), do: [" HAVING ", ast_to_sql(condition)]
-
-  def ast_to_sql({op, nil, [lhs, rhs]}) when op in @infix_operator,
-    do: [ast_to_sql(lhs), binary_operation_to_string(op), ast_to_sql(rhs)]
-
-  def ast_to_sql({:between, nil, [lhs, low, high]}),
-    do: [ast_to_sql(lhs), " BETWEEN ", ast_to_sql(low), " AND ", ast_to_sql(high)]
-
-  def ast_to_sql({:and, nil, [lhs, rhs]}),
-    do: ["(", ast_to_sql(lhs), " AND ", ast_to_sql(rhs), ")"]
-
-  def ast_to_sql({:or, nil, [lhs, rhs]}), do: ["(", ast_to_sql(lhs), " OR ", ast_to_sql(rhs), ")"]
-  def ast_to_sql({:function, name, args}), do: [name, "(", Enum.map(args, &ast_to_sql/1), ")"]
-  def ast_to_sql({:column, {column, table}, []}), do: [?", table, ?", ?., ?", column, ?"]
-  def ast_to_sql({:integer, value, []}), do: to_string(value)
-  def ast_to_sql({:text, value, []}), do: [?', value, ?']
-  def ast_to_sql({:boolean, value, []}), do: to_string(value)
-  def ast_to_sql({:datetime, value, []}), do: [?', to_string(value), ?']
-  def ast_to_sql({:real, value, []}), do: to_string(value)
-  def ast_to_sql({:like_pattern, value, [escape]}), do: [?', value, ?', ast_to_sql(escape)]
-  def ast_to_sql({:like_escape, char, []}), do: [" ESCAPE ", ?', char, ?']
-
-  def ast_to_sql({:in_set, nil, items}),
-    do: [?(, items |> Enum.map(&ast_to_sql/1) |> Enum.intersperse(", "), ?)]
-
-  def ast_to_sql({:star, _, _}), do: "*"
-  def ast_to_sql({:empty, _, _}), do: ""
-  def ast_to_sql({:sample_users, size, []}), do: [" SAMPLE_USERS ", to_string(size), "%"]
-
-  # -------------------------------------------------------------------
-  # ast_to_sql helpers
-  # -------------------------------------------------------------------
-
-  defp binary_operation_to_string(:=), do: " = "
-  defp binary_operation_to_string(:<), do: " < "
-  defp binary_operation_to_string(:>), do: " > "
-  defp binary_operation_to_string(:<>), do: " <> "
-  defp binary_operation_to_string(:like), do: " LIKE "
-  defp binary_operation_to_string(:ilike), do: " ILIKE "
-  defp binary_operation_to_string(:not_like), do: " NOT LIKE "
-  defp binary_operation_to_string(:not_ilike), do: " NOT ILIKE "
-  defp binary_operation_to_string(:in), do: " IN "
-  defp binary_operation_to_string(:not_in), do: " NOT IN "
+  def ast_to_sql(ast), do: __MODULE__.Format.ast_to_sql(ast)
 
   # -------------------------------------------------------------------
   # Generators
