@@ -7,8 +7,7 @@ defmodule AirWeb.Admin.DataSourceController do
 
   alias Air.Service.{DataSource, User, Warnings}
 
-  plug :load_data_source when action in [:show, :edit, :update, :delete]
-
+  plug(:load_data_source when action in [:show, :edit, :update, :delete])
 
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
@@ -20,7 +19,6 @@ defmodule AirWeb.Admin.DataSourceController do
     }
   end
 
-
   # -------------------------------------------------------------------
   # Actions
   # -------------------------------------------------------------------
@@ -30,22 +28,40 @@ defmodule AirWeb.Admin.DataSourceController do
       DataSource.all()
       |> Enum.sort_by(&{not DataSource.available?(&1.name), &1.name})
 
-    render(conn, "index.html", data_sources: data_sources, users_count: DataSource.users_count(),
-      data_source_problem_severity: highest_severity_class_map(data_sources))
+    render(
+      conn,
+      "index.html",
+      data_sources: data_sources,
+      users_count: DataSource.users_count(),
+      data_source_problem_severity: highest_severity_class_map(data_sources)
+    )
   end
 
   def edit(conn, _params) do
     data_source = conn.assigns.data_source
-    render(conn, "edit.html", changeset: DataSource.to_changeset(data_source), chosen_groups: data_source.groups)
+
+    render(
+      conn,
+      "edit.html",
+      changeset: DataSource.to_changeset(data_source),
+      chosen_groups: data_source.groups
+    )
   end
 
   def update(conn, params) do
     case DataSource.update(conn.assigns.data_source, params["data_source"]) do
       {:ok, data_source} ->
-        audit_log(conn, "Altered data source", name: data_source.name, data_source: data_source.name)
+        audit_log(
+          conn,
+          "Altered data source",
+          name: data_source.name,
+          data_source: data_source.name
+        )
+
         conn
         |> put_flash(:info, "Data source updated")
         |> redirect(to: admin_data_source_path(conn, :index))
+
       {:error, changeset} ->
         render(conn, "edit.html", changeset: changeset, chosen_groups: changeset.data.groups)
     end
@@ -54,7 +70,9 @@ defmodule AirWeb.Admin.DataSourceController do
   def show(conn, _params) do
     data_source = conn.assigns.data_source
 
-    render(conn, "show.html",
+    render(
+      conn,
+      "show.html",
       data_source: data_source,
       conn: conn,
       users: User.data_source_users(data_source),
@@ -65,13 +83,19 @@ defmodule AirWeb.Admin.DataSourceController do
   def delete(conn, _params) do
     data_source = conn.assigns.data_source
     DataSource.delete!(data_source)
-    audit_log(conn, "Removed data source", name: data_source.name,
-      id: data_source.id, data_source: data_source.name)
+
+    audit_log(
+      conn,
+      "Removed data source",
+      name: data_source.name,
+      id: data_source.id,
+      data_source: data_source.name
+    )
+
     conn
     |> put_flash(:info, "Data source deleted")
     |> redirect(to: admin_data_source_path(conn, :index))
   end
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -84,13 +108,15 @@ defmodule AirWeb.Admin.DataSourceController do
     end
   end
 
-  defp highest_severity_class_map(data_sources), do:
-    data_sources
-    |> Enum.map(&({&1.id, highest_severity_class(&1)}))
-    |> Enum.into(%{})
+  defp highest_severity_class_map(data_sources),
+    do:
+      data_sources
+      |> Enum.map(&{&1.id, highest_severity_class(&1)})
+      |> Enum.into(%{})
 
-  defp highest_severity_class(data_source), do:
-    data_source
-    |> Warnings.problems_for_resource()
-    |> Warnings.highest_severity_class()
+  defp highest_severity_class(data_source),
+    do:
+      data_source
+      |> Warnings.problems_for_resource()
+      |> Warnings.highest_severity_class()
 end

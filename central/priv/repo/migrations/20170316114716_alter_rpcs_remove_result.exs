@@ -3,13 +3,13 @@ defmodule Central.Repo.Migrations.AlterRpcsRemoveResult do
 
   def up() do
     alter table(:air_rpcs) do
-      remove :result
+      remove(:result)
     end
   end
 
   def down() do
     alter table(:air_rpcs) do
-      add :result, :binary
+      add(:result, :binary)
     end
   end
 end

@@ -27,7 +27,6 @@ defmodule Mix.Tasks.Fuzzer.Run do
 
   use Mix.Task
 
-
   # -------------------------------------------------------------------
   # Mix task interface
   # -------------------------------------------------------------------
@@ -38,15 +37,13 @@ defmodule Mix.Tasks.Fuzzer.Run do
     stats_out: :string,
     crashes_out: :string,
     concurrency: :integer,
-    timeout: :integer,
+    timeout: :integer
   ]
 
   @impl Mix.Task
   def run(args) do
-    with \
-      {options, [], []} <- OptionParser.parse(args, strict: @option_spec),
-      {:ok, queries} <- Keyword.fetch(options, :queries)
-    do
+    with {options, [], []} <- OptionParser.parse(args, strict: @option_spec),
+         {:ok, queries} <- Keyword.fetch(options, :queries) do
       do_run(queries, options)
     else
       _ ->
@@ -54,7 +51,6 @@ defmodule Mix.Tasks.Fuzzer.Run do
         Mix.raise("Invalid usage")
     end
   end
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -67,12 +63,22 @@ defmodule Mix.Tasks.Fuzzer.Run do
     concurrency = Keyword.get(options, :concurrency, System.schedulers_online())
     timeout = Keyword.get(options, :timeout, :timer.seconds(30))
 
-    queries = Enum.map(1..number_of_queries, fn(_) -> generate_query(tables) end)
-    results = Task.async_stream(queries, fn(query) ->
-      IO.write(".")
-      run_query(query, data_sources)
-    end, max_concurrency: concurrency, timeout: timeout, ordered: true, on_timeout: :kill_task)
-    |> Enum.map(&normalize_result/1)
+    queries = Enum.map(1..number_of_queries, fn _ -> generate_query(tables) end)
+
+    results =
+      Task.async_stream(
+        queries,
+        fn query ->
+          IO.write(".")
+          run_query(query, data_sources)
+        end,
+        max_concurrency: concurrency,
+        timeout: timeout,
+        ordered: true,
+        on_timeout: :kill_task
+      )
+      |> Enum.map(&normalize_result/1)
+
     IO.puts("\n")
 
     print_results(Enum.zip(queries, results), options)
@@ -83,23 +89,28 @@ defmodule Mix.Tasks.Fuzzer.Run do
 
   defp print_results(results, options) do
     all_path = Keyword.get(options, :all_out, "/tmp/all.txt")
-    with_file(all_path, fn(file) ->
+
+    with_file(all_path, fn file ->
       for {query, %{result: result}} <- results do
         IO.puts(file, [query, "\n\n", to_string(result), "\n\n"])
       end
     end)
 
     stats_path = Keyword.get(options, :stats_out, "/tmp/stats.txt")
-    with_file(stats_path, fn(file) ->
+
+    with_file(stats_path, fn file ->
       results
-      |> Enum.group_by(fn({_, %{result: result}}) -> result end)
-      |> Enum.map(fn({result, items}) -> {result, Enum.count(items)} end)
-      |> Enum.sort_by(fn({_, count}) -> count end, &Kernel.>/2)
-      |> Enum.each(fn({result, count}) -> IO.puts(file, [to_string(result), ": ", to_string(count)]) end)
+      |> Enum.group_by(fn {_, %{result: result}} -> result end)
+      |> Enum.map(fn {result, items} -> {result, Enum.count(items)} end)
+      |> Enum.sort_by(fn {_, count} -> count end, &Kernel.>/2)
+      |> Enum.each(fn {result, count} ->
+        IO.puts(file, [to_string(result), ": ", to_string(count)])
+      end)
     end)
 
     crashes_path = Keyword.get(options, :crashes_out, "/tmp/crashes.txt")
-    with_file(crashes_path, fn(file) ->
+
+    with_file(crashes_path, fn file ->
       for {query, %{result: :unexpected_error, error: error}} <- results do
         IO.puts(file, [query, "\n\n", Exception.format(:error, error)])
       end
@@ -113,8 +124,13 @@ defmodule Mix.Tasks.Fuzzer.Run do
     e -> %{result: :unexpected_error, error: e}
   end
 
-  defp generate_query(tables), do:
-    tables |> Map.values() |> QueryGenerator.generate_ast() |> QueryGenerator.ast_to_sql() |> to_string()
+  defp generate_query(tables),
+    do:
+      tables
+      |> Map.values()
+      |> QueryGenerator.generate_ast()
+      |> QueryGenerator.ast_to_sql()
+      |> to_string()
 
   defp assert_consistent_or_failing_nicely(data_sources, query) do
     case assert_query_consistency(query, data_sources: data_sources) do

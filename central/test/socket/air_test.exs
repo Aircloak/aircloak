@@ -33,7 +33,9 @@ defmodule CentralWeb.Socket.AirTest do
 
   test "authenticating with a license" do
     customer = create_customer!()
-    {:ok, license} = customer |> License.create(%{length_in_days: 10, auto_renew: true, name: "a license"})
+
+    {:ok, license} =
+      customer |> License.create(%{length_in_days: 10, auto_renew: true, name: "a license"})
 
     socket = TestSocketHelper.connect!(%{air_name: "air_1", license: License.export(license)})
     assert {:ok, %{}} = join_main_channel(socket)
@@ -46,31 +48,36 @@ defmodule CentralWeb.Socket.AirTest do
   for join_options <- [%{}, %{"air_version" => "18.1.0"}, %{"air_version" => "18.2.0"}] do
     @join_options join_options
 
-    describe "main topic with #{inspect join_options}" do
+    describe "main topic with #{inspect(join_options)}" do
       setup do: {:ok, join_options: @join_options}
 
       setup [:with_customer, :joined_main]
 
       test "query_execution", %{socket: socket, customer: customer} do
-        request_id = push_air_call(socket, "query_execution", %{
-          metrics: %{"some" => "metrics"},
-          features: %{"some" => "features"},
-          aux: %{"some" => "data"},
-        })
+        request_id =
+          push_air_call(socket, "query_execution", %{
+            metrics: %{"some" => "metrics"},
+            features: %{"some" => "features"},
+            aux: %{"some" => "data"}
+          })
 
-        assert_push "central_response", %{request_id: ^request_id, status: :ok}
+        assert_push("central_response", %{request_id: ^request_id, status: :ok})
+
         assert %{
-          metrics: %{"some" => "metrics"}, features: %{"some" => "features"}, aux: %{"some" => "data"}
-        } = Repo.get_by(Query, customer_id: customer.id)
+                 metrics: %{"some" => "metrics"},
+                 features: %{"some" => "features"},
+                 aux: %{"some" => "data"}
+               } = Repo.get_by(Query, customer_id: customer.id)
       end
 
       test "a duplicate message", %{socket: socket} do
         message_id = Ecto.UUID.generate()
         request_id = Ecto.UUID.generate()
+
         message = %{
           metrics: %{"some" => "metrics"},
           features: %{"some" => "features"},
-          aux: %{"some" => "data"},
+          aux: %{"some" => "data"}
         }
 
         assert Enum.empty?(Repo.all(Query)), "No queries recorded initially"
@@ -98,8 +105,7 @@ defmodule CentralWeb.Socket.AirTest do
     %{air_name: "air_1", token: token}
   end
 
-  defp with_customer(_context), do:
-    {:ok, customer: create_customer!()}
+  defp with_customer(_context), do: {:ok, customer: create_customer!()}
 
   defp create_customer!() do
     {:ok, customer} = Customer.create(%{name: "test customer"})
@@ -108,14 +114,27 @@ defmodule CentralWeb.Socket.AirTest do
 
   defp joined_main(%{join_options: join_options, customer: customer}) do
     {:ok, token} = Customer.generate_token(customer)
-    {:ok, socket} = Phoenix.ChannelTest.connect(CentralWeb.Socket.Air, %{token: token, air_name: "air_name"})
+
+    {:ok, socket} =
+      Phoenix.ChannelTest.connect(CentralWeb.Socket.Air, %{token: token, air_name: "air_name"})
+
     {:ok, _, socket} = Phoenix.ChannelTest.subscribe_and_join(socket, "main", join_options)
     {:ok, socket: socket}
   end
 
-  defp push_air_call(socket, event, payload, message_id \\ Ecto.UUID.generate(), request_id \\ Ecto.UUID.generate()) do
-    push(socket, "air_call", %{request_id: request_id, event: "call_with_retry", payload: %{
-      id: message_id, event: event, payload: payload}})
+  defp push_air_call(
+         socket,
+         event,
+         payload,
+         message_id \\ Ecto.UUID.generate(),
+         request_id \\ Ecto.UUID.generate()
+       ) do
+    push(socket, "air_call", %{
+      request_id: request_id,
+      event: "call_with_retry",
+      payload: %{id: message_id, event: event, payload: payload}
+    })
+
     :timer.sleep(50)
 
     request_id

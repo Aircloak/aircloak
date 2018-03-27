@@ -11,8 +11,14 @@ config :central, :deploy_config_file, "dev.json"
 config :central, CentralWeb.Endpoint,
   debug_errors: true,
   code_reloader: true,
-  watchers: [node: ["node_modules/brunch/bin/brunch", "watch", "--stdin",
-    cd: Path.expand("../assets", __DIR__)]]
+  watchers: [
+    node: [
+      "node_modules/brunch/bin/brunch",
+      "watch",
+      "--stdin",
+      cd: Path.expand("../assets", __DIR__)
+    ]
+  ]
 
 # Watch static and templates for browser reloading.
 config :central, CentralWeb.Endpoint,

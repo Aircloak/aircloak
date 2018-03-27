@@ -11,7 +11,7 @@ defmodule AirWeb.ErrorHelpers do
   def error_tag(form, field) do
     if error = form.errors[field] do
       content_tag :span, class: "has-error" do
-        content_tag :b, translate_error(error), class: "help-block"
+        content_tag(:b, translate_error(error), class: "help-block")
       end
     end
   end

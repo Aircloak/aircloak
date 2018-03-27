@@ -3,9 +3,9 @@ defmodule Air.Repo.Migrations.AlterTaskAddPrefetch do
 
   def change do
     alter table(:tasks) do
-      add :cloak_id, :string
-      add :data_source, :string
-      add :tables, {:array, :string}
+      add(:cloak_id, :string)
+      add(:data_source, :string)
+      add(:tables, {:array, :string})
     end
   end
 end

@@ -3,7 +3,7 @@ defmodule Air.Repo.Migrations.AddOrgReferenceToUsers do
 
   def change do
     alter table(:users) do
-      add :organisation_id, references(:organisations)
+      add(:organisation_id, references(:organisations))
     end
   end
 end

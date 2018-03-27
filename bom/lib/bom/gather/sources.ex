@@ -1,13 +1,12 @@
 defmodule BOM.Gather.Sources do
   @moduledoc "Bundles all dependencies into a zip-file."
 
-
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
   @doc "Given a list of input directories, this will create a zip file containing them all."
-  @spec collect(Keyword.t, String.t) :: :ok
+  @spec collect(Keyword.t(), String.t()) :: :ok
   def collect(dirs, destination_path) do
     tmp_dir_path = create_temp_dir()
 
@@ -18,20 +17,18 @@ defmodule BOM.Gather.Sources do
     :ok
   end
 
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   defp create_zip_archive(folders_to_zip, destination_path, tmp_dir_path) do
-    folders_to_zip = Enum.map(folders_to_zip, & String.to_charlist/1)
+    folders_to_zip = Enum.map(folders_to_zip, &String.to_charlist/1)
     destination_charlist = String.to_charlist(destination_path)
     base_folder = String.to_charlist(tmp_dir_path)
     :zip.create(destination_charlist, folders_to_zip, [{:compress, :all}, {:cwd, base_folder}])
   end
 
-  defp collect_deps(dirs, destination_path), do:
-    Enum.map(dirs, & copy_path(&1, destination_path))
+  defp collect_deps(dirs, destination_path), do: Enum.map(dirs, &copy_path(&1, destination_path))
 
   defp copy_path(dir, destination_dir) do
     target_name = destination_name(dir)

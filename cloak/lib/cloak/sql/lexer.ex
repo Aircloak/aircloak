@@ -5,40 +5,86 @@ defmodule Cloak.Sql.Lexer do
   import Cloak.Sql.Parsers
   alias Cloak.Sql.Parsers.Token
 
-
   @keywords [
-    "SELECT", "SHOW",
-    "TABLES", "COLUMNS",
-    "FROM",
-    "INNER", "OUTER", "LEFT", "RIGHT", "FULL", "JOIN", "ON", "CROSS",
-    "WHERE", "AND", "NOT", "OR",
-    "CAST", "BUCKET", "ALIGN",
-    "INTERVAL",
-    "LIKE", "ILIKE", "ESCAPE", "IN", "IS", "BETWEEN",
-    "ORDER", "GROUP", "BY", "NULLS",
-    "ASC", "DESC", "AS",
-    "NULL", "TRUE", "FALSE",
-    "DISTINCT", "ALL",
-    "EXTRACT",
-    "TRIM", "BOTH", "LEADING", "TRAILING",
-    "SUBSTRING", "FOR",
-    "||", "+", "-", "/", "%", "^",
-    "(", ")",
-    ",", ".", ";", "::",
-    "<=", ">=", "<>", "=", "<", ">",
-    "*",
-    "HAVING",
-    "LIMIT", "OFFSET",
-    "SAMPLE_USERS",
-  ] |> Enum.sort_by(&String.length/1, &>=/2) # Longer keywords have to be checked first to avoid false matches.
-
+              "SELECT",
+              "SHOW",
+              "TABLES",
+              "COLUMNS",
+              "FROM",
+              "INNER",
+              "OUTER",
+              "LEFT",
+              "RIGHT",
+              "FULL",
+              "JOIN",
+              "ON",
+              "CROSS",
+              "WHERE",
+              "AND",
+              "NOT",
+              "OR",
+              "CAST",
+              "BUCKET",
+              "ALIGN",
+              "INTERVAL",
+              "LIKE",
+              "ILIKE",
+              "ESCAPE",
+              "IN",
+              "IS",
+              "BETWEEN",
+              "ORDER",
+              "GROUP",
+              "BY",
+              "NULLS",
+              "ASC",
+              "DESC",
+              "AS",
+              "NULL",
+              "TRUE",
+              "FALSE",
+              "DISTINCT",
+              "ALL",
+              "EXTRACT",
+              "TRIM",
+              "BOTH",
+              "LEADING",
+              "TRAILING",
+              "SUBSTRING",
+              "FOR",
+              "||",
+              "+",
+              "-",
+              "/",
+              "%",
+              "^",
+              "(",
+              ")",
+              ",",
+              ".",
+              ";",
+              "::",
+              "<=",
+              ">=",
+              "<>",
+              "=",
+              "<",
+              ">",
+              "*",
+              "HAVING",
+              "LIMIT",
+              "OFFSET",
+              "SAMPLE_USERS"
+            ]
+            # Longer keywords have to be checked first to avoid false matches.
+            |> Enum.sort_by(&String.length/1, &>=/2)
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Tokenizes the given string."
-  @spec tokenize(String.t) :: {:ok, [Token.t]} | {:error, any}
+  @spec tokenize(String.t()) :: {:ok, [Token.t()]} | {:error, any}
   def tokenize(query_string) do
     case Combine.parse(query_string, lexer()) do
       {:error, _} = error -> error
@@ -47,9 +93,8 @@ defmodule Cloak.Sql.Lexer do
   end
 
   @doc "Returns a list of SQL keywords accepted by the lexer."
-  @spec keywords() :: [String.t]
+  @spec keywords() :: [String.t()]
   def keywords(), do: @keywords
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -60,24 +105,26 @@ defmodule Cloak.Sql.Lexer do
   end
 
   defp tokens() do
-    many(choice([
-      whitespace(),
-      comment(),
-      constant(),
-      quoted_identifier(),
-      identifier(),
-      keyword(),
-      parameter(),
-      other()
-    ]))
+    many(
+      choice([
+        whitespace(),
+        comment(),
+        constant(),
+        quoted_identifier(),
+        identifier(),
+        keyword(),
+        parameter(),
+        other()
+      ])
+    )
   end
 
   defp eof_token() do
     error_message(eof(), "Invalid character")
     |> pair_both(offset(), position())
-    |> map(fn({offset, {line, column}}) ->
-          %Token{offset: offset, line: line, column: column, category: :eof}
-        end)
+    |> map(fn {offset, {line, column}} ->
+      %Token{offset: offset, line: line, column: column, category: :eof}
+    end)
   end
 
   defp comment() do
@@ -90,10 +137,11 @@ defmodule Cloak.Sql.Lexer do
     )
   end
 
-  defp parameter(), do:
-    word_of(~r/\$[1-9][0-9]*/)
-    |> map(fn("$" <> index_str) -> {:parameter, String.to_integer(index_str)} end)
-    |> output_token()
+  defp parameter(),
+    do:
+      word_of(~r/\$[1-9][0-9]*/)
+      |> map(fn "$" <> index_str -> {:parameter, String.to_integer(index_str)} end)
+      |> output_token()
 
   defp other() do
     char()
@@ -131,7 +179,7 @@ defmodule Cloak.Sql.Lexer do
     word_of(~r/[0-9]*\.[0-9]+([eE][-+]?[0-9]+)?+/)
     |> map(&Float.parse/1)
     |> satisfy(&match?({_, ""}, &1))
-    |> map(fn({value, _}) -> value end)
+    |> map(fn {value, _} -> value end)
     |> output_constant(:float)
   end
 
@@ -139,7 +187,7 @@ defmodule Cloak.Sql.Lexer do
     word_of(~r/[0-9]+(?!\w)/)
     |> map(&Integer.parse/1)
     |> satisfy(&match?({_, ""}, &1))
-    |> map(fn({value, _}) -> value end)
+    |> map(fn {value, _} -> value end)
     |> output_constant(:integer)
   end
 
@@ -153,7 +201,7 @@ defmodule Cloak.Sql.Lexer do
     sequence([
       option(horizontal_whitespace()),
       linebreak(),
-      option(horizontal_whitespace()),
+      option(horizontal_whitespace())
     ])
   end
 
@@ -161,7 +209,7 @@ defmodule Cloak.Sql.Lexer do
     sequence([
       ignore(char(?')),
       many(string_content()),
-      ignore(char(?')),
+      ignore(char(?'))
     ])
     |> map(&Enum.join/1)
   end
@@ -169,7 +217,7 @@ defmodule Cloak.Sql.Lexer do
   defp string_content() do
     choice([
       pair_right(string("''"), return("'")),
-      word_of(~r/[^']+/),
+      word_of(~r/[^']+/)
     ])
   end
 
@@ -198,9 +246,9 @@ defmodule Cloak.Sql.Lexer do
 
   defp identifier() do
     word_of(~r/[a-zA-Z_#][a-zA-Z0-9_#]*/)
-    |> satisfy(fn(identifier) ->
-          not Enum.any?(@keywords, &(&1 == String.upcase(identifier)))
-        end)
+    |> satisfy(fn identifier ->
+      not Enum.any?(@keywords, &(&1 == String.upcase(identifier)))
+    end)
     |> map(&{:unquoted, &1})
     |> output_token()
   end
@@ -211,14 +259,14 @@ defmodule Cloak.Sql.Lexer do
       word_of(~r/[^"]/),
       ignore(char(?"))
     ])
-    |> map(fn([identifier]) -> {:quoted, identifier} end)
+    |> map(fn [identifier] -> {:quoted, identifier} end)
     |> output_token()
   end
 
   defp output_token(token_parser) do
     sequence([offset(), position(), token_parser])
-    |> map(fn([offset, {line, column}, {category, value}]) ->
-          %Token{offset: offset, line: line, column: column, category: category, value: value}
-        end)
+    |> map(fn [offset, {line, column}, {category, value}] ->
+      %Token{offset: offset, line: line, column: column, category: category, value: value}
+    end)
   end
 end

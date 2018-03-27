@@ -4,21 +4,37 @@ defmodule Cloak.Query.Runner.Engine do
   alias Cloak.Query.Runner.ParallelProcessor
   require Logger
 
-  @type state_updater :: (ResultSender.query_state -> any)
-  @type feature_updater :: (Query.features -> any)
-
+  @type state_updater :: (ResultSender.query_state() -> any)
+  @type feature_updater :: (Query.features() -> any)
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Executes the SQL query and returns the query result with info messages or the corresponding error."
-  @spec run(DataSource.t, String.t, [DataSource.field], Sql.Query.view_map, state_updater, feature_updater,
-    Cloak.MemoryReader.query_killer_callbacks) :: {:ok, Sql.Query.Result.t, [String.t]} | {:error, String.t}
-  def run(data_source, statement, parameters, views, state_updater, feature_updater,
-      {query_killer_reg, query_killer_unreg}) do
+  @spec run(
+          DataSource.t(),
+          String.t(),
+          [DataSource.field()],
+          Sql.Query.view_map(),
+          state_updater,
+          feature_updater,
+          Cloak.MemoryReader.query_killer_callbacks()
+        ) :: {:ok, Sql.Query.Result.t(), [String.t()]} | {:error, String.t()}
+  def run(
+        data_source,
+        statement,
+        parameters,
+        views,
+        state_updater,
+        feature_updater,
+        {query_killer_reg, query_killer_unreg}
+      ) do
     parsed_query = parse!(statement, state_updater)
-    {compiled_query, features} = compile!(data_source, parsed_query, parameters, views, state_updater)
+
+    {compiled_query, features} =
+      compile!(data_source, parsed_query, parameters, views, state_updater)
+
     feature_updater.(features)
     query = prepare_for_execution(compiled_query)
     state_updater.(:awaiting_data)
@@ -27,10 +43,12 @@ defmodule Cloak.Query.Runner.Engine do
     query_killer_unreg.()
     {:ok, result, Sql.Query.info_messages(query)}
   rescue
-    e in Cloak.Query.ExecutionError -> {:error, e.message}
-    e in [Cloak.Sql.CompilationError, Cloak.Sql.ParseError] -> {:error, Cloak.Sql.ErrorFormat.format(statement, e)}
-  end
+    e in Cloak.Query.ExecutionError ->
+      {:error, e.message}
 
+    e in [Cloak.Sql.CompilationError, Cloak.Sql.ParseError] ->
+      {:error, Cloak.Sql.ErrorFormat.format(statement, e)}
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -46,27 +64,46 @@ defmodule Cloak.Query.Runner.Engine do
     Sql.Compiler.compile!(data_source, parsed_query, parameters, views)
   end
 
-  defp prepare_for_execution(compiled_query), do:
-    compiled_query
-    |> Sql.Compiler.NoiseLayers.compile()
-    |> Sql.Query.resolve_db_columns()
+  defp prepare_for_execution(compiled_query),
+    do:
+      compiled_query
+      |> Sql.Compiler.NoiseLayers.compile()
+      |> Sql.Query.resolve_db_columns()
 
-  defp run_statement(%Sql.Query{command: :show, show: :tables} = query, features, _state_updater), do:
-    (Map.keys(query.data_source.tables) ++ Map.keys(query.views))
-    |> Enum.map(&%{occurrences: 1, row: [to_string(&1)]})
-    |> Query.Result.new(query, features)
-  defp run_statement(%Sql.Query{command: :show, show: :columns} = query, features, _state_updater), do:
-    query.selected_tables
-    |> hd()
-    |> sorted_table_columns()
-    |> Enum.map(&%{occurrences: 1, row: [&1.name, to_string(&1.type)]})
-    |> Query.Result.new(query, features)
-  defp run_statement(%Sql.Query{command: :select, emulated?: false} = query, features, state_updater), do:
-    DataSource.select!(
-      %Sql.Query{query | where: Sql.Query.offloaded_where(query)},
-      &process_final_rows(&1, query, features, state_updater)
-    )
-  defp run_statement(%Sql.Query{command: :select, emulated?: true} = query, features, state_updater) do
+  defp run_statement(%Sql.Query{command: :show, show: :tables} = query, features, _state_updater),
+    do:
+      (Map.keys(query.data_source.tables) ++ Map.keys(query.views))
+      |> Enum.map(&%{occurrences: 1, row: [to_string(&1)]})
+      |> Query.Result.new(query, features)
+
+  defp run_statement(
+         %Sql.Query{command: :show, show: :columns} = query,
+         features,
+         _state_updater
+       ),
+       do:
+         query.selected_tables
+         |> hd()
+         |> sorted_table_columns()
+         |> Enum.map(&%{occurrences: 1, row: [&1.name, to_string(&1.type)]})
+         |> Query.Result.new(query, features)
+
+  defp run_statement(
+         %Sql.Query{command: :select, emulated?: false} = query,
+         features,
+         state_updater
+       ),
+       do:
+         DataSource.select!(
+           %Sql.Query{query | where: Sql.Query.offloaded_where(query)},
+           &process_final_rows(&1, query, features, state_updater)
+         )
+
+  defp run_statement(
+         %Sql.Query{command: :select, emulated?: true} = query,
+         features,
+         state_updater
+       ) do
     {rows, query} = Query.DbEmulator.select(query)
     process_final_rows(rows, query, features, state_updater)
   end
@@ -80,15 +117,22 @@ defmodule Cloak.Query.Runner.Engine do
     Logger.debug("Processing final rows ...")
 
     query = Query.RowSplitters.compile(query)
-    state_updater = fn (acc, state) -> state_updater.(state); acc end
+
+    state_updater = fn acc, state ->
+      state_updater.(state)
+      acc
+    end
 
     stream
     |> Stream.transform(:first, fn
-      (chunk, :first) -> {[state_updater.(chunk, :ingesting_data)], :not_first}
-      (chunk, :not_first) -> {[chunk], :not_first}
+      chunk, :first -> {[state_updater.(chunk, :ingesting_data)], :not_first}
+      chunk, :not_first -> {[chunk], :not_first}
     end)
-    |> ParallelProcessor.execute(concurrency(query),
-      &consume_rows(&1, query), &Query.Aggregator.merge_groups/2)
+    |> ParallelProcessor.execute(
+      concurrency(query),
+      &consume_rows(&1, query),
+      &Query.Aggregator.merge_groups/2
+    )
     |> state_updater.(:processing)
     |> Query.Aggregator.aggregate(query)
     |> state_updater.(:post_processing)
@@ -102,6 +146,6 @@ defmodule Cloak.Query.Runner.Engine do
     |> Query.Aggregator.group(query)
   end
 
-  defp concurrency(query), do:
-    query.data_source.concurrency || Application.get_env(:cloak, :concurrency, 0)
+  defp concurrency(query),
+    do: query.data_source.concurrency || Application.get_env(:cloak, :concurrency, 0)
 end

@@ -15,12 +15,11 @@ defmodule Cloak.MemoryReader.MemoryProjector do
   @type timestamp :: non_neg_integer
 
   @type t :: %__MODULE__{
-    last_reading: {measurement, timestamp} | nil,
-    changes: [integer],
-  }
+          last_reading: {measurement, timestamp} | nil,
+          changes: [integer]
+        }
 
   defstruct last_reading: nil, changes: []
-
 
   # -------------------------------------------------------------------
   # API functions
@@ -55,17 +54,26 @@ defmodule Cloak.MemoryReader.MemoryProjector do
   The number of expected units of time until we reach a given lower memory limit.
   The time units are the same as used when adding new measurements.
   """
-  @spec time_until_limit(t, non_neg_integer) :: :infinity | :no_prediction | {:ok, non_neg_integer}
-  def time_until_limit(%MemoryProjector{changes: changes}, _) when length(changes) < @readings_to_keep, do:
-    :no_prediction
-  def time_until_limit(%MemoryProjector{changes: changes, last_reading: {free_memory, _}}, memory_limit) do
+  @spec time_until_limit(t, non_neg_integer) ::
+          :infinity | :no_prediction | {:ok, non_neg_integer}
+  def time_until_limit(%MemoryProjector{changes: changes}, _)
+      when length(changes) < @readings_to_keep,
+      do: :no_prediction
+
+  def time_until_limit(
+        %MemoryProjector{changes: changes, last_reading: {free_memory, _}},
+        memory_limit
+      ) do
     # We produce a weighted average where the most recent value counts 3 times as much
     # as the oldest. This value is experimentally set, and probably needs furhter adjusting.
-    weighted_values_sum = changes
-    |> Enum.zip(@reading_weights)
-    |> Enum.map(fn({value, weight}) -> value * weight end)
-    |> Enum.sum()
+    weighted_values_sum =
+      changes
+      |> Enum.zip(@reading_weights)
+      |> Enum.map(fn {value, weight} -> value * weight end)
+      |> Enum.sum()
+
     average_change = div(weighted_values_sum, Enum.sum(@reading_weights))
+
     if average_change >= 0 do
       :infinity
     else
@@ -73,20 +81,27 @@ defmodule Cloak.MemoryReader.MemoryProjector do
     end
   end
 
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp extend_changes(%MemoryProjector{last_reading: nil} = state, _measurement, _timestamp), do: state
-  defp extend_changes(%MemoryProjector{last_reading: {previous_measurement, previous_timestamp},
-      changes: changes} = state, new_measurement, new_timestamp) do
+  defp extend_changes(%MemoryProjector{last_reading: nil} = state, _measurement, _timestamp),
+    do: state
+
+  defp extend_changes(
+         %MemoryProjector{
+           last_reading: {previous_measurement, previous_timestamp},
+           changes: changes
+         } = state,
+         new_measurement,
+         new_timestamp
+       ) do
     time_since_last_reading = new_timestamp - previous_timestamp
     measured_difference = new_measurement - previous_measurement
     change = div(measured_difference, max(time_since_last_reading, 1))
     %MemoryProjector{state | changes: Enum.take([change | changes], @readings_to_keep)}
   end
 
-  defp retain_current_reading(state, measurement, timestamp), do:
-    %MemoryProjector{state | last_reading: {measurement, timestamp}}
+  defp retain_current_reading(state, measurement, timestamp),
+    do: %MemoryProjector{state | last_reading: {measurement, timestamp}}
 end

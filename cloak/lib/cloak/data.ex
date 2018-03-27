@@ -1,15 +1,15 @@
 defmodule Cloak.Data do
   @moduledoc "Contains functions for uniformly working with numbers and datetime types."
 
-  @type t :: %NaiveDateTime{} | %Date{} | %Time{} | number | String.t | nil
+  @type t :: %NaiveDateTime{} | %Date{} | %Time{} | number | String.t() | nil
 
   @doc "Returns the smaller of the two values according to the order given by `lt_eq`."
   @spec min(t, t) :: t
-  def min(x, y), do: if lt_eq(x, y), do: x, else: y || x
+  def min(x, y), do: if(lt_eq(x, y), do: x, else: y || x)
 
   @doc "Returns the greater of the two values according to the order given by `lt_eq`."
   @spec max(t, t) :: t
-  def max(x, y), do: if lt_eq(x, y), do: y, else: x || y
+  def max(x, y), do: if(lt_eq(x, y), do: y, else: x || y)
 
   @doc "Returns true if the first value is greater than the second, false otherwise. See `lt_eq/2` for details."
   @spec gt(t, t) :: boolean

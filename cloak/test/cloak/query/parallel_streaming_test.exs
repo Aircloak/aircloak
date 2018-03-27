@@ -17,14 +17,21 @@ defmodule Cloak.Query.ParallelStreamingTest do
   end
 
   defp data_source() do
-    data_source = Enum.find(Cloak.DataSource.all(), & &1.driver === Cloak.DataSource.PostgreSQL)
+    data_source = Enum.find(Cloak.DataSource.all(), &(&1.driver === Cloak.DataSource.PostgreSQL))
     %{data_source | concurrency: 3}
   end
 
   defmacrop assert_query(query, expected_response) do
     quote do
-      result = Runner.run_sync("#{:erlang.unique_integer([:positive])}", data_source(), unquote(query), [],
-        %{})
+      result =
+        Runner.run_sync(
+          "#{:erlang.unique_integer([:positive])}",
+          data_source(),
+          unquote(query),
+          [],
+          %{}
+        )
+
       assert unquote(expected_response) = result
     end
   end
@@ -36,7 +43,11 @@ defmodule Cloak.Query.ParallelStreamingTest do
     :ok = insert_rows(_user_ids = 1..800, @table, ["value"], [0])
     :ok = insert_rows(_user_ids = 1..1200, @table, ["value"], [-2])
 
-    assert_query "SELECT COUNT(*), COUNT(DISTINCT value), MIN(value), MEDIAN(value), SUM(value) FROM #{@table}",
+    assert_query(
+      "SELECT COUNT(*), COUNT(DISTINCT value), MIN(value), MEDIAN(value), SUM(value) FROM #{
+        @table
+      }",
       %{rows: [%{row: [4200, 5, -2, 0, -200]}]}
+    )
   end
 end

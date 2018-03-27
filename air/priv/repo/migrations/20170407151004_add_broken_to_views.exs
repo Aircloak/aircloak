@@ -3,7 +3,7 @@ defmodule Air.Repo.Migrations.AddBrokenToViews do
 
   def change do
     alter table(:views) do
-      add :broken, :boolean
+      add(:broken, :boolean)
     end
   end
 end

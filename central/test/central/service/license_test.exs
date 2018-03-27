@@ -13,32 +13,48 @@ defmodule Central.Service.License.Test do
     end
 
     test "creates a license", %{customer: customer} do
-      {:ok, _} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
+      {:ok, _} =
+        License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
+
       assert [%{name: "some license"}] = License.for_customer(customer)
     end
 
-    test "returns no licenses for a customer when other customers have licenses", %{customer: customer} do
-      {:ok, _} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
+    test "returns no licenses for a customer when other customers have licenses", %{
+      customer: customer
+    } do
+      {:ok, _} =
+        License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
+
       assert [] = License.for_customer(create_customer("Some other guy"))
     end
 
-    test "creating an invalid license", %{customer: customer}, do:
-      assert {:error, _} = License.create(customer, %{name: ""})
+    test(
+      "creating an invalid license",
+      %{customer: customer},
+      do: assert({:error, _} = License.create(customer, %{name: ""}))
+    )
   end
 
   describe "export" do
-    test "exported license includes customer and license id", %{customer: customer, public_key: public_key} do
-      {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
+    test "exported license includes customer and license id", %{
+      customer: customer,
+      public_key: public_key
+    } do
+      {:ok, license} =
+        License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
 
       text = License.export(license)
 
       customer_id = customer.id
       license_id = license.id
-      assert {:ok, %{"customer_id" => ^customer_id, "id" => ^license_id}} = decode(text, public_key)
+
+      assert {:ok, %{"customer_id" => ^customer_id, "id" => ^license_id}} =
+               decode(text, public_key)
     end
 
     test "exporting an auto-renew license", %{customer: customer, public_key: public_key} do
-      {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
+      {:ok, license} =
+        License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
 
       text = License.export(license)
 
@@ -49,7 +65,9 @@ defmodule Central.Service.License.Test do
     end
 
     test "exporting a non-auto-renew license", %{customer: customer, public_key: public_key} do
-      {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: false})
+      {:ok, license} =
+        License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: false})
+
       creation = Timex.now() |> Timex.shift(days: -100)
 
       text = License.export(%{license | inserted_at: creation})
@@ -62,8 +80,13 @@ defmodule Central.Service.License.Test do
   end
 
   describe "revocation" do
-    test "revoked auto-renew licenses are treated as non-auto-renew", %{customer: customer, public_key: public_key} do
-      {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
+    test "revoked auto-renew licenses are treated as non-auto-renew", %{
+      customer: customer,
+      public_key: public_key
+    } do
+      {:ok, license} =
+        License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
+
       creation = Timex.now() |> Timex.shift(days: -100)
 
       {:ok, license} = License.revoke(license)
@@ -76,7 +99,8 @@ defmodule Central.Service.License.Test do
     end
 
     test "revoking a license", %{customer: customer} do
-      {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 1, auto_renew: true})
+      {:ok, license} =
+        License.create(customer, %{name: "some license", length_in_days: 1, auto_renew: true})
 
       {:ok, _} = License.revoke(license)
 
@@ -84,7 +108,8 @@ defmodule Central.Service.License.Test do
     end
 
     test "restoring a license", %{customer: customer} do
-      {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 1, auto_renew: true})
+      {:ok, license} =
+        License.create(customer, %{name: "some license", length_in_days: 1, auto_renew: true})
 
       {:ok, license} = License.revoke(license)
       {:ok, _} = License.restore(license)
@@ -94,11 +119,12 @@ defmodule Central.Service.License.Test do
   end
 
   describe "renewal" do
-    test "invalid license", do:
-      assert {:error, :invalid_license} = License.renew("invalid")
+    test "invalid license", do: assert({:error, :invalid_license} = License.renew("invalid"))
 
     test "valid license", %{customer: customer, public_key: public_key} do
-      {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 1, auto_renew: true})
+      {:ok, license} =
+        License.create(customer, %{name: "some license", length_in_days: 1, auto_renew: true})
+
       old_text = License.export(license)
       {:ok, new_text} = License.renew(old_text)
 
@@ -115,8 +141,8 @@ defmodule Central.Service.License.Test do
     {:ok, %{customer: create_customer()}}
   end
 
-  defp create_customer(name \\ "Some name"), do:
-    Repo.insert!(Schemas.Customer.changeset(%Schemas.Customer{}, %{name: name}))
+  defp create_customer(name \\ "Some name"),
+    do: Repo.insert!(Schemas.Customer.changeset(%Schemas.Customer{}, %{name: name}))
 
   defp read_public_key(_) do
     root_path = Application.app_dir(:central)

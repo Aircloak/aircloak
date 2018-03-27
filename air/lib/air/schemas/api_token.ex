@@ -16,15 +16,15 @@ defmodule Air.Schemas.ApiToken do
 
   require EctoEnum
 
-  EctoEnum.defenum Access, :api_token_type, [:api, :monitoring]
+  EctoEnum.defenum(Access, :api_token_type, [:api, :monitoring])
 
   @type t :: %__MODULE__{}
 
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "api_tokens" do
-    field :description, :string
-    field :access, __MODULE__.Access
-    belongs_to :user, Air.Schemas.User, references: :id
+    field(:description, :string)
+    field(:access, __MODULE__.Access)
+    belongs_to(:user, Air.Schemas.User, references: :id)
 
     timestamps()
   end
@@ -38,7 +38,7 @@ defmodule Air.Schemas.ApiToken do
   If no params are provided, an invalid changeset is returned
   with no validation performed.
   """
-  @spec changeset(t | Changeset.t, Map.t) :: Changeset.t
+  @spec changeset(t | Changeset.t(), Map.t()) :: Changeset.t()
   def changeset(model, params \\ %{}) do
     model
     |> cast(params, @required_fields ++ @optional_fields)
@@ -54,7 +54,7 @@ defmodule Air.Schemas.ApiToken do
   This allows a user to determine whether or not a token is still
   in active use, or whether it can be removed.
   """
-  @spec touch(ApiToken.t) :: Changeset.t
+  @spec touch(ApiToken.t()) :: Changeset.t()
   def touch(model) do
     time_params = %{updated_at: NaiveDateTime.utc_now()}
     cast(model, time_params, [:updated_at])

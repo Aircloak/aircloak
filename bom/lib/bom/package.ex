@@ -4,11 +4,11 @@ defmodule BOM.Package do
   defstruct [:realm, :name, :path, :license, :error, :version]
 
   @type t :: %__MODULE__{
-    realm: atom,
-    name: String.t,
-    path: String.t,
-    license: BOM.License.t,
-    error: nil | String.t,
-    version: String.t
-  }
+          realm: atom,
+          name: String.t(),
+          path: String.t(),
+          license: BOM.License.t(),
+          error: nil | String.t(),
+          version: String.t()
+        }
 end

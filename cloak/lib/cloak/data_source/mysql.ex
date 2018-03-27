@@ -9,7 +9,6 @@ defmodule Cloak.DataSource.MySQL do
 
   use Cloak.DataSource.Driver.SQL
 
-
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
@@ -17,17 +16,30 @@ defmodule Cloak.DataSource.MySQL do
   @impl Driver
   def connect!(parameters) do
     self = self()
+
     parameters =
-      Enum.to_list(parameters) ++ [types: true, sync_connect: true,
-        pool: DBConnection.Connection, timeout: Driver.timeout(), after_connect: fn (_) -> send self, :connected end]
+      Enum.to_list(parameters) ++
+        [
+          types: true,
+          sync_connect: true,
+          pool: DBConnection.Connection,
+          timeout: Driver.timeout(),
+          after_connect: fn _ -> send(self, :connected) end
+        ]
+
     {:ok, connection} = Mariaex.start_link(parameters)
+
     receive do
       :connected ->
-        {:ok, %Mariaex.Result{}} = Mariaex.query(connection, "SET sql_mode = 'ANSI,NO_BACKSLASH_ESCAPES'", [])
-        {:ok, %Mariaex.Result{}} = Mariaex.query(connection, "SET div_precision_increment = 30", [])
+        {:ok, %Mariaex.Result{}} =
+          Mariaex.query(connection, "SET sql_mode = 'ANSI,NO_BACKSLASH_ESCAPES'", [])
+
+        {:ok, %Mariaex.Result{}} =
+          Mariaex.query(connection, "SET div_precision_increment = 30", [])
+
         connection
-    after Driver.connect_timeout()
-      ->
+    after
+      Driver.connect_timeout() ->
         GenServer.stop(connection, :normal, :timer.seconds(5))
         DataSource.raise_error("Unknown failure during database connection process")
     end
@@ -37,6 +49,7 @@ defmodule Cloak.DataSource.MySQL do
   def load_tables(connection, table) do
     query = "SHOW COLUMNS FROM #{table.db_name}"
     column_info_mapper = fn [name, type | _others] -> Table.column(name, parse_type(type)) end
+
     case run_query(connection, query, column_info_mapper, &Enum.concat/1) do
       {:ok, columns} -> [%{table | columns: columns}]
       {:error, reason} -> DataSource.raise_error("`#{reason}`")
@@ -56,19 +69,29 @@ defmodule Cloak.DataSource.MySQL do
   @impl Driver
   def supports_connection_sharing?(), do: true
 
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   defp run_query(pool, statement, decode_mapper, result_processor) do
-    Mariaex.transaction(pool, fn(connection) ->
-      Mariaex.stream(connection, statement, [], [decode_mapper: decode_mapper, max_rows: Driver.batch_size])
-      |> Stream.map(fn (%Mariaex.Result{rows: rows}) -> rows end)
-      |> result_processor.()
-    end, [timeout: Driver.timeout()])
+    Mariaex.transaction(
+      pool,
+      fn connection ->
+        Mariaex.stream(
+          connection,
+          statement,
+          [],
+          decode_mapper: decode_mapper,
+          max_rows: Driver.batch_size()
+        )
+        |> Stream.map(fn %Mariaex.Result{rows: rows} -> rows end)
+        |> result_processor.()
+      end,
+      timeout: Driver.timeout()
+    )
   rescue
-    error in Mariaex.Error -> DataSource.raise_error("Driver exception: `#{Exception.message(error)}`")
+    error in Mariaex.Error ->
+      DataSource.raise_error("Driver exception: `#{Exception.message(error)}`")
   end
 
   defp parse_type("varchar" <> _size), do: :text
@@ -90,14 +113,14 @@ defmodule Cloak.DataSource.MySQL do
   defp parse_type("date"), do: :date
   defp parse_type(type), do: {:unsupported, type}
 
-
   # -------------------------------------------------------------------
   # Selected data mapping functions
   # -------------------------------------------------------------------
 
   defp map_fields([], []), do: []
-  defp map_fields([field | rest_fields], [mapper | rest_mappers]), do:
-    [mapper.(field) | map_fields(rest_fields, rest_mappers)]
+
+  defp map_fields([field | rest_fields], [mapper | rest_mappers]),
+    do: [mapper.(field) | map_fields(rest_fields, rest_mappers)]
 
   defp type_to_field_mapper(:integer), do: &integer_field_mapper/1
   defp type_to_field_mapper(:real), do: &real_field_mapper/1
@@ -119,10 +142,14 @@ defmodule Cloak.DataSource.MySQL do
   defp boolean_field_mapper(value) when value in [<<0>>, 0, false], do: false
   defp boolean_field_mapper(value) when value in [<<1>>, 1, true], do: true
 
-  defp generic_field_mapper({{year, month, day}, {hour, min, sec, msec}}), do:
-    NaiveDateTime.new(year, month, day, hour, min, sec, {msec * 1000, 6}) |> error_to_nil()
+  defp generic_field_mapper({{year, month, day}, {hour, min, sec, msec}}),
+    do: NaiveDateTime.new(year, month, day, hour, min, sec, {msec * 1000, 6}) |> error_to_nil()
+
   defp generic_field_mapper({year, month, day}), do: Date.new(year, month, day) |> error_to_nil()
-  defp generic_field_mapper({hour, min, sec, msec}), do: Time.new(hour, min, sec, {msec * 1000, 6}) |> error_to_nil()
+
+  defp generic_field_mapper({hour, min, sec, msec}),
+    do: Time.new(hour, min, sec, {msec * 1000, 6}) |> error_to_nil()
+
   defp generic_field_mapper(value), do: value
 
   defp interval_field_mapper(nil), do: nil
@@ -131,30 +158,37 @@ defmodule Cloak.DataSource.MySQL do
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _reason}), do: nil
 
-
   # -------------------------------------------------------------------
   # Test functions
   # -------------------------------------------------------------------
 
-  if Mix.env == :test do
-    defp parameter_mapper(%NaiveDateTime{} = dt), do:
-      {{dt.year, dt.month, dt.day}, {dt.hour, dt.minute, dt.second, 0}}
+  if Mix.env() == :test do
+    defp parameter_mapper(%NaiveDateTime{} = dt),
+      do: {{dt.year, dt.month, dt.day}, {dt.hour, dt.minute, dt.second, 0}}
+
     defp parameter_mapper(%Date{} = d), do: {d.year, d.month, d.day}
     defp parameter_mapper(%Time{} = t), do: {t.hour, t.minute, t.second, 0}
     defp parameter_mapper(value), do: value
 
     @doc false
     def execute(connection, statement, parameters \\ [])
-    def execute(connection, "DROP SCHEMA " <> _rest = statement, []), do:
-      Mariaex.query(connection, String.replace(statement, "CASCADE", ""))
+
+    def execute(connection, "DROP SCHEMA " <> _rest = statement, []),
+      do: Mariaex.query(connection, String.replace(statement, "CASCADE", ""))
+
     def execute(connection, "CREATE TABLE " <> _rest = statement, []) do
-      statement = statement |> String.replace(" BOOLEAN", " BIT") |> String.replace(" TIMESTAMP", " DATETIME")
+      statement =
+        statement
+        |> String.replace(" BOOLEAN", " BIT")
+        |> String.replace(" TIMESTAMP", " DATETIME")
+
       Mariaex.query(connection, statement)
     end
+
     def execute(connection, statement, parameters) do
       parameters = Enum.map(parameters, &parameter_mapper/1)
       statement = statement |> to_string() |> String.replace(~r/\$\d+/, "?")
-      Mariaex.query(connection, statement, parameters, [timeout: :timer.minutes(2)])
+      Mariaex.query(connection, statement, parameters, timeout: :timer.minutes(2))
     end
   end
 end

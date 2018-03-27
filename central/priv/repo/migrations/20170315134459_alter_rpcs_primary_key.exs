@@ -3,15 +3,16 @@ defmodule Central.Repo.Migrations.AlterRpcsPrimaryKey do
 
   def up() do
     alter table(:air_rpcs) do
-      modify :id, :text
+      modify(:id, :text)
     end
   end
 
   def down() do
     # We need to remove entries since some IDs might not be convertible anymore
     Ecto.Adapters.SQL.query!(Central.Repo, "truncate table air_rpcs", [])
+
     alter table(:air_rpcs) do
-      modify :id, :string
+      modify(:id, :string)
     end
   end
 end

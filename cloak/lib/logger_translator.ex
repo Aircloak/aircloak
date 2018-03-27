@@ -13,28 +13,27 @@ defmodule Cloak.LoggerTranslator do
 
   require Aircloak.DeployConfig
 
-
   # -------------------------------------------------------------------
   ## API functions
   # -------------------------------------------------------------------
 
   @doc "Installs this module as the logger translator."
   @spec install() :: :ok
-  def install(), do:
-    Logger.add_translator({__MODULE__, :translate})
+  def install(), do: Logger.add_translator({__MODULE__, :translate})
 
   @doc "Removes sensitive information from the stacktrace."
   @spec filtered_stacktrace(any) :: iodata
-  def filtered_stacktrace(stacktrace) when is_list(stacktrace), do:
-    stacktrace
-    |> Enum.map(fn
-      {_mod, _fun, arity, _location} = entry when is_integer(arity) -> entry
-      {mod, fun, args, location} when is_list(args) -> {mod, fun, length(args), location}
-      _other -> nil
-    end)
-    |> Enum.filter(&(&1 != nil))
-  def filtered_stacktrace(_), do: []
+  def filtered_stacktrace(stacktrace) when is_list(stacktrace),
+    do:
+      stacktrace
+      |> Enum.map(fn
+        {_mod, _fun, arity, _location} = entry when is_integer(arity) -> entry
+        {mod, fun, args, location} when is_list(args) -> {mod, fun, length(args), location}
+        _other -> nil
+      end)
+      |> Enum.filter(&(&1 != nil))
 
+  def filtered_stacktrace(_), do: []
 
   # -------------------------------------------------------------------
   ## Logger translator callbacks
@@ -50,7 +49,6 @@ defmodule Cloak.LoggerTranslator do
     end
   end
 
-
   # -------------------------------------------------------------------
   ## Internal functions
   # -------------------------------------------------------------------
@@ -61,31 +59,38 @@ defmodule Cloak.LoggerTranslator do
     else
       _ -> {:ok, "sanitized `#{level}`:`#{kind}` log entry"}
     end
-  catch type, _reason ->
-    {:ok, translation_error(level, kind, type, :erlang.get_stacktrace())}
+  catch
+    type, _reason ->
+      {:ok, translation_error(level, kind, type, :erlang.get_stacktrace())}
   end
 
-  defp translation_error(level, kind, error_type, error_stacktrace), do:
-    [
+  defp translation_error(level, kind, error_type, error_stacktrace),
+    do: [
       "Error `#{error_type}` translating `#{level}`:`#{kind}`: ",
       Exception.format_stacktrace(filtered_stacktrace(error_stacktrace))
     ]
 
-  defp filter_message(:error, :format, message), do:
-    filter_error_message(message)
-  defp filter_message(_level, _kind, _message), do:
-    :skip
+  defp filter_message(:error, :format, message), do: filter_error_message(message)
+  defp filter_message(_level, _kind, _message), do: :skip
 
-  defp filter_error_message({'** Generic server ' ++ _ = msg, [name, _last, _state, reason]}), do:
-    {:ok, {msg, [name, "filtered", "filtered", filter_reason(reason)]}}
-  defp filter_error_message({'** Task ' ++ _ = msg, [name, starter, function, args, reason]}), do:
-    {:ok, {msg, [name, starter, function, Enum.map(args, fn(_) -> "filtered" end), filter_reason(reason)]}}
-  defp filter_error_message({'Error in process ' ++ _ = msg, [pid, reason]}), do:
-    {:ok, {msg, [pid, filter_reason(reason)]}}
-  defp filter_error_message({'** gen_event handler ' ++ _ = msg, [name, manager, _last, _state, reason]}), do:
-    {:ok, {msg, [name, manager, "filtered", "filtered", filter_reason(reason)]}}
+  defp filter_error_message({'** Generic server ' ++ _ = msg, [name, _last, _state, reason]}),
+    do: {:ok, {msg, [name, "filtered", "filtered", filter_reason(reason)]}}
+
+  defp filter_error_message({'** Task ' ++ _ = msg, [name, starter, function, args, reason]}),
+    do:
+      {:ok,
+       {msg,
+        [name, starter, function, Enum.map(args, fn _ -> "filtered" end), filter_reason(reason)]}}
+
+  defp filter_error_message({'Error in process ' ++ _ = msg, [pid, reason]}),
+    do: {:ok, {msg, [pid, filter_reason(reason)]}}
+
+  defp filter_error_message(
+         {'** gen_event handler ' ++ _ = msg, [name, manager, _last, _state, reason]}
+       ),
+       do: {:ok, {msg, [name, manager, "filtered", "filtered", filter_reason(reason)]}}
+
   defp filter_error_message(_), do: :skip
 
-  defp filter_reason({_exception, stacktrace}), do:
-    {"filtered", filtered_stacktrace(stacktrace)}
+  defp filter_reason({_exception, stacktrace}), do: {"filtered", filtered_stacktrace(stacktrace)}
 end

@@ -45,8 +45,10 @@ defmodule Central.Repo do
         :up,
         all: true
       )
+
       Logger.info("database migrated")
-      :ignore # stops the server without crashing the supervisor
+      # stops the server without crashing the supervisor
+      :ignore
     end
   end
 end

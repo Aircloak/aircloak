@@ -6,10 +6,10 @@ defmodule Bom.Mixfile do
       app: :bom,
       version: "0.1.0",
       elixir: "~> 1.3",
-      build_embedded: Mix.env == :prod,
-      start_permanent: Mix.env == :prod,
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
       deps: deps(),
-      aliases: aliases(Mix.env),
+      aliases: aliases(Mix.env())
     ]
   end
 
@@ -18,7 +18,7 @@ defmodule Bom.Mixfile do
   # Type "mix help compile.app" for more information
   def application do
     [
-      extra_applications: [:logger],
+      extra_applications: [:logger]
     ]
   end
 
@@ -36,7 +36,7 @@ defmodule Bom.Mixfile do
       {:poison, "~> 2.2.0", override: true},
       {:aircloak_common, path: "../common/elixir"},
       {:hackney, "1.6.3"},
-      {:httpoison, "0.10.0"},
+      {:httpoison, "0.10.0"}
     ]
   end
 
@@ -49,13 +49,14 @@ defmodule Bom.Mixfile do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases(env) when env in [:dev, :test] do
     [
-      "lint": ["credo --strict --ignore #{Enum.join(ignored_credo_checks(Mix.env), ",")}"]
+      lint: ["credo --strict --ignore #{Enum.join(ignored_credo_checks(Mix.env()), ",")}"]
     ]
   end
+
   defp aliases(:prod), do: []
 
-  defp ignored_credo_checks(:test), do:
-    ["ModuleDoc" | ignored_credo_checks(:dev)]
-  defp ignored_credo_checks(_), do:
-    ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
+  defp ignored_credo_checks(:test), do: ["ModuleDoc" | ignored_credo_checks(:dev)]
+
+  defp ignored_credo_checks(_),
+    do: ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
 end

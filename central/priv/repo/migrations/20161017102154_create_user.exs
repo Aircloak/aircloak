@@ -3,9 +3,9 @@ defmodule Central.Repo.Migrations.CreateUser do
 
   def change do
     create table(:users) do
-      add :email, :string
-      add :hashed_password, :string
-      add :name, :string
+      add(:email, :string)
+      add(:hashed_password, :string)
+      add(:name, :string)
 
       timestamps()
     end
@@ -14,6 +14,6 @@ defmodule Central.Repo.Migrations.CreateUser do
     # enforced by the database, rather than
     # through a query like it is normally done
     # in for example rails.
-    create unique_index(:users, [:email])
+    create(unique_index(:users, [:email]))
   end
 end

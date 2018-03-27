@@ -18,15 +18,30 @@ defmodule AirWeb.Admin.DataSourceController.Test do
 
     assert login(user) |> get(admin_data_source_path(conn, :index)) |> redirected_to() === "/"
     assert login(user) |> get(admin_data_source_path(conn, :new)) |> redirected_to() === "/"
-    assert soon(given_data_source(fn(data_source) ->
-      login(user) |> get(admin_data_source_path(conn, :edit, data_source.name)) |> redirected_to() === "/"
-    end))
-    assert soon(given_data_source(fn(data_source) ->
-      login(user) |> put(admin_data_source_path(conn, :update, data_source.name)) |> redirected_to() === "/"
-    end))
-    assert soon(given_data_source(fn(data_source) ->
-      login(user) |> delete(admin_data_source_path(conn, :delete, data_source.name)) |> redirected_to() === "/"
-    end))
+
+    assert soon(
+             given_data_source(fn data_source ->
+               login(user)
+               |> get(admin_data_source_path(conn, :edit, data_source.name))
+               |> redirected_to() === "/"
+             end)
+           )
+
+    assert soon(
+             given_data_source(fn data_source ->
+               login(user)
+               |> put(admin_data_source_path(conn, :update, data_source.name))
+               |> redirected_to() === "/"
+             end)
+           )
+
+    assert soon(
+             given_data_source(fn data_source ->
+               login(user)
+               |> delete(admin_data_source_path(conn, :delete, data_source.name))
+               |> redirected_to() === "/"
+             end)
+           )
   end
 
   test "lists data sources" do
@@ -34,11 +49,11 @@ defmodule AirWeb.Admin.DataSourceController.Test do
     admin = TestRepoHelper.create_admin_user!()
 
     assert soon(
-      admin
-      |> login()
-      |> get(admin_data_source_path(build_conn(), :index))
-      |> response(200) =~ "data_source_name"
-    )
+             admin
+             |> login()
+             |> get(admin_data_source_path(build_conn(), :index))
+             |> response(200) =~ "data_source_name"
+           )
   end
 
   test "accessing edit" do
@@ -46,10 +61,16 @@ defmodule AirWeb.Admin.DataSourceController.Test do
     admin = TestRepoHelper.create_admin_user!()
     conn = build_conn()
 
-    assert soon(given_data_source(fn(data_source) ->
-      html = login(admin) |> get(admin_data_source_path(conn, :edit, data_source.name)) |> response(200)
-      assert html =~ data_source.name
-    end))
+    assert soon(
+             given_data_source(fn data_source ->
+               html =
+                 login(admin)
+                 |> get(admin_data_source_path(conn, :edit, data_source.name))
+                 |> response(200)
+
+               assert html =~ data_source.name
+             end)
+           )
   end
 
   test "deleting an unavailable data source" do
@@ -57,14 +78,16 @@ defmodule AirWeb.Admin.DataSourceController.Test do
     admin = TestRepoHelper.create_admin_user!()
     conn = build_conn()
 
-    assert soon(given_data_source(fn(data_source) ->
-      assert admin
-      |> login()
-      |> delete(admin_data_source_path(conn, :delete, data_source.name))
-      |> redirected_to() == admin_data_source_path(conn, :index)
+    assert soon(
+             given_data_source(fn data_source ->
+               assert admin
+                      |> login()
+                      |> delete(admin_data_source_path(conn, :delete, data_source.name))
+                      |> redirected_to() == admin_data_source_path(conn, :index)
 
-      assert [] == Repo.all(DataSource)
-    end))
+               assert [] == Repo.all(DataSource)
+             end)
+           )
   end
 
   test "render 404 on attempting to show non-existent data source" do
@@ -79,7 +102,10 @@ defmodule AirWeb.Admin.DataSourceController.Test do
 
   test "render 404 on attempting to update a non-existent data source" do
     admin = TestRepoHelper.create_admin_user!()
-    assert login(admin) |> put("/admin/data_sources/99999", data_source: %{name: "some name"}) |> response(404)
+
+    assert login(admin)
+           |> put("/admin/data_sources/99999", data_source: %{name: "some name"})
+           |> response(404)
   end
 
   test "render 404 on attempting to delete a non-existent data source" do
@@ -92,11 +118,11 @@ defmodule AirWeb.Admin.DataSourceController.Test do
   end
 
   defp given_data_source(callback) do
-    (fn() ->
-      case Repo.all(DataSource) do
-        [data_source] -> callback.(data_source)
-        [] -> false
-      end
-    end).()
+    (fn ->
+       case Repo.all(DataSource) do
+         [data_source] -> callback.(data_source)
+         [] -> false
+       end
+     end).()
   end
 end

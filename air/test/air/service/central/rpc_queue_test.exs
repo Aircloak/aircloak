@@ -21,7 +21,7 @@ defmodule Air.Service.Central.RpcQueueTest do
     pid = start_worker()
     rpc = push_rpc(pid, unique_rpc())
 
-    assert_next_rpc rpc
+    assert_next_rpc(rpc)
   end
 
   test "message is sent only once on success" do
@@ -41,6 +41,7 @@ defmodule Air.Service.Central.RpcQueueTest do
 
   test "message is sent after the socket is connected" do
     me = self()
+
     connected_fun = fn ->
       {:dictionary, dictionary} = Process.info(me, :dictionary)
       Keyword.fetch!(dictionary, :connected)
@@ -52,16 +53,18 @@ defmodule Air.Service.Central.RpcQueueTest do
     :timer.sleep(100)
     Process.put(:connected, true)
 
-    assert_next_rpc rpc
+    assert_next_rpc(rpc)
   end
 
   test "proper message ordering" do
     pid = start_worker()
-    [rpc1, rpc2, rpc3] = push_rpcs(pid, [
-      unique_rpc(type: :delay, delay: 50),
-      unique_rpc(type: :delay, delay: 5),
-      unique_rpc()
-    ])
+
+    [rpc1, rpc2, rpc3] =
+      push_rpcs(pid, [
+        unique_rpc(type: :delay, delay: 50),
+        unique_rpc(type: :delay, delay: 5),
+        unique_rpc()
+      ])
 
     assert_next_rpc(rpc1)
     assert_next_rpc(rpc2)
@@ -70,7 +73,9 @@ defmodule Air.Service.Central.RpcQueueTest do
 
   test "removing items on queue overflow" do
     pid = start_worker(max_size: 2)
-    [rpc1, _, rpc3, rpc4] = push_rpcs(pid, Enum.map(1..4, fn _ -> unique_rpc(type: :delay, delay: 50) end))
+
+    [rpc1, _, rpc3, rpc4] =
+      push_rpcs(pid, Enum.map(1..4, fn _ -> unique_rpc(type: :delay, delay: 50) end))
 
     assert_next_rpc(rpc1)
     assert_next_rpc(rpc3)
@@ -83,7 +88,9 @@ defmodule Air.Service.Central.RpcQueueTest do
     ExUnit.CaptureLog.capture_log(fn ->
       pid = start_worker(max_size: 2, retry_delay: 50)
       push_rpc(pid, unique_rpc(type: :error, num_errors: 1))
-      [_, rpc3, rpc4] = push_rpcs(pid, Enum.map(1..3, fn _ -> unique_rpc(type: :delay, delay: 50) end))
+
+      [_, rpc3, rpc4] =
+        push_rpcs(pid, Enum.map(1..3, fn _ -> unique_rpc(type: :delay, delay: 50) end))
 
       assert_next_rpc(rpc3)
       assert_next_rpc(rpc4)
@@ -97,7 +104,7 @@ defmodule Air.Service.Central.RpcQueueTest do
       pid = start_worker(retry_delay: 1)
       rpc = push_rpc(pid, unique_rpc(type: :error, num_errors: 10))
 
-      assert_next_rpc rpc
+      assert_next_rpc(rpc)
       refute_receive {:rpc, _}
     end)
   end
@@ -105,13 +112,15 @@ defmodule Air.Service.Central.RpcQueueTest do
   test "ordering is preserved on send error" do
     ExUnit.CaptureLog.capture_log(fn ->
       pid = start_worker(retry_delay: 5)
-      [rpc1, rpc2] = push_rpcs(pid, [
-        unique_rpc(type: :error, num_errors: 5),
-        unique_rpc()
-      ])
 
-      assert_next_rpc rpc1
-      assert_next_rpc rpc2
+      [rpc1, rpc2] =
+        push_rpcs(pid, [
+          unique_rpc(type: :error, num_errors: 5),
+          unique_rpc()
+        ])
+
+      assert_next_rpc(rpc1)
+      assert_next_rpc(rpc2)
     end)
   end
 
@@ -126,23 +135,30 @@ defmodule Air.Service.Central.RpcQueueTest do
   end
 
   defp start_worker(opts \\ []) do
-    {:ok, pid} = RpcQueue.start_link(Keyword.merge(
-      [name: nil, sender_fun: test_sender(), connected_fun: fn -> true end],
-      opts
-    ))
+    {:ok, pid} =
+      RpcQueue.start_link(
+        Keyword.merge(
+          [name: nil, sender_fun: test_sender(), connected_fun: fn -> true end],
+          opts
+        )
+      )
+
     pid
   end
 
   defp test_sender() do
     receiver = self()
-    fn(rpc) ->
+
+    fn rpc ->
       case rpc.payload.type do
         :normal ->
           normal_send(receiver, rpc)
+
         :error ->
           if dec_error_counter(rpc.payload) >= 0,
             do: raise("error"),
             else: normal_send(receiver, rpc)
+
         :delay ->
           :timer.sleep(rpc.payload.delay)
           normal_send(receiver, rpc)
@@ -157,6 +173,7 @@ defmodule Air.Service.Central.RpcQueueTest do
 
   defp unique_rpc(opts \\ []) do
     unique_piece = to_string(:erlang.unique_integer())
+
     %{
       event: unique_piece,
       payload: Map.new(Keyword.merge([id: unique_piece, type: :normal], opts))

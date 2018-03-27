@@ -25,13 +25,13 @@ defmodule Mix.Tasks.DialyzeRetry do
   def run(args) do
     try do
       Mix.Task.run("dialyze", ["--no-analyse"])
-    rescue Mix.Error ->
-      # possible stale cache -> delete plts and retry once more
-      for plt_file <- Path.wildcard("#{Mix.Project.build_path()}/*.plt"),
-        do: File.rm!(plt_file)
+    rescue
+      Mix.Error ->
+        # possible stale cache -> delete plts and retry once more
+        for plt_file <- Path.wildcard("#{Mix.Project.build_path()}/*.plt"), do: File.rm!(plt_file)
 
-      Mix.Task.reenable("dialyze")
-      Mix.Task.run("dialyze", ["--no-analyse"])
+        Mix.Task.reenable("dialyze")
+        Mix.Task.run("dialyze", ["--no-analyse"])
     end
 
     # Finally, run dialyzer without checking PLT (this has been done above)

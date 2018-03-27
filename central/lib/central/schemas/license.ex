@@ -8,19 +8,18 @@ defmodule Central.Schemas.License do
   @type t :: %__MODULE__{}
 
   schema "licenses" do
-    field :name, :string
-    field :length_in_days, :integer
-    field :auto_renew, :boolean
-    field :revoked, :boolean
+    field(:name, :string)
+    field(:length_in_days, :integer)
+    field(:auto_renew, :boolean)
+    field(:revoked, :boolean)
 
-    belongs_to :customer, Customer
+    belongs_to(:customer, Customer)
 
     timestamps()
   end
 
   @required_fields ~w(name length_in_days auto_renew revoked)a
   @optional_fields ~w()a
-
 
   # -------------------------------------------------------------------
   # API functions
@@ -32,7 +31,7 @@ defmodule Central.Schemas.License do
   If no params are provided, an invalid changeset is returned
   with no validation performed.
   """
-  @spec changeset(t | Changeset.t, Map.t) :: Changeset.t
+  @spec changeset(t | Changeset.t(), Map.t()) :: Changeset.t()
   def changeset(model, params \\ %{}) do
     model
     |> cast(params, @required_fields ++ @optional_fields)

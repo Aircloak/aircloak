@@ -3,7 +3,6 @@ defmodule Compliance.DataSource.MongoDB do
 
   use Lens.Macros
 
-
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
@@ -19,14 +18,15 @@ defmodule Compliance.DataSource.MongoDB do
 
   @impl Connector
   def connect(%{parameters: params}) do
-    {:ok, conn} = Mongo.start_link(
-      database: params.database,
-      hostname: params.hostname,
-      port: Map.get(params, :port, 27_017),
-      username: params.username,
-      sync_connect: true,
-      pool: DBConnection.Connection
-    )
+    {:ok, conn} =
+      Mongo.start_link(
+        database: params.database,
+        hostname: params.hostname,
+        port: Map.get(params, :port, 27_017),
+        username: params.username,
+        sync_connect: true,
+        pool: DBConnection.Connection
+      )
 
     conn
   end
@@ -53,20 +53,19 @@ defmodule Compliance.DataSource.MongoDB do
   @impl Connector
   def terminate(_conn), do: :ok
 
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  def convert_documents(documents), do:
-    Lens.map(dates_lens(), documents, &DateTime.from_naive!(&1, "Etc/UTC"))
+  def convert_documents(documents),
+    do: Lens.map(dates_lens(), documents, &DateTime.from_naive!(&1, "Etc/UTC"))
 
   deflens dates_lens() do
     Lens.match(fn
-      (%NaiveDateTime{}) -> Lens.root()
-      (values) when is_list(values) -> Lens.all() |> dates_lens()
-      (val) when is_map(val) -> Lens.map_values() |> dates_lens()
-      (_other) -> Lens.empty()
+      %NaiveDateTime{} -> Lens.root()
+      values when is_list(values) -> Lens.all() |> dates_lens()
+      val when is_map(val) -> Lens.map_values() |> dates_lens()
+      _other -> Lens.empty()
     end)
   end
 end

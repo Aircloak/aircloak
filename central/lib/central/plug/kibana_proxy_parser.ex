@@ -18,6 +18,7 @@ defmodule Central.Plug.KibanaProxyParser do
           {:ok, body, conn} -> {:ok, %{}, put_private(conn, :raw_body, body)}
           {:more, _, conn} -> {:error, :too_large, conn}
         end
+
       _ ->
         {:next, conn}
     end

@@ -1,9 +1,8 @@
 defmodule Air.Performance.Queries do
   @moduledoc "Queries to run during performance testing"
 
-  @type plain_query :: String.t
-  @type differentiated_query :: %{db: String.t, cloak: String.t}
-
+  @type plain_query :: String.t()
+  @type differentiated_query :: %{db: String.t(), cloak: String.t()}
 
   # -------------------------------------------------------------------
   # API functions
@@ -11,27 +10,27 @@ defmodule Air.Performance.Queries do
 
   @doc "Returns a list of performance test queries"
   @spec queries() :: [plain_query | differentiated_query]
-  def queries(), do: [
-    "SELECT * FROM addresses",
-    "SELECT * FROM users",
-    "SELECT active, age, height FROM users",
-    "SELECT active, age, height FROM users WHERE name LIKE 'An%'",
-    "SELECT count(*) FROM addresses",
-    "SELECT count(*) FROM notes",
-    "SELECT count(*) FROM notes_changes",
-    "SELECT count(*) FROM users",
-    "SELECT max(height), min(age) FROM users",
-    "SELECT active, max(height), min(age) FROM users GROUP BY active",
-    "SELECT name, active, max(height), min(age) FROM users GROUP BY active, name",
-    "SELECT name, count(*) FROM users GROUP BY name",
-    "SELECT length(name), left(name, 3), max(age), min(age) FROM users GROUP BY 1,2",
-
-    %{
-      db: "SELECT ('x0' || substr(md5(name::text), 1, 15))::bit(64)::bigint, count(*) FROM users GROUP BY 1",
-      cloak: "SELECT hash(name), count(*) FROM users GROUP BY 1"
-    },
-
-    "
+  def queries(),
+    do: [
+      "SELECT * FROM addresses",
+      "SELECT * FROM users",
+      "SELECT active, age, height FROM users",
+      "SELECT active, age, height FROM users WHERE name LIKE 'An%'",
+      "SELECT count(*) FROM addresses",
+      "SELECT count(*) FROM notes",
+      "SELECT count(*) FROM notes_changes",
+      "SELECT count(*) FROM users",
+      "SELECT max(height), min(age) FROM users",
+      "SELECT active, max(height), min(age) FROM users GROUP BY active",
+      "SELECT name, active, max(height), min(age) FROM users GROUP BY active, name",
+      "SELECT name, count(*) FROM users GROUP BY name",
+      "SELECT length(name), left(name, 3), max(age), min(age) FROM users GROUP BY 1,2",
+      %{
+        db:
+          "SELECT ('x0' || substr(md5(name::text), 1, 15))::bit(64)::bigint, count(*) FROM users GROUP BY 1",
+        cloak: "SELECT hash(name), count(*) FROM users GROUP BY 1"
+      },
+      "
       SELECT
         length(title) as title_length,
         name,
@@ -39,10 +38,8 @@ defmodule Air.Performance.Queries do
       FROM users u INNER JOIN notes n ON u.user_id = n.uid
       GROUP BY 1, 2
     ",
-
-    %{
-      cloak:
-        "
+      %{
+        cloak: "
           SELECT bucket(notes_count by 4 align middle), count(*)
           FROM (
             SELECT uid, count(*) as notes_count
@@ -51,8 +48,7 @@ defmodule Air.Performance.Queries do
           ) note_counts
           GROUP BY 1
         ",
-      db:
-        "
+        db: "
           SELECT trunc(div(notes_count, 5) * 5 + 2.5, 2), count(*)
           FROM (
             SELECT uid, count(*) as notes_count
@@ -61,16 +57,14 @@ defmodule Air.Performance.Queries do
           ) note_counts
           GROUP BY 1
         "
-    },
-
-    "
+      },
+      "
       SELECT count(*)
         FROM addresses a INNER JOIN notes n ON a.uid = n.uid
           INNER JOIN notes_changes nc ON n.uid = nc.uid
           INNER JOIN users u ON a.uid = u.user_id
     ",
-
-    "
+      "
       SELECT name, min(per_user_address_count), max(per_user_address_count)
       FROM (
         SELECT uid, count(*) as per_user_address_count
@@ -80,8 +74,7 @@ defmodule Air.Performance.Queries do
       GROUP BY name
       ORDER BY name ASC
     ",
-
-    "
+      "
       SELECT avg(changes_per_note_per_user)
       FROM (
         SELECT uid, avg(note_changes) as changes_per_note_per_user
@@ -93,8 +86,7 @@ defmodule Air.Performance.Queries do
         GROUP BY 1
       ) changes_per_user
     ",
-
-    "
+      "
       SELECT avg(changes_per_note_per_user), min(changes_per_note_per_user)
       FROM (
         SELECT uid, avg(note_changes) as changes_per_note_per_user
@@ -107,10 +99,8 @@ defmodule Air.Performance.Queries do
       ) cpu INNER JOIN users u ON u.user_id = cpu.uid
       WHERE name ILIKE 'a%' and age IN (14,15,16,17,18,19)
     ",
-
-    "SELECT height, max(age) FROM users WHERE active = true GROUP BY height",
-
-    "
+      "SELECT height, max(age) FROM users WHERE active = true GROUP BY height",
+      "
       SELECT left(title, 4), count(*), sum(notes_count)
       FROM (
         SELECT
@@ -122,14 +112,12 @@ defmodule Air.Performance.Queries do
       ) notes
       GROUP BY 1
     ",
-
-    ~s{
+      ~s{
       SELECT active, "home.city", "work.postal_code", count(*)
       FROM addresses a INNER JOIN users u ON u.user_id = a.uid
       GROUP BY 1, 2, 3
     },
-
-    "
+      "
       SELECT num_changes, count(*)
       FROM (
         SELECT
@@ -142,22 +130,19 @@ defmodule Air.Performance.Queries do
       GROUP BY 1
       ORDER BY num_changes ASC
     ",
-
-    %{
-      cloak:
-        "
+      %{
+        cloak: "
           SELECT year(changes.date), month(changes.date), count(*)
           FROM notes_changes
           GROUP BY 1, 2
           ORDER BY 1 ASC, 2 ASC
         ",
-      db:
-        "
+        db: "
           SELECT date_part('year', \"changes.date\"), date_part('month', \"changes.date\"), count(*)
           FROM notes_changes
           GROUP BY 1, 2
           ORDER BY 1 ASC, 2 ASC
         "
-    }
-  ]
+      }
+    ]
 end

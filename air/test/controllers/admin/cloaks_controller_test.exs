@@ -20,11 +20,12 @@ defmodule AirWeb.Admin.CloaksController.Test do
 
     # connect a mock cloak
     {terminator, pid} = temporary_process()
+
     cloak_info = %{
       channel_pid: pid,
       id: "cloak id",
       name: "cloak name",
-      online_since: Timex.now(),
+      online_since: Timex.now()
     }
 
     data_sources = [%{name: "cloak_name", tables: []}]
@@ -38,7 +39,7 @@ defmodule AirWeb.Admin.CloaksController.Test do
     terminator.()
 
     # verify that it's in the list
-    refute soon((login(admin) |> get("/admin/cloaks") |> response(200)) =~ "test_cloak1")
+    refute soon(login(admin) |> get("/admin/cloaks") |> response(200) =~ "test_cloak1")
   end
 
   test "only shows cloaks to admin" do
@@ -47,11 +48,12 @@ defmodule AirWeb.Admin.CloaksController.Test do
 
     # connect a mock cloak
     {terminator, pid} = temporary_process()
+
     cloak_info = %{
       channel_pid: pid,
       id: "cloak id",
       name: "cloak name",
-      online_since: Timex.now(),
+      online_since: Timex.now()
     }
 
     data_sources = [%{name: "cloak_name", tables: []}]
@@ -66,11 +68,17 @@ defmodule AirWeb.Admin.CloaksController.Test do
     terminator.()
 
     # verify that it's in the list
-    refute soon((login(admin) |> get("/admin/cloaks") |> response(200)) =~ "test_cloak1")
+    refute soon(login(admin) |> get("/admin/cloaks") |> response(200) =~ "test_cloak1")
   end
 
   defp temporary_process() do
-    pid = spawn_link(fn -> receive do :stop -> :ok end end)
+    pid =
+      spawn_link(fn ->
+        receive do
+          :stop -> :ok
+        end
+      end)
+
     {fn -> send(pid, :stop) end, pid}
   end
 end

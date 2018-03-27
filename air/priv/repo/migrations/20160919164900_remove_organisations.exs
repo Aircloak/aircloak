@@ -3,19 +3,20 @@ defmodule Air.Repo.Migrations.RemoveOrganisations do
 
   def up do
     alter table(:users) do
-      remove :organisation_id
+      remove(:organisation_id)
     end
-    drop table(:organisations)
+
+    drop(table(:organisations))
   end
 
   def down do
     create table(:organisations) do
-      add :name, :string
+      add(:name, :string)
       timestamps()
     end
 
     alter table(:users) do
-      add :organisation_id, :integer
+      add(:organisation_id, :integer)
     end
   end
 end

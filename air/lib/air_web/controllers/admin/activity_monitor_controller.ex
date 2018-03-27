@@ -8,7 +8,6 @@ defmodule AirWeb.Admin.ActivityMonitorController do
   alias Plug.CSRFProtection
   alias Air.Service.{Cloak, Query}
 
-
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
@@ -18,7 +17,6 @@ defmodule AirWeb.Admin.ActivityMonitorController do
       admin: :all
     }
   end
-
 
   # -------------------------------------------------------------------
   # Actions

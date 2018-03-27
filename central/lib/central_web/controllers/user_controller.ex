@@ -4,8 +4,7 @@ defmodule CentralWeb.UserController do
 
   alias Central.{Schemas, Service}
 
-  plug :load_user when action in [:edit, :update, :delete]
-
+  plug(:load_user when action in [:edit, :update, :delete])
 
   # -------------------------------------------------------------------
   # Actions
@@ -30,7 +29,9 @@ defmodule CentralWeb.UserController do
         conn
         |> put_flash(:info, "User created")
         |> redirect(to: user_path(conn, :index))
-      {:error, changeset} -> render(conn, "new.html", changeset: changeset)
+
+      {:error, changeset} ->
+        render(conn, "new.html", changeset: changeset)
     end
   end
 
@@ -40,7 +41,9 @@ defmodule CentralWeb.UserController do
         conn
         |> put_flash(:info, "User updated")
         |> redirect(to: user_path(conn, :index))
-      {:error, changeset} -> render(conn, "edit.html", changeset: changeset)
+
+      {:error, changeset} ->
+        render(conn, "edit.html", changeset: changeset)
     end
   end
 
@@ -50,13 +53,13 @@ defmodule CentralWeb.UserController do
         conn
         |> put_flash(:info, "User deleted")
         |> redirect(to: user_path(conn, :index))
+
       :error ->
         conn
         |> put_flash(:error, "Could not delete the user")
         |> redirect(to: user_path(conn, :index))
     end
   end
-
 
   # -------------------------------------------------------------------
   # Internal functions

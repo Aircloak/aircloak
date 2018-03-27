@@ -11,7 +11,7 @@ defmodule Central.Service.CustomerTest do
   test "returns customers - all in the db" do
     create_customer("customer 1")
     create_customer("customer 2")
-    assert Enum.map(Customer.all(), &(&1.name)) === ["customer 1", "customer 2"]
+    assert Enum.map(Customer.all(), & &1.name) === ["customer 1", "customer 2"]
   end
 
   test "can create customers" do
@@ -73,11 +73,13 @@ defmodule Central.Service.CustomerTest do
     metrics = %{"user_count" => 10}
     features = %{"some" => "feature"}
     aux = %{"other" => "data"}
+
     params = %{
       metrics: metrics,
       features: features,
-      aux: aux,
+      aux: aux
     }
+
     customer = create_customer()
     assert :ok == Customer.record_query(customer, params)
     customer = Repo.preload(customer, :queries)
@@ -128,14 +130,19 @@ defmodule Central.Service.CustomerTest do
   defp insert_rpc(msecs_after_cleanup_boundary) do
     mtime =
       NaiveDateTime.utc_now()
-      |> NaiveDateTime.add(-Application.fetch_env!(:central, :delete_air_rpcs_after), :millisecond)
+      |> NaiveDateTime.add(
+        -Application.fetch_env!(:central, :delete_air_rpcs_after),
+        :millisecond
+      )
       |> NaiveDateTime.add(msecs_after_cleanup_boundary * :timer.hours(24), :millisecond)
 
     Repo.insert!(%Schemas.AirRPC{id: Ecto.UUID.generate(), inserted_at: mtime, updated_at: mtime})
   end
 
   defp create_customer(name \\ "default customer") do
-    assert {:ok, customer} = Repo.insert(Schemas.Customer.changeset(%Schemas.Customer{}, %{name: name}))
+    assert {:ok, customer} =
+             Repo.insert(Schemas.Customer.changeset(%Schemas.Customer{}, %{name: name}))
+
     customer
   end
 end

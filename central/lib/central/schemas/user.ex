@@ -11,21 +11,20 @@ defmodule Central.Schemas.User do
   @type t :: %__MODULE__{}
 
   schema "users" do
-    field :email, :string
-    field :hashed_password, :string
-    field :name, :string
+    field(:email, :string)
+    field(:hashed_password, :string)
+    field(:name, :string)
 
     timestamps()
 
     # These virtual fields are used for validation,
     # but never persisted to the database
-    field :password, :string, virtual: true
-    field :password_confirmation, :string, virtual: true
+    field(:password, :string, virtual: true)
+    field(:password_confirmation, :string, virtual: true)
   end
 
   @required_fields ~w(email name)a
   @optional_fields ~w(password password_confirmation)a
-
 
   # -------------------------------------------------------------------
   # API functions
@@ -37,7 +36,7 @@ defmodule Central.Schemas.User do
   If no params are provided, an invalid changeset is returned
   with no validation performed.
   """
-  @spec changeset(t | Changeset.t, Map.t) :: Changeset.t
+  @spec changeset(t | Changeset.t(), Map.t()) :: Changeset.t()
   def changeset(model, params \\ %{}) do
     model
     |> cast(params, @required_fields ++ @optional_fields)
@@ -51,7 +50,7 @@ defmodule Central.Schemas.User do
   end
 
   @doc "Returns an empty changeset to use in forms"
-  @spec empty_changeset() :: Changeset.t
+  @spec empty_changeset() :: Changeset.t()
   def empty_changeset() do
     User.changeset(%User{})
   end
@@ -60,7 +59,7 @@ defmodule Central.Schemas.User do
   Relies on changeset/2 for validation and casting of parameters,
   but additionally ensures that a password has been provided as well.
   """
-  @spec new_user_changeset(t | Changeset.t, Map.t) :: Changeset.t
+  @spec new_user_changeset(t | Changeset.t(), Map.t()) :: Changeset.t()
   def new_user_changeset(model, params \\ %{}) do
     model
     |> changeset(params)
@@ -68,19 +67,19 @@ defmodule Central.Schemas.User do
   end
 
   @doc "Validates the user password."
-  @spec validate_password(nil | t, String.t) :: boolean
-  def validate_password(nil, _password), do: Hash.dummy_checkpw
+  @spec validate_password(nil | t, String.t()) :: boolean
+  def validate_password(nil, _password), do: Hash.dummy_checkpw()
   def validate_password(user, password), do: Hash.checkpw(password, user.hashed_password)
-
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   defp update_password_hash(%Changeset{valid?: true, changes: %{password: password}} = changeset)
-      when password != "" do
+       when password != "" do
     put_change(changeset, :hashed_password, Hash.hashpwsalt(password))
   end
+
   defp update_password_hash(changeset), do: changeset
 
   defimpl Inspect do

@@ -7,7 +7,7 @@ defmodule Central.UserTest do
     email: "admin@aircloak.com",
     password: "1234",
     password_confirmation: "1234",
-    name: "Admin",
+    name: "Admin"
   }
   @invalid_attrs %{}
 
@@ -43,18 +43,23 @@ defmodule Central.UserTest do
 
   test "requires password for new users" do
     attributes = %{@valid_attrs | password: ""}
-    errors = User.new_user_changeset(%User{}, attributes)
-    |> Ecto.Changeset.traverse_errors(&CentralWeb.ErrorHelpers.translate_error/1)
-    |> Enum.flat_map(fn {key, errors} -> for msg <- errors, do: {key, msg} end)
+
+    errors =
+      User.new_user_changeset(%User{}, attributes)
+      |> Ecto.Changeset.traverse_errors(&CentralWeb.ErrorHelpers.translate_error/1)
+      |> Enum.flat_map(fn {key, errors} -> for msg <- errors, do: {key, msg} end)
+
     assert Keyword.has_key?(errors, :password)
   end
 
   test "only update hashed password on password change" do
     initial_changeset = Map.merge(%User{}, @valid_attrs)
-    has_change_fn = fn(attr) ->
+
+    has_change_fn = fn attr ->
       %Ecto.Changeset{changes: changes} = User.changeset(initial_changeset, attr)
       Map.has_key?(changes, :hashed_password)
     end
+
     # We are simulating the user not editing the password text input boxes
     without_password_change = Map.drop(@valid_attrs, [:password, :password_confirmation])
     refute has_change_fn.(without_password_change)

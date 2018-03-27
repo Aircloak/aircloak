@@ -12,10 +12,11 @@ defmodule Air.GuardianSerializer do
   def for_token(_), do: {:error, "Unknown resource type"}
 
   def from_token("User:" <> id) do
-    case Repo.one(from user in User, where: user.id == ^id, preload: [:groups]) do
+    case Repo.one(from(user in User, where: user.id == ^id, preload: [:groups])) do
       nil -> {:error, "User doesn't exist"}
       user -> {:ok, user}
     end
   end
+
   def from_token(_), do: {:error, "Unknown resource type"}
 end

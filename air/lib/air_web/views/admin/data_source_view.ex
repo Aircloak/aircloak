@@ -24,16 +24,24 @@ defmodule AirWeb.Admin.DataSourceView do
   @num_to_take 5
   defp users_given_access_to(group) do
     group = Repo.preload(group, :users)
+
     group.users
-    |> Enum.map(&(&1.name))
+    |> Enum.map(& &1.name)
     |> case do
-      [] -> ["Doesn't give access to any users"]
+      [] ->
+        ["Doesn't give access to any users"]
+
       names when length(names) <= @num_to_take ->
-        [raw("Gives access to #{length(names)} users: ") |
-          Air.Utils.CheckboxMapper.highlighted_and_comma_separated(names, @num_to_take)]
+        [
+          raw("Gives access to #{length(names)} users: ")
+          | Air.Utils.CheckboxMapper.highlighted_and_comma_separated(names, @num_to_take)
+        ]
+
       names ->
-        [raw("Gives access to #{length(names)} users, including: ") |
-          Air.Utils.CheckboxMapper.highlighted_and_comma_separated(names, @num_to_take)]
+        [
+          raw("Gives access to #{length(names)} users, including: ")
+          | Air.Utils.CheckboxMapper.highlighted_and_comma_separated(names, @num_to_take)
+        ]
     end
   end
 end

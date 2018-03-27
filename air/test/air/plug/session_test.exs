@@ -16,7 +16,10 @@ defmodule AirWeb.Plug.Session.Test do
       user = TestRepoHelper.create_user!()
       token = Token.create_api_token(user, :api, "test")
 
-      conn = build_conn() |> Plug.Conn.put_req_header("auth-token", token) |> ApiAuth.call(access: :api)
+      conn =
+        build_conn()
+        |> Plug.Conn.put_req_header("auth-token", token)
+        |> ApiAuth.call(access: :api)
 
       refute conn.halted
       assert conn.assigns.current_user.id == user.id
@@ -26,7 +29,10 @@ defmodule AirWeb.Plug.Session.Test do
       user = TestRepoHelper.create_user!()
       token = Token.create_api_token(user, :api, "test")
 
-      conn = build_conn() |> put_in([Access.key!(:query_string)], "auth_token=#{token}") |> ApiAuth.call(access: :api)
+      conn =
+        build_conn()
+        |> put_in([Access.key!(:query_string)], "auth_token=#{token}")
+        |> ApiAuth.call(access: :api)
 
       refute conn.halted
       assert conn.assigns.current_user.id == user.id

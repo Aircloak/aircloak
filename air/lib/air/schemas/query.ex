@@ -7,49 +7,58 @@ defmodule Air.Schemas.Query do
 
   require EctoEnum
 
-  EctoEnum.defenum QueryState, :query_state, [
-    :created, :started, :parsing, :compiling, :awaiting_data, :ingesting_data, :processing,
-    :post_processing, :completed, :error, :cancelled
-  ]
+  EctoEnum.defenum(QueryState, :query_state, [
+    :created,
+    :started,
+    :parsing,
+    :compiling,
+    :awaiting_data,
+    :ingesting_data,
+    :processing,
+    :post_processing,
+    :completed,
+    :error,
+    :cancelled
+  ])
 
-  EctoEnum.defenum Context, :query_context, [:http, :psql, :api]
+  EctoEnum.defenum(Context, :query_context, [:http, :psql, :api])
 
   @inherited_pkey_name :tasks_pkey
 
-  @type id :: String.t
-  @type statement :: String.t
-  @type parameters :: Map.t
+  @type id :: String.t()
+  @type statement :: String.t()
+  @type parameters :: Map.t()
   @type session_id :: Ecto.UUID
   @type t :: %__MODULE__{}
   @type cloak_query :: %{
-    id: id,
-    statement: statement,
-    parameters: [Protocol.db_value],
-    data_source: String.t,
-    views: %{String.t => String.t},
-    query_state: __MODULE__.QueryState.t,
-    context: __MODULE__.Context.t,
-  }
+          id: id,
+          statement: statement,
+          parameters: [Protocol.db_value()],
+          data_source: String.t(),
+          views: %{String.t() => String.t()},
+          query_state: __MODULE__.QueryState.t(),
+          context: __MODULE__.Context.t()
+        }
 
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "queries" do
-    field :statement, :string
-    field :tables, {:array, :string}
-    field :execution_time, :integer
-    field :users_count, :integer
-    field :features, :map
-    field :session_id, Ecto.UUID
-    field :parameters, :map
-    field :cloak_id, :string
-    field :query_state, __MODULE__.QueryState
-    field :context, Context
-    field :result, :map
+    field(:statement, :string)
+    field(:tables, {:array, :string})
+    field(:execution_time, :integer)
+    field(:users_count, :integer)
+    field(:features, :map)
+    field(:session_id, Ecto.UUID)
+    field(:parameters, :map)
+    field(:cloak_id, :string)
+    field(:query_state, __MODULE__.QueryState)
+    field(:context, Context)
+    field(:result, :map)
 
-    belongs_to :user, User
-    belongs_to :data_source, DataSource
-    has_many :result_chunks, ResultChunk
+    belongs_to(:user, User)
+    belongs_to(:data_source, DataSource)
+    has_many(:result_chunks, ResultChunk)
 
-    timestamps usec: true
+    timestamps(usec: true)
   end
 
   @required_fields ~w()a
@@ -57,7 +66,6 @@ defmodule Air.Schemas.Query do
     cloak_id statement data_source_id tables execution_time users_count
     features session_id parameters query_state context result
   )a
-
 
   # -------------------------------------------------------------------
   # API functions
@@ -69,7 +77,7 @@ defmodule Air.Schemas.Query do
   If no params are provided, an invalid changeset is returned
   with no validation performed.
   """
-  @spec changeset(t, Map.t) :: Ecto.Changeset.t
+  @spec changeset(t, Map.t()) :: Ecto.Changeset.t()
   def changeset(model, params \\ %{}) do
     model
     |> cast(params, @required_fields ++ @optional_fields)
@@ -78,7 +86,7 @@ defmodule Air.Schemas.Query do
   end
 
   @doc "Adds a pre-created ID to a query changeset."
-  @spec add_id_to_changeset(Ecto.Changeset.t, String.t) :: Ecto.Changeset.t
+  @spec add_id_to_changeset(Ecto.Changeset.t(), String.t()) :: Ecto.Changeset.t()
   def add_id_to_changeset(model, id) do
     model
     |> cast(%{id: id}, [:id])
@@ -86,9 +94,10 @@ defmodule Air.Schemas.Query do
   end
 
   @doc "Produces a JSON blob of the query and its result for rendering"
-  @spec for_display(t, nil | [map]) :: Map.t
+  @spec for_display(t, nil | [map]) :: Map.t()
   def for_display(query, buckets \\ nil) do
     query = Repo.preload(query, [:user, :data_source])
+
     query
     |> Repo.preload([:user, :data_source])
     |> Map.take([:id, :data_source_id, :statement, :session_id, :inserted_at, :query_state])
@@ -100,30 +109,29 @@ defmodule Air.Schemas.Query do
   end
 
   @doc "Exports the query as CSV"
-  @spec to_csv_stream(t, Enumerable.t) :: Enumerable.t
-  def to_csv_stream(query, buckets), do:
-    [query.result["columns"]]
-    |> Stream.concat(ResultChunk.rows_stream(buckets))
-    |> CSV.encode()
-
+  @spec to_csv_stream(t, Enumerable.t()) :: Enumerable.t()
+  def to_csv_stream(query, buckets),
+    do:
+      [query.result["columns"]]
+      |> Stream.concat(ResultChunk.rows_stream(buckets))
+      |> CSV.encode()
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp data_source_info(query), do:
-    %{data_source: %{name: Map.get(query.data_source || %{}, :name, "Unknown data source")}}
+  defp data_source_info(query),
+    do: %{data_source: %{name: Map.get(query.data_source || %{}, :name, "Unknown data source")}}
 
-  defp user_info(query), do:
-    %{user: %{name: Map.get(query.user || %{}, :name, "Unknown user")}}
+  defp user_info(query), do: %{user: %{name: Map.get(query.user || %{}, :name, "Unknown user")}}
 
-  defp completed?(query), do:
-    query.query_state in [:error, :completed, :cancelled]
+  defp completed?(query), do: query.query_state in [:error, :completed, :cancelled]
 
-  defp add_result(result, _query, nil), do:
-    result
-  defp add_result(result, query, buckets), do:
-    result
-    |> Map.put(:columns, query.result["columns"])
-    |> Map.put(:rows, buckets)
+  defp add_result(result, _query, nil), do: result
+
+  defp add_result(result, query, buckets),
+    do:
+      result
+      |> Map.put(:columns, query.result["columns"])
+      |> Map.put(:rows, buckets)
 end

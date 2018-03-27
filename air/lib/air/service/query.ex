@@ -8,10 +8,9 @@ defmodule Air.Service.Query do
   import Ecto.Query
   require Logger
 
-  @type query_id :: Query.id | :autogenerate
-  @type option :: {:session_id, Query.session_id}
+  @type query_id :: Query.id() | :autogenerate
+  @type option :: {:session_id, Query.session_id()}
   @type options :: [option]
-
 
   # -------------------------------------------------------------------
   # API functions
@@ -21,8 +20,14 @@ defmodule Air.Service.Query do
   Creates and registers a query placeholder in the database. Given that it has an ID
   it can be used to attach and dispatch events to, and passed around for execution.
   """
-  @spec create(query_id, User.t, Query.Context.t, Query.statement, Query.parameters, options)
-    :: {:ok, Query.t} | {:error, :unable_to_create_query}
+  @spec create(
+          query_id,
+          User.t(),
+          Query.Context.t(),
+          Query.statement(),
+          Query.parameters(),
+          options
+        ) :: {:ok, Query.t()} | {:error, :unable_to_create_query}
   def create(query_id, user, context, statement, parameters, opts) do
     user
     |> Ecto.build_assoc(:queries)
@@ -31,7 +36,7 @@ defmodule Air.Service.Query do
       parameters: %{values: parameters},
       session_id: Keyword.get(opts, :session_id),
       query_state: :created,
-      context: context,
+      context: context
     })
     |> add_id_to_changeset(query_id)
     |> Repo.insert()
@@ -41,50 +46,53 @@ defmodule Air.Service.Query do
     end
   end
 
-
   @doc """
   Returns information about failed queries in a paginated form.
 
   The data returned by this function will select a map with fields
   `id`, `inserted_at`, `data_source`, `user`, `statement`, and `error`.
   """
-  @spec paginated_failed_queries(non_neg_integer) :: Scrivener.Page.t
+  @spec paginated_failed_queries(non_neg_integer) :: Scrivener.Page.t()
   def paginated_failed_queries(page) do
-    query = from q in Query,
-      join: ds in assoc(q, :data_source),
-      join: user in assoc(q, :user),
-      select: %{
-        id: q.id,
-        inserted_at: q.inserted_at,
-        data_source: ds.name,
-        user: user.name,
-        statement: q.statement,
-        error: fragment("?->>'error'", q.result)
-      },
-      where:
-        not is_nil(q.statement) and q.statement != "" and
-        fragment("?->>'error' <> ''", q.result),
-      order_by: [desc: q.inserted_at]
+    query =
+      from(
+        q in Query,
+        join: ds in assoc(q, :data_source),
+        join: user in assoc(q, :user),
+        select: %{
+          id: q.id,
+          inserted_at: q.inserted_at,
+          data_source: ds.name,
+          user: user.name,
+          statement: q.statement,
+          error: fragment("?->>'error'", q.result)
+        },
+        where:
+          not is_nil(q.statement) and q.statement != "" and
+            fragment("?->>'error' <> ''", q.result),
+        order_by: [desc: q.inserted_at]
+      )
 
     Repo.paginate(query, page: page)
   end
 
   @doc "Returns a query if accessible by the given user, without associations preloaded."
-  @spec get_as_user(User.t, query_id) :: {:ok, Query.t} | {:error, :not_found | :invalid_id}
+  @spec get_as_user(User.t(), query_id) :: {:ok, Query.t()} | {:error, :not_found | :invalid_id}
   def get_as_user(user, id) do
     user
     |> Repo.preload([:groups])
     |> query_scope()
     |> get(id)
-  rescue Ecto.Query.CastError ->
-    {:error, :invalid_id}
+  rescue
+    Ecto.Query.CastError ->
+      {:error, :invalid_id}
   end
 
   @doc """
   Returns the last query the given user issued, or nil if the user did not issue any queries.
   Also preloads the data source.
   """
-  @spec last_for_user(User.t, Query.Context.t) :: Query.t | nil
+  @spec last_for_user(User.t(), Query.Context.t()) :: Query.t() | nil
   def last_for_user(user, context) do
     Query
     |> started_by(user)
@@ -95,22 +103,29 @@ defmodule Air.Service.Query do
   end
 
   @doc "Loads the most recent queries for a given user"
-  @spec load_recent_queries(User.t, DataSource.t, Query.Context.t, pos_integer, NaiveDateTime.t) :: [Query.t]
-  def load_recent_queries(user, data_source, context, recent_count, before), do:
-    Query
-    |> started_by(user)
-    |> for_data_source(data_source)
-    |> in_context(context)
-    |> recent(recent_count, before)
-    |> Repo.all()
-    |> Repo.preload([:user, :data_source])
+  @spec load_recent_queries(
+          User.t(),
+          DataSource.t(),
+          Query.Context.t(),
+          pos_integer,
+          NaiveDateTime.t()
+        ) :: [Query.t()]
+  def load_recent_queries(user, data_source, context, recent_count, before),
+    do:
+      Query
+      |> started_by(user)
+      |> for_data_source(data_source)
+      |> in_context(context)
+      |> recent(recent_count, before)
+      |> Repo.all()
+      |> Repo.preload([:user, :data_source])
 
   @doc "Returns a list of the queries that are currently executing in all contexts."
-  @spec currently_running() :: [Query.t]
+  @spec currently_running() :: [Query.t()]
   def currently_running(), do: pending() |> Repo.all()
 
   @doc "Returns a list of queries that are currently executing, started by the given user on the given data source."
-  @spec currently_running(User.t, DataSource.t, Query.Context.t) :: [Query.t]
+  @spec currently_running(User.t(), DataSource.t(), Query.Context.t()) :: [Query.t()]
   def currently_running(user, data_source, context) do
     pending()
     |> started_by(user)
@@ -123,7 +138,7 @@ defmodule Air.Service.Query do
   Updates the state of the query with the given id to the given state. Only performs the update if the given state can
   occur after the current state of the query (for example "completed" after "started"). Does nothing otherwise.
   """
-  @spec update_state(query_id, Query.QueryState.t) :: :ok | {:error, :not_found | :invalid_id}
+  @spec update_state(query_id, Query.QueryState.t()) :: :ok | {:error, :not_found | :invalid_id}
   def update_state(query_id, state) do
     with {:ok, query} <- get(query_id) do
       if valid_state_transition?(query.query_state, state) do
@@ -144,8 +159,9 @@ defmodule Air.Service.Query do
   @spec process_result(map) :: :ok
   def process_result(result) do
     query = Repo.get!(Query, result.query_id) |> Repo.preload([:user])
-    if valid_state_transition?(query.query_state, query_state(result)), do:
-      do_process_result(query, result)
+
+    if valid_state_transition?(query.query_state, query_state(result)),
+      do: do_process_result(query, result)
 
     Logger.info("processed result for query #{result.query_id}")
     :ok
@@ -160,9 +176,10 @@ defmodule Air.Service.Query do
     query = Repo.get!(Query, query_id)
 
     if valid_state_transition?(query.query_state, :error) do
-      query = query
-      |> Query.changeset(%{query_state: :error, result: %{error: "Query died."}})
-      |> Repo.update!()
+      query =
+        query
+        |> Query.changeset(%{query_state: :error, result: %{error: "Query died."}})
+        |> Repo.update!()
 
       UserChannel.broadcast_state_change(query)
     end
@@ -171,12 +188,13 @@ defmodule Air.Service.Query do
   end
 
   @doc "Returns the buckets describing the desired range of rows."
-  @spec buckets(Query.t, non_neg_integer | :all) :: [map]
-  def buckets(query, desired_chunk), do:
-    query.id
-    |> result_chunks(desired_chunk)
-    |> Repo.all()
-    |> Enum.flat_map(&ResultChunk.buckets/1)
+  @spec buckets(Query.t(), non_neg_integer | :all) :: [map]
+  def buckets(query, desired_chunk),
+    do:
+      query.id
+      |> result_chunks(desired_chunk)
+      |> Repo.all()
+      |> Enum.flat_map(&ResultChunk.buckets/1)
 
   @doc """
   Creates a lazy stream of desired chunks.
@@ -188,25 +206,27 @@ defmodule Air.Service.Query do
   With this approach we don't keep the connection open, so we can safely use the
   stream regardless of the amount of chunks or the client processing time.
   """
-  @spec chunks_stream(Query.t, non_neg_integer | :all) :: Enumerable.t
-  def chunks_stream(query, :all), do:
-    Stream.unfold(0, &{Repo.one(result_chunks(query.id, &1)), &1 + 1})
-    |> Stream.take_while(&(&1 != nil))
-  def chunks_stream(query, desired_chunk), do:
-    [desired_chunk]
-    |> Stream.map(&(Repo.one(result_chunks(query.id, &1))))
-    |> Stream.take_while(&(&1 != nil))
+  @spec chunks_stream(Query.t(), non_neg_integer | :all) :: Enumerable.t()
+  def chunks_stream(query, :all),
+    do:
+      Stream.unfold(0, &{Repo.one(result_chunks(query.id, &1)), &1 + 1})
+      |> Stream.take_while(&(&1 != nil))
+
+  def chunks_stream(query, desired_chunk),
+    do:
+      [desired_chunk]
+      |> Stream.map(&Repo.one(result_chunks(query.id, &1)))
+      |> Stream.take_while(&(&1 != nil))
 
   @doc "Deletes all queries by the given user from the database."
-  @spec delete_all(User.t) :: :ok
+  @spec delete_all(User.t()) :: :ok
   def delete_all(user) do
-    Repo.transaction(fn () ->
-      query_ids = Repo.all(from q in Query, where: q.user_id == ^user.id, select: q.id)
-      Repo.delete_all(from c in ResultChunk, where: c.query_id in ^query_ids)
-      Repo.delete_all(from q in Query, where: q.id in ^query_ids)
+    Repo.transaction(fn ->
+      query_ids = Repo.all(from(q in Query, where: q.user_id == ^user.id, select: q.id))
+      Repo.delete_all(from(c in ResultChunk, where: c.query_id in ^query_ids))
+      Repo.delete_all(from(q in Query, where: q.id in ^query_ids))
     end)
   end
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -221,14 +241,28 @@ defmodule Air.Service.Query do
   end
 
   @state_order [
-    :created, :started, :parsing, :compiling, :awaiting_data, :ingesting_data, :processing, :post_processing,
-    :cancelled, :error, :completed,
+    :created,
+    :started,
+    :parsing,
+    :compiling,
+    :awaiting_data,
+    :ingesting_data,
+    :processing,
+    :post_processing,
+    :cancelled,
+    :error,
+    :completed
   ]
   defp valid_state_transition?(same_state, same_state), do: true
+
   defp valid_state_transition?(current_state, _next_state)
-      when current_state in [:cancelled, :completed, :error], do: false
-  defp valid_state_transition?(current_state, next_state), do:
-    Enum.find_index(@state_order, &(&1 == current_state)) < Enum.find_index(@state_order, &(&1 == next_state))
+       when current_state in [:cancelled, :completed, :error],
+       do: false
+
+  defp valid_state_transition?(current_state, next_state),
+    do:
+      Enum.find_index(@state_order, &(&1 == current_state)) <
+        Enum.find_index(@state_order, &(&1 == next_state))
 
   defp query_state(%{error: error}) when is_binary(error), do: :error
   defp query_state(%{cancelled: true}), do: :cancelled
@@ -246,18 +280,19 @@ defmodule Air.Service.Query do
   end
 
   defp log_result_error(query, result) do
-    if result[:error], do:
-      Logger.error([
-        "JSON_LOG ",
-        Poison.encode_to_iodata!(%{
-          type: "failed_query",
-          message: result.error,
-          statement: query.statement,
-          data_source_id: query.data_source_id,
-          user_id: query.user.id,
-          user_email: query.user.email
-        })
-      ])
+    if result[:error],
+      do:
+        Logger.error([
+          "JSON_LOG ",
+          Poison.encode_to_iodata!(%{
+            type: "failed_query",
+            message: result.error,
+            statement: query.statement,
+            data_source_id: query.data_source_id,
+            user_id: query.user.id,
+            user_email: query.user.email
+          })
+        ])
   end
 
   defp store_query_result!(query, result) do
@@ -284,13 +319,15 @@ defmodule Air.Service.Query do
 
       Repo.insert_all(
         ResultChunk,
-        Enum.map(result.chunks, &%{query_id: query.id, index: &1.index, encoded_data: &1.encoded_data})
+        Enum.map(
+          result.chunks,
+          &%{query_id: query.id, index: &1.index, encoded_data: &1.encoded_data}
+        )
       )
 
       query
     end)
   end
-
 
   # -------------------------------------------------------------------
   # DB scopes
@@ -309,52 +346,55 @@ defmodule Air.Service.Query do
   end
 
   defp pending(scope \\ Query) do
-    where(scope, [q], not q.query_state in ["completed", "error", "cancelled"])
+    where(scope, [q], not (q.query_state in ["completed", "error", "cancelled"]))
   end
 
   defp for_data_source(query, data_source) do
-    from q in query, where: q.data_source_id == ^data_source.id
+    from(q in query, where: q.data_source_id == ^data_source.id)
   end
 
   defp in_context(query, context) do
-    from q in query, where: q.context == ^context
+    from(q in query, where: q.context == ^context)
   end
 
   defp recent(query, count, before) do
-    from q in query,
-    where: q.inserted_at < ^before,
-    order_by: [desc: q.inserted_at],
-    limit: ^count
+    from(
+      q in query,
+      where: q.inserted_at < ^before,
+      order_by: [desc: q.inserted_at],
+      limit: ^count
+    )
   end
 
-  defp result_chunks(query_id, :all), do:
-    from(chunk in ResultChunk, where: chunk.query_id == ^query_id, order_by: [asc: chunk.index])
-  defp result_chunks(query_id, chunk_index), do:
-    from(chunk in result_chunks(query_id, :all), where: chunk.index == ^chunk_index)
+  defp result_chunks(query_id, :all),
+    do:
+      from(chunk in ResultChunk, where: chunk.query_id == ^query_id, order_by: [asc: chunk.index])
 
-  if Mix.env == :test do
+  defp result_chunks(query_id, chunk_index),
+    do: from(chunk in result_chunks(query_id, :all), where: chunk.index == ^chunk_index)
+
+  if Mix.env() == :test do
     defp report_query_result(_), do: :ok
   else
-    defp report_query_result(result), do:
-      Air.Service.Central.report_query_result(result)
+    defp report_query_result(result), do: Air.Service.Central.report_query_result(result)
   end
 
   defp add_id_to_changeset(changeset, :autogenerate), do: changeset
-  defp add_id_to_changeset(changeset, id), do:
-    Query.add_id_to_changeset(changeset, id)
-
+  defp add_id_to_changeset(changeset, id), do: Query.add_id_to_changeset(changeset, id)
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc false
-  def child_spec(_arg), do:
-    Aircloak.ChildSpec.supervisor(
-      [
-        Air.Service.Query.Events,
-        Air.Service.Query.Lifecycle,
-      ],
-      strategy: :one_for_one, name: __MODULE__
-    )
+  def child_spec(_arg),
+    do:
+      Aircloak.ChildSpec.supervisor(
+        [
+          Air.Service.Query.Events,
+          Air.Service.Query.Lifecycle
+        ],
+        strategy: :one_for_one,
+        name: __MODULE__
+      )
 end

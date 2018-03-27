@@ -11,18 +11,17 @@ defmodule Cloak.Sql.Parsers do
     defstruct [:category, :value, :offset, :line, :column]
 
     @type t :: %__MODULE__{
-      category: any,
-      value: any,
-      offset: non_neg_integer(),
-      line: pos_integer(),
-      column: non_neg_integer()
-    }
+            category: any,
+            value: any,
+            offset: non_neg_integer(),
+            line: pos_integer(),
+            column: non_neg_integer()
+          }
 
     defimpl String.Chars do
-      def to_string(token), do: "#{inspect {token.category, token.value}}"
+      def to_string(token), do: "#{inspect({token.category, token.value})}"
     end
   end
-
 
   # -------------------------------------------------------------------
   # API functions
@@ -35,28 +34,40 @@ defmodule Cloak.Sql.Parsers do
   If no parser succeeds, an error is generated. You can handle this case
   specifically by providing the `{:else, parser}` pair which will always run.
   """
-  @spec switch(Combine.previous_parser, [{Combine.parser | :else, Combine.parser}]) :: Combine.parser
+  @spec switch(Combine.previous_parser(), [{Combine.parser() | :else, Combine.parser()}]) ::
+          Combine.parser()
   defparser switch(%ParserState{status: :ok, line: line, column: column} = state, switch_rules) do
-    interpret_switch_rules(switch_rules, state,
-      "Expected at least one parser to succeed at line #{line}, column #{column}.")
+    interpret_switch_rules(
+      switch_rules,
+      state,
+      "Expected at least one parser to succeed at line #{line}, column #{column}."
+    )
   end
 
   defp interpret_switch_rules([], _state, deepest_error) do
     %ParserState{status: :error, error: deepest_error}
   end
+
   defp interpret_switch_rules([{:else, parser} | _], state, _deepest_error) do
     parser.(state)
   end
+
   defp interpret_switch_rules([{parser, next_parser} | other_rules], state, deepest_error) do
     case parser.(%ParserState{state | results: []}) do
       %ParserState{status: :ok, results: switch_results} = next_state ->
         case next_parser.(%ParserState{next_state | results: []}) do
           %ParserState{status: :ok, results: next_results} = final_state ->
-            %ParserState{final_state |
-              results: [{Enum.reverse(switch_results), Enum.reverse(next_results)} | state.results]
+            %ParserState{
+              final_state
+              | results: [
+                  {Enum.reverse(switch_results), Enum.reverse(next_results)} | state.results
+                ]
             }
-          other -> other
+
+          other ->
+            other
         end
+
       %ParserState{error: error} ->
         interpret_switch_rules(other_rules, state, deeper_error(deepest_error, error))
     end
@@ -81,13 +92,13 @@ defmodule Cloak.Sql.Parsers do
   If the input is a keyword `foo`, the output is `[:foo]`. If it is `bar`, the
   output is `[:bar, result_of_bar_parser]`.
   """
-  @spec noop(Combine.previous_parser) :: Combine.parser
+  @spec noop(Combine.previous_parser()) :: Combine.parser()
   defparser noop(%ParserState{status: :ok} = state) do
     state
   end
 
   @doc "Emits the current line and column."
-  @spec position(Combine.previous_parser) :: Combine.parser
+  @spec position(Combine.previous_parser()) :: Combine.parser()
   defparser position(%ParserState{status: :ok} = state) do
     %ParserState{state | results: [{state.line, state.column}]}
   end
@@ -98,15 +109,15 @@ defmodule Cloak.Sql.Parsers do
   The offset is a zero-based integer which determines current position in the
   input string.
   """
-  @spec offset(Combine.previous_parser) :: Combine.parser
+  @spec offset(Combine.previous_parser()) :: Combine.parser()
   defparser offset(%ParserState{status: :ok} = state) do
     %ParserState{state | results: [Map.get(state, :offset, 0) + state.column | state.results]}
   end
 
   @doc "Manually increments the current line cursor as it is not done so automatically."
-  @spec increment_line(Combine.previous_parser) :: Combine.parser
+  @spec increment_line(Combine.previous_parser()) :: Combine.parser()
   defparser increment_line(%ParserState{status: :ok} = state) do
-    %ParserState{state | line: (state.line + 1), column: 0}
+    %ParserState{state | line: state.line + 1, column: 0}
     |> Map.put(:offset, Map.get(state, :offset, 0) + state.column)
   end
 
@@ -120,18 +131,19 @@ defmodule Cloak.Sql.Parsers do
   position without consuming any token. It should be invoked only at the beginning of
   the parse tree.
   """
-  @spec init_token_parser(Combine.previous_parser) :: Combine.parser
+  @spec init_token_parser(Combine.previous_parser()) :: Combine.parser()
   defparser init_token_parser(%ParserState{status: :ok} = state) do
     case state.input do
       [%Token{} = first_token | _] ->
         %{state | line: first_token.line, column: first_token.column}
 
-      _ -> state
+      _ ->
+        state
     end
   end
 
   @doc "Consumes a token of the given category."
-  @spec token(Combine.previous_parser, any) :: Combine.parser
+  @spec token(Combine.previous_parser(), any) :: Combine.parser()
   defparser token(%ParserState{status: :ok, input: input, results: results} = state, category) do
     case input do
       [] ->
@@ -143,24 +155,37 @@ defmodule Cloak.Sql.Parsers do
             [next_token | _] -> {next_token.line, next_token.column}
             [] -> {token.line, token.column}
           end
-        %{state | line: next_line, column: next_column, input: next_tokens, results: [token | results]}
 
-      [%Token{} = token | _] ->
-        %{state |
-          status: :error,
-          error: "Unexpected token `#{to_string(token)}` at line #{state.line}, column #{state.column}}"
+        %{
+          state
+          | line: next_line,
+            column: next_column,
+            input: next_tokens,
+            results: [token | results]
         }
 
-      [other | _] -> raise "Input contained non-token #{inspect other}"
+      [%Token{} = token | _] ->
+        %{
+          state
+          | status: :error,
+            error:
+              "Unexpected token `#{to_string(token)}` at line #{state.line}, column #{
+                state.column
+              }}"
+        }
+
+      [other | _] ->
+        raise "Input contained non-token #{inspect(other)}"
     end
   end
 
   @doc "Consumes any token."
-  @spec any_token(Combine.previous_parser) :: Combine.parser
+  @spec any_token(Combine.previous_parser()) :: Combine.parser()
   defparser any_token(%ParserState{status: :ok, input: input, results: results} = state) do
     case input do
       [] ->
-        %ParserState{status: :error,
+        %ParserState{
+          status: :error,
           error: "Unexpected `eof` at line #{state.line}, column #{state.column + 1}."
         }
 
@@ -170,7 +195,14 @@ defmodule Cloak.Sql.Parsers do
             [next_token | _] -> {next_token.line, next_token.column}
             [] -> {token.line, token.column}
           end
-        %{state | line: next_line, column: next_column, input: next_tokens, results: [token | results]}
+
+        %{
+          state
+          | line: next_line,
+            column: next_column,
+            input: next_tokens,
+            results: [token | results]
+        }
     end
   end
 
@@ -180,24 +212,33 @@ defmodule Cloak.Sql.Parsers do
   The token offset is a zero-based integer which determines token position in the
   input string.
   """
-  @spec token_offset(Combine.previous_parser) :: Combine.parser
+  @spec token_offset(Combine.previous_parser()) :: Combine.parser()
   defparser token_offset(%ParserState{status: :ok, input: input, results: results} = state) do
     case input do
       [] ->
-        %ParserState{status: :error,
+        %ParserState{
+          status: :error,
           error: "Unexpected `eof` at line #{state.line}, column #{state.column + 1}."
         }
 
-      [%Token{} = token | _] -> %{state | results: [token.offset | results]}
+      [%Token{} = token | _] ->
+        %{state | results: [token.offset | results]}
     end
   end
 
   @doc "Assert that there are no more tokens in the input."
-  @spec end_of_tokens(Combine.previous_parser) :: Combine.parser
+  @spec end_of_tokens(Combine.previous_parser()) :: Combine.parser()
   defparser end_of_tokens(%ParserState{status: :ok, line: line, column: column} = state) do
     case state.input do
-      [] -> state
-      _ -> %{state | :status => :error, :error => "Expected end of input at line #{line}, column #{column}"}
+      [] ->
+        state
+
+      _ ->
+        %{
+          state
+          | :status => :error,
+            :error => "Expected end of input at line #{line}, column #{column}"
+        }
     end
   end
 
@@ -208,19 +249,18 @@ defmodule Cloak.Sql.Parsers do
   This is more flexible than `label`, because it allows you to set an arbitrary
   error message, whereas `label` can only used for `Expected ... at ...` messages.
   """
-  @spec error_message(Combine.previous_parser, Combine.parser, String.t) :: Combine.parser
+  @spec error_message(Combine.previous_parser(), Combine.parser(), String.t()) :: Combine.parser()
   defparser error_message(%ParserState{status: :ok} = state, parser, message) do
-    with next_state = parser.(state),
-         %ParserState{status: :error} <- next_state
-    do
-      %ParserState{next_state |
-        error: "#{message} at line #{next_state.line}, column #{next_state.column + 1}."
+    with next_state = parser.(state), %ParserState{status: :error} <- next_state do
+      %ParserState{
+        next_state
+        | error: "#{message} at line #{next_state.line}, column #{next_state.column + 1}."
       }
     end
   end
 
   @doc "Creates a parser that consumes no input and always returns the given value."
-  @spec return(Combine.previous_parser, any) :: Combine.parser
+  @spec return(Combine.previous_parser(), any) :: Combine.parser()
   defparser return(%ParserState{status: :ok} = state, value) do
     %{state | results: [value | state.results]}
   end
@@ -253,9 +293,9 @@ defmodule Cloak.Sql.Parsers do
   `(`, we'll recurse once. Then, if the next character is again `(`, we'll recurse
   again. Otherwise, we'll try to match the `)` character.
   """
-  @spec lazy(Combine.previous_parser, (() -> Combine.parser)) :: Combine.parser
+  @spec lazy(Combine.previous_parser(), (() -> Combine.parser())) :: Combine.parser()
   defparser lazy(%ParserState{status: :ok} = state, generator) do
-    (generator.()).(state)
+    generator.().(state)
   end
 
   @doc """
@@ -266,52 +306,64 @@ defmodule Cloak.Sql.Parsers do
   Another significant difference from `sep_by1` is that this function returns the separators as part of the output, so
   parsing "a,a,a" with `sep_by1_eager(char("a"), char(","))` gives `["a", ",", "a", ",", "a"]`.
   """
-  @spec sep_by1_eager(Combine.previous_parser, Combine.parser, Combine.parser) :: Combine.parser
+  @spec sep_by1_eager(Combine.previous_parser(), Combine.parser(), Combine.parser()) ::
+          Combine.parser()
   defparser sep_by1_eager(state, term, separator) do
-    (
-      Base.pair_both(
-        term,
-        switch([
-          {separator, lazy(fn -> sep_by1_eager(term, separator) end)},
-          {noop(), noop()}
-        ])
-      )
-      |> Base.map(fn
-        {first, {[sep], [rest]}} -> [first, sep | rest]
-        {single, {[], []}} -> [single]
-      end)
-    ).(state)
+    (Base.pair_both(
+       term,
+       switch([
+         {separator, lazy(fn -> sep_by1_eager(term, separator) end)},
+         {noop(), noop()}
+       ])
+     )
+     |> Base.map(fn
+       {first, {[sep], [rest]}} -> [first, sep | rest]
+       {single, {[], []}} -> [single]
+     end)).(state)
   end
 
   @doc "Same as `choice_deepest_error([parser1, parser2])`"
-  @spec either_deepest_error(Combine.previous_parser, Combine.parser, Combine.parser) :: Combine.parser
-  defparser either_deepest_error(state, parser1, parser2), do:
-    choice_deepest_error([parser1, parser2]).(state)
+  @spec either_deepest_error(Combine.previous_parser(), Combine.parser(), Combine.parser()) ::
+          Combine.parser()
+  defparser(
+    either_deepest_error(state, parser1, parser2),
+    do: choice_deepest_error([parser1, parser2]).(state)
+  )
 
   @doc """
   Tries parsers in order and returns the result of the first one that succeeds. In case of failure returns the
   error returned by the parser which consumed the most input.
   """
-  @spec choice_deepest_error(Combine.previous_parser, [Combine.parser]) :: Combine.parser
-  defparser choice_deepest_error(%ParserState{status: :ok, line: line, column: column} = state, parsers), do:
-    do_choice_deepest_error(parsers, state, "No possible parsers at line #{line}, column #{column}.")
-
+  @spec choice_deepest_error(Combine.previous_parser(), [Combine.parser()]) :: Combine.parser()
+  defparser(
+    choice_deepest_error(%ParserState{status: :ok, line: line, column: column} = state, parsers),
+    do:
+      do_choice_deepest_error(
+        parsers,
+        state,
+        "No possible parsers at line #{line}, column #{column}."
+      )
+  )
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp do_choice_deepest_error([], state, deepest_error), do:
-    %{state | :status => :error, :error => deepest_error}
+  defp do_choice_deepest_error([], state, deepest_error),
+    do: %{state | :status => :error, :error => deepest_error}
+
   defp do_choice_deepest_error([parser | rest], state, deepest_error) do
     case parser.(state) do
-      %ParserState{status: :ok} = result -> result
-      %ParserState{error: error} -> do_choice_deepest_error(rest, state, deeper_error(deepest_error, error))
+      %ParserState{status: :ok} = result ->
+        result
+
+      %ParserState{error: error} ->
+        do_choice_deepest_error(rest, state, deeper_error(deepest_error, error))
     end
   end
 
-  defp deeper_error(error1, error2), do:
-    if error_deepness(error1) > error_deepness(error2), do: error1, else: error2
+  defp deeper_error(error1, error2),
+    do: if(error_deepness(error1) > error_deepness(error2), do: error1, else: error2)
 
   @error_regex ~r/at line ([0-9]+), column ([0-9]+)/
   defp error_deepness(error) do

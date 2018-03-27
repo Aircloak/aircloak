@@ -31,7 +31,6 @@ defmodule Air.Repo do
 
   defp db_setting(name), do: Map.fetch!(Aircloak.DeployConfig.fetch!("database"), name)
 
-
   defmodule Migrator do
     @moduledoc false
     use GenServer, restart: :transient, start: {__MODULE__, :start_link, []}
@@ -48,8 +47,10 @@ defmodule Air.Repo do
         :up,
         all: true
       )
+
       Logger.info("database migrated")
-      :ignore # stops the server without crashing the supervisor
+      # stops the server without crashing the supervisor
+      :ignore
     end
   end
 end

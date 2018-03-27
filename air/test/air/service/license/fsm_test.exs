@@ -15,8 +15,12 @@ defmodule Air.Service.License.FSM.Test do
   describe "load" do
     setup [:load_valid_license, :load_expired_license]
 
-    test "invalid license",  do:
-      assert FSM.initial() |> FSM.load(Key.public_key(), invalid_license()) == {:error, FSM.initial()}
+    test "invalid license",
+      do:
+        assert(
+          FSM.initial() |> FSM.load(Key.public_key(), invalid_license()) ==
+            {:error, FSM.initial()}
+        )
 
     test "valid license", %{valid_license: valid_license} do
       {:ok, state} = FSM.initial() |> FSM.load(Key.public_key(), valid_license)
@@ -27,9 +31,9 @@ defmodule Air.Service.License.FSM.Test do
       assert FSM.text(state) == valid_license
     end
 
-    test "text contains multiple licenses, one of which is valid (used for rotating keys)",
-      %{valid_license: valid_license}
-    do
+    test "text contains multiple licenses, one of which is valid (used for rotating keys)", %{
+      valid_license: valid_license
+    } do
       license_text = invalid_license() <> "\n" <> valid_license
       {:ok, state} = FSM.initial() |> FSM.load(Key.public_key(), license_text)
 
@@ -46,9 +50,10 @@ defmodule Air.Service.License.FSM.Test do
       assert FSM.text(state) == expired_license
     end
 
-    test "loading another license overwrites the previous one",
-      %{valid_license: valid_license, expired_license: expired_license}
-    do
+    test "loading another license overwrites the previous one", %{
+      valid_license: valid_license,
+      expired_license: expired_license
+    } do
       {:ok, state1} = FSM.initial() |> FSM.load(Key.public_key(), expired_license)
       {:ok, state2} = FSM.load(state1, Key.public_key(), valid_license)
 
@@ -56,13 +61,14 @@ defmodule Air.Service.License.FSM.Test do
     end
   end
 
-  defp invalid_license(), do:
-    """
+  defp invalid_license(),
+    do: """
     Some random text
     More random text
     """
 
   defp load_valid_license(_context), do: {:ok, valid_license: File.read!("priv/dev_license.lic")}
 
-  defp load_expired_license(_context), do: {:ok, expired_license: File.read!("priv/expired_dev_license.lic")}
+  defp load_expired_license(_context),
+    do: {:ok, expired_license: File.read!("priv/expired_dev_license.lic")}
 end

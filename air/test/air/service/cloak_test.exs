@@ -23,7 +23,7 @@ defmodule Air.Service.Cloak.Test do
   end
 
   test "re-registering doesn't add multiple copies of the same data source" do
-    Enum.each(1..10, fn(_) -> start_cloak_channel(@data_sources) end)
+    Enum.each(1..10, fn _ -> start_cloak_channel(@data_sources) end)
     assert length(Repo.all(DataSource, name: @data_source_name)) == 1
   end
 
@@ -42,8 +42,7 @@ defmodule Air.Service.Cloak.Test do
   end
 
   test "should allow assigning multiple cloaks to the same data source" do
-    assert [_pid1, _pid2] =
-      Enum.map(1..2, fn(_) -> start_cloak_channel(@data_sources) end)
+    assert [_pid1, _pid2] = Enum.map(1..2, fn _ -> start_cloak_channel(@data_sources) end)
   end
 
   test "should unregister cloak when channel closes" do
@@ -110,6 +109,7 @@ defmodule Air.Service.Cloak.Test do
   test "should retain errors from all cloaks" do
     Cloak.register(TestRepoHelper.cloak_info("cloak1"), data_source_with_errors(["error 1"]))
     Cloak.register(TestRepoHelper.cloak_info("cloak2"), data_source_with_errors(["error 2"]))
+
     ["On cloak cloak2: error 2", "On cloak cloak1: error 1"] =
       Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
   end
@@ -117,6 +117,7 @@ defmodule Air.Service.Cloak.Test do
   test "tags errors with the originating cloak, to help debug problems" do
     Cloak.register(TestRepoHelper.cloak_info("cloak1"), data_source_with_errors(["error"]))
     Cloak.register(TestRepoHelper.cloak_info("cloak2"), data_source_with_errors(["error"]))
+
     ["On cloak cloak2: error", "On cloak cloak1: error"] =
       Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
   end
@@ -128,7 +129,7 @@ defmodule Air.Service.Cloak.Test do
     {:connected, cloak2} = TestSocketHelper.connect(%{cloak_name: "cloak2"})
     TestSocketHelper.join!(cloak2, "main", %{data_sources: [%{name: "ds1", tables: []}]})
 
-    task = Task.async(fn() -> Cloak.running_queries() end)
+    task = Task.async(fn -> Cloak.running_queries() end)
     TestSocketHelper.respond_to_running_queries!(cloak1, ["foo", "bar"])
     TestSocketHelper.respond_to_running_queries!(cloak2, ["baz"])
     assert Enum.sort(Task.await(task)) == ["bar", "baz", "foo"]
@@ -142,11 +143,12 @@ defmodule Air.Service.Cloak.Test do
     parent = self()
     ref = make_ref()
 
-    pid = spawn_link(fn ->
-      Cloak.register(TestRepoHelper.cloak_info(), data_sources)
-      send(parent, ref)
-      :timer.sleep(:infinity)
-    end)
+    pid =
+      spawn_link(fn ->
+        Cloak.register(TestRepoHelper.cloak_info(), data_sources)
+        send(parent, ref)
+        :timer.sleep(:infinity)
+      end)
 
     receive do
       ^ref -> pid

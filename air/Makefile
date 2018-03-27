@@ -1,5 +1,5 @@
 .PHONY: all compile deps clean start start2 start3 test test-migrations recreate-db migrate rollback dialyze docs
-.PHONY: release release-local lint mocha
+.PHONY: release release-local lint mocha format check-format
 
 all: deps compile
 
@@ -72,3 +72,9 @@ check-warnings:
 	MIX_ENV=dev mix compile --warnings-as-errors --all-warnings
 	MIX_ENV=test mix compile --warnings-as-errors --all-warnings
 	MIX_ENV=prod mix compile --warnings-as-errors --all-warnings
+
+format:
+	mix format --check-equivalent
+
+check-format:
+	mix format --check-formatted

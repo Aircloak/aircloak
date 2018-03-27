@@ -9,17 +9,16 @@ defmodule Central.Schemas.Customer do
   @type t :: %__MODULE__{}
 
   schema "customers" do
-    field :name, :string
+    field(:name, :string)
 
-    has_many :queries, Query
-    has_many :licenses, License
+    has_many(:queries, Query)
+    has_many(:licenses, License)
 
     timestamps()
   end
 
   @required_fields ~w(name)a
   @optional_fields ~w()a
-
 
   # -------------------------------------------------------------------
   # API functions
@@ -31,7 +30,7 @@ defmodule Central.Schemas.Customer do
   If no params are provided, an invalid changeset is returned
   with no validation performed.
   """
-  @spec changeset(t | Changeset.t, Map.t) :: Changeset.t
+  @spec changeset(t | Changeset.t(), Map.t()) :: Changeset.t()
   def changeset(model, params \\ %{}) do
     model
     |> cast(params, @required_fields ++ @optional_fields)
@@ -39,7 +38,7 @@ defmodule Central.Schemas.Customer do
   end
 
   @doc "Validates a changeset for insertion"
-  @spec new_customer_changeset(t | Changeset.t, Map.t) :: Changeset.t
+  @spec new_customer_changeset(t | Changeset.t(), Map.t()) :: Changeset.t()
   def new_customer_changeset(model, params \\ %{}) do
     model
     |> changeset(params)
@@ -48,7 +47,7 @@ defmodule Central.Schemas.Customer do
   end
 
   @doc "Returns an empty changeset to use in forms"
-  @spec empty_changeset() :: Changeset.t
+  @spec empty_changeset() :: Changeset.t()
   def empty_changeset() do
     changeset(%__MODULE__{})
   end

@@ -9,11 +9,17 @@ defmodule Cloak do
   def start(_type, _args) do
     Cloak.LoggerTranslator.install()
     set_salt()
-    if Aircloak.DeployConfig.fetch("debug") === {:ok, true} do Logger.configure(level: :debug) end
-    with {:ok, concurrency} <- Aircloak.DeployConfig.fetch("concurrency"), do:
-      Application.put_env(:cloak, :concurrency, concurrency)
-    with {:ok, aes_key} <- Aircloak.DeployConfig.fetch("aes_key"), do:
-      Application.put_env(:cloak, :aes_key, aes_key)
+
+    if Aircloak.DeployConfig.fetch("debug") === {:ok, true} do
+      Logger.configure(level: :debug)
+    end
+
+    with {:ok, concurrency} <- Aircloak.DeployConfig.fetch("concurrency"),
+         do: Application.put_env(:cloak, :concurrency, concurrency)
+
+    with {:ok, aes_key} <- Aircloak.DeployConfig.fetch("aes_key"),
+         do: Application.put_env(:cloak, :aes_key, aes_key)
+
     configure_periodic_jobs()
     Cloak.DataSource.RODBC.Driver.init!()
     Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor)
@@ -27,42 +33,46 @@ defmodule Cloak do
 
   # Conditional definition of top-level processes, since we don't want to run
   # all of them in the test environment.
-  case Mix.env do
+  case Mix.env() do
     :test -> defp children, do: common_processes()
     :dev -> defp children, do: common_processes() ++ system_processes()
     :prod -> defp children, do: common_processes() ++ system_processes()
   end
 
-  defp common_processes, do:
-    [
+  defp common_processes,
+    do: [
       Cloak.DataSource,
       Cloak.Query.Runner
     ]
 
-  unless Mix.env in [:test] do
+  unless Mix.env() in [:test] do
     # Processes which we don't want to start in the test environment
-    defp system_processes, do:
-      [
+    defp system_processes,
+      do: [
         Cloak.AirSocket,
-        Cloak.MemoryReader,
+        Cloak.MemoryReader
       ]
   end
 
   defp get_salt() do
     case Aircloak.DeployConfig.fetch("salt") do
       :error ->
-        raise("Please specify a salt in the cloak configuration file (config.json). " <>
-          "The salt is a requirement for strong anonymization.")
-      {:ok, value} -> value
+        raise(
+          "Please specify a salt in the cloak configuration file (config.json). " <>
+            "The salt is a requirement for strong anonymization."
+        )
+
+      {:ok, value} ->
+        value
     end
   end
 
-  if Mix.env == :test do
+  if Mix.env() == :test do
     defp configure_periodic_jobs(), do: :ok
   else
     defp configure_periodic_jobs() do
       [{"*/5 * * * *", {Cloak.DataSource.SerializingUpdater, :run_liveness_check}}]
-      |> Enum.each(fn({schedule, job}) -> Quantum.add_job(schedule, job) end)
+      |> Enum.each(fn {schedule, job} -> Quantum.add_job(schedule, job) end)
     end
   end
 end

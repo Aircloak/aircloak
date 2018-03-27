@@ -3,7 +3,7 @@ defmodule Air.Repo.Migrations.AddCloakIdToQueries do
 
   def change do
     alter table(:queries) do
-      add :cloak_id, :string
+      add(:cloak_id, :string)
     end
   end
 end

@@ -50,6 +50,7 @@ config :cloak, :data_source,
 
 config :excheck, :number_iterations, 200
 config :cloak, :sanitize_otp_errors, false
+
 config :cloak, :sap_hana,
   hostname: "achanaproxy.mpi-sws.org",
   port: 39013,

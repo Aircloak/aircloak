@@ -13,6 +13,7 @@ test = fn
         "make eslint",
         "make flow",
         "mix lint",
+        "make check-format",
         "mix bom --elixir deps --node assets/node_modules /tmp",
         "MIX_HOME=_build make dialyze",
       ]}

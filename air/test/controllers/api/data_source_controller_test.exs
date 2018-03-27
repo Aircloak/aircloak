@@ -17,12 +17,13 @@ defmodule AirWeb.API.DataSourceController.Test do
     api_token = create_token!(user)
     cloak_name = "cloak_name"
 
-    [api_cloak] = TestSocketHelper.with_cloak(cloak_name, "data_source_name", fn ->
-      api_conn(api_token)
-      |> get("/api/data_sources")
-      |> response(200)
-      |> JSON.decode!()
-    end)
+    [api_cloak] =
+      TestSocketHelper.with_cloak(cloak_name, "data_source_name", fn ->
+        api_conn(api_token)
+        |> get("/api/data_sources")
+        |> response(200)
+        |> JSON.decode!()
+      end)
 
     [data_source] = Repo.all(DataSource)
     assert api_cloak["name"] == "data_source_name"
@@ -37,18 +38,18 @@ defmodule AirWeb.API.DataSourceController.Test do
     cloak_name = "cloak_name"
     view_name = "view1"
 
-    [api_cloak] = TestSocketHelper.with_cloak(cloak_name, "data_source_name", fn ->
-      create_view!(user, get_datasource(), view_name)
+    [api_cloak] =
+      TestSocketHelper.with_cloak(cloak_name, "data_source_name", fn ->
+        create_view!(user, get_datasource(), view_name)
 
-      api_conn(api_token)
-      |> get("/api/data_sources")
-      |> response(200)
-      |> JSON.decode!()
-    end)
+        api_conn(api_token)
+        |> get("/api/data_sources")
+        |> response(200)
+        |> JSON.decode!()
+      end)
 
     assert [%{"id" => ^view_name}] = api_cloak["tables"]
   end
 
-  defp get_datasource(), do:
-    hd(Repo.all(DataSource))
+  defp get_datasource(), do: hd(Repo.all(DataSource))
 end

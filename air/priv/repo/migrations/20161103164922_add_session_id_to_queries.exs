@@ -3,7 +3,7 @@ defmodule Air.Repo.Migrations.AddSessionIdToQueries do
 
   def change do
     alter table(:queries) do
-      add :session_id, :uuid
+      add(:session_id, :uuid)
     end
   end
 end

@@ -4,7 +4,6 @@ defmodule AirWeb.Admin.WarningsController do
 
   alias Air.Service.Warnings
 
-
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
@@ -15,13 +14,12 @@ defmodule AirWeb.Admin.WarningsController do
     }
   end
 
-
   # -------------------------------------------------------------------
   # Actions
   # -------------------------------------------------------------------
 
-  def index(conn, _params), do:
-    render(conn, "index.html", problems: Air.Service.Warnings.problems())
+  def index(conn, _params),
+    do: render(conn, "index.html", problems: Air.Service.Warnings.problems())
 
   @doc """
   Redirects to the warnings index if there are any, otherwise

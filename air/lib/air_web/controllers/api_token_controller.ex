@@ -4,7 +4,6 @@ defmodule AirWeb.ApiTokenController do
 
   alias Air.{Schemas.ApiToken, Token}
 
-
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
@@ -14,7 +13,6 @@ defmodule AirWeb.ApiTokenController do
       user: :all
     }
   end
-
 
   # -------------------------------------------------------------------
   # Actions
@@ -33,8 +31,10 @@ defmodule AirWeb.ApiTokenController do
       {:error, changeset} ->
         conn
         |> render("index.html", api_tokens: existing_tokens(conn), changeset: changeset)
+
       token ->
         audit_log(conn, "Created API token")
+
         conn
         |> put_flash(:api_token, token)
         |> redirect(to: api_token_path(conn, :index))
@@ -43,23 +43,26 @@ defmodule AirWeb.ApiTokenController do
 
   def delete(conn, %{"id" => id}) do
     token = Repo.get(ApiToken, id)
+
     case token.user_id == conn.assigns.current_user.id do
       true ->
         Repo.delete!(token)
         audit_log(conn, "Invalidated API token")
+
         conn
         |> put_flash(:info, "Token revoked")
         |> redirect(to: api_token_path(conn, :index))
-      false -> not_found(conn)
+
+      false ->
+        not_found(conn)
     end
   end
-
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   defp existing_tokens(conn) do
-    Repo.all(from t in ApiToken, where: t.user_id == ^conn.assigns.current_user.id, select: t)
+    Repo.all(from(t in ApiToken, where: t.user_id == ^conn.assigns.current_user.id, select: t))
   end
 end

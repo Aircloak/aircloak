@@ -9,7 +9,7 @@ defmodule BOM.Gather.Elixir do
   # -------------------------------------------------------------------
 
   @doc "Returns a list of packages contained in the given `deps` directory."
-  @spec run(String.t) :: [Package.t]
+  @spec run(String.t()) :: [Package.t()]
   def run(deps_path) do
     version_map = version_map(deps_path)
 
@@ -21,7 +21,6 @@ defmodule BOM.Gather.Elixir do
     |> Enum.map(&package/1)
   end
 
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -32,14 +31,16 @@ defmodule BOM.Gather.Elixir do
       name: package_name(path),
       path: path,
       license: license(source, path, version),
-      version: version,
+      version: version
     }
   end
 
-  defp license(:hex, path, version), do:
-    path
-    |> hex_license(version)
-    |> make_license(path, version)
+  defp license(:hex, path, version),
+    do:
+      path
+      |> hex_license(version)
+      |> make_license(path, version)
+
   defp license(_not_from_hex, path, version) do
     case non_hex_license(package_name(path), version) do
       nil -> %License{type: :unknown, text: ""}
@@ -47,15 +48,17 @@ defmodule BOM.Gather.Elixir do
     end
   end
 
-  defp make_license(type, path, version), do:
-    Gather.public_domain_license(type) ||
-    Gather.license_from_file(path, type) ||
-    Gather.license_from_readme(path, type) ||
-    BOM.Whitelist.find(:elixir, package_name(path), version)
+  defp make_license(type, path, version),
+    do:
+      Gather.public_domain_license(type) || Gather.license_from_file(path, type) ||
+        Gather.license_from_readme(path, type) ||
+        BOM.Whitelist.find(:elixir, package_name(path), version)
 
   defp hex_license(path, version) do
     case BOM.Gather.Elixir.Hex.licenses(package_name(path), version) do
-      nil -> nil
+      nil ->
+        nil
+
       licenses ->
         licenses
         |> Enum.map(&License.name_to_type/1)
@@ -77,21 +80,20 @@ defmodule BOM.Gather.Elixir do
   defp package_name(path), do: Path.basename(path)
 
   for {package_name, version, license} <-
-    [
-      {"meck", "dde759050eff19a1a80fd854d7375174b191665d", :apache2},
-      {"earmark", "2bc90510ddc6245ff6afcaf6cfb526e3a9fadf89", :apache2},
-      {"pbkdf2", "7076584f5377e98600a7e2cb81980b2992fb2f71", :apache2},
-      {"poison", "ca619d769815ab2c878cdfbf524c5b6890bcb000", :"cc0-1.0"},
-      {"websocket_client", "c2a6cf11233cad54a7f7e6c89bca172f2b494f9d", :mit},
-      {"tds", "91c3e9213c6e8c9b4a812555d16f55ed3b464bec", :apache2},
-    ]
-  do
-    defp non_hex_license(unquote(package_name), unquote(version)), do:
-      unquote(license)
+        [
+          {"meck", "dde759050eff19a1a80fd854d7375174b191665d", :apache2},
+          {"earmark", "2bc90510ddc6245ff6afcaf6cfb526e3a9fadf89", :apache2},
+          {"pbkdf2", "7076584f5377e98600a7e2cb81980b2992fb2f71", :apache2},
+          {"poison", "ca619d769815ab2c878cdfbf524c5b6890bcb000", :"cc0-1.0"},
+          {"websocket_client", "c2a6cf11233cad54a7f7e6c89bca172f2b494f9d", :mit},
+          {"tds", "91c3e9213c6e8c9b4a812555d16f55ed3b464bec", :apache2}
+        ] do
+    defp non_hex_license(unquote(package_name), unquote(version)), do: unquote(license)
   end
+
   defp non_hex_license(unknown_package, unknown_version) do
-    if BOM.Whitelist.shipped?(:elixir, unknown_package), do:
-      Logger.warn("unknown shipped non-hex dependency #{unknown_package} #{unknown_version}")
+    if BOM.Whitelist.shipped?(:elixir, unknown_package),
+      do: Logger.warn("unknown shipped non-hex dependency #{unknown_package} #{unknown_version}")
 
     nil
   end

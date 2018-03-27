@@ -4,7 +4,7 @@ defmodule Air.Service.License.FSM do
   submitted to update that to a valid license.
   """
 
-  @type t :: :no_license | Aircloak.License.t
+  @type t :: :no_license | Aircloak.License.t()
 
   @doc "Returns the initial state representing no license."
   @spec initial() :: t
@@ -14,7 +14,7 @@ defmodule Air.Service.License.FSM do
   Tries to load the given license text using the given public key for decryption. Returns `{:ok, new_license}` if
   loading succeeded or `{:error, old_state}` if it failed.
   """
-  @spec load(t, ExPublicKey.RSAPublicKey.t, String.t) :: {:ok, t} | {:error, t}
+  @spec load(t, ExPublicKey.RSAPublicKey.t(), String.t()) :: {:ok, t} | {:error, t}
   def load(state, public_key, encrypted_license) do
     case Aircloak.License.decrypt(public_key, encrypted_license) do
       {:ok, license} -> {:ok, Map.put(license, :text, encrypted_license)}
@@ -32,12 +32,12 @@ defmodule Air.Service.License.FSM do
   def valid?(state), do: Timex.diff(expiry(state), Timex.now()) > 0
 
   @doc "Returns the expiry time for the given state."
-  @spec expiry(t) :: DateTime.t
+  @spec expiry(t) :: DateTime.t()
   def expiry(:no_license), do: Timex.now() |> Timex.shift(years: -1)
   def expiry(state), do: state.expires_at
 
   @doc "Returns the original text of the license before decryption."
-  @spec text(t) :: String.t
+  @spec text(t) :: String.t()
   def text(:no_license), do: ""
   def text(state), do: state.text
 end

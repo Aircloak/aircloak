@@ -14,11 +14,14 @@ defmodule AirWeb.Socket.Cloak do
   use Phoenix.Socket
   require Logger
 
-  transport :websocket, Phoenix.Transports.WebSocket, serializer: [{AirWeb.Socket.Cloak.Serializer, "~> 2.0.0"}]
+  transport(
+    :websocket,
+    Phoenix.Transports.WebSocket,
+    serializer: [{AirWeb.Socket.Cloak.Serializer, "~> 2.0.0"}]
+  )
 
   # List of exposed channels
-  channel "main", AirWeb.Socket.Cloak.MainChannel
-
+  channel("main", AirWeb.Socket.Cloak.MainChannel)
 
   # -------------------------------------------------------------------
   # Phoenix.Socket callback functions
@@ -26,17 +29,18 @@ defmodule AirWeb.Socket.Cloak do
 
   @impl Phoenix.Socket
   def connect(params, socket) do
-    Logger.info("Cloak connecting #{inspect params}")
+    Logger.info("Cloak connecting #{inspect(params)}")
     cloak_name = params["cloak_name"]
     version = params["version"]
+
     if valid_required_param?(cloak_name) and valid_required_param?(version) do
       cloak_id = "#{cloak_name}"
+
       {:ok,
-        socket
-        |> assign(:cloak_id, cloak_id)
-        |> assign(:version, version)
-        |> assign(:name, cloak_name)
-      }
+       socket
+       |> assign(:cloak_id, cloak_id)
+       |> assign(:version, version)
+       |> assign(:name, cloak_name)}
     else
       Logger.info("Connection refused")
       :error
@@ -44,9 +48,7 @@ defmodule AirWeb.Socket.Cloak do
   end
 
   @impl Phoenix.Socket
-  def id(socket),
-    do: "cloak_socket:#{socket.assigns.cloak_id}"
-
+  def id(socket), do: "cloak_socket:#{socket.assigns.cloak_id}"
 
   # -------------------------------------------------------------------
   # Internal functions

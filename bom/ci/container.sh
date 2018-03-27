@@ -9,7 +9,7 @@ cd $ROOT_DIR
 . docker/ci_helper.sh bom
 
 mount_to_aircloak VERSION common/elixir
-mount_to_component config lib priv test mix.exs mix.lock Makefile .gitignore check_warnings.sh
+mount_to_component config lib priv test mix.exs mix.lock Makefile .gitignore check_warnings.sh .formatter.exs
 mount_cached_component deps _build .bash_history
 
 case "$1" in

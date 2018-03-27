@@ -17,7 +17,6 @@ config :air, Air.Repo, pool: Ecto.Adapters.SQL.Sandbox
 # Make tests related to hashing run faster
 config :comeonin, :pbkdf2_rounds, 1
 
-config :air, Air.PsqlServer,
-  port: 8433
+config :air, Air.PsqlServer, port: 8433
 
 config :air, :auto_aircloak_export, false

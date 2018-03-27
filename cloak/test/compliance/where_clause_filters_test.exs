@@ -1,7 +1,7 @@
 defmodule Compliance.WhereClauseFilters.Text do
   use ComplianceCase, async: true, timeout: :timer.minutes(2)
 
-  Enum.each(numerical_columns() |> raw_columns(), fn({column, table, uid}) ->
+  Enum.each(numerical_columns() |> raw_columns(), fn {column, table, uid} ->
     @tag compliance: "#{column} #{table} WHERE-clause equality in subquery"
     test "input #{column} with a WHERE-clause equality in a sub-query on #{table}", context do
       context
@@ -17,7 +17,8 @@ defmodule Compliance.WhereClauseFilters.Text do
     end
 
     @tag compliance: "#{column} #{table} WHERE-clause inequality in subquery"
-    test "on input #{column} with a WHERE-clause inequality in a sub-query on #{table}", context do
+    test "on input #{column} with a WHERE-clause inequality in a sub-query on #{table}",
+         context do
       context
       |> assert_consistent_and_not_failing("""
         SELECT count(*)
@@ -99,7 +100,7 @@ defmodule Compliance.WhereClauseFilters.Text do
     end
   end)
 
-  Enum.each(text_columns(), fn({column, table, uid}) ->
+  Enum.each(text_columns(), fn {column, table, uid} ->
     @tag compliance: "#{column} #{table} WHERE-clause equality in subquery"
     test "input #{column} with a WHERE-clause equality in a sub-query on #{table}", context do
       context
@@ -115,7 +116,8 @@ defmodule Compliance.WhereClauseFilters.Text do
     end
 
     @tag compliance: "#{column} #{table} WHERE-clause inequality in subquery"
-    test "on input #{column} with a WHERE-clause inequality in a sub-query on #{table}", context do
+    test "on input #{column} with a WHERE-clause inequality in a sub-query on #{table}",
+         context do
       context
       |> assert_consistent_and_not_failing("""
         SELECT count(*)
@@ -247,7 +249,8 @@ defmodule Compliance.WhereClauseFilters.Text do
     end
 
     @tag compliance: "#{column} #{table} WHERE-clause NOT IN with non-existant values"
-    test "input #{column} with a WHERE-clause NOT IN on #{table} with non-existant constant values", context do
+    test "input #{column} with a WHERE-clause NOT IN on #{table} with non-existant constant values",
+         context do
       context
       |> assert_consistent_and_not_failing("""
         SELECT count(*)

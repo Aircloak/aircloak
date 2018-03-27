@@ -4,7 +4,6 @@ defmodule AirWeb.SessionController do
 
   alias Air.Service.User
 
-
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
@@ -15,7 +14,6 @@ defmodule AirWeb.SessionController do
       user: :all
     }
   end
-
 
   # -------------------------------------------------------------------
   # Actions
@@ -35,14 +33,16 @@ defmodule AirWeb.SessionController do
   def create(conn, params) do
     case User.login(params["email"], params["password"], audit_log_meta(conn)) do
       {:ok, user} ->
-        return_path = get_session(conn, :return_path) ||
-          data_source_path(conn, :redirect_to_last_used)
+        return_path =
+          get_session(conn, :return_path) || data_source_path(conn, :redirect_to_last_used)
+
         conn
         |> Guardian.Plug.sign_in(user)
         |> conditionally_create_persistent_login(params)
         |> put_session(:return_path, nil)
         |> put_flash(:info, "Logged in successfully. Welcome back!")
         |> redirect(to: return_path)
+
       _ ->
         conn
         |> put_flash(:error, "Invalid e-mail or password.")
@@ -52,13 +52,13 @@ defmodule AirWeb.SessionController do
 
   def delete(conn, _params) do
     audit_log(conn, "Logged out")
+
     conn
     |> Guardian.Plug.sign_out()
     |> AirWeb.Plug.Session.Restoration.remove_token()
     |> put_flash(:info, "Logged out successfully")
     |> redirect(to: session_path(conn, :new))
   end
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -67,5 +67,6 @@ defmodule AirWeb.SessionController do
   defp conditionally_create_persistent_login(conn, %{"remember" => "on"}) do
     AirWeb.Plug.Session.Restoration.persist_token(conn)
   end
+
   defp conditionally_create_persistent_login(conn, _params), do: conn
 end

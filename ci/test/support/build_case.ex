@@ -17,7 +17,8 @@ defmodule AircloakCI.BuildCase do
 
       wait_for_jobs_to_finish(pr)
 
-      assert_receive {:posted_status, unquote(pattern) = %{sha: ^sha, context: ^context}}, :timer.seconds(2)
+      assert_receive {:posted_status, unquote(pattern) = %{sha: ^sha, context: ^context}},
+                     :timer.seconds(2)
     end
   end
 
@@ -27,7 +28,9 @@ defmodule AircloakCI.BuildCase do
       pr = unquote(pr)
       wait_for_jobs_to_finish(pr)
       pr_number = unquote(pr).number
-      assert_receive {:commented_on_issue, unquote(pattern) = %{issue_number: ^pr_number}}, :timer.seconds(2)
+
+      assert_receive {:commented_on_issue, unquote(pattern) = %{issue_number: ^pr_number}},
+                     :timer.seconds(2)
     end
   end
 
@@ -35,8 +38,8 @@ defmodule AircloakCI.BuildCase do
   def successful_jobs(pr) do
     pr
     |> job_outcomes()
-    |> Enum.filter(fn({_name, outcome}) -> outcome == :ok end)
-    |> Enum.map(fn({name, _outcome}) -> name end)
+    |> Enum.filter(fn {_name, outcome} -> outcome == :ok end)
+    |> Enum.map(fn {name, _outcome} -> name end)
     |> Enum.sort()
   end
 
@@ -47,26 +50,27 @@ defmodule AircloakCI.BuildCase do
   def failed_jobs(pr) do
     pr
     |> job_outcomes()
-    |> Enum.filter(fn({_name, outcome}) -> outcome != :ok end)
-    |> Enum.map(fn({name, _outcome}) -> name end)
+    |> Enum.filter(fn {_name, outcome} -> outcome != :ok end)
+    |> Enum.map(fn {name, _outcome} -> name end)
     |> Enum.sort()
   end
 
   @doc "Creates a new unique pull request."
   def pr(data \\ []) do
     pr_number = Keyword.get(data, :number, :erlang.unique_integer([:positive]))
-    defaults =
-      %{
-        repo: repo(),
-        number: pr_number,
-        title: "test pr #{pr_number}",
-        source_branch: "feature_#{pr_number}",
-        target_branch: "master",
-        sha: new_sha(),
-        merge_sha: new_sha(),
-        merge_state: :mergeable,
-        approved?: false,
-      }
+
+    defaults = %{
+      repo: repo(),
+      number: pr_number,
+      title: "test pr #{pr_number}",
+      source_branch: "feature_#{pr_number}",
+      target_branch: "master",
+      sha: new_sha(),
+      merge_sha: new_sha(),
+      merge_state: :mergeable,
+      approved?: false
+    }
+
     Map.merge(defaults, Map.new(data))
   end
 
@@ -76,7 +80,7 @@ defmodule AircloakCI.BuildCase do
   @doc "Updates the PR data, and notifies the corresponding build server."
   def update_pr_data(repo_data, pr, updater) do
     new_pr = updater.(pr)
-    new_repo_data = update_pr(repo_data, pr, fn(_) -> new_pr end)
+    new_repo_data = update_pr(repo_data, pr, fn _ -> new_pr end)
     update_repo_data(new_pr, new_repo_data)
     {new_pr, new_repo_data}
   end
@@ -101,11 +105,10 @@ defmodule AircloakCI.BuildCase do
     cmd_prefix = "\.test_data/data/cache/builds/pr-#{pr.number}/src/#{component}/ci/container.sh"
     regex = Regex.compile!("^#{cmd_prefix}.*#{cmd_regex}$")
 
-    AircloakCI.TestExec.add_exec_handler(fn(cmd) ->
+    AircloakCI.TestExec.add_exec_handler(fn cmd ->
       if to_string(cmd) =~ regex, do: exit({:exit_status, 1}), else: nil
     end)
   end
-
 
   # -------------------------------------------------------------------
   # ExUnit.CaseTemplate definition
@@ -125,7 +128,6 @@ defmodule AircloakCI.BuildCase do
     {:ok, repo_data: repo_data}
   end
 
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -139,14 +141,13 @@ defmodule AircloakCI.BuildCase do
     }
   end
 
-  defp repo(), do:  %{owner: "test", name: "test"}
+  defp repo(), do: %{owner: "test", name: "test"}
 
   defp branch(data) do
     Map.merge(%{sha: new_sha(), repo: repo()}, Map.new(data))
   end
 
-  defp branch(repo_data, name), do:
-    Enum.find(repo_data.branches, &(&1.name == name))
+  defp branch(repo_data, name), do: Enum.find(repo_data.branches, &(&1.name == name))
 
   def update_pr(repo_data, pr, updater) do
     update_in(

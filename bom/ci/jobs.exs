@@ -14,6 +14,7 @@ test = fn
       {:parallel, [
         "mix docs",
         "mix lint",
+        "make check-format",
         "MIX_HOME=_build make dialyze",
       ]}
     ]}

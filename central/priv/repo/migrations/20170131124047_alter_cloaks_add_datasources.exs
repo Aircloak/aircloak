@@ -3,7 +3,7 @@ defmodule Central.Repo.Migrations.AlterCloaksAddDatasources do
 
   def change do
     alter table(:cloaks) do
-      add :data_sources, :integer, null: false, default: 0
+      add(:data_sources, :integer, null: false, default: 0)
     end
   end
 end

@@ -7,10 +7,9 @@ defmodule Cloak.Query.Aggregator do
   alias Cloak.Sql.{Query, Expression, NoiseLayer}
   alias Cloak.Query.{Anonymizer, Rows, Result}
 
-  @typep group_values :: [DataSource.field | :*]
-  @typep user_id :: DataSource.field
-  @typep group :: {group_values, Anonymizer.t, %{user_id => DataSource.row}}
-
+  @typep group_values :: [DataSource.field() | :*]
+  @typep user_id :: DataSource.field()
+  @typep group :: {group_values, Anonymizer.t(), %{user_id => DataSource.row()}}
 
   # -------------------------------------------------------------------
   # API
@@ -38,19 +37,20 @@ defmodule Cloak.Query.Aggregator do
 
     Each output row will consist of columns `foo`, `count(*)`, and `avg(bar)`.
   """
-  @spec aggregate(Rows.groups, Query.t) :: [Result.bucket]
-  def aggregate(groups, query), do:
-    groups
-    |> init_anonymizer()
-    |> process_low_count_users(query)
-    |> aggregate_groups(query)
-    |> make_buckets(query)
+  @spec aggregate(Rows.groups(), Query.t()) :: [Result.bucket()]
+  def aggregate(groups, query),
+    do:
+      groups
+      |> init_anonymizer()
+      |> process_low_count_users(query)
+      |> aggregate_groups(query)
+      |> make_buckets(query)
 
   @doc """
     Rows are grouped per query specification. See `Cloak.Query.Rows.group_expressions/1` for details.
     Additionally, inside each distinct group, rows are groupped per user.
   """
-  @spec group(Enumerable.t, Query.t) :: Rows.groups
+  @spec group(Enumerable.t(), Query.t()) :: Rows.groups()
   def group(rows, query) do
     {per_user_aggregators, aggregated_columns} =
       query.aggregators
@@ -60,7 +60,9 @@ defmodule Cloak.Query.Aggregator do
 
     default_accumulators = List.duplicate(nil, Enum.count(aggregated_columns))
     default_noise_layers = NoiseLayer.new_accumulator(query.noise_layers)
-    merging_fun = group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query)
+
+    merging_fun =
+      group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query)
 
     Rows.group(rows, query, {%{}, default_noise_layers}, merging_fun)
   end
@@ -69,23 +71,34 @@ defmodule Cloak.Query.Aggregator do
     Returns the union of two sets of groups.
     Merging is needed when grouping over multiple processes, before the start of the aggregation step.
   """
-  @spec merge_groups(Rows.groups, Rows.groups) :: Rows.groups
-  def merge_groups(groups1, groups2), do:
-    Map.merge(groups1, groups2, fn (_key, {user_values1, noise_layers1}, {user_values2, noise_layers2}) ->
-      {merge_user_values(user_values1, user_values2), NoiseLayer.merge_accumulators(noise_layers1, noise_layers2)}
-    end)
-
+  @spec merge_groups(Rows.groups(), Rows.groups()) :: Rows.groups()
+  def merge_groups(groups1, groups2),
+    do:
+      Map.merge(groups1, groups2, fn _key,
+                                     {user_values1, noise_layers1},
+                                     {user_values2, noise_layers2} ->
+        {merge_user_values(user_values1, user_values2),
+         NoiseLayer.merge_accumulators(noise_layers1, noise_layers2)}
+      end)
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   defp aggregate_values([], [], []), do: []
-  defp aggregate_values([nil | rest_values], [accumulator | rest_accumulators], [_aggregator | rest_aggregators]), do:
-    [accumulator | aggregate_values(rest_values, rest_accumulators, rest_aggregators)]
-  defp aggregate_values([value | rest_values], [accumulator | rest_accumulators], [aggregator | rest_aggregators]), do:
-    [aggregate_value(aggregator, value, accumulator) |
-      aggregate_values(rest_values, rest_accumulators, rest_aggregators)]
+
+  defp aggregate_values([nil | rest_values], [accumulator | rest_accumulators], [
+         _aggregator | rest_aggregators
+       ]),
+       do: [accumulator | aggregate_values(rest_values, rest_accumulators, rest_aggregators)]
+
+  defp aggregate_values([value | rest_values], [accumulator | rest_accumulators], [
+         aggregator | rest_aggregators
+       ]),
+       do: [
+         aggregate_value(aggregator, value, accumulator)
+         | aggregate_values(rest_values, rest_accumulators, rest_aggregators)
+       ]
 
   defp user_id([user_id | _rest]), do: user_id
 
@@ -109,8 +122,10 @@ defmodule Cloak.Query.Aggregator do
   defp aggregate_value(:avg, value, nil), do: {:avg, value, 1}
   defp aggregate_value(:avg, value, {:avg, sum, count}), do: {:avg, sum + value, count + 1}
   defp aggregate_value(:stddev, value, nil), do: {:stddev, value, value * value, 1}
-  defp aggregate_value(:stddev, value, {:stddev, sum, sum_sqrs, count}), do:
-    {:stddev, sum + value, sum_sqrs + value * value, count + 1}
+
+  defp aggregate_value(:stddev, value, {:stddev, sum, sum_sqrs, count}),
+    do: {:stddev, sum + value, sum_sqrs + value * value, count + 1}
+
   defp aggregate_value(:set, value, nil), do: MapSet.new([value])
   defp aggregate_value(:set, value, prev_values), do: MapSet.put(prev_values, value)
   defp aggregate_value(:list, value, nil), do: [value]
@@ -122,19 +137,33 @@ defmodule Cloak.Query.Aggregator do
 
   # This function merges the per-user accumulated values of two different buckets.
   # Used during the creation of the low-count filtered bucket.
-  @dialyzer {:nowarn_function, merge_accumulators: 1} # disable dialyzer warning because of `MapSet.union/2` call
-  defp merge_accumulators({value, nil}), do: value # no values present for second bucket
-  defp merge_accumulators({nil, value}), do: value # no values present for first bucket
-  defp merge_accumulators({value1, value2}) when is_number(value1) and is_number(value2), do:
-    value1 + value2 # sum and count accoumulators
-  defp merge_accumulators({value1, value2}) when is_list(value1) and is_list(value2), do:
-    value1 ++ value2 # median accumulators
-  defp merge_accumulators({%MapSet{} = value1, %MapSet{} = value2}), do:
-    MapSet.union(value1, value2) # distinct accumulators
-  defp merge_accumulators({{:avg, value1a, value1b}, {:avg, value2a, value2b}}), do:
-    {:avg, value1a + value2a, value1b + value2b}
-  defp merge_accumulators({{:stddev, value1a, value1b, value1c}, {:stddev, value2a, value2b, value2c}}), do:
-    {:stddev, value1a + value2a, value1b + value2b, value1c + value2c}
+  # disable dialyzer warning because of `MapSet.union/2` call
+  @dialyzer {:nowarn_function, merge_accumulators: 1}
+  # no values present for second bucket
+  defp merge_accumulators({value, nil}), do: value
+  # no values present for first bucket
+  defp merge_accumulators({nil, value}), do: value
+
+  defp merge_accumulators({value1, value2}) when is_number(value1) and is_number(value2),
+    # sum and count accoumulators
+    do: value1 + value2
+
+  defp merge_accumulators({value1, value2}) when is_list(value1) and is_list(value2),
+    # median accumulators
+    do: value1 ++ value2
+
+  defp merge_accumulators({%MapSet{} = value1, %MapSet{} = value2}),
+    # distinct accumulators
+    do: MapSet.union(value1, value2)
+
+  defp merge_accumulators({{:avg, value1a, value1b}, {:avg, value2a, value2b}}),
+    do: {:avg, value1a + value2a, value1b + value2b}
+
+  defp merge_accumulators(
+         {{:stddev, value1a, value1b, value1c}, {:stddev, value2a, value2b, value2c}}
+       ),
+       do: {:stddev, value1a + value2a, value1b + value2b, value1c + value2c}
+
   defp merge_accumulators({{:min, value1}, {:min, value2}}), do: {:min, min(value1, value2)}
   defp merge_accumulators({{:max, value1}, {:max, value2}}), do: {:max, max(value1, value2)}
 
@@ -142,12 +171,13 @@ defmodule Cloak.Query.Aggregator do
   defp aggregated_column(%Expression{function_args: [{:distinct, column}]}), do: column
   defp aggregated_column(%Expression{function_args: [column]}), do: column
 
-  defp per_user_aggregator_and_column(aggregator), do:
-    {per_user_aggregator(aggregator), aggregated_column(aggregator)}
+  defp per_user_aggregator_and_column(aggregator),
+    do: {per_user_aggregator(aggregator), aggregated_column(aggregator)}
 
   defp group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query) do
     processed_noise_layers = NoiseLayer.pre_process_layers(query.noise_layers)
-    fn({user_rows, noise_accumulator}, row) ->
+
+    fn {user_rows, noise_accumulator}, row ->
       user_id = user_id(row)
       values = Enum.map(aggregated_columns, &Expression.value(&1, row))
 
@@ -164,20 +194,22 @@ defmodule Cloak.Query.Aggregator do
 
   defp init_anonymizer(grouped_rows) do
     Logger.debug("Initializing anonymizer ...")
-    Enum.map(grouped_rows, fn ({property, {users_rows, noise_layers}}) ->
+
+    Enum.map(grouped_rows, fn {property, {users_rows, noise_layers}} ->
       {property, Anonymizer.new(noise_layers), users_rows}
     end)
   end
 
-  defp low_users_count?({_values, anonymizer, users_rows}), do:
-    low_users_count?(users_rows, anonymizer)
+  defp low_users_count?({_values, anonymizer, users_rows}),
+    do: low_users_count?(users_rows, anonymizer)
 
-  defp low_users_count?(count, anonymizer) when is_integer(count), do:
-    not Anonymizer.sufficiently_large?(anonymizer, count)
-  defp low_users_count?(values, anonymizer), do:
-    values |> Enum.count() |> low_users_count?(anonymizer)
+  defp low_users_count?(count, anonymizer) when is_integer(count),
+    do: not Anonymizer.sufficiently_large?(anonymizer, count)
 
-  @spec process_low_count_users([group], Query.t) :: [group]
+  defp low_users_count?(values, anonymizer),
+    do: values |> Enum.count() |> low_users_count?(anonymizer)
+
+  @spec process_low_count_users([group], Query.t()) :: [group]
   defp process_low_count_users(rows, query) do
     Logger.debug("Processing low count users ...")
     bucket_size = query |> Rows.group_expressions() |> length()
@@ -187,39 +219,45 @@ defmodule Cloak.Query.Aggregator do
     # repeat the process for the next column and the new set of low-count buckets.
     # When we run out of bucket values, we drop the final low-count bucket, if any.
     splitted_rows = Enum.split_with(rows, &low_users_count?/1)
-    {_low_count_rows, high_count_rows} = Enum.reduce(bucket_size..1, splitted_rows, &group_low_count_rows/2)
+
+    {_low_count_rows, high_count_rows} =
+      Enum.reduce(bucket_size..1, splitted_rows, &group_low_count_rows/2)
+
     high_count_rows
   end
 
   defp group_low_count_rows(column_index, {low_count_rows, high_count_rows}) do
     {low_count_grouped_rows, high_count_grouped_rows} =
       low_count_rows
-      |> Enum.group_by(fn ({values, _anonymizer, _users_rows}) ->
+      |> Enum.group_by(fn {values, _anonymizer, _users_rows} ->
         List.replace_at(values, column_index - 1, :*)
       end)
       |> Enum.map(&collapse_grouped_rows/1)
       |> Enum.split_with(&low_users_count?/1)
+
     {low_count_grouped_rows, high_count_grouped_rows ++ high_count_rows}
   end
 
   defp collapse_grouped_rows({values, grouped_rows}) do
     user_rows =
       grouped_rows
-      |> Stream.map(fn ({_values, _anonymizer, users_rows}) -> users_rows end)
-      |> Enum.reduce(fn (users_rows1, users_rows2) ->
-        Map.merge(users_rows1, users_rows2, fn (_user, columns1, columns2) ->
+      |> Stream.map(fn {_values, _anonymizer, users_rows} -> users_rows end)
+      |> Enum.reduce(fn users_rows1, users_rows2 ->
+        Map.merge(users_rows1, users_rows2, fn _user, columns1, columns2 ->
           Enum.zip(columns1, columns2) |> Enum.map(&merge_accumulators/1)
         end)
       end)
+
     anonymizer =
       grouped_rows
-      |> Enum.map(fn ({_values, anonymizer, _users_rows}) -> anonymizer.noise_layers end)
+      |> Enum.map(fn {_values, anonymizer, _users_rows} -> anonymizer.noise_layers end)
       |> Enum.reduce(&NoiseLayer.merge_accumulators/2)
       |> Anonymizer.new()
+
     {values, anonymizer, user_rows}
   end
 
-  @spec aggregate_groups([group], Query.t) :: [DataSource.row]
+  @spec aggregate_groups([group], Query.t()) :: [DataSource.row()]
   defp aggregate_groups(groups, query) do
     Logger.debug("Aggregating groups ...")
     # Only unique per-user aggregators are computed, so wee need to compute the index
@@ -228,103 +266,131 @@ defmodule Cloak.Query.Aggregator do
       query.aggregators
       |> Enum.map(&per_user_aggregator_and_column/1)
       |> Enum.uniq()
+
     indexed_aggregators =
-      Enum.map(query.aggregators, fn (aggregator) ->
+      Enum.map(query.aggregators, fn aggregator ->
         per_user_aggregator_and_column = per_user_aggregator_and_column(aggregator)
-        values_index = Enum.find_index(per_user_aggregators_and_columns, & &1 == per_user_aggregator_and_column)
+
+        values_index =
+          Enum.find_index(
+            per_user_aggregators_and_columns,
+            &(&1 == per_user_aggregator_and_column)
+          )
+
         {values_index, aggregator}
       end)
+
     Enum.map(groups, &aggregate_group(&1, indexed_aggregators))
   end
 
   defp aggregate_group({values, anonymizer, users_rows}, indexed_aggregators) do
-    aggregation_results = Enum.map(indexed_aggregators, fn ({values_index, aggregator}) ->
-      aggregated_values =
-        users_rows
-        |> Stream.map(fn ({_user, row_values}) -> Enum.at(row_values, values_index) end)
-        |> Enum.reject(&is_nil/1)
-      case low_users_count?(aggregated_values, anonymizer) do
-        true  ->
-          if aggregator.function == "count", do: 0, else: nil
-        false ->
-          aggregated_values
-          |> preprocess_for_aggregation(aggregator)
-          |> aggregate_by(aggregator.function, aggregator.type, anonymizer)
-      end
-    end)
+    aggregation_results =
+      Enum.map(indexed_aggregators, fn {values_index, aggregator} ->
+        aggregated_values =
+          users_rows
+          |> Stream.map(fn {_user, row_values} -> Enum.at(row_values, values_index) end)
+          |> Enum.reject(&is_nil/1)
+
+        case low_users_count?(aggregated_values, anonymizer) do
+          true ->
+            if aggregator.function == "count", do: 0, else: nil
+
+          false ->
+            aggregated_values
+            |> preprocess_for_aggregation(aggregator)
+            |> aggregate_by(aggregator.function, aggregator.type, anonymizer)
+        end
+      end)
 
     users_count = Anonymizer.noisy_count(anonymizer, Enum.count(users_rows))
     {users_count, values ++ aggregation_results}
   end
 
   # See docs/anonymization.md for details
-  defp preprocess_for_aggregation(values, %Expression{function_args: [{:distinct, column}]} = aggregator) do
+  defp preprocess_for_aggregation(
+         values,
+         %Expression{function_args: [{:distinct, column}]} = aggregator
+       ) do
     per_user_aggregator = per_user_aggregator(%Expression{aggregator | function_args: [column]})
+
     values
     |> Enum.sort_by(&Enum.count/1)
     |> Stream.with_index()
-    |> Stream.flat_map(fn ({row, index}) ->
+    |> Stream.flat_map(fn {row, index} ->
       Enum.map(row, &{index, &1})
     end)
-    |> Stream.uniq_by(fn ({_index, value}) -> value end)
-    |> Enum.reduce(%{}, fn({index, value}, accumulator) ->
+    |> Stream.uniq_by(fn {_index, value} -> value end)
+    |> Enum.reduce(%{}, fn {index, value}, accumulator ->
       accumulator
       |> Map.put_new(index, nil)
       |> Map.update!(index, &aggregate_value(per_user_aggregator, value, &1))
     end)
     |> Map.values()
   end
+
   defp preprocess_for_aggregation(values, _aggregator), do: values
 
   defp aggregate_by(aggregation_data, "count", _type, anonymizer) do
     {count, _noise_sigma} = Anonymizer.count(anonymizer, aggregation_data)
     count
   end
+
   defp aggregate_by(aggregation_data, "sum", type, anonymizer) do
     {sum, _noise_sigma} = Anonymizer.sum(anonymizer, aggregation_data)
     float_to_type(sum, type)
   end
+
   defp aggregate_by(aggregation_data, "avg", _type, anonymizer) do
     {avg, _noise_sigma} = Anonymizer.avg(anonymizer, aggregation_data)
     avg
   end
+
   defp aggregate_by(aggregation_data, "stddev", _type, anonymizer) do
     {stddev, _noise_sigma} = Anonymizer.stddev(anonymizer, aggregation_data)
     stddev
   end
+
   defp aggregate_by(aggregation_data, "count_noise", _type, anonymizer) do
     {_count, noise_sigma} = Anonymizer.count(anonymizer, aggregation_data)
     noise_sigma
   end
+
   defp aggregate_by(aggregation_data, "sum_noise", _type, anonymizer) do
     {_sum, noise_sigma} = Anonymizer.sum(anonymizer, aggregation_data)
     noise_sigma
   end
+
   defp aggregate_by(aggregation_data, "avg_noise", _type, anonymizer) do
     {_avg, noise_sigma} = Anonymizer.avg(anonymizer, aggregation_data)
     noise_sigma
   end
+
   defp aggregate_by(aggregation_data, "stddev_noise", _type, anonymizer) do
     {_stddev, noise_sigma} = Anonymizer.stddev(anonymizer, aggregation_data)
     noise_sigma
   end
+
   defp aggregate_by(aggregation_data, aggregator, type, anonymizer)
-      when type in [:datetime, :date, :time] and aggregator in ["min", "max", "median"] do
+       when type in [:datetime, :date, :time] and aggregator in ["min", "max", "median"] do
     aggregation_data
     |> Stream.map(fn
-      ({:min, value}) -> {:min, Cloak.Time.to_integer(value)}
-      ({:max, value}) -> {:max, Cloak.Time.to_integer(value)}
-      (values) when is_list(values) -> Enum.map(values, &Cloak.Time.to_integer/1)
+      {:min, value} -> {:min, Cloak.Time.to_integer(value)}
+      {:max, value} -> {:max, Cloak.Time.to_integer(value)}
+      values when is_list(values) -> Enum.map(values, &Cloak.Time.to_integer/1)
     end)
     |> aggregate_by(aggregator, :integer, anonymizer)
     |> Cloak.Time.from_integer(type)
   end
-  defp aggregate_by(aggregation_data, "min", type, anonymizer), do:
-    Anonymizer.min(anonymizer, aggregation_data) |> float_to_type(type)
-  defp aggregate_by(aggregation_data, "max", type, anonymizer), do:
-    Anonymizer.max(anonymizer, aggregation_data) |> float_to_type(type)
-  defp aggregate_by(aggregation_data, "median", type, anonymizer), do:
-    Anonymizer.median(anonymizer, aggregation_data) |> float_to_type(type)
+
+  defp aggregate_by(aggregation_data, "min", type, anonymizer),
+    do: Anonymizer.min(anonymizer, aggregation_data) |> float_to_type(type)
+
+  defp aggregate_by(aggregation_data, "max", type, anonymizer),
+    do: Anonymizer.max(anonymizer, aggregation_data) |> float_to_type(type)
+
+  defp aggregate_by(aggregation_data, "median", type, anonymizer),
+    do: Anonymizer.median(anonymizer, aggregation_data) |> float_to_type(type)
+
   defp aggregate_by(_, unknown_aggregator, _type, _) do
     raise "Aggregator '#{unknown_aggregator}' is not supported!"
   end
@@ -337,10 +403,12 @@ defmodule Cloak.Query.Aggregator do
     if rows == [] && Rows.group_expressions(query) == [] do
       # If there are no results for a global aggregation, we'll produce one row.
       # All results will be `nil`-ed except for `count` which will have the value of 0.
-      aggregated_values = Enum.map(query.aggregators, fn
-        %Expression{function: "count"} -> 0
-        %Expression{} -> nil
-      end)
+      aggregated_values =
+        Enum.map(query.aggregators, fn
+          %Expression{function: "count"} -> 0
+          %Expression{} -> nil
+        end)
+
       [%{row: aggregated_values, occurrences: 1, users_count: 0}]
     else
       make_non_empty_buckets(rows, query)
@@ -349,45 +417,53 @@ defmodule Cloak.Query.Aggregator do
 
   defp make_non_empty_buckets(rows, %Query{implicit_count?: false} = query) do
     Logger.debug("Making explicit buckets ...")
+
     rows
-    |> Stream.map(fn ({_users_count, row}) -> row end)
+    |> Stream.map(fn {_users_count, row} -> row end)
     |> Rows.extract_groups(Query.bucket_columns(query), query)
     |> Stream.map(&normalize_for_encoding/1)
-    |> Stream.zip(Stream.map(rows, fn ({users_count, _row}) -> users_count end))
-    |> Enum.map(fn ({row, users_count}) ->
+    |> Stream.zip(Stream.map(rows, fn {users_count, _row} -> users_count end))
+    |> Enum.map(fn {row, users_count} ->
       %{row: row, occurrences: 1, users_count: users_count}
     end)
   end
+
   defp make_non_empty_buckets(rows, %Query{implicit_count?: true} = query) do
     Logger.debug("Making implicit buckets ...")
+
     rows
-    |> Stream.map(fn ({_users_count, row}) -> row end)
-    |> Rows.extract_groups([Expression.count_star() | Query.bucket_columns(query)],
-      query)
+    |> Stream.map(fn {_users_count, row} -> row end)
+    |> Rows.extract_groups([Expression.count_star() | Query.bucket_columns(query)], query)
     |> Stream.map(&normalize_for_encoding/1)
-    |> Stream.zip(Stream.map(rows, fn ({users_count, _row}) -> users_count end))
-    |> Enum.map(fn ({[count | row], users_count}) ->
+    |> Stream.zip(Stream.map(rows, fn {users_count, _row} -> users_count end))
+    |> Enum.map(fn {[count | row], users_count} ->
       %{row: row, occurrences: count, users_count: users_count}
     end)
   end
 
-  defp merge_user_values(user_values1, user_values2), do:
-    Map.merge(user_values1, user_values2, fn (_user, columns1, columns2) ->
-      columns1 |> Enum.zip(columns2) |> Enum.map(&merge_accumulators/1)
-    end)
+  defp merge_user_values(user_values1, user_values2),
+    do:
+      Map.merge(user_values1, user_values2, fn _user, columns1, columns2 ->
+        columns1 |> Enum.zip(columns2) |> Enum.map(&merge_accumulators/1)
+      end)
 
-  defp normalize_for_encoding(row), do:
+  defp normalize_for_encoding(row),
     # We're normalizing some Elixir structs, so they can be encoded to non-Elixir formats, such as JSON.
-    Enum.map(row, fn
-      %Date{} = date ->
-        Date.to_iso8601(date)
-      %Time{} = time ->
-        Time.to_iso8601(time)
-      %NaiveDateTime{} = naive_date_time ->
-        NaiveDateTime.to_iso8601(naive_date_time)
-      %Timex.Duration{} = duration ->
-        Timex.Duration.to_string(duration)
-      other ->
-        other
-    end)
+    do:
+      Enum.map(row, fn
+        %Date{} = date ->
+          Date.to_iso8601(date)
+
+        %Time{} = time ->
+          Time.to_iso8601(time)
+
+        %NaiveDateTime{} = naive_date_time ->
+          NaiveDateTime.to_iso8601(naive_date_time)
+
+        %Timex.Duration{} = duration ->
+          Timex.Duration.to_string(duration)
+
+        other ->
+          other
+      end)
 end

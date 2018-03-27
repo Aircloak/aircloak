@@ -6,24 +6,26 @@ defmodule Cloak.DataSource.SQLServerRODBC do
 
   use Cloak.DataSource.Driver.SQL
 
-
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
   @impl Driver
   def connect!(parameters) do
-    normalized_parameters = for {key, value} <- parameters, into: %{}, do:
-      {key |> Atom.to_string() |> String.downcase() |> String.to_atom(), value}
+    normalized_parameters =
+      for {key, value} <- parameters,
+          into: %{},
+          do: {key |> Atom.to_string() |> String.downcase() |> String.to_atom(), value}
 
-    odbc_parameters = %{
-      "DSN": "SQLServer",
-      "Server": normalized_parameters[:hostname],
-      "Uid": normalized_parameters[:username],
-      "Pwd": normalized_parameters[:password],
-      "Database": normalized_parameters[:database],
-    }
-    |> add_optional_parameters(parameters)
+    odbc_parameters =
+      %{
+        DSN: "SQLServer",
+        Server: normalized_parameters[:hostname],
+        Uid: normalized_parameters[:username],
+        Pwd: normalized_parameters[:password],
+        Database: normalized_parameters[:database]
+      }
+      |> add_optional_parameters(parameters)
 
     connection = RODBC.connect!(odbc_parameters)
     :ok = RODBC.Driver.execute(connection, "SET ANSI_DEFAULTS ON")
@@ -35,13 +37,18 @@ defmodule Cloak.DataSource.SQLServerRODBC do
 
   @impl Driver
   def load_tables(connection, table) do
-    {schema_name, table_name} = case String.split(table.db_name, ".") do
-      [full_table_name] -> {"dbo", full_table_name}
-      [schema_name, table_name] -> {schema_name, table_name}
-    end
-    statement = "SELECT column_name, data_type FROM information_schema.columns " <>
-      "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}' ORDER BY ordinal_position DESC"
-    row_mapper = fn ([name, type_name]) -> Table.column(name, parse_type(type_name)) end
+    {schema_name, table_name} =
+      case String.split(table.db_name, ".") do
+        [full_table_name] -> {"dbo", full_table_name}
+        [schema_name, table_name] -> {schema_name, table_name}
+      end
+
+    statement =
+      "SELECT column_name, data_type FROM information_schema.columns " <>
+        "WHERE table_name = '#{table_name}' AND table_schema = '#{schema_name}' ORDER BY ordinal_position DESC"
+
+    row_mapper = fn [name, type_name] -> Table.column(name, parse_type(type_name)) end
+
     case RODBC.Driver.execute(connection, statement) do
       :ok ->
         case RODBC.Driver.fetch_all(connection, row_mapper) do
@@ -49,7 +56,9 @@ defmodule Cloak.DataSource.SQLServerRODBC do
           {:ok, columns} -> [%{table | columns: columns}]
           {:error, reason} -> DataSource.raise_error("`#{to_string(reason)}`")
         end
-      {:error, reason} -> DataSource.raise_error("`#{to_string(reason)}`")
+
+      {:error, reason} ->
+        DataSource.raise_error("`#{to_string(reason)}`")
     end
   end
 
@@ -65,15 +74,15 @@ defmodule Cloak.DataSource.SQLServerRODBC do
   @impl Driver
   def sql_dialect_module(_parameters), do: SqlBuilder.SQLServer
 
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   # Allows for adding additional ODBC connection parameters in the case where
   # a SQL Server installation requires additional parameters.
-  defp add_optional_parameters(default_params, %{odbc_parameters: additonal_parameters}), do:
-    Map.merge(default_params, additonal_parameters)
+  defp add_optional_parameters(default_params, %{odbc_parameters: additonal_parameters}),
+    do: Map.merge(default_params, additonal_parameters)
+
   defp add_optional_parameters(default_params, _), do: default_params
 
   defp parse_type("varchar"), do: :text

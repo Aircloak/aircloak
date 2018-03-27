@@ -6,7 +6,7 @@ config :guardian, Guardian,
   allowed_algos: ["HS512"],
   verify_module: Guardian.JWT,
   issuer: "Aircloak Air",
-  ttl: { 30, :days },
+  ttl: {30, :days},
   verify_issuer: true,
   serializer: Air.GuardianSerializer
 
@@ -21,11 +21,9 @@ config :air, AirWeb.Endpoint,
   server: true,
   root: Path.dirname(__DIR__),
   render_errors: [accepts: ~w(html json)],
-  pubsub: [name: Air.PubSub,
-           adapter: Phoenix.PubSub.PG2]
+  pubsub: [name: Air.PubSub, adapter: Phoenix.PubSub.PG2]
 
-config :air, Air.Service.Version,
-  version_expiry: ~D[2100-01-01]
+config :air, Air.Service.Version, version_expiry: ~D[2100-01-01]
 
 config :air, :https_port, 8444
 

@@ -3,8 +3,8 @@ defmodule Central.Repo.Migrations.CreateLicenses do
 
   def change do
     create table(:licenses) do
-      add :customer_id, references(:customers)
-      add :name, :string
+      add(:customer_id, references(:customers))
+      add(:name, :string)
 
       timestamps()
     end

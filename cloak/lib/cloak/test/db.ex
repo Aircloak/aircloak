@@ -24,8 +24,8 @@ defmodule Cloak.Test.DB do
     GenServer.call(__MODULE__, {:delete_table, table_name}, :infinity)
   end
 
-  def add_users_data(table_name, columns, rows, data_source \\ nil), do:
-    insert_data(table_name, ["user_id" | columns], rows, data_source)
+  def add_users_data(table_name, columns, rows, data_source \\ nil),
+    do: insert_data(table_name, ["user_id" | columns], rows, data_source)
 
   def insert_data(table_name, columns, rows, data_source \\ nil) do
     {sql, params} = prepare_insert(table_name, columns, rows)
@@ -37,12 +37,16 @@ defmodule Cloak.Test.DB do
       nil -> DataSource.all()
       _ -> [data_source]
     end
-    |> Enum.each(fn(data_source) ->
-      if data_source.driver.__info__(:functions)[:execute] do # check if driver supports direct query execution
-        connection = Process.get({:connection, data_source.name}) || create_connection(data_source)
+    |> Enum.each(fn data_source ->
+      # check if driver supports direct query execution
+      if data_source.driver.__info__(:functions)[:execute] do
+        connection =
+          Process.get({:connection, data_source.name}) || create_connection(data_source)
+
         {:ok, _result} = data_source.driver.execute(connection, statement, parameters)
       end
     end)
+
     :ok
   end
 
@@ -50,30 +54,34 @@ defmodule Cloak.Test.DB do
     table =
       DataSource.Table.new(
         to_string(table_id),
-        (if Keyword.get(opts, :add_user_id, true), do: "user_id", else: Keyword.get(opts, :user_id)),
+        if(
+          Keyword.get(opts, :add_user_id, true),
+          do: "user_id",
+          else: Keyword.get(opts, :user_id)
+        ),
         [db_name: db_name] ++ Keyword.take(opts, [:user_id, :query])
       )
 
-    data_source_names_to_update = case opts[:data_source] do
-      nil -> DataSource.all() |> Enum.map(& &1.name)
-      data_source -> [data_source.name]
-    end
+    data_source_names_to_update =
+      case opts[:data_source] do
+        nil -> DataSource.all() |> Enum.map(& &1.name)
+        data_source -> [data_source.name]
+      end
 
     DataSource.all()
-    |> Enum.map(fn
-      (%{name: name} = data_source) ->
-        if name in data_source_names_to_update do
-          data_source |> put_in([:initial_tables, table_id], table) |> DataSource.add_tables()
-        else
-          data_source
-        end
+    |> Enum.map(fn %{name: name} = data_source ->
+      if name in data_source_names_to_update do
+        data_source |> put_in([:initial_tables, table_id], table) |> DataSource.add_tables()
+      else
+        data_source
+      end
     end)
     |> DataSource.replace_all_data_source_configs()
   end
 
   def unregister_test_table(table_id) do
     DataSource.all()
-    |> Enum.map(fn (data_source) ->
+    |> Enum.map(fn data_source ->
       {_table, data_source} = pop_in(data_source, [:initial_tables, table_id])
       data_source
     end)
@@ -96,11 +104,11 @@ defmodule Cloak.Test.DB do
     status = register_test_table(String.to_atom(table_name), full_table_name(db_name), opts)
     {:reply, status, state}
   end
+
   def handle_call({:delete_table, table_name}, _from, state) do
     status = unregister_test_table(String.to_atom(table_name))
     {:reply, status, state}
   end
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -110,19 +118,29 @@ defmodule Cloak.Test.DB do
     if opts[:skip_db_create] do
       :ok
     else
-      user_id_column = if Keyword.get(opts, :add_user_id, true), do: "user_id VARCHAR(64),", else: ""
-      execute!("CREATE TABLE #{sanitized_table(db_name)} (#{user_id_column} #{definition})", [], opts[:data_source])
+      user_id_column =
+        if Keyword.get(opts, :add_user_id, true), do: "user_id VARCHAR(64),", else: ""
+
+      execute!(
+        "CREATE TABLE #{sanitized_table(db_name)} (#{user_id_column} #{definition})",
+        [],
+        opts[:data_source]
+      )
     end
   end
 
   defp prepare_insert(table_name, columns, rows) do
     {
       [
-        "INSERT INTO ", sanitized_table(table_name),
-          "( ", Enum.join(columns, ","), ") ",
-          "VALUES ", rows |> rows_tuples(length(columns)) |> Enum.join(",")
+        "INSERT INTO ",
+        sanitized_table(table_name),
+        "( ",
+        Enum.join(columns, ","),
+        ") ",
+        "VALUES ",
+        rows |> rows_tuples(length(columns)) |> Enum.join(",")
       ],
-      Enum.flat_map(rows, &(&1))
+      Enum.flat_map(rows, & &1)
     }
   end
 

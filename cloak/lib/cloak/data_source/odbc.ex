@@ -15,7 +15,13 @@ defmodule Cloak.DataSource.ODBC do
 
   @impl Driver
   def connect!(parameters) do
-    options = [auto_commit: :on, binary_strings: :on, tuple_row: :off, timeout: Driver.connect_timeout()]
+    options = [
+      auto_commit: :on,
+      binary_strings: :on,
+      tuple_row: :off,
+      timeout: Driver.connect_timeout()
+    ]
+
     with {:ok, connection} <- parameters |> to_connection_string() |> :odbc.connect(options) do
       connection
     else
@@ -28,10 +34,15 @@ defmodule Cloak.DataSource.ODBC do
 
   @impl Driver
   def load_tables(connection, table) do
-    case :odbc.describe_table(connection, to_charlist(table.db_name), _timeout = :timer.seconds(30)) do
+    case :odbc.describe_table(
+           connection,
+           to_charlist(table.db_name),
+           _timeout = :timer.seconds(30)
+         ) do
       {:ok, columns} ->
         columns = for {name, type} <- columns, do: Table.column(to_string(name), parse_type(type))
         [%{table | columns: columns}]
+
       {:error, reason} ->
         DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
     end
@@ -40,23 +51,35 @@ defmodule Cloak.DataSource.ODBC do
   @impl Driver
   def select(connection, sql_query, result_processor) do
     statement = sql_query |> SqlBuilder.build() |> to_charlist()
-    field_mappers = for column <- sql_query.db_columns, do:
-      type_to_field_mapper(column.type, sql_query.data_source)
+
+    field_mappers =
+      for column <- sql_query.db_columns,
+          do: type_to_field_mapper(column.type, sql_query.data_source)
+
     case :odbc.select_count(connection, statement, Driver.timeout()) do
       {:ok, _count} ->
-        data_stream = Stream.resource(
-          fn () -> connection end,
-          fn (conn) ->
-            case :odbc.select(conn, :next, Driver.batch_size(), Driver.timeout()) do
-              {:selected, _columns, []} -> {:halt, conn}
-              {:selected, _columns, rows} -> {[Enum.map(rows, &map_fields(&1, field_mappers))], conn}
-              {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
-            end
-          end,
-          fn (_conn) -> :ok end
-        )
+        data_stream =
+          Stream.resource(
+            fn -> connection end,
+            fn conn ->
+              case :odbc.select(conn, :next, Driver.batch_size(), Driver.timeout()) do
+                {:selected, _columns, []} ->
+                  {:halt, conn}
+
+                {:selected, _columns, rows} ->
+                  {[Enum.map(rows, &map_fields(&1, field_mappers))], conn}
+
+                {:error, reason} ->
+                  DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
+              end
+            end,
+            fn _conn -> :ok end
+          )
+
         {:ok, result_processor.(data_stream)}
-      {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
+
+      {:error, reason} ->
+        DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
     end
   end
 
@@ -66,16 +89,19 @@ defmodule Cloak.DataSource.ODBC do
   @impl Driver
   def supports_connection_sharing?(), do: false
 
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   defp to_connection_string(parameters) do
     parameters
-    |> Enum.map(fn({key, value}) ->
-      if value |> to_string() |> String.contains?([";", "{"]), do:
-        DataSource.raise_error("The characters ';' and '{' are not allowed inside ODBC driver parameters!")
+    |> Enum.map(fn {key, value} ->
+      if value |> to_string() |> String.contains?([";", "{"]),
+        do:
+          DataSource.raise_error(
+            "The characters ';' and '{' are not allowed inside ODBC driver parameters!"
+          )
+
       "#{Atom.to_string(key)}=#{value}"
     end)
     |> Enum.join(";")
@@ -107,20 +133,27 @@ defmodule Cloak.DataSource.ODBC do
   defp parse_type(type), do: {:unsupported, type}
 
   defp map_fields([], []), do: []
-  defp map_fields([field | rest_fields], [mapper | rest_mappers]), do:
-    [mapper.(field) | map_fields(rest_fields, rest_mappers)]
+
+  defp map_fields([field | rest_fields], [mapper | rest_mappers]),
+    do: [mapper.(field) | map_fields(rest_fields, rest_mappers)]
 
   defp type_to_field_mapper(:datetime, _data_source), do: &datetime_field_mapper/1
   defp type_to_field_mapper(:time, _data_source), do: &time_field_mapper/1
   defp type_to_field_mapper(:date, _data_source), do: &date_field_mapper/1
   defp type_to_field_mapper(:real, _data_source), do: &real_field_mapper/1
   defp type_to_field_mapper(:integer, _data_source), do: &integer_field_mapper/1
-  defp type_to_field_mapper(:text, %{parameters: %{encoding: encoding}}) when encoding != nil, do:
-    text_to_unicode_mapper(encoding)
+
+  defp type_to_field_mapper(:text, %{parameters: %{encoding: encoding}}) when encoding != nil,
+    do: text_to_unicode_mapper(encoding)
+
   # We hardcode the default encoding for SQL Server and SAP HANA to be utf16 little endian.
   # This is for historic reasons more than anything, since that's what our servers are using internally.
-  defp type_to_field_mapper(:text, %{driver: Cloak.DataSource.SQLServer}), do: text_to_unicode_mapper({:utf16, :little})
-  defp type_to_field_mapper(:text, %{driver: Cloak.DataSource.SAPHana}), do: text_to_unicode_mapper({:utf16, :little})
+  defp type_to_field_mapper(:text, %{driver: Cloak.DataSource.SQLServer}),
+    do: text_to_unicode_mapper({:utf16, :little})
+
+  defp type_to_field_mapper(:text, %{driver: Cloak.DataSource.SAPHana}),
+    do: text_to_unicode_mapper({:utf16, :little})
+
   defp type_to_field_mapper(:interval, data_source), do: &interval_field_mapper(&1, data_source)
   defp type_to_field_mapper(_, _data_source), do: &generic_field_mapper/1
 
@@ -128,8 +161,10 @@ defmodule Cloak.DataSource.ODBC do
   defp generic_field_mapper(value), do: value
 
   defp datetime_field_mapper(:null), do: nil
-  defp datetime_field_mapper({{year, month, day}, {hour, min, sec}}) when is_integer(sec), do:
-    NaiveDateTime.new(year, month, day, hour, min, sec, {0, 6}) |> error_to_nil()
+
+  defp datetime_field_mapper({{year, month, day}, {hour, min, sec}}) when is_integer(sec),
+    do: NaiveDateTime.new(year, month, day, hour, min, sec, {0, 6}) |> error_to_nil()
+
   defp datetime_field_mapper({{year, month, day}, {hour, min, fsec}}) when is_float(fsec) do
     sec = trunc(fsec)
     usec = {trunc((fsec - sec) * 1_000_000), 6}
@@ -137,12 +172,14 @@ defmodule Cloak.DataSource.ODBC do
   end
 
   defp date_field_mapper(:null), do: nil
-  defp date_field_mapper(string) when is_binary(string), do:
-    Cloak.Time.parse_date(string) |> error_to_nil()
+
+  defp date_field_mapper(string) when is_binary(string),
+    do: Cloak.Time.parse_date(string) |> error_to_nil()
 
   defp time_field_mapper(:null), do: nil
-  defp time_field_mapper(string) when is_binary(string), do:
-    Cloak.Time.parse_time(string) |> error_to_nil()
+
+  defp time_field_mapper(string) when is_binary(string),
+    do: Cloak.Time.parse_time(string) |> error_to_nil()
 
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _reason}), do: nil
@@ -150,6 +187,7 @@ defmodule Cloak.DataSource.ODBC do
   defp real_field_mapper(:null), do: nil
   defp real_field_mapper("." <> rest), do: real_field_mapper("0." <> rest)
   defp real_field_mapper("-." <> rest), do: real_field_mapper("-0." <> rest)
+
   defp real_field_mapper(value) when is_binary(value) do
     value
     |> Float.parse()
@@ -158,25 +196,30 @@ defmodule Cloak.DataSource.ODBC do
       {_, "," <> _} -> String.to_float(value)
     end
   end
+
   defp real_field_mapper(value) when is_float(value), do: value
   defp real_field_mapper(value) when is_integer(value), do: value * 1.0
 
   defp integer_field_mapper(:null), do: nil
+
   defp integer_field_mapper(value) when is_binary(value) do
     {value, ""} = Integer.parse(value)
     value
   end
+
   defp integer_field_mapper(value) when is_integer(value), do: value
   defp integer_field_mapper(value) when is_float(value), do: round(value)
 
   defp interval_field_mapper(:null, _data_source), do: nil
-  defp interval_field_mapper(string, %{driver: Cloak.DataSource.SAPHana}) when is_binary(string), do:
-    string |> String.to_integer() |> Timex.Duration.from_seconds()
+
+  defp interval_field_mapper(string, %{driver: Cloak.DataSource.SAPHana}) when is_binary(string),
+    do: string |> String.to_integer() |> Timex.Duration.from_seconds()
+
   defp interval_field_mapper(number, _data_source), do: Timex.Duration.from_seconds(number)
 
-  defp text_to_unicode_mapper(encoding), do:
-    fn
-      (:null) -> nil
-      (value) -> :unicode.characters_to_binary(value, encoding)
+  defp text_to_unicode_mapper(encoding),
+    do: fn
+      :null -> nil
+      value -> :unicode.characters_to_binary(value, encoding)
     end
 end

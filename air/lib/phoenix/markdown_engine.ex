@@ -16,13 +16,13 @@ defmodule Air.Phoenix.MarkdownEngine do
   # Phoenix.Template.Engine callbacks
   # -------------------------------------------------------------------
 
-
   @impl Phoenix.Template.Engine
   def compile(template_path, _template_name) do
-    Macro.escape({:safe,
-      template_path
-      |> File.read!()
-      |> Earmark.as_html!()
-    })
+    Macro.escape(
+      {:safe,
+       template_path
+       |> File.read!()
+       |> Earmark.as_html!()}
+    )
   end
 end

@@ -4,8 +4,7 @@ defmodule AircloakCI.Build.Job do
   alias AircloakCI.{LocalProject, Queue}
   alias AircloakCI.Build
 
-  @type run_queued_opts :: [job_name: String.t, log_name: String.t, report_result: pid]
-
+  @type run_queued_opts :: [job_name: String.t(), log_name: String.t(), report_result: pid]
 
   # -------------------------------------------------------------------
   # API functions
@@ -25,15 +24,15 @@ defmodule AircloakCI.Build.Job do
   execution of that job. Once the job is finished, it won't be restarted again as long as nothing is pushed to the
   corresponding branch.
   """
-  @spec maybe_start(Build.Server.state, Build.Server.job_name, ((Build.Server.state) -> Build.Server.state)) ::
-    Build.Server.state
+  @spec maybe_start(
+          Build.Server.state(),
+          Build.Server.job_name(),
+          (Build.Server.state() -> Build.Server.state())
+        ) :: Build.Server.state()
   def maybe_start(build_state, job_name, fun) do
     if not Build.Server.running?(build_state, job_name) and
-      (
-        LocalProject.forced?(build_state.project, job_name) or
-        not LocalProject.finished?(build_state.project, job_name)
-      )
-    do
+         (LocalProject.forced?(build_state.project, job_name) or
+            not LocalProject.finished?(build_state.project, job_name)) do
       fun.(build_state)
     else
       build_state
@@ -46,37 +45,40 @@ defmodule AircloakCI.Build.Job do
   This function will queue the given job in the desired queue, execute it, and log various events, such as start,
   finish, execution time, and crashes.
   """
-  @spec run_queued(Queue.id, LocalProject.t, (() -> :ok | {:error, String.t}), run_queued_opts) :: :ok | :error
+  @spec run_queued(
+          Queue.id(),
+          LocalProject.t(),
+          (() -> :ok | {:error, String.t()}),
+          run_queued_opts
+        ) :: :ok | :error
   def run_queued(queue, project, fun, opts \\ []) do
     start_watcher(self(), project, queue, opts)
 
     LocalProject.truncate_log(project, log_name(queue, opts))
     LocalProject.log(project, log_name(queue, opts), "entering queue `#{queue}`")
-    Queue.exec(
-      queue,
-      fn ->
-        LocalProject.log(project, log_name(queue, opts), "entered queue `#{queue}`")
-        result =
-          if Enum.member?(Application.get_env(:aircloak_ci, :simulated_jobs, []), queue) do
-            IO.puts("simulating job #{log_name(queue, opts)}")
-            :timer.sleep(:timer.seconds(1))
-            :ok
-          else
-            fun.()
-          end
 
-        result =
-          with {:error, reason} <- result do
-            LocalProject.log(project, log_name(queue, opts), "error: #{reason}")
-            :error
-          end
+    Queue.exec(queue, fn ->
+      LocalProject.log(project, log_name(queue, opts), "entered queue `#{queue}`")
 
-        maybe_report_result(queue, opts, result)
-        result
-      end
-    )
+      result =
+        if Enum.member?(Application.get_env(:aircloak_ci, :simulated_jobs, []), queue) do
+          IO.puts("simulating job #{log_name(queue, opts)}")
+          :timer.sleep(:timer.seconds(1))
+          :ok
+        else
+          fun.()
+        end
+
+      result =
+        with {:error, reason} <- result do
+          LocalProject.log(project, log_name(queue, opts), "error: #{reason}")
+          :error
+        end
+
+      maybe_report_result(queue, opts, result)
+      result
+    end)
   end
-
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -86,8 +88,10 @@ defmodule AircloakCI.Build.Job do
   # events, such as running time, and possible crash reasons.
   defp start_watcher(owner_pid, project, queue, opts) do
     start = :erlang.monotonic_time(:second)
+
     Task.start_link(fn ->
       Process.flag(:trap_exit, true)
+
       receive do
         {:EXIT, ^owner_pid, reason} ->
           handle_exit(reason, project, queue, opts)
@@ -100,9 +104,15 @@ defmodule AircloakCI.Build.Job do
   end
 
   defp handle_exit(normal, _project, _queue, _opts) when normal in [:normal, :shutdown], do: :ok
+
   defp handle_exit(crash_reason, project, queue, opts) do
     maybe_report_result(queue, opts, :failure, crash_reason)
-    LocalProject.log(project, log_name(queue, opts), "crashed: #{Exception.format_exit(crash_reason)}")
+
+    LocalProject.log(
+      project,
+      log_name(queue, opts),
+      "crashed: #{Exception.format_exit(crash_reason)}"
+    )
   end
 
   defp maybe_report_result(queue, opts, result, extra_info \\ nil) do
@@ -112,9 +122,7 @@ defmodule AircloakCI.Build.Job do
     end
   end
 
-  defp job_name(queue, opts), do:
-    Keyword.get(opts, :job_name, to_string(queue))
+  defp job_name(queue, opts), do: Keyword.get(opts, :job_name, to_string(queue))
 
-  defp log_name(queue, opts), do:
-    Keyword.get(opts, :log_name, to_string(queue))
+  defp log_name(queue, opts), do: Keyword.get(opts, :log_name, to_string(queue))
 end

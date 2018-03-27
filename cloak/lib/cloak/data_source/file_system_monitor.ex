@@ -12,7 +12,6 @@ defmodule Cloak.DataSource.FileSystemMonitor do
   @file_system_monitor_name __MODULE__.FileSystemMonitor
   @pre_processing_delay_ms 200
 
-
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
@@ -29,32 +28,38 @@ defmodule Cloak.DataSource.FileSystemMonitor do
     |> group_by_data_source_config()
     |> consolidate_and_classify_events()
     |> handle_events()
+
     {:noreply, []}
   end
+
   def handle_info({:file_event, _pid, {file_path, events}}, messages) do
     {:noreply, [{file_path, events} | messages], @pre_processing_delay_ms}
   end
-
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp group_by_data_source_config(messages), do:
-    Enum.group_by(messages, fn({file_path, _events}) -> file_path end)
+  defp group_by_data_source_config(messages),
+    do: Enum.group_by(messages, fn {file_path, _events} -> file_path end)
 
-  defp consolidate_and_classify_events(events_by_file), do:
-    Enum.map(events_by_file, fn({file_path, file_events}) -> {file_path, processed_events(file_events)} end)
+  defp consolidate_and_classify_events(events_by_file),
+    do:
+      Enum.map(events_by_file, fn {file_path, file_events} ->
+        {file_path, processed_events(file_events)}
+      end)
 
-  defp processed_events(file_events), do:
-    file_events
-    |> unique_file_events()
-    |> classify_events()
+  defp processed_events(file_events),
+    do:
+      file_events
+      |> unique_file_events()
+      |> classify_events()
 
-  defp unique_file_events(file_events), do:
-    file_events
-    |> Enum.flat_map(fn({_path, events}) -> events end)
-    |> Enum.uniq()
+  defp unique_file_events(file_events),
+    do:
+      file_events
+      |> Enum.flat_map(fn {_path, events} -> events end)
+      |> Enum.uniq()
 
   defp classify_events(events) do
     if removal_event?(events) do
@@ -64,15 +69,14 @@ defmodule Cloak.DataSource.FileSystemMonitor do
     end
   end
 
-  defp removal_event?(events), do:
-    Enum.any?([:removed, :deleted, :renamed], & &1 in events)
+  defp removal_event?(events), do: Enum.any?([:removed, :deleted, :renamed], &(&1 in events))
 
-  defp handle_events(events), do:
-    Enum.each(events, fn
-      {path, :update} -> Cloak.DataSource.SerializingUpdater.process_update(path)
-      {path, :removal} -> Cloak.DataSource.SerializingUpdater.process_removal(path)
-    end)
-
+  defp handle_events(events),
+    do:
+      Enum.each(events, fn
+        {path, :update} -> Cloak.DataSource.SerializingUpdater.process_update(path)
+        {path, :removal} -> Cloak.DataSource.SerializingUpdater.process_removal(path)
+      end)
 
   # -------------------------------------------------------------------
   # Supervison tree callback
@@ -88,17 +92,17 @@ defmodule Cloak.DataSource.FileSystemMonitor do
       [
         %{
           id: FileSystem,
-          start: {FileSystem, :start_link, [[dirs: [config_path()], name: @file_system_monitor_name]]},
+          start:
+            {FileSystem, :start_link, [[dirs: [config_path()], name: @file_system_monitor_name]]}
         },
-        ChildSpec.gen_server(__MODULE__, [], name: __MODULE__),
+        ChildSpec.gen_server(__MODULE__, [], name: __MODULE__)
       ]
     else
       []
     end
   end
 
-  defp configured_with_individual_configurations?(), do:
-    not is_nil(config_path())
+  defp configured_with_individual_configurations?(), do: not is_nil(config_path())
 
   defp config_path() do
     case Aircloak.DeployConfig.fetch!("data_sources") do

@@ -17,7 +17,7 @@ defmodule Mix.Tasks.Bom do
   """
 
   @moduledoc "Gathers information about dependencies and outputs a bom.json file into the _build directory.\n\n" <>
-    @usage
+               @usage
 
   use Mix.Task
 
@@ -26,7 +26,9 @@ defmodule Mix.Tasks.Bom do
 
   def run(args) do
     case OptionParser.parse(args, strict: [node: :keep, elixir: :keep]) do
-      {dirs, [outdir], []} -> do_run(dirs, outdir)
+      {dirs, [outdir], []} ->
+        do_run(dirs, outdir)
+
       _ ->
         IO.puts(@usage)
         Mix.raise("Invalid usage")
@@ -40,11 +42,12 @@ defmodule Mix.Tasks.Bom do
     packages = packages(dirs)
     IO.puts("Processing #{Enum.count(packages)} packages...")
 
-    {invalid, valid} = packages
-    |> Enum.filter(&BOM.Whitelist.shipped?(&1.realm, &1.name))
-    |> Enum.map(&BOM.Whitelist.update_license_type/1)
-    |> Enum.map(&BOM.Validate.run/1)
-    |> Enum.split_with(&(&1.error))
+    {invalid, valid} =
+      packages
+      |> Enum.filter(&BOM.Whitelist.shipped?(&1.realm, &1.name))
+      |> Enum.map(&BOM.Whitelist.update_license_type/1)
+      |> Enum.map(&BOM.Validate.run/1)
+      |> Enum.split_with(& &1.error)
 
     if Enum.empty?(invalid) do
       json = Poison.encode!(valid)
@@ -61,7 +64,9 @@ defmodule Mix.Tasks.Bom do
       |> Enum.map(&"#{&1.name} #{&1.version} (#{&1.path}): #{&1.error}")
       |> Enum.map(&IO.puts/1)
 
-      Mix.raise("#{Enum.count(invalid)} invalid packages - see README.md for how to resolve this.")
+      Mix.raise(
+        "#{Enum.count(invalid)} invalid packages - see README.md for how to resolve this."
+      )
     end
   end
 

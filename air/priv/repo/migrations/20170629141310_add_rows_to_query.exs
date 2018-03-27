@@ -3,7 +3,7 @@ defmodule Air.Repo.Migrations.AddRowsToQuery do
 
   def change do
     alter table(:queries) do
-      add :rows, :binary
+      add(:rows, :binary)
     end
   end
 end
