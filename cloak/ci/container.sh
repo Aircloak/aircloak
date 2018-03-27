@@ -45,7 +45,8 @@ function ensure_database_containers {
 
 mount $(ci_tmp_folder)/cloak/.cargo /root/.cargo
 mount_to_aircloak VERSION common/elixir bom
-mount_to_component config datagen include lib src perftest priv rel test mix.exs mix.lock Makefile check_warnings.sh
+mount_to_component \
+  config datagen include lib src perftest priv rel test mix.exs mix.lock Makefile check_warnings.sh .formatter.exs
 mount_cached_component deps _build .bash_history priv/odbc/drivers
 
 case "$1" in

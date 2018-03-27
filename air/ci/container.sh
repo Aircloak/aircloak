@@ -23,7 +23,7 @@ function prepare_for_test {
 mount_to_aircloak VERSION common/elixir bom
 mount_to_component \
   .flowconfig .gitignore assets config datagen docs include lib perftest priv rel test mix.exs mix.lock Makefile \
-  README.md check_warnings.sh
+  README.md check_warnings.sh .formatter.exs
 mount_cached_component deps _build .bash_history docs/_book docs/node_modules priv/static
 
 case "$1" in
