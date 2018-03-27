@@ -78,8 +78,8 @@ defmodule Air.PsqlServer.Protocol.ConnectionSetup do
          ssl_valid: {:error, _},
          ssl_required: false
        }),
-       # SSL connection and SSL is not valid but also not required -> inform client that we don't support SSL and allow it
-       # to retry with unencrypted TCP
+       # SSL connection and SSL is not valid but also not required -> inform client that we don't support SSL and allow
+       # it to retry with unencrypted TCP
        do:
          protocol
          |> Protocol.send_to_client(:ssl_not_supported)
