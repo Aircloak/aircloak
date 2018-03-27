@@ -72,15 +72,7 @@ defmodule Aircloak.DeployConfig do
       |> Aircloak.Json.safe_decode!()
       |> ExJsonSchema.Schema.resolve()
 
-    config =
-      case config do
-        nil ->
-          {:ok, config} = Aircloak.File.read_config_file(app, config_file_name(app))
-          config
-
-        _ -> config
-      end
-
+    config = config || read_config!(app)
 
     with {:error, errors} <- ExJsonSchema.Validator.validate(schema, config) do
       formatted_errors =
