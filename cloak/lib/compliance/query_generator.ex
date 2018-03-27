@@ -197,15 +197,28 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp generate_expression_with_info(tables),
     do:
       [
+        fn -> generate_unaliased_expression_with_info(tables) end,
+        fn -> generate_aliased_expression_with_info(tables) end
+      ]
+      |> random_option()
+
+  defp generate_aliased_expression_with_info(tables) do
+    {column, {table, _}} = generate_unaliased_expression_with_info(tables)
+    alias = random_name()
+    {generate_as(column, alias), {table, alias}}
+  end
+
+  defp generate_unaliased_expression_with_info(tables),
+    do:
+      [
         fn -> generate_aggregate_with_info(tables) end,
-        fn -> generate_column_with_info(tables) end,
-        fn -> generate_aliased_column_with_info(tables) end
+        fn -> generate_column_with_info(tables) end
       ]
       |> random_option()
 
   @aggregates ~w(count avg min max stddev count_noise avg_noise stddev_noise)
   defp generate_aggregate_with_info(tables) do
-    {aggregated, {type, _}} = generate_expression_with_info(tables)
+    {aggregated, {type, _}} = generate_unaliased_expression_with_info(tables)
 
     @aggregates
     |> Enum.map(fn aggregate ->
@@ -217,12 +230,6 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp aggregate_type(aggregate, type) when aggregate in ~w(min max), do: type
   defp aggregate_type(aggregate, _) when aggregate in ~w(count count_noise), do: :integer
   defp aggregate_type(_, _), do: :real
-
-  defp generate_aliased_column_with_info(tables) do
-    {column, {table, _}} = generate_column_with_info(tables)
-    alias = random_name()
-    {generate_as(column, alias), {table, alias}}
-  end
 
   defp generate_column(tables) do
     {column, _} = generate_column_with_info(tables)
