@@ -22,16 +22,18 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
   defp to_doc({:query, _, items}),
     do:
       items
-      |> Enum.map(fn item -> item |> to_doc() |> group() |> nest() end)
+      |> Enum.reject(&match?({:empty, _, _}, &1))
+      |> Enum.map(fn item -> item |> to_doc() |> nest() end)
       |> space_separated()
 
-  defp to_doc({:select, nil, select_list}),
-    do: glue("SELECT", " ", select_list |> Enum.map(&to_doc/1) |> comma_separated() |> nest())
+  defp to_doc({:select, nil, select_list}), do: glue("SELECT", " ", clause_list(select_list))
 
   defp to_doc({:from, nil, [from_expression]}), do: glue("FROM", " ", to_doc(from_expression))
 
   defp to_doc({:table, name, []}), do: name
-  defp to_doc({:subquery, nil, [definition]}), do: concat(["(", to_doc(definition), ")"])
+
+  defp to_doc({:subquery, nil, [definition]}),
+    do: space_separated(["(", definition |> to_doc() |> nest(), ")"])
 
   defp to_doc({:join, nil, [lhs, rhs, on]}),
     do: [to_doc(lhs), "JOIN", to_doc(rhs), to_doc(on)] |> fold_doc(&glue(&1, " ", &2))
@@ -42,22 +44,21 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
 
   defp to_doc({:where, nil, [condition]}), do: ["WHERE", to_doc(condition)] |> space_separated()
 
-  defp to_doc({:group_by, nil, group_list}),
-    do: glue("GROUP BY", " ", group_list |> Enum.map(&to_doc/1) |> comma_separated())
+  defp to_doc({:group_by, nil, group_list}), do: glue("GROUP BY", " ", clause_list(group_list))
 
   defp to_doc({:having, nil, [condition]}), do: glue("HAVING", " ", to_doc(condition))
 
   defp to_doc({op, nil, [lhs, rhs]}) when op in @infix_operator,
-    do: [to_doc(lhs), binary_operation_to_string(op), to_doc(rhs)] |> space_separated()
+    do: operator(to_doc(lhs), binary_operation_to_string(op), to_doc(rhs))
 
   defp to_doc({:between, nil, [lhs, low, high]}),
     do: [to_doc(lhs), "BETWEEN", to_doc(low), "AND", to_doc(high)] |> space_separated()
 
   defp to_doc({:and, nil, [lhs, rhs]}),
-    do: ["(", to_doc(lhs), "AND", to_doc(rhs), ")"] |> space_separated()
+    do: concat(["(", operator(to_doc(lhs), "AND", to_doc(rhs)), ")"])
 
   defp to_doc({:or, nil, [lhs, rhs]}),
-    do: ["(", to_doc(lhs), "OR", to_doc(rhs), ")"] |> space_separated()
+    do: concat(["(", operator(to_doc(lhs), "OR", to_doc(rhs)), ")"])
 
   defp to_doc({:function, name, args}),
     do: concat([name, "(", args |> Enum.map(&to_doc/1) |> comma_separated(), ")"])
@@ -89,8 +90,7 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
   defp to_doc({:star, _, _}), do: "*"
   defp to_doc({:empty, _, _}), do: empty()
 
-  defp to_doc({:sample_users, size, []}),
-    do: glue("SAMPLE_USERS", " ", concat(to_string(size), "%"))
+  defp to_doc({:sample_users, size, []}), do: concat(["SAMPLE_USERS ", to_string(size), "%"])
 
   # -------------------------------------------------------------------
   # ast_to_sql helpers
@@ -107,9 +107,15 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
   defp binary_operation_to_string(:in), do: "IN"
   defp binary_operation_to_string(:not_in), do: "NOT IN"
 
+  defp clause_list(ast_fragments),
+    do: ast_fragments |> Enum.map(&to_doc/1) |> comma_separated() |> nest()
+
   defp comma_separated(docs), do: docs |> fold_doc(&glue(concat(&1, ","), " ", &2)) |> group()
 
   defp space_separated(docs), do: docs |> fold_doc(&glue(&1, " ", &2)) |> group()
 
-  defp nest(doc), do: nest(doc, 2)
+  defp nest(doc), do: doc |> group() |> nest(2)
+
+  defp operator(doc1, operator, doc2),
+    do: glue(concat([doc1, " ", operator]), " ", doc2) |> nest()
 end
