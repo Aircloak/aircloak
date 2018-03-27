@@ -58,7 +58,8 @@ defmodule Cloak.Compliance.QueryGenerator do
   def ast_to_sql({:boolean, value, []}), do: to_string(value)
   def ast_to_sql({:datetime, value, []}), do: [?', to_string(value), ?']
   def ast_to_sql({:real, value, []}), do: to_string(value)
-  def ast_to_sql({:like_pattern, value, []}), do: [?', value, ?']
+  def ast_to_sql({:like_pattern, value, [escape]}), do: [?', value, ?', ast_to_sql(escape)]
+  def ast_to_sql({:like_escape, char, []}), do: [" ESCAPE ", ?', char, ?']
 
   def ast_to_sql({:in_set, nil, items}),
     do: [?(, items |> Enum.map(&ast_to_sql/1) |> Enum.intersperse(", "), ?)]
@@ -243,8 +244,11 @@ defmodule Cloak.Compliance.QueryGenerator do
          second: :rand.uniform(60) - 1
        }, []}
 
+  @like_characters [?% | Enum.to_list(?A..?z)]
   defp generate_value(:like_pattern),
-    do: {:like_pattern, random_text([?% | Enum.to_list(?A..?z)]), []}
+    do: {:like_pattern, random_text(@like_characters), [optional(&like_escape/0)]}
+
+  defp like_escape(), do: {:like_escape, [Enum.random(@like_characters)], []}
 
   defp generate_select(tables) do
     {select_list, info} = tables |> generate_select_list() |> Enum.unzip()
