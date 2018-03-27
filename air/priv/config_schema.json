@@ -12,7 +12,7 @@
         "name": {"type": "string", "minLength": 1}
       },
       "additionalProperties": false,
-      "required": ["host", "port", "ssl", "user", "password", "name"]
+      "required": ["host", "user", "name"]
     },
 
     "site": {

@@ -43,6 +43,12 @@ This section looks as follows:
 }
 ```
 
+The following fields are optional:
+
+- `port` - defaults to 5432
+- `ssl` - defaults to true
+- `password` - defaults to empty string
+
 ### Web site configuration
 
 This part of the configuration is used to configure the web server of the Insights Air component. The shape of this section is as follows:

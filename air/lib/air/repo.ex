@@ -17,19 +17,28 @@ defmodule Air.Repo do
   """
   def configure do
     conn_params = [
-      hostname: db_setting("host"),
-      port: db_setting("port"),
-      ssl: db_setting("ssl"),
-      username: db_setting("user"),
-      password: db_setting("password"),
-      database: db_setting("name")
+      hostname: db_setting!("host"),
+      port: db_setting("port", 5432),
+      ssl: db_setting("ssl", false),
+      username: db_setting!("user"),
+      password: db_setting("password", ""),
+      database: db_setting!("name")
     ]
 
     Logger.info("connecting to database #{inspect(Keyword.delete(conn_params, :password))}")
     Air.Utils.update_app_env(:air, Air.Repo, &Keyword.merge(&1, conn_params))
   end
 
-  defp db_setting(name), do: Map.fetch!(Aircloak.DeployConfig.fetch!("database"), name)
+  defp db_setting!(name), do: Map.fetch!(Aircloak.DeployConfig.fetch!("database"), name)
+
+  defp db_setting(name, default) do
+    case Map.fetch(Aircloak.DeployConfig.fetch!("database"), name) do
+      {:ok, value} -> value
+      :error ->
+        Logger.info("using default value for database `#{name}` parameter")
+        default
+    end
+  end
 
 
   defmodule Migrator do
