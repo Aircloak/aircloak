@@ -65,37 +65,49 @@ defmodule Mix.Tasks.Fuzzer.Run do
 
     queries = Enum.map(1..number_of_queries, fn _ -> generate_query(tables) end)
 
+    all_path = Keyword.get(options, :all_out, "/tmp/all.txt")
+    crashes_path = Keyword.get(options, :crashes_out, "/tmp/crashes.txt")
+
     results =
-      Task.async_stream(
-        queries,
-        fn query ->
-          IO.write(".")
-          run_query(query, data_sources)
-        end,
-        max_concurrency: concurrency,
-        timeout: timeout,
-        ordered: true,
-        on_timeout: :kill_task
-      )
-      |> Enum.map(&normalize_result/1)
+      with_file(all_path, fn all_file ->
+        with_file(crashes_path, fn crashes_file ->
+          Task.async_stream(
+            queries,
+            fn query ->
+              IO.write(".")
+              run_query(query, data_sources)
+            end,
+            max_concurrency: concurrency,
+            timeout: timeout,
+            ordered: true,
+            on_timeout: :kill_task
+          )
+          |> Stream.map(&normalize_result/1)
+          |> Stream.zip(queries)
+          |> Stream.map(fn {result, query} -> {query, result} end)
+          |> Enum.map(&print_single_result(all_file, crashes_file, &1))
+        end)
+      end)
 
     IO.puts("\n")
 
-    print_results(Enum.zip(queries, results), options)
+    print_stats(results, options)
   end
 
   defp normalize_result({:ok, result}), do: result
   defp normalize_result({:exit, :timeout}), do: %{result: :timeout, error: nil}
 
-  defp print_results(results, options) do
-    all_path = Keyword.get(options, :all_out, "/tmp/all.txt")
+  defp print_single_result(all_file, crashes_file, item = {query, result}) do
+    IO.puts(all_file, [query, "\n\n", to_string(result.result), "\n\n"])
 
-    with_file(all_path, fn file ->
-      for {query, %{result: result}} <- results do
-        IO.puts(file, [query, "\n\n", to_string(result), "\n\n"])
-      end
-    end)
+    if result.result == :unexpected_error do
+      IO.puts(crashes_file, [query, "\n\n", Exception.format(:error, result.error)])
+    end
 
+    item
+  end
+
+  defp print_stats(results, options) do
     stats_path = Keyword.get(options, :stats_out, "/tmp/stats.txt")
 
     with_file(stats_path, fn file ->
@@ -106,14 +118,6 @@ defmodule Mix.Tasks.Fuzzer.Run do
       |> Enum.each(fn {result, count} ->
         IO.puts(file, [to_string(result), ": ", to_string(count)])
       end)
-    end)
-
-    crashes_path = Keyword.get(options, :crashes_out, "/tmp/crashes.txt")
-
-    with_file(crashes_path, fn file ->
-      for {query, %{result: :unexpected_error, error: error}} <- results do
-        IO.puts(file, [query, "\n\n", Exception.format(:error, error)])
-      end
     end)
   end
 
