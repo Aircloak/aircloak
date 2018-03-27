@@ -62,6 +62,28 @@ defmodule Aircloak.DeployConfig do
   def update(app, key, fun), do:
     Application.put_env(app, __MODULE__, Map.update!(read_config!(app), key, fun))
 
+  @doc "Validates the schema of the config.json according to priv/config_schema.json file."
+  @spec validate!(atom) :: :ok
+  def validate!(app) do
+    schema =
+      Application.app_dir(app, "priv")
+      |> Path.join("config_schema.json")
+      |> File.read!()
+      |> Aircloak.Json.safe_decode!()
+      |> ExJsonSchema.Schema.resolve()
+
+    {:ok, config} = Aircloak.File.read_config_file(app, config_file_name(app))
+
+    with {:error, errors} <- ExJsonSchema.Validator.validate(schema, config) do
+      formatted_errors =
+        errors
+        |> Stream.map(fn({error, field}) -> "  #{field}: #{error}" end)
+        |> Enum.join("\n")
+
+      raise("Configuration file is not valid:\n#{formatted_errors}")
+    end
+  end
+
 
   # -------------------------------------------------------------------
   # Internal functions
