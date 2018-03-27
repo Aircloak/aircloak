@@ -13,8 +13,9 @@ defmodule Cloak.LoggerTranslatorTest do
     end
 
     test "stacktrace is logged on crash", %{pid: pid} do
-      assert crash_agent(pid, fn _ -> raise "foo" end) =~
-               ~r/#{Path.basename(__ENV__.file)}:#{__ENV__.line}/
+      failure = crash_agent(pid, fn _ -> raise "foo" end)
+      regex = ~r/#{Path.basename(__ENV__.file)}:#{__ENV__.line - 1}/
+      assert failure =~ regex
     end
 
     test "sensitive data is removed from the exception message", %{pid: pid} do
@@ -35,8 +36,9 @@ defmodule Cloak.LoggerTranslatorTest do
     end
 
     test "stacktrace is logged on crash", %{pid: pid} do
-      assert crash_task(pid, fn _ -> raise "foo" end) =~
-               ~r/#{Path.basename(__ENV__.file)}:#{__ENV__.line}/
+      failure = crash_task(pid, fn _ -> raise "foo" end)
+      regex = ~r/#{Path.basename(__ENV__.file)}:#{__ENV__.line - 1}/
+      assert failure =~ regex
     end
 
     test "sensitive data is removed from the exception message", %{pid: pid} do
@@ -63,8 +65,9 @@ defmodule Cloak.LoggerTranslatorTest do
     end
 
     test "stacktrace is logged on crash", %{pid: pid} do
-      assert crash_task(pid, fn _ -> raise "foo" end) =~
-               ~r/#{Path.basename(__ENV__.file)}:#{__ENV__.line}/
+      failure = crash_task(pid, fn _ -> raise "foo" end)
+      regex = ~r/#{Path.basename(__ENV__.file)}:#{__ENV__.line - 1}/
+      assert failure =~ regex
     end
 
     test "sensitive data is removed from the exception message", %{pid: pid} do
@@ -90,8 +93,9 @@ defmodule Cloak.LoggerTranslatorTest do
     end
 
     test "stacktrace is logged on crash", %{pid: pid} do
-      assert crash_event_handler(pid, fn _ -> raise "foo" end) =~
-               ~r/#{Path.basename(__ENV__.file)}:#{__ENV__.line}/
+      failure = crash_event_handler(pid, fn _ -> raise "foo" end)
+      regex = ~r/#{Path.basename(__ENV__.file)}:#{__ENV__.line - 1}/
+      assert failure =~ regex
     end
 
     test "sensitive data is removed from the exception message", %{pid: pid} do
