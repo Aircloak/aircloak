@@ -1,5 +1,5 @@
 defmodule Air.ConfigValidationTest do
-  use Air.SchemaCase, async: true
+  use ExUnit.Case, async: true
 
   test "error on missing mandatory fields" do
     assert_missing_field_reported("database")
