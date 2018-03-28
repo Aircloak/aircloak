@@ -385,10 +385,13 @@ defmodule Cloak.Sql.QueryTest do
   defp features_from(statement) do
     [first_ds | rest_ds] = Cloak.DataSource.all()
     {query, features} = compile_with_features(first_ds, statement)
+    query = query |> Map.drop([:features]) |> scrub_data_sources()
 
     for data_source <- rest_ds do
       {other_query, other_features} = compile_with_features(data_source, statement)
-      assert Map.drop(query, [:features]) == Map.drop(other_query, [:features])
+      other_query = other_query |> Map.drop([:features]) |> scrub_data_sources()
+
+      assert query == other_query
 
       assert Map.drop(features, [:driver, :driver_dialect]) ==
                Map.drop(other_features, [:driver, :driver_dialect])
