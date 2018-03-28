@@ -165,9 +165,9 @@ defmodule Air.PsqlServer do
         user = conn.assigns.user
         data_source_id = conn.assigns.data_source_id
         converted_params = convert_params(params)
+        job_fun = fn -> DataSource.describe_query(data_source_id, user, query, converted_params) end
 
-        run_async(conn, fn -> DataSource.describe_query(data_source_id, user, query, converted_params) end, fn conn,
-                                                                                                               describe_result ->
+        on_finished = fn conn, describe_result ->
           result =
             case decode_cloak_query_result(describe_result) do
               {:error, _} = error ->
@@ -178,7 +178,9 @@ defmodule Air.PsqlServer do
             end
 
           RanchServer.describe_result(conn, result)
-        end)
+        end
+
+        run_async(conn, job_fun, on_finished)
     end
   end
 
