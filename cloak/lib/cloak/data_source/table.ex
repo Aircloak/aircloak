@@ -145,6 +145,7 @@ defmodule Cloak.DataSource.Table do
       |> Enum.map(fn {title, column} -> %{name: title, type: column.type, visible?: true} end)
 
     table = new(to_string(name), user_id, query: compiled_query, columns: columns)
+    verify_columns(data_source, table)
     {name, table}
   end
 

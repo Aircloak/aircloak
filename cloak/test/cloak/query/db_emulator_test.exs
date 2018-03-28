@@ -524,11 +524,10 @@ defmodule Cloak.Query.DBEmulatorTest do
           %{rows: [%{occurrences: 10, row: ["a b c"]}, %{occurrences: 5, row: [nil]}]}
         )
 
-    @tag pending: "crash in Validation.verify_all_uid_columns_are_compared_in_joins"
     test "join with a row splitter function" do
       assert_query(
-        "select extract_words(value) from #{@joined} inner join #{@vt} on user_id = uid",
-        "select user_id as uid, dec_b64(value) as value from #{@emulated}",
+        "select extract_words(value) from #{@joined} as t1 inner join #{@vt} as t2 on t1.user_id = t2.user_id",
+        "select user_id, dec_b64(value) as value from #{@emulated}",
         %{rows: rows}
       )
 
@@ -683,11 +682,10 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "crash in Validation.verify_all_uid_columns_are_compared_in_joins"
     test "join" do
       assert_query(
-        "select aGe, vaLue from #{@joined} inner join #{@vt} on uSer_Id = uId",
-        "select user_Id as Uid, dec_b64(value) as Value from #{@emulated} group by User_id, vAlUe",
+        "select aGe, vaLue from #{@joined} as t1 inner join #{@vt} as t2 on t1.uSer_Id = t2.user_Id",
+        "select user_Id as user_id, dec_b64(value) as Value from #{@emulated} group by User_id, vAlUe",
         %{rows: [%{occurrences: 10, row: [30, "abc"]}]}
       )
     end
