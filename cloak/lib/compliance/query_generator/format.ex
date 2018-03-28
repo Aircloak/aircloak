@@ -57,7 +57,14 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
 
   defp to_doc({:or, nil, [lhs, rhs]}), do: concat(["(", operator(to_doc(lhs), "OR", to_doc(rhs)), ")"])
 
-  defp to_doc({:function, name, args}), do: concat([name, "(", args |> Enum.map(&to_doc/1) |> comma_separated(), ")"])
+  defp to_doc({:function, name, args}),
+    do:
+      name
+      |> concat("(")
+      |> glue("", args |> Enum.map(&to_doc/1) |> comma_separated())
+      |> nest()
+      |> glue("", ")")
+      |> group()
 
   defp to_doc({:column, {column, table}, []}), do: to_string([?", table, ?", ?., ?", column, ?"])
   defp to_doc({:integer, value, []}), do: to_string(value)
