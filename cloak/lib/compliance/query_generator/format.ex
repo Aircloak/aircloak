@@ -36,13 +36,13 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
     do: "(" |> glue("", to_doc(definition)) |> nest() |> glue("", ")") |> group()
 
   defp to_doc({:join, nil, [lhs, rhs, on]}),
-    do: [to_doc(lhs), "JOIN", to_doc(rhs), to_doc(on)] |> fold_doc(&glue(&1, " ", &2))
+    do: fold_doc([to_doc(lhs), "JOIN", to_doc(rhs), to_doc(on)], &glue(&1, " ", &2))
 
-  defp to_doc({:on, nil, [condition]}), do: ["ON", to_doc(condition)] |> space_separated()
+  defp to_doc({:on, nil, [condition]}), do: space_separated(["ON", to_doc(condition)])
 
   defp to_doc({:as, name, [object]}), do: concat([to_doc(object), " AS ", name])
 
-  defp to_doc({:where, nil, [condition]}), do: ["WHERE", to_doc(condition)] |> space_separated()
+  defp to_doc({:where, nil, [condition]}), do: space_separated(["WHERE", to_doc(condition)])
 
   defp to_doc({:group_by, nil, group_list}), do: "GROUP BY" |> glue(" ", clause_list(group_list)) |> group()
 
@@ -52,7 +52,7 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
     do: operator(to_doc(lhs), binary_operation_to_string(op), to_doc(rhs))
 
   defp to_doc({:between, nil, [lhs, low, high]}),
-    do: [to_doc(lhs), "BETWEEN", to_doc(low), "AND", to_doc(high)] |> space_separated()
+    do: space_separated([to_doc(lhs), "BETWEEN", to_doc(low), "AND", to_doc(high)])
 
   defp to_doc({:and, nil, [lhs, rhs]}), do: concat(["(", operator(to_doc(lhs), "AND", to_doc(rhs)), ")"])
 
@@ -74,9 +74,9 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
   defp to_doc({:datetime, value, []}), do: to_string([?', to_string(value), ?'])
   defp to_doc({:real, value, []}), do: to_string(value)
 
-  defp to_doc({:like_pattern, value, [escape]}), do: [to_string([?', value, ?']), to_doc(escape)] |> space_separated()
+  defp to_doc({:like_pattern, value, [escape]}), do: space_separated([to_string([?', value, ?']), to_doc(escape)])
 
-  defp to_doc({:like_escape, char, []}), do: ["ESCAPE", to_string([?', char, ?'])] |> space_separated()
+  defp to_doc({:like_escape, char, []}), do: space_separated(["ESCAPE", to_string([?', char, ?'])])
 
   defp to_doc({:in_set, nil, items}),
     do:
