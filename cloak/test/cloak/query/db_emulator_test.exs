@@ -408,7 +408,6 @@ defmodule Cloak.Query.DBEmulatorTest do
           %{rows: [%{occurrences: 1, row: [4.0]}]}
         )
 
-    @tag pending: "select distinct doesn't seem to work in virtual table"
     test "select distinct",
       do:
         assert_query(
@@ -417,7 +416,7 @@ defmodule Cloak.Query.DBEmulatorTest do
           %{
             rows: [
               %{occurrences: 20, row: [1]},
-              %{occurrences: 20, row: [3]},
+              %{occurrences: 40, row: [3]},
               %{occurrences: 20, row: [4]},
               %{occurrences: 20, row: [5]},
               %{occurrences: 20, row: [nil]}
