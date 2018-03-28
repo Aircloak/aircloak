@@ -1,17 +1,11 @@
 defmodule Aircloak do
-  @moduledoc false
+  @moduledoc "Common helper functions used in different projects."
   use Application
   require Logger
 
-  def start(_type, _args) do
-    import Supervisor.Spec, warn: false
-
-    Supervisor.start_link(
-      [supervisor(Aircloak.ProcessMonitor, [])],
-      strategy: :one_for_one,
-      name: Aircloak.Supervisor
-    )
-  end
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
 
   @doc "Recursively atomizes the keys in a map, leaving values untouched."
   @spec atomize_keys(Map.t()) :: Map.t()
@@ -104,5 +98,20 @@ defmodule Aircloak do
 
       {:error, "#{main_error_message}:\n#{formatted_errors}"}
     end
+  end
+
+  # -------------------------------------------------------------------
+  # Application callbacks
+  # -------------------------------------------------------------------
+
+  @impl Application
+  def start(_type, _args) do
+    import Supervisor.Spec, warn: false
+
+    Supervisor.start_link(
+      [supervisor(Aircloak.ProcessMonitor, [])],
+      strategy: :one_for_one,
+      name: Aircloak.Supervisor
+    )
   end
 end
