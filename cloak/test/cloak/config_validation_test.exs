@@ -7,7 +7,7 @@ defmodule Cloak.ConfigValidationTest do
     end
 
     test "optional fields are not required" do
-      refute_missing_field_reported("debug", config_validator())
+      Enum.each(~w(debug features air_socket_url), &refute_missing_field_reported(&1, config_validator()))
     end
 
     test "error on invalid fields" do

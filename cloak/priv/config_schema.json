@@ -9,7 +9,9 @@
         {"type": "array"}
       ]
     },
-    "debug": {"type": "boolean"}
+    "debug": {"type": "boolean"},
+    "features": {"$comment": "allowed for backward compatibility"},
+    "air_socket_url": {"$comment": "allowed for backward compatibility"}
   },
   "additionalProperties": false,
   "required": ["air_site", "salt", "data_sources"]

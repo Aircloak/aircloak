@@ -17,6 +17,8 @@
         "user_id": {"type": "string", "minLength": 1},
         "ignore_unsupported_types": {"type": "boolean"},
         "sample_rate": {"type": "integer", "minimum": 1, "maximum": 100},
+        "name": {"type": "string", "minLength": 1, "$comment": "allowed for backward compatibility"},
+        "row_id": {"type": "string", "minLength": 1, "$comment": "allowed for backward compatibility"},
         "projection": {"$ref": "#/definitions/projection"},
         "decoders": {"type": "array", "items": {"$ref": "#/definitions/decoder"}}
       },
