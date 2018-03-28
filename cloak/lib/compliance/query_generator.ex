@@ -164,6 +164,9 @@ defmodule Cloak.Compliance.QueryGenerator do
      [column_expression(column, table), generate_value(column.type), generate_value(column.type)]}
   end
 
+  defp generate_value(:any),
+    do: [:boolean, :integer, :real, :text, :datetime] |> Enum.random() |> generate_value()
+
   defp generate_value(:boolean), do: {:boolean, [true, false] |> Enum.random(), []}
   defp generate_value(:integer), do: {:integer, :rand.uniform(1000), []}
   defp generate_value(:real), do: {:real, random_float(), []}
@@ -208,13 +211,36 @@ defmodule Cloak.Compliance.QueryGenerator do
     {generate_as(column, alias), {table, alias}}
   end
 
+  defp generate_unaliased_expression(tables) do
+    {expression, _info} = generate_unaliased_expression_with_info(tables)
+    expression
+  end
+
   defp generate_unaliased_expression_with_info(tables),
     do:
       [
         fn -> generate_aggregate_with_info(tables) end,
+        fn -> generate_function_with_info(tables) end,
         fn -> generate_column_with_info(tables) end
       ]
       |> random_option()
+
+  @functions ~w(
+    abs btrim ceil concat date_trunc day extract_words floor hash hex hour left length lower ltrim minute month quarter
+    right round rtrim second sqrt trunc upper weekday year
+  )
+  defp generate_function_with_info(tables) do
+    function = Enum.random(@functions)
+
+    arity =
+      {:function, function, nil, nil}
+      |> Cloak.Sql.Function.argument_types()
+      |> Enum.random()
+      |> length()
+
+    {{:function, function, Enum.map(1..arity, fn _ -> generate_unaliased_expression(tables) end)},
+     {:any, function}}
+  end
 
   @aggregates ~w(count avg min max stddev count_noise avg_noise stddev_noise)
   defp generate_aggregate_with_info(tables) do
