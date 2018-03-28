@@ -158,7 +158,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "count(<column>)" do
       assert_query(
         "select avg(v) from #{@vt}",
@@ -188,7 +187,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "where function" do
       assert_query(
         "select avg(v) from #{@vt}",
@@ -200,7 +198,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "having inequality" do
       :ok = insert_rows(_user_ids = 1..10, "#{@emulated_insert}", ["number"], [3])
       :ok = insert_rows(_user_ids = 11..20, "#{@emulated_insert}", ["number"], [7])
@@ -216,7 +213,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "nested having inequality" do
       :ok = insert_rows(_user_ids = 1..10, "#{@emulated_insert}", ["number"], [3])
       :ok = insert_rows(_user_ids = 11..20, "#{@emulated_insert}", ["number"], [7])
@@ -234,7 +230,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "where inequality" do
       assert_query(
         "select sum(c) from #{@vt}",
@@ -247,7 +242,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "nested where inequality" do
       assert_query(
         "select sum(c) from #{@vt}",
@@ -262,7 +256,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "having equality" do
       assert_query(
         "select avg(v) from #{@vt}",
@@ -274,7 +267,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "avg" do
       assert_query(
         "select round(avg(v)) from #{@vt}",
@@ -285,7 +277,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "stddev" do
       :ok =
         insert_rows(_user_ids = 21..21, "#{@emulated_insert}", ["value"], [
@@ -301,7 +292,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "min/max/median with numbers" do
       assert_query(
         "select * from #{@vt}",
@@ -325,7 +315,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "min/max/median with date" do
       assert_query(
         "select * from #{@vt}",
@@ -385,7 +374,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       :ok = insert_rows(_user_ids = 1..20, "#{@emulated_insert}", ["value", "date"], [nil, nil])
     end
 
-    @tag pending: "mysterious indexing error"
     test "count(distinct value)",
       do:
         assert_query(
@@ -397,7 +385,6 @@ defmodule Cloak.Query.DBEmulatorTest do
           %{rows: [%{occurrences: 1, row: [5.0]}]}
         )
 
-    @tag pending: "mysterious indexing error"
     test "count(distinct length(value))",
       do:
         assert_query(
@@ -424,7 +411,6 @@ defmodule Cloak.Query.DBEmulatorTest do
           }
         )
 
-    @tag pending: "mysterious indexing error"
     test "avg(distinct)",
       do:
         assert_query(
@@ -448,7 +434,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "distinct min/max/median with date" do
       assert_query(
         "select * from #{@vt}",
@@ -552,7 +537,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "nested where inequality" do
       :ok = insert_rows(_user_ids = 21..25, "#{@emulated_insert}", ["number"], [3])
 

@@ -126,7 +126,7 @@ defmodule Cloak.DataSource.Table do
       try do
         parsed_query
         |> Map.put(:virtual_table?, true)
-        |> Compiler.Specification.compile(data_source, nil, %{})
+        |> Compiler.compile_raw!(data_source)
         |> drop_duplicate_columns()
         |> Map.put(:subquery?, true)
       rescue
