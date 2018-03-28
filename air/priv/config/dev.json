@@ -17,9 +17,7 @@
   "database": {
     "host": "localhost",
     "port": 20002,
-    "ssl": false,
     "user": "air",
-    "password": "",
     "name": "air_dev"
   }
 }

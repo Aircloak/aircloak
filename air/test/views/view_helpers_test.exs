@@ -12,18 +12,13 @@ defmodule Air.ViewHelpersTest do
     test(
       "empty list for data source without tables",
       context,
-      do:
-        assert([] == ViewHelpers.selectables(context.conn, TestRepoHelper.create_data_source!()))
+      do: assert([] == ViewHelpers.selectables(context.conn, TestRepoHelper.create_data_source!()))
     )
 
     test(
       "lists selectables that belong to a data source",
       context,
-      do:
-        assert(
-          [%{id: @table_name, view: false}] =
-            ViewHelpers.selectables(context.conn, context.data_source)
-        )
+      do: assert([%{id: @table_name, view: false}] = ViewHelpers.selectables(context.conn, context.data_source))
     )
 
     test(

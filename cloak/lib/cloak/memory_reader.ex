@@ -137,9 +137,7 @@ defmodule Cloak.MemoryReader do
       {:ok, time} when time <= time_limit ->
         Logger.warn(
           "Dangerous memory situation. Anticipating reaching the low memory threshold " <>
-            "(#{to_mb(memory_limit)} MB) in #{to_sec(time)} seconds. Available memory: #{
-              to_mb(available_memory)
-            } MB"
+            "(#{to_mb(memory_limit)} MB) in #{to_sec(time)} seconds. Available memory: #{to_mb(available_memory)} MB"
         )
 
         kill_query(state)
@@ -162,16 +160,14 @@ defmodule Cloak.MemoryReader do
       state
       | # This adds an artificial cool down period between consecutive killings, proportional
         # to the length of the memory projection buffer.
-        memory_projector:
-          MemoryProjector.drop(state.memory_projector, num_measurements_to_drop(state)),
+        memory_projector: MemoryProjector.drop(state.memory_projector, num_measurements_to_drop(state)),
         queries: queries
     }
 
     {:noreply, state}
   end
 
-  defp schedule_check(%{params: %{check_interval: interval}}),
-    do: Process.send_after(self(), :read_memory, interval)
+  defp schedule_check(%{params: %{check_interval: interval}}), do: Process.send_after(self(), :read_memory, interval)
 
   def read_params() do
     defaults =
@@ -216,8 +212,7 @@ defmodule Cloak.MemoryReader do
     }
   end
 
-  defp measurements_per_second(%{params: %{check_interval: interval}}),
-    do: max(div(1_000, interval), 1)
+  defp measurements_per_second(%{params: %{check_interval: interval}}), do: max(div(1_000, interval), 1)
 
   defp num_measurements_to_drop(%{
          params: %{check_interval: interval, time_between_abortions: pause}

@@ -84,6 +84,5 @@ defmodule Cloak.CyclicGraph do
   defp pair_combinations([]), do: []
   defp pair_combinations([_]), do: []
 
-  defp pair_combinations([el | rest]),
-    do: Stream.concat(Stream.map(rest, &{el, &1}), pair_combinations(rest))
+  defp pair_combinations([el | rest]), do: Stream.concat(Stream.map(rest, &{el, &1}), pair_combinations(rest))
 end

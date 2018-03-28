@@ -148,8 +148,7 @@ defmodule Cloak.Sql.Query do
   def validate_view(data_source, name, sql, views) do
     with :ok <- view_name_ok?(data_source, name),
          {:ok, parsed_query} <- Parser.parse(sql),
-         {:ok, compiled_query, _features} <-
-           Compiler.validate_view(data_source, parsed_query, views) do
+         {:ok, compiled_query, _features} <- Compiler.validate_view(data_source, parsed_query, views) do
       {:ok,
        Enum.zip(compiled_query.column_titles, compiled_query.columns)
        |> Enum.map(fn {name, column} ->
@@ -216,8 +215,7 @@ defmodule Cloak.Sql.Query do
 
   @doc "Retrieves the parameter type."
   @spec parameter_type(t, pos_integer) :: DataSource.Table.data_type()
-  def parameter_type(query, parameter_index),
-    do: Map.get(query.parameter_types, parameter_index, :unknown)
+  def parameter_type(query, parameter_index), do: Map.get(query.parameter_types, parameter_index, :unknown)
 
   @doc "Returns the ordered list of parameter types."
   @spec parameter_types(t) :: [DataSource.t()]
@@ -272,18 +270,15 @@ defmodule Cloak.Sql.Query do
   @doc "Updates the emulation flag to reflect whether the query needs to be emulated."
   @spec set_emulation_flag(t) :: t
   def set_emulation_flag(query),
-    do:
-      Compiler.Helpers.apply_bottom_up(query, &%__MODULE__{&1 | emulated?: needs_emulation?(&1)})
+    do: Compiler.Helpers.apply_bottom_up(query, &%__MODULE__{&1 | emulated?: needs_emulation?(&1)})
 
   @doc "Returns the list of outermost selected splitters."
   @spec outermost_selected_splitters(t) :: [Expression.t()]
-  def outermost_selected_splitters(query),
-    do: Lens.to_list(Lenses.outermost_selected_splitters(), query)
+  def outermost_selected_splitters(query), do: Lens.to_list(Lenses.outermost_selected_splitters(), query)
 
   @doc "Returns the list of outermost where splitters."
   @spec outermost_where_splitters(t) :: [Expression.t()]
-  def outermost_where_splitters(query),
-    do: Lens.to_list(Lenses.outermost_where_splitters(), query)
+  def outermost_where_splitters(query), do: Lens.to_list(Lenses.outermost_where_splitters(), query)
 
   @doc "Retrieves the query features."
   @spec features(Query.t()) :: features
@@ -333,8 +328,7 @@ defmodule Cloak.Sql.Query do
 
   @doc "Returns the where clauses that must be applied by inside the cloak."
   @spec emulated_where(t) :: filter_clause
-  def emulated_where(query),
-    do: Condition.reject(query.where, &(not emulated_condition?(&1, query)))
+  def emulated_where(query), do: Condition.reject(query.where, &(not emulated_condition?(&1, query)))
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -354,19 +348,15 @@ defmodule Cloak.Sql.Query do
     end
   end
 
-  defp next_row_index(query),
-    do: {query.next_row_index, %__MODULE__{query | next_row_index: query.next_row_index + 1}}
+  defp next_row_index(query), do: {query.next_row_index, %__MODULE__{query | next_row_index: query.next_row_index + 1}}
 
   # -------------------------------------------------------------------
   # Calculation of db_columns
   # -------------------------------------------------------------------
 
-  defp include_required_expressions(query),
-    do: Enum.reduce(required_expressions(query), query, &add_db_column(&2, &1))
+  defp include_required_expressions(query), do: Enum.reduce(required_expressions(query), query, &add_db_column(&2, &1))
 
-  defp required_expressions(
-         %__MODULE__{command: :select, subquery?: true, emulated?: false} = query
-       ) do
+  defp required_expressions(%__MODULE__{command: :select, subquery?: true, emulated?: false} = query) do
     # non-emulated subquery -> the selected columns are all selected expressions
     query.column_titles
     |> Enum.zip(query.columns)
@@ -407,8 +397,7 @@ defmodule Cloak.Sql.Query do
     do:
       not query.data_source.driver.supports_query?(query) or
         query |> get_in([Lenses.direct_subqueries()]) |> Enum.any?(& &1.ast.emulated?) or
-        (query.subquery? and has_emulated_expressions?(query)) or
-        has_emulated_join_conditions?(query)
+        (query.subquery? and has_emulated_expressions?(query)) or has_emulated_join_conditions?(query)
 
   defp emulated_condition?(condition, query) do
     emulated_expression_condition?(condition, query.data_source) or
@@ -416,8 +405,7 @@ defmodule Cloak.Sql.Query do
   end
 
   defp emulated_expression?(expression, data_source),
-    do:
-      expression.function? and not data_source.driver.supports_function?(expression, data_source)
+    do: expression.function? and not data_source.driver.supports_function?(expression, data_source)
 
   defp emulated_expression_condition?(condition, data_source) do
     Lenses.conditions_terminals()

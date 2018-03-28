@@ -74,8 +74,7 @@ defmodule Air.Service.Central.RpcQueueTest do
   test "removing items on queue overflow" do
     pid = start_worker(max_size: 2)
 
-    [rpc1, _, rpc3, rpc4] =
-      push_rpcs(pid, Enum.map(1..4, fn _ -> unique_rpc(type: :delay, delay: 50) end))
+    [rpc1, _, rpc3, rpc4] = push_rpcs(pid, Enum.map(1..4, fn _ -> unique_rpc(type: :delay, delay: 50) end))
 
     assert_next_rpc(rpc1)
     assert_next_rpc(rpc3)
@@ -89,8 +88,7 @@ defmodule Air.Service.Central.RpcQueueTest do
       pid = start_worker(max_size: 2, retry_delay: 50)
       push_rpc(pid, unique_rpc(type: :error, num_errors: 1))
 
-      [_, rpc3, rpc4] =
-        push_rpcs(pid, Enum.map(1..3, fn _ -> unique_rpc(type: :delay, delay: 50) end))
+      [_, rpc3, rpc4] = push_rpcs(pid, Enum.map(1..3, fn _ -> unique_rpc(type: :delay, delay: 50) end))
 
       assert_next_rpc(rpc3)
       assert_next_rpc(rpc4)

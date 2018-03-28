@@ -27,9 +27,7 @@ defmodule BOM.Validate do
   defp errors(_), do: nil
 
   defp license_type_error(%License{type: type}),
-    do:
-      if(License.allowed_type?(type), do: nil, else: "Forbidden license type - #{inspect(type)}")
+    do: if(License.allowed_type?(type), do: nil, else: "Forbidden license type - #{inspect(type)}")
 
-  defp license_text_error(license),
-    do: if(License.empty?(license), do: "License empty", else: nil)
+  defp license_text_error(license), do: if(License.empty?(license), do: "License empty", else: nil)
 end

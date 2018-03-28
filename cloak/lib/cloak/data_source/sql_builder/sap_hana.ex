@@ -21,8 +21,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
 
   @impl Dialect
   for datepart <- ~w(year month day hour minute second) do
-    def function_sql(unquote(datepart), args),
-      do: ["EXTRACT(", unquote(datepart), " FROM ", args, ")"]
+    def function_sql(unquote(datepart), args), do: ["EXTRACT(", unquote(datepart), " FROM ", args, ")"]
   end
 
   def function_sql("quarter", [arg]), do: ["CAST(SUBSTRING(QUARTER(", arg, "), 7, 1) AS integer)"]
@@ -30,12 +29,10 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   def function_sql("^", args), do: function_sql("power", args)
 
   for binary_operator <- ~w(+ - *) do
-    def function_sql(unquote(binary_operator), [arg1, arg2]),
-      do: ["(", arg1, unquote(binary_operator), arg2, ")"]
+    def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
 
-  def function_sql("/", [arg1, arg2]),
-    do: ["(TO_DECIMAL(", arg1, ") / ", "TO_DECIMAL(", arg2, "))"]
+  def function_sql("/", [arg1, arg2]), do: ["(TO_DECIMAL(", arg1, ") / ", "TO_DECIMAL(", arg2, "))"]
 
   def function_sql("div", [arg1, arg2]), do: ["TO_INTEGER(", arg1, "/", arg2, ")"]
   def function_sql("round", [arg]), do: ["ROUND(", arg, ", 0, ROUND_HALF_UP)"]
@@ -70,11 +67,9 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect
-  def time_arithmetic_expression("+", [date, interval]),
-    do: ["ADD_SECONDS(", date, ", ", interval, ")"]
+  def time_arithmetic_expression("+", [date, interval]), do: ["ADD_SECONDS(", date, ", ", interval, ")"]
 
-  def time_arithmetic_expression("-", [date, interval]),
-    do: ["ADD_SECONDS(", date, ", -(", interval, "))"]
+  def time_arithmetic_expression("-", [date, interval]), do: ["ADD_SECONDS(", date, ", -(", interval, "))"]
 
   @impl Dialect
   def date_subtraction_expression([arg1, arg2]), do: ["SECONDS_BETWEEN(", arg2, ", ", arg1, ")"]

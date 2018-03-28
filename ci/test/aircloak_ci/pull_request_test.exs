@@ -14,8 +14,7 @@ defmodule AircloakCI.PullRequestTest do
     assert_pr_comment(pr, %{body: comment_body})
     assert comment_body =~ ~r/Pull request can be merged/
 
-    assert successful_jobs(pr) ==
-             ~w(air_compile air_test cloak_compile cloak_test compliance prepare report_mergeable)
+    assert successful_jobs(pr) == ~w(air_compile air_test cloak_compile cloak_test compliance prepare report_mergeable)
   end
 
   test "delayed PR approval", %{repo_data: repo_data} do
@@ -47,8 +46,7 @@ defmodule AircloakCI.PullRequestTest do
     AircloakCI.Build.PullRequest.ensure_started(pr, repo_data)
     wait_for_jobs_to_finish(pr)
 
-    {pr, _repo_data} =
-      update_pr_data(repo_data, pr, &%{&1 | merge_state: :mergeable, merge_sha: new_sha()})
+    {pr, _repo_data} = update_pr_data(repo_data, pr, &%{&1 | merge_state: :mergeable, merge_sha: new_sha()})
 
     wait_for_jobs_to_finish(pr)
 

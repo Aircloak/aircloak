@@ -116,8 +116,7 @@ defmodule AirWeb.Admin.GroupController do
   defp selected_data_source_ids(nil, nil), do: []
   defp selected_data_source_ids(nil, group), do: Enum.map(group.data_sources, & &1.id)
 
-  defp selected_data_source_ids(params, _),
-    do: to_numerical_ids(get_in(params, [:group, :data_sources]))
+  defp selected_data_source_ids(params, _), do: to_numerical_ids(get_in(params, [:group, :data_sources]))
 
   defp to_numerical_ids(nil), do: []
 

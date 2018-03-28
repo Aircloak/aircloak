@@ -100,9 +100,7 @@ defmodule Cloak.DataSource.Table do
         {name, %{table | query: parsed_query}}
 
       {:error, reason} ->
-        DataSource.raise_error(
-          "Failed to parse the query for virtual table `#{name}`: `#{reason}`"
-        )
+        DataSource.raise_error("Failed to parse the query for virtual table `#{name}`: `#{reason}`")
     end
   end
 
@@ -133,9 +131,7 @@ defmodule Cloak.DataSource.Table do
         error in CompilationError ->
           reason = Exception.message(error)
 
-          DataSource.raise_error(
-            "Failed to compile the query for virtual table `#{name}`: `#{reason}`"
-          )
+          DataSource.raise_error("Failed to compile the query for virtual table `#{name}`: `#{reason}`")
       end
 
     Enum.each(compiled_query.column_titles, &verify_column_name(name, &1))
@@ -185,8 +181,7 @@ defmodule Cloak.DataSource.Table do
     %{data_source | errors: existing_errors ++ errors, tables: Enum.into(tables, %{})}
   end
 
-  defp load_tables(_data_source, _connection, {_, %{query: query}} = table) when query != nil,
-    do: [table]
+  defp load_tables(_data_source, _connection, {_, %{query: query}} = table) when query != nil, do: [table]
 
   defp load_tables(data_source, connection, {table_id, table}) do
     table_id = to_string(table_id)
@@ -202,9 +197,7 @@ defmodule Cloak.DataSource.Table do
     |> Enum.reject(&supported?/1)
     |> validate_unsupported_columns(data_source, table)
 
-    columns =
-      for column <- table.columns,
-          do: if(supported?(column), do: column, else: %{column | type: :unknown})
+    columns = for column <- table.columns, do: if(supported?(column), do: column, else: %{column | type: :unknown})
 
     table = %{table | columns: columns}
     verify_columns(data_source, table)
@@ -266,8 +259,7 @@ defmodule Cloak.DataSource.Table do
     get_uid_name(data_source, table_name, table[:projection])
   end
 
-  defp table_from_datasource(data_source, table_name),
-    do: DataSource.table(data_source, String.to_atom(table_name))
+  defp table_from_datasource(data_source, table_name), do: DataSource.table(data_source, String.to_atom(table_name))
 
   defp supported?(%{type: {:unsupported, _db_type}}), do: false
   defp supported?(_column), do: true
@@ -343,8 +335,7 @@ defmodule Cloak.DataSource.Table do
     end
   end
 
-  defp set_display_name(column, %{projection: %{user_id_alias: alias}}),
-    do: %{column | name: alias}
+  defp set_display_name(column, %{projection: %{user_id_alias: alias}}), do: %{column | name: alias}
 
   defp set_display_name(column, _), do: column
 
@@ -376,17 +367,13 @@ defmodule Cloak.DataSource.Table do
       nil ->
         {
           :error,
-          "primary key column `#{table.projection.primary_key}` not found in table `#{
-            referenced_table.db_name
-          }`"
+          "primary key column `#{table.projection.primary_key}` not found in table `#{referenced_table.db_name}`"
         }
 
       %{type: primary_key_type} when primary_key_type != foreign_key_type ->
         {
           :error,
-          "foreign key type is `#{foreign_key_type}` while primary key type is `#{
-            primary_key_type
-          }`"
+          "foreign key type is `#{foreign_key_type}` while primary key type is `#{primary_key_type}`"
         }
 
       %{type: ^foreign_key_type} ->
@@ -467,8 +454,7 @@ defmodule Cloak.DataSource.Table do
       ~s/#{from} JOIN #{quote_db_name(db_name)} AS "#{id}" ON "#{id}"."#{projection.foreign_key}" = / <>
         ~s/"#{projection_id}"."#{projection.primary_key}"/
 
-    alias =
-      if projection[:user_id_alias] != nil, do: ~s/"#{projection.user_id_alias}"/, else: alias
+    alias = if projection[:user_id_alias] != nil, do: ~s/"#{projection.user_id_alias}"/, else: alias
 
     {user_id, alias, from}
   end

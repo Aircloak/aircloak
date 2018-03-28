@@ -40,8 +40,7 @@ defmodule IntegrationTest.CentralTest do
       _export2 = poll_for_export()
       export3 = poll_for_export()
 
-      assert {:error, {:missing_previous_export, export1.inserted_at}} ==
-               import_to_central(export3)
+      assert {:error, {:missing_previous_export, export1.inserted_at}} == import_to_central(export3)
     end
 
     defp import_to_central(export),

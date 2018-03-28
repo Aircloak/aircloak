@@ -13,20 +13,17 @@ defmodule Cloak.Sql.Query.Lenses.Test do
     test "focuses on function arguments as well as function" do
       query = %Query{columns: [{:function, "name", [:args], nil}]}
 
-      assert [:args, {:function, "name", [:args], nil}] ==
-               Lenses.terminals() |> normalize_elements(query)
+      assert [:args, {:function, "name", [:args], nil}] == Lenses.terminals() |> normalize_elements(query)
     end
 
     test "recurses inside aliases" do
       query = %Query{columns: [{{:function, "name", [:args], nil}, :as, "alias"}]}
 
-      assert [:args, {:function, "name", [:args], nil}] ==
-               Lenses.terminals() |> normalize_elements(query)
+      assert [:args, {:function, "name", [:args], nil}] == Lenses.terminals() |> normalize_elements(query)
     end
   end
 
-  defp normalize_elements(lens, query),
-    do: lens |> Lens.to_list(query) |> Enum.filter(& &1) |> Enum.sort()
+  defp normalize_elements(lens, query), do: lens |> Lens.to_list(query) |> Enum.filter(& &1) |> Enum.sort()
 
   describe "join_condition_lenses" do
     test "a simple join" do

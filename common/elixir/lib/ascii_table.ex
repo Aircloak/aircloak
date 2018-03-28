@@ -27,9 +27,7 @@ defmodule Aircloak.AsciiTable do
   end
 
   defp spacer_row(column_lengths) do
-    width =
-      Enum.reduce(column_lengths, &(&1 + &2)) +
-        (length(column_lengths) - 1) * String.length(@spacer)
+    width = Enum.reduce(column_lengths, &(&1 + &2)) + (length(column_lengths) - 1) * String.length(@spacer)
 
     List.duplicate("-", width) |> Enum.join()
   end

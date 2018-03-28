@@ -14,8 +14,7 @@ defmodule Cloak.DataSource.Utility do
   @doc "This function will return a list of data source definitions, as referenced by a data source"
   @spec load_individual_data_source_configs(String.t() | [DataSource.t()]) :: [DataSource.t()]
   # This is the legacy path where data sources where configured as a list of data source definitions inline
-  def load_individual_data_source_configs(data_sources) when is_list(data_sources),
-    do: data_sources
+  def load_individual_data_source_configs(data_sources) when is_list(data_sources), do: data_sources
 
   def load_individual_data_source_configs(config_path) when is_binary(config_path) do
     case Aircloak.File.ls(config_path) do

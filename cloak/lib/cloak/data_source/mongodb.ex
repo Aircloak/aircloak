@@ -91,10 +91,7 @@ defmodule Cloak.DataSource.MongoDB do
     sample_rate = table[:sample_rate] || 100
 
     unless is_integer(sample_rate) and sample_rate >= 1 and sample_rate <= 100,
-      do:
-        DataSource.raise_error(
-          "Sample rate for schema detection has to be an integer between 1 and 100."
-        )
+      do: DataSource.raise_error("Sample rate for schema detection has to be an integer between 1 and 100.")
 
     map_code = """
       function() {
@@ -179,8 +176,7 @@ defmodule Cloak.DataSource.MongoDB do
 
   @impl Driver
   def supports_function?(expression, data_source),
-    do:
-      function_signature(expression) in (data_source |> mongo_version() |> supported_functions())
+    do: function_signature(expression) in (data_source |> mongo_version() |> supported_functions())
 
   @impl Driver
   def driver_info(connection) do
@@ -227,14 +223,12 @@ defmodule Cloak.DataSource.MongoDB do
   defp interval_field_mapper(nil), do: nil
   defp interval_field_mapper(number), do: Timex.Duration.from_seconds(number)
 
-  defp map_fields(row, mappers),
-    do: Enum.map(mappers, fn {mapper, index} -> mapper.(row["f#{index}"]) end)
+  defp map_fields(row, mappers), do: Enum.map(mappers, fn {mapper, index} -> mapper.(row["f#{index}"]) end)
 
   defp generic_field_mapper(%BSON.ObjectId{value: value}), do: value
   defp generic_field_mapper(%BSON.Binary{binary: value}), do: value
 
-  defp generic_field_mapper(%DateTime{} = datetime),
-    do: datetime |> DateTime.to_naive() |> Cloak.Time.max_precision()
+  defp generic_field_mapper(%DateTime{} = datetime), do: datetime |> DateTime.to_naive() |> Cloak.Time.max_precision()
 
   defp generic_field_mapper(value), do: value
 
@@ -288,8 +282,7 @@ defmodule Cloak.DataSource.MongoDB do
   defp function_signature(%Expression{function?: true, function: name}), do: name
 
   defp supports_joins?(%Query{from: {:join, join}} = query) do
-    mongo_version_supports_joins?(query) and join.type == :inner_join and
-      supports_join_conditions?(join.conditions) and
+    mongo_version_supports_joins?(query) and join.type == :inner_join and supports_join_conditions?(join.conditions) and
       supports_join_branches?(query.selected_tables, join.lhs, join.rhs)
   end
 
@@ -309,8 +302,7 @@ defmodule Cloak.DataSource.MongoDB do
   defp mongo_version_supports_joins?(%{data_source: data_source}),
     do: data_source |> mongo_version() |> Version.compare("3.2.0") != :lt
 
-  defp supports_join_conditions?({:comparison, lhs, :=, rhs}),
-    do: lhs.name != nil and rhs.name != nil
+  defp supports_join_conditions?({:comparison, lhs, :=, rhs}), do: lhs.name != nil and rhs.name != nil
 
   defp supports_join_conditions?(_conditions), do: false
 

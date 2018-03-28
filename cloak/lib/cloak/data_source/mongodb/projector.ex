@@ -42,8 +42,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   def project_extra_columns(_existing_fields, []), do: []
 
   def project_extra_columns(existing_fields, extra_columns) do
-    projected_columns =
-      Enum.map(existing_fields, &{&1, true}) ++ Enum.map(extra_columns, &project_column/1)
+    projected_columns = Enum.map(existing_fields, &{&1, true}) ++ Enum.map(extra_columns, &project_column/1)
 
     [%{"$project": Enum.into(projected_columns, %{"_id" => false})}]
   end
@@ -144,8 +143,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   defp parse_function("substring", [string, from]),
     do: %{"$substrCP": [string, %{"$subtract": [from, 1]}, %{"$strLenCP": string}]}
 
-  defp parse_function("substring", [string, from, to]),
-    do: %{"$substrCP": [string, %{"$subtract": [from, 1]}, to]}
+  defp parse_function("substring", [string, from, to]), do: %{"$substrCP": [string, %{"$subtract": [from, 1]}, to]}
 
   defp parse_function("count", :*), do: %{"$sum": 1}
   defp parse_function(_, {:distinct, value}), do: %{"$addToSet": value}
@@ -206,8 +204,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
       },
       do: defp(parse_function(unquote(name), args), do: %{unquote(translation) => args})
 
-  defp parse_function("cast", [value, from, :text]) when from in [:real, :integer],
-    do: %{"$substr": [value, 0, -1]}
+  defp parse_function("cast", [value, from, :text]) when from in [:real, :integer], do: %{"$substr": [value, 0, -1]}
 
   defp parse_function("cast", [value, :integer, :real]), do: value
   defp parse_function("cast", [value, :real, :integer]), do: parse_function("round", value)
@@ -248,8 +245,5 @@ defmodule Cloak.DataSource.MongoDB.Projector do
       )
 
   defp parse_function(name, _args) when is_binary(name),
-    do:
-      DataSource.raise_error(
-        "Function `#{name}` is not supported in subqueries on MongoDB data sources."
-      )
+    do: DataSource.raise_error("Function `#{name}` is not supported in subqueries on MongoDB data sources.")
 end

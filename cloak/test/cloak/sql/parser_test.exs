@@ -453,8 +453,7 @@ defmodule Cloak.Sql.Parser.Test do
         columns: [identifier("foo")],
         from: unquoted("bar"),
         where:
-          {:and, {:comparison, identifier("a"), :<>, constant(10)},
-           {:comparison, identifier("b"), :=, constant("bar")}}
+          {:and, {:comparison, identifier("a"), :<>, constant(10)}, {:comparison, identifier("b"), :=, constant("bar")}}
       )
     )
   end
@@ -466,8 +465,7 @@ defmodule Cloak.Sql.Parser.Test do
         columns: [identifier("foo")],
         from: unquoted("bar"),
         where:
-          {:and, {:comparison, identifier("a"), :>=, constant(10)},
-           {:comparison, identifier("a"), :<, constant(20)}}
+          {:and, {:comparison, identifier("a"), :>=, constant(10)}, {:comparison, identifier("a"), :<, constant(20)}}
       )
     )
   end
@@ -486,10 +484,7 @@ defmodule Cloak.Sql.Parser.Test do
   test "where clause with NOT LIKE" do
     assert_parse(
       "select foo from bar where a NOT LIKE '%pattern%'",
-      select(
-        where:
-          {:not, {:like, identifier("a"), {:like_pattern, constant("%pattern%"), constant(nil)}}}
-      )
+      select(where: {:not, {:like, identifier("a"), {:like_pattern, constant("%pattern%"), constant(nil)}}})
     )
   end
 
@@ -507,10 +502,7 @@ defmodule Cloak.Sql.Parser.Test do
   test "where clause with NOT ILIKE" do
     assert_parse(
       "select foo from bar where a NOT ILIKE '%pattern%'",
-      select(
-        where:
-          {:not, {:ilike, identifier("a"), {:like_pattern, constant("%pattern%"), constant(nil)}}}
-      )
+      select(where: {:not, {:ilike, identifier("a"), {:like_pattern, constant("%pattern%"), constant(nil)}}})
     )
   end
 
@@ -518,20 +510,14 @@ defmodule Cloak.Sql.Parser.Test do
     test "#{word} with an escape character" do
       assert_parse(
         "select foo from bar where baz #{unquote(word)} '\\%pattern%' escape '\\'",
-        select(
-          where: {_, identifier("baz"), {:like_pattern, constant("\\%pattern%"), constant("\\")}}
-        )
+        select(where: {_, identifier("baz"), {:like_pattern, constant("\\%pattern%"), constant("\\")}})
       )
     end
 
     test "not #{word} with an escape character" do
       assert_parse(
         "select foo from bar where baz not #{unquote(word)} '\\%pattern%' escape '\\'",
-        select(
-          where:
-            {:not,
-             {_, identifier("baz"), {:like_pattern, constant("\\%pattern%"), constant("\\")}}}
-        )
+        select(where: {:not, {_, identifier("baz"), {:like_pattern, constant("\\%pattern%"), constant("\\")}}})
       )
     end
   end
@@ -562,9 +548,7 @@ defmodule Cloak.Sql.Parser.Test do
         from: unquoted("bar"),
         where:
           {:and,
-           {:and,
-            {:and, {:comparison, identifier("a"), :=, constant(2)},
-             {:in, identifier("b"), constants([1, 2, 3])}},
+           {:and, {:and, {:comparison, identifier("a"), :=, constant(2)}, {:in, identifier("b"), constants([1, 2, 3])}},
             {:like, identifier("c"), {:like_pattern, constant("_o"), constant(nil)}}},
            {:not, {:is, identifier("d"), :null}}}
       )
@@ -592,8 +576,7 @@ defmodule Cloak.Sql.Parser.Test do
         columns: [identifier("foo")],
         from: unquoted("bar"),
         where:
-          {:and, {:comparison, identifier("a"), :=, constant(true)},
-           {:in, identifier("b"), constants([true, false])}}
+          {:and, {:comparison, identifier("a"), :=, constant(true)}, {:in, identifier("b"), constants([true, false])}}
       )
     )
   end
@@ -1270,13 +1253,10 @@ defmodule Cloak.Sql.Parser.Test do
       do:
         assert_parse(
           "select a::integer::text from bar",
-          select(
-            columns: [function({:cast, :text}, [function({:cast, :integer}, [identifier("a")])])]
-          )
+          select(columns: [function({:cast, :text}, [function({:cast, :integer}, [identifier("a")])])])
         )
 
-    test "a non-datatype on RHS of ::",
-      do: assert({:error, _} = Parser.parse("select a::b from bar"))
+    test "a non-datatype on RHS of ::", do: assert({:error, _} = Parser.parse("select a::b from bar"))
   end
 
   for word <- ~w(date time datetime timestamp) do
@@ -1300,9 +1280,7 @@ defmodule Cloak.Sql.Parser.Test do
   test "quoted identifier" do
     assert_parse(
       "select \"something that wouldn't normally work as a column name\" from bar",
-      select(
-        columns: [quoted_identifier("something that wouldn't normally work as a column name")]
-      )
+      select(columns: [quoted_identifier("something that wouldn't normally work as a column name")])
     )
   end
 
@@ -1408,9 +1386,7 @@ defmodule Cloak.Sql.Parser.Test do
     assert_parse(
       "select count(*) from x where a > 0 or a <> 2",
       select(
-        where:
-          {:or, {:comparison, identifier("a"), :>, constant(0)},
-           {:comparison, identifier("a"), :<>, constant(2)}}
+        where: {:or, {:comparison, identifier("a"), :>, constant(0)}, {:comparison, identifier("a"), :<>, constant(2)}}
       )
     )
   end
@@ -1421,8 +1397,7 @@ defmodule Cloak.Sql.Parser.Test do
       select(
         where:
           {:or, {:comparison, identifier("a"), :>, constant(0)},
-           {:and, {:comparison, identifier("a"), :<>, constant(2)},
-            {:comparison, identifier("b"), :=, constant(3)}}}
+           {:and, {:comparison, identifier("a"), :<>, constant(2)}, {:comparison, identifier("b"), :=, constant(3)}}}
       )
     )
   end
@@ -1433,8 +1408,7 @@ defmodule Cloak.Sql.Parser.Test do
       select(
         where:
           {:or,
-           {:and, {:comparison, identifier("a"), :>, constant(0)},
-            {:comparison, identifier("a"), :<>, constant(2)}},
+           {:and, {:comparison, identifier("a"), :>, constant(0)}, {:comparison, identifier("a"), :<>, constant(2)}},
            {:comparison, identifier("b"), :=, constant(3)}}
       )
     )
@@ -1446,8 +1420,7 @@ defmodule Cloak.Sql.Parser.Test do
       select(
         having:
           {:or, {:comparison, identifier("a"), :>, constant(0)},
-           {:and, {:comparison, identifier("a"), :<>, constant(2)},
-            {:comparison, identifier("b"), :=, constant(3)}}}
+           {:and, {:comparison, identifier("a"), :<>, constant(2)}, {:comparison, identifier("b"), :=, constant(3)}}}
       )
     )
   end
@@ -1473,8 +1446,7 @@ defmodule Cloak.Sql.Parser.Test do
       select(
         where:
           {:and,
-           {:or, {:comparison, identifier("a"), :>, constant(0)},
-            {:comparison, identifier("a"), :<>, constant(2)}},
+           {:or, {:comparison, identifier("a"), :>, constant(0)}, {:comparison, identifier("a"), :<>, constant(2)}},
            {:comparison, identifier("b"), :=, constant(3)}}
       )
     )
@@ -1486,8 +1458,7 @@ defmodule Cloak.Sql.Parser.Test do
       select(
         having:
           {:and,
-           {:or, {:comparison, identifier("a"), :>, constant(0)},
-            {:comparison, identifier("a"), :<>, constant(2)}},
+           {:or, {:comparison, identifier("a"), :>, constant(0)}, {:comparison, identifier("a"), :<>, constant(2)}},
            {:comparison, identifier("b"), :=, constant(3)}}
       )
     )
@@ -1499,8 +1470,7 @@ defmodule Cloak.Sql.Parser.Test do
       select(
         having:
           {:and,
-           {:or, {:comparison, identifier("a"), :>, constant(0)},
-            {:comparison, identifier("a"), :<>, constant(2)}},
+           {:or, {:comparison, identifier("a"), :>, constant(0)}, {:comparison, identifier("a"), :<>, constant(2)}},
            {:comparison, identifier("b"), :=, constant(3)}}
       )
     )
@@ -1532,8 +1502,7 @@ defmodule Cloak.Sql.Parser.Test do
         select(columns: [identifier("foo")], from: {unquoted("baz"), :as, "b"})
       )
 
-  test "select all from a table",
-    do: assert_parse("select foo.* from foo", select(columns: [{:*, "foo"}]))
+  test "select all from a table", do: assert_parse("select foo.* from foo", select(columns: [{:*, "foo"}]))
 
   test "select all from a quoted table",
     do: assert_parse("select \"foo bar\".* from foo", select(columns: [{:*, "foo bar"}]))
@@ -1545,11 +1514,9 @@ defmodule Cloak.Sql.Parser.Test do
         select(columns: [identifier("x"), {:*, "foo"}, identifier("y"), {:*, "bar"}])
       )
 
-  test "sample from table",
-    do: assert_parse("select x from foo sample_users 10%", select(sample_rate: 10))
+  test "sample from table", do: assert_parse("select x from foo sample_users 10%", select(sample_rate: 10))
 
-  test "sample under 1%",
-    do: assert_parse("select x from foo sample_users 0.44%", select(sample_rate: 0.44))
+  test "sample under 1%", do: assert_parse("select x from foo sample_users 0.44%", select(sample_rate: 0.44))
 
   describe "unary NOT" do
     test "with a simple condition",
@@ -1566,8 +1533,7 @@ defmodule Cloak.Sql.Parser.Test do
           select(
             where:
               {:not,
-               {:or, {:comparison, identifier("x"), :=, constant(1)},
-                {:comparison, identifier("y"), :=, constant(2)}}}
+               {:or, {:comparison, identifier("x"), :=, constant(1)}, {:comparison, identifier("y"), :=, constant(2)}}}
           )
         )
 
@@ -1578,8 +1544,7 @@ defmodule Cloak.Sql.Parser.Test do
           select(
             having:
               {:not,
-               {:or, {:comparison, identifier("x"), :=, constant(1)},
-                {:comparison, identifier("y"), :=, constant(2)}}}
+               {:or, {:comparison, identifier("x"), :=, constant(1)}, {:comparison, identifier("y"), :=, constant(2)}}}
           )
         )
 
@@ -1587,10 +1552,7 @@ defmodule Cloak.Sql.Parser.Test do
       do:
         assert_parse(
           "select count(*) from foo join bar ON NOT a = b",
-          select(
-            from:
-              {:join, %{conditions: {:not, {:comparison, identifier("a"), :=, identifier("b")}}}}
-          )
+          select(from: {:join, %{conditions: {:not, {:comparison, identifier("a"), :=, identifier("b")}}}})
         )
 
     test "many NOTs",
@@ -1611,104 +1573,76 @@ defmodule Cloak.Sql.Parser.Test do
 
   Enum.each(
     [
-      {"single quote is not allowed in the identifier", "select fo'o from baz", "Expected `from`",
-       {1, 10}},
-      {"identifier can't start with a number", "select 1foo from baz",
-       "Expected `column definition`", {1, 8}},
-      {"keyword is not identifier", "select select from baz", "Expected `column definition`",
-       {1, 8}},
+      {"single quote is not allowed in the identifier", "select fo'o from baz", "Expected `from`", {1, 10}},
+      {"identifier can't start with a number", "select 1foo from baz", "Expected `column definition`", {1, 8}},
+      {"keyword is not identifier", "select select from baz", "Expected `column definition`", {1, 8}},
       {"from table is required", "select foo", "`from`", {1, 11}},
-      {"at least one column must be specified", "select from baz", "Expected `column definition`",
-       {1, 8}},
-      {"columns must be separated with a comma", "select foo bar from baz", "Expected `from`",
-       {1, 12}},
-      {"query must start with a select or show", "foo select foo bar from baz",
-       "Expected `select or show`", {1, 1}},
+      {"at least one column must be specified", "select from baz", "Expected `column definition`", {1, 8}},
+      {"columns must be separated with a comma", "select foo bar from baz", "Expected `from`", {1, 12}},
+      {"query must start with a select or show", "foo select foo bar from baz", "Expected `select or show`", {1, 1}},
       {"show requires tables or columns", "show foobar", "Expected `tables or columns`", {1, 6}},
       {"show columns requires `from`", "show columns", "Expected `from`", {1, 13}},
       {"show columns requires a table", "show columns from", "Expected `table name`", {1, 18}},
-      {"show columns works only with one table", "show columns from foo, bar",
-       "Expected end of input", {1, 22}},
-      {"!= is an illegal comparator in where clause", "select a from b where a != b",
-       "Expected end of input", {1, 25}},
-      {"=> is an illegal comparator in where clause", "select a from b where a => b",
-       "Expected `comparison value`", {1, 26}},
-      {"=< is an illegal comparator in where clause", "select a from b where a =< b",
-       "Expected `comparison value`", {1, 26}},
-      {"not joining multiple where clauses is illegal", "select a from b where a > 1 b < 2",
-       "Expected end of input", {1, 29}},
-      {"on clause not allowed in a cross join", "select a from b cross join c on foo=bar",
-       "Expected end of input", {1, 30}},
-      {"count requires parens", "select count * from foo", "Expected `column definition`",
-       {1, 16}},
-      {"aggregation function requires parens", "select sum price from foo", "Expected `from`",
-       {1, 12}},
+      {"show columns works only with one table", "show columns from foo, bar", "Expected end of input", {1, 22}},
+      {"!= is an illegal comparator in where clause", "select a from b where a != b", "Expected end of input", {1, 25}},
+      {"=> is an illegal comparator in where clause", "select a from b where a => b", "Expected `comparison value`",
+       {1, 26}},
+      {"=< is an illegal comparator in where clause", "select a from b where a =< b", "Expected `comparison value`",
+       {1, 26}},
+      {"not joining multiple where clauses is illegal", "select a from b where a > 1 b < 2", "Expected end of input",
+       {1, 29}},
+      {"on clause not allowed in a cross join", "select a from b cross join c on foo=bar", "Expected end of input",
+       {1, 30}},
+      {"count requires parens", "select count * from foo", "Expected `column definition`", {1, 16}},
+      {"aggregation function requires parens", "select sum price from foo", "Expected `from`", {1, 12}},
       {"'by' has to follow 'order'", "select a from foo order a asc", "Expected `by`", {1, 25}},
       {"'by' has to follow 'group'", "select a from foo group a", "Expected `by`", {1, 25}},
-      {"order by fields needs to be comma separated", "select a, b, c from foo order by a b",
-       "Expected end of input", {1, 36}},
-      {"invalid like", "select foo from bar where baz like", "Expected `string constant`",
-       {1, 35}},
-      {"invalid like type", "select foo from bar where baz like 10", "Expected `string constant`",
+      {"order by fields needs to be comma separated", "select a, b, c from foo order by a b", "Expected end of input",
        {1, 36}},
+      {"invalid like", "select foo from bar where baz like", "Expected `string constant`", {1, 35}},
+      {"invalid like type", "select foo from bar where baz like 10", "Expected `string constant`", {1, 36}},
       {"invalid in", "select foo from bar where baz in", "Expected `(`", {1, 33}},
       {"invalid is", "select foo from bar where baz is", "Expected `null`", {1, 33}},
-      {"invalid comparison", "select foo from bar where baz =", "Expected `comparison value`",
-       {1, 32}},
-      {"missing where expression", "select foo from bar where", "Expected `column definition`",
-       {1, 26}},
-      {"invalid where expression", "select foo from bar where foo bar", "Expected end of input",
-       {1, 31}},
-      {"no input allowed after the statement", "select foo from bar baz qux",
-       "Expected end of input", {1, 25}},
+      {"invalid comparison", "select foo from bar where baz =", "Expected `comparison value`", {1, 32}},
+      {"missing where expression", "select foo from bar where", "Expected `column definition`", {1, 26}},
+      {"invalid where expression", "select foo from bar where foo bar", "Expected end of input", {1, 31}},
+      {"no input allowed after the statement", "select foo from bar baz qux", "Expected end of input", {1, 25}},
       {"error after spaces", "   invalid_statement", "Expected `select or show`", {1, 4}},
-      {"initial error after spaces and newlines", "  \n  \n invalid_statement",
-       "Expected `select or show`", {3, 2}},
+      {"initial error after spaces and newlines", "  \n  \n invalid_statement", "Expected `select or show`", {3, 2}},
       {"assert at least one table", "select foo from", "Expected `table name`", {1, 16}},
-      {"extended trim with two columns", "select trim(both a from b) from foo", "Expected `)`",
-       {1, 20}},
-      {"invalid interval", "select interval 'does not parse' from foo",
-       "Expected `column definition`", {1, 8}},
-      {"inequality between two columns", "select count(*) from foo where bar < baz",
-       "Expected `constant`", {1, 38}},
+      {"extended trim with two columns", "select trim(both a from b) from foo", "Expected `)`", {1, 20}},
+      {"invalid interval", "select interval 'does not parse' from foo", "Expected `column definition`", {1, 8}},
+      {"inequality between two columns", "select count(*) from foo where bar < baz", "Expected `constant`", {1, 38}},
       {"table can't be parameterized", "select x from $1", "Expected `table name`", {1, 15}},
       # parsed subqueries
-      {"unclosed parens in a parsed subquery expression", "select foo from (select bar from baz",
-       "Expected `)`", {1, 37}},
+      {"unclosed parens in a parsed subquery expression", "select foo from (select bar from baz", "Expected `)`",
+       {1, 37}},
       {"empty parsed subquery expression", "select foo from ()", "Expected `select`", {1, 18}},
       {"missing alias in a parsed subquery expression", "select foo from (select bar from baz)",
        "Expected `subquery alias`", {1, 38}},
-      {"missing alias after AS in an parsed subquery expression",
-       "select foo from (select bar from baz) AS", "Expected `subquery alias`", {1, 41}},
-      {"invalid subquery in a join", "select foo from bar cross join (select) alias",
-       "Expected `column definition`", {1, 39}},
-      {"invalid column other than the first one", "select foo, & from foo",
-       "Expected `column definition`", {1, 13}},
-      {"error inside an item in the select list", "select foo, cast(3 as) from foo",
-       "Expected `type name`", {1, 22}},
+      {"missing alias after AS in an parsed subquery expression", "select foo from (select bar from baz) AS",
+       "Expected `subquery alias`", {1, 41}},
+      {"invalid subquery in a join", "select foo from bar cross join (select) alias", "Expected `column definition`",
+       {1, 39}},
+      {"invalid column other than the first one", "select foo, & from foo", "Expected `column definition`", {1, 13}},
+      {"error inside an item in the select list", "select foo, cast(3 as) from foo", "Expected `type name`", {1, 22}},
       {"wrong cast", "select cast(foo as bar) from baz", "Expected `type name`", {1, 20}},
-      {"bucket size is not constant", "select bucket(foo by bar) from baz",
-       "Expected `numeric constant`", {1, 22}},
+      {"bucket size is not constant", "select bucket(foo by bar) from baz", "Expected `numeric constant`", {1, 22}},
       {"bad bucket align part", "select bucket(foo by 10 by) from baz", "Expected `)`", {1, 25}},
-      {"error on incomplete qualified select column", "select foo. from bar", "Expected `from`",
-       {1, 11}},
-      {"invalid quoted column name", "select \"x\".\"y\".\"z\" from baz", "Expected `from`",
-       {1, 15}},
-      {"invalid mixed quote column name", "select \"x\".y.\"z\" from baz", "Expected `from`",
-       {1, 13}},
-      {"invalid nulls directive", "select foo from bar order by baz nulls whatever",
-       "Expected `one of first, last`", {1, 40}},
-      {"nulls directive with a quoted identifier",
-       "select foo from bar order by baz nulls \"first\"", "Expected `one of first, last`",
+      {"error on incomplete qualified select column", "select foo. from bar", "Expected `from`", {1, 11}},
+      {"invalid quoted column name", "select \"x\".\"y\".\"z\" from baz", "Expected `from`", {1, 15}},
+      {"invalid mixed quote column name", "select \"x\".y.\"z\" from baz", "Expected `from`", {1, 13}},
+      {"invalid nulls directive", "select foo from bar order by baz nulls whatever", "Expected `one of first, last`",
        {1, 40}},
+      {"nulls directive with a quoted identifier", "select foo from bar order by baz nulls \"first\"",
+       "Expected `one of first, last`", {1, 40}},
       {"incomplete substring in where", "select * from foo where substring(lower(bar, 1, 1) = 3",
        "Expected `substring arguments`", {1, 52}},
-      {"inequality with non-constant RHS", "select * from foo where bar < baz + 1 and x = 1",
-       "Expected `constant`", {1, 31}},
+      {"inequality with non-constant RHS", "select * from foo where bar < baz + 1 and x = 1", "Expected `constant`",
+       {1, 31}},
       {"condition with non-constant RHS at end of boolean expression",
        "select * from foo where x = 1 and bar < baz + 1", "Expected `constant`", {1, 41}},
-      {"invalid extract part", "select extract(invalid from date) from table",
-       "Expected `date part`", {1, 16}}
+      {"invalid extract part", "select extract(invalid from date) from table", "Expected `date part`", {1, 16}}
     ],
     fn {description, statement, expected_error, {line, column}} ->
       create_test.(description, statement, expected_error, line, column)
@@ -1716,8 +1650,7 @@ defmodule Cloak.Sql.Parser.Test do
   )
 
   describe "parse!" do
-    test "returns parsed query if OK",
-      do: assert(select([]) = Parser.parse!("select foo from bar"))
+    test "returns parsed query if OK", do: assert(select([]) = Parser.parse!("select foo from bar"))
 
     test "raises ParseError with location if error" do
       error =

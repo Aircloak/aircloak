@@ -64,8 +64,7 @@ defmodule Compliance.DataSource.SQLServer do
     columns = column_names |> escaped_column_names() |> Enum.join(", ")
     row_placeholders = column_names |> Stream.map(fn _column -> "?" end) |> Enum.join(",")
 
-    all_placeholders =
-      rows |> Stream.map(fn _row -> "(#{row_placeholders})" end) |> Enum.join(", ")
+    all_placeholders = rows |> Stream.map(fn _row -> "(#{row_placeholders})" end) |> Enum.join(", ")
 
     query = "
       INSERT INTO #{table_name}(#{columns})

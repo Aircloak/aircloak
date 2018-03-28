@@ -111,8 +111,7 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp normalize_from({_table_identifier, :as, alias}, _data_source), do: alias
 
-  defp normalize_from(table_identifier, data_source),
-    do: find_table!(data_source, table_identifier).name
+  defp normalize_from(table_identifier, data_source), do: find_table!(data_source, table_identifier).name
 
   defp find_table!(data_source, table_identifier = {_, table_name}) do
     case data_source |> DataSource.tables() |> find_table(table_identifier) do
@@ -123,8 +122,7 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp find_table(tables, {:quoted, name}), do: Enum.find(tables, &(name == &1.name))
 
-  defp find_table(tables, {:unquoted, name}),
-    do: Enum.find(tables, &insensitive_equal?(name, &1.name))
+  defp find_table(tables, {:unquoted, name}), do: Enum.find(tables, &insensitive_equal?(name, &1.name))
 
   defp insensitive_equal?(s1, s2), do: String.downcase(s1) == String.downcase(s2)
 
@@ -138,8 +136,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   end
 
   defp do_compile_views({:join, join}, query) do
-    {:join,
-     %{join | lhs: do_compile_views(join.lhs, query), rhs: do_compile_views(join.rhs, query)}}
+    {:join, %{join | lhs: do_compile_views(join.lhs, query), rhs: do_compile_views(join.rhs, query)}}
   end
 
   defp do_compile_views({_, name} = table_or_view, query) when is_binary(name) do
@@ -163,8 +160,7 @@ defmodule Cloak.Sql.Compiler.Specification do
          insensitive_equal?(table.name, view_name)
        end) do
       raise CompilationError,
-        message:
-          "There is both a table, and a view named `#{view_name}`. Rename the view to resolve the conflict."
+        message: "There is both a table, and a view named `#{view_name}`. Rename the view to resolve the conflict."
     end
 
     case Cloak.Sql.Parser.parse(view_sql) do
@@ -200,11 +196,9 @@ defmodule Cloak.Sql.Compiler.Specification do
   # Selected tables
   # -------------------------------------------------------------------
 
-  defp compile_selected_tables(query),
-    do: %Query{query | selected_tables: selected_tables(query.from, query)}
+  defp compile_selected_tables(query), do: %Query{query | selected_tables: selected_tables(query.from, query)}
 
-  defp selected_tables({:join, join}, query),
-    do: selected_tables(join.lhs, query) ++ selected_tables(join.rhs, query)
+  defp selected_tables({:join, join}, query), do: selected_tables(join.lhs, query) ++ selected_tables(join.rhs, query)
 
   defp selected_tables({:subquery, subquery}, _query) do
     user_id_name =
@@ -235,8 +229,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     do: [%{table_from_name_or_alias!(query, table_name) | name: table_name}]
 
   defp table_from_name_or_alias!(query, table_name) do
-    table =
-      Map.get(query.table_aliases, table_name, DataSource.table(query.data_source, table_name))
+    table = Map.get(query.table_aliases, table_name, DataSource.table(query.data_source, table_name))
 
     true = table != nil
     table
@@ -282,10 +275,8 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp add_parameter_types_from_casts(query),
     do:
-      Enum.reduce(get_in(query, [Lenses.raw_parameter_casts()]), query, fn {:function,
-                                                                            {:cast, type},
-                                                                            [{:parameter, index}],
-                                                                            _location},
+      Enum.reduce(get_in(query, [Lenses.raw_parameter_casts()]), query, fn {:function, {:cast, type},
+                                                                            [{:parameter, index}], _location},
                                                                            query ->
         Query.set_parameter_type(query, index, type)
       end)
@@ -365,9 +356,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         column -> column
       end)
 
-    order_by =
-      for {column, direction, nulls} <- query.order_by,
-          do: {resolve_alias(aliases, column), direction, nulls}
+    order_by = for {column, direction, nulls} <- query.order_by, do: {resolve_alias(aliases, column), direction, nulls}
 
     group_by = for identifier <- query.group_by, do: resolve_alias(aliases, identifier)
     where = update_in(query.where, [Lenses.conditions_terminals()], &resolve_alias(aliases, &1))
@@ -398,8 +387,7 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp column_title({:function, name, _, _}, _selected_tables), do: Function.readable_name(name)
 
-  defp column_title({:distinct, identifier}, selected_tables),
-    do: column_title(identifier, selected_tables)
+  defp column_title({:distinct, identifier}, selected_tables), do: column_title(identifier, selected_tables)
 
   # This is needed for data sources that support dotted names for fields (MongoDB)
   defp column_title({:identifier, {:unquoted, table}, {:unquoted, column}, _}, selected_tables),
@@ -454,8 +442,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     map_terminal_elements(query, &identifier_to_column(&1, columns_by_name, query))
   end
 
-  defp map_terminal_elements(query, mapper_fun),
-    do: Lens.map(Lenses.terminals(), query, mapper_fun)
+  defp map_terminal_elements(query, mapper_fun), do: Lens.map(Lenses.terminals(), query, mapper_fun)
 
   defp normalize_table_name(
          {:identifier, table_identifier = {_, name}, column, location},
@@ -618,9 +605,8 @@ defmodule Cloak.Sql.Compiler.Specification do
           " for `#{Function.readable_name(name)}`."
 
       true ->
-        "Function `#{Function.readable_name(name)}` requires arguments of type #{
-          expected_types(function_call)
-        }" <> ", but got (#{function_call |> actual_types() |> quoted_types()})."
+        "Function `#{Function.readable_name(name)}` requires arguments of type #{expected_types(function_call)}" <>
+          ", but got (#{function_call |> actual_types() |> quoted_types()})."
     end
   end
 
@@ -684,8 +670,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         raise(
           CompilationError,
           source_location: reference.source_location,
-          message:
-            "`#{clause_name}` position `#{reference.value}` is out of the range of selected columns."
+          message: "`#{clause_name}` position `#{reference.value}` is out of the range of selected columns."
         )
 
     Enum.at(query.columns, reference.value - 1)
@@ -746,8 +731,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp do_parse_time(string, :date) when is_binary(string), do: Cloak.Time.parse_date(string)
   defp do_parse_time(string, :time) when is_binary(string), do: Cloak.Time.parse_time(string)
 
-  defp do_parse_time(string, :datetime) when is_binary(string),
-    do: Cloak.Time.parse_datetime(string)
+  defp do_parse_time(string, :datetime) when is_binary(string), do: Cloak.Time.parse_datetime(string)
 
   defp do_parse_time(_, _), do: {:error, :invalid_cast}
 

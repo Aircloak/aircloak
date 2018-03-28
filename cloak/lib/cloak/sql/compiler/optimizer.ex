@@ -18,8 +18,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   @spec optimize(Query.t()) :: Query.t()
   def optimize(%Query{command: :show} = query), do: query
 
-  def optimize(%Query{command: :select} = query),
-    do: Helpers.apply_top_down(query, &optimize_query/1)
+  def optimize(%Query{command: :select} = query), do: Helpers.apply_top_down(query, &optimize_query/1)
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -79,8 +78,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
 
     branch_with_moved_conditions =
       Lens.map(subqueries(), branch, fn subquery ->
-        simple_conditions =
-          Condition.reject(conditions, &(not simple_condition?.(&1, subquery.alias)))
+        simple_conditions = Condition.reject(conditions, &(not simple_condition?.(&1, subquery.alias)))
 
         %{subquery | ast: move_conditions_into_subquery(subquery.ast, simple_conditions)}
       end)
@@ -114,9 +112,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
       |> Enum.reduce(conditions, filter)
 
   defp has_outer_join?({:join, join}),
-    do:
-      join.type in [:left_outer_join, :right_outer_join] or has_outer_join?(join.lhs) or
-        has_outer_join?(join.rhs)
+    do: join.type in [:left_outer_join, :right_outer_join] or has_outer_join?(join.lhs) or has_outer_join?(join.rhs)
 
   defp has_outer_join?(_), do: false
 

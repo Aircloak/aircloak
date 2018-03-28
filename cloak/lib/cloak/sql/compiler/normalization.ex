@@ -46,8 +46,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # Removing source location
   # -------------------------------------------------------------------
 
-  defp strip_source_location(query),
-    do: update_in(query, [Query.Lenses.query_expressions()], &Expression.semantic/1)
+  defp strip_source_location(query), do: update_in(query, [Query.Lenses.query_expressions()], &Expression.semantic/1)
 
   # -------------------------------------------------------------------
   # Removing useless casts
@@ -83,8 +82,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # Collapsing constant expressions
   # -------------------------------------------------------------------
 
-  defp normalize_constants(query),
-    do: update_in(query, [Query.Lenses.terminals()], &do_normalize_constants/1)
+  defp normalize_constants(query), do: update_in(query, [Query.Lenses.terminals()], &do_normalize_constants/1)
 
   defp do_normalize_constants(expression = %Expression{function?: true, aggregate?: false}) do
     if Expression.constant?(expression) do
@@ -114,8 +112,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
           {:comparison, lhs, :=, LikePattern.trivial_to_string(rhs)}
 
         {:ilike, lhs, rhs} ->
-          {:comparison, Expression.lowercase(lhs), :=,
-           rhs |> Expression.lowercase() |> LikePattern.trivial_to_string()}
+          {:comparison, Expression.lowercase(lhs), :=, rhs |> Expression.lowercase() |> LikePattern.trivial_to_string()}
 
         {:not, {:like, lhs, rhs}} ->
           {:comparison, lhs, :<>, LikePattern.trivial_to_string(rhs)}

@@ -40,8 +40,7 @@ defmodule Cloak.Test.DB do
     |> Enum.each(fn data_source ->
       # check if driver supports direct query execution
       if data_source.driver.__info__(:functions)[:execute] do
-        connection =
-          Process.get({:connection, data_source.name}) || create_connection(data_source)
+        connection = Process.get({:connection, data_source.name}) || create_connection(data_source)
 
         {:ok, _result} = data_source.driver.execute(connection, statement, parameters)
       end
@@ -118,8 +117,7 @@ defmodule Cloak.Test.DB do
     if opts[:skip_db_create] do
       :ok
     else
-      user_id_column =
-        if Keyword.get(opts, :add_user_id, true), do: "user_id VARCHAR(64),", else: ""
+      user_id_column = if Keyword.get(opts, :add_user_id, true), do: "user_id VARCHAR(64),", else: ""
 
       execute!(
         "CREATE TABLE #{sanitized_table(db_name)} (#{user_id_column} #{definition})",

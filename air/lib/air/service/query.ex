@@ -67,9 +67,7 @@ defmodule Air.Service.Query do
           statement: q.statement,
           error: fragment("?->>'error'", q.result)
         },
-        where:
-          not is_nil(q.statement) and q.statement != "" and
-            fragment("?->>'error' <> ''", q.result),
+        where: not is_nil(q.statement) and q.statement != "" and fragment("?->>'error' <> ''", q.result),
         order_by: [desc: q.inserted_at]
       )
 
@@ -160,8 +158,7 @@ defmodule Air.Service.Query do
   def process_result(result) do
     query = Repo.get!(Query, result.query_id) |> Repo.preload([:user])
 
-    if valid_state_transition?(query.query_state, query_state(result)),
-      do: do_process_result(query, result)
+    if valid_state_transition?(query.query_state, query_state(result)), do: do_process_result(query, result)
 
     Logger.info("processed result for query #{result.query_id}")
     :ok
@@ -260,9 +257,7 @@ defmodule Air.Service.Query do
        do: false
 
   defp valid_state_transition?(current_state, next_state),
-    do:
-      Enum.find_index(@state_order, &(&1 == current_state)) <
-        Enum.find_index(@state_order, &(&1 == next_state))
+    do: Enum.find_index(@state_order, &(&1 == current_state)) < Enum.find_index(@state_order, &(&1 == next_state))
 
   defp query_state(%{error: error}) when is_binary(error), do: :error
   defp query_state(%{cancelled: true}), do: :cancelled
@@ -367,8 +362,7 @@ defmodule Air.Service.Query do
   end
 
   defp result_chunks(query_id, :all),
-    do:
-      from(chunk in ResultChunk, where: chunk.query_id == ^query_id, order_by: [asc: chunk.index])
+    do: from(chunk in ResultChunk, where: chunk.query_id == ^query_id, order_by: [asc: chunk.index])
 
   defp result_chunks(query_id, chunk_index),
     do: from(chunk in result_chunks(query_id, :all), where: chunk.index == ^chunk_index)

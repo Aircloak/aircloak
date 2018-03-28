@@ -203,8 +203,7 @@ defmodule Cloak.AirSocket do
       :ok ->
         timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
 
-        {:noreply,
-         put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
+        {:noreply, put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
 
       {:error, error} ->
         {:reply, {:error, error}, state}
@@ -342,8 +341,7 @@ defmodule Cloak.AirSocket do
     :ok
   end
 
-  @spec call_air(GenServer.server(), String.t(), String.t(), map, pos_integer) ::
-          :ok | {:error, any}
+  @spec call_air(GenServer.server(), String.t(), String.t(), map, pos_integer) :: :ok | {:error, any}
   defp call_air(socket, topic, event, payload, timeout) do
     request_id = make_ref() |> :erlang.term_to_binary() |> Base.encode64()
 
@@ -419,8 +417,7 @@ defmodule Cloak.AirSocket do
     |> Enum.map(&Task.await/1)
   end
 
-  defp get_salt_hash(),
-    do: :crypto.hash(:sha256, Cloak.Query.Anonymizer.config(:salt)) |> Base.encode16()
+  defp get_salt_hash(), do: :crypto.hash(:sha256, Cloak.Query.Anonymizer.config(:salt)) |> Base.encode16()
 
   if Mix.env() == :dev do
     # suppressing of some common log messages in dev env to avoid excessive noise

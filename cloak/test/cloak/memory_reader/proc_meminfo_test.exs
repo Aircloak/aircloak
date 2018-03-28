@@ -4,18 +4,13 @@ defmodule Cloak.MemoryReader.ProcMemInfoTest do
   alias Cloak.MemoryReader.ProcMemInfo
 
   test "parses meminfo data",
-    do:
-      assert(
-        %ProcMemInfo{total_memory: 2_047_144, available_memory: 1_716_936} ==
-          ProcMemInfo.parse(meminfo())
-      )
+    do: assert(%ProcMemInfo{total_memory: 2_047_144, available_memory: 1_716_936} == ProcMemInfo.parse(meminfo()))
 
   test "returns values on any system" do
     # This test should validate that we have a fallback system producing
     # values when it is run on non-Linux kernel systems. When
     # run on Linux systems this test is for all intents and purposes a noop.
-    assert %ProcMemInfo{total_memory: total_memory, available_memory: available_memory} =
-             ProcMemInfo.read()
+    assert %ProcMemInfo{total_memory: total_memory, available_memory: available_memory} = ProcMemInfo.read()
 
     assert total_memory >= 0
     assert available_memory >= 0

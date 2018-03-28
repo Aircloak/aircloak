@@ -21,8 +21,7 @@ defmodule AirWeb.Admin.UserController do
   # -------------------------------------------------------------------
 
   def index(conn, _params),
-    do:
-      render(conn, "index.html", users: User.all(), data_sources_count: User.data_sources_count())
+    do: render(conn, "index.html", users: User.all(), data_sources_count: User.data_sources_count())
 
   def new(conn, _params), do: render(conn, "new.html", changeset: User.empty_changeset())
 

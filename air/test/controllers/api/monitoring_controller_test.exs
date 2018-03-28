@@ -20,7 +20,6 @@ defmodule AirWeb.API.MonitoringController.Test do
       |> response(200)
       |> Poison.decode!()
 
-    for expected_key <- ~w(cloaks data_sources groups users version),
-        do: assert(Map.has_key?(body, expected_key))
+    for expected_key <- ~w(cloaks data_sources groups users version), do: assert(Map.has_key?(body, expected_key))
   end
 end

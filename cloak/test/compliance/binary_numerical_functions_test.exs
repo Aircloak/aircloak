@@ -28,8 +28,7 @@ Enum.each(
 
       Enum.each(columns, fn {column, table, uid} ->
         @tag compliance: "#{function} #{column} #{table} parameter 1 subquery"
-        test "#{function} on input column #{column} from table #{table} as parameter 1, in a sub-query",
-             context do
+        test "#{function} on input column #{column} from table #{table} as parameter 1, in a sub-query", context do
           context
           |> assert_consistent_and_not_failing("""
             SELECT
@@ -46,8 +45,7 @@ Enum.each(
 
         if test_reverse_parameters? do
           @tag compliance: "#{function} #{column} #{table} parameter 2 subquery"
-          test "#{function} on input column #{column} from table #{table} as parameter 2, in a sub-query",
-               context do
+          test "#{function} on input column #{column} from table #{table} as parameter 2, in a sub-query", context do
             context
             |> assert_consistent_and_not_failing("""
               SELECT
@@ -64,8 +62,7 @@ Enum.each(
         end
 
         @tag compliance: "#{function} #{column} #{table} parameter 1 query"
-        test "#{function} on input column #{column} from table #{table} as parameter 1, in main query",
-             context do
+        test "#{function} on input column #{column} from table #{table} as parameter 1, in main query", context do
           context
           |> assert_consistent_and_not_failing("""
             SELECT
@@ -77,8 +74,7 @@ Enum.each(
 
         if test_reverse_parameters? do
           @tag compliance: "#{function} #{column} #{table} parameter 2 query"
-          test "#{function} on input column #{column} from table #{table} as parameter 2, in main query",
-               context do
+          test "#{function} on input column #{column} from table #{table} as parameter 2, in main query", context do
             context
             |> assert_consistent_and_not_failing("""
               SELECT

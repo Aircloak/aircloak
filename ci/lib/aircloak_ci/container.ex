@@ -34,8 +34,7 @@ defmodule AircloakCI.Container do
 
   @doc "Builds the container image."
   @spec build(String.t(), String.t()) :: :ok | {:error, String.t()}
-  def build(script, log_file),
-    do: invoke_script(script, "build_image", log_file, timeout: :timer.hours(1))
+  def build(script, log_file), do: invoke_script(script, "build_image", log_file, timeout: :timer.hours(1))
 
   @doc "Starts the container and logs the output to the provided log file."
   @spec start(String.t(), String.t()) :: {:ok, t} | {:error, String.t()}
@@ -43,8 +42,7 @@ defmodule AircloakCI.Container do
     container = new(script, log_file)
     register(container)
 
-    with :ok <- invoke_script(container, "start_container #{container.name}"),
-         do: {:ok, container}
+    with :ok <- invoke_script(container, "start_container #{container.name}"), do: {:ok, container}
   end
 
   @doc "Stops the container, its child containers, and associated networks."
@@ -55,8 +53,7 @@ defmodule AircloakCI.Container do
   end
 
   @doc "Starts the container, executes the provided lambda, stops the container, and returns the lambda result."
-  @spec with(String.t(), String.t(), (t -> :ok | {:error, String.t()})) ::
-          :ok | {:error, String.t()}
+  @spec with(String.t(), String.t(), (t -> :ok | {:error, String.t()})) :: :ok | {:error, String.t()}
   def with(script, log_file, fun) do
     with {:ok, container} <- start(script, log_file) do
       {:ok, cleaner_pid} = start_cleaner(container.name)
@@ -77,16 +74,13 @@ defmodule AircloakCI.Container do
   containers, and executes some commands in the container.
   """
   @spec invoke_script(t, String.t(), CmdRunner.opts()) :: :ok | {:error, String.t()}
-  def invoke_script(container, cmd, opts \\ []),
-    do: invoke_script(container.script, cmd, container.log_file, opts)
+  def invoke_script(container, cmd, opts \\ []), do: invoke_script(container.script, cmd, container.log_file, opts)
 
   @doc "Executes the command sequence in the container, stops on first error."
   @spec exec(t, [String.t()], CmdRunner.opts()) :: :ok | {:error, String.t()}
   def exec(container, commands, opts \\ []) do
     case commands
-         |> Stream.map(
-           &invoke_script(container, "run_in_container #{container.name} #{&1}", opts)
-         )
+         |> Stream.map(&invoke_script(container, "run_in_container #{container.name} #{&1}", opts))
          |> Stream.drop_while(&match?(:ok, &1))
          |> Enum.take(1) do
       [] -> :ok
@@ -120,8 +114,7 @@ defmodule AircloakCI.Container do
     cleanup()
   end
 
-  defp dangling(docker_names),
-    do: Enum.reduce(registered_names(), docker_names, &remove_associated(&2, &1))
+  defp dangling(docker_names), do: Enum.reduce(registered_names(), docker_names, &remove_associated(&2, &1))
 
   defp registered_names(),
     do:

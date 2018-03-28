@@ -14,8 +14,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   @spec build(Query.t(), atom) :: String.t()
   @doc "Constructs a parametrized SQL query that can be executed against a backend."
-  def build(query, sql_dialect_module),
-    do: query |> build_fragments(sql_dialect_module) |> to_string()
+  def build(query, sql_dialect_module), do: query |> build_fragments(sql_dialect_module) |> to_string()
 
   # -------------------------------------------------------------------
   # Transformation of query AST to query specification
@@ -23,8 +22,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp column_name(%Expression{table: :unknown, name: name}), do: quote_name(name)
 
-  defp column_name(column),
-    do: "#{quote_table_name(column.table.name)}.#{quote_name(column.name)}"
+  defp column_name(column), do: "#{quote_table_name(column.table.name)}.#{quote_name(column.name)}"
 
   defp build_fragments(query, sql_dialect_module) do
     [
@@ -48,8 +46,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp column_sql(:*, _sql_dialect_module), do: "*"
 
-  defp column_sql({:distinct, column}, sql_dialect_module),
-    do: ["DISTINCT ", column_sql(column, sql_dialect_module)]
+  defp column_sql({:distinct, column}, sql_dialect_module), do: ["DISTINCT ", column_sql(column, sql_dialect_module)]
 
   defp column_sql(%Expression{alias: alias} = column, sql_dialect_module)
        when alias != nil and alias != "",
@@ -79,17 +76,13 @@ defmodule Cloak.DataSource.SqlBuilder do
          },
          sql_dialect_module
        ),
-       do:
-         sql_dialect_module.date_subtraction_expression(
-           Enum.map(args, &to_fragment(&1, sql_dialect_module))
-         )
+       do: sql_dialect_module.date_subtraction_expression(Enum.map(args, &to_fragment(&1, sql_dialect_module)))
 
   defp column_sql(
          %Expression{function: {:cast, to_type}, function_args: [arg]},
          sql_dialect_module
        ),
-       do:
-         arg |> to_fragment(sql_dialect_module) |> sql_dialect_module.cast_sql(arg.type, to_type)
+       do: arg |> to_fragment(sql_dialect_module) |> sql_dialect_module.cast_sql(arg.type, to_type)
 
   defp column_sql(
          %Expression{function?: true, function: fun_name, function_args: args},
@@ -146,8 +139,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp on_clause(nil, _sql_dialect_module), do: []
 
-  defp on_clause(condition, sql_dialect_module),
-    do: [" ON ", conditions_to_fragments(condition, sql_dialect_module)]
+  defp on_clause(condition, sql_dialect_module), do: [" ON ", conditions_to_fragments(condition, sql_dialect_module)]
 
   defp join_sql(:cross_join), do: "CROSS JOIN"
   defp join_sql(:inner_join), do: "INNER JOIN"
@@ -188,8 +180,7 @@ defmodule Cloak.DataSource.SqlBuilder do
     ]
 
   defp conditions_to_fragments(
-         {:comparison, %Expression{type: :text} = what, comparator,
-          %Expression{type: :text} = value},
+         {:comparison, %Expression{type: :text} = what, comparator, %Expression{type: :text} = value},
          SQLServer
        ),
        # SQL Server ignores trailing spaces during text comparisons
@@ -245,21 +236,17 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp to_fragment(string, _sql_dialect_module) when is_binary(string), do: string
 
-  defp to_fragment(atom, _sql_dialect_module) when is_atom(atom),
-    do: to_string(atom) |> String.upcase()
+  defp to_fragment(atom, _sql_dialect_module) when is_atom(atom), do: to_string(atom) |> String.upcase()
 
-  defp to_fragment(distinct = {:distinct, _}, sql_dialect_module),
-    do: column_sql(distinct, sql_dialect_module)
+  defp to_fragment(distinct = {:distinct, _}, sql_dialect_module), do: column_sql(distinct, sql_dialect_module)
 
   defp to_fragment(%Expression{alias: alias} = column, sql_dialect_module)
        when alias != nil and alias != "",
        do: column_sql(%Expression{column | alias: nil}, sql_dialect_module)
 
-  defp to_fragment(%Expression{} = column, sql_dialect_module),
-    do: column_sql(column, sql_dialect_module)
+  defp to_fragment(%Expression{} = column, sql_dialect_module), do: column_sql(column, sql_dialect_module)
 
-  defp constant_to_fragment(%NaiveDateTime{} = value, _sql_dialect_module),
-    do: [?', to_string(value), ?']
+  defp constant_to_fragment(%NaiveDateTime{} = value, _sql_dialect_module), do: [?', to_string(value), ?']
 
   defp constant_to_fragment(%Time{} = value, _sql_dialect_module), do: [?', to_string(value), ?']
   defp constant_to_fragment(%Date{} = value, _sql_dialect_module), do: [?', to_string(value), ?']
@@ -267,11 +254,9 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp constant_to_fragment(%Timex.Duration{} = value, sql_dialect_module),
     do: sql_dialect_module.interval_literal(value)
 
-  defp constant_to_fragment(value, _sql_dialect_module) when is_number(value),
-    do: to_string(value)
+  defp constant_to_fragment(value, _sql_dialect_module) when is_number(value), do: to_string(value)
 
-  defp constant_to_fragment(value, _sql_dialect_module) when is_boolean(value),
-    do: to_string(value)
+  defp constant_to_fragment(value, _sql_dialect_module) when is_boolean(value), do: to_string(value)
 
   defp constant_to_fragment(value, sql_dialect_module) when is_binary(value),
     do:
@@ -281,8 +266,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp escape_string(string), do: String.replace(string, "'", "''")
 
-  defp like_pattern_to_fragment({pattern, escape = "\\"}),
-    do: [?', pattern, ?', "ESCAPE", ?', escape, ?']
+  defp like_pattern_to_fragment({pattern, escape = "\\"}), do: [?', pattern, ?', "ESCAPE", ?', escape, ?']
 
   defp join([], _joiner), do: []
   defp join([el], _joiner), do: [el]

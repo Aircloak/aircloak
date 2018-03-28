@@ -34,9 +34,8 @@ defmodule BOM.Gather.Node do
   defp license(path, version) do
     type = license_type(path)
 
-    Gather.public_domain_license(type) || babel_license(path) ||
-      Gather.license_from_file(path, type) || Gather.license_from_readme(path, type) ||
-      Whitelist.find(:node, Path.basename(path), version)
+    Gather.public_domain_license(type) || babel_license(path) || Gather.license_from_file(path, type) ||
+      Gather.license_from_readme(path, type) || Whitelist.find(:node, Path.basename(path), version)
   end
 
   defp license_type(path) do
@@ -59,9 +58,7 @@ defmodule BOM.Gather.Node do
   defp package_json(path, field), do: package_json(path, field, nil)
 
   defp package_json(path, field, default),
-    do:
-      Gather.if_matching_file(path, "package.json", fn text -> Poison.decode!(text)[field] end) ||
-        default
+    do: Gather.if_matching_file(path, "package.json", fn text -> Poison.decode!(text)[field] end) || default
 
   @babel_packages ~w(
     babel babel-cli babel-code-frame babel-core babel-generator babel-helper-bindify-decorators

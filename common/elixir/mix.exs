@@ -55,7 +55,8 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       {:cowboy, "~> 1.0", only: :test},
       {:phoenix_gen_socket_client, "~> 2.0", optional: true},
       {:ex_crypto, "~> 0.9.0"},
-      {:timex, ">= 3.1.10 and < 4.0.0"}
+      {:timex, ">= 3.1.10 and < 4.0.0"},
+      {:ex_json_schema, "~> 0.5.6"}
     ]
   end
 
@@ -72,8 +73,7 @@ defmodule Aircloak.ElixirCommon.Mixfile do
 
   defp ignored_credo_checks(:test), do: ["ModuleDoc" | ignored_credo_checks(:dev)]
 
-  defp ignored_credo_checks(_),
-    do: ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
+  defp ignored_credo_checks(_), do: ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
 
   if Mix.env() == :dev do
     defp dialyzer_deps(), do: [:phoenix_gen_socket_client]

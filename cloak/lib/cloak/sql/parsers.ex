@@ -34,8 +34,7 @@ defmodule Cloak.Sql.Parsers do
   If no parser succeeds, an error is generated. You can handle this case
   specifically by providing the `{:else, parser}` pair which will always run.
   """
-  @spec switch(Combine.previous_parser(), [{Combine.parser() | :else, Combine.parser()}]) ::
-          Combine.parser()
+  @spec switch(Combine.previous_parser(), [{Combine.parser() | :else, Combine.parser()}]) :: Combine.parser()
   defparser switch(%ParserState{status: :ok, line: line, column: column} = state, switch_rules) do
     interpret_switch_rules(
       switch_rules,
@@ -168,10 +167,7 @@ defmodule Cloak.Sql.Parsers do
         %{
           state
           | status: :error,
-            error:
-              "Unexpected token `#{to_string(token)}` at line #{state.line}, column #{
-                state.column
-              }}"
+            error: "Unexpected token `#{to_string(token)}` at line #{state.line}, column #{state.column}}"
         }
 
       [other | _] ->
@@ -306,8 +302,7 @@ defmodule Cloak.Sql.Parsers do
   Another significant difference from `sep_by1` is that this function returns the separators as part of the output, so
   parsing "a,a,a" with `sep_by1_eager(char("a"), char(","))` gives `["a", ",", "a", ",", "a"]`.
   """
-  @spec sep_by1_eager(Combine.previous_parser(), Combine.parser(), Combine.parser()) ::
-          Combine.parser()
+  @spec sep_by1_eager(Combine.previous_parser(), Combine.parser(), Combine.parser()) :: Combine.parser()
   defparser sep_by1_eager(state, term, separator) do
     (Base.pair_both(
        term,
@@ -323,8 +318,7 @@ defmodule Cloak.Sql.Parsers do
   end
 
   @doc "Same as `choice_deepest_error([parser1, parser2])`"
-  @spec either_deepest_error(Combine.previous_parser(), Combine.parser(), Combine.parser()) ::
-          Combine.parser()
+  @spec either_deepest_error(Combine.previous_parser(), Combine.parser(), Combine.parser()) :: Combine.parser()
   defparser(
     either_deepest_error(state, parser1, parser2),
     do: choice_deepest_error([parser1, parser2]).(state)
@@ -349,8 +343,7 @@ defmodule Cloak.Sql.Parsers do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp do_choice_deepest_error([], state, deepest_error),
-    do: %{state | :status => :error, :error => deepest_error}
+  defp do_choice_deepest_error([], state, deepest_error), do: %{state | :status => :error, :error => deepest_error}
 
   defp do_choice_deepest_error([parser | rest], state, deepest_error) do
     case parser.(state) do
@@ -362,8 +355,7 @@ defmodule Cloak.Sql.Parsers do
     end
   end
 
-  defp deeper_error(error1, error2),
-    do: if(error_deepness(error1) > error_deepness(error2), do: error1, else: error2)
+  defp deeper_error(error1, error2), do: if(error_deepness(error1) > error_deepness(error2), do: error1, else: error2)
 
   @error_regex ~r/at line ([0-9]+), column ([0-9]+)/
   defp error_deepness(error) do

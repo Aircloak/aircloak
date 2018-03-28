@@ -53,8 +53,7 @@ defmodule Cloak.Query.Anonymizer do
   that again if the calling code already keeps the values in such a structure.
   """
   @spec new(NoiseLayer.accumulator()) :: t
-  def new([_ | _] = noise_layers),
-    do: %{rngs: build_rngs(noise_layers), noise_layers: noise_layers}
+  def new([_ | _] = noise_layers), do: %{rngs: build_rngs(noise_layers), noise_layers: noise_layers}
 
   @doc """
   Returns true if the passed bucket size is sufficiently large to be reported.
@@ -74,8 +73,7 @@ defmodule Cloak.Query.Anonymizer do
     if count < absolute_lower_bound do
       false
     else
-      {noisy_lower_bound, _anonymizer} =
-        add_noise(anonymizer, config(:low_count_soft_lower_bound))
+      {noisy_lower_bound, _anonymizer} = add_noise(anonymizer, config(:low_count_soft_lower_bound))
 
       count >= round(noisy_lower_bound)
     end
@@ -167,8 +165,7 @@ defmodule Cloak.Query.Anonymizer do
         {nil, nil}
 
       {sum, sum_noise_sigma} ->
-        {count, _count_noise_sigma} =
-          count(anonymizer, Stream.map(rows, fn {:avg, _sum, count} -> count end))
+        {count, _count_noise_sigma} = count(anonymizer, Stream.map(rows, fn {:avg, _sum, count} -> count end))
 
         {sum / count, sum_noise_sigma / count}
     end
@@ -214,19 +211,15 @@ defmodule Cloak.Query.Anonymizer do
 
     middle = round((Enum.count(values) - 1) / 2)
 
-    {bottom_values, [{_middle_user_index, middle_value} | top_values]} =
-      Enum.split(values, middle - 1)
+    {bottom_values, [{_middle_user_index, middle_value} | top_values]} = Enum.split(values, middle - 1)
 
     above_values = take_values_from_distinct_users(top_values, noisy_count + max_count)
     below_values = take_values_from_distinct_users(bottom_values, -(noisy_count + min_count))
 
-    if Enum.count(above_values) + Enum.count(below_values) <
-         2 * noisy_count + min_count + max_count do
+    if Enum.count(above_values) + Enum.count(below_values) < 2 * noisy_count + min_count + max_count do
       nil
     else
-      middle_values =
-        Enum.take(below_values, -noisy_count) ++
-          [middle_value] ++ Enum.take(above_values, noisy_count)
+      middle_values = Enum.take(below_values, -noisy_count) ++ [middle_value] ++ Enum.take(above_values, noisy_count)
 
       noisy_average(middle_values, anonymizer)
     end
@@ -309,15 +302,12 @@ defmodule Cloak.Query.Anonymizer do
         noise_sigma = config(:sum_noise_sigma) * noise_sigma_scale
         {noisy_sum, anonymizer} = add_noise(anonymizer, {sum, noise_sigma})
 
-        {{noisy_sum,
-          noise_sigma |> scale_sigma_by_noise_layers(anonymizer) |> round_noise_sigma()},
-         anonymizer}
+        {{noisy_sum, noise_sigma |> scale_sigma_by_noise_layers(anonymizer) |> round_noise_sigma()}, anonymizer}
     end
   end
 
   # The standard deviation used grows with the square root of the number of noise layers.
-  defp scale_sigma_by_noise_layers(sigma, %{rngs: rngs} = _anonymizer),
-    do: :math.sqrt(length(rngs)) * sigma
+  defp scale_sigma_by_noise_layers(sigma, %{rngs: rngs} = _anonymizer), do: :math.sqrt(length(rngs)) * sigma
 
   defp take_values_from_distinct_users(user_values, amount) do
     user_values
@@ -331,11 +321,9 @@ defmodule Cloak.Query.Anonymizer do
   # of garbage generated during aggregation.
   defp insert_sorted([], new_value), do: [new_value]
 
-  defp insert_sorted([head | _tail] = list, new_value) when new_value <= head,
-    do: [new_value | list]
+  defp insert_sorted([head | _tail] = list, new_value) when new_value <= head, do: [new_value | list]
 
-  defp insert_sorted([head | tail], new_value) when new_value > head,
-    do: [head | insert_sorted(tail, new_value)]
+  defp insert_sorted([head | tail], new_value) when new_value > head, do: [head | insert_sorted(tail, new_value)]
 
   # Given a list of positives values and the anonymization parameters,
   # this method will drop the rows with negative values, and, for the remaining rows,
@@ -420,8 +408,7 @@ defmodule Cloak.Query.Anonymizer do
     value_count = values |> Enum.count() |> Kernel.max(1)
     average = Enum.sum(values) / value_count
 
-    variance =
-      (values |> Enum.map(&((&1 - average) * (&1 - average))) |> Enum.sum()) / value_count
+    variance = (values |> Enum.map(&((&1 - average) * (&1 - average))) |> Enum.sum()) / value_count
 
     quarter_stddev = :math.sqrt(variance) / 4
     {noisy_average, _anonymizer} = add_noise(anonymizer, {average, quarter_stddev})
@@ -435,8 +422,7 @@ defmodule Cloak.Query.Anonymizer do
   defp money_round(value) when value >= 3.5 and value < 7.5, do: 5.0
   defp money_round(value) when value >= 7.5 and value < 10.0, do: 10.0
 
-  defp money_round(value) when value >= 0.0001 and value < 1.0,
-    do: 0.1 * money_round(10.0 * value)
+  defp money_round(value) when value >= 0.0001 and value < 1.0, do: 0.1 * money_round(10.0 * value)
 
   defp money_round(value) when value >= 10.0, do: 10.0 * money_round(0.1 * value)
 

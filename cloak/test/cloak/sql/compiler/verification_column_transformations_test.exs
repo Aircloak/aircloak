@@ -97,9 +97,7 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
         if reason =~ ~r/Queries containing expressions with a high number of functions/ do
           false
         else
-          raise "Compilation failed with other reason than illegal filtering condition: #{
-                  inspect(reason)
-                }"
+          raise "Compilation failed with other reason than illegal filtering condition: #{inspect(reason)}"
         end
     end
   end

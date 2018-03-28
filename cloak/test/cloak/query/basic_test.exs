@@ -6,13 +6,11 @@ defmodule Cloak.Query.BasicTest do
   setup_all do
     :ok = Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, male BOOLEAN")
 
-    :ok =
-      Cloak.Test.DB.create_table("heights_alias", nil, db_name: "heights", skip_db_create: true)
+    :ok = Cloak.Test.DB.create_table("heights_alias", nil, db_name: "heights", skip_db_create: true)
 
     :ok = Cloak.Test.DB.create_table("children", "age INTEGER, name TEXT")
 
-    :ok =
-      Cloak.Test.DB.create_table("weird things", "\"thing as thing\" INTEGER", db_name: "weird")
+    :ok = Cloak.Test.DB.create_table("weird things", "\"thing as thing\" INTEGER", db_name: "weird")
 
     :ok = Cloak.Test.DB.create_table("dates", "date timestamp")
     :ok
@@ -62,11 +60,11 @@ defmodule Cloak.Query.BasicTest do
   end
 
   test "show columns from a view" do
-    assert_query(
-      "show columns from v1",
-      [views: %{"v1" => "select user_id, height from heights"}],
-      %{query_id: "1", columns: ["name", "type"], rows: rows}
-    )
+    assert_query("show columns from v1", [views: %{"v1" => "select user_id, height from heights"}], %{
+      query_id: "1",
+      columns: ["name", "type"],
+      rows: rows
+    })
 
     assert Enum.sort_by(rows, & &1[:row]) == [
              %{occurrences: 1, row: ["height", "integer"]},
@@ -162,14 +160,11 @@ defmodule Cloak.Query.BasicTest do
   end
 
   test "select all and order query" do
-    :ok =
-      insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 180, true])
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 180, true])
 
-    :ok =
-      insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 180, true])
+    :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 180, true])
 
-    :ok =
-      insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
+    :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
 
     assert_query("select * from heights order by name", %{
       query_id: "1",
@@ -185,14 +180,11 @@ defmodule Cloak.Query.BasicTest do
   end
 
   test "order by non-selected field" do
-    :ok =
-      insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 160, true])
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 160, true])
 
-    :ok =
-      insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 170, true])
+    :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 170, true])
 
-    :ok =
-      insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
+    :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
 
     assert_query("select height from heights order by name", %{
       query_id: "1",
@@ -204,14 +196,11 @@ defmodule Cloak.Query.BasicTest do
   end
 
   test "order by grouped but non-selected field" do
-    :ok =
-      insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 160, true])
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 160, true])
 
-    :ok =
-      insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 170, true])
+    :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 170, true])
 
-    :ok =
-      insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
+    :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
 
     assert_query("select sum(height) from heights group by name order by name", %{
       query_id: "1",
@@ -223,14 +212,11 @@ defmodule Cloak.Query.BasicTest do
   end
 
   test "order by grouped but non-selected aggregate" do
-    :ok =
-      insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 160, true])
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 160, true])
 
-    :ok =
-      insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 170, true])
+    :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 170, true])
 
-    :ok =
-      insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
+    :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
 
     assert_query("select name from heights group by name order by sum(height) desc", %{
       query_id: "1",
@@ -242,19 +228,17 @@ defmodule Cloak.Query.BasicTest do
   end
 
   test "order by grouped but non-selected aggregate with selected aggregate function" do
-    :ok =
-      insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 160, true])
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 160, true])
 
-    :ok =
-      insert_rows(_user_ids = 11..30, "heights", ["name", "height", "male"], ["adam", 170, true])
+    :ok = insert_rows(_user_ids = 11..30, "heights", ["name", "height", "male"], ["adam", 170, true])
 
-    :ok =
-      insert_rows(_user_ids = 31..60, "heights", ["name", "height", "male"], ["mike", 180, true])
+    :ok = insert_rows(_user_ids = 31..60, "heights", ["name", "height", "male"], ["mike", 180, true])
 
-    assert_query(
-      "select bucket(height by 10), avg(height) from heights group by 1 order by count(*) desc",
-      %{query_id: "1", columns: ["bucket", "avg"], rows: rows}
-    )
+    assert_query("select bucket(height by 10), avg(height) from heights group by 1 order by count(*) desc", %{
+      query_id: "1",
+      columns: ["bucket", "avg"],
+      rows: rows
+    })
 
     assert Enum.map(rows, & &1[:row]) == [[180.0, 180.0], [170.0, 170.0], [160.0, 160.0]]
   end
@@ -272,10 +256,9 @@ defmodule Cloak.Query.BasicTest do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [nil])
     :ok = insert_rows(_user_ids = 11..20, "heights", ["height"], [170])
 
-    assert_query(
-      "select height from (select height from heights order by 1 asc nulls first limit 10) foo",
-      %{rows: [%{row: [nil]}]}
-    )
+    assert_query("select height from (select height from heights order by 1 asc nulls first limit 10) foo", %{
+      rows: [%{row: [nil]}]
+    })
   end
 
   test "should return LCF property when sufficient rows are filtered" do
@@ -778,11 +761,9 @@ defmodule Cloak.Query.BasicTest do
   end
 
   test "select and filter booleans" do
-    :ok =
-      insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 180, true])
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 180, true])
 
-    :ok =
-      insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["eva", 160, false])
+    :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["eva", 160, false])
 
     assert_query("select height, male from heights where male = true", %{
       query_id: "1",
@@ -792,8 +773,7 @@ defmodule Cloak.Query.BasicTest do
   end
 
   test "select with constant filter" do
-    :ok =
-      insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 180, true])
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 180, true])
 
     assert_query("select height, male from heights where true = true", %{
       query_id: "1",
@@ -886,8 +866,7 @@ defmodule Cloak.Query.BasicTest do
       rows: rows
     })
 
-    assert [%{row: [10, 180], occurrences: 1}, %{row: [20, 160], occurrences: 1}] =
-             Enum.sort_by(rows, & &1[:row])
+    assert [%{row: [10, 180], occurrences: 1}, %{row: [20, 160], occurrences: 1}] = Enum.sort_by(rows, & &1[:row])
   end
 
   test "grouping works when the column is not selected" do
@@ -896,8 +875,7 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query("select count(*) from heights group by height", %{columns: ["count"], rows: rows})
 
-    assert [%{row: [10], occurrences: 1}, %{row: [20], occurrences: 1}] =
-             Enum.sort_by(rows, & &1[:row])
+    assert [%{row: [10], occurrences: 1}, %{row: [20], occurrences: 1}] = Enum.sort_by(rows, & &1[:row])
   end
 
   test "grouping and sorting by a count" do
@@ -1187,20 +1165,17 @@ defmodule Cloak.Query.BasicTest do
     end
 
     test "avg <> min" do
-      assert_query(
-        "select name, count(*) from heights group by name having avg(height) <> min(height)",
-        %{columns: ["name", "count"], rows: [%{row: ["dan", 30], occurrences: 1}]}
-      )
+      assert_query("select name, count(*) from heights group by name having avg(height) <> min(height)", %{
+        columns: ["name", "count"],
+        rows: [%{row: ["dan", 30], occurrences: 1}]
+      })
     end
 
     test "BUG: range in having" do
-      assert_query(
-        "select height, count(*) as c from heights group by height having c between 20 and 100",
-        %{
-          columns: ["height", "c"],
-          rows: [%{row: [150, 30], occurrences: 1}, %{row: [160, 20], occurrences: 1}]
-        }
-      )
+      assert_query("select height, count(*) as c from heights group by height having c between 20 and 100", %{
+        columns: ["height", "c"],
+        rows: [%{row: [150, 30], occurrences: 1}, %{row: [160, 20], occurrences: 1}]
+      })
     end
   end
 
@@ -1535,8 +1510,7 @@ defmodule Cloak.Query.BasicTest do
 
   describe "cast boolean" do
     setup do
-      :ok =
-        insert_rows(_user_ids = 1..10, "heights", ["height", "name", "male"], [1, "true", true])
+      :ok = insert_rows(_user_ids = 1..10, "heights", ["height", "name", "male"], [1, "true", true])
     end
 
     test "to text",

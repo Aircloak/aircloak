@@ -82,8 +82,7 @@ defmodule Cloak.DataSource.SQLServerTds do
       fn connection ->
         with {:ok, query} <- Tds.prepare(connection, statement, []) do
           try do
-            with {:ok, %Tds.Result{rows: rows}} <-
-                   Tds.execute(connection, query, [], decode_mapper: decode_mapper) do
+            with {:ok, %Tds.Result{rows: rows}} <- Tds.execute(connection, query, [], decode_mapper: decode_mapper) do
               {:ok, result_processor.([rows])}
             end
           after
@@ -161,8 +160,7 @@ defmodule Cloak.DataSource.SQLServerTds do
 
   defp time_field_mapper(nil), do: nil
 
-  defp time_field_mapper({hour, min, sec, fsec}),
-    do: Time.new(hour, min, sec, {div(fsec, 10), 6}) |> error_to_nil()
+  defp time_field_mapper({hour, min, sec, fsec}), do: Time.new(hour, min, sec, {div(fsec, 10), 6}) |> error_to_nil()
 
   defp interval_field_mapper(nil), do: nil
   defp interval_field_mapper(number), do: Timex.Duration.from_seconds(number)

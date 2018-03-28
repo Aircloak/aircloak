@@ -18,8 +18,7 @@ defmodule AircloakCI.Build.Component do
   # -------------------------------------------------------------------
 
   @doc "Starts a job on the desired component."
-  @spec start_job(LocalProject.t(), String.t(), job, Job.run_queued_opts()) ::
-          :ok | {:error, String.t()}
+  @spec start_job(LocalProject.t(), String.t(), job, Job.run_queued_opts()) :: :ok | {:error, String.t()}
   def start_job(project, component, job, opts \\ []) do
     with :ok <- build_image(project, component) do
       opts = Keyword.merge([log_name: "#{component}_#{job}"], opts)
@@ -94,8 +93,7 @@ defmodule AircloakCI.Build.Component do
       end
 
     # We'll log to the temporary unique file. This allows us to deinterlace log outputs later
-    log_name =
-      "#{component}_#{job}_#{Base.url_encode64(:crypto.strong_rand_bytes(16), padding: false)}"
+    log_name = "#{component}_#{job}_#{Base.url_encode64(:crypto.strong_rand_bytes(16), padding: false)}"
 
     cmd_log_file = LocalProject.log_file(project, log_name)
     File.write(cmd_log_file, "")
@@ -145,8 +143,7 @@ defmodule AircloakCI.Build.Component do
           :ok
 
         errors ->
-          {:error,
-           "\n" <> (errors |> Enum.map(fn {:error, reason} -> reason end) |> Enum.join("\n"))}
+          {:error, "\n" <> (errors |> Enum.map(fn {:error, reason} -> reason end) |> Enum.join("\n"))}
       end
 
     {result, to_string(Enum.intersperse(outputs, "\n"))}

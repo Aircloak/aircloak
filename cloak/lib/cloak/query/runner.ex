@@ -51,8 +51,7 @@ defmodule Cloak.Query.Runner do
   end
 
   @spec stop(String.t() | pid, :cancelled | :oom) :: :ok
-  def stop(query_pid, reason) when is_pid(query_pid),
-    do: GenServer.cast(query_pid, {:stop_query, reason})
+  def stop(query_pid, reason) when is_pid(query_pid), do: GenServer.cast(query_pid, {:stop_query, reason})
 
   def stop(query_id, reason), do: GenServer.cast(worker_name(query_id), {:stop_query, reason})
 
@@ -74,8 +73,7 @@ defmodule Cloak.Query.Runner do
       end)
 
   @doc "Executes the query synchronously, and returns its result."
-  @spec run_sync(String.t(), DataSource.t(), String.t(), [DataSource.field()], Query.view_map()) ::
-          any
+  @spec run_sync(String.t(), DataSource.t(), String.t(), [DataSource.field()], Query.view_map()) :: any
   def run_sync(query_id, data_source, statement, parameters, views) do
     start(query_id, data_source, statement, parameters, views, {:process, self()})
 
@@ -208,9 +206,7 @@ defmodule Cloak.Query.Runner do
   end
 
   defp crash_log({_exit_reason, stacktrace}) when is_list(stacktrace) do
-    Exception.format_exit(
-      {"filtered exit reason", Cloak.LoggerTranslator.filtered_stacktrace(stacktrace)}
-    )
+    Exception.format_exit({"filtered exit reason", Cloak.LoggerTranslator.filtered_stacktrace(stacktrace)})
   end
 
   defp crash_log(_other_reason), do: "query process crashed"
@@ -281,11 +277,9 @@ defmodule Cloak.Query.Runner do
       features: result.features
     }
 
-  defp format_result({:error, reason}, state) when is_binary(reason),
-    do: %{error: reason, features: state[:features]}
+  defp format_result({:error, reason}, state) when is_binary(reason), do: %{error: reason, features: state[:features]}
 
-  defp format_result(:oom, state),
-    do: %{error: "Query aborted due to low memory.", features: state[:features]}
+  defp format_result(:oom, state), do: %{error: "Query aborted due to low memory.", features: state[:features]}
 
   defp format_result(:cancelled, state), do: %{cancelled: true, features: state[:features]}
 
@@ -316,8 +310,7 @@ defmodule Cloak.Query.Runner do
 
   if Mix.env() == :test do
     # tests run the same query in parallel, so we make the process name unique to avoid conflicts
-    def worker_name(_query_id),
-      do: {:via, Registry, {@runner_registry_name, :erlang.unique_integer()}}
+    def worker_name(_query_id), do: {:via, Registry, {@runner_registry_name, :erlang.unique_integer()}}
   else
     def worker_name(query_id), do: {:via, Registry, {@runner_registry_name, query_id}}
   end

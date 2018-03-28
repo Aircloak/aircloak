@@ -15,8 +15,7 @@ defmodule Air.Service.Settings do
   def read(), do: parse(latest_settings())
 
   @doc "Saves the specified settings."
-  @spec save(%{optional(atom) => any()}) ::
-          {:ok, Air.Schemas.Settings.t()} | {:error, Ecto.Changeset.t()}
+  @spec save(%{optional(atom) => any()}) :: {:ok, Air.Schemas.Settings.t()} | {:error, Ecto.Changeset.t()}
   def save(params) do
     changeset = latest_settings() |> changeset(params)
 

@@ -105,8 +105,7 @@ defmodule Central.Mixfile do
 
   defp ignored_credo_checks(:test), do: ["ModuleDoc" | ignored_credo_checks(:dev)]
 
-  defp ignored_credo_checks(_),
-    do: ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
+  defp ignored_credo_checks(_), do: ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
 
   defp extra_applications(:test), do: common_extra_applications()
   defp extra_applications(:dev), do: common_extra_applications() ++ dialyzer_required_deps()

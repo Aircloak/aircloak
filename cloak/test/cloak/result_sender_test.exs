@@ -25,11 +25,9 @@ defmodule Cloak.ResultSender.Test do
 
       assert_receive %{chunks: [%{encoded_data: chunk1}, %{encoded_data: chunk2}]}
 
-      assert [%{"occurrences" => 1, "row" => [1]} | _] =
-               chunk1 |> :zlib.gunzip() |> Poison.decode!()
+      assert [%{"occurrences" => 1, "row" => [1]} | _] = chunk1 |> :zlib.gunzip() |> Poison.decode!()
 
-      assert [%{"occurrences" => 1, "row" => [1001]}] =
-               chunk2 |> :zlib.gunzip() |> Poison.decode!()
+      assert [%{"occurrences" => 1, "row" => [1001]}] = chunk2 |> :zlib.gunzip() |> Poison.decode!()
     end
   end
 end

@@ -60,9 +60,7 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
 
       prepared_statement = deallocate_prepared_statement(query) ->
         conn
-        |> RanchServer.update_protocol(
-          &Protocol.deallocate_prepared_statement(&1, prepared_statement)
-        )
+        |> RanchServer.update_protocol(&Protocol.deallocate_prepared_statement(&1, prepared_statement))
         |> RanchServer.query_result(command: :deallocate)
 
       true ->

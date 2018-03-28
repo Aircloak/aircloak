@@ -32,6 +32,7 @@ defmodule Air do
 
   @impl Application
   def start(_type, _args) do
+    Aircloak.DeployConfig.validate!(:air)
     configure_secrets()
     Air.Repo.configure()
     configure_periodic_jobs()

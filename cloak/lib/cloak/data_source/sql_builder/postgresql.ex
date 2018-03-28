@@ -19,8 +19,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
 
   @impl Dialect
   for datepart <- ~w(year month day hour minute second quarter) do
-    def function_sql(unquote(datepart), args),
-      do: ["EXTRACT(", unquote(datepart), " FROM ", args, ")"]
+    def function_sql(unquote(datepart), args), do: ["EXTRACT(", unquote(datepart), " FROM ", args, ")"]
   end
 
   def function_sql("weekday", args), do: ["EXTRACT(DOW FROM ", args, ")"]
@@ -28,14 +27,12 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   def function_sql("round", [arg1, arg2]), do: ["ROUND(CAST(", arg1, " AS decimal), ", arg2, ")"]
   def function_sql("hex", [arg]), do: ["ENCODE(CONVERT_TO(", arg, ", 'utf8'), 'hex')"]
 
-  def function_sql("hash", [arg]),
-    do: ["('x0' || SUBSTR(MD5(", arg, "::text), 1, 15))::bit(64)::bigint"]
+  def function_sql("hash", [arg]), do: ["('x0' || SUBSTR(MD5(", arg, "::text), 1, 15))::bit(64)::bigint"]
 
   def function_sql("/", [arg1, arg2]), do: ["(", arg1, " :: double precision / ", arg2, ")"]
 
   for binary_operator <- ~w(+ - * ^ %) do
-    def function_sql(unquote(binary_operator), [arg1, arg2]),
-      do: ["(", arg1, unquote(binary_operator), arg2, ")"]
+    def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
 
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
@@ -50,8 +47,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   @impl Dialect
   def cast_sql(value, :boolean, :integer), do: cast_sql(value, :boolean, :int32)
 
-  def cast_sql(value, :boolean, :real),
-    do: value |> cast_sql(:boolean, :integer) |> cast_sql(:integer, :real)
+  def cast_sql(value, :boolean, :real), do: value |> cast_sql(:boolean, :integer) |> cast_sql(:integer, :real)
 
   def cast_sql(value, :integer, :boolean),
     do: ["CASE WHEN ", value, " IS NULL THEN NULL WHEN ", value, " = 0 THEN FALSE ELSE TRUE END"]

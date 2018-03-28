@@ -12,8 +12,7 @@ defmodule Compliance.TableDefinitions do
       raw_table_definitions()
       |> prepare_as_collections(produce_collections_rather_than_tables)
       |> Enum.map(fn {table, %{columns: raw_columns} = definitions} ->
-        columns =
-          Enum.map(raw_columns, fn {name, %{type: type}} -> {Atom.to_string(name), type} end)
+        columns = Enum.map(raw_columns, fn {name, %{type: type}} -> {Atom.to_string(name), type} end)
 
         {table, Map.put(definitions, :columns, columns)}
       end)
@@ -39,13 +38,9 @@ defmodule Compliance.TableDefinitions do
                     %{method: Atom.to_string(decoder), columns: [name]}
 
                   {decoder, options} ->
-                    Enum.reduce(
-                      options,
-                      %{method: Atom.to_string(decoder), columns: [name]},
-                      fn {key, value}, acc ->
-                        Map.put(acc, key, value)
-                      end
-                    )
+                    Enum.reduce(options, %{method: Atom.to_string(decoder), columns: [name]}, fn {key, value}, acc ->
+                      Map.put(acc, key, value)
+                    end)
                 end)
 
               {[{name, :text} | columns_acc], executable_decoders ++ decoders_acc}
@@ -116,8 +111,7 @@ defmodule Compliance.TableDefinitions do
       primary_collection = primaries_acc[primary_name]
 
       primary_columns =
-        Enum.reduce(sub_collection.columns, primary_collection.columns, fn {name, definition},
-                                                                           acc ->
+        Enum.reduce(sub_collection.columns, primary_collection.columns, fn {name, definition}, acc ->
           if is_nil(Map.get(acc, name)) do
             Map.put(acc, name, definition)
           else

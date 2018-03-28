@@ -17,8 +17,7 @@ defmodule Compliance.WhereClauseFilters.Text do
     end
 
     @tag compliance: "#{column} #{table} WHERE-clause inequality in subquery"
-    test "on input #{column} with a WHERE-clause inequality in a sub-query on #{table}",
-         context do
+    test "on input #{column} with a WHERE-clause inequality in a sub-query on #{table}", context do
       context
       |> assert_consistent_and_not_failing("""
         SELECT count(*)
@@ -116,8 +115,7 @@ defmodule Compliance.WhereClauseFilters.Text do
     end
 
     @tag compliance: "#{column} #{table} WHERE-clause inequality in subquery"
-    test "on input #{column} with a WHERE-clause inequality in a sub-query on #{table}",
-         context do
+    test "on input #{column} with a WHERE-clause inequality in a sub-query on #{table}", context do
       context
       |> assert_consistent_and_not_failing("""
         SELECT count(*)
@@ -249,8 +247,7 @@ defmodule Compliance.WhereClauseFilters.Text do
     end
 
     @tag compliance: "#{column} #{table} WHERE-clause NOT IN with non-existant values"
-    test "input #{column} with a WHERE-clause NOT IN on #{table} with non-existant constant values",
-         context do
+    test "input #{column} with a WHERE-clause NOT IN on #{table} with non-existant constant values", context do
       context
       |> assert_consistent_and_not_failing("""
         SELECT count(*)

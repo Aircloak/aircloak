@@ -58,8 +58,7 @@ defmodule Air.TestSocketHelper do
     {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
     %{event: "run_query", payload: %{id: ^task_id}, request_id: request_id} = request
 
-    {:ok, _ref} =
-      TestSocket.push(socket, "main", "cloak_response", %{request_id: request_id, status: status})
+    {:ok, _ref} = TestSocket.push(socket, "main", "cloak_response", %{request_id: request_id, status: status})
 
     :ok
   end
@@ -71,8 +70,7 @@ defmodule Air.TestSocketHelper do
     {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
     %{event: "run_query", request_id: request_id} = request
 
-    {:ok, _ref} =
-      TestSocket.push(socket, "main", "cloak_response", %{request_id: request_id, status: status})
+    {:ok, _ref} = TestSocket.push(socket, "main", "cloak_response", %{request_id: request_id, status: status})
 
     :ok
   end

@@ -123,8 +123,7 @@ defmodule Cloak.DataSource.SAPHanaRODBCTest do
 
   defp connection_params(), do: Map.new(Application.fetch_env!(:cloak, :sap_hana))
 
-  defp test_schema_connection_params(),
-    do: Map.put(connection_params(), :default_schema, schema())
+  defp test_schema_connection_params(), do: Map.put(connection_params(), :default_schema, schema())
 
   defp connect!(connection_params) do
     {:ok, conn} = SapHanaHelpers.connect(connection_params)

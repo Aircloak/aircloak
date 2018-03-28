@@ -130,6 +130,5 @@ defmodule Cloak.Stats do
   defp find_values_in_range([value | rest], min, max, acc) when value < min or value > max,
     do: find_values_in_range(rest, min, max, acc)
 
-  defp find_values_in_range([value | rest], min, max, acc),
-    do: find_values_in_range(rest, min, max, [value | acc])
+  defp find_values_in_range([value | rest], min, max, acc), do: find_values_in_range(rest, min, max, [value | acc])
 end

@@ -24,8 +24,7 @@ defmodule Air.Service.QueryTest do
       query = create_query!(user)
       query_id = query.id
 
-      assert {:ok, %Air.Schemas.Query{id: ^query_id}} =
-               Query.get_as_user(create_admin_user!(), query_id)
+      assert {:ok, %Air.Schemas.Query{id: ^query_id}} = Query.get_as_user(create_admin_user!(), query_id)
     end
 
     test "of invalid id when the ID is garbage", %{user: user} do
@@ -98,8 +97,7 @@ defmodule Air.Service.QueryTest do
 
       query_id = query.id
 
-      assert [%Air.Schemas.Query{id: ^query_id}] =
-               Query.currently_running(context.user, context.data_source, :http)
+      assert [%Air.Schemas.Query{id: ^query_id}] = Query.currently_running(context.user, context.data_source, :http)
     end
 
     test "does not return not running queries", context do
@@ -350,12 +348,4 @@ defmodule Air.Service.QueryTest do
   def with_data_source(_context) do
     {:ok, data_source: create_data_source!()}
   end
-
-  defp create_old_result(user, data_source, buckets),
-    do:
-      create_query!(user, %{
-        query_state: :completed,
-        data_source_id: data_source.id,
-        result: %{"columns" => ["value"], "rows" => buckets}
-      })
 end

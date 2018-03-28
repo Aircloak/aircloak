@@ -46,8 +46,7 @@ defmodule AircloakCI.CmdRunner do
   @spec file_logger(String.t()) :: logger
   def file_logger(path),
     do: fn output ->
-      if Application.get_env(:aircloak_ci, :cmd_runner, [])[:console_out] == true,
-        do: IO.write(output)
+      if Application.get_env(:aircloak_ci, :cmd_runner, [])[:console_out] == true, do: IO.write(output)
 
       File.write(path, output, [:append])
     end
@@ -110,11 +109,9 @@ defmodule AircloakCI.CmdRunner do
   defp result(%{return_output?: false}, :normal), do: :ok
   defp result(%{return_output?: true} = state, :normal), do: {:ok, to_string(state.output)}
 
-  defp result(%{return_output?: false} = state, {:exit_status, _status}),
-    do: {:error, "error running `#{state.cmd}`"}
+  defp result(%{return_output?: false} = state, {:exit_status, _status}), do: {:error, "error running `#{state.cmd}`"}
 
-  defp result(%{return_output?: true} = state, {:exit_status, _status}),
-    do: {:error, to_string(state.output)}
+  defp result(%{return_output?: true} = state, {:exit_status, _status}), do: {:error, to_string(state.output)}
 
   defp start_cmd(state, cmd, from, opts) do
     return_output? = Keyword.fetch!(opts, :return_output)

@@ -11,17 +11,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
       do: assert(type_first_column("SELECT abs(numeric) FROM table").applied_functions == ["abs"])
 
     test "records usage of math functions",
-      do:
-        assert(
-          type_first_column("SELECT numeric + numeric FROM table").applied_functions == ["+"]
-        )
+      do: assert(type_first_column("SELECT numeric + numeric FROM table").applied_functions == ["+"])
 
     test "records functions used across subqueries",
       do:
-        assert(
-          type_first_column("SELECT c FROM (SELECT abs(numeric) as c FROM table) t").applied_functions ==
-            ["abs"]
-        )
+        assert(type_first_column("SELECT c FROM (SELECT abs(numeric) as c FROM table) t").applied_functions == ["abs"])
 
     test "records multiple functions top down (distinct functions)",
       do:
@@ -35,17 +29,14 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
     test "records multiple functions top down (function repeats)",
       do:
         assert(
-          type_first_column("SELECT abs(numeric + abs(numeric)) FROM table").applied_functions ==
-            ["abs", "+", "abs"]
+          type_first_column("SELECT abs(numeric + abs(numeric)) FROM table").applied_functions == ["abs", "+", "abs"]
         )
   end
 
   describe "constant detection" do
-    test "not constant if no constant appears",
-      do: refute(constant_involved?("SELECT numeric FROM table"))
+    test "not constant if no constant appears", do: refute(constant_involved?("SELECT numeric FROM table"))
 
-    test "not constant if math on two columns",
-      do: refute(constant_involved?("SELECT numeric + numeric FROM table"))
+    test "not constant if math on two columns", do: refute(constant_involved?("SELECT numeric + numeric FROM table"))
 
     test "two math operations are considered a constant",
       do: assert(constant_involved?("SELECT numeric + (numeric * numeric) FROM table"))
@@ -59,10 +50,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
       do: assert(constant_involved?("SELECT numeric + 1 FROM table"))
 
     test "considers two math operations to be the equivalent of there being a constant in the expression",
-      do:
-        assert(
-          constant_involved?("SELECT cast(numeric + (numeric * numeric) as integer) FROM table")
-        )
+      do: assert(constant_involved?("SELECT cast(numeric + (numeric * numeric) as integer) FROM table"))
   end
 
   describe "knows which columns were involved" do
@@ -108,8 +96,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
     test "even when multiple occur" do
       type = type_first_column("SELECT abs(pow(numeric, 10)) FROM table")
 
-      assert type.history_of_restricted_transformations ==
-               [{:restricted_function, "abs"}, {:restricted_function, "^"}]
+      assert type.history_of_restricted_transformations == [{:restricted_function, "abs"}, {:restricted_function, "^"}]
     end
 
     test "does not record discontinuous functions when they appear in an un-restricted form" do
@@ -128,23 +115,15 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
     end
 
     test "records multiple math offenses" do
-      type =
-        type_first_column(
-          "SELECT numeric + 10 FROM (SELECT uid, numeric - 1 as numeric FROM table) t"
-        )
+      type = type_first_column("SELECT numeric + 10 FROM (SELECT uid, numeric - 1 as numeric FROM table) t")
 
-      assert type.history_of_restricted_transformations ==
-               [{:restricted_function, "+"}, {:restricted_function, "-"}]
+      assert type.history_of_restricted_transformations == [{:restricted_function, "+"}, {:restricted_function, "-"}]
     end
 
     test "records multiple instances of the same offense" do
-      type =
-        type_first_column(
-          "SELECT numeric + 10 FROM (SELECT uid, numeric + 1 as numeric FROM table) t"
-        )
+      type = type_first_column("SELECT numeric + 10 FROM (SELECT uid, numeric + 1 as numeric FROM table) t")
 
-      assert type.history_of_restricted_transformations ==
-               [{:restricted_function, "+"}, {:restricted_function, "+"}]
+      assert type.history_of_restricted_transformations == [{:restricted_function, "+"}, {:restricted_function, "+"}]
     end
 
     test "records restricted functions when it believes a constant has been constructed" do
@@ -153,8 +132,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
           SELECT abs(pow(numeric, numeric) + pow(numeric, numeric)) FROM table
         """)
 
-      assert type.history_of_restricted_transformations ==
-               [{:restricted_function, "abs"}, {:restricted_function, "+"}]
+      assert type.history_of_restricted_transformations == [{:restricted_function, "abs"}, {:restricted_function, "+"}]
     end
   end
 
@@ -162,8 +140,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
     test "false when implicit range by itself",
       do: refute(%Type{applied_functions: ["month"]} |> Type.unclear_implicit_range?())
 
-    test "false when no implicit range",
-      do: refute(%Type{applied_functions: []} |> Type.unclear_implicit_range?())
+    test "false when no implicit range", do: refute(%Type{applied_functions: []} |> Type.unclear_implicit_range?())
 
     test "false when in combination with aggregator",
       do:
@@ -194,8 +171,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
   end
 
   describe "clear_column?" do
-    test "true for raw columns",
-      do: assert(type_first_column("SELECT numeric FROM table") |> Type.clear_column?())
+    test "true for raw columns", do: assert(type_first_column("SELECT numeric FROM table") |> Type.clear_column?())
 
     test "true for raw columns from subqueries",
       do:
@@ -238,12 +214,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
           |> Type.clear_column?(["sqrt"])
         )
 
-    test "ignores aggregates",
-      do: assert(type_first_column("SELECT max(numeric) FROM table") |> Type.clear_column?())
+    test "ignores aggregates", do: assert(type_first_column("SELECT max(numeric) FROM table") |> Type.clear_column?())
 
     test "does not ignore functions in aggregates",
-      do:
-        refute(type_first_column("SELECT max(sqrt(numeric)) FROM table") |> Type.clear_column?())
+      do: refute(type_first_column("SELECT max(sqrt(numeric)) FROM table") |> Type.clear_column?())
   end
 
   defp constant_involved?(query), do: type_first_column(query).constant_involved?
@@ -260,8 +234,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
     result
   end
 
-  defp compile(query_string),
-    do: Compiler.compile(data_source(), Parser.parse!(query_string), [], %{})
+  defp compile(query_string), do: Compiler.compile(data_source(), Parser.parse!(query_string), [], %{})
 
   defp data_source() do
     %{

@@ -37,10 +37,7 @@ defmodule Aircloak.ChildSpec do
       id: Keyword.get(supervisor_options, :name, DynamicSupervisor)
     ]
 
-    Supervisor.child_spec(
-      {DynamicSupervisor, Keyword.merge(default_options, supervisor_options)},
-      []
-    )
+    Supervisor.child_spec({DynamicSupervisor, Keyword.merge(default_options, supervisor_options)}, [])
   end
 
   @doc "Specifies a child powered by the `Task.Supervisor` module."
@@ -116,8 +113,7 @@ defmodule Aircloak.ChildSpec do
     defmacro __using__(overrides) do
       quote bind_quoted: [overrides: Macro.escape(overrides)] do
         @doc false
-        def child_spec(_arg),
-          do: Aircloak.ChildSpec.supervisor(__MODULE__, :start_link, [], unquote(overrides))
+        def child_spec(_arg), do: Aircloak.ChildSpec.supervisor(__MODULE__, :start_link, [], unquote(overrides))
       end
     end
   end

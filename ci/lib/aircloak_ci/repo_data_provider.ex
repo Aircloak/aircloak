@@ -15,8 +15,7 @@ defmodule AircloakCI.RepoDataProvider do
 
   @doc "Retrieves the list of subscribers."
   @spec subscribers() :: [pid]
-  def subscribers(),
-    do: Enum.map(Registry.lookup(__MODULE__.Subscribers, :subscriber), fn {pid, nil} -> pid end)
+  def subscribers(), do: Enum.map(Registry.lookup(__MODULE__.Subscribers, :subscriber), fn {pid, nil} -> pid end)
 
   # -------------------------------------------------------------------
   # Supervision tree

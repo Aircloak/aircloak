@@ -25,8 +25,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     # We create an unique name under which the fields of the projected document will live for the duration of the query.
     namespace = "ac_temp_ns_#{:erlang.unique_integer([:positive])}"
 
-    rhs_table_columns =
-      Enum.map(join_info.rhs_table.columns, &%{&1 | name: namespace <> "." <> &1.name})
+    rhs_table_columns = Enum.map(join_info.rhs_table.columns, &%{&1 | name: namespace <> "." <> &1.name})
 
     join_table = %{
       name: "join",
@@ -39,8 +38,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       |> Lens.filter(&(&1.name != nil and &1.table == join_info.rhs_table))
       |> Lens.map(query, &%Expression{&1 | name: namespace <> "." <> &1.name})
 
-    {collection, pipeline, conditions} =
-      start_pipeline(join_info.lhs, join_info.lhs_table, query.where)
+    {collection, pipeline, conditions} = start_pipeline(join_info.lhs, join_info.lhs_table, query.where)
 
     pipeline =
       pipeline ++
@@ -78,9 +76,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     case used_array_size_columns(query) do
       [] -> []
       _ -> Projector.project_array_sizes(table)
-    end ++
-      (table.columns |> Enum.map(& &1.name) |> parse_conditions(query.where)) ++
-      parse_query(query, top_level?)
+    end ++ (table.columns |> Enum.map(& &1.name) |> parse_conditions(query.where)) ++ parse_query(query, top_level?)
   end
 
   defp project_columns(columns, _top_level? = true),
@@ -93,8 +89,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   defp project_columns(columns, _top_level? = false), do: Projector.project_columns(columns)
 
-  defp parse_query(%Query{subquery?: false} = query, _top_level? = true),
-    do: project_columns(query.db_columns, true)
+  defp parse_query(%Query{subquery?: false} = query, _top_level? = true), do: project_columns(query.db_columns, true)
 
   defp parse_query(%Query{subquery?: true} = query, top_level?),
     do:
@@ -129,24 +124,16 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp map_constant(%Expression{constant?: true, value: value}), do: value
 
   defp map_constant(_),
-    do:
-      DataSource.raise_error(
-        "Conditions on MongoDB data sources have to be between a column and a constant."
-      )
+    do: DataSource.raise_error("Conditions on MongoDB data sources have to be between a column and a constant.")
 
   defp map_field(%Expression{name: field}) when is_binary(field), do: field
 
   defp map_field(_),
-    do:
-      DataSource.raise_error(
-        "Conditions on MongoDB data sources have to be between a column and a constant."
-      )
+    do: DataSource.raise_error("Conditions on MongoDB data sources have to be between a column and a constant.")
 
-  defp parse_where_condition({:and, lhs, rhs}),
-    do: %{"$and": [parse_where_condition(lhs), parse_where_condition(rhs)]}
+  defp parse_where_condition({:and, lhs, rhs}), do: %{"$and": [parse_where_condition(lhs), parse_where_condition(rhs)]}
 
-  defp parse_where_condition({:or, lhs, rhs}),
-    do: %{"$or": [parse_where_condition(lhs), parse_where_condition(rhs)]}
+  defp parse_where_condition({:or, lhs, rhs}), do: %{"$or": [parse_where_condition(lhs), parse_where_condition(rhs)]}
 
   defp parse_where_condition({:comparison, subject, operator, value}),
     do: %{map_field(subject) => %{parse_operator(operator) => map_constant(value)}}
@@ -159,8 +146,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   defp parse_where_condition({:is, subject, :null}), do: %{map_field(subject) => nil}
 
-  defp parse_where_condition({:not, {:is, subject, :null}}),
-    do: %{map_field(subject) => %{"$ne": nil}}
+  defp parse_where_condition({:not, {:is, subject, :null}}), do: %{map_field(subject) => %{"$ne": nil}}
 
   defp parse_where_condition({:in, subject, values}),
     do: %{map_field(subject) => %{"$in": Enum.map(values, &map_constant/1)}}
@@ -168,11 +154,9 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp parse_where_condition({:not, {:in, subject, values}}),
     do: %{map_field(subject) => %{"$nin": Enum.map(values, &map_constant/1)}}
 
-  defp parse_where_condition({:like, subject, pattern}),
-    do: %{map_field(subject) => regex(pattern, "ms")}
+  defp parse_where_condition({:like, subject, pattern}), do: %{map_field(subject) => regex(pattern, "ms")}
 
-  defp parse_where_condition({:ilike, subject, pattern}),
-    do: %{map_field(subject) => regex(pattern, "msi")}
+  defp parse_where_condition({:ilike, subject, pattern}), do: %{map_field(subject) => regex(pattern, "msi")}
 
   defp parse_where_condition({:not, {:like, subject, pattern}}),
     do: %{map_field(subject) => %{"$not": regex(pattern, "ms")}}
@@ -187,8 +171,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     }
 
   defp extract_basic_conditions(table, conditions) do
-    {complex_conditions, basic_conditions} =
-      Condition.partition(conditions, complex_filter(table.array_path))
+    {complex_conditions, basic_conditions} = Condition.partition(conditions, complex_filter(table.array_path))
 
     {table_conditions, other_tables_conditions} =
       Condition.partition(basic_conditions, &(Condition.subject(&1).table.name == table.name))
@@ -202,8 +185,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp complex_condition?(column, complex_name_prefixes) do
     column_name = Condition.subject(column).name
 
-    column_name == nil or Schema.is_array_size?(column_name) or
-      String.starts_with?(column_name, complex_name_prefixes)
+    column_name == nil or Schema.is_array_size?(column_name) or String.starts_with?(column_name, complex_name_prefixes)
   end
 
   defp extract_columns_from_conditions(conditions) do
@@ -246,8 +228,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     [%{"$unwind": "$" <> path} | unwind_arrays(rest, path)]
   end
 
-  defp order_and_range(query),
-    do: order_rows(query.order_by) ++ offset_rows(query.offset) ++ limit_rows(query.limit)
+  defp order_and_range(query), do: order_rows(query.order_by) ++ offset_rows(query.offset) ++ limit_rows(query.limit)
 
   @supported_orders [
     {:asc, :nulls_first},
@@ -302,8 +283,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
     order_by =
       for {column, dir, nulls} <- query.order_by do
-        column_with_alias =
-          Enum.find(needed_columns, column, &(%Expression{&1 | alias: nil} == column))
+        column_with_alias = Enum.find(needed_columns, column, &(%Expression{&1 | alias: nil} == column))
 
         {column_with_alias, dir, nulls}
       end
@@ -339,8 +319,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   end
 
   # This extracts the upper part of a column that need to be projected after grouping is done.
-  defp extract_column_top(%Expression{constant?: true} = column, _aggregators, _groups),
-    do: column
+  defp extract_column_top(%Expression{constant?: true} = column, _aggregators, _groups), do: column
 
   defp extract_column_top(
          %Expression{function: "count", function_args: [{:distinct, _}]} = column,
@@ -428,8 +407,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       having = extract_column_top_from_conditions(having, aggregators, groups)
 
       [%{"$group": group}] ++
-        parse_conditions(Map.keys(group), having) ++
-        project_columns(column_tops, top_level?) ++ order_and_range(query)
+        parse_conditions(Map.keys(group), having) ++ project_columns(column_tops, top_level?) ++ order_and_range(query)
     end
   end
 
@@ -466,12 +444,10 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
     {lhs_field, rhs_field} =
       case condition do
-        {:comparison, %{table: %{name: ^lhs_name}} = local, :=,
-         %{table: %{name: ^rhs_name}} = foreign} ->
+        {:comparison, %{table: %{name: ^lhs_name}} = local, :=, %{table: %{name: ^rhs_name}} = foreign} ->
           {local.name, foreign.name}
 
-        {:comparison, %{table: %{name: ^rhs_name}} = foreign, :=,
-         %{table: %{name: ^lhs_name}} = local} ->
+        {:comparison, %{table: %{name: ^rhs_name}} = foreign, :=, %{table: %{name: ^lhs_name}} = local} ->
           {local.name, foreign.name}
       end
 
