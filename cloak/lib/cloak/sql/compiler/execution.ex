@@ -33,8 +33,7 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   @doc "Prepares the direct (non-anonymized) query for execution."
   @spec prepare_raw(Query.t()) :: Query.t()
-  def prepare_raw(%Query{command: :select} = query),
-    do: Helpers.apply_bottom_up(query, &compute_aggregators/1)
+  def prepare_raw(%Query{command: :select} = query), do: Helpers.apply_bottom_up(query, &compute_aggregators/1)
 
   # -------------------------------------------------------------------
   # UID handling
