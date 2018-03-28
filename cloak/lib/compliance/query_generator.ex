@@ -160,12 +160,10 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp generate_between(tables) do
     {column, table} = random_column(tables)
 
-    {:between, nil,
-     [column_expression(column, table), generate_value(column.type), generate_value(column.type)]}
+    {:between, nil, [column_expression(column, table), generate_value(column.type), generate_value(column.type)]}
   end
 
-  defp generate_value(:any),
-    do: [:boolean, :integer, :real, :text, :datetime] |> Enum.random() |> generate_value()
+  defp generate_value(:any), do: [:boolean, :integer, :real, :text, :datetime] |> Enum.random() |> generate_value()
 
   defp generate_value(:boolean), do: {:boolean, [true, false] |> Enum.random(), []}
   defp generate_value(:integer), do: {:integer, :rand.uniform(1000), []}
@@ -185,8 +183,7 @@ defmodule Cloak.Compliance.QueryGenerator do
        }, []}
 
   @like_characters [?% | Enum.to_list(?A..?z)]
-  defp generate_value(:like_pattern),
-    do: {:like_pattern, random_text(@like_characters), [optional(&like_escape/0)]}
+  defp generate_value(:like_pattern), do: {:like_pattern, random_text(@like_characters), [optional(&like_escape/0)]}
 
   defp like_escape(), do: {:like_escape, [Enum.random(@like_characters)], []}
 
@@ -238,8 +235,7 @@ defmodule Cloak.Compliance.QueryGenerator do
       |> Enum.random()
       |> length()
 
-    {{:function, function, Enum.map(1..arity, fn _ -> generate_unaliased_expression(tables) end)},
-     {:any, function}}
+    {{:function, function, Enum.map(1..arity, fn _ -> generate_unaliased_expression(tables) end)}, {:any, function}}
   end
 
   @aggregates ~w(count avg min max stddev count_noise avg_noise stddev_noise)
