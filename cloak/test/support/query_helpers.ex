@@ -85,7 +85,7 @@ defmodule Cloak.Test.QueryHelpers do
     Cloak.Test.DB.add_users_data(table, columns, [[nil | values]])
   end
 
-  defp only_structs_lens(root), do: Lens.match(root, &if(is_map(&1), do: Lens.root(), else: Lens.empty()))
+  defp only_structs_lens(root), do: Lens.filter(root, &is_map/1)
 
   defp tables_lens(),
     do:
