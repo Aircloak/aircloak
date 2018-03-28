@@ -32,7 +32,8 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
 
   defp to_doc({:table, name, []}), do: name
 
-  defp to_doc({:subquery, nil, [definition]}), do: space_separated(["(", definition |> to_doc() |> nest(), ")"])
+  defp to_doc({:subquery, nil, [definition]}),
+    do: "(" |> glue("", to_doc(definition)) |> nest() |> glue("", ")") |> group()
 
   defp to_doc({:join, nil, [lhs, rhs, on]}),
     do: [to_doc(lhs), "JOIN", to_doc(rhs), to_doc(on)] |> fold_doc(&glue(&1, " ", &2))
