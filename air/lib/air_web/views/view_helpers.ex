@@ -130,8 +130,7 @@ defmodule AirWeb.ViewHelpers do
     end
   end
 
-  defp active_class(path, "/admin/activity_monitor") when path in ["/admin", "/admin/"],
-    do: "active"
+  defp active_class(path, "/admin/activity_monitor") when path in ["/admin", "/admin/"], do: "active"
 
   defp active_class("/admin/queries/failed" <> _, "/admin/activity_monitor"), do: nil
   defp active_class("/admin/queries/" <> _, "/admin/activity_monitor"), do: "active"

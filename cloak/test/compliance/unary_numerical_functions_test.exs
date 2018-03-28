@@ -32,8 +32,7 @@ Enum.each(
 
       Enum.each(columns, fn {column, table, uid} ->
         @tag compliance: "#{function} #{column} #{table} subquery"
-        test "numerical unary function #{function} on input #{column} in a sub-query on #{table}",
-             context do
+        test "numerical unary function #{function} on input #{column} in a sub-query on #{table}", context do
           context
           |> assert_consistent_and_not_failing("""
             SELECT
@@ -49,8 +48,7 @@ Enum.each(
         end
 
         @tag compliance: "#{function} #{column} #{table} query"
-        test "numerical unary function #{function} on input #{column} in query on #{table}",
-             context do
+        test "numerical unary function #{function} on input #{column} in query on #{table}", context do
           context
           |> assert_consistent_and_not_failing("""
             SELECT #{on_column(unquote(function), unquote(column))} as output

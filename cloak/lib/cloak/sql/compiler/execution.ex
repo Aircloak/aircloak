@@ -45,8 +45,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp reject_null_user_ids(query),
     do: %{
       query
-      | where:
-          Condition.combine(:and, {:not, {:is, Helpers.id_column(query), :null}}, query.where)
+      | where: Condition.combine(:and, {:not, {:is, Helpers.id_column(query), :null}}, query.where)
     }
 
   defp censor_selected_uids(%Query{command: :select, subquery?: false} = query) do
@@ -91,9 +90,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     if aligned == column do
       {nil, aligned}
     else
-      {"Bucket size adjusted from #{Function.bucket_size(column)} to #{
-         Function.bucket_size(aligned)
-       }", aligned}
+      {"Bucket size adjusted from #{Function.bucket_size(column)} to #{Function.bucket_size(aligned)}", aligned}
     end
   end
 
@@ -185,8 +182,7 @@ defmodule Cloak.Sql.Compiler.Execution do
       |> Lenses.operands()
       |> Lens.to_list(query.having)
 
-  defp order_by_columns(order_by_clauses),
-    do: Enum.map(order_by_clauses, fn {column, _direction, _nulls} -> column end)
+  defp order_by_columns(order_by_clauses), do: Enum.map(order_by_clauses, fn {column, _direction, _nulls} -> column end)
 
   defp align_join_ranges(query),
     do:
@@ -238,12 +234,10 @@ defmodule Cloak.Sql.Compiler.Execution do
     [{_, _, left_operator, left_column}, {_, _, right_operator, right_column}] =
       Enum.sort_by(conditions, &Condition.value/1, &Cloak.Data.lt_eq/2)
 
-    left_operator == :>= && left_column.value == left && right_operator == :< &&
-      right_column.value == right
+    left_operator == :>= && left_column.value == left && right_operator == :< && right_column.value == right
   end
 
-  defp add_clause(query, lens, clause),
-    do: Lens.map(lens, query, &Condition.combine(:and, clause, &1))
+  defp add_clause(query, lens, clause), do: Lens.map(lens, query, &Condition.combine(:and, clause, &1))
 
   defp verify_ranges(grouped_inequalities) do
     grouped_inequalities
@@ -254,8 +248,7 @@ defmodule Cloak.Sql.Compiler.Execution do
 
         raise CompilationError,
           source_location: column.source_location,
-          message:
-            "Column #{Expression.display_name(column)} must be limited to a finite, nonempty range."
+          message: "Column #{Expression.display_name(column)} must be limited to a finite, nonempty range."
 
       _ ->
         :ok
@@ -305,11 +298,9 @@ defmodule Cloak.Sql.Compiler.Execution do
 
     user_id_hash = Expression.function("hash", [Helpers.id_column(query)])
 
-    user_id_ranged_hash =
-      Expression.function("%", [user_id_hash, Expression.constant(:integer, denominator)])
+    user_id_ranged_hash = Expression.function("%", [user_id_hash, Expression.constant(:integer, denominator)])
 
-    sample_condition =
-      {:comparison, user_id_ranged_hash, :<, Expression.constant(:integer, enumerator)}
+    sample_condition = {:comparison, user_id_ranged_hash, :<, Expression.constant(:integer, enumerator)}
 
     %Query{query | where: Condition.combine(:and, sample_condition, query.where)}
     |> Query.add_info(messages)
@@ -327,9 +318,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     else
       {aligned_enumerator, denominator,
        [
-         "Sample rate adjusted from #{enumerator / denominator * 100}% to #{
-           aligned_enumerator / denominator * 100
-         }%"
+         "Sample rate adjusted from #{enumerator / denominator * 100}% to #{aligned_enumerator / denominator * 100}%"
        ]}
     end
   end

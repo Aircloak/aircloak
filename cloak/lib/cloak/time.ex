@@ -57,8 +57,7 @@ defmodule Cloak.Time do
 
   @doc "Sets the microsecond precision of the given Time or NaiveDateTime to 6."
   @spec max_precision(x) :: x when x: Time.t() | NaiveDateTime.t()
-  def max_precision(datetime = %{microsecond: {usecs, _precision}}),
-    do: %{datetime | microsecond: {usecs, 6}}
+  def max_precision(datetime = %{microsecond: {usecs, _precision}}), do: %{datetime | microsecond: {usecs, 6}}
 
   @doc "Converts a date/datetime/time value into an integer representing days/seconds."
   @spec to_integer(NaiveDateTime.t() | Time.t() | Date.t()) :: non_neg_integer
@@ -67,14 +66,12 @@ defmodule Cloak.Time do
   def to_integer(%NaiveDateTime{} = value),
     do: value |> NaiveDateTime.to_erl() |> :calendar.datetime_to_gregorian_seconds()
 
-  def to_integer(%Date{} = value),
-    do: value |> Date.to_erl() |> :calendar.date_to_gregorian_days()
+  def to_integer(%Date{} = value), do: value |> Date.to_erl() |> :calendar.date_to_gregorian_days()
 
   def to_integer(%Time{} = value), do: value |> Time.to_erl() |> :calendar.time_to_seconds()
 
   @doc "Converts an integer representing days/seconds into a date/datetime/time value."
-  @spec from_integer(non_neg_integer, :datetime | :date | :time) ::
-          NaiveDateTime.t() | Time.t() | Date.t()
+  @spec from_integer(non_neg_integer, :datetime | :date | :time) :: NaiveDateTime.t() | Time.t() | Date.t()
   def from_integer(nil, _type), do: nil
 
   def from_integer(value, :datetime),
@@ -84,11 +81,9 @@ defmodule Cloak.Time do
       |> NaiveDateTime.from_erl!()
       |> Cloak.Time.max_precision()
 
-  def from_integer(value, :date),
-    do: value |> :calendar.gregorian_days_to_date() |> Date.from_erl!()
+  def from_integer(value, :date), do: value |> :calendar.gregorian_days_to_date() |> Date.from_erl!()
 
-  def from_integer(value, :time),
-    do: value |> :calendar.seconds_to_time() |> Time.from_erl!() |> max_precision()
+  def from_integer(value, :time), do: value |> :calendar.seconds_to_time() |> Time.from_erl!() |> max_precision()
 
   # -------------------------------------------------------------------
   # Internal functions

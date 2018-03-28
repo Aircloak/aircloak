@@ -153,8 +153,7 @@ defmodule Cloak.Query.ErrorTest do
       error: error
     })
 
-    assert error =~
-             ~r/`HAVING` clause can not be applied over column `height` from table `test_errors`./
+    assert error =~ ~r/`HAVING` clause can not be applied over column `height` from table `test_errors`./
   end
 
   test "query reports error on invalid where clause" do

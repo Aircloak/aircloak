@@ -98,8 +98,7 @@ defmodule Cloak.Sql.Range do
 
   defp aggregate?(%Expression{aggregate?: true}), do: true
 
-  defp aggregate?(%Expression{function?: true, function_args: args}),
-    do: Enum.any?(args, &aggregate?/1)
+  defp aggregate?(%Expression{function?: true, function_args: args}), do: Enum.any?(args, &aggregate?/1)
 
   defp aggregate?(_), do: false
 

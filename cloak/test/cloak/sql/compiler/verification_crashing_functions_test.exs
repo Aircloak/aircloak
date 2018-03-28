@@ -235,9 +235,7 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
         if reason =~ ~r/database exception/ do
           true
         else
-          raise "Compilation failed with other reason than illegal potential crash: #{
-                  inspect(reason)
-                }"
+          raise "Compilation failed with other reason than illegal potential crash: #{inspect(reason)}"
         end
     end
   end

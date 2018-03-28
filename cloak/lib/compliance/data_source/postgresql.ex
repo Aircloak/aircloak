@@ -63,10 +63,7 @@ defmodule Compliance.DataSource.PostgreSQL do
       |> Stream.map(&"(#{Enum.join(&1, ",")})")
       |> Enum.join(", ")
 
-    query =
-      "INSERT INTO #{table_name} (#{Enum.join(escaped_column_names(column_names), ", ")}) values #{
-        placeholders
-      }"
+    query = "INSERT INTO #{table_name} (#{Enum.join(escaped_column_names(column_names), ", ")}) values #{placeholders}"
 
     Postgrex.query!(conn, query, List.flatten(rows))
   end
@@ -127,11 +124,7 @@ defmodule Compliance.DataSource.PostgreSQL do
         sync_connect: true
       )
 
-    case Postgrex.query!(
-           conn,
-           "SELECT count(*) FROM pg_catalog.pg_user WHERE usename = '#{params.username}'",
-           []
-         ).rows do
+    case Postgrex.query!(conn, "SELECT count(*) FROM pg_catalog.pg_user WHERE usename = '#{params.username}'", []).rows do
       [[1]] -> :ok
       [[0]] -> Postgrex.query!(conn, "CREATE USER #{params.username}", [])
     end
@@ -139,11 +132,7 @@ defmodule Compliance.DataSource.PostgreSQL do
     Postgrex.query!(conn, "DROP DATABASE IF EXISTS #{params.database}", [])
     Postgrex.query!(conn, "CREATE DATABASE #{params.database} ENCODING 'UTF8'", [])
 
-    Postgrex.query!(
-      conn,
-      "GRANT ALL PRIVILEGES ON DATABASE #{params.database} TO #{params.username}",
-      []
-    )
+    Postgrex.query!(conn, "GRANT ALL PRIVILEGES ON DATABASE #{params.database} TO #{params.username}", [])
 
     # Creating the projections schema, where we'll keep views for all the projected tables. The structure of these
     # views will correspond to the structure of the tables, as seen by Aircloak users. This allows us to use uniform
@@ -169,9 +158,7 @@ defmodule Compliance.DataSource.PostgreSQL do
   defp create_view_sql(table_name, projection, projected_tables) do
     to_string([
       "CREATE VIEW projections.#{table_name} AS ",
-      "SELECT #{uid_column(projection, projected_tables)} AS #{projection.user_id_alias}, public.#{
-        table_name
-      }.* ",
+      "SELECT #{uid_column(projection, projected_tables)} AS #{projection.user_id_alias}, public.#{table_name}.* ",
       "FROM public.#{table_name} ",
       inner_join(table_name, projection, projected_tables)
     ])
@@ -182,9 +169,7 @@ defmodule Compliance.DataSource.PostgreSQL do
   defp inner_join(table_name, projection, projected_tables) do
     [
       "INNER JOIN public.#{projection.table} ",
-      "ON public.#{table_name}.#{projection.foreign_key} = public.#{projection.table}.#{
-        projection.primary_key
-      } ",
+      "ON public.#{table_name}.#{projection.foreign_key} = public.#{projection.table}.#{projection.primary_key} ",
       inner_join(projection.table, Map.get(projected_tables, projection.table), projected_tables)
     ]
   end

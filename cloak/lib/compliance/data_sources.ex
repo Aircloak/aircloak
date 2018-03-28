@@ -73,8 +73,7 @@ defmodule Compliance.DataSources do
 
   @doc "Takes a rawling data source definition and expands it with table definitions"
   @spec complete_data_source_definitions([DataSource.t()]) :: [DataSource.t()]
-  def complete_data_source_definitions(data_sources),
-    do: expand_and_add_table_definitions(data_sources)
+  def complete_data_source_definitions(data_sources), do: expand_and_add_table_definitions(data_sources)
 
   @doc "Returns a data source config as JSON"
   @spec read_config(String.t()) :: Map.t()
@@ -177,28 +176,21 @@ defmodule Compliance.DataSources do
     end)
   end
 
-  defp handler_for_data_source(%{driver: Cloak.DataSource.SAPHana}),
-    do: Compliance.DataSource.SAPHana
+  defp handler_for_data_source(%{driver: Cloak.DataSource.SAPHana}), do: Compliance.DataSource.SAPHana
 
-  defp handler_for_data_source(%{driver: Cloak.DataSource.SAPHanaRODBC}),
-    do: Compliance.DataSource.SAPHana
+  defp handler_for_data_source(%{driver: Cloak.DataSource.SAPHanaRODBC}), do: Compliance.DataSource.SAPHana
 
-  defp handler_for_data_source(%{driver: Cloak.DataSource.PostgreSQL}),
-    do: Compliance.DataSource.PostgreSQL
+  defp handler_for_data_source(%{driver: Cloak.DataSource.PostgreSQL}), do: Compliance.DataSource.PostgreSQL
 
   defp handler_for_data_source(%{driver: Cloak.DataSource.MySQL}), do: Compliance.DataSource.MySQL
 
-  defp handler_for_data_source(%{driver: Cloak.DataSource.SQLServer}),
-    do: Compliance.DataSource.SQLServer
+  defp handler_for_data_source(%{driver: Cloak.DataSource.SQLServer}), do: Compliance.DataSource.SQLServer
 
-  defp handler_for_data_source(%{driver: Cloak.DataSource.MongoDB}),
-    do: Compliance.DataSource.MongoDB
+  defp handler_for_data_source(%{driver: Cloak.DataSource.MongoDB}), do: Compliance.DataSource.MongoDB
 
-  defp handler_for_data_source(%{driver: Cloak.DataSource.SQLServerTds}),
-    do: Compliance.DataSource.SQLServer
+  defp handler_for_data_source(%{driver: Cloak.DataSource.SQLServerTds}), do: Compliance.DataSource.SQLServer
 
-  defp handler_for_data_source(%{driver: Cloak.DataSource.SQLServerRODBC}),
-    do: Compliance.DataSource.SQLServer
+  defp handler_for_data_source(%{driver: Cloak.DataSource.SQLServerRODBC}), do: Compliance.DataSource.SQLServer
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -206,8 +198,7 @@ defmodule Compliance.DataSources do
 
   defp config_name(other), do: other
 
-  defp config_file_path(name),
-    do: Path.join([Application.app_dir(:cloak, "priv"), "config", "#{name}.json"])
+  defp config_file_path(name), do: Path.join([Application.app_dir(:cloak, "priv"), "config", "#{name}.json"])
 
   defp expand_and_add_table_definitions(data_source_scaffolds) do
     Enum.flat_map(data_source_scaffolds, fn data_source_scaffold ->
@@ -241,8 +232,7 @@ defmodule Compliance.DataSources do
     end)
   end
 
-  defp table_definitions(generator_fun, %{driver: Cloak.DataSource.MongoDB}),
-    do: generator_fun.(true)
+  defp table_definitions(generator_fun, %{driver: Cloak.DataSource.MongoDB}), do: generator_fun.(true)
 
   defp table_definitions(generator_fun, _data_source), do: generator_fun.(false)
 

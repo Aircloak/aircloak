@@ -67,8 +67,7 @@ defmodule Central.Service.License do
   Returns the time when the given license expires. Note that for auto_renew licenses this is merely the time
   before which it will have to be renewed.
   """
-  @spec expires_at(License.t()) ::
-          Timex.Types.valid_datetime() | Timex.AmbiguousDateTime.t() | {:error, term()}
+  @spec expires_at(License.t()) :: Timex.Types.valid_datetime() | Timex.AmbiguousDateTime.t() | {:error, term()}
   def expires_at(license), do: license |> base_time() |> Timex.shift(days: license.length_in_days)
 
   @doc "Revokes the given license. Revoked licenses keep all their attributes but are treated as not-auto-renew."
@@ -82,8 +81,7 @@ defmodule Central.Service.License do
   @doc "Returns the license object matching the given license text."
   @spec decrypt(String.t()) :: {:ok, License.t()} | {:error, :invalid_license}
   def decrypt(text) do
-    with {:ok, %{customer_id: customer_id, license_id: license_id}} <-
-           Aircloak.License.decrypt(public_key(), text),
+    with {:ok, %{customer_id: customer_id, license_id: license_id}} <- Aircloak.License.decrypt(public_key(), text),
          {:ok, customer} <- Service.Customer.get(customer_id),
          {:ok, license} <- get(customer, license_id) do
       {:ok, license}

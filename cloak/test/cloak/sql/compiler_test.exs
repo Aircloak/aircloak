@@ -28,8 +28,7 @@ defmodule Cloak.Sql.Compiler.Test do
     test "rejects inequalities on strings with #{first} and #{second}" do
       {:error, error} =
         compile(
-          "select * from table where string #{unquote(first)} " <>
-            "'CEO' and string #{unquote(second)} 'CEP'",
+          "select * from table where string #{unquote(first)} " <> "'CEO' and string #{unquote(second)} 'CEP'",
           data_source()
         )
 
@@ -56,8 +55,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "rejects mistyped like conditions" do
     {:error, error} = compile("select * from table where numeric like 'something'", data_source())
 
-    assert error ==
-             "Column `numeric` from table `table` of type `integer` cannot be used in a LIKE expression."
+    assert error == "Column `numeric` from table `table` of type `integer` cannot be used in a LIKE expression."
   end
 
   test "rejects mistyped having conditions" do
@@ -90,8 +88,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejects escape strings longer than 1" do
-    {:error, error} =
-      compile("select * from table where string like 'something' escape 'abc'", data_source())
+    {:error, error} = compile("select * from table where string like 'something' escape 'abc'", data_source())
 
     assert error == "Escape string must be one character."
   end
@@ -108,8 +105,7 @@ defmodule Cloak.Sql.Compiler.Test do
         data_source()
       )
 
-    assert [_is_not_null_id, {:comparison, column("table", "column"), :>=, value}, _rhs] =
-             conditions_list(result.where)
+    assert [_is_not_null_id, {:comparison, column("table", "column"), :>=, value}, _rhs] = conditions_list(result.where)
 
     assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
   end
@@ -148,11 +144,9 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "casts datetime in `in` conditions" do
-    result =
-      compile!("select * from table where column in ('2015-01-01', '2015-01-02')", data_source())
+    result = compile!("select * from table where column in ('2015-01-01', '2015-01-02')", data_source())
 
-    assert {:and, {:not, {:is, column("table", "uid"), :null}},
-            {:in, column("table", "column"), times}} = result.where
+    assert {:and, {:not, {:is, column("table", "uid"), :null}}, {:in, column("table", "column"), times}} = result.where
 
     assert times |> Enum.map(& &1.value) |> Enum.sort() ==
              [~N[2015-01-01 00:00:00.000000], ~N[2015-01-02 00:00:00.000000]]
@@ -161,8 +155,8 @@ defmodule Cloak.Sql.Compiler.Test do
   test "casts datetime in negated conditions" do
     result = compile!("select * from table where column <> '2015-01-01'", data_source())
 
-    assert {:and, {:not, {:is, column("table", "uid"), :null}},
-            {:comparison, column("table", "column"), :<>, value}} = result.where
+    assert {:and, {:not, {:is, column("table", "uid"), :null}}, {:comparison, column("table", "column"), :<>, value}} =
+             result.where
 
     assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
   end
@@ -178,8 +172,7 @@ defmodule Cloak.Sql.Compiler.Test do
     end
 
     test "rejecting #{function} on non-numerical columns" do
-      assert {:error, error} =
-               compile("select #{unquote(function)}(string) from table", data_source())
+      assert {:error, error} = compile("select #{unquote(function)}(string) from table", data_source())
 
       assert error ==
                "Function `#{unquote(function)}` requires arguments of type (`integer`) or (`real`), but got (`text`)."
@@ -190,8 +183,7 @@ defmodule Cloak.Sql.Compiler.Test do
     test "allowing #{function} on numeric columns" do
       assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source())
 
-      assert {:ok, _} =
-               compile("select #{unquote(function)}(distinct numeric) from table", data_source())
+      assert {:ok, _} = compile("select #{unquote(function)}(distinct numeric) from table", data_source())
     end
 
     test "allowing #{function} on text columns in subqueries" do
@@ -231,11 +223,9 @@ defmodule Cloak.Sql.Compiler.Test do
     end
 
     test "rejecting #{function} on text columns in top query" do
-      assert {:error, _} =
-               compile("select #{unquote(function)}(string) from table", data_source())
+      assert {:error, _} = compile("select #{unquote(function)}(string) from table", data_source())
 
-      assert {:error, _} =
-               compile("select #{unquote(function)}(distinct string) from table", data_source())
+      assert {:error, _} = compile("select #{unquote(function)}(distinct string) from table", data_source())
     end
   end
 
@@ -245,8 +235,7 @@ defmodule Cloak.Sql.Compiler.Test do
     end
 
     test "rejecting #{function} on non-numerical columns" do
-      assert {:error, error} =
-               compile("select #{unquote(function)}(column) from table", data_source())
+      assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source())
 
       assert error ==
                "Function `#{unquote(function)}` requires arguments of type (`integer` | `real`), but got (`datetime`)."
@@ -260,8 +249,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "rejecting abs on non-numerical columns" do
     assert {:error, error} = compile("select abs(column) from table", data_source())
 
-    assert error ==
-             "Function `abs` requires arguments of type (`integer`) or (`real`), but got (`datetime`)."
+    assert error == "Function `abs` requires arguments of type (`integer`) or (`real`), but got (`datetime`)."
   end
 
   for function <- ~w(count) do
@@ -272,23 +260,19 @@ defmodule Cloak.Sql.Compiler.Test do
 
   for function <- ~w(count avg min max sum stddev median) do
     test "rejecting #{function} in group by" do
-      query =
-        "select #{unquote(function)}(numeric) from table group by #{unquote(function)}(numeric)"
+      query = "select #{unquote(function)}(numeric) from table group by #{unquote(function)}(numeric)"
 
       assert {:error, error} = compile(query, data_source())
 
-      assert error ==
-               "Aggregate function `#{unquote(function)}` can not be used in the `GROUP BY` clause."
+      assert error == "Aggregate function `#{unquote(function)}` can not be used in the `GROUP BY` clause."
     end
 
     test "rejecting a complex expression with #{function} in group by" do
-      query =
-        "select #{unquote(function)}(numeric) from table group by #{unquote(function)}(numeric) + 1"
+      query = "select #{unquote(function)}(numeric) from table group by #{unquote(function)}(numeric) + 1"
 
       assert {:error, error} = compile(query, data_source())
 
-      assert error ==
-               "Aggregate function `#{unquote(function)}` can not be used in the `GROUP BY` clause."
+      assert error == "Aggregate function `#{unquote(function)}` can not be used in the `GROUP BY` clause."
     end
   end
 
@@ -316,8 +300,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   for function <- ~w(hour minute second) do
     test "rejecting #{function} on non-datetime columns" do
-      assert {:error, error} =
-               compile("select #{unquote(function)}(numeric) from table", data_source())
+      assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source())
 
       assert error ==
                "Function `#{unquote(function)}` requires arguments of type (`datetime` | `time`), but got (`integer`)."
@@ -326,8 +309,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   for function <- ~w(year quarter month day weekday) do
     test "rejecting #{function} on non-datetime columns" do
-      assert {:error, error} =
-               compile("select #{unquote(function)}(numeric) from table", data_source())
+      assert {:error, error} = compile("select #{unquote(function)}(numeric) from table", data_source())
 
       assert error ==
                "Function `#{unquote(function)}` requires arguments of type (`datetime` | `date`), but got (`integer`)."
@@ -340,8 +322,7 @@ defmodule Cloak.Sql.Compiler.Test do
     end
 
     test "rejecting #{function} on non-numeric columns" do
-      assert {:error, error} =
-               compile("select #{unquote(function)}(column) from table", data_source())
+      assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source())
 
       assert error ==
                "Function `#{unquote(function)}` requires arguments of type (`integer` | `real`), but got (`datetime`)."
@@ -354,8 +335,7 @@ defmodule Cloak.Sql.Compiler.Test do
     end
 
     test "rejecting #{function} on non-numeric columns" do
-      assert {:error, error} =
-               compile("select #{unquote(function)}(column) from table", data_source())
+      assert {:error, error} = compile("select #{unquote(function)}(column) from table", data_source())
 
       assert error ==
                "Function `#{unquote(function)}` requires arguments of type" <>
@@ -374,8 +354,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "rejecting a function with too many arguments" do
     assert {:error, error} = compile("select avg(numeric, column) from table", data_source())
 
-    assert error ==
-             "Function `avg` requires arguments of type (`integer` | `real`), but got (`integer`, `datetime`)."
+    assert error == "Function `avg` requires arguments of type (`integer` | `real`), but got (`integer`, `datetime`)."
   end
 
   test "rejecting a function with too few arguments" do
@@ -387,8 +366,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejecting a column in select when its function is grouped" do
-    assert {:error, error} =
-             compile("select column from table group by day(column)", data_source())
+    assert {:error, error} = compile("select column from table group by day(column)", data_source())
 
     assert error ==
              "Column `column` from table `table` needs to appear in the `GROUP BY` clause" <>
@@ -410,8 +388,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "rejecting concat on non-strings" do
     assert {:error, error} = compile("select concat(numeric) from table", data_source())
 
-    assert error ==
-             "Function `concat` requires arguments of type ([`text`]+), but got (`integer`)."
+    assert error == "Function `concat` requires arguments of type ([`text`]+), but got (`integer`)."
   end
 
   test "rejecting ill-typed nested function calls" do
@@ -422,8 +399,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "typechecking nested function calls recursively" do
     assert {:error, error} = compile("select sqrt(abs(avg(column))) from table", data_source())
 
-    assert error ==
-             "Function `avg` requires arguments of type (`integer` | `real`), but got (`datetime`)."
+    assert error == "Function `avg` requires arguments of type (`integer` | `real`), but got (`datetime`)."
   end
 
   test "accepting constants as aggregated",
@@ -456,8 +432,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejecting missing column" do
-    assert {:error, "Column `a` doesn't exist in table `table`."} =
-             compile("SELECT a FROM table", data_source())
+    assert {:error, "Column `a` doesn't exist in table `table`."} = compile("SELECT a FROM table", data_source())
   end
 
   test "rejecting missing column on join" do
@@ -466,8 +441,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejecting missing qualified column" do
-    assert {:error, "Column `a` doesn't exist in table `table`."} =
-             compile("SELECT table.a FROM table", data_source())
+    assert {:error, "Column `a` doesn't exist in table `table`."} = compile("SELECT table.a FROM table", data_source())
   end
 
   test "rejecting qualified SELECT from not selected table" do
@@ -499,8 +473,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejecting joins with only one side of a range" do
-    assert {:error,
-            "Column `numeric` from table `table` must be limited to a finite, nonempty range."} =
+    assert {:error, "Column `numeric` from table `table` must be limited to a finite, nonempty range."} =
              compile(
                "SELECT * FROM table JOIN other_table ON table.uid = other_table.uid AND numeric > 3",
                data_source()
@@ -510,15 +483,13 @@ defmodule Cloak.Sql.Compiler.Test do
   test "aligning ranges in joins" do
     query1 =
       compile!(
-        "SELECT * FROM table JOIN other_table ON table.uid = other_table.uid AND numeric > 3" <>
-          " AND numeric < 9",
+        "SELECT * FROM table JOIN other_table ON table.uid = other_table.uid AND numeric > 3" <> " AND numeric < 9",
         data_source()
       )
 
     query2 =
       compile!(
-        "SELECT * FROM table JOIN other_table ON table.uid = other_table.uid AND numeric >= 0" <>
-          " AND numeric < 10",
+        "SELECT * FROM table JOIN other_table ON table.uid = other_table.uid AND numeric >= 0" <> " AND numeric < 10",
         data_source()
       )
 
@@ -536,8 +507,7 @@ defmodule Cloak.Sql.Compiler.Test do
     assert {:error, error} = compile("SELECT t1.c1 from t1, t2", data_source())
     assert error =~ ~r/Missing where comparison.*`t1` and `t2`/
 
-    assert {:error, error} =
-             compile("SELECT t1.c1 from t1, t2, t3 WHERE t1.uid = t2.uid", data_source())
+    assert {:error, error} = compile("SELECT t1.c1 from t1, t2, t3 WHERE t1.uid = t2.uid", data_source())
 
     assert error =~ ~r/Missing where comparison.*`t1` and `t3`/
 
@@ -556,8 +526,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejecting a join with a subquery that has no explicit id" do
-    assert {:error, error} =
-             compile("SELECT t1.c1 from t1, (select c1 from t2) sq", data_source())
+    assert {:error, error} = compile("SELECT t1.c1 from t1, (select c1 from t2) sq", data_source())
 
     assert error == "There is no user id column in the subquery `sq`."
   end
@@ -730,22 +699,19 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "subquery must return a user_id when it has aggregated columns" do
-    assert {:error, error} =
-             compile("select c1 from (select max(c1) from t1) alias", data_source())
+    assert {:error, error} = compile("select c1 from (select max(c1) from t1) alias", data_source())
 
     assert error =~ "Missing a user id column"
   end
 
   test "subquery must return a user_id when it has group by without uid" do
-    assert {:error, error} =
-             compile("select c1 from (select c1 from t1 group by c1) alias", data_source())
+    assert {:error, error} = compile("select c1 from (select c1 from t1 group by c1) alias", data_source())
 
     assert error =~ "Missing a user id column"
   end
 
   test "missing group by in a subquery" do
-    assert {:error, error} =
-             compile("select c1 from (select uid, count(*) as c1 from t1) alias", data_source())
+    assert {:error, error} = compile("select c1 from (select uid, count(*) as c1 from t1) alias", data_source())
 
     assert error =~ "Column `uid` from table `t1` needs to appear in the `GROUP BY`"
   end
@@ -762,8 +728,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "rejects inequalities on numeric columns that are not ranges" do
     assert {:error, error} = compile("select * from table where numeric > 5", data_source())
 
-    assert error ==
-             "Column `numeric` from table `table` must be limited to a finite, nonempty range."
+    assert error == "Column `numeric` from table `table` must be limited to a finite, nonempty range."
   end
 
   test "rejects inequalities on numeric columns that have equal endpoints" do
@@ -773,16 +738,13 @@ defmodule Cloak.Sql.Compiler.Test do
                data_source()
              )
 
-    assert error ==
-             "Column `numeric` from table `table` must be limited to a finite, nonempty range."
+    assert error == "Column `numeric` from table `table` must be limited to a finite, nonempty range."
   end
 
   test "rejects inequalities on numeric columns that are negatives of ranges" do
-    assert {:error, error} =
-             compile("select * from table where numeric < 2 and numeric > 5", data_source())
+    assert {:error, error} = compile("select * from table where numeric < 2 and numeric > 5", data_source())
 
-    assert error ==
-             "Column `numeric` from table `table` must be limited to a finite, nonempty range."
+    assert error == "Column `numeric` from table `table` must be limited to a finite, nonempty range."
   end
 
   test "rejects inequalities on datetime columns that are negatives of ranges" do
@@ -792,16 +754,13 @@ defmodule Cloak.Sql.Compiler.Test do
                data_source()
              )
 
-    assert error ==
-             "Column `column` from table `table` must be limited to a finite, nonempty range."
+    assert error == "Column `column` from table `table` must be limited to a finite, nonempty range."
   end
 
   test "rejects inequalities on datetime columns that are not ranges" do
-    assert {:error, error} =
-             compile("select * from table where column > '2015-01-01'", data_source())
+    assert {:error, error} = compile("select * from table where column > '2015-01-01'", data_source())
 
-    assert error ==
-             "Column `column` from table `table` must be limited to a finite, nonempty range."
+    assert error == "Column `column` from table `table` must be limited to a finite, nonempty range."
   end
 
   test "rejects inequalities on date columns that are negatives of ranges" do
@@ -811,21 +770,17 @@ defmodule Cloak.Sql.Compiler.Test do
                date_data_source()
              )
 
-    assert error ==
-             "Column `column` from table `table` must be limited to a finite, nonempty range."
+    assert error == "Column `column` from table `table` must be limited to a finite, nonempty range."
   end
 
   test "rejects inequalities on date columns that are not ranges" do
-    assert {:error, error} =
-             compile("select * from table where column > '2015-01-01'", data_source())
+    assert {:error, error} = compile("select * from table where column > '2015-01-01'", data_source())
 
-    assert error ==
-             "Column `column` from table `table` must be limited to a finite, nonempty range."
+    assert error == "Column `column` from table `table` must be limited to a finite, nonempty range."
   end
 
   test "accepts inequalities on numeric columns that are ranges" do
-    assert {:ok, _} =
-             compile("select * from table where numeric > 5 and numeric < 8", data_source())
+    assert {:ok, _} = compile("select * from table where numeric > 5 and numeric < 8", data_source())
   end
 
   test "fixes alignment of ranges" do
@@ -911,13 +866,11 @@ defmodule Cloak.Sql.Compiler.Test do
                data_source()
              ).info
 
-    assert msg ==
-             "The range for column `numeric` from table `table` has been adjusted to 0.0 <= `numeric` < 2.0."
+    assert msg == "The range for column `numeric` from table `table` has been adjusted to 0.0 <= `numeric` < 2.0."
   end
 
   test "columns for fetching are not duplicated" do
-    columns =
-      compile!("select numeric from table where numeric >= 0.1 and numeric < 1.9", data_source()).db_columns
+    columns = compile!("select numeric from table where numeric >= 0.1 and numeric < 1.9", data_source()).db_columns
 
     assert Enum.count(columns, &(&1.name == "numeric")) == 1
   end
@@ -966,11 +919,9 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "unquoted qualified columns are case-insensitive" do
-    first =
-      "select table.CoLumn from table" |> compile!(data_source()) |> Map.drop([:column_titles])
+    first = "select table.CoLumn from table" |> compile!(data_source()) |> Map.drop([:column_titles])
 
-    second =
-      "select table.column from table" |> compile!(data_source()) |> Map.drop([:column_titles])
+    second = "select table.column from table" |> compile!(data_source()) |> Map.drop([:column_titles])
 
     assert first == second
   end
@@ -981,11 +932,9 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "unquoted tables are case-insensitive" do
-    first =
-      "select tAbLe.column from tabLe" |> compile!(data_source()) |> Map.drop([:column_titles])
+    first = "select tAbLe.column from tabLe" |> compile!(data_source()) |> Map.drop([:column_titles])
 
-    second =
-      "select table.column from table" |> compile!(data_source()) |> Map.drop([:column_titles])
+    second = "select table.column from table" |> compile!(data_source()) |> Map.drop([:column_titles])
 
     assert first == second
   end
@@ -1103,8 +1052,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejects `or` conditions" do
-    {:error, error} =
-      compile("select * from table where numeric = 1 or numeric = 2", data_source())
+    {:error, error} = compile("select * from table where numeric = 1 or numeric = 2", data_source())
 
     assert error =~ ~r/Combining conditions with `OR` is not allowed./
   end
@@ -1135,8 +1083,7 @@ defmodule Cloak.Sql.Compiler.Test do
                views: %{"table_view" => "select"}
              )
 
-    assert error ==
-             "Error in the view `table_view`: Expected `column definition` at line 1, column 7."
+    assert error == "Error in the view `table_view`: Expected `column definition` at line 1, column 7."
   end
 
   test "view error in show columns" do
@@ -1147,8 +1094,7 @@ defmodule Cloak.Sql.Compiler.Test do
                views: %{"table_view" => "select"}
              )
 
-    assert error ==
-             "Error in the view `table_view`: Expected `column definition` at line 1, column 7."
+    assert error == "Error in the view `table_view`: Expected `column definition` at line 1, column 7."
   end
 
   test "ambiguous view/table error" do
@@ -1159,8 +1105,7 @@ defmodule Cloak.Sql.Compiler.Test do
                views: %{"table" => "select numeric from table"}
              )
 
-    assert error ==
-             "There is both a table, and a view named `table`. Rename the view to resolve the conflict."
+    assert error == "There is both a table, and a view named `table`. Rename the view to resolve the conflict."
   end
 
   test "view is treated as a subquery" do
@@ -1180,8 +1125,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "view has the same limitations as the subquery" do
-    assert {:error, error} =
-             validate_view("select uid, extract_words(string) from table", data_source())
+    assert {:error, error} = validate_view("select uid, extract_words(string) from table", data_source())
 
     assert error == "Function `extract_words` is not allowed in subqueries."
   end
@@ -1192,29 +1136,22 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejecting non-aggregated non-selected ORDER BY column in an aggregated function" do
-    assert {:error,
-            "Column `float` from table `table` needs to appear in the `GROUP BY` clause" <> _} =
+    assert {:error, "Column `float` from table `table` needs to appear in the `GROUP BY` clause" <> _} =
              compile("SELECT SUM(numeric) FROM table ORDER BY float", data_source())
   end
 
   test "rejecting non-aggregated column when an aggregate is in a non-selected ORDER BY" do
-    assert {:error,
-            "Column `numeric` from table `table` needs to appear in the `GROUP BY` clause" <> _} =
+    assert {:error, "Column `numeric` from table `table` needs to appear in the `GROUP BY` clause" <> _} =
              compile("SELECT numeric FROM table ORDER BY max(float)", data_source())
   end
 
   test "rejecting non-aggregated column when count(*) is in a non-selected ORDER BY" do
-    assert {:error,
-            "Column `numeric` from table `table` needs to appear in the `GROUP BY` clause" <> _} =
+    assert {:error, "Column `numeric` from table `table` needs to appear in the `GROUP BY` clause" <> _} =
              compile("SELECT numeric FROM table ORDER BY count(*)", data_source())
   end
 
   test "rejecting duplicate table",
-    do:
-      assert(
-        {:error, "Table name `t1` specified more than once."} ==
-          compile("SELECT * from t1, t1", data_source())
-      )
+    do: assert({:error, "Table name `t1` specified more than once."} == compile("SELECT * from t1, t1", data_source()))
 
   test "rejecting duplicate subquery",
     do:
@@ -1236,13 +1173,11 @@ defmodule Cloak.Sql.Compiler.Test do
   test "selecting all from a non-selected table" do
     assert {:error, reason} = compile("select t2.* from t1", data_source())
 
-    assert reason ==
-             "Select clause `t2`.* cannot be resolved because the table does not exist in the `FROM` list."
+    assert reason == "Select clause `t2`.* cannot be resolved because the table does not exist in the `FROM` list."
   end
 
   test "the first argument to date_trunc has to be a constant" do
-    assert {:error, reason} =
-             compile("select date_trunc(string, column) from table", data_source())
+    assert {:error, reason} = compile("select date_trunc(string, column) from table", data_source())
 
     assert reason ==
              "Function `date_trunc` requires arguments of type (`constant text`, `time`)" <>
@@ -1261,8 +1196,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   describe "sample amount" do
     test "validation" do
-      assert {:error, error} =
-               compile("select count(*) from table sample_users 101%", data_source())
+      assert {:error, error} = compile("select count(*) from table sample_users 101%", data_source())
 
       assert error =~ ~r/The `SAMPLE` clause expects an integer value between 1 and 100./
     end

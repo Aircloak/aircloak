@@ -71,8 +71,7 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
         do: raise(ExecutionError, message: "LIMIT operator is not supported on this data source")
 
       @impl unquote(__MODULE__)
-      def time_arithmetic_expression(operator, [arg1, arg2]),
-        do: ["(", arg1, " ", operator, " ", arg2, ")"]
+      def time_arithmetic_expression(operator, [arg1, arg2]), do: ["(", arg1, " ", operator, " ", arg2, ")"]
 
       @impl unquote(__MODULE__)
       def date_subtraction_expression([arg1, arg2]), do: ["(", arg1, " - ", arg2, ")"]

@@ -61,8 +61,7 @@ defmodule Cloak.Query.Aggregator do
     default_accumulators = List.duplicate(nil, Enum.count(aggregated_columns))
     default_noise_layers = NoiseLayer.new_accumulator(query.noise_layers)
 
-    merging_fun =
-      group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query)
+    merging_fun = group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query)
 
     Rows.group(rows, query, {%{}, default_noise_layers}, merging_fun)
   end
@@ -74,11 +73,8 @@ defmodule Cloak.Query.Aggregator do
   @spec merge_groups(Rows.groups(), Rows.groups()) :: Rows.groups()
   def merge_groups(groups1, groups2),
     do:
-      Map.merge(groups1, groups2, fn _key,
-                                     {user_values1, noise_layers1},
-                                     {user_values2, noise_layers2} ->
-        {merge_user_values(user_values1, user_values2),
-         NoiseLayer.merge_accumulators(noise_layers1, noise_layers2)}
+      Map.merge(groups1, groups2, fn _key, {user_values1, noise_layers1}, {user_values2, noise_layers2} ->
+        {merge_user_values(user_values1, user_values2), NoiseLayer.merge_accumulators(noise_layers1, noise_layers2)}
       end)
 
   # -------------------------------------------------------------------
@@ -159,10 +155,8 @@ defmodule Cloak.Query.Aggregator do
   defp merge_accumulators({{:avg, value1a, value1b}, {:avg, value2a, value2b}}),
     do: {:avg, value1a + value2a, value1b + value2b}
 
-  defp merge_accumulators(
-         {{:stddev, value1a, value1b, value1c}, {:stddev, value2a, value2b, value2c}}
-       ),
-       do: {:stddev, value1a + value2a, value1b + value2b, value1c + value2c}
+  defp merge_accumulators({{:stddev, value1a, value1b, value1c}, {:stddev, value2a, value2b, value2c}}),
+    do: {:stddev, value1a + value2a, value1b + value2b, value1c + value2c}
 
   defp merge_accumulators({{:min, value1}, {:min, value2}}), do: {:min, min(value1, value2)}
   defp merge_accumulators({{:max, value1}, {:max, value2}}), do: {:max, max(value1, value2)}
@@ -171,8 +165,7 @@ defmodule Cloak.Query.Aggregator do
   defp aggregated_column(%Expression{function_args: [{:distinct, column}]}), do: column
   defp aggregated_column(%Expression{function_args: [column]}), do: column
 
-  defp per_user_aggregator_and_column(aggregator),
-    do: {per_user_aggregator(aggregator), aggregated_column(aggregator)}
+  defp per_user_aggregator_and_column(aggregator), do: {per_user_aggregator(aggregator), aggregated_column(aggregator)}
 
   defp group_updater(per_user_aggregators, aggregated_columns, default_accumulators, query) do
     processed_noise_layers = NoiseLayer.pre_process_layers(query.noise_layers)
@@ -200,14 +193,12 @@ defmodule Cloak.Query.Aggregator do
     end)
   end
 
-  defp low_users_count?({_values, anonymizer, users_rows}),
-    do: low_users_count?(users_rows, anonymizer)
+  defp low_users_count?({_values, anonymizer, users_rows}), do: low_users_count?(users_rows, anonymizer)
 
   defp low_users_count?(count, anonymizer) when is_integer(count),
     do: not Anonymizer.sufficiently_large?(anonymizer, count)
 
-  defp low_users_count?(values, anonymizer),
-    do: values |> Enum.count() |> low_users_count?(anonymizer)
+  defp low_users_count?(values, anonymizer), do: values |> Enum.count() |> low_users_count?(anonymizer)
 
   @spec process_low_count_users([group], Query.t()) :: [group]
   defp process_low_count_users(rows, query) do
@@ -220,8 +211,7 @@ defmodule Cloak.Query.Aggregator do
     # When we run out of bucket values, we drop the final low-count bucket, if any.
     splitted_rows = Enum.split_with(rows, &low_users_count?/1)
 
-    {_low_count_rows, high_count_rows} =
-      Enum.reduce(bucket_size..1, splitted_rows, &group_low_count_rows/2)
+    {_low_count_rows, high_count_rows} = Enum.reduce(bucket_size..1, splitted_rows, &group_low_count_rows/2)
 
     high_count_rows
   end

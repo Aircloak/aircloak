@@ -169,9 +169,7 @@ defmodule Cloak.Sql.Condition do
 
   @doc "Returns an impossible condition (TRUE = FALSE)."
   @spec impossible() :: Query.where_clause()
-  def impossible(),
-    do:
-      {:comparison, Expression.constant(:boolean, true), :=, Expression.constant(:boolean, false)}
+  def impossible(), do: {:comparison, Expression.constant(:boolean, true), :=, Expression.constant(:boolean, false)}
 
   # -------------------------------------------------------------------
   # Internal functions

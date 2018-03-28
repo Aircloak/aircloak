@@ -76,8 +76,7 @@ defmodule Cloak.Sql.Query.Features do
 
   defp build_expression_tree(%Expression{constant?: true}, _query), do: :const
 
-  defp build_expression_tree({:distinct, expr}, query),
-    do: [:distinct, build_expression_tree(expr, query)]
+  defp build_expression_tree({:distinct, expr}, query), do: [:distinct, build_expression_tree(expr, query)]
 
   defp build_expression_tree(:*, _query), do: :*
 
@@ -98,13 +97,11 @@ defmodule Cloak.Sql.Query.Features do
   defp extract_where_condition({:not, {:comparison, _column, :=, _comparator}}), do: "<>"
   defp extract_where_condition({:not, something}), do: "not #{extract_where_condition(something)}"
 
-  defp extract_where_condition({:comparison, _column, comparison, _comparator}),
-    do: Atom.to_string(comparison)
+  defp extract_where_condition({:comparison, _column, comparison, _comparator}), do: Atom.to_string(comparison)
 
   defp extract_where_condition({:is, _column, :null}), do: "null"
 
-  defp extract_where_condition({condition, _column, _value_or_pattern}),
-    do: Atom.to_string(condition)
+  defp extract_where_condition({condition, _column, _value_or_pattern}), do: Atom.to_string(condition)
 
   defp extract_column_types(columns),
     do:
@@ -128,8 +125,7 @@ defmodule Cloak.Sql.Query.Features do
   defp extract_column({:distinct, value}), do: extract_column(value)
   defp extract_column(%Expression{function?: true, function_args: [:*]}), do: []
 
-  defp extract_column(%Expression{function?: true, function_args: args}),
-    do: extract_columns(args)
+  defp extract_column(%Expression{function?: true, function_args: args}), do: extract_columns(args)
 
   defp extract_column(%Expression{} = column), do: [column]
 

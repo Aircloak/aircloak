@@ -34,8 +34,7 @@ defmodule CentralWeb.Socket.AirTest do
   test "authenticating with a license" do
     customer = create_customer!()
 
-    {:ok, license} =
-      customer |> License.create(%{length_in_days: 10, auto_renew: true, name: "a license"})
+    {:ok, license} = customer |> License.create(%{length_in_days: 10, auto_renew: true, name: "a license"})
 
     socket = TestSocketHelper.connect!(%{air_name: "air_1", license: License.export(license)})
     assert {:ok, %{}} = join_main_channel(socket)
@@ -115,8 +114,7 @@ defmodule CentralWeb.Socket.AirTest do
   defp joined_main(%{join_options: join_options, customer: customer}) do
     {:ok, token} = Customer.generate_token(customer)
 
-    {:ok, socket} =
-      Phoenix.ChannelTest.connect(CentralWeb.Socket.Air, %{token: token, air_name: "air_name"})
+    {:ok, socket} = Phoenix.ChannelTest.connect(CentralWeb.Socket.Air, %{token: token, air_name: "air_name"})
 
     {:ok, _, socket} = Phoenix.ChannelTest.subscribe_and_join(socket, "main", join_options)
     {:ok, socket: socket}

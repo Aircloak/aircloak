@@ -35,10 +35,7 @@ defmodule Air.TestRepoHelper do
   @doc "Creates a group with default parameters with a random group name to avoid clashes"
   @spec create_group!(map()) :: Group.t()
   def create_group!(additional_changes \\ %{}),
-    do:
-      User.create_group!(
-        Map.merge(%{name: "group-#{random_string()}", admin: false}, additional_changes)
-      )
+    do: User.create_group!(Map.merge(%{name: "group-#{random_string()}", admin: false}, additional_changes))
 
   @doc "Adds a group with admin rights to the user"
   @spec make_admin!(Air.Schemas.User.t()) :: Air.Schemas.User.t()

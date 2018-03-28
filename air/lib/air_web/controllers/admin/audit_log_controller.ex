@@ -48,8 +48,7 @@ defmodule AirWeb.Admin.AuditLogController do
     )
   end
 
-  def confirm_deletion(conn, _params),
-    do: render(conn, "confirm_deletion.html", entries_count: AuditLog.count())
+  def confirm_deletion(conn, _params), do: render(conn, "confirm_deletion.html", entries_count: AuditLog.count())
 
   def delete_all(conn, _params) do
     Repo.delete_all(Air.Schemas.AuditLog)

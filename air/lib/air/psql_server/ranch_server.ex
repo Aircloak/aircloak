@@ -68,8 +68,7 @@ defmodule Air.PsqlServer.RanchServer do
   # -------------------------------------------------------------------
 
   @doc "Starts the TCP server as the linked child of the caller process."
-  @spec start_embedded_server(pos_integer, module, behaviour_init_arg, opts) ::
-          Supervisor.on_start()
+  @spec start_embedded_server(pos_integer, module, behaviour_init_arg, opts) :: Supervisor.on_start()
   def start_embedded_server(port, behaviour_mod, behaviour_init_arg, opts \\ []) do
     opts = Keyword.merge([num_acceptors: 100], opts)
     Logger.info("Accepting PostgreSQL requests on port #{port}")
@@ -94,18 +93,15 @@ defmodule Air.PsqlServer.RanchServer do
 
   @doc "Passes the query result to the protocol state."
   @spec query_result(t, Protocol.query_result()) :: t
-  def query_result(conn, query_result),
-    do: update_protocol(conn, &Protocol.query_result(&1, query_result))
+  def query_result(conn, query_result), do: update_protocol(conn, &Protocol.query_result(&1, query_result))
 
   @doc "Passes the query description to the protocol state."
   @spec describe_result(t, Protocol.describe_result()) :: t
-  def describe_result(conn, describe_result),
-    do: update_protocol(conn, &Protocol.describe_result(&1, describe_result))
+  def describe_result(conn, describe_result), do: update_protocol(conn, &Protocol.describe_result(&1, describe_result))
 
   @doc "Updates the protocol state."
   @spec update_protocol(t, (Protocol.t() -> Protocol.t())) :: t
-  def update_protocol(conn, fun),
-    do: handle_protocol_actions(%__MODULE__{conn | protocol: fun.(conn.protocol)})
+  def update_protocol(conn, fun), do: handle_protocol_actions(%__MODULE__{conn | protocol: fun.(conn.protocol)})
 
   # -------------------------------------------------------------------
   # :ranch_protocol callback functions
@@ -165,8 +161,7 @@ defmodule Air.PsqlServer.RanchServer do
 
     def handle_info({unquote(:"#{transport}_closed"), _socket}, conn), do: {:stop, :normal, conn}
 
-    def handle_info({unquote(:"#{transport}_error"), _socket, reason}, conn),
-      do: {:stop, reason, conn}
+    def handle_info({unquote(:"#{transport}_error"), _socket, reason}, conn), do: {:stop, reason, conn}
   end
 
   def handle_info(:upgrade_to_ssl, conn) do
@@ -244,11 +239,9 @@ defmodule Air.PsqlServer.RanchServer do
   defp handle_protocol_action({:run_query, query, params, max_rows}, conn),
     do: conn.behaviour_mod.run_query(conn, query, params, max_rows)
 
-  defp handle_protocol_action({:cancel_query, key}, conn),
-    do: conn.behaviour_mod.cancel_query(conn, key)
+  defp handle_protocol_action({:cancel_query, key}, conn), do: conn.behaviour_mod.cancel_query(conn, key)
 
-  defp handle_protocol_action({:register_key_data, key_data}, conn),
-    do: assign(conn, :key_data, key_data)
+  defp handle_protocol_action({:register_key_data, key_data}, conn), do: assign(conn, :key_data, key_data)
 
   defp handle_protocol_action({:describe_statement, query, params}, conn),
     do: conn.behaviour_mod.describe_statement(conn, query, params)

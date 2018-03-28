@@ -53,8 +53,7 @@ defmodule AircloakCI.LogCleaner do
     end
   end
 
-  defp days_to_seconds(days),
-    do: System.convert_time_unit(days * :timer.hours(24), :millisecond, :second)
+  defp days_to_seconds(days), do: System.convert_time_unit(days * :timer.hours(24), :millisecond, :second)
 
   defp remove_log_folder(path) do
     case File.rm_rf(path) do

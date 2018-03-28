@@ -21,8 +21,7 @@ defmodule AirWeb.ProfileController do
     render(conn, "edit.html", changeset: changeset, global_settings: global_settings)
   end
 
-  def update(conn, params),
-    do: update(conn, params, _flash = "Profile updated", _log_tag = "Altered own profile")
+  def update(conn, params), do: update(conn, params, _flash = "Profile updated", _log_tag = "Altered own profile")
 
   def change_password(conn, params),
     do: update(conn, params, _flash = "Password changed", _log_tag = "Changed own password")

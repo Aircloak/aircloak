@@ -71,8 +71,7 @@ defmodule Cloak.Sql.NoiseLayer do
   defp normalize(true), do: <<?T>>
   defp normalize(false), do: <<?F>>
 
-  defp normalize(%Date{year: year, month: month, day: day}),
-    do: <<?D, year::16, month::8, day::8>>
+  defp normalize(%Date{year: year, month: month, day: day}), do: <<?D, year::16, month::8, day::8>>
 
   defp normalize(%Time{hour: hour, minute: minute, second: second, microsecond: {microsecond, 6}}),
     do: <<?T, hour::8, minute::8, second::8, microsecond::16>>
@@ -99,6 +98,5 @@ defmodule Cloak.Sql.NoiseLayer do
   defp expressions_to_indices(layer_expressions, unique_expressions),
     do: Enum.map(layer_expressions, &expression_index(&1, unique_expressions))
 
-  defp expression_index(expression, expressions),
-    do: Enum.find_index(expressions, &(&1 == expression))
+  defp expression_index(expression, expressions), do: Enum.find_index(expressions, &(&1 == expression))
 end

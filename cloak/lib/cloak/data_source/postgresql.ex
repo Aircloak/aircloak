@@ -30,8 +30,7 @@ defmodule Cloak.DataSource.PostgreSQL do
 
     receive do
       :connected ->
-        {:ok, %Postgrex.Result{}} =
-          Postgrex.query(connection, "SET standard_conforming_strings = ON", [])
+        {:ok, %Postgrex.Result{}} = Postgrex.query(connection, "SET standard_conforming_strings = ON", [])
 
         connection
     after
@@ -151,8 +150,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp real_field_mapper(value) when is_float(value), do: value
   defp real_field_mapper(value) when is_integer(value), do: value * 1.0
 
-  defp time_field_mapper(%Postgrex.Interval{days: 0, months: 0, secs: secs}),
-    do: Cloak.Time.from_integer(secs, :time)
+  defp time_field_mapper(%Postgrex.Interval{days: 0, months: 0, secs: secs}), do: Cloak.Time.from_integer(secs, :time)
 
   defp time_field_mapper(value), do: value
 

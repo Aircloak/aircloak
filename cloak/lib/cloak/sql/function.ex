@@ -213,8 +213,7 @@ defmodule Cloak.Sql.Function do
 
   @type t :: Parser.column() | Expression.t()
   @type data_type :: :any | DataSource.data_type()
-  @type argument_type ::
-          data_type | {:optional, data_type} | {:many1, data_type} | {:or, [data_type]}
+  @type argument_type :: data_type | {:optional, data_type} | {:many1, data_type} | {:or, [data_type]}
 
   # -------------------------------------------------------------------
   # Info functions
@@ -227,11 +226,9 @@ defmodule Cloak.Sql.Function do
 
   @doc "Returns true if the function has the specified attribute, false otherise."
   @spec has_attribute?(t | String.t() | nil, atom) :: boolean
-  def has_attribute?({:function, name, _, _}, attribute),
-    do: has_attribute?(canonical_name(name), attribute)
+  def has_attribute?({:function, name, _, _}, attribute), do: has_attribute?(canonical_name(name), attribute)
 
-  def has_attribute?(%Expression{function?: true, function: name}, attribute),
-    do: has_attribute?(name, attribute)
+  def has_attribute?(%Expression{function?: true, function: name}, attribute), do: has_attribute?(name, attribute)
 
   def has_attribute?(name, attribute) do
     case Map.get(@functions, name) do
@@ -246,8 +243,7 @@ defmodule Cloak.Sql.Function do
 
   @doc "Returns a list of possible argument lists required by the given function call."
   @spec argument_types(t) :: [[argument_type]]
-  def argument_types({:function, function, _, _}),
-    do: @functions[canonical_name(function)].type_specs |> Map.keys()
+  def argument_types({:function, function, _, _}), do: @functions[canonical_name(function)].type_specs |> Map.keys()
 
   @doc "Returns the argument specifiaction of the given function call."
   @spec arguments(t) :: [Expression.t()]
@@ -311,8 +307,7 @@ defmodule Cloak.Sql.Function do
 
   @doc "Returns the value of the bucket size argument of the given 'bucket' function call."
   @spec bucket_size(t) :: number
-  def bucket_size(%Expression{function: {:bucket, _}, function_args: [_arg1, size]}),
-    do: size.value
+  def bucket_size(%Expression{function: {:bucket, _}, function_args: [_arg1, size]}), do: size.value
 
   @doc "Returns true if the function is a valid cloak function"
   @spec exists?(t) :: boolean
@@ -347,8 +342,7 @@ defmodule Cloak.Sql.Function do
   def internal?(param), do: has_attribute?(param, :internal)
 
   @doc "Provides information about alternatives for deprecated functions."
-  @spec deprecation_info(t) ::
-          {:error, :function_exists | :not_found} | {:ok, %{alternative: String.t()}}
+  @spec deprecation_info(t) :: {:error, :function_exists | :not_found} | {:ok, %{alternative: String.t()}}
   def deprecation_info({:function, name, _, _} = function) do
     case {internal?(function), exists?(function), @deprecated_functions[canonical_name(name)]} do
       {true, _, _} -> {:error, :internal_function}
@@ -367,8 +361,7 @@ defmodule Cloak.Sql.Function do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp do_well_typed?(function, [{:many1, type}]),
-    do: Enum.all?(arguments(function), &type_matches?(type, &1))
+  defp do_well_typed?(function, [{:many1, type}]), do: Enum.all?(arguments(function), &type_matches?(type, &1))
 
   defp do_well_typed?(function, argument_types) do
     length(arguments(function)) <= length(argument_types) &&
@@ -379,8 +372,7 @@ defmodule Cloak.Sql.Function do
       end)
   end
 
-  defp type_matches?(type, function = {:function, _, _, _}),
-    do: type_matches?(type, %{type: return_type(function)})
+  defp type_matches?(type, function = {:function, _, _, _}), do: type_matches?(type, %{type: return_type(function)})
 
   defp type_matches?(type, {:distinct, column}), do: type_matches?(type, column)
   defp type_matches?({:optional, _}, nil), do: true
@@ -390,8 +382,7 @@ defmodule Cloak.Sql.Function do
   defp type_matches?(:any, _), do: true
   defp type_matches?(_, :*), do: false
 
-  defp type_matches?({:constant, expected}, %{constant?: true, type: actual}),
-    do: expected == actual
+  defp type_matches?({:constant, expected}, %{constant?: true, type: actual}), do: expected == actual
 
   defp type_matches?({:constant, expected}, %{function?: true, function_args: args, type: actual}),
     do: expected == actual and Enum.all?(args, &Expression.constant?/1)

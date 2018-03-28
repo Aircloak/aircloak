@@ -28,8 +28,7 @@ defmodule Air.Service.Query.Lifecycle do
 
   @doc "Asynchronously handles query state change."
   @spec state_changed(String.t(), Air.Schemas.Query.QueryState.t()) :: :ok
-  def state_changed(query_id, query_state),
-    do: enqueue(query_id, {:state_changed, query_id, query_state})
+  def state_changed(query_id, query_state), do: enqueue(query_id, {:state_changed, query_id, query_state})
 
   @doc "Asynchronously handles query result arrival."
   @spec result_arrived(cloak_result) :: :ok

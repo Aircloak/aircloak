@@ -53,8 +53,7 @@ defmodule Air.ConfigValidationTest do
     json = generate_object(path)
     error = assert_raise(RuntimeError, fn -> Aircloak.DeployConfig.validate!(:air, json) end)
 
-    assert error.message =~
-             ~r[#/#{Enum.join(path, "/")}: Schema does not allow additional properties.]
+    assert error.message =~ ~r[#/#{Enum.join(path, "/")}: Schema does not allow additional properties.]
   end
 
   defp validate_with_missing_child(path) do

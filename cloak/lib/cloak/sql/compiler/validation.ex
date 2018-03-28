@@ -70,9 +70,7 @@ defmodule Cloak.Sql.Compiler.Validation do
             source_location: location,
             message:
               "Function `#{Function.readable_name(name)}` has been deprecated. " <>
-                "Depending on your use case, consider using `#{
-                  Function.readable_name(alternative)
-                }` instead."
+                "Depending on your use case, consider using `#{Function.readable_name(alternative)}` instead."
       end
     end
   end
@@ -84,8 +82,7 @@ defmodule Cloak.Sql.Compiler.Validation do
         raise(
           CompilationError,
           source_location: location,
-          message:
-            "Function `#{name}` is allowed over arguments of type `text` only in subqueries."
+          message: "Function `#{name}` is allowed over arguments of type `text` only in subqueries."
         )
 
     :ok
@@ -133,8 +130,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp individual_column?(query, column),
     do: not Expression.constant?(column) and not Helpers.aggregated_column?(query, column)
 
-  defp aggregated_expression_display({:function, _function, [arg], _location}),
-    do: "Column `#{arg.name}` needs"
+  defp aggregated_expression_display({:function, _function, [arg], _location}), do: "Column `#{arg.name}` needs"
 
   defp aggregated_expression_display({:function, _function, args, _location}),
     do: "Columns (#{args |> Enum.map(&"`#{&1.name}`") |> Enum.join(", ")}) need"
@@ -166,8 +162,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_non_selected_where_splitters(query) do
-    selected_splitters =
-      Query.outermost_selected_splitters(query) |> Enum.map(&Expression.semantic/1)
+    selected_splitters = Query.outermost_selected_splitters(query) |> Enum.map(&Expression.semantic/1)
 
     Query.outermost_where_splitters(query)
     |> Enum.reject(&(Expression.semantic(&1) in selected_splitters))
@@ -216,14 +211,9 @@ defmodule Cloak.Sql.Compiler.Validation do
         |> Helpers.all_id_columns_from_tables()
         |> Enum.each(&CyclicGraph.add_vertex(graph, {&1.table.name, &1.name}))
 
-        conditions =
-          Lens.to_list(Query.Lenses.conditions(), query.where) ++
-            Helpers.all_join_conditions(query)
+        conditions = Lens.to_list(Query.Lenses.conditions(), query.where) ++ Helpers.all_join_conditions(query)
 
-        for {:comparison, column1, :=, column2} <- conditions,
-            column1.user_id?,
-            column2.user_id?,
-            column1 != column2 do
+        for {:comparison, column1, :=, column2} <- conditions, column1.user_id?, column2.user_id?, column1 != column2 do
           CyclicGraph.connect!(
             graph,
             {column1.table.name, column1.name},
@@ -263,8 +253,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     selected_tables
   end
 
-  defp verify_join_conditions_scope({:subquery, subquery}, selected_tables),
-    do: [subquery.alias | selected_tables]
+  defp verify_join_conditions_scope({:subquery, subquery}, selected_tables), do: [subquery.alias | selected_tables]
 
   defp verify_join_conditions_scope(table_name, selected_tables) when is_binary(table_name),
     do: [table_name | selected_tables]
@@ -326,8 +315,7 @@ defmodule Cloak.Sql.Compiler.Validation do
       [column | _rest] ->
         raise CompilationError,
           source_location: column.source_location,
-          message:
-            "Expression #{Expression.display_name(column)} is not valid in the `WHERE` clause."
+          message: "Expression #{Expression.display_name(column)} is not valid in the `WHERE` clause."
     end
   end
 
@@ -349,9 +337,7 @@ defmodule Cloak.Sql.Compiler.Validation do
       raise CompilationError,
         source_location: column.source_location,
         message:
-          "Column #{Expression.display_name(column)} of type `#{column.type}` cannot be used in a #{
-            verb
-          } expression."
+          "Column #{Expression.display_name(column)} of type `#{column.type}` cannot be used in a #{verb} expression."
     end
   end
 
@@ -397,8 +383,7 @@ defmodule Cloak.Sql.Compiler.Validation do
           raise(
             CompilationError,
             source_location: term.source_location,
-            message:
-              "`HAVING` clause can not be applied over column #{Expression.display_name(term)}."
+            message: "`HAVING` clause can not be applied over column #{Expression.display_name(term)}."
           )
   end
 
@@ -441,8 +426,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   # Helpers
   # -------------------------------------------------------------------
 
-  defp aggregate_expression?(expression),
-    do: not Enum.empty?(aggregate_subexpressions(expression))
+  defp aggregate_expression?(expression), do: not Enum.empty?(aggregate_subexpressions(expression))
 
   defp aggregate_subexpressions(expression),
     do:

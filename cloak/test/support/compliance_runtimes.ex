@@ -17,8 +17,7 @@ defmodule Compliance.Runtime do
 
   @doc "Record an execution time for a data source"
   @spec record(DataSource.t(), non_neg_integer) :: :ok
-  def record(data_source, time),
-    do: GenServer.cast(__MODULE__, {:record, data_source_name(data_source), time})
+  def record(data_source, time), do: GenServer.cast(__MODULE__, {:record, data_source_name(data_source), time})
 
   @doc "Prints the time results and halts the server"
   @spec finalize() :: :ok
@@ -49,8 +48,7 @@ defmodule Compliance.Runtime do
       end)
       |> Enum.split_with(fn {_, measurements} -> length(measurements) > @min_measurements end)
 
-    max_value =
-      Enum.reduce(measurements, 1, fn {_data_source, dm}, acc -> max(acc, percentile(dm, 95)) end)
+    max_value = Enum.reduce(measurements, 1, fn {_data_source, dm}, acc -> max(acc, percentile(dm, 95)) end)
 
     scale_fn = fn val -> trunc(val * (@graph_width - 1) / max_value) end
 
@@ -81,9 +79,7 @@ defmodule Compliance.Runtime do
   defp print_header(max_value, additional_text) do
     max_value_label = to_string(max_value) <> "ms #{additional_text}"
 
-    IO.puts(
-      "0ms" <> repeat(" ", @graph_width - 3 - String.length(max_value_label)) <> max_value_label
-    )
+    IO.puts("0ms" <> repeat(" ", @graph_width - 3 - String.length(max_value_label)) <> max_value_label)
   end
 
   defp percentile(measurements, percentilerank) do
@@ -156,8 +152,7 @@ defmodule Compliance.Runtime do
     IO.puts("\n\n" <> Aircloak.AsciiTable.format([header] ++ data_as_rows))
   end
 
-  defp data_source_name(%{driver: driver, name: name}),
-    do: List.last(Module.split(driver)) <> " (#{name})"
+  defp data_source_name(%{driver: driver, name: name}), do: List.last(Module.split(driver)) <> " (#{name})"
 
   defp repeat(_what, times) when times <= 0, do: ""
   defp repeat(what, times), do: List.duplicate(what, times) |> Enum.join()

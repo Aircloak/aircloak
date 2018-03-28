@@ -38,8 +38,7 @@ defmodule AircloakCI.Build.Server do
 
   @type source_id :: any
 
-  @type source ::
-          Github.API.pull_request() | Github.API.branch() | AircloakCI.Build.Local.source()
+  @type source :: Github.API.pull_request() | Github.API.branch() | AircloakCI.Build.Local.source()
 
   @opaque jobs :: %{job_name => pid}
 
@@ -114,8 +113,7 @@ defmodule AircloakCI.Build.Server do
 
   @doc "Makes a synchronous request to the given build server."
   @spec call(GenServer.server(), any, pos_integer | :infinity) :: any
-  def call(server, request, timeout \\ :timer.seconds(5)),
-    do: GenServer.call(server, request, timeout)
+  def call(server, request, timeout \\ :timer.seconds(5)), do: GenServer.call(server, request, timeout)
 
   @doc "Starts the provided function as a child job of the build server."
   @spec start_job(state, job_name, (() -> any)) :: state
@@ -217,9 +215,7 @@ defmodule AircloakCI.Build.Server do
   def handle_info({:repo_data, repo_data}, state) do
     case build_source(state.callback_mod, state.source_id, repo_data) do
       nil ->
-        Logger.info(
-          "shutting down build server `#{__MODULE__}` for `#{LocalProject.name(state.project)}`"
-        )
+        Logger.info("shutting down build server `#{__MODULE__}` for `#{LocalProject.name(state.project)}`")
 
         state = terminate_all_jobs(state)
         LocalProject.remove(state.project)
@@ -326,8 +322,7 @@ defmodule AircloakCI.Build.Server do
     end
   end
 
-  defp build_source(callback_mod, source_id, repo_data),
-    do: callback_mod.build_source(source_id, repo_data)
+  defp build_source(callback_mod, source_id, repo_data), do: callback_mod.build_source(source_id, repo_data)
 
   defp terminate_all_jobs(state) do
     pids = Map.values(state.jobs)
@@ -336,8 +331,7 @@ defmodule AircloakCI.Build.Server do
     %{state | jobs: %{}}
   end
 
-  defp start_preparation_job(state, opts \\ []),
-    do: Job.Prepare.start(%{state | prepared?: false}, opts)
+  defp start_preparation_job(state, opts \\ []), do: Job.Prepare.start(%{state | prepared?: false}, opts)
 
   defp update_source(state, %{source: source, base_branch: base_branch, project: project}) do
     new_state = %{state | source: source, base_branch: base_branch, project: project}
@@ -369,19 +363,16 @@ defmodule AircloakCI.Build.Server do
     end
   end
 
-  defp handle_job_succeeded(state, "prepare"),
-    do: invoke_callback(state, :handle_job_succeeded, ["prepare"])
+  defp handle_job_succeeded(state, "prepare"), do: invoke_callback(state, :handle_job_succeeded, ["prepare"])
 
-  defp handle_job_succeeded(state, job_name),
-    do: invoke_callback(state, :handle_job_succeeded, [job_name])
+  defp handle_job_succeeded(state, job_name), do: invoke_callback(state, :handle_job_succeeded, [job_name])
 
   defp handle_job_failed(state, "prepare", _reason) do
     LocalProject.clean(state.project)
     {:noreply, start_preparation_job(state, delay: :timer.seconds(10))}
   end
 
-  defp handle_job_failed(state, name, reason),
-    do: invoke_callback(state, :handle_job_failed, [name, reason])
+  defp handle_job_failed(state, name, reason), do: invoke_callback(state, :handle_job_failed, [name, reason])
 
   defp invoke_callback(state, fun, args), do: apply(state.callback_mod, fun, args ++ [state])
 
@@ -403,8 +394,7 @@ defmodule AircloakCI.Build.Server do
       def handle_job_failed(job_name, crash_reason, state), do: {:noreply, state}
 
       @impl behaviour_mod
-      def handle_call(request, from, state),
-        do: raise("handle_call/3 not implemented in #{inspect(__MODULE__)}")
+      def handle_call(request, from, state), do: raise("handle_call/3 not implemented in #{inspect(__MODULE__)}")
 
       @impl behaviour_mod
       def handle_info(msg, state) do

@@ -48,8 +48,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
               )
             )
 
-          cursor_query.inner_query =~
-              ~r/select ta.attname, ia.attnum.*ia.attrelid = i.indexrelid.*/i ->
+          cursor_query.inner_query =~ ~r/select ta.attname, ia.attnum.*ia.attrelid = i.indexrelid.*/i ->
             # indexed columns
             first_cursor_fetch(
               conn,
@@ -168,8 +167,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
     ]
 
     [
-      columns:
-        Enum.map(result_columns, fn {name, type} -> %{name: to_string(name), type: type} end),
+      columns: Enum.map(result_columns, fn {name, type} -> %{name: to_string(name), type: type} end),
       rows:
         table_columns
         |> Enum.with_index()
@@ -226,9 +224,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
         {rows_to_return, remaining_rows} = Enum.split(Keyword.fetch!(query_result, :rows), count)
 
         conn
-        |> RanchServer.query_result(
-          Keyword.merge(query_result, command: :fetch, rows: rows_to_return)
-        )
+        |> RanchServer.query_result(Keyword.merge(query_result, command: :fetch, rows: rows_to_return))
         |> store_cursor_result(cursor_name, Keyword.put(query_result, :rows, remaining_rows))
 
       :error ->

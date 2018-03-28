@@ -16,8 +16,7 @@ defmodule Air.Schemas.ExportForAircloak do
 
   @doc "Returns the file name for this export."
   @spec file_name(t) :: String.t()
-  def file_name(export),
-    do: Timex.format!(export.inserted_at, "export_for_aircloak_{YYYY}{0M}{0D}{0h24}{0m}.acd")
+  def file_name(export), do: Timex.format!(export.inserted_at, "export_for_aircloak_{YYYY}{0M}{0D}{0h24}{0m}.acd")
 
   @doc "Returns the binary content of this export."
   @spec content(t) :: binary

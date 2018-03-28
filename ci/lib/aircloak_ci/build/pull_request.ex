@@ -54,8 +54,7 @@ defmodule AircloakCI.Build.PullRequest do
   end
 
   @impl Build.Server
-  def handle_job_succeeded(_job_name, state),
-    do: {:noreply, state |> start_next_jobs() |> report_mergeable()}
+  def handle_job_succeeded(_job_name, state), do: {:noreply, state |> start_next_jobs() |> report_mergeable()}
 
   @impl Build.Server
   def handle_job_failed(_job, _reason, state), do: {:noreply, report_mergeable(state)}
@@ -128,11 +127,9 @@ defmodule AircloakCI.Build.PullRequest do
 
   defp check_mergeable(%{source: %{merge_state: :mergeable}}), do: :ok
 
-  defp check_mergeable(%{source: %{merge_state: :unknown}}),
-    do: {:pending, "awaiting merge status"}
+  defp check_mergeable(%{source: %{merge_state: :unknown}}), do: {:pending, "awaiting merge status"}
 
-  defp check_mergeable(%{source: %{merge_state: :conflicting}}),
-    do: {:error, "there are merge conflicts"}
+  defp check_mergeable(%{source: %{merge_state: :conflicting}}), do: {:error, "there are merge conflicts"}
 
   defp check_approved(%{source: %{approved?: true}}), do: :ok
   defp check_approved(%{source: %{approved?: false}}), do: {:pending, "awaiting approval"}

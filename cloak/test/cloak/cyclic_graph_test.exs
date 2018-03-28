@@ -5,24 +5,17 @@ defmodule Cloak.CyclicGraphTest do
 
   test "empty graph", do: assert([] == CyclicGraph.disconnected_pairs(graph([])))
 
-  test "graph with a single element",
-    do: assert([] == CyclicGraph.disconnected_pairs(graph([:a])))
+  test "graph with a single element", do: assert([] == CyclicGraph.disconnected_pairs(graph([:a])))
 
-  test "graph with two disconnected elements",
-    do: assert([a: :b] == CyclicGraph.disconnected_pairs(graph([:a, :b])))
+  test "graph with two disconnected elements", do: assert([a: :b] == CyclicGraph.disconnected_pairs(graph([:a, :b])))
 
-  test "graph with two connected elements",
-    do: assert([] == CyclicGraph.disconnected_pairs(graph([:a, :b], a: :b)))
+  test "graph with two connected elements", do: assert([] == CyclicGraph.disconnected_pairs(graph([:a, :b], a: :b)))
 
   test "indirect connections are accounted for",
     do: assert([] == CyclicGraph.disconnected_pairs(graph([:a, :b, :c], a: :b, b: :c)))
 
   test "returns all disconnected pairs",
-    do:
-      assert(
-        [a: :c, a: :d, b: :c, b: :d] ==
-          CyclicGraph.disconnected_pairs(graph([:a, :b, :c, :d], a: :b, c: :d))
-      )
+    do: assert([a: :c, a: :d, b: :c, b: :d] == CyclicGraph.disconnected_pairs(graph([:a, :b, :c, :d], a: :b, c: :d)))
 
   test "with" do
     assert [a: :c, b: :c] ==

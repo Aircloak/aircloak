@@ -65,12 +65,10 @@ defmodule Cloak.Query.VirtualTableTest do
     ])
   end
 
-  defp virtual_table_error(query),
-    do: capture_log(fn -> create_virtual_table!("vtt_fake", query) end)
+  defp virtual_table_error(query), do: capture_log(fn -> create_virtual_table!("vtt_fake", query) end)
 
   test "error on query parsing" do
-    assert virtual_table_error("_select * from vtt_real") =~
-             ~r/Failed to parse the query for virtual table `vtt_fake`/
+    assert virtual_table_error("_select * from vtt_real") =~ ~r/Failed to parse the query for virtual table `vtt_fake`/
   end
 
   test "error on query compilation" do
@@ -84,8 +82,7 @@ defmodule Cloak.Query.VirtualTableTest do
   end
 
   test "error on invalid query" do
-    assert virtual_table_error("select user_id, xxx(ival) as x from cloak_test.vtt_real") =~
-             ~r/Unknown function `xxx`/
+    assert virtual_table_error("select user_id, xxx(ival) as x from cloak_test.vtt_real") =~ ~r/Unknown function `xxx`/
   end
 
   test "duplicated columns are dropped" do
@@ -146,10 +143,9 @@ defmodule Cloak.Query.VirtualTableTest do
       :ok = insert_rows(_user_ids = 21..30, "vtt_encoded", ["bool_val"], ["False"])
       :ok = insert_rows(_user_ids = 31..40, "vtt_encoded", ["bool_val"], [nil])
 
-      assert_query(
-        "select bool_val from vtt_decoded where bool_val is not null order by bool_val",
-        %{rows: [%{occurrences: 10, row: [false]}, %{occurrences: 20, row: [true]}]}
-      )
+      assert_query("select bool_val from vtt_decoded where bool_val is not null order by bool_val", %{
+        rows: [%{occurrences: 10, row: [false]}, %{occurrences: 20, row: [true]}]
+      })
 
       assert_query("select bool_val from vtt_decoded where bool_val = true", %{
         rows: [%{occurrences: 20, row: [true]}]
@@ -165,10 +161,9 @@ defmodule Cloak.Query.VirtualTableTest do
       :ok = insert_rows(_user_ids = 11..20, "vtt_encoded", ["real_val"], ["22.0"])
       :ok = insert_rows(_user_ids = 21..30, "vtt_encoded", ["real_val"], [nil])
 
-      assert_query(
-        "select real_val from vtt_decoded where real_val is not null order by real_val",
-        %{rows: [%{occurrences: 10, row: [1.22]}, %{occurrences: 10, row: [22.0]}]}
-      )
+      assert_query("select real_val from vtt_decoded where real_val is not null order by real_val", %{
+        rows: [%{occurrences: 10, row: [1.22]}, %{occurrences: 10, row: [22.0]}]
+      })
 
       assert_query("select real_val from vtt_decoded where real_val = 1.22", %{
         rows: [%{occurrences: 10, row: [1.22]}]
@@ -184,10 +179,9 @@ defmodule Cloak.Query.VirtualTableTest do
       :ok = insert_rows(_user_ids = 11..20, "vtt_encoded", ["int_val"], ["222"])
       :ok = insert_rows(_user_ids = 21..30, "vtt_encoded", ["int_val"], [nil])
 
-      assert_query(
-        "select int_val from vtt_decoded where int_val is not null order by int_val",
-        %{rows: [%{occurrences: 10, row: [111]}, %{occurrences: 10, row: [222]}]}
-      )
+      assert_query("select int_val from vtt_decoded where int_val is not null order by int_val", %{
+        rows: [%{occurrences: 10, row: [111]}, %{occurrences: 10, row: [222]}]
+      })
 
       assert_query("select int_val from vtt_decoded where int_val = 111", %{
         rows: [%{occurrences: 10, row: [111]}]
@@ -352,22 +346,22 @@ defmodule Cloak.Query.VirtualTableTest do
     end
 
     test "projected table in a subquery" do
-      assert_query(
-        "select amount from (select user_id, amount from projected_transactions) sq_alias",
-        %{columns: ["amount"], rows: [%{row: [100], occurrences: 30}]}
-      )
+      assert_query("select amount from (select user_id, amount from projected_transactions) sq_alias", %{
+        columns: ["amount"],
+        rows: [%{row: [100], occurrences: 30}]
+      })
     end
 
     test "expression in a subquery using a projected table" do
-      assert_query(
-        "select x from (select user_id, abs(amount) as x from projected_transactions) t",
-        %{columns: ["x"], rows: [%{row: [100], occurrences: 30}]}
-      )
+      assert_query("select x from (select user_id, abs(amount) as x from projected_transactions) t", %{
+        columns: ["x"],
+        rows: [%{row: [100], occurrences: 30}]
+      })
 
-      assert_query(
-        "select x from (select user_id, sqrt(abs(amount)) as x from projected_transactions) t",
-        %{columns: ["x"], rows: [%{row: [10.0], occurrences: 30}]}
-      )
+      assert_query("select x from (select user_id, sqrt(abs(amount)) as x from projected_transactions) t", %{
+        columns: ["x"],
+        rows: [%{row: [10.0], occurrences: 30}]
+      })
     end
 
     test "joining to a projected table" do

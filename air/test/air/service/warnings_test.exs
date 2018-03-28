@@ -21,8 +21,7 @@ defmodule Air.Service.WarningsTest do
       {:DOWN, _, _, _, _} -> :ok
     end
 
-    assert problem_with_description(~r/No cloaks .+ are online/).resource.name ==
-             @data_source_name
+    assert problem_with_description(~r/No cloaks .+ are online/).resource.name == @data_source_name
   end
 
   test "broken data source produce warnings" do
@@ -59,8 +58,7 @@ defmodule Air.Service.WarningsTest do
       [%{name: name}] = @data_sources_with_errors
       data_source = Repo.get_by!(DataSource, name: name)
 
-      assert problem_with_description(Warnings.problems_for_resource(data_source), ~r/broken/).resource.name ==
-               name
+      assert problem_with_description(Warnings.problems_for_resource(data_source), ~r/broken/).resource.name == name
     end
   end
 
@@ -76,10 +74,7 @@ defmodule Air.Service.WarningsTest do
         )
 
     test "medium is higher than low",
-      do:
-        assert(
-          Warnings.highest_severity_class([%{severity: :medium}, %{severity: :low}]) == :medium
-        )
+      do: assert(Warnings.highest_severity_class([%{severity: :medium}, %{severity: :low}]) == :medium)
   end
 
   defp problem_with_description(problems \\ Warnings.problems(), pattern) do
@@ -134,6 +129,5 @@ defmodule Air.Service.WarningsTest do
     end
   end
 
-  defp data_source_problems(),
-    do: Warnings.problems() |> Enum.filter(&match?(%{resource: %DataSource{}}, &1))
+  defp data_source_problems(), do: Warnings.problems() |> Enum.filter(&match?(%{resource: %DataSource{}}, &1))
 end

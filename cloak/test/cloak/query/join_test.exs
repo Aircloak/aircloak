@@ -85,10 +85,10 @@ defmodule Cloak.Query.JoinTest do
   test "self join with an alias" do
     :ok = insert_rows(_user_ids = 1..100, "purchases", ["price"], [200])
 
-    assert_query(
-      "select p1.price, p2.price FROM purchases p1 inner join purchases p2 on p1.user_id = p2.user_id",
-      %{columns: ["price", "price"], rows: rows}
-    )
+    assert_query("select p1.price, p2.price FROM purchases p1 inner join purchases p2 on p1.user_id = p2.user_id", %{
+      columns: ["price", "price"],
+      rows: rows
+    })
 
     assert [%{row: [200, 200], occurrences: 100}] = rows
   end

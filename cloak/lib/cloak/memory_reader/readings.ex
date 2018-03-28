@@ -58,8 +58,7 @@ defmodule Cloak.MemoryReader.Readings do
   @spec add_reading(t, non_neg_integer) :: t
   def add_reading(storage, reading) do
     values =
-      Enum.reduce(storage.level_config, storage.values, fn {name, records, turnover},
-                                                           values_acc ->
+      Enum.reduce(storage.level_config, storage.values, fn {name, records, turnover}, values_acc ->
         if rem(storage.update_counter, turnover) == 0 do
           # It's the point where we turn over, add the new value
           Map.update(values_acc, name, [reading], &Enum.take([reading | &1], records))

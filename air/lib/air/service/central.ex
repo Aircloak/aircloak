@@ -63,8 +63,7 @@ defmodule Air.Service.Central do
     end
   end
 
-  @spec export_pending_calls() ::
-          {:ok, ExportForAircloak.t()} | {:error, :nothing_to_export | :database_error}
+  @spec export_pending_calls() :: {:ok, ExportForAircloak.t()} | {:error, :nothing_to_export | :database_error}
   def export_pending_calls() do
     with {:ok, calls_to_export} <- calls_to_export() do
       max_pending_call_id = Enum.max_by(calls_to_export, & &1.id).id

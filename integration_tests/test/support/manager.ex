@@ -50,18 +50,15 @@ defmodule IntegrationTest.Manager do
     })
   end
 
-  def load_valid_license(),
-    do: :ok = create_license() |> Central.Service.License.export() |> Air.Service.License.load()
+  def load_valid_license(), do: :ok = create_license() |> Central.Service.License.export() |> Air.Service.License.load()
 
   def load_expired_license() do
     license = create_license()
 
     {:ok, _} =
-      Ecto.Adapters.SQL.query(
-        Central.Repo,
-        "UPDATE licenses SET inserted_at = '2000-01-01 00:00:00' WHERE id = $1",
-        [license.id]
-      )
+      Ecto.Adapters.SQL.query(Central.Repo, "UPDATE licenses SET inserted_at = '2000-01-01 00:00:00' WHERE id = $1", [
+        license.id
+      ])
 
     :ok =
       Central.Schemas.License

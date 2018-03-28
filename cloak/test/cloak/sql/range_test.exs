@@ -37,8 +37,7 @@ defmodule Cloak.Sql.Range.Test do
     test "function range in SELECT" do
       query = compile("SELECT month(timestamp) FROM table")
 
-      assert [%Range{column: %{function: "month"}, interval: :implicit}] =
-               Range.find_ranges(query)
+      assert [%Range{column: %{function: "month"}, interval: :implicit}] = Range.find_ranges(query)
     end
 
     test "function range in expression in SELECT" do
@@ -49,15 +48,13 @@ defmodule Cloak.Sql.Range.Test do
     test "function range on expression in SELECT" do
       query = compile("SELECT trunc(float + 1) FROM table")
 
-      assert [%Range{column: %{function: "trunc"}, interval: :implicit}] =
-               Range.find_ranges(query)
+      assert [%Range{column: %{function: "trunc"}, interval: :implicit}] = Range.find_ranges(query)
     end
 
     test "function range in WHERE" do
       query = compile("SELECT COUNT(*) FROM table WHERE trunc(float) = 10")
 
-      assert [%Range{column: %{function: "trunc"}, interval: :implicit}] =
-               Range.find_ranges(query)
+      assert [%Range{column: %{function: "trunc"}, interval: :implicit}] = Range.find_ranges(query)
     end
 
     test "no function ranges from top-level HAVING" do
@@ -67,12 +64,9 @@ defmodule Cloak.Sql.Range.Test do
 
     test "function ranges from subquery HAVING" do
       %{from: {:subquery, %{ast: subquery}}} =
-        compile(
-          "SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid, number HAVING trunc(float) = 10) x"
-        )
+        compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid, number HAVING trunc(float) = 10) x")
 
-      assert [%Range{column: %{function: "trunc"}, interval: :implicit}] =
-               Range.find_ranges(subquery)
+      assert [%Range{column: %{function: "trunc"}, interval: :implicit}] = Range.find_ranges(subquery)
     end
 
     test "top-level selected aggregates are not ranges" do
@@ -100,10 +94,7 @@ defmodule Cloak.Sql.Range.Test do
     end
 
     test "subquery selected columns later filtered" do
-      query =
-        compile(
-          "SELECT COUNT(*) FROM (SELECT uid, trunc(float) AS trunced FROM table) x WHERE trunced = 10"
-        )
+      query = compile("SELECT COUNT(*) FROM (SELECT uid, trunc(float) AS trunced FROM table) x WHERE trunced = 10")
 
       assert [%Range{column: %{name: "trunced"}, interval: :implicit}] = Range.find_ranges(query)
     end
@@ -131,8 +122,7 @@ defmodule Cloak.Sql.Range.Test do
       test "#{function} range in SELECT" do
         query = compile("SELECT #{unquote(function)}(number, 2) FROM table")
 
-        assert [%Range{column: %{function: unquote(function)}, interval: :implicit}] =
-                 Range.find_ranges(query)
+        assert [%Range{column: %{function: unquote(function)}, interval: :implicit}] = Range.find_ranges(query)
       end
     end
 
@@ -140,8 +130,7 @@ defmodule Cloak.Sql.Range.Test do
       test "date_trunc(#{part})" do
         query = compile("SELECT date_trunc('#{unquote(part)}', timestamp) FROM table")
 
-        assert [%Range{column: %{function: "date_trunc"}, interval: :implicit}] =
-                 Range.find_ranges(query)
+        assert [%Range{column: %{function: "date_trunc"}, interval: :implicit}] = Range.find_ranges(query)
       end
     end
   end

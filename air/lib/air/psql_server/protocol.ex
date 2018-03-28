@@ -66,8 +66,7 @@ defmodule Air.PsqlServer.Protocol do
           {:error, :query_died | :query_cancelled | String.t()}
           | [command: command, intermediate: boolean, columns: [column], rows: [[db_value]]]
 
-  @type command ::
-          :set | :begin | :select | :fetch | :"declare cursor" | :"close cursor" | :deallocate
+  @type command :: :set | :begin | :select | :fetch | :"declare cursor" | :"close cursor" | :deallocate
 
   @type prepared_statement :: %{
           name: String.t(),
@@ -122,8 +121,7 @@ defmodule Air.PsqlServer.Protocol do
       executing_portal: nil,
       prepared_statements: %{},
       portals: %{},
-      detailed_log?:
-        Keyword.get(Application.fetch_env!(:air, Air.PsqlServer), :detailed_log, false)
+      detailed_log?: Keyword.get(Application.fetch_env!(:air, Air.PsqlServer), :detailed_log, false)
     }
   end
 
@@ -166,8 +164,7 @@ defmodule Air.PsqlServer.Protocol do
 
   @doc "Should be invoked by the driver when the describe result is available."
   @spec describe_result(t, describe_result) :: t
-  def describe_result(protocol, describe_result),
-    do: dispatch_event(protocol, {:describe_result, describe_result})
+  def describe_result(protocol, describe_result), do: dispatch_event(protocol, {:describe_result, describe_result})
 
   @doc "Deallocates the prepared statement."
   @spec deallocate_prepared_statement(t, String.t()) :: t
@@ -319,6 +316,5 @@ defmodule Air.PsqlServer.Protocol do
 
   defp protocol_handler(:ready), do: Air.PsqlServer.Protocol.QueryExecution
 
-  defp dispatch_event(protocol, event),
-    do: protocol_handler(protocol.state).handle_event(protocol, event)
+  defp dispatch_event(protocol, event), do: protocol_handler(protocol.state).handle_event(protocol, event)
 end

@@ -66,8 +66,7 @@ defmodule Cloak.Test.QueryHelpers do
 
   defmacro assert_query(query, options \\ [], expected_response) do
     quote do
-      assert unquote(expected_response) =
-               assert_query_consistency(unquote(query), unquote(options))
+      assert unquote(expected_response) = assert_query_consistency(unquote(query), unquote(options))
     end
   end
 
@@ -86,8 +85,7 @@ defmodule Cloak.Test.QueryHelpers do
     Cloak.Test.DB.add_users_data(table, columns, [[nil | values]])
   end
 
-  defp only_structs_lens(root),
-    do: Lens.match(root, &if(is_map(&1), do: Lens.root(), else: Lens.empty()))
+  defp only_structs_lens(root), do: Lens.match(root, &if(is_map(&1), do: Lens.root(), else: Lens.empty()))
 
   defp tables_lens(),
     do:
@@ -104,8 +102,7 @@ defmodule Cloak.Test.QueryHelpers do
       |> Lens.both(Lens.root(), virtual_queries_lens())
       |> Lens.key(:data_source)
 
-  def scrub_data_sources(query),
-    do: put_in(query, [Query.Lenses.all_queries() |> data_sources_lens()], nil)
+  def scrub_data_sources(query), do: put_in(query, [Query.Lenses.all_queries() |> data_sources_lens()], nil)
 
   def scrub_locations(ast),
     do:

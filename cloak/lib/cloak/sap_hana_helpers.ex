@@ -38,8 +38,7 @@ defmodule Cloak.SapHanaHelpers do
 
   @doc "Executes the database query."
   @spec execute(conn, String.t(), [any]) :: :odbc.result_tuple()
-  def execute(conn, command, params \\ []),
-    do: :odbc.param_query(conn, to_charlist(command), params)
+  def execute(conn, command, params \\ []), do: :odbc.param_query(conn, to_charlist(command), params)
 
   @doc "Executes the database query. Raises on error."
   @spec execute!(conn, String.t(), [any]) :: :ok
@@ -95,8 +94,7 @@ defmodule Cloak.SapHanaHelpers do
   @doc "Recreates the table according to the provided definition."
   @spec recreate_table!(conn, String.t(), String.t(), String.t()) :: :ok
   def recreate_table!(conn, schema_name, table_name, table_def) do
-    if table_exists?(conn, schema_name, table_name),
-      do: execute!(conn, ~s/DROP TABLE "#{schema_name}"."#{table_name}"/)
+    if table_exists?(conn, schema_name, table_name), do: execute!(conn, ~s/DROP TABLE "#{schema_name}"."#{table_name}"/)
 
     execute!(conn, ~s/CREATE TABLE "#{schema_name}"."#{table_name}" (#{table_def})/)
     :ok
@@ -167,9 +165,7 @@ defmodule Cloak.SapHanaHelpers do
         [_],
         select!(
           conn,
-          "SELECT table_name FROM tables WHERE table_name='#{table_name}' AND schema_name='#{
-            schema_name
-          }'"
+          "SELECT table_name FROM tables WHERE table_name='#{table_name}' AND schema_name='#{schema_name}'"
         )
       )
 
@@ -182,8 +178,7 @@ defmodule Cloak.SapHanaHelpers do
   defp cast_types(float) when is_float(float), do: {:sql_real, [float]}
   defp cast_types(boolean) when is_boolean(boolean), do: {:sql_bit, [boolean]}
 
-  defp cast_types(%{calendar: Calendar.ISO} = datetime),
-    do: datetime |> to_string() |> cast_types()
+  defp cast_types(%{calendar: Calendar.ISO} = datetime), do: datetime |> to_string() |> cast_types()
 
   defp cast_types(nil), do: {:sql_bit, [:null]}
 

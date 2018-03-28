@@ -80,8 +80,7 @@ defmodule Cloak.DataSource do
   If online, the Air will receive the updated data sources.
   """
   @spec reinitialize_all_data_sources() :: :ok
-  def reinitialize_all_data_sources(),
-    do: replace_all_data_source_configs(load_data_source_configs())
+  def reinitialize_all_data_sources(), do: replace_all_data_source_configs(load_data_source_configs())
 
   @doc "Replaces the data source definitions maintained by the DataSource server"
   @spec replace_all_data_source_configs([t]) :: :ok
@@ -124,8 +123,7 @@ defmodule Cloak.DataSource do
       fn data_source ->
         updated_data_source = update_data_source_connectivity(data_source)
 
-        if data_source.status != updated_data_source.status,
-          do: replace_data_source_config(updated_data_source)
+        if data_source.status != updated_data_source.status, do: replace_data_source_config(updated_data_source)
       end,
       timeout: :timer.minutes(30)
     )
@@ -150,8 +148,7 @@ defmodule Cloak.DataSource do
 
   @doc "Returns the table descriptor for the given table."
   @spec table(t, atom | String.t()) :: Table.t() | nil
-  def table(data_source, table_id) when is_atom(table_id),
-    do: Map.fetch!(data_source.tables, table_id)
+  def table(data_source, table_id) when is_atom(table_id), do: Map.fetch!(data_source.tables, table_id)
 
   def table(data_source, table_name) when is_binary(table_name) do
     case Enum.find(data_source.tables, fn {_id, table} -> table.name == table_name end) do
@@ -193,8 +190,7 @@ defmodule Cloak.DataSource do
 
   @doc "Returns the SQL dialect callback module."
   @spec sql_dialect_module(t) :: module | nil
-  def sql_dialect_module(data_source),
-    do: data_source.driver.sql_dialect_module(data_source[:parameters])
+  def sql_dialect_module(data_source), do: data_source.driver.sql_dialect_module(data_source[:parameters])
 
   @doc "Converts a data source config as found in a config into a data source"
   @spec config_to_datasources(Map.t()) :: [t]
@@ -273,8 +269,7 @@ defmodule Cloak.DataSource do
     end
   end
 
-  defp replace_data_source(data_sources, data_source),
-    do: Enum.uniq_by([data_source] ++ data_sources, & &1.name)
+  defp replace_data_source(data_sources, data_source), do: Enum.uniq_by([data_source] ++ data_sources, & &1.name)
 
   defp load_data_source_configs(),
     do:
@@ -319,9 +314,7 @@ defmodule Cloak.DataSource do
         Map.put(data_source, :driver, driver)
 
       {:error, :unknown} ->
-        raise_error(
-          "Unknown driver `#{data_source.driver}` for data source `#{data_source.name}`"
-        )
+        raise_error("Unknown driver `#{data_source.driver}` for data source `#{data_source.name}`")
     end
   end
 
@@ -360,8 +353,7 @@ defmodule Cloak.DataSource do
     %{data_source | tables: tables}
   end
 
-  defp replace_data_source_config(data_source),
-    do: GenServer.cast(__MODULE__, {:update_data_source, data_source})
+  defp replace_data_source_config(data_source), do: GenServer.cast(__MODULE__, {:update_data_source, data_source})
 
   # We need a name for the data source in order for the Air to have something to attach
   # potential errors to. Therefore if none exists, we'll create a dummy name based on
@@ -408,14 +400,12 @@ defmodule Cloak.DataSource do
   defp set_encoding(%{parameters: parameters} = data_source, encoding),
     do: %{data_source | parameters: Map.put(parameters, :encoding, encoding)}
 
-  defp add_error_message(data_source, message),
-    do: %{data_source | errors: [message | data_source.errors]}
+  defp add_error_message(data_source, message), do: %{data_source | errors: [message | data_source.errors]}
 
   if Mix.env() == :prod do
     defp disabled?(data_source), do: explicitly_disabled?(data_source)
   else
-    defp disabled?(data_source),
-      do: explicitly_disabled?(data_source) || sap_hana_unavailable?(data_source)
+    defp disabled?(data_source), do: explicitly_disabled?(data_source) || sap_hana_unavailable?(data_source)
 
     defp sap_hana_unavailable?(%{driver: Cloak.DataSource.SAPHana}) do
       cond do
@@ -455,8 +445,7 @@ defmodule Cloak.DataSource do
     end
   end
 
-  defp update_data_source_connectivity(%{status: :offline} = data_source),
-    do: add_tables(data_source)
+  defp update_data_source_connectivity(%{status: :offline} = data_source), do: add_tables(data_source)
 
   # Cloak.AirSocket.update_config throws during tests where there is no air conterpoint running. Rather than running
   # a fake socket for test purposes, we opted to make the update call a noop.

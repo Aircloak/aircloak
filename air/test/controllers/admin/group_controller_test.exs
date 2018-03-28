@@ -12,8 +12,7 @@ defmodule AirWeb.Admin.GroupController.Test do
     assert login(user) |> post(admin_group_path(conn, :create)) |> redirected_to() === "/"
     assert login(user) |> get(admin_group_path(conn, :edit, group)) |> redirected_to() === "/"
 
-    assert login(user) |> delete(admin_group_path(conn, :delete, group)) |> redirected_to() ===
-             "/"
+    assert login(user) |> delete(admin_group_path(conn, :delete, group)) |> redirected_to() === "/"
   end
 
   test "listing groups" do
@@ -86,8 +85,7 @@ defmodule AirWeb.Admin.GroupController.Test do
     admin = TestRepoHelper.create_admin_user!()
     group = TestRepoHelper.create_group!()
 
-    assert "/admin/groups" ==
-             login(admin) |> delete("/admin/groups/#{group.id}") |> redirected_to()
+    assert "/admin/groups" == login(admin) |> delete("/admin/groups/#{group.id}") |> redirected_to()
 
     groups_html = login(admin) |> get("/admin/groups") |> response(200)
     refute groups_html =~ group.name

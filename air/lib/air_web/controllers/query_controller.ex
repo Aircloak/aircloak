@@ -150,11 +150,9 @@ defmodule AirWeb.QueryController do
         "No cloak is available for the given data source"
       )
 
-  defp query_error(conn, :timeout),
-    do: send_resp(conn, Status.code(:gateway_timeout), "The cloak connection timed out")
+  defp query_error(conn, :timeout), do: send_resp(conn, Status.code(:gateway_timeout), "The cloak connection timed out")
 
-  defp query_error(conn, :internal_error),
-    do: send_resp(conn, Status.code(:internal_server_error), "")
+  defp query_error(conn, :internal_error), do: send_resp(conn, Status.code(:internal_server_error), "")
 
   defp query_error(conn, other_error) do
     Logger.error(fn -> "Query start error: #{other_error}" end)

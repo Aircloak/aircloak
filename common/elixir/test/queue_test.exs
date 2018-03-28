@@ -19,8 +19,7 @@ defmodule Aircloak.QueueTest do
     assert {{:value, 3}, _} = Queue.pop(q)
   end
 
-  test "popping from an empty queue",
-    do: assert(Queue.new() |> Queue.pop() == {:empty, Queue.new()})
+  test "popping from an empty queue", do: assert(Queue.new() |> Queue.pop() == {:empty, Queue.new()})
 
   test "peek", do: assert(Queue.new() |> Queue.push(:foo) |> Queue.peek() == {:value, :foo})
 
@@ -35,16 +34,14 @@ defmodule Aircloak.QueueTest do
   test "dropping from an empty queue", do: assert(Queue.new() |> Queue.drop() == Queue.new())
 
   test "drop_if satisfied" do
-    q =
-      Queue.new() |> Queue.push(1) |> Queue.push(2) |> Queue.push(3) |> Queue.drop_if(&(&1 == 1))
+    q = Queue.new() |> Queue.push(1) |> Queue.push(2) |> Queue.push(3) |> Queue.drop_if(&(&1 == 1))
 
     assert q.size == 2
     assert Queue.peek(q) == {:value, 2}
   end
 
   test "drop_if not satisfied" do
-    q =
-      Queue.new() |> Queue.push(1) |> Queue.push(2) |> Queue.push(3) |> Queue.drop_if(&(&1 == 2))
+    q = Queue.new() |> Queue.push(1) |> Queue.push(2) |> Queue.push(3) |> Queue.drop_if(&(&1 == 2))
 
     assert q.size == 3
     assert Queue.peek(q) == {:value, 1}

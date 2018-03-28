@@ -79,8 +79,7 @@ defmodule AircloakCI.Build.Branch do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp find_branch(repo_data, branch_name),
-    do: Enum.find(repo_data.branches, &(&1.name == branch_name))
+  defp find_branch(repo_data, branch_name), do: Enum.find(repo_data.branches, &(&1.name == branch_name))
 
   defp name(branch), do: {:via, Registry, {AircloakCI.Build.Registry, {:branch, branch.name}}}
 

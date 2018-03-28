@@ -40,8 +40,7 @@ defmodule AircloakCI.Mixfile do
 
   defp aliases(_), do: []
 
-  defp ignored_credo_checks(:test),
-    do: ["ModuleDoc", "DuplicatedCode" | ignored_credo_checks(:dev)]
+  defp ignored_credo_checks(:test), do: ["ModuleDoc", "DuplicatedCode" | ignored_credo_checks(:dev)]
 
   defp ignored_credo_checks(_),
     do: ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting", "FunctionArity"]

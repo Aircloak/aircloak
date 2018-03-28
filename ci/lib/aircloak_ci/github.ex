@@ -63,8 +63,7 @@ defmodule AircloakCI.Github do
   end
 
   defp sync_request!(fun, args, opts) do
-    {response, rate_limit} =
-      invoke_github_api_with_retries(fun, args, opts, Keyword.get(opts, :retries, 0))
+    {response, rate_limit} = invoke_github_api_with_retries(fun, args, opts, Keyword.get(opts, :retries, 0))
 
     :ets.insert(__MODULE__, {rate_limit.category, rate_limit})
     response
@@ -84,11 +83,8 @@ defmodule AircloakCI.Github do
   end
 
   defp invoke_github_api(fun, args, opts) do
-    if Keyword.fetch!(opts, :type) == :write and
-         not Application.get_env(:aircloak_ci, :write_to_github) do
-      IO.puts(
-        "\nsimulated github write #{fun}(#{args |> Enum.map(&inspect/1) |> Enum.join(", ")})\n"
-      )
+    if Keyword.fetch!(opts, :type) == :write and not Application.get_env(:aircloak_ci, :write_to_github) do
+      IO.puts("\nsimulated github write #{fun}(#{args |> Enum.map(&inspect/1) |> Enum.join(", ")})\n")
 
       {:ok, %{category: :rest, remaining: 5000, expires_at: DateTime.utc_now()}}
     else
@@ -107,16 +103,14 @@ defmodule AircloakCI.Github do
     end
   end
 
-  defp expires_in(rate_limit),
-    do: DateTime.diff(rate_limit.expires_at, DateTime.utc_now(), :second)
+  defp expires_in(rate_limit), do: DateTime.diff(rate_limit.expires_at, DateTime.utc_now(), :second)
 
   # -------------------------------------------------------------------
   # Supervision tree
   # -------------------------------------------------------------------
 
   @doc false
-  def child_spec(_),
-    do: Supervisor.child_spec(Task.Supervisor, start: {__MODULE__, :start_link, []})
+  def child_spec(_), do: Supervisor.child_spec(Task.Supervisor, start: {__MODULE__, :start_link, []})
 
   @doc false
   def start_link() do

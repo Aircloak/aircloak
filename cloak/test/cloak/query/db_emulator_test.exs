@@ -32,8 +32,7 @@ defmodule Cloak.Query.DBEmulatorTest do
   test "simple emulated subqueries" do
     :ok = insert_rows(_user_ids = 1..10, "#{@emulated_insert}", ["value"], [Base.encode64("aaa")])
 
-    :ok =
-      insert_rows(_user_ids = 11..20, "#{@emulated_insert}", ["value"], [Base.encode64("bbb")])
+    :ok = insert_rows(_user_ids = 11..20, "#{@emulated_insert}", ["value"], [Base.encode64("bbb")])
 
     :ok = insert_rows(_user_ids = 21..30, "#{@emulated_insert}", ["value"], [nil])
 
@@ -102,17 +101,13 @@ defmodule Cloak.Query.DBEmulatorTest do
   test "like on an emulated column" do
     :ok = insert_rows(_user_ids = 1..10, "#{@emulated_insert}", ["value"], [Base.encode64("aba")])
 
-    :ok =
-      insert_rows(_user_ids = 11..20, "#{@emulated_insert}", ["value"], [Base.encode64("aca")])
+    :ok = insert_rows(_user_ids = 11..20, "#{@emulated_insert}", ["value"], [Base.encode64("aca")])
 
-    :ok =
-      insert_rows(_user_ids = 21..30, "#{@emulated_insert}", ["value"], [Base.encode64("bbb")])
+    :ok = insert_rows(_user_ids = 21..30, "#{@emulated_insert}", ["value"], [Base.encode64("bbb")])
 
-    assert_query(
-      "select count(*) from #{@vt}",
-      "select * from #{@emulated} where dec_b64(value) like 'a_a%'",
-      %{rows: [%{row: [20]}]}
-    )
+    assert_query("select count(*) from #{@vt}", "select * from #{@emulated} where dec_b64(value) like 'a_a%'", %{
+      rows: [%{row: [20]}]
+    })
   end
 
   describe "aggregation in emulated subqueries" do
@@ -151,11 +146,9 @@ defmodule Cloak.Query.DBEmulatorTest do
     end
 
     test "count(*)" do
-      assert_query(
-        "select avg(v) from #{@vt}",
-        "select user_id, count(*) as v from #{@emulated} group by user_id",
-        %{rows: [%{occurrences: 1, row: [6.0]}]}
-      )
+      assert_query("select avg(v) from #{@vt}", "select user_id, count(*) as v from #{@emulated} group by user_id", %{
+        rows: [%{occurrences: 1, row: [6.0]}]
+      })
     end
 
     test "count(<column>)" do
@@ -447,8 +440,7 @@ defmodule Cloak.Query.DBEmulatorTest do
 
   describe "emulated joins" do
     setup do
-      :ok =
-        insert_rows(_user_ids = 1..20, "#{@emulated_insert}", ["value"], [Base.encode64("a b c")])
+      :ok = insert_rows(_user_ids = 1..20, "#{@emulated_insert}", ["value"], [Base.encode64("a b c")])
 
       :ok = insert_rows(_user_ids = 11..25, "#{@joined}", ["age"], [30])
     end
@@ -641,18 +633,15 @@ defmodule Cloak.Query.DBEmulatorTest do
 
   describe "#{@emulated} subqueries with different case columns" do
     setup do
-      :ok =
-        insert_rows(_user_ids = 1..10, "#{@emulated_insert}", ["value"], [Base.encode64("abc")])
+      :ok = insert_rows(_user_ids = 1..10, "#{@emulated_insert}", ["value"], [Base.encode64("abc")])
 
       :ok = insert_rows(_user_ids = 1..10, "#{@joined}", ["age"], [30])
     end
 
     test "simple subquery" do
-      assert_query(
-        "select Value from #{@vt}",
-        "select user_id, dec_b64(value) as value from #{@emulated}",
-        %{rows: [%{occurrences: 10, row: ["abc"]}]}
-      )
+      assert_query("select Value from #{@vt}", "select user_id, dec_b64(value) as value from #{@emulated}", %{
+        rows: [%{occurrences: 10, row: ["abc"]}]
+      })
     end
 
     test "functions and conditions" do

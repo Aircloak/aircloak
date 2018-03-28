@@ -78,10 +78,7 @@ defmodule Air.Mixfile do
       #       When reverting to a hex dependency, please clean up the classification in
       #       lib/bom/gatherer/elixir.ex
       {:earmark,
-       github: "pragdave/earmark",
-       ref: "2bc90510ddc6245ff6afcaf6cfb526e3a9fadf89",
-       runtime: false,
-       override: true},
+       github: "pragdave/earmark", ref: "2bc90510ddc6245ff6afcaf6cfb526e3a9fadf89", runtime: false, override: true},
       {:postgrex, "~> 0.13.0", override: true},
       {:phoenix, "~> 1.3.0"},
       {:phoenix_pubsub, "~> 1.0"},

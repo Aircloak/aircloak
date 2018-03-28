@@ -48,8 +48,7 @@ defmodule Cloak.Query.NoiseLayerTest do
   end
 
   test "an unclear condition produces the same noise as an equivalent clear condition" do
-    for i <- 1..100,
-        do: :ok = insert_rows(_user_ids = i..i, "noise_layers", ["number", "other"], [i, 3])
+    for i <- 1..100, do: :ok = insert_rows(_user_ids = i..i, "noise_layers", ["number", "other"], [i, 3])
 
     assert_query("select avg(number) from noise_layers where other = 3", %{
       rows: [%{row: [result1]}]
@@ -84,10 +83,9 @@ defmodule Cloak.Query.NoiseLayerTest do
       rows: [%{row: [value1]}]
     })
 
-    assert_query(
-      "select avg(number) from noise_layers where number = #{number} group by number",
-      %{rows: [%{row: [value2]}]}
-    )
+    assert_query("select avg(number) from noise_layers where number = #{number} group by number", %{
+      rows: [%{row: [value2]}]
+    })
 
     assert value1 == value2
   end
@@ -97,10 +95,9 @@ defmodule Cloak.Query.NoiseLayerTest do
     :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number"], [number])
     :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [number])
 
-    assert_query(
-      "select avg(number) from (select user_id, number from noise_layers where number = #{number}) foo",
-      %{rows: [%{row: [value1]}]}
-    )
+    assert_query("select avg(number) from (select user_id, number from noise_layers where number = #{number}) foo", %{
+      rows: [%{row: [value1]}]
+    })
 
     assert_query("select avg(number) from noise_layers", %{rows: [%{row: [value2]}]})
     assert value1 != value2
@@ -110,10 +107,9 @@ defmodule Cloak.Query.NoiseLayerTest do
     :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number", "other"], [7, 8])
     :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number", "other"], [7, 14])
 
-    assert_query(
-      "select avg(other) from (select user_id, other from noise_layers group by user_id, other) foo",
-      %{rows: [%{row: [value1]}]}
-    )
+    assert_query("select avg(other) from (select user_id, other from noise_layers group by user_id, other) foo", %{
+      rows: [%{row: [value1]}]
+    })
 
     assert_query("select avg(other) from noise_layers", %{rows: [%{row: [value2]}]})
     assert value1 != value2
@@ -149,8 +145,7 @@ defmodule Cloak.Query.NoiseLayerTest do
   test "noise layers in hiding the low-count row" do
     other = 33
 
-    for i <- 1..6,
-        do: :ok = insert_rows(_user_ids = [i], "noise_layers", ["number", "other"], [i, other])
+    for i <- 1..6, do: :ok = insert_rows(_user_ids = [i], "noise_layers", ["number", "other"], [i, other])
 
     assert_query("select number from noise_layers where other = #{other}", %{rows: rows1})
     assert_query("select number from noise_layers", %{rows: rows2})
@@ -185,8 +180,7 @@ defmodule Cloak.Query.NoiseLayerTest do
 
     query1 = "SELECT count(*) FROM noise_layers WHERE number = 40"
 
-    query2 =
-      "SELECT count(*) FROM (SELECT user_id FROM noise_layers GROUP BY user_id HAVING max(number) + 1 = 41) t"
+    query2 = "SELECT count(*) FROM (SELECT user_id FROM noise_layers GROUP BY user_id HAVING max(number) + 1 = 41) t"
 
     assert_query(query1, %{rows: [%{row: [count]}]})
     assert_query(query2, %{rows: [%{row: [^count]}]})

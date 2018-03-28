@@ -39,13 +39,11 @@ defmodule ComplianceCase do
           :ok
 
         true ->
-          result =
-            assert_query_consistency(query, data_sources: context.data_sources, timeout: @timeout)
+          result = assert_query_consistency(query, data_sources: context.data_sources, timeout: @timeout)
 
           if match?(%{error: _}, result) do
             raise ExUnit.AssertionError,
-              message:
-                "Query execution failed. Query was:\n#{query}.\n\nError:\n#{inspect(result)}"
+              message: "Query execution failed. Query was:\n#{query}.\n\nError:\n#{inspect(result)}"
           else
             :ok
           end
@@ -89,8 +87,7 @@ defmodule ComplianceCase do
   def numerical_columns(), do: float_columns() ++ integer_columns()
 
   @doc false
-  def raw_columns(columns),
-    do: Enum.reject(columns, fn {name, _, _} -> String.contains?(name, "(") end)
+  def raw_columns(columns), do: Enum.reject(columns, fn {name, _, _} -> String.contains?(name, "(") end)
 
   @doc false
   def datetime_columns(),

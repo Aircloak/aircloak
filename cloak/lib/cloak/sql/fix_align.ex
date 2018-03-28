@@ -50,8 +50,7 @@ defmodule Cloak.Sql.FixAlign do
   def align_interval(interval, opts \\ [])
   def align_interval({x, y}, _) when is_boolean(x) and is_boolean(y), do: {x, y}
 
-  def align_interval({x, y}, _) when is_number(x) and is_number(y) and x > y,
-    do: raise("Invalid interval")
+  def align_interval({x, y}, _) when is_number(x) and is_number(y) and x > y, do: raise("Invalid interval")
 
   def align_interval(interval = {x, y}, opts) when is_number(x) and is_number(y) do
     allow_fractions = Keyword.get(opts, :allow_fractions, true)
@@ -64,8 +63,7 @@ defmodule Cloak.Sql.FixAlign do
     |> Enum.find(& &1)
   end
 
-  def align_interval({%NaiveDateTime{} = x, %NaiveDateTime{} = y}, _),
-    do: align_date_time({x, y}) |> max_precision()
+  def align_interval({%NaiveDateTime{} = x, %NaiveDateTime{} = y}, _), do: align_date_time({x, y}) |> max_precision()
 
   def align_interval({%Date{} = x, %Date{} = y}, _), do: {x, y} |> align_date_time() |> to_date()
 
@@ -90,8 +88,7 @@ defmodule Cloak.Sql.FixAlign do
     end
   end
 
-  defp time_to_datetime(%Time{hour: h, minute: m, second: s}),
-    do: %{@epoch | hour: h, minute: m, second: s}
+  defp time_to_datetime(%Time{hour: h, minute: m, second: s}), do: %{@epoch | hour: h, minute: m, second: s}
 
   defp datetime_to_time({x, y}) do
     if Timex.diff(x, y, :seconds) |> abs() >= @seconds_in_day do
@@ -101,8 +98,7 @@ defmodule Cloak.Sql.FixAlign do
     end
   end
 
-  defp datetime_to_time(%NaiveDateTime{hour: h, minute: m, second: s}),
-    do: %Time{hour: h, minute: m, second: s}
+  defp datetime_to_time(%NaiveDateTime{hour: h, minute: m, second: s}), do: %Time{hour: h, minute: m, second: s}
 
   defp cap_midnight({x, y}) do
     if Cloak.Time.to_integer(x) > Cloak.Time.to_integer(y) do
@@ -167,9 +163,7 @@ defmodule Cloak.Sql.FixAlign do
   defp size_factors(:seconds), do: [1, 2, 5, 15, 30, 60]
 
   defp units_since_epoch({x, y}, unit),
-    do:
-      {units_since_epoch(x, unit),
-       y |> datetime_ceil(lower_unit(unit)) |> units_since_epoch(unit)}
+    do: {units_since_epoch(x, unit), y |> datetime_ceil(lower_unit(unit)) |> units_since_epoch(unit)}
 
   defp units_since_epoch(%{year: year, month: month}, :years),
     do: year - @epoch.year + (month - @epoch.month) / @months_in_year
@@ -181,14 +175,11 @@ defmodule Cloak.Sql.FixAlign do
 
   defp units_since_epoch(datetime = %Date{}, :days), do: Timex.diff(datetime, @epoch, :days)
 
-  defp units_since_epoch(datetime, :days),
-    do: Timex.diff(datetime, @epoch, :seconds) / @seconds_in_day
+  defp units_since_epoch(datetime, :days), do: Timex.diff(datetime, @epoch, :seconds) / @seconds_in_day
 
-  defp units_since_epoch(datetime, :hours),
-    do: Timex.diff(datetime, @epoch, :seconds) / @seconds_in_hour
+  defp units_since_epoch(datetime, :hours), do: Timex.diff(datetime, @epoch, :seconds) / @seconds_in_hour
 
-  defp units_since_epoch(datetime, :minutes),
-    do: Timex.diff(datetime, @epoch, :seconds) / @seconds_in_minute
+  defp units_since_epoch(datetime, :minutes), do: Timex.diff(datetime, @epoch, :seconds) / @seconds_in_minute
 
   defp units_since_epoch(datetime, :seconds), do: Timex.diff(datetime, @epoch, :seconds)
 
@@ -211,8 +202,7 @@ defmodule Cloak.Sql.FixAlign do
   defp datetime_ceil(datetime = %Date{}, :hours), do: datetime
   defp datetime_ceil(datetime = %{minute: 0, second: 0}, :hours), do: datetime
 
-  defp datetime_ceil(datetime, :hours),
-    do: %{datetime | hour: datetime.hour + 1, minute: 0, second: 0}
+  defp datetime_ceil(datetime, :hours), do: %{datetime | hour: datetime.hour + 1, minute: 0, second: 0}
 
   defp datetime_ceil(datetime = %{second: 0}, :minutes), do: datetime
   defp datetime_ceil(datetime, :minutes), do: %{datetime | minute: datetime.minute + 1, second: 0}
@@ -221,8 +211,7 @@ defmodule Cloak.Sql.FixAlign do
   # Workaround for https://github.com/bitwalker/timex/pull/235
   defp shift(datetime, spec), do: Timex.Protocol.shift(datetime, spec)
 
-  defp datetime_from_units({x, y}, unit),
-    do: {datetime_from_units(x, unit), datetime_from_units(y, unit)}
+  defp datetime_from_units({x, y}, unit), do: {datetime_from_units(x, unit), datetime_from_units(y, unit)}
 
   defp datetime_from_units(x, unit) do
     cond do
@@ -233,8 +222,7 @@ defmodule Cloak.Sql.FixAlign do
         Cloak.Time.datetime_upper_bound()
 
       true ->
-        less_significant =
-          ((x - Float.floor(x)) * conversion_factor(unit, lower_unit(unit))) |> round()
+        less_significant = ((x - Float.floor(x)) * conversion_factor(unit, lower_unit(unit))) |> round()
 
         more_significant = x |> Float.floor() |> round()
 
@@ -266,8 +254,7 @@ defmodule Cloak.Sql.FixAlign do
   @dialyzer {:no_unused, duration_component: 2}
   defp duration_component(:years, duration), do: Timex.Duration.to_days(duration) / @days_in_year
 
-  defp duration_component(:months, duration),
-    do: Timex.Duration.to_days(duration) / @days_in_month
+  defp duration_component(:months, duration), do: Timex.Duration.to_days(duration) / @days_in_month
 
   defp duration_component(:days, duration), do: Timex.Duration.to_days(duration)
   defp duration_component(:hours, duration), do: Timex.Duration.to_hours(duration)

@@ -68,8 +68,7 @@ defmodule Cloak.DataSource.ConnectionPool do
         {:reply, connection, %{state | connections: rest}}
 
       [] ->
-        {:ok, connection} =
-          GenServer.start_link(ConnectionOwner, {self(), state.driver, state.connection_params})
+        {:ok, connection} = GenServer.start_link(ConnectionOwner, {self(), state.driver, state.connection_params})
 
         {:reply, connection, state}
     end
@@ -153,11 +152,9 @@ defmodule Cloak.DataSource.ConnectionPool do
       Cloak.DataSource.raise_error("Failed connecting to the database")
   end
 
-  defp raise_client_error(:exit, {{%Cloak.Query.ExecutionError{} = error, _}, _}, _stacktrace),
-    do: raise(error)
+  defp raise_client_error(:exit, {{%Cloak.Query.ExecutionError{} = error, _}, _}, _stacktrace), do: raise(error)
 
-  defp raise_client_error(:error, %{__exception__: true} = error, stacktrace),
-    do: reraise(error, stacktrace)
+  defp raise_client_error(:error, %{__exception__: true} = error, stacktrace), do: reraise(error, stacktrace)
 
   defp raise_client_error(type, error, stacktrace) do
     :erlang.raise(
