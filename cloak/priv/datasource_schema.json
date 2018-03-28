@@ -1,0 +1,60 @@
+{
+  "type": "object",
+  "properties": {
+    "name": {"type": "string", "minLength": 1},
+    "marker": {"type": "string", "minLength": 1, "$comment": "allowed for backward compatibility"},
+    "driver": {"type": "string", "minLength": 1},
+    "parameters": {"$ref": "#/definitions/parameters"},
+    "tables": {"type": "object", "patternProperties": {"^.*$": {"$ref": "#/definitions/table"}}}
+  },
+  "additionalProperties": false,
+  "required": ["name", "driver", "parameters", "tables"],
+  "definitions": {
+    "table": {
+      "type": "object",
+      "properties": {
+        "db_name": {"type": "string", "minLength": 1},
+        "user_id": {"type": "string", "minLength": 1},
+        "ignore_unsupported_types": {"type": "boolean"},
+        "sample_rate": {"type": "integer", "minimum": 1, "maximum": 100},
+        "projection": {"$ref": "#/definitions/projection"},
+        "decoders": {"type": "array", "items": {"$ref": "#/definitions/decoder"}}
+      },
+      "additionalProperties": false,
+      "required": ["db_name"]
+    },
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "hostname": {"type": "string", "minLength": 1},
+        "port": {"type": "integer", "minimum": 1},
+        "username": {"type": "string", "minLength": 1},
+        "database": {"type": "string", "minLength": 1},
+        "password": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": true,
+      "required": ["hostname"]
+    },
+    "projection": {
+      "type": "object",
+      "properties": {
+        "table": {"type": "string", "minLength": 1},
+        "foreign_key": {"type": "string", "minLength": 1},
+        "primary_key": {"type": "string", "minLength": 1},
+        "user_id_alias": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false,
+      "required": ["table", "foreign_key", "primary_key"]
+    },
+    "decoder": {
+      "type": "object",
+      "properties": {
+        "method": {"type": "string", "minLength": 1},
+        "columns": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "key": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": true,
+      "required": ["method", "columns"]
+    }
+  }
+}

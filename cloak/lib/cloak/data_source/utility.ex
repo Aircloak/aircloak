@@ -14,19 +14,24 @@ defmodule Cloak.DataSource.Utility do
   @doc "This function will return a list of data source definitions, as referenced by a data source"
   @spec load_individual_data_source_configs(String.t() | [DataSource.t()]) :: [DataSource.t()]
   # This is the legacy path where data sources where configured as a list of data source definitions inline
-  def load_individual_data_source_configs(data_sources) when is_list(data_sources), do: data_sources
+  def load_individual_data_source_configs(data_sources) when is_list(data_sources) do
+    data_sources
+    |> Stream.with_index()
+    |> Stream.map(fn {data_source, index} -> validate_data_source("##{index + 1}", data_source) end)
+    |> Enum.reject(&is_nil/1)
+  end
 
   def load_individual_data_source_configs(config_path) when is_binary(config_path) do
     case Aircloak.File.ls(config_path) do
       {:ok, data_source_config_files} ->
         data_source_config_files
         |> Stream.filter(&(Path.extname(&1) == ".json"))
-        |> Enum.map(fn file_name ->
+        |> Stream.map(fn file_name ->
           path = Path.join(config_path, file_name)
 
           case Aircloak.File.read_config_file(path) do
             {:ok, data_source_definition} ->
-              data_source_definition
+              validate_data_source(file_name, data_source_definition)
 
             {:error, reason} ->
               Logger.error("Failed at reading datasource config from `#{path}`: #{reason}")
@@ -72,4 +77,21 @@ defmodule Cloak.DataSource.Utility do
   end)
 
   def driver_to_name(_other), do: {:error, :unknown}
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp validate_data_source(data_source_name, data_source) do
+    error_message = "invalid datasource configuration for datasource #{data_source_name}"
+
+    case Aircloak.validate_decoded_json(:cloak, "datasource_schema.json", data_source, error_message) do
+      :ok ->
+        data_source
+
+      {:error, error} ->
+        Logger.error(error)
+        nil
+    end
+  end
 end

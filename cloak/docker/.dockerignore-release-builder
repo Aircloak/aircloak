@@ -16,6 +16,7 @@
 !cloak/rel
 !cloak/priv/odbc/drivers
 !cloak/priv/config_schema.json
+!cloak/priv/datasource_schema.json
 !$CLOAK_CACHE
 
 

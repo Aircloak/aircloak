@@ -84,4 +84,25 @@ defmodule Aircloak do
       _ -> :ok
     end
   end
+
+  @doc "Validates a decoded json against the given schema."
+  @spec validate_decoded_json(atom, String.t(), any, String.t()) :: :ok | {:error, String.t()}
+  def validate_decoded_json(app, file_name, data, main_error_message) do
+    schema =
+      app
+      |> Application.app_dir("priv")
+      |> Path.join(file_name)
+      |> File.read!()
+      |> Aircloak.Json.safe_decode!()
+      |> ExJsonSchema.Schema.resolve()
+
+    with {:error, errors} <- ExJsonSchema.Validator.validate(schema, data) do
+      formatted_errors =
+        errors
+        |> Stream.map(fn {error, field} -> "  #{field}: #{error}" end)
+        |> Enum.join("\n")
+
+      {:error, "#{main_error_message}:\n#{formatted_errors}"}
+    end
+  end
 end

@@ -67,23 +67,11 @@ defmodule Aircloak.DeployConfig do
   @doc "Validates the schema of the config.json according to priv/config_schema.json file."
   @spec validate!(atom, Map.t() | nil) :: :ok
   def validate!(app, config \\ nil) do
-    schema =
-      Application.app_dir(app, "priv")
-      |> Path.join("config_schema.json")
-      |> File.read!()
-      |> Aircloak.Json.safe_decode!()
-      |> ExJsonSchema.Schema.resolve()
-
     config = config || read_config!(app)
+    error_message = "configuration file is not valid"
 
-    with {:error, errors} <- ExJsonSchema.Validator.validate(schema, config) do
-      formatted_errors =
-        errors
-        |> Stream.map(fn {error, field} -> "  #{field}: #{error}" end)
-        |> Enum.join("\n")
-
-      raise("Configuration file is not valid:\n#{formatted_errors}")
-    end
+    with {:error, error} <- Aircloak.validate_decoded_json(app, "config_schema.json", config, error_message),
+         do: raise(error)
   end
 
   # -------------------------------------------------------------------
