@@ -26,7 +26,7 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
       |> Enum.map(fn item -> item |> to_doc() |> nest() end)
       |> space_separated()
 
-  defp to_doc({:select, nil, select_list}), do: glue("SELECT", " ", clause_list(select_list))
+  defp to_doc({:select, nil, select_list}), do: "SELECT" |> glue(" ", clause_list(select_list)) |> group()
 
   defp to_doc({:from, nil, [from_expression]}), do: glue("FROM", " ", to_doc(from_expression))
 
@@ -43,7 +43,7 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
 
   defp to_doc({:where, nil, [condition]}), do: ["WHERE", to_doc(condition)] |> space_separated()
 
-  defp to_doc({:group_by, nil, group_list}), do: glue("GROUP BY", " ", clause_list(group_list))
+  defp to_doc({:group_by, nil, group_list}), do: "GROUP BY" |> glue(" ", clause_list(group_list)) |> group()
 
   defp to_doc({:having, nil, [condition]}), do: glue("HAVING", " ", to_doc(condition))
 
@@ -93,10 +93,6 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
 
   defp to_doc({:sample_users, size, []}), do: concat(["SAMPLE_USERS ", to_string(size), "%"])
 
-  # -------------------------------------------------------------------
-  # ast_to_sql helpers
-  # -------------------------------------------------------------------
-
   defp binary_operation_to_string(:=), do: "="
   defp binary_operation_to_string(:<), do: "<"
   defp binary_operation_to_string(:>), do: ">"
@@ -108,7 +104,7 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
   defp binary_operation_to_string(:in), do: "IN"
   defp binary_operation_to_string(:not_in), do: "NOT IN"
 
-  defp clause_list(ast_fragments), do: ast_fragments |> Enum.map(&to_doc/1) |> comma_separated() |> nest()
+  defp clause_list(ast_fragments), do: ast_fragments |> Enum.map(&to_doc/1) |> comma_separated()
 
   defp comma_separated(docs), do: docs |> fold_doc(&glue(concat(&1, ","), " ", &2)) |> group()
 
