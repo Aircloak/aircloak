@@ -46,8 +46,7 @@ defmodule Air.Service.Warnings do
   # Ordering
   # -------------------------------------------------------------------
 
-  defp order_problems(problems),
-    do: Enum.sort_by(problems, &{severity_to_number(&1.severity), &1.resource})
+  defp order_problems(problems), do: Enum.sort_by(problems, &{severity_to_number(&1.severity), &1.resource})
 
   defp severity_to_number(:high), do: 1
   defp severity_to_number(:medium), do: 2
@@ -61,8 +60,7 @@ defmodule Air.Service.Warnings do
     data_sources = Repo.preload(data_sources, groups: :users)
 
     offline_datasources(data_sources, :high) ++
-      broken_datasources(data_sources, :medium) ++
-      no_group(data_sources, :low) ++ no_users(data_sources, :low)
+      broken_datasources(data_sources, :medium) ++ no_group(data_sources, :low) ++ no_users(data_sources, :low)
   end
 
   defp offline_datasources(data_sources, severity),
@@ -136,6 +134,5 @@ defmodule Air.Service.Warnings do
   # Helpers
   # -------------------------------------------------------------------
 
-  defp problem(resource, description, severity),
-    do: %{resource: resource, description: description, severity: severity}
+  defp problem(resource, description, severity), do: %{resource: resource, description: description, severity: severity}
 end

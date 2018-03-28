@@ -20,8 +20,7 @@ defmodule Air.Service.DataSource do
 
   @type start_query_options :: [start_query_option]
 
-  @type data_source_operation_error ::
-          {:error, :expired | :unauthorized | :not_connected | :internal_error | any}
+  @type data_source_operation_error :: {:error, :expired | :unauthorized | :not_connected | :internal_error | any}
 
   @type data_source_status :: :online | :offline | :broken
 
@@ -55,8 +54,7 @@ defmodule Air.Service.DataSource do
   def for_user(user), do: Repo.all(users_data_sources(user))
 
   @doc "Retrieves the data source and verifies whether it is available to the given user."
-  @spec fetch_as_user(data_source_id_spec, User.t()) ::
-          {:ok, DataSource.t()} | {:error, :unauthorized}
+  @spec fetch_as_user(data_source_id_spec, User.t()) :: {:ok, DataSource.t()} | {:error, :unauthorized}
   def fetch_as_user(data_source_id_spec, user) do
     case Repo.one(user_data_source(user, data_source_id_spec)) do
       %DataSource{} = data_source -> {:ok, data_source}
@@ -69,13 +67,11 @@ defmodule Air.Service.DataSource do
           {:ok, [Query.t()]} | {:error, :unauthorized}
   def history(data_source_id_spec, user, context, count, before) do
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user),
-         do:
-           {:ok, Air.Service.Query.load_recent_queries(user, data_source, context, count, before)}
+         do: {:ok, Air.Service.Query.load_recent_queries(user, data_source, context, count, before)}
   end
 
   @doc "Returns the last query executed on the given data source by the given user."
-  @spec last_query(data_source_id_spec, User.t(), Query.Context.t()) ::
-          {:ok, Query.t() | nil} | {:error, :unauthorized}
+  @spec last_query(data_source_id_spec, User.t(), Query.Context.t()) :: {:ok, Query.t() | nil} | {:error, :unauthorized}
   def last_query(data_source_id_spec, user, context) do
     with {:ok, queries} <- history(data_source_id_spec, user, context, 1, NaiveDateTime.utc_now()) do
       case queries do
@@ -100,8 +96,7 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Validates all of the given views on the cloak."
-  @spec validate_views(data_source_id_spec, User.t(), View.view_map()) ::
-          {:ok, map} | data_source_operation_error
+  @spec validate_views(data_source_id_spec, User.t(), View.view_map()) :: {:ok, map} | data_source_operation_error
   def validate_views(data_source_id_spec, user, view_map),
     do:
       on_available_cloak(data_source_id_spec, user, fn data_source, channel_pid, _cloak_info ->
@@ -118,9 +113,7 @@ defmodule Air.Service.DataSource do
   def start_query(query, data_source_id_spec, opts \\ []) do
     opts = Keyword.merge([audit_meta: %{}, notify: false], opts)
 
-    on_available_cloak(data_source_id_spec, query.user, fn data_source,
-                                                           channel_pid,
-                                                           %{id: cloak_id} ->
+    on_available_cloak(data_source_id_spec, query.user, fn data_source, channel_pid, %{id: cloak_id} ->
       query =
         Air.ProcessQueue.run(__MODULE__.Queue, fn ->
           query = add_data_source_info_to_query(query, cloak_id, data_source.id)
@@ -150,8 +143,7 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Runs the query synchronously and returns its result."
-  @spec run_query(Query.t(), data_source_id_spec, start_query_options) ::
-          {:ok, Query.t()} | data_source_operation_error
+  @spec run_query(Query.t(), data_source_id_spec, start_query_options) :: {:ok, Query.t()} | data_source_operation_error
   def run_query(query, data_source_id_spec, opts \\ []) do
     opts = [{:notify, true} | opts]
 
@@ -177,8 +169,7 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Stops a previously started query."
-  @spec stop_query(Query.t(), User.t(), %{atom => any}) ::
-          :ok | {:error, :internal_error | :not_connected}
+  @spec stop_query(Query.t(), User.t(), %{atom => any}) :: :ok | {:error, :internal_error | :not_connected}
   def stop_query(query, user, audit_meta \\ %{}) do
     query = Repo.preload(query, :data_source)
 
@@ -193,8 +184,7 @@ defmodule Air.Service.DataSource do
 
   @doc "Returns a list of data sources given their names"
   @spec by_names([String.t()]) :: [DataSource.t()]
-  def by_names(names \\ []),
-    do: Repo.all(from(data_source in DataSource, where: data_source.name in ^names))
+  def by_names(names \\ []), do: Repo.all(from(data_source in DataSource, where: data_source.name in ^names))
 
   @doc "Creates or updates a data source, returning the updated data source"
   @spec create_or_update_data_source(String.t(), [table], [String.t()]) :: DataSource.t()
@@ -355,8 +345,7 @@ defmodule Air.Service.DataSource do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp stop_query_async(query),
-    do: Task.Supervisor.start_child(@task_supervisor, fn -> do_stop_query(query) end)
+  defp stop_query_async(query), do: Task.Supervisor.start_child(@task_supervisor, fn -> do_stop_query(query) end)
 
   defp do_stop_query(query) do
     query = Repo.preload(query, :data_source)

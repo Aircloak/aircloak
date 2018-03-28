@@ -14,8 +14,7 @@ defmodule Air.Service.User do
   # -------------------------------------------------------------------
 
   @doc "Authenticates the given user."
-  @spec login(String.t(), String.t(), %{atom => any}) ::
-          {:ok, User.t()} | {:error, :invalid_email_or_password}
+  @spec login(String.t(), String.t(), %{atom => any}) :: {:ok, User.t()} | {:error, :invalid_email_or_password}
   def login(email, password, meta \\ %{}) do
     user = Repo.get_by(User, email: email)
 
@@ -38,8 +37,7 @@ defmodule Air.Service.User do
 
   @doc "Loads the user with the given id."
   @spec load(pos_integer) :: User.t() | nil
-  def load(user_id),
-    do: Repo.one(from(user in User, where: user.id == ^user_id, preload: [:groups]))
+  def load(user_id), do: Repo.one(from(user in User, where: user.id == ^user_id, preload: [:groups]))
 
   @doc "Creates the new user, raises on error."
   @spec create!(map) :: User.t()
@@ -85,8 +83,7 @@ defmodule Air.Service.User do
   end
 
   @doc "Updates the given user."
-  @spec update(User.t(), map) ::
-          {:ok, User.t()} | {:error, Ecto.Changeset.t() | :forbidden_last_admin_deletion}
+  @spec update(User.t(), map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t() | :forbidden_last_admin_deletion}
   def update(user, params),
     do:
       commit_if_last_admin_not_deleted(fn ->
@@ -162,9 +159,7 @@ defmodule Air.Service.User do
   @doc "Returns a boolean regarding whether a administrator account already exists"
   @spec admin_user_exists?() :: boolean
   def admin_user_exists?(),
-    do:
-      Repo.one(from(u in User, inner_join: g in assoc(u, :groups), where: g.admin, limit: 1)) !=
-        nil
+    do: Repo.one(from(u in User, inner_join: g in assoc(u, :groups), where: g.admin, limit: 1)) != nil
 
   @doc "Creates the new group, raises on error."
   @spec create_group!(map) :: Group.t()
@@ -189,8 +184,7 @@ defmodule Air.Service.User do
   end
 
   @doc "Updates the given group."
-  @spec update_group(Group.t(), map) ::
-          {:ok, Group.t()} | {:error, Ecto.Changeset.t() | :forbidden_last_admin_deletion}
+  @spec update_group(Group.t(), map) :: {:ok, Group.t()} | {:error, Ecto.Changeset.t() | :forbidden_last_admin_deletion}
   def update_group(group, params),
     do:
       commit_if_last_admin_not_deleted(fn ->
@@ -213,10 +207,7 @@ defmodule Air.Service.User do
   @doc "Loads the group with the given id."
   @spec load_group(pos_integer) :: Group.t() | nil
   def load_group(group_id),
-    do:
-      Repo.one(
-        from(group in Group, where: group.id == ^group_id, preload: [:users, :data_sources])
-      )
+    do: Repo.one(from(group in Group, where: group.id == ^group_id, preload: [:users, :data_sources]))
 
   @doc "Returns a list of all groups in the system."
   @spec all_groups() :: [Group.t()]
@@ -287,9 +278,7 @@ defmodule Air.Service.User do
     end
   end
 
-  defp update_password_hash(
-         %Ecto.Changeset{valid?: true, changes: %{password: password}} = changeset
-       )
+  defp update_password_hash(%Ecto.Changeset{valid?: true, changes: %{password: password}} = changeset)
        when password != "" do
     put_change(changeset, :hashed_password, Comeonin.Pbkdf2.hashpwsalt(password))
   end

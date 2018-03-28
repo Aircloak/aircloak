@@ -22,8 +22,7 @@ defmodule Aircloak.Queue do
 
   @doc "Pushes the given item to the back of the queue."
   @spec push(t, any) :: t
-  def push(queue, item),
-    do: %__MODULE__{queue | items: :queue.in(item, queue.items), size: queue.size + 1}
+  def push(queue, item), do: %__MODULE__{queue | items: :queue.in(item, queue.items), size: queue.size + 1}
 
   @doc "Pops the item from the front of the queue."
   @spec pop(t) :: {:empty, t} | {{:value, any}, t}

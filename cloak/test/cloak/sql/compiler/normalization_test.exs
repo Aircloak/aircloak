@@ -103,8 +103,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
 
   describe "remove_noops" do
     test "a cast of integer to integer" do
-      result1 =
-        remove_noops!("SELECT * FROM table WHERE cast(numeric AS integer) = 1", data_source())
+      result1 = remove_noops!("SELECT * FROM table WHERE cast(numeric AS integer) = 1", data_source())
 
       result2 = remove_noops!("SELECT * FROM table WHERE numeric = 1", data_source())
 

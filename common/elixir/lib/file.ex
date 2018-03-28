@@ -6,8 +6,7 @@ defmodule Aircloak.File do
   # -------------------------------------------------------------------
 
   @doc "The full path to the config directory"
-  defmacro config_dir_path(),
-    do: quote(do: unquote(__MODULE__).config_dir_path(unquote(Mix.Project.config()[:app])))
+  defmacro config_dir_path(), do: quote(do: unquote(__MODULE__).config_dir_path(unquote(Mix.Project.config()[:app])))
 
   @doc "The full path to the config directory for a given application"
   @spec config_dir_path(atom) :: String.t()
@@ -34,10 +33,7 @@ defmodule Aircloak.File do
 
   @doc "Lists all files inside a config directory for the calling application"
   defmacro ls(path_segment),
-    do:
-      quote(
-        do: unquote(__MODULE__).ls(unquote(Mix.Project.config()[:app]), unquote(path_segment))
-      )
+    do: quote(do: unquote(__MODULE__).ls(unquote(Mix.Project.config()[:app]), unquote(path_segment)))
 
   @doc "Lists all files inside a config directory for a given application"
   @spec ls(atom, String.t()) :: {:ok, [String.t()]} | {:error, :file.posix()}

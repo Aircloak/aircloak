@@ -210,12 +210,9 @@ defmodule Air.CentralClient.Socket do
   # -------------------------------------------------------------------
 
   defp set_connected(value),
-    do:
-      {^value, _} =
-        Registry.update_value(Air.Service.Central.Registry, __MODULE__, fn _ -> value end)
+    do: {^value, _} = Registry.update_value(Air.Service.Central.Registry, __MODULE__, fn _ -> value end)
 
-  @spec call_central(GenServer.server(), String.t(), Map.t(), pos_integer) ::
-          {:ok, any} | {:error, any}
+  @spec call_central(GenServer.server(), String.t(), Map.t(), pos_integer) :: {:ok, any} | {:error, any}
   defp call_central(socket, event, payload, timeout \\ config(:call_timeout)),
     do: GenSocketClient.call(socket, {:call_central, timeout, event, payload})
 

@@ -21,11 +21,9 @@ defmodule Cloak.DataSource.Validations.Name.Test do
     test "add error on too long name",
       do: assert_name_produces_error("this_name_exceeds_31_characters_in_length", ~r/too long/)
 
-    test "add error on invalid character",
-      do: assert_name_produces_error("invalid!name", ~r/alphanumeric characters/)
+    test "add error on invalid character", do: assert_name_produces_error("invalid!name", ~r/alphanumeric characters/)
 
-    test "add error on invalid first character",
-      do: assert_name_produces_error("1invalid!name", ~r/must start with/)
+    test "add error on invalid first character", do: assert_name_produces_error("1invalid!name", ~r/must start with/)
 
     Enum.each(Cloak.Sql.Lexer.keywords(), fn keyword ->
       test "add error on usage of restricted keyword (#{keyword})" do

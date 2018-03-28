@@ -63,8 +63,7 @@ defmodule Cloak.Sql.Parser do
   @type join ::
           {:join,
            %{
-             type:
-               :cross_join | :inner_join | :full_outer_join | :left_outer_join | :right_outer_join,
+             type: :cross_join | :inner_join | :full_outer_join | :left_outer_join | :right_outer_join,
              lhs: from_clause,
              rhs: from_clause,
              conditions: where_clause
@@ -240,9 +239,7 @@ defmodule Cloak.Sql.Parser do
       sequence([parenthesised_expression(), option(cast_suffix())])
       |> map(fn [expr, cast_suffix] -> build_cast(expr, cast_suffix) end)
 
-  defp cast_suffix(),
-    do:
-      sequence([next_position(), keyword(:::), data_type(), lazy(fn -> option(cast_suffix()) end)])
+  defp cast_suffix(), do: sequence([next_position(), keyword(:::), data_type(), lazy(fn -> option(cast_suffix()) end)])
 
   defp build_cast(expr, nil), do: expr
 
@@ -268,8 +265,7 @@ defmodule Cloak.Sql.Parser do
     either_deepest_error(interval(), any_constant())
   end
 
-  defp select_column(),
-    do: choice_deepest_error([keyword(:*), select_all_from_table(), plain_select_column()])
+  defp select_column(), do: choice_deepest_error([keyword(:*), select_all_from_table(), plain_select_column()])
 
   defp select_all_from_table(),
     do:
@@ -391,8 +387,7 @@ defmodule Cloak.Sql.Parser do
 
   defp function_expression() do
     switch([
-      {next_position() |> function_name() |> keyword(:"("),
-       lazy(fn -> function_arguments() end) |> keyword(:")")},
+      {next_position() |> function_name() |> keyword(:"("), lazy(fn -> function_arguments() end) |> keyword(:")")},
       {:else, error_message(fail(""), "Expected an argument list")}
     ])
     |> map(fn {[location, function, :"("], [arguments, :")"]} ->
@@ -494,8 +489,7 @@ defmodule Cloak.Sql.Parser do
           {:function, "substring", [column, from, for_count], location}
 
         [location, _, :"(", column, [:for, for_count], :")"] ->
-          {:function, "substring", [column, {:constant, :integer, 1, _location = nil}, for_count],
-           location}
+          {:function, "substring", [column, {:constant, :integer, 1, _location = nil}, for_count], location}
 
         [location, _, :"(", column, [_, from], :")"] ->
           {:function, "substring", [column, from], location}
@@ -514,8 +508,7 @@ defmodule Cloak.Sql.Parser do
     end)
   end
 
-  defp infix_to_function(operator, left, right, location),
-    do: {:function, to_string(operator), [left, right], location}
+  defp infix_to_function(operator, left, right, location), do: {:function, to_string(operator), [left, right], location}
 
   defp infix_to_boolean_expression(operator, left, right, _location), do: {operator, left, right}
 
@@ -589,8 +582,7 @@ defmodule Cloak.Sql.Parser do
   defp to_join({join_type, :on, conditions}, left_expr, right_expr),
     do: {:join, %{type: join_type, lhs: left_expr, rhs: right_expr, conditions: conditions}}
 
-  defp to_join(:cross_join, left_expr, right_expr),
-    do: to_join({:cross_join, :on, nil}, left_expr, right_expr)
+  defp to_join(:cross_join, left_expr, right_expr), do: to_join({:cross_join, :on, nil}, left_expr, right_expr)
 
   defp cross_joins([table]), do: table
   defp cross_joins([clause | rest]), do: to_join(:cross_join, clause, cross_joins(rest))
@@ -633,8 +625,7 @@ defmodule Cloak.Sql.Parser do
 
   defp inner_join(), do: replace(pair_both(option(keyword(:inner)), keyword(:join)), :inner_join)
 
-  defp outer_join(),
-    do: choice_deepest_error([outer_join(:left), outer_join(:right), outer_join(:full)])
+  defp outer_join(), do: choice_deepest_error([outer_join(:left), outer_join(:right), outer_join(:full)])
 
   defp outer_join(type) do
     sequence([keyword(type), option(keyword(:outer)), keyword(:join)])
@@ -703,8 +694,7 @@ defmodule Cloak.Sql.Parser do
     switch([
       {column()
        |> option(keyword(:not))
-       |> choice_deepest_error([keyword(:like), keyword(:ilike)]),
-       sequence([constant(:string), like_escape()])},
+       |> choice_deepest_error([keyword(:like), keyword(:ilike)]), sequence([constant(:string), like_escape()])},
       {column() |> option(keyword(:not)) |> keyword(:in), in_values()},
       {column() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
       {column() |> keyword(:between), allowed_where_range()},
@@ -855,8 +845,7 @@ defmodule Cloak.Sql.Parser do
       sequence([column(), order_by_direction(), nulls_specifier()])
       |> map(&List.to_tuple/1)
 
-  defp order_by_direction(),
-    do: choice_deepest_error([keyword(:asc), keyword(:desc), return(:asc)])
+  defp order_by_direction(), do: choice_deepest_error([keyword(:asc), keyword(:desc), return(:asc)])
 
   defp nulls_specifier(),
     do:
@@ -890,8 +879,7 @@ defmodule Cloak.Sql.Parser do
       |> either_deepest_error(equality_comparator(), inequality_comparator())
       |> label("comparator")
 
-  defp equality_comparator(parser \\ noop()),
-    do: parser |> keyword_of([:=, :<>]) |> label("equality comparator")
+  defp equality_comparator(parser \\ noop()), do: parser |> keyword_of([:=, :<>]) |> label("equality comparator")
 
   defp inequality_comparator(parser \\ noop()),
     do: parser |> keyword_of([:<, :<=, :>, :>=]) |> label("inequality comparator")

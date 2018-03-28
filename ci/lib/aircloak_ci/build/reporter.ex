@@ -36,8 +36,7 @@ defmodule AircloakCI.Build.Reporter do
   defp post_job_comment(%{source_type: :local, source: local}, body),
     do: Github.comment_on_commit(local.repo.owner, local.repo.name, local.sha, body)
 
-  defp comment_body(build_state, job_name, :error, nil),
-    do: error_comment_body(build_state, job_name, "errored")
+  defp comment_body(build_state, job_name, :error, nil), do: error_comment_body(build_state, job_name, "errored")
 
   defp comment_body(build_state, job_name, :failure, crash_reason),
     do:
@@ -54,12 +53,8 @@ defmodule AircloakCI.Build.Reporter do
         [
           "#{job_name} job #{crash_verb} #{Emoji.sad()}",
           if(not is_nil(extra_info), do: "\n#{extra_info}\n", else: ""),
-          "You can see the full build log by running: `ci/production.sh build_log #{
-            target(build_state)
-          } #{job_name}`\n",
-          "You can restart the build by running: `ci/production.sh force_build #{
-            target(build_state)
-          } #{job_name}`\n",
+          "You can see the full build log by running: `ci/production.sh build_log #{target(build_state)} #{job_name}`\n",
+          "You can restart the build by running: `ci/production.sh force_build #{target(build_state)} #{job_name}`\n",
           "Log tail:\n",
           "```",
           log_tail(build_state.project, job_name),

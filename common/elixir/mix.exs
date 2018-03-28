@@ -73,8 +73,7 @@ defmodule Aircloak.ElixirCommon.Mixfile do
 
   defp ignored_credo_checks(:test), do: ["ModuleDoc" | ignored_credo_checks(:dev)]
 
-  defp ignored_credo_checks(_),
-    do: ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
+  defp ignored_credo_checks(_), do: ["NameRedeclarationBy", "AliasUsage", "PipeChain", "ABCSize", "Nesting"]
 
   if Mix.env() == :dev do
     defp dialyzer_deps(), do: [:phoenix_gen_socket_client]

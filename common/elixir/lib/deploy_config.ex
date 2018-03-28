@@ -22,20 +22,14 @@ defmodule Aircloak.DeployConfig do
   # -------------------------------------------------------------------
 
   @doc "Retrieves a deploy-specific configuration value of the calling app, raises if it's not found."
-  defmacro fetch!(key),
-    do: quote(do: unquote(__MODULE__).fetch!(unquote(Mix.Project.config()[:app]), unquote(key)))
+  defmacro fetch!(key), do: quote(do: unquote(__MODULE__).fetch!(unquote(Mix.Project.config()[:app]), unquote(key)))
 
   @doc "Retrieves a deploy-specific configuration value of the calling app."
-  defmacro fetch(key),
-    do: quote(do: unquote(__MODULE__).fetch(unquote(Mix.Project.config()[:app]), unquote(key)))
+  defmacro fetch(key), do: quote(do: unquote(__MODULE__).fetch(unquote(Mix.Project.config()[:app]), unquote(key)))
 
   @doc "Retrieves a deploy-specific configuration or the value from the calling app environment."
   defmacro override_app_env!(key),
-    do:
-      quote(
-        do:
-          unquote(__MODULE__).override_app_env!(unquote(Mix.Project.config()[:app]), unquote(key))
-      )
+    do: quote(do: unquote(__MODULE__).override_app_env!(unquote(Mix.Project.config()[:app]), unquote(key)))
 
   @doc "Retrieves a deploy-specific configuration value of the given app, raises if it's not found."
   @spec fetch!(atom, any) :: any
@@ -68,8 +62,7 @@ defmodule Aircloak.DeployConfig do
 
   @doc "Updates cached configuration value of the given app."
   @spec update(atom, any, (any -> any)) :: :ok
-  def update(app, key, fun),
-    do: Application.put_env(app, __MODULE__, Map.update!(read_config!(app), key, fun))
+  def update(app, key, fun), do: Application.put_env(app, __MODULE__, Map.update!(read_config!(app), key, fun))
 
   @doc "Validates the schema of the config.json according to priv/config_schema.json file."
   @spec validate!(atom, Map.t() | nil) :: :ok

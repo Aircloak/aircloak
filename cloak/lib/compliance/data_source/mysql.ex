@@ -65,8 +65,7 @@ defmodule Compliance.DataSource.MySQL do
     columns = column_names |> escaped_column_names() |> Enum.join(", ")
     row_placeholders = column_names |> Stream.map(fn _column -> "?" end) |> Enum.join(",")
 
-    all_placeholders =
-      rows |> Stream.map(fn _row -> "(#{row_placeholders})" end) |> Enum.join(", ")
+    all_placeholders = rows |> Stream.map(fn _row -> "(#{row_placeholders})" end) |> Enum.join(", ")
 
     query = "INSERT INTO #{table_name}(#{columns}) values #{all_placeholders}"
 
@@ -127,9 +126,7 @@ defmodule Compliance.DataSource.MySQL do
 
     case Mariaex.query!(
            conn,
-           "SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '#{
-             params.database
-           }'"
+           "SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '#{params.database}'"
          ).rows do
       [[1]] ->
         :ok

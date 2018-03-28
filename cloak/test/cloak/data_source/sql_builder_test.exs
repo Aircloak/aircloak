@@ -10,19 +10,14 @@ defmodule Cloak.DataSource.SqlBuilderTest do
     assert sql_string("select * from (select upper(string) as s from table) t") =~
              ~r/UPPER\(CAST\("table"\."string" AS text\)\)/
 
-    assert sql_string("select int from table where string=''") =~
-             ~r/CAST\("table"\."string" AS text\) = ''/
+    assert sql_string("select int from table where string=''") =~ ~r/CAST\("table"\."string" AS text\) = ''/
   end
 
   test "non-text column is not force casted",
     do: refute(sql_string("select int from table") =~ ~r/CAST\("table"\."int"/)
 
   test "workaround for text comparisons on SQL Server ignoring trailing spaces",
-    do:
-      assert(
-        sql_string("select count(*) from table where string = 'ab'", SQLServer) =~
-          "= (N'ab' + N'.')"
-      )
+    do: assert(sql_string("select count(*) from table where string = 'ab'", SQLServer) =~ "= (N'ab' + N'.')")
 
   defp sql_string(query, dialect \\ PostgreSQL),
     do:

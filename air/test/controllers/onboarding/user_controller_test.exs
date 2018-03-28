@@ -38,8 +38,7 @@ defmodule AirWeb.Onboarding.UserController.Test do
   end
 
   test "redirects to users admin page", %{conn: conn} do
-    assert post(conn, onboarding_user_path(conn, :create), @valid_params) |> redirected_to() ===
-             "/admin/users"
+    assert post(conn, onboarding_user_path(conn, :create), @valid_params) |> redirected_to() === "/admin/users"
   end
 
   test "requires correct master password", %{conn: conn} do

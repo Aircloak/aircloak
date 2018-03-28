@@ -88,9 +88,7 @@ defmodule Cloak.DataSource.MongoDB.Schema do
   end
 
   defp build_tables(type, table, parent_columns) do
-    columns =
-      Enum.reject(parent_columns, &is_array_size?(&1.name)) ++
-        [Table.column(to_string(table.array_path), type)]
+    columns = Enum.reject(parent_columns, &is_array_size?(&1.name)) ++ [Table.column(to_string(table.array_path), type)]
 
     [%{table | columns: columns}]
   end

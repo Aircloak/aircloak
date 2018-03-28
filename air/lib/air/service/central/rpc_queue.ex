@@ -44,20 +44,17 @@ defmodule Air.Service.Central.RpcQueue do
   def init(options) do
     Process.flag(:trap_exit, true)
 
-    {:ok,
-     %{current_send: nil, send_paused?: false, queue: Aircloak.Queue.new(), options: options}}
+    {:ok, %{current_send: nil, send_paused?: false, queue: Aircloak.Queue.new(), options: options}}
   end
 
   @impl GenServer
-  def handle_call({:push, event, payload}, _from, state),
-    do: {:reply, :ok, handle_push(state, event, payload)}
+  def handle_call({:push, event, payload}, _from, state), do: {:reply, :ok, handle_push(state, event, payload)}
 
   @impl GenServer
   def handle_info({:EXIT, pid, reason}, %{current_send: %{pid: pid}} = state),
     do: {:noreply, send_finished(state, reason)}
 
-  def handle_info(:resume_send, state),
-    do: {:noreply, maybe_start_rpc_task(%{state | send_paused?: false})}
+  def handle_info(:resume_send, state), do: {:noreply, maybe_start_rpc_task(%{state | send_paused?: false})}
 
   def handle_info(msg, state) do
     Logger.warn("Unhandled message #{inspect(msg)}")
@@ -101,8 +98,7 @@ defmodule Air.Service.Central.RpcQueue do
 
   defp maybe_start_rpc_task(%{send_paused?: true} = state), do: state
 
-  defp maybe_start_rpc_task(%{current_send: current_send} = state) when current_send != nil,
-    do: state
+  defp maybe_start_rpc_task(%{current_send: current_send} = state) when current_send != nil, do: state
 
   defp maybe_start_rpc_task(%{queue: %Aircloak.Queue{size: 0}} = state), do: state
 
@@ -131,9 +127,7 @@ defmodule Air.Service.Central.RpcQueue do
   defp handle_finished_reason(state, abnormal_reason) do
     rpc = state.current_send.rpc
 
-    Logger.error(
-      "RPC '#{rpc.event}' to central failed: #{inspect(abnormal_reason)}. Will retry later."
-    )
+    Logger.error("RPC '#{rpc.event}' to central failed: #{inspect(abnormal_reason)}. Will retry later.")
 
     pause_send(state)
   end

@@ -134,15 +134,12 @@ defmodule Compliance.Data do
     end
   end
 
-  defp random_date(),
-    do:
-      (1_500_000_000 + :rand.uniform(100_026_704)) |> DateTime.from_unix!() |> DateTime.to_naive()
+  defp random_date(), do: (1_500_000_000 + :rand.uniform(100_026_704)) |> DateTime.from_unix!() |> DateTime.to_naive()
 
   defp rand_range(min, max) when min > max, do: raise("Max must be greater or equal to min")
   defp rand_range(min, max), do: min..(:rand.uniform(max - min + 1) + min)
 
-  defp random_postcode(),
-    do: :rand.uniform(@max_postal_code - @min_postal_code) + @min_postal_code
+  defp random_postcode(), do: :rand.uniform(@max_postal_code - @min_postal_code) + @min_postal_code
 
   defp generate_name(names), do: sample_randomly(names, 2, 3)
 
@@ -265,8 +262,7 @@ defmodule Compliance.Data do
   defp fixup_keys([[_ | _] | _] = keys), do: keys
   defp fixup_keys(keys), do: Enum.map(keys, &[&1])
 
-  defp encrypt(value),
-    do: :crypto.block_encrypt(:aes_cbc128, @encryption_key, @zero_iv, pad(value))
+  defp encrypt(value), do: :crypto.block_encrypt(:aes_cbc128, @encryption_key, @zero_iv, pad(value))
 
   @block_size 16
   def pad(value) do

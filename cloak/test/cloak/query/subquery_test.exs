@@ -34,17 +34,17 @@ defmodule Cloak.Query.SubqueryTest do
   end
 
   test "implicitly selecting user id in a subquery with group by" do
-    assert_query(
-      "select height from (select max(height) as height from heights_sq group by user_id) alias",
-      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
-    )
+    assert_query("select height from (select max(height) as height from heights_sq group by user_id) alias", %{
+      columns: ["height"],
+      rows: [%{row: [180], occurrences: 100}]
+    })
   end
 
   test "implicitly selecting user id in a nested subquery" do
-    assert_query(
-      "select height from (select height from (select height from heights_sq) sq1) sq2",
-      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
-    )
+    assert_query("select height from (select height from (select height from heights_sq) sq1) sq2", %{
+      columns: ["height"],
+      rows: [%{row: [180], occurrences: 100}]
+    })
   end
 
   test "selecting all from a subquery with an implicitly selected user id" do
@@ -69,10 +69,10 @@ defmodule Cloak.Query.SubqueryTest do
   end
 
   test "where alias in a subquery" do
-    assert_query(
-      "select h from (select user_id, height as h from heights_sq where h = 180) alias",
-      %{columns: ["h"], rows: [%{row: [180], occurrences: 100}]}
-    )
+    assert_query("select h from (select user_id, height as h from heights_sq where h = 180) alias", %{
+      columns: ["h"],
+      rows: [%{row: [180], occurrences: 100}]
+    })
   end
 
   test "user_id can be in any position in a subquery" do
@@ -90,10 +90,10 @@ defmodule Cloak.Query.SubqueryTest do
   end
 
   test "fully qualified names with a quoted alias" do
-    assert_query(
-      ~s/select "ali as".height from (select user_id, height from heights_sq) "ali as"/,
-      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
-    )
+    assert_query(~s/select "ali as".height from (select user_id, height from heights_sq) "ali as"/, %{
+      columns: ["height"],
+      rows: [%{row: [180], occurrences: 100}]
+    })
   end
 
   test "where in a subquery" do
@@ -104,10 +104,10 @@ defmodule Cloak.Query.SubqueryTest do
   end
 
   test "function in where in a subquery" do
-    assert_query(
-      "select height from (select user_id, height from heights_sq where height / 2 = 90) alias",
-      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
-    )
+    assert_query("select height from (select user_id, height from heights_sq where height / 2 = 90) alias", %{
+      columns: ["height"],
+      rows: [%{row: [180], occurrences: 100}]
+    })
   end
 
   test "joining two subqueries" do
@@ -146,28 +146,26 @@ defmodule Cloak.Query.SubqueryTest do
   test "limit and offset in subqueries" do
     :ok = insert_rows(_user_ids = 101..150, "heights_sq", ["height"], [190])
 
-    assert_query(
-      "select height from (select user_id, height from heights_sq order by height limit 50) alias",
-      %{columns: ["height"], rows: [%{row: [180], occurrences: 50}]}
-    )
+    assert_query("select height from (select user_id, height from heights_sq order by height limit 50) alias", %{
+      columns: ["height"],
+      rows: [%{row: [180], occurrences: 50}]
+    })
+
+    assert_query("select height from (select user_id, height from heights_sq order by height offset 50) alias", %{
+      error: "Subquery has an `OFFSET` clause without a `LIMIT` clause."
+    })
 
     assert_query(
-      "select height from (select user_id, height from heights_sq order by height offset 50) alias",
-      %{error: "Subquery has an `OFFSET` clause without a `LIMIT` clause."}
-    )
-
-    assert_query(
-      "select height from (select user_id, height from heights_sq order by height limit 50 offset 100)" <>
-        " alias",
+      "select height from (select user_id, height from heights_sq order by height limit 50 offset 100)" <> " alias",
       %{columns: ["height"], rows: [%{row: [190], occurrences: 50}]}
     )
   end
 
   test "non selected order by in subquery" do
-    assert_query(
-      "select x from (select user_id, 3.14 as x from heights_sq order by height) alias",
-      %{columns: ["x"], rows: [%{row: [3.14], occurrences: 100}]}
-    )
+    assert_query("select x from (select user_id, 3.14 as x from heights_sq order by height) alias", %{
+      columns: ["x"],
+      rows: [%{row: [3.14], occurrences: 100}]
+    })
   end
 
   test "non selected aggregate in subquery" do

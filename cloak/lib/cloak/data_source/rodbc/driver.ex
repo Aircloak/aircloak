@@ -35,8 +35,7 @@ defmodule Cloak.DataSource.RODBC.Driver do
 
   @doc "Executes an SQL statement on the connected backend."
   @spec execute(port(), String.t()) :: :ok | {:error, String.t()}
-  def execute(port, statement),
-    do: port |> :erlang.port_control(@command_execute, statement) |> decode_response()
+  def execute(port, statement), do: port |> :erlang.port_control(@command_execute, statement) |> decode_response()
 
   @doc "Returns all rows selected by the previous statement."
   @spec fetch_all(port(), (row -> row)) :: {:ok, [row]} | {:error, String.t()}
@@ -44,8 +43,7 @@ defmodule Cloak.DataSource.RODBC.Driver do
 
   @doc "Returns a new batch, with the specified size, from the rows selected by the previous statement."
   @spec fetch_batch(port(), (row -> row), pos_integer) :: {:ok, [row]} | {:error, String.t()}
-  def fetch_batch(port, row_mapper, size) when size > 0,
-    do: fetch_batch(port, row_mapper, size, [], 0)
+  def fetch_batch(port, row_mapper, size) when size > 0, do: fetch_batch(port, row_mapper, size, [], 0)
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -68,17 +66,13 @@ defmodule Cloak.DataSource.RODBC.Driver do
   defp decode_data(<<>>, acc), do: :lists.reverse(acc)
   defp decode_data(<<@type_null, data::binary>>, acc), do: decode_data(data, [nil | acc])
 
-  defp decode_data(<<@type_i32, num::signed-little-32, data::binary>>, acc),
-    do: decode_data(data, [num | acc])
+  defp decode_data(<<@type_i32, num::signed-little-32, data::binary>>, acc), do: decode_data(data, [num | acc])
 
-  defp decode_data(<<@type_i64, num::signed-little-64, data::binary>>, acc),
-    do: decode_data(data, [num | acc])
+  defp decode_data(<<@type_i64, num::signed-little-64, data::binary>>, acc), do: decode_data(data, [num | acc])
 
-  defp decode_data(<<@type_f32, num::float-little-32, data::binary>>, acc),
-    do: decode_data(data, [num | acc])
+  defp decode_data(<<@type_f32, num::float-little-32, data::binary>>, acc), do: decode_data(data, [num | acc])
 
-  defp decode_data(<<@type_f64, num::float-little-64, data::binary>>, acc),
-    do: decode_data(data, [num | acc])
+  defp decode_data(<<@type_f64, num::float-little-64, data::binary>>, acc), do: decode_data(data, [num | acc])
 
   defp decode_data(
          <<@type_bin, len::unsigned-little-32, str::bytes-size(len), data::binary>>,

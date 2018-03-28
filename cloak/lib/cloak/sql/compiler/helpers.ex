@@ -55,8 +55,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
     normalizer = &(&1 |> Expression.unalias() |> Expression.semantic())
 
     Enum.member?(Enum.map(query.group_by, normalizer), normalizer.(column)) or
-      (column.function? and
-         (column.aggregate? or Enum.any?(column.function_args, &aggregated_column?(query, &1))))
+      (column.function? and (column.aggregate? or Enum.any?(column.function_args, &aggregated_column?(query, &1))))
   end
 
   @doc "Returns true if any of the query's bucket columns is aggregated."
@@ -78,8 +77,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
   Updates the query and all its subqueries with the given function. Starts from the most nested subqueries going up.
   """
   @spec apply_bottom_up(q, (q -> q)) :: q when q: Query.t() | Parser.parsed_query()
-  def apply_bottom_up(query, function),
-    do: update_in(query, [Query.Lenses.all_queries()], function)
+  def apply_bottom_up(query, function), do: update_in(query, [Query.Lenses.all_queries()], function)
 
   @doc """
   Updates the query and all its subqueries with the given function. Starts from the top-level query going down.

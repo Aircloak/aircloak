@@ -61,8 +61,7 @@ defmodule Cloak.Sql.ErrorFormat do
     platform_independent_newline = ~r/(*ANY)\n/
     context = query |> String.split(platform_independent_newline) |> Enum.drop(max(line - 2, 0))
 
-    [prev_line_no, line_no, next_line_no] =
-      [line - 1, line, line + 1] |> Enum.map(&pad_line_number/1)
+    [prev_line_no, line_no, next_line_no] = [line - 1, line, line + 1] |> Enum.map(&pad_line_number/1)
 
     filler = String.duplicate(" ", column - 1 + @line_number_width)
 

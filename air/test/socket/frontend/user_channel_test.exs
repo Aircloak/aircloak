@@ -36,8 +36,7 @@ defmodule AirWeb.Socket.Frontend.UserChannelTest do
     end
 
     test "no state updates for queries belonging to other users" do
-      query =
-        create_query!(_other_user = create_user!(), %{data_source_id: create_data_source!().id})
+      query = create_query!(_other_user = create_user!(), %{data_source_id: create_data_source!().id})
 
       UserChannel.broadcast_state_change(query)
 
@@ -87,8 +86,7 @@ defmodule AirWeb.Socket.Frontend.UserChannelTest do
   end
 
   defp subscribed_to_user_queries(context) do
-    {:ok, _, _} =
-      subscribe_and_join(context.socket, UserChannel, "user_queries:#{context.user.id}")
+    {:ok, _, _} = subscribe_and_join(context.socket, UserChannel, "user_queries:#{context.user.id}")
 
     :ok
   end

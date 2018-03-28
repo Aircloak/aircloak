@@ -75,8 +75,7 @@ defmodule Cloak.Mixfile do
   defp extra_applications(:dev), do: [:os_mon | common_extra_applications()]
   defp extra_applications(:prod), do: [:os_mon | common_extra_applications()]
 
-  defp common_extra_applications(),
-    do: [:logger, :runtime_tools, :odbc, :crypto, :ssl, :public_key]
+  defp common_extra_applications(), do: [:logger, :runtime_tools, :odbc, :crypto, :ssl, :public_key]
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]

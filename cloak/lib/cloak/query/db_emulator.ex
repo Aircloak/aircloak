@@ -41,9 +41,7 @@ defmodule Cloak.Query.DbEmulator do
   defp select_rows({:subquery, %{ast: %Query{emulated?: false} = query}}) do
     query
     |> Query.debug_log("Executing sub-query through data source")
-    |> offload_select!(
-      &Rows.filter(&1, query |> Query.emulated_where() |> Condition.to_function())
-    )
+    |> offload_select!(&Rows.filter(&1, query |> Query.emulated_where() |> Condition.to_function()))
   end
 
   defp select_rows({:subquery, %{ast: %Query{emulated?: true, from: from} = subquery}})
@@ -111,8 +109,7 @@ defmodule Cloak.Query.DbEmulator do
       |> Enum.map(&Expression.unalias/1)
       |> Enum.uniq_by(& &1.name)
 
-  defp compute_columns_to_select(join),
-    do: Map.put(join, :columns, columns_needed_for_join({:join, join}))
+  defp compute_columns_to_select(join), do: Map.put(join, :columns, columns_needed_for_join({:join, join}))
 
   defp update_join_conditions(join),
     do: %{

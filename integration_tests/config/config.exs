@@ -1,10 +1,7 @@
 use Mix.Config
 
 if Mix.env() != :test,
-  do:
-    Mix.raise(
-      "This project is meant to be used only in test env. Run your mix task with `MIX_ENV=test mix ...`"
-    )
+  do: Mix.raise("This project is meant to be used only in test env. Run your mix task with `MIX_ENV=test mix ...`")
 
 config :sasl, :sasl_error_logger, false
 

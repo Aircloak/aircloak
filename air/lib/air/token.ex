@@ -9,8 +9,7 @@ defmodule Air.Token do
   # -------------------------------------------------------------------
 
   @doc "Given a user and a description, a token is created and assigned to the user"
-  @spec create_api_token(User.t(), ApiToken.Access.t(), String.t()) ::
-          String.t() | {:error, Ecto.Changeset.t()}
+  @spec create_api_token(User.t(), ApiToken.Access.t(), String.t()) :: String.t() | {:error, Ecto.Changeset.t()}
   def create_api_token(user, access, description) do
     changeset =
       ApiToken.changeset(%ApiToken{}, %{
@@ -25,8 +24,7 @@ defmodule Air.Token do
   end
 
   @doc "Will return the user associated with a token, assuming the token is valid"
-  @spec user_for_token(String.t(), ApiToken.Access.t(), max_age: pos_integer | :infinity) ::
-          User.t() | :error
+  @spec user_for_token(String.t(), ApiToken.Access.t(), max_age: pos_integer | :infinity) :: User.t() | :error
   def user_for_token(token, access, opts \\ []) do
     import Ecto.Query
 

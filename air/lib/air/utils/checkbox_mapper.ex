@@ -17,8 +17,7 @@ defmodule Air.Utils.CheckboxMapper do
   properties of the group, such as whether it gives admin privileges.
   """
   @spec group_label_text(Group.t()) :: [Phoenix.HTML.safe()]
-  def group_label_text(%Group{admin: false, name: name}),
-    do: content_tag(:strong, html_escape(name))
+  def group_label_text(%Group{admin: false, name: name}), do: content_tag(:strong, html_escape(name))
 
   def group_label_text(%Group{admin: true, name: name}) do
     [

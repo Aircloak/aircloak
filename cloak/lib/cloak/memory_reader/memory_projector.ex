@@ -54,8 +54,7 @@ defmodule Cloak.MemoryReader.MemoryProjector do
   The number of expected units of time until we reach a given lower memory limit.
   The time units are the same as used when adding new measurements.
   """
-  @spec time_until_limit(t, non_neg_integer) ::
-          :infinity | :no_prediction | {:ok, non_neg_integer}
+  @spec time_until_limit(t, non_neg_integer) :: :infinity | :no_prediction | {:ok, non_neg_integer}
   def time_until_limit(%MemoryProjector{changes: changes}, _)
       when length(changes) < @readings_to_keep,
       do: :no_prediction
@@ -85,8 +84,7 @@ defmodule Cloak.MemoryReader.MemoryProjector do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp extend_changes(%MemoryProjector{last_reading: nil} = state, _measurement, _timestamp),
-    do: state
+  defp extend_changes(%MemoryProjector{last_reading: nil} = state, _measurement, _timestamp), do: state
 
   defp extend_changes(
          %MemoryProjector{

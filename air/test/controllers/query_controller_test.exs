@@ -92,8 +92,7 @@ defmodule AirWeb.QueryController.Test do
         login(context[:user]) |> post("/queries", query_data_params) |> response(200)
       end)
 
-    assert %{"success" => false, "reason" => "unable_to_create_query"} =
-             Poison.decode!(Task.await(rerun_task))
+    assert %{"success" => false, "reason" => "unable_to_create_query"} = Poison.decode!(Task.await(rerun_task))
   end
 
   test "can cancel a query", context do
@@ -106,8 +105,7 @@ defmodule AirWeb.QueryController.Test do
 
     query_id = query.id
 
-    assert {:ok, {"main", "air_call", %{event: "stop_query", payload: ^query_id}}} =
-             TestSocket.await_message(socket)
+    assert {:ok, {"main", "air_call", %{event: "stop_query", payload: ^query_id}}} = TestSocket.await_message(socket)
   end
 
   test "returns unauthorized when not authorized to query data source", context do

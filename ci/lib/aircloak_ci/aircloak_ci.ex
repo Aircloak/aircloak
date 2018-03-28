@@ -70,8 +70,7 @@ defmodule AircloakCI do
   end
 
   defp read_config_file() do
-    with {:error, _} <- File.read(config_file()),
-         do: {:error, "can't read from `#{config_file()}`"}
+    with {:error, _} <- File.read(config_file()), do: {:error, "can't read from `#{config_file()}`"}
   end
 
   defp config_value(config, key) do

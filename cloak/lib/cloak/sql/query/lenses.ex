@@ -289,8 +289,7 @@ defmodule Cloak.Sql.Query.Lenses do
     base = path |> Lens.at(1)
 
     [base |> Lens.key(:conditions)] ++
-      do_join_condition_lenses(lhs, base |> Lens.key(:lhs)) ++
-      do_join_condition_lenses(rhs, base |> Lens.key(:rhs))
+      do_join_condition_lenses(lhs, base |> Lens.key(:lhs)) ++ do_join_condition_lenses(rhs, base |> Lens.key(:rhs))
   end
 
   defp do_join_condition_lenses(_, _), do: []
@@ -342,8 +341,7 @@ defmodule Cloak.Sql.Query.Lenses do
 
   deflensp(expressions(), do: Lens.filter(Lens.root(), &match?(%Expression{}, &1)))
 
-  defp do_leaf_expressions(lens),
-    do: lens |> Lens.filter(&match?(%Expression{function?: false}, &1))
+  defp do_leaf_expressions(lens), do: lens |> Lens.filter(&match?(%Expression{function?: false}, &1))
 
   deflensp(
     join_elements(),

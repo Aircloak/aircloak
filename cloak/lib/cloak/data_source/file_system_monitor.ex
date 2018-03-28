@@ -40,8 +40,7 @@ defmodule Cloak.DataSource.FileSystemMonitor do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp group_by_data_source_config(messages),
-    do: Enum.group_by(messages, fn {file_path, _events} -> file_path end)
+  defp group_by_data_source_config(messages), do: Enum.group_by(messages, fn {file_path, _events} -> file_path end)
 
   defp consolidate_and_classify_events(events_by_file),
     do:
@@ -92,8 +91,7 @@ defmodule Cloak.DataSource.FileSystemMonitor do
       [
         %{
           id: FileSystem,
-          start:
-            {FileSystem, :start_link, [[dirs: [config_path()], name: @file_system_monitor_name]]}
+          start: {FileSystem, :start_link, [[dirs: [config_path()], name: @file_system_monitor_name]]}
         },
         ChildSpec.gen_server(__MODULE__, [], name: __MODULE__)
       ]

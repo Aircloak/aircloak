@@ -9,8 +9,7 @@ defmodule AircloakCI.CmdRunner.Supervisor do
 
   @doc "Starts the new runner process."
   @spec start_runner(pid) :: {:ok, pid}
-  def start_runner(owner),
-    do: DynamicSupervisor.start_child(__MODULE__, {AircloakCI.CmdRunner, owner})
+  def start_runner(owner), do: DynamicSupervisor.start_child(__MODULE__, {AircloakCI.CmdRunner, owner})
 
   # -------------------------------------------------------------------
   # Supervision tree

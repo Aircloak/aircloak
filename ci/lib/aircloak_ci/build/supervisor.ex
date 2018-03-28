@@ -5,8 +5,7 @@ defmodule AircloakCI.Build.Supervisor do
 
   @doc "Starts the new build server."
   @spec start_build(module, [any]) :: Supervisor.on_start_child()
-  def start_build(module, args),
-    do: Supervisor.start_child(__MODULE__, [module, :start_link, args])
+  def start_build(module, args), do: Supervisor.start_child(__MODULE__, [module, :start_link, args])
 
   # -------------------------------------------------------------------
   # Supervision tree

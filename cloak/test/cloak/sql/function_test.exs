@@ -37,15 +37,13 @@ defmodule Cloak.Sql.Function.Test do
 
   @aggregators ~w(count min max avg stddev median)
   Enum.each(@aggregators, fn aggregator ->
-    test "#{aggregator} is registered as an aggregator",
-      do: assert(Function.aggregator?(unquote(aggregator)))
+    test "#{aggregator} is registered as an aggregator", do: assert(Function.aggregator?(unquote(aggregator)))
   end)
 
   @implicit_ranges ~w(hour minute second year quarter month day weekday date_trunc round trunc) ++
                      [{:bucket, :lower}, {:bucket, :middle}, {:bucket, :upper}]
   Enum.each(@implicit_ranges, fn function ->
-    test "#{inspect(function)} has implicit range behaviuor",
-      do: assert(Function.implicit_range?(unquote(function)))
+    test "#{inspect(function)} has implicit range behaviuor", do: assert(Function.implicit_range?(unquote(function)))
   end)
 
   @internal_functions ~w(coalesce dec_b64 dec_aes_cbc128)
@@ -179,8 +177,7 @@ defmodule Cloak.Sql.Function.Test do
       } do
     test "#{type} - interval", do: assert(well_typed?("-", [unquote(type), :interval]))
 
-    test "interval - #{type} is ill-typed",
-      do: refute(well_typed?("-", [:interval, unquote(type)]))
+    test "interval - #{type} is ill-typed", do: refute(well_typed?("-", [:interval, unquote(type)]))
 
     test "interval + #{type}", do: assert(well_typed?("+", [:interval, unquote(type)]))
   end
@@ -213,10 +210,7 @@ defmodule Cloak.Sql.Function.Test do
   end
 
   test "typechecking a nested function call" do
-    assert Function.well_typed?(
-             {:function, "avg", [{:function, "abs", [Expression.constant(:integer, 3)], nil}],
-              nil}
-           )
+    assert Function.well_typed?({:function, "avg", [{:function, "abs", [Expression.constant(:integer, 3)], nil}], nil})
 
     refute Function.well_typed?({:function, "avg", [{:function, "concat", [], nil}], nil})
   end
@@ -317,19 +311,16 @@ defmodule Cloak.Sql.Function.Test do
     assert well_typed?({:cast, :interval}, [:interval])
   end
 
-  test "can tell when a function splits rows",
-    do: assert(Function.has_attribute?("extract_words", :row_splitter))
+  test "can tell when a function splits rows", do: assert(Function.has_attribute?("extract_words", :row_splitter))
 
-  test "can tell when a function does not split rows",
-    do: refute(Function.has_attribute?("substring", :row_splitter))
+  test "can tell when a function does not split rows", do: refute(Function.has_attribute?("substring", :row_splitter))
 
   test "knows `ceil` is allowed in a subquery",
     do: refute(Function.has_attribute?({:function, "ceil", [], nil}, :not_in_subquery))
 
   test "returns true if function exists", do: assert(Function.exists?({:function, "*", [], nil}))
 
-  test "returns false if function does not exists",
-    do: refute(Function.exists?({:function, "foobar", [], nil}))
+  test "returns false if function does not exists", do: refute(Function.exists?({:function, "foobar", [], nil}))
 
   describe "well_typed?" do
     test "constant expression is treated as a constant" do
@@ -349,10 +340,7 @@ defmodule Cloak.Sql.Function.Test do
 
   describe "deprecation" do
     test "no deprecation info for existing functions",
-      do:
-        assert(
-          {:error, :function_exists} = Function.deprecation_info({:function, "abs", [], nil})
-        )
+      do: assert({:error, :function_exists} = Function.deprecation_info({:function, "abs", [], nil}))
 
     test "no deprecation info for non-existent functions",
       do: assert({:error, :not_found} = Function.deprecation_info({:function, "foo", [], nil}))
@@ -360,23 +348,19 @@ defmodule Cloak.Sql.Function.Test do
     test "extract_match is deprecated",
       do:
         assert(
-          {:ok, %{alternative: "extract_words"}} =
-            Function.deprecation_info({:function, "extract_match", [], nil})
+          {:ok, %{alternative: "extract_words"}} = Function.deprecation_info({:function, "extract_match", [], nil})
         )
 
     test "extract_matches is deprecated",
       do:
         assert(
-          {:ok, %{alternative: "extract_words"}} =
-            Function.deprecation_info({:function, "extract_match", [], nil})
+          {:ok, %{alternative: "extract_words"}} = Function.deprecation_info({:function, "extract_match", [], nil})
         )
   end
 
-  defp return_type(name, arg_types),
-    do: Function.return_type({:function, name, simulate_types(arg_types), nil})
+  defp return_type(name, arg_types), do: Function.return_type({:function, name, simulate_types(arg_types), nil})
 
-  defp well_typed?(name, types),
-    do: Function.well_typed?({:function, name, simulate_types(types), nil})
+  defp well_typed?(name, types), do: Function.well_typed?({:function, name, simulate_types(types), nil})
 
   defp simulate_types(types) do
     Enum.map(types, fn

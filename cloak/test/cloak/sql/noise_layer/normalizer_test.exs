@@ -22,12 +22,10 @@ defmodule Cloak.Sql.NoiseLayer.Normalizer.Test do
       refute same(-11.23123, 1.123456)
     end
 
-    test "should not conflate a positive and the same negative number",
-      do: refute(same(0.1123123, -0.1123456))
+    test "should not conflate a positive and the same negative number", do: refute(same(0.1123123, -0.1123456))
 
     test "normalizes 0.0 as well", do: assert(same(0.0, -0.0))
   end
 
-  defp same(num1, num2),
-    do: Normalizer.normalize_number(num1) == Normalizer.normalize_number(num2)
+  defp same(num1, num2), do: Normalizer.normalize_number(num1) == Normalizer.normalize_number(num2)
 end

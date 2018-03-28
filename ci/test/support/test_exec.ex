@@ -5,8 +5,7 @@ defmodule AircloakCI.TestExec do
     Agent.start_link(fn -> :ets.new(__MODULE__, [:named_table, :public]) end)
   end
 
-  def child_spec(_),
-    do: Supervisor.child_spec(Agent, %{id: __MODULE__, start: {__MODULE__, :start_link, []}})
+  def child_spec(_), do: Supervisor.child_spec(Agent, %{id: __MODULE__, start: {__MODULE__, :start_link, []}})
 
   def clear_patterns(), do: :ets.delete_all_objects(__MODULE__)
 

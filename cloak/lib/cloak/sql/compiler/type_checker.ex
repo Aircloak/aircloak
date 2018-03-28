@@ -132,27 +132,22 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   defp verify_string_based_conditions_are_clear(query),
     do:
-      verify_conditions(
-        query,
-        &(Condition.equals?(&1) or Condition.not_equals?(&1)),
-        fn {:comparison, lhs, _, rhs} ->
-          lhs_type = Type.establish_type(lhs, query)
-          rhs_type = Type.establish_type(rhs, query)
+      verify_conditions(query, &(Condition.equals?(&1) or Condition.not_equals?(&1)), fn {:comparison, lhs, _, rhs} ->
+        lhs_type = Type.establish_type(lhs, query)
+        rhs_type = Type.establish_type(rhs, query)
 
-          if Type.string_manipulation?(lhs_type) and not Type.clear_column?(rhs_type) and
-               not rhs_type.constant?,
-             do:
-               raise(
-                 CompilationError,
-                 source_location: lhs.source_location,
-                 message: """
-                 Results of string manipulation functions can only be compared to constants.
-                 For more information see the "Text operations" subsection of the "Restrictions" section
-                 in the user guides.
-                 """
-               )
-        end
-      )
+        if Type.string_manipulation?(lhs_type) and not Type.clear_column?(rhs_type) and not rhs_type.constant?,
+          do:
+            raise(
+              CompilationError,
+              source_location: lhs.source_location,
+              message: """
+              Results of string manipulation functions can only be compared to constants.
+              For more information see the "Text operations" subsection of the "Restrictions" section
+              in the user guides.
+              """
+            )
+      end)
 
   defp verify_string_based_expressions_are_clear(query),
     do:
@@ -186,8 +181,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         end
       end)
 
-  defp function_list(function_names),
-    do: function_names |> Enum.map(&"`#{&1}`") |> Aircloak.OxfordComma.join()
+  defp function_list(function_names), do: function_names |> Enum.map(&"`#{&1}`") |> Aircloak.OxfordComma.join()
 
   defp like_kind_name(:like), do: "LIKE"
   defp like_kind_name(:ilike), do: "ILIKE"
@@ -214,8 +208,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp clear_range_lhs?(lhs, query, :implicit),
     do: not (Type.establish_type(lhs, query) |> Type.unclear_implicit_range?())
 
-  defp clear_range_lhs?(lhs, query, _),
-    do: Type.establish_type(lhs, query) |> Type.clear_column?()
+  defp clear_range_lhs?(lhs, query, _), do: Type.establish_type(lhs, query) |> Type.clear_column?()
 
   defp verify_conditions(query, predicate, action),
     do:

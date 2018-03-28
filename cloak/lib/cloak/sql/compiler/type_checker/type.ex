@@ -5,8 +5,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   alias Cloak.Sql.{Expression, Function, Query}
 
   @type function_name :: String.t()
-  @type restricted_transformation ::
-          {:restricted_function | :potentially_crashing_function, function_name}
+  @type restricted_transformation :: {:restricted_function | :potentially_crashing_function, function_name}
 
   @type t :: %__MODULE__{
           # The names of functions that have been applied to a column or an expression
@@ -59,11 +58,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   def establish_type(:*, _query), do: column(:*)
   def establish_type(%Expression{constant?: true}, _query), do: constant()
 
-  def establish_type(%Expression{function: nil} = column, query),
-    do: expand_from_subquery(column, query)
+  def establish_type(%Expression{function: nil} = column, query), do: expand_from_subquery(column, query)
 
-  def establish_type(function = %Expression{function?: true}, query),
-    do: type_for_function(function, query)
+  def establish_type(function = %Expression{function?: true}, query), do: type_for_function(function, query)
 
   @doc "Returns true if an implicit range function is used in combination with other functions"
   @spec unclear_implicit_range?(t) :: boolean
@@ -72,8 +69,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
 
     has_forbidden_transformation =
       has_transformation?(type, fn function ->
-        not Function.implicit_range?(function) and not Function.aggregator?(function) and
-          not Function.cast?(function)
+        not Function.implicit_range?(function) and not Function.aggregator?(function) and not Function.cast?(function)
       end)
 
     implicit_range_count > 1 or (implicit_range_count == 1 and has_forbidden_transformation)
@@ -87,8 +83,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   def clear_column?(type, allowed_functions \\ []) do
     transforms =
       transformation_count(type, fn function ->
-        not Function.cast?(function) and not Function.aggregator?(function) and
-          not (function in allowed_functions)
+        not Function.cast?(function) and not Function.aggregator?(function) and not (function in allowed_functions)
       end)
 
     casts = transformation_count(type, &Function.cast?/1)
@@ -98,8 +93,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
 
   @doc "Returns true if the expression with the given type contains a string manipulation function, false otherwise."
   @spec string_manipulation?(t) :: boolean
-  def string_manipulation?(type),
-    do: transformation_count(type, &Function.string_manipulation_function?/1) > 0
+  def string_manipulation?(type), do: transformation_count(type, &Function.string_manipulation_function?/1) > 0
 
   @doc """
   Returns true if the expression with the given type contains a string manipulation function together with other
@@ -108,11 +102,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   def unclear_string_manipulation?(type) do
     casts = transformation_count(type, &Function.cast?/1)
 
-    transforms =
-      transformation_count(type, &(not Function.aggregator?(&1) and not Function.cast?(&1)))
+    transforms = transformation_count(type, &(not Function.aggregator?(&1) and not Function.cast?(&1)))
 
-    string_manipulation?(type) and
-      (casts > @allowed_clear_casts or transforms > @allowed_clear_string_manipulations)
+    string_manipulation?(type) and (casts > @allowed_clear_casts or transforms > @allowed_clear_string_manipulations)
   end
 
   # -------------------------------------------------------------------
@@ -147,8 +139,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
         applied_functions: applied_functions,
         constant_involved?:
           any_touched_by_constant?(child_types) ||
-            math_operations_count(applied_functions) >=
-              @math_operations_before_considered_constant,
+            math_operations_count(applied_functions) >= @math_operations_before_considered_constant,
         history_of_columns_involved: combined_columns_involved(child_types)
       }
       |> extend_history_of_restricted_transformations(name, child_types)

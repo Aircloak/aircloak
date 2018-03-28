@@ -51,8 +51,7 @@ defmodule Air.Service.ViewTest do
   end
 
   test "cloak not available error", context do
-    assert {:error, %Ecto.Changeset{errors: errors}} =
-             View.create(context.u1, context.ds1, "name", "sql")
+    assert {:error, %Ecto.Changeset{errors: errors}} = View.create(context.u1, context.ds1, "name", "sql")
 
     assert {error, _} = Keyword.fetch!(errors, :sql)
 
@@ -218,8 +217,7 @@ defmodule Air.Service.ViewTest do
     refute_receive {:revalidated_views, _}
     assert Enum.all?([m1, m2], &(&1.data_source_id == context.ds2.id))
 
-    assert Enum.sort(Enum.map([m1, m2], & &1.user_id)) ==
-             Enum.sort([context.u1.id, context.u2.id])
+    assert Enum.sort(Enum.map([m1, m2], & &1.user_id)) == Enum.sort([context.u1.id, context.u2.id])
   end
 
   test "[Issue #1948] multiple users have views with the same name", context do
@@ -263,6 +261,5 @@ defmodule Air.Service.ViewTest do
     socket
   end
 
-  defp revalidation_success(names),
-    do: Enum.map(names, &%{name: &1, columns: ["some", "columns"], valid: true})
+  defp revalidation_success(names), do: Enum.map(names, &%{name: &1, columns: ["some", "columns"], valid: true})
 end

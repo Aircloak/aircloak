@@ -129,8 +129,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   @doc "Encodes the server message."
   @spec encode_message(server_message) :: binary
-  def encode_message({:authentication_method, :cleartext}),
-    do: server_message(:authentication, <<3::32>>)
+  def encode_message({:authentication_method, :cleartext}), do: server_message(:authentication, <<3::32>>)
 
   def encode_message(:authentication_ok), do: server_message(:authentication, <<0::32>>)
 
@@ -140,8 +139,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
   def encode_message(:bind_complete), do: server_message(:bind_complete, <<>>)
   def encode_message(:close_complete), do: server_message(:close_complete, <<>>)
 
-  def encode_message({:command_complete, tag}),
-    do: server_message(:command_complete, null_terminate(tag))
+  def encode_message({:command_complete, tag}), do: server_message(:command_complete, null_terminate(tag))
 
   def encode_message({:data_row, row, column_types, formats}),
     do:
@@ -150,11 +148,9 @@ defmodule Air.PsqlServer.Protocol.Messages do
         <<length(row)::16, encode_row(row, formats, column_types)::binary>>
       )
 
-  def encode_message(:query_cancelled),
-    do: notice_message("NOTICE", "57014", "The query was cancelled.")
+  def encode_message(:query_cancelled), do: notice_message("NOTICE", "57014", "The query was cancelled.")
 
-  def encode_message({:notice, notice_content}),
-    do: notice_message("NOTICE", "57014", notice_content)
+  def encode_message({:notice, notice_content}), do: notice_message("NOTICE", "57014", notice_content)
 
   def encode_message({:syntax_error, error}), do: error_message("ERROR", "42601", error)
   def encode_message({:fatal_error, reason}), do: error_message("FATAL", "28000", reason)
@@ -272,11 +268,9 @@ defmodule Air.PsqlServer.Protocol.Messages do
     {[value | rest_values], bind_message_data}
   end
 
-  defp param_value(<<-1::signed-integer-size(32), bind_message_data::binary>>),
-    do: {nil, bind_message_data}
+  defp param_value(<<-1::signed-integer-size(32), bind_message_data::binary>>), do: {nil, bind_message_data}
 
-  defp param_value(<<size::32, value::binary-size(size), bind_message_data::binary>>),
-    do: {value, bind_message_data}
+  defp param_value(<<size::32, value::binary-size(size), bind_message_data::binary>>), do: {value, bind_message_data}
 
   # -------------------------------------------------------------------
   # Server (i.e. "backend" as referenced in official PostgreSQL docs) messages
@@ -305,11 +299,9 @@ defmodule Air.PsqlServer.Protocol.Messages do
   defp server_message(message_name, payload \\ <<>>),
     do: <<server_message_byte(message_name)::8, message_with_size(payload)::binary>>
 
-  defp notice_message(severity, code, message),
-    do: response_with_message(:notice_response, severity, code, message)
+  defp notice_message(severity, code, message), do: response_with_message(:notice_response, severity, code, message)
 
-  defp error_message(severity, code, message),
-    do: response_with_message(:error_response, severity, code, message)
+  defp error_message(severity, code, message), do: response_with_message(:error_response, severity, code, message)
 
   defp response_with_message(type, severity, code, message),
     do:
