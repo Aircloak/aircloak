@@ -230,7 +230,7 @@ defmodule Cloak.Compliance.QueryGenerator do
     function = Enum.random(@functions)
 
     arity =
-      {:function, function, nil, nil}
+      {:function, function, [], nil}
       |> Cloak.Sql.Function.argument_types()
       |> Enum.random()
       |> length()
