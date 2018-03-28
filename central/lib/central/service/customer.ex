@@ -38,8 +38,7 @@ defmodule Central.Service.Customer do
               export.rpcs
               |> Stream.with_index()
               |> Enum.each(fn {rpc, index} ->
-                if rem(index + 1, 1000) == 0,
-                  do: Logger.info("importing rpc ##{index + 1}/#{num_rpcs}")
+                if rem(index + 1, 1000) == 0, do: Logger.info("importing rpc ##{index + 1}/#{num_rpcs}")
 
                 handler.handle(rpc, customer, export.air_name, check_duplicate_rpc?: false)
               end)
@@ -59,8 +58,7 @@ defmodule Central.Service.Customer do
   end
 
   @doc "Starts an asynchronous handler of an Air message."
-  @spec start_air_message_handler(AirMessage.rpc(), Customer.t(), String.t(), String.t()) ::
-          {:ok, pid}
+  @spec start_air_message_handler(AirMessage.rpc(), Customer.t(), String.t(), String.t()) :: {:ok, pid}
   def start_air_message_handler(message, customer, air_name, air_version) do
     Task.Supervisor.start_child(@message_handler_sup, fn ->
       {:ok, handler} = air_handler(air_version)
@@ -164,10 +162,7 @@ defmodule Central.Service.Customer do
         :ok
 
       {:error, changeset} ->
-        Logger.error(
-          "Failed to insert query for customer #{customer.name} (#{customer.id}): " <>
-            inspect(changeset)
-        )
+        Logger.error("Failed to insert query for customer #{customer.name} (#{customer.id}): " <> inspect(changeset))
 
         :error
     end
@@ -199,13 +194,11 @@ defmodule Central.Service.Customer do
 
   @doc "Determines if the RPC for the given customer, air, and with the given id is already imported."
   @spec rpc_imported?(Customer.t(), String.t(), String.t()) :: boolean
-  def rpc_imported?(customer, air_name, message_id),
-    do: Repo.get(AirRPC, rpc_id(customer, air_name, message_id)) != nil
+  def rpc_imported?(customer, air_name, message_id), do: Repo.get(AirRPC, rpc_id(customer, air_name, message_id)) != nil
 
   @doc "Stores the RPC into the database."
   @spec store_rpc!(Customer.t(), String.t(), String.t()) :: AirRPC.t()
-  def store_rpc!(customer, air_name, message_id),
-    do: Repo.insert!(%AirRPC{id: rpc_id(customer, air_name, message_id)})
+  def store_rpc!(customer, air_name, message_id), do: Repo.insert!(%AirRPC{id: rpc_id(customer, air_name, message_id)})
 
   @doc "Deletes old RPCs from the database."
   @spec delete_old_rpcs() :: :ok
@@ -213,9 +206,7 @@ defmodule Central.Service.Customer do
     delete_after = -Application.fetch_env!(:central, :delete_air_rpcs_after)
 
     {num_deleted, _} =
-      Repo.delete_all(
-        from(rpc in AirRPC, where: rpc.inserted_at < from_now(^delete_after, "millisecond"))
-      )
+      Repo.delete_all(from(rpc in AirRPC, where: rpc.inserted_at < from_now(^delete_after, "millisecond")))
 
     Logger.info("deleted #{num_deleted} Air RPC entries from the database")
     :ok
@@ -229,8 +220,7 @@ defmodule Central.Service.Customer do
   # Therefore, we're simulating infinity by using a ridiculously large value (10,000 years).
   defp almost_infinity(), do: 60 * 60 * 24 * 365 * 10_000
 
-  defp rpc_id(customer, air_name, message_id),
-    do: Enum.join([customer.id, air_name, message_id], "|")
+  defp rpc_id(customer, air_name, message_id), do: Enum.join([customer.id, air_name, message_id], "|")
 
   defp customer_token_salt() do
     Central.site_setting("customer_token_salt")

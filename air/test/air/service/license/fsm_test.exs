@@ -16,11 +16,7 @@ defmodule Air.Service.License.FSM.Test do
     setup [:load_valid_license, :load_expired_license]
 
     test "invalid license",
-      do:
-        assert(
-          FSM.initial() |> FSM.load(Key.public_key(), invalid_license()) ==
-            {:error, FSM.initial()}
-        )
+      do: assert(FSM.initial() |> FSM.load(Key.public_key(), invalid_license()) == {:error, FSM.initial()})
 
     test "valid license", %{valid_license: valid_license} do
       {:ok, state} = FSM.initial() |> FSM.load(Key.public_key(), valid_license)
@@ -69,6 +65,5 @@ defmodule Air.Service.License.FSM.Test do
 
   defp load_valid_license(_context), do: {:ok, valid_license: File.read!("priv/dev_license.lic")}
 
-  defp load_expired_license(_context),
-    do: {:ok, expired_license: File.read!("priv/expired_dev_license.lic")}
+  defp load_expired_license(_context), do: {:ok, expired_license: File.read!("priv/expired_dev_license.lic")}
 end

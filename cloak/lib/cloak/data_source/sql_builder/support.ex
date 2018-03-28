@@ -17,8 +17,7 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
     end
   end
 
-  def function_sql(name, args, sql_dialect_module),
-    do: sql_dialect_module.function_sql(name, args)
+  def function_sql(name, args, sql_dialect_module), do: sql_dialect_module.function_sql(name, args)
 
   @doc "Checks if the specified function can be executed by the SQL driver."
   @spec supports_function?(Expression.t(), Cloak.DataSource.t()) :: boolean
@@ -39,9 +38,7 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
   defp function_signature(%Expression{function: name, function_args: args}) when is_binary(name),
     do: {name, length(args)}
 
-  defp function_signature(%Expression{function: {:cast, _target}, function_args: [_]}),
-    do: {"cast", 1}
+  defp function_signature(%Expression{function: {:cast, _target}, function_args: [_]}), do: {"cast", 1}
 
-  defp function_signature(%Expression{function: {:bucket, _type}, function_args: [_, _]}),
-    do: {"bucket", 2}
+  defp function_signature(%Expression{function: {:bucket, _type}, function_args: [_, _]}), do: {"bucket", 2}
 end

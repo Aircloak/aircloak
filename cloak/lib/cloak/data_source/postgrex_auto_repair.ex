@@ -24,8 +24,7 @@ defmodule Cloak.DataSource.PostgrexAutoRepair do
     |> loop()
   end
 
-  defp initial_state(),
-    do: %{check_interval: :timer.seconds(10), allowed_consecutive_failed_checks: 6}
+  defp initial_state(), do: %{check_interval: :timer.seconds(10), allowed_consecutive_failed_checks: 6}
 
   defp analyze_postgrex_liveness(state) do
     if inconsistent_postgrex_state?() do

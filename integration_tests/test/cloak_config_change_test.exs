@@ -72,11 +72,9 @@ defmodule IntegrationTest.CloakConfigChangeTest do
     }
   end
 
-  defp write_data_source(content \\ data_source_content()),
-    do: File.write!(data_source_path(), Poison.encode!(content))
+  defp write_data_source(content \\ data_source_content()), do: File.write!(data_source_path(), Poison.encode!(content))
 
   defp data_source_path(), do: path_for_config(@data_source_name <> ".json")
 
-  defp path_for_config(name),
-    do: Path.join([Aircloak.File.config_dir_path(:cloak), "integration_tests", name])
+  defp path_for_config(name), do: Path.join([Aircloak.File.config_dir_path(:cloak), "integration_tests", name])
 end

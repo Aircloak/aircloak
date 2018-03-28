@@ -17,8 +17,7 @@ defmodule AircloakCI.BuildCase do
 
       wait_for_jobs_to_finish(pr)
 
-      assert_receive {:posted_status, unquote(pattern) = %{sha: ^sha, context: ^context}},
-                     :timer.seconds(2)
+      assert_receive {:posted_status, unquote(pattern) = %{sha: ^sha, context: ^context}}, :timer.seconds(2)
     end
   end
 
@@ -29,8 +28,7 @@ defmodule AircloakCI.BuildCase do
       wait_for_jobs_to_finish(pr)
       pr_number = unquote(pr).number
 
-      assert_receive {:commented_on_issue, unquote(pattern) = %{issue_number: ^pr_number}},
-                     :timer.seconds(2)
+      assert_receive {:commented_on_issue, unquote(pattern) = %{issue_number: ^pr_number}}, :timer.seconds(2)
     end
   end
 

@@ -75,12 +75,9 @@ defmodule Air.Service.Monitoring do
 
   defp query_stats(queries, now) do
     %{
-      last_5_minutes:
-        queries |> where([q], q.inserted_at > ^Timex.shift(now, minutes: -5)) |> count(),
-      last_15_minutes:
-        queries |> where([q], q.inserted_at > ^Timex.shift(now, minutes: -15)) |> count(),
-      last_30_minutes:
-        queries |> where([q], q.inserted_at > ^Timex.shift(now, minutes: -30)) |> count(),
+      last_5_minutes: queries |> where([q], q.inserted_at > ^Timex.shift(now, minutes: -5)) |> count(),
+      last_15_minutes: queries |> where([q], q.inserted_at > ^Timex.shift(now, minutes: -15)) |> count(),
+      last_30_minutes: queries |> where([q], q.inserted_at > ^Timex.shift(now, minutes: -30)) |> count(),
       last_1_hour: queries |> where([q], q.inserted_at > ^Timex.shift(now, hours: -1)) |> count(),
       last_1_day: queries |> where([q], q.inserted_at > ^Timex.shift(now, days: -1)) |> count()
     }

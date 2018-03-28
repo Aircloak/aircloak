@@ -21,10 +21,10 @@ defmodule Cloak.Query.DatetimeTest do
   test "select date parts" do
     :ok = insert_rows(_user_ids = 1..10, "datetimes", ["datetime"], [~N[2015-01-02 00:00:00]])
 
-    assert_query(
-      "select year(datetime), month(datetime), day(datetime) from datetimes group by datetime",
-      %{columns: ["year", "month", "day"], rows: [%{occurrences: 1, row: [2015, 1, 2]}]}
-    )
+    assert_query("select year(datetime), month(datetime), day(datetime) from datetimes group by datetime", %{
+      columns: ["year", "month", "day"],
+      rows: [%{occurrences: 1, row: [2015, 1, 2]}]
+    })
   end
 
   test "select date parts of the LCF bucket" do
@@ -55,16 +55,13 @@ defmodule Cloak.Query.DatetimeTest do
     :ok = insert_rows(_user_ids = 11..20, "datetimes", ["datetime"], [~N[2015-01-03 00:00:00]])
     :ok = insert_rows(_user_ids = 21..30, "datetimes", ["datetime"], [~N[2016-01-03 00:00:00]])
 
-    assert_query(
-      "select count(*), year(datetime) from datetimes group by year(datetime) order by count(*)",
-      %{
-        columns: ["count", "year"],
-        rows: [
-          %{occurrences: 1, row: [10, 2016]},
-          %{occurrences: 1, row: [20, 2015]}
-        ]
-      }
-    )
+    assert_query("select count(*), year(datetime) from datetimes group by year(datetime) order by count(*)", %{
+      columns: ["count", "year"],
+      rows: [
+        %{occurrences: 1, row: [10, 2016]},
+        %{occurrences: 1, row: [20, 2015]}
+      ]
+    })
   end
 
   test "grouping by an aliased date part" do
@@ -72,26 +69,24 @@ defmodule Cloak.Query.DatetimeTest do
     :ok = insert_rows(_user_ids = 11..20, "datetimes", ["datetime"], [~N[2015-01-03 00:00:00]])
     :ok = insert_rows(_user_ids = 21..30, "datetimes", ["datetime"], [~N[2016-01-03 00:00:00]])
 
-    assert_query(
-      "select count(*), year(datetime) as the_year from datetimes group by the_year order by count(*)",
-      %{
-        columns: ["count", "the_year"],
-        rows: [
-          %{occurrences: 1, row: [10, 2016]},
-          %{occurrences: 1, row: [20, 2015]}
-        ]
-      }
-    )
+    assert_query("select count(*), year(datetime) as the_year from datetimes group by the_year order by count(*)", %{
+      columns: ["count", "the_year"],
+      rows: [
+        %{occurrences: 1, row: [10, 2016]},
+        %{occurrences: 1, row: [20, 2015]}
+      ]
+    })
   end
 
   test "comparing a timestamp" do
     :ok = insert_rows(_user_ids = 0..9, "datetimes", ["datetime"], [~N[2015-01-01 00:00:00]])
     :ok = insert_rows(_user_ids = 10..19, "datetimes", ["datetime"], [~N[2017-01-01 00:00:00]])
 
-    assert_query(
-      "select count(*) from datetimes where datetime >= '2016-06-01' and datetime < '2017-06-01'",
-      %{query_id: "1", columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
-    )
+    assert_query("select count(*) from datetimes where datetime >= '2016-06-01' and datetime < '2017-06-01'", %{
+      query_id: "1",
+      columns: ["count"],
+      rows: [%{row: [10], occurrences: 1}]
+    })
   end
 
   test "comparing a timestamp with <>" do
@@ -109,20 +104,22 @@ defmodule Cloak.Query.DatetimeTest do
     :ok = insert_rows(_user_ids = 0..9, "datetimes", ["time_only"], [~T[01:00:00]])
     :ok = insert_rows(_user_ids = 10..19, "datetimes", ["time_only"], [~T[10:00:00]])
 
-    assert_query(
-      "select count(*) from datetimes where time_only > '09:00:00' and time_only < '11:00:00'",
-      %{query_id: "1", columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
-    )
+    assert_query("select count(*) from datetimes where time_only > '09:00:00' and time_only < '11:00:00'", %{
+      query_id: "1",
+      columns: ["count"],
+      rows: [%{row: [10], occurrences: 1}]
+    })
   end
 
   test "comparing a date" do
     :ok = insert_rows(_user_ids = 0..9, "datetimes", ["date_only"], [~D[2015-01-01]])
     :ok = insert_rows(_user_ids = 10..19, "datetimes", ["date_only"], [~D[2017-01-01]])
 
-    assert_query(
-      "select count(*) from datetimes where date_only > '2016-01-01' and date_only < '2018-01-01'",
-      %{query_id: "1", columns: ["count"], rows: [%{row: [10], occurrences: 1}]}
-    )
+    assert_query("select count(*) from datetimes where date_only > '2016-01-01' and date_only < '2018-01-01'", %{
+      query_id: "1",
+      columns: ["count"],
+      rows: [%{row: [10], occurrences: 1}]
+    })
   end
 
   test "selecting time" do
@@ -185,8 +182,7 @@ defmodule Cloak.Query.DatetimeTest do
 
   describe "aggregators over date/time" do
     setup do
-      :ok =
-        insert_rows(_user_ids = 1..10, "datetimes", ["datetime"], [~N[2015-01-02 10:00:05.000000]])
+      :ok = insert_rows(_user_ids = 1..10, "datetimes", ["datetime"], [~N[2015-01-02 10:00:05.000000]])
 
       :ok =
         insert_rows(_user_ids = 11..30, "datetimes", ["datetime"], [
@@ -206,17 +202,15 @@ defmodule Cloak.Query.DatetimeTest do
     end
 
     test "min/max over date" do
-      assert_query(
-        "select min(cast(datetime as date)), max(cast(datetime as date)) from datetimes",
-        %{rows: [%{row: ["2015-01-02", "2018-03-04"]}]}
-      )
+      assert_query("select min(cast(datetime as date)), max(cast(datetime as date)) from datetimes", %{
+        rows: [%{row: ["2015-01-02", "2018-03-04"]}]
+      })
     end
 
     test "min/max over time" do
-      assert_query(
-        "select min(cast(datetime as time)), max(cast(datetime as time)) from datetimes",
-        %{rows: [%{row: ["10:00:05.000000", "15:00:05.000000"]}]}
-      )
+      assert_query("select min(cast(datetime as time)), max(cast(datetime as time)) from datetimes", %{
+        rows: [%{row: ["10:00:05.000000", "15:00:05.000000"]}]
+      })
     end
 
     test "median over datetime",

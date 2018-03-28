@@ -29,8 +29,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   cloak to respond, and returns the result obtained by the cloak.
   """
   @spec describe_query(pid | nil, map) :: {:ok, map} | {:error, any}
-  def describe_query(channel_pid, query_data),
-    do: call(channel_pid, "describe_query", query_data, :timer.seconds(5))
+  def describe_query(channel_pid, query_data), do: call(channel_pid, "describe_query", query_data, :timer.seconds(5))
 
   @doc "Validates the view on the cloak."
   @spec validate_views(pid | nil, map) :: map
@@ -53,8 +52,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
 
   @doc "Returns the list of queries running on this cloak."
   @spec running_queries(pid | nil) :: {:ok, [String.t()]} | {:error, any}
-  def running_queries(channel_pid),
-    do: call(channel_pid, "running_queries", nil, :timer.minutes(4))
+  def running_queries(channel_pid), do: call(channel_pid, "running_queries", nil, :timer.minutes(4))
 
   # -------------------------------------------------------------------
   # Phoenix.Channel callback functions
@@ -207,11 +205,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   end
 
   defp handle_cloak_call(other, payload, request_id, socket) do
-    Logger.warn(
-      "Received unknown cloak call #{inspect(other)} with payload #{
-        inspect(payload, pretty: true)
-      }"
-    )
+    Logger.warn("Received unknown cloak call #{inspect(other)} with payload #{inspect(payload, pretty: true)}")
 
     respond_to_cloak(socket, request_id, :ok)
     {:noreply, socket}
@@ -267,7 +261,6 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
     # do nothing in tests, because it leads to unexpected messages in various tests where cloak is mocked
     defp revalidate_views(_data_sources), do: :ok
   else
-    defp revalidate_views(data_sources),
-      do: Enum.each(data_sources, &Air.Service.View.revalidate_all_views/1)
+    defp revalidate_views(data_sources), do: Enum.each(data_sources, &Air.Service.View.revalidate_all_views/1)
   end
 end

@@ -71,8 +71,7 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
     end
   end
 
-  defp state_change_message(query),
-    do: %{query_id: query.id, event: query.query_state, query: format_query(query)}
+  defp state_change_message(query), do: %{query_id: query.id, event: query.query_state, query: format_query(query)}
 
   def format_query(query), do: hd(AirWeb.Admin.ActivityMonitorView.format_queries([query]))
 end

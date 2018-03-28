@@ -66,8 +66,7 @@ defmodule Aircloak do
   The `:threshold` option can be used to set the threshold in milliseconds. The default value is `10`.
   """
   @spec report_long(any, (() -> result), threshold: non_neg_integer) :: result when result: var
-  def report_long(id, fun, opts \\ []),
-    do: measure(id, fun, level: :warn, threshold: Keyword.get(opts, :threshold, 10))
+  def report_long(id, fun, opts \\ []), do: measure(id, fun, level: :warn, threshold: Keyword.get(opts, :threshold, 10))
 
   @doc "Waits for the service on the given host/port to become available."
   @spec await_service!(String.t(), :inet.port_number()) :: :ok

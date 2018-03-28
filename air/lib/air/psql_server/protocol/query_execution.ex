@@ -65,13 +65,10 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
   def handle_client_message(protocol, :describe, describe_data) do
     describe_storage = describe_storage(describe_data.type)
 
-    prepared_statement =
-      protocol |> Map.fetch!(describe_storage) |> Map.fetch!(describe_data.name)
+    prepared_statement = protocol |> Map.fetch!(describe_storage) |> Map.fetch!(describe_data.name)
 
     %{protocol | describing_statement: {describe_data.type, describe_data.name}}
-    |> Protocol.add_action(
-      {:describe_statement, prepared_statement.query, params_with_types(prepared_statement)}
-    )
+    |> Protocol.add_action({:describe_statement, prepared_statement.query, params_with_types(prepared_statement)})
     |> Protocol.next_state(:ready)
   end
 
@@ -80,8 +77,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
 
     %{protocol | executing_portal: execute_data.portal}
     |> Protocol.add_action(
-      {:run_query, prepared_statement.query, params_with_types(prepared_statement),
-       execute_data.max_rows}
+      {:run_query, prepared_statement.query, params_with_types(prepared_statement), execute_data.max_rows}
     )
     |> Protocol.next_state(:ready)
   end
@@ -92,8 +88,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
       |> Protocol.send_to_client(:ready_for_query)
       |> Protocol.await_client_message()
 
-  def handle_client_message(protocol, :flush, _),
-    do: Protocol.await_client_message(protocol, state: :ready)
+  def handle_client_message(protocol, :flush, _), do: Protocol.await_client_message(protocol, state: :ready)
 
   def handle_client_message(protocol, :close, close_data),
     do:
@@ -154,11 +149,9 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
   defp send_result(protocol, {:error, :query_died}),
     do: Protocol.send_to_client(protocol, {:fatal_error, "Query unexpectedly quit."})
 
-  defp send_result(protocol, {:error, :query_cancelled}),
-    do: Protocol.send_to_client(protocol, :query_cancelled)
+  defp send_result(protocol, {:error, :query_cancelled}), do: Protocol.send_to_client(protocol, :query_cancelled)
 
-  defp send_result(protocol, {:error, error}),
-    do: Protocol.send_to_client(protocol, {:syntax_error, error})
+  defp send_result(protocol, {:error, error}), do: Protocol.send_to_client(protocol, {:syntax_error, error})
 
   defp send_result(%{executing_portal: nil} = protocol, result) do
     with {:ok, columns} <- Keyword.fetch(result, :columns),
@@ -213,8 +206,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
       |> Atom.to_string()
       |> String.upcase()
 
-  defp send_ready_for_query(protocol, {:error, _}),
-    do: Protocol.send_to_client(protocol, :ready_for_query)
+  defp send_ready_for_query(protocol, {:error, _}), do: Protocol.send_to_client(protocol, :ready_for_query)
 
   defp send_ready_for_query(protocol, result) do
     if Keyword.get(result, :intermediate, false) do
@@ -224,8 +216,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     end
   end
 
-  defp send_row_description(protocol, [], _formats),
-    do: Protocol.send_to_client(protocol, :no_data)
+  defp send_row_description(protocol, [], _formats), do: Protocol.send_to_client(protocol, :no_data)
 
   defp send_row_description(protocol, columns, formats),
     do: Protocol.send_to_client(protocol, {:row_description, columns, formats})

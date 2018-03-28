@@ -31,11 +31,9 @@ defmodule Cloak.DataSource.MySQL do
 
     receive do
       :connected ->
-        {:ok, %Mariaex.Result{}} =
-          Mariaex.query(connection, "SET sql_mode = 'ANSI,NO_BACKSLASH_ESCAPES'", [])
+        {:ok, %Mariaex.Result{}} = Mariaex.query(connection, "SET sql_mode = 'ANSI,NO_BACKSLASH_ESCAPES'", [])
 
-        {:ok, %Mariaex.Result{}} =
-          Mariaex.query(connection, "SET div_precision_increment = 30", [])
+        {:ok, %Mariaex.Result{}} = Mariaex.query(connection, "SET div_precision_increment = 30", [])
 
         connection
     after
@@ -147,8 +145,7 @@ defmodule Cloak.DataSource.MySQL do
 
   defp generic_field_mapper({year, month, day}), do: Date.new(year, month, day) |> error_to_nil()
 
-  defp generic_field_mapper({hour, min, sec, msec}),
-    do: Time.new(hour, min, sec, {msec * 1000, 6}) |> error_to_nil()
+  defp generic_field_mapper({hour, min, sec, msec}), do: Time.new(hour, min, sec, {msec * 1000, 6}) |> error_to_nil()
 
   defp generic_field_mapper(value), do: value
 
@@ -163,8 +160,7 @@ defmodule Cloak.DataSource.MySQL do
   # -------------------------------------------------------------------
 
   if Mix.env() == :test do
-    defp parameter_mapper(%NaiveDateTime{} = dt),
-      do: {{dt.year, dt.month, dt.day}, {dt.hour, dt.minute, dt.second, 0}}
+    defp parameter_mapper(%NaiveDateTime{} = dt), do: {{dt.year, dt.month, dt.day}, {dt.hour, dt.minute, dt.second, 0}}
 
     defp parameter_mapper(%Date{} = d), do: {d.year, d.month, d.day}
     defp parameter_mapper(%Time{} = t), do: {t.hour, t.minute, t.second, 0}

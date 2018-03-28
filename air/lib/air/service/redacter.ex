@@ -112,11 +112,9 @@ defmodule Air.Service.Redacter do
       |> String.replace(~r/line \d+/i, "line X", global: true)
       |> String.replace(~r/column \d+/i, "column Y", global: true)
 
-  defp filter_sensitive_fields(error),
-    do: Regex.replace(~r/`.*?`/, error, &redaction_checker/1, global: true)
+  defp filter_sensitive_fields(error), do: Regex.replace(~r/`.*?`/, error, &redaction_checker/1, global: true)
 
-  defp replace_query_excerpt(error),
-    do: Regex.replace(~r/\t.*/, error, &redaction_checker/1, global: true)
+  defp replace_query_excerpt(error), do: Regex.replace(~r/\t.*/, error, &redaction_checker/1, global: true)
 
   defp redaction_checker(string) do
     if String.downcase(string) in @safe_terms do

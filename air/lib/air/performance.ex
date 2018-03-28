@@ -63,8 +63,7 @@ defmodule Air.Performance do
   end
 
   defp num_users(conns) do
-    %Postgrex.Result{rows: [[count]]} =
-      Postgrex.query!(conns.db, "select count(*) from users", [])
+    %Postgrex.Result{rows: [[count]]} = Postgrex.query!(conns.db, "select count(*) from users", [])
 
     count
   end
@@ -81,8 +80,7 @@ defmodule Air.Performance do
 
   defp display_statement(%{cloak: statement}), do: normalize_whitespaces(statement)
 
-  defp display_statement(statement) when is_binary(statement),
-    do: normalize_whitespaces(statement)
+  defp display_statement(statement) when is_binary(statement), do: normalize_whitespaces(statement)
 
   defp normalize_whitespaces(statement) do
     statement
@@ -96,8 +94,7 @@ defmodule Air.Performance do
   end
 
   defp measure_statement(conn, statement) do
-    {time, _result} =
-      :timer.tc(fn -> Postgrex.query!(conn, statement, [], timeout: :timer.hours(1)) end)
+    {time, _result} = :timer.tc(fn -> Postgrex.query!(conn, statement, [], timeout: :timer.hours(1)) end)
 
     :erlang.convert_time_unit(time, :microsecond, :millisecond)
   end
@@ -128,9 +125,7 @@ defmodule Air.Performance do
       |> Poison.decode!()
       |> Map.fetch!("parameters")
       |> Enum.map(fn {name, value} -> {String.to_atom(name), value} end)
-      |> Enum.concat(
-        after_connect: &Postgrex.query!(&1, "set search_path to projections, public", [])
-      )
+      |> Enum.concat(after_connect: &Postgrex.query!(&1, "set search_path to projections, public", []))
 
     {:ok, conn} = Postgrex.start_link(parameters)
     conn

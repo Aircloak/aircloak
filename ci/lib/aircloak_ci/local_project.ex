@@ -42,8 +42,7 @@ defmodule AircloakCI.LocalProject do
 
   @doc "Returns the full path to the log file for the given target and job."
   @spec log_file(String.t(), String.t(), String.t()) :: String.t()
-  def log_file("branch", name, job_name),
-    do: Path.join([logs_folder(), branch_folder_name(name), "#{job_name}.log"])
+  def log_file("branch", name, job_name), do: Path.join([logs_folder(), branch_folder_name(name), "#{job_name}.log"])
 
   def log_file("pr", number, job_name),
     do:
@@ -95,8 +94,7 @@ defmodule AircloakCI.LocalProject do
   def for_local(path) do
     path = Path.expand(path)
 
-    head_sha =
-      String.trim(CmdRunner.run_with_output!("git rev-parse HEAD", timeout: :timer.minutes(1)))
+    head_sha = String.trim(CmdRunner.run_with_output!("git rev-parse HEAD", timeout: :timer.minutes(1)))
 
     create_project(%__MODULE__{
       type: :local,
@@ -145,14 +143,9 @@ defmodule AircloakCI.LocalProject do
         :ok
 
       true ->
-        log_start_stop(
-          project,
-          "updating local project git repository for #{name(project)}",
-          fn ->
-            with :ok <- do_update_code(project),
-                 do: update_state(project, &%{&1 | initialized?: true})
-          end
-        )
+        log_start_stop(project, "updating local project git repository for #{name(project)}", fn ->
+          with :ok <- do_update_code(project), do: update_state(project, &%{&1 | initialized?: true})
+        end)
     end
   end
 
@@ -161,18 +154,14 @@ defmodule AircloakCI.LocalProject do
   def initialize_from(project, base_project) do
     false = state(project).initialized?
 
-    log_start_stop(
-      project,
-      "copying project for #{name(project)} from #{name(base_project)}",
-      fn ->
-        File.cp_r(git_folder(base_project), git_folder(project))
-        cmd(project, "main", "git reset HEAD --hard")
-        copy_folder(base_project, project, "tmp")
-        copy_folder(base_project, project, Path.join(~w(cloak priv odbc drivers)))
-        copy_folder(base_project, project, Path.join(~w(ci deps)))
-        copy_folder(base_project, project, Path.join(~w(ci _build)))
-      end
-    )
+    log_start_stop(project, "copying project for #{name(project)} from #{name(base_project)}", fn ->
+      File.cp_r(git_folder(base_project), git_folder(project))
+      cmd(project, "main", "git reset HEAD --hard")
+      copy_folder(base_project, project, "tmp")
+      copy_folder(base_project, project, Path.join(~w(cloak priv odbc drivers)))
+      copy_folder(base_project, project, Path.join(~w(ci deps)))
+      copy_folder(base_project, project, Path.join(~w(ci _build)))
+    end)
 
     :ok
   end
@@ -226,8 +215,7 @@ defmodule AircloakCI.LocalProject do
 
   @doc "Determines if CI can be invoked in this project."
   @spec ci_possible?(t) :: boolean
-  def ci_possible?(project),
-    do: update_code(project) == :ok and not Enum.empty?(components(project))
+  def ci_possible?(project), do: update_code(project) == :ok and not Enum.empty?(components(project))
 
   @doc "Returns true if the project source has been initialized."
   @spec initialized?(t) :: boolean
@@ -235,8 +223,7 @@ defmodule AircloakCI.LocalProject do
 
   @doc "Returns true if the job for this project has finished."
   @spec finished?(t, String.t()) :: boolean
-  def finished?(project, job_name),
-    do: project |> job_outcomes() |> Enum.any?(&match?({^job_name, _}, &1))
+  def finished?(project, job_name), do: project |> job_outcomes() |> Enum.any?(&match?({^job_name, _}, &1))
 
   @doc "Marks the project for the force build."
   @spec mark_forced(t, String.t()) :: :ok
@@ -401,8 +388,7 @@ defmodule AircloakCI.LocalProject do
 
   defp branch_folder_name(branch_name), do: String.replace(branch_name, "/", "-")
 
-  defp state_file(%{type: :local} = project),
-    do: Path.join([project.build_folder, "tmp", "ci", "state"])
+  defp state_file(%{type: :local} = project), do: Path.join([project.build_folder, "tmp", "ci", "state"])
 
   defp state_file(project), do: Path.join(project.build_folder, "state")
 
@@ -431,8 +417,7 @@ defmodule AircloakCI.LocalProject do
 
   defp do_update_code(project) do
     with :ok <- clone_repo(project),
-         :ok <-
-           cmd(project, "main", "git #{project.update_git_command}", timeout: :timer.minutes(5)),
+         :ok <- cmd(project, "main", "git #{project.update_git_command}", timeout: :timer.minutes(5)),
          do: cmd(project, "main", "git checkout #{project.checkout}")
   end
 
@@ -443,9 +428,7 @@ defmodule AircloakCI.LocalProject do
       log(project, "main", "cloning #{project.repo.owner}/#{project.repo.name}")
 
       CmdRunner.run(
-        ~s(git clone git@github.com:#{project.repo.owner}/#{project.repo.name} #{
-          src_folder(project)
-        }),
+        ~s(git clone git@github.com:#{project.repo.owner}/#{project.repo.name} #{src_folder(project)}),
         timeout: :timer.minutes(5),
         logger: CmdRunner.file_logger(log_file(project, "main"))
       )
@@ -519,16 +502,12 @@ defmodule AircloakCI.LocalProject do
   defp filter_components(components) do
     components
     |> Enum.reject(&(&1 in ["tmp"]))
-    |> Enum.filter(
-      &include_component?(&1, Application.get_env(:aircloak_ci, :components_filter, :all))
-    )
+    |> Enum.filter(&include_component?(&1, Application.get_env(:aircloak_ci, :components_filter, :all)))
   end
 
   defp include_component?(_component, :all), do: true
 
-  defp include_component?(component, {:except, blacklisted}),
-    do: not Enum.member?(blacklisted, component)
+  defp include_component?(component, {:except, blacklisted}), do: not Enum.member?(blacklisted, component)
 
-  defp include_component?(component, {:only, whitelisted}),
-    do: Enum.member?(whitelisted, component)
+  defp include_component?(component, {:only, whitelisted}), do: Enum.member?(whitelisted, component)
 end

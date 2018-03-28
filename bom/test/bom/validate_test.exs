@@ -12,17 +12,13 @@ defmodule BOM.Validate.Test do
 
   test "valid package", do: assert(BOM.Validate.run(@valid_package).error == nil)
 
-  test "package with no name",
-    do: assert(BOM.Validate.run(%{@valid_package | name: nil}).error == "Name empty")
+  test "package with no name", do: assert(BOM.Validate.run(%{@valid_package | name: nil}).error == "Name empty")
 
-  test "package with empty name",
-    do: assert(BOM.Validate.run(%{@valid_package | name: ""}).error == "Name empty")
+  test "package with empty name", do: assert(BOM.Validate.run(%{@valid_package | name: ""}).error == "Name empty")
 
-  test "package with no license",
-    do: assert(BOM.Validate.run(%{@valid_package | license: nil}).error == "No license")
+  test "package with no license", do: assert(BOM.Validate.run(%{@valid_package | license: nil}).error == "No license")
 
-  test "package with no realm",
-    do: assert(BOM.Validate.run(%{@valid_package | realm: nil}).error == "Realm empty")
+  test "package with no realm", do: assert(BOM.Validate.run(%{@valid_package | realm: nil}).error == "Realm empty")
 
   test "package with no version",
     do: assert(BOM.Validate.run(%{@valid_package | version: nil}).error == "Version empty")

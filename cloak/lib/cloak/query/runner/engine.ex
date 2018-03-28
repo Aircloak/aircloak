@@ -32,8 +32,7 @@ defmodule Cloak.Query.Runner.Engine do
       ) do
     parsed_query = parse!(statement, state_updater)
 
-    {compiled_query, features} =
-      compile!(data_source, parsed_query, parameters, views, state_updater)
+    {compiled_query, features} = compile!(data_source, parsed_query, parameters, views, state_updater)
 
     feature_updater.(features)
     query = prepare_for_execution(compiled_query)
@@ -146,6 +145,5 @@ defmodule Cloak.Query.Runner.Engine do
     |> Query.Aggregator.group(query)
   end
 
-  defp concurrency(query),
-    do: query.data_source.concurrency || Application.get_env(:cloak, :concurrency, 0)
+  defp concurrency(query), do: query.data_source.concurrency || Application.get_env(:cloak, :concurrency, 0)
 end

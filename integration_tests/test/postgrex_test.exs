@@ -65,9 +65,7 @@ defmodule IntegrationTest.PostgrexTest do
   end
 
   test "anonymized integer value returns nil", context do
-    assert Enum.uniq(
-             Postgrex.query!(context.conn, "select cast(user_id as integer) from users", []).rows
-           ) == [[nil]]
+    assert Enum.uniq(Postgrex.query!(context.conn, "select cast(user_id as integer) from users", []).rows) == [[nil]]
   end
 
   test "multiple queries on the same connection", context do

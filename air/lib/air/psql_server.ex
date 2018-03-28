@@ -43,8 +43,7 @@ defmodule Air.PsqlServer do
   def psql_type(type_string), do: psql_type_impl(type_string)
 
   @doc "Decodes the cloak query response."
-  @spec decode_cloak_query_result({:ok, map} | DataSource.data_source_operation_error()) ::
-          Protocol.query_result()
+  @spec decode_cloak_query_result({:ok, map} | DataSource.data_source_operation_error()) :: Protocol.query_result()
   def decode_cloak_query_result(query_response), do: do_decode_cloak_query_result(query_response)
 
   @doc "Returns the postgresql server configuration."
@@ -167,22 +166,19 @@ defmodule Air.PsqlServer do
         data_source_id = conn.assigns.data_source_id
         converted_params = convert_params(params)
 
-        run_async(
-          conn,
-          fn -> DataSource.describe_query(data_source_id, user, query, converted_params) end,
-          fn conn, describe_result ->
-            result =
-              case decode_cloak_query_result(describe_result) do
-                {:error, _} = error ->
-                  error
+        run_async(conn, fn -> DataSource.describe_query(data_source_id, user, query, converted_params) end, fn conn,
+                                                                                                               describe_result ->
+          result =
+            case decode_cloak_query_result(describe_result) do
+              {:error, _} = error ->
+                error
 
-                parsed_response ->
-                  Keyword.take(parsed_response, [:columns, :param_types, :info_messages])
-              end
+              parsed_response ->
+                Keyword.take(parsed_response, [:columns, :param_types, :info_messages])
+            end
 
-            RanchServer.describe_result(conn, result)
-          end
-        )
+          RanchServer.describe_result(conn, result)
+        end)
     end
   end
 
@@ -210,9 +206,7 @@ defmodule Air.PsqlServer do
       Map.fetch!(configuration(), key) == nil ->
         {:error, "missing `#{key}` setting under the `psql_server` key in the `config.json` file"}
 
-      not File.exists?(
-        Path.join([Application.app_dir(:air, "priv"), "config", Map.fetch!(configuration(), key)])
-      ) ->
+      not File.exists?(Path.join([Application.app_dir(:air, "priv"), "config", Map.fetch!(configuration(), key)])) ->
         {:error, "the file `#{Map.fetch!(configuration(), key)}` is missing"}
 
       true ->
@@ -223,8 +217,7 @@ defmodule Air.PsqlServer do
   defp run_async(conn, job_fun, on_finished) do
     task = Task.async(job_fun)
 
-    async_jobs =
-      Map.put(conn.assigns.async_jobs, task.ref, %{task: task, on_finished: on_finished})
+    async_jobs = Map.put(conn.assigns.async_jobs, task.ref, %{task: task, on_finished: on_finished})
 
     RanchServer.assign(conn, :async_jobs, async_jobs)
   end
@@ -240,10 +233,8 @@ defmodule Air.PsqlServer do
       :ok ->
         [
           ssl: [
-            certfile:
-              Path.join([Application.app_dir(:air, "priv"), "config", configuration().certfile]),
-            keyfile:
-              Path.join([Application.app_dir(:air, "priv"), "config", configuration().keyfile])
+            certfile: Path.join([Application.app_dir(:air, "priv"), "config", configuration().certfile]),
+            keyfile: Path.join([Application.app_dir(:air, "priv"), "config", configuration().keyfile])
           ]
         ]
 
@@ -255,8 +246,7 @@ defmodule Air.PsqlServer do
 
   defp run_special_query(conn, query), do: handle_special_query(& &1.run_query(conn, query))
 
-  defp describe_special_query(conn, query, params),
-    do: handle_special_query(& &1.describe_query(conn, query, params))
+  defp describe_special_query(conn, query, params), do: handle_special_query(& &1.describe_query(conn, query, params))
 
   defp handle_special_query(handler_fun) do
     [SpecialQueries.Common, SpecialQueries.Tableau]
@@ -271,11 +261,9 @@ defmodule Air.PsqlServer do
 
   defp do_decode_cloak_query_result({:error, :cancelled}), do: {:error, :query_cancelled}
 
-  defp do_decode_cloak_query_result({:error, :query_died}),
-    do: {:error, {:fatal, "The query terminated unexpectedly."}}
+  defp do_decode_cloak_query_result({:error, :query_died}), do: {:error, {:fatal, "The query terminated unexpectedly."}}
 
-  defp do_decode_cloak_query_result({:error, :not_connected}),
-    do: {:error, "Data source is not available!"}
+  defp do_decode_cloak_query_result({:error, :not_connected}), do: {:error, "Data source is not available!"}
 
   defp do_decode_cloak_query_result({:error, :license_invalid}),
     do: {:error, "The license for this Aircloak instance has expired."}

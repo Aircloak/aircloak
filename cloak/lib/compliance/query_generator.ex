@@ -29,8 +29,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   def ast_to_sql({:table, name, []}), do: name
   def ast_to_sql({:subquery, nil, [definition]}), do: ["( ", ast_to_sql(definition), " )"]
 
-  def ast_to_sql({:join, nil, [lhs, rhs, on]}),
-    do: [ast_to_sql(lhs), " JOIN ", ast_to_sql(rhs), ast_to_sql(on)]
+  def ast_to_sql({:join, nil, [lhs, rhs, on]}), do: [ast_to_sql(lhs), " JOIN ", ast_to_sql(rhs), ast_to_sql(on)]
 
   def ast_to_sql({:on, nil, [condition]}), do: [" ON ", ast_to_sql(condition)]
   def ast_to_sql({:as, name, [object]}), do: [ast_to_sql(object), " AS ", name]
@@ -47,8 +46,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   def ast_to_sql({:between, nil, [lhs, low, high]}),
     do: [ast_to_sql(lhs), " BETWEEN ", ast_to_sql(low), " AND ", ast_to_sql(high)]
 
-  def ast_to_sql({:and, nil, [lhs, rhs]}),
-    do: ["(", ast_to_sql(lhs), " AND ", ast_to_sql(rhs), ")"]
+  def ast_to_sql({:and, nil, [lhs, rhs]}), do: ["(", ast_to_sql(lhs), " AND ", ast_to_sql(rhs), ")"]
 
   def ast_to_sql({:or, nil, [lhs, rhs]}), do: ["(", ast_to_sql(lhs), " OR ", ast_to_sql(rhs), ")"]
   def ast_to_sql({:function, name, args}), do: [name, "(", Enum.map(args, &ast_to_sql/1), ")"]
@@ -60,8 +58,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   def ast_to_sql({:real, value, []}), do: to_string(value)
   def ast_to_sql({:like_pattern, value, []}), do: [?', value, ?']
 
-  def ast_to_sql({:in_set, nil, items}),
-    do: [?(, items |> Enum.map(&ast_to_sql/1) |> Enum.intersperse(", "), ?)]
+  def ast_to_sql({:in_set, nil, items}), do: [?(, items |> Enum.map(&ast_to_sql/1) |> Enum.intersperse(", "), ?)]
 
   def ast_to_sql({:star, _, _}), do: "*"
   def ast_to_sql({:empty, _, _}), do: ""
@@ -222,8 +219,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp generate_between(tables) do
     {column, table} = random_column(tables)
 
-    {:between, nil,
-     [column_expression(column, table), generate_value(column.type), generate_value(column.type)]}
+    {:between, nil, [column_expression(column, table), generate_value(column.type), generate_value(column.type)]}
   end
 
   defp generate_value(:boolean), do: {:boolean, [true, false] |> Enum.random(), []}
@@ -243,8 +239,7 @@ defmodule Cloak.Compliance.QueryGenerator do
          second: :rand.uniform(60) - 1
        }, []}
 
-  defp generate_value(:like_pattern),
-    do: {:like_pattern, random_text([?% | Enum.to_list(?A..?z)]), []}
+  defp generate_value(:like_pattern), do: {:like_pattern, random_text([?% | Enum.to_list(?A..?z)]), []}
 
   defp generate_select(tables) do
     {select_list, info} = tables |> generate_select_list() |> Enum.unzip()

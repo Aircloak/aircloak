@@ -52,9 +52,7 @@ defmodule Cloak.DataSource.ODBC do
   def select(connection, sql_query, result_processor) do
     statement = sql_query |> SqlBuilder.build() |> to_charlist()
 
-    field_mappers =
-      for column <- sql_query.db_columns,
-          do: type_to_field_mapper(column.type, sql_query.data_source)
+    field_mappers = for column <- sql_query.db_columns, do: type_to_field_mapper(column.type, sql_query.data_source)
 
     case :odbc.select_count(connection, statement, Driver.timeout()) do
       {:ok, _count} ->
@@ -97,10 +95,7 @@ defmodule Cloak.DataSource.ODBC do
     parameters
     |> Enum.map(fn {key, value} ->
       if value |> to_string() |> String.contains?([";", "{"]),
-        do:
-          DataSource.raise_error(
-            "The characters ';' and '{' are not allowed inside ODBC driver parameters!"
-          )
+        do: DataSource.raise_error("The characters ';' and '{' are not allowed inside ODBC driver parameters!")
 
       "#{Atom.to_string(key)}=#{value}"
     end)
@@ -148,11 +143,9 @@ defmodule Cloak.DataSource.ODBC do
 
   # We hardcode the default encoding for SQL Server and SAP HANA to be utf16 little endian.
   # This is for historic reasons more than anything, since that's what our servers are using internally.
-  defp type_to_field_mapper(:text, %{driver: Cloak.DataSource.SQLServer}),
-    do: text_to_unicode_mapper({:utf16, :little})
+  defp type_to_field_mapper(:text, %{driver: Cloak.DataSource.SQLServer}), do: text_to_unicode_mapper({:utf16, :little})
 
-  defp type_to_field_mapper(:text, %{driver: Cloak.DataSource.SAPHana}),
-    do: text_to_unicode_mapper({:utf16, :little})
+  defp type_to_field_mapper(:text, %{driver: Cloak.DataSource.SAPHana}), do: text_to_unicode_mapper({:utf16, :little})
 
   defp type_to_field_mapper(:interval, data_source), do: &interval_field_mapper(&1, data_source)
   defp type_to_field_mapper(_, _data_source), do: &generic_field_mapper/1
@@ -173,13 +166,11 @@ defmodule Cloak.DataSource.ODBC do
 
   defp date_field_mapper(:null), do: nil
 
-  defp date_field_mapper(string) when is_binary(string),
-    do: Cloak.Time.parse_date(string) |> error_to_nil()
+  defp date_field_mapper(string) when is_binary(string), do: Cloak.Time.parse_date(string) |> error_to_nil()
 
   defp time_field_mapper(:null), do: nil
 
-  defp time_field_mapper(string) when is_binary(string),
-    do: Cloak.Time.parse_time(string) |> error_to_nil()
+  defp time_field_mapper(string) when is_binary(string), do: Cloak.Time.parse_time(string) |> error_to_nil()
 
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _reason}), do: nil

@@ -40,8 +40,7 @@ defmodule Air.Service.View do
 
   @doc "Retrieves views of the given user for the given data source."
   @spec all(User.t(), DataSource.t()) :: [View.t()]
-  def all(user, data_source),
-    do: View |> by_user_id(user.id) |> by_data_source_id(data_source.id) |> Repo.all()
+  def all(user, data_source), do: View |> by_user_id(user.id) |> by_data_source_id(data_source.id) |> Repo.all()
 
   def broken(user, data_source),
     do:
@@ -186,8 +185,7 @@ defmodule Air.Service.View do
   defp sync_revalidate_views!(user, data_source_id) do
     Logger.info("revalidating views for user #{user.id}, data source #{data_source_id}")
 
-    {:ok, results} =
-      DataSource.validate_views({:id, data_source_id}, user, user_views_map(user, data_source_id))
+    {:ok, results} = DataSource.validate_views({:id, data_source_id}, user, user_views_map(user, data_source_id))
 
     for {name, result} <- results do
       view =
@@ -273,8 +271,7 @@ defmodule Air.Service.View do
 
   defp by_user_id(scope, user_id), do: where(scope, [v], v.user_id == ^user_id)
 
-  defp by_data_source_id(scope, data_source_id),
-    do: where(scope, [v], v.data_source_id == ^data_source_id)
+  defp by_data_source_id(scope, data_source_id), do: where(scope, [v], v.data_source_id == ^data_source_id)
 
   defp only_broken(scope), do: where(scope, [v], v.broken == true)
 

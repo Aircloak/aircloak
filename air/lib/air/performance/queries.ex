@@ -26,8 +26,7 @@ defmodule Air.Performance.Queries do
       "SELECT name, count(*) FROM users GROUP BY name",
       "SELECT length(name), left(name, 3), max(age), min(age) FROM users GROUP BY 1,2",
       %{
-        db:
-          "SELECT ('x0' || substr(md5(name::text), 1, 15))::bit(64)::bigint, count(*) FROM users GROUP BY 1",
+        db: "SELECT ('x0' || substr(md5(name::text), 1, 15))::bit(64)::bigint, count(*) FROM users GROUP BY 1",
         cloak: "SELECT hash(name), count(*) FROM users GROUP BY 1"
       },
       "

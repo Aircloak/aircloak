@@ -32,8 +32,7 @@ defmodule AirWeb.QueryView do
         |> Enum.map(&to_string/1)
       end)
 
-    header =
-      List.duplicate(" ", (cleaned_data |> hd() |> length()) - 2) ++ ["user count", "occurrences"]
+    header = List.duplicate(" ", (cleaned_data |> hd() |> length()) - 2) ++ ["user count", "occurrences"]
 
     Aircloak.AsciiTable.format([header] ++ cleaned_data)
   end

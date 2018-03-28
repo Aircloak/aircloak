@@ -49,10 +49,7 @@ defmodule Cloak.DataSource.RODBC do
     parameters
     |> Enum.map(fn {key, value} ->
       if value |> to_string() |> String.contains?([";", "{"]),
-        do:
-          DataSource.raise_error(
-            "The characters ';' and '{' are not allowed inside ODBC driver parameters!"
-          )
+        do: DataSource.raise_error("The characters ';' and '{' are not allowed inside ODBC driver parameters!")
 
       "#{Atom.to_string(key)}=#{value}"
     end)
@@ -91,18 +88,15 @@ defmodule Cloak.DataSource.RODBC do
 
   defp datetime_field_mapper(nil), do: nil
 
-  defp datetime_field_mapper(string) when is_binary(string),
-    do: Cloak.Time.parse_datetime(string) |> error_to_nil()
+  defp datetime_field_mapper(string) when is_binary(string), do: Cloak.Time.parse_datetime(string) |> error_to_nil()
 
   defp date_field_mapper(nil), do: nil
 
-  defp date_field_mapper(string) when is_binary(string),
-    do: Cloak.Time.parse_date(string) |> error_to_nil()
+  defp date_field_mapper(string) when is_binary(string), do: Cloak.Time.parse_date(string) |> error_to_nil()
 
   defp time_field_mapper(nil), do: nil
 
-  defp time_field_mapper(string) when is_binary(string),
-    do: Cloak.Time.parse_time(string) |> error_to_nil()
+  defp time_field_mapper(string) when is_binary(string), do: Cloak.Time.parse_time(string) |> error_to_nil()
 
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _reason}), do: nil

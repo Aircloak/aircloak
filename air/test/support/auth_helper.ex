@@ -6,8 +6,7 @@ defmodule Air.TestAuthHelper do
 
   defmodule TokenEndpoint do
     @moduledoc false
-    def config(:secret_key_base),
-      do: Map.fetch!(Aircloak.DeployConfig.fetch!("site"), "endpoint_key_base")
+    def config(:secret_key_base), do: Map.fetch!(Aircloak.DeployConfig.fetch!("site"), "endpoint_key_base")
   end
 
   @doc "Creates a token that can be used in API calls"
@@ -19,8 +18,7 @@ defmodule Air.TestAuthHelper do
   @doc "Creates a token instance and returns it. No token string is generated"
   @spec create_token_entity!(User.t()) :: ApiToken.t()
   def create_token_entity!(user) do
-    changeset =
-      ApiToken.changeset(%ApiToken{}, %{description: "test token", access: :api, user_id: user.id})
+    changeset = ApiToken.changeset(%ApiToken{}, %{description: "test token", access: :api, user_id: user.id})
 
     Air.Repo.insert!(changeset)
   end

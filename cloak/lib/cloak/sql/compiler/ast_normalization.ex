@@ -36,19 +36,15 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
 
   defp normalize_synonyms(ast),
     do:
-      update_in(
-        ast,
-        [Query.Lenses.terminals() |> Lens.filter(&Function.function?/1) |> Lens.at(1)],
-        fn
-          "lcase" -> %{canonical_name: "lower", synonym_used: "lcase"}
-          "ucase" -> %{canonical_name: "upper", synonym_used: "ucase"}
-          "ceiling" -> %{canonical_name: "ceil", synonym_used: "ceiling"}
-          "pow" -> %{canonical_name: "^", synonym_used: "pow"}
-          "mod" -> %{canonical_name: "%", synonym_used: "mod"}
-          "dow" -> %{canonical_name: "weekday", synonym_used: "dow"}
-          other -> other
-        end
-      )
+      update_in(ast, [Query.Lenses.terminals() |> Lens.filter(&Function.function?/1) |> Lens.at(1)], fn
+        "lcase" -> %{canonical_name: "lower", synonym_used: "lcase"}
+        "ucase" -> %{canonical_name: "upper", synonym_used: "ucase"}
+        "ceiling" -> %{canonical_name: "ceil", synonym_used: "ceiling"}
+        "pow" -> %{canonical_name: "^", synonym_used: "pow"}
+        "mod" -> %{canonical_name: "%", synonym_used: "mod"}
+        "dow" -> %{canonical_name: "weekday", synonym_used: "dow"}
+        other -> other
+      end)
 
   # -------------------------------------------------------------------
   # date_trunc rewriting
@@ -79,27 +75,25 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   # DISTINCT rewriting
   # -------------------------------------------------------------------
 
-  defp rewrite_distinct(
-         ast = %{distinct?: true, columns: columns, from: from, group_by: group_by = [_ | _]}
-       ),
-       do:
-         Map.merge(ast, %{
-           distinct?: false,
-           columns: [:*],
-           from:
-             {:subquery,
-              %{
-                alias: "__ac_distinct",
-                ast: %{
-                  command: :select,
-                  distinct?: false,
-                  columns: columns,
-                  from: from,
-                  group_by: group_by
-                }
-              }},
-           group_by: grouping_clause(columns)
-         })
+  defp rewrite_distinct(ast = %{distinct?: true, columns: columns, from: from, group_by: group_by = [_ | _]}),
+    do:
+      Map.merge(ast, %{
+        distinct?: false,
+        columns: [:*],
+        from:
+          {:subquery,
+           %{
+             alias: "__ac_distinct",
+             ast: %{
+               command: :select,
+               distinct?: false,
+               columns: columns,
+               from: from,
+               group_by: group_by
+             }
+           }},
+        group_by: grouping_clause(columns)
+      })
 
   defp rewrite_distinct(ast = %{distinct?: true, columns: columns}),
     do:
@@ -111,8 +105,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
 
   defp rewrite_distinct(ast), do: ast
 
-  defp grouping_clause(columns),
-    do: Enum.map(1..length(columns), &{:constant, :integer, &1, _location = nil})
+  defp grouping_clause(columns), do: Enum.map(1..length(columns), &{:constant, :integer, &1, _location = nil})
 
   defp aggregator?({:function, name, args, _location}),
     do: Function.has_attribute?(name, :aggregator) or Enum.any?(args, &aggregator?/1)

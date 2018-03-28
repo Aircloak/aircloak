@@ -23,8 +23,7 @@ defmodule Air.ProcessQueue do
   run forever.
   """
   @spec run(atom, (() -> result), pos_integer | :infinity) :: result when result: var
-  def run(pool_name, fun, timeout \\ :infinity),
-    do: :poolboy.transaction(pool_name, fn _worker -> fun.() end, timeout)
+  def run(pool_name, fun, timeout \\ :infinity), do: :poolboy.transaction(pool_name, fn _worker -> fun.() end, timeout)
 
   # -------------------------------------------------------------------
   # Internal functions

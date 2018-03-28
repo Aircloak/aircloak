@@ -154,8 +154,7 @@ defmodule Cloak.Sql.Expression do
     matched_row_head = List.duplicate(quote(do: _), position) ++ [matched_value]
     matched_row = quote do: [unquote_splicing(matched_row_head) | _]
 
-    def value(%__MODULE__{row_index: unquote(position)}, unquote(matched_row)),
-      do: unquote(matched_value)
+    def value(%__MODULE__{row_index: unquote(position)}, unquote(matched_row)), do: unquote(matched_value)
   end
 
   def value(%__MODULE__{row_index: index}, row) when index >= length(row),
@@ -178,8 +177,7 @@ defmodule Cloak.Sql.Expression do
 
   def equals(%__MODULE__{} = c1, %__MODULE__{} = c2),
     do:
-      c1.table == c2.table and c1.name == c2.name and c1.value == c2.value and
-        c1.function == c2.function and
+      c1.table == c2.table and c1.name == c2.name and c1.value == c2.value and c1.function == c2.function and
         Enum.zip(c1.function_args, c2.function_args)
         |> Enum.all?(fn {arg1, arg2} -> equals(arg1, arg2) end)
 
@@ -269,8 +267,7 @@ defmodule Cloak.Sql.Expression do
   def lowercase(%__MODULE__{constant?: true, type: :text, value: value} = expression),
     do: %__MODULE__{expression | value: String.downcase(value)}
 
-  def lowercase(%__MODULE__{type: :text} = expression),
-    do: function("lower", [expression], expression.type)
+  def lowercase(%__MODULE__{type: :text} = expression), do: function("lower", [expression], expression.type)
 
   def lowercase(%__MODULE__{type: :like_pattern, value: pattern} = expression),
     do: %__MODULE__{expression | value: LikePattern.lowercase(pattern)}
@@ -343,8 +340,7 @@ defmodule Cloak.Sql.Expression do
     end
   end
 
-  defp do_apply("dec_aes_cbc128", [string]),
-    do: dec_aes_cbc128(string, Application.get_env(:cloak, :aes_key))
+  defp do_apply("dec_aes_cbc128", [string]), do: dec_aes_cbc128(string, Application.get_env(:cloak, :aes_key))
 
   defp do_apply("dec_aes_cbc128", [string, key]), do: dec_aes_cbc128(string, key)
 
@@ -362,8 +358,7 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("/", [x = %Duration{}, y]), do: Duration.scale(x, 1 / y)
   defp do_apply("/", [x, y]), do: x / y
 
-  defp do_apply("+", [x = %Date{}, y = %Duration{}]),
-    do: x |> Timex.to_naive_datetime() |> Timex.add(y)
+  defp do_apply("+", [x = %Date{}, y = %Duration{}]), do: x |> Timex.to_naive_datetime() |> Timex.add(y)
 
   defp do_apply("+", [x = %NaiveDateTime{}, y = %Duration{}]), do: Timex.add(x, y)
   defp do_apply("+", [x = %Duration{}, y = %Duration{}]), do: Duration.add(x, y)
@@ -372,11 +367,9 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("+", [x, y]), do: x + y
   defp do_apply("-", [x = %Date{}, y = %Date{}]), do: Timex.diff(x, y, :duration)
 
-  defp do_apply("-", [x = %NaiveDateTime{}, y = %NaiveDateTime{}]),
-    do: Timex.diff(x, y, :duration)
+  defp do_apply("-", [x = %NaiveDateTime{}, y = %NaiveDateTime{}]), do: Timex.diff(x, y, :duration)
 
-  defp do_apply("-", [x = %Time{}, y = %Time{}]),
-    do: Duration.sub(Duration.from_time(x), Duration.from_time(y))
+  defp do_apply("-", [x = %Time{}, y = %Time{}]), do: Duration.sub(Duration.from_time(x), Duration.from_time(y))
 
   defp do_apply("-", [x, y = %Duration{}]), do: do_apply("+", [x, Duration.scale(y, -1)])
   defp do_apply("-", [x, y]), do: x - y
@@ -390,8 +383,7 @@ defmodule Cloak.Sql.Expression do
 
   defp do_trunc(value, _precision) when is_integer(value), do: value
 
-  defp do_trunc(value, precision) when value < 0,
-    do: value |> :erlang.float() |> Float.ceil(precision)
+  defp do_trunc(value, precision) when value < 0, do: value |> :erlang.float() |> Float.ceil(precision)
 
   defp do_trunc(value, precision), do: value |> :erlang.float() |> Float.floor(precision)
 
@@ -404,19 +396,16 @@ defmodule Cloak.Sql.Expression do
   defp left(nil, _), do: nil
   defp left(_, nil), do: nil
 
-  defp left(string, count) when count < 0,
-    do: String.slice(string, 0, max(String.length(string) + count, 0))
+  defp left(string, count) when count < 0, do: String.slice(string, 0, max(String.length(string) + count, 0))
 
   defp left(string, count), do: String.slice(string, 0, count)
 
   defp right(nil, _), do: nil
   defp right(_, nil), do: nil
 
-  defp right(string, count) when count < 0,
-    do: String.slice(string, -count, String.length(string))
+  defp right(string, count) when count < 0, do: String.slice(string, -count, String.length(string))
 
-  defp right(string, count),
-    do: String.slice(string, (String.length(string) - count) |> max(0), count)
+  defp right(string, count), do: String.slice(string, (String.length(string) - count) |> max(0), count)
 
   defp trim(string, chars), do: string |> ltrim(chars) |> rtrim(chars)
 
@@ -429,8 +418,7 @@ defmodule Cloak.Sql.Expression do
   defp date_trunc(scope, %Time{}) when scope in ~w(year quarter month day), do: @midnight
   defp date_trunc("year", date), do: date_trunc("month", %{date | month: 1})
 
-  defp date_trunc("quarter", date),
-    do: date_trunc("month", %{date | month: first_month_of_quarter(date)})
+  defp date_trunc("quarter", date), do: date_trunc("month", %{date | month: first_month_of_quarter(date)})
 
   defp date_trunc("month", date), do: date_trunc("day", %{date | day: 1})
   defp date_trunc("day", date), do: date_trunc("hour", %{date | hour: 0})
@@ -439,8 +427,7 @@ defmodule Cloak.Sql.Expression do
   defp date_trunc("second", date), do: %{date | microsecond: @max_precision_zero}
 
   @month_in_quarter 3
-  defp first_month_of_quarter(%{month: month}),
-    do: div(month - 1, @month_in_quarter) * @month_in_quarter + 1
+  defp first_month_of_quarter(%{month: month}), do: div(month - 1, @month_in_quarter) * @month_in_quarter + 1
 
   defp substring(string, from, count \\ nil)
   defp substring(nil, _, _), do: nil
@@ -514,31 +501,26 @@ defmodule Cloak.Sql.Expression do
   # cast to datetime
   defp cast(value = %NaiveDateTime{}, :datetime), do: value
 
-  defp cast(value = %Date{}, :datetime),
-    do: value |> NaiveDateTime.new(~T[00:00:00.000000]) |> error_to_nil()
+  defp cast(value = %Date{}, :datetime), do: value |> NaiveDateTime.new(~T[00:00:00.000000]) |> error_to_nil()
 
-  defp cast(value, :datetime) when is_binary(value),
-    do: value |> Cloak.Time.parse_datetime() |> error_to_nil()
+  defp cast(value, :datetime) when is_binary(value), do: value |> Cloak.Time.parse_datetime() |> error_to_nil()
 
   # cast to time
   defp cast(value = %Time{}, :time), do: value
   defp cast(value = %NaiveDateTime{}, :time), do: NaiveDateTime.to_time(value)
 
-  defp cast(value, :time) when is_binary(value),
-    do: value |> Cloak.Time.parse_time() |> error_to_nil()
+  defp cast(value, :time) when is_binary(value), do: value |> Cloak.Time.parse_time() |> error_to_nil()
 
   # cast to date
   defp cast(value = %Date{}, :date), do: value
   defp cast(value = %NaiveDateTime{}, :date), do: NaiveDateTime.to_date(value)
 
-  defp cast(value, :date) when is_binary(value),
-    do: value |> Cloak.Time.parse_date() |> error_to_nil()
+  defp cast(value, :date) when is_binary(value), do: value |> Cloak.Time.parse_date() |> error_to_nil()
 
   # cast to interval
   defp cast(value = %Duration{}, :interval), do: value
 
-  defp cast(value, :interval) when is_binary(value),
-    do: value |> Duration.parse() |> error_to_nil()
+  defp cast(value, :interval) when is_binary(value), do: value |> Duration.parse() |> error_to_nil()
 
   defp duration_time_part(duration) do
     {hours, days, seconds, microseconds} = Duration.to_clock(duration)

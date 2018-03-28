@@ -12,11 +12,7 @@ defmodule AirWeb.Admin.CentralController.Test do
   end
 
   test "can't view exports as user",
-    do:
-      assert(
-        "/" ==
-          login(create_user!()) |> get("/admin/central/export_for_aircloak") |> redirected_to()
-      )
+    do: assert("/" == login(create_user!()) |> get("/admin/central/export_for_aircloak") |> redirected_to())
 
   test "can't view exports in auto mode" do
     Application.put_env(:air, :auto_aircloak_export, true)
@@ -72,8 +68,7 @@ defmodule AirWeb.Admin.CentralController.Test do
       |> recycle()
       |> get("/admin/central/export_for_aircloak")
 
-    assert conn.resp_body =~
-             ~r(<meta http-equiv="refresh".*url=#{download_path(last_generated_export())}.*)
+    assert conn.resp_body =~ ~r(<meta http-equiv="refresh".*url=#{download_path(last_generated_export())}.*)
 
     refute conn.resp_body =~ ~s(href="/admin/central/new_export")
   end
@@ -89,8 +84,7 @@ defmodule AirWeb.Admin.CentralController.Test do
       |> recycle()
       |> get("/admin/central/export_for_aircloak")
 
-    refute conn.resp_body =~
-             ~r(<meta http-equiv="refresh".*url=#{download_path(last_generated_export())}.*)
+    refute conn.resp_body =~ ~r(<meta http-equiv="refresh".*url=#{download_path(last_generated_export())}.*)
   end
 
   test "downloading an export" do

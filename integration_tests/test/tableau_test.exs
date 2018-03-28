@@ -48,12 +48,9 @@ defmodule IntegrationTest.TableauTest do
                'relhasoids'
              ],
              [
-               {'', 'users', 'user_id', '25', 'text', 1, -1, -1, true, false, 'r', oid, [], '0',
-                -1, false},
-               {'', 'users', 'name', '25', 'text', 2, -1, -1, false, false, 'r', oid, [], '0', -1,
-                false},
-               {'', 'users', 'height', '20', 'int8', 3, 8, -1, false, false, 'r', oid, [], '0',
-                -1, false}
+               {'', 'users', 'user_id', '25', 'text', 1, -1, -1, true, false, 'r', oid, [], '0', -1, false},
+               {'', 'users', 'name', '25', 'text', 2, -1, -1, false, false, 'r', oid, [], '0', -1, false},
+               {'', 'users', 'height', '20', 'int8', 3, 8, -1, false, false, 'r', oid, [], '0', -1, false}
              ]
            } = :odbc.sql_query(context.conn, query)
   end
@@ -117,8 +114,7 @@ defmodule IntegrationTest.TableauTest do
   end
 
   test "arbitrary query through a cursor", context do
-    query =
-      'BEGIN;declare "SQL_CUR04AD8270" cursor for show tables;fetch 2048 in "SQL_CUR04AD8270"'
+    query = 'BEGIN;declare "SQL_CUR04AD8270" cursor for show tables;fetch 2048 in "SQL_CUR04AD8270"'
 
     assert :odbc.sql_query(context.conn, query) == [
              {:updated, 0},
@@ -128,8 +124,7 @@ defmodule IntegrationTest.TableauTest do
   end
 
   test "arbitrary query through a cursor with hold", context do
-    query =
-      'BEGIN;declare "SQL_CUR04AD8270" cursor with hold for show tables;fetch 2048 in "SQL_CUR04AD8270"'
+    query = 'BEGIN;declare "SQL_CUR04AD8270" cursor with hold for show tables;fetch 2048 in "SQL_CUR04AD8270"'
 
     assert :odbc.sql_query(context.conn, query) == [
              {:updated, 0},
@@ -139,8 +134,7 @@ defmodule IntegrationTest.TableauTest do
   end
 
   test "multiline query through a cursor", context do
-    query =
-      'BEGIN;declare "SQL_CUR04AD8270" cursor for show\ntables;fetch 2048 in "SQL_CUR04AD8270"'
+    query = 'BEGIN;declare "SQL_CUR04AD8270" cursor for show\ntables;fetch 2048 in "SQL_CUR04AD8270"'
 
     assert :odbc.sql_query(context.conn, query) == [
              {:updated, 0},
@@ -161,8 +155,7 @@ defmodule IntegrationTest.TableauTest do
     assert :odbc.sql_query(context.conn, 'fetch 2 in "my_cursor"') ==
              {:selected, ['name', 'type'], [{'name', 'text'}, {'height', 'integer'}]}
 
-    assert :odbc.sql_query(context.conn, 'fetch 1 in "my_cursor"') ==
-             {:selected, ['name', 'type'], []}
+    assert :odbc.sql_query(context.conn, 'fetch 1 in "my_cursor"') == {:selected, ['name', 'type'], []}
 
     assert :odbc.sql_query(context.conn, 'close "my_cursor"') == {:updated, 0}
   end
@@ -187,11 +180,7 @@ defmodule IntegrationTest.TableauTest do
   test(
     "select current schema",
     context,
-    do:
-      assert(
-        :odbc.sql_query(context.conn, 'select current_schema()') ==
-          {:selected, ['current_schema'], [{''}]}
-      )
+    do: assert(:odbc.sql_query(context.conn, 'select current_schema()') == {:selected, ['current_schema'], [{''}]})
   )
 
   test(

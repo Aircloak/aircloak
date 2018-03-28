@@ -36,11 +36,9 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   @doc "Keeps only the columns needed by the query from the selection target."
   @spec pick_db_columns(Enumerable.t(), Query.t()) :: Enumerable.t()
-  def pick_db_columns(stream, query = %Query{from: {:subquery, _}}),
-    do: do_pick_db_columns(stream, query)
+  def pick_db_columns(stream, query = %Query{from: {:subquery, _}}), do: do_pick_db_columns(stream, query)
 
-  def pick_db_columns(stream, query = %Query{from: {:join, _}}),
-    do: do_pick_db_columns(stream, query)
+  def pick_db_columns(stream, query = %Query{from: {:join, _}}), do: do_pick_db_columns(stream, query)
 
   def pick_db_columns(stream, _query), do: stream
 
@@ -67,8 +65,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
       | function_args: Enum.map(function_args, &update_row_index(&1, source))
     }
 
-  defp update_row_index(column, from),
-    do: %Expression{column | row_index: index_in_from(column, from)}
+  defp update_row_index(column, from), do: %Expression{column | row_index: index_in_from(column, from)}
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -106,8 +103,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   defp limit_rows(stream, %Query{limit: nil}), do: stream
   defp limit_rows(stream, %Query{limit: limit}), do: Stream.take(stream, limit)
 
-  defp aggregator_to_default(%Expression{function?: true, function_args: [{:distinct, _column}]}),
-    do: MapSet.new()
+  defp aggregator_to_default(%Expression{function?: true, function_args: [{:distinct, _column}]}), do: MapSet.new()
 
   defp aggregator_to_default(%Expression{
          function?: true,
@@ -458,12 +454,9 @@ defmodule Cloak.Query.DbEmulator.Selector do
   defp user_id_score(_), do: 0
 
   defp table_is_in_join_branch?(table_name, {:join, join}),
-    do:
-      table_is_in_join_branch?(table_name, join.lhs) or
-        table_is_in_join_branch?(table_name, join.rhs)
+    do: table_is_in_join_branch?(table_name, join.lhs) or table_is_in_join_branch?(table_name, join.rhs)
 
-  defp table_is_in_join_branch?(table_name, {:subquery, %{alias: subquery_alias}}),
-    do: table_name == subquery_alias
+  defp table_is_in_join_branch?(table_name, {:subquery, %{alias: subquery_alias}}), do: table_name == subquery_alias
 
   defp table_is_in_join_branch?(table_name, joined_table), do: table_name == joined_table
 

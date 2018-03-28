@@ -5,8 +5,7 @@ defmodule Cloak.Sql.Lexer.Test do
   alias Cloak.Sql.Parsers.Token
 
   test "lexing strings with escaped quotes" do
-    assert {:ok,
-            [%Token{category: :constant, value: %{type: :string, value: "a string with a '"}} | _]} =
+    assert {:ok, [%Token{category: :constant, value: %{type: :string, value: "a string with a '"}} | _]} =
              Lexer.tokenize("'a string with a '''")
   end
 
@@ -19,8 +18,7 @@ defmodule Cloak.Sql.Lexer.Test do
   end
 
   test "lexing strings with whitespace" do
-    assert {:ok, [%Token{category: :from}, %Token{category: :select} | _]} =
-             Lexer.tokenize("from\t\n select")
+    assert {:ok, [%Token{category: :from}, %Token{category: :select} | _]} = Lexer.tokenize("from\t\n select")
   end
 
   test "lexing split strings" do

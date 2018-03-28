@@ -4,8 +4,7 @@ defmodule Cloak.MemoryReader.MemoryProjectorTest do
   alias Cloak.MemoryReader.MemoryProjector
 
   describe "Adding measurements" do
-    test "creates new empty projectors",
-      do: assert(%MemoryProjector{changes: []} = MemoryProjector.new())
+    test "creates new empty projectors", do: assert(%MemoryProjector{changes: []} = MemoryProjector.new())
 
     test "retains last reading" do
       state =
@@ -16,10 +15,7 @@ defmodule Cloak.MemoryReader.MemoryProjectorTest do
     end
 
     test "maintains a sequence of rates of changes",
-      do:
-        assert(
-          %MemoryProjector{changes: [1, 1, 1, 1, 1, 1]} = add_measurements([1, 2, 3, 4, 5, 6, 7])
-        )
+      do: assert(%MemoryProjector{changes: [1, 1, 1, 1, 1, 1]} = add_measurements([1, 2, 3, 4, 5, 6, 7]))
 
     test "maintains last 20 readings" do
       %MemoryProjector{changes: changes} = add_measurements(1..100)
@@ -32,14 +28,12 @@ defmodule Cloak.MemoryReader.MemoryProjectorTest do
       do: assert(%MemoryProjector{changes: []} = MemoryProjector.drop(add_measurements([]), 10))
 
     test "Dropping more measurements than exists empties buffer",
-      do:
-        assert(%MemoryProjector{changes: []} = MemoryProjector.drop(add_measurements(1..10), 20))
+      do: assert(%MemoryProjector{changes: []} = MemoryProjector.drop(add_measurements(1..10), 20))
 
     test "Dropping less measurements than there is free space in the buffer has no effect",
       do:
         assert(
-          %MemoryProjector{changes: [250, 250, 250]} =
-            MemoryProjector.drop(add_measurements([500, 750, 1000, 1250]), 3)
+          %MemoryProjector{changes: [250, 250, 250]} = MemoryProjector.drop(add_measurements([500, 750, 1000, 1250]), 3)
         )
 
     test "Drops the oldest measurements",

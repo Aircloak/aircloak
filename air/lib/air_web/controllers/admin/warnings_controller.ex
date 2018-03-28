@@ -18,8 +18,7 @@ defmodule AirWeb.Admin.WarningsController do
   # Actions
   # -------------------------------------------------------------------
 
-  def index(conn, _params),
-    do: render(conn, "index.html", problems: Air.Service.Warnings.problems())
+  def index(conn, _params), do: render(conn, "index.html", problems: Air.Service.Warnings.problems())
 
   @doc """
   Redirects to the warnings index if there are any, otherwise

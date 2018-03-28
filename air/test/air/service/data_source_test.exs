@@ -80,10 +80,7 @@ defmodule Air.Service.DataSourceTest do
   test(
     "fetching unavailable data source",
     context,
-    do:
-      assert(
-        {:error, :unauthorized} == DataSource.fetch_as_user({:id, context.ds1.id}, context.user3)
-      )
+    do: assert({:error, :unauthorized} == DataSource.fetch_as_user({:id, context.ds1.id}, context.user3))
   )
 
   test "fetching user's history", context do
@@ -100,8 +97,7 @@ defmodule Air.Service.DataSourceTest do
                  NaiveDateTime.utc_now()
                )
 
-      assert Enum.map(history, & &1.id) ==
-               queries |> Enum.reverse() |> Enum.take(min(5, count)) |> Enum.map(& &1.id)
+      assert Enum.map(history, & &1.id) == queries |> Enum.reverse() |> Enum.take(min(5, count)) |> Enum.map(& &1.id)
     end
   end
 
@@ -168,11 +164,7 @@ defmodule Air.Service.DataSourceTest do
   test(
     "fetching last query for the unavailable data source",
     context,
-    do:
-      assert(
-        {:error, :unauthorized} ==
-          DataSource.last_query({:id, context.ds2.id}, context.user3, :http)
-      )
+    do: assert({:error, :unauthorized} == DataSource.last_query({:id, context.ds2.id}, context.user3, :http))
   )
 
   test "returns a list of data sources given their names" do
@@ -215,16 +207,12 @@ defmodule Air.Service.DataSourceTest do
   end
 
   test "required attributes",
-    do:
-      assert(
-        errors_on(&DataSource.create/1, %{}) == [name: "can't be blank", tables: "can't be blank"]
-      )
+    do: assert(errors_on(&DataSource.create/1, %{}) == [name: "can't be blank", tables: "can't be blank"])
 
   test "validates uniqueness of name" do
     DataSource.create!(%{name: "baz", tables: "[]"})
 
-    assert errors_on(&DataSource.create/1, %{name: "baz", tables: "[]"}) ==
-             [name: "has already been taken"]
+    assert errors_on(&DataSource.create/1, %{name: "baz", tables: "[]"}) == [name: "has already been taken"]
   end
 
   test "a data_source can have many groups" do

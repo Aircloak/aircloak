@@ -46,10 +46,7 @@ defmodule AircloakCI.Github.API do
   @doc "Returns the repository data, such as branches and open pull requests."
   @spec repo_data(String.t(), String.t()) :: {repo_data, rate_limit}
   def repo_data(owner, repo_name) do
-    result =
-      graphql_request(
-        "query {#{repo_query(owner, repo_name, "#{branches_query()} #{prs_query()}")}}"
-      )
+    result = graphql_request("query {#{repo_query(owner, repo_name, "#{branches_query()} #{prs_query()}")}}")
 
     repository = Map.fetch!(result.response, "repository")
     repo = %{owner: owner, name: repo_name}
@@ -101,18 +98,15 @@ defmodule AircloakCI.Github.API do
 
   @doc "Posts a comment to the given commit."
   @spec comment_on_commit(String.t(), String.t(), String.t(), String.t()) :: {:ok, rate_limit}
-  def comment_on_commit(owner, repo, sha, body),
-    do: comment_on_commit(owner, repo, "commits", sha, body)
+  def comment_on_commit(owner, repo, sha, body), do: comment_on_commit(owner, repo, "commits", sha, body)
 
   # -------------------------------------------------------------------
   # GraphQL queries
   # -------------------------------------------------------------------
 
-  defp repo_query(owner, repo, inner_query),
-    do: ~s/repository(owner: "#{owner}", name: "#{repo}") {#{inner_query}}/
+  defp repo_query(owner, repo, inner_query), do: ~s/repository(owner: "#{owner}", name: "#{repo}") {#{inner_query}}/
 
-  defp branches_query(),
-    do: ~s[refs(refPrefix: "refs/heads/", first: 100) {nodes {name target {oid}}}]
+  defp branches_query(), do: ~s[refs(refPrefix: "refs/heads/", first: 100) {nodes {name target {oid}}}]
 
   defp prs_query(), do: ~s/
       pullRequests(first: 100, states: OPEN, orderBy: {field: UPDATED_AT, direction: DESC}) {
@@ -196,8 +190,7 @@ defmodule AircloakCI.Github.API do
   end
 
   defp rate_limit(response, path) do
-    with {_, remaining} <-
-           Enum.find(response.headers, &match?({"X-RateLimit-Remaining", _value}, &1)),
+    with {_, remaining} <- Enum.find(response.headers, &match?({"X-RateLimit-Remaining", _value}, &1)),
          {remaining_int, ""} <- Integer.parse(remaining),
          {_, reset} <- Enum.find(response.headers, &match?({"X-RateLimit-Reset", _value}, &1)),
          {reset_int, ""} <- Integer.parse(reset),

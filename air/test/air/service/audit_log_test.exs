@@ -91,8 +91,7 @@ defmodule Air.Service.AuditLogTest do
     assert AuditLog.event_types(params(%{users: [user1.email]})) == ["event1"]
     assert AuditLog.event_types(params(%{users: [user2.email]})) == ["event2"]
 
-    assert AuditLog.event_types(params(%{users: [user1.email, user2.email]})) ==
-             ["event1", "event2"]
+    assert AuditLog.event_types(params(%{users: [user1.email, user2.email]})) == ["event1", "event2"]
 
     assert AuditLog.event_types(params(%{users: [user3.email]})) == []
   end
@@ -195,9 +194,7 @@ defmodule Air.Service.AuditLogTest do
 
     names = [data_source1.name, data_source2.name] |> Enum.sort()
 
-    assert AuditLog.data_sources(
-             params(%{users: [user1.email], data_sources: [data_source2.name]})
-           )
+    assert AuditLog.data_sources(params(%{users: [user1.email], data_sources: [data_source2.name]}))
            |> Enum.map(& &1.name) == names
   end
 

@@ -235,8 +235,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
         assert(
           %{
             columns: [
-              {:function, %{canonical_name: unquote(function), synonym_used: unquote(synonym)}, _,
-               _}
+              {:function, %{canonical_name: unquote(function), synonym_used: unquote(synonym)}, _, _}
             ]
           } =
             Parser.parse!("SELECT #{unquote(synonym)}(column) FROM table")
@@ -254,8 +253,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
         assert(
           %{
             columns: [
-              {:function, %{canonical_name: unquote(operator), synonym_used: unquote(synonym)}, _,
-               _}
+              {:function, %{canonical_name: unquote(operator), synonym_used: unquote(synonym)}, _, _}
             ]
           } =
             Parser.parse!("SELECT #{unquote(synonym)}(column, 10) FROM table")

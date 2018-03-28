@@ -163,17 +163,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp cast(expression, type), do: Expression.function({:cast, type}, [expression], type)
 
-  defp min_of_min(%Expression{type: :boolean} = min),
-    do: min |> cast(:integer) |> min_of_min() |> cast(:boolean)
+  defp min_of_min(%Expression{type: :boolean} = min), do: min |> cast(:integer) |> min_of_min() |> cast(:boolean)
 
-  defp min_of_min(min),
-    do: Expression.function("min", [Expression.unalias(min)], min.type, _aggregate = true)
+  defp min_of_min(min), do: Expression.function("min", [Expression.unalias(min)], min.type, _aggregate = true)
 
-  defp max_of_max(%Expression{type: :boolean} = max),
-    do: max |> cast(:integer) |> max_of_max() |> cast(:boolean)
+  defp max_of_max(%Expression{type: :boolean} = max), do: max |> cast(:integer) |> max_of_max() |> cast(:boolean)
 
-  defp max_of_max(max),
-    do: Expression.function("max", [Expression.unalias(max)], max.type, _aggregate = true)
+  defp max_of_max(max), do: Expression.function("max", [Expression.unalias(max)], max.type, _aggregate = true)
 
   defp sum_of_count(column, %Expression{value: 1}),
     do: Expression.function("count", [Expression.unalias(column)], :integer, _aggregate = true)
@@ -334,8 +330,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
            ]
          )
 
-  defp do_not_equals_noise_layers({:comparison, _column, :<>, _other_column}, _top_level_uid),
-    do: []
+  defp do_not_equals_noise_layers({:comparison, _column, :<>, _other_column}, _top_level_uid), do: []
 
   defp lower(%Expression{constant?: true, type: :text, value: value}),
     do: Expression.constant(:text, String.downcase(value))
@@ -407,8 +402,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp like_layer_keys([], _, _), do: []
   defp like_layer_keys([:% | rest], n, len), do: [{:%, len, n} | like_layer_keys(rest, n, len)]
 
-  defp like_layer_keys([:_ | rest], n, len),
-    do: [{:_, len, n} | like_layer_keys(rest, n + 1, len)]
+  defp like_layer_keys([:_ | rest], n, len), do: [{:_, len, n} | like_layer_keys(rest, n + 1, len)]
 
   defp like_layer_keys([_ | rest], n, len), do: like_layer_keys(rest, n + 1, len)
 
@@ -442,13 +436,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp do_override_meaningless(layer = %{base: {table, column, {:not, kind, pattern}}}),
     do: %{layer | base: {table, column, {:not, kind, pattern, :override}}}
 
-  defp meaningless?(noise_layer, all_layers),
-    do: Enum.any?(all_layers, &positive_equivalent?(noise_layer, &1))
+  defp meaningless?(noise_layer, all_layers), do: Enum.any?(all_layers, &positive_equivalent?(noise_layer, &1))
 
   defp positive_equivalent?(negative_layer, potential_equivalent)
 
-  defp positive_equivalent?(%{base: {table, column, :<>}}, %{base: {table, column, nil}}),
-    do: true
+  defp positive_equivalent?(%{base: {table, column, :<>}}, %{base: {table, column, nil}}), do: true
 
   defp positive_equivalent?(%{base: {table, column, {:not, :like, _}}}, %{
          base: {table, column, nil}
@@ -505,8 +497,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp count_of_one(), do: Expression.constant(:integer, 1)
 
-  defp conditions_satisfying(query, predicate),
-    do: query |> non_range_conditions() |> Lens.filter(predicate)
+  defp conditions_satisfying(query, predicate), do: query |> non_range_conditions() |> Lens.filter(predicate)
 
   defp normalize_datasource_case(query) do
     Lens.key(:noise_layers)
@@ -577,15 +568,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   )
 
   defp clear_condition?(
-         {:comparison, %Expression{function?: false, constant?: false}, :=,
-          %Expression{constant?: true}}
+         {:comparison, %Expression{function?: false, constant?: false}, :=, %Expression{constant?: true}}
        ),
        do: true
 
   defp clear_condition?(_), do: false
 
-  defp fk_pk_condition?({:comparison, lhs, :=, rhs}),
-    do: Expression.key?(lhs) and Expression.key?(rhs)
+  defp fk_pk_condition?({:comparison, lhs, :=, rhs}), do: Expression.key?(lhs) and Expression.key?(rhs)
 
   defp fk_pk_condition?(_), do: false
 

@@ -21,8 +21,7 @@ defmodule Cloak.ResultSender do
   Uses the Air <-> Cloak socket if it's :air_socket.
   """
   @spec send_state(target(), String.t(), query_state()) :: :ok | {:error, any}
-  def send_state(:air_socket, query_id, query_state),
-    do: Elixir.Cloak.AirSocket.send_query_state(query_id, query_state)
+  def send_state(:air_socket, query_id, query_state), do: Elixir.Cloak.AirSocket.send_query_state(query_id, query_state)
 
   def send_state({:process, pid}, query_id, query_state) do
     send(pid, {:state, {query_id, query_state}})

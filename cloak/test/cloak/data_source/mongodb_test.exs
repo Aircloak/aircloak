@@ -58,8 +58,7 @@ defmodule Cloak.DataSource.MongoDBTest do
   end
 
   test "schema mapping", context do
-    %{@table => root, (@table <> "_bills") => bills, (@table <> "_bills_ids") => ids} =
-      context.data_source.tables
+    %{@table => root, (@table <> "_bills") => bills, (@table <> "_bills_ids") => ids} = context.data_source.tables
 
     assert root.columns == [
              Table.column("_id", :text),
@@ -183,11 +182,9 @@ defmodule Cloak.DataSource.MongoDBTest do
       rows: [%{occurrences: 1, row: [30.0]}]
     })
 
-    assert_query(
-      context,
-      "SELECT COUNT(name) FROM (SELECT _id, name FROM #{@table}_bills) AS t",
-      %{rows: [%{occurrences: 1, row: [10]}]}
-    )
+    assert_query(context, "SELECT COUNT(name) FROM (SELECT _id, name FROM #{@table}_bills) AS t", %{
+      rows: [%{occurrences: 1, row: [10]}]
+    })
   end
 
   test "sub-queries with limit/offset", context do
@@ -229,17 +226,13 @@ defmodule Cloak.DataSource.MongoDBTest do
   end
 
   test "functions in sub-queries", context do
-    assert_query(
-      context,
-      "SELECT AVG(age) FROM (SELECT _id, age * 2 + 1 AS age FROM #{@table}) AS t",
-      %{rows: [%{occurrences: 1, row: [61.0]}]}
-    )
+    assert_query(context, "SELECT AVG(age) FROM (SELECT _id, age * 2 + 1 AS age FROM #{@table}) AS t", %{
+      rows: [%{occurrences: 1, row: [61.0]}]
+    })
 
-    assert_query(
-      context,
-      "SELECT name FROM (SELECT _id, left(name, 4) AS name FROM #{@table}) AS t",
-      %{rows: [%{occurrences: 9, row: [nil]}, %{occurrences: 10, row: ["user"]}]}
-    )
+    assert_query(context, "SELECT name FROM (SELECT _id, left(name, 4) AS name FROM #{@table}) AS t", %{
+      rows: [%{occurrences: 9, row: [nil]}, %{occurrences: 10, row: ["user"]}]
+    })
   end
 
   test "aggregation in sub-queries", context do
@@ -321,19 +314,15 @@ defmodule Cloak.DataSource.MongoDBTest do
   end
 
   test "datetime - quarter support", context do
-    assert_query(
-      context,
-      "SELECT quarter(date) FROM #{@table} WHERE date IS NOT NULL GROUP BY 1",
-      %{rows: [%{occurrences: 1, row: [3]}]}
-    )
+    assert_query(context, "SELECT quarter(date) FROM #{@table} WHERE date IS NOT NULL GROUP BY 1", %{
+      rows: [%{occurrences: 1, row: [3]}]
+    })
   end
 
   test "unsupported functions in sub-queries are emulated", context do
-    assert_query(
-      context,
-      "SELECT v FROM (SELECT _id, btrim(bills.issuer) AS v FROM #{@table}_bills) AS t",
-      %{rows: [%{occurrences: 10, row: ["vendor"]}]}
-    )
+    assert_query(context, "SELECT v FROM (SELECT _id, btrim(bills.issuer) AS v FROM #{@table}_bills) AS t", %{
+      rows: [%{occurrences: 10, row: ["vendor"]}]
+    })
   end
 
   test "dotted names", context do
@@ -353,11 +342,9 @@ defmodule Cloak.DataSource.MongoDBTest do
   end
 
   test "functions in conditions on virtual table and column", context do
-    assert_query(
-      context,
-      "SELECT COUNT(name) FROM #{@table}_bills WHERE pow(bills.ids#, 0) = 1",
-      %{rows: [%{occurrences: 1, row: [10]}]}
-    )
+    assert_query(context, "SELECT COUNT(name) FROM #{@table}_bills WHERE pow(bills.ids#, 0) = 1", %{
+      rows: [%{occurrences: 1, row: [10]}]
+    })
   end
 
   test "functions in conditions in subqueries", context do

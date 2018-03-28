@@ -99,13 +99,11 @@ defmodule Cloak.LoggerTranslatorTest do
     end
 
     test "sensitive data is removed from the exception message", %{pid: pid} do
-      refute crash_event_handler(pid, fn _ -> Enum.count("sensitive data") end) =~
-               ~r/sensitive data/
+      refute crash_event_handler(pid, fn _ -> Enum.count("sensitive data") end) =~ ~r/sensitive data/
     end
 
     test "sensitive data is removed from the stacktrace", %{pid: pid} do
-      refute crash_event_handler(pid, fn _ -> List.last("sensitive data") end) =~
-               ~r/sensitive data/
+      refute crash_event_handler(pid, fn _ -> List.last("sensitive data") end) =~ ~r/sensitive data/
     end
 
     defp crash_event_handler(pid, fun) do

@@ -36,8 +36,7 @@ defmodule Air.Service.Cleanup.Test do
       Cleanup.cleanup_dead_queries()
       :timer.sleep(100)
 
-      assert %Query{query_state: :error, result: %{"error" => "Query died."}} =
-               Repo.get!(Query, query.id)
+      assert %Query{query_state: :error, result: %{"error" => "Query died."}} = Repo.get!(Query, query.id)
     end
 
     test "not erroring a query found in connected cloaks" do

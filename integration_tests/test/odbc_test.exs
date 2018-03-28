@@ -46,10 +46,7 @@ defmodule IntegrationTest.OdbcTest do
         {"require", %{"require_ssl" => false, "keyfile" => "invalid_file"}, false},
         {"require", %{"require_ssl" => false, "keyfile" => nil}, false}
       ] do
-    test "connecting when client sslmode=`#{client_ssl_mode}`, server config #{
-           inspect(ssl_config)
-         }",
-         context do
+    test "connecting when client sslmode=`#{client_ssl_mode}`, server config #{inspect(ssl_config)}", context do
       ExUnit.CaptureLog.capture_log(fn ->
         original_settings = Aircloak.DeployConfig.fetch!(:air, "psql_server")
 
@@ -96,8 +93,7 @@ defmodule IntegrationTest.OdbcTest do
     test(
       "show tables",
       context,
-      do:
-        assert(:odbc.sql_query(context.conn, 'show tables') == {:selected, ['name'], [{'users'}]})
+      do: assert(:odbc.sql_query(context.conn, 'show tables') == {:selected, ['name'], [{'users'}]})
     )
 
     test(
@@ -116,8 +112,7 @@ defmodule IntegrationTest.OdbcTest do
     )
 
     test "select", context do
-      assert {:selected, ['name', 'height'], rows} =
-               :odbc.sql_query(context.conn, 'select name, height from users')
+      assert {:selected, ['name', 'height'], rows} = :odbc.sql_query(context.conn, 'select name, height from users')
 
       assert Enum.uniq(rows) == [{'john', '180'}]
     end
@@ -206,8 +201,7 @@ defmodule IntegrationTest.OdbcTest do
   defp param_select(conn, type, value, cast \\ nil) do
     cast = if cast != nil, do: "::#{cast}"
 
-    {:selected, ['x'], rows} =
-      :odbc.param_query(conn, 'select ?#{cast} as x from users', [{type, [value]}])
+    {:selected, ['x'], rows} = :odbc.param_query(conn, 'select ?#{cast} as x from users', [{type, [value]}])
 
     [{result}] = Enum.uniq(rows)
     result

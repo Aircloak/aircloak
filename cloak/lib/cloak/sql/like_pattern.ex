@@ -59,8 +59,7 @@ defmodule Cloak.Sql.LikePattern do
 
   @doc "Returns a regex implementing the given pattern with the given compilation options."
   @spec to_regex(t, String.t()) :: Regex.t()
-  def to_regex(pattern, options \\ ""),
-    do: pattern |> to_regex_pattern() |> Regex.compile!(options)
+  def to_regex(pattern, options \\ ""), do: pattern |> to_regex_pattern() |> Regex.compile!(options)
 
   @doc "Lowercases the LIKE match pattern."
   @spec lowercase(t) :: t
@@ -106,8 +105,7 @@ defmodule Cloak.Sql.LikePattern do
 
   defp normalize_chunk(chunk), do: chunk
 
-  defp standard_escape(@standard_escape_character),
-    do: @standard_escape_character <> @standard_escape_character
+  defp standard_escape(@standard_escape_character), do: @standard_escape_character <> @standard_escape_character
 
   defp standard_escape("%"), do: "#{@standard_escape_character}%"
   defp standard_escape("_"), do: "#{@standard_escape_character}_"

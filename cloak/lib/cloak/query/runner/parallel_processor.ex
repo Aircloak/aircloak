@@ -13,8 +13,7 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
   require Logger
 
   @doc "Helper function for parallel processing of a chunked data stream. See module docs for details."
-  @spec execute(Enumerable.t(), non_neg_integer, (Enumerable.t() -> any), (any, any -> any)) ::
-          any
+  @spec execute(Enumerable.t(), non_neg_integer, (Enumerable.t() -> any), (any, any -> any)) :: any
   def execute(chunks, 0, processor, _state_merger), do: chunks |> Stream.concat() |> processor.()
   def execute([chunk], _proc_count, processor, _state_merger), do: processor.(chunk)
 
@@ -112,8 +111,7 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
     @impl GenServer
     def handle_cast({:execute, job}, nil), do: {:noreply, job.()}
 
-    def handle_cast({:merge, from, state_merger}, result),
-      do: {:noreply, state_merger.(result, report!(from))}
+    def handle_cast({:merge, from, state_merger}, result), do: {:noreply, state_merger.(result, report!(from))}
 
     @impl GenServer
     def handle_call(:report, _from, result), do: {:stop, :normal, result, nil}

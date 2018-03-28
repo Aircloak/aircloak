@@ -51,8 +51,7 @@ defmodule BOM.Gather.Elixir do
   defp make_license(type, path, version),
     do:
       Gather.public_domain_license(type) || Gather.license_from_file(path, type) ||
-        Gather.license_from_readme(path, type) ||
-        BOM.Whitelist.find(:elixir, package_name(path), version)
+        Gather.license_from_readme(path, type) || BOM.Whitelist.find(:elixir, package_name(path), version)
 
   defp hex_license(path, version) do
     case BOM.Gather.Elixir.Hex.licenses(package_name(path), version) do
