@@ -303,7 +303,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "min over text is incorrectly disallowed in virtual tables"
     test "min/max/median with text" do
       assert_query(
         "select * from #{@vt}",
@@ -421,7 +420,6 @@ defmodule Cloak.Query.DBEmulatorTest do
           %{rows: [%{occurrences: 1, row: [3.25]}]}
         )
 
-    @tag pending: "min over text is incorrectly disallowed in virtual tables"
     test "distinct min/max/median with text" do
       assert_query(
         "select * from #{@vt}",
