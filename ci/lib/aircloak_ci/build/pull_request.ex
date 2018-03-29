@@ -157,15 +157,12 @@ defmodule AircloakCI.Build.PullRequest do
   defp check_approved(%{source: %{approved?: false}}), do: {:pending, "awaiting approval"}
 
   defp check_compliance_and_approval(state) do
-    case LocalProject.job_outcome(state.project, "compliance") do
-      :ok ->
-        if state.source.approved?, do: :ok, else: {:pending, "awaiting approval"}
-
-      nil ->
-        {:pending, if(state.source.approved?, do: "awaiting compliance", else: "awaiting approval and compliance")}
-
-      _ ->
-        {:error, "compliance test failed"}
+    case {state.source.approved?, LocalProject.job_outcome(state.project, "compliance")} do
+      {false, nil} -> {:pending, "awaiting approval and compliance"}
+      {false, :ok} -> {:pending, "awaiting approval"}
+      {true, nil} -> {:pending, "awaiting compliance"}
+      {true, :ok} -> :ok
+      _ -> {:error, "compliance test failed"}
     end
   end
 
