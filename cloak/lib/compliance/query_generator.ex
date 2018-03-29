@@ -105,11 +105,11 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp generate_where(tables), do: {:where, nil, [generate_condition(tables)]}
 
-  defp generate_group_by(tables), do: {:group_by, nil, generate_group_list(tables)}
+  defp generate_group_by(tables), do: group_by(tables) |> Enum.at(0)
+
+  defp group_by(tables), do: tables |> column_expression() |> list_of() |> nonempty() |> map(&{:group_by, nil, &1})
 
   defp generate_having(tables), do: {:having, nil, [generate_simple_condition(tables)]}
-
-  defp generate_group_list(tables), do: many1(fn -> generate_column(tables) end)
 
   defp generate_simple_condition(tables),
     do:
@@ -274,8 +274,6 @@ defmodule Cloak.Compliance.QueryGenerator do
         {{:function, constant(function), list_of(child_data, length: arity)}, {:any, constant(function)}}
       end)
 
-  defp generate_column(tables), do: column_expression(tables) |> Enum.at(0)
-
   defp column_with_info(tables),
     do:
       tables
@@ -297,14 +295,6 @@ defmodule Cloak.Compliance.QueryGenerator do
   # -------------------------------------------------------------------
   # Helpers
   # -------------------------------------------------------------------
-
-  defp many1(generator),
-    do:
-      [
-        fn -> [generator.()] end,
-        fn -> [generator.() | many1(generator)] end
-      ]
-      |> random_option()
 
   defp optional(generator),
     do:
