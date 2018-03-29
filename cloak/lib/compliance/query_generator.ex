@@ -196,11 +196,10 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp generate_expression_with_info(tables),
     do:
-      [
+      random_option([
         fn -> generate_unaliased_expression_with_info(tables) end,
         fn -> generate_aliased_expression_with_info(tables) end
-      ]
-      |> random_option()
+      ])
 
   defp generate_aliased_expression_with_info(tables) do
     {column, {table, _}} = generate_unaliased_expression_with_info(tables)
@@ -242,11 +241,8 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp generate_aggregate_with_info(tables) do
     {aggregated, {type, _}} = generate_unaliased_expression_with_info(tables)
 
-    @aggregates
-    |> Enum.map(fn aggregate ->
-      {{:function, aggregate, [aggregated]}, {aggregate_type(aggregate, type), aggregate}}
-    end)
-    |> Enum.random()
+    aggregate = Enum.random(@aggregates)
+    {{:function, aggregate, [aggregated]}, {aggregate_type(aggregate, type), aggregate}}
   end
 
   defp aggregate_type(aggregate, type) when aggregate in ~w(min max), do: type
