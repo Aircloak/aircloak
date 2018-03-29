@@ -244,60 +244,30 @@ defmodule Cloak.Compliance.QueryGenerator do
     {generate_as(column, alias), {table, alias}}
   end
 
-  defp generate_unaliased_expression(tables) do
-    {expression, _info} = generate_unaliased_expression_with_info(tables)
-    expression
-  end
+  defp generate_unaliased_expression_with_info(tables), do: unaliased_expression_with_info(tables) |> Enum.at(0)
 
-  defp generate_unaliased_expression_with_info(tables),
-    do:
-      [
-        fn -> generate_aggregate_with_info(tables) end,
-        fn -> generate_function_with_info(tables) end,
-        fn -> generate_column_with_info(tables) end
-      ]
-      |> random_option()
+  defp unaliased_expression_with_info(tables), do: tree(column_with_info(tables), &function_with_info/1)
 
   @functions ~w(
     abs btrim ceil concat date_trunc day extract_words floor hash hex hour left length lower ltrim minute month quarter
-    right round rtrim second sqrt trunc upper weekday year
+    right round rtrim second sqrt trunc upper weekday year count avg min max stddev count_noise avg_noise stddev_noise
   )
-  defp generate_function_with_info(tables), do: function_with_info(tables) |> Enum.at(0)
-
-  defp function_with_info(tables),
+  defp function_with_info(child_data),
     do:
       @functions
       |> member_of()
-      |> map(fn function ->
+      |> bind(fn function ->
         arity =
           {:function, function, [], nil}
           |> Cloak.Sql.Function.argument_types()
           |> Enum.random()
           |> length()
 
-        {{:function, function, Enum.map(1..arity, fn _ -> generate_unaliased_expression(tables) end)}, {:any, function}}
+        child_data = map(child_data, fn {column, _info} -> column end)
+        {{:function, constant(function), list_of(child_data, length: arity)}, {:any, constant(function)}}
       end)
 
-  @aggregates ~w(count avg min max stddev count_noise avg_noise stddev_noise)
-  defp generate_aggregate_with_info(tables), do: aggregate_with_info(tables) |> Enum.at(0)
-
-  defp aggregate_with_info(tables) do
-    {aggregated, {type, _}} = generate_unaliased_expression_with_info(tables)
-
-    @aggregates
-    |> member_of()
-    |> map(fn aggregate ->
-      {{:function, aggregate, [aggregated]}, {aggregate_type(aggregate, type), aggregate}}
-    end)
-  end
-
-  defp aggregate_type(aggregate, type) when aggregate in ~w(min max), do: type
-  defp aggregate_type(aggregate, _) when aggregate in ~w(count count_noise), do: :integer
-  defp aggregate_type(_, _), do: :real
-
   defp generate_column(tables), do: column_expression(tables) |> Enum.at(0)
-
-  defp generate_column_with_info(tables), do: column_with_info(tables) |> Enum.at(0)
 
   defp column_with_info(tables),
     do:
