@@ -115,8 +115,7 @@ defmodule AircloakCI.Build.PullRequest do
     {status, message} =
       with :ok <- check_mergeable(state),
            :ok <- check_standard_tests(state),
-           :ok <- check_approved(state),
-           :ok <- check_compliance(state),
+           :ok <- check_compliance_and_approval(state),
            do: {:success, "pull request can be merged"}
 
     if status == :success and not LocalProject.finished?(state.project, "report_mergeable") do
@@ -157,11 +156,16 @@ defmodule AircloakCI.Build.PullRequest do
   defp check_approved(%{source: %{approved?: true}}), do: :ok
   defp check_approved(%{source: %{approved?: false}}), do: {:pending, "awaiting approval"}
 
-  defp check_compliance(state) do
+  defp check_compliance_and_approval(state) do
     case LocalProject.job_outcome(state.project, "compliance") do
-      :ok -> :ok
-      nil -> {:pending, "awaiting compliance"}
-      _ -> {:error, "compliance test failed"}
+      :ok ->
+        if state.source.approved?, do: :ok, else: {:pending, "awaiting approval"}
+
+      nil ->
+        {:pending, if(state.source.approved?, do: "awaiting compliance", else: "awaiting approval and compliance")}
+
+      _ ->
+        {:error, "compliance test failed"}
     end
   end
 
