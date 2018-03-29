@@ -12,7 +12,14 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   @doc "Generates a random AST representing a query into the given tables."
   @spec ast_generator([Table.t()]) :: Stream.t(ast)
-  def ast_generator(tables), do: tables |> ast_with_info() |> map(fn {ast, _info} -> ast end)
+  def ast_generator(tables),
+    do:
+      tables
+      |> ast_with_info()
+      |> map(fn {ast, _info} -> ast end)
+      |> scale(fn size ->
+        size |> :math.log() |> trunc() |> max(1)
+      end)
 
   @doc "Generates the SQL query string from the given AST."
   @spec ast_to_sql(ast) :: iolist
