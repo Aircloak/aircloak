@@ -21,7 +21,8 @@
         "name": {"type": "string", "minLength": 1, "$comment": "allowed for backward compatibility"},
         "row_id": {"type": "string", "minLength": 1, "$comment": "allowed for backward compatibility"},
         "projection": {"$ref": "#/definitions/projection"},
-        "decoders": {"type": "array", "items": {"$ref": "#/definitions/decoder"}}
+        "decoders": {"type": "array", "items": {"$ref": "#/definitions/decoder"}},
+        "query": {"type": "string", "minLength": 1}
       },
       "additionalProperties": false
     },

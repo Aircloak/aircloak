@@ -49,7 +49,7 @@ defmodule Cloak.ConfigValidationTest do
       )
 
       Enum.each(
-        ~w(db_name user_id ignore_unsupported_types sample_rate projection decoders),
+        ~w(db_name user_id ignore_unsupported_types sample_rate projection decoders query),
         &refute_missing_field_reported("tables/foo/#{&1}", datasource_validator())
       )
 
