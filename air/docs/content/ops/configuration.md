@@ -125,6 +125,7 @@ The general shape of `config.json` is:
 {
   "air_site": string,
   "salt": string,
+  "concurrency": integer,
   "data_sources": string
 }
 ```
@@ -139,6 +140,12 @@ cat /dev/urandom |
   fold -w 64 |
   head -n 1
 ```
+
+The `concurrency` field is optional and controls the amount of additional threads used for processing the selected data.
+The default setting is 0, which means a single thread processes the data coming in from the database server. For small
+data sets, this is usually sufficient, but for bigger data sets, this might turn out to be a bottleneck during query
+execution. By increasing this value (to 2 or 4 is recommended), additional threads will be used when ingesting the data,
+executing the query faster, but also consuming more memory.
 
 ### Data source configuration
 
@@ -158,6 +165,7 @@ The configuration takes the following form:
     "database": string,
     "password": string
   },
+  "concurrency": integer,
   "tables": tables
 }
 ```
@@ -173,24 +181,46 @@ Some of these drivers use ODBC protocol to talk to the database. These drivers a
 
 These parameters are optional, and are only required for particular installations, where the default values will not suffice.
 
+The `concurrency` field is optional and controls the amount of additional threads used for processing the selected data.
+If not present, the global setting is used.
+
 The database tables that should be made available for querying are defined in the `tables` section of the cloak config. The value of the `tables` key is a JSON object that looks as follows:
 
 ```
 "tables": {
   table_name_1: {
-    "db_name": string,
-    "user_id": string,
-    "ignore_unsupported_types": boolean
+    "db_name" | "query": string,
+    "user_id": string
   },
   table_name_2: ...
 }
 ```
 
-Each `table_name_x` key specifies the name the table will be available under when querying the data source through Aircloak. The `db_name` is the name of the table in the underlying database. In most cases you can use the same name, but the distinction allows some special scenarios, such as exposing a table under a simpler name, or exposing the same database table multiple times under different names.
+Each `table_name_x` key specifies the name the table will be available under when querying the data source through Aircloak.
+
+The `db_name` is the name of the table in the underlying database. In most situations you can use the same name
+(in which case the field can be omitted), but the distinction allows some special scenarios, such as exposing
+a table under a simpler name, or exposing the same database table multiple times under different names.
+
+If the `query` field is present instead, a virtual table is created, similar to an SQL view. The provided query can gather
+data from multiple tables, filter what columns are exposed and pre-process, pre-filter or pre-aggregate the data without
+the restrictions normally present in an anonymized query. An example configuration for a virtual table would look like this:
+
+```
+table_name: {
+  query": "
+    SELECT cast(t2.uid as integer), t2.age, t1.*
+    FROM t1 INNER JOIN t2 ON t1.pk = t2.fk
+    WHERE t2.age > 18
+  ",
+  "user_id": "uid"
+}
+```
+
+The `db_name` and `query` fields are mutually exclusive.
+Projected tables are translated internally into virtual tables.
 
 The `user_id` field is the name of the column that uniquely identifies users - the people or entities whose anonymity should be preserved.
-
-Finally, `ignore_unsupported_types` specifies how to handle columns with unsupported types. If the value is `true`, the cloak will ignore such columns. If this value is `false`, the cloak will refuse to start if there are one or more columns of an unsupported data type.
 
 #### Projected tables
 
