@@ -44,23 +44,23 @@ defmodule AircloakCI.Build.PullRequest do
 
   @impl Build.Server
   def init(nil, state) do
-    :timer.send_interval(:timer.seconds(5), self(), :report_mergeable)
-    {:ok, report_mergeable(%{state | data: %{mergeable_info: nil}})}
+    :timer.send_interval(:timer.seconds(5), self(), :report_status)
+    {:ok, report_status(%{state | data: %{mergeable_info: nil}})}
   end
 
   @impl Build.Server
   def handle_source_change(state) do
-    {:noreply, state |> start_next_jobs() |> report_mergeable()}
+    {:noreply, state |> start_next_jobs() |> report_status()}
   end
 
   @impl Build.Server
-  def handle_job_succeeded(_job_name, state), do: {:noreply, state |> start_next_jobs() |> report_mergeable()}
+  def handle_job_succeeded(_job_name, state), do: {:noreply, state |> start_next_jobs() |> report_status()}
 
   @impl Build.Server
-  def handle_job_failed(_job, _reason, state), do: {:noreply, report_mergeable(state)}
+  def handle_job_failed(_job, _reason, state), do: {:noreply, report_status(state)}
 
   @impl Build.Server
-  def handle_info(:report_mergeable, state), do: {:noreply, report_mergeable(state)}
+  def handle_info(:report_status, state), do: {:noreply, report_status(state)}
   def handle_info(other, state), do: super(other, state)
 
   # -------------------------------------------------------------------
@@ -86,6 +86,31 @@ defmodule AircloakCI.Build.PullRequest do
       else: state
   end
 
+  defp report_status(state) do
+    if state.prepared?, do: report_standard_tests(state)
+    report_mergeable(state)
+  end
+
+  defp report_standard_tests(state) do
+    {status, _reason} =
+      with :ok <- check_mergeable(state),
+           :ok <- check_standard_tests(state),
+           do: {:success, nil}
+
+    if LocalProject.job_outcome(state.project, "report_standard_tests") != status do
+      if status == :success do
+        Github.comment_on_issue(
+          state.source.repo.owner,
+          state.source.repo.name,
+          state.source.number,
+          "Standard tests have passed #{AircloakCI.Emoji.happy()}"
+        )
+      end
+
+      LocalProject.set_job_outcome(state.project, "report_standard_tests", status)
+    end
+  end
+
   defp report_mergeable(state) do
     {status, message} =
       with :ok <- check_mergeable(state),
@@ -95,13 +120,11 @@ defmodule AircloakCI.Build.PullRequest do
            do: {:success, "pull request can be merged"}
 
     if status == :success and not LocalProject.finished?(state.project, "report_mergeable") do
-      merge_message = "Pull request can be merged #{AircloakCI.Emoji.happy()}"
-
       Github.comment_on_issue(
         state.source.repo.owner,
         state.source.repo.name,
         state.source.number,
-        merge_message
+        "Pull request can be merged #{AircloakCI.Emoji.happy()}"
       )
 
       LocalProject.set_job_outcome(state.project, "report_mergeable", :ok)

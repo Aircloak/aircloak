@@ -6,6 +6,9 @@ defmodule AircloakCI.PullRequestTest do
     repo_data = add_pr(repo_data, pr)
     AircloakCI.Build.PullRequest.ensure_started(pr, repo_data)
 
+    assert_pr_comment(pr, %{body: comment_body})
+    assert comment_body =~ ~r/Standard tests have passed/
+
     assert_posted_status(pr, "mergeable", %{
       state: :success,
       description: "pull request can be merged"
@@ -97,7 +100,7 @@ defmodule AircloakCI.PullRequestTest do
     end)
 
     assert successful_jobs(pr) == ["cloak_compile", "cloak_test", "prepare"]
-    assert failed_jobs(pr) == ["air_compile"]
+    assert failed_jobs(pr) == ["air_compile", "report_standard_tests"]
 
     assert_posted_status(pr, "mergeable", %{state: :error, description: "air_compile failed"})
     assert_pr_comment(pr, %{body: comment_body})
@@ -115,7 +118,7 @@ defmodule AircloakCI.PullRequestTest do
     end)
 
     assert successful_jobs(pr) == ["air_compile", "cloak_compile", "cloak_test", "prepare"]
-    assert failed_jobs(pr) == ["air_test"]
+    assert failed_jobs(pr) == ["air_test", "report_standard_tests"]
 
     assert_posted_status(pr, "mergeable", %{state: :error, description: "air_test failed"})
     assert_pr_comment(pr, %{body: comment_body})
