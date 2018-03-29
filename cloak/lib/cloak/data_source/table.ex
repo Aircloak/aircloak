@@ -124,9 +124,9 @@ defmodule Cloak.DataSource.Table do
       try do
         parsed_query
         |> Map.put(:virtual_table?, true)
-        |> Compiler.Specification.compile(data_source, nil, %{})
-        |> drop_duplicate_columns()
         |> Map.put(:subquery?, true)
+        |> Compiler.compile_raw!(data_source)
+        |> drop_duplicate_columns()
       rescue
         error in CompilationError ->
           reason = Exception.message(error)
@@ -141,6 +141,7 @@ defmodule Cloak.DataSource.Table do
       |> Enum.map(fn {title, column} -> %{name: title, type: column.type, visible?: true} end)
 
     table = new(to_string(name), user_id, query: compiled_query, columns: columns)
+    verify_columns(data_source, table)
     {name, table}
   end
 

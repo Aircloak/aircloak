@@ -151,7 +151,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       })
     end
 
-    @tag pending: "mysterious indexing error"
     test "count(<column>)" do
       assert_query(
         "select avg(v) from #{@vt}",
@@ -181,7 +180,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "where function" do
       assert_query(
         "select avg(v) from #{@vt}",
@@ -193,7 +191,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "having inequality" do
       :ok = insert_rows(_user_ids = 1..10, "#{@emulated_insert}", ["number"], [3])
       :ok = insert_rows(_user_ids = 11..20, "#{@emulated_insert}", ["number"], [7])
@@ -209,7 +206,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "nested having inequality" do
       :ok = insert_rows(_user_ids = 1..10, "#{@emulated_insert}", ["number"], [3])
       :ok = insert_rows(_user_ids = 11..20, "#{@emulated_insert}", ["number"], [7])
@@ -227,7 +223,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "where inequality" do
       assert_query(
         "select sum(c) from #{@vt}",
@@ -240,7 +235,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "nested where inequality" do
       assert_query(
         "select sum(c) from #{@vt}",
@@ -255,7 +249,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "having equality" do
       assert_query(
         "select avg(v) from #{@vt}",
@@ -267,7 +260,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "avg" do
       assert_query(
         "select round(avg(v)) from #{@vt}",
@@ -278,7 +270,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "stddev" do
       :ok =
         insert_rows(_user_ids = 21..21, "#{@emulated_insert}", ["value"], [
@@ -294,7 +285,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "min/max/median with numbers" do
       assert_query(
         "select * from #{@vt}",
@@ -306,7 +296,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "min over text is incorrectly disallowed in virtual tables"
     test "min/max/median with text" do
       assert_query(
         "select * from #{@vt}",
@@ -318,7 +307,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "min/max/median with date" do
       assert_query(
         "select * from #{@vt}",
@@ -378,7 +366,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       :ok = insert_rows(_user_ids = 1..20, "#{@emulated_insert}", ["value", "date"], [nil, nil])
     end
 
-    @tag pending: "mysterious indexing error"
     test "count(distinct value)",
       do:
         assert_query(
@@ -390,7 +377,6 @@ defmodule Cloak.Query.DBEmulatorTest do
           %{rows: [%{occurrences: 1, row: [5.0]}]}
         )
 
-    @tag pending: "mysterious indexing error"
     test "count(distinct length(value))",
       do:
         assert_query(
@@ -401,7 +387,6 @@ defmodule Cloak.Query.DBEmulatorTest do
           %{rows: [%{occurrences: 1, row: [4.0]}]}
         )
 
-    @tag pending: "select distinct doesn't seem to work in virtual table"
     test "select distinct",
       do:
         assert_query(
@@ -410,7 +395,7 @@ defmodule Cloak.Query.DBEmulatorTest do
           %{
             rows: [
               %{occurrences: 20, row: [1]},
-              %{occurrences: 20, row: [3]},
+              %{occurrences: 40, row: [3]},
               %{occurrences: 20, row: [4]},
               %{occurrences: 20, row: [5]},
               %{occurrences: 20, row: [nil]}
@@ -418,7 +403,6 @@ defmodule Cloak.Query.DBEmulatorTest do
           }
         )
 
-    @tag pending: "mysterious indexing error"
     test "avg(distinct)",
       do:
         assert_query(
@@ -429,7 +413,6 @@ defmodule Cloak.Query.DBEmulatorTest do
           %{rows: [%{occurrences: 1, row: [3.25]}]}
         )
 
-    @tag pending: "min over text is incorrectly disallowed in virtual tables"
     test "distinct min/max/median with text" do
       assert_query(
         "select * from #{@vt}",
@@ -442,7 +425,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "distinct min/max/median with date" do
       assert_query(
         "select * from #{@vt}",
@@ -516,11 +498,10 @@ defmodule Cloak.Query.DBEmulatorTest do
           %{rows: [%{occurrences: 10, row: ["a b c"]}, %{occurrences: 5, row: [nil]}]}
         )
 
-    @tag pending: "crash in Validation.verify_all_uid_columns_are_compared_in_joins"
     test "join with a row splitter function" do
       assert_query(
-        "select extract_words(value) from #{@joined} inner join #{@vt} on user_id = uid",
-        "select user_id as uid, dec_b64(value) as value from #{@emulated}",
+        "select extract_words(value) from #{@joined} as t1 inner join #{@vt} as t2 on t1.user_id = t2.user_id",
+        "select user_id, dec_b64(value) as value from #{@emulated}",
         %{rows: rows}
       )
 
@@ -546,7 +527,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "mysterious indexing error"
     test "nested where inequality" do
       :ok = insert_rows(_user_ids = 21..25, "#{@emulated_insert}", ["number"], [3])
 
@@ -672,11 +652,10 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "crash in Validation.verify_all_uid_columns_are_compared_in_joins"
     test "join" do
       assert_query(
-        "select aGe, vaLue from #{@joined} inner join #{@vt} on uSer_Id = uId",
-        "select user_Id as Uid, dec_b64(value) as Value from #{@emulated} group by User_id, vAlUe",
+        "select aGe, vaLue from #{@joined} as t1 inner join #{@vt} as t2 on t1.uSer_Id = t2.user_Id",
+        "select user_Id as user_id, dec_b64(value) as Value from #{@emulated} group by User_id, vAlUe",
         %{rows: [%{occurrences: 10, row: [30, "abc"]}]}
       )
     end

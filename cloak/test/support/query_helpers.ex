@@ -85,7 +85,24 @@ defmodule Cloak.Test.QueryHelpers do
     Cloak.Test.DB.add_users_data(table, columns, [[nil | values]])
   end
 
-  def scrub_data_sources(query), do: put_in(query, [Query.Lenses.all_queries() |> Lens.key(:data_source)], nil)
+  defp only_structs_lens(root), do: Lens.filter(root, &is_map/1)
+
+  defp tables_lens(),
+    do:
+      Lens.both(
+        Lens.key(:selected_tables) |> Lens.all(),
+        Query.Lenses.query_expressions() |> Lens.key(:table) |> only_structs_lens()
+      )
+
+  defp virtual_queries_lens(), do: tables_lens() |> Lens.key(:query) |> only_structs_lens()
+
+  defp data_sources_lens(query_lens),
+    do:
+      query_lens
+      |> Lens.both(Lens.root(), virtual_queries_lens())
+      |> Lens.key(:data_source)
+
+  def scrub_data_sources(query), do: put_in(query, [Query.Lenses.all_queries() |> data_sources_lens()], nil)
 
   def scrub_locations(ast),
     do:

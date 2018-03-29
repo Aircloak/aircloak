@@ -51,6 +51,17 @@ defmodule Cloak.Sql.Compiler do
     {final_query, %{features | emulated: final_query.emulated?}}
   end
 
+  @doc "Prepares the parsed SQL query for direct (non-anonymized) execution."
+  @spec compile_raw!(Parser.parsed_query(), DataSource.t()) :: Query.t()
+  def compile_raw!(parsed_query, data_source),
+    do:
+      parsed_query
+      |> Compiler.Specification.compile(data_source, nil, %{})
+      |> Compiler.Normalization.remove_noops()
+      |> Compiler.Optimizer.optimize()
+      |> Compiler.Execution.prepare_raw()
+      |> Compiler.Normalization.normalize()
+
   @doc "Validates a user-defined view."
   @spec validate_view(DataSource.t(), Parser.parsed_query(), Query.view_map()) :: :ok | {:error, String.t()}
   def validate_view(data_source, parsed_query, views),
