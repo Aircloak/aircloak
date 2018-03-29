@@ -3,6 +3,7 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   @type ast :: {atom, any, [ast]}
 
+  import StreamData
   alias Cloak.DataSource.Table
 
   # -------------------------------------------------------------------
@@ -115,8 +116,8 @@ defmodule Cloak.Compliance.QueryGenerator do
       [
         fn -> generate_between(tables) end,
         fn -> generate_conjunction(fn -> generate_simple_condition(tables) end) end,
-        fn -> generate_disjunction(fn -> generate_simple_condition(tables) end) end
-        | Enum.map([:=, :<>, :<, :>], &generate_comparison(tables, &1))
+        fn -> generate_disjunction(fn -> generate_simple_condition(tables) end) end,
+        fn -> generate_comparison(tables) end
       ]
       |> random_option()
 
@@ -127,65 +128,101 @@ defmodule Cloak.Compliance.QueryGenerator do
         fn -> generate_conjunction(fn -> generate_condition(tables) end) end,
         fn -> generate_disjunction(fn -> generate_condition(tables) end) end,
         fn -> generate_like(tables) end,
-        fn -> generate_in(tables) end
-        | Enum.map([:=, :<>, :<, :>], &generate_comparison(tables, &1))
+        fn -> generate_in(tables) end,
+        fn -> generate_comparison(tables) end
       ]
       |> random_option()
 
-  defp generate_in(tables) do
-    {column, table} = random_column(tables)
-    type = Enum.random([:in, :not_in])
-    {type, nil, [column_expression(column, table), generate_in_set(column.type)]}
-  end
+  defp generate_in(tables), do: in_expression(tables) |> Enum.at(0)
 
-  defp generate_in_set(type), do: {:in_set, nil, many1(fn -> generate_value(type) end)}
+  defp in_expression(tables),
+    do:
+      tables
+      |> column()
+      |> bind(fn {column, table} ->
+        tuple({
+          member_of([:in, :not_in]),
+          constant(nil),
+          fixed_list([constant(column_expression(column, table)), in_set(column.type)])
+        })
+      end)
 
-  defp generate_like(tables) do
-    type = Enum.random([:like, :ilike, :not_like, :not_ilike])
-    {type, nil, [generate_column(tables), generate_value(:like_pattern)]}
-  end
+  defp in_set(type), do: type |> value() |> list_of() |> nonempty() |> map(&{:in_set, nil, &1})
+
+  defp generate_like(tables), do: tables |> like() |> Enum.at(0)
+
+  defp like(tables),
+    do:
+      tuple({
+        member_of([:like, :ilike, :not_like, :not_ilike]),
+        constant(nil),
+        fixed_list([column_expression(tables), value(:like_pattern)])
+      })
 
   defp generate_disjunction(generator), do: {:or, nil, [generator.(), generator.()]}
 
   defp generate_conjunction(generator), do: {:and, nil, [generator.(), generator.()]}
 
-  defp generate_comparison(tables, type) do
-    fn ->
-      {column, table} = random_column(tables)
-      value = generate_value(column.type)
-      {type, nil, [column_expression(column, table), value]}
-    end
-  end
+  defp generate_comparison(tables), do: comparison(tables) |> Enum.at(0)
 
-  defp generate_between(tables) do
-    {column, table} = random_column(tables)
-
-    {:between, nil, [column_expression(column, table), generate_value(column.type), generate_value(column.type)]}
-  end
-
-  defp generate_value(:any), do: [:boolean, :integer, :real, :text, :datetime] |> Enum.random() |> generate_value()
-
-  defp generate_value(:boolean), do: {:boolean, [true, false] |> Enum.random(), []}
-  defp generate_value(:integer), do: {:integer, :rand.uniform(1000), []}
-  defp generate_value(:real), do: {:real, random_float(), []}
-  defp generate_value(:text), do: {:text, random_text(), []}
-
-  defp generate_value(:datetime),
+  defp comparison(tables),
     do:
-      {:datetime,
-       %NaiveDateTime{
-         year: :rand.uniform(100) + 1950,
-         month: :rand.uniform(12),
-         day: :rand.uniform(28),
-         hour: :rand.uniform(24) - 1,
-         minute: :rand.uniform(60) - 1,
-         second: :rand.uniform(60) - 1
-       }, []}
+      tables
+      |> column()
+      |> bind(fn {column, table} ->
+        tuple({
+          member_of([:=, :<>, :<, :>]),
+          constant(nil),
+          fixed_list([constant(column_expression(column, table)), value(column.type)])
+        })
+      end)
 
-  @like_characters [?% | Enum.to_list(?A..?z)]
-  defp generate_value(:like_pattern), do: {:like_pattern, random_text(@like_characters), [optional(&like_escape/0)]}
+  defp generate_between(tables), do: between(tables) |> Enum.at(0)
 
-  defp like_escape(), do: {:like_escape, [Enum.random(@like_characters)], []}
+  defp between(tables),
+    do:
+      tables
+      |> column()
+      |> bind(fn {column, table} ->
+        tuple({
+          constant(:between),
+          constant(nil),
+          fixed_list([constant(column_expression(column, table)), value(column.type), value(column.type)])
+        })
+      end)
+
+  defp value(:any), do: [:boolean, :integer, :real, :text, :datetime] |> member_of() |> bind(&value/1)
+  defp value(:boolean), do: map(boolean(), &{:boolean, &1, []})
+  defp value(:integer), do: map(integer(), &{:integer, &1, []})
+  defp value(:real), do: map(float(), &{:real, &1, []})
+
+  defp value(:text), do: string(:ascii) |> filter(&(not String.contains?(&1, "'"))) |> map(&{:text, &1, []})
+
+  defp value(:datetime),
+    do:
+      fixed_map(%{
+        year: integer(1950..2050),
+        month: integer(1..12),
+        day: integer(1..28),
+        hour: integer(0..23),
+        minute: integer(0..59),
+        second: integer(0..59)
+      })
+      |> map(&{:datetime, struct(NaiveDateTime, &1), []})
+
+  defp value(:like_pattern),
+    do:
+      like_escape()
+      |> bind(fn escape ->
+        map(string(:ascii), &{:like_pattern, &1, [escape]})
+      end)
+
+  defp like_escape(),
+    do:
+      one_of([
+        constant(empty()),
+        map(string(:ascii, length: 1), &{:like_escape, [&1], []})
+      ])
 
   defp generate_select(tables) do
     {select_list, info} = tables |> generate_select_list() |> Enum.unzip()
@@ -225,41 +262,60 @@ defmodule Cloak.Compliance.QueryGenerator do
     abs btrim ceil concat date_trunc day extract_words floor hash hex hour left length lower ltrim minute month quarter
     right round rtrim second sqrt trunc upper weekday year
   )
-  defp generate_function_with_info(tables) do
-    function = Enum.random(@functions)
+  defp generate_function_with_info(tables), do: function_with_info(tables) |> Enum.at(0)
 
-    arity =
-      {:function, function, [], nil}
-      |> Cloak.Sql.Function.argument_types()
-      |> Enum.random()
-      |> length()
+  defp function_with_info(tables),
+    do:
+      @functions
+      |> member_of()
+      |> map(fn function ->
+        arity =
+          {:function, function, [], nil}
+          |> Cloak.Sql.Function.argument_types()
+          |> Enum.random()
+          |> length()
 
-    {{:function, function, Enum.map(1..arity, fn _ -> generate_unaliased_expression(tables) end)}, {:any, function}}
-  end
+        {{:function, function, Enum.map(1..arity, fn _ -> generate_unaliased_expression(tables) end)}, {:any, function}}
+      end)
 
   @aggregates ~w(count avg min max stddev count_noise avg_noise stddev_noise)
-  defp generate_aggregate_with_info(tables) do
+  defp generate_aggregate_with_info(tables), do: aggregate_with_info(tables) |> Enum.at(0)
+
+  defp aggregate_with_info(tables) do
     {aggregated, {type, _}} = generate_unaliased_expression_with_info(tables)
 
-    aggregate = Enum.random(@aggregates)
-    {{:function, aggregate, [aggregated]}, {aggregate_type(aggregate, type), aggregate}}
+    @aggregates
+    |> member_of()
+    |> map(fn aggregate ->
+      {{:function, aggregate, [aggregated]}, {aggregate_type(aggregate, type), aggregate}}
+    end)
   end
 
   defp aggregate_type(aggregate, type) when aggregate in ~w(min max), do: type
   defp aggregate_type(aggregate, _) when aggregate in ~w(count count_noise), do: :integer
   defp aggregate_type(_, _), do: :real
 
-  defp generate_column(tables) do
-    {column, _} = generate_column_with_info(tables)
-    column
-  end
+  defp generate_column(tables), do: column_expression(tables) |> Enum.at(0)
 
-  defp generate_column_with_info(tables) do
-    {column, table} = random_column(tables)
-    {column_expression(column, table), {column.type, column.name}}
-  end
+  defp generate_column_with_info(tables), do: column_with_info(tables) |> Enum.at(0)
+
+  defp column_with_info(tables),
+    do:
+      tables
+      |> column()
+      |> map(fn {column, table} ->
+        {column_expression(column, table), {column.type, column.name}}
+      end)
 
   defp column_expression(column, table), do: {:column, {column.name, table.name}, []}
+
+  defp column_expression(tables),
+    do:
+      tables
+      |> column()
+      |> map(fn {column, table} ->
+        column_expression(column, table)
+      end)
 
   # -------------------------------------------------------------------
   # Helpers
@@ -281,9 +337,9 @@ defmodule Cloak.Compliance.QueryGenerator do
       ]
       |> random_option()
 
-  defp random_option(options), do: Enum.random(options).()
+  defp empty(), do: {:empty, nil, []}
 
-  defp random_float(), do: (1 - 2 * :rand.uniform()) * :math.pow(10, :rand.uniform(3))
+  defp random_option(options), do: Enum.random(options).()
 
   @keywords ~w(in is as on or by from select)
   defp random_name() do
@@ -296,14 +352,16 @@ defmodule Cloak.Compliance.QueryGenerator do
     end
   end
 
-  defp random_text(allowed_chars \\ ?A..?z) do
+  defp random_text(allowed_chars) do
     len = :rand.uniform(10)
     1..len |> Enum.map(fn _ -> Enum.random(allowed_chars) end)
   end
 
-  defp random_column(tables) do
-    table = Enum.random(tables)
-    column = Enum.random(table.columns)
-    {column, table}
+  defp column(tables) do
+    tables
+    |> member_of()
+    |> bind(fn table ->
+      tuple({member_of(table.columns), constant(table)})
+    end)
   end
 end
