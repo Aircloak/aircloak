@@ -485,7 +485,6 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
-    @tag pending: "selecting count(*) produces 15, while selecting v produces a total of 10 rows"
     test "right join",
       do:
         assert_query(
@@ -493,6 +492,7 @@ defmodule Cloak.Query.DBEmulatorTest do
           select v from
             #{@vt} right join #{@joined}
             on #{@vt}.user_id = #{@joined}.user_id
+            order by 1
           """,
           "select user_id, dec_b64(value) as v from #{@emulated}",
           %{rows: [%{occurrences: 10, row: ["a b c"]}, %{occurrences: 5, row: [nil]}]}

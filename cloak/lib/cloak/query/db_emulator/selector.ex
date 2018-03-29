@@ -62,7 +62,8 @@ defmodule Cloak.Query.DbEmulator.Selector do
   defp update_row_index(column = %{function?: true, function_args: function_args}, source),
     do: %Expression{
       column
-      | function_args: Enum.map(function_args, &update_row_index(&1, source))
+      | row_index: nil,
+        function_args: Enum.map(function_args, &update_row_index(&1, source))
     }
 
   defp update_row_index(column, from), do: %Expression{column | row_index: index_in_from(column, from)}
