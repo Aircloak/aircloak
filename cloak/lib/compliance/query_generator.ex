@@ -63,7 +63,7 @@ defmodule Cloak.Compliance.QueryGenerator do
     name = random_name()
     {ast, info} = generate_ast_with_info(tables)
 
-    {generate_as({:subquery, nil, [ast]}, name), [table_from_ast_info(name, info)]}
+    {as_expression({:subquery, nil, [ast]}, name), [table_from_ast_info(name, info)]}
   end
 
   defp generate_from_join(tables) do
@@ -85,7 +85,7 @@ defmodule Cloak.Compliance.QueryGenerator do
     {table_ast, [table_info]} = generate_from_table(tables)
     alias = random_name()
 
-    {generate_as(table_ast, alias), [%{table_info | name: alias}]}
+    {as_expression(table_ast, alias), [%{table_info | name: alias}]}
   end
 
   defp generate_from_table(tables) do
@@ -93,7 +93,7 @@ defmodule Cloak.Compliance.QueryGenerator do
     {{:table, table.name, []}, [table]}
   end
 
-  defp generate_as(object, name), do: {:as, name, [object]}
+  defp as_expression(object, name), do: {:as, name, [object]}
 
   defp generate_on(tables), do: {:on, nil, [generate_condition(tables)]}
 
@@ -224,27 +224,34 @@ defmodule Cloak.Compliance.QueryGenerator do
         map(string(:ascii, length: 1), &{:like_escape, [&1], []})
       ])
 
-  defp generate_select(tables) do
-    {select_list, info} = tables |> generate_select_list() |> Enum.unzip()
-    {{:select, nil, select_list}, info}
-  end
+  defp generate_select(tables), do: select(tables) |> Enum.at(0)
 
-  defp generate_select_list(tables), do: many1(fn -> generate_expression_with_info(tables) end)
-
-  defp generate_expression_with_info(tables),
+  defp select(tables),
     do:
-      random_option([
-        fn -> generate_unaliased_expression_with_info(tables) end,
-        fn -> generate_aliased_expression_with_info(tables) end
-      ])
+      tables
+      |> select_list()
+      |> map(fn items ->
+        {select_list, info} = Enum.unzip(items)
+        {{:select, nil, select_list}, info}
+      end)
 
-  defp generate_aliased_expression_with_info(tables) do
-    {column, {table, _}} = generate_unaliased_expression_with_info(tables)
-    alias = random_name()
-    {generate_as(column, alias), {table, alias}}
-  end
+  defp select_list(tables),
+    do:
+      tables
+      |> expression_with_info()
+      |> list_of()
+      |> nonempty()
 
-  defp generate_unaliased_expression_with_info(tables), do: unaliased_expression_with_info(tables) |> Enum.at(0)
+  defp expression_with_info(tables),
+    do: one_of([aliased_expression_with_info(tables), unaliased_expression_with_info(tables)])
+
+  defp aliased_expression_with_info(tables),
+    do:
+      tables
+      |> unaliased_expression_with_info()
+      |> bind(fn {expression, {type, _name}} ->
+        map(name(), fn name -> {as_expression(expression, name), {type, name}} end)
+      end)
 
   defp unaliased_expression_with_info(tables), do: tree(column_with_info(tables), &function_with_info/1)
 
@@ -312,20 +319,9 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp random_option(options), do: Enum.random(options).()
 
   @keywords ~w(in is as on or by from select)
-  defp random_name() do
-    name = random_text(?a..?z) |> to_string()
+  defp random_name(), do: name() |> Enum.at(0)
 
-    if name in @keywords do
-      random_name()
-    else
-      name
-    end
-  end
-
-  defp random_text(allowed_chars) do
-    len = :rand.uniform(10)
-    1..len |> Enum.map(fn _ -> Enum.random(allowed_chars) end)
-  end
+  defp name(), do: string(?a..?z, min_length: 1) |> filter(&(not (&1 in @keywords)))
 
   defp column(tables) do
     tables
