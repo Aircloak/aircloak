@@ -59,43 +59,50 @@ defmodule Cloak.Compliance.QueryGenerator do
       ]
       |> random_option()
 
-  defp generate_from_subquery(tables) do
-    name = random_name()
-    {ast, info} = generate_ast_with_info(tables)
+  defp generate_from_subquery(tables), do: from_subquery(tables) |> Enum.at(0)
 
-    {as_expression({:subquery, nil, [ast]}, name), [table_from_ast_info(name, info)]}
-  end
-
-  defp generate_from_join(tables) do
-    {lhs, lhs_tables} = generate_join_element(tables)
-    {rhs, rhs_tables} = generate_join_element(tables)
-    tables = lhs_tables ++ rhs_tables
-    {{:join, nil, [lhs, rhs, generate_on(tables)]}, tables}
-  end
-
-  defp generate_join_element(tables),
+  defp from_subquery(tables),
     do:
-      [
-        fn -> generate_aliased_table(tables) end,
-        fn -> generate_from_subquery(tables) end
-      ]
-      |> random_option()
+      map(name(), fn name ->
+        {ast, info} = generate_ast_with_info(tables)
+        {as_expression({:subquery, nil, [ast]}, name), [table_from_ast_info(name, info)]}
+      end)
 
-  defp generate_aliased_table(tables) do
-    {table_ast, [table_info]} = generate_from_table(tables)
-    alias = random_name()
+  defp generate_from_join(tables), do: from_join(tables) |> Enum.at(0)
 
-    {as_expression(table_ast, alias), [%{table_info | name: alias}]}
-  end
+  defp from_join(tables),
+    do:
+      tables
+      |> join_element()
+      |> tree(fn child_data ->
+        bind(child_data, fn {lhs, lhs_tables} ->
+          bind(child_data, fn {rhs, rhs_tables} ->
+            tables = lhs_tables ++ rhs_tables
+            {{:join, nil, fixed_list([constant(lhs), constant(rhs), on_expression(tables)])}, constant(tables)}
+          end)
+        end)
+      end)
 
-  defp generate_from_table(tables) do
-    table = Enum.random(tables)
-    {{:table, table.name, []}, [table]}
-  end
+  defp join_element(tables), do: one_of([aliased_table(tables), from_subquery(tables)])
+
+  defp aliased_table(tables),
+    do:
+      name()
+      |> bind(fn alias ->
+        tables
+        |> table()
+        |> map(fn {table_ast, [table_info]} ->
+          {as_expression(table_ast, alias), [%{table_info | name: alias}]}
+        end)
+      end)
+
+  defp generate_from_table(tables), do: table(tables) |> Enum.at(0)
+
+  defp table(tables), do: tables |> member_of() |> map(&{{:table, &1.name, []}, [&1]})
 
   defp as_expression(object, name), do: {:as, name, [object]}
 
-  defp generate_on(tables), do: {:on, nil, [generate_condition(tables)]}
+  defp on_expression(tables), do: tables |> condition() |> map(&{:on, nil, [&1]})
 
   defp table_from_ast_info(name, ast_info),
     do: %{
@@ -103,37 +110,31 @@ defmodule Cloak.Compliance.QueryGenerator do
       columns: Enum.map(ast_info, fn {type, name} -> %{name: name, type: type} end)
     }
 
-  defp generate_where(tables), do: {:where, nil, [generate_condition(tables)]}
+  defp generate_where(tables), do: where(tables) |> Enum.at(0)
+
+  defp where(tables), do: tables |> condition() |> map(&{:where, nil, [&1]})
 
   defp generate_group_by(tables), do: group_by(tables) |> Enum.at(0)
 
   defp group_by(tables), do: tables |> column_expression() |> list_of() |> nonempty() |> map(&{:group_by, nil, &1})
 
-  defp generate_having(tables), do: {:having, nil, [generate_simple_condition(tables)]}
+  defp generate_having(tables), do: having(tables) |> Enum.at(0)
 
-  defp generate_simple_condition(tables),
+  defp having(tables), do: tables |> simple_condition() |> map(&{:having, nil, [&1]})
+
+  defp simple_condition(tables),
     do:
-      [
-        fn -> generate_between(tables) end,
-        fn -> generate_conjunction(fn -> generate_simple_condition(tables) end) end,
-        fn -> generate_disjunction(fn -> generate_simple_condition(tables) end) end,
-        fn -> generate_comparison(tables) end
-      ]
-      |> random_option()
+      [between(tables), comparison(tables)]
+      |> one_of()
+      |> tree(&logical_condition/1)
 
-  defp generate_condition(tables),
+  defp condition(tables),
     do:
-      [
-        fn -> generate_between(tables) end,
-        fn -> generate_conjunction(fn -> generate_condition(tables) end) end,
-        fn -> generate_disjunction(fn -> generate_condition(tables) end) end,
-        fn -> generate_like(tables) end,
-        fn -> generate_in(tables) end,
-        fn -> generate_comparison(tables) end
-      ]
-      |> random_option()
+      [between(tables), like(tables), in_expression(tables), comparison(tables)]
+      |> one_of()
+      |> tree(&logical_condition/1)
 
-  defp generate_in(tables), do: in_expression(tables) |> Enum.at(0)
+  defp logical_condition(child_data), do: {member_of([:and, :or]), nil, fixed_list([child_data, child_data])}
 
   defp in_expression(tables),
     do:
@@ -149,8 +150,6 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp in_set(type), do: type |> value() |> list_of() |> nonempty() |> map(&{:in_set, nil, &1})
 
-  defp generate_like(tables), do: tables |> like() |> Enum.at(0)
-
   defp like(tables),
     do:
       tuple({
@@ -158,12 +157,6 @@ defmodule Cloak.Compliance.QueryGenerator do
         constant(nil),
         fixed_list([column_expression(tables), value(:like_pattern)])
       })
-
-  defp generate_disjunction(generator), do: {:or, nil, [generator.(), generator.()]}
-
-  defp generate_conjunction(generator), do: {:and, nil, [generator.(), generator.()]}
-
-  defp generate_comparison(tables), do: comparison(tables) |> Enum.at(0)
 
   defp comparison(tables),
     do:
@@ -176,8 +169,6 @@ defmodule Cloak.Compliance.QueryGenerator do
           fixed_list([constant(column_expression(column, table)), value(column.type)])
         })
       end)
-
-  defp generate_between(tables), do: between(tables) |> Enum.at(0)
 
   defp between(tables),
     do:
@@ -309,8 +300,6 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp random_option(options), do: Enum.random(options).()
 
   @keywords ~w(in is as on or by from select)
-  defp random_name(), do: name() |> Enum.at(0)
-
   defp name(), do: string(?a..?z, min_length: 1) |> filter(&(not (&1 in @keywords)))
 
   defp column(tables) do
