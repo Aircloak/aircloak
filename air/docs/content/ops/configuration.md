@@ -198,6 +198,8 @@ The database tables that should be made available for querying are defined in th
 
 Each `table_name_x` key specifies the name the table will be available under when querying the data source through Aircloak.
 
+The `user_id` field is the name of the column that uniquely identifies users - the people or entities whose anonymity should be preserved.
+
 The `db_name` is the name of the table in the underlying database. In most situations you can use the same name
 (in which case the field can be omitted), but the distinction allows some special scenarios, such as exposing
 a table under a simpler name, or exposing the same database table multiple times under different names.
@@ -218,9 +220,6 @@ table_name: {
 ```
 
 The `db_name` and `query` fields are mutually exclusive.
-Projected tables are translated internally into virtual tables.
-
-The `user_id` field is the name of the column that uniquely identifies users - the people or entities whose anonymity should be preserved.
 
 #### Projected tables
 
@@ -278,6 +277,8 @@ a `uuid` column uniquely identifying a purchase. Unless otherwise specified, the
 
 Given the above configuration a column named `user_id` would be added to the `purchases` table, rather than a column
 called `uuid`.
+
+Projected tables are translated internally into virtual tables.
 
 #### Table sample rate (only for MongoDb)
 
