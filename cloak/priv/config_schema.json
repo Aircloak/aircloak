@@ -11,7 +11,21 @@
     },
     "debug": {"type": "boolean"},
     "features": {"$comment": "allowed for backward compatibility"},
-    "air_socket_url": {"$comment": "allowed for backward compatibility"}
+    "air_socket_url": {"$comment": "allowed for backward compatibility"},
+    "aes_key": {"type": "string", "minLength": 1},
+    "concurrency": {"type": "integer", "minimum": 0},
+    "sanitize_otp_errors": {"type": "boolean"},
+    "memory_limits": {
+      "type": "object",
+      "properties": {
+        "check_interval": {"type": "integer", "minimum": 1},
+        "limit_to_start_checks": {"type": "integer", "minimum": 1},
+        "limit_to_check_for": {"type": "integer", "minimum": 1},
+        "allowed_minimum_time_to_limit": {"type": "integer", "minimum": 1},
+        "time_between_abortions": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    }
   },
   "additionalProperties": false,
   "required": ["air_site", "salt", "data_sources"]

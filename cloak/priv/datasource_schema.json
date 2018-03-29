@@ -5,7 +5,8 @@
     "marker": {"type": "string", "minLength": 1, "$comment": "allowed for backward compatibility"},
     "driver": {"type": "string", "minLength": 1},
     "parameters": {"$ref": "#/definitions/parameters"},
-    "tables": {"type": "object", "patternProperties": {"^.*$": {"$ref": "#/definitions/table"}}}
+    "tables": {"type": "object", "patternProperties": {"^.*$": {"$ref": "#/definitions/table"}}},
+    "concurrency": {"type": "integer", "minimum": 0}
   },
   "additionalProperties": false,
   "required": ["name", "driver", "parameters", "tables"],

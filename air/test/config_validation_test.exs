@@ -16,7 +16,10 @@ defmodule Air.ConfigValidationTest do
   end
 
   test "optional fields are not required" do
-    Enum.each(~w(port ssl password), &refute_missing_field_reported("database/#{&1}"))
+    Enum.each(
+      ~w(port ssl password auto_aircloak_export use_staging_license_key),
+      &refute_missing_field_reported("database/#{&1}")
+    )
 
     Enum.each(
       ~w(certfile keyfile use_staging_license_key),

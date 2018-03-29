@@ -7,7 +7,16 @@ defmodule Cloak.ConfigValidationTest do
     end
 
     test "optional fields are not required" do
-      Enum.each(~w(debug features air_socket_url), &refute_missing_field_reported(&1, config_validator()))
+      Enum.each(
+        ~w(debug features air_socket_url aes_key sanitize_otp_errors concurrency memory_limits),
+        &refute_missing_field_reported(&1, config_validator())
+      )
+
+      Enum.each(
+        ~w(check_interval limit_to_start_checks limit_to_check_for allowed_minimum_time_to_limit
+          time_between_abortions),
+        &refute_missing_field_reported("memory_limits/#{&1}", config_validator())
+      )
     end
 
     test "error on invalid fields" do
@@ -33,7 +42,7 @@ defmodule Cloak.ConfigValidationTest do
     end
 
     test "optional fields are not required" do
-      refute_missing_field_reported("marker", datasource_validator())
+      Enum.each(~w(marker concurrency), &refute_missing_field_reported(&1, datasource_validator()))
 
       Enum.each(
         ~w(port username database password),
