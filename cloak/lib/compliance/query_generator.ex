@@ -172,7 +172,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp value(:integer), do: map(integer(), &{:integer, &1, []})
   defp value(:real), do: map(float(), &{:real, &1, []})
 
-  defp value(:text), do: string(:ascii) |> filter(&(not String.contains?(&1, "'"))) |> map(&{:text, &1, []})
+  defp value(:text), do: string_without_quote() |> filter(&(not String.contains?(&1, "'"))) |> map(&{:text, &1, []})
 
   defp value(:datetime),
     do:
@@ -190,14 +190,14 @@ defmodule Cloak.Compliance.QueryGenerator do
     do:
       like_escape()
       |> bind(fn escape ->
-        map(string(:ascii), &{:like_pattern, &1, [escape]})
+        map(string_without_quote(), &{:like_pattern, &1, [escape]})
       end)
 
   defp like_escape(),
     do:
       one_of([
         constant(empty()),
-        map(string(:ascii, length: 1), &{:like_escape, [&1], []})
+        map(string_without_quote(length: 1), &{:like_escape, [&1], []})
       ])
 
   defp select(tables),
@@ -276,6 +276,8 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   @keywords ~w(in is as on or by from select)
   defp name(), do: string(?a..?z, min_length: 1) |> filter(&(not (&1 in @keywords)))
+
+  defp string_without_quote(opts \\ []), do: string(:ascii, opts) |> filter(&(not String.contains?(&1, "'")))
 
   defp column(tables) do
     tables
