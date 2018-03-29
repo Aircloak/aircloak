@@ -11,11 +11,8 @@ defmodule Cloak.Compliance.QueryGenerator do
   # -------------------------------------------------------------------
 
   @doc "Generates a random AST representing a query into the given tables."
-  @spec generate_ast([Table.t()]) :: ast
-  def generate_ast(tables) do
-    {ast, _} = generate_ast_with_info(tables)
-    ast
-  end
+  @spec ast_generator([Table.t()]) :: Stream.t(ast)
+  def ast_generator(tables), do: tables |> ast_with_info() |> map(fn {ast, _info} -> ast end)
 
   @doc "Generates the SQL query string from the given AST."
   @spec ast_to_sql(ast) :: iolist
@@ -25,50 +22,39 @@ defmodule Cloak.Compliance.QueryGenerator do
   # Generators
   # -------------------------------------------------------------------
 
-  defp generate_ast_with_info(tables) do
-    {from_ast, tables} = generate_from(tables)
-    {select_ast, info} = generate_select(tables)
-
-    ast =
-      {:query, nil,
-       [
-         select_ast,
-         from_ast,
-         optional(fn -> generate_where(tables) end),
-         optional(fn -> generate_group_by(tables) end),
-         optional(fn -> generate_having(tables) end),
-         optional(fn -> generate_sample_users() end)
-       ]}
-
-    {ast, info}
-  end
-
-  defp generate_sample_users(), do: {:sample_users, :rand.uniform(100), []}
-
-  defp generate_from(tables) do
-    {from_ast, tables} = generate_from_expression(tables)
-    {{:from, nil, [from_ast]}, tables}
-  end
-
-  defp generate_from_expression(tables),
+  defp ast_with_info(tables),
     do:
-      [
-        fn -> generate_from_table(tables) end,
-        fn -> generate_from_subquery(tables) end,
-        fn -> generate_from_join(tables) end
-      ]
-      |> random_option()
+      bind(from(tables), fn {from_ast, tables} ->
+        bind(select(tables), fn {select_ast, info} ->
+          {
+            {:query, nil,
+             fixed_list([
+               constant(select_ast),
+               constant(from_ast),
+               tables |> where() |> optional(),
+               tables |> group_by() |> optional(),
+               tables |> having() |> optional(),
+               sample_users() |> optional()
+             ])},
+            constant(info)
+          }
+        end)
+      end)
 
-  defp generate_from_subquery(tables), do: from_subquery(tables) |> Enum.at(0)
+  defp sample_users(), do: float() |> resize(7) |> map(&{:sample_users, &1, []})
+
+  defp from(tables),
+    do: tables |> from_expression() |> map(fn {from_ast, tables} -> {{:from, nil, [from_ast]}, tables} end)
+
+  defp from_expression(tables), do: one_of([from_table(tables), from_subquery(tables), from_join(tables)])
 
   defp from_subquery(tables),
     do:
-      map(name(), fn name ->
-        {ast, info} = generate_ast_with_info(tables)
-        {as_expression({:subquery, nil, [ast]}, name), [table_from_ast_info(name, info)]}
+      bind(name(), fn name ->
+        map(ast_with_info(tables), fn {ast, info} ->
+          {as_expression({:subquery, nil, [ast]}, name), [table_from_ast_info(name, info)]}
+        end)
       end)
-
-  defp generate_from_join(tables), do: from_join(tables) |> Enum.at(0)
 
   defp from_join(tables),
     do:
@@ -90,15 +76,13 @@ defmodule Cloak.Compliance.QueryGenerator do
       name()
       |> bind(fn alias ->
         tables
-        |> table()
+        |> from_table()
         |> map(fn {table_ast, [table_info]} ->
           {as_expression(table_ast, alias), [%{table_info | name: alias}]}
         end)
       end)
 
-  defp generate_from_table(tables), do: table(tables) |> Enum.at(0)
-
-  defp table(tables), do: tables |> member_of() |> map(&{{:table, &1.name, []}, [&1]})
+  defp from_table(tables), do: tables |> member_of() |> map(&{{:table, &1.name, []}, [&1]})
 
   defp as_expression(object, name), do: {:as, name, [object]}
 
@@ -110,15 +94,9 @@ defmodule Cloak.Compliance.QueryGenerator do
       columns: Enum.map(ast_info, fn {type, name} -> %{name: name, type: type} end)
     }
 
-  defp generate_where(tables), do: where(tables) |> Enum.at(0)
-
   defp where(tables), do: tables |> condition() |> map(&{:where, nil, [&1]})
 
-  defp generate_group_by(tables), do: group_by(tables) |> Enum.at(0)
-
   defp group_by(tables), do: tables |> column_expression() |> list_of() |> nonempty() |> map(&{:group_by, nil, &1})
-
-  defp generate_having(tables), do: having(tables) |> Enum.at(0)
 
   defp having(tables), do: tables |> simple_condition() |> map(&{:having, nil, [&1]})
 
@@ -215,8 +193,6 @@ defmodule Cloak.Compliance.QueryGenerator do
         map(string(:ascii, length: 1), &{:like_escape, [&1], []})
       ])
 
-  defp generate_select(tables), do: select(tables) |> Enum.at(0)
-
   defp select(tables),
     do:
       tables
@@ -287,17 +263,9 @@ defmodule Cloak.Compliance.QueryGenerator do
   # Helpers
   # -------------------------------------------------------------------
 
-  defp optional(generator),
-    do:
-      [
-        fn -> {:empty, nil, []} end,
-        generator
-      ]
-      |> random_option()
+  defp optional(data), do: one_of([data, constant(empty())])
 
   defp empty(), do: {:empty, nil, []}
-
-  defp random_option(options), do: Enum.random(options).()
 
   @keywords ~w(in is as on or by from select)
   defp name(), do: string(?a..?z, min_length: 1) |> filter(&(not (&1 in @keywords)))

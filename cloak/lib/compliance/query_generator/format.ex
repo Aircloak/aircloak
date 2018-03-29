@@ -12,8 +12,8 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
   # -------------------------------------------------------------------
 
   @doc "Formats the given AST using Elixir's document algebra."
-  @spec ast_to_sql(Cloak.Compliance.QueryGenerator.ast()) :: iolist
-  def ast_to_sql(ast), do: ast |> to_doc() |> Inspect.Algebra.format(@line_width)
+  @spec ast_to_sql(Cloak.Compliance.QueryGenerator.ast()) :: String.t()
+  def ast_to_sql(ast), do: ast |> to_doc() |> Inspect.Algebra.format(@line_width) |> to_string()
 
   # -------------------------------------------------------------------
   # Internal functions
