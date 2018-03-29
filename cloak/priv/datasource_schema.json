@@ -23,8 +23,7 @@
         "projection": {"$ref": "#/definitions/projection"},
         "decoders": {"type": "array", "items": {"$ref": "#/definitions/decoder"}}
       },
-      "additionalProperties": false,
-      "required": ["db_name"]
+      "additionalProperties": false
     },
     "parameters": {
       "type": "object",

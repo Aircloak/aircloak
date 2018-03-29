@@ -28,7 +28,6 @@ defmodule Cloak.ConfigValidationTest do
     test "error on missing mandatory fields" do
       Enum.each(~w(name driver parameters tables), &assert_missing_field_reported(&1, datasource_validator()))
       assert_missing_field_reported("parameters/hostname", datasource_validator())
-      assert_missing_field_reported("tables/foo/db_name", datasource_validator())
 
       Enum.each(
         ~w(table foreign_key primary_key),
@@ -50,7 +49,7 @@ defmodule Cloak.ConfigValidationTest do
       )
 
       Enum.each(
-        ~w(user_id ignore_unsupported_types sample_rate projection decoders),
+        ~w(db_name user_id ignore_unsupported_types sample_rate projection decoders),
         &refute_missing_field_reported("tables/foo/#{&1}", datasource_validator())
       )
 
