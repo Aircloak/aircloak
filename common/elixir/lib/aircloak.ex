@@ -1,17 +1,11 @@
 defmodule Aircloak do
-  @moduledoc false
+  @moduledoc "Common helper functions used in different projects."
   use Application
   require Logger
 
-  def start(_type, _args) do
-    import Supervisor.Spec, warn: false
-
-    Supervisor.start_link(
-      [supervisor(Aircloak.ProcessMonitor, [])],
-      strategy: :one_for_one,
-      name: Aircloak.Supervisor
-    )
-  end
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
 
   @doc "Recursively atomizes the keys in a map, leaving values untouched."
   @spec atomize_keys(Map.t()) :: Map.t()
@@ -83,5 +77,41 @@ defmodule Aircloak do
       nil -> raise("#{host}:#{port} is not available")
       _ -> :ok
     end
+  end
+
+  @doc "Validates a decoded json against the given schema."
+  @spec validate_decoded_json(atom, String.t(), any, String.t()) :: :ok | {:error, String.t()}
+  def validate_decoded_json(app, file_name, data, main_error_message) do
+    schema =
+      app
+      |> Application.app_dir("priv")
+      |> Path.join(file_name)
+      |> File.read!()
+      |> Aircloak.Json.safe_decode!()
+      |> ExJsonSchema.Schema.resolve()
+
+    with {:error, errors} <- ExJsonSchema.Validator.validate(schema, data) do
+      formatted_errors =
+        errors
+        |> Stream.map(fn {error, field} -> "  #{field}: #{error}" end)
+        |> Enum.join("\n")
+
+      {:error, "#{main_error_message}:\n#{formatted_errors}"}
+    end
+  end
+
+  # -------------------------------------------------------------------
+  # Application callbacks
+  # -------------------------------------------------------------------
+
+  @impl Application
+  def start(_type, _args) do
+    import Supervisor.Spec, warn: false
+
+    Supervisor.start_link(
+      [supervisor(Aircloak.ProcessMonitor, [])],
+      strategy: :one_for_one,
+      name: Aircloak.Supervisor
+    )
   end
 end

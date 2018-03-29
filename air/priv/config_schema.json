@@ -1,6 +1,8 @@
 {
   "type": "object",
   "properties": {
+    "auto_aircloak_export": {"type": "boolean"},
+    "use_staging_license_key": {"type": "boolean"},
     "database": {
       "type": "object",
       "properties": {
@@ -24,7 +26,8 @@
         "master_password": {"type": "string", "minLength": 1},
         "certfile": {"type": "string"},
         "keyfile": {"type": "string"},
-        "use_staging_license_key": {"type": "boolean"}
+        "use_staging_license_key": {"type": "boolean"},
+        "customer_token": {"type": "string", "minLength": 1, "$comment": "allowed for backward compatibility"}
       },
       "additionalProperties": false,
       "required": ["auth_secret", "endpoint_key_base", "api_token_salt", "master_password"]
