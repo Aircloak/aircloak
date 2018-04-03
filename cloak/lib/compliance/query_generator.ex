@@ -22,7 +22,7 @@ defmodule Cloak.Compliance.QueryGenerator do
       end)
 
   @doc "Generates the SQL query string from the given AST."
-  @spec ast_to_sql(ast) :: iolist
+  @spec ast_to_sql(ast) :: String.t()
   def ast_to_sql(ast), do: __MODULE__.Format.ast_to_sql(ast)
 
   # -------------------------------------------------------------------
