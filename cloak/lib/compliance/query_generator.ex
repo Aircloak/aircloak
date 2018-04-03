@@ -167,24 +167,16 @@ defmodule Cloak.Compliance.QueryGenerator do
         })
       end)
 
-  defp value(:any), do: [:boolean, :integer, :real, :text, :datetime] |> member_of() |> bind(&value/1)
+  defp value(:any), do: [:boolean, :integer, :real, :text, :datetime, :time, :date] |> member_of() |> bind(&value/1)
   defp value(:boolean), do: map(boolean(), &{:boolean, &1, []})
   defp value(:integer), do: map(integer(), &{:integer, &1, []})
   defp value(:real), do: map(float(), &{:real, &1, []})
 
   defp value(:text), do: string_without_quote() |> filter(&(not String.contains?(&1, "'"))) |> map(&{:text, &1, []})
 
-  defp value(:datetime),
-    do:
-      fixed_map(%{
-        year: integer(1950..2050),
-        month: integer(1..12),
-        day: integer(1..28),
-        hour: integer(0..23),
-        minute: integer(0..59),
-        second: integer(0..59)
-      })
-      |> map(&{:datetime, struct(NaiveDateTime, &1), []})
+  defp value(:date), do: naive_date_time() |> map(&NaiveDateTime.to_date/1) |> map(&{:date, &1, []})
+  defp value(:time), do: naive_date_time() |> map(&NaiveDateTime.to_time/1) |> map(&{:time, &1, []})
+  defp value(:datetime), do: naive_date_time() |> map(&{:datetime, &1, []})
 
   defp value(:like_pattern),
     do:
@@ -199,6 +191,18 @@ defmodule Cloak.Compliance.QueryGenerator do
         constant(empty()),
         map(string_without_quote(length: 1), &{:like_escape, [&1], []})
       ])
+
+  defp naive_date_time() do
+    fixed_map(%{
+      year: integer(1950..2050),
+      month: integer(1..12),
+      day: integer(1..28),
+      hour: integer(0..23),
+      minute: integer(0..59),
+      second: integer(0..59)
+    })
+    |> map(&struct(NaiveDateTime, &1))
+  end
 
   defp select(tables),
     do:
