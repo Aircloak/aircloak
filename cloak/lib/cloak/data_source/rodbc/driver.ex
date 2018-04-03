@@ -38,11 +38,11 @@ defmodule Cloak.DataSource.RODBC.Driver do
   def execute(port, statement), do: port |> :erlang.port_control(@command_execute, statement) |> decode_response()
 
   @doc "Returns all rows selected by the previous statement."
-  @spec fetch_all(port(), (row -> row)) :: {:ok, [row]} | {:error, String.t()}
+  @spec fetch_all(port(), (row -> row)) :: {:ok, Enumerable.t()} | {:error, String.t()}
   def fetch_all(port, row_mapper), do: fetch_batch(port, row_mapper, :infinity, [], 0)
 
   @doc "Returns a new batch, with the specified size, from the rows selected by the previous statement."
-  @spec fetch_batch(port(), (row -> row), pos_integer) :: {:ok, [row]} | {:error, String.t()}
+  @spec fetch_batch(port(), (row -> row), pos_integer) :: {:ok, Enumerable.t()} | {:error, String.t()}
   def fetch_batch(port, row_mapper, size) when size > 0, do: fetch_batch(port, row_mapper, size, [], 0)
 
   # -------------------------------------------------------------------
