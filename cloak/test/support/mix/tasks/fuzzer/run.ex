@@ -157,6 +157,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
       error =~ ~r/Function .* requires arguments of type/ -> :mistyped_function
       error =~ ~r/Function .* is allowed over arguments/ -> :restricted_aggregate
       error =~ ~r/Function .* is not allowed in subqueries/ -> :restricted_aggregate
+      error =~ ~r/Table alias .* used more than once/ -> :duplicate_alias
       true -> raise error
     end
   end
