@@ -63,18 +63,18 @@ defmodule Cloak.Compliance.QueryGenerator do
         end)
       end)
 
-  defp from_join(tables),
-    do:
-      tables
-      |> join_element()
-      |> tree(fn child_data ->
-        bind(child_data, fn {lhs, lhs_tables} ->
-          bind(child_data, fn {rhs, rhs_tables} ->
-            tables = lhs_tables ++ rhs_tables
-            {{:join, nil, fixed_list([constant(lhs), constant(rhs), on_expression(tables)])}, constant(tables)}
-          end)
+  defp from_join(tables) do
+    join_element = join_element(tables)
+
+    tree(join_element, fn child_data ->
+      bind(child_data, fn {lhs, lhs_tables} ->
+        bind(join_element, fn {rhs, rhs_tables} ->
+          tables = lhs_tables ++ rhs_tables
+          {{:join, nil, fixed_list([constant(lhs), constant(rhs), on_expression(tables)])}, constant(tables)}
         end)
       end)
+    end)
+  end
 
   defp join_element(tables), do: one_of([aliased_table(tables), from_subquery(tables)])
 
