@@ -160,6 +160,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
       error =~ ~r/Table alias .* used more than once/ -> :duplicate_alias
       error =~ ~r/Non-integer constant is not allowed in `GROUP BY`/ -> :non_integer_group_by
       error =~ ~r/`GROUP BY` position .* is out of the range of selected columns./ -> :invalid_group_by_position
+      error =~ ~r/Functions .* could cause a database exception/ -> :possible_db_exception
       true -> raise error
     end
   end
