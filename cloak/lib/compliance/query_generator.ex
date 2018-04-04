@@ -243,12 +243,14 @@ defmodule Cloak.Compliance.QueryGenerator do
     do: tables |> unaliased_expression_with_info(type) |> map(&strip_info/1)
 
   defp unaliased_expression_with_info(tables, type \\ :any) do
-    one_of([
-      column_with_info(tables, type),
-      value_with_info(type),
-      function_with_info(tables, type)
-    ])
-    |> filter(& &1)
+    sized(fn size ->
+      frequency([
+        {1, column_with_info(tables, type)},
+        {1, value_with_info(type)},
+        {size, resize(function_with_info(tables, type), div(size, 2))}
+      ])
+      |> filter(& &1)
+    end)
   end
 
   @functions ~w(
