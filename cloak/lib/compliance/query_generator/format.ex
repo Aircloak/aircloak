@@ -72,6 +72,8 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
   defp to_doc({:text, value, []}), do: to_string([?', value, ?'])
   defp to_doc({:boolean, value, []}), do: to_string(value)
   defp to_doc({:datetime, value, []}), do: to_string([?', to_string(value), ?'])
+  defp to_doc({:time, value, []}), do: to_string([?', to_string(value), ?'])
+  defp to_doc({:date, value, []}), do: to_string([?', to_string(value), ?'])
   defp to_doc({:real, value, []}), do: to_string(value)
 
   defp to_doc({:like_pattern, value, [escape]}), do: space_separated([to_string([?', value, ?']), to_doc(escape)])

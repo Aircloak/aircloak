@@ -6,6 +6,8 @@ defmodule Cloak.Compliance.QueryGenerator do
   import StreamData
   alias Cloak.DataSource.Table
 
+  @data_types [:boolean, :integer, :real, :text, :datetime, :time, :date]
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -103,7 +105,7 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp where(tables), do: tables |> condition() |> map(&{:where, nil, [&1]})
 
-  defp group_by(tables), do: tables |> column_expression() |> list_of() |> nonempty() |> map(&{:group_by, nil, &1})
+  defp group_by(tables), do: tables |> unaliased_expression() |> list_of() |> nonempty() |> map(&{:group_by, nil, &1})
 
   defp having(tables), do: tables |> simple_condition() |> map(&{:having, nil, [&1]})
 
@@ -124,12 +126,12 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp in_expression(tables),
     do:
       tables
-      |> column()
-      |> bind(fn {column, table} ->
+      |> unaliased_expression_with_info()
+      |> bind(fn {column, {type, _}} ->
         tuple({
           member_of([:in, :not_in]),
           constant(nil),
-          fixed_list([constant(column_expression(column, table)), in_set(column.type)])
+          fixed_list([constant(column), in_set(type)])
         })
       end)
 
@@ -140,51 +142,49 @@ defmodule Cloak.Compliance.QueryGenerator do
       tuple({
         member_of([:like, :ilike, :not_like, :not_ilike]),
         constant(nil),
-        fixed_list([column_expression(tables), value(:like_pattern)])
+        fixed_list([unaliased_expression(tables), value(:like_pattern)])
       })
 
   defp comparison(tables),
     do:
       tables
-      |> column()
-      |> bind(fn {column, table} ->
+      |> unaliased_expression_with_info()
+      |> bind(fn {column, {type, _}} ->
         tuple({
           member_of([:=, :<>, :<, :>]),
           constant(nil),
-          fixed_list([constant(column_expression(column, table)), value(column.type)])
+          fixed_list([constant(column), value(type)])
         })
       end)
 
   defp between(tables),
     do:
       tables
-      |> column()
-      |> bind(fn {column, table} ->
+      |> unaliased_expression_with_info()
+      |> bind(fn {column, {type, _}} ->
         tuple({
           constant(:between),
           constant(nil),
-          fixed_list([constant(column_expression(column, table)), value(column.type), value(column.type)])
+          fixed_list([constant(column), value(type), value(type)])
         })
       end)
 
-  defp value(:any), do: [:boolean, :integer, :real, :text, :datetime] |> member_of() |> bind(&value/1)
+  defp value_with_info(type), do: type |> value() |> map(fn {type, value, []} -> {{type, value, []}, {type, ""}} end)
+
+  defp value({:constant, type}), do: value(type)
+  defp value({:many1, type}), do: value(type)
+  defp value({:optional, type}), do: value(type)
+  defp value({:or, types}), do: types |> member_of() |> bind(&value/1)
+  defp value(:any), do: @data_types |> member_of() |> bind(&value/1)
   defp value(:boolean), do: map(boolean(), &{:boolean, &1, []})
   defp value(:integer), do: map(integer(), &{:integer, &1, []})
   defp value(:real), do: map(float(), &{:real, &1, []})
 
   defp value(:text), do: string_without_quote() |> filter(&(not String.contains?(&1, "'"))) |> map(&{:text, &1, []})
 
-  defp value(:datetime),
-    do:
-      fixed_map(%{
-        year: integer(1950..2050),
-        month: integer(1..12),
-        day: integer(1..28),
-        hour: integer(0..23),
-        minute: integer(0..59),
-        second: integer(0..59)
-      })
-      |> map(&{:datetime, struct(NaiveDateTime, &1), []})
+  defp value(:date), do: naive_date_time() |> map(&NaiveDateTime.to_date/1) |> map(&{:date, &1, []})
+  defp value(:time), do: naive_date_time() |> map(&NaiveDateTime.to_time/1) |> map(&{:time, &1, []})
+  defp value(:datetime), do: naive_date_time() |> map(&{:datetime, &1, []})
 
   defp value(:like_pattern),
     do:
@@ -199,6 +199,18 @@ defmodule Cloak.Compliance.QueryGenerator do
         constant(empty()),
         map(string_without_quote(length: 1), &{:like_escape, [&1], []})
       ])
+
+  defp naive_date_time() do
+    fixed_map(%{
+      year: integer(1950..2050),
+      month: integer(1..12),
+      day: integer(1..28),
+      hour: integer(0..23),
+      minute: integer(0..59),
+      second: integer(0..59)
+    })
+    |> map(&struct(NaiveDateTime, &1))
+  end
 
   defp select(tables),
     do:
@@ -227,44 +239,53 @@ defmodule Cloak.Compliance.QueryGenerator do
         map(name(), fn name -> {as_expression(expression, name), {type, name}} end)
       end)
 
-  defp unaliased_expression_with_info(tables), do: tree(column_with_info(tables), &function_with_info/1)
+  defp unaliased_expression(tables, type \\ :any),
+    do: tables |> unaliased_expression_with_info(type) |> map(&strip_info/1)
+
+  defp unaliased_expression_with_info(tables, type \\ :any) do
+    sized(fn size ->
+      frequency([
+        {1, column_with_info(tables, type)},
+        {1, value_with_info(type)},
+        {size, resize(function_with_info(tables, type), div(size, 2))}
+      ])
+      |> filter(& &1)
+    end)
+  end
 
   @functions ~w(
     abs btrim ceil concat date_trunc day extract_words floor hash hex hour left length lower ltrim minute month quarter
     right round rtrim second sqrt trunc upper weekday year count avg min max stddev count_noise avg_noise stddev_noise
   )
-  defp function_with_info(child_data),
-    do:
-      @functions
-      |> member_of()
-      |> bind(fn function ->
-        arity =
-          {:function, function, [], nil}
-          |> Cloak.Sql.Function.argument_types()
-          |> Enum.random()
-          |> length()
-
-        child_data = map(child_data, fn {column, _info} -> column end)
-        {{:function, constant(function), list_of(child_data, length: arity)}, {:any, constant(function)}}
+  defp function_with_info(tables, type) do
+    @functions
+    |> Enum.flat_map(fn function ->
+      function
+      |> Cloak.Sql.Function.type_specs()
+      |> Enum.map(fn {argument_types, return_type} ->
+        {function, argument_types, return_type}
       end)
+    end)
+    |> Enum.filter(fn {_, _, return_type} -> match_type?(type, return_type) end)
+    |> member_of()
+    |> bind(fn {function, argument_types, return_type} ->
+      arguments = Enum.map(argument_types, &unaliased_expression(tables, &1))
+      {{:function, constant(function), fixed_list(arguments)}, {constant(return_type), constant(function)}}
+    end)
+  end
 
-  defp column_with_info(tables),
-    do:
-      tables
-      |> column()
-      |> map(fn {column, table} ->
-        {column_expression(column, table), {column.type, column.name}}
-      end)
-
-  defp column_expression(column, table), do: {:column, {column.name, table.name}, []}
-
-  defp column_expression(tables),
-    do:
-      tables
-      |> column()
-      |> map(fn {column, table} ->
-        column_expression(column, table)
-      end)
+  defp column_with_info(tables, type) do
+    for table <- tables,
+        column <- table.columns,
+        column.name != "",
+        match_type?(type, column.type) do
+      {{:column, {column.name, table.name}, []}, {column.type, column.name}}
+    end
+    |> case do
+      [] -> constant(nil)
+      candidates -> member_of(candidates)
+    end
+  end
 
   # -------------------------------------------------------------------
   # Helpers
@@ -279,11 +300,13 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp string_without_quote(opts \\ []), do: string(:ascii, opts) |> filter(&(not String.contains?(&1, "'")))
 
-  defp column(tables) do
-    tables
-    |> member_of()
-    |> bind(fn table ->
-      tuple({member_of(table.columns), constant(table)})
-    end)
-  end
+  defp match_type?(:any, _), do: true
+  defp match_type?({:optional, type}, actual), do: match_type?(type, actual)
+  defp match_type?({:constant, type}, actual), do: match_type?(type, actual)
+  defp match_type?({:many1, type}, actual), do: match_type?(type, actual)
+  defp match_type?({:or, types}, actual), do: Enum.any?(types, &match_type?(&1, actual))
+  defp match_type?(type, type), do: true
+  defp match_type?(type, _) when type in @data_types, do: false
+
+  defp strip_info({item, _info}), do: item
 end
