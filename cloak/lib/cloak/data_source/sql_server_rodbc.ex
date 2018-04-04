@@ -53,7 +53,7 @@ defmodule Cloak.DataSource.SQLServerRODBC do
       :ok ->
         case RODBC.Driver.fetch_all(connection, row_mapper) do
           {:ok, []} -> DataSource.raise_error("Table `#{table.db_name}` does not exist")
-          {:ok, columns} -> [%{table | columns: columns}]
+          {:ok, columns} -> [%{table | columns: Enum.to_list(columns)}]
           {:error, reason} -> DataSource.raise_error("`#{to_string(reason)}`")
         end
 

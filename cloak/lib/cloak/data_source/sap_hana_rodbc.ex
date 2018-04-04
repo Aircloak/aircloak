@@ -61,7 +61,7 @@ defmodule Cloak.DataSource.SAPHanaRODBC do
       :ok ->
         case RODBC.Driver.fetch_all(connection, row_mapper) do
           {:ok, []} -> DataSource.raise_error("Table `#{table.db_name}` does not exist")
-          {:ok, columns} -> [%{table | columns: columns, db_name: ~s/"#{table.db_name}"/}]
+          {:ok, columns} -> [%{table | columns: Enum.to_list(columns), db_name: ~s/"#{table.db_name}"/}]
           {:error, reason} -> DataSource.raise_error("`#{to_string(reason)}`")
         end
 
