@@ -247,6 +247,7 @@ defmodule Cloak.Compliance.QueryGenerator do
       frequency([
         {1, column_with_info(tables, type)},
         {1, value_with_info(type)},
+        {1, count_star(type)},
         {size, resize(function_with_info(tables, type), div(size, 2))}
       ])
       |> filter(& &1)
@@ -273,6 +274,14 @@ defmodule Cloak.Compliance.QueryGenerator do
       {{:function, constant(function), fixed_list(arguments)}, {constant(return_type), constant(function)}}
     end)
   end
+
+  defp count_star(expected_type) when expected_type in [:any, :integer] do
+    ~w(count count_noise)
+    |> member_of()
+    |> map(&{{:function, &1, [{:star, nil, []}]}, {:integer, &1}})
+  end
+
+  defp count_star(_), do: nil
 
   defp column_with_info(tables, type) do
     for table <- tables,
