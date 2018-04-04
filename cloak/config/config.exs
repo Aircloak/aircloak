@@ -65,7 +65,7 @@ config :cloak, :in_development, false
 
 config :cloak, :data_source,
   timeout: :timer.hours(12),
-  batch_size: 50_000,
+  batch_size: 25_000,
   connect_timeout: :timer.seconds(5),
   connection_keep_time: :timer.minutes(1)
 
