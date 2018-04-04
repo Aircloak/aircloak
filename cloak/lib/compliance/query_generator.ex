@@ -6,7 +6,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   import StreamData
   alias Cloak.DataSource.Table
 
-  @data_types [:boolean, :integer, :real, :text, :datetime, :time, :date]
+  @data_types [:boolean, :integer, :real, :text, :datetime, :time, :date, :interval]
 
   # -------------------------------------------------------------------
   # API functions
@@ -186,6 +186,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp value(:date), do: naive_date_time() |> map(&NaiveDateTime.to_date/1) |> map(&{:date, &1, []})
   defp value(:time), do: naive_date_time() |> map(&NaiveDateTime.to_time/1) |> map(&{:time, &1, []})
   defp value(:datetime), do: naive_date_time() |> map(&{:datetime, &1, []})
+  defp value(:interval), do: integer() |> map(&Timex.Duration.from_seconds/1) |> map(&{:interval, &1, []})
 
   defp value(:like_pattern),
     do:
