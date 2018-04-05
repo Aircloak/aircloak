@@ -477,6 +477,17 @@ defmodule Cloak.Sql.Parser.Test do
     )
   end
 
+  test "BETWEEN with complex range" do
+    assert_parse(
+      "select foo from bar where a between 1 + 2 and 20 - 10",
+      select(
+        where:
+          {:and, {:comparison, identifier("a"), :>=, function("+", [constant(1), constant(2)])},
+           {:comparison, identifier("a"), :<, function("-", [constant(20), constant(10)])}}
+      )
+    )
+  end
+
   test "where clause with LIKE" do
     assert_parse(
       "select foo from bar where a LIKE '_ob d%'",

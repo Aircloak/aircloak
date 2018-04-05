@@ -745,13 +745,13 @@ defmodule Cloak.Sql.Parser do
     end)
   end
 
+  defp allowed_where_range() do
+    pipe([allowed_where_value(), keyword(:and), allowed_where_value()], fn [min, :and, max] -> {min, max} end)
+  end
+
   defp allowed_where_value() do
     either_deepest_error(column(), any_constant())
     |> label("comparison value")
-  end
-
-  defp allowed_where_range() do
-    pipe([any_constant(), keyword(:and), any_constant()], fn [min, :and, max] -> {min, max} end)
   end
 
   defp in_values() do
