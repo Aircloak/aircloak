@@ -201,4 +201,10 @@ defmodule Cloak.Query.ErrorTest do
       error: "Non-integer constant is not allowed in `ORDER BY`." <> _
     })
   end
+
+  test "inequality without a constant side" do
+    assert_query("select count(*) from test_errors where height > height and height < 10", %{
+      error: "One side of an inequality must be a constant." <> _
+    })
+  end
 end

@@ -25,6 +25,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     Helpers.each_subquery(query, &verify_limit/1)
     Helpers.each_subquery(query, &verify_offset/1)
     Helpers.each_subquery(query, &verify_sample_rate/1)
+    Helpers.each_subquery(query, &verify_inequalities/1)
     query
   end
 
@@ -421,6 +422,20 @@ defmodule Cloak.Sql.Compiler.Validation do
          )
 
   defp verify_sample_rate(_query), do: :ok
+
+  defp verify_inequalities(query) do
+    Query.Lenses.filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.filter(&Condition.inequality?/1)
+    |> Lens.to_list(query)
+    |> Enum.each(fn {:comparison, lhs, _, rhs} ->
+      unless Expression.constant?(lhs) or Expression.constant?(rhs) do
+        raise CompilationError,
+          message: "One side of an inequality must be a constant.",
+          source_location: rhs.source_location
+      end
+    end)
+  end
 
   # -------------------------------------------------------------------
   # Helpers
