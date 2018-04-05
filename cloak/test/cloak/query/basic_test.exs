@@ -595,40 +595,40 @@ defmodule Cloak.Query.BasicTest do
     })
   end
 
-  test "should allow ranges in where clause" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+  describe "inequalities" do
+    setup do
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+    end
 
-    assert_query("select count(*) from heights where height >= 180 and height < 190", %{
-      query_id: "1",
-      columns: ["count"],
-      rows: [%{row: [20], occurrences: 1}]
-    })
-  end
+    test "should allow ranges in where clause" do
+      assert_query("select count(*) from heights where height >= 180 and height < 190", %{
+        columns: ["count"],
+        rows: [%{row: [20], occurrences: 1}]
+      })
+    end
 
-  test "should allow between in where clause" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+    test "should allow between in where clause" do
+      assert_query("select count(*) from heights where height between 180 and 190", %{
+        columns: ["count"],
+        rows: [%{row: [20], occurrences: 1}]
+      })
+    end
 
-    assert_query("select count(*) from heights where height between 180 and 190", %{
-      query_id: "1",
-      columns: ["count"],
-      rows: [%{row: [20], occurrences: 1}]
-    })
-  end
+    test "should allow reversed inequalities in where clause" do
+      assert_query("select count(*) from heights where 180 <= height and 190 > height", %{
+        columns: ["count"],
+        rows: [%{row: [20], occurrences: 1}]
+      })
+    end
 
-  test "should allow reversed inequalities in where clause" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
-
-    assert_query("select count(*) from heights where 180 <= height and 190 > height", %{
-      query_id: "1",
-      columns: ["count"],
-      rows: [%{row: [20], occurrences: 1}]
-    })
+    test "constant expressions in inequalities" do
+      assert_query("select count(*) from heights where height >= 90 * 2 and height < 190", %{
+        columns: ["count"],
+        rows: [%{row: [20], occurrences: 1}]
+      })
+    end
   end
 
   test "should allow LIKE in where clause" do
