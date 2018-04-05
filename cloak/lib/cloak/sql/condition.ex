@@ -59,9 +59,7 @@ defmodule Cloak.Sql.Condition do
   def subject({:ilike, lhs, _rhs}), do: lhs
 
   @doc "Returns the targets of the comparison."
-  @spec targets(Query.where_clause() | Parser.where_clause()) :: [
-          Expression.t() | Parser.column()
-        ]
+  @spec targets(Query.where_clause() | Parser.where_clause()) :: [Expression.t() | Parser.column()]
   def targets({:comparison, lhs, _, rhs}), do: [lhs, rhs]
   def targets({:not, comparison}), do: targets(comparison)
   def targets({:is, lhs, :null}), do: [lhs]
