@@ -755,7 +755,7 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp in_values() do
-    pipe([keyword(:"("), comma_delimited(any_constant()), keyword(:")")], fn [_, values, _] ->
+    pipe([keyword(:"("), comma_delimited(column()), keyword(:")")], fn [_, values, _] ->
       values
     end)
   end

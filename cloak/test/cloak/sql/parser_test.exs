@@ -551,6 +551,16 @@ defmodule Cloak.Sql.Parser.Test do
     )
   end
 
+  test "IN with complex expressions" do
+    assert_parse(
+      "select foo from bar where a IN (1 + 2, 2 / 3)",
+      select(
+        where:
+          {:in, identifier("a"), [function("+", [constant(1), constant(2)]), function("/", [constant(2), constant(3)])]}
+      )
+    )
+  end
+
   test "where clause with IS and IS NOT" do
     assert_parse(
       "select foo from bar where a is null and b is not null",
