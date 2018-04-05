@@ -41,7 +41,7 @@ defmodule ComplianceCase do
         true ->
           result = assert_query_consistency(query, data_sources: context.data_sources, timeout: @timeout)
 
-          if match?(%{error: _}, result) do
+          if match?(%{error: _}, result) or match?({:exit, _}, result) do
             raise ExUnit.AssertionError,
               message: "Query execution failed. Query was:\n#{query}.\n\nError:\n#{inspect(result)}"
           else
