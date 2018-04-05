@@ -207,4 +207,10 @@ defmodule Cloak.Query.ErrorTest do
       error: "One side of an inequality must be a constant." <> _
     })
   end
+
+  test "non-constant in IN" do
+    assert_query("select count(*) from test_errors where height IN (1, height / 2)", %{
+      error: "Only constants are allowed on the right-hand side of the IN operator." <> _
+    })
+  end
 end

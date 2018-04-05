@@ -26,6 +26,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     Helpers.each_subquery(query, &verify_offset/1)
     Helpers.each_subquery(query, &verify_sample_rate/1)
     Helpers.each_subquery(query, &verify_inequalities/1)
+    Helpers.each_subquery(query, &verify_in/1)
     query
   end
 
@@ -433,6 +434,26 @@ defmodule Cloak.Sql.Compiler.Validation do
         raise CompilationError,
           message: "One side of an inequality must be a constant.",
           source_location: rhs.source_location
+      end
+    end)
+  end
+
+  defp verify_in(query) do
+    Query.Lenses.filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.filter(&Condition.in?/1)
+    |> Lens.to_list(query)
+    |> Enum.each(fn {:in, _, items} ->
+      items
+      |> Enum.find(&(not Expression.constant?(&1)))
+      |> case do
+        nil ->
+          :ok
+
+        item ->
+          raise CompilationError,
+            message: "Only constants are allowed on the right-hand side of the IN operator.",
+            source_location: item.source_location
       end
     end)
   end
