@@ -138,8 +138,12 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp aggregated_expression_display(%Expression{function: fun, function_args: args})
        when fun != nil do
-    [column | _] = for %Expression{constant?: false} = column <- args, do: column
-    aggregated_expression_display(column)
+    args
+    |> Enum.reject(& &1.constant?)
+    |> case do
+      [column | _] -> aggregated_expression_display(column)
+      [] -> "Column `#{fun}` needs"
+    end
   end
 
   defp aggregated_expression_display(%Expression{table: table, name: name}),
