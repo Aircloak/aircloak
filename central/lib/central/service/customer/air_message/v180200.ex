@@ -52,15 +52,7 @@ defmodule Central.Service.Customer.AirMessage.V180200 do
     :error
   end
 
-  defp handle_query_execution(message) do
-    Logger.info("Received query execution update with payload: #{inspect(message.payload)}")
-
-    params = %{
-      metrics: message.payload["metrics"],
-      features: message.payload["features"],
-      aux: message.payload["aux"]
-    }
-
-    Customer.record_query(message.customer, params)
+  defp handle_query_execution(_message) do
+    Logger.info("Received query execution update from customer. Dropping it until we have a compliant backend.")
   end
 end
