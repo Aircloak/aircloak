@@ -17,6 +17,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   def verify_query(%Query{command: :select} = query) do
     Helpers.each_subquery(query, &verify_duplicate_tables/1)
     Helpers.each_subquery(query, &verify_aggregated_columns/1)
+    Helpers.each_subquery(query, &verify_aggregators/1)
     Helpers.each_subquery(query, &verify_group_by_functions/1)
     Helpers.each_subquery(query, &verify_non_selected_where_splitters/1)
     Helpers.each_subquery(query, &verify_joins/1)
@@ -143,6 +144,22 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp aggregated_expression_display(%Expression{table: table, name: name}),
     do: "Column `#{name}` from table `#{table.name}` needs"
+
+  defp verify_aggregators(query) do
+    query
+    |> Query.bucket_columns()
+    |> Enum.flat_map(&aggregate_subexpressions/1)
+    |> Enum.filter(&(&1 |> aggregate_subexpressions() |> Enum.count() > 1))
+    |> case do
+      [] ->
+        :ok
+
+      [column = %{source_location: location} | _rest] ->
+        raise CompilationError,
+          source_location: location,
+          message: "Expression `#{Expression.display(column)}` recursively calls multiple aggregators."
+    end
+  end
 
   defp verify_group_by_functions(query) do
     query.group_by
