@@ -2,7 +2,6 @@ defmodule AirWeb.Admin.CentralController.Test do
   use AirWeb.ConnCase, async: false
 
   import Air.{TestRepoHelper, TestConnHelper}
-  alias Air.Schemas.ExportForAircloak
 
   setup do
     previous_setting = Application.fetch_env!(:air, :auto_aircloak_export)
@@ -38,71 +37,10 @@ defmodule AirWeb.Admin.CentralController.Test do
              ~s(action="/admin/central/new_export")
   end
 
-  test "export form is visible when there's something to export" do
-    Air.Service.Central.record_query(%{})
-
-    assert (login(create_admin_user!()) |> get("/admin/central/export_for_aircloak")).resp_body =~
-             ~s(data-to="/admin/central/new_export")
-  end
-
-  test "generating a new export" do
-    Air.Service.Central.record_query(%{})
-    conn = login(create_admin_user!()) |> post("/admin/central/new_export")
-    assert redirected_to(conn) == "/admin/central/export_for_aircloak"
-    assert get_flash(conn)["info"] =~ "Export generated successfully"
-  end
-
   test "new export doesn't work when there's nothing to export" do
     Air.Service.Central.export_pending_calls()
     conn = login(create_admin_user!()) |> post("/admin/central/new_export")
     assert redirected_to(conn) == "/admin/central/export_for_aircloak"
     assert get_flash(conn)["error"] =~ "Nothing to export"
   end
-
-  test "auto download after creating a new export" do
-    Air.Service.Central.record_query(%{})
-
-    conn =
-      login(create_admin_user!())
-      |> post("/admin/central/new_export")
-      |> recycle()
-      |> get("/admin/central/export_for_aircloak")
-
-    assert conn.resp_body =~ ~r(<meta http-equiv="refresh".*url=#{download_path(last_generated_export())}.*)
-
-    refute conn.resp_body =~ ~s(href="/admin/central/new_export")
-  end
-
-  test "auto download starts only once" do
-    Air.Service.Central.record_query(%{})
-
-    conn =
-      login(create_admin_user!())
-      |> post("/admin/central/new_export")
-      |> recycle()
-      |> get("/admin/central/export_for_aircloak")
-      |> recycle()
-      |> get("/admin/central/export_for_aircloak")
-
-    refute conn.resp_body =~ ~r(<meta http-equiv="refresh".*url=#{download_path(last_generated_export())}.*)
-  end
-
-  test "downloading an export" do
-    Air.Service.Central.export_pending_calls()
-    Air.Service.Central.record_query(%{})
-    {:ok, export} = Air.Service.Central.export_pending_calls()
-
-    conn = login(create_admin_user!()) |> get(download_path(export))
-
-    assert response(conn, 200)
-
-    assert hd(get_resp_header(conn, "content-disposition")) ==
-             "attachment; filename=\"#{ExportForAircloak.file_name(export)}\""
-
-    assert conn.resp_body == ExportForAircloak.content(export)
-  end
-
-  defp last_generated_export(), do: hd(Air.Service.Central.exports(1, 1).entries)
-
-  defp download_path(export), do: "/admin/central/download_export/#{export.id}"
 end

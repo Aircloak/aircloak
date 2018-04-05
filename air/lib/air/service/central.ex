@@ -29,7 +29,7 @@ defmodule Air.Service.Central do
 
   @doc "Records a completed query in the central - useful for billing and stats"
   @spec record_query(Map.t()) :: :ok
-  def record_query(payload), do: enqueue_pending_call("query_execution", payload)
+  def record_query(_payload), do: :ok
 
   @doc "Persists a pending central call."
   @spec store_pending_call(String.t(), map) :: {:ok, CentralCall.t()} | :error
@@ -152,15 +152,6 @@ defmodule Air.Service.Central do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp enqueue_pending_call(event, payload) do
-    if auto_export?() do
-      RpcQueue.push(event, payload)
-    else
-      {:ok, _} = store_pending_call(event, payload)
-      :ok
-    end
-  end
 
   defp calls_to_export() do
     case pending_calls() do
