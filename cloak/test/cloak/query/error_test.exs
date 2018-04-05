@@ -201,4 +201,10 @@ defmodule Cloak.Query.ErrorTest do
       error: "Non-integer constant is not allowed in `ORDER BY`." <> _
     })
   end
+
+  test "multiple aggregtors in the same expression are not allowed" do
+    assert_query("select max(count(name)) from test_errors", %{
+      error: "Expression `max(count(name))` recursively calls multiple aggregators." <> _
+    })
+  end
 end
