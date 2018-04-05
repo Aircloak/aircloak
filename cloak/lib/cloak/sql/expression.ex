@@ -117,7 +117,7 @@ defmodule Cloak.Sql.Expression do
   def short_name(x), do: display_name(x)
 
   @doc """
-  Returns a display name of the column.
+  Returns the name of the expression.
 
   This function should mostly be used when producing error messages.
   """
@@ -131,7 +131,7 @@ defmodule Cloak.Sql.Expression do
   def display_name(%__MODULE__{constant?: true, value: value}), do: "`#{value}`"
 
   @doc """
-  Displays the column as text.
+  Returns the full expression as text.
 
   This function should mostly be used when producing error messages.
   """
