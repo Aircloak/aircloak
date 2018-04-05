@@ -5,13 +5,9 @@ defmodule Cloak.Query.BasicTest do
 
   setup_all do
     :ok = Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, male BOOLEAN")
-
     :ok = Cloak.Test.DB.create_table("heights_alias", nil, db_name: "heights", skip_db_create: true)
-
     :ok = Cloak.Test.DB.create_table("children", "age INTEGER, name TEXT")
-
     :ok = Cloak.Test.DB.create_table("weird things", "\"thing as thing\" INTEGER", db_name: "weird")
-
     :ok = Cloak.Test.DB.create_table("dates", "date timestamp")
     :ok
   end
@@ -161,9 +157,7 @@ defmodule Cloak.Query.BasicTest do
 
   test "select all and order query" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 180, true])
-
     :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 180, true])
-
     :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
 
     assert_query("select * from heights order by name", %{
@@ -181,9 +175,7 @@ defmodule Cloak.Query.BasicTest do
 
   test "order by non-selected field" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 160, true])
-
     :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 170, true])
-
     :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
 
     assert_query("select height from heights order by name", %{
@@ -197,9 +189,7 @@ defmodule Cloak.Query.BasicTest do
 
   test "order by grouped but non-selected field" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 160, true])
-
     :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 170, true])
-
     :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
 
     assert_query("select sum(height) from heights group by name order by name", %{
@@ -213,9 +203,7 @@ defmodule Cloak.Query.BasicTest do
 
   test "order by grouped but non-selected aggregate" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 160, true])
-
     :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 170, true])
-
     :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
 
     assert_query("select name from heights group by name order by sum(height) desc", %{
@@ -229,9 +217,7 @@ defmodule Cloak.Query.BasicTest do
 
   test "order by grouped but non-selected aggregate with selected aggregate function" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 160, true])
-
     :ok = insert_rows(_user_ids = 11..30, "heights", ["name", "height", "male"], ["adam", 170, true])
-
     :ok = insert_rows(_user_ids = 31..60, "heights", ["name", "height", "male"], ["mike", 180, true])
 
     assert_query("select bucket(height by 10), avg(height) from heights group by 1 order by count(*) desc", %{
@@ -762,7 +748,6 @@ defmodule Cloak.Query.BasicTest do
 
   test "select and filter booleans" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 180, true])
-
     :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["eva", 160, false])
 
     assert_query("select height, male from heights where male = true", %{
