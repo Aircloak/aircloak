@@ -265,6 +265,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   @functions ~w(
     abs btrim ceil concat date_trunc day extract_words floor hash hex hour left length lower ltrim minute month quarter
     right round rtrim second sqrt trunc upper weekday year count avg min max stddev count_noise avg_noise stddev_noise
+    + - * / ^
   )
   defp function_with_info(tables, type, aggregates_allowed?) do
     @functions
@@ -277,11 +278,18 @@ defmodule Cloak.Compliance.QueryGenerator do
       end)
     end)
     |> Enum.filter(fn {_, _, return_type} -> match_type?(type, return_type) end)
-    |> member_of()
-    |> bind(fn {function, argument_types, return_type} ->
-      arguments = Enum.map(argument_types, &unaliased_expression(tables, &1, aggregates_allowed?))
-      {{:function, constant(function), fixed_list(arguments)}, {constant(return_type), constant(function)}}
-    end)
+    |> case do
+      [] ->
+        constant(nil)
+
+      candidates ->
+        candidates
+        |> member_of()
+        |> bind(fn {function, argument_types, return_type} ->
+          arguments = Enum.map(argument_types, &unaliased_expression(tables, &1, aggregates_allowed?))
+          {{:function, constant(function), fixed_list(arguments)}, {constant(return_type), constant(function)}}
+        end)
+    end
   end
 
   defp count_star(expected_type) when expected_type in [:any, :integer] do
