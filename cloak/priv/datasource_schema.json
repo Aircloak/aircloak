@@ -6,6 +6,7 @@
     "driver": {"type": "string", "minLength": 1},
     "parameters": {"$ref": "#/definitions/parameters"},
     "tables": {"type": "object", "patternProperties": {"^.*$": {"$ref": "#/definitions/table"}}},
+    "encoded": {"type": "boolean"},
     "concurrency": {"type": "integer", "minimum": 0}
   },
   "additionalProperties": false,
