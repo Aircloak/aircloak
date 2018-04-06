@@ -42,12 +42,12 @@ defmodule Cloak.Sql.Condition do
 
   @doc "Returns the term the given comparison compares against."
   @spec value(Query.where_clause()) :: any
-  def value({:comparison, _lhs, _, rhs}), do: rhs.value
+  def value({:comparison, _lhs, _, rhs}), do: Expression.value(rhs)
   def value({:not, comparison}), do: value(comparison)
   def value({:is, _lhs, :null}), do: nil
-  def value({:in, _lhs, rhs}), do: Enum.map(rhs, & &1.value)
-  def value({:like, _lhs, rhs}), do: rhs.value
-  def value({:ilike, _lhs, rhs}), do: rhs.value
+  def value({:in, _lhs, rhs}), do: Enum.map(rhs, &Expression.value/1)
+  def value({:like, _lhs, rhs}), do: Expression.value(rhs)
+  def value({:ilike, _lhs, rhs}), do: Expression.value(rhs)
 
   @doc "Returns the term the given comparison acts on."
   @spec subject(Query.where_clause() | Parser.where_clause()) :: Expression.t() | Parser.column()
@@ -59,9 +59,7 @@ defmodule Cloak.Sql.Condition do
   def subject({:ilike, lhs, _rhs}), do: lhs
 
   @doc "Returns the targets of the comparison."
-  @spec targets(Query.where_clause() | Parser.where_clause()) :: [
-          Expression.t() | Parser.column()
-        ]
+  @spec targets(Query.where_clause() | Parser.where_clause()) :: [Expression.t() | Parser.column()]
   def targets({:comparison, lhs, _, rhs}), do: [lhs, rhs]
   def targets({:not, comparison}), do: targets(comparison)
   def targets({:is, lhs, :null}), do: [lhs]

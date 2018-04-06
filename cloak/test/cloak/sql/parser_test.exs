@@ -424,6 +424,13 @@ defmodule Cloak.Sql.Parser.Test do
     )
   end
 
+  test "inequality on two columns" do
+    assert_parse(
+      "select foo from bar where a < b",
+      select(where: {:comparison, identifier("a"), :<, identifier("b")})
+    )
+  end
+
   test "where clause can have string values of any case" do
     assert_parse(
       "select foo from bar where name = 'tOm'",
@@ -466,6 +473,17 @@ defmodule Cloak.Sql.Parser.Test do
         from: unquoted("bar"),
         where:
           {:and, {:comparison, identifier("a"), :>=, constant(10)}, {:comparison, identifier("a"), :<, constant(20)}}
+      )
+    )
+  end
+
+  test "BETWEEN with complex range" do
+    assert_parse(
+      "select foo from bar where a between 1 + 2 and 20 - 10",
+      select(
+        where:
+          {:and, {:comparison, identifier("a"), :>=, function("+", [constant(1), constant(2)])},
+           {:comparison, identifier("a"), :<, function("-", [constant(20), constant(10)])}}
       )
     )
   end
@@ -529,6 +547,16 @@ defmodule Cloak.Sql.Parser.Test do
         columns: [identifier("foo")],
         from: unquoted("bar"),
         where: {:in, identifier("a"), constants([1, 2, 3])}
+      )
+    )
+  end
+
+  test "IN with complex expressions" do
+    assert_parse(
+      "select foo from bar where a IN (1 + 2, 2 / 3)",
+      select(
+        where:
+          {:in, identifier("a"), [function("+", [constant(1), constant(2)]), function("/", [constant(2), constant(3)])]}
       )
     )
   end
@@ -1612,7 +1640,6 @@ defmodule Cloak.Sql.Parser.Test do
       {"assert at least one table", "select foo from", "Expected `table name`", {1, 16}},
       {"extended trim with two columns", "select trim(both a from b) from foo", "Expected `)`", {1, 20}},
       {"invalid interval", "select interval 'does not parse' from foo", "Expected `column definition`", {1, 8}},
-      {"inequality between two columns", "select count(*) from foo where bar < baz", "Expected `constant`", {1, 38}},
       {"table can't be parameterized", "select x from $1", "Expected `table name`", {1, 15}},
       # parsed subqueries
       {"unclosed parens in a parsed subquery expression", "select foo from (select bar from baz", "Expected `)`",
@@ -1638,10 +1665,6 @@ defmodule Cloak.Sql.Parser.Test do
        "Expected `one of first, last`", {1, 40}},
       {"incomplete substring in where", "select * from foo where substring(lower(bar, 1, 1) = 3",
        "Expected `substring arguments`", {1, 52}},
-      {"inequality with non-constant RHS", "select * from foo where bar < baz + 1 and x = 1", "Expected `constant`",
-       {1, 31}},
-      {"condition with non-constant RHS at end of boolean expression",
-       "select * from foo where x = 1 and bar < baz + 1", "Expected `constant`", {1, 41}},
       {"invalid extract part", "select extract(invalid from date) from table", "Expected `date part`", {1, 16}}
     ],
     fn {description, statement, expected_error, {line, column}} ->

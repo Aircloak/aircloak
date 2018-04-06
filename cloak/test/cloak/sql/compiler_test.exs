@@ -783,6 +783,21 @@ defmodule Cloak.Sql.Compiler.Test do
     assert {:ok, _} = compile("select * from table where numeric > 5 and numeric < 8", data_source())
   end
 
+  test "rejects inequalities without a constant side" do
+    assert {:error, error} =
+             compile("select count(*) from table where numeric > numeric and numeric < 10", data_source())
+
+    assert error =~ ~r/One side of an inequality must be a constant./
+  end
+
+  test "accepts inequalities without a constant side in top-level HAVING" do
+    assert {:ok, _} =
+             compile(
+               "select count(*) from table group by numeric having numeric > numeric and numeric < 10",
+               data_source()
+             )
+  end
+
   test "fixes alignment of ranges" do
     assert compile!("select * from table where numeric > 1 and numeric < 9", data_source()).where ==
              compile!("select * from table where numeric > 0 and numeric < 10", data_source()).where

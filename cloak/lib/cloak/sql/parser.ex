@@ -698,9 +698,7 @@ defmodule Cloak.Sql.Parser do
       {column() |> option(keyword(:not)) |> keyword(:in), in_values()},
       {column() |> keyword(:is) |> option(keyword(:not)), keyword(:null)},
       {column() |> keyword(:between), allowed_where_range()},
-      {any_constant() |> inequality_comparator(), column()},
-      {column() |> inequality_comparator(), any_constant()},
-      {column() |> equality_comparator(), allowed_where_value()},
+      {column() |> comparator(), allowed_where_value()},
       {sequence([next_position(), column()]), return(:implicit)}
     ])
     |> map(fn
@@ -747,17 +745,17 @@ defmodule Cloak.Sql.Parser do
     end)
   end
 
+  defp allowed_where_range() do
+    pipe([allowed_where_value(), keyword(:and), allowed_where_value()], fn [min, :and, max] -> {min, max} end)
+  end
+
   defp allowed_where_value() do
     either_deepest_error(column(), any_constant())
     |> label("comparison value")
   end
 
-  defp allowed_where_range() do
-    pipe([any_constant(), keyword(:and), any_constant()], fn [min, :and, max] -> {min, max} end)
-  end
-
   defp in_values() do
-    pipe([keyword(:"("), comma_delimited(any_constant()), keyword(:")")], fn [_, values, _] ->
+    pipe([keyword(:"("), comma_delimited(column()), keyword(:")")], fn [_, values, _] ->
       values
     end)
   end
@@ -874,15 +872,7 @@ defmodule Cloak.Sql.Parser do
   end
 
   defp comparator(previous_parser),
-    do:
-      previous_parser
-      |> either_deepest_error(equality_comparator(), inequality_comparator())
-      |> label("comparator")
-
-  defp equality_comparator(parser \\ noop()), do: parser |> keyword_of([:=, :<>]) |> label("equality comparator")
-
-  defp inequality_comparator(parser \\ noop()),
-    do: parser |> keyword_of([:<, :<=, :>, :>=]) |> label("inequality comparator")
+    do: previous_parser |> keyword_of([:<, :<=, :>, :>=, :=, :<>]) |> label("comparator")
 
   defp keyword_of(parser \\ noop(), types) do
     parser

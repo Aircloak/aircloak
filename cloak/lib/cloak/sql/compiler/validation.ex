@@ -25,6 +25,8 @@ defmodule Cloak.Sql.Compiler.Validation do
     Helpers.each_subquery(query, &verify_limit/1)
     Helpers.each_subquery(query, &verify_offset/1)
     Helpers.each_subquery(query, &verify_sample_rate/1)
+    Helpers.each_subquery(query, &verify_inequalities/1)
+    Helpers.each_subquery(query, &verify_in/1)
     query
   end
 
@@ -421,6 +423,40 @@ defmodule Cloak.Sql.Compiler.Validation do
          )
 
   defp verify_sample_rate(_query), do: :ok
+
+  defp verify_inequalities(query) do
+    Query.Lenses.db_filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.filter(&Condition.inequality?/1)
+    |> Lens.to_list(query)
+    |> Enum.each(fn {:comparison, lhs, _, rhs} ->
+      unless Expression.constant?(lhs) or Expression.constant?(rhs) do
+        raise CompilationError,
+          message: "One side of an inequality must be a constant.",
+          source_location: rhs.source_location
+      end
+    end)
+  end
+
+  defp verify_in(query) do
+    Query.Lenses.db_filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.filter(&Condition.in?/1)
+    |> Lens.to_list(query)
+    |> Enum.each(fn {:in, _, items} ->
+      items
+      |> Enum.find(&(not Expression.constant?(&1)))
+      |> case do
+        nil ->
+          :ok
+
+        item ->
+          raise CompilationError,
+            message: "Only constants are allowed on the right-hand side of the IN operator.",
+            source_location: item.source_location
+      end
+    end)
+  end
 
   # -------------------------------------------------------------------
   # Helpers
