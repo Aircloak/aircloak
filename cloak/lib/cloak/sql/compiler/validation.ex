@@ -425,7 +425,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_sample_rate(_query), do: :ok
 
   defp verify_inequalities(query) do
-    Query.Lenses.filter_clauses()
+    Query.Lenses.db_filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.filter(&Condition.inequality?/1)
     |> Lens.to_list(query)
@@ -439,7 +439,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_in(query) do
-    Query.Lenses.filter_clauses()
+    Query.Lenses.db_filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.filter(&Condition.in?/1)
     |> Lens.to_list(query)
