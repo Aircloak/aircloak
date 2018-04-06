@@ -207,4 +207,10 @@ defmodule Cloak.Query.ErrorTest do
       error: "Expression `max(count(name))` recursively calls multiple aggregators." <> _
     })
   end
+
+  test "[Issue #2559] Inspecting an interval in an error" do
+    assert_query("SELECT count(*) FROM test_errors WHERE interval 'PT1S' like ''", %{
+      error: "Column `PT1S` of type `interval` cannot be used in a LIKE" <> _
+    })
+  end
 end
