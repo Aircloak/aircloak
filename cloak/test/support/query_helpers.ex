@@ -9,7 +9,7 @@ defmodule Cloak.Test.QueryHelpers do
             parameters: Keyword.get(options, :parameters, []),
             views: Keyword.get(options, :views, quote(do: %{})),
             data_sources: Keyword.get(options, :data_sources, quote(do: Cloak.DataSource.all())),
-            timeout: Keyword.get(options, :timeout, :timer.minutes(15))
+            timeout: Keyword.get(options, :timeout, :timer.hours(1))
           ] do
       run_query = &Cloak.Query.Runner.run_sync("1", &1, query, parameters, views)
 
