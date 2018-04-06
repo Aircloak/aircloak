@@ -37,9 +37,11 @@ defmodule Cloak.Test.QueryHelpers do
         [[{_first_data_source, first_result} | _]] ->
           first_result
 
-        [group1, group2 | _] ->
+        multiple_groups ->
           # Note: we report only first two groups, because we can then use `left` and `right` fields in assertion error,
-          # which gives us a nicer looking diff output.
+          # which gives us a nicer looking diff output. We'll take the two most populated groups to maximize the number
+          # of reported datasources.
+          [group1, group2 | _] = Enum.sort_by(multiple_groups, &length/1, &>=/2)
 
           {datasources1, [result1 | _]} = Enum.unzip(group1)
           {datasources2, [result2 | _]} = Enum.unzip(group2)
