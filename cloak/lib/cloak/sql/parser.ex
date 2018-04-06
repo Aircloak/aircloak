@@ -967,6 +967,7 @@ defmodule Cloak.Sql.Parser do
     do:
       choice_deepest_error([
         sequence([keyword(:not), lazy(fn -> unary_not_expression(term_parser) end)]),
+        term_parser,
         paren_parser(lazy(fn -> disjunction_expression(term_parser) end), term_parser)
       ])
       |> map(fn

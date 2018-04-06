@@ -1591,6 +1591,13 @@ defmodule Cloak.Sql.Parser.Test do
         )
   end
 
+  test "parens in condition" do
+    assert_parse(
+      "select foo from bar where ((a)) = (1 + 2)",
+      select(where: {:comparison, identifier("a"), :=, function("+", _)})
+    )
+  end
+
   create_test = fn description, statement, expected_error, line, column ->
     test description do
       assert {:error, reason} = Parser.parse(unquote(statement))
