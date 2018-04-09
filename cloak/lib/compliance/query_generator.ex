@@ -170,7 +170,14 @@ defmodule Cloak.Compliance.QueryGenerator do
         })
       end)
 
-  defp value_with_info(type), do: type |> value() |> map(fn {type, value, []} -> {{type, value, []}, {type, ""}} end)
+  defp value_with_info(type) do
+    type
+    |> value()
+    |> map(fn
+      expression = {:function, "cast", [_, {:type, type, _}]} -> {expression, {type, ""}}
+      expression = {type, _, _} -> {expression, {type, ""}}
+    end)
+  end
 
   defp value({:constant, type}), do: value(type)
   defp value({:many1, type}), do: value(type)
@@ -183,9 +190,9 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp value(:text), do: string_without_quote() |> filter(&(not String.contains?(&1, "'"))) |> map(&{:text, &1, []})
 
-  defp value(:date), do: naive_date_time() |> map(&NaiveDateTime.to_date/1) |> map(&{:date, &1, []})
-  defp value(:time), do: naive_date_time() |> map(&NaiveDateTime.to_time/1) |> map(&{:time, &1, []})
-  defp value(:datetime), do: naive_date_time() |> map(&{:datetime, &1, []})
+  defp value(:date), do: naive_date_time() |> map(&NaiveDateTime.to_date/1) |> map(&build_cast(&1, :date))
+  defp value(:time), do: naive_date_time() |> map(&NaiveDateTime.to_time/1) |> map(&build_cast(&1, :time))
+  defp value(:datetime), do: naive_date_time() |> map(&build_cast(&1, :datetime))
   defp value(:interval), do: integer() |> map(&Timex.Duration.from_seconds/1) |> map(&{:interval, &1, []})
 
   defp value(:like_pattern),
@@ -194,6 +201,10 @@ defmodule Cloak.Compliance.QueryGenerator do
       |> bind(fn escape ->
         map(string_without_quote(), &{:like_pattern, &1, [escape]})
       end)
+
+  defp build_cast(value, type) do
+    {:function, "cast", [{:text, to_string(value), []}, {:type, type, []}]}
+  end
 
   defp like_escape(),
     do:

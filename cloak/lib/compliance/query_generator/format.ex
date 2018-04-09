@@ -107,6 +107,8 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
 
   defp to_doc({:sample_users, size, []}), do: concat(["SAMPLE_USERS ", to_string(size), "%"])
 
+  defp to_doc({:type, type, []}), do: to_string(type)
+
   defp binary_operation_to_string(:=), do: "="
   defp binary_operation_to_string(:<), do: "<"
   defp binary_operation_to_string(:>), do: ">"
