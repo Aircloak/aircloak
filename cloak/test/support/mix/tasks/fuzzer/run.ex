@@ -163,6 +163,9 @@ defmodule Mix.Tasks.Fuzzer.Run do
       error =~ ~r/Functions .* could cause a database exception/ -> :possible_db_exception
       error =~ ~r/Row splitter functions used in the `WHERE`-clause have/ -> :restricted_row_splitter
       error =~ ~r/String manipulation functions cannot be combined with other transformations/ -> :string_manipulation
+      error =~ ~r/Expressions with NOT ILIKE cannot include any functions/ -> :restricted_like
+      error =~ ~r/Range expressions cannot include any functions except aggregations and a cast/ -> :restricted_range
+      error =~ ~r/Aggregate function .* can not be used in the `GROUP BY` clause/ -> :aggregate_in_group_by
       true -> raise error
     end
   end
