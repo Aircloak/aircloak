@@ -6,7 +6,8 @@
 
 ### Enhancements
 
-- In many cases more data is now returned by selectively suppressing data in low count buckets.
+- In many cases more data is now returned as a result of selectively merging low count buckets by censoring
+  columns individually from right to left.
 - Query execution times can be reduced by parallelising the data ingestion phase. See the section on configuring [Insights Cloak](/docs/ops/configuration.html#insights-cloak-configuration) for details.
 - The efficiency of data aggregation has been improved and emulated queries now push conditions into the bottommost sub-queries for improved performance.
 - Error messages now highlight the problematic part of a query.
