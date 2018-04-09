@@ -121,7 +121,7 @@ defmodule Air.Service.Warnings do
           problem(
             :aircloak,
             "Your license will expire in less than #{@license_warn_in_days} days.",
-            :medium
+            :high
           )
         ]
 
