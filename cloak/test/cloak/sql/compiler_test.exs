@@ -124,6 +124,15 @@ defmodule Cloak.Sql.Compiler.Test do
     assert value == Expression.constant(:datetime, ~N[2017-01-01 00:00:00.000000])
   end
 
+  test "[Issue #2562] doesn't cast expressions that are already datetime in IN" do
+    result =
+      compile!("select * from table where column IN (cast('2017-01-01' as datetime), '2017-02-02')", data_source())
+
+    assert [_is_not_null_id, {:in, column("table", "column"), [value1, value2]}] = conditions_list(result.where)
+    assert value1 == Expression.constant(:datetime, ~N[2017-01-01 00:00:00.000000])
+    assert value2 == Expression.constant(:datetime, ~N[2017-02-02 00:00:00.000000])
+  end
+
   test "allows comparing datetime columns to other datetime columns" do
     assert {:ok, _} = compile("select * from table where column = column", data_source())
   end

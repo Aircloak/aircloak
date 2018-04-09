@@ -703,7 +703,7 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp perform_implicit_cast({:comparison, identifier, comparator, rhs}, type)
        when type in @castable_conditions do
-    if Expression.constant?(rhs) and rhs.type != type do
+    if Expression.constant?(rhs) do
       {:comparison, identifier, comparator, parse_time(rhs, type)}
     else
       {:comparison, identifier, comparator, rhs}
@@ -714,6 +714,8 @@ defmodule Cloak.Sql.Compiler.Specification do
     do: {:in, column, Enum.map(values, &parse_time(&1, type))}
 
   defp perform_implicit_cast(clause, _), do: clause
+
+  defp parse_time(expression = %Expression{type: type}, type), do: expression
 
   defp parse_time(expression, type) do
     value = Expression.value(expression)
