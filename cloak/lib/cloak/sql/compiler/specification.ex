@@ -701,8 +701,7 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   @castable_conditions [:datetime, :time, :date]
 
-  defp perform_implicit_cast({:comparison, identifier, comparator, rhs}, type)
-       when type in @castable_conditions do
+  defp perform_implicit_cast({:comparison, identifier, comparator, rhs}, type) when type in @castable_conditions do
     if Expression.constant?(rhs) do
       {:comparison, identifier, comparator, parse_time(rhs, type)}
     else
