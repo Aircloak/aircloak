@@ -209,6 +209,18 @@ defmodule Cloak.Query.FunctionTest do
             "\n\nThe error was detected at line 1, column 50" <> _
       })
     end
+
+    test "[Issue #2525] extract_words with invalid GROUP BY" do
+      assert_query("SELECT extract_words('') FROM heights_ft GROUP BY height", %{
+        error: "Column `extract_words` needs to appear in the `GROUP BY` clause" <> _
+      })
+    end
+
+    test "[Issue #2525] extract_words on a column with invalid GROUP BY" do
+      assert_query("SELECT extract_words(name) FROM heights_ft GROUP BY height", %{
+        error: "Column `name` from table `heights_ft` needs to appear in the `GROUP BY` clause" <> _
+      })
+    end
   end
 
   test "min(height)", do: assert_subquery_aggregate("min(height)", "heights_ft", 180)

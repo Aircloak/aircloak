@@ -264,6 +264,8 @@ defmodule Cloak.DataSource.SqlBuilder do
       |> escape_string()
       |> sql_dialect_module.unicode_literal()
 
+  defp constant_to_fragment(nil, _sql_dialect_module), do: "NULL"
+
   defp escape_string(string), do: String.replace(string, "'", "''")
 
   defp like_pattern_to_fragment({pattern, escape = "\\"}), do: [?', pattern, ?', "ESCAPE", ?', escape, ?']

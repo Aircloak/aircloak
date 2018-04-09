@@ -43,7 +43,7 @@ config :cloak, :anonymizer,
   sum_noise_sigma_scale_params: {0, 0, 0}
 
 config :cloak, :data_source,
-  timeout: :timer.minutes(15),
+  timeout: :timer.hours(12),
   batch_size: 100,
   connect_timeout: :timer.seconds(15),
   connection_keep_time: :timer.minutes(1)

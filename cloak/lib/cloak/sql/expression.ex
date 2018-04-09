@@ -117,7 +117,7 @@ defmodule Cloak.Sql.Expression do
   def short_name(x), do: display_name(x)
 
   @doc """
-  Returns a display name of the column.
+  Returns the name of the expression.
 
   This function should mostly be used when producing error messages.
   """
@@ -128,7 +128,30 @@ defmodule Cloak.Sql.Expression do
   def display_name(%__MODULE__{alias: alias}) when is_binary(alias), do: "`#{alias}`"
   def display_name(%__MODULE__{function: {:cast, _type}}), do: "`cast`"
   def display_name(%__MODULE__{function: function}) when is_binary(function), do: "`#{function}`"
+
+  def display_name(%__MODULE__{constant?: true, type: :interval, value: value}),
+    do: "`#{Timex.Duration.to_string(value)}`"
+
   def display_name(%__MODULE__{constant?: true, value: value}), do: "`#{value}`"
+
+  @doc """
+  Returns the full expression as text.
+
+  This function should mostly be used when producing error messages.
+  """
+  @spec display(t) :: String.t()
+  def display(%__MODULE__{alias: alias} = expression) when is_binary(alias),
+    do: display(%__MODULE__{expression | alias: nil}) <> " as #{alias}"
+
+  def display(%__MODULE__{name: name}) when is_binary(name), do: name
+  def display(%__MODULE__{function: {:cast, type}, function_args: [arg]}), do: "cast(#{display(arg)} as #{type})"
+
+  def display(%__MODULE__{function: function, function_args: args}) when is_binary(function),
+    do: "#{function}(#{args |> Enum.map(&display/1) |> Enum.join(", ")})"
+
+  def display(%__MODULE__{constant?: true, value: value}), do: to_string(value)
+  def display({:distinct, expression}), do: "DISTINCT #{display(expression)}"
+  def display(value), do: to_string(value)
 
   @doc "Returns the column value of a database row."
   @spec value(t, DataSource.row()) :: DataSource.field()

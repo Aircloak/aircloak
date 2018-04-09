@@ -9,11 +9,11 @@ defmodule Cloak.Test.QueryHelpers do
             parameters: Keyword.get(options, :parameters, []),
             views: Keyword.get(options, :views, quote(do: %{})),
             data_sources: Keyword.get(options, :data_sources, quote(do: Cloak.DataSource.all())),
-            timeout: Keyword.get(options, :timeout, :timer.minutes(15))
+            timeout: Keyword.get(options, :timeout, :timer.hours(1))
           ] do
       run_query = &Cloak.Query.Runner.run_sync("1", &1, query, parameters, views)
 
-      [{first_data_source, first_result} | other_results] =
+      results =
         data_sources
         |> Task.async_stream(
           fn data_source ->
@@ -33,34 +33,41 @@ defmodule Cloak.Test.QueryHelpers do
             {data_source, exit_value}
         end)
 
-      for {other_data_source, other_result} <- other_results,
-          do:
-            Cloak.Test.QueryHelpers.assert_equal(
-              first_result,
-              other_result,
-              0.000001,
-              first_data_source,
-              other_data_source,
-              query
-            )
+      case Enum.reduce(results, [], &Cloak.Test.QueryHelpers.append_result(&2, &1)) do
+        [[{_first_data_source, first_result} | _]] ->
+          first_result
 
-      first_result
+        multiple_groups ->
+          # Note: we report only first two groups, because we can then use `left` and `right` fields in assertion error,
+          # which gives us a nicer looking diff output. We'll take the two most populated groups to maximize the number
+          # of reported datasources.
+          [group1, group2 | _] = Enum.sort_by(multiple_groups, &length/1, &>=/2)
+
+          {datasources1, [result1 | _]} = Enum.unzip(group1)
+          {datasources2, [result2 | _]} = Enum.unzip(group2)
+
+          datasources1 = datasources1 |> Enum.sort() |> Enum.map(&"  #{&1}\n")
+          datasources2 = datasources2 |> Enum.sort() |> Enum.map(&"  #{&1}\n")
+
+          raise ExUnit.AssertionError,
+            message:
+              "Inconsistent query results:\n" <>
+                "Group 1:\n#{datasources1}" <> "Group 2:\n#{datasources2}" <> "Query:\n#{query}",
+            left: result1,
+            right: result2
+      end
     end
   end
 
-  def assert_equal(value1, value2, delta, data_source1, data_source2, query) do
-    case compare_to_within_delta(value1, value2, ["root"], delta) do
-      :ok ->
-        true
+  def append_result([], {data_source, result}), do: [[{name_datasource(data_source), result}]]
 
-      {:error, trace} ->
-        raise ExUnit.AssertionError,
-          message:
-            "Comparison failed at #{trace |> Enum.reverse() |> Enum.join(" > ")} while comparing " <>
-              "results from #{name_datasource(data_source1)} with results from " <>
-              name_datasource(data_source2) <> ". Query was: \n#{query}.",
-          left: value1,
-          right: value2
+  def append_result([group | other_groups], {data_source, result}) do
+    if Enum.any?(group, fn {_data_source, group_result} ->
+         compare_to_within_delta(result, group_result, ["root"], 0.000001) == :ok
+       end) do
+      [[{name_datasource(data_source), result} | group] | other_groups]
+    else
+      [group | append_result(other_groups, {data_source, result})]
     end
   end
 

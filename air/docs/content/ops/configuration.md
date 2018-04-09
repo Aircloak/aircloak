@@ -223,9 +223,9 @@ The `db_name` and `query` fields are mutually exclusive.
 
 #### Projected tables
 
-In some cases a table does not have a `user_id` column but is related to another table that does. You could for example have an `accounts` table with a `user_id` column, and a table named `transactions` with an `account_id` column.
+In some cases a table does not have a `user_id` column but is related to another table that does. You could for example have an `accounts` table with a `customer_id` column, and a table named `transactions` with an `account_id` column.
 
-To get a `user_id` column in the `transactions` table, the cloak needs to be configured to derive it from the `accounts` table:
+To get a `customer_id` column in the `transactions` table, the cloak needs to be configured to derive it from the `accounts` table:
 
 ```
 "tables": {
