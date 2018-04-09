@@ -112,7 +112,7 @@ defmodule Cloak.Sql.Compiler.Validation do
         raise CompilationError,
           source_location: location,
           message:
-            "#{aggregated_expression_display(column)} " <>
+            "Column #{aggregated_expression_display(column)} needs " <>
               "to appear in the `GROUP BY` clause or be used in an aggregate function."
     end
   end
@@ -131,23 +131,15 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp individual_column?(query, column),
     do: not Expression.constant?(column) and not Helpers.aggregated_column?(query, column)
 
-  defp aggregated_expression_display({:function, _function, [arg], _location}), do: "Column `#{arg.name}` needs"
-
-  defp aggregated_expression_display({:function, _function, args, _location}),
-    do: "Columns (#{args |> Enum.map(&"`#{&1.name}`") |> Enum.join(", ")}) need"
-
-  defp aggregated_expression_display(%Expression{function: fun, function_args: args})
-       when fun != nil do
-    args
+  defp aggregated_expression_display(expression) do
+    expression
+    |> get_in([Query.Lenses.leaf_expressions()])
     |> Enum.reject(& &1.constant?)
     |> case do
-      [column | _] -> aggregated_expression_display(column)
-      [] -> "Column `#{fun}` needs"
+      [column | _] -> Expression.display_name(column)
+      [] -> Expression.display_name(expression)
     end
   end
-
-  defp aggregated_expression_display(%Expression{table: table, name: name}),
-    do: "Column `#{name}` from table `#{table.name}` needs"
 
   defp verify_aggregators(query) do
     query
