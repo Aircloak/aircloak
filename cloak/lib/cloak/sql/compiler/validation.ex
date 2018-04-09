@@ -131,11 +131,6 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp individual_column?(query, column),
     do: not Expression.constant?(column) and not Helpers.aggregated_column?(query, column)
 
-  defp aggregated_expression_display({:function, _function, [arg], _location}), do: "Column `#{arg.name}` needs"
-
-  defp aggregated_expression_display({:function, _function, args, _location}),
-    do: "Columns (#{args |> Enum.map(&"`#{&1.name}`") |> Enum.join(", ")}) need"
-
   defp aggregated_expression_display(%Expression{function: fun, function_args: args})
        when fun != nil do
     args
