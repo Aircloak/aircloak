@@ -23,11 +23,13 @@ function cleanup {
 
   clean_dangling
 
-  # also stop named db containers so they don't waste dev resources
-  for container in postgres9.4 mongo3.0 mongo3.2 mongo3.4 mysql5.7 sqlserver2017; do
-    docker kill $container > /dev/null || true
-    docker rm $container > /dev/null || true
-  done
+  if [ "$KEEP_DB_CONTAINERS" != "true" ]; then
+    # also stop named db containers so they don't waste dev resources
+    for container in postgres9.4 mongo3.0 mongo3.2 mongo3.4 mysql5.7 sqlserver2017; do
+      docker kill $container > /dev/null || true
+      docker rm $container > /dev/null || true
+    done
+  fi
 
   exit $exit_status
 }
@@ -68,7 +70,7 @@ container_id="local_ci_$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c
 
 docker_script build_image
 
-docker_script start_container $container_id
+STOP_AFTER=infinity docker_script start_container $container_id
 DOCKER_ARGS="-t" docker_script run_in_container $container_id MIX_ENV=test make
 DOCKER_ARGS="-t" docker_script prepare_for_compliance $container_id
 

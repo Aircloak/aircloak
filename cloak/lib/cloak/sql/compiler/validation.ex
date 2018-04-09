@@ -17,6 +17,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   def verify_query(%Query{command: :select} = query) do
     Helpers.each_subquery(query, &verify_duplicate_tables/1)
     Helpers.each_subquery(query, &verify_aggregated_columns/1)
+    Helpers.each_subquery(query, &verify_aggregators/1)
     Helpers.each_subquery(query, &verify_group_by_functions/1)
     Helpers.each_subquery(query, &verify_non_selected_where_splitters/1)
     Helpers.each_subquery(query, &verify_joins/1)
@@ -113,7 +114,7 @@ defmodule Cloak.Sql.Compiler.Validation do
         raise CompilationError,
           source_location: location,
           message:
-            "#{aggregated_expression_display(column)} " <>
+            "Column #{aggregated_expression_display(column)} needs " <>
               "to appear in the `GROUP BY` clause or be used in an aggregate function."
     end
   end
@@ -132,19 +133,31 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp individual_column?(query, column),
     do: not Expression.constant?(column) and not Helpers.aggregated_column?(query, column)
 
-  defp aggregated_expression_display({:function, _function, [arg], _location}), do: "Column `#{arg.name}` needs"
-
-  defp aggregated_expression_display({:function, _function, args, _location}),
-    do: "Columns (#{args |> Enum.map(&"`#{&1.name}`") |> Enum.join(", ")}) need"
-
-  defp aggregated_expression_display(%Expression{function: fun, function_args: args})
-       when fun != nil do
-    [column | _] = for %Expression{constant?: false} = column <- args, do: column
-    aggregated_expression_display(column)
+  defp aggregated_expression_display(expression) do
+    expression
+    |> get_in([Query.Lenses.leaf_expressions()])
+    |> Enum.reject(& &1.constant?)
+    |> case do
+      [column | _] -> Expression.display_name(column)
+      [] -> Expression.display_name(expression)
+    end
   end
 
-  defp aggregated_expression_display(%Expression{table: table, name: name}),
-    do: "Column `#{name}` from table `#{table.name}` needs"
+  defp verify_aggregators(query) do
+    query
+    |> Query.bucket_columns()
+    |> Enum.flat_map(&aggregate_subexpressions/1)
+    |> Enum.filter(&(&1 |> aggregate_subexpressions() |> Enum.count() > 1))
+    |> case do
+      [] ->
+        :ok
+
+      [column = %{source_location: location} | _rest] ->
+        raise CompilationError,
+          source_location: location,
+          message: "Expression `#{Expression.display(column)}` recursively calls multiple aggregators."
+    end
+  end
 
   defp verify_group_by_functions(query) do
     query.group_by

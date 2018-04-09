@@ -65,7 +65,8 @@ function start_container {
 
   # need to use eval, to properly escape everything
   local full_docker_args="-d --name $container_name --network=$container_name $mounts $DOCKER_ARGS -e CI=true"
-  full_cmd="docker run $full_docker_args aircloak/$DOCKER_IMAGE:$(git_head_image_tag) sleep 3600 > /dev/null"
+  local stop_after=${STOP_AFTER:-3600}
+  full_cmd="docker run $full_docker_args aircloak/$DOCKER_IMAGE:$(git_head_image_tag) sleep $stop_after > /dev/null"
   eval $full_cmd
 }
 

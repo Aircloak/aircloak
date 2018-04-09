@@ -1,5 +1,5 @@
 defmodule Compliance.WhereClauseFilters.Text do
-  use ComplianceCase, async: true, timeout: :timer.minutes(2)
+  use ComplianceCase, async: true
 
   Enum.each(numerical_columns() |> raw_columns(), fn {column, table, uid} ->
     @tag compliance: "#{column} #{table} WHERE-clause equality in subquery"

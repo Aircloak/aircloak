@@ -207,4 +207,22 @@ defmodule Cloak.Query.ErrorTest do
       error: "Only constants are allowed on the right-hand side of the IN operator." <> _
     })
   end
+
+  test "multiple aggregtors in the same expression are not allowed" do
+    assert_query("select max(count(name)) from test_errors", %{
+      error: "Expression `max(count(name))` recursively calls multiple aggregators." <> _
+    })
+  end
+
+  test "[Issue #2559] Inspecting an interval in an error" do
+    assert_query("SELECT count(*) FROM test_errors WHERE interval 'PT1S' like ''", %{
+      error: "Column `PT1S` of type `interval` cannot be used in a LIKE" <> _
+    })
+  end
+
+  test "complex expression missing aggregate" do
+    assert_query("SELECT count(*), minute(cast('19:27:01', time)) + height FROM test_errors", %{
+      error: "Column `height` from table `test_errors` needs to appear in the `GROUP BY` clause" <> _
+    })
+  end
 end
