@@ -162,6 +162,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
       error =~ ~r/`GROUP BY` position .* is out of the range of selected columns./ -> :invalid_group_by_position
       error =~ ~r/Functions .* could cause a database exception/ -> :possible_db_exception
       error =~ ~r/Row splitter functions used in the `WHERE`-clause have/ -> :restricted_row_splitter
+      error =~ ~r/String manipulation functions cannot be combined with other transformations/ -> :string_manipulation
       true -> raise error
     end
   end

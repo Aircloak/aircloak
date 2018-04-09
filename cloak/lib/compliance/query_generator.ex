@@ -154,7 +154,7 @@ defmodule Cloak.Compliance.QueryGenerator do
         tuple({
           member_of([:=, :<>, :<, :>]),
           constant(nil),
-          fixed_list([constant(column), value(type)])
+          fixed_list([constant(column), unaliased_expression(tables, type, aggregates_allowed?)])
         })
       end)
 
