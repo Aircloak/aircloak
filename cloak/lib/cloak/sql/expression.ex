@@ -128,6 +128,10 @@ defmodule Cloak.Sql.Expression do
   def display_name(%__MODULE__{alias: alias}) when is_binary(alias), do: "`#{alias}`"
   def display_name(%__MODULE__{function: {:cast, _type}}), do: "`cast`"
   def display_name(%__MODULE__{function: function}) when is_binary(function), do: "`#{function}`"
+
+  def display_name(%__MODULE__{constant?: true, type: :interval, value: value}),
+    do: "`#{Timex.Duration.to_string(value)}`"
+
   def display_name(%__MODULE__{constant?: true, value: value}), do: "`#{value}`"
 
   @doc """
