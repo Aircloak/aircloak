@@ -117,6 +117,13 @@ defmodule Cloak.Sql.Compiler.Test do
           compile("select * from table where column = 1000 - 100", data_source())
       )
 
+  test "[Issue #2562] doesn't cast expressions that are already datetime" do
+    result = compile!("select * from table where column = cast('2017-01-01' as datetime)", data_source())
+
+    assert [_is_not_null_id, {:comparison, column("table", "column"), :=, value}] = conditions_list(result.where)
+    assert value == Expression.constant(:datetime, ~N[2017-01-01 00:00:00.000000])
+  end
+
   test "allows comparing datetime columns to other datetime columns" do
     assert {:ok, _} = compile("select * from table where column = column", data_source())
   end

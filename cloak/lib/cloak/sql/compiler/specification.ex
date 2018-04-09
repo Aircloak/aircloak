@@ -702,7 +702,7 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp do_cast_where_clause({:comparison, identifier, comparator, rhs}, type)
        when type in @castable_conditions do
-    if Expression.constant?(rhs) do
+    if Expression.constant?(rhs) and rhs.type != type do
       {:comparison, identifier, comparator, parse_time(rhs, type)}
     else
       {:comparison, identifier, comparator, rhs}
