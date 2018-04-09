@@ -213,4 +213,10 @@ defmodule Cloak.Query.ErrorTest do
       error: "Column `PT1S` of type `interval` cannot be used in a LIKE" <> _
     })
   end
+
+  test "complex expression missing aggregate" do
+    assert_query("SELECT count(*), minute(cast('19:27:01', time)) + height FROM test_errors", %{
+      error: "Column `height` from table `test_errors` needs to appear in the `GROUP BY` clause" <> _
+    })
+  end
 end
