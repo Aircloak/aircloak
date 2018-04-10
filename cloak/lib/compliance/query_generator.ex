@@ -7,6 +7,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   alias Cloak.DataSource.Table
 
   @data_types [:boolean, :integer, :real, :text, :datetime, :time, :date, :interval]
+  @keywords ~w(in is as on or by from select from left right)
 
   # -------------------------------------------------------------------
   # API functions
@@ -316,11 +317,30 @@ defmodule Cloak.Compliance.QueryGenerator do
         column <- table.columns,
         column.name != "",
         match_type?(type, column.type) do
-      {{:column, {column.name, table.name}, []}, {column.type, column.name}}
+      {column.name, table.name, column.type}
     end
     |> case do
       [] -> constant(nil)
-      candidates -> member_of(candidates)
+      candidates -> candidates |> member_of() |> bind(&build_column_reference/1)
+    end
+  end
+
+  defp build_column_reference({column, table, type}) do
+    [
+      {:column, nil, fixed_list([identifier(column)])},
+      {:column, nil, fixed_list([identifier(table), identifier(column)])}
+    ]
+    |> one_of()
+    |> map(fn reference -> {reference, {type, column}} end)
+  end
+
+  defp identifier(text) do
+    simple_identifier = ~r/^[a-zA-Z_]*$/
+
+    if Regex.match?(simple_identifier, text) and not (text in @keywords) do
+      constant({:unquoted, text, []})
+    else
+      constant({:quoted, text, []})
     end
   end
 
@@ -332,7 +352,6 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp empty(), do: {:empty, nil, []}
 
-  @keywords ~w(in is as on or by from select)
   defp name(), do: string(?a..?z, min_length: 1) |> filter(&(not (&1 in @keywords)))
 
   defp string_without_quote(opts \\ []), do: string(:ascii, opts) |> filter(&(not String.contains?(&1, "'")))

@@ -166,6 +166,8 @@ defmodule Mix.Tasks.Fuzzer.Run do
       error =~ ~r/Expressions with NOT ILIKE cannot include any functions/ -> :restricted_like
       error =~ ~r/Range expressions cannot include any functions except aggregations and a cast/ -> :restricted_range
       error =~ ~r/Aggregate function .* can not be used in the `GROUP BY` clause/ -> :aggregate_in_group_by
+      error =~ ~r/Usage of .* is ambiguous/ -> :ambiguous_identifier
+      error =~ ~r/Column .* is ambiguous/ -> :ambiguous_identifier
       true -> raise error
     end
   end

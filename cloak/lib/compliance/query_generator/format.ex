@@ -77,7 +77,10 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
     |> group()
   end
 
-  defp to_doc({:column, {column, table}, []}), do: to_string([?", table, ?", ?., ?", column, ?"])
+  defp to_doc({:column, nil, [column]}), do: to_doc(column)
+  defp to_doc({:column, nil, [table, column]}), do: concat([to_doc(table), ".", to_doc(column)])
+  defp to_doc({:unquoted, text, []}), do: text
+  defp to_doc({:quoted, text, []}), do: to_string([?", text, ?"])
   defp to_doc({:integer, value, []}), do: to_string(value)
   defp to_doc({:text, value, []}), do: to_string([?', value, ?'])
   defp to_doc({:boolean, value, []}), do: to_string(value)
