@@ -6,7 +6,8 @@ defmodule Cloak.Compliance.QueryGenerator do
   import StreamData
   alias Cloak.DataSource.Table
 
-  @data_types [:boolean, :integer, :real, :text, :datetime, :time, :date]
+  @data_types [:boolean, :integer, :real, :text, :datetime, :time, :date, :interval]
+  @keywords ~w(in is as on or by from select from left right)
 
   # -------------------------------------------------------------------
   # API functions
@@ -105,13 +106,14 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp where(tables), do: tables |> condition() |> map(&{:where, nil, [&1]})
 
-  defp group_by(tables), do: tables |> unaliased_expression() |> list_of() |> nonempty() |> map(&{:group_by, nil, &1})
+  defp group_by(tables),
+    do: tables |> unaliased_expression(:any) |> list_of() |> nonempty() |> map(&{:group_by, nil, &1})
 
   defp having(tables), do: tables |> simple_condition() |> map(&{:having, nil, [&1]})
 
   defp simple_condition(tables),
     do:
-      [between(tables), comparison(tables)]
+      [between(tables, _aggregates_allowed? = true), comparison(tables, _aggregates_allowed? = true)]
       |> one_of()
       |> tree(&logical_condition/1)
 
@@ -126,7 +128,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp in_expression(tables),
     do:
       tables
-      |> unaliased_expression_with_info()
+      |> unaliased_expression_with_info(:any)
       |> bind(fn {column, {type, _}} ->
         tuple({
           member_of([:in, :not_in]),
@@ -142,25 +144,25 @@ defmodule Cloak.Compliance.QueryGenerator do
       tuple({
         member_of([:like, :ilike, :not_like, :not_ilike]),
         constant(nil),
-        fixed_list([unaliased_expression(tables), value(:like_pattern)])
+        fixed_list([unaliased_expression(tables, :text), value(:like_pattern)])
       })
 
-  defp comparison(tables),
+  defp comparison(tables, aggregates_allowed? \\ false),
     do:
       tables
-      |> unaliased_expression_with_info()
+      |> unaliased_expression_with_info(:any, aggregates_allowed?)
       |> bind(fn {column, {type, _}} ->
         tuple({
           member_of([:=, :<>, :<, :>]),
           constant(nil),
-          fixed_list([constant(column), value(type)])
+          fixed_list([constant(column), unaliased_expression(tables, type, aggregates_allowed?)])
         })
       end)
 
-  defp between(tables),
+  defp between(tables, aggregates_allowed? \\ false),
     do:
       tables
-      |> unaliased_expression_with_info()
+      |> unaliased_expression_with_info(:any, aggregates_allowed?)
       |> bind(fn {column, {type, _}} ->
         tuple({
           constant(:between),
@@ -169,7 +171,14 @@ defmodule Cloak.Compliance.QueryGenerator do
         })
       end)
 
-  defp value_with_info(type), do: type |> value() |> map(fn {type, value, []} -> {{type, value, []}, {type, ""}} end)
+  defp value_with_info(type) do
+    type
+    |> value()
+    |> map(fn
+      expression = {:function, "cast", [_, {:type, type, _}]} -> {expression, {type, ""}}
+      expression = {type, _, _} -> {expression, {type, ""}}
+    end)
+  end
 
   defp value({:constant, type}), do: value(type)
   defp value({:many1, type}), do: value(type)
@@ -182,9 +191,10 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp value(:text), do: string_without_quote() |> filter(&(not String.contains?(&1, "'"))) |> map(&{:text, &1, []})
 
-  defp value(:date), do: naive_date_time() |> map(&NaiveDateTime.to_date/1) |> map(&{:date, &1, []})
-  defp value(:time), do: naive_date_time() |> map(&NaiveDateTime.to_time/1) |> map(&{:time, &1, []})
-  defp value(:datetime), do: naive_date_time() |> map(&{:datetime, &1, []})
+  defp value(:date), do: naive_date_time() |> map(&NaiveDateTime.to_date/1) |> map(&build_cast(&1, :date))
+  defp value(:time), do: naive_date_time() |> map(&NaiveDateTime.to_time/1) |> map(&build_cast(&1, :time))
+  defp value(:datetime), do: naive_date_time() |> map(&build_cast(&1, :datetime))
+  defp value(:interval), do: integer() |> map(&Timex.Duration.from_seconds/1) |> map(&{:interval, &1, []})
 
   defp value(:like_pattern),
     do:
@@ -192,6 +202,10 @@ defmodule Cloak.Compliance.QueryGenerator do
       |> bind(fn escape ->
         map(string_without_quote(), &{:like_pattern, &1, [escape]})
       end)
+
+  defp build_cast(value, type) do
+    {:function, "cast", [{:text, to_string(value), []}, {:type, type, []}]}
+  end
 
   defp like_escape(),
     do:
@@ -228,26 +242,33 @@ defmodule Cloak.Compliance.QueryGenerator do
       |> list_of()
       |> nonempty()
 
-  defp expression_with_info(tables),
-    do: one_of([aliased_expression_with_info(tables), unaliased_expression_with_info(tables)])
+  defp expression_with_info(tables, aggregates_allowed? \\ true) do
+    one_of([
+      aliased_expression_with_info(tables, aggregates_allowed?),
+      unaliased_expression_with_info(tables, :any, aggregates_allowed?)
+    ])
+  end
 
-  defp aliased_expression_with_info(tables),
-    do:
-      tables
-      |> unaliased_expression_with_info()
-      |> bind(fn {expression, {type, _name}} ->
-        map(name(), fn name -> {as_expression(expression, name), {type, name}} end)
-      end)
+  defp aliased_expression_with_info(tables, aggregates_allowed?) do
+    tables
+    |> unaliased_expression_with_info(:any, aggregates_allowed?)
+    |> bind(fn {expression, {type, _name}} ->
+      map(name(), fn name -> {as_expression(expression, name), {type, name}} end)
+    end)
+  end
 
-  defp unaliased_expression(tables, type \\ :any),
-    do: tables |> unaliased_expression_with_info(type) |> map(&strip_info/1)
+  defp unaliased_expression(tables, type, aggregates_allowed? \\ false),
+    do: tables |> unaliased_expression_with_info(type, aggregates_allowed?) |> map(&strip_info/1)
 
-  defp unaliased_expression_with_info(tables, type \\ :any) do
+  defp unaliased_expression_with_info(tables, type, aggregates_allowed? \\ false) do
+    star_frequency = if(aggregates_allowed?, do: 1, else: 0)
+
     sized(fn size ->
       frequency([
         {1, column_with_info(tables, type)},
         {1, value_with_info(type)},
-        {size, resize(function_with_info(tables, type), div(size, 2))}
+        {star_frequency, count_star(type)},
+        {size, resize(function_with_info(tables, type, aggregates_allowed?), div(size, 2))}
       ])
       |> filter(& &1)
     end)
@@ -256,9 +277,11 @@ defmodule Cloak.Compliance.QueryGenerator do
   @functions ~w(
     abs btrim ceil concat date_trunc day extract_words floor hash hex hour left length lower ltrim minute month quarter
     right round rtrim second sqrt trunc upper weekday year count avg min max stddev count_noise avg_noise stddev_noise
+    + - * / ^
   )
-  defp function_with_info(tables, type) do
+  defp function_with_info(tables, type, aggregates_allowed?) do
     @functions
+    |> Enum.filter(fn function -> aggregates_allowed? or not Cloak.Sql.Function.aggregator?(function) end)
     |> Enum.flat_map(fn function ->
       function
       |> Cloak.Sql.Function.type_specs()
@@ -267,23 +290,57 @@ defmodule Cloak.Compliance.QueryGenerator do
       end)
     end)
     |> Enum.filter(fn {_, _, return_type} -> match_type?(type, return_type) end)
-    |> member_of()
-    |> bind(fn {function, argument_types, return_type} ->
-      arguments = Enum.map(argument_types, &unaliased_expression(tables, &1))
-      {{:function, constant(function), fixed_list(arguments)}, {constant(return_type), constant(function)}}
-    end)
+    |> case do
+      [] ->
+        constant(nil)
+
+      candidates ->
+        candidates
+        |> member_of()
+        |> bind(fn {function, argument_types, return_type} ->
+          arguments = Enum.map(argument_types, &unaliased_expression(tables, &1, aggregates_allowed?))
+          {{:function, constant(function), fixed_list(arguments)}, {constant(return_type), constant(function)}}
+        end)
+    end
   end
+
+  defp count_star(expected_type) when expected_type in [:any, :integer] do
+    ~w(count count_noise)
+    |> member_of()
+    |> map(&{{:function, &1, [{:star, nil, []}]}, {:integer, &1}})
+  end
+
+  defp count_star(_), do: nil
 
   defp column_with_info(tables, type) do
     for table <- tables,
         column <- table.columns,
         column.name != "",
         match_type?(type, column.type) do
-      {{:column, {column.name, table.name}, []}, {column.type, column.name}}
+      {column.name, table.name, column.type}
     end
     |> case do
       [] -> constant(nil)
-      candidates -> member_of(candidates)
+      candidates -> candidates |> member_of() |> bind(&build_column_reference/1)
+    end
+  end
+
+  defp build_column_reference({column, table, type}) do
+    [
+      {:column, nil, fixed_list([identifier(column)])},
+      {:column, nil, fixed_list([identifier(table), identifier(column)])}
+    ]
+    |> one_of()
+    |> map(fn reference -> {reference, {type, column}} end)
+  end
+
+  defp identifier(text) do
+    simple_identifier = ~r/^[a-zA-Z_]*$/
+
+    if Regex.match?(simple_identifier, text) and not (text in @keywords) do
+      constant({:unquoted, text, []})
+    else
+      constant({:quoted, text, []})
     end
   end
 
@@ -295,7 +352,6 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp empty(), do: {:empty, nil, []}
 
-  @keywords ~w(in is as on or by from select)
   defp name(), do: string(?a..?z, min_length: 1) |> filter(&(not (&1 in @keywords)))
 
   defp string_without_quote(opts \\ []), do: string(:ascii, opts) |> filter(&(not String.contains?(&1, "'")))
