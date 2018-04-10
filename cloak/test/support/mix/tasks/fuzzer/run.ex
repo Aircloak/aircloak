@@ -170,6 +170,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
       error =~ ~r/Column .* is ambiguous/ -> :ambiguous_identifier
       error =~ ~r/Expression .* recursively calls multiple aggregators/ -> :recursive_aggregate
       error =~ ~r/One side of an inequality must be a constant/ -> :restricted_inequality
+      error =~ ~r/Escape string must be one character/ -> :invalid_escape
       true -> raise error
     end
   end

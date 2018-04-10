@@ -231,12 +231,12 @@ defmodule Cloak.Compliance.QueryGenerator do
     tables
     |> select_list()
     |> bind(fn items ->
-      [:distinct, nil]
-      |> member_of()
-      |> map(fn mode ->
-        {select_list, info} = Enum.unzip(items)
-        {{:select, mode, select_list}, info}
-      end)
+      {select_list, info} = Enum.unzip(items)
+
+      member_of([
+        {{:select, nil, [{:select_list, nil, select_list}]}, info},
+        {{:select, nil, [{:distinct, nil, [{:select_list, nil, select_list}]}]}, info}
+      ])
     end)
   end
 
