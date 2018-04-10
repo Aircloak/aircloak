@@ -158,8 +158,8 @@ defmodule Mix.Tasks.Fuzzer.Run do
       error =~ ~r/Function .* is allowed over arguments/ -> :restricted_aggregate
       error =~ ~r/Function .* is not allowed in subqueries/ -> :restricted_aggregate
       error =~ ~r/Table alias .* used more than once/ -> :duplicate_alias
-      error =~ ~r/Non-integer constant is not allowed in `GROUP BY`/ -> :non_integer_group_by
-      error =~ ~r/`GROUP BY` position .* is out of the range of selected columns./ -> :invalid_group_by_position
+      error =~ ~r/Non-integer constant is not allowed in .*/ -> :invalid_position
+      error =~ ~r/.* position .* is out of the range of selected columns./ -> :invalid_position
       error =~ ~r/Functions .* could cause a database exception/ -> :possible_db_exception
       error =~ ~r/Row splitter functions used in the `WHERE`-clause have/ -> :restricted_row_splitter
       error =~ ~r/String manipulation functions cannot be combined with other transformations/ -> :string_manipulation

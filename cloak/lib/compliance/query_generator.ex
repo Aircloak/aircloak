@@ -45,6 +45,7 @@ defmodule Cloak.Compliance.QueryGenerator do
                tables |> where() |> optional(),
                tables |> group_by() |> optional(),
                tables |> having() |> optional(),
+               tables |> order_by() |> optional(),
                sample_users() |> optional()
              ])},
             constant(info)
@@ -111,6 +112,13 @@ defmodule Cloak.Compliance.QueryGenerator do
     do: tables |> unaliased_expression(:any) |> list_of() |> nonempty() |> map(&{:group_by, nil, &1})
 
   defp having(tables), do: tables |> simple_condition() |> map(&{:having, nil, [&1]})
+
+  defp order_by(tables) do
+    tables
+    |> unaliased_expression(:any, _aggregates_allowed? = true)
+    |> list_of(min_length: 1)
+    |> map(&{:order_by, nil, &1})
+  end
 
   defp simple_condition(tables),
     do:

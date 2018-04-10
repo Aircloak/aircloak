@@ -50,6 +50,8 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
 
   defp to_doc({:having, nil, [condition]}), do: glue("HAVING", " ", to_doc(condition))
 
+  defp to_doc({:order_by, nil, order_list}), do: "ORDER BY" |> glue(" ", clause_list(order_list)) |> group()
+
   defp to_doc({op, nil, [lhs, rhs]}) when op in @infix_operator,
     do: operator(to_doc(lhs), binary_operation_to_string(op), to_doc(rhs))
 
