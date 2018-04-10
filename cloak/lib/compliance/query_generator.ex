@@ -5,6 +5,7 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   import StreamData
   alias Cloak.DataSource.Table
+  alias Cloak.Sql.Function
 
   @data_types [:boolean, :integer, :real, :text, :datetime, :time, :date, :interval]
   @keywords ~w(in is as on or by from select from left right)
@@ -285,10 +286,10 @@ defmodule Cloak.Compliance.QueryGenerator do
   )
   defp function_with_info(tables, type, aggregates_allowed?) do
     @functions
-    |> Enum.filter(fn function -> aggregates_allowed? or not Cloak.Sql.Function.aggregator?(function) end)
+    |> Enum.filter(fn function -> aggregates_allowed? or not Function.aggregator?(function) end)
     |> Enum.flat_map(fn function ->
       function
-      |> Cloak.Sql.Function.type_specs()
+      |> Function.type_specs()
       |> Enum.map(fn {argument_types, return_type} ->
         {function, argument_types, return_type}
       end)
@@ -302,10 +303,30 @@ defmodule Cloak.Compliance.QueryGenerator do
         candidates
         |> member_of()
         |> bind(fn {function, argument_types, return_type} ->
-          arguments = Enum.map(argument_types, &unaliased_expression(tables, &1, aggregates_allowed?))
-          {{:function, constant(function), fixed_list(arguments)}, {constant(return_type), constant(function)}}
+          function_arguments(tables, function, argument_types, aggregates_allowed?)
+          |> map(fn arguments -> {{:function, function, arguments}, {return_type, function}} end)
         end)
     end
+  end
+
+  defp function_arguments(tables, function, argument_types, aggregates_allowed?) do
+    distinct_frequency = if(Function.aggregator?(function), do: 1, else: 0)
+
+    frequency([
+      {1, do_function_arguments(tables, argument_types, aggregates_allowed?)},
+      {distinct_frequency, distinct_argument(tables, argument_types, aggregates_allowed?)}
+    ])
+  end
+
+  defp distinct_argument(tables, argument_types, aggregates_allowed?) do
+    do_function_arguments(tables, argument_types, aggregates_allowed?)
+    |> map(&[{:distinct, nil, &1}])
+  end
+
+  defp do_function_arguments(tables, argument_types, aggregates_allowed?) do
+    argument_types
+    |> Enum.map(&unaliased_expression(tables, &1, aggregates_allowed?))
+    |> fixed_list()
   end
 
   defp count_star(expected_type) when expected_type in [:any, :integer] do

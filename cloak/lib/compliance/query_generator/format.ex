@@ -80,6 +80,8 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
     |> group()
   end
 
+  defp to_doc({:distinct, nil, [argument]}), do: concat("DISTINCT ", to_doc(argument))
+
   defp to_doc({:column, nil, [column]}), do: to_doc(column)
   defp to_doc({:column, nil, [table, column]}), do: concat([to_doc(table), ".", to_doc(column)])
   defp to_doc({:unquoted, text, []}), do: text
