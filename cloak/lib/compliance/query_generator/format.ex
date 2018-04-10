@@ -28,6 +28,9 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
 
   defp to_doc({:select, nil, select_list}), do: "SELECT" |> glue(" ", clause_list(select_list)) |> group()
 
+  defp to_doc({:select, :distinct, select_list}),
+    do: "SELECT DISTINCT" |> glue(" ", clause_list(select_list)) |> group()
+
   defp to_doc({:from, nil, [from_expression]}), do: glue("FROM", " ", to_doc(from_expression))
 
   defp to_doc({:table, name, []}), do: name

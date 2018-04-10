@@ -226,14 +226,18 @@ defmodule Cloak.Compliance.QueryGenerator do
     |> map(&struct(NaiveDateTime, &1))
   end
 
-  defp select(tables),
-    do:
-      tables
-      |> select_list()
-      |> map(fn items ->
+  defp select(tables) do
+    tables
+    |> select_list()
+    |> bind(fn items ->
+      [:distinct, nil]
+      |> member_of()
+      |> map(fn mode ->
         {select_list, info} = Enum.unzip(items)
-        {{:select, nil, select_list}, info}
+        {{:select, mode, select_list}, info}
       end)
+    end)
+  end
 
   defp select_list(tables),
     do:
