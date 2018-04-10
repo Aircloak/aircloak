@@ -129,15 +129,22 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp simple_condition(tables),
     do:
-      [between(tables, _aggregates_allowed? = true), comparison(tables, _aggregates_allowed? = true)]
+      [
+        between(tables, _aggregates_allowed? = true),
+        comparison(tables, _aggregates_allowed? = true),
+        implicit_condition(tables, _aggregates_allowed? = true)
+      ]
       |> one_of()
       |> tree(&logical_condition/1)
 
   defp condition(tables),
     do:
-      [between(tables), like(tables), in_expression(tables), comparison(tables)]
+      [between(tables), like(tables), in_expression(tables), comparison(tables), implicit_condition(tables)]
       |> one_of()
       |> tree(&logical_condition/1)
+
+  defp implicit_condition(tables, aggregates_allowed? \\ false),
+    do: unaliased_expression(tables, :boolean, aggregates_allowed?)
 
   defp logical_condition(child_data), do: {member_of([:and, :or]), nil, fixed_list([child_data, child_data])}
 
@@ -290,7 +297,7 @@ defmodule Cloak.Compliance.QueryGenerator do
         {star_frequency, count_star(type)},
         {size, resize(function_with_info(tables, type, aggregates_allowed?), div(size, 2))}
       ])
-      |> filter(& &1)
+      |> filter(& &1, _max_tries = 100)
     end)
   end
 
