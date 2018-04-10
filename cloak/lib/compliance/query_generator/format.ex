@@ -22,7 +22,7 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
   defp to_doc({:query, _, items}),
     do:
       items
-      |> Enum.reject(&match?({:empty, _, _}, &1))
+      |> except_empty()
       |> Enum.map(fn item -> item |> to_doc() |> nest() end)
       |> space_separated()
 
@@ -51,6 +51,12 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
   defp to_doc({:having, nil, [condition]}), do: glue("HAVING", " ", to_doc(condition))
 
   defp to_doc({:order_by, nil, order_list}), do: "ORDER BY" |> glue(" ", clause_list(order_list)) |> group()
+
+  defp to_doc({:order_spec, nil, items}), do: items |> except_empty() |> Enum.map(&to_doc/1) |> space_separated()
+
+  defp to_doc({:order_direction, direction, []}), do: direction |> to_string() |> String.upcase()
+
+  defp to_doc({:nulls, directive, []}), do: concat("NULLS ", directive |> to_string() |> String.upcase())
 
   defp to_doc({op, nil, [lhs, rhs]}) when op in @infix_operator,
     do: operator(to_doc(lhs), binary_operation_to_string(op), to_doc(rhs))
@@ -138,4 +144,6 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
   defp nest(doc), do: doc |> group() |> nest(2)
 
   defp operator(doc1, operator, doc2), do: glue(concat([doc1, " ", operator]), " ", doc2) |> nest()
+
+  defp except_empty(items), do: Enum.reject(items, &match?({:empty, _, _}, &1))
 end

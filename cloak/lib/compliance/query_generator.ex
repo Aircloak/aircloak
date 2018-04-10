@@ -113,12 +113,19 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp having(tables), do: tables |> simple_condition() |> map(&{:having, nil, [&1]})
 
-  defp order_by(tables) do
+  defp order_by(tables), do: tables |> order_item() |> list_of(min_length: 1) |> map(&{:order_by, nil, &1})
+
+  defp order_item(tables) do
     tables
     |> unaliased_expression(:any, _aggregates_allowed? = true)
-    |> list_of(min_length: 1)
-    |> map(&{:order_by, nil, &1})
+    |> bind(fn expression ->
+      {:order_spec, nil, fixed_list([constant(expression), optional(order_direction()), optional(nulls_directive())])}
+    end)
   end
+
+  defp order_direction(), do: [:asc, :desc] |> member_of() |> map(&{:order_direction, &1, []})
+
+  defp nulls_directive(), do: [:first, :last] |> member_of() |> map(&{:nulls, &1, []})
 
   defp simple_condition(tables),
     do:
@@ -198,7 +205,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp value(:integer), do: map(integer(), &{:integer, &1, []})
   defp value(:real), do: map(float(), &{:real, &1, []})
 
-  defp value(:text), do: string_without_quote() |> filter(&(not String.contains?(&1, "'"))) |> map(&{:text, &1, []})
+  defp value(:text), do: string_without_quote() |> map(&{:text, &1, []})
 
   defp value(:date), do: naive_date_time() |> map(&NaiveDateTime.to_date/1) |> map(&build_cast(&1, :date))
   defp value(:time), do: naive_date_time() |> map(&NaiveDateTime.to_time/1) |> map(&build_cast(&1, :time))
