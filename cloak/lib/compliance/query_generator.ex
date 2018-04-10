@@ -354,7 +354,13 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp name(), do: string(?a..?z, min_length: 1) |> filter(&(not (&1 in @keywords)))
 
-  defp string_without_quote(opts \\ []), do: string(:ascii, opts) |> filter(&(not String.contains?(&1, "'")))
+  defp string_without_quote(opts \\ []) do
+    frequency([
+      {10, string(:ascii, opts)},
+      {1, string(:printable, opts)}
+    ])
+    |> map(&String.replace(&1, "'", ""))
+  end
 
   defp match_type?(:any, _), do: true
   defp match_type?({:optional, type}, actual), do: match_type?(type, actual)

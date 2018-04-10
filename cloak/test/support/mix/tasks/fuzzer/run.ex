@@ -168,6 +168,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
       error =~ ~r/Aggregate function .* can not be used in the `GROUP BY` clause/ -> :aggregate_in_group_by
       error =~ ~r/Usage of .* is ambiguous/ -> :ambiguous_identifier
       error =~ ~r/Column .* is ambiguous/ -> :ambiguous_identifier
+      error =~ ~r/Expression .* recursively calls multiple aggregators/ -> :recursive_aggregate
       true -> raise error
     end
   end
@@ -179,7 +180,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
   end
 
   defp with_file(name, function) do
-    file = File.open!(name, [:write])
+    file = File.open!(name, [:write, :utf8])
     function.(file)
   end
 end
