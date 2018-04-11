@@ -200,13 +200,18 @@ Each `table_name_x` key specifies the name the table will be available under whe
 
 The `user_id` field is the name of the column that uniquely identifies users - the people or entities whose anonymity should be preserved.
 
+The database table can be declared by either using `db_name` or as an SQL view using `query`.
+These options are mutually exclusive.
+
 The `db_name` is the name of the table in the underlying database. In most situations you can use the same name
 (in which case the field can be omitted), but the distinction allows some special scenarios, such as exposing
 a table under a simpler name, or exposing the same database table multiple times under different names.
 
 If the `query` field is present instead, a virtual table is created, similar to an SQL view. The provided query can gather
-data from multiple tables, filter what columns are exposed and pre-process, pre-filter or pre-aggregate the data without
-the restrictions normally present in an anonymized query. An example configuration for a virtual table would look like this:
+data from multiple tables, filter what columns are exposed and pre-process, pre-filter or pre-aggregate the data. The
+supported SQL features are the same as in other Aircloak queries, but the anonymization specific restrictions (like
+requiring a numerical range to have an upper and lower bound, for example) do not apply.
+An example configuration for a virtual table would look like this:
 
 ```
 table_name: {
@@ -218,8 +223,6 @@ table_name: {
   "user_id": "uid"
 }
 ```
-
-The `db_name` and `query` fields are mutually exclusive.
 
 #### Projected tables
 
