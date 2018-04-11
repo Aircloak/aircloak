@@ -324,7 +324,7 @@ defmodule Cloak.Compliance.QueryGenerator do
         candidates
         |> member_of()
         |> bind(fn {function, argument_types, return_type} ->
-          function_arguments(tables, function, argument_types, aggregates_allowed?)
+          function_arguments(tables, function, argument_types, aggregates_allowed?, constant?(type))
           |> map(fn arguments -> {{:function, function, arguments}, {return_type, function}} end)
         end)
     end
@@ -350,7 +350,7 @@ defmodule Cloak.Compliance.QueryGenerator do
       |> Function.type_specs()
       |> member_of()
       |> bind(fn {argument_types, return_type} ->
-        function_arguments(tables, function, argument_types, aggregates_allowed?)
+        function_arguments(tables, function, argument_types, aggregates_allowed?, constant?(type))
         |> map(fn arguments -> {{:cast, type, arguments}, {return_type, ""}} end)
       end)
     end)
@@ -371,8 +371,9 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp positive_integer_value(), do: map(integer(), &{:integer, abs(&1) + 1, []})
 
-  defp function_arguments(tables, function, argument_types, aggregates_allowed?) do
+  defp function_arguments(tables, function, argument_types, aggregates_allowed?, constant?) do
     distinct_frequency = if(Function.aggregator?(function), do: 1, else: 0)
+    argument_types = if(constant?, do: Enum.map(argument_types, &{:constant, &1}), else: argument_types)
 
     frequency([
       {1, do_function_arguments(tables, argument_types, aggregates_allowed?)},
@@ -456,6 +457,12 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp match_type?({:or, types}, actual), do: Enum.any?(types, &match_type?(&1, actual))
   defp match_type?(type, type), do: true
   defp match_type?(type, _) when type in @data_types, do: false
+
+  defp constant?({:constant, _}), do: true
+  defp constant?({:or, types}), do: Enum.all?(types, &constant?/1)
+  defp constant?({:many1, type}), do: constant?(type)
+  defp constant?({:optional, type}), do: constant?(type)
+  defp constant?(_), do: false
 
   defp strip_info({item, _info}), do: item
 end
