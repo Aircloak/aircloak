@@ -137,7 +137,7 @@ defmodule Compliance.Data do
   defp random_date(), do: (1_500_000_000 + :rand.uniform(100_026_704)) |> DateTime.from_unix!() |> DateTime.to_naive()
 
   defp rand_range(min, max) when min > max, do: raise("Max must be greater or equal to min")
-  defp rand_range(min, max), do: min..(:rand.uniform(max - min + 1) + min)
+  defp rand_range(min, max), do: min..(:rand.uniform(max - min + 1) + min - 1)
 
   defp random_postcode(), do: :rand.uniform(@max_postal_code - @min_postal_code) + @min_postal_code
 
