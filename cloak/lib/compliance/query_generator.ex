@@ -3,7 +3,7 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   @type ast :: {atom, any, [ast]}
 
-  import StreamData
+  import StreamData, except: [positive_integer: 0]
   alias Cloak.DataSource.Table
   alias Cloak.Sql.Function
 
@@ -37,19 +37,21 @@ defmodule Cloak.Compliance.QueryGenerator do
     do:
       bind(from(tables), fn {from_ast, tables} ->
         bind(select(tables), fn {select_ast, info} ->
-          {
-            {:query, nil,
-             fixed_list([
-               constant(select_ast),
-               constant(from_ast),
-               tables |> where() |> optional(),
-               tables |> group_by() |> optional(),
-               tables |> having() |> optional(),
-               tables |> order_by() |> optional(),
-               sample_users() |> optional()
-             ])},
-            constant(info)
-          }
+          bind(order(tables), fn order_clauses ->
+            {
+              {:query, nil,
+               fixed_list(
+                 [
+                   constant(select_ast),
+                   constant(from_ast),
+                   tables |> where() |> optional(),
+                   tables |> group_by() |> optional(),
+                   tables |> having() |> optional()
+                 ] ++ Enum.map(order_clauses, &constant/1) ++ [optional(sample_users())]
+               )},
+              constant(info)
+            }
+          end)
         end)
       end)
 
@@ -112,6 +114,17 @@ defmodule Cloak.Compliance.QueryGenerator do
     do: tables |> unaliased_expression(:any) |> list_of() |> nonempty() |> map(&{:group_by, nil, &1})
 
   defp having(tables), do: tables |> simple_condition() |> map(&{:having, nil, [&1]})
+
+  defp order(tables) do
+    {order_by(tables), limit(), offset()}
+    |> bind(fn {order_by, limit, offset} ->
+      member_of([[], [order_by], [order_by, limit], [order_by, limit, offset]])
+    end)
+  end
+
+  defp limit(), do: positive_integer() |> map(&{:limit, &1, []})
+
+  defp offset(), do: positive_integer() |> map(&{:offset, &1, []})
 
   defp order_by(tables), do: tables |> order_item() |> list_of(min_length: 1) |> map(&{:order_by, nil, &1})
 
@@ -371,7 +384,7 @@ defmodule Cloak.Compliance.QueryGenerator do
     |> map(&{&1, {:text, "substring"}})
   end
 
-  defp positive_integer_value(), do: map(integer(), &{:integer, abs(&1) + 1, []})
+  defp positive_integer_value(), do: map(positive_integer(), &{:integer, &1, []})
 
   defp function_arguments(tables, function, argument_types, aggregates_allowed?, constant?) do
     distinct_frequency = if(Function.aggregator?(function), do: 1, else: 0)
@@ -451,6 +464,8 @@ defmodule Cloak.Compliance.QueryGenerator do
     ])
     |> map(&String.replace(&1, "'", ""))
   end
+
+  defp positive_integer(), do: map(integer(), &(abs(&1) + 1))
 
   defp match_type?(:any, _), do: true
   defp match_type?({:optional, type}, actual), do: match_type?(type, actual)

@@ -172,6 +172,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
       error =~ ~r/One side of an inequality must be a constant/ -> :restricted_inequality
       error =~ ~r/Escape string must be one character/ -> :invalid_escape
       error =~ ~r/Only .* can be used in the arguments of an <> operator/ -> :restricted_function
+      error =~ ~r/Only .* can be used in the left-hand side of an IN operator/ -> :restricted_function
       true -> raise error
     end
   end
