@@ -8,7 +8,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   alias Cloak.Sql.Function
 
   @data_types [:boolean, :integer, :real, :text, :datetime, :time, :date, :interval]
-  @keywords ~w(in is as on or by from select from left right)
+  @keywords ~w(in is as on or by and from select from left right cast)
 
   # -------------------------------------------------------------------
   # API functions
@@ -198,7 +198,7 @@ defmodule Cloak.Compliance.QueryGenerator do
     type
     |> value()
     |> map(fn
-      expression = {:function, "cast", [_, {:type, type, _}]} -> {expression, {type, ""}}
+      expression = {:cast, type, _} -> {expression, {type, ""}}
       expression = {type, _, _} -> {expression, {type, ""}}
     end)
   end
@@ -226,9 +226,7 @@ defmodule Cloak.Compliance.QueryGenerator do
         map(string_without_quote(), &{:like_pattern, &1, [escape]})
       end)
 
-  defp build_cast(value, type) do
-    {:function, "cast", [{:text, to_string(value), []}, {:type, type, []}]}
-  end
+  defp build_cast(value, type), do: {:cast, type, [{:text, to_string(value), []}]}
 
   defp like_escape(),
     do:
@@ -295,7 +293,8 @@ defmodule Cloak.Compliance.QueryGenerator do
         {1, column_with_info(tables, type)},
         {1, value_with_info(type)},
         {star_frequency, count_star(type)},
-        {size, resize(function_with_info(tables, type, aggregates_allowed?), div(size, 2))}
+        {size, tables |> function_with_info(type, aggregates_allowed?) |> resize(div(size, 2))},
+        {size, tables |> special_function_with_info(type, aggregates_allowed?) |> resize(div(size, 2))}
       ])
       |> filter(& &1, _max_tries = 100)
     end)
@@ -329,6 +328,27 @@ defmodule Cloak.Compliance.QueryGenerator do
           |> map(fn arguments -> {{:function, function, arguments}, {return_type, function}} end)
         end)
     end
+  end
+
+  defp special_function_with_info(tables, type, aggregates_allowed?) do
+    cast(tables, type, aggregates_allowed?)
+  end
+
+  defp cast(tables, type, aggregates_allowed?) do
+    @data_types
+    |> Enum.filter(&match_type?(type, &1))
+    |> member_of()
+    |> bind(fn type ->
+      function = {:cast, type}
+
+      function
+      |> Function.type_specs()
+      |> member_of()
+      |> bind(fn {argument_types, return_type} ->
+        function_arguments(tables, function, argument_types, aggregates_allowed?)
+        |> map(fn arguments -> {{:cast, type, arguments}, {return_type, ""}} end)
+      end)
+    end)
   end
 
   defp function_arguments(tables, function, argument_types, aggregates_allowed?) do
