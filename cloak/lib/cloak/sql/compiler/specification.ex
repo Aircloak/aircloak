@@ -780,8 +780,8 @@ defmodule Cloak.Sql.Compiler.Specification do
       Helpers.uid_column_selected?(subquery) ->
         nil
 
-      # no group by and no aggregate -> select any uid column
-      match?(%Query{group_by: []}, subquery) && not Helpers.aggregate?(subquery) ->
+      # no group by, no having and no aggregate -> select any uid column
+      match?(%Query{group_by: [], having: nil}, subquery) && not Helpers.aggregate?(subquery) ->
         hd(Helpers.all_id_columns_from_tables(subquery))
 
       # uid column is in a group by -> select that uid
