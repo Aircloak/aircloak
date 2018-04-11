@@ -225,7 +225,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp value(:integer), do: map(integer(), &{:integer, &1, []})
   defp value(:real), do: map(float(), &{:real, &1, []})
 
-  defp value(:text), do: string_without_quote() |> map(&{:text, &1, []})
+  defp value(:text), do: escaped_string() |> map(&{:text, &1, []})
 
   defp value(:date), do: naive_date_time() |> map(&NaiveDateTime.to_date/1) |> map(&build_cast(&1, :date))
   defp value(:time), do: naive_date_time() |> map(&NaiveDateTime.to_time/1) |> map(&build_cast(&1, :time))
@@ -236,7 +236,7 @@ defmodule Cloak.Compliance.QueryGenerator do
     do:
       like_escape()
       |> bind(fn escape ->
-        map(string_without_quote(), &{:like_pattern, &1, [escape]})
+        map(escaped_string(), &{:like_pattern, &1, [escape]})
       end)
 
   defp build_cast(value, type), do: {:cast, type, [{:text, to_string(value), []}]}
@@ -245,7 +245,7 @@ defmodule Cloak.Compliance.QueryGenerator do
     do:
       one_of([
         constant(empty()),
-        map(string_without_quote(length: 1), &{:like_escape, [&1], []})
+        map(escaped_string(length: 1), &{:like_escape, [&1], []})
       ])
 
   defp naive_date_time() do
@@ -457,12 +457,12 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp name(), do: string(?a..?z, min_length: 1) |> filter(&(not (&1 in @keywords)))
 
-  defp string_without_quote(opts \\ []) do
+  defp escaped_string(opts \\ []) do
     frequency([
       {10, string(:ascii, opts)},
       {1, string(:printable, opts)}
     ])
-    |> map(&String.replace(&1, "'", ""))
+    |> map(&String.replace(&1, "'", "''"))
   end
 
   defp positive_integer(), do: map(integer(), &(abs(&1) + 1))
