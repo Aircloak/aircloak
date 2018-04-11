@@ -141,7 +141,7 @@ defmodule Compliance.Data do
 
   defp random_postcode(), do: :rand.uniform(@max_postal_code - @min_postal_code) + @min_postal_code
 
-  defp generate_name(names), do: sample_randomly(names, 2, 3)
+  defp generate_name(names), do: sample_one(names)
 
   defp sample_randomly(samples, min, max),
     do:
