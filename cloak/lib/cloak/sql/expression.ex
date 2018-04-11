@@ -339,7 +339,7 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("trunc", [value, precision]), do: do_trunc(value, precision)
   defp do_apply("div", [x, y]), do: div(x, y)
   defp do_apply("%", [x, y]), do: rem(x, y)
-  defp do_apply("length", [string]), do: String.length(string)
+  defp do_apply("length", [string]), do: codepoints_length(string)
   defp do_apply("lower", [string]), do: String.downcase(string)
   defp do_apply("upper", [string]), do: String.upcase(string)
   defp do_apply("btrim", [string]), do: trim(string, " ")
@@ -418,23 +418,21 @@ defmodule Cloak.Sql.Expression do
 
   defp left(nil, _), do: nil
   defp left(_, nil), do: nil
-
-  defp left(string, count) when count < 0, do: String.slice(string, 0, max(String.length(string) + count, 0))
-
-  defp left(string, count), do: String.slice(string, 0, count)
+  defp left(string, count) when count < 0, do: slice_codepoints(string, 0, max(codepoints_length(string) + count, 0))
+  defp left(string, count), do: slice_codepoints(string, 0, count)
 
   defp right(nil, _), do: nil
   defp right(_, nil), do: nil
-
-  defp right(string, count) when count < 0, do: String.slice(string, -count, String.length(string))
-
-  defp right(string, count), do: String.slice(string, (String.length(string) - count) |> max(0), count)
+  defp right(string, count) when count < 0, do: slice_codepoints(string, -count, codepoints_length(string))
+  defp right(string, count), do: slice_codepoints(string, (codepoints_length(string) - count) |> max(0), count)
 
   defp trim(string, chars), do: string |> ltrim(chars) |> rtrim(chars)
 
   defp ltrim(string, chars), do: Regex.replace(~r/^[#{Regex.escape(chars)}]*/, string, "")
 
   defp rtrim(string, chars), do: Regex.replace(~r/[#{Regex.escape(chars)}]*$/, string, "")
+
+  defp codepoints_length(string), do: string |> String.codepoints() |> length()
 
   @max_precision_zero {0, 6}
   @midnight ~T[00:00:00.000000]
@@ -454,8 +452,16 @@ defmodule Cloak.Sql.Expression do
 
   defp substring(string, from, count \\ nil)
   defp substring(nil, _, _), do: nil
-  defp substring(string, from, nil), do: substring(string, from, String.length(string))
-  defp substring(string, from, count), do: String.slice(string, from - 1, count)
+  defp substring(string, from, nil), do: substring(string, from, codepoints_length(string))
+  defp substring(string, from, count), do: slice_codepoints(string, from - 1, count)
+
+  defp slice_codepoints(string, from, count) do
+    string
+    |> String.codepoints()
+    |> Stream.drop(from)
+    |> Enum.take(count)
+    |> to_string()
+  end
 
   defp add_to_time(time, duration) do
     NaiveDateTime.from_erl!({_arbitrary_date = {100, 1, 1}, Time.to_erl(time)})

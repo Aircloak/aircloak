@@ -42,6 +42,7 @@ Enum.each(
           |> disable_for(Cloak.DataSource.SQLServer, match?("hex" <> _, unquote(function)))
           |> disable_for(Cloak.DataSource.SQLServerTds, match?("hex" <> _, unquote(function)))
           |> disable_for(Cloak.DataSource.SQLServerRODBC, match?("hex" <> _, unquote(function)))
+          |> disable_unicode(unquote(function), unquote(column))
           |> disallowed_in_subqueries("extract_words", unquote(function))
           |> assert_consistent_and_not_failing("""
             SELECT
@@ -70,6 +71,23 @@ Enum.each(
 
       defp disallowed_in_subqueries(context, function, current_test),
         do: disable_for(context, :all, String.starts_with?(current_test, function))
+
+      defp disable_unicode(context, function, column) do
+        if column == "name" and String.starts_with?(function, ~w(lower lcase upper ucase)) do
+          Enum.reduce(
+            [
+              Cloak.DataSource.MongoDB,
+              Cloak.DataSource.SQLServer,
+              Cloak.DataSource.SQLServerTds,
+              Cloak.DataSource.SQLServerRODBC
+            ],
+            context,
+            &disable_for(&2, &1, true)
+          )
+        else
+          context
+        end
+      end
     end
   end
 )

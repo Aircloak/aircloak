@@ -21,9 +21,9 @@ defmodule Compliance.Data do
   @min_postal_code 10_000
   @max_postal_code 11_000
   @min_notes 0
-  @max_notes 3
+  @max_notes 2
   @min_note_changes 0
-  @max_note_changes 3
+  @max_note_changes 2
   @encryption_key "1234567890ABCDEF"
   @zero_iv String.duplicate(<<0>>, 16)
 
@@ -118,7 +118,7 @@ defmodule Compliance.Data do
         id: note_id,
         note_id: note_id,
         title: sample_randomly(words, 2, 10),
-        content: sample_randomly(words, 100, 200),
+        content: sample_randomly(words, 0, 10),
         changes: generate_note_changes(note_id, words)
       }
     end
@@ -129,19 +129,18 @@ defmodule Compliance.Data do
       %{
         note_id: note_id,
         date: random_date(),
-        change: sample_randomly(words, 5, 50)
+        change: sample_randomly(words, 0, 10)
       }
     end
   end
 
   defp random_date(), do: (1_500_000_000 + :rand.uniform(100_026_704)) |> DateTime.from_unix!() |> DateTime.to_naive()
 
-  defp rand_range(min, max) when min > max, do: raise("Max must be greater or equal to min")
-  defp rand_range(min, max), do: min..(:rand.uniform(max - min + 1) + min)
+  defp rand_range(min, max) when max >= min, do: min..(:rand.uniform(max - min + 1) + min - 1)
 
   defp random_postcode(), do: :rand.uniform(@max_postal_code - @min_postal_code) + @min_postal_code
 
-  defp generate_name(names), do: sample_randomly(names, 2, 3)
+  defp generate_name(names), do: sample_one(names)
 
   defp sample_randomly(samples, min, max),
     do:
