@@ -98,6 +98,18 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
     |> group()
   end
 
+  defp to_doc({:substring, nil, args}) do
+    "SUBSTRING"
+    |> concat("(")
+    |> glue("", args |> Enum.map(&to_doc/1) |> space_separated())
+    |> nest()
+    |> glue("", ")")
+    |> group()
+  end
+
+  defp to_doc({:keyword_arg, name, [value]}),
+    do: name |> to_string() |> String.upcase() |> concat(" ") |> concat(to_doc(value))
+
   defp to_doc({:distinct, nil, [argument]}), do: concat("DISTINCT ", to_doc(argument))
 
   defp to_doc({:column, nil, [column]}), do: to_doc(column)

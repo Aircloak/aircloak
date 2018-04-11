@@ -8,7 +8,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   alias Cloak.Sql.Function
 
   @data_types [:boolean, :integer, :real, :text, :datetime, :time, :date, :interval]
-  @keywords ~w(in is as on or by and from select from left right cast)
+  @keywords ~w(in is as on or by and from select from left right cast substring)
 
   # -------------------------------------------------------------------
   # API functions
@@ -331,7 +331,12 @@ defmodule Cloak.Compliance.QueryGenerator do
   end
 
   defp special_function_with_info(tables, type, aggregates_allowed?) do
-    cast(tables, type, aggregates_allowed?)
+    substring_frequency = if(match_type?(type, :text), do: 1, else: 0)
+
+    frequency([
+      {1, cast(tables, type, aggregates_allowed?)},
+      {substring_frequency, substring(tables, aggregates_allowed?)}
+    ])
   end
 
   defp cast(tables, type, aggregates_allowed?) do
@@ -350,6 +355,21 @@ defmodule Cloak.Compliance.QueryGenerator do
       end)
     end)
   end
+
+  defp substring(tables, aggregates_allowed?) do
+    {do_function_arguments(tables, [:text], aggregates_allowed?), list_of(positive_integer_value(), length: 2)}
+    |> bind(fn {[text], [from, for]} ->
+      [
+        {:substring, nil, [text, {:keyword_arg, :from, [from]}]},
+        {:substring, nil, [text, {:keyword_arg, :for, [for]}]},
+        {:substring, nil, [text, {:keyword_arg, :from, [from]}, {:keyword_arg, :for, [for]}]}
+      ]
+      |> member_of()
+    end)
+    |> map(&{&1, {:text, "substring"}})
+  end
+
+  defp positive_integer_value(), do: map(integer(), &{:integer, abs(&1) + 1, []})
 
   defp function_arguments(tables, function, argument_types, aggregates_allowed?) do
     distinct_frequency = if(Function.aggregator?(function), do: 1, else: 0)
