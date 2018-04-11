@@ -21,9 +21,9 @@ defmodule Compliance.Data do
   @min_postal_code 10_000
   @max_postal_code 11_000
   @min_notes 0
-  @max_notes 3
+  @max_notes 2
   @min_note_changes 0
-  @max_note_changes 3
+  @max_note_changes 2
   @encryption_key "1234567890ABCDEF"
   @zero_iv String.duplicate(<<0>>, 16)
 
