@@ -118,7 +118,7 @@ defmodule Compliance.Data do
         id: note_id,
         note_id: note_id,
         title: sample_randomly(words, 2, 10),
-        content: sample_randomly(words, 100, 200),
+        content: sample_randomly(words, 0, 10),
         changes: generate_note_changes(note_id, words)
       }
     end
@@ -129,7 +129,7 @@ defmodule Compliance.Data do
       %{
         note_id: note_id,
         date: random_date(),
-        change: sample_randomly(words, 5, 50)
+        change: sample_randomly(words, 0, 10)
       }
     end
   end
