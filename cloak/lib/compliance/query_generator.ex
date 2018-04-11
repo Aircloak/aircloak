@@ -287,13 +287,15 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp unaliased_expression_with_info(tables, type, aggregates_allowed? \\ false) do
     star_frequency = if(aggregates_allowed?, do: 1, else: 0)
+    variable_frequency = if(constant?(type), do: 0, else: 1)
+    regular_frequency = 5
 
     sized(fn size ->
       frequency([
-        {1, column_with_info(tables, type)},
-        {1, value_with_info(type)},
-        {star_frequency, count_star(type)},
-        {size, tables |> function_with_info(type, aggregates_allowed?) |> resize(div(size, 2))},
+        {regular_frequency * variable_frequency, column_with_info(tables, type)},
+        {regular_frequency, value_with_info(type)},
+        {regular_frequency * star_frequency * variable_frequency, count_star(type)},
+        {regular_frequency * size, tables |> function_with_info(type, aggregates_allowed?) |> resize(div(size, 2))},
         {size, tables |> special_function_with_info(type, aggregates_allowed?) |> resize(div(size, 2))}
       ])
       |> filter(& &1, _max_tries = 100)
