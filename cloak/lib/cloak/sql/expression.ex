@@ -152,6 +152,14 @@ defmodule Cloak.Sql.Expression do
   def display(%__MODULE__{function: function, function_args: args}) when is_binary(function),
     do: "#{function}(#{args |> Enum.map(&display/1) |> Enum.join(", ")})"
 
+  def display(%__MODULE__{constant?: true, type: :text, value: value}), do: "'#{value}'"
+
+  def display(%__MODULE__{constant?: true, type: :interval, value: value}),
+    do: "interval '#{Duration.to_string(value)}'"
+
+  def display(%__MODULE__{constant?: true, type: type, value: value}) when type in [:date, :datetime, :time],
+    do: "#{type} '#{to_string(value)}'"
+
   def display(%__MODULE__{constant?: true, value: value}), do: to_string(value)
   def display({:distinct, expression}), do: "distinct #{display(expression)}"
   def display(value), do: to_string(value)
