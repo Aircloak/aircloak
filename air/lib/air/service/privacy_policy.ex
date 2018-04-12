@@ -34,6 +34,15 @@ defmodule Air.Service.PrivacyPolicy do
     end
   end
 
+  @doc "Returns a privacy policy by it's revision number"
+  @spec get_by_revision(pos_integer) :: {:ok, PrivacyPolicy.t()} | {:error, :not_found}
+  def get_by_revision(revision) do
+    case Repo.get(PrivacyPolicy, revision) do
+      nil -> {:error, :not_found}
+      privacy_policy -> {:ok, privacy_policy}
+    end
+  end
+
   @doc "Returns all privacy policies recorded in the system"
   @spec all() :: [PrivacyPolicy.t()]
   def all(), do: Repo.all(PrivacyPolicy)
