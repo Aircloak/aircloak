@@ -26,6 +26,15 @@ defmodule Air.Service.PrivacyPolicyTest do
       PrivacyPolicy.set("new content")
       assert privacy_policy_count() == count_before + 1
     end
+
+    test "you can provide change description when setting policy" do
+      create_privacy_policy!()
+      content = "Content: #{:erlang.unique_integer()}"
+      change = "Change description: #{:erlang.unique_integer()}"
+      PrivacyPolicy.set(content, change)
+      {:ok, policy} = PrivacyPolicy.get()
+      assert policy.changes == change
+    end
   end
 
   describe "get" do

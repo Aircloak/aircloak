@@ -7,6 +7,7 @@ defmodule Air.Schemas.PrivacyPolicy do
 
   schema "privacy_policies" do
     field(:content, :string)
+    field(:changes, :string)
 
     timestamps()
   end
@@ -18,7 +19,7 @@ defmodule Air.Schemas.PrivacyPolicy do
   @doc false
   def changeset(%PrivacyPolicy{} = privacy_policy, attrs) do
     privacy_policy
-    |> cast(attrs, [:content])
+    |> cast(attrs, [:content, :changes])
     |> validate_required([:content])
   end
 end
