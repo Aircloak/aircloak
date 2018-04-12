@@ -33,6 +33,21 @@ defmodule IntegrationTest.QueryTest do
            ]
   end
 
+  test "Query logs returned are truncated to second", context do
+    {:ok, result} = run_query(context.user, "select name, height from users")
+
+    log_lines =
+      result.log
+      |> String.split("\n")
+      |> Enum.reject(&(&1 == ""))
+
+    assert length(log_lines) > 0
+
+    assert log_lines
+           |> Enum.map(&Regex.match?(~r/^\d{1,2}:\d{1,2}:\d{1,2}.000/, &1))
+           |> Enum.all?()
+  end
+
   test "retrieval of query results as csv", context do
     {:ok, %{query_id: query_id}} = run_query(context.user, "select name, height from users")
 

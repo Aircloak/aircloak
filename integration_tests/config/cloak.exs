@@ -50,3 +50,11 @@ config :cloak, :data_source,
   connection_keep_time: :timer.minutes(1)
 
 config :cloak, :flush_query_log_timeout, 0
+
+config :logger,
+  level: :debug,
+  backends: [Cloak.Query.LogCollector],
+  console: [
+    format: "$time [$level] $metadata$message\n",
+    metadata: [:query_id]
+  ]
