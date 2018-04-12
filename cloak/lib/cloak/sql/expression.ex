@@ -146,11 +146,14 @@ defmodule Cloak.Sql.Expression do
   def display(%__MODULE__{name: name}) when is_binary(name), do: name
   def display(%__MODULE__{function: {:cast, type}, function_args: [arg]}), do: "cast(#{display(arg)} as #{type})"
 
+  def display(%__MODULE__{function: function, function_args: [arg1, arg2]}) when function in ~w(+ - / * ^ %),
+    do: "#{display(arg1)} #{function} #{display(arg2)}"
+
   def display(%__MODULE__{function: function, function_args: args}) when is_binary(function),
     do: "#{function}(#{args |> Enum.map(&display/1) |> Enum.join(", ")})"
 
   def display(%__MODULE__{constant?: true, value: value}), do: to_string(value)
-  def display({:distinct, expression}), do: "DISTINCT #{display(expression)}"
+  def display({:distinct, expression}), do: "distinct #{display(expression)}"
   def display(value), do: to_string(value)
 
   @doc "Returns the column value of a database row."
