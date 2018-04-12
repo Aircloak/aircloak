@@ -131,9 +131,19 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp valid_expression_in_aggregate?(query, column) do
     normalizer = &(&1 |> Expression.unalias() |> Expression.semantic())
 
-    Expression.constant?(column) or Enum.member?(Enum.map(query.group_by, normalizer), normalizer.(column)) or
-      (column.function? and
-         (column.aggregate? or Enum.all?(column.function_args, &valid_expression_in_aggregate?(query, &1))))
+    cond do
+      Expression.constant?(column) ->
+        true
+
+      Enum.member?(Enum.map(query.group_by, normalizer), normalizer.(column)) ->
+        true
+
+      column.function? ->
+        column.aggregate? or Enum.all?(column.function_args, &valid_expression_in_aggregate?(query, &1))
+
+      true ->
+        false
+    end
   end
 
   defp invalid_columns_in_aggregate(_query, :*), do: []
