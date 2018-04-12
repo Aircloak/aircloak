@@ -101,8 +101,10 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
     |> group()
   end
 
-  defp to_doc({:substring, nil, args}) do
-    "SUBSTRING"
+  defp to_doc({keyword_function, nil, args}) when keyword_function in [:substring, :bucket] do
+    keyword_function
+    |> to_string()
+    |> String.upcase()
     |> concat("(")
     |> glue("", args |> Enum.map(&to_doc/1) |> space_separated())
     |> nest()
@@ -112,6 +114,8 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
 
   defp to_doc({:keyword_arg, name, [value]}),
     do: name |> to_string() |> String.upcase() |> concat(" ") |> concat(to_doc(value))
+
+  defp to_doc({:keyword, name, []}), do: name |> to_string() |> String.upcase()
 
   defp to_doc({:distinct, nil, [argument]}), do: concat("DISTINCT ", to_doc(argument))
 

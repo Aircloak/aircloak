@@ -8,7 +8,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   alias Cloak.Sql.Function
 
   @data_types [:boolean, :integer, :real, :text, :datetime, :time, :date, :interval]
-  @keywords ~w(in is as on or by and from select from left right cast substring)
+  @keywords ~w(in is as on or by and from select from left right cast substring bucket)
 
   # -------------------------------------------------------------------
   # API functions
@@ -342,10 +342,12 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp special_function_with_info(tables, type, aggregates_allowed?) do
     substring_frequency = if(match_type?(type, :text), do: 1, else: 0)
+    bucket_frequency = if(match_type?(type, :real), do: 1, else: 0)
 
     frequency([
       {1, cast(tables, type, aggregates_allowed?)},
-      {substring_frequency, substring(tables, aggregates_allowed?)}
+      {substring_frequency, substring(tables, aggregates_allowed?)},
+      {bucket_frequency, bucket(tables, aggregates_allowed?)}
     ])
   end
 
@@ -378,6 +380,15 @@ defmodule Cloak.Compliance.QueryGenerator do
     end)
     |> map(&{&1, {:text, "substring"}})
   end
+
+  defp bucket(tables, aggregates_allowed?) do
+    {do_function_arguments(tables, [:real], aggregates_allowed?), positive_integer_value(), optional(bucket_align())}
+    |> map(fn {[argument], by, align} -> {:bucket, nil, [argument, {:keyword_arg, :by, [by]}, align]} end)
+    |> map(fn result -> {result, {:real, "bucket"}} end)
+  end
+
+  defp bucket_align(),
+    do: [:lower, :upper, :middle] |> member_of() |> map(&{:keyword_arg, :align, [{:keyword, &1, []}]})
 
   defp positive_integer_value(), do: map(positive_integer(), &{:integer, &1, []})
 
