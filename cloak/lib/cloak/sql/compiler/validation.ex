@@ -122,26 +122,27 @@ defmodule Cloak.Sql.Compiler.Validation do
       query
       |> Query.bucket_columns()
       |> Enum.reject(& &1.synthetic?)
-      |> Enum.flat_map(&invalid_columns(query, &1))
+      |> Enum.flat_map(&invalid_columns_in_aggregate(query, &1))
     else
       []
     end
   end
 
-  defp valid_expression?(query, column) do
+  defp valid_expression_in_aggregate?(query, column) do
     normalizer = &(&1 |> Expression.unalias() |> Expression.semantic())
 
     Expression.constant?(column) or Enum.member?(Enum.map(query.group_by, normalizer), normalizer.(column)) or
-      (column.function? and (column.aggregate? or Enum.all?(column.function_args, &valid_expression?(query, &1))))
+      (column.function? and
+         (column.aggregate? or Enum.all?(column.function_args, &valid_expression_in_aggregate?(query, &1))))
   end
 
-  defp invalid_columns(_query, :*), do: []
-  defp invalid_columns(query, {:distinct, column}), do: invalid_columns(query, column)
+  defp invalid_columns_in_aggregate(_query, :*), do: []
+  defp invalid_columns_in_aggregate(query, {:distinct, column}), do: invalid_columns_in_aggregate(query, column)
 
-  defp invalid_columns(query, expression) do
+  defp invalid_columns_in_aggregate(query, expression) do
     cond do
-      valid_expression?(query, expression) -> []
-      expression.function? -> Enum.flat_map(expression.function_args, &invalid_columns(query, &1))
+      valid_expression_in_aggregate?(query, expression) -> []
+      expression.function? -> Enum.flat_map(expression.function_args, &invalid_columns_in_aggregate(query, &1))
       true -> [expression]
     end
   end
@@ -396,7 +397,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
     for condition <- Lens.to_list(Query.Lenses.conditions(), query.having),
         term <- Condition.targets(condition),
-        not valid_expression?(query, term),
+        not valid_expression_in_aggregate?(query, term),
         do:
           raise(
             CompilationError,
