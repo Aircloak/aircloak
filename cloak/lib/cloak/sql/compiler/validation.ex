@@ -112,7 +112,7 @@ defmodule Cloak.Sql.Compiler.Validation do
         raise CompilationError,
           source_location: location,
           message:
-            "Column #{aggregated_expression_display(column)} needs " <>
+            "Column #{Expression.display_name(column)} needs " <>
               "to appear in the `GROUP BY` clause or be used in an aggregate function."
     end
   end
@@ -122,22 +122,38 @@ defmodule Cloak.Sql.Compiler.Validation do
       query
       |> Query.bucket_columns()
       |> Enum.reject(& &1.synthetic?)
-      |> Enum.filter(&individual_column?(query, &1))
+      |> Enum.flat_map(&invalid_columns_in_aggregate(query, &1))
     else
       []
     end
   end
 
-  defp individual_column?(query, column),
-    do: not Expression.constant?(column) and not Helpers.aggregated_column?(query, column)
+  defp valid_expression_in_aggregate?(query, column) do
+    normalizer = &(&1 |> Expression.unalias() |> Expression.semantic())
 
-  defp aggregated_expression_display(expression) do
-    expression
-    |> get_in([Query.Lenses.leaf_expressions()])
-    |> Enum.reject(& &1.constant?)
-    |> case do
-      [column | _] -> Expression.display_name(column)
-      [] -> Expression.display_name(expression)
+    cond do
+      Expression.constant?(column) ->
+        true
+
+      Enum.member?(Enum.map(query.group_by, normalizer), normalizer.(column)) ->
+        true
+
+      column.function? ->
+        column.aggregate? or Enum.all?(column.function_args, &valid_expression_in_aggregate?(query, &1))
+
+      true ->
+        false
+    end
+  end
+
+  defp invalid_columns_in_aggregate(_query, :*), do: []
+  defp invalid_columns_in_aggregate(query, {:distinct, column}), do: invalid_columns_in_aggregate(query, column)
+
+  defp invalid_columns_in_aggregate(query, expression) do
+    cond do
+      valid_expression_in_aggregate?(query, expression) -> []
+      expression.function? -> Enum.flat_map(expression.function_args, &invalid_columns_in_aggregate(query, &1))
+      true -> [expression]
     end
   end
 
@@ -391,7 +407,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
     for condition <- Lens.to_list(Query.Lenses.conditions(), query.having),
         term <- Condition.targets(condition),
-        individual_column?(query, term),
+        not valid_expression_in_aggregate?(query, term),
         do:
           raise(
             CompilationError,

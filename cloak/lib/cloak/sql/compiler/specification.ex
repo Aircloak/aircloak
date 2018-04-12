@@ -411,7 +411,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     possible_identifiers = aliases ++ all_columns
 
     referenced_identifiers =
-      for({identifier, _direction, _nulls} <- query.order_by, do: identifier) ++
+      Query.order_by_expressions(query) ++
         query.group_by ++ Lens.to_list(Lenses.conditions_terminals(), [query.where, query.having])
 
     ambiguous_names =
