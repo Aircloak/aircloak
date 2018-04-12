@@ -41,6 +41,15 @@ defmodule Air.Service.PrivacyPolicyTest do
     end
   end
 
+  describe "all" do
+    test "returns all privacy policies" do
+      create_privacy_policy!()
+      create_privacy_policy!()
+      create_privacy_policy!()
+      assert length(PrivacyPolicy.all()) == 3
+    end
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

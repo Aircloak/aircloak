@@ -33,4 +33,8 @@ defmodule Air.Service.PrivacyPolicy do
         {:ok, privacy_policy}
     end
   end
+
+  @doc "Returns all privacy policies recorded in the system"
+  @spec all() :: [PrivacyPolicy.t()]
+  def all(), do: Repo.all(PrivacyPolicy)
 end
