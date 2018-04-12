@@ -16,14 +16,14 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   @doc "Generates a random AST representing a query into the given tables."
   @spec ast_generator([Table.t()]) :: Stream.t(ast)
-  def ast_generator(tables),
-    do:
-      tables
-      |> ast_with_info()
-      |> map(fn {ast, _info} -> ast end)
-      |> scale(fn size ->
-        size |> :math.log() |> trunc() |> max(1)
-      end)
+  def ast_generator(tables) do
+    tables
+    |> ast_with_info()
+    |> map(fn {ast, _info} -> ast end)
+    |> scale(fn size ->
+      size |> :math.log() |> trunc() |> max(1)
+    end)
+  end
 
   @doc "Generates the SQL query string from the given AST."
   @spec ast_to_sql(ast) :: String.t()
@@ -33,27 +33,27 @@ defmodule Cloak.Compliance.QueryGenerator do
   # Generators
   # -------------------------------------------------------------------
 
-  defp ast_with_info(tables),
-    do:
-      bind(from(tables), fn {from_ast, tables} ->
-        bind(select(tables), fn {select_ast, info} ->
-          bind(order(tables), fn order_clauses ->
-            {
-              {:query, nil,
-               fixed_list(
-                 [
-                   constant(select_ast),
-                   constant(from_ast),
-                   tables |> where() |> optional(),
-                   tables |> group_by() |> optional(),
-                   tables |> having() |> optional()
-                 ] ++ Enum.map(order_clauses, &constant/1) ++ [optional(sample_users())]
-               )},
-              constant(info)
-            }
-          end)
+  defp ast_with_info(tables) do
+    bind(from(tables), fn {from_ast, tables} ->
+      bind(select(tables), fn {select_ast, info} ->
+        bind(order(tables), fn order_clauses ->
+          {
+            {:query, nil,
+             fixed_list(
+               [
+                 constant(select_ast),
+                 constant(from_ast),
+                 tables |> where() |> optional(),
+                 tables |> group_by() |> optional(),
+                 tables |> having() |> optional()
+               ] ++ Enum.map(order_clauses, &constant/1) ++ [optional(sample_users())]
+             )},
+            constant(info)
+          }
         end)
       end)
+    end)
+  end
 
   defp sample_users(), do: float() |> resize(7) |> map(&{:sample_users, &1, []})
 
@@ -62,13 +62,13 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp from_expression(tables), do: one_of([from_table(tables), from_subquery(tables), from_join(tables)])
 
-  defp from_subquery(tables),
-    do:
-      bind(name(), fn name ->
-        map(ast_with_info(tables), fn {ast, info} ->
-          {as_expression({:subquery, nil, [ast]}, name), [table_from_ast_info(name, info)]}
-        end)
+  defp from_subquery(tables) do
+    bind(name(), fn name ->
+      map(ast_with_info(tables), fn {ast, info} ->
+        {as_expression({:subquery, nil, [ast]}, name), [table_from_ast_info(name, info)]}
       end)
+    end)
+  end
 
   defp from_join(tables) do
     join_element = join_element(tables)
@@ -85,16 +85,16 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp join_element(tables), do: one_of([aliased_table(tables), from_subquery(tables)])
 
-  defp aliased_table(tables),
-    do:
-      name()
-      |> bind(fn alias ->
-        tables
-        |> from_table()
-        |> map(fn {table_ast, [table_info]} ->
-          {as_expression(table_ast, alias), [%{table_info | name: alias}]}
-        end)
+  defp aliased_table(tables) do
+    name()
+    |> bind(fn alias ->
+      tables
+      |> from_table()
+      |> map(fn {table_ast, [table_info]} ->
+        {as_expression(table_ast, alias), [%{table_info | name: alias}]}
       end)
+    end)
+  end
 
   defp from_table(tables), do: tables |> member_of() |> map(&{{:table, &1.name, []}, [&1]})
 
@@ -102,11 +102,12 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp on_expression(tables), do: tables |> condition() |> map(&{:on, nil, [&1]})
 
-  defp table_from_ast_info(name, ast_info),
-    do: %{
+  defp table_from_ast_info(name, ast_info) do
+    %{
       name: name,
       columns: Enum.map(ast_info, fn {type, name} -> %{name: name, type: type} end)
     }
+  end
 
   defp where(tables), do: tables |> condition() |> map(&{:where, nil, [&1]})
 
@@ -140,72 +141,72 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp nulls_directive(), do: [:first, :last] |> member_of() |> map(&{:nulls, &1, []})
 
-  defp simple_condition(tables),
-    do:
-      [
-        between(tables, _aggregates_allowed? = true),
-        comparison(tables, _aggregates_allowed? = true),
-        implicit_condition(tables, _aggregates_allowed? = true)
-      ]
-      |> one_of()
-      |> tree(&logical_condition/1)
+  defp simple_condition(tables) do
+    [
+      between(tables, _aggregates_allowed? = true),
+      comparison(tables, _aggregates_allowed? = true),
+      implicit_condition(tables, _aggregates_allowed? = true)
+    ]
+    |> one_of()
+    |> tree(&logical_condition/1)
+  end
 
-  defp condition(tables),
-    do:
-      [between(tables), like(tables), in_expression(tables), comparison(tables), implicit_condition(tables)]
-      |> one_of()
-      |> tree(&logical_condition/1)
+  defp condition(tables) do
+    [between(tables), like(tables), in_expression(tables), comparison(tables), implicit_condition(tables)]
+    |> one_of()
+    |> tree(&logical_condition/1)
+  end
 
   defp implicit_condition(tables, aggregates_allowed? \\ false),
     do: unaliased_expression(tables, :boolean, aggregates_allowed?)
 
   defp logical_condition(child_data), do: {member_of([:and, :or]), nil, fixed_list([child_data, child_data])}
 
-  defp in_expression(tables),
-    do:
-      tables
-      |> unaliased_expression_with_info(:any)
-      |> bind(fn {column, {type, _}} ->
-        tuple({
-          member_of([:in, :not_in]),
-          constant(nil),
-          fixed_list([constant(column), in_set(type)])
-        })
-      end)
+  defp in_expression(tables) do
+    tables
+    |> unaliased_expression_with_info(:any)
+    |> bind(fn {column, {type, _}} ->
+      tuple({
+        member_of([:in, :not_in]),
+        constant(nil),
+        fixed_list([constant(column), in_set(type)])
+      })
+    end)
+  end
 
   defp in_set(type), do: type |> value() |> list_of() |> nonempty() |> map(&{:in_set, nil, &1})
 
-  defp like(tables),
-    do:
+  defp like(tables) do
+    tuple({
+      member_of([:like, :ilike, :not_like, :not_ilike]),
+      constant(nil),
+      fixed_list([unaliased_expression(tables, :text), value(:like_pattern)])
+    })
+  end
+
+  defp comparison(tables, aggregates_allowed? \\ false) do
+    tables
+    |> unaliased_expression_with_info(:any, aggregates_allowed?)
+    |> bind(fn {column, {type, _}} ->
       tuple({
-        member_of([:like, :ilike, :not_like, :not_ilike]),
+        member_of([:=, :<>, :<, :>]),
         constant(nil),
-        fixed_list([unaliased_expression(tables, :text), value(:like_pattern)])
+        fixed_list([constant(column), unaliased_expression(tables, type, aggregates_allowed?)])
       })
+    end)
+  end
 
-  defp comparison(tables, aggregates_allowed? \\ false),
-    do:
-      tables
-      |> unaliased_expression_with_info(:any, aggregates_allowed?)
-      |> bind(fn {column, {type, _}} ->
-        tuple({
-          member_of([:=, :<>, :<, :>]),
-          constant(nil),
-          fixed_list([constant(column), unaliased_expression(tables, type, aggregates_allowed?)])
-        })
-      end)
-
-  defp between(tables, aggregates_allowed? \\ false),
-    do:
-      tables
-      |> unaliased_expression_with_info(:any, aggregates_allowed?)
-      |> bind(fn {column, {type, _}} ->
-        tuple({
-          constant(:between),
-          constant(nil),
-          fixed_list([constant(column), value(type), value(type)])
-        })
-      end)
+  defp between(tables, aggregates_allowed? \\ false) do
+    tables
+    |> unaliased_expression_with_info(:any, aggregates_allowed?)
+    |> bind(fn {column, {type, _}} ->
+      tuple({
+        constant(:between),
+        constant(nil),
+        fixed_list([constant(column), value(type), value(type)])
+      })
+    end)
+  end
 
   defp value_with_info(type) do
     type
@@ -266,12 +267,7 @@ defmodule Cloak.Compliance.QueryGenerator do
     end)
   end
 
-  defp select_list(tables),
-    do:
-      tables
-      |> expression_with_info()
-      |> list_of()
-      |> nonempty()
+  defp select_list(tables), do: tables |> expression_with_info() |> list_of() |> nonempty()
 
   defp expression_with_info(tables, aggregates_allowed? \\ true) do
     one_of([
