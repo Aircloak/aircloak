@@ -2,7 +2,8 @@ defmodule Air.Service.UserTest do
   # because of shared mode
   use Air.SchemaCase, async: false
 
-  alias Air.{Service.User, TestRepoHelper}
+  alias Air.TestRepoHelper
+  alias Air.Service.{User, PrivacyPolicy}
 
   describe "user operations" do
     test "required fields",
@@ -186,6 +187,69 @@ defmodule Air.Service.UserTest do
       User.toggle_debug_mode(user)
       loaded_user = User.load(user.id)
       refute loaded_user.debug_mode_enabled == user.debug_mode_enabled
+    end
+  end
+
+  describe "accept_privacy_policy" do
+    test "should fail if no privacy policy exist" do
+      user = TestRepoHelper.create_user!()
+      assert {:error, :no_privacy_policy_created} = User.accept_privacy_policy(user)
+    end
+
+    test "the user record should contain the privacy policy id" do
+      user = TestRepoHelper.create_user!()
+      TestRepoHelper.create_privacy_policy!()
+      User.accept_privacy_policy(user)
+
+      reloaded_user = User.load(user.id) |> Repo.preload(:accepted_privacy_policy)
+      accepted_privacy_policy = reloaded_user.accepted_privacy_policy
+
+      {:ok, current_privacy_policy} = PrivacyPolicy.get()
+
+      assert current_privacy_policy.id == accepted_privacy_policy.id
+    end
+  end
+
+  describe "reject_privacy_policy" do
+    test "the user record should not contain any privacy policy id" do
+      user = TestRepoHelper.create_user!()
+      TestRepoHelper.create_privacy_policy!()
+      User.accept_privacy_policy(user)
+      user = User.load(user.id)
+      refute is_nil(user.accepted_privacy_policy_id)
+      User.reject_privacy_policy(user)
+      user = User.load(user.id)
+      assert is_nil(user.accepted_privacy_policy_id)
+    end
+  end
+
+  describe "privacy_policy_status" do
+    test "error when no policy exists" do
+      user = TestRepoHelper.create_user!()
+      assert {:error, :no_privacy_policy_created} == User.privacy_policy_status(user)
+    end
+
+    test "ok when has accepted latest policy" do
+      user = TestRepoHelper.create_user!()
+      TestRepoHelper.create_privacy_policy!()
+      User.accept_privacy_policy(user)
+      user = User.load(user.id)
+      assert :ok == User.privacy_policy_status(user)
+    end
+
+    test "error when no policy has been accepted" do
+      user = TestRepoHelper.create_user!()
+      TestRepoHelper.create_privacy_policy!()
+      assert {:error, :requires_review} == User.privacy_policy_status(user)
+    end
+
+    test "error when the policy has changed" do
+      user = TestRepoHelper.create_user!()
+      TestRepoHelper.create_privacy_policy!()
+      User.accept_privacy_policy(user)
+      user = User.load(user.id)
+      TestRepoHelper.create_privacy_policy!()
+      assert {:error, :requires_review} == User.privacy_policy_status(user)
     end
   end
 

@@ -1,8 +1,9 @@
 defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
-  alias Air.{Repo, Service.AuditLog, Schemas.DataSource, Schemas.Group, Schemas.User}
-  alias Air.Service.{Query, View}
+  alias Air.Repo
+  alias Air.Service.{AuditLog, PrivacyPolicy, Query, View}
+  alias Air.Schemas.{DataSource, Group, User}
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
 
@@ -245,6 +246,51 @@ defmodule Air.Service.User do
     user
     |> cast(%{debug_mode_enabled: not current_debug_mode}, [:debug_mode_enabled])
     |> Repo.update!()
+  end
+
+  @doc "Marks the current privacy policy as accepted by a user"
+  @spec accept_privacy_policy(User.t()) :: :ok | {:error, :no_privacy_policy_created}
+  def accept_privacy_policy(user) do
+    case PrivacyPolicy.get() do
+      {:ok, privacy_policy} ->
+        required_fields = [:accepted_privacy_policy_id]
+
+        user
+        |> cast(%{accepted_privacy_policy_id: privacy_policy.id}, required_fields)
+        |> validate_required(required_fields)
+        |> Repo.update!()
+
+        :ok
+
+      {:error, :no_privacy_policy_created} = error ->
+        error
+    end
+  end
+
+  @doc "Marks the current privacy policy as rejected by a user"
+  @spec reject_privacy_policy(User.t()) :: :ok
+  def reject_privacy_policy(user) do
+    user
+    |> cast(%{accepted_privacy_policy_id: nil}, [:accepted_privacy_policy_id])
+    |> Repo.update!()
+
+    :ok
+  end
+
+  @doc "Returns the status of the users current opt-in to the privacy policy"
+  @spec privacy_policy_status(User.t()) :: :ok | {:error, :no_privacy_policy_created | :requires_review}
+  def privacy_policy_status(user) do
+    case PrivacyPolicy.get() do
+      {:error, :no_privacy_policy_created} = error ->
+        error
+
+      {:ok, privacy_policy} ->
+        if user.accepted_privacy_policy_id == privacy_policy.id do
+          :ok
+        else
+          {:error, :requires_review}
+        end
+    end
   end
 
   # -------------------------------------------------------------------

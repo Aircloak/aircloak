@@ -1,7 +1,8 @@
 defmodule Air.Service.PrivacyPolicy do
   @moduledoc "Service for managing the privacy policy"
 
-  alias Air.{Repo, Schemas.PrivacyPolicy}
+  alias Air.Repo
+  alias Air.Schemas.PrivacyPolicy
   import Ecto.Query, only: [from: 2]
 
   # -------------------------------------------------------------------
