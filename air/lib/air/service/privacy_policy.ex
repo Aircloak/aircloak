@@ -46,4 +46,8 @@ defmodule Air.Service.PrivacyPolicy do
   @doc "Returns all privacy policies recorded in the system"
   @spec all() :: [PrivacyPolicy.t()]
   def all(), do: Repo.all(PrivacyPolicy)
+
+  @doc "Returns the default privacy policy placeholder content"
+  @spec default_content() :: String.t()
+  def default_content(), do: "Placeholder content for a later default privacy policy"
 end

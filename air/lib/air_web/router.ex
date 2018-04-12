@@ -99,6 +99,7 @@ defmodule AirWeb.Router do
     get("/warnings", WarningsController, :index)
 
     resources("/license", LicenseController, only: [:edit, :update], singleton: true)
+    resources("/privacy_policy", PrivacyPolicyController)
   end
 
   scope "/onboarding", AirWeb.Onboarding, as: :onboarding do

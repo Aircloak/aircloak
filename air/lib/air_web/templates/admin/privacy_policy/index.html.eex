@@ -1,0 +1,28 @@
+<h2>Privacy policy</h2>
+
+<%= link "Create new revision", to: admin_privacy_policy_path(@conn, :new), class: "btn btn-primary pull-right" %>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Revision</th>
+      <th>Time of creation</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <%= for policy <- @policies do %>
+    <tr>
+      <td>
+        <%= policy.id %>
+      </td>
+      <td>
+        <%= format_datetime(policy.inserted_at) %>
+      </td>
+      <td>
+        <%= link "View revision", to: admin_privacy_policy_path(@conn, :show, policy.id) %>
+      </td>
+    </tr>
+    <% end %>
+  </tbody>
+</table>

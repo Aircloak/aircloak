@@ -1,0 +1,17 @@
+<ol class="breadcrumb">
+  <li><%= link "Privacy policy", to: admin_privacy_policy_path(@conn, :index) %></li>
+  <li class="active">Revision <%= @policy.id %></li>
+</ol>
+
+<h2>Privacy policy revision <%= @policy.id %></h2>
+
+<p>This version was created on the <%= format_datetime(@policy.inserted_at) %>.</p>
+
+<%= unless is_nil(@policy.changes) do %>
+  <h3>Changes in this revision</h3>
+  <pre><%= @policy.changes %></pre>
+
+<% end %>
+
+<h3>Privacy policy</h3>
+<pre><%= @policy.content %></pre>
