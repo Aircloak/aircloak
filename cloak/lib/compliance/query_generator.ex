@@ -160,7 +160,13 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp implicit_condition(tables, aggregates_allowed? \\ false),
     do: unaliased_expression(tables, :boolean, aggregates_allowed?)
 
-  defp logical_condition(child_data), do: {member_of([:and, :or]), nil, fixed_list([child_data, child_data])}
+  defp logical_condition(child_data) do
+    one_of([
+      {:and, nil, fixed_list([child_data, child_data])},
+      {:or, nil, fixed_list([child_data, child_data])},
+      {:not, nil, fixed_list([child_data])}
+    ])
+  end
 
   defp in_expression(tables) do
     tables

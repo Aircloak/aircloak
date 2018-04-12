@@ -68,6 +68,9 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
 
   defp to_doc({:or, nil, [lhs, rhs]}), do: concat(["(", operator(to_doc(lhs), "OR", to_doc(rhs)), ")"])
 
+  defp to_doc({:not, nil, [expression]}),
+    do: "NOT (" |> glue("", to_doc(expression)) |> nest() |> glue("", ")") |> group()
+
   defp to_doc({:function, name, [lhs, rhs]}) when name in ~w(+ - * / ^) do
     "("
     |> glue("", to_doc(lhs))
