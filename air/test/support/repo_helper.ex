@@ -1,7 +1,7 @@
 defmodule Air.TestRepoHelper do
   @moduledoc "Helpers for working with the repository."
 
-  alias Air.{Service.User, Service.Query, Schemas.ApiToken, Schemas.Group, Repo}
+  alias Air.{Service.User, Service.Query, Schemas.ApiToken, Schemas.PrivacyPolicy, Schemas.Group, Repo}
 
   @doc "Inserts the new user with default parameters into the database."
   @spec create_user!(%{}) :: Air.Schemas.User.t()
@@ -147,6 +147,14 @@ defmodule Air.TestRepoHelper do
       },
       ~w(name sql user_id data_source_id result_info)a
     )
+    |> Repo.insert!()
+  end
+
+  @doc "Creates a privacy policy"
+  @spec create_privacy_policy!(String.t()) :: PrivacyPolicy.t()
+  def create_privacy_policy!(content \\ "Default privacy policy") do
+    %Air.Schemas.PrivacyPolicy{}
+    |> Air.Schemas.PrivacyPolicy.changeset(%{content: content})
     |> Repo.insert!()
   end
 
