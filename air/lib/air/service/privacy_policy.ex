@@ -2,6 +2,7 @@ defmodule Air.Service.PrivacyPolicy do
   @moduledoc "Service for managing the privacy policy"
 
   alias Air.{Repo, Schemas.PrivacyPolicy}
+  import Ecto.Query, only: [from: 2]
 
   # -------------------------------------------------------------------
   # API functions
@@ -19,5 +20,17 @@ defmodule Air.Service.PrivacyPolicy do
     |> Repo.insert!()
 
     :ok
+  end
+
+  @doc "Returns the current privacy policy"
+  @spec get() :: {:ok, PrivacyPolicy.t()} | {:error, :no_privacy_policy_created}
+  def get() do
+    case Repo.one(from(pp in PrivacyPolicy, order_by: [desc: pp.inserted_at], limit: 1)) do
+      nil ->
+        {:error, :no_privacy_policy_created}
+
+      privacy_policy ->
+        {:ok, privacy_policy}
+    end
   end
 end
