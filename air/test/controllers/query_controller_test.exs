@@ -9,6 +9,8 @@ defmodule AirWeb.QueryController.Test do
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
+    create_privacy_policy!()
+
     group = create_group!()
 
     user = create_user!(%{groups: [group.id]})

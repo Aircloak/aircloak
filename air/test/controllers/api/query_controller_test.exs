@@ -8,7 +8,9 @@ defmodule AirWeb.API.QueryController.Test do
   alias Poison, as: JSON
 
   setup do
-    Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
+    res = Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
+    create_privacy_policy!()
+    res
   end
 
   describe "running a query" do

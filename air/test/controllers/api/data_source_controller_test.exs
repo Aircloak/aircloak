@@ -9,6 +9,7 @@ defmodule AirWeb.API.DataSourceController.Test do
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
+    create_privacy_policy!()
     :ok
   end
 

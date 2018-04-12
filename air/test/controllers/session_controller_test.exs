@@ -4,6 +4,11 @@ defmodule AirWeb.SessionControllerTest do
   import Air.TestConnHelper
   alias Air.TestRepoHelper
 
+  setup do
+    TestRepoHelper.create_privacy_policy!()
+    :ok
+  end
+
   test "anonymous user can access the login page", %{conn: conn} do
     perform_onboarding()
     conn |> get("/auth") |> response(200)

@@ -4,6 +4,11 @@ defmodule AirWeb.ApiTokenControllerTest do
   import Air.{TestConnHelper, TestRepoHelper, TestAuthHelper}
   alias Air.Schemas.ApiToken
 
+  setup do
+    create_privacy_policy!()
+    :ok
+  end
+
   test "api token pages require an authenticated user", %{conn: conn} do
     conn = add_auth_to_conn(conn)
     user = create_user!()

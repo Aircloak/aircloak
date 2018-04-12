@@ -4,6 +4,11 @@ defmodule Air.DataSourceControllerTest do
   import Air.TestConnHelper
   alias Air.TestRepoHelper
 
+  setup do
+    TestRepoHelper.create_privacy_policy!()
+    :ok
+  end
+
   test "can see data sources assigned to a group the user belongs to", %{conn: conn} do
     group = TestRepoHelper.create_group!()
     data_source = TestRepoHelper.create_data_source!(%{groups: [group.id]})
