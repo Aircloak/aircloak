@@ -398,4 +398,15 @@ defmodule Cloak.Sql.Expression.Test do
     assert Expression.valid_alias?("aa33.d")
     assert Expression.valid_alias?("a_22")
   end
+
+  test "expression display" do
+    column = Expression.column(%{name: "col", type: :integer}, %{name: "table", user_id: "uid"})
+    constant = Expression.constant(:real, 3.4)
+
+    assert Expression.function("count", [:*]) |> Expression.display() == "count(*)"
+    assert Expression.function("*", [column, constant]) |> Expression.display() == "col * 3.4"
+
+    assert Expression.function("sum", [{:distinct, Expression.function("abs", [column])}])
+           |> Expression.display() == "sum(distinct abs(col))"
+  end
 end
