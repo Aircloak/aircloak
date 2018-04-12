@@ -232,21 +232,14 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp value(:datetime), do: naive_date_time() |> map(&build_cast(&1, :datetime))
   defp value(:interval), do: integer() |> map(&Timex.Duration.from_seconds/1) |> map(&{:interval, &1, []})
 
-  defp value(:like_pattern),
-    do:
-      like_escape()
-      |> bind(fn escape ->
-        map(escaped_string(), &{:like_pattern, &1, [escape]})
-      end)
+  defp value(:like_pattern) do
+    {escaped_string(), optional(like_escape())}
+    |> map(fn {string, escape} -> {:like_pattern, string, [escape]} end)
+  end
 
   defp build_cast(value, type), do: {:cast, type, [{:text, to_string(value), []}]}
 
-  defp like_escape(),
-    do:
-      one_of([
-        constant(empty()),
-        map(escaped_string(length: 1), &{:like_escape, [&1], []})
-      ])
+  defp like_escape(), do: map(escaped_string(length: 1), &{:like_escape, &1, []})
 
   defp naive_date_time() do
     fixed_map(%{
