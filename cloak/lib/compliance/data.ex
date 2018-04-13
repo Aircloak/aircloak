@@ -183,9 +183,31 @@ defmodule Compliance.Data do
 
   defp ages(), do: sample(fn -> :rand.uniform(70) + 10 end)
 
-  defp heights(), do: sample(fn -> round(100 * (:rand.uniform() * 30 + 170)) / 100 end)
+  defp heights(), do: sample(fn -> 170 + :rand.uniform(30) + random_float(2) end)
 
-  defp floats(), do: sample(fn -> :rand.uniform() - 0.5 end)
+  defp floats(), do: sample(fn -> random_sign() * random_float(6) end)
+
+  defp random_float(num_digits) do
+    # Generates random float with desired number of digits. No digit will have the value of 0, 5, or 9, to reduce the
+    # chance of rounding inconsistencies, which can happen due to the way floats are stored in the database.
+    1..num_digits
+    |> Enum.reduce(0, fn _, acc -> 10 * acc + random_float_digit() end)
+    |> Kernel./(:math.pow(10, num_digits))
+  end
+
+  defp random_float_digit() do
+    if :rand.uniform(2) == 1 do
+      # 1, 2, 3, or 4
+      :rand.uniform(4)
+    else
+      # 6, 7, or 8
+      5 + :rand.uniform(3)
+    end
+  end
+
+  defp random_sign() do
+    if :rand.uniform(2) == 1, do: 1, else: -1
+  end
 
   defp postcodes(), do: sample(fn -> :rand.uniform(@max_postal_code - @min_postal_code) + @min_postal_code end)
 
