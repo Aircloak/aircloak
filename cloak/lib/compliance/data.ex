@@ -37,8 +37,10 @@ defmodule Compliance.Data do
   """
   @spec users(non_neg_integer) :: Enumerable.t()
   def users(num_users) do
+    samples = samples()
+
     1..num_users
-    |> Task.async_stream(&generate_user(&1, samples()), timeout: :timer.minutes(10))
+    |> Task.async_stream(&generate_user(&1, samples), timeout: :timer.minutes(10))
     |> Stream.map(fn {:ok, user_data} -> user_data end)
   end
 
