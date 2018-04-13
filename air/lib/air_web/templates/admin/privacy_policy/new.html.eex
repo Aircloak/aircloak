@@ -73,16 +73,18 @@
 <%= form_tag admin_privacy_policy_path(@conn, :create), method: "post" do %>
 
   <div class='form-group'>
-    <label class='control-label' for='content'>Privacy policy content</label>
-    <textarea class='form-control' name='content'>
+    <label class="control-label" for="content">Privacy policy content</label>
+    <textarea class="form-control" name="content" id="contentEditor">
       <%= @content %>
     </textarea>
+    <textarea class="hidden" name="content" id="content"><%= @content %></textarea>
   </div>
 
   <%= unless first_policy?() do %>
-    <div class='form-group'>
-      <label class='control-label' for='content'>Describe changes</label>
-      <textarea class='form-control' name='changes'></textarea>
+    <div class="form-group">
+      <label class="control-label" for="content">Describe changes</label>
+      <textarea class="form-control" name="changes" id="changesEditor"></textarea>
+      <textarea class="hidden" name="changes" id="changes"></textarea>
     </div>
   <% end %>
 
@@ -91,3 +93,16 @@
   </div>
 
 <% end %>
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      var contentEditor = document.getElementById("contentEditor");
+      var contentTarget = document.getElementById("content");
+      var changesEditor = document.getElementById("changesEditor");
+      var changesTarget = document.getElementById("changes");
+      App.attachCodeMirrorToTextArea(contentEditor, contentTarget);
+      App.attachCodeMirrorToTextArea(changesEditor, changesTarget);
+    }
+  };
+</script>

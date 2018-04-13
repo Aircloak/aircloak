@@ -36,6 +36,22 @@ const App = {
   activityMonitor: (props, elem) => App.render("activity_monitor", props, elem),
   numberFormatExample: (props, elem) => App.render("number_format_example", props, elem),
   auditLog: (props, elem) => App.render("audit_log", props, elem),
+  attachCodeMirrorToTextArea: (textArea, targetElement) => {
+    let CodeMirror =  require('codemirror');
+    require("codemirror/mode/markdown/markdown");
+    let elementEditor = CodeMirror((elt) => {
+      textArea.parentNode.replaceChild(elt, textArea);
+    }, {
+      value: textArea.value,
+      indentWithTabs: false,
+      tabSize: 2,
+      mode: "markdown",
+      lineNumbers: true,
+    });
+    elementEditor.on('change', editor => {
+      targetElement.value = editor.getValue();
+    });
+  },
 
   render: (page, props, elem) => {
     const authentication = {CSRFToken: props.CSRFToken};
