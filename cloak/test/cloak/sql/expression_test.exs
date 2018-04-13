@@ -399,14 +399,38 @@ defmodule Cloak.Sql.Expression.Test do
     assert Expression.valid_alias?("a_22")
   end
 
-  test "expression display" do
-    column = Expression.column(%{name: "col", type: :integer}, %{name: "table", user_id: "uid"})
-    constant = Expression.constant(:real, 3.4)
+  describe "expression display" do
+    test "count(*)" do
+      assert Expression.function("count", [:*]) |> Expression.display() == "count(*)"
+    end
 
-    assert Expression.function("count", [:*]) |> Expression.display() == "count(*)"
-    assert Expression.function("*", [column, constant]) |> Expression.display() == "col * 3.4"
+    test "col * 3.4" do
+      column = Expression.column(%{name: "col", type: :integer}, %{name: "table", user_id: "uid"})
+      constant = Expression.constant(:real, 3.4)
 
-    assert Expression.function("sum", [{:distinct, Expression.function("abs", [column])}])
-           |> Expression.display() == "sum(distinct abs(col))"
+      assert Expression.function("*", [column, constant]) |> Expression.display() == "col * 3.4"
+    end
+
+    test "sum(distinct abs(col))" do
+      column = Expression.column(%{name: "col", type: :integer}, %{name: "table", user_id: "uid"})
+
+      assert Expression.function("sum", [{:distinct, Expression.function("abs", [column])}])
+             |> Expression.display() == "sum(distinct abs(col))"
+    end
+
+    test "cast('123' as integer)" do
+      constant = Expression.constant(:text, "123")
+
+      assert Expression.function({:cast, :integer}, [constant]) |> Expression.display() == "cast('123' as integer)"
+    end
+
+    test "interval" do
+      assert Expression.constant(:interval, Timex.Duration.parse!("PT1H1M1S")) |> Expression.display() ==
+               "interval 'PT1H1M1S'"
+    end
+
+    test "date" do
+      assert Expression.constant(:date, ~D[2016-02-01]) |> Expression.display() == "date '2016-02-01'"
+    end
   end
 end
