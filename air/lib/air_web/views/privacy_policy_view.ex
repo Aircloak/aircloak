@@ -4,7 +4,7 @@ defmodule AirWeb.PrivacyPolicyView do
 
   alias Air.Service.{PrivacyPolicy, User}
 
-  defp content() do
+  defp content_as_html() do
     case PrivacyPolicy.get() do
       {:error, :no_privacy_policy_created} ->
         Earmark.as_html!("""
