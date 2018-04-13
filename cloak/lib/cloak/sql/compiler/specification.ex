@@ -57,6 +57,7 @@ defmodule Cloak.Sql.Compiler.Specification do
       |> compile_from()
       |> compile_parameter_types()
       |> expand_star_select()
+      |> compile_titles()
       |> compile_aliases()
       |> compile_columns()
       |> compile_references()
@@ -341,9 +342,30 @@ defmodule Cloak.Sql.Compiler.Specification do
         &{:identifier, &1.table.name, {:unquoted, &1.column.name}, @dummy_location}
       )
 
+  defp compile_titles(%Query{subquery?: true} = query) do
+    column_titles =
+      query.columns
+      |> Enum.map(&column_title(&1, query.selected_tables))
+      |> Enum.with_index(1)
+      |> Enum.map(fn {title, index} -> title || "__ac_??#{index}" end)
+
+    %Query{query | column_titles: column_titles}
+  end
+
+  defp compile_titles(%Query{subquery?: false} = query) do
+    column_titles =
+      query.columns
+      |> Enum.map(&column_title(&1, query.selected_tables))
+      |> Enum.map(fn
+        "__ac_??" <> _ -> ""
+        title -> title || ""
+      end)
+
+    %Query{query | column_titles: column_titles}
+  end
+
   defp compile_aliases(%Query{columns: [_ | _] = columns} = query) do
     verify_aliases(query)
-    column_titles = Enum.map(columns, &column_title(&1, query.selected_tables))
 
     aliases =
       for {column, :as, name} <- columns,
@@ -365,7 +387,6 @@ defmodule Cloak.Sql.Compiler.Specification do
     %Query{
       query
       | columns: columns,
-        column_titles: column_titles,
         group_by: group_by,
         order_by: order_by,
         where: where,
@@ -399,8 +420,8 @@ defmodule Cloak.Sql.Compiler.Specification do
       )
 
   defp column_title({:identifier, _table, {_, column}, _}, _selected_tables), do: column
-  defp column_title({:constant, _, _, _}, _selected_tables), do: ""
-  defp column_title({:parameter, _}, _selected_tables), do: ""
+  defp column_title({:constant, _, _, _}, _selected_tables), do: nil
+  defp column_title({:parameter, _}, _selected_tables), do: nil
 
   # Subqueries can produce column-names that are not actually in the table. Without understanding what
   # is being produced by the subquery (currently it is being treated as a blackbox), we cannot validate

@@ -237,4 +237,11 @@ defmodule Cloak.Query.SubqueryTest do
       rows: [%{row: [18]}]
     })
   end
+
+  test "*-select constants in subquery" do
+    assert_query("select * from (select 1, 2 from heights_sq) t", %{
+      columns: ["", ""],
+      rows: [%{row: [1, 2], occurrences: 100}]
+    })
+  end
 end
