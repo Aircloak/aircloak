@@ -18,3 +18,12 @@
     <% end %>
   </div>
 </div>
+
+<%= if has_change_info?() do %>
+<div class="panel panel-default">
+  <div class="panel-heading">Changes made to this version</div>
+  <div class="panel-body">
+    <%= raw(changes_as_html()) %>
+  </div>
+</div>
+<% end %>
