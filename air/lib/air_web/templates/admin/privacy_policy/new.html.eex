@@ -70,6 +70,21 @@
   </div>
 </div>
 
+<div class="panel panel-default">
+  <div class="panel-heading"></div>
+  <div class="panel-body">
+    <p>
+      The content of your privacy policy can be written in <a href="https://guides.github.com/features/mastering-markdown/">markdown</a>.
+      This allows you to provide some structure and use formatting in your privacy policy.
+    </p>
+
+    <p>
+      For a quick guide to the markdown language, have a look at the following guide:
+      <a href="https://guides.github.com/features/mastering-markdown/">Mastering Markdown</a>.
+    </p>
+  </div>
+</div>
+
 <%= form_tag admin_privacy_policy_path(@conn, :create), method: "post" do %>
 
   <div class='form-group'>
