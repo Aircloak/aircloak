@@ -23,20 +23,19 @@ defmodule AirWeb.Router do
     plug(AirWeb.Plug.Session.Authenticated)
   end
 
-  pipeline :validate_license_browser do
+  pipeline :license_validations_browser do
     plug(AirWeb.Plug.ValidateLicense.Browser)
   end
 
-  pipeline :validate_license_api do
+  pipeline :privacy_policy_validations_browser do
+    plug(AirWeb.Plug.ValidatePrivacyPolicy.Existence.Browser)
+    plug(AirWeb.Plug.ValidatePrivacyPolicy.Acceptance)
+  end
+
+  pipeline :policy_validations_api do
     plug(AirWeb.Plug.ValidateLicense.API)
-  end
-
-  pipeline :validate_privacy_policy_browser do
-    plug(AirWeb.Plug.ValidatePrivacyPolicy.Browser)
-  end
-
-  pipeline :validate_privacy_policy_api do
-    plug(AirWeb.Plug.ValidatePrivacyPolicy.API)
+    plug(AirWeb.Plug.ValidatePrivacyPolicy.Existence.API)
+    plug(AirWeb.Plug.ValidatePrivacyPolicy.Acceptance)
   end
 
   scope "/auth", AirWeb do
@@ -48,7 +47,7 @@ defmodule AirWeb.Router do
   end
 
   scope "/", AirWeb, private: %{context: :http} do
-    pipe_through([:browser, :browser_auth, :validate_license_browser, :validate_privacy_policy_browser])
+    pipe_through([:browser, :browser_auth, :license_validations_browser, :privacy_policy_validations_browser])
 
     get("/", DataSourceController, :redirect_to_last_used)
 
@@ -79,10 +78,14 @@ defmodule AirWeb.Router do
     post("/profile/toggle_debug_mode", ProfileController, :toggle_debug_mode)
 
     get("/changelog", ChangelogController, :index)
+
+    get("/privacy_policy", PrivacyPolicyController, :index)
+    post("/privacy_policy/accept", PrivacyPolicyController, :accept)
+    post("/privacy_policy/reject", PrivacyPolicyController, :reject)
   end
 
   scope "/admin", AirWeb.Admin, as: :admin do
-    pipe_through([:browser, :browser_auth])
+    pipe_through([:browser, :browser_auth, :privacy_policy_validations_browser])
 
     get("/queries/failed", QueryController, :failed)
     get("/queries/:id", QueryController, :show)
@@ -119,7 +122,7 @@ defmodule AirWeb.Router do
   end
 
   scope "/api", private: %{context: :api} do
-    pipe_through([:api, :validate_license_api, :validate_privacy_policy_api])
+    pipe_through([:api, :policy_validations_api])
 
     resources("/queries", AirWeb.QueryController, only: [:create, :show])
     post("/queries/:id/cancel", AirWeb.QueryController, :cancel)

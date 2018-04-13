@@ -14,28 +14,31 @@ defmodule AirWeb.Admin.QueryController.Test do
       "tables" => "[]"
     }
 
+    user = create_user!()
+    create_privacy_policy_and_accept_it!(user)
+
+    admin = create_admin_user!()
+    accept_privacy_policy!(admin)
+
     data_source = Air.Service.DataSource.create!(params)
-    {:ok, data_source: data_source}
+    {:ok, data_source: data_source, user: user, admin: admin}
   end
 
   test "failed queries", context do
-    user = create_user!()
+    insert_query(context.user, context[:data_source], "query 1", %{error: "some error"})
+    insert_query(context.user, context[:data_source], "query 2", %{error: "some error"})
+    insert_query(context.user, context[:data_source], "query 3", %{})
 
-    insert_query(user, context[:data_source], "query 1", %{error: "some error"})
-    insert_query(user, context[:data_source], "query 2", %{error: "some error"})
-    insert_query(user, context[:data_source], "query 3", %{})
-
-    admin = create_admin_user!()
-    response = login(admin) |> get("/admin/queries/failed") |> response(200)
+    response = login(context.admin) |> get("/admin/queries/failed") |> response(200)
 
     assert response =~ "query 1"
     assert response =~ "query 2"
     refute response =~ "query 3"
   end
 
-  test "user can't fetch failed queries" do
+  test "user can't fetch failed queries", context do
     assert "/" ==
-             create_user!()
+             context.user
              |> login()
              |> get("/admin/queries/failed")
              |> redirected_to()

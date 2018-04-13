@@ -1,12 +1,12 @@
 defmodule AirWeb.SessionControllerTest do
   use AirWeb.ConnCase, async: true
 
-  import Air.TestConnHelper
-  alias Air.TestRepoHelper
+  import Air.{TestConnHelper, TestRepoHelper}
 
   setup do
-    TestRepoHelper.create_privacy_policy!()
-    :ok
+    user = create_user!()
+    create_privacy_policy_and_accept_it!(user)
+    {:ok, user: user}
   end
 
   test "anonymous user can access the login page", %{conn: conn} do
@@ -14,9 +14,7 @@ defmodule AirWeb.SessionControllerTest do
     conn |> get("/auth") |> response(200)
   end
 
-  test "logging in/out" do
-    user = TestRepoHelper.create_user!()
-
+  test "logging in/out", %{user: user} do
     # invalid e-mail
     html = build_conn() |> post("/auth", email: "foo@aircloak.com", password: "1234") |> response(200)
 
@@ -39,9 +37,7 @@ defmodule AirWeb.SessionControllerTest do
     assert get_flash(logged_out_conn)["info"] =~ "Logged out successfully"
   end
 
-  test "logged in user can't log in" do
-    user = TestRepoHelper.create_user!()
-
+  test "logged in user can't log in", %{user: user} do
     response = login(user) |> get("/auth") |> response(302)
     assert response =~ ~s(href="/")
 
@@ -55,9 +51,8 @@ defmodule AirWeb.SessionControllerTest do
     assert get_flash(conn)["error"] =~ "You must be authenticated to view this page"
   end
 
-  test "a deleted user is redirected to login" do
+  test "a deleted user is redirected to login", %{user: user} do
     perform_onboarding()
-    user = TestRepoHelper.create_user!()
     conn = login(user)
     Air.Repo.delete(user)
 
@@ -65,5 +60,5 @@ defmodule AirWeb.SessionControllerTest do
     assert "/auth" == redirected_to(conn)
   end
 
-  defp perform_onboarding(), do: TestRepoHelper.create_admin_user!()
+  defp perform_onboarding(), do: create_admin_user!()
 end

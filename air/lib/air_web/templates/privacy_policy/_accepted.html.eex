@@ -1,0 +1,24 @@
+<div class="panel panel-success">
+  <div class="panel-heading">
+    <h1 class="panel-title">You have already accepted the privacy policy</h1>
+  </div>
+  <div class="panel-body">
+    <p>If you no longer agree with the policy as it stands, you can withdraw you acceptance at any time:</p>
+
+    <%= form_tag privacy_policy_path(@conn, :reject), method: "post" do %>
+      <button class='btn btn-danger'>Reject privacy policy</button>
+    <% end %>
+
+    <hr />
+
+    <p>
+      <strong>
+        Rejecting the privacy policy will result in you no longer being able to use Aircloak Insights.
+      </strong>
+    </p>
+
+    <p>
+      Contact your administrator or organisations data privacy offier if you have questions or concerns.
+    </p>
+  </div>
+</div>

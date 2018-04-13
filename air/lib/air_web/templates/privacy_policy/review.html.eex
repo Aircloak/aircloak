@@ -7,7 +7,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Aircloak – License expired</title>
+    <title>Aircloak – Privacy policy</title>
     <link rel="shortcut icon" href="<%= static_path(@conn, "/images/favicon.ico") %>" type="image/x-icon">
     <link rel="stylesheet" href="<%= static_path(@conn, "/css/vendor.css") %>">
     <link rel="stylesheet" href="<%= static_path(@conn, "/css/app.css") %>">
@@ -16,10 +16,10 @@
   <body>
     <div class="container">
       <div class="jumbotron invalid">
-        <h1>License expired</h1>
-
-        <p>The license for this Aircloak instance has expired. Please contact your administrator for more details.</p>
+        <h1>Privacy policy</h1>
       </div>
+
+      <%= render "_page.html", conn: @conn %>
     </div>
   </body>
 </html>

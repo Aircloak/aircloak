@@ -15,6 +15,7 @@ defmodule AirWeb.API.DataSourceController.Test do
 
   test "getting all sources" do
     user = create_user!()
+    accept_privacy_policy!(user)
     api_token = create_token!(user)
     cloak_name = "cloak_name"
 
@@ -35,6 +36,7 @@ defmodule AirWeb.API.DataSourceController.Test do
   test "includes views amongst talbes" do
     group = create_group!()
     user = create_user!(%{groups: [group.id]})
+    accept_privacy_policy!(user)
     api_token = create_token!(user)
     cloak_name = "cloak_name"
     view_name = "view1"

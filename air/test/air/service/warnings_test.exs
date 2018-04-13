@@ -11,6 +11,7 @@ defmodule Air.Service.WarningsTest do
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
+    TestRepoHelper.create_privacy_policy!()
     :ok
   end
 
@@ -105,13 +106,17 @@ defmodule Air.Service.WarningsTest do
     })
   end
 
-  defp add_user(group),
-    do:
+  defp add_user(group) do
+    user =
       TestRepoHelper.create_user!(%{
         name: "user_#{:erlang.unique_integer()}",
         email: "random_#{:erlang.unique_integer()}@example.com",
         groups: [group.id]
       })
+
+    TestRepoHelper.create_privacy_policy_and_accept_it!(user)
+    user
+  end
 
   defp start_cloak_channel(data_sources) do
     parent = self()

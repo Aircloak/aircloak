@@ -2,6 +2,8 @@
 
 <%= link "Create new revision", to: admin_privacy_policy_path(@conn, :new), class: "btn btn-primary pull-right" %>
 
+<h3>Revisions</h3>
+
 <table class="table table-striped">
   <thead>
     <tr>
@@ -26,3 +28,9 @@
     <% end %>
   </tbody>
 </table>
+
+<h3>Current privacy policy</h3>
+
+<hr />
+
+<%= raw(content()) %>

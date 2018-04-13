@@ -1,12 +1,13 @@
 defmodule AirWeb.Admin.GroupController.Test do
   use AirWeb.ConnCase, async: true
 
-  import Air.TestConnHelper
-  alias Air.{TestRepoHelper, Schemas.Group, Repo}
+  import Air.{TestConnHelper, TestRepoHelper}
+  alias Air.{Schemas.Group, Repo}
 
   test "regular user can't manage users", %{conn: conn} do
-    user = TestRepoHelper.create_user!()
-    group = TestRepoHelper.create_group!()
+    user = create_user!()
+    create_privacy_policy_and_accept_it!(user)
+    group = create_group!()
 
     assert login(user) |> get(admin_group_path(conn, :index)) |> redirected_to() === "/"
     assert login(user) |> post(admin_group_path(conn, :create)) |> redirected_to() === "/"
@@ -16,14 +17,16 @@ defmodule AirWeb.Admin.GroupController.Test do
   end
 
   test "listing groups" do
-    admin = TestRepoHelper.create_admin_user!()
-    groups = Enum.map(1..4, fn _ -> TestRepoHelper.create_group!() end)
+    admin = create_admin_user!()
+    create_privacy_policy_and_accept_it!(admin)
+    groups = Enum.map(1..4, fn _ -> create_group!() end)
     groups_html = login(admin) |> get("/admin/groups") |> response(200)
     Enum.each(groups, &assert(groups_html =~ &1.name))
   end
 
   test "creating a group" do
-    admin = TestRepoHelper.create_admin_user!()
+    admin = create_admin_user!()
+    create_privacy_policy_and_accept_it!(admin)
 
     group_name = "test group"
 
@@ -36,7 +39,8 @@ defmodule AirWeb.Admin.GroupController.Test do
   end
 
   test "displays a warning if no group name" do
-    admin = TestRepoHelper.create_admin_user!()
+    admin = create_admin_user!()
+    create_privacy_policy_and_accept_it!(admin)
 
     assert login(admin)
            |> post("/admin/groups", group: %{admin: false})
@@ -44,16 +48,18 @@ defmodule AirWeb.Admin.GroupController.Test do
   end
 
   test "access edit page for group", %{conn: conn} do
-    admin = TestRepoHelper.create_admin_user!()
-    group = TestRepoHelper.create_group!()
+    admin = create_admin_user!()
+    create_privacy_policy_and_accept_it!(admin)
+    group = create_group!()
 
     edit_html = login(admin) |> get(admin_group_path(conn, :edit, group)) |> response(200)
     assert edit_html =~ group.name
   end
 
   test "update a group", %{conn: conn} do
-    admin = TestRepoHelper.create_admin_user!()
-    group = TestRepoHelper.create_group!()
+    admin = create_admin_user!()
+    create_privacy_policy_and_accept_it!(admin)
+    group = create_group!()
     new_group_name = "new group name"
 
     assert login(admin)
@@ -69,7 +75,8 @@ defmodule AirWeb.Admin.GroupController.Test do
   end
 
   test "error is reported when unsetting the admin status of the group containing last admin" do
-    admin = TestRepoHelper.create_only_user_as_admin!()
+    admin = create_only_user_as_admin!()
+    create_privacy_policy_and_accept_it!(admin)
     conn = login(admin)
     conn = put(conn, admin_group_path(conn, :update, hd(admin.groups)), group: %{admin: false})
 
@@ -82,8 +89,9 @@ defmodule AirWeb.Admin.GroupController.Test do
   end
 
   test "deleting a group" do
-    admin = TestRepoHelper.create_admin_user!()
-    group = TestRepoHelper.create_group!()
+    admin = create_admin_user!()
+    create_privacy_policy_and_accept_it!(admin)
+    group = create_group!()
 
     assert "/admin/groups" == login(admin) |> delete("/admin/groups/#{group.id}") |> redirected_to()
 
@@ -92,7 +100,8 @@ defmodule AirWeb.Admin.GroupController.Test do
   end
 
   test "error is reported when deleting the group containing last admin" do
-    admin = TestRepoHelper.create_only_user_as_admin!()
+    admin = create_only_user_as_admin!()
+    create_privacy_policy_and_accept_it!(admin)
     conn = login(admin) |> delete("/admin/groups/#{hd(admin.groups).id}")
 
     assert redirected_to(conn) == "/admin/groups"
@@ -104,12 +113,14 @@ defmodule AirWeb.Admin.GroupController.Test do
   end
 
   test "render 404 on attempting to render edit form for non-existent group" do
-    admin = TestRepoHelper.create_admin_user!()
+    admin = create_admin_user!()
+    create_privacy_policy_and_accept_it!(admin)
     assert login(admin) |> get("/admin/groups/99999/edit") |> response(404)
   end
 
   test "render 404 on attempting to update a non-existent group" do
-    admin = TestRepoHelper.create_admin_user!()
+    admin = create_admin_user!()
+    create_privacy_policy_and_accept_it!(admin)
 
     assert login(admin)
            |> put("/admin/groups/99999", group: %{name: "group name"})
@@ -117,7 +128,8 @@ defmodule AirWeb.Admin.GroupController.Test do
   end
 
   test "render 404 on attempting to delete a non-existent group" do
-    admin = TestRepoHelper.create_admin_user!()
+    admin = create_admin_user!()
+    create_privacy_policy_and_accept_it!(admin)
     assert login(admin) |> delete("/admin/groups/99999") |> response(404)
   end
 end

@@ -13,11 +13,13 @@
     <link rel="stylesheet" href="<%= static_path(@conn, "/css/app.css") %>">
   </head>
 
-  <div class="container">
-    <div class="jumbotron invalid">
-      <h1>Missing privacy policy</h1>
+  <body>
+    <div class="container">
+      <div class="jumbotron invalid">
+        <h1>Missing privacy policy</h1>
 
-      <p>No privacy policy has been configured for this Aircloak instance. Please ask your administrator to configure one. They can do so by logging in to the Aircloak Insights system.</p>
+        <p>No privacy policy has been configured for this Aircloak instance. Please ask your administrator to configure one. They can do so by logging in to the Aircloak Insights system.</p>
+      </div>
     </div>
-  </div>
+  </body>
 </html>

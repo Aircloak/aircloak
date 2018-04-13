@@ -1,55 +1,103 @@
-defmodule AirWeb.Plug.ValidatePrivacyPolicy.Browser do
+defmodule AirWeb.Plug.ValidatePrivacyPolicy do
   @moduledoc """
-  This plug terminates the request if the Aircloak installation does not yet have a valid privacy policy.
-
-  Admin users are redirected to a page where they can create one, whereas normal
-  users are told to await an administrative user creating a policy.
+  A set of plugs for validations relating to privacy policies.
   """
 
-  @behaviour Plug
+  defmodule Existence do
+    @moduledoc """
+    If a privacy policy exists nothing is done.
+    If one doesn't exist then:
+    - admin web users are redirected to a page where they can create a privacy policy
+    - all other users are shown a message indicating that a privacy policy has to be created
+    """
 
-  @impl Plug
-  def init(opts), do: opts
+    defmodule Browser do
+      @moduledoc false
+      @behaviour Plug
 
-  @impl Plug
-  def call(conn, _opts) do
-    if Air.Service.PrivacyPolicy.exists?() do
-      conn
-    else
-      if Air.Schemas.User.admin?(conn.assigns.current_user) do
+      @impl Plug
+      def init(opts), do: opts
+
+      @impl Plug
+      def call(conn, _opts) do
+        if Air.Service.PrivacyPolicy.exists?() do
+          conn
+        else
+          if Air.Schemas.User.admin?(conn.assigns.current_user) do
+            AirWeb.Plug.ValidatePrivacyPolicy.unless_in_privacy_policy_section(conn, fn ->
+              redirect_to_policy_creation(conn)
+            end)
+          else
+            AirWeb.Plug.ValidatePrivacyPolicy.halt_with_policy_notification(conn, :missing)
+          end
+        end
+      end
+
+      # -------------------------------------------------------------------
+      # Internal functions
+      # -------------------------------------------------------------------
+
+      defp redirect_to_policy_creation(conn) do
         conn
         |> Phoenix.Controller.redirect(to: AirWeb.Router.Helpers.admin_privacy_policy_path(conn, :new))
         |> Plug.Conn.halt()
-      else
-        conn
-        |> Plug.Conn.put_status(Plug.Conn.Status.code(:precondition_failed))
-        |> Phoenix.Controller.render(AirWeb.PrivacyPolicyMissingView, :missing, layout: false)
-        |> Plug.Conn.halt()
+      end
+    end
+
+    defmodule API do
+      @moduledoc false
+      @behaviour Plug
+
+      @impl Plug
+      def init(opts), do: opts
+
+      @impl Plug
+      def call(conn, _opts) do
+        if Air.Service.PrivacyPolicy.exists?() do
+          conn
+        else
+          AirWeb.Plug.ValidatePrivacyPolicy.halt_with_policy_notification(conn, :missing)
+        end
       end
     end
   end
-end
 
-defmodule AirWeb.Plug.ValidatePrivacyPolicy.API do
-  @moduledoc """
-  This plug terminates the request if the Aircloak installation does not yet have a valid privacy policy.
-  It always shows a generic notice, so is suitable for use in the API pipeline.
-  """
+  defmodule Acceptance do
+    @moduledoc """
+    Assumes that the Existence plug has already been run, and that a privacy policy
+    therefore is in place.
 
-  @behaviour Plug
+    Redirects all web users to the privacy policy page if they have not yet accepted the policy.
+    API users have their requests halted.
+    """
+    @behaviour Plug
 
-  @impl Plug
-  def init(opts), do: opts
+    @impl Plug
+    def init(opts), do: opts
 
-  @impl Plug
-  def call(conn, _opts) do
-    if Air.Service.PrivacyPolicy.exists?() do
-      conn
-    else
-      conn
-      |> Plug.Conn.put_status(Plug.Conn.Status.code(:precondition_failed))
-      |> Phoenix.Controller.render(AirWeb.PrivacyPolicyMissingView, :missing, layout: false)
-      |> Plug.Conn.halt()
+    @impl Plug
+    def call(conn, _opts) do
+      if Air.Service.User.privacy_policy_status(conn.assigns.current_user) == :ok do
+        conn
+      else
+        AirWeb.Plug.ValidatePrivacyPolicy.unless_in_privacy_policy_section(conn, fn ->
+          AirWeb.Plugs.Utils.if_in_section(conn, AirWeb.Router.Helpers.privacy_policy_path(conn, :index), fn ->
+            AirWeb.Plug.ValidatePrivacyPolicy.halt_with_policy_notification(conn, :review)
+          end)
+        end)
+      end
     end
+  end
+
+  def unless_in_privacy_policy_section(conn, callback) do
+    admin_privacy_policy_path_prefix = AirWeb.Router.Helpers.admin_privacy_policy_path(conn, :index)
+    AirWeb.Plugs.Utils.if_in_section(conn, admin_privacy_policy_path_prefix, callback)
+  end
+
+  def halt_with_policy_notification(conn, notification) do
+    conn
+    |> Plug.Conn.put_status(Plug.Conn.Status.code(:precondition_failed))
+    |> Phoenix.Controller.render(AirWeb.PrivacyPolicyView, notification)
+    |> Plug.Conn.halt()
   end
 end

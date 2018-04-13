@@ -1,0 +1,14 @@
+<%= if has_opted_in?(@conn) do %>
+  <%= render "_accepted.html", conn: @conn %>
+
+<% else %>
+
+  <%= if never_accepted_or_rejected?(@conn) do %>
+    <%= render "_needs_review.html", conn: @conn %>
+
+
+  <% else %>
+    <%= render "_changed.html", conn: @conn %>
+
+  <% end %>
+<% end  %>

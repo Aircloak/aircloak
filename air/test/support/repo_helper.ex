@@ -158,6 +158,23 @@ defmodule Air.TestRepoHelper do
     |> Repo.insert!()
   end
 
+  @doc "Accepts the latest privacy policy"
+  @spec accept_privacy_policy!(User.t()) :: :ok
+  def accept_privacy_policy!(user), do: User.accept_privacy_policy(user)
+
+  @doc """
+  Creates a privacy policy and has the given used accept it.
+  Note that if multiple users exist, callign this function with
+  each one in turn will only result in the latest one of them
+  having accepted the latest policy. The others will have accepted
+  an outdated policy and require them accepting it again.
+  """
+  @spec create_privacy_policy_and_accept_it!(User.t()) :: :ok
+  def create_privacy_policy_and_accept_it!(user) do
+    create_privacy_policy!()
+    accept_privacy_policy!(user)
+  end
+
   @doc "Encodes a list of rows into the cloak format."
   @spec encode_rows(nil | [map]) :: nil | binary
   def encode_rows(nil), do: nil

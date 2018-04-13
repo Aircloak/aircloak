@@ -6,13 +6,12 @@ defmodule Air.ProfileController.Test do
   alias Air.{Repo, Schemas.User}
 
   setup do
-    TestRepoHelper.create_privacy_policy!()
-    :ok
+    user = TestRepoHelper.create_user!()
+    TestRepoHelper.create_privacy_policy_and_accept_it!(user)
+    {:ok, user: user}
   end
 
-  test "updating own details" do
-    user = TestRepoHelper.create_user!()
-
+  test "updating own details", %{user: user} do
     changed_email = "foo@bar.baz"
 
     conn =
@@ -28,8 +27,7 @@ defmodule Air.ProfileController.Test do
     assert Repo.get!(User, user.id).email == changed_email
   end
 
-  test "cannot update own groups" do
-    user = TestRepoHelper.create_user!()
+  test "cannot update own groups", %{user: user} do
     group = TestRepoHelper.create_group!()
 
     login(user)
@@ -44,8 +42,7 @@ defmodule Air.ProfileController.Test do
     assert user.groups == []
   end
 
-  test "cannot change password without the old password" do
-    user = TestRepoHelper.create_user!()
+  test "cannot change password without the old password", %{user: user} do
     old_password_hash = user.hashed_password
 
     login(user)
@@ -61,8 +58,7 @@ defmodule Air.ProfileController.Test do
     assert Repo.get!(User, user.id).hashed_password == old_password_hash
   end
 
-  test "can change password with the old password" do
-    user = TestRepoHelper.create_user!()
+  test "can change password with the old password", %{user: user} do
     old_password_hash = user.hashed_password
 
     login(user)

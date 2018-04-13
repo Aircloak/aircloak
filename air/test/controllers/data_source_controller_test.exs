@@ -4,15 +4,11 @@ defmodule Air.DataSourceControllerTest do
   import Air.TestConnHelper
   alias Air.TestRepoHelper
 
-  setup do
-    TestRepoHelper.create_privacy_policy!()
-    :ok
-  end
-
   test "can see data sources assigned to a group the user belongs to", %{conn: conn} do
     group = TestRepoHelper.create_group!()
     data_source = TestRepoHelper.create_data_source!(%{groups: [group.id]})
     user = TestRepoHelper.create_user!(%{groups: [group.id]})
+    TestRepoHelper.create_privacy_policy_and_accept_it!(user)
 
     assert login(user) |> get(data_source_path(conn, :index)) |> response(200) =~ data_source.name
   end
@@ -22,6 +18,7 @@ defmodule Air.DataSourceControllerTest do
     group2 = TestRepoHelper.create_group!()
     data_source = TestRepoHelper.create_data_source!(%{groups: [group1.id]})
     user = TestRepoHelper.create_user!(%{groups: [group2.id]})
+    TestRepoHelper.create_privacy_policy_and_accept_it!(user)
 
     refute login(user) |> get(data_source_path(conn, :index)) |> response(200) =~ data_source.name
   end

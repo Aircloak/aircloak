@@ -9,9 +9,8 @@
 
 <%= unless is_nil(@policy.changes) do %>
   <h3>Changes in this revision</h3>
-  <pre><%= @policy.changes %></pre>
-
+  <%= raw(Earmark.as_html!(@policy.changes)) %>
 <% end %>
 
-<h3>Privacy policy</h3>
-<pre><%= @policy.content %></pre>
+<h3>Privacy policy content</h3>
+<%= raw(Earmark.as_html!(@policy.content)) %>

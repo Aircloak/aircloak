@@ -1,0 +1,5 @@
+<%= render "_info_boxes.html", conn: @conn %>
+
+<%= raw(content()) %>
+
+<%= render "_info_boxes.html", conn: @conn %>

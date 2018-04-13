@@ -3,25 +3,32 @@ defmodule AirWeb.Admin.DataSourceController.Test do
   # (see https://hexdocs.pm/ecto/Ecto.Adapters.SQL.Sandbox.html)
   use AirWeb.ConnCase, async: false
 
-  import Air.TestConnHelper
+  import Air.{TestConnHelper, TestRepoHelper}
   import Aircloak.AssertionHelper
-  alias Air.{TestSocketHelper, TestRepoHelper, Schemas.DataSource, Repo}
+  alias Air.{TestSocketHelper, Schemas.DataSource, Repo}
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
+
+    user = create_user!()
+    create_privacy_policy_and_accept_it!(user)
+
+    admin = create_admin_user!()
+    accept_privacy_policy!(admin)
+
+    {:ok, user: user, admin: admin}
   end
 
-  test "regular user can't manage data sources" do
+  test "regular user can't manage data sources", context do
     register_data_source()
-    user = TestRepoHelper.create_user!()
     conn = build_conn()
 
-    assert login(user) |> get(admin_data_source_path(conn, :index)) |> redirected_to() === "/"
-    assert login(user) |> get(admin_data_source_path(conn, :new)) |> redirected_to() === "/"
+    assert login(context.user) |> get(admin_data_source_path(conn, :index)) |> redirected_to() === "/"
+    assert login(context.user) |> get(admin_data_source_path(conn, :new)) |> redirected_to() === "/"
 
     assert soon(
              given_data_source(fn data_source ->
-               login(user)
+               login(context.user)
                |> get(admin_data_source_path(conn, :edit, data_source.name))
                |> redirected_to() === "/"
              end)
@@ -29,7 +36,7 @@ defmodule AirWeb.Admin.DataSourceController.Test do
 
     assert soon(
              given_data_source(fn data_source ->
-               login(user)
+               login(context.user)
                |> put(admin_data_source_path(conn, :update, data_source.name))
                |> redirected_to() === "/"
              end)
@@ -37,34 +44,32 @@ defmodule AirWeb.Admin.DataSourceController.Test do
 
     assert soon(
              given_data_source(fn data_source ->
-               login(user)
+               login(context.user)
                |> delete(admin_data_source_path(conn, :delete, data_source.name))
                |> redirected_to() === "/"
              end)
            )
   end
 
-  test "lists data sources" do
+  test "lists data sources", context do
     register_data_source()
-    admin = TestRepoHelper.create_admin_user!()
 
     assert soon(
-             admin
+             context.admin
              |> login()
              |> get(admin_data_source_path(build_conn(), :index))
              |> response(200) =~ "data_source_name"
            )
   end
 
-  test "accessing edit" do
+  test "accessing edit", context do
     register_data_source()
-    admin = TestRepoHelper.create_admin_user!()
     conn = build_conn()
 
     assert soon(
              given_data_source(fn data_source ->
                html =
-                 login(admin)
+                 login(context.admin)
                  |> get(admin_data_source_path(conn, :edit, data_source.name))
                  |> response(200)
 
@@ -73,14 +78,13 @@ defmodule AirWeb.Admin.DataSourceController.Test do
            )
   end
 
-  test "deleting an unavailable data source" do
+  test "deleting an unavailable data source", context do
     register_data_source()
-    admin = TestRepoHelper.create_admin_user!()
     conn = build_conn()
 
     assert soon(
              given_data_source(fn data_source ->
-               assert admin
+               assert context.admin
                       |> login()
                       |> delete(admin_data_source_path(conn, :delete, data_source.name))
                       |> redirected_to() == admin_data_source_path(conn, :index)
@@ -90,27 +94,22 @@ defmodule AirWeb.Admin.DataSourceController.Test do
            )
   end
 
-  test "render 404 on attempting to show non-existent data source" do
-    admin = TestRepoHelper.create_admin_user!()
-    assert login(admin) |> get("/admin/data_sources/99999") |> response(404)
+  test "render 404 on attempting to show non-existent data source", context do
+    assert login(context.admin) |> get("/admin/data_sources/99999") |> response(404)
   end
 
-  test "render 404 on attempting to render edit form for non-existent data source" do
-    admin = TestRepoHelper.create_admin_user!()
-    assert login(admin) |> get("/admin/data_sources/99999/edit") |> response(404)
+  test "render 404 on attempting to render edit form for non-existent data source", context do
+    assert login(context.admin) |> get("/admin/data_sources/99999/edit") |> response(404)
   end
 
-  test "render 404 on attempting to update a non-existent data source" do
-    admin = TestRepoHelper.create_admin_user!()
-
-    assert login(admin)
+  test "render 404 on attempting to update a non-existent data source", context do
+    assert login(context.admin)
            |> put("/admin/data_sources/99999", data_source: %{name: "some name"})
            |> response(404)
   end
 
-  test "render 404 on attempting to delete a non-existent data source" do
-    admin = TestRepoHelper.create_admin_user!()
-    assert login(admin) |> delete("/admin/data_sources/99999") |> response(404)
+  test "render 404 on attempting to delete a non-existent data source", context do
+    assert login(context.admin) |> delete("/admin/data_sources/99999") |> response(404)
   end
 
   defp register_data_source() do

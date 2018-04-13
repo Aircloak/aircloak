@@ -34,6 +34,7 @@ defmodule AirWeb.API.QueryController.Test do
 
   test "show a query of the token's user" do
     user = create_user!()
+    create_privacy_policy_and_accept_it!(user)
     token = create_token!(user)
     query = create_query!(user, %{statement: "text of the query"})
 
@@ -44,6 +45,7 @@ defmodule AirWeb.API.QueryController.Test do
 
   test "showing the result of the query" do
     user = create_user!()
+    create_privacy_policy_and_accept_it!(user)
     token = create_token!(user)
 
     query =
@@ -75,6 +77,7 @@ defmodule AirWeb.API.QueryController.Test do
 
   test "show a query of another user fails" do
     user = create_user!()
+    create_privacy_policy_and_accept_it!(user)
     token = create_token!(user)
     query = create_query!(_another_user = create_user!(), %{statement: "text of the query"})
 
@@ -85,7 +88,11 @@ defmodule AirWeb.API.QueryController.Test do
 
   defp with_group(_context), do: {:ok, group: create_group!()}
 
-  defp with_user(%{group: group}), do: {:ok, user: create_user!(%{groups: [group.id]})}
+  defp with_user(%{group: group}) do
+    user = create_user!(%{groups: [group.id]})
+    create_privacy_policy_and_accept_it!(user)
+    {:ok, user: user}
+  end
 
   defp with_token(%{user: user}), do: %{token: create_token!(user)}
 
