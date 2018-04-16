@@ -89,15 +89,19 @@ defmodule AirWeb.Plug.ValidatePrivacyPolicy do
     end
   end
 
+  @doc "Runs the provided callback unless the request is for a resource in the admin privacy policy section"
+  @spec unless_in_privacy_policy_section(Plug.Conn.t(), (() -> Plug.Conn.t())) :: Plug.Conn.t()
   def unless_in_privacy_policy_section(conn, callback) do
     admin_privacy_policy_path_prefix = AirWeb.Router.Helpers.admin_privacy_policy_path(conn, :index)
     AirWeb.Plugs.Utils.if_in_section(conn, admin_privacy_policy_path_prefix, callback)
   end
 
+  @doc "Renders a privacy policy view and halts the plug chain"
+  @spec halt_with_policy_notification(Plug.Conn.t(), :review | :missing) :: Plug.Conn.t()
   def halt_with_policy_notification(conn, notification) do
     conn
     |> Plug.Conn.put_status(Plug.Conn.Status.code(:precondition_failed))
-    |> Phoenix.Controller.render(AirWeb.PrivacyPolicyView, notification)
+    |> Phoenix.Controller.render(AirWeb.PrivacyPolicyView, notification, %{})
     |> Plug.Conn.halt()
   end
 end
