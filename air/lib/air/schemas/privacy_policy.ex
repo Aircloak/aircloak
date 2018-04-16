@@ -1,4 +1,9 @@
 defmodule Air.Schemas.PrivacyPolicy do
+  @moduledoc """
+  The privacy policy model schema.
+  Each privacy policy version gets a new database record.
+  """
+
   use Ecto.Schema
   import Ecto.Changeset
   alias Air.Schemas.PrivacyPolicy

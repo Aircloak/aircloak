@@ -20,14 +20,21 @@ defmodule AirWeb.PrivacyPolicyView do
   defp has_change_info?() do
     case PrivacyPolicy.get() do
       {:error, :no_privacy_policy_created} -> false
-      {:ok, privacy_policy} -> privacy_policy.changes != ""
+      {:ok, privacy_policy} -> not is_nil(privacy_policy.changes)
     end
   end
 
   defp changes_as_html() do
     case PrivacyPolicy.get() do
-      {:error, :no_privacy_policy_created} -> ""
-      {:ok, privacy_policy} -> Earmark.as_html!(privacy_policy.changes)
+      {:error, :no_privacy_policy_created} ->
+        ""
+
+      {:ok, privacy_policy} ->
+        if is_nil(privacy_policy.changes) do
+          nil
+        else
+          Earmark.as_html!(privacy_policy.changes)
+        end
     end
   end
 

@@ -28,6 +28,9 @@ import {FrontendSocket} from "./frontend_socket";
 import {NumberFormatExample} from "./number_format";
 import AuditLog from "./audit_log/root";
 
+import codeMirror from "codemirror";
+require("codemirror/mode/markdown/markdown");
+
 const App = {
   queryPage: (props, elem) => App.render("queries", props, elem),
   queryShowPage: (props, elem) => App.render("query_show", props, elem),
@@ -37,9 +40,7 @@ const App = {
   numberFormatExample: (props, elem) => App.render("number_format_example", props, elem),
   auditLog: (props, elem) => App.render("audit_log", props, elem),
   attachCodeMirrorToTextArea: (textArea, targetElement) => {
-    let CodeMirror =  require('codemirror');
-    require("codemirror/mode/markdown/markdown");
-    let elementEditor = CodeMirror((elt) => {
+    const elementEditor = codeMirror((elt) => {
       textArea.parentNode.replaceChild(elt, textArea);
     }, {
       value: textArea.value,
@@ -48,8 +49,8 @@ const App = {
       mode: "markdown",
       lineNumbers: true,
     });
-    elementEditor.on('change', editor => {
-      targetElement.value = editor.getValue();
+    elementEditor.on("change", editor => {
+      targetElement.value = editor.getValue(); // eslint-disable-line no-param-reassign
     });
   },
 
