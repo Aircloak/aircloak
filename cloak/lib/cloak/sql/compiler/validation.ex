@@ -95,7 +95,7 @@ defmodule Cloak.Sql.Compiler.Validation do
         raise(
           CompilationError,
           source_location: location,
-          message: "`DISTINCT` specified in non-aggregating function `#{name}`."
+          message: "`DISTINCT` specified in non-aggregating function `#{Function.readable_name(name)}`."
         )
 
     if subquery? and Function.has_attribute?(name, :not_in_subquery),
@@ -103,7 +103,7 @@ defmodule Cloak.Sql.Compiler.Validation do
         raise(
           CompilationError,
           source_location: location,
-          message: "Function `#{name}` is not allowed in subqueries."
+          message: "Function `#{Function.readable_name(name)}` is not allowed in subqueries."
         )
 
     :ok
