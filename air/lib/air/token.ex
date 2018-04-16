@@ -28,22 +28,17 @@ defmodule Air.Token do
   def user_for_token(token, access, opts \\ []) do
     import Ecto.Query
 
-    case Phoenix.Token.verify(
-           Endpoint,
-           api_token_salt(),
-           token,
-           max_age: normalized_max_age(opts[:max_age])
-         ) do
+    case Phoenix.Token.verify(Endpoint, api_token_salt(), token, max_age: normalized_max_age(opts[:max_age])) do
       {:ok, token_id} ->
-        case Repo.one(
-               from(
-                 token in ApiToken,
-                 where: token.id == ^token_id,
-                 where: token.access == ^access,
-                 preload: [{:user, :groups}],
-                 select: token
-               )
-             ) do
+        from(
+          token in ApiToken,
+          where: token.id == ^token_id,
+          where: token.access == ^access,
+          preload: [{:user, :groups}],
+          select: token
+        )
+        |> Repo.one()
+        |> case do
           %{} = token ->
             touch_token(token)
             token.user
