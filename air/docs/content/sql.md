@@ -23,11 +23,11 @@ general shape of the query looks like:
 SELECT [DISTINCT | ALL]
   field_expression [, ...]
   FROM from_expression [, ...]
-  [ SAMPLE_USERS <0..100>% ]
   [ WHERE where_expression [AND ...] ]
   [ GROUP BY column_expression | position [, ...] ]
   [ HAVING having_expression [AND ...] ]
   [ ORDER BY column_name  | position [ASC | DESC] [NULLS FIRST | LAST] [, ...] [ LIMIT amount ] [ OFFSET amount ] ]
+  [ SAMPLE_USERS <0..100>% ]
 
 field_expression :=
   * | table_name.* | column_expression [AS alias]

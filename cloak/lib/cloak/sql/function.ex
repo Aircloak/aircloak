@@ -238,14 +238,14 @@ defmodule Cloak.Sql.Function do
   end
 
   @doc "Returns the target type of the given cast."
-  @spec cast_target(t) :: argument_type
+  @spec cast_target(Parser.function_spec()) :: argument_type
   def cast_target({:function, {:cast, target}, _, _}), do: target
 
   @doc "Returns a list of possible argument lists required by the given function call."
   @spec argument_types(t) :: [[argument_type]]
   def argument_types({:function, function, _, _}), do: @functions[canonical_name(function)].type_specs |> Map.keys()
 
-  @doc "Returns the argument specifiaction of the given function call."
+  @doc "Returns the argument specification of the given function call."
   @spec arguments(t) :: [Expression.t()]
   def arguments({:function, _, arguments, _}), do: arguments
   def arguments(_), do: []
