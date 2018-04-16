@@ -89,8 +89,16 @@ defmodule Cloak.Sql.Compiler.Validation do
     :ok
   end
 
-  defp verify_function_usage({:function, name, _, location}, _subquery? = true) do
-    if Function.has_attribute?(name, :not_in_subquery),
+  defp verify_function_usage({:function, name, args, location}, subquery?) do
+    if not Function.aggregator?(name) and match?([{:distinct, _}], args),
+      do:
+        raise(
+          CompilationError,
+          source_location: location,
+          message: "`DISTINCT` specified in non-aggregating function `#{name}`."
+        )
+
+    if subquery? and Function.has_attribute?(name, :not_in_subquery),
       do:
         raise(
           CompilationError,

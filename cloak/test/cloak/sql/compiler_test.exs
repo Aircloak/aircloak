@@ -1276,6 +1276,11 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error =~ "Unknown function `dec_b64`"
   end
 
+  test "rejects usage of distinct in non-aggregates" do
+    {:error, error} = compile("select length(distinct string) from table", data_source())
+    assert error =~ "`DISTINCT` specified in non-aggregating function `length`."
+  end
+
   defp validate_view(view_sql, data_source, options \\ []) do
     with {:ok, parsed_view} <- Parser.parse(view_sql),
          do: Compiler.validate_view(data_source, parsed_view, Keyword.get(options, :views, %{}))
