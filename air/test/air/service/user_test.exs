@@ -103,6 +103,15 @@ defmodule Air.Service.UserTest do
 
       assert is_nil(Repo.get(Air.Schemas.View, view.id))
     end
+
+    test "deletes their api_tokens" do
+      user = TestRepoHelper.create_user!()
+      token = TestRepoHelper.create_token!(user)
+
+      User.delete!(user)
+
+      assert is_nil(Repo.get(Air.Schemas.ApiToken, token.id))
+    end
   end
 
   describe "group operations" do
