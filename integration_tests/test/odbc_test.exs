@@ -3,7 +3,7 @@ defmodule IntegrationTest.OdbcTest do
 
   alias IntegrationTest.Manager
 
-  setup_all do
+  setup do
     user = Manager.create_air_user()
     Air.Service.User.accept_privacy_policy(user)
     {:ok, user: user}
