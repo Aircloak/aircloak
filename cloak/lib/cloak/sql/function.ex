@@ -225,7 +225,7 @@ defmodule Cloak.Sql.Function do
   def function?(_), do: false
 
   @doc "Returns true if the function has the specified attribute, false otherise."
-  @spec has_attribute?(t | String.t() | nil, atom) :: boolean
+  @spec has_attribute?(t | Parser.function_name() | nil, atom) :: boolean
   def has_attribute?({:function, name, _, _}, attribute), do: has_attribute?(canonical_name(name), attribute)
 
   def has_attribute?(%Expression{function?: true, function: name}, attribute), do: has_attribute?(name, attribute)
@@ -238,7 +238,7 @@ defmodule Cloak.Sql.Function do
   end
 
   @doc "Returns the target type of the given cast."
-  @spec cast_target(t) :: argument_type
+  @spec cast_target(Parser.function_spec()) :: argument_type
   def cast_target({:function, {:cast, target}, _, _}), do: target
 
   @doc "Returns a list of possible argument lists required by the given function call."
