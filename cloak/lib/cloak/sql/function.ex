@@ -245,7 +245,7 @@ defmodule Cloak.Sql.Function do
   @spec argument_types(t) :: [[argument_type]]
   def argument_types({:function, function, _, _}), do: @functions[canonical_name(function)].type_specs |> Map.keys()
 
-  @doc "Returns the argument specifiaction of the given function call."
+  @doc "Returns the argument specification of the given function call."
   @spec arguments(t) :: [Expression.t()]
   def arguments({:function, _, arguments, _}), do: arguments
   def arguments(_), do: []
