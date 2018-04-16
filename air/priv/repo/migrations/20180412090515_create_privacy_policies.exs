@@ -3,10 +3,9 @@ defmodule Air.Repo.Migrations.CreatePrivacyPolicies do
 
   def change do
     create table(:privacy_policies) do
-      add :content, :text
+      add(:content, :text)
 
       timestamps()
     end
-
   end
 end
