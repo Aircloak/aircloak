@@ -2,7 +2,7 @@ defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
   alias Air.{Repo, Service.AuditLog, Schemas.DataSource, Schemas.Group, Schemas.User}
-  alias Air.Service.{Query, View}
+  alias Air.Service.View
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
 
@@ -113,7 +113,6 @@ defmodule Air.Service.User do
   def delete(user),
     do:
       commit_if_last_admin_not_deleted(fn ->
-        Query.delete_all(user)
         View.delete_for_user(user)
         Repo.delete(user)
       end)
