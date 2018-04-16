@@ -867,6 +867,14 @@ defmodule Cloak.Query.BasicTest do
     })
   end
 
+  test "query with empty interval" do
+    :ok = insert_rows(_user_ids = 0..4, "dates", ["date"], [~N[2017-01-02 00:01:02]])
+
+    assert_query("select count(*) from dates where date - date = interval 'P'", %{
+      rows: [%{row: [5]}]
+    })
+  end
+
   test "query allows mixing aggregated and grouped columns" do
     :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])
