@@ -87,6 +87,14 @@ defmodule Cloak.Sql.Compiler.Test do
                "of type `datetime` cannot be compared."
   end
 
+  test "reject invalid select with having conditions without group by" do
+    {:error, error} = compile("select string from table having count(numeric) = 2", data_source())
+
+    assert error ==
+             "Column `string` from table `table` needs to appear in the `GROUP BY`" <>
+               " clause or be used in an aggregate function."
+  end
+
   test "rejects escape strings longer than 1" do
     {:error, error} = compile("select * from table where string like 'something' escape 'abc'", data_source())
 
