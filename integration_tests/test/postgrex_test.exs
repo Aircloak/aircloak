@@ -5,6 +5,7 @@ defmodule IntegrationTest.PostgrexTest do
 
   setup_all do
     user = Manager.create_air_user()
+    Air.Service.User.accept_privacy_policy(user)
     {:ok, user: user}
   end
 

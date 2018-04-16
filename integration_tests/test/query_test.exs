@@ -4,7 +4,9 @@ defmodule IntegrationTest.QueryTest do
   alias IntegrationTest.Manager
 
   setup_all do
-    {:ok, user: Manager.create_air_user()}
+    user = Manager.create_air_user()
+    Air.Service.User.accept_privacy_policy(user)
+    {:ok, user: user}
   end
 
   test "show tables", context do

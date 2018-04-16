@@ -104,6 +104,7 @@ defmodule IntegrationTest.Manager do
     |> Air.Service.DataSource.update!(%{groups: [admin_group.id], name: @data_source_name})
 
     load_valid_license()
+    Air.Service.PrivacyPolicy.set("Privacy policy content")
 
     Repo.delete_all(ExportForAircloak)
   end
