@@ -67,7 +67,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   def unicode_literal(value), do: [?', value, ?']
 
   @impl Dialect
-  def interval_literal(value), do: ["interval '", Timex.Duration.to_string(value), ?']
+  def interval_literal(value), do: ["interval '", interval_to_string(value), ?']
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -79,4 +79,11 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   defp sql_type(:integer), do: "bigint"
   defp sql_type(:int32), do: "integer"
   defp sql_type(type) when is_atom(type), do: Atom.to_string(type)
+
+  def interval_to_string(interval) do
+    case Timex.Duration.to_string(interval) do
+      "P" -> "P0"
+      interval -> interval
+    end
+  end
 end
