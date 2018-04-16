@@ -1203,14 +1203,6 @@ defmodule Cloak.Query.BasicTest do
     })
   end
 
-  test "invalid having without group by" do
-    assert_query("select name from heights having count(height) = 2", %{
-      error:
-        "Column `name` from table `heights` needs to appear in the `GROUP BY`" <>
-          " clause or be used in an aggregate function." <> _
-    })
-  end
-
   describe "noise estimates" do
     setup do
       :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [nil])

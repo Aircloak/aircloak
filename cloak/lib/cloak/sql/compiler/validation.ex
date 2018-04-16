@@ -30,7 +30,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   @doc "Checks that a function specification is valid."
-  @spec verify_function(Function.t(), boolean, boolean) :: Function.t()
+  @spec verify_function(Parser.function_spec(), boolean, boolean) :: Parser.function_spec()
   def verify_function(function, subquery?, virtual_table?) do
     verify_function_exists(function, virtual_table?)
     verify_function_usage(function, subquery?)
@@ -89,19 +89,25 @@ defmodule Cloak.Sql.Compiler.Validation do
     :ok
   end
 
-  defp verify_function_usage({:function, name, _, location}, _subquery? = true) do
-    if Function.has_attribute?(name, :not_in_subquery),
+  defp verify_function_usage({:function, name, args, location}, subquery?) do
+    if not Function.aggregator?(name) and match?([{:distinct, _}], args),
       do:
         raise(
           CompilationError,
           source_location: location,
-          message: "Function `#{name}` is not allowed in subqueries."
+          message: "`DISTINCT` specified in non-aggregating function `#{Function.readable_name(name)}`."
+        )
+
+    if subquery? and Function.has_attribute?(name, :not_in_subquery),
+      do:
+        raise(
+          CompilationError,
+          source_location: location,
+          message: "Function `#{Function.readable_name(name)}` is not allowed in subqueries."
         )
 
     :ok
   end
-
-  defp verify_function_usage(_function, _subquery?), do: :ok
 
   defp verify_aggregated_columns(query) do
     case invalid_individual_columns(query) do

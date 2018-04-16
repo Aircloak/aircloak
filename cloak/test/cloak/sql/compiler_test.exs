@@ -87,6 +87,14 @@ defmodule Cloak.Sql.Compiler.Test do
                "of type `datetime` cannot be compared."
   end
 
+  test "reject invalid select with having conditions without group by" do
+    {:error, error} = compile("select string from table having count(numeric) = 2", data_source())
+
+    assert error ==
+             "Column `string` from table `table` needs to appear in the `GROUP BY`" <>
+               " clause or be used in an aggregate function."
+  end
+
   test "rejects escape strings longer than 1" do
     {:error, error} = compile("select * from table where string like 'something' escape 'abc'", data_source())
 
@@ -1274,6 +1282,11 @@ defmodule Cloak.Sql.Compiler.Test do
   test "internal functions don't exist from the analyst's perspective" do
     assert {:error, error} = compile("SELECT dec_b64(string) FROM table", data_source())
     assert error =~ "Unknown function `dec_b64`"
+  end
+
+  test "rejects usage of distinct in non-aggregates" do
+    {:error, error} = compile("select length(distinct string) from table", data_source())
+    assert error =~ "`DISTINCT` specified in non-aggregating function `length`."
   end
 
   defp validate_view(view_sql, data_source, options \\ []) do
