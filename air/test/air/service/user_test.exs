@@ -192,6 +192,7 @@ defmodule Air.Service.UserTest do
 
   describe "accept_privacy_policy" do
     test "should fail if no privacy policy exist" do
+      TestRepoHelper.delete_all_privacy_policies!()
       user = TestRepoHelper.create_user!()
       assert {:error, :no_privacy_policy_created} = User.accept_privacy_policy(user)
     end
@@ -225,6 +226,7 @@ defmodule Air.Service.UserTest do
 
   describe "privacy_policy_status" do
     test "error when no policy exists" do
+      TestRepoHelper.delete_all_privacy_policies!()
       user = TestRepoHelper.create_user!()
       assert {:error, :no_privacy_policy_created} == User.privacy_policy_status(user)
     end

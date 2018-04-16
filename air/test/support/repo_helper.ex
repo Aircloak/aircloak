@@ -158,6 +158,13 @@ defmodule Air.TestRepoHelper do
     |> Repo.insert!()
   end
 
+  @doc "Destroys all privacy policies"
+  @spec delete_all_privacy_policies!() :: :ok
+  def delete_all_privacy_policies!() do
+    Air.Repo.update_all(Air.Schemas.User, set: [accepted_privacy_policy_id: nil])
+    Air.Repo.delete_all(Air.Schemas.PrivacyPolicy)
+  end
+
   @doc "Accepts the latest privacy policy"
   @spec accept_privacy_policy!(User.t()) :: :ok
   def accept_privacy_policy!(user), do: User.accept_privacy_policy(user)

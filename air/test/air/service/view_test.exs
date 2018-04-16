@@ -2,7 +2,7 @@ defmodule Air.Service.ViewTest do
   # because of shared mode
   use Air.SchemaCase, async: false
 
-  alias Air.{Service.View, TestRepoHelper, TestSocketHelper}
+  alias Air.{Service.View, Service.User, TestRepoHelper, TestSocketHelper}
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
@@ -12,9 +12,9 @@ defmodule Air.Service.ViewTest do
     g2 = TestRepoHelper.create_group!()
     g3 = TestRepoHelper.create_group!()
 
-    u1 = TestRepoHelper.create_user!(%{groups: [g1.id, g2.id]})
-    u2 = TestRepoHelper.create_user!(%{groups: [g2.id, g3.id]})
-    u3 = TestRepoHelper.create_user!(%{groups: [g3.id]})
+    u1 = TestRepoHelper.create_user!(%{groups: [g1.id, g2.id]}) |> accept_privacy_policy_and_reload()
+    u2 = TestRepoHelper.create_user!(%{groups: [g2.id, g3.id]}) |> accept_privacy_policy_and_reload()
+    u3 = TestRepoHelper.create_user!(%{groups: [g3.id]}) |> accept_privacy_policy_and_reload()
 
     ds1 = TestRepoHelper.create_data_source!(%{groups: [g1.id]})
     ds2 = TestRepoHelper.create_data_source!(%{groups: [g2.id]})
@@ -263,4 +263,9 @@ defmodule Air.Service.ViewTest do
   end
 
   defp revalidation_success(names), do: Enum.map(names, &%{name: &1, columns: ["some", "columns"], valid: true})
+
+  defp accept_privacy_policy_and_reload(user) do
+    User.accept_privacy_policy(user)
+    User.load(user.id)
+  end
 end

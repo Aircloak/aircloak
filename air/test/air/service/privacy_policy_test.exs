@@ -1,8 +1,13 @@
 defmodule Air.Service.PrivacyPolicyTest do
-  use Air.SchemaCase, async: true
+  use Air.SchemaCase, async: false
 
   import Air.TestRepoHelper
   alias Air.{Repo, Service.PrivacyPolicy}
+
+  setup do
+    delete_all_privacy_policies!()
+    :ok
+  end
 
   describe "exists?" do
     test "no privacy policy", do: refute(PrivacyPolicy.exists?())

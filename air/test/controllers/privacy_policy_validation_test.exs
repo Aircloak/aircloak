@@ -1,5 +1,5 @@
 defmodule AirWeb.PrivacyPolicy.Validation.Test do
-  use AirWeb.ConnCase, async: true
+  use AirWeb.ConnCase, async: false
 
   import Air.{TestConnHelper, TestRepoHelper}
 
@@ -13,6 +13,7 @@ defmodule AirWeb.PrivacyPolicy.Validation.Test do
   end
 
   test "if no privacy policy exists an admin user is redirected to create one" do
+    delete_all_privacy_policies!()
     user = create_admin_user!()
     logged_in_conn = build_conn() |> post("/auth", email: user.email, password: "1234")
     assert "/" == redirected_to(logged_in_conn)
