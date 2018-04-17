@@ -40,9 +40,9 @@ defmodule AirWeb.Admin.PrivacyPolicyController do
   end
 
   def show(conn, params) do
-    revision = params["id"]
+    id = params["id"]
 
-    case PrivacyPolicy.get_by_revision(revision) do
+    case PrivacyPolicy.get_by_id(id) do
       {:error, :not_found} ->
         conn
         |> put_flash(:error, "Privacy policy revision not found")

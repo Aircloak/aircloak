@@ -80,8 +80,8 @@ defmodule AirWeb.Router do
     get("/changelog", ChangelogController, :index)
 
     get("/privacy_policy", PrivacyPolicyController, :index)
-    put("/privacy_policy/accept/:revision", PrivacyPolicyController, :accept)
-    put("/privacy_policy/reject/:revision", PrivacyPolicyController, :reject)
+    put("/privacy_policy/accept/:id", PrivacyPolicyController, :accept)
+    put("/privacy_policy/reject/:id", PrivacyPolicyController, :reject)
   end
 
   scope "/admin", AirWeb.Admin, as: :admin do

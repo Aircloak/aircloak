@@ -55,12 +55,12 @@ defmodule Air.Service.PrivacyPolicyTest do
     end
   end
 
-  describe "get_by_revision" do
-    test "returns error when invalid revision", do: assert({:error, :not_found} = PrivacyPolicy.get_by_revision(1))
+  describe "get_by_id" do
+    test "returns error when invalid id", do: assert({:error, :not_found} = PrivacyPolicy.get_by_id(1))
 
     test "returns policy when one exists" do
       policy = create_privacy_policy!()
-      {:ok, loaded_policy} = PrivacyPolicy.get_by_revision(policy.id)
+      {:ok, loaded_policy} = PrivacyPolicy.get_by_id(policy.id)
       assert loaded_policy.id == policy.id
     end
   end

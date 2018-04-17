@@ -46,9 +46,9 @@ defmodule AirWeb.PrivacyPolicyController do
   # -------------------------------------------------------------------
 
   defp load_privacy_policy(conn, _params) do
-    revision = conn.params["revision"]
+    id = conn.params["id"]
 
-    case PrivacyPolicy.get_by_revision(revision) do
+    case PrivacyPolicy.get_by_id(id) do
       {:ok, privacy_policy} ->
         assign(conn, :privacy_policy, privacy_policy)
 
