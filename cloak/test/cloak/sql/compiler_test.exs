@@ -1174,6 +1174,23 @@ defmodule Cloak.Sql.Compiler.Test do
     assert Enum.any?(query.db_columns, &match?(%Expression{name: "string"}, &1))
   end
 
+  test "grouping on a row splitter" do
+    assert {:ok, _} =
+             compile("select count(*), extract_words(string) from table group by extract_words(string)", data_source())
+  end
+
+  test "row splitter needs to be grouped in aggregated query" do
+    assert {:error, error} = compile("select count(*), extract_words(string) from table group by string", data_source())
+    assert error =~ ~r/Column `extract_words` needs to appear in the `GROUP BY` clause/
+  end
+
+  test "row splitter in HAVING needs to be grouped in aggregated query" do
+    assert {:error, error} =
+             compile("select count(*) from table group by string having extract_words(string) = 'word'", data_source())
+
+    assert error =~ ~r/`HAVING` clause can not be applied over column `extract_words`/
+  end
+
   test "rejecting non-aggregated non-selected ORDER BY column in an aggregated function" do
     assert {:error, "Column `float` from table `table` needs to appear in the `GROUP BY` clause" <> _} =
              compile("SELECT SUM(numeric) FROM table ORDER BY float", data_source())
