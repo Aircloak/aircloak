@@ -33,4 +33,4 @@
 
 <hr />
 
-<%= raw(content()) %>
+<%= raw(rendered_content(@current_privacy_policy)) %>

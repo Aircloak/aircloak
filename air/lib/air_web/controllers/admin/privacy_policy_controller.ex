@@ -21,22 +21,27 @@ defmodule AirWeb.Admin.PrivacyPolicyController do
 
   def index(conn, _params) do
     if PrivacyPolicy.exists?() do
-      render(conn, "index.html", policies: PrivacyPolicy.all())
+      {:ok, current_privacy_policy} = PrivacyPolicy.get()
+
+      render(
+        conn,
+        "index.html",
+        policies: PrivacyPolicy.all(),
+        current_privacy_policy: current_privacy_policy
+      )
     else
       redirect(conn, to: admin_privacy_policy_path(conn, :new))
     end
   end
 
   def new(conn, _params) do
-    content =
-      if PrivacyPolicy.exists?() do
-        {:ok, policy} = PrivacyPolicy.get()
-        policy.content
-      else
-        PrivacyPolicy.default_content()
+    privacy_policy =
+      case PrivacyPolicy.get() do
+        {:ok, privacy_policy} -> privacy_policy
+        _ -> nil
       end
 
-    render(conn, "new.html", content: content)
+    render(conn, "new.html", privacy_policy: privacy_policy)
   end
 
   def show(conn, params) do

@@ -1,7 +1,7 @@
 <ol class="breadcrumb">
   <li><%= link "Privacy policy", to: admin_privacy_policy_path(@conn, :index) %></li>
   <li class="active">
-    <%= if first_policy?() do %>
+    <%= if first_privacy_policy?(@privacy_policy) do %>
       Initial privacy policy
     <% else %>
       New revision
@@ -9,13 +9,13 @@
   </li>
 </ol>
 
-<%= if first_policy?() do %>
+<%= if first_privacy_policy?(@privacy_policy) do %>
   <h2>Set your privacy policy</h2>
 <% else %>
   <h2>Alter your privacy policy</h2>
 <% end %>
 
-<%= if first_policy?() do %>
+<%= if first_privacy_policy?(@privacy_policy) do %>
   <div class="panel panel-info">
     <div class="panel-heading">
       <h1 class="panel-title">Creating a privacy policy</h1>
@@ -99,12 +99,12 @@
   <div class='form-group'>
     <label class="control-label" for="content">Privacy policy content</label>
     <textarea class="form-control" name="content" id="contentEditor">
-      <%= @content %>
+      <%= text_content(@privacy_policy) %>
     </textarea>
-    <textarea class="hidden" name="content" id="content"><%= @content %></textarea>
+    <textarea class="hidden" name="content" id="content"><%= text_content(@privacy_policy) %></textarea>
   </div>
 
-  <%= unless first_policy?() do %>
+  <%= if first_privacy_policy?(@privacy_policy) do %>
     <div class="form-group">
       <label class="control-label" for="content">Describe changes</label>
       <textarea class="form-control" name="changes" id="changesEditor"></textarea>
