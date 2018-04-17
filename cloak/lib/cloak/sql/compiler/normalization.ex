@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   @moduledoc "Deals with normalizing some expressions so that they are easier to deal with at later stages."
 
   alias Cloak.Sql.Compiler.Helpers
-  alias Cloak.Sql.{Expression, Query, LikePattern}
+  alias Cloak.Sql.{Expression, Query, LikePattern, Condition}
 
   # -------------------------------------------------------------------
   # API functions
@@ -12,6 +12,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   Modifies the query to remove certain expressions without changing semantics. Specifically:
 
   * Switches complex expressions involving constants (like 1 + 2 + 3) to their results (6 in this case)
+  * Makes sures comparisons bewteen columns and constants have the for {column, operator, constant}
   * Removes redundant occurences of "%" from LIKE patterns (for example "%%" -> "%")
   * Normalizes sequences of "%" and "_" in like patterns so that the "%" always precedes a sequence of "_"
   * Expands `BUCKET` calls into equivalent mathematical expressions
@@ -25,6 +26,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
       query
       |> Helpers.apply_bottom_up(&normalize_trivial_like/1)
       |> Helpers.apply_bottom_up(&normalize_constants/1)
+      |> Helpers.apply_bottom_up(&normalize_comparisons/1)
       |> Helpers.apply_bottom_up(&normalize_order_by/1)
       |> Helpers.apply_bottom_up(&normalize_bucket/1)
       |> Helpers.apply_bottom_up(&strip_source_location/1)
@@ -77,6 +79,39 @@ defmodule Cloak.Sql.Compiler.Normalization do
         other ->
           other
       end)
+
+  # -------------------------------------------------------------------
+  # Normalizing comparisons
+  # -------------------------------------------------------------------
+
+  defp normalize_comparisons(query),
+    do:
+      update_in(
+        query,
+        [
+          Query.Lenses.filter_clauses()
+          |> Query.Lenses.conditions()
+          |> Lens.satisfy(&(Condition.verb(&1) == :comparison))
+        ],
+        &do_normalize_comparison/1
+      )
+
+  defp do_normalize_comparison({:not, condition}), do: {:not, do_normalize_comparison(condition)}
+
+  defp do_normalize_comparison({:comparison, lhs, operator, rhs} = comparison),
+    do:
+      if(
+        Expression.constant?(lhs) and not Expression.constant?(rhs),
+        do: {:comparison, rhs, invert_inequality(operator), lhs},
+        else: comparison
+      )
+
+  defp invert_inequality(:=), do: :=
+  defp invert_inequality(:<>), do: :<>
+  defp invert_inequality(:>), do: :<
+  defp invert_inequality(:>=), do: :<=
+  defp invert_inequality(:<), do: :>
+  defp invert_inequality(:<=), do: :>=
 
   # -------------------------------------------------------------------
   # Collapsing constant expressions

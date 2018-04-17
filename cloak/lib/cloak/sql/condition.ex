@@ -40,18 +40,22 @@ defmodule Cloak.Sql.Condition do
   def in?({:in, _, _}), do: true
   def in?(_), do: false
 
-  @doc "Returns the term the given comparison compares against."
+  @doc "Returns the constant term the given comparison compares against."
   @spec value(Query.where_clause()) :: any
-  def value({:comparison, _lhs, _, rhs}), do: Expression.value(rhs)
+  def value({:comparison, lhs, _, rhs}),
+    do: if(Expression.constant?(lhs) and not Expression.constant?(rhs), do: lhs, else: rhs) |> Expression.const_value()
+
   def value({:not, comparison}), do: value(comparison)
   def value({:is, _lhs, :null}), do: nil
   def value({:in, _lhs, rhs}), do: Enum.map(rhs, &Expression.value/1)
-  def value({:like, _lhs, rhs}), do: Expression.value(rhs)
-  def value({:ilike, _lhs, rhs}), do: Expression.value(rhs)
+  def value({:like, _lhs, rhs}), do: Expression.const_value(rhs)
+  def value({:ilike, _lhs, rhs}), do: Expression.const_value(rhs)
 
   @doc "Returns the term the given comparison acts on."
   @spec subject(Query.where_clause() | Parser.where_clause()) :: Expression.t() | Parser.column()
-  def subject({:comparison, lhs, _, _rhs}), do: lhs
+  def subject({:comparison, lhs, _, rhs}),
+    do: if(Expression.constant?(lhs) and not Expression.constant?(rhs), do: rhs, else: lhs)
+
   def subject({:not, comparison}), do: subject(comparison)
   def subject({:is, lhs, :null}), do: lhs
   def subject({:in, lhs, _rhs}), do: lhs
@@ -69,10 +73,11 @@ defmodule Cloak.Sql.Condition do
 
   @doc "Returns a representation of the direction of the given inequality as `:<` or `:>`."
   @spec direction(Query.where_clause()) :: direction
-  def direction({:comparison, _, :<, _}), do: :<
-  def direction({:comparison, _, :<=, _}), do: :<
-  def direction({:comparison, _, :>, _}), do: :>
-  def direction({:comparison, _, :>=, _}), do: :>
+  def direction({:comparison, lhs, operator, rhs}) when operator in [:<, :<=],
+    do: if(Expression.constant?(lhs) and not Expression.constant?(rhs), do: :>, else: :<)
+
+  def direction({:comparison, lhs, operator, rhs}) when operator in [:>, :>=],
+    do: if(Expression.constant?(lhs) and not Expression.constant?(rhs), do: :<, else: :>)
 
   @doc "Converts the given condition to a function that checks a row."
   @spec to_function(Query.where_clause(), boolean) :: (any -> boolean)

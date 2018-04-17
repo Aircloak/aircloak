@@ -633,6 +633,13 @@ defmodule Cloak.Query.BasicTest do
       })
     end
 
+    test "should allow reversed inequalities with complex constant expresions in where clause" do
+      assert_query("select count(*) from heights where 179 + 1 <= height and abs(190) > height", %{
+        columns: ["count"],
+        rows: [%{row: [20], occurrences: 1}]
+      })
+    end
+
     test "constant expressions in inequalities" do
       assert_query("select count(*) from heights where height >= 90 * 2 and height < 190", %{
         columns: ["count"],
