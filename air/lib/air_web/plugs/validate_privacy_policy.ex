@@ -113,7 +113,6 @@ defmodule AirWeb.Plug.ValidatePrivacyPolicy do
   def in_privacy_policy_section?(conn) do
     admin_path = AirWeb.Router.Helpers.admin_privacy_policy_path(conn, :index)
     customer_path = AirWeb.Router.Helpers.privacy_policy_path(conn, :index)
-    path_regex = Regex.compile!("^(#{admin_path}|#{customer_path})")
-    Regex.match?(path_regex, conn.request_path)
+    String.starts_with?(conn.request_path, admin_path) or String.starts_with?(conn.request_path, customer_path)
   end
 end
