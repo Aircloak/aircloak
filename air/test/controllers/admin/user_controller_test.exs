@@ -5,7 +5,6 @@ defmodule AirWeb.Admin.UserController.Test do
 
   test "regular user can't manage users" do
     user = create_user!()
-    create_privacy_policy_and_accept_it!(user)
 
     assert "/" == login(user) |> get("/admin/users") |> redirected_to()
     assert "/" == login(user) |> get("/admin/users/new") |> redirected_to()
@@ -17,7 +16,6 @@ defmodule AirWeb.Admin.UserController.Test do
 
   test "listing users" do
     admin = create_admin_user!()
-    create_privacy_policy_and_accept_it!(admin)
     users = Enum.map(1..4, fn _ -> create_user!() end)
 
     users_html = login(admin) |> get("/admin/users") |> response(200)
@@ -26,7 +24,6 @@ defmodule AirWeb.Admin.UserController.Test do
 
   test "accessing new and edit forms" do
     admin = create_admin_user!()
-    create_privacy_policy_and_accept_it!(admin)
 
     login(admin) |> get("/admin/users/new") |> response(200)
     login(admin) |> get("/admin/users/#{admin.id}/edit") |> response(200)
@@ -34,7 +31,6 @@ defmodule AirWeb.Admin.UserController.Test do
 
   test "creating a user" do
     admin = create_admin_user!()
-    create_privacy_policy_and_accept_it!(admin)
 
     new_user_email = "foo@bar.baz"
 
@@ -57,7 +53,6 @@ defmodule AirWeb.Admin.UserController.Test do
 
   test "updating a user" do
     admin = create_admin_user!()
-    create_privacy_policy_and_accept_it!(admin)
 
     changed_email = "foo@bar.baz"
 
@@ -79,7 +74,6 @@ defmodule AirWeb.Admin.UserController.Test do
 
   test "error is reported when updating tha last admin to non-admin status" do
     admin = create_only_user_as_admin!()
-    create_privacy_policy_and_accept_it!(admin)
 
     conn = login(admin) |> put("/admin/users/#{admin.id}", user: %{groups: []})
 
@@ -93,9 +87,7 @@ defmodule AirWeb.Admin.UserController.Test do
 
   test "deleting a user" do
     admin = create_admin_user!()
-    create_privacy_policy_and_accept_it!(admin)
     user = create_user!()
-    accept_privacy_policy!(user)
 
     assert "/admin/users" == login(admin) |> delete("/admin/users/#{user.id}") |> redirected_to()
     users_html = login(admin) |> get("/admin/users") |> response(200)
@@ -104,7 +96,6 @@ defmodule AirWeb.Admin.UserController.Test do
 
   test "error is reported when deleting the last admin" do
     admin = create_only_user_as_admin!()
-    create_privacy_policy_and_accept_it!(admin)
     conn = login(admin) |> delete("/admin/users/#{admin.id}")
 
     assert redirected_to(conn) == "/admin/users"
@@ -118,13 +109,11 @@ defmodule AirWeb.Admin.UserController.Test do
 
   test "render 404 on attempting to render edit form for non-existent user" do
     admin = create_admin_user!()
-    create_privacy_policy_and_accept_it!(admin)
     assert login(admin) |> get("/admin/users/99999/edit") |> response(404)
   end
 
   test "render 404 on attempting to update a non-existent user" do
     admin = create_admin_user!()
-    create_privacy_policy_and_accept_it!(admin)
 
     assert login(admin)
            |> put("/admin/users/99999", user: %{email: "some@email.com", name: "some name"})
@@ -133,7 +122,6 @@ defmodule AirWeb.Admin.UserController.Test do
 
   test "render 404 on attempting to delete a non-existent user" do
     admin = create_admin_user!()
-    create_privacy_policy_and_accept_it!(admin)
     assert login(admin) |> delete("/admin/users/99999") |> response(404)
   end
 end

@@ -8,7 +8,6 @@ defmodule Air.DataSourceControllerTest do
     group = TestRepoHelper.create_group!()
     data_source = TestRepoHelper.create_data_source!(%{groups: [group.id]})
     user = TestRepoHelper.create_user!(%{groups: [group.id]})
-    TestRepoHelper.create_privacy_policy_and_accept_it!(user)
 
     assert login(user) |> get(data_source_path(conn, :index)) |> response(200) =~ data_source.name
   end
@@ -18,7 +17,6 @@ defmodule Air.DataSourceControllerTest do
     group2 = TestRepoHelper.create_group!()
     data_source = TestRepoHelper.create_data_source!(%{groups: [group1.id]})
     user = TestRepoHelper.create_user!(%{groups: [group2.id]})
-    TestRepoHelper.create_privacy_policy_and_accept_it!(user)
 
     refute login(user) |> get(data_source_path(conn, :index)) |> response(200) =~ data_source.name
   end

@@ -11,10 +11,7 @@ defmodule AirWeb.Admin.DataSourceController.Test do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
 
     user = create_user!()
-    create_privacy_policy_and_accept_it!(user)
-
     admin = create_admin_user!()
-    accept_privacy_policy!(admin)
 
     {:ok, user: user, admin: admin}
   end

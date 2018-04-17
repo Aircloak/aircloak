@@ -40,14 +40,17 @@ defmodule IntegrationTest.Manager do
   def create_air_user() do
     admin_group = Repo.one!(from(group in Group, where: group.name == @admin_group_name))
 
-    # create user
-    Air.Service.User.create!(%{
-      email: "user_#{:erlang.unique_integer([:positive])}@aircloak.com",
-      name: "user_#{:erlang.unique_integer([:positive])}",
-      password: @user_password,
-      password_confirmation: @user_password,
-      groups: [admin_group.id]
-    })
+    user =
+      Air.Service.User.create!(%{
+        email: "user_#{:erlang.unique_integer([:positive])}@aircloak.com",
+        name: "user_#{:erlang.unique_integer([:positive])}",
+        password: @user_password,
+        password_confirmation: @user_password,
+        groups: [admin_group.id]
+      })
+
+    {:ok, privacy_policy} = Air.Service.PrivacyPolicy.get()
+    Air.Service.User.accept_privacy_policy!(user, privacy_policy)
   end
 
   def load_valid_license(), do: :ok = create_license() |> Central.Service.License.export() |> Air.Service.License.load()

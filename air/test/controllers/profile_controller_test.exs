@@ -6,9 +6,7 @@ defmodule Air.ProfileController.Test do
   alias Air.{Repo, Schemas.User}
 
   setup do
-    user = TestRepoHelper.create_user!()
-    TestRepoHelper.create_privacy_policy_and_accept_it!(user)
-    {:ok, user: user}
+    {:ok, user: TestRepoHelper.create_user!()}
   end
 
   test "updating own details", %{user: user} do

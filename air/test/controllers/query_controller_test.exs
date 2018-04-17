@@ -13,7 +13,6 @@ defmodule AirWeb.QueryController.Test do
     group = create_group!()
 
     user = create_user!(%{groups: [group.id]})
-    create_privacy_policy_and_accept_it!(user)
 
     tables = [
       %{
@@ -111,14 +110,11 @@ defmodule AirWeb.QueryController.Test do
   end
 
   test "returns unauthorized when not authorized to query data source", context do
-    user = create_user!()
-    create_privacy_policy_and_accept_it!(user)
-
     query_data_params = %{
       query: %{statement: "Query code", data_source_id: context[:data_source].id}
     }
 
-    assert login(user) |> post("/queries", query_data_params) |> response(401)
+    assert login(create_user!()) |> post("/queries", query_data_params) |> response(401)
   end
 
   test "returns error when data source unavailable", context do

@@ -4,7 +4,8 @@ defmodule AirWeb.PrivacyPolicy.Validation.Test do
   import Air.{TestConnHelper, TestRepoHelper}
 
   test "if no privacy policy exists a warning is shown once logged in" do
-    user = create_user!()
+    delete_all_privacy_policies!()
+    user = create_user_without_privacy_policy!()
     logged_in_conn = build_conn() |> post("/auth", email: user.email, password: "1234")
     assert "/" == redirected_to(logged_in_conn)
 
@@ -14,7 +15,7 @@ defmodule AirWeb.PrivacyPolicy.Validation.Test do
 
   test "if no privacy policy exists an admin user is redirected to create one" do
     delete_all_privacy_policies!()
-    user = create_admin_user!()
+    user = create_user_without_privacy_policy!() |> make_admin!()
     logged_in_conn = build_conn() |> post("/auth", email: user.email, password: "1234")
     assert "/" == redirected_to(logged_in_conn)
 
@@ -24,7 +25,7 @@ defmodule AirWeb.PrivacyPolicy.Validation.Test do
 
   test "users are asked to accept the privacy policy" do
     create_privacy_policy!()
-    user = create_user!()
+    user = create_user_without_privacy_policy!()
     logged_in_conn = build_conn() |> post("/auth", email: user.email, password: "1234")
     assert "/" == redirected_to(logged_in_conn)
 
@@ -37,7 +38,6 @@ defmodule AirWeb.PrivacyPolicy.Validation.Test do
 
   test "no out of the ordinary behaviour if a privacy policy exists and has been accepted" do
     user = create_user!()
-    create_privacy_policy_and_accept_it!(user)
     logged_in_conn = build_conn() |> post("/auth", email: user.email, password: "1234")
     assert "/" == redirected_to(logged_in_conn)
 
@@ -47,7 +47,8 @@ defmodule AirWeb.PrivacyPolicy.Validation.Test do
   end
 
   test "using API without privacy policy yields error" do
-    user = create_user!()
+    delete_all_privacy_policies!()
+    user = create_user_without_privacy_policy!()
     token = create_token!(user)
 
     query_data_params = %{
@@ -59,7 +60,7 @@ defmodule AirWeb.PrivacyPolicy.Validation.Test do
 
   test "using API without accepted privacy policy yields error" do
     create_privacy_policy!()
-    user = create_user!()
+    user = create_user_without_privacy_policy!()
     token = create_token!(user)
 
     query_data_params = %{

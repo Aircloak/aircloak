@@ -4,10 +4,7 @@ defmodule IntegrationTest.ViewTest do
   alias IntegrationTest.Manager
 
   setup_all do
-    user = Manager.create_air_user()
-    Air.Service.User.accept_privacy_policy(user)
-    user = Air.Service.User.load(user.id)
-    {:ok, user: user}
+    {:ok, user: Manager.create_air_user()}
   end
 
   test "name error", context do

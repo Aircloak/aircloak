@@ -26,7 +26,8 @@ defmodule IntegrationTest.PrivacyPolicyTest do
     Air.Service.PrivacyPolicy.set("Privacy policy content")
   end
 
-  test "error when privacy policy has not been accepted", %{conn: conn} do
+  test "error when privacy policy has not been accepted", %{conn: conn, user: user} do
+    Air.Service.User.reject_privacy_policy!(user)
     assert {:error, error} = Postgrex.query(conn, "select * from users", [])
     assert error.postgres.message =~ "review and accept the privacy policy"
   end

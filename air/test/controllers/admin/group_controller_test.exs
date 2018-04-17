@@ -6,7 +6,6 @@ defmodule AirWeb.Admin.GroupController.Test do
 
   test "regular user can't manage users", %{conn: conn} do
     user = create_user!()
-    create_privacy_policy_and_accept_it!(user)
     group = create_group!()
 
     assert login(user) |> get(admin_group_path(conn, :index)) |> redirected_to() === "/"
@@ -18,7 +17,6 @@ defmodule AirWeb.Admin.GroupController.Test do
 
   test "listing groups" do
     admin = create_admin_user!()
-    create_privacy_policy_and_accept_it!(admin)
     groups = Enum.map(1..4, fn _ -> create_group!() end)
     groups_html = login(admin) |> get("/admin/groups") |> response(200)
     Enum.each(groups, &assert(groups_html =~ &1.name))
@@ -26,8 +24,6 @@ defmodule AirWeb.Admin.GroupController.Test do
 
   test "creating a group" do
     admin = create_admin_user!()
-    create_privacy_policy_and_accept_it!(admin)
-
     group_name = "test group"
 
     assert login(admin)
@@ -40,7 +36,6 @@ defmodule AirWeb.Admin.GroupController.Test do
 
   test "displays a warning if no group name" do
     admin = create_admin_user!()
-    create_privacy_policy_and_accept_it!(admin)
 
     assert login(admin)
            |> post("/admin/groups", group: %{admin: false})
@@ -49,7 +44,6 @@ defmodule AirWeb.Admin.GroupController.Test do
 
   test "access edit page for group", %{conn: conn} do
     admin = create_admin_user!()
-    create_privacy_policy_and_accept_it!(admin)
     group = create_group!()
 
     edit_html = login(admin) |> get(admin_group_path(conn, :edit, group)) |> response(200)
@@ -58,7 +52,6 @@ defmodule AirWeb.Admin.GroupController.Test do
 
   test "update a group", %{conn: conn} do
     admin = create_admin_user!()
-    create_privacy_policy_and_accept_it!(admin)
     group = create_group!()
     new_group_name = "new group name"
 
@@ -76,7 +69,6 @@ defmodule AirWeb.Admin.GroupController.Test do
 
   test "error is reported when unsetting the admin status of the group containing last admin" do
     admin = create_only_user_as_admin!()
-    create_privacy_policy_and_accept_it!(admin)
     conn = login(admin)
     conn = put(conn, admin_group_path(conn, :update, hd(admin.groups)), group: %{admin: false})
 
@@ -90,7 +82,6 @@ defmodule AirWeb.Admin.GroupController.Test do
 
   test "deleting a group" do
     admin = create_admin_user!()
-    create_privacy_policy_and_accept_it!(admin)
     group = create_group!()
 
     assert "/admin/groups" == login(admin) |> delete("/admin/groups/#{group.id}") |> redirected_to()
@@ -101,7 +92,6 @@ defmodule AirWeb.Admin.GroupController.Test do
 
   test "error is reported when deleting the group containing last admin" do
     admin = create_only_user_as_admin!()
-    create_privacy_policy_and_accept_it!(admin)
     conn = login(admin) |> delete("/admin/groups/#{hd(admin.groups).id}")
 
     assert redirected_to(conn) == "/admin/groups"
@@ -112,24 +102,17 @@ defmodule AirWeb.Admin.GroupController.Test do
     assert Air.Service.User.admin_user_exists?()
   end
 
-  test "render 404 on attempting to render edit form for non-existent group" do
-    admin = create_admin_user!()
-    create_privacy_policy_and_accept_it!(admin)
-    assert login(admin) |> get("/admin/groups/99999/edit") |> response(404)
-  end
+  test "render 404 on attempting to render edit form for non-existent group",
+    do: assert(login(create_admin_user!()) |> get("/admin/groups/99999/edit") |> response(404))
 
-  test "render 404 on attempting to update a non-existent group" do
-    admin = create_admin_user!()
-    create_privacy_policy_and_accept_it!(admin)
+  test "render 404 on attempting to update a non-existent group",
+    do:
+      assert(
+        login(create_admin_user!())
+        |> put("/admin/groups/99999", group: %{name: "group name"})
+        |> response(404)
+      )
 
-    assert login(admin)
-           |> put("/admin/groups/99999", group: %{name: "group name"})
-           |> response(404)
-  end
-
-  test "render 404 on attempting to delete a non-existent group" do
-    admin = create_admin_user!()
-    create_privacy_policy_and_accept_it!(admin)
-    assert login(admin) |> delete("/admin/groups/99999") |> response(404)
-  end
+  test "render 404 on attempting to delete a non-existent group",
+    do: assert(login(create_admin_user!()) |> delete("/admin/groups/99999") |> response(404))
 end

@@ -3,9 +3,9 @@ defmodule Air.TestRepoHelper do
 
   alias Air.{Service.User, Service.Query, Schemas.ApiToken, Schemas.PrivacyPolicy, Schemas.Group, Repo}
 
-  @doc "Inserts the new user with default parameters into the database."
-  @spec create_user!(%{}) :: Air.Schemas.User.t()
-  def create_user!(additional_changes \\ %{}),
+  @doc "Inserts the new user but do not accept any privacy policy."
+  @spec create_user_without_privacy_policy!(%{}) :: Air.Schemas.User.t()
+  def create_user_without_privacy_policy!(additional_changes \\ %{}),
     do:
       %{
         email: "#{random_string()}@aircloak.com",
@@ -16,6 +16,14 @@ defmodule Air.TestRepoHelper do
       |> Map.merge(additional_changes)
       |> User.create!()
       |> Repo.preload([:groups])
+
+  @doc "Inserts the new user with default parameters into the database."
+  @spec create_user!(%{}) :: Air.Schemas.User.t()
+  def create_user!(additional_changes \\ %{}) do
+    user = create_user_without_privacy_policy!(additional_changes)
+    privacy_policy = get_or_create_privacy_policy!()
+    User.accept_privacy_policy!(user, privacy_policy)
+  end
 
   @doc "Creates a user that is an admin. See create_user!/0 and make_admin!/1"
   @spec create_admin_user!() :: Air.Schemas.User.t()
@@ -169,17 +177,13 @@ defmodule Air.TestRepoHelper do
   @spec accept_privacy_policy!(User.t()) :: :ok
   def accept_privacy_policy!(user), do: User.accept_privacy_policy(user)
 
-  @doc """
-  Creates a privacy policy and has the given used accept it.
-  Note that if multiple users exist, calling this function with
-  each one in turn will only result in the latest one of them
-  having accepted the latest policy. The others will have accepted
-  an outdated policy and require them accepting it again.
-  """
-  @spec create_privacy_policy_and_accept_it!(User.t()) :: :ok
-  def create_privacy_policy_and_accept_it!(user) do
-    create_privacy_policy!()
-    accept_privacy_policy!(user)
+  @doc "Returns the latest privacy policy, or creates one if none exists."
+  @spec get_or_create_privacy_policy!() :: PrivacyPolicy.t()
+  def get_or_create_privacy_policy!() do
+    case Air.Service.PrivacyPolicy.get() do
+      {:ok, privacy_policy} -> privacy_policy
+      {:error, :no_privacy_policy_created} -> create_privacy_policy!()
+    end
   end
 
   @doc "Encodes a list of rows into the cloak format."

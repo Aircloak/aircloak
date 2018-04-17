@@ -5,9 +5,7 @@ defmodule AirWeb.ApiTokenControllerTest do
   alias Air.Schemas.ApiToken
 
   setup do
-    user = create_user!()
-    create_privacy_policy_and_accept_it!(user)
-    {:ok, user: user}
+    {:ok, user: create_user!()}
   end
 
   test "api token pages require an authenticated user", %{conn: conn, user: user} do
@@ -22,7 +20,6 @@ defmodule AirWeb.ApiTokenControllerTest do
     conn = add_auth_to_conn(conn)
     user_token = create_token_entity!(user)
     other_user = create_user!()
-    accept_privacy_policy!(other_user)
     other_user_token = create_token_entity!(other_user)
 
     index_html = login(user) |> get(api_token_path(conn, :index)) |> response(200)
@@ -33,7 +30,6 @@ defmodule AirWeb.ApiTokenControllerTest do
   test "deleting tokens of other users is forbidden", %{conn: conn, user: user} do
     conn = add_auth_to_conn(conn)
     other_user = create_user!()
-    accept_privacy_policy!(other_user)
     other_user_token = create_token_entity!(other_user)
 
     not_found_html = login(user) |> delete(api_token_path(conn, :delete, other_user_token)) |> response(404)

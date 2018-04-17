@@ -4,9 +4,7 @@ defmodule AirWeb.SessionControllerTest do
   import Air.{TestConnHelper, TestRepoHelper}
 
   setup do
-    user = create_user!()
-    create_privacy_policy_and_accept_it!(user)
-    {:ok, user: user}
+    {:ok, user: create_user!()}
   end
 
   test "anonymous user can access the login page", %{conn: conn} do

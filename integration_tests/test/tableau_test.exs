@@ -4,9 +4,7 @@ defmodule IntegrationTest.TableauTest do
   alias IntegrationTest.Manager
 
   setup_all do
-    user = Manager.create_air_user()
-    Air.Service.User.accept_privacy_policy(user)
-    {:ok, user: user}
+    {:ok, user: Manager.create_air_user()}
   end
 
   setup context do

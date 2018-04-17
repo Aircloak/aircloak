@@ -18,7 +18,6 @@ defmodule AirWeb.Admin.CloaksController.Test do
 
   test "only shows cloaks while they are online" do
     admin = create_admin_user!()
-    create_privacy_policy_and_accept_it!(admin)
 
     # connect a mock cloak
     {terminator, pid} = temporary_process()
@@ -46,10 +45,7 @@ defmodule AirWeb.Admin.CloaksController.Test do
 
   test "only shows cloaks to admin" do
     user = create_user!()
-    create_privacy_policy_and_accept_it!(user)
-
     admin = create_admin_user!()
-    accept_privacy_policy!(admin)
 
     # connect a mock cloak
     {terminator, pid} = temporary_process()

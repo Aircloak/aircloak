@@ -265,7 +265,9 @@ defmodule Air.Service.User do
         error
 
       {:ok, privacy_policy} ->
-        if user.accepted_privacy_policy_id == privacy_policy.id do
+        refreshed_user = load(user.id)
+
+        if refreshed_user.accepted_privacy_policy_id == privacy_policy.id do
           :ok
         else
           {:error, :requires_review}

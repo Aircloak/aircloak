@@ -7,9 +7,7 @@ defmodule ExpiredLicenseTest do
     :ok = "priv/expired_dev_license.lic" |> File.read!() |> Air.Service.License.load()
     on_exit(fn -> "priv/dev_license.lic" |> File.read!() |> Air.Service.License.load() end)
     user = create_user!()
-    create_privacy_policy_and_accept_it!(user)
     admin = create_admin_user!()
-    accept_privacy_policy!(admin)
     admin = Air.Service.User.load(admin.id)
     {:ok, user: user, admin: admin}
   end

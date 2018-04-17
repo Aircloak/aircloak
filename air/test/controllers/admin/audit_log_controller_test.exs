@@ -3,15 +3,8 @@ defmodule AirWeb.Admin.AuditLogControllerTest do
 
   import Air.{TestRepoHelper, TestConnHelper}
 
-  test "can't view audit log as a user" do
-    user = create_user!()
-    create_privacy_policy_and_accept_it!(user)
-    assert "/" == login(user) |> get("/admin/audit_log") |> redirected_to()
-  end
+  test "can't view audit log as a user",
+    do: assert("/" == login(create_user!()) |> get("/admin/audit_log") |> redirected_to())
 
-  test "can view audit log as an admin" do
-    admin = create_admin_user!()
-    create_privacy_policy_and_accept_it!(admin)
-    login(admin) |> get("/admin/audit_log") |> response(200)
-  end
+  test "can view audit log as an admin", do: login(create_admin_user!()) |> get("/admin/audit_log") |> response(200)
 end

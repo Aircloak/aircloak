@@ -4,9 +4,7 @@ defmodule IntegrationTest.OdbcTest do
   alias IntegrationTest.Manager
 
   setup do
-    user = Manager.create_air_user()
-    Air.Service.User.accept_privacy_policy(user)
-    {:ok, user: user}
+    {:ok, user: Manager.create_air_user()}
   end
 
   test "invalid connect params", context do
