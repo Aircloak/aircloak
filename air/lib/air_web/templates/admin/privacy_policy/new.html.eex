@@ -104,7 +104,7 @@
     <textarea class="hidden" name="content" id="content"><%= text_content(@privacy_policy) %></textarea>
   </div>
 
-  <%= if first_privacy_policy?(@privacy_policy) do %>
+  <%= unless first_privacy_policy?(@privacy_policy) do %>
     <div class="form-group">
       <label class="control-label" for="content">Describe changes</label>
       <textarea class="form-control" name="changes" id="changesEditor"></textarea>

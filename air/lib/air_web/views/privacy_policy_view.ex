@@ -4,13 +4,19 @@ defmodule AirWeb.PrivacyPolicyView do
 
   alias Air.Service.User
 
-  defp content_as_html(privacy_policy), do: Earmark.as_html!(privacy_policy.content)
+  def content_as_html(privacy_policy),
+    do:
+      privacy_policy.content
+      |> Earmark.as_html!()
+      |> Aircloak.HTMLScrubber.scrub()
 
-  defp has_change_info?(privacy_policy), do: not is_nil(privacy_policy.changes)
+  def has_change_info?(privacy_policy), do: not is_nil(privacy_policy.changes)
 
-  defp changes_as_html(privacy_policy) do
+  def changes_as_html(privacy_policy) do
     if has_change_info?(privacy_policy) do
-      Earmark.as_html!(privacy_policy.changes)
+      privacy_policy.changes
+      |> Earmark.as_html!()
+      |> Aircloak.HTMLScrubber.scrub()
     else
       nil
     end

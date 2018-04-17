@@ -13,16 +13,16 @@
     </tr>
   </thead>
   <tbody>
-    <%= for policy <- @policies do %>
+    <%= for privacy_policy <- @privacy_policies do %>
     <tr>
       <td>
-        <%= policy.id %>
+        <%= privacy_policy.id %>
       </td>
       <td>
-        <%= format_datetime(policy.inserted_at) %>
+        <%= format_datetime(privacy_policy.inserted_at) %>
       </td>
       <td>
-        <%= link "View revision", to: admin_privacy_policy_path(@conn, :show, policy.id) %>
+        <%= link "View revision", to: admin_privacy_policy_path(@conn, :show, privacy_policy.id) %>
       </td>
     </tr>
     <% end %>
@@ -33,4 +33,4 @@
 
 <hr />
 
-<%= raw(rendered_content(@current_privacy_policy)) %>
+<%= raw(AirWeb.PrivacyPolicyView.content_as_html(@current_privacy_policy)) %>

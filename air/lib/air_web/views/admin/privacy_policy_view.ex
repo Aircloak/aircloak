@@ -11,7 +11,4 @@ defmodule AirWeb.Admin.PrivacyPolicyView do
 
   defp first_privacy_policy?(nil), do: true
   defp first_privacy_policy?(_), do: false
-
-  defp rendered_content(nil), do: Earmark.as_html!("You have not defined a privacy policy yet.")
-  defp rendered_content(privacy_policy), do: Earmark.as_html!(privacy_policy.content)
 end

@@ -111,8 +111,9 @@ defmodule AirWeb.Plug.ValidatePrivacyPolicy do
   @doc "Returns true if the requested path is in the privacy policy section of the admin interface"
   @spec in_privacy_policy_section?(Plug.Conn.t()) :: boolean
   def in_privacy_policy_section?(conn) do
-    admin_privacy_policy_path_prefix = AirWeb.Router.Helpers.admin_privacy_policy_path(conn, :index)
-    path_regex = Regex.compile!("^#{admin_privacy_policy_path_prefix}")
+    admin_path = AirWeb.Router.Helpers.admin_privacy_policy_path(conn, :index)
+    customer_path = AirWeb.Router.Helpers.privacy_policy_path(conn, :index)
+    path_regex = Regex.compile!("^(#{admin_path}|#{customer_path})")
     Regex.match?(path_regex, conn.request_path)
   end
 end

@@ -1,16 +1,16 @@
 <ol class="breadcrumb">
   <li><%= link "Privacy policy", to: admin_privacy_policy_path(@conn, :index) %></li>
-  <li class="active">Revision <%= @policy.id %></li>
+  <li class="active">Revision <%= @privacy_policy.id %></li>
 </ol>
 
-<h2>Privacy policy revision <%= @policy.id %></h2>
+<h2>Privacy policy revision <%= @privacy_policy.id %></h2>
 
-<p>This version was created on the <%= format_datetime(@policy.inserted_at) %>.</p>
+<p>This version was created on the <%= format_datetime(@privacy_policy.inserted_at) %>.</p>
 
-<%= unless is_nil(@policy.changes) do %>
+<%= if AirWeb.PrivacyPolicyView.has_change_info?(@privacy_policy) do %>
   <h3>Changes in this revision</h3>
-  <%= raw(Earmark.as_html!(@policy.changes)) %>
+  <%= raw(AirWeb.PrivacyPolicyView.changes_as_html(@privacy_policy)) %>
 <% end %>
 
 <h3>Privacy policy content</h3>
-<%= raw(Earmark.as_html!(@policy.content)) %>
+<%= raw(AirWeb.PrivacyPolicyView.content_as_html(@privacy_policy)) %>

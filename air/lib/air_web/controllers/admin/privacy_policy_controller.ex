@@ -26,7 +26,7 @@ defmodule AirWeb.Admin.PrivacyPolicyController do
       render(
         conn,
         "index.html",
-        policies: PrivacyPolicy.all(),
+        privacy_policies: PrivacyPolicy.all(),
         current_privacy_policy: current_privacy_policy
       )
     else
@@ -54,7 +54,7 @@ defmodule AirWeb.Admin.PrivacyPolicyController do
         |> redirect(to: admin_privacy_policy_path(conn, :index))
 
       {:ok, policy} ->
-        render(conn, "show.html", policy: policy)
+        render(conn, "show.html", privacy_policy: policy)
     end
   end
 
