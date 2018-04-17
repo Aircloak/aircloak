@@ -3,6 +3,8 @@ defmodule AirWeb.Plug.ValidatePrivacyPolicy do
   A set of plugs for validations relating to privacy policies.
   """
 
+  alias AirWeb.Plug.ValidatePrivacyPolicy
+
   defmodule Existence do
     @moduledoc """
     If a privacy policy exists nothing is done.
@@ -20,16 +22,20 @@ defmodule AirWeb.Plug.ValidatePrivacyPolicy do
 
       @impl Plug
       def call(conn, _opts) do
-        if Air.Service.PrivacyPolicy.exists?() do
-          conn
-        else
-          if Air.Schemas.User.admin?(conn.assigns.current_user) do
-            AirWeb.Plug.ValidatePrivacyPolicy.unless_in_privacy_policy_section(conn, fn ->
-              redirect_to_policy_creation(conn)
-            end)
-          else
-            AirWeb.Plug.ValidatePrivacyPolicy.halt_with_policy_notification(conn, :missing)
-          end
+        cond do
+          Air.Service.PrivacyPolicy.exists?() ->
+            conn
+
+          admin?(conn) and ValidatePrivacyPolicy.in_privacy_policy_section?(conn) ->
+            conn
+
+          admin?(conn) ->
+            conn
+            |> Phoenix.Controller.redirect(to: AirWeb.Router.Helpers.admin_privacy_policy_path(conn, :new))
+            |> Plug.Conn.halt()
+
+          _otherwise = true ->
+            ValidatePrivacyPolicy.halt_with_policy_notification(conn, :missing)
         end
       end
 
@@ -37,11 +43,7 @@ defmodule AirWeb.Plug.ValidatePrivacyPolicy do
       # Internal functions
       # -------------------------------------------------------------------
 
-      defp redirect_to_policy_creation(conn) do
-        conn
-        |> Phoenix.Controller.redirect(to: AirWeb.Router.Helpers.admin_privacy_policy_path(conn, :new))
-        |> Plug.Conn.halt()
-      end
+      defp admin?(conn), do: Air.Schemas.User.admin?(conn.assigns.current_user)
     end
 
     defmodule API do
@@ -56,7 +58,7 @@ defmodule AirWeb.Plug.ValidatePrivacyPolicy do
         if Air.Service.PrivacyPolicy.exists?() do
           conn
         else
-          AirWeb.Plug.ValidatePrivacyPolicy.halt_with_policy_notification(conn, :missing)
+          ValidatePrivacyPolicy.halt_with_policy_notification(conn, :missing)
         end
       end
     end
@@ -77,29 +79,24 @@ defmodule AirWeb.Plug.ValidatePrivacyPolicy do
 
     @impl Plug
     def call(conn, _opts) do
-      if Air.Service.User.privacy_policy_status(conn.assigns.current_user) == :ok do
-        conn
-      else
-        AirWeb.Plug.ValidatePrivacyPolicy.unless_in_privacy_policy_section(conn, fn ->
-          AirWeb.Plugs.Utils.if_in_section(conn, AirWeb.Router.Helpers.privacy_policy_path(conn, :index), fn ->
-            {:ok, privacy_policy} = Air.Service.PrivacyPolicy.get()
+      cond do
+        policy_status_ok?(conn) ->
+          conn
 
-            AirWeb.Plug.ValidatePrivacyPolicy.halt_with_policy_notification(
-              conn,
-              :review,
-              privacy_policy: privacy_policy
-            )
-          end)
-        end)
+        ValidatePrivacyPolicy.in_privacy_policy_section?(conn) ->
+          conn
+
+        _otherwise = true ->
+          {:ok, privacy_policy} = Air.Service.PrivacyPolicy.get()
+          ValidatePrivacyPolicy.halt_with_policy_notification(conn, :review, privacy_policy: privacy_policy)
       end
     end
-  end
 
-  @doc "Runs the provided callback unless the request is for a resource in the admin privacy policy section"
-  @spec unless_in_privacy_policy_section(Plug.Conn.t(), (() -> Plug.Conn.t())) :: Plug.Conn.t()
-  def unless_in_privacy_policy_section(conn, callback) do
-    admin_privacy_policy_path_prefix = AirWeb.Router.Helpers.admin_privacy_policy_path(conn, :index)
-    AirWeb.Plugs.Utils.if_in_section(conn, admin_privacy_policy_path_prefix, callback)
+    # -------------------------------------------------------------------
+    # Internal functions
+    # -------------------------------------------------------------------
+
+    defp policy_status_ok?(conn), do: Air.Service.User.privacy_policy_status(conn.assigns.current_user) == :ok
   end
 
   @doc "Renders a privacy policy view and halts the plug chain"
@@ -109,5 +106,13 @@ defmodule AirWeb.Plug.ValidatePrivacyPolicy do
     |> Plug.Conn.put_status(Plug.Conn.Status.code(:precondition_failed))
     |> Phoenix.Controller.render(AirWeb.PrivacyPolicyView, notification, assigns)
     |> Plug.Conn.halt()
+  end
+
+  @doc "Returns true if the requested path is in the privacy policy section of the admin interface"
+  @spec in_privacy_policy_section?(Plug.Conn.t()) :: boolean
+  def in_privacy_policy_section?(conn) do
+    admin_privacy_policy_path_prefix = AirWeb.Router.Helpers.admin_privacy_policy_path(conn, :index)
+    path_regex = Regex.compile!("^#{admin_privacy_policy_path_prefix}")
+    Regex.match?(path_regex, conn.request_path)
   end
 end
