@@ -12,7 +12,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   Modifies the query to remove certain expressions without changing semantics. Specifically:
 
   * Switches complex expressions involving constants (like 1 + 2 + 3) to their results (6 in this case)
-  * Makes sures comparisons bewteen columns and constants have the for {column, operator, constant}
+  * Makes sures comparisons bewteen columns and constants have the form {column, operator, constant}
   * Removes redundant occurences of "%" from LIKE patterns (for example "%%" -> "%")
   * Normalizes sequences of "%" and "_" in like patterns so that the "%" always precedes a sequence of "_"
   * Expands `BUCKET` calls into equivalent mathematical expressions
