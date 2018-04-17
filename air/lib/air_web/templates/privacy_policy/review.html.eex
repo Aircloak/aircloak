@@ -15,9 +15,8 @@
 
   <body>
     <div class="container">
-      <div class="jumbotron invalid">
-        <h1>Privacy policy</h1>
-      </div>
+      <h1>Aircloak Insights - Privacy policy</h1>
+      <hr />
 
       <%= render "_page.html", conn: @conn, privacy_policy: @privacy_policy %>
     </div>
