@@ -733,7 +733,7 @@ defmodule Cloak.Sql.Parser do
         {:comparison, column, :=, {:constant, :boolean, true, location}}
 
       {[lhs, comparator], [rhs]} ->
-        create_comparison(lhs, comparator, rhs)
+        {:comparison, lhs, comparator, rhs}
     end)
   end
 
@@ -943,7 +943,7 @@ defmodule Cloak.Sql.Parser do
         {:comparison, column, :=, {:constant, :boolean, true, location}}
 
       {[column, comparator], [value]} ->
-        create_comparison(column, comparator, value)
+        {:comparison, column, comparator, value}
     end)
   end
 
@@ -1000,18 +1000,6 @@ defmodule Cloak.Sql.Parser do
     |> map(&{:parameter, &1.value})
     |> label("expected parameter")
   end
-
-  defp invert_inequality(:<), do: :>=
-  defp invert_inequality(:>), do: :<=
-  defp invert_inequality(:<=), do: :>
-  defp invert_inequality(:>=), do: :<
-  defp invert_inequality(:=), do: :=
-  defp invert_inequality(:<>), do: :<>
-
-  defp create_comparison({:constant, _, _, _} = lhs, comparator, rhs),
-    do: {:comparison, rhs, invert_inequality(comparator), lhs}
-
-  defp create_comparison(lhs, comparator, rhs), do: {:comparison, lhs, comparator, rhs}
 
   defp optional_sample_users() do
     switch([
