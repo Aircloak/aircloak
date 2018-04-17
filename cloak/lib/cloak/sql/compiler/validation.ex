@@ -146,6 +146,9 @@ defmodule Cloak.Sql.Compiler.Validation do
       Enum.member?(Enum.map(query.group_by, normalizer), normalizer.(column)) ->
         true
 
+      Function.has_attribute?(column, :row_splitter) ->
+        false
+
       column.function? ->
         column.aggregate? or Enum.all?(column.function_args, &valid_expression_in_aggregate?(query, &1))
 
@@ -160,6 +163,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp invalid_columns_in_aggregate(query, expression) do
     cond do
       valid_expression_in_aggregate?(query, expression) -> []
+      Function.has_attribute?(expression, :row_splitter) -> [expression]
       expression.function? -> Enum.flat_map(expression.function_args, &invalid_columns_in_aggregate(query, &1))
       true -> [expression]
     end
