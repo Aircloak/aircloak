@@ -27,7 +27,7 @@ defmodule AirWeb.PrivacyPolicyController do
     User.accept_privacy_policy(user)
 
     conn
-    |> put_flash(:info, "The privacy policy has been marked as accepted.")
+    |> put_flash(:info, "The privacy policy has been accepted.")
     |> redirect(to: "/")
   end
 
@@ -36,7 +36,7 @@ defmodule AirWeb.PrivacyPolicyController do
     User.reject_privacy_policy(user)
 
     conn
-    |> put_flash(:error, "The privacy policy has been marked as rejected. You cannot use the Aircloak Insights.")
+    |> put_flash(:error, "The privacy policy has been rejected. You cannot use Aircloak Insights.")
     |> redirect(to: "/")
   end
 end

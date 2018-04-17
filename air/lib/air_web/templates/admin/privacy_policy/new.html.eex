@@ -18,7 +18,7 @@
 <%= if first_policy?() do %>
   <div class="panel panel-info">
     <div class="panel-heading">
-      <h1 class="panel-title">Privacy policy creation information</h1>
+      <h1 class="panel-title">Creating a privacy policy</h1>
     </div>
     <div class="panel-body">
       <p>
@@ -26,7 +26,7 @@
         Aircloak Insights requires that you define a privacy policy.
         </strong>
         The policy should describe the rights of the analysts using Aircloak Insights.
-        In particular it needs to declare what data is kept about them, whom they
+        In particular it needs to declare what data is kept about them and whom they
         should contact in case they have questions.
       </p>
 
@@ -40,13 +40,20 @@
       </p>
 
       <ol>
-        <li>You should provide the identity and contact information of the data controller and if applicable the controllers representative</li>
-        <li>You should provide the contact details of your organisations Data Protection Officer (DPO)</li>
-        <li>The policy contains a section describing the audit logging performed using Aircloak Insights default settings. You should change the policy if you alter these settings</li>
+        <li>
+          You should provide the identity and contact information of the data controller
+          and if applicable the controller's representative
+        </li>
+        <li>You should provide the contact details of your organisation's Data Protection Officer (DPO)</li>
+        <li>
+          The policy contains a section describing the audit logging performed using
+          Aircloak Insights default settings. You should change the policy if you alter these settings
+        </li>
       </ol>
 
       <p>
-        Please contact support on <a href="mailto:support@aircloak.com">support@aircloak.com</a> if you have questions about the content of this policy.
+        Please contact support on <a href="mailto:support@aircloak.com">support@aircloak.com</a> if
+        you have questions about the content of this policy.
       </p>
     </div>
   </div>
@@ -65,7 +72,8 @@
 
     <p>
       If you remove a section describing the collection and processing practises that are part of the system,
-      please ensure you have added an alternate section that describes it adequately for you to remain in compliance with the legislation in all applicable jurisdictions.
+      please ensure you have added an alternate section that describes it adequately for you to remain in
+      compliance with the legislation in all applicable jurisdictions.
     </p>
   </div>
 </div>
@@ -74,7 +82,8 @@
   <div class="panel-heading"></div>
   <div class="panel-body">
     <p>
-      The content of your privacy policy can be written in <a href="https://guides.github.com/features/mastering-markdown/">markdown</a>.
+      The content of your privacy policy can be written in
+      <a href="https://guides.github.com/features/mastering-markdown/">markdown</a>.
       This allows you to provide some structure and use formatting in your privacy policy.
     </p>
 

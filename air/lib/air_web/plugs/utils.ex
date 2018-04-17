@@ -5,7 +5,7 @@ defmodule AirWeb.Plugs.Utils do
 
   @doc """
   If the request is for a resource at or more deeply within the provided path,
-  the provided callback function is run and it's return value returned.
+  the provided callback function is run and its return value returned.
   Otherwise the connection is returned unaltered.
 
   Example:

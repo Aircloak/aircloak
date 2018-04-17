@@ -14,7 +14,7 @@ defmodule Air.Service.PrivacyPolicy do
   def exists?(), do: Repo.aggregate(PrivacyPolicy, :count, :id) > 0
 
   @doc """
-  Records the rivacy policy.
+  Records the privacy policy.
   Should be used to create as well as edit the privacy policy as each edit consists of creating a new version
   """
   @spec set(String.t(), String.t() | nil) :: :ok

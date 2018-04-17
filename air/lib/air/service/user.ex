@@ -277,7 +277,7 @@ defmodule Air.Service.User do
     :ok
   end
 
-  @doc "Returns the status of the users current opt-in to the privacy policy"
+  @doc "Returns the status of the user's current opt-in to the privacy policy"
   @spec privacy_policy_status(User.t()) :: :ok | {:error, :no_privacy_policy_created | :requires_review}
   def privacy_policy_status(user) do
     case PrivacyPolicy.get() do

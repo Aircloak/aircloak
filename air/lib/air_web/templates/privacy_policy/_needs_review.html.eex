@@ -5,11 +5,11 @@
   <div class="panel-body">
     <p>
       Please take some time to review the following privacy policy.
-      If you have questions or concerns, please contact your organisations data privacy officer or system administrator.
+      If you have questions or concerns, please contact your organisation's data privacy officer or system administrator.
     </p>
 
     <p>
-      Once you are have read and agree with the content of the privacy policy, please accept it by clicking the button below.
+      Once you have read and agree with the content of the privacy policy, please accept it by clicking the button below.
     </p>
 
     <%= form_tag privacy_policy_path(@conn, :accept), method: "post" do %>

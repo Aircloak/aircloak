@@ -11,7 +11,7 @@ defmodule AirWeb.Admin.PrivacyPolicyView do
   defp content() do
     case PrivacyPolicy.get() do
       {:error, :no_privacy_policy_created} ->
-        Earmark.as_html!("You do not yet have defined a privacy policy.")
+        Earmark.as_html!("You have not defined a privacy policy yet.")
 
       {:ok, privacy_policy} ->
         Earmark.as_html!(privacy_policy.content)

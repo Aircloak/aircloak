@@ -171,7 +171,7 @@ defmodule Air.TestRepoHelper do
 
   @doc """
   Creates a privacy policy and has the given used accept it.
-  Note that if multiple users exist, callign this function with
+  Note that if multiple users exist, calling this function with
   each one in turn will only result in the latest one of them
   having accepted the latest policy. The others will have accepted
   an outdated policy and require them accepting it again.
