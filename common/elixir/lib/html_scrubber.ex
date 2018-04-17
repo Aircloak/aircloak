@@ -17,8 +17,6 @@ defmodule Aircloak.HTMLScrubber do
     require HtmlSanitizeEx.Scrubber.Meta
     alias HtmlSanitizeEx.Scrubber.Meta
 
-    @valid_schemes ["http", "https"]
-
     # Removes any CDATA tags before the traverser/scrubber runs.
     Meta.remove_cdata_sections_before_scrub()
 
