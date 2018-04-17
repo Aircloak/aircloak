@@ -4,7 +4,7 @@ defmodule Air.Service.DataSource do
   alias Aircloak.ChildSpec
   alias Air.Schemas.{DataSource, Group, Query, User, ResultChunk}
   alias Air.{PsqlServer.Protocol, Repo}
-  alias Air.Service.{License, Cloak, View}
+  alias Air.Service.{License, Cloak, View, PrivacyPolicy}
   alias Air.Service
   alias AirWeb.Socket.{Cloak.MainChannel, Frontend.UserChannel}
   import Ecto.Query, only: [from: 2]
@@ -399,10 +399,13 @@ defmodule Air.Service.DataSource do
   end
 
   defp on_available_cloak(data_source_id, user, fun) do
-    if License.valid?() do
-      do_on_available_cloak(data_source_id, user, fun)
-    else
-      {:error, :license_invalid}
+    privacy_policy_status = Service.User.privacy_policy_status(user)
+
+    cond do
+      not License.valid?() -> {:error, :license_invalid}
+      not PrivacyPolicy.exists?() -> {:error, :missing_privacy_policy}
+      privacy_policy_status == {:error, :requires_review} -> {:error, :privacy_policy_requires_review}
+      true -> do_on_available_cloak(data_source_id, user, fun)
     end
   end
 

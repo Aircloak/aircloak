@@ -6,41 +6,44 @@ defmodule ExpiredLicenseTest do
   setup do
     :ok = "priv/expired_dev_license.lic" |> File.read!() |> Air.Service.License.load()
     on_exit(fn -> "priv/dev_license.lic" |> File.read!() |> Air.Service.License.load() end)
-    :ok
+    user = create_user!()
+    admin = create_admin_user!()
+    admin = Air.Service.User.load(admin.id)
+    {:ok, user: user, admin: admin}
   end
 
   describe "trying to run a query" do
-    test "shows a splash to regular users" do
-      result = create_user!() |> login() |> post("/queries", %{})
+    test "shows a splash to regular users", %{user: user} do
+      result = user |> login() |> post("/queries", %{})
       assert response(result, 402) =~ "The license for this Aircloak instance has expired."
     end
 
-    test "redirects admins to license edit" do
-      result = create_admin_user!() |> login() |> post("/queries", %{})
+    test "redirects admins to license edit", %{admin: admin} do
+      result = admin |> login() |> post("/queries", %{})
       assert response(result, 302) =~ "/admin/license/edit"
     end
   end
 
   describe "trying to run a query via API" do
-    test "shows a message to regular users" do
-      result = create_user!() |> create_token!() |> api_conn() |> post("/api/queries", %{})
+    test "shows a message to regular users", %{user: user} do
+      result = user |> create_token!() |> api_conn() |> post("/api/queries", %{})
       assert response(result, 402) =~ "The license for this Aircloak instance has expired."
     end
 
-    test "shows a message to admins" do
-      result = create_admin_user!() |> create_token!() |> api_conn() |> post("/api/queries", %{})
+    test "shows a message to admins", %{admin: admin} do
+      result = admin |> create_token!() |> api_conn() |> post("/api/queries", %{})
       assert response(result, 402) =~ "The license for this Aircloak instance has expired."
     end
   end
 
-  test "admin panel can still be accessed" do
-    result = create_admin_user!() |> login() |> get("/admin/license/edit")
+  test "admin panel can still be accessed", %{admin: admin} do
+    result = admin |> login() |> get("/admin/license/edit")
     assert response(result, 200) =~ "Upload license file"
   end
 
-  test "uploading a license" do
+  test "uploading a license", %{admin: admin} do
     upload = %Plug.Upload{path: "priv/dev_license.lic", filename: "dev_license.lic"}
-    result = create_admin_user!() |> login() |> put("/admin/license", %{license: %{text: upload}})
+    result = admin |> login() |> put("/admin/license", %{license: %{text: upload}})
 
     assert response(result, 302) =~ "/admin/license/edit"
     assert Air.Service.License.valid?()

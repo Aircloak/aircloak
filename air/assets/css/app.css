@@ -188,3 +188,20 @@ h2 {
   background-color: white;
   color: black;
 }
+
+#privacy-policy {
+  margin: 50px 0 60px 0;
+}
+
+#privacy-policy h2 {
+  border-bottom: none;
+}
+
+#privacy-policy td, #privacy-policy th {
+  padding: 2px;
+  border-bottom: 1px solid #ccc
+}
+
+#privacy-policy table {
+  margin-bottom: 15px;
+}

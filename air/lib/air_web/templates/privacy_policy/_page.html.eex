@@ -1,0 +1,7 @@
+<%= render "_info_boxes.html", conn: @conn, privacy_policy: @privacy_policy %>
+
+<div id="privacy-policy">
+  <%= raw(content_as_html(@privacy_policy)) %>
+</div>
+
+<%= render "_info_boxes.html", conn: @conn, privacy_policy: @privacy_policy %>

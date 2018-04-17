@@ -5,7 +5,8 @@ defmodule AirWeb.Admin.CloaksController.Test do
 
   import Air.TestConnHelper
   import Aircloak.AssertionHelper
-  alias Air.{TestRepoHelper, Service.Cloak}
+  alias Air.Service.Cloak
+  import Air.TestRepoHelper
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
@@ -16,7 +17,7 @@ defmodule AirWeb.Admin.CloaksController.Test do
   end
 
   test "only shows cloaks while they are online" do
-    admin = TestRepoHelper.create_admin_user!()
+    admin = create_admin_user!()
 
     # connect a mock cloak
     {terminator, pid} = temporary_process()
@@ -43,8 +44,8 @@ defmodule AirWeb.Admin.CloaksController.Test do
   end
 
   test "only shows cloaks to admin" do
-    user = TestRepoHelper.create_user!()
-    admin = TestRepoHelper.create_admin_user!()
+    user = create_user!()
+    admin = create_admin_user!()
 
     # connect a mock cloak
     {terminator, pid} = temporary_process()

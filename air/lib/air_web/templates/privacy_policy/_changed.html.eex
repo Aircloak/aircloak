@@ -1,0 +1,29 @@
+<div class="panel panel-info">
+  <div class="panel-heading">
+    <h1 class="panel-title">The privacy policy has changed</h1>
+  </div>
+  <div class="panel-body">
+    <p>
+      The privacy policy has changed. Please take some time to review the updated privacy policy.
+      If you have questions or concerns, please contact your organisation's data privacy officer or system administrator.
+    </p>
+
+    <p>
+      Once you are have read and agree with the content of the privacy policy, please accept it by clicking the button below.
+      This will restore your ability to query the system.
+    </p>
+
+    <%= form_tag privacy_policy_path(@conn, :accept, @privacy_policy.id), method: "put" do %>
+      <button class='btn btn-success'>Accept privacy policy changes</button>
+    <% end %>
+  </div>
+</div>
+
+<%= if has_change_info?(@privacy_policy) do %>
+<div class="panel panel-default">
+  <div class="panel-heading">Changes made to this version</div>
+  <div class="panel-body">
+    <%= raw(changes_as_html(@privacy_policy)) %>
+  </div>
+</div>
+<% end %>

@@ -270,6 +270,14 @@ defmodule Air.PsqlServer do
   defp do_decode_cloak_query_result({:error, :license_invalid}),
     do: {:error, "The license for this Aircloak instance has expired."}
 
+  defp do_decode_cloak_query_result({:error, :missing_privacy_policy}) do
+    msg = "No privacy policy has been set up for this Aircloak instance. Please ask your administrator to set one up."
+    {:error, msg}
+  end
+
+  defp do_decode_cloak_query_result({:error, :privacy_policy_requires_review}),
+    do: {:error, "Please visit the web interface to review and accept the privacy policy."}
+
   defp do_decode_cloak_query_result({:ok, %{error: error}}), do: {:error, error}
 
   defp do_decode_cloak_query_result({:ok, query_result}),

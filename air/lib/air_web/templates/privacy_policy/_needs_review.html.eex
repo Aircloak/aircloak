@@ -1,0 +1,25 @@
+<div class="panel panel-info">
+  <div class="panel-heading">
+    <h1 class="panel-title">Please review the privacy policy</h1>
+  </div>
+  <div class="panel-body">
+    <p>
+      Please take some time to review the following privacy policy.
+      If you have questions or concerns, please contact your organisation's data privacy officer or system administrator.
+    </p>
+
+    <p>
+      Once you have read and agree with the content of the privacy policy, please accept it by clicking the button below.
+    </p>
+
+    <%= form_tag privacy_policy_path(@conn, :accept, @privacy_policy.id), method: "put" do %>
+      <button class='btn btn-success'>Accept privacy policy</button>
+    <% end %>
+
+    <hr />
+
+    <p>
+      You can withdraw your consent at a later time by visiting the privacy policy section of the website.
+    </p>
+  </div>
+</div>
