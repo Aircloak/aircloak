@@ -1500,6 +1500,16 @@ defmodule Cloak.Query.BasicTest do
     )
   end
 
+  test "distinct in subquery with group by and where" do
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height", "male"], [160, true])
+    :ok = insert_rows(_user_ids = 11..30, "heights", ["height", "male"], [170, false])
+
+    assert_query(
+      "select count(*) from (select distinct user_id, count(*) from heights where not male group by user_id) alias",
+      %{rows: [%{row: [20]}]}
+    )
+  end
+
   test "[Issue #2217] condition on user_id" do
     :ok =
       Cloak.Test.DB.create_table(
