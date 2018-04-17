@@ -8,8 +8,6 @@ defmodule AirWeb.PrivacyPolicy.Validation.Test do
     user = create_user_without_privacy_policy!()
     logged_in_conn = build_conn() |> post("/auth", email: user.email, password: "1234")
     assert "/" == redirected_to(logged_in_conn)
-
-    # verify that the user can now access a page requiring authentication
     assert recycle(logged_in_conn) |> get("/data_sources") |> response(412)
   end
 
@@ -18,8 +16,6 @@ defmodule AirWeb.PrivacyPolicy.Validation.Test do
     user = create_user_without_privacy_policy!() |> make_admin!()
     logged_in_conn = build_conn() |> post("/auth", email: user.email, password: "1234")
     assert "/" == redirected_to(logged_in_conn)
-
-    # verify that the user can now access a page requiring authentication
     assert "/admin/privacy_policy/new" == recycle(logged_in_conn) |> get("/data_sources") |> redirected_to()
   end
 
@@ -30,7 +26,6 @@ defmodule AirWeb.PrivacyPolicy.Validation.Test do
     assert "/" == redirected_to(logged_in_conn)
 
     assert get_flash(logged_in_conn)["info"] =~ "Logged in successfully"
-    # verify that the user can now access a page requiring authentication
     privacy_policy_page_html = recycle(logged_in_conn) |> get("/data_sources") |> response(412)
 
     assert privacy_policy_page_html =~ "review the following privacy policy"
@@ -42,7 +37,6 @@ defmodule AirWeb.PrivacyPolicy.Validation.Test do
     assert "/" == redirected_to(logged_in_conn)
 
     assert get_flash(logged_in_conn)["info"] =~ "Logged in successfully"
-    # verify that the user can now access a page requiring authentication
     recycle(logged_in_conn) |> get("/data_sources") |> response(200)
   end
 
