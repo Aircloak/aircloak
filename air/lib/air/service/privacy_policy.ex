@@ -11,7 +11,12 @@ defmodule Air.Service.PrivacyPolicy do
 
   @doc "Returns true if a privacy policy has been set"
   @spec exists?() :: boolean
-  def exists?(), do: Repo.aggregate(PrivacyPolicy, :count, :id) > 0
+  def exists?() do
+    case get() do
+      {:ok, _} -> true
+      _ -> false
+    end
+  end
 
   @doc """
   Records the privacy policy.
