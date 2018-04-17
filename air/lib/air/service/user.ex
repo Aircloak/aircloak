@@ -4,6 +4,7 @@ defmodule Air.Service.User do
   alias Air.Repo
   alias Air.Service.{AuditLog, PrivacyPolicy, Query, View}
   alias Air.Schemas.{DataSource, Group, User}
+  alias Air.Schemas
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
 
@@ -249,33 +250,12 @@ defmodule Air.Service.User do
   end
 
   @doc "Marks the current privacy policy as accepted by a user"
-  @spec accept_privacy_policy(User.t()) :: :ok | {:error, :no_privacy_policy_created}
-  def accept_privacy_policy(user) do
-    case PrivacyPolicy.get() do
-      {:ok, privacy_policy} ->
-        required_fields = [:accepted_privacy_policy_id]
-
-        user
-        |> cast(%{accepted_privacy_policy_id: privacy_policy.id}, required_fields)
-        |> validate_required(required_fields)
-        |> Repo.update!()
-
-        :ok
-
-      {:error, :no_privacy_policy_created} = error ->
-        error
-    end
-  end
+  @spec accept_privacy_policy!(Schemas.User.t(), Schemas.PrivacyPolicy.t()) :: Schemas.User.t()
+  def accept_privacy_policy!(user, privacy_policy), do: set_privacy_policy_id(user, privacy_policy.id)
 
   @doc "Marks the current privacy policy as rejected by a user"
-  @spec reject_privacy_policy(User.t()) :: :ok
-  def reject_privacy_policy(user) do
-    user
-    |> cast(%{accepted_privacy_policy_id: nil}, [:accepted_privacy_policy_id])
-    |> Repo.update!()
-
-    :ok
-  end
+  @spec reject_privacy_policy!(User.t()) :: User.t()
+  def reject_privacy_policy!(user), do: set_privacy_policy_id(user, nil)
 
   @doc "Returns the status of the user's current opt-in to the privacy policy"
   @spec privacy_policy_status(User.t()) :: :ok | {:error, :no_privacy_policy_created | :requires_review}
@@ -296,6 +276,12 @@ defmodule Air.Service.User do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp set_privacy_policy_id(user, policy_id) do
+    user
+    |> cast(%{accepted_privacy_policy_id: policy_id}, [:accepted_privacy_policy_id])
+    |> Repo.update!()
+  end
 
   defp user_changeset(user, params, opts \\ []),
     do:

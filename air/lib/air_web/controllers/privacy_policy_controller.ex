@@ -2,7 +2,9 @@ defmodule AirWeb.PrivacyPolicyController do
   @moduledoc false
   use Air.Web, :controller
 
-  alias Air.Service.User
+  alias Air.Service.{User, PrivacyPolicy}
+
+  plug(:load_privacy_policy when action in [:accept, :reject])
 
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
@@ -19,12 +21,12 @@ defmodule AirWeb.PrivacyPolicyController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    render(conn, "index.html")
+    {:ok, privacy_policy} = PrivacyPolicy.get()
+    render(conn, "index.html", privacy_policy: privacy_policy)
   end
 
   def accept(conn, _params) do
-    user = conn.assigns.current_user
-    User.accept_privacy_policy(user)
+    User.accept_privacy_policy!(conn.assigns.current_user, conn.assigns.privacy_policy)
 
     conn
     |> put_flash(:info, "The privacy policy has been accepted.")
@@ -32,11 +34,29 @@ defmodule AirWeb.PrivacyPolicyController do
   end
 
   def reject(conn, _params) do
-    user = conn.assigns.current_user
-    User.reject_privacy_policy(user)
+    User.reject_privacy_policy!(conn.assigns.current_user)
 
     conn
     |> put_flash(:error, "The privacy policy has been rejected. You cannot use Aircloak Insights.")
     |> redirect(to: "/")
+  end
+
+  # -------------------------------------------------------------------
+  # Actions
+  # -------------------------------------------------------------------
+
+  defp load_privacy_policy(conn, _params) do
+    revision = conn.params["revision"]
+
+    case PrivacyPolicy.get_by_revision(revision) do
+      {:ok, privacy_policy} ->
+        assign(conn, :privacy_policy, privacy_policy)
+
+      {:error, _} ->
+        conn
+        |> put_flash(:error, "Specific privacy policy not found. Please try again.")
+        |> redirect(to: privacy_policy_path(conn, :index))
+        |> halt()
+    end
   end
 end

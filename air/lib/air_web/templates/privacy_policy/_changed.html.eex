@@ -13,7 +13,7 @@
       This will restore your ability to query the system.
     </p>
 
-    <%= form_tag privacy_policy_path(@conn, :accept), method: "post" do %>
+    <%= form_tag privacy_policy_path(@conn, :accept, @privacy_policy.id), method: "put" do %>
       <button class='btn btn-success'>Accept privacy policy changes</button>
     <% end %>
   </div>

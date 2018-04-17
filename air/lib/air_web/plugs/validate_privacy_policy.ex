@@ -82,7 +82,13 @@ defmodule AirWeb.Plug.ValidatePrivacyPolicy do
       else
         AirWeb.Plug.ValidatePrivacyPolicy.unless_in_privacy_policy_section(conn, fn ->
           AirWeb.Plugs.Utils.if_in_section(conn, AirWeb.Router.Helpers.privacy_policy_path(conn, :index), fn ->
-            AirWeb.Plug.ValidatePrivacyPolicy.halt_with_policy_notification(conn, :review)
+            {:ok, privacy_policy} = Air.Service.PrivacyPolicy.get()
+
+            AirWeb.Plug.ValidatePrivacyPolicy.halt_with_policy_notification(
+              conn,
+              :review,
+              privacy_policy: privacy_policy
+            )
           end)
         end)
       end
@@ -98,10 +104,10 @@ defmodule AirWeb.Plug.ValidatePrivacyPolicy do
 
   @doc "Renders a privacy policy view and halts the plug chain"
   @spec halt_with_policy_notification(Plug.Conn.t(), :review | :missing) :: Plug.Conn.t()
-  def halt_with_policy_notification(conn, notification) do
+  def halt_with_policy_notification(conn, notification, assigns \\ []) do
     conn
     |> Plug.Conn.put_status(Plug.Conn.Status.code(:precondition_failed))
-    |> Phoenix.Controller.render(AirWeb.PrivacyPolicyView, notification, %{})
+    |> Phoenix.Controller.render(AirWeb.PrivacyPolicyView, notification, assigns)
     |> Plug.Conn.halt()
   end
 end

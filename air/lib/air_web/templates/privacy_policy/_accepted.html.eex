@@ -5,7 +5,7 @@
   <div class="panel-body">
     <p>If you no longer agree with the policy as it stands, you can withdraw your acceptance at any time:</p>
 
-    <%= form_tag privacy_policy_path(@conn, :reject), method: "post" do %>
+    <%= form_tag privacy_policy_path(@conn, :reject, @privacy_policy.id), method: "put" do %>
       <button class='btn btn-danger'>Reject privacy policy</button>
     <% end %>
 

@@ -19,7 +19,7 @@
         <h1>Privacy policy</h1>
       </div>
 
-      <%= render "_page.html", conn: @conn %>
+      <%= render "_page.html", conn: @conn, privacy_policy: @privacy_policy %>
     </div>
   </body>
 </html>

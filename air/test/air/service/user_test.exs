@@ -3,7 +3,7 @@ defmodule Air.Service.UserTest do
   use Air.SchemaCase, async: false
 
   alias Air.TestRepoHelper
-  alias Air.Service.{User, PrivacyPolicy}
+  alias Air.Service.User
 
   describe "user operations" do
     test "required fields",
@@ -191,36 +191,26 @@ defmodule Air.Service.UserTest do
   end
 
   describe "accept_privacy_policy" do
-    test "should fail if no privacy policy exist" do
-      TestRepoHelper.delete_all_privacy_policies!()
-      user = TestRepoHelper.create_user!()
-      assert {:error, :no_privacy_policy_created} = User.accept_privacy_policy(user)
-    end
-
     test "the user record should contain the privacy policy id" do
-      user = TestRepoHelper.create_user!()
-      TestRepoHelper.create_privacy_policy!()
-      User.accept_privacy_policy(user)
-
+      privacy_policy = TestRepoHelper.create_privacy_policy!()
+      user = TestRepoHelper.create_user!() |> User.accept_privacy_policy!(privacy_policy)
       reloaded_user = User.load(user.id) |> Repo.preload(:accepted_privacy_policy)
-      accepted_privacy_policy = reloaded_user.accepted_privacy_policy
 
-      {:ok, current_privacy_policy} = PrivacyPolicy.get()
-
-      assert current_privacy_policy.id == accepted_privacy_policy.id
+      assert user.accepted_privacy_policy_id == privacy_policy.id
+      assert user.accepted_privacy_policy_id == reloaded_user.accepted_privacy_policy_id
     end
   end
 
   describe "reject_privacy_policy" do
     test "the user record should not contain any privacy policy id" do
-      user = TestRepoHelper.create_user!()
-      TestRepoHelper.create_privacy_policy!()
-      User.accept_privacy_policy(user)
-      user = User.load(user.id)
+      privacy_policy = TestRepoHelper.create_privacy_policy!()
+      user = TestRepoHelper.create_user!() |> User.accept_privacy_policy!(privacy_policy)
+      user_with_rejected_policy = User.reject_privacy_policy!(user)
+      reloaded_user_with_rejected_policy = User.load(user.id)
+
       refute is_nil(user.accepted_privacy_policy_id)
-      User.reject_privacy_policy(user)
-      user = User.load(user.id)
-      assert is_nil(user.accepted_privacy_policy_id)
+      assert is_nil(user_with_rejected_policy.accepted_privacy_policy_id)
+      assert is_nil(reloaded_user_with_rejected_policy.accepted_privacy_policy_id)
     end
   end
 
@@ -232,10 +222,8 @@ defmodule Air.Service.UserTest do
     end
 
     test "ok when has accepted latest policy" do
-      user = TestRepoHelper.create_user!()
-      TestRepoHelper.create_privacy_policy!()
-      User.accept_privacy_policy(user)
-      user = User.load(user.id)
+      privacy_policy = TestRepoHelper.create_privacy_policy!()
+      user = TestRepoHelper.create_user!() |> User.accept_privacy_policy!(privacy_policy)
       assert :ok == User.privacy_policy_status(user)
     end
 
@@ -246,10 +234,9 @@ defmodule Air.Service.UserTest do
     end
 
     test "error when the policy has changed" do
-      user = TestRepoHelper.create_user!()
-      TestRepoHelper.create_privacy_policy!()
-      User.accept_privacy_policy(user)
-      user = User.load(user.id)
+      privacy_policy = TestRepoHelper.create_privacy_policy!()
+      user = TestRepoHelper.create_user!() |> User.accept_privacy_policy!(privacy_policy)
+
       TestRepoHelper.create_privacy_policy!()
       assert {:error, :requires_review} == User.privacy_policy_status(user)
     end

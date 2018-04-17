@@ -1,14 +1,14 @@
 <%= if has_opted_in?(@conn) do %>
-  <%= render "_accepted.html", conn: @conn %>
+  <%= render "_accepted.html", conn: @conn, privacy_policy: @privacy_policy %>
 
 <% else %>
 
   <%= if never_accepted_or_rejected?(@conn) do %>
-    <%= render "_needs_review.html", conn: @conn %>
+    <%= render "_needs_review.html", conn: @conn, privacy_policy: @privacy_policy %>
 
 
   <% else %>
-    <%= render "_changed.html", conn: @conn %>
+    <%= render "_changed.html", conn: @conn, privacy_policy: @privacy_policy %>
 
   <% end %>
 <% end  %>
