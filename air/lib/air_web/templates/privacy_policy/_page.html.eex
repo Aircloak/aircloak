@@ -1,5 +1,5 @@
 <%= render "_info_boxes.html", conn: @conn, privacy_policy: @privacy_policy %>
 
-<%= raw(content_as_html()) %>
+<%= raw(content_as_html(@privacy_policy)) %>
 
 <%= render "_info_boxes.html", conn: @conn, privacy_policy: @privacy_policy %>

@@ -19,11 +19,11 @@
   </div>
 </div>
 
-<%= if has_change_info?() do %>
+<%= if has_change_info?(@privacy_policy) do %>
 <div class="panel panel-default">
   <div class="panel-heading">Changes made to this version</div>
   <div class="panel-body">
-    <%= raw(changes_as_html()) %>
+    <%= raw(changes_as_html(@privacy_policy)) %>
   </div>
 </div>
 <% end %>

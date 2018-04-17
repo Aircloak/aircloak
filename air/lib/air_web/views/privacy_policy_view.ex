@@ -2,39 +2,17 @@ defmodule AirWeb.PrivacyPolicyView do
   @moduledoc false
   use Air.Web, :view
 
-  alias Air.Service.{PrivacyPolicy, User}
+  alias Air.Service.User
 
-  defp content_as_html() do
-    case PrivacyPolicy.get() do
-      {:error, :no_privacy_policy_created} ->
-        Earmark.as_html!("""
-          The privacy policy is currently missing.
-          Please ask your administrator to define it in the admin section.
-        """)
+  defp content_as_html(privacy_policy), do: Earmark.as_html!(privacy_policy.content)
 
-      {:ok, privacy_policy} ->
-        Earmark.as_html!(privacy_policy.content)
-    end
-  end
+  defp has_change_info?(privacy_policy), do: not is_nil(privacy_policy.changes)
 
-  defp has_change_info?() do
-    case PrivacyPolicy.get() do
-      {:error, :no_privacy_policy_created} -> false
-      {:ok, privacy_policy} -> not is_nil(privacy_policy.changes)
-    end
-  end
-
-  defp changes_as_html() do
-    case PrivacyPolicy.get() do
-      {:error, :no_privacy_policy_created} ->
-        ""
-
-      {:ok, privacy_policy} ->
-        if is_nil(privacy_policy.changes) do
-          nil
-        else
-          Earmark.as_html!(privacy_policy.changes)
-        end
+  defp changes_as_html(privacy_policy) do
+    if has_change_info?(privacy_policy) do
+      Earmark.as_html!(privacy_policy.changes)
+    else
+      nil
     end
   end
 
