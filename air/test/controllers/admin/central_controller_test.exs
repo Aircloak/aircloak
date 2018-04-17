@@ -39,6 +39,7 @@ defmodule AirWeb.Admin.CentralController.Test do
 
   test "new export doesn't work when there's nothing to export" do
     Air.Service.Central.export_pending_calls()
+
     conn = login(create_admin_user!()) |> post("/admin/central/new_export")
     assert redirected_to(conn) == "/admin/central/export_for_aircloak"
     assert get_flash(conn)["error"] =~ "Nothing to export"

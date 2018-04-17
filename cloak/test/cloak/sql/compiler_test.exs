@@ -87,6 +87,14 @@ defmodule Cloak.Sql.Compiler.Test do
                "of type `datetime` cannot be compared."
   end
 
+  test "reject invalid select with having conditions without group by" do
+    {:error, error} = compile("select string from table having count(numeric) = 2", data_source())
+
+    assert error ==
+             "Column `string` from table `table` needs to appear in the `GROUP BY`" <>
+               " clause or be used in an aggregate function."
+  end
+
   test "rejects escape strings longer than 1" do
     {:error, error} = compile("select * from table where string like 'something' escape 'abc'", data_source())
 
@@ -1166,6 +1174,23 @@ defmodule Cloak.Sql.Compiler.Test do
     assert Enum.any?(query.db_columns, &match?(%Expression{name: "string"}, &1))
   end
 
+  test "grouping on a row splitter" do
+    assert {:ok, _} =
+             compile("select count(*), extract_words(string) from table group by extract_words(string)", data_source())
+  end
+
+  test "row splitter needs to be grouped in aggregated query" do
+    assert {:error, error} = compile("select count(*), extract_words(string) from table group by string", data_source())
+    assert error =~ ~r/Column `extract_words` needs to appear in the `GROUP BY` clause/
+  end
+
+  test "row splitter in HAVING needs to be grouped in aggregated query" do
+    assert {:error, error} =
+             compile("select count(*) from table group by string having extract_words(string) = 'word'", data_source())
+
+    assert error =~ ~r/`HAVING` clause can not be applied over column `extract_words`/
+  end
+
   test "rejecting non-aggregated non-selected ORDER BY column in an aggregated function" do
     assert {:error, "Column `float` from table `table` needs to appear in the `GROUP BY` clause" <> _} =
              compile("SELECT SUM(numeric) FROM table ORDER BY float", data_source())
@@ -1305,6 +1330,11 @@ defmodule Cloak.Sql.Compiler.Test do
   test "internal functions don't exist from the analyst's perspective" do
     assert {:error, error} = compile("SELECT dec_b64(string) FROM table", data_source())
     assert error =~ "Unknown function `dec_b64`"
+  end
+
+  test "rejects usage of distinct in non-aggregates" do
+    {:error, error} = compile("select length(distinct string) from table", data_source())
+    assert error =~ "`DISTINCT` specified in non-aggregating function `length`."
   end
 
   defp validate_view(view_sql, data_source, options \\ []) do

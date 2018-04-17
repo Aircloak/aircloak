@@ -247,6 +247,16 @@ defmodule Cloak.Query.BasicTest do
     })
   end
 
+  test "order by complex non-grouped column" do
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height", "name"], [170, "aaa"])
+
+    assert_query("select 1 from heights group by name order by length(name) - height", %{
+      error:
+        "Column `height` from table `heights` needs to appear in the `GROUP BY` clause or be used in an aggregate function." <>
+          _
+    })
+  end
+
   test "should return LCF property when sufficient rows are filtered" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..3, "heights", ["height"], [160])
@@ -839,6 +849,14 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query("select date - date, interval 'P1Y2M' from dates", %{
       rows: [%{row: ["P", "P1Y2M"]}]
+    })
+  end
+
+  test "query with empty interval" do
+    :ok = insert_rows(_user_ids = 0..4, "dates", ["date"], [~N[2017-01-02 00:01:02]])
+
+    assert_query("select count(*) from dates where date - date = interval 'P'", %{
+      rows: [%{row: [5]}]
     })
   end
 

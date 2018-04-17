@@ -171,7 +171,7 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp aggregators(query),
     do:
-      (query.columns ++ having_columns(query) ++ order_by_columns(query.order_by))
+      (query.columns ++ having_columns(query) ++ Query.order_by_expressions(query))
       |> Enum.flat_map(&expand_arguments/1)
       |> Enum.filter(&match?(%Expression{function?: true, aggregate?: true}, &1))
 
@@ -180,8 +180,6 @@ defmodule Cloak.Sql.Compiler.Execution do
       Lenses.conditions()
       |> Lenses.operands()
       |> Lens.to_list(query.having)
-
-  defp order_by_columns(order_by_clauses), do: Enum.map(order_by_clauses, fn {column, _direction, _nulls} -> column end)
 
   defp align_join_ranges(query),
     do:

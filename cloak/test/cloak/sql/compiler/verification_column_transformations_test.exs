@@ -47,7 +47,7 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
 
     test "HAVING-clause expression with more than 5 restricted transformations" do
       query = """
-        SELECT string
+        SELECT 1
         FROM #{offensive_subquery()}
         HAVING count(value) > 0
       """

@@ -6,20 +6,19 @@
 
 ### Enhancements
 
-- Optimization of emulated queries by pushing conditions into bottom sub-queries.
-- Multiple threads can be used for data ingestion.
-- Data aggregation is more efficient.
-- DOW (synonym for weekday) is supported both as a function and in EXTRACT
-- Support ALL (explicitly stating the default) in places where DISTINCT can be used
-- Boolean columns can be used in WHERE and HAVING as standalone conditions, implicitly assuming "= TRUE"
-- Fractional values are now allowed in the SAMPLE_USERS clause
+- In many cases more data is now returned as a result of selectively merging low count buckets by censoring
+  columns individually from right to left.
+- Query execution times can be reduced by parallelising the data ingestion phase. See the section on configuring [Insights Cloak](/docs/ops/configuration.html#insights-cloak-configuration) for details.
+- The efficiency of data aggregation has been improved and emulated queries now push conditions into the bottommost sub-queries for improved performance.
+- Error messages now highlight the problematic part of a query.
+- `DOW` (synonym for weekday) is supported both as a function and in `EXTRACT`.
 
 ### Changes
 
-- Low count buckets are grouped sequentially per each subset of columns starting from right to left.
-- The system now requires a license file provided by Aircloak
-
-### Bugfixes
+- The system now requires a license file provided by Aircloak.
+- The audit log has been restructured, grouping similar events and showing up to 1000 events per page.
+- Debug exports are allowed for failed queries as well as succesful queries.
+- `SAMPLE_USERS`-clauses allow fractional values.
 
 ## Version 18.1.3
 

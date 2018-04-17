@@ -3,7 +3,7 @@ defmodule IntegrationTest.OdbcTest do
 
   alias IntegrationTest.Manager
 
-  setup_all do
+  setup do
     {:ok, user: Manager.create_air_user()}
   end
 

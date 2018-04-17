@@ -15,17 +15,14 @@ defmodule AirWeb.Admin.QueryController.Test do
     }
 
     data_source = Air.Service.DataSource.create!(params)
-    {:ok, data_source: data_source}
+    {:ok, data_source: data_source, user: create_user!(), admin: create_admin_user!()}
   end
 
-  test "failed queries", context do
-    user = create_user!()
+  test "failed queries", %{user: user, data_source: data_source, admin: admin} do
+    insert_query(user, data_source, "query 1", %{error: "some error"})
+    insert_query(user, data_source, "query 2", %{error: "some error"})
+    insert_query(user, data_source, "query 3", %{})
 
-    insert_query(user, context[:data_source], "query 1", %{error: "some error"})
-    insert_query(user, context[:data_source], "query 2", %{error: "some error"})
-    insert_query(user, context[:data_source], "query 3", %{})
-
-    admin = create_admin_user!()
     response = login(admin) |> get("/admin/queries/failed") |> response(200)
 
     assert response =~ "query 1"
@@ -33,12 +30,14 @@ defmodule AirWeb.Admin.QueryController.Test do
     refute response =~ "query 3"
   end
 
-  test "user can't fetch failed queries" do
-    assert "/" ==
-             create_user!()
-             |> login()
-             |> get("/admin/queries/failed")
-             |> redirected_to()
+  test "user can't fetch failed queries", %{user: user} do
+    assert(
+      "/" ==
+        user
+        |> login()
+        |> get("/admin/queries/failed")
+        |> redirected_to()
+    )
   end
 
   defp insert_query(user, data_source, statement, result) do
