@@ -215,16 +215,6 @@ defmodule Air.Service.Query do
       |> Stream.map(&Repo.one(result_chunks(query.id, &1)))
       |> Stream.take_while(&(&1 != nil))
 
-  @doc "Deletes all queries by the given user from the database."
-  @spec delete_all(User.t()) :: :ok
-  def delete_all(user) do
-    Repo.transaction(fn ->
-      query_ids = Repo.all(from(q in Query, where: q.user_id == ^user.id, select: q.id))
-      Repo.delete_all(from(c in ResultChunk, where: c.query_id in ^query_ids))
-      Repo.delete_all(from(q in Query, where: q.id in ^query_ids))
-    end)
-  end
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

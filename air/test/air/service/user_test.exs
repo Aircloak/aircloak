@@ -62,13 +62,6 @@ defmodule Air.Service.UserTest do
       assert [group1.id, group2.id] == Enum.map(user.groups, & &1.id) |> Enum.sort()
     end
 
-    test "deleting a user, doesn't delete the group" do
-      group = TestRepoHelper.create_group!()
-      user = TestRepoHelper.create_user!(%{groups: [group.id]})
-      User.delete!(user)
-      refute nil == User.load_group(group.id)
-    end
-
     test "replacing a group for a user, removes the old relationship" do
       group1 = TestRepoHelper.create_group!()
       group2 = TestRepoHelper.create_group!()
@@ -77,8 +70,17 @@ defmodule Air.Service.UserTest do
       user = User.load(user.id)
       assert [group2.id] == Enum.map(user.groups, & &1.id)
     end
+  end
 
-    test "deleting a user deletes all their queries" do
+  describe "deleting a user" do
+    test "doesn't delete the group" do
+      group = TestRepoHelper.create_group!()
+      user = TestRepoHelper.create_user!(%{groups: [group.id]})
+      User.delete!(user)
+      refute nil == User.load_group(group.id)
+    end
+
+    test "deletes all their queries" do
       user = TestRepoHelper.create_user!()
 
       query =
@@ -94,13 +96,22 @@ defmodule Air.Service.UserTest do
       assert is_nil(Repo.get(Air.Schemas.Query, query.id))
     end
 
-    test "deleting a user deletes their views" do
+    test "deletes their views" do
       user = TestRepoHelper.create_user!()
       view = TestRepoHelper.create_view!(user, TestRepoHelper.create_data_source!())
 
       User.delete!(user)
 
       assert is_nil(Repo.get(Air.Schemas.View, view.id))
+    end
+
+    test "deletes their api_tokens" do
+      user = TestRepoHelper.create_user!()
+      token = TestRepoHelper.create_token!(user)
+
+      User.delete!(user)
+
+      assert is_nil(Repo.get(Air.Schemas.ApiToken, token.id))
     end
   end
 
