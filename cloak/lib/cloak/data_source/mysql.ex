@@ -45,7 +45,13 @@ defmodule Cloak.DataSource.MySQL do
 
   @impl Driver
   def load_tables(connection, table) do
-    query = "SHOW COLUMNS FROM #{table.db_name}"
+    quoted_table_name =
+      case String.split(table.db_name, ".") do
+        [full_table_name] -> ~s("#{full_table_name}")
+        [schema_name, table_name] -> ~s("#{schema_name}"."#{table_name}")
+      end
+
+    query = "SHOW COLUMNS FROM #{quoted_table_name}"
     column_info_mapper = fn [name, type | _others] -> Table.column(name, parse_type(type)) end
 
     case run_query(connection, query, column_info_mapper, &Enum.concat/1) do

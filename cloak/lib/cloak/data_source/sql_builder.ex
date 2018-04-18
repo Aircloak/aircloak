@@ -147,7 +147,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp join_sql(:right_outer_join), do: "RIGHT OUTER JOIN"
 
   defp table_to_from(%{name: table_name, db_name: table_name}), do: quote_table_name(table_name)
-  defp table_to_from(table), do: "#{table.db_name} AS #{quote_name(table.name)}"
+  defp table_to_from(table), do: "#{quote_table_name(table.db_name)} AS #{quote_name(table.name)}"
 
   defp quote_table_name(table_name) do
     case String.split(table_name, ".") do
