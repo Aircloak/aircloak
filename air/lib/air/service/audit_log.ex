@@ -25,10 +25,9 @@ defmodule Air.Service.AuditLog do
   @spec log(nil | User.t(), String.t(), %{atom => any}) :: :ok | {:error, any}
   def log(user, event, metadata \\ %{}) do
     if Air.Service.Settings.read().audit_log_enabled do
-      email = if user != nil, do: user.email, else: "Unknown user"
-
-      %AuditLog{}
-      |> AuditLog.changeset(%{user: email, event: event, metadata: metadata})
+      user
+      |> Ecto.build_assoc(:audit_logs)
+      |> AuditLog.changeset(%{event: event, metadata: metadata})
       |> Repo.insert()
       |> case do
         {:ok, _} ->

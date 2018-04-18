@@ -18,6 +18,8 @@ defmodule Air.Schemas.User do
     field(:name, :string)
 
     has_many(:queries, Air.Schemas.Query)
+    has_many(:views, Air.Schemas.View)
+    has_many(:audit_logs, Air.Schemas.AuditLog)
 
     many_to_many(
       :groups,
@@ -26,8 +28,6 @@ defmodule Air.Schemas.User do
       on_delete: :delete_all,
       on_replace: :delete
     )
-
-    has_many(:views, Air.Schemas.View)
 
     belongs_to(:accepted_privacy_policy, PrivacyPolicy)
 

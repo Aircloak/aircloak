@@ -113,6 +113,15 @@ defmodule Air.Service.UserTest do
 
       assert is_nil(Repo.get(Air.Schemas.ApiToken, token.id))
     end
+
+    test "deletes their audit logs" do
+      user = TestRepoHelper.create_user!()
+      :ok = Air.Service.AuditLog.log(user, "user delete test event", %{some: "metadata"})
+
+      User.delete!(user)
+
+      assert is_nil(Repo.get_by(Air.Schemas.AuditLog, event: "user delete test event"))
+    end
   end
 
   describe "group operations" do
