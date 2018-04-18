@@ -10,7 +10,7 @@ defmodule Cloak.Query.BasicTest do
 
     :ok = Cloak.Test.DB.create_table("children", "age INTEGER, name TEXT")
 
-    :ok = Cloak.Test.DB.create_table("weird things", "\"thing as thing\" INTEGER", db_name: "weird")
+    :ok = Cloak.Test.DB.create_table("weird things", "\"thing as thing\" INTEGER", db_name: "weird-things")
 
     :ok = Cloak.Test.DB.create_table("dates", "date timestamp")
     :ok
@@ -19,7 +19,7 @@ defmodule Cloak.Query.BasicTest do
   setup do
     Cloak.Test.DB.clear_table("heights")
     Cloak.Test.DB.clear_table("children")
-    Cloak.Test.DB.clear_table("weird")
+    Cloak.Test.DB.clear_table("weird-things")
     Cloak.Test.DB.clear_table("dates")
     :ok
   end
