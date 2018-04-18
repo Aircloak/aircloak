@@ -364,6 +364,9 @@ defmodule Cloak.Query.FunctionTest do
 
   test "btrim/2", do: assert("b" == apply_function("btrim(string, 'AC')", ["string"], ["AbC"], "types_ft"))
 
+  test "btrim/2 with no chars",
+    do: assert("abc" == apply_function("btrim(string, '')", ["string"], ["abc"], "types_ft"))
+
   test "trim (1)", do: assert("AbC" == apply_function("trim(string)", ["string"], [" AbC "], "types_ft"))
 
   test "trim (2)", do: assert("rst second third" == apply_function("trim(leading 'fist' from name)", "heights_ft"))
