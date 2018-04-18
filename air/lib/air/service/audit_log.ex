@@ -23,7 +23,7 @@ defmodule Air.Service.AuditLog do
   # -------------------------------------------------------------------
 
   @doc "Creates an audit log entry."
-  @spec log(nil | User.t(), String.t(), %{atom => any}) :: :ok | {:error, any}
+  @spec log(User.t(), String.t(), %{atom => any}) :: :ok | {:error, any}
   def log(user, event, metadata \\ %{}) do
     if Air.Service.Settings.read().audit_log_enabled do
       user
