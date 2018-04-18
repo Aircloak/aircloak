@@ -33,10 +33,6 @@ defmodule Air.Service.User do
   @spec all() :: [User.t()]
   def all(), do: Repo.all(from(user in User, preload: [:groups]))
 
-  @doc "Given a list of email addresses, loads the corresponding users."
-  @spec by_emails([String.t()]) :: [User.t()]
-  def by_emails(emails), do: Repo.all(from(user in User, where: user.email in ^emails))
-
   @doc "Loads the user with the given id."
   @spec load(pos_integer) :: User.t() | nil
   def load(user_id), do: Repo.one(from(user in User, where: user.id == ^user_id, preload: [:groups]))
