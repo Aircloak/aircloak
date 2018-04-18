@@ -19,6 +19,13 @@ defmodule Cloak.DataSource.SqlBuilderTest do
   test "workaround for text comparisons on SQL Server ignoring trailing spaces",
     do: assert(sql_string("select count(*) from table where string = 'ab'", SQLServer) =~ "= (N'ab' + N'.')")
 
+  test "table name quoting" do
+    assert SqlBuilder.quote_table_name("name") == "\"name\""
+    assert SqlBuilder.quote_table_name("\"name\"") == "\"name\""
+    assert SqlBuilder.quote_table_name("full.name") == "\"full\".\"name\""
+    assert SqlBuilder.quote_table_name("long.full.name") == "\"long\".\"full\".\"name\""
+  end
+
   defp sql_string(query, dialect \\ PostgreSQL),
     do:
       query

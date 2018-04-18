@@ -16,6 +16,17 @@ defmodule Cloak.DataSource.SqlBuilder do
   @doc "Constructs a parametrized SQL query that can be executed against a backend."
   def build(query, sql_dialect_module), do: query |> build_fragments(sql_dialect_module) |> to_string()
 
+  @doc "Makes sure the specified partial or full table name is quoted."
+  @spec quote_table_name(String.t()) :: String.t()
+  def quote_table_name("\"" <> _ = table_name), do: table_name
+
+  def quote_table_name(table_name),
+    do:
+      table_name
+      |> String.split(".")
+      |> Enum.map(&quote_name/1)
+      |> Enum.join(".")
+
   # -------------------------------------------------------------------
   # Transformation of query AST to query specification
   # -------------------------------------------------------------------
@@ -148,15 +159,6 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp table_to_from(%{name: table_name, db_name: table_name}), do: quote_table_name(table_name)
   defp table_to_from(table), do: "#{quote_table_name(table.db_name)} AS #{quote_name(table.name)}"
-
-  defp quote_table_name("\"" <> _ = table_name), do: table_name
-
-  defp quote_table_name(table_name),
-    do:
-      table_name
-      |> String.split(".")
-      |> Enum.map(&quote_name/1)
-      |> Enum.join(".")
 
   defp where_fragments(nil, _sql_dialect_module), do: []
 
