@@ -249,6 +249,29 @@ defmodule Air.Service.UserTest do
     end
   end
 
+  describe "pseudonym" do
+    test "if no user is provided, a random pseudonym is generated",
+      do: refute(User.pseudonym(nil) == User.pseudonym(nil))
+
+    test "a users pseudonym does not change over time" do
+      user = TestRepoHelper.create_user!()
+      pseudonym1 = User.pseudonym(user)
+
+      user = User.load(user.id)
+      pseudonym2 = User.pseudonym(user)
+
+      assert pseudonym1 == pseudonym2
+    end
+
+    test "a stale user record does still get the same pseudonym" do
+      user = TestRepoHelper.create_user!()
+      pseudonym1 = User.pseudonym(user)
+      pseudonym2 = User.pseudonym(user)
+
+      assert pseudonym1 == pseudonym2
+    end
+  end
+
   defp error_on(fun, field, value), do: errors_on(fun, %{field => value})[field]
 
   defp errors_on(fun, changes) do

@@ -269,9 +269,39 @@ defmodule Air.Service.User do
     end
   end
 
+  @doc """
+  Generates a pseudonymized ID for a user that can be used when sending query metrics
+  and other analyst specific metrics to Aircloak.
+  If no user is provided, a random ID will be generated and returned.
+  """
+  @spec pseudonym(User.t()) :: String.t()
+  def pseudonym(nil), do: random_string()
+
+  def pseudonym(user) do
+    if is_nil(user.pseudonym) do
+      reloaded_user = Air.Service.User.load(user.id)
+
+      if is_nil(reloaded_user.pseudonym) do
+        pseudonym = random_string()
+
+        user
+        |> cast(%{pseudonym: pseudonym}, [:pseudonym])
+        |> Repo.update!()
+
+        pseudonym
+      else
+        reloaded_user.pseudonym
+      end
+    else
+      user.pseudonym
+    end
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp random_string, do: Base.encode16(:crypto.strong_rand_bytes(10))
 
   defp set_privacy_policy_id(user, policy_id) do
     user
