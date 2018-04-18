@@ -134,7 +134,9 @@ defmodule BOM.Whitelist do
     # elixir/file_system
     "d0d1fe59ece5018a431ad8e694ec6c6a" => :wtfpl,
     # elixir/idna
-    "7c9b6269d40a09414db760aa524bf240" => :mit
+    "7c9b6269d40a09414db760aa524bf240" => :mit,
+    # elixir/earmark
+    "7a7ac345ead69968b82148fa3cba780f" => :apache2
   }
 
   # -------------------------------------------------------------------
