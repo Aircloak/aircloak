@@ -149,12 +149,14 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp table_to_from(%{name: table_name, db_name: table_name}), do: quote_table_name(table_name)
   defp table_to_from(table), do: "#{quote_table_name(table.db_name)} AS #{quote_name(table.name)}"
 
-  defp quote_table_name(table_name) do
-    case String.split(table_name, ".") do
-      [^table_name] -> quote_name(table_name)
-      [schema_name, table_name] -> quote_name(schema_name) <> "." <> quote_name(table_name)
-    end
-  end
+  defp quote_table_name("\"" <> _ = table_name), do: table_name
+
+  defp quote_table_name(table_name),
+    do:
+      table_name
+      |> String.split(".")
+      |> Enum.map(&quote_name/1)
+      |> Enum.join(".")
 
   defp where_fragments(nil, _sql_dialect_module), do: []
 
