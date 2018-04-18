@@ -58,10 +58,10 @@
         <table class="table">
           <tbody>
             <%= for user <- @users do %>
-              <tr class="<%= if selected?(@conn, :users, user.email), do: "warning", else: "" %>">
+              <tr class="<%= if selected?(@conn, :users, user.id), do: "warning", else: "" %>">
                 <td>
-                  <%= link [glyph(selected?(@conn, :users, user.email)), user.name],
-                    to: admin_audit_log_path(@conn, :index, toggle_item(@conn, :users, user.email)) %>
+                  <%= link [glyph(selected?(@conn, :users, user.id)), user.name],
+                    to: admin_audit_log_path(@conn, :index, toggle_item(@conn, :users, user.id)) %>
                 </td>
               </tr>
             <% end %>

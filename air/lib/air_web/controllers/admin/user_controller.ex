@@ -37,7 +37,8 @@ defmodule AirWeb.Admin.UserController do
   def create(conn, params) do
     case User.create(params["user"]) do
       {:ok, user} ->
-        audit_log(conn, "Created user", user: user.email, name: user.name)
+        audit_log(conn, "Created user")
+        audit_log_for_user(conn, user, "User created")
 
         conn
         |> put_flash(:info, "User created")
@@ -51,7 +52,8 @@ defmodule AirWeb.Admin.UserController do
   def update(conn, params) do
     verify_last_admin_deleted(User.update(conn.assigns.user, params["user"]), conn, fn
       {:ok, user} ->
-        audit_log(conn, "Altered user", user: user.email, name: user.name)
+        audit_log(conn, "Altered user")
+        audit_log_for_user(conn, user, "User altered")
 
         conn
         |> put_flash(:info, "User updated")
@@ -66,7 +68,7 @@ defmodule AirWeb.Admin.UserController do
     user = conn.assigns.user
 
     verify_last_admin_deleted(User.delete(user), conn, fn {:ok, _} ->
-      audit_log(conn, "Removed user", user: user.email, name: user.name)
+      audit_log(conn, "Removed user")
 
       conn
       |> put_flash(:info, "User deleted")

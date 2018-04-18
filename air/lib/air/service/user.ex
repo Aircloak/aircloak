@@ -20,22 +20,23 @@ defmodule Air.Service.User do
   def login(email, password, meta \\ %{}) do
     user = Repo.get_by(User, email: email)
 
-    if User.validate_password(user, password) do
-      AuditLog.log(user, "Logged in", meta)
-      {:ok, user}
-    else
-      AuditLog.log(user, "Failed login", meta)
-      {:error, :invalid_email_or_password}
+    cond do
+      User.validate_password(user, password) ->
+        AuditLog.log(user, "Logged in", meta)
+        {:ok, user}
+
+      user ->
+        AuditLog.log(user, "Failed login", meta)
+        {:error, :invalid_email_or_password}
+
+      true ->
+        {:error, :invalid_email_or_password}
     end
   end
 
   @doc "Returns a list of all users in the system."
   @spec all() :: [User.t()]
   def all(), do: Repo.all(from(user in User, preload: [:groups]))
-
-  @doc "Given a list of email addresses, loads the corresponding users."
-  @spec by_emails([String.t()]) :: [User.t()]
-  def by_emails(emails), do: Repo.all(from(user in User, where: user.email in ^emails))
 
   @doc "Loads the user with the given id."
   @spec load(pos_integer) :: User.t() | nil
