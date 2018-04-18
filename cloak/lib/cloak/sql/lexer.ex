@@ -132,7 +132,7 @@ defmodule Cloak.Sql.Lexer do
       sequence([
         string("--"),
         word_of(~r/./),
-        linebreak()
+        option(linebreak())
       ])
     )
   end
