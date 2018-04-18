@@ -120,21 +120,18 @@ defmodule Air.Service.Central do
   def report_query_result(result) do
     query = Repo.get!(Air.Schemas.Query, result.query_id) |> Repo.preload([:user, :data_source])
 
-    user = query.user || %{name: "Unknown user", email: "Unknown email"}
+    user_pseudonym = Air.Service.User.pseudonym(query.user)
     data_source = query.data_source || %{name: "Unknown data source", id: nil}
     row_count = result.row_count || 0
 
     Air.Service.Central.record_query(%{
+      user_id: user_pseudonym,
       metrics: %{
         row_count: row_count,
         execution_time: result[:execution_time]
       },
       features: result[:features],
       aux: %{
-        user: %{
-          name: user.name,
-          email: user.email
-        },
         data_source: %{
           name: data_source.name,
           id: data_source.id
