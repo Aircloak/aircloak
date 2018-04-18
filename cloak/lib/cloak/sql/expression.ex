@@ -441,10 +441,13 @@ defmodule Cloak.Sql.Expression do
 
   defp right(string, count), do: String.slice(string, (String.length(string) - count) |> max(0), count)
 
+  defp trim(string, ""), do: string
   defp trim(string, chars), do: string |> ltrim(chars) |> rtrim(chars)
 
+  defp ltrim(string, ""), do: string
   defp ltrim(string, chars), do: Regex.replace(~r/^[#{Regex.escape(chars)}]*/, string, "")
 
+  defp rtrim(string, ""), do: string
   defp rtrim(string, chars), do: Regex.replace(~r/[#{Regex.escape(chars)}]*$/, string, "")
 
   @max_precision_zero {0, 6}
