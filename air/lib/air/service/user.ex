@@ -330,33 +330,41 @@ defmodule Air.Service.User do
     end
   end
 
-  defp commit_if_last_admin_not_deleted(fun),
-    # Ensuring that these operations are serialized, so we can consistently verify that the action doesn't remove the
-    # last admin.
-    # Note that GenServer would be a more idiomatic approach. Here, we're using `:global` for the following reasons:
-    #   1. The synchronized code is quite simple.
-    #   2. We don't expect these operations to be executed frequently.
-    #   3. The code powered by `:global` is very simple and doesn't require extra modules or changes to the supervision
-    #      tree.
-    do:
-      :global.trans({__MODULE__, :isolated_user_change}, fn ->
-        # We wrap the `fun` lambda in transaction, to ensure we can safely undo the operation. If the lambda causes the
-        # last admin to be deleted, we can simply rollback any database changes.
-        Repo.transaction(fn ->
-          case fun.() do
-            {:ok, result} ->
-              # success -> ensure that we still have an admin
-              if admin_user_exists?() do
-                result
-              else
-                # no admin anymore -> undo the changes
-                Repo.rollback(:forbidden_last_admin_deletion)
-              end
+  defp commit_if_last_admin_not_deleted(fun), do: GenServer.call(__MODULE__, {:commit_if_last_admin_not_deleted, fun})
 
-            {:error, error} ->
-              # some other kind of error -> rollback and return the error
-              Repo.rollback(error)
+  defp do_commit_if_last_admin_not_deleted(fun) do
+    Repo.transaction(fn ->
+      case fun.() do
+        {:ok, result} ->
+          if admin_user_exists?() do
+            result
+          else
+            Repo.rollback(:forbidden_last_admin_deletion)
           end
-        end)
-      end)
+
+        {:error, error} ->
+          Repo.rollback(error)
+      end
+    end)
+  end
+
+  # -------------------------------------------------------------------
+  # GenServer callbacks
+  # -------------------------------------------------------------------
+
+  use GenServer
+
+  @impl GenServer
+  def init(_), do: {:ok, nil}
+
+  @impl GenServer
+  def handle_call({:commit_if_last_admin_not_deleted, fun}, _from, state),
+    do: {:reply, do_commit_if_last_admin_not_deleted(fun), state}
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg), do: Aircloak.ChildSpec.gen_server(__MODULE__, [], name: __MODULE__)
 end

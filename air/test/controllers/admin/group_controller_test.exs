@@ -1,5 +1,5 @@
 defmodule AirWeb.Admin.GroupController.Test do
-  use AirWeb.ConnCase, async: true
+  use AirWeb.ConnCase, async: false
 
   import Air.{TestConnHelper, TestRepoHelper}
   alias Air.{Schemas.Group, Repo}

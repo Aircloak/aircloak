@@ -1,5 +1,5 @@
 defmodule AirWeb.Admin.AuditLogControllerTest do
-  use AirWeb.ConnCase, async: true
+  use AirWeb.ConnCase, async: false
 
   import Air.{TestRepoHelper, TestConnHelper}
 
