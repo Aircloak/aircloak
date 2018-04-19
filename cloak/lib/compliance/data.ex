@@ -191,23 +191,11 @@ defmodule Compliance.Data do
     # Generates random float with desired number of digits. No digit will have the value of 0, 5, or 9, to reduce the
     # chance of rounding inconsistencies, which can happen due to the way floats are stored in the database.
     1..num_digits
-    |> Enum.reduce(0, fn _, acc -> 10 * acc + random_float_digit() end)
+    |> Enum.reduce(0, fn _, acc -> 10 * acc + Enum.random([1, 2, 3, 4, 6, 7, 8]) end)
     |> Kernel./(:math.pow(10, num_digits))
   end
 
-  defp random_float_digit() do
-    if :rand.uniform(2) == 1 do
-      # 1, 2, 3, or 4
-      :rand.uniform(4)
-    else
-      # 6, 7, or 8
-      5 + :rand.uniform(3)
-    end
-  end
-
-  defp random_sign() do
-    if :rand.uniform(2) == 1, do: 1, else: -1
-  end
+  defp random_sign(), do: Enum.random([-1, 1])
 
   defp postcodes(), do: sample(fn -> :rand.uniform(@max_postal_code - @min_postal_code) + @min_postal_code end)
 
