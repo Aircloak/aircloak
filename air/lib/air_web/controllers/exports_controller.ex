@@ -12,13 +12,14 @@ defmodule AirWeb.ExportsController do
   def show(conn, _params) do
     conn = Plug.Conn.send_chunked(conn, 200)
 
-    conn.assigns.current_user
-    |> Export.stream()
-    |> Enum.reduce_while(conn, fn chunk, conn ->
-      case Plug.Conn.chunk(conn, chunk) do
-        {:ok, conn} -> {:cont, conn}
-        {:error, :closed} -> {:halt, conn}
-      end
-    end)
+    {:ok, conn} =
+      Export.reduce_while(conn.assigns.current_user, conn, fn chunk, conn ->
+        case Plug.Conn.chunk(conn, chunk) do
+          {:ok, conn} -> {:cont, conn}
+          {:error, :closed} -> {:halt, conn}
+        end
+      end)
+
+    conn
   end
 end
