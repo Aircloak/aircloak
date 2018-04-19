@@ -106,7 +106,11 @@ defmodule Air.Service.User do
 
   @doc "Deletes the given user in the background."
   @spec delete_async(User.t()) :: :ok
-  def delete_async(user), do: commit_if_last_admin_not_deleted_async(fn -> Repo.delete(user) end)
+  def delete_async(user) do
+    action = fn -> Repo.delete(user) end
+    failure_callback = fn -> AuditLog.log(user, "User delete failed") end
+    commit_if_last_admin_not_deleted_async(action, failure_callback)
+  end
 
   @doc "Deletes the given user, raises on error."
   @spec delete!(User.t()) :: User.t()
@@ -336,8 +340,8 @@ defmodule Air.Service.User do
 
   defp commit_if_last_admin_not_deleted(fun), do: GenServer.call(__MODULE__, {:commit_if_last_admin_not_deleted, fun})
 
-  defp commit_if_last_admin_not_deleted_async(fun),
-    do: GenServer.cast(__MODULE__, {:commit_if_last_admin_not_deleted, fun})
+  defp commit_if_last_admin_not_deleted_async(fun, failure_fun),
+    do: GenServer.cast(__MODULE__, {:commit_if_last_admin_not_deleted, fun, failure_fun})
 
   defp do_commit_if_last_admin_not_deleted(fun) do
     Repo.transaction(
@@ -372,8 +376,14 @@ defmodule Air.Service.User do
     do: {:reply, do_commit_if_last_admin_not_deleted(fun), state}
 
   @impl GenServer
-  def handle_cast({:commit_if_last_admin_not_deleted, fun}, state),
-    do: {:noreply, do_commit_if_last_admin_not_deleted(fun), state}
+  def handle_cast({:commit_if_last_admin_not_deleted, fun, failure_fun}, state) do
+    case do_commit_if_last_admin_not_deleted(fun) do
+      {:ok, _} -> :ok
+      {:error, _} -> failure_fun.()
+    end
+
+    {:noreply, state}
+  end
 
   # -------------------------------------------------------------------
   # Supervision tree
