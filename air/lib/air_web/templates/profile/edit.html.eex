@@ -72,6 +72,28 @@
       <% end %>
     </div>
   </div>
+
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4>Export data</h4>
+    </div>
+
+    <div class="panel-body">
+      <p>
+        By clicking on the button below you can download a machine-readable copy of all the data gathered about you in
+        Aircloak Insights.
+      </p>
+
+      <p>Note that you can only have one such download active at the same time.</p>
+
+      <p>
+      <a href="/export" download="<%= export_name() %>"class="btn btn-primary">
+          <span class="glyphicon glyphicon-download" aria-hidden="true"></span>
+          Download
+        </a>
+      </p>
+    </div>
+  </div>
 </div>
 
 <div class="col-sm-6">
