@@ -67,13 +67,12 @@ defmodule AirWeb.Admin.UserController do
   def delete(conn, _params) do
     user = conn.assigns.user
 
-    verify_last_admin_deleted(User.delete(user), conn, fn {:ok, _} ->
-      audit_log(conn, "Removed user")
+    User.delete_async(user)
+    audit_log(conn, "Removed user")
 
-      conn
-      |> put_flash(:info, "User deleted")
-      |> redirect(to: admin_user_path(conn, :index))
-    end)
+    conn
+    |> put_flash(:info, "User deletion will be performed in the background")
+    |> redirect(to: admin_user_path(conn, :index))
   end
 
   # -------------------------------------------------------------------

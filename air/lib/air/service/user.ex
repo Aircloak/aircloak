@@ -104,6 +104,10 @@ defmodule Air.Service.User do
       |> merge(password_changeset(user, params))
       |> Repo.update()
 
+  @doc "Deletes the given user in the background."
+  @spec delete_async(User.t()) :: :ok
+  def delete_async(user), do: commit_if_last_admin_not_deleted_async(fn -> Repo.delete(user) end)
+
   @doc "Deletes the given user, raises on error."
   @spec delete!(User.t()) :: User.t()
   def delete!(user) do
@@ -332,20 +336,26 @@ defmodule Air.Service.User do
 
   defp commit_if_last_admin_not_deleted(fun), do: GenServer.call(__MODULE__, {:commit_if_last_admin_not_deleted, fun})
 
-  defp do_commit_if_last_admin_not_deleted(fun) do
-    Repo.transaction(fn ->
-      case fun.() do
-        {:ok, result} ->
-          if admin_user_exists?() do
-            result
-          else
-            Repo.rollback(:forbidden_last_admin_deletion)
-          end
+  defp commit_if_last_admin_not_deleted_async(fun),
+    do: GenServer.cast(__MODULE__, {:commit_if_last_admin_not_deleted, fun})
 
-        {:error, error} ->
-          Repo.rollback(error)
-      end
-    end)
+  defp do_commit_if_last_admin_not_deleted(fun) do
+    Repo.transaction(
+      fn ->
+        case fun.() do
+          {:ok, result} ->
+            if admin_user_exists?() do
+              result
+            else
+              Repo.rollback(:forbidden_last_admin_deletion)
+            end
+
+          {:error, error} ->
+            Repo.rollback(error)
+        end
+      end,
+      timeout: :timer.hours(1)
+    )
   end
 
   # -------------------------------------------------------------------
@@ -360,6 +370,10 @@ defmodule Air.Service.User do
   @impl GenServer
   def handle_call({:commit_if_last_admin_not_deleted, fun}, _from, state),
     do: {:reply, do_commit_if_last_admin_not_deleted(fun), state}
+
+  @impl GenServer
+  def handle_cast({:commit_if_last_admin_not_deleted, fun}, state),
+    do: {:noreply, do_commit_if_last_admin_not_deleted(fun), state}
 
   # -------------------------------------------------------------------
   # Supervision tree
