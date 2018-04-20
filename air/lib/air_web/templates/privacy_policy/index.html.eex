@@ -1,3 +1,4 @@
-<h2>Privacy policy</h2>
+<h1>Aircloak Insights - Privacy policy</h1>
+<hr />
 
 <%= render "_page.html", conn: @conn, privacy_policy: @privacy_policy %>

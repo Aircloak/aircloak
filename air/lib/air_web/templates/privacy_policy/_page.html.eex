@@ -1,7 +1,17 @@
-<%= render "_info_boxes.html", conn: @conn, privacy_policy: @privacy_policy %>
+<div class="row">
+  <div class="col-md-8 col-sm-12">
+    <div id="privacy-policy">
+      <%= raw(content_as_html(@privacy_policy)) %>
+    </div>
+  </div>
 
-<div id="privacy-policy">
-  <%= raw(content_as_html(@privacy_policy)) %>
+  <div class="col-md-4 visible-md-block visible-lg-block">
+    <div class="affix affix-top" id="review-box">
+      <%= render "_info_boxes.html", conn: @conn, privacy_policy: @privacy_policy %>
+    </div>
+  </div>
+
+  <div class="visible-xs-block visible-sm-block col-sm-12">
+    <%= render "_info_boxes.html", conn: @conn, privacy_policy: @privacy_policy %>
+  </div>
 </div>
-
-<%= render "_info_boxes.html", conn: @conn, privacy_policy: @privacy_policy %>
