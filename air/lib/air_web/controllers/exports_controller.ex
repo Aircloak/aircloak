@@ -9,20 +9,35 @@ defmodule AirWeb.ExportsController do
 
   def permissions, do: %{user: :all}
 
+  # -------------------------------------------------------------------
+  # Actions
+  # -------------------------------------------------------------------
+
   def show(conn, _params) do
-    conn =
+    conn = put_resp_content_type(conn, "application/json")
+
+    Export.reduce_while(conn.assigns.current_user, conn, fn chunk, conn ->
       conn
-      |> put_resp_content_type("application/json")
-      |> Plug.Conn.send_chunked(200)
+      |> send_chunked()
+      |> Plug.Conn.chunk(chunk)
+      |> case do
+        {:ok, conn} -> {:cont, conn}
+        {:error, :closed} -> {:halt, conn}
+      end
+    end)
+    |> case do
+      {:ok, conn} ->
+        conn
 
-    {:ok, conn} =
-      Export.reduce_while(conn.assigns.current_user, conn, fn chunk, conn ->
-        case Plug.Conn.chunk(conn, chunk) do
-          {:ok, conn} -> {:cont, conn}
-          {:error, :closed} -> {:halt, conn}
-        end
-      end)
-
-    conn
+      {:error, :export_in_progress} ->
+        Plug.Conn.send_resp(conn, 403, ~s("Another export in progress"))
+    end
   end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp send_chunked(conn = %Plug.Conn{state: :chunked}), do: conn
+  defp send_chunked(conn), do: Plug.Conn.send_chunked(conn, 200)
 end

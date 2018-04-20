@@ -14,9 +14,20 @@ defmodule Air.Service.Export do
   should return `{:cont, accumulator}` to continue the reduction or `{:halt, accumulator}` to stop.
   """
   @spec reduce_while(Air.Schemas.User.t(), acc, (iolist, acc -> {:cont, acc} | {:halt, acc})) ::
-          {:ok, acc} | {:error, any}
+          {:ok, acc} | {:error, :export_in_progress} | {:error, any}
         when acc: var
   def reduce_while(user, initial, reducer) do
+    case Registry.register(__MODULE__, user.id, :in_progress) do
+      {:ok, _} -> do_reduce_while(user, initial, reducer)
+      {:error, _} -> {:error, :export_in_progress}
+    end
+  end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp do_reduce_while(user, initial, reducer) do
     Repo.transaction(
       fn ->
         user
@@ -26,10 +37,6 @@ defmodule Air.Service.Export do
       timeout: :timer.hours(1)
     )
   end
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
 
   defp export_stream(user) do
     Stream.concat([
@@ -90,4 +97,10 @@ defmodule Air.Service.Export do
     |> Enum.into(%{})
     |> Poison.encode!()
   end
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  def child_spec(_arg), do: Aircloak.ChildSpec.registry(:unique, __MODULE__)
 end
