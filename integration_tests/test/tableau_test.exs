@@ -233,9 +233,11 @@ defmodule IntegrationTest.TableauTest do
     test "integer", context do
       assert :odbc.sql_query(context.conn, ' \n seLect  \n  -1234\n') == {:selected, ['?column?'], [{-1234}]}
     end
+
     test "bool", context do
       assert :odbc.sql_query(context.conn, 'seLect True;') == {:selected, ['bool'], [{true}]}
     end
+
     test "text", context do
       assert :odbc.sql_query(context.conn, 'seLect \'ab\'\'cd\'') == {:selected, ['?column?'], [{'ab\'cd'}]}
     end
