@@ -56,10 +56,17 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
         )
 
       # simple select queries for testing connectivity, like `select 1`, `select true`, `select 'aaa'`
-      query =~ ~r/^\s*select\s+[-\w\d\']+[\s;]*$/i ->
-        [data] = Regex.run(~r/^\s*select\s+([-\w']+)[\s;]*$/i, query, capture: :all_but_first)
+      query =~ ~r/^\s*select\s+[-\w'\.]+[\s;]*$/i ->
+        [data] = Regex.run(~r/^\s*select\s+([-\w'\.]+)[\s;]*$/i, query, capture: :all_but_first)
 
         cond do
+          data =~ ~r/-?\d+\.\d+/r ->
+            RanchServer.query_result(
+              conn,
+              columns: [%{name: "?column?", type: :float4}],
+              rows: [[String.to_float(data)]]
+            )
+
           data =~ ~r/-?\d+/r ->
             RanchServer.query_result(
               conn,
