@@ -47,8 +47,7 @@ defmodule Central.Service.Customer.AirMessage.V180210 do
 
   def do_handle(unknown_message, customer, air_name) do
     Logger.error(
-      "unknown air message: #{inspect(unknown_message)} from #{inspect(customer)} and air: " <>
-        "#{inspect(air_name)}"
+      "unknown air message: #{inspect(unknown_message)} from #{inspect(customer)} and air: " <> "#{inspect(air_name)}"
     )
 
     :error
