@@ -55,6 +55,12 @@ defmodule Air.Service.Export.Test do
     assert [%{"name" => ^view_name}] = export(user)["views"]
   end
 
+  test "includes api tokens", %{user: user} do
+    Air.Token.create_api_token(user, :api, "Some token")
+
+    assert [%{"access" => "api", "description" => "Some token"}] = export(user)["api_tokens"]
+  end
+
   defp export(user) do
     {:ok, result} =
       Export.reduce_while(user, [], fn next, acc ->

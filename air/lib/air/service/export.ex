@@ -26,6 +26,8 @@ defmodule Air.Service.Export do
       queries(user),
       [~s(], "result_chunks": [)],
       result_chunks(user),
+      [~s(], "api_tokens": [)],
+      api_tokens(user),
       ["]}"]
     ])
   end
@@ -53,6 +55,8 @@ defmodule Air.Service.Export do
     )
     |> stream(fn chunk -> %{chunk | encoded_data: :zlib.gunzip(chunk.encoded_data)} end)
   end
+
+  defp api_tokens(user), do: Air.Schemas.ApiToken |> where(user_id: ^user.id) |> stream()
 
   defp stream(queryable, preprocessor \\ & &1),
     do: queryable |> Repo.stream() |> Stream.map(preprocessor) |> Stream.map(&encode/1) |> Stream.intersperse(",")
