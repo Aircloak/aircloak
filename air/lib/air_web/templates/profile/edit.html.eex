@@ -131,6 +131,21 @@
   </div>
 </div>
 
+<div class="col-sm-6">
+  <div class="panel panel-default">
+    <div class="panel-heading">
+      <h4>Aircloak Identifier</h4>
+    </div>
+
+    <div class="panel-body">
+      <p>
+        The following pseudonym is used when Aircloak Insights sends statistical information to Aircloak GmbH:
+        <code><%= Air.Service.User.pseudonym(@conn.assigns.current_user) %></code>.
+      </p>
+    </div>
+  </div>
+</div>
+
 <script>
   window.pageConfig = {
     onLoad: function(App) {
