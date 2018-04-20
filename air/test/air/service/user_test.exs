@@ -254,11 +254,11 @@ defmodule Air.Service.UserTest do
       do: refute(User.pseudonym(nil) == User.pseudonym(nil))
 
     test "a users pseudonym does not change over time" do
-      user = TestRepoHelper.create_user!()
-      pseudonym1 = User.pseudonym(user)
+      user_initial = TestRepoHelper.create_user!()
+      pseudonym1 = User.pseudonym(user_initial)
 
-      user = User.load(user.id)
-      pseudonym2 = User.pseudonym(user)
+      user_loaded = User.load(user_initial.id)
+      pseudonym2 = User.pseudonym(user_loaded)
 
       assert pseudonym1 == pseudonym2
     end
