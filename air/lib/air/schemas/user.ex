@@ -16,6 +16,7 @@ defmodule Air.Schemas.User do
     field(:email, :string)
     field(:hashed_password, :string)
     field(:name, :string)
+    field(:pseudonym, :string)
 
     has_many(:queries, Air.Schemas.Query)
     has_many(:views, Air.Schemas.View)

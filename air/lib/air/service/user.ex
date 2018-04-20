@@ -105,12 +105,9 @@ defmodule Air.Service.User do
       |> Repo.update()
 
   @doc "Deletes the given user in the background."
-  @spec delete_async(User.t()) :: :ok
-  def delete_async(user) do
-    action = fn -> Repo.delete(user) end
-    failure_callback = fn -> AuditLog.log(user, "User delete failed") end
-    commit_if_last_admin_not_deleted_async(action, failure_callback)
-  end
+  @spec delete_async(User.t(), (() -> any), (any -> any)) :: :ok
+  def delete_async(user, success_callback, failure_callback),
+    do: commit_if_last_admin_not_deleted_async(fn -> Repo.delete(user) end, success_callback, failure_callback)
 
   @doc "Deletes the given user, raises on error."
   @spec delete!(User.t()) :: User.t()
@@ -278,9 +275,39 @@ defmodule Air.Service.User do
     end
   end
 
+  @doc """
+  Generates a pseudonymized ID for a user that can be used when sending query metrics
+  and other analyst specific metrics to Aircloak.
+  If no user is provided, a random ID will be generated and returned.
+  """
+  @spec pseudonym(User.t()) :: String.t()
+  def pseudonym(nil), do: random_string()
+
+  def pseudonym(user) do
+    if is_nil(user.pseudonym) do
+      reloaded_user = Air.Service.User.load(user.id)
+
+      if is_nil(reloaded_user.pseudonym) do
+        pseudonym = random_string()
+
+        user
+        |> cast(%{pseudonym: pseudonym}, [:pseudonym])
+        |> Repo.update!()
+
+        pseudonym
+      else
+        reloaded_user.pseudonym
+      end
+    else
+      user.pseudonym
+    end
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp random_string, do: Base.encode16(:crypto.strong_rand_bytes(10))
 
   defp set_privacy_policy_id(user, policy_id) do
     user
@@ -340,8 +367,8 @@ defmodule Air.Service.User do
 
   defp commit_if_last_admin_not_deleted(fun), do: GenServer.call(__MODULE__, {:commit_if_last_admin_not_deleted, fun})
 
-  defp commit_if_last_admin_not_deleted_async(fun, failure_fun),
-    do: GenServer.cast(__MODULE__, {:commit_if_last_admin_not_deleted, fun, failure_fun})
+  defp commit_if_last_admin_not_deleted_async(fun, success_callback, failure_callback),
+    do: GenServer.cast(__MODULE__, {:commit_if_last_admin_not_deleted, fun, success_callback, failure_callback})
 
   defp do_commit_if_last_admin_not_deleted(fun) do
     Repo.transaction(
@@ -376,10 +403,10 @@ defmodule Air.Service.User do
     do: {:reply, do_commit_if_last_admin_not_deleted(fun), state}
 
   @impl GenServer
-  def handle_cast({:commit_if_last_admin_not_deleted, fun, failure_fun}, state) do
+  def handle_cast({:commit_if_last_admin_not_deleted, fun, success_callback, failure_callback}, state) do
     case do_commit_if_last_admin_not_deleted(fun) do
-      {:ok, _} -> :ok
-      {:error, _} -> failure_fun.()
+      {:ok, _} -> success_callback.()
+      {:error, error} -> failure_callback.(error)
     end
 
     {:noreply, state}

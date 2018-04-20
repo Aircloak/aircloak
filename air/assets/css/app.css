@@ -190,7 +190,7 @@ h2 {
 }
 
 #privacy-policy {
-  margin: 50px 0 60px 0;
+  margin-bottom: 100px;
 }
 
 #privacy-policy h2 {
@@ -204,4 +204,8 @@ h2 {
 
 #privacy-policy table {
   margin-bottom: 15px;
+}
+
+#review-box {
+  width: 310px;
 }

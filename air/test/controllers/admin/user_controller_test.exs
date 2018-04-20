@@ -101,9 +101,19 @@ defmodule AirWeb.Admin.UserController.Test do
     assert redirected_to(conn) == "/admin/users"
 
     :timer.sleep(100)
-    assert Air.Repo.get_by(Air.Schemas.AuditLog, user_id: admin.id, event: "User delete failed")
+    assert Air.Repo.get_by(Air.Schemas.AuditLog, user_id: admin.id, event: "User removal failed")
     assert Air.Service.User.load(admin.id) != nil
     assert Air.Service.User.admin_user_exists?()
+  end
+
+  test "success is reported via audit log" do
+    admin = create_admin_user!()
+    user = create_user!()
+
+    login(admin) |> delete("/admin/users/#{user.id}")
+
+    :timer.sleep(100)
+    assert Air.Repo.get_by(Air.Schemas.AuditLog, user_id: admin.id, event: "User removal succeeded")
   end
 
   test "render 404 on attempting to render edit form for non-existent user" do

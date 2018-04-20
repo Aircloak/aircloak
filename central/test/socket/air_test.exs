@@ -69,6 +69,52 @@ defmodule CentralWeb.Socket.AirTest do
     end
   end
 
+  for join_options <- [%{"air_version" => "18.2.1"}] do
+    @join_options join_options
+
+    describe "main topic with #{inspect(join_options)}" do
+      setup do: {:ok, join_options: @join_options}
+
+      setup [:with_customer, :joined_main]
+
+      test "query_execution", %{socket: socket, customer: customer} do
+        request_id =
+          push_air_call(socket, "query_execution", %{
+            metrics: %{"some" => "metrics"},
+            features: %{"some" => "features"},
+            aux: %{"some" => "data"}
+          })
+
+        assert_push("central_response", %{request_id: ^request_id, status: :ok})
+
+        assert %{
+                 metrics: %{"some" => "metrics"},
+                 features: %{"some" => "features"},
+                 aux: %{"some" => "data"}
+               } = Repo.get_by(Query, customer_id: customer.id)
+      end
+
+      test "a duplicate message", %{socket: socket} do
+        message_id = Ecto.UUID.generate()
+        request_id = Ecto.UUID.generate()
+
+        message = %{
+          metrics: %{"some" => "metrics"},
+          features: %{"some" => "features"},
+          aux: %{"some" => "data"}
+        }
+
+        assert Enum.empty?(Repo.all(Query)), "No queries recorded initially"
+
+        push_air_call(socket, "query_execution", message, message_id, request_id)
+        push_air_call(socket, "query_execution", message, message_id, request_id)
+        push_air_call(socket, "query_execution", message, message_id, request_id)
+
+        assert 1 == length(Repo.all(Query)), "Repeated messages are dropped"
+      end
+    end
+  end
+
   defp connect!(params \\ %{}) do
     TestSocketHelper.connect!(Map.merge(default_params(), params))
   end

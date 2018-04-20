@@ -37,8 +37,10 @@ defmodule Compliance.Data do
   """
   @spec users(non_neg_integer) :: Enumerable.t()
   def users(num_users) do
+    samples = samples()
+
     1..num_users
-    |> Task.async_stream(&generate_user(&1, samples()), timeout: :timer.minutes(10))
+    |> Task.async_stream(&generate_user(&1, samples), timeout: :timer.minutes(10))
     |> Stream.map(fn {:ok, user_data} -> user_data end)
   end
 
@@ -181,9 +183,19 @@ defmodule Compliance.Data do
 
   defp ages(), do: sample(fn -> :rand.uniform(70) + 10 end)
 
-  defp heights(), do: sample(fn -> round(100 * (:rand.uniform() * 30 + 170)) / 100 end)
+  defp heights(), do: sample(fn -> 170 + :rand.uniform(30) + random_float(2) end)
 
-  defp floats(), do: sample(fn -> :rand.uniform() - 0.5 end)
+  defp floats(), do: sample(fn -> random_sign() * random_float(6) end)
+
+  defp random_float(num_digits) do
+    # Generates random float with desired number of digits. No digit will have the value of 0, 5, or 9, to reduce the
+    # chance of rounding inconsistencies, which can happen due to the way floats are stored in the database.
+    1..num_digits
+    |> Enum.reduce(0, fn _, acc -> 10 * acc + Enum.random([1, 2, 3, 4, 6, 7, 8]) end)
+    |> Kernel./(:math.pow(10, num_digits))
+  end
+
+  defp random_sign(), do: Enum.random([-1, 1])
 
   defp postcodes(), do: sample(fn -> :rand.uniform(@max_postal_code - @min_postal_code) + @min_postal_code end)
 
