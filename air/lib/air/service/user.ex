@@ -376,7 +376,7 @@ defmodule Air.Service.User do
   def handle_cast({:commit_if_last_admin_not_deleted, fun, success_callback, failure_callback}, state) do
     case do_commit_if_last_admin_not_deleted(fun) do
       {:ok, _} -> success_callback.()
-      {:error, _} -> failure_callback.()
+      {:error, error} -> failure_callback.(error)
     end
 
     {:noreply, state}

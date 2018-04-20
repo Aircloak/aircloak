@@ -68,8 +68,9 @@ defmodule AirWeb.Admin.UserController do
     user = conn.assigns.user
 
     audit_log(conn, "User removal scheduled")
+    audit_log_for_user(conn, user, "User scheduled for removal")
     success_callback = fn -> audit_log(conn, "User removal succeeded") end
-    failure_callback = fn -> audit_log(conn, "User removal failed") end
+    failure_callback = fn reason -> audit_log(conn, "User removal failed", %{reason: reason}) end
     User.delete_async(user, success_callback, failure_callback)
 
     conn
