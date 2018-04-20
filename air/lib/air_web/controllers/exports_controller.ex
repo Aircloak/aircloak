@@ -10,7 +10,10 @@ defmodule AirWeb.ExportsController do
   def permissions, do: %{user: :all}
 
   def show(conn, _params) do
-    conn = Plug.Conn.send_chunked(conn, 200)
+    conn =
+      conn
+      |> put_resp_content_type("application/json")
+      |> Plug.Conn.send_chunked(200)
 
     {:ok, conn} =
       Export.reduce_while(conn.assigns.current_user, conn, fn chunk, conn ->
