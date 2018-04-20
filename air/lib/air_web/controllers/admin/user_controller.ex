@@ -67,8 +67,10 @@ defmodule AirWeb.Admin.UserController do
   def delete(conn, _params) do
     user = conn.assigns.user
 
-    User.delete_async(user)
-    audit_log(conn, "Removed user")
+    audit_log(conn, "User removal scheduled")
+    success_callback = fn -> audit_log(conn, "User removal succeeded") end
+    failure_callback = fn -> audit_log(conn, "User removal failed") end
+    User.delete_async(user, success_callback, failure_callback)
 
     conn
     |> put_flash(:info, "User deletion will be performed in the background")
