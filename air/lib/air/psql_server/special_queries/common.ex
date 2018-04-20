@@ -55,7 +55,7 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
           rows: [["C"]]
         )
 
-      # simple select queries for testing connectivity
+      # simple select queries for testing connectivity, like `select 1`, `select true`, `select 'aaa'`
       query =~ ~r/^\s*select\s+[-\w\d\']+[\s;]*$/i ->
         [data] = Regex.run(~r/^\s*select\s+([-\w']+)[\s;]*$/i, query, capture: :all_but_first)
 
