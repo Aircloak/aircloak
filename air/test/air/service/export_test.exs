@@ -30,6 +30,18 @@ defmodule Air.Service.Export.Test do
            ] = export(user)["audit_logs"]
   end
 
+  test "includes queries"
+
+  test "includes query results"
+
+  test "includes views", %{user: user} do
+    data_source = create_data_source!()
+    view = create_view!(user, data_source)
+
+    view_name = view.name
+    assert [%{"name" => ^view_name}] = export(user)["views"]
+  end
+
   defp export(user) do
     {:ok, result} =
       Export.reduce_while(user, [], fn next, acc ->
