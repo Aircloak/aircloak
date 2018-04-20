@@ -22,6 +22,8 @@ defmodule Air.Service.Export do
       audit_logs(user),
       [~s(], "views": [)],
       views(user),
+      [~s(], "queries": [)],
+      queries(user),
       ["]}"]
     ])
   end
@@ -37,6 +39,8 @@ defmodule Air.Service.Export do
   defp views(user), do: Air.Schemas.View |> where(user_id: ^user.id) |> stream()
 
   defp audit_logs(user), do: Air.Schemas.AuditLog |> where(user_id: ^user.id) |> stream()
+
+  defp queries(user), do: Air.Schemas.Query |> where(user_id: ^user.id) |> stream()
 
   defp stream(queryable), do: queryable |> Repo.stream() |> Stream.map(&encode/1) |> Stream.intersperse(",")
 

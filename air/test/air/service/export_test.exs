@@ -30,7 +30,12 @@ defmodule Air.Service.Export.Test do
            ] = export(user)["audit_logs"]
   end
 
-  test "includes queries"
+  test "includes queries", %{user: user} do
+    create_query!(user, %{statement: "Some query"})
+    create_query!(user, %{statement: "Some other query"})
+
+    assert export(user)["queries"] |> Enum.map(& &1["statement"]) |> Enum.sort() == ["Some other query", "Some query"]
+  end
 
   test "includes query results"
 
