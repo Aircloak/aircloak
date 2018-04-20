@@ -250,6 +250,7 @@ defmodule Air.Service.UserTest do
   end
 
   describe "pseudonym" do
+    # credo:disable-for-lines:2
     test "if no user is provided, a random pseudonym is generated",
       do: refute(User.pseudonym(nil) == User.pseudonym(nil))
 
