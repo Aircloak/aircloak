@@ -105,7 +105,7 @@ defmodule Air.Service.User do
       |> Repo.update()
 
   @doc "Deletes the given user in the background."
-  @spec delete_async(User.t(), (() -> any), (() -> any)) :: :ok
+  @spec delete_async(User.t(), (() -> any), (any -> any)) :: :ok
   def delete_async(user, success_callback, failure_callback),
     do: commit_if_last_admin_not_deleted_async(fn -> Repo.delete(user) end, success_callback, failure_callback)
 
