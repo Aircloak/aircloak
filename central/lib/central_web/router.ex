@@ -49,7 +49,7 @@ defmodule CentralWeb.Router do
 
     resources("/stats", StatsController)
 
-    get("/", StatsController, :index)
+    get("/", CustomerController, :index)
     delete("/logout", SessionController, :delete)
 
     resources("/imports", ImportController)

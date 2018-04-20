@@ -14,7 +14,6 @@
       <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
         <ul class="nav navbar-nav navbar-right">
           <%= if logged_in?(@conn) do %>
-            <%= navbar_link(@conn, "Stats", stats_path(@conn, :index)) %>
             <%= navbar_link(@conn, "Customers", customer_path(@conn, :index)) %>
             <%= navbar_link(@conn, "Users", user_path(@conn, :index)) %>
           <% end %>
