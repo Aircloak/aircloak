@@ -1,5 +1,5 @@
 defmodule AirWeb.Admin.UserController.Test do
-  use AirWeb.ConnCase, async: true
+  use AirWeb.ConnCase, async: false
 
   import Air.{TestConnHelper, TestRepoHelper}
 
@@ -94,17 +94,26 @@ defmodule AirWeb.Admin.UserController.Test do
     refute users_html =~ user.email
   end
 
-  test "error is reported when deleting the last admin" do
+  test "error is reported via audit log when deleting the last admin" do
     admin = create_only_user_as_admin!()
     conn = login(admin) |> delete("/admin/users/#{admin.id}")
 
     assert redirected_to(conn) == "/admin/users"
 
-    assert get_flash(conn)["error"] ==
-             "The given action cannot be performed, because it would remove the only administrator."
-
+    :timer.sleep(100)
+    assert Air.Repo.get_by(Air.Schemas.AuditLog, user_id: admin.id, event: "User removal failed")
     assert Air.Service.User.load(admin.id) != nil
     assert Air.Service.User.admin_user_exists?()
+  end
+
+  test "success is reported via audit log" do
+    admin = create_admin_user!()
+    user = create_user!()
+
+    login(admin) |> delete("/admin/users/#{user.id}")
+
+    :timer.sleep(100)
+    assert Air.Repo.get_by(Air.Schemas.AuditLog, user_id: admin.id, event: "User removal succeeded")
   end
 
   test "render 404 on attempting to render edit form for non-existent user" do
