@@ -1207,13 +1207,16 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejecting duplicate table",
-    do: assert({:error, "Table name `t1` specified more than once."} == compile("SELECT * from t1, t1", data_source()))
+    do:
+      assert(
+        {:error, "Table name `t1` specified more than once."} == compile("SELECT t1.uid from t1, t1", data_source())
+      )
 
   test "rejecting duplicate subquery",
     do:
       assert(
         {:error, "Table name `a` specified more than once."} ==
-          compile("SELECT * from (select * from t1) a, (select * from t1) a", data_source())
+          compile("SELECT a.uid from (select * from t1) a, (select * from t1) a", data_source())
       )
 
   test "real name of an aliased table can't be used as a prefix" do
@@ -1335,6 +1338,13 @@ defmodule Cloak.Sql.Compiler.Test do
   test "rejects usage of distinct in non-aggregates" do
     {:error, error} = compile("select length(distinct string) from table", data_source())
     assert error =~ "`DISTINCT` specified in non-aggregating function `length`."
+  end
+
+  test "rejects *-selecting duplicated columns" do
+    {:error, error} =
+      compile("select * from (select uid, count(*), count(numeric) from table group by 1) t", data_source())
+
+    assert error =~ "Selecting all from subquery `t` is not supported because the column name `count` is ambigous."
   end
 
   defp validate_view(view_sql, data_source, options \\ []) do

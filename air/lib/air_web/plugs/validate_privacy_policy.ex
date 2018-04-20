@@ -26,7 +26,7 @@ defmodule AirWeb.Plug.ValidatePrivacyPolicy do
           Air.Service.PrivacyPolicy.exists?() ->
             conn
 
-          admin?(conn) and ValidatePrivacyPolicy.in_privacy_policy_section?(conn) ->
+          admin?(conn) and ValidatePrivacyPolicy.in_allowed_section?(conn) ->
             conn
 
           admin?(conn) ->
@@ -83,7 +83,7 @@ defmodule AirWeb.Plug.ValidatePrivacyPolicy do
         policy_status_ok?(conn) ->
           conn
 
-        ValidatePrivacyPolicy.in_privacy_policy_section?(conn) ->
+        ValidatePrivacyPolicy.in_allowed_section?(conn) ->
           conn
 
         _otherwise = true ->
@@ -108,11 +108,19 @@ defmodule AirWeb.Plug.ValidatePrivacyPolicy do
     |> Plug.Conn.halt()
   end
 
-  @doc "Returns true if the requested path is in the privacy policy section of the admin interface"
-  @spec in_privacy_policy_section?(Plug.Conn.t()) :: boolean
-  def in_privacy_policy_section?(conn) do
-    admin_path = AirWeb.Router.Helpers.admin_privacy_policy_path(conn, :index)
-    customer_path = AirWeb.Router.Helpers.privacy_policy_path(conn, :index)
-    String.starts_with?(conn.request_path, admin_path) or String.starts_with?(conn.request_path, customer_path)
+  @doc """
+  Returns true if the request is for a path that is either related to privacy policies,
+  or otherwise more or equally important (like the ability to upload a license).
+  """
+  @spec in_allowed_section?(Plug.Conn.t()) :: boolean
+  def in_allowed_section?(conn) do
+    allowed_path_prefixes = [
+      AirWeb.Router.Helpers.privacy_policy_path(conn, :index),
+      AirWeb.Router.Helpers.admin_privacy_policy_path(conn, :index),
+      AirWeb.Router.Helpers.admin_license_path(conn, :edit),
+      AirWeb.Router.Helpers.admin_license_path(conn, :update)
+    ]
+
+    Enum.any?(allowed_path_prefixes, &String.starts_with?(conn.request_path, &1))
   end
 end
