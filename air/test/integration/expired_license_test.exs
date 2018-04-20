@@ -36,7 +36,19 @@ defmodule ExpiredLicenseTest do
     end
   end
 
-  test "admin panel can still be accessed", %{admin: admin} do
+  test "admin panel can still be accessed (valid privacy policy)", %{admin: admin} do
+    result = admin |> login() |> get("/admin/license/edit")
+    assert response(result, 200) =~ "Upload license file"
+  end
+
+  test "admin panel can still be accessed (no privacy policy)", %{admin: admin} do
+    delete_all_privacy_policies!()
+    result = admin |> login() |> get("/admin/license/edit")
+    assert response(result, 200) =~ "Upload license file"
+  end
+
+  test "admin panel can still be accessed (un-accepted privacy policy)", %{admin: admin} do
+    create_privacy_policy!()
     result = admin |> login() |> get("/admin/license/edit")
     assert response(result, 200) =~ "Upload license file"
   end
