@@ -11,20 +11,6 @@ defmodule AirWeb.Admin.CentralController.Test do
     :ok
   end
 
-  test "export form is visible when there's something to export" do
-    Air.Service.Central.record_query(%{})
-
-    assert (login(create_admin_user!()) |> get("/admin/central/export_for_aircloak")).resp_body =~
-             ~s(data-to="/admin/central/new_export")
-  end
-
-  test "generating a new export" do
-    Air.Service.Central.record_query(%{})
-    conn = login(create_admin_user!()) |> post("/admin/central/new_export")
-    assert redirected_to(conn) == "/admin/central/export_for_aircloak"
-    assert get_flash(conn)["info"] =~ "Export generated successfully"
-  end
-
   test "can't view exports as user",
     do: assert("/" == login(create_user!()) |> get("/admin/central/export_for_aircloak") |> redirected_to())
 
