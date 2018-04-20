@@ -33,14 +33,6 @@ defmodule CentralWeb.Router do
     post("/", SessionController, :create)
   end
 
-  scope "/kibana", CentralWeb do
-    pipe_through([:proxy, :browser_auth])
-    get("/", KibanaProxyController, :redirect_to_web_interface)
-    get("/*path", KibanaProxyController, :get)
-    post("/*path", KibanaProxyController, :post)
-    put("/*path", KibanaProxyController, :put)
-  end
-
   scope "/", CentralWeb do
     pipe_through([:browser, :browser_auth])
 
