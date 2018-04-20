@@ -46,14 +46,17 @@ defmodule Central.Service.Customer.AirMessage.V180210 do
 
   def do_handle(unknown_message, customer, air_name) do
     Logger.error(
-      "unknown air message: #{inspect(unknown_message)} from #{inspect(customer)} and air: " <> "#{inspect(air_name)}"
+      "unknown air message: #{inspect(unknown_message)} from #{inspect(customer)} and air: " <>
+        "#{inspect(air_name)}"
     )
 
     :error
   end
 
   defp handle_query_execution(message) do
-    Logger.debug("Received query execution update with payload: #{inspect(message.payload)}")
+    Logger.debug(fn ->
+      "Received query execution update for customer: #{message.customer.name}."
+    end)
 
     params = %{
       metrics: message.payload["metrics"],
