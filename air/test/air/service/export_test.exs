@@ -12,7 +12,13 @@ defmodule Air.Service.Export.Test do
     assert export(user)["user"]["name"] == user.name
   end
 
-  test "includes user group information"
+  test "includes user group information" do
+    group1 = create_group!()
+    group2 = create_group!()
+    user = create_user!(%{groups: [group1.id, group2.id]})
+
+    assert export(user)["user"]["groups"] == [group1.name, group2.name]
+  end
 
   test "includes audit logs", %{user: user} do
     AuditLog.log(user, "Some audit log", %{some: "metadata"})

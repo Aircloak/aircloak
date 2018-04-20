@@ -17,11 +17,19 @@ defmodule Air.Service.Export do
   defp export_stream(user) do
     Stream.concat([
       ["{"],
-      [~s("user":), encode(user), ","],
+      [~s("user":), prepare_user(user), ","],
       [~s("audit_logs": [)],
       audit_logs(user),
       ["]}"]
     ])
+  end
+
+  defp prepare_user(user) do
+    user = Repo.preload(user, :groups)
+
+    user
+    |> Map.put(:groups, Enum.map(user.groups, & &1.name))
+    |> encode()
   end
 
   defp audit_logs(user) do
@@ -35,7 +43,7 @@ defmodule Air.Service.Export do
   defp encode(schema) do
     schema
     |> Map.from_struct()
-    |> Map.drop([:__meta__, :groups, :user_id])
+    |> Map.drop([:__meta__, :user_id])
     |> Enum.reject(&match?({_, %Ecto.Association.NotLoaded{}}, &1))
     |> Enum.into(%{})
     |> Poison.encode!()
