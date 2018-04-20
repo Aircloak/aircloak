@@ -1,8 +1,21 @@
 defmodule Air.Service.Export do
+  @moduledoc "Service module for creating an export of a user's data to comply with GDPR"
+
   alias Air.Repo
 
   import Ecto.Query, only: [where: 2, from: 2]
 
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc """
+  Reduces over the stream of iolists representing the export of the given user's data as JSON. The reducing function
+  should return `{:cont, accumulator}` to continue the reduction or `{:halt, accumulator}` to stop.
+  """
+  @spec reduce_while(Air.Schemas.User.t(), acc, (iolist, acc -> {:cont, acc} | {:halt, acc})) ::
+          {:ok, acc} | {:error, any}
+        when acc: var
   def reduce_while(user, initial, reducer) do
     Repo.transaction(
       fn ->
@@ -13,6 +26,10 @@ defmodule Air.Service.Export do
       timeout: :timer.hours(1)
     )
   end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp export_stream(user) do
     Stream.concat([
