@@ -37,7 +37,15 @@ defmodule Air.Service.Export.Test do
     assert export(user)["queries"] |> Enum.map(& &1["statement"]) |> Enum.sort() == ["Some other query", "Some query"]
   end
 
-  test "includes query results"
+  test "includes query result chunks", %{user: user} do
+    query = create_query!(user)
+
+    Repo.insert_all(Air.Schemas.ResultChunk, [
+      %{query_id: query.id, index: 1, encoded_data: :zlib.gzip("some encoded data")}
+    ])
+
+    assert [%{"encoded_data" => "some encoded data"}] = export(user)["result_chunks"]
+  end
 
   test "includes views", %{user: user} do
     data_source = create_data_source!()

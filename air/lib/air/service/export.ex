@@ -1,7 +1,7 @@
 defmodule Air.Service.Export do
   alias Air.Repo
 
-  import Ecto.Query, only: [where: 2]
+  import Ecto.Query, only: [where: 2, from: 2]
 
   def reduce_while(user, initial, reducer) do
     Repo.transaction(
@@ -24,6 +24,8 @@ defmodule Air.Service.Export do
       views(user),
       [~s(], "queries": [)],
       queries(user),
+      [~s(], "result_chunks": [)],
+      result_chunks(user),
       ["]}"]
     ])
   end
@@ -42,7 +44,18 @@ defmodule Air.Service.Export do
 
   defp queries(user), do: Air.Schemas.Query |> where(user_id: ^user.id) |> stream()
 
-  defp stream(queryable), do: queryable |> Repo.stream() |> Stream.map(&encode/1) |> Stream.intersperse(",")
+  defp result_chunks(user) do
+    from(
+      chunk in Air.Schemas.ResultChunk,
+      join: query in assoc(chunk, :query),
+      where: query.user_id == ^user.id,
+      select: chunk
+    )
+    |> stream(fn chunk -> %{chunk | encoded_data: :zlib.gunzip(chunk.encoded_data)} end)
+  end
+
+  defp stream(queryable, preprocessor \\ & &1),
+    do: queryable |> Repo.stream() |> Stream.map(preprocessor) |> Stream.map(&encode/1) |> Stream.intersperse(",")
 
   defp encode(schema) do
     schema
