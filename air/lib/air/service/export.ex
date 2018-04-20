@@ -50,11 +50,15 @@ defmodule Air.Service.Export do
   end
 
   defp prepare_user(user) do
-    user = Repo.preload(user, :groups)
+    user = Repo.preload(user, groups: :data_sources)
 
     user
-    |> Map.put(:groups, Enum.map(user.groups, & &1.name))
+    |> Map.put(:groups, Enum.map(user.groups, &prepare_group/1))
     |> encode()
+  end
+
+  defp prepare_group(group) do
+    %{name: group.name, data_sources: Enum.map(group.data_sources, &Map.take(&1, [:name, :id]))}
   end
 
   defp views(user), do: Air.Schemas.View |> where(user_id: ^user.id) |> stream()
