@@ -55,6 +55,32 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
           rows: [["C"]]
         )
 
+      # simple select queries for testing connectivity
+      query =~ ~r/^\s*select\s+[-\w\d\']+[\s;]*$/i ->
+        [data] = Regex.run(~r/^\s*select\s+([-\w']+)[\s;]*$/i, query, capture: :all_but_first)
+
+        cond do
+          data =~ ~r/-?\d+/r ->
+            RanchServer.query_result(
+              conn,
+              columns: [%{name: "?column?", type: :int4}],
+              rows: [[String.to_integer(data)]]
+            )
+
+          String.downcase(data) == "true" ->
+            RanchServer.query_result(conn, columns: [%{name: "bool", type: :boolean}], rows: [[true]])
+
+          String.downcase(data) == "false" ->
+            RanchServer.query_result(conn, columns: [%{name: "bool", type: :boolean}], rows: [[false]])
+
+          String.starts_with?(data, "'") and String.ends_with?(data, "'") ->
+            data = data |> String.slice(1..-2) |> String.replace("''", "'")
+            RanchServer.query_result(conn, columns: [%{name: "?column?", type: :text}], rows: [[data]])
+
+          true ->
+            nil
+        end
+
       permission_denied_query?(query) ->
         RanchServer.query_result(conn, {:error, "permission denied"})
 
