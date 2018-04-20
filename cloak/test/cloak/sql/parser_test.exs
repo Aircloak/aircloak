@@ -1374,7 +1374,7 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "parsing of integer with signs" do
     assert_parse(
-      "select 1+2, -3, +4, -5--6, -7++8, 9 + 10 FROM foo",
+      "select 1+2, -3, +4, -5- -6, -7++8, 9 + 10 FROM foo",
       select(
         columns: [
           function("+", [constant(1), constant(2)]),
@@ -1393,7 +1393,7 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "parsing of floats with signs" do
     assert_parse(
-      "select 1.1+2.1, -3.1, +4.1, -5.1--6.1, -7.1++8.1, 9.1 + 10.1 FROM foo",
+      "select 1.1+2.1, -3.1, +4.1, -5.1 - -6.1, -7.1++8.1, 9.1 + 10.1 FROM foo",
       select(
         columns: [
           function("+", [constant(1.1), constant(2.1)]),
@@ -1506,12 +1506,12 @@ defmodule Cloak.Sql.Parser.Test do
 
   test "parsing comments" do
     assert_parse(
-      """
+      String.trim("""
         -- Full line comment
         SELECT * -- Partial line comment, foo as bar
         FROM baz
         -- Comment at the end...
-      """,
+      """),
       select(columns: [:*], from: unquoted("baz"))
     )
   end
