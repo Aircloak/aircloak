@@ -15,6 +15,6 @@ mkdir -p /aircloak/cloak/lib/cloak-$VERSION/priv/
 ln -sFf /runtime_config /aircloak/cloak/lib/cloak-$VERSION/priv/config
 
 # needed to ensure that references from odbc.ini work properly
-ln -ns /aircloak/cloak/lib/cloak-$VERSION/priv /aircloak/cloak/priv
+ln -nfs /aircloak/cloak/lib/cloak-$VERSION/priv /aircloak/cloak/priv
 
 exec gosu deployer /aircloak/cloak/bin/cloak foreground
