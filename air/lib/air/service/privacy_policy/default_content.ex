@@ -41,8 +41,8 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
     The following information is recorded by Aircloak Insights:
 
     ### Personal information
-    Your name and email address as part of your user profile as well as other Aircloak Insights
-    specific system settings.
+    Your name and email address as part of your user profile as well as other
+    Aircloak Insights-specific system settings.
 
     ### Query history
     The queries you execute in Aircloak Insights along with related metadata and the query
@@ -65,7 +65,7 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
     Aircloak GmbH collects pseudonymised statistics about the queries being executed.
     Each analyst is identified by a pseudonym. The pseudonym is an abstract identifier that
     only gives Aircloak GmbH the ability to correlate multiple actions taken by a single individual.
-    It does not provide Aircloak GmbH with knowledge of the users name or other personal details.
+    It does not provide Aircloak GmbH with knowledge of the user's name or other personal details.
     For each query the same metadata recorded by Aircloak Insights is also sent to Aircloak GmbH.
     This includes information such as:
 
