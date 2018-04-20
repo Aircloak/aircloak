@@ -216,7 +216,6 @@ defmodule Cloak.Sql.Compiler.Specification do
       |> Enum.map(fn {alias, column} ->
         DataSource.Table.column(alias, Function.type(column), visible?: not column.synthetic?)
       end)
-      |> Enum.uniq()
 
     keys =
       Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
@@ -305,7 +304,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   # -------------------------------------------------------------------
 
   defp expand_star_select(query),
-    do: %Query{query | columns: Enum.flat_map(query.columns, &expand_select_all(&1, query))}
+    do: %Query{query | columns: Enum.flat_map(query.columns, &(&1 |> expand_select_all(query) |> verify_star_select()))}
 
   defp expand_select_all(:*, query),
     do:
@@ -341,6 +340,19 @@ defmodule Cloak.Sql.Compiler.Specification do
         columns,
         &{:identifier, &1.table.name, {:unquoted, &1.column.name}, @dummy_location}
       )
+
+  defp verify_star_select(columns) do
+    case columns -- Enum.uniq(columns) do
+      [] ->
+        columns
+
+      [{:identifier, table_name, {:unquoted, column_name}, _} | _] ->
+        raise CompilationError,
+          message:
+            "Selecting all from subquery `#{table_name}` is not supported" <>
+              " because the column name `#{column_name}` is ambigous."
+    end
+  end
 
   defp compile_titles(%Query{subquery?: true} = query) do
     column_titles =

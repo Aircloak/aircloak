@@ -437,10 +437,13 @@ defmodule Cloak.Sql.Expression do
   defp right(string, count) when count < 0, do: slice_codepoints(string, -count, codepoints_length(string))
   defp right(string, count), do: slice_codepoints(string, (codepoints_length(string) - count) |> max(0), count)
 
+  defp trim(string, ""), do: string
   defp trim(string, chars), do: string |> ltrim(chars) |> rtrim(chars)
 
+  defp ltrim(string, ""), do: string
   defp ltrim(string, chars), do: Regex.replace(~r/^[#{Regex.escape(chars)}]*/, string, "")
 
+  defp rtrim(string, ""), do: string
   defp rtrim(string, chars), do: Regex.replace(~r/[#{Regex.escape(chars)}]*$/, string, "")
 
   defp codepoints_length(string), do: string |> String.codepoints() |> length()

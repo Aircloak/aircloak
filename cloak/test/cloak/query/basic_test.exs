@@ -7,7 +7,9 @@ defmodule Cloak.Query.BasicTest do
     :ok = Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, male BOOLEAN")
     :ok = Cloak.Test.DB.create_table("heights_alias", nil, db_name: "heights", skip_db_create: true)
     :ok = Cloak.Test.DB.create_table("children", "age INTEGER, name TEXT")
-    :ok = Cloak.Test.DB.create_table("weird things", "\"thing as thing\" INTEGER", db_name: "weird")
+
+    :ok = Cloak.Test.DB.create_table("weird things", "\"thing as thing\" INTEGER", db_name: "weird-things")
+
     :ok = Cloak.Test.DB.create_table("dates", "date timestamp")
     :ok
   end
@@ -15,7 +17,7 @@ defmodule Cloak.Query.BasicTest do
   setup do
     Cloak.Test.DB.clear_table("heights")
     Cloak.Test.DB.clear_table("children")
-    Cloak.Test.DB.clear_table("weird")
+    Cloak.Test.DB.clear_table("weird-things")
     Cloak.Test.DB.clear_table("dates")
     :ok
   end
@@ -1489,6 +1491,16 @@ defmodule Cloak.Query.BasicTest do
     assert_query(
       "select count(*) from (select distinct user_id, male from heights group by user_id, height, male) alias",
       %{rows: [%{row: [40]}]}
+    )
+  end
+
+  test "distinct in subquery with group by and where" do
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height", "male"], [160, true])
+    :ok = insert_rows(_user_ids = 11..30, "heights", ["height", "male"], [170, false])
+
+    assert_query(
+      "select count(*) from (select distinct user_id, count(*) from heights where not male group by user_id) alias",
+      %{rows: [%{row: [20]}]}
     )
   end
 
