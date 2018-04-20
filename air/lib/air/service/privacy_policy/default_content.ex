@@ -20,14 +20,14 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
     As such __[FILL IN COMPANY NAME]__ is the Data Controller when it comes to the
     personal information collected by this Aircloak Insights instance.
 
-    If you have questions or concerns you can contact the Data Controller or the Data Controller representative at:
+    If you have questions or concerns you can contact the Data Controller or the Data Controller's representative at:
 
     __Data Controller__
     Address
     Contact information
     Phone number and or email address
 
-    or the Data Controllers Data Protection Officer:
+    or the Data Controller's Data Protection Officer:
 
     __Data Protection Officer__
     Name of data protection officer
@@ -41,7 +41,8 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
     The following information is recorded by Aircloak Insights:
 
     ### Personal information
-    Your name and email address as part of your user profile as well as other your system settings.
+    Your name and email address as part of your user profile as well as other Aircloak Insights
+    specific system settings.
 
     ### Query history
     The queries you execute in Aircloak Insights along with related metadata and the query
@@ -64,8 +65,8 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
     Aircloak GmbH collects pseudonymised statistics about the queries being executed.
     Each analyst is identified by a pseudonym. The pseudonym is an abstract identifier that
     only gives Aircloak GmbH the ability to correlate multiple actions taken by a single individual.
-    It does not provide Aircloak GmbH with knowledge of the users name or such things as gender.
-    Per query the same metadata recorded by Aircloak Insights is also sent to Aircloak GmbH.
+    It does not provide Aircloak GmbH with knowledge of the users name or other personal details.
+    For each query the same metadata recorded by Aircloak Insights is also sent to Aircloak GmbH.
     This includes information such as:
 
     - the data source the query was run against
@@ -95,7 +96,7 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
     ### Aircloak Insights
 
     In addition to the Data Controller, all Aircloak Insights users with administrative privileges
-    have full insight the personal information stored about a user.
+    have full insight into the personal information stored about a user.
 
     ### Aircloak GmbH
 
@@ -140,7 +141,7 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
 
     ## Right to withdraw your consent
     You can review this privacy policy at any point while logged into the Aircloak Insights web interface.
-    On the same page as where you can review the privacy policy you also have the ability to withdraw your consent.
+    On the same page where you can review the privacy policy you also have the ability to withdraw your consent.
     Doing so will prevent you from using the system, but will not remove any information already stored about you
     by Aircloak Insights. Your right to erase the information afterwards remains untouched – please contact your administrator.
     """
