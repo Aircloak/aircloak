@@ -87,32 +87,18 @@ defmodule Cloak.Query.Runner.Engine do
          |> Enum.map(&%{occurrences: 1, row: [&1.name, to_string(&1.type)]})
          |> Query.Result.new(query, features)
 
-  defp run_statement(
-         %Sql.Query{command: :select, emulated?: false} = query,
-         features,
-         state_updater
-       ),
-       do:
-         DataSource.select!(
-           %Sql.Query{query | where: Sql.Query.offloaded_where(query)},
-           &process_final_rows(&1, query, features, state_updater)
-         )
-
-  defp run_statement(
-         %Sql.Query{command: :select, emulated?: true} = query,
-         features,
-         state_updater
-       ) do
-    {rows, query} = Query.DbEmulator.select(query)
-    process_final_rows(rows, query, features, state_updater)
-  end
+  defp run_statement(%Sql.Query{command: :select} = query, features, state_updater),
+    do:
+      query
+      |> Query.DbEmulator.select(&process_final_rows(&1, query, state_updater))
+      |> Query.Result.new(query, features)
 
   defp sorted_table_columns(table) do
     {[uid], other_columns} = Enum.split_with(table.columns, &(&1.name == table.user_id))
     [uid | other_columns]
   end
 
-  defp process_final_rows(stream, query, features, state_updater) do
+  defp process_final_rows(stream, query, state_updater) do
     Logger.debug("Processing final rows ...")
 
     query = Query.RowSplitters.compile(query)
@@ -135,7 +121,6 @@ defmodule Cloak.Query.Runner.Engine do
     |> state_updater.(:processing)
     |> Query.Aggregator.aggregate(query)
     |> state_updater.(:post_processing)
-    |> Query.Result.new(query, features)
   end
 
   defp consume_rows(stream, query) do

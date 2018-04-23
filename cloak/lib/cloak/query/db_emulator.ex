@@ -18,30 +18,31 @@ defmodule Cloak.Query.DbEmulator do
   # -------------------------------------------------------------------
 
   @doc "Retrieves rows according to the specification in the emulated query."
-  @spec select(Query.t()) :: {[Enumerable.t()], Query.t()}
-  def select(%Query{emulated?: true} = query) do
+  @spec select(Query.t(), DataSource.result_processor()) :: Enumerable.t()
+  def select(%Query{emulated?: false} = query, rows_processor), do: offload_select!(query, rows_processor)
+
+  def select(%Query{emulated?: true} = query, rows_processor) do
     Logger.debug("Emulating query ...")
     query = Compiler.Helpers.apply_top_down(query, &compile_emulated_joins/1)
-    {[query.from |> select_rows() |> Selector.pick_db_columns(query)], query}
+    rows_processor.([query.from |> select_rows() |> Selector.pick_db_columns(query)])
   end
 
   # -------------------------------------------------------------------
   # Selection of rows from subparts of an emulated query
   # -------------------------------------------------------------------
 
-  defp offload_select!(query, rows_processor) do
-    DataSource.select!(%Query{query | where: Query.offloaded_where(query)}, fn rows ->
-      rows
-      |> Stream.concat()
-      |> rows_processor.()
-      |> Enum.to_list()
-    end)
-  end
+  defp offload_select!(query, rows_processor),
+    do: DataSource.select!(%Query{query | where: Query.offloaded_where(query)}, rows_processor)
 
   defp select_rows({:subquery, %{ast: %Query{emulated?: false} = query}}) do
     query
     |> Query.debug_log("Executing sub-query through data source")
-    |> offload_select!(&Rows.filter(&1, query |> Query.emulated_where() |> Condition.to_function()))
+    |> offload_select!(fn rows ->
+      rows
+      |> Stream.concat()
+      |> Rows.filter(query |> Query.emulated_where() |> Condition.to_function())
+      |> Enum.to_list()
+    end)
   end
 
   defp select_rows({:subquery, %{ast: %Query{emulated?: true, from: from} = subquery}})
@@ -57,7 +58,12 @@ defmodule Cloak.Query.DbEmulator do
   defp select_rows({:subquery, %{ast: %Query{emulated?: true} = query}}) do
     %Query{query | subquery?: false}
     |> Query.debug_log("Emulating leaf sub-query")
-    |> offload_select!(&Selector.select(&1, query))
+    |> offload_select!(fn rows ->
+      rows
+      |> Stream.concat()
+      |> Selector.select(query)
+      |> Enum.to_list()
+    end)
   end
 
   defp select_rows({:join, join}) do
