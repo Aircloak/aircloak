@@ -1,4 +1,4 @@
-FROM debian:8.8
+FROM debian:8.10
 MAINTAINER Aircloak
 
 MPI_INIT
