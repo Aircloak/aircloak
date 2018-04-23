@@ -74,6 +74,7 @@ defmodule AirWeb.Router do
     get("/licenses/dependencies.zip", LicenseController, :dependencies)
 
     resources("/profile", ProfileController, singleton: true, only: [:edit, :update])
+    get("/export", ExportsController, :show)
     put("/profile/change_password", ProfileController, :change_password)
     post("/profile/toggle_debug_mode", ProfileController, :toggle_debug_mode)
 
