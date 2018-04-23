@@ -485,7 +485,7 @@ function rust_version {
 }
 
 function tools_versions_md5 {
-  cat "$(dirname ${BASH_SOURCE[0]})/../.tool-versions" | md5sum | awk '{print $1}'
+  printf "debian $(cat .debian-version)\n$(cat .tool-versions)" | md5sum | awk '{print $1}'
 }
 
 function component_tmp_folder {
