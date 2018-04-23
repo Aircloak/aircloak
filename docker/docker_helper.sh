@@ -465,7 +465,7 @@ function git_head_image_tag {
 }
 
 function debian_version {
-  echo "8.8"
+  cat "$(dirname ${BASH_SOURCE[0]})/../.debian-version"
 }
 
 function erlang_version {
