@@ -1,5 +1,16 @@
 defmodule Air.Service.Export do
-  @moduledoc "Service module for creating an export of a user's data to comply with GDPR"
+  @moduledoc """
+  Service module for creating an export of a user's data to comply with GDPR.
+
+  The module exposes a streaming API in the form of a `reduce_while` function that is analogous to `Enum.reduce_while`.
+  Thanks to this approach the data can be streamed straight from the database and only a single chunk needs to be kept
+  in memory. Another benefit is that no files or records are created (assuming the data is streamed straight to the
+  user's browser as a file download), so nothing needs to be cleaned up when deleting the user or puring the user's data
+  during a Right to be Forgotten request.
+
+  This approach has been chosen over returning a Stream, because a stream from the database can only be reduced inside
+  a transaction. If the export was returned as a Stream, then it would fall on the caller to create that transaction.
+  """
 
   alias Air.Repo
 
