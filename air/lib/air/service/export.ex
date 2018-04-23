@@ -86,8 +86,13 @@ defmodule Air.Service.Export do
 
   defp api_tokens(user), do: Air.Schemas.ApiToken |> where(user_id: ^user.id) |> stream()
 
-  defp stream(queryable, preprocessor \\ & &1),
-    do: queryable |> Repo.stream() |> Stream.map(preprocessor) |> Stream.map(&encode/1) |> Stream.intersperse(",")
+  defp stream(queryable, preprocessor \\ & &1) do
+    queryable
+    |> Repo.stream()
+    |> Stream.map(preprocessor)
+    |> Stream.map(&encode/1)
+    |> Stream.intersperse(",")
+  end
 
   defp encode(schema) do
     schema
