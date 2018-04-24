@@ -52,16 +52,34 @@ defmodule Air.Repo do
     def start_link, do: GenServer.start_link(__MODULE__, nil)
 
     def init(_) do
+      migrate_with_retry!()
+      Logger.info("database migrated")
+
+      # stops the server without crashing the supervisor
+      :ignore
+    end
+
+    defp migrate_with_retry!(retries \\ 12)
+
+    defp migrate_with_retry!(0), do: migrate!()
+
+    defp migrate_with_retry!(retries) do
+      try do
+        migrate!()
+      rescue
+        DBConnection.ConnectionError ->
+          Process.sleep(:timer.seconds(5))
+          migrate_with_retry!(retries - 1)
+      end
+    end
+
+    defp migrate!() do
       Ecto.Migrator.run(
         Air.Repo,
         Application.app_dir(:air, "priv/repo/migrations"),
         :up,
         all: true
       )
-
-      Logger.info("database migrated")
-      # stops the server without crashing the supervisor
-      :ignore
     end
   end
 end
