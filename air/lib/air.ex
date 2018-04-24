@@ -35,7 +35,6 @@ defmodule Air do
     Aircloak.DeployConfig.validate!(:air)
     configure_secrets()
     Air.Repo.configure()
-    configure_periodic_jobs()
     Air.Supervisor.start_link()
   end
 
@@ -105,22 +104,6 @@ defmodule Air do
             Logger.warn("the file `#{certfile}` is missing")
             nil
         end
-    end
-  end
-
-  if Mix.env() == :test do
-    defp configure_periodic_jobs(), do: :ok
-  else
-    defp configure_periodic_jobs() do
-      import Crontab.CronExpression
-
-      [
-        {"0 * * * *", {Air.Service.Cleanup, :cleanup_old_queries}},
-        {"*/5 * * * *", {Air.Service.Cleanup, :cleanup_dead_queries}},
-        {~e[*/10 * * * * * *]e, {AirWeb.Socket.Frontend.DataSourceChannel, :push_updates}},
-        {"0 */12 * * *", {Air.Service.License, :renew}}
-      ]
-      |> Enum.each(fn {schedule, job} -> Quantum.add_job(schedule, job) end)
     end
   end
 end

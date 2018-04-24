@@ -77,6 +77,26 @@ config :air, :central_queue,
   retry_delay: :timer.minutes(1),
   max_size: 1000
 
+config :air, Air.Scheduler,
+  jobs: [
+    cleanup_old_queries: [
+      schedule: "0 * * * *",
+      task: {Air.Service.Cleanup, :cleanup_old_queries, []}
+    ],
+    cleanup_dead_queries: [
+      schedule: "*/5 * * * *",
+      task: {Air.Service.Cleanup, :cleanup_dead_queries, []}
+    ],
+    push_updates: [
+      schedule: {:extended, "*/10"},
+      task: {AirWeb.Socket.Frontend.DataSourceChannel, :push_updates, []}
+    ],
+    renew_license: [
+      schedule: "0 */12 * * *",
+      task: {Air.Service.License, :renew, []}
+    ]
+  ]
+
 if File.exists?("config/#{Mix.env()}.local.exs") do
   import_config "#{Mix.env()}.local.exs"
 end
