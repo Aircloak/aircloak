@@ -63,6 +63,7 @@
 .options-menu {
   padding-top: 5px;
   font-size: 0.9em;
+  margin-bottom: 10px;
 }
 
 .options-menu a, .options-menu button {
