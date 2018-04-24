@@ -20,7 +20,8 @@
           <%= link "Licenses", to: customer_license_path(@conn, :index, customer), class: "btn btn-default btn-xs" %>
           <%= link "Token", to: customer_token_path(@conn, :token, customer), class: "btn btn-default btn-xs" %>
           <%= link "Edit", to: customer_path(@conn, :edit, customer), class: "btn btn-default btn-xs" %>
-          <%= link "Delete", to: customer_path(@conn, :delete, customer), method: :delete, class: "btn btn-danger btn-xs" %>
+          <%= link "Delete", to: customer_path(@conn, :delete, customer), method: :delete, class: "btn btn-danger btn-xs",
+            "data-confirm": ~s(Delete the customer "#{customer.name}"?) %>
         </td>
       </tr>
     <% end %>

@@ -2,7 +2,7 @@ defmodule Central.Service.CustomerTest do
   use Central.ModelCase, async: true
 
   alias Central.Schemas
-  alias Central.Service.Customer
+  alias Central.Service.{Customer, License}
 
   test "returns customers - none when none exist" do
     assert Customer.all() == []
@@ -40,9 +40,20 @@ defmodule Central.Service.CustomerTest do
     assert loaded_customer.name !== customer.name
   end
 
-  test "can delete existing customers" do
-    assert {:ok, customer} = Customer.create(%{name: "customer"})
-    assert :ok == Customer.delete(customer)
+  describe "delete" do
+    test "can delete existing customers" do
+      assert {:ok, customer} = Customer.create(%{name: "customer"})
+      assert :ok == Customer.delete(customer)
+    end
+
+    test "deletes the customer's licenses" do
+      {:ok, customer} = Customer.create(%{name: "customer"})
+      {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
+
+      Customer.delete(customer)
+
+      refute Repo.get(Schemas.License, license.id)
+    end
   end
 
   describe "token management" do
