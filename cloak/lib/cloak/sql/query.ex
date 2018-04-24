@@ -393,11 +393,24 @@ defmodule Cloak.Sql.Query do
   # Emulation
   # -------------------------------------------------------------------
 
-  defp needs_emulation?(query),
-    do:
-      not query.data_source.driver.supports_query?(query) or
-        query |> get_in([Lenses.direct_subqueries()]) |> Enum.any?(& &1.ast.emulated?) or
-        (query.subquery? and has_emulated_expressions?(query)) or has_emulated_join_conditions?(query)
+  defp needs_emulation?(query) do
+    cond do
+      not query.data_source.driver.supports_query?(query) ->
+        true
+
+      query |> get_in([Lenses.direct_subqueries()]) |> Enum.any?(& &1.ast.emulated?) ->
+        true
+
+      query.subquery? and has_emulated_expressions?(query) ->
+        true
+
+      has_emulated_join_conditions?(query) ->
+        true
+
+      true ->
+        false
+    end
+  end
 
   defp emulated_condition?(condition, query) do
     emulated_expression_condition?(condition, query.data_source) or
