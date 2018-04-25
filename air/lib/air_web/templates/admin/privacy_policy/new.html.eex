@@ -23,11 +23,17 @@
     <div class="panel-body">
       <p>
         <strong>
-        Aircloak Insights requires that you define a privacy policy.
+          Aircloak Insights requires that you define a privacy policy.
         </strong>
         The policy should describe the rights of the analysts using Aircloak Insights.
         In particular it needs to declare what data is kept about them and whom they
         should contact in case they have questions.
+      </p>
+
+      <p>
+        <strong>
+          You might want to consult your oganisation's Data Protection Officer.
+        </strong>
       </p>
 
       <p>
