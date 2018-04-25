@@ -79,21 +79,6 @@ function run_in_container {
   eval $full_cmd
 }
 
-function ensure_supporting_container {
-  local container_name=$1
-  shift
-
-  if ! named_container_running $container_name ; then
-    if [ ! -z "$(docker ps -a --filter=name=$container_name | grep -w $container_name)" ]; then
-      echo "removing dead container $container_name"
-      docker rm $container_name > /dev/null
-    fi
-
-    echo "starting container $container_name"
-    docker run --detach --name $container_name $@ > /dev/null
-  fi
-}
-
 function default_handle {
   command=$1
   shift || true

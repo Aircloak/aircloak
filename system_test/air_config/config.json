@@ -1,0 +1,17 @@
+{
+  "site": {
+    "auth_secret": "6MvtANFkxCr3VaDY/C8oCooF6Pg1uqFzOWNYVMry/V5acmSPuQydPeU5X5Jh",
+    "endpoint_key_base": "7nOn9WDwUZLjXnQah8+ocSF0r/YhYpDp0hSw4FE6Zq+Ic2TVYcDCQe+2MT8wqD/R",
+    "api_token_salt": "ik/WxOrtgkv5Aervx2GPbxXYNxMOVw9QEgfe+NMUhjblzYon8ivPXGa+7Y2WI54n1inakG3wm1fQGRg7xFoIMA",
+    "master_password": "super_secret_master_password",
+    "use_staging_license_key": true
+  },
+
+  "database": {
+    "host": "system_test_air_db",
+    "port": 5432,
+    "ssl": false,
+    "user": "postgres",
+    "name": "air"
+  }
+}
