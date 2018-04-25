@@ -32,10 +32,10 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   @doc "Checks that a function specification is valid."
-  @spec verify_function(Parser.function_spec(), boolean, boolean) :: Parser.function_spec()
-  def verify_function(function, subquery?, virtual_table?) do
+  @spec verify_function(Parser.function_spec(), Query.type(), boolean) :: Parser.function_spec()
+  def verify_function(function, query_type, virtual_table?) do
     verify_function_exists(function, virtual_table?)
-    verify_function_usage(function, subquery?)
+    verify_function_usage(function, query_type)
     function
   end
 
@@ -78,20 +78,20 @@ defmodule Cloak.Sql.Compiler.Validation do
     end
   end
 
-  defp verify_function_usage({:function, name, [arg], location}, _subquery? = false)
+  defp verify_function_usage({:function, name, [arg], location}, _query_type = :anonymized)
        when name in ["min", "max", "median"] do
     if Function.type(arg) == :text,
       do:
         raise(
           CompilationError,
           source_location: location,
-          message: "Function `#{name}` is allowed over arguments of type `text` only in subqueries."
+          message: "Aggregator `#{name}` is not allowed over arguments of type `text` in anonymized subqueries."
         )
 
     :ok
   end
 
-  defp verify_function_usage({:function, name, args, location}, subquery?) do
+  defp verify_function_usage({:function, name, args, location}, query_type) do
     if not Function.aggregator?(name) and match?([{:distinct, _}], args),
       do:
         raise(
@@ -100,12 +100,12 @@ defmodule Cloak.Sql.Compiler.Validation do
           message: "`DISTINCT` specified in non-aggregating function `#{Function.readable_name(name)}`."
         )
 
-    if subquery? and Function.has_attribute?(name, :not_in_subquery),
+    if Function.has_attribute?(name, {:not_in, query_type}),
       do:
         raise(
           CompilationError,
           source_location: location,
-          message: "Function `#{Function.readable_name(name)}` is not allowed in subqueries."
+          message: "Function `#{Function.readable_name(name)}` is not allowed in `#{query_type}` subqueries."
         )
 
     :ok
@@ -444,11 +444,11 @@ defmodule Cloak.Sql.Compiler.Validation do
         message: "Using the `OFFSET` clause requires the `ORDER BY` clause to be specified."
       )
 
-  defp verify_offset(%Query{offset: offset, limit: nil, subquery?: true}) when offset > 0,
+  defp verify_offset(%Query{offset: offset, limit: nil, type: :restricted}) when offset > 0,
     do:
       raise(
         CompilationError,
-        message: "Subquery has an `OFFSET` clause without a `LIMIT` clause."
+        message: "`OFFSET` clause requires a `LIMIT` clause in `restricted` subqueries."
       )
 
   defp verify_offset(_query), do: :ok

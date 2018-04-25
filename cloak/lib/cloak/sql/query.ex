@@ -31,6 +31,8 @@ defmodule Cloak.Sql.Query do
 
   @type parameter :: %{value: DataSource.field(), type: DataSource.Table.data_type()}
 
+  @type type :: :standard | :restricted | :anonymized
+
   @type t :: %__MODULE__{
           data_source: DataSource.t(),
           command: :select | :show,
@@ -73,7 +75,8 @@ defmodule Cloak.Sql.Query do
           noise_layers: [NoiseLayer.t()],
           view?: boolean,
           table_aliases: %{String.t() => DataSource.Table.t()},
-          virtual_table?: boolean
+          virtual_table?: boolean,
+          type: type
         }
 
   @type features :: %{
@@ -120,7 +123,8 @@ defmodule Cloak.Sql.Query do
             noise_layers: [],
             view?: false,
             table_aliases: %{},
-            virtual_table?: false
+            virtual_table?: false,
+            type: :restricted
 
   # -------------------------------------------------------------------
   # API functions
@@ -398,7 +402,7 @@ defmodule Cloak.Sql.Query do
       not query.data_source.driver.supports_query?(query) ->
         true
 
-      query |> get_in([Lenses.direct_subqueries()]) |> Enum.any?(& &1.ast.emulated?) ->
+      query |> get_in([Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated? or &1.ast.type == :anonymized)) ->
         true
 
       query.subquery? and has_emulated_expressions?(query) ->

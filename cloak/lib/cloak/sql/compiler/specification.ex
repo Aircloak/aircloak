@@ -568,7 +568,7 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp identifier_to_column({:function, name, args, location} = function, _columns_by_name, query) do
     function
-    |> Validation.verify_function(query.subquery?, query.virtual_table?)
+    |> Validation.verify_function(query.type, query.virtual_table?)
     |> Function.return_type()
     |> case do
       nil ->

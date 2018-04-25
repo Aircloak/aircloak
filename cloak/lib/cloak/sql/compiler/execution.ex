@@ -39,16 +39,16 @@ defmodule Cloak.Sql.Compiler.Execution do
   # UID handling
   # -------------------------------------------------------------------
 
-  defp reject_null_user_ids(%Query{subquery?: true} = query), do: query
-
-  defp reject_null_user_ids(query),
+  defp reject_null_user_ids(%Query{type: :anonymized} = query),
     do: %{
       query
       | where: Condition.combine(:and, {:not, {:is, Helpers.id_column(query), :null}}, query.where)
     }
 
-  defp censor_selected_uids(%Query{command: :select, subquery?: false} = query) do
-    # In a top-level query, we're replacing all selected expressions which depend on uid columns with the `:*`
+  defp reject_null_user_ids(query), do: query
+
+  defp censor_selected_uids(%Query{type: :anonymized} = query) do
+    # In an anonymized query, we're replacing all selected expressions which depend on uid columns with the `:*`
     # constant. This allows us to reduce the amount of anonymized values, without compromising the privacy.
     # For example, consider the query `select uid, name from users`. Normally, this would return only `(*, *)`
     # rows. However, with this replacement, we can return names which are frequent enough, without revealing

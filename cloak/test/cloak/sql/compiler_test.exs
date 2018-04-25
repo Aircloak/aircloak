@@ -1033,7 +1033,7 @@ defmodule Cloak.Sql.Compiler.Test do
                data_source()
              )
 
-    assert error =~ ~r/Subquery has an `OFFSET` clause without a `LIMIT` clause/
+    assert error =~ ~r/`OFFSET` clause requires a `LIMIT` clause in `restricted` subqueries/
   end
 
   test "offset must be a multiple of limit post-alignment" do
@@ -1166,7 +1166,7 @@ defmodule Cloak.Sql.Compiler.Test do
   test "view has the same limitations as the subquery" do
     assert {:error, error} = validate_view("select uid, extract_words(string) from table", data_source())
 
-    assert error == "Function `extract_words` is not allowed in subqueries."
+    assert error == "Function `extract_words` is not allowed in `restricted` subqueries."
   end
 
   test "compilation of row splitters" do
@@ -1295,7 +1295,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   describe "*_noise" do
     for function <- ~w(count_noise avg_noise stddev_noise sum_noise) do
-      test "rejects #{function} in subquery" do
+      test "rejects #{function} in restricted subquery" do
         assert {:error, error} =
                  compile(
                    """
@@ -1304,7 +1304,7 @@ defmodule Cloak.Sql.Compiler.Test do
                    data_source()
                  )
 
-        assert error == "Function `#{unquote(function)}` is not allowed in subqueries."
+        assert error == "Function `#{unquote(function)}` is not allowed in `restricted` subqueries."
       end
     end
   end
