@@ -1,0 +1,5 @@
+{
+  "air_site": "ws://system_test_air:8080",
+  "salt": "test salt which doesn't matter since tests have SD=0",
+  "data_sources": "data_sources"
+}
