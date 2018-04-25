@@ -71,6 +71,11 @@ config :cloak, :data_source,
 
 config :cloak, :flush_query_log_timeout, 500
 
+config :cloak, Cloak.Scheduler,
+  jobs: [
+    {"@minutely", {Cloak.DataSource.SerializingUpdater, :run_liveness_check, []}}
+  ]
+
 import_config "#{Mix.env()}.exs"
 
 if File.exists?("config/#{Mix.env()}.local.exs") do
