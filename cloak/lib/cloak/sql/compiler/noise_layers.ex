@@ -95,7 +95,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp add_floated_noise_layers(query) do
     noise_layers =
-      if query.subquery? && Helpers.aggregate?(query),
+      if query.type == :restricted && Helpers.aggregate?(query),
         do: float_noise_layers(query.noise_layers ++ floated_noise_layers(query), query),
         else: query.noise_layers ++ floated_noise_layers(query)
 
@@ -104,7 +104,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp float_noise_layers(layers, query), do: Enum.map(layers, &float_noise_layer(&1, query))
 
-  defp float_noise_layers_columns(query = %{subquery?: true}) do
+  defp float_noise_layers_columns(query = %Query{type: :restricted}) do
     noise_columns =
       non_uid_expressions()
       |> Lens.to_list(query.noise_layers)
@@ -230,15 +230,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end
   end
 
-  defp select_noise_layers(%{subquery?: true}, _top_level_uid), do: []
-
-  defp select_noise_layers(query, top_level_uid),
+  defp select_noise_layers(%Query{type: :anonymized} = query, top_level_uid),
     do:
       Lens.key(:columns)
       |> Lens.all()
       |> Lens.reject(&needs_aggregation?(query, &1))
       |> raw_columns(query)
       |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
+
+  defp select_noise_layers(_query, _top_level_uid), do: []
 
   defp needs_aggregation?(_query, %Expression{constant?: true}), do: true
   defp needs_aggregation?(query, expression), do: Helpers.aggregated_column?(query, expression)
