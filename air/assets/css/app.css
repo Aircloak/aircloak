@@ -209,3 +209,13 @@ h2 {
 #review-box {
   width: 310px;
 }
+
+ul.privacy-policy-bullet-points {
+  margin-left: 0px;
+  margin-bottom: 20px;
+  padding: 0 20px 0 20px;
+}
+
+ul.privacy-policy-bullet-points li {
+  padding: 3px 0;
+}

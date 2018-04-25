@@ -3,23 +3,25 @@
     <h1 class="panel-title">Please review the privacy policy</h1>
   </div>
   <div class="panel-body">
-    <p>
-      Please take some time to review the following privacy policy.
-      If you have questions or concerns, please contact your organisation's Data Privacy Officer or system administrator.
-    </p>
+    <p>Please take some time to review the privacy policy.</p>
 
-    <p>
-      Once you have read and agree with the content of the privacy policy, please accept it by clicking the button below.
-    </p>
+    <p>In short, what does this policy mean for you:</p>
+
+    <ul class="privacy-policy-bullet-points">
+      <li>No data will be collected about you unless you consent to the privacy policy</li>
+      <li>You can review the policy and withdraw your consent at any time</li>
+      <li>You will be able to use Aircloak Insights once you have consented</li>
+    </ul>
 
     <%= form_tag privacy_policy_path(@conn, :accept, @privacy_policy.id), method: "put" do %>
-      <button class='btn btn-success'>Accept privacy policy</button>
+      <button class='btn btn-success'>Consent to privacy policy</button>
     <% end %>
 
     <hr />
 
     <p>
-      You can withdraw your consent at a later time by visiting the privacy policy section of the website.
+      If you have questions or concerns, please contact your organisation's
+      Data Protection Officer or system administrator.
     </p>
   </div>
 </div>
