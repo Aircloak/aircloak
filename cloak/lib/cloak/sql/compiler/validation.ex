@@ -15,6 +15,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   def verify_query(%Query{command: :show} = query), do: query
 
   def verify_query(%Query{command: :select} = query) do
+    Helpers.each_subquery(query, &verify_function_usage/1)
     Helpers.each_subquery(query, &verify_duplicate_tables/1)
     Helpers.each_subquery(query, &verify_aggregated_columns/1)
     Helpers.each_subquery(query, &verify_aggregators/1)
@@ -29,14 +30,6 @@ defmodule Cloak.Sql.Compiler.Validation do
     Helpers.each_subquery(query, &verify_inequalities/1)
     Helpers.each_subquery(query, &verify_in/1)
     query
-  end
-
-  @doc "Checks that a function specification is valid."
-  @spec verify_function(Parser.function_spec(), Query.type()) :: Parser.function_spec()
-  def verify_function(function, query_type) do
-    verify_function_exists(function, query_type)
-    verify_function_usage(function, query_type)
-    function
   end
 
   # -------------------------------------------------------------------
@@ -60,43 +53,32 @@ defmodule Cloak.Sql.Compiler.Validation do
   # Columns and expressions
   # -------------------------------------------------------------------
 
-  defp verify_function_exists(function = {:function, name, _, location}, query_type) do
-    unless Function.exists?(function) and (query_type == :standard or not Function.internal?(function)) do
-      case Function.deprecation_info(function) do
-        {:error, error} when error in [:not_found, :internal_function] ->
-          raise CompilationError,
-            source_location: location,
-            message: "Unknown function `#{Function.readable_name(name)}`."
-
-        {:ok, %{alternative: alternative}} ->
-          raise CompilationError,
-            source_location: location,
-            message:
-              "Function `#{Function.readable_name(name)}` has been deprecated. " <>
-                "Depending on your use case, consider using `#{Function.readable_name(alternative)}` instead."
-      end
-    end
+  defp verify_function_usage(query) do
+    Lenses.query_expressions()
+    |> Lens.filter(& &1.function?)
+    |> Lens.to_list(query)
+    |> Enum.map(&verify_function_usage(&1, query.type))
   end
 
-  defp verify_function_usage({:function, name, [arg], location}, _query_type = :anonymized)
+  defp verify_function_usage(%Expression{function: name, function_args: [arg]} = expression, _query_type = :anonymized)
        when name in ["min", "max", "median"] do
     if Function.type(arg) == :text,
       do:
         raise(
           CompilationError,
-          source_location: location,
+          source_location: expression.source_location,
           message: "Aggregator `#{name}` is not allowed over arguments of type `text` in anonymized subqueries."
         )
 
     :ok
   end
 
-  defp verify_function_usage({:function, name, args, location}, query_type) do
+  defp verify_function_usage(%Expression{function: name, function_args: args} = expression, query_type) do
     if not Function.aggregator?(name) and match?([{:distinct, _}], args),
       do:
         raise(
           CompilationError,
-          source_location: location,
+          source_location: expression.source_location,
           message: "`DISTINCT` specified in non-aggregating function `#{Function.readable_name(name)}`."
         )
 
@@ -104,7 +86,7 @@ defmodule Cloak.Sql.Compiler.Validation do
       do:
         raise(
           CompilationError,
-          source_location: location,
+          source_location: expression.source_location,
           message: "Function `#{Function.readable_name(name)}` is not allowed in `#{query_type}` subqueries."
         )
 

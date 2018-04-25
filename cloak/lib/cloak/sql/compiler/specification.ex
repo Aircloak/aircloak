@@ -3,8 +3,7 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   alias Cloak.DataSource
   alias Cloak.Sql.{Condition, CompilationError, Expression, Function, Query}
-  alias Cloak.Sql.Compiler.{Helpers, Validation}
-  alias Cloak.Sql.Query.Lenses
+  alias Cloak.Sql.{Compiler.Helpers, Query.Lenses}
 
   @dummy_location {1, 0}
 
@@ -567,7 +566,7 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp identifier_to_column({:function, name, args, location} = function, _columns_by_name, query) do
     function
-    |> Validation.verify_function(query.type)
+    |> verify_function_exists(query.type)
     |> Function.return_type()
     |> case do
       nil ->
@@ -624,6 +623,26 @@ defmodule Cloak.Sql.Compiler.Specification do
   end
 
   defp get_columns(columns_by_name, {:quoted, name}), do: Map.get(columns_by_name, name)
+
+  defp verify_function_exists(function = {:function, name, _, location}, query_type) do
+    unless Function.exists?(function) and (query_type == :standard or not Function.internal?(function)) do
+      case Function.deprecation_info(function) do
+        {:error, error} when error in [:not_found, :internal_function] ->
+          raise CompilationError,
+            source_location: location,
+            message: "Unknown function `#{Function.readable_name(name)}`."
+
+        {:ok, %{alternative: alternative}} ->
+          raise CompilationError,
+            source_location: location,
+            message:
+              "Function `#{Function.readable_name(name)}` has been deprecated. " <>
+                "Depending on your use case, consider using `#{Function.readable_name(alternative)}` instead."
+      end
+    end
+
+    function
+  end
 
   defp function_argument_error_message({:function, name, _, _} = function_call) do
     cond do
