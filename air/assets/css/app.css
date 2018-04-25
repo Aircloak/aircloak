@@ -255,3 +255,11 @@ ul.privacy-policy-bullet-points {
 ul.privacy-policy-bullet-points li {
   padding: 3px 0;
 }
+
+.privacy-policy-editor .CodeMirror {
+  -moz-appearance: textfield-multiline;
+  -webkit-appearance: textarea;
+  border: 1px solid #ccc;
+  font: medium -moz-fixed;
+  font: -webkit-small-control;
+}

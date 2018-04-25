@@ -102,18 +102,22 @@
 
 <%= form_tag admin_privacy_policy_path(@conn, :create), method: "post" do %>
 
-  <div class='form-group'>
+  <div class="form-group">
     <label class="control-label" for="content">Privacy policy content</label>
-    <textarea class="form-control" name="content" id="contentEditor">
-      <%= text_content(@privacy_policy) %>
-    </textarea>
+    <div class="privacy-policy-editor">
+      <textarea class="form-control" name="content" id="contentEditor">
+        <%= text_content(@privacy_policy) %>
+      </textarea>
+    </div>
     <textarea class="hidden" name="content" id="content"><%= text_content(@privacy_policy) %></textarea>
   </div>
 
   <%= unless first_privacy_policy?(@privacy_policy) do %>
     <div class="form-group">
       <label class="control-label" for="content">Describe changes</label>
-      <textarea class="form-control" name="changes" id="changesEditor"></textarea>
+      <div class="privacy-policy-editor">
+        <textarea class="form-control" name="changes" id="changesEditor"></textarea>
+      </div>
       <textarea class="hidden" name="changes" id="changes"></textarea>
     </div>
   <% end %>
