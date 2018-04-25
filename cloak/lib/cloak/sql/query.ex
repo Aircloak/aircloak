@@ -75,7 +75,6 @@ defmodule Cloak.Sql.Query do
           noise_layers: [NoiseLayer.t()],
           view?: boolean,
           table_aliases: %{String.t() => DataSource.Table.t()},
-          virtual_table?: boolean,
           type: type
         }
 
@@ -123,7 +122,6 @@ defmodule Cloak.Sql.Query do
             noise_layers: [],
             view?: false,
             table_aliases: %{},
-            virtual_table?: false,
             type: :restricted
 
   # -------------------------------------------------------------------

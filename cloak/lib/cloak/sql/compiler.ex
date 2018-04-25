@@ -52,12 +52,12 @@ defmodule Cloak.Sql.Compiler do
     {final_query, %{features | emulated: final_query.emulated?}}
   end
 
-  @doc "Prepares the parsed SQL query for direct (non-anonymized) execution."
-  @spec compile_raw!(Parser.parsed_query(), DataSource.t()) :: Query.t()
-  def compile_raw!(parsed_query, data_source),
+  @doc "Prepares the parsed SQL query for standard (non-anonymized) execution."
+  @spec compile_standard!(Parser.parsed_query(), DataSource.t()) :: Query.t()
+  def compile_standard!(parsed_query, data_source),
     do:
       parsed_query
-      |> Map.put(:type, :standard)
+      |> Compiler.Helpers.apply_top_down(&Map.put(&1, :type, :standard))
       |> Compiler.Specification.compile(data_source, nil, %{})
       |> Compiler.Normalization.remove_noops()
       |> Compiler.Optimizer.optimize()

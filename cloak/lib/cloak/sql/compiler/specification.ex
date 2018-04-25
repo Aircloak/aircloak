@@ -189,7 +189,6 @@ defmodule Cloak.Sql.Compiler.Specification do
     do:
       parsed_subquery
       |> Map.put(:subquery?, true)
-      |> Map.put(:virtual_table?, parent_query.virtual_table?)
       |> compile(parent_query.data_source, parent_query.parameters, parent_query.views)
       |> ensure_uid_selected(alias)
 
@@ -203,7 +202,7 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp selected_tables({:subquery, subquery}, _query) do
     user_id_name =
-      if subquery.ast.virtual_table? do
+      if subquery.ast.type == :standard do
         nil
       else
         # In a subquery we should have the `user_id` already in the list of selected columns.
@@ -568,7 +567,7 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp identifier_to_column({:function, name, args, location} = function, _columns_by_name, query) do
     function
-    |> Validation.verify_function(query.type, query.virtual_table?)
+    |> Validation.verify_function(query.type)
     |> Function.return_type()
     |> case do
       nil ->
@@ -808,7 +807,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp auto_select_uid_column(subquery) do
     cond do
       # virtual table queries don't require user ids
-      subquery.virtual_table? ->
+      subquery.type == :standard ->
         nil
 
       # uid column is already explicitly selected

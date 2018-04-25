@@ -65,7 +65,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       Query.Lenses.direct_subqueries()
       |> Lens.filter(&(&1.alias == table))
       |> Lens.key(:ast)
-      |> Lens.reject(& &1.virtual_table?)
+      |> Lens.reject(&(&1.type == :standard))
 
   defp push_noise_layer(query, %NoiseLayer{
          base: {_table, column, extras},
@@ -181,7 +181,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   # Computing base noise layers
   # -------------------------------------------------------------------
 
-  defp calculate_base_noise_layers(query = %{virtual_table?: true}, _top_level_uid), do: query
+  defp calculate_base_noise_layers(query = %{type: :standard}, _top_level_uid), do: query
 
   defp calculate_base_noise_layers(query, top_level_uid) do
     noise_layers =

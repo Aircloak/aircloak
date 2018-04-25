@@ -32,9 +32,9 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   @doc "Checks that a function specification is valid."
-  @spec verify_function(Parser.function_spec(), Query.type(), boolean) :: Parser.function_spec()
-  def verify_function(function, query_type, virtual_table?) do
-    verify_function_exists(function, virtual_table?)
+  @spec verify_function(Parser.function_spec(), Query.type()) :: Parser.function_spec()
+  def verify_function(function, query_type) do
+    verify_function_exists(function, query_type)
     verify_function_usage(function, query_type)
     function
   end
@@ -60,8 +60,8 @@ defmodule Cloak.Sql.Compiler.Validation do
   # Columns and expressions
   # -------------------------------------------------------------------
 
-  defp verify_function_exists(function = {:function, name, _, location}, virtual_table?) do
-    unless Function.exists?(function) and (virtual_table? or not Function.internal?(function)) do
+  defp verify_function_exists(function = {:function, name, _, location}, query_type) do
+    unless Function.exists?(function) and (query_type == :standard or not Function.internal?(function)) do
       case Function.deprecation_info(function) do
         {:error, error} when error in [:not_found, :internal_function] ->
           raise CompilationError,
@@ -227,8 +227,8 @@ defmodule Cloak.Sql.Compiler.Validation do
     verify_join_types(query)
     verify_join_conditions_scope(query.from, [])
 
-    # user id checks have no meaning for queries representing a virtual table, as those can be arbitrary SQL statements
-    unless query.virtual_table? do
+    # User id checks have no meaning for `standard` queries, as those can be arbitrary SQL statements.
+    if query.type != :standard do
       verify_all_joined_subqueries_have_explicit_uids(query)
       verify_all_uid_columns_are_compared_in_joins(query)
     end
