@@ -31,7 +31,7 @@ defmodule Cloak.PerformanceData do
     [performance_config(opts)]
     |> Cloak.DataSource.config_to_datasources()
     |> Compliance.DataSources.complete_data_source_definitions()
-    |> Enum.each(&store_json_config/1)
+    |> Enum.each(&Compliance.store_json_config/1)
   end
 
   # -------------------------------------------------------------------
@@ -50,31 +50,5 @@ defmodule Cloak.PerformanceData do
       },
       "tables" => []
     }
-  end
-
-  defp store_json_config(data_source) do
-    [
-      Aircloak.File.config_dir_path(:cloak),
-      Aircloak.DeployConfig.fetch!("data_sources"),
-      "#{data_source.name}.json"
-    ]
-    |> Path.join()
-    |> File.write!(json_config(data_source))
-  end
-
-  defp json_config(data_source) do
-    data_source
-    |> Map.take([:name, :parameters])
-    |> Map.put(:driver, "postgresql")
-    |> Map.put(:tables, tables_map(data_source.tables))
-    |> Poison.encode!(pretty: true)
-  end
-
-  defp tables_map(tables) do
-    tables
-    |> Enum.map(fn {name, table} ->
-      {name, Map.take(table, [:db_name, :user_id, :projection, :decoders])}
-    end)
-    |> Enum.into(%{})
   end
 end
