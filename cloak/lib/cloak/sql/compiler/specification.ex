@@ -780,18 +780,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         subquery
 
       :error ->
-        possible_uid_columns =
-          Helpers.all_id_columns_from_tables(subquery)
-          |> Enum.map(&Expression.display_name/1)
-          |> case do
-            [column] -> "the column #{column}"
-            columns -> "one of the columns #{Enum.join(columns, ", ")}"
-          end
-
-        raise CompilationError,
-          message:
-            "Missing a user id column in the select list of #{"subquery `#{alias}`"}. " <>
-              "To fix this error, add #{possible_uid_columns} to the subquery select list."
+        raise CompilationError, Helpers.missing_uid_error_message(subquery, alias)
 
       uid_column ->
         uid_alias = "__auto_selected_#{uid_column.table.name}.#{uid_column.name}__"
