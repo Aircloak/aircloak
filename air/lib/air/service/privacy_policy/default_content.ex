@@ -18,24 +18,24 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
 
     # Contact information
 
-    This Aircloak Insights instance is run and operated by __[FILL IN COMPANY NAME]__.
-    As such __[FILL IN COMPANY NAME]__ is the Data Controller when it comes
+    This Aircloak Insights instance is run and operated by __[FILL IN: Company Name]__.
+    As such __[FILL IN: Company name]__ is the Data Controller when it comes
     to the personal information collected by this Aircloak Insights instance.
 
     If you have questions or concerns you can contact the Data Controller
     or the Data Controller's representative at:
 
     __Data Controller__
-    Address
-    Contact information
-    Phone number and or email address
+    [FILL IN: Address]
+    [FILL IN: Contact information]
+    [FILL IN: Phone number and or email address]
 
     or the Data Controller's Data Protection Officer:
 
     __Data Protection Officer__
-    Name of data protection officer
-    Building and office number
-    Phone number and or email address
+    [FILL IN: Name of data protection officer]
+    [FILL IN: Building and office number]
+    [FILL IN: Phone number and or email address]
 
     # Collection of information
 
