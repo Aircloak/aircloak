@@ -225,7 +225,7 @@ defmodule Cloak.Sql.Function do
   def function?(_), do: false
 
   @doc "Returns true if the function has the specified attribute, false otherise."
-  @spec has_attribute?(t | Parser.function_name() | nil, atom) :: boolean
+  @spec has_attribute?(t | Parser.function_name() | nil, atom | tuple) :: boolean
   def has_attribute?({:function, name, _, _}, attribute), do: has_attribute?(canonical_name(name), attribute)
 
   def has_attribute?(%Expression{function?: true, function: name}, attribute), do: has_attribute?(name, attribute)
