@@ -39,7 +39,7 @@ defmodule Air.Service.AuditLog do
           {:error, reason}
       end
     else
-      # Logging is disabled or the user has not yet accepted the privacy policy. Audit logging becomes a noop
+      :ok
     end
   end
 
