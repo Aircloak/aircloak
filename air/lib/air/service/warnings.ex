@@ -3,8 +3,10 @@ defmodule Air.Service.Warnings do
 
   @type severity_class :: :high | :medium | :low
 
+  @type resource :: Schemas.DataSource.t() | :license | :privacy_policy
+
   @type problem :: %{
-          resource: any,
+          resource: resource,
           description: String.t(),
           severity: severity_class
         }
@@ -30,7 +32,7 @@ defmodule Air.Service.Warnings do
   Returns a list of a problem for a particular resource.
   The structure of the warnings is the same as what is returned by problems/0
   """
-  @spec problems_for_resource(Schemas.DataSource.t()) :: [problem]
+  @spec problems_for_resource(resource) :: [problem]
   def problems_for_resource(%Schemas.DataSource{} = data_source),
     do: data_source_problems([data_source]) |> order_problems()
 
