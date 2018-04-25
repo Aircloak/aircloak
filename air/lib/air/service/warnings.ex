@@ -34,6 +34,8 @@ defmodule Air.Service.Warnings do
   def problems_for_resource(%Schemas.DataSource{} = data_source),
     do: data_source_problems([data_source]) |> order_problems()
 
+  def problems_for_resource(:license), do: license_problems()
+
   @doc "Given a set of problems, returns the highest severity class of any of the problems"
   @spec highest_severity_class([problem]) :: severity_class
   def highest_severity_class(problems),

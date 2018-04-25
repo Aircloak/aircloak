@@ -1,5 +1,9 @@
 <h2>Aircloak license</h2>
 
+<%= if license_warning() do %>
+  <div class="alert alert-danger"><%= license_warning() %></div>
+<% end %>
+
 <div class="row">
   <div class="col-sm-8">
     <div class="panel panel-default">
