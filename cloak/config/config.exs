@@ -73,7 +73,7 @@ config :cloak, :flush_query_log_timeout, 500
 
 config :cloak, Cloak.Scheduler,
   jobs: [
-    {"* * * * *", {Cloak.DataSource.SerializingUpdater, :run_liveness_check, []}}
+    {"@minutely", {Cloak.DataSource.SerializingUpdater, :run_liveness_check, []}}
   ]
 
 import_config "#{Mix.env()}.exs"
