@@ -9,23 +9,20 @@ defmodule Cloak.Query.DbEmulator do
   require Logger
 
   alias Cloak.{DataSource, DataSource.Table}
-  alias Cloak.Sql.{Query, Expression, Function, Condition}
-  alias Cloak.Query.{DbEmulator.Selector, Rows}
-  alias Cloak.Sql.Compiler
+  alias Cloak.Sql.{Query, Expression, Function, Condition, Compiler}
+  alias Cloak.Query.{DbEmulator.Selector, Rows, RowSplitters, Aggregator, Runner.ParallelProcessor}
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Retrieves rows according to the specification in the emulated query."
-  @spec select(Query.t(), DataSource.result_processor()) :: Enumerable.t()
-  def select(%Query{emulated?: false} = query, rows_processor), do: offload_select!(query, rows_processor)
+  @doc "Prepares the query for execution."
+  @spec compile(Query.t()) :: Query.t()
+  def compile(query), do: Compiler.Helpers.apply_top_down(query, &compile_emulated_joins/1)
 
-  def select(%Query{emulated?: true} = query, rows_processor) do
-    Logger.debug("Emulating query ...")
-    query = Compiler.Helpers.apply_top_down(query, &compile_emulated_joins/1)
-    rows_processor.([query.from |> select_rows() |> Selector.pick_db_columns(query)])
-  end
+  @doc "Retrieves rows according to the specification in the emulated query."
+  @spec select(Query.t()) :: Enumerable.t()
+  def select(query), do: select_rows({:subquery, %{ast: query}})
 
   # -------------------------------------------------------------------
   # Selection of rows from subparts of an emulated query
@@ -36,34 +33,20 @@ defmodule Cloak.Query.DbEmulator do
 
   defp select_rows({:subquery, %{ast: %Query{emulated?: false} = query}}) do
     query
-    |> Query.debug_log("Executing sub-query through data source")
-    |> offload_select!(fn rows ->
-      rows
-      |> Stream.concat()
-      |> Rows.filter(query |> Query.emulated_where() |> Condition.to_function())
-      |> Enum.to_list()
-    end)
+    |> Query.debug_log("Executing query through data source ...")
+    |> offload_select!(&process_rows(&1, query))
   end
 
   defp select_rows({:subquery, %{ast: %Query{emulated?: true, from: from} = subquery}})
        when not is_binary(from) do
-    Query.debug_log(subquery, "Emulating intermediate sub-query")
-
-    subquery.from
-    |> select_rows()
-    |> Selector.pick_db_columns(subquery)
-    |> Selector.select(subquery)
+    Query.debug_log(subquery, "Emulating query ...")
+    process_rows([subquery.from |> select_rows() |> Selector.pick_db_columns(subquery)], subquery)
   end
 
   defp select_rows({:subquery, %{ast: %Query{emulated?: true} = query}}) do
     %Query{query | subquery?: false}
-    |> Query.debug_log("Emulating leaf sub-query")
-    |> offload_select!(fn rows ->
-      rows
-      |> Stream.concat()
-      |> Selector.select(query)
-      |> Enum.to_list()
-    end)
+    |> Query.debug_log("Emulating leaf query ...")
+    |> offload_select!(&process_rows(&1, query))
   end
 
   defp select_rows({:join, join}) do
@@ -80,6 +63,43 @@ defmodule Cloak.Query.DbEmulator do
     rhs_rows = Task.await(rhs_task, :infinity)
     Selector.join(lhs_rows, rhs_rows, join)
   end
+
+  defp process_rows(chunks, %Query{type: :anonymized} = query) do
+    Logger.debug("Anonymizing query result ...")
+
+    query = RowSplitters.compile(query)
+
+    chunks
+    |> ParallelProcessor.execute(
+      concurrency(query),
+      &consume_rows(&1, query),
+      &Aggregator.merge_groups/2
+    )
+    |> Aggregator.aggregate(query)
+  end
+
+  defp process_rows(chunks, %Query{emulated?: false} = query) do
+    chunks
+    |> Stream.concat()
+    |> Rows.filter(query |> Query.emulated_where() |> Condition.to_function())
+    |> Enum.to_list()
+  end
+
+  defp process_rows(chunks, %Query{emulated?: true} = query) do
+    chunks
+    |> Stream.concat()
+    |> Selector.select(query)
+    |> Enum.to_list()
+  end
+
+  defp consume_rows(stream, query) do
+    stream
+    |> RowSplitters.split(query)
+    |> Rows.filter(query |> Query.emulated_where() |> Condition.to_function())
+    |> Aggregator.group(query)
+  end
+
+  defp concurrency(query), do: query.data_source.concurrency || Application.get_env(:cloak, :concurrency, 0)
 
   # -------------------------------------------------------------------
   # Transformation of joins for the purposes of emulated query selector
