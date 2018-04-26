@@ -114,6 +114,19 @@ The `~/.aircloak_ci/data/logs` folder contains the build logs. The folder name f
 
 The build sources are stored in the `~/.aircloak_ci/data/cache`. In this folder, you'll find two subfolders: `branches` (branches sources) and `builds` (PR sources). The actual source is then stored in the `src` folder of the target. For example, source for the PR 1234 sits in the folder `~/.aircloak_ci/data/cache/builds/pr-1234/src/`. In this folder, you can start CI containers, as explained in the previous section.
 
+### Manually fixing a build
+
+Occasionally a build might end up in a weird state, such as a dependency which cannot be compiled. While this shouldn't happen, there's always a possibility of a weird bug in the CI server which causes a corruption of the local cache. If you want to proceed forward without going down the rabbit hole of tracking the CI bug, you can try to manually fix the build.
+
+You can manually investigate and fix the build with following steps:
+
+- Ssh to the CI server and invoke `su ci` to impersonate the CI user.
+- Go to the folder of your build, as explained in the previous section (e.g. `~/.aircloak_ci/data/cache/builds/pr-XYZ/src/`).
+- Checkout the git status first (what is the head, and whether there are some files missing). Be aware that the CI server checks out a detached merge commit. If needed, you can `git reset HEAD --hard` or invoke some other commands to bring the working copy to the clean state.
+- Invoke `MPI=true ci/start_component.sh component_name` to start the docker container for the desired component.
+- Invoke individual commands which failed. You can freely remove any build artifact (e.g. a particular dependency, or the whole build folder), and invoke standard commands, such as `mix deps.get`. Whatever you do inside the docker container will be reflected on the cache for your build, since all the files are mounted.
+- Once you manage to manually build from the docker container, exit the container and force start the failed CI build.
+
 ### Setting up the server
 
 The initial configuration of the production server is manual. This section describes the needed steps to set up a new CI server.
