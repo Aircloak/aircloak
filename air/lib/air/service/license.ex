@@ -30,7 +30,7 @@ defmodule Air.Service.License do
   def present?(), do: GenServer.call(__MODULE__, :present?)
 
   @doc "Returns true if the system license is an automatically renewing one, false otherwise."
-  @spec present?() :: boolean
+  @spec auto_renew?() :: boolean
   def auto_renew?(), do: GenServer.call(__MODULE__, :auto_renew?)
 
   @doc "Calls central to renew the system license."
