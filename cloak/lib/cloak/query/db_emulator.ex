@@ -31,21 +31,15 @@ defmodule Cloak.Query.DbEmulator do
   defp offload_select!(query, rows_processor),
     do: DataSource.select!(%Query{query | where: Query.offloaded_where(query)}, rows_processor)
 
-  defp select_rows({:subquery, %{ast: %Query{emulated?: false} = query}}) do
-    query
-    |> Query.debug_log("Executing query through data source ...")
-    |> offload_select!(&process_rows(&1, query))
-  end
-
   defp select_rows({:subquery, %{ast: %Query{emulated?: true, from: from} = subquery}})
        when not is_binary(from) do
     Query.debug_log(subquery, "Emulating query ...")
     process_rows([subquery.from |> select_rows() |> Selector.pick_db_columns(subquery)], subquery)
   end
 
-  defp select_rows({:subquery, %{ast: %Query{emulated?: true} = query}}) do
-    %Query{query | subquery?: false}
-    |> Query.debug_log("Emulating leaf query ...")
+  defp select_rows({:subquery, %{ast: query}}) do
+    %Query{query | subquery?: not query.emulated? and query.type != :anonymized}
+    |> Query.debug_log("Offloading query ...")
     |> offload_select!(&process_rows(&1, query))
   end
 
