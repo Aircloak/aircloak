@@ -33,10 +33,10 @@ defmodule Cloak.Sql.Compiler do
   def compile!(data_source, parsed_query, parameters, views) do
     compiled_query =
       parsed_query
-      |> Map.put_new(:type, :anonymized)
       |> Compiler.ASTNormalization.normalize()
       |> Compiler.Specification.compile(data_source, parameters, views)
       |> Compiler.Normalization.remove_noops()
+      |> Compiler.Anonymization.compile()
       |> Compiler.Validation.verify_query()
       |> Compiler.TypeChecker.validate_allowed_usage_of_math_and_functions()
 
@@ -67,7 +67,7 @@ defmodule Cloak.Sql.Compiler do
   @doc "Validates a user-defined view."
   @spec validate_view(DataSource.t(), Parser.parsed_query(), Query.view_map()) :: :ok | {:error, String.t()}
   def validate_view(data_source, parsed_query, views),
-    do: compile(data_source, parsed_query |> Map.put(:subquery?, true) |> Map.put(:type, :restricted), [], views)
+    do: compile(data_source, Map.put(parsed_query, :subquery?, true), [], views)
 
   @doc "Creates the query which describes a SELECT statement from a single table."
   @spec make_select_query(DataSource.t(), DataSource.Table.t(), [Expression.t()]) :: Query.t()

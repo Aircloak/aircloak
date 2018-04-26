@@ -70,20 +70,21 @@ defmodule Cloak.Query.DbEmulator do
       &Aggregator.merge_groups/2
     )
     |> Aggregator.aggregate(query)
+    |> convert_buckets(query)
   end
 
   defp process_rows(chunks, %Query{emulated?: false} = query) do
     chunks
     |> Stream.concat()
     |> Rows.filter(query |> Query.emulated_where() |> Condition.to_function())
-    |> Enum.to_list()
+    |> convert_rows(query)
   end
 
   defp process_rows(chunks, %Query{emulated?: true} = query) do
     chunks
     |> Stream.concat()
     |> Selector.select(query)
-    |> Enum.to_list()
+    |> convert_rows(query)
   end
 
   defp consume_rows(stream, query) do
@@ -94,6 +95,14 @@ defmodule Cloak.Query.DbEmulator do
   end
 
   defp concurrency(query), do: query.data_source.concurrency || Application.get_env(:cloak, :concurrency, 0)
+
+  defp convert_buckets(buckets, %Query{subquery?: true}),
+    do: Stream.flat_map(buckets, &List.duplicate(&1.row, &1.occurrences))
+
+  defp convert_buckets(buckets, %Query{subquery?: false}), do: buckets
+
+  defp convert_rows(stream, %Query{subquery?: false}), do: Enum.map(stream, &%{row: &1, occurrences: 1, users_count: 0})
+  defp convert_rows(stream, %Query{subquery?: true}), do: Enum.to_list(stream)
 
   # -------------------------------------------------------------------
   # Transformation of joins for the purposes of emulated query selector
