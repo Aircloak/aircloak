@@ -24,10 +24,16 @@ defmodule Aircloak.License do
     |> Enum.find(:error, & &1)
   end
 
-  defp unpack(%{"customer_id" => customer_id, "id" => license_id, "expires_at" => expires_at}) do
+  defp unpack(data = %{"customer_id" => customer_id, "id" => license_id, "expires_at" => expires_at}) do
     case Timex.parse(expires_at, "{ISO:Basic}") do
       {:ok, expires_at} ->
-        {:ok, %{customer_id: customer_id, license_id: license_id, expires_at: expires_at}}
+        {:ok,
+         %{
+           customer_id: customer_id,
+           license_id: license_id,
+           expires_at: expires_at,
+           auto_renew: data["auto_renew"] || false
+         }}
 
       _ ->
         :error
