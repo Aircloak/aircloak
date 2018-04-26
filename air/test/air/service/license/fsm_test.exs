@@ -37,6 +37,15 @@ defmodule Air.Service.License.FSM.Test do
       assert FSM.text(state) == license_text
     end
 
+    test "whitespace is removed before decoding", %{
+      valid_license: valid_license
+    } do
+      license_text = "\t" <> valid_license <> "\r\n"
+      {:ok, state} = FSM.initial() |> FSM.load(Key.public_key(), license_text)
+
+      assert FSM.present?(state)
+    end
+
     test "expired license", %{expired_license: expired_license} do
       {:ok, state} = FSM.initial() |> FSM.load(Key.public_key(), expired_license)
 
