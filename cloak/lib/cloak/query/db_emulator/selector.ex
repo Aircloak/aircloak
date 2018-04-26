@@ -72,7 +72,11 @@ defmodule Cloak.Query.DbEmulator.Selector do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp select_columns(stream, columns, %Query{group_by: [_ | _]} = query) do
+  defp select_columns(stream, columns, %Query{implicit_count?: true}) do
+    Stream.map(stream, fn row -> Enum.map(columns, &Expression.value(&1, row)) end)
+  end
+
+  defp select_columns(stream, columns, query) do
     defaults = Enum.map(query.aggregators, &aggregator_to_default/1)
     accumulators = Enum.map(query.aggregators, &aggregator_to_accumulator/1)
     finalizers = Enum.map(query.aggregators, &aggregator_to_finalizer/1)
@@ -92,10 +96,6 @@ defmodule Cloak.Query.DbEmulator.Selector do
       group_values ++ aggregated_values
     end)
     |> Rows.extract_groups(columns, query)
-  end
-
-  defp select_columns(stream, columns, _query) do
-    Stream.map(stream, fn row -> Enum.map(columns, &Expression.value(&1, row)) end)
   end
 
   defp offset_rows(stream, %Query{offset: 0}), do: stream
