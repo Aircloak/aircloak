@@ -61,6 +61,7 @@ defmodule Cloak.Sql.Compiler.Specification do
       |> compile_columns()
       |> compile_references()
       |> perform_implicit_casts()
+      |> ensure_uid_selected()
 
   # -------------------------------------------------------------------
   # From
@@ -181,15 +182,8 @@ defmodule Cloak.Sql.Compiler.Specification do
       Lens.map(
         Lenses.direct_subqueries(),
         query,
-        &%{&1 | ast: compile_subquery(&1.ast, &1.alias, query)}
+        &%{&1 | ast: &1.ast |> Map.put(:subquery?, true) |> compile(query.data_source, query.parameters, query.views)}
       )
-
-  defp compile_subquery(parsed_subquery, alias, parent_query),
-    do:
-      parsed_subquery
-      |> Map.put(:subquery?, true)
-      |> compile(parent_query.data_source, parent_query.parameters, parent_query.views)
-      |> ensure_uid_selected(alias)
 
   # -------------------------------------------------------------------
   # Selected tables
@@ -200,14 +194,8 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp selected_tables({:join, join}, query), do: selected_tables(join.lhs, query) ++ selected_tables(join.rhs, query)
 
   defp selected_tables({:subquery, subquery}, _query) do
-    user_id_name =
-      if subquery.ast.type == :standard do
-        nil
-      else
-        # In a subquery we should have the `user_id` already in the list of selected columns.
-        user_id_index = Enum.find_index(subquery.ast.columns, & &1.user_id?)
-        Enum.at(subquery.ast.column_titles, user_id_index)
-      end
+    user_id_index = Enum.find_index(subquery.ast.columns, & &1.user_id?)
+    user_id_name = user_id_index && Enum.at(subquery.ast.column_titles, user_id_index)
 
     columns =
       Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
@@ -792,58 +780,48 @@ defmodule Cloak.Sql.Compiler.Specification do
   # UID selection in a subquery
   # -------------------------------------------------------------------
 
-  defp ensure_uid_selected(subquery, alias) do
-    case auto_select_uid_column(subquery) do
+  defp ensure_uid_selected(query) do
+    case auto_select_uid_column(query) do
       nil ->
-        subquery
-
-      :error ->
-        possible_uid_columns =
-          Helpers.all_id_columns_from_tables(subquery)
-          |> Enum.map(&Expression.display_name/1)
-          |> case do
-            [column] -> "the column #{column}"
-            columns -> "one of the columns #{Enum.join(columns, ", ")}"
-          end
-
-        raise CompilationError,
-          message:
-            "Missing a user id column in the select list of #{"subquery `#{alias}`"}. " <>
-              "To fix this error, add #{possible_uid_columns} to the subquery select list."
+        query
 
       uid_column ->
         uid_alias = "__auto_selected_#{uid_column.table.name}.#{uid_column.name}__"
         selected_expression = %Expression{uid_column | alias: uid_alias, synthetic?: true}
 
         %Query{
-          subquery
-          | columns: subquery.columns ++ [selected_expression],
-            column_titles: subquery.column_titles ++ [uid_alias]
+          query
+          | columns: query.columns ++ [selected_expression],
+            column_titles: query.column_titles ++ [uid_alias]
         }
     end
   end
 
-  defp auto_select_uid_column(subquery) do
+  defp auto_select_uid_column(query) do
     cond do
-      # virtual table queries don't require user ids
-      subquery.type == :standard ->
+      # top queries do not need an user id
+      not query.subquery? ->
+        nil
+
+      # standard queries don't require user ids
+      query.type == :standard ->
         nil
 
       # uid column is already explicitly selected
-      Helpers.uid_column_selected?(subquery) ->
+      Helpers.uid_column_selected?(query) ->
         nil
 
       # no group by, no having and no aggregate -> select any uid column
-      match?(%Query{group_by: [], having: nil}, subquery) && not Helpers.aggregate?(subquery) ->
-        hd(Helpers.all_id_columns_from_tables(subquery))
+      match?(%Query{group_by: [], having: nil}, query) && not Helpers.aggregate?(query) ->
+        hd(Helpers.all_id_columns_from_tables(query))
 
       # uid column is in a group by -> select that uid
-      (uid_column = Enum.find(subquery.group_by, & &1.user_id?)) != nil ->
+      (uid_column = Enum.find(query.group_by, & &1.user_id?)) != nil ->
         uid_column
 
       # we can't select a uid column
       true ->
-        :error
+        nil
     end
   end
 end

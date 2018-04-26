@@ -15,6 +15,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   def verify_query(%Query{command: :show} = query), do: query
 
   def verify_query(%Query{command: :select} = query) do
+    verify_user_id_usage_in_subqueries(query)
     Helpers.each_subquery(query, &verify_function_usage/1)
     Helpers.each_subquery(query, &verify_duplicate_tables/1)
     Helpers.each_subquery(query, &verify_aggregated_columns/1)
@@ -478,6 +479,40 @@ defmodule Cloak.Sql.Compiler.Validation do
       end
     end)
   end
+
+  # -------------------------------------------------------------------
+  # UserId usage in subqueries
+  # -------------------------------------------------------------------
+
+  defp verify_user_id_usage_in_subqueries(query),
+    do:
+      Lens.each(
+        Lenses.direct_subqueries(),
+        query,
+        &verify_user_id_usage_in_subquery(&1.ast, &1.alias)
+      )
+
+  defp verify_user_id_usage_in_subquery(subquery, alias) do
+    unless valid_user_id?(subquery) do
+      possible_uid_columns =
+        Helpers.all_id_columns_from_tables(subquery)
+        |> Enum.map(&Expression.display_name/1)
+        |> case do
+          [column] -> "the column #{column}"
+          columns -> "one of the columns #{Enum.join(columns, ", ")}"
+        end
+
+      raise CompilationError,
+        message:
+          "Missing a user id column in the select list of #{"subquery `#{alias}`"}. " <>
+            "To fix this error, add #{possible_uid_columns} to the subquery select list."
+    end
+
+    verify_user_id_usage_in_subqueries(subquery)
+  end
+
+  defp valid_user_id?(%Query{type: :restricted} = query), do: Helpers.uid_column_selected?(query)
+  defp valid_user_id?(_query), do: true
 
   # -------------------------------------------------------------------
   # Helpers

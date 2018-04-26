@@ -723,7 +723,7 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "subquery must return a user_id when it has aggregated columns" do
-    assert {:error, error} = compile("select c1 from (select max(c1) from t1) alias", data_source())
+    assert {:error, error} = compile("select m from (select max(c1) as m from t1) alias", data_source())
 
     assert error =~ "Missing a user id column"
   end
