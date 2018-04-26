@@ -28,8 +28,8 @@ defmodule IntegrationTest.CloakTest do
       |> Process.exit(:kill)
 
       # verify that cloak socket disconnects, reconnects, and rejoins the main channel
-      assert_receive {:trace, _, :call, {AirSocket, :handle_disconnected, _}}, :timer.seconds(1)
-      assert_receive {:trace, _, :call, {AirSocket, :handle_connected, _}}, :timer.seconds(1)
+      assert_receive {:trace, _, :call, {AirSocket, :handle_disconnected, _}}, :timer.seconds(3)
+      assert_receive {:trace, _, :call, {AirSocket, :handle_connected, _}}, :timer.seconds(3)
       assert_receive {:trace, _, :call, {AirSocket, :handle_joined, _}}, :timer.seconds(1)
       assert length(Air.Service.Cloak.channel_pids(Manager.data_source_name())) == 1
     end)
@@ -49,7 +49,7 @@ defmodule IntegrationTest.CloakTest do
 
       # verify that cloak socket rejoins the main channel
       refute_receive {:trace, _, :call, {AirSocket, :handle_disconnected, _}}
-      assert_receive {:trace, _, :call, {AirSocket, :handle_joined, _}}, :timer.seconds(1)
+      assert_receive {:trace, _, :call, {AirSocket, :handle_joined, _}}, :timer.seconds(3)
       assert length(Air.Service.Cloak.channel_pids(Manager.data_source_name())) == 1
     end)
   end
