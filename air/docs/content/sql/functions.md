@@ -119,11 +119,22 @@ ABS(-3)
 
 ### bucket
 
-Rounds the input to the given bucket size.
+Rounds the input to the nearest N, where N is provided in the `BY` argument. It also accepts an `ALIGN` argument to
+specify if the rounding should occur down (`ALIGN LOWER` - this is the default), up (`ALIGN UPPER`), or if an average
+between the two should be returned (`ALIGN MIDDLE`).
 
 ```sql
 BUCKET(180 BY 50)
 -- 150
+
+BUCKET(150 BY 50)
+-- 150
+
+BUCKET(200 BY 50)
+-- 200
+
+BUCKET(180 BY 100)
+-- 100
 
 BUCKET(180 BY 50 ALIGN LOWER)
 -- 150
@@ -133,6 +144,19 @@ BUCKET(180 BY 50 ALIGN UPPER)
 
 BUCKET(180 BY 50 ALIGN MIDDLE)
 -- 175
+```
+
+This function is useful to prepare buckets/bins for a histogram, for example in a query like the following:
+
+```sql
+SELECT BUCKET(price BY 5 ALIGN UPPER), COUNT(*)
+FROM purchases
+GROUP BY 1
+-- bucket count
+-- 0      10     - all purchases priced below 5
+-- 5      10     - purchases priced at or above 5 and below 10
+-- 10     20     - purchases priced at or above 10 and below 15
+-- etc.
 ```
 
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
