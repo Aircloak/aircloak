@@ -19,7 +19,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   @spec compile(Query.t()) :: Query.t()
   def compile(query = %{command: :show}), do: query
 
-  def compile(query) do
+  def compile(query = %{command: :select, type: :anonymized}) do
     top_level_uid = Helpers.id_column(query)
 
     query
@@ -31,6 +31,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> add_generic_uid_layer_if_needed(top_level_uid)
   end
 
+  def compile(query = %{command: :select, type: :standard}),
+    do: Lens.map(Query.Lenses.direct_subqueries() |> Lens.key(:ast), query, &compile/1)
+
   @doc "Returns the columns required to compute the noise layers for the specified query."
   @spec noise_layer_columns(Query.t()) :: [Expression.t()]
   def noise_layer_columns(%{noise_layers: noise_layers}),
@@ -38,6 +41,22 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       non_uid_expressions()
       |> Lens.to_list(noise_layers)
       |> Enum.uniq_by(&Expression.unalias/1)
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  def compile_anonymized_query(query) do
+    top_level_uid = Helpers.id_column(query)
+
+    query
+    |> Helpers.apply_bottom_up(&calculate_base_noise_layers(&1, top_level_uid))
+    |> Helpers.apply_top_down(&push_down_noise_layers/1)
+    |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
+    |> Helpers.apply_top_down(&normalize_datasource_case/1)
+    |> remove_meaningless_negative_noise_layers()
+    |> add_generic_uid_layer_if_needed(top_level_uid)
+  end
 
   # -------------------------------------------------------------------
   # Pushing layers into subqueries
