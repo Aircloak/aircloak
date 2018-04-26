@@ -45,6 +45,7 @@ defmodule Cloak.Query.Aggregator do
       |> process_low_count_users(query)
       |> aggregate_groups(query)
       |> make_buckets(query)
+      |> finalize_buckets(query)
 
   @doc """
     Rows are grouped per query specification. See `Cloak.Query.Rows.group_expressions/1` for details.
@@ -434,4 +435,60 @@ defmodule Cloak.Query.Aggregator do
       Map.merge(user_values1, user_values2, fn _user, columns1, columns2 ->
         columns1 |> Enum.zip(columns2) |> Enum.map(&merge_accumulators/1)
       end)
+
+  defp finalize_buckets(buckets, query) do
+    bucket_columns = Query.bucket_columns(query)
+
+    buckets
+    |> Cloak.Query.Sorter.order_rows(bucket_columns, query.order_by, & &1.row)
+    |> distinct(query.distinct?)
+    |> offset(query.offset)
+    |> limit(query.limit)
+    |> drop_non_selected_columns(bucket_columns, query.columns)
+  end
+
+  defp distinct(buckets, true), do: Enum.map(buckets, &Map.put(&1, :occurrences, 1))
+  defp distinct(buckets, false), do: buckets
+
+  defp offset(buckets, 0), do: buckets
+  defp offset([], _amount), do: []
+
+  defp offset([%{occurrences: occurrences} | rest], amount) when occurrences <= amount,
+    do: offset(rest, amount - occurrences)
+
+  defp offset([%{occurrences: occurrences} = bucket | rest], amount),
+    do: [%{bucket | occurrences: occurrences - amount} | rest]
+
+  defp limit(buckets, nil), do: buckets
+
+  defp limit(buckets, amount),
+    do:
+      buckets
+      |> take(amount, [])
+      |> Enum.reverse()
+
+  defp take([], _amount, acc), do: acc
+
+  defp take([%{occurrences: occurrences} = bucket | rest], amount, acc) when occurrences < amount,
+    do: take(rest, amount - occurrences, [bucket | acc])
+
+  defp take([%{} = bucket | _rest], amount, acc), do: [%{bucket | occurrences: amount} | acc]
+
+  def drop_non_selected_columns(buckets, selected_columns, selected_columns),
+    # Optimization of the frequent case where selected columns are equal to bucket columns
+    do: buckets
+
+  def drop_non_selected_columns(buckets, bucket_columns, selected_columns) do
+    selected_columns_indices =
+      Enum.map(selected_columns, fn selected_column ->
+        index = Enum.find_index(bucket_columns, &(&1 == selected_column))
+        true = index != nil
+        index
+      end)
+
+    Enum.map(
+      buckets,
+      &%{&1 | row: Enum.map(selected_columns_indices, fn index -> Enum.at(&1.row, index) end)}
+    )
+  end
 end

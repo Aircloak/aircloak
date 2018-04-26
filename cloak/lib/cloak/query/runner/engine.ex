@@ -74,7 +74,7 @@ defmodule Cloak.Query.Runner.Engine do
     do:
       (Map.keys(query.data_source.tables) ++ Map.keys(query.views))
       |> Enum.map(&%{occurrences: 1, row: [to_string(&1)]})
-      |> Query.Result.new(query, features)
+      |> Query.Result.new(query.column_titles, features)
 
   defp run_statement(
          %Sql.Query{command: :show, show: :columns} = query,
@@ -86,13 +86,13 @@ defmodule Cloak.Query.Runner.Engine do
          |> hd()
          |> sorted_table_columns()
          |> Enum.map(&%{occurrences: 1, row: [&1.name, to_string(&1.type)]})
-         |> Query.Result.new(query, features)
+         |> Query.Result.new(query.column_titles, features)
 
   defp run_statement(%Sql.Query{command: :select} = query, features, _state_updater),
     do:
       query
       |> Query.DbEmulator.select()
-      |> Query.Result.new(query, features)
+      |> Query.Result.new(query.column_titles, features)
 
   defp sorted_table_columns(table) do
     {[uid], other_columns} = Enum.split_with(table.columns, &(&1.name == table.user_id))

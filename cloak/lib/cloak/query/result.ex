@@ -21,21 +21,12 @@ defmodule Cloak.Query.Result do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc """
-    Creates the result struct that corresponds to the given query.
-
-    This function takes the collection of aggregated buckets, and performs the
-    final post-processing, according to the query specification. This will
-    include sorting, offsetting, limiting rows, and removing non-selected
-    columns.
-
-    The result is a fully shaped query result.
-  """
-  @spec new([bucket], Query.t(), Query.features()) :: t
-  def new(buckets, query, features),
+  @doc "Creates the result struct that corresponds to the given query."
+  @spec new([bucket], [String.t()], Query.features()) :: t
+  def new(buckets, columns, features),
     do: %__MODULE__{
-      buckets: final_buckets(query, normalize(buckets)),
-      columns: query.column_titles,
+      buckets: normalize(buckets),
+      columns: columns,
       features: features
     }
 
@@ -64,60 +55,4 @@ defmodule Cloak.Query.Result do
         other ->
           other
       end)
-
-  defp final_buckets(query, buckets) do
-    bucket_columns = Query.bucket_columns(query)
-
-    buckets
-    |> Cloak.Query.Sorter.order_rows(bucket_columns, query.order_by, & &1.row)
-    |> distinct(query.distinct?)
-    |> offset(query.offset)
-    |> limit(query.limit)
-    |> drop_non_selected_columns(bucket_columns, query.columns)
-  end
-
-  defp distinct(buckets, true), do: Enum.map(buckets, &Map.put(&1, :occurrences, 1))
-  defp distinct(buckets, false), do: buckets
-
-  defp offset(buckets, 0), do: buckets
-  defp offset([], _amount), do: []
-
-  defp offset([%{occurrences: occurrences} | rest], amount) when occurrences <= amount,
-    do: offset(rest, amount - occurrences)
-
-  defp offset([%{occurrences: occurrences} = bucket | rest], amount),
-    do: [%{bucket | occurrences: occurrences - amount} | rest]
-
-  defp limit(buckets, nil), do: buckets
-
-  defp limit(buckets, amount),
-    do:
-      buckets
-      |> take(amount, [])
-      |> Enum.reverse()
-
-  defp take([], _amount, acc), do: acc
-
-  defp take([%{occurrences: occurrences} = bucket | rest], amount, acc) when occurrences < amount,
-    do: take(rest, amount - occurrences, [bucket | acc])
-
-  defp take([%{} = bucket | _rest], amount, acc), do: [%{bucket | occurrences: amount} | acc]
-
-  def drop_non_selected_columns(buckets, selected_columns, selected_columns),
-    # Optimization of the frequent case where selected columns are equal to bucket columns
-    do: buckets
-
-  def drop_non_selected_columns(buckets, bucket_columns, selected_columns) do
-    selected_columns_indices =
-      Enum.map(selected_columns, fn selected_column ->
-        index = Enum.find_index(bucket_columns, &(&1 == selected_column))
-        true = index != nil
-        index
-      end)
-
-    Enum.map(
-      buckets,
-      &%{&1 | row: Enum.map(selected_columns_indices, fn index -> Enum.at(&1.row, index) end)}
-    )
-  end
 end
