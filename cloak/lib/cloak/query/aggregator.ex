@@ -411,7 +411,6 @@ defmodule Cloak.Query.Aggregator do
     rows
     |> Stream.map(fn {_users_count, row} -> row end)
     |> Rows.extract_groups(Query.bucket_columns(query), query)
-    |> Stream.map(&normalize_for_encoding/1)
     |> Stream.zip(Stream.map(rows, fn {users_count, _row} -> users_count end))
     |> Enum.map(fn {row, users_count} ->
       %{row: row, occurrences: 1, users_count: users_count}
@@ -424,7 +423,6 @@ defmodule Cloak.Query.Aggregator do
     rows
     |> Stream.map(fn {_users_count, row} -> row end)
     |> Rows.extract_groups([Expression.count_star() | Query.bucket_columns(query)], query)
-    |> Stream.map(&normalize_for_encoding/1)
     |> Stream.zip(Stream.map(rows, fn {users_count, _row} -> users_count end))
     |> Enum.map(fn {[count | row], users_count} ->
       %{row: row, occurrences: count, users_count: users_count}
@@ -435,25 +433,5 @@ defmodule Cloak.Query.Aggregator do
     do:
       Map.merge(user_values1, user_values2, fn _user, columns1, columns2 ->
         columns1 |> Enum.zip(columns2) |> Enum.map(&merge_accumulators/1)
-      end)
-
-  defp normalize_for_encoding(row),
-    # We're normalizing some Elixir structs, so they can be encoded to non-Elixir formats, such as JSON.
-    do:
-      Enum.map(row, fn
-        %Date{} = date ->
-          Date.to_iso8601(date)
-
-        %Time{} = time ->
-          Time.to_iso8601(time)
-
-        %NaiveDateTime{} = naive_date_time ->
-          NaiveDateTime.to_iso8601(naive_date_time)
-
-        %Timex.Duration{} = duration ->
-          Timex.Duration.to_string(duration)
-
-        other ->
-          other
       end)
 end

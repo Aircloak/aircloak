@@ -34,7 +34,7 @@ defmodule Cloak.Query.Result do
   @spec new([bucket], Query.t(), Query.features()) :: t
   def new(buckets, query, features),
     do: %__MODULE__{
-      buckets: final_buckets(query, buckets),
+      buckets: final_buckets(query, normalize(buckets)),
       columns: query.column_titles,
       features: features
     }
@@ -42,6 +42,28 @@ defmodule Cloak.Query.Result do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp normalize(buckets), do: Enum.map(buckets, &%{&1 | row: normalize_for_encoding(&1.row)})
+
+  defp normalize_for_encoding(row),
+    # We're normalizing some Elixir structs, so they can be encoded to non-Elixir formats, such as JSON.
+    do:
+      Enum.map(row, fn
+        %Date{} = date ->
+          Date.to_iso8601(date)
+
+        %Time{} = time ->
+          Time.to_iso8601(time)
+
+        %NaiveDateTime{} = naive_date_time ->
+          NaiveDateTime.to_iso8601(naive_date_time)
+
+        %Timex.Duration{} = duration ->
+          Timex.Duration.to_string(duration)
+
+        other ->
+          other
+      end)
 
   defp final_buckets(query, buckets) do
     bucket_columns = Query.bucket_columns(query)
