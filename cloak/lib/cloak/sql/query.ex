@@ -358,15 +358,16 @@ defmodule Cloak.Sql.Query do
 
   defp include_required_expressions(query), do: Enum.reduce(required_expressions(query), query, &add_db_column(&2, &1))
 
-  defp required_expressions(%__MODULE__{command: :select, subquery?: true, emulated?: false} = query) do
-    # non-emulated subquery -> the selected columns are all selected expressions
+  defp required_expressions(%__MODULE__{command: :select, emulated?: false, type: type} = query)
+       when type != :anonymized do
+    # non-emulated, non-anonymized subquery -> the selected columns are all selected expressions
     query.column_titles
     |> Enum.zip(query.columns)
     |> Enum.map(fn {column_alias, column} -> %Expression{column | alias: column_alias} end)
   end
 
   defp required_expressions(%__MODULE__{command: :select} = query) do
-    # top-level query or emulated subquery -> we're only fetching columns, while other expressions (e.g. function calls)
+    # anonymized query or emulated subquery -> we're only fetching columns, while other expressions (e.g. function calls)
     # will be resolved in the post-processing phase
     used_columns =
       query

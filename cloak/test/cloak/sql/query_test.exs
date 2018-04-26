@@ -287,7 +287,8 @@ defmodule Cloak.Sql.QueryTest do
       columns: [Expression.column(string_column, table)],
       column_titles: ["string"],
       selected_tables: [table],
-      from: "table"
+      from: "table",
+      type: :anonymized
     }
 
     assert [
@@ -306,7 +307,8 @@ defmodule Cloak.Sql.QueryTest do
       columns: [Expression.function("abs", [Expression.column(numeric_column, table)])],
       column_titles: ["abs"],
       selected_tables: [table],
-      from: "table"
+      from: "table",
+      type: :anonymized
     }
 
     assert [
