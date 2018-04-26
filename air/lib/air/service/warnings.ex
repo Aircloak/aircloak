@@ -3,8 +3,10 @@ defmodule Air.Service.Warnings do
 
   @type severity_class :: :high | :medium | :low
 
+  @type resource :: Schemas.DataSource.t() | :license | :privacy_policy
+
   @type problem :: %{
-          resource: any,
+          resource: resource,
           description: String.t(),
           severity: severity_class
         }
@@ -30,9 +32,11 @@ defmodule Air.Service.Warnings do
   Returns a list of a problem for a particular resource.
   The structure of the warnings is the same as what is returned by problems/0
   """
-  @spec problems_for_resource(Schemas.DataSource.t()) :: [problem]
+  @spec problems_for_resource(resource) :: [problem]
   def problems_for_resource(%Schemas.DataSource{} = data_source),
     do: data_source_problems([data_source]) |> order_problems()
+
+  def problems_for_resource(:license), do: license_problems()
 
   @doc "Given a set of problems, returns the highest severity class of any of the problems"
   @spec highest_severity_class([problem]) :: severity_class
@@ -114,12 +118,12 @@ defmodule Air.Service.Warnings do
   defp license_problems() do
     cond do
       not License.valid?() ->
-        [problem(:aircloak, "Your system doesn't have a valid license.", :high)]
+        [problem(:license, "Your system doesn't have a valid license.", :high)]
 
       Timex.diff(License.expiry(), Timex.now(), :days) < @license_warn_in_days ->
         [
           problem(
-            :aircloak,
+            :license,
             "Your license will expire in less than #{@license_warn_in_days} days.",
             :high
           )
