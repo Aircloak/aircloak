@@ -45,7 +45,8 @@ defmodule Central.Service.License do
     %{
       id: license.id,
       customer_id: license.customer_id,
-      expires_at: expires_at(license) |> Timex.format!("{ISO:Basic:Z}")
+      expires_at: expires_at(license) |> Timex.format!("{ISO:Basic:Z}"),
+      auto_renew: license.auto_renew and not license.revoked
     }
     |> Poison.encode!()
     |> encrypt!()

@@ -53,7 +53,7 @@ defmodule Central.Service.License.Test do
 
       text = License.export(license)
 
-      assert {:ok, %{"expires_at" => expires_at}} = decode(text, public_key)
+      assert {:ok, %{"expires_at" => expires_at, "auto_renew" => true}} = decode(text, public_key)
       assert {:ok, expires_at} = Timex.parse(expires_at, "{ISO:Basic}")
       assert Timex.diff(expires_at, Timex.now(), :days) >= 9
       assert Timex.diff(expires_at, Timex.now(), :days) <= 11
@@ -66,7 +66,7 @@ defmodule Central.Service.License.Test do
 
       text = License.export(%{license | inserted_at: creation})
 
-      assert {:ok, %{"expires_at" => expires_at}} = decode(text, public_key)
+      assert {:ok, %{"expires_at" => expires_at, "auto_renew" => false}} = decode(text, public_key)
       assert {:ok, expires_at} = Timex.parse(expires_at, "{ISO:Basic}")
       assert Timex.diff(expires_at, creation, :days) >= 9
       assert Timex.diff(expires_at, creation, :days) <= 11
@@ -85,7 +85,7 @@ defmodule Central.Service.License.Test do
       {:ok, license} = License.revoke(license)
       text = License.export(%{license | inserted_at: creation})
 
-      assert {:ok, %{"expires_at" => expires_at}} = decode(text, public_key)
+      assert {:ok, %{"expires_at" => expires_at, "auto_renew" => false}} = decode(text, public_key)
       assert {:ok, expires_at} = Timex.parse(expires_at, "{ISO:Basic}")
       assert Timex.diff(expires_at, creation, :days) >= 9
       assert Timex.diff(expires_at, creation, :days) <= 11
