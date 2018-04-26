@@ -20,7 +20,8 @@
         <td><%= user.email %></td>
         <td>
           <%= link "Edit", to: user_path(@conn, :edit, user), class: "btn btn-default btn-xs" %>
-          <%= link "Delete", to: user_path(@conn, :delete, user), method: :delete, class: "btn btn-danger btn-xs" %>
+          <%= link "Delete", to: user_path(@conn, :delete, user), method: :delete, class: "btn btn-danger btn-xs",
+            "data-confirm": ~s(Delete the user "#{user.name}"?) %>
         </td>
       </tr>
     <% end %>

@@ -88,7 +88,7 @@ defmodule Air.Mixfile do
       {:scrivener_ecto, "~> 1.0"},
       {:scrivener_html, "~> 1.1"},
       {:decimal, "~> 1.4"},
-      {:quantum, "~> 1.9"},
+      {:quantum, "~> 2.2.7"},
       {:remote_ip, "~> 0.1.0"},
       {:ecto_enum, "~> 1.0.0"},
       {:jiffy, "~> 0.14.1"},

@@ -54,11 +54,9 @@ config :central, air_status_logging_interval: :timer.seconds(10)
 
 config :central, :delete_air_rpcs_after, :timer.hours(24) * 7
 
-config :quantum,
-  central: [
-    cron: [
-      "@daily": {Central.Service.Customer, :delete_old_rpcs}
-    ]
+config :central, Central.Scheduler,
+  jobs: [
+    {"@daily", {Central.Service.Customer, :delete_old_rpcs, []}}
   ]
 
 # Import environment specific config. This must remain at the bottom

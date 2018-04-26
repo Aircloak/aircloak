@@ -79,7 +79,7 @@ defmodule Central.Mixfile do
       {:aircloak_common, path: "../common/elixir"},
       {:inflex, "~> 1.5.0"},
       {:httpoison, "~> 0.12.0"},
-      {:quantum, "~> 1.9"},
+      {:quantum, "~> 2.2.7"},
       {:phoenix_gen_socket_client, "~> 2.0", only: :test},
       {:websocket_client, "~> 1.2.4", only: :test}
     ]
