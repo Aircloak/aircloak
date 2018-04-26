@@ -13,6 +13,7 @@ defmodule IntegrationTest.CloakTest do
     on_exit(fn -> :erlang.trace(Process.whereis(AirSocket), false, [:call]) end)
   end
 
+  @tag timeout: 120_000
   test "reconnects on broken connection" do
     ExUnit.CaptureLog.capture_log(fn ->
       # kill air socket process
