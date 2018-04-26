@@ -15,6 +15,9 @@ SELECT EXTRACT(year FROM date_column) FROM table;
 
 ### date_trunc
 
+"Rounds" the date or time to the given precision. Supported precision levels
+are `year`, `quarter`, `month`, `day`, `hour`, `minute`, and `second`.
+
 ```sql
 DATE_TRUNC('quarter', date)
 -- 2016-05-22T12:30:00.000000 -> 2016-04-01T00:00:00.000000
@@ -22,9 +25,6 @@ DATE_TRUNC('quarter', date)
 DATE_TRUNC('hour', time)
 -- 12:22:44.000000 -> 12:00:00.000000
 ```
-
-"Rounds" the date or time to the given precision. Supported precision levels
-are `year`, `quarter`, `month`, `day`, `hour`, `minute`, and `second`.
 
 ## Working with intervals
 
@@ -87,6 +87,9 @@ interval 'PT1H' / 2
 
 ## Mathematical operators
 
+The operators `+`, `-`, `/`, and `*` have their usual meaning of addition, subtraction, division, and
+multiplication respectively. The operator `^` denotes exponentiation.
+
 ```sql
 1 - 2 + 4 * 3 / 2
 -- 5
@@ -95,14 +98,13 @@ interval 'PT1H' / 2
 -- 8
 ```
 
-The operators `+`, `-`, `/`, and `*` have their usual meaning of addition, subtraction, division, and
-multiplication respectively. The operator `^` denotes exponentiation.
-
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
 ## Mathematical functions
 
 ### abs
+
+Computes the absolute value of the given number.
 
 ```sql
 ABS(3)
@@ -112,12 +114,12 @@ ABS(-3)
 -- 3
 ```
 
-Computes the absolute value of the given number.
-
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
 
 ### bucket
+
+Rounds the input to the given bucket size.
 
 ```sql
 BUCKET(180 BY 50)
@@ -133,36 +135,36 @@ BUCKET(180 BY 50 ALIGN MIDDLE)
 -- 175
 ```
 
-Rounds the input to the given bucket size.
-
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
 
 ### ceil / ceiling
+
+Computes the smallest integer that is greater than or equal to its argument.
 
 ```sql
 CEIL(3.22)
 -- 4
 ```
 
-Computes the smallest integer that is greater than or equal to its argument.
-
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
 
 ### floor
+
+Computes the largest integer that is less than or equal to its argument.
 
 ```sql
 FLOOR(3.22)
 -- 3
 ```
 
-Computes the largest integer that is less than or equal to its argument.
-
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
 
 ### pow
+
+`POW(a, b)` computes `a` to the `b`-th power.
 
 ```sql
 POW(2, 3)
@@ -172,12 +174,12 @@ POW(2, 3.5)
 -- 11.313708498984761
 ```
 
-`POW(a, b)` computes `a` to the `b`-th power.
-
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
 
 ### round
+
+Rounds the given floating-point value to the nearest integer. An optional second argument signifies the precision.
 
 ```sql
 ROUND(3.22)
@@ -190,24 +192,24 @@ ROUND(3.22, 1)
 -- 3.2
 ```
 
-Rounds the given floating-point value to the nearest integer. An optional second argument signifies the precision.
-
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
 
 ### sqrt
+
+Computes the square root.
 
 ```sql
 SQRT(2)
 -- 1.4142135623730951
 ```
 
-Computes the square root.
-
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
 
 ### trunc
+
+Rounds the given floating-point value towards zero. An optional second argument signifies the precision.
 
 ```sql
 TRUNC(3.22)
@@ -220,14 +222,14 @@ TRUNC(3.22, 1)
 -- 3.2
 ```
 
-Rounds the given floating-point value towards zero. An optional second argument signifies the precision.
-
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
 
 ## String functions
 
 ### btrim
+
+Removes all of the given characters from the beginning and end of the string. The default is to remove spaces.
 
 ```sql
 BTRIM(' some text ')
@@ -237,12 +239,11 @@ BTRIM('xyzsome textzyx', 'xyz')
 -- 'some text'
 ```
 
-Removes all of the given characters from the beginning and end of the string. The default is to remove spaces.
-
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
-
 ### concat
+
+Joins the passed strings into one.
 
 ```sql
 CONCAT('some ', 'text')
@@ -255,18 +256,15 @@ CONCAT('a', 'b', 'c')
 -- 'abc'
 ```
 
-Joins the passed strings into one.
-
-
 ### extract_words
+
+Splits a string into words, each becoming an individual row.
 
 ```sql
 EXTRACT_WORDS('Some Text')
 -- 'Some'
 -- 'Text'
 ```
-
-Splits a string into words, each becoming an individual row.
 
 This function is not allowed in subqueries.
 
@@ -295,19 +293,19 @@ converted into the following rows before furhter analysis takes place
 | 2 | 15.00 | the |
 | 2 | 15.00 | year |
 
-
 ### hex
+
+Transforms all characters in the given string into hexadecimal.
+This is useful for extracting strings containing non-text characters.
 
 ```sql
 HEX('air')
 -- '616964'
 ```
 
-Transforms all characters in the given string into hexadecimal.
-This is useful for extracting strings containing non-text characters.
-
-
 ### left
+
+`LEFT(string, n)` takes n characters from the beginning of the string. If n is negative takes all but the last |n| characters.
 
 ```sql
 LEFT('some text', 4)
@@ -317,24 +315,22 @@ LEFT('some text', -2)
 -- 'some te'
 ```
 
-`LEFT(string, n)` takes n characters from the beginning of the string. If n is negative takes all but the last |n| characters.
-
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
-
 ### length
+
+Computes the number of characters in the string.
 
 ```sql
 LENGTH('some text')
 -- 9
 ```
 
-Computes the number of characters in the string.
-
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
-
 ### lower
+
+Transforms all characters in the given string into lowercase.
 
 ```sql
 LOWER('Some Text')
@@ -344,10 +340,9 @@ LCASE('Some Text')
 -- 'some text'
 ```
 
-Transforms all characters in the given string into lowercase.
-
-
 ### ltrim
+
+Removes all of the given characters from the beginning of the string. The default is to remove spaces.
 
 ```sql
 LTRIM(' some text ')
@@ -357,12 +352,11 @@ LTRIM('xyzsome textzyx', 'xyz')
 -- 'some textzyx'
 ```
 
-Removes all of the given characters from the beginning of the string. The default is to remove spaces.
-
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
-
 ### right
+
+`RIGHT(string, n)` takes n characters from the end of the string. If n is negative takes all but the first |n| characters.
 
 ```sql
 RIGHT('some text', 4)
@@ -372,12 +366,11 @@ RIGHT('some text', -2)
 -- 'me text'
 ```
 
-`RIGHT(string, n)` takes n characters from the end of the string. If n is negative takes all but the first |n| characters.
-
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
-
 ### rtrim
+
+Removes all of the given characters from the end of the string. The default is to remove spaces.
 
 ```sql
 RTRIM(' some text ')
@@ -387,12 +380,11 @@ RTRIM('xyzsome textzyx', 'xyz')
 -- 'xyzsome text'
 ```
 
-Removes all of the given characters from the end of the string. The default is to remove spaces.
-
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
-
 ### substring
+
+Takes a slice of a string.
 
 ```sql
 SUBSTRING('some text' FROM 3)
@@ -405,12 +397,12 @@ SUBSTRING('some text' FOR 4)
 -- 'some'
 ```
 
-Takes a slice of a string.
-
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
-
 ### trim
+
+Removes all of the given characters from the beginning and/or end of the string.
+The default is to remove spaces from both ends.
 
 ```sql
 TRIM(' some text ')
@@ -429,13 +421,11 @@ TRIM(BOTH FROM ' some text ')
 -- 'some text '
 ```
 
-Removes all of the given characters from the beginning and/or end of the string.
-The default is to remove spaces from both ends.
-
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
-
 ### upper
+
+Transforms all characters in the given string into uppercase.
 
 ```sql
 UPPER('Some Text')
@@ -445,10 +435,9 @@ UCASE('Some Text')
 -- 'SOME TEXT'
 ```
 
-Transforms all characters in the given string into uppercase.
-
-
 ## Casting
+
+You can convert values between different types using a cast expression.
 
 ```sql
 CAST('3' AS integer)
@@ -463,8 +452,6 @@ CAST(3, text)
 CAST('NOT A NUMBER', integer)
 -- NULL
 ```
-
-You can convert values between different types using a cast expression.
 
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
