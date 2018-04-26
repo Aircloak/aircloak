@@ -236,12 +236,9 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_all_joined_subqueries_have_explicit_uids(query) do
     Lens.each(Lenses.joined_subqueries(), query, fn joined_subquery ->
-      unless Enum.any?(joined_subquery.ast.columns, &(&1.user_id? && not &1.synthetic?)),
-        do:
-          raise(
-            CompilationError,
-            message: "There is no user id column in the subquery `#{joined_subquery.alias}`."
-          )
+      unless Enum.any?(joined_subquery.ast.columns, &(&1.user_id? && not &1.synthetic?)) do
+        raise CompilationError, message: Helpers.missing_uid_error_message(joined_subquery.ast, joined_subquery.alias)
+      end
     end)
   end
 

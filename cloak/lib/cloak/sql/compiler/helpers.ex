@@ -100,6 +100,21 @@ defmodule Cloak.Sql.Compiler.Helpers do
     :ok
   end
 
+  @doc "Returns an error message about a user id missing from the select list for the given query."
+  @spec missing_uid_error_message(Query.t(), String.t()) :: String.t()
+  def missing_uid_error_message(query, alias) do
+    possible_uid_columns =
+      all_id_columns_from_tables(query)
+      |> Enum.map(&Expression.display_name/1)
+      |> case do
+        [column] -> "the column #{column}"
+        columns -> "one of the columns #{Enum.join(columns, ", ")}"
+      end
+
+    "Missing a user id column in the select list of #{"subquery `#{alias}`"}. " <>
+      "To fix this error, add #{possible_uid_columns} to the subquery select list."
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

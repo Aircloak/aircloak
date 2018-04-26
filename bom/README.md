@@ -83,8 +83,8 @@ package lacks license metadata in `npm`/`hex.pm`/whatever. See Manually Classify
 
 You can manually add a license for a package by adding a new entry in the `@licenses` attribute in
 `lib/bom/whitelist.ex`. Follow the existing convention for `type`. `text: :standard` means that the text will
-be taken from `licenses/generic/<type>`. `text: :provided` means that the text will be taken from
-`licenses/<realm>/<package name>` - you should use this one when the package or its website includes some
+be taken from `priv/licenses/generic/<type>`. `text: :provided` means that the text will be taken from
+`priv/licenses/<realm>/<package name>` - you should use this one when the package or its website includes some
 license file. Make sure the license text file exists.
 
 ### Important - BSD 4-clause licenses

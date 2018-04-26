@@ -150,7 +150,6 @@ defmodule Mix.Tasks.Fuzzer.Run do
       error =~ ~r/must be limited to a finite, nonempty range/ -> :incorrect_range
       error =~ ~r/needs to appear in the `GROUP BY` clause/ -> :missing_group_by
       error =~ ~r/Missing a user id column in the select list of subquery/ -> :subquery_no_uid
-      error =~ ~r/There is no user id column in the subquery/ -> :subquery_no_uid
       error =~ ~r/Missing where comparison for uid columns/ -> :join_no_uid
       error =~ ~r/Combining conditions with `OR` is not allowed/ -> :or_used
       error =~ ~r/cannot be used in a.*LIKE expression/ -> :mistyped_like
