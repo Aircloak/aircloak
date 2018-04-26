@@ -96,7 +96,7 @@ To start a CI container on a production, you need to invoke the following comman
 $ ssh acatlas4.mpi-sws.org
 $ su ci
 $ cd /home/ci/.aircloak_ci/data/cache/builds/pr-XYZ/src
-$ ci/start_component.sh component_name
+$ MPI=true ci/start_component.sh component_name
 ```
 
 Notes:
