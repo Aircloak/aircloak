@@ -28,7 +28,7 @@ defmodule AirWeb.PrivacyPolicy.Validation.Test do
     assert get_flash(logged_in_conn)["info"] =~ "Logged in successfully"
     privacy_policy_page_html = recycle(logged_in_conn) |> get("/data_sources") |> response(412)
 
-    assert privacy_policy_page_html =~ "review the following privacy policy"
+    assert privacy_policy_page_html =~ "Consent to privacy policy"
   end
 
   test "no out of the ordinary behaviour if a privacy policy exists and has been accepted" do
