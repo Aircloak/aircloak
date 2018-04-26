@@ -9,6 +9,8 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   use Cloak.DataSource.Driver.SQL
 
+  require Logger
+
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
@@ -79,6 +81,8 @@ defmodule Cloak.DataSource.PostgreSQL do
   # -------------------------------------------------------------------
 
   defp run_query(pool, statement, decode_mapper, result_processor) do
+    Logger.debug(fn -> "Executing SQL query: #{statement}" end)
+
     Postgrex.transaction(
       pool,
       fn connection ->

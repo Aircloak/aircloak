@@ -6,6 +6,8 @@ defmodule Cloak.DataSource.SQLServerTds do
 
   use Cloak.DataSource.Driver.SQL
 
+  require Logger
+
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
@@ -77,6 +79,8 @@ defmodule Cloak.DataSource.SQLServerTds do
   # -------------------------------------------------------------------
 
   defp run_query(pool, statement, decode_mapper, result_processor) do
+    Logger.debug(fn -> "Executing SQL query: #{statement}" end)
+
     Tds.transaction(
       pool,
       fn connection ->

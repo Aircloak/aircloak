@@ -9,6 +9,8 @@ defmodule Cloak.DataSource.ODBC do
 
   use Cloak.DataSource.Driver.SQL
 
+  require Logger
+
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
@@ -51,6 +53,7 @@ defmodule Cloak.DataSource.ODBC do
   @impl Driver
   def select(connection, sql_query, result_processor) do
     statement = sql_query |> SqlBuilder.build() |> to_charlist()
+    Logger.debug(fn -> "Executing SQL query: #{to_string(statement)}" end)
 
     field_mappers = for column <- sql_query.db_columns, do: type_to_field_mapper(column.type, sql_query.data_source)
 
