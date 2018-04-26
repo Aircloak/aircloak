@@ -91,6 +91,14 @@ defmodule Cloak.Sql.Compiler.Validation do
           message: "Function `#{Function.readable_name(name)}` is not allowed in `#{query_type}` subqueries."
         )
 
+    if Function.internal?(name),
+      do:
+        raise(
+          CompilationError,
+          source_location: expression.source_location,
+          message: "Function `#{Function.readable_name(name)}` can only be used internally."
+        )
+
     :ok
   end
 

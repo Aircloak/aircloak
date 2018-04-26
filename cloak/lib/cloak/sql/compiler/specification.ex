@@ -552,9 +552,9 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> Expression.set_location(loc)
   end
 
-  defp identifier_to_column({:function, name, args, location} = function, _columns_by_name, query) do
+  defp identifier_to_column({:function, name, args, location} = function, _columns_by_name, _query) do
     function
-    |> verify_function_exists(query.type)
+    |> verify_function_exists()
     |> Function.return_type()
     |> case do
       nil ->
@@ -612,8 +612,8 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp get_columns(columns_by_name, {:quoted, name}), do: Map.get(columns_by_name, name)
 
-  defp verify_function_exists(function = {:function, name, _, location}, query_type) do
-    unless Function.exists?(function) and (query_type == :standard or not Function.internal?(function)) do
+  defp verify_function_exists(function = {:function, name, _, location}) do
+    unless Function.exists?(function) do
       case Function.deprecation_info(function) do
         {:error, error} when error in [:not_found, :internal_function] ->
           raise CompilationError,
