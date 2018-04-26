@@ -33,4 +33,6 @@
 
 <hr />
 
-<%= raw(AirWeb.PrivacyPolicyView.content_as_html(@current_privacy_policy)) %>
+<div id="privacy-policy">
+  <%= raw(AirWeb.PrivacyPolicyView.content_as_html(@current_privacy_policy)) %>
+</div>

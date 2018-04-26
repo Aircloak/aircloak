@@ -4,24 +4,32 @@
   </div>
   <div class="panel-body">
     <p>
-      The privacy policy has changed. Please take some time to review the updated privacy policy.
-      If you have questions or concerns, please contact your organisation's data privacy officer or system administrator.
+      The privacy policy has changed. Please take some time to review the updated version.
     </p>
 
-    <p>
-      Once you are have read and agree with the content of the privacy policy, please accept it by clicking the button below.
-      This will restore your ability to query the system.
-    </p>
+    <p>In short, what does this mean for you:</p>
+
+    <ul class="privacy-policy-bullet-points">
+      <li>No further data will be collected about you until you accept the privacy policy changes</li>
+      <li>You can review the policy and withdraw your consent at any time</li>
+      <li>Once accepted, your access to Aircloak Insights will be restored</li>
+    </ul>
 
     <%= form_tag privacy_policy_path(@conn, :accept, @privacy_policy.id), method: "put" do %>
       <button class='btn btn-success'>Accept privacy policy changes</button>
+    <hr />
+
+    <p>
+      If you have questions or concerns, please contact your organisation's
+      Data Protection Officer or system administrator.
+    </p>
     <% end %>
   </div>
 </div>
 
 <%= if has_change_info?(@privacy_policy) do %>
 <div class="panel panel-default">
-  <div class="panel-heading">Changes made to this version</div>
+  <div class="panel-heading">Summary of the changes</div>
   <div class="panel-body">
     <%= raw(changes_as_html(@privacy_policy)) %>
   </div>

@@ -13,4 +13,6 @@
 <% end %>
 
 <h3>Privacy policy content</h3>
-<%= raw(AirWeb.PrivacyPolicyView.content_as_html(@privacy_policy)) %>
+<div id="privacy-policy">
+  <%= raw(AirWeb.PrivacyPolicyView.content_as_html(@privacy_policy)) %>
+</div>

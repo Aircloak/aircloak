@@ -2,7 +2,7 @@ defmodule AirWeb.Admin.LicenseView do
   @moduledoc false
   use Air.Web, :view
 
-  alias Air.Service.License
+  alias Air.Service.{License, Warnings}
 
   defp license_valid?(), do: License.valid?()
 
@@ -11,4 +11,11 @@ defmodule AirWeb.Admin.LicenseView do
   defp license_present?(), do: License.present?()
 
   defp license_auto_renews?(), do: License.auto_renew?()
+
+  defp license_warning() do
+    case Warnings.problems_for_resource(:license) do
+      [warning | _] -> warning.description
+      _ -> nil
+    end
+  end
 end
