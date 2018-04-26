@@ -29,6 +29,10 @@ defmodule Air.Service.License do
   @spec present?() :: boolean
   def present?(), do: GenServer.call(__MODULE__, :present?)
 
+  @doc "Returns true if the system license is an automatically renewing one, false otherwise."
+  @spec present?() :: boolean
+  def auto_renew?(), do: GenServer.call(__MODULE__, :auto_renew?)
+
   @doc "Calls central to renew the system license."
   @spec renew() :: :ok
   def renew(), do: GenServer.cast(__MODULE__, :renew)
@@ -65,6 +69,7 @@ defmodule Air.Service.License do
 
   def handle_call(:expiry, _from, state), do: {:reply, FSM.expiry(state.fsm), state}
   def handle_call(:present?, _from, state), do: {:reply, FSM.present?(state.fsm), state}
+  def handle_call(:auto_renew?, _from, state), do: {:reply, FSM.auto_renew?(state.fsm), state}
   def handle_call(:text, _from, state), do: {:reply, FSM.text(state.fsm), state}
 
   @impl GenServer

@@ -9,4 +9,6 @@ defmodule AirWeb.Admin.LicenseView do
   defp license_expiry(), do: License.expiry() |> Timex.format!("{ISOdate}")
 
   defp license_present?(), do: License.present?()
+
+  defp license_auto_renews?(), do: License.auto_renew?()
 end

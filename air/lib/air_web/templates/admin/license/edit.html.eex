@@ -7,8 +7,16 @@
     </div>
     <div class="panel-body">
       <%= if license_valid?() do %>
-        Your Aircloak license is valid until <strong><%= license_expiry() %></strong>. The system will attempt to renew
-        it automatically via the Internet before it expires.
+          Your Aircloak license is valid until <strong><%= license_expiry() %></strong>.
+          <%= if license_auto_renews?() do %>
+            It is a renewing license. The system will attempt to renew it automatically via the Internet before it
+            expires. If the system fails to contact Aircloak's licensing service to renew the license, then you will no
+            longer be able to query the system once it has expired.
+          <% else %>
+            It is a non-renewing license. Once it has expired you will no longer be able to query the system. If this is
+            a mistake or you should have received a new license, please contact Aircloak at
+            <a href="mailto:support@aircloak.com">support@aircloak.com</a>.
+          <% end %>
       <% else %>
         <%= if not license_present?() do %>
           You have not uploaded an Aircloak license yet.
