@@ -31,10 +31,6 @@ defmodule Cloak.Sql.Compiler.Execution do
       |> compute_aggregators()
       |> expand_virtual_tables()
 
-  @doc "Prepares the direct (non-anonymized) query for execution."
-  @spec prepare_raw(Query.t()) :: Query.t()
-  def prepare_raw(%Query{command: :select} = query), do: Helpers.apply_bottom_up(query, &compute_aggregators/1)
-
   # -------------------------------------------------------------------
   # UID handling
   # -------------------------------------------------------------------
@@ -71,6 +67,8 @@ defmodule Cloak.Sql.Compiler.Execution do
   # -------------------------------------------------------------------
   # Bucket alignment
   # -------------------------------------------------------------------
+
+  defp align_buckets(%Query{type: :standard} = query), do: query
 
   defp align_buckets(query) do
     {messages, query} = Lens.get_and_map(Lenses.buckets(), query, &align_bucket/1)
@@ -116,9 +114,7 @@ defmodule Cloak.Sql.Compiler.Execution do
       |> align_ranges(Lens.key(:having))
 
   @minimum_subquery_limit 10
-  defp align_limit(query = %{limit: nil}), do: query
-
-  defp align_limit(query = %{limit: limit}) do
+  defp align_limit(query = %{limit: limit, type: :restricted}) when limit != nil do
     aligned = limit |> FixAlign.align() |> round() |> max(@minimum_subquery_limit)
 
     if aligned != limit do
@@ -129,9 +125,9 @@ defmodule Cloak.Sql.Compiler.Execution do
     end
   end
 
-  defp align_offset(query = %{offset: 0}), do: query
+  defp align_limit(query), do: query
 
-  defp align_offset(query = %{limit: limit, offset: offset}) do
+  defp align_offset(query = %{limit: limit, offset: offset, type: :restricted}) when offset != 0 do
     aligned = round(offset / limit) * limit
 
     if aligned != offset do
@@ -141,6 +137,8 @@ defmodule Cloak.Sql.Compiler.Execution do
       query
     end
   end
+
+  defp align_offset(query), do: query
 
   # -------------------------------------------------------------------
   # Normal validators and compilers
@@ -186,6 +184,8 @@ defmodule Cloak.Sql.Compiler.Execution do
       query
       |> Query.Lenses.join_condition_lenses()
       |> Enum.reduce(query, fn lens, query -> align_ranges(query, lens) end)
+
+  defp align_ranges(%Query{type: :standard} = query, _lens), do: query
 
   defp align_ranges(query, lens) do
     clause = Lens.one!(lens, query)

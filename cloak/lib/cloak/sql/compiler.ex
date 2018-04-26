@@ -61,7 +61,7 @@ defmodule Cloak.Sql.Compiler do
       |> Compiler.Specification.compile(data_source, nil, %{})
       |> Compiler.Normalization.remove_noops()
       |> Compiler.Optimizer.optimize()
-      |> Compiler.Execution.prepare_raw()
+      |> Compiler.Execution.prepare()
       |> Compiler.Normalization.normalize()
 
   @doc "Validates a user-defined view."
