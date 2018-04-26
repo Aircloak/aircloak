@@ -23,11 +23,17 @@
     <div class="panel-body">
       <p>
         <strong>
-        Aircloak Insights requires that you define a privacy policy.
+          Aircloak Insights requires that you define a privacy policy.
         </strong>
         The policy should describe the rights of the analysts using Aircloak Insights.
         In particular it needs to declare what data is kept about them and whom they
         should contact in case they have questions.
+      </p>
+
+      <p>
+        <strong>
+          You might want to consult your oganisation's Data Protection Officer.
+        </strong>
       </p>
 
       <p>
@@ -41,8 +47,8 @@
 
       <ol>
         <li>
-          You should provide the identity and contact information of the data controller
-          and if applicable the controller's representative
+          You should provide the identity and contact information of the Data Controller
+          and if applicable the Data Controller's representative
         </li>
         <li>You should provide the contact details of your organisation's Data Protection Officer (DPO)</li>
         <li>
@@ -52,7 +58,7 @@
       </ol>
 
       <p>
-        Please contact support on <a href="mailto:support@aircloak.com">support@aircloak.com</a> if
+        Please contact support on <a href="mailto:compliance@aircloak.com">compliance@aircloak.com</a> if
         you have questions about the content of this policy.
       </p>
     </div>
@@ -96,18 +102,22 @@
 
 <%= form_tag admin_privacy_policy_path(@conn, :create), method: "post" do %>
 
-  <div class='form-group'>
+  <div class="form-group">
     <label class="control-label" for="content">Privacy policy content</label>
-    <textarea class="form-control" name="content" id="contentEditor">
-      <%= text_content(@privacy_policy) %>
-    </textarea>
+    <div class="privacy-policy-editor">
+      <textarea class="form-control" name="content" id="contentEditor">
+        <%= text_content(@privacy_policy) %>
+      </textarea>
+    </div>
     <textarea class="hidden" name="content" id="content"><%= text_content(@privacy_policy) %></textarea>
   </div>
 
   <%= unless first_privacy_policy?(@privacy_policy) do %>
     <div class="form-group">
       <label class="control-label" for="content">Describe changes</label>
-      <textarea class="form-control" name="changes" id="changesEditor"></textarea>
+      <div class="privacy-policy-editor">
+        <textarea class="form-control" name="changes" id="changesEditor"></textarea>
+      </div>
       <textarea class="hidden" name="changes" id="changes"></textarea>
     </div>
   <% end %>
