@@ -367,8 +367,8 @@ defmodule Cloak.Sql.Query do
   end
 
   defp required_expressions(%__MODULE__{command: :select} = query) do
-    # anonymized query or emulated subquery -> we're only fetching columns, while other expressions (e.g. function calls)
-    # will be resolved in the post-processing phase
+    # anonymized query or emulated subquery -> we're only fetching columns,
+    # while other expressions (e.g. function calls) will be resolved in the post-processing phase
     used_columns =
       query
       |> needed_columns()
