@@ -29,4 +29,19 @@ defmodule Cloak.Query.AnonymizedSubqueriesTest do
       %{rows: [%{row: [8]}, %{row: [9]}, %{row: [10]}]}
     )
   end
+
+  test "chained where / having" do
+    assert_query(
+      """
+        select i from (
+          select i from (
+            select i from anon_sq group by i having i <> 5
+          ) as t where i in (1, 3, 5, 6)
+        ) as t where i not in (1, 6)
+      """,
+      %{
+        rows: [%{row: [3]}]
+      }
+    )
+  end
 end

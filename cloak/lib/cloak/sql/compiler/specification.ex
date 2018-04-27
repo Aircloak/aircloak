@@ -813,7 +813,10 @@ defmodule Cloak.Sql.Compiler.Specification do
 
       # no group by, no having and no aggregate -> select any uid column
       match?(%Query{group_by: [], having: nil}, query) && not Helpers.aggregate?(query) ->
-        hd(Helpers.all_id_columns_from_tables(query))
+        case Helpers.all_id_columns_from_tables(query) do
+          [uid | _] -> uid
+          [] -> nil
+        end
 
       # uid column is in a group by -> select that uid
       (uid_column = Enum.find(query.group_by, & &1.user_id?)) != nil ->
