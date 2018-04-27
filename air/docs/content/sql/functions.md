@@ -163,13 +163,13 @@ The function can also help if the column you want to group by has many unique va
 anonymized away.  For example if you have a column containing the length of a call in seconds:
 
 ```sql
-SELECT time, COUNT(*)
+SELECT call_duration, COUNT(*)
 FROM calls
 GROUP BY 1
--- time count
--- *    100
+-- call_duration count
+-- *             100
 
-SELECT BUCKET(time BY 5), COUNT(*)
+SELECT BUCKET(call_duration BY 5), COUNT(*)
 FROM calls
 GROUP BY 1
 -- bucket count
