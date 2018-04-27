@@ -69,7 +69,7 @@ defmodule CentralWeb.Socket.AirTest do
     end
   end
 
-  for join_options <- [%{"air_version" => "18.2.1"}] do
+  for join_options <- [%{"air_version" => "18.2.1"}, %{"air_version" => "18.2.2"}] do
     @join_options join_options
 
     describe "main topic with #{inspect(join_options)}" do
