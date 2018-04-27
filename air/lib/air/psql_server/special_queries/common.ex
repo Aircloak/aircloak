@@ -60,14 +60,14 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
         [data] = Regex.run(~r/^\s*select\s+([-\w'\.]+)[\s;]*$/i, query, capture: :all_but_first)
 
         cond do
-          data =~ ~r/-?\d+\.\d+/r ->
+          data =~ ~r/-?\d+\.\d+/U ->
             RanchServer.query_result(
               conn,
               columns: [%{name: "?column?", type: :float4}],
               rows: [[String.to_float(data)]]
             )
 
-          data =~ ~r/-?\d+/r ->
+          data =~ ~r/-?\d+/U ->
             RanchServer.query_result(
               conn,
               columns: [%{name: "?column?", type: :int4}],

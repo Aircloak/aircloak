@@ -21,7 +21,6 @@ defmodule Cloak do
 
     with {:ok, aes_key} <- Aircloak.DeployConfig.fetch("aes_key"), do: Application.put_env(:cloak, :aes_key, aes_key)
 
-    configure_periodic_jobs()
     Cloak.DataSource.RODBC.Driver.init!()
     Supervisor.start_link(children(), strategy: :one_for_one, name: Cloak.Supervisor)
   end
@@ -51,7 +50,8 @@ defmodule Cloak do
     defp system_processes,
       do: [
         Cloak.AirSocket,
-        Cloak.MemoryReader
+        Cloak.MemoryReader,
+        Cloak.Scheduler
       ]
   end
 
@@ -65,15 +65,6 @@ defmodule Cloak do
 
       {:ok, value} ->
         value
-    end
-  end
-
-  if Mix.env() == :test do
-    defp configure_periodic_jobs(), do: :ok
-  else
-    defp configure_periodic_jobs() do
-      [{"*/5 * * * *", {Cloak.DataSource.SerializingUpdater, :run_liveness_check}}]
-      |> Enum.each(fn {schedule, job} -> Quantum.add_job(schedule, job) end)
     end
   end
 end

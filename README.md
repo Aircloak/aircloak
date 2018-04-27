@@ -33,6 +33,8 @@ across our individual development machines.
 
 Each component can be deployed to a __deploy target__. The targets are provided in the [deploy_targets](./deploy_targets) folder.
 
+Each deployable component is a Docker image. The base for all the images, both in production and on the CI server, is Debian. The exact Debian version is specified in the [.debian-version](./.debian-version) file, which is the only source of truth for the OS version. Of course, 3rd party images, such as PostgreSQL, MongoDb, and others have their own base image, which is not affected by the `./debian-version` file.
+
 ### From branch
 
 To deploy both `air` and `cloak` from a branch (for example `master`), you can run `./publish.sh deploy_target`, where `deploy_target` is the name of the file from the `deploy_targets` folder (without the path). For example, `./publish.sh sasa` will deploy new versions of `air` and `cloak` to the `sasa` deploy target (which is described in `./deploy_targets/sasa`).

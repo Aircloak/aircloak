@@ -10,6 +10,7 @@ defmodule BOM.Whitelist do
   @licenses %{
     :elixir => %{
       {"ecto", "2.2.6"} => %{type: :apache2, text: :provided},
+      {"ecto", "2.2.10"} => %{type: :apache2, text: :provided},
       {"ecto_enum", "1.0.2"} => %{type: :mit, text: :provided},
       {"erlware_commons", "0.21.0"} => %{type: :mit, text: :provided},
       {"excoveralls", "0.5.7"} => %{type: :mit, text: :standard},

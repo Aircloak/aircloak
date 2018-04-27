@@ -27,6 +27,7 @@ defmodule AirWeb.PrivacyPolicyController do
 
   def accept(conn, _params) do
     User.accept_privacy_policy!(conn.assigns.current_user, conn.assigns.privacy_policy)
+    audit_log(conn, "Gave consent to privacy policy", audit_log_meta(conn))
 
     conn
     |> put_flash(:info, "The privacy policy has been accepted.")
@@ -34,6 +35,7 @@ defmodule AirWeb.PrivacyPolicyController do
   end
 
   def reject(conn, _params) do
+    audit_log(conn, "Withdrew consent to privacy policy", audit_log_meta(conn))
     User.reject_privacy_policy!(conn.assigns.current_user)
 
     conn
