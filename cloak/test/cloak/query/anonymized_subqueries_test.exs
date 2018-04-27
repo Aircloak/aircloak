@@ -44,4 +44,19 @@ defmodule Cloak.Query.AnonymizedSubqueriesTest do
       }
     )
   end
+
+  test "multiple anonymized subqueries" do
+    assert_query(
+      """
+        select count(*) from
+          (select i from anon_sq group by i having i <> 3) as t1
+          join
+          (select i from anon_sq group by i having i > 7) as t2
+          on t1.i <> t2.i
+      """,
+      %{
+        rows: [%{row: [24]}]
+      }
+    )
+  end
 end
