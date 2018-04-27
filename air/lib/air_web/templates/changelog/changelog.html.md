@@ -2,7 +2,7 @@
 
 ### Bugfixes
 
-- Fix crash when the database connection times out after retrieving all needed data
+- Fix crash when a postgres connection times out after retrieving all needed data
 
 ## Version 18.2.1
 
