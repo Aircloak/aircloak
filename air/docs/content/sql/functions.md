@@ -119,7 +119,7 @@ ABS(-3)
 
 ### bucket
 
-Rounds the input to the nearest N, where N is provided in the `BY` argument. It also accepts an `ALIGN` argument to
+Rounds the input to multiples of N, where N is provided in the `BY` argument. It also accepts an `ALIGN` argument to
 specify if the rounding should occur down (`ALIGN LOWER` - this is the default), up (`ALIGN UPPER`), or if an average
 between the two should be returned (`ALIGN MIDDLE`).
 
@@ -149,13 +149,33 @@ BUCKET(180 BY 50 ALIGN MIDDLE)
 This function is useful to prepare buckets/bins for a histogram, for example in a query like the following:
 
 ```sql
-SELECT BUCKET(price BY 5 ALIGN UPPER), COUNT(*)
+SELECT BUCKET(price BY 5), COUNT(*)
 FROM purchases
 GROUP BY 1
 -- bucket count
 -- 0      10     - all purchases priced below 5
 -- 5      10     - purchases priced at or above 5 and below 10
 -- 10     20     - purchases priced at or above 10 and below 15
+-- etc.
+```
+
+The function can also help if the column you want to group by has many unique values and many of the buckets get
+anonymized away.  For example if you have a column containing the length of a call in seconds:
+
+```sql
+SELECT time, COUNT(*)
+FROM calls
+GROUP BY 1
+-- time count
+-- *    100
+
+SELECT BUCKET(time BY 5), COUNT(*)
+FROM calls
+GROUP BY 1
+-- bucket count
+-- *      20
+-- 0      10
+-- 5      10
 -- etc.
 ```
 
