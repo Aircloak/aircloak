@@ -24,7 +24,7 @@ defmodule Cloak.Sql.Compiler.Execution do
       |> prepare_subqueries()
       |> censor_selected_uids()
       |> align_buckets()
-      |> align_ranges(Lens.key(:where))
+      |> align_where()
       |> align_join_ranges()
       |> compile_sample_rate()
       |> reject_null_user_ids()
@@ -111,7 +111,7 @@ defmodule Cloak.Sql.Compiler.Execution do
       |> prepare()
       |> align_limit()
       |> align_offset()
-      |> align_ranges(Lens.key(:having))
+      |> align_having()
 
   @minimum_subquery_limit 10
   defp align_limit(query = %{limit: limit, type: :restricted}) when limit != nil do
@@ -185,7 +185,11 @@ defmodule Cloak.Sql.Compiler.Execution do
       |> Query.Lenses.join_condition_lenses()
       |> Enum.reduce(query, fn lens, query -> align_ranges(query, lens) end)
 
-  defp align_ranges(%Query{type: :standard} = query, _lens), do: query
+  defp align_having(%Query{type: :restricted} = query), do: align_ranges(query, Lens.key(:having))
+  defp align_having(query), do: query
+
+  defp align_where(%Query{type: :standard} = query), do: query
+  defp align_where(query), do: align_ranges(query, Lens.key(:where))
 
   defp align_ranges(query, lens) do
     clause = Lens.one!(lens, query)
