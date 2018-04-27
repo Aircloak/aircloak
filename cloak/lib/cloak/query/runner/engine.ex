@@ -30,9 +30,10 @@ defmodule Cloak.Query.Runner.Engine do
         feature_updater,
         {query_killer_reg, query_killer_unreg}
       ) do
-    parsed_query = parse!(statement, state_updater)
-
-    {compiled_query, features} = compile!(data_source, parsed_query, parameters, views, state_updater)
+    {compiled_query, features} =
+      statement
+      |> parse!(state_updater)
+      |> compile!(data_source, parameters, views, state_updater)
 
     feature_updater.(features)
     query = prepare_for_execution(compiled_query)
@@ -58,9 +59,9 @@ defmodule Cloak.Query.Runner.Engine do
     Sql.Parser.parse!(statement)
   end
 
-  defp compile!(data_source, parsed_query, parameters, views, state_updater) do
+  defp compile!(parsed_query, data_source, parameters, views, state_updater) do
     state_updater.(:compiling)
-    Sql.Compiler.compile!(data_source, parsed_query, parameters, views)
+    Sql.Compiler.compile!(parsed_query, data_source, parameters, views)
   end
 
   defp prepare_for_execution(compiled_query),

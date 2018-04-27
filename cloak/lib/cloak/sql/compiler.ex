@@ -11,13 +11,13 @@ defmodule Cloak.Sql.Compiler do
 
   @doc "Prepares the parsed SQL query for execution."
   @spec compile(
-          DataSource.t(),
           Parser.parsed_query(),
+          DataSource.t(),
           [Query.parameter()] | nil,
           Query.view_map()
         ) :: {:ok, Query.t(), Query.features()} | {:error, String.t()}
-  def compile(data_source, parsed_query, parameters, views) do
-    {query, features} = compile!(data_source, parsed_query, parameters, views)
+  def compile(parsed_query, data_source, parameters, views) do
+    {query, features} = compile!(parsed_query, data_source, parameters, views)
     {:ok, query, features}
   rescue
     e in CompilationError -> {:error, CompilationError.message(e)}
@@ -25,12 +25,12 @@ defmodule Cloak.Sql.Compiler do
 
   @doc "Prepares the parsed SQL query for execution. Raises CompilationErrors instead of returning `{:error, message}`"
   @spec compile!(
-          DataSource.t(),
           Parser.parsed_query(),
+          DataSource.t(),
           [Query.parameter()] | nil,
           Query.view_map()
         ) :: {Query.t(), Query.features()}
-  def compile!(data_source, parsed_query, parameters, views) do
+  def compile!(parsed_query, data_source, parameters, views) do
     compiled_query =
       parsed_query
       |> Compiler.ASTNormalization.normalize()
@@ -67,7 +67,7 @@ defmodule Cloak.Sql.Compiler do
   @doc "Validates a user-defined view."
   @spec validate_view(DataSource.t(), Parser.parsed_query(), Query.view_map()) :: :ok | {:error, String.t()}
   def validate_view(data_source, parsed_query, views),
-    do: compile(data_source, Map.put(parsed_query, :subquery?, true), [], views)
+    do: parsed_query |> Map.put(:subquery?, true) |> compile(data_source, [], views)
 
   @doc "Creates the query which describes a SELECT statement from a single table."
   @spec make_select_query(DataSource.t(), DataSource.Table.t(), [Expression.t()]) :: Query.t()

@@ -338,7 +338,7 @@ defmodule Cloak.Sql.Query do
 
   defp make_query(data_source, query_string, parameters, views) do
     with {:ok, parsed_query} <- Parser.parse(query_string) do
-      Compiler.compile(data_source, parsed_query, parameters, views)
+      Compiler.compile(parsed_query, data_source, parameters, views)
     end
   end
 
