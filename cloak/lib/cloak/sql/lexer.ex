@@ -108,7 +108,8 @@ defmodule Cloak.Sql.Lexer do
     many(
       choice([
         whitespace(),
-        comment(),
+        multi_line_comment(),
+        single_line_comment(),
         constant(),
         quoted_identifier(),
         identifier(),
@@ -127,7 +128,9 @@ defmodule Cloak.Sql.Lexer do
     end)
   end
 
-  defp comment() do
+  defp multi_line_comment(), do: ignore(word_of(~r[/\*.*\*/]Us))
+
+  defp single_line_comment() do
     ignore(
       sequence([
         string("--"),
