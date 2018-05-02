@@ -1,3 +1,9 @@
+## Version 18.2.3
+
+### Bugfixes
+
+- Propagates `sample_rate` config value when loading the database tables needed for virtual tables.
+
 ## Version 18.2.2
 
 ### Bugfixes
