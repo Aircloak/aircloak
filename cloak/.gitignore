@@ -29,6 +29,7 @@ log
 erl_crash.dump
 
 priv/config/config.json
+priv/config/perf/*
 priv/sandbox
 priv/helpers.lua
 priv/serialization.lua
