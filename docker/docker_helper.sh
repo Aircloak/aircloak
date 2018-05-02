@@ -465,7 +465,7 @@ function git_head_image_tag {
 }
 
 function debian_version {
-  echo "8.8"
+  cat "$(dirname ${BASH_SOURCE[0]})/../.debian-version"
 }
 
 function erlang_version {
@@ -485,7 +485,7 @@ function rust_version {
 }
 
 function tools_versions_md5 {
-  cat "$(dirname ${BASH_SOURCE[0]})/../.tool-versions" | md5sum | awk '{print $1}'
+  printf "debian $(cat .debian-version)\n$(cat .tool-versions)" | md5sum | awk '{print $1}'
 }
 
 function component_tmp_folder {

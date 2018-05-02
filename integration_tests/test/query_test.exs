@@ -3,7 +3,7 @@ defmodule IntegrationTest.QueryTest do
 
   alias IntegrationTest.Manager
 
-  setup_all do
+  setup do
     {:ok, user: Manager.create_air_user()}
   end
 
@@ -31,6 +31,21 @@ defmodule IntegrationTest.QueryTest do
     assert result.buckets == [
              %{"occurrences" => 100, "row" => ["john", 180], "users_count" => 100}
            ]
+  end
+
+  test "Query logs returned are truncated to second", context do
+    {:ok, result} = run_query(context.user, "select name, height from users")
+
+    log_lines =
+      result.log
+      |> String.split("\n")
+      |> Enum.reject(&(&1 == ""))
+
+    assert length(log_lines) > 0
+
+    assert log_lines
+           |> Enum.map(&Regex.match?(~r/^\d{1,2}:\d{1,2}:\d{1,2}.000/, &1))
+           |> Enum.all?()
   end
 
   test "retrieval of query results as csv", context do

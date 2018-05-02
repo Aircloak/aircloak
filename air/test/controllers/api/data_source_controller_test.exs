@@ -9,7 +9,6 @@ defmodule AirWeb.API.DataSourceController.Test do
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
-    :ok
   end
 
   test "getting all sources" do

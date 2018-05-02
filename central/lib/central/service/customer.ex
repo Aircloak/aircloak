@@ -7,7 +7,6 @@ defmodule Central.Service.Customer do
   alias Ecto.Changeset
   alias Central.Repo
   alias Central.Schemas.{AirRPC, Customer, CustomerExport, Query, License}
-  alias Central.Service.ElasticSearch
   alias Central.Service.Customer.AirMessage
 
   import Ecto.Query, only: [from: 2]
@@ -150,8 +149,6 @@ defmodule Central.Service.Customer do
   @doc "Records a query execution associated with a customer"
   @spec record_query(Customer.t(), Map.t()) :: :ok | :error
   def record_query(customer, params) do
-    ElasticSearch.record_query(customer, params)
-
     changeset =
       customer
       |> Ecto.build_assoc(:queries)
@@ -248,7 +245,8 @@ defmodule Central.Service.Customer do
       {:ok, version} ->
         cond do
           Version.match?(version, ">=17.1.0 and <18.2.0") -> {:ok, AirMessage.Default}
-          Version.match?(version, ">=18.2.0") -> {:ok, AirMessage.V180200}
+          Version.match?(version, ">=18.2.0 and <18.2.1") -> {:ok, AirMessage.V180200}
+          Version.match?(version, ">=18.2.1") -> {:ok, AirMessage.V180210}
           true -> {:error, :invalid_version}
         end
     end

@@ -1,3 +1,17 @@
+## Version 18.2.2
+
+### Bugfixes
+
+- Fix crash when a postgres connection times out after retrieving all needed data
+
+## Version 18.2.1
+
+### Features
+
+- Support for specifying a privacy policy
+- An analyst can download all the information kept about them
+- Support for fully deleting all data recorded about an analyst's usage of the system
+
 ## Version 18.2.0
 
 ### Features

@@ -63,7 +63,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
     concurrency = Keyword.get(options, :concurrency, System.schedulers_online())
     timeout = Keyword.get(options, :timeout, :timer.seconds(30))
 
-    queries = Enum.map(1..number_of_queries, fn _ -> generate_query(tables) end)
+    queries = generate_queries(tables, number_of_queries)
 
     all_path = Keyword.get(options, :all_out, "/tmp/all.txt")
     crashes_path = Keyword.get(options, :crashes_out, "/tmp/crashes.txt")
@@ -128,13 +128,13 @@ defmodule Mix.Tasks.Fuzzer.Run do
     e -> %{result: :unexpected_error, error: e}
   end
 
-  defp generate_query(tables),
+  defp generate_queries(tables, number_of_queries),
     do:
       tables
       |> Map.values()
-      |> QueryGenerator.generate_ast()
-      |> QueryGenerator.ast_to_sql()
-      |> to_string()
+      |> QueryGenerator.ast_generator()
+      |> Enum.take(number_of_queries)
+      |> Enum.map(&QueryGenerator.ast_to_sql/1)
 
   defp assert_consistent_or_failing_nicely(data_sources, query) do
     case assert_query_consistency(query, data_sources: data_sources) do
@@ -157,6 +157,22 @@ defmodule Mix.Tasks.Fuzzer.Run do
       error =~ ~r/Function .* requires arguments of type/ -> :mistyped_function
       error =~ ~r/Function .* is allowed over arguments/ -> :restricted_aggregate
       error =~ ~r/Function .* is not allowed in subqueries/ -> :restricted_aggregate
+      error =~ ~r/Table alias .* used more than once/ -> :duplicate_alias
+      error =~ ~r/Non-integer constant is not allowed in .*/ -> :invalid_position
+      error =~ ~r/.* position .* is out of the range of selected columns./ -> :invalid_position
+      error =~ ~r/Functions .* could cause a database exception/ -> :possible_db_exception
+      error =~ ~r/Row splitter functions used in the `WHERE`-clause have/ -> :restricted_row_splitter
+      error =~ ~r/String manipulation functions cannot be combined with other transformations/ -> :string_manipulation
+      error =~ ~r/Expressions with .*LIKE cannot include any functions/ -> :restricted_like
+      error =~ ~r/Range expressions cannot include any functions except aggregations and a cast/ -> :restricted_range
+      error =~ ~r/Aggregate function .* can not be used in the `GROUP BY` clause/ -> :aggregate_in_group_by
+      error =~ ~r/Usage of .* is ambiguous/ -> :ambiguous_identifier
+      error =~ ~r/Column .* is ambiguous/ -> :ambiguous_identifier
+      error =~ ~r/Expression .* recursively calls multiple aggregators/ -> :recursive_aggregate
+      error =~ ~r/One side of an inequality must be a constant/ -> :restricted_inequality
+      error =~ ~r/Escape string must be one character/ -> :invalid_escape
+      error =~ ~r/Only .* can be used in the arguments of an <> operator/ -> :restricted_function
+      error =~ ~r/Only .* can be used in the left-hand side of an IN operator/ -> :restricted_function
       true -> raise error
     end
   end
@@ -168,7 +184,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
   end
 
   defp with_file(name, function) do
-    file = File.open!(name, [:write])
+    file = File.open!(name, [:write, :utf8])
     function.(file)
   end
 end

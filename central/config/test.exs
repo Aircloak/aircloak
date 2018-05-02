@@ -17,6 +17,4 @@ config :central, Central.Repo, pool: Ecto.Adapters.SQL.Sandbox
 # Make tests related to hashing run faster
 config :comeonin, :pbkdf2_rounds, 1
 
-config :central, :simulate_elastic?, true
-
 config :central, :license, private_key: "priv/mock_key_private.pem"

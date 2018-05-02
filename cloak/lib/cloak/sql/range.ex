@@ -32,10 +32,9 @@ defmodule Cloak.Sql.Range do
       inequalities_by_column(query)
       |> Enum.map(fn
         {column, inequalities} when length(inequalities) == 2 ->
-          [{:comparison, _, _, low}, {:comparison, _, _, high}] =
-            Enum.sort_by(inequalities, &Condition.direction/1, &Kernel.>/2)
+          [bottom, top] = Enum.sort_by(inequalities, &Condition.direction/1, &Kernel.>/2)
 
-          %__MODULE__{column: column, interval: {Expression.value(low), Expression.value(high)}}
+          %__MODULE__{column: column, interval: {Condition.value(bottom), Condition.value(top)}}
 
         {column, _other} ->
           %__MODULE__{column: column, interval: :invalid}
@@ -61,7 +60,7 @@ defmodule Cloak.Sql.Range do
       |> Query.Lenses.conditions()
       |> Lens.filter(&Condition.equals?/1)
       |> Lens.to_list(query)
-      |> Enum.map(fn {:comparison, lhs, :=, _} -> lhs end)
+      |> Enum.map(&Condition.subject/1)
       |> Enum.filter(&implicit_range?(&1, query))
       |> Enum.map(&function_range/1)
 

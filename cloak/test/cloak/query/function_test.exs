@@ -212,13 +212,13 @@ defmodule Cloak.Query.FunctionTest do
 
     test "[Issue #2525] extract_words over constant in GROUP BY" do
       assert_query("SELECT extract_words('') FROM heights_ft GROUP BY height", %{
-        rows: []
+        error: "Column `extract_words` needs to appear in the `GROUP BY` clause" <> _
       })
     end
 
     test "[Issue #2525] extract_words on a column with invalid GROUP BY" do
       assert_query("SELECT extract_words(name) FROM heights_ft GROUP BY height", %{
-        error: "Column `name` from table `heights_ft` needs to appear in the `GROUP BY` clause" <> _
+        error: "Column `extract_words` needs to appear in the `GROUP BY` clause" <> _
       })
     end
   end

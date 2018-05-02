@@ -4,18 +4,20 @@ defmodule AirWeb.ApiTokenControllerTest do
   import Air.{TestConnHelper, TestRepoHelper, TestAuthHelper}
   alias Air.Schemas.ApiToken
 
-  test "api token pages require an authenticated user", %{conn: conn} do
+  setup do
+    {:ok, user: create_user!()}
+  end
+
+  test "api token pages require an authenticated user", %{conn: conn, user: user} do
     conn = add_auth_to_conn(conn)
-    user = create_user!()
     token = create_token(user)
 
     assert "/auth" == build_conn() |> get(api_token_path(conn, :index)) |> redirected_to()
     assert "/auth" == delete(conn, api_token_path(conn, :delete, token)) |> redirected_to()
   end
 
-  test "index only shows tokens owned by the user", %{conn: conn} do
+  test "index only shows tokens owned by the user", %{conn: conn, user: user} do
     conn = add_auth_to_conn(conn)
-    user = create_user!()
     user_token = create_token_entity!(user)
     other_user = create_user!()
     other_user_token = create_token_entity!(other_user)
@@ -25,9 +27,8 @@ defmodule AirWeb.ApiTokenControllerTest do
     refute index_html =~ api_token_path(conn, :delete, other_user_token)
   end
 
-  test "deleting tokens of other users is forbidden", %{conn: conn} do
+  test "deleting tokens of other users is forbidden", %{conn: conn, user: user} do
     conn = add_auth_to_conn(conn)
-    user = create_user!()
     other_user = create_user!()
     other_user_token = create_token_entity!(other_user)
 
@@ -36,9 +37,8 @@ defmodule AirWeb.ApiTokenControllerTest do
     assert not_found_html =~ "Not found"
   end
 
-  test "deletes chosen api token", %{conn: conn} do
+  test "deletes chosen api token", %{conn: conn, user: user} do
     conn = add_auth_to_conn(conn)
-    user = create_user!()
     token = create_token_entity!(user)
 
     assert "/api_tokens" == login(user) |> delete(api_token_path(conn, :delete, token)) |> redirected_to()

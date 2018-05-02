@@ -1,8 +1,10 @@
 defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
-  alias Air.{Repo, Service.AuditLog, Schemas.DataSource, Schemas.Group, Schemas.User}
-  alias Air.Service.{Query, View}
+  alias Air.Repo
+  alias Air.Service.{AuditLog, PrivacyPolicy}
+  alias Air.Schemas.{DataSource, Group, User}
+  alias Air.Schemas
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
 
@@ -18,22 +20,23 @@ defmodule Air.Service.User do
   def login(email, password, meta \\ %{}) do
     user = Repo.get_by(User, email: email)
 
-    if User.validate_password(user, password) do
-      AuditLog.log(user, "Logged in", meta)
-      {:ok, user}
-    else
-      AuditLog.log(user, "Failed login", meta)
-      {:error, :invalid_email_or_password}
+    cond do
+      User.validate_password(user, password) ->
+        AuditLog.log(user, "Logged in", meta)
+        {:ok, user}
+
+      user ->
+        AuditLog.log(user, "Failed login", meta)
+        {:error, :invalid_email_or_password}
+
+      true ->
+        {:error, :invalid_email_or_password}
     end
   end
 
   @doc "Returns a list of all users in the system."
   @spec all() :: [User.t()]
   def all(), do: Repo.all(from(user in User, preload: [:groups]))
-
-  @doc "Given a list of email addresses, loads the corresponding users."
-  @spec by_emails([String.t()]) :: [User.t()]
-  def by_emails(emails), do: Repo.all(from(user in User, where: user.email in ^emails))
 
   @doc "Loads the user with the given id."
   @spec load(pos_integer) :: User.t() | nil
@@ -101,6 +104,11 @@ defmodule Air.Service.User do
       |> merge(password_changeset(user, params))
       |> Repo.update()
 
+  @doc "Deletes the given user in the background."
+  @spec delete_async(User.t(), (() -> any), (any -> any)) :: :ok
+  def delete_async(user, success_callback, failure_callback),
+    do: commit_if_last_admin_not_deleted_async(fn -> Repo.delete(user) end, success_callback, failure_callback)
+
   @doc "Deletes the given user, raises on error."
   @spec delete!(User.t()) :: User.t()
   def delete!(user) do
@@ -110,13 +118,7 @@ defmodule Air.Service.User do
 
   @doc "Deletes the given user."
   @spec delete(User.t()) :: {:ok, User.t()} | {:error, :forbidden_last_admin_deletion}
-  def delete(user),
-    do:
-      commit_if_last_admin_not_deleted(fn ->
-        Query.delete_all(user)
-        View.delete_for_user(user)
-        Repo.delete(user)
-      end)
+  def delete(user), do: commit_if_last_admin_not_deleted(fn -> Repo.delete(user) end)
 
   @doc "Returns the empty changeset for the new user."
   @spec empty_changeset() :: Ecto.Changeset.t()
@@ -247,9 +249,71 @@ defmodule Air.Service.User do
     |> Repo.update!()
   end
 
+  @doc "Marks the current privacy policy as accepted by a user"
+  @spec accept_privacy_policy!(Schemas.User.t(), Schemas.PrivacyPolicy.t()) :: Schemas.User.t()
+  def accept_privacy_policy!(user, privacy_policy), do: set_privacy_policy_id(user, privacy_policy.id)
+
+  @doc "Marks the current privacy policy as rejected by a user"
+  @spec reject_privacy_policy!(User.t()) :: User.t()
+  def reject_privacy_policy!(user), do: set_privacy_policy_id(user, nil)
+
+  @doc "Returns the status of the user's current opt-in to the privacy policy"
+  @spec privacy_policy_status(User.t()) :: :ok | {:error, :no_privacy_policy_created | :requires_review}
+  def privacy_policy_status(user) do
+    case PrivacyPolicy.get() do
+      {:error, :no_privacy_policy_created} = error ->
+        error
+
+      {:ok, privacy_policy} ->
+        refreshed_user = load(user.id)
+
+        if refreshed_user.accepted_privacy_policy_id == privacy_policy.id do
+          :ok
+        else
+          {:error, :requires_review}
+        end
+    end
+  end
+
+  @doc """
+  Generates a pseudonymized ID for a user that can be used when sending query metrics
+  and other analyst specific metrics to Aircloak.
+  If no user is provided, a random ID will be generated and returned.
+  """
+  @spec pseudonym(User.t()) :: String.t()
+  def pseudonym(nil), do: random_string()
+
+  def pseudonym(user) do
+    if is_nil(user.pseudonym) do
+      reloaded_user = Air.Service.User.load(user.id)
+
+      if is_nil(reloaded_user.pseudonym) do
+        pseudonym = random_string()
+
+        user
+        |> cast(%{pseudonym: pseudonym}, [:pseudonym])
+        |> Repo.update!()
+
+        pseudonym
+      else
+        reloaded_user.pseudonym
+      end
+    else
+      user.pseudonym
+    end
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp random_string, do: Base.encode16(:crypto.strong_rand_bytes(10))
+
+  defp set_privacy_policy_id(user, policy_id) do
+    user
+    |> cast(%{accepted_privacy_policy_id: policy_id}, [:accepted_privacy_policy_id])
+    |> Repo.update!()
+  end
 
   defp user_changeset(user, params, opts \\ []),
     do:
@@ -301,33 +365,57 @@ defmodule Air.Service.User do
     end
   end
 
-  defp commit_if_last_admin_not_deleted(fun),
-    # Ensuring that these operations are serialized, so we can consistently verify that the action doesn't remove the
-    # last admin.
-    # Note that GenServer would be a more idiomatic approach. Here, we're using `:global` for the following reasons:
-    #   1. The synchronized code is quite simple.
-    #   2. We don't expect these operations to be executed frequently.
-    #   3. The code powered by `:global` is very simple and doesn't require extra modules or changes to the supervision
-    #      tree.
-    do:
-      :global.trans({__MODULE__, :isolated_user_change}, fn ->
-        # We wrap the `fun` lambda in transaction, to ensure we can safely undo the operation. If the lambda causes the
-        # last admin to be deleted, we can simply rollback any database changes.
-        Repo.transaction(fn ->
-          case fun.() do
-            {:ok, result} ->
-              # success -> ensure that we still have an admin
-              if admin_user_exists?() do
-                result
-              else
-                # no admin anymore -> undo the changes
-                Repo.rollback(:forbidden_last_admin_deletion)
-              end
+  defp commit_if_last_admin_not_deleted(fun), do: GenServer.call(__MODULE__, {:commit_if_last_admin_not_deleted, fun})
 
-            {:error, error} ->
-              # some other kind of error -> rollback and return the error
-              Repo.rollback(error)
-          end
-        end)
-      end)
+  defp commit_if_last_admin_not_deleted_async(fun, success_callback, failure_callback),
+    do: GenServer.cast(__MODULE__, {:commit_if_last_admin_not_deleted, fun, success_callback, failure_callback})
+
+  defp do_commit_if_last_admin_not_deleted(fun) do
+    Repo.transaction(
+      fn ->
+        case fun.() do
+          {:ok, result} ->
+            if admin_user_exists?() do
+              result
+            else
+              Repo.rollback(:forbidden_last_admin_deletion)
+            end
+
+          {:error, error} ->
+            Repo.rollback(error)
+        end
+      end,
+      timeout: :timer.hours(1)
+    )
+  end
+
+  # -------------------------------------------------------------------
+  # GenServer callbacks
+  # -------------------------------------------------------------------
+
+  use GenServer
+
+  @impl GenServer
+  def init(_), do: {:ok, nil}
+
+  @impl GenServer
+  def handle_call({:commit_if_last_admin_not_deleted, fun}, _from, state),
+    do: {:reply, do_commit_if_last_admin_not_deleted(fun), state}
+
+  @impl GenServer
+  def handle_cast({:commit_if_last_admin_not_deleted, fun, success_callback, failure_callback}, state) do
+    case do_commit_if_last_admin_not_deleted(fun) do
+      {:ok, _} -> success_callback.()
+      {:error, error} -> failure_callback.(error)
+    end
+
+    {:noreply, state}
+  end
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg), do: Aircloak.ChildSpec.gen_server(__MODULE__, [], name: __MODULE__)
 end

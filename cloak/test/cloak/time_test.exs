@@ -36,4 +36,7 @@ defmodule Cloak.Time.Test do
     assert {:error, :invalid_format} = Cloak.Time.parse_datetime("10000-01-01 00:00:00")
     assert {:error, :invalid_format} = Cloak.Time.parse_datetime("10000-01-01")
   end
+
+  test "truncates Logger timestamps to seconds",
+    do: assert({{2018, 4, 12}, {9, 7, 9, 0}} = Cloak.Time.truncate({{2018, 4, 12}, {9, 7, 9, 554}}, :second))
 end

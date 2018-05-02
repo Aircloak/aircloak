@@ -61,7 +61,7 @@ defmodule Cloak.Sql.Compiler.Specification do
       |> compile_aliases()
       |> compile_columns()
       |> compile_references()
-      |> cast_where_clauses()
+      |> perform_implicit_casts()
 
   # -------------------------------------------------------------------
   # From
@@ -720,21 +720,21 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp compile_reference(expression, _query, _clause_name), do: expression
 
   # -------------------------------------------------------------------
-  # Where clauses
+  # Implicit casts
   # -------------------------------------------------------------------
 
-  defp cast_where_clauses(query),
-    do: Lens.map(Lenses.filter_clauses() |> Lenses.conditions(), query, &cast_where_clause/1)
-
-  defp cast_where_clause(clause) do
-    column = Condition.subject(clause)
-    do_cast_where_clause(clause, column.type)
+  defp perform_implicit_casts(query) do
+    Lenses.filter_clauses()
+    |> Lenses.conditions()
+    |> Lens.map(query, fn clause ->
+      column = Condition.subject(clause)
+      perform_implicit_cast(clause, column.type)
+    end)
   end
 
   @castable_conditions [:datetime, :time, :date]
 
-  defp do_cast_where_clause({:comparison, identifier, comparator, rhs}, type)
-       when type in @castable_conditions do
+  defp perform_implicit_cast({:comparison, identifier, comparator, rhs}, type) when type in @castable_conditions do
     if Expression.constant?(rhs) do
       {:comparison, identifier, comparator, parse_time(rhs, type)}
     else
@@ -742,10 +742,12 @@ defmodule Cloak.Sql.Compiler.Specification do
     end
   end
 
-  defp do_cast_where_clause({:in, column, values}, type) when type in @castable_conditions,
+  defp perform_implicit_cast({:in, column, values}, type) when type in @castable_conditions,
     do: {:in, column, Enum.map(values, &parse_time(&1, type))}
 
-  defp do_cast_where_clause(clause, _), do: clause
+  defp perform_implicit_cast(clause, _), do: clause
+
+  defp parse_time(expression = %Expression{type: type}, type), do: expression
 
   defp parse_time(expression, type) do
     value = Expression.value(expression)

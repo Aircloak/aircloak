@@ -2,10 +2,7 @@
   "site": {
     "auth_secret": "v8sLInD67GnHnDMktxWTfoaKKlt27QeQlyjJ/FBzt7b2EvcigHlM1D0GYlePapFF",
     "endpoint_key_base": "YD6DCzMHTXFtf78/kk3fHMvhKMl3zw8CKYsenJLsQu+dBKPb86H7cZd4MKJsCcPm",
-    "customer_token_salt": "2ZBWaDeN2soK3kGZPz7+jzytR/03N9V49C4iG+TeTf2V2tXr5FErpVDebJTsD5UN",
-    "elastic_search_endpoint": "http://localhost:9200",
-    "kibana_url": "http://localhost:5601",
-    "kibana_main_dash": "app/kibana#/dashboard/Main-dash?embed=true&_g=(refreshInterval%3A('%24%24hashKey'%3A'object%3A6476'%2Cdisplay%3A'5%20seconds'%2Cpause%3A!f%2Csection%3A1%2Cvalue%3A5000)%2Ctime%3A(from%3Anow-90d%2Cmode%3Aquick%2Cto%3Anow))"
+    "customer_token_salt": "2ZBWaDeN2soK3kGZPz7+jzytR/03N9V49C4iG+TeTf2V2tXr5FErpVDebJTsD5UN"
   },
 
   "database": {

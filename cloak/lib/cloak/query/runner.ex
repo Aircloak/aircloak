@@ -201,7 +201,10 @@ defmodule Cloak.Query.Runner do
 
     update_in(
       state.log,
-      &[&1, Logger.Formatter.format(state.log_format, level, message, timestamp, metadata)]
+      &[
+        &1,
+        Logger.Formatter.format(state.log_format, level, message, Cloak.Time.truncate(timestamp, :second), metadata)
+      ]
     )
   end
 

@@ -4,7 +4,7 @@ defmodule Cloak.ResultSender.Test do
   alias Cloak.ResultSender
 
   describe "send_result" do
-    for key <- ~w/query_id columns features error cancelled info execution_time/a do
+    for key <- ~w/query_id columns features error cancelled info execution_time log/a do
       test "preserves #{key}" do
         ResultSender.send_result({:process_encoded, self()}, %{unquote(key) => :something})
         assert_receive %{unquote(key) => :something}

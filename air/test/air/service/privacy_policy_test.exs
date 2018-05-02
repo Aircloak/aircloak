@@ -1,0 +1,82 @@
+defmodule Air.Service.PrivacyPolicyTest do
+  use Air.SchemaCase, async: false
+
+  import Air.TestRepoHelper
+  alias Air.{Repo, Service.PrivacyPolicy}
+
+  setup do
+    delete_all_privacy_policies!()
+    :ok
+  end
+
+  describe "exists?" do
+    test "no privacy policy", do: refute(PrivacyPolicy.exists?())
+
+    test "privacy policy created" do
+      create_privacy_policy!()
+      assert PrivacyPolicy.exists?()
+    end
+  end
+
+  describe "set" do
+    test "creates when none existed" do
+      assert privacy_policy_count() == 0
+      PrivacyPolicy.set("content")
+      assert privacy_policy_count() == 1
+    end
+
+    test "altering content results in creation of new policy" do
+      create_privacy_policy!()
+      count_before = privacy_policy_count()
+      PrivacyPolicy.set("new content")
+      assert privacy_policy_count() == count_before + 1
+    end
+
+    test "you can provide change description when setting policy" do
+      create_privacy_policy!()
+      content = "Content: #{:erlang.unique_integer()}"
+      change = "Change description: #{:erlang.unique_integer()}"
+      PrivacyPolicy.set(content, change)
+      {:ok, policy} = PrivacyPolicy.get()
+      assert policy.changes == change
+    end
+  end
+
+  describe "get" do
+    test "returns error when no policy has been created",
+      do: assert({:error, :no_privacy_policy_created} = PrivacyPolicy.get())
+
+    test "returns the most recent policy" do
+      create_privacy_policy!()
+      content = "More recent privacy policy: #{:erlang.unique_integer()}"
+      PrivacyPolicy.set(content)
+      {:ok, privacy_policy} = PrivacyPolicy.get()
+      assert privacy_policy.content == content
+    end
+  end
+
+  describe "get_by_id" do
+    test "returns error when invalid id", do: assert({:error, :not_found} = PrivacyPolicy.get_by_id(1))
+
+    test "returns policy when one exists" do
+      policy = create_privacy_policy!()
+      {:ok, loaded_policy} = PrivacyPolicy.get_by_id(policy.id)
+      assert loaded_policy.id == policy.id
+    end
+  end
+
+  describe "all" do
+    test "returns all privacy policies" do
+      create_privacy_policy!()
+      create_privacy_policy!()
+      create_privacy_policy!()
+      assert length(PrivacyPolicy.all()) == 3
+    end
+  end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp privacy_policy_count(), do: Repo.aggregate(Air.Schemas.PrivacyPolicy, :count, :id)
+end

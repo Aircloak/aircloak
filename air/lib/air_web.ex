@@ -33,8 +33,13 @@ defmodule Air.Web do
 
       @doc false
       def audit_log(conn, event, metadata \\ []) do
+        audit_log_for_user(conn, conn.assigns.current_user, event, metadata)
+      end
+
+      @doc false
+      def audit_log_for_user(conn, user, event, metadata \\ []) do
         Air.Service.AuditLog.log(
-          conn.assigns.current_user,
+          user,
           event,
           conn
           |> audit_log_meta()

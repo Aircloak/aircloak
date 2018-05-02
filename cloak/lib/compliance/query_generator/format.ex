@@ -12,8 +12,8 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
   # -------------------------------------------------------------------
 
   @doc "Formats the given AST using Elixir's document algebra."
-  @spec ast_to_sql(Cloak.Compliance.QueryGenerator.ast()) :: iolist
-  def ast_to_sql(ast), do: ast |> to_doc() |> Inspect.Algebra.format(@line_width)
+  @spec ast_to_sql(Cloak.Compliance.QueryGenerator.ast()) :: String.t()
+  def ast_to_sql(ast), do: ast |> to_doc() |> Inspect.Algebra.format(@line_width) |> to_string()
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -22,11 +22,13 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
   defp to_doc({:query, _, items}),
     do:
       items
-      |> Enum.reject(&match?({:empty, _, _}, &1))
+      |> except_empty()
       |> Enum.map(fn item -> item |> to_doc() |> nest() end)
       |> space_separated()
 
-  defp to_doc({:select, nil, select_list}), do: "SELECT" |> glue(" ", clause_list(select_list)) |> group()
+  defp to_doc({:select, nil, [select_list]}), do: "SELECT" |> glue(" ", to_doc(select_list)) |> group()
+
+  defp to_doc({:select_list, nil, items}), do: clause_list(items)
 
   defp to_doc({:from, nil, [from_expression]}), do: glue("FROM", " ", to_doc(from_expression))
 
@@ -48,6 +50,14 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
 
   defp to_doc({:having, nil, [condition]}), do: glue("HAVING", " ", to_doc(condition))
 
+  defp to_doc({:order_by, nil, order_list}), do: "ORDER BY" |> glue(" ", clause_list(order_list)) |> group()
+
+  defp to_doc({:order_spec, nil, items}), do: items |> except_empty() |> Enum.map(&to_doc/1) |> space_separated()
+
+  defp to_doc({:order_direction, direction, []}), do: direction |> to_string() |> String.upcase()
+
+  defp to_doc({:nulls, directive, []}), do: concat("NULLS ", directive |> to_string() |> String.upcase())
+
   defp to_doc({op, nil, [lhs, rhs]}) when op in @infix_operator,
     do: operator(to_doc(lhs), binary_operation_to_string(op), to_doc(rhs))
 
@@ -58,20 +68,68 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
 
   defp to_doc({:or, nil, [lhs, rhs]}), do: concat(["(", operator(to_doc(lhs), "OR", to_doc(rhs)), ")"])
 
-  defp to_doc({:function, name, args}),
-    do:
-      name
-      |> concat("(")
-      |> glue("", args |> Enum.map(&to_doc/1) |> comma_separated())
-      |> nest()
-      |> glue("", ")")
-      |> group()
+  defp to_doc({:not, nil, [expression]}),
+    do: "NOT (" |> glue("", to_doc(expression)) |> nest() |> glue("", ")") |> group()
 
-  defp to_doc({:column, {column, table}, []}), do: to_string([?", table, ?", ?., ?", column, ?"])
+  defp to_doc({:function, name, [lhs, rhs]}) when name in ~w(+ - * / ^) do
+    "("
+    |> glue("", to_doc(lhs))
+    |> glue(" ", name)
+    |> glue(" ", to_doc(rhs))
+    |> nest()
+    |> glue("", ")")
+    |> group()
+  end
+
+  defp to_doc({:function, name, args}) do
+    name
+    |> concat("(")
+    |> glue("", args |> Enum.map(&to_doc/1) |> comma_separated())
+    |> nest()
+    |> glue("", ")")
+    |> group()
+  end
+
+  defp to_doc({:cast, type, [argument]}) do
+    "CAST"
+    |> concat("(")
+    |> glue("", to_doc(argument))
+    |> glue(" ", "AS")
+    |> glue(" ", type |> to_string() |> String.upcase())
+    |> nest()
+    |> glue("", ")")
+    |> group()
+  end
+
+  defp to_doc({keyword_function, nil, args}) when keyword_function in [:substring, :bucket] do
+    keyword_function
+    |> to_string()
+    |> String.upcase()
+    |> concat("(")
+    |> glue("", args |> Enum.map(&to_doc/1) |> space_separated())
+    |> nest()
+    |> glue("", ")")
+    |> group()
+  end
+
+  defp to_doc({:keyword_arg, name, [value]}),
+    do: name |> to_string() |> String.upcase() |> concat(" ") |> concat(to_doc(value))
+
+  defp to_doc({:keyword, name, []}), do: name |> to_string() |> String.upcase()
+
+  defp to_doc({:distinct, nil, [argument]}), do: concat("DISTINCT ", to_doc(argument))
+
+  defp to_doc({:column, nil, [column]}), do: to_doc(column)
+  defp to_doc({:column, nil, [table, column]}), do: concat([to_doc(table), ".", to_doc(column)])
+  defp to_doc({:unquoted, text, []}), do: text
+  defp to_doc({:quoted, text, []}), do: to_string([?", text, ?"])
   defp to_doc({:integer, value, []}), do: to_string(value)
   defp to_doc({:text, value, []}), do: to_string([?', value, ?'])
   defp to_doc({:boolean, value, []}), do: to_string(value)
   defp to_doc({:datetime, value, []}), do: to_string([?', to_string(value), ?'])
+  defp to_doc({:time, value, []}), do: to_string([?', to_string(value), ?'])
+  defp to_doc({:date, value, []}), do: to_string([?', to_string(value), ?'])
+  defp to_doc({:interval, value, []}), do: to_string(["interval ", ?', Timex.Duration.to_string(value), ?'])
   defp to_doc({:real, value, []}), do: to_string(value)
 
   defp to_doc({:like_pattern, value, [escape]}), do: space_separated([to_string([?', value, ?']), to_doc(escape)])
@@ -93,6 +151,8 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
   defp to_doc({:empty, _, _}), do: empty()
 
   defp to_doc({:sample_users, size, []}), do: concat(["SAMPLE_USERS ", to_string(size), "%"])
+  defp to_doc({:limit, size, []}), do: concat("LIMIT ", to_string(size))
+  defp to_doc({:offset, size, []}), do: concat("OFFSET ", to_string(size))
 
   defp binary_operation_to_string(:=), do: "="
   defp binary_operation_to_string(:<), do: "<"
@@ -114,4 +174,6 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
   defp nest(doc), do: doc |> group() |> nest(2)
 
   defp operator(doc1, operator, doc2), do: glue(concat([doc1, " ", operator]), " ", doc2) |> nest()
+
+  defp except_empty(items), do: Enum.reject(items, &match?({:empty, _, _}, &1))
 end

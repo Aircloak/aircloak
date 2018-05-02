@@ -67,18 +67,7 @@ defmodule Air.Mixfile do
   defp deps do
     [
       {:ecto, "~> 2.2.0", override: true},
-      # Current master has a fix to a bug introduced in 1.2.2 whereby you cannot
-      # concurrently compile markdown because of a global GenServer fucking things up.
-      # The fix is in this commit:
-      # https://github.com/pragdave/earmark/commit/ffc6d226f40baadde5756c7c91bd7d90d41b67ff
-      # Once it has a released version, we should update to that.
-      # We are currently using the latest version as per the time of locking down this
-      # dependency, which also contains a couple other fixes.
-      # NOTE: Since this is a non-hex dependency it needed to be manually classified in the BOM.
-      #       When reverting to a hex dependency, please clean up the classification in
-      #       lib/bom/gatherer/elixir.ex
-      {:earmark,
-       github: "pragdave/earmark", ref: "2bc90510ddc6245ff6afcaf6cfb526e3a9fadf89", runtime: false, override: true},
+      {:earmark, "~> 1.2", override: true},
       {:postgrex, "~> 0.13.0", override: true},
       {:phoenix, "~> 1.3.0"},
       {:phoenix_pubsub, "~> 1.0"},
