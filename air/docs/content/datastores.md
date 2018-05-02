@@ -189,9 +189,9 @@ This section provides additional notes specific for each supported database.
 
 #### Schema detection
 
-Collections in MongoDB do not have a fixed schema, whereas schemas are required by Aircloak Insights. In order to establish a schema that can be used, Aircloak Insights
-will traverse the collections of a database upon boot. This produces a best effort
-estimate of the available fields and their data types.
+Collections in MongoDB do not have a fixed schema, whereas schemas are required by Aircloak Insights. In order to
+establish a schema that can be used, Aircloak Insights will traverse the collections of a database upon boot. This
+produces a best effort estimate of the available fields and their data types.
 
 #### Mapping from documents to tables
 
