@@ -6,9 +6,6 @@ defmodule AircloakCI.PullRequestTest do
     repo_data = add_pr(repo_data, pr)
     AircloakCI.Build.PullRequest.ensure_started(pr, repo_data)
 
-    assert_pr_comment(pr, %{body: comment_body})
-    assert comment_body =~ ~r/Standard tests have passed/
-
     assert_posted_status(pr, "mergeable", %{
       state: :success,
       description: "pull request can be merged"
@@ -27,6 +24,8 @@ defmodule AircloakCI.PullRequestTest do
     wait_for_jobs_to_finish(pr)
 
     assert successful_jobs(pr) == ~w(air_compile air_test cloak_compile cloak_test prepare)
+    assert_pr_comment(pr, %{body: comment_body})
+    assert comment_body =~ ~r/Standard tests have passed/
 
     {pr, _repo_data} = update_pr_data(repo_data, pr, &put_in(&1.approved?, true))
     wait_for_jobs_to_finish(pr)

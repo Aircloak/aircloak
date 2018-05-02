@@ -1,19 +1,20 @@
 defmodule Air.Schemas.AuditLog do
   @moduledoc "Model for recording events having taken place"
   use Air.Schemas.Base
+  alias Air.Schemas.User
   require Logger
 
   @type t :: %__MODULE__{}
 
   schema "audit_logs" do
     field(:event, :string)
-    field(:user, :string)
     field(:metadata, :map)
+    belongs_to(:user, User)
 
     timestamps()
   end
 
-  @required_fields ~w(event user metadata)a
+  @required_fields ~w(event metadata)a
   @optional_fields ~w()a
 
   @doc """

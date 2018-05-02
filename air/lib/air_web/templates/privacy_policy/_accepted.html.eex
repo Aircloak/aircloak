@@ -1,0 +1,30 @@
+<div class="panel panel-success">
+  <div class="panel-heading">
+    <h1 class="panel-title">You have accepted the privacy policy</h1>
+  </div>
+  <div class="panel-body">
+    <p>If you no longer agree with the privacy policy, you can withdraw your consent.</p>
+
+    <p>If you withdraw your consent, the following happens:</p>
+
+    <ul class="privacy-policy-bullet-points">
+      <li><strong>You will no longer be able to use Aircloak Insights</strong></li>
+      <li>You can change your mind and consent to the privacy policy again at any time</li>
+      <li>No further information will be collected about you</li>
+      <li>
+        The personal information that has already been collected about you remains in the system.
+        <i>Withdrawing your consent is not the same as deleting your account</i>
+      </li>
+    </ul>
+
+    <%= form_tag privacy_policy_path(@conn, :reject, @privacy_policy.id), method: "put" do %>
+      <button class='btn btn-danger'>Withdraw consent</button>
+    <% end %>
+
+    <hr />
+
+    <p>
+      Contact your administrator or organisation's Data Protection Officer if you have questions or concerns.
+    </p>
+  </div>
+</div>

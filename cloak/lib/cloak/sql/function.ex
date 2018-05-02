@@ -357,6 +357,10 @@ defmodule Cloak.Sql.Function do
   def canonical_name(%{canonical_name: name, synonym_used: _}), do: name
   def canonical_name(other), do: other
 
+  @doc "Returns all the type specs for the given function. Used by QueryGenerator."
+  @spec type_specs(Parser.function_name()) :: map
+  def type_specs(function), do: @functions[canonical_name(function)].type_specs
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

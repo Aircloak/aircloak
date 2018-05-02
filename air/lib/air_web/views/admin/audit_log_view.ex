@@ -32,7 +32,7 @@ defmodule AirWeb.Admin.AuditLogView do
     |> Enum.map(fn audit_log ->
       %{
         event: audit_log.event,
-        user: audit_log.user,
+        user: audit_log.user.email,
         time: audit_log.inserted_at,
         metadata: audit_log.metadata
       }

@@ -5,7 +5,7 @@ defmodule Air.Schemas.User do
   use Air.Schemas.Base
 
   alias Comeonin.Pbkdf2, as: Hash
-  alias Air.Schemas.Group
+  alias Air.Schemas.{Group, PrivacyPolicy}
 
   @type t :: %__MODULE__{}
   @type role_key :: :anonymous | :user | :admin
@@ -16,8 +16,11 @@ defmodule Air.Schemas.User do
     field(:email, :string)
     field(:hashed_password, :string)
     field(:name, :string)
+    field(:pseudonym, :string)
 
     has_many(:queries, Air.Schemas.Query)
+    has_many(:views, Air.Schemas.View)
+    has_many(:audit_logs, Air.Schemas.AuditLog)
 
     many_to_many(
       :groups,
@@ -27,7 +30,7 @@ defmodule Air.Schemas.User do
       on_replace: :delete
     )
 
-    has_many(:views, Air.Schemas.View)
+    belongs_to(:accepted_privacy_policy, PrivacyPolicy)
 
     timestamps()
 

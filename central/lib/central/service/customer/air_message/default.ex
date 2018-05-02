@@ -1,5 +1,6 @@
 defmodule Central.Service.Customer.AirMessage.Default do
   @moduledoc "Decoding and handling of messages sent by air pre-versioning."
+  # credo:disable-for-this-file Credo.Check.Design.DuplicatedCode
   require Logger
   alias Central.Service.Customer
 

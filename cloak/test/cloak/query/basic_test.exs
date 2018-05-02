@@ -5,9 +5,7 @@ defmodule Cloak.Query.BasicTest do
 
   setup_all do
     :ok = Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, male BOOLEAN")
-
     :ok = Cloak.Test.DB.create_table("heights_alias", nil, db_name: "heights", skip_db_create: true)
-
     :ok = Cloak.Test.DB.create_table("children", "age INTEGER, name TEXT")
 
     :ok = Cloak.Test.DB.create_table("weird things", "\"thing as thing\" INTEGER", db_name: "weird-things")
@@ -161,9 +159,7 @@ defmodule Cloak.Query.BasicTest do
 
   test "select all and order query" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 180, true])
-
     :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 180, true])
-
     :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
 
     assert_query("select * from heights order by name", %{
@@ -181,9 +177,7 @@ defmodule Cloak.Query.BasicTest do
 
   test "order by non-selected field" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 160, true])
-
     :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 170, true])
-
     :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
 
     assert_query("select height from heights order by name", %{
@@ -197,9 +191,7 @@ defmodule Cloak.Query.BasicTest do
 
   test "order by grouped but non-selected field" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 160, true])
-
     :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 170, true])
-
     :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
 
     assert_query("select sum(height) from heights group by name order by name", %{
@@ -213,9 +205,7 @@ defmodule Cloak.Query.BasicTest do
 
   test "order by grouped but non-selected aggregate" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 160, true])
-
     :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["adam", 170, true])
-
     :ok = insert_rows(_user_ids = 21..30, "heights", ["name", "height", "male"], ["mike", 180, true])
 
     assert_query("select name from heights group by name order by sum(height) desc", %{
@@ -229,9 +219,7 @@ defmodule Cloak.Query.BasicTest do
 
   test "order by grouped but non-selected aggregate with selected aggregate function" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 160, true])
-
     :ok = insert_rows(_user_ids = 11..30, "heights", ["name", "height", "male"], ["adam", 170, true])
-
     :ok = insert_rows(_user_ids = 31..60, "heights", ["name", "height", "male"], ["mike", 180, true])
 
     assert_query("select bucket(height by 10), avg(height) from heights group by 1 order by count(*) desc", %{
@@ -619,40 +607,47 @@ defmodule Cloak.Query.BasicTest do
     })
   end
 
-  test "should allow ranges in where clause" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+  describe "inequalities" do
+    setup do
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
+      :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+    end
 
-    assert_query("select count(*) from heights where height >= 180 and height < 190", %{
-      query_id: "1",
-      columns: ["count"],
-      rows: [%{row: [20], occurrences: 1}]
-    })
-  end
+    test "should allow ranges in where clause" do
+      assert_query("select count(*) from heights where height >= 180 and height < 190", %{
+        columns: ["count"],
+        rows: [%{row: [20], occurrences: 1}]
+      })
+    end
 
-  test "should allow between in where clause" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+    test "should allow between in where clause" do
+      assert_query("select count(*) from heights where height between 180 and 190", %{
+        columns: ["count"],
+        rows: [%{row: [20], occurrences: 1}]
+      })
+    end
 
-    assert_query("select count(*) from heights where height between 180 and 190", %{
-      query_id: "1",
-      columns: ["count"],
-      rows: [%{row: [20], occurrences: 1}]
-    })
-  end
+    test "should allow reversed inequalities in where clause" do
+      assert_query("select count(*) from heights where 180 <= height and 190 > height", %{
+        columns: ["count"],
+        rows: [%{row: [20], occurrences: 1}]
+      })
+    end
 
-  test "should allow reversed inequalities in where clause" do
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
-    :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-    :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+    test "should allow reversed inequalities with complex constant expresions in where clause" do
+      assert_query("select count(*) from heights where 179 + 1 <= height and abs(190) > height", %{
+        columns: ["count"],
+        rows: [%{row: [20], occurrences: 1}]
+      })
+    end
 
-    assert_query("select count(*) from heights where 180 <= height and 190 > height", %{
-      query_id: "1",
-      columns: ["count"],
-      rows: [%{row: [20], occurrences: 1}]
-    })
+    test "constant expressions in inequalities" do
+      assert_query("select count(*) from heights where height >= 90 * 2 and height < 190", %{
+        columns: ["count"],
+        rows: [%{row: [20], occurrences: 1}]
+      })
+    end
   end
 
   test "should allow LIKE in where clause" do
@@ -772,7 +767,6 @@ defmodule Cloak.Query.BasicTest do
 
   test "select and filter booleans" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["name", "height", "male"], ["john", 180, true])
-
     :ok = insert_rows(_user_ids = 11..20, "heights", ["name", "height", "male"], ["eva", 160, false])
 
     assert_query("select height, male from heights where male = true", %{

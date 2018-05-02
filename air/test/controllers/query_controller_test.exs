@@ -9,6 +9,7 @@ defmodule AirWeb.QueryController.Test do
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
+
     group = create_group!()
 
     user = create_user!(%{groups: [group.id]})
@@ -109,13 +110,11 @@ defmodule AirWeb.QueryController.Test do
   end
 
   test "returns unauthorized when not authorized to query data source", context do
-    user = create_user!()
-
     query_data_params = %{
       query: %{statement: "Query code", data_source_id: context[:data_source].id}
     }
 
-    assert login(user) |> post("/queries", query_data_params) |> response(401)
+    assert login(create_user!()) |> post("/queries", query_data_params) |> response(401)
   end
 
   test "returns error when data source unavailable", context do

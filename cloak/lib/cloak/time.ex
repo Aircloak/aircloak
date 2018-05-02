@@ -85,6 +85,8 @@ defmodule Cloak.Time do
 
   def from_integer(value, :time), do: value |> :calendar.seconds_to_time() |> Time.from_erl!() |> max_precision()
 
+  def truncate({date, {hour, minute, second, _ms}}, :second), do: {date, {hour, minute, second, 0}}
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

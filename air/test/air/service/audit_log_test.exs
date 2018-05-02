@@ -12,7 +12,7 @@ defmodule Air.Service.AuditLogTest do
     entry = Repo.one!(Air.Schemas.AuditLog)
 
     assert entry.event == "event"
-    assert entry.user == user.email
+    assert entry.user_id == user.id
     assert %{"meta" => true} = entry.metadata
   end
 
@@ -45,10 +45,10 @@ defmodule Air.Service.AuditLogTest do
     AuditLog.log(user2, "event2", %{meta: true})
 
     assert entries_count(params(), 2)
-    assert entries_count(params(%{users: ["doesnt@exist.com"]}), 0)
-    assert entries_count(params(%{users: [user1.email]}), 1)
-    assert entries_count(params(%{users: [user2.email]}), 1)
-    assert entries_count(params(%{users: [user1.email, user2.email]}), 2)
+    assert entries_count(params(%{users: [-1]}), 0)
+    assert entries_count(params(%{users: [user1.id]}), 1)
+    assert entries_count(params(%{users: [user2.id]}), 1)
+    assert entries_count(params(%{users: [user1.id, user2.id]}), 2)
   end
 
   test "filter audit logs by data source" do
@@ -88,12 +88,12 @@ defmodule Air.Service.AuditLogTest do
     user3 = create_user!()
     AuditLog.log(user1, "event1", %{meta: true})
     AuditLog.log(user2, "event2", %{meta: true})
-    assert AuditLog.event_types(params(%{users: [user1.email]})) == ["event1"]
-    assert AuditLog.event_types(params(%{users: [user2.email]})) == ["event2"]
+    assert AuditLog.event_types(params(%{users: [user1.id]})) == ["event1"]
+    assert AuditLog.event_types(params(%{users: [user2.id]})) == ["event2"]
 
-    assert AuditLog.event_types(params(%{users: [user1.email, user2.email]})) == ["event1", "event2"]
+    assert AuditLog.event_types(params(%{users: [user1.id, user2.id]})) == ["event1", "event2"]
 
-    assert AuditLog.event_types(params(%{users: [user3.email]})) == []
+    assert AuditLog.event_types(params(%{users: [user3.id]})) == []
   end
 
   test "includes selected event types irrespective of filters" do
@@ -103,7 +103,7 @@ defmodule Air.Service.AuditLogTest do
     AuditLog.log(user1, "event1", %{meta: true})
     AuditLog.log(user2, "event2", %{meta: true})
 
-    assert AuditLog.event_types(params(%{users: [user1.email], events: ["event2"]})) == [
+    assert AuditLog.event_types(params(%{users: [user1.id], events: ["event2"]})) == [
              "event1",
              "event2"
            ]
@@ -121,7 +121,7 @@ defmodule Air.Service.AuditLogTest do
       |> Enum.sort_by(& &1.name)
       |> Enum.map(& &1.email)
 
-    assert AuditLog.users(params(%{users: [user1.email]}))
+    assert AuditLog.users(params(%{users: [user1.id]}))
            |> Enum.map(& &1.email) == emails
   end
 
@@ -144,12 +144,9 @@ defmodule Air.Service.AuditLogTest do
     AuditLog.log(user1, "event1", %{meta: true})
     AuditLog.log(user2, "event2", %{meta: true})
 
-    expected =
-      [user1, user2]
-      |> Enum.sort_by(& &1.name)
-      |> Enum.map(&%{name: &1.name, email: &1.email})
+    expected = [user1, user2] |> Enum.sort_by(& &1.name) |> Enum.map(& &1.id)
 
-    assert AuditLog.users(params(%{users: [user1.email], events: ["event2"]})) == expected
+    assert AuditLog.users(params(%{users: [user1.id], events: ["event2"]})) |> Enum.map(& &1.id) == expected
   end
 
   test "lists all data sources when no filters" do
@@ -175,12 +172,12 @@ defmodule Air.Service.AuditLogTest do
 
     names = [data_source1.name, data_source2.name] |> Enum.sort()
 
-    assert AuditLog.data_sources(params(%{users: [user1.email]}))
+    assert AuditLog.data_sources(params(%{users: [user1.id]}))
            |> Enum.map(& &1.name) == names
 
-    assert AuditLog.data_sources(params(%{users: [user2.email]})) == []
+    assert AuditLog.data_sources(params(%{users: [user2.id]})) == []
 
-    assert AuditLog.data_sources(params(%{users: [user1.email], events: ["event1"]}))
+    assert AuditLog.data_sources(params(%{users: [user1.id], events: ["event1"]}))
            |> Enum.map(& &1.name) == [data_source1.name]
   end
 
@@ -194,7 +191,7 @@ defmodule Air.Service.AuditLogTest do
 
     names = [data_source1.name, data_source2.name] |> Enum.sort()
 
-    assert AuditLog.data_sources(params(%{users: [user1.email], data_sources: [data_source2.name]}))
+    assert AuditLog.data_sources(params(%{users: [user1.id], data_sources: [data_source2.name]}))
            |> Enum.map(& &1.name) == names
   end
 

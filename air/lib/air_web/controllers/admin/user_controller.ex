@@ -37,7 +37,8 @@ defmodule AirWeb.Admin.UserController do
   def create(conn, params) do
     case User.create(params["user"]) do
       {:ok, user} ->
-        audit_log(conn, "Created user", user: user.email, name: user.name)
+        audit_log(conn, "Created user")
+        audit_log_for_user(conn, user, "User created")
 
         conn
         |> put_flash(:info, "User created")
@@ -51,7 +52,8 @@ defmodule AirWeb.Admin.UserController do
   def update(conn, params) do
     verify_last_admin_deleted(User.update(conn.assigns.user, params["user"]), conn, fn
       {:ok, user} ->
-        audit_log(conn, "Altered user", user: user.email, name: user.name)
+        audit_log(conn, "Altered user")
+        audit_log_for_user(conn, user, "User altered")
 
         conn
         |> put_flash(:info, "User updated")
@@ -65,13 +67,15 @@ defmodule AirWeb.Admin.UserController do
   def delete(conn, _params) do
     user = conn.assigns.user
 
-    verify_last_admin_deleted(User.delete(user), conn, fn {:ok, _} ->
-      audit_log(conn, "Removed user", user: user.email, name: user.name)
+    audit_log(conn, "User removal scheduled")
+    audit_log_for_user(conn, user, "User scheduled for removal")
+    success_callback = fn -> audit_log(conn, "User removal succeeded") end
+    failure_callback = fn reason -> audit_log(conn, "User removal failed", %{reason: reason}) end
+    User.delete_async(user, success_callback, failure_callback)
 
-      conn
-      |> put_flash(:info, "User deleted")
-      |> redirect(to: admin_user_path(conn, :index))
-    end)
+    conn
+    |> put_flash(:info, "User deletion will be performed in the background")
+    |> redirect(to: admin_user_path(conn, :index))
   end
 
   # -------------------------------------------------------------------

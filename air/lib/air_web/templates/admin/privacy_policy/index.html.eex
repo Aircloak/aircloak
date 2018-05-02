@@ -1,0 +1,38 @@
+<h2>Privacy policy</h2>
+
+<%= link "Create new revision", to: admin_privacy_policy_path(@conn, :new), class: "btn btn-primary pull-right" %>
+
+<h3>Revisions</h3>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Revision</th>
+      <th>Time of creation</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <%= for privacy_policy <- @privacy_policies do %>
+    <tr>
+      <td>
+        <%= privacy_policy.id %>
+      </td>
+      <td>
+        <%= format_datetime(privacy_policy.inserted_at) %>
+      </td>
+      <td>
+        <%= link "View revision", to: admin_privacy_policy_path(@conn, :show, privacy_policy.id) %>
+      </td>
+    </tr>
+    <% end %>
+  </tbody>
+</table>
+
+<h3>Current privacy policy</h3>
+
+<hr />
+
+<div id="privacy-policy">
+  <%= raw(AirWeb.PrivacyPolicyView.content_as_html(@current_privacy_policy)) %>
+</div>

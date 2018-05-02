@@ -1,7 +1,7 @@
 defmodule AirWeb.Onboarding.UserController do
   @moduledoc false
   use Air.Web, :controller
-  alias Air.Service.User
+  alias Air.Service.{AuditLog, User}
 
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
@@ -32,7 +32,7 @@ defmodule AirWeb.Onboarding.UserController do
   def create(conn, params) do
     case User.create_onboarding_admin_user(params) do
       {:ok, user} ->
-        audit_log(conn, "Created onboarding admin user", user: user.email, name: user.name)
+        AuditLog.log(user, "Created onboarding admin user")
         login(conn, params["user"])
 
       {:error, changeset} ->

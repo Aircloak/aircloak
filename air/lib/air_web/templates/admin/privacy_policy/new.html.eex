@@ -1,0 +1,142 @@
+<ol class="breadcrumb">
+  <li><%= link "Privacy policy", to: admin_privacy_policy_path(@conn, :index) %></li>
+  <li class="active">
+    <%= if first_privacy_policy?(@privacy_policy) do %>
+      Initial privacy policy
+    <% else %>
+      New revision
+    <% end %>
+  </li>
+</ol>
+
+<%= if first_privacy_policy?(@privacy_policy) do %>
+  <h2>Set your privacy policy</h2>
+<% else %>
+  <h2>Alter your privacy policy</h2>
+<% end %>
+
+<%= if first_privacy_policy?(@privacy_policy) do %>
+  <div class="panel panel-info">
+    <div class="panel-heading">
+      <h1 class="panel-title">Creating a privacy policy</h1>
+    </div>
+    <div class="panel-body">
+      <p>
+        <strong>
+          Aircloak Insights requires that you define a privacy policy.
+        </strong>
+        The policy should describe the rights of the analysts using Aircloak Insights.
+        In particular it needs to declare what data is kept about them and whom they
+        should contact in case they have questions.
+      </p>
+
+      <p>
+        <strong>
+          You might want to consult your oganisation's Data Protection Officer.
+        </strong>
+      </p>
+
+      <p>
+        The sample policy describes the data that is collected by Aircloak Insights
+        and can likely be used with only minor modifications.
+      </p>
+
+      <p>
+        The following needs to be ammended:
+      </p>
+
+      <ol>
+        <li>
+          You should provide the identity and contact information of the Data Controller
+          and if applicable the Data Controller's representative
+        </li>
+        <li>You should provide the contact details of your organisation's Data Protection Officer (DPO)</li>
+        <li>
+          The policy contains a section describing the audit logging performed using
+          Aircloak Insights default settings. You should change the policy if you alter these settings
+        </li>
+      </ol>
+
+      <p>
+        Please contact support on <a href="mailto:compliance@aircloak.com">compliance@aircloak.com</a> if
+        you have questions about the content of this policy.
+      </p>
+    </div>
+  </div>
+<% end %>
+
+<div class="panel panel-danger">
+  <div class="panel-heading">
+    <h1 class="panel-title">Notice</h1>
+  </div>
+  <div class="panel-body">
+    <p>
+      <strong>
+        The content of the privacy policy does not affect the behaviour of Aircloak Insights.
+      </strong>
+    </p>
+
+    <p>
+      If you remove a section describing the collection and processing practises that are part of the system,
+      please ensure you have added an alternate section that describes it adequately for you to remain in
+      compliance with the legislation in all applicable jurisdictions.
+    </p>
+  </div>
+</div>
+
+<div class="panel panel-default">
+  <div class="panel-heading"></div>
+  <div class="panel-body">
+    <p>
+      The content of your privacy policy can be written in
+      <a href="https://guides.github.com/features/mastering-markdown/">markdown</a>.
+      This allows you to provide some structure and use formatting in your privacy policy.
+    </p>
+
+    <p>
+      For a quick guide to the markdown language, have a look at the following guide:
+      <a href="https://guides.github.com/features/mastering-markdown/">Mastering Markdown</a>.
+    </p>
+  </div>
+</div>
+
+<%= form_tag admin_privacy_policy_path(@conn, :create), method: "post" do %>
+
+  <div class="form-group">
+    <label class="control-label" for="content">Privacy policy content</label>
+    <div class="privacy-policy-editor">
+      <textarea class="form-control" name="content" id="contentEditor">
+        <%= text_content(@privacy_policy) %>
+      </textarea>
+    </div>
+    <textarea class="hidden" name="content" id="content"><%= text_content(@privacy_policy) %></textarea>
+  </div>
+
+  <%= unless first_privacy_policy?(@privacy_policy) do %>
+    <div class="form-group">
+      <label class="control-label" for="content">Describe changes</label>
+      <div class="privacy-policy-editor">
+        <textarea class="form-control" name="changes" id="changesEditor"></textarea>
+      </div>
+      <textarea class="hidden" name="changes" id="changes"></textarea>
+    </div>
+  <% end %>
+
+  <div class='form-group'>
+    <button class='btn btn-primary'>Save privacy policy</button>
+  </div>
+
+<% end %>
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      var contentEditor = document.getElementById("contentEditor");
+      var contentTarget = document.getElementById("content");
+      var changesEditor = document.getElementById("changesEditor");
+      var changesTarget = document.getElementById("changes");
+      App.attachCodeMirrorToTextArea(contentEditor, contentTarget);
+      App.attachCodeMirrorToTextArea(changesEditor, changesTarget);
+    }
+  };
+</script>

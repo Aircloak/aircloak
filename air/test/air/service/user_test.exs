@@ -2,7 +2,8 @@ defmodule Air.Service.UserTest do
   # because of shared mode
   use Air.SchemaCase, async: false
 
-  alias Air.{Service.User, TestRepoHelper}
+  alias Air.TestRepoHelper
+  alias Air.Service.User
 
   describe "user operations" do
     test "required fields",
@@ -61,13 +62,6 @@ defmodule Air.Service.UserTest do
       assert [group1.id, group2.id] == Enum.map(user.groups, & &1.id) |> Enum.sort()
     end
 
-    test "deleting a user, doesn't delete the group" do
-      group = TestRepoHelper.create_group!()
-      user = TestRepoHelper.create_user!(%{groups: [group.id]})
-      User.delete!(user)
-      refute nil == User.load_group(group.id)
-    end
-
     test "replacing a group for a user, removes the old relationship" do
       group1 = TestRepoHelper.create_group!()
       group2 = TestRepoHelper.create_group!()
@@ -76,8 +70,17 @@ defmodule Air.Service.UserTest do
       user = User.load(user.id)
       assert [group2.id] == Enum.map(user.groups, & &1.id)
     end
+  end
 
-    test "deleting a user deletes all their queries" do
+  describe "deleting a user" do
+    test "doesn't delete the group" do
+      group = TestRepoHelper.create_group!()
+      user = TestRepoHelper.create_user!(%{groups: [group.id]})
+      User.delete!(user)
+      refute nil == User.load_group(group.id)
+    end
+
+    test "deletes all their queries" do
       user = TestRepoHelper.create_user!()
 
       query =
@@ -93,13 +96,31 @@ defmodule Air.Service.UserTest do
       assert is_nil(Repo.get(Air.Schemas.Query, query.id))
     end
 
-    test "deleting a user deletes their views" do
+    test "deletes their views" do
       user = TestRepoHelper.create_user!()
       view = TestRepoHelper.create_view!(user, TestRepoHelper.create_data_source!())
 
       User.delete!(user)
 
       assert is_nil(Repo.get(Air.Schemas.View, view.id))
+    end
+
+    test "deletes their api_tokens" do
+      user = TestRepoHelper.create_user!()
+      token = TestRepoHelper.create_token!(user)
+
+      User.delete!(user)
+
+      assert is_nil(Repo.get(Air.Schemas.ApiToken, token.id))
+    end
+
+    test "deletes their audit logs" do
+      user = TestRepoHelper.create_user!()
+      :ok = Air.Service.AuditLog.log(user, "user delete test event", %{some: "metadata"})
+
+      User.delete!(user)
+
+      assert is_nil(Repo.get_by(Air.Schemas.AuditLog, event: "user delete test event"))
     end
   end
 
@@ -186,6 +207,78 @@ defmodule Air.Service.UserTest do
       User.toggle_debug_mode(user)
       loaded_user = User.load(user.id)
       refute loaded_user.debug_mode_enabled == user.debug_mode_enabled
+    end
+  end
+
+  describe "accept_privacy_policy" do
+    test "the user record should contain the privacy policy id" do
+      privacy_policy = TestRepoHelper.create_privacy_policy!()
+      user = TestRepoHelper.create_user_without_privacy_policy!() |> User.accept_privacy_policy!(privacy_policy)
+      reloaded_user = User.load(user.id) |> Repo.preload(:accepted_privacy_policy)
+
+      assert user.accepted_privacy_policy_id == privacy_policy.id
+      assert user.accepted_privacy_policy_id == reloaded_user.accepted_privacy_policy_id
+    end
+  end
+
+  describe "reject_privacy_policy" do
+    test "the user record should not contain any privacy policy id" do
+      user = TestRepoHelper.create_user!()
+      user_with_rejected_policy = User.reject_privacy_policy!(user)
+      reloaded_user_with_rejected_policy = User.load(user.id)
+
+      refute is_nil(user.accepted_privacy_policy_id)
+      assert is_nil(user_with_rejected_policy.accepted_privacy_policy_id)
+      assert is_nil(reloaded_user_with_rejected_policy.accepted_privacy_policy_id)
+    end
+  end
+
+  describe "privacy_policy_status" do
+    test "error when no policy exists" do
+      TestRepoHelper.delete_all_privacy_policies!()
+      user = TestRepoHelper.create_user_without_privacy_policy!()
+      assert {:error, :no_privacy_policy_created} == User.privacy_policy_status(user)
+    end
+
+    test "ok when has accepted latest policy" do
+      user = TestRepoHelper.create_user!()
+      assert :ok == User.privacy_policy_status(user)
+    end
+
+    test "error when no policy has been accepted" do
+      user = TestRepoHelper.create_user_without_privacy_policy!()
+      TestRepoHelper.create_privacy_policy!()
+      assert {:error, :requires_review} == User.privacy_policy_status(user)
+    end
+
+    test "error when the policy has changed" do
+      user = TestRepoHelper.create_user!()
+      TestRepoHelper.create_privacy_policy!()
+      assert {:error, :requires_review} == User.privacy_policy_status(user)
+    end
+  end
+
+  describe "pseudonym" do
+    # credo:disable-for-lines:2
+    test "if no user is provided, a random pseudonym is generated",
+      do: refute(User.pseudonym(nil) == User.pseudonym(nil))
+
+    test "a users pseudonym does not change over time" do
+      user_initial = TestRepoHelper.create_user!()
+      pseudonym1 = User.pseudonym(user_initial)
+
+      user_loaded = User.load(user_initial.id)
+      pseudonym2 = User.pseudonym(user_loaded)
+
+      assert pseudonym1 == pseudonym2
+    end
+
+    test "a stale user record does still get the same pseudonym" do
+      user = TestRepoHelper.create_user!()
+      pseudonym1 = User.pseudonym(user)
+      pseudonym2 = User.pseudonym(user)
+
+      assert pseudonym1 == pseudonym2
     end
   end
 

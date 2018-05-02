@@ -125,6 +125,22 @@ defmodule Cloak.Sql.Compiler.Test do
           compile("select * from table where column = 1000 - 100", data_source())
       )
 
+  test "[Issue #2562] doesn't cast expressions that are already datetime" do
+    result = compile!("select * from table where column = cast('2017-01-01' as datetime)", data_source())
+
+    assert [_is_not_null_id, {:comparison, column("table", "column"), :=, value}] = conditions_list(result.where)
+    assert value == Expression.constant(:datetime, ~N[2017-01-01 00:00:00.000000])
+  end
+
+  test "[Issue #2562] doesn't cast expressions that are already datetime in IN" do
+    result =
+      compile!("select * from table where column IN (cast('2017-01-01' as datetime), '2017-02-02')", data_source())
+
+    assert [_is_not_null_id, {:in, column("table", "column"), [value1, value2]}] = conditions_list(result.where)
+    assert value1 == Expression.constant(:datetime, ~N[2017-01-01 00:00:00.000000])
+    assert value2 == Expression.constant(:datetime, ~N[2017-02-02 00:00:00.000000])
+  end
+
   test "allows comparing datetime columns to other datetime columns" do
     assert {:ok, _} = compile("select * from table where column = column", data_source())
   end
@@ -791,6 +807,21 @@ defmodule Cloak.Sql.Compiler.Test do
     assert {:ok, _} = compile("select * from table where numeric > 5 and numeric < 8", data_source())
   end
 
+  test "rejects inequalities without a constant side" do
+    assert {:error, error} =
+             compile("select count(*) from table where numeric > numeric and numeric < 10", data_source())
+
+    assert error =~ ~r/One side of an inequality must be a constant./
+  end
+
+  test "accepts inequalities without a constant side in top-level HAVING" do
+    assert {:ok, _} =
+             compile(
+               "select count(*) from table group by numeric having numeric > numeric and numeric < 10",
+               data_source()
+             )
+  end
+
   test "fixes alignment of ranges" do
     assert compile!("select * from table where numeric > 1 and numeric < 9", data_source()).where ==
              compile!("select * from table where numeric > 0 and numeric < 10", data_source()).where
@@ -1141,6 +1172,23 @@ defmodule Cloak.Sql.Compiler.Test do
   test "compilation of row splitters" do
     {:ok, query} = compile("select extract_words(string) from table", data_source())
     assert Enum.any?(query.db_columns, &match?(%Expression{name: "string"}, &1))
+  end
+
+  test "grouping on a row splitter" do
+    assert {:ok, _} =
+             compile("select count(*), extract_words(string) from table group by extract_words(string)", data_source())
+  end
+
+  test "row splitter needs to be grouped in aggregated query" do
+    assert {:error, error} = compile("select count(*), extract_words(string) from table group by string", data_source())
+    assert error =~ ~r/Column `extract_words` needs to appear in the `GROUP BY` clause/
+  end
+
+  test "row splitter in HAVING needs to be grouped in aggregated query" do
+    assert {:error, error} =
+             compile("select count(*) from table group by string having extract_words(string) = 'word'", data_source())
+
+    assert error =~ ~r/`HAVING` clause can not be applied over column `extract_words`/
   end
 
   test "rejecting non-aggregated non-selected ORDER BY column in an aggregated function" do

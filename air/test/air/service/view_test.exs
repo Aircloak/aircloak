@@ -6,6 +6,7 @@ defmodule Air.Service.ViewTest do
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
+    Air.TestRepoHelper.create_privacy_policy!()
 
     g1 = TestRepoHelper.create_group!()
     g2 = TestRepoHelper.create_group!()

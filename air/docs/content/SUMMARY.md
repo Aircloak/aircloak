@@ -1,7 +1,7 @@
 # Summary
 
 ---- Don't alter the line below. Needed as is for automated version number update
-## Aircloak Insights - version 18.2.0
+## Aircloak Insights - version 18.2.3
 ---- Don't alter the line above...
 
 - [Introduction](README.md)

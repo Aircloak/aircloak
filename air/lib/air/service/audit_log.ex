@@ -8,10 +8,11 @@ defmodule Air.Service.AuditLog do
   @type email :: String.t()
   @type event_name :: String.t()
   @type data_source_id :: non_neg_integer
+  @type user_id :: non_neg_integer
   @type filter_params :: %{
           from: DateTime.t(),
           to: DateTime.t(),
-          users: [email],
+          users: [user_id],
           events: [event_name],
           data_sources: [data_source_id],
           max_results: non_neg_integer
@@ -22,13 +23,12 @@ defmodule Air.Service.AuditLog do
   # -------------------------------------------------------------------
 
   @doc "Creates an audit log entry."
-  @spec log(nil | User.t(), String.t(), %{atom => any}) :: :ok | {:error, any}
+  @spec log(User.t(), String.t(), %{atom => any}) :: :ok | {:error, any}
   def log(user, event, metadata \\ %{}) do
-    if Air.Service.Settings.read().audit_log_enabled do
-      email = if user != nil, do: user.email, else: "Unknown user"
-
-      %AuditLog{}
-      |> AuditLog.changeset(%{user: email, event: event, metadata: metadata})
+    if Air.Service.Settings.read().audit_log_enabled and Air.Service.User.privacy_policy_status(user) == :ok do
+      user
+      |> Ecto.build_assoc(:audit_logs)
+      |> AuditLog.changeset(%{event: event, metadata: metadata})
       |> Repo.insert()
       |> case do
         {:ok, _} ->
@@ -39,7 +39,7 @@ defmodule Air.Service.AuditLog do
           {:error, reason}
       end
     else
-      # Logging is disabled, so audit logging becomes a noop
+      :ok
     end
   end
 
@@ -58,6 +58,7 @@ defmodule Air.Service.AuditLog do
     |> order_by_event()
     |> limit(^params.max_results)
     |> Repo.all()
+    |> Repo.preload(:user)
   end
 
   @doc """
@@ -116,7 +117,7 @@ defmodule Air.Service.AuditLog do
   Also includes all users present in the parameters, whether or not
   the other parameters would normally exclude them.
   """
-  @spec users(filter_params) :: [%{name: String.t(), email: email}]
+  @spec users(filter_params) :: [User.t()]
   def users(params) do
     users =
       AuditLog
@@ -126,11 +127,10 @@ defmodule Air.Service.AuditLog do
       |> select_users()
       |> Repo.all()
 
-    # Include currently selected users
-    (params[:users] -- (users |> Enum.map(& &1.email)))
-    |> Air.Service.User.by_emails()
-    |> Enum.map(&%{name: &1.name, email: &1.email})
-    |> Enum.concat(users)
+    selected_users = selected_users(params)
+
+    (users ++ selected_users)
+    |> Enum.uniq()
     |> Enum.sort_by(& &1.name)
   end
 
@@ -149,7 +149,7 @@ defmodule Air.Service.AuditLog do
   defp for_user(query, []), do: query
 
   defp for_user(query, users) do
-    from(a in query, where: a.user in ^users)
+    from(a in query, where: a.user_id in ^users)
   end
 
   defp for_event(query, []), do: query
@@ -203,22 +203,21 @@ defmodule Air.Service.AuditLog do
   end
 
   defp select_users(query) do
-    user_query =
-      from(
-        user in User,
-        select: %{
-          name: user.name,
-          email: user.email
-        }
-      )
-
     from(
-      a in query,
-      inner_join: user in subquery(user_query),
-      on: a.user == user.email,
-      group_by: [user.name, user.email],
-      order_by: [asc: user.name],
+      user in User,
+      join: log in ^query,
+      on: user.id == log.user_id,
+      distinct: user.id,
       select: user
     )
+  end
+
+  defp selected_users(%{users: users}) do
+    from(
+      user in User,
+      where: user.id in ^users,
+      select: user
+    )
+    |> Repo.all()
   end
 end

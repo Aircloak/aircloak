@@ -108,21 +108,3 @@ If you want to change aspects of the deployment you can find the deployment conf
 Please note that all deployed aircloaks talk to the production central by default. That is by design.
 To exercise the stage central, you have to visit [https://air-for-central-stage.aircloak.com](https://air-for-central-stage.aircloak.com)
 which can be deployed like any other `aircloak` and relies on the deployment target `for_central_stage`.
-
-### Kibana and Elasticsearch
-
-The `central` application forwards stats to Elasticsearch. To work with Elasticsearch locally, install
-and run Elasticsearch under the regular Elasticsearch port: `9200`.
-
-Kibana is used to generate the dashboards shown in the `central` application.
-`central` proxies requests under the path `/kibana` to the Kibana installation. For this to work locally
-you need to configure your local Kibana with `server.basePath: '/kibana'`.
-
-You can start local docker containers for Elasticsearch and Kibana with `./start_dependencies.sh`. This will properly configure Kibana. However, you need to execute at least one Aircloak query (with local central running) to bring Kibana into the consistent state. Moreover, you'll need to manually create dashboards specified in `dev.json` (e.g. `Main-dash`).
-
-When generating new dashboards that should be embedded in the `central` site, you can use the following steps:
-
-- create dashboard in Kibana
-- set it up to auto-update
-- select share, and copy the src URL used in the iframe option under "Share saved dashboard"
-- use the part from (and including) `app/kibana#/dashboard` when configuring the application
