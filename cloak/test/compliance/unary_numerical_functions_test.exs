@@ -65,7 +65,6 @@ Enum.each(
 
         context
         |> disable_for(Cloak.DataSource.SQLServer, cast_float_to_text?)
-        |> disable_for(Cloak.DataSource.SQLServerTds, cast_float_to_text?)
         |> disable_for(Cloak.DataSource.SQLServerRODBC, cast_float_to_text?)
       end
     end
