@@ -1,12 +1,14 @@
 defmodule Cloak.Sql.Compiler.Anonymization do
   @moduledoc """
-    This module inspects the AST and sets the validation type for each subquery,
+    This module inspects the AST and sets the validation type for each query (top-level and subqueries),
     in order to ensure that user data is processed correctly.
 
     A subquery can have the following types:
-      - standard: an arbitrary SQL query that doesn't touch user data directly.
-      - restricted: an SQL query that selects or aggregates data per-user.
-      - anonymized: an SQL query that aggregates per-user data into anonymized data.
+      - standard: an arbitrary SQL query that processes data un-restricted.
+      Either the data is not privacy sensitive or the query is the source of the data (virtual tables).
+      - restricted: an SQL query that selects or aggregates data per-user, as input for an anonymized query, and
+      which is subject to Aircloak specific restrictions (aligned ranges, restricted math, etc.).
+      - anonymized: an SQL query that aggregates per-user, privacy sensitive data into anonymized data.
   """
 
   alias Cloak.Sql.{Compiler.Helpers, Query}
