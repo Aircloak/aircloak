@@ -9,7 +9,7 @@ please consult the [feature emulation](#emulation-overview) overview.
 Aircloak Insights ships with Insights Datasource Connectors for the following datastores:
 
 - Microsoft SQL Server, versions 2012 R2 and newer
-- MongoDB, versions 3.0 and newer
+- MongoDB, versions 3.4 and newer
 - MySQL, version 5 and newer, and MariaDB, version 10.1 and newer
 - PostgreSQL, version 9.1 and newer
 - SAP HANA (beta support), version 2.0 and newer
@@ -127,32 +127,15 @@ This section lists the functions which will cause a query to be emulated.
 
 #### MongoDB
 
-|               |   3.0    |    3.2   |  >= 3.4  |
-|--------------:|:--------:|:--------:|:--------:|
-| abs           | emulated |  &nbsp;  |  &nbsp;  |
-| avg           | emulated |  &nbsp;  |  &nbsp;  |
-| btrim         | emulated | emulated | emulated |
-| cast          | emulated | partially| partially|
-| ceil/ceiling  | emulated |  &nbsp;  |  &nbsp;  |
-| date_trunc    | emulated | emulated | emulated |
-| floor         | emulated |  &nbsp;  |  &nbsp;  |
-| hex           | emulated | emulated | emulated |
-| left          | emulated | emulated |  &nbsp;  |
-| length        | emulated | emulated |  &nbsp;  |
-| ltrim         | emulated | emulated | emulated |
-| max           | emulated |  &nbsp;  |  &nbsp;  |
-| median        | emulated | emulated | emulated |
-| min           | emulated |  &nbsp;  |  &nbsp;  |
-| pow           | emulated |  &nbsp;  |  &nbsp;  |
-| quarter       | emulated |  &nbsp;  |  &nbsp;  |
-| right         | emulated | emulated |  &nbsp;  |
-| round         | emulated |  &nbsp;  |  &nbsp;  |
-| rtrim         | emulated | emulated | emulated |
-| sqrt          | emulated |  &nbsp;  |  &nbsp;  |
-| stddev        | emulated | emulated | emulated |
-| substring     | emulated | emulated |  &nbsp;  |
-| trim          | emulated | emulated | emulated |
-| trunc         | emulated |  &nbsp;  |  &nbsp;  |
+- `btrim`
+- `cast` - in some cases
+- `date_trunc`
+- `hex`
+- `ltrim`
+- `median`
+- `rtrim`
+- `stddev`
+- `trim`
 
 __Notes__
 
@@ -241,6 +224,5 @@ table `users_siblings` containing a `siblings.name` in addition to the `name` co
 
 #### JOINs
 
-MongoDB versions more recent than 3.2 support `INNER JOIN`'s. Aircloak Insights
-will emulate all unsupported JOIN-types. Furthermore, when a collection is sharded,
-even `INNER JOIN`'s on recent versions of MongoDB have to be emulated.
+MongoDB only supports `INNER JOIN` natively. Aircloak Insights will emulate all other JOIN-types. Furthermore, when a
+collection is sharded, even `INNER JOIN` has to be emulated.
