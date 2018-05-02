@@ -262,7 +262,7 @@ defmodule Cloak.DataSource.MongoDB do
 
   defp supported_functions(version) do
     if Version.compare(version, "3.4.0") == :lt do
-      DataSource.raise_error("Unsupported MongoDB version: #{version}. At least 3.0 required.")
+      DataSource.raise_error("Unsupported MongoDB version: #{version}. At least 3.4 required.")
     else
       @supported_functions
     end
