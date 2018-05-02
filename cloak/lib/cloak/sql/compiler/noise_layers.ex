@@ -17,8 +17,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   needed to compute those noise layers to the top level.
   """
   @spec compile(Query.t()) :: Query.t()
-  def compile(query = %{command: :show}), do: query
-
   def compile(query = %{command: :select, type: :anonymized}) do
     top_level_uid = Helpers.id_column(query)
 
@@ -33,6 +31,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   def compile(query = %{command: :select, type: :standard}),
     do: Lens.map(Query.Lenses.direct_subqueries() |> Lens.key(:ast), query, &compile/1)
+
+  def compile(query), do: query
 
   @doc "Returns the columns required to compute the noise layers for the specified query."
   @spec noise_layer_columns(Query.t()) :: [Expression.t()]

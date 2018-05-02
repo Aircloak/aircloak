@@ -16,13 +16,12 @@ defmodule Cloak.Query.DbEmulator do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Prepares the query for execution."
-  @spec compile(Query.t()) :: Query.t()
-  def compile(query), do: Compiler.Helpers.apply_top_down(query, &compile_emulated_joins/1)
-
   @doc "Retrieves rows according to the specification in the emulated query."
   @spec select(Query.t()) :: Enumerable.t()
-  def select(query), do: select_rows({:subquery, %{ast: query}})
+  def select(query) do
+    query = query |> Query.resolve_db_columns() |> Compiler.Helpers.apply_top_down(&compile_emulated_joins/1)
+    select_rows({:subquery, %{ast: query}})
+  end
 
   # -------------------------------------------------------------------
   # Selection of rows from subparts of an emulated query

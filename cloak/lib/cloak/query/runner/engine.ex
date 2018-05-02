@@ -30,13 +30,12 @@ defmodule Cloak.Query.Runner.Engine do
         feature_updater,
         {query_killer_reg, query_killer_unreg}
       ) do
-    {compiled_query, features} =
+    {query, features} =
       statement
       |> parse!(state_updater)
       |> compile!(data_source, parameters, views, state_updater)
 
     feature_updater.(features)
-    query = prepare_for_execution(compiled_query)
     state_updater.(:awaiting_data)
     query_killer_reg.()
     result = run_statement(query, features, state_updater)
@@ -63,13 +62,6 @@ defmodule Cloak.Query.Runner.Engine do
     state_updater.(:compiling)
     Sql.Compiler.compile!(parsed_query, data_source, parameters, views)
   end
-
-  defp prepare_for_execution(compiled_query),
-    do:
-      compiled_query
-      |> Sql.Compiler.NoiseLayers.compile()
-      |> Sql.Query.resolve_db_columns()
-      |> Query.DbEmulator.compile()
 
   defp run_statement(%Sql.Query{command: :show, show: :tables} = query, features, _state_updater),
     do:

@@ -48,6 +48,7 @@ defmodule Cloak.Sql.Compiler do
       |> Compiler.Execution.prepare()
       |> Compiler.Normalization.normalize()
       |> Query.set_emulation_flag()
+      |> Compiler.NoiseLayers.compile()
 
     {final_query, %{features | emulated: final_query.emulated?}}
   end
