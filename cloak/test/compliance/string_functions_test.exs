@@ -40,7 +40,6 @@ Enum.each(
         test "#{function} on input #{column} in a sub-query on #{table}", context do
           context
           |> disable_for(Cloak.DataSource.SQLServer, match?("hex" <> _, unquote(function)))
-          |> disable_for(Cloak.DataSource.SQLServerTds, match?("hex" <> _, unquote(function)))
           |> disable_for(Cloak.DataSource.SQLServerRODBC, match?("hex" <> _, unquote(function)))
           |> disable_unicode(unquote(function), unquote(column))
           |> disallowed_in_subqueries("extract_words", unquote(function))
@@ -78,7 +77,6 @@ Enum.each(
             [
               Cloak.DataSource.MongoDB,
               Cloak.DataSource.SQLServer,
-              Cloak.DataSource.SQLServerTds,
               Cloak.DataSource.SQLServerRODBC
             ],
             context,
