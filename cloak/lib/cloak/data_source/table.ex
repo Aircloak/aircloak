@@ -81,12 +81,11 @@ defmodule Cloak.DataSource.Table do
     # we need to create a virtual data source containing the real database tables referenced by those queries
     virtual_tables =
       tables
-      |> Enum.flat_map(&get_virtual_table_db_names/1)
-      |> Enum.uniq()
-      |> Enum.reduce(%{}, fn table, acc ->
-        if String.to_atom(table) in Map.keys(acc),
+      |> Enum.flat_map(&get_db_tables_for_virtual_query/1)
+      |> Enum.reduce(%{}, fn {table_id, table}, acc ->
+        if String.to_atom(table_id) in Map.keys(acc),
           do: acc,
-          else: data_source |> load_tables(connection, {table, %{}}) |> Enum.into(acc)
+          else: data_source |> load_tables(connection, {table_id, table}) |> Enum.into(acc)
       end)
 
     virtual_data_source = %{data_source | tables: virtual_tables}
@@ -106,14 +105,14 @@ defmodule Cloak.DataSource.Table do
 
   defp parse_virtual_table(table), do: table
 
-  defp get_virtual_table_db_names({_, %{query: parsed_query}}) when parsed_query != nil,
+  defp get_db_tables_for_virtual_query({_, %{query: parsed_query} = table}) when parsed_query != nil,
     do:
       Lenses.all_queries()
       |> Lenses.ast_tables()
       |> Lens.to_list(parsed_query)
-      |> Enum.map(&ast_table_name/1)
+      |> Enum.map(&{ast_table_name(&1), Map.take(table, [:sample_rate])})
 
-  defp get_virtual_table_db_names(_), do: []
+  defp get_db_tables_for_virtual_query(_), do: []
 
   defp ast_table_name({_, name}), do: name
   defp ast_table_name({table, :as, _alias}), do: ast_table_name(table)

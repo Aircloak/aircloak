@@ -93,7 +93,7 @@ defmodule Aircloak.DeployConfig do
   defp config_file_name(app) do
     cond do
       (config = System.get_env("DEPLOY_CONFIG")) != nil -> "#{config}.json"
-      System.get_env("PERFORMANCE_TEST") == "true" -> "performance_tests.json"
+      System.get_env("PERFORMANCE_TEST") == "true" -> "perf.json"
       true -> Application.fetch_env!(app, :deploy_config_file)
     end
   end
