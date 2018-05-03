@@ -15,6 +15,8 @@ defmodule Cloak.Sql.Compiler.Validation do
   def verify_query(%Query{command: :show} = query), do: query
 
   def verify_query(%Query{command: :select} = query) do
+    verify_user_id_usage_in_subqueries(query)
+    Helpers.each_subquery(query, &verify_function_usage/1)
     Helpers.each_subquery(query, &verify_duplicate_tables/1)
     Helpers.each_subquery(query, &verify_aggregated_columns/1)
     Helpers.each_subquery(query, &verify_aggregators/1)
@@ -29,14 +31,6 @@ defmodule Cloak.Sql.Compiler.Validation do
     Helpers.each_subquery(query, &verify_inequalities/1)
     Helpers.each_subquery(query, &verify_in/1)
     query
-  end
-
-  @doc "Checks that a function specification is valid."
-  @spec verify_function(Parser.function_spec(), boolean, boolean) :: Parser.function_spec()
-  def verify_function(function, subquery?, virtual_table?) do
-    verify_function_exists(function, virtual_table?)
-    verify_function_usage(function, subquery?)
-    function
   end
 
   # -------------------------------------------------------------------
@@ -60,52 +54,49 @@ defmodule Cloak.Sql.Compiler.Validation do
   # Columns and expressions
   # -------------------------------------------------------------------
 
-  defp verify_function_exists(function = {:function, name, _, location}, virtual_table?) do
-    unless Function.exists?(function) and (virtual_table? or not Function.internal?(function)) do
-      case Function.deprecation_info(function) do
-        {:error, error} when error in [:not_found, :internal_function] ->
-          raise CompilationError,
-            source_location: location,
-            message: "Unknown function `#{Function.readable_name(name)}`."
-
-        {:ok, %{alternative: alternative}} ->
-          raise CompilationError,
-            source_location: location,
-            message:
-              "Function `#{Function.readable_name(name)}` has been deprecated. " <>
-                "Depending on your use case, consider using `#{Function.readable_name(alternative)}` instead."
-      end
-    end
+  defp verify_function_usage(query) do
+    Lenses.query_expressions()
+    |> Lens.filter(& &1.function?)
+    |> Lens.to_list(query)
+    |> Enum.map(&verify_function_usage(&1, query.type))
   end
 
-  defp verify_function_usage({:function, name, [arg], location}, _subquery? = false)
+  defp verify_function_usage(%Expression{function: name, function_args: [arg]} = expression, _query_type = :anonymized)
        when name in ["min", "max", "median"] do
     if Function.type(arg) == :text,
       do:
         raise(
           CompilationError,
-          source_location: location,
-          message: "Function `#{name}` is allowed over arguments of type `text` only in subqueries."
+          source_location: expression.source_location,
+          message: "Aggregator `#{name}` is not allowed over arguments of type `text` in anonymized subqueries."
         )
 
     :ok
   end
 
-  defp verify_function_usage({:function, name, args, location}, subquery?) do
+  defp verify_function_usage(%Expression{function: name, function_args: args} = expression, query_type) do
     if not Function.aggregator?(name) and match?([{:distinct, _}], args),
       do:
         raise(
           CompilationError,
-          source_location: location,
+          source_location: expression.source_location,
           message: "`DISTINCT` specified in non-aggregating function `#{Function.readable_name(name)}`."
         )
 
-    if subquery? and Function.has_attribute?(name, :not_in_subquery),
+    if Function.has_attribute?(name, {:not_in, query_type}),
       do:
         raise(
           CompilationError,
-          source_location: location,
-          message: "Function `#{Function.readable_name(name)}` is not allowed in subqueries."
+          source_location: expression.source_location,
+          message: "Function `#{Function.readable_name(name)}` is not allowed in `#{query_type}` subqueries."
+        )
+
+    if Function.internal?(name),
+      do:
+        raise(
+          CompilationError,
+          source_location: expression.source_location,
+          message: "Function `#{Function.readable_name(name)}` can only be used internally."
         )
 
     :ok
@@ -227,8 +218,8 @@ defmodule Cloak.Sql.Compiler.Validation do
     verify_join_types(query)
     verify_join_conditions_scope(query.from, [])
 
-    # user id checks have no meaning for queries representing a virtual table, as those can be arbitrary SQL statements
-    unless query.virtual_table? do
+    # User id checks have no meaning for `standard` queries, as those can be arbitrary SQL statements.
+    if query.type != :standard do
       verify_all_joined_subqueries_have_explicit_uids(query)
       verify_all_uid_columns_are_compared_in_joins(query)
     end
@@ -441,11 +432,11 @@ defmodule Cloak.Sql.Compiler.Validation do
         message: "Using the `OFFSET` clause requires the `ORDER BY` clause to be specified."
       )
 
-  defp verify_offset(%Query{offset: offset, limit: nil, subquery?: true}) when offset > 0,
+  defp verify_offset(%Query{offset: offset, limit: nil, type: :restricted}) when offset > 0,
     do:
       raise(
         CompilationError,
-        message: "Subquery has an `OFFSET` clause without a `LIMIT` clause."
+        message: "`OFFSET` clause requires a `LIMIT` clause in `restricted` subqueries."
       )
 
   defp verify_offset(_query), do: :ok
@@ -493,6 +484,27 @@ defmodule Cloak.Sql.Compiler.Validation do
       end
     end)
   end
+
+  # -------------------------------------------------------------------
+  # UserId usage in subqueries
+  # -------------------------------------------------------------------
+
+  defp verify_user_id_usage_in_subqueries(query),
+    do:
+      Lens.each(
+        Lenses.direct_subqueries(),
+        query,
+        &verify_user_id_usage_in_subquery(&1.ast, &1.alias)
+      )
+
+  defp verify_user_id_usage_in_subquery(subquery, alias) do
+    unless valid_user_id?(subquery), do: raise(CompilationError, Helpers.missing_uid_error_message(subquery, alias))
+
+    verify_user_id_usage_in_subqueries(subquery)
+  end
+
+  defp valid_user_id?(%Query{type: :restricted} = query), do: Helpers.uid_column_selected?(query)
+  defp valid_user_id?(_query), do: true
 
   # -------------------------------------------------------------------
   # Helpers

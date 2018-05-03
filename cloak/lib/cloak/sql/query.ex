@@ -31,6 +31,8 @@ defmodule Cloak.Sql.Query do
 
   @type parameter :: %{value: DataSource.field(), type: DataSource.Table.data_type()}
 
+  @type type :: :standard | :restricted | :anonymized
+
   @type t :: %__MODULE__{
           data_source: DataSource.t(),
           command: :select | :show,
@@ -73,7 +75,7 @@ defmodule Cloak.Sql.Query do
           noise_layers: [NoiseLayer.t()],
           view?: boolean,
           table_aliases: %{String.t() => DataSource.Table.t()},
-          virtual_table?: boolean
+          type: type
         }
 
   @type features :: %{
@@ -88,8 +90,7 @@ defmodule Cloak.Sql.Query do
           selected_types: [String.t()],
           parameter_types: [String.t()],
           driver: String.t(),
-          driver_dialect: String.t(),
-          emulated: boolean
+          driver_dialect: String.t()
         }
 
   defstruct columns: [],
@@ -120,7 +121,7 @@ defmodule Cloak.Sql.Query do
             noise_layers: [],
             view?: false,
             table_aliases: %{},
-            virtual_table?: false
+            type: :restricted
 
   # -------------------------------------------------------------------
   # API functions
@@ -137,8 +138,8 @@ defmodule Cloak.Sql.Query do
   def describe_query(data_source, statement, parameters, views),
     do:
       with(
-        {:ok, query, features} <- make_query(data_source, statement, parameters, views),
-        do: {:ok, query.column_titles, features}
+        {:ok, query} <- make_query(data_source, statement, parameters, views),
+        do: {:ok, query.column_titles, features(query)}
       )
 
   @doc "Validates a user-defined view."
@@ -148,7 +149,7 @@ defmodule Cloak.Sql.Query do
   def validate_view(data_source, name, sql, views) do
     with :ok <- view_name_ok?(data_source, name),
          {:ok, parsed_query} <- Parser.parse(sql),
-         {:ok, compiled_query, _features} <- Compiler.validate_view(data_source, parsed_query, views) do
+         {:ok, compiled_query} <- Compiler.validate_view(data_source, parsed_query, views) do
       {:ok,
        Enum.zip(compiled_query.column_titles, compiled_query.columns)
        |> Enum.map(fn {name, column} ->
@@ -336,7 +337,7 @@ defmodule Cloak.Sql.Query do
 
   defp make_query(data_source, query_string, parameters, views) do
     with {:ok, parsed_query} <- Parser.parse(query_string) do
-      Compiler.compile(data_source, parsed_query, parameters, views)
+      Compiler.compile(parsed_query, data_source, parameters, views)
     end
   end
 
@@ -356,16 +357,17 @@ defmodule Cloak.Sql.Query do
 
   defp include_required_expressions(query), do: Enum.reduce(required_expressions(query), query, &add_db_column(&2, &1))
 
-  defp required_expressions(%__MODULE__{command: :select, subquery?: true, emulated?: false} = query) do
-    # non-emulated subquery -> the selected columns are all selected expressions
+  defp required_expressions(%__MODULE__{command: :select, emulated?: false, type: type} = query)
+       when type != :anonymized do
+    # non-emulated, non-anonymized subquery -> the selected columns are all selected expressions
     query.column_titles
     |> Enum.zip(query.columns)
     |> Enum.map(fn {column_alias, column} -> %Expression{column | alias: column_alias} end)
   end
 
   defp required_expressions(%__MODULE__{command: :select} = query) do
-    # top-level query or emulated subquery -> we're only fetching columns, while other expressions (e.g. function calls)
-    # will be resolved in the post-processing phase
+    # anonymized query or emulated subquery -> we're only fetching columns,
+    # while other expressions (e.g. function calls) will be resolved in the post-processing phase
     used_columns =
       query
       |> needed_columns()
@@ -393,11 +395,29 @@ defmodule Cloak.Sql.Query do
   # Emulation
   # -------------------------------------------------------------------
 
-  defp needs_emulation?(query),
-    do:
-      not query.data_source.driver.supports_query?(query) or
-        query |> get_in([Lenses.direct_subqueries()]) |> Enum.any?(& &1.ast.emulated?) or
-        (query.subquery? and has_emulated_expressions?(query)) or has_emulated_join_conditions?(query)
+  defp needs_emulation?(query) do
+    cond do
+      not query.data_source.driver.supports_query?(query) ->
+        true
+
+      has_emulated_or_anonymized_subqueries?(query) ->
+        true
+
+      is_emulated_subquery?(query) ->
+        true
+
+      has_emulated_join_conditions?(query) ->
+        true
+
+      true ->
+        false
+    end
+  end
+
+  defp has_emulated_or_anonymized_subqueries?(query),
+    do: query |> get_in([Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated? or &1.ast.type == :anonymized))
+
+  defp is_emulated_subquery?(query), do: query.subquery? and has_emulated_expressions?(query)
 
   defp emulated_condition?(condition, query) do
     emulated_expression_condition?(condition, query.data_source) or

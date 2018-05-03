@@ -201,9 +201,15 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   defp normalize_order_by(query) do
     case {query.order_by, remove_constant_ordering(query.order_by)} do
-      {[], _} -> query
-      {_, []} -> %{query | order_by: [{Helpers.id_column(query), :asc, :nulls_last}]}
-      {_, order_list} -> %{query | order_by: order_list}
+      {[], _} ->
+        query
+
+      {_, []} ->
+        # We can't completely remove the `ORDER BY` clause here, because `LIMIT` and/or `OFFSET` might require it.
+        %{query | order_by: [{Helpers.id_column(query), :asc, :nulls_last}]}
+
+      {_, order_list} ->
+        %{query | order_by: order_list}
     end
   end
 

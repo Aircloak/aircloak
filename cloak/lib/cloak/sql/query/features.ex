@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Query.Features do
   @moduledoc false
 
-  alias Cloak.Sql.{Function, Expression, Query}
+  alias Cloak.Sql.{Function, Expression, Query, Condition}
 
   # -------------------------------------------------------------------
   # API functions
@@ -20,8 +20,7 @@ defmodule Cloak.Sql.Query.Features do
       selected_types: selected_types(query.columns),
       parameter_types: Enum.map(Query.parameter_types(query), &stringify/1),
       driver: to_string(query.data_source.driver),
-      driver_dialect: sql_dialect_name(query.data_source),
-      emulated: false
+      driver_dialect: sql_dialect_name(query.data_source)
     }
 
   # -------------------------------------------------------------------
@@ -51,8 +50,12 @@ defmodule Cloak.Sql.Query.Features do
   defp extract_functions(query),
     do:
       query
-      |> get_in([Query.Lenses.all_queries() |> Query.Lenses.terminals()])
-      |> Enum.filter(&match?(%Expression{function?: true}, &1))
+      |> get_in([
+        Query.Lenses.all_queries()
+        |> Query.Lenses.analyst_provided_expressions()
+        |> Query.Lenses.all_expressions()
+        |> Lens.filter(& &1.function?)
+      ])
       |> Enum.map(&Function.readable_name(&1.function))
       |> Enum.uniq()
 
@@ -90,6 +93,7 @@ defmodule Cloak.Sql.Query.Features do
   defp extract_where_conditions(clause),
     do:
       Query.Lenses.conditions()
+      |> Lens.reject(&Condition.subject(&1).synthetic?)
       |> Lens.to_list(clause)
       |> Enum.map(&extract_where_condition/1)
       |> Enum.uniq()

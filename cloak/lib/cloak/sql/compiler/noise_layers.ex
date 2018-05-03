@@ -17,9 +17,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   needed to compute those noise layers to the top level.
   """
   @spec compile(Query.t()) :: Query.t()
-  def compile(query = %{command: :show}), do: query
-
-  def compile(query) do
+  def compile(query = %{command: :select, type: :anonymized}) do
     top_level_uid = Helpers.id_column(query)
 
     query
@@ -31,6 +29,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> add_generic_uid_layer_if_needed(top_level_uid)
   end
 
+  def compile(query = %{command: :select, type: :standard}),
+    do: Lens.map(Query.Lenses.direct_subqueries() |> Lens.key(:ast), query, &compile/1)
+
+  def compile(query), do: query
+
   @doc "Returns the columns required to compute the noise layers for the specified query."
   @spec noise_layer_columns(Query.t()) :: [Expression.t()]
   def noise_layer_columns(%{noise_layers: noise_layers}),
@@ -38,6 +41,22 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       non_uid_expressions()
       |> Lens.to_list(noise_layers)
       |> Enum.uniq_by(&Expression.unalias/1)
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  def compile_anonymized_query(query) do
+    top_level_uid = Helpers.id_column(query)
+
+    query
+    |> Helpers.apply_bottom_up(&calculate_base_noise_layers(&1, top_level_uid))
+    |> Helpers.apply_top_down(&push_down_noise_layers/1)
+    |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
+    |> Helpers.apply_top_down(&normalize_datasource_case/1)
+    |> remove_meaningless_negative_noise_layers()
+    |> add_generic_uid_layer_if_needed(top_level_uid)
+  end
 
   # -------------------------------------------------------------------
   # Pushing layers into subqueries
@@ -65,7 +84,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       Query.Lenses.direct_subqueries()
       |> Lens.filter(&(&1.alias == table))
       |> Lens.key(:ast)
-      |> Lens.reject(& &1.virtual_table?)
+      |> Lens.reject(&(&1.type == :standard))
 
   defp push_noise_layer(query, %NoiseLayer{
          base: {_table, column, extras},
@@ -95,7 +114,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp add_floated_noise_layers(query) do
     noise_layers =
-      if query.subquery? && Helpers.aggregate?(query),
+      if query.type == :restricted && Helpers.aggregate?(query),
         do: float_noise_layers(query.noise_layers ++ floated_noise_layers(query), query),
         else: query.noise_layers ++ floated_noise_layers(query)
 
@@ -104,7 +123,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp float_noise_layers(layers, query), do: Enum.map(layers, &float_noise_layer(&1, query))
 
-  defp float_noise_layers_columns(query = %{subquery?: true}) do
+  defp float_noise_layers_columns(query = %Query{type: :restricted}) do
     noise_columns =
       non_uid_expressions()
       |> Lens.to_list(query.noise_layers)
@@ -181,7 +200,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   # Computing base noise layers
   # -------------------------------------------------------------------
 
-  defp calculate_base_noise_layers(query = %{virtual_table?: true}, _top_level_uid), do: query
+  defp calculate_base_noise_layers(query = %{type: :standard}, _top_level_uid), do: query
 
   defp calculate_base_noise_layers(query, top_level_uid) do
     noise_layers =
@@ -230,15 +249,15 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end
   end
 
-  defp select_noise_layers(%{subquery?: true}, _top_level_uid), do: []
-
-  defp select_noise_layers(query, top_level_uid),
+  defp select_noise_layers(%Query{type: :anonymized} = query, top_level_uid),
     do:
       Lens.key(:columns)
       |> Lens.all()
       |> Lens.reject(&needs_aggregation?(query, &1))
       |> raw_columns(query)
       |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
+
+  defp select_noise_layers(_query, _top_level_uid), do: []
 
   defp needs_aggregation?(_query, %Expression{constant?: true}), do: true
   defp needs_aggregation?(query, expression), do: Helpers.aggregated_column?(query, expression)

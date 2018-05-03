@@ -72,7 +72,11 @@ defmodule Cloak.Query.DbEmulator.Selector do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp select_columns(stream, columns, %Query{group_by: [_ | _]} = query) do
+  defp select_columns(stream, columns, %Query{implicit_count?: true}) do
+    Stream.map(stream, fn row -> Enum.map(columns, &Expression.value(&1, row)) end)
+  end
+
+  defp select_columns(stream, columns, query) do
     defaults = Enum.map(query.aggregators, &aggregator_to_default/1)
     accumulators = Enum.map(query.aggregators, &aggregator_to_accumulator/1)
     finalizers = Enum.map(query.aggregators, &aggregator_to_finalizer/1)
@@ -92,10 +96,6 @@ defmodule Cloak.Query.DbEmulator.Selector do
       group_values ++ aggregated_values
     end)
     |> Rows.extract_groups(columns, query)
-  end
-
-  defp select_columns(stream, columns, _query) do
-    Stream.map(stream, fn row -> Enum.map(columns, &Expression.value(&1, row)) end)
   end
 
   defp offset_rows(stream, %Query{offset: 0}), do: stream
@@ -411,25 +411,28 @@ defmodule Cloak.Query.DbEmulator.Selector do
   end
 
   # This function returns a functor that pre-filters right side rows in order to drastically improve join performance.
-  # It does that by grouping rows by one of the matching columns in the join conditions.
-  # For now, we assume at least an equality condition for the join always exists.
+  # It does that by grouping rows by one of the matching columns in the join conditions, if one exists.
   defp create_join_pre_filter(rhs_rows, join) do
-    {lhs, rhs} = extract_matching_columns_from_join(join)
-    lhs_match_index = index_in_from(lhs, join.lhs)
-    rhs_match_index = index_in_from(rhs, join.rhs)
+    case best_condition_for_matching(join) do
+      nil ->
+        fn _ -> rhs_rows end
 
-    rhs_rows_map = Enum.group_by(rhs_rows, &Enum.at(&1, rhs_match_index))
+      matched_fields ->
+        {lhs, rhs} = extract_matching_columns(join, matched_fields)
+        lhs_match_index = index_in_from(lhs, join.lhs)
+        rhs_match_index = index_in_from(rhs, join.rhs)
 
-    fn lhs_row ->
-      lhs_match_value = Enum.at(lhs_row, lhs_match_index)
-      Map.get(rhs_rows_map, lhs_match_value, [])
+        rhs_rows_map = Enum.group_by(rhs_rows, &Enum.at(&1, rhs_match_index))
+
+        fn lhs_row ->
+          lhs_match_value = Enum.at(lhs_row, lhs_match_index)
+          Map.get(rhs_rows_map, lhs_match_value, [])
+        end
     end
   end
 
-  defp extract_matching_columns_from_join(join) do
-    {subject, target} = best_condition_for_matching(join)
-
-    # Make sure we return the columns in the correct order ({left_branch, right_branch}).
+  # Make sure we return the columns in the correct order ({left_branch, right_branch}).
+  defp extract_matching_columns(join, {subject, target}) do
     if table_is_in_join_branch?(subject.table.name, join.lhs) do
       true = table_is_in_join_branch?(target.table.name, join.rhs)
       {subject, target}
@@ -446,7 +449,10 @@ defmodule Cloak.Query.DbEmulator.Selector do
     for {:comparison, subject, :=, target} <- conditions, subject != target do
       {subject, target}
     end
-    |> Enum.max_by(&prefer_user_id/1, fn -> raise "At least one condition should exist." end)
+    |> case do
+      [] -> nil
+      match_conditions -> Enum.max_by(match_conditions, &prefer_user_id/1)
+    end
   end
 
   defp prefer_user_id({subject, target}), do: user_id_score(subject) + user_id_score(target)

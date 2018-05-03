@@ -2,6 +2,7 @@ defmodule Cloak.DataSource.SqlBuilderTest do
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource.{SqlBuilder, Table}
+  alias Cloak.Sql.Query
   import Cloak.Test.QueryHelpers
 
   test "text column is force casted to text" do
@@ -30,6 +31,7 @@ defmodule Cloak.DataSource.SqlBuilderTest do
     do:
       query
       |> compile!(data_source(Module.concat(Cloak.DataSource, dialect)))
+      |> Query.resolve_db_columns()
       |> SqlBuilder.build(Module.concat(Cloak.DataSource.SqlBuilder, dialect))
 
   defp data_source(driver) do
