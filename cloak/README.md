@@ -375,3 +375,11 @@ Note that the tests submit results to InfluxDB - it will be started with `start_
   }
 }
 ```
+
+#### Working in a dev container
+
+Dev container is built to allow developers who work on macOS to develop against SAP HANA and SAP IQ databases. Before starting the container, you need to first build the air container and start it locally (with `air/build-image.sh` and `air/container.sh console`). Then, you can start the cloak dev container by going to the cloak folder and invoking `make dev-container`.
+
+Once the container is started, you can start the cloak with `make start`, and visit `http://localhost:8080`. At this point, you should be able to access SAP HANA and SAP IQ datasources.
+
+The source files of the cloak project are mounted into the container. Therefore, you can freely edit the source files, and restart the cloak without needing to rebuild and restart the container.

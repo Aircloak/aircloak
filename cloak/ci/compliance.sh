@@ -26,8 +26,8 @@ function cleanup {
   if [ "$KEEP_DB_CONTAINERS" != "true" ]; then
     # also stop named db containers so they don't waste dev resources
     for container in postgres9.4 mongo3.4 mysql5.7 sqlserver2017; do
-      docker kill $container > /dev/null || true
-      docker rm $container > /dev/null || true
+      docker kill $container > /dev/null 2>&1 || true
+      docker rm $container > /dev/null 2>&1 || true
     done
   fi
 
@@ -42,8 +42,8 @@ function clean_dangling {
   printf "performing cleanup of dangling images..."
 
   for container in $(docker ps --format="{{.Names}}" --filter="name=local_ci_"); do
-    docker kill $container > /dev/null || true
-    docker rm $container > /dev/null || true
+    docker kill $container > /dev/null 2>&1 || true
+    docker rm $container > /dev/null 2>&1 || true
   done
 
   local dangling_volumes=$(docker volume ls -qf dangling=true)
@@ -63,20 +63,50 @@ function clean_dangling {
   echo " done"
 }
 
+function start_compliance_container {
+  clean_dangling
 
-clean_dangling
+  container_id="local_ci_$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c 16; echo '')"
 
-container_id="local_ci_$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c 16; echo '')"
+  docker_script build_image
 
-docker_script build_image
+  STOP_AFTER=infinity docker_script start_container $container_id
+  DOCKER_ARGS="-t" docker_script run_in_container $container_id MIX_ENV=test make
+  DOCKER_ARGS="-t" docker_script prepare_for_compliance $container_id
 
-STOP_AFTER=infinity docker_script start_container $container_id
-DOCKER_ARGS="-t" docker_script run_in_container $container_id MIX_ENV=test make
-DOCKER_ARGS="-t" docker_script prepare_for_compliance $container_id
+  printf "\ngenerating users...\n"
+  DOCKER_ARGS="-t" docker_script run_in_container $container_id \
+    MIX_ENV=test mix gen.test_data dockerized_ci ${COMPLIANCE_USERS:-10}
 
-printf "\ngenerating users...\n"
-DOCKER_ARGS="-t" docker_script run_in_container $container_id \
-  MIX_ENV=test mix gen.test_data dockerized_ci ${COMPLIANCE_USERS:-10}
+  printf "\nyou can invoke compliance tests with \`mix test --only compliance\`\n\n"
+  DOCKER_ARGS="-t" docker_script run_in_container $container_id "/bin/bash"
+}
 
-printf "\nyou can invoke compliance tests with \`mix test --only compliance\`\n\n"
-DOCKER_ARGS="-t" docker_script run_in_container $container_id "/bin/bash"
+function start_dev_container {
+  clean_dangling
+  docker_script build_image
+
+  container_id="local_ci_$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c 16; echo '')"
+  STOP_AFTER=infinity DOCKER_ARGS="--network='container:air'" docker_script start_container $container_id
+
+  printf "\nyou can start the system with \`make start\`\n\n"
+
+  CLOAK_DATA_SOURCES='sapiq saphana' \
+  DOCKER_ARGS="-e DEPLOY_CONFIG='dev' -e DEFAULT_SAP_HANA_SCHEMA='' -t" \
+    docker_script run_in_container $container_id "/bin/bash"
+}
+
+case "$1" in
+  "compliance")
+    start_compliance_container
+    ;;
+
+  "dev")
+    start_dev_container
+    ;;
+
+  *)
+    echo "${BASH_SOURCE[0]} start_compliance | start_dev_container"
+    exit 1
+    ;;
+esac

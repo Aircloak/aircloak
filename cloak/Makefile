@@ -6,7 +6,7 @@ SHELL=/bin/bash -o pipefail
 .PHONY: sql-server-container sql-server-database
 .PHONY: mysql-server-container mysql-server-database
 .PHONY: mongo-server-container
-.PHONY: ci.compliance
+.PHONY: ci.compliance dev-container
 .PHONY: format check-format
 
 define start_container
@@ -107,7 +107,10 @@ priv/odbc/drivers/sapiq:
 	wget -qO- https://www.dropbox.com/s/63loejvt622kjtt/sapiq_odbc_17.tar.gz | tar xzv --directory priv/odbc/drivers/
 
 ci.compliance:
-	ci/compliance.sh
+	ci/compliance.sh compliance
+
+dev-container:
+	ci/compliance.sh dev
 
 format:
 	mix format --check-equivalent

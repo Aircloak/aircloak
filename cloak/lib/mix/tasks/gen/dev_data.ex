@@ -26,12 +26,13 @@ defmodule Mix.Tasks.Gen.DevData do
     IO.puts("generating data")
     data = integers_data()
 
-    [:postgresql, :saphana]
-    |> Enum.map(&{&1, open_connection(&1)})
-    |> Enum.filter(fn {_adapter, connect_result} -> match?({:ok, _conn}, connect_result) end)
-    |> Enum.map(fn {adapter, {:ok, conn}} -> {adapter, conn} end)
-    |> Enum.each(fn {adapter, _} = descriptor ->
-      IO.puts("importing to #{adapter}")
+    Compliance.DataSources.all_from_config("dev")
+    |> Stream.filter(&(&1.name in ["saphana", "cloak_postgres_native"]))
+    |> Stream.map(&{&1, open_connection(&1)})
+    |> Stream.filter(fn {_datasource, connect_result} -> match?({:ok, _conn}, connect_result) end)
+    |> Stream.map(fn {datasource, {:ok, conn}} -> {datasource, conn} end)
+    |> Enum.each(fn {datasource, _} = descriptor ->
+      IO.puts("importing to #{datasource.name}")
       insert(descriptor, data)
       IO.puts("#{IO.ANSI.green()}done#{IO.ANSI.reset()}\n")
     end)
@@ -45,13 +46,13 @@ defmodule Mix.Tasks.Gen.DevData do
     }
   end
 
-  defp insert({:postgresql, conn}, table_spec) do
+  defp insert({%{driver: Cloak.DataSource.PostgreSQL}, conn}, table_spec) do
     Postgrex.query!(conn, "DROP TABLE IF EXISTS #{table_spec.name}", [])
     Postgrex.query!(conn, create_statement(table_spec), [])
     insert_chunks(table_spec.data, &postgresql_insert_rows(conn, table_spec, &1))
   end
 
-  defp insert({:saphana, conn}, table_spec) do
+  defp insert({%{driver: Cloak.DataSource.SAPHana}, conn}, table_spec) do
     Cloak.SapHanaHelpers.recreate_table!(
       conn,
       default_sap_hana_schema!(),
@@ -100,28 +101,22 @@ defmodule Mix.Tasks.Gen.DevData do
         []
       )
 
-  defp open_connection(:postgresql) do
+  defp open_connection(%{driver: Cloak.DataSource.PostgreSQL} = datasource) do
     Application.ensure_all_started(:postgrex)
 
-    db_params =
-      Aircloak.DeployConfig.fetch!(:cloak, "data_sources")
-      |> Cloak.DataSource.Utility.load_individual_data_source_configs()
-      |> Enum.find(&(&1["name"] == "cloak_postgres_native"))
-      |> Map.fetch!("parameters")
-
     Postgrex.start_link(
-      database: db_params["database"],
-      hostname: db_params["hostname"],
-      username: db_params["username"],
-      password: db_params["password"]
+      database: datasource.parameters[:database],
+      hostname: datasource.parameters[:hostname],
+      username: datasource.parameters[:username],
+      password: datasource.parameters[:password]
     )
   end
 
-  defp open_connection(:saphana) do
+  defp open_connection(%{driver: Cloak.DataSource.SAPHana} = datasource) do
     with :ok <- sap_hana_connectivity_possible(),
          {:ok, _} <- Application.ensure_all_started(:odbc),
          {:ok, default_schema} <- default_sap_hana_schema(),
-         connection_params = sap_hana_connection_params(default_schema),
+         connection_params = Map.put(datasource.parameters, :default_schema, default_schema),
          :ok <- Cloak.SapHanaHelpers.ensure_schema(connection_params, default_schema),
          do: Cloak.SapHanaHelpers.connect(connection_params)
   end
@@ -171,16 +166,6 @@ defmodule Mix.Tasks.Gen.DevData do
       :ok
     end
   end
-
-  defp sap_hana_connection_params(default_schema),
-    do:
-      Aircloak.DeployConfig.fetch!(:cloak, "data_sources")
-      |> Cloak.DataSource.Utility.load_individual_data_source_configs()
-      |> Enum.find(&(&1["name"] == "saphana"))
-      |> Map.fetch!("parameters")
-      |> Enum.map(fn {key, value} -> {String.to_atom(key), value} end)
-      |> Enum.into(%{})
-      |> Map.put(:default_schema, default_schema)
 
   defp create_statement(table_spec), do: "CREATE TABLE #{table_spec.name} (#{table_def(table_spec)})"
 
