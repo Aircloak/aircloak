@@ -30,10 +30,12 @@ defmodule Cloak.Query.Runner.Engine do
         feature_updater,
         {query_killer_reg, query_killer_unreg}
       ) do
-    {query, features} =
+    query =
       statement
       |> parse!(state_updater)
       |> compile!(data_source, parameters, views, state_updater)
+
+    features = Sql.Query.features(query)
 
     feature_updater.(features)
     state_updater.(:awaiting_data)

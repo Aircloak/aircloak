@@ -15,10 +15,9 @@ defmodule Cloak.Sql.Compiler do
           DataSource.t(),
           [Query.parameter()] | nil,
           Query.view_map()
-        ) :: {:ok, Query.t(), Query.features()} | {:error, String.t()}
+        ) :: {:ok, Query.t()} | {:error, String.t()}
   def compile(parsed_query, data_source, parameters, views) do
-    {query, features} = compile!(parsed_query, data_source, parameters, views)
-    {:ok, query, features}
+    {:ok, compile!(parsed_query, data_source, parameters, views)}
   rescue
     e in CompilationError -> {:error, CompilationError.message(e)}
   end
@@ -29,28 +28,19 @@ defmodule Cloak.Sql.Compiler do
           DataSource.t(),
           [Query.parameter()] | nil,
           Query.view_map()
-        ) :: {Query.t(), Query.features()}
+        ) :: Query.t()
   def compile!(parsed_query, data_source, parameters, views) do
-    compiled_query =
-      parsed_query
-      |> Compiler.ASTNormalization.normalize()
-      |> Compiler.Specification.compile(data_source, parameters, views)
-      |> Compiler.Normalization.remove_noops()
-      |> Compiler.Anonymization.compile()
-      |> Compiler.Validation.verify_query()
-      |> Compiler.TypeChecker.validate_allowed_usage_of_math_and_functions()
-
-    features = Query.features(compiled_query)
-
-    final_query =
-      compiled_query
-      |> Compiler.Optimizer.optimize()
-      |> Compiler.Execution.prepare()
-      |> Compiler.Normalization.normalize()
-      |> Query.set_emulation_flag()
-      |> Compiler.NoiseLayers.compile()
-
-    {final_query, %{features | emulated: final_query.emulated?}}
+    parsed_query
+    |> Compiler.ASTNormalization.normalize()
+    |> Compiler.Specification.compile(data_source, parameters, views)
+    |> Compiler.Normalization.remove_noops()
+    |> Compiler.Anonymization.compile()
+    |> Compiler.Validation.verify_query()
+    |> Compiler.TypeChecker.validate_allowed_usage_of_math_and_functions()
+    |> Compiler.Optimizer.optimize()
+    |> Compiler.Execution.prepare()
+    |> Compiler.Normalization.normalize()
+    |> Compiler.NoiseLayers.compile()
   end
 
   @doc "Prepares the parsed SQL query for standard (non-anonymized) execution."

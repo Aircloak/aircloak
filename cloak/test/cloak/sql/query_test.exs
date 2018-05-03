@@ -105,7 +105,7 @@ defmodule Cloak.Sql.QueryTest do
   end
 
   test "extracts types of where conditions used" do
-    assert MapSet.new(["<", ">"]) ==
+    assert MapSet.new(["<", ">="]) ==
              features_from("""
                SELECT height
                FROM feat_users
@@ -210,12 +210,6 @@ defmodule Cloak.Sql.QueryTest do
 
     test "*", do: assert(["(count *)"] = features_from("SELECT count(*) FROM feat_users").expressions)
   end
-
-  test "marks non-emulated queries as such",
-    do: refute(features_from("SELECT count(*) FROM feat_emulated_users").emulated)
-
-  test "marks emulated queries as such",
-    do: assert(features_from("SELECT * FROM (SELECT user_id, decoded_height FROM feat_emulated_users) x").emulated)
 
   test "successful view validation" do
     assert {:ok, [col1, col2]} = validate_view("v1", "select user_id, name from feat_users")
@@ -380,7 +374,9 @@ defmodule Cloak.Sql.QueryTest do
   defp compile_with_features(data_source, statement) do
     {:ok, parsed_query} = Parser.parse(statement)
 
-    {:ok, query, features} = Compiler.compile(parsed_query, data_source, _parameters = [], _views = %{})
+    {:ok, query} = Compiler.compile(parsed_query, data_source, _parameters = [], _views = %{})
+
+    features = Query.features(query)
 
     {scrub_data_sources(query), features}
   end

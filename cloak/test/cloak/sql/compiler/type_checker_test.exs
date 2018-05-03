@@ -7,8 +7,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
   alias Cloak.Sql.{Compiler, Parser}
 
   describe "IN" do
-    test "allows clear IN lhs",
-      do: assert({:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric IN (1, 2, 3)"))
+    test "allows clear IN lhs", do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric IN (1, 2, 3)"))
 
     test "forbids unclear IN lhs" do
       assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 IN (1, 2, 3)")
@@ -19,8 +18,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "allows clear IN lhs from subqueries",
       do:
         assert(
-          {:ok, _, _} =
-            compile("SELECT COUNT(*) FROM (SELECT numeric AS number FROM table) x WHERE number IN (1, 2, 3)")
+          {:ok, _} = compile("SELECT COUNT(*) FROM (SELECT numeric AS number FROM table) x WHERE number IN (1, 2, 3)")
         )
 
     test "forbids unclear IN lhs from subqueries" do
@@ -32,17 +30,17 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
 
     for function <- ~w(lower upper trim ltrim btrim extract_words) do
       test "allows #{function} in IN lhs" do
-        assert {:ok, _, _} = compile("SELECT #{unquote(function)}(string) AS x FROM table WHERE x IN ('a', 'b', 'c')")
+        assert {:ok, _} = compile("SELECT #{unquote(function)}(string) AS x FROM table WHERE x IN ('a', 'b', 'c')")
       end
     end
 
     test "allows substring in IN lhs" do
-      assert {:ok, _, _} = compile("SELECT SUBSTRING(string FROM 3) AS x FROM table WHERE x IN ('a', 'b', 'c')")
+      assert {:ok, _} = compile("SELECT SUBSTRING(string FROM 3) AS x FROM table WHERE x IN ('a', 'b', 'c')")
     end
   end
 
   describe "negative conditions" do
-    test "allows clear <> lhs", do: assert({:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> 10"))
+    test "allows clear <> lhs", do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> 10"))
 
     test "forbids unclear <> lhs" do
       assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE numeric + 1 <> 10")
@@ -50,7 +48,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     end
 
     test "allows column <> column",
-      do: assert({:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric"))
+      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric <> numeric"))
 
     test "forbids column <> unclear_column" do
       assert {error, {1, 44}} = error_with_location("SELECT COUNT(*) FROM table WHERE string <> upper(string)")
@@ -69,7 +67,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "allows clear <> lhs in subquery HAVING",
       do:
         assert(
-          {:ok, _, _} =
+          {:ok, _} =
             compile("""
               SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING COUNT(numeric) <> 10) x
             """)
@@ -83,10 +81,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     end
 
     test "allows clear NOT LIKE lhs",
-      do: assert({:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE string NOT LIKE '%some pattern_'"))
+      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE string NOT LIKE '%some pattern_'"))
 
     test "allows clear NOT ILIKE lhs",
-      do: assert({:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE string NOT ILIKE '%some pattern_'"))
+      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE string NOT ILIKE '%some pattern_'"))
 
     test "forbids unclear NOT LIKE lhs" do
       assert {:error, message} = compile("SELECT COUNT(*) FROM table WHERE upper(string) NOT LIKE '%some pattern_'")
@@ -102,18 +100,18 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
 
     for function <- ~w(lower upper trim ltrim btrim extract_words) do
       test "allows #{function} in <> lhs" do
-        assert {:ok, _, _} = compile("SELECT #{unquote(function)}(string) AS x FROM table WHERE x <> 'a'")
+        assert {:ok, _} = compile("SELECT #{unquote(function)}(string) AS x FROM table WHERE x <> 'a'")
       end
     end
 
     test "allows substring in <> lhs" do
-      assert {:ok, _, _} = compile("SELECT SUBSTRING(string FROM 3) AS x FROM table WHERE x <> 'a'")
+      assert {:ok, _} = compile("SELECT SUBSTRING(string FROM 3) AS x FROM table WHERE x <> 'a'")
     end
   end
 
   describe "string-based conditions" do
     test "allows string manipulation functions on clear columns in positive conditions",
-      do: assert({:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE ltrim(string, 'abc') = 'foo'"))
+      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE ltrim(string, 'abc') = 'foo'"))
 
     test "forbids string manipulation functions on unclear columns in top-level select",
       do:
@@ -145,18 +143,16 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
 
     test "allows raw cast columns on the RHS of conditions with string manipulation functions",
       do:
-        assert(
-          {:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE substring(string from 1) = cast(numeric as text)")
-        )
+        assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE substring(string from 1) = cast(numeric as text)"))
 
     test "allows string manipulation functions on clear columns in negative conditions",
-      do: assert({:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE ltrim(string, 'abc') <> 'foo'"))
+      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE ltrim(string, 'abc') <> 'foo'"))
 
     test "forbids string manipulation functions on unclear columns in negative conditions",
       do: assert({:error, _} = compile("SELECT COUNT(*) FROM table WHERE btrim(string || string, 'abc') <> 'foo'"))
 
     test "allows string manipulation functions after a cast",
-      do: assert({:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE btrim(cast(numeric as text), 'abc') = 'foo'"))
+      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE btrim(cast(numeric as text), 'abc') = 'foo'"))
 
     test "forbids string manipulation functions after nested casts",
       do:
@@ -168,21 +164,21 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "allows string-based functions after aggregator",
       do:
         assert(
-          {:ok, _, _} =
+          {:ok, _} =
             compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING left(max(string), 3) = 'foo') x")
         )
 
     test "allows string-based functions before aggregator",
       do:
         assert(
-          {:ok, _, _} =
+          {:ok, _} =
             compile("SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING max(left(string, 3)) = 'foo') x")
         )
   end
 
   describe "ranges" do
     test "allows clear >=/< arguments",
-      do: assert({:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric > 0 AND numeric < 10"))
+      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric > 0 AND numeric < 10"))
 
     test "forbids unclear >=/< arguments" do
       assert {:error, narrative} = compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) > 0 AND sqrt(numeric) < 10")
@@ -191,7 +187,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     end
 
     test "allows clear between arguments",
-      do: assert({:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE numeric BETWEEN 0 AND 10"))
+      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric BETWEEN 0 AND 10"))
 
     test "forbids unclear between arguments" do
       assert {:error, narrative} = compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) BETWEEN 0 AND 10")
@@ -202,7 +198,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "allows any ranges in top-level HAVING",
       do:
         assert(
-          {:ok, _, _} =
+          {:ok, _} =
             compile("""
               SELECT COUNT(*) FROM table GROUP BY numeric HAVING sqrt(COUNT(float)) BETWEEN 0 AND 10
             """)
@@ -211,7 +207,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "allows clear ranges in subquery HAVING",
       do:
         assert(
-          {:ok, _, _} =
+          {:ok, _} =
             compile("""
               SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING COUNT(float) BETWEEN 0 AND 10) x
             """)
@@ -242,37 +238,37 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     end
 
     test "does not consider cast to integer as an implicit range",
-      do: assert({:ok, _, _} = compile("SELECT cast(float + 1 as integer) FROM table"))
+      do: assert({:ok, _} = compile("SELECT cast(float + 1 as integer) FROM table"))
 
     for function <- ~w(floor ceil ceiling) do
       test "does not consider #{function} as an implicit range",
-        do: assert({:ok, _, _} = compile("SELECT #{unquote(function)}(float + 1) FROM table"))
+        do: assert({:ok, _} = compile("SELECT #{unquote(function)}(float + 1) FROM table"))
     end
 
     test "allows casts in ranges",
-      do: assert({:ok, _, _} = compile("SELECT COUNT(*) FROM table WHERE CAST(string AS INTEGER) BETWEEN 0 AND 10"))
+      do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE CAST(string AS INTEGER) BETWEEN 0 AND 10"))
   end
 
   describe "exceptions" do
     for function <- ~w(upper lower ltrim btrim rtrim) do
       test "#{function} is allowed with IN" do
-        assert {:ok, _, _} =
+        assert {:ok, _} =
                  compile("SELECT COUNT(*) FROM table WHERE #{unquote(function)}(string) IN ('foo', 'bar', 'baz')")
       end
 
       test "#{function} is allowed with NOT IN" do
-        assert {:ok, _, _} =
+        assert {:ok, _} =
                  compile("SELECT COUNT(*) FROM table WHERE #{unquote(function)}(string) NOT IN ('foo', 'bar', 'baz')")
       end
     end
 
     test "substring is allowed with IN" do
-      assert {:ok, _, _} =
+      assert {:ok, _} =
                compile("SELECT COUNT(*) FROM table WHERE substring(string FROM 1 FOR 10) IN ('foo', 'bar', 'baz')")
     end
 
     test "substring is allowed with NOT IN" do
-      assert {:ok, _, _} =
+      assert {:ok, _} =
                compile("SELECT COUNT(*) FROM table WHERE substring(string FROM 1 FOR 10) NOT IN ('foo', 'bar', 'baz')")
     end
   end

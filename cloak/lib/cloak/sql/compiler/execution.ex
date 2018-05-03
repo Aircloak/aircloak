@@ -35,11 +35,14 @@ defmodule Cloak.Sql.Compiler.Execution do
   # UID handling
   # -------------------------------------------------------------------
 
-  defp reject_null_user_ids(%Query{type: :anonymized} = query),
-    do: %{
+  defp reject_null_user_ids(%Query{type: :anonymized} = query) do
+    user_id = %Expression{Helpers.id_column(query) | synthetic?: true}
+
+    %{
       query
-      | where: Condition.combine(:and, {:not, {:is, Helpers.id_column(query), :null}}, query.where)
+      | where: Condition.combine(:and, {:not, {:is, user_id, :null}}, query.where)
     }
+  end
 
   defp reject_null_user_ids(query), do: query
 

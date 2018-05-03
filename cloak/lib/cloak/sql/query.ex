@@ -90,8 +90,7 @@ defmodule Cloak.Sql.Query do
           selected_types: [String.t()],
           parameter_types: [String.t()],
           driver: String.t(),
-          driver_dialect: String.t(),
-          emulated: boolean
+          driver_dialect: String.t()
         }
 
   defstruct columns: [],
@@ -139,8 +138,8 @@ defmodule Cloak.Sql.Query do
   def describe_query(data_source, statement, parameters, views),
     do:
       with(
-        {:ok, query, features} <- make_query(data_source, statement, parameters, views),
-        do: {:ok, query.column_titles, features}
+        {:ok, query} <- make_query(data_source, statement, parameters, views),
+        do: {:ok, query.column_titles, features(query)}
       )
 
   @doc "Validates a user-defined view."
@@ -150,7 +149,7 @@ defmodule Cloak.Sql.Query do
   def validate_view(data_source, name, sql, views) do
     with :ok <- view_name_ok?(data_source, name),
          {:ok, parsed_query} <- Parser.parse(sql),
-         {:ok, compiled_query, _features} <- Compiler.validate_view(data_source, parsed_query, views) do
+         {:ok, compiled_query} <- Compiler.validate_view(data_source, parsed_query, views) do
       {:ok,
        Enum.zip(compiled_query.column_titles, compiled_query.columns)
        |> Enum.map(fn {name, column} ->
