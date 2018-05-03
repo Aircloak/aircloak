@@ -11,7 +11,10 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     - `restricted`: an SQL query that selects or aggregates data per-user, as input for an anonymized query, and
       which is subject to Aircloak specific restrictions (aligned ranges, restricted math, etc.).
 
-    - `anonymized`: an SQL query that aggregates per-user, privacy sensitive data into anonymized data.
+    - `anonymized`: an SQL query that aggregates per-user, privacy sensitive data into anonymized data. The input
+      expressions for the anonymized aggregators are subject to the same Aircloak specific restrictions as `restricted`
+      queries are, meaning that, for example, where filters have aligned ranges and restricted math, while having
+      filters are un-restricted.
   """
 
   alias Cloak.Sql.{Compiler.Helpers, Query}
