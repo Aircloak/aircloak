@@ -5,9 +5,10 @@ defmodule Cloak.Test.MongoHelpers do
 
   defmacro assert_query(context, query, expected_response) do
     quote do
-      # mongo pipeline versions that we want to test against
+      supported_mongo_versions = ["3.4.0"]
+
       [first_response | other_responses] =
-        ["3.0.0", "3.2.0", "3.4.0"]
+        supported_mongo_versions
         |> Enum.map(
           &Task.async(fn ->
             data_source = Map.put(unquote(context).data_source, :driver_info, &1)

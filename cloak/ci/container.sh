@@ -24,7 +24,7 @@ function prepare_for_compliance {
   container_name=$1
   ensure_database_containers
 
-  for db_container in postgres9.4 mongo3.0 mongo3.2 mongo3.4 mysql5.7 sqlserver2017; do
+  for db_container in postgres9.4 mongo3.4 mysql5.7 sqlserver2017; do
     echo $db_container
     docker network connect --alias $db_container $container_name $db_container
   done
@@ -32,8 +32,6 @@ function prepare_for_compliance {
 
 function ensure_database_containers {
   ensure_supporting_container postgres9.4 --tmpfs=/ramdisk:rw,size=2G -e PGDATA=/ramdisk postgres:9.4
-  ensure_supporting_container mongo3.0 --tmpfs=/data/db:rw,size=4G mongo:3.0
-  ensure_supporting_container mongo3.2 --tmpfs=/data/db:rw,size=4G mongo:3.2
   ensure_supporting_container mongo3.4 --tmpfs=/data/db:rw,size=4G mongo:3.4
   ensure_supporting_container mysql5.7 --tmpfs=/var/lib/mysql:rw,size=2G \
     -e MYSQL_ALLOW_EMPTY_PASSWORD=true mysql:5.7.19 \

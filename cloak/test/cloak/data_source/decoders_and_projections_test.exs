@@ -50,7 +50,7 @@ defmodule Cloak.DataSource.DecodersAndProjectionsTest do
           tables: tables,
           errors: [],
           key: [],
-          driver_info: "3.2.0"
+          driver_info: "3.4.0"
         },
         conn
       )
