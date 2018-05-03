@@ -64,7 +64,6 @@ Enum.each(
           context
           |> disable_for(Cloak.DataSource.MySQL, true)
           |> disable_for(Cloak.DataSource.SQLServer, true)
-          |> disable_for(Cloak.DataSource.SQLServerTds, true)
           |> disable_for(Cloak.DataSource.SQLServerRODBC, true)
           |> disable_for(Cloak.DataSource.SAPHana, true)
           |> disable_for(Cloak.DataSource.MongoDB, true)

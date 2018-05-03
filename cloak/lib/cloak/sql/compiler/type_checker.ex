@@ -18,14 +18,19 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   @spec validate_allowed_usage_of_math_and_functions(Query.t()) :: Query.t()
   def validate_allowed_usage_of_math_and_functions(query) do
-    Helpers.each_subquery(query, &verify_usage_of_potentially_crashing_functions/1)
-    Helpers.each_subquery(query, &verify_allowed_usage_of_math/1)
-    Helpers.each_subquery(query, &verify_lhs_of_in_is_clear/1)
-    Helpers.each_subquery(query, &verify_not_equals_is_clear/1)
-    Helpers.each_subquery(query, &verify_lhs_of_not_like_is_clear/1)
-    Helpers.each_subquery(query, &verify_string_based_conditions_are_clear/1)
-    Helpers.each_subquery(query, &verify_string_based_expressions_are_clear/1)
-    Helpers.each_subquery(query, &verify_ranges_are_clear/1)
+    Helpers.each_subquery(query, fn subquery ->
+      unless subquery.type == :standard do
+        verify_usage_of_potentially_crashing_functions(subquery)
+        verify_allowed_usage_of_math(subquery)
+        verify_lhs_of_in_is_clear(subquery)
+        verify_not_equals_is_clear(subquery)
+        verify_lhs_of_not_like_is_clear(subquery)
+        verify_string_based_conditions_are_clear(subquery)
+        verify_string_based_expressions_are_clear(subquery)
+        verify_ranges_are_clear(subquery)
+      end
+    end)
+
     query
   end
 

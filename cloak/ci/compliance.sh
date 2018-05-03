@@ -25,7 +25,7 @@ function cleanup {
 
   if [ "$KEEP_DB_CONTAINERS" != "true" ]; then
     # also stop named db containers so they don't waste dev resources
-    for container in postgres9.4 mongo3.0 mongo3.2 mongo3.4 mysql5.7 sqlserver2017; do
+    for container in postgres9.4 mongo3.4 mysql5.7 sqlserver2017; do
       docker kill $container > /dev/null || true
       docker rm $container > /dev/null || true
     done

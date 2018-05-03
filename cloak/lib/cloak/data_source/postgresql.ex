@@ -8,6 +8,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   alias Cloak.DataSource
 
   use Cloak.DataSource.Driver.SQL
+  require Logger
 
   require Logger
 
@@ -98,7 +99,7 @@ defmodule Cloak.DataSource.PostgreSQL do
             |> Stream.map(fn %Postgrex.Result{rows: rows} -> rows end)
             |> result_processor.()
           after
-            Postgrex.close(connection, query)
+            safe_close(connection, query)
           end
         else
           {:error, error} ->
@@ -128,6 +129,17 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp parse_type("timetz"), do: :time
   defp parse_type("date"), do: :date
   defp parse_type(type), do: {:unsupported, type}
+
+  defp safe_close(connection, query) do
+    Postgrex.close(connection, query)
+  rescue
+    _ ->
+      {"filtered exit reason", Cloak.LoggerTranslator.filtered_stacktrace(System.stacktrace())}
+      |> Exception.format_exit()
+      |> Logger.error()
+
+      :ignore
+  end
 
   # -------------------------------------------------------------------
   # Selected data mapping functions

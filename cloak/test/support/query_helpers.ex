@@ -140,10 +140,10 @@ defmodule Cloak.Test.QueryHelpers do
 
   def compile(query_string, data_source, options \\ []) do
     with {:ok, parsed_query} <- Parser.parse(query_string),
-         {:ok, query, _features} <-
+         {:ok, query} <-
            Compiler.compile(
-             data_source,
              parsed_query,
+             data_source,
              Keyword.get(options, :parameters, []),
              Keyword.get(options, :views, %{})
            ) do

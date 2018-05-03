@@ -230,11 +230,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
   end
 
   defp compile!(query_string) do
-    {:ok, result, _features} = compile(query_string)
+    {:ok, result} = compile(query_string)
     result
   end
 
-  defp compile(query_string), do: Compiler.compile(data_source(), Parser.parse!(query_string), [], %{})
+  defp compile(query_string), do: query_string |> Parser.parse!() |> Compiler.compile(data_source(), [], %{})
 
   defp data_source() do
     %{

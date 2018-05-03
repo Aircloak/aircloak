@@ -31,6 +31,11 @@ defmodule Air.Service.License.FSM do
   @spec valid?(t) :: boolean
   def valid?(state), do: Timex.diff(expiry(state), Timex.now()) > 0
 
+  @doc "Returns true if the given states represents a renewing license, false otherwise."
+  @spec auto_renew?(t) :: boolean
+  def auto_renew?(:no_license), do: false
+  def auto_renew?(license), do: license.auto_renew
+
   @doc "Returns the expiry time for the given state."
   @spec expiry(t) :: DateTime.t()
   def expiry(:no_license), do: Timex.now() |> Timex.shift(years: -1)

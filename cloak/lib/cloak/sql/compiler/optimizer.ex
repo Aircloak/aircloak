@@ -77,7 +77,9 @@ defmodule Cloak.Sql.Compiler.Optimizer do
         else: &condition_from_table?(&1, &2)
 
     branch_with_moved_conditions =
-      Lens.map(subqueries(), branch, fn subquery ->
+      subqueries()
+      |> Lens.reject(&(&1.ast.type == :anonymized))
+      |> Lens.map(branch, fn subquery ->
         simple_conditions = Condition.reject(conditions, &(not simple_condition?.(&1, subquery.alias)))
 
         %{subquery | ast: move_conditions_into_subquery(subquery.ast, simple_conditions)}
@@ -107,6 +109,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   defp filter_conditions_from_subqueries(branch, conditions, filter),
     do:
       subqueries()
+      |> Lens.reject(&(&1.ast.type == :anonymized))
       |> Lens.to_list(branch)
       |> Enum.map(& &1.alias)
       |> Enum.reduce(conditions, filter)

@@ -11,61 +11,54 @@ defmodule Cloak.Sql.Compiler do
 
   @doc "Prepares the parsed SQL query for execution."
   @spec compile(
-          DataSource.t(),
           Parser.parsed_query(),
+          DataSource.t(),
           [Query.parameter()] | nil,
           Query.view_map()
-        ) :: {:ok, Query.t(), Query.features()} | {:error, String.t()}
-  def compile(data_source, parsed_query, parameters, views) do
-    {query, features} = compile!(data_source, parsed_query, parameters, views)
-    {:ok, query, features}
+        ) :: {:ok, Query.t()} | {:error, String.t()}
+  def compile(parsed_query, data_source, parameters, views) do
+    {:ok, compile!(parsed_query, data_source, parameters, views)}
   rescue
     e in CompilationError -> {:error, CompilationError.message(e)}
   end
 
   @doc "Prepares the parsed SQL query for execution. Raises CompilationErrors instead of returning `{:error, message}`"
   @spec compile!(
-          DataSource.t(),
           Parser.parsed_query(),
+          DataSource.t(),
           [Query.parameter()] | nil,
           Query.view_map()
-        ) :: {Query.t(), Query.features()}
-  def compile!(data_source, parsed_query, parameters, views) do
-    compiled_query =
-      parsed_query
-      |> Compiler.ASTNormalization.normalize()
-      |> Compiler.Specification.compile(data_source, parameters, views)
-      |> Compiler.Normalization.remove_noops()
-      |> Compiler.Validation.verify_query()
-      |> Compiler.TypeChecker.validate_allowed_usage_of_math_and_functions()
-
-    features = Query.features(compiled_query)
-
-    final_query =
-      compiled_query
-      |> Compiler.Optimizer.optimize()
-      |> Compiler.Execution.prepare()
-      |> Compiler.Normalization.normalize()
-      |> Query.set_emulation_flag()
-
-    {final_query, %{features | emulated: final_query.emulated?}}
+        ) :: Query.t()
+  def compile!(parsed_query, data_source, parameters, views) do
+    parsed_query
+    |> Compiler.ASTNormalization.normalize()
+    |> Compiler.Specification.compile(data_source, parameters, views)
+    |> Compiler.Normalization.remove_noops()
+    |> Compiler.Anonymization.compile()
+    |> Compiler.Validation.verify_query()
+    |> Compiler.TypeChecker.validate_allowed_usage_of_math_and_functions()
+    |> Compiler.Optimizer.optimize()
+    |> Compiler.Execution.prepare()
+    |> Compiler.Normalization.normalize()
+    |> Compiler.NoiseLayers.compile()
   end
 
-  @doc "Prepares the parsed SQL query for direct (non-anonymized) execution."
-  @spec compile_raw!(Parser.parsed_query(), DataSource.t()) :: Query.t()
-  def compile_raw!(parsed_query, data_source),
+  @doc "Prepares the parsed SQL query for standard (non-anonymized) execution."
+  @spec compile_standard!(Parser.parsed_query(), DataSource.t()) :: Query.t()
+  def compile_standard!(parsed_query, data_source),
     do:
       parsed_query
+      |> Compiler.Helpers.apply_top_down(&Map.put(&1, :type, :standard))
       |> Compiler.Specification.compile(data_source, nil, %{})
       |> Compiler.Normalization.remove_noops()
       |> Compiler.Optimizer.optimize()
-      |> Compiler.Execution.prepare_raw()
+      |> Compiler.Execution.prepare()
       |> Compiler.Normalization.normalize()
 
   @doc "Validates a user-defined view."
   @spec validate_view(DataSource.t(), Parser.parsed_query(), Query.view_map()) :: :ok | {:error, String.t()}
   def validate_view(data_source, parsed_query, views),
-    do: compile(data_source, Map.put(parsed_query, :subquery?, true), [], views)
+    do: parsed_query |> Map.put(:subquery?, true) |> compile(data_source, [], views)
 
   @doc "Creates the query which describes a SELECT statement from a single table."
   @spec make_select_query(DataSource.t(), DataSource.Table.t(), [Expression.t()]) :: Query.t()

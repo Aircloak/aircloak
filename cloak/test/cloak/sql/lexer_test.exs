@@ -35,4 +35,9 @@ defmodule Cloak.Sql.Lexer.Test do
   test "lexing pseudo-identifiers starting with numbers" do
     refute match?({:ok, [%Token{category: :constant} | _]}, Lexer.tokenize("123thing"))
   end
+
+  test "lexing multiline comments" do
+    assert {:ok, [%Token{category: :constant}, %Token{category: :eof}]} =
+             Lexer.tokenize("/* a comment \n that can have many lines */ 3\n /* a multiline comment at the end */")
+  end
 end

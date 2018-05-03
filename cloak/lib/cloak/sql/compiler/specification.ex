@@ -3,8 +3,7 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   alias Cloak.DataSource
   alias Cloak.Sql.{Condition, CompilationError, Expression, Function, Query}
-  alias Cloak.Sql.Compiler.{Helpers, Validation}
-  alias Cloak.Sql.Query.Lenses
+  alias Cloak.Sql.{Compiler.Helpers, Query.Lenses}
 
   @dummy_location {1, 0}
 
@@ -62,6 +61,7 @@ defmodule Cloak.Sql.Compiler.Specification do
       |> compile_columns()
       |> compile_references()
       |> perform_implicit_casts()
+      |> ensure_uid_selected()
 
   # -------------------------------------------------------------------
   # From
@@ -182,16 +182,8 @@ defmodule Cloak.Sql.Compiler.Specification do
       Lens.map(
         Lenses.direct_subqueries(),
         query,
-        &%{&1 | ast: compile_subquery(&1.ast, &1.alias, query)}
+        &%{&1 | ast: &1.ast |> Map.put(:subquery?, true) |> compile(query.data_source, query.parameters, query.views)}
       )
-
-  defp compile_subquery(parsed_subquery, alias, parent_query),
-    do:
-      parsed_subquery
-      |> Map.put(:subquery?, true)
-      |> Map.put(:virtual_table?, parent_query.virtual_table?)
-      |> compile(parent_query.data_source, parent_query.parameters, parent_query.views)
-      |> ensure_uid_selected(alias)
 
   # -------------------------------------------------------------------
   # Selected tables
@@ -202,14 +194,8 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp selected_tables({:join, join}, query), do: selected_tables(join.lhs, query) ++ selected_tables(join.rhs, query)
 
   defp selected_tables({:subquery, subquery}, _query) do
-    user_id_name =
-      if subquery.ast.virtual_table? do
-        nil
-      else
-        # In a subquery we should have the `user_id` already in the list of selected columns.
-        user_id_index = Enum.find_index(subquery.ast.columns, & &1.user_id?)
-        Enum.at(subquery.ast.column_titles, user_id_index)
-      end
+    user_id_index = Enum.find_index(subquery.ast.columns, & &1.user_id?)
+    user_id_name = user_id_index && Enum.at(subquery.ast.column_titles, user_id_index)
 
     columns =
       Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
@@ -566,9 +552,9 @@ defmodule Cloak.Sql.Compiler.Specification do
     |> Expression.set_location(loc)
   end
 
-  defp identifier_to_column({:function, name, args, location} = function, _columns_by_name, query) do
+  defp identifier_to_column({:function, name, args, location} = function, _columns_by_name, _query) do
     function
-    |> Validation.verify_function(query.subquery?, query.virtual_table?)
+    |> verify_function_exists()
     |> Function.return_type()
     |> case do
       nil ->
@@ -625,6 +611,26 @@ defmodule Cloak.Sql.Compiler.Specification do
   end
 
   defp get_columns(columns_by_name, {:quoted, name}), do: Map.get(columns_by_name, name)
+
+  defp verify_function_exists(function = {:function, name, _, location}) do
+    unless Function.exists?(function) do
+      case Function.deprecation_info(function) do
+        {:error, error} when error in [:not_found, :internal_function] ->
+          raise CompilationError,
+            source_location: location,
+            message: "Unknown function `#{Function.readable_name(name)}`."
+
+        {:ok, %{alternative: alternative}} ->
+          raise CompilationError,
+            source_location: location,
+            message:
+              "Function `#{Function.readable_name(name)}` has been deprecated. " <>
+                "Depending on your use case, consider using `#{Function.readable_name(alternative)}` instead."
+      end
+    end
+
+    function
+  end
 
   defp function_argument_error_message({:function, name, _, _} = function_call) do
     cond do
@@ -774,47 +780,51 @@ defmodule Cloak.Sql.Compiler.Specification do
   # UID selection in a subquery
   # -------------------------------------------------------------------
 
-  defp ensure_uid_selected(subquery, alias) do
-    case auto_select_uid_column(subquery) do
+  defp ensure_uid_selected(query) do
+    case auto_select_uid_column(query) do
       nil ->
-        subquery
-
-      :error ->
-        raise CompilationError, Helpers.missing_uid_error_message(subquery, alias)
+        query
 
       uid_column ->
         uid_alias = "__auto_selected_#{uid_column.table.name}.#{uid_column.name}__"
         selected_expression = %Expression{uid_column | alias: uid_alias, synthetic?: true}
 
         %Query{
-          subquery
-          | columns: subquery.columns ++ [selected_expression],
-            column_titles: subquery.column_titles ++ [uid_alias]
+          query
+          | columns: query.columns ++ [selected_expression],
+            column_titles: query.column_titles ++ [uid_alias]
         }
     end
   end
 
-  defp auto_select_uid_column(subquery) do
+  defp auto_select_uid_column(query) do
     cond do
-      # virtual table queries don't require user ids
-      subquery.virtual_table? ->
+      # top queries do not need an user id
+      not query.subquery? ->
+        nil
+
+      # standard queries don't require user ids
+      query.type == :standard ->
         nil
 
       # uid column is already explicitly selected
-      Helpers.uid_column_selected?(subquery) ->
+      Helpers.uid_column_selected?(query) ->
         nil
 
       # no group by, no having and no aggregate -> select any uid column
-      match?(%Query{group_by: [], having: nil}, subquery) && not Helpers.aggregate?(subquery) ->
-        hd(Helpers.all_id_columns_from_tables(subquery))
+      match?(%Query{group_by: [], having: nil}, query) && not Helpers.aggregate?(query) ->
+        case Helpers.all_id_columns_from_tables(query) do
+          [uid | _] -> uid
+          [] -> nil
+        end
 
       # uid column is in a group by -> select that uid
-      (uid_column = Enum.find(subquery.group_by, & &1.user_id?)) != nil ->
+      (uid_column = Enum.find(query.group_by, & &1.user_id?)) != nil ->
         uid_column
 
       # we can't select a uid column
       true ->
-        :error
+        nil
     end
   end
 end

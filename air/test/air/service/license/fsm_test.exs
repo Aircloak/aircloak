@@ -13,7 +13,7 @@ defmodule Air.Service.License.FSM.Test do
   end
 
   describe "load" do
-    setup [:load_valid_license, :load_expired_license]
+    setup [:load_valid_license, :load_expired_license, :load_license_without_auto_renew]
 
     test "invalid license",
       do: assert(FSM.initial() |> FSM.load(Key.public_key(), invalid_license()) == {:error, FSM.initial()})
@@ -23,8 +23,18 @@ defmodule Air.Service.License.FSM.Test do
 
       assert FSM.present?(state)
       assert FSM.valid?(state)
+      assert FSM.auto_renew?(state)
       assert Timex.diff(FSM.expiry(state), Timex.now()) > 0
       assert FSM.text(state) == valid_license
+    end
+
+    test "loading a license without auto renewal information", %{
+      license_without_auto_renew: license
+    } do
+      {:ok, state} = FSM.initial() |> FSM.load(Key.public_key(), license)
+
+      assert FSM.present?(state)
+      refute FSM.auto_renew?(state)
     end
 
     test "text contains multiple licenses, one of which is valid (used for rotating keys)", %{
@@ -35,6 +45,15 @@ defmodule Air.Service.License.FSM.Test do
 
       assert FSM.present?(state)
       assert FSM.text(state) == license_text
+    end
+
+    test "whitespace is removed before decoding", %{
+      valid_license: valid_license
+    } do
+      license_text = "\t" <> valid_license <> "\r\n"
+      {:ok, state} = FSM.initial() |> FSM.load(Key.public_key(), license_text)
+
+      assert FSM.present?(state)
     end
 
     test "expired license", %{expired_license: expired_license} do
@@ -64,6 +83,9 @@ defmodule Air.Service.License.FSM.Test do
     """
 
   defp load_valid_license(_context), do: {:ok, valid_license: File.read!("priv/dev_license.lic")}
+
+  defp load_license_without_auto_renew(_context),
+    do: {:ok, license_without_auto_renew: File.read!("priv/license_without_auto_renew.lic")}
 
   defp load_expired_license(_context), do: {:ok, expired_license: File.read!("priv/expired_dev_license.lic")}
 end

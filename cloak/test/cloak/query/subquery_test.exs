@@ -40,14 +40,6 @@ defmodule Cloak.Query.SubqueryTest do
     })
   end
 
-  test "not selecting user id in a subquery with global having" do
-    assert_query("select h from (select max(height) as h from heights_sq having h = 180) alias", %{
-      error:
-        "Missing a user id column in the select list of subquery `alias`." <>
-          " To fix this error, add the column `user_id` from table `heights_sq` to the subquery select list."
-    })
-  end
-
   test "implicitly selecting user id in a nested subquery" do
     assert_query("select height from (select height from (select height from heights_sq) sq1) sq2", %{
       columns: ["height"],
@@ -160,7 +152,7 @@ defmodule Cloak.Query.SubqueryTest do
     })
 
     assert_query("select height from (select user_id, height from heights_sq order by height offset 50) alias", %{
-      error: "Subquery has an `OFFSET` clause without a `LIMIT` clause."
+      error: "`OFFSET` clause requires a `LIMIT` clause in `restricted` subqueries."
     })
 
     assert_query(

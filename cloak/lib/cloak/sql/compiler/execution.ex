@@ -24,31 +24,30 @@ defmodule Cloak.Sql.Compiler.Execution do
       |> prepare_subqueries()
       |> censor_selected_uids()
       |> align_buckets()
-      |> align_ranges(Lens.key(:where))
+      |> align_where()
       |> align_join_ranges()
       |> compile_sample_rate()
       |> reject_null_user_ids()
       |> compute_aggregators()
       |> expand_virtual_tables()
 
-  @doc "Prepares the direct (non-anonymized) query for execution."
-  @spec prepare_raw(Query.t()) :: Query.t()
-  def prepare_raw(%Query{command: :select} = query), do: Helpers.apply_bottom_up(query, &compute_aggregators/1)
-
   # -------------------------------------------------------------------
   # UID handling
   # -------------------------------------------------------------------
 
-  defp reject_null_user_ids(%Query{subquery?: true} = query), do: query
+  defp reject_null_user_ids(%Query{type: :anonymized} = query) do
+    user_id = %Expression{Helpers.id_column(query) | synthetic?: true}
 
-  defp reject_null_user_ids(query),
-    do: %{
+    %{
       query
-      | where: Condition.combine(:and, {:not, {:is, Helpers.id_column(query), :null}}, query.where)
+      | where: Condition.combine(:and, {:not, {:is, user_id, :null}}, query.where)
     }
+  end
 
-  defp censor_selected_uids(%Query{command: :select, subquery?: false} = query) do
-    # In a top-level query, we're replacing all selected expressions which depend on uid columns with the `:*`
+  defp reject_null_user_ids(query), do: query
+
+  defp censor_selected_uids(%Query{type: :anonymized} = query) do
+    # In an anonymized query, we're replacing all selected expressions which depend on uid columns with the `:*`
     # constant. This allows us to reduce the amount of anonymized values, without compromising the privacy.
     # For example, consider the query `select uid, name from users`. Normally, this would return only `(*, *)`
     # rows. However, with this replacement, we can return names which are frequent enough, without revealing
@@ -71,6 +70,8 @@ defmodule Cloak.Sql.Compiler.Execution do
   # -------------------------------------------------------------------
   # Bucket alignment
   # -------------------------------------------------------------------
+
+  defp align_buckets(%Query{type: :standard} = query), do: query
 
   defp align_buckets(query) do
     {messages, query} = Lens.get_and_map(Lenses.buckets(), query, &align_bucket/1)
@@ -113,12 +114,10 @@ defmodule Cloak.Sql.Compiler.Execution do
       |> prepare()
       |> align_limit()
       |> align_offset()
-      |> align_ranges(Lens.key(:having))
+      |> align_having()
 
   @minimum_subquery_limit 10
-  defp align_limit(query = %{limit: nil}), do: query
-
-  defp align_limit(query = %{limit: limit}) do
+  defp align_limit(query = %{limit: limit, type: :restricted}) when limit != nil do
     aligned = limit |> FixAlign.align() |> round() |> max(@minimum_subquery_limit)
 
     if aligned != limit do
@@ -129,9 +128,9 @@ defmodule Cloak.Sql.Compiler.Execution do
     end
   end
 
-  defp align_offset(query = %{offset: 0}), do: query
+  defp align_limit(query), do: query
 
-  defp align_offset(query = %{limit: limit, offset: offset}) do
+  defp align_offset(query = %{limit: limit, offset: offset, type: :restricted}) when offset != 0 do
     aligned = round(offset / limit) * limit
 
     if aligned != offset do
@@ -141,6 +140,8 @@ defmodule Cloak.Sql.Compiler.Execution do
       query
     end
   end
+
+  defp align_offset(query), do: query
 
   # -------------------------------------------------------------------
   # Normal validators and compilers
@@ -186,6 +187,12 @@ defmodule Cloak.Sql.Compiler.Execution do
       query
       |> Query.Lenses.join_condition_lenses()
       |> Enum.reduce(query, fn lens, query -> align_ranges(query, lens) end)
+
+  defp align_having(%Query{type: :restricted} = query), do: align_ranges(query, Lens.key(:having))
+  defp align_having(query), do: query
+
+  defp align_where(%Query{type: :standard} = query), do: query
+  defp align_where(query), do: align_ranges(query, Lens.key(:where))
 
   defp align_ranges(query, lens) do
     clause = Lens.one!(lens, query)

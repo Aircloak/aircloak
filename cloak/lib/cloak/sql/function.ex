@@ -24,7 +24,7 @@ defmodule Cloak.Sql.Function do
   @functions %{
                ~w(count) => %{attributes: [:aggregator], type_specs: %{[:any] => :integer}},
                ~w(count_noise) => %{
-                 attributes: [:aggregator, :not_in_subquery],
+                 attributes: [:aggregator, {:not_in, :restricted}, {:not_in, :standard}],
                  type_specs: %{[:any] => :real}
                },
                ~w(sum) => %{
@@ -35,7 +35,7 @@ defmodule Cloak.Sql.Function do
                  }
                },
                ~w(sum_noise) => %{
-                 attributes: [:aggregator, :not_in_subquery],
+                 attributes: [:aggregator, {:not_in, :restricted}, {:not_in, :standard}],
                  type_specs: %{[numeric] => :real}
                },
                ~w(median) => %{
@@ -62,7 +62,7 @@ defmodule Cloak.Sql.Function do
                },
                ~w(avg stddev) => %{attributes: [:aggregator], type_specs: %{[numeric] => :real}},
                ~w(avg_noise stddev_noise) => %{
-                 attributes: [:aggregator, :not_in_subquery],
+                 attributes: [:aggregator, {:not_in, :restricted}, {:not_in, :standard}],
                  type_specs: %{[numeric] => :real}
                },
                ~w(hour minute second) => %{
@@ -163,11 +163,11 @@ defmodule Cloak.Sql.Function do
                ~w(hash) => %{
                  type_specs: %{[:text] => :integer, [:integer] => :integer, [:real] => :integer}
                },
-               # NOTICE: The `not_in_subquery` is set for `extract_words` because we are not yet sure it's safe in
-               # subqueries.
+               # NOTICE: The `{:not_in, :restricted}` is set for `extract_words` because we are not
+               # yet sure it's safe in restricted queries.
                ~w(extract_words) => %{
                  type_specs: %{[:text] => :text},
-                 attributes: [:not_in_subquery, :row_splitter]
+                 attributes: [{:not_in, :restricted}, :row_splitter]
                },
                [{:cast, :integer}] => %{
                  type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer},
@@ -225,7 +225,7 @@ defmodule Cloak.Sql.Function do
   def function?(_), do: false
 
   @doc "Returns true if the function has the specified attribute, false otherise."
-  @spec has_attribute?(t | Parser.function_name() | nil, atom) :: boolean
+  @spec has_attribute?(t | Parser.function_name() | nil, atom | tuple) :: boolean
   def has_attribute?({:function, name, _, _}, attribute), do: has_attribute?(canonical_name(name), attribute)
 
   def has_attribute?(%Expression{function?: true, function: name}, attribute), do: has_attribute?(name, attribute)

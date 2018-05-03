@@ -255,27 +255,19 @@ defmodule Cloak.DataSource.MongoDB do
     stats["sharded"] == true
   end
 
-  @supported_functions_3_0 ~w(+ - * / % count sum
-    || concat lower upper year month day weekday hour minute second
+  @supported_functions ~w(
+    + - * / % count sum || concat lower upper year month day weekday hour minute second
     cast_integer_to_boolean cast_real_to_boolean cast_boolean_to_integer cast_boolean_to_real
-    cast_boolean_to_text cast_text_to_boolean cast_integer_to_real cast_datetime_to_text)
-  @supported_functions_3_2 @supported_functions_3_0 ++
-                             ~w(^ abs ceil floor round sqrt trunc quarter div cast_real_to_integer min max avg)
-  @supported_functions_3_4 @supported_functions_3_2 ++
-                             ~w(length left right substring cast_real_to_text cast_integer_to_text)
+    cast_boolean_to_text cast_text_to_boolean cast_integer_to_real cast_datetime_to_text
+    ^ abs ceil floor round sqrt trunc quarter div cast_real_to_integer min max avg
+    length left right substring cast_real_to_text cast_integer_to_text
+  )
+
   defp supported_functions(version) do
-    cond do
-      Version.compare(version, "3.0.0") == :lt ->
-        DataSource.raise_error("Unsupported MongoDB version: #{version}. At least 3.0 required.")
-
-      Version.compare(version, "3.2.0") == :lt ->
-        @supported_functions_3_0
-
-      Version.compare(version, "3.4.0") == :lt ->
-        @supported_functions_3_2
-
-      true ->
-        @supported_functions_3_4
+    if Version.compare(version, "3.4.0") == :lt do
+      DataSource.raise_error("Unsupported MongoDB version: #{version}. At least 3.4 required.")
+    else
+      @supported_functions
     end
   end
 
@@ -285,7 +277,7 @@ defmodule Cloak.DataSource.MongoDB do
   defp function_signature(%Expression{function?: true, function: name}), do: name
 
   defp supports_joins?(%Query{from: {:join, join}} = query) do
-    mongo_version_supports_joins?(query) and join.type == :inner_join and supports_join_conditions?(join.conditions) and
+    join.type == :inner_join and supports_join_conditions?(join.conditions) and
       supports_join_branches?(query.selected_tables, join.lhs, join.rhs)
   end
 
@@ -301,9 +293,6 @@ defmodule Cloak.DataSource.MongoDB do
         {_, :desc, :nulls_last} -> true
         _ -> false
       end)
-
-  defp mongo_version_supports_joins?(%{data_source: data_source}),
-    do: data_source |> mongo_version() |> Version.compare("3.2.0") != :lt
 
   defp supports_join_conditions?({:comparison, lhs, :=, rhs}), do: lhs.name != nil and rhs.name != nil
 

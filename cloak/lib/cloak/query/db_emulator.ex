@@ -9,55 +9,42 @@ defmodule Cloak.Query.DbEmulator do
   require Logger
 
   alias Cloak.{DataSource, DataSource.Table}
-  alias Cloak.Sql.{Query, Expression, Function, Condition}
-  alias Cloak.Query.{DbEmulator.Selector, Rows}
-  alias Cloak.Sql.Compiler
+  alias Cloak.Sql.{Query, Expression, Function, Condition, Compiler}
+  alias Cloak.Query.{DbEmulator.Selector, Rows, RowSplitters, Aggregator, Runner.ParallelProcessor}
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Retrieves rows according to the specification in the emulated query."
-  @spec select(Query.t()) :: {[Enumerable.t()], Query.t()}
-  def select(%Query{emulated?: true} = query) do
-    Logger.debug("Emulating query ...")
-    query = Compiler.Helpers.apply_top_down(query, &compile_emulated_joins/1)
-    {[query.from |> select_rows() |> Selector.pick_db_columns(query)], query}
+  @doc "Retrieves rows according to the specification in the compiled query."
+  @spec select(Query.t()) :: Enumerable.t()
+  def select(query) do
+    query =
+      query
+      |> Query.set_emulation_flag()
+      |> Query.resolve_db_columns()
+      |> Compiler.Helpers.apply_top_down(&compile_emulated_joins/1)
+
+    select_rows({:subquery, %{ast: query}})
   end
 
   # -------------------------------------------------------------------
   # Selection of rows from subparts of an emulated query
   # -------------------------------------------------------------------
 
-  defp offload_select!(query, rows_processor) do
-    DataSource.select!(%Query{query | where: Query.offloaded_where(query)}, fn rows ->
-      rows
-      |> Stream.concat()
-      |> rows_processor.()
-      |> Enum.to_list()
-    end)
-  end
-
-  defp select_rows({:subquery, %{ast: %Query{emulated?: false} = query}}) do
-    query
-    |> Query.debug_log("Executing sub-query through data source")
-    |> offload_select!(&Rows.filter(&1, query |> Query.emulated_where() |> Condition.to_function()))
-  end
+  defp offload_select!(query, rows_processor),
+    do: DataSource.select!(%Query{query | where: Query.offloaded_where(query)}, rows_processor)
 
   defp select_rows({:subquery, %{ast: %Query{emulated?: true, from: from} = subquery}})
        when not is_binary(from) do
-    Query.debug_log(subquery, "Emulating intermediate sub-query")
-
-    subquery.from
-    |> select_rows()
-    |> Selector.pick_db_columns(subquery)
-    |> Selector.select(subquery)
+    Query.debug_log(subquery, "Emulating query ...")
+    process_rows([subquery.from |> select_rows() |> Selector.pick_db_columns(subquery)], subquery)
   end
 
-  defp select_rows({:subquery, %{ast: %Query{emulated?: true} = query}}) do
-    %Query{query | subquery?: false}
-    |> Query.debug_log("Emulating leaf sub-query")
-    |> offload_select!(&Selector.select(&1, query))
+  defp select_rows({:subquery, %{ast: query}}) do
+    %Query{query | subquery?: not query.emulated? and query.type != :anonymized}
+    |> Query.debug_log("Offloading query ...")
+    |> offload_select!(&process_rows(&1, query))
   end
 
   defp select_rows({:join, join}) do
@@ -74,6 +61,52 @@ defmodule Cloak.Query.DbEmulator do
     rhs_rows = Task.await(rhs_task, :infinity)
     Selector.join(lhs_rows, rhs_rows, join)
   end
+
+  defp process_rows(chunks, %Query{type: :anonymized} = query) do
+    Logger.debug("Anonymizing query result ...")
+
+    query = RowSplitters.compile(query)
+
+    chunks
+    |> ParallelProcessor.execute(
+      concurrency(query),
+      &consume_rows(&1, query),
+      &Aggregator.merge_groups/2
+    )
+    |> Aggregator.aggregate(query)
+    |> convert_buckets(query)
+  end
+
+  defp process_rows(chunks, %Query{emulated?: false} = query) do
+    chunks
+    |> Stream.concat()
+    |> Rows.filter(query |> Query.emulated_where() |> Condition.to_function())
+    |> convert_rows(query)
+  end
+
+  defp process_rows(chunks, %Query{emulated?: true} = query) do
+    chunks
+    |> Stream.concat()
+    |> Selector.select(query)
+    |> convert_rows(query)
+  end
+
+  defp consume_rows(stream, query) do
+    stream
+    |> RowSplitters.split(query)
+    |> Rows.filter(query |> Query.emulated_where() |> Condition.to_function())
+    |> Aggregator.group(query)
+  end
+
+  defp concurrency(query), do: query.data_source.concurrency || Application.get_env(:cloak, :concurrency, 0)
+
+  defp convert_buckets(buckets, %Query{subquery?: true}),
+    do: Stream.flat_map(buckets, &List.duplicate(&1.row, &1.occurrences))
+
+  defp convert_buckets(buckets, %Query{subquery?: false}), do: buckets
+
+  defp convert_rows(stream, %Query{subquery?: false}), do: Enum.map(stream, &%{row: &1, occurrences: 1, users_count: 0})
+  defp convert_rows(stream, %Query{subquery?: true}), do: Enum.to_list(stream)
 
   # -------------------------------------------------------------------
   # Transformation of joins for the purposes of emulated query selector

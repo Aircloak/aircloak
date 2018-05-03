@@ -46,7 +46,6 @@ defmodule Cloak.Mixfile do
       {:mongodb, "~> 0.3.0"},
       {:backoff, "~> 1.1.3"},
       {:jiffy, "~> 0.14.1"},
-      {:tds, github: "cristianberneanu/tds"},
       {:file_system, "~> 0.2.2"},
 
       # Rustler is needed for compiling Rust port driver on MacOS
