@@ -405,24 +405,27 @@ defmodule Cloak.DataSource do
   if Mix.env() == :prod do
     defp disabled?(data_source), do: explicitly_disabled?(data_source)
   else
-    defp disabled?(data_source), do: explicitly_disabled?(data_source) || sap_hana_unavailable?(data_source)
+    defp disabled?(data_source),
+      do: explicitly_disabled?(data_source) || osx_disabled?(data_source) || default_schema_not_configured?(data_source)
 
-    defp sap_hana_unavailable?(%{driver: Cloak.DataSource.SAPHana}) do
-      cond do
-        is_nil(Cloak.DataSource.SAPHana.default_schema()) ->
-          Logger.warn("Default schema for SAP HANA not set. Skipping SAP HANA data source.")
-          true
-
-        :os.type() == {:unix, :darwin} ->
-          Logger.warn("Can't connect to SAP HANA data source on OS X.")
-          true
-
-        true ->
-          false
+    defp osx_disabled?(data_source) do
+      if :os.type() == {:unix, :darwin} and data_source.driver in [Cloak.DataSource.SAPHana, Cloak.DataSource.SAPIQ] do
+        ds_name = String.replace(to_string(data_source.driver), ~r/^Elixir\.Cloak\.DataSource\./, "")
+        Logger.warn("Can't connect to #{ds_name} data source on OS X.")
+        true
+      else
+        false
       end
     end
 
-    defp sap_hana_unavailable?(_other_data_source), do: false
+    defp default_schema_not_configured?(data_source) do
+      if data_source.driver == Cloak.DataSource.SAPHana && is_nil(Cloak.DataSource.SAPHana.default_schema()) do
+        Logger.warn("Default schema for SAP HANA not set. Skipping SAP HANA data source.")
+        true
+      else
+        false
+      end
+    end
   end
 
   defp explicitly_disabled?(data_source) do
