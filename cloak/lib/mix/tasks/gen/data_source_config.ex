@@ -96,9 +96,19 @@ defmodule Mix.Tasks.Gen.DataSourceConfig do
       |> Compliance.DataSources.complete_data_source_definitions()
       |> Enum.map(fn data_source ->
         {:ok, name} = Cloak.DataSource.Utility.driver_to_name(data_source.driver)
-        Map.put(data_source, :driver, name)
+
+        data_source
+        |> Map.put(:driver, name)
+        |> sanitize_tables()
       end)
       |> Enum.map(&Map.take(&1, [:marker, :name, :parameters, :tables, :driver]))
+    end
+
+    defp sanitize_tables(data_source) do
+      Lens.key(:tables)
+      |> Lens.map_values()
+      |> Lens.filter(fn table -> is_nil(table[:query]) end)
+      |> Lens.map(data_source, fn table -> Map.delete(table, :query) end)
     end
   end
 end
