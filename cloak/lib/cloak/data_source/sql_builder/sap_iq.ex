@@ -30,7 +30,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPIQ do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp sql_type(:text), do: "varchar"
+  defp sql_type(:text), do: "nvarchar"
   defp sql_type(:datetime), do: "timestamp"
   defp sql_type(type) when is_atom(type), do: Atom.to_string(type)
 end

@@ -147,8 +147,8 @@ defmodule Cloak.DataSource.ODBC do
   # We hardcode the default encoding for SQL Server and SAP HANA to be utf16 little endian.
   # This is for historic reasons more than anything, since that's what our servers are using internally.
   defp type_to_field_mapper(:text, %{driver: Cloak.DataSource.SQLServer}), do: text_to_unicode_mapper({:utf16, :little})
-
   defp type_to_field_mapper(:text, %{driver: Cloak.DataSource.SAPHana}), do: text_to_unicode_mapper({:utf16, :little})
+  defp type_to_field_mapper(:text, %{driver: Cloak.DataSource.SAPIQ}), do: text_to_unicode_mapper({:utf16, :little})
 
   defp type_to_field_mapper(:interval, data_source), do: &interval_field_mapper(&1, data_source)
   defp type_to_field_mapper(_, _data_source), do: &generic_field_mapper/1
