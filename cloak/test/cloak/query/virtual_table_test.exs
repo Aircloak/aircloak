@@ -88,7 +88,18 @@ defmodule Cloak.Query.VirtualTableTest do
   test "duplicated columns are dropped" do
     create_virtual_table!("vtt_fake", "select user_id, * from cloak_test.vtt_real")
 
-    assert_query("show columns from  vtt_fake", %{
+    assert_query("show columns from vtt_fake", %{
+      rows: [
+        %{row: ["user_id", "text"]},
+        %{row: ["ival", "integer"]}
+      ]
+    })
+  end
+
+  test "constant columns are dropped" do
+    create_virtual_table!("vtt_fake", "select *, 0 as a from cloak_test.vtt_real")
+
+    assert_query("show columns from vtt_fake", %{
       rows: [
         %{row: ["user_id", "text"]},
         %{row: ["ival", "integer"]}
