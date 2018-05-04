@@ -107,6 +107,16 @@ defmodule Cloak.Query.VirtualTableTest do
     })
   end
 
+  test "hiding columns by dropping duplicated and constant columns" do
+    create_virtual_table!("vtt_fake", "select 0 as ival, * from cloak_test.vtt_real")
+
+    assert_query("show columns from vtt_fake", %{
+      rows: [
+        %{row: ["user_id", "text"]}
+      ]
+    })
+  end
+
   test "virtual columns" do
     create_virtual_table!("vtt_fake", "select user_id, ival * 2 as x from cloak_test.vtt_real")
     assert_query("select sum(x) from vtt_fake", %{rows: [%{row: [600]}]})
