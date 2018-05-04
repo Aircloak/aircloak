@@ -79,7 +79,7 @@ defmodule AirWeb.Admin.UserController do
   end
 
   def reset_password(conn, _params) do
-    render(conn, "reset_password.html", user: conn.assigns.user, reset_link: "http://example.com")
+    render(conn, "reset_password.html", user: conn.assigns.user, reset_link: reset_link(conn))
   end
 
   # -------------------------------------------------------------------
@@ -103,4 +103,8 @@ defmodule AirWeb.Admin.UserController do
       |> redirect(to: admin_user_path(conn, :index))
 
   defp verify_last_admin_deleted(result, _conn, fun), do: fun.(result)
+
+  defp reset_link(conn) do
+    "#{conn.scheme}://#{conn.host}:#{conn.port}#{reset_password_path(conn, :show)}"
+  end
 end
