@@ -1,6 +1,8 @@
 defmodule Cloak.DataSource.RODBC.Driver do
   @moduledoc "Rust ODBC port driver wrapper."
 
+  require Logger
+
   @port_name 'librodbc'
 
   @command_connect 0
@@ -35,7 +37,10 @@ defmodule Cloak.DataSource.RODBC.Driver do
 
   @doc "Executes an SQL statement on the connected backend."
   @spec execute(port(), String.t()) :: :ok | {:error, String.t()}
-  def execute(port, statement), do: port |> :erlang.port_control(@command_execute, statement) |> decode_response()
+  def execute(port, statement) do
+    Logger.debug(fn -> "Executing SQL query: #{statement}" end)
+    port |> :erlang.port_control(@command_execute, statement) |> decode_response()
+  end
 
   @doc "Returns all rows selected by the previous statement."
   @spec fetch_all(port(), (row -> row)) :: {:ok, Enumerable.t()} | {:error, String.t()}

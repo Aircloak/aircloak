@@ -9,6 +9,8 @@ defmodule Cloak.DataSource.MySQL do
 
   use Cloak.DataSource.Driver.SQL
 
+  require Logger
+
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
@@ -72,6 +74,8 @@ defmodule Cloak.DataSource.MySQL do
   # -------------------------------------------------------------------
 
   defp run_query(pool, statement, decode_mapper, result_processor) do
+    Logger.debug(fn -> "Executing SQL query: #{statement}" end)
+
     Mariaex.transaction(
       pool,
       fn connection ->

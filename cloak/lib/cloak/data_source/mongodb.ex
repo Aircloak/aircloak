@@ -39,6 +39,8 @@ defmodule Cloak.DataSource.MongoDB do
   alias Cloak.DataSource
   alias Cloak.DataSource.{Driver, MongoDB.Schema, MongoDB.Pipeline}
 
+  require Logger
+
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
@@ -146,6 +148,7 @@ defmodule Cloak.DataSource.MongoDB do
   @impl Driver
   def select(connection, query, result_processor) do
     {collection, pipeline} = Pipeline.build(query)
+    Logger.debug(fn -> "Executing MongoDB pipeline on collection #{inspect(collection)}: #{inspect(pipeline)}" end)
     timeout = Driver.timeout()
 
     options = [
