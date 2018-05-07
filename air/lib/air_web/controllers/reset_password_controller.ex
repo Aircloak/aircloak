@@ -7,13 +7,14 @@ defmodule AirWeb.ResetPasswordController do
   # AirWeb.VerifyPermissions callback
   # -------------------------------------------------------------------
 
-  def permissions, do: %{anonymous: [:show, :update]}
+  def permissions, do: %{anonymous: [:show, :update, :forgot]}
 
   # -------------------------------------------------------------------
   # Actions
   # -------------------------------------------------------------------
 
-  def show(conn, params), do: render(conn, "show.html", token: params["token"], changeset: User.empty_changeset())
+  def show(conn, params),
+    do: render(conn, "show.html", token: String.trim(params["token"]), changeset: User.empty_changeset())
 
   def update(conn, params) do
     case User.reset_password(params["token"], params["user"]) do
@@ -31,4 +32,6 @@ defmodule AirWeb.ResetPasswordController do
         render(conn, "show.html", token: params["token"], changeset: changeset)
     end
   end
+
+  def forgot(conn, _params), do: render(conn, "forgot.html")
 end
