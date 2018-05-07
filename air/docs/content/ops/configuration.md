@@ -347,7 +347,7 @@ For remaining possible decoders, no additional parameters are needed:
 ...
 ```
 
-#### Tips an tricks
+#### Tips and tricks
 
 It is common to have multiple Insights Cloak instances sharing the same datasource definitions.
 Maintaining separate copies of the datasource definition for each Insights Cloak instance complicates maintenance,
