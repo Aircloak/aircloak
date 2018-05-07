@@ -121,6 +121,8 @@ defmodule Cloak.Query.Runner do
        log_format: Logger.Formatter.compile(Application.get_env(:logger, :console)[:format]),
        log_metadata: Application.get_env(:logger, :console)[:metadata],
        log: [],
+       processing_steps: 1,
+       query_state: nil,
        # We're starting the runner as a direct child.
        # This GenServer will wait for the runner to return or crash. Such approach allows us to
        # detect a failure no matter how the query fails (even if the runner process is for example killed).
@@ -147,10 +149,40 @@ defmodule Cloak.Query.Runner do
     {:stop, :normal, state}
   end
 
+  # Some queries can have multiple anonymization steps, so the state sequence
+  # `[:ingesting_data, :processing, :post_processing]` can arrive multiple times.
+  # Joins are also executed in parallel, so it means this state sequence can also come out of order.
+  # We want to aggregate the multiple, concurrent arrivals of this sequence into a global query state, as follows:
+  #   - when the first `:ingesting_data` state arrives, we go into the `:ingesting_data` state.
+  #   - when the first `:processing` state arrives, we go into the `:processing` state and stay there until
+  #     all the other `processing` steps also arrive.
+  #   - after all the `:processing` states have arrived and when the first `:post_processing` state arrives,
+  #     we go into the `:post_processing` state.
+  # The number of possible `:processing` steps in set in separate call, using `{:set_processing_steps, count}`.
+
+  def handle_info({:send_state, _query_id, {:set_processing_steps, iterations}}, state),
+    do: {:noreply, %{state | processing_steps: iterations}}
+
+  def handle_info(
+        {:send_state, _query_id, :processing},
+        %{query_state: :processing, processing_steps: iterations} = state
+      )
+      when iterations > 1,
+      do: {:noreply, %{state | processing_steps: iterations - 1}}
+
+  def handle_info(
+        {:send_state, _query_id, _ignored_state},
+        %{query_state: :processing, processing_steps: iterations} = state
+      )
+      when iterations > 1,
+      do: {:noreply, state}
+
+  def handle_info({:send_state, _query_id, query_state}, %{query_state: query_state} = state), do: {:noreply, state}
+
   def handle_info({:send_state, query_id, query_state}, state) do
     Logger.debug(fn -> "Query #{query_id} state changed to: #{query_state}..." end)
     ResultSender.send_state(state.result_target, query_id, query_state)
-    {:noreply, state}
+    {:noreply, %{state | query_state: query_state}}
   end
 
   def handle_info({:features, features}, state) do

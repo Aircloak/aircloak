@@ -10,59 +10,79 @@ defmodule Cloak.Query.DbEmulator do
 
   alias Cloak.{DataSource, DataSource.Table}
   alias Cloak.Sql.{Query, Expression, Function, Condition, Compiler}
-  alias Cloak.Query.{DbEmulator.Selector, Rows, RowSplitters, Aggregator, Runner.ParallelProcessor}
+  alias Cloak.Query.{DbEmulator.Selector, Rows, RowSplitters, Aggregator, Runner.ParallelProcessor, Runner.Engine}
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Retrieves rows according to the specification in the compiled query."
-  @spec select(Query.t()) :: Enumerable.t()
-  def select(query) do
+  @spec select(Query.t(), Engine.state_updater()) :: Enumerable.t()
+  def select(query, state_updater) do
     query =
       query
       |> Query.set_emulation_flag()
       |> Query.resolve_db_columns()
       |> Compiler.Helpers.apply_top_down(&compile_emulated_joins/1)
 
-    select_rows({:subquery, %{ast: query}})
+    state_updater.(:awaiting_data)
+
+    processing_steps =
+      Query.Lenses.all_queries()
+      |> Lens.filter(&(&1.type == :anonymized))
+      |> Lens.to_list(query)
+      |> Enum.count()
+
+    state_updater.({:set_processing_steps, processing_steps})
+
+    state_updater = fn acc, state ->
+      state_updater.(state)
+      acc
+    end
+
+    select_rows({:subquery, %{ast: query}}, state_updater)
   end
 
   # -------------------------------------------------------------------
   # Selection of rows from subparts of an emulated query
   # -------------------------------------------------------------------
 
-  defp offload_select!(query, rows_processor),
-    do: DataSource.select!(%Query{query | where: Query.offloaded_where(query)}, rows_processor)
-
-  defp select_rows({:subquery, %{ast: %Query{emulated?: true, from: from} = subquery}})
+  defp select_rows({:subquery, %{ast: %Query{emulated?: true, from: from} = subquery}}, state_updater)
        when not is_binary(from) do
     Query.debug_log(subquery, "Emulating query ...")
-    process_rows([subquery.from |> select_rows() |> Selector.pick_db_columns(subquery)], subquery)
+    rows = subquery.from |> select_rows(state_updater) |> Selector.pick_db_columns(subquery)
+    process_rows([rows], subquery, state_updater)
   end
 
-  defp select_rows({:subquery, %{ast: query}}) do
-    %Query{query | subquery?: not query.emulated? and query.type != :anonymized}
+  defp select_rows({:subquery, %{ast: query}}, state_updater) do
+    %Query{query | subquery?: not query.emulated? and query.type != :anonymized, where: Query.offloaded_where(query)}
     |> Query.debug_log("Offloading query ...")
-    |> offload_select!(&process_rows(&1, query))
+    |> DataSource.select!(fn chunks ->
+      chunks
+      |> Stream.transform(:first, fn
+        chunk, :first -> {[state_updater.(chunk, :ingesting_data)], :not_first}
+        chunk, :not_first -> {[chunk], :not_first}
+      end)
+      |> process_rows(query, state_updater)
+    end)
   end
 
-  defp select_rows({:join, join}) do
+  defp select_rows({:join, join}, state_updater) do
     Logger.debug("Emulating join ...")
     query_id = Keyword.get(Logger.metadata(), :query_id, nil)
 
     rhs_task =
       Task.async(fn ->
         Logger.metadata(query_id: query_id)
-        select_rows(join.rhs)
+        select_rows(join.rhs, state_updater)
       end)
 
-    lhs_rows = select_rows(join.lhs)
+    lhs_rows = select_rows(join.lhs, state_updater)
     rhs_rows = Task.await(rhs_task, :infinity)
     Selector.join(lhs_rows, rhs_rows, join)
   end
 
-  defp process_rows(chunks, %Query{type: :anonymized} = query) do
+  defp process_rows(chunks, %Query{type: :anonymized} = query, state_updater) do
     Logger.debug("Anonymizing query result ...")
 
     query = RowSplitters.compile(query)
@@ -73,18 +93,20 @@ defmodule Cloak.Query.DbEmulator do
       &consume_rows(&1, query),
       &Aggregator.merge_groups/2
     )
+    |> state_updater.(:processing)
     |> Aggregator.aggregate(query)
+    |> state_updater.(:post_processing)
     |> convert_buckets(query)
   end
 
-  defp process_rows(chunks, %Query{emulated?: false} = query) do
+  defp process_rows(chunks, %Query{emulated?: false} = query, _state_updater) do
     chunks
     |> Stream.concat()
     |> Rows.filter(query |> Query.emulated_where() |> Condition.to_function())
     |> convert_rows(query)
   end
 
-  defp process_rows(chunks, %Query{emulated?: true} = query) do
+  defp process_rows(chunks, %Query{emulated?: true} = query, _state_updater) do
     chunks
     |> Stream.concat()
     |> Selector.select(query)
