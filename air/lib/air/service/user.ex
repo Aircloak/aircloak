@@ -48,7 +48,7 @@ defmodule Air.Service.User do
       |> password_reset_changeset(params)
       |> Repo.update()
     else
-      {:error, :invalid} -> {:error, :invalid_token}
+      _ -> {:error, :invalid_token}
     end
   end
 

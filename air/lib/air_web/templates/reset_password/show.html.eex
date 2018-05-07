@@ -3,22 +3,24 @@
 
   <div class="panel panel-default">
     <div class="panel-body">
-      <%= form_tag reset_password_path(@conn, :update), method: "put" do %>
+      <%= form_for @changeset, reset_password_path(@conn, :update), [method: "put"], fn f -> %>
+        <input type="hidden" value="<%= @token %>" name="token">
 
-        <div class='form-group'>
-          <label class='control-label' for='password-input'>Password</label>
-          <input class='form-control' type='password' name='password' />
+        <div class="form-group">
+          <label>Password</label>
+          <%= password_input f, :password, class: "form-control" %>
+          <%= error_tag f, :password %>
         </div>
 
-        <div class='form-group'>
-          <label class='control-label' for='password-input'>Password confirmation</label>
-          <input class='form-control' type='password' name='password_confirmation' />
+        <div class="form-group">
+          <label>Password Confirmation</label>
+          <%= password_input f, :password_confirmation, class: "form-control" %>
+          <%= error_tag f, :password_confirmation %>
         </div>
 
         <div class='form-group'>
           <button class='btn btn-primary'>Save</button>
         </div>
-
       <% end %>
     </div>
   </div>

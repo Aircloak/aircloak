@@ -105,6 +105,7 @@ defmodule AirWeb.Admin.UserController do
   defp verify_last_admin_deleted(result, _conn, fun), do: fun.(result)
 
   defp reset_link(conn) do
-    "#{conn.scheme}://#{conn.host}:#{conn.port}#{reset_password_path(conn, :show)}"
+    token = User.reset_password_token(conn.assigns.user)
+    "#{conn.scheme}://#{conn.host}:#{conn.port}#{reset_password_path(conn, :show)}?token=#{token}"
   end
 end
