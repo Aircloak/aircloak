@@ -602,7 +602,7 @@ defmodule Cloak.Sql.Expression do
 
   defp function_results(function, args) do
     if row_splitter?(function) do
-      value(%{function | function_args: args, row_index: nil})
+      %{function | function_args: args, row_index: nil} |> value() |> List.wrap()
     else
       [value(%{function | function_args: args})]
     end

@@ -100,15 +100,21 @@ defmodule Cloak.Query.DbEmulator do
   end
 
   defp process_rows(chunks, %Query{emulated?: false} = query, _state_updater) do
+    query = RowSplitters.compile(query)
+
     chunks
     |> Stream.concat()
+    |> RowSplitters.split(query)
     |> Rows.filter(query |> Query.emulated_where() |> Condition.to_function())
     |> convert_rows(query)
   end
 
   defp process_rows(chunks, %Query{emulated?: true} = query, _state_updater) do
+    query = RowSplitters.compile(query)
+
     chunks
     |> Stream.concat()
+    |> RowSplitters.split(query)
     |> Selector.select(query)
     |> convert_rows(query)
   end

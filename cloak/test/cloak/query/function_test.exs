@@ -101,6 +101,26 @@ defmodule Cloak.Query.FunctionTest do
       })
     end
 
+    test "usage in standard queries" do
+      assert_query("SELECT DISTINCT extract_words(name) FROM (SELECT name FROM heights_ft GROUP BY 1) AS t", %{
+        rows: [
+          %{row: ["first"]},
+          %{row: ["second"]},
+          %{row: ["third"]}
+        ]
+      })
+    end
+
+    test "usage in sub-queries" do
+      assert_query("SELECT name FROM (SELECT extract_words(name) AS name FROM heights_ft GROUP BY 1) AS t", %{
+        rows: [
+          %{row: ["first"]},
+          %{row: ["second"]},
+          %{row: ["third"]}
+        ]
+      })
+    end
+
     test "extract_words surrounded by aggregate function" do
       assert_query("SELECT avg(length(extract_words(name))) FROM heights_ft", %{
         rows: [%{occurrences: 1, row: [average]}]
