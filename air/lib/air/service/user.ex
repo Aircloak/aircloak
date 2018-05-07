@@ -34,6 +34,13 @@ defmodule Air.Service.User do
     end
   end
 
+  @doc "Returns a token that can be used to reset the given user's password."
+  @spec reset_password_token(User.t()) :: String.t()
+  def reset_password_token(user, salt \\ "4egg+HOtabCGwsCsRVEBIg=="),
+    do: Phoenix.Token.sign(AirWeb.Endpoint, salt, user.id)
+
+  def reset_password(token, params), do: {:error, :invalid_token}
+
   @doc "Returns a list of all users in the system."
   @spec all() :: [User.t()]
   def all(), do: Repo.all(from(user in User, preload: [:groups]))
