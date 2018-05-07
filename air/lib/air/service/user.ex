@@ -9,7 +9,9 @@ defmodule Air.Service.User do
   import Ecto.Changeset
 
   @required_fields ~w(email name)a
-  @optional_fields ~w(password password_confirmation decimal_sep decimal_digits thousand_sep)a
+  @password_fields ~w(password password_confirmation)a
+  @optional_fields @password_fields ++ ~w(decimal_sep decimal_digits thousand_sep)a
+  @password_reset_salt "4egg+HOtabCGwsCsRVEBIg=="
 
   # -------------------------------------------------------------------
   # API functions
@@ -36,10 +38,19 @@ defmodule Air.Service.User do
 
   @doc "Returns a token that can be used to reset the given user's password."
   @spec reset_password_token(User.t()) :: String.t()
-  def reset_password_token(user, salt \\ "4egg+HOtabCGwsCsRVEBIg=="),
-    do: Phoenix.Token.sign(AirWeb.Endpoint, salt, user.id)
+  def reset_password_token(user, salt \\ @password_reset_salt), do: Phoenix.Token.sign(AirWeb.Endpoint, salt, user.id)
 
-  def reset_password(token, params), do: {:error, :invalid_token}
+  @doc "Resets the user's password from the given params. The user is identified by the given reset token."
+  @spec reset_password(String.t(), Map.t()) :: {:error, :invalid_token} | {:error, Ecto.Changeset.t()} | {:ok, User.t()}
+  def reset_password(token, params, salt \\ @password_reset_salt) do
+    with {:ok, user_id} <- Phoenix.Token.verify(AirWeb.Endpoint, salt, token, max_age: :timer.hours(1)) do
+      Repo.get!(User, user_id)
+      |> password_reset_changeset(params)
+      |> Repo.update()
+    else
+      {:error, :invalid} -> {:error, :invalid_token}
+    end
+  end
 
   @doc "Returns a list of all users in the system."
   @spec all() :: [User.t()]
@@ -332,11 +343,22 @@ defmodule Air.Service.User do
       |> validate_length(:decimal_sep, is: 1)
       |> validate_length(:thousand_sep, is: 1)
       |> validate_number(:decimal_digits, greater_than_or_equal_to: 1, less_than_or_equal_to: 9)
-      |> validate_length(:password, min: 4)
-      |> validate_confirmation(:password)
-      |> update_password_hash()
+      |> validate_password()
       |> unique_constraint(:email)
       |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
+
+  defp password_reset_changeset(user, params) do
+    user
+    |> cast(params, @password_fields)
+    |> validate_password()
+  end
+
+  defp validate_password(changeset) do
+    changeset
+    |> validate_length(:password, min: 4)
+    |> validate_confirmation(:password)
+    |> update_password_hash()
+  end
 
   defp password_changeset(user, params) do
     old_password_valid = User.validate_password(user, params["old_password"] || "")

@@ -283,16 +283,32 @@ defmodule Air.Service.UserTest do
   end
 
   describe "password reset" do
-    test "generating a token" do
+    setup do
       user = TestRepoHelper.create_user!()
       token = User.reset_password_token(user, "some salt")
+      {:ok, user: user, token: token}
+    end
 
+    test "generating a token", %{user: user, token: token} do
       user_id = user.id
       assert {:ok, ^user_id} = Phoenix.Token.verify(AirWeb.Endpoint, "some salt", token, max_age: :timer.hours(1))
     end
 
-    test "resetting the password with an invalid token" do
+    test "with an invalid token" do
       assert {:error, :invalid_token} = User.reset_password("invalid token", %{})
+    end
+
+    test "cannot change fields", %{user: user, token: token} do
+      old_email = user.email
+      assert {:ok, %{email: ^old_email}} = User.reset_password(token, %{email: "new@email.com"}, "some salt")
+    end
+
+    test "correct confirmation", %{token: token} do
+      assert {:ok, _} = User.reset_password(token, %{password: "1234", password_confirmation: "1234"}, "some salt")
+    end
+
+    test "incorrect confirmation", %{token: token} do
+      assert {:error, _} = User.reset_password(token, %{password: "1234", password_confirmation: "1235"}, "some salt")
     end
   end
 
