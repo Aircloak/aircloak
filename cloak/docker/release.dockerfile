@@ -32,5 +32,6 @@ ENV ODBCINI="/etc/odbc.ini"
 CMD /aircloak/start.sh
 
 VOLUME /runtime_config
+VOLUME /odbc_drivers
 
 TAG_VERSION

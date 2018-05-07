@@ -17,4 +17,7 @@ ln -sFf /runtime_config /aircloak/cloak/lib/cloak-$VERSION/priv/config
 # needed to ensure that references from odbc.ini work properly
 ln -nfs /aircloak/cloak/lib/cloak-$VERSION/priv /aircloak/cloak/priv
 
+mkdir -p /aircloak/cloak/priv/odbc/drivers
+if [ ! -z "$(ls /odbc_drivers)" ]; then cp -rp /odbc_drivers/* /aircloak/cloak/priv/odbc/drivers; fi
+
 exec gosu deployer /aircloak/cloak/bin/cloak foreground
