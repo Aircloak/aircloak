@@ -37,8 +37,7 @@ function remove_docker_containers {
   printf "removing docker containers..."
 
   for container in $(docker ps --format="{{.Names}}" --filter="name=$CONTAINER_ID"); do
-    docker kill $container > /dev/null || true
-    docker rm $container > /dev/null || true
+    docker rm -f $container > /dev/null || true
   done
 
   local dangling_volumes=$(docker volume ls -qf dangling=true)

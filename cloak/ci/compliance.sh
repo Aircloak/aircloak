@@ -26,8 +26,7 @@ function cleanup {
   if [ "$KEEP_DB_CONTAINERS" != "true" ]; then
     # also stop named db containers so they don't waste dev resources
     for container in postgres9.4 mongo3.4 mysql5.7 sqlserver2017; do
-      docker kill $container > /dev/null 2>&1 || true
-      docker rm $container > /dev/null 2>&1 || true
+      docker rm -f $container > /dev/null 2>&1 || true
     done
   fi
 
@@ -42,8 +41,7 @@ function clean_dangling {
   printf "performing cleanup of dangling images..."
 
   for container in $(docker ps --format="{{.Names}}" --filter="name=local_ci_"); do
-    docker kill $container > /dev/null 2>&1 || true
-    docker rm $container > /dev/null 2>&1 || true
+    docker rm -f $container > /dev/null 2>&1 || true
   done
 
   local dangling_volumes=$(docker volume ls -qf dangling=true)
