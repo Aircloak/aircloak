@@ -11,19 +11,28 @@ defmodule Cloak.DataSource.ODBC do
 
   require Logger
 
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
   @doc "Normalizes the connection parameters and connects to the data source via odbc."
   @spec connect!(Driver.parameters(), (map -> map)) :: :odbc.connection_reference()
   def connect!(parameters, conn_params_extractor) do
-    normalized_parameters =
-      parameters
-      |> Stream.map(fn {key, value} -> {downcase_key(key), value} end)
-      |> Stream.reject(fn {key, _value} -> is_nil(key) end)
-      |> Enum.into(%{})
+    normalized_parameters = normalize_parameters(parameters)
 
     normalized_parameters
     |> conn_params_extractor.()
     |> Map.merge(Map.get(normalized_parameters, :odbc_parameters, %{}))
     |> connect!()
+  end
+
+  @doc "Normalizes the connection parameters."
+  @spec normalize_parameters(Enum.t()) :: map
+  def normalize_parameters(parameters) do
+    parameters
+    |> Stream.map(fn {key, value} -> {downcase_key(key), value} end)
+    |> Stream.reject(fn {key, _value} -> is_nil(key) end)
+    |> Enum.into(%{})
   end
 
   # -------------------------------------------------------------------

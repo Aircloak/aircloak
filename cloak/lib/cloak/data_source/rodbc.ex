@@ -8,6 +8,21 @@ defmodule Cloak.DataSource.RODBC do
   alias Cloak.DataSource
 
   # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Normalizes the connection parameters and connects to the data source via odbc."
+  @spec connect!(Driver.parameters(), (map -> map)) :: :odbc.connection_reference()
+  def connect!(parameters, conn_params_extractor) do
+    normalized_parameters = Cloak.DataSource.ODBC.normalize_parameters(parameters)
+
+    normalized_parameters
+    |> conn_params_extractor.()
+    |> Map.merge(Map.get(normalized_parameters, :odbc_parameters, %{}))
+    |> connect!()
+  end
+
+  # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
