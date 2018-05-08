@@ -107,30 +107,32 @@ For some database products, the cloak image doesn't include the necessary ODBC d
 - SAP HANA
 - SAP IQ
 
-If you want to connect to these databases, you need to obtain the drivers yourself, and mount them when starting the container:
+For legal reasons the Insights Cloak image does not include the ODBC-drivers for SAP database. If you want to use SAP HANA or SAP IQ, you will have to provide the drivers yourself. Your SAP site administrator should be able to assist you.
+
+The ODBC-drivers need to be mounted into the docker container as follows:
 
 ```bash
 docker run \
   ...
 
-  -v odbc_drivers_folder:/odbc_drivers \
+  -v host_odbc_drivers_folder:/odbc_drivers \
 
   ...
 ```
 
-The drivers for the database need need to be stored in the `odbc_drivers_folder` using the required file structure, as explained below.
+Here, the folder `host_odbc_drivers_folder` is the folder on the host machine where ODBC drivers are stored. The drivers need to be stored using the required file structure, as explained below.
 
 #### SAP HANA
 
-For SAP HANA, you need to create the folder named `saphana` in the `odbc_drivers_folder`, and place a file named `libodbcHDB.so`.
+For SAP HANA, you need to create the folder named `saphana` in the `host_odbc_drivers_folder`, and store the driver into that folder. The driver should be named `libodbcHDB.so`.
 
 #### SAP IQ
 
 For SAP IQ, you need to provide various files which are part of SAP IQ Client and SAP IQ ODBC Driver. These files typically reside in folders `lib64` and `res` in the `IQ-16_X` folder of your SAP IQ installation.
 
-You need to take the required files and place them under the `sapiq` folder (under the `odbc_drivers_folder`). In addition, in the `lib64` folder, you need to find the file named `libdbodbcXY.so`, where `XY` is a numeric suffix (e.g. 17) and copy it into `libdbodbc.so`. Notice that the file should be copied, but not symlinked or renamed.
+You need to take the required files and place them in the `sapiq` folder (under the `host_odbc_drivers_folder`). In addition, in the `lib64` folder, you need to find the file named `libdbodbcXY.so`, where `XY` is a numeric suffix (e.g. 17) and copy it into `libdbodbc.so`. Notice that the file should be copied, not symlinked or renamed.
 
-Here is an example list of all required files in `odbc_drivers_folder/sapiq`:
+Here is an example list of all required files in `host_odbc_drivers_folder/sapiq`:
 
 ```
 lib64/libdbcapi.so
