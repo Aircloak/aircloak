@@ -5,5 +5,13 @@
 
 <h2>Edit <%= @changeset.data.name %></h2>
 
+<div class="alert alert-info" >
+  <p>The user can set a new password using the following link. The link will remain valid for 1 day.</p>
+
+  <br/>
+
+  <pre><%= @reset_link %></pre>
+</div>
+
 <%= render "_form.html", changeset: @changeset,
   action: admin_user_path(@conn, :update, @changeset.data.id), conn: @conn, chosen_groups: @user.groups %>

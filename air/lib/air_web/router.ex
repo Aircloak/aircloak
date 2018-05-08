@@ -99,7 +99,6 @@ defmodule AirWeb.Router do
     get("/queries/:id", QueryController, :show)
 
     resources("/users", UserController)
-    get("/users/:id/reset_password", UserController, :reset_password)
     resources("/groups", GroupController)
     resources("/data_sources", DataSourceController)
     resources("/settings", SettingsController, singleton: true)
