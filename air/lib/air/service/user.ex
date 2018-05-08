@@ -71,11 +71,11 @@ defmodule Air.Service.User do
 
   @doc "Creates the new user from the given parameters."
   @spec create(map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
-  def create(params),
-    do:
-      %User{}
-      |> user_changeset(params, additional_required_fields: [:password, :password_confirmation])
-      |> Repo.insert()
+  def create(params) do
+    %User{}
+    |> user_changeset(params)
+    |> Repo.insert()
+  end
 
   @doc "Creates the onboarding admin user."
   @spec create_onboarding_admin_user(map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}

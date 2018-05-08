@@ -43,7 +43,7 @@ defmodule AirWeb.Admin.UserController do
 
         conn
         |> put_flash(:info, "User created")
-        |> redirect(to: admin_user_path(conn, :index))
+        |> redirect(to: admin_user_path(conn, :edit, user.id))
 
       {:error, changeset} ->
         render(conn, "new.html", changeset: changeset)
