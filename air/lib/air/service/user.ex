@@ -43,7 +43,9 @@ defmodule Air.Service.User do
   @doc "Resets the user's password from the given params. The user is identified by the given reset token."
   @spec reset_password(String.t(), Map.t()) :: {:error, :invalid_token} | {:error, Ecto.Changeset.t()} | {:ok, User.t()}
   def reset_password(token, params, salt \\ @password_reset_salt) do
-    with {:ok, user_id} <- Phoenix.Token.verify(AirWeb.Endpoint, salt, token, max_age: :timer.hours(1)) do
+    one_day = :timer.hours(24)
+
+    with {:ok, user_id} <- Phoenix.Token.verify(AirWeb.Endpoint, salt, token, max_age: one_day) do
       Repo.get!(User, user_id)
       |> password_reset_changeset(params)
       |> Repo.update()
