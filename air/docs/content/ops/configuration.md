@@ -224,6 +224,9 @@ table_name: {
 }
 ```
 
+If the virtual table contains columns with duplicated names, only the first one is kept and the rest are dropped.
+Constant columns are also dropped from the table.
+
 #### Projected tables
 
 In some cases a table does not have a `user_id` column but is related to another table that does. You could for example have an `accounts` table with a `customer_id` column, and a table named `transactions` with an `account_id` column.
@@ -413,3 +416,30 @@ configs/
 
 Enabling or disabling further datasources for individual Insights Cloak instances is then only a matter of adding or
 removing a symlink.
+
+##### Hiding columns
+
+In some cases, it might not be desirable that all of the columns in a table are exposed to analysts.
+Virtual tables can be used to hide one or more columns, by explicitly listing only the columns that are valid for querying.
+
+For example, assuming we have the table `t` with columns `uid, x, y, z`, and we wish to hide column `y` from analysts,
+the following configuration file will do the trick:
+
+```
+t: {
+  query": "SELECT uid, x, z FROM t",
+  "user_id": "uid"
+}
+```
+
+Alternatively, if the target table has a large number of columns and we don't want to list all of them, we can explicitly
+select constants with the hidden columns' names, then star-select everything else. This uses the fact that duplicated
+columns are eliminated by only keeping the first instance and then that constants are dropped from the list of exposed
+columns. For example:
+
+```
+t: {
+  query": "SELECT 0 AS y, t.* FROM t",
+  "user_id": "uid"
+}
+```
