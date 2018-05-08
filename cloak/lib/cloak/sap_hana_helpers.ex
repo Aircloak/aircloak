@@ -156,7 +156,7 @@ defmodule Cloak.SapHanaHelpers do
   # -------------------------------------------------------------------
 
   defp driver_option() do
-    [driver: "#{Application.app_dir(:cloak, "priv/odbc/drivers")}/libodbc-sap-hana-v2.so"]
+    [driver: "#{Application.app_dir(:cloak, "priv/odbc/drivers/saphana")}/libodbcHDB.so"]
   end
 
   defp table_exists?(conn, schema_name, table_name),

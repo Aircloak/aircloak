@@ -2,12 +2,7 @@
 
 ### BREAKING CHANGES
 
-Please add any (potentially) breaking changes here.
-It will be cleaned up before release.
-But it's important to keep a note of breaking
-changes so we remember to inform our customers
-about them, and find ways to ensure their upgrade
-experiences are good!
+- ODBC drivers for SAP HANA must be provided by the client and mounted. See the Installation guide for more info.
 
 ### Features
 

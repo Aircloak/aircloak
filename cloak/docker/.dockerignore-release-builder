@@ -14,7 +14,6 @@
 !cloak/src
 !cloak/include
 !cloak/rel
-!cloak/priv/odbc/drivers
 !cloak/priv/config_schema.json
 !cloak/priv/datasource_schema.json
 !$CLOAK_CACHE
@@ -32,3 +31,6 @@ $CLOAK_CACHE/_build/prod/lib/cloak
 # We don't want runtime config included. It needs to be provided through a
 # mounted volume
 cloak/priv/config
+
+# SAP ODBC drivers will not be baked into the image. Instead, the clients need to mount them themselves.
+cloak/priv/odbc/drivers

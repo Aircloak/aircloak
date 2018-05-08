@@ -141,10 +141,7 @@ defmodule AircloakCI.Container do
       |> lines()
       |> Enum.filter(&String.starts_with?(&1, container_name))
 
-  defp remove_container(container_name) do
-    CmdRunner.run("docker kill #{container_name}")
-    CmdRunner.run("docker rm #{container_name}")
-  end
+  defp remove_container(container_name), do: CmdRunner.run("docker rm -f #{container_name}")
 
   defp remove_network(network_name) do
     network_name

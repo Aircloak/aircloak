@@ -1,11 +1,10 @@
-defmodule Cloak.DataSource.SQLServer do
+defmodule Cloak.DataSource.SAPIQ do
   @moduledoc """
-  Implements the DataSource.Driver behaviour for Microsoft SQL Server.
+  Implements the DataSource.Driver behaviour for SAP IQ.
   For more information, see `DataSource`.
   """
 
   alias Cloak.DataSource.ODBC
-
   use Cloak.DataSource.Driver.SQL
 
   # -------------------------------------------------------------------
@@ -13,17 +12,16 @@ defmodule Cloak.DataSource.SQLServer do
   # -------------------------------------------------------------------
 
   @impl Driver
-  def connect!(parameters) do
-    connection = ODBC.connect!(parameters, &conn_params/1)
-    {:updated, _} = :odbc.sql_query(connection, 'SET ANSI_DEFAULTS ON')
-    connection
-  end
+  def sql_dialect_module(_), do: Cloak.DataSource.SqlBuilder.SAPIQ
+
+  @impl Driver
+  def connect!(parameters), do: ODBC.connect!(parameters, &conn_params/1)
 
   @impl Driver
   defdelegate disconnect(connection), to: ODBC
 
   @impl Driver
-  defdelegate load_tables(connection, table), to: ODBC
+  def load_tables(connection, table), do: ODBC.load_tables(connection, update_in(table.db_name, &~s/"#{&1}"/))
 
   @impl Driver
   defdelegate select(connection, sql_query, result_processor), to: ODBC
@@ -40,11 +38,11 @@ defmodule Cloak.DataSource.SQLServer do
 
   defp conn_params(normalized_parameters) do
     %{
-      DSN: "SQLServer",
-      Server: normalized_parameters[:hostname],
-      Uid: normalized_parameters[:username],
-      Pwd: normalized_parameters[:password],
-      Database: normalized_parameters[:database]
+      Host: "#{normalized_parameters[:hostname]}:#{normalized_parameters[:port]}",
+      UserID: normalized_parameters[:username],
+      Password: normalized_parameters[:password],
+      DatabaseName: normalized_parameters[:database],
+      DSN: "SAPIQ"
     }
   end
 end

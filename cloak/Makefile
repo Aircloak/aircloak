@@ -6,7 +6,7 @@ SHELL=/bin/bash -o pipefail
 .PHONY: sql-server-container sql-server-database
 .PHONY: mysql-server-container mysql-server-database
 .PHONY: mongo-server-container
-.PHONY: ci.compliance
+.PHONY: ci.compliance dev-container
 .PHONY: format check-format
 
 define start_container
@@ -24,7 +24,7 @@ deps:
 
 clean:
 	mix clean --deps
-	rm -rf odbc_drivers
+	rm -rf priv/odbc/drivers
 
 start: compile
 	iex -S mix
@@ -95,16 +95,23 @@ mysql-server-database:
 mongo-server-container:
 	$(call start_container, aircloak_mongodb_server, -p 27017:27017 -d mongo)
 
-odbc_drivers: odbc_drivers_folder priv/odbc/drivers/libodbc-sap-hana-v2.so
+odbc_drivers: odbc_drivers_folder priv/odbc/drivers/saphana/libodbcHDB.so priv/odbc/drivers/sapiq
 
 odbc_drivers_folder:
 	mkdir -p priv/odbc/drivers
 
-priv/odbc/drivers/libodbc-sap-hana-v2.so:
-	wget -P priv/odbc/drivers https://www.dropbox.com/s/aerstjlatecny79/libodbc-sap-hana-v2.so
+priv/odbc/drivers/saphana/libodbcHDB.so:
+	mkdir -p priv/odbc/drivers/saphana
+	wget -O priv/odbc/drivers/saphana/libodbcHDB.so https://www.dropbox.com/s/aerstjlatecny79/libodbc-sap-hana-v2.so
+
+priv/odbc/drivers/sapiq:
+	wget -qO- https://www.dropbox.com/s/63loejvt622kjtt/sapiq_odbc_17.tar.gz | tar xzv --directory priv/odbc/drivers/
 
 ci.compliance:
-	ci/compliance.sh
+	ci/compliance.sh compliance
+
+dev-container:
+	ci/compliance.sh dev
 
 format:
 	mix format --check-equivalent

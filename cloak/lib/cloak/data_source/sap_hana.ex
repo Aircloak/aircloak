@@ -5,7 +5,6 @@ defmodule Cloak.DataSource.SAPHana do
   """
 
   alias Cloak.DataSource.ODBC
-
   use Cloak.DataSource.Driver.SQL
 
   @doc """
@@ -25,25 +24,7 @@ defmodule Cloak.DataSource.SAPHana do
   def sql_dialect_module(_), do: Cloak.DataSource.SqlBuilder.SAPHana
 
   @impl Driver
-  def connect!(parameters) do
-    normalized_parameters =
-      for {key, value} <- parameters,
-          into: %{},
-          do: {key |> Atom.to_string() |> String.downcase() |> String.to_atom(), value}
-
-    odbc_parameters =
-      %{
-        servernode: "#{normalized_parameters[:hostname]}:#{normalized_parameters[:port]}",
-        Uid: normalized_parameters[:username],
-        Pwd: normalized_parameters[:password],
-        databasename: normalized_parameters[:database],
-        DSN: "SAPHana"
-      }
-      |> Map.merge(schema_option(default_schema()))
-      |> add_optional_parameters(parameters)
-
-    ODBC.connect!(odbc_parameters)
-  end
+  def connect!(parameters), do: ODBC.connect!(parameters, &conn_params/1)
 
   @impl Driver
   defdelegate disconnect(connection), to: ODBC
@@ -63,6 +44,17 @@ defmodule Cloak.DataSource.SAPHana do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp conn_params(normalized_parameters) do
+    %{
+      servernode: "#{normalized_parameters[:hostname]}:#{normalized_parameters[:port]}",
+      Uid: normalized_parameters[:username],
+      Pwd: normalized_parameters[:password],
+      databasename: normalized_parameters[:database],
+      DSN: "SAPHana"
+    }
+    |> Map.merge(schema_option(default_schema()))
+  end
 
   if Mix.env() == :prod do
     # We don't allow env based override in prod
@@ -86,11 +78,4 @@ defmodule Cloak.DataSource.SAPHana do
 
   defp schema_option(nil), do: %{}
   defp schema_option(schema), do: %{cs: ~s/"#{schema}"/}
-
-  # Allows for adding additional ODBC connection parameters in the case where
-  # a SQL Server installation requires additional parameters.
-  defp add_optional_parameters(default_params, %{odbc_parameters: additonal_parameters}),
-    do: Map.merge(default_params, additonal_parameters)
-
-  defp add_optional_parameters(default_params, _), do: default_params
 end
