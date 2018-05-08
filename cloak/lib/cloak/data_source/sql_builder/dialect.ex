@@ -27,6 +27,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @doc "Returns the dialect-specific SQL for a unicode string literal."
   @callback unicode_literal(iodata) :: iodata
 
+  @doc "Returns the dialect-specific SQL for a boolean literal."
+  @callback boolean_literal(boolean) :: iodata
+
   @doc "Returns the dialect-specific SQL for an interval literal."
   @callback interval_literal(Timex.Duration.t()) :: iodata
 
@@ -80,6 +83,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       def interval_literal(duration), do: duration |> Timex.Duration.to_seconds() |> to_string()
 
       @impl unquote(__MODULE__)
+      def boolean_literal(value), do: to_string(value)
+
+      @impl unquote(__MODULE__)
       def order_by(column, :asc, :nulls_natural), do: [column, " ASC"]
       def order_by(column, :desc, :nulls_natural), do: [column, " DESC"]
       def order_by(column, :asc, :nulls_first), do: [column, " ASC NULLS FIRST"]
@@ -91,6 +97,7 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
                      ilike_sql: 2,
                      limit_sql: 2,
                      interval_literal: 1,
+                     boolean_literal: 1,
                      time_arithmetic_expression: 2,
                      date_subtraction_expression: 1,
                      native_support_for_ilike?: 0,

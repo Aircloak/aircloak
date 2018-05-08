@@ -260,7 +260,8 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp constant_to_fragment(value, _sql_dialect_module) when is_number(value), do: to_string(value)
 
-  defp constant_to_fragment(value, _sql_dialect_module) when is_boolean(value), do: to_string(value)
+  defp constant_to_fragment(value, sql_dialect_module) when is_boolean(value),
+    do: sql_dialect_module.boolean_literal(value)
 
   defp constant_to_fragment(value, sql_dialect_module) when is_binary(value),
     do:

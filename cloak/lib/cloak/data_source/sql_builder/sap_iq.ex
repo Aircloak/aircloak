@@ -44,6 +44,10 @@ defmodule Cloak.DataSource.SqlBuilder.SAPIQ do
   def unicode_literal(value), do: ["N'", value, ?']
 
   @impl Dialect
+  def boolean_literal(false), do: "0"
+  def boolean_literal(true), do: "1"
+
+  @impl Dialect
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 
   # -------------------------------------------------------------------
