@@ -1,7 +1,6 @@
 defmodule Cloak.DataSource.SqlBuilder do
   @moduledoc "Provides functionality for constructing an SQL query from a compiled query."
 
-  require Logger
   alias Cloak.Sql.{Query, Expression}
   alias Cloak.DataSource.SqlBuilder.{Support, SQLServer}
 
@@ -11,15 +10,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   @spec build(Query.t()) :: String.t()
   @doc "Constructs a parametrized SQL query that can be executed against a backend."
-  def build(query) do
-    query = build(query, Cloak.DataSource.sql_dialect_module(query.data_source))
-
-    # Note that we're logging here, and not in `build/2`, since this function is invoked by each driver before the
-    # query is executed. In contrast, `build/2` is used only for some internal logging purposes in the emulator.
-    Logger.debug("executing query: #{query}")
-
-    query
-  end
+  def build(query), do: build(query, Cloak.DataSource.sql_dialect_module(query.data_source))
 
   @spec build(Query.t(), atom) :: String.t()
   @doc "Constructs a parametrized SQL query that can be executed against a backend."
