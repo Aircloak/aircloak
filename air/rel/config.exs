@@ -28,4 +28,10 @@ end
 release :air do
   set(version: current_version(:air))
   set(erl_opts: "+K true")
+
+  set(
+    commands: [
+      reset_password: "rel/commands/reset_password.sh"
+    ]
+  )
 end

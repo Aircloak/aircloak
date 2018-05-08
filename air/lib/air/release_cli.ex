@@ -1,4 +1,4 @@
-defmodule ReleaseCLI do
+defmodule Air.ReleaseCLI do
   @moduledoc "Contains functions exposed to the system administrator via CLI commands."
 
   alias Air.{Repo, Schemas, Service}
@@ -7,7 +7,7 @@ defmodule ReleaseCLI do
   @spec reset_password(String.t()) :: :ok
   def reset_password(email) do
     Schemas.User
-    |> Repo.get_by(email: email)
+    |> Repo.get_by(email: to_string(email))
     |> case do
       nil ->
         IO.puts("A user with that email does not exist.")
