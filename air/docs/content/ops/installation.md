@@ -107,7 +107,7 @@ For some database products, the cloak image doesn't include the necessary ODBC d
 - SAP HANA
 - SAP IQ
 
-For legal reasons the Insights Cloak image does not include the ODBC-drivers for SAP database. If you want to use SAP HANA or SAP IQ, you will have to provide the drivers yourself. Your SAP site administrator should be able to assist you.
+For legal reasons the Insights Cloak image does not include the ODBC-drivers for SAP databases. If you want to use SAP HANA or SAP IQ, you will have to provide the drivers yourself. Your SAP site administrator should be able to assist you.
 
 The ODBC-drivers need to be mounted into the docker container as follows:
 
