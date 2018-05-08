@@ -58,12 +58,9 @@ defmodule Central.Service.Customer.AirMessage.V180210 do
       "Received query execution update for customer: #{message.customer.name}."
     end)
 
-    params = %{
-      metrics: message.payload["metrics"],
-      features: message.payload["features"],
-      aux: message.payload["aux"]
-    }
-
-    Customer.record_query(message.customer, params)
+    message.payload
+    |> Aircloak.atomize_keys()
+    |> Map.merge(%{customer: %{name: message.customer.name, id: message.customer.id}})
+    |> Central.Service.StatsDB.record_query()
   end
 end
