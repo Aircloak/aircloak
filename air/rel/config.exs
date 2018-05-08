@@ -13,20 +13,19 @@ use Mix.Releases.Config,
   default_environment: :prod
 
 environment :prod do
-  set include_erts: true
-  set include_src: false
-  set cookie: "air"
+  set(include_erts: true)
+  set(include_src: false)
+  set(cookie: "air")
 end
 
 environment :local do
-  set dev_mode: true
-  set include_erts: true
-  set cookie: "air"
-  set config: "config/local_release.exs"
+  set(dev_mode: true)
+  set(include_erts: true)
+  set(cookie: "air")
+  set(config: "config/local_release.exs")
 end
 
 release :air do
-  set version: current_version(:air)
-  set erl_opts: "+K true"
+  set(version: current_version(:air))
+  set(erl_opts: "+K true")
 end
-
