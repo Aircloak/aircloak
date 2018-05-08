@@ -7,7 +7,6 @@ defmodule CentralWeb.Socket.AirTest do
   alias GenSocketClient.TestSocket
   alias Central.{TestSocketHelper, Repo}
   alias Central.Service.{Customer, License}
-  alias Central.Schemas.Query
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
@@ -52,19 +51,20 @@ defmodule CentralWeb.Socket.AirTest do
 
       setup [:with_customer, :joined_main]
 
-      test "query_execution messages are dropped", %{socket: socket, customer: customer} do
-        assert Enum.empty?(Repo.all(Query)), "No queries recorded initially"
+      test "query_execution messages are dropped", %{socket: socket} do
+        test_id = random_string()
 
         request_id =
           push_air_call(socket, "query_execution", %{
             metrics: %{"some" => "metrics"},
             features: %{"some" => "features"},
-            aux: %{"some" => "data"}
+            aux: %{"some" => "data"},
+            test_id: test_id
           })
 
         assert_push("central_response", %{request_id: ^request_id, status: :ok})
 
-        assert nil == Repo.get_by(Query, customer_id: customer.id)
+        assert query_count(test_id) == 0
       end
     end
   end
