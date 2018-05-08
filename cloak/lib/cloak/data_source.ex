@@ -406,9 +406,10 @@ defmodule Cloak.DataSource do
     defp disabled?(data_source), do: explicitly_disabled?(data_source)
   else
     defp disabled?(data_source),
-      do: explicitly_disabled?(data_source) || osx_disabled?(data_source) || default_schema_not_configured?(data_source)
+      do:
+        explicitly_disabled?(data_source) || macos_disabled?(data_source) || default_schema_not_configured?(data_source)
 
-    defp osx_disabled?(data_source) do
+    defp macos_disabled?(data_source) do
       if :os.type() == {:unix, :darwin} and data_source.driver in [Cloak.DataSource.SAPHana, Cloak.DataSource.SAPIQ] do
         ds_name = String.replace(to_string(data_source.driver), ~r/^Elixir\.Cloak\.DataSource\./, "")
         Logger.warn("Can't connect to #{ds_name} data source on OS X.")
