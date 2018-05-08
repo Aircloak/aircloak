@@ -150,7 +150,6 @@ defmodule Cloak.DataSource.RODBC do
 
   defp interval_field_mapper(number), do: Timex.Duration.from_seconds(number)
 
-  defp boolean_field_mapper(boolean) when is_boolean(boolean), do: boolean
   defp boolean_field_mapper(0), do: false
   defp boolean_field_mapper(other) when is_integer(other), do: true
   defp boolean_field_mapper(nil), do: nil
