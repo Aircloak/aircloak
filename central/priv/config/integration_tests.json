@@ -12,5 +12,11 @@
     "user": "central_test",
     "password": "",
     "name": "central_test"
+  },
+
+  "stats_db": {
+    "hostname": "localhost",
+    "port": 27017,
+    "database": "stats"
   }
 }
