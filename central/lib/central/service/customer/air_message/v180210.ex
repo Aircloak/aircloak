@@ -61,6 +61,16 @@ defmodule Central.Service.Customer.AirMessage.V180210 do
     message.payload
     |> Aircloak.atomize_keys()
     |> Map.merge(%{customer: %{name: message.customer.name, id: message.customer.id}})
+    |> update_in([:aux, :started_at], &time_value_to_datetime/1)
+    |> update_in([:aux, :finished_at], &time_value_to_datetime/1)
     |> Central.Service.StatsDB.record_query()
   end
+
+  defp time_value_to_datetime(nil), do: nil
+
+  defp time_value_to_datetime(str),
+    do:
+      str
+      |> NaiveDateTime.from_iso8601!()
+      |> DateTime.from_naive!("Etc/UTC")
 end
