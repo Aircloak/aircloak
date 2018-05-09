@@ -30,7 +30,11 @@
         "decoders": {"type": "array", "items": {"$ref": "#/definitions/decoder"}},
         "query": {"type": "string", "minLength": 1}
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "oneOf": [
+        {"required": ["user_id"]},
+        {"required": ["projection"]}
+      ]
     },
     "parameters": {
       "type": "object",
