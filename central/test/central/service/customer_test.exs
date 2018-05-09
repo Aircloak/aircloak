@@ -80,26 +80,6 @@ defmodule Central.Service.CustomerTest do
     end
   end
 
-  test "records query executions" do
-    metrics = %{"user_count" => 10}
-    features = %{"some" => "feature"}
-    aux = %{"other" => "data"}
-
-    params = %{
-      metrics: metrics,
-      features: features,
-      aux: aux
-    }
-
-    customer = create_customer()
-    assert :ok == Customer.record_query(customer, params)
-    customer = Repo.preload(customer, :queries)
-    [query] = customer.queries
-    assert query.metrics == metrics
-    assert query.features == features
-    assert query.aux == aux
-  end
-
   test "store_rpc!" do
     rpc = Customer.store_rpc!(create_customer(), "foo", "bar")
     assert Repo.get(Schemas.AirRPC, rpc.id) != nil

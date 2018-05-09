@@ -7,7 +7,6 @@ defmodule CentralWeb.Socket.AirTest do
   alias GenSocketClient.TestSocket
   alias Central.{TestSocketHelper, Repo}
   alias Central.Service.{Customer, License}
-  alias Central.Schemas.Query
 
   setup do
     :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
@@ -52,19 +51,20 @@ defmodule CentralWeb.Socket.AirTest do
 
       setup [:with_customer, :joined_main]
 
-      test "query_execution messages are dropped", %{socket: socket, customer: customer} do
-        assert Enum.empty?(Repo.all(Query)), "No queries recorded initially"
+      test "query_execution messages are dropped", %{socket: socket} do
+        test_id = random_string()
 
         request_id =
           push_air_call(socket, "query_execution", %{
             metrics: %{"some" => "metrics"},
             features: %{"some" => "features"},
-            aux: %{"some" => "data"}
+            aux: %{"some" => "data"},
+            test_id: test_id
           })
 
         assert_push("central_response", %{request_id: ^request_id, status: :ok})
 
-        assert nil == Repo.get_by(Query, customer_id: customer.id)
+        assert query_count(test_id) == 0
       end
     end
   end
@@ -77,40 +77,40 @@ defmodule CentralWeb.Socket.AirTest do
 
       setup [:with_customer, :joined_main]
 
-      test "query_execution", %{socket: socket, customer: customer} do
+      test "query_execution", %{socket: socket} do
+        test_id = random_string()
+        assert query_count(test_id) == 0
+
         request_id =
           push_air_call(socket, "query_execution", %{
             metrics: %{"some" => "metrics"},
             features: %{"some" => "features"},
-            aux: %{"some" => "data"}
+            aux: %{"some" => "data"},
+            test_id: test_id
           })
 
         assert_push("central_response", %{request_id: ^request_id, status: :ok})
 
-        assert %{
-                 metrics: %{"some" => "metrics"},
-                 features: %{"some" => "features"},
-                 aux: %{"some" => "data"}
-               } = Repo.get_by(Query, customer_id: customer.id)
+        assert query_count(test_id) == 1
       end
 
       test "a duplicate message", %{socket: socket} do
         message_id = Ecto.UUID.generate()
+        test_id = random_string()
         request_id = Ecto.UUID.generate()
 
         message = %{
           metrics: %{"some" => "metrics"},
           features: %{"some" => "features"},
-          aux: %{"some" => "data"}
+          aux: %{"some" => "data"},
+          test_id: test_id
         }
 
-        assert Enum.empty?(Repo.all(Query)), "No queries recorded initially"
-
         push_air_call(socket, "query_execution", message, message_id, request_id)
         push_air_call(socket, "query_execution", message, message_id, request_id)
         push_air_call(socket, "query_execution", message, message_id, request_id)
 
-        assert 1 == length(Repo.all(Query)), "Repeated messages are dropped"
+        assert query_count(test_id) == 1
       end
     end
   end
@@ -162,4 +162,8 @@ defmodule CentralWeb.Socket.AirTest do
 
     request_id
   end
+
+  defp random_string, do: Base.encode16(:crypto.strong_rand_bytes(10))
+
+  defp query_count(id), do: Mongo.count!(:mongo, "queries", [test_id: id], pool: DBConnection.Poolboy)
 end

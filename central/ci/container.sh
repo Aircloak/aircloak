@@ -18,6 +18,15 @@ function prepare_for_test {
     postgres:9.5 > /dev/null
 
   docker network connect --alias postgres9.5 $container_name $postgres_container_name
+
+  mongo_container_name="${container_name}_mongo"
+
+  docker run \
+    --detach --name "$mongo_container_name" \
+    --tmpfs=/data/db \
+    mongo:3.6.4 > /dev/null
+
+  docker network connect --alias mongo $container_name $mongo_container_name
 }
 
 mount_to_aircloak VERSION common/elixir
