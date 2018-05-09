@@ -307,7 +307,7 @@ export class ResultView extends React.Component {
   }
 
   getRowAttrs(row: Row) {
-    if (row.users_count > 0 && row.users_count < UNRELIABLE_USER_COUNT_THRESHOLD) {
+    if (this.isNumeric(row.users_count) && row.users_count < UNRELIABLE_USER_COUNT_THRESHOLD) {
       return {
         title: "These values are unreliable because of the low number of users involved.",
         "data-toggle": "tooltip",
