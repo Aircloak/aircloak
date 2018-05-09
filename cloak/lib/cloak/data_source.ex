@@ -223,8 +223,8 @@ defmodule Cloak.DataSource do
       end
     rescue
       error in ExecutionError ->
-        message = "Table load error: #{Exception.message(error)}."
-        Logger.error("Data source `#{data_source.name}` is offline: #{message}")
+        message = "Error loading data source: #{Exception.message(error)}."
+        Logger.error("Data source `#{data_source.name}` is offline: #{Exception.message(error)}")
         add_error_message(%{data_source | tables: %{}, status: :offline}, message)
     end
   end

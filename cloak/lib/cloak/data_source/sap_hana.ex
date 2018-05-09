@@ -24,7 +24,12 @@ defmodule Cloak.DataSource.SAPHana do
   def sql_dialect_module(_), do: Cloak.DataSource.SqlBuilder.SAPHana
 
   @impl Driver
-  def connect!(parameters), do: ODBC.connect!(parameters, &conn_params/1)
+  def connect!(parameters) do
+    unless File.exists?(Cloak.SapHanaHelpers.driver_path()),
+      do: Cloak.DataSource.raise_error("ODBC driver for SAP HANA is not mounted.")
+
+    ODBC.connect!(parameters, &conn_params/1)
+  end
 
   @impl Driver
   defdelegate disconnect(connection), to: ODBC
