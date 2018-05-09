@@ -16,7 +16,10 @@ defmodule Cloak.DataSource.SAPIQ do
   def sql_dialect_module(_), do: Cloak.DataSource.SqlBuilder.SAPIQ
 
   @impl Driver
-  def connect!(parameters), do: RODBC.connect!(parameters, &conn_params/1)
+  def connect!(parameters) do
+    unless File.exists?(driver_path()), do: DataSource.raise_error("ODBC driver for SAP IQ is not mounted.")
+    RODBC.connect!(parameters, &conn_params/1)
+  end
 
   @impl Driver
   defdelegate disconnect(connection), to: RODBC
@@ -52,6 +55,8 @@ defmodule Cloak.DataSource.SAPIQ do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp driver_path(), do: Path.join(~w(#{Application.app_dir(:cloak)} priv odbc drivers sapiq lib64 libdbodbc.so))
 
   defp conn_params(normalized_parameters) do
     %{

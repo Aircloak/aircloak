@@ -14,6 +14,10 @@ defmodule Cloak.SapHanaHelpers do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Returns the path of the ODBC driver."
+  @spec driver_path() :: String.t()
+  def driver_path(), do: Path.join(~w(#{Application.app_dir(:cloak)} priv odbc drivers saphana libodbcHDB.so))
+
   @doc "Connects to the database."
   @spec connect(connection_params) :: {:ok, conn} | {:error, any}
   def connect(connection_params) do
@@ -155,9 +159,7 @@ defmodule Cloak.SapHanaHelpers do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp driver_option() do
-    [driver: "#{Application.app_dir(:cloak, "priv/odbc/drivers/saphana")}/libodbcHDB.so"]
-  end
+  defp driver_option(), do: [driver: driver_path()]
 
   defp table_exists?(conn, schema_name, table_name),
     do:
