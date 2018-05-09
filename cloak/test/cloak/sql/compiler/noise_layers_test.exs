@@ -282,6 +282,66 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                }
              ] = result.noise_layers
     end
+
+    test "adds noise layers for conditions in userless tables joined with user tables" do
+      result = compile!("SELECT COUNT(*) FROM table JOIN userless ON table.name = userless.name WHERE value = 3")
+
+      assert [
+               %{
+                 base: {"userless", "value", nil},
+                 expressions: [
+                   %Expression{value: 3},
+                   %Expression{value: 3},
+                   %Expression{value: 1}
+                 ]
+               },
+               %{
+                 base: {"userless", "value", nil},
+                 expressions: [
+                   %Expression{value: 3},
+                   %Expression{value: 3},
+                   %Expression{value: 1},
+                   %Expression{name: "uid"}
+                 ]
+               },
+               %{
+                 base: {"table", "name", nil},
+                 expressions: [
+                   %Expression{name: "name"},
+                   %Expression{name: "name"},
+                   %Expression{value: 1}
+                 ]
+               },
+               %{
+                 base: {"table", "name", nil},
+                 expressions: [
+                   %Expression{name: "name"},
+                   %Expression{name: "name"},
+                   %Expression{value: 1},
+                   %Expression{name: "uid"}
+                 ]
+               },
+               %{
+                 base: {"userless", "name", nil},
+                 expressions: [
+                   %Expression{name: "name"},
+                   %Expression{name: "name"},
+                   %Expression{value: 1}
+                 ]
+               },
+               %{
+                 base: {"userless", "name", nil},
+                 expressions: [
+                   %Expression{name: "name"},
+                   %Expression{name: "name"},
+                   %Expression{value: 1},
+                   %Expression{name: "uid"}
+                 ]
+               }
+             ] = result.noise_layers
+
+      assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
+    end
   end
 
   describe "skipping noise layers for pk = fk conditions" do
@@ -1309,6 +1369,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
             columns: [
               Table.column("uid", :text),
               Table.column("string", :text)
+            ]
+          ),
+        userless:
+          Cloak.DataSource.Table.new(
+            "userless",
+            nil,
+            db_name: "userless",
+            columns: [
+              Table.column("value", :integer),
+              Table.column("name", :text)
             ]
           )
       }
