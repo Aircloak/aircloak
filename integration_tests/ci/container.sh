@@ -22,9 +22,25 @@ function start_postgres_container {
   docker network connect --alias "postgres${postgres_version}" $owner_container_name $postgres_container_name
 }
 
+function start_mongo_container {
+  local owner_container_name=$1
+  local mongo_version=$2
+
+  local mongo_container_name="${owner_container_name}_mongo${mongo_version}"
+
+  docker run \
+    --detach --name "$mongo_container_name" \
+    --tmpfs=/data/db \
+    mongo:$mongo_version > /dev/null
+
+  docker network connect --alias "mongo${mongo_version}" $owner_container_name $mongo_container_name
+}
+
+
 function prepare_for_test {
   start_postgres_container $1 "9.4"
   start_postgres_container $1 "9.5"
+  start_mongo_container $1 "3.6.4"
 }
 
 mount $(ci_tmp_folder)/integration_tests/.cargo /root/.cargo
