@@ -15,7 +15,7 @@
   },
 
   "stats_db": {
-    "hostname": "mongo3.6.4",
+    "hostname": "mongointtest",
     "port": 27017,
     "database": "stats"
   }

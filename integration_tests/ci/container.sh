@@ -24,16 +24,15 @@ function start_postgres_container {
 
 function start_mongo_container {
   local owner_container_name=$1
-  local mongo_version=$2
 
-  local mongo_container_name="${owner_container_name}_mongo${mongo_version}"
+  local mongo_container_name="${owner_container_name}_mongo"
 
   docker run \
     --detach --name "$mongo_container_name" \
     --tmpfs=/data/db \
-    mongo:$mongo_version > /dev/null
+    mongo:3.6.4 > /dev/null
 
-  docker network connect --alias "mongo${mongo_version}" $owner_container_name $mongo_container_name
+  docker network connect --alias mongointtest $owner_container_name $mongo_container_name
 }
 
 

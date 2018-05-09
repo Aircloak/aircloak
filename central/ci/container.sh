@@ -26,7 +26,7 @@ function prepare_for_test {
     --tmpfs=/data/db \
     mongo:3.6.4 > /dev/null
 
-  docker network connect --alias mongo3.6.4 $container_name $mongo_container_name
+  docker network connect --alias mongo $container_name $mongo_container_name
 }
 
 mount_to_aircloak VERSION common/elixir
