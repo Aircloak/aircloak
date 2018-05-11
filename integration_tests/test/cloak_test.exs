@@ -15,6 +15,9 @@ defmodule IntegrationTest.CloakTest do
 
   @tag timeout: 120_000
   test "reconnects on broken connection" do
+    # reduces flakiness and occasional test failures
+    Process.sleep(:timer.seconds(1))
+
     ExUnit.CaptureLog.capture_log(fn ->
       # kill air socket process
       Manager.data_source_name()
@@ -36,6 +39,9 @@ defmodule IntegrationTest.CloakTest do
   end
 
   test "rejoins the main channel" do
+    # reduces flakiness and occasional test failures
+    Process.sleep(:timer.seconds(1))
+
     # trace cloak socket process
     :erlang.trace(Process.whereis(AirSocket), true, [:call])
     :erlang.trace_pattern({AirSocket, :_, :_}, [{:_, [], []}])
