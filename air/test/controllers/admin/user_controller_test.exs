@@ -46,7 +46,7 @@ defmodule AirWeb.Admin.UserController.Test do
         }
       )
 
-    assert "/admin/users" == redirected_to(conn)
+    assert redirected_to(conn) =~ ~r[admin/users/.*/edit]
     users_html = login(admin) |> get("/admin/users") |> response(200)
     assert users_html =~ new_user_email
   end
