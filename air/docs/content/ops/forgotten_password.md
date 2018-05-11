@@ -3,7 +3,7 @@
 ## Reset by link
 
 In case a user has forgotten their password the system administrator can generate a password reset link. The option
-is available by navigating to Admin -> Users and clicking "Reset password" by the appropriate user.
+is available by navigating to `Admin -> Users` and clicking `Edit` by the appropriate user.
 
 ## Reset from the command line
 
