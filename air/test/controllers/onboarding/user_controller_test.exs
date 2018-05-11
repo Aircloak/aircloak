@@ -62,7 +62,6 @@ defmodule AirWeb.Onboarding.UserController.Test do
       name: "test",
       email: "test@example.com",
       password: "1234",
-      password_confirmation: "1234",
       groups: [group.id]
     })
 

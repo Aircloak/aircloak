@@ -81,16 +81,15 @@ defmodule Air.Service.User do
   @doc "Creates the onboarding admin user."
   @spec create_onboarding_admin_user(map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
   def create_onboarding_admin_user(params) do
-    changeset =
-      user_changeset(
-        %User{},
-        params["user"],
-        additional_required_fields: [:password, :password_confirmation]
-      )
+    changeset = user_changeset(%User{}, params, additional_required_fields: [:password, :password_confirmation])
 
-    if params["user"]["master_password"] == Air.site_setting("master_password") do
+    if params["master_password"] == Air.site_setting("master_password") do
       group = get_admin_group()
-      changeset = user_changeset(changeset, %{groups: [group.id]})
+
+      changeset =
+        user_changeset(changeset, %{groups: [group.id]})
+        |> merge(password_reset_changeset(%User{}, params))
+
       Repo.insert(changeset)
     else
       changeset = add_error(changeset, :master_password, "The master password is incorrect")

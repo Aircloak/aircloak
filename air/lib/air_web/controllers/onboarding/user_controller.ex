@@ -30,7 +30,7 @@ defmodule AirWeb.Onboarding.UserController do
   end
 
   def create(conn, params) do
-    case User.create_onboarding_admin_user(params) do
+    case User.create_onboarding_admin_user(params["user"]) do
       {:ok, user} ->
         AuditLog.log(user, "Created onboarding admin user")
         login(conn, params["user"])
