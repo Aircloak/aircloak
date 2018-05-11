@@ -74,6 +74,7 @@ defmodule Air.Service.User do
   def create(params) do
     %User{}
     |> user_changeset(params)
+    |> merge(random_password_changeset(%User{}))
     |> Repo.insert()
   end
 
@@ -345,18 +346,17 @@ defmodule Air.Service.User do
       |> validate_length(:decimal_sep, is: 1)
       |> validate_length(:thousand_sep, is: 1)
       |> validate_number(:decimal_digits, greater_than_or_equal_to: 1, less_than_or_equal_to: 9)
-      |> validate_password()
       |> unique_constraint(:email)
       |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
+
+  defp random_password_changeset(user) do
+    password = :crypto.strong_rand_bytes(64) |> Base.encode64()
+    password_reset_changeset(user, %{password: password, password_confirmation: password})
+  end
 
   defp password_reset_changeset(user, params) do
     user
     |> cast(params, @password_fields)
-    |> validate_password()
-  end
-
-  defp validate_password(changeset) do
-    changeset
     |> validate_length(:password, min: 4)
     |> validate_confirmation(:password)
     |> update_password_hash()
@@ -368,7 +368,7 @@ defmodule Air.Service.User do
     case {params["password"], old_password_valid} do
       {"", _} -> user_changeset(user, %{})
       {nil, _} -> user_changeset(user, %{})
-      {_, true} -> user_changeset(user, Map.take(params, ["password", "password_confirmation"]))
+      {_, true} -> password_reset_changeset(user, params)
       {_, false} -> user_changeset(user, %{}) |> add_error(:old_password, "Password invalid")
     end
   end

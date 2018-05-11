@@ -9,8 +9,6 @@ defmodule Air.TestRepoHelper do
     do:
       %{
         email: "#{random_string()}@aircloak.com",
-        password: "1234",
-        password_confirmation: "1234",
         name: random_string()
       }
       |> Map.merge(additional_changes)
@@ -22,7 +20,13 @@ defmodule Air.TestRepoHelper do
   def create_user!(additional_changes \\ %{}) do
     user = create_user_without_privacy_policy!(additional_changes)
     privacy_policy = get_or_create_privacy_policy!()
+    password_token = User.reset_password_token(user)
+    password = additional_changes[:password] || "1234"
+
+    {:ok, user} = User.reset_password(password_token, %{password: password, password_confirmation: password})
+
     User.accept_privacy_policy!(user, privacy_policy)
+    |> Repo.preload([:groups])
   end
 
   @doc "Creates a user that is an admin. See create_user!/0 and make_admin!/1"

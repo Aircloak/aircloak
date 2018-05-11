@@ -11,26 +11,29 @@ defmodule Air.Service.UserTest do
         assert(
           errors_on(&User.create/1, %{}) == [
             email: "can't be blank",
-            name: "can't be blank",
-            password: "can't be blank",
-            password_confirmation: "can't be blank"
+            name: "can't be blank"
           ]
         )
 
     test "validates email address",
       do: assert(error_on(&User.create/1, :email, "invalid_email") == "has invalid format")
 
-    test "validates password and confirmation",
-      do: assert(error_on(&User.create/1, :password_confirmation, "wrong password") == "does not match confirmation")
+    test "create cannot set the password" do
+      User.create(%{email: "email@example.com", name: "Person", password: "1234", password_confirmation: "1234"})
+      assert {:error, _} = User.login("email@example.com", "1234")
+    end
+
+    test "admin update cannot set the password" do
+      user = TestRepoHelper.create_user!(%{password: "1234"})
+      User.update(user, %{password: "new password", password_confirmation: "new password"})
+      assert {:error, _} = User.login("email@example.com", "new password")
+    end
 
     test "requires name to be two or more characters",
       do: assert(error_on(&User.create/1, :name, "a") == "should be at least 2 character(s)")
 
-    test "requires password to be 4 or more characters",
-      do: assert(error_on(&User.create/1, :password, "123") == "should be at least 4 character(s)")
-
     test "only update hashed password on password change" do
-      user = TestRepoHelper.create_user!()
+      user = TestRepoHelper.create_user!(%{password: "1234"})
 
       {:ok, updated_user} = User.update_profile(user, %{"name" => "foobar"})
       assert updated_user.hashed_password == user.hashed_password
