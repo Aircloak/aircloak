@@ -44,10 +44,13 @@ defmodule IntegrationTest.Manager do
       Air.Service.User.create!(%{
         email: "user_#{:erlang.unique_integer([:positive])}@aircloak.com",
         name: "user_#{:erlang.unique_integer([:positive])}",
-        password: @user_password,
-        password_confirmation: @user_password,
         groups: [admin_group.id]
       })
+
+    token = Air.Service.User.reset_password_token(user)
+
+    {:ok, user} =
+      Air.Service.User.reset_password(token, %{password: @user_password, password_confirmation: @user_password})
 
     {:ok, privacy_policy} = Air.Service.PrivacyPolicy.get()
     Air.Service.User.accept_privacy_policy!(user, privacy_policy)
