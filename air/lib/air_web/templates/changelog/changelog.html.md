@@ -6,6 +6,8 @@
 
 ### Features
 
+ - Added support for userless tables and non-anonymizing queries.
+
 ### Enhancements
 
 ### Changes
