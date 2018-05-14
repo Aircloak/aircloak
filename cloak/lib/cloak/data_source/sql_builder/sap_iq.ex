@@ -28,6 +28,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPIQ do
   def function_sql("concat", [arg1, arg2]), do: function_sql("+", [arg1, arg2])
   def function_sql("trunc", [arg]), do: ["TRUNCNUM(", arg, ", 0)"]
   def function_sql("trunc", [arg1, arg2]), do: ["TRUNCNUM(", arg1, ", ", arg2, ")"]
+  def function_sql("round", [arg]), do: ["ROUND(", arg, ", 0)"]
 
   def function_sql("/", [arg1, arg2]),
     do: ["(", cast_sql(arg1, nil, :decimal), " / ", cast_sql(arg2, nil, :decimal), ")"]
