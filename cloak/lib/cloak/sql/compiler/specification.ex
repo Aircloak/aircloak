@@ -786,13 +786,12 @@ defmodule Cloak.Sql.Compiler.Specification do
         query
 
       uid_column ->
-        uid_alias = "__auto_selected_#{uid_column.table.name}.#{uid_column.name}__"
-        selected_expression = %Expression{uid_column | alias: uid_alias, synthetic?: true}
+        selected_expression = %Expression{uid_column | synthetic?: true}
 
         %Query{
           query
           | columns: query.columns ++ [selected_expression],
-            column_titles: query.column_titles ++ [uid_alias]
+            column_titles: query.column_titles ++ [uid_column.name]
         }
     end
   end
