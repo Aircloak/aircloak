@@ -217,7 +217,21 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_joins(query) do
     verify_join_types(query)
     verify_join_conditions_scope(query.from, [])
+    verify_all_selected_tables_have_uids(query)
     verify_all_uid_columns_are_compared_in_joins(query)
+  end
+
+  defp verify_all_selected_tables_have_uids(%Query{type: :standard}), do: :ok
+
+  defp verify_all_selected_tables_have_uids(query) do
+    Enum.each(query.selected_tables, fn table ->
+      unless table.user_id != nil do
+        raise CompilationError,
+          message:
+            "Table/subquery `#{table.name}` has no associated user id." <>
+              " Userless data can not be used in an anonymizing queries."
+      end
+    end)
   end
 
   defp verify_all_uid_columns_are_compared_in_joins(%Query{type: :standard}), do: :ok

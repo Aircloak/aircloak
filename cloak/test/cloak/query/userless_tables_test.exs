@@ -53,7 +53,7 @@ defmodule Cloak.Query.UserlessTableTest do
         select count(*) from userless as t1 join userless_join as t2 on t1.i = t2.i
       """,
       %{
-        rows: [%{row: [40]}]
+        error: "Table/subquery `t1` has no associated user id. Userless data can not be used in an anonymizing queries."
       }
     )
   end
