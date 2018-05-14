@@ -217,21 +217,10 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_joins(query) do
     verify_join_types(query)
     verify_join_conditions_scope(query.from, [])
-
-    # User id checks have no meaning for `standard` queries, as those can be arbitrary SQL statements.
-    if query.type != :standard do
-      verify_all_joined_subqueries_have_explicit_uids(query)
-      verify_all_uid_columns_are_compared_in_joins(query)
-    end
+    verify_all_uid_columns_are_compared_in_joins(query)
   end
 
-  defp verify_all_joined_subqueries_have_explicit_uids(query) do
-    Lens.each(Lenses.joined_subqueries(), query, fn joined_subquery ->
-      unless Enum.any?(joined_subquery.ast.columns, &(&1.user_id? && not &1.synthetic?)) do
-        raise CompilationError, message: Helpers.missing_uid_error_message(joined_subquery.ast, joined_subquery.alias)
-      end
-    end)
-  end
+  defp verify_all_uid_columns_are_compared_in_joins(%Query{type: :standard}), do: :ok
 
   defp verify_all_uid_columns_are_compared_in_joins(query),
     do:
