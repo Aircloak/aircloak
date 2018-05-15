@@ -6,6 +6,8 @@
 
 ### Features
 
+- Resetting a user's password via a link provided by the system administrator
+- Resetting a user's password using the command line interface
 - Added support for userless tables and non-anonymizing queries.
 
 ### Enhancements

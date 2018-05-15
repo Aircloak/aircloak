@@ -5,17 +5,21 @@ defmodule Air.TestRepoHelper do
 
   @doc "Inserts the new user but do not accept any privacy policy."
   @spec create_user_without_privacy_policy!(%{}) :: Air.Schemas.User.t()
-  def create_user_without_privacy_policy!(additional_changes \\ %{}),
-    do:
+  def create_user_without_privacy_policy!(additional_changes \\ %{}) do
+    user =
       %{
         email: "#{random_string()}@aircloak.com",
-        password: "1234",
-        password_confirmation: "1234",
         name: random_string()
       }
       |> Map.merge(additional_changes)
       |> User.create!()
-      |> Repo.preload([:groups])
+
+    password_token = User.reset_password_token(user)
+    password = additional_changes[:password] || "1234"
+    {:ok, user} = User.reset_password(password_token, %{password: password, password_confirmation: password})
+
+    Repo.preload(user, [:groups])
+  end
 
   @doc "Inserts the new user with default parameters into the database."
   @spec create_user!(%{}) :: Air.Schemas.User.t()

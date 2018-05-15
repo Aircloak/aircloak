@@ -31,7 +31,8 @@ defmodule AirWeb.Admin.UserController do
         conn,
         "edit.html",
         changeset: User.to_changeset(conn.assigns.user),
-        user: conn.assigns.user
+        user: conn.assigns.user,
+        reset_path: reset_path(conn)
       )
 
   def create(conn, params) do
@@ -42,7 +43,7 @@ defmodule AirWeb.Admin.UserController do
 
         conn
         |> put_flash(:info, "User created")
-        |> redirect(to: admin_user_path(conn, :index))
+        |> redirect(to: admin_user_path(conn, :edit, user.id))
 
       {:error, changeset} ->
         render(conn, "new.html", changeset: changeset)
@@ -60,7 +61,7 @@ defmodule AirWeb.Admin.UserController do
         |> redirect(to: admin_user_path(conn, :index))
 
       {:error, changeset} ->
-        render(conn, "edit.html", changeset: changeset)
+        render(conn, "edit.html", changeset: changeset, reset_path: reset_path(conn))
     end)
   end
 
@@ -99,4 +100,9 @@ defmodule AirWeb.Admin.UserController do
       |> redirect(to: admin_user_path(conn, :index))
 
   defp verify_last_admin_deleted(result, _conn, fun), do: fun.(result)
+
+  defp reset_path(conn) do
+    token = User.reset_password_token(conn.assigns.user)
+    "#{reset_password_path(conn, :show)}?token=#{token}"
+  end
 end

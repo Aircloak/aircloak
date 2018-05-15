@@ -1,0 +1,22 @@
+<div class="col-sm-6 col-sm-offset-3">
+  <h2>Forgotten password</h2>
+
+  <div class="panel panel-default">
+    <div class="panel-body">
+      <%= form_tag reset_password_path(@conn, :show), method: "get" do %>
+        <div class="form-group">
+          <label class="control-label" for="token">Password reset token</label>
+          <input class="form-control" type="text" name="token" required="required"/>
+          <p class="help-block">
+            If you have a password reset token enter it here. Otherwise, contact your administrator for a password reset
+            link.
+          </p>
+        </div>
+
+        <div class="form-group">
+           <button class="btn btn-primary">Next</button>
+         </div>
+      <% end %>
+    </div>
+  </div>
+</div>

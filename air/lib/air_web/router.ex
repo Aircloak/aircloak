@@ -46,6 +46,13 @@ defmodule AirWeb.Router do
     post("/", SessionController, :create)
   end
 
+  scope "/reset_password", AirWeb do
+    pipe_through([:browser, :anonymous_only])
+
+    resources("/", ResetPasswordController, singleton: true, only: [:show, :update])
+    get("/forgot", ResetPasswordController, :forgot)
+  end
+
   scope "/", AirWeb, private: %{context: :http} do
     pipe_through([:browser, :browser_auth, :license_validations_browser, :privacy_policy_validations_browser])
 

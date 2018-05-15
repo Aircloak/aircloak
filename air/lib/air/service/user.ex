@@ -9,7 +9,9 @@ defmodule Air.Service.User do
   import Ecto.Changeset
 
   @required_fields ~w(email name)a
-  @optional_fields ~w(password password_confirmation decimal_sep decimal_digits thousand_sep)a
+  @password_fields ~w(password password_confirmation)a
+  @optional_fields ~w(decimal_sep decimal_digits thousand_sep)a
+  @password_reset_salt "4egg+HOtabCGwsCsRVEBIg=="
 
   # -------------------------------------------------------------------
   # API functions
@@ -34,6 +36,25 @@ defmodule Air.Service.User do
     end
   end
 
+  @doc "Returns a token that can be used to reset the given user's password."
+  @spec reset_password_token(User.t()) :: String.t()
+  def reset_password_token(user), do: Phoenix.Token.sign(AirWeb.Endpoint, @password_reset_salt, user.id)
+
+  @doc "Resets the user's password from the given params. The user is identified by the given reset token."
+  @spec reset_password(String.t(), Map.t()) :: {:error, :invalid_token} | {:error, Ecto.Changeset.t()} | {:ok, User.t()}
+  def reset_password(token, params) do
+    one_day = :timer.hours(24)
+    one_week = 7 * one_day
+
+    with {:ok, user_id} <- Phoenix.Token.verify(AirWeb.Endpoint, @password_reset_salt, token, max_age: one_week) do
+      Repo.get!(User, user_id)
+      |> password_reset_changeset(params)
+      |> Repo.update()
+    else
+      _ -> {:error, :invalid_token}
+    end
+  end
+
   @doc "Returns a list of all users in the system."
   @spec all() :: [User.t()]
   def all(), do: Repo.all(from(user in User, preload: [:groups]))
@@ -51,25 +72,25 @@ defmodule Air.Service.User do
 
   @doc "Creates the new user from the given parameters."
   @spec create(map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
-  def create(params),
-    do:
-      %User{}
-      |> user_changeset(params, additional_required_fields: [:password, :password_confirmation])
-      |> Repo.insert()
+  def create(params) do
+    %User{}
+    |> user_changeset(params)
+    |> merge(random_password_changeset(%User{}))
+    |> Repo.insert()
+  end
 
   @doc "Creates the onboarding admin user."
   @spec create_onboarding_admin_user(map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
   def create_onboarding_admin_user(params) do
-    changeset =
-      user_changeset(
-        %User{},
-        params["user"],
-        additional_required_fields: [:password, :password_confirmation]
-      )
+    changeset = user_changeset(%User{}, params)
 
-    if params["user"]["master_password"] == Air.site_setting("master_password") do
+    if params["master_password"] == Air.site_setting("master_password") do
       group = get_admin_group()
-      changeset = user_changeset(changeset, %{groups: [group.id]})
+
+      changeset =
+        user_changeset(changeset, %{groups: [group.id]})
+        |> merge(password_reset_changeset(%User{}, params))
+
       Repo.insert(changeset)
     else
       changeset = add_error(changeset, :master_password, "The master password is incorrect")
@@ -315,21 +336,32 @@ defmodule Air.Service.User do
     |> Repo.update!()
   end
 
-  defp user_changeset(user, params, opts \\ []),
+  defp user_changeset(user, params),
     do:
       user
       |> cast(params, @required_fields ++ @optional_fields)
-      |> validate_required(@required_fields ++ Keyword.get(opts, :additional_required_fields, []))
+      |> validate_required(@required_fields)
       |> validate_format(:email, ~r/@/)
       |> validate_length(:name, min: 2)
       |> validate_length(:decimal_sep, is: 1)
       |> validate_length(:thousand_sep, is: 1)
       |> validate_number(:decimal_digits, greater_than_or_equal_to: 1, less_than_or_equal_to: 9)
-      |> validate_length(:password, min: 4)
-      |> validate_confirmation(:password)
-      |> update_password_hash()
       |> unique_constraint(:email)
       |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
+
+  defp random_password_changeset(user) do
+    password = :crypto.strong_rand_bytes(64) |> Base.encode64()
+    password_reset_changeset(user, %{password: password, password_confirmation: password})
+  end
+
+  defp password_reset_changeset(user, params) do
+    user
+    |> cast(params, @password_fields)
+    |> validate_required(@password_fields)
+    |> validate_length(:password, min: 4)
+    |> validate_confirmation(:password)
+    |> update_password_hash()
+  end
 
   defp password_changeset(user, params) do
     old_password_valid = User.validate_password(user, params["old_password"] || "")
@@ -337,7 +369,7 @@ defmodule Air.Service.User do
     case {params["password"], old_password_valid} do
       {"", _} -> user_changeset(user, %{})
       {nil, _} -> user_changeset(user, %{})
-      {_, true} -> user_changeset(user, Map.take(params, ["password", "password_confirmation"]))
+      {_, true} -> password_reset_changeset(user, params)
       {_, false} -> user_changeset(user, %{}) |> add_error(:old_password, "Password invalid")
     end
   end
