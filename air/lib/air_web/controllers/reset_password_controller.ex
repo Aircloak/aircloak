@@ -18,10 +18,11 @@ defmodule AirWeb.ResetPasswordController do
 
   def update(conn, params) do
     case User.reset_password(params["token"], params["user"]) do
-      {:ok, _} ->
+      {:ok, user} ->
         conn
-        |> put_flash(:info, "Password reset.")
-        |> redirect(to: session_path(conn, :new))
+        |> put_flash(:info, "Password set.")
+        |> Guardian.Plug.sign_in(user)
+        |> redirect(to: "/")
 
       {:error, :invalid_token} ->
         conn
