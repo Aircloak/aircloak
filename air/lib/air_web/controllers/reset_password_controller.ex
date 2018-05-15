@@ -20,7 +20,7 @@ defmodule AirWeb.ResetPasswordController do
     case User.reset_password(params["token"], params["user"]) do
       {:ok, user} ->
         conn
-        |> put_flash(:info, "Password set.")
+        |> put_flash(:info, "Your new password has been saved.")
         |> Guardian.Plug.sign_in(user)
         |> redirect(to: "/")
 
