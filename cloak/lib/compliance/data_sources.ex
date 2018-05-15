@@ -177,18 +177,13 @@ defmodule Compliance.DataSources do
   end
 
   defp handler_for_data_source(%{driver: Cloak.DataSource.SAPHana}), do: Compliance.DataSource.SAPHana
-
   defp handler_for_data_source(%{driver: Cloak.DataSource.SAPHanaRODBC}), do: Compliance.DataSource.SAPHana
-
   defp handler_for_data_source(%{driver: Cloak.DataSource.PostgreSQL}), do: Compliance.DataSource.PostgreSQL
-
   defp handler_for_data_source(%{driver: Cloak.DataSource.MySQL}), do: Compliance.DataSource.MySQL
-
   defp handler_for_data_source(%{driver: Cloak.DataSource.SQLServer}), do: Compliance.DataSource.SQLServer
-
   defp handler_for_data_source(%{driver: Cloak.DataSource.MongoDB}), do: Compliance.DataSource.MongoDB
-
   defp handler_for_data_source(%{driver: Cloak.DataSource.SQLServerRODBC}), do: Compliance.DataSource.SQLServer
+  defp handler_for_data_source(%{driver: Cloak.DataSource.SAPIQ}), do: Compliance.DataSource.SAPIQ
 
   # -------------------------------------------------------------------
   # Internal functions
