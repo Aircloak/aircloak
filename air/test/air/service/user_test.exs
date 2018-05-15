@@ -303,7 +303,13 @@ defmodule Air.Service.UserTest do
 
     test "cannot change fields", %{user: user, token: token} do
       old_email = user.email
-      assert {:ok, %{email: ^old_email}} = User.reset_password(token, %{email: "new@email.com"}, "some salt")
+
+      assert {:ok, %{email: ^old_email}} =
+               User.reset_password(
+                 token,
+                 %{password: "1234", password_confirmation: "1234", email: "new@email.com"},
+                 "some salt"
+               )
     end
 
     test "correct confirmation", %{token: token} do

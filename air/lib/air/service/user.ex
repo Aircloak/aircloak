@@ -10,7 +10,7 @@ defmodule Air.Service.User do
 
   @required_fields ~w(email name)a
   @password_fields ~w(password password_confirmation)a
-  @optional_fields @password_fields ++ ~w(decimal_sep decimal_digits thousand_sep)a
+  @optional_fields ~w(decimal_sep decimal_digits thousand_sep)a
   @password_reset_salt "4egg+HOtabCGwsCsRVEBIg=="
 
   # -------------------------------------------------------------------
@@ -81,7 +81,7 @@ defmodule Air.Service.User do
   @doc "Creates the onboarding admin user."
   @spec create_onboarding_admin_user(map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
   def create_onboarding_admin_user(params) do
-    changeset = user_changeset(%User{}, params, additional_required_fields: [:password, :password_confirmation])
+    changeset = user_changeset(%User{}, params)
 
     if params["master_password"] == Air.site_setting("master_password") do
       group = get_admin_group()
@@ -335,11 +335,11 @@ defmodule Air.Service.User do
     |> Repo.update!()
   end
 
-  defp user_changeset(user, params, opts \\ []),
+  defp user_changeset(user, params),
     do:
       user
       |> cast(params, @required_fields ++ @optional_fields)
-      |> validate_required(@required_fields ++ Keyword.get(opts, :additional_required_fields, []))
+      |> validate_required(@required_fields)
       |> validate_format(:email, ~r/@/)
       |> validate_length(:name, min: 2)
       |> validate_length(:decimal_sep, is: 1)
@@ -356,6 +356,7 @@ defmodule Air.Service.User do
   defp password_reset_changeset(user, params) do
     user
     |> cast(params, @password_fields)
+    |> validate_required(@password_fields)
     |> validate_length(:password, min: 4)
     |> validate_confirmation(:password)
     |> update_password_hash()
