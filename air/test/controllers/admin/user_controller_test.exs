@@ -2,6 +2,7 @@ defmodule AirWeb.Admin.UserController.Test do
   use AirWeb.ConnCase, async: false
 
   import Air.{TestConnHelper, TestRepoHelper}
+  import Aircloak.AssertionHelper
 
   test "regular user can't manage users" do
     user = create_user!()
@@ -100,10 +101,9 @@ defmodule AirWeb.Admin.UserController.Test do
 
     assert redirected_to(conn) == "/admin/users"
 
-    :timer.sleep(100)
-    assert Air.Repo.get_by(Air.Schemas.AuditLog, user_id: admin.id, event: "User removal failed")
-    assert Air.Service.User.load(admin.id) != nil
-    assert Air.Service.User.admin_user_exists?()
+    assert soon(Air.Repo.get_by(Air.Schemas.AuditLog, user_id: admin.id, event: "User removal failed"))
+    assert soon(Air.Service.User.load(admin.id) != nil)
+    assert soon(Air.Service.User.admin_user_exists?())
   end
 
   test "success is reported via audit log" do
@@ -112,8 +112,7 @@ defmodule AirWeb.Admin.UserController.Test do
 
     login(admin) |> delete("/admin/users/#{user.id}")
 
-    :timer.sleep(100)
-    assert Air.Repo.get_by(Air.Schemas.AuditLog, user_id: admin.id, event: "User removal succeeded")
+    assert soon(Air.Repo.get_by(Air.Schemas.AuditLog, user_id: admin.id, event: "User removal succeeded"))
   end
 
   test "render 404 on attempting to render edit form for non-existent user" do
