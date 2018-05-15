@@ -156,10 +156,7 @@ defmodule Cloak.Test.QueryHelpers do
 
   defp user_count_delta(ds_name, data_source) do
     if Enum.member?([ds_name, name_datasource(data_source)], "'Cloak.DataSource.SAPIQ/sapiq/sapiq'") do
-      # There is a strange issue with SAP IQ and rodbc. In some cases we get one row less from the database, which
-      # causes compliance mismatch. I presume that this is a bug in Rust's ODBC, because Erlang's :odbc works properly.
-      # Since that one row shouldn't play a significant role in the anonymized output, I opted for this hacky
-      # workaround where we tolerate a mismatch of one in `:users_count` and `:occurrences` fields.
+      # See #2710 (https://github.com/Aircloak/aircloak/issues/2710) for details.
       1
     else
       0
