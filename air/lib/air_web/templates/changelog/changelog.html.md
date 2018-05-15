@@ -12,6 +12,8 @@
 
 ### Enhancements
 
+- Support for date and time typed literals.
+
 ### Changes
 
 ## Version 18.2.3
