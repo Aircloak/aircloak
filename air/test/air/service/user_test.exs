@@ -303,12 +303,14 @@ defmodule Air.Service.UserTest do
                User.reset_password(token, %{password: "1234", password_confirmation: "1234", email: "new@email.com"})
     end
 
-    test "correct confirmation", %{token: token} do
-      assert {:ok, _} = User.reset_password(token, %{password: "1234", password_confirmation: "1234"})
+    test "successful change", %{user: user, token: token} do
+      assert {:ok, _} = User.reset_password(token, %{password: "new password", password_confirmation: "new password"})
+      assert {:ok, _} = User.login(user.email, "new password")
     end
 
-    test "incorrect confirmation", %{token: token} do
-      assert {:error, _} = User.reset_password(token, %{password: "1234", password_confirmation: "1235"})
+    test "incorrect confirmation", %{user: user, token: token} do
+      assert {:error, _} = User.reset_password(token, %{password: "new password", password_confirmation: "other"})
+      assert {:error, _} = User.login(user.email, "new password")
     end
   end
 
