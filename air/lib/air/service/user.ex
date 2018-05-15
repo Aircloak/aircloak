@@ -44,8 +44,9 @@ defmodule Air.Service.User do
   @spec reset_password(String.t(), Map.t()) :: {:error, :invalid_token} | {:error, Ecto.Changeset.t()} | {:ok, User.t()}
   def reset_password(token, params, salt \\ @password_reset_salt) do
     one_day = :timer.hours(24)
+    one_week = 7 * one_day
 
-    with {:ok, user_id} <- Phoenix.Token.verify(AirWeb.Endpoint, salt, token, max_age: one_day) do
+    with {:ok, user_id} <- Phoenix.Token.verify(AirWeb.Endpoint, salt, token, max_age: one_week) do
       Repo.get!(User, user_id)
       |> password_reset_changeset(params)
       |> Repo.update()
