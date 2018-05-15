@@ -31,10 +31,20 @@ Enum.each(
         end
 
       Enum.each(columns, fn {column, table, uid} ->
+        function =
+          if function == "cast(<col> as text)" and column == "height" do
+            # In this case, we're casting a float column to text. This can lead to some strange differences, such as
+            # one database reporting 174.88 and another one 174.8800048828125 (as seen when comparing PostgreSQL and
+            # SAP IQ). To eliminate this situation, we're casting the result back to real, which should give us the
+            # results which are same or similar enough (according to delta comparison).
+            "cast(cast(<col> as text) as real)"
+          else
+            function
+          end
+
         @tag compliance: "#{function} #{column} #{table} subquery"
         test "numerical unary function #{function} on input #{column} in a sub-query on #{table}", context do
           context
-          |> disable_cast_float_to_string(unquote(function), unquote(column))
           |> assert_consistent_and_not_failing("""
             SELECT
               output
@@ -51,7 +61,6 @@ Enum.each(
         @tag compliance: "#{function} #{column} #{table} query"
         test "numerical unary function #{function} on input #{column} in query on #{table}", context do
           context
-          |> disable_cast_float_to_string(unquote(function), unquote(column))
           |> assert_consistent_and_not_failing("""
             SELECT #{on_column(unquote(function), unquote(column))} as output
             FROM #{unquote(table)}
@@ -59,15 +68,6 @@ Enum.each(
           """)
         end
       end)
-
-      defp disable_cast_float_to_string(context, function, column) do
-        cast_float_to_text? = function == "cast(<col> as text)" and column == "height"
-
-        context
-        |> disable_for(Cloak.DataSource.SQLServer, cast_float_to_text?)
-        |> disable_for(Cloak.DataSource.SQLServerRODBC, cast_float_to_text?)
-        |> disable_for(Cloak.DataSource.SAPIQ, cast_float_to_text?)
-      end
     end
   end
 )
