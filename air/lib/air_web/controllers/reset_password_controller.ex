@@ -14,7 +14,7 @@ defmodule AirWeb.ResetPasswordController do
   # -------------------------------------------------------------------
 
   def show(conn, params),
-    do: render(conn, "show.html", token: String.trim(params["token"]), changeset: User.empty_changeset())
+    do: render(conn, "show.html", token: String.trim(params["token"] || ""), changeset: User.empty_changeset())
 
   def update(conn, params) do
     case User.reset_password(params["token"], params["user"]) do

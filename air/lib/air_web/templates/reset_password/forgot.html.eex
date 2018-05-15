@@ -6,7 +6,7 @@
       <%= form_tag reset_password_path(@conn, :show), method: "get" do %>
         <div class='form-group'>
           <label class='control-label' for='token'>Password reset token</label>
-          <input class='form-control' type='text' name='token' />
+          <input class='form-control' type='text' name='token' required='required'/>
           <p class="help-block">
             If you have a password reset token enter it here. Otherwise, contact your administrator for a password reset
             link.
