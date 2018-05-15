@@ -1310,6 +1310,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
               Table.column("uid", :text),
               Table.column("string", :text)
             ]
+          ),
+        userless:
+          Cloak.DataSource.Table.new(
+            "userless",
+            nil,
+            db_name: "userless",
+            columns: [
+              Table.column("value", :integer),
+              Table.column("name", :text)
+            ]
           )
       }
     }

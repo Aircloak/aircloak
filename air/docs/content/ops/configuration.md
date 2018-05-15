@@ -172,9 +172,9 @@ The configuration takes the following form:
 
 The `name` parameter is a string which will be used to identify the data source throughout the Insights Air interface and APIs.
 
-The `driver` parameter can be one of the following: `mongodb`, `postgresql`, `mysql`, `sqlserver`, `saphana`. The `parameters` json, then specifies the database connection parameters.
+The `driver` parameter can be one of the following: `mongodb`, `postgresql`, `mysql`, `sqlserver`, `saphana`, `sapiq`. The `parameters` json, then specifies the database connection parameters.
 
-Some of these drivers use ODBC protocol to talk to the database. These drivers are `sqlserver` and `saphana`. Since they rely on ODBC, they accept some additional connection parameters:
+Some of these drivers use ODBC protocol to talk to the database. These drivers are `sqlserver`, `saphana`, and `sapiq`. Since they rely on ODBC, they accept some additional connection parameters:
 
   - `encoding` which has possible values of "latin1", "unicode", "utf8", "utf16", "utf32", "utf16-big", "utf16-little", "utf32-big", "utf32-little".
   - `odbc_parameters` - ODBC specific parameters for the ODBC driver which is used to talk to the database.
@@ -223,6 +223,9 @@ table_name: {
   "user_id": "uid"
 }
 ```
+
+If the virtual table contains columns with duplicated names, only the first one is kept and the rest are dropped.
+Constant columns are also dropped from the table.
 
 #### Projected tables
 
@@ -347,7 +350,7 @@ For remaining possible decoders, no additional parameters are needed:
 ...
 ```
 
-#### Tips an tricks
+#### Tips and tricks
 
 It is common to have multiple Insights Cloak instances sharing the same datasource definitions.
 Maintaining separate copies of the datasource definition for each Insights Cloak instance complicates maintenance,
@@ -413,3 +416,30 @@ configs/
 
 Enabling or disabling further datasources for individual Insights Cloak instances is then only a matter of adding or
 removing a symlink.
+
+##### Hiding columns
+
+In some cases, it might not be desirable that all of the columns in a table are exposed to analysts.
+Virtual tables can be used to hide one or more columns, by explicitly listing only the columns that are valid for querying.
+
+For example, assuming we have the table `t` with columns `uid, x, y, z`, and we wish to hide column `y` from analysts,
+the following configuration file will do the trick:
+
+```
+t: {
+  query": "SELECT uid, x, z FROM t",
+  "user_id": "uid"
+}
+```
+
+Alternatively, if the target table has a large number of columns and we don't want to list all of them, we can explicitly
+select constants with the hidden columns' names, then star-select everything else. This uses the fact that duplicated
+columns are eliminated by only keeping the first instance and then that constants are dropped from the list of exposed
+columns. For example:
+
+```
+t: {
+  query": "SELECT 0 AS y, t.* FROM t",
+  "user_id": "uid"
+}
+```

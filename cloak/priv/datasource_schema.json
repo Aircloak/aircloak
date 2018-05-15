@@ -16,7 +16,12 @@
       "type": "object",
       "properties": {
         "db_name": {"type": "string", "minLength": 1},
-        "user_id": {"type": "string", "minLength": 1},
+        "user_id": {
+          "oneOf": [
+            {"type": "string", "minLength": 1},
+            { "type": "null" }
+          ]
+        },
         "ignore_unsupported_types": {"type": "boolean", "$comment": "allowed for backward compatibility"},
         "sample_rate": {"type": "integer", "minimum": 1, "maximum": 100},
         "name": {"type": "string", "minLength": 1, "$comment": "allowed for backward compatibility"},
@@ -25,7 +30,11 @@
         "decoders": {"type": "array", "items": {"$ref": "#/definitions/decoder"}},
         "query": {"type": "string", "minLength": 1}
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "oneOf": [
+        {"required": ["user_id"]},
+        {"required": ["projection"]}
+      ]
     },
     "parameters": {
       "type": "object",

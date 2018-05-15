@@ -12,6 +12,30 @@ defmodule Cloak.DataSource.ODBC do
   require Logger
 
   # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Normalizes the connection parameters and connects to the data source via odbc."
+  @spec connect!(Driver.parameters(), (map -> map)) :: :odbc.connection_reference()
+  def connect!(parameters, conn_params_extractor) do
+    normalized_parameters = normalize_parameters(parameters)
+
+    normalized_parameters
+    |> conn_params_extractor.()
+    |> Map.merge(Map.get(normalized_parameters, :odbc_parameters, %{}))
+    |> connect!()
+  end
+
+  @doc "Normalizes the connection parameters."
+  @spec normalize_parameters(Enum.t()) :: map
+  def normalize_parameters(parameters) do
+    parameters
+    |> Stream.map(fn {key, value} -> {downcase_key(key), value} end)
+    |> Stream.reject(fn {key, _value} -> is_nil(key) end)
+    |> Enum.into(%{})
+  end
+
+  # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
@@ -94,6 +118,16 @@ defmodule Cloak.DataSource.ODBC do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp downcase_key(key) do
+    string_key = key |> Atom.to_string() |> String.downcase()
+
+    try do
+      String.to_existing_atom(string_key)
+    rescue
+      ArgumentError -> nil
+    end
+  end
+
   defp to_connection_string(parameters) do
     parameters
     |> Enum.map(fn {key, value} ->
@@ -147,8 +181,8 @@ defmodule Cloak.DataSource.ODBC do
   # We hardcode the default encoding for SQL Server and SAP HANA to be utf16 little endian.
   # This is for historic reasons more than anything, since that's what our servers are using internally.
   defp type_to_field_mapper(:text, %{driver: Cloak.DataSource.SQLServer}), do: text_to_unicode_mapper({:utf16, :little})
-
   defp type_to_field_mapper(:text, %{driver: Cloak.DataSource.SAPHana}), do: text_to_unicode_mapper({:utf16, :little})
+  defp type_to_field_mapper(:text, %{driver: Cloak.DataSource.SAPIQ}), do: text_to_unicode_mapper({:utf16, :little})
 
   defp type_to_field_mapper(:interval, data_source), do: &interval_field_mapper(&1, data_source)
   defp type_to_field_mapper(_, _data_source), do: &generic_field_mapper/1

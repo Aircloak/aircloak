@@ -1,0 +1,18 @@
+{
+  "driver": "sapiq",
+  "name": "sapiq",
+  "parameters": {
+    "hostname": "achanaproxy.mpi-sws.org",
+    "port": 2638,
+    "username": "DBA",
+    "database": "aircloak",
+    "password": "sql"
+  },
+  "encoded": false,
+  "tables": {
+    "test": {
+      "db_name": "test",
+      "user_id": "user_id"
+    }
+  }
+}

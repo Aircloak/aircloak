@@ -4,6 +4,10 @@ MAINTAINER Aircloak
 ENV CI=true
 ENV DEPLOY_CONFIG=dockerized_ci
 
+# required by SAP IQ ODBC client
+ENV LD_LIBRARY_PATH="/aircloak/cloak/priv/odbc/drivers/sapiq/lib64"
+ENV ODBCINI="/etc/odbc.ini"
+
 # Cloak unit tests expect a local mongodb, so we're installing that as well.
 RUN \
   apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 0C49F3730359A14518585931BC711F9BA15703C6 && \

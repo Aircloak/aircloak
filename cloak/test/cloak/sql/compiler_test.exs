@@ -553,8 +553,8 @@ defmodule Cloak.Sql.Compiler.Test do
     assert {:error, error} = compile("SELECT t1.c1 from t1, (select c1 from t2) sq", data_source())
 
     assert error ==
-             "Missing a user id column in the select list of subquery `sq`. " <>
-               "To fix this error, add the column `uid` from table `t2` to the subquery select list."
+             "Missing where comparison for uid columns of tables `sq` and `t1`." <>
+               " You can fix the error by adding `sq.uid = t1.uid` condition to the `WHERE` clause."
   end
 
   test "rejecting a join when cast changes the uid type" do

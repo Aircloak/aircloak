@@ -36,17 +36,23 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_name(column), do: "#{quote_table_name(column.table.name)}.#{quote_name(column.name)}"
 
   defp build_fragments(query, sql_dialect_module) do
-    [
-      "SELECT ",
+    common_clauses = [
       columns_sql(query.db_columns, sql_dialect_module),
       " FROM ",
       from_clause(query.from, query, sql_dialect_module),
       where_fragments(query.where, sql_dialect_module),
       group_by_fragments(query, sql_dialect_module),
       having_fragments(query, sql_dialect_module),
-      order_by_fragments(query, sql_dialect_module),
-      range_fragments(query, sql_dialect_module)
+      order_by_fragments(query, sql_dialect_module)
     ]
+
+    range_clause = range_fragments(query, sql_dialect_module)
+
+    if sql_dialect_module.range_at_statement_start?() do
+      ["SELECT ", range_clause, " ", common_clauses]
+    else
+      ["SELECT ", common_clauses, range_clause]
+    end
   end
 
   defp columns_sql(columns, sql_dialect_module) do
@@ -260,7 +266,8 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp constant_to_fragment(value, _sql_dialect_module) when is_number(value), do: to_string(value)
 
-  defp constant_to_fragment(value, _sql_dialect_module) when is_boolean(value), do: to_string(value)
+  defp constant_to_fragment(value, sql_dialect_module) when is_boolean(value),
+    do: sql_dialect_module.boolean_literal(value)
 
   defp constant_to_fragment(value, sql_dialect_module) when is_binary(value),
     do:

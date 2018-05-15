@@ -25,8 +25,13 @@ RUN chown -R deployer:deployer /aircloak/cloak && chown -R deployer:deployer /va
 # We'll run as root, but step down in the init script to the non-privileged user
 USER root
 
+# required by SAP IQ ODBC client
+ENV LD_LIBRARY_PATH="/aircloak/cloak/priv/odbc/drivers/sapiq/lib64"
+ENV ODBCINI="/etc/odbc.ini"
+
 CMD /aircloak/start.sh
 
 VOLUME /runtime_config
+VOLUME /odbc_drivers
 
 TAG_VERSION

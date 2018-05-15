@@ -8,26 +8,6 @@ defmodule CentralWeb.Socket.Frontend.UserChannel do
   """
   use Central.Web, :channel
   require Logger
-  alias Central.Query
-
-  # -------------------------------------------------------------------
-  # API
-  # -------------------------------------------------------------------
-
-  @doc """
-  Broadcasts the results of a query execution to all listening clients.
-  """
-  @spec broadcast_result(Query.t()) :: :ok
-  def broadcast_result(query) do
-    CentralWeb.Endpoint.broadcast_from!(
-      self(),
-      "user:#{query.user_id}",
-      "result",
-      Query.for_display(query)
-    )
-
-    :ok
-  end
 
   # -------------------------------------------------------------------
   # Phoenix.Channel callback functions

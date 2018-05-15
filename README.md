@@ -23,7 +23,7 @@ and [NodeJS](https://github.com/asdf-vm/asdf-nodejs) plugins.
 Before installing erlang, make sure you have `unixodbc` installed (__macOS developers__ see [here](./cloak/osx_erlang_with_odbc.md) for detailed instructions).
 Once `asdf` and the required plugins are installed, run `asdf install` from the root folder of the project.
 
-You will also need Docker 1.11 (__macOS developers__ also need [Docker for Mac](https://docs.docker.com/docker-for-mac/), see [here](./macos_docker.md) for instructions).
+You will also need Docker 1.11 (__macOS developers__ also need [Docker for Mac](https://docs.docker.com/docker-for-mac/), see [here](./macos_docker.md) for instructions). In addition, on macOS, you need to `brew install md5sha1sum`.
 
 You will need to install [yarn](https://yarnpkg.com/en/docs/install) on your development machine as well.
 It replaces the node package manager. Using `yarn` we ensure we are using the same JavaScript packages

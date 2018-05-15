@@ -5,8 +5,7 @@
 set -eo pipefail
 
 function stop_container {
-  docker kill $1 > /dev/null 2>&1 || true
-  docker rm $1 > /dev/null 2>&1 || true
+  docker rm -f $1 > /dev/null 2>&1 || true
 }
 
 function recreate_db {

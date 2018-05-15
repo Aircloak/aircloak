@@ -8,6 +8,21 @@ defmodule Cloak.DataSource.RODBC do
   alias Cloak.DataSource
 
   # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Normalizes the connection parameters and connects to the data source via odbc."
+  @spec connect!(Driver.parameters(), (map -> map)) :: :odbc.connection_reference()
+  def connect!(parameters, conn_params_extractor) do
+    normalized_parameters = Cloak.DataSource.ODBC.normalize_parameters(parameters)
+
+    normalized_parameters
+    |> conn_params_extractor.()
+    |> Map.merge(Map.get(normalized_parameters, :odbc_parameters, %{}))
+    |> connect!()
+  end
+
+  # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
@@ -81,6 +96,7 @@ defmodule Cloak.DataSource.RODBC do
   defp type_to_field_mapper(:real), do: &real_field_mapper/1
   defp type_to_field_mapper(:integer), do: &integer_field_mapper/1
   defp type_to_field_mapper(:interval), do: &interval_field_mapper(&1)
+  defp type_to_field_mapper(:boolean), do: &boolean_field_mapper(&1)
   defp type_to_field_mapper(_), do: &generic_field_mapper/1
 
   defp generic_field_mapper(nil), do: nil
@@ -133,4 +149,8 @@ defmodule Cloak.DataSource.RODBC do
     do: string |> String.to_integer() |> Timex.Duration.from_seconds()
 
   defp interval_field_mapper(number), do: Timex.Duration.from_seconds(number)
+
+  defp boolean_field_mapper(0), do: false
+  defp boolean_field_mapper(other) when is_integer(other), do: true
+  defp boolean_field_mapper(nil), do: nil
 end

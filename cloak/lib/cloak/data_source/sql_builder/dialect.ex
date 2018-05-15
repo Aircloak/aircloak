@@ -27,6 +27,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @doc "Returns the dialect-specific SQL for a unicode string literal."
   @callback unicode_literal(iodata) :: iodata
 
+  @doc "Returns the dialect-specific SQL for a boolean literal."
+  @callback boolean_literal(boolean) :: iodata
+
   @doc "Returns the dialect-specific SQL for an interval literal."
   @callback interval_literal(Timex.Duration.t()) :: iodata
 
@@ -38,6 +41,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
 
   @doc "Returns the dialect-specific ORDER BY clause SQL for the given column, order and nulls directive."
   @callback order_by(iodata, :asc | :desc, :nulls_first | :nulls_last | :nulls_natural) :: iodata
+
+  @doc "Returns if range clauses (limit/offset) should be applied at the start of the statement."
+  @callback range_at_statement_start?() :: boolean
 
   alias Cloak.Query.ExecutionError
 
@@ -80,6 +86,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       def interval_literal(duration), do: duration |> Timex.Duration.to_seconds() |> to_string()
 
       @impl unquote(__MODULE__)
+      def boolean_literal(value), do: to_string(value)
+
+      @impl unquote(__MODULE__)
       def order_by(column, :asc, :nulls_natural), do: [column, " ASC"]
       def order_by(column, :desc, :nulls_natural), do: [column, " DESC"]
       def order_by(column, :asc, :nulls_first), do: [column, " ASC NULLS FIRST"]
@@ -87,14 +96,19 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       def order_by(column, :asc, :nulls_last), do: [column, " ASC NULLS LAST"]
       def order_by(column, :desc, :nulls_last), do: [column, " DESC NULLS LAST"]
 
+      @impl unquote(__MODULE__)
+      def range_at_statement_start?(), do: false
+
       defoverridable like_sql: 2,
                      ilike_sql: 2,
                      limit_sql: 2,
                      interval_literal: 1,
+                     boolean_literal: 1,
                      time_arithmetic_expression: 2,
                      date_subtraction_expression: 1,
                      native_support_for_ilike?: 0,
-                     order_by: 3
+                     order_by: 3,
+                     range_at_statement_start?: 0
     end
   end
 end

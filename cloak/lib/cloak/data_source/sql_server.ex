@@ -14,22 +14,7 @@ defmodule Cloak.DataSource.SQLServer do
 
   @impl Driver
   def connect!(parameters) do
-    normalized_parameters =
-      for {key, value} <- parameters,
-          into: %{},
-          do: {key |> Atom.to_string() |> String.downcase() |> String.to_atom(), value}
-
-    odbc_parameters =
-      %{
-        DSN: "SQLServer",
-        Server: normalized_parameters[:hostname],
-        Uid: normalized_parameters[:username],
-        Pwd: normalized_parameters[:password],
-        Database: normalized_parameters[:database]
-      }
-      |> add_optional_parameters(parameters)
-
-    connection = ODBC.connect!(odbc_parameters)
+    connection = ODBC.connect!(parameters, &conn_params/1)
     {:updated, _} = :odbc.sql_query(connection, 'SET ANSI_DEFAULTS ON')
     connection
   end
@@ -53,10 +38,13 @@ defmodule Cloak.DataSource.SQLServer do
   # Internal functions
   # -------------------------------------------------------------------
 
-  # Allows for adding additional ODBC connection parameters in the case where
-  # a SQL Server installation requires additional parameters.
-  defp add_optional_parameters(default_params, %{odbc_parameters: additonal_parameters}),
-    do: Map.merge(default_params, additonal_parameters)
-
-  defp add_optional_parameters(default_params, _), do: default_params
+  defp conn_params(normalized_parameters) do
+    %{
+      DSN: "SQLServer",
+      Server: normalized_parameters[:hostname],
+      Uid: normalized_parameters[:username],
+      Pwd: normalized_parameters[:password],
+      Database: normalized_parameters[:database]
+    }
+  end
 end

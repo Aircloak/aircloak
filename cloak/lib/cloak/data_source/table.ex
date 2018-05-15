@@ -125,6 +125,7 @@ defmodule Cloak.DataSource.Table do
         |> Map.put(:subquery?, true)
         |> Compiler.compile_standard!(data_source)
         |> drop_duplicate_columns()
+        |> drop_constant_columns()
       rescue
         error in CompilationError ->
           reason = Exception.message(error)
@@ -158,6 +159,15 @@ defmodule Cloak.DataSource.Table do
     {column_titles, columns} =
       Enum.zip(query.column_titles, query.columns)
       |> Enum.uniq_by(fn {title, _column} -> title end)
+      |> Enum.unzip()
+
+    %Query{query | columns: columns, column_titles: column_titles}
+  end
+
+  defp drop_constant_columns(query) do
+    {column_titles, columns} =
+      Enum.zip(query.column_titles, query.columns)
+      |> Enum.reject(fn {_title, column} -> Expression.constant?(column) end)
       |> Enum.unzip()
 
     %Query{query | columns: columns, column_titles: column_titles}

@@ -6,7 +6,7 @@ defmodule Central.Service.Customer do
 
   alias Ecto.Changeset
   alias Central.Repo
-  alias Central.Schemas.{AirRPC, Customer, CustomerExport, Query, License}
+  alias Central.Schemas.{AirRPC, Customer, CustomerExport, License}
   alias Central.Service.Customer.AirMessage
 
   import Ecto.Query, only: [from: 2]
@@ -143,25 +143,6 @@ defmodule Central.Service.Customer do
     |> case do
       nil -> :error
       customer -> {:ok, customer}
-    end
-  end
-
-  @doc "Records a query execution associated with a customer"
-  @spec record_query(Customer.t(), Map.t()) :: :ok | :error
-  def record_query(customer, params) do
-    changeset =
-      customer
-      |> Ecto.build_assoc(:queries)
-      |> Query.changeset(params)
-
-    case Repo.insert(changeset) do
-      {:ok, _} ->
-        :ok
-
-      {:error, changeset} ->
-        Logger.error("Failed to insert query for customer #{customer.name} (#{customer.id}): " <> inspect(changeset))
-
-        :error
     end
   end
 

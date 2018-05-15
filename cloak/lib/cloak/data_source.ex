@@ -223,8 +223,8 @@ defmodule Cloak.DataSource do
       end
     rescue
       error in ExecutionError ->
-        message = "Table load error: #{Exception.message(error)}."
-        Logger.error("Data source `#{data_source.name}` is offline: #{message}")
+        message = "Error loading data source: #{Exception.message(error)}."
+        Logger.error("Data source `#{data_source.name}` is offline: #{Exception.message(error)}")
         add_error_message(%{data_source | tables: %{}, status: :offline}, message)
     end
   end
@@ -405,24 +405,36 @@ defmodule Cloak.DataSource do
   if Mix.env() == :prod do
     defp disabled?(data_source), do: explicitly_disabled?(data_source)
   else
-    defp disabled?(data_source), do: explicitly_disabled?(data_source) || sap_hana_unavailable?(data_source)
+    defp disabled?(data_source) do
+      Enum.any?(
+        [&explicitly_disabled?/1, &macos_disabled?/1, &default_schema_not_configured?/1, &sapiq_in_compliance?/1],
+        & &1.(data_source)
+      )
+    end
 
-    defp sap_hana_unavailable?(%{driver: Cloak.DataSource.SAPHana}) do
-      cond do
-        is_nil(Cloak.DataSource.SAPHana.default_schema()) ->
-          Logger.warn("Default schema for SAP HANA not set. Skipping SAP HANA data source.")
-          true
-
-        :os.type() == {:unix, :darwin} ->
-          Logger.warn("Can't connect to SAP HANA data source on OS X.")
-          true
-
-        true ->
-          false
+    defp macos_disabled?(data_source) do
+      if :os.type() == {:unix, :darwin} and data_source.driver in [Cloak.DataSource.SAPHana, Cloak.DataSource.SAPIQ] do
+        ds_name = String.replace(to_string(data_source.driver), ~r/^Elixir\.Cloak\.DataSource\./, "")
+        Logger.warn("Can't connect to #{ds_name} data source on macOS.")
+        true
+      else
+        false
       end
     end
 
-    defp sap_hana_unavailable?(_other_data_source), do: false
+    defp default_schema_not_configured?(data_source) do
+      if data_source.driver == Cloak.DataSource.SAPHana && is_nil(Cloak.DataSource.SAPHana.default_schema()) do
+        Logger.warn("Default schema for SAP HANA not set. Skipping SAP HANA data source.")
+        true
+      else
+        false
+      end
+    end
+
+    defp sapiq_in_compliance?(data_source) do
+      data_source.driver == Cloak.DataSource.SAPIQ && is_nil(Cloak.DataSource.SAPIQ.table_prefix()) &&
+        System.get_env("CI") == "true"
+    end
   end
 
   defp explicitly_disabled?(data_source) do

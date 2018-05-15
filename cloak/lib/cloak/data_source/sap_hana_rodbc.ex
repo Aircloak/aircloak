@@ -27,23 +27,10 @@ defmodule Cloak.DataSource.SAPHanaRODBC do
 
   @impl Driver
   def connect!(parameters) do
-    normalized_parameters =
-      for {key, value} <- parameters,
-          into: %{},
-          do: {key |> Atom.to_string() |> String.downcase() |> String.to_atom(), value}
+    unless File.exists?(Cloak.SapHanaHelpers.driver_path()),
+      do: DataSource.raise_error("ODBC driver for SAP HANA is not mounted.")
 
-    odbc_parameters =
-      %{
-        servernode: "#{normalized_parameters[:hostname]}:#{normalized_parameters[:port]}",
-        Uid: normalized_parameters[:username],
-        Pwd: normalized_parameters[:password],
-        databasename: normalized_parameters[:database],
-        DSN: "SAPHana"
-      }
-      |> Map.merge(schema_option(default_schema()))
-      |> add_optional_parameters(parameters)
-
-    RODBC.connect!(odbc_parameters)
+    RODBC.connect!(parameters, &conn_params/1)
   end
 
   @impl Driver
@@ -83,6 +70,17 @@ defmodule Cloak.DataSource.SAPHanaRODBC do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp conn_params(normalized_parameters) do
+    %{
+      servernode: "#{normalized_parameters[:hostname]}:#{normalized_parameters[:port]}",
+      Uid: normalized_parameters[:username],
+      Pwd: normalized_parameters[:password],
+      databasename: normalized_parameters[:database],
+      DSN: "SAPHana"
+    }
+    |> Map.merge(schema_option(default_schema()))
+  end
+
   if Mix.env() == :prod do
     # We don't allow env based override in prod
     defp default_schema_from_os_env(), do: nil
@@ -105,13 +103,6 @@ defmodule Cloak.DataSource.SAPHanaRODBC do
 
   defp schema_option(nil), do: %{}
   defp schema_option(schema), do: %{cs: ~s/"#{schema}"/}
-
-  # Allows for adding additional ODBC connection parameters in the case where
-  # a SQL Server installation requires additional parameters.
-  defp add_optional_parameters(default_params, %{odbc_parameters: additonal_parameters}),
-    do: Map.merge(default_params, additonal_parameters)
-
-  defp add_optional_parameters(default_params, _), do: default_params
 
   defp parse_type("varchar"), do: :text
   defp parse_type("nvarchar"), do: :text
