@@ -1305,6 +1305,33 @@ defmodule Cloak.Sql.Parser.Test do
     )
   end
 
+  test "select date" do
+    {:ok, date} = Cloak.Time.parse_date("2017-01-12")
+
+    assert_parse(
+      "select date '2017-01-12' from bar",
+      select(columns: [constant(:date, ^date)])
+    )
+  end
+
+  test "select time" do
+    {:ok, time} = Cloak.Time.parse_time("12:00:01")
+
+    assert_parse(
+      "select time '12:00:01' from bar",
+      select(columns: [constant(:time, ^time)])
+    )
+  end
+
+  test "select datetime" do
+    {:ok, datetime} = Cloak.Time.parse_datetime("2017-01-12 12:00:01")
+
+    assert_parse(
+      "select datetime '2017-01-12 12:00:01' from bar",
+      select(columns: [constant(:datetime, ^datetime)])
+    )
+  end
+
   test "quoted identifier" do
     assert_parse(
       "select \"something that wouldn't normally work as a column name\" from bar",
@@ -1646,7 +1673,7 @@ defmodule Cloak.Sql.Parser.Test do
       {"initial error after spaces and newlines", "  \n  \n invalid_statement", "Expected `select or show`", {3, 2}},
       {"assert at least one table", "select foo from", "Expected `table name`", {1, 16}},
       {"extended trim with two columns", "select trim(both a from b) from foo", "Expected `)`", {1, 20}},
-      {"invalid interval", "select interval 'does not parse' from foo", "Expected `column definition`", {1, 8}},
+      {"invalid interval", "select interval 'does not parse' from foo", "Expected `from`", {1, 17}},
       {"table can't be parameterized", "select x from $1", "Expected `table name`", {1, 15}},
       # parsed subqueries
       {"unclosed parens in a parsed subquery expression", "select foo from (select bar from baz", "Expected `)`",

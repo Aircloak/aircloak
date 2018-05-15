@@ -26,7 +26,6 @@ defmodule Cloak.Sql.Lexer do
               "CAST",
               "BUCKET",
               "ALIGN",
-              "INTERVAL",
               "LIKE",
               "ILIKE",
               "ESCAPE",
