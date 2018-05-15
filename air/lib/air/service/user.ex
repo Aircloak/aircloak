@@ -38,15 +38,15 @@ defmodule Air.Service.User do
 
   @doc "Returns a token that can be used to reset the given user's password."
   @spec reset_password_token(User.t()) :: String.t()
-  def reset_password_token(user, salt \\ @password_reset_salt), do: Phoenix.Token.sign(AirWeb.Endpoint, salt, user.id)
+  def reset_password_token(user), do: Phoenix.Token.sign(AirWeb.Endpoint, @password_reset_salt, user.id)
 
   @doc "Resets the user's password from the given params. The user is identified by the given reset token."
   @spec reset_password(String.t(), Map.t()) :: {:error, :invalid_token} | {:error, Ecto.Changeset.t()} | {:ok, User.t()}
-  def reset_password(token, params, salt \\ @password_reset_salt) do
+  def reset_password(token, params) do
     one_day = :timer.hours(24)
     one_week = 7 * one_day
 
-    with {:ok, user_id} <- Phoenix.Token.verify(AirWeb.Endpoint, salt, token, max_age: one_week) do
+    with {:ok, user_id} <- Phoenix.Token.verify(AirWeb.Endpoint, @password_reset_salt, token, max_age: one_week) do
       Repo.get!(User, user_id)
       |> password_reset_changeset(params)
       |> Repo.update()
