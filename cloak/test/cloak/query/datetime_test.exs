@@ -146,6 +146,15 @@ defmodule Cloak.Query.DatetimeTest do
     assert date_time_string == NaiveDateTime.to_iso8601(date_time)
   end
 
+  test "using date/time literals" do
+    :ok = insert_rows(_user_ids = 1..10, "datetimes", [], [])
+    date = Date.to_iso8601(~D[2018-01-03])
+
+    assert_query("select hour(time '12:02:01'), date '2018-01-03' from datetimes", %{
+      rows: [%{row: [12, ^date]}]
+    })
+  end
+
   test "casting date to datetime" do
     :ok = insert_rows(_user_ids = 1..10, "datetimes", ["date_only"], [~D[0001-02-03]])
 

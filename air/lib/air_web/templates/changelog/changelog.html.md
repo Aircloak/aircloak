@@ -6,9 +6,11 @@
 
 ### Features
 
- - Added support for userless tables and non-anonymizing queries.
+- Added support for userless tables and non-anonymizing queries.
 
 ### Enhancements
+
+- Support for date and time typed literals.
 
 ### Changes
 

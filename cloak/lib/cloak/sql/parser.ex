@@ -256,13 +256,13 @@ defmodule Cloak.Sql.Parser do
       extract_expression(),
       trim_expression(),
       substring_expression(),
-      field_or_parameter(),
-      constant_column() |> label("column definition")
+      constant_column(),
+      field_or_parameter() |> label("column definition")
     ])
   end
 
   defp constant_column() do
-    either_deepest_error(interval(), any_constant())
+    either_deepest_error(typed_literal(), any_constant())
   end
 
   defp select_column(), do: choice_deepest_error([keyword(:*), select_all_from_table(), plain_select_column()])
@@ -326,9 +326,8 @@ defmodule Cloak.Sql.Parser do
 
   defp data_type() do
     choice_deepest_error([
-      raw_identifier_of(~w(integer real float text boolean datetime timestamp date time)),
-      sequence([raw_identifier("double"), raw_identifier("precision")]),
-      keyword(:interval)
+      raw_identifier_of(~w(integer real float text boolean datetime timestamp date time interval)),
+      sequence([raw_identifier("double"), raw_identifier("precision")])
     ])
     |> map(fn
       :float -> :real
@@ -760,18 +759,23 @@ defmodule Cloak.Sql.Parser do
     end)
   end
 
-  defp interval() do
+  defp typed_literal() do
     pipe(
       [
-        keyword(:interval),
-        constant_of([:string])
+        raw_identifier_of(~w(datetime timestamp date time interval)),
+        constant(:string)
       ],
-      fn [:interval, {:constant, :string, value, location}] ->
-        {Timex.Duration.parse(value), location}
+      fn
+        [:interval, {:constant, :string, value, location}] -> {:interval, Timex.Duration.parse(value), location}
+        [:date, {:constant, :string, value, location}] -> {:date, Cloak.Time.parse_date(value), location}
+        [:time, {:constant, :string, value, location}] -> {:time, Cloak.Time.parse_time(value), location}
+        [:datetime, {:constant, :string, value, location}] -> {:datetime, Cloak.Time.parse_datetime(value), location}
+        [:timestamp, {:constant, :string, value, location}] -> {:datetime, Cloak.Time.parse_datetime(value), location}
       end
     )
-    |> satisfy(&match?({{:ok, _}, _}, &1))
-    |> map(fn {{:ok, result}, location} -> {:constant, :interval, result, location} end)
+    |> satisfy(&match?({_, {:ok, _}, _}, &1))
+    |> label("typed literal")
+    |> map(fn {type, {:ok, result}, location} -> {:constant, type, result, location} end)
   end
 
   defp any_constant() do

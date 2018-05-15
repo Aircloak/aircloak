@@ -171,7 +171,8 @@ defmodule Cloak.Test.QueryHelpers do
          %{occurrences: o2, users_count: uc2} = map2,
          trace,
          deltas
-       ) do
+       )
+       when uc1 != nil and uc2 != nil do
     if abs(o1 - o2) <= deltas.user_count and abs(uc1 - uc2) <= deltas.user_count do
       keys_to_drop = [:occurrences, :users_count]
       compare_to_within_delta(Map.drop(map1, keys_to_drop), Map.drop(map2, keys_to_drop), trace, deltas)
