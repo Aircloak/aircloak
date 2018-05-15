@@ -11,6 +11,9 @@ experiences are good!
 
 ### Features
 
+- Resetting a user's password via a link provided by the system administrator
+- Resetting a user's password using the command line interface
+
 ### Enhancements
 
 ### Changes
