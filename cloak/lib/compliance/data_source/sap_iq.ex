@@ -46,15 +46,11 @@ defmodule Compliance.DataSource.SAPIQ do
   # -------------------------------------------------------------------
 
   defp table_prefix() do
-    case System.get_env("GLOBAL_DB_NAMESPACE") do
-      nil ->
-        raise """
-          Please set the GLOBAL_DB_NAMESPACE OS variable. If you're developing locally, then use a unique repeatable
-          value, such as your first name. This value will be used as a prefix of the table names in the database.
-        """
-
-      prefix ->
-        prefix
+    with nil <- Cloak.DataSource.SAPIQ.table_prefix() do
+      raise """
+        Please set the GLOBAL_DB_NAMESPACE OS variable. If you're developing locally, then use a unique repeatable
+        value, such as your first name. This value will be used as a prefix of the table names in the database.
+      """
     end
   end
 

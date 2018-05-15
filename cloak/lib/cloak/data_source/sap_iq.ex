@@ -9,6 +9,24 @@ defmodule Cloak.DataSource.SAPIQ do
   alias Cloak.DataSource.{RODBC, Table}
 
   # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc """
+  Returns the prefix of all tables.
+
+  This allows us to simulate schemas (which don't exist in SAP IQ), and thus run concurrent compliance tests.
+  """
+  @spec table_prefix() :: String.t() | nil
+  def table_prefix() do
+    case System.get_env("GLOBAL_DB_NAMESPACE") do
+      nil -> nil
+      "" -> nil
+      prefix -> prefix
+    end
+  end
+
+  # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 

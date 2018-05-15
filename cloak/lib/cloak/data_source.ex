@@ -405,9 +405,12 @@ defmodule Cloak.DataSource do
   if Mix.env() == :prod do
     defp disabled?(data_source), do: explicitly_disabled?(data_source)
   else
-    defp disabled?(data_source),
-      do:
-        explicitly_disabled?(data_source) || macos_disabled?(data_source) || default_schema_not_configured?(data_source)
+    defp disabled?(data_source) do
+      Enum.any?(
+        [&explicitly_disabled?/1, &macos_disabled?/1, &default_schema_not_configured?/1, &sapiq_in_compliance?/1],
+        & &1.(data_source)
+      )
+    end
 
     defp macos_disabled?(data_source) do
       if :os.type() == {:unix, :darwin} and data_source.driver in [Cloak.DataSource.SAPHana, Cloak.DataSource.SAPIQ] do
@@ -426,6 +429,11 @@ defmodule Cloak.DataSource do
       else
         false
       end
+    end
+
+    defp sapiq_in_compliance?(data_source) do
+      data_source.driver == Cloak.DataSource.SAPIQ && is_nil(Cloak.DataSource.SAPIQ.table_prefix()) &&
+        System.get_env("CI") == "true"
     end
   end
 
