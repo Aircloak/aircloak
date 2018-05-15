@@ -10,8 +10,16 @@
 
   <br/>
 
-  <pre><%= @reset_link %></pre>
+  <pre id="reset-link"></pre>
 </div>
 
 <%= render "_form.html", changeset: @changeset,
   action: admin_user_path(@conn, :update, @changeset.data.id), conn: @conn, chosen_groups: @user.groups %>
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      $("#reset-link").text(window.location.protocol + "//" + window.location.host + "<%= @reset_path %>");
+    }
+  };
+</script>
