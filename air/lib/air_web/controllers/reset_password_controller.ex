@@ -25,7 +25,7 @@ defmodule AirWeb.ResetPasswordController do
 
       {:error, :invalid_token} ->
         conn
-        |> put_flash(:error, "The reset link has expired.")
+        |> put_flash(:error, "The reset link or token is invalid. It might have expired.")
         |> redirect(to: reset_password_path(conn, :show))
 
       {:error, changeset} ->
