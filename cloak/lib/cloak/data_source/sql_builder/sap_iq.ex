@@ -8,6 +8,8 @@ defmodule Cloak.DataSource.SqlBuilder.SAPIQ do
   use Cloak.DataSource.SqlBuilder.Dialect
   alias Cloak.DataSource.SqlBuilder.Dialect
 
+  @max_limit 2_147_483_647
+
   @impl Dialect
   def supported_functions(), do: ~w(
       count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct
@@ -24,6 +26,9 @@ defmodule Cloak.DataSource.SqlBuilder.SAPIQ do
   def function_sql("^", args), do: function_sql("power", args)
   def function_sql("btrim", [arg1]), do: function_sql("ltrim", [function_sql("rtrim", [arg1])])
   def function_sql("concat", [arg1, arg2]), do: function_sql("+", [arg1, arg2])
+  def function_sql("trunc", [arg]), do: ["TRUNCNUM(", arg, ", 0)"]
+  def function_sql("trunc", [arg1, arg2]), do: ["TRUNCNUM(", arg1, ", ", arg2, ")"]
+  def function_sql("round", [arg]), do: ["ROUND(", arg, ", 0)"]
 
   def function_sql("/", [arg1, arg2]),
     do: ["(", cast_sql(arg1, nil, :decimal), " / ", cast_sql(arg2, nil, :decimal), ")"]
@@ -38,7 +43,8 @@ defmodule Cloak.DataSource.SqlBuilder.SAPIQ do
   def native_support_for_ilike?(), do: false
 
   @impl Dialect
-  def limit_sql(limit, offset), do: [" LIMIT ", to_string(limit), " OFFSET ", to_string(offset)]
+  def limit_sql(nil, offset), do: limit_sql(@max_limit, offset)
+  def limit_sql(limit, offset), do: [" TOP ", to_string(limit), " START AT ", to_string(offset + 1)]
 
   @impl Dialect
   def unicode_literal(value), do: ["N'", value, ?']
@@ -49,6 +55,15 @@ defmodule Cloak.DataSource.SqlBuilder.SAPIQ do
 
   @impl Dialect
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
+
+  @impl Dialect
+  def range_at_statement_start?(), do: true
+
+  @impl Dialect
+  def order_by(column, :asc, :nulls_last), do: ["CASE WHEN ", column, " IS NULL THEN 1 ELSE 0 END, ", column, " ASC"]
+  def order_by(column, :desc, :nulls_first), do: ["CASE WHEN ", column, " IS NULL THEN 0 ELSE 1 END, ", column, " DESC"]
+  def order_by(column, :asc, _), do: [column, " ASC"]
+  def order_by(column, :desc, _), do: [column, " DESC"]
 
   # -------------------------------------------------------------------
   # Internal functions
