@@ -10,9 +10,5 @@
   },
   "encoded": false,
   "tables": {
-    "test": {
-      "db_name": "test",
-      "user_id": "user_id"
-    }
   }
 }
