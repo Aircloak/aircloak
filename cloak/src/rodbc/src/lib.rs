@@ -95,6 +95,7 @@ extern "C" fn control(
             }
         }
         COMMAND_FETCH => if let Err(error) = state.fetch(&mut message) {
+            message.clear();
             message.push(STATUS_ERROR);
             message.extend_from_slice(error.to_string().as_bytes());
         },
