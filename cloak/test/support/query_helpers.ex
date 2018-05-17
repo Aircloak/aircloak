@@ -62,7 +62,9 @@ defmodule Cloak.Test.QueryHelpers do
   def append_result([], {data_source, result}), do: [[{name_datasource(data_source), result}]]
 
   def append_result([group | other_groups], {data_source, result}) do
-    if Enum.any?(group, &same_result?(&1, data_source, result)) do
+    if Enum.any?(group, fn {_data_source, group_result} ->
+         compare_to_within_delta(result, group_result, ["root"], 0.000001) == :ok
+       end) do
       [[{name_datasource(data_source), result} | group] | other_groups]
     else
       [group | append_result(other_groups, {data_source, result})]
@@ -149,41 +151,12 @@ defmodule Cloak.Test.QueryHelpers do
     end
   end
 
-  defp same_result?({ds_name, existing_result}, data_source, result) do
-    deltas = %{float: 0.000001, user_count: user_count_delta(ds_name, data_source)}
-    compare_to_within_delta(existing_result, result, ["root"], deltas) == :ok
-  end
-
-  defp user_count_delta(ds_name, data_source) do
-    if Enum.member?([ds_name, name_datasource(data_source)], "'Cloak.DataSource.SAPIQ/sapiq/sapiq'") do
-      # See #2710 (https://github.com/Aircloak/aircloak/issues/2710) for details.
-      1
-    else
-      0
-    end
-  end
-
-  defp compare_to_within_delta(
-         %{occurrences: o1, users_count: uc1} = map1,
-         %{occurrences: o2, users_count: uc2} = map2,
-         trace,
-         deltas
-       )
-       when uc1 != nil and uc2 != nil do
-    if abs(o1 - o2) <= deltas.user_count and abs(uc1 - uc2) <= deltas.user_count do
-      keys_to_drop = [:occurrences, :users_count]
-      compare_to_within_delta(Map.drop(map1, keys_to_drop), Map.drop(map2, keys_to_drop), trace, deltas)
-    else
-      {:error, trace}
-    end
-  end
-
-  defp compare_to_within_delta(map1, map2, trace, deltas) when is_map(map1) and is_map(map2) do
+  defp compare_to_within_delta(map1, map2, trace, delta) when is_map(map1) and is_map(map2) do
     if Map.keys(map1) == Map.keys(map2) do
       Map.keys(map1)
       |> Enum.reduce(:ok, fn
         key, :ok ->
-          compare_to_within_delta(Map.get(map1, key), Map.get(map2, key), [key | trace], deltas)
+          compare_to_within_delta(Map.get(map1, key), Map.get(map2, key), [key | trace], delta)
 
         _, error ->
           error
@@ -193,14 +166,14 @@ defmodule Cloak.Test.QueryHelpers do
     end
   end
 
-  defp compare_to_within_delta(list1, list2, trace, deltas)
+  defp compare_to_within_delta(list1, list2, trace, delta)
        when is_list(list1) and is_list(list2) do
     if length(list1) == length(list2) do
       Enum.zip(list1, list2)
       |> Enum.with_index()
       |> Enum.reduce(:ok, fn
         {{value1, value2}, index}, :ok ->
-          compare_to_within_delta(value1, value2, ["##{index}" | trace], deltas)
+          compare_to_within_delta(value1, value2, ["##{index}" | trace], delta)
 
         _, error ->
           error
@@ -210,19 +183,19 @@ defmodule Cloak.Test.QueryHelpers do
     end
   end
 
-  defp compare_to_within_delta(value1, value2, trace, deltas)
+  defp compare_to_within_delta(value1, value2, trace, delta)
        when is_float(value1) and is_float(value2) do
     magnitude = abs((value1 + value2) / 2)
-    diff = abs(value1 - value2) / max(magnitude, deltas.float)
+    diff = abs(value1 - value2) / max(magnitude, delta)
 
-    if diff <= deltas.float do
+    if diff <= delta do
       :ok
     else
       {:error, trace}
     end
   end
 
-  defp compare_to_within_delta(value1, value2, trace, _deltas) do
+  defp compare_to_within_delta(value1, value2, trace, _delta) do
     if value1 == value2 do
       :ok
     else

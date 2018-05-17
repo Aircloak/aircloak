@@ -184,6 +184,7 @@ defmodule Compliance.DataSources do
   defp handler_for_data_source(%{driver: Cloak.DataSource.MongoDB}), do: Compliance.DataSource.MongoDB
   defp handler_for_data_source(%{driver: Cloak.DataSource.SQLServerRODBC}), do: Compliance.DataSource.SQLServer
   defp handler_for_data_source(%{driver: Cloak.DataSource.SAPIQ}), do: Compliance.DataSource.SAPIQ
+  defp handler_for_data_source(%{driver: Cloak.DataSource.SAPIQRODBC}), do: Compliance.DataSource.SAPIQ
 
   # -------------------------------------------------------------------
   # Internal functions

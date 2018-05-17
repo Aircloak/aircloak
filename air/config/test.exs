@@ -12,7 +12,7 @@ config :air, :https_port, 8444
 config :logger, level: :warn
 
 # Configure your database
-config :air, Air.Repo, pool: Ecto.Adapters.SQL.Sandbox
+config :air, Air.Repo, pool: Ecto.Adapters.SQL.Sandbox, ownership_timeout: :timer.minutes(1)
 
 # Make tests related to hashing run faster
 config :comeonin, :pbkdf2_rounds, 1

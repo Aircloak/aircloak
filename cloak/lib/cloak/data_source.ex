@@ -407,7 +407,7 @@ defmodule Cloak.DataSource do
   else
     defp disabled?(data_source) do
       Enum.any?(
-        [&explicitly_disabled?/1, &macos_disabled?/1, &default_schema_not_configured?/1, &sapiq_in_compliance?/1],
+        [&explicitly_disabled?/1, &macos_disabled?/1, &default_schema_not_configured?/1],
         & &1.(data_source)
       )
     end
@@ -429,11 +429,6 @@ defmodule Cloak.DataSource do
       else
         false
       end
-    end
-
-    defp sapiq_in_compliance?(data_source) do
-      data_source.driver == Cloak.DataSource.SAPIQ && is_nil(Cloak.DataSource.SAPIQ.table_prefix()) &&
-        System.get_env("CI") == "true"
     end
   end
 
