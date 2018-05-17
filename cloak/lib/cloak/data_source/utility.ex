@@ -59,7 +59,8 @@ defmodule Cloak.DataSource.Utility do
     {"sqlserver_rodbc", Cloak.DataSource.SQLServerRODBC},
     {"saphana", Cloak.DataSource.SAPHana},
     {"saphana_rodbc", Cloak.DataSource.SAPHanaRODBC},
-    {"sapiq", Cloak.DataSource.SAPIQ}
+    {"sapiq", Cloak.DataSource.SAPIQ},
+    {"sapiq_rodbc", Cloak.DataSource.SAPIQRODBC}
   ]
 
   @doc "Returns the data source driver module given a data source type name"
