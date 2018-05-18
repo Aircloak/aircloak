@@ -474,13 +474,11 @@ defmodule Cloak.DataSource do
   defp connect_with_retries!(driver, parameters, 0), do: driver.connect!(parameters)
 
   defp connect_with_retries!(driver, parameters, num_retries) when num_retries > 0 do
-    try do
-      driver.connect!(parameters)
-    catch
-      _type, _error ->
-        Process.sleep(Application.get_env(:cloak, :connect_retry_delay, :timer.seconds(1)))
-        connect_with_retries!(driver, parameters, num_retries - 1)
-    end
+    driver.connect!(parameters)
+  catch
+    _type, _error ->
+      Process.sleep(Application.get_env(:cloak, :connect_retry_delay, :timer.seconds(1)))
+      connect_with_retries!(driver, parameters, num_retries - 1)
   end
 
   # -------------------------------------------------------------------
