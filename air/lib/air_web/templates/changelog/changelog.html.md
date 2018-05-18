@@ -1,3 +1,9 @@
+## Unreleased
+
+### Bugfixes
+
+- Fix for queries being rejected when one side of a range is negative
+
 ## Version 18.2.3
 
 ### Bugfixes
