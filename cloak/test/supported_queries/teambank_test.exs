@@ -271,6 +271,61 @@ defmodule Cloak.Regressions.TeamBank.Test do
     assert_compiles_successfully(query, data_source_scaffold())
   end
 
+  test "bianca 9" do
+    query = """
+      SELECT MONTH(buchungsDatum), YEAR(buchungsDatum)
+      FROM (
+        -- Join von konto, bankzugang und umsatz
+        -- Ausschluss von den demobanken
+        SELECT 	-- Felder von Bankzugang
+            bankzugang._id AS subBankzugangId,
+            bankzugang.inhaberId AS subInhaberId,
+                bankname,
+                blz,
+                -- Felder von Konto
+                aeltesterUmsatz.buchungsDatum,
+                konto._id AS subKontoId,
+                kontostand.betrag,
+                financeMoodKonto,
+                letzterUmsatz.buchungsDatum,
+                -- Felder von Umsatz
+                umsatzeigenschaften.bargeld,
+                umsatzeigenschaften.kreditkarte,
+                umsatzeigenschaften.ausfuehrungsIntervall,
+                umsatz._id AS subUmsatzId,
+                umsatzeigenschaften.hauptgehalt,
+                betrag,
+                umsatzeigenschaften.mandatsReferenz,
+                umsatzeigenschaften.anbieter,
+                umsatzeigenschaften.sparen,
+                umsatzeigenschaften.klassifizierung,
+                umsatzeigenschaften.spezifizierung,
+                umsatzeigenschaften.unterKategorie,
+                umsatzeigenschaften.hauptKategorie,
+                umsatzeigenschaften.kategorisierungVersion,
+                verwendungszweck,
+                buchungsDatum,
+                bankverbindung.blz,
+                bankverbindung.iban,
+                bankverbindung.bankname
+        FROM bankzugang
+          INNER JOIN konto ON
+            bankzugang.inhaberId = konto.inhaberId and
+            bankzugang._id = konto.bankzugangId
+          INNER JOIN umsatz ON
+            konto.inhaberId = umsatz.inhaberId and
+            konto._id = umsatz.kontoId AND
+            konto.aktiv = true
+        WHERE bankzugang.blz NOT IN ('47110815', '90090042')
+      ) UMSATZ_OHNE_FIGO
+      WHERE betrag BETWEEN -5 AND 0
+      GROUP BY 2,1
+      ORDER BY 2,1 DESC
+    """
+
+    assert_compiles_successfully(query, data_source_scaffold())
+  end
+
   test "sebastian 1" do
     query = """
     SELECT
@@ -863,6 +918,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
         {"_id", [type: :text]},
         {"bankverbindung.bankname", [type: :text]},
         {"bankverbindung.iban", [type: :text]},
+        {"bankverbindung.blz", [type: :text]},
         {"betrag", [type: :real]},
         {"bic", [type: :text]},
         {"buchungsDatum", [type: :datetime]},
@@ -875,6 +931,12 @@ defmodule Cloak.Regressions.TeamBank.Test do
         {"umsatzeigenschaften.klassifizierung", [type: :text]},
         {"umsatzeigenschaften.spezifizierung", [type: :text]},
         {"umsatzeigenschaften.unterKategorie", [type: :text]},
+        {"umsatzeigenschaften.mandatsReferenz", [type: :text]},
+        {"umsatzeigenschaften.sparen", [type: :text]},
+        {"umsatzeigenschaften.bargeld", [type: :text]},
+        {"umsatzeigenschaften.kreditkarte", [type: :text]},
+        {"umsatzeigenschaften.ausfuehrungsIntervall", [type: :text]},
+        {"umsatzeigenschaften.hauptgehalt", [type: :text]},
         {"verwendungszweck", [type: :text]}
       ],
       konto: [
@@ -885,6 +947,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
         {"kontostand.betrag", [type: :real]},
         {"financeMoodKonto", [type: :boolean]},
         {"letzterUmsatz.buchungsDatum", [type: :datetime]},
+        {"aeltesterUmsatz.buchungsDatum", [type: :datetime]},
         {"name", [type: :text]}
       ],
       bankzugang: [
