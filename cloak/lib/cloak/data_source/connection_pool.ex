@@ -41,7 +41,7 @@ defmodule Cloak.DataSource.ConnectionPool do
       |> on_connection(fun)
     else
       # needed for drivers which don't support connection sharing, such as ODBC
-      connection = data_source.driver.connect!(data_source.parameters)
+      connection = Cloak.DataSource.connect!(data_source.driver, data_source.parameters)
 
       try do
         fun.(connection)
