@@ -135,17 +135,29 @@ defmodule ComplianceCase do
       )
 
   @doc false
-  def data_sources() do
+  def data_sources(),
+    # using a global transaction here to prevent simultaneous concurrent datasource loads
+    do: :global.trans({__MODULE__, :data_sources}, &get_data_sources/0, [node()])
+
+  defp get_data_sources() do
+    # we're caching datasource definition to prevent repeated datasource reloading
+    cached_data_sources = Application.get_env(:cloak, :cached_data_sources, %{})
     compliance_file = if System.get_env("CI") == "true", do: "dockerized_ci", else: "compliance"
-    data_sources = Compliance.DataSources.all_from_config_initialized(compliance_file)
 
-    if length(data_sources) < 2,
-      do:
-        raise(
-          ExUnit.AssertionError,
-          message: "More than one data source is needed to ensure compliance"
-        )
+    case Map.fetch(cached_data_sources, compliance_file) do
+      :error ->
+        data_sources = Compliance.DataSources.all_from_config_initialized(compliance_file)
+        Application.put_env(:cloak, :cached_data_sources, Map.put(cached_data_sources, compliance_file, data_sources))
+        data_sources
 
-    data_sources
+      {:ok, data_sources} ->
+        data_sources
+    end
+    |> verify_data_sources()
   end
+
+  defp verify_data_sources([_, _ | _] = data_sources), do: data_sources
+
+  defp verify_data_sources(_),
+    do: raise(ExUnit.AssertionError, message: "More than one data source is needed to ensure compliance")
 end

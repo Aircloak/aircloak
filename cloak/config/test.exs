@@ -60,3 +60,6 @@ config :cloak, :sap_hana,
 
 # Using 0 timeout in tests, since due to the log level, log message won't be captured anyway.
 config :cloak, :flush_query_log_timeout, 0
+
+# using connection retries in tests, since there are occasional failures with SAP IQ and SAP HANA
+config :cloak, connect_retries: 10, connect_retry_delay: 500

@@ -1,5 +1,5 @@
 {
-  "driver": "saphana",
+  "driver": "saphana_rodbc",
   "name": "saphana",
   "parameters": {
     "hostname": "achanaproxy.mpi-sws.org",

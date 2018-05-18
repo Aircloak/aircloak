@@ -211,7 +211,7 @@ defmodule Cloak.DataSource do
 
     try do
       # Not using the connection pool, since this function is invoked before the supervision tree is started.
-      connection = driver.connect!(data_source.parameters)
+      connection = connect!(data_source.driver, data_source.parameters)
 
       try do
         data_source
@@ -228,6 +228,15 @@ defmodule Cloak.DataSource do
         add_error_message(%{data_source | tables: %{}, status: :offline}, message)
     end
   end
+
+  @doc """
+  Connects to the datasource.
+
+  This function will retry on failure, depending on `:connect_retries` and `:connect_retry_delay` app settings.
+  """
+  @spec connect!(module, Driver.parameters()) :: Driver.connection()
+  def connect!(driver, parameters),
+    do: connect_with_retries!(driver, parameters, Application.get_env(:cloak, :connect_retries, 0))
 
   # -------------------------------------------------------------------
   # Callbacks
@@ -460,6 +469,16 @@ defmodule Cloak.DataSource do
     defp update_air(_data_sources), do: :ok
   else
     defp update_air(data_sources), do: Cloak.AirSocket.update_config(data_sources)
+  end
+
+  defp connect_with_retries!(driver, parameters, 0), do: driver.connect!(parameters)
+
+  defp connect_with_retries!(driver, parameters, num_retries) when num_retries > 0 do
+    driver.connect!(parameters)
+  catch
+    _type, _error ->
+      Process.sleep(Application.get_env(:cloak, :connect_retry_delay, :timer.seconds(1)))
+      connect_with_retries!(driver, parameters, num_retries - 1)
   end
 
   # -------------------------------------------------------------------
