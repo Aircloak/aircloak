@@ -1,4 +1,4 @@
-## Version 18.3.0
+## Unreleased
 
 ### BREAKING CHANGES
 
@@ -9,6 +9,10 @@
 - Resetting a user's password via a link provided by the system administrator
 - Resetting a user's password using the command line interface
 - Added support for userless tables and non-anonymizing queries.
+
+### Bugfixes
+
+- Fix for queries being rejected when one side of a range is negative
 
 ### Enhancements
 
