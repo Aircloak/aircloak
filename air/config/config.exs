@@ -39,13 +39,12 @@ config :phoenix, :generators,
 # configure markdown compiler
 config :phoenix, :template_engines, md: Air.Phoenix.MarkdownEngine
 
-config :guardian, Guardian,
+config :air, Air.Guardian,
   allowed_algos: ["HS512"],
   verify_module: Guardian.JWT,
   issuer: "Aircloak Air",
   ttl: {30, :days},
-  verify_issuer: true,
-  serializer: Air.GuardianSerializer
+  verify_issuer: true
 
 config :scrivener_html, routes_helper: AirWeb.Router.Helpers
 

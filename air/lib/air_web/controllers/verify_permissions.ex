@@ -3,7 +3,7 @@ defmodule AirWeb.VerifyPermissions do
   Verifies the permission for the current user on the pending Phoenix controller action.
 
   This plug is automatically included in all of Air controllers. It assumes that
-  the user has been properly loaded with `Guardian.Plug.LoadResource`. If the user
+  the user has been properly loaded with `Air.Guardian.Plug.LoadResource`. If the user
   is not logged in (or not loaded), it is assumed to be in the role `:anonymous`.
 
   The plug verifies if the user has permissions to run the pending action, according

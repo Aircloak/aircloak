@@ -92,7 +92,7 @@ defmodule AirWeb.Plug.Session do
     def init(opts), do: opts
 
     def call(conn, _opts) do
-      Plug.Conn.assign(conn, :current_user, Guardian.Plug.current_resource(conn))
+      Plug.Conn.assign(conn, :current_user, Air.Guardian.Plug.current_resource(conn))
     end
   end
 
@@ -164,7 +164,7 @@ defmodule AirWeb.Plug.Session do
     end
 
     defp session_key() do
-      Guardian.Keys.base_key(:default)
+      Guardian.Plug.Keys.base_key(:default)
     end
   end
 
@@ -174,32 +174,22 @@ defmodule AirWeb.Plug.Session do
 
     The user data will be available in the `conn.assigns.current_user`
     """
-    use Plug.Builder
+    use Guardian.Plug.Pipeline, otp_app: :air, module: Air.Guardian, error_handler: __MODULE__
 
     plug(AirWeb.Plug.Session.Restoration)
     plug(Guardian.Plug.VerifySession)
-    plug(Guardian.Plug.EnsureAuthenticated, handler: __MODULE__)
+    plug(Guardian.Plug.EnsureAuthenticated)
     plug(Guardian.Plug.LoadResource)
-    plug(Guardian.Plug.EnsureResource, handler: __MODULE__)
     plug(AirWeb.Plug.Session.AssignCurrentUser)
 
-    # -------------------------------------------------------------------
-    # Callback for Guardian.Plug.EnsureResource
-    # -------------------------------------------------------------------
-
     @doc false
-    def no_resource(conn, params) do
+    def auth_error(conn, {:no_resource_found, reason}, params) do
       conn
-      |> Guardian.Plug.sign_out()
-      |> unauthenticated(params)
+      |> Air.Guardian.Plug.sign_out()
+      |> auth_error({:unauthenticated, reason}, params)
     end
 
-    # -------------------------------------------------------------------
-    # Callback for Guardian.Plug.EnsureAuthenticated
-    # -------------------------------------------------------------------
-
-    @doc false
-    def unauthenticated(%Plug.Conn{request_path: path} = conn, _params) do
+    def auth_error(%Plug.Conn{request_path: path} = conn, {:unauthenticated, _}, _params) do
       conn
       |> Phoenix.Controller.put_flash(:error, "You must be authenticated to view this page")
       |> Plug.Conn.put_session(:return_path, path)
@@ -214,18 +204,14 @@ defmodule AirWeb.Plug.Session do
     This plug will also assign `nil` to `:current_user` so `conn.assigns.current_user`
     can be safely used in subsequent controllers and views.
     """
-    use Plug.Builder
+    use Guardian.Plug.Pipeline, otp_app: :air, module: Air.Guardian, error_handler: __MODULE__
 
     plug(Guardian.Plug.VerifySession)
-    plug(Guardian.Plug.EnsureNotAuthenticated, handler: __MODULE__)
+    plug(Guardian.Plug.EnsureNotAuthenticated)
     plug(AirWeb.Plug.Session.AssignCurrentUser)
 
-    # -------------------------------------------------------------------
-    # Callback for Guardian.Plug.EnsureNotAuthenticated
-    # -------------------------------------------------------------------
-
     @doc false
-    def already_authenticated(conn, _params) do
+    def auth_error(conn, {:already_authenticated, _}, _params) do
       Phoenix.Controller.redirect(conn, to: "/")
     end
   end
