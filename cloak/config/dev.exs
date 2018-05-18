@@ -35,3 +35,8 @@ config :cloak, :memory_limits,
 config :cloak, :data_source,
   timeout: :timer.hours(1),
   batch_size: 100
+
+config :cloak, Cloak.Scheduler,
+  jobs: [
+    {"@minutely", {Cloak.DataSource.SerializingUpdater, :run_liveness_check, []}}
+  ]
