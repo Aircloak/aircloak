@@ -277,20 +277,11 @@ defmodule Cloak.Query.Aggregator do
   defp aggregate_group({values, anonymizer, users_rows}, indexed_aggregators) do
     aggregation_results =
       Enum.map(indexed_aggregators, fn {values_index, aggregator} ->
-        aggregated_values =
-          users_rows
-          |> Stream.map(fn {_user, row_values} -> Enum.at(row_values, values_index) end)
-          |> Enum.reject(&is_nil/1)
-
-        case low_users_count?(aggregated_values, anonymizer) do
-          true ->
-            if aggregator.function == "count", do: 0, else: nil
-
-          false ->
-            aggregated_values
-            |> preprocess_for_aggregation(aggregator)
-            |> aggregate_by(aggregator.function, aggregator.type, anonymizer)
-        end
+        users_rows
+        |> Stream.map(fn {_user, row_values} -> Enum.at(row_values, values_index) end)
+        |> Enum.reject(&is_nil/1)
+        |> preprocess_for_aggregation(aggregator)
+        |> aggregate_by(aggregator.function, aggregator.type, anonymizer)
       end)
 
     users_count = Anonymizer.noisy_count(anonymizer, Enum.count(users_rows))
