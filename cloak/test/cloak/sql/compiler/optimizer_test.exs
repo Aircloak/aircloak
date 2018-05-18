@@ -98,6 +98,23 @@ defmodule Cloak.Sql.Compiler.Optimizer.Test do
     assert {:comparison, %{name: "numeric"}, :=, %{value: 0}} = subquery.where
   end
 
+  test "[BUG] pushing a range with negative number into subquery" do
+    assert %{from: {:subquery, %{ast: subquery}}, where: where} =
+             compile!(
+               """
+                 SELECT count(*) FROM
+                 (SELECT uid, numeric FROM table) AS t
+                 WHERE numeric BETWEEN -5 AND 0
+               """,
+               data_source()
+             )
+
+    assert {:not, {:is, %{name: "uid"}, :null}} = where
+
+    assert {:and, {:comparison, %{name: "numeric"}, :>=, %{value: -5.0}},
+            {:comparison, %{name: "numeric"}, :<, %{value: 0.0}}} = subquery.where
+  end
+
   defp data_source() do
     %{
       driver: Cloak.DataSource.PostgreSQL,
