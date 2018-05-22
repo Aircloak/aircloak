@@ -111,9 +111,9 @@ GROUP BY acct_date
 
 ## Low-count filtering
 
-The Aircloak anonymizing aggregation functions `count()`, `sum()`, `avg()`, `min()`, `max()`, `stddev()`, and `median()` compute outputs from the data of multiple users. If the number of distinct users used in an aggregation function is too small, the output is suppressed (not reported). This suppression is called *low-count filtering*.
+The Aircloak anonymizing aggregator computes outputs from the data of multiple users. If the number of distinct users contributing to a single output row is too small, the row is suppressed (not reported). This suppression is called *low-count filtering*.
 
-The threshold for the low-count filter is itself a noisy value with an average of 4. If there are 4 distinct users that comprise an output, then there is a 50% chance the output will be suppressed. Fewer users increases the chance of suppression, and more users decreases the chance of suppression. Any reported output always has at least 2 distinct users. As a result, the value reported for `count()` is never less than 2.
+The threshold for the low-count filter is itself a noisy value with an average of 4. If there are 4 distinct users that comprise an output row, then there is a 50% chance the row will be suppressed. Fewer users increases the chance of suppression, and more users decreases the chance of suppression. Any reported output row always has at least 2 distinct users.
 
 For instance, suppose that a query counts the users with each given first name, and that the names in the `users` table (before anonymization) are distributed as follows:
 
@@ -139,7 +139,7 @@ The `*` row provides the analyst with an indication that some names have been su
 
 These seven anonymizing aggregation functions may add additional distortion besides the zero mean noise and low-count filtering already described. Note in particular that Aircloak gives no indication of whether any additional distortion occurred, or how severe this additional distortion is. This is because such information itself may leak individual information.
 
-Anonymizing aggregation functions make a variety of computations that require some minimum number of distinct users. It can happen that there are enough distinct users to pass a low-count filter, but not enough distinct users to compute the aggregate. In these cases, Aircloak does not suppress the output, but rather reports `NULL` for all aggregation functions and noise reporting functions except `count()`. Aircloak reports 2 for `count()` because `NULL` is not a valid output for `count()`.
+Anonymizing aggregation functions make a variety of computations that require some minimum number of distinct users. It can happen that there are enough distinct users to pass a low-count filter, but not enough distinct users to compute the aggregate. In these cases, Aircloak does not suppress the output, but rather reports `NULL` for all aggregation functions and noise reporting functions except `count()`. Aircloak reports 0 for `count()` because `NULL` is not a valid output for `count()`.
 
 Note also that when there are fewer than 15 distinct users (anonymized output) in a given output row, then the Aircloak web interfaces reports the output in italics. This serves as a reminder to the analyst that the result likely has high relative noise.
 
