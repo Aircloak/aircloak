@@ -27,13 +27,15 @@ admin_group =
       group
   end
 
-User.create!(%{
-  email: "admin@aircloak.com",
-  password: "1234",
-  password_confirmation: "1234",
-  name: "Aircloak test administrator",
-  groups: [admin_group.id]
-})
+{:ok, _admin} =
+  %{
+    email: "admin@aircloak.com",
+    name: "Aircloak test administrator",
+    groups: [admin_group.id]
+  }
+  |> User.create!()
+  |> User.reset_password_token()
+  |> User.reset_password(%{password: "1234", password_confirmation: "1234"})
 
 # plain user
 User.create!(%{
