@@ -37,7 +37,7 @@ defmodule AirWeb.SessionController do
 
         conn
         |> Air.Guardian.Plug.sign_in(user)
-        |> conditionally_create_persistent_login(params)
+        |> conditionally_create_persistent_login(user, params)
         |> put_session(:return_path, nil)
         |> put_flash(:info, "Logged in successfully. Welcome back!")
         |> redirect(to: return_path)
@@ -63,9 +63,9 @@ defmodule AirWeb.SessionController do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp conditionally_create_persistent_login(conn, %{"remember" => "on"}) do
-    AirWeb.Plug.Session.Restoration.persist_token(conn)
+  defp conditionally_create_persistent_login(conn, user, %{"remember" => "on"}) do
+    AirWeb.Plug.Session.Restoration.persist_token(conn, user)
   end
 
-  defp conditionally_create_persistent_login(conn, _params), do: conn
+  defp conditionally_create_persistent_login(conn, _user, _params), do: conn
 end
