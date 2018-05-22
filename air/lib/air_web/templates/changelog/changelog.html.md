@@ -20,6 +20,8 @@
 
 ### Changes
 
+  - Improve the consistency between the different ways of computing noisy users counts; some results may change.
+
 ## Version 18.2.3
 
 ### Bugfixes

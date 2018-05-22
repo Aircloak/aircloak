@@ -90,7 +90,7 @@ defmodule Cloak.Query.Anonymizer do
   def count(anonymizer, rows) do
     case sum_positives(anonymizer, rows) do
       {{0, nil}, _anonymizer} ->
-        {config(:low_count_absolute_lower_bound), nil}
+        {0, nil}
 
       {{count, noise_sigma}, _anonymizer} ->
         count = count |> round() |> Kernel.max(config(:low_count_absolute_lower_bound))
@@ -238,7 +238,7 @@ defmodule Cloak.Query.Anonymizer do
   """
   @spec noisy_count(t, integer) :: integer
   def noisy_count(anonymizer, count) do
-    sigma = config(:sum_noise_sigma)
+    sigma = config(:sum_noise_sigma) * noise_sigma_scale_factor(1, 1)
     {noisy_count, _anonymizer} = add_noise(anonymizer, {count, sigma})
     Kernel.max(round(noisy_count), config(:low_count_absolute_lower_bound))
   end
@@ -291,6 +291,8 @@ defmodule Cloak.Query.Anonymizer do
 
   # Computes the noisy sum of a collection of positive numbers.
   defp sum_positives(anonymizer, rows) do
+    noise_sigma = config(:sum_noise_sigma)
+    {noise, anonymizer} = add_noise(anonymizer, {0, noise_sigma})
     {outliers_count, anonymizer} = get_group_count(anonymizer, config(:outliers_count))
     {top_count, anonymizer} = get_group_count(anonymizer, config(:top_count))
 
@@ -299,9 +301,8 @@ defmodule Cloak.Query.Anonymizer do
         {{0, nil}, anonymizer}
 
       {sum, noise_sigma_scale} ->
-        noise_sigma = config(:sum_noise_sigma) * noise_sigma_scale
-        {noisy_sum, anonymizer} = add_noise(anonymizer, {sum, noise_sigma})
-
+        noise_sigma = noise_sigma * noise_sigma_scale
+        noisy_sum = sum + noise * noise_sigma_scale
         {{noisy_sum, noise_sigma |> scale_sigma_by_noise_layers(anonymizer) |> round_noise_sigma()}, anonymizer}
     end
   end
