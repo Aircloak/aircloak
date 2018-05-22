@@ -159,7 +159,6 @@ The following constructs are not natively supported on this data source and will
 
   - `date_trunc`
   - `hex`
-  - `length`
   - `median`
 
 __Note__: The `SAMPLE_USERS`-clause is not natively supported on this data source and it will require emulation.
@@ -168,7 +167,6 @@ __Note__: The `SAMPLE_USERS`-clause is not natively supported on this data sourc
 
   - `date_trunc`
   - `hex`
-  - `length`
   - `median`
   - `btrim`, `ltrim`, and `rtrim` with two arguments
 
