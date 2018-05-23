@@ -17,7 +17,7 @@ defmodule CentralWeb.SessionController do
 
         conn
         |> Central.Guardian.Plug.sign_in(user)
-        |> conditionally_create_persistent_login(params, user)
+        |> conditionally_create_persistent_login(user, params)
         |> put_session(:return_path, nil)
         |> put_flash(:info, "Logged in successfully. Welcome back!")
         |> redirect(to: return_path)

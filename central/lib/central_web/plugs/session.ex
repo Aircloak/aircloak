@@ -29,7 +29,7 @@ defmodule CentralWeb.Plug.Session do
     require Logger
     alias Central.Schemas.User
 
-    @cookie_key "auth_remember_me"
+    @cookie_key "central_auth_remember_me"
     # 30 days in seconds (30*24*60*60) - the time before a user has to login again.
     @cookie_max_age_s 2_592_000
 
