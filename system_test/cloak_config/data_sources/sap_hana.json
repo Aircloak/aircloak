@@ -1,0 +1,14 @@
+{
+  "driver": "saphana_rodbc",
+  "name": "sap_hana",
+  "parameters": {
+    "hostname": "achanaproxy.mpi-sws.org",
+    "port": 39013,
+    "username": "acdev",
+    "database": "SYSTEMDB",
+    "password": "Aircloakdev1"
+  },
+  "encoded": false,
+  "tables": {
+  }
+}

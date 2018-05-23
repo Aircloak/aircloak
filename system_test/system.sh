@@ -74,8 +74,12 @@ function start_cloak_container {
   if [ -d $(pwd)/system_test/tmp/cloak_config ]; then rm -rf $(pwd)/system_test/tmp/cloak_config; fi
   cp -rp $(pwd)/system_test/cloak_config $(pwd)/system_test/tmp/
 
+  local sap_hana_unique="$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c 16; echo '')"
+
   start_system_container cloak \
     -v $(pwd)/system_test/tmp/cloak_config:/runtime_config \
+    -v $(pwd)/cloak/priv/odbc/drivers:/odbc_drivers \
+    -e "DEFAULT_SAP_HANA_SCHEMA=TEST_SCHEMA_$sap_hana_unique" \
     aircloak/cloak:latest
 
   echo "waiting for cloak to start ..."
