@@ -128,6 +128,7 @@ function start_container {
 #   build_aircloak_image image_tag dockerfile_path [dockerfileignore_path]
 # Note: It is the responsibility of the caller to properly set the current folder.
 function build_aircloak_image {
+  if [ "$SKIP_DOCKER_BUILD" == "true" ]; then return 0; fi
   curdir=$(pwd)
 
   dockerfile="$2"
