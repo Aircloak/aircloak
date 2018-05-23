@@ -43,7 +43,7 @@
             </li>
           <% end %>
 
-          <%= if Guardian.Plug.authenticated?(@conn) do %>
+          <%= if Air.Guardian.Plug.authenticated?(@conn) do %>
             <li>
               <%= link "Sign out", to: session_path(@conn, :delete), method: :delete %>
             </li>

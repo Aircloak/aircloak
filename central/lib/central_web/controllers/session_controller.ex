@@ -16,8 +16,8 @@ defmodule CentralWeb.SessionController do
         return_path = get_session(conn, :return_path) || "/"
 
         conn
-        |> Guardian.Plug.sign_in(user)
-        |> conditionally_create_persistent_login(params)
+        |> Central.Guardian.Plug.sign_in(user)
+        |> conditionally_create_persistent_login(user, params)
         |> put_session(:return_path, nil)
         |> put_flash(:info, "Logged in successfully. Welcome back!")
         |> redirect(to: return_path)
@@ -31,7 +31,7 @@ defmodule CentralWeb.SessionController do
 
   def delete(conn, _params) do
     conn
-    |> Guardian.Plug.sign_out()
+    |> Central.Guardian.Plug.sign_out()
     |> CentralWeb.Plug.Session.Restoration.remove_token()
     |> put_flash(:info, "Logged out successfully")
     |> redirect(to: session_path(conn, :new))
@@ -41,9 +41,9 @@ defmodule CentralWeb.SessionController do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp conditionally_create_persistent_login(conn, %{"remember" => "on"}) do
-    CentralWeb.Plug.Session.Restoration.persist_token(conn)
+  defp conditionally_create_persistent_login(conn, user, %{"remember" => "on"}) do
+    CentralWeb.Plug.Session.Restoration.persist_token(conn, user)
   end
 
-  defp conditionally_create_persistent_login(conn, _params), do: conn
+  defp conditionally_create_persistent_login(conn, _user, _params), do: conn
 end

@@ -9,6 +9,10 @@ defmodule Central.Plug.KibanaProxyParser do
   @behaviour Plug.Parsers
   import Plug.Conn
 
+  @impl Plug.Parsers
+  def init(opts), do: opts
+
+  @impl Plug.Parsers
   def parse(conn, _type, _subtype, _headers, options) do
     case conn.path_info do
       ["kibana" | _] ->

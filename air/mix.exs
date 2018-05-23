@@ -79,7 +79,7 @@ defmodule Air.Mixfile do
       {:gettext, "~> 0.9"},
       {:cowboy, "~> 1.0"},
       {:comeonin, "~> 2.5"},
-      {:guardian, "~> 0.14.0"},
+      {:guardian, "~> 1.0.1"},
       {:timex, ">= 3.1.10 and < 4.0.0"},
       {:aircloak_common, path: "../common/elixir"},
       {:inflex, "~> 1.5.0"},

@@ -12,22 +12,24 @@ defmodule CentralWeb.Plug.Session do
     def init(opts), do: opts
 
     def call(conn, _opts) do
-      Plug.Conn.assign(conn, :current_user, Guardian.Plug.current_resource(conn))
+      Plug.Conn.assign(conn, :current_user, Central.Guardian.Plug.current_resource(conn))
     end
   end
 
   defmodule Restoration do
     @moduledoc """
-    Plug that allows us to provide a "remember me" feature in our login system.
-    The guardian authentication system checks the session store for the authentication token.
-    When a user wants us to remember that he is logged in, we create an additional cookie
-    that allows us to restore the session variable on subsequent visits.
+    Plug that allows us to provide a "remember me" feature in our login system.  The guardian authentication system
+    checks the session store for the authentication token.  When a user wants us to remember that he is logged in, we
+    create an additional cookie that allows us to restore the session variable on subsequent visits. This implementation
+    is currently adapted from https://github.com/ueberauth/guardian/blob/master/lib/guardian/plug/verify_cookie.ex.
+    Once guardian 1.1.0 is released we should just use the implementation from the lib.
     """
     @behaviour Plug
 
     require Logger
+    alias Central.Schemas.User
 
-    @cookie_key "auth_remember_me"
+    @cookie_key "central_auth_remember_me"
     # 30 days in seconds (30*24*60*60) - the time before a user has to login again.
     @cookie_max_age_s 2_592_000
 
@@ -39,14 +41,24 @@ defmodule CentralWeb.Plug.Session do
     def init(default), do: default
 
     @impl Plug
-    def call(conn, _default) do
-      case Plug.Conn.get_session(conn, session_key()) do
-        nil ->
-          conditionally_restore_session(conn)
+    def call(%{req_cookies: %Plug.Conn.Unfetched{}} = conn, opts) do
+      conn
+      |> Plug.Conn.fetch_cookies()
+      |> call(opts)
+    end
 
-        _ ->
-          # A session already exists, so we don't need to do anything at all
-          conn
+    def call(conn, opts) do
+      with nil <- Guardian.Plug.current_token(conn, opts),
+           {:ok, token} <- find_token_from_cookies(conn),
+           active_session? <- Guardian.Plug.session_active?(conn),
+           exchange_to <- Central.Guardian.default_token_type(),
+           {:ok, _old, {new_token, new_claims}} <- Central.Guardian.exchange(token, "refresh", exchange_to) do
+        conn
+        |> Central.Guardian.Plug.put_current_token(new_token)
+        |> Central.Guardian.Plug.put_current_claims(new_claims)
+        |> maybe_put_in_session(active_session?, new_token, opts)
+      else
+        _ -> conn
       end
     end
 
@@ -55,11 +67,14 @@ defmodule CentralWeb.Plug.Session do
     # -------------------------------------------------------------------
 
     @doc "Persists the user session in the cookie."
-    @spec persist_token(Plug.Conn.t()) :: Plug.Conn.t()
-    def persist_token(conn) do
+    @spec persist_token(Plug.Conn.t(), User.t()) :: Plug.Conn.t()
+    def persist_token(conn, user) do
       Logger.debug("The user wants us to remember that s/he is logged in")
-      jwt = Plug.Conn.get_session(conn, session_key())
-      Plug.Conn.put_resp_cookie(conn, @cookie_key, jwt, max_age: @cookie_max_age_s)
+
+      case Central.Guardian.encode_and_sign(user, _claims = %{}, token_type: "refresh") do
+        {:ok, token, _new_claims} -> Plug.Conn.put_resp_cookie(conn, @cookie_key, token, max_age: @cookie_max_age_s)
+        {:error, error} -> raise error
+      end
     end
 
     @doc "Removes the persisted session from the cookie."
@@ -69,23 +84,19 @@ defmodule CentralWeb.Plug.Session do
       Plug.Conn.delete_resp_cookie(conn, @cookie_key, max_age: @cookie_max_age_s)
     end
 
-    defp conditionally_restore_session(conn) do
-      %Plug.Conn{req_cookies: req_cookies} = Plug.Conn.fetch_cookies(conn)
-
-      case req_cookies[@cookie_key] do
-        nil ->
-          # The user isn't logged in, or didn't use the remember-me feature
-          conn
-
-        jwt ->
-          Logger.debug("Restoring user session from cookie, logging in the user")
-          Plug.Conn.put_session(conn, session_key(), jwt)
-      end
+    defp find_token_from_cookies(conn) do
+      token = conn.req_cookies[@cookie_key]
+      if token, do: {:ok, token}, else: :no_token_found
     end
 
-    defp session_key() do
-      Guardian.Keys.base_key(:default)
+    defp maybe_put_in_session(conn, false, _, _), do: conn
+
+    defp maybe_put_in_session(conn, true, token, opts) do
+      key = conn |> storage_key(opts) |> Guardian.Plug.Keys.token_key()
+      Plug.Conn.put_session(conn, key, token)
     end
+
+    defp storage_key(conn, opts), do: Guardian.Plug.Pipeline.fetch_key(conn, opts)
   end
 
   defmodule Authenticated do
@@ -94,20 +105,20 @@ defmodule CentralWeb.Plug.Session do
 
     The user data will be available in the `conn.assigns.current_user`
     """
-    use Plug.Builder
+    use Guardian.Plug.Pipeline, otp_app: :central, module: Central.Guardian, error_handler: __MODULE__
 
     plug(CentralWeb.Plug.Session.Restoration)
     plug(Guardian.Plug.VerifySession)
-    plug(Guardian.Plug.EnsureAuthenticated, handler: __MODULE__)
+    plug(Guardian.Plug.EnsureAuthenticated)
     plug(Guardian.Plug.LoadResource)
     plug(CentralWeb.Plug.Session.AssignCurrentUser)
 
     # -------------------------------------------------------------------
-    # Callback for Guardian.Plug.EnsureAuthenticated
+    # Callback for Guardian.Plug.Pipeline
     # -------------------------------------------------------------------
 
     @doc false
-    def unauthenticated(%Plug.Conn{request_path: path} = conn, _params) do
+    def auth_error(%Plug.Conn{request_path: path} = conn, {:unauthenticated, _}, _params) do
       conn
       |> Phoenix.Controller.put_flash(:error, "You must be authenticated to view this page")
       |> Plug.Conn.put_session(:return_path, path)
@@ -122,18 +133,18 @@ defmodule CentralWeb.Plug.Session do
     This plug will also assign `nil` to `:current_user` so `conn.assigns.current_user`
     can be safely used in subsequent controllers and views.
     """
-    use Plug.Builder
+    use Guardian.Plug.Pipeline, otp_app: :central, module: Central.Guardian, error_handler: __MODULE__
 
     plug(Guardian.Plug.VerifySession)
-    plug(Guardian.Plug.EnsureNotAuthenticated, handler: __MODULE__)
+    plug(Guardian.Plug.EnsureNotAuthenticated)
     plug(CentralWeb.Plug.Session.AssignCurrentUser)
 
     # -------------------------------------------------------------------
-    # Callback for Guardian.Plug.EnsureNotAuthenticated
+    # Callback for Guardian.Plug.Pipeline
     # -------------------------------------------------------------------
 
     @doc false
-    def already_authenticated(conn, _params) do
+    def auth_error(conn, {:already_authenticated, _}, _params) do
       Plug.Conn.send_resp(conn, Plug.Conn.Status.code(:bad_request), "already authenticated")
     end
   end

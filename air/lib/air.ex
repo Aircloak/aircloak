@@ -50,8 +50,8 @@ defmodule Air do
 
   defp configure_secrets do
     Air.Utils.update_app_env(
-      :guardian,
-      Guardian,
+      :air,
+      Air.Guardian,
       &[{:secret_key, site_setting("auth_secret")} | &1]
     )
 
