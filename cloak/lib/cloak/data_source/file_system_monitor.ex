@@ -25,6 +25,7 @@ defmodule Cloak.DataSource.FileSystemMonitor do
   @impl GenServer
   def handle_info(:timeout, messages) do
     messages
+    |> reject_unwanted_events()
     |> group_by_data_source_config()
     |> consolidate_and_classify_events()
     |> handle_events()
@@ -59,6 +60,9 @@ defmodule Cloak.DataSource.FileSystemMonitor do
       file_events
       |> Enum.flat_map(fn {_path, events} -> events end)
       |> Enum.uniq()
+
+  defp reject_unwanted_events(file_events),
+    do: Enum.filter(file_events, fn {path, _events} -> String.ends_with?(path, ".json") end)
 
   defp classify_events(events) do
     if removal_event?(events) do
