@@ -10,7 +10,8 @@ defmodule Air.Repo.Seeder do
   @doc "Seeds the database with the development data."
   @spec seed() :: :ok
   def seed() do
-    create_admin!()
+    admin = create_admin!()
+    create_admin_token!(admin)
     create_plain_user!()
 
     :ok
@@ -48,5 +49,12 @@ defmodule Air.Repo.Seeder do
       password_confirmation: "1234",
       name: "Test client regular user"
     })
+  end
+
+  defp create_admin_token!(admin) do
+    token = Air.Token.create_api_token(admin, :api, "development admin token")
+    file_name = Path.join(~w(#{Application.app_dir(:air)} priv dev admin_token))
+    file_name |> Path.dirname() |> File.mkdir_p!()
+    File.write(file_name, token)
   end
 end
