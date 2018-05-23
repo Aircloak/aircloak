@@ -34,13 +34,12 @@ config :phoenix, :generators,
 # configure markdown compiler
 config :phoenix, :template_engines, md: Central.Phoenix.MarkdownEngine
 
-config :guardian, Guardian,
+config :central, Central.Guardian,
   allowed_algos: ["HS512"],
   verify_module: Guardian.JWT,
   issuer: "Aircloak Central",
   ttl: {30, :days},
-  verify_issuer: true,
-  serializer: Central.GuardianSerializer
+  verify_issuer: true
 
 config :central, Central.Repo,
   adapter: Ecto.Adapters.Postgres,

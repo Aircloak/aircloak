@@ -23,8 +23,8 @@ defmodule Central do
 
   defp configure_secrets do
     Central.Utils.update_app_env(
-      :guardian,
-      Guardian,
+      :central,
+      Central.Guardian,
       &[{:secret_key, site_setting("auth_secret")} | &1]
     )
 

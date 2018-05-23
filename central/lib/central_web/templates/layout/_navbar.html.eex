@@ -18,7 +18,7 @@
             <%= navbar_link(@conn, "Users", user_path(@conn, :index)) %>
           <% end %>
 
-          <%= if Guardian.Plug.authenticated?(@conn) do %>
+          <%= if Central.Guardian.Plug.authenticated?(@conn) do %>
             <li>
               <%= link "Sign out", to: session_path(@conn, :delete), method: :delete %>
             </li>
