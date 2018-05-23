@@ -1,9 +1,22 @@
 defmodule Cloak.DataSource.Isolators.Query do
-  alias Cloak.Sql.{Parser, Compiler}
+  @moduledoc "Utility for checking if a column is isolating."
 
+  alias Cloak.Sql.{Parser, Compiler}
+  alias Cloak.DataSource
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Returns true if the given column in the given table is isolating, false otherwise."
+  @spec isolates_users?(DataSource.t(), atom, String.t()) :: boolean
   def isolates_users?(data_source, table, column) do
     isolating_values(data_source, table, column) / (unique_values(data_source, table, column) + 1) > threshold()
   end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp isolating_values(data_source, table, column) do
     %{user_id: user_id} = data_source.tables[table]
@@ -34,7 +47,7 @@ defmodule Cloak.DataSource.Isolators.Query do
     query
     |> Parser.parse!()
     |> Compiler.compile_standard!(data_source)
-    |> Cloak.DataSource.select!(&Enum.concat/1)
+    |> DataSource.select!(&Enum.concat/1)
     |> Enum.count()
   end
 
