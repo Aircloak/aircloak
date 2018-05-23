@@ -59,7 +59,10 @@ config :cloak, :anonymizer,
   #
   # The parameter takes the form:
   # {lower_bound, average_factor, top_average_factor}
-  sum_noise_sigma_scale_params: {2, 1, 0.5}
+  sum_noise_sigma_scale_params: {2, 1, 0.5},
+
+  # The proportion of values with only one user in the given column to treat it as isolating
+  isolating_column_threshold: 0.5
 
 config :cloak, :in_development, false
 

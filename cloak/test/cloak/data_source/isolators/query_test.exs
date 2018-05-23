@@ -8,6 +8,10 @@ defmodule Cloak.DataSource.Isolators.Query.Test do
     :ok = Cloak.Test.DB.create_table("isolators", "value INTEGER")
   end
 
+  setup do
+    :ok = Cloak.Test.DB.clear_table("isolators")
+  end
+
   test "a column with many users per value is not isolating" do
     :ok =
       Cloak.Test.DB.add_users_data("isolators", ["value"], [

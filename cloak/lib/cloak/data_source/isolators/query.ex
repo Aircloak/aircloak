@@ -38,5 +38,5 @@ defmodule Cloak.DataSource.Isolators.Query do
     |> Enum.count()
   end
 
-  defp threshold(), do: 0.5
+  defp threshold(), do: Application.fetch_env!(:cloak, :anonymizer) |> Keyword.fetch!(:isolating_column_threshold)
 end
