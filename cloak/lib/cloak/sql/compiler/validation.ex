@@ -30,6 +30,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     Helpers.each_subquery(query, &verify_sample_rate/1)
     Helpers.each_subquery(query, &verify_inequalities/1)
     Helpers.each_subquery(query, &verify_in/1)
+    Helpers.each_subquery(query, &verify_division_by_zero/1)
     query
   end
 
@@ -508,6 +509,22 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp valid_user_id?(%Query{type: :restricted} = query), do: Helpers.uid_column_selected?(query)
   defp valid_user_id?(_query), do: true
+
+  # -------------------------------------------------------------------
+  # Division by zero
+  # -------------------------------------------------------------------
+
+  defp verify_division_by_zero(query) do
+    Lens.each(Lenses.query_expressions(), query, fn
+      %{function: "/", function_args: [_, divisor]} ->
+        if Expression.constant?(divisor) and Expression.const_value(divisor) == 0 do
+          raise CompilationError, message: "Division by zero.", source_location: divisor.source_location
+        end
+
+      _ ->
+        :ok
+    end)
+  end
 
   # -------------------------------------------------------------------
   # Helpers
