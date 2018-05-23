@@ -58,6 +58,10 @@ function start_air_container {
     {ok, License} = file:read_file(code:priv_dir(air) ++ \"/config/license.lic\"),
     ok = 'Elixir.Air.Service.License':load(License)
   "
+
+  admin_token=$(docker exec system_test_air cat /aircloak/air/lib/air-$(cat VERSION)/priv/dev/admin_token)
+  mkdir -p system_test/priv/dev
+  echo "$admin_token" > system_test/priv/dev/admin_token
 }
 
 function start_cloak_dbs {
