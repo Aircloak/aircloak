@@ -225,4 +225,8 @@ defmodule Cloak.Query.ErrorTest do
       error: "Column `height` from table `test_errors` needs to appear in the `GROUP BY` clause" <> _
     })
   end
+
+  test "division by a constant 0" do
+    assert_query("SELECT count(*) FROM test_errors WHERE height / (2 - 2) = 0", %{error: "Division by zero" <> _})
+  end
 end
