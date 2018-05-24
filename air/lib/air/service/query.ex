@@ -300,8 +300,6 @@ defmodule Air.Service.Query do
       })
 
     Aircloak.report_long(:store_query_result, fn ->
-      query = Repo.update!(changeset)
-
       Repo.insert_all(
         ResultChunk,
         Enum.map(
@@ -310,7 +308,7 @@ defmodule Air.Service.Query do
         )
       )
 
-      query
+      Repo.update!(changeset)
     end)
   end
 
