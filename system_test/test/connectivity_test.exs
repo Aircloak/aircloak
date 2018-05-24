@@ -2,7 +2,8 @@ defmodule SystemTest.Connectivity do
   use ExUnit.Case, async: true
 
   test "connectivity" do
-    response = HTTPoison.get!("http://air:8080/api/data_sources", %{"auth-token" => auth_token!()})
+    # Note: we're disabling proxies explicitly, because otherwise things break in MPI network
+    response = HTTPoison.get!("http://air:8080/api/data_sources", %{"auth-token" => auth_token!()}, proxy: nil)
     assert response.status_code == 200
 
     data_sources = Jason.decode!(response.body)
