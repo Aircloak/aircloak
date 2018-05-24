@@ -19,7 +19,7 @@ defmodule Cloak.Mixfile do
       ],
       aliases: aliases(Mix.env()),
       test_coverage: [tool: ExCoveralls],
-      compilers: [:rustler] ++ Mix.compilers(),
+      compilers: Mix.compilers() ++ [:rodbc],
       rustler_crates: rustler_crates()
     ]
   end
