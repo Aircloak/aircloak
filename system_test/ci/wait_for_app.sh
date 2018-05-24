@@ -25,5 +25,11 @@ function erlang_eval {
 container=$1
 app=$2
 
+# wait for the beam process to start
+while [ "$(docker exec ${container}_${app} ps aux | grep beam.smp)" == "" ]; do sleep 1; done
+
+# wait for the node to be available
 while [ "$(docker exec ${container}_${app} /aircloak/$app/bin/$app ping)" != "pong" ]; do sleep 1; done
+
+# wait for the app to be started
 until $(app_running $container $app); do sleep 1; done
