@@ -8,7 +8,7 @@
   },
 
   "database": {
-    "host": "system_test_air_db",
+    "host": "air_db",
     "port": 5432,
     "ssl": false,
     "user": "postgres",
