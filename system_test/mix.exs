@@ -18,6 +18,9 @@ defmodule SystemTest.MixProject do
   end
 
   defp deps do
-    []
+    [
+      {:httpoison, "~> 1.1"},
+      {:jason, "~> 1.0"}
+    ]
   end
 end

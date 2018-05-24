@@ -1,6 +1,6 @@
 {
   "driver": "postgresql",
-  "name": "postgresql9.4",
+  "name": "postgresql9_4",
   "parameters": {
     "hostname": "cloak_postgres",
     "username": "postgres",
