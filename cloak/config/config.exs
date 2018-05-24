@@ -61,7 +61,7 @@ config :cloak, :anonymizer,
   # {lower_bound, average_factor, top_average_factor}
   sum_noise_sigma_scale_params: {2, 1, 0.5},
 
-  # The proportion of values with only one user in the given column to treat it as isolating
+  # This values specifies the isolating factor threshold. See `Isolating columns` in anonymization.md.
   isolating_column_threshold: 0.5
 
 config :cloak, :in_development, false
