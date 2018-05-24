@@ -94,9 +94,7 @@ defmodule Mix.Tasks.Gen.DevData do
         conn,
         [
           "
-          INSERT INTO #{table_spec.name} (#{
-            table_spec.columns |> Enum.map(&elem(&1, 0)) |> Enum.join(", ")
-          })
+          INSERT INTO #{table_spec.name} (#{table_spec.columns |> Enum.map(&elem(&1, 0)) |> Enum.join(", ")})
           VALUES #{rows |> Stream.map(&"(#{Enum.join(&1, ", ")})") |> Enum.join(",")}
         "
         ],
@@ -169,8 +167,7 @@ defmodule Mix.Tasks.Gen.DevData do
     end
   end
 
-  defp create_statement(table_spec),
-    do: "CREATE TABLE #{table_spec.name} (#{table_def(table_spec)})"
+  defp create_statement(table_spec), do: "CREATE TABLE #{table_spec.name} (#{table_def(table_spec)})"
 
   defp table_def(table_spec),
     do:

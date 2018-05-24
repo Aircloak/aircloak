@@ -16,9 +16,7 @@ defmodule Cloak.DataSource.SAPHanaRODBC do
   """
   @spec default_schema() :: nil | String.t()
   def default_schema(),
-    do:
-      non_empty_schema(default_schema_from_os_env()) ||
-        non_empty_schema(default_schema_from_app_config())
+    do: non_empty_schema(default_schema_from_os_env()) || non_empty_schema(default_schema_from_app_config())
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
