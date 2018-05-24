@@ -14,7 +14,8 @@ defmodule Cloak.DataSource.SAPHana do
   """
   @spec default_schema() :: nil | String.t()
   def default_schema() do
-    non_empty_schema(System.get_env("DEFAULT_SAP_HANA_SCHEMA")) || non_empty_schema(default_schema_from_app_config())
+    non_empty_schema(System.get_env("__AC__DEFAULT_SAP_HANA_SCHEMA__")) ||
+      non_empty_schema(default_schema_from_app_config())
   end
 
   # -------------------------------------------------------------------
@@ -36,7 +37,8 @@ defmodule Cloak.DataSource.SAPHana do
   defdelegate disconnect(connection), to: ODBC
 
   @impl Driver
-  def load_tables(connection, table), do: ODBC.load_tables(connection, update_in(table.db_name, &~s/"#{&1}"/))
+  def load_tables(connection, table),
+    do: ODBC.load_tables(connection, update_in(table.db_name, &~s/"#{&1}"/))
 
   @impl Driver
   defdelegate select(connection, sql_query, result_processor), to: ODBC

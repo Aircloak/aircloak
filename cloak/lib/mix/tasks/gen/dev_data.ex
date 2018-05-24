@@ -55,7 +55,7 @@ defmodule Mix.Tasks.Gen.DevData do
   defp insert({%{driver: Cloak.DataSource.SAPHana}, conn}, table_spec) do
     Cloak.SapHanaHelpers.recreate_table!(
       conn,
-      default_sap_hana_schema!(),
+      __AC__DEFAULT_SAP_HANA_SCHEMA__!(),
       table_spec.name,
       table_def(table_spec)
     )
@@ -66,7 +66,7 @@ defmodule Mix.Tasks.Gen.DevData do
       table_spec.data,
       &Cloak.SapHanaHelpers.insert_rows!(
         conn,
-        default_sap_hana_schema!(),
+        __AC__DEFAULT_SAP_HANA_SCHEMA__!(),
         table_spec.name,
         column_names,
         &1
@@ -94,7 +94,9 @@ defmodule Mix.Tasks.Gen.DevData do
         conn,
         [
           "
-          INSERT INTO #{table_spec.name} (#{table_spec.columns |> Enum.map(&elem(&1, 0)) |> Enum.join(", ")})
+          INSERT INTO #{table_spec.name} (#{
+            table_spec.columns |> Enum.map(&elem(&1, 0)) |> Enum.join(", ")
+          })
           VALUES #{rows |> Stream.map(&"(#{Enum.join(&1, ", ")})") |> Enum.join(",")}
         "
         ],
@@ -115,18 +117,18 @@ defmodule Mix.Tasks.Gen.DevData do
   defp open_connection(%{driver: Cloak.DataSource.SAPHana} = datasource) do
     with :ok <- sap_hana_connectivity_possible(),
          {:ok, _} <- Application.ensure_all_started(:odbc),
-         {:ok, default_schema} <- default_sap_hana_schema(),
+         {:ok, default_schema} <- __AC__DEFAULT_SAP_HANA_SCHEMA__(),
          connection_params = Map.put(datasource.parameters, :default_schema, default_schema),
          :ok <- Cloak.SapHanaHelpers.ensure_schema(connection_params, default_schema),
          do: Cloak.SapHanaHelpers.connect(connection_params)
   end
 
-  defp default_sap_hana_schema!() do
-    {:ok, default_schema} = default_sap_hana_schema()
+  defp __AC__DEFAULT_SAP_HANA_SCHEMA__!() do
+    {:ok, default_schema} = __AC__DEFAULT_SAP_HANA_SCHEMA__()
     default_schema
   end
 
-  defp default_sap_hana_schema() do
+  defp __AC__DEFAULT_SAP_HANA_SCHEMA__() do
     case Cloak.DataSource.SAPHana.default_schema() do
       nil ->
         [
@@ -167,7 +169,8 @@ defmodule Mix.Tasks.Gen.DevData do
     end
   end
 
-  defp create_statement(table_spec), do: "CREATE TABLE #{table_spec.name} (#{table_def(table_spec)})"
+  defp create_statement(table_spec),
+    do: "CREATE TABLE #{table_spec.name} (#{table_def(table_spec)})"
 
   defp table_def(table_spec),
     do:

@@ -78,7 +78,7 @@ function start_cloak_container {
   start_supporting_container $container_name cloak \
     -v $(pwd)/system_test/tmp/cloak_config:/runtime_config \
     -v $(pwd)/cloak/priv/odbc/drivers:/odbc_drivers \
-    -e "DEFAULT_SAP_HANA_SCHEMA=TEST_SCHEMA_$container_name" \
+    -e "__AC__DEFAULT_SAP_HANA_SCHEMA__=TEST_SCHEMA_$container_name" \
     aircloak/cloak:$(git_head_image_tag)
 
   echo "waiting for cloak to start ..."
