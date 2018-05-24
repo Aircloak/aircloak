@@ -64,13 +64,11 @@ defmodule Air.Repo do
     defp migrate_with_retry!(0), do: migrate!()
 
     defp migrate_with_retry!(retries) do
-      try do
-        migrate!()
-      rescue
-        DBConnection.ConnectionError ->
-          Process.sleep(:timer.seconds(5))
-          migrate_with_retry!(retries - 1)
-      end
+      migrate!()
+    rescue
+      DBConnection.ConnectionError ->
+        Process.sleep(:timer.seconds(5))
+        migrate_with_retry!(retries - 1)
     end
 
     defp migrate!() do
