@@ -54,9 +54,14 @@ defmodule Compliance do
 
   defp tables_map(tables) do
     tables
-    |> Enum.map(fn {name, table} ->
-      {name, Map.take(table, [:db_name, :user_id, :projection, :decoders])}
-    end)
+    |> Enum.map(fn {name, table} -> {name, table_data(table)} end)
+    |> Enum.into(%{})
+  end
+
+  defp table_data(table) do
+    table
+    |> Map.take([:db_name, :user_id, :projection, :decoders])
+    |> Enum.reject(fn {_key, val} -> is_nil(val) end)
     |> Enum.into(%{})
   end
 end
