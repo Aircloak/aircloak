@@ -45,9 +45,11 @@ defmodule Compliance do
   # -------------------------------------------------------------------
 
   defp json_config(data_source) do
+    {:ok, driver_name} = Cloak.DataSource.Utility.driver_to_name(data_source.driver)
+
     data_source
     |> Map.take([:name, :parameters])
-    |> Map.put(:driver, "postgresql")
+    |> Map.put(:driver, driver_name)
     |> Map.put(:tables, tables_map(data_source.tables))
     |> Poison.encode!(pretty: true)
   end
