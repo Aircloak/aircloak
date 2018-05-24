@@ -508,3 +508,10 @@ being an example - see [the following issue for
 more examples](https://github.com/Aircloak/aircloak/issues/1360)), and we doubt that we have
 found all ways in which constants could be constructed, we have made the simplifying
 assumption that two or more mathematical operations in an expression act as a constant.
+
+## Isolating columns
+
+Further restrictions are applied on columns that have been detect to be isolating. For each column
+we compute an isolating factor: `count(values_with_only_one_user) / (count(unique_values) + 1)`.
+If this factor is greater than a configured value (currently 0.5) the column is defined as isolating.
+Only clear conditions are allowed on isolating columns.
