@@ -81,12 +81,7 @@ defmodule Cloak.DataSource.SAPHanaRODBC do
     |> Map.merge(schema_option(default_schema()))
   end
 
-  if Mix.env() == :prod do
-    # We don't allow env based override in prod
-    defp default_schema_from_os_env(), do: nil
-  else
-    defp default_schema_from_os_env(), do: System.get_env("DEFAULT_SAP_HANA_SCHEMA")
-  end
+  defp default_schema_from_os_env(), do: System.get_env("DEFAULT_SAP_HANA_SCHEMA")
 
   defp default_schema_from_app_config() do
     with {:ok, saphana_settings} <- Application.fetch_env(:cloak, :sap_hana),
