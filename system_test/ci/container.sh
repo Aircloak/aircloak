@@ -101,16 +101,21 @@ function wait_for_app {
   local container=$1
   local app=$2
 
-  while [ "$(docker exec ${container}_${app} /aircloak/$app/bin/$app ping)" != "pong" ]; do sleep 1; done
-  until $(app_running $container $app); do sleep 1; done
-}
+  local timeout_prog=""
 
-function app_running {
-  local container=$1
-  local app=$2
+  if [ -x "$(command -v timeout)" ]; then timeout_prog=timeout; fi
+  if [ -x "$(command -v gtimeout)" ]; then timeout_prog=gtimeout; fi
+  if [ "$timeout_prog" == "" ]; then
+    echo "Can't find timeout program! If you're on macOS, run `brew install coreutils`."
+    exit 1
+  fi
 
-  local running=$(erlang_eval $container $app "[App || {App, _, _} <- application:which_applications(), App =:= $app]")
-  if [ "$running" == "[]" ]; then return 1; else return 0; fi
+  $timeout_prog 1m system_test/ci/wait_for_app.sh "$container" "$app" || {
+    local app_container="${container}_${app}"
+    printf "\n\n\nTimeout waiting for $app! Docker log of the container:\n\n"
+    docker logs $app_container
+    exit 1
+  }
 }
 
 function erlang_eval {
