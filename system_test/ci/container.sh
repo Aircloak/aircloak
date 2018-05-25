@@ -11,10 +11,11 @@ cd $ROOT_DIR
 function prepare_for_test {
   local container_name="$1"
 
+  # starting databases first, so they have the time to boot and initialize before client containers are started
   start_air_db $container_name
-  start_air_container $container_name
-
   start_cloak_dbs $container_name
+
+  start_air_container $container_name
   start_cloak_container $container_name
 }
 
@@ -56,6 +57,10 @@ function start_air_db {
 
 function start_cloak_dbs {
   local container_name=$1
+
+  start_supporting_container $container_name sqlserver2017 \
+    -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' \
+    microsoft/mssql-server-linux:2017-latest
 
   start_supporting_container $container_name cloak_postgres \
     --tmpfs=/ramdisk:rw,size=1G -e PGDATA=/ramdisk \
