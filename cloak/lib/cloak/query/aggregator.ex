@@ -391,7 +391,7 @@ defmodule Cloak.Query.Aggregator do
           %Expression{} -> nil
         end)
 
-      [%{row: aggregated_values, occurrences: 1, users_count: 0}]
+      [%{row: aggregated_values, occurrences: 1, unreliable: true}]
     else
       make_non_empty_buckets(rows, query)
     end
@@ -405,7 +405,7 @@ defmodule Cloak.Query.Aggregator do
     |> Rows.extract_groups(Query.bucket_columns(query), query)
     |> Stream.zip(Stream.map(rows, fn {users_count, _row} -> users_count end))
     |> Enum.map(fn {row, users_count} ->
-      %{row: row, occurrences: 1, users_count: users_count}
+      %{row: row, occurrences: 1, unreliable: unreliable_bucket?(users_count)}
     end)
   end
 
@@ -417,9 +417,12 @@ defmodule Cloak.Query.Aggregator do
     |> Rows.extract_groups([Expression.count_star() | Query.bucket_columns(query)], query)
     |> Stream.zip(Stream.map(rows, fn {users_count, _row} -> users_count end))
     |> Enum.map(fn {[count | row], users_count} ->
-      %{row: row, occurrences: count, users_count: users_count}
+      %{row: row, occurrences: count, unreliable: unreliable_bucket?(users_count)}
     end)
   end
+
+  @users_count_reliability_threshold 15
+  defp unreliable_bucket?(users_count), do: users_count < @users_count_reliability_threshold
 
   defp merge_user_values(user_values1, user_values2),
     do:

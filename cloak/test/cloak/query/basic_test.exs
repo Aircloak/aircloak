@@ -1345,7 +1345,7 @@ defmodule Cloak.Query.BasicTest do
     )
   end
 
-  test "per-bucket noisy users count" do
+  test "per-bucket reliability flag" do
     :ok = insert_rows(_user_ids = 30..59, "heights", ["height"], [150])
     :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])
@@ -1353,9 +1353,9 @@ defmodule Cloak.Query.BasicTest do
     assert_query("select height from heights group by height order by height asc", %{rows: rows})
 
     assert [
-             %{row: [150], users_count: 30},
-             %{row: [160], users_count: 20},
-             %{row: [180], users_count: 10}
+             %{row: [150], unreliable: false},
+             %{row: [160], unreliable: false},
+             %{row: [180], unreliable: true}
            ] = rows
   end
 
