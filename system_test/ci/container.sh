@@ -74,6 +74,7 @@ function start_cloak_container {
     -v $(pwd)/system_test/tmp/cloak_config:/runtime_config \
     -v $(pwd)/cloak/priv/odbc/drivers:/odbc_drivers \
     -e "__AC__DEFAULT_SAP_HANA_SCHEMA__=TEST_SCHEMA_$container_name" \
+    -e GLOBAL_DB_NAMESPACE=$GLOBAL_DB_NAMESPACE \
     aircloak/cloak:$(git_head_image_tag)
 
   echo "waiting for cloak to start ..."
@@ -140,6 +141,19 @@ function build_image {
 mount_to_aircloak VERSION
 mount_to_component config lib priv test mix.exs mix.lock Makefile .gitignore check_warnings.sh .formatter.exs
 mount_cached_component deps _build .bash_history
+
+if [ "$GLOBAL_DB_NAMESPACE" == "" ]; then
+  if [ "$MPI" == "true" ]; then
+    export GLOBAL_DB_NAMESPACE="mpi_system_test"
+  else
+    echo "
+      Please set the GLOBAL_DB_NAMESPACE OS variable. If you're developing locally, then use a unique repeatable
+      value, such as your first name. This value will be used as a prefix of the table names in the database.
+    "
+
+    exit 1
+  fi
+fi
 
 case "$1" in
   build_image)
