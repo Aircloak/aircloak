@@ -9,6 +9,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   alias Cloak.Sql.{CompilationError, Condition, Expression, Query, Range}
   alias Cloak.Sql.Compiler.TypeChecker.Type
   alias Cloak.Sql.Compiler.Helpers
+  alias Cloak.DataSource.Isolators
 
   @max_allowed_restricted_functions 5
 
@@ -28,6 +29,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         verify_string_based_conditions_are_clear(subquery)
         verify_string_based_expressions_are_clear(subquery)
         verify_ranges_are_clear(subquery)
+        verify_isolator_conditions_are_clear(subquery)
       end
     end)
 
@@ -215,13 +217,43 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   defp clear_range_lhs?(lhs, query, _), do: Type.establish_type(lhs, query) |> Type.clear_column?()
 
-  defp verify_conditions(query, predicate, action),
-    do:
-      Query.Lenses.db_filter_clauses()
-      |> Query.Lenses.conditions()
-      |> Lens.filter(predicate)
-      |> Lens.to_list(query)
-      |> Enum.each(action)
+  # -------------------------------------------------------------------
+  # Isolators
+  # -------------------------------------------------------------------
+
+  defp verify_isolator_conditions_are_clear(query) do
+    verify_conditions(query, &includes_isolating_column?(&1, query), fn condition ->
+      case Condition.targets(condition) do
+        [lhs, rhs] ->
+          lhs_type = Type.establish_type(lhs, query)
+          rhs_type = Type.establish_type(rhs, query)
+
+          unless Type.clear_column?(lhs_type) and rhs_type.constant? do
+            [offending_column | _] = isolating_columns(condition, query)
+
+            raise CompilationError,
+              source_location: rhs.source_location,
+              message: """
+              The column #{Expression.short_name(offending_column)} is isolating and cannot be used in this condition.
+              For more information see the "Restrictions" section of the user guides.
+              """
+          end
+      end
+
+      :ok
+    end)
+  end
+
+  defp includes_isolating_column?(condition, query) do
+    not Enum.empty?(isolating_columns(condition, query))
+  end
+
+  defp isolating_columns(condition, query) do
+    Query.Lenses.leaf_expressions()
+    |> Lens.to_list(condition)
+    |> Enum.flat_map(&Type.establish_type(&1, query).history_of_columns_involved)
+    |> Enum.filter(&Isolators.isolates_users?(query.data_source, &1.table.name, &1.name))
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -242,4 +274,12 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         _ -> false
       end)
       |> Enum.count()
+
+  defp verify_conditions(query, predicate, action),
+    do:
+      Query.Lenses.db_filter_clauses()
+      |> Query.Lenses.conditions()
+      |> Lens.filter(predicate)
+      |> Lens.to_list(query)
+      |> Enum.each(action)
 end

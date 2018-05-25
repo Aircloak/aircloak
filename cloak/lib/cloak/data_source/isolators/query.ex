@@ -19,7 +19,7 @@ defmodule Cloak.DataSource.Isolators.Query do
   # -------------------------------------------------------------------
 
   defp isolating_values(data_source, table, column) do
-    %{user_id: user_id} = data_source.tables[table]
+    %{user_id: user_id} = data_source.tables[String.to_existing_atom(table)]
 
     """
       SELECT COUNT(*) FROM (
