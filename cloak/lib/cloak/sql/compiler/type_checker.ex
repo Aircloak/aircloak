@@ -223,25 +223,29 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   defp verify_isolator_conditions_are_clear(query) do
     verify_conditions(query, &includes_isolating_column?(&1, query), fn condition ->
-      case Condition.targets(condition) do
-        [lhs, rhs] ->
-          lhs_type = Type.establish_type(lhs, query)
-          rhs_type = Type.establish_type(rhs, query)
+      if unclear_isolator_usage?(condition, query) do
+        [offending_column | _] = isolating_columns(condition, query)
 
-          unless Type.clear_column?(lhs_type) and rhs_type.constant? do
-            [offending_column | _] = isolating_columns(condition, query)
-
-            raise CompilationError,
-              source_location: rhs.source_location,
-              message: """
-              The column #{Expression.short_name(offending_column)} is isolating and cannot be used in this condition.
-              For more information see the "Restrictions" section of the user guides.
-              """
-          end
+        raise CompilationError,
+          source_location: offending_column.source_location,
+          message: """
+          The column #{Expression.short_name(offending_column)} is isolating and cannot be used in this condition.
+          For more information see the "Restrictions" section of the user guides.
+          """
       end
-
-      :ok
     end)
+  end
+
+  defp unclear_isolator_usage?({:in, _, _}, _), do: true
+
+  defp unclear_isolator_usage?(condition, query) do
+    case Condition.targets(condition) do
+      [lhs, rhs] ->
+        lhs_type = Type.establish_type(lhs, query)
+        rhs_type = Type.establish_type(rhs, query)
+
+        not (Type.clear_column?(lhs_type) and rhs_type.constant?)
+    end
   end
 
   defp includes_isolating_column?(condition, query) do

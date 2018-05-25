@@ -23,11 +23,19 @@ defmodule Cloak.Query.Isolators.Test do
     assert_forbidden("SELECT COUNT(*) FROM query_isolators WHERE sqrt($col) = 10")
   end
 
+  test "IN is forbidden" do
+    assert_forbidden("SELECT COUNT(*) FROM query_isolators WHERE $col IN (1, 2)")
+  end
+
+  test "IN with a single item is allowed as synonymous to =" do
+    assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE $col IN (1)")
+  end
+
   test "date extractors"
 
   test "IS NULL"
 
-  test "IN is forbidden"
+  test "math in GROUP BY"
 
   defp assert_allowed(query) do
     for column <- ["isolating", "regular"] do
