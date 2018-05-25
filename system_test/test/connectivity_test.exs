@@ -9,7 +9,7 @@ defmodule SystemTest.Connectivity do
     data_sources = Jason.decode!(response.body)
 
     data_source_names = data_sources |> Enum.map(&Map.fetch!(&1, "name")) |> Enum.sort()
-    assert data_source_names == ~w(postgresql9_4 postgresql9_4_encoded sap_hana sapiq)
+    assert data_source_names == ~w(postgresql9_4 postgresql9_4_encoded sap_hana sapiq sqlserver)
 
     Enum.each(data_sources, fn data_source ->
       assert Map.fetch!(data_source, "errors") == []
