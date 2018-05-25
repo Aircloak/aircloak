@@ -10,13 +10,12 @@ defmodule Cloak.Query.Isolators.Test do
         "isolating INTEGER, regular INTEGER, isolating_string TEXT, regular_string TEXT"
       )
 
-    :ok =
-      Cloak.Test.DB.add_users_data("query_isolators", ["isolating", "regular", "isolating_string", "regular_string"], [
-        ["user1", 1, 1, "1", "1"],
-        ["user2", 2, 1, "2", "1"],
-        ["user3", 3, 1, "3", "1"],
-        ["user4", 4, 1, "4", "1"]
-      ])
+    for data_source <- Cloak.DataSource.all() do
+      Cloak.DataSource.Isolators.register_isolating_column(data_source, "query_isolators", "isolating")
+      Cloak.DataSource.Isolators.register_isolating_column(data_source, "query_isolators", "isolating_string")
+    end
+
+    :ok
   end
 
   test "clear conditions are allowed for isolators" do

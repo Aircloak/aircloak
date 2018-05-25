@@ -42,7 +42,8 @@ defmodule Cloak do
   defp common_processes,
     do: [
       Cloak.DataSource,
-      Cloak.Query.Runner
+      Cloak.Query.Runner,
+      Cloak.DataSource.Isolators
     ]
 
   unless Mix.env() in [:test] do
