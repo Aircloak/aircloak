@@ -14,10 +14,6 @@ defmodule Cloak.DataSource.SerializingUpdater do
   # API
   # -------------------------------------------------------------------
 
-  @doc "Asynchronously runs a check to figure out if we can still connect to the data sources"
-  @spec run_liveness_check() :: :ok
-  def run_liveness_check(), do: GenServer.cast(__MODULE__, :run_liveness_check)
-
   @doc "Processes a change event to a data source definition file"
   @spec process_update(String.t()) :: :ok
   def process_update(path), do: GenServer.cast(__MODULE__, {:process_update, path})
@@ -63,6 +59,10 @@ defmodule Cloak.DataSource.SerializingUpdater do
     ChildSpec.supervisor(
       [
         ChildSpec.gen_server(__MODULE__, [], name: __MODULE__),
+        {Periodic,
+         id: :liveness_check,
+         run: fn -> GenServer.cast(__MODULE__, :run_liveness_check) end,
+         every: Application.fetch_env!(:cloak, :liveness_check_interval)},
         Cloak.DataSource.FileSystemMonitor
       ],
       strategy: :one_for_all,

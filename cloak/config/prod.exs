@@ -31,7 +31,4 @@ config :cloak, :memory_limits,
   # Time in ms to wait between consecutive memory related query abortions
   time_between_abortions: 250
 
-config :cloak, Cloak.Scheduler,
-  jobs: [
-    {"@minutely", {Cloak.DataSource.SerializingUpdater, :run_liveness_check, []}}
-  ]
+config :cloak, :liveness_check_interval, :timer.minutes(1)

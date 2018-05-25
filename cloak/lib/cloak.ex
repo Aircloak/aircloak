@@ -47,12 +47,7 @@ defmodule Cloak do
 
   unless Mix.env() in [:test] do
     # Processes which we don't want to start in the test environment
-    defp system_processes,
-      do: [
-        Cloak.AirSocket,
-        Cloak.MemoryReader,
-        Cloak.Scheduler
-      ]
+    defp system_processes, do: [Cloak.AirSocket, Cloak.MemoryReader]
   end
 
   defp get_salt() do
