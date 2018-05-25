@@ -29,7 +29,7 @@ defmodule IntegrationTest.QueryTest do
     {:ok, result} = run_query(context.user, "select name, height from users")
 
     assert result.buckets == [
-             %{"occurrences" => 100, "row" => ["john", 180], "users_count" => 100}
+             %{"occurrences" => 100, "row" => ["john", 180], "unreliable" => false}
            ]
   end
 
