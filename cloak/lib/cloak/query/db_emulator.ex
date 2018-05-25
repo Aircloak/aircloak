@@ -134,7 +134,7 @@ defmodule Cloak.Query.DbEmulator do
   defp convert_buckets(buckets, %Query{subquery?: false}), do: buckets
 
   defp convert_rows(stream, %Query{subquery?: false}),
-    do: Enum.map(stream, &%{row: &1, occurrences: 1, users_count: nil})
+    do: Enum.map(stream, &%{row: &1, occurrences: 1, unreliable: nil})
 
   defp convert_rows(stream, %Query{subquery?: true}), do: Enum.to_list(stream)
 
