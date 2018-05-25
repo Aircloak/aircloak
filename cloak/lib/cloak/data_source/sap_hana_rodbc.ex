@@ -47,9 +47,14 @@ defmodule Cloak.DataSource.SAPHanaRODBC do
     case RODBC.Driver.execute(connection, statement) do
       :ok ->
         case RODBC.Driver.fetch_all(connection, row_mapper) do
-          {:ok, []} -> DataSource.raise_error("Table `#{table.db_name}` does not exist")
-          {:ok, columns} -> [%{table | columns: Enum.to_list(columns), db_name: ~s/"#{table.db_name}"/}]
-          {:error, reason} -> DataSource.raise_error("`#{to_string(reason)}`")
+          {:ok, []} ->
+            DataSource.raise_error("Table `#{table.db_name}` does not exist")
+
+          {:ok, columns} ->
+            [%{table | columns: Enum.to_list(columns), db_name: ~s/"#{table.db_name}"/}]
+
+          {:error, reason} ->
+            DataSource.raise_error("`#{to_string(reason)}`")
         end
 
       {:error, reason} ->
@@ -81,12 +86,7 @@ defmodule Cloak.DataSource.SAPHanaRODBC do
     |> Map.merge(schema_option(default_schema()))
   end
 
-  if Mix.env() == :prod do
-    # We don't allow env based override in prod
-    defp default_schema_from_os_env(), do: nil
-  else
-    defp default_schema_from_os_env(), do: System.get_env("DEFAULT_SAP_HANA_SCHEMA")
-  end
+  defp default_schema_from_os_env(), do: System.get_env("__AC__DEFAULT_SAP_HANA_SCHEMA__")
 
   defp default_schema_from_app_config() do
     with {:ok, saphana_settings} <- Application.fetch_env(:cloak, :sap_hana),

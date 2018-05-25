@@ -28,7 +28,7 @@ function stop_named_container {
 
     if named_container_running $1; then
       echo "Forcefully terminating container $1"
-      docker kill $1 > /dev/null
+      docker kill $1 > /dev/null || true
     else
       echo "Container $1 stopped gracefully"
     fi
@@ -128,6 +128,7 @@ function start_container {
 #   build_aircloak_image image_tag dockerfile_path [dockerfileignore_path]
 # Note: It is the responsibility of the caller to properly set the current folder.
 function build_aircloak_image {
+  if [ "$SKIP_DOCKER_BUILD" == "true" ]; then return 0; fi
   curdir=$(pwd)
 
   dockerfile="$2"
@@ -560,5 +561,20 @@ function remove_old_git_head_image_tags {
           docker rmi $full_image_name:$existing_version || true
         fi
       done
+  fi
+}
+
+function ensure_supporting_container {
+  local container_name=$1
+  shift
+
+  if ! named_container_running $container_name ; then
+    if [ ! -z "$(docker ps -a --filter=name=$container_name | grep -w $container_name)" ]; then
+      echo "removing dead container $container_name"
+      docker rm $container_name > /dev/null
+    fi
+
+    echo "starting container $container_name"
+    docker run --detach --name $container_name $@ > /dev/null
   fi
 }
