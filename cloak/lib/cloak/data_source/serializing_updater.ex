@@ -7,8 +7,8 @@ defmodule Cloak.DataSource.SerializingUpdater do
   use GenServer, start: {__MODULE__, :start_link, []}
   alias Aircloak.ChildSpec
   alias Cloak.DataSource
-
   require Logger
+  require Aircloak
 
   # -------------------------------------------------------------------
   # API
@@ -62,7 +62,7 @@ defmodule Cloak.DataSource.SerializingUpdater do
         {Periodic,
          id: :liveness_check,
          run: fn -> GenServer.cast(__MODULE__, :run_liveness_check) end,
-         every: Application.fetch_env!(:cloak, :liveness_check_interval)},
+         every: Aircloak.mix_env_specific(dev: :timer.hours(1), prod: :timer.minutes(1), else: :infinity)},
         Cloak.DataSource.FileSystemMonitor
       ],
       strategy: :one_for_all,

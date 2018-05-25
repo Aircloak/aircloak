@@ -35,5 +35,3 @@ config :cloak, :memory_limits,
 config :cloak, :data_source,
   timeout: :timer.hours(1),
   batch_size: 100
-
-config :cloak, :liveness_check_interval, :timer.hours(1)
