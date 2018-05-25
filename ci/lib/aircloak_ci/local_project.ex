@@ -361,6 +361,7 @@ defmodule AircloakCI.LocalProject do
       |> Stream.reject(&String.starts_with?(&1, "."))
       |> filter_components()
       |> Enum.reject(&match?({:error, _}, commands(project, &1, :compile)))
+      |> Enum.sort_by(&{component_priority(&1), &1})
 
   @doc "Returns the location of logs folder."
   @spec logs_folder() :: String.t()
@@ -510,4 +511,12 @@ defmodule AircloakCI.LocalProject do
   defp include_component?(component, {:except, blacklisted}), do: not Enum.member?(blacklisted, component)
 
   defp include_component?(component, {:only, whitelisted}), do: Enum.member?(whitelisted, component)
+
+  # Integration and system tests have longer docker builds, so we're forcing them to be started last.
+  # This allows all other components (e.g. air and cloak) to build and start their tests sooner.
+  # Also, it's more likely that individual component will fail, so by first starting the tests for these components
+  # we increase a likelihood of a faster error report.
+  defp component_priority("integration_tests"), do: 2
+  defp component_priority("system_test"), do: 3
+  defp component_priority(_), do: 1
 end
