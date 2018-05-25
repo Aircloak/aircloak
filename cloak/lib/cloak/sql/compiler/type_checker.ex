@@ -245,6 +245,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         rhs_type = Type.establish_type(rhs, query)
 
         not (Type.clear_column?(lhs_type) and rhs_type.constant?)
+
+      [lhs] ->
+        not Type.clear_column?(Type.establish_type(lhs, query))
     end
   end
 

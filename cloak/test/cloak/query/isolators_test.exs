@@ -31,11 +31,19 @@ defmodule Cloak.Query.Isolators.Test do
     assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE $col IN (1)")
   end
 
+  test "ranges are allowed on isolators" do
+    assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE $col BETWEEN 0 AND 10")
+  end
+
+  test "IS NULL is allowed on isolators" do
+    assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE $col IS NULL")
+  end
+
   test "date extractors"
 
-  test "IS NULL"
-
   test "math in GROUP BY"
+
+  test "string functions"
 
   defp assert_allowed(query) do
     for column <- ["isolating", "regular"] do
