@@ -8,7 +8,7 @@ defmodule Cloak.DataSource.Isolators do
   # -------------------------------------------------------------------
 
   @doc "Returns true if the given column in the given table is isolating, false otherwise."
-  @spec isolates_users?(DataSource.t(), atom, String.t()) :: boolean
+  @spec isolates_users?(DataSource.t(), String.t(), String.t()) :: boolean
   if Mix.env() == :test do
     def isolates_users?(data_source, table, column) do
       Agent.get(__MODULE__, &MapSet.member?(&1, {data_source[:name], table, column}))

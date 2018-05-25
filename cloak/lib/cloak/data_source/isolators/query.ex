@@ -9,7 +9,7 @@ defmodule Cloak.DataSource.Isolators.Query do
   # -------------------------------------------------------------------
 
   @doc "Returns true if the given column in the given table is isolating, false otherwise."
-  @spec isolates_users?(DataSource.t(), atom, String.t()) :: boolean
+  @spec isolates_users?(DataSource.t(), String.t(), String.t()) :: boolean
   def isolates_users?(data_source, table, column) do
     if column == user_id(data_source, table) do
       true
