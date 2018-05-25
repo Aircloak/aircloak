@@ -4,6 +4,53 @@ defmodule Aircloak do
   require Logger
 
   # -------------------------------------------------------------------
+  # Macros
+  # -------------------------------------------------------------------
+
+  @doc """
+  This macro can be used to conditionally inject some code, based on mix env.
+
+  Example:
+
+  ```
+  mix_env_specific(dev: foo(), prod: bar(), else: baz())
+  ```
+
+  The invocation above will generate the code which invokes `foo/0` in dev,
+  `bar/0` in prod, and `baz/0` in all other environments.
+  """
+  defmacro mix_env_specific(config) do
+    quote do
+      unquote(Keyword.get_lazy(config, Mix.env(), fn -> Keyword.fetch!(config, :else) end))
+    end
+  end
+
+  @doc """
+  Helper macro to indicate that a variable is not used in particular environments.
+
+  A typical example is when you use `mix_env_specific/1` with a variable:
+
+  ```
+  def foo(bar) do
+    mix_env_specific(dev: nil, else: do_something_with(bar))
+  end
+  ```
+
+  This code would generate a warning in dev, because the variable is not used, but the variable can't be anonymous,
+  because it's used in other envs. You can fix this with `unused/2`:
+
+  ```
+  def foo(bar) do
+    unused(bar, in: [:dev])
+    mix_env_specific(dev: nil, else: do_something_with(bar))
+  end
+  ```
+  """
+  defmacro unused(term, in: environments) do
+    if Mix.env() in environments, do: quote(do: _ = unquote(term))
+  end
+
+  # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 

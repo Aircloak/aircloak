@@ -336,10 +336,13 @@ defmodule Cloak.Query.Runner do
   # Test support
   # -------------------------------------------------------------------
 
-  if Mix.env() == :test do
-    # tests run the same query in parallel, so we make the process name unique to avoid conflicts
-    def worker_name(_query_id), do: {:via, Registry, {@runner_registry_name, :erlang.unique_integer()}}
-  else
-    def worker_name(query_id), do: {:via, Registry, {@runner_registry_name, query_id}}
+  def worker_name(query_id) do
+    import Aircloak, only: [mix_env_specific: 1, unused: 2]
+    unused(query_id, in: [:test])
+
+    mix_env_specific(
+      test: {:via, Registry, {@runner_registry_name, :erlang.unique_integer()}},
+      else: {:via, Registry, {@runner_registry_name, query_id}}
+    )
   end
 end
