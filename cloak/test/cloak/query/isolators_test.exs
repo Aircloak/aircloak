@@ -4,14 +4,18 @@ defmodule Cloak.Query.Isolators.Test do
   import Cloak.Test.QueryHelpers
 
   setup_all do
-    :ok = Cloak.Test.DB.create_table("query_isolators", "isolating INTEGER, regular INTEGER")
+    :ok =
+      Cloak.Test.DB.create_table(
+        "query_isolators",
+        "isolating INTEGER, regular INTEGER, isolating_string TEXT, regular_string TEXT"
+      )
 
     :ok =
-      Cloak.Test.DB.add_users_data("query_isolators", ["isolating", "regular"], [
-        ["user1", 1, 1],
-        ["user2", 2, 1],
-        ["user3", 3, 1],
-        ["user4", 4, 1]
+      Cloak.Test.DB.add_users_data("query_isolators", ["isolating", "regular", "isolating_string", "regular_string"], [
+        ["user1", 1, 1, "1", "1"],
+        ["user2", 2, 1, "2", "1"],
+        ["user3", 3, 1, "3", "1"],
+        ["user4", 4, 1, "4", "1"]
       ])
   end
 
@@ -39,11 +43,9 @@ defmodule Cloak.Query.Isolators.Test do
     assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE $col IS NULL")
   end
 
-  test "date extractors"
-
-  test "math in GROUP BY"
-
-  test "string functions"
+  test "string functions are allowed on isolators" do
+    assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE trim($col_string) = 'something'")
+  end
 
   defp assert_allowed(query) do
     for column <- ["isolating", "regular"] do

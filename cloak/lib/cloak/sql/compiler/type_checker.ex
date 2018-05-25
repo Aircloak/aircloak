@@ -221,6 +221,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # Isolators
   # -------------------------------------------------------------------
 
+  @allowed_isolator_functions ~w(lower upper substring trim ltrim rtrim btrim extract_words)
   defp verify_isolator_conditions_are_clear(query) do
     verify_conditions(query, &includes_isolating_column?(&1, query), fn condition ->
       if unclear_isolator_usage?(condition, query) do
@@ -244,10 +245,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         lhs_type = Type.establish_type(lhs, query)
         rhs_type = Type.establish_type(rhs, query)
 
-        not (Type.clear_column?(lhs_type) and rhs_type.constant?)
+        not (Type.clear_column?(lhs_type, @allowed_isolator_functions) and rhs_type.constant?)
 
       [lhs] ->
-        not Type.clear_column?(Type.establish_type(lhs, query))
+        not Type.clear_column?(Type.establish_type(lhs, query), @allowed_isolator_functions)
     end
   end
 
