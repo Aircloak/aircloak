@@ -1,0 +1,6 @@
+FROM aircloak/elixir:$ELIXIR_VERSION
+MAINTAINER Aircloak
+
+ENV CI=true
+
+WORKDIR /aircloak/system_test

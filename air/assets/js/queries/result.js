@@ -20,7 +20,7 @@ import {DebugExport} from "./debug_export";
 export type Row = {
   occurrences: number,
   row: any[],
-  users_count: number,
+  unreliable: boolean,
 };
 
 export type Column = string;
@@ -64,7 +64,6 @@ type State = {
   loadError: boolean,
 };
 
-const UNRELIABLE_USER_COUNT_THRESHOLD = 15;
 const ZERO_WIDTH_SPACE = "\u200B";
 const ALL_CHUNKS = -1;
 
@@ -307,7 +306,7 @@ export class ResultView extends React.Component {
   }
 
   getRowAttrs(row: Row) {
-    if (this.isNumeric(row.users_count) && row.users_count < UNRELIABLE_USER_COUNT_THRESHOLD) {
+    if (row.unreliable) {
       return {
         title: "These values are unreliable because of the low number of users involved.",
         "data-toggle": "tooltip",

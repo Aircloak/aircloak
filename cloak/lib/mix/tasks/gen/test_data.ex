@@ -38,13 +38,7 @@ defmodule Mix.Tasks.Gen.TestData do
           num_users = String.to_integer(num_users)
           IO.puts("Generating data for #{num_users} users.")
 
-          config_name
-          |> Compliance.DataSources.all_from_config()
-          |> Compliance.DataSources.setup(
-            Compliance.Data.users(num_users),
-            num_users,
-            concurrency
-          )
+          Compliance.initialize(config_name, num_users, concurrency)
 
         _ ->
           IO.puts("""

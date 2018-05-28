@@ -11,6 +11,7 @@ defmodule Cloak.AirSocket do
   require Logger
   require Aircloak.DeployConfig
   alias Phoenix.Channels.GenSocketClient
+  import Aircloak, only: [in_env: 1, unused: 2]
 
   @behaviour GenSocketClient
 
@@ -93,7 +94,8 @@ defmodule Cloak.AirSocket do
 
   @impl GenSocketClient
   def handle_disconnected(reason, %{reconnect_interval: interval} = state) do
-    log_disconnected(reason)
+    unused(reason, in: [:dev])
+    in_env(dev: :ok, else: Logger.error("disconnected: #{inspect(reason)}"))
     Process.send_after(self(), :connect, interval)
     {:ok, %{state | reconnect_interval: next_interval(interval)}}
   end
@@ -159,7 +161,7 @@ defmodule Cloak.AirSocket do
 
   @impl GenSocketClient
   def handle_info(:connect, _transport, state) do
-    log_connect()
+    in_env(dev: nil, else: Logger.info("connecting"))
     {:connect, state}
   end
 
@@ -418,15 +420,6 @@ defmodule Cloak.AirSocket do
   end
 
   defp get_salt_hash(), do: :crypto.hash(:sha256, Cloak.Query.Anonymizer.config(:salt)) |> Base.encode16()
-
-  if Mix.env() == :dev do
-    # suppressing of some common log messages in dev env to avoid excessive noise
-    defp log_connect(), do: :ok
-    defp log_disconnected(_reason), do: :ok
-  else
-    defp log_connect(), do: Logger.info("connecting")
-    defp log_disconnected(reason), do: Logger.error("disconnected: #{inspect(reason)}")
-  end
 
   # -------------------------------------------------------------------
   # Supervision tree

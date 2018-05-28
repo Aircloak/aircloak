@@ -7,7 +7,7 @@ defmodule Cloak.Query.Runner do
   the server will send an error result back.
   """
 
-  use GenServer
+  use Parent.GenServer
   require Logger
   alias Aircloak.ChildSpec
   alias Cloak.{Sql.Query, DataSource, Query.Runner.Engine, ResultSender}
@@ -36,17 +36,8 @@ defmodule Cloak.Query.Runner do
           ResultSender.target()
         ) :: :ok
   def start(query_id, data_source, statement, parameters, views, result_target \\ :air_socket) do
-    {:ok, _} =
-      DynamicSupervisor.start_child(
-        @supervisor_name,
-        ChildSpec.gen_server(
-          __MODULE__,
-          {query_id, data_source, statement, parameters, views, result_target},
-          [name: worker_name(query_id)],
-          restart: :temporary
-        )
-      )
-
+    runner_arg = {query_id, data_source, statement, parameters, views, result_target}
+    {:ok, _} = DynamicSupervisor.start_child(@supervisor_name, runner_spec(query_id, runner_arg))
     :ok
   end
 
@@ -107,9 +98,13 @@ defmodule Cloak.Query.Runner do
   def init({query_id, data_source, statement, parameters, views, result_target}) do
     {:ok, _pid} = Registry.register(@queries_registry_name, :instances, query_id)
     Logger.metadata(query_id: query_id)
-    Process.flag(:trap_exit, true)
-    owner = self()
     memory_callbacks = Cloak.MemoryReader.query_registering_callbacks()
+
+    Parent.GenServer.start_child(%{
+      id: :query_execution,
+      start: fn -> start_query(query_id, data_source, statement, parameters, views, memory_callbacks) end,
+      shutdown: :brutal_kill
+    })
 
     {:ok,
      %{
@@ -122,33 +117,11 @@ defmodule Cloak.Query.Runner do
        log_metadata: Application.get_env(:logger, :console)[:metadata],
        log: [],
        processing_steps: 1,
-       query_state: nil,
-       # We're starting the runner as a direct child.
-       # This GenServer will wait for the runner to return or crash. Such approach allows us to
-       # detect a failure no matter how the query fails (even if the runner process is for example killed).
-       runner:
-         Task.async(fn ->
-           run_query(query_id, owner, data_source, statement, parameters, views, memory_callbacks)
-         end)
+       query_state: nil
      }}
   end
 
   @impl GenServer
-  def handle_info({:EXIT, runner_pid, reason}, %{runner: %Task{pid: runner_pid}} = state) do
-    state =
-      if reason != :normal do
-        state
-        |> update_in([:log], &[&1, crash_log(reason), ?\n])
-        |> send_result_report({:error, "Unknown cloak error."})
-      else
-        state
-      end
-
-    # Note: we're always exiting with a reason normal. If a query crashed, the error will be
-    # properly logged, so no need to add more noise.
-    {:stop, :normal, state}
-  end
-
   # Some queries can have multiple anonymization steps, so the state sequence
   # `[:ingesting_data, :processing, :post_processing]` can arrive multiple times.
   # Joins are also executed in parallel, so it means this state sequence can also come out of order.
@@ -185,43 +158,56 @@ defmodule Cloak.Query.Runner do
     {:noreply, %{state | query_state: query_state}}
   end
 
-  def handle_info({:features, features}, state) do
-    {:noreply, %{state | features: features}}
-  end
+  def handle_info({:features, features}, state), do: {:noreply, %{state | features: features}}
 
-  def handle_info({runner_ref, result}, %{runner: %Task{ref: runner_ref}} = state),
-    do: {:noreply, send_result_report(state, result)}
+  def handle_info({:query_result, result}, state), do: {:noreply, send_result_report(state, result)}
 
   def handle_info({:send_log_entry, level, message, timestamp, metadata}, state) do
     {:noreply, add_log_entry(state, level, message, timestamp, metadata)}
   end
 
-  def handle_info(_other, state), do: {:noreply, state}
+  def handle_info(other, state), do: super(other, state)
 
   @impl GenServer
-  def handle_cast({:stop_query, reason}, %{runner: task} = state) do
-    Task.shutdown(task)
+  def handle_cast({:stop_query, reason}, state) do
+    Parent.GenServer.shutdown_child(:query_execution)
     Logger.warn("Asked to stop query. Reason: #{inspect(reason)}")
     {:stop, :normal, send_result_report(%{state | runner: nil}, reason)}
+  end
+
+  @impl Parent.GenServer
+  def handle_child_terminated(:query_execution, _meta, _pid, reason, state) do
+    state =
+      if reason != :normal do
+        state
+        |> update_in([:log], &[&1, crash_log(reason), ?\n])
+        |> send_result_report({:error, "Unknown cloak error."})
+      else
+        state
+      end
+
+    # Note: we're always exiting with a reason normal. If a query crashed, the error will be
+    # properly logged, so no need to add more noise.
+    {:stop, :normal, state}
   end
 
   # -------------------------------------------------------------------
   # Query running
   # -------------------------------------------------------------------
 
+  defp start_query(query_id, data_source, statement, parameters, views, memory_callbacks) do
+    parent = self()
+    Task.start_link(fn -> run_query(query_id, parent, data_source, statement, parameters, views, memory_callbacks) end)
+  end
+
   defp run_query(query_id, owner, data_source, statement, parameters, views, memory_callbacks) do
     Logger.metadata(query_id: query_id)
     Logger.debug(fn -> "Running statement `#{statement}` ..." end)
 
-    Engine.run(
-      data_source,
-      statement,
-      parameters,
-      views,
-      _state_updater = &send(owner, {:send_state, query_id, &1}),
-      _feature_updater = &send(owner, {:features, &1}),
-      memory_callbacks
-    )
+    state_updater = &send(owner, {:send_state, query_id, &1})
+    feature_updater = &send(owner, {:features, &1})
+    result = Engine.run(data_source, statement, parameters, views, state_updater, feature_updater, memory_callbacks)
+    send(owner, {:query_result, result})
   end
 
   # -------------------------------------------------------------------
@@ -339,14 +325,24 @@ defmodule Cloak.Query.Runner do
     )
   end
 
+  defp runner_spec(query_id, runner_arg),
+    do: %{id: __MODULE__, start: {__MODULE__, :start_runner, [query_id, runner_arg]}, restart: :temporary}
+
+  @doc false
+  def start_runner(query_id, runner_arg),
+    do: Parent.GenServer.start_link(__MODULE__, runner_arg, name: worker_name(query_id))
+
   # -------------------------------------------------------------------
   # Test support
   # -------------------------------------------------------------------
 
-  if Mix.env() == :test do
-    # tests run the same query in parallel, so we make the process name unique to avoid conflicts
-    def worker_name(_query_id), do: {:via, Registry, {@runner_registry_name, :erlang.unique_integer()}}
-  else
-    def worker_name(query_id), do: {:via, Registry, {@runner_registry_name, query_id}}
+  def worker_name(query_id) do
+    import Aircloak, only: [in_env: 1, unused: 2]
+    unused(query_id, in: [:test])
+
+    in_env(
+      test: {:via, Registry, {@runner_registry_name, :erlang.unique_integer()}},
+      else: {:via, Registry, {@runner_registry_name, query_id}}
+    )
   end
 end
