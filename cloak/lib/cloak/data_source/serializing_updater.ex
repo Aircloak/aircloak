@@ -7,16 +7,12 @@ defmodule Cloak.DataSource.SerializingUpdater do
   use GenServer, start: {__MODULE__, :start_link, []}
   alias Aircloak.ChildSpec
   alias Cloak.DataSource
-
   require Logger
+  require Aircloak
 
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
-
-  @doc "Asynchronously runs a check to figure out if we can still connect to the data sources"
-  @spec run_liveness_check() :: :ok
-  def run_liveness_check(), do: GenServer.cast(__MODULE__, :run_liveness_check)
 
   @doc "Processes a change event to a data source definition file"
   @spec process_update(String.t()) :: :ok
@@ -60,13 +56,24 @@ defmodule Cloak.DataSource.SerializingUpdater do
 
   @doc false
   def child_spec(_options \\ []) do
+    Aircloak.unused(periodic_liveness_check(), in: [:test])
+
     ChildSpec.supervisor(
       [
         ChildSpec.gen_server(__MODULE__, [], name: __MODULE__),
+        Aircloak.in_env(test: nil, else: periodic_liveness_check()),
         Cloak.DataSource.FileSystemMonitor
-      ],
+      ]
+      |> Enum.reject(&is_nil/1),
       strategy: :one_for_all,
       name: __MODULE__.Supervisor
     )
+  end
+
+  defp periodic_liveness_check() do
+    {Periodic,
+     id: :liveness_check,
+     run: fn -> GenServer.cast(__MODULE__, :run_liveness_check) end,
+     every: Aircloak.in_env(dev: :timer.hours(1), else: :timer.minutes(1))}
   end
 end

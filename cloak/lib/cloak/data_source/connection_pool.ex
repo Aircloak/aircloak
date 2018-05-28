@@ -21,7 +21,7 @@ defmodule Cloak.DataSource.ConnectionPool do
   simultaneously create a connection.
   """
 
-  use GenServer
+  use Parent.GenServer
   require Logger
   alias Aircloak.ChildSpec
   alias Cloak.DataSource.Driver
@@ -56,51 +56,45 @@ defmodule Cloak.DataSource.ConnectionPool do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init({driver, connection_params}) do
-    Process.flag(:trap_exit, true)
-    {:ok, %{driver: driver, connection_params: connection_params, connections: []}}
-  end
+  def init({driver, connection_params}), do: {:ok, %{driver: driver, connection_params: connection_params}}
 
   @impl GenServer
   def handle_call(:checkout, _from, state) do
-    case state.connections do
-      [connection | rest] ->
-        {:reply, connection, %{state | connections: rest}}
-
-      [] ->
-        {:ok, connection} = GenServer.start_link(ConnectionOwner, {self(), state.driver, state.connection_params})
-
-        {:reply, connection, state}
-    end
+    connection = available_connection() || new_connection(state)
+    Parent.GenServer.update_child_meta(child_id!(connection), &%{&1 | available?: false})
+    {:reply, connection, state}
   end
 
   def handle_call({:checkin, connection}, _from, state) do
-    {:reply, :ok, update_in(state.connections, &[connection | &1])}
+    Parent.GenServer.update_child_meta(child_id!(connection), &%{&1 | available?: true})
+    {:reply, :ok, state}
   end
 
   @impl GenServer
   def handle_cast({:remove_connection, connection}, state) do
-    case Enum.split_with(state.connections, &(&1 == connection)) do
-      {[^connection], remaining_connections} ->
-        GenServer.stop(connection, :shutdown)
-        {:noreply, %{state | connections: remaining_connections}}
-
-      {[], _} ->
-        # In this case, the connection has been checked out again, so we won't stop it.
-        {:noreply, state}
-    end
+    Parent.GenServer.shutdown_child(child_id!(connection))
+    {:noreply, state}
   end
-
-  @impl GenServer
-  def handle_info({:EXIT, connection, _}, state) do
-    {:noreply, %{state | connections: Enum.reject(state.connections, &(&1 == connection))}}
-  end
-
-  def handle_info(other, state), do: super(other, state)
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp child_id!(connection) do
+    {:ok, id} = Parent.GenServer.child_name(connection)
+    id
+  end
+
+  defp new_connection(state) do
+    start = {GenServer, :start_link, [ConnectionOwner, {self(), state.driver, state.connection_params}]}
+    {:ok, conn} = Parent.GenServer.start_child(%{id: make_ref(), meta: %{available?: true}, start: start})
+    conn
+  end
+
+  defp available_connection() do
+    with {_id, conn, _meta} <- Enum.find(Parent.GenServer.children(), fn {_id, _conn, meta} -> meta.available? end),
+         do: conn
+  end
 
   defp pool_server(data_source) do
     case Registry.lookup(__MODULE__.Registry, {data_source.driver, data_source.parameters}) do
@@ -182,7 +176,7 @@ defmodule Cloak.DataSource.ConnectionPool do
 
   @doc false
   def start_server(driver, connection_params) do
-    GenServer.start_link(
+    Parent.GenServer.start_link(
       __MODULE__,
       {driver, connection_params},
       name: {:via, Registry, {__MODULE__.Registry, {driver, connection_params}}}
