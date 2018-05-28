@@ -56,17 +56,24 @@ defmodule Cloak.DataSource.SerializingUpdater do
 
   @doc false
   def child_spec(_options \\ []) do
+    Aircloak.unused(periodic_liveness_check(), in: [:test])
+
     ChildSpec.supervisor(
       [
         ChildSpec.gen_server(__MODULE__, [], name: __MODULE__),
-        {Periodic,
-         id: :liveness_check,
-         run: fn -> GenServer.cast(__MODULE__, :run_liveness_check) end,
-         every: Aircloak.in_env(dev: :timer.hours(1), prod: :timer.minutes(1), else: :infinity)},
+        Aircloak.in_env(test: nil, else: periodic_liveness_check()),
         Cloak.DataSource.FileSystemMonitor
-      ],
+      ]
+      |> Enum.reject(&is_nil/1),
       strategy: :one_for_all,
       name: __MODULE__.Supervisor
     )
+  end
+
+  defp periodic_liveness_check() do
+    {Periodic,
+     id: :liveness_check,
+     run: fn -> GenServer.cast(__MODULE__, :run_liveness_check) end,
+     every: Aircloak.in_env(dev: :timer.hours(1), else: :timer.minutes(1))}
   end
 end
