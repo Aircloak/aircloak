@@ -39,6 +39,7 @@
   - [Implicit ranges](sql/restrictions.md#implicit-ranges)
   - [Text operations](sql/restrictions.md#text-operations)
   - [IN, NOT IN, NOT LIKE, and <>](sql/restrictions.md#in-not-in-not-like-and-)
+  - [Isolating columns](sql/restrictions.md#isolating-columns)
 - [Understanding query results](sql/query-results.md)
   - [Pro Tips](sql/query-results.md#pro-tips)
   - [Zero-mean noise](sql/query-results.md#zero-mean-noise)

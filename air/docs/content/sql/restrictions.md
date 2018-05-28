@@ -323,3 +323,37 @@ SELECT COUNT(*) FROM table GROUP BY name HAVING left(name) <> 'a'
 -- Correct - comparing two database columns
 SELECT COUNT(*) FROM table WHERE name <> surname
 ```
+
+## Isolating columns
+
+Some columns in the underlying data source might identify users despite not being marked as a user id. For example a
+table might contain a `user_id` column and an `email` column. The emails are in all likelihood unique per user, and so
+can identify a user just as well as the `user_id` column. We call these columns "isolating" and apply some additional
+restrictions to expressions including them. Note that the `user_id` column is always isolating.
+
+Conditions using isolating columns cannot use the `IN` operator. Furthermore, only a limited number of functions are
+allowed for these conditions: `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `extract_words`, `year`,
+`quarter`, `month`, `day`, `hour`, `minute`, `second`, `weekday`, `date_trunc`, and `bucket`. All other functions and
+mathematical operations are forbidden.
+
+```sql
+-- These examples assume that the 'email' and 'social_security' columns are isolating
+
+-- Correct
+SELECT COUNT(*) FROM table WHERE trim(email) = 'alice@example.com'
+
+-- Correct
+SELECT COUNT(*) FROM table WHERE email <> 'alice@example.com'
+
+-- Incorrect - IN used
+SELECT COUNT(*) FROM table WHERE email IN ('alice@example.com', 'bob@example.com')
+
+-- Incorrect - a function from outside the list is used
+SELECT COUNT(*) FROM table WHERE length(email) = 20
+
+-- Incorrect - a mathematical operation is used
+SELECT COUNT(*) FROM table WHERE social_security / 10 = 10000000
+
+-- Correct
+SELECT COUNT(*) FROM table WHERE BUCKET(social_security BY 10) = 100000000
+```
