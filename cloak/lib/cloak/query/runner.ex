@@ -337,10 +337,10 @@ defmodule Cloak.Query.Runner do
   # -------------------------------------------------------------------
 
   def worker_name(query_id) do
-    import Aircloak, only: [mix_env_specific: 1, unused: 2]
+    import Aircloak, only: [in_env: 1, unused: 2]
     unused(query_id, in: [:test])
 
-    mix_env_specific(
+    in_env(
       test: {:via, Registry, {@runner_registry_name, :erlang.unique_integer()}},
       else: {:via, Registry, {@runner_registry_name, query_id}}
     )

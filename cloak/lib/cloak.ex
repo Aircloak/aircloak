@@ -26,13 +26,13 @@ defmodule Cloak do
   end
 
   defp children() do
-    import Aircloak, only: [mix_env_specific: 1]
+    import Aircloak, only: [in_env: 1]
 
     [
       Cloak.DataSource,
       Cloak.Query.Runner,
-      mix_env_specific(test: nil, else: Cloak.AirSocket),
-      mix_env_specific(test: nil, else: Cloak.MemoryReader)
+      in_env(test: nil, else: Cloak.AirSocket),
+      in_env(test: nil, else: Cloak.MemoryReader)
     ]
     |> Enum.reject(&is_nil/1)
   end

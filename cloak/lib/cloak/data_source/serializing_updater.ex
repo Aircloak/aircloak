@@ -62,7 +62,7 @@ defmodule Cloak.DataSource.SerializingUpdater do
         {Periodic,
          id: :liveness_check,
          run: fn -> GenServer.cast(__MODULE__, :run_liveness_check) end,
-         every: Aircloak.mix_env_specific(dev: :timer.hours(1), prod: :timer.minutes(1), else: :infinity)},
+         every: Aircloak.in_env(dev: :timer.hours(1), prod: :timer.minutes(1), else: :infinity)},
         Cloak.DataSource.FileSystemMonitor
       ],
       strategy: :one_for_all,

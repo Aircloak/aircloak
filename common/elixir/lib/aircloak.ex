@@ -13,13 +13,13 @@ defmodule Aircloak do
   Example:
 
   ```
-  mix_env_specific(dev: foo(), prod: bar(), else: baz())
+  in_env(dev: foo(), prod: bar(), else: baz())
   ```
 
   The invocation above will generate the code which invokes `foo/0` in dev,
   `bar/0` in prod, and `baz/0` in all other environments.
   """
-  defmacro mix_env_specific(config) do
+  defmacro in_env(config) do
     quote do
       unquote(Keyword.get_lazy(config, Mix.env(), fn -> Keyword.fetch!(config, :else) end))
     end
@@ -28,11 +28,11 @@ defmodule Aircloak do
   @doc """
   Helper macro to indicate that a variable is not used in particular environments.
 
-  A typical example is when you use `mix_env_specific/1` with a variable:
+  A typical example is when you use `in_env/1` with a variable:
 
   ```
   def foo(bar) do
-    mix_env_specific(dev: nil, else: do_something_with(bar))
+    in_env(dev: nil, else: do_something_with(bar))
   end
   ```
 
@@ -42,7 +42,7 @@ defmodule Aircloak do
   ```
   def foo(bar) do
     unused(bar, in: [:dev])
-    mix_env_specific(dev: nil, else: do_something_with(bar))
+    in_env(dev: nil, else: do_something_with(bar))
   end
   ```
   """
@@ -107,7 +107,8 @@ defmodule Aircloak do
   The `:threshold` option can be used to set the threshold in milliseconds. The default value is `10`.
   """
   @spec report_long(any, (() -> result), threshold: non_neg_integer) :: result when result: var
-  def report_long(id, fun, opts \\ []), do: measure(id, fun, level: :warn, threshold: Keyword.get(opts, :threshold, 10))
+  def report_long(id, fun, opts \\ []),
+    do: measure(id, fun, level: :warn, threshold: Keyword.get(opts, :threshold, 10))
 
   @doc "Waits for the service on the given host/port to become available."
   @spec await_service!(String.t(), :inet.port_number()) :: :ok

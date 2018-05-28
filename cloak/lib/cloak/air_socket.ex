@@ -11,7 +11,7 @@ defmodule Cloak.AirSocket do
   require Logger
   require Aircloak.DeployConfig
   alias Phoenix.Channels.GenSocketClient
-  import Aircloak, only: [mix_env_specific: 1, unused: 2]
+  import Aircloak, only: [in_env: 1, unused: 2]
 
   @behaviour GenSocketClient
 
@@ -95,7 +95,7 @@ defmodule Cloak.AirSocket do
   @impl GenSocketClient
   def handle_disconnected(reason, %{reconnect_interval: interval} = state) do
     unused(reason, in: [:dev])
-    mix_env_specific(dev: :ok, else: Logger.error("disconnected: #{inspect(reason)}"))
+    in_env(dev: :ok, else: Logger.error("disconnected: #{inspect(reason)}"))
     Process.send_after(self(), :connect, interval)
     {:ok, %{state | reconnect_interval: next_interval(interval)}}
   end
@@ -161,7 +161,7 @@ defmodule Cloak.AirSocket do
 
   @impl GenSocketClient
   def handle_info(:connect, _transport, state) do
-    mix_env_specific(dev: nil, else: Logger.info("connecting"))
+    in_env(dev: nil, else: Logger.info("connecting"))
     {:connect, state}
   end
 
