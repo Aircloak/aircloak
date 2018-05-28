@@ -204,14 +204,14 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
       do:
         assert(
           type_first_column("SELECT sqrt(numeric) FROM table")
-          |> Type.clear_column?(["sqrt"])
+          |> Type.clear_column?(&(&1 == "sqrt"))
         )
 
     test "does not ignore nested, not allowed functions",
       do:
         refute(
           type_first_column("SELECT sqrt(abs(numeric)) FROM table")
-          |> Type.clear_column?(["sqrt"])
+          |> Type.clear_column?(&(&1 == "sqrt"))
         )
 
     test "ignores aggregates", do: assert(type_first_column("SELECT max(numeric) FROM table") |> Type.clear_column?())

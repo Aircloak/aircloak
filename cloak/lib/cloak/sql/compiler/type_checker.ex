@@ -87,7 +87,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp verify_lhs_of_in_is_clear(query),
     do:
       verify_conditions(query, &Condition.in?/1, fn {:in, lhs, _} ->
-        unless Type.establish_type(lhs, query) |> Type.clear_column?(@allowed_in_functions) do
+        unless Type.establish_type(lhs, query) |> Type.clear_column?(&(&1 in @allowed_in_functions)) do
           raise CompilationError,
             source_location: lhs.source_location,
             message: """
@@ -106,7 +106,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
         if rhs_type.constant? do
           unless Type.establish_type(lhs, query)
-                 |> Type.clear_column?(@allowed_not_equals_functions),
+                 |> Type.clear_column?(&(&1 in @allowed_not_equals_functions)),
                  do:
                    raise(
                      CompilationError,
@@ -178,7 +178,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp verify_lhs_of_not_like_is_clear(query),
     do:
       verify_conditions(query, &Condition.not_like?/1, fn {:not, {kind, lhs, _}} ->
-        unless Type.establish_type(lhs, query) |> Type.clear_column?(@allowed_like_functions) do
+        unless Type.establish_type(lhs, query) |> Type.clear_column?(&(&1 in @allowed_like_functions)) do
           raise CompilationError,
             source_location: lhs.source_location,
             message: """
@@ -245,10 +245,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         lhs_type = Type.establish_type(lhs, query)
         rhs_type = Type.establish_type(rhs, query)
 
-        not (Type.clear_column?(lhs_type, @allowed_isolator_functions) and rhs_type.constant?)
+        not (Type.clear_column?(lhs_type, &(&1 in @allowed_isolator_functions)) and rhs_type.constant?)
 
       [lhs] ->
-        not Type.clear_column?(Type.establish_type(lhs, query), @allowed_isolator_functions)
+        not Type.clear_column?(Type.establish_type(lhs, query), &(&1 in @allowed_isolator_functions))
     end
   end
 
