@@ -37,17 +37,19 @@ function ci_tmp_folder {
   component_tmp_folder "ci"
 }
 
-function build_image {
+function build_component_image {
   # We won't remove old images here, since we're building one more image at the end. That final build will lead to
   # removal of old stale images. Since removal of stale images also talks to git, this will reduce the network
   # communication and will run much faster.
 
-  # build leafe base images (this will cause all parent images to build as well)
-  PREVENT_OLD_IMAGE_REMOVAL="true" common/docker/phoenix/build-image.sh
-  PREVENT_OLD_IMAGE_REMOVAL="true" common/docker/rust/build-image.sh
-
   PREVENT_OLD_IMAGE_REMOVAL="true" build_aircloak_image $DOCKER_IMAGE $COMPONENT/ci/dockerfile $COMPONENT/ci/.dockerignore
   remove_old_git_head_image_tags "aircloak"
+}
+
+function build_base_images {
+  # build leaf base images (this will cause all parent images to build as well)
+  PREVENT_OLD_IMAGE_REMOVAL="true" common/docker/phoenix/build-image.sh
+  PREVENT_OLD_IMAGE_REMOVAL="true" common/docker/rust/build-image.sh
 }
 
 function is_image_built {
@@ -79,28 +81,13 @@ function run_in_container {
   eval $full_cmd
 }
 
-function ensure_supporting_container {
-  local container_name=$1
-  shift
-
-  if ! named_container_running $container_name ; then
-    if [ ! -z "$(docker ps -a --filter=name=$container_name | grep -w $container_name)" ]; then
-      echo "removing dead container $container_name"
-      docker rm $container_name > /dev/null
-    fi
-
-    echo "starting container $container_name"
-    docker run --detach --name $container_name $@ > /dev/null
-  fi
-}
-
 function default_handle {
   command=$1
   shift || true
 
   case "$command" in
     build_image)
-      build_image
+      build_component_image
       ;;
 
     is_image_built)

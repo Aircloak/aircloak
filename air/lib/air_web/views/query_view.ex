@@ -28,11 +28,11 @@ defmodule AirWeb.QueryView do
       data
       |> Enum.map(fn raw_row ->
         raw_row["row"]
-        |> Enum.concat([raw_row["users_count"], raw_row["occurrences"]])
+        |> Enum.concat([raw_row["unreliable"], raw_row["occurrences"]])
         |> Enum.map(&to_string/1)
       end)
 
-    header = List.duplicate(" ", (cleaned_data |> hd() |> length()) - 2) ++ ["user count", "occurrences"]
+    header = List.duplicate(" ", (cleaned_data |> hd() |> length()) - 2) ++ ["unreliable", "occurrences"]
 
     Aircloak.AsciiTable.format([header] ++ cleaned_data)
   end

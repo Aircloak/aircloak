@@ -13,8 +13,10 @@ defmodule Cloak.DataSource.SAPHana do
   This is useful in development, to allow different developers to work on different schemas.
   """
   @spec default_schema() :: nil | String.t()
-  def default_schema(),
-    do: non_empty_schema(default_schema_from_os_env()) || non_empty_schema(default_schema_from_app_config())
+  def default_schema() do
+    non_empty_schema(System.get_env("__AC__DEFAULT_SAP_HANA_SCHEMA__")) ||
+      non_empty_schema(default_schema_from_app_config())
+  end
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
@@ -59,13 +61,6 @@ defmodule Cloak.DataSource.SAPHana do
       DSN: "SAPHana"
     }
     |> Map.merge(schema_option(default_schema()))
-  end
-
-  if Mix.env() == :prod do
-    # We don't allow env based override in prod
-    defp default_schema_from_os_env(), do: nil
-  else
-    defp default_schema_from_os_env(), do: System.get_env("DEFAULT_SAP_HANA_SCHEMA")
   end
 
   defp default_schema_from_app_config() do
