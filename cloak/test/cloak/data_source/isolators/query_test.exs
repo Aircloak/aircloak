@@ -22,7 +22,7 @@ defmodule Cloak.DataSource.Isolators.Query.Test do
       ])
 
     for data_source <- DataSource.all() do
-      refute Query.isolates_users?(data_source, :isolators, "value")
+      refute Query.isolates_users?(data_source, "isolators", "value")
     end
   end
 
@@ -36,7 +36,13 @@ defmodule Cloak.DataSource.Isolators.Query.Test do
       ])
 
     for data_source <- DataSource.all() do
-      assert Query.isolates_users?(data_source, :isolators, "value")
+      assert Query.isolates_users?(data_source, "isolators", "value")
+    end
+  end
+
+  test "a user id column is isolating" do
+    for data_source <- DataSource.all() do
+      assert Query.isolates_users?(data_source, "isolators", "user_id")
     end
   end
 end
