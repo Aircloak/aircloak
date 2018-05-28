@@ -7,12 +7,14 @@ defmodule Cloak.Query.Isolators.Test do
     :ok =
       Cloak.Test.DB.create_table(
         "query_isolators",
-        "isolating INTEGER, regular INTEGER, isolating_string TEXT, regular_string TEXT"
+        "isolating INTEGER, regular INTEGER, isolating_string TEXT, regular_string TEXT, isolating_date DATE," <>
+          " regular_date DATE"
       )
 
     for data_source <- Cloak.DataSource.all() do
       Cloak.DataSource.Isolators.register_isolating_column(data_source, "query_isolators", "isolating")
       Cloak.DataSource.Isolators.register_isolating_column(data_source, "query_isolators", "isolating_string")
+      Cloak.DataSource.Isolators.register_isolating_column(data_source, "query_isolators", "isolating_date")
     end
 
     :ok
@@ -44,6 +46,11 @@ defmodule Cloak.Query.Isolators.Test do
 
   test "string functions are allowed on isolators" do
     assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE trim($col_string) = 'something'")
+  end
+
+  test "implicit range functions are allowed on isolators (see anonymization.md#isolating-columns)" do
+    assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE month($col_date) = 1")
+    assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE bucket($col by 10) = 10")
   end
 
   defp assert_allowed(query) do
