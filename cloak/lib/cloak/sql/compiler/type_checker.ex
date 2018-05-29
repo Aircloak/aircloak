@@ -222,8 +222,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # -------------------------------------------------------------------
 
   defp verify_isolator_conditions_are_clear(query) do
-    verify_conditions(query, &includes_isolating_column?(&1, query), fn condition ->
-      if unclear_isolator_usage?(condition, query) do
+    verify_conditions(
+      query,
+      &(unclear_isolator_usage?(&1, query) and includes_isolating_column?(&1, query)),
+      fn condition ->
         [offending_column | _] = isolating_columns(condition, query)
 
         raise CompilationError,
@@ -233,7 +235,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
           For more information see the "Restrictions" section of the user guides.
           """
       end
-    end)
+    )
   end
 
   defp unclear_isolator_usage?({:in, _, _}, _), do: true
