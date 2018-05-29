@@ -26,6 +26,10 @@ defmodule Cloak.DataSource.Isolators.Cache do
     end
   end
 
+  @doc "Invoked when data sources have been changed."
+  @spec data_sources_changed() :: :ok
+  def data_sources_changed(), do: GenServer.cast(__MODULE__, :data_sources_changed)
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
@@ -33,7 +37,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
   @impl GenServer
   def init(_) do
     :ets.new(__MODULE__, [:named_table, :public, :set, read_concurrency: true])
-    state = %{queue: Queue.new(columns(Cloak.DataSource.all())), waiting: %{}}
+    state = %{queue: Queue.new(known_columns()), waiting: %{}}
     {:ok, start_next_computation(state)}
   end
 
@@ -44,6 +48,13 @@ defmodule Cloak.DataSource.Isolators.Cache do
       {:ok, isolates?} -> {:reply, {:ok, isolates?}, state}
       :error -> {:noreply, add_waiting_request(state, column, from)}
     end
+  end
+
+  @impl GenServer
+  def handle_cast(:data_sources_changed, state) do
+    state = update_in(state.queue, &Queue.update_known_columns(&1, known_columns()))
+    state = if Parent.GenServer.child?(:compute_isolation_job), do: state, else: start_next_computation(state)
+    {:noreply, state}
   end
 
   @impl Parent.GenServer
@@ -80,7 +91,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
     :ets.insert(__MODULE__, {column, isolation})
   end
 
-  defp columns(data_sources), do: Enum.flat_map(data_sources, &data_source_columns/1)
+  defp known_columns(), do: Enum.flat_map(Cloak.DataSource.all(), &data_source_columns/1)
 
   defp data_source_columns(data_source) do
     data_source.tables

@@ -12,4 +12,6 @@ defmodule Cloak.TestIsolatorsCache do
   def register_isolating_column(data_source, table, column) do
     Agent.update(__MODULE__, &MapSet.put(&1, {data_source[:name], table, column}))
   end
+
+  def data_sources_changed(), do: :ok
 end
