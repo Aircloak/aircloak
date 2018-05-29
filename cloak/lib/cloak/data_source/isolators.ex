@@ -26,10 +26,25 @@ defmodule Cloak.DataSource.Isolators do
     end
   end
 
+  # -------------------------------------------------------------------
+  # Supervison tree
+  # -------------------------------------------------------------------
+
   @doc false
-  if Mix.env() == :test do
-    def child_spec(_arg), do: Aircloak.ChildSpec.agent(fn -> MapSet.new() end, name: __MODULE__)
-  else
-    def child_spec(_arg), do: Aircloak.ChildSpec.agent(fn -> nil end, name: __MODULE__)
+  def child_spec(_options \\ []) do
+    import Aircloak.ChildSpec, only: [supervisor: 2]
+    import Aircloak, only: [in_env: 1, unused: 2]
+
+    unused(test_agent_spec(), in: [:dev, :prod])
+
+    supervisor(
+      [
+        in_env(test: test_agent_spec(), else: nil)
+      ]
+      |> Enum.reject(&is_nil/1),
+      strategy: :one_for_one
+    )
   end
+
+  defp test_agent_spec(), do: Aircloak.ChildSpec.agent(fn -> MapSet.new() end, name: __MODULE__)
 end

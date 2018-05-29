@@ -31,7 +31,6 @@ defmodule Cloak do
     [
       Cloak.DataSource,
       Cloak.Query.Runner,
-      Cloak.DataSource.Isolators,
       in_env(test: nil, else: Cloak.AirSocket),
       in_env(test: nil, else: Cloak.MemoryReader)
     ]
