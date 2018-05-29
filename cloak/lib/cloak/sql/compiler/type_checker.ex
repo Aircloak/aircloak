@@ -6,7 +6,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   as checks to validate that columns used in certain filter conditions haven't been altered.
   """
 
-  alias Cloak.Sql.{CompilationError, Condition, Expression, Query, Range}
+  alias Cloak.Sql.{CompilationError, Condition, Expression, Function, Query, Range}
   alias Cloak.Sql.Compiler.TypeChecker.Type
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.DataSource.Isolators
@@ -87,7 +87,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp verify_lhs_of_in_is_clear(query),
     do:
       verify_conditions(query, &Condition.in?/1, fn {:in, lhs, _} ->
-        unless Type.establish_type(lhs, query) |> Type.clear_column?(@allowed_in_functions) do
+        unless Type.establish_type(lhs, query) |> Type.clear_column?(&(&1 in @allowed_in_functions)) do
           raise CompilationError,
             source_location: lhs.source_location,
             message: """
@@ -106,7 +106,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
         if rhs_type.constant? do
           unless Type.establish_type(lhs, query)
-                 |> Type.clear_column?(@allowed_not_equals_functions),
+                 |> Type.clear_column?(&(&1 in @allowed_not_equals_functions)),
                  do:
                    raise(
                      CompilationError,
@@ -178,7 +178,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp verify_lhs_of_not_like_is_clear(query),
     do:
       verify_conditions(query, &Condition.not_like?/1, fn {:not, {kind, lhs, _}} ->
-        unless Type.establish_type(lhs, query) |> Type.clear_column?(@allowed_like_functions) do
+        unless Type.establish_type(lhs, query) |> Type.clear_column?(&(&1 in @allowed_like_functions)) do
           raise CompilationError,
             source_location: lhs.source_location,
             message: """
@@ -221,10 +221,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # Isolators
   # -------------------------------------------------------------------
 
-  @allowed_isolator_functions ~w(lower upper substring trim ltrim rtrim btrim extract_words)
   defp verify_isolator_conditions_are_clear(query) do
-    verify_conditions(query, &includes_isolating_column?(&1, query), fn condition ->
-      if unclear_isolator_usage?(condition, query) do
+    verify_conditions(
+      query,
+      &(unclear_isolator_usage?(&1, query) and includes_isolating_column?(&1, query)),
+      fn condition ->
         [offending_column | _] = isolating_columns(condition, query)
 
         raise CompilationError,
@@ -234,7 +235,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
           For more information see the "Restrictions" section of the user guides.
           """
       end
-    end)
+    )
   end
 
   defp unclear_isolator_usage?({:in, _, _}, _), do: true
@@ -245,11 +246,16 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         lhs_type = Type.establish_type(lhs, query)
         rhs_type = Type.establish_type(rhs, query)
 
-        not (Type.clear_column?(lhs_type, @allowed_isolator_functions) and rhs_type.constant?)
+        not (Type.clear_column?(lhs_type, &allowed_isolator_function?/1) and rhs_type.constant?)
 
       [lhs] ->
-        not Type.clear_column?(Type.establish_type(lhs, query), @allowed_isolator_functions)
+        not Type.clear_column?(Type.establish_type(lhs, query), &allowed_isolator_function?/1)
     end
+  end
+
+  @allowed_isolator_functions ~w(lower upper substring trim ltrim rtrim btrim extract_words)
+  defp allowed_isolator_function?(function) do
+    function in @allowed_isolator_functions or Function.implicit_range?(function)
   end
 
   defp includes_isolating_column?(condition, query) do

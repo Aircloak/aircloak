@@ -79,11 +79,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type do
   Returns true if the expression with the given type is a column from the database without any processing other than
   one cast, false otherwise. Functions in allowed_functions are ignored.
   """
-  @spec clear_column?(t, [String.t()]) :: boolean
-  def clear_column?(type, allowed_functions \\ []) do
+  @spec clear_column?(t, (String.t() -> boolean)) :: boolean
+  def clear_column?(type, allowed_function? \\ fn _ -> false end) do
     transforms =
       transformation_count(type, fn function ->
-        not Function.cast?(function) and not Function.aggregator?(function) and not (function in allowed_functions)
+        not Function.cast?(function) and not Function.aggregator?(function) and not allowed_function?.(function)
       end)
 
     casts = transformation_count(type, &Function.cast?/1)
