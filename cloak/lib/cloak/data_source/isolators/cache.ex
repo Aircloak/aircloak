@@ -7,6 +7,15 @@ defmodule Cloak.DataSource.Isolators.Cache do
   alias Cloak.DataSource.Isolators.Queue
 
   # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Returns true if the given column in the given table is isolating, false otherwise."
+  @spec isolates_users?(String.t(), String.t(), String.t()) :: boolean
+  def isolates_users?(data_source, table, column),
+    do: Cloak.DataSource.Isolators.Query.isolates_users?(data_source, table, column)
+
+  # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
 
