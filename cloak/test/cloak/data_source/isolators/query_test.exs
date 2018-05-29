@@ -40,6 +40,22 @@ defmodule Cloak.DataSource.Isolators.Query.Test do
     end
   end
 
+  test "[BUG] a column with many rows per user" do
+    :ok =
+      Cloak.Test.DB.add_users_data("isolators", ["value"], [
+        ["user1", 10],
+        ["user1", 10],
+        ["user2", 20],
+        ["user2", 20],
+        ["user3", 30],
+        ["user3", 30]
+      ])
+
+    for data_source <- DataSource.all() do
+      assert Query.isolates_users?(data_source, "isolators", "value")
+    end
+  end
+
   test "a user id column is isolating" do
     for data_source <- DataSource.all() do
       assert Query.isolates_users?(data_source, "isolators", "user_id")
