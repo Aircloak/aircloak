@@ -511,12 +511,13 @@ assumption that two or more mathematical operations in an expression act as a co
 
 ## Isolating columns
 
-Further restrictions are applied on columns that have been detected to be isolating. For each column
-we compute an isolating factor: `count(values_with_only_one_user) / (count(unique_values) + 1)`.
-If this factor is greater than a configured value (currently 0.5) the column is defined as isolating.
-Only clear conditions are allowed on isolating columns.
+Further restrictions are applied on columns that have been detected to be isolating. For each column we compute an
+isolating factor: `count(values_with_only_one_user) / (count(unique_values) + 1)`.  If this factor is greater than a
+configured value (see `cloak -> anonymizer -> isolating_column_threshold` in `config.exs`) the column is defined as
+isolating. Only clear conditions are allowed on isolating columns. Furthermore, `IN` is disallowed with isolating
+columns.
 
-As an exception implicit range functions are allowed in expressions on isolating columns. This exception
-can be made, because the rules regarding ranges and implicit ranges already prevent the analyst from
-expressing arbitrary conditions this way. It is also very useful, because while something like a time
-column might be isolating, good results might be obtained after "rounding" the column with a `date_trunc`.
+As an exception implicit range functions are allowed in expressions on isolating columns. This exception can be made,
+because the rules regarding ranges and implicit ranges already prevent the analyst from expressing arbitrary conditions
+this way. It is also very useful, because while something like a time column might be isolating, good results might be
+obtained after "rounding" the column with a `date_trunc`.
