@@ -42,7 +42,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
     # doing another lookup, because property might have become available while this request was in the queue
     case lookup_cache(column) do
       {:ok, isolates?} -> {:reply, {:ok, isolates?}, state}
-      :error -> {:noreply, %{state | waiting: Map.update(state.waiting, column, [from], &[from | &1])}}
+      :error -> {:noreply, add_waiting_request(state, column, from)}
     end
   end
 
@@ -100,6 +100,20 @@ defmodule Cloak.DataSource.Isolators.Cache do
     case :ets.match(__MODULE__, {column, :"$1"}) do
       [[isolates?]] -> {:ok, isolates?}
       [] -> :error
+    end
+  end
+
+  defp add_waiting_request(state, column, from) do
+    state = %{state | waiting: Map.update(state.waiting, column, [from], &[from | &1])}
+
+    case state.waiting[column] do
+      # first waiting client -> raise prio
+      [_] ->
+        update_in(state.queue, &Queue.set_high_priority(&1, column))
+
+      # multiple waiting clients -> prio was already raised, so no need to do anything else
+      [_, _ | _] ->
+        state
     end
   end
 
