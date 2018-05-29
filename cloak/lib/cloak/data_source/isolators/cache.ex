@@ -13,9 +13,16 @@ defmodule Cloak.DataSource.Isolators.Cache do
 
   @doc "Returns true if the given column in the given table is isolating, false otherwise."
   @spec isolates_users?(String.t(), String.t(), String.t()) :: boolean
-  def isolates_users?(data_source, table, column) do
-    case :ets.match(__MODULE__, {{data_source.name, table, column}, :"$1"}) do
-      [[isolates?]] -> isolates?
+  def isolates_users?(data_source, table_name, column_name) do
+    column = {data_source.name, table_name, column_name}
+
+    case lookup_cache(column) do
+      {:ok, isolates?} ->
+        isolates?
+
+      :error ->
+        {:ok, isolates?} = GenServer.call(__MODULE__, {:fetch_isolation, column}, :infinity)
+        isolates?
     end
   end
 
@@ -26,12 +33,23 @@ defmodule Cloak.DataSource.Isolators.Cache do
   @impl GenServer
   def init(_) do
     :ets.new(__MODULE__, [:named_table, :public, :set, read_concurrency: true])
-    state = %{queue: Queue.new(columns(Cloak.DataSource.all()))}
+    state = %{queue: Queue.new(columns(Cloak.DataSource.all())), waiting: %{}}
     {:ok, start_next_computation(state)}
   end
 
+  @impl GenServer
+  def handle_call({:fetch_isolation, column}, from, state) do
+    # doing another lookup, because property might have become available while this request was in the queue
+    case lookup_cache(column) do
+      {:ok, isolates?} -> {:reply, {:ok, isolates?}, state}
+      :error -> {:noreply, %{state | waiting: Map.update(state.waiting, column, [from], &[from | &1])}}
+    end
+  end
+
   @impl Parent.GenServer
-  def handle_child_terminated(:compute_isolation_job, _meta, _pid, _reason, state) do
+  def handle_child_terminated(:compute_isolation_job, meta, _pid, _reason, state) do
+    result = lookup_cache(meta.column)
+    state.waiting |> Map.get(meta.column, []) |> Enum.each(&GenServer.reply(&1, result))
     {:noreply, start_next_computation(state)}
   end
 
@@ -44,7 +62,8 @@ defmodule Cloak.DataSource.Isolators.Cache do
       {column, queue} ->
         Parent.GenServer.start_child(%{
           id: :compute_isolation_job,
-          start: {Task, :start_link, [fn -> compute_column_isolation(column) end]}
+          start: {Task, :start_link, [fn -> compute_column_isolation(column) end]},
+          meta: %{column: column}
         })
 
         %{state | queue: queue}
@@ -75,6 +94,13 @@ defmodule Cloak.DataSource.Isolators.Cache do
     table.columns
     |> Enum.reject(&(&1.name == table.user_id))
     |> Enum.map(&{data_source.name, table.name, &1.name})
+  end
+
+  defp lookup_cache(column) do
+    case :ets.match(__MODULE__, {column, :"$1"}) do
+      [[isolates?]] -> {:ok, isolates?}
+      [] -> :error
+    end
   end
 
   # -------------------------------------------------------------------
