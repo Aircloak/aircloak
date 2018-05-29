@@ -12,7 +12,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
   # -------------------------------------------------------------------
 
   @doc "Returns true if the given column in the given table is isolating, false otherwise."
-  @spec isolates_users?(String.t(), String.t(), String.t()) :: boolean
+  @spec isolates_users?(Cloak.DataSource.t(), String.t(), String.t()) :: boolean
   def isolates_users?(data_source, table_name, column_name) do
     column = {data_source.name, table_name, column_name}
 

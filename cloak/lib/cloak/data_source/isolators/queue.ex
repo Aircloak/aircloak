@@ -16,7 +16,7 @@ defmodule Cloak.DataSource.Isolators.Queue do
       regular_queue: :queue.new(),
       priority_queue: :queue.new()
     }
-    |> update_known_columns(MapSet.new(known_columns))
+    |> update_known_columns(known_columns)
   end
 
   @doc """
