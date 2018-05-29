@@ -521,3 +521,5 @@ As an exception implicit range functions are allowed in expressions on isolating
 because the rules regarding ranges and implicit ranges already prevent the analyst from expressing arbitrary conditions
 this way. It is also very useful, because while something like a time column might be isolating, good results might be
 obtained after "rounding" the column with a `date_trunc`.
+
+See [this issue](https://github.com/Aircloak/aircloak/issues/2485) for more.
