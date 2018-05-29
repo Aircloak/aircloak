@@ -39,7 +39,8 @@ defmodule Cloak.DataSource.Isolators do
 
     supervisor(
       [
-        in_env(test: test_agent_spec(), else: nil)
+        in_env(test: test_agent_spec(), else: nil),
+        Cloak.DataSource.Isolators.Cache
       ]
       |> Enum.reject(&is_nil/1),
       strategy: :one_for_one
