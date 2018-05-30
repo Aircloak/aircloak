@@ -10,6 +10,10 @@ defmodule Cloak.DataSource.Isolators.Query.Test do
 
   setup do
     :ok = Cloak.Test.DB.clear_table("isolators")
+
+    anonymizer_config = Application.get_env(:cloak, :anonymizer)
+    Application.put_env(:cloak, :anonymizer, anonymizer_config |> Keyword.put(:isolating_column_threshold, 0.5))
+    on_exit(fn -> Application.put_env(:cloak, :anonymizer, anonymizer_config) end)
   end
 
   test "a column with many users per value is not isolating" do
