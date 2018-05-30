@@ -14,4 +14,4 @@ test:
 	mix test
 
 dev-container:
-	../ci/start_component.sh system_test
+	../ci/start_component.sh system_test system_test

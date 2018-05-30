@@ -61,9 +61,11 @@ if [ ! -e "$component/ci/container.sh" ]; then
   exit 1
 fi
 
+job=${2:-test}
+
 docker_script $component build_image
 
 docker_script $component start_container $CONTAINER_ID
-docker_script $component prepare_for_test $CONTAINER_ID
+docker_script $component prepare_for_$job $CONTAINER_ID
 
 DOCKER_ARGS="-t" docker_script $component run_in_container $CONTAINER_ID "/bin/bash"

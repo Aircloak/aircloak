@@ -8,12 +8,19 @@ cd $ROOT_DIR
 
 . docker/ci_helper.sh system_test
 
-function prepare_for_test {
+function prepare_for_system_test {
   local container_name="$1"
 
   # starting databases first, so they have the time to boot and initialize before client containers are started
   start_air_db $container_name
   start_cloak_dbs $container_name
+
+  # building base images
+  if [ "$SKIP_DOCKER_BUILD" != "true" ]; then
+    BUILD_BASE=false PREVENT_OLD_IMAGE_REMOVAL=true cloak/build-image.sh&
+    BUILD_BASE=false PREVENT_OLD_IMAGE_REMOVAL=true air/build-image.sh&
+    wait
+  fi
 
   start_air_container $container_name
   start_cloak_container $container_name
@@ -132,17 +139,6 @@ function erlang_eval {
   docker exec ${container}_${app} /aircloak/$app/bin/$app eval $@
 }
 
-function build_image {
-  build_base_images
-
-  if [ "$SKIP_DOCKER_BUILD" != "true" ]; then
-    PREVENT_OLD_IMAGE_REMOVAL=true cloak/build-image.sh
-    PREVENT_OLD_IMAGE_REMOVAL=true air/build-image.sh
-  fi
-
-  build_component_image
-}
-
 mount_to_aircloak VERSION
 mount_to_component config lib priv test mix.exs mix.lock Makefile .gitignore check_warnings.sh .formatter.exs
 mount_cached_component deps _build .bash_history
@@ -161,12 +157,8 @@ if [ "$GLOBAL_DB_NAMESPACE" == "" ]; then
 fi
 
 case "$1" in
-  build_image)
-    build_image
-    ;;
-
-  prepare_for_test)
-    prepare_for_test $2
+  prepare_for_system_test)
+    prepare_for_system_test $2
     ;;
 
   *)
