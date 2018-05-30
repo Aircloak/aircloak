@@ -52,7 +52,9 @@ defmodule Cloak.DataSource.Isolators.Cache do
 
   @impl GenServer
   def handle_cast(:data_sources_changed, state) do
-    state = update_in(state.queue, &Queue.update_known_columns(&1, known_columns()))
+    known_columns = known_columns()
+    state = update_in(state.queue, &Queue.update_known_columns(&1, known_columns))
+    state = respond_error_on_missing_columns(state, known_columns)
     state = if Parent.GenServer.child?(:compute_isolation_job), do: state, else: start_next_computation(state)
     {:noreply, state}
   end
@@ -117,6 +119,13 @@ defmodule Cloak.DataSource.Isolators.Cache do
       | waiting: Map.update(state.waiting, column, [from], &[from | &1]),
         queue: Queue.set_high_priority(state.queue, column)
     }
+  end
+
+  defp respond_error_on_missing_columns(state, known_columns) do
+    known_columns = MapSet.new(known_columns)
+    {good, missing} = Enum.split_with(state.waiting, fn {column, _clients} -> MapSet.member?(known_columns, column) end)
+    Enum.each(missing, fn {_column, clients} -> Enum.each(clients, &GenServer.reply(&1, :error)) end)
+    %{state | waiting: Map.new(good)}
   end
 
   # -------------------------------------------------------------------
