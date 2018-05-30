@@ -8,19 +8,22 @@ cd $ROOT_DIR
 
 . docker/ci_helper.sh system_test
 
+function prepare_for_compile {
+  # By building base images here, we ensure they are also built on the target branches (master and release).
+  # This in turn ensures proper caching.
+  if [ "$SKIP_DOCKER_BUILD" != "true" ]; then
+    BUILD_BASE=false PREVENT_OLD_IMAGE_REMOVAL=true cloak/build-image.sh&
+    BUILD_BASE=false PREVENT_OLD_IMAGE_REMOVAL=true air/build-image.sh&
+    wait
+  fi
+}
+
 function prepare_for_system_test {
   local container_name="$1"
 
   # starting databases first, so they have the time to boot and initialize before client containers are started
   start_air_db $container_name
   start_cloak_dbs $container_name
-
-  # building base images
-  if [ "$SKIP_DOCKER_BUILD" != "true" ]; then
-    BUILD_BASE=false PREVENT_OLD_IMAGE_REMOVAL=true cloak/build-image.sh&
-    BUILD_BASE=false PREVENT_OLD_IMAGE_REMOVAL=true air/build-image.sh&
-    wait
-  fi
 
   start_air_container $container_name
   start_cloak_container $container_name
@@ -157,6 +160,10 @@ if [ "$GLOBAL_DB_NAMESPACE" == "" ]; then
 fi
 
 case "$1" in
+  prepare_for_compile)
+    prepare_for_compile
+    ;;
+
   prepare_for_system_test)
     prepare_for_system_test $2
     ;;

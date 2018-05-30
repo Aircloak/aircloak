@@ -102,6 +102,9 @@ function default_handle {
       run_in_container $@
       ;;
 
+    prepare_for_compile)
+      ;;
+
     *)
       echo "invalid args: $command $@"
       exit 1

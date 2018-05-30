@@ -158,7 +158,7 @@ defmodule AircloakCI.Build.Component do
       )
 
   defp prepare_for(container, job) do
-    if job in [:test, :compliance, :system_test] do
+    if job in [:compile, :test, :compliance, :system_test] do
       Container.invoke_script(
         container,
         "prepare_for_#{job} #{container.name}",
