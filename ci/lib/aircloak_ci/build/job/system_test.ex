@@ -8,13 +8,27 @@ defmodule AircloakCI.Build.Job.SystemTest do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Invokes the compliance job."
+  @doc "Invokes the system test job."
   @spec start_if_possible(Build.Server.state()) :: Build.Server.state()
   def start_if_possible(build_state) do
     if LocalProject.system_test?(build_state.project) do
       case LocalProject.job_outcome(build_state.project, "system_test_compile") do
-        nil -> Job.Compile.start_if_possible(build_state, "system_test")
+        nil -> compile_if_possible(build_state)
         :ok -> Job.maybe_start(build_state, "system_test", &start_test(&1, self()))
+        _ -> build_state
+      end
+    else
+      build_state
+    end
+  end
+
+  @doc "Compiles the system test component."
+  @spec compile_if_possible(Build.Server.state()) :: Build.Server.state()
+  def compile_if_possible(build_state) do
+    if LocalProject.system_test?(build_state.project) do
+      case LocalProject.job_outcome(build_state.project, "system_test_compile") do
+        nil -> Job.Compile.start_if_possible(build_state, "system_test")
+        :ok -> build_state
         _ -> build_state
       end
     else
