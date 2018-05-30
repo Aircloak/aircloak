@@ -12,9 +12,9 @@ defmodule Cloak.Query.Isolators.Test do
       )
 
     for data_source <- Cloak.DataSource.all() do
-      Cloak.DataSource.Isolators.register_isolating_column(data_source, "query_isolators", "isolating")
-      Cloak.DataSource.Isolators.register_isolating_column(data_source, "query_isolators", "isolating_string")
-      Cloak.DataSource.Isolators.register_isolating_column(data_source, "query_isolators", "isolating_date")
+      Cloak.TestIsolatorsCache.register_isolating_column(data_source, "query_isolators", "isolating")
+      Cloak.TestIsolatorsCache.register_isolating_column(data_source, "query_isolators", "isolating_string")
+      Cloak.TestIsolatorsCache.register_isolating_column(data_source, "query_isolators", "isolating_date")
     end
 
     :ok
