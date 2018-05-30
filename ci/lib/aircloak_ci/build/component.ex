@@ -162,7 +162,7 @@ defmodule AircloakCI.Build.Component do
       Container.invoke_script(
         container,
         "prepare_for_#{job} #{container.name}",
-        timeout: :timer.minutes(10)
+        timeout: :timer.hours(1)
       )
     else
       :ok
