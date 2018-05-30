@@ -16,15 +16,22 @@ defmodule Cloak.DataSource.Isolators.Queue.Test do
     assert pop_all(queue) == [:col_3, :col_1, :col_2, :col_4, :col_5]
   end
 
-  test "updating" do
-    queue =
-      Queue.new(columns(1..5))
-      |> process(:col_4)
-      |> Queue.set_high_priority(:col_2)
-      |> Queue.set_high_priority(:col_5)
-      |> Queue.update_known_columns(columns(3..6))
+  test "update adds new columns to the regular queue" do
+    queue = Queue.new(columns(1..3)) |> Queue.set_high_priority(:col_2) |> Queue.update_known_columns(columns(1..4))
+    assert pop_all(queue) == [:col_2, :col_1, :col_3, :col_4]
+  end
 
-    assert pop_all(queue) == [:col_5, :col_3, :col_6]
+  test "update doesn't affect processed columns" do
+    queue = Queue.new(columns(1..3)) |> Queue.set_high_priority(:col_2)
+    {_, queue} = Queue.next_column(queue)
+    {_, queue} = Queue.next_column(queue)
+    queue = Queue.update_known_columns(queue, columns(1..3))
+    assert pop_all(queue) == [:col_3]
+  end
+
+  test "update removes obsolete columns" do
+    queue = Queue.new(columns(1..4)) |> Queue.set_high_priority(:col_2) |> Queue.update_known_columns(columns(3..4))
+    assert pop_all(queue) == [:col_3, :col_4]
   end
 
   defp columns(indices), do: Enum.map(indices, &:"col_#{&1}")
@@ -33,11 +40,5 @@ defmodule Cloak.DataSource.Isolators.Queue.Test do
     queue
     |> Stream.unfold(&with(:error <- Queue.next_column(&1), do: nil))
     |> Enum.to_list()
-  end
-
-  defp process(queue, column) do
-    queue = Queue.set_high_priority(queue, column)
-    {^column, queue} = Queue.next_column(queue)
-    queue
   end
 end
