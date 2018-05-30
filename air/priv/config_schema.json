@@ -43,6 +43,17 @@
       },
       "additionalProperties": false,
       "required": ["require_ssl"]
+    },
+
+    "appsignal": {
+      "type": "object",
+      "properties": {
+        "name": {"type": "string"},
+        "push_api_key": {"type": "string"},
+        "env": {"type": "string"}
+      },
+      "additionalProperties": false,
+      "required": ["name", "push_api_key", "env"]
     }
   },
   "additionalProperties": false,
