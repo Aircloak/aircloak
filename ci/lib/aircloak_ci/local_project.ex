@@ -512,12 +512,12 @@ defmodule AircloakCI.LocalProject do
     |> File.ls!()
     |> Stream.filter(&File.dir?(Path.join(src_folder(project), &1)))
     |> Stream.reject(&String.starts_with?(&1, "."))
-    |> Stream.reject(&(&1 in ["tmp"]))
+    |> Stream.reject(&(&1 == "tmp"))
   end
 
   defp standard_components(components) do
     components
-    |> Stream.reject(&(&1 in ["system_test"]))
+    |> Stream.reject(&(&1 == "system_test"))
     |> Stream.filter(&include_component?(&1, Application.get_env(:aircloak_ci, :components_filter, :all)))
   end
 
