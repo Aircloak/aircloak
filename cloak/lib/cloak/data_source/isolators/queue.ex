@@ -77,6 +77,16 @@ defmodule Cloak.DataSource.Isolators.Queue do
     end
   end
 
+  @doc "Moves all processed items to the end of the regular queue, leaving the priority queue intact."
+  @spec reset(t) :: t
+  def reset(queue) do
+    %{
+      queue
+      | regular_queue: Enum.reduce(queue.processed_columns, queue.regular_queue, &:queue.in/2),
+        processed_columns: MapSet.new()
+    }
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
