@@ -101,11 +101,8 @@ defmodule Cloak.DataSource.Isolators.Cache do
     |> Enum.flat_map(&table_columns(data_source, &1))
   end
 
-  defp table_columns(data_source, {_table_id, table}) do
-    table.columns
-    |> Enum.reject(&(&1.name == table.user_id))
-    |> Enum.map(&{data_source.name, table.name, &1.name})
-  end
+  defp table_columns(data_source, {_table_id, table}),
+    do: Enum.map(table.columns, &{data_source.name, table.name, &1.name})
 
   defp lookup_cache(column) do
     case :ets.match(__MODULE__, {column, :"$1"}) do
