@@ -3,6 +3,8 @@ defmodule Cloak.DataSource.Isolators.Cache do
   Implementation of the cache which holds the isolator property of all known columns of all data sources.
   """
 
+  @refresh_interval :timer.hours(24)
+
   use Parent.GenServer
   require Logger
   alias Cloak.DataSource.Isolators.Queue
@@ -36,6 +38,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
 
   @impl GenServer
   def init(_) do
+    enqueue_next_refresh()
     :ets.new(__MODULE__, [:named_table, :public, :set, read_concurrency: true])
     state = %{queue: Queue.new(known_columns()), waiting: %{}}
     {:ok, start_next_computation(state)}
@@ -55,9 +58,21 @@ defmodule Cloak.DataSource.Isolators.Cache do
     known_columns = known_columns()
     state = update_in(state.queue, &Queue.update_known_columns(&1, known_columns))
     state = respond_error_on_missing_columns(state, known_columns)
-    state = if Parent.GenServer.child?(:compute_isolation_job), do: state, else: start_next_computation(state)
+    {:noreply, maybe_start_next_computation(state)}
+  end
+
+  @impl GenServer
+  def handle_info(:refresh, state) do
+    # Refresh is handled by resetting the queue (see `Queue.reset/1` for details), which means that the previously
+    # processed columns are moved to the back of the queue.
+    # This gives us a simple solution to the overload problem. If we can't compute all columns during the refresh
+    # interval, we'll end up constantly refreshing, but tail columns won't starve, and no queue will grow indefinitely.
+    state = maybe_start_next_computation(update_in(state.queue, &Queue.reset/1))
+    enqueue_next_refresh()
     {:noreply, state}
   end
+
+  def handle_info(other, state), do: super(other, state)
 
   @impl Parent.GenServer
   def handle_child_terminated(:compute_isolation_job, meta, _pid, _reason, state) do
@@ -69,6 +84,10 @@ defmodule Cloak.DataSource.Isolators.Cache do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp maybe_start_next_computation(state) do
+    if Parent.GenServer.child?(:compute_isolation_job), do: state, else: start_next_computation(state)
+  end
 
   defp start_next_computation(state) do
     case Queue.next_column(state.queue) do
@@ -127,6 +146,8 @@ defmodule Cloak.DataSource.Isolators.Cache do
     Enum.each(missing, fn {_column, clients} -> Enum.each(clients, &GenServer.reply(&1, :error)) end)
     %{state | waiting: Map.new(good)}
   end
+
+  defp enqueue_next_refresh(), do: Process.send_after(self(), :refresh, @refresh_interval)
 
   # -------------------------------------------------------------------
   # Supervision tree
