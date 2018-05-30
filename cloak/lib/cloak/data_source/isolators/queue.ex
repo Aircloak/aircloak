@@ -8,7 +8,7 @@ defmodule Cloak.DataSource.Isolators.Queue do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Creates the new queue instance from the given collection of columns."
+  @doc "Creates a new queue instance from the given collection of columns."
   @spec new([column]) :: t
   def new(known_columns) do
     %{
@@ -22,7 +22,7 @@ defmodule Cloak.DataSource.Isolators.Queue do
   @doc """
   Retrieves the next column to be processed.
 
-  The function first try to pull from the high priority queue. If that queue is empty, the data is pulled from the
+  The function first tries to pull from the high priority queue. If that queue is empty, the data is pulled from the
   regular queue. If both queues are empty, the function returns `:error`. See also `set_high_priority/2`.
   """
   @spec next_column(t) :: {column, t} | :error
