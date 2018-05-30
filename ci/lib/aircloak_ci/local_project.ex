@@ -352,16 +352,22 @@ defmodule AircloakCI.LocalProject do
 
   @doc "Returns the list of components for which CI can be executed."
   @spec components(t) :: [String.t()]
-  def components(project),
-    do:
-      project
-      |> src_folder()
-      |> File.ls!()
-      |> Stream.filter(&File.dir?(Path.join(src_folder(project), &1)))
-      |> Stream.reject(&String.starts_with?(&1, "."))
-      |> filter_components()
-      |> Enum.reject(&match?({:error, _}, commands(project, &1, :compile)))
-      |> Enum.sort_by(&{component_priority(&1), &1})
+  def components(project) do
+    project
+    |> all_components()
+    |> standard_components()
+    |> Enum.reject(&match?({:error, _}, commands(project, &1, :compile)))
+  end
+
+  @doc "Returns true if the project includes the system test component."
+  @spec system_test?(t) :: boolean
+  def system_test?(project) do
+    case commands(project, "system_test", :system_test) do
+      {:error, :no_ci} -> false
+      [] -> false
+      _ -> true
+    end
+  end
 
   @doc "Returns the location of logs folder."
   @spec logs_folder() :: String.t()
@@ -500,10 +506,19 @@ defmodule AircloakCI.LocalProject do
         [cd: Path.join(src_folder(project), to_string(component))] ++ opts
       )
 
-  defp filter_components(components) do
+  defp all_components(project) do
+    project
+    |> src_folder()
+    |> File.ls!()
+    |> Stream.filter(&File.dir?(Path.join(src_folder(project), &1)))
+    |> Stream.reject(&String.starts_with?(&1, "."))
+    |> Stream.reject(&(&1 in ["tmp"]))
+  end
+
+  defp standard_components(components) do
     components
-    |> Enum.reject(&(&1 in ["tmp"]))
-    |> Enum.filter(&include_component?(&1, Application.get_env(:aircloak_ci, :components_filter, :all)))
+    |> Stream.reject(&(&1 in ["system_test"]))
+    |> Stream.filter(&include_component?(&1, Application.get_env(:aircloak_ci, :components_filter, :all)))
   end
 
   defp include_component?(_component, :all), do: true
@@ -511,12 +526,4 @@ defmodule AircloakCI.LocalProject do
   defp include_component?(component, {:except, blacklisted}), do: not Enum.member?(blacklisted, component)
 
   defp include_component?(component, {:only, whitelisted}), do: Enum.member?(whitelisted, component)
-
-  # Integration and system tests have longer docker builds, so we're forcing them to be started last.
-  # This allows all other components (e.g. air and cloak) to build and start their tests sooner.
-  # Also, it's more likely that individual component will fail, so by first starting the tests for these components
-  # we increase a likelihood of a faster error report.
-  defp component_priority("integration_tests"), do: 2
-  defp component_priority("system_test"), do: 3
-  defp component_priority(_), do: 1
 end
