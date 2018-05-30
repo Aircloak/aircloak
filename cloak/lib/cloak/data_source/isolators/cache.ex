@@ -126,6 +126,14 @@ defmodule Cloak.DataSource.Isolators.Cache do
     do: Enum.map(table.columns, &{data_source.name, table.name, &1.name})
 
   defp lookup_cache(column) do
+    if column in known_columns() do
+      do_lookup_cache(column)
+    else
+      raise "Unknown column."
+    end
+  end
+
+  defp do_lookup_cache(column) do
     case :ets.match(__MODULE__, {column, :"$1"}) do
       [[isolates?]] -> {:ok, isolates?}
       [] -> :error
