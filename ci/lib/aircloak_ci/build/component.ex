@@ -11,7 +11,7 @@ defmodule AircloakCI.Build.Component do
   alias AircloakCI.{CmdRunner, Container, LocalProject}
   alias AircloakCI.Build.Job
 
-  @type job :: :compile | :test | :compliance
+  @type job :: :compile | :test | :compliance | :system_test
 
   # -------------------------------------------------------------------
   # API functions
@@ -158,15 +158,14 @@ defmodule AircloakCI.Build.Component do
       )
 
   defp prepare_for(container, job) do
-    if job in [:test, :compliance] do
-      Container.invoke_script(
-        container,
-        "prepare_for_#{job} #{container.name}",
-        timeout: :timer.minutes(10)
-      )
-    else
-      :ok
-    end
+    # Note that we're ignoring the script outcome, meaning that we push forward even if preparation fails.
+    # This is a quick fix for older builds which don't explicitly handle `prepare_*` argument. A concrete example
+    # is `prepare_compile` which has been introduced, but it's not supported by older builds, such as previous release
+    # branches.
+    if job in [:compile, :test, :compliance, :system_test],
+      do: Container.invoke_script(container, "prepare_for_#{job} #{container.name}", timeout: :timer.hours(1))
+
+    :ok
   end
 
   defp script(project, component) do

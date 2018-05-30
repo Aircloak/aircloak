@@ -172,7 +172,7 @@ defmodule Cloak.Query.Runner do
   def handle_cast({:stop_query, reason}, state) do
     Parent.GenServer.shutdown_child(:query_execution)
     Logger.warn("Asked to stop query. Reason: #{inspect(reason)}")
-    {:stop, :normal, send_result_report(%{state | runner: nil}, reason)}
+    {:stop, :normal, send_result_report(state, reason)}
   end
 
   @impl Parent.GenServer

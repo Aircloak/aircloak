@@ -34,6 +34,8 @@ defmodule AircloakCI.Build.PullRequest do
     if is_nil(pr) do
       nil
     else
+      pr = if Application.get_env(:aircloak_ci, :simulate_approval) == true, do: %{pr | approved?: true}, else: pr
+
       %{
         source: pr,
         base_branch: Enum.find(repo_data.branches, &(&1.name == pr.target_branch)),
@@ -75,6 +77,7 @@ defmodule AircloakCI.Build.PullRequest do
       |> Job.Compile.start_if_possible()
       |> Job.Test.start_if_possible()
       |> maybe_start_compliance()
+      |> maybe_start_system_test()
     else
       state
     end
@@ -83,6 +86,12 @@ defmodule AircloakCI.Build.PullRequest do
   defp maybe_start_compliance(state) do
     if check_standard_tests(state) == :ok and check_approved(state) == :ok,
       do: Job.Compliance.start_if_possible(state),
+      else: state
+  end
+
+  defp maybe_start_system_test(state) do
+    if check_standard_tests(state) == :ok and check_approved(state) == :ok and compliance_outcome(state),
+      do: Job.SystemTest.start_if_possible(state),
       else: state
   end
 
@@ -115,7 +124,7 @@ defmodule AircloakCI.Build.PullRequest do
     {status, message} =
       with :ok <- check_mergeable(state),
            :ok <- check_standard_tests(state),
-           :ok <- check_compliance_and_approval(state),
+           :ok <- check_final_tests(state),
            do: {:success, "pull request can be merged"}
 
     if status == :success and not LocalProject.finished?(state.project, "report_mergeable") do
@@ -156,14 +165,23 @@ defmodule AircloakCI.Build.PullRequest do
   defp check_approved(%{source: %{approved?: true}}), do: :ok
   defp check_approved(%{source: %{approved?: false}}), do: {:pending, "awaiting approval"}
 
-  defp check_compliance_and_approval(state) do
-    case {state.source.approved?, LocalProject.job_outcome(state.project, "compliance")} do
-      {false, nil} -> {:pending, "awaiting approval and compliance"}
-      {false, :ok} -> {:pending, "awaiting approval"}
-      {true, nil} -> {:pending, "awaiting compliance"}
-      {true, :ok} -> :ok
-      _ -> {:error, "compliance test failed"}
-    end
+  defp check_final_tests(state) do
+    final_jobs = %{
+      "approval" => approval_outcome(state),
+      "compliance" => compliance_outcome(state),
+      "system_test" => system_test_outcome(state)
+    }
+
+    with :ok <- check_failures(final_jobs), do: check_pending(final_jobs)
+  end
+
+  defp approval_outcome(state), do: if(state.source.approved?, do: :ok, else: :pending)
+  defp compliance_outcome(state), do: LocalProject.job_outcome(state.project, "compliance") || :pending
+
+  defp system_test_outcome(state) do
+    if LocalProject.system_test?(state.project),
+      do: LocalProject.job_outcome(state.project, "system_test") || :pending,
+      else: :ok
   end
 
   defp check_standard_tests(state) do
