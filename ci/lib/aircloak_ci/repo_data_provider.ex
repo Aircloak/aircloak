@@ -72,7 +72,7 @@ defmodule AircloakCI.RepoDataProvider do
 
     defp ensure_branch_builds(repo_data),
       do:
-        [Enum.find(repo_data.branches, &(&1.name == "master" or &1.name =~ ~r/^release_\d+$/))]
+        [Enum.find(repo_data.branches, &(&1.name in ~w(master anonymization) or &1.name =~ ~r/^release_\d+$/))]
         |> Stream.concat(pr_targets(repo_data))
         |> Stream.dedup()
         |> Enum.each(&AircloakCI.Build.Branch.ensure_started(&1, repo_data))

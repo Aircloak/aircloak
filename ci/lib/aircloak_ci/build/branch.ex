@@ -55,7 +55,7 @@ defmodule AircloakCI.Build.Branch do
   def handle_job_succeeded("prepare", state) do
     # we're always compiling master and release branches, because they serve as a base (cache) for pull requests
     state =
-      if state.source.name == "master" or String.starts_with?(state.source.name, "release_"),
+      if state.source.name in ~w(master anonymization) or String.starts_with?(state.source.name, "release_"),
         do: Build.Job.Compile.start_if_possible(state),
         else: state
 
