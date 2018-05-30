@@ -60,10 +60,16 @@ if [ ! -e "$component/ci/container.sh" ]; then
   printf "\nUsage: $(basename "$0") component_name\n\n"
   exit 1
 fi
+shift 1 || true
+
+prepares="$@"
+if [ "$prepares" == "" ]; then prepares="test"; fi
 
 docker_script $component build_image
-
 docker_script $component start_container $CONTAINER_ID
-docker_script $component prepare_for_test $CONTAINER_ID
+
+for prepare in $prepares; do
+  docker_script $component prepare_for_$prepare $CONTAINER_ID
+done
 
 DOCKER_ARGS="-t" docker_script $component run_in_container $CONTAINER_ID "/bin/bash"

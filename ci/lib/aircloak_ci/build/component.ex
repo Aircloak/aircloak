@@ -11,7 +11,7 @@ defmodule AircloakCI.Build.Component do
   alias AircloakCI.{CmdRunner, Container, LocalProject}
   alias AircloakCI.Build.Job
 
-  @type job :: :compile | :test | :compliance
+  @type job :: :compile | :test | :compliance | :system_test
 
   # -------------------------------------------------------------------
   # API functions
@@ -158,11 +158,11 @@ defmodule AircloakCI.Build.Component do
       )
 
   defp prepare_for(container, job) do
-    if job in [:test, :compliance] do
+    if job in [:compile, :test, :compliance, :system_test] do
       Container.invoke_script(
         container,
         "prepare_for_#{job} #{container.name}",
-        timeout: :timer.minutes(10)
+        timeout: :timer.hours(1)
       )
     else
       :ok

@@ -55,8 +55,8 @@ defmodule AircloakCI.Build.Branch do
   def handle_job_succeeded("prepare", state) do
     # we're always compiling master and release branches, because they serve as a base (cache) for pull requests
     state =
-      if state.source.name == "master" or String.starts_with?(state.source.name, "release_"),
-        do: Build.Job.Compile.start_if_possible(state),
+      if target_branch?(state.source),
+        do: state |> Build.Job.Compile.start_if_possible() |> Build.Job.SystemTest.compile_if_possible(),
         else: state
 
     {:noreply, maybe_perform_transfers(state)}
@@ -78,6 +78,14 @@ defmodule AircloakCI.Build.Branch do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  # A target branch is distinguished from other branches because we're running compilation jobs on every change. This
+  # allows us to have cached latest compiled artifacts and docker images. The list of target branches is small, and
+  # it includes the master branch, release branches, and some other long-running branches.
+  #
+  # In contrast, no jobs are started on non-target branches. A typical example is a feature branch. There's no point in
+  # running any jobs on such branch, since they will be executed on the corresponding PR build.
+  defp target_branch?(branch), do: branch.name in ~w(master anonymization) or branch.name =~ ~r/^release_\d+$/
 
   defp find_branch(repo_data, branch_name), do: Enum.find(repo_data.branches, &(&1.name == branch_name))
 

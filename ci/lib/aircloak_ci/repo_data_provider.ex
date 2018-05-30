@@ -70,12 +70,12 @@ defmodule AircloakCI.RepoDataProvider do
           &AircloakCI.Build.PullRequest.ensure_started(&1, repo_data)
         )
 
-    defp ensure_branch_builds(repo_data),
-      do:
-        [Enum.find(repo_data.branches, &(&1.name == "master" or &1.name =~ ~r/^release_\d+$/))]
-        |> Stream.concat(pr_targets(repo_data))
-        |> Stream.dedup()
-        |> Enum.each(&AircloakCI.Build.Branch.ensure_started(&1, repo_data))
+    defp ensure_branch_builds(repo_data) do
+      [Enum.find(repo_data.branches, &(&1.name == "master"))]
+      |> Stream.concat(pr_targets(repo_data))
+      |> Stream.dedup()
+      |> Enum.each(&AircloakCI.Build.Branch.ensure_started(&1, repo_data))
+    end
 
     defp pr_targets(repo_data) do
       target_branch_names = Enum.map(repo_data.pull_requests, & &1.target_branch)

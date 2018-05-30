@@ -8,7 +8,7 @@ cd $ROOT_DIR
 
 . docker/docker_helper.sh
 
-common/docker/phoenix/build-image.sh
+if [ "$BUILD_BASE" != "false" ]; then common/docker/phoenix/build-image.sh; fi
 
 # This will build a dockerized version of the air site.
 #

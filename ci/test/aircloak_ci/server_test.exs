@@ -8,5 +8,6 @@ defmodule AircloakCI.ServerTest do
     assert Build.Server.job_type("integration_tests_compile") == "compile"
     assert Build.Server.job_type("integration_tests_test") == "test"
     assert Build.Server.job_type("compliance") == "compliance"
+    assert Build.Server.job_type("system_test") == "system_test"
   end
 end

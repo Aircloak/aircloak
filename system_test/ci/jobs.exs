@@ -1,4 +1,4 @@
 %{
   compile: "make",
-  test: {:sequence, ["make deps", "make test"]}
+  system_test: {:sequence, ["make deps", "make test"]}
 }
