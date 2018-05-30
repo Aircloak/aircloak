@@ -25,32 +25,34 @@ defmodule Cloak.DataSource.Isolators.Query do
   defp isolating_values(data_source, table, column) do
     """
       SELECT COUNT(*) FROM (
-        SELECT #{column}
+        SELECT 1
         FROM #{table}
         GROUP BY #{column}
-        HAVING COUNT(#{user_id(data_source, table)}) = 1
+        HAVING COUNT(DISTINCT #{user_id(data_source, table)}) = 1
       ) x
     """
-    |> select_count(data_source)
+    |> select_one!(data_source)
   end
 
   defp unique_values(data_source, table, column) do
     """
       SELECT COUNT(*) FROM (
-        SELECT #{column}
+        SELECT 1
         FROM #{table}
         GROUP BY #{column}
       ) x
     """
-    |> select_count(data_source)
+    |> select_one!(data_source)
   end
 
-  defp select_count(query, data_source) do
-    query
-    |> Parser.parse!()
-    |> Compiler.compile_standard!(data_source)
-    |> DataSource.select!(&Enum.concat/1)
-    |> Enum.count()
+  defp select_one!(query, data_source) do
+    [[result]] =
+      query
+      |> Parser.parse!()
+      |> Compiler.compile_direct!(data_source)
+      |> DataSource.select!(&Enum.concat/1)
+
+    result
   end
 
   defp threshold(), do: Application.fetch_env!(:cloak, :anonymizer) |> Keyword.fetch!(:isolating_column_threshold)
