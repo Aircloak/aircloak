@@ -66,11 +66,15 @@ defmodule Cloak.DataSource.Isolators.Queue do
   def set_high_priority(queue, column) do
     false = MapSet.member?(queue.processed_columns, column)
 
-    %{
+    if :queue.member(column, queue.priority_queue) do
       queue
-      | regular_queue: :queue.filter(&(&1 != column), queue.regular_queue),
-        priority_queue: :queue.in(column, queue.priority_queue)
-    }
+    else
+      %{
+        queue
+        | regular_queue: :queue.filter(&(&1 != column), queue.regular_queue),
+          priority_queue: :queue.in(column, queue.priority_queue)
+      }
+    end
   end
 
   # -------------------------------------------------------------------

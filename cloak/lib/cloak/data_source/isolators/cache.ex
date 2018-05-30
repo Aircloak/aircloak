@@ -112,17 +112,11 @@ defmodule Cloak.DataSource.Isolators.Cache do
   end
 
   defp add_waiting_request(state, column, from) do
-    state = %{state | waiting: Map.update(state.waiting, column, [from], &[from | &1])}
-
-    case state.waiting[column] do
-      # first waiting client -> raise prio
-      [_] ->
-        update_in(state.queue, &Queue.set_high_priority(&1, column))
-
-      # multiple waiting clients -> prio was already raised, so no need to do anything else
-      [_, _ | _] ->
-        state
-    end
+    %{
+      state
+      | waiting: Map.update(state.waiting, column, [from], &[from | &1]),
+        queue: Queue.set_high_priority(state.queue, column)
+    }
   end
 
   # -------------------------------------------------------------------
