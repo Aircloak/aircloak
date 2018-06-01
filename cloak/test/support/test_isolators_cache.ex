@@ -1,17 +1,35 @@
 defmodule Cloak.TestIsolatorsCache do
-  @moduledoc "Mock isolators cache used in tests."
-  use Agent
-
-  @doc false
-  def start_link(_), do: Agent.start_link(fn -> MapSet.new() end, name: __MODULE__)
+  @moduledoc """
+  Mock isolators cache used in tests. Returns false for all columns by default. Returns true for columns for which
+  `register_isolator` was called. Forwards to `Cloak.DataSource.Isolators.Cache` for columns for which
+  `forward_isolator` was called.
+  """
 
   def isolates_users?(data_source, table, column) do
-    Agent.get(__MODULE__, &MapSet.member?(&1, {data_source[:name], table, column}))
+    case Agent.get(__MODULE__, &Map.fetch(&1, {data_source.name, table, column})) do
+      :error -> false
+      {:ok, :isolates} -> true
+      {:ok, :forward} -> Cloak.DataSource.Isolators.Cache.isolates_users?(data_source, table, column)
+    end
   end
 
-  def register_isolating_column(data_source, table, column) do
-    Agent.update(__MODULE__, &MapSet.put(&1, {data_source[:name], table, column}))
+  def register_isolator(data_source, table, column) do
+    Agent.update(__MODULE__, &Map.put(&1, {data_source.name, table, column}, :isolates))
   end
 
-  def data_sources_changed(), do: :ok
+  def forward_isolator(data_source, table, column) do
+    Agent.update(__MODULE__, &Map.put(&1, {data_source.name, table, column}, :forward))
+  end
+
+  def data_sources_changed(), do: Cloak.DataSource.Isolators.Cache.data_sources_changed()
+
+  def child_spec(_) do
+    Aircloak.ChildSpec.supervisor(
+      [mock_spec(), Cloak.DataSource.Isolators.Cache],
+      strategy: :one_for_one,
+      name: __MODULE__.Supervisor
+    )
+  end
+
+  def mock_spec(), do: Aircloak.ChildSpec.agent(fn -> %{} end, name: __MODULE__)
 end

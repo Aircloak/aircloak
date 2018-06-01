@@ -992,6 +992,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
     tables = for {name, _} = table <- scaffold, into: %{}, do: {name, table_from_scaffold(table)}
 
     %{
+      name: "teambank_test_data_source",
       driver: Cloak.DataSource.PostgreSQL,
       tables: tables
     }

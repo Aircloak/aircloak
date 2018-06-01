@@ -129,7 +129,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
     if column in known_columns() do
       do_lookup_cache(column)
     else
-      raise "Unknown column."
+      raise "Unknown column #{inspect(column)}."
     end
   end
 
