@@ -50,7 +50,8 @@
       "properties": {
         "name": {"type": "string"},
         "push_api_key": {"type": "string"},
-        "env": {"type": "string"}
+        "env": {"type": "string"},
+        "http_proxy": {"type": "string"}
       },
       "additionalProperties": false,
       "required": ["name", "push_api_key", "env"]
