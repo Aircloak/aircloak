@@ -77,7 +77,9 @@ defmodule Air do
         config =
           config
           |> Aircloak.atomize_keys()
-          |> Map.merge(%{active: true, skip_session_data: true, filter_parameters: ["password", "token", "secret"]})
+          |> Map.put_new(:active, true)
+          |> Map.put_new(:skip_session_data, true)
+          |> Map.put_new(:filter_parameters, ["password", "token", "secret"])
 
         Air.Utils.update_app_env(:appsignal, :config, fn _ -> config end)
         Appsignal.config_change(:ignored, :ignored, :ignored)
