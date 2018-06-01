@@ -52,6 +52,10 @@ defmodule Cloak.Query.Isolators.Test do
     assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE bucket($col by 10) = 10")
   end
 
+  test "aliased tables" do
+    assert_forbidden("SELECT COUNT(*) FROM query_isolators AS qi WHERE $col IN (1, 2)")
+  end
+
   defp assert_allowed(query) do
     for column <- ["isolating", "regular"] do
       query |> String.replace("$col", column) |> assert_query(%{rows: [_ | _]})

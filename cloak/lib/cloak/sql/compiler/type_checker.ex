@@ -266,7 +266,14 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     Query.Lenses.leaf_expressions()
     |> Lens.to_list(condition)
     |> Enum.flat_map(&Type.establish_type(&1, query).history_of_columns_involved)
-    |> Enum.filter(&Isolators.isolates_users?(query.data_source, &1.table.name, &1.name))
+    |> Enum.filter(&Isolators.isolates_users?(query.data_source, resolve_table_alias(&1.table.name, query), &1.name))
+  end
+
+  defp resolve_table_alias(table, query) do
+    case Map.fetch(query.table_aliases, table) do
+      :error -> table
+      {:ok, actual} -> actual.name
+    end
   end
 
   # -------------------------------------------------------------------
