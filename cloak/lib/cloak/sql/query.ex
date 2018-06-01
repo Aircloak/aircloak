@@ -397,20 +397,11 @@ defmodule Cloak.Sql.Query do
 
   defp needs_emulation?(query) do
     cond do
-      not query.data_source.driver.supports_query?(query) ->
-        true
-
-      has_emulated_or_anonymized_subqueries?(query) ->
-        true
-
-      is_emulated_subquery?(query) ->
-        true
-
-      has_emulated_join_conditions?(query) ->
-        true
-
-      true ->
-        false
+      not query.data_source.driver.supports_query?(query) -> true
+      has_emulated_or_anonymized_subqueries?(query) -> true
+      is_emulated_subquery?(query) -> true
+      has_emulated_join_conditions?(query) -> true
+      true -> false
     end
   end
 
