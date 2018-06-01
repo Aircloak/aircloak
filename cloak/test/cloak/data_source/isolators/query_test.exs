@@ -5,7 +5,20 @@ defmodule Cloak.DataSource.Isolators.Query.Test do
   alias Cloak.DataSource.Isolators.Query
 
   setup_all do
-    :ok = Cloak.Test.DB.create_table("isolators", "value INTEGER")
+    :ok = Cloak.Test.DB.create_table("isolators", "value INTEGER, pk INTEGER")
+
+    :ok =
+      Cloak.Test.DB.create_table(
+        "isolators_projected",
+        "value INTEGER, fk INTEGER",
+        add_user_id: false,
+        projection: %{
+          table: "isolators",
+          primary_key: "pk",
+          foreign_key: "fk",
+          user_id_alias: "uid"
+        }
+      )
   end
 
   setup do
@@ -63,6 +76,28 @@ defmodule Cloak.DataSource.Isolators.Query.Test do
   test "a user id column is isolating" do
     for data_source <- DataSource.all() do
       assert Query.isolates_users?(data_source, "isolators", "user_id")
+    end
+  end
+
+  test "projected table" do
+    :ok =
+      Cloak.Test.DB.add_users_data("isolators", ["pk"], [
+        ["user1", 1],
+        ["user2", 2],
+        ["user3", 3],
+        ["user4", 4]
+      ])
+
+    :ok =
+      Cloak.Test.DB.insert_data("isolators_projected", ["fk", "value"], [
+        [1, 10],
+        [2, 20],
+        [3, 30],
+        [4, 40]
+      ])
+
+    for data_source <- DataSource.all() do
+      assert Query.isolates_users?(data_source, "isolators_projected", "value")
     end
   end
 end
