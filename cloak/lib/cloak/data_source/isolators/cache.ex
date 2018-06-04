@@ -7,7 +7,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
 
   use Parent.GenServer
   require Logger
-  alias Cloak.DataSource.Isolators.Queue
+  alias Cloak.DataSource.Isolators.{Queue, CacheOwner}
 
   # -------------------------------------------------------------------
   # API functions
@@ -18,7 +18,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
   def isolates_users?(cache_ref \\ __MODULE__, data_source, table_name, column_name) do
     column = {data_source.name, table_name, column_name}
 
-    case lookup_cache(column) do
+    case CacheOwner.lookup(column) do
       {:ok, isolates?} ->
         isolates?
 
@@ -39,7 +39,6 @@ defmodule Cloak.DataSource.Isolators.Cache do
   @impl GenServer
   def init(opts) do
     enqueue_next_refresh()
-    :ets.new(__MODULE__, [:named_table, :public, :set, read_concurrency: true])
     state = %{queue: Queue.new(opts.columns_provider.()), waiting: %{}, opts: opts}
     {:ok, start_next_computation(state)}
   end
@@ -47,7 +46,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
   @impl GenServer
   def handle_call({:fetch_isolation, column}, from, state) do
     # doing another lookup, because property might have become available while this request was in the queue
-    case lookup_cache(column) do
+    case CacheOwner.lookup(column) do
       {:ok, isolates?} -> {:reply, {:ok, isolates?}, state}
       :error -> {:noreply, add_waiting_request(state, column, from)}
     end
@@ -76,7 +75,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
 
   @impl Parent.GenServer
   def handle_child_terminated(:compute_isolation_job, meta, _pid, _reason, state) do
-    result = lookup_cache(meta.column)
+    result = CacheOwner.lookup(meta.column)
     state.waiting |> Map.get(meta.column, []) |> Enum.each(&GenServer.reply(&1, result))
     {:noreply, start_next_computation(state)}
   end
@@ -109,7 +108,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
     Task.start_link(fn ->
       Logger.debug(fn -> "computing isolated for #{inspect(column)}" end)
       isolated = compute_isolation_fun.(column)
-      :ets.insert(__MODULE__, {column, isolated})
+      CacheOwner.store(column, isolated)
     end)
   end
 
@@ -130,13 +129,6 @@ defmodule Cloak.DataSource.Isolators.Cache do
 
   defp table_columns(data_source, {_table_id, table}),
     do: Enum.map(table.columns, &{data_source.name, table.name, &1.name})
-
-  defp lookup_cache(column) do
-    case :ets.match(__MODULE__, {column, :"$1"}) do
-      [[isolates?]] -> {:ok, isolates?}
-      [] -> :error
-    end
-  end
 
   defp add_waiting_request(state, column, from) do
     queue = if computing_isolation?(column), do: state.queue, else: Queue.set_high_priority(state.queue, column)
