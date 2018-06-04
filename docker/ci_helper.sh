@@ -29,7 +29,7 @@ function mount_to_component {
 
 function mount_cached_component {
   for mounted in $@; do
-    mount $(ci_tmp_folder)/$COMPONENT/$mounted /aircloak/$COMPONENT/$mounted
+    mount $(ci_tmp_folder)/$COMPONENT/$TARGET_COMPONENT/$mounted /aircloak/${TARGET_COMPONENT:-$COMPONENT}/$mounted
   done
 }
 
