@@ -81,7 +81,7 @@ defmodule Cloak.DataSource.ConnectionPool do
   # -------------------------------------------------------------------
 
   defp child_id!(connection) do
-    {:ok, id} = Parent.GenServer.child_name(connection)
+    {:ok, id} = Parent.GenServer.child_id(connection)
     id
   end
 
