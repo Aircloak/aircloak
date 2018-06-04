@@ -139,12 +139,13 @@ defmodule Cloak.DataSource.Isolators.Cache do
   end
 
   defp add_waiting_request(state, column, from) do
-    %{
-      state
-      | waiting: Map.update(state.waiting, column, [from], &[from | &1]),
-        queue: Queue.set_high_priority(state.queue, column)
-    }
+    queue = if computing_isolation?(column), do: state.queue, else: Queue.set_high_priority(state.queue, column)
+    waiting = Map.update(state.waiting, column, [from], &[from | &1])
+    %{state | waiting: waiting, queue: queue}
   end
+
+  defp computing_isolation?(column),
+    do: match?({:ok, %{column: ^column}}, Parent.GenServer.child_meta(:compute_isolation_job))
 
   defp respond_error_on_missing_columns(state, known_columns) do
     known_columns = MapSet.new(known_columns)
