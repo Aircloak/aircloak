@@ -14,8 +14,8 @@ defmodule Cloak.DataSource.Isolators.Cache do
   # -------------------------------------------------------------------
 
   @doc "Returns true if the given column in the given table is isolating, false otherwise."
-  @spec isolates_users?(Cloak.DataSource.t(), String.t(), String.t()) :: boolean
-  def isolates_users?(data_source, table_name, column_name) do
+  @spec isolates_users?(atom | pid, Cloak.DataSource.t(), String.t(), String.t()) :: boolean
+  def isolates_users?(cache_ref \\ __MODULE__, data_source, table_name, column_name) do
     column = {data_source.name, table_name, column_name}
 
     case lookup_cache(column) do
@@ -23,24 +23,24 @@ defmodule Cloak.DataSource.Isolators.Cache do
         isolates?
 
       :error ->
-        {:ok, isolates?} = GenServer.call(__MODULE__, {:fetch_isolation, column}, :infinity)
+        {:ok, isolates?} = GenServer.call(cache_ref, {:fetch_isolation, column}, :infinity)
         isolates?
     end
   end
 
   @doc "Invoked when data sources have been changed."
-  @spec data_sources_changed() :: :ok
-  def data_sources_changed(), do: GenServer.cast(__MODULE__, :data_sources_changed)
+  @spec data_sources_changed(atom | pid) :: :ok
+  def data_sources_changed(cache_ref \\ __MODULE__), do: GenServer.cast(cache_ref, :data_sources_changed)
 
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(_) do
+  def init(opts) do
     enqueue_next_refresh()
     :ets.new(__MODULE__, [:named_table, :public, :set, read_concurrency: true])
-    state = %{queue: Queue.new(known_columns()), waiting: %{}}
+    state = %{queue: Queue.new(opts.columns_provider.()), waiting: %{}, opts: opts}
     {:ok, start_next_computation(state)}
   end
 
@@ -55,7 +55,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
 
   @impl GenServer
   def handle_cast(:data_sources_changed, state) do
-    known_columns = known_columns()
+    known_columns = state.opts.columns_provider.()
     state = update_in(state.queue, &Queue.update_known_columns(&1, known_columns))
     state = respond_error_on_missing_columns(state, known_columns)
     {:noreply, maybe_start_next_computation(state)}
@@ -94,7 +94,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
       {column, queue} ->
         Parent.GenServer.start_child(%{
           id: :compute_isolation_job,
-          start: {Task, :start_link, [fn -> compute_column_isolation(column) end]},
+          start: fn -> start_compute_isolation(column, state.opts.compute_isolation_fun) end,
           meta: %{column: column}
         })
 
@@ -105,11 +105,17 @@ defmodule Cloak.DataSource.Isolators.Cache do
     end
   end
 
-  defp compute_column_isolation({data_source_name, table_name, column_name} = column) do
-    Logger.debug(fn -> "computing isolated for #{inspect(column)}" end)
+  defp start_compute_isolation(column, compute_isolation_fun) do
+    Task.start_link(fn ->
+      Logger.debug(fn -> "computing isolated for #{inspect(column)}" end)
+      isolated = compute_isolation_fun.(column)
+      :ets.insert(__MODULE__, {column, isolated})
+    end)
+  end
+
+  defp compute_column_isolation({data_source_name, table_name, column_name}) do
     {:ok, data_source} = Cloak.DataSource.fetch(data_source_name)
-    isolation = Cloak.DataSource.Isolators.Query.isolates_users?(data_source, table_name, column_name)
-    :ets.insert(__MODULE__, {column, isolation})
+    Cloak.DataSource.Isolators.Query.isolates_users?(data_source, table_name, column_name)
   end
 
   defp known_columns(), do: Enum.flat_map(Cloak.DataSource.all(), &data_source_columns/1)
@@ -154,5 +160,13 @@ defmodule Cloak.DataSource.Isolators.Cache do
   # -------------------------------------------------------------------
 
   @doc false
-  def start_link(_arg), do: Parent.GenServer.start_link(__MODULE__, nil, name: __MODULE__)
+  def start_link(opts \\ []) do
+    opts =
+      [columns_provider: &known_columns/0, compute_isolation_fun: &compute_column_isolation/1, registered?: true]
+      |> Keyword.merge(opts)
+      |> Map.new()
+
+    gen_server_opts = if opts.registered?, do: [name: __MODULE__], else: []
+    Parent.GenServer.start_link(__MODULE__, opts, gen_server_opts)
+  end
 end
