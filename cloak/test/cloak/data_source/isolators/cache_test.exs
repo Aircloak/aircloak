@@ -80,6 +80,22 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
     end)
   end
 
+  test "handling data source changes" do
+    known_columns = ~w(col1 col2 col3)
+
+    provider = new_cache_provider(known_columns)
+    {:ok, cache} = Cache.start_link(provider.cache_opts)
+
+    Agent.update(provider.provider, fn columns ->
+      Enum.map(columns, fn {datasource, table, name} -> {datasource, table, "updated #{name}"} end)
+    end)
+
+    Cache.data_sources_changed(cache)
+
+    assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "updated col1") ==
+             {:isolated, "updated col1"}
+  end
+
   defp new_cache_provider(column_names, opts \\ []) do
     data_source = %{name: inspect(make_ref())}
     table_name = inspect(make_ref())
