@@ -46,7 +46,7 @@ defmodule Cloak.Mixfile do
       {:backoff, "~> 1.1.3"},
       {:jiffy, "~> 0.14.1"},
       {:file_system, "~> 0.2.2"},
-      {:parent, github: "sasa1977/parent"},
+      {:parent, "~> 0.2.0"},
 
       # Rustler is needed for compiling Rust port driver on MacOS
       {:rustler, github: "cristianberneanu/rustler", sparse: "rustler_mix", runtime: false},

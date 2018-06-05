@@ -22,5 +22,15 @@ defmodule Cloak.DataSource.Isolators do
   # -------------------------------------------------------------------
 
   @doc false
-  defdelegate child_spec(arg), to: @cache_module
+  def child_spec(arg) do
+    Aircloak.ChildSpec.supervisor(
+      [
+        # The cache table is owned by a separate process. This is mostly done for testing purposes, but it also improves
+        # fault-tolerance. If the cache process crashes, the cache table will survive.
+        __MODULE__.CacheOwner,
+        {@cache_module, arg}
+      ],
+      strategy: :rest_for_one
+    )
+  end
 end
