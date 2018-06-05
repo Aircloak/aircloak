@@ -18,13 +18,11 @@ defmodule Cloak.DataSource.Isolators.Cache do
   def isolates_users?(cache_ref \\ __MODULE__, data_source, table_name, column_name) do
     column = {data_source.name, table_name, column_name}
 
-    case CacheOwner.lookup(column) do
-      {:ok, isolates?} ->
-        isolates?
-
-      :error ->
-        {:ok, isolates?} = GenServer.call(cache_ref, {:fetch_isolation, column}, :infinity)
-        isolates?
+    with :error <- CacheOwner.lookup(column),
+         :error <- GenServer.call(cache_ref, {:fetch_isolation, column}, :infinity) do
+      raise RuntimeError, "Cannot determine isolated property of #{table_name}.#{column_name}"
+    else
+      {:ok, isolates?} -> isolates?
     end
   end
 
@@ -39,22 +37,29 @@ defmodule Cloak.DataSource.Isolators.Cache do
   @impl GenServer
   def init(opts) do
     enqueue_next_refresh()
-    state = %{queue: Queue.new(opts.columns_provider.()), waiting: %{}, opts: opts}
+    known_columns = MapSet.new(opts.columns_provider.())
+    state = %{known_columns: known_columns, queue: Queue.new(known_columns), waiting: %{}, opts: opts}
     {:ok, start_next_computation(state)}
   end
 
   @impl GenServer
   def handle_call({:fetch_isolation, column}, from, state) do
-    # doing another lookup, because property might have become available while this request was in the queue
-    case CacheOwner.lookup(column) do
-      {:ok, isolates?} -> {:reply, {:ok, isolates?}, state}
-      :error -> {:noreply, add_waiting_request(state, column, from)}
+    if MapSet.member?(state.known_columns, column) do
+      # doing another lookup, because property might have become available while this request was in the queue
+      case CacheOwner.lookup(column) do
+        {:ok, isolates?} -> {:reply, {:ok, isolates?}, state}
+        :error -> {:noreply, add_waiting_request(state, column, from)}
+      end
+    else
+      # the column is not known
+      {:reply, :error, state}
     end
   end
 
   @impl GenServer
   def handle_cast(:data_sources_changed, state) do
-    known_columns = state.opts.columns_provider.()
+    known_columns = MapSet.new(state.opts.columns_provider.())
+    state = %{state | known_columns: known_columns}
     state = update_in(state.queue, &Queue.update_known_columns(&1, known_columns))
     state = respond_error_on_missing_columns(state, known_columns)
     {:noreply, maybe_start_next_computation(state)}

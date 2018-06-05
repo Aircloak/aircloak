@@ -13,9 +13,19 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
     )
   end
 
+  test "isolated error for unknown columns" do
+    known_columns = ~w(col1 col2 col3)
+    provider = new_cache_provider(known_columns)
+    {:ok, cache} = Cache.start_link(provider.cache_opts)
+
+    assert_raise(RuntimeError, fn ->
+      Cache.isolates_users?(cache, provider.data_source, provider.table_name, "unknown col")
+    end)
+  end
+
   defp new_cache_provider(column_names) do
-    data_source = %{name: make_ref()}
-    table_name = make_ref()
+    data_source = %{name: inspect(make_ref())}
+    table_name = inspect(make_ref())
     columns = Enum.map(column_names, &{data_source.name, table_name, &1})
 
     {:ok, provider} = Agent.start_link(fn -> columns end)
