@@ -40,6 +40,46 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
     assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col3") == {:isolated, "col3"}
   end
 
+  test "handling columns which failed to load" do
+    known_columns = ~w(col1 col2 col3)
+
+    ExUnit.CaptureLog.capture_log(fn ->
+      provider =
+        new_cache_provider(
+          known_columns,
+          compute_isolation_fun: compute_isolation_fun(%{"col1" => fn -> raise "error" end})
+        )
+
+      {:ok, cache} = Cache.start_link(provider.cache_opts)
+
+      assert_raise(RuntimeError, fn ->
+        Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1")
+      end)
+    end)
+  end
+
+  test "handling columns which failed to load while client is waiting for the result" do
+    known_columns = ~w(col1 col2 col3)
+
+    ExUnit.CaptureLog.capture_log(fn ->
+      provider =
+        new_cache_provider(
+          known_columns,
+          compute_isolation_fun:
+            compute_isolation_fun(%{
+              "col1" => fn -> Process.sleep(200) end,
+              "col2" => fn -> raise "error" end
+            })
+        )
+
+      {:ok, cache} = Cache.start_link(provider.cache_opts)
+
+      assert_raise(RuntimeError, fn ->
+        Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col2")
+      end)
+    end)
+  end
+
   defp new_cache_provider(column_names, opts \\ []) do
     data_source = %{name: inspect(make_ref())}
     table_name = inspect(make_ref())

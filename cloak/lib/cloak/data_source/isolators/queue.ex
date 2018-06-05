@@ -87,6 +87,10 @@ defmodule Cloak.DataSource.Isolators.Queue do
     }
   end
 
+  @doc "Returns true if the column has been processed."
+  @spec processed?(t, column) :: boolean
+  def processed?(queue, column), do: MapSet.member?(queue.processed_columns, column)
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

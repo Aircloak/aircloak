@@ -44,15 +44,20 @@ defmodule Cloak.DataSource.Isolators.Cache do
 
   @impl GenServer
   def handle_call({:fetch_isolation, column}, from, state) do
-    if MapSet.member?(state.known_columns, column) do
+    cond do
+      not MapSet.member?(state.known_columns, column) ->
+        {:reply, :error, state}
+
       # doing another lookup, because property might have become available while this request was in the queue
-      case CacheOwner.lookup(column) do
-        {:ok, isolates?} -> {:reply, {:ok, isolates?}, state}
-        :error -> {:noreply, add_waiting_request(state, column, from)}
-      end
-    else
-      # the column is not known
-      {:reply, :error, state}
+      match?({:ok, _}, CacheOwner.lookup(column)) ->
+        {:ok, isolates?} = CacheOwner.lookup(column)
+        {:reply, {:ok, isolates?}, state}
+
+      computing_isolation?(column) or not Queue.processed?(state.queue, column) ->
+        {:noreply, add_waiting_request(state, column, from)}
+
+      true ->
+        {:reply, :error, state}
     end
   end
 
