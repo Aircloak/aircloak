@@ -148,4 +148,42 @@ defmodule CentralWeb.Plug.Session do
       Plug.Conn.send_resp(conn, Plug.Conn.Status.code(:bad_request), "already authenticated")
     end
   end
+
+  defmodule HaltIfNotAuthenticated do
+    @moduledoc """
+    This plug can be used to check if a user is authenticated or not.
+    If the check fails, the plug pipeline is halted and a 401 unauthorized error produced.
+    If the check passes, the connection is left unaltered and let pass.
+    Unlike the other plugs, it does not load the user on succesful authentication.
+
+    Useful as an internal authentication callback for nginx for requests
+    that should otherwise be proxied and handled by nginx itself.
+
+    Common usage would look like:
+
+      pipe_through([..., CentralWeb.Plug.Session.HaltIfNotAuthenticated])
+      get("/", SomeNoopController, :get)
+    """
+
+    use Guardian.Plug.Pipeline,
+      otp_app: :central,
+      module: Central.Guardian,
+      error_handler: __MODULE__
+
+    plug(CentralWeb.Plug.Session.Restoration)
+    plug(Guardian.Plug.VerifySession)
+    plug(Guardian.Plug.EnsureAuthenticated)
+
+    # -------------------------------------------------------------------
+    # Callback for Guardian.Plug.Pipeline
+    # -------------------------------------------------------------------
+
+    @doc false
+    def auth_error(conn, {:unauthenticated, _}, _params) do
+      conn
+      |> Plug.Conn.put_status(:unauthorized)
+      |> Phoenix.Controller.text("Unauthorized: please log in to Central first")
+      |> Plug.Conn.halt()
+    end
+  end
 end
