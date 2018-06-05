@@ -45,7 +45,7 @@ defmodule CentralWeb.Endpoint do
 
   plug(
     Plug.Parsers,
-    parsers: [Central.Plug.KibanaProxyParser, :urlencoded, :multipart, :json],
+    parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
     json_decoder: Poison
   )
