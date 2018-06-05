@@ -9,7 +9,7 @@ defmodule Cloak.DataSource.Isolators.Queue do
   # -------------------------------------------------------------------
 
   @doc "Creates a new queue instance from the given collection of columns."
-  @spec new([column]) :: t
+  @spec new(Enumerable.t()) :: t
   def new(known_columns) do
     %{
       processed_columns: MapSet.new(),
@@ -38,7 +38,7 @@ defmodule Cloak.DataSource.Isolators.Queue do
     - Pending columns which are not known anymore are removed.
     - New columns which have not yet been processed are added to the queue.
   """
-  @spec update_known_columns(t, [column]) :: t
+  @spec update_known_columns(t, Enumerable.t()) :: t
   def update_known_columns(queue, known_columns) do
     known_columns = MapSet.new(known_columns)
 
