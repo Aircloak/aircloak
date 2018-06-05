@@ -28,11 +28,13 @@ defmodule CentralWeb.Router do
 
   scope "/proxy_auth", CentralWeb do
     pipe_through([:browser, CentralWeb.Plug.Session.HaltIfNotAuthenticated])
-    get("/", NoopController, :get)
+    get("/", ProxyController, :noop)
   end
 
   scope "/", CentralWeb do
     pipe_through([:browser, :browser_auth])
+
+    get("/stats_proxy", ProxyController, :proxy_placeholder)
 
     resources("/users", UserController)
 
