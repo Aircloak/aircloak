@@ -403,7 +403,7 @@ defmodule Cloak.Sql.Query do
       has_emulated_or_anonymized_subqueries?(query) ->
         true
 
-      is_emulated_subquery?(query) ->
+      is_emulated_query?(query) ->
         true
 
       has_emulated_join_conditions?(query) ->
@@ -417,7 +417,7 @@ defmodule Cloak.Sql.Query do
   defp has_emulated_or_anonymized_subqueries?(query),
     do: query |> get_in([Lenses.direct_subqueries()]) |> Enum.any?(&(&1.ast.emulated? or &1.ast.type == :anonymized))
 
-  defp is_emulated_subquery?(query), do: query.subquery? and has_emulated_expressions?(query)
+  defp is_emulated_query?(query), do: query.type != :anonymized and has_emulated_expressions?(query)
 
   defp emulated_condition?(condition, query) do
     emulated_expression_condition?(condition, query.data_source) or
