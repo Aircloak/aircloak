@@ -10,13 +10,6 @@ defmodule CentralWeb.Router do
     plug(:put_secure_browser_headers)
   end
 
-  pipeline :proxy do
-    plug(:accepts, ["html"])
-    plug(:fetch_session)
-    plug(:fetch_flash)
-    plug(:put_secure_browser_headers)
-  end
-
   pipeline :browser_auth do
     plug(CentralWeb.Plug.Session.Authenticated)
   end
