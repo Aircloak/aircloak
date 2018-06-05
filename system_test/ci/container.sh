@@ -98,8 +98,14 @@ function start_cloak_container {
   echo "populating database ..."
   erlang_eval $container_name cloak "
     'Elixir.Compliance':initialize(<<\"config\">>, 10, 1),
-    'Elixir.Compliance':regenerate_config_from_db(<<\"config\">>)
+    'Elixir.Compliance':regenerate_config_from_db(<<\"config\">>),
+    'Elixir.Cloak.DataSource':perform_data_source_availability_checks(),
+    sys:get_state('Elixir.Cloak.DataSource'),
+    ok
   "
+
+  # using a dummy sleep to make sure async datasource reloading has finished
+  sleep 10
 }
 
 function start_supporting_container {
