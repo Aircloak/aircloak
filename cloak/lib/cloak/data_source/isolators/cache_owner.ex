@@ -23,8 +23,13 @@ defmodule Cloak.DataSource.Isolators.CacheOwner do
     :ok
   end
 
+  def remove_unknown_columns(known_columns) do
+    cached_columns = :ets.match(__MODULE__, {:"$1", :_}) |> Enum.concat() |> MapSet.new()
+    cached_columns |> MapSet.difference(known_columns) |> Enum.each(&:ets.delete(__MODULE__, &1))
+  end
+
   # -------------------------------------------------------------------
-  # Internal functions
+  # GenServer callbacks
   # -------------------------------------------------------------------
 
   @impl GenServer

@@ -94,6 +94,10 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
 
     assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "updated col1") ==
              {:isolated, "updated col1"}
+
+    assert_raise(RuntimeError, fn ->
+      Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1")
+    end)
   end
 
   defp new_cache_provider(column_names, opts \\ []) do

@@ -64,6 +64,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
   @impl GenServer
   def handle_cast(:data_sources_changed, state) do
     known_columns = MapSet.new(state.opts.columns_provider.())
+    CacheOwner.remove_unknown_columns(known_columns)
     state = %{state | known_columns: known_columns}
     state = update_in(state.queue, &Queue.update_known_columns(&1, known_columns))
     state = respond_error_on_missing_columns(state, known_columns)
