@@ -1,0 +1,121 @@
+---
+title: "Central stats"
+runtime: shiny
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(ggplot2)
+library(shiny)
+
+source(file="queries.R")
+
+customerNames <- queryResults$distinctCustomers
+allCustomersOption <- "All customers"
+customerOptions <- c(allCustomersOption, customerNames)
+
+dataForVisualization <- function(customer, all, perCustomer) {
+  if (customer == allCustomersOption) {
+    all
+  } else {
+    perCustomer[perCustomer$customerName == customer,]
+  }
+}
+```
+
+Inputs {.sidebar data-width=200}
+-----------------------------------------------------------------------
+
+```{r}
+selectInput("customer", "Customer to show", customerOptions, selected = allCustomersOption, multiple = FALSE)
+```
+
+
+Column {data-width=300}
+-------------------------------------
+
+### Total number of queries
+```{r}
+renderValueBox({
+  valueBox(dataForVisualization(input$customer, 
+                                queryResults$totalQueryCount, 
+                                queryResults$totalQueryCountByCustomer)[, "numQueries"], 
+           icon = "fa-comments")
+})
+```
+
+### Average queries per month
+```{r}
+renderValueBox({
+  valueBox(dataForVisualization(input$customer, 
+                                queryResults$avgQueriesByPeriod, 
+                                queryResults$avgQueriesByPeriodAndCustomer)[, "avg"], 
+           icon = "fa-comments")
+})
+```
+
+### Data sources
+```{r}
+renderTable({
+  dataForVisualization(input$customer, queryResults$dataSources, queryResults$dataSourcesByCustomer)
+})
+```
+
+Main section
+-----------------------------------------------------------------------
+
+### Queries over time
+
+```{r}
+renderPlot({
+  ggplot(data=dataForVisualization(input$customer, queryResults$queriesByDay, queryResults$queriesByDayAndCustomer),
+         aes(x=queryTime, y=numQueries)) +
+    geom_point(aes(size=distinctCustomers)) +
+    geom_smooth(method="loess") +
+    xlab("Time") + ylab("Number of queries")
+})
+```
+
+### Query execution times
+
+```{r}
+renderPlot({
+  dataset <- dataForVisualization(input$customer, queryResults$queryExecutionTimes, queryResults$queryExecutionTimesByCustomer)
+  ggplot(data=dataset, aes(x=executionTime, y=count)) +
+    geom_col() + 
+    xlab("Query execution time") + ylab("Number of queries")
+})
+```
+
+Column
+-------------------------------------
+
+### Queries by time of the day
+
+```{r}
+renderPlot({
+  dataset <- dataForVisualization(input$customer, queryResults$queriesByTimeOfDay, queryResults$queriesByTimeOfDayAndCustomer)
+  ggplot(data=dataset) +
+    geom_col(aes(x=hour, y=numQueries)) + 
+    geom_smooth(aes(x=hour, y=numQueries), fill=NA) +
+    xlab("Hour of day") + ylab("Number of queries") +
+    xlim(1, 23) + ylim(0, NA)
+})
+```
+
+### Queries by day of month
+
+```{r}
+renderPlot({
+  dataset <- dataForVisualization(input$customer, queryResults$queriesByDayOfMonth, queryResults$queriesByDayOfMonthAndCustomer)
+  ggplot(data=dataset) +
+    geom_col(aes(x=day, y=numQueries)) +
+    geom_smooth(aes(x=day, y=numQueries), fill=NA) +    
+    xlab("Day of the month") + ylab("Number of queries") +
+    xlim(1, 31) + ylim(0, NA)
+})
+```
