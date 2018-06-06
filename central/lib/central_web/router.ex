@@ -33,7 +33,7 @@ defmodule CentralWeb.Router do
     pipe_through([:browser, CentralWeb.Plug.Session.HaltIfNotAuthenticated])
     get("/", ProxyController, :noop)
   end
-  
+
   scope "/privacy_policy", CentralWeb do
     pipe_through([:browser, :browser_for_all])
     get("/", PrivacyPolicyController, :index)
