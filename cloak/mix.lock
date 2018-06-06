@@ -47,7 +47,7 @@
   "mimerl": {:hex, :mimerl, "1.0.2", "993f9b0e084083405ed8252b99460c4f0563e41729ab42d9074fd5e52439be88", [:rebar3], [], "hexpm"},
   "mochiweb": {:hex, :mochiweb, "2.15.0", "e1daac474df07651e5d17cc1e642c4069c7850dc4508d3db7263a0651330aacc", [:rebar3], [], "hexpm"},
   "mongodb": {:hex, :mongodb, "0.3.0", "96611b380a7322a9c6796bc0a79981c8e51b4673e6c333f2bfa424ccb13b5eac", [:mix], [{:connection, "~> 1.0", [hex: :connection, repo: "hexpm", optional: false]}, {:db_connection, "~> 1.0", [hex: :db_connection, repo: "hexpm", optional: false]}], "hexpm"},
-  "parent": {:hex, :parent, "0.2.0", "934b03ab13459b3c5470607d76086a989beb57e36b4f61ea279570f806163d52", [:mix], [], "hexpm"},
+  "parent": {:hex, :parent, "0.3.0", "d198ce74eb8951441c3d5891ffdb871b7e94b7863c5d605202838bd8b2ddafec", [:mix], [], "hexpm"},
   "parse_trans": {:hex, :parse_trans, "3.2.0", "2adfa4daf80c14dc36f522cf190eb5c4ee3e28008fc6394397c16f62a26258c2", [:rebar3], [], "hexpm"},
   "pbkdf2": {:git, "git://github.com/comtihon/erlang-pbkdf2.git", "7076584f5377e98600a7e2cb81980b2992fb2f71", [tag: "2.0.0"]},
   "phoenix": {:hex, :phoenix, "1.3.0", "1c01124caa1b4a7af46f2050ff11b267baa3edb441b45dbf243e979cd4c5891b", [:mix], [{:cowboy, "~> 1.0", [hex: :cowboy, repo: "hexpm", optional: true]}, {:phoenix_pubsub, "~> 1.0", [hex: :phoenix_pubsub, repo: "hexpm", optional: false]}, {:plug, "~> 1.3.3 or ~> 1.4", [hex: :plug, repo: "hexpm", optional: false]}, {:poison, "~> 2.2 or ~> 3.0", [hex: :poison, repo: "hexpm", optional: false]}], "hexpm"},

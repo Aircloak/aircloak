@@ -95,25 +95,14 @@ defmodule Cloak.DataSource.Isolators.CacheOwner do
   defp start_cache_restore_job() do
     # Starting the restore job as a background process allows us to ignore restore failures and implement a finite time
     # synchronism (waiting for the cache to be restored for some time, but not forever).
-    {:ok, restore_job_pid} =
-      Parent.GenServer.start_child(%{
-        id: :restore_job,
-        start: {Task, :start_link, [fn -> restore_cache() end]}
-      })
+    Parent.GenServer.start_child(%{
+      id: :restore_job,
+      start: {Task, :start_link, [fn -> restore_cache() end]}
+    })
 
     # We'll wait a bit for the cache to be restored. This improves synchronous behaviour, allowing us to skip initial
     # cache priming if we're able to restore it.
-    wait_for_cache_time = :timer.seconds(10)
-    mref = Process.monitor(restore_job_pid)
-
-    receive do
-      {:DOWN, ^mref, :process, ^restore_job_pid, _reason} -> :ok
-    after
-      # Too much time passed, so we'll proceed further to avoid blocking the system. The worst consequence of this is
-      # that we'll end up with redundant isolated recomputation, which can be tolerated.
-      wait_for_cache_time ->
-        :ok
-    end
+    Parent.GenServer.await_child_termination(:restore_job, :timer.seconds(10))
   end
 
   defp restore_cache() do
