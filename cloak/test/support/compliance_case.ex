@@ -70,6 +70,19 @@ defmodule ComplianceCase do
       end)
 
   @doc false
+  def all_columns() do
+    Enum.concat([
+      float_columns(),
+      integer_columns(),
+      numerical_columns(),
+      datetime_columns(),
+      text_columns(),
+      nullable_columns()
+    ])
+    |> Enum.uniq()
+  end
+
+  @doc false
   def float_columns(),
     do: [
       # {column name, table name, uid column in table}
