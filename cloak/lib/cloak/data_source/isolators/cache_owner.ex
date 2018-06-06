@@ -23,6 +23,8 @@ defmodule Cloak.DataSource.Isolators.CacheOwner do
     :ok
   end
 
+  @doc "Deletes unkown columns from the cache table."
+  @spec remove_unknown_columns(MapSet.t()) :: :ok
   def remove_unknown_columns(known_columns) do
     cached_columns = :ets.match(__MODULE__, {:"$1", :_}) |> Enum.concat() |> MapSet.new()
     cached_columns |> MapSet.difference(known_columns) |> Enum.each(&:ets.delete(__MODULE__, &1))
