@@ -97,7 +97,7 @@ defmodule Cloak.DataSource.Isolators.CacheOwner do
     # synchronism (waiting for the cache to be restored for some time, but not forever).
     Parent.GenServer.start_child(%{
       id: :restore_job,
-      start: {Task, :start_link, [fn -> restore_cache() end]}
+      start: {Task, :start_link, [&restore_cache/0]}
     })
 
     # We'll wait a bit for the cache to be restored. This improves synchronous behaviour, allowing us to skip initial
