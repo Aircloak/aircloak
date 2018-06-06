@@ -35,7 +35,7 @@ selectInput("customer", "Customer to show", customerOptions, selected = allCusto
 ```
 
 
-Column {data-width=400}
+Column {data-width=350}
 -------------------------------------
 
 ### Total number of queries
@@ -61,7 +61,9 @@ renderValueBox({
 ### Data sources
 ```{r}
 renderTable({
-  dataForVisualization(input$customer, queryResults$dataSources, queryResults$dataSourcesByCustomer)
+  d <- dataForVisualization(input$customer, queryResults$dataSources, queryResults$dataSourcesByCustomer)
+  d$driver <- sapply(strsplit(d$driver, "\\."), tail, n=1)
+  d
 })
 ```
 
