@@ -35,7 +35,7 @@ selectInput("customer", "Customer to show", customerOptions, selected = allCusto
 ```
 
 
-Column {data-width=300}
+Column {data-width=400}
 -------------------------------------
 
 ### Total number of queries
