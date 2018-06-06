@@ -100,6 +100,26 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
     end)
   end
 
+  test "cache is persisted" do
+    provider = new_cache_provider(~w(col1))
+    {:ok, cache} = Cache.start_link(provider.cache_opts)
+
+    # invoking `isolates_users?` makes sure that isolated for `col1` is computed, and that the cache is persisted
+    Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1")
+
+    GenServer.stop(cache)
+
+    # make sure that new computation of isolated will never finish
+    provider =
+      put_in(
+        provider.cache_opts[:compute_isolation_fun],
+        compute_isolation_fun(%{"col1" => fn -> Process.sleep(:infinity) end})
+      )
+
+    {:ok, cache} = Cache.start_link(provider.cache_opts)
+    assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1") == {:isolated, "col1"}
+  end
+
   defp new_cache_provider(column_names, opts \\ []) do
     data_source = %{name: inspect(make_ref())}
     table_name = inspect(make_ref())
