@@ -24,8 +24,8 @@ defmodule Cloak.DataSource.Isolators.Query do
 
   defp isolating_values(data_source, table, column) do
     """
-      SELECT COUNT(*) FROM (
-        SELECT 1
+      SELECT COUNT(keep) FROM (
+        SELECT 1 AS keep
         FROM #{table}
         GROUP BY #{column}
         HAVING COUNT(DISTINCT #{user_id(data_source, table)}) = 1
@@ -36,8 +36,8 @@ defmodule Cloak.DataSource.Isolators.Query do
 
   defp unique_values(data_source, table, column) do
     """
-      SELECT COUNT(*) FROM (
-        SELECT 1
+      SELECT COUNT(keep) FROM (
+        SELECT 1 AS keep
         FROM #{table}
         GROUP BY #{column}
       ) x
