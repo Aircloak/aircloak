@@ -9,10 +9,10 @@ defmodule Cloak.DataSource.Isolators.Queue do
   # -------------------------------------------------------------------
 
   @doc "Creates a new queue instance from the given collection of columns."
-  @spec new(Enumerable.t()) :: t
-  def new(known_columns) do
+  @spec new(Enumerable.t(), Enumerable.t()) :: t
+  def new(known_columns, processed_columns \\ []) do
     %{
-      processed_columns: MapSet.new(),
+      processed_columns: MapSet.new(processed_columns),
       regular_queue: :queue.new(),
       priority_queue: :queue.new()
     }

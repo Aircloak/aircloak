@@ -33,5 +33,6 @@ CMD /aircloak/start.sh
 
 VOLUME /runtime_config
 VOLUME /odbc_drivers
+VOLUME /persist
 
 TAG_VERSION

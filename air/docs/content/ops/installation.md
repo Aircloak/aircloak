@@ -100,6 +100,18 @@ In the command above, you need to replace `configuration_folder` with the full p
 
 In the case of problems, you can examine logs by running `docker logs cloak` or `docker logs air`, depending on which part of the system you are troubleshooting. In addition, you can enable debug log messages for the cloak component by including `"debug": true` in cloak `config.json` file. You need to restart the component after you change the configuration file.
 
+### Persistent folder
+
+To improve startup performance, the Insights Cloak stores some data on the disk. This data resides in the `/persist` folder of the container. To ensure that the persisted data is available after the cloak upgrade, you can mount the `/persist` folder:
+
+```bash
+docker run ... \
+  -v cloak_persist_folder:/persist \
+  ...
+```
+
+Mounting of the persisted folder is optional. If you don't mount this folder, the cloak will simply recompute the data during boot. Note that in this case the boot time of the cloak component might increase.
+
 ### External ODBC drivers
 
 For some database products, the cloak image doesn't include the necessary ODBC drivers. These products are:
