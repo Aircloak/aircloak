@@ -2,7 +2,7 @@ library(parallel)
 
 queries = list(
   queriesByDay="
-    SELECT 
+    SELECT
       DATE_TRUNC('month', aux.started_at) as queryTime,
       count(*) as numQueries,
       count(distinct customer.name) as distinctCustomers
@@ -10,9 +10,9 @@ queries = list(
     GROUP BY 1
     ORDER BY 1 ASC
   ",
-  
+
   queriesByDayAndCustomer="
-    SELECT 
+    SELECT
       customer.name as customerName,
       1 as distinctCustomers,
       DATE_TRUNC('month', aux.started_at) as queryTime,
@@ -21,9 +21,9 @@ queries = list(
     GROUP BY 1, 2, 3
     ORDER BY 3 ASC
   ",
-  
+
   queriesByTimeOfDay="
-    SELECT 
+    SELECT
       hour(aux.started_at) as hour,
       count(*) as numQueries,
       count(distinct customer.name) as distinctCustomers
@@ -31,9 +31,9 @@ queries = list(
     GROUP BY 1
     ORDER BY 1 ASC
   ",
-  
+
   queriesByTimeOfDayAndCustomer="
-    SELECT 
+    SELECT
       customer.name as customerName,
       1 as distinctCustomers,
       hour(aux.started_at) as hour,
@@ -42,9 +42,9 @@ queries = list(
     GROUP BY 1, 2, 3
     ORDER BY 3 ASC
   ",
-  
+
   queriesByDayOfMonth="
-    SELECT 
+    SELECT
       day(aux.started_at) as day,
       count(*) as numQueries,
       count(distinct customer.name) as distinctCustomers
@@ -52,9 +52,9 @@ queries = list(
     GROUP BY 1
     ORDER BY 1 ASC
   ",
-  
+
   queriesByDayOfMonthAndCustomer="
-    SELECT 
+    SELECT
       customer.name as customerName,
       1 as distinctCustomers,
       day(aux.started_at) as day,
@@ -63,28 +63,28 @@ queries = list(
     GROUP BY 1, 2, 3
     ORDER BY 3 ASC
   ",
-  
+
   totalQueryCount="
-    SELECT 
+    SELECT
       'All customers' as customerName,
       count(*) as numQueries
     FROM queries
   ",
-  
+
   totalQueryCountByCustomer="
-    SELECT 
+    SELECT
       customer.name as customerName,
       count(*) as numQueries
     FROM queries
     GROUP BY 1
   ",
-  
+
   avgQueriesByPeriod="
-    SELECT 
+    SELECT
       'allCustomers' as customerName,
       avg(totalByPeriod) as avg
     FROM (
-      SELECT 
+      SELECT
         period,
         SUM(countByPeriod) as totalByPeriod
       FROM (
@@ -94,18 +94,18 @@ queries = list(
           count(*) as countByPeriod
         FROM queries
         GROUP BY 1, 2
-      ) queries_per_period_per_analyst  
+      ) queries_per_period_per_analyst
       GROUP BY 1
     ) queries_per_period
     GROUP BY 1
   ",
-  
+
   avgQueriesByPeriodAndCustomer="
-    SELECT 
+    SELECT
       customerName,
       avg(totalCountByPeriod) as avg
     FROM (
-      SELECT 
+      SELECT
         period,
         customerName,
         SUM(countByPeriod) as totalCountByPeriod
@@ -117,14 +117,14 @@ queries = list(
           count(*) as countByPeriod
         FROM queries
         GROUP BY 1, 2, 3
-      ) queries_per_period_per_analyst  
+      ) queries_per_period_per_analyst
       GROUP BY 1, 2
     ) queries_per_period
     GROUP BY 1
   ",
-  
+
   queryExecutionTimes="
-    SELECT 
+    SELECT
       'All customers' as customerName,
       bucket(metrics.execution_time by 1 align middle) as executionTime,
       count(*)
@@ -132,9 +132,9 @@ queries = list(
     GROUP BY 1, 2
     ORDER BY 2 ASC
   ",
-  
+
   queryExecutionTimesByCustomer="
-    SELECT 
+    SELECT
       customer.name as customerName,
       bucket(metrics.execution_time by 1 align middle) as executionTime,
       count(*)
@@ -142,7 +142,7 @@ queries = list(
     GROUP BY 1, 2
     ORDER BY 2 ASC
   ",
-  
+
   dataSources="
     SELECT
       features.driver as driver,
@@ -151,7 +151,7 @@ queries = list(
     GROUP BY 1
     ORDER BY count(*) DESC
   ",
-  
+
   dataSourcesByCustomer="
     SELECT
       customer.name as customerName,
@@ -161,7 +161,7 @@ queries = list(
     GROUP BY 1, 2
     ORDER BY customerName, count(*) DESC
   ",
-  
+
   distinctCustomers="
     SELECT customer.name as customerName
     FROM queries

@@ -1,7 +1,7 @@
 ---
 title: "Central stats"
 runtime: shiny
-output: 
+output:
   flexdashboard::flex_dashboard:
     orientation: columns
     vertical_layout: fill
@@ -41,9 +41,9 @@ Column {data-width=300}
 ### Total number of queries
 ```{r}
 renderValueBox({
-  valueBox(dataForVisualization(input$customer, 
-                                queryResults$totalQueryCount, 
-                                queryResults$totalQueryCountByCustomer)[, "numQueries"], 
+  valueBox(dataForVisualization(input$customer,
+                                queryResults$totalQueryCount,
+                                queryResults$totalQueryCountByCustomer)[, "numQueries"],
            icon = "fa-comments")
 })
 ```
@@ -51,9 +51,9 @@ renderValueBox({
 ### Average queries per month
 ```{r}
 renderValueBox({
-  valueBox(dataForVisualization(input$customer, 
-                                queryResults$avgQueriesByPeriod, 
-                                queryResults$avgQueriesByPeriodAndCustomer)[, "avg"], 
+  valueBox(dataForVisualization(input$customer,
+                                queryResults$avgQueriesByPeriod,
+                                queryResults$avgQueriesByPeriodAndCustomer)[, "avg"],
            icon = "fa-comments")
 })
 ```
@@ -86,7 +86,7 @@ renderPlot({
 renderPlot({
   dataset <- dataForVisualization(input$customer, queryResults$queryExecutionTimes, queryResults$queryExecutionTimesByCustomer)
   ggplot(data=dataset, aes(x=executionTime, y=count)) +
-    geom_col() + 
+    geom_col() +
     xlab("Query execution time") + ylab("Number of queries")
 })
 ```
@@ -100,7 +100,7 @@ Column
 renderPlot({
   dataset <- dataForVisualization(input$customer, queryResults$queriesByTimeOfDay, queryResults$queriesByTimeOfDayAndCustomer)
   ggplot(data=dataset) +
-    geom_col(aes(x=hour, y=numQueries)) + 
+    geom_col(aes(x=hour, y=numQueries)) +
     geom_smooth(aes(x=hour, y=numQueries), fill=NA) +
     xlab("Hour of day") + ylab("Number of queries") +
     xlim(1, 23) + ylim(0, NA)
@@ -114,7 +114,7 @@ renderPlot({
   dataset <- dataForVisualization(input$customer, queryResults$queriesByDayOfMonth, queryResults$queriesByDayOfMonthAndCustomer)
   ggplot(data=dataset) +
     geom_col(aes(x=day, y=numQueries)) +
-    geom_smooth(aes(x=day, y=numQueries), fill=NA) +    
+    geom_smooth(aes(x=day, y=numQueries), fill=NA) +
     xlab("Day of the month") + ylab("Number of queries") +
     xlim(1, 31) + ylim(0, NA)
 })
