@@ -43,6 +43,37 @@
       },
       "additionalProperties": false,
       "required": ["require_ssl"]
+    },
+
+    "appsignal": {
+      "type": "object",
+      "properties": {
+        "name": {"type": "string"},
+        "push_api_key": {"type": "string"},
+        "env": {"type": "string"},
+        "http_proxy": {"type": "string"},
+        "active": {"type": "string"},
+        "ca_file_path": {"type": "string"},
+        "debug": {"type": "string"},
+        "dns_servers": {"type": "string"},
+        "enable_host_metrics": {"type": "string"},
+        "files_world_accessible": {"type": "string"},
+        "filter_parameters": {"type": "string"},
+        "filter_session_data": {"type": "string"},
+        "hostname": {"type": "string"},
+        "ignore_actions": {"type": "string"},
+        "ignore_errors": {"type": "string"},
+        "ignore_namespaces": {"type": "string"},
+        "log": {"type": "string"},
+        "log_path": {"type": "string"},
+        "endpoint": {"type": "string"},
+        "request_headers": {"type": "string"},
+        "running_in_container": {"type": "string"},
+        "working_dir_path": {"type": "string"},
+        "revision": {"type": "string"}
+      },
+      "additionalProperties": false,
+      "required": ["name", "push_api_key", "env"]
     }
   },
   "additionalProperties": false,
