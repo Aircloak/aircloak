@@ -90,7 +90,7 @@ defmodule Cloak.Query.Anonymizer do
   def count(anonymizer, rows) do
     case sum_positives(anonymizer, rows) do
       {{0, nil}, _anonymizer} ->
-        {0, nil}
+        {config(:low_count_absolute_lower_bound), nil}
 
       {{count, noise_sigma}, _anonymizer} ->
         count = count |> round() |> Kernel.max(config(:low_count_absolute_lower_bound))
