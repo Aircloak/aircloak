@@ -23,6 +23,10 @@ defmodule AirWeb.Router do
     plug(AirWeb.Plug.Session.Authenticated)
   end
 
+  pipeline :browser_for_all do
+    plug(AirWeb.Plug.Session.EveryoneAllowed)
+  end
+
   pipeline :license_validations_browser do
     plug(AirWeb.Plug.ValidateLicense.Browser)
   end
@@ -51,6 +55,11 @@ defmodule AirWeb.Router do
 
     resources("/", ResetPasswordController, singleton: true, only: [:show, :update])
     get("/forgot", ResetPasswordController, :forgot)
+  end
+
+  scope "/privacy_policy", AirWeb, private: %{context: :http} do
+    pipe_through([:browser, :browser_for_all])
+    get("/", PrivacyPolicyController, :index)
   end
 
   scope "/", AirWeb, private: %{context: :http} do
@@ -87,7 +96,6 @@ defmodule AirWeb.Router do
 
     get("/changelog", ChangelogController, :index)
 
-    get("/privacy_policy", PrivacyPolicyController, :index)
     put("/privacy_policy/accept/:id", PrivacyPolicyController, :accept)
     put("/privacy_policy/reject/:id", PrivacyPolicyController, :reject)
   end
