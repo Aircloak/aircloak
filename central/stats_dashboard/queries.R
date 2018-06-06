@@ -180,7 +180,7 @@ getAndPrepData <- function(query) {
   data[complete.cases(data),]
 }
 
-concurrency <- min(detectCores(), 10)
+concurrency <- min(detectCores(), 5)
 cluster <- makeCluster(concurrency)
 queryResults <- parLapply(cluster, queries, getAndPrepData)
 stopCluster(cluster)
