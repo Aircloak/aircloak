@@ -87,7 +87,7 @@ renderPlot({
   dataset <- dataForVisualization(input$customer, queryResults$queryExecutionTimes, queryResults$queryExecutionTimesByCustomer)
   ggplot(data=dataset, aes(x=executionTime, y=count)) +
     geom_col() +
-    xlab("Query execution time") + ylab("Number of queries")
+    xlab("Query execution time /s") + ylab("Number of queries")
 })
 ```
 
