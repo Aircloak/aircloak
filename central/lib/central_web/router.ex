@@ -18,8 +18,11 @@ defmodule CentralWeb.Router do
     plug(CentralWeb.Plug.Session.Anonymous)
   end
 
+  pipeline :browser_for_all do
+    plug(CentralWeb.Plug.Session.EveryoneAllowed)
+  end
+
   scope "/auth", CentralWeb do
-    # Use the default browser stack
     pipe_through([:browser, :browser_anonymous])
 
     get("/", SessionController, :new)
@@ -29,6 +32,11 @@ defmodule CentralWeb.Router do
   scope "/proxy_auth", CentralWeb do
     pipe_through([:browser, CentralWeb.Plug.Session.HaltIfNotAuthenticated])
     get("/", ProxyController, :noop)
+  end
+  
+  scope "/privacy_policy", CentralWeb do
+    pipe_through([:browser, :browser_for_all])
+    get("/", PrivacyPolicyController, :index)
   end
 
   scope "/", CentralWeb do

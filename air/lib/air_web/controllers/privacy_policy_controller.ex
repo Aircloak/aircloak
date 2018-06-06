@@ -12,6 +12,7 @@ defmodule AirWeb.PrivacyPolicyController do
 
   def permissions do
     %{
+      anonymous: [:index],
       user: :all
     }
   end
@@ -21,8 +22,10 @@ defmodule AirWeb.PrivacyPolicyController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    {:ok, privacy_policy} = PrivacyPolicy.get()
-    render(conn, "index.html", privacy_policy: privacy_policy)
+    case PrivacyPolicy.get() do
+      {:ok, privacy_policy} -> render(conn, "index.html", privacy_policy: privacy_policy)
+      {:error, :no_privacy_policy_created} -> render(conn, "missing.html")
+    end
   end
 
   def accept(conn, _params) do

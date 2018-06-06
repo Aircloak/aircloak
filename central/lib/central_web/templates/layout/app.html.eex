@@ -26,6 +26,19 @@
         </main>
 
       </div> <!-- /container -->
+
+      <div class="footer">
+        <div class="container">
+          <div class="content">
+            <small>
+              Aircloak Central
+            </small>
+            <small>
+              <a href="/privacy_policy">Privacy policy</a>
+            </small>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="<%= static_path(@conn, "/js/app.js") %>"></script>
