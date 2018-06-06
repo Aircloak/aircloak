@@ -17,7 +17,8 @@ config :air, AirWeb.Endpoint,
   http: [port: 8080],
   root: Path.dirname(__DIR__),
   render_errors: [accepts: ~w(html json)],
-  pubsub: [name: Air.PubSub, adapter: Phoenix.PubSub.PG2]
+  pubsub: [name: Air.PubSub, adapter: Phoenix.PubSub.PG2],
+  instrumenters: [Appsignal.Phoenix.Instrumenter]
 
 config :air, AirWeb.MonitoringEndpoint,
   check_origin: false,
@@ -52,7 +53,8 @@ config :air, Air.Repo,
   adapter: Ecto.Adapters.Postgres,
   pool_size: 10,
   # We need it to work with `pgbouncer` (see https://github.com/elixir-ecto/postgrex#pgbouncer)
-  prepare: :unnamed
+  prepare: :unnamed,
+  loggers: [Appsignal.Ecto, Ecto.LogEntry]
 
 config :air, ecto_repos: [Air.Repo]
 
