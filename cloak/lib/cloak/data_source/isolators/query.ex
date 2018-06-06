@@ -36,8 +36,8 @@ defmodule Cloak.DataSource.Isolators.Query do
 
   defp unique_values(data_source, table, column) do
     """
-      SELECT COUNT(*), MAX(_emulator_hack) FROM (
-        SELECT 1, MAX(#{user_id(data_source, table)}) AS _emulator_hack
+      SELECT COUNT(*) FROM (
+        SELECT 1
         FROM #{table}
         GROUP BY #{column}
       ) x
@@ -46,7 +46,7 @@ defmodule Cloak.DataSource.Isolators.Query do
   end
 
   defp select_one!(query, data_source) do
-    [[result | _]] =
+    [[result]] =
       query
       |> Parser.parse!()
       |> Compiler.compile_direct!(data_source)
