@@ -523,7 +523,7 @@ defmodule Cloak.Query.DBEmulatorTest do
           on x.user_id = y.user_id
         """,
         "select user_id, dec_b64(value) as v from #{@emulated} where number >= 0 and number < 10 group by user_id, v",
-        %{rows: [%{occurrences: 1, row: [5]}]}
+        %{rows: [%{occurrences: 1, row: [3]}]}
       )
     end
 
@@ -558,7 +558,7 @@ defmodule Cloak.Query.DBEmulatorTest do
           where number = 3
         """,
         "select user_id, number, dec_b64(value) as v from #{@emulated}",
-        %{rows: [%{occurrences: 1, row: [5]}]}
+        %{rows: [%{occurrences: 1, row: [3]}]}
       )
     end
 
@@ -575,7 +575,7 @@ defmodule Cloak.Query.DBEmulatorTest do
         ) x
         """,
         "select user_id, number, dec_b64(value) as v from #{@emulated}",
-        %{rows: [%{occurrences: 1, row: [5]}]}
+        %{rows: [%{occurrences: 1, row: [3]}]}
       )
     end
 
@@ -671,7 +671,7 @@ defmodule Cloak.Query.DBEmulatorTest do
         on t1.user_id = t2.user_id and t1.age = t2.n
       """,
       "select user_id, dec_b64(value) as v, number as n from #{@emulated}",
-      %{rows: [%{row: [10]}]}
+      %{rows: [%{row: [8]}]}
     )
   end
 
