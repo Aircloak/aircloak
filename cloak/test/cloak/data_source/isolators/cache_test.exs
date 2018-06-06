@@ -106,7 +106,6 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
 
     # invoking `isolates_users?` makes sure that isolated for `col1` is computed, and that the cache is persisted
     Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1")
-
     GenServer.stop(cache)
 
     # make sure that new computation of isolated will never finish
@@ -118,6 +117,34 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
 
     {:ok, cache} = Cache.start_link(provider.cache_opts)
     assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1") == {:isolated, "col1"}
+  end
+
+  test "cached items are not primed during cache start" do
+    provider = new_cache_provider(~w(col1))
+    {:ok, cache} = Cache.start_link(provider.cache_opts)
+
+    # invoking `isolates_users?` makes sure that isolated for `col1` is computed, and that the cache is persisted
+    Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1")
+    GenServer.stop(cache)
+
+    # add another column
+    Agent.update(provider.provider, fn columns ->
+      {datasource, table, _name} = hd(columns)
+      new_column = {datasource, table, "col2"}
+      [new_column | columns]
+    end)
+
+    me = self()
+
+    provider =
+      put_in(
+        provider.cache_opts[:compute_isolation_fun],
+        compute_isolation_fun(%{"col1" => fn -> send(me, {:computing, "col1"}) end})
+      )
+
+    {:ok, cache} = Cache.start_link(provider.cache_opts)
+    assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col2") == {:isolated, "col2"}
+    refute_receive {:computing, "col1"}
   end
 
   defp new_cache_provider(column_names, opts \\ []) do
