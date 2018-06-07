@@ -80,7 +80,7 @@ defmodule Compliance.DataSource.SQLServer do
   end
 
   defp cast_type(integer) when is_integer(integer), do: {:sql_integer, [integer]}
-  defp cast_type(float) when is_float(float), do: {:sql_real, [float]}
+  defp cast_type(float) when is_float(float), do: {:sql_double, [float]}
   defp cast_type(boolean) when is_boolean(boolean), do: {:sql_bit, [boolean]}
   defp cast_type(%{calendar: Calendar.ISO} = datetime), do: datetime |> to_string() |> cast_type()
   defp cast_type(nil), do: {{:sql_wvarchar, 10}, [:null]}
@@ -140,7 +140,7 @@ defmodule Compliance.DataSource.SQLServer do
   defp escape_name(name), do: ~s("#{name}")
 
   defp sql_type(:integer), do: "integer"
-  defp sql_type(:real), do: "real"
+  defp sql_type(:real), do: "float"
   defp sql_type(:boolean), do: "bit"
   defp sql_type(:text), do: "nvarchar(4000)"
   defp sql_type(:datetime), do: "datetime2"
