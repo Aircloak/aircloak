@@ -16,12 +16,9 @@ defmodule Cloak.Query.DbEmulator.Selector do
   def select(stream, query) do
     columns = Query.bucket_columns(query)
 
-    rows =
-      stream
-      |> Rows.filter(query |> Query.emulated_where() |> Condition.to_function())
-      |> select_columns(columns, query)
-
-    rows
+    stream
+    |> Rows.filter(query |> Query.emulated_where() |> Condition.to_function())
+    |> select_columns(columns, query)
     |> Sorter.order_rows(columns, query.order_by)
     |> offset_rows(query)
     |> limit_rows(query)
@@ -81,21 +78,27 @@ defmodule Cloak.Query.DbEmulator.Selector do
     accumulators = Enum.map(query.aggregators, &aggregator_to_accumulator/1)
     finalizers = Enum.map(query.aggregators, &aggregator_to_finalizer/1)
 
-    stream
-    |> Rows.group(query, defaults, fn aggregated_values, row ->
-      aggregated_values
-      |> Enum.zip(accumulators)
-      |> Enum.map(fn {value, accumulator} -> accumulator.(row, value) end)
-    end)
-    |> Stream.map(fn {group_values, aggregated_values} ->
-      aggregated_values =
+    results =
+      stream
+      |> Rows.group(query, defaults, fn aggregated_values, row ->
         aggregated_values
-        |> Enum.zip(finalizers)
-        |> Enum.map(fn {value, finalizer} -> finalizer.(value) end)
+        |> Enum.zip(accumulators)
+        |> Enum.map(fn {value, accumulator} -> accumulator.(row, value) end)
+      end)
+      |> Stream.map(fn {group_values, aggregated_values} ->
+        aggregated_values =
+          aggregated_values
+          |> Enum.zip(finalizers)
+          |> Enum.map(fn {value, finalizer} -> finalizer.(value) end)
 
-      group_values ++ aggregated_values
-    end)
-    |> Rows.extract_groups(columns, query)
+        group_values ++ aggregated_values
+      end)
+      |> Rows.extract_groups(columns, query)
+
+    case {results, Rows.group_expressions(query)} do
+      {[], []} -> [defaults]
+      _ -> results
+    end
   end
 
   defp offset_rows(stream, %Query{offset: 0}), do: stream
