@@ -228,7 +228,7 @@ defmodule Air.Service.Query do
     report_query_result(result)
   end
 
-  @state_order [
+  @active_states [
     :created,
     :started,
     :parsing,
@@ -236,11 +236,15 @@ defmodule Air.Service.Query do
     :awaiting_data,
     :ingesting_data,
     :processing,
-    :post_processing,
+    :post_processing
+  ]
+  @completed_states [
     :cancelled,
     :error,
     :completed
   ]
+  @state_order @active_states ++ @completed_states
+
   defp valid_state_transition?(same_state, same_state), do: true
 
   defp valid_state_transition?(current_state, _next_state)
@@ -330,7 +334,7 @@ defmodule Air.Service.Query do
   end
 
   defp pending(scope \\ Query) do
-    where(scope, [q], not (q.query_state in ["completed", "error", "cancelled"]))
+    where(scope, [q], q.query_state in ^@active_states)
   end
 
   defp for_data_source(query, data_source) do
