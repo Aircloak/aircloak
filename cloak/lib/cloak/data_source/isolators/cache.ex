@@ -68,7 +68,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
     CacheOwner.remove_unknown_columns(known_columns)
     state = %{state | known_columns: known_columns}
     state = update_in(state.queue, &Queue.update_known_columns(&1, known_columns))
-    state = respond_error_on_missing_columns(state, known_columns)
+    state = respond_error_on_missing_columns(state)
     {:noreply, maybe_start_next_computation(state)}
   end
 
@@ -145,9 +145,10 @@ defmodule Cloak.DataSource.Isolators.Cache do
   defp computing_isolation?(column),
     do: match?({:ok, %{column: ^column}}, Parent.GenServer.child_meta(:compute_isolation_job))
 
-  defp respond_error_on_missing_columns(state, known_columns) do
-    known_columns = MapSet.new(known_columns)
-    {good, missing} = Enum.split_with(state.waiting, fn {column, _clients} -> MapSet.member?(known_columns, column) end)
+  defp respond_error_on_missing_columns(state) do
+    {good, missing} =
+      Enum.split_with(state.waiting, fn {column, _clients} -> MapSet.member?(state.known_columns, column) end)
+
     Enum.each(missing, fn {_column, clients} -> Enum.each(clients, &GenServer.reply(&1, :error)) end)
     %{state | waiting: Map.new(good)}
   end
