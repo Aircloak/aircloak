@@ -68,7 +68,7 @@ function start_compliance_container {
 
   docker_script build_image
 
-  STOP_AFTER=infinity docker_script start_container $container_id
+  STOP_AFTER=infinity DOCKER_ARGS="-e GLOBAL_DB_NAMESPACE='$GLOBAL_DB_NAMESPACE'" docker_script start_container $container_id
   DOCKER_ARGS="-t" docker_script run_in_container $container_id MIX_ENV=test make
   DOCKER_ARGS="-t" docker_script prepare_for_compliance $container_id
 
