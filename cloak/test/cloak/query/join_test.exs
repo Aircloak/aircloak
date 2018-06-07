@@ -21,11 +21,14 @@ defmodule Cloak.Query.JoinTest do
     :ok = insert_rows(_user_ids = 0..100, "heights_join", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
 
-    assert_query("select max(height), max(price)
-      FROM heights_join, purchases WHERE heights_join.user_id = purchases.user_id", %{
-      columns: ["max", "max"],
-      rows: rows
-    })
+    assert_query(
+      "select max(height), max(price)
+      FROM heights_join, purchases WHERE heights_join.user_id = purchases.user_id",
+      %{
+        columns: ["max", "max"],
+        rows: rows
+      }
+    )
 
     assert [%{row: [180, 200], occurrences: 1}] = rows
   end
@@ -34,11 +37,14 @@ defmodule Cloak.Query.JoinTest do
     :ok = insert_rows(_user_ids = 0..100, "heights_join", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
 
-    assert_query("select purchases.*, height
-      FROM heights_join, purchases WHERE heights_join.user_id = purchases.user_id", %{
-      columns: ["user_id", "price", "name", "height"],
-      rows: rows
-    })
+    assert_query(
+      "select purchases.*, height
+      FROM heights_join, purchases WHERE heights_join.user_id = purchases.user_id",
+      %{
+        columns: ["user_id", "price", "name", "height"],
+        rows: rows
+      }
+    )
 
     assert [%{row: [:*, 200, nil, 180], occurrences: 101}] = rows
   end
@@ -47,11 +53,14 @@ defmodule Cloak.Query.JoinTest do
     :ok = insert_rows(_user_ids = 0..100, "heights_join", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
 
-    assert_query("select p.*, height
-      FROM heights_join, purchases p WHERE heights_join.user_id = p.user_id", %{
-      columns: ["user_id", "price", "name", "height"],
-      rows: rows
-    })
+    assert_query(
+      "select p.*, height
+      FROM heights_join, purchases p WHERE heights_join.user_id = p.user_id",
+      %{
+        columns: ["user_id", "price", "name", "height"],
+        rows: rows
+      }
+    )
 
     assert [%{row: [:*, 200, nil, 180], occurrences: 101}] = rows
   end
@@ -60,11 +69,14 @@ defmodule Cloak.Query.JoinTest do
     :ok = insert_rows(_user_ids = 0..100, "heights_join", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
 
-    assert_query("select purchases.*, heights_join.*
-      FROM heights_join, purchases WHERE heights_join.user_id = purchases.user_id", %{
-      columns: ["user_id", "price", "name", "user_id", "height", "name", "male"],
-      rows: rows
-    })
+    assert_query(
+      "select purchases.*, heights_join.*
+      FROM heights_join, purchases WHERE heights_join.user_id = purchases.user_id",
+      %{
+        columns: ["user_id", "price", "name", "user_id", "height", "name", "male"],
+        rows: rows
+      }
+    )
 
     assert [%{row: [:*, 200, nil, :*, 180, nil, nil], occurrences: 101}] = rows
   end
@@ -73,11 +85,14 @@ defmodule Cloak.Query.JoinTest do
     :ok = insert_rows(_user_ids = 0..100, "heights_join", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..100, "purchases", ["price"], [200])
 
-    assert_query("select max(height), max(price)
-      FROM heights_join hj, purchases p WHERE hj.user_id = p.user_id", %{
-      columns: ["max", "max"],
-      rows: rows
-    })
+    assert_query(
+      "select max(height), max(price)
+      FROM heights_join hj, purchases p WHERE hj.user_id = p.user_id",
+      %{
+        columns: ["max", "max"],
+        rows: rows
+      }
+    )
 
     assert [%{row: [180, 200], occurrences: 1}] = rows
   end
@@ -211,10 +226,13 @@ defmodule Cloak.Query.JoinTest do
     :ok = insert_rows(_user_ids = 51..75, "purchases", ["price"], [150])
     :ok = insert_rows(_user_ids = 76..100, "purchases", ["price"], [100])
 
-    assert_query("select height
+    assert_query(
+      "select height
       FROM heights_join INNER JOIN purchases ON heights_join.user_id = purchases.user_id
       ORDER BY price
-      ", %{columns: ["height"], rows: rows})
+      ",
+      %{columns: ["height"], rows: rows}
+    )
 
     assert [
              %{row: [180], occurrences: 25},

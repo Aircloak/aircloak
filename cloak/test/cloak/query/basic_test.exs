@@ -1083,11 +1083,15 @@ defmodule Cloak.Query.BasicTest do
 
   test "selecting from two tables which point to the same database table" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
-    assert_query("
+
+    assert_query(
+      "
         select heights.height as h1, heights_alias.height as h2
         from heights, heights_alias
         where heights.user_id=heights_alias.user_id
-      ", %{columns: ["h1", "h2"], rows: [%{row: [180, 180], occurrences: 100}]})
+      ",
+      %{columns: ["h1", "h2"], rows: [%{row: [180, 180], occurrences: 100}]}
+    )
   end
 
   test "cast" do

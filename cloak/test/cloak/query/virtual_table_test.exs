@@ -386,17 +386,23 @@ defmodule Cloak.Query.VirtualTableTest do
     end
 
     test "joining to a projected table" do
-      assert_query("
+      assert_query(
+        "
           select height, amount
           from projected_heights
           inner join projected_transactions on projected_heights.user_id = projected_transactions.user_id
-        ", %{columns: ["height", "amount"], rows: [%{row: [180, 100], occurrences: 30}]})
+        ",
+        %{columns: ["height", "amount"], rows: [%{row: [180, 100], occurrences: 30}]}
+      )
 
-      assert_query("
+      assert_query(
+        "
           select height, amount
           from projected_transactions
           inner join projected_heights on projected_heights.user_id = projected_transactions.user_id
-        ", %{columns: ["height", "amount"], rows: [%{row: [180, 100], occurrences: 30}]})
+        ",
+        %{columns: ["height", "amount"], rows: [%{row: [180, 100], occurrences: 30}]}
+      )
     end
   end
 end
