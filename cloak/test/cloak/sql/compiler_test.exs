@@ -928,15 +928,9 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "silently discards redundant inequalities" do
-    assert compile!(
-             "select count(*) from table
-      where numeric >= 1 and numeric > 0.9 and numeric < 2 and numeric <= 2.1",
-             data_source()
-           ) ==
-             compile!(
-               "select count(*) from table where numeric >= 1 and numeric < 2",
-               data_source()
-             )
+    query1 = "select count(*) from table where numeric >= 1 and numeric > 0.9 and numeric < 2 and numeric <= 2.1"
+    query2 = "select count(*) from table where numeric >= 1 and numeric < 2"
+    assert compile!(query1, data_source()) == compile!(query2, data_source())
   end
 
   test "unquoted columns are case-insensitive" do
