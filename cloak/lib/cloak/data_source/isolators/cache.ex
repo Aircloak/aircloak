@@ -38,7 +38,8 @@ defmodule Cloak.DataSource.Isolators.Cache do
   def init(opts) do
     enqueue_next_refresh()
     known_columns = MapSet.new(opts.columns_provider.())
-    state = %{known_columns: known_columns, queue: Queue.new(known_columns), waiting: %{}, opts: opts}
+    queue = Queue.new(known_columns, CacheOwner.cached_columns())
+    state = %{known_columns: known_columns, queue: queue, waiting: %{}, opts: opts}
     {:ok, start_next_computation(state)}
   end
 

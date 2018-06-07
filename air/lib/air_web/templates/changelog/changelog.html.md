@@ -17,6 +17,7 @@
 ### Enhancements
 
 - Support for date and time typed literals.
+- Support for the mounted `/persist` folder in the cloak container. See Installation guide for more information.
 
 ### Changes
 

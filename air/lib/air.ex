@@ -34,6 +34,7 @@ defmodule Air do
   def start(_type, _args) do
     Aircloak.DeployConfig.validate!(:air)
     configure_secrets()
+    configure_appsignal()
     Air.Repo.configure()
     Air.Supervisor.start_link()
   end
@@ -65,6 +66,24 @@ defmodule Air do
         https: https_config(Keyword.get(&1, :https, []))
       )
     )
+  end
+
+  defp configure_appsignal() do
+    case Aircloak.DeployConfig.fetch("appsignal") do
+      :error ->
+        :ignore
+
+      {:ok, config} ->
+        config =
+          config
+          |> Aircloak.atomize_keys()
+          |> Map.put_new(:active, true)
+          |> Map.put_new(:skip_session_data, true)
+          |> Map.put_new(:filter_parameters, ["password", "token", "secret"])
+
+        Air.Utils.update_app_env(:appsignal, :config, fn _ -> config end)
+        Appsignal.config_change(:ignored, :ignored, :ignored)
+    end
   end
 
   defp https_config(previous_https_config) do

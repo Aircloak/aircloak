@@ -14,6 +14,10 @@ log "Booting container."
 mkdir -p /aircloak/cloak/lib/cloak-$VERSION/priv/
 ln -sFf /runtime_config /aircloak/cloak/lib/cloak-$VERSION/priv/config
 
+# symlinking mounted persist folder to cloak, and giving write permissions, so the deployer user can write to it
+ln -sFf /persist /aircloak/cloak/lib/cloak-$VERSION/priv/persist
+chmod -R o+w /persist
+
 # needed to ensure that references from odbc.ini work properly
 ln -nfs /aircloak/cloak/lib/cloak-$VERSION/priv /aircloak/cloak/priv
 

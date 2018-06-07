@@ -16,12 +16,9 @@ defmodule Cloak.Query.DbEmulator.Selector do
   def select(stream, query) do
     columns = Query.bucket_columns(query)
 
-    rows =
-      stream
-      |> Rows.filter(query |> Query.emulated_where() |> Condition.to_function())
-      |> select_columns(columns, query)
-
-    rows
+    stream
+    |> Rows.filter(query |> Query.emulated_where() |> Condition.to_function())
+    |> select_columns(columns, query)
     |> Sorter.order_rows(columns, query.order_by)
     |> offset_rows(query)
     |> limit_rows(query)

@@ -11,6 +11,11 @@ defmodule Cloak.DataSource.Isolators.Queue.Test do
     assert pop_all(queue) == [:col_1, :col_2, :col_3]
   end
 
+  test "providing processed columns" do
+    queue = Queue.new(columns(1..3), columns(1..2))
+    assert pop_all(queue) == [:col_3]
+  end
+
   test "prioritizing" do
     queue = Queue.set_high_priority(Queue.new(columns(1..5)), :col_3)
     assert pop_all(queue) == [:col_3, :col_1, :col_2, :col_4, :col_5]
