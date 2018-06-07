@@ -35,12 +35,13 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   def function_sql("hash", [arg]),
     do: ["CONVERT(bigint, SUBSTRING(0x00 + HASHBYTES('md5', CAST(", arg, " AS binary)), 1, 8))"]
 
-  def function_sql("stddev", [arg]), do: ["STDEV(", arg, ")"]
+  def function_sql("avg", [arg]), do: ["AVG(", cast_sql(arg, :numeric, :real), ")"]
+  def function_sql("stddev", [arg]), do: ["STDEV(", cast_sql(arg, :numeric, :real), ")"]
 
   def function_sql("substring", [arg1, arg2]), do: ["SUBSTRING(", arg1, ", ", arg2, ", LEN(", arg1, "))"]
 
   def function_sql("^", [arg1, arg2]), do: ["POWER(", arg1, ", ", arg2, ")"]
-  def function_sql("/", [arg1, arg2]), do: ["(CAST(", arg1, " AS double precision) / ", arg2, ")"]
+  def function_sql("/", [arg1, arg2]), do: ["(", cast_sql(arg1, :numeric, :real), " / ", arg2, ")"]
 
   for binary_operator <- ~w(+ - * %) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
@@ -63,6 +64,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   def unicode_literal(value), do: ["N'", value, ?']
 
   @impl Dialect
+  def cast_sql(["DISTINCT " | value], from, to), do: ["DISTINCT " | cast_sql(value, from, to)]
   def cast_sql(value, _, :integer), do: ["CAST(", function_sql("round", [value]), " AS bigint)"]
   def cast_sql(value, :unknown, :text), do: ["CAST(", value, " AS varbinary)"]
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
