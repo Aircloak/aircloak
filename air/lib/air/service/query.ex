@@ -114,7 +114,8 @@ defmodule Air.Service.Query do
       |> started_by(user)
       |> for_data_source(data_source)
       |> in_context(context)
-      |> recent(recent_count, before)
+      |> recent(before)
+      |> limit(^recent_count)
       |> Repo.all()
       |> Repo.preload([:user, :data_source])
 
@@ -340,12 +341,11 @@ defmodule Air.Service.Query do
     from(q in query, where: q.context == ^context)
   end
 
-  defp recent(query, count, before) do
+  defp recent(query, before) do
     from(
       q in query,
       where: q.inserted_at < ^before,
-      order_by: [desc: q.inserted_at],
-      limit: ^count
+      order_by: [desc: q.inserted_at]
     )
   end
 
