@@ -87,6 +87,7 @@ function default_handle {
 
   case "$command" in
     build_image)
+      build_base_images
       build_component_image
       ;;
 
