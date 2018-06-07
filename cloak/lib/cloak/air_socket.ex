@@ -383,7 +383,12 @@ defmodule Cloak.AirSocket do
           for {id, table} <- data_source.tables do
             columns =
               for column <- table.columns do
-                %{name: column.name, type: column.type, user_id: column.name == table.user_id}
+                %{
+                  name: column.name,
+                  type: column.type,
+                  user_id: column.name == table.user_id,
+                  isolated_computed?: Cloak.DataSource.Isolators.computed?(data_source, table.name, column.name)
+                }
               end
 
             %{id: id, columns: columns}

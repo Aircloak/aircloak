@@ -17,6 +17,11 @@ defmodule Cloak.DataSource.Isolators do
   @spec data_sources_changed() :: :ok
   defdelegate data_sources_changed(), to: @cache_module
 
+  @doc "Returns true if the isolated property for the given column is computed."
+  @spec computed?(Cloak.DataSource.t(), String.t(), String.t()) :: boolean
+  def computed?(data_source, table, column),
+    do: match?({:ok, _isolated?}, Cloak.DataSource.Isolators.CacheOwner.lookup({data_source.name, table, column}))
+
   # -------------------------------------------------------------------
   # Supervison tree
   # -------------------------------------------------------------------
