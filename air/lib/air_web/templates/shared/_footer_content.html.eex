@@ -9,8 +9,8 @@
     <small>
       <%= link "Third Party Licenses", to: license_path(@conn, :index), rel: "license" %>
     </small>
-    <small>
-      <%= link "Privacy policy", to: privacy_policy_path(@conn, :index), rel: "privacy policy" %>
-    </small>
   <% end %>
+  <small>
+    <%= link "Privacy policy", to: privacy_policy_path(@conn, :index), rel: "privacy policy" %>
+  </small>
 </div>

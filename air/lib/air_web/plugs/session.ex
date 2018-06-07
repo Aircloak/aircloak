@@ -208,6 +208,24 @@ defmodule AirWeb.Plug.Session do
     end
   end
 
+  defmodule EveryoneAllowed do
+    @moduledoc """
+    This plug will never halt the request, whether or not the user is logged in.
+    However when the user is logged in, the user will be assigned to `:current_user`.
+    """
+    use Guardian.Plug.Pipeline, otp_app: :central, module: Air.Guardian, error_handler: __MODULE__
+
+    plug(Guardian.Plug.VerifySession)
+    plug(AirWeb.Plug.Session.AssignCurrentUser)
+
+    # -------------------------------------------------------------------
+    # Callback for Guardian.Plug.Pipeline
+    # -------------------------------------------------------------------
+
+    @doc false
+    def auth_error(conn, _error, _params), do: conn
+  end
+
   defmodule Anonymous do
     @moduledoc """
     Ensures that the user is anonymous.

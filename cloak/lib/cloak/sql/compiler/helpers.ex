@@ -11,6 +11,8 @@ defmodule Cloak.Sql.Compiler.Helpers do
 
   @doc "Returns one id column of the query."
   @spec id_column(partial_query) :: Expression.t()
+  def id_column(%Query{type: :standard}), do: nil
+
   def id_column(query) do
     query
     |> all_id_columns_from_tables()

@@ -12,13 +12,13 @@ defmodule Cloak.Query.AnonimyzerTest do
     refute Anonymizer.new([MapSet.new()]) |> Anonymizer.sufficiently_large?(2)
   end
 
-  describe "aggregators return nil on too few users" do
+  describe "aggregators return absolute lower bound on too few users" do
     test "count" do
       # per-user row format = count of values
       rows = [10, 10, 10]
       # Count doesn't return nil in any SQL dialect we are aware of.
       # We therefore return the lowest possible returnable value instead.
-      assert {0, nil} = Anonymizer.new([MapSet.new()]) |> Anonymizer.count(rows)
+      assert {2, nil} = Anonymizer.new([MapSet.new()]) |> Anonymizer.count(rows)
     end
 
     test "sum" do
