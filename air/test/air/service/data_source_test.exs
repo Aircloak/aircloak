@@ -226,8 +226,13 @@ defmodule Air.Service.DataSourceTest do
     test "deleting a data source, doesn't delete the group" do
       group = TestRepoHelper.create_group!()
       data_source = TestRepoHelper.create_data_source!(%{groups: [group.id]})
-      DataSource.delete!(data_source)
-      refute nil == Air.Service.User.load_group(group.id)
+
+      me = self()
+      DataSource.delete!(data_source, fn -> send(me, :success) end, fn -> :ignore end)
+
+      receive do
+        :success -> refute nil == Air.Service.User.load_group(group.id)
+      end
     end
 
     test "deleting a data source deletes its views" do
@@ -235,9 +240,12 @@ defmodule Air.Service.DataSourceTest do
       data_source = TestRepoHelper.create_data_source!()
       TestRepoHelper.create_view!(user, data_source)
 
-      DataSource.delete!(data_source)
+      me = self()
+      DataSource.delete!(data_source, fn -> send(me, :success) end, fn -> :ignore end)
 
-      assert [] = Air.Service.View.all(user, data_source)
+      receive do
+        :success -> assert [] = Air.Service.View.all(user, data_source)
+      end
     end
 
     test "deletes queries with result chunks" do
@@ -245,9 +253,12 @@ defmodule Air.Service.DataSourceTest do
       query = TestRepoHelper.create_query!(TestRepoHelper.create_user!(), %{data_source_id: data_source.id})
       TestRepoHelper.send_query_result(query.id, %{}, [%{occurrences: 1, row: ["some", "data"]}])
 
-      DataSource.delete!(data_source)
+      me = self()
+      DataSource.delete!(data_source, fn -> send(me, :success) end, fn -> :ignore end)
 
-      assert is_nil(Repo.get(Air.Schemas.Query, query.id))
+      receive do
+        :success -> assert is_nil(Repo.get(Air.Schemas.Query, query.id))
+      end
     end
   end
 

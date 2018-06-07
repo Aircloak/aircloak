@@ -36,6 +36,7 @@ defmodule Air.Service.DataSource do
         }
 
   @task_supervisor __MODULE__.TaskSupervisor
+  @delete_supervisor __MODULE__.DeleteSupervisor
 
   # -------------------------------------------------------------------
   # API functions
@@ -288,10 +289,18 @@ defmodule Air.Service.DataSource do
       |> data_source_changeset(params)
       |> Repo.update()
 
-  @doc "Deletes the given data source, raises on error."
-  @spec delete!(DataSource.t()) :: DataSource.t()
-  def delete!(data_source) do
-    Repo.transaction(fn -> Repo.delete!(data_source) end)
+  @doc """
+  Deletes the given data source in the background. The success or failure callback will be called depending on the
+  result.
+  """
+  @spec delete!(DataSource.t(), (() -> any), (() -> any)) :: DataSource.t()
+  def delete!(data_source, success_callback, failure_callback) do
+    Task.Supervisor.start_child(@delete_supervisor, fn ->
+      case Repo.transaction(fn -> Repo.delete!(data_source) end, timeout: :timer.hours(1)) do
+        {:ok, _} -> success_callback.()
+        {:error, _} -> failure_callback.()
+      end
+    end)
   end
 
   @doc "Converts data source into a changeset."
@@ -470,7 +479,8 @@ defmodule Air.Service.DataSource do
     ChildSpec.supervisor(
       [
         {Air.ProcessQueue, {__MODULE__.Queue, size: 5}},
-        ChildSpec.task_supervisor(name: @task_supervisor, restart: :temporary)
+        ChildSpec.task_supervisor(name: @task_supervisor, restart: :temporary),
+        ChildSpec.task_supervisor(name: @delete_supervisor, restart: :temporary)
       ],
       strategy: :one_for_one,
       name: __MODULE__
