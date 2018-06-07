@@ -222,21 +222,23 @@ defmodule Air.Service.DataSourceTest do
     assert [group1.id, group2.id] == Enum.map(data_source.groups, & &1.id) |> Enum.sort()
   end
 
-  test "deleting a data source, doesn't delete the group" do
-    group = TestRepoHelper.create_group!()
-    data_source = TestRepoHelper.create_data_source!(%{groups: [group.id]})
-    DataSource.delete!(data_source)
-    refute nil == Air.Service.User.load_group(group.id)
-  end
+  describe "delete!" do
+    test "deleting a data source, doesn't delete the group" do
+      group = TestRepoHelper.create_group!()
+      data_source = TestRepoHelper.create_data_source!(%{groups: [group.id]})
+      DataSource.delete!(data_source)
+      refute nil == Air.Service.User.load_group(group.id)
+    end
 
-  test "deleting a data source deletes its views" do
-    user = TestRepoHelper.create_user!()
-    data_source = TestRepoHelper.create_data_source!()
-    TestRepoHelper.create_view!(user, data_source)
+    test "deleting a data source deletes its views" do
+      user = TestRepoHelper.create_user!()
+      data_source = TestRepoHelper.create_data_source!()
+      TestRepoHelper.create_view!(user, data_source)
 
-    DataSource.delete!(data_source)
+      DataSource.delete!(data_source)
 
-    assert [] = Air.Service.View.all(user, data_source)
+      assert [] = Air.Service.View.all(user, data_source)
+    end
   end
 
   test "replacing a group for a data_source, removes the old relationship" do
