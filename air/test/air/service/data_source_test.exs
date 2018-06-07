@@ -239,6 +239,16 @@ defmodule Air.Service.DataSourceTest do
 
       assert [] = Air.Service.View.all(user, data_source)
     end
+
+    test "deletes queries with result chunks" do
+      data_source = TestRepoHelper.create_data_source!()
+      query = TestRepoHelper.create_query!(TestRepoHelper.create_user!(), %{data_source_id: data_source.id})
+      TestRepoHelper.send_query_result(query.id, %{}, [%{occurrences: 1, row: ["some", "data"]}])
+
+      DataSource.delete!(data_source)
+
+      assert is_nil(Repo.get(Air.Schemas.Query, query.id))
+    end
   end
 
   test "replacing a group for a data_source, removes the old relationship" do

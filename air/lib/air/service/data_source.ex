@@ -2,7 +2,7 @@ defmodule Air.Service.DataSource do
   @moduledoc "Service module for working with data sources"
 
   alias Aircloak.ChildSpec
-  alias Air.Schemas.{DataSource, Group, Query, User, ResultChunk}
+  alias Air.Schemas.{DataSource, Group, Query, User}
   alias Air.{PsqlServer.Protocol, Repo}
   alias Air.Service.{License, Cloak, View, PrivacyPolicy}
   alias Air.Service
@@ -292,14 +292,6 @@ defmodule Air.Service.DataSource do
   @spec delete!(DataSource.t()) :: DataSource.t()
   def delete!(data_source) do
     Repo.transaction(fn ->
-      Repo.delete_all(
-        from(
-          result_chunk in ResultChunk,
-          inner_join: query in assoc(result_chunk, :query),
-          where: query.data_source_id == ^data_source.id
-        )
-      )
-
       View.delete_for_data_source(data_source)
 
       Repo.delete!(data_source)
