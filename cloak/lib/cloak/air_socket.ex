@@ -376,32 +376,27 @@ defmodule Cloak.AirSocket do
     "#{vm_short_name}@#{hostname}"
   end
 
-  defp get_join_info(data_sources) do
-    data_sources =
-      for data_source <- data_sources do
-        tables =
-          for {id, table} <- data_source.tables do
-            columns =
-              for column <- table.columns do
-                %{
-                  name: column.name,
-                  type: column.type,
-                  user_id: column.name == table.user_id,
-                  isolated_computed?: Cloak.DataSource.Isolators.computed?(data_source, table.name, column.name)
-                }
-              end
+  defp get_join_info(data_sources),
+    do: %{data_sources: Enum.map(data_sources, &data_source_info/1), salt_hash: get_salt_hash()}
 
-            %{id: id, columns: columns}
-          end
+  defp data_source_info(data_source) do
+    %{
+      name: data_source.name,
+      tables: Enum.map(data_source.tables, &table_info(data_source, &1)),
+      errors: data_source.errors
+    }
+  end
 
-        %{
-          name: data_source.name,
-          tables: tables,
-          errors: data_source.errors
-        }
-      end
+  defp table_info(data_source, {id, table}),
+    do: %{id: id, columns: Enum.map(table.columns, &column_info(data_source, table, &1))}
 
-    %{data_sources: data_sources, salt_hash: get_salt_hash()}
+  defp column_info(data_source, table, column) do
+    %{
+      name: column.name,
+      type: column.type,
+      user_id: column.name == table.user_id,
+      isolated_computed?: Cloak.DataSource.Isolators.computed?(data_source, table.name, column.name)
+    }
   end
 
   defp next_interval(current_interval) do
