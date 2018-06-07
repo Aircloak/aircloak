@@ -1,0 +1,148 @@
+body#login {
+  margin: 0;
+}
+
+body#login h1.login-h1 {
+  padding: 15px;
+  margin: 0;
+}
+
+body#login #login-panel {
+  margin: 20px 0;
+}
+
+body#login #login-logo {
+  position: absolute;
+  top: 23px;
+  right: 40px;
+}
+
+body#login footer {
+  display: block;
+  color: black;
+}
+
+body#login footer small::after {
+  content: "|";
+}
+
+body#login footer small:last-child::after {
+  content: "";
+}
+
+div#photo-credit {
+  display: none;
+}
+
+body#login #login-container {
+  max-width: 400px;
+  margin: auto;
+  clear: both;
+}
+
+div#aircloak {
+  position: absolute;
+  bottom: 10px;
+  width: 100%;
+  text-align: center;
+}
+
+@supports(display: grid) {
+  body#login {
+    display: grid;
+    grid-template-columns: 1fr ;
+    grid-template-rows: 1fr 28px;
+    grid-template-areas:
+      "login-box"
+      "footer";
+  }
+
+  body#login footer {
+    color: black;
+    grid-area: footer;
+  }
+
+  body#login #login-container {
+    grid-area: login-box;
+    max-width: unset;
+    margin: unset;
+    clear: unset;
+  }
+
+  div#aircloak {
+    position: relative;
+    bottom: unset;
+    width: unset;
+    text-align: left;
+    margin-left: 10px;
+    grid-area: aircloak;
+  }
+
+  div#photo-credit {
+    grid-area: photo-credit;
+    justify-self: end;
+    font-size: 0.8em;
+    padding: 3px 5px;
+  }
+
+  @media only screen and (min-width: 600px) {
+    body.img1 {
+      background: url(/images/bg1.jpg) no-repeat center center fixed;
+    }
+
+    body.img2 {
+      background: url(/images/bg2.jpg) no-repeat center center fixed;
+    }
+
+    body.img3 {
+      background: url(/images/bg3.jpg) no-repeat center center fixed;
+    }
+
+    body.img4 {
+      background: url(/images/bg4.jpg) no-repeat center center fixed;
+    }
+
+    body.img5 {
+      background: url(/images/bg5.jpg) no-repeat center center fixed;
+    }
+
+    body.img6 {
+      background: url(/images/bg6.jpg) no-repeat center center fixed;
+    }
+
+    body#login {
+      -webkit-background-size: cover;
+      -moz-background-size: cover;
+      -o-background-size: cover;
+      background-size: cover;
+
+      display: grid;
+      grid-template-columns: 1fr 400px 1fr;
+      grid-template-rows: 1fr auto 1fr 28px;
+      grid-template-areas:
+        ". . ."
+        ". login-box ."
+        ". . ."
+        "footer footer footer";
+    }
+
+    body#login footer {
+      color: white;
+      padding: 2px 2px 0 0;
+      background-color: rgba(0, 0, 0, 0.6);
+
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      grid-template-rows: 1fr;
+      grid-template-areas: "aircloak photo-credit";
+    }
+
+    body#login footer a {
+      color: white;
+    }
+
+    div#photo-credit {
+      display: inline;
+    }
+  }
+}

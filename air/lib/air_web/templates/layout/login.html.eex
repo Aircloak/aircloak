@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <title>Aircloak Insights – Please login</title>
+    <link rel="shortcut icon" href="<%= static_path(@conn, "/images/favicon.ico") %>" type="image/x-icon">
+    <link rel="stylesheet" href="<%= static_path(@conn, "/css/vendor.css") %>">
+    <link rel="stylesheet" href="<%= static_path(@conn, "/css/app.css") %>">
+  </head>
+
+  <body id="login" class="<%= background_img_class() %>">
+    <main role="main" id="login-container">
+      <%= render @view_module, @view_template, assigns %>
+    </main>
+
+    <footer>
+      <div id="aircloak">
+        <%= render AirWeb.SharedView, "_footer_content.html", conn: @conn %>
+      </div>
+
+      <div id="photo-credit">
+        <%= background_img_info()[:motive] %> by
+        <a href="<%= background_img_info()[:credit_url] %>">
+          <%= background_img_info()[:photographer] %>
+        </a>
+      </div>
+    </footer>
+
+    <script src="<%= static_path(@conn, "/js/app.js") %>"></script>
+  </body>
+</html>
