@@ -291,11 +291,7 @@ defmodule Air.Service.DataSource do
   @doc "Deletes the given data source, raises on error."
   @spec delete!(DataSource.t()) :: DataSource.t()
   def delete!(data_source) do
-    Repo.transaction(fn ->
-      View.delete_for_data_source(data_source)
-
-      Repo.delete!(data_source)
-    end)
+    Repo.transaction(fn -> Repo.delete!(data_source) end)
   end
 
   @doc "Converts data source into a changeset."
