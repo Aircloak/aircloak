@@ -293,7 +293,7 @@ defmodule Air.Service.DataSource do
   Deletes the given data source in the background. The success or failure callback will be called depending on the
   result.
   """
-  @spec delete!(DataSource.t(), (() -> any), (() -> any)) :: DataSource.t()
+  @spec delete!(DataSource.t(), (() -> any), (() -> any)) :: :ok
   def delete!(data_source, success_callback, failure_callback) do
     Task.Supervisor.start_child(@delete_supervisor, fn ->
       case Repo.transaction(fn -> Repo.delete!(data_source) end, timeout: :timer.hours(1)) do
@@ -301,6 +301,8 @@ defmodule Air.Service.DataSource do
         {:error, _} -> failure_callback.()
       end
     end)
+
+    :ok
   end
 
   @doc "Converts data source into a changeset."
