@@ -23,6 +23,19 @@ defmodule Cloak.Sql.Range do
   @spec find_ranges(Query.t()) :: [t]
   def find_ranges(query), do: inequality_ranges(query) ++ function_ranges(query)
 
+  @doc """
+  Returns true if the condition is a range in the context of the query, false otherwise. "Being a range" here means
+  either being an inequality and thus part of a range or containing an implicit range expression.
+  """
+  @spec range?(Condition.t(), QUery.t()) :: boolean
+  def range?(condition, query) do
+    cond do
+      Condition.inequality?(condition) -> true
+      condition |> Condition.targets() |> Enum.any?(&implicit_range?(&1, query)) -> true
+      true -> false
+    end
+  end
+
   # -------------------------------------------------------------------
   # Inequality ranges
   # -------------------------------------------------------------------

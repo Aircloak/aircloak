@@ -1252,6 +1252,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     assert 4 = length(db_columns)
   end
 
+  test "[Issue #2395] range noise layer shouldn't override equality noise layer" do
+    %{noise_layers: layers1} = compile!("SELECT COUNT(*) FROM table WHERE numeric = 10 AND numeric BETWEEN 1 AND 2")
+    %{noise_layers: layers2} = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3")
+    %{noise_layers: layers3} = compile!("SELECT COUNT(*) FROM table WHERE numeric BETWEEN 1 AND 2")
+
+    result1 = layers1 |> Enum.map(& &1.base) |> Enum.sort()
+    result2 = (layers2 ++ layers3) |> Enum.map(& &1.base) |> Enum.sort()
+    assert result1 == result2
+  end
+
   defp compile!(query, opts \\ []),
     do:
       Cloak.Test.QueryHelpers.compile!(query, data_source(), opts)

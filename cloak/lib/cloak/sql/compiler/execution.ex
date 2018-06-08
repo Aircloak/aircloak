@@ -197,15 +197,10 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp align_ranges(query, lens) do
     clause = Lens.one!(lens, query)
     grouped_inequalities = inequalities_by_column(clause)
-    range_columns = Map.keys(grouped_inequalities)
 
     verify_ranges(grouped_inequalities)
 
-    non_range_conditions =
-      Condition.reject(
-        clause,
-        &Enum.member?(range_columns, &1 |> Condition.subject() |> Expression.semantic())
-      )
+    non_range_conditions = Condition.reject(clause, &Condition.inequality?/1)
 
     query = put_in(query, [lens], non_range_conditions)
     Enum.reduce(grouped_inequalities, query, &add_aligned_range(&1, &2, lens))

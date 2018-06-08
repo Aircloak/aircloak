@@ -557,15 +557,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   deflensp non_range_conditions(query) do
     Query.Lenses.db_filter_clauses()
     |> Query.Lenses.conditions()
-    |> Lens.filter(&non_range_condition?(&1, query))
-  end
-
-  defp non_range_condition?(condition, query) do
-    ranges = query |> Range.find_ranges() |> Enum.map(& &1.column)
-
-    Query.Lenses.conditions_terminals()
-    |> Lens.to_list(condition)
-    |> Enum.all?(&(not (&1 in ranges)))
+    |> Lens.reject(&Range.range?(&1, query))
   end
 
   deflensp non_uid_expressions() do
