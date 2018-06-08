@@ -79,16 +79,16 @@ defmodule AirWeb.Admin.DataSourceController.Test do
     register_data_source()
     conn = build_conn()
 
-    assert soon(
-             given_data_source(fn data_source ->
-               assert context.admin
-                      |> login()
-                      |> delete(admin_data_source_path(conn, :delete, data_source.name))
-                      |> redirected_to() == admin_data_source_path(conn, :index)
+    given_data_source(fn data_source ->
+      assert context.admin
+             |> login()
+             |> delete(admin_data_source_path(conn, :delete, data_source.name))
+             |> redirected_to() == admin_data_source_path(conn, :index)
 
-               assert [] == Repo.all(DataSource)
-             end)
-           )
+      assert soon([] == Repo.all(DataSource))
+    end)
+
+    assert soon(Air.Repo.get_by(Air.Schemas.AuditLog, event: "Data source removal succeeded"))
   end
 
   test "render 404 on attempting to show non-existent data source", context do
