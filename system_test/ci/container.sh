@@ -99,8 +99,10 @@ function start_cloak_container {
   erlang_eval $container_name cloak "
     'Elixir.Compliance':initialize(<<\"config\">>, 10, 1),
     'Elixir.Compliance':regenerate_config_from_db(<<\"config\">>),
-    'Elixir.Cloak.DataSource':perform_data_source_availability_checks(),
+    'Elixir.Cloak.DataSource':reinitialize_all_data_sources(),
     sys:get_state('Elixir.Cloak.DataSource'),
+    'Elixir.Supervisor':terminate_child('Elixir.Cloak.Supervisor', 'Elixir.Cloak.AirSocket'),
+    'Elixir.Supervisor':restart_child('Elixir.Cloak.Supervisor', 'Elixir.Cloak.AirSocket'),
     ok
   "
 
