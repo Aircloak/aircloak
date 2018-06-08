@@ -493,7 +493,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
   defp check_index(nil, column, targets),
     do:
       raise(
-        "Column index for column #{inspect(column, pretty: true)} could not be found in the " <>
+        "Column index for column #{inspect(%{column | table: nil}, pretty: true)} could not be found in the " <>
           "list of available options: #{inspect(targets, pretty: true)}"
       )
 

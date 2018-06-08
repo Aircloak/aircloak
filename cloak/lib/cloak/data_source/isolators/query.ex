@@ -23,9 +23,11 @@ defmodule Cloak.DataSource.Isolators.Query do
   # -------------------------------------------------------------------
 
   defp isolating_values(data_source, table, column) do
+    # The keep field is needed for backends that don't allow an empty SELECT list, like SQLServer.
+    # It needs to be used in the outer query so that it's not removed by the Optimizer.
     """
-      SELECT COUNT(*) FROM (
-        SELECT 1
+      SELECT COUNT(keep) FROM (
+        SELECT 1 AS keep
         FROM #{table}
         GROUP BY #{column}
         HAVING COUNT(DISTINCT #{user_id(data_source, table)}) = 1
@@ -36,8 +38,8 @@ defmodule Cloak.DataSource.Isolators.Query do
 
   defp unique_values(data_source, table, column) do
     """
-      SELECT COUNT(*) FROM (
-        SELECT 1
+      SELECT COUNT(keep) FROM (
+        SELECT 1 AS keep
         FROM #{table}
         GROUP BY #{column}
       ) x
@@ -50,7 +52,7 @@ defmodule Cloak.DataSource.Isolators.Query do
       query
       |> Parser.parse!()
       |> Compiler.compile_direct!(data_source)
-      |> DataSource.select!(&Enum.concat/1)
+      |> Cloak.Query.DbEmulator.select()
 
     result
   end

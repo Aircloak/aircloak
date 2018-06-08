@@ -361,7 +361,8 @@ defmodule Cloak.DataSource do
     %{data_source | tables: tables}
   end
 
-  defp replace_data_source_config(data_source), do: GenServer.cast(__MODULE__, {:update_data_source, data_source})
+  @doc false
+  def replace_data_source_config(data_source), do: GenServer.cast(__MODULE__, {:update_data_source, data_source})
 
   # We need a name for the data source in order for the Air to have something to attach
   # potential errors to. Therefore if none exists, we'll create a dummy name based on

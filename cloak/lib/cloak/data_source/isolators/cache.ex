@@ -131,13 +131,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
 
   defp known_columns(), do: Enum.flat_map(Cloak.DataSource.all(), &data_source_columns/1)
 
-  defp data_source_columns(data_source) do
-    data_source.tables
-    # credo:disable-for-next-line Credo.Check.Design.TagTODO
-    # TODO skipping virtual tables for now, because isolator query doesn't work with them
-    |> Enum.reject(fn {_table_id, table} -> not is_nil(table.query) end)
-    |> Enum.flat_map(&table_columns(data_source, &1))
-  end
+  defp data_source_columns(data_source), do: Enum.flat_map(data_source.tables, &table_columns(data_source, &1))
 
   defp table_columns(data_source, {_table_id, table}),
     do: Enum.map(table.columns, &{data_source.name, table.name, &1.name})

@@ -172,6 +172,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
 
   defp data_source() do
     %{
+      name: "normalization_data_source",
       driver: Cloak.DataSource.PostgreSQL,
       tables: %{
         table:

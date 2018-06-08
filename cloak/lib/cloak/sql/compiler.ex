@@ -58,8 +58,15 @@ defmodule Cloak.Sql.Compiler do
   @doc "Prepares the parsed SQL query for directly querying the data source without any processing in the cloak."
   @spec compile_direct!(Parser.parsed_query(), DataSource.t()) :: Query.t()
   def compile_direct!(parsed_query, data_source) do
-    compiled = compile_standard!(parsed_query, data_source)
-    %{compiled | subquery?: true, db_columns: compiled.columns}
+    compile_standard!(parsed_query, data_source)
+    |> update_in([Query.Lenses.all_queries()], fn query ->
+      columns =
+        query.columns
+        |> Enum.zip(query.column_titles)
+        |> Enum.map(fn {column, title} -> %{column | alias: title} end)
+
+      %{query | subquery?: true, db_columns: columns}
+    end)
   end
 
   @doc "Validates a user-defined view."

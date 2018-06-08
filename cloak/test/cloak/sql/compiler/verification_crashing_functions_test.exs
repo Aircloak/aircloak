@@ -249,6 +249,7 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
 
   defp data_source() do
     %{
+      name: "verification_crashing_functions_test_data_source",
       driver: Cloak.DataSource.PostgreSQL,
       tables: %{
         table:

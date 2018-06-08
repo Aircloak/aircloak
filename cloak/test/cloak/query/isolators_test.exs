@@ -11,10 +11,9 @@ defmodule Cloak.Query.Isolators.Test do
           " regular_date DATE"
       )
 
-    for data_source <- Cloak.DataSource.all() do
-      Cloak.TestIsolatorsCache.register_isolating_column(data_source, "query_isolators", "isolating")
-      Cloak.TestIsolatorsCache.register_isolating_column(data_source, "query_isolators", "isolating_string")
-      Cloak.TestIsolatorsCache.register_isolating_column(data_source, "query_isolators", "isolating_date")
+    for data_source <- Cloak.DataSource.all(),
+        column <- ~w(user_id isolating isolating_string isolating_date) do
+      Cloak.TestIsolatorsCache.register_isolator(data_source, "query_isolators", column)
     end
 
     :ok
@@ -51,6 +50,18 @@ defmodule Cloak.Query.Isolators.Test do
   test "implicit range functions are allowed on isolators (see anonymization.md#isolating-columns)" do
     assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE month($col_date) = 1")
     assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE bucket($col by 10) = 10")
+  end
+
+  test "aliased tables" do
+    assert_forbidden("SELECT COUNT(*) FROM query_isolators AS qi WHERE $col IN (1, 2)")
+  end
+
+  test "subqueries" do
+    assert_forbidden("SELECT COUNT(*) FROM (SELECT user_id, $col AS x FROM query_isolators) y WHERE x IN (1, 2)")
+  end
+
+  test "key = key comparisons are allowed" do
+    assert_allowed("SELECT COUNT(*) FROM query_isolators AS a JOIN query_isolators AS b ON a.user_id = b.user_id")
   end
 
   defp assert_allowed(query) do

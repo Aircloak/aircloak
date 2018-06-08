@@ -104,6 +104,7 @@ defmodule Cloak.Sql.Compiler.VerificationColumnTransformations.Test do
 
   defp data_source() do
     %{
+      name: "verification_column_transformations_test_data_source",
       driver: Cloak.DataSource.PostgreSQL,
       tables: %{
         table:
