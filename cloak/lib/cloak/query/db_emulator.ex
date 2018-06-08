@@ -16,6 +16,10 @@ defmodule Cloak.Query.DbEmulator do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Retrieves rows according to the specification in the compiled query. This version ignores query state updates."
+  @spec select(Query.t()) :: Enumerable.t()
+  def select(query), do: select(query, _state_updater = fn _ -> :ignore end)
+
   @doc "Retrieves rows according to the specification in the compiled query."
   @spec select(Query.t(), Engine.state_updater()) :: Enumerable.t()
   def select(query, state_updater) do

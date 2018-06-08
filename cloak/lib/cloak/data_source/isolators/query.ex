@@ -50,7 +50,7 @@ defmodule Cloak.DataSource.Isolators.Query do
       query
       |> Parser.parse!()
       |> Compiler.compile_direct!(data_source)
-      |> Cloak.Query.DbEmulator.select(_state_updater = fn _ -> :ignore end)
+      |> Cloak.Query.DbEmulator.select()
 
     result
   end
