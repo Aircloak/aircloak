@@ -302,7 +302,9 @@ defmodule Cloak.Sql.Compiler.Execution do
 
     user_id_hash = Expression.function("hash", [Helpers.id_column(query)])
 
-    user_id_ranged_hash = Expression.function("%", [user_id_hash, Expression.constant(:integer, denominator)])
+    user_id_ranged_hash =
+      Expression.function("%", [user_id_hash, Expression.constant(:integer, denominator)])
+      |> put_in([Query.Lenses.all_expressions() |> Lens.key(:synthetic?)], true)
 
     sample_condition = {:comparison, user_id_ranged_hash, :<, Expression.constant(:integer, enumerator)}
 
