@@ -53,6 +53,7 @@ Following commands allow you to work with a particular build job (e.g. complianc
 
 - getting the snapshot of the build log: `./production.sh target_type target_id job_name`
 - force starting a build: `./production.sh force_build target_type target_id job_name`
+- starting interactive remote console on the CI server: `./production.sh remote_console target_type target_id component`
 
 Where:
 
