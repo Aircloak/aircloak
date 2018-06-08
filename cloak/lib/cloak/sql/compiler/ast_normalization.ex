@@ -53,8 +53,8 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   defp rewrite_date_trunc(ast),
     do:
       update_in(ast, [Query.Lenses.terminals()], fn
-        {:function, "date_trunc", [spec, argument], location} ->
-          {:function, "date_trunc", [{:function, "lower", [spec], nil}, argument], location}
+        {:function, "date_trunc", [{:constant, :string, spec, spec_location}, argument], location} ->
+          {:function, "date_trunc", [{:constant, :string, String.downcase(spec), spec_location}, argument], location}
 
         other ->
           other
