@@ -23,6 +23,8 @@ defmodule Cloak.DataSource.Isolators.Query do
   # -------------------------------------------------------------------
 
   defp isolating_values(data_source, table, column) do
+    # The keep field is needed for backends that don't allow an empty SELECT list, like SQLServer.
+    # It needs to be used in the outer query so that it's not removed by the Optimizer.
     """
       SELECT COUNT(keep) FROM (
         SELECT 1 AS keep
