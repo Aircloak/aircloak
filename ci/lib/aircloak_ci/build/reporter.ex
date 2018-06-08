@@ -55,6 +55,7 @@ defmodule AircloakCI.Build.Reporter do
           if(not is_nil(extra_info), do: "\n#{extra_info}\n", else: ""),
           "You can see the full build log by running: `ci/production.sh build_log #{target(build_state)} #{job_name}`\n",
           "You can restart the build by running: `ci/production.sh force_build #{target(build_state)} #{job_name}`\n",
+          remote_console_info(build_state, job_name),
           "Log tail:\n",
           "```",
           log_tail(build_state.project, job_name),
@@ -66,6 +67,27 @@ defmodule AircloakCI.Build.Reporter do
   defp target(%{source_type: :pull_request, source: pr}), do: "pr #{pr.number}"
   defp target(%{source_type: :branch, source: branch}), do: "branch #{branch.name}"
   defp target(%{source_type: :local, source: local}), do: "local #{local.path}"
+
+  defp remote_console_info(build_state, job_name) do
+    case component_name(job_name) do
+      nil ->
+        ""
+
+      component_name ->
+        [
+          "You can start the remote console by invoking: ",
+          "`ci/production.sh remote_console #{target(build_state)} #{component_name}`\n"
+        ]
+    end
+  end
+
+  defp component_name(job_name) do
+    cond do
+      String.ends_with?(job_name, "_compile") -> String.replace(job_name, ~r/_compile$/, "")
+      String.ends_with?(job_name, "_test") -> String.replace(job_name, ~r/_test$/, "")
+      true -> nil
+    end
+  end
 
   defp log_tail(project, job_name) do
     max_lines = 100
