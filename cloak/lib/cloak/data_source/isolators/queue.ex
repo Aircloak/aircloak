@@ -1,7 +1,8 @@
 defmodule Cloak.DataSource.Isolators.Queue do
   @moduledoc "Queue of the columns which must be processed by the isolator cache."
 
-  @opaque t :: %{processed_columns: MapSet.t(), regular_queue: :queue.t(), priority_queue: :queue.t()}
+  @opaque t :: %{processed_columns: columns, regular_queue: :queue.t(column), priority_queue: :queue.t(column)}
+  @type columns :: MapSet.t(columns)
   @type column :: {datasource_name :: String.t(), table_name :: String.t(), column_name :: String.t()}
 
   # -------------------------------------------------------------------

@@ -21,11 +21,16 @@ defmodule Cloak.TestIsolatorsCache do
     Agent.update(__MODULE__, &Map.put(&1, {data_source.name, table, column}, :forward))
   end
 
-  def data_sources_changed(), do: Cloak.DataSource.Isolators.Cache.data_sources_changed()
+  def data_sources_changed(),
+    do: send(Cloak.DataSource.Isolators.Cache, {:data_sources_changed, Cloak.DataSource.all()})
 
   def child_spec(_) do
     Aircloak.ChildSpec.supervisor(
-      [mock_spec(), Cloak.DataSource.Isolators.Cache],
+      [
+        mock_spec(),
+        # avoiding auto refresh in tests, because of many frequent changes to datasources
+        {Cloak.DataSource.Isolators.Cache, auto_refresh?: false}
+      ],
       strategy: :one_for_one,
       name: __MODULE__.Supervisor
     )

@@ -90,7 +90,7 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
       Enum.map(columns, fn {datasource, table, name} -> {datasource, table, "updated #{name}"} end)
     end)
 
-    Cache.data_sources_changed(cache)
+    send(cache, {:data_sources_changed, nil})
 
     assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "updated col1") ==
              {:isolated, "updated col1"}
@@ -172,7 +172,7 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
     }
   end
 
-  defp columns_provider(provider), do: fn -> Agent.get(provider, & &1) end
+  defp columns_provider(provider), do: fn _data_sources -> Agent.get(provider, & &1) end
 
   defp compute_isolation_fun(map \\ %{}) do
     fn {_data_source_name, _table_name, column_name} ->

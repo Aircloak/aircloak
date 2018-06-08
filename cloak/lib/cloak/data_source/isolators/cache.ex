@@ -26,18 +26,15 @@ defmodule Cloak.DataSource.Isolators.Cache do
     end
   end
 
-  @doc "Invoked when data sources have been changed."
-  @spec data_sources_changed(atom | pid) :: :ok
-  def data_sources_changed(cache_ref \\ __MODULE__), do: GenServer.cast(cache_ref, :data_sources_changed)
-
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
 
   @impl GenServer
   def init(opts) do
+    if opts.auto_refresh?, do: Cloak.DataSource.subscribe_to_changes()
     enqueue_next_refresh()
-    known_columns = MapSet.new(opts.columns_provider.())
+    known_columns = MapSet.new(opts.columns_provider.(Cloak.DataSource.all()))
     queue = Queue.new(known_columns, CacheOwner.cached_columns())
     state = %{known_columns: known_columns, queue: queue, waiting: %{}, opts: opts}
     {:ok, start_next_computation(state)}
@@ -63,16 +60,6 @@ defmodule Cloak.DataSource.Isolators.Cache do
   end
 
   @impl GenServer
-  def handle_cast(:data_sources_changed, state) do
-    known_columns = MapSet.new(state.opts.columns_provider.())
-    CacheOwner.remove_unknown_columns(known_columns)
-    state = %{state | known_columns: known_columns}
-    state = update_in(state.queue, &Queue.update_known_columns(&1, known_columns))
-    state = respond_error_on_missing_columns(state, known_columns)
-    {:noreply, maybe_start_next_computation(state)}
-  end
-
-  @impl GenServer
   def handle_info(:refresh, state) do
     # Refresh is handled by resetting the queue (see `Queue.reset/1` for details), which means that the previously
     # processed columns are moved to the back of the queue.
@@ -81,6 +68,15 @@ defmodule Cloak.DataSource.Isolators.Cache do
     state = maybe_start_next_computation(update_in(state.queue, &Queue.reset/1))
     enqueue_next_refresh()
     {:noreply, state}
+  end
+
+  def handle_info({:data_sources_changed, new_data_sources}, state) do
+    known_columns = MapSet.new(state.opts.columns_provider.(new_data_sources))
+    CacheOwner.remove_unknown_columns(known_columns)
+    state = %{state | known_columns: known_columns}
+    state = update_in(state.queue, &Queue.update_known_columns(&1, known_columns))
+    state = respond_error_on_missing_columns(state)
+    {:noreply, maybe_start_next_computation(state)}
   end
 
   def handle_info(other, state), do: super(other, state)
@@ -129,7 +125,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
     Cloak.DataSource.Isolators.Query.isolates_users?(data_source, table_name, column_name)
   end
 
-  defp known_columns(), do: Enum.flat_map(Cloak.DataSource.all(), &data_source_columns/1)
+  defp known_columns(data_sources), do: Enum.flat_map(data_sources, &data_source_columns/1)
 
   defp data_source_columns(data_source), do: Enum.flat_map(data_source.tables, &table_columns(data_source, &1))
 
@@ -145,9 +141,10 @@ defmodule Cloak.DataSource.Isolators.Cache do
   defp computing_isolation?(column),
     do: match?({:ok, %{column: ^column}}, Parent.GenServer.child_meta(:compute_isolation_job))
 
-  defp respond_error_on_missing_columns(state, known_columns) do
-    known_columns = MapSet.new(known_columns)
-    {good, missing} = Enum.split_with(state.waiting, fn {column, _clients} -> MapSet.member?(known_columns, column) end)
+  defp respond_error_on_missing_columns(state) do
+    {good, missing} =
+      Enum.split_with(state.waiting, fn {column, _clients} -> MapSet.member?(state.known_columns, column) end)
+
     Enum.each(missing, fn {_column, clients} -> Enum.each(clients, &GenServer.reply(&1, :error)) end)
     %{state | waiting: Map.new(good)}
   end
@@ -161,7 +158,12 @@ defmodule Cloak.DataSource.Isolators.Cache do
   @doc false
   def start_link(opts \\ []) do
     opts =
-      [columns_provider: &known_columns/0, compute_isolation_fun: &compute_column_isolation/1, registered?: true]
+      [
+        columns_provider: &known_columns/1,
+        compute_isolation_fun: &compute_column_isolation/1,
+        registered?: true,
+        auto_refresh?: true
+      ]
       |> Keyword.merge(opts)
       |> Map.new()
 
