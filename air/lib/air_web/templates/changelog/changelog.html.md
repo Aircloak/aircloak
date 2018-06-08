@@ -3,6 +3,7 @@
 ### Bugfixes
 
 - Fix for queries being rejected when one side of a range is negative
+- Fix identification of conditions needing emulation (should result in better performance).
 
 ## Version 18.2.3
 
