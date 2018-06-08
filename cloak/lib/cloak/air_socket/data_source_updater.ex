@@ -6,6 +6,7 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
   recomputes the new information, and notifies the air socket process about the change.
   """
   use GenServer
+  import Aircloak, only: [in_env: 1]
 
   # -------------------------------------------------------------------
   # API functions
@@ -28,6 +29,9 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
   @impl GenServer
   def handle_call(:data_sources, _from, state), do: {:reply, state.data_sources, state}
 
+  def handle_call(:force_refresh, _from, state),
+    do: {:reply, :ok, update_data_sources(state, data_sources_info(Cloak.DataSource.all()))}
+
   @impl GenServer
   def handle_info({:data_sources_changed, new_data_sources}, state),
     do: {:noreply, update_data_sources(state, data_sources_info(new_data_sources))}
@@ -37,6 +41,15 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  # We're periodically force refreshing, because datasource info contains other pieces of information, such as
+  # isolated status, which are not propagated through the datasource change notification mechanism.
+  # Using this periodic refresh, allows us to propagate such changes. This approach also reduces the possible chatter,
+  # because we don't need to frequently propagate all datasources for such small changes. For example, if isolated
+  # property is computed for 10 columns in a single second, we'll send just one update to air.
+  defp force_refresh(), do: GenServer.call(__MODULE__, :force_refresh, round(0.9 * force_refresh_interval()))
+
+  defp force_refresh_interval(), do: in_env(dev: :timer.seconds(10), else: :timer.seconds(30))
 
   defp data_sources_info(data_sources), do: Enum.map(data_sources, &data_source_info/1)
 
@@ -77,4 +90,15 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
 
   @doc false
   def start_link(_), do: GenServer.start_link(__MODULE__, self(), name: __MODULE__)
+
+  @doc false
+  def child_spec(arg) do
+    Aircloak.ChildSpec.supervisor(
+      [
+        super(arg),
+        {Periodic, id: :force_refresh, run: &force_refresh/0, every: force_refresh_interval(), overlapped?: false}
+      ],
+      strategy: :one_for_one
+    )
+  end
 end
