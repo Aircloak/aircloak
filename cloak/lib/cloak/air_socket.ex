@@ -11,6 +11,7 @@ defmodule Cloak.AirSocket do
   require Logger
   require Aircloak.DeployConfig
   alias Phoenix.Channels.GenSocketClient
+  alias Cloak.AirSocket.DataSourceUpdater
   import Aircloak, only: [in_env: 1, unused: 2]
 
   @behaviour GenSocketClient
@@ -61,11 +62,6 @@ defmodule Cloak.AirSocket do
   @spec send_memory_stats(GenServer.server(), Keyword.t()) :: :ok | {:error, any}
   def send_memory_stats(socket \\ __MODULE__, memory_reading),
     do: cast_air(socket, "main", "memory_reading", memory_reading |> Enum.into(%{}))
-
-  @doc "Updates the configuration of the current cloak in the air."
-  @spec update_config(GenServer.server(), DataSource.t()) :: :ok | {:error, any}
-  def update_config(socket \\ __MODULE__, data_sources),
-    do: cast_air(socket, "main", "update_config", get_join_info(data_sources))
 
   # -------------------------------------------------------------------
   # GenSocketClient callbacks
@@ -166,7 +162,7 @@ defmodule Cloak.AirSocket do
   end
 
   def handle_info({:join, topic}, transport, state) do
-    case GenSocketClient.join(transport, topic, get_join_info(Cloak.DataSource.all())) do
+    case GenSocketClient.join(transport, topic, join_info(DataSourceUpdater.data_sources())) do
       {:error, reason} ->
         Logger.error("error joining the topic #{topic}: #{inspect(reason)}")
         Process.send_after(self(), {:join, topic}, config(:rejoin_interval))
@@ -188,6 +184,12 @@ defmodule Cloak.AirSocket do
     # client code to give up at some point.
     Logger.warn("#{request_id} sync call timeout")
     {:ok, update_in(state.pending_calls, &Map.delete(&1, request_id))}
+  end
+
+  def handle_info({:data_sources_changed, new_data_sources}, transport, state) do
+    Logger.info("Data sources changed, sending new configurations to air ...")
+    push(transport, "main", "update_config", join_info(new_data_sources))
+    {:ok, state}
   end
 
   def handle_info(message, _transport, state) do
@@ -376,28 +378,7 @@ defmodule Cloak.AirSocket do
     "#{vm_short_name}@#{hostname}"
   end
 
-  defp get_join_info(data_sources),
-    do: %{data_sources: Enum.map(data_sources, &data_source_info/1), salt_hash: get_salt_hash()}
-
-  defp data_source_info(data_source) do
-    %{
-      name: data_source.name,
-      tables: Enum.map(data_source.tables, &table_info(data_source, &1)),
-      errors: data_source.errors
-    }
-  end
-
-  defp table_info(data_source, {id, table}),
-    do: %{id: id, columns: Enum.map(table.columns, &column_info(data_source, table, &1))}
-
-  defp column_info(data_source, table, column) do
-    %{
-      name: column.name,
-      type: column.type,
-      user_id: column.name == table.user_id,
-      isolated_computed?: Cloak.DataSource.Isolators.computed?(data_source, table.name, column.name)
-    }
-  end
+  defp join_info(data_sources), do: %{data_sources: data_sources, salt_hash: get_salt_hash()}
 
   defp next_interval(current_interval) do
     min(current_interval * 2, config(:max_reconnect_interval))
@@ -426,5 +407,14 @@ defmodule Cloak.AirSocket do
   # -------------------------------------------------------------------
 
   @doc false
-  def child_spec(_arg), do: Supervisor.Spec.worker(__MODULE__, [])
+  def child_spec(_arg) do
+    Aircloak.ChildSpec.supervisor(
+      [
+        Cloak.AirSocket.DataSourceUpdater,
+        %{id: __MODULE__, start: {__MODULE__, :start_link, []}}
+      ],
+      strategy: :rest_for_one,
+      name: __MODULE__.Supervisor
+    )
+  end
 end

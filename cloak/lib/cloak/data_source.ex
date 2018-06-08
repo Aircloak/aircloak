@@ -237,6 +237,13 @@ defmodule Cloak.DataSource do
   def connect!(driver, parameters),
     do: connect_with_retries!(driver, parameters, Application.get_env(:cloak, :connect_retries, 0))
 
+  @doc "Registers the calling process as a listener of data source changes."
+  @spec subscribe_to_changes() :: :ok
+  def subscribe_to_changes() do
+    {:ok, _} = Registry.register(__MODULE__.ChangeListenersRegistry, :subscriber, nil)
+    :ok
+  end
+
   # -------------------------------------------------------------------
   # Callbacks
   # -------------------------------------------------------------------
@@ -257,12 +264,12 @@ defmodule Cloak.DataSource do
   @impl GenServer
   def handle_cast({:update_data_source, data_source}, old_data_sources) do
     updated_data_sources = replace_data_source(old_data_sources, data_source)
-    update_air_on_changes(updated_data_sources, old_data_sources)
+    publish_data_sources_change(updated_data_sources, old_data_sources)
     {:noreply, updated_data_sources}
   end
 
   def handle_cast({:replace_data_sources, new_data_sources}, old_data_sources) do
-    update_air_on_changes(new_data_sources, old_data_sources)
+    publish_data_sources_change(new_data_sources, old_data_sources)
     {:noreply, new_data_sources}
   end
 
@@ -270,10 +277,11 @@ defmodule Cloak.DataSource do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp update_air_on_changes(new_data_sources, old_data_sources) do
+  defp publish_data_sources_change(new_data_sources, old_data_sources) do
     if new_data_sources != old_data_sources do
-      Logger.info("Data sources changed, sending new configurations to air ...")
-      update_air(new_data_sources)
+      __MODULE__.ChangeListenersRegistry
+      |> Registry.lookup(:subscriber)
+      |> Enum.each(fn {subscriber_pid, _} -> send(subscriber_pid, {:data_sources_changed, new_data_sources}) end)
     end
   end
 
@@ -463,14 +471,6 @@ defmodule Cloak.DataSource do
 
   defp update_data_source_connectivity(%{status: :offline} = data_source), do: add_tables(data_source)
 
-  # Cloak.AirSocket.update_config throws during tests where there is no air conterpoint running. Rather than running
-  # a fake socket for test purposes, we opted to make the update call a noop.
-  if Mix.env() == :test do
-    defp update_air(_data_sources), do: :ok
-  else
-    defp update_air(data_sources), do: Cloak.AirSocket.update_config(data_sources)
-  end
-
   defp connect_with_retries!(driver, parameters, 0), do: driver.connect!(parameters)
 
   defp connect_with_retries!(driver, parameters, num_retries) when num_retries > 0 do
@@ -487,12 +487,13 @@ defmodule Cloak.DataSource do
 
   @doc false
   def child_spec(_options \\ []) do
-    import Aircloak.ChildSpec, only: [supervisor: 2, gen_server: 3]
+    import Aircloak.ChildSpec
 
     supervisor(
       [
         supervisor(
           [
+            registry(:duplicate, __MODULE__.ChangeListenersRegistry),
             gen_server(__MODULE__, load_data_source_configs(), name: __MODULE__),
             Cloak.DataSource.ConnectionPool,
             Cloak.DataSource.Isolators
