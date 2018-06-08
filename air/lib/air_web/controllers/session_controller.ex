@@ -21,7 +21,9 @@ defmodule AirWeb.SessionController do
 
   def new(conn, _params) do
     if User.admin_user_exists?() do
-      render(conn, "new.html")
+      conn
+      |> put_layout("login.html")
+      |> render("new.html")
     else
       conn
       |> clear_flash()
@@ -44,6 +46,7 @@ defmodule AirWeb.SessionController do
 
       _ ->
         conn
+        |> put_layout("login.html")
         |> put_flash(:error, "Invalid e-mail or password.")
         |> render("new.html")
     end
