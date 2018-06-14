@@ -527,64 +527,46 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     end)
   end
 
-  deflensp(
-    clear_conditions(query),
-    do: query |> basic_conditions() |> Lens.filter(&clear_condition?/1)
-  )
-
-  deflensp(
-    unclear_conditions(query),
-    do: query |> basic_conditions() |> Lens.reject(&clear_condition?/1)
-  )
-
-  deflensp(
-    basic_conditions(query),
-    do:
-      query
-      |> non_range_conditions()
-      |> Lens.reject(&Condition.inequality?/1)
-      |> Lens.reject(&Condition.not_equals?/1)
-      |> Lens.reject(&Condition.not_like?/1)
-      |> Lens.reject(&Condition.in?/1)
-      |> Lens.reject(&Condition.like?/1)
-      |> Lens.reject(&fk_pk_condition?/1)
-      |> Lens.reject(&uid_null_conditions?/1)
-      |> Lens.both(non_uid_group_by_clauses())
-  )
-
-  deflensp(
-    non_uid_group_by_clauses(),
-    do:
-      Lens.key(:group_by)
-      |> Lens.all()
-      |> Lens.filter(&(not match?(%Expression{user_id?: true}, &1)))
-  )
-
-  deflensp(
-    non_range_conditions(query),
-    do:
-      Query.Lenses.db_filter_clauses()
-      |> Query.Lenses.conditions()
-      |> Lens.filter(&non_range_condition?(&1, query))
-  )
-
-  defp non_range_condition?(condition, query) do
-    ranges = query |> Range.find_ranges() |> Enum.map(& &1.column)
-
-    Query.Lenses.conditions_terminals()
-    |> Lens.to_list(condition)
-    |> Enum.all?(&(not (&1 in ranges)))
+  deflensp clear_conditions(query) do
+    query |> basic_conditions() |> Lens.filter(&clear_condition?/1)
   end
 
-  deflensp(
-    non_uid_expressions(),
-    do:
-      Lens.all()
-      |> Lens.key(:expressions)
-      |> Lens.all()
-      |> Lens.reject(& &1.constant?)
-      |> Lens.reject(& &1.user_id?)
-  )
+  deflensp unclear_conditions(query) do
+    query |> basic_conditions() |> Lens.reject(&clear_condition?/1)
+  end
+
+  deflensp basic_conditions(query) do
+    query
+    |> non_range_conditions()
+    |> Lens.reject(&Condition.inequality?/1)
+    |> Lens.reject(&Condition.not_equals?/1)
+    |> Lens.reject(&Condition.not_like?/1)
+    |> Lens.reject(&Condition.in?/1)
+    |> Lens.reject(&Condition.like?/1)
+    |> Lens.reject(&fk_pk_condition?/1)
+    |> Lens.reject(&uid_null_conditions?/1)
+    |> Lens.both(non_uid_group_by_clauses())
+  end
+
+  deflensp non_uid_group_by_clauses() do
+    Lens.key(:group_by)
+    |> Lens.all()
+    |> Lens.filter(&(not match?(%Expression{user_id?: true}, &1)))
+  end
+
+  deflensp non_range_conditions(query) do
+    Query.Lenses.db_filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.reject(&Range.range?(&1, query))
+  end
+
+  deflensp non_uid_expressions() do
+    Lens.all()
+    |> Lens.key(:expressions)
+    |> Lens.all()
+    |> Lens.reject(& &1.constant?)
+    |> Lens.reject(& &1.user_id?)
+  end
 
   defp clear_condition?(
          {:comparison, %Expression{function?: false, constant?: false}, :=, %Expression{constant?: true}}
