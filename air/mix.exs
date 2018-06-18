@@ -88,11 +88,11 @@ defmodule Air.Mixfile do
       {:scrivener_ecto, "~> 1.0"},
       {:scrivener_html, "~> 1.1"},
       {:decimal, "~> 1.4"},
-      {:quantum, "~> 2.2.7"},
       {:remote_ip, "~> 0.1.0"},
       {:ecto_enum, "~> 1.0.0"},
       {:jiffy, "~> 0.14.1"},
       {:appsignal, "~> 1.0"},
+      {:parent, "~> 0.3.0"},
       {:bom, path: "../bom", runtime: false, only: :dev}
     ]
   end
@@ -119,7 +119,7 @@ defmodule Air.Mixfile do
   defp extra_applications(:dev), do: extra_common_applications() ++ dialyzer_required_deps()
   defp extra_applications(:prod), do: extra_common_applications()
 
-  defp extra_common_applications(), do: [:logger, :inets, :crontab]
+  defp extra_common_applications(), do: [:logger, :inets]
 
   # These are indirect dependencies (deps of deps) which are not automatically included in the generated PLT.
   # By adding them explicitly to the applications list, we make sure that they are included in the PLT.
