@@ -235,4 +235,19 @@ defmodule Cloak.Query.ErrorTest do
       error: "Function `date_trunc` requires arguments" <> _
     })
   end
+
+  test "error message for condition pushed into subquery" do
+    assert_query(
+      """
+      SELECT COUNT(*) FROM (SELECT user_id, height FROM test_errors) x
+      WHERE height BETWEEN 0 AND 0
+      """,
+      %{error: error}
+    )
+
+    assert String.contains?(error, """
+           \t2:    WHERE height BETWEEN 0 AND 0
+           \t            ^
+           """)
+  end
 end
