@@ -103,7 +103,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     do:
       Query.Lenses.conditions_terminals()
       |> Lens.reject(&Expression.constant?/1)
-      |> Lens.map(conditions, &lookup_column_in_query(&1.name, subquery))
+      |> Lens.map(conditions, &lookup_column_in_query(&1, subquery))
       |> add_conditions_to_query(subquery)
 
   defp filter_conditions_from_subqueries(branch, conditions, filter),
@@ -145,9 +145,9 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     end
   end
 
-  defp lookup_column_in_query(name, query) do
-    column = Enum.fetch!(query.columns, Enum.find_index(query.column_titles, &(&1 == name)))
-    %Expression{column | alias: name}
+  defp lookup_column_in_query(original_column, query) do
+    column = Enum.fetch!(query.columns, Enum.find_index(query.column_titles, &(&1 == original_column.name)))
+    %Expression{column | alias: original_column.name, source_location: original_column.source_location}
   end
 
   defp optimize_filters(query) do
