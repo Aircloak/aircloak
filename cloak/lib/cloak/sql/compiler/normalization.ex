@@ -25,10 +25,10 @@ defmodule Cloak.Sql.Compiler.Normalization do
     do:
       query
       |> Helpers.apply_bottom_up(&normalize_trivial_like/1)
+      |> Helpers.apply_bottom_up(&normalize_bucket/1)
       |> Helpers.apply_bottom_up(&normalize_constants/1)
       |> Helpers.apply_bottom_up(&normalize_comparisons/1)
       |> Helpers.apply_bottom_up(&normalize_order_by/1)
-      |> Helpers.apply_bottom_up(&normalize_bucket/1)
       |> Helpers.apply_bottom_up(&strip_source_location/1)
 
   @doc """
