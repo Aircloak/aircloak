@@ -229,4 +229,10 @@ defmodule Cloak.Query.ErrorTest do
   test "division by a constant 0" do
     assert_query("SELECT count(*) FROM test_errors WHERE height / (2 - 2) = 0", %{error: "Division by zero" <> _})
   end
+
+  test "flipped arguments to date_trunc" do
+    assert_query("SELECT count(*) FROM test_errors WHERE date_trunc(datetime, 'month')", %{
+      error: "Function `date_trunc` requires arguments" <> _
+    })
+  end
 end
