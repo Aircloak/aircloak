@@ -4,9 +4,9 @@ import React from "react";
 import moment from "moment";
 import _ from "lodash";
 
-import AuditLogEntry from "./audit_log";
+import AuditLogEntry from "./audit_log_entry";
 
-import type {AuditLog} from "./audit_log";
+import type {AuditLog} from "./audit_log_entry";
 
 type Props = {auditLogs: Array<AuditLog>};
 
