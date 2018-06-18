@@ -369,20 +369,6 @@ defmodule Cloak.Sql.Expression.Test do
         end)
   end
 
-  defp apply_function(name, args) do
-    name
-    |> Expression.function(Enum.map(args, &Expression.constant(nil, &1)))
-    |> Expression.value([])
-  end
-
-  defp pow(_, 0), do: 1
-  defp pow(x, n) when Integer.is_odd(n), do: x * pow(x, n - 1)
-
-  defp pow(x, n) do
-    result = pow(x, div(n, 2))
-    result * result
-  end
-
   test "expression alias validation" do
     refute Expression.valid_alias?("")
     refute Expression.valid_alias?("-")
@@ -432,5 +418,19 @@ defmodule Cloak.Sql.Expression.Test do
     test "date" do
       assert Expression.constant(:date, ~D[2016-02-01]) |> Expression.display() == "date '2016-02-01'"
     end
+  end
+
+  defp apply_function(name, args) do
+    name
+    |> Expression.function(Enum.map(args, &Expression.constant(nil, &1)))
+    |> Expression.value([])
+  end
+
+  defp pow(_, 0), do: 1
+  defp pow(x, n) when Integer.is_odd(n), do: x * pow(x, n - 1)
+
+  defp pow(x, n) do
+    result = pow(x, div(n, 2))
+    result * result
   end
 end
