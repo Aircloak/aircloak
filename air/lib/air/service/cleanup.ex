@@ -31,4 +31,20 @@ defmodule Air.Service.Cleanup do
 
     :ok
   end
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg) do
+    Aircloak.ChildSpec.supervisor(
+      [
+        {Periodic, run: &cleanup_old_queries/0, every: :timer.hours(1), overlap?: false, id: :cleanup_old_queries},
+        {Periodic, run: &cleanup_dead_queries/0, every: :timer.minutes(5), overlap?: false, id: :cleanup_dead_queries}
+      ],
+      name: __MODULE__,
+      strategy: :one_for_one
+    )
+  end
 end
