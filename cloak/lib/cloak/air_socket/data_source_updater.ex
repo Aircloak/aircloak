@@ -69,7 +69,11 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
       name: column.name,
       type: column.type,
       user_id: column.name == table.user_id,
-      isolated_computed?: Cloak.DataSource.Isolators.computed?(data_source, table.name, column.name)
+      isolated:
+        case Cloak.DataSource.Isolators.cache_lookup(data_source, table.name, column.name) do
+          {:ok, value} -> value
+          :error -> nil
+        end
     }
   end
 
