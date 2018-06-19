@@ -12,22 +12,23 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Returns the most recent datasource info."
-  @spec data_sources() :: map
-  def data_sources(), do: GenServer.call(__MODULE__, :data_sources)
+  @doc "Registers the socket process and returns the most recent datasource info."
+  @spec register_socket() :: map
+  def register_socket(), do: GenServer.call(__MODULE__, :register_socket)
 
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(parent_pid) do
+  def init(nil) do
     Cloak.DataSource.subscribe_to_changes()
-    {:ok, %{data_sources: data_sources_info(Cloak.DataSource.all()), socket_pid: nil, parent_pid: parent_pid}}
+    {:ok, %{data_sources: data_sources_info(Cloak.DataSource.all()), socket_pid: nil}}
   end
 
   @impl GenServer
-  def handle_call(:data_sources, _from, state), do: {:reply, state.data_sources, state}
+  def handle_call(:register_socket, {socket_pid, _ref}, state),
+    do: {:reply, state.data_sources, %{state | socket_pid: socket_pid}}
 
   def handle_call(:force_refresh, _from, state),
     do: {:reply, :ok, update_data_sources(state, data_sources_info(Cloak.DataSource.all()))}
@@ -69,18 +70,18 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
       name: column.name,
       type: column.type,
       user_id: column.name == table.user_id,
-      isolated_computed?: Cloak.DataSource.Isolators.computed?(data_source, table.name, column.name)
+      isolated:
+        case Cloak.DataSource.Isolators.cache_lookup(data_source, table.name, column.name) do
+          {:ok, value} -> value
+          :error -> nil
+        end
     }
   end
 
   defp update_data_sources(%{data_sources: data_sources} = state, data_sources), do: state
 
   defp update_data_sources(state, data_sources) do
-    # We're fetching the sibling socket process directly from the parent supervisor. This simplifies the implementation,
-    # and it's chosen in this case, since this process is tightly coupled with its sibling.
-    for {Cloak.AirSocket, socket_pid, _, _} <- Supervisor.which_children(state.parent_pid),
-        do: send(socket_pid, {:data_sources_changed, data_sources})
-
+    if state.socket_pid != nil, do: send(state.socket_pid, {:data_sources_changed, data_sources})
     %{state | data_sources: data_sources}
   end
 
@@ -89,7 +90,7 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
   # -------------------------------------------------------------------
 
   @doc false
-  def start_link(_), do: GenServer.start_link(__MODULE__, self(), name: __MODULE__)
+  def start_link(_), do: GenServer.start_link(__MODULE__, nil, name: __MODULE__)
 
   @doc false
   def child_spec(arg) do

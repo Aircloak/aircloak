@@ -162,7 +162,7 @@ defmodule Cloak.AirSocket do
   end
 
   def handle_info({:join, topic}, transport, state) do
-    case GenSocketClient.join(transport, topic, join_info(DataSourceUpdater.data_sources())) do
+    case GenSocketClient.join(transport, topic, join_info(DataSourceUpdater.register_socket())) do
       {:error, reason} ->
         Logger.error("error joining the topic #{topic}: #{inspect(reason)}")
         Process.send_after(self(), {:join, topic}, config(:rejoin_interval))

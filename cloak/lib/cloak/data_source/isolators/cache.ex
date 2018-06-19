@@ -26,6 +26,10 @@ defmodule Cloak.DataSource.Isolators.Cache do
     end
   end
 
+  @doc "Performs a cache lookup."
+  @spec lookup(Cloak.DataSource.t(), String.t(), String.t()) :: {:ok, boolean} | :error
+  def lookup(data_source, table_name, column_name), do: CacheOwner.lookup({data_source.name, table_name, column_name})
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
