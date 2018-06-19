@@ -13,6 +13,14 @@ defmodule Cloak.TestIsolatorsCache do
     end
   end
 
+  def lookup(data_source, table, column) do
+    case Agent.get(__MODULE__, &Map.fetch(&1, {data_source.name, table, column})) do
+      :error -> {:ok, false}
+      {:ok, :isolates} -> {:ok, true}
+      {:ok, :forward} -> Cloak.DataSource.Isolators.Cache.lookup(data_source, table, column)
+    end
+  end
+
   def register_isolator(data_source, table, column) do
     Agent.update(__MODULE__, &Map.put(&1, {data_source.name, table, column}, :isolates))
   end
