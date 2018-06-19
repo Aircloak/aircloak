@@ -71,6 +71,11 @@ it with `make migrate` and `make rollback` respectively.
 If you need to repopulate the database, you can run `make recreate-db`. Keep in mind that this will erase all
 of your existing data, so use with caution. To recreate the test database, you can run `MIX_ENV=test make recreate-db`
 
+Notice that the statistics page of Central is not going to work locally. It relies on an nginx instance for
+proxying the requests to within the MPI network. We could have setup a separate [Shiny
+server](https://www.rstudio.com/products/shiny/shiny-server/) locally for development purposes, but this seems so low
+priority to the point of being pointless.
+
 #### HTTPS endpoint
 
 The site also accepts HTTPS requests on port 7443. Self-signed certificates are provided for the site central.air-local, meaning you need to add `/etc/hosts` entry which points this hostname to 127.0.0.1. You'll also need to import the certificate (located in `./priv/config/ssl_cert.pem`) into your browser. Once all is setup, you can access the site over HTTPS at https://central.air-local:7443.
@@ -108,3 +113,63 @@ If you want to change aspects of the deployment you can find the deployment conf
 Please note that all deployed aircloaks talk to the production central by default. That is by design.
 To exercise the stage central, you have to visit [https://air-for-central-stage.aircloak.com](https://air-for-central-stage.aircloak.com)
 which can be deployed like any other `aircloak` and relies on the deployment target `for_central_stage`.
+
+#### One time proxy setup of nginx
+
+Nginx is used to proxy to internal MPI services that should not be exposed directly to the internet. For these services
+we rely on nginx managing the forwarding, and it calling back to the central app for authenticating the user. This
+requires a little extra setup on the nginx server side:
+
+- You need to define a single internal proxy authentication location nginx can use for authentication
+- You need to define a forwarding location for each service you want forwarded
+
+The configuration could look like the one below:
+
+```
+# Endpoint for resource that should be proxied
+upstream stats_proxy {
+  server srv-76-133.mpi-sws.org;
+  keepalive 2;
+}
+
+upstream central {
+  ...
+}
+
+server {
+  ...
+
+  location /stats_proxy/ {
+    auth_request     /internal_proxy_auth;
+    auth_request_set $auth_status $upstream_status;
+
+    # needed for websockets
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+
+    # we don't want nginx trying to do something clever with
+    # redirects, we set the Host: header above already.
+    proxy_redirect off;
+
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Server $host;
+    # proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header X-Forwarded-Port $server_port;
+
+    proxy_pass http://stats_proxy/stats/;
+  }
+
+  location = /internal_proxy_auth {
+    internal;
+    proxy_pass              http://central/proxy_auth;
+    proxy_pass_request_body off;
+    proxy_set_header        Content-Length "";
+    proxy_set_header        X-Original-URI $request_uri;
+  }
+
+  ...
+}
+```

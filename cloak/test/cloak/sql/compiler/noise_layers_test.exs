@@ -355,7 +355,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "no noise layer from sample_users" do
       result = compile!("SELECT COUNT(*) FROM (SELECT uid FROM table SAMPLE_USERS 10%) x")
 
-      assert [static_layer({"table", "uid", _}), uid_layer({"table", "uid", _})] = result.noise_layers
+      assert [generic_layer()] = result.noise_layers
     end
   end
 
@@ -1250,6 +1250,16 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       compile!("SELECT COUNT(*) FROM (SELECT uid FROM table AS t WHERE numeric BETWEEN 0 AND 1000000 GROUP BY 1) x")
 
     assert 4 = length(db_columns)
+  end
+
+  test "[Issue #2395] range noise layer shouldn't override equality noise layer" do
+    %{noise_layers: layers1} = compile!("SELECT COUNT(*) FROM table WHERE numeric = 10 AND numeric BETWEEN 1 AND 2")
+    %{noise_layers: layers2} = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3")
+    %{noise_layers: layers3} = compile!("SELECT COUNT(*) FROM table WHERE numeric BETWEEN 1 AND 2")
+
+    result1 = layers1 |> Enum.map(& &1.base) |> Enum.sort()
+    result2 = (layers2 ++ layers3) |> Enum.map(& &1.base) |> Enum.sort()
+    assert result1 == result2
   end
 
   defp compile!(query, opts \\ []),

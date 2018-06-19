@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Range.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.DataSource.Table
-  alias Cloak.Sql.{Compiler, Parser, Range}
+  alias Cloak.Sql.{Compiler, Parser, Range, Query}
 
   describe "find_ranges" do
     test ">/<= ranges" do
@@ -132,6 +132,31 @@ defmodule Cloak.Sql.Range.Test do
 
         assert [%Range{column: %{function: "date_trunc"}, interval: :implicit}] = Range.find_ranges(query)
       end
+    end
+  end
+
+  describe "range?" do
+    test "false for regular conditions" do
+      query = compile("SELECT COUNT(*) FROM table WHERE number = 3")
+      refute Range.range?(query.where, query)
+    end
+
+    test "true for inequalities" do
+      query = compile("SELECT COUNT(*) FROM table WHERE number BETWEEN 0 AND 10")
+
+      for condition <- get_in(query.where, [Query.Lenses.conditions()]) do
+        assert Range.range?(condition, query)
+      end
+    end
+
+    test "true for implicit ranges" do
+      query = compile("SELECT COUNT(*) FROM table WHERE round(number, 2) = 10")
+      assert Range.range?(query.where, query)
+    end
+
+    test "subqueries" do
+      query = compile("SELECT COUNT(*) FROM (SELECT uid, round(number, 2) AS foo FROM table) bar WHERE foo = 10")
+      assert Range.range?(query.where, query)
     end
   end
 

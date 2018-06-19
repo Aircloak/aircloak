@@ -197,15 +197,10 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp align_ranges(query, lens) do
     clause = Lens.one!(lens, query)
     grouped_inequalities = inequalities_by_column(clause)
-    range_columns = Map.keys(grouped_inequalities)
 
     verify_ranges(grouped_inequalities)
 
-    non_range_conditions =
-      Condition.reject(
-        clause,
-        &Enum.member?(range_columns, &1 |> Condition.subject() |> Expression.semantic())
-      )
+    non_range_conditions = Condition.reject(clause, &Condition.inequality?/1)
 
     query = put_in(query, [lens], non_range_conditions)
     Enum.reduce(grouped_inequalities, query, &add_aligned_range(&1, &2, lens))
@@ -302,7 +297,9 @@ defmodule Cloak.Sql.Compiler.Execution do
 
     user_id_hash = Expression.function("hash", [Helpers.id_column(query)])
 
-    user_id_ranged_hash = Expression.function("%", [user_id_hash, Expression.constant(:integer, denominator)])
+    user_id_ranged_hash =
+      Expression.function("%", [user_id_hash, Expression.constant(:integer, denominator)])
+      |> put_in([Query.Lenses.all_expressions() |> Lens.key(:synthetic?)], true)
 
     sample_condition = {:comparison, user_id_ranged_hash, :<, Expression.constant(:integer, enumerator)}
 

@@ -122,4 +122,17 @@ defmodule Air.Web do
   defmacro __using__(which) when is_atom(which) do
     apply(__MODULE__, which, [])
   end
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg) do
+    Aircloak.ChildSpec.supervisor(
+      [AirWeb.Endpoint, AirWeb.Socket.Frontend.DataSourceChannel],
+      name: __MODULE__,
+      strategy: :rest_for_one
+    )
+  end
 end

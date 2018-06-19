@@ -82,18 +82,14 @@ defmodule AirWeb.Admin.DataSourceController do
 
   def delete(conn, _params) do
     data_source = conn.assigns.data_source
-    DataSource.delete!(data_source)
+    data_source_audit_log(conn, data_source, "Data source removal scheduled")
 
-    audit_log(
-      conn,
-      "Removed data source",
-      name: data_source.name,
-      id: data_source.id,
-      data_source: data_source.name
-    )
+    on_success = fn -> data_source_audit_log(conn, data_source, "Data source removal succeeded") end
+    on_failure = fn -> data_source_audit_log(conn, data_source, "Data source removal failed") end
+    DataSource.delete!(data_source, on_success, on_failure)
 
     conn
-    |> put_flash(:info, "Data source deleted")
+    |> put_flash(:info, "Data source deletion will be performed in the background.")
     |> redirect(to: admin_data_source_path(conn, :index))
   end
 
@@ -119,4 +115,7 @@ defmodule AirWeb.Admin.DataSourceController do
       data_source
       |> Warnings.problems_for_resource()
       |> Warnings.highest_severity_class()
+
+  defp data_source_audit_log(conn, data_source, text),
+    do: audit_log(conn, text, name: data_source.name, id: data_source.id, data_source: data_source.name)
 end

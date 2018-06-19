@@ -114,6 +114,28 @@ function service_command {
   exec_as_ci "$production_folder/current/bin/aircloak_ci $@"
 }
 
+function remote_console {
+  local folder=""
+
+  case "$1" in
+    pr)
+      folder="builds/pr-$2"
+      ;;
+
+    branch)
+      folder="branches/$2"
+      ;;
+
+    *)
+      echo "Invalid build type: '$1'. Only pr and branch can be specified."
+      exit 1
+      ;;
+  esac
+
+  ssh -t acatlas4.mpi-sws.org \
+    "su ci -c 'MPI=true /home/ci/.aircloak_ci/data/cache/$folder/src/ci/start_component.sh $3'"
+}
+
 command="$1"
 shift || true
 
@@ -138,9 +160,22 @@ case "$command" in
     service_command build force_build $1 $2 $3
     ;;
 
+  remote_console)
+    remote_console $@
+    ;;
+
   *)
-    echo "Usage: ./$(basename "$0") deploy | rollback | service_log journalctl_args | build_log target_args | force_build target_args"
-    echo "target_args: branch_or_pr branch_name_or_pr_number job_name"
+    echo "
+    Invalid command! The valid commands are:
+
+      deploy |
+      rollback |
+      service_log journalctl_args |
+      build_log branch_or_pr branch_name_or_pr_number job_name |
+      force_build branch_or_pr branch_name_or_pr_number job_name |
+      remote_console branch_or_pr branch_name_or_pr_number component_name
+    "
+
     exit 1
     ;;
 esac

@@ -34,4 +34,11 @@ defmodule AirWeb.Socket.Frontend.DataSourceChannel do
         {:error, %{success: false, description: "Unauthorized to access channel"}}
     end
   end
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg), do: Periodic.child_spec(run: &push_updates/0, every: :timer.seconds(10))
 end

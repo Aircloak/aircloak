@@ -109,5 +109,16 @@ defmodule Air.Service.License do
   # -------------------------------------------------------------------
 
   @doc false
-  def child_spec(_arg), do: Aircloak.ChildSpec.gen_server(__MODULE__, [], name: __MODULE__)
+  def child_spec(_arg) do
+    import Aircloak.ChildSpec
+
+    supervisor(
+      [
+        Aircloak.ChildSpec.gen_server(__MODULE__, [], name: __MODULE__),
+        {Periodic, run: &renew/0, every: :timer.hours(12)}
+      ],
+      strategy: :rest_for_one,
+      name: __MODULE__.Supervisor
+    )
+  end
 end

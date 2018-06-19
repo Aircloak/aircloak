@@ -222,21 +222,44 @@ defmodule Air.Service.DataSourceTest do
     assert [group1.id, group2.id] == Enum.map(data_source.groups, & &1.id) |> Enum.sort()
   end
 
-  test "deleting a data source, doesn't delete the group" do
-    group = TestRepoHelper.create_group!()
-    data_source = TestRepoHelper.create_data_source!(%{groups: [group.id]})
-    DataSource.delete!(data_source)
-    refute nil == Air.Service.User.load_group(group.id)
-  end
+  describe "delete!" do
+    test "deleting a data source, doesn't delete the group" do
+      group = TestRepoHelper.create_group!()
+      data_source = TestRepoHelper.create_data_source!(%{groups: [group.id]})
 
-  test "deleting a data source deletes its views" do
-    user = TestRepoHelper.create_user!()
-    data_source = TestRepoHelper.create_data_source!()
-    TestRepoHelper.create_view!(user, data_source)
+      me = self()
+      DataSource.delete!(data_source, fn -> send(me, :success) end, fn -> :ignore end)
 
-    DataSource.delete!(data_source)
+      receive do
+        :success -> refute nil == Air.Service.User.load_group(group.id)
+      end
+    end
 
-    assert [] = Air.Service.View.all(user, data_source)
+    test "deleting a data source deletes its views" do
+      user = TestRepoHelper.create_user!()
+      data_source = TestRepoHelper.create_data_source!()
+      TestRepoHelper.create_view!(user, data_source)
+
+      me = self()
+      DataSource.delete!(data_source, fn -> send(me, :success) end, fn -> :ignore end)
+
+      receive do
+        :success -> assert [] = Air.Service.View.all(user, data_source)
+      end
+    end
+
+    test "deletes queries with result chunks" do
+      data_source = TestRepoHelper.create_data_source!()
+      query = TestRepoHelper.create_query!(TestRepoHelper.create_user!(), %{data_source_id: data_source.id})
+      TestRepoHelper.send_query_result(query.id, %{}, [%{occurrences: 1, row: ["some", "data"]}])
+
+      me = self()
+      DataSource.delete!(data_source, fn -> send(me, :success) end, fn -> :ignore end)
+
+      receive do
+        :success -> assert is_nil(Repo.get(Air.Schemas.Query, query.id))
+      end
+    end
   end
 
   test "replacing a group for a data_source, removes the old relationship" do
