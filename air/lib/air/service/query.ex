@@ -114,7 +114,8 @@ defmodule Air.Service.Query do
       |> started_by(user)
       |> for_data_source(data_source)
       |> in_context(context)
-      |> recent(recent_count, before)
+      |> recent(before)
+      |> limit(^recent_count)
       |> Repo.all()
       |> Repo.preload([:user, :data_source])
 
@@ -227,7 +228,7 @@ defmodule Air.Service.Query do
     report_query_result(result)
   end
 
-  @state_order [
+  @active_states [
     :created,
     :started,
     :parsing,
@@ -235,11 +236,15 @@ defmodule Air.Service.Query do
     :awaiting_data,
     :ingesting_data,
     :processing,
-    :post_processing,
+    :post_processing
+  ]
+  @completed_states [
     :cancelled,
     :error,
     :completed
   ]
+  @state_order @active_states ++ @completed_states
+
   defp valid_state_transition?(same_state, same_state), do: true
 
   defp valid_state_transition?(current_state, _next_state)
@@ -329,7 +334,7 @@ defmodule Air.Service.Query do
   end
 
   defp pending(scope \\ Query) do
-    where(scope, [q], not (q.query_state in ["completed", "error", "cancelled"]))
+    where(scope, [q], q.query_state in ^@active_states)
   end
 
   defp for_data_source(query, data_source) do
@@ -340,12 +345,11 @@ defmodule Air.Service.Query do
     from(q in query, where: q.context == ^context)
   end
 
-  defp recent(query, count, before) do
+  defp recent(query, before) do
     from(
       q in query,
       where: q.inserted_at < ^before,
-      order_by: [desc: q.inserted_at],
-      limit: ^count
+      order_by: [desc: q.inserted_at]
     )
   end
 

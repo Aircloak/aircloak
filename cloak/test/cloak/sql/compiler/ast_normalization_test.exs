@@ -220,7 +220,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
     do:
       assert_equivalent(
         "SELECT date_trunc('YEAR', column) FROM table",
-        "SELECT date_trunc(lower('YEAR'), column) FROM table"
+        "SELECT date_trunc('year', column) FROM table"
       )
 
   %{

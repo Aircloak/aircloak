@@ -1,8 +1,14 @@
-<div class="col-sm-6 col-sm-offset-3">
-  <h2>Login</h2>
+<div class="col-sm-12" id="login-panel">
+  <div class="panel <%= panel_class(@conn) %>">
+    <h1 class="panel-heading login-h1">
+      Login
+      <img id="login-logo" src="/images/aircloak_web.png" />
+    </h1>
 
-  <div class="panel panel-default">
     <div class="panel-body">
+      <p class="alert alert-info" role="alert"><%= get_flash(@conn, :info) %></p>
+      <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
+
       <%= form_tag session_path(@conn, :create), method: "post" do %>
 
         <div class='form-group'>
@@ -30,7 +36,6 @@
         <div class='form-group'>
           <button class='btn btn-primary'>Login</button>
         </div>
-
       <% end %>
     </div>
   </div>

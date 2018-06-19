@@ -2,7 +2,7 @@ defmodule Air.Service.DataSource do
   @moduledoc "Service module for working with data sources"
 
   alias Aircloak.ChildSpec
-  alias Air.Schemas.{DataSource, Group, Query, User, ResultChunk}
+  alias Air.Schemas.{DataSource, Group, Query, User}
   alias Air.{PsqlServer.Protocol, Repo}
   alias Air.Service.{License, Cloak, View, PrivacyPolicy}
   alias Air.Service
@@ -36,6 +36,7 @@ defmodule Air.Service.DataSource do
         }
 
   @task_supervisor __MODULE__.TaskSupervisor
+  @delete_supervisor __MODULE__.DeleteSupervisor
 
   # -------------------------------------------------------------------
   # API functions
@@ -288,22 +289,20 @@ defmodule Air.Service.DataSource do
       |> data_source_changeset(params)
       |> Repo.update()
 
-  @doc "Deletes the given data source, raises on error."
-  @spec delete!(DataSource.t()) :: DataSource.t()
-  def delete!(data_source) do
-    Repo.transaction(fn ->
-      Repo.delete_all(
-        from(
-          result_chunk in ResultChunk,
-          inner_join: query in assoc(result_chunk, :query),
-          where: query.data_source_id == ^data_source.id
-        )
-      )
-
-      View.delete_for_data_source(data_source)
-
-      Repo.delete!(data_source)
+  @doc """
+  Deletes the given data source in the background. The success or failure callback will be called depending on the
+  result.
+  """
+  @spec delete!(DataSource.t(), (() -> any), (() -> any)) :: :ok
+  def delete!(data_source, success_callback, failure_callback) do
+    Task.Supervisor.start_child(@delete_supervisor, fn ->
+      case Repo.transaction(fn -> Repo.delete!(data_source) end, timeout: :timer.hours(1)) do
+        {:ok, _} -> success_callback.()
+        {:error, _} -> failure_callback.()
+      end
     end)
+
+    :ok
   end
 
   @doc "Converts data source into a changeset."
@@ -482,7 +481,8 @@ defmodule Air.Service.DataSource do
     ChildSpec.supervisor(
       [
         {Air.ProcessQueue, {__MODULE__.Queue, size: 5}},
-        ChildSpec.task_supervisor(name: @task_supervisor, restart: :temporary)
+        ChildSpec.task_supervisor(name: @task_supervisor, restart: :temporary),
+        ChildSpec.task_supervisor(name: @delete_supervisor, restart: :temporary)
       ],
       strategy: :one_for_one,
       name: __MODULE__
