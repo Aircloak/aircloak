@@ -1,7 +1,7 @@
 defmodule BOM.Gather.Rust do
   @moduledoc "Logic for reading rust dependency information."
 
-  alias BOM.Package
+  alias BOM.{Package, Whitelist}
 
   # -------------------------------------------------------------------
   # API
@@ -32,6 +32,6 @@ defmodule BOM.Gather.Rust do
   end
 
   defp normalize(%{name: name, version: version}) do
-    %Package{realm: :rust, name: name, version: version, license: BOM.License.unknown()}
+    %Package{realm: :rust, name: name, version: version, license: Whitelist.find(:rust, name, version)}
   end
 end
