@@ -36,7 +36,8 @@ defmodule Bom.Mixfile do
       {:poison, "~> 2.2.0", override: true},
       {:aircloak_common, path: "../common/elixir"},
       {:hackney, "1.6.3"},
-      {:httpoison, "0.11.0"}
+      {:httpoison, "0.11.0"},
+      {:tomlex, "0.0.5"}
     ]
   end
 

@@ -3,13 +3,16 @@ defmodule Mix.Tasks.Bom do
   @usage """
     Usage:
 
-      mix bom [--node <path>]+ [--elixir <path>]+ <outdir>
+      mix bom [--node <path>]+ [--elixir <path>]+ [--rust <path>] <outdir>
 
       Add a --node switch for every node_modules directory to be searched. An yarn.lock file is
       assumed to exist at the same level as this directory.
 
       Add a --elixir switch for every elixir deps directory to be searched. A mix.lock file is assumed to
       exist at the same level as this directory.
+
+      Add a --rust switch for every rust project to be searched. A Cargo.lock file is assumed to exist in that
+      directory.
 
       In the <outdir> directory, the following files will be generated:
       - bom.json: contains the bill of material in JSON format
@@ -25,7 +28,7 @@ defmodule Mix.Tasks.Bom do
   @dialyzer :no_undefined_callbacks
 
   def run(args) do
-    case OptionParser.parse(args, strict: [node: :keep, elixir: :keep]) do
+    case OptionParser.parse(args, strict: [node: :keep, elixir: :keep, rust: :keep]) do
       {dirs, [outdir], []} ->
         do_run(dirs, outdir)
 
@@ -76,4 +79,5 @@ defmodule Mix.Tasks.Bom do
 
   defp do_packages({:node, dir}), do: BOM.Gather.Node.run(dir)
   defp do_packages({:elixir, dir}), do: BOM.Gather.Elixir.run(dir)
+  defp do_packages({:rust, dir}), do: BOM.Gather.Rust.run(dir)
 end
