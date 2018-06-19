@@ -88,6 +88,7 @@ exports.config = {
       "plotly.js",
       "react-date-picker",
       "moment.js",
+      "moment-timezone",
       "eonasdan-bootstrap-datetimepicker"
     ],
 
