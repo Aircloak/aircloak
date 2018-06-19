@@ -22,7 +22,7 @@ defmodule Air.Service.DataSource do
 
   @type data_source_operation_error :: {:error, :expired | :unauthorized | :not_connected | :internal_error | any}
 
-  @type data_source_status :: :online | :offline | :broken
+  @type data_source_status :: :online | :offline | :broken | :analyzing
 
   @type table :: %{
           id: String.t(),
@@ -206,14 +206,12 @@ defmodule Air.Service.DataSource do
   @doc "Describes the current availability of the given data source."
   @spec status(DataSource.t()) :: data_source_status
   def status(data_source) do
-    if available?(data_source.name) do
-      if DataSource.errors(data_source) != [] do
-        :broken
-      else
-        :online
-      end
-    else
-      :offline
+    cond do
+      not available?(data_source.name) -> :offline
+      DataSource.errors(data_source) != [] -> :broken
+      is_nil(data_source.isolated_computed_count) -> :analyzing
+      data_source.isolated_computed_count < data_source.columns_count -> :analyzing
+      true -> :online
     end
   end
 
