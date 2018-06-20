@@ -40,14 +40,10 @@ defmodule BOM.Gather.Rust do
   end
 
   defp download_source(%{name: name, version: version}, temp_dir) do
-    response =
-      HTTPoison.get!(
-        "https://crates.io/api/v1/crates/#{name}/#{version}/download",
-        _headers = [],
-        follow_redirect: true
-      )
+    {_status, result} =
+      Util.https_get("https://crates.io/api/v1/crates/#{name}/#{version}/download", follow_redirect: true)
 
-    File.write!(Path.join(temp_dir, "#{name}-#{version}.tar.gz"), response.body)
+    File.write!(Path.join(temp_dir, "#{name}-#{version}.tar.gz"), result)
   end
 
   defp normalize(%{name: name, version: version}) do

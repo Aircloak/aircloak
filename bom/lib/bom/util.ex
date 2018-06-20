@@ -9,4 +9,17 @@ defmodule BOM.Util do
     File.mkdir!(tmp_dir_path)
     tmp_dir_path
   end
+
+  @doc "Gets the given https url, using proxy if the HTTPS_PROXY system var is set."
+  @spec https_get(String.t(), Keyword.t()) :: {integer, String.t()}
+  def https_get(url, options \\ []) do
+    options =
+      case System.get_env("HTTPS_PROXY") do
+        nil -> options
+        proxy -> [{:proxy, proxy} | options]
+      end
+
+    with {:ok, response} <- HTTPoison.get(url, _headers = [], options),
+         do: {response.status_code, response.body}
+  end
 end
