@@ -11,7 +11,7 @@ defmodule BOM.Gather.Elixir do
   @doc """
   Returns the directory to include in the source zip and a list of packages contained in the given `deps` directory.
   """
-  @spec run(String.t()) :: [Package.t()]
+  @spec run(String.t()) :: {String.t(), [Package.t()]}
   def run(deps_path) do
     version_map = version_map(deps_path)
 
