@@ -11,7 +11,7 @@ defmodule BOM.Util do
   end
 
   @doc "Gets the given https url, using proxy if the HTTPS_PROXY system var is set."
-  @spec https_get(String.t(), Keyword.t()) :: {integer, String.t()}
+  @spec https_get(String.t(), Keyword.t()) :: {integer, String.t()} | {:error, Map.t()}
   def https_get(url, options \\ []) do
     options =
       case System.get_env("HTTPS_PROXY") do
