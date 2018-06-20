@@ -42,7 +42,7 @@ defmodule Mix.Tasks.Bom do
     {:ok, _} = Application.ensure_all_started(:bom)
 
     IO.puts("Gathering package data...")
-    packages = packages(dirs)
+    {dirs, packages} = packages(dirs)
     IO.puts("Processing #{Enum.count(packages)} packages...")
 
     {invalid, valid} =
@@ -72,9 +72,12 @@ defmodule Mix.Tasks.Bom do
   end
 
   defp packages(dirs) do
-    dirs
-    |> Enum.flat_map(&do_packages/1)
-    |> Enum.uniq_by(&{&1.realm, &1.name, &1.license})
+    {dirs, packages} =
+      dirs
+      |> Enum.map(&do_packages/1)
+      |> Enum.unzip()
+
+    {dirs, packages |> Enum.concat() |> Enum.uniq_by(&{&1.realm, &1.name, &1.license})}
   end
 
   defp do_packages({:node, dir}), do: BOM.Gather.Node.run(dir)
