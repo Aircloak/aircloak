@@ -343,10 +343,14 @@ defmodule Cloak.Sql.Expression.Test do
 
       assert return_column ==
                Expression.first_column(
-                 Expression.function("f", [
-                   Expression.function("f", [%Expression{constant?: true}]),
-                   Expression.function("f", [%Expression{constant?: true}, return_column])
-                 ])
+                 Expression.function(
+                   "f",
+                   [
+                     Expression.function("f", [%Expression{constant?: true}], nil),
+                     Expression.function("f", [%Expression{constant?: true}, return_column], nil)
+                   ],
+                   nil
+                 )
                )
     end
   end
@@ -387,27 +391,28 @@ defmodule Cloak.Sql.Expression.Test do
 
   describe "expression display" do
     test "count(*)" do
-      assert Expression.function("count", [:*]) |> Expression.display() == "count(*)"
+      assert Expression.function("count", [:*], :integer) |> Expression.display() == "count(*)"
     end
 
     test "col * 3.4" do
       column = Expression.column(%{name: "col", type: :integer}, %{name: "table", user_id: "uid"})
       constant = Expression.constant(:real, 3.4)
 
-      assert Expression.function("*", [column, constant]) |> Expression.display() == "col * 3.4"
+      assert Expression.function("*", [column, constant], :real) |> Expression.display() == "col * 3.4"
     end
 
     test "sum(distinct abs(col))" do
       column = Expression.column(%{name: "col", type: :integer}, %{name: "table", user_id: "uid"})
 
-      assert Expression.function("sum", [{:distinct, Expression.function("abs", [column])}])
+      assert Expression.function("sum", [{:distinct, Expression.function("abs", [column], :integer)}], :integer)
              |> Expression.display() == "sum(distinct abs(col))"
     end
 
     test "cast('123' as integer)" do
       constant = Expression.constant(:text, "123")
 
-      assert Expression.function({:cast, :integer}, [constant]) |> Expression.display() == "cast('123' as integer)"
+      assert Expression.function({:cast, :integer}, [constant], :integer) |> Expression.display() ==
+               "cast('123' as integer)"
     end
 
     test "interval" do
@@ -422,7 +427,7 @@ defmodule Cloak.Sql.Expression.Test do
 
   defp apply_function(name, args) do
     name
-    |> Expression.function(Enum.map(args, &Expression.constant(nil, &1)))
+    |> Expression.function(Enum.map(args, &Expression.constant(nil, &1)), nil)
     |> Expression.value([])
   end
 
