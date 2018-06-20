@@ -344,6 +344,10 @@ defmodule Cloak.Sql.QueryTest do
     assert nil == Query.offloaded_where(query)
   end
 
+  test "[Issue #2815] bucket type" do
+    assert ["real"] = features_from("SELECT BUCKET(height BY 10) FROM feat_users").selected_types
+  end
+
   defp describe_query(statement, parameters \\ nil),
     do: Query.describe_query(hd(Cloak.DataSource.all()), statement, parameters, %{})
 
