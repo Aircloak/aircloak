@@ -170,28 +170,44 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp expand_bucket({:bucket, :lower}, [arg1, arg2]),
     # floor(arg1 / arg2) * arg2
     do:
-      Expression.function("*", [
-        arg2,
-        Expression.function("floor", [
-          Expression.function("/", [arg1, arg2])
-        ])
-      ])
+      Expression.function(
+        "*",
+        [
+          arg2,
+          Expression.function(
+            "floor",
+            [
+              Expression.function("/", [arg1, arg2], :real)
+            ],
+            :integer
+          )
+        ],
+        :real
+      )
 
   defp expand_bucket({:bucket, :upper}, [arg1, arg2]),
     # floor(arg1 / arg2) * arg2 + arg2
     do:
-      Expression.function("+", [
-        arg2,
-        expand_bucket({:bucket, :lower}, [arg1, arg2])
-      ])
+      Expression.function(
+        "+",
+        [
+          arg2,
+          expand_bucket({:bucket, :lower}, [arg1, arg2])
+        ],
+        :real
+      )
 
   defp expand_bucket({:bucket, :middle}, [arg1, arg2]),
     # floor(arg1 / arg2) * arg2 + 0.5 * arg2
     do:
-      Expression.function("+", [
-        Expression.function("*", [Expression.constant(:real, 0.5), arg2]),
-        expand_bucket({:bucket, :lower}, [arg1, arg2])
-      ])
+      Expression.function(
+        "+",
+        [
+          Expression.function("*", [Expression.constant(:real, 0.5), arg2], :real),
+          expand_bucket({:bucket, :lower}, [arg1, arg2])
+        ],
+        :real
+      )
 
   # -------------------------------------------------------------------
   # Normalizing ORDER BY
