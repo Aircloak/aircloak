@@ -29,6 +29,7 @@
 !cloak/mix.exs
 !cloak/mix.lock
 !cloak/fetch_deps.sh
+!cloak/src/rodbc/Cargo.lock
 !common
 
 # blacklist some stuff
