@@ -209,8 +209,7 @@ defmodule Air.Service.DataSource do
     cond do
       not available?(data_source.name) -> :offline
       DataSource.errors(data_source) != [] -> :broken
-      is_nil(data_source.isolated_computed_count) -> :analyzing
-      data_source.isolated_computed_count < data_source.columns_count -> :analyzing
+      not DataSource.analyzed?(data_source) -> :analyzing
       true -> :online
     end
   end

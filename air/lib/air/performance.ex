@@ -104,6 +104,8 @@ defmodule Air.Performance do
   def parse_statement(_key, %{} = statement), do: statement.cloak
 
   defp connect_aircloak!(data_source_name, user_name, password) do
+    await_datasource(data_source_name)
+
     {:ok, conn} =
       Postgrex.start_link(
         hostname: "localhost",
@@ -129,5 +131,26 @@ defmodule Air.Performance do
 
     {:ok, conn} = Postgrex.start_link(parameters)
     conn
+  end
+
+  defp await_datasource(data_source_name) do
+    IO.puts("Awaiting #{data_source_name}...")
+    max_retries = 300
+    delay = :timer.seconds(1)
+
+    Stream.repeatedly(fn -> data_source_ready?(data_source_name) end)
+    |> Stream.with_index()
+    |> Stream.take_while(fn {value, index} -> value != true and index < max_retries end)
+    |> Stream.intersperse(:sleep)
+    |> Enum.each(fn el -> if el == :sleep, do: Process.sleep(delay) end)
+
+    IO.puts("#{data_source_name} ready")
+  end
+
+  defp data_source_ready?(data_source_name) do
+    case Air.Service.DataSource.all() |> Enum.find(&(&1.name == data_source_name)) do
+      nil -> false
+      data_source -> Air.Service.DataSource.status(data_source) == :online
+    end
   end
 end
