@@ -7,10 +7,9 @@ defmodule Cloak.Query.BasicTest do
     :ok = Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, male BOOLEAN")
     :ok = Cloak.Test.DB.create_table("heights_alias", nil, db_name: "heights", skip_db_create: true)
     :ok = Cloak.Test.DB.create_table("children", "age INTEGER, name TEXT")
-
     :ok = Cloak.Test.DB.create_table("weird things", "\"thing as thing\" INTEGER", db_name: "weird-things")
-
     :ok = Cloak.Test.DB.create_table("dates", "date timestamp")
+
     :ok
   end
 
@@ -43,30 +42,33 @@ defmodule Cloak.Query.BasicTest do
   end
 
   test "show columns" do
-    assert_query("show columns from heights", %{
-      query_id: "1",
-      columns: ["name", "type"],
-      rows: rows
-    })
+    :ok = Cloak.Test.DB.create_table("basic_isolators", "isolates INTEGER, regular TEXT, pending BOOLEAN")
+
+    for data_source <- Cloak.DataSource.all() do
+      Cloak.TestIsolatorsCache.register_isolator(data_source, "basic_isolators", "isolates")
+      Cloak.TestIsolatorsCache.register_pending(data_source, "basic_isolators", "pending")
+    end
+
+    assert_query("show columns from basic_isolators", %{columns: ["name", "type", "isolates_users"], rows: rows})
 
     assert Enum.sort_by(rows, & &1[:row]) == [
-             %{occurrences: 1, row: ["height", "integer"]},
-             %{occurrences: 1, row: ["male", "boolean"]},
-             %{occurrences: 1, row: ["name", "text"]},
-             %{occurrences: 1, row: ["user_id", "text"]}
+             %{occurrences: 1, row: ["isolates", "integer", true]},
+             %{occurrences: 1, row: ["pending", "boolean", nil]},
+             %{occurrences: 1, row: ["regular", "text", false]},
+             %{occurrences: 1, row: ["user_id", "text", false]}
            ]
   end
 
   test "show columns from a view" do
     assert_query("show columns from v1", [views: %{"v1" => "select user_id, height from heights"}], %{
       query_id: "1",
-      columns: ["name", "type"],
+      columns: ["name", "type", "isolates_users"],
       rows: rows
     })
 
     assert Enum.sort_by(rows, & &1[:row]) == [
-             %{occurrences: 1, row: ["height", "integer"]},
-             %{occurrences: 1, row: ["user_id", "text"]}
+             %{occurrences: 1, row: ["height", "integer", false]},
+             %{occurrences: 1, row: ["user_id", "text", false]}
            ]
   end
 

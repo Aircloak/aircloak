@@ -70,17 +70,16 @@ defmodule Cloak.Query.Runner.Engine do
       |> Enum.map(&%{occurrences: 1, row: [to_string(&1)]})
       |> Query.Result.new(query.column_titles, features)
 
-  defp run_statement(
-         %Sql.Query{command: :show, show: :columns} = query,
-         features,
-         _state_updater
-       ),
-       do:
-         query.selected_tables
-         |> hd()
-         |> sorted_table_columns()
-         |> Enum.map(&%{occurrences: 1, row: [&1.name, to_string(&1.type)]})
-         |> Query.Result.new(query.column_titles, features)
+  defp run_statement(%Sql.Query{command: :show, show: :columns} = query, features, _state_updater) do
+    table = hd(query.selected_tables)
+
+    table
+    |> sorted_table_columns()
+    |> Enum.map(
+      &%{occurrences: 1, row: [&1.name, to_string(&1.type), isolator_status(query.data_source, table.name, &1.name)]}
+    )
+    |> Query.Result.new(query.column_titles, features)
+  end
 
   defp run_statement(%Sql.Query{command: :select} = query, features, state_updater),
     do:
@@ -91,5 +90,12 @@ defmodule Cloak.Query.Runner.Engine do
   defp sorted_table_columns(table) do
     {[uid], other_columns} = Enum.split_with(table.columns, &(&1.name == table.user_id))
     [uid | other_columns]
+  end
+
+  defp isolator_status(data_source, table, column) do
+    case Cloak.DataSource.Isolators.cache_lookup(data_source, table, column) do
+      {:ok, result} -> result
+      :error -> nil
+    end
   end
 end
