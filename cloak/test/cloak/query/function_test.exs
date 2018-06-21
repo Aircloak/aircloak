@@ -288,6 +288,7 @@ defmodule Cloak.Query.FunctionTest do
   test "floor", do: assert(180 == apply_function("floor(frac)", ["frac"], [180.9], "types_ft"))
   test "ceil", do: assert(181 == apply_function("ceil(frac)", ["frac"], [180.1], "types_ft"))
   test "bucket", do: assert(150 == apply_function("bucket(height by 50)", "heights_ft"))
+  test "bucket on constant", do: assert(150 == apply_function("bucket(180 by 50)", "heights_ft"))
 
   test "bucket lower", do: assert(150 == apply_function("bucket(height by 50 align lower)", "heights_ft"))
 
