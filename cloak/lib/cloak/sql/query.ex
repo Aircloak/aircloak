@@ -448,6 +448,7 @@ defmodule Cloak.Sql.Query do
     |> Lens.to_list([condition])
     |> Enum.map(& &1.table)
     |> Enum.uniq()
+    |> Enum.reject(&(&1 == :unknown))
     |> Enum.count() > 1
   end
 end

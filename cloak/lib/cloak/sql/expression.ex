@@ -76,7 +76,7 @@ defmodule Cloak.Sql.Expression do
 
   @doc "Creates a column representing a function call."
   @spec function(function_name, [t | :*], column_type, boolean) :: t
-  def function(function_name, function_args, type \\ nil, aggregate? \\ false),
+  def function(function_name, function_args, type, aggregate? \\ false),
     do: %__MODULE__{
       function: function_name,
       function_args: function_args,

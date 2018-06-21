@@ -343,10 +343,14 @@ defmodule Cloak.Sql.Expression.Test do
 
       assert return_column ==
                Expression.first_column(
-                 Expression.function("f", [
-                   Expression.function("f", [%Expression{constant?: true}]),
-                   Expression.function("f", [%Expression{constant?: true}, return_column])
-                 ])
+                 Expression.function(
+                   "f",
+                   [
+                     Expression.function("f", [%Expression{constant?: true}], nil),
+                     Expression.function("f", [%Expression{constant?: true}, return_column], nil)
+                   ],
+                   nil
+                 )
                )
     end
   end
@@ -369,20 +373,6 @@ defmodule Cloak.Sql.Expression.Test do
         end)
   end
 
-  defp apply_function(name, args) do
-    name
-    |> Expression.function(Enum.map(args, &Expression.constant(nil, &1)))
-    |> Expression.value([])
-  end
-
-  defp pow(_, 0), do: 1
-  defp pow(x, n) when Integer.is_odd(n), do: x * pow(x, n - 1)
-
-  defp pow(x, n) do
-    result = pow(x, div(n, 2))
-    result * result
-  end
-
   test "expression alias validation" do
     refute Expression.valid_alias?("")
     refute Expression.valid_alias?("-")
@@ -401,27 +391,28 @@ defmodule Cloak.Sql.Expression.Test do
 
   describe "expression display" do
     test "count(*)" do
-      assert Expression.function("count", [:*]) |> Expression.display() == "count(*)"
+      assert Expression.function("count", [:*], :integer) |> Expression.display() == "count(*)"
     end
 
     test "col * 3.4" do
       column = Expression.column(%{name: "col", type: :integer}, %{name: "table", user_id: "uid"})
       constant = Expression.constant(:real, 3.4)
 
-      assert Expression.function("*", [column, constant]) |> Expression.display() == "col * 3.4"
+      assert Expression.function("*", [column, constant], :real) |> Expression.display() == "col * 3.4"
     end
 
     test "sum(distinct abs(col))" do
       column = Expression.column(%{name: "col", type: :integer}, %{name: "table", user_id: "uid"})
 
-      assert Expression.function("sum", [{:distinct, Expression.function("abs", [column])}])
+      assert Expression.function("sum", [{:distinct, Expression.function("abs", [column], :integer)}], :integer)
              |> Expression.display() == "sum(distinct abs(col))"
     end
 
     test "cast('123' as integer)" do
       constant = Expression.constant(:text, "123")
 
-      assert Expression.function({:cast, :integer}, [constant]) |> Expression.display() == "cast('123' as integer)"
+      assert Expression.function({:cast, :integer}, [constant], :integer) |> Expression.display() ==
+               "cast('123' as integer)"
     end
 
     test "interval" do
@@ -432,5 +423,19 @@ defmodule Cloak.Sql.Expression.Test do
     test "date" do
       assert Expression.constant(:date, ~D[2016-02-01]) |> Expression.display() == "date '2016-02-01'"
     end
+  end
+
+  defp apply_function(name, args) do
+    name
+    |> Expression.function(Enum.map(args, &Expression.constant(nil, &1)), nil)
+    |> Expression.value([])
+  end
+
+  defp pow(_, 0), do: 1
+  defp pow(x, n) when Integer.is_odd(n), do: x * pow(x, n - 1)
+
+  defp pow(x, n) do
+    result = pow(x, div(n, 2))
+    result * result
   end
 end
