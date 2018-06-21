@@ -295,10 +295,10 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp compile_sample_rate(%Query{sample_rate: amount} = query) when amount != nil do
     {enumerator, denominator, messages} = sample_rate_to_ratio(amount)
 
-    user_id_hash = Expression.function("hash", [Helpers.id_column(query)])
+    user_id_hash = Expression.function("hash", [Helpers.id_column(query)], :integer)
 
     user_id_ranged_hash =
-      Expression.function("%", [user_id_hash, Expression.constant(:integer, denominator)])
+      Expression.function("%", [user_id_hash, Expression.constant(:integer, denominator)], :integer)
       |> put_in([Query.Lenses.all_expressions() |> Lens.key(:synthetic?)], true)
 
     sample_condition = {:comparison, user_id_ranged_hash, :<, Expression.constant(:integer, enumerator)}
