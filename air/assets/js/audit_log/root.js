@@ -5,7 +5,7 @@ import AuditLogChunk from "./audit_log_chunk";
 import _ from "lodash";
 import chunkBy from "./chunkBy";
 
-import type {AuditLog} from "./audit_log";
+import type {AuditLog} from "./audit_log_entry";
 
 type Props = {auditLogs: Array<AuditLog>};
 

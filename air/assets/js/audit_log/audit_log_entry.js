@@ -1,7 +1,7 @@
 // @flow
 
 import React from "react";
-import moment from "moment";
+import moment from "moment-timezone";
 import _ from "lodash";
 
 export type AuditLog = {
@@ -16,8 +16,8 @@ type Props = {auditLog: AuditLog};
 type State = {details: boolean};
 
 const formatTime = (isoTime) => {
-  const time = moment(isoTime);
-  return `${time.format("YYYY-MM-DD HH:mm:ss")} (${time.fromNow()})`;
+  const time = moment.tz(isoTime, "UTC");
+  return `${time.format("YYYY-MM-DD HH:mm:ss z")} (${time.fromNow()})`;
 };
 
 export default class AuditLogEntry extends React.Component {

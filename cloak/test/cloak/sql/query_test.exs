@@ -298,7 +298,7 @@ defmodule Cloak.Sql.QueryTest do
 
     query = %Query{
       command: :select,
-      columns: [Expression.function("abs", [Expression.column(numeric_column, table)])],
+      columns: [Expression.function("abs", [Expression.column(numeric_column, table)], :integer)],
       column_titles: ["abs"],
       selected_tables: [table],
       from: "table",
@@ -329,7 +329,7 @@ defmodule Cloak.Sql.QueryTest do
     text_column = Table.column("text", :text)
     table = Table.new("table", "uid", columns: [uid_column, text_column])
 
-    decoded_column = Expression.function("dec_b64", [Expression.column(text_column, table)])
+    decoded_column = Expression.function("dec_b64", [Expression.column(text_column, table)], :text)
     condition = {:comparison, decoded_column, :=, Expression.constant(:text, "a")}
 
     query = %Query{
@@ -342,6 +342,10 @@ defmodule Cloak.Sql.QueryTest do
 
     assert ^condition = Query.emulated_where(query)
     assert nil == Query.offloaded_where(query)
+  end
+
+  test "[Issue #2815] bucket type" do
+    assert ["real"] = features_from("SELECT BUCKET(height BY 10) FROM feat_users").selected_types
   end
 
   defp describe_query(statement, parameters \\ nil),

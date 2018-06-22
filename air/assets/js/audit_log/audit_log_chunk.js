@@ -1,20 +1,20 @@
 // @flow
 
 import React from "react";
-import moment from "moment";
+import moment from "moment-timezone";
 import _ from "lodash";
 
-import AuditLogEntry from "./audit_log";
+import AuditLogEntry from "./audit_log_entry";
 
-import type {AuditLog} from "./audit_log";
+import type {AuditLog} from "./audit_log_entry";
 
 type Props = {auditLogs: Array<AuditLog>};
 
 type State = {collapsed: boolean};
 
 const formatTime = (isoTime) => {
-  const time = moment(isoTime);
-  return time.format("YYYY-MM-DD HH:mm:ss");
+  const time = moment.tz(isoTime, "UTC");
+  return time.format("YYYY-MM-DD HH:mm:ss z");
 };
 
 export default class AuditLogChunk extends React.Component {
