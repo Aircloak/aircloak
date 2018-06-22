@@ -18,7 +18,7 @@ defmodule Bom.Mixfile do
   # Type "mix help compile.app" for more information
   def application do
     [
-      extra_applications: [:logger]
+      extra_applications: [:ssl, :inets, :logger]
     ]
   end
 
@@ -35,8 +35,6 @@ defmodule Bom.Mixfile do
     [
       {:poison, "~> 2.2.0", override: true},
       {:aircloak_common, path: "../common/elixir"},
-      {:hackney, "1.6.3"},
-      {:httpoison, "0.11.0"},
       {:tomlex, "0.0.5"}
     ]
   end
