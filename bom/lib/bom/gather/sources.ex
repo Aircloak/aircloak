@@ -8,9 +8,9 @@ defmodule BOM.Gather.Sources do
   @doc "Given a list of input directories, this will create a zip file containing them all."
   @spec collect(Keyword.t(), String.t()) :: :ok
   def collect(dirs, destination_path) do
-    tmp_dir_path = create_temp_dir()
+    tmp_dir_path = BOM.Util.create_temp_dir("dependencies")
 
-    Keyword.values(dirs)
+    dirs
     |> collect_deps(tmp_dir_path)
     |> create_zip_archive(destination_path, tmp_dir_path)
 
@@ -49,12 +49,5 @@ defmodule BOM.Gather.Sources do
       [_project, _dep_folder] = segments -> Path.join(segments)
       _other -> :crypto.strong_rand_bytes(6) |> Base.encode16()
     end
-  end
-
-  defp create_temp_dir() do
-    tmp_dir_path = Path.join([System.tmp_dir!(), "dependencies"])
-    File.rm_rf!(tmp_dir_path)
-    File.mkdir!(tmp_dir_path)
-    tmp_dir_path
   end
 end

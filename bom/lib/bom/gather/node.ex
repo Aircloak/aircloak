@@ -7,12 +7,13 @@ defmodule BOM.Gather.Node do
   # API
   # -------------------------------------------------------------------
 
-  @doc "Returns a list of packages contained in the given `node_modules` directory."
-  @spec run(String.t()) :: [Package.t()]
+  @doc """
+  Returns the directory to include in the source zip and a list of packages contained in the given `node_modules`
+  directory.
+  """
+  @spec run(String.t()) :: {String.t(), [Package.t()]}
   def run(path) do
-    path
-    |> list_packages()
-    |> Enum.map(&package/1)
+    {path, path |> list_packages() |> Enum.map(&package/1)}
   end
 
   # -------------------------------------------------------------------

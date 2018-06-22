@@ -24,7 +24,7 @@ test = fn
           "mix docs",
           "mix lint",
           "make check-format",
-          "mix bom --elixir deps /tmp/",
+          "mix bom --elixir deps --rust src/rodbc /tmp/",
           "MIX_HOME=_build make dialyze"
         ]}
      ]}
