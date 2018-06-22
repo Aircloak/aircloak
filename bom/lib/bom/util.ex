@@ -15,8 +15,8 @@ defmodule BOM.Util do
   end
 
   @doc "Gets the given https url, using proxy if the HTTPS_PROXY system var is set."
-  @spec https_get(String.t(), Keyword.t()) :: {integer, String.t()} | {:error, any}
-  def https_get(url, options \\ []) do
+  @spec https_get(String.t()) :: {integer, String.t()} | {:error, any}
+  def https_get(url) do
     with {:ok, {{_, status_code, _}, _headers, body}} <- :httpc.request(to_charlist(url), httpc_profile()),
          do: {status_code, :erlang.list_to_binary(body)}
   end
