@@ -23,7 +23,7 @@ defmodule Cloak.Query.DbEmulator do
       query
       |> Query.set_emulation_flag()
       |> Query.resolve_db_columns()
-      |> Compiler.Helpers.apply_top_down(&compile_emulated_joins/1)
+      |> Compiler.Helpers.apply_top_down(&compile_emulated_subqueries/1)
 
     state_updater.(:awaiting_data)
 
@@ -142,7 +142,7 @@ defmodule Cloak.Query.DbEmulator do
   # Transformation of joins for the purposes of emulated query selector
   # -------------------------------------------------------------------
 
-  defp compile_emulated_joins(%Query{emulated?: true, from: {:join, _}} = query) do
+  defp compile_emulated_subqueries(%Query{emulated?: true, from: {:join, _}} = query) do
     query
     |> update_in([Query.Lenses.leaf_tables()], &joined_table_to_subquery(&1, query))
     |> Compiler.Optimizer.optimize()
@@ -154,7 +154,15 @@ defmodule Cloak.Query.DbEmulator do
     |> update_in([Query.Lenses.joins()], &update_join_conditions/1)
   end
 
-  defp compile_emulated_joins(query), do: query
+  defp compile_emulated_subqueries(query = %Query{emulated?: true}),
+    do:
+      update_in(
+        query,
+        [Lens.root(), Query.Lenses.direct_subqueries() |> Lens.key(:ast)],
+        &Query.resolve_db_columns/1
+      )
+
+  defp compile_emulated_subqueries(query), do: query
 
   defp joined_table_to_subquery(table_name, query) do
     required_columns = required_columns_from_table(query, table_name)

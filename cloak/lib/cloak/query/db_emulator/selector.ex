@@ -56,12 +56,14 @@ defmodule Cloak.Query.DbEmulator.Selector do
     end)
   end
 
-  defp update_row_index(column = %{function?: true, function_args: function_args}, source),
+  defp update_row_index(column = %Expression{function?: true, function_args: function_args}, source),
     do: %Expression{
       column
       | row_index: nil,
         function_args: Enum.map(function_args, &update_row_index(&1, source))
     }
+
+  defp update_row_index(column = %Expression{constant?: true}, _source), do: column
 
   defp update_row_index(column, from), do: %Expression{column | row_index: index_in_from(column, from)}
 
@@ -470,6 +472,8 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   defp table_is_in_join_branch?(table_name, joined_table), do: table_name == joined_table
 
+  defp insensitive_equal?(nil, _), do: false
+  defp insensitive_equal?(_, nil), do: false
   defp insensitive_equal?(s1, s2), do: String.downcase(s1) == String.downcase(s2)
 
   # -------------------------------------------------------------------
