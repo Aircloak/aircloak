@@ -5,7 +5,7 @@ defmodule IntegrationTest.Manager do
   alias Air.Schemas.{DataSource, ExportForAircloak, Group, Query, ResultChunk, User, View}
 
   @admin_group_name "admins"
-  @user_password "1234"
+  @user_password "password1234"
   @data_source_name "data_source_name"
 
   def start(_type, _args) do
