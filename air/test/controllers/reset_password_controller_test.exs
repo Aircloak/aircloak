@@ -14,7 +14,10 @@ defmodule Air.ResetPasswordController.Test do
     test "successful reset signs in the user", %{user: user, token: token} do
       conn =
         build_conn()
-        |> put("/reset_password", %{token: token, user: %{password: "1234", password_confirmation: "1234"}})
+        |> put("/reset_password", %{
+          token: token,
+          user: %{password: "password1234", password_confirmation: "password1234"}
+        })
         |> recycle()
         |> get("/profile/edit")
 
@@ -24,7 +27,10 @@ defmodule Air.ResetPasswordController.Test do
     test "resetting with invalid token does not sign in" do
       conn =
         build_conn()
-        |> put("/reset_password", %{token: "whatever", user: %{password: "1234", password_confirmation: "1234"}})
+        |> put("/reset_password", %{
+          token: "whatever",
+          user: %{password: "password1234", password_confirmation: "password1234"}
+        })
         |> recycle()
         |> get("/profile/edit")
 
@@ -34,7 +40,10 @@ defmodule Air.ResetPasswordController.Test do
     test "resetting with invalid confirmation does not sign in", %{token: token} do
       conn =
         build_conn()
-        |> put("/reset_password", %{token: token, user: %{password: "1234", password_confirmation: "12345"}})
+        |> put("/reset_password", %{
+          token: token,
+          user: %{password: "password1234", password_confirmation: "password12345"}
+        })
         |> recycle()
         |> get("/profile/edit")
 

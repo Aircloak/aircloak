@@ -63,7 +63,7 @@ defmodule Air.ProfileController.Test do
     |> put(
       "/profile",
       user: %{
-        old_password: "1234",
+        old_password: "password1234",
         password: "new password",
         password_confirmation: "new password"
       }
