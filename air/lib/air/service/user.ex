@@ -358,7 +358,7 @@ defmodule Air.Service.User do
     user
     |> cast(params, @password_fields)
     |> validate_required(@password_fields)
-    |> validate_length(:password, min: 4)
+    |> validate_length(:password, min: 10)
     |> validate_confirmation(:password)
     |> update_password_hash()
   end

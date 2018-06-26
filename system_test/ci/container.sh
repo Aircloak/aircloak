@@ -45,7 +45,7 @@ function start_air_container {
     'Elixir.Air.Repo.Seeder':seed(),
 
     ok = 'Elixir.Air.Service.PrivacyPolicy':set(<<\"privacy policy\">>),
-    {ok, User} = 'Elixir.Air.Service.User':login(<<\"admin@aircloak.com\">>, <<\"1234\">>),
+    {ok, User} = 'Elixir.Air.Service.User':login(<<\"admin@aircloak.com\">>, <<\"password1234\">>),
     {ok, PrivacyPolicy} = 'Elixir.Air.Service.PrivacyPolicy':get(),
     'Elixir.Air.Service.User':'accept_privacy_policy!'(User, PrivacyPolicy),
 

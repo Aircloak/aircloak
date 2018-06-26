@@ -78,6 +78,7 @@
   "scrivener_html": {:hex, :scrivener_html, "1.7.1", "afa35128fb36184bc469e4531bb1ef61b2d91bb29e373157068c62332291485f", [:mix], [{:phoenix, "~> 1.0-pre and < 1.4.0", [hex: :phoenix, repo: "hexpm", optional: true]}, {:phoenix_html, "~> 2.2", [hex: :phoenix_html, repo: "hexpm", optional: false]}, {:plug, "~> 1.1", [hex: :plug, repo: "hexpm", optional: false]}, {:scrivener, "~> 1.2 or ~> 2.0", [hex: :scrivener, repo: "hexpm", optional: false]}], "hexpm"},
   "ssl_verify_fun": {:hex, :ssl_verify_fun, "1.1.1", "28a4d65b7f59893bc2c7de786dec1e1555bd742d336043fe644ae956c3497fbe", [:make, :rebar], [], "hexpm"},
   "timex": {:hex, :timex, "3.1.24", "d198ae9783ac807721cca0c5535384ebdf99da4976be8cefb9665a9262a1e9e3", [:mix], [{:combine, "~> 0.7", [hex: :combine, repo: "hexpm", optional: false]}, {:gettext, "~> 0.10", [hex: :gettext, repo: "hexpm", optional: false]}, {:tzdata, "~> 0.1.8 or ~> 0.5", [hex: :tzdata, repo: "hexpm", optional: false]}], "hexpm"},
+  "tomlex": {:hex, :tomlex, "0.0.5", "7431c9adcf3b9fdda92750649fadd84ab16c5a061c418709609b4ffef7a1981f", [:mix], [], "hexpm"},
   "tzdata": {:hex, :tzdata, "0.5.16", "13424d3afc76c68ff607f2df966c0ab4f3258859bbe3c979c9ed1606135e7352", [:mix], [{:hackney, "~> 1.0", [hex: :hackney, repo: "hexpm", optional: false]}], "hexpm"},
   "unicode_util_compat": {:hex, :unicode_util_compat, "0.2.0", "dbbccf6781821b1c0701845eaf966c9b6d83d7c3bfc65ca2b78b88b8678bfa35", [:rebar3], [], "hexpm"},
   "uuid": {:hex, :uuid, "1.1.8", "e22fc04499de0de3ed1116b770c7737779f226ceefa0badb3592e64d5cfb4eb9", [:mix], [], "hexpm"},

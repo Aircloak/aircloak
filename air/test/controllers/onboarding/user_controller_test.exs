@@ -7,8 +7,8 @@ defmodule AirWeb.Onboarding.UserController.Test do
     user: %{
       email: "admin@admin.com",
       name: "admin",
-      password: "1234",
-      password_confirmation: "1234",
+      password: "password1234",
+      password_confirmation: "password1234",
       master_password: "super_secret_master_password"
     }
   }
@@ -61,7 +61,7 @@ defmodule AirWeb.Onboarding.UserController.Test do
     Air.TestRepoHelper.create_user!(%{
       name: "test",
       email: "test@example.com",
-      password: "1234",
+      password: "password1234",
       groups: [group.id]
     })
 

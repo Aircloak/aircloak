@@ -29,6 +29,7 @@ import {AuthenticationProvider} from "./authentication_provider";
 import {FrontendSocket} from "./frontend_socket";
 import {NumberFormatExample} from "./number_format";
 import AuditLog from "./audit_log/root";
+import PasswordField from "./password_field";
 
 import codeMirror from "codemirror";
 require("codemirror/mode/markdown/markdown");
@@ -41,6 +42,8 @@ const App = {
   activityMonitor: (props, elem) => App.render("activity_monitor", props, elem),
   numberFormatExample: (props, elem) => App.render("number_format_example", props, elem),
   auditLog: (props, elem) => App.render("audit_log", props, elem),
+  passwordField: (props, elem) => App.render("password_field", props, elem),
+
   attachCodeMirrorToTextArea: (textArea, targetElement) => {
     const elementEditor = codeMirror((elt) => {
       textArea.parentNode.replaceChild(elt, textArea);
@@ -85,6 +88,7 @@ const App = {
       case "activity_monitor": return <ActivityMonitor frontendSocket={App.buildSocket(props)} {...props} />;
       case "number_format_example": return <NumberFormatExample {...props} />;
       case "audit_log": return <AuditLog {...props} />;
+      case "password_field": return <PasswordField {...props} />;
       default: throw new Error("Unknown page");
     }
   },
