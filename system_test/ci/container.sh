@@ -8,7 +8,7 @@ cd $ROOT_DIR
 
 . docker/ci_helper.sh system_test
 
-function prepare_for_compile {
+function build_production_images {
   # By building base images here, we ensure they are also built on the target branches (master and release).
   # This in turn ensures proper caching.
   if [ "$SKIP_DOCKER_BUILD" != "true" ]; then
@@ -19,6 +19,9 @@ function prepare_for_compile {
 }
 
 function prepare_for_system_test {
+  # We need to build the production images again, because the SHA might have changed since the images have been built.
+  build_production_images
+
   local container_name="$1"
 
   # starting databases first, so they have the time to boot and initialize before client containers are started
@@ -169,7 +172,7 @@ fi
 
 case "$1" in
   prepare_for_compile)
-    prepare_for_compile
+    build_production_images
     ;;
 
   prepare_for_system_test)
