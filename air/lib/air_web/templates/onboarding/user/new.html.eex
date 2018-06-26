@@ -9,62 +9,62 @@
 </p>
 
 <%= form_for @changeset, onboarding_user_path(@conn, :create), [class: "form-horizontal"], fn f -> %>
-<%= if @errors && @changeset.errors do %>
-  <div class="alert alert-danger">
-    <p>Oops, something went wrong! Please check the errors below.</p>
-  </div>
-<% end %>
+  <%= if @errors && @changeset.errors do %>
+    <div class="alert alert-danger">
+      <p>Oops, something went wrong! Please check the errors below.</p>
+    </div>
+  <% end %>
 
-<div class="form-group">
-  <%= label f, :master_password, class: "col-sm-3 control-label" %>
-  <div class="col-sm-9">
-    <%= password_input f, :master_password, class: "form-control", value: "" %>
-    <%= error_tag f, :master_password %>
-    <span class="help-block">
-      The master password is defined as part of the <strong>config.json</strong>
-      used to configure this system.
+  <div class="form-group">
+    <%= label f, :master_password, class: "col-sm-3 control-label" %>
+    <div class="col-sm-9">
+      <%= password_input f, :master_password, class: "form-control", value: "" %>
+      <%= error_tag f, :master_password %>
+      <span class="help-block">
+        The master password is defined as part of the <strong>config.json</strong>
+        used to configure this system.
 
-      If you are unsure what the password is, or where to find it, please contact your administrator,
-      or Aircloak at <a href="mailto:support@aircloak.com">support@aircloak.com</a>.
-    </span>
+        If you are unsure what the password is, or where to find it, please contact your administrator,
+        or Aircloak at <a href="mailto:support@aircloak.com">support@aircloak.com</a>.
+      </span>
+    </div>
   </div>
-</div>
 
-<div class="form-group">
-  <%= label f, :email, "Email address", class: "col-sm-3 control-label" %>
-  <div class="col-sm-9">
-    <%= text_input f, :email, class: "form-control" %>
-    <%= error_tag f, :email %>
+  <div class="form-group">
+    <%= label f, :email, "Email address", class: "col-sm-3 control-label" %>
+    <div class="col-sm-9">
+      <%= text_input f, :email, class: "form-control" %>
+      <%= error_tag f, :email %>
+    </div>
   </div>
-</div>
 
-<div class="form-group">
-  <%= label f, :name, class: "col-sm-3 control-label" %>
-  <div class="col-sm-9">
-    <%= text_input f, :name, class: "form-control" %>
-    <%= error_tag f, :name %>
+  <div class="form-group">
+    <%= label f, :name, class: "col-sm-3 control-label" %>
+    <div class="col-sm-9">
+      <%= text_input f, :name, class: "form-control" %>
+      <%= error_tag f, :name %>
+    </div>
   </div>
-</div>
 
-<div class="form-group">
-  <%= label f, :password, class: "col-sm-3 control-label" %>
-  <div class="col-sm-9">
-    <%= password_input f, :password, class: "form-control" %>
-    <%= error_tag f, :password %>
+  <div class="form-group">
+    <%= label f, :password, class: "col-sm-3 control-label" %>
+    <div class="col-sm-9">
+      <%= password_input f, :password, class: "form-control" %>
+      <%= error_tag f, :password %>
+    </div>
   </div>
-</div>
 
-<div class="form-group">
-  <%= label f, :password_confirmation, class: "col-sm-3 control-label" %>
-  <div class="col-sm-9">
-    <%= password_input f, :password_confirmation, class: "form-control" %>
-    <%= error_tag f, :password_confirmation %>
+  <div class="form-group">
+    <%= label f, :password_confirmation, class: "col-sm-3 control-label" %>
+    <div class="col-sm-9">
+      <%= password_input f, :password_confirmation, class: "form-control" %>
+      <%= error_tag f, :password_confirmation %>
+    </div>
   </div>
-</div>
 
-<div class="form-group">
-  <div class="col-sm-offset-3 col-sm-9">
-    <%= submit "Create and login", class: "btn btn-primary" %>
+  <div class="form-group">
+    <div class="col-sm-offset-3 col-sm-9">
+      <%= submit "Create and login", class: "btn btn-primary" %>
+    </div>
   </div>
-</div>
 <% end %>
