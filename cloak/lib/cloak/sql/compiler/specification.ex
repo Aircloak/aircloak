@@ -42,7 +42,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp compile_query(%Query{command: :show, show: :columns} = query),
     do: %Query{
       compile_from(query)
-      | column_titles: ["name", "type"],
+      | column_titles: ["name", "type", "isolates_users"],
         columns:
           Enum.map(
             ["name", "type"],
