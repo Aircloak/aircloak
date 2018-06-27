@@ -14,6 +14,7 @@
 
 - Fix for queries being rejected when one side of a range is negative
 - Fix identification of conditions needing emulation (should result in better performance).
+- Fix redundant scanning of projected tables during cloak initialization.
 
 ### Enhancements
 
