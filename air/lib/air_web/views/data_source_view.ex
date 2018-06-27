@@ -26,6 +26,7 @@ defmodule AirWeb.DataSourceView do
   def availability_label(data_source) do
     case status(data_source) do
       :broken -> content_tag(:span, "Broken", class: "label label-warning")
+      :analyzing -> content_tag(:span, "Analyzing", class: "label label-warning")
       :online -> content_tag(:span, "Online", class: "label label-success")
       :offline -> content_tag(:span, "Offline", class: "label label-danger")
     end

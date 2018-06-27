@@ -16,6 +16,12 @@ defmodule ComplianceCase do
   end
 
   setup_all do
+    for data_source <- data_sources(),
+        {_, table} <- data_source.tables,
+        column <- table.columns do
+      Cloak.TestIsolatorsCache.forward_isolator(data_source, table.name, column.name)
+    end
+
     {:ok, data_sources: data_sources(), disabled: false}
   end
 
@@ -62,6 +68,19 @@ defmodule ComplianceCase do
       |> Enum.reduce(form, fn {column, index}, acc ->
         String.replace(acc, "<col#{index}>", column)
       end)
+
+  @doc false
+  def all_columns() do
+    Enum.concat([
+      float_columns(),
+      integer_columns(),
+      numerical_columns(),
+      datetime_columns(),
+      text_columns(),
+      nullable_columns()
+    ])
+    |> Enum.uniq()
+  end
 
   @doc false
   def float_columns(),
@@ -148,6 +167,8 @@ defmodule ComplianceCase do
       :error ->
         data_sources = Compliance.DataSources.all_from_config_initialized(compliance_file)
         Application.put_env(:cloak, :cached_data_sources, Map.put(cached_data_sources, compliance_file, data_sources))
+        for data_source <- data_sources, do: Cloak.DataSource.replace_data_source_config(data_source)
+        Cloak.TestIsolatorsCache.data_sources_changed()
         data_sources
 
       {:ok, data_sources} ->

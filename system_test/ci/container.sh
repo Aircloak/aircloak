@@ -104,8 +104,8 @@ function start_cloak_container {
     'Elixir.Compliance':regenerate_config_from_db(<<\"config\">>),
     'Elixir.Cloak.DataSource':reinitialize_all_data_sources(),
     sys:get_state('Elixir.Cloak.DataSource'),
-    'Elixir.Supervisor':terminate_child('Elixir.Cloak.Supervisor', 'Elixir.Cloak.AirSocket'),
-    'Elixir.Supervisor':restart_child('Elixir.Cloak.Supervisor', 'Elixir.Cloak.AirSocket'),
+    'Elixir.Supervisor':terminate_child('Elixir.Cloak.Supervisor', 'Elixir.Cloak.AirSocket.Supervisor'),
+    'Elixir.Supervisor':restart_child('Elixir.Cloak.Supervisor', 'Elixir.Cloak.AirSocket.Supervisor'),
     ok
   "
 

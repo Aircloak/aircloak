@@ -55,6 +55,20 @@ defmodule Cloak.Sql.Compiler do
       |> Compiler.Execution.prepare()
       |> Compiler.Normalization.normalize()
 
+  @doc "Prepares the parsed SQL query for directly querying the data source without any processing in the cloak."
+  @spec compile_direct!(Parser.parsed_query(), DataSource.t()) :: Query.t()
+  def compile_direct!(parsed_query, data_source) do
+    compile_standard!(parsed_query, data_source)
+    |> update_in([Query.Lenses.all_queries()], fn query ->
+      columns =
+        query.columns
+        |> Enum.zip(query.column_titles)
+        |> Enum.map(fn {column, title} -> %{column | alias: title} end)
+
+      %{query | subquery?: true, db_columns: columns}
+    end)
+  end
+
   @doc "Validates a user-defined view."
   @spec validate_view(DataSource.t(), Parser.parsed_query(), Query.view_map()) :: :ok | {:error, String.t()}
   def validate_view(data_source, parsed_query, views),

@@ -1270,6 +1270,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
   defp data_source() do
     %{
+      name: "noise_layers_test_data_source",
       driver: Cloak.DataSource.PostgreSQL,
       tables: %{
         table:

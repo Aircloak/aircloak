@@ -117,6 +117,7 @@ defmodule Cloak.Sql.Compiler.Optimizer.Test do
 
   defp data_source() do
     %{
+      name: "optimizer_test_data_source",
       driver: Cloak.DataSource.PostgreSQL,
       tables: %{
         table:

@@ -305,6 +305,7 @@ export default class QueriesView extends React.PureComponent {
     switch (this.state.dataSourceStatus) {
       case "online": return <span className="label label-success">Online</span>;
       case "offline": return <span className="label label-danger">Offline</span>;
+      case "analyzing": return <span className="label label-warning">Analyzing</span>;
       default: return <span className="label label-warning">Broken</span>;
     }
   }

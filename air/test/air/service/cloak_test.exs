@@ -9,7 +9,7 @@ defmodule Air.Service.Cloak.Test do
   @data_source_name "data_source_name"
   @data_source %{name: @data_source_name, tables: []}
   @data_sources [@data_source]
-  @data_sources_that_differ [%{name: @data_source_name, tables: [%{different: true}]}]
+  @data_sources_that_differ [%{name: @data_source_name, tables: [%{different: true, columns: []}]}]
 
   setup do
     wait_for_cleanup()

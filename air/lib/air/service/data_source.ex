@@ -22,7 +22,7 @@ defmodule Air.Service.DataSource do
 
   @type data_source_operation_error :: {:error, :expired | :unauthorized | :not_connected | :internal_error | any}
 
-  @type data_source_status :: :online | :offline | :broken
+  @type data_source_status :: :online | :offline | :broken | :analyzing
 
   @type table :: %{
           id: String.t(),
@@ -30,7 +30,8 @@ defmodule Air.Service.DataSource do
             %{
               name: String.t(),
               type: String.t(),
-              user_id: boolean
+              user_id: boolean,
+              isolated: boolean | nil
             }
           ]
         }
@@ -190,16 +191,11 @@ defmodule Air.Service.DataSource do
   @doc "Creates or updates a data source, returning the updated data source"
   @spec create_or_update_data_source(String.t(), [table], [String.t()]) :: DataSource.t()
   def create_or_update_data_source(name, tables, errors) do
-    case Repo.get_by(DataSource, name: name) do
-      nil ->
-        create!(%{
-          name: name,
-          tables: Poison.encode!(tables),
-          errors: Poison.encode!(errors)
-        })
+    db_data = data_source_to_db_data(name, tables, errors)
 
-      data_source ->
-        update_data_source(data_source, name, tables, errors)
+    case Repo.get_by(DataSource, name: name) do
+      nil -> create!(db_data)
+      data_source -> update!(data_source, db_data)
     end
   end
 
@@ -210,14 +206,11 @@ defmodule Air.Service.DataSource do
   @doc "Describes the current availability of the given data source."
   @spec status(DataSource.t()) :: data_source_status
   def status(data_source) do
-    if available?(data_source.name) do
-      if DataSource.errors(data_source) != [] do
-        :broken
-      else
-        :online
-      end
-    else
-      :offline
+    cond do
+      not available?(data_source.name) -> :offline
+      DataSource.errors(data_source) != [] -> :broken
+      not DataSource.analyzed?(data_source) -> :analyzing
+      true -> :online
     end
   end
 
@@ -449,18 +442,10 @@ defmodule Air.Service.DataSource do
       {:error, :internal_error}
   end
 
-  defp update_data_source(data_source, name, tables, errors),
-    do:
-      update!(data_source, %{
-        name: name,
-        tables: Poison.encode!(tables),
-        errors: Poison.encode!(errors)
-      })
-
   defp data_source_changeset(data_source, params),
     do:
       data_source
-      |> cast(params, ~w(name tables errors description)a)
+      |> cast(params, ~w(name tables errors description columns_count isolated_computed_count)a)
       |> validate_required(~w(name tables)a)
       |> unique_constraint(:name)
       |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
@@ -471,6 +456,32 @@ defmodule Air.Service.DataSource do
         query_id: query.id,
         error: "The query could not be started due to a communication timeout."
       })
+
+  defp data_source_to_db_data(name, tables, errors) do
+    # We're computing total column count and isolated computed count, and storing them directly. This allows us to
+    # have those counts ready, without needing to decode the tables json. Since these counts are frequently needed to
+    # determine the column status, we're precomputing them once.
+
+    counts =
+      tables
+      |> Stream.flat_map(& &1.columns)
+      |> Stream.map(&Map.get(&1, :isolated, nil))
+      |> Enum.reduce(
+        %{total: 0, computed_isolated: 0},
+        fn
+          nil, acc -> %{acc | total: acc.total + 1}
+          _, acc -> %{acc | total: acc.total + 1, computed_isolated: acc.computed_isolated + 1}
+        end
+      )
+
+    %{
+      name: name,
+      tables: Poison.encode!(tables),
+      errors: Poison.encode!(errors),
+      isolated_computed_count: counts.computed_isolated,
+      columns_count: counts.total
+    }
+  end
 
   # -------------------------------------------------------------------
   # Supervision tree

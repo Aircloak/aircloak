@@ -18,11 +18,13 @@ defmodule IntegrationTest.QueryTest do
   test "show columns", context do
     {:ok, result} = run_query(context.user, "show columns from users")
 
-    assert result.buckets == [
-             %{"occurrences" => 1, "row" => ["user_id", "text"]},
-             %{"occurrences" => 1, "row" => ["name", "text"]},
-             %{"occurrences" => 1, "row" => ["height", "integer"]}
-           ]
+    assert [
+             %{"occurrences" => 1, "row" => ["user_id", "text", isolator1]},
+             %{"occurrences" => 1, "row" => ["name", "text", isolator2]},
+             %{"occurrences" => 1, "row" => ["height", "integer", isolator3]}
+           ] = result.buckets
+
+    assert Enum.all?([isolator1, isolator2, isolator3], &(&1 in [true, false, nil]))
   end
 
   test "select", context do

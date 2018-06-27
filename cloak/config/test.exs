@@ -40,7 +40,10 @@ config :cloak, :anonymizer,
 
   # The minimum scale factor for the `sum_noise_sigma`.
   # Takes the form: {lower_bound, average_factor, top_average_factor}
-  sum_noise_sigma_scale_params: {0, 0, 0}
+  sum_noise_sigma_scale_params: {0, 0, 0},
+
+  # This values specifies the isolating factor threshold. See `Isolating columns` in anonymization.md.
+  isolating_column_threshold: 1
 
 config :cloak, :data_source,
   timeout: :timer.hours(12),

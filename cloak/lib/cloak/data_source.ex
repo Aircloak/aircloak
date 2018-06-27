@@ -37,7 +37,6 @@ defmodule Cloak.DataSource do
   The data source schema will also be sent to air, so it can be referenced by incoming tasks.
   """
 
-  alias Aircloak.ChildSpec
   alias Cloak.Sql.Query
   alias Cloak.DataSource.{Validations, Parameters, Driver, Table}
   alias Cloak.Query.ExecutionError
@@ -238,6 +237,13 @@ defmodule Cloak.DataSource do
   def connect!(driver, parameters),
     do: connect_with_retries!(driver, parameters, Application.get_env(:cloak, :connect_retries, 0))
 
+  @doc "Registers the calling process as a listener of data source changes."
+  @spec subscribe_to_changes() :: :ok
+  def subscribe_to_changes() do
+    {:ok, _} = Registry.register(__MODULE__.ChangeListenersRegistry, :subscriber, nil)
+    :ok
+  end
+
   # -------------------------------------------------------------------
   # Callbacks
   # -------------------------------------------------------------------
@@ -258,12 +264,12 @@ defmodule Cloak.DataSource do
   @impl GenServer
   def handle_cast({:update_data_source, data_source}, old_data_sources) do
     updated_data_sources = replace_data_source(old_data_sources, data_source)
-    update_air_on_changes(updated_data_sources, old_data_sources)
+    publish_data_sources_change(updated_data_sources, old_data_sources)
     {:noreply, updated_data_sources}
   end
 
   def handle_cast({:replace_data_sources, new_data_sources}, old_data_sources) do
-    update_air_on_changes(new_data_sources, old_data_sources)
+    publish_data_sources_change(new_data_sources, old_data_sources)
     {:noreply, new_data_sources}
   end
 
@@ -271,10 +277,11 @@ defmodule Cloak.DataSource do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp update_air_on_changes(new_data_sources, old_data_sources) do
+  defp publish_data_sources_change(new_data_sources, old_data_sources) do
     if new_data_sources != old_data_sources do
-      Logger.info("Data sources changed, sending new configurations to air ...")
-      update_air(new_data_sources)
+      __MODULE__.ChangeListenersRegistry
+      |> Registry.lookup(:subscriber)
+      |> Enum.each(fn {subscriber_pid, _} -> send(subscriber_pid, {:data_sources_changed, new_data_sources}) end)
     end
   end
 
@@ -362,7 +369,8 @@ defmodule Cloak.DataSource do
     %{data_source | tables: tables}
   end
 
-  defp replace_data_source_config(data_source), do: GenServer.cast(__MODULE__, {:update_data_source, data_source})
+  @doc false
+  def replace_data_source_config(data_source), do: GenServer.cast(__MODULE__, {:update_data_source, data_source})
 
   # We need a name for the data source in order for the Air to have something to attach
   # potential errors to. Therefore if none exists, we'll create a dummy name based on
@@ -463,14 +471,6 @@ defmodule Cloak.DataSource do
 
   defp update_data_source_connectivity(%{status: :offline} = data_source), do: add_tables(data_source)
 
-  # Cloak.AirSocket.update_config throws during tests where there is no air conterpoint running. Rather than running
-  # a fake socket for test purposes, we opted to make the update call a noop.
-  if Mix.env() == :test do
-    defp update_air(_data_sources), do: :ok
-  else
-    defp update_air(data_sources), do: Cloak.AirSocket.update_config(data_sources)
-  end
-
   defp connect_with_retries!(driver, parameters, 0), do: driver.connect!(parameters)
 
   defp connect_with_retries!(driver, parameters, num_retries) when num_retries > 0 do
@@ -487,10 +487,19 @@ defmodule Cloak.DataSource do
 
   @doc false
   def child_spec(_options \\ []) do
-    ChildSpec.supervisor(
+    import Aircloak.ChildSpec
+
+    supervisor(
       [
-        ChildSpec.gen_server(__MODULE__, load_data_source_configs(), name: __MODULE__),
-        Cloak.DataSource.ConnectionPool,
+        supervisor(
+          [
+            registry(:duplicate, __MODULE__.ChangeListenersRegistry),
+            gen_server(__MODULE__, load_data_source_configs(), name: __MODULE__),
+            Cloak.DataSource.ConnectionPool,
+            Cloak.DataSource.Isolators
+          ],
+          strategy: :rest_for_one
+        ),
         Cloak.DataSource.SerializingUpdater,
         Cloak.DataSource.PostgrexAutoRepair
       ],

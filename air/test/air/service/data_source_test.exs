@@ -183,17 +183,25 @@ defmodule Air.Service.DataSourceTest do
 
   describe "create or update data source" do
     test "should update existing data source" do
-      table = %{table: true}
+      table = %{id: "table_id", columns: []}
       name = "new_name"
-      data_source = DataSource.create_or_update_data_source(name, table, [])
-      assert data_source.id == DataSource.create_or_update_data_source(name, table, []).id
+      data_source = DataSource.create_or_update_data_source(name, [table], [])
+      assert data_source.id == DataSource.create_or_update_data_source(name, [table], []).id
     end
 
     test "should create new data source if none exists" do
-      table = %{table: true}
+      table = %{id: "table_id", columns: []}
       name = "new_name"
       refute Repo.all(Air.Schemas.DataSource) |> Enum.any?(&(&1.name == name))
-      assert %Air.Schemas.DataSource{} = DataSource.create_or_update_data_source(name, table, [])
+      assert %Air.Schemas.DataSource{} = DataSource.create_or_update_data_source(name, [table], [])
+    end
+
+    test "should precompute and store counts" do
+      tables = [%{id: "table_id", columns: [%{isolated: true}, %{isolated: false}, %{isolated: nil}, %{}]}]
+      name = "new_name"
+      data_source = DataSource.create_or_update_data_source(name, tables, [])
+      assert data_source.columns_count == 4
+      assert data_source.isolated_computed_count == 2
     end
   end
 
@@ -286,10 +294,10 @@ defmodule Air.Service.DataSourceTest do
 
   describe "listing data source tables" do
     test "should list available tables" do
-      tables = [%{"table" => true}]
+      tables = [%{id: "table_id", columns: []}]
       name = "new_name"
       data_source = DataSource.create_or_update_data_source(name, tables, [])
-      assert tables == Schemas.DataSource.tables(data_source)
+      assert [%{"id" => "table_id", "columns" => []}] == Schemas.DataSource.tables(data_source)
     end
 
     test "should list views as part of tables" do
