@@ -8,17 +8,22 @@ defmodule BOM.Gather.Elixir do
   # API
   # -------------------------------------------------------------------
 
-  @doc "Returns a list of packages contained in the given `deps` directory."
-  @spec run(String.t()) :: [Package.t()]
+  @doc """
+  Returns the directory to include in the source zip and a list of packages contained in the given `deps` directory.
+  """
+  @spec run(String.t()) :: {String.t(), [Package.t()]}
   def run(deps_path) do
     version_map = version_map(deps_path)
 
-    deps_path
-    |> Path.join("*")
-    |> Path.wildcard()
-    |> Enum.map(&{&1, version_map[package_name(&1)]})
-    |> Enum.filter(fn {_, version} -> version end)
-    |> Enum.map(&package/1)
+    packages =
+      deps_path
+      |> Path.join("*")
+      |> Path.wildcard()
+      |> Enum.map(&{&1, version_map[package_name(&1)]})
+      |> Enum.filter(fn {_, version} -> version end)
+      |> Enum.map(&package/1)
+
+    {deps_path, packages}
   end
 
   # -------------------------------------------------------------------

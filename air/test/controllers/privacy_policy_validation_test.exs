@@ -6,7 +6,7 @@ defmodule AirWeb.PrivacyPolicy.Validation.Test do
   test "if no privacy policy exists a warning is shown once logged in" do
     delete_all_privacy_policies!()
     user = create_user_without_privacy_policy!()
-    logged_in_conn = build_conn() |> post("/auth", email: user.email, password: "1234")
+    logged_in_conn = build_conn() |> post("/auth", email: user.email, password: "password1234")
     assert "/" == redirected_to(logged_in_conn)
     assert recycle(logged_in_conn) |> get("/data_sources") |> response(412)
   end
@@ -14,7 +14,7 @@ defmodule AirWeb.PrivacyPolicy.Validation.Test do
   test "if no privacy policy exists an admin user is redirected to create one" do
     delete_all_privacy_policies!()
     user = create_user_without_privacy_policy!() |> make_admin!()
-    logged_in_conn = build_conn() |> post("/auth", email: user.email, password: "1234")
+    logged_in_conn = build_conn() |> post("/auth", email: user.email, password: "password1234")
     assert "/" == redirected_to(logged_in_conn)
     assert "/admin/privacy_policy/new" == recycle(logged_in_conn) |> get("/data_sources") |> redirected_to()
   end
@@ -22,7 +22,7 @@ defmodule AirWeb.PrivacyPolicy.Validation.Test do
   test "users are asked to accept the privacy policy" do
     create_privacy_policy!()
     user = create_user_without_privacy_policy!()
-    logged_in_conn = build_conn() |> post("/auth", email: user.email, password: "1234")
+    logged_in_conn = build_conn() |> post("/auth", email: user.email, password: "password1234")
     assert "/" == redirected_to(logged_in_conn)
 
     assert get_flash(logged_in_conn)["info"] =~ "Logged in successfully"
@@ -33,7 +33,7 @@ defmodule AirWeb.PrivacyPolicy.Validation.Test do
 
   test "no out of the ordinary behaviour if a privacy policy exists and has been accepted" do
     user = create_user!()
-    logged_in_conn = build_conn() |> post("/auth", email: user.email, password: "1234")
+    logged_in_conn = build_conn() |> post("/auth", email: user.email, password: "password1234")
     assert "/" == redirected_to(logged_in_conn)
 
     assert get_flash(logged_in_conn)["info"] =~ "Logged in successfully"

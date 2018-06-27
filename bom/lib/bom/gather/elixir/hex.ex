@@ -46,14 +46,7 @@ defmodule BOM.Gather.Elixir.Hex do
   end
 
   defp request_package(name, version) do
-    options =
-      case System.get_env("HTTPS_PROXY") do
-        nil -> []
-        proxy -> [proxy: proxy]
-      end
-
-    with {:ok, response} <- HTTPoison.get("#{@endpoint}/#{name}-#{version}.tar", [], options),
-         do: {response.status_code, response.body}
+    BOM.Util.https_get("#{@endpoint}/#{name}-#{version}.tar")
   end
 
   defp decode_licenses(tarball_content) do

@@ -3,13 +3,16 @@ defmodule Mix.Tasks.Bom do
   @usage """
     Usage:
 
-      mix bom [--node <path>]+ [--elixir <path>]+ <outdir>
+      mix bom [--node <path>]+ [--elixir <path>]+ [--rust <path>] <outdir>
 
       Add a --node switch for every node_modules directory to be searched. An yarn.lock file is
       assumed to exist at the same level as this directory.
 
       Add a --elixir switch for every elixir deps directory to be searched. A mix.lock file is assumed to
       exist at the same level as this directory.
+
+      Add a --rust switch for every rust project to be searched. A Cargo.lock file is assumed to exist in that
+      directory.
 
       In the <outdir> directory, the following files will be generated:
       - bom.json: contains the bill of material in JSON format
@@ -25,7 +28,7 @@ defmodule Mix.Tasks.Bom do
   @dialyzer :no_undefined_callbacks
 
   def run(args) do
-    case OptionParser.parse(args, strict: [node: :keep, elixir: :keep]) do
+    case OptionParser.parse(args, strict: [node: :keep, elixir: :keep, rust: :keep]) do
       {dirs, [outdir], []} ->
         do_run(dirs, outdir)
 
@@ -39,7 +42,7 @@ defmodule Mix.Tasks.Bom do
     {:ok, _} = Application.ensure_all_started(:bom)
 
     IO.puts("Gathering package data...")
-    packages = packages(dirs)
+    {dirs, packages} = packages(dirs)
     IO.puts("Processing #{Enum.count(packages)} packages...")
 
     {invalid, valid} =
@@ -69,11 +72,15 @@ defmodule Mix.Tasks.Bom do
   end
 
   defp packages(dirs) do
-    dirs
-    |> Enum.flat_map(&do_packages/1)
-    |> Enum.uniq_by(&{&1.realm, &1.name, &1.license})
+    {dirs, packages} =
+      dirs
+      |> Enum.map(&do_packages/1)
+      |> Enum.unzip()
+
+    {dirs, packages |> Enum.concat() |> Enum.uniq_by(&{&1.realm, &1.name, &1.license})}
   end
 
   defp do_packages({:node, dir}), do: BOM.Gather.Node.run(dir)
   defp do_packages({:elixir, dir}), do: BOM.Gather.Elixir.run(dir)
+  defp do_packages({:rust, dir}), do: BOM.Gather.Rust.run(dir)
 end

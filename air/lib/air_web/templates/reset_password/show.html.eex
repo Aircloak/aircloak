@@ -8,7 +8,7 @@
 
         <div class="form-group">
           <label>Password</label>
-          <%= password_input f, :password, class: "form-control" %>
+          <div id="password-field"></div>
           <%= error_tag f, :password %>
         </div>
 
@@ -25,3 +25,12 @@
     </div>
   </div>
 </div>
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      var props = {className: "form-control", id: "user_password", name: "user[password]"};
+      App.passwordField(props, document.getElementById("password-field"));
+    }
+  };
+</script>

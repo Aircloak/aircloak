@@ -89,7 +89,8 @@ exports.config = {
       "react-date-picker",
       "moment.js",
       "moment-timezone",
-      "eonasdan-bootstrap-datetimepicker"
+      "eonasdan-bootstrap-datetimepicker",
+      "zxcvbn"
     ],
 
     globals: {

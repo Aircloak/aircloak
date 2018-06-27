@@ -153,28 +153,20 @@ function build_aircloak_image {
     build_args="--cache-from $full_image_name:$image_version $build_args"
   fi
 
-  {
-    mkdir -p tmp
-    echo "[aircloak] building $full_image_name"
-    cat $dockerfile |
-      dockerfile_content |
-      sed "s|\$RELEASE_VERSION|$SYSTEM_VERSION|" |
-      sed "s/\$DEBIAN_VERSION/$(debian_version)/" |
-      sed "s/\$ERLANG_VERSION/$(erlang_version)/" |
-      sed "s/\$ELIXIR_VERSION/$(elixir_version)/" |
-      sed "s/\$RUST_VERSION/$(rust_version)/" |
-      sed "s/\$NODEJS_VERSION/$(nodejs_version)/" |
-      sed "s#\\\$CLOAK_CACHE#$(cloak_cache_folder)#" > "$temp_docker_file"
-    docker build $build_args
+  mkdir -p tmp
+  echo "[aircloak] building $full_image_name"
 
-    # We'll also tag the image with the current git head sha, and remove all obsolete git_sha_* image tags, which point
-    # to an older head. This allows us to keep cached builds for all currently known branches (local and remotes),
-    # which significantly reduces the image build time in the cases where there are significant differences between
-    # different branches.
+  cat $dockerfile |
+    dockerfile_content |
+    sed "s|\$RELEASE_VERSION|$SYSTEM_VERSION|" |
+    sed "s/\$DEBIAN_VERSION/$(debian_version)/" |
+    sed "s/\$ERLANG_VERSION/$(erlang_version)/" |
+    sed "s/\$ELIXIR_VERSION/$(elixir_version)/" |
+    sed "s/\$RUST_VERSION/$(rust_version)/" |
+    sed "s/\$NODEJS_VERSION/$(nodejs_version)/" |
+    sed "s#\\\$CLOAK_CACHE#$(cloak_cache_folder)#" > "$temp_docker_file"
 
-    docker tag $full_image_name:$image_version $full_image_name:$(git_head_image_tag)
-    remove_old_git_head_image_tags $full_image_name
-  } || {
+  docker build $build_args || {
     # called in the case of an error
     exit_code=$?
     if [ -f "$temp_docker_file" ]; then rm "$temp_docker_file"; fi
@@ -182,6 +174,14 @@ function build_aircloak_image {
     cd $curdir
     exit $exit_code
   }
+
+  # We'll also tag the image with the current git head sha, and remove all obsolete git_sha_* image tags, which point
+  # to an older head. This allows us to keep cached builds for all currently known branches (local and remotes),
+  # which significantly reduces the image build time in the cases where there are significant differences between
+  # different branches.
+
+  docker tag $full_image_name:$image_version $full_image_name:$(git_head_image_tag)
+  remove_old_git_head_image_tags $full_image_name
 
   if [ -f "$temp_docker_file" ]; then rm "$temp_docker_file"; fi
   if [ -f .dockerignore ]; then rm .dockerignore; fi
@@ -270,7 +270,7 @@ function mpi_init {
   # Support for rebuilding of all images. Change this date if you want to
   # force the rebuild of all images. Usually you want to do this if you
   # want to upgrade Debian packages on all images.
-  upgrade_date="20180507"
+  upgrade_date="20180626"
   echo "RUN echo '$upgrade_date' > /dev/null"
 
   # Start the RUN command

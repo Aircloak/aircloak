@@ -93,7 +93,7 @@
 
           <div class="form-group">
             <label>New Password</label>
-            <%= password_input f, :password, class: "form-control" %>
+            <div id="password-field"></div>
             <%= error_tag f, :password %>
           </div>
 
@@ -197,6 +197,9 @@
     onLoad: function(App) {
       var props = <%= to_json(number_format_settings(@conn)) %>;
       App.numberFormatExample(props, document.getElementById("example"));
+
+      var passwordProps = {className: "form-control", id: "user_password", name: "user[password]"};
+      App.passwordField(passwordProps, document.getElementById("password-field"));
     }
   };
 </script>

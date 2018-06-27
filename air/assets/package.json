@@ -25,7 +25,8 @@
     "react-codemirror": "git://github.com/sslotsky/react-codemirror#940bdfab59cb7c295f57c7f6c9aa7bb24d395277",
     "react-dom": "^15.4.2",
     "uglify-js-brunch": "~1.7.0",
-    "uuid": "^3.1.0"
+    "uuid": "^3.1.0",
+    "zxcvbn": "^4.4.2"
   },
   "optionalDependencies": {
     "fsevents": "*"

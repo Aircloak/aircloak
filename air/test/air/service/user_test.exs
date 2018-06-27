@@ -19,12 +19,18 @@ defmodule Air.Service.UserTest do
       do: assert(error_on(&User.create/1, :email, "invalid_email") == "has invalid format")
 
     test "create cannot set the password" do
-      User.create(%{email: "email@example.com", name: "Person", password: "1234", password_confirmation: "1234"})
-      assert {:error, _} = User.login("email@example.com", "1234")
+      User.create(%{
+        email: "email@example.com",
+        name: "Person",
+        password: "password1234",
+        password_confirmation: "password1234"
+      })
+
+      assert {:error, _} = User.login("email@example.com", "password1234")
     end
 
     test "admin update cannot set the password" do
-      user = TestRepoHelper.create_user!(%{password: "1234"})
+      user = TestRepoHelper.create_user!(%{password: "password1234"})
       User.update(user, %{password: "new password", password_confirmation: "new password"})
       assert {:error, _} = User.login("email@example.com", "new password")
     end
@@ -33,16 +39,16 @@ defmodule Air.Service.UserTest do
       do: assert(error_on(&User.create/1, :name, "a") == "should be at least 2 character(s)")
 
     test "only update hashed password on password change" do
-      user = TestRepoHelper.create_user!(%{password: "1234"})
+      user = TestRepoHelper.create_user!(%{password: "password1234"})
 
       {:ok, updated_user} = User.update_profile(user, %{"name" => "foobar"})
       assert updated_user.hashed_password == user.hashed_password
 
       {:ok, updated_user} =
         User.update_profile(user, %{
-          "old_password" => "1234",
-          "password" => "wxyz",
-          "password_confirmation" => "wxyz"
+          "old_password" => "password1234",
+          "password" => "passwordwxyz",
+          "password_confirmation" => "passwordwxyz"
         })
 
       refute updated_user.hashed_password == user.hashed_password
@@ -300,7 +306,11 @@ defmodule Air.Service.UserTest do
       old_email = user.email
 
       assert {:ok, %{email: ^old_email}} =
-               User.reset_password(token, %{password: "1234", password_confirmation: "1234", email: "new@email.com"})
+               User.reset_password(token, %{
+                 password: "password1234",
+                 password_confirmation: "password1234",
+                 email: "new@email.com"
+               })
     end
 
     test "successful change", %{user: user, token: token} do
