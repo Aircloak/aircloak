@@ -88,7 +88,7 @@ defmodule Cloak.DataSource.Table do
           acc
         else
           case data_source.tables[id] do
-            %{columns: [_]} = loaded_table -> Map.put(acc, id, Map.put(loaded_table, :query, nil))
+            %{columns: [_|_]} = loaded_table -> Map.put(acc, id, Map.put(loaded_table, :query, nil))
             _ -> data_source |> load_tables(connection, {id, table}) |> Enum.into(acc)
           end
         end
