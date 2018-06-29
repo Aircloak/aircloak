@@ -63,7 +63,11 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   def unicode_literal(value), do: ["N'", value, ?']
 
   @impl Dialect
-  def cast_sql(value, _, :integer), do: ["CAST(", function_sql("round", [value]), " AS bigint)"]
+  def cast_sql(value, :real, :integer), do: ["CAST(", function_sql("round", [value]), " AS bigint)"]
+
+  def cast_sql(value, from, :boolean) when from in [:real, :integer],
+    do: ["CASE WHEN ", value, " != 0 THEN TRUE WHEN ", value, " = 0 THEN FALSE ELSE NULL END"]
+
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect
