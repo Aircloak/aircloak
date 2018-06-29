@@ -29,8 +29,8 @@ defmodule Cloak.DataSource.Isolators.Query do
       SELECT COUNT(keep) FROM (
         SELECT 1 AS keep
         FROM #{table}
-        GROUP BY #{column}
-        HAVING COUNT(DISTINCT #{user_id(data_source, table)}) = 1
+        GROUP BY "#{column}"
+        HAVING COUNT(DISTINCT "#{user_id(data_source, table)}") = 1
       ) x
     """
     |> select_one!(data_source)
@@ -41,7 +41,7 @@ defmodule Cloak.DataSource.Isolators.Query do
       SELECT COUNT(keep) FROM (
         SELECT 1 AS keep
         FROM #{table}
-        GROUP BY #{column}
+        GROUP BY "#{column}"
       ) x
     """
     |> select_one!(data_source)
