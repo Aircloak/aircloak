@@ -11,10 +11,15 @@ defmodule Cloak.DataSource.Isolators.Query do
   @doc "Returns true if the given column in the given table is isolating, false otherwise."
   @spec isolates_users?(DataSource.t(), String.t(), String.t()) :: boolean
   def isolates_users?(data_source, table, column) do
-    if column == user_id(data_source, table) do
-      true
-    else
-      isolating_values(data_source, table, column) / (unique_values(data_source, table, column) + 1) > threshold()
+    case user_id(data_source, table) do
+      nil ->
+        false
+
+      ^column ->
+        true
+
+      _ ->
+        isolating_values(data_source, table, column) / (unique_values(data_source, table, column) + 1) > threshold()
     end
   end
 
@@ -29,8 +34,8 @@ defmodule Cloak.DataSource.Isolators.Query do
       SELECT COUNT(keep) FROM (
         SELECT 1 AS keep
         FROM #{table}
-        GROUP BY #{column}
-        HAVING COUNT(DISTINCT #{user_id(data_source, table)}) = 1
+        GROUP BY "#{column}"
+        HAVING COUNT(DISTINCT "#{user_id(data_source, table)}") = 1
       ) x
     """
     |> select_one!(data_source)
@@ -41,7 +46,7 @@ defmodule Cloak.DataSource.Isolators.Query do
       SELECT COUNT(keep) FROM (
         SELECT 1 AS keep
         FROM #{table}
-        GROUP BY #{column}
+        GROUP BY "#{column}"
       ) x
     """
     |> select_one!(data_source)
