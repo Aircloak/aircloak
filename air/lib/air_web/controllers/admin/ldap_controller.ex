@@ -28,7 +28,7 @@ defmodule AirWeb.Admin.LDAPController do
   # -------------------------------------------------------------------
 
   defp save(conn, params) do
-    case Air.Service.Settings.save(params["settings"]) do
+    case Air.Service.Settings.save_ldap(params["settings"]) do
       {:ok, settings} ->
         AuditLog.log(conn.assigns.current_user, "Updated LDAP settings", settings)
 

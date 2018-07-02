@@ -5,6 +5,7 @@ defmodule Air.Service.Settings do
 
   @required_fields ~w(audit_log_enabled decimal_sep decimal_digits)a
   @optional_fields ~w(query_retention_days thousand_sep)a
+  @ldap_fields ~w(ldap_host ldap_port ldap_ssl ldap_ca_cert)a
 
   # -------------------------------------------------------------------
   # API functions
@@ -17,11 +18,13 @@ defmodule Air.Service.Settings do
   @doc "Saves the specified settings."
   @spec save(%{optional(atom) => any()}) :: {:ok, Air.Schemas.Settings.t()} | {:error, Ecto.Changeset.t()}
   def save(params) do
-    changeset = latest_settings() |> changeset(params)
+    latest_settings() |> changeset(params) |> do_save()
+  end
 
-    if changeset.data.id,
-      do: Air.Repo.update(changeset),
-      else: Air.Repo.insert(changeset)
+  @doc "Saves the specified LDAP settings."
+  @spec save_ldap(Map.t()) :: {:ok, Air.Schemas.Settings.t()} | {:error, Ecto.Changeset.t()}
+  def save_ldap(params) do
+    latest_settings() |> ldap_changeset(params) |> do_save()
   end
 
   @doc "Returns the changeset for the latest settings."
@@ -32,13 +35,23 @@ defmodule Air.Service.Settings do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp do_save(changeset) do
+    if changeset.data.id,
+      do: Air.Repo.update(changeset),
+      else: Air.Repo.insert(changeset)
+  end
+
   defp parse(schema) do
     %Air.Settings{
       query_retention_days: unserialize_retention_days(schema.query_retention_days),
       audit_log_enabled: schema.audit_log_enabled,
       decimal_sep: schema.decimal_sep,
       thousand_sep: schema.thousand_sep || "",
-      decimal_digits: schema.decimal_digits
+      decimal_digits: schema.decimal_digits,
+      ldap_host: schema.ldap_host,
+      ldap_port: schema.ldap_port,
+      ldap_ssl: schema.ldap_ssl,
+      ldap_ca_cert: nil
     }
   end
 
@@ -50,6 +63,12 @@ defmodule Air.Service.Settings do
 
   defp unserialize_retention_days(nil), do: :unlimited
   defp unserialize_retention_days(days), do: days
+
+  defp ldap_changeset(settings, params) do
+    settings
+    |> cast(params, @ldap_fields)
+    |> validate_number(:ldap_port, greater_than_or_equal_to: 1)
+  end
 
   defp changeset(settings, params \\ %{}) do
     settings
@@ -66,6 +85,10 @@ defmodule Air.Service.Settings do
       audit_log_enabled: true,
       decimal_sep: ".",
       thousand_sep: " ",
-      decimal_digits: 3
+      decimal_digits: 3,
+      ldap_host: "",
+      ldap_port: nil,
+      ldap_ssl: false,
+      ldap_ca_cert: nil
     }
 end
