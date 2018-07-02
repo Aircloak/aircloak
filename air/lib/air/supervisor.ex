@@ -6,6 +6,7 @@ defmodule Air.Supervisor do
       [
         Air.Repo,
         Air.Repo.Migrator,
+        Air.Service.Settings,
         Air.Service.Cloak,
         Air.Service.DataSource,
         Air.Service.View,

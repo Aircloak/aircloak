@@ -1,6 +1,8 @@
 defmodule Air.Service.Settings do
   @moduledoc "Services for reading and writing Air-wide options."
 
+  use GenServer
+
   import Ecto.Changeset
 
   @required_fields ~w(audit_log_enabled decimal_sep decimal_digits)a
@@ -12,25 +14,49 @@ defmodule Air.Service.Settings do
 
   @doc "Returns the current version of the settings."
   @spec read() :: Air.Settings.t()
-  def read(), do: parse(latest_settings())
+  def read(), do: GenServer.call(__MODULE__, :read)
 
   @doc "Saves the specified settings."
   @spec save(%{optional(atom) => any()}) :: {:ok, Air.Schemas.Settings.t()} | {:error, Ecto.Changeset.t()}
-  def save(params) do
-    changeset = latest_settings() |> changeset(params)
-
-    if changeset.data.id,
-      do: Air.Repo.update(changeset),
-      else: Air.Repo.insert(changeset)
-  end
+  def save(params), do: GenServer.call(__MODULE__, {:save, params})
 
   @doc "Returns the changeset for the latest settings."
   @spec latest_changeset() :: Ecto.Changeset.t()
-  def latest_changeset(), do: changeset(latest_settings())
+  def latest_changeset(), do: GenServer.call(__MODULE__, :latest_changeset)
+
+  # -------------------------------------------------------------------
+  # GenServer callbacks
+  # -------------------------------------------------------------------
+
+  def start_link(_args), do: GenServer.start_link(__MODULE__, nil, name: __MODULE__)
+
+  @impl GenServer
+  def init(_args), do: {:ok, latest_settings()}
+
+  @impl GenServer
+  def handle_call(:read, _from, state), do: {:reply, parse(state), state}
+
+  def handle_call({:save, params}, _from, state) do
+    latest_settings()
+    |> changeset(params)
+    |> do_save()
+    |> case do
+      {:ok, updated} -> {:reply, {:ok, updated}, updated}
+      {:error, changeset} -> {:reply, {:error, changeset}, state}
+    end
+  end
+
+  def handle_call(:latest_changeset, _from, state), do: {:reply, changeset(state), state}
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp do_save(changeset) do
+    if changeset.data.id,
+      do: Air.Repo.update(changeset),
+      else: Air.Repo.insert(changeset)
+  end
 
   defp parse(schema) do
     %Air.Settings{

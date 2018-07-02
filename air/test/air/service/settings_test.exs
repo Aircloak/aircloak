@@ -1,13 +1,5 @@
 defmodule Air.Service.Settings.Test do
-  use ExUnit.Case, async: false
-
-  alias Air.Repo
-
-  setup do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
-    Repo.delete_all(Air.Schemas.Settings)
-    :ok
-  end
+  use Air.SchemaCase, async: false
 
   test "reading default settings" do
     assert Air.Service.Settings.read() ==
