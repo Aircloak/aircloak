@@ -14,15 +14,15 @@ defmodule Air.Service.Settings do
 
   @doc "Returns the current version of the settings."
   @spec read() :: Air.Settings.t()
-  def read(), do: GenServer.call(__MODULE__, :read)
+  def read(server \\ __MODULE__), do: GenServer.call(server, :read)
 
   @doc "Saves the specified settings."
   @spec save(%{optional(atom) => any()}) :: {:ok, Air.Schemas.Settings.t()} | {:error, Ecto.Changeset.t()}
-  def save(params), do: GenServer.call(__MODULE__, {:save, params})
+  def save(server \\ __MODULE__, params), do: GenServer.call(server, {:save, params})
 
   @doc "Returns the changeset for the latest settings."
   @spec latest_changeset() :: Ecto.Changeset.t()
-  def latest_changeset(), do: GenServer.call(__MODULE__, :latest_changeset)
+  def latest_changeset(server \\ __MODULE__), do: GenServer.call(server, :latest_changeset)
 
   # -------------------------------------------------------------------
   # GenServer callbacks
