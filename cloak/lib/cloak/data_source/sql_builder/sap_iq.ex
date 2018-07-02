@@ -72,5 +72,6 @@ defmodule Cloak.DataSource.SqlBuilder.SAPIQ do
 
   defp sql_type(:text), do: "nvarchar"
   defp sql_type(:datetime), do: "timestamp"
+  defp sql_type(:boolean), do: "bit"
   defp sql_type(type) when is_atom(type), do: Atom.to_string(type)
 end
