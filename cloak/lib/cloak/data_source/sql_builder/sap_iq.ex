@@ -55,6 +55,28 @@ defmodule Cloak.DataSource.SqlBuilder.SAPIQ do
 
   @impl Dialect
   def cast_sql(value, :real, :integer), do: ["CAST(ROUND(", value, ", 0) AS ", sql_type(:integer), ")"]
+
+  def cast_sql(value, :boolean, :integer), do: value
+
+  def cast_sql(value, :boolean, :text),
+    do: ["(CASE WHEN ", value, " = 1 THEN 'true' WHEN ", value, " = 0 THEN 'false' ELSE NULL END)"]
+
+  def cast_sql(value, type, :boolean) when type in [:integer, :real],
+    do: ["(CASE WHEN ", value, " <> 0 THEN 1 WHEN ", value, " = 0 THEN 0 ELSE NULL END)"]
+
+  def cast_sql(value, :text, :boolean),
+    do: [
+      "(CASE WHEN LOWER(",
+      value,
+      ") = 'true' THEN 1 WHEN LOWER(",
+      value,
+      ") = 'false' THEN 0 WHEN ",
+      value,
+      " = '1' THEN 1 WHEN ",
+      value,
+      " = '0' THEN 0 ELSE NULL END)"
+    ]
+
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect
