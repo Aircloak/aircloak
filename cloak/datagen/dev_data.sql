@@ -428,20 +428,20 @@ COPY demographics (uid, name, age, alive) FROM stdin;
 15	George	60	FALSE
 16	Lisa	25	FALSE
 17	Steven	50	TRUE
-18	Isabel	27	TRUE
-19	Isabel	28	TRUE
-20	Isabel	29	TRUE
-21	Isabel	30	TRUE
-22	Isabel	31	TRUE
-23	Isabel	32	TRUE
-24	Isabel	33	TRUE
+18	Alice	27	TRUE
+19	Alice	28	TRUE
+20	Bob	29	TRUE
+21	Bob	30	TRUE
+22	Cecilia	31	TRUE
+23	Cecilia	32	TRUE
+24	Cecilia	33	TRUE
 25	Lisa	34	FALSE
 26	Weronika	24	FALSE
 27	Muni	28	FALSE
 28	Melanie	27	FALSE
 29	Elena	32	FALSE
-30	Isabel	26	FALSE
-31	Isabel	25	FALSE
+30	Dan	26	FALSE
+31	Dan	25	FALSE
 \.
 
 REVOKE ALL ON TABLE demographics FROM PUBLIC;
