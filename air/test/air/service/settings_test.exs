@@ -1,23 +1,21 @@
 defmodule Air.Service.Settings.Test do
-  use ExUnit.Case, async: false
-
-  alias Air.Repo
+  use Air.SchemaCase, async: false
 
   setup do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Repo)
-    Repo.delete_all(Air.Schemas.Settings)
-    :ok
+    Air.Repo.delete_all(Air.Schemas.Settings)
+    {:ok, server} = GenServer.start_link(Air.Service.Settings, nil)
+    {:ok, server: server}
   end
 
-  test "reading default settings" do
-    assert Air.Service.Settings.read() ==
+  test "reading default settings", %{server: server} do
+    assert Air.Service.Settings.read(server) ==
              %Air.Settings{
                query_retention_days: :unlimited,
                audit_log_enabled: true,
                decimal_digits: 3,
                decimal_sep: ".",
                thousand_sep: " ",
-               ldap_host: "",
+               ldap_host: nil,
                ldap_port: nil,
                ldap_ssl: false,
                ldap_ca_cert: nil
@@ -25,37 +23,37 @@ defmodule Air.Service.Settings.Test do
   end
 
   describe ".save" do
-    test "set retention" do
-      Air.Service.Settings.save(%{"query_retention_days" => 120})
-      assert Air.Service.Settings.read().query_retention_days == 120
+    test "set retention", %{server: server} do
+      Air.Service.Settings.save(server, %{"query_retention_days" => 120})
+      assert Air.Service.Settings.read(server).query_retention_days == 120
     end
 
-    test "set and unset retention" do
-      Air.Service.Settings.save(%{"query_retention_days" => 120})
-      Air.Service.Settings.save(%{"query_retention_days" => nil})
-      assert Air.Service.Settings.read().query_retention_days == :unlimited
+    test "set and unset retention", %{server: server} do
+      Air.Service.Settings.save(server, %{"query_retention_days" => 120})
+      Air.Service.Settings.save(server, %{"query_retention_days" => nil})
+      assert Air.Service.Settings.read(server).query_retention_days == :unlimited
     end
 
-    test "disable audit log" do
-      Air.Service.Settings.save(%{"audit_log_enabled" => false})
-      assert Air.Service.Settings.read().audit_log_enabled == false
+    test "disable audit log", %{server: server} do
+      Air.Service.Settings.save(server, %{"audit_log_enabled" => false})
+      assert Air.Service.Settings.read(server).audit_log_enabled == false
     end
 
-    test "cannot set LDAP settings" do
-      Air.Service.Settings.save(%{"ldap_host" => "new_host"})
-      assert Air.Service.Settings.read().ldap_host == ""
+    test "cannot set LDAP settings", %{server: server} do
+      Air.Service.Settings.save(server, %{"ldap_host" => "new_host"})
+      assert Air.Service.Settings.read(server).ldap_host == nil
     end
   end
 
   describe ".save_ldap" do
-    test "cannot set non-LDAP settings" do
-      Air.Service.Settings.save_ldap(%{"query_retention_days" => 120})
-      assert Air.Service.Settings.read().query_retention_days == :unlimited
+    test "cannot set non-LDAP settings", %{server: server} do
+      Air.Service.Settings.save_ldap(server, %{"query_retention_days" => 120})
+      assert Air.Service.Settings.read(server).query_retention_days == :unlimited
     end
 
-    test "can set LDAP settings" do
-      Air.Service.Settings.save_ldap(%{"ldap_port" => 389})
-      assert Air.Service.Settings.read().ldap_port == 389
+    test "can set LDAP settings", %{server: server} do
+      Air.Service.Settings.save_ldap(server, %{"ldap_port" => 389})
+      assert Air.Service.Settings.read(server).ldap_port == 389
     end
   end
 end
