@@ -12,14 +12,9 @@ defmodule Cloak.DataSource.Isolators.Query do
   @spec isolates_users?(DataSource.t(), String.t(), String.t()) :: boolean
   def isolates_users?(data_source, table, column) do
     case user_id(data_source, table) do
-      nil ->
-        false
-
-      ^column ->
-        true
-
-      _ ->
-        isolating_values(data_source, table, column) / (unique_values(data_source, table, column) + 1) > threshold()
+      nil -> false
+      ^column -> true
+      _ -> isolating_ratio(data_source, table, column) > threshold()
     end
   end
 
@@ -27,33 +22,22 @@ defmodule Cloak.DataSource.Isolators.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp isolating_values(data_source, table, column) do
-    # The keep field is needed for backends that don't allow an empty SELECT list, like SQLServer.
-    # It needs to be used in the outer query so that it's not removed by the Optimizer.
-    """
-      SELECT COUNT(keep) FROM (
-        SELECT 1 AS keep
-        FROM #{table}
-        GROUP BY "#{column}"
-        HAVING COUNT(DISTINCT "#{user_id(data_source, table)}") = 1
-      ) x
-    """
-    |> select_one!(data_source)
-  end
+  defp isolating_ratio(data_source, table, column) do
+    [non_isolating_values, unique_values] =
+      """
+        SELECT SUM(CAST(non_isolating AS integer)), COUNT(*) FROM (
+          SELECT CAST(COUNT(DISTINCT "#{user_id(data_source, table)}") - 1 AS boolean) AS non_isolating
+          FROM #{table}
+          GROUP BY "#{column}"
+        ) x
+      """
+      |> select_one!(data_source)
 
-  defp unique_values(data_source, table, column) do
-    """
-      SELECT COUNT(keep) FROM (
-        SELECT 1 AS keep
-        FROM #{table}
-        GROUP BY "#{column}"
-      ) x
-    """
-    |> select_one!(data_source)
+    (unique_values - (non_isolating_values || 0)) / (unique_values + 1)
   end
 
   defp select_one!(query, data_source) do
-    [[result]] =
+    [result] =
       query
       |> Parser.parse!()
       |> Compiler.compile_direct!(data_source)
