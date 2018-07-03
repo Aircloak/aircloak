@@ -28,11 +28,23 @@ defmodule Air.Service.LDAP do
   # -------------------------------------------------------------------
 
   defp authenticate(ldap_dn, password) do
-    with {:ok, connection} <- open_connection(),
-         :ok <- Exldap.verify_credentials(connection, ldap_dn, password) do
-      true
+    with_connection(
+      fn connection ->
+        match?(:ok, Exldap.verify_credentials(connection, ldap_dn, password))
+      end,
+      _default = false
+    )
+  end
+
+  defp with_connection(action, default) do
+    with {:ok, connection} <- open_connection() do
+      try do
+        action.(connection)
+      after
+        Exldap.close(connection)
+      end
     else
-      _ -> false
+      _ -> default
     end
   end
 
