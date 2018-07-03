@@ -2,7 +2,7 @@ defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
   alias Air.Repo
-  alias Air.Service.{AuditLog, PrivacyPolicy, Settings}
+  alias Air.Service.{AuditLog, PrivacyPolicy, Settings, LDAP}
   alias Air.Schemas.{DataSource, Group, User}
   alias Air.Schemas
   import Ecto.Query, only: [from: 2]
@@ -23,15 +23,19 @@ defmodule Air.Service.User do
     user = find_user(login)
 
     cond do
+      is_nil(user) ->
+        {:error, :invalid_email_or_password}
+
       User.validate_password(user, password) ->
         AuditLog.log(user, "Logged in", meta)
         {:ok, user}
 
-      user ->
-        AuditLog.log(user, "Failed login", meta)
-        {:error, :invalid_email_or_password}
+      LDAP.validate_password(user.ldap_dn, password) ->
+        AuditLog.log(user, "Logged in via LDAP", meta)
+        {:ok, user}
 
       true ->
+        AuditLog.log(user, "Failed login", meta)
         {:error, :invalid_email_or_password}
     end
   end
