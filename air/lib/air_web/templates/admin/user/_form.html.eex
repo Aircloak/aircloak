@@ -17,6 +17,14 @@
   <%= error_tag f, :name %>
 </div>
 
+<%= if ldap_enabled?() do %>
+  <div class="form-group">
+    <label>LDAP DN</label>
+    <%= text_input f, :ldap_dn, class: "form-control" %>
+    <%= error_tag f, :ldap_dn %>
+  </div>
+<% end %>
+
 <h3>Groups</h3>
 
 <p>The user's group memberships determine which data sources are available for querying.</p>

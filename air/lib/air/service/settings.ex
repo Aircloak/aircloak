@@ -5,7 +5,7 @@ defmodule Air.Service.Settings do
 
   @required_fields ~w(audit_log_enabled decimal_sep decimal_digits)a
   @optional_fields ~w(query_retention_days thousand_sep)a
-  @ldap_fields ~w(ldap_host ldap_port ldap_ssl ldap_ca_cert)a
+  @ldap_fields ~w(ldap_enabled ldap_host ldap_port ldap_ssl ldap_ca_cert)a
 
   # -------------------------------------------------------------------
   # API functions
@@ -48,10 +48,11 @@ defmodule Air.Service.Settings do
       decimal_sep: schema.decimal_sep,
       thousand_sep: schema.thousand_sep || "",
       decimal_digits: schema.decimal_digits,
+      ldap_enabled: schema.ldap_enabled,
       ldap_host: schema.ldap_host,
       ldap_port: schema.ldap_port,
       ldap_ssl: schema.ldap_ssl,
-      ldap_ca_cert: nil
+      ldap_ca_cert: schema.ldap_ca_cert
     }
   end
 

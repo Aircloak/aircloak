@@ -41,4 +41,6 @@ defmodule AirWeb.Admin.UserView do
         ]
     end
   end
+
+  defp ldap_enabled?(), do: IO.inspect(Air.Service.Settings.read()).ldap_enabled
 end
