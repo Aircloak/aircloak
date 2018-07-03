@@ -28,7 +28,10 @@ defmodule AirWeb.Admin.LDAPController do
   # -------------------------------------------------------------------
 
   defp save(conn, params) do
-    case Air.Service.Settings.save_ldap(params["settings"]) do
+    params["settings"]
+    |> read_certfile()
+    |> Air.Service.Settings.save_ldap()
+    |> case do
       {:ok, settings} ->
         AuditLog.log(conn.assigns.current_user, "Updated LDAP settings", Map.drop(settings, [:__struct__, :__meta__]))
 
@@ -40,4 +43,10 @@ defmodule AirWeb.Admin.LDAPController do
         render(conn, "show.html", changeset: changeset)
     end
   end
+
+  defp read_certfile(settings = %{"ldap_certfile" => %{path: path}}) do
+    Map.put(settings, "ldap_ca_cert", File.read!(path))
+  end
+
+  defp read_certfile(settings), do: settings
 end
