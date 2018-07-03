@@ -12,8 +12,13 @@
       <%= form_tag session_path(@conn, :create), method: "post" do %>
 
         <div class='form-group'>
-          <label class='control-label' for='email-input'>Email</label>
-          <input class='form-control' type='email' name='email' value='<%= @conn.params["email"] %>' />
+          <%= if ldap_enabled?() do %>
+            <label class='control-label' for='email-input'>Email or LDAP DN</label>
+            <input class='form-control' name='email' value='<%= @conn.params["email"] %>' />
+          <% else %>
+            <label class='control-label' for='email-input'>Email</label>
+            <input class='form-control' type='email' name='email' value='<%= @conn.params["email"] %>' />
+          <% end %>
         </div>
 
         <div class='form-group'>

@@ -11,4 +11,6 @@ defmodule AirWeb.SessionView do
   end
 
   defp has_flash(conn, flash), do: not is_nil(get_flash(conn, flash))
+
+  defp ldap_enabled?(), do: Air.Service.Settings.read().ldap_enabled
 end

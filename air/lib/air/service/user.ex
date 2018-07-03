@@ -2,7 +2,7 @@ defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
   alias Air.Repo
-  alias Air.Service.{AuditLog, PrivacyPolicy}
+  alias Air.Service.{AuditLog, PrivacyPolicy, Settings}
   alias Air.Schemas.{DataSource, Group, User}
   alias Air.Schemas
   import Ecto.Query, only: [from: 2]
@@ -19,8 +19,8 @@ defmodule Air.Service.User do
 
   @doc "Authenticates the given user."
   @spec login(String.t(), String.t(), %{atom => any}) :: {:ok, User.t()} | {:error, :invalid_email_or_password}
-  def login(email, password, meta \\ %{}) do
-    user = Repo.get_by(User, email: email)
+  def login(login, password, meta \\ %{}) do
+    user = find_user(login)
 
     cond do
       User.validate_password(user, password) ->
@@ -327,6 +327,14 @@ defmodule Air.Service.User do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp find_user(login) do
+    if Settings.read().ldap_enabled do
+      Repo.get_by(User, email: login) || Repo.get_by(User, ldap_dn: login)
+    else
+      Repo.get_by(User, email: login)
+    end
+  end
 
   defp random_string, do: Base.encode16(:crypto.strong_rand_bytes(10))
 
