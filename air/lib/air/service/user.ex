@@ -10,7 +10,7 @@ defmodule Air.Service.User do
 
   @required_fields ~w(email name)a
   @password_fields ~w(password password_confirmation)a
-  @optional_fields ~w(decimal_sep decimal_digits thousand_sep)a
+  @optional_fields ~w(ldap_dn decimal_sep decimal_digits thousand_sep)a
   @password_reset_salt "4egg+HOtabCGwsCsRVEBIg=="
 
   # -------------------------------------------------------------------
@@ -347,6 +347,7 @@ defmodule Air.Service.User do
       |> validate_length(:thousand_sep, is: 1)
       |> validate_number(:decimal_digits, greater_than_or_equal_to: 1, less_than_or_equal_to: 9)
       |> unique_constraint(:email)
+      |> unique_constraint(:ldap_dn)
       |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
 
   defp random_password_changeset(user) do
