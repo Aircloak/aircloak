@@ -88,6 +88,14 @@ defmodule Cloak.DataSource.SqlBuilder.SAPIQ do
   def order_by(column, :asc, _), do: [column, " ASC"]
   def order_by(column, :desc, _), do: [column, " DESC"]
 
+  @impl Dialect
+  def time_arithmetic_expression("+", [date, interval]), do: ["DATEADD(ss, ", interval, ", ", date, ")"]
+
+  def time_arithmetic_expression("-", [date, interval]), do: ["DATEADD(ss, -(", interval, "), ", date, ")"]
+
+  @impl Dialect
+  def date_subtraction_expression([arg1, arg2]), do: ["DATEDIFF(ss, ", arg2, ", ", arg1, ")"]
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
