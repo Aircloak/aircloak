@@ -69,4 +69,6 @@
   - [Insights Cloak](ops/configuration.md#insights-cloak-configuration)
 - [Upgrading](ops/upgrading.md)
 - [Monitoring](ops/monitoring.md)
-- [Forgotten password](ops/forgotten_password.md)
+- [User accounts](ops/user_accounts.md)
+  - [Forgotten password](ops/user_accounts.md#forgotten-password)
+  - [LDAP](ops/user_accounts.md#ldap)
