@@ -56,7 +56,7 @@ defmodule Cloak.DataSource.RODBC.Driver do
   @doc "Enables transfer of wide strings as binary data (avoids validation & conversion of string characters)."
   @spec set_wstr_as_bin(port()) :: :ok | {:error, String.t()}
   def set_wstr_as_bin(port),
-    do: :erlang.port_control(port, @command_set_flag, <<@flag_wstr_as_bin>>)
+    do: port |> :erlang.port_control(@command_set_flag, <<@flag_wstr_as_bin>>) |> decode_response()
 
   # -------------------------------------------------------------------
   # Internal functions

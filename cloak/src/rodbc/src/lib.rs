@@ -90,7 +90,7 @@ extern "C" fn control(
                 message.push(STATUS_ERROR);
                 message.extend_from_slice(error.to_string().as_bytes());
             }
-        }
+        },
 
         COMMAND_EXECUTE => {
             let buffer = unsafe { CVec::new(buffer as *mut u8, length) };
@@ -98,7 +98,7 @@ extern "C" fn control(
                 message.push(STATUS_ERROR);
                 message.extend_from_slice(error.to_string().as_bytes());
             }
-        }
+        },
 
         COMMAND_FETCH => if let Err(error) = state.fetch(&mut message) {
             message.clear();
@@ -111,21 +111,20 @@ extern "C" fn control(
             match flag {
                 FLAG_WSTR_AS_BIN => {
                     state.wstr_as_bin = true;
-                    message.push(STATUS_OK);
-                }
+                },
                 _ => {
                     let error = format!("Invalid flag set: {}", flag);
                     message.push(STATUS_ERROR);
                     message.extend_from_slice(error.as_bytes());
-                }
+                },
             }
-        }
+        },
 
         _ => {
             let error = format!("Invalid command received: {}", command);
             message.push(STATUS_ERROR);
             message.extend_from_slice(error.as_bytes());
-        }
+        },
     };
 
     unsafe { reply(&message, reply_buffer, reply_length) }
