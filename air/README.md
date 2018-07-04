@@ -12,6 +12,7 @@ needed to create, update and run tasks.
     - [Prerequisites](#prerequisites)
     - [Running](#running)
     - [Local docker container](#local-docker-container)
+    - [LDAP integration](#ldap-integration)
     - [Other common tasks](#other-common-tasks)
     - [Deploying](#deploying)
 - [Frontend](#frontend)
@@ -91,6 +92,16 @@ privileges). To enable this, you need to add yourself to the `docker` group. See
 [here](http://askubuntu.com/a/477554) for explanation.
 
 __macOS users__: see [here](../macos_docker.md) for additional instructions.
+
+### LDAP integration
+
+Calling `make ldap-server` starts a container with OpenLDAP. Ports 389 and 636 are published to the host for regular
+and SSL access respectively. The admin account is `cn=admin,dc=example,dc=org` with password `admin`. For more details
+see [the repo for the image](https://github.com/osixia/docker-openldap).
+
+The server is configured to use the certificate found in `priv/certificate` - it will be necessary to upload `ca.cert`
+from that directory into air before it can talk to the server via SSL. The certificate is issued to `example.org`. You
+can add `127.0.0.1 example.org` to your `/etc/hosts` and configure LDAP in air to `example.org` to make that valid.
 
 ### Other common tasks
 
