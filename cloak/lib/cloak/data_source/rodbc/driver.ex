@@ -8,6 +8,9 @@ defmodule Cloak.DataSource.RODBC.Driver do
   @command_connect 0
   @command_execute 1
   @command_fetch 2
+  @command_set_flag 3
+
+  @flag_wstr_as_bin 0
 
   @typep row :: [any]
 
@@ -50,6 +53,11 @@ defmodule Cloak.DataSource.RODBC.Driver do
   @spec fetch_batch(port(), (row -> row), pos_integer) :: {:ok, Enumerable.t()} | {:error, String.t()}
   def fetch_batch(port, row_mapper, size) when size > 0, do: fetch_batch(port, row_mapper, size, [], 0)
 
+  @doc "Enables transfer of wide strings as binary data (avoids validation & conversion of string characters)."
+  @spec set_wstr_as_bin(port()) :: :ok | {:error, String.t()}
+  def set_wstr_as_bin(port),
+    do: :erlang.port_control(port, @command_set_flag, <<@flag_wstr_as_bin>>)
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -59,7 +67,8 @@ defmodule Cloak.DataSource.RODBC.Driver do
   @type_i64 2
   @type_f32 3
   @type_f64 4
-  @type_bin 5
+  @type_str 5
+  @type_bin 6
 
   @status_err ?E
   @status_ok ?K
@@ -78,6 +87,12 @@ defmodule Cloak.DataSource.RODBC.Driver do
   defp decode_data(<<@type_f32, num::float-little-32, data::binary>>, acc), do: decode_data(data, [num | acc])
 
   defp decode_data(<<@type_f64, num::float-little-64, data::binary>>, acc), do: decode_data(data, [num | acc])
+
+  defp decode_data(
+         <<@type_str, len::unsigned-little-32, str::bytes-size(len), data::binary>>,
+         acc
+       ),
+       do: decode_data(data, [str | acc])
 
   defp decode_data(
          <<@type_bin, len::unsigned-little-32, str::bytes-size(len), data::binary>>,

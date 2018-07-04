@@ -12,29 +12,19 @@ defmodule Cloak.DataSource.RODBC do
   # -------------------------------------------------------------------
 
   @doc "Normalizes the connection parameters and connects to the data source via odbc."
-  @spec connect!(Driver.parameters(), (map -> map)) :: :odbc.connection_reference()
-  def connect!(parameters, conn_params_extractor) do
+  @spec connect!(Driver.parameters(), (map -> map), Keyword.t()) :: :odbc.connection_reference()
+  def connect!(parameters, conn_params_extractor, driver_params \\ []) do
     normalized_parameters = Cloak.DataSource.ODBC.normalize_parameters(parameters)
 
     normalized_parameters
     |> conn_params_extractor.()
     |> Map.merge(Map.get(normalized_parameters, :odbc_parameters, %{}))
-    |> connect!()
+    |> driver_connect!(driver_params)
   end
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
-
-  def connect!(parameters) do
-    port = Driver.open()
-
-    with :ok <- Driver.connect(port, to_connection_string(parameters)) do
-      port
-    else
-      {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
-    end
-  end
 
   def disconnect(port) do
     true = Driver.close(port)
@@ -59,6 +49,17 @@ defmodule Cloak.DataSource.RODBC do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp driver_connect!(conn_params, driver_params) do
+    port = Driver.open()
+
+    with :ok <- Driver.connect(port, to_connection_string(conn_params)) do
+      if Keyword.get(driver_params, :wstr_as_bin), do: Driver.set_wstr_as_bin(port)
+      port
+    else
+      {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
+    end
+  end
 
   defp to_connection_string(parameters) do
     parameters
