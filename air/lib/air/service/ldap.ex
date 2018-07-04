@@ -6,6 +6,8 @@ defmodule Air.Service.LDAP do
   alias Air.Service.Settings
   alias Air.Schemas.User
 
+  require Logger
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -44,7 +46,9 @@ defmodule Air.Service.LDAP do
         Exldap.close(connection)
       end
     else
-      _ -> default
+      _ ->
+        Logger.error("LDAP connection failed.")
+        default
     end
   end
 
