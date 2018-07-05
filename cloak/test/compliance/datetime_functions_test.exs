@@ -68,6 +68,7 @@ Enum.each(
           |> disable_for(Cloak.DataSource.SAPHana, true)
           |> disable_for(Cloak.DataSource.SAPHanaRODBC, true)
           |> disable_for(Cloak.DataSource.SAPIQ, true)
+          |> disable_for(Cloak.DataSource.SAPIQRODBC, true)
           |> disable_for(Cloak.DataSource.MongoDB, true)
         else
           context
