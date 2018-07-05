@@ -230,7 +230,7 @@ defmodule Cloak.Sql.Compiler.Validation do
         raise CompilationError,
           message:
             "Table/subquery `#{table.name}` has no associated user id." <>
-              " Userless data can not be used in an anonymizing queries."
+              " Userless data can not be used in anonymizing queries."
       end
     end)
   end
