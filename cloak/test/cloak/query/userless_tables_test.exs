@@ -44,23 +44,15 @@ defmodule Cloak.Query.UserlessTableTest do
 
   test "join between userless tables" do
     assert_query(
-      """
-        select t1.name from userless as t1 join userless as t2 on t1.i = t2.i and t1.name <> t2.name order by 1
-      """,
-      %{
-        rows: [%{row: ["drinks"]}, %{row: ["food"]}]
-      }
+      "select t1.name from userless as t1 join userless as t2 on t1.i = t2.i and t1.name <> t2.name order by 1",
+      %{rows: [%{row: ["drinks"]}, %{row: ["food"]}]}
     )
   end
 
   test "join between user and userless tables" do
     assert_query(
-      """
-        select count(*) from userless as t1 join userless_join as t2 on t1.i = t2.i
-      """,
-      %{
-        error: "Table/subquery `t1` has no associated user id. Userless data can not be used in an anonymizing queries."
-      }
+      "select count(*) from userless as t1 join userless_join as t2 on t1.i = t2.i",
+      %{error: "Table/subquery `t1` has no associated user id. Userless data can not be used in anonymizing queries."}
     )
   end
 end
