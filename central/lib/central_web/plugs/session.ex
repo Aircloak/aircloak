@@ -118,7 +118,7 @@ defmodule CentralWeb.Plug.Session do
     # -------------------------------------------------------------------
 
     @doc false
-    def auth_error(%Plug.Conn{request_path: path} = conn, {:unauthenticated, _}, _params) do
+    def auth_error(%Plug.Conn{request_path: path} = conn, _error, _params) do
       conn
       |> Phoenix.Controller.put_flash(:error, "You must be authenticated to view this page")
       |> Plug.Conn.put_session(:return_path, path)
@@ -165,6 +165,12 @@ defmodule CentralWeb.Plug.Session do
     def auth_error(conn, {:already_authenticated, _}, _params) do
       Plug.Conn.send_resp(conn, Plug.Conn.Status.code(:bad_request), "already authenticated")
     end
+
+    def auth_error(conn, {:invalid_token, _}, _params) do
+      conn
+      |> Air.Guardian.Plug.sign_out()
+      |> Phoenix.Controller.redirect(to: "/auth")
+    end
   end
 
   defmodule HaltIfNotAuthenticated do
@@ -197,7 +203,7 @@ defmodule CentralWeb.Plug.Session do
     # -------------------------------------------------------------------
 
     @doc false
-    def auth_error(conn, {:unauthenticated, _}, _params) do
+    def auth_error(conn, _error, _params) do
       conn
       |> Plug.Conn.put_status(:unauthorized)
       |> Phoenix.Controller.text("Unauthorized: please log in to Central first")

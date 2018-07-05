@@ -200,7 +200,7 @@ defmodule AirWeb.Plug.Session do
       |> auth_error({:unauthenticated, reason}, params)
     end
 
-    def auth_error(%Plug.Conn{request_path: path} = conn, {:unauthenticated, _}, _params) do
+    def auth_error(%Plug.Conn{request_path: path} = conn, _error, _params) do
       conn
       |> Phoenix.Controller.put_flash(:error, "You must be authenticated to view this page")
       |> Plug.Conn.put_session(:return_path, path)
@@ -242,6 +242,12 @@ defmodule AirWeb.Plug.Session do
     @doc false
     def auth_error(conn, {:already_authenticated, _}, _params) do
       Phoenix.Controller.redirect(conn, to: "/")
+    end
+
+    def auth_error(conn, {:invalid_token, _}, _params) do
+      conn
+      |> Air.Guardian.Plug.sign_out()
+      |> Phoenix.Controller.redirect(to: "/auth")
     end
   end
 end
