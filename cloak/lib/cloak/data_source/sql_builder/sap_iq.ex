@@ -55,6 +55,28 @@ defmodule Cloak.DataSource.SqlBuilder.SAPIQ do
 
   @impl Dialect
   def cast_sql(value, :real, :integer), do: ["CAST(ROUND(", value, ", 0) AS ", sql_type(:integer), ")"]
+
+  def cast_sql(value, :boolean, :integer), do: value
+
+  def cast_sql(value, :boolean, :text),
+    do: ["(CASE WHEN ", value, " = 1 THEN 'true' WHEN ", value, " = 0 THEN 'false' ELSE NULL END)"]
+
+  def cast_sql(value, type, :boolean) when type in [:integer, :real],
+    do: ["(CASE WHEN ", value, " <> 0 THEN 1 WHEN ", value, " = 0 THEN 0 ELSE NULL END)"]
+
+  def cast_sql(value, :text, :boolean),
+    do: [
+      "(CASE WHEN LOWER(",
+      value,
+      ") = 'true' THEN 1 WHEN LOWER(",
+      value,
+      ") = 'false' THEN 0 WHEN ",
+      value,
+      " = '1' THEN 1 WHEN ",
+      value,
+      " = '0' THEN 0 ELSE NULL END)"
+    ]
+
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect
@@ -65,6 +87,14 @@ defmodule Cloak.DataSource.SqlBuilder.SAPIQ do
   def order_by(column, :desc, :nulls_first), do: ["CASE WHEN ", column, " IS NULL THEN 0 ELSE 1 END, ", column, " DESC"]
   def order_by(column, :asc, _), do: [column, " ASC"]
   def order_by(column, :desc, _), do: [column, " DESC"]
+
+  @impl Dialect
+  def time_arithmetic_expression("+", [date, interval]), do: ["DATEADD(ss, ", interval, ", ", date, ")"]
+
+  def time_arithmetic_expression("-", [date, interval]), do: ["DATEADD(ss, -(", interval, "), ", date, ")"]
+
+  @impl Dialect
+  def date_subtraction_expression([arg1, arg2]), do: ["DATEDIFF(ss, ", arg2, ", ", arg1, ")"]
 
   # -------------------------------------------------------------------
   # Internal functions
