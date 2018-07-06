@@ -14,41 +14,7 @@
   </div>
 
   <div class="col-md-3">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        Filter by time
-      </div>
-
-      <div class="panel-body">
-        <form>
-          <%= for {name, value} <- serialize_params(@conn), name not in ~w(from to) do %>
-            <input type="hidden" name="<%= name %>" value="<%= value %>" />
-          <% end %>
-
-          <div class="form-group">
-            <label for="from">From</label>
-            <div class="input-group date datetimepicker">
-              <input id="from" name="from" type="text" class="form-control" value="<%= @from %>" />
-              <span class="input-group-addon">
-                <span class="glyphicon glyphicon-calendar"></span>
-              </span>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label for="to">To</label>
-            <div class="input-group date datetimepicker">
-              <input id="to" name="to" type="text" class="form-control" value="<%= @to %>" />
-              <span class="input-group-addon">
-                <span class="glyphicon glyphicon-calendar"></span>
-              </span>
-            </div>
-          </div>
-
-          <button type="submit" class="btn btn-primary">Filter</button>
-        </form>
-      </div>
-    </div>
+    <%= render(AirWeb.Admin.SharedView, "time_filter.html", from: @from, to: @to, conn: @conn) %>
 
     <%= if length(@users) > 0 do %>
       <div class="panel panel-default">
