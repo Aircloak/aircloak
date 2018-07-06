@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler.ASTNormalization do
   @moduledoc "Deals with normalizing the query AST so that less cases must be handled downstream."
 
-  alias Cloak.Sql.{Function, Parser, Compiler.Helpers, Query}
+  alias Cloak.Sql.{CompilationError, Function, Parser, Compiler.Helpers, Query}
 
   # -------------------------------------------------------------------
   # API functions
@@ -74,6 +74,12 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   # -------------------------------------------------------------------
   # DISTINCT rewriting
   # -------------------------------------------------------------------
+
+  defp rewrite_distinct(%{distinct?: true, group_by: [_ | _], order_by: [{column, _dir, _nulls} | _]}) do
+    raise CompilationError,
+      source_location: location(column),
+      message: "DISTINCT cannot be used with ORDER BY. Try using a subquery instead."
+  end
 
   defp rewrite_distinct(ast = %{distinct?: true, group_by: [_ | _]}) do
     %{
@@ -166,4 +172,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
       &Helpers.apply_bottom_up(&1, function)
     )
   end
+
+  defp location({_, _, _, location}), do: location
+  defp location(_), do: nil
 end

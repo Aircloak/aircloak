@@ -1510,20 +1510,6 @@ defmodule Cloak.Query.BasicTest do
     )
   end
 
-  test "[Issue #2859] DISTINCT in subquery with ORDER BY" do
-    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [160])
-    :ok = insert_rows(_user_ids = 11..30, "heights", ["height"], [170])
-
-    assert_query(
-      """
-        select count(*) from (
-          select distinct user_id from heights group by user_id, height order by height
-        ) alias
-      """,
-      %{rows: [%{row: [30]}]}
-    )
-  end
-
   test "[Issue #2860] DISTINCT in subquery with scoped columns" do
     :ok = insert_rows(_user_ids = 1..20, "heights", ["height", "male"], [160, true])
     :ok = insert_rows(_user_ids = 11..30, "heights", ["height", "male"], [170, false])
