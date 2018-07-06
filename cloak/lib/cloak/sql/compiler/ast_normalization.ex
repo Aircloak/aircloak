@@ -75,27 +75,24 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   # DISTINCT rewriting
   # -------------------------------------------------------------------
 
-  defp rewrite_distinct(ast = %{distinct?: true, group_by: group_by = [_ | _]}),
-    do:
-      Map.merge(ast, %{
-        distinct?: false,
-        columns: [:*],
-        from:
-          {:subquery,
-           %{
-             alias: "__ac_distinct",
-             ast: %{
+  defp rewrite_distinct(ast = %{distinct?: true, group_by: [_ | _]}) do
+    %{
+      command: :select,
+      distinct?: false,
+      columns: [:*],
+      from:
+        {:subquery,
+         %{
+           alias: "__ac_distinct",
+           ast:
+             Map.merge(ast, %{
                command: :select,
-               distinct?: false,
-               columns: ast.columns,
-               from: ast.from,
-               where: ast.where,
-               group_by: group_by
-             }
-           }},
-        group_by: grouping_clause(ast.columns),
-        where: nil
-      })
+               distinct?: false
+             })
+         }},
+      group_by: grouping_clause(ast.columns)
+    }
+  end
 
   defp rewrite_distinct(ast = %{distinct?: true, columns: columns}),
     do:
