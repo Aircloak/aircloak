@@ -14,27 +14,8 @@
   </div>
 
   <div class="col-md-3">
-    <%= render(AirWeb.Admin.SharedView, "time_filter.html", from: @from, to: @to, conn: @conn) %>
-
-    <%= if length(@users) > 0 do %>
-      <div class="panel panel-default">
-        <div class="panel-heading">
-          Filter by users
-        </div>
-        <table class="table">
-          <tbody>
-            <%= for user <- @users do %>
-              <tr class="<%= if selected?(@conn, :users, user.id), do: "warning", else: "" %>">
-                <td>
-                  <%= link [glyph(selected?(@conn, :users, user.id)), user.name],
-                    to: admin_audit_log_path(@conn, :index, toggle_item(@conn, :users, user.id)) %>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% end %>
+    <%= render(AirWeb.Admin.SharedView, "time_filter.html", conn: @conn, from: @from, to: @to) %>
+    <%= render(AirWeb.Admin.SharedView, "list_filter.html", conn: @conn, options: @users, link: &admin_audit_log_path(@conn, :index, &1)) %>
 
     <%= if length(@event_types) > 0 do %>
       <div class="panel panel-default">
