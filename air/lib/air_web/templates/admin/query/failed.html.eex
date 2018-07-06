@@ -23,9 +23,8 @@
             </div>
             <div><b>User</b>: <%= query.user %></div>
             <div><b>Data source</b>: <%= query.data_source %></div>
-            <div><b>Error</b>: <%= query.error %></div>
-            <br />
-            <pre><%= query.statement %></pre>
+            <div><b>Query:</b> <pre><%= query.statement %></pre></div>
+            <div><b>Error</b>: <pre><%= query.error %></pre></div>
             <hr />
           </div>
         <% end %>
