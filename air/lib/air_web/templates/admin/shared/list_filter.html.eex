@@ -1,15 +1,15 @@
 <%= if length(@options) > 0 do %>
   <div class="panel panel-default">
     <div class="panel-heading">
-      Filter by users
+      <%= @title %>
     </div>
     <table class="table">
       <tbody>
-        <%= for user <- @options do %>
-          <tr class="<%= if selected?(@conn, :users, user.id), do: "warning", else: "" %>">
+        <%= for option <- @options do %>
+          <tr class="<%= if selected?(@conn, @name, option.value), do: "warning", else: "" %>">
             <td>
-              <%= link [glyph(selected?(@conn, :users, user.id)), user.name],
-                to: @link.(toggle_item(@conn, :users, user.id)) %>
+              <%= link [glyph(selected?(@conn, @name, option.value)), option.label],
+                to: @link.(toggle_item(@conn, @name, option.value)) %>
             </td>
           </tr>
         <% end %>
