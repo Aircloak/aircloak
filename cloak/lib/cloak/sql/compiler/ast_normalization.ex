@@ -20,56 +20,56 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   * Normalizes function name synonyms, like lcase to lower
   """
   @spec normalize(Parser.parsed_query()) :: Parser.parsed_query()
-  def normalize(ast),
-    do:
-      ast
-      |> apply_to_subqueries(&rewrite_distinct/1)
-      |> Helpers.apply_bottom_up(&rewrite_not_in/1)
-      |> Helpers.apply_bottom_up(&rewrite_not/1)
-      |> Helpers.apply_bottom_up(&rewrite_in/1)
-      |> Helpers.apply_bottom_up(&rewrite_date_trunc/1)
-      |> Helpers.apply_bottom_up(&normalize_synonyms/1)
+  def normalize(ast) do
+    ast
+    |> apply_to_subqueries(&rewrite_distinct/1)
+    |> Helpers.apply_bottom_up(&rewrite_not_in/1)
+    |> Helpers.apply_bottom_up(&rewrite_not/1)
+    |> Helpers.apply_bottom_up(&rewrite_in/1)
+    |> Helpers.apply_bottom_up(&rewrite_date_trunc/1)
+    |> Helpers.apply_bottom_up(&normalize_synonyms/1)
+  end
 
   # -------------------------------------------------------------------
   # function name normalization
   # -------------------------------------------------------------------
 
-  defp normalize_synonyms(ast),
-    do:
-      update_in(ast, [Query.Lenses.terminals() |> Lens.filter(&Function.function?/1) |> Lens.at(1)], fn
-        "lcase" -> %{canonical_name: "lower", synonym_used: "lcase"}
-        "ucase" -> %{canonical_name: "upper", synonym_used: "ucase"}
-        "ceiling" -> %{canonical_name: "ceil", synonym_used: "ceiling"}
-        "pow" -> %{canonical_name: "^", synonym_used: "pow"}
-        "mod" -> %{canonical_name: "%", synonym_used: "mod"}
-        "dow" -> %{canonical_name: "weekday", synonym_used: "dow"}
-        other -> other
-      end)
+  defp normalize_synonyms(ast) do
+    update_in(ast, [Query.Lenses.terminals() |> Lens.filter(&Function.function?/1) |> Lens.at(1)], fn
+      "lcase" -> %{canonical_name: "lower", synonym_used: "lcase"}
+      "ucase" -> %{canonical_name: "upper", synonym_used: "ucase"}
+      "ceiling" -> %{canonical_name: "ceil", synonym_used: "ceiling"}
+      "pow" -> %{canonical_name: "^", synonym_used: "pow"}
+      "mod" -> %{canonical_name: "%", synonym_used: "mod"}
+      "dow" -> %{canonical_name: "weekday", synonym_used: "dow"}
+      other -> other
+    end)
+  end
 
   # -------------------------------------------------------------------
   # date_trunc rewriting
   # -------------------------------------------------------------------
 
-  defp rewrite_date_trunc(ast),
-    do:
-      update_in(ast, [Query.Lenses.terminals()], fn
-        {:function, "date_trunc", [{:constant, :string, spec, spec_location}, argument], location} ->
-          {:function, "date_trunc", [{:constant, :string, String.downcase(spec), spec_location}, argument], location}
+  defp rewrite_date_trunc(ast) do
+    update_in(ast, [Query.Lenses.terminals()], fn
+      {:function, "date_trunc", [{:constant, :string, spec, spec_location}, argument], location} ->
+        {:function, "date_trunc", [{:constant, :string, String.downcase(spec), spec_location}, argument], location}
 
-        other ->
-          other
-      end)
+      other ->
+        other
+    end)
+  end
 
   # -------------------------------------------------------------------
   # IN rewriting
   # -------------------------------------------------------------------
 
-  defp rewrite_in(ast),
-    do:
-      update_in(ast, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
-        {:in, lhs, [exp]} -> {:comparison, lhs, :=, exp}
-        other -> other
-      end)
+  defp rewrite_in(ast) do
+    update_in(ast, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
+      {:in, lhs, [exp]} -> {:comparison, lhs, :=, exp}
+      other -> other
+    end)
+  end
 
   # -------------------------------------------------------------------
   # DISTINCT rewriting
@@ -94,13 +94,13 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
     }
   end
 
-  defp rewrite_distinct(ast = %{distinct?: true, columns: columns}),
-    do:
-      if(
-        Enum.any?(columns, &aggregator?/1),
-        do: %{ast | distinct?: false},
-        else: Map.merge(ast, %{distinct?: false, group_by: grouping_clause(columns)})
-      )
+  defp rewrite_distinct(ast = %{distinct?: true, columns: columns}) do
+    if Enum.any?(columns, &aggregator?/1) do
+      %{ast | distinct?: false}
+    else
+      Map.merge(ast, %{distinct?: false, group_by: grouping_clause(columns)})
+    end
+  end
 
   defp rewrite_distinct(ast), do: ast
 
@@ -115,12 +115,12 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   # NOT rewriting
   # -------------------------------------------------------------------
 
-  defp rewrite_not(ast),
-    do:
-      update_in(ast, [Query.Lenses.filter_clauses() |> Query.Lenses.all_conditions()], fn
-        {:not, expr} -> negate(expr)
-        other -> other
-      end)
+  defp rewrite_not(ast) do
+    update_in(ast, [Query.Lenses.filter_clauses() |> Query.Lenses.all_conditions()], fn
+      {:not, expr} -> negate(expr)
+      other -> other
+    end)
+  end
 
   defp negate({:not, expr}), do: expr
   defp negate({:and, lhs, rhs}), do: {:or, negate(lhs), negate(rhs)}
@@ -139,31 +139,31 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   # NOT IN rewriting
   # -------------------------------------------------------------------
 
-  defp rewrite_not_in(ast),
-    do:
-      update_in(ast, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
-        {:not, {:in, lhs, exps = [_ | _]}} ->
-          [exp | exps] = Enum.reverse(exps)
+  defp rewrite_not_in(ast) do
+    update_in(ast, [Query.Lenses.filter_clauses() |> Query.Lenses.conditions()], fn
+      {:not, {:in, lhs, exps = [_ | _]}} ->
+        [exp | exps] = Enum.reverse(exps)
 
-          Enum.reduce(
-            exps,
-            {:comparison, lhs, :<>, exp},
-            &{:and, {:comparison, lhs, :<>, &1}, &2}
-          )
+        Enum.reduce(
+          exps,
+          {:comparison, lhs, :<>, exp},
+          &{:and, {:comparison, lhs, :<>, &1}, &2}
+        )
 
-        other ->
-          other
-      end)
+      other ->
+        other
+    end)
+  end
 
   # -------------------------------------------------------------------
   # Helpers
   # -------------------------------------------------------------------
 
-  defp apply_to_subqueries(query, function),
-    do:
-      update_in(
-        query,
-        [Query.Lenses.direct_subqueries() |> Lens.key(:ast)],
-        &Helpers.apply_bottom_up(&1, function)
-      )
+  defp apply_to_subqueries(query, function) do
+    update_in(
+      query,
+      [Query.Lenses.direct_subqueries() |> Lens.key(:ast)],
+      &Helpers.apply_bottom_up(&1, function)
+    )
+  end
 end
