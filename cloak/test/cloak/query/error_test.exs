@@ -267,6 +267,6 @@ defmodule Cloak.Query.ErrorTest do
            \t                 ^
            """)
 
-    assert String.contains?(error, "DISTINCT cannot be used with ORDER BY")
+    assert String.contains?(error, "usage of DISTINCT, GROUP BY, and ORDER BY in the same query is not supported")
   end
 end

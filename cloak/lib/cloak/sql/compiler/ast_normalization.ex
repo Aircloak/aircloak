@@ -78,7 +78,9 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   defp rewrite_distinct(%{distinct?: true, group_by: [_ | _], order_by: [{column, _dir, _nulls} | _]}) do
     raise CompilationError,
       source_location: location(column),
-      message: "DISTINCT cannot be used with ORDER BY. Try using a subquery instead."
+      message:
+        "Simultaneous usage of DISTINCT, GROUP BY, and ORDER BY in the same query is not supported." <>
+          " Try using a subquery instead."
   end
 
   defp rewrite_distinct(ast = %{distinct?: true, group_by: [_ | _]}) do
