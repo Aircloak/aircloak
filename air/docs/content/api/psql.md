@@ -55,3 +55,8 @@ table3
 
 my-sensitive-data=>
 ```
+
+__Notice about suppressed values__: Standard SQL doesn't have an exact way to indicate that a specific value was suppressed. `NULL` is used to indicate that a requested value was not available or was not computable. When using the Web UI or the REST API, Aircloak Insights uses `*` to indicate suppressed values. But when using the PSQL interface,
+returning `*` (which is a specific character value) would not be a valid operation for non-text fields and `NULL` is returned in those cases.
+
+In order to workaround this restriction, one can either cast the specific non-text column to text, ensuring `*` is correctly returned when data was suppressed, or explicitly filter out regular `NULL` values for that column, with a `IS NOT NULL` or any other filter, ensuring any remaining `NULL` values in the result represent data that was suppressed.
