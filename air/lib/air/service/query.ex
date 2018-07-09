@@ -93,7 +93,7 @@ defmodule Air.Service.Query do
   end
 
   @doc "Returns a query if accessible by the given user, without associations preloaded."
-  @spec get_as_user(DataSource.t(), query_id) :: {:ok, Query.t()} | {:error, :not_found | :invalid_id}
+  @spec get_as_user(User.t(), query_id) :: {:ok, Query.t()} | {:error, :not_found | :invalid_id}
   def get_as_user(user, id) do
     user
     |> Repo.preload([:groups])
