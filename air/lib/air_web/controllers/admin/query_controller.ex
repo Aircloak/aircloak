@@ -53,7 +53,8 @@ defmodule AirWeb.Admin.QueryController do
       Map.merge(filters, %{
         full_width: true,
         failed_queries: failed_queries,
-        users: Air.Service.Query.users_for_filters(filters) |> Enum.map(&%{label: &1.name, value: &1.id})
+        users: Air.Service.Query.users_for_filters(filters) |> Enum.map(&%{label: &1.name, value: &1.id}),
+        data_sources: Air.Service.Query.data_sources_for_filters(filters) |> Enum.map(&%{label: &1.name, value: &1.id})
       })
     )
   end

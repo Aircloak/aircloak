@@ -86,8 +86,24 @@ defmodule Air.Service.Query do
     |> Enum.sort_by(& &1.name)
   end
 
+  @doc "Returns a list of data_sources of queries matching the given filters. `max_results` is ignored."
+  @spec data_sources_for_filters(filters) :: [DataSource.t()]
+  def data_sources_for_filters(filters) do
+    data_sources =
+      Query
+      |> apply_filters(filters)
+      |> select_data_sources()
+      |> Repo.all()
+
+    selected_data_sources = DataSource |> where([q], q.id in ^filters.data_sources) |> Repo.all()
+
+    (data_sources ++ selected_data_sources)
+    |> Enum.uniq()
+    |> Enum.sort_by(& &1.name)
+  end
+
   @doc "Returns a query if accessible by the given user, without associations preloaded."
-  @spec get_as_user(User.t(), query_id) :: {:ok, Query.t()} | {:error, :not_found | :invalid_id}
+  @spec get_as_user(DataSource.t(), query_id) :: {:ok, Query.t()} | {:error, :not_found | :invalid_id}
   def get_as_user(user, id) do
     user
     |> Repo.preload([:groups])
@@ -417,6 +433,16 @@ defmodule Air.Service.Query do
       on: user.id == q.user_id,
       distinct: user.id,
       select: user
+    )
+  end
+
+  defp select_data_sources(query) do
+    from(
+      data_source in DataSource,
+      join: q in ^query,
+      on: data_source.id == q.data_source_id,
+      distinct: data_source.id,
+      select: data_source
     )
   end
 

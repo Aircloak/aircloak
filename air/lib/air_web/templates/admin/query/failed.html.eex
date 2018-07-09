@@ -55,7 +55,7 @@
         conn: @conn,
         title: "Filter by data source",
         name: :data_sources,
-        options: [%{label: "Test", value: "ds"}],
+        options: @data_sources,
         link: &admin_query_path(@conn, :failed, &1)
       )
     %>

@@ -398,6 +398,28 @@ defmodule Air.Service.QueryTest do
     end
   end
 
+  describe ".data_sources_for_filters" do
+    test "includes data_sources of matching queries" do
+      _query1 = create_query!(create_data_source!())
+      query2 = create_query!(create_data_source!(), %{query_state: :error})
+      query3 = create_query!(create_data_source!(), %{query_state: :completed})
+
+      assert Query.data_sources_for_filters(filters(%{query_states: [:error, :completed], max_results: 1}))
+             |> Enum.map(& &1.id)
+             |> Enum.sort() == Enum.sort([query2.data_source_id, query3.data_source_id])
+    end
+
+    test "includes filtered data_sources" do
+      _data_source1 = create_data_source!()
+      data_source2 = create_data_source!()
+      data_source3 = create_data_source!()
+
+      assert Query.data_sources_for_filters(filters(%{data_sources: [data_source2.id, data_source3.id]}))
+             |> Enum.map(& &1.id)
+             |> Enum.sort() == Enum.sort([data_source2.id, data_source3.id])
+    end
+  end
+
   defp filters(overrides) do
     Map.merge(
       %{
