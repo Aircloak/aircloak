@@ -335,7 +335,7 @@ defmodule Air.Service.QueryTest do
     end
   end
 
-  describe "queries" do
+  describe ".queries" do
     setup [:sandbox]
 
     test "filtering by query_state" do
@@ -374,20 +374,42 @@ defmodule Air.Service.QueryTest do
 
       assert Query.queries(filters(%{max_results: 2})) |> Enum.map(& &1.id) == [query3.id, query2.id]
     end
+  end
 
-    defp filters(overrides) do
-      Map.merge(
-        %{
-          query_states: [],
-          data_sources: [],
-          users: [],
-          max_results: 100,
-          from: Timex.now() |> Timex.shift(days: -1),
-          to: Timex.now() |> Timex.shift(days: 1)
-        },
-        overrides
-      )
+  describe ".users_for_filters" do
+    test "includes users of matching queries" do
+      _query1 = create_query!(create_user!())
+      query2 = create_query!(create_user!(), %{query_state: :error})
+      query3 = create_query!(create_user!(), %{query_state: :completed})
+
+      assert Query.users_for_filters(filters(%{query_states: [:error, :completed], max_results: 1}))
+             |> Enum.map(& &1.id)
+             |> Enum.sort() == Enum.sort([query2.user_id, query3.user_id])
     end
+
+    test "includes filtered users" do
+      _user1 = create_user!()
+      user2 = create_user!()
+      user3 = create_user!()
+
+      assert Query.users_for_filters(filters(%{users: [user2.id, user3.id]}))
+             |> Enum.map(& &1.id)
+             |> Enum.sort() == Enum.sort([user2.id, user3.id])
+    end
+  end
+
+  defp filters(overrides) do
+    Map.merge(
+      %{
+        query_states: [],
+        data_sources: [],
+        users: [],
+        max_results: 100,
+        from: Timex.now() |> Timex.shift(days: -1),
+        to: Timex.now() |> Timex.shift(days: 1)
+      },
+      overrides
+    )
   end
 
   def sandbox(_context) do

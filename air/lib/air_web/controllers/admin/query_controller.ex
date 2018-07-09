@@ -39,7 +39,7 @@ defmodule AirWeb.Admin.QueryController do
     filters = %{
       from: parse_datetime(params["from"], Timex.now() |> Timex.shift(days: -1)),
       to: parse_datetime(params["to"], Timex.now()),
-      users: [],
+      users: params["users"] || [],
       data_sources: [],
       query_states: [:error],
       max_results: 100
@@ -47,7 +47,15 @@ defmodule AirWeb.Admin.QueryController do
 
     failed_queries = Air.Service.Query.queries(filters)
 
-    render(conn, "failed.html", Map.merge(filters, %{full_width: true, failed_queries: failed_queries}))
+    render(
+      conn,
+      "failed.html",
+      Map.merge(filters, %{
+        full_width: true,
+        failed_queries: failed_queries,
+        users: Air.Service.Query.users_for_filters(filters) |> Enum.map(&%{label: &1.name, value: &1.id})
+      })
+    )
   end
 
   # -------------------------------------------------------------------

@@ -56,18 +56,34 @@ defmodule Air.Service.Query do
     end
   end
 
-  @doc "Returns information about failed queries in a paginated form."
+  @doc """
+  Returns a list of queries matching the given filters, ordered by `inserted_at`. At most `max_results` most recent
+  queries will be returned.
+  """
   @spec queries(filters) :: [Query.t()]
   def queries(filters) do
     Query
-    |> for_time(filters.from, filters.to)
-    |> for_query_states(filters.query_states)
-    |> for_data_source_ids(filters.data_sources)
-    |> for_user_ids(filters.users)
+    |> apply_filters(filters)
     |> order_by([q], desc: q.inserted_at)
     |> limit(^filters.max_results)
     |> Repo.all()
     |> Repo.preload([:user, :data_source])
+  end
+
+  @doc "Returns a list of users of queries matching the given filters. `max_results` is ignored."
+  @spec users_for_filters(filters) :: [User.t()]
+  def users_for_filters(filters) do
+    users =
+      Query
+      |> apply_filters(filters)
+      |> select_users()
+      |> Repo.all()
+
+    selected_users = User |> where([q], q.id in ^filters.users) |> Repo.all()
+
+    (users ++ selected_users)
+    |> Enum.uniq()
+    |> Enum.sort_by(& &1.name)
   end
 
   @doc "Returns a query if accessible by the given user, without associations preloaded."
@@ -333,6 +349,14 @@ defmodule Air.Service.Query do
     where(scope, [q], q.query_state in ^@active_states)
   end
 
+  defp apply_filters(scope, filters) do
+    scope
+    |> for_time(filters.from, filters.to)
+    |> for_query_states(filters.query_states)
+    |> for_data_source_ids(filters.data_sources)
+    |> for_user_ids(filters.users)
+  end
+
   defp for_query_states(scope, []), do: scope
 
   defp for_query_states(scope, query_states) do
@@ -385,6 +409,16 @@ defmodule Air.Service.Query do
 
   defp add_id_to_changeset(changeset, :autogenerate), do: changeset
   defp add_id_to_changeset(changeset, id), do: Query.add_id_to_changeset(changeset, id)
+
+  defp select_users(query) do
+    from(
+      user in User,
+      join: q in ^query,
+      on: user.id == q.user_id,
+      distinct: user.id,
+      select: user
+    )
+  end
 
   # -------------------------------------------------------------------
   # Supervision tree

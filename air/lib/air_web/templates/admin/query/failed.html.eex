@@ -43,7 +43,7 @@
         conn: @conn,
         title: "Filter by users",
         name: :users,
-        options: [%{label: "Test", value: "user"}],
+        options: @users,
         link: &admin_query_path(@conn, :failed, &1)
       )
     %>
