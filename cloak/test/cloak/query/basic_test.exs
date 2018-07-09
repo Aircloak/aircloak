@@ -1510,6 +1510,20 @@ defmodule Cloak.Query.BasicTest do
     )
   end
 
+  test "[Issue #2860] DISTINCT in subquery with scoped columns" do
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height", "male"], [160, true])
+    :ok = insert_rows(_user_ids = 11..30, "heights", ["height", "male"], [170, false])
+
+    assert_query(
+      """
+        select count(*) from (
+          select distinct user_id, count(*) from heights group by user_id having count(heights.male) = 1
+        ) alias
+      """,
+      %{rows: [%{row: [20]}]}
+    )
+  end
+
   test "[Issue #2217] condition on user_id" do
     :ok =
       Cloak.Test.DB.create_table(
@@ -1541,58 +1555,46 @@ defmodule Cloak.Query.BasicTest do
       :ok = insert_rows(_user_ids = 1..10, "heights", ["height", "name", "male"], [1, "true", true])
     end
 
-    test "to text",
-      do:
-        assert_query(
-          """
-            select distinct x from (select cast(male as text) as x from heights) t
-          """,
-          %{rows: [%{row: ["true"]}]}
-        )
+    test "to text" do
+      assert_query(
+        "select distinct x from (select cast(male as text) as x from heights) t",
+        %{rows: [%{row: ["true"]}]}
+      )
+    end
 
-    test "to integer",
-      do:
-        assert_query(
-          """
-            select distinct x from (select cast(male as integer) as x from heights) t
-          """,
-          %{rows: [%{row: [1]}]}
-        )
+    test "to integer" do
+      assert_query(
+        "select distinct x from (select cast(male as integer) as x from heights) t",
+        %{rows: [%{row: [1]}]}
+      )
+    end
 
-    test "from text",
-      do:
-        assert_query(
-          """
-            select distinct x from (select cast(name as boolean) as x from heights) t
-          """,
-          %{rows: [%{row: [true]}]}
-        )
+    test "from text" do
+      assert_query(
+        "select distinct x from (select cast(name as boolean) as x from heights) t",
+        %{rows: [%{row: [true]}]}
+      )
+    end
 
-    test "from integer",
-      do:
-        assert_query(
-          """
-            select distinct x from (select cast(height as boolean) as x from heights) t
-          """,
-          %{rows: [%{row: [true]}]}
-        )
+    test "from integer" do
+      assert_query(
+        "select distinct x from (select cast(height as boolean) as x from heights) t",
+        %{rows: [%{row: [true]}]}
+      )
+    end
 
-    test "to real",
-      do:
-        assert_query(
-          """
-            select distinct x from (select cast(male as real) as x from heights) t
-          """,
-          %{rows: [%{row: [1.0]}]}
-        )
+    test "to real" do
+      assert_query(
+        "select distinct x from (select cast(male as real) as x from heights) t",
+        %{rows: [%{row: [1.0]}]}
+      )
+    end
 
-    test "from real",
-      do:
-        assert_query(
-          """
-            select distinct x from (select cast(height*1.0 as boolean) as x from heights) t
-          """,
-          %{rows: [%{row: [true]}]}
-        )
+    test "from real" do
+      assert_query(
+        "select distinct x from (select cast(height*1.0 as boolean) as x from heights) t",
+        %{rows: [%{row: [true]}]}
+      )
+    end
   end
 end

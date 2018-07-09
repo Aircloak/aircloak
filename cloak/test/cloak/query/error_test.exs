@@ -250,4 +250,23 @@ defmodule Cloak.Query.ErrorTest do
            \t            ^
            """)
   end
+
+  test "error message for DISTINCT with GROUP BY and ORDER BY" do
+    assert_query(
+      """
+      SELECT COUNT(*) FROM (
+        SELECT DISTINCT user_id FROM test_errors GROUP BY height
+        ORDER BY user_id
+      ) x
+      """,
+      %{error: error}
+    )
+
+    assert String.contains?(error, """
+           \t3:      ORDER BY user_id
+           \t                 ^
+           """)
+
+    assert String.contains?(error, "usage of DISTINCT, GROUP BY, and ORDER BY in the same query is not supported")
+  end
 end
