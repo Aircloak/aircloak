@@ -73,32 +73,22 @@ defmodule Air.Service.Query do
   @doc "Returns a list of users of queries matching the given filters. `max_results` is ignored."
   @spec users_for_filters(filters) :: [User.t()]
   def users_for_filters(filters) do
-    users =
-      Query
-      |> apply_filters(filters)
-      |> select_users()
-      |> Repo.all()
-
-    selected_users = User |> where([q], q.id in ^filters.users) |> Repo.all()
-
-    (users ++ selected_users)
-    |> Enum.uniq()
+    Query
+    |> apply_filters(filters)
+    |> select_users()
+    |> Repo.all()
+    |> include_filtered(User, filters.users)
     |> Enum.sort_by(& &1.name)
   end
 
-  @doc "Returns a list of data_sources of queries matching the given filters. `max_results` is ignored."
+  @doc "Returns a list of data sources of queries matching the given filters. `max_results` is ignored."
   @spec data_sources_for_filters(filters) :: [DataSource.t()]
   def data_sources_for_filters(filters) do
-    data_sources =
-      Query
-      |> apply_filters(filters)
-      |> select_data_sources()
-      |> Repo.all()
-
-    selected_data_sources = DataSource |> where([q], q.id in ^filters.data_sources) |> Repo.all()
-
-    (data_sources ++ selected_data_sources)
-    |> Enum.uniq()
+    Query
+    |> apply_filters(filters)
+    |> select_data_sources()
+    |> Repo.all()
+    |> include_filtered(DataSource, filters.data_sources)
     |> Enum.sort_by(& &1.name)
   end
 
@@ -426,6 +416,10 @@ defmodule Air.Service.Query do
   defp add_id_to_changeset(changeset, :autogenerate), do: changeset
   defp add_id_to_changeset(changeset, id), do: Query.add_id_to_changeset(changeset, id)
 
+  # -------------------------------------------------------------------
+  # Helpers for *_for_filters functions
+  # -------------------------------------------------------------------
+
   defp select_users(query) do
     from(
       user in User,
@@ -444,6 +438,11 @@ defmodule Air.Service.Query do
       distinct: data_source.id,
       select: data_source
     )
+  end
+
+  defp include_filtered(items, schema, filtered_ids) do
+    filtered_items = schema |> where([q], q.id in ^filtered_ids) |> Repo.all()
+    Enum.uniq(items ++ filtered_items)
   end
 
   # -------------------------------------------------------------------
