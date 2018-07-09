@@ -19,9 +19,9 @@ defmodule AirWeb.Admin.QueryController.Test do
   end
 
   test "failed queries", %{user: user, data_source: data_source, admin: admin} do
-    insert_query(user, data_source, "query 1", %{error: "some error"})
-    insert_query(user, data_source, "query 2", %{error: "some error"})
-    insert_query(user, data_source, "query 3", %{})
+    insert_query(user, data_source, "query 1", :error)
+    insert_query(user, data_source, "query 2", :error)
+    insert_query(user, data_source, "query 3", :completed)
 
     response = login(admin) |> get("/admin/queries/failed") |> response(200)
 
@@ -40,11 +40,11 @@ defmodule AirWeb.Admin.QueryController.Test do
     )
   end
 
-  defp insert_query(user, data_source, statement, result) do
+  defp insert_query(user, data_source, statement, query_state) do
     create_query!(user, %{
       statement: statement,
       data_source_id: data_source.id,
-      result: result
+      query_state: query_state
     })
   end
 end
