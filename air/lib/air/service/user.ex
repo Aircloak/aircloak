@@ -2,7 +2,7 @@ defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
   alias Air.Repo
-  alias Air.Service.{AuditLog, PrivacyPolicy}
+  alias Air.Service.{AuditLog, PrivacyPolicy, Settings, LDAP}
   alias Air.Schemas.{DataSource, Group, User}
   alias Air.Schemas
   import Ecto.Query, only: [from: 2]
@@ -10,7 +10,7 @@ defmodule Air.Service.User do
 
   @required_fields ~w(email name)a
   @password_fields ~w(password password_confirmation)a
-  @optional_fields ~w(decimal_sep decimal_digits thousand_sep)a
+  @optional_fields ~w(ldap_dn decimal_sep decimal_digits thousand_sep)a
   @password_reset_salt "4egg+HOtabCGwsCsRVEBIg=="
 
   # -------------------------------------------------------------------
@@ -19,19 +19,23 @@ defmodule Air.Service.User do
 
   @doc "Authenticates the given user."
   @spec login(String.t(), String.t(), %{atom => any}) :: {:ok, User.t()} | {:error, :invalid_email_or_password}
-  def login(email, password, meta \\ %{}) do
-    user = Repo.get_by(User, email: email)
+  def login(login, password, meta \\ %{}) do
+    user = find_user(login)
 
     cond do
+      is_nil(user) ->
+        {:error, :invalid_email_or_password}
+
       User.validate_password(user, password) ->
         AuditLog.log(user, "Logged in", meta)
         {:ok, user}
 
-      user ->
-        AuditLog.log(user, "Failed login", meta)
-        {:error, :invalid_email_or_password}
+      LDAP.validate_password(user.ldap_dn, password) ->
+        AuditLog.log(user, "Logged in via LDAP", meta)
+        {:ok, user}
 
       true ->
+        AuditLog.log(user, "Failed login", meta)
         {:error, :invalid_email_or_password}
     end
   end
@@ -328,6 +332,14 @@ defmodule Air.Service.User do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp find_user(login) do
+    if Settings.read().ldap_enabled do
+      Repo.get_by(User, email: login) || Repo.get_by(User, ldap_dn: login)
+    else
+      Repo.get_by(User, email: login)
+    end
+  end
+
   defp random_string, do: Base.encode16(:crypto.strong_rand_bytes(10))
 
   defp set_privacy_policy_id(user, policy_id) do
@@ -347,6 +359,7 @@ defmodule Air.Service.User do
       |> validate_length(:thousand_sep, is: 1)
       |> validate_number(:decimal_digits, greater_than_or_equal_to: 1, less_than_or_equal_to: 9)
       |> unique_constraint(:email)
+      |> unique_constraint(:ldap_dn)
       |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
 
   defp random_password_changeset(user) do

@@ -93,7 +93,8 @@ defmodule Air.Mixfile do
       {:jiffy, "~> 0.14.1"},
       {:appsignal, "~> 1.0"},
       {:parent, "~> 0.3.0"},
-      {:bom, path: "../bom", runtime: false, only: :dev}
+      {:bom, path: "../bom", runtime: false, only: :dev},
+      {:exldap, "~> 0.6.3"}
     ]
   end
 

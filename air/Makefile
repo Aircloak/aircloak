@@ -1,5 +1,5 @@
 .PHONY: all compile deps clean start start2 start3 test test-migrations recreate-db migrate rollback dialyze docs
-.PHONY: release release-local lint mocha format check-format
+.PHONY: release release-local lint mocha format check-format ldap-server
 
 all: deps compile
 
@@ -78,3 +78,12 @@ format:
 
 check-format:
 	mix format --check-formatted
+
+ldap-server:
+	docker run --hostname ldap.aircloak.com -p 389:389 -p 636:636 --name aircloak_ldap \
+		--volume "$(shell pwd)/priv/certificate":/container/service/slapd/assets/certs \
+		--env LDAP_TLS_CRT_FILENAME=example.org.crt \
+		--env LDAP_TLS_KEY_FILENAME=example.org.key \
+		--env LDAP_TLS_CA_CRT_FILENAME=ca.crt \
+		--env LDAP_TLS_VERIFY_CLIENT=try \
+		--detach osixia/openldap:1.2.1

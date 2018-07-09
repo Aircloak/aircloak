@@ -107,6 +107,7 @@ defmodule AirWeb.Router do
     get("/queries/:id", QueryController, :show)
 
     resources("/users", UserController)
+    resources("/ldap", LDAPController, singleton: true)
     resources("/groups", GroupController)
     resources("/data_sources", DataSourceController)
     resources("/settings", SettingsController, singleton: true)

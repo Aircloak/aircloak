@@ -12,6 +12,13 @@ defmodule Air.Schemas.Settings do
     field(:thousand_sep, :string)
     field(:decimal_digits, :integer)
 
+    # LDAP settings
+    field(:ldap_enabled, :boolean)
+    field(:ldap_host, :string)
+    field(:ldap_port, :integer)
+    field(:ldap_ssl, :boolean)
+    field(:ldap_ca_cert, :string)
+
     timestamps()
   end
 end

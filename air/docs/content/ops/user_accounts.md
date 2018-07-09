@@ -28,3 +28,16 @@ ok
 ```
 
 Next, click on `Forgot password?` in the Airclok Insights login form, and follow the on-screen instructions.
+
+# LDAP
+
+Insights Air supports integrating with LDAP as an authentication mechanism. The integration can be configured by
+navigating to `Admin -> LDAP`. Enter the address and port of your LDAP server in the provided fields. Make sure to check
+the `LDAP enabled` checkbox.
+
+We recommend using SSL to communicate with the server, to ensure the communications are encrypted. In that case you will
+need to upload a CA certificate to use to verify the certificate of the server.
+
+After the integration is enabled you can assign LDAP Distinguished Names (DN) to Insights Air users by navigating to
+`Admin -> Users -> Edit`. A user with a DN assigned will be able to login using their LDAP credentials or Insights Air
+credentials.

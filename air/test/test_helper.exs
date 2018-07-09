@@ -14,3 +14,5 @@ Air.Repo.delete_all(Air.Schemas.AuditLog)
 Ecto.Adapters.SQL.Sandbox.mode(Air.Repo, :manual)
 
 :ok = "priv/dev_license.lic" |> File.read!() |> Air.Service.License.load()
+
+{:ok, _} = Air.Service.Settings.save(%{"audit_log_enabled" => true})

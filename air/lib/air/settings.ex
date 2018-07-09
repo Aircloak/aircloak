@@ -6,7 +6,12 @@ defmodule Air.Settings do
           audit_log_enabled: boolean,
           decimal_sep: String.t(),
           thousand_sep: String.t(),
-          decimal_digits: integer
+          decimal_digits: integer,
+          ldap_enabled: boolean,
+          ldap_host: String.t(),
+          ldap_port: integer,
+          ldap_ssl: boolean,
+          ldap_ca_cert: String.t()
         }
 
   defstruct [
@@ -14,6 +19,11 @@ defmodule Air.Settings do
     :audit_log_enabled,
     :decimal_sep,
     :thousand_sep,
-    :decimal_digits
+    :decimal_digits,
+    :ldap_enabled,
+    :ldap_host,
+    :ldap_port,
+    :ldap_ssl,
+    :ldap_ca_cert
   ]
 end

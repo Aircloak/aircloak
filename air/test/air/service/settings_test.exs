@@ -14,11 +14,15 @@ defmodule Air.Service.Settings.Test do
                audit_log_enabled: true,
                decimal_digits: 3,
                decimal_sep: ".",
-               thousand_sep: " "
+               thousand_sep: " ",
+               ldap_host: nil,
+               ldap_port: nil,
+               ldap_ssl: false,
+               ldap_ca_cert: nil
              }
   end
 
-  describe "update settings" do
+  describe ".save" do
     test "set retention", %{server: server} do
       Air.Service.Settings.save(server, %{"query_retention_days" => 120})
       assert Air.Service.Settings.read(server).query_retention_days == 120
@@ -33,6 +37,23 @@ defmodule Air.Service.Settings.Test do
     test "disable audit log", %{server: server} do
       Air.Service.Settings.save(server, %{"audit_log_enabled" => false})
       assert Air.Service.Settings.read(server).audit_log_enabled == false
+    end
+
+    test "cannot set LDAP settings", %{server: server} do
+      Air.Service.Settings.save(server, %{"ldap_host" => "new_host"})
+      assert Air.Service.Settings.read(server).ldap_host == nil
+    end
+  end
+
+  describe ".save_ldap" do
+    test "cannot set non-LDAP settings", %{server: server} do
+      Air.Service.Settings.save_ldap(server, %{"query_retention_days" => 120})
+      assert Air.Service.Settings.read(server).query_retention_days == :unlimited
+    end
+
+    test "can set LDAP settings", %{server: server} do
+      Air.Service.Settings.save_ldap(server, %{"ldap_port" => 389})
+      assert Air.Service.Settings.read(server).ldap_port == 389
     end
   end
 end

@@ -40,6 +40,7 @@
                   <%= navbar_link(@conn, "Data sources", admin_data_source_path(@conn, :index)) %>
                   <%= navbar_link(@conn, "Groups", admin_group_path(@conn, :index)) %>
                   <%= navbar_link(@conn, "Users", admin_user_path(@conn, :index)) %>
+                  <%= navbar_link(@conn, "LDAP", admin_ldap_path(@conn, :show)) %>
                   <%= navbar_link(@conn, "Failed queries", admin_query_path(@conn, :failed)) %>
                   <%= navbar_link(@conn, "Settings", admin_settings_path(@conn, :show)) %>
                   <%=
