@@ -387,7 +387,7 @@ defmodule Air.Service.Query do
   defp add_id_to_changeset(changeset, id), do: Query.add_id_to_changeset(changeset, id)
 
   # -------------------------------------------------------------------
-  # API functions
+  # Supervision tree
   # -------------------------------------------------------------------
 
   @doc false
