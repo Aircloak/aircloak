@@ -38,9 +38,8 @@ defmodule AirWeb.Admin.QueryController do
   def failed(conn, params) do
     from = parse_datetime(params["from"], Timex.now() |> Timex.shift(days: -1))
     to = parse_datetime(params["to"], Timex.now())
-    page = params["page"] || 1
     max_results = 100
-    failed_queries = Air.Service.Query.paginated_failed_queries(page)
+    failed_queries = Air.Service.Query.failed_queries()
 
     render(
       conn,

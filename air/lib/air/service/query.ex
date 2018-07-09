@@ -46,14 +46,9 @@ defmodule Air.Service.Query do
     end
   end
 
-  @doc """
-  Returns information about failed queries in a paginated form.
-
-  The data returned by this function will select a map with fields
-  `id`, `inserted_at`, `data_source`, `user`, `statement`, and `error`.
-  """
-  @spec paginated_failed_queries(non_neg_integer) :: Scrivener.Page.t()
-  def paginated_failed_queries(page) do
+  @doc "Returns information about failed queries in a paginated form."
+  @spec failed_queries() :: [Query.t()]
+  def failed_queries() do
     query =
       from(
         q in Query,
@@ -67,11 +62,11 @@ defmodule Air.Service.Query do
           statement: q.statement,
           error: fragment("?->>'error'", q.result)
         },
-        where: not is_nil(q.statement) and q.statement != "" and fragment("?->>'error' <> ''", q.result),
+        where: q.query_state == ^:error,
         order_by: [desc: q.inserted_at]
       )
 
-    Repo.paginate(query, page: page)
+    Repo.all(query)
   end
 
   @doc "Returns a query if accessible by the given user, without associations preloaded."

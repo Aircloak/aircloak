@@ -2,13 +2,13 @@
   <div class="col-md-9">
     <h2>Failed queries</h2>
 
-    <%= if @failed_queries.total_entries == 0 do %>
+    <%= if length(@failed_queries) == 0 do %>
 
       <div><b>There are no failed queries matching your search criteria.</b></div>
 
     <% else %>
 
-      <%= if @failed_queries.total_entries >= @max_results do %>
+      <%= if length(@failed_queries) >= @max_results do %>
         <div class="alert alert-warning" role="alert">
           There are more than <strong><%= @max_results %></strong> entries matching your filters. Only the most recent
           <strong><%= @max_results %></strong> are shown. Consider narrowing your search criteria.
