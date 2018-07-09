@@ -61,20 +61,11 @@ defmodule Air.Service.Query do
   def queries(filters) do
     from(
       q in Query,
-      join: ds in assoc(q, :data_source),
-      join: user in assoc(q, :user),
-      select: %{
-        id: q.id,
-        inserted_at: q.inserted_at,
-        data_source: ds.name,
-        user: user.name,
-        statement: q.statement,
-        error: fragment("?->>'error'", q.result)
-      },
       where: q.query_state in ^filters.query_state,
       order_by: [desc: q.inserted_at]
     )
     |> Repo.all()
+    |> Repo.preload([:user, :data_source])
   end
 
   @doc "Returns a query if accessible by the given user, without associations preloaded."

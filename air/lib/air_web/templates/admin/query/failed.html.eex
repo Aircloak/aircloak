@@ -21,10 +21,10 @@
             <div>
               <b>Time</b>: <%= absolute_time(query) %> (<%= time_ago(query) %>)
             </div>
-            <div><b>User</b>: <%= query.user %></div>
-            <div><b>Data source</b>: <%= query.data_source %></div>
-            <div><b>Query:</b> <pre><%= query.statement %></pre></div>
-            <div><b>Error</b>: <pre><%= query.error %></pre></div>
+            <div><b>User</b>: <%= query.user.name %></div>
+            <div><b>Data source</b>: <%= data_source_name(query) %></div>
+            <div><b>Query</b>: <pre><%= query.statement %></pre></div>
+            <div><b>Error</b>: <pre><%= query.result["error"] %></pre></div>
             <hr />
           </div>
         <% end %>
