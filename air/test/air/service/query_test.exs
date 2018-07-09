@@ -335,6 +335,61 @@ defmodule Air.Service.QueryTest do
     end
   end
 
+  describe "queries" do
+    setup [:sandbox]
+
+    test "filtering by query_state" do
+      _query1 = create_query!(create_user!(), %{query_state: :started})
+      query2 = create_query!(create_user!(), %{query_state: :error})
+      query3 = create_query!(create_user!(), %{query_state: :completed})
+
+      assert Query.queries(filters(%{query_states: [:error, :completed]})) |> Enum.map(& &1.id) == [
+               query3.id,
+               query2.id
+             ]
+    end
+
+    test "filtering by data source" do
+      _query1 = create_query!(create_user!(), %{data_source_id: create_data_source!().id})
+      query2 = create_query!(create_user!(), %{data_source_id: create_data_source!().id})
+      query3 = create_query!(create_user!(), %{data_source_id: create_data_source!().id})
+
+      assert Query.queries(filters(%{data_sources: [query2.data_source_id, query3.data_source_id]}))
+             |> Enum.map(& &1.id) == [query3.id, query2.id]
+    end
+
+    test "filtering by user" do
+      _query1 = create_query!(create_user!())
+      query2 = create_query!(create_user!())
+      query3 = create_query!(create_user!())
+
+      assert Query.queries(filters(%{users: [query2.user_id, query3.user_id]}))
+             |> Enum.map(& &1.id) == [query3.id, query2.id]
+    end
+
+    test "max results" do
+      _query1 = create_query!(create_user!())
+      query2 = create_query!(create_user!())
+      query3 = create_query!(create_user!())
+
+      assert Query.queries(filters(%{max_results: 2})) |> Enum.map(& &1.id) == [query3.id, query2.id]
+    end
+
+    defp filters(overrides) do
+      Map.merge(
+        %{
+          query_states: [],
+          data_sources: [],
+          users: [],
+          max_results: 100,
+          from: Timex.now() |> Timex.shift(days: -1),
+          to: Timex.now() |> Timex.shift(days: 1)
+        },
+        overrides
+      )
+    end
+  end
+
   def sandbox(_context) do
     Ecto.Adapters.SQL.Sandbox.checkout(Air.Repo)
     Ecto.Adapters.SQL.Sandbox.mode(Air.Repo, {:shared, self()})

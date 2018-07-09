@@ -39,8 +39,10 @@ defmodule AirWeb.Admin.QueryController do
     filters = %{
       from: parse_datetime(params["from"], Timex.now() |> Timex.shift(days: -1)),
       to: parse_datetime(params["to"], Timex.now()),
-      max_results: 100,
-      query_state: [:error]
+      users: [],
+      data_sources: [],
+      query_states: [:error],
+      max_results: 100
     }
 
     failed_queries = Air.Service.Query.queries(filters)

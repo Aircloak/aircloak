@@ -17,7 +17,7 @@ defmodule Air.Service.Query do
   @type filters :: %{
           from: DateTime.t(),
           to: DateTime.t(),
-          query_state: [Query.QueryState.t()],
+          query_states: [Query.QueryState.t()],
           users: [user_id],
           data_sources: [data_source_id],
           max_results: non_neg_integer
@@ -59,11 +59,13 @@ defmodule Air.Service.Query do
   @doc "Returns information about failed queries in a paginated form."
   @spec queries(filters) :: [Query.t()]
   def queries(filters) do
-    from(
-      q in Query,
-      where: q.query_state in ^filters.query_state,
-      order_by: [desc: q.inserted_at]
-    )
+    Query
+    |> for_time(filters.from, filters.to)
+    |> for_query_states(filters.query_states)
+    |> for_data_source_ids(filters.data_sources)
+    |> for_user_ids(filters.users)
+    |> order_by([q], desc: q.inserted_at)
+    |> limit(^filters.max_results)
     |> Repo.all()
     |> Repo.preload([:user, :data_source])
   end
@@ -329,6 +331,28 @@ defmodule Air.Service.Query do
 
   defp pending(scope \\ Query) do
     where(scope, [q], q.query_state in ^@active_states)
+  end
+
+  defp for_query_states(scope, []), do: scope
+
+  defp for_query_states(scope, query_states) do
+    where(scope, [q], q.query_state in ^query_states)
+  end
+
+  defp for_data_source_ids(scope, []), do: scope
+
+  defp for_data_source_ids(scope, data_source_ids) do
+    where(scope, [q], q.data_source_id in ^data_source_ids)
+  end
+
+  defp for_user_ids(scope, []), do: scope
+
+  defp for_user_ids(scope, user_ids) do
+    where(scope, [q], q.user_id in ^user_ids)
+  end
+
+  defp for_time(scope, from, to) do
+    where(scope, [q], q.inserted_at >= ^from and q.inserted_at <= ^to)
   end
 
   defp for_data_source(query, data_source) do
