@@ -12,6 +12,16 @@ defmodule Air.Service.Query do
   @type option :: {:session_id, Query.session_id()}
   @type options :: [option]
 
+  @type user_id :: non_neg_integer
+  @type data_source_id :: non_neg_integer
+  @type filters :: %{
+          from: DateTime.t(),
+          to: DateTime.t(),
+          query_state: [Query.QueryState.t()],
+          users: [user_id],
+          data_sources: [data_source_id],
+          max_results: non_neg_integer
+        }
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -47,26 +57,24 @@ defmodule Air.Service.Query do
   end
 
   @doc "Returns information about failed queries in a paginated form."
-  @spec failed_queries() :: [Query.t()]
-  def failed_queries() do
-    query =
-      from(
-        q in Query,
-        join: ds in assoc(q, :data_source),
-        join: user in assoc(q, :user),
-        select: %{
-          id: q.id,
-          inserted_at: q.inserted_at,
-          data_source: ds.name,
-          user: user.name,
-          statement: q.statement,
-          error: fragment("?->>'error'", q.result)
-        },
-        where: q.query_state == ^:error,
-        order_by: [desc: q.inserted_at]
-      )
-
-    Repo.all(query)
+  @spec queries(filters) :: [Query.t()]
+  def queries(filters) do
+    from(
+      q in Query,
+      join: ds in assoc(q, :data_source),
+      join: user in assoc(q, :user),
+      select: %{
+        id: q.id,
+        inserted_at: q.inserted_at,
+        data_source: ds.name,
+        user: user.name,
+        statement: q.statement,
+        error: fragment("?->>'error'", q.result)
+      },
+      where: q.query_state in ^filters.query_state,
+      order_by: [desc: q.inserted_at]
+    )
+    |> Repo.all()
   end
 
   @doc "Returns a query if accessible by the given user, without associations preloaded."

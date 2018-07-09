@@ -36,20 +36,16 @@ defmodule AirWeb.Admin.QueryController do
   end
 
   def failed(conn, params) do
-    from = parse_datetime(params["from"], Timex.now() |> Timex.shift(days: -1))
-    to = parse_datetime(params["to"], Timex.now())
-    max_results = 100
-    failed_queries = Air.Service.Query.failed_queries()
+    filters = %{
+      from: parse_datetime(params["from"], Timex.now() |> Timex.shift(days: -1)),
+      to: parse_datetime(params["to"], Timex.now()),
+      max_results: 100,
+      query_state: [:error]
+    }
 
-    render(
-      conn,
-      "failed.html",
-      full_width: true,
-      failed_queries: failed_queries,
-      from: from,
-      to: to,
-      max_results: max_results
-    )
+    failed_queries = Air.Service.Query.queries(filters)
+
+    render(conn, "failed.html", Map.merge(filters, %{full_width: true, failed_queries: failed_queries}))
   end
 
   # -------------------------------------------------------------------
