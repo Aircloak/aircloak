@@ -51,10 +51,7 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
         )
 
       {:ok, cache} = Cache.start_link(provider.cache_opts)
-
-      assert_raise(RuntimeError, fn ->
-        Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1")
-      end)
+      assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1")
     end)
   end
 
@@ -73,10 +70,7 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
         )
 
       {:ok, cache} = Cache.start_link(provider.cache_opts)
-
-      assert_raise(RuntimeError, fn ->
-        Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col2")
-      end)
+      assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col2")
     end)
   end
 
