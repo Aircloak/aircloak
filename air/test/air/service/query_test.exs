@@ -338,6 +338,14 @@ defmodule Air.Service.QueryTest do
   describe ".queries" do
     setup [:sandbox]
 
+    test "results are ordered from newest to oldest" do
+      query1 = create_query!(create_user!())
+      query2 = create_query!(create_user!())
+      query3 = create_query!(create_user!())
+
+      assert Query.queries(filters()) |> Enum.map(& &1.id) == [query3.id, query2.id, query1.id]
+    end
+
     test "filtering by query_state" do
       _query1 = create_query!(create_user!(), %{query_state: :started})
       query2 = create_query!(create_user!(), %{query_state: :error})
@@ -396,6 +404,13 @@ defmodule Air.Service.QueryTest do
              |> Enum.map(& &1.id)
              |> Enum.sort() == Enum.sort([user2.id, user3.id])
     end
+
+    test "results are orderer by name" do
+      users = Enum.map(1..3, fn _ -> create_user!() end)
+
+      assert Query.users_for_filters(filters(%{users: Enum.map(users, & &1.id)})) |> Enum.map(& &1.name) ==
+               users |> Enum.map(& &1.name) |> Enum.sort()
+    end
   end
 
   describe ".data_sources_for_filters" do
@@ -418,9 +433,16 @@ defmodule Air.Service.QueryTest do
              |> Enum.map(& &1.id)
              |> Enum.sort() == Enum.sort([data_source2.id, data_source3.id])
     end
+
+    test "results are orderer by name" do
+      data_sources = Enum.map(1..3, fn _ -> create_data_source!() end)
+
+      assert Query.data_sources_for_filters(filters(%{data_sources: Enum.map(data_sources, & &1.id)}))
+             |> Enum.map(& &1.name) == data_sources |> Enum.map(& &1.name) |> Enum.sort()
+    end
   end
 
-  defp filters(overrides) do
+  defp filters(overrides \\ %{}) do
     Map.merge(
       %{
         query_states: [],
