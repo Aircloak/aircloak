@@ -2,8 +2,7 @@
 
 import React from "react";
 
-import {Results} from "./results";
-import {PropertiesView} from "./properties";
+import ImmutableSingleQuery from "./immutable_single_query";
 import type {Result} from "./result";
 import {FrontendSocket} from "../frontend_socket";
 import type {NumberFormat} from "../number_format";
@@ -40,17 +39,11 @@ export default class QueryView extends React.Component {
   }
 
   render() {
-    return (<div>
-      <h3>Properties</h3>
-      <PropertiesView {...this.state.result} />
-
-      <h3>Query</h3>
-      <Results
+    return (<ImmutableSingleQuery
         numberFormat={this.props.numberFormat}
-        results={[this.state.result]}
         debugModeEnabled={this.props.debugModeEnabled}
-      />
-    </div>);
+        result={this.state.result}
+      />);
   }
 }
 

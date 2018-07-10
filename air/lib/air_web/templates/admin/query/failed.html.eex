@@ -59,13 +59,12 @@
       <%= for query <- @failed_queries do %>
         var props = {
           result: <%= to_json(query) %>,
-          guardianToken: "<%= @guardian_token %>",
           CSRFToken: "<%= @csrf_token %>",
           numberFormat: <%= to_json(@number_format) %>,
           debugModeEnabled: <%= @debug_mode_enabled %>
         };
 
-        App.queryShowPage(props, document.getElementById("<%= query.id %>"));
+        App.immutableQueryShowPage(props, document.getElementById("<%= query.id %>"));
       <% end %>
     }
   };
