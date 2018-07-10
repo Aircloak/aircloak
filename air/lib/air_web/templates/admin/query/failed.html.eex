@@ -15,21 +15,10 @@
         </div>
       <% end %>
 
-      <div id="query-view">
-        <%= for query <- @failed_queries do %>
-          <div>
-            <div>
-              <b>Time</b>: <%= absolute_time(query) %> (<%= time_ago(query) %>)
-            </div>
-            <div><b>User</b>: <%= query.user.name %></div>
-            <div><b>Data source</b>: <%= data_source_name(query) %></div>
-            <div><b>Query</b>: <pre><%= query.statement %></pre></div>
-            <div><b>Error</b>: <pre><%= query.result["error"] %></pre></div>
-            <hr />
-          </div>
-        <% end %>
-      </div>
-
+      <%= for query <- @failed_queries do %>
+        <div id="<%= query.id %>"></div>
+        <hr />
+      <% end %>
     <% end %>
   </div>
 
@@ -66,6 +55,18 @@
   window.pageConfig = {
     onLoad: function(App) {
       App.activateDatetimePickers();
+
+      <%= for query <- @failed_queries do %>
+        var props = {
+          result: <%= to_json(query) %>,
+          guardianToken: "<%= @guardian_token %>",
+          CSRFToken: "<%= @csrf_token %>",
+          numberFormat: <%= to_json(@number_format) %>,
+          debugModeEnabled: <%= @debug_mode_enabled %>
+        };
+
+        App.queryShowPage(props, document.getElementById("<%= query.id %>"));
+      <% end %>
     }
   };
 </script>

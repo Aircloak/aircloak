@@ -45,14 +45,16 @@ defmodule AirWeb.Admin.QueryController do
       max_results: 100
     }
 
-    failed_queries = Air.Service.Query.queries(filters)
-
     render(
       conn,
       "failed.html",
       Map.merge(filters, %{
         full_width: true,
-        failed_queries: failed_queries,
+        guardian_token: Air.Guardian.Plug.current_token(conn),
+        csrf_token: CSRFProtection.get_csrf_token(),
+        number_format: Air.Service.User.number_format_settings(conn.assigns.current_user),
+        debug_mode_enabled: conn.assigns.current_user.debug_mode_enabled,
+        failed_queries: Air.Service.Query.queries(filters) |> Enum.map(&Query.for_display(&1, nil)),
         users: Air.Service.Query.users_for_filters(filters) |> Enum.map(&%{label: &1.name, value: &1.id}),
         data_sources: Air.Service.Query.data_sources_for_filters(filters) |> Enum.map(&%{label: &1.name, value: &1.id})
       })
