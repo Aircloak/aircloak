@@ -40,10 +40,10 @@ export default class QueryView extends React.Component {
 
   render() {
     return (<ImmutableSingleQuery
-        numberFormat={this.props.numberFormat}
-        debugModeEnabled={this.props.debugModeEnabled}
-        result={this.state.result}
-      />);
+      numberFormat={this.props.numberFormat}
+      debugModeEnabled={this.props.debugModeEnabled}
+      result={this.state.result}
+    />);
   }
 }
 
