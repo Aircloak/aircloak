@@ -29,8 +29,11 @@ defmodule Cloak.DataSource.Isolators.Cache do
   end
 
   @doc "Performs a cache lookup."
-  @spec lookup(Cloak.DataSource.t(), String.t(), String.t()) :: {:ok, boolean} | :error
-  def lookup(data_source, table_name, column_name), do: CacheOwner.lookup({data_source.name, table_name, column_name})
+  @spec lookup(Cloak.DataSource.t(), String.t(), String.t()) ::
+          {:ok, boolean} | {:error, :pending | :failed | :unknown_column}
+  def lookup(cache_ref \\ __MODULE__, data_source, table_name, column_name) do
+    GenServer.call(cache_ref, {:column_status, {data_source.name, table_name, column_name}})
+  end
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -48,21 +51,15 @@ defmodule Cloak.DataSource.Isolators.Cache do
 
   @impl GenServer
   def handle_call({:fetch_isolation, column}, from, state) do
-    cond do
-      not MapSet.member?(state.known_columns, column) ->
-        {:reply, {:error, :unknown_column}, state}
-
-      # doing another lookup, because property might have become available while this request was in the queue
-      match?({:ok, _}, CacheOwner.lookup(column)) ->
-        {:ok, isolates?} = CacheOwner.lookup(column)
-        {:reply, {:ok, isolates?}, state}
-
-      computing_isolation?(column) or not Queue.processed?(state.queue, column) ->
-        {:noreply, add_waiting_request(state, column, from)}
-
-      true ->
-        {:reply, {:error, :failed}, state}
+    case column_status(column, state) do
+      {:ok, result} -> {:reply, {:ok, result}, state}
+      {:error, :pending} -> {:noreply, add_waiting_request(state, column, from)}
+      {:error, other} -> {:reply, {:error, other}, state}
     end
+  end
+
+  def handle_call({:column_status, column}, _from, state) do
+    {:reply, column_status(column, state), state}
   end
 
   @impl GenServer
@@ -102,6 +99,15 @@ defmodule Cloak.DataSource.Isolators.Cache do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp column_status(column, state) do
+    cond do
+      not MapSet.member?(state.known_columns, column) -> {:error, :unknown_column}
+      match?({:ok, _}, CacheOwner.lookup(column)) -> CacheOwner.lookup(column)
+      computing_isolation?(column) or not Queue.processed?(state.queue, column) -> {:error, :pending}
+      true -> {:error, :failed}
+    end
+  end
 
   defp maybe_start_next_computation(state) do
     if Parent.GenServer.child?(:compute_isolation_job), do: state, else: start_next_computation(state)

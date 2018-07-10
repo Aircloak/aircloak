@@ -14,7 +14,8 @@ defmodule Cloak.DataSource.Isolators do
   defdelegate isolates_users?(data_source, table, column), to: @cache_module
 
   @doc "Performs a cache lookup for the given column."
-  @spec cache_lookup(Cloak.DataSource.t(), String.t(), String.t()) :: {:ok, boolean} | :error
+  @spec cache_lookup(Cloak.DataSource.t(), String.t(), String.t()) ::
+          {:ok, boolean} | {:error, :failed | :pending | :unknown_column}
   defdelegate cache_lookup(data_source, table_name, column_name), to: @cache_module, as: :lookup
 
   @doc "Returns true if the isolated property for the given column is computed."

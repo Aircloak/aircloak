@@ -90,8 +90,8 @@ defmodule Cloak.Query.VirtualTableTest do
 
     assert_query("show columns from vtt_fake", %{
       rows: [
-        %{row: ["user_id", "text", _isolator = false]},
-        %{row: ["ival", "integer", _isolator = false]}
+        %{row: ["user_id", "text", _isolator = "false"]},
+        %{row: ["ival", "integer", _isolator = "false"]}
       ]
     })
   end
@@ -101,8 +101,8 @@ defmodule Cloak.Query.VirtualTableTest do
 
     assert_query("show columns from vtt_fake", %{
       rows: [
-        %{row: ["user_id", "text", _isolator = false]},
-        %{row: ["ival", "integer", _isolator = false]}
+        %{row: ["user_id", "text", _isolator = "false"]},
+        %{row: ["ival", "integer", _isolator = "false"]}
       ]
     })
   end
@@ -112,7 +112,7 @@ defmodule Cloak.Query.VirtualTableTest do
 
     assert_query("show columns from vtt_fake", %{
       rows: [
-        %{row: ["user_id", "text", _isolator = false]}
+        %{row: ["user_id", "text", _isolator = "false"]}
       ]
     })
   end
@@ -317,10 +317,10 @@ defmodule Cloak.Query.VirtualTableTest do
     test "show columns from a projected table" do
       assert_query("show columns from projected_transactions", %{
         rows: [
-          %{row: ["user_id", "text", _isolator = false]},
-          %{row: ["id", "integer", _isolator = false]},
-          %{row: ["account_id", "integer", _isolator = false]},
-          %{row: ["amount", "integer", _isolator = false]}
+          %{row: ["user_id", "text", _isolator = "false"]},
+          %{row: ["id", "integer", _isolator = "false"]},
+          %{row: ["account_id", "integer", _isolator = "false"]},
+          %{row: ["amount", "integer", _isolator = "false"]}
         ]
       })
     end
@@ -328,9 +328,9 @@ defmodule Cloak.Query.VirtualTableTest do
     test "show columns from a multiply projected table" do
       assert_query("show columns from projected_notes", %{
         rows: [
-          %{row: ["uid", "text", _isolator = false]},
-          %{row: ["transaction_id", "integer", _isolator = false]},
-          %{row: ["note", "text", _isolator = false]}
+          %{row: ["uid", "text", _isolator = "false"]},
+          %{row: ["transaction_id", "integer", _isolator = "false"]},
+          %{row: ["note", "text", _isolator = "false"]}
         ]
       })
     end
