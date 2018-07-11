@@ -22,6 +22,7 @@ import $ from "jquery";
 
 import Queries from "./queries/root";
 import SingleQuery from "./queries/single_query_root";
+import ImmutableSingleQuery from "./queries/immutable_single_query";
 import SelectableInfo from "./selectable_info/root";
 import Editor from "./view/editor";
 import ActivityMonitor from "./activity_monitor/root";
@@ -37,6 +38,7 @@ require("codemirror/mode/markdown/markdown");
 const App = {
   queryPage: (props, elem) => App.render("queries", props, elem),
   queryShowPage: (props, elem) => App.render("query_show", props, elem),
+  immutableQueryShowPage: (props, elem) => App.render("immutable_query_show", props, elem),
   selectableInfo: (props, elem) => App.render("selectable_info", props, elem),
   viewEditor: (props, elem) => App.render("view_editor", props, elem),
   activityMonitor: (props, elem) => App.render("activity_monitor", props, elem),
@@ -83,6 +85,7 @@ const App = {
     switch (page) {
       case "queries": return <Queries frontendSocket={App.buildSocket(props)} {...props} />;
       case "query_show": return <SingleQuery frontendSocket={App.buildSocket(props)} {...props} />;
+      case "immutable_query_show": return <ImmutableSingleQuery {...props} />;
       case "selectable_info": return <SelectableInfo {...props} />;
       case "view_editor": return <Editor {...props} />;
       case "activity_monitor": return <ActivityMonitor frontendSocket={App.buildSocket(props)} {...props} />;
