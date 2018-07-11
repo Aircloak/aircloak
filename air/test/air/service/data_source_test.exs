@@ -198,7 +198,15 @@ defmodule Air.Service.DataSourceTest do
 
     test "should precompute and store isolator status" do
       tables = [
-        %{id: "table_id", columns: [%{isolated: true}, %{isolated: false}, %{name: "failure", isolated: :failed}, %{}]}
+        %{
+          id: "table_id",
+          columns: [
+            %{name: "col1", isolated: true},
+            %{name: "col2", isolated: false},
+            %{name: "failure", isolated: :failed},
+            %{name: "col3", isolated: :other}
+          ]
+        }
       ]
 
       name = "new_name"
@@ -206,7 +214,7 @@ defmodule Air.Service.DataSourceTest do
 
       assert data_source.columns_count == 4
       assert data_source.isolated_computed_count == 2
-      assert data_source.isolated_failed == ["failure"]
+      assert data_source.isolated_failed == ["table_id.failure"]
     end
   end
 

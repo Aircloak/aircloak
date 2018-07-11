@@ -8,6 +8,13 @@ defmodule Air.Service.WarningsTest do
   @data_source_name "name"
   @data_sources [%{name: @data_source_name, tables: []}]
   @data_sources_with_errors [%{name: @data_source_name, tables: [], errors: ["broken"]}]
+  @data_sources_with_failed_isolators [
+    %{
+      name: @data_source_name,
+      tables: [%{id: "failed_table", columns: [%{name: "failed_isolator", isolated: :failed}]}],
+      errors: []
+    }
+  ]
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
@@ -51,6 +58,11 @@ defmodule Air.Service.WarningsTest do
     start_cloak_channel(@data_sources)
     add_group(@data_sources)
     assert problem_with_description(~r/no users/i)
+  end
+
+  test "warning when data source has failed isolators" do
+    start_cloak_channel(@data_sources_with_failed_isolators)
+    assert problem_with_description(~r/Cloak could not compute if columns `failed_table.failed_isolator` are isolating/)
   end
 
   describe("problems_for_resource") do

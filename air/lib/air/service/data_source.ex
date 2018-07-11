@@ -31,7 +31,7 @@ defmodule Air.Service.DataSource do
               name: String.t(),
               type: String.t(),
               user_id: boolean,
-              isolated: boolean | nil
+              isolated: boolean | atom
             }
           ]
         }
@@ -463,15 +463,16 @@ defmodule Air.Service.DataSource do
     # are frequently needed to determine the column status, we're precomputing them once.
 
     status =
-      tables
-      |> Stream.flat_map(& &1.columns)
+      for table <- tables, column <- table.columns do
+        {table.id, column.name, column.isolated}
+      end
       |> Enum.reduce(
         %{total: 0, computed: 0, failed: []},
         fn
-          %{name: name, isolated: :failed}, acc ->
-            %{acc | total: acc.total + 1, failed: [name | acc.failed]}
+          {table, column, :failed}, acc ->
+            %{acc | total: acc.total + 1, failed: ["#{table}.#{column}" | acc.failed]}
 
-          %{isolated: isolated}, acc when is_boolean(isolated) ->
+          {_, _, isolated}, acc when is_boolean(isolated) ->
             %{acc | total: acc.total + 1, computed: acc.computed + 1}
 
           _, acc ->
