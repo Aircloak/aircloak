@@ -57,14 +57,12 @@
       App.activateDatetimePickers();
 
       <%= for query <- @failed_queries do %>
-        var props = {
+        App.immutableQueryShowPage({
           result: <%= to_json(query) %>,
           CSRFToken: "<%= @csrf_token %>",
           numberFormat: <%= to_json(@number_format) %>,
           debugModeEnabled: <%= @debug_mode_enabled %>
-        };
-
-        App.immutableQueryShowPage(props, document.getElementById("<%= query.id %>"));
+        }, document.getElementById("<%= query.id %>"));
       <% end %>
     }
   };
