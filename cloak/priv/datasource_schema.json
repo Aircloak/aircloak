@@ -28,7 +28,8 @@
         "row_id": {"type": "string", "minLength": 1, "$comment": "allowed for backward compatibility"},
         "projection": {"$ref": "#/definitions/projection"},
         "decoders": {"type": "array", "items": {"$ref": "#/definitions/decoder"}},
-        "query": {"type": "string", "minLength": 1}
+        "query": {"type": "string", "minLength": 1},
+        "non_isolating_columns": {"type": "array", "items": {"$ref": "#/definitions/column"}}
       },
       "additionalProperties": false,
       "oneOf": [
@@ -63,11 +64,12 @@
       "type": "object",
       "properties": {
         "method": {"type": "string", "minLength": 1},
-        "columns": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "columns": {"type": "array", "items": {"$ref": "#/definitions/column"}},
         "key": {"type": "string", "minLength": 1}
       },
       "additionalProperties": true,
       "required": ["method", "columns"]
-    }
+    },
+    "column": {"type": "string", "minLength": 1}
   }
 }
