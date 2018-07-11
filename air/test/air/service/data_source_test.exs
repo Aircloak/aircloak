@@ -196,12 +196,17 @@ defmodule Air.Service.DataSourceTest do
       assert %Air.Schemas.DataSource{} = DataSource.create_or_update_data_source(name, [table], [])
     end
 
-    test "should precompute and store counts" do
-      tables = [%{id: "table_id", columns: [%{isolated: true}, %{isolated: false}, %{isolated: nil}, %{}]}]
+    test "should precompute and store isolator status" do
+      tables = [
+        %{id: "table_id", columns: [%{isolated: true}, %{isolated: false}, %{name: "failure", isolated: :failed}, %{}]}
+      ]
+
       name = "new_name"
       data_source = DataSource.create_or_update_data_source(name, tables, [])
+
       assert data_source.columns_count == 4
       assert data_source.isolated_computed_count == 2
+      assert data_source.isolated_failed == ["failure"]
     end
   end
 

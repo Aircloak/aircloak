@@ -445,7 +445,7 @@ defmodule Air.Service.DataSource do
   defp data_source_changeset(data_source, params),
     do:
       data_source
-      |> cast(params, ~w(name tables errors description columns_count isolated_computed_count)a)
+      |> cast(params, ~w(name tables errors description columns_count isolated_computed_count isolated_failed)a)
       |> validate_required(~w(name tables)a)
       |> unique_constraint(:name)
       |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
@@ -458,19 +458,24 @@ defmodule Air.Service.DataSource do
       })
 
   defp data_source_to_db_data(name, tables, errors) do
-    # We're computing total column count and isolated computed count, and storing them directly. This allows us to
-    # have those counts ready, without needing to decode the tables json. Since these counts are frequently needed to
-    # determine the column status, we're precomputing them once.
+    # We're computing total column count, isolated computed count, and the list of failed isolators, and storing them
+    # directly. This allows us to have that data ready, without needing to decode the tables json. Since these counts
+    # are frequently needed to determine the column status, we're precomputing them once.
 
-    counts =
+    status =
       tables
       |> Stream.flat_map(& &1.columns)
-      |> Stream.map(&Map.get(&1, :isolated, nil))
       |> Enum.reduce(
-        %{total: 0, computed_isolated: 0},
+        %{total: 0, computed: 0, failed: []},
         fn
-          nil, acc -> %{acc | total: acc.total + 1}
-          _, acc -> %{acc | total: acc.total + 1, computed_isolated: acc.computed_isolated + 1}
+          %{name: name, isolated: :failed}, acc ->
+            %{acc | total: acc.total + 1, failed: [name | acc.failed]}
+
+          %{isolated: isolated}, acc when is_boolean(isolated) ->
+            %{acc | total: acc.total + 1, computed: acc.computed + 1}
+
+          _, acc ->
+            %{acc | total: acc.total + 1}
         end
       )
 
@@ -478,8 +483,9 @@ defmodule Air.Service.DataSource do
       name: name,
       tables: Poison.encode!(tables),
       errors: Poison.encode!(errors),
-      isolated_computed_count: counts.computed_isolated,
-      columns_count: counts.total
+      isolated_computed_count: status.computed,
+      columns_count: status.total,
+      isolated_failed: status.failed
     }
   end
 
