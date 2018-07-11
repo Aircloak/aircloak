@@ -20,11 +20,11 @@ defmodule Cloak.DataSource.Isolators.Cache do
 
     with :error <- CacheOwner.lookup(column),
          {:error, :failed} <- GenServer.call(cache_ref, {:fetch_isolation, column}, :infinity) do
-      Logger.error("Cannot determine isolated property of #{table_name}.#{column_name}")
+      Logger.error("Cannot determine isolated property of `#{table_name}`.`#{column_name}`")
       true
     else
       {:ok, isolates?} -> isolates?
-      {:error, :unknown_column} -> raise "Unknown column #{table_name}.#{column_name}"
+      {:error, :unknown_column} -> raise "Unknown column `#{table_name}`.`#{column_name}`"
     end
   end
 
