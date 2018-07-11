@@ -24,7 +24,7 @@ defmodule IntegrationTest.QueryTest do
              %{"occurrences" => 1, "row" => ["height", "integer", isolator3]}
            ] = result.buckets
 
-    assert Enum.all?([isolator1, isolator2, isolator3], &(&1 in [true, false, nil]))
+    assert Enum.all?([isolator1, isolator2, isolator3], &(&1 in ["true", "false", "pending", "failed"]))
   end
 
   test "select", context do
