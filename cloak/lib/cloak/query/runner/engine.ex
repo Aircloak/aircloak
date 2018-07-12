@@ -94,8 +94,8 @@ defmodule Cloak.Query.Runner.Engine do
 
   defp isolator_status(data_source, table, column) do
     case Cloak.DataSource.Isolators.cache_lookup(data_source, table, column) do
-      {:ok, result} -> result
-      :error -> nil
+      {:ok, result} -> to_string(result)
+      {:error, status} -> to_string(status)
     end
   end
 end

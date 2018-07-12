@@ -17,7 +17,7 @@ defmodule Cloak.TestIsolatorsCache do
     case Agent.get(__MODULE__, &Map.fetch(&1, {data_source.name, table, column})) do
       :error -> {:ok, false}
       {:ok, :isolates} -> {:ok, true}
-      {:ok, :pending} -> :error
+      {:ok, :pending} -> {:error, :pending}
       {:ok, :forward} -> Cloak.DataSource.Isolators.Cache.lookup(data_source, table, column)
     end
   end

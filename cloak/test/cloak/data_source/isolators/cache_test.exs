@@ -2,149 +2,145 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
   use ExUnit.Case, async: true
   alias Cloak.DataSource.Isolators.Cache
 
-  test "computes isolated for known columns" do
-    known_columns = ~w(col1 col2 col3)
-    provider = new_cache_provider(known_columns)
-    {:ok, cache} = Cache.start_link(provider.cache_opts)
+  describe ".isolates_users?" do
+    test "computes isolated for known columns" do
+      known_columns = ~w(col1 col2 col3)
+      provider = new_cache_provider(known_columns)
+      {:ok, cache} = Cache.start_link(provider.cache_opts)
 
-    Enum.each(
-      known_columns,
-      &assert(Cache.isolates_users?(cache, provider.data_source, provider.table_name, &1) == {:isolated, &1})
-    )
-  end
-
-  test "isolated error for unknown columns" do
-    known_columns = ~w(col1 col2 col3)
-    provider = new_cache_provider(known_columns)
-    {:ok, cache} = Cache.start_link(provider.cache_opts)
-
-    assert_raise(RuntimeError, fn ->
-      Cache.isolates_users?(cache, provider.data_source, provider.table_name, "unknown col")
-    end)
-  end
-
-  test "prioritizing on demand" do
-    known_columns = ~w(col1 col2 col3)
-
-    provider =
-      new_cache_provider(
+      Enum.each(
         known_columns,
-        compute_isolation_fun:
-          compute_isolation_fun(%{
-            "col1" => fn -> Process.sleep(200) end,
-            "col2" => fn -> Process.sleep(:infinity) end
-          })
+        &assert(Cache.isolates_users?(cache, provider.data_source, provider.table_name, &1) == {:isolated, &1})
       )
+    end
 
-    {:ok, cache} = Cache.start_link(provider.cache_opts)
-    assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col3") == {:isolated, "col3"}
-  end
-
-  test "handling columns which failed to load" do
-    known_columns = ~w(col1 col2 col3)
-
-    ExUnit.CaptureLog.capture_log(fn ->
-      provider =
-        new_cache_provider(
-          known_columns,
-          compute_isolation_fun: compute_isolation_fun(%{"col1" => fn -> raise "error" end})
-        )
-
+    test "isolated error for unknown columns" do
+      known_columns = ~w(col1 col2 col3)
+      provider = new_cache_provider(known_columns)
       {:ok, cache} = Cache.start_link(provider.cache_opts)
 
       assert_raise(RuntimeError, fn ->
-        Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1")
+        Cache.isolates_users?(cache, provider.data_source, provider.table_name, "unknown col")
       end)
-    end)
-  end
+    end
 
-  test "handling columns which failed to load while client is waiting for the result" do
-    known_columns = ~w(col1 col2 col3)
+    test "prioritizing on demand" do
+      known_columns = ~w(col1 col2 col3)
 
-    ExUnit.CaptureLog.capture_log(fn ->
       provider =
         new_cache_provider(
           known_columns,
           compute_isolation_fun:
             compute_isolation_fun(%{
               "col1" => fn -> Process.sleep(200) end,
-              "col2" => fn -> raise "error" end
+              "col2" => fn -> Process.sleep(:infinity) end
             })
         )
 
       {:ok, cache} = Cache.start_link(provider.cache_opts)
+      assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col3") == {:isolated, "col3"}
+    end
+
+    test "handling columns which failed to load" do
+      known_columns = ~w(col1 col2 col3)
+
+      ExUnit.CaptureLog.capture_log(fn ->
+        provider =
+          new_cache_provider(
+            known_columns,
+            compute_isolation_fun: compute_isolation_fun(%{"col1" => fn -> raise "error" end})
+          )
+
+        {:ok, cache} = Cache.start_link(provider.cache_opts)
+        assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1")
+      end)
+    end
+
+    test "handling columns which failed to load while client is waiting for the result" do
+      known_columns = ~w(col1 col2 col3)
+
+      ExUnit.CaptureLog.capture_log(fn ->
+        provider =
+          new_cache_provider(
+            known_columns,
+            compute_isolation_fun:
+              compute_isolation_fun(%{
+                "col1" => fn -> Process.sleep(200) end,
+                "col2" => fn -> raise "error" end
+              })
+          )
+
+        {:ok, cache} = Cache.start_link(provider.cache_opts)
+        assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col2")
+      end)
+    end
+
+    test "handling data source changes" do
+      known_columns = ~w(col1 col2 col3)
+
+      provider = new_cache_provider(known_columns)
+      {:ok, cache} = Cache.start_link(provider.cache_opts)
+
+      Agent.update(provider.provider, fn columns ->
+        Enum.map(columns, fn {datasource, table, name} -> {datasource, table, "updated #{name}"} end)
+      end)
+
+      send(cache, {:data_sources_changed, nil})
+
+      assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "updated col1") ==
+               {:isolated, "updated col1"}
 
       assert_raise(RuntimeError, fn ->
-        Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col2")
+        Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1")
       end)
-    end)
-  end
+    end
 
-  test "handling data source changes" do
-    known_columns = ~w(col1 col2 col3)
+    test "cache is persisted" do
+      provider = new_cache_provider(~w(col1))
+      {:ok, cache} = Cache.start_link(provider.cache_opts)
 
-    provider = new_cache_provider(known_columns)
-    {:ok, cache} = Cache.start_link(provider.cache_opts)
-
-    Agent.update(provider.provider, fn columns ->
-      Enum.map(columns, fn {datasource, table, name} -> {datasource, table, "updated #{name}"} end)
-    end)
-
-    send(cache, {:data_sources_changed, nil})
-
-    assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "updated col1") ==
-             {:isolated, "updated col1"}
-
-    assert_raise(RuntimeError, fn ->
+      # invoking `isolates_users?` makes sure that isolated for `col1` is computed, and that the cache is persisted
       Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1")
-    end)
-  end
+      GenServer.stop(cache)
 
-  test "cache is persisted" do
-    provider = new_cache_provider(~w(col1))
-    {:ok, cache} = Cache.start_link(provider.cache_opts)
+      # make sure that new computation of isolated will never finish
+      provider =
+        put_in(
+          provider.cache_opts[:compute_isolation_fun],
+          compute_isolation_fun(%{"col1" => fn -> Process.sleep(:infinity) end})
+        )
 
-    # invoking `isolates_users?` makes sure that isolated for `col1` is computed, and that the cache is persisted
-    Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1")
-    GenServer.stop(cache)
+      {:ok, cache} = Cache.start_link(provider.cache_opts)
+      assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1") == {:isolated, "col1"}
+    end
 
-    # make sure that new computation of isolated will never finish
-    provider =
-      put_in(
-        provider.cache_opts[:compute_isolation_fun],
-        compute_isolation_fun(%{"col1" => fn -> Process.sleep(:infinity) end})
-      )
+    test "cached items are not primed during cache start" do
+      provider = new_cache_provider(~w(col1))
+      {:ok, cache} = Cache.start_link(provider.cache_opts)
 
-    {:ok, cache} = Cache.start_link(provider.cache_opts)
-    assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1") == {:isolated, "col1"}
-  end
+      # invoking `isolates_users?` makes sure that isolated for `col1` is computed, and that the cache is persisted
+      Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1")
+      GenServer.stop(cache)
 
-  test "cached items are not primed during cache start" do
-    provider = new_cache_provider(~w(col1))
-    {:ok, cache} = Cache.start_link(provider.cache_opts)
+      # add another column
+      Agent.update(provider.provider, fn columns ->
+        {datasource, table, _name} = hd(columns)
+        new_column = {datasource, table, "col2"}
+        [new_column | columns]
+      end)
 
-    # invoking `isolates_users?` makes sure that isolated for `col1` is computed, and that the cache is persisted
-    Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1")
-    GenServer.stop(cache)
+      me = self()
 
-    # add another column
-    Agent.update(provider.provider, fn columns ->
-      {datasource, table, _name} = hd(columns)
-      new_column = {datasource, table, "col2"}
-      [new_column | columns]
-    end)
+      provider =
+        put_in(
+          provider.cache_opts[:compute_isolation_fun],
+          compute_isolation_fun(%{"col1" => fn -> send(me, {:computing, "col1"}) end})
+        )
 
-    me = self()
-
-    provider =
-      put_in(
-        provider.cache_opts[:compute_isolation_fun],
-        compute_isolation_fun(%{"col1" => fn -> send(me, {:computing, "col1"}) end})
-      )
-
-    {:ok, cache} = Cache.start_link(provider.cache_opts)
-    assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col2") == {:isolated, "col2"}
-    refute_receive {:computing, "col1"}
+      {:ok, cache} = Cache.start_link(provider.cache_opts)
+      assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col2") == {:isolated, "col2"}
+      refute_receive {:computing, "col1"}
+    end
   end
 
   defp new_cache_provider(column_names, opts \\ []) do

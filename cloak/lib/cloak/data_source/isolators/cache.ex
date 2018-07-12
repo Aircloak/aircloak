@@ -19,16 +19,21 @@ defmodule Cloak.DataSource.Isolators.Cache do
     column = {data_source.name, table_name, column_name}
 
     with :error <- CacheOwner.lookup(column),
-         :error <- GenServer.call(cache_ref, {:fetch_isolation, column}, :infinity) do
-      raise RuntimeError, "Cannot determine isolated property of #{table_name}.#{column_name}"
+         {:error, :failed} <- GenServer.call(cache_ref, {:fetch_isolation, column}, :infinity) do
+      Logger.error("Cannot determine isolated property of `#{table_name}`.`#{column_name}`")
+      true
     else
       {:ok, isolates?} -> isolates?
+      {:error, :unknown_column} -> raise "Unknown column `#{table_name}`.`#{column_name}`"
     end
   end
 
   @doc "Performs a cache lookup."
-  @spec lookup(Cloak.DataSource.t(), String.t(), String.t()) :: {:ok, boolean} | :error
-  def lookup(data_source, table_name, column_name), do: CacheOwner.lookup({data_source.name, table_name, column_name})
+  @spec lookup(Cloak.DataSource.t(), String.t(), String.t()) ::
+          {:ok, boolean} | {:error, :pending | :failed | :unknown_column}
+  def lookup(cache_ref \\ __MODULE__, data_source, table_name, column_name) do
+    GenServer.call(cache_ref, {:column_status, {data_source.name, table_name, column_name}})
+  end
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -46,21 +51,15 @@ defmodule Cloak.DataSource.Isolators.Cache do
 
   @impl GenServer
   def handle_call({:fetch_isolation, column}, from, state) do
-    cond do
-      not MapSet.member?(state.known_columns, column) ->
-        {:reply, :error, state}
-
-      # doing another lookup, because property might have become available while this request was in the queue
-      match?({:ok, _}, CacheOwner.lookup(column)) ->
-        {:ok, isolates?} = CacheOwner.lookup(column)
-        {:reply, {:ok, isolates?}, state}
-
-      computing_isolation?(column) or not Queue.processed?(state.queue, column) ->
-        {:noreply, add_waiting_request(state, column, from)}
-
-      true ->
-        {:reply, :error, state}
+    case column_status(column, state) do
+      {:ok, result} -> {:reply, {:ok, result}, state}
+      {:error, :pending} -> {:noreply, add_waiting_request(state, column, from)}
+      {:error, other} -> {:reply, {:error, other}, state}
     end
+  end
+
+  def handle_call({:column_status, column}, _from, state) do
+    {:reply, column_status(column, state), state}
   end
 
   @impl GenServer
@@ -87,7 +86,12 @@ defmodule Cloak.DataSource.Isolators.Cache do
 
   @impl Parent.GenServer
   def handle_child_terminated(:compute_isolation_job, meta, _pid, _reason, state) do
-    result = CacheOwner.lookup(meta.column)
+    result =
+      case CacheOwner.lookup(meta.column) do
+        :error -> {:error, :failed}
+        {:ok, result} -> {:ok, result}
+      end
+
     state.waiting |> Map.get(meta.column, []) |> Enum.each(&GenServer.reply(&1, result))
     {:noreply, start_next_computation(state)}
   end
@@ -95,6 +99,15 @@ defmodule Cloak.DataSource.Isolators.Cache do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp column_status(column, state) do
+    cond do
+      not MapSet.member?(state.known_columns, column) -> {:error, :unknown_column}
+      match?({:ok, _}, CacheOwner.lookup(column)) -> CacheOwner.lookup(column)
+      computing_isolation?(column) or not Queue.processed?(state.queue, column) -> {:error, :pending}
+      true -> {:error, :failed}
+    end
+  end
 
   defp maybe_start_next_computation(state) do
     if Parent.GenServer.child?(:compute_isolation_job), do: state, else: start_next_computation(state)
@@ -149,7 +162,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
     {good, missing} =
       Enum.split_with(state.waiting, fn {column, _clients} -> MapSet.member?(state.known_columns, column) end)
 
-    Enum.each(missing, fn {_column, clients} -> Enum.each(clients, &GenServer.reply(&1, :error)) end)
+    Enum.each(missing, fn {_column, clients} -> Enum.each(clients, &GenServer.reply(&1, {:error, :unknown_column})) end)
     %{state | waiting: Map.new(good)}
   end
 

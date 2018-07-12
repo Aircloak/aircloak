@@ -64,6 +64,7 @@ defmodule Air.Service.Warnings do
     data_sources = Repo.preload(data_sources, groups: :users)
 
     offline_datasources(data_sources, :high) ++
+      failed_isolator(data_sources, :medium) ++
       broken_datasources(data_sources, :medium) ++ no_group(data_sources, :low) ++ no_users(data_sources, :low)
   end
 
@@ -78,6 +79,19 @@ defmodule Air.Service.Warnings do
           severity
         )
       )
+
+  defp failed_isolator(data_sources, severity) do
+    for data_source = %{isolated_failed: failed = [_ | _]} <- data_sources do
+      columns = failed |> Enum.map(&"`#{&1}`") |> Aircloak.OxfordComma.join()
+
+      message =
+        "Cloak could not compute if columns #{columns} are isolating." <>
+          " The columns will be treated as isolating unless manually classified." <>
+          " See the Restrictions section of the user guide for more information."
+
+      problem(data_source, message, severity)
+    end
+  end
 
   defp broken_datasources(data_sources, severity),
     do:
