@@ -123,7 +123,7 @@ defmodule Cloak.DataSource.Table do
   defp ast_table_name({_, name}), do: name
   defp ast_table_name({table, :as, _alias}), do: ast_table_name(table)
 
-  defp compile_virtual_table({name, %{query: parsed_query, user_id: user_id}}, data_source)
+  defp compile_virtual_table({name, config = %{query: parsed_query, user_id: user_id}}, data_source)
        when parsed_query != nil do
     compiled_query =
       try do
@@ -145,7 +145,7 @@ defmodule Cloak.DataSource.Table do
       Enum.zip(compiled_query.column_titles, compiled_query.columns)
       |> Enum.map(fn {title, column} -> %{name: title, type: column.type, visible?: true} end)
 
-    table = new(to_string(name), user_id, query: compiled_query, columns: columns)
+    table = new(to_string(name), user_id, Map.merge(config, %{query: compiled_query, columns: columns}))
     verify_columns(data_source, table)
     {name, table}
   end
