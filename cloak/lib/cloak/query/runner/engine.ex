@@ -76,7 +76,7 @@ defmodule Cloak.Query.Runner.Engine do
     table
     |> sorted_table_columns()
     |> Enum.map(
-      &%{occurrences: 1, row: [&1.name, to_string(&1.type), isolator_status(query.data_source, table.name, &1.name)]}
+      &%{occurrences: 1, row: [&1.name, to_string(&1.type), isolator_status(query.data_source, table, &1.name)]}
     )
     |> Query.Result.new(query.column_titles, features)
   end
@@ -92,8 +92,10 @@ defmodule Cloak.Query.Runner.Engine do
     [uid | other_columns]
   end
 
+  defp isolator_status(_data_source, _view = %{db_name: nil, query: nil}, _column), do: nil
+
   defp isolator_status(data_source, table, column) do
-    case Cloak.DataSource.Isolators.cache_lookup(data_source, table, column) do
+    case Cloak.DataSource.Isolators.cache_lookup(data_source, table.name, column) do
       {:ok, result} -> to_string(result)
       {:error, status} -> to_string(status)
     end
