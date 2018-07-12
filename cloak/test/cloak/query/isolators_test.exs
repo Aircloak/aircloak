@@ -56,6 +56,10 @@ defmodule Cloak.Query.Isolators.Test do
     assert_forbidden("SELECT COUNT(*) FROM query_isolators AS qi WHERE $col IN (1, 2)")
   end
 
+  test "aliases in subqueries" do
+    assert_forbidden("SELECT COUNT(*) FROM (SELECT a.* FROM query_isolators AS a) bar WHERE $col IN (1, 2)")
+  end
+
   test "subqueries" do
     assert_forbidden("SELECT COUNT(*) FROM (SELECT user_id, $col AS x FROM query_isolators) y WHERE x IN (1, 2)")
   end

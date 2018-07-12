@@ -171,7 +171,6 @@ defmodule Cloak.Regressions.TeamBank.Test do
     assert_compiles_successfully(query, data_source_scaffold())
   end
 
-  @tag pending: "isolators checked incorrectly for aliased JOIN elements"
   test "bianca 6" do
     query = """
     Select
