@@ -29,7 +29,8 @@
         "projection": {"$ref": "#/definitions/projection"},
         "decoders": {"type": "array", "items": {"$ref": "#/definitions/decoder"}},
         "query": {"type": "string", "minLength": 1},
-        "non_isolating_columns": {"type": "array", "items": {"$ref": "#/definitions/column"}}
+        "auto_isolating_column_classification": {"type": "boolean"},
+        "isolating_columns": {"type": "object", "patternProperties": {"^.*$": {"type": "boolean"}}}
       },
       "additionalProperties": false,
       "oneOf": [

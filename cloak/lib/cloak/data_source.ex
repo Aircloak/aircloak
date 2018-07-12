@@ -318,10 +318,17 @@ defmodule Cloak.DataSource do
     |> Map.put(:errors, [])
     |> Map.put(:status, nil)
     |> Map.put_new(:concurrency, nil)
+    |> set_table_defaults()
     |> Validations.Name.ensure_permitted()
     |> potentially_create_temp_name()
     |> map_driver()
     |> validate_choice_of_encoding()
+  end
+
+  defp set_table_defaults(data_source) do
+    update_in(data_source, [Lens.key(:tables) |> Lens.map_values()], fn table ->
+      Map.merge(%{auto_isolating_column_classification: true, isolating_columns: %{}}, table)
+    end)
   end
 
   defp map_driver(data_source) do
