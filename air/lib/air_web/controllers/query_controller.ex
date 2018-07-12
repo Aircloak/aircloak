@@ -179,7 +179,6 @@ defmodule AirWeb.QueryController do
     json_without_rows =
       query
       |> Query.for_display()
-      |> Map.put(:columns, query.result["columns"])
       |> Poison.encode!()
 
     prefix_size = byte_size(json_without_rows) - 1
