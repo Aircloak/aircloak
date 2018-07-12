@@ -51,7 +51,9 @@ defmodule Cloak.DataSource.Table do
           decoders: [],
           projection: nil,
           keys: [],
-          query: nil
+          query: nil,
+          auto_isolating_column_classification: true,
+          isolating_columns: %{}
         },
         Map.new(opts)
       )

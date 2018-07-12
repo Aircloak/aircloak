@@ -59,6 +59,7 @@ defmodule Cloak.Query.BasicTest do
            ]
   end
 
+  @tag pending: "stop returning isolator status for views"
   test "show columns from a view" do
     assert_query("show columns from v1", [views: %{"v1" => "select user_id, height from heights"}], %{
       query_id: "1",

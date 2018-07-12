@@ -328,6 +328,7 @@ defmodule Cloak.DataSource do
   defp set_table_defaults(data_source) do
     update_in(data_source, [Lens.key(:tables) |> Lens.map_values()], fn table ->
       Map.merge(%{auto_isolating_column_classification: true, isolating_columns: %{}}, table)
+      |> update_in([Lens.key(:isolating_columns) |> Lens.map_keys()], &to_string/1)
     end)
   end
 
