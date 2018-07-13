@@ -358,6 +358,6 @@ SELECT COUNT(*) FROM table WHERE social_security / 10 = 10000000
 SELECT COUNT(*) FROM table WHERE BUCKET(social_security BY 10) = 100000000
 ```
 
-It's possible for the computation to check if a column is isolating to be very slow or even impossible for some very
-large data sources. See [Manually classifying isolating
+Insights Cloak will automatically discover which columns isolate users. This computation might be very slow and
+resource-intensive for large data sources. See [Manually classifying isolating
 columns](/ops/configuration.md#manually-classifying-isolating-columns) on how to circumvent this problem.

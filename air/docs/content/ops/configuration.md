@@ -352,16 +352,16 @@ For remaining possible decoders, no additional parameters are needed:
 
 #### Manually classifying isolating columns
 
-It's possible for the computation to check if a column is isolating to be very slow or even impossible for some very
-large data sources. In such cases the administrator is able to manually configure if a column should be treated as
-isolating on a case-by-case basis.
+Insights Cloak can automatically detect whether a column isolates users or not.  For large database tables this check
+can be slow and resource-intensive. An administrator may choose to manually configure whether a given column isolates
+users or not, removing the need for automated classification.
 
-The two configuration options that control this are `auto_isolating_column_classification` and `isolating_columns`. Both
-are set for each table with `auto_isolating_column_classification` defaulting to `true` and `isolating_columns`
-defaulting to empty. `isolating_columns` is a dictionary where for each column the value of `true` or `false` indicates
-the manual classification of that column. The behaviour for columns not included in that dictionary is guided by
-`auto_isolating_column_classification` - if it's set to `true`, then Insights Cloak will try to compute if the column
-is isolating as normal, if to `false` then it will assume it's isolating.
+How Insights Cloak handles classifying columns is configured for each table individually, using
+`auto_isolating_column_classification` (defaulting to true) and `isolating_columns` (empty by default).
+`isolating_columns` is a dictionary where each key is the name of a column, and the value of `true` or `false` indicates
+if the column should be considered as isolating users or not. The behaviour for columns not included in that dictionary
+is guided by `auto_isolating_column_classification` - if it's set to `true`, then Insights Cloak will try to compute
+if the column is isolating as normal, if to `false` then it will assume it's isolating.
 
 Take this example:
 
@@ -387,13 +387,14 @@ Take this example:
 }
 ```
 
-In this case Insights Cloak will compute if columns are isolating in `regular_table` as normal. For `auto_table` it will
-treat `telephone_number` as isolating, `first_name` as not isolating, and compute for all other columns as normal.
-For `manual_table` it will treat `first_name` as not isolating and all other columns as isolating.
+In this case Insights Cloak will automatically compute which columns in `regular_table` are isolating. For `auto_table`
+it will treat `telephone_number` as isolating, `first_name` as not isolating, and automatically handle all other
+columns. `manual_table` has the automatic isolating column detection turned off. All columns that have not been manually
+classified will therefore be treated as if they isolate users.
 
 __Warning__ The safest option is to treat a column as isolating. Manually classifying a column as not isolating may lead
-to privacy loss. It is safe to classify columns as isolating only when sure that most values in that column appear for
-multiple users. Please contact [support@aircloak.com](mailto:support@aircloak.com) if you need help classifying your
+to privacy loss. It is safe to classify columns as not isolating only when sure that most values in that column appear
+for multiple users. Please contact [support@aircloak.com](mailto:support@aircloak.com) if you need help classifying your
 data.
 
 #### Tips and tricks
