@@ -310,7 +310,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp compile_sample_rate(query), do: query
 
   defp sample_rate_to_ratio(sample_rate) do
-    denominator = 1_000_000_000_000
+    denominator = 1_000_000
     enumerator = round(sample_rate / 100 * denominator)
     aligned_enumerator = FixAlign.align(enumerator)
 
