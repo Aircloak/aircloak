@@ -11,17 +11,36 @@ defmodule Cloak.DataSource.Isolators do
 
   @doc "Returns true if the given column in the given table is isolating, false otherwise."
   @spec isolates_users?(Cloak.DataSource.t(), String.t(), String.t()) :: boolean
-  defdelegate isolates_users?(data_source, table, column), to: @cache_module
+  def isolates_users?(data_source, table, column) do
+    case preconfigured(data_source, table, column) do
+      {:ok, result} -> result
+      :error -> @cache_module.isolates_users?(data_source, table, column)
+    end
+  end
 
   @doc "Performs a cache lookup for the given column."
   @spec cache_lookup(Cloak.DataSource.t(), String.t(), String.t()) ::
           {:ok, boolean} | {:error, :failed | :pending | :unknown_column}
-  defdelegate cache_lookup(data_source, table_name, column_name), to: @cache_module, as: :lookup
+  def cache_lookup(data_source, table_name, column_name) do
+    case preconfigured(data_source, table_name, column_name) do
+      {:ok, result} -> {:ok, result}
+      :error -> @cache_module.lookup(data_source, table_name, column_name)
+    end
+  end
 
-  @doc "Returns true if the isolated property for the given column is computed."
-  @spec computed?(Cloak.DataSource.t(), String.t(), String.t()) :: boolean
-  def computed?(data_source, table, column),
-    do: match?({:ok, _isolated?}, Cloak.DataSource.Isolators.CacheOwner.lookup({data_source.name, table, column}))
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp preconfigured(data_source, table_name, column) do
+    {_, table} = Enum.find(data_source.tables, fn {_key, table} -> table.name == table_name end)
+
+    if table.auto_isolating_column_classification do
+      Map.fetch(table.isolating_columns, column)
+    else
+      {:ok, Map.get(table.isolating_columns, column, true)}
+    end
+  end
 
   # -------------------------------------------------------------------
   # Supervison tree

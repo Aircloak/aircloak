@@ -67,8 +67,8 @@ defmodule Cloak.Query.BasicTest do
     })
 
     assert Enum.sort_by(rows, & &1[:row]) == [
-             %{occurrences: 1, row: ["height", "integer", "false"]},
-             %{occurrences: 1, row: ["user_id", "text", "false"]}
+             %{occurrences: 1, row: ["height", "integer", nil]},
+             %{occurrences: 1, row: ["user_id", "text", nil]}
            ]
   end
 
