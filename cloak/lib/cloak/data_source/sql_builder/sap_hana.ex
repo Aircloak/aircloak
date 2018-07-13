@@ -16,7 +16,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc mod div ^ % * / + -
       length lower upper btrim/1 ltrim rtrim left right substring concat
-      cast coalesce
+      cast coalesce bool_op
     )
 
   @impl Dialect
@@ -47,6 +47,11 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
       arg |> to_string() |> String.replace(~r/DISTINCT /, ""),
       "))"
     ]
+
+  def function_sql("bool_op", [["N'", op, ?'], arg1, arg2]) do
+    condition = [arg1, " ", op, " ", arg2]
+    ["(CASE WHEN ", condition, " THEN 1 WHEN NOT (", condition, ") THEN 0 ELSE NULL END)"]
+  end
 
   def function_sql("avg", [arg]), do: ["AVG(TO_DECIMAL(", arg, "))"]
   def function_sql("stddev", [arg]), do: ["STDDEV_SAMP(", arg, ")"]

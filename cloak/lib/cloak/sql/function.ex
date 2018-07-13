@@ -206,6 +206,7 @@ defmodule Cloak.Sql.Function do
                  type_specs: %{[:text] => :text, [:text, :text] => :text},
                  attributes: [:internal]
                },
+               ~w(bool_op) => %{type_specs: %{[:text, :any, :any] => :boolean}, attributes: [:internal]},
                ~w(coalesce) => %{type_specs: %{{:many1, :any} => :any}, attributes: [:internal]}
              }
              |> Enum.flat_map(fn {functions, traits} -> Enum.map(functions, &{&1, traits}) end)

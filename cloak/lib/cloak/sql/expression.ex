@@ -383,6 +383,16 @@ defmodule Cloak.Sql.Expression do
     hash
   end
 
+  defp do_apply("bool_op", [_op, nil, _any]), do: nil
+  defp do_apply("bool_op", [_op, _any, nil]), do: nil
+  defp do_apply("bool_op", ["=", arg1, arg2]), do: arg1 == arg2
+  defp do_apply("bool_op", ["<>", arg1, arg2]), do: arg1 != arg2
+  defp do_apply("bool_op", [">", arg1, arg2]), do: arg1 > arg2
+  defp do_apply("bool_op", [">=", arg1, arg2]), do: arg1 >= arg2
+  defp do_apply("bool_op", ["<", arg1, arg2]), do: arg1 < arg2
+  defp do_apply("bool_op", ["<=", arg1, arg2]), do: arg1 <= arg2
+  defp do_apply("bool_op", [op, _arg1, _arg2]), do: raise("Invalid boolean operator `#{op}` specified!")
+
   defp do_apply("extract_words", [nil]), do: [nil]
   defp do_apply("extract_words", [string]), do: String.split(string)
   defp do_apply("^", [x, y]), do: :math.pow(x, y)

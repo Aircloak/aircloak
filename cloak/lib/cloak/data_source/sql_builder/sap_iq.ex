@@ -16,7 +16,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPIQ do
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc mod div ^ % * / + -
       length lower upper btrim/1 ltrim/1 rtrim/1 left right substring concat
-      cast coalesce hash
+      cast coalesce hash bool_op
     )
 
   @impl Dialect
@@ -39,6 +39,11 @@ defmodule Cloak.DataSource.SqlBuilder.SAPIQ do
 
   def function_sql("hash", [arg]),
     do: ["ABS(HEXTOBIGINT(SUBSTRING(HASH(CAST(", arg, " AS binary), 'md5'), 1, 16)))"]
+
+  def function_sql("bool_op", [["N'", op, ?'], arg1, arg2]) do
+    condition = [arg1, " ", op, " ", arg2]
+    ["(CASE WHEN ", condition, " THEN 1 WHEN NOT (", condition, ") THEN 0 ELSE NULL END)"]
+  end
 
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 

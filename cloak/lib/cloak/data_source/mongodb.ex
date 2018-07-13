@@ -260,7 +260,7 @@ defmodule Cloak.DataSource.MongoDB do
     cast_integer_to_boolean cast_real_to_boolean cast_boolean_to_integer cast_boolean_to_real
     cast_boolean_to_text cast_text_to_boolean cast_integer_to_real cast_datetime_to_text
     ^ abs ceil floor round sqrt trunc quarter div cast_real_to_integer min max avg
-    length left right substring cast_real_to_text cast_integer_to_text
+    length left right substring cast_real_to_text cast_integer_to_text bool_op
   )
 
   defp supported_functions(version) do
