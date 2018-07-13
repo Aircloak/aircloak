@@ -738,24 +738,30 @@ defmodule Cloak.Sql.Compiler.Specification do
     end)
   end
 
-  @castable_conditions [:datetime, :time, :date]
+  @castable_conditions [:datetime, :time, :date, :real]
 
-  defp perform_implicit_cast({:comparison, identifier, comparator, rhs}, type) when type in @castable_conditions do
-    if Expression.constant?(rhs) do
-      {:comparison, identifier, comparator, parse_time(rhs, type)}
-    else
-      {:comparison, identifier, comparator, rhs}
-    end
-  end
+  defp perform_implicit_cast({:comparison, identifier, comparator, rhs}, type) when type in @castable_conditions,
+    do: {:comparison, identifier, comparator, perform_implicit_cast_if_constant(rhs, type)}
 
   defp perform_implicit_cast({:in, column, values}, type) when type in @castable_conditions,
-    do: {:in, column, Enum.map(values, &parse_time(&1, type))}
+    do: {:in, column, Enum.map(values, &perform_implicit_cast_if_constant(&1, type))}
 
   defp perform_implicit_cast(clause, _), do: clause
 
-  defp parse_time(expression = %Expression{type: type}, type), do: expression
+  defp perform_implicit_cast_if_constant(expression, type) do
+    if Expression.constant?(expression) do
+      do_perform_implicit_cast(expression, type)
+    else
+      expression
+    end
+  end
 
-  defp parse_time(expression, type) do
+  defp do_perform_implicit_cast(expression = %Expression{type: type}, type), do: expression
+
+  defp do_perform_implicit_cast(expression = %Expression{type: :integer}, :real),
+    do: %Expression{expression | type: :real}
+
+  defp do_perform_implicit_cast(expression, type) do
     value = Expression.value(expression)
 
     case do_parse_time(value, type) do
