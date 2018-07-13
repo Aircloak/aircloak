@@ -20,6 +20,8 @@ defmodule Cloak.DataSource.Table do
           :query => Query.t() | nil,
           :columns => [column],
           :keys => [String.t()],
+          :auto_isolating_column_classification => boolean,
+          :isolating_columns => Map.t(),
           optional(any) => any
         }
 
@@ -39,7 +41,7 @@ defmodule Cloak.DataSource.Table do
   # -------------------------------------------------------------------
 
   @doc "Creates the new table instance."
-  @spec new(String.t(), String.t(), [option]) :: t
+  @spec new(String.t(), String.t(), [option] | Map.t()) :: t
   def new(name, user_id_column_name, opts \\ []),
     do:
       Map.merge(
