@@ -73,7 +73,7 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
       isolated:
         case Cloak.DataSource.Isolators.cache_lookup(data_source, table.name, column.name) do
           {:ok, value} -> value
-          :error -> nil
+          {:error, status} -> status
         end
     }
   end

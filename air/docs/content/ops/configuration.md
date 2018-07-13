@@ -350,6 +350,53 @@ For remaining possible decoders, no additional parameters are needed:
 ...
 ```
 
+#### Manually classifying isolating columns
+
+Insights Cloak can automatically detect whether a column isolates users or not.  For large database tables this check
+can be slow and resource-intensive. An administrator may choose to manually configure whether a given column isolates
+users or not, removing the need for automated classification.
+
+How Insights Cloak handles classifying columns is configured for each table individually, using
+`auto_isolating_column_classification` (defaulting to true) and `isolating_columns` (empty by default).
+`isolating_columns` is a dictionary where each key is the name of a column, and the value of `true` or `false` indicates
+if the column should be considered as isolating users or not. The behaviour for columns not included in that dictionary
+is guided by `auto_isolating_column_classification` - if it's set to `true`, then Insights Cloak will try to compute
+if the column is isolating as normal, if to `false` then it will assume it's isolating.
+
+Take this example:
+
+```
+{
+  tables: {
+    regular_table: {
+      db_name: "regular_table"
+    },
+
+    auto_table: {
+      db_name: "auto_table",
+      auto_isolating_column_classification: true,
+      isolating_columns: {"telephone_number": true, "first_name": false}
+    },
+
+    manual_table: {
+      db_name: "manual_table",
+      auto_isolating_column_classification: false,
+      isolating_columns: {"first_name": false}
+    }
+  }
+}
+```
+
+In this case Insights Cloak will automatically compute which columns in `regular_table` are isolating. For `auto_table`
+it will treat `telephone_number` as isolating, `first_name` as not isolating, and automatically handle all other
+columns. `manual_table` has the automatic isolating column detection turned off. All columns that have not been manually
+classified will therefore be treated as if they isolate users.
+
+__Warning__ The safest option is to treat a column as isolating. Manually classifying a column as not isolating may lead
+to privacy loss. It is safe to classify columns as not isolating only when sure that most values in that column appear
+for multiple users. Please contact [support@aircloak.com](mailto:support@aircloak.com) if you need help classifying your
+data.
+
 #### Tips and tricks
 
 It is common to have multiple Insights Cloak instances sharing the same datasource definitions.

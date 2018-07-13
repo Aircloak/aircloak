@@ -28,7 +28,9 @@
     },
     "accounts": {
       "db_name": "accounts",
-      "user_id": "customer_id"
+      "user_id": "customer_id",
+      "auto_isolating_column_classification": false,
+      "isolating_columns": {"swift": false, "account_number": true}
     },
     "transactions": {
       "db_name": "transactions",

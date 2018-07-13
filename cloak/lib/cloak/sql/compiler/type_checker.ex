@@ -267,11 +267,26 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     not Enum.empty?(isolating_columns(condition, query))
   end
 
-  defp isolating_columns(condition, query) do
+  defp isolating_columns(condition_or_expression, query) do
     Query.Lenses.leaf_expressions()
-    |> Lens.to_list(condition)
-    |> Enum.flat_map(&Type.establish_type(&1, query).history_of_columns_involved)
-    |> Enum.filter(&Isolators.isolates_users?(query.data_source, resolve_table_alias(&1.table.name, query), &1.name))
+    |> Lens.to_list(condition_or_expression)
+    |> Enum.flat_map(&columns_with_queries(&1, query))
+    |> Enum.filter(fn {column, subquery} ->
+      Isolators.isolates_users?(query.data_source, resolve_table_alias(column.table.name, subquery), column.name)
+    end)
+    |> Enum.map(&elem(&1, 0))
+  end
+
+  defp columns_with_queries(%{constant?: true}, _query), do: []
+
+  defp columns_with_queries(column, query) do
+    case Query.resolve_subquery_column(column, query) do
+      :database_column ->
+        [{column, query}]
+
+      {column, subquery} ->
+        column |> get_in([Query.Lenses.leaf_expressions()]) |> Enum.flat_map(&columns_with_queries(&1, subquery))
+    end
   end
 
   defp resolve_table_alias(table, query) do
