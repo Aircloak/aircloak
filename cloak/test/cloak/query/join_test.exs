@@ -270,7 +270,7 @@ defmodule Cloak.Query.JoinTest do
       """
         select count(*) FROM heights_join, purchases WHERE heights_join.user_id = purchases.user_id sample_users 10%
       """,
-      %{rows: [%{row: [8], occurrences: 1}]}
+      %{rows: [%{row: [12], occurrences: 1}]}
     )
   end
 

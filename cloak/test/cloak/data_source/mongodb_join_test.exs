@@ -154,7 +154,7 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
       """
         SELECT sum(age) FROM "left" JOIN (SELECT id AS rid FROM "right") AS t ON id = rid SAMPLE_USERS 50%
       """,
-      %{rows: [%{occurrences: 1, row: [300.0]}]}
+      %{rows: [%{occurrences: 1, row: [270.0]}]}
     )
   end
 
