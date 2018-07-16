@@ -300,6 +300,7 @@ defmodule Cloak.DataSource do
     |> Task.async_stream(&add_tables/1, timeout: :timer.minutes(30), ordered: true)
     |> Enum.zip(data_sources)
     |> Enum.map(&handle_add_tables_result/1)
+    |> log_unclassified_columns()
   end
 
   defp handle_add_tables_result({{:ok, data_source}, _original_data_source}), do: data_source
@@ -488,6 +489,30 @@ defmodule Cloak.DataSource do
       Process.sleep(Application.get_env(:cloak, :connect_retry_delay, :timer.seconds(1)))
       connect_with_retries!(driver, parameters, num_retries - 1)
   end
+
+  defp log_unclassified_columns(data_sources) do
+    Enum.each(data_sources, &log_unclassified_columns_for_data_source/1)
+    data_sources
+  end
+
+  defp log_unclassified_columns_for_data_source(%{name: data_source_name} = data_source) do
+    unclassified_column_tables = Cloak.DataSource.Isolators.unspecified_columns(data_source)
+
+    unless unclassified_column_tables == %{} do
+      unclassified_columns =
+        unclassified_column_tables
+        |> Enum.flat_map(&unclassified_table_columns_to_column_list/1)
+        |> Enum.join("\n")
+
+      Logger.info(
+        "Automatic column classification has been turned off for one of more tables in data source " <>
+          data_source_name <>
+          ". The following unclassified columns will be treated as if they isolate users:\n" <> unclassified_columns
+      )
+    end
+  end
+
+  defp unclassified_table_columns_to_column_list({table_name, columns}), do: Enum.map(columns, &"- #{table_name}.#{&1}")
 
   # -------------------------------------------------------------------
   # Supervison tree callback
