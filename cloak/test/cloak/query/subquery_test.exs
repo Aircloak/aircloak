@@ -226,7 +226,7 @@ defmodule Cloak.Query.SubqueryTest do
     :ok = insert_rows(_user_ids = 1..1000, "heights_sq", ["height"], [180])
 
     assert_query("select count(*) from (select * from heights_sq sample_users 2%) t1", %{
-      rows: [%{row: [22]}]
+      rows: [%{row: [11]}]
     })
   end
 
