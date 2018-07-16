@@ -244,6 +244,9 @@ defmodule Cloak.DataSource.MongoDB.Projector do
         "Casting from `#{from}` to `#{to}` is not supported in subqueries on MongoDB data sources."
       )
 
+  @bool_operators %{"=" => "$eq", "<>" => "$neq", ">" => "$gt", ">=" => "$gte", "<" => "$lt", "<=" => "$lte"}
+  defp parse_function("bool_op", [op, arg1, arg2]), do: %{Map.fetch(@bool_operators, op) => [arg1, arg2]}
+
   defp parse_function(name, _args) when is_binary(name),
     do: DataSource.raise_error("Function `#{name}` is not supported in subqueries on MongoDB data sources.")
 end

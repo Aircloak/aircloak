@@ -28,6 +28,16 @@ defmodule Cloak.DataSource.Isolators do
     end
   end
 
+  @doc "Returns unspecified columns that default to isolating due to the table configuration"
+  @spec unspecified_columns(Cloak.DataSource.t()) :: %{String.t() => [String.t()]}
+  def unspecified_columns(data_source) do
+    data_source.tables
+    |> Enum.reject(&automatically_classified_table?/1)
+    |> Enum.map(&unspecified_columns_from_table/1)
+    |> Enum.filter(&table_with_columns?/1)
+    |> Enum.into(%{})
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -40,6 +50,21 @@ defmodule Cloak.DataSource.Isolators do
     else
       {:ok, Map.get(table.isolating_columns, column, true)}
     end
+  end
+
+  defp automatically_classified_table?({_name, table}), do: table.auto_isolating_column_classification
+
+  defp table_with_columns?({_name, columns}), do: length(columns) > 0
+
+  defp unspecified_columns_from_table({name, table}) do
+    manually_classified_columns = Map.get(table, :isolating_columns, %{})
+
+    unspecified_column_names =
+      table[:columns]
+      |> Enum.map(& &1.name)
+      |> Enum.reject(&Map.has_key?(manually_classified_columns, &1))
+
+    {name, unspecified_column_names}
   end
 
   # -------------------------------------------------------------------

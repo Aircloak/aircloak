@@ -379,9 +379,19 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("dec_aes_cbc128", [string, key]), do: dec_aes_cbc128(string, key)
 
   defp do_apply("hash", [value]) do
-    <<hash::60, _::4, _::64>> = :crypto.hash(:md5, to_string(value))
-    hash
+    <<_::16, hash::binary-4, _::80>> = :crypto.hash(:md5, to_string(value))
+    Base.encode16(hash, case: :lower)
   end
+
+  defp do_apply("bool_op", [_op, nil, _any]), do: nil
+  defp do_apply("bool_op", [_op, _any, nil]), do: nil
+  defp do_apply("bool_op", ["=", arg1, arg2]), do: arg1 == arg2
+  defp do_apply("bool_op", ["<>", arg1, arg2]), do: arg1 != arg2
+  defp do_apply("bool_op", [">", arg1, arg2]), do: arg1 > arg2
+  defp do_apply("bool_op", [">=", arg1, arg2]), do: arg1 >= arg2
+  defp do_apply("bool_op", ["<", arg1, arg2]), do: arg1 < arg2
+  defp do_apply("bool_op", ["<=", arg1, arg2]), do: arg1 <= arg2
+  defp do_apply("bool_op", [op, _arg1, _arg2]), do: raise("Invalid boolean operator `#{op}` specified!")
 
   defp do_apply("extract_words", [nil]), do: [nil]
   defp do_apply("extract_words", [string]), do: String.split(string)

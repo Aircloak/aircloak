@@ -14,7 +14,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
       year quarter month day hour minute second weekday date_trunc
       sqrt floor ceil abs round trunc div mod ^ * / + -
       length lower upper btrim ltrim rtrim left right substring concat
-      hex cast coalesce hash
+      hex cast coalesce hash bool_op
     )
 
   @impl Dialect
@@ -27,7 +27,9 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   def function_sql("round", [arg1, arg2]), do: ["ROUND(CAST(", arg1, " AS decimal), ", arg2, ")"]
   def function_sql("hex", [arg]), do: ["ENCODE(CONVERT_TO(", arg, ", 'utf8'), 'hex')"]
 
-  def function_sql("hash", [arg]), do: ["('x0' || SUBSTR(MD5(", arg, "::text), 1, 15))::bit(64)::bigint"]
+  def function_sql("hash", [arg]), do: ["SUBSTR(MD5(", arg, "::text), 5, 8)"]
+
+  def function_sql("bool_op", [[?', op, ?'], arg1, arg2]), do: ["(", arg1, " ", op, " ", arg2, ")"]
 
   def function_sql("/", [arg1, arg2]), do: ["(", arg1, " :: double precision / ", arg2, ")"]
 
