@@ -16,7 +16,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc div mod ^ * / + -
       length lower upper btrim/1 ltrim/1 rtrim/1 left right substring concat
-      hex cast coalesce hash
+      hex cast coalesce hash bool_op
     )
 
   @impl Dialect
@@ -33,7 +33,9 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   def function_sql("hex", [arg]), do: ["LOWER(HEX(", arg, "))"]
   def function_sql("stddev", [arg]), do: ["STDDEV_SAMP(", arg, ")"]
 
-  def function_sql("hash", [arg]), do: ["CAST(CONV(SUBSTR(MD5(CAST(", arg, " AS char)), 1, 15), 16, 10) AS signed)"]
+  def function_sql("hash", [arg]), do: ["SUBSTR(MD5(CAST(", arg, " AS char)), 5, 8)"]
+
+  def function_sql("bool_op", [["N'", op, ?'], arg1, arg2]), do: ["(", arg1, " ", op, " ", arg2, ")"]
 
   def function_sql("^", [arg1, arg2]), do: ["POW(", arg1, ", ", arg2, ")"]
 

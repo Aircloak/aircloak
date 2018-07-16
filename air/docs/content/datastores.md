@@ -161,16 +161,12 @@ The following constructs are not natively supported on this data source and will
   - `hex`
   - `median`
 
-__Note__: The `SAMPLE_USERS`-clause is not natively supported on this data source and it will require emulation.
-
 #### SAP IQ
 
   - `date_trunc`
   - `hex`
   - `median`
   - `btrim`, `ltrim`, and `rtrim` with two arguments
-
-__Note__: The `SAMPLE_USERS`-clause is not natively supported on this data source and it will require emulation.
 
 ## Database specific notes
 

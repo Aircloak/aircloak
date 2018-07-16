@@ -23,17 +23,19 @@ defmodule Cloak.DataSource.Isolators.Query do
   # -------------------------------------------------------------------
 
   defp isolating_ratio(data_source, table, column) do
-    [non_isolating_values, unique_values] =
+    uid_column = user_id(data_source, table)
+
+    [isolating_values, unique_values] =
       """
-        SELECT SUM(CAST(non_isolating AS integer)), COUNT(*) FROM (
-          SELECT CAST(COUNT(DISTINCT "#{user_id(data_source, table)}") - 1 AS boolean) AS non_isolating
+        SELECT SUM(CAST(isolating AS integer)), COUNT(*) FROM (
+          SELECT BOOL_OP('=', MAX(#{uid_column}), MIN(#{uid_column})) AS isolating
           FROM #{table}
           GROUP BY "#{column}"
         ) x
       """
       |> select_one!(data_source)
 
-    (unique_values - (non_isolating_values || 0)) / (unique_values + 1)
+    (isolating_values || 0) / (unique_values + 1)
   end
 
   defp select_one!(query, data_source) do

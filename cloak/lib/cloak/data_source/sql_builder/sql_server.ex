@@ -14,7 +14,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc div mod ^ * / + -
       length lower upper ltrim rtrim left right substring concat
-      hex cast coalesce hash
+      hex cast coalesce hash bool_op
     )
 
   @impl Dialect
@@ -33,7 +33,12 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   def function_sql("hex", [arg]), do: ["LOWER(CONVERT(nvarchar, CAST(", arg, " AS varbinary), 2))"]
 
   def function_sql("hash", [arg]),
-    do: ["CONVERT(bigint, SUBSTRING(0x00 + HASHBYTES('md5', CAST(", arg, " AS binary)), 1, 8))"]
+    do: function_sql("hex", [["SUBSTRING(HASHBYTES('md5', CAST(", arg, " AS varchar)), 3, 4)"]])
+
+  def function_sql("bool_op", [["N'", op, ?'], arg1, arg2]) do
+    condition = [arg1, " ", op, " ", arg2]
+    ["(CASE WHEN ", condition, " THEN 1 WHEN NOT (", condition, ") THEN 0 ELSE NULL END)"]
+  end
 
   def function_sql("avg", [arg]), do: ["AVG(", cast_sql(arg, :numeric, :real), ")"]
   def function_sql("stddev", [arg]), do: ["STDEV(", cast_sql(arg, :numeric, :real), ")"]
