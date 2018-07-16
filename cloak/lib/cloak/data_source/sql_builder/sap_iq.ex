@@ -37,8 +37,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPIQ do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
 
-  def function_sql("hash", [arg]),
-    do: ["ABS(HEXTOBIGINT(SUBSTRING(HASH(CAST(", arg, " AS binary), 'md5'), 1, 16)))"]
+  def function_sql("hash", [arg]), do: ["SUBSTRING(HASH(CAST(", arg, " AS text), 'md5'), 5, 8)"]
 
   def function_sql("bool_op", [["N'", op, ?'], arg1, arg2]) do
     condition = [arg1, " ", op, " ", arg2]

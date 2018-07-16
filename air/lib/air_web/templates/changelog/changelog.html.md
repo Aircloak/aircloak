@@ -21,6 +21,7 @@
 - Support for date and time typed literals.
 - Support for the mounted `/persist` folder in the cloak container. See Installation guide for more information.
 - Added visual indication for data sources which are being analyzed by the cloak.
+- `SAMPLE_USERS` implementation changed: it can now be offloaded on all the supported SQL data sources.
 
 ### Changes
 

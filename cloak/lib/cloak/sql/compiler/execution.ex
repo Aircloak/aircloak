@@ -293,15 +293,15 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp extract_columns(columns), do: Query.Lenses.leaf_expressions() |> Lens.to_list(columns)
 
   defp compile_sample_rate(%Query{sample_rate: amount} = query) when amount != nil do
-    {enumerator, denominator, messages} = sample_rate_to_ratio(amount)
-
-    user_id_hash = Expression.function("hash", [Helpers.id_column(query)], :integer)
-
-    user_id_ranged_hash =
-      Expression.function("%", [user_id_hash, Expression.constant(:integer, denominator)], :integer)
+    user_id_hash =
+      Expression.function("hash", [Helpers.id_column(query)], :text)
       |> put_in([Query.Lenses.all_expressions() |> Lens.key(:synthetic?)], true)
 
-    sample_condition = {:comparison, user_id_ranged_hash, :<, Expression.constant(:integer, enumerator)}
+    {aligned_sample_rate, messages} = align_sample_rate(amount)
+    hash_limit = round(aligned_sample_rate / 100 * 4_294_967_295)
+    hex_hash_limit = <<hash_limit::32>> |> Base.encode16(case: :lower) |> String.pad_leading(8, "0")
+
+    sample_condition = {:comparison, user_id_hash, :<=, Expression.constant(:text, hex_hash_limit)}
 
     %Query{query | where: Condition.combine(:and, sample_condition, query.where)}
     |> Query.add_info(messages)
@@ -309,18 +309,13 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp compile_sample_rate(query), do: query
 
-  defp sample_rate_to_ratio(sample_rate) do
-    denominator = 1_000_000_000
-    enumerator = round(sample_rate / 100 * denominator)
-    aligned_enumerator = FixAlign.align(enumerator)
+  defp align_sample_rate(sample_rate) do
+    aligned_sample_rate = FixAlign.align(sample_rate)
 
-    if enumerator == aligned_enumerator do
-      {aligned_enumerator, denominator, []}
+    if sample_rate == aligned_sample_rate do
+      {aligned_sample_rate, []}
     else
-      {aligned_enumerator, denominator,
-       [
-         "Sample rate adjusted from #{enumerator / denominator * 100}% to #{aligned_enumerator / denominator * 100}%"
-       ]}
+      {aligned_sample_rate, ["Sample rate adjusted from #{sample_rate}% to #{aligned_sample_rate}%"]}
     end
   end
 

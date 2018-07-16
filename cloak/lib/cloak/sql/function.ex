@@ -161,7 +161,7 @@ defmodule Cloak.Sql.Function do
                ~w(concat) => %{type_specs: %{[{:many1, :text}] => :text}},
                ~w(hex) => %{type_specs: %{[:text] => :text}},
                ~w(hash) => %{
-                 type_specs: %{[:text] => :integer, [:integer] => :integer, [:real] => :integer}
+                 type_specs: %{[{:or, [:text, :integer, :real]}] => :text}
                },
                # NOTICE: The `{:not_in, :restricted}` is set for `extract_words` because we are not
                # yet sure it's safe in restricted queries.

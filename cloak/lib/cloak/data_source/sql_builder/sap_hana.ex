@@ -16,7 +16,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc mod div ^ % * / + -
       length lower upper btrim/1 ltrim rtrim left right substring concat
-      cast coalesce bool_op
+      cast coalesce bool_op hash
     )
 
   @impl Dialect
@@ -47,6 +47,8 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
       arg |> to_string() |> String.replace(~r/DISTINCT /, ""),
       "))"
     ]
+
+  def function_sql("hash", [arg]), do: ["LOWER(SUBSTR(HASH_MD5(CAST(", arg, " AS binary)), 3, 4))"]
 
   def function_sql("bool_op", [["N'", op, ?'], arg1, arg2]) do
     condition = [arg1, " ", op, " ", arg2]
