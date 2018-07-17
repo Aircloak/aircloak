@@ -16,6 +16,7 @@ environment :prod do
   set(include_erts: true)
   set(include_src: false)
   set(cookie: "air")
+  plugin(Aircloak.Release.Whitelist, air: [priv: ~w(bom.json config_schema.json dependencies.zip gettext repo static)])
 end
 
 environment :local do
