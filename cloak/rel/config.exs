@@ -16,6 +16,7 @@ environment :prod do
   set(include_erts: true)
   set(include_src: false)
   set(cookie: "cloak")
+  plugin(Aircloak.Release.Whitelist, cloak: [priv: ~w(config_schema.json datasource_schema.json native odbc)])
 end
 
 environment :local do
