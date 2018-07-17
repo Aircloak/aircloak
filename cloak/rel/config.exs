@@ -13,20 +13,20 @@ use Mix.Releases.Config,
   default_environment: :prod
 
 environment :prod do
-  set include_erts: true
-  set include_src: false
-  set cookie: "cloak"
+  set(include_erts: true)
+  set(include_src: false)
+  set(cookie: "cloak")
+  plugin(Aircloak.Release.Whitelist, cloak: [priv: ~w(config_schema.json datasource_schema.json native odbc)])
 end
 
 environment :local do
-  set dev_mode: true
-  set include_erts: true
-  set cookie: "cloak"
-  set config: "config/local_release.exs"
+  set(dev_mode: true)
+  set(include_erts: true)
+  set(cookie: "cloak")
+  set(config: "config/local_release.exs")
 end
 
 release :cloak do
-  set version: current_version(:cloak)
-  set erl_opts: "+K true"
+  set(version: current_version(:cloak))
+  set(erl_opts: "+K true")
 end
-
