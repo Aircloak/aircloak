@@ -143,6 +143,7 @@ The following constructs are not natively supported on this data source and will
 
 * The `SAMPLE_USERS`-clause
 * Using an `ASC` order with `NULLS LAST` or a `DESC` order with `NULLS FIRST`
+* Global aggregators in standard queries
 
 #### MySQL and MariaDB
 
@@ -230,3 +231,11 @@ table `users_siblings` containing a `siblings.name` in addition to the `name` co
 
 MongoDB only supports `INNER JOIN` natively. Aircloak Insights will emulate all other JOIN-types. Furthermore, when a
 collection is sharded, even `INNER JOIN` has to be emulated.
+
+
+#### Discovery queries
+
+Since global aggregators require emulation, discovery queries for isolating columns will be (at least) partially emulated.
+This means data about each individual column will need to be streamed into the cloak, in order to compute the final result.
+Cloak startup might be significantly delayed because of that. See [Manually classifying isolating
+columns](/ops/configuration.md#manually-classifying-isolating-columns) on how to circumvent this problem.

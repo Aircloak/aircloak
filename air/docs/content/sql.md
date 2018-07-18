@@ -113,3 +113,14 @@ inequality_operator :=
   than all other values. The top-level query always defaults to treating `NULL` values as larger than other values.
 - Using a `column_expression` in place of a `where_expression` or a `having_expression` will implicitly compare the
   value of that `column_expression` to `TRUE`.
+
+
+## Subquery types
+
+Any query that processes user-sensitive data needs to be anonymized before its result is sent to the analyst. Subqueries
+that process user data are called restricted subqueries and are subject to various [restrictions](sql/restrictions.md).
+The top subquery in a tree of restricted subqueries is called an anonymizing subquery and will always have anonymizing
+aggregates applied as the final step.
+
+Subqueries that do not contain any user-sensitive data are called standard subqueries. These have only the usual SQL
+validations applied to them. Such subqueries can only refer to user-less tables or to other standard / anonymized subqueries.

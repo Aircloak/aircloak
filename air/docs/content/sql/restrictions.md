@@ -1,7 +1,7 @@
 # Restrictions
 
-The Aircloak system imposes a set of restrictions on the query language over the ANSI SQL standard.
-These restrictions are outlined below.
+The Aircloak system imposes an additional set of restrictions on the query language for anonymizing queries,
+over the ANSI SQL standard, which are outlined below. Standard queries do not have these restrictions.
 
 
 ## JOIN restrictions
