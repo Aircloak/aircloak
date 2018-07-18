@@ -360,4 +360,5 @@ SELECT COUNT(*) FROM table WHERE BUCKET(social_security BY 10) = 100000000
 
 Insights Cloak will automatically discover which columns isolate users. This computation might be very slow and
 resource-intensive for large data sources. See [Manually classifying isolating
-columns](/ops/configuration.md#manually-classifying-isolating-columns) on how to circumvent this problem.
+columns](/ops/configuration.md#manually-classifying-isolating-columns) for information on alternative means of
+classifying isolating columns.

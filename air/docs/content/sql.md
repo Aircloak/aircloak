@@ -115,12 +115,36 @@ inequality_operator :=
   value of that `column_expression` to `TRUE`.
 
 
-## Subquery types
+## Query and subquery types
 
-Any query that processes user-sensitive data needs to be anonymized before its result is sent to the analyst. Subqueries
-that process user data are called restricted subqueries and are subject to various [restrictions](sql/restrictions.md).
-The top subquery in a tree of restricted subqueries is called an anonymizing subquery and will always have anonymizing
-aggregates applied as the final step.
+Aircloak Insights supports both queries over sensitive data and queries over non-sensitive data. In this context sensitive
+data is data pertaining to individual entities, as opposed to an anonymized aggregate across multiple such entities.
 
-Subqueries that do not contain any user-sensitive data are called standard subqueries. These have only the usual SQL
-validations applied to them. Such subqueries can only refer to user-less tables or to other standard / anonymized subqueries.
+Queries that process sensitive data are subject to various [restrictions](sql/restrictions.md), and are called restricted
+queries. Restricted queries can be arbitrarily nested. The top-most restricted query anonymizes the data by producing
+anonymized aggregates and filtering values that would allow an individual entity to be identified. Such a top-most query
+is called an anonymizing query.
+
+An anonymizing query could itself be a subquery to another query that further processes the anonymized query results or
+combines it with that of a user-less table. Such a query is called a standard query. Standard queries have the usual SQL
+validations applied to them, but do not underly the anonymization related restrictions of the restricted queries.
+Standard queries can only refer to user-less tables or to other standard or anonymizing subqueries.
+
+The following is an example:
+
+```SQL
+-- Standard query (only processes anonymized data)
+SELECT
+  min(age), max(age),
+  count(age), sum(individuals) as num_users
+FROM (
+  -- Anonymizing (and restricted) query
+  SELECT age, count(*) as individuals FROM (
+    -- Restricted query
+    SELECT uid, t1.age
+    FROM table1 t1 INNER JOIN table2 t2
+      ON t1.uid = t2.uid
+  ) t
+  GROUP BY age
+) b
+```

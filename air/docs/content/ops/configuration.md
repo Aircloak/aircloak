@@ -199,9 +199,9 @@ The database tables that should be made available for querying are defined in th
 Each `table_name_x` key specifies the name the table will be available under when querying the data source through Aircloak.
 
 The `user_id` field is the name of the column that uniquely identifies users - the people or entities whose anonymity
-should be preserved. If this field is set to `null`, an user-less table will be created instead. This table will be
-treated as containing non-sensitive data and any query over it will not be subject to the anonymization restrictions,
-filters and aggregations.
+should be preserved. If this field is set to `null` the table will be classified as not containing data requiring
+anonymization. Queries over such tables are not subject to the anonymization restrictions, filters and aggregations,
+and *no attempts will be made to anonymize the data the table contains!*
 
 The database table can be declared by either using `db_name` or as an SQL view using `query`.
 These options are mutually exclusive.
@@ -227,8 +227,8 @@ table_name: {
 }
 ```
 
-The query can only select data from real tables in the source database (it can not reference other virtual or projected
-tables from the configuration file).
+The query can only select data from existing tables (or views) in the source database (it can not reference other virtual
+or projected tables from the configuration file).
 If the virtual table contains columns with duplicated names, only the first one is kept and the rest are dropped.
 Constant columns are also dropped from the table.
 
