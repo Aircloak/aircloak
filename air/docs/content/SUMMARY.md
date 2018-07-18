@@ -28,7 +28,10 @@
 ## Technical documentation
 
 - [Core language features](sql.md)
+  - [Exploring the database](sql.md#exploring-the-database)
+  - [Querying the database](sql.md#querying-the-database)
   - [Considerations](sql.md#considerations)
+  - [Query and subquery types](sql.md#query-and-subquery-types)
 - [Restrictions](sql/restrictions.md)
   - [JOINs](sql/restrictions.md#join-restrictions)
   - [Subqueries](sql/restrictions.md#subquery-restrictions)
