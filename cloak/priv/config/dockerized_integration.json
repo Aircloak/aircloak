@@ -1,5 +1,6 @@
 {
   "air_site": "wss://localhost:8444",
   "salt": "test salt which doesn't matter since tests have SD=0",
-  "data_sources": "dockerized_integration_tests"
+  "data_sources": "dockerized_integration_tests",
+  "sanitize_otp_errors": false
 }
