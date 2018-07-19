@@ -85,7 +85,6 @@ defmodule BOM.Gather.Elixir do
 
   for {package_name, version, license} <-
         [
-          {"meck", "dde759050eff19a1a80fd854d7375174b191665d", :apache2},
           {"pbkdf2", "7076584f5377e98600a7e2cb81980b2992fb2f71", :apache2},
           {"poison", "ca619d769815ab2c878cdfbf524c5b6890bcb000", :"cc0-1.0"},
           {"websocket_client", "c2a6cf11233cad54a7f7e6c89bca172f2b494f9d", :mit},
