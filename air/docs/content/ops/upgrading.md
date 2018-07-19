@@ -1,3 +1,37 @@
+# Version 18.3.0
+
+## Insights Cloak
+
+### Static analysis of columns
+
+From version `18.3.0` onwards, Insights Cloak performs an analysis of the columns in a data source when booting.
+The analysis determines which columns are likely to isolate users. A data source might contain columns that behave
+much like the `user-id` column without explicitly being a `user-id` column. Consider columns containing
+email addresses or social security numbers as examples.
+Columns that are deemed to be isolating get a set of extra restrictions applied to them.
+For more information, please consult the [Isolating columns](/sql/restrictions.md#isolating-columns)
+section of the restrictions chapter.
+
+Depending on the database size the static analysis might take quite some time to complete. The Insight Cloak
+supports caching the results to avoid having to reperform the analysis when Insights Cloak is restarted or upgraded.
+To enable caching you have to mount a folder into the Insights Cloak container under the path `/persist`.
+Your `docker run ...` command would have to be updated to look something like this:
+
+```
+docker run ... \
+  -v cloak_persist_folder:/persist \
+  ...
+```
+
+Where `cloak_persist_folder` is the path you want the cache to be stored at on your host system.
+Depending on your setup it might be something like `/aircloak/cloak/cache`.
+
+__The Cloak container needs both read and write permissions to this folder.__
+
+If the static analysis puts undue stress on your data source, or does not complete within a reasonable time, please
+consider manually classifyng your columns. More information on how this is done can be found
+[here](configuration.md#insights-cloak-configuration) under the heading _Manually classifying isolating columns_.
+
 # Version 17.5.0
 
 ## Insights Cloak
