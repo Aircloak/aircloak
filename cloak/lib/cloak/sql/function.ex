@@ -57,7 +57,8 @@ defmodule Cloak.Sql.Function do
                    [:date] => :date,
                    [:time] => :time,
                    [:datetime] => :datetime,
-                   [:text] => :text
+                   [:text] => :text,
+                   [:unknown] => :unknown
                  }
                },
                ~w(avg stddev) => %{attributes: [:aggregator], type_specs: %{[numeric] => :real}},
