@@ -1,27 +1,30 @@
-## Unreleased
+## 18.3.0
 
-### BREAKING CHANGES
+### __Breaking change__
 
-- ODBC drivers for SAP HANA must be provided by the client and mounted. See the Installation guide for more info.
+- ODBC drivers for SAP HANA must be provided by the client and mounted.
+  See the [Installation guide](docs/ops/installation.html) for more info.
 
 ### Features
 
-- Resetting a user's password via a link provided by the system administrator
-- Resetting a user's password using the command line interface
 - Added support for userless tables and non-anonymizing queries.
+- Users passwords can now be reset using a link provided by the system.
+  administrator or via the commandline interface.
+- Support for the SAP IQ data store.
 
 ### Bugfixes
 
-- Fix for queries being rejected when one side of a range is negative
-- Fix identification of conditions needing emulation (should result in better performance).
+- Fix for queries being rejected when one side of a range is negative.
 - Fix redundant scanning of projected tables during cloak initialization.
+- HTTP REST API for query results returned JSON with some duplicate keys.
 
 ### Enhancements
 
+- Improve identification of which conditions need emulation.
 - Support for date and time typed literals.
-- Support for the mounted `/persist` folder in the cloak container. See Installation guide for more information.
-- Added visual indication for data sources which are being analyzed by the cloak.
-- `SAMPLE_USERS` implementation changed: it can now be offloaded on all the supported SQL data sources.
+- `SAMPLE_USERS` no longer causes SAP Hana queries to get emulated.
+- The cloak classifies columns by whether they isolate users or not, further improving the anonymization as a result.
+- Improve load performance on the activity monitor page for installations with high numbers of queries.
 
 ### Changes
 
