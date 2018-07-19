@@ -66,6 +66,7 @@ where_expression :=
   column_expression IS [NOT] NULL |
   column_expression [NOT] IN (constant [, ...]) |
   column_expression [NOT] LIKE | ILIKE string_pattern [ESCAPE escape_string] |
+  column_expression [NOT] boolean_column_expression
   column_expression
 
 having_expression :=
@@ -87,7 +88,8 @@ inequality_operator :=
 - The `*` argument can only be provided to the `COUNT` and `COUNT_NOISE` aggregators and it specifies counting rows
   instead of otherwise counting only non-`NULL` values. `NULL` values are ignored by all other aggregators.
 - The operator `OR` is not supported.
-- The operator `NOT` can only be used in the cases mentioned above (`IS NOT NULL`, `NOT LIKE`, and `NOT ILIKE`).
+- The operator `NOT` can only be used in the cases mentioned above (`IS NOT NULL`, `NOT IN`, `NOT LIKE`, `NOT ILIKE`,
+  and `NOT boolean_column_expression`).
 - You can restrict the range of returned rows by a query using the `LIMIT` and/or `OFFSET` clauses, but you need to
   provide the `ORDER BY` clause to ensure a stable order for the rows.
 - Conditions in the `HAVING` clause must not refer to non-aggregated fields.
