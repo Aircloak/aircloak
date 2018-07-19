@@ -31,6 +31,16 @@ defmodule Cloak.LoggerTranslator do
     end
   end
 
+  @doc "Formats the given exit reason."
+  @spec format_exit(any) :: String.t()
+  def format_exit(reason) do
+    if Aircloak.DeployConfig.override_app_env!(:cloak, :sanitize_otp_errors) do
+      filtered_format_exit(reason)
+    else
+      Exception.format_exit(reason)
+    end
+  end
+
   # -------------------------------------------------------------------
   ## Logger translator callbacks
   # -------------------------------------------------------------------
@@ -96,4 +106,9 @@ defmodule Cloak.LoggerTranslator do
   end
 
   defp do_filter_stacktrace(_), do: []
+
+  defp filtered_format_exit({_exit_reason, stacktrace}) when is_list(stacktrace),
+    do: Exception.format_exit({"filtered exit reason", do_filter_stacktrace(stacktrace)})
+
+  defp filtered_format_exit(_other), do: Exception.format_exit({"filtered exit reason", System.stacktrace()})
 end
