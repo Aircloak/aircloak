@@ -5,9 +5,8 @@
 ### Static analysis of columns
 
 From version `18.3.0` onwards, Insights Cloak performs an analysis of the columns in a data source when booting.
-The analysis determines which columns are likely to isolate users. A data source might contain columns that behave
-much like the `user-id` column without explicitly being a `user-id` column. Consider columns containing
-email addresses or social security numbers as examples.
+The analysis determines which columns are likely to isolate users.
+Such columns have mostly user-specific values, and therefore behave much like the user-id column. Consider columns containing email addresses or social security numbers as examples.
 Columns that are deemed to be isolating get a set of extra restrictions applied to them.
 For more information, please consult the [Isolating columns](/sql/restrictions.md#isolating-columns)
 section of the restrictions chapter.
