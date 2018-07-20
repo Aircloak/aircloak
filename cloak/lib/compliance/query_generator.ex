@@ -326,6 +326,7 @@ defmodule Cloak.Compliance.QueryGenerator do
       end)
     end)
     |> Enum.filter(fn {_, _, return_type} -> match_type?(type, return_type) end)
+    |> Enum.reject(&match?({_, _, :unknown}, &1))
     |> case do
       [] ->
         constant(nil)
@@ -474,6 +475,8 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp positive_integer(), do: map(integer(), &(abs(&1) + 1))
 
   defp match_type?(:any, _), do: true
+  defp match_type?(:unknown, :unknown), do: true
+  defp match_type?(:unknown, _), do: false
   defp match_type?({:optional, type}, actual), do: match_type?(type, actual)
   defp match_type?({:constant, type}, actual), do: match_type?(type, actual)
   defp match_type?({:many1, type}, actual), do: match_type?(type, actual)
