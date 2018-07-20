@@ -17,6 +17,7 @@
 - Fix for queries being rejected when one side of a range is negative.
 - Fix redundant scanning of projected tables during cloak initialization.
 - HTTP REST API for query results returned JSON with some duplicate keys.
+- Fix execution of `ORDER BY`-clause in combination with a `GROUP BY`-clause in queries on MongoDB.
 
 ### Enhancements
 

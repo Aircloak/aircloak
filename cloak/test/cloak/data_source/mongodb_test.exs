@@ -40,6 +40,7 @@ defmodule Cloak.DataSource.MongoDBTest do
 
     Mongo.insert_one!(conn, @userless_table, %{val: 1})
     Mongo.insert_one!(conn, @userless_table, %{val: 2})
+    Mongo.insert_one!(conn, @userless_table, %{val: 3})
 
     tables =
       [
@@ -562,12 +563,38 @@ defmodule Cloak.DataSource.MongoDBTest do
   end
 
   test "simple standard query", context do
-    assert_query(context, "SELECT COUNT(*) FROM #{@userless_table}", %{rows: [%{occurrences: 1, row: [2]}]})
+    assert_query(context, "SELECT COUNT(*) FROM #{@userless_table}", %{rows: [%{occurrences: 1, row: [3]}]})
   end
 
   test "simple standard query with filter", context do
     assert_query(context, "SELECT COUNT(*) FROM #{@userless_table} WHERE val = 0", %{
       rows: [%{occurrences: 1, row: [0]}]
     })
+  end
+
+  test "standard query with grouping and order by (1)", context do
+    assert_query(
+      context,
+      """
+        SELECT x FROM (
+          SELECT CAST(val - 1 AS boolean) AS x FROM #{@userless_table}
+        ) AS t GROUP BY 1 ORDER BY 1
+      """,
+      %{
+        rows: [%{occurrences: 1, row: [false]}, %{occurrences: 1, row: [true]}]
+      }
+    )
+  end
+
+  test "standard query with grouping and order by (2)", context do
+    assert_query(
+      context,
+      """
+        SELECT val FROM #{@userless_table} GROUP BY val ORDER BY val + 1
+      """,
+      %{
+        rows: [%{occurrences: 1, row: [1]}, %{occurrences: 1, row: [2]}, %{occurrences: 1, row: [3]}]
+      }
+    )
   end
 end

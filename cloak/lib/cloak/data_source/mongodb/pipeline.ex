@@ -79,17 +79,18 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     end ++ (table.columns |> Enum.map(& &1.name) |> parse_conditions(query.where)) ++ parse_query(query, top_level?)
   end
 
-  defp project_columns(columns, _top_level? = true),
+  defp project_final_columns(columns, _top_level? = true),
     # Mongo 3.0 doesn't support projection of arrays, which would more efficient for data transfer.
     do:
       columns
       |> Enum.with_index()
-      |> Enum.map(fn {column, index} -> %Expression{column | alias: "f#{index}"} end)
+      |> Enum.map(fn {column, index} -> %Expression{name: column.alias || column.name, alias: "f#{index}"} end)
       |> Projector.project_columns()
 
-  defp project_columns(columns, _top_level? = false), do: Projector.project_columns(columns)
+  defp project_final_columns(_columns, _top_level? = false), do: []
 
-  defp parse_query(%Query{subquery?: false} = query, _top_level? = true), do: project_columns(query.db_columns, true)
+  defp parse_query(%Query{subquery?: false} = query, _top_level? = true),
+    do: Projector.project_columns(query.db_columns) ++ project_final_columns(query.db_columns, true)
 
   defp parse_query(%Query{subquery?: true} = query, top_level?),
     do:
@@ -282,11 +283,9 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       end)
 
     order_by =
-      for {column, dir, nulls} <- query.order_by do
-        column_with_alias = Enum.find(needed_columns, column, &(%Expression{&1 | alias: nil} == column))
-
-        {column_with_alias, dir, nulls}
-      end
+      Lens.map(Lens.all() |> Lens.at(0), query.order_by, fn column ->
+        Enum.find(needed_columns, column, &(%Expression{&1 | alias: nil} == column))
+      end)
 
     %Query{query | db_columns: needed_columns, order_by: order_by}
   end
@@ -396,10 +395,10 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     if aggregators ++ groups == [] do
       if simple_order_by?(query) do
         # if $sort and $limit steps are first, collection indexes might be used to speed up the pipeline
-        order_and_range(query) ++ project_columns(columns, top_level?)
+        order_and_range(query) ++ Projector.project_columns(columns)
       else
-        project_columns(columns, top_level?) ++ order_and_range(query)
-      end
+        Projector.project_columns(columns) ++ order_and_range(query)
+      end ++ project_final_columns(columns, top_level?)
     else
       column_tops = Enum.map(columns, &extract_column_top(&1, aggregators, groups))
       properties = project_properties(groups)
@@ -407,7 +406,9 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       having = extract_column_top_from_conditions(having, aggregators, groups)
 
       [%{"$group": group}] ++
-        parse_conditions(Map.keys(group), having) ++ project_columns(column_tops, top_level?) ++ order_and_range(query)
+        parse_conditions(Map.keys(group), having) ++
+        Projector.project_columns(column_tops) ++
+        order_and_range(query) ++ project_final_columns(column_tops, top_level?)
     end
   end
 
