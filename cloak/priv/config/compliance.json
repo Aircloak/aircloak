@@ -1,5 +1,6 @@
 {
   "air_site": "wss://localhost:8443",
   "salt": "test salt which doesn't matter since tests have SD=0",
-  "data_sources": "compliance_local"
+  "data_sources": "compliance_local",
+  "sanitize_otp_errors": false
 }

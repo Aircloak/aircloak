@@ -1,5 +1,6 @@
 {
   "air_site": "ws://air:8080",
   "salt": "test salt which doesn't matter since tests have SD=0",
-  "data_sources": "data_sources"
+  "data_sources": "data_sources",
+  "sanitize_otp_errors": false
 }
