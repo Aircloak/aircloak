@@ -39,9 +39,9 @@ defmodule AirWeb.Admin.AuditLogController do
       "index.html",
       audit_logs: audit_logs,
       full_width: true,
-      users: AuditLog.users(filters),
-      event_types: AuditLog.event_types(filters),
-      data_sources: AuditLog.data_sources(filters),
+      users: AuditLog.users(filters) |> Enum.map(&%{label: &1.name, value: &1.id}),
+      event_types: AuditLog.event_types(filters) |> Enum.map(&%{label: &1, value: &1}),
+      data_sources: AuditLog.data_sources(filters) |> Enum.map(&%{label: &1.name, value: &1.name}),
       from: from,
       to: to,
       max_results: max_results

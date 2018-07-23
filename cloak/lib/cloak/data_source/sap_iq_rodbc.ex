@@ -36,7 +36,7 @@ defmodule Cloak.DataSource.SAPIQRODBC do
   @impl Driver
   def connect!(parameters) do
     unless File.exists?(driver_path()), do: DataSource.raise_error("ODBC driver for SAP IQ is not mounted.")
-    RODBC.connect!(parameters, &conn_params/1)
+    RODBC.connect!(parameters, &conn_params/1, wstr_as_bin: true)
   end
 
   @impl Driver

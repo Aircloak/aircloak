@@ -335,6 +335,127 @@ defmodule Air.Service.QueryTest do
     end
   end
 
+  describe ".queries" do
+    setup [:sandbox]
+
+    test "results are ordered from newest to oldest" do
+      query1 = create_query!(create_user!())
+      query2 = create_query!(create_user!())
+      query3 = create_query!(create_user!())
+
+      assert Query.queries(filters()) |> Enum.map(& &1.id) == [query3.id, query2.id, query1.id]
+    end
+
+    test "filtering by query_state" do
+      _query1 = create_query!(create_user!(), %{query_state: :started})
+      query2 = create_query!(create_user!(), %{query_state: :error})
+      query3 = create_query!(create_user!(), %{query_state: :completed})
+
+      assert Query.queries(filters(%{query_states: [:error, :completed]})) |> Enum.map(& &1.id) == [
+               query3.id,
+               query2.id
+             ]
+    end
+
+    test "filtering by data source" do
+      _query1 = create_query!(create_user!(), %{data_source_id: create_data_source!().id})
+      query2 = create_query!(create_user!(), %{data_source_id: create_data_source!().id})
+      query3 = create_query!(create_user!(), %{data_source_id: create_data_source!().id})
+
+      assert Query.queries(filters(%{data_sources: [query2.data_source_id, query3.data_source_id]}))
+             |> Enum.map(& &1.id) == [query3.id, query2.id]
+    end
+
+    test "filtering by user" do
+      _query1 = create_query!(create_user!())
+      query2 = create_query!(create_user!())
+      query3 = create_query!(create_user!())
+
+      assert Query.queries(filters(%{users: [query2.user_id, query3.user_id]}))
+             |> Enum.map(& &1.id) == [query3.id, query2.id]
+    end
+
+    test "max results" do
+      _query1 = create_query!(create_user!())
+      query2 = create_query!(create_user!())
+      query3 = create_query!(create_user!())
+
+      assert Query.queries(filters(%{max_results: 2})) |> Enum.map(& &1.id) == [query3.id, query2.id]
+    end
+  end
+
+  describe ".users_for_filters" do
+    test "includes users of matching queries" do
+      _query1 = create_query!(create_user!())
+      query2 = create_query!(create_user!(), %{query_state: :error})
+      query3 = create_query!(create_user!(), %{query_state: :completed})
+
+      assert Query.users_for_filters(filters(%{query_states: [:error, :completed], max_results: 1}))
+             |> Enum.map(& &1.id)
+             |> Enum.sort() == Enum.sort([query2.user_id, query3.user_id])
+    end
+
+    test "includes filtered users" do
+      _user1 = create_user!()
+      user2 = create_user!()
+      user3 = create_user!()
+
+      assert Query.users_for_filters(filters(%{users: [user2.id, user3.id]}))
+             |> Enum.map(& &1.id)
+             |> Enum.sort() == Enum.sort([user2.id, user3.id])
+    end
+
+    test "results are orderer by name" do
+      users = Enum.map(1..3, fn _ -> create_user!() end)
+
+      assert Query.users_for_filters(filters(%{users: Enum.map(users, & &1.id)})) |> Enum.map(& &1.name) ==
+               users |> Enum.map(& &1.name) |> Enum.sort()
+    end
+  end
+
+  describe ".data_sources_for_filters" do
+    test "includes data_sources of matching queries" do
+      _query1 = create_query!(create_data_source!())
+      query2 = create_query!(create_data_source!(), %{query_state: :error})
+      query3 = create_query!(create_data_source!(), %{query_state: :completed})
+
+      assert Query.data_sources_for_filters(filters(%{query_states: [:error, :completed], max_results: 1}))
+             |> Enum.map(& &1.id)
+             |> Enum.sort() == Enum.sort([query2.data_source_id, query3.data_source_id])
+    end
+
+    test "includes filtered data_sources" do
+      _data_source1 = create_data_source!()
+      data_source2 = create_data_source!()
+      data_source3 = create_data_source!()
+
+      assert Query.data_sources_for_filters(filters(%{data_sources: [data_source2.id, data_source3.id]}))
+             |> Enum.map(& &1.id)
+             |> Enum.sort() == Enum.sort([data_source2.id, data_source3.id])
+    end
+
+    test "results are orderer by name" do
+      data_sources = Enum.map(1..3, fn _ -> create_data_source!() end)
+
+      assert Query.data_sources_for_filters(filters(%{data_sources: Enum.map(data_sources, & &1.id)}))
+             |> Enum.map(& &1.name) == data_sources |> Enum.map(& &1.name) |> Enum.sort()
+    end
+  end
+
+  defp filters(overrides \\ %{}) do
+    Map.merge(
+      %{
+        query_states: [],
+        data_sources: [],
+        users: [],
+        max_results: 100,
+        from: Timex.now() |> Timex.shift(days: -1),
+        to: Timex.now() |> Timex.shift(days: 1)
+      },
+      overrides
+    )
+  end
+
   def sandbox(_context) do
     Ecto.Adapters.SQL.Sandbox.checkout(Air.Repo)
     Ecto.Adapters.SQL.Sandbox.mode(Air.Repo, {:shared, self()})

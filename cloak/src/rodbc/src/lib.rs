@@ -6,8 +6,8 @@ extern crate libc;
 extern crate odbc;
 extern crate simple_error;
 
-use libc::{c_char, c_int, c_schar, c_uint};
 use c_vec::CVec;
+use libc::{c_char, c_int, c_schar, c_uint};
 
 mod erl_driver;
 use erl_driver::*;
@@ -17,6 +17,9 @@ const ERL_DRV_ERROR_GENERAL: i32 = -1;
 const COMMAND_CONNECT: u32 = 0;
 const COMMAND_EXECUTE: u32 = 1;
 const COMMAND_FETCH: u32 = 2;
+const COMMAND_SET_FLAG: u32 = 3;
+
+const FLAG_WSTR_AS_BIN: u8 = 0;
 
 const STATUS_OK: u8 = b'K';
 const STATUS_ERROR: u8 = b'E';
@@ -79,6 +82,7 @@ extern "C" fn control(
 ) -> ErlDrvSSizeT {
     let state = unsafe { &mut *(drv_data as *mut State) };
     let mut message = Vec::<u8>::new();
+
     match command {
         COMMAND_CONNECT => {
             let buffer = unsafe { CVec::new(buffer as *mut u8, length) };
@@ -86,25 +90,43 @@ extern "C" fn control(
                 message.push(STATUS_ERROR);
                 message.extend_from_slice(error.to_string().as_bytes());
             }
-        }
+        },
+
         COMMAND_EXECUTE => {
             let buffer = unsafe { CVec::new(buffer as *mut u8, length) };
             if let Err(error) = state.execute(&buffer) {
                 message.push(STATUS_ERROR);
                 message.extend_from_slice(error.to_string().as_bytes());
             }
-        }
+        },
+
         COMMAND_FETCH => if let Err(error) = state.fetch(&mut message) {
             message.clear();
             message.push(STATUS_ERROR);
             message.extend_from_slice(error.to_string().as_bytes());
         },
+
+        COMMAND_SET_FLAG => {
+            let flag = unsafe { *buffer as u8 };
+            match flag {
+                FLAG_WSTR_AS_BIN => {
+                    state.wstr_as_bin = true;
+                },
+                _ => {
+                    let error = format!("Invalid flag set: {}", flag);
+                    message.push(STATUS_ERROR);
+                    message.extend_from_slice(error.as_bytes());
+                },
+            }
+        },
+
         _ => {
             let error = format!("Invalid command received: {}", command);
             message.push(STATUS_ERROR);
             message.extend_from_slice(error.as_bytes());
-        }
+        },
     };
+
     unsafe { reply(&message, reply_buffer, reply_length) }
 }
 

@@ -2,6 +2,7 @@ defmodule AircloakCI.Application do
   @moduledoc false
 
   use Application
+  import Aircloak
 
   # -------------------------------------------------------------------
   # Application callbacks
@@ -35,6 +36,7 @@ defmodule AircloakCI.Application do
   defp startup_check() do
     init_data_folder!()
     check_github_access!()
+    check_global_db_namespace!()
   end
 
   if Mix.env() != :test do
@@ -47,6 +49,20 @@ defmodule AircloakCI.Application do
     defp check_github_access!(), do: :ok
 
     def test_processes, do: [AircloakCI.TestExec]
+  end
+
+  defp check_global_db_namespace!() do
+    in_env(
+      dev:
+        if System.get_env("GLOBAL_DB_NAMESPACE") in [nil, ""] do
+          raise(
+            "Please set the GLOBAL_DB_NAMESPACE OS variable. " <>
+              "If you're developing locally, then use a unique repeatable value, such as your first name. " <>
+              "This value will be used as a prefix of the table names in the database."
+          )
+        end,
+      else: :ok
+    )
   end
 
   defp init_data_folder!() do

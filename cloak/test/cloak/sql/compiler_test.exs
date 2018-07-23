@@ -185,6 +185,13 @@ defmodule Cloak.Sql.Compiler.Test do
     assert value == Expression.constant(:datetime, ~N[2015-01-01 00:00:00.000000])
   end
 
+  test "casts integers to reals in IN" do
+    result = compile!("select * from table where float IN (1, 1.1)", data_source())
+
+    assert {:and, {:not, {:is, column("table", "uid"), :null}}, {:in, column("table", "float"), values}} = result.where
+    assert [%Expression{type: :real, value: 1}, %Expression{type: :real, value: 1.1}] = values
+  end
+
   test "reports malformed datetimes" do
     assert {:error, "Cannot cast `something stupid` to datetime."} =
              compile("select * from table where column > 'something stupid'", data_source())

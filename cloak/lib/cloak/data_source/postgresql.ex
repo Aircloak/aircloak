@@ -133,9 +133,9 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp safe_close(connection, query) do
     Postgrex.close(connection, query)
   rescue
-    _ ->
-      {"filtered exit reason", Cloak.LoggerTranslator.filtered_stacktrace(System.stacktrace())}
-      |> Exception.format_exit()
+    exception ->
+      {exception, System.stacktrace()}
+      |> Cloak.LoggerTranslator.format_exit()
       |> Logger.error()
 
       :ignore

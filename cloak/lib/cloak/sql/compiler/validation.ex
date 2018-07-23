@@ -230,7 +230,7 @@ defmodule Cloak.Sql.Compiler.Validation do
         raise CompilationError,
           message:
             "Table/subquery `#{table.name}` has no associated user id." <>
-              " Userless data can not be used in an anonymizing queries."
+              " Userless data can not be used in anonymizing queries."
       end
     end)
   end
@@ -469,24 +469,49 @@ defmodule Cloak.Sql.Compiler.Validation do
     end)
   end
 
+  # -------------------------------------------------------------------
+  # IN verification
+  # -------------------------------------------------------------------
+
   defp verify_in(query) do
     Query.Lenses.db_filter_clauses()
     |> Query.Lenses.conditions()
     |> Lens.filter(&Condition.in?/1)
     |> Lens.to_list(query)
-    |> Enum.each(fn {:in, _, items} ->
-      items
-      |> Enum.find(&(not Expression.constant?(&1)))
-      |> case do
-        nil ->
-          :ok
+    |> Enum.each(&do_verify_in/1)
+  end
 
-        item ->
-          raise CompilationError,
-            message: "Only constants are allowed on the right-hand side of the IN operator.",
-            source_location: item.source_location
-      end
-    end)
+  defp do_verify_in(in_condition) do
+    verify_in_rhs_constant(in_condition)
+    verify_in_types(in_condition)
+  end
+
+  defp verify_in_rhs_constant({:in, _, items}) do
+    items
+    |> Enum.find(&(not Expression.constant?(&1)))
+    |> case do
+      nil ->
+        :ok
+
+      item ->
+        raise CompilationError,
+          message: "Only constants are allowed on the right-hand side of the IN operator.",
+          source_location: item.source_location
+    end
+  end
+
+  defp verify_in_types({:in, lhs, items}) do
+    items
+    |> Enum.find(&(&1.type != lhs.type))
+    |> case do
+      nil ->
+        :ok
+
+      item ->
+        raise CompilationError,
+          message: "Expected a constant of type `#{lhs.type}`, got `#{item.type}`.",
+          source_location: item.source_location
+    end
   end
 
   # -------------------------------------------------------------------

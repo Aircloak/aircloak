@@ -12,6 +12,16 @@ defmodule Air.Service.Query do
   @type option :: {:session_id, Query.session_id()}
   @type options :: [option]
 
+  @type user_id :: non_neg_integer
+  @type data_source_id :: non_neg_integer
+  @type filters :: %{
+          from: DateTime.t(),
+          to: DateTime.t(),
+          query_states: [Query.QueryState.t()],
+          users: [user_id],
+          data_sources: [data_source_id],
+          max_results: non_neg_integer
+        }
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -47,31 +57,39 @@ defmodule Air.Service.Query do
   end
 
   @doc """
-  Returns information about failed queries in a paginated form.
-
-  The data returned by this function will select a map with fields
-  `id`, `inserted_at`, `data_source`, `user`, `statement`, and `error`.
+  Returns a list of queries matching the given filters, ordered by `inserted_at`. At most `max_results` most recent
+  queries will be returned.
   """
-  @spec paginated_failed_queries(non_neg_integer) :: Scrivener.Page.t()
-  def paginated_failed_queries(page) do
-    query =
-      from(
-        q in Query,
-        join: ds in assoc(q, :data_source),
-        join: user in assoc(q, :user),
-        select: %{
-          id: q.id,
-          inserted_at: q.inserted_at,
-          data_source: ds.name,
-          user: user.name,
-          statement: q.statement,
-          error: fragment("?->>'error'", q.result)
-        },
-        where: not is_nil(q.statement) and q.statement != "" and fragment("?->>'error' <> ''", q.result),
-        order_by: [desc: q.inserted_at]
-      )
+  @spec queries(filters) :: [Query.t()]
+  def queries(filters) do
+    Query
+    |> apply_filters(filters)
+    |> order_by([q], desc: q.inserted_at)
+    |> limit(^filters.max_results)
+    |> Repo.all()
+    |> Repo.preload([:user, :data_source])
+  end
 
-    Repo.paginate(query, page: page)
+  @doc "Returns a list of users of queries matching the given filters. `max_results` is ignored."
+  @spec users_for_filters(filters) :: [User.t()]
+  def users_for_filters(filters) do
+    Query
+    |> apply_filters(filters)
+    |> select_users()
+    |> Repo.all()
+    |> include_filtered(User, filters.users)
+    |> Enum.sort_by(& &1.name)
+  end
+
+  @doc "Returns a list of data sources of queries matching the given filters. `max_results` is ignored."
+  @spec data_sources_for_filters(filters) :: [DataSource.t()]
+  def data_sources_for_filters(filters) do
+    Query
+    |> apply_filters(filters)
+    |> select_data_sources()
+    |> Repo.all()
+    |> include_filtered(DataSource, filters.data_sources)
+    |> Enum.sort_by(& &1.name)
   end
 
   @doc "Returns a query if accessible by the given user, without associations preloaded."
@@ -337,6 +355,36 @@ defmodule Air.Service.Query do
     where(scope, [q], q.query_state in ^@active_states)
   end
 
+  defp apply_filters(scope, filters) do
+    scope
+    |> for_time(filters.from, filters.to)
+    |> for_query_states(filters.query_states)
+    |> for_data_source_ids(filters.data_sources)
+    |> for_user_ids(filters.users)
+  end
+
+  defp for_query_states(scope, []), do: scope
+
+  defp for_query_states(scope, query_states) do
+    where(scope, [q], q.query_state in ^query_states)
+  end
+
+  defp for_data_source_ids(scope, []), do: scope
+
+  defp for_data_source_ids(scope, data_source_ids) do
+    where(scope, [q], q.data_source_id in ^data_source_ids)
+  end
+
+  defp for_user_ids(scope, []), do: scope
+
+  defp for_user_ids(scope, user_ids) do
+    where(scope, [q], q.user_id in ^user_ids)
+  end
+
+  defp for_time(scope, from, to) do
+    where(scope, [q], q.inserted_at >= ^from and q.inserted_at <= ^to)
+  end
+
   defp for_data_source(query, data_source) do
     from(q in query, where: q.data_source_id == ^data_source.id)
   end
@@ -369,7 +417,36 @@ defmodule Air.Service.Query do
   defp add_id_to_changeset(changeset, id), do: Query.add_id_to_changeset(changeset, id)
 
   # -------------------------------------------------------------------
-  # API functions
+  # Helpers for *_for_filters functions
+  # -------------------------------------------------------------------
+
+  defp select_users(query) do
+    from(
+      user in User,
+      join: q in ^query,
+      on: user.id == q.user_id,
+      distinct: user.id,
+      select: user
+    )
+  end
+
+  defp select_data_sources(query) do
+    from(
+      data_source in DataSource,
+      join: q in ^query,
+      on: data_source.id == q.data_source_id,
+      distinct: data_source.id,
+      select: data_source
+    )
+  end
+
+  defp include_filtered(items, schema, filtered_ids) do
+    filtered_items = schema |> where([q], q.id in ^filtered_ids) |> Repo.all()
+    Enum.uniq(items ++ filtered_items)
+  end
+
+  # -------------------------------------------------------------------
+  # Supervision tree
   # -------------------------------------------------------------------
 
   @doc false

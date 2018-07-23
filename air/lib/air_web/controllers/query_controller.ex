@@ -159,20 +159,12 @@ defmodule AirWeb.QueryController do
     json(conn, %{success: false, reason: other_error})
   end
 
-  defp buckets_stream(%Query{result: %{"rows" => _buckets}} = query),
-    # old style result (<= 2017.3), so we can't stream
-    do: Air.Service.Query.buckets(query, :all)
-
   defp buckets_stream(query),
     # new style result -> we can stream from database
     do:
       query
       |> Air.Service.Query.chunks_stream(:all)
       |> Stream.flat_map(&Air.Schemas.ResultChunk.buckets/1)
-
-  defp send_query_as_json(conn, %Query{result: %{"rows" => _buckets}} = query),
-    # old style result (<= 2017.3), so we can't stream
-    do: json(conn, %{query: Query.for_display(query, Air.Service.Query.buckets(query, :all))})
 
   defp send_query_as_json(conn, query) do
     # new style result -> compute json in streaming fashion and send chunked response
