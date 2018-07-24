@@ -38,6 +38,14 @@ defmodule Cloak.DataSource.Utility do
             {:ok, data_source_definition} ->
               validate_data_source(file_name, data_source_definition)
 
+            {:error, :eacces} ->
+              Logger.error(
+                "Insights Cloak has insufficient file system privileges to read the " <>
+                  "datasource config from `#{path}`"
+              )
+
+              nil
+
             {:error, reason} ->
               Logger.error("Failed at reading datasource config from `#{path}`: #{reason}")
               nil
