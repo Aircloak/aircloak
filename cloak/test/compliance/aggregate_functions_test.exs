@@ -13,7 +13,7 @@ Enum.each(
     {"avg_noise(distinct <col>)", false},
     {"round(stddev(<col>), 6)", true},
     {"stddev_noise(<col>)", false},
-    {"round(stddev(distinct <col>), 6)", true},
+    {"round(stddev(distinct <col>), 5)", true},
     {"stddev_noise(distinct <col>)", false},
     {"median(<col>)", true},
     {"median(distinct <col>)", true},
