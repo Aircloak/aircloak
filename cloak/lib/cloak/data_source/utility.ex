@@ -15,9 +15,10 @@ defmodule Cloak.DataSource.Utility do
   @spec load_individual_data_source_configs(String.t() | [DataSource.t()]) :: [DataSource.t()]
   # This is the legacy path where data sources where configured as a list of data source definitions inline
   def load_individual_data_source_configs(data_sources) when is_list(data_sources) do
-    Logger.warn(
+    Logger.error(
       "Declaring data sources in `config.json` is deprecated. " <>
-        "Please consult the `Insights Cloak` subsection of the `Configuring the system` section in the User Guide."
+        "Please consult the `Insights Cloak` subsection of the `Configuring the system` section in the User Guide. " <>
+        "If you do not update your configuration your system will stop working from the next version onwards."
     )
 
     data_sources
