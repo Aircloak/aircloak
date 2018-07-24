@@ -48,5 +48,19 @@ defmodule Compliance.BooleanTest do
         ) table_alias
       """)
     end
+
+    @tag compliance: "#{column} #{table} cast numeric to boolean to integer in sub-query"
+    test "input cast(cast(#{column} as boolean) as integer) in sub-query on #{table}", context do
+      context
+      |> assert_consistent_and_not_failing("""
+        SELECT output FROM (
+          SELECT
+            #{unquote(uid)},
+            CAST(CAST(#{unquote(column)} AS boolean) AS integer) AS output
+          FROM #{unquote(table)}
+        ) table_alias
+        ORDER BY 1
+      """)
+    end
   end)
 end
