@@ -66,6 +66,7 @@ where_expression :=
   column_expression IS [NOT] NULL |
   column_expression [NOT] IN (constant [, ...]) |
   column_expression [NOT] LIKE | ILIKE string_pattern [ESCAPE escape_string] |
+  column_expression [NOT] boolean_column_expression
   column_expression
 
 having_expression :=
@@ -87,14 +88,15 @@ inequality_operator :=
 - The `*` argument can only be provided to the `COUNT` and `COUNT_NOISE` aggregators and it specifies counting rows
   instead of otherwise counting only non-`NULL` values. `NULL` values are ignored by all other aggregators.
 - The operator `OR` is not supported.
-- The operator `NOT` can only be used in the cases mentioned above (`IS NOT NULL`, `NOT LIKE`, and `NOT ILIKE`).
+- The operator `NOT` can only be used in the cases mentioned above (`IS NOT NULL`, `NOT IN`, `NOT LIKE`, `NOT ILIKE`,
+  and `NOT boolean_column_expression`).
 - You can restrict the range of returned rows by a query using the `LIMIT` and/or `OFFSET` clauses, but you need to
   provide the `ORDER BY` clause to ensure a stable order for the rows.
 - Conditions in the `HAVING` clause must not refer to non-aggregated fields.
 - Aliases can be used in the `WHERE`, `GROUP BY`, `ORDER BY` and `HAVING` clauses, as long as the alias doesn't conflict
   with a column name in one of the selected tables.
-- If an integer is specified in the `GROUP BY` clause, it represents a 1-based position in the select list. The
-  corresponding expression from the select list is used as the grouping expression.
+- If an integer is specified in the `GROUP BY` or `ORDER BY` clause, it represents a 1-based position in the select list. The
+  corresponding expression from the select list is used as the grouping or ordering expression.
 - Values of type `datetime with timezone` are not supported. The timezone information will be dropped and the value will
   be exposed as a simple `datetime` in the UTC format.
 - The `SAMPLE_USERS` clause is an Aircloak specific feature that can be used to reduce the amount of users queried.
@@ -105,14 +107,14 @@ inequality_operator :=
   Aggregates present in the query are not automatically adjusted. For example the `COUNT` returned when
   `SAMPLE_USERS 10%` is used will be approximately 10% of the count returned when the `SAMPLE_USERS`-clause
   is omitted. Fractions (like `SAMPLE_USERS 0.1%`) can be used when samples smaller than 1% are desired.
-- The subquery order by is not guaranteed to be preserved in the outer query, and in fact will most likely not be. Add
-  an `ORDER BY` clause in the outer query if you want a specific order.
+- The order of rows in subqueries is not preserved in the outer query. Add an `ORDER BY` clause in the outer query
+  if you want a specific order.
 - When `NULL` handling is not specified in an `ORDER BY` in a subquery (either `NULLS FIRST` or `NULLS LAST`) the
   default handling for the underlying datasource will be used. For postgres that means that `NULL` values will be
   treated as larger than all other values. For SAP HANA, MySQL, SQL Server, and MongoDB they will be treated as smaller
   than all other values. The top-level query always defaults to treating `NULL` values as larger than other values.
 - Using a `column_expression` in place of a `where_expression` or a `having_expression` will implicitly compare the
-  value of that `column_expression` to `TRUE`.
+  value of that `column_expression` to `TRUE`. In other words: `WHERE active` is equivalent to `WHERE active = TRUE`.
 
 
 ## Query and subquery types

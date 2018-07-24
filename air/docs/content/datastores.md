@@ -231,13 +231,3 @@ table `users_siblings` containing a `siblings.name` in addition to the `name` co
 
 MongoDB only supports `INNER JOIN` natively. Aircloak Insights will emulate all other JOIN-types. Furthermore, when a
 collection is sharded, even `INNER JOIN` has to be emulated.
-
-
-#### Discovery of isolating columns
-
-Since global aggregators (aggregators without grouping) require emulation, discovery queries that determine whether
-a column isolates users will be (at least) partially emulated.
-This means data about each individual column needs to be streamed into the cloak in order to compute the final result.
-Cloak startup might be significantly delayed because of that. See [Manually classifying isolating
-columns](/ops/configuration.md#manually-classifying-isolating-columns) for information on alternative means of
-classifying isolating columns.

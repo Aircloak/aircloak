@@ -174,6 +174,7 @@ defmodule Cloak.DataSource.ODBC do
   defp type_to_field_mapper(:date, _data_source), do: &date_field_mapper/1
   defp type_to_field_mapper(:real, _data_source), do: &real_field_mapper/1
   defp type_to_field_mapper(:integer, _data_source), do: &integer_field_mapper/1
+  defp type_to_field_mapper(:boolean, _data_source), do: &boolean_field_mapper/1
 
   defp type_to_field_mapper(:text, %{parameters: %{encoding: encoding}}) when encoding != nil,
     do: text_to_unicode_mapper(encoding)
@@ -250,4 +251,8 @@ defmodule Cloak.DataSource.ODBC do
       :null -> nil
       value -> :unicode.characters_to_binary(value, encoding)
     end
+
+  defp boolean_field_mapper(0), do: false
+  defp boolean_field_mapper(other) when is_integer(other), do: true
+  defp boolean_field_mapper(nil), do: nil
 end
