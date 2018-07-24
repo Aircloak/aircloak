@@ -69,6 +69,10 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   def unicode_literal(value), do: ["N'", value, ?']
 
   @impl Dialect
+  def boolean_literal(false), do: "0"
+  def boolean_literal(true), do: "1"
+
+  @impl Dialect
   def cast_sql(["DISTINCT " | value], from, to), do: ["DISTINCT " | cast_sql(value, from, to)]
   def cast_sql(value, :real, :integer), do: ["CAST(", function_sql("round", [value]), " AS bigint)"]
   def cast_sql(value, :unknown, :text), do: ["CAST(", value, " AS varbinary)"]
