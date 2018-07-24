@@ -41,7 +41,13 @@ defmodule Cloak.DataSource.MySQL do
     after
       Driver.connect_timeout() ->
         GenServer.stop(connection, :normal, :timer.seconds(5))
-        DataSource.raise_error("Unknown failure during database connection process")
+
+        DataSource.raise_error(
+          "Failed to establish a connection to the database. " <>
+            "Please check that the database server is running, whether security restrictions " <>
+            "such as a firewall might restrict Insights Cloak from connecting to the database, " <>
+            "and that the database credentials are correct"
+        )
     end
   end
 
