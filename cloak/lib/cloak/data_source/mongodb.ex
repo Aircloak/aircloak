@@ -159,10 +159,7 @@ defmodule Cloak.DataSource.MongoDB do
       allow_disk_use: true
     ]
 
-    mappers =
-      query.db_columns
-      |> Enum.map(&type_to_field_mapper(&1.type))
-      |> Enum.with_index()
+    mappers = Enum.map(query.db_columns, &type_to_field_mapper(&1.type))
 
     result =
       connection
@@ -226,7 +223,8 @@ defmodule Cloak.DataSource.MongoDB do
   defp interval_field_mapper(nil), do: nil
   defp interval_field_mapper(number), do: Timex.Duration.from_seconds(number)
 
-  defp map_fields(row, mappers), do: Enum.map(mappers, fn {mapper, index} -> mapper.(row["f#{index}"]) end)
+  defp map_fields(%{"row" => row}, mappers),
+    do: Enum.zip(row, mappers) |> Enum.map(fn {field, mapper} -> mapper.(field) end)
 
   defp generic_field_mapper(%BSON.ObjectId{value: value}), do: value
   defp generic_field_mapper(%BSON.Binary{binary: value}), do: value
