@@ -328,15 +328,12 @@ defmodule Air.Service.UserTest do
   end
 
   describe "disabling and enabling users" do
-    test "enabled by default" do
-      user = TestRepoHelper.create_user!()
-      assert user.enabled
-    end
+    test "enabled by default", do: assert(User.is_enabled?(TestRepoHelper.create_user!()))
 
     test "toggling enabled state" do
       {:ok, user} = TestRepoHelper.create_user!() |> User.disable!()
-      refute user.enabled
-      assert User.enable!(user).enabled
+      refute User.is_enabled?(user)
+      assert User.is_enabled?(User.enable!(user))
     end
 
     test "can't disable the last admin user" do

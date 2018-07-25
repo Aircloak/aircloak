@@ -36,6 +36,15 @@ defmodule Air.Service.User do
     end
   end
 
+  @doc """
+  Performs a database check to validate if a user is enabled or not.
+  Useful when a user record exists in memory, and no database operation
+  is planned that the check can implicitly be baked into.
+  """
+  @spec is_enabled?(User.t()) :: boolean
+  def is_enabled?(user),
+    do: Repo.one(from(user in User, where: user.id == ^user.id, where: user.enabled, select: true)) || false
+
   @doc "Returns a token that can be used to reset the given user's password."
   @spec reset_password_token(User.t()) :: String.t()
   def reset_password_token(user), do: Phoenix.Token.sign(AirWeb.Endpoint, @password_reset_salt, user.id)
