@@ -199,7 +199,10 @@ defmodule Air.Service.UserTest do
 
       assert User.update_group(non_deletable_admin_group, %{admin: false}) == {:error, :forbidden_last_admin_deletion}
 
-      assert [u1, u2] = User.load_group(non_deletable_admin_group.id).users
+      assert [u1, u2] =
+               User.load_group(non_deletable_admin_group.id).users
+               |> Enum.sort_by(& &1.id)
+
       assert u1.id == admin1.id
       assert u2.id == admin2.id
     end
