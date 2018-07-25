@@ -3,53 +3,12 @@
   <a class="btn btn-primary btn-sm pull-right" href="<%= admin_user_path(@conn, :new) %>">Add a user</a>
 </h2>
 
-<table class="table table-striped">
-  <thead>
-    <tr>
-      <th>Name</th>
-      <th>Email</th>
-      <th>Groups</th>
-      <th>Data sources</th>
-      <th>Role</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-  <%= if length(@users) == 0 do %>
-    <tr>
-      <td colspan=5>There are currently no users</td>
-    </tr>
-  <% else %>
-    <%= for user <- @users do %>
-      <tr>
-        <td><%= user.name %></td>
-        <td><%= user.email %></td>
-        <td><%= AirWeb.Admin.GroupView.names(user.groups) %></td>
-        <td><%= Map.get(@data_sources_count, user.id, 0) %></td>
-        <td>
-          <%= if admin?(user) do %>
-            <span class="label label-danger">Admin</span>
-          <% end %>
-        </td>
-        <td>
-          <%= link "Edit", to: admin_user_path(@conn, :edit, user), class: "btn btn-default btn-xs" %>
+<%= if length(@disabled_users) > 0 do %>
+<h3>Enabled user accounts</h3>
+<% end %>
+<%= render "_list.html", conn: @conn, users: @enabled_users, data_sources_count: @data_sources_count %>
 
-          <%= if user.enabled do %>
-            <%= link "Disable", to: admin_user_user_path(@conn, :disable, user),
-                  method: :put, class: "btn btn-default btn-xs" %>
-          <% else %>
-            <%= link "Enable", to: admin_user_user_path(@conn, :enable, user),
-                  method: :put, class: "btn btn-default btn-xs" %>
-          <% end %>
-
-          <%= link "Permanently delete", to: admin_user_path(@conn, :delete, user), method: :delete,
-                class: "btn btn-danger btn-xs",
-                "data-confirm": ~s(Delete the user "#{user.name}"?) <>
-                  " All of that user's queries, views, and all the audit logs associated with that user" <>
-                  " will be deleted as well." %>
-        </td>
-      </tr>
-    <% end %>
-  <% end %>
-  </tbody>
-</table>
+<%= if length(@disabled_users) > 0 do %>
+<h3>Disabled user accounts</h3>
+<%= render "_list.html", conn: @conn, users: @disabled_users, data_sources_count: @data_sources_count %>
+<% end %>

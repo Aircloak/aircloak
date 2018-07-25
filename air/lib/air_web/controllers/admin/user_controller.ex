@@ -20,8 +20,19 @@ defmodule AirWeb.Admin.UserController do
   # Actions
   # -------------------------------------------------------------------
 
-  def index(conn, _params),
-    do: render(conn, "index.html", users: User.all(), data_sources_count: User.data_sources_count())
+  def index(conn, _params) do
+    {enabled_users, disabled_users} =
+      User.all()
+      |> Enum.split_with(& &1.enabled)
+
+    render(
+      conn,
+      "index.html",
+      enabled_users: enabled_users,
+      disabled_users: disabled_users,
+      data_sources_count: User.data_sources_count()
+    )
+  end
 
   def new(conn, _params), do: render(conn, "new.html", changeset: User.empty_changeset())
 
