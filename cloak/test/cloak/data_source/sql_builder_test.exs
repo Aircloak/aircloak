@@ -18,7 +18,7 @@ defmodule Cloak.DataSource.SqlBuilderTest do
     do: refute(sql_string("select int from table") =~ ~r/CAST\("table"\."int"/)
 
   test "workaround for text comparisons on SQL Server ignoring trailing spaces",
-    do: assert(sql_string("select count(*) from table where string = 'ab'", SQLServer) =~ "= (N'ab' + N'.')")
+    do: assert(sql_string("select count(*) from table where string = 'ab'", SQLServer) =~ "= N'ab.')")
 
   test "table name quoting" do
     assert SqlBuilder.quote_table_name("name") == "\"name\""

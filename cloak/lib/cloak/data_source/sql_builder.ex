@@ -2,7 +2,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   @moduledoc "Provides functionality for constructing an SQL query from a compiled query."
 
   alias Cloak.Sql.{Query, Expression}
-  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer}
+  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, SAPIQ, MySQL}
 
   # -------------------------------------------------------------------
   # API
@@ -189,17 +189,15 @@ defmodule Cloak.DataSource.SqlBuilder do
       ")"
     ]
 
-  defp conditions_to_fragments(
-         {:comparison, %Expression{type: :text} = what, comparator, %Expression{type: :text} = value},
-         SQLServer
-       ),
-       # SQL Server ignores trailing spaces during text comparisons
+  defp conditions_to_fragments({:comparison, %Expression{type: :text} = what, comparator, value}, sql_dialect_module)
+       when sql_dialect_module in [SQLServer, SAPIQ, MySQL],
+       # Some servers ignore trailing spaces during text comparisons.
        do: [
          "(",
-         to_fragment(what, SQLServer),
-         " + N'.') #{comparator} (",
-         to_fragment(value, SQLServer),
-         " + N'.')"
+         what |> dot_terminate() |> to_fragment(sql_dialect_module),
+         " #{comparator} ",
+         value |> dot_terminate() |> to_fragment(sql_dialect_module),
+         ")"
        ]
 
   defp conditions_to_fragments({:comparison, what, comparator, value}, sql_dialect_module),
@@ -208,6 +206,16 @@ defmodule Cloak.DataSource.SqlBuilder do
       " #{comparator} ",
       to_fragment(value, sql_dialect_module)
     ]
+
+  defp conditions_to_fragments({:in, %Expression{type: :text} = what, values}, sql_dialect_module)
+       when sql_dialect_module in [SQLServer, SAPIQ, MySQL],
+       # Some servers ignore trailing spaces during text comparisons.
+       do: [
+         what |> dot_terminate() |> to_fragment(sql_dialect_module),
+         " IN (",
+         Enum.map(values, &(&1 |> dot_terminate() |> to_fragment(sql_dialect_module))) |> join(", "),
+         ")"
+       ]
 
   defp conditions_to_fragments({:in, what, values}, sql_dialect_module),
     do: [
@@ -280,6 +288,12 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp escape_string(string), do: String.replace(string, "'", "''")
 
   defp like_pattern_to_fragment({pattern, escape = "\\"}), do: [?', pattern, ?', "ESCAPE", ?', escape, ?']
+
+  defp dot_terminate(%Expression{constant?: true, type: :text, value: value} = expression) when is_binary(value),
+    do: %Expression{expression | value: value <> "."}
+
+  defp dot_terminate(%Expression{type: :text} = expression),
+    do: Expression.function("concat", [expression, Expression.constant(:text, ".")], :text)
 
   defp join([], _joiner), do: []
   defp join([el], _joiner), do: [el]
