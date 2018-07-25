@@ -39,20 +39,24 @@ defmodule Air.Service.Query do
           options
         ) :: {:ok, Query.t()} | {:error, :unable_to_create_query}
   def create(query_id, user, context, statement, parameters, opts) do
-    user
-    |> Ecto.build_assoc(:queries)
-    |> Query.changeset(%{
-      statement: statement,
-      parameters: %{values: parameters},
-      session_id: Keyword.get(opts, :session_id),
-      query_state: :created,
-      context: context
-    })
-    |> add_id_to_changeset(query_id)
-    |> Repo.insert()
-    |> case do
-      {:ok, query} -> {:ok, Repo.preload(query, :user)}
-      {:error, _changeset} -> {:error, :unable_to_create_query}
+    if Air.Service.User.is_enabled?(user) do
+      user
+      |> Ecto.build_assoc(:queries)
+      |> Query.changeset(%{
+        statement: statement,
+        parameters: %{values: parameters},
+        session_id: Keyword.get(opts, :session_id),
+        query_state: :created,
+        context: context
+      })
+      |> add_id_to_changeset(query_id)
+      |> Repo.insert()
+      |> case do
+        {:ok, query} -> {:ok, Repo.preload(query, :user)}
+        {:error, _changeset} -> {:error, :unable_to_create_query}
+      end
+    else
+      {:error, :unable_to_create_query}
     end
   end
 
