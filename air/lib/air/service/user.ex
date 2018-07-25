@@ -141,6 +141,22 @@ defmodule Air.Service.User do
   @spec delete(User.t()) :: {:ok, User.t()} | {:error, :forbidden_last_admin_deletion}
   def delete(user), do: commit_if_last_admin_not_deleted(fn -> Repo.delete(user) end)
 
+  @doc "Disables a user account"
+  @spec disable!(User.t()) :: User.t()
+  def disable!(user),
+    do:
+      user
+      |> cast(%{enabled: false}, [:enabled])
+      |> Repo.update!()
+
+  @doc "Enables a user account"
+  @spec enable!(User.t()) :: User.t()
+  def enable!(user),
+    do:
+      user
+      |> cast(%{enabled: true}, [:enabled])
+      |> Repo.update!()
+
   @doc "Returns the empty changeset for the new user."
   @spec empty_changeset() :: Ecto.Changeset.t()
   def empty_changeset(), do: user_changeset(%User{}, %{})

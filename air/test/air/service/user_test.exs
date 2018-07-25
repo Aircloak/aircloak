@@ -327,6 +327,19 @@ defmodule Air.Service.UserTest do
     end
   end
 
+  describe "disabling and enabling users" do
+    test "enabled by default" do
+      user = TestRepoHelper.create_user!()
+      assert user.enabled
+    end
+
+    test "toggling enabled state" do
+      user = TestRepoHelper.create_user!() |> User.disable!()
+      refute user.enabled
+      assert User.enable!(user).enabled
+    end
+  end
+
   defp error_on(fun, field, value), do: errors_on(fun, %{field => value})[field]
 
   defp errors_on(fun, changes) do
