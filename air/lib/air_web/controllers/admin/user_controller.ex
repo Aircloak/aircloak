@@ -81,6 +81,9 @@ defmodule AirWeb.Admin.UserController do
 
     case User.disable!(user) do
       {:ok, user} ->
+        audit_log(conn, "Disabled a user account prior to deletion")
+        audit_log_for_user(conn, user, "User account disabled prior to deletion")
+
         audit_log(conn, "User removal scheduled")
         audit_log_for_user(conn, user, "User scheduled for removal")
         success_callback = fn -> audit_log(conn, "User removal succeeded") end
@@ -108,7 +111,10 @@ defmodule AirWeb.Admin.UserController do
         |> put_flash(:error, "Cannot disable the user as it would leave the system without an administrator.")
         |> redirect(to: admin_user_path(conn, :index))
 
-      {:ok, _} ->
+      {:ok, user} ->
+        audit_log(conn, "Disabled a user account")
+        audit_log_for_user(conn, user, "User account disabled")
+
         conn
         |> redirect(to: admin_user_path(conn, :index))
     end
@@ -116,6 +122,8 @@ defmodule AirWeb.Admin.UserController do
 
   def enable(conn, _params) do
     User.enable!(conn.assigns.user)
+    audit_log(conn, "Enabled a user account")
+    audit_log_for_user(conn, conn.assigns.user, "User account enabled")
 
     conn
     |> redirect(to: admin_user_path(conn, :index))
