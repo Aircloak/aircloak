@@ -33,10 +33,20 @@
         </td>
         <td>
           <%= link "Edit", to: admin_user_path(@conn, :edit, user), class: "btn btn-default btn-xs" %>
-          <%= link "Delete", to: admin_user_path(@conn, :delete, user), method: :delete, class: "btn btn-danger btn-xs",
-            "data-confirm": ~s(Delete the user "#{user.name}"?) <>
-              " All of that user's queries, views, and all the audit logs associated with that user" <>
-              " will be deleted as well." %>
+
+          <%= if user.enabled do %>
+            <%= link "Disable", to: admin_user_user_path(@conn, :disable, user),
+                  method: :put, class: "btn btn-default btn-xs" %>
+          <% else %>
+            <%= link "Enable", to: admin_user_user_path(@conn, :enable, user),
+                  method: :put, class: "btn btn-default btn-xs" %>
+          <% end %>
+
+          <%= link "Permanently delete", to: admin_user_path(@conn, :delete, user), method: :delete,
+                class: "btn btn-danger btn-xs",
+                "data-confirm": ~s(Delete the user "#{user.name}"?) <>
+                  " All of that user's queries, views, and all the audit logs associated with that user" <>
+                  " will be deleted as well." %>
         </td>
       </tr>
     <% end %>

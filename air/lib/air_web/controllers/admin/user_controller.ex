@@ -4,7 +4,7 @@ defmodule AirWeb.Admin.UserController do
 
   alias Air.Service.User
 
-  plug(:load_user when action in [:edit, :update, :delete])
+  plug(:load_user when action in [:edit, :update, :delete, :disable, :enable])
 
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
@@ -79,12 +79,26 @@ defmodule AirWeb.Admin.UserController do
     |> redirect(to: admin_user_path(conn, :index))
   end
 
+  def disable(conn, _params) do
+    User.disable!(conn.assigns.user)
+
+    conn
+    |> redirect(to: admin_user_path(conn, :index))
+  end
+
+  def enable(conn, _params) do
+    User.enable!(conn.assigns.user)
+
+    conn
+    |> redirect(to: admin_user_path(conn, :index))
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   defp load_user(conn, _) do
-    case User.load(conn.params["id"]) do
+    case User.load(conn.params["id"] || conn.params["user_id"]) do
       nil -> not_found(conn)
       user -> assign(conn, :user, user)
     end

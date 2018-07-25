@@ -95,6 +95,25 @@ defmodule AirWeb.Admin.UserController.Test do
     refute users_html =~ user.email
   end
 
+  test "disabling a user" do
+    admin = create_admin_user!()
+    user = create_user!()
+
+    assert "/admin/users" == login(admin) |> put("/admin/users/#{user.id}/disable") |> redirected_to()
+
+    refute Air.Service.User.load(user.id).enabled
+  end
+
+  test "enabling a user" do
+    admin = create_admin_user!()
+    user = create_user!()
+    refute Air.Service.User.disable!(user).enabled
+
+    assert "/admin/users" == login(admin) |> put("/admin/users/#{user.id}/enable") |> redirected_to()
+
+    assert Air.Service.User.load(user.id).enabled
+  end
+
   test "error is reported via audit log when deleting the last admin" do
     admin = create_only_user_as_admin!()
     conn = login(admin) |> delete("/admin/users/#{admin.id}")
