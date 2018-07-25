@@ -79,15 +79,26 @@ defmodule AirWeb.Admin.UserController do
   def delete(conn, _params) do
     user = conn.assigns.user
 
-    audit_log(conn, "User removal scheduled")
-    audit_log_for_user(conn, user, "User scheduled for removal")
-    success_callback = fn -> audit_log(conn, "User removal succeeded") end
-    failure_callback = fn reason -> audit_log(conn, "User removal failed", %{reason: reason}) end
-    User.delete_async(user, success_callback, failure_callback)
+    case User.disable!(user) do
+      {:ok, user} ->
+        audit_log(conn, "User removal scheduled")
+        audit_log_for_user(conn, user, "User scheduled for removal")
+        success_callback = fn -> audit_log(conn, "User removal succeeded") end
+        failure_callback = fn reason -> audit_log(conn, "User removal failed", %{reason: reason}) end
+        User.delete_async(user, success_callback, failure_callback)
 
-    conn
-    |> put_flash(:info, "User deletion will be performed in the background")
-    |> redirect(to: admin_user_path(conn, :index))
+        conn
+        |> put_flash(:info, "The user has been disabled. The deletion will be performed in the background")
+        |> redirect(to: admin_user_path(conn, :index))
+
+      {:error, :forbidden_no_active_admin} ->
+        conn
+        |> put_flash(
+          :error,
+          "The user cannot be deleted as it would leave the system without an active administrator."
+        )
+        |> redirect(to: admin_user_path(conn, :index))
+    end
   end
 
   def disable(conn, _params) do
