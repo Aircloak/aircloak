@@ -20,7 +20,7 @@ defmodule AirWeb.Admin.GroupController do
   # Actions
   # -------------------------------------------------------------------
 
-  def index(conn, _params), do: render(conn, "index.html", groups: User.all_groups())
+  def index(conn, _params), do: render(conn, "index.html", groups: User.all_groups() |> Enum.sort_by(& &1.name))
 
   def new(conn, _params),
     do:

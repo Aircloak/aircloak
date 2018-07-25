@@ -23,6 +23,7 @@ defmodule AirWeb.Admin.UserController do
   def index(conn, _params) do
     {enabled_users, disabled_users} =
       User.all()
+      |> Enum.sort_by(& &1.name)
       |> Enum.split_with(& &1.enabled)
 
     render(
