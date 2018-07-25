@@ -165,7 +165,7 @@ defmodule Compliance.WhereClauseFilters.Text do
         FROM (
           SELECT #{unquote(uid)}
           FROM #{unquote(table)}
-          WHERE #{unquote(column)} IN ('Jan', 'Herman', 'Berlin')
+          WHERE #{unquote(column)} IN ('Emma', 'Herman', 'Berlin')
           GROUP BY 1
         ) table_alias
       """)
@@ -180,7 +180,7 @@ defmodule Compliance.WhereClauseFilters.Text do
         FROM (
           SELECT #{unquote(uid)}
           FROM #{unquote(table)}
-          WHERE #{unquote(column)} NOT IN ('Otto Jan', 'Bertha Jan')
+          WHERE #{unquote(column)} NOT IN ('Otto Emma', 'Bertha Emma', 'Emma')
           GROUP BY 1
         ) table_alias
       """)
@@ -232,7 +232,7 @@ defmodule Compliance.WhereClauseFilters.Text do
       |> assert_consistent_and_not_failing("""
         SELECT count(*)
         FROM #{unquote(table)}
-        WHERE #{unquote(column)} IN ('Jan', 'Herman', 'Berlin')
+        WHERE #{unquote(column)} IN ('Emma', 'Herman', 'Berlin')
       """)
     end
 
@@ -242,7 +242,7 @@ defmodule Compliance.WhereClauseFilters.Text do
       |> assert_consistent_and_not_failing("""
         SELECT count(*)
         FROM #{unquote(table)}
-        WHERE #{unquote(column)} NOT IN ('Otto Jan', 'Bertha Jan')
+        WHERE #{unquote(column)} NOT IN ('Emma', 'Mumbai')
       """)
     end
 
@@ -256,13 +256,13 @@ defmodule Compliance.WhereClauseFilters.Text do
       """)
     end
 
-    @tag compliance: "#{column} #{table} WHERE-clause <> with 'Jan'"
-    test "input #{column} with a WHERE-clause <> on #{table} with constant 'Jan'", context do
+    @tag compliance: "#{column} #{table} WHERE-clause <> with 'Emma'"
+    test "input #{column} with a WHERE-clause <> on #{table} with constant 'Emma'", context do
       context
       |> assert_consistent_and_not_failing("""
         SELECT count(*)
         FROM #{unquote(table)}
-        WHERE #{unquote(column)} <> 'Jan'
+        WHERE #{unquote(column)} <> 'Emma'
       """)
     end
   end)
