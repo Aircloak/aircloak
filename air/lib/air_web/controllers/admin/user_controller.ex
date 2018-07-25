@@ -91,10 +91,16 @@ defmodule AirWeb.Admin.UserController do
   end
 
   def disable(conn, _params) do
-    User.disable!(conn.assigns.user)
+    case User.disable!(conn.assigns.user) do
+      {:error, :forbidden_no_active_admin} ->
+        conn
+        |> put_flash(:error, "Cannot disable the user as it would leave the system without an administrator.")
+        |> redirect(to: admin_user_path(conn, :index))
 
-    conn
-    |> redirect(to: admin_user_path(conn, :index))
+      {:ok, _} ->
+        conn
+        |> redirect(to: admin_user_path(conn, :index))
+    end
   end
 
   def enable(conn, _params) do

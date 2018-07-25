@@ -142,12 +142,14 @@ defmodule Air.Service.User do
   def delete(user), do: commit_if_active_last_admin(fn -> Repo.delete(user) end)
 
   @doc "Disables a user account"
-  @spec disable!(User.t()) :: User.t()
+  @spec disable!(User.t()) :: User.t() | {:error, :forbidden_no_active_admin}
   def disable!(user),
     do:
-      user
-      |> cast(%{enabled: false}, [:enabled])
-      |> Repo.update!()
+      commit_if_active_last_admin(fn ->
+        user
+        |> cast(%{enabled: false}, [:enabled])
+        |> Repo.update()
+      end)
 
   @doc "Enables a user account"
   @spec enable!(User.t()) :: User.t()
@@ -198,7 +200,7 @@ defmodule Air.Service.User do
   @doc "Returns a boolean regarding whether a administrator account already exists"
   @spec active_admin_user_exists?() :: boolean
   def active_admin_user_exists?(),
-    do: Repo.one(from(u in User, inner_join: g in assoc(u, :groups), where: g.admin, limit: 1)) != nil
+    do: Repo.one(from(u in User, inner_join: g in assoc(u, :groups), where: g.admin, where: u.enabled, limit: 1)) != nil
 
   @doc "Creates the new group, raises on error."
   @spec create_group!(map) :: Group.t()

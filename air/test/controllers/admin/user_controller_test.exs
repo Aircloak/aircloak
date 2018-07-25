@@ -107,7 +107,9 @@ defmodule AirWeb.Admin.UserController.Test do
   test "enabling a user" do
     admin = create_admin_user!()
     user = create_user!()
-    refute Air.Service.User.disable!(user).enabled
+
+    {:ok, disabled_user} = Air.Service.User.disable!(user)
+    refute disabled_user.enabled
 
     assert "/admin/users" == login(admin) |> put("/admin/users/#{user.id}/enable") |> redirected_to()
 
