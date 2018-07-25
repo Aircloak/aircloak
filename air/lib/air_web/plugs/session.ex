@@ -85,6 +85,26 @@ defmodule AirWeb.Plug.Session do
   # Browser
   # -------------------------------------------------------------------
 
+  defmodule EnsureEnabled do
+    @moduledoc false
+    @behaviour Plug
+
+    def init(opts), do: opts
+
+    def call(conn, _opts) do
+      user = Air.Guardian.Plug.current_resource(conn)
+
+      if user.enabled do
+        conn
+      else
+        conn
+        |> Air.Guardian.Plug.sign_out()
+        |> Phoenix.Controller.redirect(to: AirWeb.Router.Helpers.session_path(conn, :new))
+        |> Plug.Conn.halt()
+      end
+    end
+  end
+
   defmodule AssignCurrentUser do
     @moduledoc false
     @behaviour Plug
@@ -191,6 +211,7 @@ defmodule AirWeb.Plug.Session do
     plug(Guardian.Plug.VerifySession)
     plug(Guardian.Plug.EnsureAuthenticated)
     plug(Guardian.Plug.LoadResource)
+    plug(AirWeb.Plug.Session.EnsureEnabled)
     plug(AirWeb.Plug.Session.AssignCurrentUser)
 
     @doc false

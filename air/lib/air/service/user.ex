@@ -20,7 +20,7 @@ defmodule Air.Service.User do
   @doc "Authenticates the given user."
   @spec login(String.t(), String.t(), %{atom => any}) :: {:ok, User.t()} | {:error, :invalid_email_or_password}
   def login(email, password, meta \\ %{}) do
-    user = Repo.get_by(User, email: email)
+    user = Repo.one(from(u in User, where: u.email == ^email, where: u.enabled))
 
     cond do
       User.validate_password(user, password) ->
