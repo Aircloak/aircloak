@@ -126,7 +126,7 @@ defmodule AirWeb.Admin.GroupController do
       |> Enum.reject(&(&1 == ""))
       |> Enum.map(&String.to_integer/1)
 
-  defp verify_last_admin_deleted({:error, :forbidden_last_admin_deletion}, conn, _fun),
+  defp verify_last_admin_deleted({:error, :forbidden_no_active_admin}, conn, _fun),
     do:
       conn
       |> put_flash(

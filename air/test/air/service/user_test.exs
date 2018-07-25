@@ -55,13 +55,13 @@ defmodule Air.Service.UserTest do
     end
 
     test "the only admin can't be deleted",
-      do: assert(User.delete(TestRepoHelper.create_only_user_as_admin!()) == {:error, :forbidden_last_admin_deletion})
+      do: assert(User.delete(TestRepoHelper.create_only_user_as_admin!()) == {:error, :forbidden_no_active_admin})
 
     test "the only admin can't be updated to be a normal user",
       do:
         assert(
           User.update(TestRepoHelper.create_only_user_as_admin!(), %{groups: []}) ==
-            {:error, :forbidden_last_admin_deletion}
+            {:error, :forbidden_no_active_admin}
         )
 
     test "a user can have many groups" do
@@ -182,7 +182,7 @@ defmodule Air.Service.UserTest do
 
       assert {:ok, _} = User.delete_group(deletable_admin_group)
 
-      assert User.delete_group(non_deletable_admin_group) == {:error, :forbidden_last_admin_deletion}
+      assert User.delete_group(non_deletable_admin_group) == {:error, :forbidden_no_active_admin}
 
       assert [u1, u2] = User.load_group(non_deletable_admin_group.id).users
       assert u1.id == admin1.id
@@ -197,7 +197,7 @@ defmodule Air.Service.UserTest do
 
       assert {:ok, _} = User.update_group(deletable_admin_group, %{admin: false})
 
-      assert User.update_group(non_deletable_admin_group, %{admin: false}) == {:error, :forbidden_last_admin_deletion}
+      assert User.update_group(non_deletable_admin_group, %{admin: false}) == {:error, :forbidden_no_active_admin}
 
       assert [u1, u2] =
                User.load_group(non_deletable_admin_group.id).users

@@ -20,7 +20,7 @@ defmodule AirWeb.SessionController do
   # -------------------------------------------------------------------
 
   def new(conn, _params) do
-    if User.admin_user_exists?() do
+    if User.active_admin_user_exists?() do
       conn
       |> put_layout("login.html")
       |> render("new.html")

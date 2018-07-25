@@ -83,7 +83,7 @@ defmodule AirWeb.Admin.UserController.Test do
     assert get_flash(conn)["error"] ==
              "The given action cannot be performed, because it would remove the only administrator."
 
-    assert Air.Service.User.admin_user_exists?()
+    assert Air.Service.User.active_admin_user_exists?()
   end
 
   test "deleting a user" do
@@ -122,7 +122,7 @@ defmodule AirWeb.Admin.UserController.Test do
 
     assert soon(Air.Repo.get_by(Air.Schemas.AuditLog, user_id: admin.id, event: "User removal failed"))
     assert soon(Air.Service.User.load(admin.id) != nil)
-    assert soon(Air.Service.User.admin_user_exists?())
+    assert soon(Air.Service.User.active_admin_user_exists?())
   end
 
   test "success is reported via audit log" do

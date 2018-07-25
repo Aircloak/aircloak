@@ -115,7 +115,7 @@ defmodule AirWeb.Admin.UserController do
     end
   end
 
-  defp verify_last_admin_deleted({:error, :forbidden_last_admin_deletion}, conn, _fun),
+  defp verify_last_admin_deleted({:error, :forbidden_no_active_admin}, conn, _fun),
     do:
       conn
       |> put_flash(
