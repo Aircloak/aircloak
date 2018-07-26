@@ -216,6 +216,7 @@ defmodule AirWeb.Plug.Session do
     use Guardian.Plug.Pipeline, otp_app: :central, module: Air.Guardian, error_handler: __MODULE__
 
     plug(Guardian.Plug.VerifySession)
+    plug(Guardian.Plug.LoadResource, allow_blank: true)
     plug(AirWeb.Plug.Session.AssignCurrentUser)
 
     # -------------------------------------------------------------------
