@@ -97,7 +97,6 @@ defmodule AirWeb.Router do
     get("/changelog", ChangelogController, :index)
 
     put("/privacy_policy/accept/:id", PrivacyPolicyController, :accept)
-    put("/privacy_policy/reject/:id", PrivacyPolicyController, :reject)
   end
 
   scope "/admin", AirWeb.Admin, as: :admin do

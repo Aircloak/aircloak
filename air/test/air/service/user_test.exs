@@ -230,18 +230,6 @@ defmodule Air.Service.UserTest do
     end
   end
 
-  describe "reject_privacy_policy" do
-    test "the user record should not contain any privacy policy id" do
-      user = TestRepoHelper.create_user!()
-      user_with_rejected_policy = User.reject_privacy_policy!(user)
-      reloaded_user_with_rejected_policy = User.load(user.id)
-
-      refute is_nil(user.accepted_privacy_policy_id)
-      assert is_nil(user_with_rejected_policy.accepted_privacy_policy_id)
-      assert is_nil(reloaded_user_with_rejected_policy.accepted_privacy_policy_id)
-    end
-  end
-
   describe "privacy_policy_status" do
     test "error when no policy exists" do
       TestRepoHelper.delete_all_privacy_policies!()

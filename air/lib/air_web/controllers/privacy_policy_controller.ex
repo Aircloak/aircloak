@@ -37,15 +37,6 @@ defmodule AirWeb.PrivacyPolicyController do
     |> redirect(to: "/")
   end
 
-  def reject(conn, _params) do
-    audit_log(conn, "Withdrew consent to privacy policy", audit_log_meta(conn))
-    User.reject_privacy_policy!(conn.assigns.current_user)
-
-    conn
-    |> put_flash(:error, "The privacy policy has been rejected. You cannot use Aircloak Insights.")
-    |> redirect(to: "/")
-  end
-
   # -------------------------------------------------------------------
   # Actions
   # -------------------------------------------------------------------

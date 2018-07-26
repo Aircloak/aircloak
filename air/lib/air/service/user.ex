@@ -274,10 +274,6 @@ defmodule Air.Service.User do
   @spec accept_privacy_policy!(Schemas.User.t(), Schemas.PrivacyPolicy.t()) :: Schemas.User.t()
   def accept_privacy_policy!(user, privacy_policy), do: set_privacy_policy_id(user, privacy_policy.id)
 
-  @doc "Marks the current privacy policy as rejected by a user"
-  @spec reject_privacy_policy!(User.t()) :: User.t()
-  def reject_privacy_policy!(user), do: set_privacy_policy_id(user, nil)
-
   @doc "Returns the status of the user's current opt-in to the privacy policy"
   @spec privacy_policy_status(User.t()) :: :ok | {:error, :no_privacy_policy_created | :requires_review}
   def privacy_policy_status(user) do
