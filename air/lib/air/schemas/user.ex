@@ -5,7 +5,7 @@ defmodule Air.Schemas.User do
   use Air.Schemas.Base
 
   alias Comeonin.Pbkdf2, as: Hash
-  alias Air.Schemas.{Group, PrivacyPolicy}
+  alias Air.Schemas.Group
 
   @type t :: %__MODULE__{}
   @type role_key :: :anonymous | :user | :admin
