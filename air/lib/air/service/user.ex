@@ -151,7 +151,7 @@ defmodule Air.Service.User do
   def delete(user), do: commit_if_active_last_admin(fn -> Repo.delete(user) end)
 
   @doc "Disables a user account"
-  @spec disable!(User.t()) :: User.t() | {:error, :forbidden_no_active_admin}
+  @spec disable!(User.t()) :: {:ok, User.t()} | {:error, :forbidden_no_active_admin}
   def disable!(user),
     do:
       commit_if_active_last_admin(fn ->
