@@ -30,8 +30,6 @@ defmodule Air.Schemas.User do
       on_replace: :delete
     )
 
-    belongs_to(:accepted_privacy_policy, PrivacyPolicy)
-
     timestamps()
 
     # number format overrides

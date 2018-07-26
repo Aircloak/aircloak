@@ -270,24 +270,6 @@ defmodule Air.Service.User do
     |> Repo.update!()
   end
 
-  @doc "Returns the status of the user's current opt-in to the privacy policy"
-  @spec privacy_policy_status(User.t()) :: :ok | {:error, :no_privacy_policy_created | :requires_review}
-  def privacy_policy_status(user) do
-    case PrivacyPolicy.get() do
-      {:error, :no_privacy_policy_created} = error ->
-        error
-
-      {:ok, privacy_policy} ->
-        refreshed_user = load(user.id)
-
-        if refreshed_user.accepted_privacy_policy_id == privacy_policy.id do
-          :ok
-        else
-          {:error, :requires_review}
-        end
-    end
-  end
-
   @doc """
   Generates a pseudonymized ID for a user that can be used when sending query metrics
   and other analyst specific metrics to Aircloak.
