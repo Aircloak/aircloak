@@ -16,10 +16,6 @@ defmodule AirWeb.PrivacyPolicyView do
     end
   end
 
-  defp has_opted_in?(conn), do: User.privacy_policy_status(conn.assigns.current_user) == :ok
-
-  defp never_accepted_or_rejected?(conn), do: conn.assigns.current_user.accepted_privacy_policy_id == nil
-
   defp md_to_safe_html(text) do
     text
     |> Earmark.as_html!(%Earmark.Options{gfm: true, breaks: true, smartypants: true})

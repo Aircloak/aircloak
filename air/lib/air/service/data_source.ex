@@ -391,13 +391,10 @@ defmodule Air.Service.DataSource do
   end
 
   defp on_available_cloak(data_source_id, user, fun) do
-    privacy_policy_status = Service.User.privacy_policy_status(user)
-
-    cond do
-      not License.valid?() -> {:error, :license_invalid}
-      not PrivacyPolicy.exists?() -> {:error, :missing_privacy_policy}
-      privacy_policy_status == {:error, :requires_review} -> {:error, :privacy_policy_requires_review}
-      true -> do_on_available_cloak(data_source_id, user, fun)
+    if not License.valid?() do
+      {:error, :license_invalid}
+    else
+      do_on_available_cloak(data_source_id, user, fun)
     end
   end
 
