@@ -219,31 +219,6 @@ defmodule Air.Service.UserTest do
     end
   end
 
-  describe "privacy_policy_status" do
-    test "error when no policy exists" do
-      TestRepoHelper.delete_all_privacy_policies!()
-      user = TestRepoHelper.create_user_without_privacy_policy!()
-      assert {:error, :no_privacy_policy_created} == User.privacy_policy_status(user)
-    end
-
-    test "ok when has accepted latest policy" do
-      user = TestRepoHelper.create_user!()
-      assert :ok == User.privacy_policy_status(user)
-    end
-
-    test "error when no policy has been accepted" do
-      user = TestRepoHelper.create_user_without_privacy_policy!()
-      TestRepoHelper.create_privacy_policy!()
-      assert {:error, :requires_review} == User.privacy_policy_status(user)
-    end
-
-    test "error when the policy has changed" do
-      user = TestRepoHelper.create_user!()
-      TestRepoHelper.create_privacy_policy!()
-      assert {:error, :requires_review} == User.privacy_policy_status(user)
-    end
-  end
-
   describe "pseudonym" do
     # credo:disable-for-lines:2
     test "if no user is provided, a random pseudonym is generated",

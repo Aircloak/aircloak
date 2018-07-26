@@ -2,7 +2,7 @@ defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
   alias Air.Repo
-  alias Air.Service.{AuditLog, PrivacyPolicy}
+  alias Air.Service.AuditLog
   alias Air.Schemas.{DataSource, Group, User}
   alias Air.Schemas
   import Ecto.Query, only: [from: 2]

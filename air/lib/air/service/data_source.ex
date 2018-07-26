@@ -4,7 +4,7 @@ defmodule Air.Service.DataSource do
   alias Aircloak.ChildSpec
   alias Air.Schemas.{DataSource, Group, Query, User}
   alias Air.{PsqlServer.Protocol, Repo}
-  alias Air.Service.{License, Cloak, View, PrivacyPolicy}
+  alias Air.Service.{License, Cloak, View}
   alias Air.Service
   alias AirWeb.Socket.{Cloak.MainChannel, Frontend.UserChannel}
   import Ecto.Query, only: [from: 2]

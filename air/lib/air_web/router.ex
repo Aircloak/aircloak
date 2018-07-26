@@ -31,10 +31,8 @@ defmodule AirWeb.Router do
     plug(AirWeb.Plug.ValidateLicense.Browser)
   end
 
-  pipeline :policy_validations_api do
+  pipeline :license_validations_api do
     plug(AirWeb.Plug.ValidateLicense.API)
-    plug(AirWeb.Plug.ValidatePrivacyPolicy.Existence.API)
-    plug(AirWeb.Plug.ValidatePrivacyPolicy.Acceptance)
   end
 
   scope "/auth", AirWeb do
@@ -130,7 +128,7 @@ defmodule AirWeb.Router do
   end
 
   scope "/api", private: %{context: :api} do
-    pipe_through([:api, :policy_validations_api])
+    pipe_through([:api, :license_validations_api])
 
     resources("/queries", AirWeb.QueryController, only: [:create, :show])
     post("/queries/:id/cancel", AirWeb.QueryController, :cancel)

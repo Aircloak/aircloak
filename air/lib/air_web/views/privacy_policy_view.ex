@@ -2,8 +2,6 @@ defmodule AirWeb.PrivacyPolicyView do
   @moduledoc false
   use Air.Web, :view
 
-  alias Air.Service.User
-
   def content_as_html(privacy_policy), do: md_to_safe_html(privacy_policy.content)
 
   def has_change_info?(privacy_policy), do: not is_nil(privacy_policy.changes)

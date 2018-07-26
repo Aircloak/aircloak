@@ -2,7 +2,7 @@ defmodule AirWeb.PrivacyPolicyController do
   @moduledoc false
   use Air.Web, :controller
 
-  alias Air.Service.{User, PrivacyPolicy}
+  alias Air.Service.PrivacyPolicy
 
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
