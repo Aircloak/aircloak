@@ -270,10 +270,6 @@ defmodule Air.Service.User do
     |> Repo.update!()
   end
 
-  @doc "Marks the current privacy policy as accepted by a user"
-  @spec accept_privacy_policy!(Schemas.User.t(), Schemas.PrivacyPolicy.t()) :: Schemas.User.t()
-  def accept_privacy_policy!(user, privacy_policy), do: set_privacy_policy_id(user, privacy_policy.id)
-
   @doc "Returns the status of the user's current opt-in to the privacy policy"
   @spec privacy_policy_status(User.t()) :: :ok | {:error, :no_privacy_policy_created | :requires_review}
   def privacy_policy_status(user) do
@@ -325,12 +321,6 @@ defmodule Air.Service.User do
   # -------------------------------------------------------------------
 
   defp random_string, do: Base.encode16(:crypto.strong_rand_bytes(10))
-
-  defp set_privacy_policy_id(user, policy_id) do
-    user
-    |> cast(%{accepted_privacy_policy_id: policy_id}, [:accepted_privacy_policy_id])
-    |> Repo.update!()
-  end
 
   defp user_changeset(user, params),
     do:

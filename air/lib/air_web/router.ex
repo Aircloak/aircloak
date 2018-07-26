@@ -95,8 +95,6 @@ defmodule AirWeb.Router do
     post("/profile/toggle_debug_mode", ProfileController, :toggle_debug_mode)
 
     get("/changelog", ChangelogController, :index)
-
-    put("/privacy_policy/accept/:id", PrivacyPolicyController, :accept)
   end
 
   scope "/admin", AirWeb.Admin, as: :admin do
