@@ -35,7 +35,7 @@ defmodule Air.Token.Test do
 
     test "should return error for disabled users", %{user: user} do
       token = Token.create_api_token(user, :api, "description")
-      {:ok, _} = Air.Service.User.disable!(user)
+      {:ok, _} = Air.Service.User.disable(user)
       assert :error = Token.user_for_token(token, :api)
     end
 

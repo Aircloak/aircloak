@@ -80,7 +80,7 @@ defmodule IntegrationTest.PostgrexTest do
     assert {:ok, _} = Postgrex.query(context.conn, "select 1 FROM users", [])
     # required in order to be able to disable the user
     _secondary_user = Manager.create_air_user()
-    assert {:ok, _} = Air.Service.User.disable!(context.user)
+    assert {:ok, _} = Air.Service.User.disable(context.user)
     assert_raise DBConnection.ConnectionError, fn -> Postgrex.query(context.conn, "select 1 FROM users", []) end
   end
 
