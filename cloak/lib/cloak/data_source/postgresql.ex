@@ -42,9 +42,8 @@ defmodule Cloak.DataSource.PostgreSQL do
 
         DataSource.raise_error(
           "Failed to establish a connection to the database. " <>
-            "Please check that the database server is running, whether security restrictions " <>
-            "such as a firewall might restrict Insights Cloak from connecting to the database, " <>
-            "and that the database credentials are correct"
+            "Please check that the database server is running, is reachable from the " <>
+            "Insights Cloak host, and the database credentials are correct"
         )
     end
   end
