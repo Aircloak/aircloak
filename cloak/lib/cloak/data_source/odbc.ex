@@ -51,7 +51,13 @@ defmodule Cloak.DataSource.ODBC do
     with {:ok, connection} <- parameters |> to_connection_string() |> :odbc.connect(options) do
       connection
     else
-      {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
+      {:error, reason} ->
+        DataSource.raise_error(
+          "Failed to establish a connection to the database. " <>
+            "Please check that the database server is running, is reachable from the " <>
+            "Insights Cloak host, and the database credentials are correct. " <>
+            "The database driver reported the following exception: `#{to_string(reason)}`"
+        )
     end
   end
 
