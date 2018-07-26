@@ -31,11 +31,6 @@ defmodule AirWeb.Router do
     plug(AirWeb.Plug.ValidateLicense.Browser)
   end
 
-  pipeline :privacy_policy_validations_browser do
-    plug(AirWeb.Plug.ValidatePrivacyPolicy.Existence.Browser)
-    plug(AirWeb.Plug.ValidatePrivacyPolicy.Acceptance)
-  end
-
   pipeline :policy_validations_api do
     plug(AirWeb.Plug.ValidateLicense.API)
     plug(AirWeb.Plug.ValidatePrivacyPolicy.Existence.API)
@@ -63,7 +58,7 @@ defmodule AirWeb.Router do
   end
 
   scope "/", AirWeb, private: %{context: :http} do
-    pipe_through([:browser, :browser_auth, :license_validations_browser, :privacy_policy_validations_browser])
+    pipe_through([:browser, :browser_auth, :license_validations_browser])
 
     get("/", DataSourceController, :redirect_to_last_used)
 
@@ -98,7 +93,7 @@ defmodule AirWeb.Router do
   end
 
   scope "/admin", AirWeb.Admin, as: :admin do
-    pipe_through([:browser, :browser_auth, :privacy_policy_validations_browser])
+    pipe_through([:browser, :browser_auth])
 
     get("/queries/failed", QueryController, :failed)
     get("/queries/:id", QueryController, :show)
