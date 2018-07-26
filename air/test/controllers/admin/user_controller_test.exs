@@ -116,17 +116,6 @@ defmodule AirWeb.Admin.UserController.Test do
     assert Air.Service.User.load(user.id).enabled
   end
 
-  test "error is reported via audit log when deleting the last admin" do
-    admin = create_only_user_as_admin!()
-    conn = login(admin) |> delete("/admin/users/#{admin.id}")
-
-    assert redirected_to(conn) == "/admin/users"
-
-    assert soon(Air.Repo.get_by(Air.Schemas.AuditLog, user_id: admin.id, event: "User removal failed"))
-    assert soon(Air.Service.User.load(admin.id) != nil)
-    assert soon(Air.Service.User.active_admin_user_exists?())
-  end
-
   test "success is reported via audit log" do
     admin = create_admin_user!()
     user = create_user!()
