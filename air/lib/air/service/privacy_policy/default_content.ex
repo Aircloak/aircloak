@@ -9,8 +9,9 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
   @spec get() :: String.t()
   def get(),
     do: """
-    This privacy policy outlines what data is being collected about you when you are using Aircloak Insights.
-    It also outlines your rights and who you should reach out to if you have questions or concerns.
+    Aircloak Insights collects data about your usage and queries for security and forensic reasons.
+    This privacy policy outlines what data is collected as well as your rights and who you should
+    reach out to if you have questions or concerns.
 
     # Contact information
 
@@ -93,18 +94,19 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
 
     ## Storage period
 
-    ### Data collected by Aircloak Insights
+    ### Data collected by Aircloak Insights on behalf of the Data Controller
 
-    The data collected by an Aircloak Insights installation is stored indefinitely or until a user account is deleted
+    The data collected by an Aircloak Insights installation is stored indefinitely or until a user account is deleted.
 
     ### Data collected by Aircloak GmbH (limited collection)
 
-    The information stored by Aircloak GmbH is stored in pseudonymised form for a period of up to 6 months.
+    The information collected by Aircloak GmbH is stored in pseudonymised form for a period of up to 6 months.
     The anonymous usage statistics generated based on the pseudonymised information is stored indefinitely.
 
     ### Data collected by Aircloak GmbH (expanded collection)
 
-    The information stored by Aircloak GmbH might be stored indefinitely.
+    The pseudonymized information collected by Aircloak GmbH might be stored indefinitely. This information includes
+    the query being executed, as well as data source and query metadata.
 
     ## Who has access to your personal information
 
@@ -139,7 +141,8 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
 
     If your user account is managed in Aircloak Insights, you can alter your profile information when logged in through
     the web interface. If you are using a third party sign on service, your profile information might not be updatable
-    through the Aircloak interface.
+    through the Aircloak interface. For information on how to update your information stored in your organisations sign on
+    service, please contact your administrator or sign on service provider.
 
     ## Right to erase the information
 
