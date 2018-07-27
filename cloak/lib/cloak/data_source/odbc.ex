@@ -260,5 +260,7 @@ defmodule Cloak.DataSource.ODBC do
 
   defp boolean_field_mapper(0), do: false
   defp boolean_field_mapper(other) when is_integer(other), do: true
+  defp boolean_field_mapper(false), do: false
+  defp boolean_field_mapper(true), do: true
   defp boolean_field_mapper(nil), do: nil
 end
