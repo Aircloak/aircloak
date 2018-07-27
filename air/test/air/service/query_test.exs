@@ -6,6 +6,15 @@ defmodule Air.Service.QueryTest do
 
   setup [:sandbox]
 
+  describe "create" do
+    setup [:sandbox, :with_user]
+
+    test "cannot create query for disabled user", %{user: user} do
+      assert {:ok, _} = Air.Service.User.disable(user)
+      assert {:error, :unable_to_create_query} = Air.Service.Query.create(:autogenerate, user, nil, nil, nil, [])
+    end
+  end
+
   describe "get_as_user" do
     setup [:sandbox, :with_user]
 

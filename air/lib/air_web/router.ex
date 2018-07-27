@@ -106,7 +106,11 @@ defmodule AirWeb.Router do
     get("/queries/failed", QueryController, :failed)
     get("/queries/:id", QueryController, :show)
 
-    resources("/users", UserController)
+    resources("/users", UserController) do
+      put("/enable", UserController, :enable)
+      put("/disable", UserController, :disable)
+    end
+
     resources("/groups", GroupController)
     resources("/data_sources", DataSourceController)
     resources("/settings", SettingsController, singleton: true)

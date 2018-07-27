@@ -58,5 +58,14 @@ defmodule AirWeb.SessionControllerTest do
     assert "/auth" == redirected_to(conn)
   end
 
+  test "a disabled user is redirected to login", %{user: user} do
+    perform_onboarding()
+    conn = login(user)
+    {:ok, _} = Air.Service.User.disable(user)
+
+    conn = get(conn, "/")
+    assert "/auth" == redirected_to(conn)
+  end
+
   defp perform_onboarding(), do: create_admin_user!()
 end

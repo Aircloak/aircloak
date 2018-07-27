@@ -83,7 +83,7 @@ defmodule AirWeb.Admin.UserController.Test do
     assert get_flash(conn)["error"] ==
              "The given action cannot be performed, because it would remove the only administrator."
 
-    assert Air.Service.User.admin_user_exists?()
+    assert Air.Service.User.active_admin_user_exists?()
   end
 
   test "deleting a user" do
@@ -95,15 +95,25 @@ defmodule AirWeb.Admin.UserController.Test do
     refute users_html =~ user.email
   end
 
-  test "error is reported via audit log when deleting the last admin" do
-    admin = create_only_user_as_admin!()
-    conn = login(admin) |> delete("/admin/users/#{admin.id}")
+  test "disabling a user" do
+    admin = create_admin_user!()
+    user = create_user!()
 
-    assert redirected_to(conn) == "/admin/users"
+    assert "/admin/users" == login(admin) |> put("/admin/users/#{user.id}/disable") |> redirected_to()
 
-    assert soon(Air.Repo.get_by(Air.Schemas.AuditLog, user_id: admin.id, event: "User removal failed"))
-    assert soon(Air.Service.User.load(admin.id) != nil)
-    assert soon(Air.Service.User.admin_user_exists?())
+    refute Air.Service.User.load(user.id).enabled
+  end
+
+  test "enabling a user" do
+    admin = create_admin_user!()
+    user = create_user!()
+
+    {:ok, disabled_user} = Air.Service.User.disable(user)
+    refute disabled_user.enabled
+
+    assert "/admin/users" == login(admin) |> put("/admin/users/#{user.id}/enable") |> redirected_to()
+
+    assert Air.Service.User.load(user.id).enabled
   end
 
   test "success is reported via audit log" do

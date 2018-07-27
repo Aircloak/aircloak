@@ -12,6 +12,20 @@ defmodule AirWeb.Plug.Session.Test do
       assert conn.status == 401
     end
 
+    test "submitting a token for an disabled user" do
+      user = TestRepoHelper.create_user!()
+      token = Token.create_api_token(user, :api, "test")
+      {:ok, _} = Air.Service.User.disable(user)
+
+      conn =
+        build_conn()
+        |> Plug.Conn.put_req_header("auth-token", token)
+        |> ApiAuth.call(access: :api)
+
+      assert conn.halted
+      assert conn.status == 401
+    end
+
     test "submitting a token through a header" do
       user = TestRepoHelper.create_user!()
       token = Token.create_api_token(user, :api, "test")

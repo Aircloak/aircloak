@@ -20,7 +20,7 @@ defmodule AirWeb.Admin.GroupController do
   # Actions
   # -------------------------------------------------------------------
 
-  def index(conn, _params), do: render(conn, "index.html", groups: User.all_groups())
+  def index(conn, _params), do: render(conn, "index.html", groups: User.all_groups() |> Enum.sort_by(& &1.name))
 
   def new(conn, _params),
     do:
@@ -126,7 +126,7 @@ defmodule AirWeb.Admin.GroupController do
       |> Enum.reject(&(&1 == ""))
       |> Enum.map(&String.to_integer/1)
 
-  defp verify_last_admin_deleted({:error, :forbidden_last_admin_deletion}, conn, _fun),
+  defp verify_last_admin_deleted({:error, :forbidden_no_active_admin}, conn, _fun),
     do:
       conn
       |> put_flash(

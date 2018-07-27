@@ -20,7 +20,7 @@ defmodule Air.Service.User do
   @doc "Authenticates the given user."
   @spec login(String.t(), String.t(), %{atom => any}) :: {:ok, User.t()} | {:error, :invalid_email_or_password}
   def login(email, password, meta \\ %{}) do
-    user = Repo.get_by(User, email: email)
+    user = Repo.one(from(u in User, where: u.email == ^email, where: u.enabled))
 
     cond do
       User.validate_password(user, password) ->
@@ -35,6 +35,15 @@ defmodule Air.Service.User do
         {:error, :invalid_email_or_password}
     end
   end
+
+  @doc """
+  Performs a database check to validate if a user is enabled or not.
+  Useful when a user record exists in memory, and no database operation
+  is planned that the check can implicitly be baked into.
+  """
+  @spec is_enabled?(User.t()) :: boolean
+  def is_enabled?(user),
+    do: Repo.one(from(user in User, where: user.id == ^user.id, where: user.enabled, select: true)) || false
 
   @doc "Returns a token that can be used to reset the given user's password."
   @spec reset_password_token(User.t()) :: String.t()
@@ -107,10 +116,10 @@ defmodule Air.Service.User do
   end
 
   @doc "Updates the given user."
-  @spec update(User.t(), map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t() | :forbidden_last_admin_deletion}
+  @spec update(User.t(), map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t() | :forbidden_no_active_admin}
   def update(user, params),
     do:
-      commit_if_last_admin_not_deleted(fn ->
+      commit_if_active_last_admin(fn ->
         user
         |> user_changeset(params)
         |> Repo.update()
@@ -128,7 +137,7 @@ defmodule Air.Service.User do
   @doc "Deletes the given user in the background."
   @spec delete_async(User.t(), (() -> any), (any -> any)) :: :ok
   def delete_async(user, success_callback, failure_callback),
-    do: commit_if_last_admin_not_deleted_async(fn -> Repo.delete(user) end, success_callback, failure_callback)
+    do: commit_if_active_last_admin_async(fn -> Repo.delete(user) end, success_callback, failure_callback)
 
   @doc "Deletes the given user, raises on error."
   @spec delete!(User.t()) :: User.t()
@@ -138,8 +147,26 @@ defmodule Air.Service.User do
   end
 
   @doc "Deletes the given user."
-  @spec delete(User.t()) :: {:ok, User.t()} | {:error, :forbidden_last_admin_deletion}
-  def delete(user), do: commit_if_last_admin_not_deleted(fn -> Repo.delete(user) end)
+  @spec delete(User.t()) :: {:ok, User.t()} | {:error, :forbidden_no_active_admin}
+  def delete(user), do: commit_if_active_last_admin(fn -> Repo.delete(user) end)
+
+  @doc "Disables a user account"
+  @spec disable(User.t()) :: {:ok, User.t()} | {:error, :forbidden_no_active_admin}
+  def disable(user),
+    do:
+      commit_if_active_last_admin(fn ->
+        user
+        |> cast(%{enabled: false}, [:enabled])
+        |> Repo.update()
+      end)
+
+  @doc "Enables a user account"
+  @spec enable!(User.t()) :: User.t()
+  def enable!(user),
+    do:
+      user
+      |> cast(%{enabled: true}, [:enabled])
+      |> Repo.update!()
 
   @doc "Returns the empty changeset for the new user."
   @spec empty_changeset() :: Ecto.Changeset.t()
@@ -180,9 +207,9 @@ defmodule Air.Service.User do
       )
 
   @doc "Returns a boolean regarding whether a administrator account already exists"
-  @spec admin_user_exists?() :: boolean
-  def admin_user_exists?(),
-    do: Repo.one(from(u in User, inner_join: g in assoc(u, :groups), where: g.admin, limit: 1)) != nil
+  @spec active_admin_user_exists?() :: boolean
+  def active_admin_user_exists?(),
+    do: Repo.one(from(u in User, inner_join: g in assoc(u, :groups), where: g.admin, where: u.enabled, limit: 1)) != nil
 
   @doc "Creates the new group, raises on error."
   @spec create_group!(map) :: Group.t()
@@ -207,10 +234,10 @@ defmodule Air.Service.User do
   end
 
   @doc "Updates the given group."
-  @spec update_group(Group.t(), map) :: {:ok, Group.t()} | {:error, Ecto.Changeset.t() | :forbidden_last_admin_deletion}
+  @spec update_group(Group.t(), map) :: {:ok, Group.t()} | {:error, Ecto.Changeset.t() | :forbidden_no_active_admin}
   def update_group(group, params),
     do:
-      commit_if_last_admin_not_deleted(fn ->
+      commit_if_active_last_admin(fn ->
         group
         |> group_changeset(params)
         |> Repo.update()
@@ -224,8 +251,8 @@ defmodule Air.Service.User do
   end
 
   @doc "Deletes the given group."
-  @spec delete_group(Group.t()) :: {:ok, Group.t()} | {:error, :forbidden_last_admin_deletion}
-  def delete_group(group), do: commit_if_last_admin_not_deleted(fn -> Repo.delete(group) end)
+  @spec delete_group(Group.t()) :: {:ok, Group.t()} | {:error, :forbidden_no_active_admin}
+  def delete_group(group), do: commit_if_active_last_admin(fn -> Repo.delete(group) end)
 
   @doc "Loads the group with the given id."
   @spec load_group(pos_integer) :: Group.t() | nil
@@ -397,20 +424,20 @@ defmodule Air.Service.User do
     end
   end
 
-  defp commit_if_last_admin_not_deleted(fun), do: GenServer.call(__MODULE__, {:commit_if_last_admin_not_deleted, fun})
+  defp commit_if_active_last_admin(fun), do: GenServer.call(__MODULE__, {:commit_if_active_last_admin, fun})
 
-  defp commit_if_last_admin_not_deleted_async(fun, success_callback, failure_callback),
-    do: GenServer.cast(__MODULE__, {:commit_if_last_admin_not_deleted, fun, success_callback, failure_callback})
+  defp commit_if_active_last_admin_async(fun, success_callback, failure_callback),
+    do: GenServer.cast(__MODULE__, {:commit_if_active_last_admin, fun, success_callback, failure_callback})
 
-  defp do_commit_if_last_admin_not_deleted(fun) do
+  defp do_commit_if_retains_an_admin(fun) do
     Repo.transaction(
       fn ->
         case fun.() do
           {:ok, result} ->
-            if admin_user_exists?() do
+            if active_admin_user_exists?() do
               result
             else
-              Repo.rollback(:forbidden_last_admin_deletion)
+              Repo.rollback(:forbidden_no_active_admin)
             end
 
           {:error, error} ->
@@ -431,12 +458,12 @@ defmodule Air.Service.User do
   def init(_), do: {:ok, nil}
 
   @impl GenServer
-  def handle_call({:commit_if_last_admin_not_deleted, fun}, _from, state),
-    do: {:reply, do_commit_if_last_admin_not_deleted(fun), state}
+  def handle_call({:commit_if_active_last_admin, fun}, _from, state),
+    do: {:reply, do_commit_if_retains_an_admin(fun), state}
 
   @impl GenServer
-  def handle_cast({:commit_if_last_admin_not_deleted, fun, success_callback, failure_callback}, state) do
-    case do_commit_if_last_admin_not_deleted(fun) do
+  def handle_cast({:commit_if_active_last_admin, fun, success_callback, failure_callback}, state) do
+    case do_commit_if_retains_an_admin(fun) do
       {:ok, _} -> success_callback.()
       {:error, error} -> failure_callback.(error)
     end
