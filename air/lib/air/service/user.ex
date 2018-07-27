@@ -4,7 +4,6 @@ defmodule Air.Service.User do
   alias Air.Repo
   alias Air.Service.AuditLog
   alias Air.Schemas.{DataSource, Group, User}
-  alias Air.Schemas
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
 
