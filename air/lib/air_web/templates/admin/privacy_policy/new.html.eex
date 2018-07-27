@@ -22,27 +22,22 @@
     </div>
     <div class="panel-body">
       <p>
-        <strong>
-          Aircloak Insights requires that you define a privacy policy.
-        </strong>
+        Aircloak Insights allows you to define a privacy policy.
+        In some jurisdictions having a privacy policy might be a legal requirement.
+        Please consult with your legal council and your organisation's Data Protection Officer
+        if having a privacy policy is a requirement for you.
+      </p>
+
+      <p>
         The policy should describe the rights of the analysts using Aircloak Insights.
-        In particular it needs to declare what data is kept about them and whom they
+        In particular it should describe what data is kept about them and whom they
         should contact in case they have questions.
       </p>
 
       <p>
-        <strong>
-          You might want to consult your oganisation's Data Protection Officer.
-        </strong>
-      </p>
-
-      <p>
-        The sample policy describes the data that is collected by Aircloak Insights
-        and can likely be used with only minor modifications.
-      </p>
-
-      <p>
-        The following needs to be ammended:
+        The sample policy describes the data that is collected by Aircloak Insights.
+        Feel free to use it as a basis for your own policy. If you do, the following needs
+        to be ammended:
       </p>
 
       <ol>
