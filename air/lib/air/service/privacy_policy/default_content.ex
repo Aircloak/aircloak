@@ -13,9 +13,6 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
     when you are using Aircloak Insights. It also outlines your rights
     and who you should reach out to if you have questions or concerns.
 
-    Please note that you can review this privacy policy and withdraw your
-    consent at any time.
-
     # Contact information
 
     This Aircloak Insights instance is run and operated by __[FILL IN: Company Name]__.
@@ -66,7 +63,7 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
     namely such actions as the creation of user accounts or groups, altering
     data sources, or changing the general system settings.
 
-    ## Information collected for Aircloak GmbH
+    ## Information collected for Aircloak GmbH (limited collection)
 
     Aircloak GmbH collects pseudonymised statistics about the queries being executed.
     Each analyst is identified by a pseudonym. The pseudonym is an abstract identifier
@@ -88,6 +85,27 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
     used to assess how well different aspects of the system perform and help
     prioritise future improvements.
 
+    ## Information collected for Aircloak GmbH (expanded collection)
+
+    Aircloak GmbH collects statistics about the queries being executed.
+    Each analyst is identified by a pseudonym. The pseudonym is an abstract identifier
+    that only gives Aircloak GmbH the ability to correlate multiple actions taken by a
+    single individual. It does not provide Aircloak GmbH with knowledge of the user's
+    name or other personal details. For each query the same metadata recorded by
+    Aircloak Insights is also sent to Aircloak GmbH. This includes information such as:
+
+    - the query itself
+    - detailed information about the data source queried
+    - query execution logs and telemetrics data
+    - stats on what query features and capabilities were used (such as function names)
+
+    Aircloak GmbH does not see or record the query results unless they are explicitly
+    sent to them for troubleshooting purposes.
+
+    The information is analysed through an instance of Aircloak Insights, manually inspected
+    and might be incorporated into automatic test suites and used to guide decision making
+    about the future of the product.
+
     ## Storage period
 
     ### Data collected by Aircloak Insights
@@ -95,11 +113,15 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
     The data collected by an Aircloak Insights installation is stored indefinitely
     or until a user account is deleted
 
-    ### Data collected by Aircloak GmbH
+    ### Data collected by Aircloak GmbH (limited collection)
 
     The information stored by Aircloak GmbH is stored in pseudonymised form for a
     period of up to 6 months. The anonymous usage statistics generated based on
     the pseudonymised information is stored indefinitely.
+
+    ### Data collected by Aircloak GmbH (expanded collection)
+
+    The information stored by Aircloak GmbH might be stored indefinitely.
 
     ## Who has access to your personal information
 
@@ -111,7 +133,7 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
 
     ### Aircloak GmbH
 
-    The pseudonymous information collected by Aircloak Insights on behalf of
+    The information collected by Aircloak Insights on behalf of
     Aircloak GmbH might be accessed by Aircloak GmbH engineers, administrators,
     and affiliated personnel for debugging purposes.
 
@@ -137,32 +159,25 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
 
     ## Right to rectify the information
 
-    When logged in to Aircloak Insights you can alter your profile information.
+    If your user account is managed in Aircloak Insights, you can alter your profile
+    information when logged in through the web interface.
+    If you are using a third party sign on service, your profile information might not
+    be updatable through the Aircloak interface.
 
     ## Right to erase the information
 
-    You can at any time request that your data protection officer, controller or
+    You might have the right to request that your data protection officer, controller or
     administrator delete your account. This will in turn delete all the information
     Aircloak Insights stores about you.
 
-    If you want Aircloak GmbH to erase the pseudonymised information it stores
+    If you want Aircloak GmbH to erase the information it stores
     about you, please contact compliance@aircloak.com, providing your
     Aircloak Identifier. You can find this identifier in the profile section of
     the Aircloak Insights user interface.
 
     ## Right to restrict or object to the processing
-    The collection of the personal information outlined above is a requirement to
-    using Aircloak Insights. You are however free to not accept this privacy policy.
-    Not accepting the privacy policy will prevent you from accessing, using and
-    querying Aircloak Insights.
 
-    ## Right to withdraw your consent
-    You can review this privacy policy at any point while logged into the
-    Aircloak Insights web interface. On the same page where you can review the
-    privacy policy you also have the ability to withdraw your consent.
-    Doing so will prevent you from using the system, but will not remove any
-    information already stored about you by Aircloak Insights. Your right to
-    erase the information afterwards remains untouched –
-    please contact your administrator.
+    The collection of the personal information outlined above is a requirement to
+    using Aircloak Insights. .
     """
 end
