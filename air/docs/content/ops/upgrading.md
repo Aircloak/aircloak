@@ -2,7 +2,7 @@
 
 ## Insights Air
 
-The privacy policy flow has been changed. Where new users were previously required accept the privacy policy
+The privacy policy flow has been changed. Where new users were previously required to accept the privacy policy
 before they could start using the system, they now only have the privacy policy available for perusal at their
 own pleasure. From version 18.4.0 it is the responsibility of the organisation hosting the Aircloak Insights
 installation to inform their analysts about the privacy policy and their rights.

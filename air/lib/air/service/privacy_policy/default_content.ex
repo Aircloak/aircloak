@@ -9,7 +9,8 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
   @spec get() :: String.t()
   def get(),
     do: """
-    Aircloak Insights collects data about your usage and queries for security and forensic reasons.
+    Aircloak Insights collects data about your usage of the Aircloak Insights system, as well as the queries you run.
+    In part this is done for security and forensic reasons.
     This privacy policy outlines what data is collected as well as your rights and who you should
     reach out to if you have questions or concerns.
 
@@ -134,7 +135,7 @@ defmodule Air.Service.PrivacyPolicy.DefaultContent do
     ## Right to access
 
     When logged in to Aircloak Insights you can at any time download an archive of the information the system has
-    stored about you. You system administrator, controller or data protection officer might be able to provide you with
+    stored about you. Your system administrator, controller or data protection officer might be able to provide you with
     auxiliary server logs for the actions performed by you through auxiliary systems, such a web server logs.
 
     ## Right to rectify the information
