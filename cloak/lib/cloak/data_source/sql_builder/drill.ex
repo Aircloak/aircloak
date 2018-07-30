@@ -2,31 +2,6 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
   @moduledoc "Helper module for converting a query to Drill specific SQL."
 
   # -------------------------------------------------------------------
-  # API
-  # -------------------------------------------------------------------
-
-  def conn_params(normalized_parameters) do
-    params = %{
-      HOST: normalized_parameters[:hostname],
-      Schema: normalized_parameters[:database],
-      DSN: "MapRDrill"
-    }
-
-    port = normalized_parameters[:port]
-    params = if port != nil and port != 0, do: Map.put_new(params, :PORT, port), else: params
-
-    if normalized_parameters[:username] != nil do
-      Map.merge(params, %{
-        UID: normalized_parameters[:username],
-        PWD: normalized_parameters[:password],
-        AuthenticationType: "Plain"
-      })
-    else
-      params
-    end
-  end
-
-  # -------------------------------------------------------------------
   # SqlBuilder.Dialect callbacks
   # -------------------------------------------------------------------
 

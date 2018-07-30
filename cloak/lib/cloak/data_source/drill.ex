@@ -4,19 +4,46 @@ defmodule Cloak.DataSource.Drill do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.{ODBC, SqlBuilder}
+  alias Cloak.DataSource.ODBC
   use Cloak.DataSource.Driver.SQL
+
+  # -------------------------------------------------------------------
+  # API
+  # -------------------------------------------------------------------
+
+  @doc "Converts the connection parameters from the config format into the ODBC format."
+  @spec conn_params(Map.t()) :: Map.t()
+  def conn_params(normalized_parameters) do
+    params = %{
+      HOST: normalized_parameters[:hostname],
+      Schema: normalized_parameters[:database],
+      DSN: "MapRDrill"
+    }
+
+    port = normalized_parameters[:port]
+    params = if port != nil and port != 0, do: Map.put_new(params, :PORT, port), else: params
+
+    if normalized_parameters[:username] != nil do
+      Map.merge(params, %{
+        UID: normalized_parameters[:username],
+        PWD: normalized_parameters[:password],
+        AuthenticationType: "Plain"
+      })
+    else
+      params
+    end
+  end
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
   @impl Driver
-  def sql_dialect_module(_), do: SqlBuilder.Drill
+  def sql_dialect_module(_), do: Cloak.DataSource.SqlBuilder.Drill
 
   @impl Driver
   def connect!(parameters) do
-    connection = ODBC.connect!(parameters, &SqlBuilder.Drill.conn_params/1)
+    connection = ODBC.connect!(parameters, &conn_params/1)
 
     case :odbc.sql_query(connection, 'ALTER SESSION SET planner.parser.quoting_identifiers = \'"\'') do
       {:updated, _} -> :ok
