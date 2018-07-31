@@ -31,6 +31,7 @@ defmodule Cloak.DataSource.Isolators.Query do
         FROM #{table}
         GROUP BY "#{column}"
       ) x
+      WHERE isolating IS NOT NULL
       GROUP BY 1
       ORDER BY 1
     """
