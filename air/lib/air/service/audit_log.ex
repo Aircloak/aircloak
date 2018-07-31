@@ -25,7 +25,7 @@ defmodule Air.Service.AuditLog do
   @doc "Creates an audit log entry."
   @spec log(User.t(), String.t(), %{atom => any}) :: :ok | {:error, any}
   def log(user, event, metadata \\ %{}) do
-    if Air.Service.Settings.read().audit_log_enabled and Air.Service.User.privacy_policy_status(user) == :ok do
+    if Air.Service.Settings.read().audit_log_enabled do
       user
       |> Ecto.build_assoc(:audit_logs)
       |> AuditLog.changeset(%{event: event, metadata: metadata})

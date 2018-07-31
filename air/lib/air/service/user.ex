@@ -2,9 +2,8 @@ defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
   alias Air.Repo
-  alias Air.Service.{AuditLog, PrivacyPolicy}
+  alias Air.Service.AuditLog
   alias Air.Schemas.{DataSource, Group, User}
-  alias Air.Schemas
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
 
@@ -297,32 +296,6 @@ defmodule Air.Service.User do
     |> Repo.update!()
   end
 
-  @doc "Marks the current privacy policy as accepted by a user"
-  @spec accept_privacy_policy!(Schemas.User.t(), Schemas.PrivacyPolicy.t()) :: Schemas.User.t()
-  def accept_privacy_policy!(user, privacy_policy), do: set_privacy_policy_id(user, privacy_policy.id)
-
-  @doc "Marks the current privacy policy as rejected by a user"
-  @spec reject_privacy_policy!(User.t()) :: User.t()
-  def reject_privacy_policy!(user), do: set_privacy_policy_id(user, nil)
-
-  @doc "Returns the status of the user's current opt-in to the privacy policy"
-  @spec privacy_policy_status(User.t()) :: :ok | {:error, :no_privacy_policy_created | :requires_review}
-  def privacy_policy_status(user) do
-    case PrivacyPolicy.get() do
-      {:error, :no_privacy_policy_created} = error ->
-        error
-
-      {:ok, privacy_policy} ->
-        refreshed_user = load(user.id)
-
-        if refreshed_user.accepted_privacy_policy_id == privacy_policy.id do
-          :ok
-        else
-          {:error, :requires_review}
-        end
-    end
-  end
-
   @doc """
   Generates a pseudonymized ID for a user that can be used when sending query metrics
   and other analyst specific metrics to Aircloak.
@@ -356,12 +329,6 @@ defmodule Air.Service.User do
   # -------------------------------------------------------------------
 
   defp random_string, do: Base.encode16(:crypto.strong_rand_bytes(10))
-
-  defp set_privacy_policy_id(user, policy_id) do
-    user
-    |> cast(%{accepted_privacy_policy_id: policy_id}, [:accepted_privacy_policy_id])
-    |> Repo.update!()
-  end
 
   defp user_changeset(user, params),
     do:

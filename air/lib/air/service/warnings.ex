@@ -11,7 +11,7 @@ defmodule Air.Service.Warnings do
           severity: severity_class
         }
 
-  alias Air.Service.{DataSource, Cloak, License, PrivacyPolicy}
+  alias Air.Service.{DataSource, Cloak, License}
   alias Air.{Schemas, Repo}
 
   # -------------------------------------------------------------------
@@ -25,7 +25,7 @@ defmodule Air.Service.Warnings do
   @spec problems() :: [problem]
   def problems(),
     do:
-      (data_source_problems(DataSource.all()) ++ license_problems() ++ privacy_policy_problems())
+      (data_source_problems(DataSource.all()) ++ license_problems())
       |> order_problems()
 
   @doc """
@@ -145,24 +145,6 @@ defmodule Air.Service.Warnings do
 
       true ->
         []
-    end
-  end
-
-  # -------------------------------------------------------------------
-  # Privacy policy problems
-  # -------------------------------------------------------------------
-
-  defp privacy_policy_problems() do
-    if PrivacyPolicy.exists?() do
-      []
-    else
-      [
-        problem(
-          :privacy_policy,
-          "Your system is lacking a privacy policy. At present the system cannot be queried",
-          :high
-        )
-      ]
     end
   end
 

@@ -49,8 +49,6 @@ function start_air_container {
 
     ok = 'Elixir.Air.Service.PrivacyPolicy':set(<<\"privacy policy\">>),
     {ok, User} = 'Elixir.Air.Service.User':login(<<\"admin@aircloak.com\">>, <<\"password1234\">>),
-    {ok, PrivacyPolicy} = 'Elixir.Air.Service.PrivacyPolicy':get(),
-    'Elixir.Air.Service.User':'accept_privacy_policy!'(User, PrivacyPolicy),
 
     {ok, License} = file:read_file(code:priv_dir(air) ++ \"/config/license.lic\"),
     ok = 'Elixir.Air.Service.License':load(License)

@@ -71,5 +71,6 @@
   - [Insights Air](ops/configuration.md#insights-air-configuration)
   - [Insights Cloak](ops/configuration.md#insights-cloak-configuration)
 - [Upgrading](ops/upgrading.md)
+  - [18.4.0 Default Privacy Policy](ops/upgrade/1804_privacy_policy.md)
 - [Monitoring](ops/monitoring.md)
 - [Forgotten password](ops/forgotten_password.md)
