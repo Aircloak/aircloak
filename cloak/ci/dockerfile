@@ -18,5 +18,7 @@ RUN \
 COPY cloak/priv/odbc/docker/odbc.ini /etc/
 COPY cloak/priv/odbc/docker/sqlserver_setup.sh /aircloak/
 RUN /aircloak/sqlserver_setup.sh
+COPY cloak/priv/odbc/docker/drill_setup.sh /aircloak/
+RUN /aircloak/drill_setup.sh
 
 WORKDIR /aircloak/cloak
