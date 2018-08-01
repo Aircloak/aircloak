@@ -17,6 +17,9 @@ defmodule Air.Service.LDAP do
       after
         :eldap.close(conn)
       end
+    else
+      {:error, 'connect failed'} -> {:error, :connect_failed}
+      other -> other
     end
   end
 
@@ -25,4 +28,6 @@ defmodule Air.Service.LDAP do
   defp open_connection({:ok, %{"host" => host, "port" => port}}) do
     :eldap.open([to_charlist(host)], port: port)
   end
+
+  defp open_connection(_), do: {:error, :invalid_config}
 end

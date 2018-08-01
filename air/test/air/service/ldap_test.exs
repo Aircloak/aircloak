@@ -8,9 +8,14 @@ defmodule Air.Service.LDAP.Test do
       assert {:error, :ldap_not_configured} = LDAP.simple_bind(_no_config = :error, "user", "pass")
     end
 
-    test "with wrong host/port"
+    test "with wrong host/port" do
+      assert {:error, :connect_failed} =
+               LDAP.simple_bind({:ok, %{"host" => "localhost", "port" => 500}}, "user", "pass")
+    end
 
-    test "with invalid config"
+    test "with invalid config" do
+      assert {:error, :invalid_config} = LDAP.simple_bind({:ok, %{"some" => "stuff"}}, "user", "pass")
+    end
 
     test "without SSL" do
       assert {:error, :invalid_credentials} =
