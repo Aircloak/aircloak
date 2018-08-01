@@ -1,6 +1,8 @@
 defmodule Air.Service.LDAP do
   require Aircloak.DeployConfig
 
+  @timeout :timer.seconds(5)
+
   def simple_bind(config \\ Aircloak.DeployConfig.fetch("ldap"), user_dn, password) do
     with_connection(config, fn conn ->
       case :eldap.simple_bind(conn, user_dn, password) do
@@ -29,19 +31,17 @@ defmodule Air.Service.LDAP do
 
   defp open_connection({:ok, %{"host" => host, "port" => port, "encryption" => "start_tls"}}) do
     with {:ok, conn} <- :eldap.open([to_charlist(host)], port: port),
-         options = [],
-         timeout = :timer.seconds(5),
-         :ok <- :eldap.start_tls(conn, options, timeout) do
+         :ok <- :eldap.start_tls(conn, _options = [], @timeout) do
       {:ok, conn}
     end
   end
 
   defp open_connection({:ok, %{"host" => host, "port" => port, "encryption" => "ssl"}}) do
-    :eldap.open([to_charlist(host)], port: port, ssl: true)
+    :eldap.open([to_charlist(host)], port: port, ssl: true, timeout: @timeout)
   end
 
   defp open_connection({:ok, %{"host" => host, "port" => port}}) do
-    :eldap.open([to_charlist(host)], port: port)
+    :eldap.open([to_charlist(host)], port: port, timeout: @timeout)
   end
 
   defp open_connection(_), do: {:error, :invalid_config}
