@@ -69,5 +69,14 @@ defmodule Air.Service.LDAP.Test do
                %User{dn: "dc=example,dc=org", name: "dc=example,dc=org"}
              ] = Enum.sort(entries)
     end
+
+    test "extracts the name field as configured" do
+      {:ok, entries} = LDAP.users({:ok, Map.put(@ldap, "user_name", "cn")})
+
+      assert [
+               %User{dn: @admin, name: "admin"},
+               %User{dn: "dc=example,dc=org", name: "dc=example,dc=org"}
+             ] = Enum.sort(entries)
+    end
   end
 end

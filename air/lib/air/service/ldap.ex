@@ -25,7 +25,23 @@ defmodule Air.Service.LDAP do
     end)
   end
 
-  defp build_user(_config, {:eldap_entry, dn, _fields}), do: %User{dn: to_string(dn), name: to_string(dn)}
+  defp build_user(config, {:eldap_entry, dn, fields}) do
+    case config["user_name"] do
+      nil -> %User{dn: to_string(dn), name: to_string(dn)}
+      name -> %User{dn: to_string(dn), name: attribute(fields, name, to_string(dn))}
+    end
+  end
+
+  defp attribute(fields, name, default) do
+    name = to_charlist(name)
+
+    fields
+    |> Enum.find(fn {field_name, _} -> field_name == name end)
+    |> case do
+      {_, [value | _rest]} -> to_string(value)
+      _ -> default
+    end
+  end
 
   defp with_bound_connection(config, action) do
     with_connection(config, fn conn, config ->
