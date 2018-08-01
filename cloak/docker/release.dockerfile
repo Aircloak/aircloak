@@ -10,8 +10,6 @@ RUN apt-get install -y unixodbc odbc-postgresql libmyodbc libaio1 inotify-tools
 COPY cloak/priv/odbc/docker/odbc.ini /etc/
 COPY cloak/priv/odbc/docker/sqlserver_setup.sh /aircloak/
 RUN /aircloak/sqlserver_setup.sh
-COPY cloak/priv/odbc/docker/drill_setup.sh /aircloak/
-RUN /aircloak/drill_setup.sh
 
 # User under which the app will run.
 RUN useradd --shell /bin/bash deployer && mkdir -p /aircloak/app
