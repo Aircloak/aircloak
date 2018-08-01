@@ -1,5 +1,5 @@
 .PHONY: all compile deps clean start start2 start3 test test-migrations recreate-db migrate rollback dialyze docs
-.PHONY: release release-local lint mocha format check-format ldap-server
+.PHONY: release release-local lint mocha format check-format
 
 all: deps compile
 
@@ -78,6 +78,3 @@ format:
 
 check-format:
 	mix format --check-formatted
-
-ldap-server:
-	docker run -p 389:389 --name aircloak-ldap --detach osixia/openldap:1.2.1
