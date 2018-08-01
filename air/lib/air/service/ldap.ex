@@ -5,6 +5,7 @@ defmodule Air.Service.LDAP do
     with_connection(config, fn conn ->
       case :eldap.simple_bind(conn, user_dn, password) do
         :ok -> :ok
+        {:error, {:gen_tcp_error, _}} -> {:error, :connect_failed}
         _ -> {:error, :invalid_credentials}
       end
     end)
@@ -24,6 +25,10 @@ defmodule Air.Service.LDAP do
   end
 
   defp open_connection(:error), do: {:error, :ldap_not_configured}
+
+  defp open_connection({:ok, %{"host" => host, "port" => port, "encryption" => "ssl"}}) do
+    :eldap.open([to_charlist(host)], port: port, ssl: true)
+  end
 
   defp open_connection({:ok, %{"host" => host, "port" => port}}) do
     :eldap.open([to_charlist(host)], port: port)

@@ -8,6 +8,7 @@ cd $(dirname $0)
 DOCKER_IMAGE="osixia/openldap"
 DOCKER_IMAGE_VERSION="1.2.1"
 DOCKER_START_ARGS="
+  -e LDAP_TLS_VERIFY_CLIENT=allow
   -p 389:389
   -p 636:636
 "
