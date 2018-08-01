@@ -1,12 +1,12 @@
 #!/bin/bash
 
-set -e
+set -eo pipefail
 
 cd $(dirname $0)
-. ../docker/docker_helper.sh
+. ../../docker/docker_helper.sh
 
-DOCKER_IMAGE="osixia/openldap"
-DOCKER_IMAGE_VERSION="1.2.1"
+DOCKER_IMAGE="aircloak/ldap"
+DOCKER_IMAGE_VERSION="latest"
 DOCKER_START_ARGS="
   -e LDAP_TLS_VERIFY_CLIENT=allow
   -p 389:389

@@ -1,0 +1,6 @@
+dn: cn=alice,dc=example,dc=org
+objectClass: simpleSecurityObject
+objectClass: organizationalRole
+cn: alice
+description: A regular Alice
+userPassword:: e1NTSEF9eUZBUEkvei9RYTFmU2VnQ2UyVzdUU1Z0UXFqaEt3bUg=
