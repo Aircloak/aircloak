@@ -19,11 +19,6 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
   end
 
   describe "rewriting distinct" do
-    test "does not rewrite the top-level query" do
-      parsed = Parser.parse!("SELECT DISTINCT a, b, c FROM table")
-      assert ASTNormalization.normalize(parsed) == parsed
-    end
-
     test "distinct without group by",
       do:
         assert_equivalent(
