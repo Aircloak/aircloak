@@ -2,13 +2,21 @@ defmodule Air.Service.LDAP.Test do
   use ExUnit.Case, async: true
 
   alias Air.Service.LDAP
+  alias Air.Service.LDAP.User
 
   @regular_port 389
   @ssl_port 636
   @invalid_port 500
-  @ldap %{"host" => "localhost", "port" => @regular_port}
   @admin "cn=admin,dc=example,dc=org"
   @admin_pass "admin"
+
+  @ldap %{
+    "host" => "localhost",
+    "port" => @regular_port,
+    "bind_dn" => @admin,
+    "password" => @admin_pass,
+    "user_base" => "dc=example,dc=org"
+  }
 
   describe "connecting" do
     test "without LDAP configured" do
@@ -49,6 +57,17 @@ defmodule Air.Service.LDAP.Test do
 
     test "with anonymous access" do
       assert :ok = LDAP.simple_bind({:ok, @ldap}, "", "")
+    end
+  end
+
+  describe ".users" do
+    test "finds all objects by default" do
+      {:ok, entries} = LDAP.users({:ok, @ldap})
+
+      assert [
+               %User{dn: @admin, name: @admin},
+               %User{dn: "dc=example,dc=org", name: "dc=example,dc=org"}
+             ] = Enum.sort(entries)
     end
   end
 end
