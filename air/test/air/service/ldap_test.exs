@@ -3,14 +3,20 @@ defmodule Air.Service.LDAP.Test do
 
   alias Air.Service.LDAP
 
+  @regular_port 389
+  @ssl_port 636
+  @invalid_port 500
+  @ldap %{"host" => "localhost", "port" => @regular_port}
+  @admin "cn=admin,dc=example,dc=org"
+  @admin_pass "admin"
+
   describe "connecting" do
     test "without LDAP configured" do
       assert {:error, :ldap_not_configured} = LDAP.simple_bind(_no_config = :error, "user", "pass")
     end
 
     test "with wrong host/port" do
-      assert {:error, :connect_failed} =
-               LDAP.simple_bind({:ok, %{"host" => "localhost", "port" => 500}}, "user", "pass")
+      assert {:error, :connect_failed} = LDAP.simple_bind({:ok, Map.put(@ldap, "port", @invalid_port)}, "user", "pass")
     end
 
     test "with invalid config" do
@@ -18,22 +24,31 @@ defmodule Air.Service.LDAP.Test do
     end
 
     test "without SSL" do
-      assert {:error, :invalid_credentials} =
-               LDAP.simple_bind({:ok, %{"host" => "localhost", "port" => 389}}, "user", "pass")
+      assert {:error, :invalid_credentials} = LDAP.simple_bind({:ok, @ldap}, "user", "pass")
     end
 
     test "with regular SSL" do
       assert {:error, :invalid_credentials} =
-               LDAP.simple_bind({:ok, %{"host" => "localhost", "port" => 636, "encryption" => "ssl"}}, "user", "pass")
+               LDAP.simple_bind({:ok, Map.merge(@ldap, %{"encryption" => "ssl", "port" => @ssl_port})}, "user", "pass")
     end
 
     test "with StartTLS" do
       assert {:error, :invalid_credentials} =
-               LDAP.simple_bind(
-                 {:ok, %{"host" => "localhost", "port" => 389, "encryption" => "start_tls"}},
-                 "user",
-                 "pass"
-               )
+               LDAP.simple_bind({:ok, Map.put(@ldap, "encryption", "start_tls")}, "user", "pass")
+    end
+  end
+
+  describe ".simple_bind" do
+    test "with correct credentials" do
+      assert :ok = LDAP.simple_bind({:ok, @ldap}, @admin, @admin_pass)
+    end
+
+    test "with incorrect credentials" do
+      assert {:error, :invalid_credentials} = LDAP.simple_bind({:ok, @ldap}, "user", "pass")
+    end
+
+    test "with anonymous access" do
+      assert :ok = LDAP.simple_bind({:ok, @ldap}, "", "")
     end
   end
 end
