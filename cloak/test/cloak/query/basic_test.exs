@@ -1263,7 +1263,7 @@ defmodule Cloak.Query.BasicTest do
     :ok = insert_rows(_user_ids = 0..5, "heights", ["height"], [175])
     :ok = insert_rows(_user_ids = 6..10, "heights", ["height"], [176])
 
-    assert_query("select distinct height from heights group by height order by height", %{
+    assert_query("select distinct height from heights group by height", %{
       columns: ["height"],
       rows: [%{row: [175]}, %{row: [176]}]
     })
