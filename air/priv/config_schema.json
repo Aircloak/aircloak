@@ -74,6 +74,19 @@
       },
       "additionalProperties": false,
       "required": ["name", "push_api_key", "env"]
+    },
+
+    "ldap": {
+      "type": "object",
+      "properties": {
+        "host": {"type": "string"},
+        "port": {"type": "number"},
+        "bind_dn": {"type": "string"},
+        "password": {"type": "string"},
+        "encryption": {"type": "string", "enum": ["plain", "ssl", "start_tls"]}
+      },
+      "additionalProperties": false,
+      "required": ["host", "port"]
     }
   },
   "additionalProperties": false,

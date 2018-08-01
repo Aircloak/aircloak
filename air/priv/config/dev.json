@@ -19,5 +19,12 @@
     "port": 20002,
     "user": "air",
     "name": "air_dev"
+  },
+
+  "ldap": {
+    "host": "localhost",
+    "port": 389,
+    "bind_dn": "cn=admin,dc=example,dc=org",
+    "password": ""
   }
 }
