@@ -26,5 +26,14 @@ defmodule Air.Service.LDAP.Test do
       assert {:error, :invalid_credentials} =
                LDAP.simple_bind({:ok, %{"host" => "localhost", "port" => 636, "encryption" => "ssl"}}, "user", "pass")
     end
+
+    test "with StartTLS" do
+      assert {:error, :invalid_credentials} =
+               LDAP.simple_bind(
+                 {:ok, %{"host" => "localhost", "port" => 389, "encryption" => "start_tls"}},
+                 "user",
+                 "pass"
+               )
+    end
   end
 end

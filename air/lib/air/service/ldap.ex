@@ -20,11 +20,21 @@ defmodule Air.Service.LDAP do
       end
     else
       {:error, 'connect failed'} -> {:error, :connect_failed}
+      {:error, {:gen_tcp_error, _}} -> {:error, :connect_failed}
       other -> other
     end
   end
 
   defp open_connection(:error), do: {:error, :ldap_not_configured}
+
+  defp open_connection({:ok, %{"host" => host, "port" => port, "encryption" => "start_tls"}}) do
+    with {:ok, conn} <- :eldap.open([to_charlist(host)], port: port),
+         options = [],
+         timeout = :timer.seconds(5),
+         :ok <- :eldap.start_tls(conn, options, timeout) do
+      {:ok, conn}
+    end
+  end
 
   defp open_connection({:ok, %{"host" => host, "port" => port, "encryption" => "ssl"}}) do
     :eldap.open([to_charlist(host)], port: port, ssl: true)
