@@ -19,10 +19,18 @@ defmodule Cloak.DataSource.Isolators.Query.Test do
           user_id_alias: "uid"
         }
       )
+
+    :ok =
+      Cloak.Test.DB.create_table(
+        "isolators with spaces",
+        "\"user id\" INTEGER, \"val ue\" INTEGER",
+        user_id: "user id"
+      )
   end
 
   setup do
     :ok = Cloak.Test.DB.clear_table("isolators")
+    :ok = Cloak.Test.DB.clear_table("isolators with spaces")
 
     anonymizer_config = Application.get_env(:cloak, :anonymizer)
     Application.put_env(:cloak, :anonymizer, anonymizer_config |> Keyword.put(:isolating_column_threshold, 0.5))
@@ -73,6 +81,22 @@ defmodule Cloak.DataSource.Isolators.Query.Test do
     end
   end
 
+  test "[BUG] null user ids do not produce crashes" do
+    :ok =
+      Cloak.Test.DB.add_users_data("isolators", ["value"], [
+        ["user1", 10],
+        ["user2", 10],
+        ["user2", 20],
+        ["user2", 30],
+        ["user3", 30],
+        [nil, 40]
+      ])
+
+    for data_source <- DataSource.all() do
+      assert Query.isolates_users?(data_source, "isolators", "value") != nil
+    end
+  end
+
   test "a user id column is isolating" do
     for data_source <- DataSource.all() do
       assert Query.isolates_users?(data_source, "isolators", "user_id")
@@ -98,6 +122,20 @@ defmodule Cloak.DataSource.Isolators.Query.Test do
 
     for data_source <- DataSource.all() do
       assert Query.isolates_users?(data_source, "isolators_projected", "value")
+    end
+  end
+
+  test "[BUG] names with spaces are handled properly" do
+    :ok =
+      Cloak.Test.DB.add_users_data("isolators with spaces", ["\"val ue\""], [
+        ["user1", 10],
+        ["user2", 10],
+        ["user3", 30],
+        ["user4", 30]
+      ])
+
+    for data_source <- DataSource.all() do
+      refute Query.isolates_users?(data_source, "isolators with spaces", "val ue")
     end
   end
 end
