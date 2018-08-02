@@ -17,26 +17,25 @@ defmodule Air.Service.LDAP do
 
   def users(config \\ Aircloak.DeployConfig.fetch("ldap")) do
     with_bound_connection(config, fn conn, config ->
-      case :eldap.search(conn, base: config["user_base"], filter: :eldap.present('objectClass')) do
-        {:ok, {:eldap_search_result, results, _}} ->
-          {:ok, results |> Enum.map(&build_user(config, &1)) |> Enum.reject(&is_nil(&1.login))}
-
-        _ ->
-          {:error, :search_failed}
+      with {:ok, results} <- search(conn, base: config["user_base"], filter: :eldap.present('objectClass')) do
+        {:ok, results |> Enum.map(&build_user(config, &1)) |> Enum.reject(&is_nil(&1.login))}
       end
     end)
   end
 
   def groups(config \\ Aircloak.DeployConfig.fetch("ldap")) do
     with_bound_connection(config, fn conn, config ->
-      case :eldap.search(conn, base: config["group_base"], filter: :eldap.present('objectClass')) do
-        {:ok, {:eldap_search_result, results, _}} ->
-          {:ok, results |> Enum.map(&build_group(config, &1)) |> Enum.reject(&is_nil(&1.name))}
-
-        _ ->
-          {:error, :search_failed}
+      with {:ok, results} <- search(conn, base: config["group_base"], filter: :eldap.present('objectClass')) do
+        {:ok, results |> Enum.map(&build_group(config, &1)) |> Enum.reject(&is_nil(&1.name))}
       end
     end)
+  end
+
+  defp search(conn, options) do
+    case :eldap.search(conn, options) do
+      {:ok, {:eldap_search_result, results, _}} -> {:ok, results}
+      _ -> {:error, :search_failed}
+    end
   end
 
   defp build_group(config, {:eldap_entry, dn, fields}) do
@@ -44,21 +43,11 @@ defmodule Air.Service.LDAP do
   end
 
   defp build_user(config, {:eldap_entry, dn, fields}) do
-    %User{dn: to_string(dn), name: user_name(config, fields, dn), login: user_login(config, fields)}
-  end
-
-  defp user_name(config, fields, dn) do
-    case config["user_name"] do
-      nil -> to_string(dn)
-      name -> attribute(fields, name, to_string(dn))
-    end
-  end
-
-  defp user_login(config, fields) do
-    case config["user_login"] do
-      nil -> attribute(fields, "cn")
-      name -> attribute(fields, name)
-    end
+    %User{
+      dn: to_string(dn),
+      name: attribute(fields, Map.get(config, "user_name", "cn")),
+      login: attribute(fields, Map.get(config, "user_login", "cn"))
+    }
   end
 
   defp attribute(fields, name, default \\ nil) do

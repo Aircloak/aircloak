@@ -68,25 +68,17 @@ defmodule Air.Service.LDAP.Test do
       {:ok, entries} = LDAP.users({:ok, @ldap})
 
       assert [
-               %User{
-                 login: "alice",
-                 dn: "cn=alice,ou=users,dc=example,dc=org",
-                 name: "cn=alice,ou=users,dc=example,dc=org"
-               },
-               %User{
-                 login: "bob",
-                 dn: "cn=bob,ou=users,dc=example,dc=org",
-                 name: "cn=bob,ou=users,dc=example,dc=org"
-               }
+               %User{login: "alice", dn: "cn=alice,ou=users,dc=example,dc=org", name: "alice"},
+               %User{login: "bob", dn: "cn=bob,ou=users,dc=example,dc=org", name: "bob"}
              ] = Enum.sort(entries)
     end
 
-    test "extracts the name field as configured" do
-      {:ok, entries} = LDAP.users({:ok, Map.put(@ldap, "user_name", "description")})
+    test "extracts the name and login fields as configured" do
+      {:ok, entries} =
+        LDAP.users({:ok, Map.merge(@ldap, %{"user_name" => "description", "user_login" => "description"})})
 
       assert [
-               %User{login: "alice", dn: "cn=alice,ou=users,dc=example,dc=org", name: "An Alice"},
-               %User{login: "bob", dn: "cn=bob,ou=users,dc=example,dc=org", name: "cn=bob,ou=users,dc=example,dc=org"}
+               %User{login: "An Alice", dn: "cn=alice,ou=users,dc=example,dc=org", name: "An Alice"}
              ] = Enum.sort(entries)
     end
   end
