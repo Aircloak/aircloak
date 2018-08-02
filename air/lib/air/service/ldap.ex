@@ -39,7 +39,11 @@ defmodule Air.Service.LDAP do
   end
 
   defp build_group(config, {:eldap_entry, dn, fields}) do
-    %Group{dn: to_string(dn), name: attribute(fields, Map.get(config, "group_name", "cn")), member_dns: []}
+    %Group{
+      dn: to_string(dn),
+      name: attribute(fields, Map.get(config, "group_name", "cn")),
+      member_ids: attributes(fields, Map.get(config, "group_member", "memberUid"))
+    }
   end
 
   defp build_user(config, {:eldap_entry, dn, fields}) do
@@ -51,13 +55,20 @@ defmodule Air.Service.LDAP do
   end
 
   defp attribute(fields, name, default \\ nil) do
+    case attributes(fields, name) do
+      [] -> default
+      [value | _rest] -> value
+    end
+  end
+
+  defp attributes(fields, name) do
     name = to_charlist(name)
 
     fields
     |> Enum.find(fn {field_name, _} -> field_name == name end)
     |> case do
-      {_, [value | _rest]} -> to_string(value)
-      _ -> default
+      {_, values} -> Enum.map(values, &to_string/1)
+      _ -> []
     end
   end
 

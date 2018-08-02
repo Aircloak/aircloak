@@ -86,12 +86,21 @@ defmodule Air.Service.LDAP.Test do
   describe ".groups" do
     test "finds all object with valid name by default" do
       {:ok, entries} = LDAP.groups({:ok, @ldap})
-      assert [%Group{name: "group1"}, %Group{name: "group2"}] = Enum.sort(entries)
+
+      assert [
+               %Group{dn: "cn=group1,ou=groups,dc=example,dc=org", name: "group1", member_ids: ["alice", "bob"]},
+               %Group{dn: "cn=group2,ou=groups,dc=example,dc=org", name: "group2", member_ids: ["alice"]}
+             ] = Enum.sort(entries)
     end
 
     test "extracts the configured name" do
       {:ok, entries} = LDAP.groups({:ok, Map.put(@ldap, "group_name", "description")})
       assert [%Group{name: "A big group"}, %Group{name: "A small group"}] = Enum.sort(entries)
+    end
+
+    test "extracts the configured member ids" do
+      {:ok, entries} = LDAP.groups({:ok, Map.put(@ldap, "group_member", "description")})
+      assert [%Group{member_ids: ["A big group"]}, %Group{member_ids: ["A small group"]}] = Enum.sort(entries)
     end
   end
 end
