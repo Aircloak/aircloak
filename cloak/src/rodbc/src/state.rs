@@ -55,8 +55,8 @@ impl<'a> State<'a> {
         match t {
             SQL_INTEGER | SQL_SMALLINT | SQL_EXT_TINYINT | SQL_EXT_BIT => TYPE_I32,
             SQL_EXT_BIGINT => TYPE_I64,
-            SQL_FLOAT | SQL_REAL => TYPE_F32,
-            SQL_DOUBLE => TYPE_F64,
+            SQL_REAL => TYPE_F32,
+            SQL_FLOAT | SQL_DOUBLE => TYPE_F64,
             SQL_EXT_BINARY | SQL_EXT_VARBINARY | SQL_EXT_LONGVARBINARY => TYPE_BIN,
             SQL_EXT_WCHAR | SQL_EXT_WVARCHAR | SQL_EXT_WLONGVARCHAR =>
                 if wstr_as_bin { TYPE_BIN } else { TYPE_STR },
