@@ -1,6 +1,15 @@
-dn: cn=alice,dc=example,dc=org
+dn: ou=users,dc=example,dc=org
+objectClass: organizationalUnit
+
+dn: cn=alice,ou=users,dc=example,dc=org
 objectClass: simpleSecurityObject
 objectClass: organizationalRole
 cn: alice
-description: A regular Alice
-userPassword:: e1NTSEF9eUZBUEkvei9RYTFmU2VnQ2UyVzdUU1Z0UXFqaEt3bUg=
+description: An Alice
+userPassword:: e1NTSEF9WDVsTnZ0Sk5GZHFPbUFMM3R2ZGVvRTVQTlJjSi94c08=
+
+dn: cn=bob,ou=users,dc=example,dc=org
+objectClass: simpleSecurityObject
+objectClass: organizationalRole
+cn: bob
+userPassword:: e1NTSEF9WDVsTnZ0Sk5GZHFPbUFMM3R2ZGVvRTVQTlJjSi94c08=

@@ -1,4 +1,6 @@
 defmodule Air.Service.LDAP.Test do
+  # This test depends on the contents of ldap/bootstrap.ldif which is treated as a fixture
+
   use ExUnit.Case, async: true
 
   alias Air.Service.LDAP
@@ -15,7 +17,7 @@ defmodule Air.Service.LDAP.Test do
     "port" => @regular_port,
     "bind_dn" => @admin,
     "password" => @admin_pass,
-    "user_base" => "dc=example,dc=org"
+    "user_base" => "ou=users,dc=example,dc=org"
   }
 
   describe "connecting" do
@@ -61,21 +63,29 @@ defmodule Air.Service.LDAP.Test do
   end
 
   describe ".users" do
-    test "finds all objects by default" do
+    test "finds all objects with valid login by default" do
       {:ok, entries} = LDAP.users({:ok, @ldap})
 
       assert [
-               %User{dn: @admin, name: @admin},
-               %User{dn: "dc=example,dc=org", name: "dc=example,dc=org"}
+               %User{
+                 login: "alice",
+                 dn: "cn=alice,ou=users,dc=example,dc=org",
+                 name: "cn=alice,ou=users,dc=example,dc=org"
+               },
+               %User{
+                 login: "bob",
+                 dn: "cn=bob,ou=users,dc=example,dc=org",
+                 name: "cn=bob,ou=users,dc=example,dc=org"
+               }
              ] = Enum.sort(entries)
     end
 
     test "extracts the name field as configured" do
-      {:ok, entries} = LDAP.users({:ok, Map.put(@ldap, "user_name", "cn")})
+      {:ok, entries} = LDAP.users({:ok, Map.put(@ldap, "user_name", "description")})
 
       assert [
-               %User{dn: @admin, name: "admin"},
-               %User{dn: "dc=example,dc=org", name: "dc=example,dc=org"}
+               %User{login: "alice", dn: "cn=alice,ou=users,dc=example,dc=org", name: "An Alice"},
+               %User{login: "bob", dn: "cn=bob,ou=users,dc=example,dc=org", name: "cn=bob,ou=users,dc=example,dc=org"}
              ] = Enum.sort(entries)
     end
   end

@@ -84,7 +84,9 @@
         "bind_dn": {"type": "string"},
         "password": {"type": "string"},
         "encryption": {"type": "string", "enum": ["plain", "ssl", "start_tls"]},
-        "user_base": {"type": "string", "minLength": 1}
+        "user_base": {"type": "string", "minLength": 1},
+        "user_name": {"type": "string", "minLength": 1},
+        "user_login": {"type": "string", "minLength": 1}
       },
       "additionalProperties": false,
       "required": ["host", "port", "user_base"]

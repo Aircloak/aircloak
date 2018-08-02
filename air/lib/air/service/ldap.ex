@@ -19,20 +19,34 @@ defmodule Air.Service.LDAP do
     with_bound_connection(config, fn conn, config ->
       :eldap.search(conn, base: config["user_base"], filter: :eldap.present('objectClass'))
       |> case do
-        {:ok, {:eldap_search_result, results, _}} -> {:ok, Enum.map(results, &build_user(config, &1))}
-        _ -> {:error, :search_failed}
+        {:ok, {:eldap_search_result, results, _}} ->
+          {:ok, results |> Enum.map(&build_user(config, &1)) |> Enum.reject(&is_nil(&1.login))}
+
+        _ ->
+          {:error, :search_failed}
       end
     end)
   end
 
   defp build_user(config, {:eldap_entry, dn, fields}) do
+    %User{dn: to_string(dn), name: user_name(config, fields, dn), login: user_login(config, fields)}
+  end
+
+  defp user_name(config, fields, dn) do
     case config["user_name"] do
-      nil -> %User{dn: to_string(dn), name: to_string(dn)}
-      name -> %User{dn: to_string(dn), name: attribute(fields, name, to_string(dn))}
+      nil -> to_string(dn)
+      name -> attribute(fields, name, to_string(dn))
     end
   end
 
-  defp attribute(fields, name, default) do
+  defp user_login(config, fields) do
+    case config["user_login"] do
+      nil -> attribute(fields, "cn")
+      name -> attribute(fields, name)
+    end
+  end
+
+  defp attribute(fields, name, default \\ nil) do
     name = to_charlist(name)
 
     fields
