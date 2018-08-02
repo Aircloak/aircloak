@@ -4,7 +4,7 @@ defmodule Air.Service.LDAP.Test do
   use ExUnit.Case, async: true
 
   alias Air.Service.LDAP
-  alias Air.Service.LDAP.User
+  alias Air.Service.LDAP.{User, Group}
 
   @regular_port 389
   @ssl_port 636
@@ -17,7 +17,8 @@ defmodule Air.Service.LDAP.Test do
     "port" => @regular_port,
     "bind_dn" => @admin,
     "password" => @admin_pass,
-    "user_base" => "ou=users,dc=example,dc=org"
+    "user_base" => "ou=users,dc=example,dc=org",
+    "group_base" => "ou=groups,dc=example,dc=org"
   }
 
   describe "connecting" do
@@ -87,6 +88,18 @@ defmodule Air.Service.LDAP.Test do
                %User{login: "alice", dn: "cn=alice,ou=users,dc=example,dc=org", name: "An Alice"},
                %User{login: "bob", dn: "cn=bob,ou=users,dc=example,dc=org", name: "cn=bob,ou=users,dc=example,dc=org"}
              ] = Enum.sort(entries)
+    end
+  end
+
+  describe ".groups" do
+    test "finds all object with valid name by default" do
+      {:ok, entries} = LDAP.groups({:ok, @ldap})
+      assert [%Group{name: "group1"}, %Group{name: "group2"}] = Enum.sort(entries)
+    end
+
+    test "extracts the configured name" do
+      {:ok, entries} = LDAP.groups({:ok, Map.put(@ldap, "group_name", "description")})
+      assert [%Group{name: "A big group"}, %Group{name: "A small group"}] = Enum.sort(entries)
     end
   end
 end

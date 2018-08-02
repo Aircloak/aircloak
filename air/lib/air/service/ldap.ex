@@ -1,7 +1,7 @@
 defmodule Air.Service.LDAP do
   require Aircloak.DeployConfig
 
-  alias __MODULE__.User
+  alias __MODULE__.{User, Group}
 
   @timeout :timer.seconds(5)
 
@@ -17,8 +17,7 @@ defmodule Air.Service.LDAP do
 
   def users(config \\ Aircloak.DeployConfig.fetch("ldap")) do
     with_bound_connection(config, fn conn, config ->
-      :eldap.search(conn, base: config["user_base"], filter: :eldap.present('objectClass'))
-      |> case do
+      case :eldap.search(conn, base: config["user_base"], filter: :eldap.present('objectClass')) do
         {:ok, {:eldap_search_result, results, _}} ->
           {:ok, results |> Enum.map(&build_user(config, &1)) |> Enum.reject(&is_nil(&1.login))}
 
@@ -26,6 +25,22 @@ defmodule Air.Service.LDAP do
           {:error, :search_failed}
       end
     end)
+  end
+
+  def groups(config \\ Aircloak.DeployConfig.fetch("ldap")) do
+    with_bound_connection(config, fn conn, config ->
+      case :eldap.search(conn, base: config["group_base"], filter: :eldap.present('objectClass')) do
+        {:ok, {:eldap_search_result, results, _}} ->
+          {:ok, results |> Enum.map(&build_group(config, &1)) |> Enum.reject(&is_nil(&1.name))}
+
+        _ ->
+          {:error, :search_failed}
+      end
+    end)
+  end
+
+  defp build_group(config, {:eldap_entry, dn, fields}) do
+    %Group{dn: to_string(dn), name: attribute(fields, Map.get(config, "group_name", "cn")), member_dns: []}
   end
 
   defp build_user(config, {:eldap_entry, dn, fields}) do

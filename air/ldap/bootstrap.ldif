@@ -13,3 +13,21 @@ objectClass: simpleSecurityObject
 objectClass: organizationalRole
 cn: bob
 userPassword:: e1NTSEF9WDVsTnZ0Sk5GZHFPbUFMM3R2ZGVvRTVQTlJjSi94c08=
+
+dn: ou=groups,dc=example,dc=org
+objectClass: organizationalUnit
+
+dn: cn=group1,ou=groups,dc=example,dc=org
+objectClass: posixGroup
+cn: group1
+description: A big group
+gidNumber: 1000
+memberUid: alice
+memberUid: bob
+
+dn: cn=group2,ou=groups,dc=example,dc=org
+objectClass: posixGroup
+cn: group2
+description: A small group
+gidNumber: 1001
+memberUid: alice
