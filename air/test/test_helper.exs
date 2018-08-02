@@ -1,4 +1,4 @@
-ExUnit.start(exclude: [:disabled])
+ExUnit.start(exclude: [:disabled, :pending])
 
 Mix.Task.run("ecto.create", ~w(-r Air.Repo --quiet))
 Mix.Task.run("ecto.migrate", ~w(-r Air.Repo --quiet))

@@ -81,6 +81,11 @@ defmodule Air.Service.LDAP.Test do
                %User{login: "An Alice", dn: "cn=alice,ou=users,dc=example,dc=org", name: "An Alice"}
              ] = Enum.sort(entries)
     end
+
+    test "extracts users by filter" do
+      assert {:ok, [%User{login: "alice"}]} =
+               LDAP.users({:ok, Map.merge(@ldap, %{"user_filter" => "(description=An Alice)"})})
+    end
   end
 
   describe ".groups" do
@@ -101,6 +106,11 @@ defmodule Air.Service.LDAP.Test do
     test "extracts the configured member ids" do
       {:ok, entries} = LDAP.groups({:ok, Map.put(@ldap, "group_member", "description")})
       assert [%Group{member_ids: ["A big group"]}, %Group{member_ids: ["A small group"]}] = Enum.sort(entries)
+    end
+
+    test "extracts groups by filter" do
+      assert {:ok, [%Group{name: "group1"}]} =
+               LDAP.groups({:ok, Map.merge(@ldap, %{"group_filter" => "(description=A big group)"})})
     end
   end
 end

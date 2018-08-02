@@ -1,7 +1,7 @@
 defmodule Air.Service.LDAP do
   require Aircloak.DeployConfig
 
-  alias __MODULE__.{User, Group}
+  alias __MODULE__.{User, Group, FilterParser}
 
   @timeout :timer.seconds(5)
 
@@ -17,7 +17,7 @@ defmodule Air.Service.LDAP do
 
   def users(config \\ Aircloak.DeployConfig.fetch("ldap")) do
     with_bound_connection(config, fn conn, config ->
-      with {:ok, results} <- search(conn, base: config["user_base"], filter: :eldap.present('objectClass')) do
+      with {:ok, results} <- search(conn, base: config["user_base"], filter: parse_filter(config["user_filter"])) do
         {:ok, results |> Enum.map(&build_user(config, &1)) |> Enum.reject(&is_nil(&1.login))}
       end
     end)
@@ -25,10 +25,17 @@ defmodule Air.Service.LDAP do
 
   def groups(config \\ Aircloak.DeployConfig.fetch("ldap")) do
     with_bound_connection(config, fn conn, config ->
-      with {:ok, results} <- search(conn, base: config["group_base"], filter: :eldap.present('objectClass')) do
+      with {:ok, results} <- search(conn, base: config["group_base"], filter: parse_filter(config["group_filter"])) do
         {:ok, results |> Enum.map(&build_group(config, &1)) |> Enum.reject(&is_nil(&1.name))}
       end
     end)
+  end
+
+  defp parse_filter(filter) do
+    case FilterParser.parse(filter || "") do
+      {:ok, filter} -> filter
+      :error -> :eldap.present('objectClass')
+    end
   end
 
   defp search(conn, options) do
