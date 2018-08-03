@@ -125,15 +125,17 @@ defmodule Air.Service.User do
     user
   end
 
-  @doc "Updates the given user."
+  @doc "Updates the given user. Will raise when trying to update an LDAP-based user."
   @spec update(User.t(), map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t() | :forbidden_no_active_admin}
-  def update(user, params),
-    do:
-      commit_if_active_last_admin(fn ->
-        user
-        |> user_changeset(params)
-        |> Repo.update()
-      end)
+  def update(%{ldap_dn: ldap_dn}, _params) when not is_nil(ldap_dn), do: raise("LDAP user updated with regular update")
+
+  def update(user, params), do: do_update(user, params)
+
+  @doc "Updates the given LDAP user. Will raise when trying to update a non-LDAP-based user."
+  @spec update_ldap(User.t(), map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t() | :forbidden_no_active_admin}
+  def update_ldap(%{ldap_dn: nil}, _params), do: raise("Regular user updated with LDAP update")
+
+  def update_ldap(user, params), do: do_update(user, params)
 
   @doc "Updates the profile of the given user, validating user's password."
   @spec update_profile(User.t(), map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
@@ -338,6 +340,14 @@ defmodule Air.Service.User do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp do_update(user, params) do
+    commit_if_active_last_admin(fn ->
+      user
+      |> user_changeset(params)
+      |> Repo.update()
+    end)
+  end
 
   defp random_string, do: Base.encode16(:crypto.strong_rand_bytes(10))
 

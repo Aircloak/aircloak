@@ -42,6 +42,18 @@ defmodule Air.Service.UserTest do
       assert {:error, _} = User.login("email@example.com", "new password")
     end
 
+    test "update cannot change LDAP users" do
+      assert_raise(RuntimeError, fn ->
+        User.update(TestRepoHelper.create_user!(%{ldap_dn: "some dn"}), %{login: "new login"})
+      end)
+    end
+
+    test "update_ldap cannot change non-LDAP users" do
+      assert_raise(RuntimeError, fn ->
+        User.update_ldap(TestRepoHelper.create_user!(%{ldap_dn: nil}), %{login: "new login"})
+      end)
+    end
+
     test "requires name to be two or more characters",
       do: assert(error_on(&User.create/1, :name, "a") == "should be at least 2 character(s)")
 

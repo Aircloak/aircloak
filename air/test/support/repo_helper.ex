@@ -12,7 +12,14 @@ defmodule Air.TestRepoHelper do
         name: random_string()
       }
       |> Map.merge(additional_changes)
-      |> User.create!()
+
+    user =
+      if user[:ldap_dn] do
+        {:ok, user} = User.create_ldap(user)
+        user
+      else
+        User.create!(user)
+      end
 
     password_token = User.reset_password_token(user)
     password = additional_changes[:password] || "password1234"
