@@ -13,6 +13,8 @@ defmodule Air.Service.User do
   @optional_fields ~w(decimal_sep decimal_digits thousand_sep)a
   @password_reset_salt "4egg+HOtabCGwsCsRVEBIg=="
 
+  @type change_options :: [ldap: true | false | :any]
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -126,30 +128,35 @@ defmodule Air.Service.User do
   end
 
   @doc "Updates the given user. Will raise when trying to update an LDAP-based user."
-  @spec update(User.t(), map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t() | :forbidden_no_active_admin}
-  def update(%{ldap_dn: ldap_dn}, _params) when not is_nil(ldap_dn), do: raise("LDAP user updated with regular update")
+  @spec update(User.t(), map, change_options) ::
+          {:ok, User.t()} | {:error, Ecto.Changeset.t() | :forbidden_no_active_admin}
+  def update(user, params, options \\ []) do
+    check_ldap!(user, options)
 
-  def update(user, params), do: do_update(user, params)
-
-  @doc "Updates the given LDAP user. Will raise when trying to update a non-LDAP-based user."
-  @spec update_ldap(User.t(), map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t() | :forbidden_no_active_admin}
-  def update_ldap(%{ldap_dn: nil}, _params), do: raise("Regular user updated with LDAP update")
-
-  def update_ldap(user, params), do: do_update(user, params)
+    commit_if_active_last_admin(fn ->
+      user
+      |> user_changeset(params)
+      |> Repo.update()
+    end)
+  end
 
   @doc "Updates the profile of the given user, validating user's password."
-  @spec update_profile(User.t(), map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
-  def update_profile(user, params),
-    do:
-      user
-      |> user_changeset(Map.take(params, ~w(name login decimal_sep thousand_sep decimal_digits)))
-      |> merge(password_changeset(user, params))
-      |> Repo.update()
+  @spec update_profile(User.t(), map, change_options) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  def update_profile(user, params, options \\ []) do
+    check_ldap!(user, options)
+
+    user
+    |> user_changeset(Map.take(params, ~w(name login decimal_sep thousand_sep decimal_digits)))
+    |> merge(password_changeset(user, params))
+    |> Repo.update()
+  end
 
   @doc "Deletes the given user in the background."
-  @spec delete_async(User.t(), (() -> any), (any -> any)) :: :ok
-  def delete_async(user, success_callback, failure_callback),
-    do: commit_if_active_last_admin_async(fn -> Repo.delete(user) end, success_callback, failure_callback)
+  @spec delete_async(User.t(), (() -> any), (any -> any), change_options) :: :ok
+  def delete_async(user, success_callback, failure_callback, options \\ []) do
+    check_ldap!(user, options)
+    commit_if_active_last_admin_async(fn -> Repo.delete(user) end, success_callback, failure_callback)
+  end
 
   @doc "Deletes the given user, raises on error."
   @spec delete!(User.t()) :: User.t()
@@ -163,22 +170,26 @@ defmodule Air.Service.User do
   def delete(user), do: commit_if_active_last_admin(fn -> Repo.delete(user) end)
 
   @doc "Disables a user account"
-  @spec disable(User.t()) :: {:ok, User.t()} | {:error, :forbidden_no_active_admin}
-  def disable(user),
-    do:
-      commit_if_active_last_admin(fn ->
-        user
-        |> cast(%{enabled: false}, [:enabled])
-        |> Repo.update()
-      end)
+  @spec disable(User.t(), change_options) :: {:ok, User.t()} | {:error, :forbidden_no_active_admin}
+  def disable(user, options \\ []) do
+    check_ldap!(user, options)
+
+    commit_if_active_last_admin(fn ->
+      user
+      |> cast(%{enabled: false}, [:enabled])
+      |> Repo.update()
+    end)
+  end
 
   @doc "Enables a user account"
-  @spec enable!(User.t()) :: User.t()
-  def enable!(user),
-    do:
-      user
-      |> cast(%{enabled: true}, [:enabled])
-      |> Repo.update!()
+  @spec enable!(User.t(), change_options) :: User.t()
+  def enable!(user, options \\ []) do
+    check_ldap!(user, options)
+
+    user
+    |> cast(%{enabled: true}, [:enabled])
+    |> Repo.update!()
+  end
 
   @doc "Returns the empty changeset for the new user."
   @spec empty_changeset() :: Ecto.Changeset.t()
@@ -341,14 +352,6 @@ defmodule Air.Service.User do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp do_update(user, params) do
-    commit_if_active_last_admin(fn ->
-      user
-      |> user_changeset(params)
-      |> Repo.update()
-    end)
-  end
-
   defp random_string, do: Base.encode16(:crypto.strong_rand_bytes(10))
 
   defp user_changeset(user, params),
@@ -440,6 +443,17 @@ defmodule Air.Service.User do
       timeout: :timer.hours(1)
     )
   end
+
+  defp check_ldap!(user, options) do
+    case {ldap_user?(user), Keyword.get(options, :ldap, false)} do
+      {_, :any} -> user
+      {true, false} -> raise "Accidental LDAP user change"
+      {false, true} -> raise "Accidental non-LDAP user change"
+      _ -> user
+    end
+  end
+
+  defp ldap_user?(user), do: not is_nil(user.ldap_dn)
 
   # -------------------------------------------------------------------
   # GenServer callbacks

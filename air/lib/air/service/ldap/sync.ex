@@ -21,6 +21,6 @@ defmodule Air.Service.LDAP.Sync do
   end
 
   defp update_user!(air_user, ldap_user) do
-    {:ok, _} = Air.Service.User.update_ldap(air_user, %{login: ldap_user.login, name: ldap_user.name})
+    {:ok, _} = Air.Service.User.update(air_user, %{login: ldap_user.login, name: ldap_user.name}, ldap: true)
   end
 end

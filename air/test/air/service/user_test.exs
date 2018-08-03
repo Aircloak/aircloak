@@ -48,10 +48,15 @@ defmodule Air.Service.UserTest do
       end)
     end
 
-    test "update_ldap cannot change non-LDAP users" do
+    test "update with ldap: true cannot change non-LDAP users" do
       assert_raise(RuntimeError, fn ->
-        User.update_ldap(TestRepoHelper.create_user!(%{ldap_dn: nil}), %{login: "new login"})
+        User.update(TestRepoHelper.create_user!(%{ldap_dn: nil}), %{login: "new login"}, ldap: true)
       end)
+    end
+
+    test "update with ldap: true can change LDAP users" do
+      assert {:ok, %{login: "new login"}} =
+               User.update(TestRepoHelper.create_user!(%{ldap_dn: "some dn"}), %{login: "new login"}, ldap: true)
     end
 
     test "requires name to be two or more characters",
