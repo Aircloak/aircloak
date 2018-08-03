@@ -1,5 +1,5 @@
 Query export from Aircloak Insights - version <%= AirWeb.SharedView.version() %>
-Export by <%= get_in(@data, [:metadata, :user]) %> (<%= get_in(@data, [:metadata, :email]) %>) on <%= Timex.now %>
+Export by <%= get_in(@data, [:metadata, :user]) %> (<%= get_in(@data, [:metadata, :login]) %>) on <%= Timex.now %>
 
 
 <%= get_in(@data, [:statement]) %>

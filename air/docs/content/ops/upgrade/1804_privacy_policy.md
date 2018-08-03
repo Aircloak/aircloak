@@ -35,7 +35,7 @@ __Data Protection Officer__
 The following information is recorded by Aircloak Insights:
 
 ### Personal information
-Your name and email address as part of your user profile as well as other Aircloak Insights-specific system settings.
+Your name and login as part of your user profile as well as other Aircloak Insights-specific system settings.
 
 ### Query history
 The queries you execute in Aircloak Insights along with related metadata and the query results are recorded.

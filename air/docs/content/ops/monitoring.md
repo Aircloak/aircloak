@@ -21,7 +21,7 @@ The endpoint presents data as the following JSON structure:
   "users": [
     {
       "name": "name of the user",
-      "email": "email of the user",
+      "login": "login of the user",
       "groups": ["name of group the user belongs to"]
     },
     ...

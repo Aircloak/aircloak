@@ -8,18 +8,18 @@ defmodule Air.Service.UserTest do
   describe "user operations" do
     test "required fields" do
       assert errors_on(&User.create/1, %{}) == [
-               email: "can't be blank",
+               login: "can't be blank",
                name: "can't be blank"
              ]
     end
 
     test "requires non-empty login" do
-      assert(error_on(&User.create/1, :email, "") == "can't be blank")
+      assert(error_on(&User.create/1, :login, "") == "can't be blank")
     end
 
     test "create cannot set the password" do
       User.create(%{
-        email: "email@example.com",
+        login: "email@example.com",
         name: "Person",
         password: "password1234",
         password_confirmation: "password1234"
@@ -257,24 +257,24 @@ defmodule Air.Service.UserTest do
     end
 
     test "cannot change fields", %{user: user, token: token} do
-      old_email = user.email
+      old_login = user.login
 
-      assert {:ok, %{email: ^old_email}} =
+      assert {:ok, %{login: ^old_login}} =
                User.reset_password(token, %{
                  password: "password1234",
                  password_confirmation: "password1234",
-                 email: "new@email.com"
+                 login: "new@email.com"
                })
     end
 
     test "successful change", %{user: user, token: token} do
       assert {:ok, _} = User.reset_password(token, %{password: "new password", password_confirmation: "new password"})
-      assert {:ok, _} = User.login(user.email, "new password")
+      assert {:ok, _} = User.login(user.login, "new password")
     end
 
     test "incorrect confirmation", %{user: user, token: token} do
       assert {:error, _} = User.reset_password(token, %{password: "new password", password_confirmation: "other"})
-      assert {:error, _} = User.login(user.email, "new password")
+      assert {:error, _} = User.login(user.login, "new password")
     end
   end
 

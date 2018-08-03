@@ -8,7 +8,7 @@ defmodule Air.TestRepoHelper do
   def create_user!(additional_changes \\ %{}) do
     user =
       %{
-        email: "#{random_string()}@aircloak.com",
+        login: "#{random_string()}@aircloak.com",
         name: random_string()
       }
       |> Map.merge(additional_changes)

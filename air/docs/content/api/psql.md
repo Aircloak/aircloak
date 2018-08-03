@@ -34,7 +34,7 @@ Where:
 - `<PSQL-PORT>` is the port configured during installation of Insights Air. The default value is `8432`.
 - `<DATA-SOURCE-NAME>` is the name of the data source you want to query. It is the same as the name used in the list of
   available data sources you are shown when accessing the Insights Air web interface.
-- `<USER-NAME>` is the email address you use as your username when logging into the Insights Air platform.
+- `<USER-NAME>` is the login you use when logging into the Insights Air platform.
 
 If you are prompted for your password when running this command, and subsequently see a prompt along the lines of what
 is shown below, then everything works as expected.
