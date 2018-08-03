@@ -274,8 +274,8 @@ defmodule Cloak.Query.Anonymizer do
     {mean + noise * sd_scale, %{anonymizer | rngs: Enum.reverse(rngs)}}
   end
 
-  # Produces random number in the given limits. The number is the average of uniform-distributed numbers
-  # in the given limits _per noise layer_.
+  # Produces uniformly-distributed random number in the interval [min, max).
+  # The number is computed from uniformly-distributed numbers generated _per noise layer_.
   defp add_uniform_noise(%{rngs: rngs} = anonymizer, {min, max}) do
     {noise, rngs} =
       Enum.reduce(rngs, {0, []}, fn rng, {noise, rngs} ->
@@ -283,7 +283,9 @@ defmodule Cloak.Query.Anonymizer do
         {noise + sample, [rng | rngs]}
       end)
 
-    {min + (max - min) * noise / Enum.count(rngs), %{anonymizer | rngs: Enum.reverse(rngs)}}
+    # We assume fractional part is uniformly-distributed!
+    fractional_noise = noise - Float.floor(noise)
+    {min + (max - min) * fractional_noise, %{anonymizer | rngs: Enum.reverse(rngs)}}
   end
 
   defp gauss(rng) do
