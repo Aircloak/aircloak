@@ -42,7 +42,7 @@ defmodule IntegrationTest.Manager do
 
     user =
       Air.Service.User.create!(%{
-        email: "user_#{:erlang.unique_integer([:positive])}@aircloak.com",
+        login: "user_#{:erlang.unique_integer([:positive])}@aircloak.com",
         name: "user_#{:erlang.unique_integer([:positive])}",
         groups: [admin_group.id]
       })
