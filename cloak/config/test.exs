@@ -23,24 +23,21 @@ config :cloak, :anonymizer,
   # The minimum absolute value of the noisy lower bound.
   low_count_absolute_lower_bound: 2,
 
-  # The mean and standard deviation for the count of outliers dropped, from the top of the collection,
+  # The min/max limits for the count of outliers dropped, from the top of the collection,
   # during the anonymized aggregation of values. The outliers are replaced with the noisy
   # average value for the top of the remaining users in the collection.
-  outliers_count: {4, 0},
+  outliers_count: {4, 4},
 
-  # The minimum and maximum amounts of dropped outliers or top values.
-  group_limits: {1, 6},
-
-  # The mean and standard deviation for the count of items at the top of a collection,
+  # The min/max limits for the count of items at the top of a collection,
   # used for computing the average value of the top.
-  top_count: {5, 0},
+  top_count: {5, 5},
 
   # The standard deviation for the noisy top average added to summed values.
   sum_noise_sigma: 0,
 
-  # The minimum scale factor for the `sum_noise_sigma`.
-  # Takes the form: {lower_bound, average_factor, top_average_factor}
-  sum_noise_sigma_scale_params: {0, 0, 0},
+  # The scale factor for the `sum_noise_sigma`.
+  # Takes the form: {average_factor, top_average_factor}
+  sum_noise_sigma_scale_params: {0, 0},
 
   # This values specifies the isolating factor threshold. See `Isolating columns` in anonymization.md.
   isolating_column_threshold: 1

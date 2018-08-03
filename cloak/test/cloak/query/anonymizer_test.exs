@@ -170,7 +170,7 @@ defmodule Cloak.Query.AnonimyzerTest do
       [-3]
     ]
 
-    assert 2 = Anonymizer.new([MapSet.new()]) |> Anonymizer.median(rows) |> round()
+    assert 1 = Anonymizer.new([MapSet.new()]) |> Anonymizer.median(rows) |> round()
   end
 
   test "same noise layers are collapsed" do
@@ -181,14 +181,12 @@ defmodule Cloak.Query.AnonimyzerTest do
     assert anonymizer1.rngs == anonymizer2.rngs
   end
 
-  test "min/max/median/avg sanity check" do
+  test "min/max sanity check" do
     data = [1, -1, -10, 40, 2, 5, 6, 6, 7, 10, 10, -2, 12, -6, 7, 6, 1, 9]
     anonymizer = Anonymizer.new([MapSet.new()])
     min = Anonymizer.min(anonymizer, Enum.map(data, &{:min, &1}))
     max = Anonymizer.max(anonymizer, Enum.map(data, &{:max, &1}))
-    median = Anonymizer.median(anonymizer, Enum.flat_map(data, &[[&1], [&1]]))
-    assert min < median
-    assert median < max
+    assert min < max
   end
 
   test "min/max/median return nil on insuficient data" do
