@@ -2,7 +2,7 @@
   <thead>
     <tr>
       <th>Name</th>
-      <th>Email</th>
+      <th>Login</th>
       <th>Groups</th>
       <th>Data sources</th>
       <th>Role</th>
@@ -18,7 +18,7 @@
     <%= for user <- @users do %>
       <tr>
         <td><%= user.name %></td>
-        <td><%= user.email %></td>
+        <td><%= user.login %></td>
         <td><%= AirWeb.Admin.GroupView.names(user.groups) %></td>
         <td><%= Map.get(@data_sources_count, user.id, 0) %></td>
         <td>

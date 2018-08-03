@@ -121,7 +121,7 @@ defmodule Air.Service.WarningsTest do
   defp add_user(group) do
     TestRepoHelper.create_user!(%{
       name: "user_#{:erlang.unique_integer()}",
-      email: "random_#{:erlang.unique_integer()}@example.com",
+      login: "random_#{:erlang.unique_integer()}@example.com",
       groups: [group.id]
     })
   end

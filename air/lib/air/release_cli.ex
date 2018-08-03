@@ -3,14 +3,14 @@ defmodule Air.ReleaseCLI do
 
   alias Air.{Repo, Schemas, Service}
 
-  @doc "Prints a password reset token for the user with the given email."
+  @doc "Prints a password reset token for the user with the given login."
   @spec reset_password(String.t()) :: :ok
-  def reset_password(email) do
+  def reset_password(login) do
     Schemas.User
-    |> Repo.get_by(email: to_string(email))
+    |> Repo.get_by(login: to_string(login))
     |> case do
       nil ->
-        IO.puts("A user with that email does not exist.")
+        IO.puts("A user with that login does not exist.")
 
       user ->
         token = Service.User.reset_password_token(user)

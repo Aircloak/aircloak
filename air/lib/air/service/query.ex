@@ -302,7 +302,7 @@ defmodule Air.Service.Query do
             statement: query.statement,
             data_source_id: query.data_source_id,
             user_id: query.user.id,
-            user_email: query.user.email
+            user_login: query.user.login
           })
         ])
   end

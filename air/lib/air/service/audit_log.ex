@@ -5,7 +5,7 @@ defmodule Air.Service.AuditLog do
   import Ecto.Query, only: [limit: 2, from: 2]
   require Logger
 
-  @type email :: String.t()
+  @type login :: String.t()
   @type event_name :: String.t()
   @type data_source_id :: non_neg_integer
   @type user_id :: non_neg_integer
@@ -111,7 +111,7 @@ defmodule Air.Service.AuditLog do
   end
 
   @doc """
-  Returns user structs (names and emails) of users who have audit log
+  Returns user structs (names and logins) of users who have audit log
   events for a given filter group.
 
   Also includes all users present in the parameters, whether or not

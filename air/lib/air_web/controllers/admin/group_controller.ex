@@ -103,7 +103,7 @@ defmodule AirWeb.Admin.GroupController do
       selected_user_ids: selected_user_ids(params, group),
       selected_data_source_ids: selected_data_source_ids(params, group),
       all_data_sources: Enum.map(DataSource.all(), &{{&1.name, &1.description}, &1.id}),
-      all_users: Enum.map(User.all(), &{{&1.name, &1.email}, &1.id})
+      all_users: Enum.map(User.all(), &{{&1.name, &1.login}, &1.id})
     }
   end
 

@@ -45,7 +45,7 @@ defmodule AirWeb.Onboarding.UserController do
   # -------------------------------------------------------------------
 
   defp login(conn, params) do
-    login_params = Map.take(params, ["email", "password"])
+    login_params = Map.take(params, ["login", "password"])
     conn = put_session(conn, :return_path, admin_user_path(conn, :index))
     AirWeb.SessionController.create(conn, login_params)
   end

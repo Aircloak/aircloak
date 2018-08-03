@@ -20,7 +20,7 @@ defmodule AirWeb.Admin.UserController.Test do
     users = Enum.map(1..4, fn _ -> create_user!() end)
 
     users_html = login(admin) |> get("/admin/users") |> response(200)
-    Enum.each([admin | users], &assert(users_html =~ &1.email))
+    Enum.each([admin | users], &assert(users_html =~ &1.login))
   end
 
   test "accessing new and edit forms" do
@@ -33,14 +33,14 @@ defmodule AirWeb.Admin.UserController.Test do
   test "creating a user" do
     admin = create_admin_user!()
 
-    new_user_email = "foo@bar.baz"
+    new_user_login = "foo@bar.baz"
 
     conn =
       login(admin)
       |> post(
         "/admin/users",
         user: %{
-          email: new_user_email,
+          login: new_user_login,
           name: "foobarbaz",
           password: "password1234",
           password_confirmation: "password1234"
@@ -49,28 +49,28 @@ defmodule AirWeb.Admin.UserController.Test do
 
     assert redirected_to(conn) =~ ~r[admin/users/.*/edit]
     users_html = login(admin) |> get("/admin/users") |> response(200)
-    assert users_html =~ new_user_email
+    assert users_html =~ new_user_login
   end
 
   test "updating a user" do
     admin = create_admin_user!()
 
-    changed_email = "foo@bar.baz"
+    changed_login = "foo@bar.baz"
 
     conn =
       login(admin)
       |> put(
         "/admin/users/#{admin.id}",
         user: %{
-          email: changed_email,
+          login: changed_login,
           name: admin.name
         }
       )
 
     assert "/admin/users" == redirected_to(conn)
-    users_html = login(%{email: changed_email}) |> get("/admin/users") |> response(200)
-    assert users_html =~ changed_email
-    refute users_html =~ admin.email
+    users_html = login(%{login: changed_login}) |> get("/admin/users") |> response(200)
+    assert users_html =~ changed_login
+    refute users_html =~ admin.login
   end
 
   test "error is reported when updating tha last admin to non-admin status" do
@@ -92,7 +92,7 @@ defmodule AirWeb.Admin.UserController.Test do
 
     assert "/admin/users" == login(admin) |> delete("/admin/users/#{user.id}") |> redirected_to()
     users_html = login(admin) |> get("/admin/users") |> response(200)
-    refute users_html =~ user.email
+    refute users_html =~ user.login
   end
 
   test "disabling a user" do
@@ -134,7 +134,7 @@ defmodule AirWeb.Admin.UserController.Test do
     admin = create_admin_user!()
 
     assert login(admin)
-           |> put("/admin/users/99999", user: %{email: "some@email.com", name: "some name"})
+           |> put("/admin/users/99999", user: %{login: "some@email.com", name: "some name"})
            |> response(404)
   end
 

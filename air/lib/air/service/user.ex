@@ -7,7 +7,7 @@ defmodule Air.Service.User do
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
 
-  @required_fields ~w(email name)a
+  @required_fields ~w(login name)a
   @password_fields ~w(password password_confirmation)a
   @optional_fields ~w(decimal_sep decimal_digits thousand_sep)a
   @password_reset_salt "4egg+HOtabCGwsCsRVEBIg=="
@@ -17,9 +17,9 @@ defmodule Air.Service.User do
   # -------------------------------------------------------------------
 
   @doc "Authenticates the given user."
-  @spec login(String.t(), String.t(), %{atom => any}) :: {:ok, User.t()} | {:error, :invalid_email_or_password}
-  def login(email, password, meta \\ %{}) do
-    user = Repo.one(from(u in User, where: u.email == ^email, where: u.enabled))
+  @spec login(String.t(), String.t(), %{atom => any}) :: {:ok, User.t()} | {:error, :invalid_login_or_password}
+  def login(login, password, meta \\ %{}) do
+    user = Repo.one(from(u in User, where: u.login == ^login, where: u.enabled))
 
     cond do
       User.validate_password(user, password) ->
@@ -28,10 +28,10 @@ defmodule Air.Service.User do
 
       user ->
         AuditLog.log(user, "Failed login", meta)
-        {:error, :invalid_email_or_password}
+        {:error, :invalid_login_or_password}
 
       true ->
-        {:error, :invalid_email_or_password}
+        {:error, :invalid_login_or_password}
     end
   end
 
@@ -129,7 +129,7 @@ defmodule Air.Service.User do
   def update_profile(user, params),
     do:
       user
-      |> user_changeset(Map.take(params, ~w(name email decimal_sep thousand_sep decimal_digits)))
+      |> user_changeset(Map.take(params, ~w(name login decimal_sep thousand_sep decimal_digits)))
       |> merge(password_changeset(user, params))
       |> Repo.update()
 
@@ -335,12 +335,11 @@ defmodule Air.Service.User do
       user
       |> cast(params, @required_fields ++ @optional_fields)
       |> validate_required(@required_fields)
-      |> validate_format(:email, ~r/@/)
       |> validate_length(:name, min: 2)
       |> validate_length(:decimal_sep, is: 1)
       |> validate_length(:thousand_sep, is: 1)
       |> validate_number(:decimal_digits, greater_than_or_equal_to: 1, less_than_or_equal_to: 9)
-      |> unique_constraint(:email)
+      |> unique_constraint(:login)
       |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
 
   defp random_password_changeset(user) do
