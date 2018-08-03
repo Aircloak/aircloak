@@ -9,6 +9,7 @@ defmodule Air.Service.User do
 
   @required_fields ~w(login name)a
   @password_fields ~w(password password_confirmation)a
+  @ldap_fields ~w(ldap_dn)a
   @optional_fields ~w(decimal_sep decimal_digits thousand_sep)a
   @password_reset_salt "4egg+HOtabCGwsCsRVEBIg=="
 
@@ -84,6 +85,16 @@ defmodule Air.Service.User do
     %User{}
     |> user_changeset(params)
     |> merge(random_password_changeset(%User{}))
+    |> Repo.insert()
+  end
+
+  @doc "Creates a new LDAP user from the given parameters."
+  @spec create(map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  def create_ldap(params) do
+    %User{}
+    |> user_changeset(params)
+    |> merge(random_password_changeset(%User{}))
+    |> merge(ldap_changeset(%User{}, params))
     |> Repo.insert()
   end
 
@@ -341,6 +352,12 @@ defmodule Air.Service.User do
       |> validate_number(:decimal_digits, greater_than_or_equal_to: 1, less_than_or_equal_to: 9)
       |> unique_constraint(:login)
       |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
+
+  defp ldap_changeset(user, params) do
+    user
+    |> cast(params, @ldap_fields)
+    |> validate_required(@ldap_fields)
+  end
 
   defp random_password_changeset(user) do
     password = :crypto.strong_rand_bytes(64) |> Base.encode64()

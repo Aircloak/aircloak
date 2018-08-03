@@ -28,6 +28,14 @@ defmodule Air.Service.UserTest do
       assert {:error, _} = User.login("email@example.com", "password1234")
     end
 
+    test "create cannot set ldap_dn" do
+      assert {:ok, %{ldap_dn: nil}} = User.create(%{login: "login", name: "Person", ldap_dn: "some dn"})
+    end
+
+    test "create_ldap can set ldap_dn" do
+      assert {:ok, %{ldap_dn: "some dn"}} = User.create_ldap(%{login: "login", name: "Person", ldap_dn: "some dn"})
+    end
+
     test "admin update cannot set the password" do
       user = TestRepoHelper.create_user!(%{password: "password1234"})
       User.update(user, %{password: "new password", password_confirmation: "new password"})

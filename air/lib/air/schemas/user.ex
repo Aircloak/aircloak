@@ -17,6 +17,7 @@ defmodule Air.Schemas.User do
     field(:hashed_password, :string)
     field(:name, :string)
     field(:pseudonym, :string)
+    field(:ldap_dn, :string)
     field(:enabled, :boolean)
 
     has_many(:queries, Air.Schemas.Query)
