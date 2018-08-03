@@ -1,0 +1,8 @@
+{
+  "database": {
+    "host": "air_db",
+    "user": "air_db",
+    "name": "air_db",
+    "password": "air_db"
+  }
+}

@@ -22,6 +22,7 @@ chmod -R o+w /persist
 ln -nfs /aircloak/cloak/lib/cloak-$VERSION/priv /aircloak/cloak/priv
 
 mkdir -p /aircloak/cloak/priv/odbc/drivers
+ln -s /opt/mapr/drill /aircloak/cloak/priv/odbc/drivers/drill
 if [ ! -z "$(ls /odbc_drivers)" ]; then cp -rp /odbc_drivers/* /aircloak/cloak/priv/odbc/drivers; fi
 
 exec gosu deployer /aircloak/cloak/bin/cloak foreground

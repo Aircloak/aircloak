@@ -22,7 +22,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   @spec normalize(Parser.parsed_query()) :: Parser.parsed_query()
   def normalize(ast) do
     ast
-    |> apply_to_subqueries(&rewrite_distinct/1)
+    |> Helpers.apply_bottom_up(&rewrite_distinct/1)
     |> Helpers.apply_bottom_up(&rewrite_not_in/1)
     |> Helpers.apply_bottom_up(&rewrite_not/1)
     |> Helpers.apply_bottom_up(&rewrite_in/1)
@@ -74,6 +74,8 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   # -------------------------------------------------------------------
   # DISTINCT rewriting
   # -------------------------------------------------------------------
+
+  defp rewrite_distinct(%Query{type: :anonymized} = query), do: query
 
   defp rewrite_distinct(%{distinct?: true, group_by: [_ | _], order_by: [{column, _dir, _nulls} | _]}) do
     raise CompilationError,
@@ -166,14 +168,6 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   # -------------------------------------------------------------------
   # Helpers
   # -------------------------------------------------------------------
-
-  defp apply_to_subqueries(query, function) do
-    update_in(
-      query,
-      [Query.Lenses.direct_subqueries() |> Lens.key(:ast)],
-      &Helpers.apply_bottom_up(&1, function)
-    )
-  end
 
   defp location({_, _, _, location}), do: location
   defp location(_), do: nil

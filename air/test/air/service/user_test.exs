@@ -6,21 +6,20 @@ defmodule Air.Service.UserTest do
   alias Air.Service.User
 
   describe "user operations" do
-    test "required fields",
-      do:
-        assert(
-          errors_on(&User.create/1, %{}) == [
-            email: "can't be blank",
-            name: "can't be blank"
-          ]
-        )
+    test "required fields" do
+      assert errors_on(&User.create/1, %{}) == [
+               login: "can't be blank",
+               name: "can't be blank"
+             ]
+    end
 
-    test "validates email address",
-      do: assert(error_on(&User.create/1, :email, "invalid_email") == "has invalid format")
+    test "requires non-empty login" do
+      assert(error_on(&User.create/1, :login, "") == "can't be blank")
+    end
 
     test "create cannot set the password" do
       User.create(%{
-        email: "email@example.com",
+        login: "email@example.com",
         name: "Person",
         password: "password1234",
         password_confirmation: "password1234"
@@ -222,54 +221,6 @@ defmodule Air.Service.UserTest do
     end
   end
 
-  describe "accept_privacy_policy" do
-    test "the user record should contain the privacy policy id" do
-      privacy_policy = TestRepoHelper.create_privacy_policy!()
-      user = TestRepoHelper.create_user_without_privacy_policy!() |> User.accept_privacy_policy!(privacy_policy)
-      reloaded_user = User.load(user.id) |> Repo.preload(:accepted_privacy_policy)
-
-      assert user.accepted_privacy_policy_id == privacy_policy.id
-      assert user.accepted_privacy_policy_id == reloaded_user.accepted_privacy_policy_id
-    end
-  end
-
-  describe "reject_privacy_policy" do
-    test "the user record should not contain any privacy policy id" do
-      user = TestRepoHelper.create_user!()
-      user_with_rejected_policy = User.reject_privacy_policy!(user)
-      reloaded_user_with_rejected_policy = User.load(user.id)
-
-      refute is_nil(user.accepted_privacy_policy_id)
-      assert is_nil(user_with_rejected_policy.accepted_privacy_policy_id)
-      assert is_nil(reloaded_user_with_rejected_policy.accepted_privacy_policy_id)
-    end
-  end
-
-  describe "privacy_policy_status" do
-    test "error when no policy exists" do
-      TestRepoHelper.delete_all_privacy_policies!()
-      user = TestRepoHelper.create_user_without_privacy_policy!()
-      assert {:error, :no_privacy_policy_created} == User.privacy_policy_status(user)
-    end
-
-    test "ok when has accepted latest policy" do
-      user = TestRepoHelper.create_user!()
-      assert :ok == User.privacy_policy_status(user)
-    end
-
-    test "error when no policy has been accepted" do
-      user = TestRepoHelper.create_user_without_privacy_policy!()
-      TestRepoHelper.create_privacy_policy!()
-      assert {:error, :requires_review} == User.privacy_policy_status(user)
-    end
-
-    test "error when the policy has changed" do
-      user = TestRepoHelper.create_user!()
-      TestRepoHelper.create_privacy_policy!()
-      assert {:error, :requires_review} == User.privacy_policy_status(user)
-    end
-  end
-
   describe "pseudonym" do
     # credo:disable-for-lines:2
     test "if no user is provided, a random pseudonym is generated",
@@ -306,24 +257,24 @@ defmodule Air.Service.UserTest do
     end
 
     test "cannot change fields", %{user: user, token: token} do
-      old_email = user.email
+      old_login = user.login
 
-      assert {:ok, %{email: ^old_email}} =
+      assert {:ok, %{login: ^old_login}} =
                User.reset_password(token, %{
                  password: "password1234",
                  password_confirmation: "password1234",
-                 email: "new@email.com"
+                 login: "new@email.com"
                })
     end
 
     test "successful change", %{user: user, token: token} do
       assert {:ok, _} = User.reset_password(token, %{password: "new password", password_confirmation: "new password"})
-      assert {:ok, _} = User.login(user.email, "new password")
+      assert {:ok, _} = User.login(user.login, "new password")
     end
 
     test "incorrect confirmation", %{user: user, token: token} do
       assert {:error, _} = User.reset_password(token, %{password: "new password", password_confirmation: "other"})
-      assert {:error, _} = User.login(user.email, "new password")
+      assert {:error, _} = User.login(user.login, "new password")
     end
   end
 

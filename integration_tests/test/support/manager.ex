@@ -42,7 +42,7 @@ defmodule IntegrationTest.Manager do
 
     user =
       Air.Service.User.create!(%{
-        email: "user_#{:erlang.unique_integer([:positive])}@aircloak.com",
+        login: "user_#{:erlang.unique_integer([:positive])}@aircloak.com",
         name: "user_#{:erlang.unique_integer([:positive])}",
         groups: [admin_group.id]
       })
@@ -52,8 +52,7 @@ defmodule IntegrationTest.Manager do
     {:ok, user} =
       Air.Service.User.reset_password(token, %{password: @user_password, password_confirmation: @user_password})
 
-    {:ok, privacy_policy} = Air.Service.PrivacyPolicy.get()
-    Air.Service.User.accept_privacy_policy!(user, privacy_policy)
+    user
   end
 
   def load_valid_license(), do: :ok = create_license() |> Central.Service.License.export() |> Air.Service.License.load()
