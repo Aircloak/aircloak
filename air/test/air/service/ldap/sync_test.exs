@@ -1,6 +1,8 @@
 defmodule Air.Service.LDAP.Sync.Test do
   use Air.SchemaCase
 
+  import Air.TestRepoHelper
+
   alias Air.Service.LDAP.{Sync, User}
 
   describe "syncing users" do
@@ -9,8 +11,13 @@ defmodule Air.Service.LDAP.Sync.Test do
       assert Air.Repo.get_by(Air.Schemas.User, ldap_dn: "some dn", login: "alice", name: "Alice")
     end
 
-    @tag :pending
-    test "LDAP user not created if such Aircloak user exists"
+    test "LDAP user not created if such Aircloak user exists" do
+      create_user!(%{login: "alice"})
+
+      Sync.sync([%User{dn: "some dn", login: "alice", name: "Alice"}], _groups = [])
+
+      refute Air.Repo.get_by(Air.Schemas.User, ldap_dn: "some dn", login: "alice", name: "Alice")
+    end
 
     @tag :pending
     test "user updated if already synced"
