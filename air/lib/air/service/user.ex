@@ -121,9 +121,9 @@ defmodule Air.Service.User do
   end
 
   @doc "Updates the given user, raises on error."
-  @spec update!(User.t(), map) :: User.t()
-  def update!(user, params) do
-    {:ok, user} = update(user, params)
+  @spec update!(User.t(), map, change_options) :: User.t()
+  def update!(user, params, options \\ []) do
+    {:ok, user} = update(user, params, options)
     user
   end
 

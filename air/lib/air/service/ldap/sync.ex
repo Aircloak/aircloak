@@ -1,7 +1,10 @@
 defmodule Air.Service.LDAP.Sync do
-  def sync(users, _groups) do
-    Enum.each(users, &sync_user/1)
+  def sync(ldap_users, _groups) do
+    sync_users(ldap_users)
+    disable_missing_users(ldap_users)
   end
+
+  defp sync_users(ldap_users), do: Enum.each(ldap_users, &sync_user/1)
 
   defp sync_user(ldap_user) do
     cond do
@@ -21,6 +24,20 @@ defmodule Air.Service.LDAP.Sync do
   end
 
   defp update_user!(air_user, ldap_user) do
-    {:ok, _} = Air.Service.User.update(air_user, %{login: ldap_user.login, name: ldap_user.name}, ldap: true)
+    air_user
+    |> Air.Service.User.update!(%{login: ldap_user.login, name: ldap_user.name}, ldap: true)
+    |> Air.Service.User.enable!(ldap: true)
+  end
+
+  defp disable_missing_users(ldap_users) do
+    import Ecto.Query
+
+    present_dns = Enum.map(ldap_users, & &1.dn)
+
+    Air.Schemas.User
+    |> where([q], not is_nil(q.ldap_dn))
+    |> where([q], not (q.ldap_dn in ^present_dns))
+    |> Air.Repo.all()
+    |> Enum.each(&Air.Service.User.disable(&1, ldap: true))
   end
 end

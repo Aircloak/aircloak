@@ -27,8 +27,21 @@ defmodule Air.Service.LDAP.Sync.Test do
       assert %{login: "bob", name: "Bob"} = Air.Repo.get(Air.Schemas.User, user.id)
     end
 
-    @tag :pending
-    test "user deactivated if no longer in LDAP"
+    test "user deactivated if no longer in LDAP" do
+      user = create_user!(%{ldap_dn: "some dn"})
+
+      Sync.sync(_users = [], _groups = [])
+
+      refute Air.Repo.get(Air.Schemas.User, user.id).enabled
+    end
+
+    test "user reactivated if they appear in LDAP again" do
+      user = create_user!(%{ldap_dn: "some dn", enabled: false})
+
+      Sync.sync([%User{dn: "some dn", login: "alice", name: "Alice"}], _groups = [])
+
+      assert Air.Repo.get(Air.Schemas.User, user.id).enabled
+    end
   end
 
   describe "syncing groups" do
