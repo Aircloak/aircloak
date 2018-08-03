@@ -1,0 +1,20 @@
+{
+  "database": {
+    "host": "air_db",
+    "port": 5432,
+    "user": "air_db",
+    "name": "air_db",
+    "password": "air_db"
+  },
+
+  "site": {
+    "auth_secret": "8hO8HSxcfcYLAKpDzdt2GLIXYTVNm8LM44AG3qknL1IdnRPKQdDNhsxJCsL0btTj",
+    "endpoint_key_base": "1HR9CxwlJDOhlyA73jclHszTr4seRyvWZ5lDZLlceJeXYhwh5QvMnHP5CWisrPVtjk",
+    "api_token_salt": "B64NrbhiJSAAPBTvqGBvDFCPxGTjCsC9hAzChA83qadWAG7F7J8XxzYvS7PveLVj",
+    "master_password": "supersecret"
+  },
+
+  "psql_server": {
+    "require_ssl": false
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "name": "DummyDataSource",
+  "driver": "postgresql",
+  "parameters": {
+    "hostname": "air_db",
+    "port": 5432,
+    "username": "air_db",
+    "database": "air_db",
+    "password": "air_db"
+  },
+  "tables": {
+    "users": {
+      "user_id": "id"
+    }
+  }
+}
