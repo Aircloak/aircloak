@@ -6,17 +6,16 @@ defmodule Air.Service.UserTest do
   alias Air.Service.User
 
   describe "user operations" do
-    test "required fields",
-      do:
-        assert(
-          errors_on(&User.create/1, %{}) == [
-            email: "can't be blank",
-            name: "can't be blank"
-          ]
-        )
+    test "required fields" do
+      assert errors_on(&User.create/1, %{}) == [
+               email: "can't be blank",
+               name: "can't be blank"
+             ]
+    end
 
-    test "validates email address",
-      do: assert(error_on(&User.create/1, :email, "invalid_email") == "has invalid format")
+    test "requires non-empty login" do
+      assert(error_on(&User.create/1, :email, "") == "can't be blank")
+    end
 
     test "create cannot set the password" do
       User.create(%{

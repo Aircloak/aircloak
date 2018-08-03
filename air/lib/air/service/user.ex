@@ -335,7 +335,6 @@ defmodule Air.Service.User do
       user
       |> cast(params, @required_fields ++ @optional_fields)
       |> validate_required(@required_fields)
-      |> validate_format(:email, ~r/@/)
       |> validate_length(:name, min: 2)
       |> validate_length(:decimal_sep, is: 1)
       |> validate_length(:thousand_sep, is: 1)
