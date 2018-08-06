@@ -49,8 +49,10 @@ defmodule Air.TestRepoHelper do
     if is_nil(additional_changes[:ldap_dn]) do
       User.create_group!(Map.merge(%{name: "group-#{random_string()}", admin: false}, additional_changes))
     else
-      {:ok, _} =
+      {:ok, group} =
         User.create_ldap_group(Map.merge(%{name: "group-#{random_string()}", admin: false}, additional_changes))
+
+      group
     end
   end
 

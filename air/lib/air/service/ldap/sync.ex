@@ -1,8 +1,11 @@
 defmodule Air.Service.LDAP.Sync do
+  import Ecto.Query
+
   def sync(ldap_users, ldap_groups) do
     sync_groups(ldap_groups)
     sync_users(ldap_users)
     disable_missing_users(ldap_users)
+    delete_missing_groups(ldap_groups)
   end
 
   defp sync_groups(ldap_groups), do: Enum.each(ldap_groups, &sync_group/1)
@@ -48,14 +51,22 @@ defmodule Air.Service.LDAP.Sync do
   end
 
   defp disable_missing_users(ldap_users) do
-    import Ecto.Query
-
     present_dns = Enum.map(ldap_users, & &1.dn)
 
     Air.Schemas.User
-    |> where([q], not is_nil(q.ldap_dn))
+    |> where([q], q.source == ^:ldap)
     |> where([q], not (q.ldap_dn in ^present_dns))
     |> Air.Repo.all()
     |> Enum.each(&Air.Service.User.disable(&1, ldap: true))
+  end
+
+  defp delete_missing_groups(ldap_groups) do
+    present_dns = Enum.map(ldap_groups, & &1.dn)
+
+    Air.Schemas.Group
+    |> where([q], q.source == ^:ldap)
+    |> where([q], not (q.ldap_dn in ^present_dns))
+    |> Air.Repo.all()
+    |> Enum.each(&Air.Service.User.delete_group!(&1, ldap: true))
   end
 end

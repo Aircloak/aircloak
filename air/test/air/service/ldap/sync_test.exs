@@ -71,8 +71,13 @@ defmodule Air.Service.LDAP.Sync.Test do
     @tag :pending
     test "two conflicting groups arrive from LDAP"
 
-    @tag :pending
-    test "group deleted if no longer in LDAP"
+    test "group deleted if no longer in LDAP" do
+      group = create_group!(%{name: "group1", ldap_dn: "some dn"})
+
+      Sync.sync(_users = [], _groups = [])
+
+      refute Air.Repo.get(Air.Schemas.Group, group.id)
+    end
 
     @tag :pending
     test "assinging group members"
