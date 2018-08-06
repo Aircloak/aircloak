@@ -250,7 +250,7 @@ defmodule Cloak.DataSource.SqlBuilder do
     do: [to_fragment(what, sql_dialect_module), " IS ", to_fragment(match, sql_dialect_module)]
 
   defp conditions_to_fragments({:not, condition}, sql_dialect_module),
-    do: ["NOT ", conditions_to_fragments(condition, sql_dialect_module)]
+    do: ["NOT (", conditions_to_fragments(condition, sql_dialect_module), ")"]
 
   defp to_fragment(string, _sql_dialect_module) when is_binary(string), do: string
 
