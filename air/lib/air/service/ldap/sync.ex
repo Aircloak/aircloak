@@ -1,7 +1,18 @@
 defmodule Air.Service.LDAP.Sync do
-  def sync(ldap_users, _groups) do
+  def sync(ldap_users, ldap_groups) do
+    sync_groups(ldap_groups)
     sync_users(ldap_users)
     disable_missing_users(ldap_users)
+  end
+
+  defp sync_groups(ldap_groups), do: Enum.each(ldap_groups, &sync_group/1)
+
+  defp sync_group(ldap_group) do
+    create_group!(ldap_group)
+  end
+
+  defp create_group!(ldap_group) do
+    {:ok, _} = Air.Service.User.create_ldap_group(%{admin: false, name: ldap_group.name, ldap_dn: ldap_group.dn})
   end
 
   defp sync_users(ldap_users), do: Enum.each(ldap_users, &sync_user/1)

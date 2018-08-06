@@ -3,7 +3,7 @@ defmodule Air.Service.LDAP.Sync.Test do
 
   import Air.TestRepoHelper
 
-  alias Air.Service.LDAP.{Sync, User}
+  alias Air.Service.LDAP.{Sync, User, Group}
 
   describe "syncing users" do
     test "creating a user from LDAP" do
@@ -45,11 +45,10 @@ defmodule Air.Service.LDAP.Sync.Test do
   end
 
   describe "syncing groups" do
-    @tag :pending
-    test "creating a group"
-
-    @tag :pending
-    test "assinging group members"
+    test "creating a group" do
+      Sync.sync(_users = [], [%Group{dn: "some dn", name: "group1", member_ids: []}])
+      assert Air.Repo.get_by(Air.Schemas.Group, ldap_dn: "some dn", name: "group1")
+    end
 
     @tag :pending
     test "LDAP group not created if such Aircloak group exists"
@@ -59,5 +58,14 @@ defmodule Air.Service.LDAP.Sync.Test do
 
     @tag :pending
     test "group deleted if no longer in LDAP"
+
+    @tag :pending
+    test "assinging group members"
+
+    @tag :pending
+    test "updating group members"
+
+    @tag :pending
+    test "group members not changed for groups that didn't sync because they already exist"
   end
 end

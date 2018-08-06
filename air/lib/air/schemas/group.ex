@@ -14,6 +14,7 @@ defmodule Air.Schemas.Group do
 
   schema "groups" do
     field(:name, :string)
+    field(:ldap_dn, :string)
     field(:admin, :boolean)
 
     many_to_many(

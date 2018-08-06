@@ -249,6 +249,15 @@ defmodule Air.Service.User do
       |> group_changeset(params)
       |> Repo.insert()
 
+  @doc "Creates a new LDAP group."
+  @spec create_ldap_group(map) :: {:ok, Group.t()} | {:error, Ecto.Changeset.t()}
+  def create_ldap_group(params) do
+    %Group{}
+    |> group_changeset(params)
+    |> merge(ldap_changeset(%Group{}, params))
+    |> Repo.insert()
+  end
+
   @doc "Updates the given group, raises on error."
   @spec update_group!(Group.t(), map) :: Group.t()
   def update_group!(group, params) do
