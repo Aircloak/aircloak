@@ -260,32 +260,38 @@ defmodule Air.Service.User do
   end
 
   @doc "Updates the given group, raises on error."
-  @spec update_group!(Group.t(), map) :: Group.t()
-  def update_group!(group, params) do
-    {:ok, group} = update_group(group, params)
+  @spec update_group!(Group.t(), map, change_options) :: Group.t()
+  def update_group!(group, params, options \\ []) do
+    {:ok, group} = update_group(group, params, options)
     group
   end
 
   @doc "Updates the given group."
-  @spec update_group(Group.t(), map) :: {:ok, Group.t()} | {:error, Ecto.Changeset.t() | :forbidden_no_active_admin}
-  def update_group(group, params),
-    do:
-      commit_if_active_last_admin(fn ->
-        group
-        |> group_changeset(params)
-        |> Repo.update()
-      end)
+  @spec update_group(Group.t(), map, change_options) ::
+          {:ok, Group.t()} | {:error, Ecto.Changeset.t() | :forbidden_no_active_admin}
+  def update_group(group, params, options \\ []) do
+    check_ldap!(group, options)
+
+    commit_if_active_last_admin(fn ->
+      group
+      |> group_changeset(params)
+      |> Repo.update()
+    end)
+  end
 
   @doc "Deletes the given group, raises on error."
-  @spec delete_group!(Group.t()) :: Group.t()
-  def delete_group!(group) do
-    {:ok, group} = delete_group(group)
+  @spec delete_group!(Group.t(), change_options) :: Group.t()
+  def delete_group!(group, options \\ []) do
+    {:ok, group} = delete_group(group, options)
     group
   end
 
   @doc "Deletes the given group."
-  @spec delete_group(Group.t()) :: {:ok, Group.t()} | {:error, :forbidden_no_active_admin}
-  def delete_group(group), do: commit_if_active_last_admin(fn -> Repo.delete(group) end)
+  @spec delete_group(Group.t(), change_options) :: {:ok, Group.t()} | {:error, :forbidden_no_active_admin}
+  def delete_group(group, options \\ []) do
+    check_ldap!(group, options)
+    commit_if_active_last_admin(fn -> Repo.delete(group) end)
+  end
 
   @doc "Loads the group with the given id."
   @spec load_group(pos_integer) :: Group.t() | nil

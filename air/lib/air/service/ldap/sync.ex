@@ -8,11 +8,18 @@ defmodule Air.Service.LDAP.Sync do
   defp sync_groups(ldap_groups), do: Enum.each(ldap_groups, &sync_group/1)
 
   defp sync_group(ldap_group) do
-    create_group!(ldap_group)
+    case Air.Repo.get_by(Air.Schemas.Group, ldap_dn: ldap_group.dn) do
+      nil -> create_group!(ldap_group)
+      air_group -> update_group!(air_group, ldap_group)
+    end
   end
 
   defp create_group!(ldap_group) do
     {:ok, _} = Air.Service.User.create_ldap_group(%{admin: false, name: ldap_group.name, ldap_dn: ldap_group.dn})
+  end
+
+  defp update_group!(air_group, ldap_group) do
+    Air.Service.User.update_group!(air_group, %{admin: false, name: ldap_group.name}, ldap: true)
   end
 
   defp sync_users(ldap_users), do: Enum.each(ldap_users, &sync_user/1)

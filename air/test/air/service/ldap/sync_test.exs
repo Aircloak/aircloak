@@ -60,8 +60,16 @@ defmodule Air.Service.LDAP.Sync.Test do
       assert Air.Repo.get_by(Air.Schemas.Group, name: "group1", source: :ldap, ldap_dn: "some dn")
     end
 
+    test "group updated if already synced" do
+      create_group!(%{name: "group1", ldap_dn: "some dn"})
+
+      Sync.sync(_users = [], [%Group{dn: "some dn", name: "group2", member_ids: []}])
+
+      assert Air.Repo.get_by(Air.Schemas.Group, name: "group2", source: :ldap, ldap_dn: "some dn")
+    end
+
     @tag :pending
-    test "group updated if already synced"
+    test "two conflicting groups arrive from LDAP"
 
     @tag :pending
     test "group deleted if no longer in LDAP"
