@@ -48,9 +48,16 @@ defmodule Air.Service.LDAP do
   defp build_group(config, {:eldap_entry, dn, fields}) do
     %Group{
       dn: to_string(dn),
-      name: attribute(fields, Map.get(config, "group_name", "cn")),
+      name: group_name(config, fields, dn),
       member_ids: attributes(fields, Map.get(config, "group_member", "memberUid"))
     }
+  end
+
+  defp group_name(config, fields, dn) do
+    case Map.fetch(config, "group_name") do
+      {:ok, name} -> attribute(fields, name)
+      :error -> to_string(dn)
+    end
   end
 
   defp build_user(config, {:eldap_entry, dn, fields}) do

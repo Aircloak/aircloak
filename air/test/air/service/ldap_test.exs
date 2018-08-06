@@ -89,27 +89,28 @@ defmodule Air.Service.LDAP.Test do
   end
 
   describe ".groups" do
-    test "finds all object with valid name by default" do
+    test "finds all object by default" do
       {:ok, entries} = LDAP.groups({:ok, @ldap})
 
       assert [
-               %Group{dn: "cn=group1,ou=groups,dc=example,dc=org", name: "group1", member_ids: ["alice", "bob"]},
-               %Group{dn: "cn=group2,ou=groups,dc=example,dc=org", name: "group2", member_ids: ["alice"]}
+               %Group{dn: dn1 = "cn=group1,ou=groups,dc=example,dc=org", name: dn1, member_ids: ["alice", "bob"]},
+               %Group{dn: dn2 = "cn=group2,ou=groups,dc=example,dc=org", name: dn2, member_ids: ["alice"]},
+               %Group{dn: dn3 = "ou=groups,dc=example,dc=org", name: dn3, member_ids: []}
              ] = Enum.sort(entries)
     end
 
     test "extracts the configured name" do
-      {:ok, entries} = LDAP.groups({:ok, Map.put(@ldap, "group_name", "description")})
-      assert [%Group{name: "A big group"}, %Group{name: "A small group"}] = Enum.sort(entries)
+      {:ok, entries} = LDAP.groups({:ok, Map.put(@ldap, "group_name", "cn")})
+      assert [%Group{name: "group1"}, %Group{name: "group2"}] = Enum.sort(entries)
     end
 
     test "extracts the configured member ids" do
-      {:ok, entries} = LDAP.groups({:ok, Map.put(@ldap, "group_member", "description")})
+      {:ok, entries} = LDAP.groups({:ok, Map.merge(@ldap, %{"group_member" => "description", "group_name" => "cn"})})
       assert [%Group{member_ids: ["A big group"]}, %Group{member_ids: ["A small group"]}] = Enum.sort(entries)
     end
 
     test "extracts groups by filter" do
-      assert {:ok, [%Group{name: "group1"}]} =
+      assert {:ok, [%Group{name: "cn=group1,ou=groups,dc=example,dc=org"}]} =
                LDAP.groups({:ok, Map.merge(@ldap, %{"group_filter" => "(description=A big group)"})})
     end
   end
