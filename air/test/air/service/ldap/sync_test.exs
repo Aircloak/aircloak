@@ -47,11 +47,17 @@ defmodule Air.Service.LDAP.Sync.Test do
   describe "syncing groups" do
     test "creating a group" do
       Sync.sync(_users = [], [%Group{dn: "some dn", name: "group1", member_ids: []}])
-      assert Air.Repo.get_by(Air.Schemas.Group, ldap_dn: "some dn", name: "group1")
+      assert Air.Repo.get_by(Air.Schemas.Group, ldap_dn: "some dn", name: "group1", source: :ldap)
     end
 
-    @tag :pending
-    test "LDAP group not created if such Aircloak group exists"
+    test "LDAP groups and Aircloak-native groups have distinct namespaces" do
+      create_group!(%{name: "group1"})
+
+      Sync.sync(_users = [], [%Group{dn: "some dn", name: "group1", member_ids: []}])
+
+      assert Air.Repo.get_by(Air.Schemas.Group, name: "group1", source: :native)
+      assert Air.Repo.get_by(Air.Schemas.Group, name: "group1", source: :ldap, ldap_dn: "some dn")
+    end
 
     @tag :pending
     test "group updated if already synced"

@@ -10,10 +10,15 @@ defmodule Air.Schemas.Group do
 
   alias Air.{Schemas.User, Schemas.DataSource}
 
+  require EctoEnum
+
+  EctoEnum.defenum(GroupSource, :group_source, [:native, :ldap])
+
   @type t :: %__MODULE__{}
 
   schema "groups" do
     field(:name, :string)
+    field(:source, __MODULE__.GroupSource)
     field(:ldap_dn, :string)
     field(:admin, :boolean)
 

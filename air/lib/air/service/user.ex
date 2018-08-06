@@ -255,6 +255,7 @@ defmodule Air.Service.User do
     %Group{}
     |> group_changeset(params)
     |> merge(ldap_changeset(%Group{}, params))
+    |> merge(cast(%Group{}, %{source: :ldap}, [:source]))
     |> Repo.insert()
   end
 
@@ -418,7 +419,7 @@ defmodule Air.Service.User do
       group
       |> cast(params, ~w(name admin)a)
       |> validate_required(~w(name admin)a)
-      |> unique_constraint(:name)
+      |> unique_constraint(:name, name: :groups_name_source_index)
       |> PhoenixMTM.Changeset.cast_collection(:users, Repo, User)
       |> PhoenixMTM.Changeset.cast_collection(:data_sources, Repo, DataSource)
 
