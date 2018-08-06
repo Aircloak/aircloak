@@ -21,8 +21,19 @@ chmod -R o+w /persist
 # needed to ensure that references from odbc.ini work properly
 ln -nfs /aircloak/cloak/lib/cloak-$VERSION/priv /aircloak/cloak/priv
 
-mkdir -p /aircloak/cloak/priv/odbc/drivers
-ln -s /opt/mapr/drill /aircloak/cloak/priv/odbc/drivers/drill
-if [ ! -z "$(ls /odbc_drivers)" ]; then cp -rp /odbc_drivers/* /aircloak/cloak/priv/odbc/drivers; fi
+# setup external ODBC drivers
+drivers_path="/aircloak/cloak/priv/odbc/drivers"
+mkdir -p "$drivers_path"
+for driver in /odbc_drivers/*; do
+  if [ -f "$driver/setup.sh" ]; then
+    pushd "$driver"
+    . "$driver/setup.sh"
+    popd
+  else
+    name=`basename $driver`
+    rm -rf "$drivers_path/$name"
+    ln -s "$driver" "$drivers_path/$name"
+  fi
+done
 
 exec gosu deployer /aircloak/cloak/bin/cloak foreground
