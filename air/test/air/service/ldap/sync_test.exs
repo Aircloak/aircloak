@@ -36,7 +36,8 @@ defmodule Air.Service.LDAP.Sync.Test do
     end
 
     test "user reactivated if they appear in LDAP again" do
-      user = create_user!(%{ldap_dn: "some dn", enabled: false})
+      user = create_user!(%{ldap_dn: "some dn"})
+      Air.Service.User.disable(user, ldap: true)
 
       Sync.sync([%User{dn: "some dn", login: "alice", name: "Alice"}], _groups = [])
 

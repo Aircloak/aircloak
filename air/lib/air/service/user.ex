@@ -9,7 +9,8 @@ defmodule Air.Service.User do
 
   @required_fields ~w(login name)a
   @password_fields ~w(password password_confirmation)a
-  @ldap_fields ~w(ldap_dn)a
+  @ldap_fields ~w(ldap_dn source)a
+  @ldap_required_fields ~w(ldap_dn)a
   @optional_fields ~w(decimal_sep decimal_digits thousand_sep)a
   @password_reset_salt "4egg+HOtabCGwsCsRVEBIg=="
 
@@ -255,7 +256,6 @@ defmodule Air.Service.User do
     %Group{}
     |> group_changeset(params)
     |> merge(ldap_changeset(%Group{}, params))
-    |> merge(cast(%Group{}, %{source: :ldap}, [:source]))
     |> Repo.insert()
   end
 
@@ -378,8 +378,8 @@ defmodule Air.Service.User do
 
   defp ldap_changeset(user, params) do
     user
-    |> cast(params, @ldap_fields)
-    |> validate_required(@ldap_fields)
+    |> cast(Map.put(params, :source, :ldap), @ldap_fields)
+    |> validate_required(@ldap_required_fields)
   end
 
   defp random_password_changeset(user) do
@@ -454,16 +454,15 @@ defmodule Air.Service.User do
     )
   end
 
-  defp check_ldap!(user, options) do
-    case {ldap_user?(user), Keyword.get(options, :ldap, false)} do
-      {_, :any} -> user
-      {true, false} -> raise "Accidental LDAP user change"
-      {false, true} -> raise "Accidental non-LDAP user change"
-      _ -> user
+  defp check_ldap!(object, options) do
+    case {object.source, Keyword.get(options, :ldap, false)} do
+      {_, :any} -> object
+      {:ldap, true} -> object
+      {:ldap, false} -> raise "Accidental LDAP change"
+      {_, true} -> raise "Accidental non-LDAP change"
+      _ -> object
     end
   end
-
-  defp ldap_user?(user), do: not is_nil(user.ldap_dn)
 
   # -------------------------------------------------------------------
   # GenServer callbacks

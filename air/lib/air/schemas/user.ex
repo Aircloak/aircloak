@@ -17,6 +17,7 @@ defmodule Air.Schemas.User do
     field(:hashed_password, :string)
     field(:name, :string)
     field(:pseudonym, :string)
+    field(:source, Air.Schemas.Source)
     field(:ldap_dn, :string)
     field(:enabled, :boolean)
 

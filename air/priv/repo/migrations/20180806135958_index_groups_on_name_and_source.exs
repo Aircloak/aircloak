@@ -2,13 +2,17 @@ defmodule Air.Repo.Migrations.IndexGroupsOnNameAndSource do
   use Ecto.Migration
 
   import EctoEnum
-  defenum(GroupSource, :group_source, [:native, :ldap])
+  defenum(Source, :source, [:native, :ldap])
 
   def up do
-    GroupSource.create_type()
+    Source.create_type()
 
     alter table(:groups) do
-      add(:source, :group_source, null: false, default: "native")
+      add(:source, :source, null: false, default: "native")
+    end
+
+    alter table(:users) do
+      add(:source, :source, null: false, default: "native")
     end
 
     drop(unique_index(:groups, [:name]))
@@ -23,6 +27,10 @@ defmodule Air.Repo.Migrations.IndexGroupsOnNameAndSource do
       remove(:source)
     end
 
-    GroupSource.drop_type()
+    alter table(:users) do
+      remove(:source)
+    end
+
+    Source.drop_type()
   end
 end
