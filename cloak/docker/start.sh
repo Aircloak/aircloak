@@ -27,7 +27,7 @@ mkdir -p "$drivers_path"
 for driver in /odbc_drivers/*; do
   if [ -f "$driver/setup.sh" ]; then
     pushd "$driver"
-    . "$driver/setup.sh"
+    . setup.sh
     popd
   else
     name=`basename $driver`
