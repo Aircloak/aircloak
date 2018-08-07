@@ -79,8 +79,21 @@ defmodule Air.Service.LDAP.Sync.Test do
       refute Air.Repo.get(Air.Schemas.Group, group.id)
     end
 
-    @tag :pending
-    test "assinging group members"
+    test "assinging group members" do
+      Sync.sync(
+        [%User{dn: "some dn", login: "alice", name: "Alice"}, %User{dn: "other dn", login: "bob", name: "Bob"}],
+        [
+          %Group{dn: "group dn 1", name: "group1", member_ids: ["alice", "bob"]},
+          %Group{dn: "group dn 2", name: "group2", member_ids: ["alice"]}
+        ]
+      )
+
+      assert %{groups: [%{name: "group1"}, %{name: "group2"}]} =
+               Air.Repo.get_by(Air.Schemas.User, login: "alice") |> Air.Repo.preload(:groups)
+
+      assert %{groups: [%{name: "group1"}]} =
+               Air.Repo.get_by(Air.Schemas.User, login: "bob") |> Air.Repo.preload(:groups)
+    end
 
     @tag :pending
     test "updating group members"
