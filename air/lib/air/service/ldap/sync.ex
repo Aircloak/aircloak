@@ -46,11 +46,11 @@ defmodule Air.Service.LDAP.Sync do
 
   defp sync_user(ldap_user) do
     cond do
-      Air.Repo.get_by(Air.Schemas.User, login: ldap_user.login) ->
-        []
-
       air_user = Air.Repo.get_by(Air.Schemas.User, ldap_dn: ldap_user.dn) ->
         [{ldap_user.login, update_user!(air_user, ldap_user).id}]
+
+      Air.Repo.get_by(Air.Schemas.User, login: ldap_user.login) ->
+        []
 
       true ->
         [{ldap_user.login, create_user!(ldap_user).id}]

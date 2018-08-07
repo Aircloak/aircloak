@@ -22,9 +22,9 @@ defmodule Air.Service.LDAP.Sync.Test do
     test "user updated if already synced" do
       user = create_user!(%{login: "alice", name: "Alice", ldap_dn: "some dn"})
 
-      Sync.sync([%User{dn: "some dn", login: "bob", name: "Bob"}], _groups = [])
+      Sync.sync([%User{dn: "some dn", login: "alice", name: "Alice the Magnificent"}], _groups = [])
 
-      assert %{login: "bob", name: "Bob"} = Air.Repo.get(Air.Schemas.User, user.id)
+      assert %{login: "alice", name: "Alice the Magnificent"} = Air.Repo.get(Air.Schemas.User, user.id)
     end
 
     @tag :pending
