@@ -75,7 +75,7 @@ defmodule Air.Service.LDAP.Sync do
     |> case do
       {:ok, air_user} ->
         Air.Service.User.enable!(air_user, ldap: true)
-        air_user
+        {:ok, air_user}
 
       :error ->
         Air.Service.User.disable(air_user, ldap: true)

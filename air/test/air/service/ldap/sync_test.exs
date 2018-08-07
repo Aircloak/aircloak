@@ -132,4 +132,20 @@ defmodule Air.Service.LDAP.Sync.Test do
                Air.Repo.get(Air.Schemas.Group, group.id) |> Air.Repo.preload(:users)
     end
   end
+
+  test ".sync is idempotent" do
+    users = [%User{dn: "some dn", login: "alice", name: "Alice"}, %User{dn: "other dn", login: "bob", name: "Bob"}]
+
+    groups = [
+      %Group{dn: "group dn 1", name: "group1", member_ids: ["alice", "bob"]},
+      %Group{dn: "group dn 2", name: "group2", member_ids: ["alice"]}
+    ]
+
+    Sync.sync(users, groups)
+    intermediate_results = {Air.Repo.all(Air.Schemas.User), Air.Repo.preload(Air.Repo.all(Air.Schemas.Group), :users)}
+    Sync.sync(users, groups)
+    final_results = {Air.Repo.all(Air.Schemas.User), Air.Repo.preload(Air.Repo.all(Air.Schemas.Group), :users)}
+
+    assert intermediate_results == final_results
+  end
 end
