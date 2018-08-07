@@ -27,6 +27,9 @@ defmodule Air.Service.LDAP.Sync.Test do
       assert %{login: "bob", name: "Bob"} = Air.Repo.get(Air.Schemas.User, user.id)
     end
 
+    @tag :pending
+    test "user conflicts caused by a change in LDAP"
+
     test "user deactivated if no longer in LDAP" do
       user = create_user!(%{ldap_dn: "some dn"})
 
@@ -68,8 +71,15 @@ defmodule Air.Service.LDAP.Sync.Test do
       assert Air.Repo.get_by(Air.Schemas.Group, name: "group2", source: :ldap, ldap_dn: "some dn")
     end
 
-    @tag :pending
-    test "two conflicting groups arrive from LDAP"
+    test "two conflicting groups arrive from LDAP" do
+      Sync.sync(_users = [], [
+        %Group{dn: "some dn", name: "group1", member_ids: []},
+        %Group{dn: "some other dn", name: "group1", member_ids: []}
+      ])
+
+      assert Air.Repo.get_by(Air.Schemas.Group, name: "group1", source: :ldap, ldap_dn: "some dn")
+      refute Air.Repo.get_by(Air.Schemas.Group, ldap_dn: "some other dn")
+    end
 
     test "group deleted if no longer in LDAP" do
       group = create_group!(%{name: "group1", ldap_dn: "some dn"})
@@ -106,8 +116,5 @@ defmodule Air.Service.LDAP.Sync.Test do
       assert %{users: [%{login: "alice"}, %{login: "bob"}]} =
                Air.Repo.get(Air.Schemas.Group, group.id) |> Air.Repo.preload(:users)
     end
-
-    @tag :pending
-    test "group members not changed for groups that didn't sync because they already exist"
   end
 end

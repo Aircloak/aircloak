@@ -1,4 +1,5 @@
 defmodule Air.Service.LDAP.Sync do
+  require Logger
   import Ecto.Query
 
   def sync(ldap_users, ldap_groups) do
@@ -12,25 +13,25 @@ defmodule Air.Service.LDAP.Sync do
 
   defp sync_group(ldap_group, user_mappings) do
     case Air.Repo.get_by(Air.Schemas.Group, ldap_dn: ldap_group.dn) do
-      nil -> create_group!(ldap_group, user_mappings)
-      air_group -> update_group!(air_group, ldap_group, user_mappings)
+      nil -> create_group(ldap_group, user_mappings)
+      air_group -> update_group(air_group, ldap_group, user_mappings)
     end
   end
 
-  defp create_group!(ldap_group, user_mappings) do
-    {:ok, _} =
-      Air.Service.User.create_ldap_group(%{
-        admin: false,
-        name: ldap_group.name,
-        ldap_dn: ldap_group.dn,
-        users: Enum.map(ldap_group.member_ids, &Map.get(user_mappings, &1))
-      })
+  defp create_group(ldap_group, user_mappings) do
+    Air.Service.User.create_ldap_group(%{
+      admin: false,
+      name: ldap_group.name,
+      ldap_dn: ldap_group.dn,
+      users: Enum.map(ldap_group.member_ids, &Map.get(user_mappings, &1))
+    })
+    |> check_group_error(ldap_group)
   end
 
-  defp update_group!(air_group, ldap_group, user_mappings) do
+  defp update_group(air_group, ldap_group, user_mappings) do
     air_group
     |> Air.Repo.preload(:users)
-    |> Air.Service.User.update_group!(
+    |> Air.Service.User.update_group(
       %{
         admin: false,
         name: ldap_group.name,
@@ -38,6 +39,7 @@ defmodule Air.Service.LDAP.Sync do
       },
       ldap: true
     )
+    |> check_group_error(ldap_group)
   end
 
   defp sync_users(ldap_users), do: ldap_users |> Enum.flat_map(&sync_user/1) |> Enum.into(%{})
@@ -91,4 +93,15 @@ defmodule Air.Service.LDAP.Sync do
     |> Air.Repo.all()
     |> Enum.each(&Air.Service.User.delete_group!(&1, ldap: true))
   end
+
+  defp check_group_error({:error, _}, ldap_group) do
+    Logger.warn(
+      "Failed to import group `#{ldap_group.dn}` from LDAP." <>
+        " The most likely cause is a name conflict with another LDAP group."
+    )
+
+    :error
+  end
+
+  defp check_group_error({:ok, result}, _), do: {:ok, result}
 end
