@@ -16,6 +16,7 @@ defmodule Air.Supervisor do
         Air.Service.User,
         Air.Service.Export,
         Air.Service.Cleanup,
+        Air.Service.LDAP.PeriodicSync,
         Air.ApiTokenTimestampUpdater,
         Air.Web,
         AirWeb.MonitoringEndpoint,
