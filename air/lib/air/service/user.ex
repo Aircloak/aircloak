@@ -92,7 +92,7 @@ defmodule Air.Service.User do
   end
 
   @doc "Creates a new LDAP user from the given parameters."
-  @spec create(map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  @spec create_ldap(map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
   def create_ldap(params) do
     %User{}
     |> user_changeset(params)
