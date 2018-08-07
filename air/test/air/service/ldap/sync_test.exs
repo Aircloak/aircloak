@@ -95,8 +95,17 @@ defmodule Air.Service.LDAP.Sync.Test do
                Air.Repo.get_by(Air.Schemas.User, login: "bob") |> Air.Repo.preload(:groups)
     end
 
-    @tag :pending
-    test "updating group members"
+    test "updating group members" do
+      group = create_group!(%{name: "group1", ldap_dn: "group dn 1"})
+
+      Sync.sync(
+        [%User{dn: "some dn", login: "alice", name: "Alice"}, %User{dn: "other dn", login: "bob", name: "Bob"}],
+        [%Group{dn: "group dn 1", name: "group1", member_ids: ["alice", "bob"]}]
+      )
+
+      assert %{users: [%{login: "alice"}, %{login: "bob"}]} =
+               Air.Repo.get(Air.Schemas.Group, group.id) |> Air.Repo.preload(:users)
+    end
 
     @tag :pending
     test "group members not changed for groups that didn't sync because they already exist"

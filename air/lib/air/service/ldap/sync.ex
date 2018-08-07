@@ -13,7 +13,7 @@ defmodule Air.Service.LDAP.Sync do
   defp sync_group(ldap_group, user_mappings) do
     case Air.Repo.get_by(Air.Schemas.Group, ldap_dn: ldap_group.dn) do
       nil -> create_group!(ldap_group, user_mappings)
-      air_group -> update_group!(air_group, ldap_group)
+      air_group -> update_group!(air_group, ldap_group, user_mappings)
     end
   end
 
@@ -27,8 +27,17 @@ defmodule Air.Service.LDAP.Sync do
       })
   end
 
-  defp update_group!(air_group, ldap_group) do
-    Air.Service.User.update_group!(air_group, %{admin: false, name: ldap_group.name}, ldap: true)
+  defp update_group!(air_group, ldap_group, user_mappings) do
+    air_group
+    |> Air.Repo.preload(:users)
+    |> Air.Service.User.update_group!(
+      %{
+        admin: false,
+        name: ldap_group.name,
+        users: Enum.map(ldap_group.member_ids, &Map.get(user_mappings, &1))
+      },
+      ldap: true
+    )
   end
 
   defp sync_users(ldap_users), do: ldap_users |> Enum.flat_map(&sync_user/1) |> Enum.into(%{})
