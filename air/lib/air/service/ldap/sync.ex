@@ -1,13 +1,32 @@
 defmodule Air.Service.LDAP.Sync do
+  @moduledoc """
+  This modules contains functions to synchronize a set of data obtained from LDAP (users and groups) with Air. It does
+  not talk to LDAP itself, but merely takes the data it is supplied and applies synchronization rules, to reflect that
+  data in Air.
+  """
+
   require Logger
   import Ecto.Query
+  alias Air.Service.LDAP.{User, Group}
 
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Synchronizes the given LDAP state (a list of users and groups) into Air."
+  @spec sync([User.t()], [Group.t()]) :: :ok
   def sync(ldap_users, ldap_groups) do
     disable_missing_users(ldap_users)
     delete_missing_groups(ldap_groups)
     user_mappings = sync_users(ldap_users)
     sync_groups(ldap_groups, user_mappings)
+
+    :ok
   end
+
+  # -------------------------------------------------------------------
+  # Group sync
+  # -------------------------------------------------------------------
 
   defp sync_groups(ldap_groups, user_mappings), do: Enum.each(ldap_groups, &sync_group(&1, user_mappings))
 
@@ -40,6 +59,31 @@ defmodule Air.Service.LDAP.Sync do
       users: Enum.map(ldap_group.member_ids, &Map.get(user_mappings, &1))
     }
   end
+
+  defp delete_missing_groups(ldap_groups) do
+    present_dns = Enum.map(ldap_groups, & &1.dn)
+
+    Air.Schemas.Group
+    |> where([q], q.source == ^:ldap)
+    |> where([q], not (q.ldap_dn in ^present_dns))
+    |> Air.Repo.all()
+    |> Enum.each(&Air.Service.User.delete_group!(&1, ldap: true))
+  end
+
+  defp check_group_error({:ok, result}, _), do: {:ok, result}
+
+  defp check_group_error({:error, _}, ldap_group) do
+    Logger.warn(
+      "Failed to import group `#{ldap_group.dn}` from LDAP." <>
+        " The most likely cause is a name conflict with another LDAP group."
+    )
+
+    :error
+  end
+
+  # -------------------------------------------------------------------
+  # Group sync
+  # -------------------------------------------------------------------
 
   defp sync_users(ldap_users) do
     for ldap_user <- ldap_users do
@@ -91,27 +135,6 @@ defmodule Air.Service.LDAP.Sync do
     |> where([q], not (q.ldap_dn in ^present_dns))
     |> Air.Repo.all()
     |> Enum.each(&Air.Service.User.disable(&1, ldap: true))
-  end
-
-  defp delete_missing_groups(ldap_groups) do
-    present_dns = Enum.map(ldap_groups, & &1.dn)
-
-    Air.Schemas.Group
-    |> where([q], q.source == ^:ldap)
-    |> where([q], not (q.ldap_dn in ^present_dns))
-    |> Air.Repo.all()
-    |> Enum.each(&Air.Service.User.delete_group!(&1, ldap: true))
-  end
-
-  defp check_group_error({:ok, result}, _), do: {:ok, result}
-
-  defp check_group_error({:error, _}, ldap_group) do
-    Logger.warn(
-      "Failed to import group `#{ldap_group.dn}` from LDAP." <>
-        " The most likely cause is a name conflict with another LDAP group."
-    )
-
-    :error
   end
 
   defp check_user_error({:ok, result}, _), do: {:ok, result}

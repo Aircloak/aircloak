@@ -1,10 +1,20 @@
 defmodule Air.Service.LDAP do
+  @moduledoc "This module provides entry-point functions for interacting with LDAP."
+
   require Aircloak.DeployConfig
 
   alias __MODULE__.{User, Group, FilterParser}
 
   @timeout :timer.seconds(5)
 
+  @type ldap_error :: :connect_failed | :invalid_credentials | :ldap_not_configured
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Attempts to authenticate the user with the given LDAP DN with the given password."
+  @spec simple_bind({:ok, map()} | :error, String.t(), String.t()) :: :ok | {:error, ldap_error}
   def simple_bind(config \\ Aircloak.DeployConfig.fetch("ldap"), user_dn, password) do
     with_connection(config, fn conn, _config ->
       case :eldap.simple_bind(conn, user_dn, password) do
@@ -15,6 +25,8 @@ defmodule Air.Service.LDAP do
     end)
   end
 
+  @doc "Fetches the list of users from LDAP according to the provided configuration."
+  @spec users({:ok, map()} | :error) :: {:ok, [User.t()]} | {:error, ldap_error}
   def users(config \\ Aircloak.DeployConfig.fetch("ldap")) do
     with_bound_connection(config, fn conn, config ->
       with {:ok, results} <- search(conn, base: config["user_base"], filter: parse_filter(config["user_filter"])) do
@@ -23,6 +35,8 @@ defmodule Air.Service.LDAP do
     end)
   end
 
+  @doc "Fetches the list of groups from LDAP according to the provided configuration."
+  @spec groups({:ok, map()} | :error) :: {:ok, [Group.t()]} | {:error, ldap_error}
   def groups(config \\ Aircloak.DeployConfig.fetch("ldap")) do
     with_bound_connection(config, fn conn, config ->
       with {:ok, results} <- search(conn, base: config["group_base"], filter: parse_filter(config["group_filter"])) do
@@ -30,6 +44,10 @@ defmodule Air.Service.LDAP do
       end
     end)
   end
+
+  # -------------------------------------------------------------------
+  # Helpers for parsing LDAP data
+  # -------------------------------------------------------------------
 
   defp parse_filter(filter) do
     case FilterParser.parse(filter || "") do
@@ -85,6 +103,10 @@ defmodule Air.Service.LDAP do
       _ -> []
     end
   end
+
+  # -------------------------------------------------------------------
+  # Connection helpers
+  # -------------------------------------------------------------------
 
   defp with_bound_connection(config, action) do
     with_connection(config, fn conn, config ->

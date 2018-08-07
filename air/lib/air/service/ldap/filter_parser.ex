@@ -1,14 +1,28 @@
 defmodule Air.Service.LDAP.FilterParser do
-  import Combine.Helpers
-  import Combine.Parsers.Base
-  import Combine.Parsers.Text
+  @moduledoc """
+  This module contains a parser for LDAP filter expressions. The takes in a string representation of the filter and
+  produces data structures compatible with :eldap as its output. See https://ldap.com/ldap-filters/ for more on these
+  filters.
+  """
 
+  import Combine.{Helpers, Parsers.Base, Parsers.Text}
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Parses the string representation of an LDAP filter into an :eldap.filter()."
+  @spec parse(String.t()) :: {:ok, :eldap.filter()} | :error
   def parse(filter) do
     case Combine.parse(filter, parser()) do
       {:error, _} -> :error
       [result] -> {:ok, result}
     end
   end
+
+  # -------------------------------------------------------------------
+  # Parsers
+  # -------------------------------------------------------------------
 
   defp parser(), do: filter() |> eof()
 
@@ -115,6 +129,10 @@ defmodule Air.Service.LDAP.FilterParser do
   defp value(), do: raw_value() |> map(fn value -> value |> unescape() |> to_charlist() end)
 
   defp raw_value(), do: word_of(~r/[^)]/)
+
+  # -------------------------------------------------------------------
+  # Helpers
+  # -------------------------------------------------------------------
 
   defp unescape(value) do
     value

@@ -1,9 +1,17 @@
 defmodule Air.Service.LDAP.PeriodicSync do
+  @moduledoc "This module is a wrapper around the other LDAP modules that syncs Air with LDAP periodically."
+
   require Logger
   require Aircloak.DeployConfig
 
   alias Air.Service.{LDAP, LDAP.Sync}
 
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Perform a full LDAP sync by fetching a list of users and groups and applying those to Air."
+  @spec run() :: :ok
   def run() do
     with :ok <- check_config(),
          {:ok, users} <- LDAP.users(),
@@ -13,7 +21,13 @@ defmodule Air.Service.LDAP.PeriodicSync do
       {:error, :ldap_not_configured} -> :ldap_not_configured
       error -> Logger.warn("LDAP sync failed. Reason: #{inspect(error)}")
     end
+
+    :ok
   end
+
+  # -------------------------------------------------------------------
+  # Helpers
+  # -------------------------------------------------------------------
 
   defp check_config() do
     case Aircloak.DeployConfig.fetch("ldap") do
