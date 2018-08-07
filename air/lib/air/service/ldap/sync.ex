@@ -42,36 +42,46 @@ defmodule Air.Service.LDAP.Sync do
     |> check_group_error(ldap_group)
   end
 
-  defp sync_users(ldap_users), do: ldap_users |> Enum.flat_map(&sync_user/1) |> Enum.into(%{})
+  defp sync_users(ldap_users) do
+    for ldap_user <- ldap_users do
+      case sync_user(ldap_user) do
+        {:ok, air_user} -> {ldap_user.login, air_user.id}
+        _ -> nil
+      end
+    end
+    |> Enum.filter(& &1)
+    |> Enum.into(%{})
+  end
 
   defp sync_user(ldap_user) do
-    cond do
-      air_user = Air.Repo.get_by(Air.Schemas.User, ldap_dn: ldap_user.dn) ->
-        [{ldap_user.login, update_user!(air_user, ldap_user).id}]
-
-      Air.Repo.get_by(Air.Schemas.User, login: ldap_user.login) ->
-        []
-
-      true ->
-        [{ldap_user.login, create_user!(ldap_user).id}]
+    if air_user = Air.Repo.get_by(Air.Schemas.User, ldap_dn: ldap_user.dn) do
+      update_user(air_user, ldap_user)
+    else
+      create_user(ldap_user)
     end
   end
 
-  defp create_user!(ldap_user) do
-    {:ok, user} =
-      Air.Service.User.create_ldap(%{
-        login: ldap_user.login,
-        ldap_dn: ldap_user.dn,
-        name: ldap_user.name
-      })
-
-    user
+  defp create_user(ldap_user) do
+    Air.Service.User.create_ldap(%{
+      login: ldap_user.login,
+      ldap_dn: ldap_user.dn,
+      name: ldap_user.name
+    })
+    |> check_user_error(ldap_user)
   end
 
-  defp update_user!(air_user, ldap_user) do
-    air_user
-    |> Air.Service.User.update!(%{login: ldap_user.login, name: ldap_user.name}, ldap: true)
-    |> Air.Service.User.enable!(ldap: true)
+  defp update_user(air_user, ldap_user) do
+    Air.Service.User.update(air_user, %{login: ldap_user.login, name: ldap_user.name}, ldap: true)
+    |> check_user_error(ldap_user)
+    |> case do
+      {:ok, air_user} ->
+        Air.Service.User.enable!(air_user, ldap: true)
+        air_user
+
+      :error ->
+        Air.Service.User.disable(air_user, ldap: true)
+        :error
+    end
   end
 
   defp disable_missing_users(ldap_users) do
@@ -94,6 +104,8 @@ defmodule Air.Service.LDAP.Sync do
     |> Enum.each(&Air.Service.User.delete_group!(&1, ldap: true))
   end
 
+  defp check_group_error({:ok, result}, _), do: {:ok, result}
+
   defp check_group_error({:error, _}, ldap_group) do
     Logger.warn(
       "Failed to import group `#{ldap_group.dn}` from LDAP." <>
@@ -103,5 +115,14 @@ defmodule Air.Service.LDAP.Sync do
     :error
   end
 
-  defp check_group_error({:ok, result}, _), do: {:ok, result}
+  defp check_user_error({:ok, result}, _), do: {:ok, result}
+
+  defp check_user_error({:error, _}, ldap_user) do
+    Logger.warn(
+      "Failed to import user `#{ldap_user.dn}` from LDAP." <>
+        " The most likely cause is a login conflict with another user."
+    )
+
+    :error
+  end
 end

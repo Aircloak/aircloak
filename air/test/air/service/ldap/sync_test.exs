@@ -27,8 +27,14 @@ defmodule Air.Service.LDAP.Sync.Test do
       assert %{login: "alice", name: "Alice the Magnificent"} = Air.Repo.get(Air.Schemas.User, user.id)
     end
 
-    @tag :pending
-    test "user conflicts caused by a change in LDAP"
+    test "user conflicts caused by a change in LDAP" do
+      user_from_ldap = create_user!(%{login: "alice", name: "Alice", ldap_dn: "some dn"})
+      create_user!(%{login: "bob", name: "Bob"})
+
+      Sync.sync([%User{dn: "some dn", login: "bob", name: "Bob"}], _groups = [])
+
+      refute Air.Repo.get(Air.Schemas.User, user_from_ldap.id).enabled
+    end
 
     test "user deactivated if no longer in LDAP" do
       user = create_user!(%{ldap_dn: "some dn"})
