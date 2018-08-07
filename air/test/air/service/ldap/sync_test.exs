@@ -77,6 +77,15 @@ defmodule Air.Service.LDAP.Sync.Test do
       assert Air.Repo.get_by(Air.Schemas.Group, name: "group2", source: :ldap, ldap_dn: "some dn")
     end
 
+    test "group conflicts with a removed LDAP group" do
+      create_group!(%{name: "group1", ldap_dn: "some dn"})
+
+      Sync.sync(_users = [], [%Group{dn: "some other dn", name: "group1", member_ids: []}])
+
+      refute Air.Repo.get_by(Air.Schemas.Group, ldap_dn: "some dn")
+      assert Air.Repo.get_by(Air.Schemas.Group, name: "group1", ldap_dn: "some other dn")
+    end
+
     test "two conflicting groups arrive from LDAP" do
       Sync.sync(_users = [], [
         %Group{dn: "some dn", name: "group1", member_ids: []},

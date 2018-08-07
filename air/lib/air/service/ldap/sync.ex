@@ -3,10 +3,10 @@ defmodule Air.Service.LDAP.Sync do
   import Ecto.Query
 
   def sync(ldap_users, ldap_groups) do
-    user_mappings = sync_users(ldap_users)
-    sync_groups(ldap_groups, user_mappings)
     disable_missing_users(ldap_users)
     delete_missing_groups(ldap_groups)
+    user_mappings = sync_users(ldap_users)
+    sync_groups(ldap_groups, user_mappings)
   end
 
   defp sync_groups(ldap_groups, user_mappings), do: Enum.each(ldap_groups, &sync_group(&1, user_mappings))
