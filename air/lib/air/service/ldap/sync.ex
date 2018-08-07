@@ -19,27 +19,26 @@ defmodule Air.Service.LDAP.Sync do
   end
 
   defp create_group(ldap_group, user_mappings) do
-    Air.Service.User.create_ldap_group(%{
-      admin: false,
-      name: ldap_group.name,
-      ldap_dn: ldap_group.dn,
-      users: Enum.map(ldap_group.member_ids, &Map.get(user_mappings, &1))
-    })
+    ldap_group
+    |> group_params(user_mappings)
+    |> Air.Service.User.create_ldap_group()
     |> check_group_error(ldap_group)
   end
 
   defp update_group(air_group, ldap_group, user_mappings) do
     air_group
     |> Air.Repo.preload(:users)
-    |> Air.Service.User.update_group(
-      %{
-        admin: false,
-        name: ldap_group.name,
-        users: Enum.map(ldap_group.member_ids, &Map.get(user_mappings, &1))
-      },
-      ldap: true
-    )
+    |> Air.Service.User.update_group(group_params(ldap_group, user_mappings), ldap: true)
     |> check_group_error(ldap_group)
+  end
+
+  defp group_params(ldap_group, user_mappings) do
+    %{
+      admin: false,
+      name: ldap_group.name,
+      ldap_dn: ldap_group.dn,
+      users: Enum.map(ldap_group.member_ids, &Map.get(user_mappings, &1))
+    }
   end
 
   defp sync_users(ldap_users) do
