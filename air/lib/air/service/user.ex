@@ -2,7 +2,7 @@ defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
   alias Air.Repo
-  alias Air.Service.AuditLog
+  alias Air.Service.{AuditLog, LDAP}
   alias Air.Schemas.{DataSource, Group, User}
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
@@ -26,7 +26,7 @@ defmodule Air.Service.User do
     user = Repo.one(from(u in User, where: u.login == ^login, where: u.enabled))
 
     cond do
-      User.validate_password(user, password) ->
+      valid_password?(user, password) ->
         AuditLog.log(user, "Logged in", meta)
         {:ok, user}
 
@@ -367,6 +367,10 @@ defmodule Air.Service.User do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp valid_password?(nil, _), do: false
+  defp valid_password?(user = %{source: :native}, password), do: User.validate_password(user, password)
+  defp valid_password?(user = %{source: :ldap}, password), do: match?(:ok, LDAP.simple_bind(user.ldap_dn, password))
 
   defp random_string, do: Base.encode16(:crypto.strong_rand_bytes(10))
 

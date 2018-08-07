@@ -105,6 +105,28 @@ defmodule Air.Service.UserTest do
     end
   end
 
+  describe ".login" do
+    test "success for native user" do
+      user_id = TestRepoHelper.create_user!(%{login: "alice", password: "password1234"}).id
+      assert {:ok, %{id: ^user_id}} = User.login("alice", "password1234")
+    end
+
+    test "failure for native user" do
+      TestRepoHelper.create_user!(%{login: "alice", password: "password1234"})
+      assert {:error, :invalid_login_or_password} = User.login("alice", "invalid password")
+    end
+
+    test "success for LDAP user" do
+      user_id = TestRepoHelper.create_user!(%{login: "alice", ldap_dn: "cn=admin,dc=example,dc=org"}).id
+      assert {:ok, %{id: ^user_id}} = User.login("alice", "admin")
+    end
+
+    test "failure for LDAP user" do
+      TestRepoHelper.create_user!(%{login: "alice", ldap_dn: "cn=admin,dc=example,dc=org"})
+      assert {:error, :invalid_login_or_password} = User.login("alice", "invalid_password")
+    end
+  end
+
   describe "deleting a user" do
     test "doesn't delete the group" do
       group = TestRepoHelper.create_group!()
