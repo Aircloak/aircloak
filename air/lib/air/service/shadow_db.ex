@@ -6,6 +6,8 @@ defmodule Air.Service.ShadowDb do
   databases so we can offload PostgreSQL specific queries issued over the psql interface.
   """
 
+  use Supervisor
+  require Logger
   alias Aircloak.ChildSpec
   alias Air.Service.ShadowDb.Server
 
@@ -21,6 +23,23 @@ defmodule Air.Service.ShadowDb do
   def update(data_source), do: Server.update_definition(server_pid(data_source), data_source)
 
   # -------------------------------------------------------------------
+  # Supervisor callbacks
+  # -------------------------------------------------------------------
+
+  @impl Supervisor
+  def init(_arg) do
+    if Application.get_env(:air, :shadow_db?, true), do: wait_local_postgresql()
+
+    Supervisor.init(
+      [
+        ChildSpec.registry(:unique, @server_registry),
+        ChildSpec.dynamic_supervisor(name: @server_supervisor)
+      ],
+      strategy: :one_for_one
+    )
+  end
+
+  # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
@@ -33,19 +52,49 @@ defmodule Air.Service.ShadowDb do
 
   defp server_name(data_source_name), do: {:via, Registry, {@server_registry, data_source_name}}
 
+  defp wait_local_postgresql() do
+    Logger.info("waiting for local PostgreSQL instance")
+
+    task =
+      Task.async(fn ->
+        Process.flag(:trap_exit, true)
+
+        Stream.repeatedly(&postgrex_availabe?/0)
+        |> Stream.drop_while(&(&1 == false))
+        |> Enum.take(1)
+      end)
+
+    case Task.yield(task, :timer.minutes(1)) do
+      nil -> raise "local PostgreSQL is not available"
+      _ -> :ok
+    end
+  end
+
+  defp postgrex_availabe?() do
+    Task.async(fn ->
+      Postgrex.start_link(
+        hostname: "127.0.0.1",
+        username: "postgres",
+        database: "postgres",
+        sync_connect: true,
+        backoff_type: :stop
+      )
+    end)
+    |> Task.yield()
+    |> case do
+      {:ok, {:ok, _pid}} ->
+        true
+
+      _ ->
+        Process.sleep(:timer.seconds(5))
+        false
+    end
+  end
+
   # -------------------------------------------------------------------
   # Supervision tree
   # -------------------------------------------------------------------
 
   @doc false
-  def child_spec(_arg) do
-    ChildSpec.supervisor(
-      [
-        ChildSpec.registry(:unique, @server_registry),
-        ChildSpec.dynamic_supervisor(name: @server_supervisor)
-      ],
-      strategy: :rest_for_one,
-      name: __MODULE__
-    )
-  end
+  def start_link(_arg), do: Supervisor.start_link(__MODULE__, nil, name: __MODULE__)
 end
