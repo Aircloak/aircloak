@@ -152,10 +152,21 @@ defmodule Air.Service.User do
     |> Repo.update()
   end
 
-  @doc "Deletes the given user in the background."
-  @spec delete_async(User.t(), (() -> any), (any -> any)) :: :ok
-  def delete_async(user, success_callback, failure_callback) do
-    commit_if_active_last_admin_async(fn -> Repo.delete(user) end, success_callback, failure_callback)
+  @doc """
+  Deletes the given user in the background. Calls `start_callback` and returns `:ok` immediately if the user can be
+  disabled and the deletion process was started. Calls `success_callback` or `failure_callback` in the background when
+  finished.
+  """
+  @spec delete_async(User.t(), (() -> any), (() -> any), (any -> any)) :: :ok | {:error, :forbidden_no_active_admin}
+  def delete_async(user, start_callback, success_callback, failure_callback) do
+    case disable(user) do
+      {:ok, user} ->
+        start_callback.()
+        commit_if_active_last_admin_async(fn -> Repo.delete(user) end, success_callback, failure_callback)
+
+      error ->
+        error
+    end
   end
 
   @doc "Deletes the given user, raises on error."
