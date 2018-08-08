@@ -26,7 +26,7 @@
     "port": 389,
     "bind_dn": "cn=admin,dc=example,dc=org",
     "password": "admin",
-    "user_base": "dc=example,dc=org",
+    "user_base": "ou=users,dc=example,dc=org",
     "user_filter": "(objectClass=organizationalRole)",
     "group_base": "dc=example,dc=org",
     "group_filter": "(objectClass=posixGroup)"

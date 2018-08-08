@@ -26,11 +26,16 @@ defmodule AirWeb.Admin.UserController do
       |> Enum.sort_by(& &1.name)
       |> Enum.split_with(& &1.enabled)
 
+    {enabled_users, enabled_ldap_users} = Enum.split_with(enabled_users, &(&1.source == :native))
+    {disabled_users, disabled_ldap_users} = Enum.split_with(disabled_users, &(&1.source == :native))
+
     render(
       conn,
       "index.html",
       enabled_users: enabled_users,
       disabled_users: disabled_users,
+      enabled_ldap_users: enabled_ldap_users,
+      disabled_ldap_users: disabled_ldap_users,
       data_sources_count: User.data_sources_count()
     )
   end
