@@ -7,7 +7,8 @@ defmodule Air.Service.LDAP do
 
   @timeout :timer.seconds(5)
 
-  @type ldap_error :: :connect_failed | :invalid_credentials | :ldap_not_configured
+  @type ldap_error ::
+          :connect_failed | :invalid_credentials | :ldap_not_configured | :user_filter_invalid | :group_filter_invalid
 
   # -------------------------------------------------------------------
   # API functions
@@ -29,8 +30,12 @@ defmodule Air.Service.LDAP do
   @spec users({:ok, map()} | :error) :: {:ok, [User.t()]} | {:error, ldap_error}
   def users(config \\ Aircloak.DeployConfig.fetch("ldap")) do
     with_bound_connection(config, fn conn, config ->
-      with {:ok, results} <- search(conn, base: config["user_base"], filter: parse_filter(config["user_filter"])) do
+      with {:ok, filter} <- parse_filter(config["user_filter"]),
+           {:ok, results} <- search(conn, base: config["user_base"], filter: filter) do
         {:ok, results |> Enum.map(&build_user(config, &1)) |> Enum.reject(&is_nil(&1.login))}
+      else
+        {:error, :filter_invalid} -> {:error, :user_filter_invalid}
+        other -> other
       end
     end)
   end
@@ -39,8 +44,12 @@ defmodule Air.Service.LDAP do
   @spec groups({:ok, map()} | :error) :: {:ok, [Group.t()]} | {:error, ldap_error}
   def groups(config \\ Aircloak.DeployConfig.fetch("ldap")) do
     with_bound_connection(config, fn conn, config ->
-      with {:ok, results} <- search(conn, base: config["group_base"], filter: parse_filter(config["group_filter"])) do
+      with {:ok, filter} <- parse_filter(config["group_filter"]),
+           {:ok, results} <- search(conn, base: config["group_base"], filter: filter) do
         {:ok, results |> Enum.map(&build_group(config, &1)) |> Enum.reject(&is_nil(&1.name))}
+      else
+        {:error, :filter_invalid} -> {:error, :group_filter_invalid}
+        other -> other
       end
     end)
   end
@@ -49,10 +58,12 @@ defmodule Air.Service.LDAP do
   # Helpers for parsing LDAP data
   # -------------------------------------------------------------------
 
+  defp parse_filter(nil), do: {:ok, :eldap.present('objectClass')}
+
   defp parse_filter(filter) do
-    case FilterParser.parse(filter || "") do
-      {:ok, filter} -> filter
-      :error -> :eldap.present('objectClass')
+    case FilterParser.parse(filter) do
+      {:ok, filter} -> {:ok, filter}
+      :error -> {:error, :filter_invalid}
     end
   end
 

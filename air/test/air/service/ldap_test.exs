@@ -86,6 +86,10 @@ defmodule Air.Service.LDAP.Test do
       assert {:ok, [%User{login: "alice"}]} =
                LDAP.users({:ok, Map.merge(ldap(), %{"user_filter" => "(description=An Alice)"})})
     end
+
+    test "with an invalid filter" do
+      assert {:error, :user_filter_invalid} = LDAP.users({:ok, Map.merge(ldap(), %{"user_filter" => "invalid"})})
+    end
   end
 
   describe ".groups" do
@@ -121,6 +125,10 @@ defmodule Air.Service.LDAP.Test do
     test "extracts groups by filter" do
       assert {:ok, [%Group{name: "cn=group1,ou=groups,dc=example,dc=org"}]} =
                LDAP.groups({:ok, Map.merge(ldap(), %{"group_filter" => "(description=A big group)"})})
+    end
+
+    test "with an invalid filter" do
+      assert {:error, :group_filter_invalid} = LDAP.groups({:ok, Map.merge(ldap(), %{"group_filter" => "invalid"})})
     end
   end
 
