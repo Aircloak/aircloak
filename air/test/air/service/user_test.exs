@@ -177,6 +177,21 @@ defmodule Air.Service.UserTest do
 
       assert is_nil(Repo.get_by(Air.Schemas.AuditLog, event: "user delete test event"))
     end
+
+    test "it's impossible to delete an enabled LDAP user" do
+      user = TestRepoHelper.create_user!(%{ldap_dn: "some dn"})
+
+      assert {:error, :invalid_ldap_delete} = User.delete(user)
+      assert Repo.get(Air.Schemas.User, user.id)
+    end
+
+    test "it's possible to delete a disabled LDAP user" do
+      user = TestRepoHelper.create_user!(%{ldap_dn: "some dn"})
+      {:ok, user} = User.disable(user, ldap: true)
+
+      assert {:ok, _} = User.delete(user)
+      refute Repo.get(Air.Schemas.User, user.id)
+    end
   end
 
   describe "group operations" do

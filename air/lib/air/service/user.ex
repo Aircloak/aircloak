@@ -153,9 +153,8 @@ defmodule Air.Service.User do
   end
 
   @doc "Deletes the given user in the background."
-  @spec delete_async(User.t(), (() -> any), (any -> any), change_options) :: :ok
-  def delete_async(user, success_callback, failure_callback, options \\ []) do
-    check_ldap!(user, options)
+  @spec delete_async(User.t(), (() -> any), (any -> any)) :: :ok
+  def delete_async(user, success_callback, failure_callback) do
     commit_if_active_last_admin_async(fn -> Repo.delete(user) end, success_callback, failure_callback)
   end
 
@@ -167,7 +166,8 @@ defmodule Air.Service.User do
   end
 
   @doc "Deletes the given user."
-  @spec delete(User.t()) :: {:ok, User.t()} | {:error, :forbidden_no_active_admin}
+  @spec delete(User.t()) :: {:ok, User.t()} | {:error, :forbidden_no_active_admin | :invalid_ldap_delete}
+  def delete(%User{source: :ldap, enabled: true}), do: {:error, :invalid_ldap_delete}
   def delete(user), do: commit_if_active_last_admin(fn -> Repo.delete(user) end)
 
   @doc "Disables a user account"
