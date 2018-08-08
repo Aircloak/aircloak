@@ -82,6 +82,9 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
     "interval '#{days} #{time}' day(9) to second"
   end
 
+  @impl Dialect
+  def quote_char(), do: ?`
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
