@@ -42,22 +42,13 @@ defmodule Cloak.DataSource.Drill do
   def sql_dialect_module(_), do: Cloak.DataSource.SqlBuilder.Drill
 
   @impl Driver
-  def connect!(parameters) do
-    connection = ODBC.connect!(parameters, &conn_params/1)
-
-    case :odbc.sql_query(connection, 'ALTER SESSION SET planner.parser.quoting_identifiers = \'"\'') do
-      {:updated, _} -> :ok
-      {:selected, ['ok', _], [[true, _]]} -> :ok
-    end
-
-    connection
-  end
+  def connect!(parameters), do: ODBC.connect!(parameters, &conn_params/1)
 
   @impl Driver
   defdelegate disconnect(connection), to: ODBC
 
   @impl Driver
-  def load_tables(connection, table), do: ODBC.load_tables(connection, update_in(table.db_name, &~s/"#{&1}"/))
+  def load_tables(connection, table), do: ODBC.load_tables(connection, update_in(table.db_name, &"`#{&1}`"))
 
   @impl Driver
   defdelegate select(connection, sql_query, result_processor), to: ODBC
