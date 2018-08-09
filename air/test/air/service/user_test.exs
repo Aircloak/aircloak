@@ -28,10 +28,35 @@ defmodule Air.Service.UserTest do
       assert {:error, _} = User.login("email@example.com", "password1234")
     end
 
+    test "create cannot set ldap_dn" do
+      assert {:ok, %{ldap_dn: nil}} = User.create(%{login: "login", name: "Person", ldap_dn: "some dn"})
+    end
+
+    test "create_ldap can set ldap_dn" do
+      assert {:ok, %{ldap_dn: "some dn"}} = User.create_ldap(%{login: "login", name: "Person", ldap_dn: "some dn"})
+    end
+
     test "admin update cannot set the password" do
       user = TestRepoHelper.create_user!(%{password: "password1234"})
       User.update(user, %{password: "new password", password_confirmation: "new password"})
       assert {:error, _} = User.login("email@example.com", "new password")
+    end
+
+    test "update cannot change LDAP users" do
+      assert_raise(RuntimeError, fn ->
+        User.update(TestRepoHelper.create_user!(%{ldap_dn: "some dn"}), %{login: "new login"})
+      end)
+    end
+
+    test "update with ldap: true cannot change non-LDAP users" do
+      assert_raise(RuntimeError, fn ->
+        User.update(TestRepoHelper.create_user!(%{ldap_dn: nil}), %{login: "new login"}, ldap: true)
+      end)
+    end
+
+    test "update with ldap: true can change LDAP users" do
+      assert {:ok, %{login: "new login"}} =
+               User.update(TestRepoHelper.create_user!(%{ldap_dn: "some dn"}), %{login: "new login"}, ldap: true)
     end
 
     test "requires name to be two or more characters",
@@ -77,6 +102,28 @@ defmodule Air.Service.UserTest do
       User.update!(user, %{groups: [group2.id]})
       user = User.load(user.id)
       assert [group2.id] == Enum.map(user.groups, & &1.id)
+    end
+  end
+
+  describe ".login" do
+    test "success for native user" do
+      user_id = TestRepoHelper.create_user!(%{login: "alice", password: "password1234"}).id
+      assert {:ok, %{id: ^user_id}} = User.login("alice", "password1234")
+    end
+
+    test "failure for native user" do
+      TestRepoHelper.create_user!(%{login: "alice", password: "password1234"})
+      assert {:error, :invalid_login_or_password} = User.login("alice", "invalid password")
+    end
+
+    test "success for LDAP user" do
+      user_id = TestRepoHelper.create_user!(%{login: "alice", ldap_dn: "cn=admin,dc=example,dc=org"}).id
+      assert {:ok, %{id: ^user_id}} = User.login("alice", "admin")
+    end
+
+    test "failure for LDAP user" do
+      TestRepoHelper.create_user!(%{login: "alice", ldap_dn: "cn=admin,dc=example,dc=org"})
+      assert {:error, :invalid_login_or_password} = User.login("alice", "invalid_password")
     end
   end
 

@@ -74,6 +74,27 @@
       },
       "additionalProperties": false,
       "required": ["name", "push_api_key", "env"]
+    },
+
+    "ldap": {
+      "type": "object",
+      "properties": {
+        "host": {"type": "string"},
+        "port": {"type": "number"},
+        "bind_dn": {"type": "string"},
+        "password": {"type": "string"},
+        "encryption": {"type": "string", "enum": ["plain", "ssl", "start_tls"]},
+        "user_base": {"type": "string", "minLength": 1},
+        "user_name": {"type": "string", "minLength": 1},
+        "user_login": {"type": "string", "minLength": 1},
+        "user_filter": {"type": "string", "minLength": 1},
+        "group_base": {"type": "string", "minLength": 1},
+        "group_filter": {"type": "string", "minLength": 1},
+        "group_name": {"type": "string", "minLength": 1},
+        "group_member": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false,
+      "required": ["host", "port", "user_base", "group_base"]
     }
   },
   "additionalProperties": false,
