@@ -1,6 +1,6 @@
 defmodule Cloak.DataSource.DrillRODBC do
   @moduledoc """
-  Implements the DataSource.Driver behaviour for Apache Drill using the Rust ODBC port driver..
+  Implements the DataSource.Driver behaviour for Apache Drill using the Rust ODBC port driver.
   For more information, see `DataSource`.
   """
 
