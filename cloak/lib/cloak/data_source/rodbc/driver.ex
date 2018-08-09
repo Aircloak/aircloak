@@ -9,6 +9,7 @@ defmodule Cloak.DataSource.RODBC.Driver do
   @command_execute 1
   @command_fetch 2
   @command_set_flag 3
+  @command_get_columns 4
 
   @flag_wstr_as_bin 0
 
@@ -57,6 +58,15 @@ defmodule Cloak.DataSource.RODBC.Driver do
   @spec set_wstr_as_bin(port()) :: :ok | {:error, String.t()}
   def set_wstr_as_bin(port),
     do: port |> :erlang.port_control(@command_set_flag, <<@flag_wstr_as_bin>>) |> decode_response()
+
+  @doc "Returns {name, type} information about the columns selected by the previous statement."
+  @spec get_columns(port(), ([] -> any)) :: {:ok, [any]} | {:error, String.t()}
+  def get_columns(port, info_mapper) do
+    with {:ok, data} <- port |> :erlang.port_control(@command_get_columns, "") |> decode_response() do
+      columns = data |> decode_data([]) |> Enum.chunk_every(2) |> Enum.map(info_mapper)
+      {:ok, columns}
+    end
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
