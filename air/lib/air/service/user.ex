@@ -157,7 +157,15 @@ defmodule Air.Service.User do
   disabled and the deletion process was started. Calls `success_callback` or `failure_callback` in the background when
   finished.
   """
-  @spec delete_async(User.t(), (() -> any), (() -> any), (any -> any)) :: :ok | {:error, :forbidden_no_active_admin}
+  @spec delete_async(User.t(), (() -> any), (() -> any), (any -> any)) ::
+          :ok | {:error, :forbidden_no_active_admin | :invalid_ldap_delete}
+  def delete_async(%User{source: :ldap, enabled: true}, _, _, _), do: {:error, :invalid_ldap_delete}
+
+  def delete_async(user = %User{source: :ldap, enabled: false}, start_callback, success_callback, failure_callback) do
+    start_callback.()
+    commit_if_active_last_admin_async(fn -> Repo.delete(user) end, success_callback, failure_callback)
+  end
+
   def delete_async(user, start_callback, success_callback, failure_callback) do
     case disable(user) do
       {:ok, user} ->

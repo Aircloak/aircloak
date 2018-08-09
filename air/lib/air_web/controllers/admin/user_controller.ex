@@ -102,12 +102,9 @@ defmodule AirWeb.Admin.UserController do
         |> put_flash(:info, "The user has been disabled. The deletion will be performed in the background")
         |> redirect(to: admin_user_path(conn, :index))
 
-      {:error, :forbidden_no_active_admin} ->
+      {:error, error} ->
         conn
-        |> put_flash(
-          :error,
-          "The user cannot be deleted as it would leave the system without an active administrator."
-        )
+        |> put_flash(:error, delete_error_message(error))
         |> redirect(to: admin_user_path(conn, :index))
     end
   end
@@ -163,4 +160,9 @@ defmodule AirWeb.Admin.UserController do
     token = User.reset_password_token(conn.assigns.user)
     "#{reset_password_path(conn, :show)}?token=#{token}"
   end
+
+  defp delete_error_message(:forbidden_no_active_admin),
+    do: "The user cannot be deleted as it would leave the system without an active administrator."
+
+  defp delete_error_message(:invalid_ldap_delete), do: "The user can only be deleted in LDAP."
 end

@@ -2,6 +2,8 @@ defmodule Air.Service.UserTest do
   # because of shared mode
   use Air.SchemaCase, async: false
 
+  import Aircloak.AssertionHelper
+
   alias Air.TestRepoHelper
   alias Air.Service.User
 
@@ -191,6 +193,34 @@ defmodule Air.Service.UserTest do
 
       assert {:ok, _} = User.delete(user)
       refute Repo.get(Air.Schemas.User, user.id)
+    end
+  end
+
+  describe ".delete_async" do
+    test "can delete a native user" do
+      user = TestRepoHelper.create_user!()
+
+      assert :ok = delete_async(user)
+      assert soon(!Repo.get(Air.Schemas.User, user.id))
+    end
+
+    test "cannot delete an enabled ldap user" do
+      user = TestRepoHelper.create_user!(%{ldap_dn: "some dn"})
+
+      assert {:error, :invalid_ldap_delete} = delete_async(user)
+      refute soon(!Repo.get(Air.Schemas.User, user.id))
+    end
+
+    test "can delete a disabled ldap user" do
+      user = TestRepoHelper.create_user!(%{ldap_dn: "some dn"})
+      {:ok, user} = User.disable(user, ldap: true)
+
+      assert :ok = delete_async(user)
+      assert soon(!Repo.get(Air.Schemas.User, user.id))
+    end
+
+    defp delete_async(user) do
+      User.delete_async(user, fn -> nil end, fn -> nil end, fn _ -> nil end)
     end
   end
 
