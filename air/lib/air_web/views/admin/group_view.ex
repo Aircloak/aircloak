@@ -76,4 +76,7 @@ defmodule AirWeb.Admin.GroupView do
       ]
     end
   end
+
+  def can_delete?(%{source: :native}), do: true
+  def can_delete?(%{source: :ldap}), do: false
 end
