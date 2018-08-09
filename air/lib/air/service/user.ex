@@ -368,7 +368,7 @@ defmodule Air.Service.User do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp valid_password?(nil, _), do: false
+  defp valid_password?(nil, password), do: User.validate_password(nil, password)
   defp valid_password?(user = %{source: :native}, password), do: User.validate_password(user, password)
   defp valid_password?(user = %{source: :ldap}, password), do: match?(:ok, LDAP.simple_bind(user.ldap_dn, password))
 
