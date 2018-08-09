@@ -73,7 +73,7 @@ defmodule Air.Service.LDAP.Sync do
   defp check_group_error({:ok, result}, _), do: {:ok, result}
 
   defp check_group_error({:error, _}, ldap_group) do
-    Logger.warn(
+    Logger.error(
       "Failed to import group `#{ldap_group.dn}` from LDAP." <>
         " The most likely cause is a name conflict with another LDAP group."
     )
@@ -140,7 +140,7 @@ defmodule Air.Service.LDAP.Sync do
   defp check_user_error({:ok, result}, _), do: {:ok, result}
 
   defp check_user_error({:error, _}, ldap_user) do
-    Logger.warn(
+    Logger.error(
       "Failed to import user `#{ldap_user.dn}` from LDAP." <>
         " The most likely cause is a login conflict with another user."
     )
