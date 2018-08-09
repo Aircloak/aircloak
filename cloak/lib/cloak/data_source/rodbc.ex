@@ -34,12 +34,16 @@ defmodule Cloak.DataSource.RODBC do
   def load_tables(connection, table) do
     case Driver.execute(connection, "SELECT * FROM #{table.db_name} LIMIT 0") do
       :ok ->
-        info_mapper = fn [name, type_name] -> Table.column(name, parse_type(type_name)) end
+        case Driver.get_columns(connection) do
+          {:ok, []} ->
+            DataSource.raise_error("Table #{table.db_name} does not have any columns")
 
-        case Driver.get_columns(connection, info_mapper) do
-          {:ok, []} -> DataSource.raise_error("Table #{table.db_name} does not have any columns")
-          {:ok, columns} -> [%{table | columns: columns}]
-          {:error, reason} -> DataSource.raise_error("`#{to_string(reason)}`")
+          {:ok, columns} ->
+            columns = Enum.map(columns, fn {name, type_name} -> Table.column(name, parse_type(type_name)) end)
+            [%{table | columns: columns}]
+
+          {:error, reason} ->
+            DataSource.raise_error("`#{to_string(reason)}`")
         end
 
       {:error, reason} ->

@@ -60,10 +60,10 @@ defmodule Cloak.DataSource.RODBC.Driver do
     do: port |> :erlang.port_control(@command_set_flag, <<@flag_wstr_as_bin>>) |> decode_response()
 
   @doc "Returns {name, type} information about the columns selected by the previous statement."
-  @spec get_columns(port(), ([] -> any)) :: {:ok, [any]} | {:error, String.t()}
-  def get_columns(port, info_mapper) do
+  @spec get_columns(port()) :: {:ok, [{String.t(), String.t()}]} | {:error, String.t()}
+  def get_columns(port) do
     with {:ok, data} <- port |> :erlang.port_control(@command_get_columns, "") |> decode_response() do
-      columns = data |> decode_data([]) |> Enum.chunk_every(2) |> Enum.map(info_mapper)
+      columns = data |> decode_data([]) |> Enum.chunk_every(2) |> Enum.map(&List.to_tuple/1)
       {:ok, columns}
     end
   end
