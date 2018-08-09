@@ -16,7 +16,9 @@ defmodule Air.Service.LDAP.PeriodicSync do
     with :ok <- check_config(),
          {:ok, users} <- LDAP.users(),
          {:ok, groups} <- LDAP.groups() do
+      Logger.info("Syncing with LDAP.")
       Sync.sync(users, groups)
+      Logger.info("LDAP sync finished.")
     else
       {:error, :ldap_not_configured} -> :ldap_not_configured
       error -> Logger.error("LDAP sync failed. Reason: #{inspect(error)}")
