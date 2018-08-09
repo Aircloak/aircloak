@@ -71,6 +71,10 @@ defmodule Air.Service.User do
   @spec all() :: [User.t()]
   def all(), do: Repo.all(from(user in User, preload: [:groups]))
 
+  @doc "Returns a list of all native users in the system."
+  @spec all_native() :: [User.t()]
+  def all_native(), do: Repo.all(from(user in User, where: [source: ^:native], preload: [:groups]))
+
   @doc "Loads the user with the given id."
   @spec load(pos_integer) :: User.t() | nil
   def load(user_id), do: Repo.one(from(user in User, where: user.id == ^user_id, preload: [:groups]))
@@ -273,7 +277,7 @@ defmodule Air.Service.User do
   @spec create_ldap_group(map) :: {:ok, Group.t()} | {:error, Ecto.Changeset.t()}
   def create_ldap_group(params) do
     %Group{}
-    |> group_changeset(params)
+    |> group_changeset(params, ldap: true)
     |> merge(ldap_changeset(%Group{}, params))
     |> Repo.insert()
   end
@@ -293,7 +297,7 @@ defmodule Air.Service.User do
 
     commit_if_active_last_admin(fn ->
       group
-      |> group_changeset(params)
+      |> group_changeset(params, options)
       |> Repo.update()
     end)
   end
@@ -443,14 +447,26 @@ defmodule Air.Service.User do
 
   defp update_password_hash(changeset), do: changeset
 
-  defp group_changeset(group, params),
+  defp group_changeset(group, params, options \\ []),
     do:
       group
       |> cast(params, ~w(name admin)a)
       |> validate_required(~w(name admin)a)
       |> unique_constraint(:name, name: :groups_name_source_index)
       |> PhoenixMTM.Changeset.cast_collection(:users, Repo, User)
+      |> validate_change(:users, &validate_group_user_source(&1, &2, options))
       |> PhoenixMTM.Changeset.cast_collection(:data_sources, Repo, DataSource)
+
+  defp validate_group_user_source(:users, users, options) do
+    valid_source = if(Keyword.get(options, :ldap, false), do: :ldap, else: :native)
+    invalid_users = Enum.filter(users, &(&1.data.source != valid_source))
+
+    case {valid_source, invalid_users} do
+      {_, []} -> []
+      {:native, _} -> [users: "cannot assign LDAP users to a native group"]
+      {:ldap, _} -> [users: "cannot assign native users to an LDAP group"]
+    end
+  end
 
   defp get_admin_group() do
     case admin_groups() do

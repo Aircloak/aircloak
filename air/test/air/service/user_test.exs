@@ -248,6 +248,28 @@ defmodule Air.Service.UserTest do
       assert [user1.id, user2.id] == Enum.map(group.users, & &1.id) |> Enum.sort()
     end
 
+    test "cannot assign LDAP users to a native group" do
+      group = TestRepoHelper.create_group!() |> Repo.preload(:users)
+      user = TestRepoHelper.create_user!(%{ldap_dn: "some dn"})
+
+      assert errors_on(&User.create_group/1, %{admin: false, name: "group1", users: [user.id]})[:users] ==
+               "cannot assign LDAP users to a native group"
+
+      assert errors_on(&User.update_group(group, &1), %{users: [user.id]})[:users] ==
+               "cannot assign LDAP users to a native group"
+    end
+
+    test "cannot assign native users to an LDAP group" do
+      group = TestRepoHelper.create_group!(%{ldap_dn: "some dn"}) |> Repo.preload(:users)
+      user = TestRepoHelper.create_user!()
+
+      assert errors_on(&User.create_ldap_group/1, %{admin: false, name: "group1", users: [user.id]})[:users] ==
+               "cannot assign native users to an LDAP group"
+
+      assert errors_on(&User.update_group(group, &1, ldap: true), %{users: [user.id]})[:users] ==
+               "cannot assign native users to an LDAP group"
+    end
+
     test "connecting a group to a data source" do
       data_source = TestRepoHelper.create_data_source!()
       group = TestRepoHelper.create_group!(%{data_sources: [data_source.id]})
