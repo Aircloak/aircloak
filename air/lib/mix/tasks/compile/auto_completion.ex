@@ -26,6 +26,7 @@ defmodule Mix.Tasks.Compile.AutoCompletion do
   defp compile_auto_completions() do
     function_names =
       Aircloak.Functions.function_spec()
+      |> Enum.reject(&internal_function?/1)
       |> Enum.flat_map(&create_function_definitions/1)
       |> Enum.map(&"  \"#{&1}\"")
       |> Enum.join(",\n")
@@ -38,6 +39,9 @@ defmodule Mix.Tasks.Compile.AutoCompletion do
 
     File.write!("assets/js/code_editor/function_completion_keywords.js", auto_completions)
   end
+
+  defp internal_function?({_, attributes}),
+    do: Map.get(attributes, :attributes, []) |> Enum.member?(:internal)
 
   defp create_function_definitions({{:cast, target}, _}), do: ["cast(<column> to #{target})"]
 
