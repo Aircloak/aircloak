@@ -8,8 +8,7 @@ defmodule Cloak.Sql.Function do
 
   @type t :: Parser.column() | Expression.t()
   @type data_type :: :any | DataSource.data_type()
-  @type argument_type ::
-          data_type | {:optional, data_type} | {:many1, data_type} | {:or, [data_type]}
+  @type argument_type :: data_type | {:optional, data_type} | {:many1, data_type} | {:or, [data_type]}
 
   # -------------------------------------------------------------------
   # Info functions
@@ -143,11 +142,9 @@ defmodule Cloak.Sql.Function do
   def internal?(param), do: has_attribute?(param, :internal)
 
   @doc "Provides information about alternatives for deprecated functions."
-  @spec deprecation_info(t) ::
-          {:error, :function_exists | :not_found} | {:ok, %{alternative: String.t()}}
+  @spec deprecation_info(t) :: {:error, :function_exists | :not_found} | {:ok, %{alternative: String.t()}}
   def deprecation_info({:function, name, _, _} = function) do
-    case {internal?(function), exists?(function),
-          Aircloak.Functions.deprecated_functions()[canonical_name(name)]} do
+    case {internal?(function), exists?(function), Aircloak.Functions.deprecated_functions()[canonical_name(name)]} do
       {true, _, _} -> {:error, :internal_function}
       {_, true, _} -> {:error, :function_exists}
       {_, false, nil} -> {:error, :not_found}
