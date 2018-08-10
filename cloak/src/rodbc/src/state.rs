@@ -64,6 +64,12 @@ impl<'a> State<'a> {
         }
     }
 
+    fn push_binary(buf: &mut Vec<u8>, bytes: &[u8]) {
+        let size_bytes: [u8; 4] = unsafe { transmute(bytes.len() as u32) };
+        buf.extend_from_slice(&size_bytes);
+        buf.extend_from_slice(&bytes);
+    }
+
     pub fn execute(&'a mut self, statement_text: &CVec<u8>) -> Result<(), Box<Error>> {
         self.stmt = None;
         self.field_types.clear();
@@ -132,19 +138,14 @@ impl<'a> State<'a> {
 
                     TYPE_STR => if let Some(val) = cursor.get_data::<&str>(i)? {
                         buf.push(TYPE_STR);
-                        let val_bytes = val.as_bytes();
-                        let size_bytes: [u8; 4] = unsafe { transmute(val_bytes.len() as u32) };
-                        buf.extend_from_slice(&size_bytes);
-                        buf.extend_from_slice(&val_bytes);
+                        State::push_binary(buf, val.as_bytes());
                     } else {
                         buf.push(TYPE_NULL);
                     },
 
                     TYPE_BIN => if let Some(val) = cursor.get_data::<&[u8]>(i)? {
                         buf.push(TYPE_BIN);
-                        let size_bytes: [u8; 4] = unsafe { transmute(val.len() as u32) };
-                        buf.extend_from_slice(&size_bytes);
-                        buf.extend_from_slice(&val);
+                        State::push_binary(buf, val);
                     } else {
                         buf.push(TYPE_NULL);
                     },
@@ -152,6 +153,53 @@ impl<'a> State<'a> {
                     _ => panic!("Unexpected field type!"), // unreachable
                 };
             }
+        }
+
+        Ok(())
+    }
+
+    fn sql_type_to_string(t: ffi::SqlDataType) -> &'static str {
+        match t {
+            SQL_INTEGER | SQL_SMALLINT | SQL_EXT_TINYINT => "integer",
+            SQL_EXT_BIGINT => "bigint",
+            SQL_EXT_BIT => "bit",
+            SQL_NUMERIC | SQL_DECIMAL => "numeric",
+            SQL_REAL | SQL_FLOAT | SQL_DOUBLE => "float",
+            SQL_CHAR | SQL_VARCHAR | SQL_EXT_LONGVARCHAR => "varchar",
+            SQL_EXT_BINARY | SQL_EXT_VARBINARY | SQL_EXT_LONGVARBINARY => "binary",
+            SQL_EXT_WCHAR | SQL_EXT_WVARCHAR | SQL_EXT_WLONGVARCHAR => "wvarchar",
+            SQL_DATETIME => "datetime",
+            SQL_TIMESTAMP => "timestamp",
+            SQL_DATE => "date",
+            SQL_TIME => "time",
+            #[cfg(feature = "odbc_version_4")]
+            SQL_TIME_WITH_TIMEZONE | SQL_SS_TIME2 => "time",
+            #[cfg(feature = "odbc_version_4")]
+            SQL_TIMESTAMP_WITH_TIMEZONE | SQL_SS_TIMESTAMPOFFSET => "timestamp",
+            SQL_EXT_GUID => "guid",
+            _ => "unknown",
+        }
+    }
+
+
+    pub fn get_columns(&'a mut self, buf: &mut Vec<u8>) -> Result<(), Box<Error>> {
+        let stmt = match self.stmt {
+            None => return error("No statement executed!"),
+            Some(ref mut stmt) => stmt,
+        };
+
+        buf.push(::STATUS_OK);
+
+        let num_cols = stmt.num_result_cols()?;
+        for i in 1..(num_cols + 1) {
+            let column = stmt.describe_col(i as u16)?;
+
+            buf.push(TYPE_STR);
+            State::push_binary(buf, column.name.as_bytes());
+
+            let column_type = State::sql_type_to_string(column.data_type);
+            buf.push(TYPE_STR);
+            State::push_binary(buf, column_type.as_bytes());
         }
 
         Ok(())

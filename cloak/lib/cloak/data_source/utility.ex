@@ -75,7 +75,8 @@ defmodule Cloak.DataSource.Utility do
     {"saphana_rodbc", Cloak.DataSource.SAPHanaRODBC},
     {"sapiq", Cloak.DataSource.SAPIQ},
     {"sapiq_rodbc", Cloak.DataSource.SAPIQRODBC},
-    {"drill", Cloak.DataSource.Drill}
+    {"drill", Cloak.DataSource.Drill},
+    {"drill_rodbc", Cloak.DataSource.DrillRODBC}
   ]
 
   @doc "Returns the data source driver module given a data source type name"
