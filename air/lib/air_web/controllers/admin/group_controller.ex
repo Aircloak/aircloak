@@ -106,9 +106,12 @@ defmodule AirWeb.Admin.GroupController do
       selected_user_ids: selected_user_ids(params, group),
       selected_data_source_ids: selected_data_source_ids(params, group),
       all_data_sources: Enum.map(DataSource.all(), &{{&1.name, &1.description}, &1.id}),
-      all_users: Enum.map(User.all_native(), &{{&1.name, &1.login}, &1.id})
+      all_users: Enum.map(all_users(group), &{{&1.name, &1.login}, &1.id})
     }
   end
+
+  defp all_users(%{source: :ldap}), do: User.all()
+  defp all_users(_), do: User.all_native()
 
   defp selected_user_ids(params, group)
   defp selected_user_ids(nil, nil), do: []

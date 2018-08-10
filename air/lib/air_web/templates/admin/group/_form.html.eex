@@ -6,22 +6,22 @@
   <% end %>
 
   <div class="row">
-    <%= if can_manage?(@changeset.data) do %>
-      <div class="col-sm-6">
-        <div class="panel panel-default">
-          <div class="panel-heading">
-            <h1 class="panel-title">Users</h1>
-          </div>
-          <table class="table table-striped">
-            <tbody>
-              <%= PhoenixMTM.Helpers.collection_checkboxes f, :users, @data.all_users,
-                selected: @data.selected_user_ids, mapper: &checkbox_mapper/6
-              %>
-            </tbody>
-          </table>
+    <div class="col-sm-6">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h1 class="panel-title">Users</h1>
         </div>
+        <table class="table table-striped">
+          <tbody>
+            <%= PhoenixMTM.Helpers.collection_checkboxes f, :users, @data.all_users,
+              selected: @data.selected_user_ids,
+              input_opts: [disabled: not can_manage?(@changeset.data)],
+              mapper: &checkbox_mapper/6
+            %>
+          </tbody>
+        </table>
       </div>
-    <% end %>
+    </div>
 
     <div class="col-sm-6">
       <div class="panel panel-default">
@@ -40,27 +40,26 @@
   </div>
 
   <div class="row">
-    <%= if can_manage?(@changeset.data) do %>
-      <div class="form-group">
-        <%= label f, :name, "Group name", class: "col-sm-2 control-label" %>
-        <div class="col-sm-5">
-          <%= text_input f, :name, class: "form-control", placeholder: "Group name" %>
-          <%= error_tag f, :name %>
-        </div>
+    <div class="form-group">
+      <%= label f, :name, "Group name", class: "col-sm-2 control-label" %>
+      <div class="col-sm-5">
+        <%= text_input f, :name, class: "form-control", placeholder: "Group name",
+          disabled: not can_manage?(@changeset.data) %>
+        <%= error_tag f, :name %>
       </div>
+    </div>
 
-      <div class="form-group">
-        <div class="col-sm-offset-2 col-sm-5">
-          <div class="checkbox">
-            <label>
-              <%= checkbox f, :admin %>
-              <%= error_tag f, :admin %>
-              Admin rights?
-            </label>
-          </div>
+    <div class="form-group">
+      <div class="col-sm-offset-2 col-sm-5">
+        <div class="checkbox">
+          <label>
+            <%= checkbox f, :admin, disabled: not can_manage?(@changeset.data) %>
+            <%= error_tag f, :admin %>
+            Admin rights?
+          </label>
         </div>
       </div>
-    <% end %>
+    </div>
 
     <div class="form-group">
       <div class="col-sm-offset-2 col-sm-10">

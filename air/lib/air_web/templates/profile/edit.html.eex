@@ -15,19 +15,17 @@
 
       <div class="panel-body">
         <%= form_for @changeset, profile_path(@conn, :update), fn f -> %>
-          <%= if can_edit?(@changeset.data) do %>
             <div class="form-group">
               <label>Login</label>
-              <%= text_input f, :login, class: "form-control" %>
+              <%= text_input f, :login, class: "form-control", disabled: not can_edit?(@changeset.data) %>
               <%= error_tag f, :login %>
             </div>
 
             <div class="form-group">
               <label>Name</label>
-              <%= text_input f, :name, class: "form-control" %>
+              <%= text_input f, :name, class: "form-control", disabled: not can_edit?(@changeset.data) %>
               <%= error_tag f, :name %>
             </div>
-          <% end %>
 
           <div class="form-group">
             <label>Number format</label> (applies only to the user interface)<br/>
