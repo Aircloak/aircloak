@@ -11,7 +11,8 @@ defmodule Air.Service.User do
   @password_fields ~w(password password_confirmation)a
   @ldap_fields ~w(ldap_dn source)a
   @ldap_required_fields ~w(ldap_dn)a
-  @optional_fields ~w(decimal_sep decimal_digits thousand_sep)a
+  @format_fields ~w(decimal_sep decimal_digits thousand_sep)a
+  @optional_fields @format_fields
   @password_reset_salt "4egg+HOtabCGwsCsRVEBIg=="
 
   @type change_options :: [ldap: true | false | :any]
@@ -146,13 +147,21 @@ defmodule Air.Service.User do
   end
 
   @doc "Updates the profile of the given user, validating user's password."
-  @spec update_profile(User.t(), map, change_options) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
-  def update_profile(user, params, options \\ []) do
+  @spec update_full_profile(User.t(), map, change_options) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  def update_full_profile(user, params, options \\ []) do
     check_ldap!(user, options)
 
     user
     |> user_changeset(Map.take(params, ~w(name login decimal_sep thousand_sep decimal_digits)))
     |> merge(password_changeset(user, params))
+    |> Repo.update()
+  end
+
+  @doc "Updates the profile of the given user, only allowing changes to non-login-related settings, like number format."
+  @spec update_profile_settings(User.t(), map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  def update_profile_settings(user, params) do
+    user
+    |> number_format_changeset(params)
     |> Repo.update()
   end
 
@@ -411,11 +420,17 @@ defmodule Air.Service.User do
       |> cast(params, @required_fields ++ @optional_fields)
       |> validate_required(@required_fields)
       |> validate_length(:name, min: 2)
-      |> validate_length(:decimal_sep, is: 1)
-      |> validate_length(:thousand_sep, is: 1)
-      |> validate_number(:decimal_digits, greater_than_or_equal_to: 1, less_than_or_equal_to: 9)
       |> unique_constraint(:login)
+      |> merge(number_format_changeset(user, params))
       |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
+
+  defp number_format_changeset(user, params) do
+    user
+    |> cast(params, @format_fields)
+    |> validate_length(:decimal_sep, is: 1)
+    |> validate_length(:thousand_sep, is: 1)
+    |> validate_number(:decimal_digits, greater_than_or_equal_to: 1, less_than_or_equal_to: 9)
+  end
 
   defp ldap_changeset(user, params) do
     user

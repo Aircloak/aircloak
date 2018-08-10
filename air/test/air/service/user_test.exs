@@ -67,11 +67,11 @@ defmodule Air.Service.UserTest do
     test "only update hashed password on password change" do
       user = TestRepoHelper.create_user!(%{password: "password1234"})
 
-      {:ok, updated_user} = User.update_profile(user, %{"name" => "foobar"})
+      {:ok, updated_user} = User.update_full_profile(user, %{"name" => "foobar"})
       assert updated_user.hashed_password == user.hashed_password
 
       {:ok, updated_user} =
-        User.update_profile(user, %{
+        User.update_full_profile(user, %{
           "old_password" => "password1234",
           "password" => "passwordwxyz",
           "password_confirmation" => "passwordwxyz"
@@ -424,6 +424,29 @@ defmodule Air.Service.UserTest do
       User.update_group_data_sources(group, %{name: "new name"})
 
       refute User.load_group(group.id).name == "new name"
+    end
+  end
+
+  describe ".update_profile_settings" do
+    test "can change number settings" do
+      user = TestRepoHelper.create_user!()
+
+      assert {:ok, %{decimal_sep: ":", thousand_sep: "-", decimal_digits: 7}} =
+               User.update_profile_settings(user, %{decimal_sep: ":", thousand_sep: "-", decimal_digits: 7})
+    end
+
+    test "cannot change login, name, and password" do
+      user = TestRepoHelper.create_user!(%{login: "alice", name: "Alice"})
+
+      assert {:ok, %{login: "alice", name: "Alice"}} =
+               User.update_profile_settings(user, %{
+                 login: "bob",
+                 name: "Bob",
+                 password: "new password",
+                 password_confirmation: "new password"
+               })
+
+      assert {:error, _} = User.login("alice", "new password")
     end
   end
 
