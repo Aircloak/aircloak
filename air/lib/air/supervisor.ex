@@ -1,7 +1,9 @@
 defmodule Air.Supervisor do
   @moduledoc false
 
-  def start_link do
+  import Aircloak, only: [in_env: 1]
+
+  def(start_link) do
     Supervisor.start_link(
       [
         Air.Repo,
@@ -17,14 +19,15 @@ defmodule Air.Supervisor do
         Air.Service.Export,
         Air.Service.ShadowDb,
         Air.Service.Cleanup,
-        Air.Service.LDAP.PeriodicSync,
+        in_env(test: nil, else: Air.Service.LDAP.PeriodicSync),
         Air.ApiTokenTimestampUpdater,
         Air.Web,
         AirWeb.MonitoringEndpoint,
         Air.BOM,
         Air.PsqlServer,
         Air.PsqlServer.ConnectionRegistry
-      ],
+      ]
+      |> Enum.reject(&is_nil/1),
       strategy: :one_for_one,
       name: Air.Supervisor
     )
