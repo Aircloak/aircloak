@@ -92,7 +92,7 @@ defmodule Air.Mixfile do
       {:ecto_enum, "~> 1.0.0"},
       {:jiffy, "~> 0.14.1"},
       {:appsignal, "~> 1.0"},
-      {:parent, "~> 0.3.0"},
+      {:parent, "~> 0.4.0"},
       {:combine, "~> 0.9.6"},
       {:bom, path: "../bom", runtime: false, only: :dev}
     ]

@@ -45,7 +45,7 @@ defmodule Air.Service.LDAP.PeriodicSync do
   @doc false
   def child_spec(_arg) do
     Aircloak.ChildSpec.supervisor(
-      [{Periodic, run: &run/0, every: :timer.hours(1), overlap?: false, id: :ldap_sync}],
+      [{Periodic, run: &run/0, every: :timer.hours(1), initial_delay: 0, overlap?: false, id: :ldap_sync}],
       name: __MODULE__,
       strategy: :one_for_one
     )
