@@ -2,44 +2,13 @@
 
 import _ from "lodash";
 
-const KEYWORDS = [
+// the function completion keywords is automatically generated during compilation
+import {FUNCTION_KEYWORDS} from "./function_completion_keywords";
+
+const KEYWORDS = FUNCTION_KEYWORDS.concat([
   "SELECT", "FROM",
-  "COUNT(*)", "COUNT(columnName)", "COUNT(distinct columnName)",
-  "COUNT_NOISE(*)", "COUNT_NOISE(columnName)", "COUNT_NOISE(distinct columnName)",
-  "SUM(numericalColumn)", "SUM_NOISE(numericalColumn)",
-  "MIN(numericalColumn)", "MAX(numericalColumn)",
-  "AVG(numericalColumn)", "AVG_NOISE(numericalColumn)",
-  "STDDEV(numericalColumn)", "STDDEV_NOISE(numericalColumn)",
-  "MEDIAN(numericalColumn)",
-  "EXTRACT(timeUnit FROM dateTimeColumn",
-  "EXTRACT_MATCH(stringColumn, 'regex')", "EXTRACT_MATCHES(stringColumn, 'regex')",
-  "YEAR(dateColumn)", "QUARTER(dateColumn)", "MONTH(dateColumn)", "WEEKDAY(dateColumn)", "DOW(dateColumn)",
-  "DAY(dateColumn)", "HOUR(dateColumn)", "MINUTE(dateColumn)", "SECOND(dateColumn)",
-  "ABS(numericalColumn)", "CEIL(numericalColumn)", "CEILING(numericalColumn)",
-  "ROUND(numericalColumn)", "SQRT(numericalColumn)", "TRUNC(numericalColumn)",
-  "FLOOR(numericalColumn)", "POW(numericalColumn, numericalConstant)",
-  "BTRIM(stringColumn)", "BTRIM(stringColumn, 'stringConstant')",
-  "LTRIM(stringColumn)", "LTRIM(stringColumn, 'stringConstant')",
-  "RTRIM(stringColumn)", "RTRIM(stringColumn, 'stringConstant')",
-  "CONCAT(stringColumn, stringColumnOrConstant)",
-  "LEFT(stringColumn, integerConstant)", "RIGHT(stringColumn, integerConstant)",
-  "LENGTH(stringColumn)",
-  "HEX(stringColumn)",
-  "DATE_TRUNC('year', dateTimeColumn)", "DATE_TRUNC('quarter', dateTimeColumn)",
-  "DATE_TRUNC('month', dateTimeColumn)", "DATE_TRUNC('day', dateTimeColumn)",
-  "DATE_TRUNC('hour', dateTimeColumn)", "DATE_TRUNC('minute', dateTimeColumn)",
-  "DATE_TRUNC('second', dateTimeColumn)",
-  "LOWER(stringColumn)", "LCASE(stringColumn)", "UPPER(stringColumn)", "UCASE(stringColumn)",
-  "SUBSTRING(stringColumn FROM integerConstant)",
-  "SUBSTRING(stringColumn FROM integerConstant FOR integerConstant)",
-  "SUBSTRING(stringColumn FOR integerConstant)",
-  "CAST(column AS type)", "CAST(column, type)",
-  "BUCKET(numericalColumn by numericalConstant)",
-  "BUCKET(numericalColumn by numericalConstant align LOWER)",
-  "BUCKET(numericalColumn by numericalConstant align MIDDLE)",
-  "BUCKET(numericalColumn by numericalConstant align UPPER)",
   "SHOW TABLES",
-  "LEFT JOIN", "LEFT INNER JOIN", "RIGHT INNER JOIN",
+  "INNER JOIN", "LEFT JOIN", "LEFT INNER JOIN", "RIGHT INNER JOIN",
   "OUTER JOIN", "LEFT OUTER JOIN", "RIGHT OUTER JOIN",
   "WHERE", "AND",
   "GROUP BY", "ORDER BY",
@@ -47,7 +16,7 @@ const KEYWORDS = [
   "IS NULL", "IS NOT NULL",
   "LIKE ''", "ILIKE ''", "NOT LIKE ''", "NOT ILIKE ''",
   "IN ()", "NOT IN ()",
-];
+]);
 
 const longestFirst = (candidate) => -candidate.text.length;
 
