@@ -49,7 +49,7 @@ defmodule AirWeb.Admin.GroupController do
   def update(conn, params) do
     group = conn.assigns.group
 
-    verify_last_admin_deleted(User.update_group(group, params["group"]), conn, fn
+    verify_last_admin_deleted(update_group(group, params["group"]), conn, fn
       {:ok, group} ->
         audit_log(conn, "Altered group", group: group.name, admin: group.admin)
 
@@ -139,4 +139,7 @@ defmodule AirWeb.Admin.GroupController do
       |> redirect(to: admin_group_path(conn, :index))
 
   defp verify_last_admin_deleted(result, _conn, fun), do: fun.(result)
+
+  defp update_group(group = %{source: :ldap}, params), do: User.update_group_data_sources(group, params)
+  defp update_group(group = %{source: :native}, params), do: User.update_group(group, params)
 end

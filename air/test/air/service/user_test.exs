@@ -407,6 +407,26 @@ defmodule Air.Service.UserTest do
     end
   end
 
+  describe ".update_group_data_sources" do
+    test "can change data source assignments" do
+      group = TestRepoHelper.create_group!() |> Air.Repo.preload(:data_sources)
+      data_source = TestRepoHelper.create_data_source!()
+
+      User.update_group_data_sources(group, %{data_sources: [data_source.id]})
+
+      assert [%{id: data_source_id}] = User.load_group(group.id).data_sources
+      assert data_source_id == data_source.id
+    end
+
+    test "cannot change other attributes" do
+      group = TestRepoHelper.create_group!()
+
+      User.update_group_data_sources(group, %{name: "new name"})
+
+      refute User.load_group(group.id).name == "new name"
+    end
+  end
+
   defp error_on(fun, field, value), do: errors_on(fun, %{field => value})[field]
 
   defp errors_on(fun, changes) do

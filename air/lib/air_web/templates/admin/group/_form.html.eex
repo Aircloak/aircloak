@@ -6,20 +6,22 @@
   <% end %>
 
   <div class="row">
-    <div class="col-sm-6">
-      <div class="panel panel-default">
-        <div class="panel-heading">
-          <h1 class="panel-title">Users</h1>
+    <%= if can_manage?(@changeset.data) do %>
+      <div class="col-sm-6">
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <h1 class="panel-title">Users</h1>
+          </div>
+          <table class="table table-striped">
+            <tbody>
+              <%= PhoenixMTM.Helpers.collection_checkboxes f, :users, @data.all_users,
+                selected: @data.selected_user_ids, mapper: &checkbox_mapper/6
+              %>
+            </tbody>
+          </table>
         </div>
-        <table class="table table-striped">
-          <tbody>
-            <%= PhoenixMTM.Helpers.collection_checkboxes f, :users, @data.all_users,
-              selected: @data.selected_user_ids, mapper: &checkbox_mapper/6
-            %>
-          </tbody>
-        </table>
       </div>
-    </div>
+    <% end %>
 
     <div class="col-sm-6">
       <div class="panel panel-default">
@@ -38,25 +40,27 @@
   </div>
 
   <div class="row">
-    <div class="form-group">
-      <%= label f, :name, "Group name", class: "col-sm-2 control-label" %>
-      <div class="col-sm-5">
-        <%= text_input f, :name, class: "form-control", placeholder: "Group name" %>
-        <%= error_tag f, :name %>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <div class="col-sm-offset-2 col-sm-5">
-        <div class="checkbox">
-          <label>
-            <%= checkbox f, :admin %>
-            <%= error_tag f, :admin %>
-            Admin rights?
-          </label>
+    <%= if can_manage?(@changeset.data) do %>
+      <div class="form-group">
+        <%= label f, :name, "Group name", class: "col-sm-2 control-label" %>
+        <div class="col-sm-5">
+          <%= text_input f, :name, class: "form-control", placeholder: "Group name" %>
+          <%= error_tag f, :name %>
         </div>
       </div>
-    </div>
+
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-5">
+          <div class="checkbox">
+            <label>
+              <%= checkbox f, :admin %>
+              <%= error_tag f, :admin %>
+              Admin rights?
+            </label>
+          </div>
+        </div>
+      </div>
+    <% end %>
 
     <div class="form-group">
       <div class="col-sm-offset-2 col-sm-10">

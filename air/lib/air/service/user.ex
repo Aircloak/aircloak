@@ -302,6 +302,14 @@ defmodule Air.Service.User do
     end)
   end
 
+  @doc "Updates only the data sources of the given group."
+  @spec update_group_data_sources(Group.t(), map) :: {:ok, Group.t()} | {:error, Ecto.Changeset.t()}
+  def update_group_data_sources(group, params) do
+    group
+    |> group_data_source_changeset(params)
+    |> Repo.update()
+  end
+
   @doc "Deletes the given group, raises on error."
   @spec delete_group!(Group.t(), change_options) :: Group.t()
   def delete_group!(group, options \\ []) do
@@ -456,6 +464,12 @@ defmodule Air.Service.User do
       |> PhoenixMTM.Changeset.cast_collection(:users, Repo, User)
       |> validate_change(:users, &validate_group_user_source(&1, &2, options))
       |> PhoenixMTM.Changeset.cast_collection(:data_sources, Repo, DataSource)
+
+  defp group_data_source_changeset(group, params) do
+    group
+    |> cast(params, [])
+    |> PhoenixMTM.Changeset.cast_collection(:data_sources, Repo, DataSource)
+  end
 
   defp validate_group_user_source(:users, users, options) do
     valid_source = if(Keyword.get(options, :ldap, false), do: :ldap, else: :native)

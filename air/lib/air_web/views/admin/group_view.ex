@@ -79,4 +79,8 @@ defmodule AirWeb.Admin.GroupView do
 
   def can_delete?(%{source: :native}), do: true
   def can_delete?(%{source: :ldap}), do: false
+
+  def can_manage?(_new_group = %{source: nil}), do: true
+  def can_manage?(%{source: :native}), do: true
+  def can_manage?(%{source: :ldap}), do: false
 end
