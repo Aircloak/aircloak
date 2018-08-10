@@ -15,17 +15,19 @@
 
       <div class="panel-body">
         <%= form_for @changeset, profile_path(@conn, :update), fn f -> %>
-          <div class="form-group">
-            <label>Login</label>
-            <%= text_input f, :login, class: "form-control" %>
-            <%= error_tag f, :login %>
-          </div>
+          <%= if can_edit?(@changeset.data) do %>
+            <div class="form-group">
+              <label>Login</label>
+              <%= text_input f, :login, class: "form-control" %>
+              <%= error_tag f, :login %>
+            </div>
 
-          <div class="form-group">
-            <label>Name</label>
-            <%= text_input f, :name, class: "form-control" %>
-            <%= error_tag f, :name %>
-          </div>
+            <div class="form-group">
+              <label>Name</label>
+              <%= text_input f, :name, class: "form-control" %>
+              <%= error_tag f, :name %>
+            </div>
+          <% end %>
 
           <div class="form-group">
             <label>Number format</label> (applies only to the user interface)<br/>
@@ -77,39 +79,41 @@
     </div>
   </div>
 
-  <div class="col-sm-6">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <h4>Change password</h4>
-      </div>
+  <%= if can_edit?(@changeset.data) do %>
+    <div class="col-sm-6">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h4>Change password</h4>
+        </div>
 
-      <div class="panel-body">
-        <%= form_for @changeset, profile_path(@conn, :change_password), fn f -> %>
-          <div class="form-group">
-            <label>Old Password</label>
-            <%= password_input f, :old_password, class: "form-control" %>
-            <%= error_tag f, :old_password %>
-          </div>
+        <div class="panel-body">
+          <%= form_for @changeset, profile_path(@conn, :change_password), fn f -> %>
+            <div class="form-group">
+              <label>Old Password</label>
+              <%= password_input f, :old_password, class: "form-control" %>
+              <%= error_tag f, :old_password %>
+            </div>
 
-          <div class="form-group">
-            <label>New Password</label>
-            <div id="password-field"></div>
-            <%= error_tag f, :password %>
-          </div>
+            <div class="form-group">
+              <label>New Password</label>
+              <div id="password-field"></div>
+              <%= error_tag f, :password %>
+            </div>
 
-          <div class="form-group">
-            <label>Password Confirmation</label>
-            <%= password_input f, :password_confirmation, class: "form-control" %>
-            <%= error_tag f, :password_confirmation %>
-          </div>
+            <div class="form-group">
+              <label>Password Confirmation</label>
+              <%= password_input f, :password_confirmation, class: "form-control" %>
+              <%= error_tag f, :password_confirmation %>
+            </div>
 
-          <div class="form-group">
-            <%= submit "Save", class: "btn btn-primary" %>
-          </div>
-        <% end %>
+            <div class="form-group">
+              <%= submit "Save", class: "btn btn-primary" %>
+            </div>
+          <% end %>
+        </div>
       </div>
     </div>
-  </div>
+  <% end %>
 
   <div class="col-sm-6">
     <div class="panel <%= panel_class(@conn.assigns.current_user.debug_mode_enabled) %>">
