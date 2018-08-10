@@ -368,9 +368,17 @@ defmodule Air.Service.User do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp valid_password?(nil, password), do: User.validate_password(nil, password)
-  defp valid_password?(user = %{source: :native}, password), do: User.validate_password(user, password)
-  defp valid_password?(user = %{source: :ldap}, password), do: match?(:ok, LDAP.simple_bind(user.ldap_dn, password))
+  defp valid_password?(user, password) do
+    case user do
+      %{source: :ldap} ->
+        {_, result} = {User.validate_password(user, password), LDAP.simple_bind(user.ldap_dn, password)}
+        match?(:ok, result)
+
+      _ ->
+        {result, _} = {User.validate_password(user, password), LDAP.simple_bind("dummy_login", "dummy_password")}
+        result
+    end
+  end
 
   defp random_string, do: Base.encode16(:crypto.strong_rand_bytes(10))
 
