@@ -32,8 +32,10 @@ defmodule Mix.Tasks.Compile.AutoCompletion do
       |> Enum.join(",\n")
 
     auto_completions = """
-    export const FUNCTION_KEYWORDS=[
-    #{function_names}
+    // @flow
+
+    export const FUNCTION_KEYWORDS = [
+    #{function_names},
     ];
     """
 
