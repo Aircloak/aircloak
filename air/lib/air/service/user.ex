@@ -375,7 +375,7 @@ defmodule Air.Service.User do
         match?(:ok, result)
 
       _ ->
-        {result, _} = {User.validate_password(user, password), LDAP.simple_bind("dummy_login", "dummy_password")}
+        {result, _} = {User.validate_password(user, password), LDAP.dummy_bind()}
         result
     end
   end
