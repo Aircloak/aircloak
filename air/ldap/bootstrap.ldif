@@ -6,13 +6,15 @@ objectClass: simpleSecurityObject
 objectClass: organizationalRole
 cn: alice
 description: An Alice
-userPassword:: e1NTSEF9WDVsTnZ0Sk5GZHFPbUFMM3R2ZGVvRTVQTlJjSi94c08=
+# password1234
+userPassword: {SHA}5ravvW12u10gQVQtfS4/rFuwVZM=
 
 dn: cn=bob,ou=users,dc=example,dc=org
 objectClass: simpleSecurityObject
 objectClass: organizationalRole
 cn: bob
-userPassword:: e1NTSEF9WDVsTnZ0Sk5GZHFPbUFMM3R2ZGVvRTVQTlJjSi94c08=
+# password1234
+userPassword: {SHA}5ravvW12u10gQVQtfS4/rFuwVZM=
 
 dn: ou=groups,dc=example,dc=org
 objectClass: organizationalUnit

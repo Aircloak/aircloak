@@ -23,7 +23,7 @@
 
   "ldap": {
     "host": "localhost",
-    "port": 389,
+    "port": 1389,
     "bind_dn": "cn=admin,dc=example,dc=org",
     "password": "admin",
     "user_base": "ou=users,dc=example,dc=org",

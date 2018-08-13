@@ -47,7 +47,7 @@ defmodule AirWeb.SessionController do
       _ ->
         conn
         |> put_layout("login.html")
-        |> put_flash(:error, "Invalid e-mail or password.")
+        |> put_flash(:error, "Invalid login or password.")
         |> render("new.html")
     end
   end

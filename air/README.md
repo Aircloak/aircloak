@@ -82,6 +82,17 @@ is loaded as part of database seeding.
 
 The site also accepts HTTPS requests on port 8443. Self-signed certificates are provided for the site insights.air-local, meaning you need to add `/etc/hosts` entry which points this hostname to 127.0.0.1. You'll also need to import the certificate (located in `./priv/config/ssl_cert.pem`) into your browser. Once all is setup, you can access the site over HTTPS at https://insights.air-local:8443.
 
+#### LDAP server
+
+One of the dependencies is an LDAP server. In fact two instances are started - one for test, listening on ports 389 and
+636, and another for dev, listening on ports 1389 and 1636. Do not modify the contents of the former one. The latter
+can be modified freely.
+
+Both servers are seeded with the contents of the file `ldap/bootstrap.ldif`, creating two users `alice` and `bob` with
+passwords `password1234`. The dev environment is configured to sync with the dev server, so assuming the server is
+running it should be possible to login with those credentials. The LDAP administrator credentials are
+`cn=admin,dc=example,dc=com` with password `admin`.
+
 ### Local docker container
 
 To start a local docker container, you need to first build the image with `./build-image.sh`. Then you can start the container with `./container.sh console`. Once the container is started you can access it at http://localhost:8080/ and https://insights.air-local:8443. Since different ports are used, the container can run side-by-side to the local site.

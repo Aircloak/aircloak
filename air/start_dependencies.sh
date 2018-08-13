@@ -13,4 +13,5 @@ DB_ENV="test" ./db/container.sh ensure_started
 ./ldap/build-image.sh
 
 echo "Starting LDAP"
-./ldap/container.sh ensure_started
+LDAP_ENV="dev" ./ldap/container.sh ensure_started
+LDAP_ENV="test" ./ldap/container.sh ensure_started
