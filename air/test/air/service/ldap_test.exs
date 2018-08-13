@@ -90,6 +90,14 @@ defmodule Air.Service.LDAP.Test do
     test "with an invalid filter" do
       assert {:error, :user_filter_invalid} = LDAP.users({:ok, Map.merge(ldap(), %{"user_filter" => "invalid"})})
     end
+
+    test "extracts group list stored as user attributes" do
+      assert {:ok,
+              [
+                %User{login: "alice", group_dns: ["An Alice"]},
+                %User{login: "bob", group_dns: []}
+              ]} = LDAP.users({:ok, Map.merge(ldap(), %{"user_group" => "description"})})
+    end
   end
 
   describe ".groups" do
