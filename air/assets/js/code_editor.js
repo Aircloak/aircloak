@@ -9,6 +9,7 @@ import completions from "./code_editor/completion";
 require("codemirror/mode/sql/sql");
 require("codemirror/addon/hint/show-hint");
 require("codemirror/addon/hint/anyword-hint");
+require("./code_editor/mode");
 
 type Props = {
   onRun: () => void;
@@ -96,7 +97,7 @@ export class CodeEditor extends React.Component {
       lineWrapping: true,
       matchBrackets: true,
       readOnly: false,
-      mode: "text/x-pgsql",
+      mode: "text/x-aircloak-sql",
       showCursorWhenSelecting: true,
       smartIndent: true,
       viewportMargin: Infinity,
