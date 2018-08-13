@@ -14,6 +14,12 @@ defmodule Air.Service.LDAP do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Attempts a dummy authentication using the read-only account from the config."
+  @spec dummy_bind({:ok, map()} | :error) :: {:error, :invalid_credentials}
+  def dummy_bind(config \\ Aircloak.DeployConfig.fetch("ldap")) do
+    with_bound_connection(config, fn _, _ -> {:error, :invalid_credentials} end)
+  end
+
   @doc "Attempts to authenticate the user with the given LDAP DN with the given password."
   @spec simple_bind({:ok, map()} | :error, String.t(), String.t()) :: :ok | {:error, ldap_error}
   def simple_bind(config \\ Aircloak.DeployConfig.fetch("ldap"), user_dn, password) do
