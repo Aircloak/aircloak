@@ -20,8 +20,12 @@ defmodule Air.Service.LDAP.PeriodicSync do
       Sync.sync(users, groups)
       Logger.info("LDAP sync finished.")
     else
-      {:error, :ldap_not_configured} -> :ldap_not_configured
-      error -> Logger.error("LDAP sync failed. Reason: #{inspect(error)}")
+      {:error, :ldap_not_configured} ->
+        Logger.info("LDAP not configured. Disabling LDAP users and removing LDAP groups if any exist.")
+        Sync.sync(_users = [], _groups = [])
+
+      error ->
+        Logger.error("LDAP sync failed. Reason: #{inspect(error)}")
     end
 
     :ok
