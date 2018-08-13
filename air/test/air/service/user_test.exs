@@ -2,6 +2,8 @@ defmodule Air.Service.UserTest do
   # because of shared mode
   use Air.SchemaCase, async: false
 
+  import Aircloak.AssertionHelper
+
   alias Air.TestRepoHelper
   alias Air.Service.User
 
@@ -65,11 +67,11 @@ defmodule Air.Service.UserTest do
     test "only update hashed password on password change" do
       user = TestRepoHelper.create_user!(%{password: "password1234"})
 
-      {:ok, updated_user} = User.update_profile(user, %{"name" => "foobar"})
+      {:ok, updated_user} = User.update_full_profile(user, %{"name" => "foobar"})
       assert updated_user.hashed_password == user.hashed_password
 
       {:ok, updated_user} =
-        User.update_profile(user, %{
+        User.update_full_profile(user, %{
           "old_password" => "password1234",
           "password" => "passwordwxyz",
           "password_confirmation" => "passwordwxyz"
@@ -177,6 +179,49 @@ defmodule Air.Service.UserTest do
 
       assert is_nil(Repo.get_by(Air.Schemas.AuditLog, event: "user delete test event"))
     end
+
+    test "it's impossible to delete an enabled LDAP user" do
+      user = TestRepoHelper.create_user!(%{ldap_dn: "some dn"})
+
+      assert {:error, :invalid_ldap_delete} = User.delete(user)
+      assert Repo.get(Air.Schemas.User, user.id)
+    end
+
+    test "it's possible to delete a disabled LDAP user" do
+      user = TestRepoHelper.create_user!(%{ldap_dn: "some dn"})
+      {:ok, user} = User.disable(user, ldap: true)
+
+      assert {:ok, _} = User.delete(user)
+      refute Repo.get(Air.Schemas.User, user.id)
+    end
+  end
+
+  describe ".delete_async" do
+    test "can delete a native user" do
+      user = TestRepoHelper.create_user!()
+
+      assert :ok = delete_async(user)
+      assert soon(!Repo.get(Air.Schemas.User, user.id))
+    end
+
+    test "cannot delete an enabled ldap user" do
+      user = TestRepoHelper.create_user!(%{ldap_dn: "some dn"})
+
+      assert {:error, :invalid_ldap_delete} = delete_async(user)
+      refute soon(!Repo.get(Air.Schemas.User, user.id))
+    end
+
+    test "can delete a disabled ldap user" do
+      user = TestRepoHelper.create_user!(%{ldap_dn: "some dn"})
+      {:ok, user} = User.disable(user, ldap: true)
+
+      assert :ok = delete_async(user)
+      assert soon(!Repo.get(Air.Schemas.User, user.id))
+    end
+
+    defp delete_async(user) do
+      User.delete_async(user, fn -> nil end, fn -> nil end, fn _ -> nil end)
+    end
   end
 
   describe "group operations" do
@@ -201,6 +246,28 @@ defmodule Air.Service.UserTest do
       user2 = TestRepoHelper.create_user!(%{groups: [group.id]})
       group = User.load_group(group.id)
       assert [user1.id, user2.id] == Enum.map(group.users, & &1.id) |> Enum.sort()
+    end
+
+    test "cannot assign LDAP users to a native group" do
+      group = TestRepoHelper.create_group!() |> Repo.preload(:users)
+      user = TestRepoHelper.create_user!(%{ldap_dn: "some dn"})
+
+      assert errors_on(&User.create_group/1, %{admin: false, name: "group1", users: [user.id]})[:users] ==
+               "cannot assign LDAP users to a native group"
+
+      assert errors_on(&User.update_group(group, &1), %{users: [user.id]})[:users] ==
+               "cannot assign LDAP users to a native group"
+    end
+
+    test "cannot assign native users to an LDAP group" do
+      group = TestRepoHelper.create_group!(%{ldap_dn: "some dn"}) |> Repo.preload(:users)
+      user = TestRepoHelper.create_user!()
+
+      assert errors_on(&User.create_ldap_group/1, %{admin: false, name: "group1", users: [user.id]})[:users] ==
+               "cannot assign native users to an LDAP group"
+
+      assert errors_on(&User.update_group(group, &1, ldap: true), %{users: [user.id]})[:users] ==
+               "cannot assign native users to an LDAP group"
     end
 
     test "connecting a group to a data source" do
@@ -337,6 +404,49 @@ defmodule Air.Service.UserTest do
     test "can't disable the last admin user" do
       user = TestRepoHelper.create_only_user_as_admin!()
       assert {:error, :forbidden_no_active_admin} = User.disable(user)
+    end
+  end
+
+  describe ".update_group_data_sources" do
+    test "can change data source assignments" do
+      group = TestRepoHelper.create_group!() |> Air.Repo.preload(:data_sources)
+      data_source = TestRepoHelper.create_data_source!()
+
+      User.update_group_data_sources(group, %{data_sources: [data_source.id]})
+
+      assert [%{id: data_source_id}] = User.load_group(group.id).data_sources
+      assert data_source_id == data_source.id
+    end
+
+    test "cannot change other attributes" do
+      group = TestRepoHelper.create_group!()
+
+      User.update_group_data_sources(group, %{name: "new name"})
+
+      refute User.load_group(group.id).name == "new name"
+    end
+  end
+
+  describe ".update_profile_settings" do
+    test "can change number settings" do
+      user = TestRepoHelper.create_user!()
+
+      assert {:ok, %{decimal_sep: ":", thousand_sep: "-", decimal_digits: 7}} =
+               User.update_profile_settings(user, %{decimal_sep: ":", thousand_sep: "-", decimal_digits: 7})
+    end
+
+    test "cannot change login, name, and password" do
+      user = TestRepoHelper.create_user!(%{login: "alice", name: "Alice"})
+
+      assert {:ok, %{login: "alice", name: "Alice"}} =
+               User.update_profile_settings(user, %{
+                 login: "bob",
+                 name: "Bob",
+                 password: "new password",
+                 password_confirmation: "new password"
+               })
+
+      assert {:error, _} = User.login("alice", "new password")
     end
   end
 

@@ -3,32 +3,12 @@
   <a class="btn btn-primary btn-sm pull-right" href="<%= admin_group_path(@conn, :new) %>">Add a group</a>
 </h2>
 
-<table class="table table-striped">
-  <thead>
-    <tr>
-      <th>Name</th>
-      <th>Users</th>
-      <th>Data sources</th>
-      <th></th>
-    </tr>
-  </thead>
-  <tbody>
-    <%= if length(@groups) == 0 do %>
-      <tr>
-        <td colspan=4>There are currently no groups</td>
-      </tr>
-    <% end %>
-    <%= for group <- @groups do %>
-      <tr class="<%= group_row_class(group) %>">
-        <td><%= group_name(group) %></td>
-        <td><%= length(group.users) %></td>
-        <td><%= length(group.data_sources) %></td>
-        <td>
-          <%= link "Edit", to: admin_group_path(@conn, :edit, group), class: "btn btn-xs btn-default" %>
-          <%= link "Delete", to: admin_group_path(@conn, :delete, group), method: :delete, class: "btn btn-danger btn-xs",
-            "data-confirm": ~s(Delete the group "#{group.name}"?) %>
-        </td>
-      </tr>
-    <% end %>
-  </tbody>
-</table>
+<%= render("_list.html", conn: @conn, groups: @groups) %>
+
+<%= if length(@ldap_groups) > 0 do %>
+  <h2>LDAP Groups</h2>
+  <div class="alert alert-info">
+    These groups and their membership are managed in LDAP. You can only assign them to data sources here.
+  </div>
+  <%= render("_list.html", conn: @conn, groups: @ldap_groups) %>
+<% end %>

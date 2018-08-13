@@ -31,12 +31,8 @@ defmodule AirWeb.ProfileController do
     redirect(conn, to: profile_path(conn, :edit))
   end
 
-  # -------------------------------------------------------------------
-  # Update
-  # -------------------------------------------------------------------
-
   defp update(conn, params, flash, log_tag) do
-    case User.update_profile(conn.assigns.current_user, params["user"]) do
+    case update_profile(conn.assigns.current_user, params["user"]) do
       {:ok, _} ->
         audit_log(conn, log_tag)
 
@@ -49,4 +45,11 @@ defmodule AirWeb.ProfileController do
         render(conn, "edit.html", changeset: changeset, global_settings: global_settings)
     end
   end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp update_profile(user = %{source: :native}, params), do: User.update_full_profile(user, params)
+  defp update_profile(user = %{source: :ldap}, params), do: User.update_profile_settings(user, params)
 end

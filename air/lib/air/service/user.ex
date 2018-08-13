@@ -11,7 +11,8 @@ defmodule Air.Service.User do
   @password_fields ~w(password password_confirmation)a
   @ldap_fields ~w(ldap_dn source)a
   @ldap_required_fields ~w(ldap_dn)a
-  @optional_fields ~w(decimal_sep decimal_digits thousand_sep)a
+  @format_fields ~w(decimal_sep decimal_digits thousand_sep)a
+  @optional_fields @format_fields
   @password_reset_salt "4egg+HOtabCGwsCsRVEBIg=="
 
   @type change_options :: [ldap: true | false | :any]
@@ -70,6 +71,10 @@ defmodule Air.Service.User do
   @doc "Returns a list of all users in the system."
   @spec all() :: [User.t()]
   def all(), do: Repo.all(from(user in User, preload: [:groups]))
+
+  @doc "Returns a list of all native users in the system."
+  @spec all_native() :: [User.t()]
+  def all_native(), do: Repo.all(from(user in User, where: [source: ^:native], preload: [:groups]))
 
   @doc "Loads the user with the given id."
   @spec load(pos_integer) :: User.t() | nil
@@ -142,8 +147,8 @@ defmodule Air.Service.User do
   end
 
   @doc "Updates the profile of the given user, validating user's password."
-  @spec update_profile(User.t(), map, change_options) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
-  def update_profile(user, params, options \\ []) do
+  @spec update_full_profile(User.t(), map, change_options) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  def update_full_profile(user, params, options \\ []) do
     check_ldap!(user, options)
 
     user
@@ -152,11 +157,37 @@ defmodule Air.Service.User do
     |> Repo.update()
   end
 
-  @doc "Deletes the given user in the background."
-  @spec delete_async(User.t(), (() -> any), (any -> any), change_options) :: :ok
-  def delete_async(user, success_callback, failure_callback, options \\ []) do
-    check_ldap!(user, options)
+  @doc "Updates the profile of the given user, only allowing changes to non-login-related settings, like number format."
+  @spec update_profile_settings(User.t(), map) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  def update_profile_settings(user, params) do
+    user
+    |> number_format_changeset(params)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes the given user in the background. Calls `start_callback` and returns `:ok` immediately if the user can be
+  disabled and the deletion process was started. Calls `success_callback` or `failure_callback` in the background when
+  finished.
+  """
+  @spec delete_async(User.t(), (() -> any), (() -> any), (any -> any)) ::
+          :ok | {:error, :forbidden_no_active_admin | :invalid_ldap_delete}
+  def delete_async(%User{source: :ldap, enabled: true}, _, _, _), do: {:error, :invalid_ldap_delete}
+
+  def delete_async(user = %User{source: :ldap, enabled: false}, start_callback, success_callback, failure_callback) do
+    start_callback.()
     commit_if_active_last_admin_async(fn -> Repo.delete(user) end, success_callback, failure_callback)
+  end
+
+  def delete_async(user, start_callback, success_callback, failure_callback) do
+    case disable(user) do
+      {:ok, user} ->
+        start_callback.()
+        commit_if_active_last_admin_async(fn -> Repo.delete(user) end, success_callback, failure_callback)
+
+      error ->
+        error
+    end
   end
 
   @doc "Deletes the given user, raises on error."
@@ -167,7 +198,8 @@ defmodule Air.Service.User do
   end
 
   @doc "Deletes the given user."
-  @spec delete(User.t()) :: {:ok, User.t()} | {:error, :forbidden_no_active_admin}
+  @spec delete(User.t()) :: {:ok, User.t()} | {:error, :forbidden_no_active_admin | :invalid_ldap_delete}
+  def delete(%User{source: :ldap, enabled: true}), do: {:error, :invalid_ldap_delete}
   def delete(user), do: commit_if_active_last_admin(fn -> Repo.delete(user) end)
 
   @doc "Disables a user account"
@@ -254,7 +286,7 @@ defmodule Air.Service.User do
   @spec create_ldap_group(map) :: {:ok, Group.t()} | {:error, Ecto.Changeset.t()}
   def create_ldap_group(params) do
     %Group{}
-    |> group_changeset(params)
+    |> group_changeset(params, ldap: true)
     |> merge(ldap_changeset(%Group{}, params))
     |> Repo.insert()
   end
@@ -274,9 +306,17 @@ defmodule Air.Service.User do
 
     commit_if_active_last_admin(fn ->
       group
-      |> group_changeset(params)
+      |> group_changeset(params, options)
       |> Repo.update()
     end)
+  end
+
+  @doc "Updates only the data sources of the given group."
+  @spec update_group_data_sources(Group.t(), map) :: {:ok, Group.t()} | {:error, Ecto.Changeset.t()}
+  def update_group_data_sources(group, params) do
+    group
+    |> group_data_source_changeset(params)
+    |> Repo.update()
   end
 
   @doc "Deletes the given group, raises on error."
@@ -388,11 +428,17 @@ defmodule Air.Service.User do
       |> cast(params, @required_fields ++ @optional_fields)
       |> validate_required(@required_fields)
       |> validate_length(:name, min: 2)
-      |> validate_length(:decimal_sep, is: 1)
-      |> validate_length(:thousand_sep, is: 1)
-      |> validate_number(:decimal_digits, greater_than_or_equal_to: 1, less_than_or_equal_to: 9)
       |> unique_constraint(:login)
+      |> merge(number_format_changeset(user, params))
       |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
+
+  defp number_format_changeset(user, params) do
+    user
+    |> cast(params, @format_fields)
+    |> validate_length(:decimal_sep, is: 1)
+    |> validate_length(:thousand_sep, is: 1)
+    |> validate_number(:decimal_digits, greater_than_or_equal_to: 1, less_than_or_equal_to: 9)
+  end
 
   defp ldap_changeset(user, params) do
     user
@@ -432,14 +478,32 @@ defmodule Air.Service.User do
 
   defp update_password_hash(changeset), do: changeset
 
-  defp group_changeset(group, params),
+  defp group_changeset(group, params, options \\ []),
     do:
       group
       |> cast(params, ~w(name admin)a)
       |> validate_required(~w(name admin)a)
       |> unique_constraint(:name, name: :groups_name_source_index)
       |> PhoenixMTM.Changeset.cast_collection(:users, Repo, User)
+      |> validate_change(:users, &validate_group_user_source(&1, &2, options))
       |> PhoenixMTM.Changeset.cast_collection(:data_sources, Repo, DataSource)
+
+  defp group_data_source_changeset(group, params) do
+    group
+    |> cast(params, [])
+    |> PhoenixMTM.Changeset.cast_collection(:data_sources, Repo, DataSource)
+  end
+
+  defp validate_group_user_source(:users, users, options) do
+    valid_source = if(Keyword.get(options, :ldap, false), do: :ldap, else: :native)
+    invalid_users = Enum.filter(users, &(&1.data.source != valid_source))
+
+    case {valid_source, invalid_users} do
+      {_, []} -> []
+      {:native, _} -> [users: "cannot assign LDAP users to a native group"]
+      {:ldap, _} -> [users: "cannot assign native users to an LDAP group"]
+    end
+  end
 
   defp get_admin_group() do
     case admin_groups() do

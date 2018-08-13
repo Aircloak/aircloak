@@ -20,7 +20,10 @@ defmodule AirWeb.Admin.GroupController do
   # Actions
   # -------------------------------------------------------------------
 
-  def index(conn, _params), do: render(conn, "index.html", groups: User.all_groups() |> Enum.sort_by(& &1.name))
+  def index(conn, _params) do
+    {groups, ldap_groups} = User.all_groups() |> Enum.sort_by(& &1.name) |> Enum.split_with(&(&1.source == :native))
+    render(conn, "index.html", groups: groups, ldap_groups: ldap_groups)
+  end
 
   def new(conn, _params),
     do:
@@ -46,7 +49,7 @@ defmodule AirWeb.Admin.GroupController do
   def update(conn, params) do
     group = conn.assigns.group
 
-    verify_last_admin_deleted(User.update_group(group, params["group"]), conn, fn
+    verify_last_admin_deleted(update_group(group, params["group"]), conn, fn
       {:ok, group} ->
         audit_log(conn, "Altered group", group: group.name, admin: group.admin)
 
@@ -103,9 +106,12 @@ defmodule AirWeb.Admin.GroupController do
       selected_user_ids: selected_user_ids(params, group),
       selected_data_source_ids: selected_data_source_ids(params, group),
       all_data_sources: Enum.map(DataSource.all(), &{{&1.name, &1.description}, &1.id}),
-      all_users: Enum.map(User.all(), &{{&1.name, &1.login}, &1.id})
+      all_users: Enum.map(all_users(group), &{{&1.name, &1.login}, &1.id})
     }
   end
+
+  defp all_users(%{source: :ldap}), do: User.all()
+  defp all_users(_), do: User.all_native()
 
   defp selected_user_ids(params, group)
   defp selected_user_ids(nil, nil), do: []
@@ -136,4 +142,7 @@ defmodule AirWeb.Admin.GroupController do
       |> redirect(to: admin_group_path(conn, :index))
 
   defp verify_last_admin_deleted(result, _conn, fun), do: fun.(result)
+
+  defp update_group(group = %{source: :ldap}, params), do: User.update_group_data_sources(group, params)
+  defp update_group(group = %{source: :native}, params), do: User.update_group(group, params)
 end
