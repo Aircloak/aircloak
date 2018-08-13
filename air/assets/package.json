@@ -12,6 +12,7 @@
     "eonasdan-bootstrap-datetimepicker": "^4.17.47",
     "javascript-brunch": "~1.8.0",
     "jquery": "^2.2.3",
+    "json-brunch": "^1.5.4",
     "lodash": "^4.11.1",
     "moment": "^2.14.1",
     "moment-timezone": "^0.5.20",

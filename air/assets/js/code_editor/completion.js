@@ -2,10 +2,12 @@
 
 import _ from "lodash";
 
-// the function completion keywords is automatically generated during compilation
-import {FUNCTION_KEYWORDS} from "./function_completion_keywords";
+// the function completion keywords are automatically generated during compilation
+/* eslint-disable */
+import aircloakFunctionCompletions from "./function_completion_keywords.json";
+/* eslint-enable */
 
-const KEYWORDS = FUNCTION_KEYWORDS.concat([
+const SQL_KEYWORDS = [
   "SELECT", "FROM",
   "SHOW TABLES",
   "INNER JOIN", "LEFT JOIN", "LEFT INNER JOIN", "RIGHT INNER JOIN",
@@ -16,7 +18,7 @@ const KEYWORDS = FUNCTION_KEYWORDS.concat([
   "IS NULL", "IS NOT NULL",
   "LIKE ''", "ILIKE ''", "NOT LIKE ''", "NOT ILIKE ''",
   "IN ()", "NOT IN ()",
-]);
+];
 
 const longestFirst = (candidate) => -candidate.text.length;
 
@@ -84,7 +86,13 @@ export default function completionList(
   const fromWithTables =
     _.map(tableNames, tableName => `FROM ${tableName}`);
 
-  const list = _.chain(KEYWORDS).
+  const aircloakSQLFunctions = _.chain(aircloakFunctionCompletions).
+    values().
+    flatten().
+    value();
+
+  const list = _.chain(SQL_KEYWORDS).
+    concat(aircloakSQLFunctions).
     concat(tableNames).
     concat(showColumnsFromTables).
     concat(fromWithTables).

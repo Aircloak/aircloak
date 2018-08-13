@@ -24,38 +24,33 @@ defmodule Mix.Tasks.Compile.AutoCompletion do
   # -------------------------------------------------------------------
 
   defp compile_auto_completions() do
-    function_names =
+    supported_functions =
       Aircloak.Functions.function_spec()
       |> Enum.reject(&internal_function?/1)
-      |> Enum.flat_map(&create_function_definitions/1)
-      |> Enum.map(&"  \"#{&1}\"")
-      |> Enum.join(",\n")
+      |> Enum.map(&create_function_definitions/1)
+      |> Enum.reduce(%{}, fn {key, val}, acc ->
+        Map.update(acc, key, val, &(val ++ &1))
+      end)
+      |> Poison.encode!(pretty: true)
 
-    auto_completions = """
-    // @flow
-
-    export const FUNCTION_KEYWORDS = [
-    #{function_names},
-    ];
-    """
-
-    File.write!("assets/js/code_editor/function_completion_keywords.js", auto_completions)
+    File.write!("assets/js/code_editor/function_completion_keywords.json", supported_functions)
   end
 
   defp internal_function?({_, attributes}),
     do: Map.get(attributes, :attributes, []) |> Enum.member?(:internal)
 
-  defp create_function_definitions({{:cast, target}, _}), do: ["cast(<column> to #{target})"]
+  defp create_function_definitions({{:cast, target}, _}), do: {:cast, ["cast(<column> to #{target})"]}
 
   defp create_function_definitions({{:bucket, alignment}, _}),
-    do: ["bucket(<column> by <constant> align #{alignment})"]
+    do: {:bucket, ["bucket(<column> by <constant> align #{alignment})"]}
 
   defp create_function_definitions({function, attributes}),
     do:
-      attributes
-      |> Map.get(:type_specs)
-      |> Map.keys()
-      |> Enum.map(&"#{function}(#{arguments_from_spec(&1)})")
+      {function,
+       attributes
+       |> Map.get(:type_specs)
+       |> Map.keys()
+       |> Enum.map(&"#{function}(#{arguments_from_spec(&1)})")}
 
   defp arguments_from_spec({:many1, _} = t), do: arguments_from_spec([t])
   defp arguments_from_spec(types), do: types |> Enum.map(&argument_from_spec(&1, :top)) |> Enum.join(", ")

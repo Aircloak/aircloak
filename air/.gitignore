@@ -26,4 +26,4 @@ npm-debug.log.*
 /docs/node_modules
 /docs/content/aircloak-docs.*
 
-/assets/js/code_editor/function_completion_keywords.js
+/assets/js/code_editor/function_completion_keywords.json
