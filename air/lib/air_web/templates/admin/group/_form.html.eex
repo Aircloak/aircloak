@@ -49,17 +49,19 @@
       </div>
     </div>
 
-    <div class="form-group">
-      <div class="col-sm-offset-2 col-sm-5">
-        <div class="checkbox">
-          <label>
-            <%= checkbox f, :admin, disabled: not can_manage?(@changeset.data) %>
-            <%= error_tag f, :admin %>
-            Admin rights?
-          </label>
+    <%= if can_manage?(@changeset.data) do %>
+      <div class="form-group">
+        <div class="col-sm-offset-2 col-sm-5">
+          <div class="checkbox">
+            <label>
+              <%= checkbox f, :admin %>
+              <%= error_tag f, :admin %>
+              Admin rights?
+            </label>
+          </div>
         </div>
       </div>
-    </div>
+    <% end %>
 
     <div class="form-group">
       <div class="col-sm-offset-2 col-sm-10">

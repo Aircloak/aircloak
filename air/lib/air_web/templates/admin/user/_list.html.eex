@@ -5,7 +5,9 @@
       <th>Login</th>
       <th>Groups</th>
       <th>Data sources</th>
-      <th>Role</th>
+      <%= if @role do %>
+        <th>Role</th>
+      <% end %>
       <th></th>
     </tr>
   </thead>
@@ -21,11 +23,15 @@
         <td><%= user.login %></td>
         <td><%= AirWeb.Admin.GroupView.names(user.groups) %></td>
         <td><%= Map.get(@data_sources_count, user.id, 0) %></td>
-        <td>
-          <%= if admin?(user) do %>
-            <span class="label label-danger">Admin</span>
-          <% end %>
-        </td>
+
+        <%= if @role do %>
+          <td>
+            <%= if admin?(user) do %>
+              <span class="label label-danger">Admin</span>
+            <% end %>
+          </td>
+        <% end %>
+
         <td>
           <%= if can_edit?(user) do %>
             <%= link "Edit", to: admin_user_path(@conn, :edit, user), class: "btn btn-default btn-xs" %>

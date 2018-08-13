@@ -6,17 +6,17 @@
 <%= if length(@disabled_users) > 0 do %>
 <h3>Enabled user accounts</h3>
 <% end %>
-<%= render "_list.html", conn: @conn, users: @enabled_users, data_sources_count: @data_sources_count %>
+<%= render "_list.html", conn: @conn, users: @enabled_users, data_sources_count: @data_sources_count, role: true %>
 
 <%= if length(@disabled_users) > 0 do %>
 <h3>Disabled user accounts</h3>
-<%= render "_list.html", conn: @conn, users: @disabled_users, data_sources_count: @data_sources_count %>
+<%= render "_list.html", conn: @conn, users: @disabled_users, data_sources_count: @data_sources_count, role: true %>
 <% end %>
 
 <%= if length(@enabled_ldap_users) > 0 do %>
 <h3>Enabled LDAP user accounts</h3>
 <div class="alert alert-info">These accounts are managed through LDAP, and cannot be changed.</div>
-<%= render "_list.html", conn: @conn, users: @enabled_ldap_users, data_sources_count: @data_sources_count %>
+<%= render "_list.html", conn: @conn, users: @enabled_ldap_users, data_sources_count: @data_sources_count, role: false %>
 <% end %>
 
 <%= if length(@disabled_ldap_users) > 0 do %>
@@ -25,5 +25,5 @@
   These accounts have been imported from LDAP, but have since been deleted on the LDAP side. If they reappear in LDAP,
   they will be automatically reenabled.
 </div>
-<%= render "_list.html", conn: @conn, users: @disabled_ldap_users, data_sources_count: @data_sources_count %>
+<%= render "_list.html", conn: @conn, users: @disabled_ldap_users, data_sources_count: @data_sources_count, role: false %>
 <% end %>
