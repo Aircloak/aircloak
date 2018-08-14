@@ -147,7 +147,9 @@ defmodule Air.Service.LDAP.Test do
       "bind_dn" => @admin,
       "password" => @admin_pass,
       "user_base" => "ou=users,dc=example,dc=org",
-      "group_base" => "ou=groups,dc=example,dc=org"
+      "group_base" => "ou=groups,dc=example,dc=org",
+      "client_certfile" => "localhost.crt",
+      "client_keyfile" => "localhost.key"
     }
   end
 end

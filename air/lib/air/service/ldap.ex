@@ -172,6 +172,16 @@ defmodule Air.Service.LDAP do
     [{:cacertfile, certfile} | ssl_options(Map.delete(config, "ca_certfile"))]
   end
 
+  defp ssl_options(config = %{"client_certfile" => certfile}) do
+    certfile = Path.join([Application.app_dir(:air, "priv"), "config", certfile])
+    [{:certfile, certfile} | ssl_options(Map.delete(config, "client_certfile"))]
+  end
+
+  defp ssl_options(config = %{"client_keyfile" => keyfile}) do
+    keyfile = Path.join([Application.app_dir(:air, "priv"), "config", keyfile])
+    [{:keyfile, keyfile} | ssl_options(Map.delete(config, "client_keyfile"))]
+  end
+
   defp ssl_options(config) do
     [verify: if(config["verify_server_certificate"], do: :verify_peer, else: :verify_none)]
   end
