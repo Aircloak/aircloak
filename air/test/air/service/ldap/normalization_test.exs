@@ -16,11 +16,36 @@ defmodule Air.Service.LDAP.Normalization.Test do
       %Group{name: "group3", dn: "group3", member_ids: []}
     ]
 
-    assert {^users,
-            [
-              %Group{name: "group1", dn: "group1", member_ids: ["alice", "bob"]},
-              %Group{name: "group2", dn: "group2", member_ids: ["alice", "charlie"]},
-              %Group{name: "group3", dn: "group3", member_ids: []}
-            ]} = Normalization.normalize(users, groups)
+    assert [
+             %Group{name: "group1", dn: "group1", member_ids: ["alice", "bob"]},
+             %Group{name: "group2", dn: "group2", member_ids: ["alice", "charlie"]},
+             %Group{name: "group3", dn: "group3", member_ids: []}
+           ] = Normalization.normalize_groups(users, groups)
+  end
+
+  describe "normalizing group member key" do
+    test "does nothing by default" do
+      users = []
+      groups = [%Group{name: "group1", dn: "group1", member_ids: ["alice", "bob"]}]
+      assert ^groups = Normalization.normalize_groups(users, groups)
+    end
+
+    test "maps dns to logins if configured" do
+      users = [
+        %User{login: "alice", name: "Alice", dn: "cn=Alice Liddel,dc=wonderland,dc=io"},
+        %User{login: "bob", name: "Bob", dn: "cn=Bob Ross,dc=you,dc=can,dc=paint,dc=com"}
+      ]
+
+      groups = [
+        %Group{
+          name: "group1",
+          dn: "group1",
+          member_ids: ["cn=Alice Liddel,dc=wonderland,dc=io", "cn=Charles Xavier,dc=x,dc=men,dc=org"]
+        }
+      ]
+
+      assert [%Group{member_ids: ["alice"]}] =
+               Normalization.normalize_groups({:ok, %{"group_member_key" => "dn"}}, users, groups)
+    end
   end
 end
