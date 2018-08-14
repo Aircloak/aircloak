@@ -70,9 +70,9 @@ defmodule Air.Service.ShadowDb.Server do
 
     tables = Enum.reject(tables, &Enum.empty?(Map.get(&1, "columns", [])))
 
-    delete_obsolete_tables(conn, tables)
-
     try do
+      delete_obsolete_tables(conn, tables)
+
       tables
       |> changed_tables(state)
       |> Stream.map(&{&1, update_table_definition(conn, &1)})
