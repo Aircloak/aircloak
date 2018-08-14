@@ -12,6 +12,31 @@ defmodule Air.Service.ShadowDb.Server do
   @spec update_definition(pid) :: :ok
   def update_definition(server), do: GenServer.cast(server, :update_definition)
 
+  @doc "Drops the given shadow database."
+  @spec drop_database(String.t()) :: :ok
+  def drop_database(data_source_name) do
+    {:ok, conn} = Postgrex.start_link(hostname: "127.0.0.1", username: "postgres", database: "postgres")
+
+    try do
+      # force close all existing connections to the database
+      Postgrex.query(
+        conn,
+        """
+        SELECT pg_terminate_backend(pg_stat_activity.pid)
+        FROM pg_stat_activity
+        WHERE pg_stat_activity.datname = $1 AND pid <> pg_backend_pid();
+        """,
+        [db_name(data_source_name)]
+      )
+
+      Postgrex.query(conn, ~s/DROP DATABASE IF EXISTS "#{sanitize_name(db_name(data_source_name))}"/, [])
+    after
+      close_conn(conn)
+    end
+
+    :ok
+  end
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
@@ -128,27 +153,6 @@ defmodule Air.Service.ShadowDb.Server do
       ~s/CREATE TABLE "#{sanitize_name(table.id)}" (#{columns_sql(table.columns)})/,
       []
     )
-  end
-
-  defp drop_database(data_source_name) do
-    {:ok, conn} = Postgrex.start_link(hostname: "127.0.0.1", username: "postgres", database: "postgres")
-
-    try do
-      # force close all existing connections to the database
-      Postgrex.query(
-        conn,
-        """
-        SELECT pg_terminate_backend(pg_stat_activity.pid)
-        FROM pg_stat_activity
-        WHERE pg_stat_activity.datname = $1 AND pid <> pg_backend_pid();
-        """,
-        [db_name(data_source_name)]
-      )
-
-      Postgrex.query(conn, ~s/DROP DATABASE IF EXISTS "#{sanitize_name(db_name(data_source_name))}"/, [])
-    after
-      close_conn(conn)
-    end
   end
 
   defp report_error({table, {:error, error}}),

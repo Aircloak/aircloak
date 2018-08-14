@@ -290,8 +290,12 @@ defmodule Air.Service.DataSource do
   def delete!(data_source, success_callback, failure_callback) do
     Task.Supervisor.start_child(@delete_supervisor, fn ->
       case Repo.transaction(fn -> Repo.delete!(data_source) end, timeout: :timer.hours(1)) do
-        {:ok, _} -> success_callback.()
-        {:error, _} -> failure_callback.()
+        {:ok, _} ->
+          Air.Service.ShadowDb.drop(data_source.name)
+          success_callback.()
+
+        {:error, _} ->
+          failure_callback.()
       end
     end)
 
