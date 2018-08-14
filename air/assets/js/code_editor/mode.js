@@ -28,7 +28,7 @@ const createModeDefinition = () => {
     name: "sql",
     client: set("source"),
     keywords: set(basicSqlKeywords + aircloakFunctionsList),
-    builtin: set("boolean date datetime double int integer real text time"),
+    builtin: set("boolean date datetime integer real text time"),
     atoms: set("false true null"),
     operatorChars: /^[*+\-%<>!=&|^\/#@?~]/,
     dateSQL: set("date time timestamp"),
