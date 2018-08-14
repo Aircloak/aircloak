@@ -4,7 +4,7 @@ defmodule Air.Service.LDAP.PeriodicSync do
   require Logger
   require Aircloak.DeployConfig
 
-  alias Air.Service.{LDAP, LDAP.Sync}
+  alias Air.Service.{LDAP, LDAP.Sync, Normalization}
 
   # -------------------------------------------------------------------
   # API functions
@@ -15,7 +15,8 @@ defmodule Air.Service.LDAP.PeriodicSync do
   def run() do
     with :ok <- check_config(),
          {:ok, users} <- LDAP.users(),
-         {:ok, groups} <- LDAP.groups() do
+         {:ok, groups} <- LDAP.groups(),
+         {users, groups} = Normalization.normalize(users, groups) do
       Logger.info("Syncing with LDAP.")
       Sync.sync(users, groups)
       Logger.info("LDAP sync finished.")
