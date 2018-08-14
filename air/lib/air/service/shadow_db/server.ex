@@ -46,7 +46,7 @@ defmodule Air.Service.ShadowDb.Server do
   defp update_shadow_db(state, tables) do
     Logger.info("data source definition changed for #{state.data_source_name}, updating shadow database")
     ensure_db!(state.data_source_name)
-    create_tables!(state, tables)
+    update_tables_definition(state, tables)
   end
 
   defp ensure_db!(data_source_name) do
@@ -64,7 +64,7 @@ defmodule Air.Service.ShadowDb.Server do
     end
   end
 
-  defp create_tables!(state, tables) do
+  defp update_tables_definition(state, tables) do
     {:ok, conn} =
       Postgrex.start_link(hostname: "127.0.0.1", username: "postgres", database: db_name(state.data_source_name))
 
