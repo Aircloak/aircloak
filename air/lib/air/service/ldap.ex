@@ -150,15 +150,15 @@ defmodule Air.Service.LDAP do
 
   defp open_connection(:error), do: {:error, :ldap_not_configured}
 
-  defp open_connection({:ok, %{"host" => host, "port" => port, "encryption" => "start_tls"}}) do
+  defp open_connection({:ok, config = %{"host" => host, "port" => port, "encryption" => "start_tls"}}) do
     with {:ok, conn} <- :eldap.open([to_charlist(host)], port: port),
-         :ok <- :eldap.start_tls(conn, _options = [], @timeout) do
+         :ok <- :eldap.start_tls(conn, ssl_options(config), @timeout) do
       {:ok, conn}
     end
   end
 
-  defp open_connection({:ok, %{"host" => host, "port" => port, "encryption" => "ssl"}}) do
-    :eldap.open([to_charlist(host)], port: port, ssl: true, timeout: @timeout)
+  defp open_connection({:ok, config = %{"host" => host, "port" => port, "encryption" => "ssl"}}) do
+    :eldap.open([to_charlist(host)], port: port, ssl: true, sslopts: ssl_options(config), timeout: @timeout)
   end
 
   defp open_connection({:ok, %{"host" => host, "port" => port}}) do
@@ -166,4 +166,13 @@ defmodule Air.Service.LDAP do
   end
 
   defp open_connection(_), do: {:error, :invalid_config}
+
+  defp ssl_options(config = %{"ca_certfile" => certfile}) do
+    certfile = Path.join([Application.app_dir(:air, "priv"), "config", certfile])
+    [{:cacertfile, certfile} | ssl_options(Map.delete(config, "ca_certfile"))]
+  end
+
+  defp ssl_options(config) do
+    [verify: if(config["verify_server_certificate"], do: :verify_peer, else: :verify_none)]
+  end
 end

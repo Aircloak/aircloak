@@ -33,7 +33,13 @@ defmodule Air.Service.LDAP.Test do
     test "with regular SSL" do
       assert {:error, :invalid_credentials} =
                LDAP.simple_bind(
-                 {:ok, Map.merge(ldap(), %{"encryption" => "ssl", "port" => @ssl_port})},
+                 {:ok,
+                  Map.merge(ldap(), %{
+                    "encryption" => "ssl",
+                    "port" => @ssl_port,
+                    "verify_server_certificate" => true,
+                    "ca_certfile" => "ca.crt"
+                  })},
                  "user",
                  "pass"
                )
