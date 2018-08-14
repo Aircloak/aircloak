@@ -13,11 +13,11 @@ defmodule Air.Service.LDAP.PeriodicSync do
   @doc "Perform a full LDAP sync by fetching a list of users and groups and applying those to Air."
   @spec run() :: :ok
   def run() do
+    Logger.info("Syncing with LDAP.")
+
     with :ok <- check_config(),
          {:ok, users} <- LDAP.users(),
          {:ok, groups} <- LDAP.groups() do
-      Logger.info("Syncing with LDAP.")
-
       groups = LDAP.Normalization.normalize_groups(users, groups)
       LDAP.Sync.sync(users, groups)
 
