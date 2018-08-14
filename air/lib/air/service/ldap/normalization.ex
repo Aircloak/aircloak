@@ -1,6 +1,22 @@
 defmodule Air.Service.LDAP.Normalization do
+  @moduledoc """
+  Deals with normalizing data obtained from LDAP so that the syncing process afterwards can always behave in the same
+  way.
+  """
+
   require Aircloak.DeployConfig
 
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc """
+  Normalizes the following aspects of groups obtained from LDAP:
+
+  * Moves any membership information from users to groups
+  * Normalizes membership information stored by DN to logins
+  """
+  @spec normalize_groups({:ok, map()} | :error, [User.t()], [Group.t()]) :: [Group.t()]
   def normalize_groups(config \\ Aircloak.DeployConfig.fetch("ldap"), users, groups)
 
   def normalize_groups(:error, _, groups), do: groups
@@ -10,6 +26,10 @@ defmodule Air.Service.LDAP.Normalization do
     |> Enum.map(&normalize_member_key(&1, users, config))
     |> Enum.map(&normalize_members_from_users(&1, users))
   end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp normalize_member_key(group, users, %{"group_member_key" => "dn"}) do
     member_ids =
