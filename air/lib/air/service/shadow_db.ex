@@ -20,7 +20,7 @@ defmodule Air.Service.ShadowDb do
 
   @doc "Updates the shadow database according to the data source definition."
   @spec update(map) :: :ok
-  def update(data_source), do: Server.update_definition(server_pid(data_source), data_source)
+  def update(data_source), do: Server.update_definition(server_pid(data_source))
 
   # -------------------------------------------------------------------
   # Supervisor callbacks
@@ -44,7 +44,10 @@ defmodule Air.Service.ShadowDb do
   # -------------------------------------------------------------------
 
   defp server_pid(data_source) do
-    case DynamicSupervisor.start_child(@server_supervisor, {Server, server_name(data_source.name)}) do
+    case DynamicSupervisor.start_child(
+           @server_supervisor,
+           {Server, {data_source.name, server_name(data_source.name)}}
+         ) do
       {:ok, pid} -> pid
       {:error, {:already_started, pid}} -> pid
     end
