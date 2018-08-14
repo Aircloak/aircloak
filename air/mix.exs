@@ -14,6 +14,7 @@ defmodule Air.Mixfile do
         :leex,
         :erlang,
         :elixir,
+        :auto_completion,
         :user_docs,
         :app
       ],
