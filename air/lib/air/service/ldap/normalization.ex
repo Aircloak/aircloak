@@ -1,7 +1,6 @@
 defmodule Air.Service.LDAP.Normalization do
   @moduledoc """
-  Deals with normalizing data obtained from LDAP so that the syncing process afterwards can always behave in the same
-  way.
+  Deals with normalizing data obtained from LDAP so that the syncing process afterwards can always behave the same.
   """
 
   require Aircloak.DeployConfig
