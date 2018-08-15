@@ -141,6 +141,12 @@ defmodule Cloak.Sql.FixAlign.Test do
   test "[Issue #2344] months have a 1-2-6-12 grid",
     do: assert(FixAlign.align_interval({~D[2016-11-01], ~D[2017-07-01]}) == {~D[2016-07-01], ~D[2017-07-01]})
 
+  test "[Bug] aligning {-74.025, -73.975}" do
+    assert {a, b} = FixAlign.align_interval({-74.025, -73.975})
+    assert_in_delta(a, -74.025, 0.00001)
+    assert_in_delta(b, -73.975, 0.00001)
+  end
+
   property "numbers are money-aligned" do
     for_all x in such_that(y in float() when y != 0) do
       result = x |> FixAlign.align() |> abs()
