@@ -5,4 +5,5 @@
 !air/ldap/bootstrap.ldif
 !air/priv/config/ca.crt
 !air/priv/config/localhost.crt
+!air/priv/config/ldap.aircloak.crt
 !air/priv/config/localhost.key
