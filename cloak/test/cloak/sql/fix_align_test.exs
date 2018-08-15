@@ -147,6 +147,12 @@ defmodule Cloak.Sql.FixAlign.Test do
     assert_in_delta(b, -73.975, 0.00001)
   end
 
+  test "[Bug] aligning {73.975, 74.025}" do
+    assert {a, b} = FixAlign.align_interval({73.975, 74.025})
+    assert_in_delta(a, 73.975, 0.00001)
+    assert_in_delta(b, 74.025, 0.00001)
+  end
+
   property "numbers are money-aligned" do
     for_all x in such_that(y in float() when y != 0) do
       result = x |> FixAlign.align() |> abs()

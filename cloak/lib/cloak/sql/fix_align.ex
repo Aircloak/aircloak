@@ -280,7 +280,15 @@ defmodule Cloak.Sql.FixAlign do
   defp sign(_), do: 1
 
   defp floor_to(x, grid) do
-    Float.floor(x / grid) * grid
+    floor_epsilon(x / grid) * grid
+  end
+
+  defp floor_epsilon(x) do
+    if abs(Float.round(x) - x) < @epsilon do
+      Float.round(x)
+    else
+      Float.floor(x)
+    end
   end
 
   defp sizes(interval, size_factors, allow_fractions) do
