@@ -4,7 +4,7 @@ defmodule Air.Service.LDAP.PeriodicSync do
   require Logger
   require Aircloak.DeployConfig
 
-  alias Air.Service.{LDAP, LDAP.Sync}
+  alias Air.Service.LDAP
 
   # -------------------------------------------------------------------
   # API functions
@@ -13,16 +13,19 @@ defmodule Air.Service.LDAP.PeriodicSync do
   @doc "Perform a full LDAP sync by fetching a list of users and groups and applying those to Air."
   @spec run() :: :ok
   def run() do
+    Logger.info("Syncing with LDAP.")
+
     with :ok <- check_config(),
          {:ok, users} <- LDAP.users(),
          {:ok, groups} <- LDAP.groups() do
-      Logger.info("Syncing with LDAP.")
-      Sync.sync(users, groups)
+      groups = LDAP.Normalization.normalize_groups(users, groups)
+      LDAP.Sync.sync(users, groups)
+
       Logger.info("LDAP sync finished.")
     else
       {:error, :ldap_not_configured} ->
         Logger.info("LDAP not configured. Disabling LDAP users and removing LDAP groups if any exist.")
-        Sync.sync(_users = [], _groups = [])
+        LDAP.Sync.sync(_users = [], _groups = [])
 
       error ->
         Logger.error("LDAP sync failed. Reason: #{inspect(error)}")

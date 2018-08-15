@@ -99,7 +99,8 @@ defmodule Air.Service.LDAP do
     %User{
       dn: to_string(dn),
       name: attribute(fields, Map.get(config, "user_name", "cn")),
-      login: attribute(fields, Map.get(config, "user_login", "cn"))
+      login: attribute(fields, Map.get(config, "user_login", "cn")),
+      group_dns: attributes(fields, Map.get(config, "user_group"))
     }
   end
 
