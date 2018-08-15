@@ -11,7 +11,7 @@ defmodule Air.Service.LDAP.Normalization.Test do
     ]
 
     groups = [
-      %Group{name: "group1", dn: "group1", member_ids: []},
+      %Group{name: "group1", dn: "group1", member_ids: ["alice"]},
       %Group{name: "group2", dn: "group2", member_ids: ["charlie"]},
       %Group{name: "group3", dn: "group3", member_ids: []}
     ]
