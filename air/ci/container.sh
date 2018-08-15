@@ -24,7 +24,9 @@ function prepare_for_test {
 
   docker run --detach \
     --name "${ldap_container_name}" \
-    -e LDAP_TLS_VERIFY_CLIENT=allow \
+    -e LDAP_TLS_CRT_FILENAME=ldap.aircloak.crt \
+    -e LDAP_TLS_KEY_FILENAME=localhost.key \
+    -e LDAP_TLS_CA_CRT_FILENAME=ca.crt \
     aircloak/ldap:latest
 
   docker network connect --alias ldap.aircloak $container_name $ldap_container_name
