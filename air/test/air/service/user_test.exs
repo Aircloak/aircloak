@@ -366,6 +366,11 @@ defmodule Air.Service.UserTest do
       {:ok, user: user, token: token}
     end
 
+    test "cannot generate reset token for LDAP users" do
+      user = TestRepoHelper.create_user!(%{ldap_dn: "some dn"})
+      assert_raise(RuntimeError, fn -> User.reset_password_token(user) end)
+    end
+
     test "with an invalid token" do
       assert {:error, :invalid_token} = User.reset_password("invalid token", %{})
     end
