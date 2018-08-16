@@ -53,15 +53,9 @@ defmodule Air.Service.ShadowDb.Server do
   @impl GenServer
   def handle_cast(:update_definition, state) do
     if Application.get_env(:air, :shadow_db?, true) do
-      case data_source_tables(state.data_source_name) do
-        [] ->
-          drop_database(state.data_source_name)
-          {:stop, :normal, state}
-
-        tables ->
-          if state.tables != tables, do: update_shadow_db(state, tables)
-          {:noreply, %{state | tables: tables}}
-      end
+      tables = data_source_tables(state.data_source_name)
+      if state.tables != tables, do: update_shadow_db(state, tables)
+      {:noreply, %{state | tables: tables}}
     else
       {:noreply, state}
     end
