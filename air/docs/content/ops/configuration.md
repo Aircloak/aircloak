@@ -188,7 +188,7 @@ The options have the following meaning:
   `"memberUid"`.
 * `group_member_key` - the user attribute which will be listed in group objects under `group_member`. Possible values
   are `"login"` and `"dn"`. Defaults to `"login"`.
-* `user_group` - the name of the attribute on a user object which lists the groups the user belongs to. The field is
+* `user_group` - the name of the attribute on a user object which lists the groups the user belongs to. The attribute is
   expected to contain the DNs of the groups.
 
 If a valid LDAP configuration is present, Insights Air will periodically sync with the LDAP server to update the list of
