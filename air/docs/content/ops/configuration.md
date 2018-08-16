@@ -6,9 +6,11 @@ Before starting the system, you need to configure the Insights Air and Insights 
 
 The Insights Air configuration needs to provide the following information:
 
-- database connection parameters (required)
-- web site configuration (required)
-- Insights Air PostgreSQL interface parameters (optional)
+- database connection parameters (required) - see [Database configuration](#database-configuration)
+- web site configuration (required) - see [Web site configuration](#web-site-configuration)
+- Insights Air PostgreSQL interface parameters (optional) - see [Insights Air Postgresql interface
+  configuration](#insights-air-postgresql-interface-configuration)
+- LDAP configuration (optional) - see [LDAP configuration](#ldap-configuration)
 
 The general shape of `config.json` is therefore:
 
@@ -23,6 +25,9 @@ The general shape of `config.json` is therefore:
   "psql_server": {
     ...
   },
+  "ldap": {
+    ...
+  }
 }
 ```
 
@@ -111,13 +116,16 @@ Where `postgresql_interface_port` is the PostgreSQL interface port provided when
 
 In order for the above command to work, the cloak component must be started as well, and the user must have permissions to query the given data source.
 
+### LDAP configuration
+
+
 ## Insights Cloak configuration
 
 The Insights Cloak configuration is used to provide the following information:
 
 - URL where the Insights Air component can be reached
 - Anonymization salt
-- Data sources which can be queried
+- Data sources which can be queried - see [Data source configuration](#data-source-configuration)
 
 The general shape of `config.json` is:
 
