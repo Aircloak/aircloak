@@ -210,6 +210,87 @@ disable users by adjusting that filter.
 
 When a group is removed from LDAP that group will be deleted in Insights Air during the next sync.
 
+#### Examples
+
+If your LDAP data looks something like this:
+
+```
+dn: ou=users,dc=example,dc=org
+objectClass: organizationalUnit
+
+dn: cn=alice,ou=users,dc=example,dc=org
+objectClass: simpleSecurityObject
+objectClass: organizationalRole
+cn: alice
+description: Alice Liddell
+
+dn: ou=groups,dc=example,dc=org
+objectClass: organizationalUnit
+
+dn: cn=analysts,ou=groups,dc=example,dc=org
+objectClass: posixGroup
+cn: analysts
+description: Wonderland Analysts
+memberUid: alice
+```
+
+You might have the following LDAP configuration:
+
+```
+{
+  ...
+  "ldap": {
+    "host": "ldap.example.org",
+    "user_base": "ou=users,dc=example,dc=org",
+    "user_login": "cn",
+    "user_name": "description",
+    "group_base": "ou=groups,dc=example,dc=org",
+    "group_name": "description",
+    "group_member": "memberUid",
+    "group_member_key": "login"
+  }
+}
+```
+
+Your group membership might be specified in user attributes instead:
+
+```
+dn: ou=users,dc=example,dc=org
+objectClass: organizationalUnit
+
+dn: cn=alice,ou=users,dc=example,dc=org
+objectClass: simpleSecurityObject
+objectClass: organizationalRole
+cn: alice
+description: Alice Liddell
+group: cn=analysts,ou=groups,dc=example,dc=org
+
+dn: ou=groups,dc=example,dc=org
+objectClass: organizationalUnit
+
+dn: cn=analysts,ou=groups,dc=example,dc=org
+objectClass: posixGroup
+cn: analysts
+description: Wonderland Analysts
+```
+
+In that case you'd use a configuration like this:
+
+```
+{
+  ...
+  "ldap": {
+    "host": "ldap.example.org",
+    "user_base": "ou=users,dc=example,dc=org",
+    "user_login": "cn",
+    "user_name": "description",
+    "group_base": "ou=groups,dc=example,dc=org",
+    "group_name": "description",
+    "user_group": "group"
+  }
+}
+```
+
 ## Insights Cloak configuration
 
 The Insights Cloak configuration is used to provide the following information:
