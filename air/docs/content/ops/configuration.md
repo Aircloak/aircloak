@@ -118,6 +118,95 @@ In order for the above command to work, the cloak component must be started as w
 
 ### LDAP configuration
 
+Insights Air can be configured to allow users to login with credentials managed in an LDAP directory service. The
+`config.json` snippet below shows all possible configuration options along with their defaults where applicable. Note
+that the `host`, `port`, `user_base`, and `group_base` options have no defaults (indicated by `null`) and need to be
+set.
+
+```
+{
+  ...
+  "ldap": {
+    "host": null,
+    "port": null,
+    "bind_dn": "",
+    "password": "",
+    "encryption": "plain",
+    "verify_server_certificate": false,
+    "ca_certfile": null,
+    "client_certfile": null,
+    "client_keyfile": null,
+    "user_base": null,
+    "user_filter": "(objectClass=*)",
+    "user_login": "cn",
+    "user_name": "cn",
+    "group_base": null,
+    "group_filter": "(objectClass=*)",
+    "group_name": "dn",
+    "group_member": "memberUid",
+    "group_member_key": "login",
+    "user_group": null
+  }
+}
+```
+
+The options have the following effect:
+
+* `host` - the hostname of the LDAP server.
+* `port` - the port on which to connect to the LDAP server.
+* `bind_dn` - the DN of the user used to read from the LDAP server. We recommend you set up a read-only user for this
+  purpose. Defaults to `""`.
+* `password` - the password of the user used to read from the LDAP server. You can set both `bind_dn` and `password` to
+  `""` to configure anonymous access. Defaults to `""`.
+* `encryption` - the type of encryption to use. Possible values are `"plain"` for no encryption, `"ssl"` for regular
+  SSL, and `"start_tls"` for StartTLS. Set this to the type of encryption used by your server. We recommend you use
+  either `"ssl"` or `"start_tls"`. Defaults to `"plain"`.
+* `verify_server_certificate` - set this to `true` to check the certificate of the server for validity. Requires
+  `ca_certfile` to be configured. Defaults to `false`.
+* `ca_certfile` - the name of the CA certificate file with which to verify the server certificate. Put the certificate
+  file in the same folder as `config.json`.
+* `client_certfile` - the name of the client certificate file to use when connecting to the server. Put the certificate
+  file in the same folder as `config.json`. By default no client certificate is sent.
+* `client_keyfile` - the name of the file containing the key to `client_certfile`. Put the key file in the same folder
+  as `config.json`.
+* `user_base` - the LDAP subtree in which to look for users.
+* `user_filter` - an LDAP filter to restrict which users to sync from `user_base`. See
+  [the LDAP page on filters](https://ldap.com/ldap-filters/) for more on how to formulate such filters. Defaults to
+  `"(objectClass=*)"`, which matches all objects.
+* `user_login` - the name of the field from which to take the user's login. Note that users are required to have a valid
+  login, so if this field is empty for an object, it won't be synced as an Insights Air user. Defaults to `"cn"`.
+* `user_name` - the name of the field from which to take the user's name. Defaults to `"cn"`.
+* `group_base` - the LDAP subtree in which to look for groups.
+* `group_filter` - an LDAP filter to restrict which groups to sync from `group_base`. See
+  [the LDAP page on filters](https://ldap.com/ldap-filters/) for more on how to formulate such filters. Defaults to
+  `"(objectClass=*)"`, which matches all objects.
+* `group_name` - the name of the field from which to take the group's name. Note that groups are required to have a
+  valid name, so if this field is empty for an object, it won't be synced as an Insights Air group. Defaults to `"dn"`.
+* `group_member` - the name of the field on a group object which lists the group's members. Defaults to `"memberUid"`.
+* `group_member_key` - the user field which will be listed in group objects under `group_member`. Possible values are
+  `"login"` and `"dn"`. Defaults to `"login"`.
+* `user_group` - the name of the field on a user object which lists the groups the user belongs to. The field is
+  expected to contain the DNs of the groups.
+
+If the `ldap` configuration key is present in `config.json`, Insights Air will periodically sync with the LDAP server
+to update the list of users and groups. The syncs will occur immediately after Insights Air starts and every hour after
+that.
+
+The users and groups created in this way can only be managed in LDAP. That is, their details such as user logins, user
+names, and group names cannot be altered through the Insights Air interface. Furthermore, group membership can also only
+be altered through LDAP. The only property that can be modified through the Insights Air interface is the list of data
+sources available to a given group.
+
+The users synchronized from LDAP will be able to login using their LDAP password and the login configured with
+`user_login`. They cannot login using an Insights Air-specific password nor can they change their password via Insights
+Air.
+
+When a user is removed from LDAP they will be disabled in Insights Air during the next sync. Only then can the user be
+removed from Insights Air. Note that if a user with the same LDAP DN appears again in LDAP then the user will be enabled
+and synchronized with this new user. Users who do not match the `user_filter` are treated as non-existent, so you can
+disable users by adjusting that filter.
+
+When a group is removed from LDAP that group will be deleted in Insights Air during the next sync.
 
 ## Insights Cloak configuration
 
