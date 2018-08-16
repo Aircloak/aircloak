@@ -181,6 +181,11 @@ defmodule Cloak.Sql.Expression.Test do
 
   test "concat", do: assert(apply_function("concat", ["a", " ", "string"]) == "a string")
 
+  test "date_trunc" do
+    assert apply_function("date_trunc", ["month", ~N[2015-01-02 12:23:34]]) == ~N[2015-01-01 00:00:00.000000]
+    assert apply_function("date_trunc", ["month", ~D[2015-01-02]]) == ~D[2015-01-01]
+  end
+
   test "subtracting dates", do: assert(apply_function("-", [~D[2015-01-30], ~D[2015-01-20]]) === Duration.from_days(10))
 
   test "subtracting times", do: assert(apply_function("-", [~T[10:20:00], ~T[10:00:00]]) === Duration.from_minutes(20))
