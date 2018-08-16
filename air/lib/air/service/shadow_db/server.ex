@@ -12,6 +12,33 @@ defmodule Air.Service.ShadowDb.Server do
   @spec update_definition(pid) :: :ok
   def update_definition(server), do: GenServer.cast(server, :update_definition)
 
+  @doc "Drops the given shadow database."
+  @spec drop_database(String.t()) :: :ok
+  def drop_database(data_source_name) do
+    if Application.get_env(:air, :shadow_db?, true) do
+      {:ok, conn} = Postgrex.start_link(hostname: "127.0.0.1", username: "postgres", database: "postgres")
+
+      try do
+        # force close all existing connections to the database
+        Postgrex.query(
+          conn,
+          """
+          SELECT pg_terminate_backend(pg_stat_activity.pid)
+          FROM pg_stat_activity
+          WHERE pg_stat_activity.datname = $1 AND pid <> pg_backend_pid();
+          """,
+          [db_name(data_source_name)]
+        )
+
+        Postgrex.query(conn, ~s/DROP DATABASE IF EXISTS "#{sanitize_name(db_name(data_source_name))}"/, [])
+      after
+        close_conn(conn)
+      end
+    end
+
+    :ok
+  end
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
@@ -25,15 +52,12 @@ defmodule Air.Service.ShadowDb.Server do
 
   @impl GenServer
   def handle_cast(:update_definition, state) do
-    case data_source_tables(state.data_source_name) do
-      [] ->
-        {:stop, :normal, state}
-
-      tables ->
-        if Application.get_env(:air, :shadow_db?, true) and state.tables != tables,
-          do: update_shadow_db(state, tables)
-
-        {:noreply, %{state | tables: tables}}
+    if Application.get_env(:air, :shadow_db?, true) do
+      tables = data_source_tables(state.data_source_name)
+      if state.tables != tables, do: update_shadow_db(state, tables)
+      {:noreply, %{state | tables: tables}}
+    else
+      {:noreply, state}
     end
   end
 

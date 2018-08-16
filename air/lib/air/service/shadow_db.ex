@@ -22,6 +22,23 @@ defmodule Air.Service.ShadowDb do
   @spec update(map) :: :ok
   def update(data_source), do: Server.update_definition(server_pid(data_source))
 
+  @doc "Drops the given shadow database."
+  @spec drop(String.t()) :: :ok
+  def drop(data_source_name) do
+    with pid when is_pid(pid) <- GenServer.whereis(server_name(data_source_name)),
+         do: DynamicSupervisor.terminate_child(@server_supervisor, pid)
+
+    # Server.drop_database creates a connection and closes it, and closing a connection requires the client process to
+    # trap exits. Since we don't want to implicitly start trapping exit in the caller of drop/1 we're doing this in a
+    # separate task.
+    Task.start_link(fn ->
+      Process.flag(:trap_exit, true)
+      Server.drop_database(data_source_name)
+    end)
+
+    :ok
+  end
+
   # -------------------------------------------------------------------
   # Supervisor callbacks
   # -------------------------------------------------------------------
