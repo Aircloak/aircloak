@@ -116,6 +116,13 @@ defmodule ComplianceCase do
     ]
 
   @doc false
+  def date_columns(),
+    do: [
+      # {column name, table name, uid column in table}
+      {"birthday", "users", "user_id"}
+    ]
+
+  @doc false
   def text_columns(),
     do: [
       # {column name, table name, uid column in table}

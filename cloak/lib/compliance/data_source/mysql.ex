@@ -113,6 +113,7 @@ defmodule Compliance.DataSource.MySQL do
   defp sql_type(:boolean), do: "boolean"
   defp sql_type(:text), do: "text"
   defp sql_type(:datetime), do: "timestamp"
+  defp sql_type(:date), do: "date"
 
   defp setup_database(params) do
     {:ok, conn} =

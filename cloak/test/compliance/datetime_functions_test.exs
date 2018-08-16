@@ -27,12 +27,13 @@ Enum.each(
 
       @moduletag :"#{function}"
 
-      Enum.each(datetime_columns(), fn {column, table, uid} ->
+      Enum.each(datetime_columns() ++ date_columns(), fn {column, table, uid} ->
         @tag compliance: "#{function} #{column} #{table} subquery"
         test "#{function} on input #{column} in a sub-query on #{table}", context do
           context
           |> disable_for(:all, match?("weekday" <> _, unquote(function)))
           |> disable_subquery_interval(unquote(function))
+          |> disable_unsupported_on_dates(unquote(function), {unquote(column), unquote(table), unquote(uid)})
           |> assert_consistent_and_not_failing("""
             SELECT
               output
@@ -50,6 +51,7 @@ Enum.each(
         @tag compliance: "#{function} #{column} #{table} query"
         test "#{function} on input #{column} in query on #{table}", context do
           context
+          |> disable_unsupported_on_dates(unquote(function), {unquote(column), unquote(table), unquote(uid)})
           |> assert_consistent_and_not_failing("""
             SELECT #{on_column(unquote(function), unquote(column))}
             FROM #{unquote(table)}
@@ -73,6 +75,15 @@ Enum.each(
         else
           context
         end
+      end
+
+      defp disable_unsupported_on_dates(context, function, column) do
+        disable_for(context, :all, column in date_columns() and unsupported_on_dates?(function))
+      end
+
+      defp unsupported_on_dates?(function) do
+        String.contains?(function, "second") or String.contains?(function, "minute") or
+          String.contains?(function, "hour") or String.contains?(function, "-")
       end
     end
   end

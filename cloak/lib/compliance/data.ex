@@ -85,7 +85,8 @@ defmodule Compliance.Data do
       active: :rand.uniform() < 0.80,
       addresses: generate_addresses(samples),
       notes: generate_notes(samples),
-      nullable: nullable(sample_one(samples.floats))
+      nullable: samples.floats |> sample_one() |> nullable(),
+      birthday: samples.dates |> sample_one() |> NaiveDateTime.to_date()
     }
 
     {user, encode_user(user)}

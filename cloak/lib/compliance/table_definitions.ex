@@ -3,7 +3,7 @@ defmodule Compliance.TableDefinitions do
 
   alias Compliance.Data
 
-  @type column_type :: :integer | :real | :boolean | :text | :datetime
+  @type column_type :: :integer | :real | :boolean | :text | :datetime | :date
 
   @doc "Returns the table definition for the normal table."
   @spec plain(boolean) :: Map.t()
@@ -134,7 +134,8 @@ defmodule Compliance.TableDefinitions do
           height: %{type: :real, decoders: [:text_to_real]},
           active: %{type: :boolean, decoders: [:text_to_boolean]},
           name: %{type: :text, decoders: [:base64, aes_cbc_128: [key: Data.encryption_key()]]},
-          nullable: %{type: :real, decoders: [:text_to_real]}
+          nullable: %{type: :real, decoders: [:text_to_real]},
+          birthday: %{type: :date}
         }
       },
       addresses: %{
