@@ -119,16 +119,16 @@ In order for the above command to work, the cloak component must be started as w
 ### LDAP configuration
 
 Insights Air can be configured to allow users to login with credentials managed in an LDAP directory service. The
-`config.json` snippet below shows all possible configuration options along with their defaults where applicable. Note
-that the `host`, `port`, `user_base`, and `group_base` options have no defaults (indicated by `null`) and need to be
-set.
+`config.json` snippet below shows all possible configuration options along with their default values where applicable.
+Note that the `host`, `user_base`, and `group_base` options are required and have no default values, indicated by
+`null`.
 
 ```
 {
   ...
   "ldap": {
     "host": null,
-    "port": null,
+    "port": 389,
     "bind_dn": "",
     "password": "",
     "encryption": "plain",
@@ -150,10 +150,10 @@ set.
 }
 ```
 
-The options have the following effect:
+The options have the following meaning:
 
 * `host` - the hostname of the LDAP server.
-* `port` - the port on which to connect to the LDAP server.
+* `port` - the port on which to connect to the LDAP server. Defaults to 389.
 * `bind_dn` - the DN of the user used to read from the LDAP server. We recommend you set up a read-only user for this
   purpose. Defaults to `""`.
 * `password` - the password of the user used to read from the LDAP server. You can set both `bind_dn` and `password` to
@@ -173,24 +173,26 @@ The options have the following effect:
 * `user_filter` - an LDAP filter to restrict which users to sync from `user_base`. See
   [the LDAP page on filters](https://ldap.com/ldap-filters/) for more on how to formulate such filters. Defaults to
   `"(objectClass=*)"`, which matches all objects.
-* `user_login` - the name of the field from which to take the user's login. Note that users are required to have a valid
-  login, so if this field is empty for an object, it won't be synced as an Insights Air user. Defaults to `"cn"`.
-* `user_name` - the name of the field from which to take the user's name. Defaults to `"cn"`.
+* `user_login` - the name of the attribute from which to take the user's login. Note that users are required to have a
+  valid login, so if this attribute is empty for an object, it won't be synced as an Insights Air user. Defaults to
+  `"cn"`.
+* `user_name` - the name of the attribute from which to take the user's name. Defaults to `"cn"`.
 * `group_base` - the LDAP subtree in which to look for groups.
 * `group_filter` - an LDAP filter to restrict which groups to sync from `group_base`. See
   [the LDAP page on filters](https://ldap.com/ldap-filters/) for more on how to formulate such filters. Defaults to
   `"(objectClass=*)"`, which matches all objects.
-* `group_name` - the name of the field from which to take the group's name. Note that groups are required to have a
-  valid name, so if this field is empty for an object, it won't be synced as an Insights Air group. Defaults to `"dn"`.
-* `group_member` - the name of the field on a group object which lists the group's members. Defaults to `"memberUid"`.
-* `group_member_key` - the user field which will be listed in group objects under `group_member`. Possible values are
-  `"login"` and `"dn"`. Defaults to `"login"`.
-* `user_group` - the name of the field on a user object which lists the groups the user belongs to. The field is
+* `group_name` - the name of the attribute from which to take the group's name. Note that groups are required to have a
+  valid name, so if this attribute is empty for an object, it won't be synced as an Insights Air group. Defaults to
+  `"dn"`.
+* `group_member` - the name of the attribute on a group object which lists the group's members. Defaults to
+  `"memberUid"`.
+* `group_member_key` - the user attribute which will be listed in group objects under `group_member`. Possible values
+  are `"login"` and `"dn"`. Defaults to `"login"`.
+* `user_group` - the name of the attribute on a user object which lists the groups the user belongs to. The field is
   expected to contain the DNs of the groups.
 
-If the `ldap` configuration key is present in `config.json`, Insights Air will periodically sync with the LDAP server
-to update the list of users and groups. The syncs will occur immediately after Insights Air starts and every hour after
-that.
+If a valid LDAP configuration is present, Insights Air will periodically sync with the LDAP server to update the list of
+users and groups. The syncs will occur immediately after Insights Air starts and every hour after that.
 
 The users and groups created in this way can only be managed in LDAP. That is, their details such as user logins, user
 names, and group names cannot be altered through the Insights Air interface. Furthermore, group membership can also only
