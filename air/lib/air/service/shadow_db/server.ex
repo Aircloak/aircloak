@@ -16,7 +16,7 @@ defmodule Air.Service.ShadowDb.Server do
   @spec drop_database(String.t()) :: :ok
   def drop_database(data_source_name) do
     if Application.get_env(:air, :shadow_db?, true) do
-      {:ok, conn} = Postgrex.start_link(hostname: "127.0.0.1", username: "postgres", database: "postgres")
+      conn = connect!("postgres")
 
       try do
         # force close all existing connections to the database
@@ -37,6 +37,17 @@ defmodule Air.Service.ShadowDb.Server do
     end
 
     :ok
+  end
+
+  @doc "Returns true if shadow db server is available, false otherwise."
+  @spec db_server_available?() :: boolean
+  def db_server_available?() do
+    Task.async(fn -> connect!("postgres") end)
+    |> Task.yield()
+    |> case do
+      {:ok, _pid} -> true
+      _ -> false
+    end
   end
 
   # -------------------------------------------------------------------
@@ -64,6 +75,19 @@ defmodule Air.Service.ShadowDb.Server do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp connect!(database_name) do
+    {:ok, pid} =
+      Postgrex.start_link(
+        hostname: "127.0.0.1",
+        username: "postgres",
+        database: database_name,
+        sync_connect: true,
+        backoff_type: :stop
+      )
+
+    pid
+  end
 
   defp data_source_tables(data_source_name) do
     case Air.Service.DataSource.by_name(data_source_name) do
@@ -94,7 +118,7 @@ defmodule Air.Service.ShadowDb.Server do
   end
 
   defp ensure_db!(data_source_name) do
-    {:ok, conn} = Postgrex.start_link(hostname: "127.0.0.1", username: "postgres", database: "postgres")
+    conn = connect!("postgres")
 
     try do
       if match?(
@@ -109,8 +133,7 @@ defmodule Air.Service.ShadowDb.Server do
   end
 
   defp update_tables_definition(state, tables) do
-    {:ok, conn} =
-      Postgrex.start_link(hostname: "127.0.0.1", username: "postgres", database: db_name(state.data_source_name))
+    conn = connect!(db_name(state.data_source_name))
 
     try do
       delete_obsolete_tables(conn, tables)

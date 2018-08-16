@@ -79,35 +79,19 @@ defmodule Air.Service.ShadowDb do
       Task.async(fn ->
         Process.flag(:trap_exit, true)
 
-        Stream.repeatedly(&postgrex_availabe?/0)
-        |> Stream.drop_while(&(&1 == false))
+        Stream.repeatedly(&Server.db_server_available?/0)
+        |> Stream.intersperse(:sleep)
+        |> Stream.map(fn
+          :sleep -> Process.sleep(:timer.seconds(5))
+          el -> el
+        end)
+        |> Stream.drop_while(&(&1 != true))
         |> Enum.take(1)
       end)
 
     case Task.yield(task, :timer.minutes(1)) do
       nil -> raise "local PostgreSQL is not available"
       _ -> :ok
-    end
-  end
-
-  defp postgrex_availabe?() do
-    Task.async(fn ->
-      Postgrex.start_link(
-        hostname: "127.0.0.1",
-        username: "postgres",
-        database: "postgres",
-        sync_connect: true,
-        backoff_type: :stop
-      )
-    end)
-    |> Task.yield()
-    |> case do
-      {:ok, {:ok, _pid}} ->
-        true
-
-      _ ->
-        Process.sleep(:timer.seconds(5))
-        false
     end
   end
 
