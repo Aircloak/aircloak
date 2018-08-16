@@ -17,6 +17,7 @@ defmodule Cloak.Sql.FixAlign do
   @seconds_in_minute 60
   @seconds_in_day 24 * 60 * 60
   @seconds_in_hour 60 * 60
+  @epsilon 1.0e-10
 
   # -------------------------------------------------------------------
   # API functions
@@ -270,11 +271,25 @@ defmodule Cloak.Sql.FixAlign do
 
     can_halve = allow_half || (is_integer(size) && Integer.is_even(size))
     left = if can_halve, do: floor_to(x, size / 2), else: floor_to(x, size)
+    right = left + size
 
-    if y <= left + size, do: {left, left + size}, else: nil
+    if y <= right * (1 + sign(right) * @epsilon), do: {left, right}, else: nil
   end
 
-  defp floor_to(x, grid), do: Float.floor(x / grid) * grid
+  defp sign(x) when x < 0, do: -1
+  defp sign(_), do: 1
+
+  defp floor_to(x, grid) do
+    floor_epsilon(x / grid) * grid
+  end
+
+  defp floor_epsilon(x) do
+    if abs(Float.round(x) - x) < @epsilon do
+      Float.round(x)
+    else
+      Float.floor(x)
+    end
+  end
 
   defp sizes(interval, size_factors, allow_fractions) do
     Stream.concat(small_sizes(interval, allow_fractions), large_sizes())
