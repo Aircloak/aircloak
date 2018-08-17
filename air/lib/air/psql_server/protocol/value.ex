@@ -8,13 +8,20 @@ defmodule Air.PsqlServer.Protocol.Value do
     int8: %{oid: 20, len: 8, postgrex_extension: {Int8, nil}},
     int2: %{oid: 21, len: 2, postgrex_extension: {Int2, nil}},
     int4: %{oid: 23, len: 4, postgrex_extension: {Int4, nil}},
+    regproc: %{oid: 24, len: 4},
     text: %{oid: 25, len: -1, postgrex_extension: {Raw, :reference}},
+    oid: %{oid: 26, len: 4, postgrex_extension: {OID, nil}},
     float4: %{oid: 700, len: 4, postgrex_extension: {Float4, nil}},
     float8: %{oid: 701, len: 8, postgrex_extension: {Float8, nil}},
     unknown: %{oid: 705, len: -1, postgrex_extension: {Raw, :reference}},
+    oidarray: %{oid: 1028, len: -1},
+    bpchar: %{oid: 1042, len: -1, postgrex_extension: {Raw, :reference}},
+    varchar: %{oid: 1043, len: -1, postgrex_extension: {Raw, :reference}},
     date: %{oid: 1082, len: 4, postgrex_extension: {Date, :elixir}},
     time: %{oid: 1083, len: 8, postgrex_extension: {Time, :elixir}},
     timestamp: %{oid: 1114, len: 8, postgrex_extension: {Timestamp, :elixir}},
+    timestamptz: %{oid: 1184, len: 8, postgrex_extension: {TimestampTZ, :elixir}},
+    timetz: %{oid: 1266, len: 12, postgrex_extension: {TimeTZ, :elixir}},
     numeric: %{oid: 1700, len: -1, postgrex_extension: {Numeric, nil}}
   }
 
@@ -85,6 +92,7 @@ defmodule Air.PsqlServer.Protocol.Value do
   # -------------------------------------------------------------------
 
   defp text_encode(byte, :char), do: <<byte>>
+  defp text_encode(oids, :oidarray), do: "{#{oids |> Stream.map(&to_string/1) |> Enum.join(",")}}"
   defp text_encode(value, _), do: to_string(value)
 
   defp text_decode(param, :int2), do: String.to_integer(param)

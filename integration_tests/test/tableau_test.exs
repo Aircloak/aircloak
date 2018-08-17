@@ -48,9 +48,9 @@ defmodule IntegrationTest.TableauTest do
                'relhasoids'
              ],
              [
-               {'', 'users', 'user_id', '25', 'text', 1, -1, -1, true, false, 'r', oid, [], '0', -1, false},
-               {'', 'users', 'name', '25', 'text', 2, -1, -1, false, false, 'r', oid, [], '0', -1, false},
-               {'', 'users', 'height', '20', 'int8', 3, 8, -1, false, false, 'r', oid, [], '0', -1, false}
+               {'public', 'users', 'user_id', 25, 'text', 1, -1, -1, false, false, 'r', _, 'null', 0, -1, false},
+               {'public', 'users', 'name', 25, 'text', 2, -1, -1, false, false, 'r', _, 'null', 0, -1, false},
+               {'public', 'users', 'height', 23, 'int4', 3, 4, -1, false, false, 'r', _, 'null', 0, -1, false}
              ]
            } = :odbc.sql_query(context.conn, query)
   end
@@ -177,11 +177,9 @@ defmodule IntegrationTest.TableauTest do
     do: assert(:odbc.sql_query(context.conn, 'DEALLOCATE "foobar"') == {:updated, 0})
   )
 
-  test(
-    "select current schema",
-    context,
-    do: assert(:odbc.sql_query(context.conn, 'select current_schema()') == {:selected, ['current_schema'], [{''}]})
-  )
+  test "select current schema", context do
+    assert(:odbc.sql_query(context.conn, 'select current_schema()') == {:selected, ['current_schema'], [{'public'}]})
+  end
 
   test(
     "selecting into a temporary table",
@@ -224,7 +222,7 @@ defmodule IntegrationTest.TableauTest do
     context,
     do:
       assert(
-        {:ok, %Postgrex.Result{columns: ["lc_collate"], command: :select, rows: [["C"]]}} =
+        {:ok, %Postgrex.Result{columns: ["lc_collate"], command: :select, rows: [[_collation]]}} =
           postgrex_query(context.user, "show \"lc_collate\"")
       )
   )
@@ -235,7 +233,7 @@ defmodule IntegrationTest.TableauTest do
     end
 
     test "float", context do
-      assert :odbc.sql_query(context.conn, 'SELECT  \n 34.457 ') == {:selected, ['?column?'], [{34.457}]}
+      assert :odbc.sql_query(context.conn, 'SELECT  \n 34.457::float ') == {:selected, ['float8'], [{34.457}]}
     end
 
     test "bool", context do

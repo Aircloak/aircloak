@@ -1,9 +1,16 @@
 defmodule Air.PsqlServer.SpecialQueries.Common do
   @moduledoc "Handles common special queries issued by various clients, such as ODBC driver and postgrex."
 
+  require Record
+  require Logger
   alias Air.PsqlServer.{Protocol, RanchServer, SpecialQueries}
 
   @behaviour SpecialQueries
+
+  Record.defrecord(
+    :row_description_field,
+    Record.extract(:row_description_field, from: "deps/pgsql/src/pgsql_internal.hrl")
+  )
 
   # -------------------------------------------------------------------
   # SpecialQueries callback functions
@@ -23,70 +30,21 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
         |> RanchServer.unassign({:cursor_result, cursor})
         |> RanchServer.query_result(command: :"close cursor")
 
-      # Issued by Postgrex on older versions to get the type information.
-      query =~ ~r/^select t.oid, t.typname, t.typsend, t.typreceive.*FROM pg_type AS t\s*$/is ->
-        return_types_for_postgrex(conn)
+      # Obtaining type information
+      query =~ ~r/^select.+FROM.+pg_attribute/si ->
+        select_from_shadow_db!(conn, query)
 
-      # Issued by Postgrex on newer versions to get the type information for the types not returned by the next clause.
-      # We're returning an empty result here, because Postgrex crashes if there's an overlap between this result and
-      # the result from the query in the next clause.
-      query =~ ~r/^select t.oid, t.typname, t.typsend, t.typreceive.*WHERE t.oid NOT IN \(.*$/is ->
-        return_types_for_postgrex(conn, [])
+      # Obtaining type information
+      query =~ ~r/^select.+FROM.+pg_type/si ->
+        select_from_shadow_db!(conn, query)
 
-      # Issued by Postgrex on newer versions to get the type information.
-      query =~ ~r/^select t.oid, t.typname, t.typsend, t.typreceive.*FROM pg_attribute AS a.*$/is ->
-        return_types_for_postgrex(conn)
+      # show commands except `show tables` and `show columns`
+      query =~ ~r/^\s*show/i and not (query =~ ~r/show\s+(tables|columns)/i) ->
+        select_from_shadow_db!(conn, query)
 
-      query =~ ~r/^select.+from pg_type/si ->
-        RanchServer.query_result(conn, columns: [%{name: "oid", type: :text}], rows: [])
-
-      query =~ ~r/select current_schema()/i ->
-        RanchServer.query_result(
-          conn,
-          columns: [%{name: "current_schema", type: :text}],
-          rows: [[""]]
-        )
-
-      query =~ ~r/show "lc_collate"/i ->
-        # returning C means no "no locale" (https://www.postgresql.org/docs/current/static/locale.html)
-        RanchServer.query_result(
-          conn,
-          columns: [%{name: "lc_collate", type: :text}],
-          rows: [["C"]]
-        )
-
-      # simple select queries for testing connectivity, like `select 1`, `select true`, `select 'aaa'`
-      query =~ ~r/^\s*select\s+[-\w'\.]+[\s;]*$/i ->
-        [data] = Regex.run(~r/^\s*select\s+([-\w'\.]+)[\s;]*$/i, query, capture: :all_but_first)
-
-        cond do
-          data =~ ~r/-?\d+\.\d+/U ->
-            RanchServer.query_result(
-              conn,
-              columns: [%{name: "?column?", type: :float4}],
-              rows: [[String.to_float(data)]]
-            )
-
-          data =~ ~r/-?\d+/U ->
-            RanchServer.query_result(
-              conn,
-              columns: [%{name: "?column?", type: :int4}],
-              rows: [[String.to_integer(data)]]
-            )
-
-          String.downcase(data) == "true" ->
-            RanchServer.query_result(conn, columns: [%{name: "bool", type: :boolean}], rows: [[true]])
-
-          String.downcase(data) == "false" ->
-            RanchServer.query_result(conn, columns: [%{name: "bool", type: :boolean}], rows: [[false]])
-
-          String.starts_with?(data, "'") and String.ends_with?(data, "'") ->
-            data = data |> String.slice(1..-2) |> String.replace("''", "'")
-            RanchServer.query_result(conn, columns: [%{name: "?column?", type: :text}], rows: [[data]])
-
-          true ->
-            nil
-        end
+      # simple select queries without from clause
+      query =~ ~r/^\s*select\s+/i and not (query =~ ~r/\sfrom\s/i) ->
+        select_from_shadow_db!(conn, query)
 
       permission_denied_query?(query) ->
         RanchServer.query_result(conn, {:error, "permission denied"})
@@ -146,28 +104,66 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
     end
   end
 
-  defp return_types_for_postgrex(conn, rows \\ nil),
-    do:
-      RanchServer.query_result(
-        conn,
-        columns:
-          ~w(oid typname typsend typreceive typoutput typinput typelem coalesce array)
-          |> Enum.map(&%{name: &1, type: :text}),
-        rows:
-          rows ||
-            [
-              ~w(16 bool boolsend boolrecv boolout boolin 0 0 {}),
-              ~w(21 int2 int2send int2recv int2out int2in 0 0 {}),
-              ~w(23 int4 int4send int4recv int4out int4in 0 0 {}),
-              ~w(20 int8 int8send int8recv int8out int8in 0 0 {}),
-              ~w(25 text textsend textrecv textout textin 0 0 {}),
-              ~w(700 float4 float4send float4recv float4out float4in 0 0 {}),
-              ~w(701 float8 float8send float8recv float8out float8in 0 0 {}),
-              ~w(705 unknown unknownsend unknownrecv unknownout unknownin 0 0 {}),
-              ~w(1082 date date_send date_recv date_out date_in 0 0 {}),
-              ~w(1083 time time_send time_recv time_out time_in 0 0 {}),
-              ~w(1114 timestamp timestamp_send timestamp_recv timestamp_out timestamp_in 0 0 {}),
-              ~w(1700 numeric numeric_send numeric_recv numeric_out numeric_in 0 0 {})
-            ]
+  defp select_from_shadow_db!(conn, query) do
+    {_operation, columns, rows} =
+      :pgsql_connection.simple_query(to_charlist(query), [return_descriptions: true], conn.assigns.shadow_db_conn)
+
+    columns =
+      Enum.map(
+        columns,
+        &%{
+          name: row_description_field(&1, :name),
+          type: &1 |> row_description_field(:data_type_oid) |> Air.PsqlServer.Protocol.Value.type_from_oid()
+        }
       )
+
+    rows = Enum.map(rows, &map_row(columns, Tuple.to_list(&1)))
+
+    RanchServer.query_result(conn, columns: columns, rows: rows)
+  end
+
+  defp map_row(columns, values) do
+    columns
+    |> Stream.map(& &1.type)
+    |> Stream.zip(values)
+    |> Enum.map(&map_value/1)
+  end
+
+  for passthrough <- ~w/oid name int2 int4 numeric float4 float8 boolean varchar text bpchar/a do
+    defp map_value({unquote(passthrough), value}), do: value
+  end
+
+  defp map_value({:unknown, {:unknown, value}}), do: value
+  defp map_value({:char, {:char, <<byte>>}}), do: byte
+  defp map_value({:regproc, {:regproc, value}}), do: value
+  defp map_value({:oidarray, {:array, values}}), do: values |> Stream.map(&{:oid, &1}) |> Enum.map(&map_value/1)
+  defp map_value({:date, date}), do: Date.from_erl!(date)
+
+  defp map_value({:timestamptz, datetime}) do
+    {:timestamp, datetime}
+    |> map_value()
+    |> DateTime.from_naive!("Etc/UTC")
+  end
+
+  defp map_value({:timestamp, {date, time}}) do
+    {time, microseconds} = convert_time(time)
+    NaiveDateTime.from_erl!({date, time}, microseconds)
+  end
+
+  defp map_value({:time, time}) do
+    {time, microseconds} = convert_time(time)
+    Time.from_erl!(time, microseconds)
+  end
+
+  defp map_value({:timetz, time}) do
+    {:timestamptz, {Date.utc_today() |> Date.to_erl(), time}}
+    |> map_value()
+    |> DateTime.to_time()
+  end
+
+  defp convert_time({hours, minutes, seconds}) do
+    seconds_int = (1.0 * seconds) |> Float.floor() |> round()
+    microseconds = round((seconds - seconds_int) * 1_000_000)
+    {{hours, minutes, seconds_int}, microseconds}
+  end
 end

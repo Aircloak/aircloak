@@ -2,7 +2,7 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
   @moduledoc "Handles common special queries issued by Tableau."
 
   alias Air.PsqlServer
-  alias Air.PsqlServer.{Protocol, RanchServer, SpecialQueries}
+  alias Air.PsqlServer.{RanchServer, SpecialQueries}
   alias Air.Service.DataSource
 
   @behaviour SpecialQueries
@@ -14,9 +14,6 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
   @impl SpecialQueries
   def run_query(conn, query) do
     cond do
-      table_name = table_name_from_table_info_query(query) ->
-        fetch_table_info(conn, table_name)
-
       cursor_query = cursor_query?(query) ->
         cond do
           query =~ ~r/select relname, nspname, relkind from.*/i ->
@@ -108,35 +105,6 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
       rows: Enum.map(table_names, &[&1, "", ?r])
     ]
 
-  defp table_name_from_table_info_query(query) do
-    case Regex.named_captures(~r/^select n.nspname.*relname = '(?<table_name>.*)'/, query) do
-      %{"table_name" => table_name} -> table_name
-      _ -> nil
-    end
-  end
-
-  defp fetch_table_info(conn, table_name) do
-    case get_tables(conn) do
-      {:ok, tables} ->
-        columns =
-          case Enum.find(tables, &(&1.id == table_name)) do
-            nil ->
-              []
-
-            table ->
-              table
-              |> Map.get(:columns)
-              |> Enum.map(&[&1.name, &1.type])
-          end
-
-        response = column_list(columns, conn.assigns.data_source_id, table_name)
-        RanchServer.query_result(conn, response)
-
-      {:error, :unauthorized} ->
-        RanchServer.query_result(conn, {:error, "not authorized"})
-    end
-  end
-
   defp get_tables(conn) do
     user = conn.assigns.user
 
@@ -144,67 +112,6 @@ defmodule Air.PsqlServer.SpecialQueries.Tableau do
       {:ok, data_source} -> {:ok, DataSource.views_and_tables(user, data_source)}
       error -> error
     end
-  end
-
-  defp column_list(table_columns, data_source_id, table_name) do
-    result_columns = [
-      nspname: :name,
-      relname: :name,
-      attname: :name,
-      atttypid: :text,
-      typname: :name,
-      attnum: :int2,
-      attlen: :int2,
-      atttypmod: :int4,
-      attnotnull: :boolean,
-      relhasrules: :boolean,
-      relkind: :char,
-      oid: :int4,
-      pg_get_expr: :text,
-      case: :text,
-      typtypmod: :int4,
-      relhasoids: :boolean
-    ]
-
-    [
-      columns: Enum.map(result_columns, fn {name, type} -> %{name: to_string(name), type: type} end),
-      rows:
-        table_columns
-        |> Enum.with_index()
-        |> Enum.map(&column_row_for_tableau(&1, data_source_id, table_name, result_columns))
-    ]
-  end
-
-  defp column_row_for_tableau(
-         {[column_name, column_type], index},
-         data_source_id,
-         table_name,
-         result_columns
-       ) do
-    psql_type = PsqlServer.psql_type(column_type)
-    type_info = Protocol.Value.type_info(psql_type)
-
-    row_fields = %{
-      nspname: "",
-      relname: table_name,
-      attname: column_name,
-      atttypid: type_info.oid,
-      typname: psql_type,
-      attnum: index + 1,
-      attlen: type_info.len,
-      atttypmod: -1,
-      # The first column is always UID, and we know that this column can't have a NULL value.
-      attnotnull: index == 0,
-      relhasrules: false,
-      relkind: ?r,
-      oid: :erlang.phash2({data_source_id, table_name}),
-      pg_get_expr: "",
-      case: "0",
-      typtypmod: -1,
-      relhasoids: false
-    }
-
-    Enum.map(result_columns, fn {column_name, _type} -> Map.fetch!(row_fields, column_name) end)
   end
 
   defp first_cursor_fetch(conn, cursor_name, count, query_result),
