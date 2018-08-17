@@ -1231,8 +1231,8 @@ defmodule Cloak.Sql.Compiler.Test do
     assert {:error, reason} = compile("select date_trunc(string, column) from table", data_source())
 
     assert reason ==
-             "Function `date_trunc` requires arguments of type (`constant text`, `time`)" <>
-               " or (`constant text`, `datetime` | `date`), but got (`text`, `datetime`)."
+             "Function `date_trunc` requires arguments of type (`constant text`, `date`)" <>
+               " or (`constant text`, `datetime`) or (`constant text`, `time`), but got (`text`, `datetime`)."
   end
 
   test "rejecting aggregates in the WHERE-clause" do
