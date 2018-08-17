@@ -89,7 +89,8 @@ defmodule Compliance.DataSource.MySQL do
         |> Enum.map(&cast_types/1)
       end)
 
-  defp cast_types(%{calendar: Calendar.ISO} = datetime), do: NaiveDateTime.to_erl(datetime)
+  defp cast_types(%Date{} = date), do: Date.to_erl(date)
+  defp cast_types(%NaiveDateTime{} = datetime), do: NaiveDateTime.to_erl(datetime)
   defp cast_types(value), do: value
 
   defp escaped_column_names(column_names),

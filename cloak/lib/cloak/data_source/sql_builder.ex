@@ -104,6 +104,10 @@ defmodule Cloak.DataSource.SqlBuilder do
        ),
        do: arg |> to_fragment(sql_dialect_module) |> sql_dialect_module.cast_sql(arg.type, to_type)
 
+  defp column_sql(expression = %Expression{function: "date_trunc", type: :date}, sql_dialect_module) do
+    column_sql(Expression.function({:cast, :date}, [%{expression | type: :datetime}], :date), sql_dialect_module)
+  end
+
   defp column_sql(
          %Expression{function?: true, function: fun_name, function_args: args},
          sql_dialect_module
