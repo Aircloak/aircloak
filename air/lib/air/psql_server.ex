@@ -117,7 +117,8 @@ defmodule Air.PsqlServer do
 
   @impl RanchServer
   def login(conn, password) do
-    with data_source_id <- {:name, conn.login_params["database"]},
+    with data_source_name = conn.login_params["database"],
+         data_source_id <- {:name, data_source_name},
          {:ok, user} <- User.login(conn.login_params["user"], password),
          {:ok, _} <- DataSource.fetch_as_user(data_source_id, user) do
       # We're not storing data source, since access permissions have to be checked on every query.
@@ -127,7 +128,8 @@ defmodule Air.PsqlServer do
       {:ok,
        conn
        |> RanchServer.assign(:user, user)
-       |> RanchServer.assign(:data_source_id, data_source_id)}
+       |> RanchServer.assign(:data_source_id, data_source_id)
+       |> RanchServer.assign(:shadow_db_conn, shadow_db_connection!(data_source_name))}
     else
       _ -> :error
     end
@@ -365,6 +367,24 @@ defmodule Air.PsqlServer do
       parameters,
       _options = []
     )
+  end
+
+  defp shadow_db_connection!(data_source_name) do
+    # We're using pgsql (https://github.com/semiocast/pgsql) instead of Postgrex, because Postgrex uses a binary
+    # protocol, which leads to some type information loss (https://hexdocs.pm/postgrex/readme.html#oid-type-encoding).
+    # With pgsql, we get better more detailed type information, so we can correctly transfer the data to the client.
+
+    # Note that we're opening the connection using `start_link` instead of `open`. This is done because `open` places
+    # the connection under the supervisor in `pgsql` app. However, we want the connection to be a child of this process
+    # to ensure that when this process (i.e. client connection) is terminated, the shadow db connection is also closed.
+    {:ok, conn} =
+      :pgsql_connection.start_link(
+        host: '127.0.0.1',
+        database: to_charlist(Air.Service.ShadowDb.db_name(data_source_name)),
+        user: 'postgres'
+      )
+
+    {:pgsql_connection, conn}
   end
 
   # -------------------------------------------------------------------

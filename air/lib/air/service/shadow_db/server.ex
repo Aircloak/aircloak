@@ -50,6 +50,10 @@ defmodule Air.Service.ShadowDb.Server do
     end
   end
 
+  @doc "Returns the name of the shadow database for the given data source."
+  @spec db_name(String.t()) :: String.t()
+  def db_name(data_source_name), do: "aircloak_shadow_#{data_source_name}"
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
@@ -191,8 +195,6 @@ defmodule Air.Service.ShadowDb.Server do
   defp type_sql("time"), do: "time without time zone"
   defp type_sql("datetime"), do: "timestamp without time zone"
   defp type_sql("unknown"), do: "text"
-
-  defp db_name(data_source_name), do: "aircloak_shadow_#{data_source_name}"
 
   defp sanitize_name(name), do: Regex.replace(~r/"/, name, ~s/""/)
 

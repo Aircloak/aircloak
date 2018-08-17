@@ -39,6 +39,10 @@ defmodule Air.Service.ShadowDb do
     :ok
   end
 
+  @doc "Returns the name of the shadow database for the given data source."
+  @spec db_name(String.t()) :: String.t()
+  defdelegate db_name(data_source), to: Server
+
   # -------------------------------------------------------------------
   # Supervisor callbacks
   # -------------------------------------------------------------------

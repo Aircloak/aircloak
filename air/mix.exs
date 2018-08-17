@@ -95,6 +95,7 @@ defmodule Air.Mixfile do
       {:appsignal, "~> 1.0"},
       {:parent, "~> 0.4.0"},
       {:combine, "~> 0.9.6"},
+      {:pgsql, "~> 26.0"},
       {:bom, path: "../bom", runtime: false, only: :dev}
     ]
   end
