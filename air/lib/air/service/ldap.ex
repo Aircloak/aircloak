@@ -151,22 +151,25 @@ defmodule Air.Service.LDAP do
 
   defp open_connection(:error), do: {:error, :ldap_not_configured}
 
-  defp open_connection({:ok, config = %{"host" => host, "port" => port, "encryption" => "start_tls"}}) do
-    with {:ok, conn} <- :eldap.open([to_charlist(host)], port: port),
+  defp open_connection({:ok, config = %{"host" => host, "encryption" => "start_tls"}}) do
+    with {:ok, conn} <- :eldap.open([to_charlist(host)], port: port(config)),
          :ok <- :eldap.start_tls(conn, ssl_options(config), @timeout) do
       {:ok, conn}
     end
   end
 
-  defp open_connection({:ok, config = %{"host" => host, "port" => port, "encryption" => "ssl"}}) do
-    :eldap.open([to_charlist(host)], port: port, ssl: true, sslopts: ssl_options(config), timeout: @timeout)
+  defp open_connection({:ok, config = %{"host" => host, "encryption" => "ssl"}}) do
+    :eldap.open([to_charlist(host)], port: port(config), ssl: true, sslopts: ssl_options(config), timeout: @timeout)
   end
 
-  defp open_connection({:ok, %{"host" => host, "port" => port}}) do
-    :eldap.open([to_charlist(host)], port: port, timeout: @timeout)
+  defp open_connection({:ok, config = %{"host" => host}}) do
+    :eldap.open([to_charlist(host)], port: port(config), timeout: @timeout)
   end
 
   defp open_connection(_), do: {:error, :invalid_config}
+
+  defp port(%{"port" => port}), do: port
+  defp port(_), do: 389
 
   defp ssl_options(config = %{"ca_certfile" => certfile}) do
     certfile = Path.join([Application.app_dir(:air, "priv"), "config", certfile])

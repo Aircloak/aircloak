@@ -21,7 +21,7 @@ defmodule Air.TestRepoHelper do
         User.create!(user)
       end
 
-    password_token = User.reset_password_token(user)
+    password_token = User.reset_password_token(user, ldap: :any)
     password = additional_changes[:password] || "password1234"
     {:ok, user} = User.reset_password(password_token, %{password: password, password_confirmation: password})
 

@@ -100,7 +100,7 @@
         "user_group": {"type": "string", "minLength": 1}
       },
       "additionalProperties": false,
-      "required": ["host", "port", "user_base", "group_base"]
+      "required": ["host", "user_base", "group_base"]
     }
   },
   "additionalProperties": false,

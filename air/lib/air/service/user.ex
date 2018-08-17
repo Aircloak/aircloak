@@ -50,8 +50,11 @@ defmodule Air.Service.User do
     do: Repo.one(from(user in User, where: user.id == ^user.id, where: user.enabled, select: true)) || false
 
   @doc "Returns a token that can be used to reset the given user's password."
-  @spec reset_password_token(User.t()) :: String.t()
-  def reset_password_token(user), do: Phoenix.Token.sign(AirWeb.Endpoint, @password_reset_salt, user.id)
+  @spec reset_password_token(User.t(), change_options) :: String.t()
+  def reset_password_token(user, options \\ []) do
+    check_ldap!(user, options)
+    Phoenix.Token.sign(AirWeb.Endpoint, @password_reset_salt, user.id)
+  end
 
   @doc "Resets the user's password from the given params. The user is identified by the given reset token."
   @spec reset_password(String.t(), Map.t()) :: {:error, :invalid_token} | {:error, Ecto.Changeset.t()} | {:ok, User.t()}
