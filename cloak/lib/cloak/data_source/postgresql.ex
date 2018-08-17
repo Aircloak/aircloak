@@ -180,6 +180,7 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   defp interval_field_mapper(value), do: value
 
+  defp generic_field_mapper(value = %DateTime{}), do: value |> DateTime.to_naive() |> Cloak.Time.max_precision()
   defp generic_field_mapper(value), do: value
 
   # -------------------------------------------------------------------
