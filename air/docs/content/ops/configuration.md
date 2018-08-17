@@ -120,8 +120,8 @@ In order for the above command to work, the cloak component must be started as w
 
 Insights Air can be configured to allow users to login with credentials managed in an LDAP directory service. The
 `config.json` snippet below shows all possible configuration options along with their default values where applicable.
-Note that the `host`, `user_base`, and `group_base` options are required and have no default values, indicated by
-`null`.
+Note that the `host`, `user_base`, and `group_base` options are required. Options without a default value are indicated
+with a `null`.
 
 ```
 {
