@@ -78,7 +78,9 @@ Enum.each(
       end
 
       defp disable_unsupported_on_dates(context, function, column) do
-        disable_for(context, :all, column in date_columns() and unsupported_on_dates?(function))
+        context
+        |> disable_for(:all, column in date_columns() and unsupported_on_dates?(function))
+        |> disable_for(Cloak.DataSource.MongoDB, column in date_columns())
       end
 
       defp unsupported_on_dates?(function) do
