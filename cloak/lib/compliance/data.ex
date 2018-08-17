@@ -225,7 +225,7 @@ defmodule Compliance.Data do
       end)
 
   defp flatten_users(users),
-    do: Enum.map(users, &Map.take(&1, [:id, :user_id, :name, :age, :height, :active, :nullable]))
+    do: Enum.map(users, &Map.take(&1, [:id, :user_id, :name, :age, :height, :active, :nullable, :birthday]))
 
   defp flatten_addresses(users) do
     Enum.flat_map(users, fn user ->

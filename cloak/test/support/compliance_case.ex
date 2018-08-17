@@ -76,6 +76,7 @@ defmodule ComplianceCase do
       integer_columns(),
       numerical_columns(),
       datetime_columns(),
+      date_columns(),
       text_columns(),
       nullable_columns()
     ])
