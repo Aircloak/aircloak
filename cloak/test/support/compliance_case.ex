@@ -76,6 +76,7 @@ defmodule ComplianceCase do
       integer_columns(),
       numerical_columns(),
       datetime_columns(),
+      date_columns(),
       text_columns(),
       nullable_columns()
     ])
@@ -113,6 +114,13 @@ defmodule ComplianceCase do
     do: [
       # {column name, table name, uid column in table}
       {"changes.date", "notes_changes", "uid"}
+    ]
+
+  @doc false
+  def date_columns(),
+    do: [
+      # {column name, table name, uid column in table}
+      {"birthday", "users", "user_id"}
     ]
 
   @doc false

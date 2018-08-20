@@ -79,6 +79,7 @@ defmodule Compliance.DataSource.SAPHana do
   defp sql_type(:boolean), do: "boolean"
   defp sql_type(:text), do: "nvarchar(4000)"
   defp sql_type(:datetime), do: "timestamp"
+  defp sql_type(:date), do: "date"
 
   defp column_names(data),
     do:

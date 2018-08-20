@@ -144,4 +144,5 @@ defmodule Compliance.DataSource.SQLServer do
   defp sql_type(:boolean), do: "bit"
   defp sql_type(:text), do: "nvarchar(4000)"
   defp sql_type(:datetime), do: "datetime2"
+  defp sql_type(:date), do: "date"
 end

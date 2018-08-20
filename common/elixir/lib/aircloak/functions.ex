@@ -77,7 +77,8 @@ defmodule Aircloak.Functions do
                  attributes: [:implicit_range, :restricted],
                  type_specs: %{
                    [{:constant, :text}, :time] => :time,
-                   [{:constant, :text}, {:or, [:datetime, :date]}] => :datetime
+                   [{:constant, :text}, :datetime] => :datetime,
+                   [{:constant, :text}, :date] => :date
                  }
                },
                ~w(floor ceil) => %{
