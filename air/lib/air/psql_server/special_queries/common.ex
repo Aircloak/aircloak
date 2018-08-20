@@ -19,6 +19,9 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
   @impl SpecialQueries
   def run_query(conn, query) do
     cond do
+      internal_query?(query) ->
+        RanchServer.query_result(conn, select_from_shadow_db!(conn, query))
+
       query =~ ~r/^begin$/i ->
         RanchServer.query_result(conn, command: :begin)
 
@@ -29,22 +32,6 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
         conn
         |> RanchServer.unassign({:cursor_result, cursor})
         |> RanchServer.query_result(command: :"close cursor")
-
-      # Obtaining type information
-      query =~ ~r/^select.+FROM.+pg_attribute/si ->
-        select_from_shadow_db!(conn, query)
-
-      # Obtaining type information
-      query =~ ~r/^select.+FROM.+pg_type/si ->
-        select_from_shadow_db!(conn, query)
-
-      # show commands except `show tables` and `show columns`
-      query =~ ~r/^\s*show/i and not (query =~ ~r/show\s+(tables|columns)/i) ->
-        select_from_shadow_db!(conn, query)
-
-      # simple select queries without from clause
-      query =~ ~r/^\s*select\s+/i and not (query =~ ~r/\sfrom\s/i) ->
-        select_from_shadow_db!(conn, query)
 
       permission_denied_query?(query) ->
         RanchServer.query_result(conn, {:error, "permission denied"})
@@ -80,6 +67,16 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp internal_query?(query),
+    do: select_from_any_of?(query, ~w(pg_attribute pg_type)) or simple_select?(query) or internal_show?(query)
+
+  defp select_from_any_of?(query, tables),
+    do: query =~ ~r/\s*select.*\sfrom\s.*(#{tables |> Stream.map(&Regex.escape/1) |> Enum.join("|")})/si
+
+  defp simple_select?(query), do: query =~ ~r/^\s*select\s+/si and not (query =~ ~r/\sfrom\s/si)
+
+  defp internal_show?(query), do: query =~ ~r/^\s*show/si and not (query =~ ~r/show\s+(tables|columns)/si)
 
   defp close_cursor_query?(query) do
     case Regex.named_captures(~r/close "(?<cursor>.+)"/is, query) do
@@ -119,7 +116,7 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
 
     rows = Enum.map(rows, &map_row(columns, Tuple.to_list(&1)))
 
-    RanchServer.query_result(conn, columns: columns, rows: rows)
+    [columns: columns, rows: rows]
   end
 
   defp map_row(columns, values) do
