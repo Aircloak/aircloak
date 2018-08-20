@@ -41,6 +41,11 @@ defmodule Air.Service.License.FSM do
   def expiry(:no_license), do: Timex.now() |> Timex.shift(years: -1)
   def expiry(state), do: state.expires_at
 
+  @doc "Returns the list of features for the given state."
+  @spec features(t) :: [atom]
+  def features(:no_license), do: []
+  def features(state), do: state.features
+
   @doc "Returns the original text of the license before decryption."
   @spec text(t) :: String.t()
   def text(:no_license), do: ""

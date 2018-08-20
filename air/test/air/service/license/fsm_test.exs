@@ -9,6 +9,7 @@ defmodule Air.Service.License.FSM.Test do
     refute FSM.present?(state)
     refute FSM.valid?(state)
     assert Timex.diff(FSM.expiry(state), Timex.now()) < 0
+    assert [] = FSM.features(state)
     assert "" = FSM.text(state)
   end
 
@@ -26,6 +27,7 @@ defmodule Air.Service.License.FSM.Test do
       assert FSM.auto_renew?(state)
       assert Timex.diff(FSM.expiry(state), Timex.now()) > 0
       assert FSM.text(state) == valid_license
+      assert FSM.features(state) == [:ldap]
     end
 
     test "loading a license without auto renewal information", %{license_without_auto_renew: license} do
