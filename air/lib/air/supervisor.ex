@@ -3,7 +3,7 @@ defmodule Air.Supervisor do
 
   import Aircloak, only: [in_env: 1]
 
-  def(start_link) do
+  def start_link() do
     Supervisor.start_link(
       [
         Air.Repo,
