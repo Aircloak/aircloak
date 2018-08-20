@@ -64,6 +64,13 @@ defmodule Central.Service.License.Test do
       assert Timex.diff(expires_at, creation, :days) >= 9
       assert Timex.diff(expires_at, creation, :days) <= 11
     end
+
+    test "exporting a license with features", %{customer: customer, public_key: public_key} do
+      {:ok, license} =
+        License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true, features: ["ldap"]})
+
+      assert {:ok, %{"features" => ["ldap"]}} = license |> License.export() |> decode(public_key)
+    end
   end
 
   describe "revocation" do
