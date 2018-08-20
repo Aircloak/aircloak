@@ -12,4 +12,11 @@ defmodule CentralWeb.LicenseView do
 
   defp revoke_class(%{revoked: true}), do: "danger"
   defp revoke_class(_), do: ""
+
+  defp feature_enabled?(%{data: %{features: nil}}, _), do: false
+  defp feature_enabled?(%{data: %{features: features}}, feature), do: feature in features
+
+  defp features() do
+    %{"LDAP" => "ldap"}
+  end
 end

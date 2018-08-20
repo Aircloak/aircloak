@@ -14,7 +14,7 @@ defmodule CentralWeb.LicenseController do
   end
 
   def create(conn, %{"license" => params}) do
-    case Service.License.create(conn.assigns.customer, params) do
+    case Service.License.create(conn.assigns.customer, parse_features(params)) do
       {:ok, _} -> redirect_to_index(conn, "License created")
       {:error, changeset} -> render_index(conn, changeset)
     end
@@ -39,7 +39,7 @@ defmodule CentralWeb.LicenseController do
 
   def update(conn, %{"id" => id, "license" => params}) do
     with_license(conn, id, fn license ->
-      case Service.License.update(license, params) do
+      case Service.License.update(license, parse_features(params)) do
         {:error, changeset} -> render(conn, "edit.html", license_id: id, changeset: changeset)
         {:ok, _} -> redirect_to_index(conn, "License updated")
       end
@@ -100,5 +100,12 @@ defmodule CentralWeb.LicenseController do
       {:error, :not_found} -> not_found(conn)
       {:ok, customer} -> assign(conn, :customer, customer)
     end
+  end
+
+  defp parse_features(params) do
+    update_in(params, ["features"], fn
+      nil -> []
+      features -> Enum.reject(features, &(&1 == ""))
+    end)
   end
 end
