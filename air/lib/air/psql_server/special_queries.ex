@@ -180,12 +180,12 @@ defmodule Air.PsqlServer.SpecialQueries do
 
   defp map_value({:timestamp, {date, time}}) do
     {time, microseconds} = convert_time(time)
-    NaiveDateTime.from_erl!({date, time}, microseconds)
+    NaiveDateTime.from_erl!({date, time}, {microseconds, _precision = 6})
   end
 
   defp map_value({:time, time}) do
     {time, microseconds} = convert_time(time)
-    Time.from_erl!(time, microseconds)
+    Time.from_erl!(time, {microseconds, _precision = 6})
   end
 
   defp map_value({:timetz, time}) do
