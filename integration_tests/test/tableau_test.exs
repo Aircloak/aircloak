@@ -19,7 +19,7 @@ defmodule IntegrationTest.TableauTest do
     assert :odbc.sql_query(context.conn, query) == [
              {:updated, 0},
              {:updated, 0},
-             {:selected, ['relname', 'nspname', 'relkind'], [{'users', '', 'r'}]}
+             {:selected, ['relname', 'nspname', 'relkind'], [{'users', 'public', 'r'}]}
            ]
   end
 
@@ -55,28 +55,32 @@ defmodule IntegrationTest.TableauTest do
            } = :odbc.sql_query(context.conn, query)
   end
 
-  test "tableau query for triggers", context do
+  test "table info query 2", context do
     query =
-      'BEGIN;declare "SQL_CUR04D36638" cursor for SELECT\tpt.tgargs, \t\tpt.tgnargs, \t\tpt.tgdeferrable, \t\tpt.tginitdeferred, \t\tpp1.proname, \t\tpp2.proname, \t\tpc.oid, \t\tpc1.oid, \t\tpc1.relname, \t\tpt.tgconstrname, pn.nspname FROM\tpg_catalog.pg_class pc, \t\tpg_catalog.pg_proc pp1, \t\tpg_catalog.pg_proc pp2, \t\tpg_catalog.pg_trigger pt1, \t\tpg_catalog.pg_trigger pt2, \t\tpg_catalog.pg_proc pp, \t\tpg_catalog.pg_trigger pt, \t\tpg_catalog.pg_class pc1, \t\tpg_catalog.pg_namespace pn, \t\tpg_catalog.pg_namespace pn1 WHERE\tpt.tgrelid = pc.oid AND pp.oid = pt.tgfoid AND pt1.tgconstrrelid = pc.oid AND pp1.oid = pt1.tgfoid AND pt2.tgfoid = pp2.oid AND pt2.tgconstrrelid = pc.oid AND ((pc.relname = \'accounts\') AND (pn1.oid = pc.relnamespace) AND (pn1.nspname = \'public\') AND (pp.proname LIKE \'%ins\') AND (pp1.proname LIKE \'%upd\') AND (pp1.proname not LIKE \'%check%\') AND (pp2.proname LIKE \'%del\') AND (pt1.tgrelid=pt.tgconstrrelid)  AND (pt1.tgconstrname=pt.tgconstrname) AND (pt2.tgrelid=pt.tgconstrrelid) AND (pt2.tgconstrname=pt.tgconstrname) AND (pt.tgconstrrelid=pc1.oid) AND (pc1.relnamespace=pn.oid)) order by pt.tgconstrname;fetch 2048 in "SQL_CUR04D36638"'
+      ~c/select n.nspname, c.relname, a.attname, a.atttypid, t.typname, a.attnum, a.attlen, a.atttypmod, a.attnotnull, c.relhasrules, c.relkind, c.oid, pg_get_expr(d.adbin, d.adrelid), case t.typtype when 'd' then t.typbasetype else 0 end, t.typtypmod, c.relhasoids from (((pg_catalog.pg_class c inner join pg_catalog.pg_namespace n on n.oid = c.relnamespace and c.relname like 'monthly_income_expenses') inner join pg_catalog.pg_attribute a on (not a.attisdropped) and a.attnum > 0 and a.attrelid = c.oid) inner join pg_catalog.pg_type t on t.oid = a.atttypid) left outer join pg_attrdef d on a.atthasdef and d.adrelid = a.attrelid and d.adnum = a.attnum order by n.nspname, c.relname, attnum/
 
-    assert :odbc.sql_query(context.conn, query) == [
-             {:updated, 0},
-             {:updated, 0},
-             {:selected,
-              [
-                'tgargs',
-                'tgnargs',
-                'tgdeferrable',
-                'tginitdeferred',
-                'pp1.proname',
-                'pp2.proname',
-                'pc.oid',
-                'pc1.oid',
-                'relname',
-                'tgconstrname',
-                'nspname'
-              ], []}
-           ]
+    assert {
+             :selected,
+             [
+               'nspname',
+               'relname',
+               'attname',
+               'atttypid',
+               'typname',
+               'attnum',
+               'attlen',
+               'atttypmod',
+               'attnotnull',
+               'relhasrules',
+               'relkind',
+               'oid',
+               'pg_get_expr',
+               'case',
+               'typtypmod',
+               'relhasoids'
+             ],
+             []
+           } = :odbc.sql_query(context.conn, query)
   end
 
   test "tableau query for related fields", context do

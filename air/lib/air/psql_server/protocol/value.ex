@@ -7,6 +7,7 @@ defmodule Air.PsqlServer.Protocol.Value do
     name: %{oid: 19, len: 64, postgrex_extension: {Name, :reference}},
     int8: %{oid: 20, len: 8, postgrex_extension: {Int8, nil}},
     int2: %{oid: 21, len: 2, postgrex_extension: {Int2, nil}},
+    int2vector: %{oid: 22, len: -1},
     int4: %{oid: 23, len: 4, postgrex_extension: {Int4, nil}},
     regproc: %{oid: 24, len: 4},
     text: %{oid: 25, len: -1, postgrex_extension: {Raw, :reference}},
@@ -92,6 +93,7 @@ defmodule Air.PsqlServer.Protocol.Value do
   # -------------------------------------------------------------------
 
   defp text_encode(byte, :char), do: <<byte>>
+  defp text_encode(values, :int2vector), do: "{#{values |> Stream.map(&to_string/1) |> Enum.join(",")}}"
   defp text_encode(oids, :oidarray), do: "{#{oids |> Stream.map(&to_string/1) |> Enum.join(",")}}"
   defp text_encode(value, _), do: to_string(value)
 
