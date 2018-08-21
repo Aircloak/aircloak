@@ -163,8 +163,15 @@ defmodule Air.Service.Query do
   def update_state(query_id, state) do
     with {:ok, query} <- get(query_id) do
       if valid_state_transition?(query.query_state, state) do
+        previous_state_change = query.last_state_change_at || query.inserted_at
+        time_spent_current_state = NaiveDateTime.diff(NaiveDateTime.utc_now(), previous_state_change, :millisecond)
+
         query
-        |> Query.changeset(%{query_state: state})
+        |> Query.changeset(%{
+          query_state: state,
+          last_state_change_at: NaiveDateTime.utc_now(),
+          time_spent: Map.put(query.time_spent, query.query_state, time_spent_current_state)
+        })
         |> Repo.update!()
         |> UserChannel.broadcast_state_change()
       end

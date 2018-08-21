@@ -174,6 +174,16 @@ defmodule Air.Service.QueryTest do
         assert {:ok, %{query_state: unquote(terminal_state)}} = get_query(query.id)
       end
     end
+
+    test "records time spent in previous state" do
+      query = create_query!(create_user!(), %{query_state: :awaiting_data})
+
+      :timer.sleep(100)
+      Query.update_state(query.id, :processing)
+
+      assert {:ok, %{time_spent: %{"awaiting_data" => time}}} = get_query(query.id)
+      assert time >= 100
+    end
   end
 
   describe "process_result" do
