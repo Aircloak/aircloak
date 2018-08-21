@@ -171,34 +171,20 @@ defmodule Air.Service.QueryTest do
       assert {:ok, %{query_state: :completed}} = get_query(query.id)
     end
 
-    Enum.each([:cancelled, :error, :completed], fn terminal_state ->
-      Enum.each(
-        [
-          :started,
-          :parsing,
-          :compiling,
-          :awaiting_data,
-          :ingesting_data,
-          :processing,
-          :post_processing,
-          :cancelled,
-          :error,
-          :completed
-        ],
-        fn state ->
-          test "changing from terminal state '#{terminal_state}' to '#{state}' is not allowed" do
-            params = %{
-              query_state: unquote(terminal_state),
-              data_source_id: create_data_source!().id
-            }
+    for terminal_state <- ~w(cancelled error completed)a,
+        state <- ~w(started parsing compiling awaiting_data ingesting_data processing post_processing cancelled
+          error completed) do
+      test "changing from terminal state '#{terminal_state}' to '#{state}' is not allowed" do
+        params = %{
+          query_state: unquote(terminal_state),
+          data_source_id: create_data_source!().id
+        }
 
-            query = create_query!(create_user!(), params)
-            Query.update_state(query.id, unquote(state))
-            assert {:ok, %{query_state: unquote(terminal_state)}} = get_query(query.id)
-          end
-        end
-      )
-    end)
+        query = create_query!(create_user!(), params)
+        Query.update_state(query.id, unquote(state))
+        assert {:ok, %{query_state: unquote(terminal_state)}} = get_query(query.id)
+      end
+    end
   end
 
   describe "process_result" do
