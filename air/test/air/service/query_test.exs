@@ -223,6 +223,16 @@ defmodule Air.Service.QueryTest do
       assert Query.buckets(query, :all) == [%{"occurrences" => 10, "row" => [1, 1]}]
     end
 
+    test "records time spent in previous state" do
+      query = create_query!(create_user!(), %{query_state: :started})
+
+      :timer.sleep(100)
+      send_query_result(query.id, %{columns: [], info: [], features: %{}, execution_time: 123}, _rows = [])
+
+      assert {:ok, %{time_spent: %{"started" => time}}} = get_query(query.id)
+      assert time >= 100
+    end
+
     test "processing an error result" do
       query = create_query!(create_user!(), %{query_state: :started})
 
