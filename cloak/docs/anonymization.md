@@ -51,10 +51,10 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
 
   - The maximum / minimum values per-user are taken.
   - The first No users with the maximum / minimum overall values are dropped.
-    No is a random, uniformly distributed value in the range specified from
+    No is calculated based on the limits and SD values from
     [outliers_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L41).
   - Take the average value of the top Nt remaining users.
-    Nt is a random, uniformly distributed value in the range specified from
+    Nt is calculated based on the limits and SD values from
     [top_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L48).
   - Add noise to the top average with mean 0 and SD equal a quarter of the standard deviation of the values
     used for the average calculation.
@@ -73,10 +73,10 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
 
   - The counts of values per-user are computed.
   - The first No users with the biggest overall counts are dropped.
-    No is a random, uniformly distributed value in the range specified
+    No is calculated based on the limits and SD values from
     [outliers_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L41).
   - The average count of the top Nt remaining users is computed.
-    Nt is a random, uniformly distributed value in the range specified from
+    Nt is calculated based on the limits and SD values from
     [top_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L48).
   - The total count is the sum of all the remaining counts plus No multiplied by
     the average count of the top Nt users plus Nv multiplied by a scale factor described below.
@@ -96,10 +96,10 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
     anonymized sum of the negated negative values.
   - The anonymized sum of a set of positive values is computed as follows:
     - The first No users with the biggest overall values are dropped.
-      No is a random, uniformly distributed value in the range specified from
+      No is calculated based on the limits and SD values from
       [outliers_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L41).
     - The average value of the top Nt remaining users is computed.
-      Nt is a random, uniformly distributed value in the range specified from
+      Nt is calculated based on the limits and SD values from
       [top_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L48).
     - The total sum is the sum of all the remaining values plus No multiplied by
       the average sum of the top Nt users plus Nv multiplied by a scale factor described below.
@@ -142,7 +142,8 @@ the [configuration file](../config/config.exs), in the `anonymizer` section.
   - The values are sorted in ascending order.
   - The real median is computed.
   - The closest value per-user is extracted from above and below the median,
-    from a noisy amount (a random, uniformly distributed value in the range specified from [top_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L48))
+    from a noisy amount (calculated based on the limits and SD values from
+    [top_count](https://github.com/Aircloak/aircloak/blob/master/cloak/config/config.exs#L48))
     of distinct users on each side.
   - The final result is the average of the real median and the extracted values from above and below,
     to which an additional noise component is added which has mean 0 and SD equal to a quarter of the

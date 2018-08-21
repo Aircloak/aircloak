@@ -73,7 +73,7 @@ defmodule Cloak.Query.Anonymizer do
     if count < absolute_lower_bound do
       false
     else
-      {noisy_lower_bound, _anonymizer} = add_gaussian_noise(anonymizer, config(:low_count_soft_lower_bound))
+      {noisy_lower_bound, _anonymizer} = add_noise(anonymizer, config(:low_count_soft_lower_bound))
 
       count >= round(noisy_lower_bound)
     end
@@ -94,7 +94,8 @@ defmodule Cloak.Query.Anonymizer do
 
       {{count, noise_sigma}, _anonymizer} ->
         count = count |> round() |> Kernel.max(config(:low_count_absolute_lower_bound))
-        {count, noise_sigma}
+        {_noise_lower_bound, _noise_upper_bound, noise_sigma_lower_bound} = config(:outliers_count)
+        {count, Kernel.max(noise_sigma, noise_sigma_lower_bound)}
     end
   end
 
@@ -238,7 +239,7 @@ defmodule Cloak.Query.Anonymizer do
   @spec noisy_count(t, integer) :: integer
   def noisy_count(anonymizer, count) do
     sigma = config(:sum_noise_sigma) * noise_sigma_scale_factor(1, 1)
-    {noisy_count, _anonymizer} = add_gaussian_noise(anonymizer, {count, sigma})
+    {noisy_count, _anonymizer} = add_noise(anonymizer, {count, sigma})
     Kernel.max(round(noisy_count), config(:low_count_absolute_lower_bound))
   end
 
@@ -264,7 +265,7 @@ defmodule Cloak.Query.Anonymizer do
 
   # Produces random number with given mean. The number is a sum of the mean and a gaussian-distributed 0-mean number
   # with the given standard deviation _per noise layer_.
-  defp add_gaussian_noise(%{rngs: rngs} = anonymizer, {mean, sd_scale}) do
+  defp add_noise(%{rngs: rngs} = anonymizer, {mean, sd_scale}) do
     {noise, rngs} =
       Enum.reduce(rngs, {0, []}, fn rng, {noise, rngs} ->
         {sample, rng} = gauss(rng)
@@ -272,20 +273,6 @@ defmodule Cloak.Query.Anonymizer do
       end)
 
     {mean + noise * sd_scale, %{anonymizer | rngs: Enum.reverse(rngs)}}
-  end
-
-  # Produces uniformly-distributed random number in the interval [min, max).
-  # The number is computed from uniformly-distributed numbers generated _per noise layer_.
-  defp add_uniform_noise(%{rngs: rngs} = anonymizer, {min, max}) do
-    {noise, rngs} =
-      Enum.reduce(rngs, {0, []}, fn rng, {noise, rngs} ->
-        {sample, rng} = :rand.uniform_s(rng)
-        {noise + sample, [rng | rngs]}
-      end)
-
-    # We assume fractional part is uniformly-distributed!
-    fractional_noise = noise - Float.floor(noise)
-    {min + (max - min) * fractional_noise, %{anonymizer | rngs: Enum.reverse(rngs)}}
   end
 
   defp gauss(rng) do
@@ -305,7 +292,7 @@ defmodule Cloak.Query.Anonymizer do
   # Computes the noisy sum of a collection of positive numbers.
   defp sum_positives(anonymizer, rows) do
     noise_sigma = config(:sum_noise_sigma)
-    {noise, anonymizer} = add_gaussian_noise(anonymizer, {0, noise_sigma})
+    {noise, anonymizer} = add_noise(anonymizer, {0, noise_sigma})
     {outliers_count, anonymizer} = get_group_count(anonymizer, config(:outliers_count))
     {top_count, anonymizer} = get_group_count(anonymizer, config(:top_count))
 
@@ -425,7 +412,7 @@ defmodule Cloak.Query.Anonymizer do
     variance = (values |> Enum.map(&((&1 - average) * (&1 - average))) |> Enum.sum()) / value_count
 
     quarter_stddev = :math.sqrt(variance) / 4
-    {noisy_average, _anonymizer} = add_gaussian_noise(anonymizer, {average, quarter_stddev})
+    {noisy_average, _anonymizer} = add_noise(anonymizer, {average, quarter_stddev})
     noisy_average
   end
 
@@ -453,8 +440,11 @@ defmodule Cloak.Query.Anonymizer do
   defp sum_noise_sigmas(nil, sigma2), do: sigma2
   defp sum_noise_sigmas(sigma1, sigma2), do: :math.sqrt(sigma1 * sigma1 + sigma2 * sigma2)
 
-  defp get_group_count(anonymizer, mean_sigma) do
-    {count, anonymizer} = add_uniform_noise(anonymizer, mean_sigma)
-    {round(count), anonymizer}
+  defp get_group_count(anonymizer, range_sigma) do
+    {min_count, max_count, sigma} = range_sigma
+    mean_count = (min_count + max_count) * 0.5
+    {count, anonymizer} = add_noise(anonymizer, {mean_count, sigma})
+    count = count |> round() |> Kernel.max(min_count) |> Kernel.min(max_count)
+    {count, anonymizer}
   end
 end

@@ -34,14 +34,14 @@ config :cloak, :anonymizer,
   # Reported values equal or exceed this value.
   low_count_absolute_lower_bound: 2,
 
-  # The min/max limits for the count of outliers dropped, from the top of the collection,
+  # The range and standard deviation for the count of outliers dropped, from the top of the collection,
   # during the anonymized aggregation of values. The outliers are replaced with the noisy
   # average value for the top of the remaining users in the collection.
-  outliers_count: {1, 2},
+  outliers_count: {1, 2, 0.5},
 
-  # The min/max limits for the count of items at the top of a collection,
+  # The range and standard deviation for the count of items at the top of a collection,
   # used for computing the average value of the top.
-  top_count: {1, 3},
+  top_count: {1, 3, 0.5},
 
   # The base sigma value used for sum and count calculations.
   # This base sigma is scaled based on the average values and the `sum_noise_sigma_scale_params`.
