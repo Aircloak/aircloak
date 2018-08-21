@@ -63,8 +63,8 @@ export default class AuditLogEntry extends React.Component {
     return (<dl>
       {_.toPairs(this.props.auditLog.metadata).map(([key, value]) => (
         <div className="row" key={key}>
-          <dt className="col-sm-3">{key}</dt>
-          <dd className="col-sm-9">{value}</dd>
+          <dt className="col-sm-3">{_.toString(key)}</dt>
+          <dd className="col-sm-9">{_.toString(value)}</dd>
         </div>
       ))}
     </dl>);
