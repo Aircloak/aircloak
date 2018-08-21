@@ -92,6 +92,8 @@ defmodule Air.PsqlServer.Protocol.Value do
   # Internal functions
   # -------------------------------------------------------------------
 
+  # Bug in credo (it complains about missing space after comma in a string constant ",")
+  # credo:disable-for-lines:3 Credo.Check.Readability.SpaceAfterCommas
   defp text_encode(byte, :char), do: <<byte>>
   defp text_encode(values, :int2vector), do: "{#{values |> Stream.map(&to_string/1) |> Enum.join(",")}}"
   defp text_encode(oids, :oidarray), do: "{#{oids |> Stream.map(&to_string/1) |> Enum.join(",")}}"
