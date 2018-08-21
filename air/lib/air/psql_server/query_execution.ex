@@ -1,10 +1,9 @@
-defmodule Air.PsqlServer.SpecialQueries do
-  @moduledoc "Handles common special queries issued by various clients, such as ODBC driver and postgrex."
+defmodule Air.PsqlServer.QueryExecution do
+  @moduledoc "Handles query execution."
 
   require Record
   require Logger
-  alias Air.PsqlServer
-  alias Air.PsqlServer.{Protocol, RanchServer}
+  alias Air.PsqlServer.{CloakQuery, Protocol, RanchServer}
 
   Record.defrecord(
     :row_description_field,
@@ -15,26 +14,36 @@ defmodule Air.PsqlServer.SpecialQueries do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Executes the special query if possible, returns nil otherwise."
-  @spec run_query(RanchServer.t(), String.t()) :: RanchServer.t() | nil
-  def run_query(conn, query) do
+  @doc "Opens a permanent connection to the shadow database and stores it into the given tcp connection."
+  @spec initialize(RanchServer.t(), String.t()) :: RanchServer.t()
+  def initialize(conn, data_source_name) do
+    # We're using pgsql (https://github.com/semiocast/pgsql) instead of Postgrex, because Postgrex uses a binary
+    # protocol, which leads to some type information loss (https://hexdocs.pm/postgrex/readme.html#oid-type-encoding).
+    # With pgsql, we get better more detailed type information, so we can correctly transfer the data to the client.
+
+    # Note that we're opening the connection using `start_link` instead of `open`. This is done because `open` places
+    # the connection under the supervisor in `pgsql` app. However, we want the connection to be a child of this process
+    # to ensure that when this process (i.e. client connection) is terminated, the shadow db connection is also closed.
+    {:ok, db_conn} =
+      :pgsql_connection.start_link(
+        host: '127.0.0.1',
+        database: to_charlist(Air.Service.ShadowDb.db_name(data_source_name)),
+        user: 'postgres'
+      )
+
+    RanchServer.assign(conn, :shadow_db_conn, {:pgsql_connection, db_conn})
+  end
+
+  @doc "Executes the given query."
+  @spec run_query(RanchServer.t(), String.t(), [Protocol.db_value()]) :: RanchServer.t()
+  def run_query(conn, query, params) do
     cond do
-      cursor_query = cursor_query?(query) ->
-        if internal_query?(cursor_query.inner_query) do
-          result = Keyword.merge(select_from_shadow_db!(conn, cursor_query.inner_query), command: :fetch)
-          first_cursor_fetch(conn, cursor_query.cursor, cursor_query.count, result)
+      cursor = cursor_query?(query) ->
+        if internal_query?(cursor.inner_query) do
+          result = Keyword.merge(select_from_shadow_db!(conn, cursor.inner_query), command: :fetch)
+          first_cursor_fetch(conn, cursor, result)
         else
-          PsqlServer.run_cancellable_query_on_cloak(
-            conn,
-            cursor_query.inner_query,
-            [],
-            &first_cursor_fetch(
-              &1,
-              cursor_query.cursor,
-              cursor_query.count,
-              PsqlServer.decode_cloak_query_result(&2)
-            )
-          )
+          CloakQuery.run_query(conn, cursor.inner_query, [], &first_cursor_fetch(&1, cursor, &2))
         end
 
       cursor_fetch = cursor_count_fetch?(query) ->
@@ -63,13 +72,13 @@ defmodule Air.PsqlServer.SpecialQueries do
         |> RanchServer.query_result(command: :deallocate)
 
       true ->
-        nil
+        CloakQuery.run_query(conn, query, params, &RanchServer.query_result/2)
     end
   end
 
-  @doc "Describes the special query if possible, returns nil otherwise."
-  @spec describe_query(RanchServer.t(), String.t()) :: RanchServer.t() | nil
-  def describe_query(conn, query) do
+  @doc "Describes the given query."
+  @spec describe_query(RanchServer.t(), String.t(), [Protocol.db_value()]) :: RanchServer.t()
+  def describe_query(conn, query, params) do
     cond do
       permission_denied_query?(query) ->
         RanchServer.describe_result(conn, columns: [], param_types: [])
@@ -82,7 +91,7 @@ defmodule Air.PsqlServer.SpecialQueries do
         )
 
       true ->
-        nil
+        CloakQuery.describe_query(conn, query, params)
     end
   end
 
@@ -96,7 +105,7 @@ defmodule Air.PsqlServer.SpecialQueries do
            query
          ) do
       %{"cursor" => cursor, "inner_query" => inner_query, "count" => count} ->
-        %{cursor: cursor, inner_query: inner_query, count: String.to_integer(count)}
+        %{name: cursor, inner_query: inner_query, count: String.to_integer(count)}
 
       nil ->
         nil
@@ -200,13 +209,13 @@ defmodule Air.PsqlServer.SpecialQueries do
     {{hours, minutes, seconds_int}, microseconds}
   end
 
-  defp first_cursor_fetch(conn, cursor_name, count, query_result),
+  defp first_cursor_fetch(conn, cursor, query_result),
     do:
       conn
       |> RanchServer.query_result(command: :begin, intermediate: true)
       |> RanchServer.query_result(command: :"declare cursor", intermediate: true)
-      |> store_cursor_result(cursor_name, query_result)
-      |> fetch_from_cursor(cursor_name, count)
+      |> store_cursor_result(cursor.name, query_result)
+      |> fetch_from_cursor(cursor.name, cursor.count)
 
   defp fetch_from_cursor(conn, cursor_name, count) do
     case Map.fetch(conn.assigns, {:cursor_result, cursor_name}) do
