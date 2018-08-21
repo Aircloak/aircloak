@@ -15,6 +15,8 @@
 
 ### Changes
 
+- Noise parameters changed. Results will differ.
+
 ## 18.3.0
 
 ### __Breaking change__
