@@ -7,7 +7,13 @@ defmodule Air.PsqlServer.QueryExecution do
 
   Record.defrecord(
     :row_description_field,
-    Record.extract(:row_description_field, from: "deps/pgsql/src/pgsql_internal.hrl")
+    name: :undefined,
+    table_oid: :undefined,
+    attr_number: :undefined,
+    data_type_oid: :undefined,
+    data_type_size: :undefined,
+    type_modifier: :undefined,
+    format: :undefined
   )
 
   # -------------------------------------------------------------------
