@@ -74,10 +74,10 @@ defmodule Air.PsqlServer.SpecialQueries do
       permission_denied_query?(query) ->
         RanchServer.describe_result(conn, columns: [], param_types: [])
 
-      query =~ ~r/show "lc_collate"/i ->
+      internal_query?(query) ->
         RanchServer.describe_result(
           conn,
-          columns: [%{name: "lc_collate", type: :text}],
+          columns: conn |> select_from_shadow_db!(query) |> Keyword.fetch!(:columns),
           param_types: []
         )
 
