@@ -12,7 +12,7 @@ defmodule Central.Schemas.License do
     field(:length_in_days, :integer)
     field(:auto_renew, :boolean)
     field(:revoked, :boolean)
-    field(:features, {:array, :string})
+    field(:features, {:array, :string}, default: [])
 
     belongs_to(:customer, Customer)
 
