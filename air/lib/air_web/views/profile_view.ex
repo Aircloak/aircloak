@@ -11,4 +11,7 @@ defmodule AirWeb.ProfileView do
     time = Timex.now() |> Timex.format!("{YYYY}{0M}{0D}{h24}{m}{s}")
     "aircloak_export_#{time}.json"
   end
+
+  defp can_edit?(%{source: :ldap}), do: false
+  defp can_edit?(%{source: :native}), do: true
 end

@@ -18,6 +18,18 @@ function prepare_for_test {
     postgres:9.4 > /dev/null
 
   docker network connect --alias postgres9.4 $container_name $postgres_container_name
+
+  air/ldap/build-image.sh
+  ldap_container_name="${container_name}_ldap"
+
+  docker run --detach \
+    --name "${ldap_container_name}" \
+    -e LDAP_TLS_CRT_FILENAME=ldap.aircloak.crt \
+    -e LDAP_TLS_KEY_FILENAME=localhost.key \
+    -e LDAP_TLS_CA_CRT_FILENAME=ca.crt \
+    aircloak/ldap:latest
+
+  docker network connect --alias ldap.aircloak $container_name $ldap_container_name
 }
 
 mount_to_aircloak VERSION common/elixir bom

@@ -1,10 +1,8 @@
 defmodule PerfTest do
-  def run(query) do
-    {:ok, data_source} = Cloak.DataSource.fetch("data_source_name")
-    {:ok, data_source_encoded} = Cloak.DataSource.fetch("data_source_name_encoded")
-    Enum.map(1..5, fn _ -> run_query(query, data_source) end)
+  def run(data_source_name, query) do
+    {:ok, data_source} = Cloak.DataSource.fetch(data_source_name)
 
-    Enum.map(1..5, fn _ -> run_query(query, data_source_encoded) end)
+    Enum.map(1..5, fn _ -> run_query(query, data_source) end)
     |> stats()
   end
 
@@ -17,7 +15,7 @@ defmodule PerfTest do
   end
 
   defp run_query(statement, data_source) do
-    {duration, result} =
+    {duration, _result} =
       :timer.tc(fn ->
         :ok = Cloak.Query.Runner.start("1", data_source, statement, [], %{}, {:process, self()})
 
@@ -28,7 +26,7 @@ defmodule PerfTest do
       end)
 
     duration = duration / 1_000_000
-    IO.puts(">>> Query finished with result: #{result} in #{duration} seconds.")
+    IO.puts(">>> Query finished in #{duration} seconds.")
     duration
   end
 end
@@ -45,13 +43,20 @@ end
 
 for {key, query} <- %{
       count_notes: "SELECT COUNT(*) FROM notes",
-      count_drafts_changes: "SELECT COUNT(*) FROM notes_changes"
+      count_drafts_changes: "SELECT COUNT(*) FROM notes_changes",
+      users: "SELECT age, height, name, COUNT(*) FROM users GROUP BY 1, 2, 3"
     } do
   IO.puts(">>> Started performance test ...")
   IO.puts(">>> Testing query '#{query}' ...")
 
-  {avg, stdev} = PerfTest.run(query)
-  InfluxDB.post_result!(key, avg, stdev)
+  for data_source_name <- ["data_source_name", "data_source_name_encoded"] do
+    IO.puts(">>> On data source '#{data_source_name}' ...")
 
-  IO.puts("\n>>> Performance test ended: AVERAGE duration: #{avg} seconds, STDDEV: #{stdev} seconds.\n\n")
+    {avg, stdev} = PerfTest.run(data_source_name, query)
+    InfluxDB.post_result!("#{data_source_name}-#{key}", avg, stdev)
+
+    IO.puts(
+      "\n>>> Performance test ended (#{data_source_name}): AVERAGE duration: #{avg} seconds, STDDEV: #{stdev} seconds.\n\n"
+    )
+  end
 end

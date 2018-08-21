@@ -13,17 +13,17 @@ defmodule AirWeb.SessionControllerTest do
   end
 
   test "logging in/out", %{user: user} do
-    # invalid e-mail
-    html = build_conn() |> post("/auth", email: "foo@aircloak.com", password: "password1234") |> response(200)
+    # invalid login
+    html = build_conn() |> post("/auth", login: "foo@aircloak.com", password: "password1234") |> response(200)
 
-    assert html =~ "Invalid e-mail or password"
+    assert html =~ "Invalid login or password"
 
     # invalid password
-    html = build_conn() |> post("/auth", email: user.email, password: "") |> response(200)
-    assert html =~ "Invalid e-mail or password"
+    html = build_conn() |> post("/auth", login: user.login, password: "") |> response(200)
+    assert html =~ "Invalid login or password"
 
     # correct login
-    logged_in_conn = build_conn() |> post("/auth", email: user.email, password: "password1234")
+    logged_in_conn = build_conn() |> post("/auth", login: user.login, password: "password1234")
     assert "/" == redirected_to(logged_in_conn)
     assert get_flash(logged_in_conn)["info"] =~ "Logged in successfully"
     # verify that the user can now access a page requiring authentication
@@ -39,7 +39,7 @@ defmodule AirWeb.SessionControllerTest do
     response = login(user) |> get("/auth") |> response(302)
     assert response =~ ~s(href="/")
 
-    response = login(user) |> post("/auth", email: "", password: "") |> response(302)
+    response = login(user) |> post("/auth", login: "", password: "") |> response(302)
     assert response =~ ~s(href="/")
   end
 

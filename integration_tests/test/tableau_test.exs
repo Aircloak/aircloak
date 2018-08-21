@@ -251,7 +251,7 @@ defmodule IntegrationTest.TableauTest do
     params =
       Keyword.merge(
         [
-          user: user.email,
+          user: user.login,
           password: Manager.user_password(),
           database: Manager.data_source_name(),
           sslmode: "require"
@@ -280,7 +280,7 @@ defmodule IntegrationTest.TableauTest do
     Postgrex.start_link(
       hostname: "localhost",
       port: Application.fetch_env!(:air, Air.PsqlServer) |> Keyword.fetch!(:port),
-      username: user.email,
+      username: user.login,
       password: Manager.user_password(),
       database: Manager.data_source_name(),
       ssl: true

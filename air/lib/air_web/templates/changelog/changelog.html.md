@@ -2,6 +2,8 @@
 
 ### Features
 
+- LDAP support
+
 ### Bugfixes
 
 - Correctly typecheck parameters given to `IN`-style `WHERE`-clauses.

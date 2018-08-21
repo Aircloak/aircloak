@@ -1,5 +1,6 @@
 # ignore everything by default
 *
 
+!air/docker/pg_hba.conf
 !cloak/priv/odbc/odbc.ini
 !integration_tests/priv/integration_test_license.lic

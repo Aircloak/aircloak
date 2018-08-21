@@ -8,7 +8,7 @@ defmodule Air.TestConnHelper do
   defmacro login(user) do
     quote do
       build_conn()
-      |> post("/auth", email: unquote(user).email, password: "password1234")
+      |> post("/auth", login: unquote(user).login, password: "password1234")
       |> recycle()
     end
   end

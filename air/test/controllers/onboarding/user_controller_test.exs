@@ -5,7 +5,7 @@ defmodule AirWeb.Onboarding.UserController.Test do
 
   @valid_params %{
     user: %{
-      email: "admin@admin.com",
+      login: "admin@admin.com",
       name: "admin",
       password: "password1234",
       password_confirmation: "password1234",
@@ -60,7 +60,7 @@ defmodule AirWeb.Onboarding.UserController.Test do
 
     Air.TestRepoHelper.create_user!(%{
       name: "test",
-      email: "test@example.com",
+      login: "test@example.com",
       password: "password1234",
       groups: [group.id]
     })

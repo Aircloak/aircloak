@@ -25,6 +25,8 @@ defmodule Air.Service.Cloak do
     {data_source_names, cloak_info, data_source_schemas} =
       GenServer.call(@serializer_name, {:register, cloak_info, data_sources})
 
+    Enum.each(data_sources, &Air.Service.ShadowDb.update/1)
+
     Registry.register(@all_cloak_registry_name, :all_cloaks, cloak_info)
 
     for data_source_name <- data_source_names do

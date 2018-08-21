@@ -17,23 +17,26 @@ defmodule Cloak.DataSource.SqlBuilder do
   def build(query, sql_dialect_module), do: query |> build_fragments(sql_dialect_module) |> to_string()
 
   @doc "Makes sure the specified partial or full table name is quoted."
-  @spec quote_table_name(String.t()) :: String.t()
-  def quote_table_name("\"" <> _ = table_name), do: table_name
+  @spec quote_table_name(String.t(), integer) :: String.t()
+  def quote_table_name(table_name, quote_char \\ ?")
 
-  def quote_table_name(table_name),
+  def quote_table_name(<<quote_char::utf8, _::binary>> = table_name, quote_char), do: table_name
+
+  def quote_table_name(table_name, quote_char),
     do:
       table_name
       |> String.split(".")
-      |> Enum.map(&quote_name/1)
+      |> Enum.map(&quote_name(&1, quote_char))
       |> Enum.join(".")
 
   # -------------------------------------------------------------------
   # Transformation of query AST to query specification
   # -------------------------------------------------------------------
 
-  defp column_name(%Expression{table: :unknown, name: name}), do: quote_name(name)
+  defp column_name(%Expression{table: :unknown, name: name}, quote_char), do: quote_name(name, quote_char)
 
-  defp column_name(column), do: "#{quote_table_name(column.table.name)}.#{quote_name(column.name)}"
+  defp column_name(column, quote_char),
+    do: "#{quote_table_name(column.table.name, quote_char)}.#{quote_name(column.name, quote_char)}"
 
   defp build_fragments(query, sql_dialect_module) do
     common_clauses = [
@@ -70,7 +73,7 @@ defmodule Cloak.DataSource.SqlBuilder do
        do: [
          column_sql(%Expression{column | alias: nil}, sql_dialect_module),
          " AS ",
-         quote_name(alias)
+         quote_name(alias, sql_dialect_module.quote_char())
        ]
 
   defp column_sql(
@@ -122,7 +125,7 @@ defmodule Cloak.DataSource.SqlBuilder do
     do: constant_to_fragment(value, sql_dialect_module)
 
   defp column_sql(%Expression{function?: false, constant?: false} = column, sql_dialect_module),
-    do: column |> column_name() |> cast_type(column.type, sql_dialect_module)
+    do: column |> column_name(sql_dialect_module.quote_char()) |> cast_type(column.type, sql_dialect_module)
 
   defp cast_type(value, type, sql_dialect_module) when type in [:text, :unknown],
     # Force casting to text ensures we consistently fetch a string column as unicode, regardless of how it's
@@ -145,13 +148,18 @@ defmodule Cloak.DataSource.SqlBuilder do
   end
 
   defp from_clause({:subquery, subquery}, _query, sql_dialect_module) do
-    ["(", build_fragments(subquery.ast, sql_dialect_module), ") AS ", quote_name(subquery.alias)]
+    [
+      "(",
+      build_fragments(subquery.ast, sql_dialect_module),
+      ") AS ",
+      quote_name(subquery.alias, sql_dialect_module.quote_char)
+    ]
   end
 
-  defp from_clause(table_name, query, _sql_dialect_module) when is_binary(table_name) do
+  defp from_clause(table_name, query, sql_dialect_module) when is_binary(table_name) do
     query.selected_tables
     |> Enum.find(&(&1.name == table_name))
-    |> table_to_from()
+    |> table_to_from(sql_dialect_module.quote_char())
   end
 
   defp on_clause(nil, _sql_dialect_module), do: []
@@ -163,8 +171,10 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp join_sql(:left_outer_join), do: "LEFT OUTER JOIN"
   defp join_sql(:right_outer_join), do: "RIGHT OUTER JOIN"
 
-  defp table_to_from(%{name: table_name, db_name: table_name}), do: quote_table_name(table_name)
-  defp table_to_from(table), do: "#{quote_table_name(table.db_name)} AS #{quote_name(table.name)}"
+  defp table_to_from(%{name: table_name, db_name: table_name}, quote_char), do: quote_table_name(table_name, quote_char)
+
+  defp table_to_from(table, quote_char),
+    do: "#{quote_table_name(table.db_name, quote_char)} AS #{quote_name(table.name, quote_char)}"
 
   defp where_fragments(nil, _sql_dialect_module), do: []
 
@@ -250,7 +260,7 @@ defmodule Cloak.DataSource.SqlBuilder do
     do: [to_fragment(what, sql_dialect_module), " IS ", to_fragment(match, sql_dialect_module)]
 
   defp conditions_to_fragments({:not, condition}, sql_dialect_module),
-    do: ["NOT ", conditions_to_fragments(condition, sql_dialect_module)]
+    do: ["NOT (", conditions_to_fragments(condition, sql_dialect_module), ")"]
 
   defp to_fragment(string, _sql_dialect_module) when is_binary(string), do: string
 
@@ -331,7 +341,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp order_by_fragments(_query, _sql_dialect_module), do: []
 
-  defp quote_name(name), do: "\"#{name}\""
+  defp quote_name(name, quote_char), do: <<quote_char::utf8, name::binary, quote_char::utf8>>
 
   defp range_fragments(%Query{subquery?: true, order_by: []}, _sql_dialect_module), do: []
 

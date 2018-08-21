@@ -18,6 +18,7 @@ const COMMAND_CONNECT: u32 = 0;
 const COMMAND_EXECUTE: u32 = 1;
 const COMMAND_FETCH: u32 = 2;
 const COMMAND_SET_FLAG: u32 = 3;
+const COMMAND_GET_COLUMNS: u32 = 4;
 
 const FLAG_WSTR_AS_BIN: u8 = 0;
 
@@ -118,6 +119,12 @@ extern "C" fn control(
                     message.extend_from_slice(error.as_bytes());
                 },
             }
+        },
+
+        COMMAND_GET_COLUMNS => if let Err(error) = state.get_columns(&mut message) {
+            message.clear();
+            message.push(STATUS_ERROR);
+            message.extend_from_slice(error.to_string().as_bytes());
         },
 
         _ => {

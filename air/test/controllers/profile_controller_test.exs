@@ -10,19 +10,19 @@ defmodule Air.ProfileController.Test do
   end
 
   test "updating own details", %{user: user} do
-    changed_email = "foo@bar.baz"
+    changed_login = "foo@bar.baz"
 
     conn =
       login(user)
       |> put(
         "/profile",
         user: %{
-          email: changed_email
+          login: changed_login
         }
       )
 
     assert redirected_to(conn) == "/profile/edit"
-    assert Repo.get!(User, user.id).email == changed_email
+    assert Repo.get!(User, user.id).login == changed_login
   end
 
   test "cannot update own groups", %{user: user} do

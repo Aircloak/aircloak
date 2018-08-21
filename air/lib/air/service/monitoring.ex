@@ -42,7 +42,7 @@ defmodule Air.Service.Monitoring do
     for user <- User |> preload(:groups) |> Repo.all() do
       %{
         name: user.name,
-        email: user.email,
+        login: user.login,
         groups: user.groups |> Enum.map(& &1.name)
       }
     end

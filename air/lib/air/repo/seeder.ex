@@ -31,7 +31,7 @@ defmodule Air.Repo.Seeder do
   defp create_admin!() do
     {:ok, admin} =
       %{
-        email: "admin@aircloak.com",
+        login: "admin@aircloak.com",
         name: "Aircloak test administrator",
         groups: [admin_group().id]
       }
@@ -44,7 +44,7 @@ defmodule Air.Repo.Seeder do
 
   defp create_plain_user!() do
     User.create!(%{
-      email: "user@aircloak.com",
+      login: "user@aircloak.com",
       name: "Test client regular user"
     })
     |> User.reset_password_token()

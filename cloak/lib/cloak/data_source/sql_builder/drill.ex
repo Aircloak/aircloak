@@ -28,6 +28,9 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
 
   def function_sql("hash", [arg]), do: ["SUBSTR(MD5(", arg, "), 5, 8)"]
 
+  def function_sql("left", [arg1, arg2]), do: ["SUBSTR(", arg1, ", 1, ", arg2, ")"]
+  def function_sql("right", [arg1, arg2]), do: ["SUBSTR(", arg1, ", LENGTH(", arg1, ") - ", arg2, " + 1)"]
+
   def function_sql("bool_op", [[?', op, ?'], arg1, arg2]), do: ["(", arg1, " ", op, " ", arg2, ")"]
 
   def function_sql("/", [arg1, arg2]), do: ["(CAST(", arg1, " AS double) / ", arg2, ")"]
@@ -81,6 +84,9 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
     time = interval |> Duration.diff(Duration.from_days(days)) |> Duration.to_time!() |> to_string()
     "interval '#{days} #{time}' day(9) to second"
   end
+
+  @impl Dialect
+  def quote_char(), do: ?`
 
   # -------------------------------------------------------------------
   # Internal functions

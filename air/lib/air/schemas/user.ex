@@ -13,10 +13,12 @@ defmodule Air.Schemas.User do
   @type permissions :: %{role_key => [operation] | :all}
 
   schema "users" do
-    field(:email, :string)
+    field(:login, :string)
     field(:hashed_password, :string)
     field(:name, :string)
     field(:pseudonym, :string)
+    field(:source, Air.Schemas.Source)
+    field(:ldap_dn, :string)
     field(:enabled, :boolean)
 
     has_many(:queries, Air.Schemas.Query)

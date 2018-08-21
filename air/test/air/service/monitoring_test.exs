@@ -20,7 +20,7 @@ defmodule Air.Service.Monitoring.Test do
       group = TestRepoHelper.create_group!()
       user = TestRepoHelper.create_user!(%{groups: [group.id]})
 
-      assert %{email: user.email, name: user.name, groups: [group.name]} in Monitoring.assemble_info().users
+      assert %{login: user.login, name: user.name, groups: [group.name]} in Monitoring.assemble_info().users
     end
 
     test "list of cloaks" do

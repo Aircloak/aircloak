@@ -1,4 +1,4 @@
-.PHONY: all compile deps clean start start2 start3 test test-migrations recreate-db migrate rollback dialyze docs
+.PHONY: all compile deps clean start test test-migrations recreate-db migrate rollback dialyze docs
 .PHONY: release release-local lint mocha format check-format
 
 all: deps compile
