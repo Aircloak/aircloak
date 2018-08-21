@@ -128,6 +128,7 @@ defmodule Air.Service.Central do
       user_id: user_pseudonym,
       metrics: %{
         row_count: row_count,
+        time_spent: query.time_spent,
         execution_time: result[:execution_time]
       },
       features: result[:features],
