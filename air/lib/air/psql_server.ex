@@ -1,27 +1,7 @@
 defmodule Air.PsqlServer do
   @moduledoc "Server for PostgreSQL protocol which allows PostgreSQL clients to query cloaks."
 
-  defmodule SpecialQueries do
-    @moduledoc "Behaviour for handlers of special queries."
-
-    @doc """
-    Invoked by `Air.PsqlServer` when a query should be handled.
-
-    The implementation should return a modified `conn` if it decides to handle
-    the query, or `nil` otherwise.
-    """
-    @callback run_query(RanchServer.t(), String.t()) :: RanchServer.t() | nil
-
-    @doc """
-    Invoked by `Air.PsqlServer` when a query should be described.
-
-    The implementation should return a modified `conn` if it decides to handle
-    the query, or `nil` otherwise.
-    """
-    @callback describe_query(RanchServer.t(), String.t(), [any]) :: RanchServer.t() | nil
-  end
-
-  alias Air.PsqlServer.{Protocol, RanchServer, ConnectionRegistry}
+  alias Air.PsqlServer.{Protocol, RanchServer, ConnectionRegistry, SpecialQueries}
   alias Air.Service.{User, DataSource}
   require Logger
   require Aircloak.DeployConfig
@@ -137,17 +117,13 @@ defmodule Air.PsqlServer do
 
   @impl RanchServer
   def run_query(conn, query, params, _max_rows) do
-    case run_special_query(conn, query) do
-      {true, conn} ->
-        conn
-
-      false ->
-        run_cancellable_query_on_cloak(
-          conn,
-          query,
-          params,
-          &RanchServer.query_result(&1, decode_cloak_query_result(&2))
-        )
+    with nil <- SpecialQueries.run_query(conn, query) do
+      run_cancellable_query_on_cloak(
+        conn,
+        query,
+        params,
+        &RanchServer.query_result(&1, decode_cloak_query_result(&2))
+      )
     end
   end
 
@@ -159,30 +135,26 @@ defmodule Air.PsqlServer do
 
   @impl RanchServer
   def describe_statement(conn, query, params) do
-    case describe_special_query(conn, query, params) do
-      {true, conn} ->
-        conn
+    with nil <- SpecialQueries.describe_query(conn, query) do
+      user = conn.assigns.user
+      data_source_id = conn.assigns.data_source_id
+      converted_params = convert_params(params)
+      job_fun = fn -> DataSource.describe_query(data_source_id, user, query, converted_params) end
 
-      false ->
-        user = conn.assigns.user
-        data_source_id = conn.assigns.data_source_id
-        converted_params = convert_params(params)
-        job_fun = fn -> DataSource.describe_query(data_source_id, user, query, converted_params) end
+      on_finished = fn conn, describe_result ->
+        result =
+          case decode_cloak_query_result(describe_result) do
+            {:error, _} = error ->
+              error
 
-        on_finished = fn conn, describe_result ->
-          result =
-            case decode_cloak_query_result(describe_result) do
-              {:error, _} = error ->
-                error
+            parsed_response ->
+              Keyword.take(parsed_response, [:columns, :param_types, :info_messages])
+          end
 
-              parsed_response ->
-                Keyword.take(parsed_response, [:columns, :param_types, :info_messages])
-            end
+        RanchServer.describe_result(conn, result)
+      end
 
-          RanchServer.describe_result(conn, result)
-        end
-
-        run_async(conn, job_fun, on_finished)
+      run_async(conn, job_fun, on_finished)
     end
   end
 
@@ -245,21 +217,6 @@ defmodule Air.PsqlServer do
       {:error, error} ->
         Logger.warn(error)
         []
-    end
-  end
-
-  defp run_special_query(conn, query), do: handle_special_query(& &1.run_query(conn, query))
-
-  defp describe_special_query(conn, query, params), do: handle_special_query(& &1.describe_query(conn, query, params))
-
-  defp handle_special_query(handler_fun) do
-    [SpecialQueries.Common, SpecialQueries.Tableau]
-    |> Stream.map(handler_fun)
-    |> Stream.reject(&(&1 == nil))
-    |> Enum.take(1)
-    |> case do
-      [conn] -> {true, conn}
-      [] -> false
     end
   end
 

@@ -1,12 +1,10 @@
-defmodule Air.PsqlServer.SpecialQueries.Common do
+defmodule Air.PsqlServer.SpecialQueries do
   @moduledoc "Handles common special queries issued by various clients, such as ODBC driver and postgrex."
 
   require Record
   require Logger
   alias Air.PsqlServer
-  alias Air.PsqlServer.{Protocol, RanchServer, SpecialQueries}
-
-  @behaviour SpecialQueries
+  alias Air.PsqlServer.{Protocol, RanchServer}
 
   Record.defrecord(
     :row_description_field,
@@ -14,10 +12,11 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
   )
 
   # -------------------------------------------------------------------
-  # SpecialQueries callback functions
+  # API functions
   # -------------------------------------------------------------------
 
-  @impl SpecialQueries
+  @doc "Executes the special query if possible, returns nil otherwise."
+  @spec run_query(RanchServer.t(), String.t()) :: RanchServer.t() | nil
   def run_query(conn, query) do
     cond do
       cursor_query = cursor_query?(query) ->
@@ -68,8 +67,9 @@ defmodule Air.PsqlServer.SpecialQueries.Common do
     end
   end
 
-  @impl SpecialQueries
-  def describe_query(conn, query, _params) do
+  @doc "Describes the special query if possible, returns nil otherwise."
+  @spec describe_query(RanchServer.t(), String.t()) :: RanchServer.t() | nil
+  def describe_query(conn, query) do
     cond do
       permission_denied_query?(query) ->
         RanchServer.describe_result(conn, columns: [], param_types: [])
