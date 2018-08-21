@@ -59,20 +59,12 @@ export default class AuditLogEntry extends React.Component {
     }
   }
 
-  stringify(value) {
-    if (value !== undefined && value !== null) {
-      return value.toString();
-    } else {
-      return "not provided";
-    }
-  }
-
   renderMetadata() {
     return (<dl>
       {_.toPairs(this.props.auditLog.metadata).map(([key, value]) => (
         <div className="row" key={key}>
-          <dt className="col-sm-3">{this.stringify(key)}</dt>
-          <dd className="col-sm-9">{this.stringify(value)}</dd>
+          <dt className="col-sm-3">{_.toString(key)}</dt>
+          <dd className="col-sm-9">{_.toString(value)}</dd>
         </div>
       ))}
     </dl>);
