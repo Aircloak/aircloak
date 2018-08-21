@@ -118,10 +118,12 @@ In order for the above command to work, the cloak component must be started as w
 
 ### LDAP configuration
 
-Insights Air can be configured to allow users to login with credentials managed in an LDAP directory service. The
-`config.json` snippet below shows all possible configuration options along with their default values where applicable.
-Note that the `host`, `user_base`, and `group_base` options are required. Options without a default value are indicated
-with a `null`.
+Insights Air can be configured to allow users to login with credentials managed in an LDAP directory service. Note that
+this feature is licensed separately. If you would like to add LDAP sync to your license, contact
+[support@aircloak.com](mailto:support@aircloak.com).  The `config.json` snippet below shows all possible configuration
+options along with their default values where applicable.  Note that the `host`, `user_base`, and `group_base` options
+are required. Options without a default value
+are indicated with a `null`.
 
 ```
 {
