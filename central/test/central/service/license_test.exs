@@ -18,26 +18,19 @@ defmodule Central.Service.License.Test do
       assert [%{name: "some license"}] = License.for_customer(customer)
     end
 
-    test "returns no licenses for a customer when other customers have licenses", %{
-      customer: customer
-    } do
+    test "returns no licenses for a customer when other customers have licenses", %{customer: customer} do
       {:ok, _} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
 
       assert [] = License.for_customer(create_customer("Some other guy"))
     end
 
-    test(
-      "creating an invalid license",
-      %{customer: customer},
-      do: assert({:error, _} = License.create(customer, %{name: ""}))
-    )
+    test "creating an invalid license", %{customer: customer} do
+      assert {:error, _} = License.create(customer, %{name: ""})
+    end
   end
 
   describe "export" do
-    test "exported license includes customer and license id", %{
-      customer: customer,
-      public_key: public_key
-    } do
+    test "exported license includes customer and license id", %{customer: customer, public_key: public_key} do
       {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
 
       text = License.export(license)
@@ -71,13 +64,17 @@ defmodule Central.Service.License.Test do
       assert Timex.diff(expires_at, creation, :days) >= 9
       assert Timex.diff(expires_at, creation, :days) <= 11
     end
+
+    test "exporting a license with features", %{customer: customer, public_key: public_key} do
+      {:ok, license} =
+        License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true, features: ["ldap"]})
+
+      assert {:ok, %{"features" => ["ldap"]}} = license |> License.export() |> decode(public_key)
+    end
   end
 
   describe "revocation" do
-    test "revoked auto-renew licenses are treated as non-auto-renew", %{
-      customer: customer,
-      public_key: public_key
-    } do
+    test "revoked auto-renew licenses are treated as non-auto-renew", %{customer: customer, public_key: public_key} do
       {:ok, license} = License.create(customer, %{name: "some license", length_in_days: 10, auto_renew: true})
 
       creation = Timex.now() |> Timex.shift(days: -100)

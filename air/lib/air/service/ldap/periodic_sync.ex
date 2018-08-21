@@ -16,6 +16,7 @@ defmodule Air.Service.LDAP.PeriodicSync do
     Logger.info("Syncing with LDAP.")
 
     with :ok <- check_config(),
+         :ok <- check_license(),
          {:ok, users} <- LDAP.users(),
          {:ok, groups} <- LDAP.groups() do
       groups = LDAP.Normalization.normalize_groups(users, groups)
@@ -26,6 +27,12 @@ defmodule Air.Service.LDAP.PeriodicSync do
       {:error, :ldap_not_configured} ->
         Logger.info("LDAP not configured. Disabling LDAP users and removing LDAP groups if any exist.")
         LDAP.Sync.sync(_users = [], _groups = [])
+
+      {:error, :license_error} ->
+        Logger.error(
+          "You have configured LDAP sync, but your license does not include support for the LDAP integration. " <>
+            "Contact support@aircloak.com if you want to upgrade your license or if you think this is a mistake."
+        )
 
       error ->
         Logger.error("LDAP sync failed. Reason: #{inspect(error)}")
@@ -42,6 +49,14 @@ defmodule Air.Service.LDAP.PeriodicSync do
     case Aircloak.DeployConfig.fetch("ldap") do
       {:ok, _} -> :ok
       _ -> {:error, :ldap_not_configured}
+    end
+  end
+
+  defp check_license() do
+    if :ldap in Air.Service.License.features() do
+      :ok
+    else
+      {:error, :license_error}
     end
   end
 
