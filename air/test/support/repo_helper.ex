@@ -110,15 +110,14 @@ defmodule Air.TestRepoHelper do
 
   @doc "Inserts a test query into the database"
   @spec create_query!(Air.Schemas.User.t(), %{}) :: Air.Schemas.Query.t()
-  def create_query!(
-        user,
-        params \\ %{statement: "query content", session_id: Ecto.UUID.generate()}
-      ),
-      do:
-        user
-        |> Ecto.build_assoc(:queries)
-        |> Air.Schemas.Query.changeset(Map.merge(%{context: :http}, params))
-        |> Repo.insert!()
+  def create_query!(user, params \\ %{statement: "query content", session_id: Ecto.UUID.generate()}) do
+    params = Map.put_new_lazy(params, :data_source_id, fn -> create_data_source!().id end)
+
+    user
+    |> Ecto.build_assoc(:queries)
+    |> Air.Schemas.Query.changeset(Map.merge(%{context: :http}, params))
+    |> Repo.insert!()
+  end
 
   @doc "Registers a cloak a serving a data source, returning the data source id"
   @spec create_and_register_data_source() :: String.t()

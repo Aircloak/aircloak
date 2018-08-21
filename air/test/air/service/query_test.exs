@@ -148,11 +148,7 @@ defmodule Air.Service.QueryTest do
     setup [:sandbox]
 
     test "changes the query_state" do
-      query =
-        create_query!(create_user!(), %{
-          query_state: :started,
-          data_source_id: create_data_source!().id
-        })
+      query = create_query!(create_user!(), %{query_state: :started})
 
       Query.update_state(query.id, :processing)
 
@@ -160,11 +156,7 @@ defmodule Air.Service.QueryTest do
     end
 
     test "it's impossible to change to an earlier state" do
-      query =
-        create_query!(create_user!(), %{
-          query_state: :completed,
-          data_source_id: create_data_source!().id
-        })
+      query = create_query!(create_user!(), %{query_state: :completed})
 
       Query.update_state(query.id, :processing)
 
@@ -175,13 +167,10 @@ defmodule Air.Service.QueryTest do
         state <- ~w(started parsing compiling awaiting_data ingesting_data processing post_processing cancelled
           error completed) do
       test "changing from terminal state '#{terminal_state}' to '#{state}' is not allowed" do
-        params = %{
-          query_state: unquote(terminal_state),
-          data_source_id: create_data_source!().id
-        }
+        query = create_query!(create_user!(), %{query_state: unquote(terminal_state)})
 
-        query = create_query!(create_user!(), params)
         Query.update_state(query.id, unquote(state))
+
         assert {:ok, %{query_state: unquote(terminal_state)}} = get_query(query.id)
       end
     end
@@ -191,11 +180,7 @@ defmodule Air.Service.QueryTest do
     setup [:sandbox]
 
     test "processing a successful result" do
-      query =
-        create_query!(create_user!(), %{
-          query_state: :started,
-          data_source_id: create_data_source!().id
-        })
+      query = create_query!(create_user!(), %{query_state: :started})
 
       send_query_result(
         query.id,
@@ -229,11 +214,7 @@ defmodule Air.Service.QueryTest do
     end
 
     test "processing an error result" do
-      query =
-        create_query!(create_user!(), %{
-          query_state: :started,
-          data_source_id: create_data_source!().id
-        })
+      query = create_query!(create_user!(), %{query_state: :started})
 
       log =
         ExUnit.CaptureLog.capture_log(fn ->
@@ -257,11 +238,7 @@ defmodule Air.Service.QueryTest do
     end
 
     test "processing a cancelled result" do
-      query =
-        create_query!(create_user!(), %{
-          query_state: :started,
-          data_source_id: create_data_source!().id
-        })
+      query = create_query!(create_user!(), %{query_state: :started})
 
       send_query_result(query.id, %{
         features: %{"selected_types" => ["some types"]},
@@ -280,11 +257,7 @@ defmodule Air.Service.QueryTest do
     end
 
     test "results of completed queries are ignored" do
-      query =
-        create_query!(create_user!(), %{
-          query_state: :error,
-          data_source_id: create_data_source!().id
-        })
+      query = create_query!(create_user!(), %{query_state: :error})
 
       send_query_result(query.id, %{
         features: %{"selected_types" => ["some types"]},
@@ -300,11 +273,7 @@ defmodule Air.Service.QueryTest do
     setup [:sandbox]
 
     test "ignores completed queries" do
-      query =
-        create_query!(create_user!(), %{
-          query_state: :completed,
-          data_source_id: create_data_source!().id
-        })
+      query = create_query!(create_user!(), %{query_state: :completed})
 
       Query.query_died(query.id)
 
@@ -313,11 +282,7 @@ defmodule Air.Service.QueryTest do
     end
 
     test "sets the result" do
-      query =
-        create_query!(create_user!(), %{
-          query_state: :started,
-          data_source_id: create_data_source!().id
-        })
+      query = create_query!(create_user!(), %{query_state: :started})
 
       Query.query_died(query.id)
 
@@ -353,9 +318,9 @@ defmodule Air.Service.QueryTest do
     end
 
     test "filtering by data source" do
-      _query1 = create_query!(create_user!(), %{data_source_id: create_data_source!().id})
-      query2 = create_query!(create_user!(), %{data_source_id: create_data_source!().id})
-      query3 = create_query!(create_user!(), %{data_source_id: create_data_source!().id})
+      _query1 = create_query!(create_user!())
+      query2 = create_query!(create_user!())
+      query3 = create_query!(create_user!())
 
       assert Query.queries(filters(%{data_sources: [query2.data_source_id, query3.data_source_id]}))
              |> Enum.map(& &1.id) == [query3.id, query2.id]
