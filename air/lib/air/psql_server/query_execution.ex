@@ -182,6 +182,7 @@ defmodule Air.PsqlServer.QueryExecution do
   end
 
   defp map_value({:unknown, {:unknown, value}}), do: value
+  defp map_value({:unknown, value}), do: value
   defp map_value({:char, {:char, <<byte>>}}), do: byte
   defp map_value({:regproc, {:regproc, value}}), do: value
   defp map_value({:oidarray, {:array, values}}), do: values |> Stream.map(&{:oid, &1}) |> Enum.map(&map_value/1)

@@ -83,6 +83,21 @@ defmodule IntegrationTest.TableauTest do
            } = :odbc.sql_query(context.conn, query)
   end
 
+  test "table schema query", context do
+    query =
+      ~c/SELECT nspname AS TABLE_SCHEM, NULL AS TABLE_CATALOG FROM pg_catalog.pg_namespace  WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_'  OR nspname = (pg_catalog.current_schemas(true))[1]) AND (nspname !~ '^pg_toast_temp_'  OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_'))  ORDER BY TABLE_SCHEM/
+
+    assert {
+             :selected,
+             ['table_schem', 'table_catalog'],
+             [
+               {'information_schema', 'null'},
+               {'pg_catalog', 'null'},
+               {'public', 'null'}
+             ]
+           } = :odbc.sql_query(context.conn, query)
+  end
+
   test "tableau query for related fields", context do
     query =
       'BEGIN;declare "SQL_CUR06145EE8" cursor for select c.relname, i.indkey, i.indisunique, i.indisclustered, a.amname, c.relhasrules, n.nspname, c.oid, d.relhasoids, 0 from pg_catalog.pg_index i, pg_catalog.pg_class c, pg_catalog.pg_class d, pg_catalog.pg_am a, pg_catalog.pg_namespace n where d.relname = \'transactions\' and n.nspname = \'public\' and n.oid = d.relnamespace and d.oid = i.indrelid and i.indexrelid = c.oid and c.relam = a.oid order by i.indisprimary desc, i.indisunique, n.nspname, c.relname;fetch 2048 in "SQL_CUR06145EE8"'
