@@ -41,6 +41,9 @@ defmodule Air.PsqlServer.QueryExecution do
   def run_query(conn, query, params) do
     execute(fn ->
       cond do
+        permission_denied_query?(query) ->
+          RanchServer.query_result(conn, {:error, "permission denied"})
+
         cursor = cursor_query?(query) ->
           if internal_query?(cursor.inner_query) do
             result = Keyword.merge(select_from_shadow_db!(conn, cursor.inner_query, params), command: :fetch)
@@ -65,9 +68,6 @@ defmodule Air.PsqlServer.QueryExecution do
           conn
           |> RanchServer.unassign({:cursor_result, cursor})
           |> RanchServer.query_result(command: :"close cursor")
-
-        permission_denied_query?(query) ->
-          RanchServer.query_result(conn, {:error, "permission denied"})
 
         prepared_statement = deallocate_prepared_statement(query) ->
           conn
