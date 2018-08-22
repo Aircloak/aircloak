@@ -161,7 +161,12 @@ defmodule Air.PsqlServer.QueryExecution do
   end
 
   defp select_from_shadow_db!(conn, query, params) do
-    {:ok, columns, rows} = :epgsql.equery(conn.assigns.shadow_db_conn, to_charlist(query), params || [])
+    {:ok, columns, rows} =
+      :epgsql.equery(
+        conn.assigns.shadow_db_conn,
+        to_charlist(query),
+        Enum.map(params || [], fn {_type, value} -> value end)
+      )
 
     columns =
       Enum.map(
