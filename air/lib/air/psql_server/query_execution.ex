@@ -37,7 +37,7 @@ defmodule Air.PsqlServer.QueryExecution do
   end
 
   @doc "Executes the given query."
-  @spec run_query(RanchServer.t(), String.t(), [Protocol.db_value()]) :: RanchServer.t()
+  @spec run_query(RanchServer.t(), String.t(), [Protocol.param_with_type()]) :: RanchServer.t()
   def run_query(conn, query, params) do
     if Application.get_env(:air, :integration_tests, false) do
       try do

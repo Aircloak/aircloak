@@ -52,7 +52,7 @@ defmodule Air.PsqlServer.RanchServer do
   @callback login(t, String.t()) :: {:ok, t} | :error
 
   @doc "Invoked to run the query."
-  @callback run_query(t, String.t(), [Protocol.db_value()], pos_integer) :: t
+  @callback run_query(t, String.t(), [Protocol.param_with_type()], pos_integer) :: t
 
   @doc "Invoked to cancel a query on a backend."
   @callback cancel_query(t, ConnectionRegistry.key_data()) :: t
