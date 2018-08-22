@@ -3,7 +3,7 @@ test = fn
     {:sequence,
      [
        "MIX_ENV=test ./check_warnings.sh",
-       {:parallel, ["MIX_ENV=test mix lint", {:sequence, ["MIX_ENV=test mix recreate_db", "mix test"]}]}
+       {:parallel, ["MIX_ENV=test mix lint", "make test"]}
      ]}
 
   :dev ->
