@@ -111,7 +111,7 @@ defmodule AircloakCI.PullRequestTest do
     repo_data = add_pr(repo_data, pr)
 
     ExUnit.CaptureLog.capture_log(fn ->
-      fail_on_container_command(pr, "air", "mix test")
+      fail_on_container_command(pr, "air", "make test")
       AircloakCI.Build.PullRequest.ensure_started(pr, repo_data)
       wait_for_jobs_to_finish(pr)
     end)
