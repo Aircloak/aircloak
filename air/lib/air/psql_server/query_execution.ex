@@ -5,15 +5,8 @@ defmodule Air.PsqlServer.QueryExecution do
   require Logger
   alias Air.PsqlServer.{CloakQuery, Protocol, RanchServer}
 
-  Record.defrecord(
-    :epgsql_column,
-    name: :undefined,
-    type: :undefined,
-    oid: :undefined,
-    size: :undefined,
-    modifier: :undefined,
-    format: :undefined
-  )
+  Record.defrecord(:epgsql_statement, Record.extract(:statement, from_lib: "epgsql/include/epgsql.hrl"))
+  Record.defrecord(:epgsql_column, Record.extract(:column, from_lib: "epgsql/include/epgsql.hrl"))
 
   # -------------------------------------------------------------------
   # API functions
