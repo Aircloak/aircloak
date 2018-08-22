@@ -89,6 +89,11 @@ defmodule IntegrationTest.PostgrexTest do
     assert result.rows == [[1]]
   end
 
+  test "parameterized shadow query error", context do
+    assert {:error, error} = Postgrex.query(context.conn, "SELECT foobar where 2 = $1", [2])
+    assert error.postgres.message =~ ~r/column "foobar" does not exist/
+  end
+
   defp param_select(conn, value, cast) do
     result = Postgrex.query!(conn, "select $1::#{cast} from users", [value])
     [[value]] = Enum.uniq(result.rows)

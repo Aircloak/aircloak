@@ -179,23 +179,26 @@ defmodule IntegrationTest.OdbcTest do
       do: assert(:odbc.sql_query(context.conn, 'close "some_cursor"') == {:updated, 0})
     )
 
-    test(
-      "select error",
-      context,
-      do:
-        ExUnit.CaptureLog.capture_log(fn ->
-          assert {:error, _} = :odbc.sql_query(context.conn, 'invalid query')
-        end)
-    )
+    test "select error", context do
+      ExUnit.CaptureLog.capture_log(fn ->
+        assert {:error, error} = :odbc.sql_query(context.conn, 'invalid query')
+        assert to_string(error) =~ ~r/Expected `select or show`/
+      end)
+    end
 
-    test(
-      "extended query error",
-      context,
-      do:
-        ExUnit.CaptureLog.capture_log(fn ->
-          assert {:error, _} = :odbc.param_query(context.conn, 'invalid query', [])
-        end)
-    )
+    test "extended query error", context do
+      ExUnit.CaptureLog.capture_log(fn ->
+        assert {:error, error} = :odbc.param_query(context.conn, 'invalid query', [])
+        assert to_string(error) =~ ~r/Expected `select or show`/
+      end)
+    end
+
+    test "shadow db query error", context do
+      ExUnit.CaptureLog.capture_log(fn ->
+        assert {:error, error} = :odbc.sql_query(context.conn, 'select foobar')
+        assert to_string(error) =~ ~r/column "foobar" does not exist/
+      end)
+    end
   end
 
   defp param_select(conn, type, value, cast \\ nil) do
