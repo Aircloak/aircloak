@@ -9,9 +9,9 @@ defmodule Air.Service.ShadowDb do
   use Supervisor
   require Logger
   alias Aircloak.ChildSpec
-  alias Air.Service.ShadowDb.Server
+  alias Air.Service.ShadowDb.{Database, Server}
 
-  @server_supervisor __MODULE__.Servers
+  @database_supervisor __MODULE__.Databases
   @server_registry __MODULE__.Registry
 
   # -------------------------------------------------------------------
@@ -25,8 +25,8 @@ defmodule Air.Service.ShadowDb do
   @doc "Drops the given shadow database."
   @spec drop(String.t()) :: :ok
   def drop(data_source_name) do
-    with pid when is_pid(pid) <- Server.whereis(data_source_name),
-         do: DynamicSupervisor.terminate_child(@server_supervisor, pid)
+    with pid when is_pid(pid) <- Database.whereis(data_source_name),
+         do: DynamicSupervisor.terminate_child(@database_supervisor, pid)
 
     # Server.drop_database creates a connection and closes it, and closing a connection requires the client process to
     # trap exits. Since we don't want to implicitly start trapping exit in the caller of drop/1 we're doing this in a
@@ -58,7 +58,7 @@ defmodule Air.Service.ShadowDb do
     Supervisor.init(
       [
         ChildSpec.registry(:unique, @server_registry),
-        ChildSpec.dynamic_supervisor(name: @server_supervisor)
+        ChildSpec.dynamic_supervisor(name: @database_supervisor)
       ],
       strategy: :one_for_one
     )
@@ -70,10 +70,14 @@ defmodule Air.Service.ShadowDb do
 
   defp server_pid(data_source) do
     with nil <- Server.whereis(data_source.name) do
-      case DynamicSupervisor.start_child(@server_supervisor, {Server, data_source.name}) do
-        {:ok, pid} -> pid
-        {:error, {:already_started, pid}} -> pid
+      case DynamicSupervisor.start_child(@database_supervisor, {Database, data_source.name}) do
+        {:ok, _pid} -> :ok
+        {:error, {:already_started, _pid}} -> :ok
       end
+
+      pid = Server.whereis(data_source.name)
+      true = is_pid(pid)
+      pid
     end
   end
 
