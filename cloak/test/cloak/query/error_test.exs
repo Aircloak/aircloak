@@ -289,4 +289,21 @@ defmodule Cloak.Query.ErrorTest do
 
     assert String.contains?(error, "usage of DISTINCT, GROUP BY, and ORDER BY in the same query is not supported")
   end
+
+  test "error message for failed constant simplification" do
+    assert_query(
+      """
+      SELECT COUNT(*) FROM test_errors
+      WHERE height BETWEEN 1 AND sqrt(-1)
+      """,
+      %{error: error}
+    )
+
+    assert String.contains?(error, "Failed to evaluate expression `sqrt(-1)`")
+
+    assert String.contains?(error, """
+           \t2:    WHERE height BETWEEN 1 AND sqrt(-1)
+           \t                                 ^
+           """)
+  end
 end

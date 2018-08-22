@@ -111,8 +111,8 @@ defmodule Cloak.Sql.Compiler.Optimizer.Test do
 
     assert {:not, {:is, %{name: "uid"}, :null}} = where
 
-    assert {:and, {:comparison, %{name: "numeric"}, :>=, %{value: -5.0}},
-            {:comparison, %{name: "numeric"}, :<, %{value: 0.0}}} = subquery.where
+    assert {:and, {:comparison, %{name: "numeric"}, :>=, %{value: -5}},
+            {:comparison, %{name: "numeric"}, :<, %{value: 0}}} = subquery.where
   end
 
   defp data_source() do
