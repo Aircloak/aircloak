@@ -196,14 +196,6 @@ defmodule IntegrationTest.OdbcTest do
           assert {:error, _} = :odbc.param_query(context.conn, 'invalid query', [])
         end)
     )
-
-    test "parameterized shadow query", context do
-      query =
-        ~c/SELECT n.nspname = ANY(current_schemas(true)), n.nspname, t.typname FROM pg_catalog.pg_type t JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid WHERE t.oid = $1/
-
-      assert :odbc.param_query(context.conn, query, [{:sql_integer, [23]}]) ==
-               {:selected, ['?column?', 'nspname', 'typname'], [{true, 'pg_catalog', 'int4'}]}
-    end
   end
 
   defp param_select(conn, type, value, cast \\ nil) do

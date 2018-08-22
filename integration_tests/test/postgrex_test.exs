@@ -84,6 +84,11 @@ defmodule IntegrationTest.PostgrexTest do
     assert_raise DBConnection.ConnectionError, fn -> Postgrex.query(context.conn, "select 1 FROM users", []) end
   end
 
+  test "parameterized shadow query", context do
+    assert {:ok, result} = Postgrex.query(context.conn, "SELECT 1 where 2 = $1", [2])
+    assert result.rows == [[1]]
+  end
+
   defp param_select(conn, value, cast) do
     result = Postgrex.query!(conn, "select $1::#{cast} from users", [value])
     [[value]] = Enum.uniq(result.rows)

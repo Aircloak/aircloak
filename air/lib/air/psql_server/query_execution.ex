@@ -84,8 +84,7 @@ defmodule Air.PsqlServer.QueryExecution do
         internal_query?(query) ->
           RanchServer.describe_result(
             conn,
-            columns: conn |> select_from_shadow_db!(query, params) |> Keyword.fetch!(:columns),
-            param_types: []
+            describe_from_shadow_db!(conn, query)
           )
 
         true ->
@@ -160,6 +159,19 @@ defmodule Air.PsqlServer.QueryExecution do
     end
   end
 
+  defp describe_from_shadow_db!(conn, query) do
+    {:ok, statement} = :epgsql.parse(conn.assigns.shadow_db_conn, query)
+
+    columns = Enum.map(epgsql_statement(statement, :columns), &map_column/1)
+
+    param_types =
+      epgsql_statement(statement, :parameter_info)
+      |> Stream.map(fn {oid, _type_name, _array_oid} -> oid end)
+      |> Enum.map(&Air.PsqlServer.Protocol.Value.type_from_oid/1)
+
+    [columns: columns, param_types: param_types]
+  end
+
   defp select_from_shadow_db!(conn, query, params) do
     {:ok, columns, rows} =
       :epgsql.equery(
@@ -168,18 +180,17 @@ defmodule Air.PsqlServer.QueryExecution do
         Enum.map(params || [], fn {_type, value} -> value end)
       )
 
-    columns =
-      Enum.map(
-        columns,
-        &%{
-          name: epgsql_column(&1, :name),
-          type: &1 |> epgsql_column(:oid) |> Air.PsqlServer.Protocol.Value.type_from_oid()
-        }
-      )
-
+    columns = Enum.map(columns, &map_column/1)
     rows = Enum.map(rows, &map_row(columns, Tuple.to_list(&1)))
 
     [columns: columns, rows: rows]
+  end
+
+  defp map_column(epgsql_column) do
+    %{
+      name: epgsql_column(epgsql_column, :name),
+      type: epgsql_column |> epgsql_column(:oid) |> Air.PsqlServer.Protocol.Value.type_from_oid()
+    }
   end
 
   defp map_row(columns, values) do
