@@ -221,6 +221,19 @@ defmodule IntegrationTest.TableauTest do
   )
 
   test(
+    "selecting into a table",
+    context,
+    do:
+      assert(
+        {:error, %Postgrex.Error{postgres: %{message: "permission denied"}}} =
+          postgrex_query(
+            context.user,
+            "INSERT INTO accounts (id) values(1)"
+          )
+      )
+  )
+
+  test(
     "dropping a temp table",
     context,
     do:

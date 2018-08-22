@@ -154,6 +154,7 @@ defmodule Air.PsqlServer.QueryExecution do
     do:
       [
         ~r/SELECT.*INTO TEMPORARY TABLE/is,
+        ~r/INSERT INTO/is,
         ~r/^DROP TABLE/i,
         ~r/^CREATE\s/i
       ]
