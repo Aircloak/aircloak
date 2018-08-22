@@ -23,7 +23,8 @@ defmodule Air.PsqlServer.Protocol.Value do
     timestamp: %{oid: 1114, len: 8, postgrex_extension: {Timestamp, :elixir}},
     timestamptz: %{oid: 1184, len: 8, postgrex_extension: {TimestampTZ, :elixir}},
     timetz: %{oid: 1266, len: 12, postgrex_extension: {TimeTZ, :elixir}},
-    numeric: %{oid: 1700, len: -1, postgrex_extension: {Numeric, nil}}
+    numeric: %{oid: 1700, len: -1, postgrex_extension: {Numeric, nil}},
+    regclass: %{oid: 2205, len: 4}
   }
 
   @type type ::

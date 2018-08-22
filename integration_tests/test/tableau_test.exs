@@ -190,6 +190,13 @@ defmodule IntegrationTest.TableauTest do
     assert to_string(error) =~ ~r/^ERROR: Expected `select or show`/
   end
 
+  test "selecting a regclass value", context do
+    query =
+      ~c/SELECT c.oid::pg_catalog.regclass FROM pg_catalog.pg_class c, pg_catalog.pg_inherits i WHERE c.oid=i.inhparent AND i.inhrelid = '18119' ORDER BY inhseqno;/
+
+    assert {:selected, ['oid'], []} = :odbc.sql_query(context.conn, query)
+  end
+
   test(
     "deallocate statement",
     context,
