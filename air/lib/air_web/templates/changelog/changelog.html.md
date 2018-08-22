@@ -1,3 +1,9 @@
+## Unreleased
+
+### Bugfixes
+
+- Fix for queries being improperly rejected when a condition included two isolating columns
+
 ## 18.3.0
 
 ### __Breaking change__

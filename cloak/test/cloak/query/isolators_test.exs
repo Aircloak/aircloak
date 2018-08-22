@@ -23,6 +23,10 @@ defmodule Cloak.Query.Isolators.Test do
     assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE $col = 10")
   end
 
+  test "comparisons of two isolating columns are allowed" do
+    assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE $col = $col")
+  end
+
   test "conditions with math are forbidden for isolators" do
     assert_forbidden("SELECT COUNT(*) FROM query_isolators WHERE sqrt($col) = 10")
   end
