@@ -199,6 +199,12 @@ defmodule IntegrationTest.OdbcTest do
         assert to_string(error) =~ ~r/column "foobar" does not exist/
       end)
     end
+
+    test "error while running a shadow query via cursor", context do
+      query = 'BEGIN;declare "some_cursor" cursor for select foobar;fetch 2048 in "some_cursor";'
+      assert {:error, error} = :odbc.sql_query(context.conn, query)
+      assert to_string(error) =~ ~r/column "foobar" does not exist/
+    end
   end
 
   defp param_select(conn, type, value, cast \\ nil) do

@@ -40,7 +40,12 @@ defmodule Air.PsqlServer.QueryExecution do
 
         cursor = cursor_query?(query) ->
           if internal_query?(cursor.inner_query) do
-            result = Keyword.merge(select_from_shadow_db!(conn, cursor.inner_query, params), command: :fetch)
+            result =
+              case select_from_shadow_db!(conn, cursor.inner_query, params) do
+                {:error, _} = error -> error
+                success -> Keyword.merge(success, command: :fetch)
+              end
+
             first_cursor_fetch(conn, cursor, result)
           else
             CloakQuery.run_query(conn, cursor.inner_query, [], &first_cursor_fetch(&1, cursor, &2))
@@ -251,13 +256,13 @@ defmodule Air.PsqlServer.QueryExecution do
     {{hours, minutes, seconds_int}, microseconds}
   end
 
-  defp first_cursor_fetch(conn, cursor, query_result),
-    do:
-      conn
-      |> RanchServer.query_result(command: :begin, intermediate: true)
-      |> RanchServer.query_result(command: :"declare cursor", intermediate: true)
-      |> store_cursor_result(cursor.name, query_result)
-      |> fetch_from_cursor(cursor.name, cursor.count)
+  defp first_cursor_fetch(conn, cursor, query_result) do
+    conn
+    |> RanchServer.query_result(command: :begin, intermediate: true)
+    |> RanchServer.query_result(command: :"declare cursor", intermediate: true)
+    |> store_cursor_result(cursor.name, query_result)
+    |> fetch_from_cursor(cursor.name, cursor.count)
+  end
 
   defp fetch_from_cursor(conn, cursor_name, count) do
     case Map.fetch(conn.assigns, {:cursor_result, cursor_name}) do
