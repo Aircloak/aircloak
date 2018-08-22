@@ -38,6 +38,7 @@ defmodule Cloak.Sql.Compiler do
     |> Compiler.Validation.verify_query()
     |> Compiler.TypeChecker.validate_allowed_usage_of_math_and_functions()
     |> Compiler.Optimizer.optimize()
+    |> Compiler.Normalization.simplify_constants()
     |> Compiler.Execution.prepare()
     |> Compiler.Normalization.normalize()
     |> Compiler.NoiseLayers.compile()
@@ -52,6 +53,7 @@ defmodule Cloak.Sql.Compiler do
       |> Compiler.Specification.compile(data_source, nil, %{})
       |> Compiler.Normalization.remove_noops()
       |> Compiler.Optimizer.optimize()
+      |> Compiler.Normalization.simplify_constants()
       |> Compiler.Execution.prepare()
       |> Compiler.Normalization.normalize()
 

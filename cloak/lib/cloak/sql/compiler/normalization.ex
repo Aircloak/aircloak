@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   @moduledoc "Deals with normalizing some expressions so that they are easier to deal with at later stages."
 
   alias Cloak.Sql.Compiler.Helpers
-  alias Cloak.Sql.{Expression, Query, LikePattern, Condition}
+  alias Cloak.Sql.{Expression, Query, LikePattern, Condition, CompilationError}
 
   # -------------------------------------------------------------------
   # API functions
@@ -11,8 +11,8 @@ defmodule Cloak.Sql.Compiler.Normalization do
   @doc """
   Modifies the query to remove certain expressions without changing semantics. Specifically:
 
-  * Switches complex expressions involving constants (like 1 + 2 + 3) to their results (6 in this case)
-  * Makes sures comparisons bewteen columns and constants have the form {column, operator, constant}
+  * Applies the same normalization as `simplify_constants/1`
+  * Makes sure comparisons bewteen columns and constants have the form {column, operator, constant}
   * Removes redundant occurences of "%" from LIKE patterns (for example "%%" -> "%")
   * Normalizes sequences of "%" and "_" in like patterns so that the "%" always precedes a sequence of "_"
   * Expands `BUCKET` calls into equivalent mathematical expressions
@@ -43,6 +43,10 @@ defmodule Cloak.Sql.Compiler.Normalization do
       query
       |> Helpers.apply_bottom_up(&remove_redundant_casts/1)
       |> Helpers.apply_bottom_up(&remove_redundant_rounds/1)
+
+  @doc "Switches complex expressions involving constants (like 1 + 2 + 3) to their results (6 in this case)"
+  @spec simplify_constants(Query.t()) :: Query.t()
+  def simplify_constants(query), do: Helpers.apply_bottom_up(query, &normalize_constants/1)
 
   # -------------------------------------------------------------------
   # Removing source location
@@ -117,18 +121,22 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # Collapsing constant expressions
   # -------------------------------------------------------------------
 
-  defp normalize_constants(query), do: update_in(query, [Query.Lenses.terminals()], &do_normalize_constants/1)
+  defp normalize_constants(query),
+    do: update_in(query, [Query.Lenses.terminals() |> Lens.filter(&Expression.constant?/1)], &do_normalize_constants/1)
+
+  defp do_normalize_constants(expression = %Expression{function: {:bucket, _}}), do: expression
 
   defp do_normalize_constants(expression = %Expression{function?: true, aggregate?: false}) do
-    if Expression.constant?(expression) do
-      Expression.constant(
-        expression.type,
-        Expression.const_value(expression),
-        expression.parameter_index
-      )
-      |> put_in([Lens.key(:alias)], expression.alias)
-    else
-      expression
+    case Expression.const_value(expression) do
+      nil ->
+        raise CompilationError,
+          source_location: expression.source_location,
+          message: "Failed to evaluate expression `#{Expression.display(expression)}`."
+
+      value ->
+        Expression.constant(expression.type, value, expression.parameter_index)
+        |> Expression.set_location(expression.source_location)
+        |> put_in([Lens.key(:alias)], expression.alias)
     end
   end
 
