@@ -200,7 +200,9 @@ defmodule Air.PsqlServer.QueryExecution do
     |> Enum.map(&map_value/1)
   end
 
-  for passthrough <- ~w/oid name int2 int4 numeric float4 float8 boolean varchar text bpchar char regproc unknown/a do
+  for passthrough <- ~w/
+    oid name int2 int4 int8 numeric float4 float8 boolean varchar text bpchar char regproc unknown
+    /a do
     defp map_value({unquote(passthrough), value}), do: value
   end
 
