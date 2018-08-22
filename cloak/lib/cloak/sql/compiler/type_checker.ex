@@ -241,21 +241,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp unclear_isolator_usage?({:in, _, _}, _), do: true
 
   defp unclear_isolator_usage?(condition, query) do
-    case Condition.targets(condition) do
-      [lhs, rhs] ->
-        lhs_type = Type.establish_type(lhs, query)
-        rhs_type = Type.establish_type(rhs, query)
-
-        cond do
-          Expression.key?(lhs) and Expression.key?(rhs) -> false
-          not Type.clear_column?(lhs_type, &allowed_isolator_function?/1) -> true
-          not rhs_type.constant? -> true
-          true -> false
-        end
-
-      [lhs] ->
-        not Type.clear_column?(Type.establish_type(lhs, query), &allowed_isolator_function?/1)
-    end
+    condition
+    |> Condition.targets()
+    |> Enum.any?(fn expression ->
+      not Type.clear_column?(Type.establish_type(expression, query), &allowed_isolator_function?/1)
+    end)
   end
 
   @allowed_isolator_functions ~w(lower upper substring trim ltrim rtrim btrim extract_words)
