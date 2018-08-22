@@ -6,13 +6,12 @@ defmodule Air.PsqlServer.QueryExecution do
   alias Air.PsqlServer.{CloakQuery, Protocol, RanchServer}
 
   Record.defrecord(
-    :row_description_field,
+    :epgsql_column,
     name: :undefined,
-    table_oid: :undefined,
-    attr_number: :undefined,
-    data_type_oid: :undefined,
-    data_type_size: :undefined,
-    type_modifier: :undefined,
+    type: :undefined,
+    oid: :undefined,
+    size: :undefined,
+    modifier: :undefined,
     format: :undefined
   )
 
@@ -26,18 +25,15 @@ defmodule Air.PsqlServer.QueryExecution do
     # We're using pgsql (https://github.com/semiocast/pgsql) instead of Postgrex, because Postgrex uses a binary
     # protocol, which leads to some type information loss (https://hexdocs.pm/postgrex/readme.html#oid-type-encoding).
     # With pgsql, we get better more detailed type information, so we can correctly transfer the data to the client.
-
-    # Note that we're opening the connection using `start_link` instead of `open`. This is done because `open` places
-    # the connection under the supervisor in `pgsql` app. However, we want the connection to be a child of this process
-    # to ensure that when this process (i.e. client connection) is terminated, the shadow db connection is also closed.
     {:ok, db_conn} =
-      :pgsql_connection.start_link(
-        host: '127.0.0.1',
-        database: to_charlist(Air.Service.ShadowDb.db_name(data_source_name)),
-        user: 'postgres'
+      :epgsql.connect(
+        '127.0.0.1',
+        'postgres',
+        '',
+        %{database: to_charlist(Air.Service.ShadowDb.db_name(data_source_name))}
       )
 
-    RanchServer.assign(conn, :shadow_db_conn, {:pgsql_connection, db_conn})
+    RanchServer.assign(conn, :shadow_db_conn, db_conn)
   end
 
   @doc "Executes the given query."
@@ -64,7 +60,7 @@ defmodule Air.PsqlServer.QueryExecution do
       internal_query?(query) ->
         RanchServer.describe_result(
           conn,
-          columns: conn |> select_from_shadow_db!(query) |> Keyword.fetch!(:columns),
+          columns: conn |> select_from_shadow_db!(query, params) |> Keyword.fetch!(:columns),
           param_types: []
         )
 
@@ -81,7 +77,7 @@ defmodule Air.PsqlServer.QueryExecution do
     cond do
       cursor = cursor_query?(query) ->
         if internal_query?(cursor.inner_query) do
-          result = Keyword.merge(select_from_shadow_db!(conn, cursor.inner_query), command: :fetch)
+          result = Keyword.merge(select_from_shadow_db!(conn, cursor.inner_query, params), command: :fetch)
           first_cursor_fetch(conn, cursor, result)
         else
           CloakQuery.run_query(conn, cursor.inner_query, [], &first_cursor_fetch(&1, cursor, &2))
@@ -91,7 +87,7 @@ defmodule Air.PsqlServer.QueryExecution do
         fetch_from_cursor(conn, cursor_fetch.cursor, cursor_fetch.count)
 
       internal_query?(query) ->
-        RanchServer.query_result(conn, select_from_shadow_db!(conn, query))
+        RanchServer.query_result(conn, select_from_shadow_db!(conn, query, params))
 
       query =~ ~r/^begin$/i ->
         RanchServer.query_result(conn, command: :begin)
@@ -164,16 +160,15 @@ defmodule Air.PsqlServer.QueryExecution do
     end
   end
 
-  defp select_from_shadow_db!(conn, query) do
-    {_operation, columns, rows} =
-      :pgsql_connection.simple_query(to_charlist(query), [return_descriptions: true], conn.assigns.shadow_db_conn)
+  defp select_from_shadow_db!(conn, query, params) do
+    {:ok, columns, rows} = :epgsql.equery(conn.assigns.shadow_db_conn, to_charlist(query), params || [])
 
     columns =
       Enum.map(
         columns,
         &%{
-          name: row_description_field(&1, :name),
-          type: &1 |> row_description_field(:data_type_oid) |> Air.PsqlServer.Protocol.Value.type_from_oid()
+          name: epgsql_column(&1, :name),
+          type: &1 |> epgsql_column(:oid) |> Air.PsqlServer.Protocol.Value.type_from_oid()
         }
       )
 
@@ -189,16 +184,19 @@ defmodule Air.PsqlServer.QueryExecution do
     |> Enum.map(&map_value/1)
   end
 
-  for passthrough <- ~w/oid name int2 int4 numeric float4 float8 boolean varchar text bpchar/a do
+  for passthrough <- ~w/oid name int2 int4 numeric float4 float8 boolean varchar text bpchar char regproc unknown/a do
     defp map_value({unquote(passthrough), value}), do: value
   end
 
-  defp map_value({:unknown, {:unknown, value}}), do: value
-  defp map_value({:unknown, value}), do: value
-  defp map_value({:char, {:char, <<byte>>}}), do: byte
-  defp map_value({:regproc, {:regproc, value}}), do: value
-  defp map_value({:oidarray, {:array, values}}), do: values |> Stream.map(&{:oid, &1}) |> Enum.map(&map_value/1)
   defp map_value({:date, date}), do: Date.from_erl!(date)
+
+  defp map_value({:oidarray, encoded}) do
+    encoded
+    |> String.replace(~r/\{|\}/, "")
+    |> String.split(",")
+    |> Stream.reject(&(&1 == ""))
+    |> Enum.map(&String.to_integer/1)
+  end
 
   defp map_value({:timestamptz, datetime}) do
     {:timestamp, datetime}
