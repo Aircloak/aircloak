@@ -43,6 +43,41 @@ defmodule Air.PsqlServer.QueryExecution do
   @doc "Executes the given query."
   @spec run_query(RanchServer.t(), String.t(), [Protocol.db_value()]) :: RanchServer.t()
   def run_query(conn, query, params) do
+    if Application.get_env(:air, :integration_tests, false) do
+      try do
+        do_run_query(conn, query, params)
+      catch
+        t, e -> IO.puts(Exception.format(t, e, :erlang.get_stacktrace()))
+      end
+    else
+      do_run_query(conn, query, params)
+    end
+  end
+
+  @doc "Describes the given query."
+  @spec describe_query(RanchServer.t(), String.t(), [Protocol.db_value()]) :: RanchServer.t()
+  def describe_query(conn, query, params) do
+    cond do
+      permission_denied_query?(query) ->
+        RanchServer.describe_result(conn, columns: [], param_types: [])
+
+      internal_query?(query) ->
+        RanchServer.describe_result(
+          conn,
+          columns: conn |> select_from_shadow_db!(query) |> Keyword.fetch!(:columns),
+          param_types: []
+        )
+
+      true ->
+        CloakQuery.describe_query(conn, query, params)
+    end
+  end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp do_run_query(conn, query, params) do
     cond do
       cursor = cursor_query?(query) ->
         if internal_query?(cursor.inner_query) do
@@ -81,29 +116,6 @@ defmodule Air.PsqlServer.QueryExecution do
         CloakQuery.run_query(conn, query, params, &RanchServer.query_result/2)
     end
   end
-
-  @doc "Describes the given query."
-  @spec describe_query(RanchServer.t(), String.t(), [Protocol.db_value()]) :: RanchServer.t()
-  def describe_query(conn, query, params) do
-    cond do
-      permission_denied_query?(query) ->
-        RanchServer.describe_result(conn, columns: [], param_types: [])
-
-      internal_query?(query) ->
-        RanchServer.describe_result(
-          conn,
-          columns: conn |> select_from_shadow_db!(query) |> Keyword.fetch!(:columns),
-          param_types: []
-        )
-
-      true ->
-        CloakQuery.describe_query(conn, query, params)
-    end
-  end
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
 
   defp cursor_query?(query) do
     case Regex.named_captures(
