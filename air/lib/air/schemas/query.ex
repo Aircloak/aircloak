@@ -53,6 +53,8 @@ defmodule Air.Schemas.Query do
     field(:query_state, __MODULE__.QueryState)
     field(:context, Context)
     field(:result, :map)
+    field(:time_spent, :map, default: %{})
+    field(:last_state_change_at, :naive_datetime)
 
     belongs_to(:user, User)
     belongs_to(:data_source, DataSource)
@@ -63,8 +65,8 @@ defmodule Air.Schemas.Query do
 
   @required_fields ~w()a
   @optional_fields ~w(
-    cloak_id statement data_source_id tables execution_time users_count
-    features session_id parameters query_state context result
+    cloak_id statement data_source_id tables execution_time users_count features session_id parameters query_state
+    context result last_state_change_at time_spent
   )a
 
   # -------------------------------------------------------------------
