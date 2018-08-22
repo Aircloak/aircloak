@@ -8,6 +8,10 @@ defmodule Air.Service.ShadowDb.Server do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Returns the pid of the server related to the given data source, or `nil` if such server doesn't exist."
+  @spec whereis(String.t()) :: pid | nil
+  def whereis(data_source_name), do: GenServer.whereis(name(data_source_name))
+
   @doc "Updates the data source definition."
   @spec update_definition(pid) :: :ok
   def update_definition(server), do: GenServer.cast(server, :update_definition)
@@ -79,6 +83,8 @@ defmodule Air.Service.ShadowDb.Server do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp name(data_source_name), do: Air.Service.ShadowDb.registered_name(data_source_name, __MODULE__)
 
   defp connect!(database_name) do
     {:ok, pid} =
@@ -218,6 +224,5 @@ defmodule Air.Service.ShadowDb.Server do
   # -------------------------------------------------------------------
 
   @doc false
-  def start_link({data_source_name, registered_name}),
-    do: GenServer.start_link(__MODULE__, data_source_name, name: registered_name)
+  def start_link(data_source_name), do: GenServer.start_link(__MODULE__, data_source_name, name: name(data_source_name))
 end

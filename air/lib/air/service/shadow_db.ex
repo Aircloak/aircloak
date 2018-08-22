@@ -25,7 +25,7 @@ defmodule Air.Service.ShadowDb do
   @doc "Drops the given shadow database."
   @spec drop(String.t()) :: :ok
   def drop(data_source_name) do
-    with pid when is_pid(pid) <- GenServer.whereis(server_name(data_source_name)),
+    with pid when is_pid(pid) <- Server.whereis(data_source_name),
          do: DynamicSupervisor.terminate_child(@server_supervisor, pid)
 
     # Server.drop_database creates a connection and closes it, and closing a connection requires the client process to
@@ -42,6 +42,10 @@ defmodule Air.Service.ShadowDb do
   @doc "Returns the name of the shadow database for the given data source."
   @spec db_name(String.t()) :: String.t()
   defdelegate db_name(data_source), to: Server
+
+  @doc "Returns the registered name for the process related to the given data source in a given role."
+  @spec registered_name(String.t(), term()) :: {:via, module, {atom, term}}
+  def registered_name(data_source_name, role), do: {:via, Registry, {@server_registry, {data_source_name, role}}}
 
   # -------------------------------------------------------------------
   # Supervisor callbacks
@@ -65,16 +69,13 @@ defmodule Air.Service.ShadowDb do
   # -------------------------------------------------------------------
 
   defp server_pid(data_source) do
-    case DynamicSupervisor.start_child(
-           @server_supervisor,
-           {Server, {data_source.name, server_name(data_source.name)}}
-         ) do
-      {:ok, pid} -> pid
-      {:error, {:already_started, pid}} -> pid
+    with nil <- Server.whereis(data_source.name) do
+      case DynamicSupervisor.start_child(@server_supervisor, {Server, data_source.name}) do
+        {:ok, pid} -> pid
+        {:error, {:already_started, pid}} -> pid
+      end
     end
   end
-
-  defp server_name(data_source_name), do: {:via, Registry, {@server_registry, data_source_name}}
 
   defp wait_local_postgresql() do
     Logger.info("waiting for local PostgreSQL instance")
