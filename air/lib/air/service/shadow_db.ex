@@ -30,11 +30,11 @@ defmodule Air.Service.ShadowDb do
     ConnectionPool.parse(data_source_name, query)
   end
 
-  @doc "Updates the shadow database according to the data source definition."
-  @spec update(map) :: :ok
-  def update(data_source) do
-    ensure_database!(data_source.name)
-    Manager.update_definition(data_source.name)
+  @doc "Updates the shadow database for the given data source."
+  @spec update(String.t()) :: :ok
+  def update(data_source_name) do
+    ensure_database!(data_source_name)
+    Manager.update_definition(data_source_name)
   end
 
   @doc "Drops the given shadow database."
