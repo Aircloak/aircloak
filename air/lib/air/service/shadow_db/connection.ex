@@ -90,7 +90,8 @@ defmodule Air.Service.ShadowDb.Connection do
     columns
     |> Stream.map(& &1.type)
     |> Stream.zip(values)
-    |> Enum.map(&map_value/1)
+    |> Stream.map(&map_value/1)
+    |> Enum.map(fn value -> if value == :null, do: nil, else: value end)
   end
 
   for passthrough <- ~w/

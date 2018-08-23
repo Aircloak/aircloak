@@ -48,9 +48,9 @@ defmodule IntegrationTest.TableauTest do
                'relhasoids'
              ],
              [
-               {'public', 'users', 'user_id', 25, 'text', 1, -1, -1, false, false, 'r', _, 'null', 0, -1, false},
-               {'public', 'users', 'name', 25, 'text', 2, -1, -1, false, false, 'r', _, 'null', 0, -1, false},
-               {'public', 'users', 'height', 23, 'int4', 3, 4, -1, false, false, 'r', _, 'null', 0, -1, false}
+               {'public', 'users', 'user_id', 25, 'text', 1, -1, -1, false, false, 'r', _, :null, 0, -1, false},
+               {'public', 'users', 'name', 25, 'text', 2, -1, -1, false, false, 'r', _, :null, 0, -1, false},
+               {'public', 'users', 'height', 23, 'int4', 3, 4, -1, false, false, 'r', _, :null, 0, -1, false}
              ]
            } = :odbc.sql_query(context.conn, query)
   end
@@ -91,9 +91,9 @@ defmodule IntegrationTest.TableauTest do
              :selected,
              ['table_schem', 'table_catalog'],
              [
-               {'information_schema', 'null'},
-               {'pg_catalog', 'null'},
-               {'public', 'null'}
+               {'information_schema', :null},
+               {'pg_catalog', :null},
+               {'public', :null}
              ]
            } = :odbc.sql_query(context.conn, query)
   end
