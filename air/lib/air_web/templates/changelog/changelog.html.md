@@ -3,6 +3,7 @@
 ### Features
 
 - LDAP support
+- Support for Drill data sources
 
 ### Bugfix
 
