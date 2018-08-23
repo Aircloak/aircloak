@@ -13,6 +13,25 @@ defmodule Air.Service.QueryTest do
       assert {:ok, _} = Air.Service.User.disable(user)
       assert {:error, :unable_to_create_query} = Air.Service.Query.create(:autogenerate, user, nil, nil, nil, [])
     end
+
+    test "time spent defaults to 0 for all states", %{user: user} do
+      assert {:ok,
+              %{
+                time_spent: %{
+                  "created" => 0,
+                  "started" => 0,
+                  "parsing" => 0,
+                  "compiling" => 0,
+                  "awaiting_data" => 0,
+                  "ingesting_data" => 0,
+                  "processing" => 0,
+                  "post_processing" => 0,
+                  "completed" => 0,
+                  "error" => 0,
+                  "cancelled" => 0
+                }
+              }} = Air.Service.Query.create(:autogenerate, user, :http, "", %{}, [])
+    end
   end
 
   describe "get_as_user" do

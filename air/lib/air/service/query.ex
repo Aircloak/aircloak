@@ -22,6 +22,7 @@ defmodule Air.Service.Query do
           data_sources: [data_source_id],
           max_results: non_neg_integer
         }
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
