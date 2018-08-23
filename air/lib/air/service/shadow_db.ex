@@ -9,7 +9,7 @@ defmodule Air.Service.ShadowDb do
   use Supervisor
   require Logger
   alias Aircloak.ChildSpec
-  alias Air.Service.ShadowDb.{Database, Manager}
+  alias Air.Service.ShadowDb.{Connection, ConnectionPool, Database, Manager}
 
   @database_supervisor __MODULE__.Databases
   @registry __MODULE__.Registry
@@ -18,9 +18,24 @@ defmodule Air.Service.ShadowDb do
   # API functions
   # -------------------------------------------------------------------
 
+  @spec query(String.t(), String.t(), [term]) :: Connection.query_result()
+  def query(data_source_name, query, params) do
+    ensure_database!(data_source_name)
+    ConnectionPool.query(data_source_name, query, params)
+  end
+
+  @spec parse(String.t(), String.t()) :: Connection.parse_result()
+  def parse(data_source_name, query) do
+    ensure_database!(data_source_name)
+    ConnectionPool.parse(data_source_name, query)
+  end
+
   @doc "Updates the shadow database according to the data source definition."
   @spec update(map) :: :ok
-  def update(data_source), do: Manager.update_definition(manager_pid(data_source))
+  def update(data_source) do
+    ensure_database!(data_source.name)
+    Manager.update_definition(data_source.name)
+  end
 
   @doc "Drops the given shadow database."
   @spec drop(String.t()) :: :ok
@@ -68,16 +83,12 @@ defmodule Air.Service.ShadowDb do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp manager_pid(data_source) do
-    with nil <- Manager.whereis(data_source.name) do
-      case DynamicSupervisor.start_child(@database_supervisor, {Database, data_source.name}) do
+  defp ensure_database!(data_source_name) do
+    with nil <- Database.whereis(data_source_name) do
+      case DynamicSupervisor.start_child(@database_supervisor, {Database, data_source_name}) do
         {:ok, _pid} -> :ok
         {:error, {:already_started, _pid}} -> :ok
       end
-
-      pid = Manager.whereis(data_source.name)
-      true = is_pid(pid)
-      pid
     end
   end
 

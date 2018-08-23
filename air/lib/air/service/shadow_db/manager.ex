@@ -13,8 +13,8 @@ defmodule Air.Service.ShadowDb.Manager do
   def whereis(data_source_name), do: GenServer.whereis(name(data_source_name))
 
   @doc "Updates the data source definition."
-  @spec update_definition(pid) :: :ok
-  def update_definition(server), do: GenServer.cast(server, :update_definition)
+  @spec update_definition(String.t()) :: :ok
+  def update_definition(data_source_name), do: GenServer.cast(name(data_source_name), :update_definition)
 
   @doc "Drops the given shadow database."
   @spec drop_database(String.t()) :: :ok
@@ -65,7 +65,7 @@ defmodule Air.Service.ShadowDb.Manager do
   @impl GenServer
   def init(data_source_name) do
     Process.flag(:trap_exit, true)
-    update_definition(self())
+    update_definition(data_source_name)
     {:ok, %{data_source_name: data_source_name, tables: []}}
   end
 
