@@ -40,7 +40,10 @@ defmodule Air.Service.ShadowDb.Connection do
 
         param_types =
           epgsql_statement(statement, :parameter_info)
-          |> Stream.map(fn {oid, _type_name, _array_oid} -> oid end)
+          |> Stream.map(fn
+            {oid, _type_name, _array_oid} -> oid
+            {_type_name, oid} -> oid
+          end)
           |> Enum.map(&Air.PsqlServer.Protocol.Value.type_from_oid/1)
 
         {:ok, columns, param_types}
