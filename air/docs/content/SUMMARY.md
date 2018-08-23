@@ -1,6 +1,6 @@
 # Summary
 
----- Don't alter the line below. Needed as is for automated version number update
+---- Don't manually alter the line below. Needed as is for automated version number update
 ## Aircloak Insights - version 18.4.0
 ---- Don't alter the line above...
 

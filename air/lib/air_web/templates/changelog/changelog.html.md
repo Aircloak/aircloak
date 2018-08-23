@@ -3,6 +3,7 @@
 ### Features
 
 - LDAP support
+- Support for Drill data sources
 
 ### Bugfixes
 
@@ -18,7 +19,13 @@
 
 - Noise parameters changed. Results will differ.
 
-## 18.3.0
+## Version 18.3.1
+
+### Bugfix
+
+- Fix for queries being improperly rejected when a condition included two isolating columns
+
+## Version 18.3.0
 
 ### __Breaking change__
 
