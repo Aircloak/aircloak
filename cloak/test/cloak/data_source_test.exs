@@ -63,4 +63,14 @@ defmodule Cloak.DataSourceTest do
       assert log =~ "Load error for table `missing_table`:"
     end
   end
+
+  test "public. is not allowed as a table name" do
+    some_table = DataSource.Table.new("some_table", "user_id", db_name: "table")
+
+    for data_source <- DataSource.all() do
+      data_source = %{data_source | initial_tables: %{"public.some_table": some_table}}
+      log = capture_log(fn -> assert %{tables: %{}} = DataSource.add_tables(data_source) end)
+      assert log =~ "Load error for table `public.some_table`: table name can't start with `public.`."
+    end
+  end
 end

@@ -1,4 +1,4 @@
-defmodule Air.Service.ShadowDb.Server do
+defmodule Air.Service.ShadowDb.Manager do
   @moduledoc "Server responsible for managing a single shadow database."
 
   use GenServer, restart: :transient
@@ -8,15 +8,19 @@ defmodule Air.Service.ShadowDb.Server do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Returns the pid of the server related to the given data source, or `nil` if such server doesn't exist."
+  @spec whereis(String.t()) :: pid | nil
+  def whereis(data_source_name), do: GenServer.whereis(name(data_source_name))
+
   @doc "Updates the data source definition."
-  @spec update_definition(pid) :: :ok
-  def update_definition(server), do: GenServer.cast(server, :update_definition)
+  @spec update_definition(String.t()) :: :ok
+  def update_definition(data_source_name), do: GenServer.cast(name(data_source_name), :update_definition)
 
   @doc "Drops the given shadow database."
   @spec drop_database(String.t()) :: :ok
   def drop_database(data_source_name) do
     if Application.get_env(:air, :shadow_db?, true) do
-      {:ok, conn} = Postgrex.start_link(hostname: "127.0.0.1", username: "postgres", database: "postgres")
+      conn = connect!("postgres")
 
       try do
         # force close all existing connections to the database
@@ -39,6 +43,21 @@ defmodule Air.Service.ShadowDb.Server do
     :ok
   end
 
+  @doc "Returns true if shadow db server is available, false otherwise."
+  @spec db_server_available?() :: boolean
+  def db_server_available?() do
+    Task.async(fn -> connect!("postgres") end)
+    |> Task.yield()
+    |> case do
+      {:ok, _pid} -> true
+      _ -> false
+    end
+  end
+
+  @doc "Returns the name of the shadow database for the given data source."
+  @spec db_name(String.t()) :: String.t()
+  def db_name(data_source_name), do: "aircloak_shadow_#{data_source_name}"
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
@@ -46,7 +65,7 @@ defmodule Air.Service.ShadowDb.Server do
   @impl GenServer
   def init(data_source_name) do
     Process.flag(:trap_exit, true)
-    update_definition(self())
+    update_definition(data_source_name)
     {:ok, %{data_source_name: data_source_name, tables: []}}
   end
 
@@ -64,6 +83,21 @@ defmodule Air.Service.ShadowDb.Server do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp name(data_source_name), do: Air.Service.ShadowDb.registered_name(data_source_name, __MODULE__)
+
+  defp connect!(database_name) do
+    {:ok, pid} =
+      Postgrex.start_link(
+        hostname: "127.0.0.1",
+        username: "postgres",
+        database: database_name,
+        sync_connect: true,
+        backoff_type: :stop
+      )
+
+    pid
+  end
 
   defp data_source_tables(data_source_name) do
     case Air.Service.DataSource.by_name(data_source_name) do
@@ -94,7 +128,7 @@ defmodule Air.Service.ShadowDb.Server do
   end
 
   defp ensure_db!(data_source_name) do
-    {:ok, conn} = Postgrex.start_link(hostname: "127.0.0.1", username: "postgres", database: "postgres")
+    conn = connect!("postgres")
 
     try do
       if match?(
@@ -109,8 +143,7 @@ defmodule Air.Service.ShadowDb.Server do
   end
 
   defp update_tables_definition(state, tables) do
-    {:ok, conn} =
-      Postgrex.start_link(hostname: "127.0.0.1", username: "postgres", database: db_name(state.data_source_name))
+    conn = connect!(db_name(state.data_source_name))
 
     try do
       delete_obsolete_tables(conn, tables)
@@ -169,8 +202,6 @@ defmodule Air.Service.ShadowDb.Server do
   defp type_sql("datetime"), do: "timestamp without time zone"
   defp type_sql("unknown"), do: "text"
 
-  defp db_name(data_source_name), do: "aircloak_shadow_#{data_source_name}"
-
   defp sanitize_name(name), do: Regex.replace(~r/"/, name, ~s/""/)
 
   defp close_conn(conn) do
@@ -193,6 +224,5 @@ defmodule Air.Service.ShadowDb.Server do
   # -------------------------------------------------------------------
 
   @doc false
-  def start_link({data_source_name, registered_name}),
-    do: GenServer.start_link(__MODULE__, data_source_name, name: registered_name)
+  def start_link(data_source_name), do: GenServer.start_link(__MODULE__, data_source_name, name: name(data_source_name))
 end

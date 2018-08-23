@@ -121,9 +121,15 @@ defmodule Cloak.Sql.Compiler.Specification do
     end
   end
 
-  defp find_table(tables, {:quoted, name}), do: Enum.find(tables, &(name == &1.name))
+  defp find_table(tables, {:quoted, name}), do: Enum.find(tables, &(strip_public_schema(name) == &1.name))
 
-  defp find_table(tables, {:unquoted, name}), do: Enum.find(tables, &insensitive_equal?(name, &1.name))
+  defp find_table(tables, {:unquoted, name}),
+    do: Enum.find(tables, &insensitive_equal?(strip_public_schema(name), &1.name))
+
+  # `public.some_table` is treated as `some_table`. This is done because clients using Air's PostgreSQL interface might
+  # use the `public.` prefix to reference tables.
+  defp strip_public_schema("public." <> table_name), do: table_name
+  defp strip_public_schema(table_name), do: table_name
 
   defp insensitive_equal?(s1, s2), do: String.downcase(s1) == String.downcase(s2)
 

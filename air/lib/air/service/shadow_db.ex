@@ -9,35 +9,58 @@ defmodule Air.Service.ShadowDb do
   use Supervisor
   require Logger
   alias Aircloak.ChildSpec
-  alias Air.Service.ShadowDb.Server
+  alias Air.Service.ShadowDb.{Connection, ConnectionPool, Database, Manager}
 
-  @server_supervisor __MODULE__.Servers
-  @server_registry __MODULE__.Registry
+  @database_supervisor __MODULE__.Databases
+  @registry __MODULE__.Registry
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Updates the shadow database according to the data source definition."
-  @spec update(map) :: :ok
-  def update(data_source), do: Server.update_definition(server_pid(data_source))
+  @spec query(String.t(), String.t(), [term]) :: Connection.query_result()
+  def query(data_source_name, query, params) do
+    ensure_database!(data_source_name)
+    ConnectionPool.query(data_source_name, query, params)
+  end
+
+  @spec parse(String.t(), String.t()) :: Connection.parse_result()
+  def parse(data_source_name, query) do
+    ensure_database!(data_source_name)
+    ConnectionPool.parse(data_source_name, query)
+  end
+
+  @doc "Updates the shadow database for the given data source."
+  @spec update(String.t()) :: :ok
+  def update(data_source_name) do
+    ensure_database!(data_source_name)
+    Manager.update_definition(data_source_name)
+  end
 
   @doc "Drops the given shadow database."
   @spec drop(String.t()) :: :ok
   def drop(data_source_name) do
-    with pid when is_pid(pid) <- GenServer.whereis(server_name(data_source_name)),
-         do: DynamicSupervisor.terminate_child(@server_supervisor, pid)
+    with pid when is_pid(pid) <- Database.whereis(data_source_name),
+         do: DynamicSupervisor.terminate_child(@database_supervisor, pid)
 
-    # Server.drop_database creates a connection and closes it, and closing a connection requires the client process to
+    # Manager.drop_database creates a connection and closes it, and closing a connection requires the client process to
     # trap exits. Since we don't want to implicitly start trapping exit in the caller of drop/1 we're doing this in a
     # separate task.
     Task.start_link(fn ->
       Process.flag(:trap_exit, true)
-      Server.drop_database(data_source_name)
+      Manager.drop_database(data_source_name)
     end)
 
     :ok
   end
+
+  @doc "Returns the name of the shadow database for the given data source."
+  @spec db_name(String.t()) :: String.t()
+  defdelegate db_name(data_source), to: Manager
+
+  @doc "Returns the registered name for the process related to the given data source in a given role."
+  @spec registered_name(String.t(), term()) :: {:via, module, {atom, term}}
+  def registered_name(data_source_name, role), do: {:via, Registry, {@registry, {data_source_name, role}}}
 
   # -------------------------------------------------------------------
   # Supervisor callbacks
@@ -49,8 +72,8 @@ defmodule Air.Service.ShadowDb do
 
     Supervisor.init(
       [
-        ChildSpec.registry(:unique, @server_registry),
-        ChildSpec.dynamic_supervisor(name: @server_supervisor)
+        ChildSpec.registry(:unique, @registry),
+        ChildSpec.dynamic_supervisor(name: @database_supervisor)
       ],
       strategy: :one_for_one
     )
@@ -60,17 +83,14 @@ defmodule Air.Service.ShadowDb do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp server_pid(data_source) do
-    case DynamicSupervisor.start_child(
-           @server_supervisor,
-           {Server, {data_source.name, server_name(data_source.name)}}
-         ) do
-      {:ok, pid} -> pid
-      {:error, {:already_started, pid}} -> pid
+  defp ensure_database!(data_source_name) do
+    with nil <- Database.whereis(data_source_name) do
+      case DynamicSupervisor.start_child(@database_supervisor, {Database, data_source_name}) do
+        {:ok, _pid} -> :ok
+        {:error, {:already_started, _pid}} -> :ok
+      end
     end
   end
-
-  defp server_name(data_source_name), do: {:via, Registry, {@server_registry, data_source_name}}
 
   defp wait_local_postgresql() do
     Logger.info("waiting for local PostgreSQL instance")
@@ -79,35 +99,19 @@ defmodule Air.Service.ShadowDb do
       Task.async(fn ->
         Process.flag(:trap_exit, true)
 
-        Stream.repeatedly(&postgrex_availabe?/0)
-        |> Stream.drop_while(&(&1 == false))
+        Stream.repeatedly(&Manager.db_server_available?/0)
+        |> Stream.intersperse(:sleep)
+        |> Stream.map(fn
+          :sleep -> Process.sleep(:timer.seconds(5))
+          el -> el
+        end)
+        |> Stream.drop_while(&(&1 != true))
         |> Enum.take(1)
       end)
 
     case Task.yield(task, :timer.minutes(1)) do
       nil -> raise "local PostgreSQL is not available"
       _ -> :ok
-    end
-  end
-
-  defp postgrex_availabe?() do
-    Task.async(fn ->
-      Postgrex.start_link(
-        hostname: "127.0.0.1",
-        username: "postgres",
-        database: "postgres",
-        sync_connect: true,
-        backoff_type: :stop
-      )
-    end)
-    |> Task.yield()
-    |> case do
-      {:ok, {:ok, _pid}} ->
-        true
-
-      _ ->
-        Process.sleep(:timer.seconds(5))
-        false
     end
   end
 

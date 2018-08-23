@@ -185,12 +185,15 @@ defmodule Cloak.DataSource.Table do
 
   defp scan_tables(%{errors: existing_errors} = data_source, connection) do
     {tables, errors} =
-      Enum.reduce(data_source.tables, {[], []}, fn table, {tables, errors} ->
+      Enum.reduce(data_source.tables, {[], []}, fn {table_id, _table_definition} = table, {tables, errors} ->
         try do
+          # The `public.` prefix is forbidden to prevent ambiguity when handling `select ... from public.some_table`.
+          if to_string(table_id) =~ ~r/^public\./,
+            do: raise(ExecutionError, message: "table name can't start with `public.`")
+
           {tables ++ load_tables(data_source, connection, table), errors}
         rescue
           error in ExecutionError ->
-            {table_id, _} = table
             message = "Load error for table `#{table_id}`: #{Exception.message(error)}."
             Logger.error("Data source `#{data_source.name}`: #{message}")
             {tables, errors ++ [message]}

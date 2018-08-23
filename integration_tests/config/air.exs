@@ -1,6 +1,7 @@
 use Mix.Config
 
 config :air, :deploy_config_file, "test.json"
+config :air, :integration_tests, true
 
 config :guardian, Guardian,
   allowed_algos: ["HS512"],

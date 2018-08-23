@@ -59,6 +59,12 @@ defmodule Cloak.Query.BasicTest do
            ]
   end
 
+  test "show columns using the `public.` prefix for a table" do
+    assert_query("show columns from public.heights", %{columns: ~w(name type isolates_users), rows: _})
+    assert_query(~s/show columns from "public"."heights"/, %{columns: ~w(name type isolates_users), rows: _})
+    assert_query(~s/show columns from "public.heights"/, %{columns: ~w(name type isolates_users), rows: _})
+  end
+
   test "show columns from a view" do
     assert_query("show columns from v1", [views: %{"v1" => "select user_id, height from heights"}], %{
       query_id: "1",
@@ -79,6 +85,12 @@ defmodule Cloak.Query.BasicTest do
       columns: ["height"],
       rows: [%{row: [180], occurrences: 100}]
     })
+  end
+
+  test "select using the `public.` prefix for a table" do
+    assert_query("select height from public.heights", %{columns: ["height"], rows: _})
+    assert_query(~s/select height from "public"."heights"/, %{columns: ["height"], rows: _})
+    assert_query(~s/select height from "public.heights"/, %{columns: ["height"], rows: _})
   end
 
   test "rows with null user_ids are ignored" do

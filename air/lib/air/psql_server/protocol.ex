@@ -58,6 +58,8 @@ defmodule Air.PsqlServer.Protocol do
 
   @type db_value :: String.t() | number | boolean | nil
 
+  @type param_with_type :: {Value.type(), db_value()}
+
   @type authentication_method :: :cleartext
 
   @type column :: %{name: String.t(), type: Value.type()}

@@ -19,7 +19,7 @@ defmodule IntegrationTest.TableauTest do
     assert :odbc.sql_query(context.conn, query) == [
              {:updated, 0},
              {:updated, 0},
-             {:selected, ['relname', 'nspname', 'relkind'], [{'users', '', 'r'}]}
+             {:selected, ['relname', 'nspname', 'relkind'], [{'users', 'public', 'r'}]}
            ]
   end
 
@@ -48,35 +48,54 @@ defmodule IntegrationTest.TableauTest do
                'relhasoids'
              ],
              [
-               {'', 'users', 'user_id', '25', 'text', 1, -1, -1, true, false, 'r', oid, [], '0', -1, false},
-               {'', 'users', 'name', '25', 'text', 2, -1, -1, false, false, 'r', oid, [], '0', -1, false},
-               {'', 'users', 'height', '20', 'int8', 3, 8, -1, false, false, 'r', oid, [], '0', -1, false}
+               {'public', 'users', 'user_id', 25, 'text', 1, -1, -1, false, false, 'r', _, :null, 0, -1, false},
+               {'public', 'users', 'name', 25, 'text', 2, -1, -1, false, false, 'r', _, :null, 0, -1, false},
+               {'public', 'users', 'height', 23, 'int4', 3, 4, -1, false, false, 'r', _, :null, 0, -1, false}
              ]
            } = :odbc.sql_query(context.conn, query)
   end
 
-  test "tableau query for triggers", context do
+  test "table info query 2", context do
     query =
-      'BEGIN;declare "SQL_CUR04D36638" cursor for SELECT\tpt.tgargs, \t\tpt.tgnargs, \t\tpt.tgdeferrable, \t\tpt.tginitdeferred, \t\tpp1.proname, \t\tpp2.proname, \t\tpc.oid, \t\tpc1.oid, \t\tpc1.relname, \t\tpt.tgconstrname, pn.nspname FROM\tpg_catalog.pg_class pc, \t\tpg_catalog.pg_proc pp1, \t\tpg_catalog.pg_proc pp2, \t\tpg_catalog.pg_trigger pt1, \t\tpg_catalog.pg_trigger pt2, \t\tpg_catalog.pg_proc pp, \t\tpg_catalog.pg_trigger pt, \t\tpg_catalog.pg_class pc1, \t\tpg_catalog.pg_namespace pn, \t\tpg_catalog.pg_namespace pn1 WHERE\tpt.tgrelid = pc.oid AND pp.oid = pt.tgfoid AND pt1.tgconstrrelid = pc.oid AND pp1.oid = pt1.tgfoid AND pt2.tgfoid = pp2.oid AND pt2.tgconstrrelid = pc.oid AND ((pc.relname = \'accounts\') AND (pn1.oid = pc.relnamespace) AND (pn1.nspname = \'public\') AND (pp.proname LIKE \'%ins\') AND (pp1.proname LIKE \'%upd\') AND (pp1.proname not LIKE \'%check%\') AND (pp2.proname LIKE \'%del\') AND (pt1.tgrelid=pt.tgconstrrelid)  AND (pt1.tgconstrname=pt.tgconstrname) AND (pt2.tgrelid=pt.tgconstrrelid) AND (pt2.tgconstrname=pt.tgconstrname) AND (pt.tgconstrrelid=pc1.oid) AND (pc1.relnamespace=pn.oid)) order by pt.tgconstrname;fetch 2048 in "SQL_CUR04D36638"'
+      ~c/select n.nspname, c.relname, a.attname, a.atttypid, t.typname, a.attnum, a.attlen, a.atttypmod, a.attnotnull, c.relhasrules, c.relkind, c.oid, pg_get_expr(d.adbin, d.adrelid), case t.typtype when 'd' then t.typbasetype else 0 end, t.typtypmod, c.relhasoids from (((pg_catalog.pg_class c inner join pg_catalog.pg_namespace n on n.oid = c.relnamespace and c.relname like 'monthly_income_expenses') inner join pg_catalog.pg_attribute a on (not a.attisdropped) and a.attnum > 0 and a.attrelid = c.oid) inner join pg_catalog.pg_type t on t.oid = a.atttypid) left outer join pg_attrdef d on a.atthasdef and d.adrelid = a.attrelid and d.adnum = a.attnum order by n.nspname, c.relname, attnum/
 
-    assert :odbc.sql_query(context.conn, query) == [
-             {:updated, 0},
-             {:updated, 0},
-             {:selected,
-              [
-                'tgargs',
-                'tgnargs',
-                'tgdeferrable',
-                'tginitdeferred',
-                'pp1.proname',
-                'pp2.proname',
-                'pc.oid',
-                'pc1.oid',
-                'relname',
-                'tgconstrname',
-                'nspname'
-              ], []}
-           ]
+    assert {
+             :selected,
+             [
+               'nspname',
+               'relname',
+               'attname',
+               'atttypid',
+               'typname',
+               'attnum',
+               'attlen',
+               'atttypmod',
+               'attnotnull',
+               'relhasrules',
+               'relkind',
+               'oid',
+               'pg_get_expr',
+               'case',
+               'typtypmod',
+               'relhasoids'
+             ],
+             []
+           } = :odbc.sql_query(context.conn, query)
+  end
+
+  test "table schema query", context do
+    query =
+      ~c/SELECT nspname AS TABLE_SCHEM, NULL AS TABLE_CATALOG FROM pg_catalog.pg_namespace  WHERE nspname <> 'pg_toast' AND (nspname !~ '^pg_temp_'  OR nspname = (pg_catalog.current_schemas(true))[1]) AND (nspname !~ '^pg_toast_temp_'  OR nspname = replace((pg_catalog.current_schemas(true))[1], 'pg_temp_', 'pg_toast_temp_'))  ORDER BY TABLE_SCHEM/
+
+    assert {
+             :selected,
+             ['table_schem', 'table_catalog'],
+             [
+               {'information_schema', :null},
+               {'pg_catalog', :null},
+               {'public', :null}
+             ]
+           } = :odbc.sql_query(context.conn, query)
   end
 
   test "tableau query for related fields", context do
@@ -171,17 +190,22 @@ defmodule IntegrationTest.TableauTest do
     assert to_string(error) =~ ~r/^ERROR: Expected `select or show`/
   end
 
+  test "selecting a regclass value", context do
+    query =
+      ~c/SELECT c.oid::pg_catalog.regclass FROM pg_catalog.pg_class c, pg_catalog.pg_inherits i WHERE c.oid=i.inhparent AND i.inhrelid = '18119' ORDER BY inhseqno;/
+
+    assert {:selected, ['oid'], []} = :odbc.sql_query(context.conn, query)
+  end
+
   test(
     "deallocate statement",
     context,
     do: assert(:odbc.sql_query(context.conn, 'DEALLOCATE "foobar"') == {:updated, 0})
   )
 
-  test(
-    "select current schema",
-    context,
-    do: assert(:odbc.sql_query(context.conn, 'select current_schema()') == {:selected, ['current_schema'], [{''}]})
-  )
+  test "select current schema", context do
+    assert(:odbc.sql_query(context.conn, 'select current_schema()') == {:selected, ['current_schema'], [{'public'}]})
+  end
 
   test(
     "selecting into a temporary table",
@@ -192,6 +216,19 @@ defmodule IntegrationTest.TableauTest do
           postgrex_query(
             context.user,
             "-- statement does not return rows\nSELECT *\nINTO TEMPORARY TABLE \"#Tableau_5_1_Connect\"\nFROM (SELECT 1 AS COL) AS CHECKTEMP\nLIMIT 1"
+          )
+      )
+  )
+
+  test(
+    "selecting into a table",
+    context,
+    do:
+      assert(
+        {:error, %Postgrex.Error{postgres: %{message: "permission denied"}}} =
+          postgrex_query(
+            context.user,
+            "INSERT INTO accounts (id) values(1)"
           )
       )
   )
@@ -224,7 +261,7 @@ defmodule IntegrationTest.TableauTest do
     context,
     do:
       assert(
-        {:ok, %Postgrex.Result{columns: ["lc_collate"], command: :select, rows: [["C"]]}} =
+        {:ok, %Postgrex.Result{columns: ["lc_collate"], command: :select, rows: [[_collation]]}} =
           postgrex_query(context.user, "show \"lc_collate\"")
       )
   )
@@ -235,7 +272,7 @@ defmodule IntegrationTest.TableauTest do
     end
 
     test "float", context do
-      assert :odbc.sql_query(context.conn, 'SELECT  \n 34.457 ') == {:selected, ['?column?'], [{34.457}]}
+      assert :odbc.sql_query(context.conn, 'SELECT  \n 34.457::float ') == {:selected, ['float8'], [{34.457}]}
     end
 
     test "bool", context do

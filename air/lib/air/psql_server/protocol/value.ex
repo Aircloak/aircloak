@@ -7,15 +7,24 @@ defmodule Air.PsqlServer.Protocol.Value do
     name: %{oid: 19, len: 64, postgrex_extension: {Name, :reference}},
     int8: %{oid: 20, len: 8, postgrex_extension: {Int8, nil}},
     int2: %{oid: 21, len: 2, postgrex_extension: {Int2, nil}},
+    int2vector: %{oid: 22, len: -1},
     int4: %{oid: 23, len: 4, postgrex_extension: {Int4, nil}},
+    regproc: %{oid: 24, len: 4},
     text: %{oid: 25, len: -1, postgrex_extension: {Raw, :reference}},
+    oid: %{oid: 26, len: 4, postgrex_extension: {OID, nil}},
     float4: %{oid: 700, len: 4, postgrex_extension: {Float4, nil}},
     float8: %{oid: 701, len: 8, postgrex_extension: {Float8, nil}},
     unknown: %{oid: 705, len: -1, postgrex_extension: {Raw, :reference}},
+    oidarray: %{oid: 1028, len: -1},
+    bpchar: %{oid: 1042, len: -1, postgrex_extension: {Raw, :reference}},
+    varchar: %{oid: 1043, len: -1, postgrex_extension: {Raw, :reference}},
     date: %{oid: 1082, len: 4, postgrex_extension: {Date, :elixir}},
     time: %{oid: 1083, len: 8, postgrex_extension: {Time, :elixir}},
     timestamp: %{oid: 1114, len: 8, postgrex_extension: {Timestamp, :elixir}},
-    numeric: %{oid: 1700, len: -1, postgrex_extension: {Numeric, nil}}
+    timestamptz: %{oid: 1184, len: 8, postgrex_extension: {TimestampTZ, :elixir}},
+    timetz: %{oid: 1266, len: 12, postgrex_extension: {TimeTZ, :elixir}},
+    numeric: %{oid: 1700, len: -1, postgrex_extension: {Numeric, nil}},
+    regclass: %{oid: 2205, len: 4}
   }
 
   @type type ::
@@ -84,7 +93,11 @@ defmodule Air.PsqlServer.Protocol.Value do
   # Internal functions
   # -------------------------------------------------------------------
 
+  # Bug in credo (it complains about missing space after comma in a string constant ",")
+  # credo:disable-for-lines:3 Credo.Check.Readability.SpaceAfterCommas
   defp text_encode(byte, :char), do: <<byte>>
+  defp text_encode(values, :int2vector), do: "{#{values |> Stream.map(&to_string/1) |> Enum.join(",")}}"
+  defp text_encode(oids, :oidarray), do: "{#{oids |> Stream.map(&to_string/1) |> Enum.join(",")}}"
   defp text_encode(value, _), do: to_string(value)
 
   defp text_decode(param, :int2), do: String.to_integer(param)
@@ -97,6 +110,7 @@ defmodule Air.PsqlServer.Protocol.Value do
   defp text_decode(text, :boolean), do: String.downcase(text) == "true"
   defp text_decode(<<char>>, :char), do: char
   defp text_decode(param, :text) when is_binary(param), do: param
+  defp text_decode(param, :varchar) when is_binary(param), do: param
   defp text_decode(param, :name) when is_binary(param), do: param
   defp text_decode(param, :unknown) when is_binary(param), do: param
 
