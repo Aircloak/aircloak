@@ -6,6 +6,15 @@ defmodule Air.Service.QueryTest do
 
   setup [:sandbox]
 
+  describe "create" do
+    setup [:sandbox, :with_user]
+
+    test "cannot create query for disabled user", %{user: user} do
+      assert {:ok, _} = Air.Service.User.disable(user)
+      assert {:error, :unable_to_create_query} = Air.Service.Query.create(:autogenerate, user, nil, nil, nil, [])
+    end
+  end
+
   describe "get_as_user" do
     setup [:sandbox, :with_user]
 
@@ -139,11 +148,7 @@ defmodule Air.Service.QueryTest do
     setup [:sandbox]
 
     test "changes the query_state" do
-      query =
-        create_query!(create_user!(), %{
-          query_state: :started,
-          data_source_id: create_data_source!().id
-        })
+      query = create_query!(create_user!(), %{query_state: :started})
 
       Query.update_state(query.id, :processing)
 
@@ -151,56 +156,41 @@ defmodule Air.Service.QueryTest do
     end
 
     test "it's impossible to change to an earlier state" do
-      query =
-        create_query!(create_user!(), %{
-          query_state: :completed,
-          data_source_id: create_data_source!().id
-        })
+      query = create_query!(create_user!(), %{query_state: :completed})
 
       Query.update_state(query.id, :processing)
 
       assert {:ok, %{query_state: :completed}} = get_query(query.id)
     end
 
-    Enum.each([:cancelled, :error, :completed], fn terminal_state ->
-      Enum.each(
-        [
-          :started,
-          :parsing,
-          :compiling,
-          :awaiting_data,
-          :ingesting_data,
-          :processing,
-          :post_processing,
-          :cancelled,
-          :error,
-          :completed
-        ],
-        fn state ->
-          test "changing from terminal state '#{terminal_state}' to '#{state}' is not allowed" do
-            params = %{
-              query_state: unquote(terminal_state),
-              data_source_id: create_data_source!().id
-            }
+    for terminal_state <- ~w(cancelled error completed)a,
+        state <- ~w(started parsing compiling awaiting_data ingesting_data processing post_processing cancelled
+          error completed) do
+      test "changing from terminal state '#{terminal_state}' to '#{state}' is not allowed" do
+        query = create_query!(create_user!(), %{query_state: unquote(terminal_state)})
 
-            query = create_query!(create_user!(), params)
-            Query.update_state(query.id, unquote(state))
-            assert {:ok, %{query_state: unquote(terminal_state)}} = get_query(query.id)
-          end
-        end
-      )
-    end)
+        Query.update_state(query.id, unquote(state))
+
+        assert {:ok, %{query_state: unquote(terminal_state)}} = get_query(query.id)
+      end
+    end
+
+    test "records time spent in previous state" do
+      query = create_query!(create_user!(), %{query_state: :awaiting_data})
+
+      :timer.sleep(100)
+      Query.update_state(query.id, :processing)
+
+      assert {:ok, %{time_spent: %{"awaiting_data" => time}}} = get_query(query.id)
+      assert time >= 100
+    end
   end
 
   describe "process_result" do
     setup [:sandbox]
 
     test "processing a successful result" do
-      query =
-        create_query!(create_user!(), %{
-          query_state: :started,
-          data_source_id: create_data_source!().id
-        })
+      query = create_query!(create_user!(), %{query_state: :started})
 
       send_query_result(
         query.id,
@@ -233,12 +223,18 @@ defmodule Air.Service.QueryTest do
       assert Query.buckets(query, :all) == [%{"occurrences" => 10, "row" => [1, 1]}]
     end
 
+    test "records time spent in previous state" do
+      query = create_query!(create_user!(), %{query_state: :started})
+
+      :timer.sleep(100)
+      send_query_result(query.id, %{columns: [], info: [], features: %{}, execution_time: 123}, _rows = [])
+
+      assert {:ok, %{time_spent: %{"started" => time}}} = get_query(query.id)
+      assert time >= 100
+    end
+
     test "processing an error result" do
-      query =
-        create_query!(create_user!(), %{
-          query_state: :started,
-          data_source_id: create_data_source!().id
-        })
+      query = create_query!(create_user!(), %{query_state: :started})
 
       log =
         ExUnit.CaptureLog.capture_log(fn ->
@@ -262,11 +258,7 @@ defmodule Air.Service.QueryTest do
     end
 
     test "processing a cancelled result" do
-      query =
-        create_query!(create_user!(), %{
-          query_state: :started,
-          data_source_id: create_data_source!().id
-        })
+      query = create_query!(create_user!(), %{query_state: :started})
 
       send_query_result(query.id, %{
         features: %{"selected_types" => ["some types"]},
@@ -285,11 +277,7 @@ defmodule Air.Service.QueryTest do
     end
 
     test "results of completed queries are ignored" do
-      query =
-        create_query!(create_user!(), %{
-          query_state: :error,
-          data_source_id: create_data_source!().id
-        })
+      query = create_query!(create_user!(), %{query_state: :error})
 
       send_query_result(query.id, %{
         features: %{"selected_types" => ["some types"]},
@@ -305,11 +293,7 @@ defmodule Air.Service.QueryTest do
     setup [:sandbox]
 
     test "ignores completed queries" do
-      query =
-        create_query!(create_user!(), %{
-          query_state: :completed,
-          data_source_id: create_data_source!().id
-        })
+      query = create_query!(create_user!(), %{query_state: :completed})
 
       Query.query_died(query.id)
 
@@ -318,11 +302,7 @@ defmodule Air.Service.QueryTest do
     end
 
     test "sets the result" do
-      query =
-        create_query!(create_user!(), %{
-          query_state: :started,
-          data_source_id: create_data_source!().id
-        })
+      query = create_query!(create_user!(), %{query_state: :started})
 
       Query.query_died(query.id)
 
@@ -333,6 +313,127 @@ defmodule Air.Service.QueryTest do
                result: %{"error" => "Query died."}
              } = query
     end
+  end
+
+  describe ".queries" do
+    setup [:sandbox]
+
+    test "results are ordered from newest to oldest" do
+      query1 = create_query!(create_user!())
+      query2 = create_query!(create_user!())
+      query3 = create_query!(create_user!())
+
+      assert Query.queries(filters()) |> Enum.map(& &1.id) == [query3.id, query2.id, query1.id]
+    end
+
+    test "filtering by query_state" do
+      _query1 = create_query!(create_user!(), %{query_state: :started})
+      query2 = create_query!(create_user!(), %{query_state: :error})
+      query3 = create_query!(create_user!(), %{query_state: :completed})
+
+      assert Query.queries(filters(%{query_states: [:error, :completed]})) |> Enum.map(& &1.id) == [
+               query3.id,
+               query2.id
+             ]
+    end
+
+    test "filtering by data source" do
+      _query1 = create_query!(create_user!())
+      query2 = create_query!(create_user!())
+      query3 = create_query!(create_user!())
+
+      assert Query.queries(filters(%{data_sources: [query2.data_source_id, query3.data_source_id]}))
+             |> Enum.map(& &1.id) == [query3.id, query2.id]
+    end
+
+    test "filtering by user" do
+      _query1 = create_query!(create_user!())
+      query2 = create_query!(create_user!())
+      query3 = create_query!(create_user!())
+
+      assert Query.queries(filters(%{users: [query2.user_id, query3.user_id]}))
+             |> Enum.map(& &1.id) == [query3.id, query2.id]
+    end
+
+    test "max results" do
+      _query1 = create_query!(create_user!())
+      query2 = create_query!(create_user!())
+      query3 = create_query!(create_user!())
+
+      assert Query.queries(filters(%{max_results: 2})) |> Enum.map(& &1.id) == [query3.id, query2.id]
+    end
+  end
+
+  describe ".users_for_filters" do
+    test "includes users of matching queries" do
+      _query1 = create_query!(create_user!())
+      query2 = create_query!(create_user!(), %{query_state: :error})
+      query3 = create_query!(create_user!(), %{query_state: :completed})
+
+      assert Query.users_for_filters(filters(%{query_states: [:error, :completed], max_results: 1}))
+             |> Enum.map(& &1.id)
+             |> Enum.sort() == Enum.sort([query2.user_id, query3.user_id])
+    end
+
+    test "includes filtered users" do
+      _user1 = create_user!()
+      user2 = create_user!()
+      user3 = create_user!()
+
+      assert Query.users_for_filters(filters(%{users: [user2.id, user3.id]}))
+             |> Enum.map(& &1.id)
+             |> Enum.sort() == Enum.sort([user2.id, user3.id])
+    end
+
+    test "results are orderer by name" do
+      users = Enum.map(1..3, fn _ -> create_user!() end)
+
+      assert Query.users_for_filters(filters(%{users: Enum.map(users, & &1.id)})) |> Enum.map(& &1.name) ==
+               users |> Enum.map(& &1.name) |> Enum.sort()
+    end
+  end
+
+  describe ".data_sources_for_filters" do
+    test "includes data_sources of matching queries" do
+      _query1 = create_query!(create_data_source!())
+      query2 = create_query!(create_data_source!(), %{query_state: :error})
+      query3 = create_query!(create_data_source!(), %{query_state: :completed})
+
+      assert Query.data_sources_for_filters(filters(%{query_states: [:error, :completed], max_results: 1}))
+             |> Enum.map(& &1.id)
+             |> Enum.sort() == Enum.sort([query2.data_source_id, query3.data_source_id])
+    end
+
+    test "includes filtered data_sources" do
+      _data_source1 = create_data_source!()
+      data_source2 = create_data_source!()
+      data_source3 = create_data_source!()
+
+      assert Query.data_sources_for_filters(filters(%{data_sources: [data_source2.id, data_source3.id]}))
+             |> Enum.map(& &1.id)
+             |> Enum.sort() == Enum.sort([data_source2.id, data_source3.id])
+    end
+
+    test "results are orderer by name" do
+      data_sources = Enum.map(1..3, fn _ -> create_data_source!() end)
+
+      assert Query.data_sources_for_filters(filters(%{data_sources: Enum.map(data_sources, & &1.id)}))
+             |> Enum.map(& &1.name) == data_sources |> Enum.map(& &1.name) |> Enum.sort()
+    end
+  end
+
+  defp filters(overrides \\ %{}) do
+    Map.merge(
+      %{
+        query_states: [],
+        data_sources: [],
+        users: [],
+        max_results: 100,
+        from: Timex.now() |> Timex.shift(days: -1),
+        to: Timex.now() |> Timex.shift(days: 1)
+      },
+      overrides
+    )
   end
 
   def sandbox(_context) do

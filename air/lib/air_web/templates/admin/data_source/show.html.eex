@@ -31,7 +31,7 @@
             <%= for user <- @users do %>
               <tr>
                 <td><%= user.name %></td>
-                <td class="email-column"><%= user.email %></td>
+                <td class="login-column"><%= user.login %></td>
                 <td>
                   <%= if admin?(user) do %>
                     <span class="label label-danger">Admin</span>

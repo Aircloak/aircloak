@@ -77,7 +77,7 @@ defmodule AirWeb.Admin.GroupController.Test do
     assert get_flash(conn)["error"] ==
              "The given action cannot be performed, because it would remove the only administrator."
 
-    assert Air.Service.User.admin_user_exists?()
+    assert Air.Service.User.active_admin_user_exists?()
   end
 
   test "deleting a group" do
@@ -99,7 +99,7 @@ defmodule AirWeb.Admin.GroupController.Test do
     assert get_flash(conn)["error"] ==
              "The given action cannot be performed, because it would remove the only administrator."
 
-    assert Air.Service.User.admin_user_exists?()
+    assert Air.Service.User.active_admin_user_exists?()
   end
 
   test "render 404 on attempting to render edit form for non-existent group",

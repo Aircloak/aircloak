@@ -12,6 +12,7 @@ defmodule Central.Schemas.License do
     field(:length_in_days, :integer)
     field(:auto_renew, :boolean)
     field(:revoked, :boolean)
+    field(:features, {:array, :string}, default: [])
 
     belongs_to(:customer, Customer)
 
@@ -19,7 +20,7 @@ defmodule Central.Schemas.License do
   end
 
   @required_fields ~w(name length_in_days auto_renew revoked)a
-  @optional_fields ~w()a
+  @optional_fields ~w(features)a
 
   # -------------------------------------------------------------------
   # API functions

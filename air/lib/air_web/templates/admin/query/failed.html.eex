@@ -1,29 +1,69 @@
-<h2>Failed queries</h2>
+<div class="row">
+  <div class="col-md-9">
+    <h2>Failed queries</h2>
 
-<%= if @failed_queries.total_entries == 0 do %>
+    <%= if length(@failed_queries) == 0 do %>
 
-  <div><b>There are currently no failed queries.</b></div>
+      <div><b>There are no failed queries matching your search criteria.</b></div>
 
-<% else %>
+    <% else %>
 
-  <%= if @failed_queries.total_pages > 1, do: pagination_links @failed_queries %>
-
-  <div id="query-view">
-    <%= for query <- @failed_queries do %>
-      <div>
-        <div>
-          <b>Time</b>: <%= absolute_time(query) %> (<%= time_ago(query) %>)
+      <%= if length(@failed_queries) >= @max_results do %>
+        <div class="alert alert-warning" role="alert">
+          There are more than <strong><%= @max_results %></strong> entries matching your filters. Only the most recent
+          <strong><%= @max_results %></strong> are shown. Consider narrowing your search criteria.
         </div>
-        <div><b>User</b>: <%= query.user %></div>
-        <div><b>Data source</b>: <%= query.data_source %></div>
-        <div><b>Error</b>: <%= query.error %></div>
-        <br />
-        <pre><%= query.statement %></pre>
+      <% end %>
+
+      <%= for query <- @failed_queries do %>
+        <div id="<%= query.id %>"></div>
         <hr />
-      </div>
+      <% end %>
     <% end %>
   </div>
 
-  <%= if @failed_queries.total_pages > 1, do: pagination_links @failed_queries %>
+  <div class="col-md-3">
+    <%= render(AirWeb.Admin.SharedView, "time_filter.html", conn: @conn, from: @from, to: @to) %>
 
-<% end %>
+    <%=
+      render(
+        AirWeb.Admin.SharedView,
+        "list_filter.html",
+        conn: @conn,
+        title: "Filter by users",
+        name: :users,
+        options: @users,
+        link: &admin_query_path(@conn, :failed, &1)
+      )
+    %>
+
+    <%=
+      render(
+        AirWeb.Admin.SharedView,
+        "list_filter.html",
+        conn: @conn,
+        title: "Filter by data source",
+        name: :data_sources,
+        options: @data_sources,
+        link: &admin_query_path(@conn, :failed, &1)
+      )
+    %>
+  </div>
+</div>
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      App.activateDatetimePickers();
+
+      <%= for query <- @failed_queries do %>
+        App.immutableQueryShowPage({
+          result: <%= to_json(query) %>,
+          CSRFToken: "<%= @csrf_token %>",
+          numberFormat: <%= to_json(@number_format) %>,
+          debugModeEnabled: <%= @debug_mode_enabled %>
+        }, document.getElementById("<%= query.id %>"));
+      <% end %>
+    }
+  };
+</script>

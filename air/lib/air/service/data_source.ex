@@ -4,7 +4,7 @@ defmodule Air.Service.DataSource do
   alias Aircloak.ChildSpec
   alias Air.Schemas.{DataSource, Group, Query, User}
   alias Air.{PsqlServer.Protocol, Repo}
-  alias Air.Service.{License, Cloak, View, PrivacyPolicy}
+  alias Air.Service.{License, Cloak, View}
   alias Air.Service
   alias AirWeb.Socket.{Cloak.MainChannel, Frontend.UserChannel}
   import Ecto.Query, only: [from: 2]
@@ -43,17 +43,17 @@ defmodule Air.Service.DataSource do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Returns the count of all known data sources."
+  @doc "Returns the count of all known non-deleted data sources."
   @spec count() :: non_neg_integer
-  def count(), do: Repo.one!(from(data_source in DataSource, select: count(data_source.id)))
+  def count(), do: from(data_source in DataSource, select: count(data_source.id)) |> not_pending_delete() |> Repo.one!()
 
-  @doc "Returns all known data sources."
+  @doc "Returns all known non-deleted data sources."
   @spec all() :: [DataSource.t()]
-  def all(), do: Repo.all(DataSource) |> Repo.preload([:groups])
+  def all(), do: DataSource |> not_pending_delete() |> Repo.all() |> Repo.preload([:groups])
 
-  @doc "Returns all data sources belonging to the given user."
+  @doc "Returns all data non-deleted sources belonging to the given user."
   @spec for_user(User.t()) :: [DataSource.t()]
-  def for_user(user), do: Repo.all(users_data_sources(user))
+  def for_user(user), do: users_data_sources(user) |> not_pending_delete() |> Repo.all()
 
   @doc "Retrieves the data source and verifies whether it is available to the given user."
   @spec fetch_as_user(data_source_id_spec, User.t()) :: {:ok, DataSource.t()} | {:error, :unauthorized}
@@ -290,13 +290,25 @@ defmodule Air.Service.DataSource do
   def delete!(data_source, success_callback, failure_callback) do
     Task.Supervisor.start_child(@delete_supervisor, fn ->
       case Repo.transaction(fn -> Repo.delete!(data_source) end, timeout: :timer.hours(1)) do
-        {:ok, _} -> success_callback.()
-        {:error, _} -> failure_callback.()
+        {:ok, _} ->
+          Air.Service.ShadowDb.drop(data_source.name)
+          success_callback.()
+
+        {:error, _} ->
+          failure_callback.()
       end
     end)
 
     :ok
   end
+
+  @doc "Marks a data source as being deleted. This hides it from the web interface"
+  @spec mark_as_pending_delete!(DataSource.t()) :: DataSource.t()
+  def mark_as_pending_delete!(data_source),
+    do:
+      data_source
+      |> cast(%{pending_delete: true}, [:pending_delete])
+      |> Repo.update!()
 
   @doc "Converts data source into a changeset."
   @spec to_changeset(DataSource.t()) :: Ecto.Changeset.t()
@@ -373,6 +385,8 @@ defmodule Air.Service.DataSource do
     )
   end
 
+  defp not_pending_delete(data_sources), do: from(data_source in data_sources, where: not data_source.pending_delete)
+
   defp user_data_source(user, {:id, id}),
     do: from(data_source in users_data_sources(user), where: data_source.id == ^id)
 
@@ -391,13 +405,10 @@ defmodule Air.Service.DataSource do
   end
 
   defp on_available_cloak(data_source_id, user, fun) do
-    privacy_policy_status = Service.User.privacy_policy_status(user)
-
-    cond do
-      not License.valid?() -> {:error, :license_invalid}
-      not PrivacyPolicy.exists?() -> {:error, :missing_privacy_policy}
-      privacy_policy_status == {:error, :requires_review} -> {:error, :privacy_policy_requires_review}
-      true -> do_on_available_cloak(data_source_id, user, fun)
+    if not License.valid?() do
+      {:error, :license_invalid}
+    else
+      do_on_available_cloak(data_source_id, user, fun)
     end
   end
 

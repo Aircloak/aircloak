@@ -5,8 +5,9 @@ RUN \
   echo "deb http://apt.postgresql.org/pub/repos/apt/ jessie-pgdg main" >> /etc/apt/sources.list.d/pgdg.list && \
   wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
   apt-get update && \
-  apt-get install -y unixodbc odbc-postgresql inotify-tools calibre
+  apt-get install -y unixodbc odbc-postgresql inotify-tools calibre postgresql-9.6
 
+COPY air/docker/pg_hba.conf /etc/postgresql/9.6/main/
 COPY cloak/priv/odbc/odbc.ini /tmp
 RUN odbcinst -i -s -h -f /tmp/odbc.ini
 

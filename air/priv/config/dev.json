@@ -19,5 +19,16 @@
     "port": 20002,
     "user": "air",
     "name": "air_dev"
+  },
+
+  "ldap": {
+    "host": "localhost",
+    "port": 1389,
+    "bind_dn": "cn=admin,dc=example,dc=org",
+    "password": "admin",
+    "user_base": "ou=users,dc=example,dc=org",
+    "user_filter": "(objectClass=organizationalRole)",
+    "group_base": "dc=example,dc=org",
+    "group_filter": "(objectClass=posixGroup)"
   }
 }

@@ -3,30 +3,29 @@ defmodule Air.TestRepoHelper do
 
   alias Air.{Service.User, Service.Query, Schemas.ApiToken, Schemas.PrivacyPolicy, Schemas.Group, Repo}
 
-  @doc "Inserts the new user but do not accept any privacy policy."
-  @spec create_user_without_privacy_policy!(%{}) :: Air.Schemas.User.t()
-  def create_user_without_privacy_policy!(additional_changes \\ %{}) do
+  @doc "Inserts the new user with default parameters into the database."
+  @spec create_user!(%{}) :: Air.Schemas.User.t()
+  def create_user!(additional_changes \\ %{}) do
     user =
       %{
-        email: "#{random_string()}@aircloak.com",
+        login: "#{random_string()}@aircloak.com",
         name: random_string()
       }
       |> Map.merge(additional_changes)
-      |> User.create!()
 
-    password_token = User.reset_password_token(user)
+    user =
+      if user[:ldap_dn] do
+        {:ok, user} = User.create_ldap(user)
+        user
+      else
+        User.create!(user)
+      end
+
+    password_token = User.reset_password_token(user, ldap: :any)
     password = additional_changes[:password] || "password1234"
     {:ok, user} = User.reset_password(password_token, %{password: password, password_confirmation: password})
 
     Repo.preload(user, [:groups])
-  end
-
-  @doc "Inserts the new user with default parameters into the database."
-  @spec create_user!(%{}) :: Air.Schemas.User.t()
-  def create_user!(additional_changes \\ %{}) do
-    user = create_user_without_privacy_policy!(additional_changes)
-    privacy_policy = get_or_create_privacy_policy!()
-    User.accept_privacy_policy!(user, privacy_policy)
   end
 
   @doc "Creates a user that is an admin. See create_user!/0 and make_admin!/1"
@@ -46,8 +45,16 @@ defmodule Air.TestRepoHelper do
 
   @doc "Creates a group with default parameters with a random group name to avoid clashes"
   @spec create_group!(map()) :: Group.t()
-  def create_group!(additional_changes \\ %{}),
-    do: User.create_group!(Map.merge(%{name: "group-#{random_string()}", admin: false}, additional_changes))
+  def create_group!(additional_changes \\ %{}) do
+    if is_nil(additional_changes[:ldap_dn]) do
+      User.create_group!(Map.merge(%{name: "group-#{random_string()}", admin: false}, additional_changes))
+    else
+      {:ok, group} =
+        User.create_ldap_group(Map.merge(%{name: "group-#{random_string()}", admin: false}, additional_changes))
+
+      group
+    end
+  end
 
   @doc "Adds a group with admin rights to the user"
   @spec make_admin!(Air.Schemas.User.t()) :: Air.Schemas.User.t()
@@ -103,15 +110,14 @@ defmodule Air.TestRepoHelper do
 
   @doc "Inserts a test query into the database"
   @spec create_query!(Air.Schemas.User.t(), %{}) :: Air.Schemas.Query.t()
-  def create_query!(
-        user,
-        params \\ %{statement: "query content", session_id: Ecto.UUID.generate()}
-      ),
-      do:
-        user
-        |> Ecto.build_assoc(:queries)
-        |> Air.Schemas.Query.changeset(Map.merge(%{context: :http}, params))
-        |> Repo.insert!()
+  def create_query!(user, params \\ %{statement: "query content", session_id: Ecto.UUID.generate()}) do
+    params = Map.put_new_lazy(params, :data_source_id, fn -> create_data_source!().id end)
+
+    user
+    |> Ecto.build_assoc(:queries)
+    |> Air.Schemas.Query.changeset(Map.merge(%{context: :http}, params))
+    |> Repo.insert!()
+  end
 
   @doc "Registers a cloak a serving a data source, returning the data source id"
   @spec create_and_register_data_source() :: String.t()
@@ -172,14 +178,7 @@ defmodule Air.TestRepoHelper do
 
   @doc "Destroys all privacy policies"
   @spec delete_all_privacy_policies!() :: :ok
-  def delete_all_privacy_policies!() do
-    Air.Repo.update_all(Air.Schemas.User, set: [accepted_privacy_policy_id: nil])
-    Air.Repo.delete_all(Air.Schemas.PrivacyPolicy)
-  end
-
-  @doc "Accepts the latest privacy policy"
-  @spec accept_privacy_policy!(User.t()) :: :ok
-  def accept_privacy_policy!(user), do: User.accept_privacy_policy(user)
+  def delete_all_privacy_policies!(), do: Air.Repo.delete_all(Air.Schemas.PrivacyPolicy)
 
   @doc "Returns the latest privacy policy, or creates one if none exists."
   @spec get_or_create_privacy_policy!() :: PrivacyPolicy.t()

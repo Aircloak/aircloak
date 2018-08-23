@@ -65,6 +65,7 @@ defmodule Compliance.DataSource.SAPIQ do
   defp sql_type(:boolean), do: "bit"
   defp sql_type(:text), do: "nvarchar(32767)"
   defp sql_type(:datetime), do: "datetime"
+  defp sql_type(:date), do: "date"
 
   defp column_names(data), do: data |> hd() |> Map.keys() |> Enum.sort()
 

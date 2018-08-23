@@ -57,10 +57,16 @@ defmodule Compliance.DataSource.MongoDB do
   # Internal functions
   # -------------------------------------------------------------------
 
-  def convert_documents(documents), do: Lens.map(dates_lens(), documents, &DateTime.from_naive!(&1, "Etc/UTC"))
+  def convert_documents(documents) do
+    Lens.map(dates_lens(), documents, fn
+      date = %NaiveDateTime{} -> DateTime.from_naive!(date, "Etc/UTC")
+      date = %Date{} -> {Date.to_erl(date), {0, 0, 0}} |> NaiveDateTime.from_erl!() |> DateTime.from_naive!("Etc/UTC")
+    end)
+  end
 
   deflens dates_lens() do
     Lens.match(fn
+      %Date{} -> Lens.root()
       %NaiveDateTime{} -> Lens.root()
       values when is_list(values) -> Lens.all() |> dates_lens()
       val when is_map(val) -> Lens.map_values() |> dates_lens()

@@ -126,7 +126,7 @@ defmodule Cloak.Sql.Function.Test do
   test "date_trunc typing" do
     assert return_type("date_trunc", [{:constant, :text}, :datetime]) == :datetime
     assert return_type("date_trunc", [{:constant, :text}, :time]) == :time
-    assert return_type("date_trunc", [{:constant, :text}, :date]) == :datetime
+    assert return_type("date_trunc", [{:constant, :text}, :date]) == :date
     refute well_typed?("date_trunc", [:text, :date])
     refute well_typed?("date_trunc", [:date, :date])
     refute well_typed?("date_trunc", [:text, :integer])

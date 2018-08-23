@@ -8,7 +8,7 @@ name = "rodbc"
 crate-type = ["dylib"]
 
 [dependencies]
-odbc = "0.9.3"
+odbc = {version = "*", git = "https://github.com/cristianberneanu/odbc-rs.git"}
 libc = "*"
 c_vec = "*"
 simple-error = "*"

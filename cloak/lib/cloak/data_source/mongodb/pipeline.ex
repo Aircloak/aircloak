@@ -79,18 +79,13 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
     end ++ (table.columns |> Enum.map(& &1.name) |> parse_conditions(query.where)) ++ parse_query(query, top_level?)
   end
 
-  defp project_final_columns(columns, _top_level? = true),
-    # Mongo 3.0 doesn't support projection of arrays, which would more efficient for data transfer.
-    do:
-      columns
-      |> Enum.with_index()
-      |> Enum.map(fn {column, index} -> %Expression{name: column.alias || column.name, alias: "f#{index}"} end)
-      |> Projector.project_columns()
+  defp project_output(columns, _top_level? = true),
+    do: [%{"$project": %{row: Enum.map(columns, &"$#{&1.alias || &1.name}"), _id: false}}]
 
-  defp project_final_columns(_columns, _top_level? = false), do: []
+  defp project_output(_columns, _top_level? = false), do: []
 
   defp parse_query(%Query{subquery?: false} = query, _top_level? = true),
-    do: Projector.project_columns(query.db_columns) ++ project_final_columns(query.db_columns, true)
+    do: Projector.project_columns(query.db_columns) ++ project_output(query.db_columns, true)
 
   defp parse_query(%Query{subquery?: true} = query, top_level?),
     do:
@@ -398,7 +393,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
         order_and_range(query) ++ Projector.project_columns(columns)
       else
         Projector.project_columns(columns) ++ order_and_range(query)
-      end ++ project_final_columns(columns, top_level?)
+      end ++ project_output(columns, top_level?)
     else
       column_tops = Enum.map(columns, &extract_column_top(&1, aggregators, groups))
       properties = project_properties(groups)
@@ -407,8 +402,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
       [%{"$group": group}] ++
         parse_conditions(Map.keys(group), having) ++
-        Projector.project_columns(column_tops) ++
-        order_and_range(query) ++ project_final_columns(column_tops, top_level?)
+        Projector.project_columns(column_tops) ++ order_and_range(query) ++ project_output(column_tops, top_level?)
     end
   end
 

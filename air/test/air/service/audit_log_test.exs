@@ -116,13 +116,13 @@ defmodule Air.Service.AuditLogTest do
     AuditLog.log(user1, "event1", %{meta: true})
     AuditLog.log(user2, "event2", %{meta: true})
 
-    emails =
+    logins =
       [user1, user2]
       |> Enum.sort_by(& &1.name)
-      |> Enum.map(& &1.email)
+      |> Enum.map(& &1.login)
 
     assert AuditLog.users(params(%{users: [user1.id]}))
-           |> Enum.map(& &1.email) == emails
+           |> Enum.map(& &1.login) == logins
   end
 
   test "lists all users for audit logs" do
@@ -134,7 +134,7 @@ defmodule Air.Service.AuditLogTest do
     AuditLog.log(user2, "event2", %{meta: true, data_source: data_source.name})
 
     assert AuditLog.users(params(%{events: ["event1"]}))
-           |> Enum.map(& &1.email) == [user1.email]
+           |> Enum.map(& &1.login) == [user1.login]
   end
 
   test "includes selected users irrespective of filters" do

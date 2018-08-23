@@ -156,6 +156,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
       error =~ ~r/Function .* requires arguments of type/ -> :mistyped_function
       error =~ ~r/Function .* is allowed over arguments/ -> :restricted_aggregate
       error =~ ~r/Function .* is not allowed in subqueries/ -> :restricted_aggregate
+      error =~ ~r/Aggregator .* is not allowed over arguments .* in anonymized subqueries/ -> :restricted_aggregate
       error =~ ~r/Table alias .* used more than once/ -> :duplicate_alias
       error =~ ~r/Non-integer constant is not allowed in .*/ -> :invalid_position
       error =~ ~r/.* position .* is out of the range of selected columns./ -> :invalid_position
@@ -172,6 +173,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
       error =~ ~r/Escape string must be one character/ -> :invalid_escape
       error =~ ~r/Only .* can be used in the arguments of an <> operator/ -> :restricted_function
       error =~ ~r/Only .* can be used in the left-hand side of an IN operator/ -> :restricted_function
+      error =~ ~r/Function .* is not allowed in .* subqueries/ -> :restricted_function
       true -> raise error
     end
   end

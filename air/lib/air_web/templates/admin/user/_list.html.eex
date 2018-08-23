@@ -1,0 +1,62 @@
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Login</th>
+      <th>Groups</th>
+      <th>Data sources</th>
+      <%= if @role do %>
+        <th>Role</th>
+      <% end %>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+  <%= if length(@users) == 0 do %>
+    <tr>
+      <td colspan=5>There are currently no users</td>
+    </tr>
+  <% else %>
+    <%= for user <- @users do %>
+      <tr>
+        <td><%= user.name %></td>
+        <td><%= user.login %></td>
+        <td><%= AirWeb.Admin.GroupView.names(user.groups) %></td>
+        <td><%= Map.get(@data_sources_count, user.id, 0) %></td>
+
+        <%= if @role do %>
+          <td>
+            <%= if admin?(user) do %>
+              <span class="label label-danger">Admin</span>
+            <% end %>
+          </td>
+        <% end %>
+
+        <td>
+          <%= if can_edit?(user) do %>
+            <%= link "Edit", to: admin_user_path(@conn, :edit, user), class: "btn btn-default btn-xs" %>
+          <% end %>
+
+          <%= if can_disable?(user) do %>
+            <%= link "Disable", to: admin_user_user_path(@conn, :disable, user),
+                  method: :put, class: "btn btn-default btn-xs" %>
+          <% end %>
+
+          <%= if can_enable?(user) do %>
+            <%= link "Enable", to: admin_user_user_path(@conn, :enable, user),
+                  method: :put, class: "btn btn-default btn-xs" %>
+          <% end %>
+
+          <%= if can_delete?(user) do %>
+            <%= link "Permanently delete", to: admin_user_path(@conn, :delete, user), method: :delete,
+                  class: "btn btn-danger btn-xs",
+                  "data-confirm": ~s(Delete the user "#{user.name}"?) <>
+                    " All of that user's queries, views, and all the audit logs associated with that user" <>
+                    " will be deleted as well." %>
+          <% end %>
+        </td>
+      </tr>
+    <% end %>
+  <% end %>
+  </tbody>
+</table>

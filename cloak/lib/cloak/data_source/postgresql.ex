@@ -39,7 +39,12 @@ defmodule Cloak.DataSource.PostgreSQL do
     after
       Driver.connect_timeout() ->
         GenServer.stop(connection, :normal, :timer.seconds(5))
-        DataSource.raise_error("Unknown failure during database connection process")
+
+        DataSource.raise_error(
+          "Failed to establish a connection to the database. " <>
+            "Please check that the database server is running, is reachable from the " <>
+            "Insights Cloak host, and the database credentials are correct"
+        )
     end
   end
 
@@ -133,9 +138,9 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp safe_close(connection, query) do
     Postgrex.close(connection, query)
   rescue
-    _ ->
-      {"filtered exit reason", Cloak.LoggerTranslator.filtered_stacktrace(System.stacktrace())}
-      |> Exception.format_exit()
+    exception ->
+      {exception, System.stacktrace()}
+      |> Cloak.LoggerTranslator.format_exit()
       |> Logger.error()
 
       :ignore
@@ -175,6 +180,7 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   defp interval_field_mapper(value), do: value
 
+  defp generic_field_mapper(value = %DateTime{}), do: value |> DateTime.to_naive() |> Cloak.Time.max_precision()
   defp generic_field_mapper(value), do: value
 
   # -------------------------------------------------------------------

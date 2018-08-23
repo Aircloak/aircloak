@@ -9,6 +9,7 @@ defmodule Air.Service.License.FSM.Test do
     refute FSM.present?(state)
     refute FSM.valid?(state)
     assert Timex.diff(FSM.expiry(state), Timex.now()) < 0
+    assert [] = FSM.features(state)
     assert "" = FSM.text(state)
   end
 
@@ -26,11 +27,10 @@ defmodule Air.Service.License.FSM.Test do
       assert FSM.auto_renew?(state)
       assert Timex.diff(FSM.expiry(state), Timex.now()) > 0
       assert FSM.text(state) == valid_license
+      assert FSM.features(state) == [:ldap]
     end
 
-    test "loading a license without auto renewal information", %{
-      license_without_auto_renew: license
-    } do
+    test "loading a license without auto renewal information", %{license_without_auto_renew: license} do
       {:ok, state} = FSM.initial() |> FSM.load(Key.public_key(), license)
 
       assert FSM.present?(state)
@@ -47,9 +47,7 @@ defmodule Air.Service.License.FSM.Test do
       assert FSM.text(state) == license_text
     end
 
-    test "whitespace is removed before decoding", %{
-      valid_license: valid_license
-    } do
+    test "whitespace is removed before decoding", %{valid_license: valid_license} do
       license_text = "\t" <> valid_license <> "\r\n"
       {:ok, state} = FSM.initial() |> FSM.load(Key.public_key(), license_text)
 

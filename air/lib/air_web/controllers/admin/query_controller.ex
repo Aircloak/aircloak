@@ -12,9 +12,7 @@ defmodule AirWeb.Admin.QueryController do
   # -------------------------------------------------------------------
 
   def permissions do
-    %{
-      admin: :all
-    }
+    %{admin: :all}
   end
 
   # -------------------------------------------------------------------
@@ -38,8 +36,38 @@ defmodule AirWeb.Admin.QueryController do
   end
 
   def failed(conn, params) do
-    page = params["page"] || 1
-    failed_queries = Air.Service.Query.paginated_failed_queries(page)
-    render(conn, "failed.html", failed_queries: failed_queries)
+    filters = %{
+      from: parse_datetime(params["from"], Timex.now() |> Timex.shift(days: -1)),
+      to: parse_datetime(params["to"], Timex.now()),
+      users: params["users"] || [],
+      data_sources: [],
+      query_states: [:error],
+      max_results: 100
+    }
+
+    render(
+      conn,
+      "failed.html",
+      Map.merge(filters, %{
+        full_width: true,
+        csrf_token: CSRFProtection.get_csrf_token(),
+        number_format: Air.Service.User.number_format_settings(conn.assigns.current_user),
+        debug_mode_enabled: conn.assigns.current_user.debug_mode_enabled,
+        failed_queries: Air.Service.Query.queries(filters) |> Enum.map(&Query.for_display(&1, nil)),
+        users: Air.Service.Query.users_for_filters(filters) |> Enum.map(&%{label: &1.name, value: &1.id}),
+        data_sources: Air.Service.Query.data_sources_for_filters(filters) |> Enum.map(&%{label: &1.name, value: &1.id})
+      })
+    )
+  end
+
+  # -------------------------------------------------------------------
+  # Helpers
+  # -------------------------------------------------------------------
+
+  defp parse_datetime(value, default) do
+    case Timex.parse(value, "{ISOdate} {ISOtime}") do
+      {:ok, result} -> result
+      _error -> default
+    end
   end
 end

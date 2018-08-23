@@ -34,32 +34,23 @@ config :cloak, :anonymizer,
   # Reported values equal or exceed this value.
   low_count_absolute_lower_bound: 2,
 
-  # The mean and standard deviation for the count of outliers dropped, from the top of the collection,
+  # The range and standard deviation for the count of outliers dropped, from the top of the collection,
   # during the anonymized aggregation of values. The outliers are replaced with the noisy
   # average value for the top of the remaining users in the collection.
-  outliers_count: {3, 0.5},
+  outliers_count: {1, 2, 0.5},
 
-  # The minimum and maximum amounts of dropped outliers or top values.
-  group_limits: {2, 6},
-
-  # The mean and standard deviation for the count of items at the top of a collection,
+  # The range and standard deviation for the count of items at the top of a collection,
   # used for computing the average value of the top.
-  top_count: {3, 0.5},
+  top_count: {1, 3, 0.5},
 
   # The base sigma value used for sum and count calculations.
   # This base sigma is scaled based on the average values and the `sum_noise_sigma_scale_params`.
   sum_noise_sigma: 1,
 
   # `sum_noise_sigma` is scaled based on the values being anonymized following the following formula:
-  #
-  #   max(
-  #     lower_bound,
-  #     max(average_factor * average, top_average_factor * top_average)
-  #   )
-  #
-  # The parameter takes the form:
-  # {lower_bound, average_factor, top_average_factor}
-  sum_noise_sigma_scale_params: {2, 1, 0.5},
+  #   max(average_factor * average, top_average_factor * top_average)
+  # The parameter takes the form: {average_factor, top_average_factor}
+  sum_noise_sigma_scale_params: {1, 0.5},
 
   # This values specifies the isolating factor threshold. See `Isolating columns` in anonymization.md.
   isolating_column_threshold: 0.5

@@ -1,0 +1,29 @@
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>Users</th>
+      <th>Data sources</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+
+    <%= for group <- @groups do %>
+      <tr class="<%= group_row_class(group) %>">
+        <td><%= group_name(group) %></td>
+        <td><%= length(group.users) %></td>
+        <td><%= length(group.data_sources) %></td>
+        <td>
+          <%= link "Edit", to: admin_group_path(@conn, :edit, group), class: "btn btn-xs btn-default" %>
+
+          <%= if can_delete?(group) do %>
+            <%= link "Delete", to: admin_group_path(@conn, :delete, group), method: :delete,
+              class: "btn btn-danger btn-xs", "data-confirm": ~s(Delete the group "#{group.name}"?) %>
+          <% end %>
+        </td>
+      </tr>
+    <% end %>
+
+  </tbody>
+</table>

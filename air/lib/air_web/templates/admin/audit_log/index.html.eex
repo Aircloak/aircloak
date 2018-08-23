@@ -14,101 +14,43 @@
   </div>
 
   <div class="col-md-3">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        Filter by time
-      </div>
+    <%= render(AirWeb.Admin.SharedView, "time_filter.html", conn: @conn, from: @from, to: @to) %>
 
-      <div class="panel-body">
-        <form>
-          <%= for {name, value} <- serialize_params(@conn), name not in ~w(from to) do %>
-            <input type="hidden" name="<%= name %>" value="<%= value %>" />
-          <% end %>
+    <%=
+      render(
+        AirWeb.Admin.SharedView,
+        "list_filter.html",
+        conn: @conn,
+        title: "Filter by users",
+        name: :users,
+        options: @users,
+        link: &admin_audit_log_path(@conn, :index, &1)
+      )
+    %>
 
-          <div class="form-group">
-            <label for="from">From</label>
-            <div class="input-group date datetimepicker">
-              <input id="from" name="from" type="text" class="form-control" value="<%= @from %>" />
-              <span class="input-group-addon">
-                <span class="glyphicon glyphicon-calendar"></span>
-              </span>
-            </div>
-          </div>
+    <%=
+      render(
+        AirWeb.Admin.SharedView,
+        "list_filter.html",
+        conn: @conn,
+        title: "Filter by event type",
+        name: :events,
+        options: @event_types,
+        link: &admin_audit_log_path(@conn, :index, &1)
+      )
+    %>
 
-          <div class="form-group">
-            <label for="to">To</label>
-            <div class="input-group date datetimepicker">
-              <input id="to" name="to" type="text" class="form-control" value="<%= @to %>" />
-              <span class="input-group-addon">
-                <span class="glyphicon glyphicon-calendar"></span>
-              </span>
-            </div>
-          </div>
-
-          <button type="submit" class="btn btn-primary">Filter</button>
-        </form>
-      </div>
-    </div>
-
-    <%= if length(@users) > 0 do %>
-      <div class="panel panel-default">
-        <div class="panel-heading">
-          Filter by users
-        </div>
-        <table class="table">
-          <tbody>
-            <%= for user <- @users do %>
-              <tr class="<%= if selected?(@conn, :users, user.id), do: "warning", else: "" %>">
-                <td>
-                  <%= link [glyph(selected?(@conn, :users, user.id)), user.name],
-                    to: admin_audit_log_path(@conn, :index, toggle_item(@conn, :users, user.id)) %>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% end %>
-
-    <%= if length(@event_types) > 0 do %>
-      <div class="panel panel-default">
-        <div class="panel-heading">
-          Filter by event type
-        </div>
-        <table class="table">
-          <tbody>
-            <%= for event <- @event_types do %>
-              <tr class="<%= if selected?(@conn, :events, event), do: "warning", else: "" %>">
-                <td>
-                  <%= link [glyph(selected?(@conn, :events, event)), event],
-                    to: admin_audit_log_path(@conn, :index, toggle_item(@conn, :events, event)) %>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% end %>
-
-    <%= if length(@data_sources) > 0 do %>
-      <div class="panel panel-default">
-        <div class="panel-heading">
-          Filter by data source
-        </div>
-        <table class="table">
-          <tbody>
-            <%= for data_source <- @data_sources do %>
-              <tr class="<%= if selected?(@conn, :data_sources, data_source.name), do: "warning", else: "" %>">
-                <td>
-                  <%= link [glyph(selected?(@conn, :data_sources, data_source.name)), data_source.name],
-                    to: admin_audit_log_path(@conn, :index, toggle_item(@conn, :data_sources, data_source.name)) %>
-                </td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
-      </div>
-    <% end %>
+    <%=
+      render(
+        AirWeb.Admin.SharedView,
+        "list_filter.html",
+        conn: @conn,
+        title: "Filter by data source",
+        name: :data_sources,
+        options: @data_sources,
+        link: &admin_audit_log_path(@conn, :index, &1)
+      )
+    %>
   </div>
 </div>
 

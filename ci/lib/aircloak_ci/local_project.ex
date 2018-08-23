@@ -425,7 +425,7 @@ defmodule AircloakCI.LocalProject do
   defp do_update_code(project) do
     with :ok <- clone_repo(project),
          :ok <- cmd(project, "main", "git #{project.update_git_command}", timeout: :timer.minutes(5)),
-         do: cmd(project, "main", "git checkout #{project.checkout}")
+         do: cmd(project, "main", "git checkout --force #{project.checkout}")
   end
 
   defp clone_repo(project) do

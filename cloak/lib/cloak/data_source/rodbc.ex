@@ -4,7 +4,7 @@ defmodule Cloak.DataSource.RODBC do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.{RODBC.Driver, SqlBuilder}
+  alias Cloak.DataSource.{RODBC.Driver, SqlBuilder, Table}
   alias Cloak.DataSource
 
   # -------------------------------------------------------------------
@@ -12,33 +12,43 @@ defmodule Cloak.DataSource.RODBC do
   # -------------------------------------------------------------------
 
   @doc "Normalizes the connection parameters and connects to the data source via odbc."
-  @spec connect!(Driver.parameters(), (map -> map)) :: :odbc.connection_reference()
-  def connect!(parameters, conn_params_extractor) do
+  @spec connect!(Driver.parameters(), (map -> map), Keyword.t()) :: :odbc.connection_reference()
+  def connect!(parameters, conn_params_extractor, driver_params \\ []) do
     normalized_parameters = Cloak.DataSource.ODBC.normalize_parameters(parameters)
 
     normalized_parameters
     |> conn_params_extractor.()
     |> Map.merge(Map.get(normalized_parameters, :odbc_parameters, %{}))
-    |> connect!()
+    |> driver_connect!(driver_params)
   end
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
-  def connect!(parameters) do
-    port = Driver.open()
-
-    with :ok <- Driver.connect(port, to_connection_string(parameters)) do
-      port
-    else
-      {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
-    end
-  end
-
   def disconnect(port) do
     true = Driver.close(port)
     :ok
+  end
+
+  def load_tables(connection, table) do
+    case Driver.execute(connection, "SELECT * FROM #{table.db_name} LIMIT 0") do
+      :ok ->
+        case Driver.get_columns(connection) do
+          {:ok, []} ->
+            DataSource.raise_error("Table #{table.db_name} does not have any columns")
+
+          {:ok, columns} ->
+            columns = Enum.map(columns, fn {name, type_name} -> Table.column(name, parse_type(type_name)) end)
+            [%{table | columns: columns}]
+
+          {:error, reason} ->
+            DataSource.raise_error("`#{to_string(reason)}`")
+        end
+
+      {:error, reason} ->
+        DataSource.raise_error("`#{to_string(reason)}`")
+    end
   end
 
   def select(port, sql_query, result_processor) do
@@ -59,6 +69,23 @@ defmodule Cloak.DataSource.RODBC do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp driver_connect!(conn_params, driver_params) do
+    port = Driver.open()
+
+    with :ok <- Driver.connect(port, to_connection_string(conn_params)) do
+      if Keyword.get(driver_params, :wstr_as_bin), do: :ok = Driver.set_wstr_as_bin(port)
+      port
+    else
+      {:error, reason} ->
+        DataSource.raise_error(
+          "Failed to establish a connection to the database. " <>
+            "Please check that the database server is running, is reachable from the " <>
+            "Insights Cloak host, and the database credentials are correct. " <>
+            "The database driver reported the following exception: `#{to_string(reason)}`"
+        )
+    end
+  end
 
   defp to_connection_string(parameters) do
     parameters
@@ -153,4 +180,19 @@ defmodule Cloak.DataSource.RODBC do
   defp boolean_field_mapper(0), do: false
   defp boolean_field_mapper(other) when is_integer(other), do: true
   defp boolean_field_mapper(nil), do: nil
+
+  defp parse_type("varchar"), do: :text
+  defp parse_type("wvarchar"), do: :text
+  defp parse_type("binary"), do: :text
+  defp parse_type("guid"), do: :text
+  defp parse_type("bit"), do: :boolean
+  defp parse_type("bigint"), do: :integer
+  defp parse_type("integer"), do: :integer
+  defp parse_type("float"), do: :real
+  defp parse_type("numeric"), do: :real
+  defp parse_type("time"), do: :time
+  defp parse_type("date"), do: :date
+  defp parse_type("datetime"), do: :datetime
+  defp parse_type("timestamp"), do: :datetime
+  defp parse_type(type), do: {:unsupported, type}
 end

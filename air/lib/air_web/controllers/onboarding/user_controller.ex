@@ -18,7 +18,7 @@ defmodule AirWeb.Onboarding.UserController do
   # -------------------------------------------------------------------
 
   def new(conn, _params) do
-    if User.admin_user_exists?() do
+    if User.active_admin_user_exists?() do
       redirect(conn, to: onboarding_user_path(conn, :already_setup))
     else
       render(conn, "new.html", changeset: User.empty_changeset(), errors: false)
@@ -45,7 +45,7 @@ defmodule AirWeb.Onboarding.UserController do
   # -------------------------------------------------------------------
 
   defp login(conn, params) do
-    login_params = Map.take(params, ["email", "password"])
+    login_params = Map.take(params, ["login", "password"])
     conn = put_session(conn, :return_path, admin_user_path(conn, :index))
     AirWeb.SessionController.create(conn, login_params)
   end

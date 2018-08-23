@@ -202,10 +202,30 @@ defmodule Cloak.Query.ErrorTest do
     })
   end
 
-  test "non-constant in IN" do
-    assert_query("select count(*) from test_errors where height IN (1, height / 2)", %{
-      error: "Only constants are allowed on the right-hand side of the IN operator." <> _
-    })
+  describe "IN" do
+    test "non-constant in IN" do
+      assert_query("select count(*) from test_errors where height IN (1, height / 2)", %{
+        error: "Only constants are allowed on the right-hand side of the IN operator." <> _
+      })
+    end
+
+    test "mistyped IN" do
+      assert_query(
+        """
+          select count(*) from test_errors where height
+          in (1, '2')
+        """,
+        %{error: error}
+      )
+
+      assert String.contains?(error, """
+             \t1:      select count(*) from test_errors where height
+             \t2:      in (1, '2')
+             \t               ^
+             """)
+
+      assert error =~ ~r/Expected a constant of type `integer`, got `text`/
+    end
   end
 
   test "multiple aggregtors in the same expression are not allowed" do
@@ -268,5 +288,22 @@ defmodule Cloak.Query.ErrorTest do
            """)
 
     assert String.contains?(error, "usage of DISTINCT, GROUP BY, and ORDER BY in the same query is not supported")
+  end
+
+  test "error message for failed constant simplification" do
+    assert_query(
+      """
+      SELECT COUNT(*) FROM test_errors
+      WHERE height BETWEEN 1 AND sqrt(-1)
+      """,
+      %{error: error}
+    )
+
+    assert String.contains?(error, "Failed to evaluate expression `sqrt(-1)`")
+
+    assert String.contains?(error, """
+           \t2:    WHERE height BETWEEN 1 AND sqrt(-1)
+           \t                                 ^
+           """)
   end
 end

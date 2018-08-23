@@ -32,6 +32,25 @@ defmodule Air.Service.DataSourceTest do
     }
   end
 
+  test "mark_as_pending_delete!",
+    do: assert(DataSource.mark_as_pending_delete!(TestRepoHelper.create_data_source!()).pending_delete)
+
+  test "all", context do
+    expected_datasources = Enum.sort([context.ds1.id, context.ds2.id])
+
+    actual_datasources =
+      DataSource.all()
+      |> Enum.map(& &1.id)
+      |> Enum.sort()
+
+    assert expected_datasources == actual_datasources
+  end
+
+  test "all does not include those pending delete", context do
+    DataSource.mark_as_pending_delete!(context.ds2)
+    assert [context.ds1.id] == Enum.map(DataSource.all(), & &1.id)
+  end
+
   test "count" do
     initial_count = DataSource.count()
 
@@ -39,8 +58,31 @@ defmodule Air.Service.DataSourceTest do
     assert DataSource.count() == initial_count + 5
   end
 
+  test "count does not include pending deletes" do
+    initial_count = DataSource.count()
+
+    Enum.each(1..5, fn _ -> TestRepoHelper.create_data_source!() end)
+    DataSource.mark_as_pending_delete!(TestRepoHelper.create_data_source!())
+
+    assert DataSource.count() == initial_count + 5
+  end
+
   test "fetching user's data sources", context do
     expected_datasources = Enum.sort([context.ds1.id, context.ds2.id])
+
+    actual_datasources =
+      DataSource.for_user(context.user1)
+      |> Enum.map(& &1.id)
+      |> Enum.sort()
+
+    assert expected_datasources == actual_datasources
+    assert Enum.map(DataSource.for_user(context.user2), & &1.id) == [context.ds2.id]
+    assert Enum.map(DataSource.for_user(context.user3), & &1.id) == []
+  end
+
+  test "fetching user's data sources do not include ones pending delete", context do
+    DataSource.mark_as_pending_delete!(context.ds1)
+    expected_datasources = [context.ds2.id]
 
     actual_datasources =
       DataSource.for_user(context.user1)

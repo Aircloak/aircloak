@@ -24,12 +24,15 @@ defmodule Aircloak.File do
       )
 
   @doc "Reads a file from the configuration folder for a given application"
-  @spec read_config_file(atom, String.t()) :: {:ok, Map.t()} | {:error, String.t()}
-  def read_config_file(app, path_segment),
-    do:
-      config_path(app, path_segment)
-      |> File.read!()
-      |> Aircloak.Json.safe_decode()
+  @spec read_config_file(atom, String.t()) :: {:ok, Map.t()} | {:error, String.t() | atom}
+  def read_config_file(app, path_segment) do
+    config_path(app, path_segment)
+    |> File.read!()
+    |> Aircloak.Json.safe_decode()
+  rescue
+    error in File.Error ->
+      {:error, error.reason}
+  end
 
   @doc "Lists all files inside a config directory for the calling application"
   defmacro ls(path_segment),

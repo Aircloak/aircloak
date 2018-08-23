@@ -19,7 +19,7 @@ defmodule Air.Service.DebugExport do
         cloak_id: query.cloak_id,
         context: query.context,
         created_on: query.inserted_at,
-        email: user.email,
+        login: user.login,
         features: query.features || [],
         last_update: query.updated_at,
         user: user.name

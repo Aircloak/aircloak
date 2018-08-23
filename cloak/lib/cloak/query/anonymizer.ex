@@ -94,7 +94,7 @@ defmodule Cloak.Query.Anonymizer do
 
       {{count, noise_sigma}, _anonymizer} ->
         count = count |> round() |> Kernel.max(config(:low_count_absolute_lower_bound))
-        {_noise_mean_lower_bound, noise_sigma_lower_bound} = config(:outliers_count)
+        {_noise_lower_bound, _noise_upper_bound, noise_sigma_lower_bound} = config(:outliers_count)
         {count, Kernel.max(noise_sigma, noise_sigma_lower_bound)}
     end
   end
@@ -371,8 +371,8 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   defp noise_sigma_scale_factor(average, top_average) do
-    {scale_min, average_factor, top_average_factor} = config(:sum_noise_sigma_scale_params)
-    Kernel.max(scale_min, Kernel.max(average_factor * average, top_average_factor * top_average))
+    {average_factor, top_average_factor} = config(:sum_noise_sigma_scale_params)
+    Kernel.max(average_factor * average, top_average_factor * top_average)
   end
 
   defp min_max_groups(anonymizer) do
@@ -440,9 +440,10 @@ defmodule Cloak.Query.Anonymizer do
   defp sum_noise_sigmas(nil, sigma2), do: sigma2
   defp sum_noise_sigmas(sigma1, sigma2), do: :math.sqrt(sigma1 * sigma1 + sigma2 * sigma2)
 
-  defp get_group_count(anonymizer, mean_sigma) do
-    {min_count, max_count} = config(:group_limits)
-    {count, anonymizer} = add_noise(anonymizer, mean_sigma)
+  defp get_group_count(anonymizer, range_sigma) do
+    {min_count, max_count, sigma} = range_sigma
+    mean_count = (min_count + max_count) * 0.5
+    {count, anonymizer} = add_noise(anonymizer, {mean_count, sigma})
     count = count |> round() |> Kernel.max(min_count) |> Kernel.min(max_count)
     {count, anonymizer}
   end

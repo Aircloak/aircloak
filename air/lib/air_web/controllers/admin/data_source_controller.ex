@@ -83,6 +83,7 @@ defmodule AirWeb.Admin.DataSourceController do
   def delete(conn, _params) do
     data_source = conn.assigns.data_source
     data_source_audit_log(conn, data_source, "Data source removal scheduled")
+    DataSource.mark_as_pending_delete!(data_source)
 
     on_success = fn -> data_source_audit_log(conn, data_source, "Data source removal succeeded") end
     on_failure = fn -> data_source_audit_log(conn, data_source, "Data source removal failed") end

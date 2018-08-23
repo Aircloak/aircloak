@@ -1,10 +1,28 @@
+## UNRELEASED CHANGES
+
+### Features
+
+- LDAP support
+
+### Bugfix
+
+- Correctly typecheck parameters given to `IN`-style `WHERE`-clauses.
+- Fix for queries being improperly rejected when a condition included two isolating columns
+
+### Enhancements
+
+- Support for transferring binary data when using the RODBC version of data source drivers
+- Performance improvements in the failed queries view for systems with high numbers of queries
+
+### Changes
+
+- Noise parameters changed. Results will differ.
+
 ## Version 18.3.1
 
 ### Bugfix
 
 - Fix for queries being improperly rejected when a condition included two isolating columns
-
-## 18.3.0
 
 ### __Breaking change__
 

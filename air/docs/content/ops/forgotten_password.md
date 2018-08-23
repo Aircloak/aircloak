@@ -12,11 +12,11 @@ is running. This option can be used to reset a lost password even if no admin ac
 the following command:
 
 ```
-$ docker exec -it [container] bin/air reset_password [email]
+$ docker exec -it [container] bin/air reset_password [login]
 ```
 
 In the command above, substitute the name of your Insights Air container (most likely `air`) for `[container]`, and
-the email of the user for whom you want to reset the password for `[email]`. As a result you will get output like the
+the login of the user for whom you want to reset the password for `[login]`. As a result you will get output like the
 following:
 
 ```

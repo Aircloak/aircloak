@@ -85,7 +85,7 @@ defmodule AircloakCI.Build.Branch do
   #
   # In contrast, no jobs are started on non-target branches. A typical example is a feature branch. There's no point in
   # running any jobs on such branch, since they will be executed on the corresponding PR build.
-  defp target_branch?(branch), do: branch.name in ~w(master anonymization) or branch.name =~ ~r/^release_\d+$/
+  defp target_branch?(branch), do: branch.name in ~w(master) or branch.name =~ ~r/^release_\d+$/
 
   defp find_branch(repo_data, branch_name), do: Enum.find(repo_data.branches, &(&1.name == branch_name))
 

@@ -34,6 +34,8 @@ defmodule Air.Token do
           token in ApiToken,
           where: token.id == ^token_id,
           where: token.access == ^access,
+          inner_join: user in assoc(token, :user),
+          where: user.enabled,
           preload: [{:user, :groups}],
           select: token
         )

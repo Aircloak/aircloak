@@ -76,6 +76,14 @@ defmodule IntegrationTest.PostgrexTest do
     assert {:ok, _} = Postgrex.query(context.conn, "select $1::text from users", ["foobar"])
   end
 
+  test "can't query on active connection once user is disabled", context do
+    assert {:ok, _} = Postgrex.query(context.conn, "select 1 FROM users", [])
+    # required in order to be able to disable the user
+    _secondary_user = Manager.create_air_user()
+    assert {:ok, _} = Air.Service.User.disable(context.user)
+    assert_raise DBConnection.ConnectionError, fn -> Postgrex.query(context.conn, "select 1 FROM users", []) end
+  end
+
   defp param_select(conn, value, cast) do
     result = Postgrex.query!(conn, "select $1::#{cast} from users", [value])
     [[value]] = Enum.uniq(result.rows)
@@ -86,7 +94,7 @@ defmodule IntegrationTest.PostgrexTest do
     Postgrex.start_link(
       hostname: "localhost",
       port: Application.fetch_env!(:air, Air.PsqlServer) |> Keyword.fetch!(:port),
-      username: user.email,
+      username: user.login,
       password: Manager.user_password(),
       database: Manager.data_source_name(),
       ssl: true

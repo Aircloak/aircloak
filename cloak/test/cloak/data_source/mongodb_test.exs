@@ -597,4 +597,10 @@ defmodule Cloak.DataSource.MongoDBTest do
       }
     )
   end
+
+  test "standard query with distinct", context do
+    assert_query(context, "SELECT DISTINCT CAST(val - 1 AS boolean) AS x FROM #{@userless_table}", %{
+      rows: [%{occurrences: 1, row: [true]}, %{occurrences: 1, row: [false]}]
+    })
+  end
 end

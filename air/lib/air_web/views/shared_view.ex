@@ -7,4 +7,6 @@ defmodule AirWeb.SharedView do
     |> Aircloak.Version.for_app()
     |> Aircloak.Version.to_string()
   end
+
+  def has_privacy_policy?(), do: Air.Service.PrivacyPolicy.exists?()
 end

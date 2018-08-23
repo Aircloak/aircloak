@@ -14,6 +14,7 @@ defmodule Air.Schemas.DataSource do
     field(:columns_count, :integer)
     field(:isolated_computed_count, :integer)
     field(:isolated_failed, {:array, :string})
+    field(:pending_delete, :boolean)
 
     has_many(:queries, Query, on_delete: :delete_all)
 

@@ -1,5 +1,5 @@
 {
-  "title": "Aircloak User Guide – version 18.3.1",
+  "title": "Aircloak User Guide – version 18.4.0",
   "styles": {
     "website": "styles/website.css"
   },
@@ -12,6 +12,6 @@
   ],
   "language": "en",
   "gitbook": "3.2.2",
-  "description": "This copy of the Aircloak user guide describes the features of, and how to configure and work with Aircloak Insights version 18.3.1.",
+  "description": "This copy of the Aircloak user guide describes the features of, and how to configure and work with Aircloak Insights version 18.4.0.",
   "author": "Aircloak GmbH"
 }

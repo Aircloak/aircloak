@@ -126,9 +126,9 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
   defp to_doc({:integer, value, []}), do: to_string(value)
   defp to_doc({:text, value, []}), do: to_string([?', value, ?'])
   defp to_doc({:boolean, value, []}), do: to_string(value)
-  defp to_doc({:datetime, value, []}), do: to_string([?', to_string(value), ?'])
-  defp to_doc({:time, value, []}), do: to_string([?', to_string(value), ?'])
-  defp to_doc({:date, value, []}), do: to_string([?', to_string(value), ?'])
+  defp to_doc({:datetime, value, []}), do: to_string(["datetime ", ?', to_string(value), ?'])
+  defp to_doc({:time, value, []}), do: to_string(["time ", ?', to_string(value), ?'])
+  defp to_doc({:date, value, []}), do: to_string(["date ", ?', to_string(value), ?'])
   defp to_doc({:interval, value, []}), do: to_string(["interval ", ?', Timex.Duration.to_string(value), ?'])
   defp to_doc({:real, value, []}), do: to_string(value)
 

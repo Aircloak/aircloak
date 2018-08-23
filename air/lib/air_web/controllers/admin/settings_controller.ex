@@ -35,7 +35,7 @@ defmodule AirWeb.Admin.SettingsController do
   defp save(conn, params) do
     case Air.Service.Settings.save(params["settings"]) do
       {:ok, settings} ->
-        AuditLog.log(conn.assigns.current_user, "Updated settings", settings)
+        AuditLog.log(conn.assigns.current_user, "Updated settings", Map.drop(settings, [:__struct__, :__meta__]))
 
         conn
         |> put_flash(:info, "The settings were saved.")

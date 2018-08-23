@@ -22,6 +22,22 @@
           <%= error_tag(form, :auto_renew) %>
         </div>
 
+        <div class="form-group">
+          <label>Features</label>
+
+          <div class="checkbox">
+            <%= for {label, value} <- features() do %>
+              <label>
+                <%= checkbox(form, :features, name: input_name(form, :features) <> "[]", checked_value: value,
+                  unchecked_value: "", checked: feature_enabled?(@changeset, value)) %>
+                <strong><%= label %></strong>
+              </label>
+            <% end %>
+          </div>
+
+          <%= error_tag(form, :features) %>
+        </div>
+
         <button class="btn btn-primary" type="submit"><%= @button %></button>
       <% end) %>
     </div>
