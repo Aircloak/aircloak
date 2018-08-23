@@ -1,4 +1,4 @@
-defmodule Air.Service.ShadowDb.Server do
+defmodule Air.Service.ShadowDb.Manager do
   @moduledoc "Server responsible for managing a single shadow database."
 
   use GenServer, restart: :transient

@@ -9,10 +9,10 @@ defmodule Air.Service.ShadowDb do
   use Supervisor
   require Logger
   alias Aircloak.ChildSpec
-  alias Air.Service.ShadowDb.{Database, Server}
+  alias Air.Service.ShadowDb.{Database, Manager}
 
   @database_supervisor __MODULE__.Databases
-  @server_registry __MODULE__.Registry
+  @registry __MODULE__.Registry
 
   # -------------------------------------------------------------------
   # API functions
@@ -20,7 +20,7 @@ defmodule Air.Service.ShadowDb do
 
   @doc "Updates the shadow database according to the data source definition."
   @spec update(map) :: :ok
-  def update(data_source), do: Server.update_definition(server_pid(data_source))
+  def update(data_source), do: Manager.update_definition(manager_pid(data_source))
 
   @doc "Drops the given shadow database."
   @spec drop(String.t()) :: :ok
@@ -28,12 +28,12 @@ defmodule Air.Service.ShadowDb do
     with pid when is_pid(pid) <- Database.whereis(data_source_name),
          do: DynamicSupervisor.terminate_child(@database_supervisor, pid)
 
-    # Server.drop_database creates a connection and closes it, and closing a connection requires the client process to
+    # Manager.drop_database creates a connection and closes it, and closing a connection requires the client process to
     # trap exits. Since we don't want to implicitly start trapping exit in the caller of drop/1 we're doing this in a
     # separate task.
     Task.start_link(fn ->
       Process.flag(:trap_exit, true)
-      Server.drop_database(data_source_name)
+      Manager.drop_database(data_source_name)
     end)
 
     :ok
@@ -41,11 +41,11 @@ defmodule Air.Service.ShadowDb do
 
   @doc "Returns the name of the shadow database for the given data source."
   @spec db_name(String.t()) :: String.t()
-  defdelegate db_name(data_source), to: Server
+  defdelegate db_name(data_source), to: Manager
 
   @doc "Returns the registered name for the process related to the given data source in a given role."
   @spec registered_name(String.t(), term()) :: {:via, module, {atom, term}}
-  def registered_name(data_source_name, role), do: {:via, Registry, {@server_registry, {data_source_name, role}}}
+  def registered_name(data_source_name, role), do: {:via, Registry, {@registry, {data_source_name, role}}}
 
   # -------------------------------------------------------------------
   # Supervisor callbacks
@@ -57,7 +57,7 @@ defmodule Air.Service.ShadowDb do
 
     Supervisor.init(
       [
-        ChildSpec.registry(:unique, @server_registry),
+        ChildSpec.registry(:unique, @registry),
         ChildSpec.dynamic_supervisor(name: @database_supervisor)
       ],
       strategy: :one_for_one
@@ -68,14 +68,14 @@ defmodule Air.Service.ShadowDb do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp server_pid(data_source) do
-    with nil <- Server.whereis(data_source.name) do
+  defp manager_pid(data_source) do
+    with nil <- Manager.whereis(data_source.name) do
       case DynamicSupervisor.start_child(@database_supervisor, {Database, data_source.name}) do
         {:ok, _pid} -> :ok
         {:error, {:already_started, _pid}} -> :ok
       end
 
-      pid = Server.whereis(data_source.name)
+      pid = Manager.whereis(data_source.name)
       true = is_pid(pid)
       pid
     end
@@ -88,7 +88,7 @@ defmodule Air.Service.ShadowDb do
       Task.async(fn ->
         Process.flag(:trap_exit, true)
 
-        Stream.repeatedly(&Server.db_server_available?/0)
+        Stream.repeatedly(&Manager.db_server_available?/0)
         |> Stream.intersperse(:sleep)
         |> Stream.map(fn
           :sleep -> Process.sleep(:timer.seconds(5))

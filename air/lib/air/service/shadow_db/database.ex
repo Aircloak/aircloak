@@ -23,7 +23,7 @@ defmodule Air.Service.ShadowDb.Database do
   def child_spec(data_source_name) do
     Aircloak.ChildSpec.supervisor(
       [
-        {Air.Service.ShadowDb.Server, data_source_name}
+        {Air.Service.ShadowDb.Manager, data_source_name}
       ],
       name: name(data_source_name),
       strategy: :one_for_one
