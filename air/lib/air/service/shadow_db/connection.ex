@@ -8,8 +8,8 @@ defmodule Air.Service.ShadowDb.Connection do
   Record.defrecordp(:epgsql_column, Record.extract(:column, from_lib: "epgsql/include/epgsql.hrl"))
   Record.defrecordp(:epgsql_error, Record.extract(:error, from_lib: "epgsql/include/epgsql.hrl"))
 
-  @type query_result :: {:ok, [columns: [column], rows: [term]]} | {:error, String.t()}
-  @type parse_result :: {:ok, [columns: [column], param_types: [atom]]} | {:error, String.t()}
+  @type query_result :: {:ok, [column], [term]} | {:error, String.t()}
+  @type parse_result :: {:ok, [column], [atom]} | {:error, String.t()}
   @type column :: %{name: String.t(), type: atom}
 
   # -------------------------------------------------------------------
@@ -23,7 +23,7 @@ defmodule Air.Service.ShadowDb.Connection do
       {:ok, columns, rows} ->
         columns = Enum.map(columns, &map_column/1)
         rows = Enum.map(rows, &map_row(columns, Tuple.to_list(&1)))
-        [columns: columns, rows: rows]
+        {:ok, columns, rows}
 
       {:error, epgsql_error} ->
         Logger.error("error executing shadow db query: #{query}")
@@ -43,7 +43,7 @@ defmodule Air.Service.ShadowDb.Connection do
           |> Stream.map(fn {oid, _type_name, _array_oid} -> oid end)
           |> Enum.map(&Air.PsqlServer.Protocol.Value.type_from_oid/1)
 
-        [columns: columns, param_types: param_types]
+        {:ok, columns, param_types}
 
       {:error, epgsql_error} ->
         Logger.error("error parsing shadow db query: #{query}")

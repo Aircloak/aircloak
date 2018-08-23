@@ -26,7 +26,7 @@ defmodule Air.PsqlServer.QueryExecution do
             result =
               case select_from_shadow_db!(conn, cursor.inner_query, params) do
                 {:error, _} = error -> error
-                success -> Keyword.merge(success, command: :fetch)
+                {:ok, columns, rows} -> [command: :fetch, columns: columns, rows: rows]
               end
 
             first_cursor_fetch(conn, cursor, result)
@@ -38,7 +38,10 @@ defmodule Air.PsqlServer.QueryExecution do
           fetch_from_cursor(conn, cursor_fetch.cursor, cursor_fetch.count)
 
         internal_query?(query) ->
-          RanchServer.query_result(conn, select_from_shadow_db!(conn, query, params))
+          case select_from_shadow_db!(conn, query, params) do
+            {:ok, columns, rows} -> RanchServer.query_result(conn, command: :select, columns: columns, rows: rows)
+            {:error, _reason} = error -> RanchServer.query_result(conn, error)
+          end
 
         query =~ ~r/^begin$/i ->
           RanchServer.query_result(conn, command: :begin)
@@ -71,10 +74,10 @@ defmodule Air.PsqlServer.QueryExecution do
           RanchServer.describe_result(conn, columns: [], param_types: [])
 
         internal_query?(query) ->
-          RanchServer.describe_result(
-            conn,
-            Air.Service.ShadowDb.parse(conn.assigns.data_source_name, query)
-          )
+          case Air.Service.ShadowDb.parse(conn.assigns.data_source_name, query) do
+            {:ok, columns, param_types} -> RanchServer.describe_result(conn, columns: columns, param_types: param_types)
+            {:error, _reason} = error -> RanchServer.describe_result(conn, error)
+          end
 
         true ->
           CloakQuery.describe_query(conn, query, params)
