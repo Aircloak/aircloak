@@ -5,7 +5,7 @@
 - LDAP support
 - Support for Drill data sources
 
-### Bugfix
+### Bugfixes
 
 - Correctly typecheck parameters given to `IN`-style `WHERE`-clauses.
 - Fix for queries being improperly rejected when a condition included two isolating columns
@@ -24,6 +24,8 @@
 ### Bugfix
 
 - Fix for queries being improperly rejected when a condition included two isolating columns
+
+## Version 18.3.0
 
 ### __Breaking change__
 
