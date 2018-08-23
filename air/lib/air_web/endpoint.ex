@@ -62,8 +62,10 @@ defmodule AirWeb.Endpoint do
   plug(
     Plug.Session,
     store: :cookie,
+    secure: false,
     key: "_air_key",
-    signing_salt: "hkTRmL2h"
+    signing_salt: "hkTRmL2h",
+    encryption_salt: "g0Y/4Aw2QRh2ug"
   )
 
   # As per the Plug.Conn documentation, the remote_ip parameter is not automatically set
