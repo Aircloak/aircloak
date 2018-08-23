@@ -13,23 +13,6 @@ defmodule Air.PsqlServer.QueryExecution do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Opens a permanent connection to the shadow database and stores it into the given tcp connection."
-  @spec initialize(RanchServer.t(), String.t()) :: RanchServer.t()
-  def initialize(conn, data_source_name) do
-    # We're using pgsql (https://github.com/semiocast/pgsql) instead of Postgrex, because Postgrex uses a binary
-    # protocol, which leads to some type information loss (https://hexdocs.pm/postgrex/readme.html#oid-type-encoding).
-    # With pgsql, we get better more detailed type information, so we can correctly transfer the data to the client.
-    {:ok, db_conn} =
-      :epgsql.connect(
-        '127.0.0.1',
-        'postgres',
-        '',
-        %{database: to_charlist(Air.Service.ShadowDb.db_name(data_source_name))}
-      )
-
-    RanchServer.assign(conn, :shadow_db_conn, db_conn)
-  end
-
   @doc "Executes the given query."
   @spec run_query(RanchServer.t(), String.t(), [Protocol.param_with_type()]) :: RanchServer.t()
   def run_query(conn, query, params) do
@@ -90,7 +73,7 @@ defmodule Air.PsqlServer.QueryExecution do
         internal_query?(query) ->
           RanchServer.describe_result(
             conn,
-            describe_from_shadow_db!(conn, query)
+            Air.Service.ShadowDb.parse(conn.assigns.data_source_name, query)
           )
 
         true ->
@@ -165,95 +148,12 @@ defmodule Air.PsqlServer.QueryExecution do
     end
   end
 
-  defp describe_from_shadow_db!(conn, query) do
-    case :epgsql.parse(conn.assigns.shadow_db_conn, query) do
-      {:ok, statement} ->
-        columns = Enum.map(epgsql_statement(statement, :columns), &map_column/1)
-
-        param_types =
-          epgsql_statement(statement, :parameter_info)
-          |> Stream.map(fn {oid, _type_name, _array_oid} -> oid end)
-          |> Enum.map(&Air.PsqlServer.Protocol.Value.type_from_oid/1)
-
-        [columns: columns, param_types: param_types]
-
-      {:error, epgsql_error} ->
-        Logger.error("error parsing shadow db query: #{query}")
-        {:error, epgsql_error(epgsql_error, :message)}
-    end
-  end
-
   defp select_from_shadow_db!(conn, query, params) do
-    params = Enum.map(params || [], fn {_type, value} -> value end)
-
-    case :epgsql.equery(conn.assigns.shadow_db_conn, to_charlist(query), params) do
-      {:ok, columns, rows} ->
-        columns = Enum.map(columns, &map_column/1)
-        rows = Enum.map(rows, &map_row(columns, Tuple.to_list(&1)))
-        [columns: columns, rows: rows]
-
-      {:error, epgsql_error} ->
-        Logger.error("error executing shadow db query: #{query}")
-        {:error, epgsql_error(epgsql_error, :message)}
-    end
-  end
-
-  defp map_column(epgsql_column) do
-    %{
-      name: epgsql_column(epgsql_column, :name),
-      type: epgsql_column |> epgsql_column(:oid) |> Air.PsqlServer.Protocol.Value.type_from_oid()
-    }
-  end
-
-  defp map_row(columns, values) do
-    columns
-    |> Stream.map(& &1.type)
-    |> Stream.zip(values)
-    |> Enum.map(&map_value/1)
-  end
-
-  for passthrough <- ~w/
-    oid name int2 int4 int8 numeric float4 float8 boolean varchar text bpchar char regproc unknown
-    /a do
-    defp map_value({unquote(passthrough), value}), do: value
-  end
-
-  defp map_value({:date, date}), do: Date.from_erl!(date)
-
-  defp map_value({:oidarray, encoded}) do
-    encoded
-    |> String.replace(~r/\{|\}/, "")
-    |> String.split(",")
-    |> Stream.reject(&(&1 == ""))
-    |> Enum.map(&String.to_integer/1)
-  end
-
-  defp map_value({:timestamptz, datetime}) do
-    {:timestamp, datetime}
-    |> map_value()
-    |> DateTime.from_naive!("Etc/UTC")
-  end
-
-  defp map_value({:timestamp, {date, time}}) do
-    {time, microseconds} = convert_time(time)
-    NaiveDateTime.from_erl!({date, time}, {microseconds, _precision = 6})
-  end
-
-  defp map_value({:time, time}) do
-    {time, microseconds} = convert_time(time)
-    Time.from_erl!(time, {microseconds, _precision = 6})
-  end
-
-  defp map_value({:timetz, time}) do
-    {:timestamptz, {Date.utc_today() |> Date.to_erl(), time}}
-    |> map_value()
-    |> DateTime.to_time()
-  end
-
-  defp convert_time({hours, minutes, seconds}) do
-    seconds_int = (1.0 * seconds) |> Float.floor() |> round()
-    microseconds = round((seconds - seconds_int) * 1_000_000)
-    {{hours, minutes, seconds_int}, microseconds}
+    Air.Service.ShadowDb.query(
+      conn.assigns.data_source_name,
+      query,
+      Enum.map(params || [], fn {_type, value} -> value end)
+    )
   end
 
   defp first_cursor_fetch(conn, cursor, query_result) do

@@ -82,7 +82,7 @@ defmodule Air.PsqlServer do
        conn
        |> RanchServer.assign(:user, user)
        |> RanchServer.assign(:data_source_id, data_source_id)
-       |> QueryExecution.initialize(data_source_name)}
+       |> RanchServer.assign(:data_source_name, data_source_name)}
     else
       _ -> :error
     end
