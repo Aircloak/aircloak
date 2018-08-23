@@ -110,6 +110,7 @@ defmodule Air.PsqlServer.Protocol.Value do
   defp text_decode(text, :boolean), do: String.downcase(text) == "true"
   defp text_decode(<<char>>, :char), do: char
   defp text_decode(param, :text) when is_binary(param), do: param
+  defp text_decode(param, :varchar) when is_binary(param), do: param
   defp text_decode(param, :name) when is_binary(param), do: param
   defp text_decode(param, :unknown) when is_binary(param), do: param
 
