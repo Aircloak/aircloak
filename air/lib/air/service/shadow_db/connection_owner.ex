@@ -18,7 +18,7 @@ defmodule Air.Service.ShadowDb.ConnectionOwner do
   @doc "Executes the given SQL query."
   @spec query(pid, String.t(), [term]) :: Connection.query_result()
   def query(pid, query, params) do
-    conn = GenServer.call(pid, :connection)
+    conn = GenServer.call(pid, :connection, :timer.seconds(30))
 
     try do
       Connection.query(conn, query, params)
@@ -30,7 +30,7 @@ defmodule Air.Service.ShadowDb.ConnectionOwner do
   @doc "Parses the given SQL query."
   @spec parse(pid, String.t()) :: Connection.parse_result()
   def parse(pid, query) do
-    conn = GenServer.call(pid, :connection)
+    conn = GenServer.call(pid, :connection, :timer.seconds(30))
 
     try do
       Connection.parse(conn, query)

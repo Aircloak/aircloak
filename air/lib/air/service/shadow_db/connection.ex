@@ -55,6 +55,27 @@ defmodule Air.Service.ShadowDb.Connection do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp connect(data_source_name, attempts \\ 10) do
+    attempt_connect(data_source_name)
+  catch
+    _, _ ->
+      if attempts == 1 do
+        raise "can't connect to the shadow database for `#{data_source_name}`"
+      else
+        Process.sleep(:timer.seconds(1))
+        connect(data_source_name, attempts - 1)
+      end
+  end
+
+  defp attempt_connect(data_source_name) do
+    :epgsql.connect(
+      '127.0.0.1',
+      'postgres',
+      '',
+      %{database: to_charlist(Air.Service.ShadowDb.db_name(data_source_name))}
+    )
+  end
+
   defp map_column(epgsql_column) do
     %{
       name: epgsql_column(epgsql_column, :name),
@@ -124,14 +145,7 @@ defmodule Air.Service.ShadowDb.Connection do
     # a potential information loss for OID types (see https://hexdocs.pm/postgrex/readme.html#oid-type-encoding).
     %{
       id: __MODULE__,
-      start: fn ->
-        :epgsql.connect(
-          '127.0.0.1',
-          'postgres',
-          '',
-          %{database: to_charlist(Air.Service.ShadowDb.db_name(data_source_name))}
-        )
-      end
+      start: fn -> connect(data_source_name) end
     }
   end
 end
