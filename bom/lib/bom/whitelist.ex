@@ -76,14 +76,13 @@ defmodule BOM.Whitelist do
       {"wordwrap", "0.0.2"} => %{type: :mit, text: :provided}
     },
     :rust => %{
-      {"c_vec", "1.3.1"} => %{type: :mit, text: :provided},
-      {"cfg-if", "0.1.4"} => %{type: :mit, text: :provided},
-      {"libc", "0.2.42"} => %{type: :mit, text: :provided},
-      {"log", "0.4.3"} => %{type: :mit, text: :provided},
-      {"log", "0.3.9"} => %{type: :mit, text: :provided},
-      {"odbc", "0.9.6"} => %{type: :mit, text: :provided},
+      {"c_vec", "1.3.2"} => %{type: :mit, text: :provided},
+      {"cfg-if", "0.1.5"} => %{type: :mit, text: :provided},
+      {"libc", "0.2.43"} => %{type: :mit, text: :provided},
+      {"log", "0.4.4"} => %{type: :mit, text: :provided},
+      {"odbc", "0.9.7"} => %{type: :mit, text: :provided},
       {"odbc-safe", "0.4.1"} => %{type: :mit, text: :provided},
-      {"odbc-sys", "0.6.1"} => %{type: :mit, text: :provided},
+      {"odbc-sys", "0.6.3"} => %{type: :mit, text: :provided},
       {"simple-error", "0.1.11"} => %{type: :mit, text: :provided}
     }
   }
