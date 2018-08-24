@@ -1625,6 +1625,11 @@ defmodule Cloak.Sql.Parser.Test do
     )
   end
 
+  test "public schema prefix is ignored in column references" do
+    assert_equal_parse(~s/select public.bar.foo from bar/, "select bar.foo from bar")
+    assert_equal_parse(~s/select "public".bar.foo from bar/, "select bar.foo from bar")
+  end
+
   create_test = fn description, statement, expected_error, line, column ->
     test description do
       assert {:error, reason} = Parser.parse(unquote(statement))

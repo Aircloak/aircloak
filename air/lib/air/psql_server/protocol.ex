@@ -32,7 +32,8 @@ defmodule Air.PsqlServer.Protocol do
           executing_portal: nil | binary,
           prepared_statements: %{String.t() => prepared_statement},
           portals: %{String.t() => prepared_statement},
-          detailed_log?: boolean
+          detailed_log?: boolean,
+          extended_query?: boolean
         }
 
   @type state ::
@@ -123,7 +124,8 @@ defmodule Air.PsqlServer.Protocol do
       executing_portal: nil,
       prepared_statements: %{},
       portals: %{},
-      detailed_log?: Keyword.get(Application.fetch_env!(:air, Air.PsqlServer), :detailed_log, false)
+      detailed_log?: Keyword.get(Application.fetch_env!(:air, Air.PsqlServer), :detailed_log, false),
+      extended_query?: false
     }
   end
 
@@ -293,14 +295,14 @@ defmodule Air.PsqlServer.Protocol do
 
   defp invoke_message_handler(protocol, :terminate, _payload), do: close(protocol, :normal)
 
-  defp invoke_message_handler(%{syncing?: true} = protocol, :sync, _),
-    do: await_client_message(%{protocol | syncing?: false}, state: :ready)
+  defp invoke_message_handler(protocol, :sync, _payload) do
+    %{protocol | syncing?: false, extended_query?: false}
+    |> send_to_client(:ready_for_query)
+    |> await_client_message(state: :ready)
+  end
 
-  defp invoke_message_handler(%{syncing?: true} = protocol, _ignore, _),
-    do:
-      protocol
-      |> syncing()
-      |> await_client_message()
+  defp invoke_message_handler(%{syncing?: true} = protocol, _ignore, _payload),
+    do: await_client_message(protocol)
 
   defp invoke_message_handler(protocol, message_type, payload),
     do: protocol_handler(protocol.state).handle_client_message(protocol, message_type, payload)

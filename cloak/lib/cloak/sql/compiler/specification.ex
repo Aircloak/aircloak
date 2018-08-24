@@ -371,10 +371,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp compile_aliases(%Query{columns: [_ | _] = columns} = query) do
     verify_aliases(query)
 
-    aliases =
-      for {column, :as, name} <- columns,
-          into: %{},
-          do: {{:identifier, :unknown, {:unquoted, name}, @dummy_location}, column}
+    aliases = for {column, :as, name} <- columns, into: %{}, do: {name, column}
 
     columns =
       Enum.map(columns, fn
@@ -400,8 +397,8 @@ defmodule Cloak.Sql.Compiler.Specification do
 
   defp compile_aliases(query), do: query
 
-  defp resolve_alias(aliases, identifier = {:identifier, table, column, _loc}),
-    do: Map.get(aliases, {:identifier, table, column, @dummy_location}, identifier)
+  defp resolve_alias(aliases, identifier = {:identifier, :unknown, {_quoted, column_name}, _loc}),
+    do: Map.get(aliases, column_name, identifier)
 
   defp resolve_alias(_aliases, other), do: other
 
