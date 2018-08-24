@@ -94,6 +94,17 @@ defmodule IntegrationTest.PostgrexTest do
     assert error.postgres.message =~ ~r/column "foobar" does not exist/
   end
 
+  test "shadow db query with comments", context do
+    query = """
+    -- some comment
+    -- another comment
+    select 1
+    """
+
+    assert {:ok, result} = Postgrex.query(context.conn, query, [])
+    assert result.rows == [[1]]
+  end
+
   defp param_select(conn, value, cast) do
     result = Postgrex.query!(conn, "select $1::#{cast} from users", [value])
     [[value]] = Enum.uniq(result.rows)
