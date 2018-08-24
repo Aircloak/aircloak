@@ -82,12 +82,6 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     |> Protocol.next_state(:ready)
   end
 
-  def handle_client_message(protocol, :sync, _),
-    do:
-      %{protocol | extended_query?: false}
-      |> Protocol.send_to_client(:ready_for_query)
-      |> Protocol.await_client_message()
-
   def handle_client_message(protocol, :flush, _), do: Protocol.await_client_message(protocol, state: :ready)
 
   def handle_client_message(protocol, :close, close_data),
@@ -110,6 +104,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     protocol
     |> send_result(result)
     |> send_command_completion(result)
+    |> sync_on_error(result)
     |> Map.put(:executing_portal, nil)
     |> Protocol.await_client_message()
   end
@@ -118,6 +113,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     do:
       protocol
       |> Protocol.send_to_client({:syntax_error, error})
+      |> Protocol.syncing()
       |> Protocol.await_client_message()
 
   def handle_event(
@@ -192,6 +188,9 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
 
   defp send_command_completion(protocol, result),
     do: Protocol.send_to_client(protocol, {:command_complete, result_tag(result)})
+
+  defp sync_on_error(protocol, {:error, _}), do: Protocol.syncing(protocol)
+  defp sync_on_error(protocol, _successful_query_result), do: protocol
 
   defp result_tag(result) do
     case Keyword.fetch(result, :rows) do

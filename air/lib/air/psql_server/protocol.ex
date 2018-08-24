@@ -295,14 +295,14 @@ defmodule Air.PsqlServer.Protocol do
 
   defp invoke_message_handler(protocol, :terminate, _payload), do: close(protocol, :normal)
 
-  defp invoke_message_handler(%{syncing?: true} = protocol, :sync, _),
-    do: await_client_message(%{protocol | syncing?: false}, state: :ready)
+  defp invoke_message_handler(protocol, :sync, _payload) do
+    %{protocol | syncing?: false, extended_query?: false}
+    |> send_to_client(:ready_for_query)
+    |> await_client_message(state: :ready)
+  end
 
-  defp invoke_message_handler(%{syncing?: true} = protocol, _ignore, _),
-    do:
-      protocol
-      |> syncing()
-      |> await_client_message()
+  defp invoke_message_handler(%{syncing?: true} = protocol, _ignore, _payload),
+    do: await_client_message(protocol)
 
   defp invoke_message_handler(protocol, message_type, payload),
     do: protocol_handler(protocol.state).handle_client_message(protocol, message_type, payload)
