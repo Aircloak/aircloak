@@ -1339,6 +1339,14 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error =~ "Selecting all from subquery `t` is not supported because the column name `count` is ambigous."
   end
 
+  test "quoted alias reference",
+    do: assert({:ok, _} = compile(~s/select numeric as x from table where "x"=1/, data_source()))
+
+  test "error duplicate aliases with mixed quoting" do
+    assert({:error, error} = compile(~s/select numeric as x, uid as "x" from table where "x"=1/, data_source()))
+    assert error =~ "Usage of `x` is ambiguous."
+  end
+
   defp validate_view(view_sql, data_source, options \\ []) do
     with {:ok, parsed_view} <- Parser.parse(view_sql),
          do: Compiler.validate_view(data_source, parsed_view, Keyword.get(options, :views, %{}))
