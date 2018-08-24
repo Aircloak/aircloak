@@ -511,37 +511,54 @@ defmodule Cloak.Sql.Parser do
 
   defp infix_to_boolean_expression(operator, left, right, _location), do: {operator, left, right}
 
-  defp field_or_parameter(), do: either_deepest_error(qualified_identifier(), parameter())
+  defp field_or_parameter(), do: either_deepest_error(column_identifier_with_location(), parameter())
 
-  defp qualified_identifier() do
+  defp column_identifier_with_location() do
     map(
-      pair_both(
-        pair_both(next_position(), identifier()),
-        either_deepest_error(
-          many1(
-            pair_both(
-              keyword(:.),
-              unquoted_identifier()
-            )
-          ),
-          option(
-            pair_both(
-              keyword(:.),
-              identifier()
-            )
-          )
-        )
-      ),
-      fn
-        {{location, column}, nil} ->
-          {:identifier, :unknown, column, location}
+      pair_both(next_position(), column_identifier()),
+      fn {location, {table, column}} -> {:identifier, table, column, location} end
+    )
+  end
 
-        {{location, table}, {:., column}} ->
-          {:identifier, table, column, location}
+  defp column_identifier() do
+    choice_deepest_error([
+      column_qualified_with_public_schema(),
+      qualified_column_with_period_characters(),
+      qualified_column(),
+      unqualified_column()
+    ])
+  end
 
-        {{location, table}, parts} ->
-          column = parts |> Enum.map(fn {:., part} -> part end) |> Enum.join(".")
-          {:identifier, table, {:unquoted, column}, location}
+  defp unqualified_column(), do: map(identifier(), &{:unknown, &1})
+
+  defp column_qualified_with_public_schema() do
+    # We're ignoring `public.` schema prefix. This is done to support queries issued by psql clients, which might
+    # use `public.table.column` to reference columns.
+    # The resolving of public prefix is done in the parser to avoid ambiguity which can happen because `foo.bar.baz`
+    # also has to be supported (table foo, column bar.baz).
+    map(
+      sequence([
+        ignore(satisfy(identifier(), &match?({_, "public"}, &1))),
+        ignore(keyword(:.)),
+        either_deepest_error(qualified_column_with_period_characters(), qualified_column())
+      ]),
+      fn [column] -> column end
+    )
+  end
+
+  defp qualified_column(), do: map(sequence([identifier(), ignore(keyword(:.)), identifier()]), &List.to_tuple/1)
+
+  defp qualified_column_with_period_characters() do
+    map(
+      sequence([
+        identifier(),
+        ignore(keyword(:.)),
+        unquoted_identifier(),
+        many1(pair_both(keyword(:.), unquoted_identifier()))
+      ]),
+      fn [table, first_part, other_parts] ->
+        column_name = [{:., first_part} | other_parts] |> Enum.map(fn {:., part} -> part end) |> Enum.join(".")
+        {table, {:unquoted, column_name}}
       end
     )
   end
