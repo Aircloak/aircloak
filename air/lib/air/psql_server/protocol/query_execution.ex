@@ -18,7 +18,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
   @impl Protocol
   def handle_client_message(protocol, :query, query),
     do:
-      protocol
+      %{protocol | extended_query?: false}
       |> Protocol.add_action({:run_query, query, [], 0})
       |> Protocol.next_state(:ready)
 
@@ -75,7 +75,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
   def handle_client_message(protocol, :execute, execute_data) do
     prepared_statement = Map.fetch!(protocol.portals, execute_data.portal)
 
-    %{protocol | executing_portal: execute_data.portal}
+    %{protocol | executing_portal: execute_data.portal, extended_query?: true}
     |> Protocol.add_action(
       {:run_query, prepared_statement.query, params_with_types(prepared_statement), execute_data.max_rows}
     )
@@ -84,7 +84,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
 
   def handle_client_message(protocol, :sync, _),
     do:
-      protocol
+      %{protocol | extended_query?: false}
       |> Protocol.send_to_client(:ready_for_query)
       |> Protocol.await_client_message()
 
@@ -98,15 +98,21 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
       |> Protocol.await_client_message()
 
   @impl Protocol
-  def handle_event(protocol, {:send_query_result, result}),
+  def handle_event(%{extended_query?: false} = protocol, {:send_query_result, result}),
     do:
       protocol
       |> send_result(result)
       |> send_command_completion(result)
       |> send_ready_for_query(result)
-      |> post_query_sync()
-      |> Map.put(:executing_portal, nil)
       |> Protocol.await_client_message()
+
+  def handle_event(%{extended_query?: true} = protocol, {:send_query_result, result}) do
+    protocol
+    |> send_result(result)
+    |> send_command_completion(result)
+    |> Map.put(:executing_portal, nil)
+    |> Protocol.await_client_message()
+  end
 
   def handle_event(protocol, {:describe_result, {:error, error}}),
     do:
@@ -153,7 +159,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
 
   defp send_result(protocol, {:error, error}), do: Protocol.send_to_client(protocol, {:syntax_error, error})
 
-  defp send_result(%{executing_portal: nil} = protocol, result) do
+  defp send_result(%{extended_query?: false} = protocol, result) do
     with {:ok, columns} <- Keyword.fetch(result, :columns),
          {:ok, rows} <- Keyword.fetch(result, :rows),
          info_messages <- Keyword.get(result, :info_messages, []) do
@@ -166,7 +172,7 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
     end
   end
 
-  defp send_result(protocol, result) do
+  defp send_result(%{extended_query?: true} = protocol, result) do
     statement = Map.fetch!(protocol.portals, protocol.executing_portal)
 
     with {:ok, rows} <- Keyword.fetch(result, :rows),
@@ -186,9 +192,6 @@ defmodule Air.PsqlServer.Protocol.QueryExecution do
 
   defp send_command_completion(protocol, result),
     do: Protocol.send_to_client(protocol, {:command_complete, result_tag(result)})
-
-  defp post_query_sync(%{executing_portal: nil} = protocol), do: protocol
-  defp post_query_sync(protocol), do: Protocol.syncing(protocol)
 
   defp result_tag(result) do
     case Keyword.fetch(result, :rows) do

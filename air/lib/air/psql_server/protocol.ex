@@ -32,7 +32,8 @@ defmodule Air.PsqlServer.Protocol do
           executing_portal: nil | binary,
           prepared_statements: %{String.t() => prepared_statement},
           portals: %{String.t() => prepared_statement},
-          detailed_log?: boolean
+          detailed_log?: boolean,
+          extended_query?: boolean
         }
 
   @type state ::
@@ -123,7 +124,8 @@ defmodule Air.PsqlServer.Protocol do
       executing_portal: nil,
       prepared_statements: %{},
       portals: %{},
-      detailed_log?: Keyword.get(Application.fetch_env!(:air, Air.PsqlServer), :detailed_log, false)
+      detailed_log?: Keyword.get(Application.fetch_env!(:air, Air.PsqlServer), :detailed_log, false),
+      extended_query?: false
     }
   end
 
