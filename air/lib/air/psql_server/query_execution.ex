@@ -23,22 +23,10 @@ defmodule Air.PsqlServer.QueryExecution do
 
         cursor = cursor_query?(query) ->
           if internal_query?(cursor.inner_query) do
-            result =
-              case select_from_shadow_db!(conn, cursor.inner_query, params) do
-                {:error, _} = error -> error
-                {:ok, columns, rows} -> [command: :fetch, columns: columns, rows: rows]
-              end
-
-            first_cursor_fetch(conn, cursor, result)
+            select_from_shadow_db(conn, cursor.inner_query, params, &first_cursor_fetch(&1, cursor, &2))
+            conn
           else
-            CloakQuery.run_query(
-              conn,
-              cursor.inner_query,
-              [],
-              &first_cursor_fetch(&1, cursor, &2),
-              fn conn, _exit_reason -> first_cursor_fetch(conn, cursor, {:error, "query failed"}) end
-            )
-
+            CloakQuery.run_query(conn, cursor.inner_query, [], &first_cursor_fetch(&1, cursor, &2))
             conn
           end
 
@@ -46,10 +34,8 @@ defmodule Air.PsqlServer.QueryExecution do
           fetch_from_cursor(conn, cursor_fetch.cursor, cursor_fetch.count)
 
         internal_query?(query) ->
-          case select_from_shadow_db!(conn, query, params) do
-            {:ok, columns, rows} -> RanchServer.query_result(conn, command: :select, columns: columns, rows: rows)
-            {:error, _reason} = error -> RanchServer.query_result(conn, error)
-          end
+          select_from_shadow_db(conn, query, params, &RanchServer.query_result/2)
+          conn
 
         query =~ ~r/^begin$/i ->
           RanchServer.query_result(conn, command: :begin)
@@ -68,14 +54,7 @@ defmodule Air.PsqlServer.QueryExecution do
           |> RanchServer.query_result(command: :deallocate)
 
         true ->
-          CloakQuery.run_query(
-            conn,
-            query,
-            params,
-            &RanchServer.query_result/2,
-            fn conn, _exit_reason -> RanchServer.query_result(conn, {:error, "query failed"}) end
-          )
-
+          CloakQuery.run_query(conn, query, params, &RanchServer.query_result/2)
           conn
       end
     end)
@@ -90,10 +69,8 @@ defmodule Air.PsqlServer.QueryExecution do
           RanchServer.query_result(conn, {:error, "permission denied"})
 
         internal_query?(query) ->
-          case Air.PsqlServer.ShadowDb.parse(conn.assigns.data_source_name, query) do
-            {:ok, columns, param_types} -> RanchServer.describe_result(conn, columns: columns, param_types: param_types)
-            {:error, _reason} = error -> RanchServer.describe_result(conn, error)
-          end
+          describe_from_shadow_db(conn.assigns.data_source_name, query)
+          conn
 
         true ->
           CloakQuery.describe_query(conn, query, params)
@@ -177,11 +154,34 @@ defmodule Air.PsqlServer.QueryExecution do
     end
   end
 
-  defp select_from_shadow_db!(conn, query, params) do
-    Air.PsqlServer.ShadowDb.query(
-      conn.assigns.data_source_name,
-      query,
-      Enum.map(params || [], fn {_type, value} -> value end)
+  defp select_from_shadow_db(conn, query, params, on_success) do
+    RanchServer.run_async(
+      fn ->
+        case Air.PsqlServer.ShadowDb.query(
+               conn.assigns.data_source_name,
+               query,
+               Enum.map(params || [], fn {_type, value} -> value end)
+             ) do
+          {:error, _} = error -> error
+          {:ok, columns, rows} -> [columns: columns, rows: rows]
+        end
+      end,
+      on_success: on_success,
+      on_failure: fn conn, _exit_reason -> RanchServer.query_result(conn, {:error, "query failed"}) end
+    )
+  end
+
+  defp describe_from_shadow_db(data_source_name, query) do
+    RanchServer.run_async(
+      fn -> Air.PsqlServer.ShadowDb.parse(data_source_name, query) end,
+      on_success: fn
+        conn, {:ok, columns, param_types} ->
+          RanchServer.describe_result(conn, columns: columns, param_types: param_types)
+
+        conn, {:error, _reason} = error ->
+          RanchServer.describe_result(conn, error)
+      end,
+      on_failure: fn conn, _exit_reason -> RanchServer.describe_result(conn, {:error, "parsing failed"}) end
     )
   end
 
