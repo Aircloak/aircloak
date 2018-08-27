@@ -31,7 +31,14 @@ defmodule Air.PsqlServer.QueryExecution do
 
             first_cursor_fetch(conn, cursor, result)
           else
-            CloakQuery.run_query(conn, cursor.inner_query, [], &first_cursor_fetch(&1, cursor, &2))
+            CloakQuery.run_query(
+              conn,
+              cursor.inner_query,
+              [],
+              &first_cursor_fetch(&1, cursor, &2),
+              fn conn, _exit_reason -> first_cursor_fetch(conn, cursor, {:error, "query failed"}) end
+            )
+
             conn
           end
 
@@ -61,7 +68,14 @@ defmodule Air.PsqlServer.QueryExecution do
           |> RanchServer.query_result(command: :deallocate)
 
         true ->
-          CloakQuery.run_query(conn, query, params, &RanchServer.query_result/2)
+          CloakQuery.run_query(
+            conn,
+            query,
+            params,
+            &RanchServer.query_result/2,
+            fn conn, _exit_reason -> RanchServer.query_result(conn, {:error, "query failed"}) end
+          )
+
           conn
       end
     end)

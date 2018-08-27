@@ -13,15 +13,17 @@ defmodule Air.PsqlServer.CloakQuery do
           RanchServer.t(),
           String.t(),
           [Protocol.db_value()] | nil,
+          (RanchServer.t(), any -> RanchServer.t()),
           (RanchServer.t(), any -> RanchServer.t())
         ) :: :ok
-  def run_query(conn, statement, params, result_handler) do
+  def run_query(conn, statement, params, on_success, on_failure) do
     with {:ok, query} <- create_query(conn.assigns.user, statement, convert_params(params)) do
       ConnectionRegistry.register_query(conn.assigns.key_data, conn.assigns.user.id, query.id)
 
       RanchServer.run_async(
         fn -> query |> DataSource.run_query(conn.assigns.data_source_id) |> decode_cloak_query_result() end,
-        on_success: result_handler
+        on_success: on_success,
+        on_failure: on_failure
       )
     end
   end

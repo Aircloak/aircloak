@@ -106,10 +106,11 @@ defmodule Air.PsqlServer.RanchServer do
   @doc """
   Runs the provided lambda in a separate process.
 
-  This function can only be invoked inside the connection process. After the job succeeds, the `on_success` callback
-  function will be invoked in the connection process.
+  This function can only be invoked inside the connection process. After the job succeeds, the `:on_success` callback
+  function will be invoked. If the job crashes, the `:on_failure` callback will be invoked. Both callbacks will be
+  invoked in the connection process.
   """
-  @spec run_async((() -> result), on_success: (t, result -> t)) :: :ok when result: var
+  @spec run_async((() -> result), on_success: (t, result -> t), on_failure: (t, term() -> t)) :: :ok when result: var
   def run_async(job, opts \\ []) do
     on_success = Keyword.get(opts, :on_success, fn conn, _result -> conn end)
     conn_pid = self()
@@ -117,7 +118,7 @@ defmodule Air.PsqlServer.RanchServer do
     Parent.GenServer.start_child(%{
       id: {:async_job, make_ref()},
       start: {Task, :start_link, [fn -> GenServer.cast(conn_pid, {:handle_async_success, on_success, job.()}) end]},
-      meta: opts
+      meta: %{on_failure: Keyword.get(opts, :on_failure, fn conn, _exit_reason -> conn end)}
     })
 
     :ok
@@ -205,6 +206,12 @@ defmodule Air.PsqlServer.RanchServer do
   end
 
   def handle_info(msg, conn), do: {:noreply, conn.behaviour_mod.handle_message(conn, msg)}
+
+  @impl Parent.GenServer
+  def handle_child_terminated({:async_job, _id}, meta, _pid, reason, conn) do
+    conn = if reason == :normal, do: conn, else: meta.on_failure.(conn, reason)
+    {:noreply, conn}
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
