@@ -61,11 +61,11 @@ defmodule Cloak.Sql.QueryTest do
 
   describe "num_tables" do
     test "simple query" do
-      assert %{num_tables: 1} = features_from("SELECT height FROM feat_users")
+      assert %{num_distinct_tables: 1, num_tables: 1} = features_from("SELECT height FROM feat_users")
     end
 
     test "implicit join" do
-      assert %{num_tables: 2} =
+      assert %{num_distinct_tables: 2, num_tables: 2} =
                features_from("""
                  SELECT height FROM feat_users, feat_purchases
                  WHERE feat_users.user_id = feat_purchases.user_id
@@ -73,7 +73,7 @@ defmodule Cloak.Sql.QueryTest do
     end
 
     test "explicit join" do
-      assert %{num_tables: 2} =
+      assert %{num_distinct_tables: 2, num_tables: 2} =
                features_from("""
                  SELECT height
                  FROM feat_users INNER JOIN feat_purchases ON feat_users.user_id = feat_purchases.user_id
@@ -81,7 +81,7 @@ defmodule Cloak.Sql.QueryTest do
     end
 
     test "subquery" do
-      assert %{num_tables: 2} =
+      assert %{num_distinct_tables: 2, num_tables: 2} =
                features_from("""
                  SELECT COUNT(*)
                  FROM (
@@ -89,6 +89,15 @@ defmodule Cloak.Sql.QueryTest do
                    FROM feat_users INNER JOIN feat_purchases
                      ON feat_users.user_id = feat_purchases.user_id
                  ) foo
+               """)
+    end
+
+    test "distinct tables" do
+      assert %{num_distinct_tables: 2, num_tables: 3} =
+               features_from("""
+                 SELECT COUNT(*)
+                 FROM feat_users AS a, feat_purchases AS b, feat_purchases AS c
+                 WHERE a.user_id = b.user_id AND a.user_id = c.user_id
                """)
     end
   end
