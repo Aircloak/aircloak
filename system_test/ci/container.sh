@@ -9,11 +9,9 @@ cd $ROOT_DIR
 . docker/ci_helper.sh system_test
 
 function build_production_images {
-  # By building base images here, we ensure they are also built on the target branches (master and release).
-  # This in turn ensures proper caching.
   if [ "$SKIP_DOCKER_BUILD" != "true" ]; then
-    BUILD_BASE=false PREVENT_OLD_IMAGE_REMOVAL=true cloak/build-image.sh&
-    BUILD_BASE=false PREVENT_OLD_IMAGE_REMOVAL=true air/build-image.sh&
+    PREVENT_OLD_IMAGE_REMOVAL=true cloak/build-image.sh&
+    PREVENT_OLD_IMAGE_REMOVAL=true air/build-image.sh&
     wait
   fi
 }
