@@ -32,6 +32,7 @@ defmodule Air.PsqlServer.QueryExecution do
             first_cursor_fetch(conn, cursor, result)
           else
             CloakQuery.run_query(conn, cursor.inner_query, [], &first_cursor_fetch(&1, cursor, &2))
+            conn
           end
 
         cursor_fetch = cursor_count_fetch?(query) ->
@@ -61,6 +62,7 @@ defmodule Air.PsqlServer.QueryExecution do
 
         true ->
           CloakQuery.run_query(conn, query, params, &RanchServer.query_result/2)
+          conn
       end
     end)
   end
@@ -81,6 +83,7 @@ defmodule Air.PsqlServer.QueryExecution do
 
         true ->
           CloakQuery.describe_query(conn, query, params)
+          conn
       end
     end)
   end

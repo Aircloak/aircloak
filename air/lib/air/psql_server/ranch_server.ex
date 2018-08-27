@@ -11,7 +11,7 @@ defmodule Air.PsqlServer.RanchServer do
   """
 
   @behaviour :ranch_protocol
-  use GenServer
+  use Parent.GenServer
 
   require Logger
 
@@ -103,17 +103,37 @@ defmodule Air.PsqlServer.RanchServer do
   @spec update_protocol(t, (Protocol.t() -> Protocol.t())) :: t
   def update_protocol(conn, fun), do: handle_protocol_actions(%__MODULE__{conn | protocol: fun.(conn.protocol)})
 
+  @doc """
+  Runs the provided lambda in a separate process.
+
+  This function can only be invoked inside the connection process. After the job succeeds, the `on_success` callback
+  function will be invoked in the connection process.
+  """
+  @spec run_async((() -> result), on_success: (t, result -> t)) :: :ok when result: var
+  def run_async(job, opts \\ []) do
+    on_success = Keyword.get(opts, :on_success, fn conn, _result -> conn end)
+    conn_pid = self()
+
+    Parent.GenServer.start_child(%{
+      id: {:async_job, make_ref()},
+      start: {Task, :start_link, [fn -> GenServer.cast(conn_pid, {:handle_async_success, on_success, job.()}) end]},
+      meta: opts
+    })
+
+    :ok
+  end
+
   # -------------------------------------------------------------------
   # :ranch_protocol callback functions
   # -------------------------------------------------------------------
 
   @impl :ranch_protocol
-  def start_link(ref, socket, transport, {opts, behaviour_mod, behaviour_init_arg}),
-    do:
-      GenServer.start_link(
-        __MODULE__,
-        {ref, socket, transport, opts, behaviour_mod, behaviour_init_arg}
-      )
+  def start_link(ref, socket, transport, {opts, behaviour_mod, behaviour_init_arg}) do
+    Parent.GenServer.start_link(
+      __MODULE__,
+      {ref, socket, transport, opts, behaviour_mod, behaviour_init_arg}
+    )
+  end
 
   # -------------------------------------------------------------------
   # GenServer callback functions
@@ -133,6 +153,9 @@ defmodule Air.PsqlServer.RanchServer do
        protocol: Protocol.new()
      }}
   end
+
+  @impl GenServer
+  def handle_cast({:handle_async_success, fun, arg}, conn), do: {:noreply, fun.(conn, arg)}
 
   @impl GenServer
   def handle_info({:after_init, behaviour_init_arg}, conn) do
