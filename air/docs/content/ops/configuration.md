@@ -370,11 +370,11 @@ The database tables that should be made available for querying are defined in th
 
 ```
 "tables": {
-  table_name_1: {
+  "table_name_1": {
     "db_name" | "query": string,
     "user_id": string
   },
-  table_name_2: ...
+  "table_name_2": ...
 }
 ```
 
@@ -399,7 +399,7 @@ requiring a numerical range to have an upper and lower bound, for example) do no
 An example configuration for a virtual table would look like this:
 
 ```
-table_name: {
+"table_name": {
   "query": "
     SELECT cast(t2.uid as integer), t2.age, t1.*
     FROM t1 INNER JOIN t2 ON t1.pk = t2.fk
@@ -498,7 +498,7 @@ Be careful when using this feature and only decode data in the cloak when there 
 To configure a decoder, you need to provide the `decoders` section under the table configuration:
 
 ```
-tables": {
+"tables": {
   "some_table": {
     "decoders": [
       decoder_1,
@@ -554,21 +554,21 @@ Take this example:
 
 ```
 {
-  tables: {
-    regular_table: {
-      db_name: "regular_table"
+  "tables": {
+    "regular_table": {
+      "db_name": "regular_table"
     },
 
-    auto_table: {
-      db_name: "auto_table",
-      auto_isolating_column_classification: true,
-      isolating_columns: {"telephone_number": true, "first_name": false}
+    "auto_table": {
+      "db_name": "auto_table",
+      "auto_isolating_column_classification": true,
+      "isolating_columns": {"telephone_number": true, "first_name": false}
     },
 
-    manual_table: {
-      db_name: "manual_table",
-      auto_isolating_column_classification: false,
-      isolating_columns: {"first_name": false}
+    "manual_table": {
+      "db_name": "manual_table",
+      "auto_isolating_column_classification": false,
+      "isolating_columns": {"first_name": false}
     }
   }
 }
@@ -660,8 +660,8 @@ For example, assuming we have the table `t` with columns `uid, x, y, z`, and we 
 the following configuration file will do the trick:
 
 ```
-t: {
-  query": "SELECT uid, x, z FROM t",
+"t": {
+  "query": "SELECT uid, x, z FROM t",
   "user_id": "uid"
 }
 ```
@@ -672,8 +672,8 @@ columns are eliminated by only keeping the first instance and then that constant
 columns. For example:
 
 ```
-t: {
-  query": "SELECT 0 AS y, t.* FROM t",
+"t": {
+  "query": "SELECT 0 AS y, t.* FROM t",
   "user_id": "uid"
 }
 ```
