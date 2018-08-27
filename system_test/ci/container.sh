@@ -10,9 +10,8 @@ cd $ROOT_DIR
 
 function build_production_images {
   if [ "$SKIP_DOCKER_BUILD" != "true" ]; then
-    PREVENT_OLD_IMAGE_REMOVAL=true cloak/build-image.sh&
-    PREVENT_OLD_IMAGE_REMOVAL=true air/build-image.sh&
-    wait
+    PREVENT_OLD_IMAGE_REMOVAL=true cloak/build-image.sh
+    PREVENT_OLD_IMAGE_REMOVAL=true air/build-image.sh
   fi
 }
 
