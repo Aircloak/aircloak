@@ -110,9 +110,9 @@ Once the component is started, you can test the connectivity with the `psql` com
 
 ```
 psql -h insights_air_ip_address -p postgresql_interface_port -d data_source_name -U user_name
+```
 
 Where `postgresql_interface_port` is the PostgreSQL interface port provided when the component is started, as explained in the [Installation Guide](installation.md#insights-air).
-```
 
 In order for the above command to work, the cloak component must be started as well, and the user must have permissions to query the given data source.
 
