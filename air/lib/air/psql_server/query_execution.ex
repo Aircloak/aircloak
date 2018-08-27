@@ -18,7 +18,7 @@ defmodule Air.PsqlServer.QueryExecution do
   def run_query(conn, query, params) do
     execute(fn ->
       cond do
-        permission_denied_query?(query) ->
+        permission_denied_query?(conn, query) ->
           RanchServer.query_result(conn, {:error, "permission denied"})
 
         cursor = cursor_query?(query) ->
@@ -86,8 +86,8 @@ defmodule Air.PsqlServer.QueryExecution do
   def describe_query(conn, query, params) do
     execute(fn ->
       cond do
-        permission_denied_query?(query) ->
-          RanchServer.describe_result(conn, columns: [], param_types: [])
+        permission_denied_query?(conn, query) ->
+          RanchServer.query_result(conn, {:error, "permission denied"})
 
         internal_query?(query) ->
           case Air.PsqlServer.ShadowDb.parse(conn.assigns.data_source_name, query) do
@@ -154,15 +154,21 @@ defmodule Air.PsqlServer.QueryExecution do
     end
   end
 
-  defp permission_denied_query?(query),
-    do:
-      [
-        ~r/SELECT.*INTO TEMPORARY TABLE/is,
-        ~r/INSERT INTO/is,
-        ~r/^DROP TABLE/i,
-        ~r/^CREATE\s/i
-      ]
-      |> Enum.any?(&(query =~ &1))
+  defp permission_denied_query?(conn, query),
+    do: forbidden_query?(query) or not Air.Service.User.is_enabled?(conn.assigns.user) or not permitted?(conn)
+
+  defp forbidden_query?(query) do
+    [
+      ~r/SELECT.*INTO TEMPORARY TABLE/is,
+      ~r/INSERT INTO/is,
+      ~r/^DROP TABLE/i,
+      ~r/^CREATE\s/i
+    ]
+    |> Enum.any?(&(query =~ &1))
+  end
+
+  defp permitted?(conn),
+    do: match?({:ok, _}, Air.Service.DataSource.fetch_as_user(conn.assigns.data_source_id, conn.assigns.user))
 
   defp deallocate_prepared_statement(query) do
     case Regex.named_captures(~r/^deallocate\s+\"(?<prepared_statement>.+)\"$/i, query) do
