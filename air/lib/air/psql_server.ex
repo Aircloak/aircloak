@@ -159,16 +159,28 @@ defmodule Air.PsqlServer do
   # -------------------------------------------------------------------
 
   @doc false
-  def child_spec(_arg),
-    do:
-      Supervisor.child_spec(
-        {RanchServer,
-         {
-           Application.fetch_env!(:air, Air.PsqlServer)[:port],
-           __MODULE__,
-           nil,
-           ranch_opts()
-         }},
-        id: __MODULE__
-      )
+  def child_spec(_arg) do
+    Aircloak.ChildSpec.supervisor(
+      [
+        Air.Service.ShadowDb,
+        Air.PsqlServer.ConnectionRegistry,
+        tcp_interface()
+      ],
+      strategy: :one_for_one,
+      name: __MODULE__
+    )
+  end
+
+  defp tcp_interface() do
+    Supervisor.child_spec(
+      {RanchServer,
+       {
+         Application.fetch_env!(:air, Air.PsqlServer)[:port],
+         __MODULE__,
+         nil,
+         ranch_opts()
+       }},
+      id: __MODULE__
+    )
+  end
 end
