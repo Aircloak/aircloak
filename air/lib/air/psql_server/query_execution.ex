@@ -74,7 +74,7 @@ defmodule Air.PsqlServer.QueryExecution do
           RanchServer.describe_result(conn, columns: [], param_types: [])
 
         internal_query?(query) ->
-          case Air.Service.ShadowDb.parse(conn.assigns.data_source_name, query) do
+          case Air.PsqlServer.ShadowDb.parse(conn.assigns.data_source_name, query) do
             {:ok, columns, param_types} -> RanchServer.describe_result(conn, columns: columns, param_types: param_types)
             {:error, _reason} = error -> RanchServer.describe_result(conn, error)
           end
@@ -155,7 +155,7 @@ defmodule Air.PsqlServer.QueryExecution do
   end
 
   defp select_from_shadow_db!(conn, query, params) do
-    Air.Service.ShadowDb.query(
+    Air.PsqlServer.ShadowDb.query(
       conn.assigns.data_source_name,
       query,
       Enum.map(params || [], fn {_type, value} -> value end)

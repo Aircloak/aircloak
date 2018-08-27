@@ -1,4 +1,4 @@
-defmodule Air.Service.ShadowDb do
+defmodule Air.PsqlServer.ShadowDb do
   @moduledoc """
   Service for managing shadow databases.
 
@@ -9,7 +9,7 @@ defmodule Air.Service.ShadowDb do
   use Supervisor
   require Logger
   alias Aircloak.ChildSpec
-  alias Air.Service.ShadowDb.{Connection, ConnectionPool, Database, Manager}
+  alias Air.PsqlServer.ShadowDb.{Connection, ConnectionPool, Database, Manager}
 
   @database_supervisor __MODULE__.Databases
   @registry __MODULE__.Registry

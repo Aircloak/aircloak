@@ -162,7 +162,7 @@ defmodule Air.PsqlServer do
   def child_spec(_arg) do
     Aircloak.ChildSpec.supervisor(
       [
-        Air.Service.ShadowDb,
+        Air.PsqlServer.ShadowDb,
         Air.PsqlServer.ConnectionRegistry,
         tcp_interface()
       ],

@@ -1,4 +1,4 @@
-defmodule Air.Service.ShadowDb.Connection do
+defmodule Air.PsqlServer.ShadowDb.Connection do
   @moduledoc "Module for working with a shadow database connection."
 
   require Logger
@@ -75,7 +75,7 @@ defmodule Air.Service.ShadowDb.Connection do
       '127.0.0.1',
       'postgres',
       '',
-      %{database: to_charlist(Air.Service.ShadowDb.db_name(data_source_name))}
+      %{database: to_charlist(Air.PsqlServer.ShadowDb.db_name(data_source_name))}
     )
   end
 

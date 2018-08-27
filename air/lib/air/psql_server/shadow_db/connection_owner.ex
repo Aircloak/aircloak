@@ -1,4 +1,4 @@
-defmodule Air.Service.ShadowDb.ConnectionOwner do
+defmodule Air.PsqlServer.ShadowDb.ConnectionOwner do
   @moduledoc """
   Owner process of the database connection.
 
@@ -7,7 +7,7 @@ defmodule Air.Service.ShadowDb.ConnectionOwner do
   been no activity in a while.
   """
   use Parent.GenServer
-  alias Air.Service.ShadowDb.Connection
+  alias Air.PsqlServer.ShadowDb.Connection
 
   @idle_timeout :timer.minutes(1)
 

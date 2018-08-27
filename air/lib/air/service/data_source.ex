@@ -291,7 +291,7 @@ defmodule Air.Service.DataSource do
     Task.Supervisor.start_child(@delete_supervisor, fn ->
       case Repo.transaction(fn -> Repo.delete!(data_source) end, timeout: :timer.hours(1)) do
         {:ok, _} ->
-          Air.Service.ShadowDb.drop(data_source.name)
+          Air.PsqlServer.ShadowDb.drop(data_source.name)
           success_callback.()
 
         {:error, _} ->
