@@ -35,16 +35,16 @@ defmodule Cloak.Sql.QueryTest do
   end
 
   test "extracts number of selected columns" do
-    assert %{num_selected_columns: 1} = features_from("SELECT height FROM feat_users")
-    assert %{num_selected_columns: 3} = features_from("SELECT height, name, male FROM feat_users")
+    assert %{num_top_level_dimensions: 1} = features_from("SELECT height FROM feat_users")
+    assert %{num_top_level_dimensions: 3} = features_from("SELECT height, name, male FROM feat_users")
   end
 
   test "extracts number of selected columns - duplicates count too" do
-    assert %{num_selected_columns: 3} = features_from("SELECT name, name, name FROM feat_users")
+    assert %{num_top_level_dimensions: 3} = features_from("SELECT name, name, name FROM feat_users")
   end
 
   test "extracts number of selected columns - constants count too" do
-    assert %{num_selected_columns: 1} = features_from("SELECT '1' FROM feat_users")
+    assert %{num_top_level_dimensions: 1} = features_from("SELECT '1' FROM feat_users")
   end
 
   test "extracts number of columns loaded from the database" do

@@ -7,9 +7,9 @@ defmodule Cloak.Sql.Query.Features do
   # API functions
   # -------------------------------------------------------------------
 
-  def features(query),
-    do: %{
-      num_selected_columns: num_selected_columns(query.column_titles),
+  def features(query) do
+    %{
+      num_top_level_dimensions: length(query.column_titles),
       num_db_columns: num_db_columns(query.columns),
       num_tables: num_tables(query.selected_tables),
       num_group_by: num_group_by(query),
@@ -22,6 +22,7 @@ defmodule Cloak.Sql.Query.Features do
       driver: to_string(query.data_source.driver),
       driver_dialect: sql_dialect_name(query.data_source)
     }
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -32,8 +33,6 @@ defmodule Cloak.Sql.Query.Features do
       columns
       |> Enum.map(&Function.type/1)
       |> Enum.map(&stringify/1)
-
-  defp num_selected_columns(columns), do: length(columns)
 
   defp num_db_columns(columns),
     do:
