@@ -400,7 +400,7 @@ An example configuration for a virtual table would look like this:
 
 ```
 table_name: {
-  query": "
+  "query": "
     SELECT cast(t2.uid as integer), t2.age, t1.*
     FROM t1 INNER JOIN t2 ON t1.pk = t2.fk
     WHERE t2.age > 18
