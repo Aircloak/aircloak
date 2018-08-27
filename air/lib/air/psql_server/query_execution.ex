@@ -16,86 +16,68 @@ defmodule Air.PsqlServer.QueryExecution do
   @doc "Executes the given query."
   @spec run_query(RanchServer.t(), String.t(), [Protocol.param_with_type()]) :: RanchServer.t()
   def run_query(conn, query, params) do
-    execute(fn ->
-      cond do
-        permission_denied_query?(conn, query) ->
-          RanchServer.query_result(conn, {:error, "permission denied"})
+    cond do
+      permission_denied_query?(conn, query) ->
+        RanchServer.query_result(conn, {:error, "permission denied"})
 
-        cursor = cursor_query?(query) ->
-          if internal_query?(cursor.inner_query) do
-            select_from_shadow_db(conn, cursor.inner_query, params, &first_cursor_fetch(&1, cursor, &2))
-            conn
-          else
-            CloakQuery.run_query(conn, cursor.inner_query, params, &first_cursor_fetch(&1, cursor, &2))
-            conn
-          end
-
-        cursor_fetch = cursor_count_fetch?(query) ->
-          fetch_from_cursor(conn, cursor_fetch.cursor, cursor_fetch.count)
-
-        internal_query?(query) ->
-          select_from_shadow_db(conn, query, params, &RanchServer.query_result/2)
+      cursor = cursor_query?(query) ->
+        if internal_query?(cursor.inner_query) do
+          select_from_shadow_db(conn, cursor.inner_query, params, &first_cursor_fetch(&1, cursor, &2))
           conn
-
-        query =~ ~r/^begin$/i ->
-          RanchServer.query_result(conn, command: :begin)
-
-        query =~ ~r/^set /i ->
-          RanchServer.query_result(conn, command: :set)
-
-        cursor = close_cursor_query?(query) ->
+        else
+          CloakQuery.run_query(conn, cursor.inner_query, params, &first_cursor_fetch(&1, cursor, &2))
           conn
-          |> RanchServer.unassign({:cursor_result, cursor})
-          |> RanchServer.query_result(command: :"close cursor")
+        end
 
-        prepared_statement = deallocate_prepared_statement(query) ->
-          conn
-          |> RanchServer.update_protocol(&Protocol.deallocate_prepared_statement(&1, prepared_statement))
-          |> RanchServer.query_result(command: :deallocate)
+      cursor_fetch = cursor_count_fetch?(query) ->
+        fetch_from_cursor(conn, cursor_fetch.cursor, cursor_fetch.count)
 
-        true ->
-          CloakQuery.run_query(conn, query, params, &RanchServer.query_result/2)
-          conn
-      end
-    end)
+      internal_query?(query) ->
+        select_from_shadow_db(conn, query, params, &RanchServer.query_result/2)
+        conn
+
+      query =~ ~r/^begin$/i ->
+        RanchServer.query_result(conn, command: :begin)
+
+      query =~ ~r/^set /i ->
+        RanchServer.query_result(conn, command: :set)
+
+      cursor = close_cursor_query?(query) ->
+        conn
+        |> RanchServer.unassign({:cursor_result, cursor})
+        |> RanchServer.query_result(command: :"close cursor")
+
+      prepared_statement = deallocate_prepared_statement(query) ->
+        conn
+        |> RanchServer.update_protocol(&Protocol.deallocate_prepared_statement(&1, prepared_statement))
+        |> RanchServer.query_result(command: :deallocate)
+
+      true ->
+        CloakQuery.run_query(conn, query, params, &RanchServer.query_result/2)
+        conn
+    end
   end
 
   @doc "Describes the given query."
   @spec describe_query(RanchServer.t(), String.t(), [Protocol.db_value()]) :: RanchServer.t()
   def describe_query(conn, query, params) do
-    execute(fn ->
-      cond do
-        permission_denied_query?(conn, query) ->
-          RanchServer.query_result(conn, {:error, "permission denied"})
+    cond do
+      permission_denied_query?(conn, query) ->
+        RanchServer.query_result(conn, {:error, "permission denied"})
 
-        internal_query?(query) ->
-          describe_from_shadow_db(conn.assigns.data_source_name, query)
-          conn
+      internal_query?(query) ->
+        describe_from_shadow_db(conn.assigns.data_source_name, query)
+        conn
 
-        true ->
-          CloakQuery.describe_query(conn, query, params)
-          conn
-      end
-    end)
+      true ->
+        CloakQuery.describe_query(conn, query, params)
+        conn
+    end
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp execute(fun) do
-    if Application.get_env(:air, :integration_tests, false) do
-      try do
-        fun.()
-      catch
-        t, e ->
-          IO.puts(Exception.format(t, e, :erlang.get_stacktrace()))
-          raise "error executing query"
-      end
-    else
-      fun.()
-    end
-  end
 
   defp cursor_query?(query) do
     case Regex.named_captures(

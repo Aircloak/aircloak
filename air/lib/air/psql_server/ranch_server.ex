@@ -209,8 +209,13 @@ defmodule Air.PsqlServer.RanchServer do
 
   @impl Parent.GenServer
   def handle_child_terminated({:async_job, _id}, meta, _pid, reason, conn) do
-    conn = if reason == :normal, do: conn, else: meta.on_failure.(conn, reason)
-    {:noreply, conn}
+    if reason == :normal do
+      {:noreply, conn}
+    else
+      # printing query failures in integration tests, because logging is turned off there
+      if Application.get_env(:air, :integration_tests, false), do: IO.puts(Exception.format_exit(reason))
+      {:noreply, meta.on_failure(conn, reason)}
+    end
   end
 
   # -------------------------------------------------------------------
