@@ -11,7 +11,7 @@ defmodule Cloak.Sql.Query.Features do
     %{
       num_top_level_dimensions: length(query.column_titles),
       num_db_columns: num_db_columns(query.columns),
-      num_tables: num_tables(query.selected_tables),
+      num_tables: num_tables(query),
       num_group_by: num_group_by(query),
       functions: extract_functions(query),
       expressions: extract_expressions(query),
@@ -42,7 +42,12 @@ defmodule Cloak.Sql.Query.Features do
       |> Enum.reject(& &1.constant?)
       |> Enum.count()
 
-  defp num_tables(tables), do: length(tables)
+  defp num_tables(query) do
+    Query.Lenses.all_queries()
+    |> Query.Lenses.leaf_tables()
+    |> Lens.to_list(query)
+    |> Enum.count()
+  end
 
   defp num_group_by(%{group_by: clauses}), do: length(clauses)
 

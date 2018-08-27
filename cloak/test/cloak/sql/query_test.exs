@@ -59,20 +59,38 @@ defmodule Cloak.Sql.QueryTest do
     assert %{num_db_columns: 0} = features_from("SELECT '1' FROM feat_users")
   end
 
-  test "extracts number of selected tables" do
-    assert %{num_tables: 1} = features_from("SELECT height FROM feat_users")
+  describe "num_tables" do
+    test "simple query" do
+      assert %{num_tables: 1} = features_from("SELECT height FROM feat_users")
+    end
 
-    assert %{num_tables: 2} =
-             features_from("""
-               SELECT height FROM feat_users, feat_purchases
-               WHERE feat_users.user_id = feat_purchases.user_id
-             """)
+    test "implicit join" do
+      assert %{num_tables: 2} =
+               features_from("""
+                 SELECT height FROM feat_users, feat_purchases
+                 WHERE feat_users.user_id = feat_purchases.user_id
+               """)
+    end
 
-    assert %{num_tables: 2} =
-             features_from("""
-               SELECT height
-               FROM feat_users INNER JOIN feat_purchases ON feat_users.user_id = feat_purchases.user_id
-             """)
+    test "explicit join" do
+      assert %{num_tables: 2} =
+               features_from("""
+                 SELECT height
+                 FROM feat_users INNER JOIN feat_purchases ON feat_users.user_id = feat_purchases.user_id
+               """)
+    end
+
+    test "subquery" do
+      assert %{num_tables: 2} =
+               features_from("""
+                 SELECT COUNT(*)
+                 FROM (
+                   SELECT *
+                   FROM feat_users INNER JOIN feat_purchases
+                     ON feat_users.user_id = feat_purchases.user_id
+                 ) foo
+               """)
+    end
   end
 
   test "extracts types of functions used - no function" do
