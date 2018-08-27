@@ -28,7 +28,7 @@ defmodule Air.PsqlServer.CloakQuery do
   end
 
   @doc "Asynchronously describes a query via cloak."
-  @spec describe_query(RanchServer.t(), String.t(), [Protocol.db_value()] | nil) :: :ok
+  @spec describe_query(RanchServer.t(), String.t(), [Protocol.param_with_type()] | nil) :: :ok
   def describe_query(conn, query, params) do
     user = conn.assigns.user
     data_source_id = conn.assigns.data_source_id
