@@ -26,7 +26,7 @@ defmodule Air.PsqlServer.QueryExecution do
             select_from_shadow_db(conn, cursor.inner_query, params, &first_cursor_fetch(&1, cursor, &2))
             conn
           else
-            CloakQuery.run_query(conn, cursor.inner_query, [], &first_cursor_fetch(&1, cursor, &2))
+            CloakQuery.run_query(conn, cursor.inner_query, params, &first_cursor_fetch(&1, cursor, &2))
             conn
           end
 
