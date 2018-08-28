@@ -287,25 +287,23 @@ defmodule Cloak.Sql.QueryTest do
   end
 
   describe "features->expressions" do
-    test "includes representations of expressions used",
-      do:
-        assert(
-          ["(min (+ const (sqrt col)))", "(+ col const)", "const"] =
-            features_from("SELECT min(1 + sqrt(height)) FROM feat_users WHERE height + 1 = 2").expressions
-        )
+    test "includes representations of expressions used" do
+      assert ["(min (+ const (sqrt col)))", "(+ col const)", "const"] =
+               features_from("SELECT min(1 + sqrt(height)) FROM feat_users WHERE height + 1 = 2").expressions
+    end
 
-    test "resolves references into subqueries",
-      do:
-        assert(
-          ["(min (+ col const))"] =
-            features_from("SELECT min(x) FROM (SELECT user_id, height + 1 AS x FROM feat_users) foo").expressions
-        )
+    test "resolves references into subqueries" do
+      assert ["(min (+ col const))"] =
+               features_from("SELECT min(x) FROM (SELECT user_id, height + 1 AS x FROM feat_users) foo").expressions
+    end
 
-    test "distinct",
-      do:
-        assert(["(count (distinct col))"] = features_from("SELECT count(distinct height) FROM feat_users").expressions)
+    test "distinct" do
+      assert ["(count (distinct col))"] = features_from("SELECT count(distinct height) FROM feat_users").expressions
+    end
 
-    test "*", do: assert(["(count *)"] = features_from("SELECT count(*) FROM feat_users").expressions)
+    test "*" do
+      assert ["(count *)"] = features_from("SELECT count(*) FROM feat_users").expressions
+    end
   end
 
   test "successful view validation" do
