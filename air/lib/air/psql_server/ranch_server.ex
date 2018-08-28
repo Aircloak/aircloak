@@ -11,7 +11,7 @@ defmodule Air.PsqlServer.RanchServer do
   """
 
   @behaviour :ranch_protocol
-  use GenServer
+  use Parent.GenServer
 
   require Logger
 
@@ -103,17 +103,38 @@ defmodule Air.PsqlServer.RanchServer do
   @spec update_protocol(t, (Protocol.t() -> Protocol.t())) :: t
   def update_protocol(conn, fun), do: handle_protocol_actions(%__MODULE__{conn | protocol: fun.(conn.protocol)})
 
+  @doc """
+  Runs the provided lambda in a separate process.
+
+  This function can only be invoked inside the connection process. After the job succeeds, the `:on_success` callback
+  function will be invoked. If the job crashes, the `:on_failure` callback will be invoked. Both callbacks will be
+  invoked in the connection process.
+  """
+  @spec run_async((() -> result), on_success: (t, result -> t), on_failure: (t, term() -> t)) :: :ok when result: var
+  def run_async(job, opts \\ []) do
+    on_success = Keyword.get(opts, :on_success, fn conn, _result -> conn end)
+    conn_pid = self()
+
+    Parent.GenServer.start_child(%{
+      id: {:async_job, make_ref()},
+      start: {Task, :start_link, [fn -> GenServer.cast(conn_pid, {:handle_async_success, on_success, job.()}) end]},
+      meta: %{on_failure: Keyword.get(opts, :on_failure, fn conn, _exit_reason -> conn end)}
+    })
+
+    :ok
+  end
+
   # -------------------------------------------------------------------
   # :ranch_protocol callback functions
   # -------------------------------------------------------------------
 
   @impl :ranch_protocol
-  def start_link(ref, socket, transport, {opts, behaviour_mod, behaviour_init_arg}),
-    do:
-      GenServer.start_link(
-        __MODULE__,
-        {ref, socket, transport, opts, behaviour_mod, behaviour_init_arg}
-      )
+  def start_link(ref, socket, transport, {opts, behaviour_mod, behaviour_init_arg}) do
+    Parent.GenServer.start_link(
+      __MODULE__,
+      {ref, socket, transport, opts, behaviour_mod, behaviour_init_arg}
+    )
+  end
 
   # -------------------------------------------------------------------
   # GenServer callback functions
@@ -133,6 +154,9 @@ defmodule Air.PsqlServer.RanchServer do
        protocol: Protocol.new()
      }}
   end
+
+  @impl GenServer
+  def handle_cast({:handle_async_success, fun, arg}, conn), do: {:noreply, fun.(conn, arg)}
 
   @impl GenServer
   def handle_info({:after_init, behaviour_init_arg}, conn) do
@@ -182,6 +206,17 @@ defmodule Air.PsqlServer.RanchServer do
   end
 
   def handle_info(msg, conn), do: {:noreply, conn.behaviour_mod.handle_message(conn, msg)}
+
+  @impl Parent.GenServer
+  def handle_child_terminated({:async_job, _id}, meta, _pid, reason, conn) do
+    if reason == :normal do
+      {:noreply, conn}
+    else
+      # printing query failures in integration tests, because logging is turned off there
+      if Application.get_env(:air, :integration_tests, false), do: IO.puts(Exception.format_exit(reason))
+      {:noreply, meta.on_failure(conn, reason)}
+    end
+  end
 
   # -------------------------------------------------------------------
   # Internal functions

@@ -14,28 +14,28 @@ defmodule Air.PsqlServer.CloakQuery do
           String.t(),
           [Protocol.db_value()] | nil,
           (RanchServer.t(), any -> RanchServer.t())
-        ) :: RanchServer.t()
-  def run_query(conn, statement, params, result_handler) do
+        ) :: :ok
+  def run_query(conn, statement, params, on_success) do
     with {:ok, query} <- create_query(conn.assigns.user, statement, convert_params(params)) do
       ConnectionRegistry.register_query(conn.assigns.key_data, conn.assigns.user.id, query.id)
 
-      run_async(
-        conn,
+      RanchServer.run_async(
         fn -> query |> DataSource.run_query(conn.assigns.data_source_id) |> decode_cloak_query_result() end,
-        result_handler
+        on_success: on_success,
+        on_failure: fn conn, _exit_reason -> RanchServer.query_result(conn, {:error, "query failed"}) end
       )
     end
   end
 
   @doc "Asynchronously describes a query via cloak."
-  @spec describe_query(RanchServer.t(), String.t(), [Protocol.db_value()] | nil) :: RanchServer.t()
+  @spec describe_query(RanchServer.t(), String.t(), [Protocol.param_with_type()] | nil) :: :ok
   def describe_query(conn, query, params) do
     user = conn.assigns.user
     data_source_id = conn.assigns.data_source_id
     converted_params = convert_params(params)
     job_fun = fn -> DataSource.describe_query(data_source_id, user, query, converted_params) end
 
-    on_finished = fn conn, describe_result ->
+    result_handler = fn conn, describe_result ->
       result =
         case decode_cloak_query_result(describe_result) do
           {:error, _} = error ->
@@ -48,18 +48,16 @@ defmodule Air.PsqlServer.CloakQuery do
       RanchServer.describe_result(conn, result)
     end
 
-    run_async(conn, job_fun, on_finished)
+    RanchServer.run_async(
+      job_fun,
+      on_success: result_handler,
+      on_failure: fn conn, _exit_reason -> RanchServer.describe_result(conn, {:error, "parsing failed"}) end
+    )
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp run_async(conn, job_fun, on_finished) do
-    task = Task.async(job_fun)
-    async_jobs = Map.put(conn.assigns.async_jobs, task.ref, %{task: task, on_finished: on_finished})
-    RanchServer.assign(conn, :async_jobs, async_jobs)
-  end
 
   defp convert_params(nil), do: nil
 

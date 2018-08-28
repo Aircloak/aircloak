@@ -66,7 +66,7 @@ defmodule Air.PsqlServer do
   # -------------------------------------------------------------------
 
   @impl RanchServer
-  def init(conn, nil), do: {:ok, RanchServer.assign(conn, :async_jobs, %{})}
+  def init(conn, nil), do: {:ok, conn}
 
   @impl RanchServer
   def login(conn, password) do
@@ -101,18 +101,6 @@ defmodule Air.PsqlServer do
   def describe_statement(conn, query, params), do: QueryExecution.describe_query(conn, query, params)
 
   @impl RanchServer
-  def handle_message(conn, {ref, query_result}) do
-    case Map.fetch(conn.assigns.async_jobs, ref) do
-      :error ->
-        conn
-
-      {:ok, job_descriptor} ->
-        async_jobs = Map.delete(conn.assigns.async_jobs, ref)
-        conn = RanchServer.assign(conn, :async_jobs, async_jobs)
-        job_descriptor.on_finished.(conn, query_result)
-    end
-  end
-
   def handle_message(conn, _message), do: conn
 
   # -------------------------------------------------------------------
@@ -159,16 +147,28 @@ defmodule Air.PsqlServer do
   # -------------------------------------------------------------------
 
   @doc false
-  def child_spec(_arg),
-    do:
-      Supervisor.child_spec(
-        {RanchServer,
-         {
-           Application.fetch_env!(:air, Air.PsqlServer)[:port],
-           __MODULE__,
-           nil,
-           ranch_opts()
-         }},
-        id: __MODULE__
-      )
+  def child_spec(_arg) do
+    Aircloak.ChildSpec.supervisor(
+      [
+        Air.PsqlServer.ShadowDb,
+        Air.PsqlServer.ConnectionRegistry,
+        tcp_interface()
+      ],
+      strategy: :one_for_one,
+      name: __MODULE__
+    )
+  end
+
+  defp tcp_interface() do
+    Supervisor.child_spec(
+      {RanchServer,
+       {
+         Application.fetch_env!(:air, Air.PsqlServer)[:port],
+         __MODULE__,
+         nil,
+         ranch_opts()
+       }},
+      id: __MODULE__
+    )
+  end
 end

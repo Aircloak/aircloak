@@ -17,15 +17,13 @@ defmodule Air.Supervisor do
         Air.Service.Central,
         Air.Service.User,
         Air.Service.Export,
-        Air.Service.ShadowDb,
         Air.Service.Cleanup,
         in_env(test: nil, else: Air.Service.LDAP.PeriodicSync),
         Air.ApiTokenTimestampUpdater,
+        Air.PsqlServer,
         Air.Web,
         AirWeb.MonitoringEndpoint,
-        Air.BOM,
-        Air.PsqlServer,
-        Air.PsqlServer.ConnectionRegistry
+        Air.BOM
       ]
       |> Enum.reject(&is_nil/1),
       strategy: :one_for_one,

@@ -1,4 +1,4 @@
-defmodule Air.Service.ShadowDb.Manager do
+defmodule Air.PsqlServer.ShadowDb.Manager do
   @moduledoc "Server responsible for managing a single shadow database."
 
   use GenServer, restart: :transient
@@ -84,7 +84,7 @@ defmodule Air.Service.ShadowDb.Manager do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp name(data_source_name), do: Air.Service.ShadowDb.registered_name(data_source_name, __MODULE__)
+  defp name(data_source_name), do: Air.PsqlServer.ShadowDb.registered_name(data_source_name, __MODULE__)
 
   defp connect!(database_name) do
     {:ok, pid} =
