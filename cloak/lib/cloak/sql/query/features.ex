@@ -21,7 +21,9 @@ defmodule Cloak.Sql.Query.Features do
       top_level_select_functions: top_level_select_functions(query),
       subquery_select_functions: subquery_select_functions(query),
       select_functions: Enum.uniq(top_level_select_functions(query) ++ subquery_select_functions(query)),
-      functions: extract_functions(query),
+      top_level_functions: top_level_functions(query),
+      subquery_functions: subquery_functions(query),
+      functions: Enum.uniq(top_level_functions(query) ++ subquery_functions(query)),
       expressions: extract_expressions(query),
       where_conditions: extract_where_conditions(query.where),
       column_types: extract_column_types(query.columns),
@@ -103,8 +105,10 @@ defmodule Cloak.Sql.Query.Features do
 
   defp subquery_select_functions(query), do: extract_functions(query, Query.Lenses.subqueries() |> Lens.key(:columns))
 
-  defp extract_functions(query),
-    do: extract_functions(query, Query.Lenses.all_queries() |> Query.Lenses.analyst_provided_expressions())
+  defp top_level_functions(query), do: extract_functions(query, Query.Lenses.analyst_provided_expressions())
+
+  defp subquery_functions(query),
+    do: extract_functions(query, Query.Lenses.subqueries() |> Query.Lenses.analyst_provided_expressions())
 
   defp extract_functions(query, initial_lens) do
     query

@@ -133,28 +133,33 @@ defmodule Cloak.Sql.QueryTest do
 
   describe "functions" do
     test "no function" do
-      assert %{functions: []} = features_from("SELECT height FROM feat_users")
-      assert %{functions: []} = features_from("SELECT * FROM feat_users")
+      assert %{functions: [], top_level_functions: [], subquery_functions: []} =
+               features_from("SELECT height FROM feat_users")
     end
 
     test "function used" do
-      assert %{functions: ["abs", "cast"]} = features_from("SELECT abs(height), CAST(height AS text) FROM feat_users")
+      assert %{functions: ["abs", "cast"], top_level_functions: ["abs", "cast"], subquery_functions: []} =
+               features_from("SELECT abs(height), CAST(height AS text) FROM feat_users")
     end
 
     test "function used in WHERE" do
-      assert %{functions: ["sqrt"]} = features_from("SELECT * FROM feat_users WHERE sqrt(height) = 10")
+      assert %{functions: ["sqrt"], top_level_functions: ["sqrt"], subquery_functions: []} =
+               features_from("SELECT * FROM feat_users WHERE sqrt(height) = 10")
     end
 
     test "nested functions used" do
-      assert ["min", "sqrt"] = features_from("SELECT min(sqrt(height)) FROM feat_users").functions |> Enum.sort()
-    end
-
-    test "deduplicates functions used" do
-      assert %{functions: ["min"]} = features_from("SELECT min(height), min(height) FROM feat_users")
+      assert %{functions: ["sqrt", "min"], top_level_functions: ["sqrt", "min"], subquery_functions: []} =
+               features_from("SELECT min(sqrt(height)) FROM feat_users")
     end
 
     test "subqueries" do
-      assert %{functions: ["sqrt"]} = features_from("SELECT * FROM (SELECT sqrt(height) FROM feat_users) x")
+      assert %{functions: ["sqrt"], top_level_functions: [], subquery_functions: ["sqrt"]} =
+               features_from("SELECT * FROM (SELECT sqrt(height) FROM feat_users) x")
+    end
+
+    test "deduplicates functions used" do
+      assert %{functions: ["min"], top_level_functions: ["min"], subquery_functions: ["min"]} =
+               features_from("SELECT min(height) FROM (SELECT min(height) AS height FROM feat_users) foo")
     end
   end
 
