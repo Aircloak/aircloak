@@ -13,7 +13,9 @@ defmodule Cloak.Sql.Query.Features do
       num_db_columns: num_db_columns(query.columns),
       num_tables: num_tables(query),
       num_distinct_tables: num_distinct_tables(query),
-      num_group_by: num_group_by(query),
+      num_top_level_group_by: num_group_by(query),
+      num_subquery_group_by: num_subquery_group_by(query),
+      num_group_by: num_group_by(query) + num_subquery_group_by(query),
       functions: extract_functions(query),
       expressions: extract_expressions(query),
       where_conditions: extract_where_conditions(query.where),
@@ -54,6 +56,13 @@ defmodule Cloak.Sql.Query.Features do
     |> Lens.filter(& &1.db_name)
     |> Lens.key(:db_name)
     |> Lens.to_list(query)
+  end
+
+  defp num_subquery_group_by(query) do
+    query
+    |> get_in([Query.Lenses.subqueries()])
+    |> Enum.map(&num_group_by/1)
+    |> Enum.sum()
   end
 
   defp num_group_by(%{group_by: clauses}), do: length(clauses)

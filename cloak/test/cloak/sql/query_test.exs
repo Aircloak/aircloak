@@ -175,12 +175,21 @@ defmodule Cloak.Sql.QueryTest do
              |> Enum.into(MapSet.new())
   end
 
-  test "num of group by clauses - no group by" do
-    assert %{num_group_by: 0} = features_from("SELECT count(*) FROM feat_users")
-  end
+  describe "number of group by clauses" do
+    test "no group by" do
+      assert %{num_top_level_group_by: 0, num_subquery_group_by: 0, num_group_by: 0} =
+               features_from("SELECT count(*) FROM feat_users")
+    end
 
-  test "num of group by clauses - has group by" do
-    assert %{num_group_by: 1} = features_from("SELECT count(*) FROM feat_users GROUP BY height")
+    test "top-level group by" do
+      assert %{num_top_level_group_by: 1, num_subquery_group_by: 0, num_group_by: 1} =
+               features_from("SELECT count(*) FROM feat_users GROUP BY height")
+    end
+
+    test "subquery group by" do
+      assert %{num_top_level_group_by: 0, num_subquery_group_by: 1, num_group_by: 1} =
+               features_from("SELECT count(*) FROM (SELECT count(*) FROM feat_users GROUP BY height) foo")
+    end
   end
 
   test "requested column types" do
