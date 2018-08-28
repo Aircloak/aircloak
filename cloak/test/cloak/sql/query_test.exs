@@ -131,29 +131,56 @@ defmodule Cloak.Sql.QueryTest do
     end
   end
 
-  test "extracts types of functions used - no function" do
-    assert %{functions: []} = features_from("SELECT height FROM feat_users")
-    assert %{functions: []} = features_from("SELECT * FROM feat_users")
+  describe "functions" do
+    test "no function" do
+      assert %{functions: []} = features_from("SELECT height FROM feat_users")
+      assert %{functions: []} = features_from("SELECT * FROM feat_users")
+    end
+
+    test "function used" do
+      assert %{functions: ["abs", "cast"]} = features_from("SELECT abs(height), CAST(height AS text) FROM feat_users")
+    end
+
+    test "function used in WHERE" do
+      assert %{functions: ["sqrt"]} = features_from("SELECT * FROM feat_users WHERE sqrt(height) = 10")
+    end
+
+    test "nested functions used" do
+      assert ["min", "sqrt"] = features_from("SELECT min(sqrt(height)) FROM feat_users").functions |> Enum.sort()
+    end
+
+    test "deduplicates functions used" do
+      assert %{functions: ["min"]} = features_from("SELECT min(height), min(height) FROM feat_users")
+    end
+
+    test "subqueries" do
+      assert %{functions: ["sqrt"]} = features_from("SELECT * FROM (SELECT sqrt(height) FROM feat_users) x")
+    end
   end
 
-  test "extracts types of functions used - function used" do
-    assert %{functions: ["abs", "cast"]} = features_from("SELECT abs(height), CAST(height AS text) FROM feat_users")
-  end
+  describe "select_functions" do
+    test "no function" do
+      assert %{top_level_select_functions: [], subquery_select_functions: [], select_functions: []} =
+               features_from("SELECT height FROM feat_users")
+    end
 
-  test "extracts types of functions used - function used in WHERE" do
-    assert %{functions: ["sqrt"]} = features_from("SELECT * FROM feat_users WHERE sqrt(height) = 10")
-  end
+    test "function used" do
+      assert %{
+               top_level_select_functions: ["abs"],
+               subquery_select_functions: ["sqrt"],
+               select_functions: ["abs", "sqrt"]
+             } = features_from("SELECT abs(foo) FROM (SELECT sqrt(height) AS foo FROM feat_users) x")
+    end
 
-  test "extracts types of functions used - multiple functions used" do
-    assert ["min", "sqrt"] = features_from("SELECT min(sqrt(height)) FROM feat_users").functions |> Enum.sort()
-  end
+    test "deduplicates" do
+      assert %{top_level_select_functions: ["sqrt"], subquery_select_functions: ["sqrt"], select_functions: ["sqrt"]} =
+               features_from("SELECT sqrt(x) FROM (SELECT sqrt(height) AS x FROM feat_users) foo")
+    end
 
-  test "extracts types of functions used - deduplicates functions used" do
-    assert %{functions: ["min"]} = features_from("SELECT min(height), min(height) FROM feat_users")
-  end
-
-  test "extracts types of functions used in subqueries" do
-    assert %{functions: ["sqrt"]} = features_from("SELECT * FROM (SELECT sqrt(height) FROM feat_users) x")
+    test "function used in WHERE" do
+      assert %{top_level_select_functions: [], subquery_select_functions: [], select_functions: []} =
+               features_from("SELECT * FROM feat_users WHERE sqrt(height) = 10")
+    end
   end
 
   test "extracts types of where conditions used - no where conditions" do

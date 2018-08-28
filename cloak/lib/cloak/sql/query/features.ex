@@ -18,6 +18,9 @@ defmodule Cloak.Sql.Query.Features do
       num_top_level_group_by: num_group_by(query),
       num_subquery_group_by: num_subquery_group_by(query),
       num_group_by: num_group_by(query) + num_subquery_group_by(query),
+      top_level_select_functions: top_level_select_functions(query),
+      subquery_select_functions: subquery_select_functions(query),
+      select_functions: Enum.uniq(top_level_select_functions(query) ++ subquery_select_functions(query)),
       functions: extract_functions(query),
       expressions: extract_expressions(query),
       where_conditions: extract_where_conditions(query.where),
@@ -96,17 +99,23 @@ defmodule Cloak.Sql.Query.Features do
 
   defp num_group_by(%{group_by: clauses}), do: length(clauses)
 
+  defp top_level_select_functions(query), do: extract_functions(query, Lens.key(:columns))
+
+  defp subquery_select_functions(query), do: extract_functions(query, Query.Lenses.subqueries() |> Lens.key(:columns))
+
   defp extract_functions(query),
-    do:
-      query
-      |> get_in([
-        Query.Lenses.all_queries()
-        |> Query.Lenses.analyst_provided_expressions()
-        |> Query.Lenses.all_expressions()
-        |> Lens.filter(& &1.function?)
-      ])
-      |> Enum.map(&Function.readable_name(&1.function))
-      |> Enum.uniq()
+    do: extract_functions(query, Query.Lenses.all_queries() |> Query.Lenses.analyst_provided_expressions())
+
+  defp extract_functions(query, initial_lens) do
+    query
+    |> get_in([
+      initial_lens
+      |> Query.Lenses.all_expressions()
+      |> Lens.filter(& &1.function?)
+    ])
+    |> Enum.map(&Function.readable_name(&1.function))
+    |> Enum.uniq()
+  end
 
   defp extract_expressions(query) do
     query
