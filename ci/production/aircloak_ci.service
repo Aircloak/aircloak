@@ -6,6 +6,7 @@ Environment="MPI=true"
 Environment="https_proxy=http://acmirror.mpi-sws.org:3128"
 Environment="http_proxy=http://acmirror.mpi-sws.org:3128"
 Environment="no_proxy=localhost,127.0.0.1,acmirror.mpi-sws.org,aclog0.mpi-sws.org"
+Environment="PREVENT_OLD_IMAGE_REMOVAL=true"
 ExecStart=/home/ci/aircloak_ci/production/current/bin/aircloak_ci foreground
 ExecStop=/home/ci/aircloak_ci/production/current/bin/aircloak_ci stop
 Restart=on-failure

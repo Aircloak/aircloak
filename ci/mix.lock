@@ -25,6 +25,7 @@
   "metrics": {:hex, :metrics, "1.0.1", "25f094dea2cda98213cecc3aeff09e940299d950904393b2a29d191c346a8486", [], [], "hexpm"},
   "mimerl": {:hex, :mimerl, "1.0.2", "993f9b0e084083405ed8252b99460c4f0563e41729ab42d9074fd5e52439be88", [], [], "hexpm"},
   "mochiweb": {:hex, :mochiweb, "2.15.0", "e1daac474df07651e5d17cc1e642c4069c7850dc4508d3db7263a0651330aacc", [:rebar3], [], "hexpm"},
+  "parent": {:hex, :parent, "0.4.1", "9ec330408dbe1f63fe82668a60ad2ef8af05df8440a54ebebf44e91eb16ff261", [:mix], [], "hexpm"},
   "parse_trans": {:hex, :parse_trans, "3.0.0", "9e96b1c9c3a0df54e7b76f8f685d38bfa1eb21b31e042b1d1a5a70258e4db1e3", [:rebar3], [], "hexpm"},
   "poison": {:hex, :poison, "2.2.0", "4763b69a8a77bd77d26f477d196428b741261a761257ff1cf92753a0d4d24a63", [:mix], [], "hexpm"},
   "proper": {:hex, :proper, "1.2.0", "1466492385959412a02871505434e72e92765958c60dba144b43863554b505a4", [], [], "hexpm"},

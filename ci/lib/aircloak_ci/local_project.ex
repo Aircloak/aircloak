@@ -1,6 +1,7 @@
 defmodule AircloakCI.LocalProject do
   @moduledoc "Helpers for working with a cloned local project."
 
+  require Aircloak
   alias AircloakCI.{CmdRunner, Github}
   require Logger
 
@@ -35,6 +36,11 @@ defmodule AircloakCI.LocalProject do
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @doc "Returns the location of the root source folder of the master branch."
+  @spec master_src_folder() :: String.t()
+  def master_src_folder(),
+    do: Aircloak.in_env(prod: Path.join([branches_folder(), branch_folder_name("master"), "src"]), else: ".")
 
   @doc "Returns the full path to the desired log file."
   @spec log_file(t, String.t()) :: String.t()
@@ -391,7 +397,6 @@ defmodule AircloakCI.LocalProject do
   defp pr_folder_name(pr), do: "pr-#{pr.number}"
 
   defp branches_folder(), do: Path.join(cache_folder(), "branches")
-  Application.app_dir(:aircloak_ci, Path.join("priv", "branches"))
 
   defp branch_folder_name(branch_name), do: String.replace(branch_name, "/", "-")
 

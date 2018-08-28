@@ -28,7 +28,8 @@ defmodule AircloakCI.Mixfile do
       {:aircloak_common, path: "../common/elixir"},
       {:erlexec, "~> 1.7", only: [:dev, :prod]},
       {:jobs, "~> 0.7"},
-      {:recon, "~> 2.0"}
+      {:recon, "~> 2.0"},
+      {:parent, "~> 0.4.0"}
     ]
   end
 

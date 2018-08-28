@@ -14,6 +14,7 @@ defmodule AircloakCI.CmdRunner do
           {:timeout, pos_integer | :infinity}
           | {:kill_timeout, pos_integer}
           | {:cd, String.t()}
+          | {:lock_start?, boolean}
 
   @type logger :: (iodata -> any)
 
@@ -24,14 +25,14 @@ defmodule AircloakCI.CmdRunner do
   @doc "Runs the command and waits for it to finish."
   @spec run(String.t(), [{:logger, logger} | run_option]) :: :ok | {:error, String.t()}
   def run(cmd, opts \\ []) do
-    {:ok, runner} = AircloakCI.CmdRunner.Supervisor.start_runner(self())
+    {:ok, runner} = AircloakCI.CmdRunner.Supervisor.start_runner(self(), Keyword.take(opts, [:lock_start?]))
     GenServer.call(runner, {:run, cmd, normalize_opts(opts)}, :infinity)
   end
 
   @doc "Runs the command, waits for it to finish, and returns the command output."
   @spec run_with_output(String.t(), [run_option]) :: {:ok, String.t()} | {:error, String.t()}
   def run_with_output(cmd, opts \\ []) do
-    {:ok, runner} = AircloakCI.CmdRunner.Supervisor.start_runner(self())
+    {:ok, runner} = AircloakCI.CmdRunner.Supervisor.start_runner(self(), Keyword.take(opts, [:lock_start?]))
     GenServer.call(runner, {:run_with_output, cmd, normalize_opts(opts)}, :infinity)
   end
 
