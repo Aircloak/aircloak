@@ -188,52 +188,63 @@ defmodule Cloak.Sql.QueryTest do
     end
   end
 
-  test "extracts types of where conditions used - no where conditions" do
-    assert %{where_conditions: []} = features_from("SELECT count(*) FROM feat_users")
-  end
+  describe "filters" do
+    test "no filters" do
+      assert %{filters: []} = features_from("SELECT count(*) FROM feat_users")
+    end
 
-  test "extracts types of where conditions used" do
-    assert MapSet.new(["<", ">="]) ==
-             features_from("""
-               SELECT height
-               FROM feat_users
-               WHERE height > 10 and height < 20
-             """).where_conditions
-             |> Enum.into(MapSet.new())
+    test "filter in ON"
 
-    assert MapSet.new(["=", "<>"]) ==
-             features_from("""
-               SELECT height
-               FROM feat_users
-               WHERE height <> 10 and male = true
-             """).where_conditions
-             |> Enum.into(MapSet.new())
+    test "filter in HAVING"
 
-    assert MapSet.new(["in", "<>"]) ==
-             features_from("""
-               SELECT height
-               FROM feat_users
-               WHERE
-                 height IN (10, 11) and height NOT IN (12, 13) and
-                 name IN ('bob', 'alice')
-             """).where_conditions
-             |> Enum.into(MapSet.new())
+    test "extracts filter structure" do
+      assert MapSet.new(["(< col const)", "(>= col const)"]) ==
+               features_from("""
+                 SELECT height
+                 FROM feat_users
+                 WHERE height > 10 and height < 20
+               """).filters
+               |> Enum.into(MapSet.new())
 
-    assert MapSet.new(["null", "not null"]) ==
-             features_from("""
-               SELECT height
-               FROM feat_users
-               WHERE height IS NULL and name IS NOT NULL
-             """).where_conditions
-             |> Enum.into(MapSet.new())
+      assert MapSet.new(["(<> col const)", "(= col const)"]) ==
+               features_from("""
+                 SELECT height
+                 FROM feat_users
+                 WHERE height <> 10 and male = true
+               """).filters
+               |> Enum.into(MapSet.new())
 
-    assert MapSet.new(["like", "ilike", "not like", "not ilike"]) ==
-             features_from("""
-               SELECT height
-               FROM feat_users
-               WHERE name LIKE '%' and name ILIKE '%foo%' and name NOT LIKE '_' and name NOT ILIKE '%bar%'
-             """).where_conditions
-             |> Enum.into(MapSet.new())
+      assert MapSet.new(["(in col set)", "(<> col const)"]) ==
+               features_from("""
+                 SELECT height
+                 FROM feat_users
+                 WHERE
+                   height IN (10, 11) and height NOT IN (12, 13) and
+                   name IN ('bob', 'alice')
+               """).filters
+               |> Enum.into(MapSet.new())
+
+      assert MapSet.new(["(is-null col)", "(not (is-null col))"]) ==
+               features_from("""
+                 SELECT height
+                 FROM feat_users
+                 WHERE height IS NULL and name IS NOT NULL
+               """).filters
+               |> Enum.into(MapSet.new())
+
+      assert MapSet.new([
+               "(like col const)",
+               "(ilike col const)",
+               "(not (like col const))",
+               "(not (ilike col const))"
+             ]) ==
+               features_from("""
+                 SELECT height
+                 FROM feat_users
+                 WHERE name LIKE '%' and name ILIKE '%foo%' and name NOT LIKE '_' and name NOT ILIKE '%bar%'
+               """).filters
+               |> Enum.into(MapSet.new())
+    end
   end
 
   describe "number of group by clauses" do

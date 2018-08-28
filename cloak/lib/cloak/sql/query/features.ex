@@ -25,7 +25,7 @@ defmodule Cloak.Sql.Query.Features do
       subquery_functions: subquery_functions(query),
       functions: Enum.uniq(top_level_functions(query) ++ subquery_functions(query)),
       expressions: extract_expressions(query),
-      where_conditions: extract_where_conditions(query.where),
+      filters: extract_filters(query),
       column_types: extract_column_types(query.columns),
       selected_types: selected_types(query.columns),
       parameter_types: Enum.map(Query.parameter_types(query), &stringify/1),
@@ -157,22 +157,26 @@ defmodule Cloak.Sql.Query.Features do
     end
   end
 
-  defp extract_where_conditions(clause),
-    do:
-      Query.Lenses.conditions()
-      |> Lens.reject(&Condition.subject(&1).synthetic?)
-      |> Lens.to_list(clause)
-      |> Enum.map(&extract_where_condition/1)
-      |> Enum.uniq()
+  defp extract_filters(query) do
+    Query.Lenses.conditions()
+    |> Lens.reject(&Condition.subject(&1).synthetic?)
+    |> Lens.to_list(query.where)
+    |> Enum.map(&filter_to_tree(&1, query))
+    |> Enum.map(&expression_tree_to_lisp/1)
+    |> Enum.uniq()
+  end
 
-  defp extract_where_condition({:not, {:comparison, _column, :=, _comparator}}), do: "<>"
-  defp extract_where_condition({:not, something}), do: "not #{extract_where_condition(something)}"
+  defp filter_to_tree({:not, something}, query), do: ["not", filter_to_tree(something, query)]
 
-  defp extract_where_condition({:comparison, _column, comparison, _comparator}), do: Atom.to_string(comparison)
+  defp filter_to_tree({:comparison, column, comparison, comparator}, query),
+    do: [Atom.to_string(comparison), build_expression_tree(column, query), build_expression_tree(comparator, query)]
 
-  defp extract_where_condition({:is, _column, :null}), do: "null"
+  defp filter_to_tree({:in, column, _set}, query), do: ["in", build_expression_tree(column, query), "set"]
 
-  defp extract_where_condition({condition, _column, _value_or_pattern}), do: Atom.to_string(condition)
+  defp filter_to_tree({:is, column, :null}, query), do: ["is-null", build_expression_tree(column, query)]
+
+  defp filter_to_tree({condition, lhs, rhs}, query),
+    do: [Atom.to_string(condition), build_expression_tree(lhs, query), build_expression_tree(rhs, query)]
 
   defp extract_column_types(columns),
     do:
