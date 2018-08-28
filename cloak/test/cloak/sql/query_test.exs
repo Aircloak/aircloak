@@ -58,16 +58,20 @@ defmodule Cloak.Sql.QueryTest do
     end
   end
 
-  test "extracts number of columns loaded from the database" do
-    assert %{num_db_columns: 1} = features_from("SELECT height FROM feat_users")
-  end
+  describe "num_db_columns" do
+    test "simple query" do
+      assert %{num_db_columns: 1, num_distinct_db_columns: 1} = features_from("SELECT height FROM feat_users")
+    end
 
-  test "extracts number of columns loaded from the database - deduplicated" do
-    assert %{num_db_columns: 1} = features_from("SELECT height, height FROM feat_users")
-  end
+    test "dedeuplication" do
+      assert %{num_db_columns: 2, num_distinct_db_columns: 1} = features_from("SELECT height, height FROM feat_users")
+    end
 
-  test "extracts number of columns loaded from the database - constants don't count" do
-    assert %{num_db_columns: 0} = features_from("SELECT '1' FROM feat_users")
+    test "constants don't count" do
+      assert %{num_db_columns: 0, num_distinct_db_columns: 0} = features_from("SELECT '1' FROM feat_users")
+    end
+
+    test "subqueries"
   end
 
   describe "num_tables" do

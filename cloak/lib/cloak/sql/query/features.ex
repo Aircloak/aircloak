@@ -12,6 +12,7 @@ defmodule Cloak.Sql.Query.Features do
       num_top_level_dimensions: num_top_level_dimensions(query),
       num_top_level_aggregates: num_top_level_aggregates(query),
       num_db_columns: num_db_columns(query),
+      num_distinct_db_columns: num_distinct_db_columns(query),
       num_tables: num_tables(query),
       num_distinct_tables: num_distinct_tables(query),
       num_top_level_group_by: num_group_by(query),
@@ -50,13 +51,12 @@ defmodule Cloak.Sql.Query.Features do
       |> Enum.map(&Function.type/1)
       |> Enum.map(&stringify/1)
 
-  defp num_db_columns(columns),
-    do:
-      columns
-      |> extract_columns()
-      |> Enum.uniq_by(&Expression.semantic/1)
-      |> Enum.reject(& &1.constant?)
-      |> Enum.count()
+  defp num_db_columns(query), do: query |> db_columns() |> Enum.count()
+
+  defp num_distinct_db_columns(query),
+    do: query |> db_columns() |> Enum.uniq_by(&Expression.semantic/1) |> Enum.count()
+
+  defp db_columns(query), do: query.columns |> extract_columns() |> Enum.reject(& &1.constant?)
 
   defp num_tables(query), do: query |> tables() |> Enum.count()
 
