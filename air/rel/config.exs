@@ -19,7 +19,7 @@ environment :prod do
 
   plugin(
     Aircloak.Release.Adjust,
-    keep_only: [air: [priv: ~w(bom.json config_schema.json dependencies.zip gettext repo static)]]
+    keep_only: [air: [{"priv", ~w(bom.json config_schema.json dependencies.zip gettext repo static)}]]
   )
 end
 

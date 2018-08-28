@@ -19,7 +19,7 @@ environment :prod do
 
   plugin(
     Aircloak.Release.Adjust,
-    keep_only: [cloak: [priv: ~w(config_schema.json datasource_schema.json native odbc)]],
+    keep_only: [cloak: [{"priv", ~w(config_schema.json datasource_schema.json native odbc)}]],
     remove: [cloak: [{"priv/odbc/drivers", ~w(saphana sapiq)}]]
   )
 end

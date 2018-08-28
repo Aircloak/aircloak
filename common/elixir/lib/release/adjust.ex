@@ -14,11 +14,11 @@ defmodule Aircloak.Release.Adjust do
       Aircloak.Release.Adjust,
 
       # in app1, folder_a, only the listed files will be kept
-      keep: [app1: [folder_a: ~w(file_b folder_c), ...]],
+      keep_only: [app1: [{folder_a, ~w(file_b folder_c)}, ...]],
 
 
       # in app1, folder_d, the listed files will be removed
-      remove: [app1: [folder_d: ~w(file_e file_f), ...]],
+      remove: [app1: [{folder_d, ~w(file_e file_f)}, ...]],
 
       ...
     )
