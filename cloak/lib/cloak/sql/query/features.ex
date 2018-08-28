@@ -54,9 +54,25 @@ defmodule Cloak.Sql.Query.Features do
   defp num_db_columns(query), do: query |> db_columns() |> Enum.count()
 
   defp num_distinct_db_columns(query),
-    do: query |> db_columns() |> Enum.uniq_by(&Expression.semantic/1) |> Enum.count()
+    do: query |> db_columns() |> Enum.uniq_by(&{&1.name, &1.table}) |> Enum.count()
 
-  defp db_columns(query), do: query.columns |> extract_columns() |> Enum.reject(& &1.constant?)
+  defp db_columns(query) do
+    Query.Lenses.all_queries()
+    |> Lens.context(possible_db_columns())
+    |> Lens.to_list(Query.resolve_db_columns(query))
+    |> Enum.flat_map(fn {subquery, column} ->
+      case Query.resolve_subquery_column(column, subquery) do
+        :database_column -> [column]
+        _ -> []
+      end
+    end)
+    |> Enum.reject(& &1.constant?)
+  end
+
+  def possible_db_columns() do
+    Lens.both(Query.Lenses.filter_clauses(), Lens.keys([:db_columns, :group_by]))
+    |> Query.Lenses.leaf_expressions()
+  end
 
   defp num_tables(query), do: query |> tables() |> Enum.count()
 

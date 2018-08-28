@@ -60,18 +60,32 @@ defmodule Cloak.Sql.QueryTest do
 
   describe "num_db_columns" do
     test "simple query" do
-      assert %{num_db_columns: 1, num_distinct_db_columns: 1} = features_from("SELECT height FROM feat_users")
+      assert %{num_db_columns: 3, num_distinct_db_columns: 2} = features_from("SELECT height FROM feat_users")
     end
 
-    test "dedeuplication" do
-      assert %{num_db_columns: 2, num_distinct_db_columns: 1} = features_from("SELECT height, height FROM feat_users")
+    test "deduplication" do
+      assert %{num_db_columns: 4, num_distinct_db_columns: 2} =
+               features_from("""
+                 SELECT count(*) FROM
+                   (SELECT user_id FROM feat_users WHERE height = 0) x
+                 INNER JOIN
+                   (SELECT user_id FROM feat_users WHERE height = 0) y
+                 ON x.user_id = y.user_id
+               """)
     end
 
     test "constants don't count" do
-      assert %{num_db_columns: 0, num_distinct_db_columns: 0} = features_from("SELECT '1' FROM feat_users")
+      assert %{num_db_columns: 2, num_distinct_db_columns: 1} = features_from("SELECT '1' FROM feat_users")
     end
 
-    test "subqueries"
+    test "subqueries" do
+      assert %{num_db_columns: 8, num_distinct_db_columns: 3} =
+               features_from("""
+                 SELECT COUNT(*) FROM (
+                   SELECT user_id FROM feat_users GROUP BY user_id, name HAVING sum(height) = 0
+                 ) foo
+               """)
+    end
   end
 
   describe "num_tables" do
