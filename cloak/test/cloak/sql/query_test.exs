@@ -34,17 +34,28 @@ defmodule Cloak.Sql.QueryTest do
     :ok
   end
 
-  test "extracts number of selected columns" do
-    assert %{num_top_level_dimensions: 1} = features_from("SELECT height FROM feat_users")
-    assert %{num_top_level_dimensions: 3} = features_from("SELECT height, name, male FROM feat_users")
-  end
+  describe "top level selected" do
+    test "simple case" do
+      assert %{num_top_level_dimensions: 1, num_top_level_aggregates: 0} =
+               features_from("SELECT height FROM feat_users")
 
-  test "extracts number of selected columns - duplicates count too" do
-    assert %{num_top_level_dimensions: 3} = features_from("SELECT name, name, name FROM feat_users")
-  end
+      assert %{num_top_level_dimensions: 3, num_top_level_aggregates: 0} =
+               features_from("SELECT height, name, male FROM feat_users")
+    end
 
-  test "extracts number of selected columns - constants count too" do
-    assert %{num_top_level_dimensions: 1} = features_from("SELECT '1' FROM feat_users")
+    test "duplicates" do
+      assert %{num_top_level_dimensions: 3, num_top_level_aggregates: 0} =
+               features_from("SELECT name, name, name FROM feat_users")
+    end
+
+    test "constants" do
+      assert %{num_top_level_dimensions: 1, num_top_level_aggregates: 0} = features_from("SELECT '1' FROM feat_users")
+    end
+
+    test "aggregates" do
+      assert %{num_top_level_dimensions: 1, num_top_level_aggregates: 3} =
+               features_from("SELECT name, avg(height), avg(height), sum(height) FROM feat_users GROUP BY name")
+    end
   end
 
   test "extracts number of columns loaded from the database" do

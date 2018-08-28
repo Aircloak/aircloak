@@ -9,8 +9,9 @@ defmodule Cloak.Sql.Query.Features do
 
   def features(query) do
     %{
-      num_top_level_dimensions: length(query.column_titles),
-      num_db_columns: num_db_columns(query.columns),
+      num_top_level_dimensions: num_top_level_dimensions(query),
+      num_top_level_aggregates: num_top_level_aggregates(query),
+      num_db_columns: num_db_columns(query),
       num_tables: num_tables(query),
       num_distinct_tables: num_distinct_tables(query),
       num_top_level_group_by: num_group_by(query),
@@ -30,6 +31,18 @@ defmodule Cloak.Sql.Query.Features do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp num_top_level_dimensions(query) do
+    query.columns |> Enum.reject(&aggregate?/1) |> Enum.count()
+  end
+
+  defp num_top_level_aggregates(query) do
+    query.columns |> Enum.filter(&aggregate?/1) |> Enum.count()
+  end
+
+  defp aggregate?(%{aggregate?: true}), do: true
+  defp aggregate?(%{function?: true, function_args: args}), do: Enum.any?(args, &aggregate?/1)
+  defp aggregate?(_), do: false
 
   defp selected_types(columns),
     do:
@@ -79,12 +92,17 @@ defmodule Cloak.Sql.Query.Features do
       |> Enum.map(&Function.readable_name(&1.function))
       |> Enum.uniq()
 
-  defp extract_expressions(query),
-    do:
-      query
-      |> get_in([Query.Lenses.analyst_provided_expressions()])
-      |> Enum.map(&build_expression_tree(&1, query))
-      |> Enum.map(&expression_tree_to_lisp/1)
+  defp extract_expressions(query) do
+    query
+    |> get_in([Query.Lenses.analyst_provided_expressions()])
+    |> Enum.map(&expression_to_lisp(&1, query))
+  end
+
+  defp expression_to_lisp(expression, query) do
+    expression
+    |> build_expression_tree(query)
+    |> expression_tree_to_lisp()
+  end
 
   defp expression_tree_to_lisp(list) when is_list(list),
     do: to_string([?(, list |> Enum.map(&expression_tree_to_lisp/1) |> Enum.intersperse(" "), ?)])
