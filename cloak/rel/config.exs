@@ -16,7 +16,12 @@ environment :prod do
   set(include_erts: true)
   set(include_src: false)
   set(cookie: "cloak")
-  plugin(Aircloak.Release.Whitelist, cloak: [priv: ~w(config_schema.json datasource_schema.json native odbc)])
+
+  plugin(
+    Aircloak.Release.Adjust,
+    keep_only: [cloak: [{"priv", ~w(config_schema.json datasource_schema.json native odbc)}]],
+    remove: [cloak: [{"priv/odbc/drivers", ~w(saphana sapiq)}]]
+  )
 end
 
 environment :local do

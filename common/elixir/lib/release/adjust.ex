@@ -1,6 +1,6 @@
-defmodule Aircloak.Release.Whitelist do
+defmodule Aircloak.Release.Adjust do
   @moduledoc """
-  Distillery plugin which allows whitelisting files and folders which remain in the release.
+  Distillery plugin which allows adjusting files and folders which remain in the release.
 
   This plugin can be used to finalize the shape of the `priv` folder, and keep only the required files in the release.
 
@@ -11,10 +11,14 @@ defmodule Aircloak.Release.Whitelist do
 
   environment :local do
     plugin(
-      Aircloak.Release.Whitelist,
+      Aircloak.Release.Adjust,
 
       # in app1, folder_a, only the listed files will be kept
-      app1: [folder_a: ~w(file_b, folder_c)],
+      keep_only: [app1: [{folder_a, ~w(file_b folder_c)}, ...]],
+
+
+      # in app1, folder_d, the listed files will be removed
+      remove: [app1: [{folder_d, ~w(file_e file_f)}, ...]],
 
       ...
     )
@@ -37,11 +41,8 @@ defmodule Aircloak.Release.Whitelist do
   end
 
   @impl Mix.Releases.Plugin
-  def after_assembly(%Release{} = release, whitelist) do
-    for {app, folders} <- whitelist,
-        {folder, keep} <- folders,
-        do: whitelist(release, app, to_string(folder), MapSet.new(keep))
-
+  def after_assembly(%Release{} = release, instructions) do
+    Enum.each(instructions, &interpret_instruction(release, &1))
     release
   end
 
@@ -64,7 +65,20 @@ defmodule Aircloak.Release.Whitelist do
   # Internal functions
   # -------------------------------------------------------------------
 
-  def whitelist(release, app, folder, keep) do
+  defp interpret_instruction(release, {:keep_only, list}) do
+    for {app, folders} <- list,
+        {folder, keep} <- folders,
+        do: keep_only(release, app, to_string(folder), MapSet.new(keep))
+  end
+
+  defp interpret_instruction(release, {:remove, list}) do
+    for {app, folders} <- list,
+        {parent, removes} <- folders,
+        remove <- removes,
+        do: File.rm_rf(app_dir(release, app, Path.join(parent, remove)))
+  end
+
+  def keep_only(release, app, folder, keep) do
     release
     |> existing_files(app, folder)
     |> Stream.reject(&MapSet.member?(keep, Path.basename(&1)))
@@ -84,5 +98,6 @@ defmodule Aircloak.Release.Whitelist do
     |> Path.expand()
   end
 
-  defp app_vsn(release, app), do: to_string(Enum.find(release.applications, &(&1.name == app)).vsn)
+  defp app_vsn(release, app),
+    do: to_string(Enum.find(release.applications, &(&1.name == app)).vsn)
 end
