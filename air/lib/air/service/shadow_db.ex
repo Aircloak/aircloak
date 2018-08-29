@@ -33,8 +33,7 @@ defmodule Air.PsqlServer.ShadowDb do
     default_connection_params()
     |> Map.merge(Aircloak.DeployConfig.get("shadow_database", %{}))
     |> Map.take(~w(host port ssl user password name))
-    |> Stream.map(fn {key, value} -> {String.to_atom(key), value} end)
-    |> Map.new()
+    |> Aircloak.atomize_keys()
   end
 
   @spec query(String.t(), String.t(), [term]) :: Connection.query_result()
