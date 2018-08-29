@@ -27,6 +27,16 @@ defmodule Aircloak.DeployConfig do
   @doc "Retrieves a deploy-specific configuration value of the calling app."
   defmacro fetch(key), do: quote(do: unquote(__MODULE__).fetch(unquote(Mix.Project.config()[:app]), unquote(key)))
 
+  @doc "Retrieves a deploy-specific configuration value of the calling app."
+  defmacro get(key, default \\ nil) do
+    quote do
+      case unquote(__MODULE__).fetch(unquote(key)) do
+        {:ok, value} -> value
+        :error -> unquote(default)
+      end
+    end
+  end
+
   @doc "Retrieves a deploy-specific configuration or the value from the calling app environment."
   defmacro override_app_env!(key),
     do: quote(do: unquote(__MODULE__).override_app_env!(unquote(Mix.Project.config()[:app]), unquote(key)))

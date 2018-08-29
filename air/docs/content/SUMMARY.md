@@ -70,6 +70,7 @@
   - [Overview](ops/configuration.md#overview)
   - [Insights Air](ops/configuration.md#insights-air-configuration)
   - [Insights Cloak](ops/configuration.md#insights-cloak-configuration)
+  - [Running without Docker containers](/ops/configuration.md#running-without-docker-containers)
 - [Upgrading](ops/upgrading.md)
   - [18.4.0 Default Privacy Policy](ops/upgrade/1804_privacy_policy.md)
 - [Monitoring](ops/monitoring.md)

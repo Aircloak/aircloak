@@ -20,7 +20,7 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   @spec drop_database(String.t()) :: :ok
   def drop_database(data_source_name) do
     if Application.get_env(:air, :shadow_db?, true) do
-      conn = connect!("postgres")
+      conn = connect!(Air.PsqlServer.ShadowDb.connection_params().name)
 
       try do
         # force close all existing connections to the database
@@ -46,7 +46,7 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   @doc "Returns true if shadow db server is available, false otherwise."
   @spec db_server_available?() :: boolean
   def db_server_available?() do
-    Task.async(fn -> connect!("postgres") end)
+    Task.async(fn -> connect!(Air.PsqlServer.ShadowDb.connection_params().name) end)
     |> Task.yield()
     |> case do
       {:ok, _pid} -> true
@@ -87,10 +87,15 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   defp name(data_source_name), do: Air.PsqlServer.ShadowDb.registered_name(data_source_name, __MODULE__)
 
   defp connect!(database_name) do
+    connection_params = Air.PsqlServer.ShadowDb.connection_params()
+
     {:ok, pid} =
       Postgrex.start_link(
-        hostname: "127.0.0.1",
-        username: "postgres",
+        hostname: connection_params.host,
+        port: connection_params.port,
+        ssl: connection_params.ssl,
+        username: connection_params.user,
+        password: connection_params.password,
         database: database_name,
         sync_connect: true,
         backoff_type: :stop
@@ -128,7 +133,7 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   end
 
   defp ensure_db!(data_source_name) do
-    conn = connect!("postgres")
+    conn = connect!(Air.PsqlServer.ShadowDb.connection_params().name)
 
     try do
       if match?(

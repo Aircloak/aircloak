@@ -677,3 +677,28 @@ columns. For example:
   "user_id": "uid"
 }
 ```
+
+## Running without Docker containers
+
+If you're running the system without Docker containers, there are some additional things that need to be configured.
+
+### Insights Air shadow server
+
+Insights Air requires a PostgreSQL database instance (version 9.6) where it can create and destroy databases. Normally this database server is run as part of the docker container itself. When no docker container exists the server needs to be provided otherwise. The login credentials should be provided in the `config.json` configuration file of the Air component under the `shadow_database` key. The credentials must be for a user that has database creation privileges (`CREATEDB`).
+
+```
+...
+
+"shadow_database": {
+  "host": string,
+  "port": integer,
+  "ssl": boolean,
+  "user": string,
+  "password": string,
+  "name": string
+},
+
+...
+```
+
+Here, the `"name"` parameter configures the name of the database to which the given user can connect. The database name is needed because a PostgreSQL connection can only be established to an existing database. For this purpose, you can use either the `postgres` database, or create a dedicated database. Make sure to grant `CONNECT` permission on the database to the user.

@@ -8,15 +8,33 @@ defmodule Air.PsqlServer.ShadowDb do
 
   use Supervisor
   require Logger
+  require Aircloak.DeployConfig
   alias Aircloak.ChildSpec
   alias Air.PsqlServer.ShadowDb.{Connection, ConnectionPool, Database, Manager}
 
   @database_supervisor __MODULE__.Databases
   @registry __MODULE__.Registry
 
+  @type connection_params :: %{
+          host: String.t(),
+          port: non_neg_integer,
+          ssl: boolean,
+          user: String.t(),
+          password: String.t(),
+          name: String.t()
+        }
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @spec connection_params() :: connection_params
+  def connection_params() do
+    default_connection_params()
+    |> Map.merge(Aircloak.DeployConfig.get("shadow_database", %{}))
+    |> Map.take(~w(host port ssl user password name))
+    |> Aircloak.atomize_keys()
+  end
 
   @spec query(String.t(), String.t(), [term]) :: Connection.query_result()
   def query(data_source_name, query, params) do
@@ -82,6 +100,17 @@ defmodule Air.PsqlServer.ShadowDb do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp default_connection_params() do
+    %{
+      "host" => "127.0.0.1",
+      "port" => 5432,
+      "ssl" => false,
+      "user" => "postgres",
+      "password" => "",
+      "name" => "postgres"
+    }
+  end
 
   defp ensure_database!(data_source_name) do
     with nil <- Database.whereis(data_source_name) do
