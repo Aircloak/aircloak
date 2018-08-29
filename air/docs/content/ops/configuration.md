@@ -677,3 +677,26 @@ columns. For example:
   "user_id": "uid"
 }
 ```
+
+## Running without Docker containers
+
+If you're running the system without Docker containers, there are some additional things which need to be configured.
+
+### Insights Air shadow server
+
+For internal purposes, the Insights Air component manages internal PostgreSQL databases per each known data source. Therefore, the component requires a PostgreSQL 9.6 instance, and login credentials for a user with database create privilege (`CREATEDB`). Once you've setup the PostgreSQL instance, you need to provide connection parameters to the Insights Air component in `config.json`, under the key `"shadow_database"`:
+
+```
+...
+
+"shadow_database": {
+  "host": string,
+  "port": integer,
+  "ssl": boolean,
+  "user": string,
+  "password": string,
+  "name": string
+},
+
+...
+```

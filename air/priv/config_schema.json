@@ -3,7 +3,22 @@
   "properties": {
     "auto_aircloak_export": {"type": "boolean"},
     "use_staging_license_key": {"type": "boolean"},
+
     "database": {
+      "type": "object",
+      "properties": {
+        "host": {"type": "string", "minLength": 1},
+        "port": {"type": "integer", "minimum": 1},
+        "ssl": {"type": "boolean"},
+        "user": {"type": "string", "minLength": 1},
+        "password": {"type": "string"},
+        "name": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false,
+      "required": ["host", "user", "name"]
+    },
+
+    "shadow_database": {
       "type": "object",
       "properties": {
         "host": {"type": "string", "minLength": 1},

@@ -71,11 +71,15 @@ defmodule Air.PsqlServer.ShadowDb.Connection do
   end
 
   defp attempt_connect(data_source_name) do
+    connection_params = Air.PsqlServer.ShadowDb.connection_params()
+
     :epgsql.connect(
-      '127.0.0.1',
-      'postgres',
-      '',
-      %{database: to_charlist(Air.PsqlServer.ShadowDb.db_name(data_source_name))}
+      host: to_charlist(connection_params.host),
+      port: connection_params.port,
+      ssl: connection_params.ssl,
+      username: to_charlist(connection_params.user),
+      password: to_charlist(connection_params.password),
+      database: to_charlist(Air.PsqlServer.ShadowDb.db_name(data_source_name))
     )
   end
 
