@@ -28,7 +28,7 @@ defmodule Cloak.Sql.Query.Features do
       top_level_filters: top_level_filters(query),
       subquery_filters: subquery_filters(query),
       filters: Enum.uniq(top_level_filters(query) ++ subquery_filters(query)),
-      column_types: extract_column_types(query.columns),
+      db_column_types: db_column_types(query),
       selected_types: selected_types(query.columns),
       parameter_types: Enum.map(Query.parameter_types(query), &stringify/1),
       driver: to_string(query.data_source.driver),
@@ -62,6 +62,8 @@ defmodule Cloak.Sql.Query.Features do
 
   defp num_distinct_db_columns(query),
     do: query |> db_columns() |> Enum.uniq_by(&{&1.name, &1.table}) |> Enum.count()
+
+  defp db_column_types(query), do: query |> db_columns() |> Enum.map(& &1.type) |> Enum.map(&stringify/1)
 
   defp db_columns(query) do
     Query.Lenses.all_queries()
@@ -184,32 +186,6 @@ defmodule Cloak.Sql.Query.Features do
 
   defp filter_to_tree({condition, lhs, rhs}, query),
     do: [Atom.to_string(condition), build_expression_tree(lhs, query), build_expression_tree(rhs, query)]
-
-  defp extract_column_types(columns),
-    do:
-      columns
-      |> extract_columns()
-      |> Enum.flat_map(&extract_column_type/1)
-      |> Enum.uniq()
-      |> Enum.map(&stringify/1)
-
-  defp extract_column_type(%Expression{constant?: true, type: type}), do: [type]
-  defp extract_column_type(%Expression{table: :unknown}), do: []
-
-  defp extract_column_type(%Expression{table: %{columns: columns}, name: name}),
-    do:
-      columns
-      |> Enum.filter(&(&1.name == name))
-      |> Enum.map(& &1.type)
-
-  defp extract_columns(columns), do: Enum.flat_map(columns, &extract_column/1)
-
-  defp extract_column({:distinct, value}), do: extract_column(value)
-  defp extract_column(%Expression{function?: true, function_args: [:*]}), do: []
-
-  defp extract_column(%Expression{function?: true, function_args: args}), do: extract_columns(args)
-
-  defp extract_column(%Expression{} = column), do: [column]
 
   defp stringify(string) when is_binary(string), do: string
   defp stringify(atom) when is_atom(atom), do: Atom.to_string(atom)

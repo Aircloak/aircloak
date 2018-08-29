@@ -283,25 +283,27 @@ defmodule Cloak.Sql.QueryTest do
     end
   end
 
-  test "requested column types" do
-    assert %{column_types: ["integer", "text"]} = features_from("SELECT height, name FROM feat_users")
-  end
+  describe "column types" do
+    @uid_type "text"
 
-  test "requested column types - works across tables" do
-    assert %{column_types: ["integer", "datetime"]} =
-             features_from("""
-               SELECT height, datetime
-               FROM feat_users, feat_purchases
-               WHERE feat_users.user_id = feat_purchases.user_id
-             """)
-  end
+    test "simple case" do
+      assert %{db_column_types: [@uid_type, @uid_type, "integer", "text"]} =
+               features_from("SELECT height, name FROM feat_users")
+    end
 
-  test "requested column types - types from constants" do
-    assert %{column_types: ["text", "integer"]} = features_from("SELECT 'string', 1 FROM feat_users")
-  end
+    test "works across tables" do
+      assert %{db_column_types: [@uid_type, @uid_type, @uid_type, @uid_type, "integer", "datetime"]} =
+               features_from("""
+                 SELECT height, datetime
+                 FROM feat_users, feat_purchases
+                 WHERE feat_users.user_id = feat_purchases.user_id
+               """)
+    end
 
-  test "requested column types - types from functions" do
-    assert %{column_types: ["integer"]} = features_from("SELECT count(distinct height) FROM feat_users")
+    test "constants are not DB columns" do
+      assert %{db_column_types: [@uid_type, @uid_type]} =
+               features_from("SELECT 'string', date '2018-01-01' FROM feat_users")
+    end
   end
 
   test "returns type of selected columns - when constant" do
