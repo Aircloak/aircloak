@@ -142,6 +142,15 @@ defmodule Air.Performance.Queries do
           GROUP BY 1, 2
           ORDER BY 1 ASC, 2 ASC
         "
-      }
+      },
+      """
+        SELECT \"changes.change\" AS ch
+        FROM notes_changes
+        ORDER BY
+          BUCKET(0.25 BY 2) ASC,
+          ((interval 'PT1S' - (notes_changes.uid * interval 'P')) / notes_changes.uid)
+          DESC
+          NULLS FIRST
+      """
     ]
 end
