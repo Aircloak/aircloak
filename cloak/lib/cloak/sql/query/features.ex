@@ -25,7 +25,9 @@ defmodule Cloak.Sql.Query.Features do
       subquery_functions: subquery_functions(query),
       functions: Enum.uniq(top_level_functions(query) ++ subquery_functions(query)),
       expressions: extract_expressions(query),
-      filters: extract_filters(query),
+      top_level_filters: top_level_filters(query),
+      subquery_filters: subquery_filters(query),
+      filters: Enum.uniq(top_level_filters(query) ++ subquery_filters(query)),
       column_types: extract_column_types(query.columns),
       selected_types: selected_types(query.columns),
       parameter_types: Enum.map(Query.parameter_types(query), &stringify/1),
@@ -65,13 +67,13 @@ defmodule Cloak.Sql.Query.Features do
     Query.Lenses.all_queries()
     |> Lens.context(possible_db_columns())
     |> Lens.to_list(Query.resolve_db_columns(query))
+    |> Enum.reject(fn {_subquery, column} -> column.constant? end)
     |> Enum.flat_map(fn {subquery, column} ->
       case Query.resolve_subquery_column(column, subquery) do
         :database_column -> [column]
         _ -> []
       end
     end)
-    |> Enum.reject(& &1.constant?)
   end
 
   def possible_db_columns() do
@@ -157,10 +159,15 @@ defmodule Cloak.Sql.Query.Features do
     end
   end
 
-  defp extract_filters(query) do
-    Query.Lenses.conditions()
+  defp top_level_filters(query), do: filters(query, Lens.root())
+  defp subquery_filters(query), do: filters(query, Query.Lenses.subqueries())
+
+  defp filters(query, initial_lens) do
+    initial_lens
+    |> Query.Lenses.filter_clauses()
+    |> Query.Lenses.conditions()
     |> Lens.reject(&Condition.subject(&1).synthetic?)
-    |> Lens.to_list(query.where)
+    |> Lens.to_list(query)
     |> Enum.map(&filter_to_tree(&1, query))
     |> Enum.map(&expression_tree_to_lisp/1)
     |> Enum.uniq()

@@ -190,12 +190,31 @@ defmodule Cloak.Sql.QueryTest do
 
   describe "filters" do
     test "no filters" do
-      assert %{filters: []} = features_from("SELECT count(*) FROM feat_users")
+      assert %{filters: [], top_level_filters: [], subquery_filters: []} =
+               features_from("SELECT count(*) FROM feat_users")
     end
 
-    test "filter in ON"
+    test "filter in HAVING" do
+      assert %{filters: ["(= (avg col) const)"], top_level_filters: ["(= (avg col) const)"], subquery_filters: []} =
+               features_from("SELECT COUNT(*) FROM feat_users GROUP BY name HAVING AVG(height) = 0")
+    end
 
-    test "filter in HAVING"
+    test "subqueries" do
+      assert %{
+               filters: ["(= (avg col) const)", "(<> col const)"],
+               top_level_filters: ["(= (avg col) const)"],
+               subquery_filters: ["(<> col const)"]
+             } =
+               features_from("""
+                 SELECT COUNT(*) FROM (
+                   SELECT user_id, height
+                   FROM feat_users
+                   WHERE height <> 0
+                 ) foo
+                 GROUP BY foo.height
+                 HAVING AVG(foo.height) = 0
+               """)
+    end
 
     test "extracts filter structure" do
       assert MapSet.new(["(< col const)", "(>= col const)"]) ==
