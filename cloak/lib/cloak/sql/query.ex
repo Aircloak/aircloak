@@ -296,9 +296,10 @@ defmodule Cloak.Sql.Query do
   @doc """
   Finds the subquery a given column comes from.
 
-  Returns `:database_column` if the column does not come from any subquery. Otherwise returns `{column, subquery}`.
+  Returns `:database_column` if the column does not come from any subquery. Returns `:error` if the column comes from
+  a subquery, but has a name that doesn't match anything in the subquery. Otherwise returns `{column, subquery}`.
   """
-  @spec resolve_subquery_column(Expression.t(), t) :: :database_column | {Expression.t(), t}
+  @spec resolve_subquery_column(Expression.t(), t) :: :database_column | {Expression.t(), t} | :error
   def resolve_subquery_column(column, query) do
     Lens.to_list(Lenses.direct_subqueries(), query)
     |> Enum.find(&(&1.alias == column.table.name))
@@ -308,8 +309,13 @@ defmodule Cloak.Sql.Query do
 
       %{ast: subquery} ->
         column_index = Enum.find_index(subquery.column_titles, &(&1 == column.name))
-        column = Enum.at(subquery.columns, column_index)
-        {column, subquery}
+
+        if column_index do
+          column = Enum.at(subquery.columns, column_index)
+          {column, subquery}
+        else
+          :error
+        end
     end
   end
 

@@ -8,6 +8,8 @@ defmodule Cloak.Sql.Query.Features do
   # -------------------------------------------------------------------
 
   def features(query) do
+    query = Query.resolve_db_columns(query)
+
     %{
       num_top_level_dimensions: num_top_level_dimensions(query),
       num_top_level_aggregates: num_top_level_aggregates(query),
@@ -64,7 +66,7 @@ defmodule Cloak.Sql.Query.Features do
   defp db_columns(query) do
     Query.Lenses.all_queries()
     |> Lens.context(possible_db_columns())
-    |> Lens.to_list(Query.resolve_db_columns(query))
+    |> Lens.to_list(query)
     |> Enum.reject(fn {_subquery, column} -> column.constant? end)
     |> Enum.flat_map(fn {subquery, column} ->
       case Query.resolve_subquery_column(column, subquery) do
@@ -152,6 +154,7 @@ defmodule Cloak.Sql.Query.Features do
 
   defp build_expression_tree(other, query) do
     case Query.resolve_subquery_column(other, query) do
+      :error -> "???"
       :database_column -> :col
       {column, subquery} -> build_expression_tree(column, subquery)
     end
