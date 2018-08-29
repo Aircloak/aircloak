@@ -10,7 +10,7 @@ defmodule IntegrationTest.QueryTest do
   test "show tables", context do
     assert {:ok, result} = run_query(context.user, "show tables")
     assert result.columns == ["name"]
-    assert result.features.column_types == ["text"]
+    assert result.features.db_column_types == []
     assert result.features.selected_types == ["text"]
     assert result.buckets == [%{"occurrences" => 1, "row" => ["users"]}]
   end
