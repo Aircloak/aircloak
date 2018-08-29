@@ -143,6 +143,10 @@ defmodule Aircloak.Functions do
                  },
                  attributes: [:math]
                },
+               ~w(%) => %{
+                 type_specs: %{[:integer, :integer] => :integer},
+                 attributes: [:math, :restricted]
+               },
                ~w(length) => %{type_specs: %{[:text] => :integer}, attributes: [:restricted]},
                ~w(lower upper) => %{type_specs: %{[:text] => :text}},
                ~w(left right) => %{

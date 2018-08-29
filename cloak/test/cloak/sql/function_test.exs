@@ -4,7 +4,7 @@ defmodule Cloak.Sql.Function.Test do
   alias Cloak.Sql.{Expression, Function}
 
   @restricted_functions ~w(abs ceil floor length round trunc btrim left ltrim right rtrim
-    substring year quarter month day weekday hour minute second date_trunc) ++
+    substring year quarter month day weekday hour minute second date_trunc %) ++
                           [
                             {:bucket, :lower},
                             {:bucket, :middle},
@@ -23,7 +23,7 @@ defmodule Cloak.Sql.Function.Test do
       do: assert(Function.restricted_function?(unquote(restricted_function)))
   end)
 
-  @math_functions ~w(+ - / * ^ abs ceil floor round trunc)
+  @math_functions ~w(+ - / * ^ % abs ceil floor round trunc)
   Enum.each(@math_functions, fn math_function ->
     test "#{math_function} is registered as a math function",
       do: assert(Function.math_function?(unquote(math_function)))

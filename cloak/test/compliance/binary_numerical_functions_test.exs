@@ -5,6 +5,7 @@ Enum.each(
     "<col1> - <col2>",
     "<col1> / <col2>",
     "<col1> ^ <col2>",
+    "cast(<col1>, integer) % cast(<col2>, integer)",
     "pow(<col1>, <col2>)",
     "bucket(<col1> by <col2>)",
     "bucket(<col1> by <col2> align lower)",
