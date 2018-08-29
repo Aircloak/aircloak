@@ -701,4 +701,4 @@ Insights Air requires a PostgreSQL database instance (version 9.6) where it can 
 ...
 ```
 
-Here, the `"name"` parameter configures the name of the database to which the given user can connect.
+Here, the `"name"` parameter configures the name of the database to which the given user can connect. The database name is needed because a PostgreSQL connection can only be established to an existing database. For this purpose, you can use either the `postgres` database, or create a dedicated database. Make sure to grant `CONNECT` permission on the database to the user.
