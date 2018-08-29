@@ -306,16 +306,18 @@ defmodule Cloak.Sql.QueryTest do
     end
   end
 
-  test "returns type of selected columns - when constant" do
-    assert %{selected_types: ["integer"]} = features_from("SELECT 1 FROM feat_users")
-  end
+  describe "selected_types" do
+    test "when constant" do
+      assert %{selected_types: ["integer"]} = features_from("SELECT 1 FROM feat_users")
+    end
 
-  test "returns type of selected columns - when column" do
-    assert %{selected_types: ["integer"]} = features_from("SELECT height FROM feat_users")
-  end
+    test "when column" do
+      assert %{selected_types: ["integer"]} = features_from("SELECT height FROM feat_users")
+    end
 
-  test "returns type of selected columns - when function" do
-    assert %{selected_types: ["integer"]} = features_from("SELECT length(name) FROM feat_users")
+    test "when function" do
+      assert %{selected_types: ["integer"]} = features_from("SELECT length(name) FROM feat_users")
+    end
   end
 
   describe "features->expressions" do
