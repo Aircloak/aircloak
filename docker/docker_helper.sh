@@ -139,6 +139,7 @@ function build_aircloak_image {
   dockerignore_file=${3:-"$(dirname $dockerfile)/.dockerignore"}
   if [ -f $dockerignore_file ]; then
     cat $dockerignore_file |
+      sed "s#\\\$AIR_CACHE#$(air_cache_folder)#" |
       sed "s#\\\$CLOAK_CACHE#$(cloak_cache_folder)#" > .dockerignore
   else
     if [ -f .dockerignore ]; then rm .dockerignore; fi
@@ -164,6 +165,7 @@ function build_aircloak_image {
     sed "s/\$ELIXIR_VERSION/$(elixir_version)/" |
     sed "s/\$RUST_VERSION/$(rust_version)/" |
     sed "s/\$NODEJS_VERSION/$(nodejs_version)/" |
+    sed "s#\\\$AIR_CACHE#$(air_cache_folder)#" |
     sed "s#\\\$CLOAK_CACHE#$(cloak_cache_folder)#" > "$temp_docker_file"
 
   docker build $build_args || {
@@ -495,6 +497,12 @@ function component_tmp_folder {
 
 function cloak_cache_folder {
   folder=$(component_tmp_folder cloak)
+  mkdir -p $folder
+  realpath --relative-to "." $folder
+}
+
+function air_cache_folder {
+  folder=$(component_tmp_folder air)
   mkdir -p $folder
   realpath --relative-to "." $folder
 }

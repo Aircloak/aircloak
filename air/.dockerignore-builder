@@ -31,6 +31,7 @@
 !cloak/fetch_deps.sh
 !cloak/src/rodbc/Cargo.lock
 !common
+!$AIR_CACHE
 
 # blacklist some stuff
 air/priv/repo/seeds.exs

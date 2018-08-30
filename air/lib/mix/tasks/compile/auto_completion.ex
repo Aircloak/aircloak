@@ -13,8 +13,10 @@ defmodule Mix.Tasks.Compile.AutoCompletion do
 
   @impl Mix.Task
   def run(_args) do
-    Logger.info("Compiling auto-completions")
-    compile_auto_completions()
+    unless System.get_env("COMPILE_AUTO_COMPLETIONS") == "false" do
+      Logger.info("Compiling auto-completions")
+      compile_auto_completions()
+    end
 
     :ok
   end
