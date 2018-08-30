@@ -36,6 +36,7 @@ defmodule Air do
     configure_secrets()
     configure_appsignal()
     Air.Repo.configure()
+    Air.PsqlServer.ShadowDb.init_queue()
     Air.Supervisor.start_link()
   end
 

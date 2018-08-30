@@ -28,6 +28,10 @@ defmodule Air.PsqlServer.ShadowDb do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Initializes the internal manager queue."
+  @spec init_queue() :: :ok
+  defdelegate init_queue(), to: Manager
+
   @spec connection_params() :: connection_params
   def connection_params() do
     default_connection_params()

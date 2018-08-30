@@ -36,6 +36,7 @@ defmodule IntegrationTests.Mixfile do
       {:poison, github: "cristianberneanu/poison", override: true},
       {:httpoison, "~> 0.12.0", override: true},
       {:hackney, ">= 1.8.6", override: true},
+      {:parse_trans, "3.2.0", override: true},
       # Needed when running air in dev
       {:phoenix_live_reload, "~> 1.0"}
     ]
