@@ -110,6 +110,13 @@ The operator `^` denotes exponentiation.
 -- 2 417 851 639 229 258 300 000 000
 ```
 
+The operator `%` computes the division remainder:
+
+```
+33 % 10
+-- 3
+```
+
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
 
 ## Mathematical functions
