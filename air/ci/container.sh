@@ -37,6 +37,7 @@ mount_to_component \
   .flowconfig .gitignore assets config datagen docs include lib perftest priv rel test mix.exs mix.lock Makefile \
   README.md check_warnings.sh .formatter.exs
 mount_cached_component deps _build .bash_history docs/_book docs/node_modules priv/static
+mount $(ci_tmp_folder)/air/.gitbook /root/.gitbook
 
 case "$1" in
   prepare_for_test)
