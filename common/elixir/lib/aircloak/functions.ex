@@ -223,6 +223,15 @@ defmodule Aircloak.Functions do
              |> Enum.flat_map(fn {functions, traits} -> Enum.map(functions, &{&1, traits}) end)
              |> Enum.into(%{})
 
+  @aliases %{
+    "lcase" => "lower",
+    "ucase" => "upper",
+    "ceiling" => "ceil",
+    "pow" => "^",
+    "mod" => "%",
+    "dow" => "weekday"
+  }
+
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
@@ -230,6 +239,10 @@ defmodule Aircloak.Functions do
   @doc "Returns the spec definitions of the SQL functions supported by Aircloak"
   @spec function_spec() :: Map.t()
   def function_spec(), do: @functions
+
+  @doc "Returns a map from supported aliases to canonical names."
+  @spec aliases() :: Map.t()
+  def aliases(), do: @aliases
 
   @doc "Returns a set of deprecated functions along with information on relevant alternatives"
   @spec deprecated_functions() :: Map.t()
