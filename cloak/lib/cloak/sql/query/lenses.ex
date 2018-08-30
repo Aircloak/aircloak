@@ -77,7 +77,12 @@ defmodule Cloak.Sql.Query.Lenses do
 
   @doc "Lens focusing on all queries (subqueries and top-level) of a query."
   deflens all_queries() do
-    Lens.both(Lens.recur(direct_subqueries() |> Lens.key(:ast)), Lens.root())
+    Lens.both(subqueries(), Lens.root())
+  end
+
+  @doc "Lens focusing on all subqueries (ignoring the top-level) of a query."
+  deflens subqueries() do
+    Lens.recur(direct_subqueries() |> Lens.key(:ast))
   end
 
   @doc "Lens focusing on a query's immediate subqueries"
