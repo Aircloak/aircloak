@@ -25,17 +25,17 @@ chmod -R o+w /persist
 ln -nfs ${PRIV_DIR} /aircloak/cloak/priv
 
 # setup external ODBC drivers
-drivers_path="/aircloak/cloak/priv/odbc/drivers"
-mkdir -p "$drivers_path"
+DRIVERS_PATH="/aircloak/cloak/priv/odbc/drivers"
+mkdir -p "${DRIVERS_PATH}"
 for driver in /odbc_drivers/*; do
-  if [ -f "$driver/setup.sh" ]; then
-    pushd "$driver"
+  if [ -f "${driver}/setup.sh" ]; then
+    pushd "${driver}"
     . setup.sh
     popd
   else
-    name=`basename $driver`
-    rm -rf "$drivers_path/$name"
-    ln -s "$driver" "$drivers_path/$name"
+    name=`basename ${driver}`
+    rm -rf "${DRIVERS_PATH}/${name}"
+    ln -s "${driver}" "${DRIVERS_PATH}/${name}"
   fi
 done
 
