@@ -132,6 +132,7 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
     Logger.info("data source definition changed for #{state.data_source_name}, updating shadow database")
     ensure_db!(state.data_source_name)
     update_tables_definition(state, tables)
+    Logger.info("shadow database for #{state.data_source_name} updated")
   end
 
   defp ensure_db!(data_source_name) do
