@@ -68,6 +68,11 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   @spec db_name(String.t()) :: String.t()
   def db_name(data_source_name), do: "aircloak_shadow_#{data_source_name}"
 
+  @doc "Wait until the database for the given data source has been initialized."
+  @spec wait_until_initialized(String.t()) :: :ok
+  def wait_until_initialized(data_source_name),
+    do: GenServer.call(whereis(data_source_name), :wait_until_initialized, :timer.minutes(1))
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
@@ -89,6 +94,9 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
       {:noreply, state}
     end
   end
+
+  @impl GenServer
+  def handle_call(:wait_until_initialized, _from, state), do: {:reply, :ok, state}
 
   # -------------------------------------------------------------------
   # Internal functions
