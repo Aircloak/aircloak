@@ -32,6 +32,7 @@ defmodule Air.PsqlServer.ShadowDb do
   @spec init_queue() :: :ok
   defdelegate init_queue(), to: Manager
 
+  @doc "Returns connection parameters to the shadow database server."
   @spec connection_params() :: connection_params
   def connection_params() do
     default_connection_params()
@@ -40,6 +41,7 @@ defmodule Air.PsqlServer.ShadowDb do
     |> Aircloak.atomize_keys()
   end
 
+  @doc "Executes the query on the given data source."
   @spec query(String.t(), String.t(), [term]) :: Connection.query_result()
   def query(data_source_name, query, params) do
     ensure_database!(data_source_name)
@@ -47,6 +49,7 @@ defmodule Air.PsqlServer.ShadowDb do
     ConnectionPool.query(data_source_name, query, params)
   end
 
+  @doc "Parses the query on the given data source."
   @spec parse(String.t(), String.t()) :: Connection.parse_result()
   def parse(data_source_name, query) do
     ensure_database!(data_source_name)
