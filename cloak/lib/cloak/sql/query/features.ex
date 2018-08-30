@@ -162,11 +162,13 @@ defmodule Cloak.Sql.Query.Features do
 
   defp filters(query, initial_lens) do
     initial_lens
-    |> Query.Lenses.filter_clauses()
-    |> Query.Lenses.conditions()
-    |> Lens.reject(&Condition.subject(&1).synthetic?)
+    |> Lens.context(
+      Query.Lenses.filter_clauses()
+      |> Query.Lenses.conditions()
+      |> Lens.reject(&Condition.subject(&1).synthetic?)
+    )
     |> Lens.to_list(query)
-    |> Enum.map(&filter_to_tree(&1, query))
+    |> Enum.map(fn {subquery, filter} -> filter_to_tree(filter, subquery) end)
     |> Enum.map(&expression_tree_to_lisp/1)
     |> Enum.uniq()
   end
