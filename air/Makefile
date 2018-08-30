@@ -46,11 +46,11 @@ docs:
 
 release:
 	MIX_ENV=prod mix compile.app --force
-	NODE_ENV=production MIX_ENV=prod mix site_release
+	NODE_ENV=production MIX_ENV=prod mix release
 
 release-local:
 	MIX_ENV=prod mix compile.app --force
-	NODE_ENV=production MIX_ENV=prod mix do compile, site_release --env=local --no-tar
+	NODE_ENV=production MIX_ENV=prod mix do compile, release --env=local --no-tar
 
 lint: eslint flow
 	MIX_ENV=dev mix lint
