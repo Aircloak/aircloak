@@ -8,7 +8,7 @@ cd $ROOT_DIR
 
 . docker/docker_helper.sh
 
-if [ "$BUILD_BASE" != "false" ]; then common/docker/phoenix/build-image.sh; fi
+if [ "$BUILD_BASE" != "false" ]; then PREVENT_OLD_IMAGE_REMOVAL=true common/docker/phoenix/build-image.sh; fi
 
 # This will build a dockerized version of the air site.
 #
@@ -21,9 +21,26 @@ if [ "$BUILD_BASE" != "false" ]; then common/docker/phoenix/build-image.sh; fi
 
 current_version=$(cat VERSION)
 
-# Build deps locally
+echo "Building dependencies"
+docker run --rm -i \
+  -v $(pwd)/VERSION:/aircloak/VERSION \
+  -v $(pwd)/common:/aircloak/common \
+  -v $(pwd)/air:/aircloak/air \
+  -v $(pwd)/$(air_cache_folder)/_build:/aircloak/air/_build \
+  -v $(pwd)/$(air_cache_folder)/deps:/aircloak/air/deps \
+  aircloak/phoenix:$(git_head_image_tag) \
+  /bin/bash -c "
+    set -eo pipefail
+    . ~/.asdf/asdf.sh
+    cd /aircloak/air
+    ./fetch_deps.sh --only prod
+    COMPILE_USER_DOCS=false COMPILE_AUTO_COMPLETIONS=false MIX_ENV=prod mix compile
+  "
+
+# Build the builder image
+echo "Building release"
 SYSTEM_VERSION=$current_version \
-  build_aircloak_image air_build air/builder.dockerfile air/.dockerignore-builder
+  PREVENT_OLD_IMAGE_REMOVAL=true build_aircloak_image air_build air/builder.dockerfile air/.dockerignore-builder
 
 # Start the instance of the builder image and copy the generated release back to the disk
 cd $ROOT_DIR/air
@@ -40,4 +57,6 @@ cd artifacts/rel && \
 # Build the release image
 cd $ROOT_DIR
 SYSTEM_VERSION=$current_version \
-  build_aircloak_image air air/release.dockerfile air/.dockerignore-release
+  PREVENT_OLD_IMAGE_REMOVAL=true build_aircloak_image air air/release.dockerfile air/.dockerignore-release
+
+remove_old_git_head_image_tags "aircloak" > /dev/null 2>&1

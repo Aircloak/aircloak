@@ -9,7 +9,7 @@ defmodule Mix.Tasks.Compile.UserDocs do
 
   @impl Mix.Task
   def run(_args) do
-    unless System.get_env("INTEGRATION_TESTS") == "true" do
+    unless System.get_env("INTEGRATION_TESTS") == "true" or System.get_env("COMPILE_USER_DOCS") == "false" do
       update_version_numbers_in_guide()
 
       if stale?() do

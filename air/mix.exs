@@ -36,7 +36,6 @@ defmodule Air.Mixfile do
         docs: :dev,
         release: :prod,
         "phoenix.digest": :prod,
-        site_release: :prod,
         "test.standard": :test,
         dialyze_retry: :dev,
         version: :prod
@@ -116,7 +115,7 @@ defmodule Air.Mixfile do
     ]
   end
 
-  defp aliases(:prod), do: []
+  defp aliases(:prod), do: [release: ~w(release_assets phx.digest release)]
 
   defp extra_applications(:test), do: [:odbc | extra_common_applications()]
   defp extra_applications(:dev), do: extra_common_applications() ++ dialyzer_required_deps()
