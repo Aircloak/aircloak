@@ -3,6 +3,7 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
 
   use GenServer, restart: :transient
   require Logger
+  alias Air.PsqlServer.ShadowDb.Connection
 
   # -------------------------------------------------------------------
   # API functions
@@ -29,24 +30,23 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   def drop_database(data_source_name) do
     if Application.get_env(:air, :shadow_db?, true) do
       exec_queued(fn ->
-        conn = connect!(Air.PsqlServer.ShadowDb.connection_params().name)
+        Connection.execute!(
+          Air.PsqlServer.ShadowDb.connection_params().name,
+          fn conn ->
+            # force close all existing connections to the database
+            Connection.query(
+              conn,
+              """
+              SELECT pg_terminate_backend(pg_stat_activity.pid)
+              FROM pg_stat_activity
+              WHERE pg_stat_activity.datname = $1 AND pid <> pg_backend_pid();
+              """,
+              [db_name(data_source_name)]
+            )
 
-        try do
-          # force close all existing connections to the database
-          Postgrex.query(
-            conn,
-            """
-            SELECT pg_terminate_backend(pg_stat_activity.pid)
-            FROM pg_stat_activity
-            WHERE pg_stat_activity.datname = $1 AND pid <> pg_backend_pid();
-            """,
-            [db_name(data_source_name)]
-          )
-
-          Postgrex.query(conn, ~s/DROP DATABASE IF EXISTS "#{sanitize_name(db_name(data_source_name))}"/, [])
-        after
-          close_conn(conn)
-        end
+            Connection.query(conn, ~s/DROP DATABASE IF EXISTS "#{sanitize_name(db_name(data_source_name))}"/, [])
+          end
+        )
       end)
     end
 
@@ -56,7 +56,7 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   @doc "Returns true if shadow db server is available, false otherwise."
   @spec db_server_available?() :: boolean
   def db_server_available?() do
-    Task.async(fn -> connect!(Air.PsqlServer.ShadowDb.connection_params().name) end)
+    Task.async(fn -> Connection.open!(Air.PsqlServer.ShadowDb.connection_params().name) end)
     |> Task.yield()
     |> case do
       {:ok, _pid} -> true
@@ -106,24 +106,6 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
 
   defp name(data_source_name), do: Air.PsqlServer.ShadowDb.registered_name(data_source_name, __MODULE__)
 
-  def connect!(database_name) do
-    connection_params = Air.PsqlServer.ShadowDb.connection_params()
-
-    {:ok, pid} =
-      Postgrex.start_link(
-        hostname: connection_params.host,
-        port: connection_params.port,
-        ssl: connection_params.ssl,
-        username: connection_params.user,
-        password: connection_params.password,
-        database: database_name,
-        sync_connect: true,
-        backoff_type: :stop
-      )
-
-    pid
-  end
-
   defp data_source_tables(data_source_name) do
     case Air.Service.DataSource.by_name(data_source_name) do
       nil -> []
@@ -153,45 +135,44 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   end
 
   defp ensure_db!(data_source_name) do
-    conn = connect!(Air.PsqlServer.ShadowDb.connection_params().name)
-
-    try do
-      if match?(
-           %Postgrex.Result{rows: [[0]]},
-           Postgrex.query!(conn, "SELECT count(*) FROM pg_database where datname = $1", [db_name(data_source_name)])
-         ) do
-        Postgrex.query!(conn, ~s/CREATE DATABASE "#{sanitize_name(db_name(data_source_name))}"/, [])
+    Connection.execute!(
+      Air.PsqlServer.ShadowDb.connection_params().name,
+      fn conn ->
+        if match?(
+             {_columns, [[0]]},
+             Connection.query!(conn, "SELECT count(*) FROM pg_database where datname = $1", [db_name(data_source_name)])
+           ) do
+          Connection.query!(conn, ~s/CREATE DATABASE "#{sanitize_name(db_name(data_source_name))}"/, [])
+        end
       end
-    after
-      close_conn(conn)
-    end
+    )
   end
 
   defp update_tables_definition(state, tables) do
-    conn = connect!(db_name(state.data_source_name))
+    Connection.execute!(
+      db_name(state.data_source_name),
+      fn conn ->
+        delete_obsolete_tables(conn, tables)
 
-    try do
-      delete_obsolete_tables(conn, tables)
-
-      tables
-      |> changed_tables(state)
-      |> Stream.map(&{&1, update_table_definition(conn, &1)})
-      |> Stream.filter(&match?({_table, {:error, _}}, &1))
-      |> Enum.each(&report_error/1)
-    after
-      close_conn(conn)
-    end
+        tables
+        |> changed_tables(state)
+        |> Stream.map(&{&1, update_table_definition(conn, &1)})
+        |> Stream.filter(&match?({_table, {:error, _}}, &1))
+        |> Enum.each(&report_error/1)
+      end
+    )
   end
 
   defp delete_obsolete_tables(conn, tables) do
     known_tables = Enum.map(tables, & &1.id)
 
-    conn
-    |> Postgrex.query!("SELECT table_name FROM information_schema.tables where table_schema=$1", ["public"])
-    |> Map.fetch!(:rows)
+    {_columns, rows} =
+      Connection.query!(conn, "SELECT table_name FROM information_schema.tables where table_schema=$1", ["public"])
+
+    rows
     |> Stream.map(fn [table_name] -> table_name end)
     |> Stream.reject(&Enum.member?(known_tables, &1))
-    |> Enum.each(&Postgrex.query(conn, ~s/DROP TABLE "#{sanitize_name(&1)}"/, []))
+    |> Enum.each(&Connection.query(conn, ~s/DROP TABLE IF EXISTS "#{sanitize_name(&1)}"/, []))
   end
 
   defp changed_tables(tables, state) do
@@ -202,9 +183,9 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   end
 
   defp update_table_definition(conn, table) do
-    Postgrex.query(conn, ~s/DROP TABLE "#{sanitize_name(table.id)}"/, [])
+    Connection.query(conn, ~s/DROP TABLE IF EXISTS "#{sanitize_name(table.id)}"/, [])
 
-    Postgrex.query(
+    Connection.query(
       conn,
       ~s/CREATE TABLE "#{sanitize_name(table.id)}" (#{columns_sql(table.columns)})/,
       []
@@ -228,21 +209,6 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   defp type_sql("unknown"), do: "text"
 
   defp sanitize_name(name), do: Regex.replace(~r/"/, name, ~s/""/)
-
-  defp close_conn(conn) do
-    Process.exit(conn, :shutdown)
-
-    receive do
-      {:EXIT, ^conn, _reason} -> :ok
-    after
-      :timer.seconds(5) ->
-        Process.exit(conn, :kill)
-
-        receive do
-          {:EXIT, ^conn, _reason} -> :ok
-        end
-    end
-  end
 
   # -------------------------------------------------------------------
   # Supervision tree
