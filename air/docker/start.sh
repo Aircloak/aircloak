@@ -17,4 +17,5 @@ PRIV_DIR=/aircloak/air/lib/air-$VERSION/priv
 
 mkdir -p ${PRIV_DIR}
 ln -sFf /runtime_config ${PRIV_DIR}/config
+
 exec gosu deployer /aircloak/air/bin/air foreground
