@@ -247,7 +247,7 @@ collection is sharded, even `INNER JOIN` has to be emulated.
 In some cases, a SQL view will be required in order to expose the dataset correctly to the cloak.
 The view needs to be created in a writable workspace. Refer to the Apache Drill documentation for details on how to accomplish this task.
 
-Complex types, likes maps and arrays, need special handling since there is no equivalent for these types in standard SQL. In these case automatic schema detection will not work and you are required to manually create a Drill view exposing the columns you want to become queryable.
+Complex types, like maps and arrays, need special handling since there is no equivalent for these types in standard SQL. In this case automatic schema detection will not work and you are required to manually create a Drill view exposing the columns you want to become queryable.
 
 Drill will sometimes incorrectly classify the type of a column (usually it will be reported as `binary` or `any`). This can be solved through manually casting the value to the expected type in a Drill view.
 
