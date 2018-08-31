@@ -263,6 +263,7 @@ defmodule Cloak.Query.FunctionTest do
   test "-", do: assert(179 == apply_function("height - 1", "heights_ft"))
   test "*", do: assert(360 == apply_function("height * 2", "heights_ft"))
   test "/", do: assert(1 == apply_function("height / height", "heights_ft"))
+  test "%", do: assert(80 == apply_function("height % 100", "heights_ft"))
   test "^", do: assert(32_400.0 == apply_function("height ^ 2", "heights_ft"))
 
   test "trunc/1", do: assert(180 == apply_function("trunc(frac)", ["frac"], [180.6], "types_ft"))

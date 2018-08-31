@@ -35,14 +35,11 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   # -------------------------------------------------------------------
 
   defp normalize_synonyms(ast) do
-    update_in(ast, [Query.Lenses.terminals() |> Lens.filter(&Function.function?/1) |> Lens.at(1)], fn
-      "lcase" -> %{canonical_name: "lower", synonym_used: "lcase"}
-      "ucase" -> %{canonical_name: "upper", synonym_used: "ucase"}
-      "ceiling" -> %{canonical_name: "ceil", synonym_used: "ceiling"}
-      "pow" -> %{canonical_name: "^", synonym_used: "pow"}
-      "mod" -> %{canonical_name: "%", synonym_used: "mod"}
-      "dow" -> %{canonical_name: "weekday", synonym_used: "dow"}
-      other -> other
+    update_in(ast, [Query.Lenses.terminals() |> Lens.filter(&Function.function?/1) |> Lens.at(1)], fn name ->
+      case Aircloak.Functions.aliases() |> Map.fetch(name) do
+        {:ok, canonical_name} -> %{canonical_name: canonical_name, synonym_used: name}
+        :error -> name
+      end
     end)
   end
 

@@ -28,6 +28,7 @@ defmodule Mix.Tasks.Compile.AutoCompletion do
   defp compile_auto_completions() do
     supported_functions =
       Aircloak.Functions.function_spec()
+      |> Map.merge(alias_spec())
       |> Enum.reject(&internal_function?/1)
       |> Enum.map(&create_function_definitions/1)
       |> Enum.reduce(%{}, fn {key, val}, acc ->
@@ -36,6 +37,12 @@ defmodule Mix.Tasks.Compile.AutoCompletion do
       |> Poison.encode!(pretty: true)
 
     File.write!("assets/js/code_editor/function_completion_keywords.json", supported_functions)
+  end
+
+  defp alias_spec() do
+    Aircloak.Functions.aliases()
+    |> Enum.map(fn {name, canonical_name} -> {name, Aircloak.Functions.function_spec()[canonical_name]} end)
+    |> Enum.into(%{})
   end
 
   defp internal_function?({_, attributes}),

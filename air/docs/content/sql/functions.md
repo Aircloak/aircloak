@@ -88,14 +88,33 @@ interval 'PT1H' / 2
 ## Mathematical operators
 
 The operators `+`, `-`, `/`, and `*` have their usual meaning of addition, subtraction, division, and
-multiplication respectively. The operator `^` denotes exponentiation.
+multiplication respectively.
 
 ```sql
 1 - 2 + 4 * 3 / 2
 -- 5
+```
 
+The operator `^` denotes exponentiation.
+
+```
 2 ^ 3
 -- 8
+
+-- Note that ^ is left-associative
+
+2 ^ 3 ^ 4
+-- 4 096
+
+2 ^ (3 ^ 4)
+-- 2 417 851 639 229 258 300 000 000
+```
+
+The operator `%` computes the division remainder:
+
+```
+33 % 10
+-- 3
 ```
 
 [Restrictions in usage apply](restrictions.html#math-and-function-application-restrictions)
