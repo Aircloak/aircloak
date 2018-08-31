@@ -247,14 +247,13 @@ collection is sharded, even `INNER JOIN` has to be emulated.
 In some cases, a SQL view will be required in order to expose the dataset correctly to the cloak.
 The view needs to be created in a writable workspace. Refer to the Apache Drill documentation for details on how to accomplish this task.
 
-Complex types, likes maps and arrays, will need special handling since there is no SQL equivalent for these types.
-In this case, the schema needs to be detected manually for each table, and then a view needs to be created exposing the correct columns and types to the cloak.
+Complex types, likes maps and arrays, need special handling since there is no equivalent for these types in standard SQL. In these case, automatic schema detection will not work, and you are required to manually create a Drill view exposing the columns you want to become queryable.
 
-Drill will sometimes report or detect the type for a field incorrectly (usually as a binary or any) and it has to be manually casted to the correct type in the view.
+Drill will sometimes incorrectly classify the type of a column (usually it will be reported as binary or any). This can be solved through manually casting the value to the expected type in a Drill view.
 
-Some data might need to be cleaned before exposure (many of the text values might be returned quoted, for example).
+Some data might need to be manually cleaned. An example are text values which frequently end up being erroneously quoted.
 
-Example commands for creating views:
+You can create a view as follows (where `dfs.views` is a writable workspace):
 
 ```SQL
 use dfs.views;
