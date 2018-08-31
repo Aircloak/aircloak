@@ -4,6 +4,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   @type ast :: {atom, any, [ast]}
 
   alias Cloak.DataSource.Table
+  import __MODULE__.Generation
 
   # -------------------------------------------------------------------
   # API functions
@@ -36,54 +37,36 @@ defmodule Cloak.Compliance.QueryGenerator do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defmacrop generate(complexity, {:%{}, line, options}) do
-    options =
-      Enum.map(options, fn {key, val} ->
-        {key,
-         quote do
-           fn -> unquote(val) end
-         end}
-      end)
-
-    quote do
-      do_generate(unquote(complexity), unquote(options))
-    end
+  defp generate_query_from_scaffold(%{from: from, complexity: complexity}) do
+    {:query, nil, [select_ast(complexity), from(from)]}
   end
 
-  defp generate_query_from_scaffold(%{from: {:subquery, scaffold}}) do
-    {:query, nil, [select_ast(), {:from, nil, [{:subquery, nil, [generate_query_from_scaffold(scaffold)]}]}]}
+  defp select_ast(_complexity) do
+    {:select, nil, [{:function, "count", [{:star, nil, []}]}]}
   end
 
-  defp generate_query_from_scaffold(%{from: {:join, scaffold1, scaffold2}}) do
-    {:query, nil,
+  defp from({:subquery, scaffold}) do
+    {:from, nil, [{:subquery, nil, [generate_query_from_scaffold(scaffold)]}]}
+  end
+
+  defp from({:join, scaffold1, scaffold2}) do
+    {:from, nil,
      [
-       select_ast(),
-       {:from, nil,
+       {:join, nil,
         [
-          {:join, nil,
-           [
-             generate_query_from_scaffold(scaffold1),
-             generate_query_from_scaffold(scaffold2),
-             {:on, nil, [{:=, nil, [{:boolean, true, []}, {:boolean, false, []}]}]}
-           ]}
+          generate_query_from_scaffold(scaffold1),
+          generate_query_from_scaffold(scaffold2),
+          {:on, nil, [{:=, nil, [{:boolean, true, []}, {:boolean, false, []}]}]}
         ]}
      ]}
   end
 
-  defp generate_query_from_scaffold(%{from: table}) do
-    {:query, nil, [select_ast(), from_table(table)]}
-  end
-
-  defp select_ast() do
-    {:select, nil, [{:function, "count", [{:star, nil, []}]}]}
-  end
-
-  defp from_table(table) do
+  defp from(table) do
     {:from, nil, [{:table, table.name, []}]}
   end
 
   defp generate_scaffold(tables, complexity) do
-    generate(complexity, %{
+    frequency(complexity, %{
       3 => %Scaffold{from: Enum.random(tables), complexity: complexity},
       1 => %Scaffold{from: {:subquery, generate_scaffold(tables, div(complexity, 2))}, complexity: div(complexity, 2)},
       1 => %Scaffold{
@@ -92,13 +75,4 @@ defmodule Cloak.Compliance.QueryGenerator do
       }
     })
   end
-
-  defp do_generate(complexity, options) do
-    sum = options |> Enum.map(&elem(&1, 0)) |> Enum.sum()
-    random = :rand.uniform(sum |> min(complexity) |> max(1)) - 1
-    pick_option(options, random)
-  end
-
-  defp pick_option([{frequency, option} | _], number) when number < frequency, do: option.()
-  defp pick_option([{frequency, _} | options], number), do: pick_option(options, number - frequency)
 end
