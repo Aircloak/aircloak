@@ -19,11 +19,36 @@ defmodule AircloakCI.DockerCleaner do
     # running as isolated, while no other external command is running.
     AircloakCI.CmdRunner.Supervisor.lock_start(fn ->
       if AircloakCI.CmdRunner.Supervisor.job_count() == 0 do
+        remove_dangling_containers()
         remove_old_sha_tags()
         remove_dangling_images()
         remove_dangling_volumes()
       end
     end)
+  end
+
+  defp remove_dangling_containers() do
+    "docker ps --quiet -f status=exited"
+    |> run_with_output!()
+    |> output_lines()
+    |> Stream.map(&remove_dangling_container/1)
+    |> Stream.filter(&(&1 == :ok))
+    |> Enum.count()
+    |> case do
+      0 -> :ok
+      count -> Logger.info("removed #{count} dangling docker containers")
+    end
+  end
+
+  defp remove_dangling_container(container_id) do
+    case run_with_output("docker rm -f #{container_id}") do
+      {:ok, _success} ->
+        :ok
+
+      {:error, error} ->
+        Logger.error("error removing docker container #{container_id}:\n#{error}")
+        :error
+    end
   end
 
   defp remove_dangling_volumes() do
