@@ -21,8 +21,8 @@ defmodule Cloak.Compliance.QueryGenerator.Test do
       }
     ]
 
-    for ast <- tables |> QueryGenerator.ast_generator() |> Enum.take(100) do
-      assert QueryGenerator.ast_to_sql(ast)
+    for complexity <- 0..100 do
+      assert QueryGenerator.ast_to_sql(QueryGenerator.generate_ast(tables, complexity))
     end
   end
 end

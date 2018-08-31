@@ -130,9 +130,11 @@ defmodule Mix.Tasks.Fuzzer.Run do
 
   defp generate_queries(tables, number_of_queries),
     do:
-      tables
-      |> Map.values()
-      |> QueryGenerator.ast_generator()
+      Stream.repeatedly(fn ->
+        tables
+        |> Map.values()
+        |> QueryGenerator.generate_ast(_complexity = 100)
+      end)
       |> Enum.take(number_of_queries)
       |> Enum.map(&QueryGenerator.ast_to_sql/1)
 
