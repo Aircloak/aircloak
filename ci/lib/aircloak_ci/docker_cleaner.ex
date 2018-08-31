@@ -20,6 +20,7 @@ defmodule AircloakCI.DockerCleaner do
     AircloakCI.CmdRunner.Supervisor.lock_start(fn ->
       if AircloakCI.CmdRunner.Supervisor.job_count() == 0 do
         remove_old_sha_tags()
+        remove_dangling_images()
         remove_dangling_volumes()
       end
     end)
@@ -49,21 +50,31 @@ defmodule AircloakCI.DockerCleaner do
     end
   end
 
+  defp remove_dangling_images() do
+    ~s/docker images --quiet --filter "dangling=true"/
+    |> run_with_output!()
+    |> output_lines()
+    |> Enum.each(&remove_docker_image/1)
+  end
+
+  defp remove_docker_image(image_name) do
+    case run_with_output("docker rmi #{image_name}") do
+      {:ok, _success} ->
+        Logger.info("removed docker image #{image_name}")
+        :ok
+
+      {:error, error} ->
+        Logger.error("error removing docker image #{image_name}:\n#{error}")
+        :error
+    end
+  end
+
   defp remove_old_sha_tags() do
     known_shas = compute_known_shas()
 
     existing_sha_tagged_images()
     |> Stream.reject(&MapSet.member?(known_shas, &1.sha))
-    |> Enum.each(&remove_docker_image/1)
-  end
-
-  defp remove_docker_image(descriptor) do
-    full_image_name = "#{descriptor.image}:#{descriptor.tag}"
-
-    case run_with_output("docker rmi #{full_image_name}") do
-      {:ok, _success} -> Logger.info("removed docker image #{full_image_name}")
-      {:error, error} -> Logger.error("error removing docker image #{full_image_name}:\n#{error}")
-    end
+    |> Enum.each(&remove_docker_image("#{&1.image}:#{&1.tag}"))
   end
 
   defp existing_sha_tagged_images() do
