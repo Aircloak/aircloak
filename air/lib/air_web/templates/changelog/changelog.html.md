@@ -18,6 +18,7 @@
 ### Changes
 
 - Noise parameters changed. Results will differ.
+- Default ODBC connector changed from Erlang to Rust.
 
 ## Version 18.3.1
 

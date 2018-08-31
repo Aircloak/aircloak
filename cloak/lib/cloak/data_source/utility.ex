@@ -67,15 +67,18 @@ defmodule Cloak.DataSource.Utility do
   @driver_name_to_module_mappings [
     {"mongodb", Cloak.DataSource.MongoDB},
     {"mysql", Cloak.DataSource.MySQL},
-    {"odbc", Cloak.DataSource.ODBC},
     {"postgresql", Cloak.DataSource.PostgreSQL},
-    {"sqlserver", Cloak.DataSource.SQLServer},
+    {"sqlserver", Cloak.DataSource.SQLServerRODBC},
+    {"sqlserver_odbc", Cloak.DataSource.SQLServer},
     {"sqlserver_rodbc", Cloak.DataSource.SQLServerRODBC},
-    {"saphana", Cloak.DataSource.SAPHana},
+    {"saphana", Cloak.DataSource.SAPHanaRODBC},
+    {"saphana_odbc", Cloak.DataSource.SAPHana},
     {"saphana_rodbc", Cloak.DataSource.SAPHanaRODBC},
-    {"sapiq", Cloak.DataSource.SAPIQ},
+    {"sapiq", Cloak.DataSource.SAPIQRODBC},
+    {"sapiq_odbc", Cloak.DataSource.SAPIQ},
     {"sapiq_rodbc", Cloak.DataSource.SAPIQRODBC},
-    {"drill", Cloak.DataSource.Drill},
+    {"drill", Cloak.DataSource.DrillRODBC},
+    {"drill_odbc", Cloak.DataSource.Drill},
     {"drill_rodbc", Cloak.DataSource.DrillRODBC}
   ]
 
