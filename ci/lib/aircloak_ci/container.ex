@@ -106,15 +106,17 @@ defmodule AircloakCI.Container do
   # -------------------------------------------------------------------
 
   defp cleanup() do
-    all_containers() |> dangling() |> Enum.each(&stop/1)
-    all_networks() |> dangling() |> Enum.each(&remove_network/1)
-    remove_dangling_volumes()
-
+    Enum.each(non_registered_containers(), &stop/1)
+    Enum.each(non_registered_networks(), &remove_network/1)
     :timer.sleep(:timer.seconds(10))
     cleanup()
   end
 
-  defp dangling(docker_names), do: Enum.reduce(registered_names(), docker_names, &remove_associated(&2, &1))
+  defp non_registered_containers(), do: non_registered(associated_containers("aircloak_ci"))
+
+  defp non_registered_networks(), do: non_registered(associated_networks("aircloak_ci"))
+
+  defp non_registered(docker_names), do: Enum.reduce(registered_names(), docker_names, &remove_associated(&2, &1))
 
   defp registered_names(),
     do:
@@ -123,10 +125,6 @@ defmodule AircloakCI.Container do
       end)
 
   defp remove_associated(names, name), do: Enum.reject(names, &String.starts_with?(&1, name))
-
-  defp all_containers(), do: associated_containers("aircloak_ci")
-
-  defp all_networks(), do: associated_networks("aircloak_ci")
 
   defp associated_containers(container_name),
     do: associated_docker_objects(container_name, "docker ps --format='{{.Names}}'")
@@ -150,13 +148,6 @@ defmodule AircloakCI.Container do
 
     CmdRunner.run("docker network rm #{network_name}")
   end
-
-  defp remove_dangling_volumes(),
-    do:
-      "docker volume ls -qf dangling=true"
-      |> CmdRunner.run_with_output!()
-      |> lines()
-      |> Enum.each(&CmdRunner.run("docker volume rm #{&1}"))
 
   defp connected(network),
     do:

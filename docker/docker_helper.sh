@@ -183,29 +183,34 @@ function build_aircloak_image {
   # different branches.
 
   docker tag $full_image_name:$image_version $full_image_name:$(git_head_image_tag)
-  remove_old_git_head_image_tags $full_image_name
 
   if [ -f "$temp_docker_file" ]; then rm "$temp_docker_file"; fi
   if [ -f .dockerignore ]; then rm .dockerignore; fi
 
-  # remove exited containers
-  exited_containers=$(docker ps --quiet -f status=exited)
-  if [ "$exited_containers" != "" ]; then docker rm $exited_containers || true; fi
+  if [ "${DOCKER_BUILD_CLEANUP:-"true"}" == "true" ]; then
+    echo "cleaning up unused images"
 
-  if [ "$image_version" == "latest" ]; then
-    # remove local non-latest version tags (obsolete in the new version of the build system)
-    # however, we'll keep git_sha_*, since they are references to the known git heads
-    local_version_tags=$(docker images | grep -v git_sha | awk "{if (\$1 == \"$full_image_name\" && \$2 != \"latest\") print \$1\":\"\$2}")
-    if [ "$local_version_tags" != "" ]; then docker rmi $local_version_tags || true; fi
-  else
-    # remove local "latest" version tags
-    local_version_tags=$(docker images | awk "{if (\$1 == \"$full_image_name\" && \$2 == \"latest\") print \$1\":\"\$2}")
-    if [ "$local_version_tags" != "" ]; then docker rmi $local_version_tags || true; fi
+    remove_old_git_head_image_tags $full_image_name
+
+    # remove exited containers
+    exited_containers=$(docker ps --quiet -f status=exited)
+    if [ "$exited_containers" != "" ]; then docker rm $exited_containers || true; fi
+
+    if [ "$image_version" == "latest" ]; then
+      # remove local non-latest version tags (obsolete in the new version of the build system)
+      # however, we'll keep git_sha_*, since they are references to the known git heads
+      local_version_tags=$(docker images | grep -v git_sha | awk "{if (\$1 == \"$full_image_name\" && \$2 != \"latest\") print \$1\":\"\$2}")
+      if [ "$local_version_tags" != "" ]; then docker rmi $local_version_tags || true; fi
+    else
+      # remove local "latest" version tags
+      local_version_tags=$(docker images | awk "{if (\$1 == \"$full_image_name\" && \$2 == \"latest\") print \$1\":\"\$2}")
+      if [ "$local_version_tags" != "" ]; then docker rmi $local_version_tags || true; fi
+    fi
+
+    # remove dangling images
+    dangling_images=$(docker images --quiet --filter "dangling=true")
+    if [ "$dangling_images" != "" ]; then docker rmi $dangling_images || true; fi
   fi
-
-  # remove dangling images
-  dangling_images=$(docker images --quiet --filter "dangling=true")
-  if [ "$dangling_images" != "" ]; then docker rmi $dangling_images || true; fi
 
   cd $curdir
 }
@@ -337,14 +342,6 @@ function latest_version_running {
   fi
 
   return 1
-}
-
-function cleanup_unused_images {
-  stopped_containers=$(docker ps -a | grep -v Up | awk '{print $1}' | tail -n+2)
-  if [ "$stopped_containers" != "" ]; then docker rm $(echo "$stopped_containers"); fi
-
-  unused_images=$(docker images -q -f dangling=true)
-  if [ "$unused_images" != "" ]; then docker rmi $(echo "$unused_images"); fi
 }
 
 function check_registry {
