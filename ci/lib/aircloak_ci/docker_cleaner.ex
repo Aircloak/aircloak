@@ -154,7 +154,7 @@ defmodule AircloakCI.DockerCleaner do
     Periodic.child_spec(
       id: __MODULE__,
       run: fn -> cleanup() end,
-      every: Aircloak.in_env(dev: :timer.seconds(1), else: :timer.minutes(1)),
+      every: :timer.minutes(1),
       initial_delay: Aircloak.in_env(test: :infinity, else: 0),
       overlap?: false,
       timeout: :timer.minutes(5)
