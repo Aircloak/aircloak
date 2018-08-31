@@ -14,6 +14,7 @@ Aircloak Insights ships with Insights Datasource Connectors for the following da
 - PostgreSQL, version 9.1 and newer
 - SAP HANA, version 2.0 and newer
 - SAP IQ, version 16.0 and newer
+- Apache Drill, version 1.13 and newer
 
 If your preferred datastore is not in the list, please contact Aircloak.
 
@@ -170,6 +171,12 @@ The following constructs are not natively supported on this data source and will
   - `median`
   - `btrim`, `ltrim`, and `rtrim` with two arguments
 
+#### Apache Drill
+
+- `hex`
+- `median`
+
+
 ## Database specific notes
 
 This section provides additional notes specific for each supported database.
@@ -232,3 +239,41 @@ table `users_siblings` containing a `siblings.name` in addition to the `name` co
 
 MongoDB only supports `INNER JOIN` natively. Aircloak Insights will emulate all other JOIN-types. Furthermore, when a
 collection is sharded, even `INNER JOIN` has to be emulated.
+
+### Apache Drill
+
+#### Exposing the dataset
+
+In some cases, a SQL view will be required in order to expose the dataset correctly to the cloak.
+The view needs to be created in a writable workspace. Refer to the Apache Drill documentation for details on how to accomplish this task.
+
+Complex types, likes maps and arrays, will need special handling since there is no SQL equivalent for these types.
+In this case, the schema needs to be detected manually for each table, and then a view needs to be created exposing the correct columns and types to the cloak.
+
+Drill will sometimes report or detect the type for a field incorrectly (usually as a binary or any) and it has to be manually casted to the correct type in the view.
+
+Some data might need to be cleaned before exposure (many of the text values might be returned quoted, for example).
+
+Example commands for creating views:
+
+```SQL
+use dfs.views;
+
+create view customers as select
+ cast(row_key as integer) as row_key,
+ trim('"' from cast(c.address.state as varchar)) as state,
+ cast(c.loyalty.agg_rev as integer) as agg_rev,
+ trim('"' from cast(c.loyalty.membership as varchar)) as membership,
+ trim('"' from cast(c.personal.age as varchar)) as age,
+ trim('"' from cast(c.personal.gender as varchar)) as gender,
+ trim('"' from cast(c.personal.name as varchar)) as name
+from maprdb.customers as c;
+
+
+create view products as select
+ cast(row_key as integer) as row_key,
+ cast(p.details.category as varchar) as category,
+ cast(p.details.name as varchar) as name,
+ cast(p.pricing.price as float) as price
+from maprdb.products as p;
+```

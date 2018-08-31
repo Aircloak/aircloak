@@ -354,9 +354,9 @@ The configuration takes the following form:
 
 The `name` parameter is a string which will be used to identify the data source throughout the Insights Air interface and APIs.
 
-The `driver` parameter can be one of the following: `mongodb`, `postgresql`, `mysql`, `sqlserver`, `saphana`, `sapiq`. The `parameters` json, then specifies the database connection parameters.
+The `driver` parameter can be one of the following: `mongodb`, `postgresql`, `mysql`, `sqlserver`, `saphana`, `sapiq`, `drill`. The `parameters` json, then specifies the database connection parameters.
 
-Some of these drivers use ODBC protocol to talk to the database. These drivers are `sqlserver`, `saphana`, and `sapiq`. Since they rely on ODBC, they accept some additional connection parameters:
+Some of these drivers use ODBC protocol to talk to the database. These drivers are `sqlserver`, `saphana`, `sapiq` and `drill`. Since they rely on ODBC, they accept some additional connection parameters:
 
   - `encoding` which has possible values of "latin1", "unicode", "utf8", "utf16", "utf32", "utf16-big", "utf16-little", "utf32-big", "utf32-little".
   - `odbc_parameters` - ODBC specific parameters for the ODBC driver which is used to talk to the database.
