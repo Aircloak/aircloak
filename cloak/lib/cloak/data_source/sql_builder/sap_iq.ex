@@ -107,7 +107,9 @@ defmodule Cloak.DataSource.SqlBuilder.SAPIQ do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp sql_type(:text), do: "nvarchar"
+  # it appears that nvarchar is not a valid type in SAP IQ, so we're using varchar
+  # (source: https://help.sap.com/viewer/a898e08b84f21015969fa437e89860c8/16.1.1.0/en-US/a511839b84f210159df2d5d78c6e891f.html)
+  defp sql_type(:text), do: "varchar"
   defp sql_type(:datetime), do: "timestamp"
   defp sql_type(type) when is_atom(type), do: Atom.to_string(type)
 end
