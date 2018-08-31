@@ -108,9 +108,7 @@ defmodule AircloakCI.Container do
   defp cleanup() do
     Enum.each(non_registered_containers(), &stop/1)
     Enum.each(non_registered_networks(), &remove_network/1)
-    remove_dangling_volumes()
-
-    :timer.sleep(:timer.seconds(1))
+    :timer.sleep(:timer.seconds(10))
     cleanup()
   end
 
@@ -150,13 +148,6 @@ defmodule AircloakCI.Container do
 
     CmdRunner.run("docker network rm #{network_name}")
   end
-
-  defp remove_dangling_volumes(),
-    do:
-      "docker volume ls -qf dangling=true"
-      |> CmdRunner.run_with_output!()
-      |> lines()
-      |> Enum.each(&CmdRunner.run("docker volume rm #{&1}"))
 
   defp connected(network),
     do:
