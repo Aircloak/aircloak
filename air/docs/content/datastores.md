@@ -249,7 +249,7 @@ The view needs to be created in a writable workspace. Refer to the Apache Drill 
 
 Complex types, likes maps and arrays, need special handling since there is no equivalent for these types in standard SQL. In these case, automatic schema detection will not work, and you are required to manually create a Drill view exposing the columns you want to become queryable.
 
-Drill will sometimes incorrectly classify the type of a column (usually it will be reported as binary or any). This can be solved through manually casting the value to the expected type in a Drill view.
+Drill will sometimes incorrectly classify the type of a column (usually it will be reported as `binary` or `any`). This can be solved through manually casting the value to the expected type in a Drill view.
 
 Some data might need to be manually cleaned. An example are text values which frequently end up being erroneously quoted.
 
