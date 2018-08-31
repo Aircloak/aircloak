@@ -251,7 +251,8 @@ defmodule Cloak.Sql.Query do
         statement =
           DataSource.SqlBuilder.build(
             %__MODULE__{query | subquery?: true},
-            Cloak.DataSource.SqlBuilder.PostgreSQL
+            Cloak.DataSource.SqlBuilder.PostgreSQL,
+            Cloak.DataSource.PostgreSQL
           )
 
         "#{message}: `#{statement}` ..."

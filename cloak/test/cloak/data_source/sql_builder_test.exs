@@ -27,12 +27,14 @@ defmodule Cloak.DataSource.SqlBuilderTest do
     assert SqlBuilder.quote_table_name("long.full.name") == "\"long\".\"full\".\"name\""
   end
 
-  defp sql_string(query, dialect \\ PostgreSQL),
-    do:
+  defp sql_string(query, dialect \\ PostgreSQL) do
+    compiled_query =
       query
       |> compile!(data_source(Module.concat(Cloak.DataSource, dialect)))
       |> Query.resolve_db_columns()
-      |> SqlBuilder.build(Module.concat(Cloak.DataSource.SqlBuilder, dialect))
+
+    SqlBuilder.build(compiled_query)
+  end
 
   defp data_source(driver) do
     %{
