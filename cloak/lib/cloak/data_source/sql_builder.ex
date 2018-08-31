@@ -142,10 +142,11 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql(%Expression{function?: false, constant?: false} = column, sql_dialect_module, driver),
     do: column |> column_name(sql_dialect_module.quote_char()) |> cast_type(column.type, sql_dialect_module, driver)
 
-  defp cast_type(value, type, sql_dialect_module, _driver) when type in [:text, :unknown],
-    # Force casting to text ensures we consistently fetch a string column as unicode, regardless of how it's
-    # represented in the database (VARCHAR or NVARCHAR).
-    do: sql_dialect_module.cast_sql(value, type, :text)
+  defp cast_type(value, :unknown, sql_dialect_module, _driver), do: sql_dialect_module.cast_sql(value, :unknown, :text)
+
+  defp cast_type(value, :text, sql_dialect_module, driver) do
+    if driver.cast_to_text?(), do: sql_dialect_module.cast_sql(value, :text, :text), else: value
+  end
 
   defp cast_type(value, _type, _sql_dialect_module, _driver), do: value
 
