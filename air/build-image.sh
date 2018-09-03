@@ -8,53 +8,73 @@ cd $ROOT_DIR
 
 . docker/docker_helper.sh
 
-if [ "$BUILD_BASE" != "false" ]; then PREVENT_OLD_IMAGE_REMOVAL=true common/docker/phoenix/build-image.sh; fi
-
-# This will build a dockerized version of the air site.
-#
-# To reduce the final image size, we build in two steps:
-# 1. First, we produce the "builder" container. Here, we'll setup the full
-#    Elixir environment, copy source, and create the release.
-# 2. Then, we briefly start the builder container, fetch the release locally,
-#    and create the release container. Here, we just copy the release, without
-#    the need to install Erlang.
-
 current_version=$(cat VERSION)
 
-echo "Building dependencies"
+if [ "$BUILD_BASE" != "false" ]; then PREVENT_OLD_IMAGE_REMOVAL=true common/docker/phoenix/build-image.sh; fi
+
+# build the builder image
+SYSTEM_VERSION=$current_version \
+  PREVENT_OLD_IMAGE_REMOVAL=true build_aircloak_image air_build air/builder.dockerfile air/.dockerignore-builder
+
+# build the release
 docker run --rm -i \
   -v $(pwd)/VERSION:/aircloak/VERSION \
   -v $(pwd)/common:/aircloak/common \
   -v $(pwd)/air:/aircloak/air \
+  -v $(pwd)/bom:/aircloak/bom \
+  -v $(pwd)/cloak:/aircloak/cloak \
   -v $(pwd)/$(air_cache_folder)/_build:/aircloak/air/_build \
   -v $(pwd)/$(air_cache_folder)/deps:/aircloak/air/deps \
-  aircloak/phoenix:$(git_head_image_tag) \
-  /bin/bash -c "
+  -v $(pwd)/$(air_cache_folder)/assets/node_modules:/aircloak/air/assets/node_modules \
+  -v $(pwd)/$(air_cache_folder)/docs/node_modules:/aircloak/air/docs/node_modules \
+  -v $(pwd)/$(air_cache_folder)/.gitbook:/root/.gitbook \
+  -v $(pwd)/$(air_cache_folder)/cloak/deps:/aircloak/cloak/deps \
+  -v $(pwd)/$(air_cache_folder)/bom/deps:/aircloak/bom/deps \
+  -v $(pwd)/$(air_cache_folder)/bom/_build:/aircloak/bom/_build \
+  $(aircloak_image_name air_build):$(git_head_image_tag) \
+  /bin/bash -c '
     set -eo pipefail
     . ~/.asdf/asdf.sh
+
     cd /aircloak/air
     ./fetch_deps.sh --only prod
-    COMPILE_USER_DOCS=false COMPILE_AUTO_COMPLETIONS=false MIX_ENV=prod mix compile
-  "
 
-# Build the builder image
-echo "Building release"
-SYSTEM_VERSION=$current_version \
-  PREVENT_OLD_IMAGE_REMOVAL=true build_aircloak_image air_build air/builder.dockerfile air/.dockerignore-builder
+    cd assets
+    yarn install
+    cd ..
 
-# Start the instance of the builder image and copy the generated release back to the disk
-cd $ROOT_DIR/air
-mkdir -p artifacts/rel
-rm -rf artifacts/rel/*
-builder_container_id=$(docker create $(aircloak_image_name air_build):latest)
-docker cp $builder_container_id:/aircloak/air/_build/prod/rel/air/releases/$current_version/air.tar.gz artifacts/rel/
-docker stop $builder_container_id > /dev/null
-docker rm -v $builder_container_id > /dev/null
-cd artifacts/rel && \
-  tar -xzf air.tar.gz && \
-  rm air.tar.gz
+    cd docs
+    yarn install
+    gitbook_version=$(cat /aircloak/air/docs/node_modules/gitbook/package.json | jq -r ".version")
+    if [ ! -d /root/.gitbook/versions/$gitbook_version ]; then yarn run gitbook fetch $gitbook_version; fi
+    cd ..
 
-# Build the release image
+    cd /aircloak/cloak
+    ./fetch_deps.sh --only prod
+
+    cd /aircloak/bom
+    ./fetch_deps.sh
+
+    mix bom \
+      --elixir /aircloak/air/deps \
+      --elixir /aircloak/cloak/deps \
+      --rust /aircloak/cloak/src/rodbc \
+      --node /aircloak/air/assets/node_modules \
+      /aircloak/air/priv
+
+    cd /aircloak/air
+    make release
+  '
+
+# copy the generated release to the artifacts folder
+mkdir -p air/artifacts/rel
+rm -rf air/artifacts/rel/*
+cp -rp ./$(air_cache_folder)/_build/prod/rel/air/releases/$current_version/air.tar.gz air/artifacts/rel
+cd air/artifacts/rel
+tar -xzf air.tar.gz
+rm air.tar.gz
+
+# build the release image
 cd $ROOT_DIR
 SYSTEM_VERSION=$current_version \
   PREVENT_OLD_IMAGE_REMOVAL=true build_aircloak_image air air/release.dockerfile air/.dockerignore-release
