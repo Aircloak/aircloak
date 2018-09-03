@@ -73,7 +73,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
         with_file(crashes_path, fn crashes_file ->
           Task.async_stream(
             queries,
-            fn query ->
+            fn {query, _} ->
               IO.write(".")
               run_query(query, data_sources)
             end,
@@ -97,11 +97,11 @@ defmodule Mix.Tasks.Fuzzer.Run do
   defp normalize_result({:ok, result}), do: result
   defp normalize_result({:exit, :timeout}), do: %{result: :timeout, error: nil}
 
-  defp print_single_result(all_file, crashes_file, item = {query, result}) do
-    IO.puts(all_file, [query, "\n\n", to_string(result.result), "\n\n"])
+  defp print_single_result(all_file, crashes_file, item = {{query, seed}, result}) do
+    IO.puts(all_file, [query, "\n\n", "Seed: ", inspect(seed), "\n\n", to_string(result.result), "\n\n"])
 
     if result.result == :unexpected_error do
-      IO.puts(crashes_file, [query, "\n\n", Exception.format(:error, result.error)])
+      IO.puts(crashes_file, [query, "\n\n", "Seed: ", inspect(seed), "\n\n", Exception.format(:error, result.error)])
     end
 
     item
@@ -128,15 +128,16 @@ defmodule Mix.Tasks.Fuzzer.Run do
     e -> %{result: :unexpected_error, error: e}
   end
 
-  defp generate_queries(tables, number_of_queries),
-    do:
-      Stream.repeatedly(fn ->
+  defp generate_queries(tables, number_of_queries) do
+    for _ <- 1..number_of_queries do
+      {ast, seed} =
         tables
         |> Map.values()
-        |> QueryGenerator.generate_ast(_complexity = 100)
-      end)
-      |> Enum.take(number_of_queries)
-      |> Enum.map(&QueryGenerator.ast_to_sql/1)
+        |> QueryGenerator.ast_with_seed(_complexity = 100)
+
+      {QueryGenerator.ast_to_sql(ast), seed}
+    end
+  end
 
   defp assert_consistent_or_failing_nicely(data_sources, query) do
     case assert_query_consistency(query, data_sources: data_sources) do

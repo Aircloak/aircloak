@@ -8,16 +8,28 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   use Lens.Macros
 
-  # -------------------------------------------------------------------
-  # API functions
-  # -------------------------------------------------------------------
-
   defmodule Scaffold do
     @type from :: {:table, Map.t()} | {:join, t, t} | {:subquery, t}
 
     @type t :: %__MODULE__{from: from, complexity: integer, select_user_id?: boolean}
 
     defstruct [:from, :complexity, :select_user_id?]
+  end
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Generates a randomize query with `generate_ast/2`. Also returns the random seed used to generate the query."
+  def ast_with_seed(tables, complexity) do
+    if :rand.export_seed() == :undefined do
+      :rand.uniform()
+    end
+
+    {
+      generate_ast(tables, complexity),
+      "#{:rand.export_seed() |> :erlang.term_to_binary() |> Base.encode64()}:#{complexity}"
+    }
   end
 
   @doc """
