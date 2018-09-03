@@ -6,6 +6,8 @@ defmodule Cloak.Compliance.QueryGenerator do
   alias Cloak.DataSource.Table
   import __MODULE__.Generation
 
+  use Lens.Macros
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -13,9 +15,9 @@ defmodule Cloak.Compliance.QueryGenerator do
   defmodule Scaffold do
     @type from :: {:table, Map.t()} | {:join, t, t} | {:subquery, t}
 
-    @type t :: %__MODULE__{from: from, complexity: integer}
+    @type t :: %__MODULE__{from: from, complexity: integer, select_user_id?: boolean}
 
-    defstruct [:from, :complexity]
+    defstruct [:from, :complexity, :select_user_id?]
   end
 
   @doc """
@@ -26,6 +28,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   def generate_ast(tables, complexity) do
     tables
     |> generate_scaffold(complexity)
+    |> set_select_user_id()
     |> generate_query_from_scaffold()
   end
 
@@ -37,6 +40,54 @@ defmodule Cloak.Compliance.QueryGenerator do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp generate_scaffold(tables, complexity) do
+    frequency(complexity, %{
+      3 => %Scaffold{from: {:table, Enum.random(tables)}, complexity: complexity},
+      1 => %Scaffold{from: {:subquery, generate_scaffold(tables, div(complexity, 2))}, complexity: div(complexity, 2)},
+      1 => %Scaffold{
+        from: {:join, generate_scaffold(tables, div(complexity, 3)), generate_scaffold(tables, div(complexity, 3))},
+        complexity: div(complexity, 3)
+      }
+    })
+  end
+
+  defp set_select_user_id(scaffold) do
+    scaffold
+    |> put_in([Lens.key(:select_user_id?)], false)
+    |> update_in([sub_scaffolds()], fn
+      scaffold = %{from: {:table, _}} ->
+        %{scaffold | select_user_id?: boolean()}
+
+      scaffold = %{from: {:subquery, _}} ->
+        if boolean() do
+          force_select_user_id(scaffold)
+        else
+          %{scaffold | select_user_id?: false}
+        end
+
+      scaffold = %{from: {:join, left, right}} ->
+        if left.select_user_id? || right.select_user_id? do
+          force_select_user_id(scaffold)
+        else
+          scaffold
+        end
+    end)
+  end
+
+  defp force_select_user_id(scaffold) do
+    put_in(scaffold, [Lens.both(sub_scaffolds(), Lens.root()) |> Lens.key(:select_user_id?)], true)
+  end
+
+  deflensp sub_scaffolds() do
+    Lens.key(:from)
+    |> Lens.match(fn
+      {:table, _} -> Lens.empty()
+      {:subquery, _} -> Lens.index(1)
+      {:join, _, _} -> Lens.indices([1, 2])
+    end)
+    |> Lens.recur()
+  end
+
   defp generate_query_from_scaffold(scaffold) do
     {query, _tables} = query(scaffold)
     query
@@ -44,11 +95,15 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp query(scaffold) do
     {from, tables} = from(scaffold.from)
-    {{:query, nil, [select(tables, scaffold.complexity), from]}, tables}
+    {{:query, nil, [select(scaffold, tables), from]}, tables}
   end
 
-  defp select(_tables, _complexity) do
-    {:select, nil, [{:function, "count", [{:star, nil, []}]}]}
+  defp select(scaffold, [table | _]) do
+    if scaffold.select_user_id? do
+      {:select, nil, [{:column, nil, [{:unquoted, table.user_id, []}]}]}
+    else
+      {:select, nil, [{:function, "count", [{:star, nil, []}]}]}
+    end
   end
 
   defp from(scaffold) do
@@ -78,18 +133,9 @@ defmodule Cloak.Compliance.QueryGenerator do
     {{:as, name(scaffold.complexity), [{:subquery, nil, [query]}]}, tables}
   end
 
+  defp boolean(), do: Enum.random([true, false])
+
   defp name(complexity) do
     StreamData.string(?a..?z, min_length: 1) |> StreamData.resize(complexity) |> Enum.at(0)
-  end
-
-  defp generate_scaffold(tables, complexity) do
-    frequency(complexity, %{
-      3 => %Scaffold{from: {:table, Enum.random(tables)}, complexity: complexity},
-      1 => %Scaffold{from: {:subquery, generate_scaffold(tables, div(complexity, 2))}, complexity: div(complexity, 2)},
-      1 => %Scaffold{
-        from: {:join, generate_scaffold(tables, div(complexity, 3)), generate_scaffold(tables, div(complexity, 3))},
-        complexity: div(complexity, 3)
-      }
-    })
   end
 end
