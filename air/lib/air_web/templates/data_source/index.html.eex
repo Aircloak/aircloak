@@ -10,7 +10,6 @@
       <%= if @data_source_count == 0 do %>
         <%= if admin?(@conn) do %>
           <p>
-            There are currently no <strong>cloaks</strong> connected.
             Please verify that your <strong>cloaks</strong> are running and have been configured to make
             one or more data sources available.
           </p>
@@ -29,7 +28,7 @@
         <% else %>
           <p>
             The setup of your Aircloak system is not yet complete.
-            Please consult yours administrator for more information about when you will be able to
+            Please consult your administrator for more information about when you will be able to
             query your data sources using this platform.
           </p>
         <% end %>
