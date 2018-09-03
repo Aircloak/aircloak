@@ -18,6 +18,7 @@
 ### Changes
 
 - Noise parameters changed. Results will differ.
+- Default ODBC connector changed from Erlang to Rust.
 - Partial censoring of columns limited by default to 3. Can be changed in the config.
 
 ## Version 18.3.1

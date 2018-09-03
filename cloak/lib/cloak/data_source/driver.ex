@@ -51,4 +51,13 @@ defmodule Cloak.DataSource.Driver do
 
   @doc "Returns true if the connection can be used from processes other than the creator process."
   @callback supports_connection_sharing?() :: boolean
+
+  @doc """
+  Returns true if text columns should be casted to unicode string type.
+
+  The driver should return true if it needs to enforce consistent return shape for string values, regardless of how
+  the type is represented in the database (e.g. VARCHAR or NVARCHAR). In most cases, this is not required, but for
+  some drivers (e.g. the ones based on Erlang's ODBC), you might need to turn this feature on.
+  """
+  @callback cast_to_text?() :: boolean
 end

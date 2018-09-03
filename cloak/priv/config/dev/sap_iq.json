@@ -1,5 +1,5 @@
 {
-  "driver": "sapiq",
+  "driver": "sapiq_rodbc",
   "name": "sapiq",
   "parameters": {
     "hostname": "achanaproxy.mpi-sws.org",
