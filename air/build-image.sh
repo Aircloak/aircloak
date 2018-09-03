@@ -38,7 +38,9 @@ function build_release {
     $(aircloak_image_name air_build):$(git_head_image_tag) \
     /bin/bash -c '
       set -eo pipefail
+
       . ~/.asdf/asdf.sh
+      . ~/.bashrc
 
       cd /aircloak/air
       ./fetch_deps.sh --only prod
