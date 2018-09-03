@@ -19,6 +19,9 @@ defmodule Cloak do
     with {:ok, concurrency} <- Aircloak.DeployConfig.fetch("concurrency"),
          do: Application.put_env(:cloak, :concurrency, concurrency)
 
+    with {:ok, lcf_buckets_aggregation_limit} <- Aircloak.DeployConfig.fetch("lcf_buckets_aggregation_limit"),
+         do: Application.put_env(:cloak, :lcf_buckets_aggregation_limit, lcf_buckets_aggregation_limit)
+
     with {:ok, aes_key} <- Aircloak.DeployConfig.fetch("aes_key"), do: Application.put_env(:cloak, :aes_key, aes_key)
 
     Cloak.DataSource.RODBC.Driver.init!()

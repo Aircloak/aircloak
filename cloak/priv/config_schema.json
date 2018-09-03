@@ -14,6 +14,7 @@
     "air_socket_url": {"$comment": "allowed for backward compatibility"},
     "aes_key": {"type": "string", "minLength": 1},
     "concurrency": {"type": "integer", "minimum": 0},
+    "lcf_buckets_aggregation_limit": {"type": "integer", "minimum": 0},
     "sanitize_otp_errors": {"type": "boolean"},
     "memory_limits": {
       "type": "object",

@@ -136,6 +136,7 @@ defmodule Cloak.DataSource.SAPHanaTest do
         name: "saphana_test",
         driver: Cloak.DataSource.SAPHana,
         concurrency: 0,
+        lcf_buckets_aggregation_limit: nil,
         parameters: test_schema_connection_params(),
         tables: [],
         initial_tables: tables_def,

@@ -1502,6 +1502,32 @@ defmodule Cloak.Query.BasicTest do
     })
   end
 
+  test "partial aggregation of low-count buckets" do
+    :ok = insert_rows(_user_ids = 1..5, "heights", ["height", "name", "male"], [180, "Ana", false])
+    :ok = insert_rows(_user_ids = 5..8, "heights", ["height", "name", "male"], [190, "Ana", nil])
+    :ok = insert_rows(_user_ids = 9..10, "heights", ["height", "name", "male"], [170, "Tim", false])
+    :ok = insert_rows(_user_ids = 10..13, "heights", ["height", "name", "male"], [150, "Ana", true])
+    :ok = insert_rows(_user_ids = 11..14, "heights", ["height", "name", "male"], [180, "Ana", false])
+    :ok = insert_rows(_user_ids = 15..17, "heights", ["height", "name", "male"], [150, "Tim", true])
+    :ok = insert_rows(_user_ids = 20..21, "heights", ["height", "name", "male"], [180, "Tim", true])
+    :ok = insert_rows(_user_ids = 16..19, "heights", ["height", "name", "male"], [170, "Ana", false])
+    :ok = insert_rows(_user_ids = 8..10, "heights", ["height", "name", "male"], [150, "Tim", false])
+    :ok = insert_rows(_user_ids = 11..15, "heights", ["height", "name", "male"], [190, "Ana", false])
+
+    assert_query(
+      "select male, name, height / 10, height, count(*) from heights group by 1, 2, 3, 4 order by 1, 2, 3, 4",
+      %{
+        rows: [
+          %{row: [false, "Ana", 18.0, 180, 9]},
+          %{row: [false, "Ana", 19.0, 190, 5]},
+          %{row: [false, :*, :*, :*, 7]},
+          %{row: [true, "Tim", :*, :*, 5]},
+          %{row: [:*, :*, :*, :*, 8]}
+        ]
+      }
+    )
+  end
+
   test "distinct in subquery with group by" do
     :ok = insert_rows(_user_ids = 1..20, "heights", ["height", "male"], [160, true])
     :ok = insert_rows(_user_ids = 11..30, "heights", ["height", "male"], [170, false])

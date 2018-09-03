@@ -45,6 +45,7 @@ defmodule Cloak.DataSource.DecodersAndProjectionsTest do
         %{
           name: "mongo_db_decoders_and_projections",
           concurrency: 0,
+          lcf_buckets_aggregation_limit: nil,
           driver: MongoDB,
           parameters: parameters,
           tables: tables,

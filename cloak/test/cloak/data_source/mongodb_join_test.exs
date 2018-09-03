@@ -32,6 +32,7 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
       %{
         name: "mongo_db_join",
         concurrency: 0,
+        lcf_buckets_aggregation_limit: nil,
         driver: MongoDB,
         driver_info: MongoDB.driver_info(conn),
         parameters: parameters,

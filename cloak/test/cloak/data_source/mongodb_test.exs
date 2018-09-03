@@ -56,6 +56,7 @@ defmodule Cloak.DataSource.MongoDBTest do
     data_source = %{
       name: "mongo_db_standard",
       concurrency: 0,
+      lcf_buckets_aggregation_limit: nil,
       driver: MongoDB,
       parameters: parameters,
       tables: tables
