@@ -21,6 +21,15 @@ function build_builder_image {
 function build_release {
   cd $ROOT_DIR
 
+  # need to touch these files to ensure that they are mounted as files
+  mkdir -p $(pwd)/$(air_cache_folder)/priv
+  mkdir -p $(pwd)/$(air_cache_folder)/docs/content/
+
+  touch -a $(pwd)/$(air_cache_folder)/priv/dependencies.zip
+  touch -a $(pwd)/$(air_cache_folder)/docs/content/aircloak-docs.epub
+  touch -a $(pwd)/$(air_cache_folder)/docs/content/aircloak-docs.pdf
+  touch -a $(pwd)/$(air_cache_folder)/docs/content/aircloak-docs.mobi
+
   docker run --rm -i \
     -v $(pwd)/VERSION:/aircloak/VERSION \
     -v $(pwd)/common:/aircloak/common \
@@ -31,6 +40,10 @@ function build_release {
     -v $(pwd)/$(air_cache_folder)/deps:/aircloak/air/deps \
     -v $(pwd)/$(air_cache_folder)/assets/node_modules:/aircloak/air/assets/node_modules \
     -v $(pwd)/$(air_cache_folder)/docs/node_modules:/aircloak/air/docs/node_modules \
+    -v $(pwd)/$(air_cache_folder)/priv/dependencies.zip:/aircloak/air/priv/dependencies.zip \
+    -v $(pwd)/$(air_cache_folder)/docs/content/aircloak-docs.epub:/aircloak/air/docs/content/aircloak-docs.epub \
+    -v $(pwd)/$(air_cache_folder)/docs/content/aircloak-docs.pdf:/aircloak/air/docs/content/aircloak-docs.pdf \
+    -v $(pwd)/$(air_cache_folder)/docs/content/aircloak-docs.mobi:/aircloak/air/docs/content/aircloak-docs.mobi \
     -v $(pwd)/$(air_cache_folder)/.gitbook:/root/.gitbook \
     -v $(pwd)/$(air_cache_folder)/cloak/deps:/aircloak/cloak/deps \
     -v $(pwd)/$(air_cache_folder)/bom/deps:/aircloak/bom/deps \
