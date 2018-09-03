@@ -7,7 +7,8 @@
     "parameters": {"$ref": "#/definitions/parameters"},
     "tables": {"type": "object", "patternProperties": {"^.*$": {"$ref": "#/definitions/table"}}},
     "encoded": {"type": "boolean"},
-    "concurrency": {"type": "integer", "minimum": 0}
+    "concurrency": {"type": "integer", "minimum": 0},
+    "lcf_buckets_aggregation_limit": {"type": "integer", "minimum": 0}
   },
   "additionalProperties": false,
   "required": ["name", "driver", "parameters", "tables"],

@@ -205,23 +205,42 @@ defmodule Cloak.Query.Aggregator do
   defp process_low_count_users(rows, query) do
     Logger.debug("Processing low count users ...")
     bucket_size = query |> Rows.group_expressions() |> length()
+    lcf_aggregation_limit = query.data_source |> lcf_buckets_aggregation_limit() |> min(bucket_size)
+
     # We first partition the buckets into low-count and high-count buckets.
     # Then, starting from right to left, we censor each bucket value sequentially and merge corresponding buckets.
     # We then split the merged buckets again. We keep the merged buckets that pass the low-count filter and
     # repeat the process for the next column and the new set of low-count buckets.
     # When we run out of bucket values, we drop the final low-count bucket, if any.
-    splitted_rows = Enum.split_with(rows, &low_users_count?/1)
 
-    {_low_count_rows, high_count_rows} = Enum.reduce(bucket_size..1, splitted_rows, &group_low_count_rows/2)
+    {_low_count_rows, high_count_rows} =
+      rows |> Enum.split_with(&low_users_count?/1) |> aggregate_lcf_buckets(lcf_aggregation_limit, bucket_size)
 
     high_count_rows
+  end
+
+  defp aggregate_lcf_buckets(splitted_rows, 0, _bucket_size), do: splitted_rows
+
+  defp aggregate_lcf_buckets(splitted_rows, bucket_size, bucket_size),
+    do: Enum.reduce((bucket_size - 1)..0, splitted_rows, &group_low_count_rows/2)
+
+  defp aggregate_lcf_buckets({low_count_rows, high_count_rows}, lcf_aggregation_limit, bucket_size)
+       when lcf_aggregation_limit < bucket_size do
+    # censor values from lcf partial aggregation limit until max label count
+    low_count_rows =
+      Enum.map(low_count_rows, fn {values, anonymizer, users_rows} ->
+        values = Enum.reduce(lcf_aggregation_limit..bucket_size, values, &List.replace_at(&2, &1, :*))
+        {values, anonymizer, users_rows}
+      end)
+
+    Enum.reduce((lcf_aggregation_limit - 1)..0, {low_count_rows, high_count_rows}, &group_low_count_rows/2)
   end
 
   defp group_low_count_rows(column_index, {low_count_rows, high_count_rows}) do
     {low_count_grouped_rows, high_count_grouped_rows} =
       low_count_rows
       |> Enum.group_by(fn {values, _anonymizer, _users_rows} ->
-        List.replace_at(values, column_index - 1, :*)
+        List.replace_at(values, column_index, :*)
       end)
       |> Enum.map(&collapse_grouped_rows/1)
       |> Enum.split_with(&low_users_count?/1)
@@ -485,4 +504,7 @@ defmodule Cloak.Query.Aggregator do
       &%{&1 | row: Enum.map(selected_columns_indices, fn index -> Enum.at(&1.row, index) end)}
     )
   end
+
+  defp lcf_buckets_aggregation_limit(data_source),
+    do: data_source.lcf_buckets_aggregation_limit || Application.get_env(:cloak, :lcf_buckets_aggregation_limit, 3)
 end
