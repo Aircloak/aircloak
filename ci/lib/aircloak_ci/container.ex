@@ -34,7 +34,16 @@ defmodule AircloakCI.Container do
 
   @doc "Builds the container image."
   @spec build(String.t(), String.t()) :: :ok | {:error, String.t()}
-  def build(script, log_file), do: invoke_script(script, "build_image", log_file, timeout: :timer.hours(1))
+  def build(script, log_file) do
+    case CmdRunner.run_with_output("#{script} build_phases") do
+      {:error, _error} -> "docker_build all\n"
+      {:ok, output} -> output
+    end
+    |> String.trim()
+    |> String.split("\n")
+    |> Enum.map(&String.split/1)
+    |> run_build_commands(script, log_file)
+  end
 
   @doc "Starts the container and logs the output to the provided log file."
   @spec start(String.t(), String.t()) :: {:ok, t} | {:error, String.t()}
@@ -195,6 +204,38 @@ defmodule AircloakCI.Container do
         "#{script} #{cmd}",
         Keyword.merge([logger: CmdRunner.file_logger(log_file)], opts)
       )
+
+  # -------------------------------------------------------------------
+  # Building of images
+  # -------------------------------------------------------------------
+
+  defp run_build_commands([], _script, _log_file), do: :ok
+
+  defp run_build_commands([command | rest], script, log_file) do
+    case run_build_command(command, script, log_file) do
+      :ok -> run_build_commands(rest, script, log_file)
+      {:error, _reason} = error -> error
+    end
+  end
+
+  defp run_build_command([queue_name, arg], script, log_file) do
+    queue =
+      try do
+        String.to_existing_atom(queue_name)
+      rescue
+        ArgumentError -> raise "invalid queue name #{queue_name}"
+      end
+
+    CmdRunner.file_logger(log_file).("entering queue #{queue}\n")
+
+    AircloakCI.Queue.exec(
+      queue,
+      fn ->
+        CmdRunner.file_logger(log_file).("entered queue #{queue}\n")
+        invoke_script(script, "build_image #{arg}", log_file, timeout: :timer.hours(1))
+      end
+    )
+  end
 
   # -------------------------------------------------------------------
   # Supervision tree
