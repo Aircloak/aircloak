@@ -140,43 +140,8 @@ defmodule Mix.Tasks.Fuzzer.Run do
 
   defp assert_consistent_or_failing_nicely(data_sources, query) do
     case assert_query_consistency(query, data_sources: data_sources) do
-      %{error: error} -> error_type(error)
+      %{error: error} -> raise error
       %{rows: _} -> :ok
-    end
-  end
-
-  defp error_type(error) do
-    cond do
-      error =~ ~r/`HAVING` clause can not be applied over column/ -> :illegal_having
-      error =~ ~r/Inequalities on string values are currently not supported/ -> :string_inequality
-      error =~ ~r/must be limited to a finite, nonempty range/ -> :incorrect_range
-      error =~ ~r/needs to appear in the `GROUP BY` clause/ -> :missing_group_by
-      error =~ ~r/Missing a user id column in the select list of subquery/ -> :subquery_no_uid
-      error =~ ~r/Missing where comparison for uid columns/ -> :join_no_uid
-      error =~ ~r/Combining conditions with `OR` is not allowed/ -> :or_used
-      error =~ ~r/cannot be used in a.*LIKE expression/ -> :mistyped_like
-      error =~ ~r/Function .* requires arguments of type/ -> :mistyped_function
-      error =~ ~r/Function .* is allowed over arguments/ -> :restricted_aggregate
-      error =~ ~r/Function .* is not allowed in subqueries/ -> :restricted_aggregate
-      error =~ ~r/Aggregator .* is not allowed over arguments .* in anonymized subqueries/ -> :restricted_aggregate
-      error =~ ~r/Table alias .* used more than once/ -> :duplicate_alias
-      error =~ ~r/Non-integer constant is not allowed in .*/ -> :invalid_position
-      error =~ ~r/.* position .* is out of the range of selected columns./ -> :invalid_position
-      error =~ ~r/Functions .* could cause a database exception/ -> :possible_db_exception
-      error =~ ~r/Row splitter functions used in the `WHERE`-clause have/ -> :restricted_row_splitter
-      error =~ ~r/String manipulation functions cannot be combined with other transformations/ -> :string_manipulation
-      error =~ ~r/Expressions with .*LIKE cannot include any functions/ -> :restricted_like
-      error =~ ~r/Range expressions cannot include any functions except aggregations and a cast/ -> :restricted_range
-      error =~ ~r/Aggregate function .* can not be used in the `GROUP BY` clause/ -> :aggregate_in_group_by
-      error =~ ~r/Usage of .* is ambiguous/ -> :ambiguous_identifier
-      error =~ ~r/Column .* is ambiguous/ -> :ambiguous_identifier
-      error =~ ~r/Expression .* recursively calls multiple aggregators/ -> :recursive_aggregate
-      error =~ ~r/One side of an inequality must be a constant/ -> :restricted_inequality
-      error =~ ~r/Escape string must be one character/ -> :invalid_escape
-      error =~ ~r/Only .* can be used in the arguments of an <> operator/ -> :restricted_function
-      error =~ ~r/Only .* can be used in the left-hand side of an IN operator/ -> :restricted_function
-      error =~ ~r/Function .* is not allowed in .* subqueries/ -> :restricted_function
-      true -> raise error
     end
   end
 
