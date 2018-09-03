@@ -37,34 +37,45 @@ defmodule Cloak.Compliance.QueryGenerator do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp generate_query_from_scaffold(%{from: from, complexity: complexity}) do
-    {:query, nil, [select(complexity), from(from)]}
+  defp generate_query_from_scaffold(scaffold) do
+    {query, _tables} = query(scaffold)
+    query
   end
 
-  defp select(_complexity) do
+  defp query(scaffold) do
+    {from, tables} = from(scaffold.from)
+    {{:query, nil, [select(tables, scaffold.complexity), from]}, tables}
+  end
+
+  defp select(_tables, _complexity) do
     {:select, nil, [{:function, "count", [{:star, nil, []}]}]}
   end
 
-  defp from(scaffold), do: {:from, nil, [from_element(scaffold)]}
+  defp from(scaffold) do
+    {element, tables} = from_element(scaffold)
+    {{:from, nil, [element]}, tables}
+  end
 
-  defp from_element({:table, table}), do: {:table, table.name, []}
+  defp from_element({:table, table}), do: {{:table, table.name, []}, [table]}
 
   defp from_element({:subquery, scaffold}), do: subquery(scaffold)
 
   defp from_element({:join, scaffold1, scaffold2}) do
-    {:join, nil,
-     [
-       join_element(scaffold1),
-       join_element(scaffold2),
-       {:on, nil, [{:=, nil, [{:boolean, true, []}, {:boolean, false, []}]}]}
-     ]}
+    {left, left_tables} = join_element(scaffold1)
+    {right, right_tables} = join_element(scaffold2)
+
+    {
+      {:join, nil, [left, right, {:on, nil, [{:=, nil, [{:boolean, true, []}, {:boolean, false, []}]}]}]},
+      left_tables ++ right_tables
+    }
   end
 
   defp join_element(%{from: table = {:table, _}}), do: from_element(table)
   defp join_element(scaffold), do: subquery(scaffold)
 
   defp subquery(scaffold) do
-    {:as, name(scaffold.complexity), [{:subquery, nil, [generate_query_from_scaffold(scaffold)]}]}
+    {query, tables} = query(scaffold)
+    {{:as, name(scaffold.complexity), [{:subquery, nil, [query]}]}, tables}
   end
 
   defp name(complexity) do

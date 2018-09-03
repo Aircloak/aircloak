@@ -7,14 +7,18 @@ defmodule Cloak.Compliance.QueryGenerator.Test do
     tables = [
       %{
         name: "table1",
+        user_id: "uid",
         columns: [
+          %{name: "uid", type: :integer},
           %{name: "column1", type: :integer},
           %{name: "column2", type: :real}
         ]
       },
       %{
         name: "table2",
+        user_id: "uid",
         columns: [
+          %{name: "uid", type: :integer},
           %{name: "column1", type: :datetime},
           %{name: "column2", type: :text}
         ]
