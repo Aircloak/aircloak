@@ -11,7 +11,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   # -------------------------------------------------------------------
 
   defmodule Scaffold do
-    @type from :: {:table, Map.t()} | {:join, from, from} | {:subquery, from}
+    @type from :: {:table, Map.t()} | {:join, t, t} | {:subquery, t}
 
     @type t :: %__MODULE__{from: from, complexity: integer}
 
@@ -38,36 +38,42 @@ defmodule Cloak.Compliance.QueryGenerator do
   # -------------------------------------------------------------------
 
   defp generate_query_from_scaffold(%{from: from, complexity: complexity}) do
-    {:query, nil, [select_ast(complexity), from(from)]}
+    {:query, nil, [select(complexity), from(from)]}
   end
 
-  defp select_ast(_complexity) do
+  defp select(_complexity) do
     {:select, nil, [{:function, "count", [{:star, nil, []}]}]}
   end
 
-  defp from({:subquery, scaffold}) do
-    {:from, nil, [{:subquery, nil, [generate_query_from_scaffold(scaffold)]}]}
-  end
+  defp from(scaffold), do: {:from, nil, [from_element(scaffold)]}
 
-  defp from({:join, scaffold1, scaffold2}) do
-    {:from, nil,
+  defp from_element({:table, table}), do: {:table, table.name, []}
+
+  defp from_element({:subquery, scaffold}), do: subquery(scaffold)
+
+  defp from_element({:join, scaffold1, scaffold2}) do
+    {:join, nil,
      [
-       {:join, nil,
-        [
-          generate_query_from_scaffold(scaffold1),
-          generate_query_from_scaffold(scaffold2),
-          {:on, nil, [{:=, nil, [{:boolean, true, []}, {:boolean, false, []}]}]}
-        ]}
+       join_element(scaffold1),
+       join_element(scaffold2),
+       {:on, nil, [{:=, nil, [{:boolean, true, []}, {:boolean, false, []}]}]}
      ]}
   end
 
-  defp from(table) do
-    {:from, nil, [{:table, table.name, []}]}
+  defp join_element(%{from: table = {:table, _}}), do: from_element(table)
+  defp join_element(scaffold), do: subquery(scaffold)
+
+  defp subquery(scaffold) do
+    {:as, name(scaffold.complexity), [{:subquery, nil, [generate_query_from_scaffold(scaffold)]}]}
+  end
+
+  defp name(complexity) do
+    StreamData.string(?a..?z, min_length: 1) |> StreamData.resize(complexity) |> Enum.at(0)
   end
 
   defp generate_scaffold(tables, complexity) do
     frequency(complexity, %{
-      3 => %Scaffold{from: Enum.random(tables), complexity: complexity},
+      3 => %Scaffold{from: {:table, Enum.random(tables)}, complexity: complexity},
       1 => %Scaffold{from: {:subquery, generate_scaffold(tables, div(complexity, 2))}, complexity: div(complexity, 2)},
       1 => %Scaffold{
         from: {:join, generate_scaffold(tables, div(complexity, 3)), generate_scaffold(tables, div(complexity, 3))},
