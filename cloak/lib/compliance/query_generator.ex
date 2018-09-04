@@ -4,6 +4,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   @type ast :: {atom, any, [ast]}
 
   alias Cloak.DataSource.Table
+  alias Cloak.Sql.Function
   import __MODULE__.Generation
 
   use Lens.Macros
@@ -11,9 +12,9 @@ defmodule Cloak.Compliance.QueryGenerator do
   defmodule Scaffold do
     @type from :: {:aliased_table, Map.t()} | {:table, Map.t()} | {:join, t, t} | {:subquery, t}
 
-    @type t :: %__MODULE__{from: from, complexity: integer, select_user_id?: boolean}
+    @type t :: %__MODULE__{from: from, complexity: integer, select_user_id?: boolean, aggregate?: boolean}
 
-    defstruct [:from, :complexity, :select_user_id?]
+    defstruct [:from, :complexity, :select_user_id?, :aggregate?]
   end
 
   # -------------------------------------------------------------------
@@ -72,6 +73,7 @@ defmodule Cloak.Compliance.QueryGenerator do
         complexity: div(complexity, 3)
       }
     })
+    |> put_in([Lens.key(:aggregate?)], boolean())
   end
 
   defp set_select_user_id(scaffold) do
@@ -139,7 +141,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp query(scaffold) do
     {from, tables} = from(scaffold)
     {select, selected_tables} = select(scaffold, tables)
-    {{:query, nil, [select, from]}, selected_tables}
+    {{:query, nil, [select, from, group_by(scaffold, select)]}, selected_tables}
   end
 
   defp select(scaffold, tables) do
@@ -207,9 +209,41 @@ defmodule Cloak.Compliance.QueryGenerator do
     {{:as, name, [{:subquery, nil, [query]}]}, [Map.put(table, :name, name)]}
   end
 
+  defp group_by(%{aggregate?: false}, _select), do: empty()
+
+  defp group_by(_scaffold, select) do
+    case group_by_elements(select) do
+      [] -> empty()
+      elements -> {:group_by, nil, elements}
+    end
+  end
+
+  defp group_by_elements({:select, _, items}) do
+    items
+    |> Enum.with_index()
+    |> Enum.reject(fn {expression, _} -> aggregate_expression?(expression) end)
+    |> Enum.map(fn {_, index} -> {:integer, index + 1, []} end)
+  end
+
+  defp aggregate_expression?(expression),
+    do: expression |> get_in([all_expressions()]) |> Enum.any?(&aggregate_function?/1)
+
+  deflensp all_expressions() do
+    Lens.both(Lens.index(2) |> Lens.all() |> Lens.recur(), Lens.root())
+  end
+
+  defp aggregate_function?({:function, name, _}), do: Function.aggregator?(name)
+  defp aggregate_function?(_), do: false
+
+  # -------------------------------------------------------------------
+  # Simple generators
+  # -------------------------------------------------------------------
+
   defp boolean(), do: Enum.random([true, false])
 
   defp name(complexity) do
     StreamData.string(?a..?z, min_length: 1) |> StreamData.resize(complexity) |> Enum.at(0)
   end
+
+  defp empty(), do: {:empty, nil, []}
 end
