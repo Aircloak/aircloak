@@ -20,16 +20,26 @@ defmodule Cloak.Compliance.QueryGenerator do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Generates a randomize query with `generate_ast/2`. Also returns the random seed used to generate the query."
+  @doc "Generates a randomized query with `generate_ast/2`. Also returns the random seed used to generate the query."
+  @spec ast_with_seed([Table.t()], non_neg_integer) :: {ast, String.t()}
   def ast_with_seed(tables, complexity) do
     if :rand.export_seed() == :undefined do
       :rand.uniform()
     end
 
-    {
-      generate_ast(tables, complexity),
-      "#{:rand.export_seed() |> :erlang.term_to_binary() |> Base.encode64()}:#{complexity}"
-    }
+    seed = "#{:rand.export_seed() |> :erlang.term_to_binary() |> Base.encode64()}:#{complexity}"
+    {generate_ast(tables, complexity), seed}
+  end
+
+  @doc "Generates a query from a seed produced by `ast_with_seed`."
+  @spec ast_from_seed(String.t(), [Table.t()]) :: ast
+  def ast_from_seed(seed, tables) do
+    [seed, complexity] = String.split(seed, ":")
+    complexity = String.to_integer(complexity)
+    seed = seed |> Base.decode64!() |> :erlang.binary_to_term()
+
+    :rand.seed(seed)
+    generate_ast(tables, complexity)
   end
 
   @doc """

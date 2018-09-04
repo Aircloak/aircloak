@@ -6,6 +6,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
       mix fuzzer.run --queries N
 
       --queries specifies how many queries to run.
+      --seed add this option instead of --queries to run a query from the specified seed (see output)
       --all-out speciefies where to store a log with all attempted queries, defaults to /tmp/all.txt
       --stats-out specifies where to store a log with number of failures by reason, defaults to /tmp/stats.txt
       --crashes-out specifies where to store a log with unexpected errors, defaults to /tmp/crashes.txt
@@ -37,18 +38,16 @@ defmodule Mix.Tasks.Fuzzer.Run do
     stats_out: :string,
     crashes_out: :string,
     concurrency: :integer,
-    timeout: :integer
+    timeout: :integer,
+    seed: :string
   ]
 
   @impl Mix.Task
   def run(args) do
-    with {options, [], []} <- OptionParser.parse(args, strict: @option_spec),
-         {:ok, queries} <- Keyword.fetch(options, :queries) do
-      do_run(queries, options)
+    with {options, [], []} <- OptionParser.parse(args, strict: @option_spec) do
+      do_run(Enum.into(options, %{}))
     else
-      _ ->
-        IO.puts(@usage)
-        Mix.raise("Invalid usage")
+      _ -> print_usage!()
     end
   end
 
@@ -56,17 +55,17 @@ defmodule Mix.Tasks.Fuzzer.Run do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp do_run(number_of_queries, options) do
+  defp do_run(options = %{queries: number_of_queries}) do
     initialize()
 
     data_sources = [%{tables: tables} | _] = ComplianceCase.data_sources()
-    concurrency = Keyword.get(options, :concurrency, System.schedulers_online())
-    timeout = Keyword.get(options, :timeout, :timer.seconds(30))
+    concurrency = Map.get(options, :concurrency, System.schedulers_online())
+    timeout = Map.get(options, :timeout, :timer.seconds(30))
 
-    queries = generate_queries(tables, number_of_queries)
+    queries = generate_queries(Map.values(tables), number_of_queries)
 
-    all_path = Keyword.get(options, :all_out, "/tmp/all.txt")
-    crashes_path = Keyword.get(options, :crashes_out, "/tmp/crashes.txt")
+    all_path = Map.get(options, :all_out, "/tmp/all.txt")
+    crashes_path = Map.get(options, :crashes_out, "/tmp/crashes.txt")
 
     results =
       with_file(all_path, fn all_file ->
@@ -94,6 +93,19 @@ defmodule Mix.Tasks.Fuzzer.Run do
     print_stats(results, options)
   end
 
+  defp do_run(%{seed: seed}) do
+    initialize()
+    data_sources = [%{tables: tables} | _] = ComplianceCase.data_sources()
+    query = seed |> QueryGenerator.ast_from_seed(Map.values(tables)) |> QueryGenerator.ast_to_sql()
+
+    case run_query(query, data_sources) do
+      %{result: :ok} -> IO.puts([query, "\n\n", "Seed: ", inspect(seed), "\n\nok\n\n"])
+      result -> IO.puts([query, "\n\n", "Seed: ", inspect(seed), "\n\n", Exception.format(:error, result.error)])
+    end
+  end
+
+  defp do_run(_), do: print_usage!()
+
   defp normalize_result({:ok, result}), do: result
   defp normalize_result({:exit, :timeout}), do: %{result: :timeout, error: nil}
 
@@ -108,7 +120,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
   end
 
   defp print_stats(results, options) do
-    stats_path = Keyword.get(options, :stats_out, "/tmp/stats.txt")
+    stats_path = Map.get(options, :stats_out, "/tmp/stats.txt")
 
     with_file(stats_path, fn file ->
       results
@@ -130,10 +142,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
 
   defp generate_queries(tables, number_of_queries) do
     for _ <- 1..number_of_queries do
-      {ast, seed} =
-        tables
-        |> Map.values()
-        |> QueryGenerator.ast_with_seed(_complexity = 100)
+      {ast, seed} = QueryGenerator.ast_with_seed(tables, _complexity = 100)
 
       {QueryGenerator.ast_to_sql(ast), seed}
     end
@@ -155,5 +164,10 @@ defmodule Mix.Tasks.Fuzzer.Run do
   defp with_file(name, function) do
     file = File.open!(name, [:write, :utf8])
     function.(file)
+  end
+
+  defp print_usage!() do
+    IO.puts(@usage)
+    Mix.raise("Invalid usage")
   end
 end
