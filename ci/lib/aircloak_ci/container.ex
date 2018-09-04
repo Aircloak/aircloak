@@ -41,6 +41,7 @@ defmodule AircloakCI.Container do
     end
     |> String.trim()
     |> String.split("\n")
+    |> Stream.reject(&(&1 == ""))
     |> Enum.map(&String.split/1)
     |> run_build_commands(script, log_file)
   end
