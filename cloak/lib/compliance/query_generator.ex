@@ -75,10 +75,9 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp set_select_user_id(scaffold) do
     scaffold
-    |> put_in([Lens.key(:select_user_id?)], false)
-    |> update_in([sub_scaffolds()], fn
+    |> update_in([all_scaffolds()], fn
       scaffold = %{from: {:table, _}} ->
-        %{scaffold | select_user_id?: boolean()}
+        %{scaffold | select_user_id?: true}
 
       scaffold = %{from: {:subquery, _}} ->
         if boolean() do
@@ -88,17 +87,20 @@ defmodule Cloak.Compliance.QueryGenerator do
         end
 
       scaffold = %{from: {:join, left, right}} ->
-        if left.select_user_id? || right.select_user_id? do
+        if left.select_user_id? or right.select_user_id? do
           force_select_user_id(scaffold)
         else
           %{scaffold | select_user_id?: false}
         end
     end)
+    |> put_in([Lens.key(:select_user_id?)], false)
   end
 
   defp force_select_user_id(scaffold) do
-    put_in(scaffold, [Lens.both(sub_scaffolds(), Lens.root()) |> Lens.key(:select_user_id?)], true)
+    put_in(scaffold, [all_scaffolds() |> Lens.key(:select_user_id?)], true)
   end
+
+  deflensp(all_scaffolds(), do: Lens.both(sub_scaffolds(), Lens.root()))
 
   deflensp sub_scaffolds() do
     Lens.key(:from)
@@ -137,17 +139,21 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp from_element(%{from: {:subquery, scaffold}}), do: subquery(scaffold)
 
-  defp from_element(scaffold = %{from: {:join, left_scaffold, right_scaffold}}) do
+  defp from_element(%{from: {:join, left_scaffold, right_scaffold}}) do
     {left, left_tables} = join_element(left_scaffold)
     {right, right_tables} = join_element(right_scaffold)
 
-    {{:join, nil, [left, right, on(scaffold, left_tables, right_tables)]}, left_tables ++ right_tables}
+    {
+      {:join, nil, [left, right, on(left_scaffold.select_user_id?, left_tables, right_tables)]},
+      left_tables ++ right_tables
+    }
   end
 
-  defp on(scaffold, left_tables, right_tables), do: {:on, nil, on_conditions(scaffold, left_tables, right_tables)}
+  defp on(join_on_user_id?, left_tables, right_tables),
+    do: {:on, nil, on_conditions(join_on_user_id?, left_tables, right_tables)}
 
-  defp on_conditions(scaffold, left_tables, right_tables) do
-    if scaffold.select_user_id? do
+  defp on_conditions(join_on_user_id?, left_tables, right_tables) do
+    if join_on_user_id? do
       [{:=, nil, [user_id_from_tables(left_tables), user_id_from_tables(right_tables)]}]
     else
       [{:=, nil, [{:boolean, true, []}, {:boolean, false, []}]}]
