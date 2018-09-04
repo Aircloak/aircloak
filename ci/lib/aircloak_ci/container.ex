@@ -30,11 +30,21 @@ defmodule AircloakCI.Container do
 
   @doc "Returns true if the image for the container is built."
   @spec built?(String.t()) :: boolean
-  def built?(script), do: CmdRunner.run_with_output!("#{script} is_image_built") == "yes"
+  def built?(script), do: String.trim(CmdRunner.run_with_output!("#{script} is_image_built")) == "yes"
 
   @doc "Builds the container image."
   @spec build(String.t(), String.t()) :: :ok | {:error, String.t()}
-  def build(script, log_file), do: invoke_script(script, "build_image", log_file, timeout: :timer.hours(1))
+  def build(script, log_file) do
+    case CmdRunner.run_with_output("#{script} build_phases") do
+      {:error, _error} -> "docker_build all\n"
+      {:ok, output} -> output
+    end
+    |> String.trim()
+    |> String.split("\n")
+    |> Stream.reject(&(&1 == ""))
+    |> Enum.map(&String.split/1)
+    |> run_build_commands(script, log_file)
+  end
 
   @doc "Starts the container and logs the output to the provided log file."
   @spec start(String.t(), String.t()) :: {:ok, t} | {:error, String.t()}
@@ -106,17 +116,15 @@ defmodule AircloakCI.Container do
   # -------------------------------------------------------------------
 
   defp cleanup() do
-    Enum.each(non_registered_containers(), &stop/1)
-    Enum.each(non_registered_networks(), &remove_network/1)
+    all_containers() |> dangling() |> Enum.each(&stop/1)
+    all_networks() |> dangling() |> Enum.each(&remove_network/1)
+    remove_dangling_volumes()
+
     :timer.sleep(:timer.seconds(10))
     cleanup()
   end
 
-  defp non_registered_containers(), do: non_registered(associated_containers("aircloak_ci"))
-
-  defp non_registered_networks(), do: non_registered(associated_networks("aircloak_ci"))
-
-  defp non_registered(docker_names), do: Enum.reduce(registered_names(), docker_names, &remove_associated(&2, &1))
+  defp dangling(docker_names), do: Enum.reduce(registered_names(), docker_names, &remove_associated(&2, &1))
 
   defp registered_names(),
     do:
@@ -125,6 +133,10 @@ defmodule AircloakCI.Container do
       end)
 
   defp remove_associated(names, name), do: Enum.reject(names, &String.starts_with?(&1, name))
+
+  defp all_containers(), do: associated_containers("aircloak_ci")
+
+  defp all_networks(), do: associated_networks("aircloak_ci")
 
   defp associated_containers(container_name),
     do: associated_docker_objects(container_name, "docker ps --format='{{.Names}}'")
@@ -148,6 +160,13 @@ defmodule AircloakCI.Container do
 
     CmdRunner.run("docker network rm #{network_name}")
   end
+
+  defp remove_dangling_volumes(),
+    do:
+      "docker volume ls -qf dangling=true"
+      |> CmdRunner.run_with_output!()
+      |> lines()
+      |> Enum.each(&CmdRunner.run("docker volume rm #{&1}"))
 
   defp connected(network),
     do:
@@ -186,6 +205,40 @@ defmodule AircloakCI.Container do
         "#{script} #{cmd}",
         Keyword.merge([logger: CmdRunner.file_logger(log_file)], opts)
       )
+
+  # -------------------------------------------------------------------
+  # Building of images
+  # -------------------------------------------------------------------
+
+  defp run_build_commands([], _script, _log_file), do: :ok
+
+  defp run_build_commands([command | rest], script, log_file) do
+    case run_build_command(command, script, log_file) do
+      :ok -> run_build_commands(rest, script, log_file)
+      {:error, _reason} = error -> error
+    end
+  end
+
+  defp run_build_command([queue_name, arg], script, log_file) do
+    queue =
+      try do
+        String.to_existing_atom(queue_name)
+      rescue
+        ArgumentError ->
+          # credo:disable-for-next-line Credo.Check.Warning.RaiseInsideRescue
+          raise "invalid queue name #{queue_name}"
+      end
+
+    CmdRunner.file_logger(log_file).("entering queue #{queue}\n")
+
+    AircloakCI.Queue.exec(
+      queue,
+      fn ->
+        CmdRunner.file_logger(log_file).("entered queue #{queue}\n")
+        invoke_script(script, "build_image #{arg}", log_file, timeout: :timer.hours(1))
+      end
+    )
+  end
 
   # -------------------------------------------------------------------
   # Supervision tree
