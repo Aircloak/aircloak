@@ -223,7 +223,9 @@ defmodule AircloakCI.Container do
       try do
         String.to_existing_atom(queue_name)
       rescue
-        ArgumentError -> raise "invalid queue name #{queue_name}"
+        ArgumentError ->
+          # credo:disable-for-next-line Credo.Check.Warning.RaiseInsideRescue
+          raise "invalid queue name #{queue_name}"
       end
 
     CmdRunner.file_logger(log_file).("entering queue #{queue}\n")
