@@ -9,7 +9,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   use Lens.Macros
 
   defmodule Scaffold do
-    @type from :: {:table, Map.t()} | {:join, t, t} | {:subquery, t}
+    @type from :: {:aliased_table, Map.t()} | {:table, Map.t()} | {:join, t, t} | {:subquery, t}
 
     @type t :: %__MODULE__{from: from, complexity: integer, select_user_id?: boolean}
 
@@ -51,6 +51,7 @@ defmodule Cloak.Compliance.QueryGenerator do
     tables
     |> generate_scaffold(complexity)
     |> set_select_user_id()
+    |> resolve_table_name_clashes()
     |> generate_query_from_scaffold()
   end
 
@@ -59,7 +60,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   def ast_to_sql(ast), do: __MODULE__.Format.ast_to_sql(ast)
 
   # -------------------------------------------------------------------
-  # Internal functions
+  # Scaffold generation
   # -------------------------------------------------------------------
 
   defp generate_scaffold(tables, complexity) do
@@ -100,6 +101,20 @@ defmodule Cloak.Compliance.QueryGenerator do
     put_in(scaffold, [all_scaffolds() |> Lens.key(:select_user_id?)], true)
   end
 
+  defp resolve_table_name_clashes(scaffold) do
+    update_in(scaffold, [all_scaffolds()], fn
+      scaffold = %{from: {:join, left = %{from: {:table, %{name: name}}}, right = %{from: {:table, %{name: name}}}}} ->
+        %{scaffold | from: {:join, left, set_table_alias(right)}}
+
+      other ->
+        other
+    end)
+  end
+
+  defp set_table_alias(scaffold) do
+    update_in(scaffold, [Lens.key(:from)], fn {:table, table} -> {:aliased_table, table} end)
+  end
+
   deflensp(all_scaffolds(), do: Lens.both(sub_scaffolds(), Lens.root()))
 
   deflensp sub_scaffolds() do
@@ -112,6 +127,10 @@ defmodule Cloak.Compliance.QueryGenerator do
     |> Lens.recur()
   end
 
+  # -------------------------------------------------------------------
+  # AST generation
+  # -------------------------------------------------------------------
+
   defp generate_query_from_scaffold(scaffold) do
     {query, _tables} = query(scaffold)
     query
@@ -119,14 +138,19 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp query(scaffold) do
     {from, tables} = from(scaffold)
-    {{:query, nil, [select(scaffold, tables), from]}, tables}
+    {select, selected_tables} = select(scaffold, tables)
+    {{:query, nil, [select, from]}, selected_tables}
   end
 
   defp select(scaffold, tables) do
     if scaffold.select_user_id? do
-      {:select, nil, [user_id_from_tables(tables)]}
+      {column, name, type} = user_id_from_tables(tables)
+      {{:select, nil, [column]}, [%{user_id: name, columns: [%{name: name, type: type}]}]}
     else
-      {:select, nil, [{:function, "count", [{:star, nil, []}]}]}
+      {
+        {:select, nil, [{:function, "count", [{:star, nil, []}]}]},
+        [%{user_id: nil, columns: [%{name: "count", type: :integer}]}]
+      }
     end
   end
 
@@ -136,6 +160,11 @@ defmodule Cloak.Compliance.QueryGenerator do
   end
 
   defp from_element(%{from: {:table, table}}), do: {{:table, table.name, []}, [table]}
+
+  defp from_element(%{complexity: complexity, from: {:aliased_table, table}}) do
+    name = name(complexity)
+    {{:as, name, [{:table, table.name, []}]}, [%{table | name: name}]}
+  end
 
   defp from_element(%{from: {:subquery, scaffold}}), do: subquery(scaffold)
 
@@ -154,20 +183,28 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp on_conditions(join_on_user_id?, left_tables, right_tables) do
     if join_on_user_id? do
-      [{:=, nil, [user_id_from_tables(left_tables), user_id_from_tables(right_tables)]}]
+      {left_id, _, _} = user_id_from_tables(left_tables)
+      {right_id, _, _} = user_id_from_tables(right_tables)
+      [{:=, nil, [left_id, right_id]}]
     else
       [{:=, nil, [{:boolean, true, []}, {:boolean, false, []}]}]
     end
   end
 
-  defp user_id_from_tables([table | _]), do: {:column, nil, [{:unquoted, table.user_id, []}]}
+  defp user_id_from_tables([table | _]) do
+    name = table.user_id
+    %{type: type} = Enum.find(table.columns, &match?(%{name: ^name}, &1))
+    {{:column, nil, [{:unquoted, table.name, []}, {:unquoted, table.user_id, []}]}, name, type}
+  end
 
   defp join_element(scaffold = %{from: {:table, _}}), do: from_element(scaffold)
+  defp join_element(scaffold = %{from: {:aliased_table, _}}), do: from_element(scaffold)
   defp join_element(scaffold), do: subquery(scaffold)
 
   defp subquery(scaffold) do
-    {query, tables} = query(scaffold)
-    {{:as, name(scaffold.complexity), [{:subquery, nil, [query]}]}, tables}
+    {query, [table]} = query(scaffold)
+    name = name(scaffold.complexity)
+    {{:as, name, [{:subquery, nil, [query]}]}, [Map.put(table, :name, name)]}
   end
 
   defp boolean(), do: Enum.random([true, false])
