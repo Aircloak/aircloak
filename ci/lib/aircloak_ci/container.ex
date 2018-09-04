@@ -30,7 +30,7 @@ defmodule AircloakCI.Container do
 
   @doc "Returns true if the image for the container is built."
   @spec built?(String.t()) :: boolean
-  def built?(script), do: CmdRunner.run_with_output!("#{script} is_image_built") == "yes"
+  def built?(script), do: String.trim(CmdRunner.run_with_output!("#{script} is_image_built")) == "yes"
 
   @doc "Builds the container image."
   @spec build(String.t(), String.t()) :: :ok | {:error, String.t()}
