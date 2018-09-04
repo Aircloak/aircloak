@@ -27,7 +27,7 @@ function build_release {
     -v $(pwd)/$(cloak_cache_folder)/_build:/aircloak/cloak/_build \
     -v $(pwd)/$(cloak_cache_folder)/.cargo:/root/.cargo \
     -v $(pwd)/$(cloak_cache_folder)/priv/native:/aircloak/cloak/priv/native \
-    $(aircloak_image_name rust):$(git_head_image_tag) \
+    aircloak/rust:$(git_head_image_tag) \
     /bin/bash -c '
       set -eo pipefail
       . ~/.asdf/asdf.sh
