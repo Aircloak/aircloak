@@ -1,31 +1,34 @@
-## UNRELEASED CHANGES
+## Version 18.4.0
 
 ### Features
 
-- LDAP support
-- Support for Drill data sources
+- Support for LDAP for authentication and authorization.
+- Support for Drill data sources making it possible to query MapR-DB, HBase, and Hive,
+  as well as log, JSON and parquet files stored directly on disk, HDFS, or AWS S3.
 
 ### Bugfixes
 
 - Correctly typecheck parameters given to `IN`-style `WHERE`-clauses.
-- Fix for queries being improperly rejected when a condition included two isolating columns
+- Fix for queries being improperly rejected when a condition included two isolating columns.
 
 ### Enhancements
 
-- Support for transferring binary data when using the RODBC version of data source drivers
-- Performance improvements in the failed queries view for systems with high numbers of queries
+- Support for transferring binary data when using the RODBC version of data source drivers.
+- Performance improvements in the failed queries view for systems with high numbers of queries.
+- Improved support for external dashboards and tools.
+- All Aircloak SQL functions are properly highlighted in the Insights Air SQL-editor.
 
 ### Changes
 
-- Noise parameters changed. Results will differ.
-- Default ODBC connector changed from Erlang to Rust.
-- Partial censoring of columns limited by default to 3. Can be changed in the config.
+- Noise parameters changed. Query results will differ from what they were in the past.
+- The Aircloak native RODBC connector is now used by default over the previous ODBC driver.
+- The depth of partial column censoring is now limited to 3 by default. This parameter can be changed in the config.
 
 ## Version 18.3.1
 
 ### Bugfix
 
-- Fix for queries being improperly rejected when a condition included two isolating columns
+- Fix for queries being improperly rejected when a condition included two isolating columns.
 
 ## Version 18.3.0
 
@@ -70,15 +73,15 @@
 
 ### Bugfixes
 
-- Fix crash when a postgres connection times out after retrieving all needed data
+- Fix crash when a postgres connection times out after retrieving all needed data.
 
 ## Version 18.2.1
 
 ### Features
 
-- Support for specifying a privacy policy
-- An analyst can download all the information kept about them
-- Support for fully deleting all data recorded about an analyst's usage of the system
+- Support for specifying a privacy policy.
+- An analyst can download all the information kept about them.
+- Support for fully deleting all data recorded about an analyst's usage of the system.
 
 ## Version 18.2.0
 
