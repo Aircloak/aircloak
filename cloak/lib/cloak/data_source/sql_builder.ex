@@ -10,12 +10,8 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   @spec build(Query.t()) :: String.t()
   @doc "Constructs a parametrized SQL query that can be executed against a backend."
-  def build(query), do: build(query, query.data_source.driver.sql_dialect_module(), query.data_source.driver)
-
-  @spec build(Query.t(), module, module) :: String.t()
-  @doc "Constructs a parametrized SQL query that can be executed against a backend."
-  def build(query, sql_dialect_module, driver),
-    do: query |> build_fragments(sql_dialect_module, driver) |> to_string()
+  def build(query),
+    do: to_string(build_fragments(query, query.data_source.driver.sql_dialect_module(), query.data_source.driver))
 
   @doc "Makes sure the specified partial or full table name is quoted."
   @spec quote_table_name(String.t(), integer) :: String.t()
