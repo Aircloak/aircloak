@@ -151,6 +151,7 @@ defmodule Cloak.Compliance.QueryGenerator do
          from,
          where(scaffold),
          group_by(scaffold, select),
+         having(scaffold),
          order_by,
          limit,
          offset(scaffold, order_by, limit),
@@ -290,6 +291,10 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp aggregate_function?({:function, name, _}), do: Function.aggregator?(name)
   defp aggregate_function?(_), do: false
+
+  defp having(%{aggregate?: false}), do: empty()
+
+  defp having(scaffold), do: {:having, nil, [where_condition(scaffold.complexity)]}
 
   defp order_by(scaffold, select) do
     case order_by_elements(scaffold, select) do
