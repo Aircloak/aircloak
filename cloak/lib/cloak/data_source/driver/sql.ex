@@ -24,14 +24,10 @@ defmodule Cloak.DataSource.Driver.SQL do
       @impl Driver
       defdelegate supports_function?(expression, data_source), to: SqlBuilder.Support
 
-      @impl Driver
-      def cast_to_text?(), do: true
-
       defoverridable sql_dialect_module: 1,
                      disconnect: 1,
                      supports_query?: 1,
-                     supports_function?: 2,
-                     cast_to_text?: 0
+                     supports_function?: 2
     end
   end
 end
