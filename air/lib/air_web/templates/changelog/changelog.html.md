@@ -9,7 +9,6 @@
 ### Bugfixes
 
 - Correctly typecheck parameters given to `IN`-style `WHERE`-clauses.
-- Fix for queries being improperly rejected when a condition included two isolating columns.
 
 ### Enhancements
 
