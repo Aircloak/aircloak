@@ -141,6 +141,8 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp query(scaffold) do
     {from, tables} = from(scaffold)
     {select, selected_tables} = select(scaffold, tables)
+    order_by = order_by(scaffold, select)
+    limit = limit(scaffold, order_by)
 
     {
       {:query, nil,
@@ -149,7 +151,9 @@ defmodule Cloak.Compliance.QueryGenerator do
          from,
          where(scaffold),
          group_by(scaffold, select),
-         order_by(scaffold, select),
+         order_by,
+         limit,
+         offset(scaffold, order_by, limit),
          sample_users(scaffold)
        ]},
       selected_tables
@@ -307,6 +311,26 @@ defmodule Cloak.Compliance.QueryGenerator do
     frequency(scaffold.complexity, %{
       1 => empty(),
       1 => {:sample_users, sample_users_size(scaffold.complexity), []}
+    })
+  end
+
+  defp limit(_scaffold, _order_by = {:empty, _, _}), do: empty()
+
+  defp limit(scaffold, _order_by) do
+    frequency(scaffold.complexity, %{
+      1 => empty(),
+      1 => {:limit, :rand.uniform(100), []}
+    })
+  end
+
+  defp offset(%{select_user_id?: true}, _order_by, _limit = {:empty, _, _}), do: empty()
+
+  defp offset(_scaffold, _order_by = {:empty, _, _}, _limit), do: empty()
+
+  defp offset(scaffold, _order_by, _limit) do
+    frequency(scaffold.complexity, %{
+      1 => empty(),
+      1 => {:offset, :rand.uniform(100), []}
     })
   end
 
