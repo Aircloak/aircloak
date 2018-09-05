@@ -145,13 +145,35 @@ defmodule Cloak.Compliance.QueryGenerator do
   end
 
   defp select(scaffold, tables) do
-    if scaffold.select_user_id? do
-      {column, name, type} = user_id_from_tables(tables)
-      {{:select, nil, [column]}, [%{user_id: name, columns: [%{name: name, type: type}]}]}
-    else
+    {elements, tables} =
+      if scaffold.select_user_id? do
+        select_elements_with_user_id(scaffold, tables)
+      else
+        select_elements(scaffold, tables)
+      end
+
+    {{:select, nil, elements}, tables}
+  end
+
+  defp select_elements_with_user_id(scaffold, tables) do
+    {elements, [table]} = select_elements(scaffold, tables)
+    {column, name, type} = user_id_from_tables(tables)
+
+    {[column | elements], [%{user_id: name, columns: [%{name: name, type: type} | table.columns]}]}
+  end
+
+  defp select_elements(scaffold, _tables) do
+    if scaffold.aggregate? do
       {
-        {:select, nil, [{:function, "count", [{:star, nil, []}]}]},
+        [{:function, "count", [{:star, nil, []}]}],
         [%{user_id: nil, columns: [%{name: "count", type: :integer}]}]
+      }
+    else
+      name = name(scaffold.complexity)
+
+      {
+        [{:as, name, [{:text, "hello", []}]}],
+        [%{user_id: nil, columns: [%{name: name, type: :text}]}]
       }
     end
   end

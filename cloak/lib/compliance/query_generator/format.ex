@@ -26,9 +26,7 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
       |> Enum.map(fn item -> item |> to_doc() |> nest() end)
       |> space_separated()
 
-  defp to_doc({:select, nil, [select_list]}), do: "SELECT" |> glue(" ", to_doc(select_list)) |> group()
-
-  defp to_doc({:select_list, nil, items}), do: clause_list(items)
+  defp to_doc({:select, nil, items}), do: "SELECT" |> glue(" ", clause_list(items)) |> group()
 
   defp to_doc({:from, nil, [from_expression]}), do: glue("FROM", " ", to_doc(from_expression))
 
