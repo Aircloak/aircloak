@@ -177,10 +177,9 @@ Step 2: Suppress `name` where necessary
 | Alice | * | 4 | true |
 | * | * | 3 | true |
 
-This process is time-consuming, so it is limited by default to a maximum of 3 columns. It can be changed in the
-configuration file by setting the `lcf_buckets_aggregation_limit` option to a different value. This can be done
-per data-source or per cloak. A value of 1 results in a single bucket for suppressed data, while a value of 0
-will drop the low-count filtered data completely.
+This process is time-consuming, so it is limited by default to a maximum of 3 columns. For details on how to change this
+limit, refer to the [Configuring the Insights Cloak](../ops/configuration.md#insights-cloak-configuration) section. A value
+of 1 results in a single bucket for suppressed data, while a value of 0 will drop the low-count filtered data completely.
 
 ## Anonymizing aggregation functions
 
