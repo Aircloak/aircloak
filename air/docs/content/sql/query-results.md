@@ -135,6 +135,17 @@ John  |	147
 
 The `*` row provides the analyst with an indication that some names have been suppressed because of low-count filtering. This indication is particularly important in cases where a large number of values are low-count filtered: the analyst can learn that a substantial amount of data is being hidden. Note that the `*` row is itself anonymized: the anonymized aggregate associated with it has noise, and it itself is low-count filtered. In other words, lack of a `*` row does not mean that no data was suppressed, only that very little data was suppressed.
 
+When a large number of non-aggregated columns is selected in a query, the chances of having lots of rows with very
+few users increase. That will lead to lots of rows being suppressed, making the query result less useful.
+In order to suppress as less information as possible, Aircloak will low-count filter columns individually, from right
+to left. Rows that are suppressed in one iteration are aggregated together and kept for the next round of filtering.
+That way, the maximum number of rows will be sent back to the analysts.
+
+This process is time-consuming, so it is limited by default to a maximum of 3 columns. It can be changed in the
+configuration file by setting the `lcf_buckets_aggregation_limit` option to a different value. This can be done
+per data-source or per cloak. A value of 1 results in a single bucket for suppressed data, while a value of 0
+will drop the low-count filtered data completely.
+
 ## Anonymizing aggregation functions
 
 These seven anonymizing aggregation functions may add additional distortion besides the zero mean noise and low-count filtering already described. Note in particular that Aircloak gives no indication of whether any additional distortion occurred, or how severe this additional distortion is. This is because such information itself may leak individual information.
