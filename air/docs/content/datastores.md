@@ -247,7 +247,7 @@ for big data environments such as MapR-DB and HBase, as well as for querying CSV
 Parquet files stored on disk, on HDFS, or in AWS S3.
 Using the [RDBMS storage plugin](https://drill.apache.org/docs/rdbms-storage-plugin/) you
 can also connect to any other relational database for which Aircloak Insights does not already offer native support.
-A prerequisite for this is that the database provides a JDBC drivers.
+A prerequisite for this is that the database provides a JDBC driver.
 
 #### Exposing the dataset
 
