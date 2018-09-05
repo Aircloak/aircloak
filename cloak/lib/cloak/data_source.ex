@@ -190,7 +190,7 @@ defmodule Cloak.DataSource do
 
   @doc "Returns the SQL dialect callback module."
   @spec sql_dialect_module(t) :: module | nil
-  def sql_dialect_module(data_source), do: data_source.driver.sql_dialect_module(data_source[:parameters])
+  def sql_dialect_module(data_source), do: data_source.driver.sql_dialect_module()
 
   @doc "Converts a data source config as found in a config into a data source"
   @spec config_to_datasources(Map.t()) :: [t]

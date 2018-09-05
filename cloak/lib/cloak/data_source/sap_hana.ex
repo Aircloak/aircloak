@@ -23,7 +23,7 @@ defmodule Cloak.DataSource.SAPHana do
   # -------------------------------------------------------------------
 
   @impl Driver
-  def sql_dialect_module(_), do: Cloak.DataSource.SqlBuilder.SAPHana
+  def sql_dialect_module(), do: Cloak.DataSource.SqlBuilder.SAPHana
 
   @impl Driver
   def connect!(parameters) do

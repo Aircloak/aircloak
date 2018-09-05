@@ -30,7 +30,7 @@ defmodule Cloak.DataSource.SAPIQ do
   # -------------------------------------------------------------------
 
   @impl Driver
-  def sql_dialect_module(_), do: Cloak.DataSource.SqlBuilder.SAPIQ
+  def sql_dialect_module(), do: Cloak.DataSource.SqlBuilder.SAPIQ
 
   @impl Driver
   def connect!(parameters), do: ODBC.connect!(parameters, &conn_params/1)

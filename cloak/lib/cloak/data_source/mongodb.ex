@@ -48,7 +48,7 @@ defmodule Cloak.DataSource.MongoDB do
   @behaviour Driver
 
   @impl Driver
-  def sql_dialect_module(_parameters), do: nil
+  def sql_dialect_module(), do: nil
 
   @impl Driver
   def connect!(parameters) do
