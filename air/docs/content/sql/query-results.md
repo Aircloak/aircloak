@@ -137,9 +137,45 @@ The `*` row provides the analyst with an indication that some names have been su
 
 When a large number of non-aggregated columns is selected in a query, the chances of having lots of rows with very
 few users increase. That will lead to lots of rows being suppressed, making the query result less useful.
-In order to suppress as less information as possible, Aircloak will low-count filter columns individually, from right
-to left. Rows that are suppressed in one iteration are aggregated together and kept for the next round of filtering.
-That way, the maximum number of rows will be sent back to the analysts.
+In order to suppress as little information as possible, Aircloak will low-count filter columns individually, from
+right to left. Rows that are suppressed in one iteration are aggregated together and kept for the next round of
+filtering. That way, the maximum number of rows will be sent back to the analysts.
+
+If the following query is issued:
+
+```sql
+SELECT name, age, COUNT(DISTINCT uid)
+FROM table
+GROUP BY name, age
+```
+
+and the non-anonymized results are:
+
+| name | age | count | passes low count |
+|------|-----|--------|-----------------|
+| Alice | 10 | 2 | false |
+| Alice | 20 | 2 | false |
+| Bob | 30 | 1 | false |
+| Cynthia | 40 | 2 | false |
+
+and the system only allows through values where there 3 or more distinct users in the answer set, then the Insights
+Cloak will attempt to group the low-count values together by the `age` column, and, where necessary, also by the
+`name` column, as follows:
+
+Step 1: Suppress `age` where necessary
+
+| name | age | count | sufficient number of users |
+|------|-----|--------|-----------------|
+| Alice | * | 4 | true |
+| Bob | * | 1 | false |
+| Cynthia | * | 2 | false |
+
+Step 2: Suppress `name` where necessary
+
+| name | age | count | sufficient number of users |
+|------|-----|--------|-----------------|
+| Alice | * | 4 | true |
+| * | * | 3 | true |
 
 This process is time-consuming, so it is limited by default to a maximum of 3 columns. It can be changed in the
 configuration file by setting the `lcf_buckets_aggregation_limit` option to a different value. This can be done
