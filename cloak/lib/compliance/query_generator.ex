@@ -141,7 +141,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp query(scaffold) do
     {from, tables} = from(scaffold)
     {select, selected_tables} = select(scaffold, tables)
-    {{:query, nil, [select, from, group_by(scaffold, select)]}, selected_tables}
+    {{:query, nil, [select, from, where(scaffold), group_by(scaffold, select)]}, selected_tables}
   end
 
   defp select(scaffold, tables) do
@@ -230,6 +230,24 @@ defmodule Cloak.Compliance.QueryGenerator do
     name = name(scaffold.complexity)
     {{:as, name, [{:subquery, nil, [query]}]}, [Map.put(table, :name, name)]}
   end
+
+  defp where(scaffold) do
+    frequency(scaffold.complexity, %{
+      1 => {:where, nil, [where_condition(scaffold.complexity)]},
+      1 => empty()
+    })
+  end
+
+  defp where_condition(complexity) do
+    frequency(complexity, %{
+      2 => simple_condtion(),
+      1 => {:and, nil, [where_condition(div(complexity, 2)), where_condition(div(complexity, 2))]}
+    })
+  end
+
+  defp simple_condtion(), do: {:=, nil, [constant(), constant()]}
+
+  defp constant(), do: {:boolean, boolean(), []}
 
   defp group_by(%{aggregate?: false}, _select), do: empty()
 
