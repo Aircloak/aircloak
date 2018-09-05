@@ -188,10 +188,6 @@ defmodule Cloak.DataSource do
   @spec raise_error(String.t()) :: no_return
   def raise_error(message), do: raise(ExecutionError, message: message)
 
-  @doc "Returns the SQL dialect callback module."
-  @spec sql_dialect_module(t) :: module | nil
-  def sql_dialect_module(data_source), do: data_source.driver.sql_dialect_module()
-
   @doc "Converts a data source config as found in a config into a data source"
   @spec config_to_datasources(Map.t()) :: [t]
   def config_to_datasources(config),

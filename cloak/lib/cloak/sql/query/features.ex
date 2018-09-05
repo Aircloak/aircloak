@@ -190,7 +190,7 @@ defmodule Cloak.Sql.Query.Features do
   defp stringify(function) when is_function(function), do: inspect(function)
 
   defp sql_dialect_name(data_source) do
-    case Cloak.DataSource.sql_dialect_module(data_source) do
+    case data_source.driver.sql_dialect_module() do
       nil ->
         nil
 

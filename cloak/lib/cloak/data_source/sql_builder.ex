@@ -10,7 +10,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   @spec build(Query.t()) :: String.t()
   @doc "Constructs a parametrized SQL query that can be executed against a backend."
-  def build(query), do: build(query, Cloak.DataSource.sql_dialect_module(query.data_source), query.data_source.driver)
+  def build(query), do: build(query, query.data_source.driver.sql_dialect_module(), query.data_source.driver)
 
   @spec build(Query.t(), module, module) :: String.t()
   @doc "Constructs a parametrized SQL query that can be executed against a backend."
