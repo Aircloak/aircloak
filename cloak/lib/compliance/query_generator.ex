@@ -10,6 +10,8 @@ defmodule Cloak.Compliance.QueryGenerator do
   use Lens.Macros
 
   defmodule Scaffold do
+    @moduledoc "Represents the high-level structure of a query to be generated."
+
     @type from :: {:aliased_table, Map.t()} | {:table, Map.t()} | {:join, t, t} | {:subquery, t}
 
     @type t :: %__MODULE__{from: from, complexity: integer, select_user_id?: boolean, aggregate?: boolean}
