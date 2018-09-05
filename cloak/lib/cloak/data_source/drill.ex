@@ -39,7 +39,7 @@ defmodule Cloak.DataSource.Drill do
   # -------------------------------------------------------------------
 
   @impl Driver
-  def sql_dialect_module(_), do: Cloak.DataSource.SqlBuilder.Drill
+  def sql_dialect_module(), do: Cloak.DataSource.SqlBuilder.Drill
 
   @impl Driver
   def connect!(parameters), do: ODBC.connect!(parameters, &conn_params/1)
@@ -58,4 +58,7 @@ defmodule Cloak.DataSource.Drill do
 
   @impl Driver
   defdelegate supports_connection_sharing?(), to: ODBC
+
+  @impl Driver
+  defdelegate cast_to_text?(), to: ODBC
 end

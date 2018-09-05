@@ -74,6 +74,9 @@ defmodule Cloak.DataSource.MySQL do
   @impl Driver
   def supports_connection_sharing?(), do: true
 
+  @impl Driver
+  def cast_to_text?(), do: false
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

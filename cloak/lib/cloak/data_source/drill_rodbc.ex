@@ -13,7 +13,7 @@ defmodule Cloak.DataSource.DrillRODBC do
   # -------------------------------------------------------------------
 
   @impl Driver
-  def sql_dialect_module(_), do: Cloak.DataSource.SqlBuilder.Drill
+  def sql_dialect_module(), do: Cloak.DataSource.SqlBuilder.Drill
 
   @impl Driver
   def connect!(parameters), do: RODBC.connect!(parameters, &DataSource.Drill.conn_params/1)
@@ -32,4 +32,7 @@ defmodule Cloak.DataSource.DrillRODBC do
 
   @impl Driver
   defdelegate supports_connection_sharing?(), to: RODBC
+
+  @impl Driver
+  defdelegate cast_to_text?(), to: RODBC
 end

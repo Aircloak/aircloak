@@ -23,7 +23,7 @@ defmodule Cloak.DataSource.SAPHanaRODBC do
   # -------------------------------------------------------------------
 
   @impl Driver
-  def sql_dialect_module(_), do: Cloak.DataSource.SqlBuilder.SAPHana
+  def sql_dialect_module(), do: Cloak.DataSource.SqlBuilder.SAPHana
 
   @impl Driver
   def connect!(parameters) do
@@ -70,6 +70,9 @@ defmodule Cloak.DataSource.SAPHanaRODBC do
 
   @impl Driver
   defdelegate supports_connection_sharing?(), to: RODBC
+
+  @impl Driver
+  defdelegate cast_to_text?(), to: RODBC
 
   # -------------------------------------------------------------------
   # Internal functions

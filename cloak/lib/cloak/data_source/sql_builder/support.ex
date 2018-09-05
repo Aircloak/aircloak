@@ -23,7 +23,7 @@ defmodule Cloak.DataSource.SqlBuilder.Support do
   @spec supports_function?(Expression.t(), Cloak.DataSource.t()) :: boolean
   def supports_function?(expression, data_source) do
     {name, args} = function_signature(expression)
-    supported_functions = Cloak.DataSource.sql_dialect_module(data_source).supported_functions()
+    supported_functions = data_source.driver.sql_dialect_module().supported_functions()
     name in supported_functions or "#{name}/#{args}" in supported_functions
   end
 

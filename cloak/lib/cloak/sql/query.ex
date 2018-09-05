@@ -249,11 +249,11 @@ defmodule Cloak.Sql.Query do
     Logger.debug(fn ->
       try do
         statement =
-          DataSource.SqlBuilder.build(
-            %__MODULE__{query | subquery?: true},
-            Cloak.DataSource.SqlBuilder.PostgreSQL,
-            Cloak.DataSource.PostgreSQL
-          )
+          DataSource.SqlBuilder.build(%__MODULE__{
+            query
+            | subquery?: true,
+              data_source: %{query.data_source | driver: Cloak.DataSource.PostgreSQL}
+          })
 
         "#{message}: `#{statement}` ..."
       rescue
