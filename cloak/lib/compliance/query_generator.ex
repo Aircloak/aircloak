@@ -143,7 +143,15 @@ defmodule Cloak.Compliance.QueryGenerator do
     {select, selected_tables} = select(scaffold, tables)
 
     {
-      {:query, nil, [select, from, where(scaffold), group_by(scaffold, select), sample_users(scaffold)]},
+      {:query, nil,
+       [
+         select,
+         from,
+         where(scaffold),
+         group_by(scaffold, select),
+         order_by(scaffold, select),
+         sample_users(scaffold)
+       ]},
       selected_tables
     }
   end
@@ -278,6 +286,20 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp aggregate_function?({:function, name, _}), do: Function.aggregator?(name)
   defp aggregate_function?(_), do: false
+
+  defp order_by(scaffold, select) do
+    case order_by_elements(scaffold, select) do
+      [] -> empty()
+      elements -> {:order_by, nil, elements}
+    end
+  end
+
+  defp order_by_elements(scaffold, {:select, _, items}) do
+    frequency(scaffold.complexity, %{
+      1 => [],
+      1 => [{:integer, :rand.uniform(length(items)), []}]
+    })
+  end
 
   defp sample_users(%{select_user_id?: false}), do: empty()
 
