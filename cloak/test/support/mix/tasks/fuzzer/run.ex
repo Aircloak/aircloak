@@ -96,15 +96,41 @@ defmodule Mix.Tasks.Fuzzer.Run do
   defp do_run(%{seed: seed}) do
     initialize()
     data_sources = [%{tables: tables} | _] = ComplianceCase.data_sources()
-    query = seed |> QueryGenerator.ast_from_seed(Map.values(tables)) |> QueryGenerator.ast_to_sql()
+    ast = QueryGenerator.ast_from_seed(seed, Map.values(tables))
+    query = QueryGenerator.ast_to_sql(ast)
 
     case run_query(query, data_sources) do
-      %{result: :ok} -> IO.puts([query, "\n\n", "Seed: ", inspect(seed), "\n\nok\n\n"])
-      result -> IO.puts([query, "\n\n", "Seed: ", inspect(seed), "\n\n", Exception.format(:error, result.error)])
+      %{result: :ok} ->
+        IO.puts([query, "\n\n", "Seed: ", inspect(seed), "\n\nok\n\n"])
+
+      result ->
+        IO.puts([
+          "Query:\n\n",
+          query,
+          "\n\nMinimized query:\n\n",
+          minimize(ast, result, data_sources),
+          "\n\nSeed: ",
+          inspect(seed),
+          "\n\n",
+          Exception.format(:error, result.error)
+        ])
     end
   end
 
   defp do_run(_), do: print_usage!()
+
+  defp minimize(ast, result, data_sources) do
+    ast
+    |> QueryGenerator.minimize(fn ast ->
+      other_result = ast |> QueryGenerator.ast_to_sql() |> run_query(data_sources)
+
+      other_result.result == result.result and
+        first_line(other_result.error.message) == first_line(result.error.message)
+    end)
+    |> QueryGenerator.ast_to_sql()
+  end
+
+  defp first_line(string), do: string |> String.split("\n") |> hd()
 
   defp normalize_result({:ok, result}), do: result
   defp normalize_result({:exit, :timeout}), do: %{result: :timeout, error: nil}
