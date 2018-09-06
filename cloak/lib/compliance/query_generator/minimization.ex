@@ -5,6 +5,7 @@ defmodule Cloak.Compliance.QueryGenerator.Minimization do
     ast
     |> find_minimal_subquery(fun)
     |> drop_clauses(fun)
+    |> simplify_expressions(fun)
   end
 
   defp drop_clauses({type, value, clauses}, fun) do
@@ -28,6 +29,28 @@ defmodule Cloak.Compliance.QueryGenerator.Minimization do
         true ->
           result
       end
+    end)
+  end
+
+  defp simplify_expressions(whole = {type, _, subnodes}, fun) when type in [:and, :or, :not, :function] do
+    subnodes
+    |> Enum.find(fun)
+    |> case do
+      nil -> whole
+      simpler -> simplify_expressions(simpler, fun)
+    end
+  end
+
+  defp simplify_expressions({type, value, subnodes}, fun) do
+    subnodes
+    |> Enum.with_index()
+    |> Enum.reduce({type, value, subnodes}, fn {subnode, index}, result ->
+      simplified =
+        simplify_expressions(subnode, fn ast ->
+          fun.(replace_at(result, index, ast))
+        end)
+
+      replace_at(result, index, simplified)
     end)
   end
 
