@@ -279,9 +279,9 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp group_by_elements({:select, _, items}) do
     items
-    |> Enum.with_index()
+    |> Enum.with_index(1)
     |> Enum.reject(fn {expression, _} -> aggregate_expression?(expression) end)
-    |> Enum.map(fn {_, index} -> {:integer, index + 1, []} end)
+    |> Enum.map(fn {_, index} -> {:integer, index, []} end)
   end
 
   defp aggregate_expression?(expression),
