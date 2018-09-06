@@ -40,7 +40,8 @@ defmodule Cloak.DataSource.SAPHanaRODBC do
   def load_tables(connection, table) do
     statement =
       "SELECT column_name, lower(data_type_name) FROM table_columns " <>
-        "WHERE table_name = '#{table.db_name}' AND schema_name = '#{default_schema() || "SYS"}' ORDER BY position DESC"
+        "WHERE table_name = '#{table.db_name}' AND schema_name in (SELECT CURRENT_SCHEMA FROM DUMMY) " <>
+        "ORDER BY position DESC"
 
     row_mapper = fn [name, type_name] -> Table.column(name, parse_type(type_name)) end
 
