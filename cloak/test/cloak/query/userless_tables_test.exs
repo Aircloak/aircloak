@@ -62,4 +62,17 @@ defmodule Cloak.Query.UserlessTableTest do
       %{rows: [%{row: [16]}]}
     )
   end
+
+  test "join between anonymizing and standard query with constant equality filter in the ON clause" do
+    assert_query(
+      """
+        select * from
+          (select count(*) from userless) as t1
+        join
+          (select count(*) from userless_join) as t2
+        on true = true
+      """,
+      %{rows: [%{row: [4, 30]}]}
+    )
+  end
 end
