@@ -151,7 +151,7 @@ GROUP BY name, age
 
 and the non-anonymized results are:
 
-| name | age | count | passes low count |
+| name | age | count | sufficient users |
 |------|-----|--------|-----------------|
 | Alice | 10 | 2 | false |
 | Alice | 20 | 2 | false |
@@ -164,7 +164,7 @@ Cloak will attempt to group the low-count values together by the `age` column, a
 
 Step 1: Suppress `age` where necessary
 
-| name | age | count | sufficient number of users |
+| name | age | count | sufficient users |
 |------|-----|--------|-----------------|
 | Alice | * | 4 | true |
 | Bob | * | 1 | false |
@@ -172,7 +172,7 @@ Step 1: Suppress `age` where necessary
 
 Step 2: Suppress `name` where necessary
 
-| name | age | count | sufficient number of users |
+| name | age | count | sufficient users |
 |------|-----|--------|-----------------|
 | Alice | * | 4 | true |
 | * | * | 3 | true |
