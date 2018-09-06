@@ -12,18 +12,28 @@ defmodule Cloak.Compliance.QueryGenerator.Minimization do
     |> Enum.with_index()
     |> Enum.reverse()
     |> Enum.reduce({type, value, clauses}, fn {clause, index}, result ->
-      if type == :query and fun.(remove_at(result, index)) do
-        remove_at(result, index)
-      else
-        minimized =
-          drop_clauses(clause, fn ast ->
-            fun.(replace_at(result, index, ast))
-          end)
+      cond do
+        removable?(clause) ->
+          removed = remove_at(result, index)
+          if fun.(removed), do: removed, else: result
 
-        replace_at(result, index, minimized)
+        minimizable?(clause) ->
+          minimized =
+            drop_clauses(clause, fn ast ->
+              fun.(replace_at(result, index, ast))
+            end)
+
+          replace_at(result, index, minimized)
+
+        true ->
+          result
       end
     end)
   end
+
+  defp removable?({type, _, _}), do: type in [:where, :having, :offset, :limit, :order_by, :sample_users]
+
+  defp minimizable?({type, _, _}), do: type in [:query, :subquery, :join, :from, :as]
 
   defp remove_at({type, value, clauses}, index) do
     {type, value, List.delete_at(clauses, index)}
