@@ -182,6 +182,8 @@ defmodule Cloak.Sql.Compiler.Execution do
       |> Lenses.operands()
       |> Lens.to_list(query.having)
 
+  defp align_join_ranges(%Query{type: :standard} = query), do: query
+
   defp align_join_ranges(query),
     do:
       query
