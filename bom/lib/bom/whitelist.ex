@@ -17,7 +17,8 @@ defmodule BOM.Whitelist do
       {"file_system", "0.2.2"} => %{type: :wtfpl, text: :standard},
       {"scrivener", "2.3.0"} => %{type: :mit, text: :standard},
       {"scrivener_ecto", "1.2.2"} => %{type: :mit, text: :standard},
-      {"scrivener_html", "1.3.3"} => %{type: :mit, text: :standard}
+      {"scrivener_html", "1.3.3"} => %{type: :mit, text: :standard},
+      {"makeup_elixir", "0.8.0"} => %{type: :bsd_4_clause, text: :standard}
     },
     :node => %{
       {"base64-js", "0.0.2"} => %{type: :mit, text: :provided},
@@ -132,8 +133,6 @@ defmodule BOM.Whitelist do
     "330031db3ec2b47f6e9d7923b8e1f95b" => :mit,
     # node/react-chartjs-2
     "6d2716539b6e3fee1dff17903670f1cd" => :mit,
-    # elixir/earmark
-    "73ecf9f2f7acdcafcc3eae4d585362de" => :apache2,
     # elixir/fs
     "0b36f89594d6a8a4b5e8efa73f1f4fc5" => :mit,
     # elixir/getopt
@@ -147,7 +146,7 @@ defmodule BOM.Whitelist do
     # elixir/idna
     "7c9b6269d40a09414db760aa524bf240" => :mit,
     # elixir/earmark
-    "7a7ac345ead69968b82148fa3cba780f" => :apache2
+    "1bf8028080e75e094cd7b53003c2efeb" => :apache2
   }
 
   # -------------------------------------------------------------------

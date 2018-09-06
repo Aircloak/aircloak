@@ -37,8 +37,6 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
   def handle_info({:data_sources_changed, new_data_sources}, state),
     do: {:noreply, update_data_sources(state, data_sources_info(new_data_sources))}
 
-  def handle_info(other, state), do: super(other, state)
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -96,7 +94,7 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
   def child_spec(arg) do
     Aircloak.ChildSpec.supervisor(
       [
-        super(arg),
+        %{id: __MODULE__, start: {__MODULE__, :start_link, [arg]}},
         {Periodic, id: :force_refresh, run: &force_refresh/0, every: force_refresh_interval(), overlapped?: false}
       ],
       strategy: :one_for_one

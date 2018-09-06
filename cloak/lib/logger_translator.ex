@@ -110,5 +110,5 @@ defmodule Cloak.LoggerTranslator do
   defp filtered_format_exit({_exit_reason, stacktrace}) when is_list(stacktrace),
     do: Exception.format_exit({"filtered exit reason", do_filter_stacktrace(stacktrace)})
 
-  defp filtered_format_exit(_other), do: Exception.format_exit({"filtered exit reason", System.stacktrace()})
+  defp filtered_format_exit(_other), do: Exception.format_exit({"filtered exit reason", Aircloak.current_stacktrace()})
 end

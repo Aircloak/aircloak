@@ -187,7 +187,7 @@ defmodule Cloak.Sql.FixAlign do
   defp datetime_ceil(datetime, :months),
     do:
       if(
-        Timex.diff(datetime, Timex.beginning_of_month(datetime)) == 0,
+        Timex.diff(datetime, Timex.beginning_of_month(datetime), :microseconds) == 0,
         do: datetime,
         else: Timex.beginning_of_month(datetime) |> shift(months: 1)
       )
@@ -195,7 +195,7 @@ defmodule Cloak.Sql.FixAlign do
   defp datetime_ceil(datetime, :days),
     do:
       if(
-        Timex.diff(datetime, Timex.beginning_of_day(datetime)) == 0,
+        Timex.diff(datetime, Timex.beginning_of_day(datetime), :microseconds) == 0,
         do: datetime,
         else: Timex.beginning_of_day(datetime) |> shift(days: 1)
       )

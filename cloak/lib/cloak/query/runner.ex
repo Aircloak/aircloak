@@ -166,8 +166,6 @@ defmodule Cloak.Query.Runner do
     {:noreply, add_log_entry(state, level, message, timestamp, metadata)}
   end
 
-  def handle_info(other, state), do: super(other, state)
-
   @impl GenServer
   def handle_cast({:stop_query, reason}, state) do
     Parent.GenServer.shutdown_child(:query_execution)

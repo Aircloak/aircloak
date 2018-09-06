@@ -130,7 +130,7 @@ defmodule Cloak.Sql.Parser.Test do
     end
   end
 
-  defmacrop parameter(index), do: quote(do: {:parameter, index})
+  defmacrop parameter(index), do: quote(do: {:parameter, unquote(index)})
 
   for join_type <- [:inner_join, :full_outer_join, :left_outer_join, :right_outer_join] do
     defmacrop unquote(join_type)(lhs, rhs, conditions) do

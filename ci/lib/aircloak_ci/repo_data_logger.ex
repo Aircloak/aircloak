@@ -28,8 +28,6 @@ defmodule AircloakCI.RepoDataLogger do
     {:noreply, new_state}
   end
 
-  def handle_info(other, state), do: super(other, state)
-
   # -------------------------------------------------------------------
   # Supervision tree
   # -------------------------------------------------------------------

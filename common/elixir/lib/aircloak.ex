@@ -148,6 +148,17 @@ defmodule Aircloak do
     end
   end
 
+  @doc """
+  Returns the current stacktrace of the calling process.
+
+  Unlike `__STACKTRACE__`, this function can safely be invoked outside of `catch` and `rescue` clauses of `try/1`.
+  """
+  @spec current_stacktrace() :: [:erlang.stackitem()]
+  def current_stacktrace() do
+    {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
+    stacktrace
+  end
+
   # -------------------------------------------------------------------
   # Application callbacks
   # -------------------------------------------------------------------

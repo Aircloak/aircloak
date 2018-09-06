@@ -82,8 +82,6 @@ defmodule Cloak.DataSource.Isolators.Cache do
     {:noreply, maybe_start_next_computation(state)}
   end
 
-  def handle_info(other, state), do: super(other, state)
-
   @impl Parent.GenServer
   def handle_child_terminated(:compute_isolation_job, meta, _pid, _reason, state) do
     result =
