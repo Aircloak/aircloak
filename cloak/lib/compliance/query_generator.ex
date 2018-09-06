@@ -259,12 +259,12 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp where_condition(complexity) do
     frequency(complexity, %{
-      2 => simple_condtion(),
+      2 => simple_condition(),
       1 => {:and, nil, [where_condition(div(complexity, 2)), where_condition(div(complexity, 2))]}
     })
   end
 
-  defp simple_condtion(), do: {:=, nil, [constant(), constant()]}
+  defp simple_condition(), do: {:=, nil, [constant(), constant()]}
 
   defp constant(), do: {:boolean, boolean(), []}
 
