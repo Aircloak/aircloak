@@ -94,7 +94,7 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
   def child_spec(arg) do
     Aircloak.ChildSpec.supervisor(
       [
-        super(arg),
+        %{id: __MODULE__, start: {__MODULE__, :start_link, [arg]}},
         {Periodic, id: :force_refresh, run: &force_refresh/0, every: force_refresh_interval(), overlapped?: false}
       ],
       strategy: :one_for_one
