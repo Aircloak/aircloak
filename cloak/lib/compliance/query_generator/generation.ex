@@ -9,10 +9,10 @@ defmodule Cloak.Compliance.QueryGenerator.Generation do
   Select a random option from the given list of `{weight, option}` pairs. The options will be evaluated lazily. The list
   will be logically cut off after a total weight of `complexity`.
   """
-  defmacro frequency(complexity, {:%{}, _line, options}) do
+  defmacro frequency(complexity, options) do
     options =
-      Enum.map(options, fn {key, val} ->
-        {key,
+      Enum.map(options, fn {weight, val} ->
+        {weight,
          quote do
            fn -> unquote(val) end
          end}
@@ -33,6 +33,6 @@ defmodule Cloak.Compliance.QueryGenerator.Generation do
     pick_option(options, random)
   end
 
-  def pick_option([{frequency, option} | _], number) when number < frequency, do: option.()
-  def pick_option([{frequency, _} | options], number), do: pick_option(options, number - frequency)
+  defp pick_option([{frequency, option} | _], number) when number < frequency, do: option.()
+  defp pick_option([{frequency, _} | options], number), do: pick_option(options, number - frequency)
 end
