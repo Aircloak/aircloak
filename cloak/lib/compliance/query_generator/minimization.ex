@@ -10,6 +10,7 @@ defmodule Cloak.Compliance.QueryGenerator.Minimization do
   defp drop_clauses({type, value, clauses}, fun) do
     clauses
     |> Enum.with_index()
+    |> Enum.reverse()
     |> Enum.reduce({type, value, clauses}, fn {clause, index}, result ->
       if type == :query and fun.(remove_at(result, index)) do
         remove_at(result, index)
