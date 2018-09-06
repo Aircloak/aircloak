@@ -75,7 +75,7 @@ defmodule Mix.Tasks.Gen.DevData do
   end
 
   defp insert_chunks(rows, inserter) do
-    chunks = Enum.chunk(rows, 1000, 1000, [])
+    chunks = Enum.chunk_every(rows, 1000)
     num_chunks = length(chunks)
 
     chunks

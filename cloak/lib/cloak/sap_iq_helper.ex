@@ -65,7 +65,7 @@ defmodule Cloak.SapIqHelper do
     row_placeholder = "SELECT #{value_placeholders} FROM dummy"
 
     rows
-    |> Stream.chunk(100, 100, [])
+    |> Stream.chunk_every(100)
     |> Stream.map(fn chunk ->
       select_sql = List.duplicate(row_placeholder, length(chunk)) |> Enum.join(" UNION ALL ")
       values = chunk |> List.flatten() |> Enum.map(&cast_types/1)

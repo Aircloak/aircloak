@@ -125,7 +125,7 @@ defmodule Cloak.ResultSender do
     do:
       Aircloak.report_long(:encode_chunks, fn ->
         rows
-        |> Stream.chunk(1000, 1000, [])
+        |> Stream.chunk_every(1000)
         |> Stream.with_index()
         |> Enum.map(&encode_chunk/1)
       end)
