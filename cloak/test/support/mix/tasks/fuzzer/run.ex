@@ -6,6 +6,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
       mix fuzzer.run --queries N
 
       --queries specifies how many queries to run.
+      --seed add this option instead of --queries to run a query from the specified seed (see output)
       --all-out speciefies where to store a log with all attempted queries, defaults to /tmp/all.txt
       --stats-out specifies where to store a log with number of failures by reason, defaults to /tmp/stats.txt
       --crashes-out specifies where to store a log with unexpected errors, defaults to /tmp/crashes.txt
@@ -37,18 +38,16 @@ defmodule Mix.Tasks.Fuzzer.Run do
     stats_out: :string,
     crashes_out: :string,
     concurrency: :integer,
-    timeout: :integer
+    timeout: :integer,
+    seed: :string
   ]
 
   @impl Mix.Task
   def run(args) do
-    with {options, [], []} <- OptionParser.parse(args, strict: @option_spec),
-         {:ok, queries} <- Keyword.fetch(options, :queries) do
-      do_run(queries, options)
+    with {options, [], []} <- OptionParser.parse(args, strict: @option_spec) do
+      do_run(Enum.into(options, %{}))
     else
-      _ ->
-        IO.puts(@usage)
-        Mix.raise("Invalid usage")
+      _ -> print_usage!()
     end
   end
 
@@ -56,24 +55,24 @@ defmodule Mix.Tasks.Fuzzer.Run do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp do_run(number_of_queries, options) do
+  defp do_run(options = %{queries: number_of_queries}) do
     initialize()
 
     data_sources = [%{tables: tables} | _] = ComplianceCase.data_sources()
-    concurrency = Keyword.get(options, :concurrency, System.schedulers_online())
-    timeout = Keyword.get(options, :timeout, :timer.seconds(30))
+    concurrency = Map.get(options, :concurrency, System.schedulers_online())
+    timeout = Map.get(options, :timeout, :timer.seconds(30))
 
-    queries = generate_queries(tables, number_of_queries)
+    queries = generate_queries(Map.values(tables), number_of_queries)
 
-    all_path = Keyword.get(options, :all_out, "/tmp/all.txt")
-    crashes_path = Keyword.get(options, :crashes_out, "/tmp/crashes.txt")
+    all_path = Map.get(options, :all_out, "/tmp/all.txt")
+    crashes_path = Map.get(options, :crashes_out, "/tmp/crashes.txt")
 
     results =
       with_file(all_path, fn all_file ->
         with_file(crashes_path, fn crashes_file ->
           Task.async_stream(
             queries,
-            fn query ->
+            fn {query, _} ->
               IO.write(".")
               run_query(query, data_sources)
             end,
@@ -94,21 +93,34 @@ defmodule Mix.Tasks.Fuzzer.Run do
     print_stats(results, options)
   end
 
+  defp do_run(%{seed: seed}) do
+    initialize()
+    data_sources = [%{tables: tables} | _] = ComplianceCase.data_sources()
+    query = seed |> QueryGenerator.ast_from_seed(Map.values(tables)) |> QueryGenerator.ast_to_sql()
+
+    case run_query(query, data_sources) do
+      %{result: :ok} -> IO.puts([query, "\n\n", "Seed: ", inspect(seed), "\n\nok\n\n"])
+      result -> IO.puts([query, "\n\n", "Seed: ", inspect(seed), "\n\n", Exception.format(:error, result.error)])
+    end
+  end
+
+  defp do_run(_), do: print_usage!()
+
   defp normalize_result({:ok, result}), do: result
   defp normalize_result({:exit, :timeout}), do: %{result: :timeout, error: nil}
 
-  defp print_single_result(all_file, crashes_file, item = {query, result}) do
-    IO.puts(all_file, [query, "\n\n", to_string(result.result), "\n\n"])
+  defp print_single_result(all_file, crashes_file, item = {{query, seed}, result}) do
+    IO.puts(all_file, [query, "\n\n", "Seed: ", inspect(seed), "\n\n", to_string(result.result), "\n\n"])
 
     if result.result == :unexpected_error do
-      IO.puts(crashes_file, [query, "\n\n", Exception.format(:error, result.error)])
+      IO.puts(crashes_file, [query, "\n\n", "Seed: ", inspect(seed), "\n\n", Exception.format(:error, result.error)])
     end
 
     item
   end
 
   defp print_stats(results, options) do
-    stats_path = Keyword.get(options, :stats_out, "/tmp/stats.txt")
+    stats_path = Map.get(options, :stats_out, "/tmp/stats.txt")
 
     with_file(stats_path, fn file ->
       results
@@ -128,53 +140,18 @@ defmodule Mix.Tasks.Fuzzer.Run do
     e -> %{result: :unexpected_error, error: e}
   end
 
-  defp generate_queries(tables, number_of_queries),
-    do:
-      tables
-      |> Map.values()
-      |> QueryGenerator.ast_generator()
-      |> Enum.take(number_of_queries)
-      |> Enum.map(&QueryGenerator.ast_to_sql/1)
+  defp generate_queries(tables, number_of_queries) do
+    for _ <- 1..number_of_queries do
+      {ast, seed} = QueryGenerator.ast_with_seed(tables, _complexity = 100)
 
-  defp assert_consistent_or_failing_nicely(data_sources, query) do
-    case assert_query_consistency(query, data_sources: data_sources) do
-      %{error: error} -> error_type(error)
-      %{rows: _} -> :ok
+      {QueryGenerator.ast_to_sql(ast), seed}
     end
   end
 
-  defp error_type(error) do
-    cond do
-      error =~ ~r/`HAVING` clause can not be applied over column/ -> :illegal_having
-      error =~ ~r/Inequalities on string values are currently not supported/ -> :string_inequality
-      error =~ ~r/must be limited to a finite, nonempty range/ -> :incorrect_range
-      error =~ ~r/needs to appear in the `GROUP BY` clause/ -> :missing_group_by
-      error =~ ~r/Missing a user id column in the select list of subquery/ -> :subquery_no_uid
-      error =~ ~r/Missing where comparison for uid columns/ -> :join_no_uid
-      error =~ ~r/Combining conditions with `OR` is not allowed/ -> :or_used
-      error =~ ~r/cannot be used in a.*LIKE expression/ -> :mistyped_like
-      error =~ ~r/Function .* requires arguments of type/ -> :mistyped_function
-      error =~ ~r/Function .* is allowed over arguments/ -> :restricted_aggregate
-      error =~ ~r/Function .* is not allowed in subqueries/ -> :restricted_aggregate
-      error =~ ~r/Aggregator .* is not allowed over arguments .* in anonymized subqueries/ -> :restricted_aggregate
-      error =~ ~r/Table alias .* used more than once/ -> :duplicate_alias
-      error =~ ~r/Non-integer constant is not allowed in .*/ -> :invalid_position
-      error =~ ~r/.* position .* is out of the range of selected columns./ -> :invalid_position
-      error =~ ~r/Functions .* could cause a database exception/ -> :possible_db_exception
-      error =~ ~r/Row splitter functions used in the `WHERE`-clause have/ -> :restricted_row_splitter
-      error =~ ~r/String manipulation functions cannot be combined with other transformations/ -> :string_manipulation
-      error =~ ~r/Expressions with .*LIKE cannot include any functions/ -> :restricted_like
-      error =~ ~r/Range expressions cannot include any functions except aggregations and a cast/ -> :restricted_range
-      error =~ ~r/Aggregate function .* can not be used in the `GROUP BY` clause/ -> :aggregate_in_group_by
-      error =~ ~r/Usage of .* is ambiguous/ -> :ambiguous_identifier
-      error =~ ~r/Column .* is ambiguous/ -> :ambiguous_identifier
-      error =~ ~r/Expression .* recursively calls multiple aggregators/ -> :recursive_aggregate
-      error =~ ~r/One side of an inequality must be a constant/ -> :restricted_inequality
-      error =~ ~r/Escape string must be one character/ -> :invalid_escape
-      error =~ ~r/Only .* can be used in the arguments of an <> operator/ -> :restricted_function
-      error =~ ~r/Only .* can be used in the left-hand side of an IN operator/ -> :restricted_function
-      error =~ ~r/Function .* is not allowed in .* subqueries/ -> :restricted_function
-      true -> raise error
+  defp assert_consistent_or_failing_nicely(data_sources, query) do
+    case assert_query_consistency(query, data_sources: data_sources) do
+      %{error: error} -> raise error
+      %{rows: _} -> :ok
     end
   end
 
@@ -187,5 +164,10 @@ defmodule Mix.Tasks.Fuzzer.Run do
   defp with_file(name, function) do
     file = File.open!(name, [:write, :utf8])
     function.(file)
+  end
+
+  defp print_usage!() do
+    IO.puts(@usage)
+    Mix.raise("Invalid usage")
   end
 end

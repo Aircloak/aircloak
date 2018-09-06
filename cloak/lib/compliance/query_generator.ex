@@ -3,26 +3,59 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   @type ast :: {atom, any, [ast]}
 
-  import StreamData, except: [positive_integer: 0]
   alias Cloak.DataSource.Table
   alias Cloak.Sql.Function
+  import __MODULE__.Generation
 
-  @data_types [:boolean, :integer, :real, :text, :datetime, :time, :date, :interval]
-  @keywords ~w(in is as on or by and from select from left right cast substring bucket)
+  use Lens.Macros
+
+  defmodule Scaffold do
+    @moduledoc "Represents the high-level structure of a query to be generated."
+
+    @type from :: {:aliased_table, Map.t()} | {:table, Map.t()} | {:join, t, t} | {:subquery, t}
+
+    @type t :: %__MODULE__{from: from, complexity: integer, select_user_id?: boolean, aggregate?: boolean}
+
+    defstruct [:from, :complexity, :select_user_id?, :aggregate?]
+  end
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Generates a random AST representing a query into the given tables."
-  @spec ast_generator([Table.t()]) :: Stream.t(ast)
-  def ast_generator(tables) do
+  @doc "Generates a randomized query with `generate_ast/2`. Also returns the random seed used to generate the query."
+  @spec ast_with_seed([Table.t()], non_neg_integer) :: {ast, String.t()}
+  def ast_with_seed(tables, complexity) do
+    if :rand.export_seed() == :undefined do
+      :rand.uniform()
+    end
+
+    seed = "#{:rand.export_seed() |> :erlang.term_to_binary() |> Base.encode64()}:#{complexity}"
+    {generate_ast(tables, complexity), seed}
+  end
+
+  @doc "Generates a query from a seed produced by `ast_with_seed`."
+  @spec ast_from_seed(String.t(), [Table.t()]) :: ast
+  def ast_from_seed(seed, tables) do
+    [seed, complexity] = String.split(seed, ":")
+    complexity = String.to_integer(complexity)
+    seed = seed |> Base.decode64!() |> :erlang.binary_to_term()
+
+    :rand.seed(seed)
+    generate_ast(tables, complexity)
+  end
+
+  @doc """
+  Generates a randomized query into the provided tables of the given complexity. The query will have the more
+  conditions, subqueries, etc. the higher the complexity.
+  """
+  @spec generate_ast([Table.t()], non_neg_integer) :: ast
+  def generate_ast(tables, complexity) do
     tables
-    |> ast_with_info()
-    |> map(fn {ast, _info} -> ast end)
-    |> scale(fn size ->
-      size |> :math.log() |> trunc() |> max(1)
-    end)
+    |> generate_scaffold(complexity)
+    |> set_select_user_id()
+    |> resolve_table_name_clashes()
+    |> generate_query_from_scaffold()
   end
 
   @doc "Generates the SQL query string from the given AST."
@@ -30,463 +63,302 @@ defmodule Cloak.Compliance.QueryGenerator do
   def ast_to_sql(ast), do: __MODULE__.Format.ast_to_sql(ast)
 
   # -------------------------------------------------------------------
-  # Generators
+  # Scaffold generation
   # -------------------------------------------------------------------
 
-  defp ast_with_info(tables) do
-    bind(from(tables), fn {from_ast, tables} ->
-      bind(select(tables), fn {select_ast, info} ->
-        bind(order(tables), fn order_clauses ->
-          {
-            {:query, nil,
-             fixed_list(
-               [
-                 constant(select_ast),
-                 constant(from_ast),
-                 tables |> where() |> optional(),
-                 tables |> group_by() |> optional(),
-                 tables |> having() |> optional()
-               ] ++ Enum.map(order_clauses, &constant/1) ++ [optional(sample_users())]
-             )},
-            constant(info)
-          }
-        end)
-      end)
+  defp generate_scaffold(tables, complexity) do
+    frequency(complexity, [
+      {3, %Scaffold{from: {:table, Enum.random(tables)}, complexity: complexity}},
+      {1, %Scaffold{from: {:subquery, generate_scaffold(tables, div(complexity, 2))}, complexity: div(complexity, 2)}},
+      {1,
+       %Scaffold{
+         from: {:join, generate_scaffold(tables, div(complexity, 3)), generate_scaffold(tables, div(complexity, 3))},
+         complexity: div(complexity, 3)
+       }}
+    ])
+    |> put_in([Lens.key(:aggregate?)], boolean())
+  end
+
+  defp set_select_user_id(scaffold) do
+    scaffold
+    |> update_in([all_scaffolds()], fn
+      scaffold = %{from: {:table, _}} ->
+        %{scaffold | select_user_id?: true}
+
+      scaffold = %{from: {:subquery, _}} ->
+        if boolean() do
+          force_select_user_id(scaffold)
+        else
+          %{scaffold | select_user_id?: false}
+        end
+
+      scaffold = %{from: {:join, left, right}} ->
+        if left.select_user_id? or right.select_user_id? do
+          force_select_user_id(scaffold)
+        else
+          %{scaffold | select_user_id?: false}
+        end
+    end)
+    |> put_in([Lens.key(:select_user_id?)], false)
+  end
+
+  defp force_select_user_id(scaffold) do
+    put_in(scaffold, [all_scaffolds() |> Lens.key(:select_user_id?)], true)
+  end
+
+  defp resolve_table_name_clashes(scaffold) do
+    update_in(scaffold, [all_scaffolds()], fn
+      scaffold = %{from: {:join, left = %{from: {:table, %{name: name}}}, right = %{from: {:table, %{name: name}}}}} ->
+        %{scaffold | from: {:join, left, set_table_alias(right)}}
+
+      other ->
+        other
     end)
   end
 
-  defp sample_users(), do: float() |> resize(7) |> map(&{:sample_users, &1, []})
-
-  defp from(tables),
-    do: tables |> from_expression() |> map(fn {from_ast, tables} -> {{:from, nil, [from_ast]}, tables} end)
-
-  defp from_expression(tables), do: one_of([from_table(tables), from_subquery(tables), from_join(tables)])
-
-  defp from_subquery(tables) do
-    bind(name(), fn name ->
-      map(ast_with_info(tables), fn {ast, info} ->
-        {as_expression({:subquery, nil, [ast]}, name), [table_from_ast_info(name, info)]}
-      end)
-    end)
+  defp set_table_alias(scaffold) do
+    update_in(scaffold, [Lens.key(:from)], fn {:table, table} -> {:aliased_table, table} end)
   end
 
-  defp from_join(tables) do
-    join_element = join_element(tables)
+  deflensp(all_scaffolds(), do: Lens.both(sub_scaffolds(), Lens.root()))
 
-    tree(join_element, fn child_data ->
-      bind(child_data, fn {lhs, lhs_tables} ->
-        bind(join_element, fn {rhs, rhs_tables} ->
-          tables = lhs_tables ++ rhs_tables
-          {{:join, nil, fixed_list([constant(lhs), constant(rhs), on_expression(tables)])}, constant(tables)}
-        end)
-      end)
+  deflensp sub_scaffolds() do
+    Lens.key(:from)
+    |> Lens.match(fn
+      {:table, _} -> Lens.empty()
+      {:subquery, _} -> Lens.index(1)
+      {:join, _, _} -> Lens.indices([1, 2])
     end)
+    |> Lens.recur()
   end
 
-  defp join_element(tables), do: one_of([aliased_table(tables), from_subquery(tables)])
+  # -------------------------------------------------------------------
+  # AST generation
+  # -------------------------------------------------------------------
 
-  defp aliased_table(tables) do
-    name()
-    |> bind(fn alias ->
-      tables
-      |> from_table()
-      |> map(fn {table_ast, [table_info]} ->
-        {as_expression(table_ast, alias), [%{table_info | name: alias}]}
-      end)
-    end)
+  defp generate_query_from_scaffold(scaffold) do
+    {query, _tables} = query(scaffold)
+    query
   end
 
-  defp from_table(tables), do: tables |> member_of() |> map(&{{:table, &1.name, []}, [&1]})
+  defp query(scaffold) do
+    {from, tables} = from(scaffold)
+    {select, selected_tables} = select(scaffold, tables)
+    order_by = order_by(scaffold, select)
+    limit = limit(scaffold, order_by)
 
-  defp as_expression(object, name), do: {:as, name, [object]}
-
-  defp on_expression(tables), do: tables |> condition() |> map(&{:on, nil, [&1]})
-
-  defp table_from_ast_info(name, ast_info) do
-    %{
-      name: name,
-      columns: Enum.map(ast_info, fn {type, name} -> %{name: name, type: type} end)
+    {
+      {:query, nil,
+       [
+         select,
+         from,
+         where(scaffold),
+         group_by(scaffold, select),
+         having(scaffold),
+         order_by,
+         limit,
+         offset(scaffold, order_by, limit),
+         sample_users(scaffold)
+       ]},
+      selected_tables
     }
   end
 
-  defp where(tables), do: tables |> condition() |> map(&{:where, nil, [&1]})
+  defp select(scaffold, tables) do
+    {elements, tables} =
+      if scaffold.select_user_id? do
+        select_elements_with_user_id(scaffold, tables)
+      else
+        select_elements(scaffold, tables)
+      end
 
-  defp group_by(tables),
-    do: tables |> unaliased_expression(:any) |> list_of() |> nonempty() |> map(&{:group_by, nil, &1})
-
-  defp having(tables), do: tables |> simple_condition() |> map(&{:having, nil, [&1]})
-
-  defp order(tables) do
-    {order_by(tables), limit(), offset()}
-    |> bind(fn {order_by, limit, offset} ->
-      member_of([[], [order_by], [order_by, limit], [order_by, limit, offset]])
-    end)
+    {{:select, nil, elements}, tables}
   end
 
-  defp limit(), do: positive_integer() |> map(&{:limit, &1, []})
+  defp select_elements_with_user_id(scaffold, tables) do
+    {elements, [table]} = select_elements(scaffold, tables)
+    {column, name, type} = user_id_from_tables(tables)
 
-  defp offset(), do: positive_integer() |> map(&{:offset, &1, []})
-
-  defp order_by(tables), do: tables |> order_item() |> list_of(min_length: 1) |> map(&{:order_by, nil, &1})
-
-  defp order_item(tables) do
-    tables
-    |> unaliased_expression(:any, _aggregates_allowed? = true)
-    |> bind(fn expression ->
-      {:order_spec, nil, fixed_list([constant(expression), optional(order_direction()), optional(nulls_directive())])}
-    end)
+    {[column | elements], [%{user_id: name, columns: [%{name: name, type: type} | table.columns]}]}
   end
 
-  defp order_direction(), do: [:asc, :desc] |> member_of() |> map(&{:order_direction, &1, []})
-
-  defp nulls_directive(), do: [:first, :last] |> member_of() |> map(&{:nulls, &1, []})
-
-  defp simple_condition(tables) do
-    [
-      between(tables, _aggregates_allowed? = true),
-      comparison(tables, _aggregates_allowed? = true),
-      implicit_condition(tables, _aggregates_allowed? = true)
-    ]
-    |> one_of()
-    |> tree(&logical_condition/1)
-  end
-
-  defp condition(tables) do
-    [between(tables), like(tables), in_expression(tables), comparison(tables), implicit_condition(tables)]
-    |> one_of()
-    |> tree(&logical_condition/1)
-  end
-
-  defp implicit_condition(tables, aggregates_allowed? \\ false),
-    do: unaliased_expression(tables, :boolean, aggregates_allowed?)
-
-  defp logical_condition(child_data) do
-    one_of([
-      {:and, nil, fixed_list([child_data, child_data])},
-      {:or, nil, fixed_list([child_data, child_data])},
-      {:not, nil, fixed_list([child_data])}
-    ])
-  end
-
-  defp in_expression(tables) do
-    tables
-    |> unaliased_expression_with_info(:any)
-    |> bind(fn {column, {type, _}} ->
-      tuple({
-        member_of([:in, :not_in]),
-        constant(nil),
-        fixed_list([constant(column), in_set(type)])
-      })
-    end)
-  end
-
-  defp in_set(type), do: type |> value() |> list_of() |> nonempty() |> map(&{:in_set, nil, &1})
-
-  defp like(tables) do
-    tuple({
-      member_of([:like, :ilike, :not_like, :not_ilike]),
-      constant(nil),
-      fixed_list([unaliased_expression(tables, :text), value(:like_pattern)])
-    })
-  end
-
-  defp comparison(tables, aggregates_allowed? \\ false) do
-    tables
-    |> unaliased_expression_with_info(:any, aggregates_allowed?)
-    |> bind(fn {column, {type, _}} ->
-      tuple({
-        member_of([:=, :<>, :<, :>]),
-        constant(nil),
-        fixed_list([constant(column), unaliased_expression(tables, type, aggregates_allowed?)])
-      })
-    end)
-  end
-
-  defp between(tables, aggregates_allowed? \\ false) do
-    tables
-    |> unaliased_expression_with_info(:any, aggregates_allowed?)
-    |> bind(fn {column, {type, _}} ->
-      tuple({
-        constant(:between),
-        constant(nil),
-        fixed_list([constant(column), value(type), value(type)])
-      })
-    end)
-  end
-
-  defp value_with_info(type) do
-    type
-    |> value()
-    |> map(fn
-      expression = {:cast, type, _} -> {expression, {type, ""}}
-      expression = {type, _, _} -> {expression, {type, ""}}
-    end)
-  end
-
-  defp value({:constant, type}), do: value(type)
-  defp value({:many1, type}), do: value(type)
-  defp value({:optional, type}), do: value(type)
-  defp value({:or, types}), do: types |> member_of() |> bind(&value/1)
-  defp value(:any), do: @data_types |> member_of() |> bind(&value/1)
-  defp value(:boolean), do: map(boolean(), &{:boolean, &1, []})
-  defp value(:integer), do: map(integer(), &{:integer, &1, []})
-  defp value(:real), do: map(float(), &{:real, &1, []})
-
-  defp value(:text), do: escaped_string() |> map(&{:text, &1, []})
-
-  defp value(:date), do: naive_date_time() |> map(&NaiveDateTime.to_date/1) |> map(&{:date, &1, []})
-  defp value(:time), do: naive_date_time() |> map(&NaiveDateTime.to_time/1) |> map(&{:time, &1, []})
-  defp value(:datetime), do: naive_date_time() |> map(&{:datetime, &1, []})
-  defp value(:interval), do: integer() |> map(&Timex.Duration.from_seconds/1) |> map(&{:interval, &1, []})
-
-  defp value(:like_pattern) do
-    {escaped_string(), optional(like_escape())}
-    |> map(fn {string, escape} -> {:like_pattern, string, [escape]} end)
-  end
-
-  defp like_escape(), do: map(escaped_string(length: 1), &{:like_escape, &1, []})
-
-  defp naive_date_time() do
-    fixed_map(%{
-      year: integer(1950..2050),
-      month: integer(1..12),
-      day: integer(1..28),
-      hour: integer(0..23),
-      minute: integer(0..59),
-      second: integer(0..59)
-    })
-    |> map(&struct(NaiveDateTime, &1))
-  end
-
-  defp select(tables) do
-    tables
-    |> select_list()
-    |> bind(fn items ->
-      {select_list, info} = Enum.unzip(items)
-
-      member_of([
-        {{:select, nil, [{:select_list, nil, select_list}]}, info},
-        {{:select, nil, [{:distinct, nil, [{:select_list, nil, select_list}]}]}, info}
-      ])
-    end)
-  end
-
-  defp select_list(tables), do: tables |> expression_with_info() |> list_of() |> nonempty()
-
-  defp expression_with_info(tables, aggregates_allowed? \\ true) do
-    one_of([
-      aliased_expression_with_info(tables, aggregates_allowed?),
-      unaliased_expression_with_info(tables, :any, aggregates_allowed?)
-    ])
-  end
-
-  defp aliased_expression_with_info(tables, aggregates_allowed?) do
-    tables
-    |> unaliased_expression_with_info(:any, aggregates_allowed?)
-    |> bind(fn {expression, {type, _name}} ->
-      map(name(), fn name -> {as_expression(expression, name), {type, name}} end)
-    end)
-  end
-
-  defp unaliased_expression(tables, type, aggregates_allowed? \\ false),
-    do: tables |> unaliased_expression_with_info(type, aggregates_allowed?) |> map(&strip_info/1)
-
-  defp unaliased_expression_with_info(tables, type, aggregates_allowed? \\ false) do
-    star_frequency = if(aggregates_allowed?, do: 1, else: 0)
-    variable_frequency = if(constant?(type), do: 0, else: 1)
-    regular_frequency = 5
-
-    sized(fn size ->
-      frequency([
-        {regular_frequency * variable_frequency, column_with_info(tables, type)},
-        {regular_frequency, value_with_info(type)},
-        {regular_frequency * star_frequency * variable_frequency, count_star(type)},
-        {regular_frequency * size, tables |> function_with_info(type, aggregates_allowed?) |> resize(div(size, 2))},
-        {size, tables |> special_function_with_info(type, aggregates_allowed?) |> resize(div(size, 2))}
-      ])
-      |> filter(& &1, _max_tries = 100)
-    end)
-  end
-
-  @functions ~w(
-    abs btrim ceil concat date_trunc day extract_words floor hash hex hour left length lower ltrim minute month quarter
-    right round rtrim second sqrt trunc upper weekday year count avg min max stddev count_noise avg_noise stddev_noise
-    + - * / ^
-  )
-  defp function_with_info(tables, type, aggregates_allowed?) do
-    @functions
-    |> Enum.filter(fn function -> aggregates_allowed? or not Function.aggregator?(function) end)
-    |> Enum.flat_map(fn function ->
-      function
-      |> Function.type_specs()
-      |> Enum.map(fn {argument_types, return_type} ->
-        {function, argument_types, return_type}
-      end)
-    end)
-    |> Enum.filter(fn {_, _, return_type} -> match_type?(type, return_type) end)
-    |> Enum.reject(&match?({_, _, :unknown}, &1))
-    |> case do
-      [] ->
-        constant(nil)
-
-      candidates ->
-        candidates
-        |> member_of()
-        |> bind(fn {function, argument_types, return_type} ->
-          function_arguments(tables, function, argument_types, aggregates_allowed?, constant?(type))
-          |> map(fn arguments -> {{:function, function, arguments}, {return_type, function}} end)
-        end)
-    end
-  end
-
-  defp special_function_with_info(tables, type, aggregates_allowed?) do
-    substring_frequency = if(match_type?(type, :text), do: 1, else: 0)
-    bucket_frequency = if(match_type?(type, :real), do: 1, else: 0)
-
-    frequency([
-      {1, cast(tables, type, aggregates_allowed?)},
-      {substring_frequency, substring(tables, aggregates_allowed?)},
-      {bucket_frequency, bucket(tables, aggregates_allowed?)}
-    ])
-  end
-
-  defp cast(tables, type, aggregates_allowed?) do
-    @data_types
-    |> Enum.filter(&match_type?(type, &1))
-    |> member_of()
-    |> bind(fn type ->
-      function = {:cast, type}
-
-      function
-      |> Function.type_specs()
-      |> member_of()
-      |> bind(fn {argument_types, return_type} ->
-        function_arguments(tables, function, argument_types, aggregates_allowed?, constant?(type))
-        |> map(fn arguments -> {{:cast, type, arguments}, {return_type, ""}} end)
-      end)
-    end)
-  end
-
-  defp substring(tables, aggregates_allowed?) do
-    {do_function_arguments(tables, [:text], aggregates_allowed?), list_of(positive_integer_value(), length: 2)}
-    |> bind(fn {[text], [from, for]} ->
-      [
-        {:substring, nil, [text, {:keyword_arg, :from, [from]}]},
-        {:substring, nil, [text, {:keyword_arg, :for, [for]}]},
-        {:substring, nil, [text, {:keyword_arg, :from, [from]}, {:keyword_arg, :for, [for]}]}
-      ]
-      |> member_of()
-    end)
-    |> map(&{&1, {:text, "substring"}})
-  end
-
-  defp bucket(tables, aggregates_allowed?) do
-    {do_function_arguments(tables, [:real], aggregates_allowed?), positive_integer_value(), optional(bucket_align())}
-    |> map(fn {[argument], by, align} -> {:bucket, nil, [argument, {:keyword_arg, :by, [by]}, align]} end)
-    |> map(fn result -> {result, {:real, "bucket"}} end)
-  end
-
-  defp bucket_align(),
-    do: [:lower, :upper, :middle] |> member_of() |> map(&{:keyword_arg, :align, [{:keyword, &1, []}]})
-
-  defp positive_integer_value(), do: map(positive_integer(), &{:integer, &1, []})
-
-  defp function_arguments(tables, function, argument_types, aggregates_allowed?, constant?) do
-    distinct_frequency = if(Function.aggregator?(function), do: 1, else: 0)
-    argument_types = if(constant?, do: Enum.map(argument_types, &{:constant, &1}), else: argument_types)
-
-    frequency([
-      {1, do_function_arguments(tables, argument_types, aggregates_allowed?)},
-      {distinct_frequency, distinct_argument(tables, argument_types, aggregates_allowed?)}
-    ])
-  end
-
-  defp distinct_argument(tables, argument_types, aggregates_allowed?) do
-    do_function_arguments(tables, argument_types, aggregates_allowed?)
-    |> map(&[{:distinct, nil, &1}])
-  end
-
-  defp do_function_arguments(tables, argument_types, aggregates_allowed?) do
-    argument_types
-    |> Enum.map(&unaliased_expression(tables, &1, aggregates_allowed?))
-    |> fixed_list()
-  end
-
-  defp count_star(expected_type) when expected_type in [:any, :integer] do
-    ~w(count count_noise)
-    |> member_of()
-    |> map(&{{:function, &1, [{:star, nil, []}]}, {:integer, &1}})
-  end
-
-  defp count_star(_), do: nil
-
-  defp column_with_info(tables, type) do
-    for table <- tables,
-        column <- table.columns,
-        column.name != "",
-        match_type?(type, column.type) do
-      {column.name, table.name, column.type}
-    end
-    |> case do
-      [] -> constant(nil)
-      candidates -> candidates |> member_of() |> bind(&build_column_reference/1)
-    end
-  end
-
-  defp build_column_reference({column, table, type}) do
-    [
-      {:column, nil, fixed_list([identifier(column)])},
-      {:column, nil, fixed_list([identifier(table), identifier(column)])}
-    ]
-    |> one_of()
-    |> map(fn reference -> {reference, {type, column}} end)
-  end
-
-  defp identifier(text) do
-    simple_identifier = ~r/^[a-zA-Z_]*$/
-
-    if Regex.match?(simple_identifier, text) and not (text in @keywords) do
-      constant({:unquoted, text, []})
+  defp select_elements(scaffold, _tables) do
+    if scaffold.aggregate? do
+      {
+        [{:function, "count", [{:star, nil, []}]}],
+        [%{user_id: nil, columns: [%{name: "count", type: :integer}]}]
+      }
     else
-      constant({:quoted, text, []})
+      name = name(scaffold.complexity)
+
+      {
+        [{:as, name, [{:text, "hello", []}]}],
+        [%{user_id: nil, columns: [%{name: name, type: :text}]}]
+      }
     end
   end
 
+  defp from(scaffold) do
+    {element, tables} = from_element(scaffold)
+    {{:from, nil, [element]}, tables}
+  end
+
+  defp from_element(%{from: {:table, table}}), do: {{:table, table.name, []}, [table]}
+
+  defp from_element(%{complexity: complexity, from: {:aliased_table, table}}) do
+    name = name(complexity)
+    {{:as, name, [{:table, table.name, []}]}, [%{table | name: name}]}
+  end
+
+  defp from_element(%{from: {:subquery, scaffold}}), do: subquery(scaffold)
+
+  defp from_element(%{from: {:join, left_scaffold, right_scaffold}}) do
+    {left, left_tables} = join_element(left_scaffold)
+    {right, right_tables} = join_element(right_scaffold)
+
+    {
+      {:join, nil, [left, right, on(left_scaffold.select_user_id?, left_tables, right_tables)]},
+      left_tables ++ right_tables
+    }
+  end
+
+  defp on(join_on_user_id?, left_tables, right_tables),
+    do: {:on, nil, on_conditions(join_on_user_id?, left_tables, right_tables)}
+
+  defp on_conditions(join_on_user_id?, left_tables, right_tables) do
+    if join_on_user_id? do
+      {left_id, _, _} = user_id_from_tables(left_tables)
+      {right_id, _, _} = user_id_from_tables(right_tables)
+      [{:=, nil, [left_id, right_id]}]
+    else
+      [{:=, nil, [{:boolean, true, []}, {:boolean, false, []}]}]
+    end
+  end
+
+  defp user_id_from_tables([table | _]) do
+    name = table.user_id
+    %{type: type} = Enum.find(table.columns, &match?(%{name: ^name}, &1))
+    {{:column, nil, [{:unquoted, table.name, []}, {:unquoted, table.user_id, []}]}, name, type}
+  end
+
+  defp join_element(scaffold = %{from: {:table, _}}), do: from_element(scaffold)
+  defp join_element(scaffold = %{from: {:aliased_table, _}}), do: from_element(scaffold)
+  defp join_element(scaffold), do: subquery(scaffold)
+
+  defp subquery(scaffold) do
+    {query, [table]} = query(scaffold)
+    name = name(scaffold.complexity)
+    {{:as, name, [{:subquery, nil, [query]}]}, [Map.put(table, :name, name)]}
+  end
+
+  defp where(scaffold) do
+    frequency(scaffold.complexity, [
+      {1, {:where, nil, [where_condition(scaffold.complexity)]}},
+      {1, empty()}
+    ])
+  end
+
+  defp where_condition(complexity) do
+    frequency(complexity, [
+      {2, simple_condition()},
+      {1, {:and, nil, [where_condition(div(complexity, 2)), where_condition(div(complexity, 2))]}}
+    ])
+  end
+
+  defp simple_condition(), do: {:=, nil, [constant(), constant()]}
+
+  defp constant(), do: {:boolean, boolean(), []}
+
+  defp group_by(%{aggregate?: false}, _select), do: empty()
+
+  defp group_by(_scaffold, select) do
+    case group_by_elements(select) do
+      [] -> empty()
+      elements -> {:group_by, nil, elements}
+    end
+  end
+
+  defp group_by_elements({:select, _, items}) do
+    items
+    |> Enum.with_index(1)
+    |> Enum.reject(fn {expression, _} -> aggregate_expression?(expression) end)
+    |> Enum.map(fn {_, index} -> {:integer, index, []} end)
+  end
+
+  defp aggregate_expression?(expression),
+    do: expression |> get_in([all_expressions()]) |> Enum.any?(&aggregate_function?/1)
+
+  deflensp all_expressions() do
+    Lens.both(Lens.index(2) |> Lens.all() |> Lens.recur(), Lens.root())
+  end
+
+  defp aggregate_function?({:function, name, _}), do: Function.aggregator?(name)
+  defp aggregate_function?(_), do: false
+
+  defp having(%{aggregate?: false}), do: empty()
+
+  defp having(scaffold), do: {:having, nil, [where_condition(scaffold.complexity)]}
+
+  defp order_by(scaffold, select) do
+    case order_by_elements(scaffold, select) do
+      [] -> empty()
+      elements -> {:order_by, nil, elements}
+    end
+  end
+
+  defp order_by_elements(scaffold, {:select, _, items}) do
+    frequency(scaffold.complexity, [
+      {1, []},
+      {1, [{:integer, :rand.uniform(length(items)), []}]}
+    ])
+  end
+
+  defp sample_users(%{select_user_id?: false}), do: empty()
+
+  defp sample_users(scaffold) do
+    frequency(scaffold.complexity, [
+      {1, empty()},
+      {1, {:sample_users, sample_users_size(scaffold.complexity), []}}
+    ])
+  end
+
+  defp limit(_scaffold, _order_by = {:empty, _, _}), do: empty()
+
+  defp limit(scaffold, _order_by) do
+    frequency(scaffold.complexity, [
+      {1, empty()},
+      {1, {:limit, :rand.uniform(100), []}}
+    ])
+  end
+
+  defp offset(%{select_user_id?: true}, _order_by, _limit = {:empty, _, _}), do: empty()
+
+  defp offset(_scaffold, _order_by = {:empty, _, _}, _limit), do: empty()
+
+  defp offset(scaffold, _order_by, _limit) do
+    frequency(scaffold.complexity, [
+      {1, empty()},
+      {1, {:offset, :rand.uniform(100), []}}
+    ])
+  end
+
+  defp sample_users_size(complexity) do
+    frequency(complexity, [
+      {1, :rand.uniform() * 100},
+      {1, :rand.uniform() * 10},
+      {1, :rand.uniform()}
+    ])
+  end
+
   # -------------------------------------------------------------------
-  # Helpers
+  # Simple generators
   # -------------------------------------------------------------------
 
-  defp optional(data), do: one_of([data, constant(empty())])
+  defp boolean(), do: Enum.random([true, false])
+
+  defp name(complexity) do
+    StreamData.string(?a..?z, min_length: 1) |> StreamData.resize(complexity) |> Enum.at(0)
+  end
 
   defp empty(), do: {:empty, nil, []}
-
-  defp name(), do: string(?a..?z, min_length: 1) |> filter(&(not (&1 in @keywords)))
-
-  defp escaped_string(opts \\ []) do
-    frequency([
-      {10, string(:ascii, opts)},
-      {1, string(:printable, opts)}
-    ])
-    |> map(&String.replace(&1, "'", "''"))
-  end
-
-  defp positive_integer(), do: map(integer(), &(abs(&1) + 1))
-
-  defp match_type?(:any, _), do: true
-  defp match_type?(:unknown, :unknown), do: true
-  defp match_type?(:unknown, _), do: false
-  defp match_type?({:optional, type}, actual), do: match_type?(type, actual)
-  defp match_type?({:constant, type}, actual), do: match_type?(type, actual)
-  defp match_type?({:many1, type}, actual), do: match_type?(type, actual)
-  defp match_type?({:or, types}, actual), do: Enum.any?(types, &match_type?(&1, actual))
-  defp match_type?(type, type), do: true
-  defp match_type?(type, _) when type in @data_types, do: false
-
-  defp constant?({:constant, _}), do: true
-  defp constant?({:or, types}), do: Enum.all?(types, &constant?/1)
-  defp constant?({:many1, type}), do: constant?(type)
-  defp constant?({:optional, type}), do: constant?(type)
-  defp constant?(_), do: false
-
-  defp strip_info({item, _info}), do: item
 end
