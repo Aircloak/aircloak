@@ -50,7 +50,7 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       {:proper, "~> 1.2", runtime: false},
       {:dialyze, "~> 0.2.1", runtime: false},
       {:excoveralls, "~> 0.5.5", runtime: false},
-      {:distillery, "~> 1.1.0", runtime: false},
+      {:distillery, "~> 1.5.0", runtime: false},
       {:cowboy, "~> 1.0", only: :test},
       {:phoenix_gen_socket_client, "~> 2.0", optional: true},
       {:ex_crypto, "~> 0.9.0"},
