@@ -70,11 +70,6 @@ defmodule Air.PsqlServer.ShadowDb.ConnectionOwner do
     {:noreply, data_source_name}
   end
 
-  def handle_info(other, data_source_name) do
-    super(other, data_source_name)
-    {:noreply, data_source_name, @idle_timeout}
-  end
-
   # -------------------------------------------------------------------
   # Supervision tree
   # -------------------------------------------------------------------

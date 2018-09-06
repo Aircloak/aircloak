@@ -20,8 +20,6 @@ defmodule AircloakCI.LogCleaner do
     {:noreply, state}
   end
 
-  def handle_info(message, state), do: super(message, state)
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

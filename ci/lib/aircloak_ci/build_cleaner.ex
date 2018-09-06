@@ -19,8 +19,6 @@ defmodule AircloakCI.BuildCleaner do
     {:noreply, state}
   end
 
-  def handle_info(message, state), do: super(message, state)
-
   # -------------------------------------------------------------------
   # Supervision tree
   # -------------------------------------------------------------------

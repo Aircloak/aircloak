@@ -93,8 +93,6 @@ defmodule AircloakCI.CmdRunner do
   def handle_info({:stderr, os_pid, output}, %{os_pid: os_pid} = state),
     do: {:noreply, update_in(state.output, &[&1, output])}
 
-  def handle_info(other, state), do: super(other, state)
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

@@ -37,8 +37,6 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
   def handle_info({:data_sources_changed, new_data_sources}, state),
     do: {:noreply, update_data_sources(state, data_sources_info(new_data_sources))}
 
-  def handle_info(other, state), do: super(other, state)
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
