@@ -75,4 +75,11 @@ defmodule Cloak.Query.UserlessTableTest do
       %{rows: [%{row: [4, 30]}]}
     )
   end
+
+  test "standard query with sample users" do
+    assert_query(
+      "select name from userless sample_users 10%",
+      %{error: "The `SAMPLE_USERS` clause is not valid in standard queries."}
+    )
+  end
 end

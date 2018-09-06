@@ -295,6 +295,9 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp extract_columns(columns), do: Query.Lenses.leaf_expressions() |> Lens.to_list(columns)
 
   defp compile_sample_rate(%Query{sample_rate: amount} = query) when amount != nil do
+    if query.type == :standard,
+      do: raise(CompilationError, message: "The `SAMPLE_USERS` clause is not valid in standard queries.")
+
     user_id_hash =
       Expression.function("hash", [Helpers.id_column(query)], :text)
       |> put_in([Query.Lenses.all_expressions() |> Lens.key(:synthetic?)], true)
