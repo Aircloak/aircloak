@@ -1,12 +1,24 @@
 defmodule Cloak.Compliance.QueryGenerator.Minimization do
+  @moduledoc "Implements query minimization."
+
   use Lens.Macros
 
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "See `Cloak.Compliance.QueryGenerator.minimize/2`."
+  @spec minimize(QueryGenerator.ast(), (QueryGenerator.ast() -> boolean)) :: QueryGenerator.ast()
   def minimize(ast, fun) do
     ast
     |> find_minimal_subquery(fun)
     |> drop_clauses(fun)
     |> simplify_expressions(fun)
   end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp drop_clauses({type, value, clauses}, fun) do
     clauses
