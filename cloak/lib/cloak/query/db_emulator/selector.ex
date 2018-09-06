@@ -451,7 +451,8 @@ defmodule Cloak.Query.DbEmulator.Selector do
   defp best_condition_for_matching(join) do
     conditions = Lens.to_list(Query.Lenses.conditions(), join.conditions)
 
-    for {:comparison, subject, :=, target} <- conditions, subject != target do
+    for {:comparison, subject, :=, target} <- conditions,
+        subject != target and subject.name != nil and target.name != nil do
       {subject, target}
     end
     |> case do
