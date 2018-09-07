@@ -191,18 +191,16 @@ defmodule Cloak.Compliance.QueryGenerator do
   end
 
   defp select_elements(scaffold, _tables) do
-    if scaffold.aggregate? do
-      {
-        [{:function, "count", [{:star, nil, []}]}],
-        [%{user_id: nil, columns: [%{name: "count", type: :integer}]}]
-      }
-    else
-      name = name(scaffold.complexity)
+    {elements, columns} = many1(scaffold.complexity, &select_element(scaffold.aggregate?, &1)) |> Enum.unzip()
+    {elements, [%{user_id: nil, columns: Enum.concat(columns)}]}
+  end
 
-      {
-        [{:as, name, [{:text, "hello", []}]}],
-        [%{user_id: nil, columns: [%{name: name, type: :text}]}]
-      }
+  defp select_element(aggregate?, complexity) do
+    if aggregate? do
+      {{:function, "count", [{:star, nil, []}]}, %{name: "count", type: :integer}}
+    else
+      name = name(complexity)
+      {{:as, name, [{:text, "hello", []}]}, %{name: name, type: :text}}
     end
   end
 

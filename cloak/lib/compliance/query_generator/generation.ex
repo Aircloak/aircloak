@@ -23,6 +23,18 @@ defmodule Cloak.Compliance.QueryGenerator.Generation do
     end
   end
 
+  def many1(complexity, generator) do
+    length = log_integer(complexity)
+
+    for _ <- 1..length do
+      generator.(div(complexity, length))
+    end
+  end
+
+  def log_integer(complexity) do
+    complexity |> :math.log() |> trunc() |> max(1) |> :rand.uniform()
+  end
+
   # -------------------------------------------------------------------
   # Macro implementation
   # -------------------------------------------------------------------
