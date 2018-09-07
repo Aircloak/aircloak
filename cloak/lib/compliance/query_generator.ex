@@ -190,19 +190,34 @@ defmodule Cloak.Compliance.QueryGenerator do
     {[column | elements], [%{user_id: name, columns: [%{name: name, type: type} | table.columns]}]}
   end
 
-  defp select_elements(scaffold, _tables) do
-    {elements, columns} = many1(scaffold.complexity, &select_element(scaffold.aggregate?, &1)) |> Enum.unzip()
+  defp select_elements(scaffold, tables) do
+    {elements, columns} = many1(scaffold.complexity, &select_element(scaffold.aggregate?, &1, tables)) |> Enum.unzip()
     {elements, [%{user_id: nil, columns: Enum.concat(columns)}]}
   end
 
-  defp select_element(aggregate?, complexity) do
+  defp select_element(aggregate?, complexity, tables) do
     if aggregate? do
       {{:function, "count", [{:star, nil, []}]}, %{name: "count", type: :integer}}
     else
       name = name(complexity)
-      {{:as, name, [{:text, "hello", []}]}, %{name: name, type: :text}}
+      {{:as, name, [expression(:integer, false, complexity, tables)]}, %{name: name, type: :integer}}
     end
   end
+
+  defp expression(type \\ :any, aggregate?, complexity, tables)
+
+  defp expression(type, aggregate? = false, complexity, tables) do
+    frequency(complexity, [
+      {2, constant(type, complexity)},
+      {1, function(type, complexity, tables)}
+    ])
+  end
+
+  defp function(:integer, complexity, tables) do
+    {:function, "+", [expression(:integer, false, complexity, tables), expression(:integer, false, complexity, tables)]}
+  end
+
+  defp constant(:integer, complexity), do: {:integer, :rand.uniform(complexity), []}
 
   defp from(scaffold) do
     {element, tables} = from_element(scaffold)
