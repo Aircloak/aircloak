@@ -1,7 +1,5 @@
 #!/bin/bash
 
-shift || true
-
 command="$1"
 shift || true
 
