@@ -4,6 +4,8 @@ defmodule Compliance.BooleanTest do
   Enum.each(numerical_columns() |> raw_columns(), fn {column, table, uid} ->
     @tag compliance: "#{column} #{table} select boolean in query"
     test "input cast(#{column} as boolean) in query on #{table}", context do
+      raise "foobar"
+
       context
       |> assert_consistent_and_not_failing("""
         SELECT CAST(#{unquote(column)} AS boolean)
