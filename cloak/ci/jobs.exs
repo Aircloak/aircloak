@@ -64,6 +64,11 @@ end
        # However, if in the meantime something new has been committed to the target branch, we need to refetch deps.
        "MIX_ENV=test make",
        "MIX_ENV=test GLOBAL_DB_NAMESPACE=compliance_test mix gen.test_data dockerized_ci 100",
-       "GLOBAL_DB_NAMESPACE=compliance_test mix test --only compliance --max-cases 10"
+       """
+       (
+         GLOBAL_DB_NAMESPACE=compliance_test mix test --only compliance --max-cases 10 ||
+         GLOBAL_DB_NAMESPACE=compliance_test mix test --only compliance --max-cases 10 --failed
+       )
+       """
      ]}
 }
