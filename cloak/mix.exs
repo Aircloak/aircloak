@@ -66,10 +66,7 @@ defmodule Cloak.Mixfile do
 
       # Only used for perf tests
       {:httpoison, "~> 0.13.0", runtime: false, override: true},
-      {:bom, path: "../bom", runtime: false, only: :dev},
-
-      # Used for fuzzer
-      {:stream_data, "~> 0.4.2", runtime: false}
+      {:bom, path: "../bom", runtime: false, only: :dev}
     ]
   end
 

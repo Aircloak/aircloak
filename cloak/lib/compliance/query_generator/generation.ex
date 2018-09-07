@@ -27,6 +27,7 @@ defmodule Cloak.Compliance.QueryGenerator.Generation do
   # Macro implementation
   # -------------------------------------------------------------------
 
+  @doc false
   def do_frequency(complexity, options) do
     sum = options |> Enum.map(&elem(&1, 0)) |> Enum.sum()
     random = :rand.uniform(sum |> min(complexity) |> max(1)) - 1

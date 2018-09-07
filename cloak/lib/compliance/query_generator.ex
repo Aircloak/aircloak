@@ -365,7 +365,9 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp boolean(), do: Enum.random([true, false])
 
   defp name(complexity) do
-    StreamData.string(?a..?z, min_length: 1) |> StreamData.resize(complexity) |> Enum.at(0)
+    1..:rand.uniform(complexity)
+    |> Enum.map(fn _ -> Enum.random(?a..?z) end)
+    |> to_string()
   end
 
   defp empty(), do: {:empty, nil, []}
