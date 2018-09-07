@@ -62,6 +62,14 @@ defmodule Cloak.Compliance.QueryGenerator do
   @spec ast_to_sql(ast) :: String.t()
   def ast_to_sql(ast), do: __MODULE__.Format.ast_to_sql(ast)
 
+  @doc """
+  Minimizes the given query, guided by the given function. Useful for finding smaller versions of failing examples. The
+  function should return `true` if the query provided as its argument fails in the same way as the original query and
+  `false` if it fails in a different way or succeeds.
+  """
+  @spec minimize(ast, (ast -> boolean)) :: ast
+  def minimize(ast, fun), do: __MODULE__.Minimization.minimize(ast, fun)
+
   # -------------------------------------------------------------------
   # Scaffold generation
   # -------------------------------------------------------------------

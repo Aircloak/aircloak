@@ -72,18 +72,17 @@ defmodule Mix.Tasks.Fuzzer.Run do
         with_file(crashes_path, fn crashes_file ->
           Task.async_stream(
             queries,
-            fn {query, _} ->
+            fn {query, seed} ->
               IO.write(".")
-              run_query(query, data_sources)
+              run_query(query, seed, data_sources)
             end,
             max_concurrency: concurrency,
             timeout: timeout,
             ordered: true,
             on_timeout: :kill_task
           )
-          |> Stream.map(&normalize_result/1)
           |> Stream.zip(queries)
-          |> Stream.map(fn {result, query} -> {query, result} end)
+          |> Stream.map(&normalize_result/1)
           |> Enum.map(&print_single_result(all_file, crashes_file, &1))
         end)
       end)
@@ -96,27 +95,48 @@ defmodule Mix.Tasks.Fuzzer.Run do
   defp do_run(%{seed: seed}) do
     initialize()
     data_sources = [%{tables: tables} | _] = ComplianceCase.data_sources()
-    query = seed |> QueryGenerator.ast_from_seed(Map.values(tables)) |> QueryGenerator.ast_to_sql()
 
-    case run_query(query, data_sources) do
-      %{result: :ok} -> IO.puts([query, "\n\n", "Seed: ", inspect(seed), "\n\nok\n\n"])
-      result -> IO.puts([query, "\n\n", "Seed: ", inspect(seed), "\n\n", Exception.format(:error, result.error)])
-    end
+    seed
+    |> QueryGenerator.ast_from_seed(Map.values(tables))
+    |> run_query(seed, data_sources)
+    |> print_result()
   end
 
   defp do_run(_), do: print_usage!()
 
-  defp normalize_result({:ok, result}), do: result
-  defp normalize_result({:exit, :timeout}), do: %{result: :timeout, error: nil}
+  defp normalize_result({{:ok, result}, _}), do: result
 
-  defp print_single_result(all_file, crashes_file, item = {{query, seed}, result}) do
-    IO.puts(all_file, [query, "\n\n", "Seed: ", inspect(seed), "\n\n", to_string(result.result), "\n\n"])
+  defp normalize_result({{:exit, :timeout}, {query, seed}}),
+    do: %{query: QueryGenerator.ast_to_sql(query), seed: seed, result: :timeout}
 
-    if result.result == :unexpected_error do
-      IO.puts(crashes_file, [query, "\n\n", "Seed: ", inspect(seed), "\n\n", Exception.format(:error, result.error)])
+  defp print_single_result(all_file, crashes_file, result) do
+    print_result(all_file, result)
+
+    if result.result != :ok do
+      print_result(crashes_file, result)
     end
 
-    item
+    result
+  end
+
+  defp print_result(device \\ :stdio, result)
+
+  defp print_result(device, %{result: :error, query: query, seed: seed, minimized: minimized, error: error}) do
+    IO.puts(device, [
+      "Query:\n\n",
+      query,
+      "\n\nMinimized query:\n\n",
+      minimized,
+      "\n\nSeed: ",
+      inspect(seed),
+      "\n\n",
+      error,
+      "\n\n"
+    ])
+  end
+
+  defp print_result(device, %{result: result, query: query, seed: seed}) do
+    IO.puts(device, [query, "\n\n", "Seed: ", inspect(seed), "\n\n", inspect(result), "\n\n"])
   end
 
   defp print_stats(results, options) do
@@ -124,7 +144,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
 
     with_file(stats_path, fn file ->
       results
-      |> Enum.group_by(fn {_, %{result: result}} -> result end)
+      |> Enum.group_by(fn %{result: result} -> result end)
       |> Enum.map(fn {result, items} -> {result, Enum.count(items)} end)
       |> Enum.sort_by(fn {_, count} -> count end, &Kernel.>/2)
       |> Enum.each(fn {result, count} ->
@@ -133,25 +153,39 @@ defmodule Mix.Tasks.Fuzzer.Run do
     end)
   end
 
-  defp run_query(query, data_sources) do
-    result = assert_consistent_or_failing_nicely(data_sources, query)
-    %{result: result, error: nil}
+  defp run_query(ast, seed, data_sources) do
+    case do_run_query(ast, data_sources) do
+      result = %{result: :ok} -> result
+      result -> Map.put(result, :minimized, minimize(ast, result, data_sources))
+    end
+    |> Map.put(:seed, seed)
+  end
+
+  defp minimize(ast, result, data_sources) do
+    ast
+    |> QueryGenerator.minimize(fn ast ->
+      other_result = do_run_query(ast, data_sources)
+      other_result.result == result.result and first_line(other_result.error) == first_line(result.error)
+    end)
+    |> QueryGenerator.ast_to_sql()
+  end
+
+  defp first_line(string), do: string |> String.split("\n") |> hd()
+
+  defp do_run_query(ast, data_sources) do
+    query = QueryGenerator.ast_to_sql(ast)
+
+    case assert_query_consistency(query, data_sources: data_sources) do
+      %{error: error} -> %{query: query, result: :error, error: error}
+      %{rows: _} -> %{query: query, result: :ok}
+    end
   rescue
-    e -> %{result: :unexpected_error, error: e}
+    e -> %{query: QueryGenerator.ast_to_sql(ast), result: :error, error: e.message}
   end
 
   defp generate_queries(tables, number_of_queries) do
     for _ <- 1..number_of_queries do
-      {ast, seed} = QueryGenerator.ast_with_seed(tables, _complexity = 100)
-
-      {QueryGenerator.ast_to_sql(ast), seed}
-    end
-  end
-
-  defp assert_consistent_or_failing_nicely(data_sources, query) do
-    case assert_query_consistency(query, data_sources: data_sources) do
-      %{error: error} -> raise error
-      %{rows: _} -> :ok
+      QueryGenerator.ast_with_seed(tables, _complexity = 100)
     end
   end
 
