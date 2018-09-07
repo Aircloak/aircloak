@@ -307,8 +307,9 @@ The general shape of `config.json` is:
 {
   "air_site": string,
   "salt": string,
+  "data_sources": string,
   "concurrency": integer,
-  "data_sources": string
+  "lcf_buckets_aggregation_limit": integer
 }
 ```
 
@@ -327,7 +328,11 @@ The `concurrency` field is optional and controls the amount of additional thread
 The default setting is 0, which means a single thread processes the data coming in from the database server. For small
 data sets, this is usually sufficient, but for bigger data sets, this might turn out to be a bottleneck during query
 execution. By increasing this value (to 2 or 4 is recommended), additional threads will be used when ingesting the data,
-executing the query faster, but also consuming more memory.
+executing the query faster, but also consuming more memory. This setting can be overridden per data-source.
+
+The `lcf_buckets_aggregation_limit` is optional and controls the maximum number of columns for which partial aggregation
+of low-count filtered rows is done. The default value is 3. This setting can be overridden per data-source. More details
+can be found in the [Low-count filtering](../sql/query-results.md#low-count-filtering) section.
 
 ### Data source configuration
 
@@ -348,6 +353,7 @@ The configuration takes the following form:
     "password": string
   },
   "concurrency": integer,
+  "lcf_buckets_aggregation_limit": integer,
   "tables": tables
 }
 ```
@@ -356,15 +362,19 @@ The `name` parameter is a string which will be used to identify the data source 
 
 The `driver` parameter can be one of the following: `mongodb`, `postgresql`, `mysql`, `sqlserver`, `saphana`, `sapiq`, `drill`. The `parameters` json, then specifies the database connection parameters.
 
-Some of these drivers use ODBC protocol to talk to the database. These drivers are `sqlserver`, `saphana`, `sapiq` and `drill`. Since they rely on ODBC, they accept some additional connection parameters:
+Some of these drivers use the ODBC protocol to talk to the database. These drivers are `sqlserver`, `saphana`, `sapiq` and `drill`.
+Since they rely on ODBC, they accept some additional connection parameters:
 
   - `encoding` which has possible values of "latin1", "unicode", "utf8", "utf16", "utf32", "utf16-big", "utf16-little", "utf32-big", "utf32-little".
   - `odbc_parameters` - ODBC specific parameters for the ODBC driver which is used to talk to the database.
 
-These parameters are optional, and are only required for particular installations, where the default values will not suffice.
+These parameters are optional, and are only required for particular installations, where the default values do not suffice.
 
 The `concurrency` field is optional and controls the amount of additional threads used for processing the selected data.
 If not present, the global setting is used.
+
+The `lcf_buckets_aggregation_limit` field is optional and controls the maximum number of columns for which partial
+aggregation of low-count filtered rows is done. If not present, the global setting is used.
 
 The database tables that should be made available for querying are defined in the `tables` section of the cloak config. The value of the `tables` key is a JSON object that looks as follows:
 
@@ -684,7 +694,13 @@ If you're running the system without Docker containers, there are some additiona
 
 ### Insights Air shadow server
 
-Insights Air requires a PostgreSQL database instance (version 9.6) where it can create and destroy databases. Normally this database server is run as part of the docker container itself. When no docker container exists the server needs to be provided otherwise. The login credentials should be provided in the `config.json` configuration file of the Air component under the `shadow_database` key. The credentials must be for a user that has database creation privileges (`CREATEDB`).
+Insights Air requires access to two PostgreSQL database servers. One is used for storing query results, audit logs and user accounts.
+This is the PostgreSQL database server described in the [Components of Aircloak Insights](/components.md#components-provided-by-the-customer)-chapter
+of these guides. The second PostgreSQL database server normally runs as part of the Insights Air docker container itself.
+When docker containers are not used this database server needs to be provided separately. It should be a PostgreSQL database
+server of version 9.6. The login credentials provided must be for a superuser or for a user having been given privileges to create and destroy
+databases (`CREATEDB`-role) on this database server. They can be configured in the `config.json` configuration file
+of the Air component under the `shadow_database` key.
 
 ```
 ...

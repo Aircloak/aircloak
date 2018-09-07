@@ -55,4 +55,31 @@ defmodule Cloak.Query.UserlessTableTest do
       %{error: "Table/subquery `t1` has no associated user id. Userless data can not be used in anonymizing queries."}
     )
   end
+
+  test "join between userless tables with inequality filter in the ON clause" do
+    assert_query(
+      "select count(*) from userless as t1 join userless as t2 on false < true",
+      %{rows: [%{row: [16]}]}
+    )
+  end
+
+  test "join between anonymizing and standard query with constant equality filter in the ON clause" do
+    assert_query(
+      """
+        select * from
+          (select count(*) from userless) as t1
+        join
+          (select count(*) from userless_join) as t2
+        on true = true
+      """,
+      %{rows: [%{row: [4, 30]}]}
+    )
+  end
+
+  test "standard query with sample users" do
+    assert_query(
+      "select name from userless sample_users 10%",
+      %{error: "The `SAMPLE_USERS` clause is not valid in standard queries."}
+    )
+  end
 end

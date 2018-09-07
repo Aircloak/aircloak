@@ -135,6 +135,52 @@ John  |	147
 
 The `*` row provides the analyst with an indication that some names have been suppressed because of low-count filtering. This indication is particularly important in cases where a large number of values are low-count filtered: the analyst can learn that a substantial amount of data is being hidden. Note that the `*` row is itself anonymized: the anonymized aggregate associated with it has noise, and it itself is low-count filtered. In other words, lack of a `*` row does not mean that no data was suppressed, only that very little data was suppressed.
 
+When a large number of non-aggregated columns is selected in a query, the chances of having lots of rows with very
+few users increase. That will lead to lots of rows being suppressed, making the query result less useful.
+In order to suppress as little information as possible, Aircloak will low-count filter columns individually, from
+right to left. Rows that are suppressed in one iteration are aggregated together and kept for the next round of
+filtering. That way, the maximum number of rows will be sent back to the analysts.
+
+If the following query is issued:
+
+```sql
+SELECT name, age, COUNT(DISTINCT uid)
+FROM table
+GROUP BY name, age
+```
+
+and the non-anonymized results are:
+
+| name | age | count | sufficient users |
+|------|-----|--------|-----------------|
+| Alice | 10 | 2 | false |
+| Alice | 20 | 2 | false |
+| Bob | 30 | 1 | false |
+| Cynthia | 40 | 2 | false |
+
+and the system only allows through values where there 3 or more distinct users in the answer set, then the Insights
+Cloak will attempt to group the low-count values together by the `age` column, and, where necessary, also by the
+`name` column, as follows:
+
+Step 1: Suppress `age` where necessary
+
+| name | age | count | sufficient users |
+|------|-----|--------|-----------------|
+| Alice | * | 4 | true |
+| Bob | * | 1 | false |
+| Cynthia | * | 2 | false |
+
+Step 2: Suppress `name` where necessary
+
+| name | age | count | sufficient users |
+|------|-----|--------|-----------------|
+| Alice | * | 4 | true |
+| * | * | 3 | true |
+
+This process is time-consuming, so it is limited by default to a maximum of 3 columns. For details on how to change this
+limit, refer to the [Configuring the Insights Cloak](../ops/configuration.md#insights-cloak-configuration) section. A value
+of 1 results in a single bucket for suppressed data, while a value of 0 will drop the low-count filtered data completely.
+
 ## Anonymizing aggregation functions
 
 These seven anonymizing aggregation functions may add additional distortion besides the zero mean noise and low-count filtering already described. Note in particular that Aircloak gives no indication of whether any additional distortion occurred, or how severe this additional distortion is. This is because such information itself may leak individual information.

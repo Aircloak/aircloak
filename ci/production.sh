@@ -111,7 +111,7 @@ function rollback {
 }
 
 function service_command {
-  exec_as_ci "$production_folder/current/bin/aircloak_ci $@"
+  exec_as_root "$production_folder/current/bin/aircloak_ci $@"
 }
 
 function remote_console {

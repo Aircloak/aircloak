@@ -226,6 +226,10 @@ defmodule Cloak.Sql.Compiler.VerificationCrashingFunctions.Test do
     assert compiles_without_potential_crash_error(query)
   end
 
+  test "% is treated as potentially crashing" do
+    assert expressions_potentially_crash("SELECT numeric % (numeric * 2) FROM table")
+  end
+
   defp expressions_potentially_crash(query) do
     case compile(query, data_source()) do
       {:ok, _} ->

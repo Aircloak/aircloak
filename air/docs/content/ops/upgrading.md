@@ -2,6 +2,8 @@
 
 ## Insights Air
 
+### Altered privacy policy flow
+
 The privacy policy flow has been changed. Where new users were previously required to accept the privacy policy
 before they could start using the system, they now only have the privacy policy available for perusal at their
 own pleasure. From version 18.4.0 it is the responsibility of the organisation hosting the Aircloak Insights
@@ -9,6 +11,12 @@ installation to inform their analysts about the privacy policy and their rights.
 
 The default content has also been updated to reflect these changes. You can see the updated default content here:
 [Privacy policy default content](upgrade/1804_privacy_policy.md).
+
+### Non-docker deployments
+
+If you are running Aircloak Insights without the use of docker containers, you will now have to provide a
+second PostgreSQL database server instance. More details can be found in the [Running without Docker containers](/ops/configuration.html#running-without-docker-containers)
+section of the operations guides.
 
 # Version 18.3.0
 
