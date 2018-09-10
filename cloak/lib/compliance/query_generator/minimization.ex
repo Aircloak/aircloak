@@ -56,7 +56,7 @@ defmodule Cloak.Compliance.QueryGenerator.Minimization do
     |> Enum.reverse()
     |> Enum.reduce({type, value, clauses}, fn {clause, index}, result ->
       cond do
-        removable?(clause) ->
+        removable?(type, clause) ->
           removed = remove_at(result, index)
           if fun.(removed), do: removed, else: result
 
@@ -96,9 +96,10 @@ defmodule Cloak.Compliance.QueryGenerator.Minimization do
     end)
   end
 
-  defp removable?({type, _, _}), do: type in [:where, :having, :offset, :limit, :order_by, :sample_users]
+  defp removable?(parent, _) when parent in [:select, :order_by], do: true
+  defp removable?(_parent, {type, _, _}), do: type in [:where, :having, :offset, :limit, :order_by, :sample_users]
 
-  defp minimizable?({type, _, _}), do: type in [:query, :subquery, :join, :from, :as]
+  defp minimizable?({type, _, _}), do: type in [:query, :subquery, :join, :from, :as, :select, :order_by]
 
   defp remove_at({type, value, clauses}, index) do
     {type, value, List.delete_at(clauses, index)}
