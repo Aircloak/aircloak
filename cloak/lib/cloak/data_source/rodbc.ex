@@ -32,7 +32,7 @@ defmodule Cloak.DataSource.RODBC do
   end
 
   def load_tables(connection, table) do
-    case Driver.execute(connection, "SELECT * FROM #{table.db_name} LIMIT 0") do
+    case Driver.execute(connection, "SELECT * FROM #{table.db_name} WHERE 0 = 1") do
       :ok ->
         case Driver.get_columns(connection) do
           {:ok, []} ->
@@ -196,5 +196,31 @@ defmodule Cloak.DataSource.RODBC do
   defp parse_type("date"), do: :date
   defp parse_type("datetime"), do: :datetime
   defp parse_type("timestamp"), do: :datetime
+  defp parse_type("nvarchar"), do: :text
+  defp parse_type("nclob"), do: :text
+  defp parse_type("clob"), do: :text
+  defp parse_type("blob"), do: :text
+  defp parse_type("varbinary"), do: :text
+  defp parse_type("alphanumeric"), do: :text
+  defp parse_type("boolean"), do: :boolean
+  defp parse_type("smallint"), do: :integer
+  defp parse_type("tinyint"), do: :integer
+  defp parse_type("real"), do: :real
+  defp parse_type("double"), do: :real
+  defp parse_type("decimal" <> _), do: :real
+  defp parse_type("smalldecimal"), do: :real
+  defp parse_type("seconddate"), do: :datetime
+  defp parse_type("text"), do: :text
+  defp parse_type("decimal"), do: :real
+  defp parse_type("smalldatetime"), do: :datetime
+  defp parse_type("char"), do: :text
+  defp parse_type("nchar"), do: :text
+  defp parse_type("ntext"), do: :text
+  defp parse_type("int"), do: :integer
+  defp parse_type("money"), do: :real
+  defp parse_type("smallmoney"), do: :real
+  defp parse_type("uniqueidentifier"), do: :text
+  defp parse_type("datetime2"), do: :datetime
+  defp parse_type("datetimeoffset"), do: :datetime
   defp parse_type(type), do: {:unsupported, type}
 end
