@@ -217,7 +217,7 @@ defmodule Cloak.Compliance.QueryGenerator do
     {:function, "+", [expression(:integer, false, complexity, tables), expression(:integer, false, complexity, tables)]}
   end
 
-  defp constant(:integer, complexity), do: {:integer, :rand.uniform(complexity), []}
+  defp constant(:integer, complexity), do: {:integer, uniform(complexity), []}
 
   defp from(scaffold) do
     {element, tables} = from_element(scaffold)
@@ -348,7 +348,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp limit(scaffold, _order_by) do
     frequency(scaffold.complexity, [
       {1, empty()},
-      {1, {:limit, :rand.uniform(100), []}}
+      {1, {:limit, uniform(100), []}}
     ])
   end
 
@@ -359,7 +359,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp offset(scaffold, _order_by, _limit) do
     frequency(scaffold.complexity, [
       {1, empty()},
-      {1, {:offset, :rand.uniform(100), []}}
+      {1, {:offset, uniform(100), []}}
     ])
   end
 
@@ -378,8 +378,8 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp boolean(), do: Enum.random([true, false])
 
   defp name(complexity) do
-    1..:rand.uniform(complexity)
-    |> Enum.map(fn _ -> Enum.random(?a..?z) end)
+    complexity
+    |> many1(fn _ -> Enum.random(?a..?z) end)
     |> to_string()
   end
 

@@ -32,8 +32,11 @@ defmodule Cloak.Compliance.QueryGenerator.Generation do
   end
 
   def log_integer(complexity) do
-    complexity |> :math.log() |> trunc() |> max(1) |> :rand.uniform()
+    complexity |> max(1) |> :math.log() |> trunc() |> uniform()
   end
+
+  def uniform(max) when max < 1, do: 1
+  def uniform(max), do: :rand.uniform(max)
 
   # -------------------------------------------------------------------
   # Macro implementation
@@ -42,7 +45,7 @@ defmodule Cloak.Compliance.QueryGenerator.Generation do
   @doc false
   def do_frequency(complexity, options) do
     sum = options |> Enum.map(&elem(&1, 0)) |> Enum.sum()
-    random = :rand.uniform(sum |> min(complexity) |> max(1)) - 1
+    random = uniform(min(sum, complexity)) - 1
     pick_option(options, random)
   end
 
