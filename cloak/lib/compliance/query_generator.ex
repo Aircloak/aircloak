@@ -327,12 +327,11 @@ defmodule Cloak.Compliance.QueryGenerator do
     end
   end
 
-  defp order_by_elements(scaffold, {:select, _, items}) do
-    frequency(scaffold.complexity, [
-      {1, []},
-      {1, [{:integer, :rand.uniform(length(items)), []}]}
-    ])
-  end
+  defp order_by_elements(scaffold, select), do: many(scaffold.complexity, &order_spec(select, &1))
+
+  defp order_spec(select, complexity), do: {:order_spec, nil, [order_expression(select)]}
+
+  defp order_expression({:select, _, items}), do: {:integer, uniform(length(items)), []}
 
   defp sample_users(%{select_user_id?: false}), do: empty()
 
@@ -374,8 +373,6 @@ defmodule Cloak.Compliance.QueryGenerator do
   # -------------------------------------------------------------------
   # Simple generators
   # -------------------------------------------------------------------
-
-  defp boolean(), do: Enum.random([true, false])
 
   defp name(complexity) do
     complexity

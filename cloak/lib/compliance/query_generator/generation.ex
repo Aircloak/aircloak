@@ -23,6 +23,10 @@ defmodule Cloak.Compliance.QueryGenerator.Generation do
     end
   end
 
+  def many(complexity, generator) do
+    if boolean(), do: many1(div(complexity, 2), generator), else: []
+  end
+
   def many1(complexity, generator) do
     length = log_integer(complexity)
 
@@ -32,8 +36,10 @@ defmodule Cloak.Compliance.QueryGenerator.Generation do
   end
 
   def log_integer(complexity) do
-    complexity |> max(1) |> :math.log() |> trunc() |> uniform()
+    complexity |> max(1) |> :math.log2() |> trunc() |> uniform()
   end
+
+  def boolean(), do: Enum.random([true, false])
 
   def uniform(max) when max < 1, do: 1
   def uniform(max), do: :rand.uniform(max)
