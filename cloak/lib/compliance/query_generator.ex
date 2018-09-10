@@ -329,7 +329,24 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp order_by_elements(scaffold, select), do: many(scaffold.complexity, &order_spec(select, &1))
 
-  defp order_spec(select, complexity), do: {:order_spec, nil, [order_expression(select)]}
+  defp order_spec(select, complexity),
+    do: {:order_spec, nil, [order_expression(select), direction_spec(complexity), nulls_spec(complexity)]}
+
+  defp nulls_spec(complexity) do
+    frequency(complexity, [
+      {1, empty()},
+      {1, {:nulls, :first, []}},
+      {1, {:nulls, :last, []}}
+    ])
+  end
+
+  defp direction_spec(complexity) do
+    frequency(complexity, [
+      {1, empty()},
+      {1, {:order_direction, :asc, []}},
+      {1, {:order_direction, :desc, []}}
+    ])
+  end
 
   defp order_expression({:select, _, items}), do: {:integer, uniform(length(items)), []}
 
