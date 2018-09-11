@@ -24,7 +24,7 @@ defmodule Cloak.Compliance.QueryGenerator.Generation do
   end
 
   def reject(generator, predicate, attempts \\ 100)
-  def reject(generator, predicate, 0), do: raise("Filter too narrow")
+  def reject(_generator, _predicate, 0), do: raise("Filter too narrow")
 
   def reject(generator, predicate, counter) do
     value = generator.()
