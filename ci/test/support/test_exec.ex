@@ -45,7 +45,7 @@ defmodule AircloakCI.TestExec do
 
       %{"target" => target_folder} ->
         AircloakCI.LocalProject.for_local("..")
-        |> AircloakCI.LocalProject.components()
+        |> AircloakCI.LocalProject.changed_components()
         |> Enum.each(&transfer_component(&1, target_folder))
     end
   end
