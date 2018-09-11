@@ -98,8 +98,12 @@ defmodule AircloakCI.Build.PullRequest do
   end
 
   defp report_status(state) do
-    if state.prepared?, do: report_standard_tests(state)
-    report_mergeable(state)
+    if state.prepared? do
+      report_standard_tests(state)
+      report_mergeable(state)
+    else
+      state
+    end
   end
 
   defp report_standard_tests(state) do
