@@ -84,9 +84,10 @@ defmodule AircloakCI.Build.PullRequest do
   end
 
   defp maybe_start_compliance(state) do
-    if check_standard_tests(state) == :ok and check_approved(state) == :ok,
-      do: Job.Compliance.start_if_possible(state),
-      else: state
+    if check_standard_tests(state) == :ok and check_approved(state) == :ok and
+         LocalProject.run_compliance?(state.project),
+       do: Job.Compliance.start_if_possible(state),
+       else: state
   end
 
   defp maybe_start_system_test(state) do
@@ -176,7 +177,12 @@ defmodule AircloakCI.Build.PullRequest do
   end
 
   defp approval_outcome(state), do: if(state.source.approved?, do: :ok, else: :pending)
-  defp compliance_outcome(state), do: LocalProject.job_outcome(state.project, "compliance") || :pending
+
+  defp compliance_outcome(state) do
+    if LocalProject.run_compliance?(state.project),
+      do: LocalProject.job_outcome(state.project, "compliance") || :pending,
+      else: :ok
+  end
 
   defp system_test_outcome(state) do
     if LocalProject.system_test?(state.project),

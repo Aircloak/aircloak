@@ -371,13 +371,12 @@ defmodule AircloakCI.LocalProject do
 
   @doc "Returns true if the project includes the system test component."
   @spec system_test?(t) :: boolean
-  def system_test?(project) do
-    case commands(project, "system_test", :system_test) do
-      {:error, :no_ci} -> false
-      [] -> false
-      _ -> true
-    end
-  end
+  def system_test?(project), do: commands_available?(project, "system_test", :system_test)
+
+  @doc "Returns true if compliance tests exist and have been changed."
+  @spec run_compliance?(t) :: boolean
+  def run_compliance?(project),
+    do: Enum.member?(components(project), "cloak") and commands_available?(project, "cloak", :compliance)
 
   @doc "Returns the location of logs folder."
   @spec logs_folder() :: String.t()
@@ -580,4 +579,12 @@ defmodule AircloakCI.LocalProject do
   defp resolve_changed_components("integration_tests"), do: ~w(integration_tests)
   defp resolve_changed_components("system_test"), do: ~w(system_test)
   defp resolve_changed_components(_other), do: [:all]
+
+  defp commands_available?(project, component, job) do
+    case commands(project, component, job) do
+      {:error, :no_ci} -> false
+      [] -> false
+      _ -> true
+    end
+  end
 end
