@@ -25,12 +25,12 @@ const FLAG_WSTR_AS_BIN: u8 = 0;
 const STATUS_OK: u8 = b'K';
 const STATUS_ERROR: u8 = b'E';
 
-mod state;
-use state::*;
+mod connection_state;
+use connection_state::*;
 
 extern "C" fn start(port: ErlDrvPort, _command: *mut c_char) -> ErlDrvData {
     unsafe { set_port_control_flags(port, PORT_CONTROL_FLAG_BINARY as c_int) };
-    match State::new() {
+    match ConnectionState::new() {
         Ok(state) => Box::into_raw(Box::new(state)) as ErlDrvData,
         Err(Some(error)) => {
             println!("Error during port state initialization: {}", error);
@@ -44,7 +44,7 @@ extern "C" fn start(port: ErlDrvPort, _command: *mut c_char) -> ErlDrvData {
 }
 
 extern "C" fn stop(drv_data: ErlDrvData) {
-    unsafe { Box::from_raw(drv_data as *mut State) };
+    unsafe { Box::from_raw(drv_data as *mut ConnectionState) };
 }
 
 unsafe fn reply(
@@ -81,7 +81,7 @@ extern "C" fn control(
     reply_buffer: *mut *mut c_char,
     reply_length: ErlDrvSizeT,
 ) -> ErlDrvSSizeT {
-    let state = unsafe { &mut *(drv_data as *mut State) };
+    let state = unsafe { &mut *(drv_data as *mut ConnectionState) };
     let mut message = Vec::<u8>::new();
 
     match command {

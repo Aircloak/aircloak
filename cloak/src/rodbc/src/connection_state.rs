@@ -18,7 +18,7 @@ const TYPE_F64: u8 = 4;
 const TYPE_STR: u8 = 5;
 const TYPE_BIN: u8 = 6;
 
-pub struct State<'a> {
+pub struct ConnectionState<'a> {
     stmt: Option<Statement<'a, 'a, Allocated, HasResult>>,
     conn: Option<Connection<'a>>,
     env: Environment<Version3>,
@@ -30,10 +30,10 @@ fn error(message: &str) -> Result<(), Box<Error>> {
     Err(Box::new(SimpleError::new(message)))
 }
 
-impl<'a> State<'a> {
-    pub fn new() -> Result<State<'a>, Option<DiagnosticRecord>> {
+impl<'a> ConnectionState<'a> {
+    pub fn new() -> Result<ConnectionState<'a>, Option<DiagnosticRecord>> {
         let env = create_environment_v3()?;
-        Ok(State {
+        Ok(ConnectionState {
             env: env,
             conn: None,
             stmt: None,
@@ -84,7 +84,7 @@ impl<'a> State<'a> {
             let cols = stmt.num_result_cols()? as u16;
             for i in 1..(cols + 1) {
                 let field_type =
-                    State::field_type(stmt.describe_col(i)?.data_type, self.wstr_as_bin);
+                    ConnectionState::field_type(stmt.describe_col(i)?.data_type, self.wstr_as_bin);
                 self.field_types.push(field_type);
             }
             self.stmt = Some(stmt);
@@ -138,14 +138,14 @@ impl<'a> State<'a> {
 
                     TYPE_STR => if let Some(val) = cursor.get_data::<&str>(i)? {
                         buf.push(TYPE_STR);
-                        State::push_binary(buf, val.as_bytes());
+                        ConnectionState::push_binary(buf, val.as_bytes());
                     } else {
                         buf.push(TYPE_NULL);
                     },
 
                     TYPE_BIN => if let Some(val) = cursor.get_data::<&[u8]>(i)? {
                         buf.push(TYPE_BIN);
-                        State::push_binary(buf, val);
+                        ConnectionState::push_binary(buf, val);
                     } else {
                         buf.push(TYPE_NULL);
                     },
@@ -193,11 +193,11 @@ impl<'a> State<'a> {
             let column = stmt.describe_col(i as u16)?;
 
             buf.push(TYPE_STR);
-            State::push_binary(buf, column.name.as_bytes());
+            ConnectionState::push_binary(buf, column.name.as_bytes());
 
-            let column_type = State::sql_type_to_string(column.data_type);
+            let column_type = ConnectionState::sql_type_to_string(column.data_type);
             buf.push(TYPE_STR);
-            State::push_binary(buf, column_type.as_bytes());
+            ConnectionState::push_binary(buf, column_type.as_bytes());
         }
 
         Ok(())
