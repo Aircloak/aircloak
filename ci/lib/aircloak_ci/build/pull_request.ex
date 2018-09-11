@@ -90,7 +90,7 @@ defmodule AircloakCI.Build.PullRequest do
   end
 
   defp maybe_start_system_test(state) do
-    if check_standard_tests(state) == :ok and check_approved(state) == :ok and compliance_outcome(state),
+    if check_standard_tests(state) == :ok and check_approved(state) == :ok,
       do: Job.SystemTest.start_if_possible(state),
       else: state
   end
