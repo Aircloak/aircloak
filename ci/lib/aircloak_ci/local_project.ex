@@ -356,11 +356,15 @@ defmodule AircloakCI.LocalProject do
     end
   end
 
-  @doc "Returns the list of components for which CI can be executed."
+  @doc """
+  Returns the list of standard components for which CI must be executed.
+
+  The returned list contains only the changed components, and their dependencies.
+  """
   @spec components(t) :: [String.t()]
   def components(project) do
     project
-    |> all_components()
+    |> all_changed_components()
     |> standard_components()
     |> Enum.reject(&match?({:error, _}, commands(project, &1, :compile)))
   end
@@ -429,8 +433,12 @@ defmodule AircloakCI.LocalProject do
 
   defp do_update_code(project) do
     with :ok <- clone_repo(project),
-         :ok <- cmd(project, "main", "git #{project.update_git_command}", timeout: :timer.minutes(5)),
-         do: cmd(project, "main", "git checkout --force #{project.checkout}")
+         :ok <- cmd(project, "main", "git #{project.update_git_command}", timeout: :timer.minutes(5)) do
+      if project.type == :pull_request,
+        do: cmd(project, "main", "git fetch --force origin #{project.base_branch}", timeout: :timer.minutes(5))
+
+      cmd(project, "main", "git checkout --force #{project.checkout}")
+    end
   end
 
   defp clone_repo(project) do
@@ -511,13 +519,19 @@ defmodule AircloakCI.LocalProject do
         [cd: Path.join(src_folder(project), to_string(component))] ++ opts
       )
 
-  defp all_components(project) do
-    project
-    |> src_folder()
-    |> File.ls!()
-    |> Stream.filter(&File.dir?(Path.join(src_folder(project), &1)))
-    |> Stream.reject(&String.starts_with?(&1, "."))
-    |> Stream.reject(&(&1 == "tmp"))
+  defp all_changed_components(project) do
+    case changed_components(project) do
+      [_ | _] = changed ->
+        changed
+
+      _other ->
+        project
+        |> src_folder()
+        |> File.ls!()
+        |> Stream.filter(&File.dir?(Path.join(src_folder(project), &1)))
+        |> Stream.reject(&String.starts_with?(&1, "."))
+        |> Stream.reject(&(&1 == "tmp"))
+    end
   end
 
   defp standard_components(components) do
@@ -527,8 +541,43 @@ defmodule AircloakCI.LocalProject do
   end
 
   defp include_component?(_component, :all), do: true
-
   defp include_component?(component, {:except, blacklisted}), do: not Enum.member?(blacklisted, component)
-
   defp include_component?(component, {:only, whitelisted}), do: Enum.member?(whitelisted, component)
+
+  defp changed_components(%__MODULE__{type: :pull_request} = project) do
+    changed_components =
+      project
+      |> changed_root_items()
+      |> Enum.flat_map(&resolve_changed_components/1)
+      |> Enum.dedup()
+
+    if Enum.member?(changed_components, :all), do: :all, else: changed_components
+  catch
+    type, error ->
+      Logger.error(Exception.format(type, error, __STACKTRACE__))
+      :all
+  end
+
+  defp changed_components(_other), do: :all
+
+  defp changed_root_items(project) do
+    "git diff --name-status HEAD origin/#{project.base_branch}"
+    |> CmdRunner.run_with_output!(cd: src_folder(project))
+    |> String.trim()
+    |> String.split("\n")
+    |> Enum.reject(&(&1 == ""))
+    |> Stream.map(&String.split/1)
+    |> Stream.map(&Enum.drop(&1, 1))
+    |> Stream.map(&(&1 |> Path.split() |> hd()))
+    |> Enum.dedup()
+  end
+
+  defp resolve_changed_components("cloak"), do: ~w(cloak integration_tests system_test)
+  defp resolve_changed_components("air"), do: ~w(air integration_tests system_test)
+  defp resolve_changed_components("central"), do: ~w(central integration_tests system_test)
+  defp resolve_changed_components("bom"), do: ~w(bom air cloak)
+  defp resolve_changed_components("ci"), do: ~w(ci)
+  defp resolve_changed_components("integration_tests"), do: ~w(integration_tests)
+  defp resolve_changed_components("system_test"), do: ~w(system_test)
+  defp resolve_changed_components(_other), do: [:all]
 end
