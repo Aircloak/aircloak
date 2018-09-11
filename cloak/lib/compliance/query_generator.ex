@@ -391,7 +391,17 @@ defmodule Cloak.Compliance.QueryGenerator do
   # Simple generators
   # -------------------------------------------------------------------
 
+  @keywords ~w(
+    select show tables columns from inner outer left right full join on cross where and not or cast bucket
+    align like ilike escape in is between order group by nulls asc desc as null true false distinct all extract trim
+    both leading trailing substring for having limit offset sample_users
+  )
+
   defp name(complexity) do
+    reject(fn -> do_name(complexity) end, &(String.downcase(&1) in @keywords))
+  end
+
+  defp do_name(complexity) do
     complexity
     |> many1(fn _ -> Enum.random(?a..?z) end)
     |> to_string()
