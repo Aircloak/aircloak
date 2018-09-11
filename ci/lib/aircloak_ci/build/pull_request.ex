@@ -91,9 +91,10 @@ defmodule AircloakCI.Build.PullRequest do
   end
 
   defp maybe_start_system_test(state) do
-    if check_standard_tests(state) == :ok and check_approved(state) == :ok,
-      do: Job.SystemTest.start_if_possible(state),
-      else: state
+    if check_standard_tests(state) == :ok and check_approved(state) == :ok and
+         LocalProject.run_system_test?(state.project),
+       do: Job.SystemTest.start_if_possible(state),
+       else: state
   end
 
   defp report_status(state) do
@@ -185,7 +186,7 @@ defmodule AircloakCI.Build.PullRequest do
   end
 
   defp system_test_outcome(state) do
-    if LocalProject.system_test?(state.project),
+    if LocalProject.run_system_test?(state.project),
       do: LocalProject.job_outcome(state.project, "system_test") || :pending,
       else: :ok
   end

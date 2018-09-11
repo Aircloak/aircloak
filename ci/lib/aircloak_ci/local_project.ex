@@ -370,8 +370,13 @@ defmodule AircloakCI.LocalProject do
   end
 
   @doc "Returns true if the project includes the system test component."
-  @spec system_test?(t) :: boolean
-  def system_test?(project), do: commands_available?(project, "system_test", :system_test)
+  @spec system_test_available?(t) :: boolean
+  def system_test_available?(project), do: commands_available?(project, "system_test", :system_test)
+
+  @doc "Returns true if system tests exist and have been changed."
+  @spec run_system_test?(t) :: boolean
+  def run_system_test?(project),
+    do: system_test_available?(project) and Enum.member?(all_changed_components(project), "system_test")
 
   @doc "Returns true if compliance tests exist and have been changed."
   @spec run_compliance?(t) :: boolean
