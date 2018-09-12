@@ -194,7 +194,11 @@ defmodule Cloak.DataSource.Table do
           {tables ++ load_tables(data_source, connection, table), errors}
         rescue
           error in ExecutionError ->
-            message = "Load error for table `#{table_id}`: #{Exception.message(error)}."
+            message =
+              "Load error for table `#{table_id}`: #{Exception.message(error)}. " <>
+                "Please check that the specified database table exists, it has the correct spelling, " <>
+                "and that the specified database user has sufficient rights to access it."
+
             Logger.error("Data source `#{data_source.name}`: #{message}")
             {tables, errors ++ [message]}
         end
