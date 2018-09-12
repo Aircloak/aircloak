@@ -39,7 +39,7 @@ defmodule Cloak.DataSource.SAPIQ do
   defdelegate disconnect(connection), to: ODBC
 
   @impl Driver
-  def load_tables(connection, table), do: ODBC.load_tables(connection, update_in(table.db_name, &~s/"#{&1}"/))
+  defdelegate load_tables(connection, table), to: ODBC
 
   @impl Driver
   defdelegate select(connection, sql_query, result_processor), to: ODBC
