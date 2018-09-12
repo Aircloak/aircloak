@@ -37,23 +37,17 @@ defmodule Cloak.DataSource.SAPHanaTest do
     end
   end
 
-  test(
-    "default nvarchar decoding",
-    context,
-    do:
-      assert_query(context.data_source, "select value from strings", %{
-        rows: [%{row: ["a string value"]}]
-      })
-  )
+  test "default nvarchar decoding", context do
+    assert_query(context.data_source, "select value from strings", %{
+      rows: [%{row: ["a string value"]}]
+    })
+  end
 
-  test(
-    "default varchar decoding",
-    context,
-    do:
-      assert_query(context.data_source, "select cast(value as text) from varchars", %{
-        rows: [%{row: ["a string value"]}]
-      })
-  )
+  test "default varchar decoding", context do
+    assert_query(context.data_source, "select cast(value as text) from varchars", %{
+      rows: [%{row: ["a string value"]}]
+    })
+  end
 
   defp schema(), do: Cloak.DataSource.SAPHana.default_schema()
 
