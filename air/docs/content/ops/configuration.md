@@ -400,7 +400,14 @@ These options are mutually exclusive.
 
 The `db_name` is the name of the table in the underlying database. In most situations you can use the same name
 (in which case the field can be omitted), but the distinction allows some special scenarios, such as exposing
-a table under a simpler name, or exposing the same database table multiple times under different names.
+a table under a simpler name, or exposing the same database table multiple times under different names. Note that if the
+name of the table in the underlying database requires quoting (for example because it contains spaces), you might need
+to quote the name in this configuration file as well. For example, for a `postgresql` data source and a table called
+`user data` defined in a schema called `user schema` you would write the following:
+
+```
+"db_name": "\"user data\".\"user schema\""
+```
 
 If the `query` field is present instead, a virtual table is created, similar to an SQL view. The provided query can gather
 data from multiple tables, filter what columns are exposed and pre-process, pre-filter or pre-aggregate the data. The
