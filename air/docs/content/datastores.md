@@ -177,7 +177,7 @@ The following constructs are not natively supported on this data source and will
 - `median`
 
 
-## Database specific notes
+## Database-specific notes
 
 This section provides additional notes specific for each supported database.
 

@@ -366,7 +366,7 @@ Some of these drivers use the ODBC protocol to talk to the database. These drive
 Since they rely on ODBC, they accept some additional connection parameters:
 
   - `encoding` which has possible values of "latin1", "unicode", "utf8", "utf16", "utf32", "utf16-big", "utf16-little", "utf32-big", "utf32-little".
-  - `odbc_parameters` - ODBC specific parameters for the ODBC driver which is used to talk to the database.
+  - `odbc_parameters` - ODBC-specific parameters for the ODBC driver which is used to talk to the database.
 
 These parameters are optional, and are only required for particular installations, where the default values do not suffice.
 
@@ -411,7 +411,7 @@ to quote the name in this configuration file as well. For example, for a `postgr
 
 If the `query` field is present instead, a virtual table is created, similar to an SQL view. The provided query can gather
 data from multiple tables, filter what columns are exposed and pre-process, pre-filter or pre-aggregate the data. The
-supported SQL features are the same as in other Aircloak queries, but the anonymization specific restrictions (like
+supported SQL features are the same as in other Aircloak queries, but the anonymization-specific restrictions (like
 requiring a numerical range to have an upper and lower bound, for example) do not apply.
 An example configuration for a virtual table would look like this:
 
