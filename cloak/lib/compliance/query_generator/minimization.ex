@@ -11,7 +11,7 @@ defmodule Cloak.Compliance.QueryGenerator.Minimization do
   @spec minimize(QueryGenerator.ast(), (QueryGenerator.ast() -> boolean)) :: QueryGenerator.ast()
   def minimize(ast, fun) do
     ast
-    |> find_minimal_subquery(fun)
+    |> collapse_subqueries(fun)
     |> drop_clauses(fun)
     |> simplify_expressions(fun)
   end
@@ -20,13 +20,43 @@ defmodule Cloak.Compliance.QueryGenerator.Minimization do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp collapse_subqueries(query, fun) do
+    case Lens.one!(from(), query) do
+      {:table, _, _} ->
+        query
+
+      {:join, nil, [left, right, _on]} ->
+        cond do
+          fun.(modified = put_in(query, [from()], left)) -> collapse_subqueries(modified, fun)
+          fun.(modified = put_in(query, [from()], right)) -> collapse_subqueries(modified, fun)
+          true -> query
+        end
+
+      {:as, name, [{:subquery, nil, [subquery]}]} ->
+        if fun.(subquery) do
+          collapse_subqueries(subquery, fun)
+        else
+          modified =
+            collapse_subqueries(subquery, fn ast ->
+              fun.(put_in(query, [from()], {:as, name, [{:subquery, nil, [ast]}]}))
+            end)
+
+          put_in(query, [from()], {:as, name, [{:subquery, nil, [modified]}]})
+        end
+    end
+  end
+
+  deflensp from() do
+    Lens.index(2) |> Lens.index(1) |> Lens.index(2) |> Lens.at(0)
+  end
+
   defp drop_clauses({type, value, clauses}, fun) do
     clauses
     |> Enum.with_index()
     |> Enum.reverse()
     |> Enum.reduce({type, value, clauses}, fn {clause, index}, result ->
       cond do
-        removable?(clause) ->
+        removable?(type, clause) ->
           removed = remove_at(result, index)
           if fun.(removed), do: removed, else: result
 
@@ -66,9 +96,10 @@ defmodule Cloak.Compliance.QueryGenerator.Minimization do
     end)
   end
 
-  defp removable?({type, _, _}), do: type in [:where, :having, :offset, :limit, :order_by, :sample_users]
+  defp removable?(parent, _) when parent in [:select, :order_by], do: true
+  defp removable?(_parent, {type, _, _}), do: type in [:where, :having, :offset, :limit, :order_by, :sample_users]
 
-  defp minimizable?({type, _, _}), do: type in [:query, :subquery, :join, :from, :as]
+  defp minimizable?({type, _, _}), do: type in [:query, :subquery, :join, :from, :as, :select, :order_by]
 
   defp remove_at({type, value, clauses}, index) do
     {type, value, List.delete_at(clauses, index)}
@@ -76,23 +107,5 @@ defmodule Cloak.Compliance.QueryGenerator.Minimization do
 
   defp replace_at({type, value, clauses}, index, clause) do
     {type, value, List.replace_at(clauses, index, clause)}
-  end
-
-  defp find_minimal_subquery(ast, fun) do
-    ast
-    |> get_in([nodes_of(:query)])
-    |> Enum.find(ast, fun)
-  end
-
-  deflensp nodes_of(type) do
-    all_nodes() |> Lens.filter(&match?({^type, _, _}, &1))
-  end
-
-  deflensp all_nodes() do
-    Lens.both(subnodes(), Lens.root())
-  end
-
-  deflensp subnodes() do
-    Lens.index(2) |> Lens.all() |> Lens.recur()
   end
 end
