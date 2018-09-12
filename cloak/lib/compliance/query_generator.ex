@@ -325,8 +325,16 @@ defmodule Cloak.Compliance.QueryGenerator do
   end
 
   defp simple_condition(complexity, aggregate?, tables) do
+    frequency(complexity, [
+      {1, equality(complexity, aggregate?, tables)}
+    ])
+  end
+
+  defp equality(complexity, aggregate?, tables) do
     type = type(complexity)
-    {:=, nil, [expression(type, aggregate?, complexity, tables), expression(type, aggregate?, complexity, tables)]}
+    kind = Enum.random([:=, :<>])
+
+    {kind, nil, [expression(type, aggregate?, complexity, tables), expression(type, aggregate?, complexity, tables)]}
   end
 
   defp group_by(%{aggregate?: false}, _select), do: empty()
