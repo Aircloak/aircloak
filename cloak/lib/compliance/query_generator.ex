@@ -192,7 +192,7 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp select_elements(scaffold, tables) do
     {elements, columns} = many1(scaffold.complexity, &select_element(scaffold.aggregate?, &1, tables)) |> Enum.unzip()
-    {elements, [%{user_id: nil, columns: Enum.concat(columns)}]}
+    {elements, [%{user_id: nil, columns: columns}]}
   end
 
   defp select_element(aggregate?, complexity, tables) do
@@ -212,7 +212,8 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp expression(type, false, complexity, tables) do
     frequency(complexity, [
-      {2, constant(type, complexity)},
+      {1, constant(type, complexity)},
+      {1, column(type, complexity, tables)},
       {1, function(type, complexity, tables)}
     ])
   end
@@ -235,6 +236,21 @@ defmodule Cloak.Compliance.QueryGenerator do
     do: {:datetime, Timex.shift(~N[2018-01-01T12:12:34], days: uniform(complexity)), []}
 
   defp constant(:interval, complexity), do: {:interval, Timex.Duration.from_hours(uniform(complexity)), []}
+
+  defp column(type, complexity, tables) do
+    for table <- tables, column <- table.columns do
+      Map.merge(column, %{table: table.name})
+    end
+    |> Enum.filter(&(&1.type == type))
+    |> case do
+      [] ->
+        constant(type, complexity)
+
+      candidates ->
+        column = Enum.random(candidates)
+        {:column, nil, [{:unquoted, column.table, []}, {:unquoted, column.name, []}]}
+    end
+  end
 
   defp from(scaffold) do
     {element, tables} = from_element(scaffold)
