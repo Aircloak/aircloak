@@ -1,0 +1,11 @@
+{
+  "driver": "drill_odbc",
+  "name": "drill",
+  "parameters": {
+    "hostname": "drill1.14",
+    "username": "postgres",
+    "database": "cloak_compliance"
+  },
+  "tables": {
+  }
+}
