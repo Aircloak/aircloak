@@ -3,8 +3,6 @@ use std::mem::transmute;
 use std::result::Result;
 use std::str::from_utf8;
 
-use c_vec::CVec;
-
 use odbc::ffi::SqlDataType::*;
 use odbc::*;
 
@@ -42,7 +40,7 @@ impl<'a> ConnectionState<'a> {
         })
     }
 
-    pub fn connect(&'a mut self, connection_string: &CVec<u8>) -> Result<(), Box<Error>> {
+    pub fn connect(&'a mut self, connection_string: &Vec<u8>) -> Result<(), Box<Error>> {
         self.stmt = None;
         self.conn = None;
         let connection_string = from_utf8(connection_string.as_ref())?;
@@ -70,7 +68,7 @@ impl<'a> ConnectionState<'a> {
         buf.extend_from_slice(&bytes);
     }
 
-    pub fn execute(&'a mut self, statement_text: &CVec<u8>) -> Result<(), Box<Error>> {
+    pub fn execute(&'a mut self, statement_text: &Vec<u8>) -> Result<(), Box<Error>> {
         self.stmt = None;
         self.field_types.clear();
 

@@ -64,7 +64,7 @@ defmodule Cloak.DataSource.RODBC do
 
   def driver_info(_connection), do: nil
 
-  def supports_connection_sharing?(), do: true
+  def supports_connection_sharing?(), do: false
 
   def cast_to_text?(), do: false
 

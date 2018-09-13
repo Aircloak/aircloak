@@ -28,7 +28,7 @@ defmodule Cloak.DataSource.RODBC.Driver do
 
   @doc "Creats a new port driver instance."
   @spec open() :: port()
-  def open(), do: :erlang.open_port({:spawn_driver, @port_name}, [])
+  def open(), do: :erlang.open_port({:spawn_driver, @port_name}, [:binary])
 
   @doc "Closes the port driver instance."
   @spec close(port()) :: boolean
@@ -37,13 +37,13 @@ defmodule Cloak.DataSource.RODBC.Driver do
   @doc "Connects to a data source."
   @spec connect(port(), String.t()) :: :ok | {:error, String.t()}
   def connect(port, connection_string),
-    do: port |> :erlang.port_control(@command_connect, connection_string) |> decode_response()
+    do: port |> port_control(@command_connect, connection_string) |> decode_response()
 
   @doc "Executes an SQL statement on the connected backend."
   @spec execute(port(), String.t()) :: :ok | {:error, String.t()}
   def execute(port, statement) do
     Logger.debug(fn -> "Executing SQL query: #{statement}" end)
-    port |> :erlang.port_control(@command_execute, statement) |> decode_response()
+    port |> port_control(@command_execute, statement) |> decode_response()
   end
 
   @doc "Returns all rows selected by the previous statement."
@@ -57,12 +57,12 @@ defmodule Cloak.DataSource.RODBC.Driver do
   @doc "Enables transfer of wide strings as binary data (avoids validation & conversion of string characters)."
   @spec set_wstr_as_bin(port()) :: :ok | {:error, String.t()}
   def set_wstr_as_bin(port),
-    do: port |> :erlang.port_control(@command_set_flag, <<@flag_wstr_as_bin>>) |> decode_response()
+    do: port |> port_control(@command_set_flag, <<@flag_wstr_as_bin>>) |> decode_response()
 
   @doc "Returns {name, type} information about the columns selected by the previous statement."
   @spec get_columns(port()) :: {:ok, [{String.t(), String.t()}]} | {:error, String.t()}
   def get_columns(port) do
-    with {:ok, data} <- port |> :erlang.port_control(@command_get_columns, "") |> decode_response() do
+    with {:ok, data} <- port |> port_control(@command_get_columns, "") |> decode_response() do
       columns = data |> decode_data([]) |> Enum.chunk_every(2) |> Enum.map(&List.to_tuple/1)
       {:ok, columns}
     end
@@ -82,6 +82,14 @@ defmodule Cloak.DataSource.RODBC.Driver do
 
   @status_err ?E
   @status_ok ?K
+
+  defp port_control(port, command, data) do
+    "" = :erlang.port_control(port, command, data)
+
+    receive do
+      {^port, {:data, data}} -> data
+    end
+  end
 
   defp decode_response(""), do: :ok
   defp decode_response(<<@status_err, message::binary>>), do: {:error, message}
@@ -110,7 +118,7 @@ defmodule Cloak.DataSource.RODBC.Driver do
        ),
        do: decode_data(data, [str | acc])
 
-  defp fetch_row(port), do: port |> :erlang.port_control(@command_fetch, "") |> decode_response()
+  defp fetch_row(port), do: port |> port_control(@command_fetch, "") |> decode_response()
 
   defp fetch_batch(_port, _row_mapper, 0, [], 0), do: {:ok, []}
 

@@ -1,5 +1,4 @@
 use std::os::raw::c_void;
-use std::ptr;
 
 extern crate c_vec;
 extern crate libc;
@@ -28,10 +27,30 @@ const STATUS_ERROR: u8 = b'E';
 mod connection_state;
 use connection_state::*;
 
+struct PortState<'a> {
+    conn_state: ConnectionState<'a>,
+    port: ErlDrvPort,
+    // We keep call state globally per-port, to avoid extra memory allocations.
+    // This means that we require to have sequential `port_control` / `receive` operations
+    // in the parent Erlang process.
+    command: u32,
+    input: Vec<u8>,
+    output: Vec<u8>,
+}
+
 extern "C" fn start(port: ErlDrvPort, _command: *mut c_char) -> ErlDrvData {
     unsafe { set_port_control_flags(port, PORT_CONTROL_FLAG_BINARY as c_int) };
     match ConnectionState::new() {
-        Ok(state) => Box::into_raw(Box::new(state)) as ErlDrvData,
+        Ok(conn_state) => {
+            let port_state = PortState {
+                conn_state,
+                port,
+                command: 0,
+                input: Vec::<u8>::new(),
+                output: Vec::<u8>::new(),
+            };
+            Box::into_raw(Box::new(port_state)) as ErlDrvData
+        }
         Err(Some(error)) => {
             println!("Error during port state initialization: {}", error);
             ERL_DRV_ERROR_GENERAL as ErlDrvData
@@ -44,33 +63,69 @@ extern "C" fn start(port: ErlDrvPort, _command: *mut c_char) -> ErlDrvData {
 }
 
 extern "C" fn stop(drv_data: ErlDrvData) {
-    unsafe { Box::from_raw(drv_data as *mut ConnectionState) };
+    unsafe { Box::from_raw(drv_data as *mut PortState) };
 }
 
-unsafe fn reply(
-    message: &[u8],
-    reply_buffer: *mut *mut c_char,
-    reply_length: ErlDrvSizeT,
-) -> ErlDrvSSizeT {
-    if message.len() < reply_length {
-        ptr::copy(message.as_ptr(), *reply_buffer as *mut u8, message.len());
-    } else {
-        let binary = driver_alloc_binary(message.len());
-        if binary as usize == 0 {
-            println!(
-                "Error when allocating binary of size {}: Out of memory!",
-                message.len()
-            );
-            return 0;
-        }
-        ptr::copy(
-            message.as_ptr() as *mut i8,
-            &mut (*binary).orig_bytes[0],
-            message.len(),
-        );
-        *reply_buffer = binary as *mut c_char;
+unsafe extern "C" fn ready_async(drv_data: ErlDrvData, _async_data: ErlDrvThreadData) {
+    let port_state = &mut *(drv_data as *mut PortState);
+    let output = &mut port_state.output;
+    if driver_output(port_state.port, output.as_ptr() as *mut i8, output.len()) == -1 {
+        panic!("Driver output failed!");
     }
-    message.len() as isize
+}
+
+extern "C" fn async_free(_async_data: *mut c_void) {}
+
+extern "C" fn async_invoke(async_data: *mut c_void) {
+    let port_state = unsafe { &mut *(async_data as *mut PortState) };
+    let mut output = &mut port_state.output;
+    let input = &port_state.input;
+    let command = port_state.command;
+    let conn_state = &mut port_state.conn_state;
+
+    match command {
+        COMMAND_CONNECT => if let Err(error) = conn_state.connect(&input) {
+            output.push(STATUS_ERROR);
+            output.extend_from_slice(error.to_string().as_bytes());
+        },
+
+        COMMAND_EXECUTE => if let Err(error) = conn_state.execute(&input) {
+            output.push(STATUS_ERROR);
+            output.extend_from_slice(error.to_string().as_bytes());
+        },
+
+        COMMAND_FETCH => if let Err(error) = conn_state.fetch(&mut output) {
+            output.clear();
+            output.push(STATUS_ERROR);
+            output.extend_from_slice(error.to_string().as_bytes());
+        },
+
+        COMMAND_SET_FLAG => {
+            let flag = input[0];
+            match flag {
+                FLAG_WSTR_AS_BIN => {
+                    conn_state.wstr_as_bin = true;
+                }
+                _ => {
+                    let error = format!("Invalid flag set: {}", flag);
+                    output.push(STATUS_ERROR);
+                    output.extend_from_slice(error.as_bytes());
+                }
+            }
+        }
+
+        COMMAND_GET_COLUMNS => if let Err(error) = conn_state.get_columns(&mut output) {
+            output.clear();
+            output.push(STATUS_ERROR);
+            output.extend_from_slice(error.to_string().as_bytes());
+        },
+
+        _ => {
+            let error = format!("Invalid command received: {}", command);
+            output.push(STATUS_ERROR);
+            output.extend_from_slice(error.as_bytes());
+        }
+    };
 }
 
 extern "C" fn control(
@@ -78,63 +133,24 @@ extern "C" fn control(
     command: c_uint,
     buffer: *mut c_char,
     length: ErlDrvSizeT,
-    reply_buffer: *mut *mut c_char,
-    reply_length: ErlDrvSizeT,
+    _reply_buffer: *mut *mut c_char,
+    _reply_length: ErlDrvSizeT,
 ) -> ErlDrvSSizeT {
-    let state = unsafe { &mut *(drv_data as *mut ConnectionState) };
-    let mut message = Vec::<u8>::new();
+    let port_state = unsafe { &mut *(drv_data as *mut PortState) };
+    let buffer = unsafe { CVec::new(buffer as *mut u8, length) };
 
-    match command {
-        COMMAND_CONNECT => {
-            let buffer = unsafe { CVec::new(buffer as *mut u8, length) };
-            if let Err(error) = state.connect(&buffer) {
-                message.push(STATUS_ERROR);
-                message.extend_from_slice(error.to_string().as_bytes());
-            }
-        },
+    port_state.output.clear();
+    port_state.command = command;
+    port_state.input.clear();
+    port_state.input.extend_from_slice(buffer.as_ref());
 
-        COMMAND_EXECUTE => {
-            let buffer = unsafe { CVec::new(buffer as *mut u8, length) };
-            if let Err(error) = state.execute(&buffer) {
-                message.push(STATUS_ERROR);
-                message.extend_from_slice(error.to_string().as_bytes());
-            }
-        },
+    let async_result = unsafe { driver_async(port_state.port, 0 as *mut u32,
+            Some(async_invoke), drv_data as *mut c_void, Some(async_free)) };
+    if async_result == -1 {
+        panic!("Driver async failed!");
+    }
 
-        COMMAND_FETCH => if let Err(error) = state.fetch(&mut message) {
-            message.clear();
-            message.push(STATUS_ERROR);
-            message.extend_from_slice(error.to_string().as_bytes());
-        },
-
-        COMMAND_SET_FLAG => {
-            let flag = unsafe { *buffer as u8 };
-            match flag {
-                FLAG_WSTR_AS_BIN => {
-                    state.wstr_as_bin = true;
-                },
-                _ => {
-                    let error = format!("Invalid flag set: {}", flag);
-                    message.push(STATUS_ERROR);
-                    message.extend_from_slice(error.as_bytes());
-                },
-            }
-        },
-
-        COMMAND_GET_COLUMNS => if let Err(error) = state.get_columns(&mut message) {
-            message.clear();
-            message.push(STATUS_ERROR);
-            message.extend_from_slice(error.to_string().as_bytes());
-        },
-
-        _ => {
-            let error = format!("Invalid command received: {}", command);
-            message.push(STATUS_ERROR);
-            message.extend_from_slice(error.as_bytes());
-        },
-    };
-
-    unsafe { reply(&message, reply_buffer, reply_length) }
+    0
 }
 
 static mut DRIVER_ENTRY: ErlDrvEntry = ErlDrvEntry {
@@ -150,7 +166,7 @@ static mut DRIVER_ENTRY: ErlDrvEntry = ErlDrvEntry {
     handle: 0 as *mut c_void,
     timeout: None,
     outputv: None,
-    ready_async: None,
+    ready_async: Some(ready_async),
     flush: None,
     call: None,
     event: None,
