@@ -3,7 +3,7 @@
   "name": "drill_rodbc",
   "parameters": {
     "hostname": "drill1.14",
-    "database": "mongo",
+    "database": "mongo.cloak_compliance_drill_rodbc",
     "mongo": {
       "hostname": "mongo3.4",
       "username": "root",

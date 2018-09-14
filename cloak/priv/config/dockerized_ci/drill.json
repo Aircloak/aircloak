@@ -1,9 +1,10 @@
 {
   "driver": "drill_odbc",
   "name": "drill",
+  "encoded": false,
   "parameters": {
     "hostname": "drill1.14",
-    "database": "mongo",
+    "database": "mongo.cloak_compliance_drill_odbc",
     "mongo": {
       "hostname": "mongo3.4",
       "username": "root",
