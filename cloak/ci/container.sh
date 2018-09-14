@@ -40,7 +40,7 @@ function ensure_database_containers {
   ensure_supporting_container sqlserver2017 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' \
     microsoft/mssql-server-linux:2017-latest
 
-  ensure_supporting_container drill1.14 -i drill/apache-drill:1.14.0 bin/bash
+  ensure_supporting_container drill1.14 -p 8047:8047 -i drill/apache-drill:1.14.0 bin/bash
 }
 
 mount $(ci_tmp_folder)/cloak/.cargo /root/.cargo

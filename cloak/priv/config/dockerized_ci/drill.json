@@ -3,8 +3,12 @@
   "name": "drill",
   "parameters": {
     "hostname": "drill1.14",
-    "username": "postgres",
-    "database": "cloak_compliance"
+    "database": "mongo",
+    "mongo": {
+      "hostname": "mongo3.4",
+      "username": "root",
+      "database": "cloak_compliance_drill_odbc"
+    }
   },
   "tables": {
   }
