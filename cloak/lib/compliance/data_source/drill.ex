@@ -10,7 +10,13 @@ defmodule Compliance.DataSource.Drill do
 
   @impl Connector
   def setup(%{parameters: params}) do
-    Connector.await_port(params.hostname, Map.get(params, :port, 8047))
+    Application.ensure_all_started(:httpoison)
+
+    port = Map.get(params, :management_port, 8047)
+    mongo_port = Map.get(params.mongo, :port, 27017)
+    Connector.await_port(params.hostname, port)
+    configure_mongo_in_drill(params.hostname, port, params.mongo.hostname, mongo_port)
+
     MongoDB.setup(%{parameters: params.mongo})
   end
 
@@ -31,4 +37,19 @@ defmodule Compliance.DataSource.Drill do
 
   @impl Connector
   defdelegate terminate(conn), to: MongoDB
+
+  defp configure_mongo_in_drill(drill_hostname, drill_port, mongo_hostname, mongo_port) do
+    config =
+      Poison.encode!(%{
+        type: "mongo",
+        connection: "mongodb://#{mongo_hostname}:#{mongo_port}",
+        enabled: true
+      })
+
+    data = "name=mongo&config=#{URI.encode_www_form(config)}"
+
+    HTTPoison.post!("http://#{drill_hostname}:#{drill_port}/storage/mongo", data, [
+      {"Content-Type", "application/x-www-form-urlencoded"}
+    ])
+  end
 end
