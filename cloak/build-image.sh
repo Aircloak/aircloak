@@ -1,72 +1,85 @@
 #!/bin/bash
-
 set -eo pipefail
 
-# build from the top-level folder of the project
 ROOT_DIR=$(cd $(dirname ${BASH_SOURCE[0]})/.. && pwd)
+. $ROOT_DIR/docker/docker_helper.sh
 
-cd $ROOT_DIR/cloak
-make odbc_drivers
+function system_version {
+  cat $ROOT_DIR/VERSION
+}
 
-cd $ROOT_DIR
+function build_builder_image {
+  cd $ROOT_DIR
+  if [ "$BUILD_BASE" != "false" ]; then PREVENT_OLD_IMAGE_REMOVAL=true common/docker/rust/build-image.sh; fi
+}
 
-. docker/docker_helper.sh
+function build_release {
+  cd $ROOT_DIR/cloak
+  make odbc_drivers
+  cd $ROOT_DIR
 
-# This will build a dockerized version of the cloak.
-#
-# To reduce the final image size, we build in a few steps:
-#
-# 1. We start the base Elixir image, and fetch and build the dependencies. The result
-#    is stored in the ../tmp folder which is mounted.
-# 2. Then we build the release image, where sources as well as deps
-#    are copied, and the OTP release is built.
-# 3. Finally, we briefly start the release image, fetch the release locally,
-#    and create the release container. Here, we just copy the release, without
-#    the need to install Erlang.
-#
-# This approach allows us to cache dependencies locally. Hence, during the build
-# we fetch/build only the changed dependencies. The release itself is built in
-# the image so we rely on the docker layers caching. If neither sources, nor deps
-# have been changed, the existing image will be reused.
+  # build the release
+  docker run --rm -i \
+    -v $(pwd)/VERSION:/aircloak/VERSION \
+    -v $(pwd)/common:/aircloak/common \
+    -v $(pwd)/cloak:/aircloak/cloak \
+    -v $(pwd)/$(cloak_cache_folder)/deps:/aircloak/cloak/deps \
+    -v $(pwd)/$(cloak_cache_folder)/_build:/aircloak/cloak/_build \
+    -v $(pwd)/$(cloak_cache_folder)/.cargo:/root/.cargo \
+    -v $(pwd)/$(cloak_cache_folder)/priv/native:/aircloak/cloak/priv/native \
+    aircloak/rust:$(git_head_image_tag) \
+    /bin/bash -c '
+      set -eo pipefail
+      . ~/.asdf/asdf.sh
+      cd /aircloak/cloak
+      MIX_ENV=prod ./fetch_deps.sh --only prod
+      make release
+    '
+}
 
-if [ "$BUILD_BASE" != "false" ]; then PREVENT_OLD_IMAGE_REMOVAL=true common/docker/rust/build-image.sh; fi
-
-# build deps
-echo "Building dependencies"
-docker run --rm -i \
-  -v $(pwd)/VERSION:/aircloak/VERSION \
-  -v $(pwd)/common:/aircloak/common \
-  -v $(pwd)/cloak:/aircloak/cloak \
-  -v $(pwd)/$(cloak_cache_folder)/deps:/aircloak/cloak/deps \
-  -v $(pwd)/$(cloak_cache_folder)/_build:/aircloak/cloak/_build \
-  -v $(pwd)/$(cloak_cache_folder)/.cargo:/root/.cargo \
-  aircloak/rust:$(rust_version) \
-  /bin/bash -c ". ~/.asdf/asdf.sh && cd /aircloak/cloak && MIX_ENV=prod ./fetch_deps.sh --only prod && MIX_ENV=prod mix compile"
-
-# build the release
-echo "Building the release"
-PREVENT_OLD_IMAGE_REMOVAL=true build_aircloak_image \
-  cloak_release_builder \
-  cloak/docker/release-builder.dockerfile \
-  cloak/docker/.dockerignore-release-builder
-
-current_version=$(cat VERSION)
-
-# Start the instance of the release image and copy the release back to the disk
-echo "Building the release image"
-cd $ROOT_DIR/cloak
-mkdir -p artifacts/rel
-rm -rf artifacts/rel/*
-builder_container_id=$(docker create $(aircloak_image_name cloak_release_builder):latest)
-docker cp $builder_container_id:/aircloak/cloak/_build/prod/rel/cloak/releases/$current_version/cloak.tar.gz artifacts/rel/
-docker stop $builder_container_id > /dev/null
-docker rm -v $builder_container_id > /dev/null
-cd artifacts/rel && \
-  tar -xzf cloak.tar.gz && \
+function build_release_image {
+  # copy the generated release to the artifacts folder
+  cd $ROOT_DIR
+  mkdir -p cloak/artifacts/rel
+  rm -rf cloak/artifacts/rel/*
+  cp -rp ./$(cloak_cache_folder)/_build/prod/rel/cloak/releases/$(system_version)/cloak.tar.gz cloak/artifacts/rel
+  cd cloak/artifacts/rel
+  tar -xzf cloak.tar.gz
   rm cloak.tar.gz
 
-cd $ROOT_DIR
-SYSTEM_VERSION=$current_version PREVENT_OLD_IMAGE_REMOVAL=true \
-  build_aircloak_image cloak cloak/docker/release.dockerfile cloak/docker/.dockerignore-release
+  # build the release image
+  cd $ROOT_DIR
+  SYSTEM_VERSION=$(system_version) PREVENT_OLD_IMAGE_REMOVAL=true \
+    build_aircloak_image cloak cloak/docker/release.dockerfile cloak/docker/.dockerignore-release
 
-remove_old_git_head_image_tags "aircloak"
+  remove_old_git_head_image_tags "aircloak"
+}
+
+function build_all {
+  build_builder_image
+  build_release
+  build_release_image
+}
+
+case ${1:-all} in
+	all)
+    build_all
+    ;;
+
+  builder_image)
+    build_builder_image
+    ;;
+
+  release)
+    build_release
+    ;;
+
+  release_image)
+    build_release_image
+    ;;
+
+  *)
+    echo $0": unrecognized option:" $1
+    exit 1
+	  ;;
+esac

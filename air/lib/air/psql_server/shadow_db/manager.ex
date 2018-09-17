@@ -56,10 +56,10 @@ defmodule Air.PsqlServer.ShadowDb.Manager do
   @doc "Returns true if shadow db server is available, false otherwise."
   @spec db_server_available?() :: boolean
   def db_server_available?() do
-    Task.async(fn -> Connection.open!(Air.PsqlServer.ShadowDb.connection_params().name) end)
+    Task.async(fn -> Connection.open(Air.PsqlServer.ShadowDb.connection_params().name) end)
     |> Task.yield()
     |> case do
-      {:ok, _pid} -> true
+      {:ok, {:ok, _pid}} -> true
       _ -> false
     end
   end
