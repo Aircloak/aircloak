@@ -75,8 +75,9 @@ defmodule Cloak.DataSource.RODBC do
   defp driver_connect!(conn_params, driver_params) do
     port = Driver.open()
 
+    if Keyword.get(driver_params, :wstr_as_bin), do: :ok = Driver.set_wstr_as_bin(port)
+
     with :ok <- Driver.connect(port, to_connection_string(conn_params)) do
-      if Keyword.get(driver_params, :wstr_as_bin), do: :ok = Driver.set_wstr_as_bin(port)
       port
     else
       {:error, reason} ->

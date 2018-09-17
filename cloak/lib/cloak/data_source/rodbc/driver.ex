@@ -3,36 +3,30 @@ defmodule Cloak.DataSource.RODBC.Driver do
 
   require Logger
 
-  @port_name 'librodbc'
-
   @command_connect 0
   @command_execute 1
-  @command_fetch 2
+  @command_fetch_rows 2
   @command_set_flag 3
   @command_get_columns 4
+  @command_stop 5
 
   @flag_wstr_as_bin 0
 
   @typep row :: [any]
 
-  @doc "Loads the port driver module."
-  @spec init!() :: :ok
-  def init!() do
-    :ok =
-      Application.app_dir(:cloak, "priv/native")
-      |> to_charlist()
-      |> :erl_ddll.load_driver(@port_name)
-
-    :ok
-  end
-
   @doc "Creats a new port driver instance."
   @spec open() :: port()
-  def open(), do: :erlang.open_port({:spawn_driver, @port_name}, [:binary])
+  def open() do
+    path = Application.app_dir(:cloak, "priv/native/rodbc") |> to_charlist()
+    :erlang.open_port({:spawn_executable, path}, [:binary, :stream, :use_stdio, :eof])
+  end
 
   @doc "Closes the port driver instance."
   @spec close(port()) :: boolean
-  def close(port), do: :erlang.port_close(port)
+  def close(port) do
+    send_command(port, @command_stop, 0)
+    :erlang.port_close(port)
+  end
 
   @doc "Connects to a data source."
   @spec connect(port(), String.t()) :: :ok | {:error, String.t()}
@@ -46,25 +40,26 @@ defmodule Cloak.DataSource.RODBC.Driver do
     port |> port_control(@command_execute, statement) |> decode_response()
   end
 
-  @doc "Returns all rows selected by the previous statement."
-  @spec fetch_all(port(), (row -> row)) :: {:ok, Enumerable.t()} | {:error, String.t()}
-  def fetch_all(port, row_mapper), do: fetch_batch(port, row_mapper, :infinity, [], 0)
-
   @doc "Returns a new batch, with the specified size, from the rows selected by the previous statement."
   @spec fetch_batch(port(), (row -> row), pos_integer) :: {:ok, Enumerable.t()} | {:error, String.t()}
-  def fetch_batch(port, row_mapper, size) when size > 0, do: fetch_batch(port, row_mapper, size, [], 0)
+  def fetch_batch(port, row_mapper, size) when size > 0 do
+    case fetch_rows(port, size) do
+      {:ok, []} -> {:ok, []}
+      {:ok, rows} -> {:ok, Stream.map(rows, row_mapper)}
+      {:error, error} -> {:error, error}
+    end
+  end
 
   @doc "Enables transfer of wide strings as binary data (avoids validation & conversion of string characters)."
   @spec set_wstr_as_bin(port()) :: :ok | {:error, String.t()}
   def set_wstr_as_bin(port),
-    do: port |> port_control(@command_set_flag, <<@flag_wstr_as_bin>>) |> decode_response()
+    do: port |> port_control(@command_set_flag, @flag_wstr_as_bin) |> decode_response()
 
   @doc "Returns {name, type} information about the columns selected by the previous statement."
   @spec get_columns(port()) :: {:ok, [{String.t(), String.t()}]} | {:error, String.t()}
   def get_columns(port) do
-    with {:ok, data} <- port |> port_control(@command_get_columns, "") |> decode_response() do
-      columns = data |> decode_data([]) |> Enum.chunk_every(2) |> Enum.map(&List.to_tuple/1)
-      {:ok, columns}
+    with {:ok, columns} <- port |> port_control(@command_get_columns, "") |> decode_response() do
+      {:ok, Enum.map(columns, &List.to_tuple/1)}
     end
   end
 
@@ -82,54 +77,80 @@ defmodule Cloak.DataSource.RODBC.Driver do
 
   @status_err ?E
   @status_ok ?K
+  @status_row ?R
+  @status_bin ?B
+  @status_table ?T
 
-  defp port_control(port, command, data) do
-    "" = :erlang.port_control(port, command, data)
-
-    receive do
-      {^port, {:data, data}} -> data
-    end
-  end
-
-  defp decode_response(""), do: :ok
+  defp decode_response(<<@status_ok>>), do: :ok
   defp decode_response(<<@status_err, message::binary>>), do: {:error, message}
-  defp decode_response(<<@status_ok, data::binary>>), do: {:ok, data}
+  defp decode_response(<<@status_bin, data::binary>>), do: {:ok, data}
+  defp decode_response(<<@status_row, data::binary>>), do: {:ok, decode_values(data, [])}
 
-  defp decode_data(<<>>, acc), do: :lists.reverse(acc)
-  defp decode_data(<<@type_null, data::binary>>, acc), do: decode_data(data, [nil | acc])
+  defp decode_response(<<@status_table, columns_count::unsigned-little-32, data::binary>>),
+    do: {:ok, data |> decode_values([]) |> Enum.chunk_every(columns_count)}
 
-  defp decode_data(<<@type_i32, num::signed-little-32, data::binary>>, acc), do: decode_data(data, [num | acc])
+  defp decode_values(<<>>, acc), do: :lists.reverse(acc)
+  defp decode_values(<<@type_null, data::binary>>, acc), do: decode_values(data, [nil | acc])
 
-  defp decode_data(<<@type_i64, num::signed-little-64, data::binary>>, acc), do: decode_data(data, [num | acc])
+  defp decode_values(<<@type_i32, num::signed-little-32, data::binary>>, acc),
+    do: decode_values(data, [num | acc])
 
-  defp decode_data(<<@type_f32, num::float-little-32, data::binary>>, acc), do: decode_data(data, [num | acc])
+  defp decode_values(<<@type_i64, num::signed-little-64, data::binary>>, acc),
+    do: decode_values(data, [num | acc])
 
-  defp decode_data(<<@type_f64, num::float-little-64, data::binary>>, acc), do: decode_data(data, [num | acc])
+  defp decode_values(<<@type_f32, num::float-little-32, data::binary>>, acc),
+    do: decode_values(data, [num | acc])
 
-  defp decode_data(
+  defp decode_values(<<@type_f64, num::float-little-64, data::binary>>, acc),
+    do: decode_values(data, [num | acc])
+
+  defp decode_values(
          <<@type_str, len::unsigned-little-32, str::bytes-size(len), data::binary>>,
          acc
        ),
-       do: decode_data(data, [str | acc])
+       do: decode_values(data, [str | acc])
 
-  defp decode_data(
+  defp decode_values(
          <<@type_bin, len::unsigned-little-32, str::bytes-size(len), data::binary>>,
          acc
        ),
-       do: decode_data(data, [str | acc])
+       do: decode_values(data, [str | acc])
 
-  defp fetch_row(port), do: port |> port_control(@command_fetch, "") |> decode_response()
+  defp fetch_rows(port, size), do: port |> port_control(@command_fetch_rows, size) |> decode_response()
 
-  defp fetch_batch(_port, _row_mapper, 0, [], 0), do: {:ok, []}
+  defp port_control(port, command, data) do
+    true = send_command(port, command, data)
 
-  defp fetch_batch(_port, row_mapper, size, acc, size),
-    do: {:ok, acc |> :lists.reverse() |> Stream.map(&(&1 |> decode_data([]) |> row_mapper.()))}
+    receive do
+      {^port, {:data, <<size::unsigned-little-32, data::binary>>}} ->
+        flush_input(port, size - byte_size(data), [data])
 
-  defp fetch_batch(port, row_mapper, size, acc, count) do
-    case fetch_row(port) do
-      :ok -> fetch_batch(port, row_mapper, count, acc, count)
-      {:ok, row} -> fetch_batch(port, row_mapper, size, [row | acc], count + 1)
-      {:error, error} -> {:error, error}
+      {^port, :eof} ->
+        <<@status_err, "Unexpected port eof!">>
     end
+  end
+
+  defp flush_input(_port, 0, buffers),
+    do: buffers |> :lists.reverse() |> :erlang.iolist_to_binary()
+
+  defp flush_input(port, size, buffers) do
+    receive do
+      {^port, {:data, data}} ->
+        flush_input(port, size - byte_size(data), [data | buffers])
+
+      {^port, :eof} ->
+        <<@status_err, "Unexpected port eof!">>
+    end
+  end
+
+  defp send_command(port, command, data) when is_binary(data) do
+    :erlang.port_command(
+      port,
+      <<command::unsigned-little-32, byte_size(data)::unsigned-little-32, data::binary>>
+    )
+  end
+
+  defp send_command(port, command, data) when is_integer(data) do
+    :erlang.port_command(port, <<command::unsigned-little-32, data::unsigned-little-32>>)
   end
 end
