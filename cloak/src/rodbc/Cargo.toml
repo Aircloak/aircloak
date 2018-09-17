@@ -1,0 +1,14 @@
+[package]
+name = "rodbc"
+version = "0.1.0"
+authors = ["Aircloak GmbH <solutions@aircloak.com>"]
+
+[[bin]]
+name = "rodbc"
+
+[dependencies]
+odbc = ">= 0.9.8"
+simple-error = "*"
+
+[dependencies.odbc-sys]
+features = ["odbc_version_4"]
