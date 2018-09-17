@@ -8,17 +8,7 @@ cd $ROOT_DIR
 
 . docker/ci_helper.sh system_test
 
-function build_production_images {
-  if [ "$SKIP_DOCKER_BUILD" != "true" ]; then
-    PREVENT_OLD_IMAGE_REMOVAL=true cloak/build-image.sh
-    PREVENT_OLD_IMAGE_REMOVAL=true air/build-image.sh
-  fi
-}
-
 function prepare_for_system_test {
-  # We need to build the production images again, because the SHA might have changed since the images have been built.
-  build_production_images
-
   local container_name="$1"
 
   # starting databases first, so they have the time to boot and initialize before client containers are started
@@ -165,9 +155,55 @@ if [ "$GLOBAL_DB_NAMESPACE" == "" ]; then
   fi
 fi
 
+function handle_build_image {
+  case $1 in
+    builder_image)
+      build_base_images
+      build_builder_images
+      ;;
+
+    release)
+      build_releases
+      ;;
+
+    release_image)
+      build_release_images
+      build_component_image
+      ;;
+
+    all)
+      build_base_images
+      build_builder_images
+      build_releases
+      build_release_images
+      build_component_image
+  esac
+}
+
+function build_builder_images {
+  PREVENT_OLD_IMAGE_REMOVAL=true cloak/build-image.sh builder_image
+  PREVENT_OLD_IMAGE_REMOVAL=true air/build-image.sh builder_image
+}
+
+function build_releases {
+  cloak/build-image.sh release
+  air/build-image.sh release
+}
+
+function build_release_images {
+  cloak/build-image.sh release_image
+  air/build-image.sh release_image
+}
+
 case "$1" in
-  prepare_for_compile)
-    build_production_images
+  build_phases)
+    echo "docker_build builder_image"
+    echo "compile release"
+    echo "docker_build release_image"
+    ;;
+
+  build_image)
+    handle_build_image ${2:-all}
     ;;
 
   prepare_for_system_test)

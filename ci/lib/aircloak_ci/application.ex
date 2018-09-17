@@ -23,7 +23,7 @@ defmodule AircloakCI.Application do
           AircloakCI.Build.Service,
           AircloakCI.BuildCleaner,
           AircloakCI.LogCleaner,
-          AircloakCI.DockerCleaner
+          AircloakCI.ImageCleaner
         ],
       strategy: :one_for_one,
       name: AircloakCI.Supervisor
