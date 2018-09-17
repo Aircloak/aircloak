@@ -1,8 +1,9 @@
 {
   "driver": "drill_rodbc",
-  "name": "drill_rodbc",
+  "name": "drill",
+  "encoded": false,
   "parameters": {
-    "hostname": "drill1.14",
+    "hostname": "drill1.13",
     "database": "mongo.cloak_compliance_drill_rodbc",
     "mongo": {
       "hostname": "mongo3.4",
