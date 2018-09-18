@@ -90,8 +90,22 @@ defmodule Cloak.DataSource.RODBC.Driver do
   defp decode_response(<<@status_bin, data::binary>>), do: {:ok, data}
   defp decode_response(<<@status_row, data::binary>>), do: {:ok, decode_values(data, [])}
 
-  defp decode_response(<<@status_table, columns_count::unsigned-little-32, data::binary>>),
-    do: {:ok, data |> decode_values([]) |> Enum.chunk_every(columns_count)}
+  defp decode_response(<<@status_table, _columns_count::unsigned-little-32>>), do: {:ok, []}
+
+  defp decode_response(<<@status_table, columns_count::unsigned-little-32, data::binary>>) do
+    stream =
+      Stream.resource(
+        fn -> data end,
+        fn
+          :ok -> {:halt, :ok}
+          data -> {decode_values(data, []), :ok}
+        end,
+        fn :ok -> :ok end
+      )
+      |> Stream.chunk_every(columns_count)
+
+    {:ok, stream}
+  end
 
   defp decode_values(<<>>, acc), do: :lists.reverse(acc)
   defp decode_values(<<@type_null, data::binary>>, acc), do: decode_values(data, [nil | acc])
@@ -147,20 +161,19 @@ defmodule Cloak.DataSource.RODBC.Driver do
   defp read_input(port) do
     receive do
       {^port, {:data, <<size::unsigned-little-32, data::binary>>}} ->
-        flush_input(port, size - byte_size(data), [data])
+        flush_input(port, size - byte_size(data), data)
 
       {^port, :eof} ->
         <<@status_err, "Unexpected port eof!">>
     end
   end
 
-  defp flush_input(_port, 0, buffers),
-    do: buffers |> :lists.reverse() |> :erlang.iolist_to_binary()
+  defp flush_input(_port, 0, buffer), do: buffer
 
-  defp flush_input(port, size, buffers) do
+  defp flush_input(port, size, buffer) do
     receive do
       {^port, {:data, data}} ->
-        flush_input(port, size - byte_size(data), [data | buffers])
+        flush_input(port, size - byte_size(data), buffer <> data)
 
       {^port, :eof} ->
         <<@status_err, "Unexpected port eof!">>
