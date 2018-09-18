@@ -18,7 +18,9 @@ defmodule Cloak.DataSource.RODBC.Driver do
   @spec open() :: port()
   def open() do
     path = Application.app_dir(:cloak, "priv/native/rodbc") |> to_charlist()
-    :erlang.open_port({:spawn_executable, path}, [:binary, :stream, :use_stdio, :eof])
+    port = :erlang.open_port({:spawn_executable, path}, [:binary, :stream, :use_stdio, :eof])
+    true = :erlang.unlink(port)
+    port
   end
 
   @doc "Closes the port driver instance."
@@ -42,15 +44,25 @@ defmodule Cloak.DataSource.RODBC.Driver do
 
   @doc "Starts the streaming of rows selected by the previous statement."
   @spec start_fetching_rows(port(), pos_integer) :: boolean
-  def start_fetching_rows(port, size) when size > 0, do: send_command(port, @command_fetch_rows, size)
+  def start_fetching_rows(port, size) when size > 0 do
+    true = :erlang.port_connect(port, self())
+    send_command(port, @command_fetch_rows, size)
+  end
 
   @doc "Returns a new batch, with the specified size, from the rows selected by the previous statement."
   @spec fetch_batch(port(), (row -> row), pos_integer) :: {:ok, Enumerable.t()} | {:error, String.t()}
   def fetch_batch(port, row_mapper, size) when size > 0 do
     case fetch_rows(port, size) do
-      {:ok, []} -> {:ok, []}
-      {:ok, rows} -> {:ok, Stream.map(rows, row_mapper)}
-      {:error, error} -> {:error, error}
+      {:ok, []} ->
+        true = :erlang.unlink(port)
+        {:ok, []}
+
+      {:ok, rows} ->
+        {:ok, Stream.map(rows, row_mapper)}
+
+      {:error, error} ->
+        true = :erlang.unlink(port)
+        {:error, error}
     end
   end
 
@@ -154,8 +166,11 @@ defmodule Cloak.DataSource.RODBC.Driver do
   end
 
   defp port_control(port, command, data) do
+    true = :erlang.port_connect(port, self())
     true = send_command(port, command, data)
-    read_input(port)
+    input = read_input(port)
+    true = :erlang.unlink(port)
+    input
   end
 
   defp read_input(port) do
