@@ -2,7 +2,8 @@
 
 ### Features
 
-- Support for LDAP for authentication and authorization.
+- Support for LDAP for authentication and authorization - also enables using any
+  directory service that exposes an LDAP interface, like Active Directory.
 - Support for Drill data sources making it possible to query MapR-DB, HBase, and Hive,
   as well as log, JSON and parquet files stored directly on disk, HDFS, or AWS S3.
 
