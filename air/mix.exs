@@ -122,7 +122,7 @@ defmodule Air.Mixfile do
   defp extra_applications(:dev), do: extra_common_applications() ++ dialyzer_required_deps()
   defp extra_applications(:prod), do: extra_common_applications()
 
-  defp extra_common_applications(), do: [:logger, :inets]
+  defp extra_common_applications(), do: [:logger, :inets, :eldap]
 
   # These are indirect dependencies (deps of deps) which are not automatically included in the generated PLT.
   # By adding them explicitly to the applications list, we make sure that they are included in the PLT.

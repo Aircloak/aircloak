@@ -76,7 +76,7 @@ defmodule Cloak.DataSource.ODBC do
         [%{table | columns: columns}]
 
       {:error, reason} ->
-        DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
+        DataSource.raise_error("`#{to_string(reason)}`")
     end
   end
 
@@ -101,7 +101,7 @@ defmodule Cloak.DataSource.ODBC do
                   {[Enum.map(rows, &map_fields(&1, field_mappers))], conn}
 
                 {:error, reason} ->
-                  DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
+                  DataSource.raise_error("`#{to_string(reason)}`")
               end
             end,
             fn _conn -> :ok end
@@ -110,7 +110,7 @@ defmodule Cloak.DataSource.ODBC do
         {:ok, result_processor.(data_stream)}
 
       {:error, reason} ->
-        DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
+        DataSource.raise_error("`#{to_string(reason)}`")
     end
   end
 

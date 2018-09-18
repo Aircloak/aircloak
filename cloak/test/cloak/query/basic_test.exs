@@ -1377,6 +1377,19 @@ defmodule Cloak.Query.BasicTest do
            ] = rows
   end
 
+  test "per-bucket reliability flag with top-level having" do
+    :ok = insert_rows(_user_ids = 30..59, "heights", ["height"], [150])
+    :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 10..29, "heights", ["height"], [160])
+
+    assert_query("select height from heights group by height having count(*) < 25 order by height asc", %{rows: rows})
+
+    assert [
+             %{row: [160], unreliable: false},
+             %{row: [180], unreliable: true}
+           ] = rows
+  end
+
   test "group by the first position in the select list" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [170])
     :ok = insert_rows(_user_ids = 11..30, "heights", ["height"], [180])

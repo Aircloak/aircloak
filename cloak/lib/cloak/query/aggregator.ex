@@ -412,18 +412,16 @@ defmodule Cloak.Query.Aggregator do
 
       [%{row: aggregated_values, occurrences: 1, unreliable: true}]
     else
-      make_non_empty_buckets(rows, query)
+      rows
+      |> make_non_empty_buckets(query)
+      |> Rows.extract_groups(Query.bucket_columns(query), query)
     end
   end
 
-  defp make_non_empty_buckets(rows, %Query{implicit_count?: false} = query) do
+  defp make_non_empty_buckets(rows, %Query{implicit_count?: false}) do
     Logger.debug("Making explicit buckets ...")
 
-    rows
-    |> Stream.map(fn {_users_count, row} -> row end)
-    |> Rows.extract_groups(Query.bucket_columns(query), query)
-    |> Stream.zip(Stream.map(rows, fn {users_count, _row} -> users_count end))
-    |> Enum.map(fn {row, users_count} ->
+    Enum.map(rows, fn {users_count, row} ->
       %{row: row, occurrences: 1, unreliable: unreliable_bucket?(users_count)}
     end)
   end
@@ -431,12 +429,10 @@ defmodule Cloak.Query.Aggregator do
   defp make_non_empty_buckets(rows, %Query{implicit_count?: true} = query) do
     Logger.debug("Making implicit buckets ...")
 
-    rows
-    |> Stream.map(fn {_users_count, row} -> row end)
-    |> Rows.extract_groups([Expression.count_star() | Query.bucket_columns(query)], query)
-    |> Stream.zip(Stream.map(rows, fn {users_count, _row} -> users_count end))
-    |> Enum.map(fn {[count | row], users_count} ->
-      %{row: row, occurrences: count, unreliable: unreliable_bucket?(users_count)}
+    count_index = query |> Rows.group_expressions() |> length()
+
+    Enum.map(rows, fn {users_count, row} ->
+      %{row: row, occurrences: Enum.at(row, count_index), unreliable: unreliable_bucket?(users_count)}
     end)
   end
 

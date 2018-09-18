@@ -172,9 +172,7 @@ impl<'a> State<'a> {
             SQL_TIMESTAMP => "timestamp",
             SQL_DATE => "date",
             SQL_TIME => "time",
-            #[cfg(feature = "odbc_version_4")]
             SQL_TIME_WITH_TIMEZONE | SQL_SS_TIME2 => "time",
-            #[cfg(feature = "odbc_version_4")]
             SQL_TIMESTAMP_WITH_TIMEZONE | SQL_SS_TIMESTAMPOFFSET => "timestamp",
             SQL_EXT_GUID => "guid",
             _ => "unknown",

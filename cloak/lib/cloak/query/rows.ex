@@ -10,10 +10,10 @@ defmodule Cloak.Query.Rows do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Returns a stream of rows passing all the given filters."
+  @doc "Returns a stream of rows or buckets passing all the given filters."
   @spec filter(Enumerable.t(), (any -> boolean) | nil) :: Enumerable.t()
-  def filter(rows, nil), do: rows
-  def filter(rows, filter), do: Stream.filter(rows, filter)
+  def filter(rows_or_buckets, nil), do: rows_or_buckets
+  def filter(rows_or_buckets, filter), do: Stream.filter(rows_or_buckets, filter_row_or_bucket(filter))
 
   @doc """
     Filters groups and extracts desired columns according to query specification.
@@ -77,6 +77,13 @@ defmodule Cloak.Query.Rows do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp filter_row_or_bucket(filter) do
+    fn
+      row when is_list(row) -> filter.(row)
+      bucket when is_map(bucket) -> filter.(bucket.row)
+    end
+  end
+
   defp update_row_index(column, source) do
     case Map.fetch(source, clear(column)) do
       {:ok, index} ->
@@ -95,7 +102,10 @@ defmodule Cloak.Query.Rows do
   defp non_selected_order_by_expressions(query),
     do: query |> Query.order_by_expressions() |> Enum.reject(&(&1 in query.columns))
 
-  defp select_values(row, expressions), do: Enum.map(expressions, &Expression.value(&1, row))
+  defp select_values(row, expressions) when is_list(row), do: Enum.map(expressions, &Expression.value(&1, row))
+
+  defp select_values(bucket, expressions) when is_map(bucket),
+    do: %{bucket | row: select_values(bucket.row, expressions)}
 
   defp clear(expression), do: %Expression{expression | alias: nil, row_index: nil}
 end

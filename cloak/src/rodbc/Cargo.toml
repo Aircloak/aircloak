@@ -12,3 +12,6 @@ odbc = ">= 0.9.8"
 libc = "*"
 c_vec = "*"
 simple-error = "*"
+
+[dependencies.odbc-sys]
+features = ["odbc_version_4"]

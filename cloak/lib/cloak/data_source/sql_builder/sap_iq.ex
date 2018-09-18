@@ -39,7 +39,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPIQ do
 
   def function_sql("hash", [arg]), do: ["SUBSTRING(HASH(CAST(", arg, " AS text), 'md5'), 5, 8)"]
 
-  def function_sql("bool_op", [["N'", op, ?'], arg1, arg2]) do
+  def function_sql("bool_op", [[?', op, ?'], arg1, arg2]) do
     condition = [arg1, " ", op, " ", arg2]
     ["(CASE WHEN ", condition, " THEN 1 WHEN NOT (", condition, ") THEN 0 ELSE NULL END)"]
   end
@@ -54,7 +54,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPIQ do
   def limit_sql(limit, offset), do: [" TOP ", to_string(limit), " START AT ", to_string(offset + 1)]
 
   @impl Dialect
-  def unicode_literal(value), do: ["N'", value, ?']
+  def unicode_literal(value), do: [?', value, ?']
 
   @impl Dialect
   def boolean_literal(false), do: "0"
