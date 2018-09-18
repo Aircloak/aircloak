@@ -42,7 +42,6 @@ function start_air_container {
   "
 
   admin_token=$(docker exec ${container_name}_air cat /aircloak/air/lib/air-$(cat VERSION)/priv/dev/admin_token)
-  mkdir -p system_test/priv/dev
   echo "$admin_token" > system_test/priv/dev/admin_token
 }
 
@@ -137,6 +136,8 @@ function erlang_eval {
 
   docker exec ${container}_${app} /aircloak/$app/bin/$app eval $@
 }
+
+mkdir -p system_test/priv/dev
 
 mount_to_aircloak VERSION
 mount_to_component config lib priv test mix.exs mix.lock Makefile .gitignore check_warnings.sh .formatter.exs
