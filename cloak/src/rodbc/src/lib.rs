@@ -1,170 +1,292 @@
-use std::os::raw::c_void;
-use std::ptr;
+use std::error::Error;
+use std::io::{self, Read, Write, ErrorKind};
+use std::mem::transmute;
+use std::result;
+use std::str::from_utf8;
 
-extern crate c_vec;
-extern crate libc;
 extern crate odbc;
+use odbc::ffi::SqlDataType::*;
+use odbc::*;
+
 extern crate simple_error;
+use simple_error::SimpleError;
 
-use c_vec::CVec;
-use libc::{c_char, c_int, c_schar, c_uint};
+// -------------------------------------------------------------------
+//  Port IO data types
+// -------------------------------------------------------------------
 
-mod erl_driver;
-use erl_driver::*;
+// Port communication mode is stream.
+// Commands come in with the forms:
+//      (type-u32, value-u32)
+//      (type-u32, size-u32, data-bytes)
 
-const ERL_DRV_ERROR_GENERAL: i32 = -1;
+pub const COMMAND_CONNECT: u32 = 0;
+pub const COMMAND_EXECUTE: u32 = 1;
+pub const COMMAND_FETCH_ROWS: u32 = 2;
+pub const COMMAND_SET_FLAG: u32 = 3;
+pub const COMMAND_GET_COLUMNS: u32 = 4;
+pub const COMMAND_STOP: u32 = 5;
 
-const COMMAND_CONNECT: u32 = 0;
-const COMMAND_EXECUTE: u32 = 1;
-const COMMAND_FETCH: u32 = 2;
-const COMMAND_SET_FLAG: u32 = 3;
-const COMMAND_GET_COLUMNS: u32 = 4;
+pub const FLAG_WSTR_AS_BIN: u32 = 0;
 
-const FLAG_WSTR_AS_BIN: u8 = 0;
+// Replies go out under the forms:
+//      (size-u32, STATUS_OK-u8)
+//      (size-u32, STATUS_ERROR-u8, message-bytes)
+//      (size-u32, STATUS_BIN-u8, data-bytes)
+//      (size-u32, STATUS_ROW-u8, [(type-u8, value-bytes)])
+//      (size-u32, STATUS_TABLE-u8, columns_count-u32, [(type-u8, value-bytes)])
 
-const STATUS_OK: u8 = b'K';
-const STATUS_ERROR: u8 = b'E';
+pub const STATUS_OK: u8 = b'K';
+pub const _STATUS_BIN: u8 = b'B';
+pub const _STATUS_ROW: u8 = b'R';
+pub const STATUS_TABLE: u8 = b'T';
+pub const STATUS_ERROR: u8 = b'E';
 
-mod state;
-use state::*;
+const TYPE_NULL: u8 = 0;
+const TYPE_I32: u8 = 1;
+const TYPE_I64: u8 = 2;
+const TYPE_F32: u8 = 3;
+const TYPE_F64: u8 = 4;
+const TYPE_STR: u8 = 5;
+const TYPE_BIN: u8 = 6;
 
-extern "C" fn start(port: ErlDrvPort, _command: *mut c_char) -> ErlDrvData {
-    unsafe { set_port_control_flags(port, PORT_CONTROL_FLAG_BINARY as c_int) };
-    match State::new() {
-        Ok(state) => Box::into_raw(Box::new(state)) as ErlDrvData,
-        Err(Some(error)) => {
-            println!("Error during port state initialization: {}", error);
-            ERL_DRV_ERROR_GENERAL as ErlDrvData
+// -------------------------------------------------------------------
+// Port IO functions
+// -------------------------------------------------------------------
+
+pub fn read_command(in_stream: &mut Read) -> io::Result<(u32, u32)> {
+    let mut input = [0; 8];
+    match in_stream.read_exact(&mut input) {
+        Ok(()) => {
+            let command = unsafe { transmute(input) };
+            Ok(command)
         }
-        Err(None) => {
-            println!("Unknown error during port state initialization!");
-            ERL_DRV_ERROR_GENERAL as ErlDrvData
-        }
+        Err(error) => {
+            match error.kind() {
+                ErrorKind::UnexpectedEof | ErrorKind::BrokenPipe => Ok((COMMAND_STOP, 0)),
+                _ => Err(error),
+            }
+        },
     }
 }
 
-extern "C" fn stop(drv_data: ErlDrvData) {
-    unsafe { Box::from_raw(drv_data as *mut State) };
+pub fn read_binary(in_stream: &mut Read, size: u32) -> io::Result<Vec<u8>> {
+    let mut input = Vec::new();
+    input.resize(size as usize, 0);
+    in_stream.read_exact(&mut input)?;
+    Ok(input)
 }
 
-unsafe fn reply(
-    message: &[u8],
-    reply_buffer: *mut *mut c_char,
-    reply_length: ErlDrvSizeT,
-) -> ErlDrvSSizeT {
-    if message.len() < reply_length {
-        ptr::copy(message.as_ptr(), *reply_buffer as *mut u8, message.len());
-    } else {
-        let binary = driver_alloc_binary(message.len());
-        if binary as usize == 0 {
-            println!(
-                "Error when allocating binary of size {}: Out of memory!",
-                message.len()
-            );
-            return 0;
-        }
-        ptr::copy(
-            message.as_ptr() as *mut i8,
-            &mut (*binary).orig_bytes[0],
-            message.len(),
-        );
-        *reply_buffer = binary as *mut c_char;
+pub fn write_error(output: &mut Vec<u8>, error: Box<Error>) {
+    output.clear();
+    output.push(STATUS_ERROR);
+    output.extend_from_slice(error.to_string().as_bytes());
+}
+
+pub fn send_message(out_stream: &mut Write, message: &Vec<u8>) -> io::Result<()> {
+    let message_size: [u8; 4] = unsafe { transmute(message.len() as u32) };
+    out_stream.write_all(&message_size)?;
+    out_stream.write_all(&message)?;
+    out_stream.flush()?;
+    Ok(())
+}
+
+pub fn send_ok(out_stream: &mut Write) -> io::Result<()> {
+    out_stream.write_all(&[1, 0, 0, 0, STATUS_OK])?;
+    out_stream.flush()?;
+    Ok(())
+}
+
+// -------------------------------------------------------------------
+// DB interaction functions
+// -------------------------------------------------------------------
+
+pub type GenError = result::Result<(), Box<Error>>;
+
+fn error(message: &str) -> GenError {
+    Err(Box::new(SimpleError::new(message)))
+}
+
+pub fn connect<'env>(
+    env: &'env Environment<Version3>,
+    connection_string: &Vec<u8>,
+) -> result::Result<Connection<'env>, Box<Error>> {
+    let connection_string = from_utf8(connection_string.as_ref())?;
+    Ok(env.connect_with_connection_string(connection_string)?)
+}
+
+fn field_type(t: ffi::SqlDataType, wstr_as_bin: bool) -> u8 {
+    match t {
+        SQL_INTEGER | SQL_SMALLINT | SQL_EXT_TINYINT | SQL_EXT_BIT => TYPE_I32,
+        SQL_EXT_BIGINT => TYPE_I64,
+        SQL_REAL => TYPE_F32,
+        SQL_FLOAT | SQL_DOUBLE => TYPE_F64,
+        SQL_EXT_BINARY | SQL_EXT_VARBINARY | SQL_EXT_LONGVARBINARY => TYPE_BIN,
+        SQL_EXT_WCHAR | SQL_EXT_WVARCHAR | SQL_EXT_WLONGVARCHAR =>
+            if wstr_as_bin { TYPE_BIN } else { TYPE_STR},
+        _ => TYPE_STR,
     }
-    message.len() as isize
 }
 
-extern "C" fn control(
-    drv_data: ErlDrvData,
-    command: c_uint,
-    buffer: *mut c_char,
-    length: ErlDrvSizeT,
-    reply_buffer: *mut *mut c_char,
-    reply_length: ErlDrvSizeT,
-) -> ErlDrvSSizeT {
-    let state = unsafe { &mut *(drv_data as *mut State) };
-    let mut message = Vec::<u8>::new();
+pub struct ConnectionState<'conn> {
+    stmt: Statement<'conn, 'conn, Allocated, HasResult>,
+    field_types: Vec<u8>,
+}
 
-    match command {
-        COMMAND_CONNECT => {
-            let buffer = unsafe { CVec::new(buffer as *mut u8, length) };
-            if let Err(error) = state.connect(&buffer) {
-                message.push(STATUS_ERROR);
-                message.extend_from_slice(error.to_string().as_bytes());
-            }
+pub fn execute<'conn, 'env>(
+    conn: &'conn Connection<'env>,
+    state: &mut Option<ConnectionState<'conn>>,
+    wstr_as_bin: bool,
+    statement_text: &Vec<u8>,
+) -> GenError {
+    *state = None;
+    let statement_text = from_utf8(statement_text.as_ref())?;
+    if let Data(stmt) = Statement::with_parent(conn)?.exec_direct(statement_text)? {
+        let cols = stmt.num_result_cols()? as u16;
+        let mut field_types = Vec::with_capacity(cols as usize);
+        for i in 1..(cols + 1) {
+            let field_type = field_type(stmt.describe_col(i)?.data_type, wstr_as_bin);
+            field_types.push(field_type);
+        }
+        *state = Some(ConnectionState { stmt, field_types });
+    }
+    Ok(())
+}
+
+fn push_binary(buf: &mut Vec<u8>, bytes: &[u8]) {
+    let size_bytes: [u8; 4] = unsafe { transmute(bytes.len() as u32) };
+    buf.extend_from_slice(&size_bytes);
+    buf.extend_from_slice(&bytes);
+}
+
+fn write_field<'a, 'b, 'c, S>(
+    field_type: u8,
+    index: u16,
+    cursor: &mut Cursor<'a, 'b, 'c, S>,
+    buf: &mut Vec<u8>,
+) -> GenError {
+    match field_type {
+        TYPE_I32 => if let Some(val) = cursor.get_data::<i32>(index)? {
+            let raw_bytes: [u8; 4] = unsafe { transmute(val) };
+            buf.push(TYPE_I32);
+            buf.extend_from_slice(&raw_bytes);
+        } else {
+            buf.push(TYPE_NULL);
         },
 
-        COMMAND_EXECUTE => {
-            let buffer = unsafe { CVec::new(buffer as *mut u8, length) };
-            if let Err(error) = state.execute(&buffer) {
-                message.push(STATUS_ERROR);
-                message.extend_from_slice(error.to_string().as_bytes());
-            }
+        TYPE_I64 => if let Some(val) = cursor.get_data::<i64>(index)? {
+            let raw_bytes: [u8; 8] = unsafe { transmute(val) };
+            buf.push(TYPE_I64);
+            buf.extend_from_slice(&raw_bytes);
+        } else {
+            buf.push(TYPE_NULL);
         },
 
-        COMMAND_FETCH => if let Err(error) = state.fetch(&mut message) {
-            message.clear();
-            message.push(STATUS_ERROR);
-            message.extend_from_slice(error.to_string().as_bytes());
+        TYPE_F32 => if let Some(val) = cursor.get_data::<f32>(index)? {
+            let raw_bytes: [u8; 4] = unsafe { transmute(val) };
+            buf.push(TYPE_F32);
+            buf.extend_from_slice(&raw_bytes);
+        } else {
+            buf.push(TYPE_NULL);
         },
 
-        COMMAND_SET_FLAG => {
-            let flag = unsafe { *buffer as u8 };
-            match flag {
-                FLAG_WSTR_AS_BIN => {
-                    state.wstr_as_bin = true;
-                },
-                _ => {
-                    let error = format!("Invalid flag set: {}", flag);
-                    message.push(STATUS_ERROR);
-                    message.extend_from_slice(error.as_bytes());
-                },
-            }
+        TYPE_F64 => if let Some(val) = cursor.get_data::<f64>(index)? {
+            let raw_bytes: [u8; 8] = unsafe { transmute(val) };
+            buf.push(TYPE_F64);
+            buf.extend_from_slice(&raw_bytes);
+        } else {
+            buf.push(TYPE_NULL);
         },
 
-        COMMAND_GET_COLUMNS => if let Err(error) = state.get_columns(&mut message) {
-            message.clear();
-            message.push(STATUS_ERROR);
-            message.extend_from_slice(error.to_string().as_bytes());
+        TYPE_STR => if let Some(val) = cursor.get_data::<&str>(index)? {
+            buf.push(TYPE_STR);
+            push_binary(buf, val.as_bytes());
+        } else {
+            buf.push(TYPE_NULL);
         },
 
-        _ => {
-            let error = format!("Invalid command received: {}", command);
-            message.push(STATUS_ERROR);
-            message.extend_from_slice(error.as_bytes());
+        TYPE_BIN => if let Some(val) = cursor.get_data::<&[u8]>(index)? {
+            buf.push(TYPE_BIN);
+            push_binary(buf, val);
+        } else {
+            buf.push(TYPE_NULL);
         },
+
+        _ => panic!("Unexpected field type!"), // unreachable
     };
 
-    unsafe { reply(&message, reply_buffer, reply_length) }
+    Ok(())
 }
 
-static mut DRIVER_ENTRY: ErlDrvEntry = ErlDrvEntry {
-    init: None,
-    start: Some(start),
-    stop: Some(stop),
-    control: Some(control),
-    output: None,
-    ready_input: None,
-    ready_output: None,
-    driver_name: "librodbc\0" as *const str as *mut c_schar,
-    finish: None,
-    handle: 0 as *mut c_void,
-    timeout: None,
-    outputv: None,
-    ready_async: None,
-    flush: None,
-    call: None,
-    event: None,
-    extended_marker: ERL_DRV_EXTENDED_MARKER as c_int,
-    major_version: ERL_DRV_EXTENDED_MAJOR_VERSION as c_int,
-    minor_version: ERL_DRV_EXTENDED_MINOR_VERSION as c_int,
-    driver_flags: ERL_DRV_FLAG_USE_PORT_LOCKING as c_int,
-    handle2: 0 as *mut c_void,
-    process_exit: None,
-    stop_select: None,
-    emergency_close: None,
-};
+pub fn fetch_rows<'conn>(
+    state: &mut Option<ConnectionState<'conn>>,
+    batch_size: u32,
+    buf: &mut Vec<u8>,
+) -> GenError {
+    let state = match *state {
+        None => return error("No statement executed!"),
+        Some(ref mut state) => state,
+    };
 
-#[no_mangle]
-pub unsafe extern "C" fn driver_init() -> *mut ErlDrvEntry {
-    &mut DRIVER_ENTRY as *mut ErlDrvEntry
+    buf.push(STATUS_TABLE);
+    let columns_count: [u8; 4] = unsafe { transmute(state.field_types.len() as u32) };
+    buf.extend_from_slice(&columns_count);
+
+    for _ in 0..batch_size {
+        match state.stmt.fetch()? {
+            None => break,
+            Some(mut cursor) => {
+                for (index, field_type) in state.field_types.iter().enumerate() {
+                    write_field(*field_type, (index + 1) as u16, &mut cursor, buf)?;
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+fn sql_type_to_string(t: ffi::SqlDataType) -> &'static str {
+    match t {
+        SQL_INTEGER | SQL_SMALLINT | SQL_EXT_TINYINT => "integer",
+        SQL_EXT_BIGINT => "bigint",
+        SQL_EXT_BIT => "bit",
+        SQL_NUMERIC | SQL_DECIMAL => "numeric",
+        SQL_REAL | SQL_FLOAT | SQL_DOUBLE => "float",
+        SQL_CHAR | SQL_VARCHAR | SQL_EXT_LONGVARCHAR => "varchar",
+        SQL_EXT_BINARY | SQL_EXT_VARBINARY | SQL_EXT_LONGVARBINARY => "binary",
+        SQL_EXT_WCHAR | SQL_EXT_WVARCHAR | SQL_EXT_WLONGVARCHAR => "wvarchar",
+        SQL_DATETIME => "datetime",
+        SQL_TIMESTAMP => "timestamp",
+        SQL_DATE => "date",
+        SQL_TIME => "time",
+        SQL_TIME_WITH_TIMEZONE | SQL_SS_TIME2 => "time",
+        SQL_TIMESTAMP_WITH_TIMEZONE | SQL_SS_TIMESTAMPOFFSET => "timestamp",
+        SQL_EXT_GUID => "guid",
+        _ => "unknown",
+    }
+}
+
+pub fn get_columns<'conn>(state: &mut Option<ConnectionState<'conn>>, buf: &mut Vec<u8>) -> GenError {
+    let state = match state {
+        None => return error("No statement executed!"),
+        Some(ref mut state) => state,
+    };
+
+    buf.push(STATUS_TABLE);
+    let columns_count = &[2, 0, 0, 0];
+    buf.extend_from_slice(columns_count);
+
+    let num_cols = state.stmt.num_result_cols()?;
+    for i in 1..(num_cols + 1) {
+        let column = state.stmt.describe_col(i as u16)?;
+
+        buf.push(TYPE_STR);
+        push_binary(buf, column.name.as_bytes());
+
+        let column_type = sql_type_to_string(column.data_type);
+        buf.push(TYPE_STR);
+        push_binary(buf, column_type.as_bytes());
+    }
+
+    Ok(())
 }

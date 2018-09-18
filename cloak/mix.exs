@@ -98,7 +98,7 @@ defmodule Cloak.Mixfile do
 
   defp rustler_crates(),
     do: [
-      librodbc: [
+      rodbc: [
         path: "src/rodbc",
         mode: :release
       ]

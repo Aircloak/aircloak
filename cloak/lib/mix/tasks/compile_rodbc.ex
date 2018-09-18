@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Compile.Rodbc do
 
   @impl Mix.Task
   def run(args) do
-    lib = "priv/native/librodbc.so"
+    lib = "priv/native/rodbc"
 
     # We're doing a manual check if the lib needs to be recompiled. Otherwise, rustler always force compiles the
     # library. This leads to prolongated build times, especially during our docker builds, as the build artifacts
