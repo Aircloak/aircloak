@@ -1,0 +1,14 @@
+{
+  "driver": "postgresql",
+  "name": "DataQualityAnonymized",
+  "parameters": {
+    "hostname": "localhost",
+    "username": "data_quality",
+    "database": "data_quality"
+  },
+  "tables": {
+    "data_quality": {
+      "user_id": "uid"
+    }
+  }
+}
