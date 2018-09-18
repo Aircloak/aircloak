@@ -40,6 +40,10 @@ defmodule Cloak.DataSource.RODBC.Driver do
     port |> port_control(@command_execute, statement) |> decode_response()
   end
 
+  @doc "Starts the streaming of rows selected by the previous statement."
+  @spec start_fetching_rows(port(), pos_integer) :: boolean
+  def start_fetching_rows(port, size) when size > 0, do: send_command(port, @command_fetch_rows, size)
+
   @doc "Returns a new batch, with the specified size, from the rows selected by the previous statement."
   @spec fetch_batch(port(), (row -> row), pos_integer) :: {:ok, Enumerable.t()} | {:error, String.t()}
   def fetch_batch(port, row_mapper, size) when size > 0 do
@@ -116,11 +120,31 @@ defmodule Cloak.DataSource.RODBC.Driver do
        ),
        do: decode_values(data, [str | acc])
 
-  defp fetch_rows(port, size), do: port |> port_control(@command_fetch_rows, size) |> decode_response()
+  defp fetch_rows(port, size) do
+    port
+    |> read_input()
+    |> decode_response()
+    |> case do
+      # end of data
+      {:ok, []} ->
+        {:ok, []}
+
+      {:ok, rows} ->
+        # queue next batch
+        true = send_command(port, @command_fetch_rows, size)
+        {:ok, rows}
+
+      {:error, message} ->
+        {:error, message}
+    end
+  end
 
   defp port_control(port, command, data) do
     true = send_command(port, command, data)
+    read_input(port)
+  end
 
+  defp read_input(port) do
     receive do
       {^port, {:data, <<size::unsigned-little-32, data::binary>>}} ->
         flush_input(port, size - byte_size(data), [data])

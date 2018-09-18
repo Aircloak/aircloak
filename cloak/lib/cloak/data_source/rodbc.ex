@@ -102,10 +102,15 @@ defmodule Cloak.DataSource.RODBC do
   end
 
   defp stream_rows(port, row_mapper) do
+    batch_size = Cloak.DataSource.Driver.batch_size()
+
     Stream.resource(
-      fn -> port end,
+      fn ->
+        true = Driver.start_fetching_rows(port, batch_size)
+        port
+      end,
       fn port ->
-        case Driver.fetch_batch(port, row_mapper, Cloak.DataSource.Driver.batch_size()) do
+        case Driver.fetch_batch(port, row_mapper, batch_size) do
           {:ok, []} -> {:halt, port}
           {:ok, rows} -> {[rows], port}
           {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
