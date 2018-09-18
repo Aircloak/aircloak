@@ -1,0 +1,24 @@
+{
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "user": "data_quality",
+    "database": "data_quality"
+  },
+
+  "raw": {
+    "name": "unanonymized",
+    "host": "http://localhost:8080",
+    "data_source_name": "DataQualityRaw",
+    "api_token": "SFMyNTY.g3QAAAACZAAEZGF0YW0AAAAkODhhY2EzNzEtMGJiOS00ZjEzLThmNTUtMDFmMWI5NWE5NWY0ZAAGc2lnbmVkbgYALi6H52UB.-mhc_Fjkc80HwaKBRjfuDfmGAR-134xapdnFv--X2kg"
+  },
+
+  "anonymized": [
+    {
+      "name": "release",
+      "host": "http://localhost:8080",
+      "data_source_name": "DataQualityAnonymized",
+      "api_token": "SFMyNTY.g3QAAAACZAAEZGF0YW0AAAAkODhhY2EzNzEtMGJiOS00ZjEzLThmNTUtMDFmMWI5NWE5NWY0ZAAGc2lnbmVkbgYALi6H52UB.-mhc_Fjkc80HwaKBRjfuDfmGAR-134xapdnFv--X2kg"
+    }
+  ]
+}
