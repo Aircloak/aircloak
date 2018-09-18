@@ -1,10 +1,10 @@
 defmodule Cloak.DataSource.RODBC do
   @moduledoc """
-  Implements the DataSource.Driver behaviour for ODBC compatible data-stores, using the Rust port driver.
+  Implements the DataSource.Driver behaviour for ODBC compatible data-stores, using the Rust port.
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.{RODBC.Driver, SqlBuilder, Table}
+  alias Cloak.DataSource.{RODBC.Port, SqlBuilder, Table}
   alias Cloak.DataSource
 
   # -------------------------------------------------------------------
@@ -27,14 +27,14 @@ defmodule Cloak.DataSource.RODBC do
   # -------------------------------------------------------------------
 
   def disconnect(port) do
-    true = Driver.close(port)
+    true = Port.close(port)
     :ok
   end
 
   def load_tables(connection, table) do
-    case Driver.execute(connection, "SELECT * FROM #{table.db_name} WHERE 0 = 1") do
+    case Port.execute(connection, "SELECT * FROM #{table.db_name} WHERE 0 = 1") do
       :ok ->
-        case Driver.get_columns(connection) do
+        case Port.get_columns(connection) do
           {:ok, []} ->
             DataSource.raise_error("Table #{table.db_name} does not have any columns")
 
@@ -56,7 +56,7 @@ defmodule Cloak.DataSource.RODBC do
     field_mappers = Enum.map(sql_query.db_columns, &type_to_field_mapper(&1.type))
     row_mapper = &map_fields(&1, field_mappers)
 
-    case Driver.execute(port, statement) do
+    case Port.execute(port, statement) do
       :ok -> {:ok, port |> stream_rows(row_mapper) |> result_processor.()}
       {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
     end
@@ -73,11 +73,11 @@ defmodule Cloak.DataSource.RODBC do
   # -------------------------------------------------------------------
 
   defp driver_connect!(conn_params, driver_params) do
-    port = Driver.open()
+    port = Port.open()
 
-    if Keyword.get(driver_params, :wstr_as_bin), do: :ok = Driver.set_wstr_as_bin(port)
+    if Keyword.get(driver_params, :wstr_as_bin), do: :ok = Port.set_wstr_as_bin(port)
 
-    with :ok <- Driver.connect(port, to_connection_string(conn_params)) do
+    with :ok <- Port.connect(port, to_connection_string(conn_params)) do
       port
     else
       {:error, reason} ->
@@ -106,11 +106,11 @@ defmodule Cloak.DataSource.RODBC do
 
     Stream.resource(
       fn ->
-        true = Driver.start_fetching_rows(port, batch_size)
+        true = Port.start_fetching_rows(port, batch_size)
         port
       end,
       fn port ->
-        case Driver.fetch_batch(port, row_mapper, batch_size) do
+        case Port.fetch_batch(port, row_mapper, batch_size) do
           {:ok, []} -> {:halt, port}
           {:ok, rows} -> {[rows], port}
           {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")

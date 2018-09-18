@@ -1,5 +1,5 @@
-defmodule Cloak.DataSource.RODBC.Driver do
-  @moduledoc "Rust ODBC port driver wrapper."
+defmodule Cloak.DataSource.RODBC.Port do
+  @moduledoc "Rust ODBC port wrapper."
 
   require Logger
 
@@ -14,7 +14,7 @@ defmodule Cloak.DataSource.RODBC.Driver do
 
   @typep row :: [any]
 
-  @doc "Creats a new port driver instance."
+  @doc "Creats a new port instance."
   @spec open() :: port()
   def open() do
     path = Application.app_dir(:cloak, "priv/native/rodbc") |> to_charlist()
@@ -23,7 +23,7 @@ defmodule Cloak.DataSource.RODBC.Driver do
     port
   end
 
-  @doc "Closes the port driver instance."
+  @doc "Closes the port instance."
   @spec close(port()) :: boolean
   def close(port) do
     send_command(port, @command_stop, 0)
