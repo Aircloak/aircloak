@@ -144,7 +144,7 @@ fn execute<'conn, 'env>(
     let statement_text = from_utf8(statement_text.as_ref())?;
     if let Data(stmt) = Statement::with_parent(conn)?.exec_direct(statement_text)? {
         let cols = stmt.num_result_cols()? as u16;
-        let mut field_types = Vec::new();
+        let mut field_types = Vec::with_capacity(cols as usize);
         for i in 1..(cols + 1) {
             let field_type = field_type(stmt.describe_col(i)?.data_type, wstr_as_bin);
             field_types.push(field_type);
@@ -274,7 +274,8 @@ fn get_columns<'conn>(state: &mut Option<ConnectionState<'conn>>, buf: &mut Vec<
     };
 
     buf.push(STATUS_TABLE);
-    buf.extend_from_slice(&[2, 0, 0, 0]);
+    let columns_count = &[2, 0, 0, 0];
+    buf.extend_from_slice(columns_count);
 
     let num_cols = state.stmt.num_result_cols()?;
     for i in 1..(num_cols + 1) {
@@ -301,7 +302,7 @@ fn main() -> io::Result<()> {
     let stdout = io::stdout();
     let mut stdout_handle = stdout.lock();
 
-    let env = odbc::create_environment_v3().unwrap();
+    let env = odbc::create_environment_v3().expect("Couldn't create the ODBC environment!");
 
     let mut output = Vec::with_capacity(1024);
 
