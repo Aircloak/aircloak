@@ -6,7 +6,7 @@ defmodule Cloak.DataSource.DrillRODBC do
 
   use Cloak.DataSource.Driver.SQL
   alias Cloak.DataSource
-  alias Cloak.DataSource.{RODBC, SqlBuilder}
+  alias Cloak.DataSource.{Drill, RODBC, SqlBuilder}
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
@@ -33,4 +33,7 @@ defmodule Cloak.DataSource.DrillRODBC do
 
   @impl Driver
   defdelegate supports_connection_sharing?(), to: RODBC
+
+  @impl Driver
+  defdelegate supports_query?(query), to: Drill
 end

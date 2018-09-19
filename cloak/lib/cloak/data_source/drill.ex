@@ -58,4 +58,8 @@ defmodule Cloak.DataSource.Drill do
 
   @impl Driver
   defdelegate supports_connection_sharing?(), to: ODBC
+
+  @impl Driver
+  def supports_query?(%{from: {:join, %{type: :cross_join}}}), do: false
+  def supports_query?(_), do: true
 end
