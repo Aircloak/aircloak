@@ -4,12 +4,10 @@
   "encoded": false,
   "parameters": {
     "hostname": "drill1.13",
-    "database": "mongo.cloak_compliance_drill_rodbc",
-    "mongo": {
-      "hostname": "mongo3.4",
-      "username": "root",
-      "database": "cloak_compliance_drill_rodbc"
-    }
+    "database": "dfs.cloak_compliance",
+    "workspace": "cloak_compliance",
+    "data_dir": "ci/data",
+    "drill_data_dir": "/tmp/data"
   },
   "tables": {
   }

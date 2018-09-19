@@ -40,13 +40,15 @@ function ensure_database_containers {
   ensure_supporting_container sqlserver2017 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' \
     microsoft/mssql-server-linux:2017-latest
 
-  ensure_supporting_container drill1.13 -ti harisekhon/apache-drill:1.13
+  ensure_supporting_container drill1.13 -ti \
+    -v $(pwd)/cloak/ci/data:/tmp/data \
+    harisekhon/apache-drill:1.13
 }
 
 mount $(ci_tmp_folder)/cloak/.cargo /root/.cargo
 mount_to_aircloak VERSION common/elixir bom
 mount_to_component \
-  config datagen include lib src perftest priv rel test mix.exs mix.lock Makefile check_warnings.sh .formatter.exs
+  ci/data config datagen include lib src perftest priv rel test mix.exs mix.lock Makefile check_warnings.sh .formatter.exs
 mount_cached_component deps _build .bash_history priv/odbc/drivers priv/native
 
 case "$1" in

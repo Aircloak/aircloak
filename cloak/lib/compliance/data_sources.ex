@@ -2,7 +2,7 @@ defmodule Compliance.DataSources do
   @moduledoc false
 
   alias Compliance.{Data, TableDefinitions}
-  alias Cloak.DataSource.{MongoDB, Drill, DrillRODBC}
+  alias Cloak.DataSource.MongoDB
 
   @plain_name_postfix ""
   @encoded_name_postfix "_encoded"
@@ -229,8 +229,7 @@ defmodule Compliance.DataSources do
     end)
   end
 
-  defp table_definitions(generator_fun, %{driver: driver}) when driver in [MongoDB, Drill, DrillRODBC],
-    do: generator_fun.(true)
+  defp table_definitions(generator_fun, %{driver: MongoDB}), do: generator_fun.(true)
 
   defp table_definitions(generator_fun, _data_source), do: generator_fun.(false)
 
