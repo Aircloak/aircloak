@@ -527,16 +527,25 @@ Each decoder is a json in the shape of:
 {"method": string, "columns": ["some_column_name", ...], additional_parameters}
 ```
 
-The `method` parameter can have one of the following values: `aes_cbc_128`, `base64`, `text_to_integer`, `text_to_real`, `text_to_datetime`, `text_to_date`, `text_to_time`.
+The `method` parameter can have one of the following values: `aes_cbc_128`, `base64`, `text_to_integer`, `text_to_real`, `text_to_datetime`, `text_to_date`, `text_to_time`, `substring`.
 
 The `columns` parameter holds a list of columns which must be decoded with the given method.
 
 Finally, depending on the decoding method, you might need to provide additional parameters.
 
-The `aes_cbc_128` decoder requires the `key` parameter which holds the decryption key:
+The `aes_cbc_128` decoder can specify the `key` parameter which holds the decryption key:
 
 ```
 {"method": "aes_cbc_128", "columns": ["some_column_name", ...], "key": "some_decryption_key"}
+```
+
+If the key is not specified locally, in the decoder definition, the global `aes_key` value will be used instead,
+which needs to be specified in the main cloak configuration file.
+
+The `substring` decoder needs to specify the `from` and `for` parameters:
+
+```
+{"method": "substring", "columns": ["some_column_name", ...], "from": 2, "for": 2}
 ```
 
 For remaining possible decoders, no additional parameters are needed:
@@ -546,6 +555,9 @@ For remaining possible decoders, no additional parameters are needed:
 {"method": "text_to_integer", "columns": ["another_column_name", ...]},
 ...
 ```
+
+The data decoding feature is not compatible with virtual tables. In that case, decode the columns manually by invoking
+the correct functions in the `SELECT` clause of the query for the virtual table definition.
 
 #### Manually classifying isolating columns
 
