@@ -152,14 +152,14 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp from_clause({:join, join}, query, sql_dialect_module, driver) do
     [
-      "(",
+      " ",
       from_clause(join.lhs, query, sql_dialect_module, driver),
       " ",
       join_sql(join.type),
       " ",
       from_clause(join.rhs, query, sql_dialect_module, driver),
       on_clause(join.conditions, sql_dialect_module, driver),
-      ")"
+      " "
     ]
   end
 
