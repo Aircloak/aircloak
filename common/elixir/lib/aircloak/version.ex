@@ -8,10 +8,13 @@ defmodule Aircloak.Version do
   @doc "Reads out the version of an OTP application from its spec"
   @spec for_app(atom) :: Version.t()
   def for_app(application_name) do
-    Application.spec(application_name)
-    |> Keyword.get(:vsn)
-    |> List.to_string()
-    |> Version.parse!()
+    version_string =
+      Application.spec(application_name)
+      |> Keyword.get(:vsn)
+      |> List.to_string()
+
+    # Using apply to trick dialyzer, which thinks that `Version.parse!` will always fail.
+    apply(Version, :parse!, [version_string])
   end
 
   @doc "Converts a version into a printable string representation"

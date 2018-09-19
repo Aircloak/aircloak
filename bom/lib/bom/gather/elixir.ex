@@ -72,7 +72,9 @@ defmodule BOM.Gather.Elixir do
 
   defp version_map(deps_path) do
     Gather.if_matching_file(deps_path, "../mix.lock", fn text ->
-      {deps, []} = text |> Code.format_string!() |> to_string() |> Code.eval_string()
+      # Using apply to trick the dialyzer which thinks there's something wrong with `Code.format_string!
+      compiled_string = to_string(apply(Code, :format_string!, [text]))
+      {deps, []} = Code.eval_string(compiled_string)
 
       for {package, spec} <- deps, into: %{} do
         [source, _, version | _] = Tuple.to_list(spec)

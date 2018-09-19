@@ -72,7 +72,8 @@ defmodule Cloak.Sql.Compiler do
   end
 
   @doc "Validates a user-defined view."
-  @spec validate_view(DataSource.t(), Parser.parsed_query(), Query.view_map()) :: :ok | {:error, String.t()}
+  @spec validate_view(DataSource.t(), Parser.parsed_query(), Query.view_map()) ::
+          {:ok, Query.t()} | {:error, String.t()}
   def validate_view(data_source, parsed_query, views),
     do: parsed_query |> Map.put(:subquery?, true) |> compile(data_source, [], views)
 
