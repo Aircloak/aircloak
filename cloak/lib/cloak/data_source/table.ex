@@ -439,8 +439,14 @@ defmodule Cloak.DataSource.Table do
     end)
   end
 
-  defp translate_decoder(%{method: "aes_cbc_128", key: key}, column),
+  defp translate_decoder(%{method: "aes_cbc_128", key: key}, column) when key != nil,
     do: "dec_aes_cbc128(#{column}, '#{String.replace(key, "'", "''")}')"
+
+  defp translate_decoder(%{method: "aes_cbc_128"}, column) do
+    key = Application.get_env(:cloak, :aes_key)
+    if key == nil, do: DataSource.raise_error("No global `aes_key` value specified for key-less `aes_cbc_128` decoder")
+    "dec_aes_cbc128(#{column}, '#{String.replace(key, "'", "''")}')"
+  end
 
   defp translate_decoder(%{method: "text_to_integer"}, column), do: "CAST(#{column} AS integer)"
   defp translate_decoder(%{method: "real_to_integer"}, column), do: "CAST(#{column} AS integer)"
@@ -452,7 +458,7 @@ defmodule Cloak.DataSource.Table do
   defp translate_decoder(%{method: "base64"}, column), do: "dec_b64(#{column})"
 
   defp translate_decoder(%{method: method}, _column),
-    do: DataSource.raise_error("Invalid decoding method specified: #{method}")
+    do: DataSource.raise_error("Invalid decoding method specified: `#{method}`")
 
   defp quote_db_name("\"" <> _ = name), do: name
   defp quote_db_name(name), do: ~s/"#{name}"/
