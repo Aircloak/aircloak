@@ -58,7 +58,8 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   def like_sql(what, match), do: super([what, " COLLATE Latin1_General_CS_AS"], match)
 
   @impl Dialect
-  def ilike_sql(what, match), do: [what, " COLLATE Latin1_General_CI_AS LIKE ", match]
+  def ilike_sql(what, {pattern, escape = "\\"}),
+    do: [what, " COLLATE Latin1_General_CI_AS LIKE ", ?', pattern, ?', " ESCAPE ", ?', escape, ?']
 
   @impl Dialect
   def limit_sql(nil, offset), do: [" OFFSET ", to_string(offset), " ROWS"]

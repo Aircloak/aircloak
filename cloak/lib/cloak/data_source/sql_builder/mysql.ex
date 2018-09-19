@@ -49,7 +49,8 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   def like_sql(what, match), do: super([what, " COLLATE utf8_bin"], match)
 
   @impl Dialect
-  def ilike_sql(what, match), do: [what, " COLLATE utf8_general_ci LIKE ", match]
+  def ilike_sql(what, {pattern, escape = "\\"}),
+    do: [what, " COLLATE utf8_general_ci LIKE ", ?', pattern, ?', " ESCAPE ", ?', escape, ?']
 
   @impl Dialect
   def limit_sql(nil, offset), do: [" LIMIT ", to_string(offset), ", #{@max_unsigned_bigint}"]

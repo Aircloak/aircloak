@@ -44,7 +44,7 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 
   @impl Dialect
-  def ilike_sql(what, match), do: ["ILIKE(", what, ", ", match, ")"]
+  def ilike_sql(what, {pattern, escape = "\\"}), do: ["ILIKE(", what, ", ", ?', pattern, ?', ", ", ?', escape, ?', ")"]
 
   @impl Dialect
   def limit_sql(nil, 0), do: []
