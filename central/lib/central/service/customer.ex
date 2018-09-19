@@ -45,7 +45,7 @@ defmodule Central.Service.Customer do
               mark_export_as_imported!(customer, export.id, export.created_at)
             catch
               type, error ->
-                Logger.error(Exception.format(type, error, :erlang.get_stacktrace()))
+                Logger.error(Exception.format(type, error, __STACKTRACE__))
                 Repo.rollback(:error)
             end
           end,
