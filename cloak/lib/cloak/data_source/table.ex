@@ -457,6 +457,10 @@ defmodule Cloak.DataSource.Table do
   defp translate_decoder(%{method: "real_to_boolean"}, column), do: "CAST(#{column} AS boolean)"
   defp translate_decoder(%{method: "base64"}, column), do: "dec_b64(#{column})"
 
+  defp translate_decoder(%{method: "substring", from: from, for: for}, column)
+       when is_integer(from) and is_integer(for),
+       do: "substring(#{column} FROM #{from} FOR #{for})"
+
   defp translate_decoder(%{method: method}, _column),
     do: DataSource.raise_error("Invalid decoding method specified: `#{method}`")
 

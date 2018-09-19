@@ -16,7 +16,7 @@ defmodule Cloak.DataSource.DecodersAndProjectionsTest do
     Mongo.delete_many(conn, "dec_proj_projected_base", %{})
 
     for i <- 1..10 do
-      Mongo.insert_one!(conn, "dec_proj_enc_base", %{pk: i, val: "10"})
+      Mongo.insert_one!(conn, "dec_proj_enc_base", %{pk: i, val: "3104"})
       Mongo.insert_one!(conn, "dec_proj_projected_base", %{fk: i})
     end
 
@@ -25,6 +25,7 @@ defmodule Cloak.DataSource.DecodersAndProjectionsTest do
         user_id: "_id",
         db_name: "dec_proj_enc_base",
         decoders: [
+          %{method: "substring", from: 2, for: 2, columns: ["val"]},
           %{method: "text_to_integer", columns: ["val"]}
         ]
       },
