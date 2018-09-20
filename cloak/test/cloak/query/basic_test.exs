@@ -1648,4 +1648,10 @@ defmodule Cloak.Query.BasicTest do
       )
     end
   end
+
+  test "error on distinct aggregate over invalid type" do
+    assert_query("select stddev(distinct name) from heights", %{
+      error: "Function `stddev` requires arguments of type (`integer` | `real`), but got (`text`)." <> _
+    })
+  end
 end
