@@ -37,19 +37,20 @@ defmodule DataQuality.GenerateData do
   end
 
   defp insert_data(conn) do
-    for({name, params} <- Distributions.list()) do
+    for distribution <- Distributions.list() do
+      name = Distributions.distribution_name(distribution)
       OutputStatus.new_line(name, :pending, "creating data")
 
       rows =
         Beta.generate(
-          params[:min],
-          params[:max],
-          params[:users] * params[:entries_per_user],
-          params[:alpha],
-          params[:beta]
+          distribution[:min],
+          distribution[:max],
+          distribution[:users] * distribution[:entries_per_user],
+          distribution[:alpha],
+          distribution[:beta]
         )
-        |> Enum.chunk_every(params[:entries_per_user])
-        |> Enum.zip(1..params[:users])
+        |> Enum.chunk_every(distribution[:entries_per_user])
+        |> Enum.zip(1..distribution[:users])
         |> Enum.flat_map(&to_rowspecs(name, &1))
 
       OutputStatus.update_state(name, :pending, "inserting data")

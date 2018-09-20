@@ -28,7 +28,8 @@ defmodule DataQuality.Test.Query do
     Logger.header(name)
 
     measurements =
-      for {distribution_name, _} <- Distributions.list(), into: %{} do
+      for distribution <- Distributions.list(), into: %{} do
+        distribution_name = Distributions.distribution_name(distribution)
         OutputStatus.new_line(distribution_name, :pending, "querying")
 
         distribution_test_result =

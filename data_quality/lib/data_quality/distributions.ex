@@ -27,15 +27,15 @@ defmodule DataQuality.Distributions do
   # API
   # -------------------------------------------------------------------
 
-  @spec list() :: %{String.t() => distribution}
-  @doc "Returns a map from distribution name to distribution parameters"
-  def list(),
+  @spec list() :: [distribution]
+  @doc "Returns a list of distribution parameters"
+  def list(), do: @distributions
+
+  @spec distribution_name(distribution) :: String.t()
+  @doc "Returns a distribution unique name for a distribution"
+  def distribution_name(distribution),
     do:
-      @distributions
-      |> Enum.map(
-        &{"beta[a=#{&1[:alpha]} b=#{&1[:beta]}] from #{&1[:min]} to #{&1[:max]} (#{&1[:users]} users with #{
-           &1[:entries_per_user]
-         } rows per user)", &1}
-      )
-      |> Enum.into(%{})
+      "beta[a=#{distribution[:alpha]} b=#{distribution[:beta]}] from " <>
+        "#{distribution[:min]} to #{distribution[:max]} " <>
+        "(#{distribution[:users]} users with #{distribution[:entries_per_user]})"
 end
