@@ -34,16 +34,12 @@ as well as for rendering graphs of the anonymized results.
 
 #### Database
 
-You need to create a database called `data_quality` accessible by user `data_quality`
-local Postgres server available to the Cloak instances you want to use for your test.
+TL;DR: run `make recreate-db`
 
-The following steps should achieve this locally:
-
-```
-$ psql
-> CREATE USER data_quality WITH login superuser;
-> CREATE DATABASE data_quality WITH OWNER data_quality;
-```
+You need a locally running Postgres database populated with test data in order to run the data quality tests.
+The `recreate-db` make-target will create the required user, database and data for the test.
+It requires that the default user used when calling the `psql` command without specifying a user
+has sufficient privileges to create new super users.
 
 #### Config
 

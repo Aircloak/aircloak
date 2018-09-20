@@ -11,6 +11,13 @@ deps:
 data_quality:
 	mix data_quality
 
+recreate-db:
+	psql -c "DROP DATABASE IF EXISTS data_quality"
+	psql -c "DROP ROLE IF EXISTS data_quality"
+	psql -c "CREATE ROLE data_quality WITH LOGIN SUPERUSER"
+	psql -c "CREATE DATABASE data_quality WITH OWNER data_quality"
+	mix data_quality.generate_data --config config.json
+
 clean:
 	mix clean --deps
 
