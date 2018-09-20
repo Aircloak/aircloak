@@ -14,16 +14,25 @@ Produces a data quality score for an Aircloak instance.
 
 ## What it does
 
-When run as `mix data_quality` the script will connect to the data sources
-configured in the `config.json` file and execute a set of SQL queries in order
-to extract anonymized results. Additionally the same queries are run against a non-anonymizing
-version of the data source in order to generate comparison values that the anonymized
-values can be compared against. This allows us to generate a measure of how much the
-anonymization distorts the expected database output, and based on that produce a
-data quality measure.
+This test suite runs a set of SQL queries through Aircloak to generate two classes of values:
+the real unanonymized (unaltered) values an analyst would get if no Aircloak was used, and a set
+of Aircloak anonymized results. These sets of values are then used to determine the data quality
+produced by Aircloak, namely how much error does Aircloak introduce as part of the anonymization.
 
-The final output is a set of mean squared error results per query, distribution and
-data source. The query results are also saved as CSV in the `output`-folder.
+The non-anonymous values are also generated using Aircloak (with a data source where the config
+sets the `user_id` to `null` (thereby not anonymizing the data). Using an Aircloak instance for
+the non-anonymous data ensures we can run the exact same queries (using functionality such as `bucket`)
+against the non-anonymizing data source as the anonymizing ones. This in turn ensures we get values
+that can be sensibly compared.
+
+The system can also be configured to run against multiple distinct versions of Aircloak.
+This way it can show the changes in results across different versions of Aircloak system.
+This is particularly useful when making changes to the anonymization engine where you want
+a side-by-side comparison of how these changes affect the data quality.
+
+At present the system measures the mean square error. Future versions might measure things such
+as [Pearson's chi-squared test](https://en.wikipedia.org/wiki/Pearson%27s_chi-squared_test) to
+measure to what extent the anonymized output are drawn from what seems to be the same distribution.
 
 ## Running
 
