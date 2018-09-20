@@ -9,21 +9,23 @@ defmodule DataQuality.Test.Present do
   # API
   # -------------------------------------------------------------------
 
-  @spec mse(Test.results(), Test.config()) :: Test.results()
+  @spec mse(Test.results(), Test.global_results(), Test.config()) :: :ok
   @doc "Calculates the mean squared error for different sets of attributes and outputs the result to the screen"
-  def mse(results, config) do
+  def mse(results, global_results, config) do
     Logger.banner("Data quality results")
-    per_aggregate(results, config)
-    output_global_mse(results)
 
-    results
+    present_per_aggregate(results, config)
+    present_mse_by_categories(global_results)
+    present_mse_by_source(global_results)
+
+    :ok
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp per_aggregate(results, config) do
+  defp present_per_aggregate(results, config) do
     joined_target_names = joined_target_names_from_config(config)
 
     for {aggregate, aggregate_results} <- results do
@@ -84,101 +86,26 @@ defmodule DataQuality.Test.Present do
       |> elem(1)
       |> Map.keys()
 
-  defp output_global_mse(results) do
-    flattened_values = Enum.flat_map(results, &extract_values_by_class/1)
-    mse_by_categories([:distribution, :dimension, :class], flattened_values)
-    mse_by_source(flattened_values)
-  end
-
-  def extract_values_by_class({class, class_values}),
-    do:
-      class_values
-      |> Enum.flat_map(&extract_values_by_distribution/1)
-      |> Enum.map(&Map.put(&1, :class, class))
-
-  def extract_values_by_distribution({distribution, distribution_values}),
-    do:
-      distribution_values
-      |> Enum.flat_map(&extract_values_by_dimension/1)
-      |> Enum.map(&Map.put(&1, :distribution, distribution))
-
-  def extract_values_by_dimension({dimension, dimension_values}),
-    do:
-      dimension_values
-      |> Enum.flat_map(&extract_values_by_aggregate/1)
-      |> Enum.map(&Map.put(&1, :dimension, dimension))
-
-  def extract_values_by_aggregate({aggregate, aggregate_values}),
-    do:
-      aggregate_values[:raw_data]
-      |> Enum.flat_map(fn result_row ->
-        all_query_targets = aggregate_values[:raw_data] |> hd() |> Map.keys()
-        test_targets = all_query_targets -- ["unanonymized"]
-
-        Enum.map(
-          test_targets,
-          &%{source: &1, value: {result_row["unanonymized"], result_row[&1]}}
-        )
-      end)
-      |> Enum.map(&Map.put(&1, :aggregate, aggregate))
-
-  defp mse_by_categories(categories, flattened_values) do
+  defp present_mse_by_categories(global_results) do
     Logger.header("MSE-values by category")
 
     table_rows =
-      categories
-      |> Enum.flat_map(fn grouping ->
-        grouped_mse(flattened_values, grouping)
-        |> Enum.map(fn {group, group_values} ->
-          mse_values =
-            group_values
-            |> Enum.sort_by(&elem(&1, 0))
-            |> Enum.map(&elem(&1, 1))
-
-          [Utility.name(group), grouping | mse_values]
+      Enum.flat_map(global_results.mse_by_category, fn {grouping, grouping_values} ->
+        Enum.map(grouping_values, fn {dimension, mse_values} ->
+          [Utility.name(dimension), grouping | mse_values]
         end)
       end)
 
-    sources =
-      flattened_values
-      |> Enum.map(& &1[:source])
-      |> Enum.uniq()
-      |> Enum.sort()
-
-    col_headers = ["", "grouping" | sources]
+    col_headers = ["", "grouping" | global_results.sources]
     IO.puts(AsciiTable.format([col_headers | table_rows]) <> "\n")
   end
 
-  defp mse_by_source(flattened_values) do
+  defp present_mse_by_source(%{mse_by_source: mse_by_source}) do
     Logger.header("Global MSE-values")
 
-    flattened_values
-    |> mse_from_flattened_values_by_source()
-    |> Enum.map(fn {source, mse} ->
+    mse_by_source
+    |> Enum.each(fn {source, mse} ->
       IO.puts(String.pad_trailing(source, 20, " ") <> to_string(mse))
     end)
   end
-
-  defp grouped_mse(data, group),
-    do:
-      data
-      |> Enum.group_by(& &1[group])
-      |> Enum.map(fn {group_name, group_values} ->
-        {group_name, mse_from_flattened_values_by_source(group_values)}
-      end)
-      |> Enum.into(%{})
-
-  defp mse_from_flattened_values_by_source(values),
-    do:
-      values
-      |> Enum.group_by(& &1[:source])
-      |> Enum.map(fn {source, source_values} ->
-        mse =
-          source_values
-          |> Enum.map(& &1[:value])
-          |> Stats.mean_squared_error()
-
-        {source, mse}
-      end)
-      |> Enum.into(%{})
 end

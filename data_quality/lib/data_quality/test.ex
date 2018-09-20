@@ -37,6 +37,14 @@ defmodule DataQuality.Test do
           }
         }
 
+  @type category :: String.t()
+  @type source :: String.t()
+  @type global_results :: %{
+          sources: [String.t()],
+          mse_by_category: %{category => %{(dimension | aggregate) => [float]}},
+          mse_by_source: %{source => float}
+        }
+
   @type data_source_spec :: %{
           api_token: String.t(),
           data_source_name: String.t(),
@@ -62,32 +70,36 @@ defmodule DataQuality.Test do
   @doc "Performs data quality test"
   def run(config) do
     # Note AVG doesn't yet work for no-uid, so is not included.
-    [
-      %{
-        name: "COUNT",
-        aggregates: [
-          {:count, "count(*)"},
-          {:count, "count(distinct uid)"}
-          # count(distinct column) is not supported by no-uid design yet so not yet included
-        ]
-      },
-      %{
-        name: "MIN",
-        aggregates: [:min]
-      },
-      %{
-        name: "MAX",
-        aggregates: [:max]
-      },
-      %{
-        name: "SUM",
-        aggregates: [:sum]
-      }
-    ]
-    |> Query.measure(config, @dimensions)
-    |> Processing.calculate_mse()
-    |> Present.mse(config)
-    |> Persist.to_disk()
+    per_query_results =
+      [
+        %{
+          name: "COUNT",
+          aggregates: [
+            {:count, "count(*)"},
+            {:count, "count(distinct uid)"}
+            # count(distinct column) is not supported by no-uid design yet so not yet included
+          ]
+        },
+        %{
+          name: "MIN",
+          aggregates: [:min]
+        },
+        %{
+          name: "MAX",
+          aggregates: [:max]
+        },
+        %{
+          name: "SUM",
+          aggregates: [:sum]
+        }
+      ]
+      |> Query.measure(config, @dimensions)
+      |> Processing.calculate_mse()
+
+    global_results = Processing.calculate_global_mse(per_query_results)
+    Present.mse(per_query_results, global_results, config)
+
+    Persist.to_disk(per_query_results)
 
     :ok
   end
