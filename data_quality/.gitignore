@@ -25,3 +25,5 @@ data_quality-*.tar
 output
 
 config.json
+
+Rplots.pdf
