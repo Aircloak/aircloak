@@ -11,18 +11,21 @@ defmodule DataQuality.Distributions.Beta do
   # API
   # -------------------------------------------------------------------
 
-  @spec generate(integer, integer, integer, float, float) :: [float]
+  @spec generate(integer, integer, integer, float, float) :: Enumerable.t()
   @doc "Generates a list of beta-values scaled to be in the range min-max."
-  def generate(min, max, num_samples, alpha, beta) do
-    port = Port.open({:spawn, "Rscript beta.r #{num_samples} #{alpha} #{beta}"}, [:binary])
-    await_data(port, min, max - min, [])
-  end
+  def generate(min, max, num_samples, alpha, beta),
+    do:
+      Stream.resource(
+        fn -> Port.open({:spawn, "Rscript beta.r #{num_samples} #{alpha} #{beta}"}, [:binary]) end,
+        &await_data(&1, min, max - min),
+        fn _port -> :ok end
+      )
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp await_data(port, min, range, acc) do
+  defp await_data(port, min, range) do
     receive do
       {^port, {:data, result}} ->
         values =
@@ -37,14 +40,12 @@ defmodule DataQuality.Distributions.Beta do
             val * range + min
           end)
 
-        await_data(port, min, range, values ++ acc)
+        {values, port}
 
-      other ->
-        Logger.error("Unexpected result from R: #{inspect(other)}")
-        []
+      _other ->
+        {:halt, port}
     after
-      500 ->
-        acc
+      500 -> {:halt, port}
     end
   end
 end

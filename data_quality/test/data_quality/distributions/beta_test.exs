@@ -8,7 +8,7 @@ defmodule DataQuality.Distributions.Beta.Test do
       num_samples = 100
       samples = gen(num_samples: num_samples)
 
-      assert length(samples) == num_samples
+      assert Enum.count(samples) == num_samples
     end
 
     test "takes min and max values into account" do

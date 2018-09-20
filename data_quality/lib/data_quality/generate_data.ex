@@ -41,7 +41,7 @@ defmodule DataQuality.GenerateData do
       name = Distributions.distribution_name(distribution)
       OutputStatus.new_line(name, :pending, "creating data")
 
-      rows =
+      success =
         Beta.generate(
           distribution[:min],
           distribution[:max],
@@ -49,27 +49,29 @@ defmodule DataQuality.GenerateData do
           distribution[:alpha],
           distribution[:beta]
         )
-        |> Enum.chunk_every(distribution[:entries_per_user])
-        |> Enum.zip(1..distribution[:users])
-        |> Enum.flat_map(&to_rowspecs(name, &1))
+        |> Stream.chunk_every(distribution[:entries_per_user])
+        |> Stream.zip(1..distribution[:users])
+        |> Stream.flat_map(&to_rowspecs(name, &1))
+        |> Stream.chunk_every(1000)
+        |> Enum.map(&insert(conn, &1))
+        |> Enum.all?(& &1)
 
-      OutputStatus.update_state(name, :pending, "inserting data")
-
-      rows
-      |> Enum.chunk_every(1000)
-      |> Enum.each(&insert(conn, &1))
-
-      OutputStatus.done(name)
+      if success do
+        OutputStatus.done(name)
+      else
+        OutputStatus.end_line(name, :error)
+      end
     end
   end
 
-  defp insert(conn, row_data),
-    do:
-      Postgrex.query!(
-        conn,
-        "INSERT INTO data_quality (uid, number, distribution) VALUES #{row_data |> Enum.join(", ")}",
-        []
-      )
+  defp insert(conn, row_data) do
+    sql = "INSERT INTO data_quality (uid, number, distribution) VALUES #{row_data |> Enum.join(", ")}"
+
+    case Postgrex.query!(conn, sql, []) do
+      %Postgrex.Result{command: :insert} -> true
+      _ -> false
+    end
+  end
 
   defp to_rowspecs(dist_name, {rows, user}), do: Enum.map(rows, &to_rowspec(dist_name, user, &1))
 
