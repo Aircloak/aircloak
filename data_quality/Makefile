@@ -18,6 +18,9 @@ recreate-db:
 	psql -c "CREATE DATABASE data_quality WITH OWNER data_quality"
 	mix data_quality.generate_data --config config.json
 
+setup-r:
+	Rscript setup.r
+
 clean:
 	mix clean --deps
 

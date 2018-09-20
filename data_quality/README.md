@@ -31,9 +31,13 @@ data source. The query results are also saved as CSV in the `output`-folder.
 
 #### R
 
-You need to have `R` installed. It can be downloaded and installed from [R-project](https://www.r-project.org/).
+You need to have `R` installed. It can be downloaded and installed from [R-project](https://www.r-project.org/)
+or with `brew install r` if you are on macOS.
 R is used for generating the beta-distribution values that are tested against,
 as well as for rendering graphs of the anonymized results.
+
+Run `make setup-r` to install the necessary R libraries that will be needed to run the
+data quality tests.
 
 #### Database
 
