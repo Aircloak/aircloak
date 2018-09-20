@@ -1,5 +1,5 @@
 defmodule DataQuality.Test.Query do
-  @moduledoc "SQL queries to run"
+  @moduledoc "Executes queries and collects query results for further processing"
 
   alias Aircloak.OutputStatus
   alias DataQuality.Distributions

@@ -1,5 +1,5 @@
 defmodule DataQuality.Test.Processing do
-  @moduledoc "SQL queries to run"
+  @moduledoc "Calculating MSE-values for the all the queries that have been run"
 
   alias DataQuality.Stats
 
