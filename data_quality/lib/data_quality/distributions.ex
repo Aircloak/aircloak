@@ -1,6 +1,19 @@
 defmodule DataQuality.Distributions do
   @moduledoc """
   Definitions for beta distributions that should be used for testing the data quality of Aircloak.
+
+  Beta distributions are characterised by two parameters: alpha and beta.
+  Together the deside the shape of the distribution.
+
+  Our beta distributions are defined by the following parameters:
+  - alpha and beta: determine the shape of the distribution
+  - min and max: a beta distribution is always contained between 0 and 1, whereas we want
+    our distributions to take on a wider range of values. Min and max determine the range
+    of the values to be generated.
+  - users and entries_per_user: determine how many samples should be generated for a given test.
+
+  For more on beta distributions, check out the Wikiepedia entry:
+  https://en.wikipedia.org/wiki/Beta_distribution
   """
 
   @type distribution :: %{
