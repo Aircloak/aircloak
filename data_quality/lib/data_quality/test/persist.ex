@@ -80,17 +80,8 @@ defmodule DataQuality.Test.Persist do
       File.write(csv_path, csv_header_line, [:write])
       File.write!(csv_path, row_lines, [:append])
 
-      port = Port.open({:spawn, "Rscript graph.r \"#{csv_path}\" \"#{img_path}\""}, [:binary])
-      wait_for_port_close(port)
+      :os.cmd(String.to_charlist("Rscript graph.r \"#{csv_path}\" \"#{img_path}\""))
       File.rm!(csv_path)
-    end
-  end
-
-  defp wait_for_port_close(port) do
-    Port.monitor(port)
-
-    receive do
-      {:DOWN, _, :port, ^port, :normal} -> :ok
     end
   end
 end
