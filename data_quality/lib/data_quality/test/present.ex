@@ -2,7 +2,6 @@ defmodule DataQuality.Test.Present do
   @moduledoc "Produces and renders statistic about the query runs"
 
   alias Aircloak.AsciiTable
-  alias DataQuality.Stats
   alias DataQuality.Test.{Utility, Logger}
 
   # -------------------------------------------------------------------
