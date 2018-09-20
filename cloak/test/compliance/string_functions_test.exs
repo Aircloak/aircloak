@@ -77,7 +77,9 @@ Enum.each(
             [
               Cloak.DataSource.MongoDB,
               Cloak.DataSource.SQLServer,
-              Cloak.DataSource.SQLServerRODBC
+              Cloak.DataSource.SQLServerRODBC,
+              Cloak.DataSource.Drill,
+              Cloak.DataSource.DrillRODBC
             ],
             context,
             &disable_for(&2, &1, true)
