@@ -29,7 +29,9 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
   def function_sql("hash", [arg]), do: ["SUBSTR(MD5(", arg, "), 5, 8)"]
 
   def function_sql("left", [arg1, arg2]), do: ["SUBSTR(", arg1, ", 1, ", arg2, ")"]
-  def function_sql("right", [arg1, arg2]), do: ["SUBSTR(", arg1, ", LENGTH(", arg1, ") - ", arg2, " + 1)"]
+
+  def function_sql("right", [arg1, arg2]),
+    do: ["SUBSTR(", arg1, ", ", larger_int(["LENGTH(", arg1, ") - ", arg2, " + 1"], "1"), ?)]
 
   def function_sql("bool_op", [[?', op, ?'], arg1, arg2]), do: ["(", arg1, " ", op, " ", arg2, ")"]
 
@@ -99,4 +101,6 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
   defp sql_type(:integer), do: "bigint"
   defp sql_type(:text), do: "varchar"
   defp sql_type(type) when is_atom(type), do: Atom.to_string(type)
+
+  defp larger_int(a, b), do: ["((", a, ") + (", b, ") + ABS((", a, ") - (", b, "))) / 2"]
 end
