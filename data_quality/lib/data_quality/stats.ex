@@ -18,11 +18,8 @@ defmodule DataQuality.Stats do
     squared_errors = squared_errors(value_pairs)
 
     case Enum.count(squared_errors) do
-      0 ->
-        0.0
-
-      mse_rows_count ->
-        Float.round(Enum.sum(squared_errors) / mse_rows_count, 2)
+      0 -> 0.0
+      mse_rows_count -> Float.round(Enum.sum(squared_errors) / mse_rows_count, 2)
     end
   end
 
