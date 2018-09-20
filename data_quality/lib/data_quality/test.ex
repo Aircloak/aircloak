@@ -15,15 +15,6 @@ defmodule DataQuality.Test do
     {:bucket, 100},
     {:bucket, 500}
   ]
-  @counts [
-    {:count, "count(*)"},
-    {:count, "count(distinct uid)"}
-    # count(distinct column) is not supported by no-uid design yet so not yet included
-  ]
-  @mins [:min]
-  @maxs [:max]
-  @sums [:sum]
-  # Note AVG doesn't yet work for no-uid, so is not included.
 
   @type aggregate_class :: String.t()
   @type distribution_name :: String.t()
@@ -53,22 +44,27 @@ defmodule DataQuality.Test do
   @spec run(Map.t()) :: :ok
   @doc "Performs data quality test"
   def run(config) do
+    # Note AVG doesn't yet work for no-uid, so is not included.
     [
       %{
         name: "COUNT",
-        aggregates: @counts
+        aggregates: [
+          {:count, "count(*)"},
+          {:count, "count(distinct uid)"}
+          # count(distinct column) is not supported by no-uid design yet so not yet included
+        ]
       },
       %{
         name: "MIN",
-        aggregates: @mins
+        aggregates: [:min]
       },
       %{
         name: "MAX",
-        aggregates: @maxs
+        aggregates: [:max]
       },
       %{
         name: "SUM",
-        aggregates: @sums
+        aggregates: [:sum]
       }
     ]
     |> Query.measure(config, @dimensions)
