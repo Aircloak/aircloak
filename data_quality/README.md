@@ -17,7 +17,10 @@ Produces a data quality score for an Aircloak instance.
 When run as `mix data_quality` the script will connect to the data sources
 configured in the `config.json` file and execute a set of SQL queries in order
 to extract anonymized results. Additionally the same queries are run against a non-anonymizing
-version of the data source configuration for generating comparison values.
+version of the data source in order to generate comparison values that the anonymized
+values can be compared against. This allows us to generate a measure of how much the
+anonymization distorts the expected database output, and based on that produce a
+data quality measure.
 
 The final output is a set of mean squared error results per query, distribution and
 data source. The query results are also saved as CSV in the `output`-folder.
