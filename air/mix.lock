@@ -52,7 +52,7 @@
   "lhttpc": {:git, "https://github.com/esl/lhttpc.git", "6530ef818bf904bf4ef615f384d2fc7bae44a6dc", []},
   "makeup": {:hex, :makeup, "0.5.1", "966c5c2296da272d42f1de178c1d135e432662eca795d6dc12e5e8787514edf7", [:mix], [{:nimble_parsec, "~> 0.2.2", [hex: :nimble_parsec, repo: "hexpm", optional: false]}], "hexpm"},
   "makeup_elixir": {:hex, :makeup_elixir, "0.8.0", "1204a2f5b4f181775a0e456154830524cf2207cf4f9112215c05e0b76e4eca8b", [:mix], [{:makeup, "~> 0.5.0", [hex: :makeup, repo: "hexpm", optional: false]}, {:nimble_parsec, "~> 0.2.2", [hex: :nimble_parsec, repo: "hexpm", optional: false]}], "hexpm"},
-  "meck": {:git, "https://github.com/eproxus/meck.git", "dde759050eff19a1a80fd854d7375174b191665d", [tag: "0.8.2"]},
+  "meck": {:git, "https://github.com/eproxus/meck.git", "6121bb7e5c21b7ba2e79754f976a55f32940b28e", [tag: "0.8.12"]},
   "metrics": {:hex, :metrics, "1.0.1", "25f094dea2cda98213cecc3aeff09e940299d950904393b2a29d191c346a8486", [:rebar3], [], "hexpm"},
   "mime": {:hex, :mime, "1.3.0", "5e8d45a39e95c650900d03f897fbf99ae04f60ab1daa4a34c7a20a5151b7a5fe", [:mix], [], "hexpm"},
   "mimerl": {:hex, :mimerl, "1.0.2", "993f9b0e084083405ed8252b99460c4f0563e41729ab42d9074fd5e52439be88", [:rebar3], [], "hexpm"},
