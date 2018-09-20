@@ -12,7 +12,7 @@ defmodule DataQuality.GenerateData do
   # API
   # -------------------------------------------------------------------
 
-  @spec run(Mapt.t()) :: :ok
+  @spec run(Map.t()) :: :ok
   @doc "Creates database tables and populates them with test data from the configured beta distributions."
   def run(config) do
     open_connection(config)
