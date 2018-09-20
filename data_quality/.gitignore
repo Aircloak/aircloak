@@ -23,3 +23,5 @@ erl_crash.dump
 data_quality-*.tar
 
 output
+
+config.json
