@@ -12,7 +12,7 @@ defmodule Cloak.DataSource.SQLServerRODBC do
   @impl Driver
   def connect!(parameters) do
     connection = RODBC.connect!(parameters, &conn_params/1)
-    :ok = RODBC.Driver.execute(connection, "SET ANSI_DEFAULTS ON")
+    :ok = RODBC.Port.execute(connection, "SET ANSI_DEFAULTS ON")
     connection
   end
 

@@ -3,14 +3,11 @@ name = "rodbc"
 version = "0.1.0"
 authors = ["Aircloak GmbH <solutions@aircloak.com>"]
 
-[lib]
+[[bin]]
 name = "rodbc"
-crate-type = ["dylib"]
 
 [dependencies]
 odbc = ">= 0.9.8"
-libc = "*"
-c_vec = "*"
 simple-error = "*"
 
 [dependencies.odbc-sys]

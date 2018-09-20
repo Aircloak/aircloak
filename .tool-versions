@@ -1,4 +1,4 @@
 erlang 21.0.9
 elixir 1.7.3-otp-21
 nodejs 6.9.1
-rust 1.23.0
+rust 1.28.0
