@@ -100,6 +100,8 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
 
   defp sql_type(:real), do: "float"
   defp sql_type(:boolean), do: "bit"
-  defp sql_type(:text), do: "nvarchar(max)"
+  # Due to limitations in the ODBC driver, we can't use nvarchar(max).
+  # https://github.com/Aircloak/aircloak/pull/3111/commits/b6c59287bd6602de7d3cbf32592119a70e8f3e53#r219216993
+  defp sql_type(:text), do: "nvarchar(4000)"
   defp sql_type(type) when is_atom(type), do: Atom.to_string(type)
 end
