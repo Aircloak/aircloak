@@ -283,3 +283,7 @@ create view products as select
  cast(p.pricing.price as float) as price
 from maprdb.products as p;
 ```
+
+#### JOINs
+
+Apache Drill doesn't support `CROSS JOIN` natively, so any `CROSS JOIN` will be emulated by Aircloak Insights.
