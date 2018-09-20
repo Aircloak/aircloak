@@ -36,34 +36,33 @@ defmodule DataQuality.Test.Present do
         "Dimension" | Enum.map(col_selectors, &(Utility.name(&1) <> " (mse)"))
       ]
 
+      table_rows = Enum.reduce(aggregate_results, [], &process_distribution_results(&1, &2, col_selectors))
+
       IO.puts("Results are presented as: #{joined_target_names}.\n")
-
-      table_rows =
-        aggregate_results
-        |> Enum.reduce([], fn {distribution, distribution_results}, acc ->
-          rows =
-            distribution_results
-            |> Enum.map(fn {dimension, aggregate_results} ->
-              col_values =
-                col_selectors
-                |> Enum.map(fn col_selector ->
-                  data = aggregate_results[col_selector][:processed_data]
-
-                  data
-                  |> Map.keys()
-                  |> Enum.sort()
-                  |> Enum.map(&Map.get(data, &1)[:mse])
-                  |> Enum.join(" / ")
-                end)
-
-              [distribution, Utility.name(dimension) | col_values]
-            end)
-
-          rows ++ acc
-        end)
-
       IO.puts(AsciiTable.format([col_headers | table_rows]) <> "\n")
     end
+  end
+
+  defp process_distribution_results({distribution, distribution_results}, acc, col_selectors) do
+    rows =
+      distribution_results
+      |> Enum.map(fn {dimension, aggregate_results} ->
+        col_values =
+          col_selectors
+          |> Enum.map(fn col_selector ->
+            data = aggregate_results[col_selector][:processed_data]
+
+            data
+            |> Map.keys()
+            |> Enum.sort()
+            |> Enum.map(&Map.get(data, &1)[:mse])
+            |> Enum.join(" / ")
+          end)
+
+        [distribution, Utility.name(dimension) | col_values]
+      end)
+
+    rows ++ acc
   end
 
   defp joined_target_names_from_config(config),
