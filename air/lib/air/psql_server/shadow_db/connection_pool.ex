@@ -37,7 +37,8 @@ defmodule Air.PsqlServer.ShadowDb.ConnectionPool do
         max_overflow: 0,
         size: 10
       ],
-      [data_source_name]
+      # Sending a proplist, because poolboy requires proplist in its typespec here
+      [{:data_source_name, data_source_name}]
     )
   end
 end

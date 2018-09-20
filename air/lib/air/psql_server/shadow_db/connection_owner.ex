@@ -75,5 +75,5 @@ defmodule Air.PsqlServer.ShadowDb.ConnectionOwner do
   # -------------------------------------------------------------------
 
   @doc false
-  def start_link(data_source_name), do: Parent.GenServer.start_link(__MODULE__, data_source_name)
+  def start_link([{:data_source_name, data_source_name}]), do: Parent.GenServer.start_link(__MODULE__, data_source_name)
 end

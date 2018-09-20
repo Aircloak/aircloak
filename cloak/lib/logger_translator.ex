@@ -67,7 +67,7 @@ defmodule Cloak.LoggerTranslator do
     end
   catch
     type, _reason ->
-      {:ok, translation_error(level, kind, type, :erlang.get_stacktrace())}
+      {:ok, translation_error(level, kind, type, __STACKTRACE__)}
   end
 
   defp translation_error(level, kind, error_type, error_stacktrace),
@@ -76,11 +76,18 @@ defmodule Cloak.LoggerTranslator do
       Exception.format_stacktrace(filtered_stacktrace(error_stacktrace))
     ]
 
+  defp filter_message(:error, :report, {report_type, %{} = report}) do
+    {
+      :ok,
+      {
+        report_type,
+        %{report | reason: filter_reason(report.reason), state: "filtered state", last_message: "filtered message"}
+      }
+    }
+  end
+
   defp filter_message(:error, :format, message), do: filter_error_message(message)
   defp filter_message(_level, _kind, _message), do: :skip
-
-  defp filter_error_message({'** Generic server ' ++ _ = msg, [name, _last, _state, reason]}),
-    do: {:ok, {msg, [name, "filtered", "filtered", filter_reason(reason)]}}
 
   defp filter_error_message({'** Task ' ++ _ = msg, [name, starter, function, args, reason]}),
     do: {:ok, {msg, [name, starter, function, Enum.map(args, fn _ -> "filtered" end), filter_reason(reason)]}}
@@ -88,11 +95,9 @@ defmodule Cloak.LoggerTranslator do
   defp filter_error_message({'Error in process ' ++ _ = msg, [pid, reason]}),
     do: {:ok, {msg, [pid, filter_reason(reason)]}}
 
-  defp filter_error_message({'** gen_event handler ' ++ _ = msg, [name, manager, _last, _state, reason]}),
-    do: {:ok, {msg, [name, manager, "filtered", "filtered", filter_reason(reason)]}}
-
   defp filter_error_message(_), do: :skip
 
+  defp filter_reason({:EXIT, {_exception, stacktrace}}), do: {"filtered", do_filter_stacktrace(stacktrace)}
   defp filter_reason({_exception, stacktrace}), do: {"filtered", do_filter_stacktrace(stacktrace)}
 
   defp do_filter_stacktrace(stacktrace) when is_list(stacktrace) do

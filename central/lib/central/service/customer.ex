@@ -45,7 +45,7 @@ defmodule Central.Service.Customer do
               mark_export_as_imported!(customer, export.id, export.created_at)
             catch
               type, error ->
-                Logger.error(Exception.format(type, error, :erlang.get_stacktrace()))
+                Logger.error(Exception.format(type, error, __STACKTRACE__))
                 Repo.rollback(:error)
             end
           end,
@@ -219,7 +219,8 @@ defmodule Central.Service.Customer do
   defp air_handler("Unknown"), do: {:ok, AirMessage.Default}
 
   defp air_handler(air_version) do
-    case Version.parse(air_version) do
+    # Using apply to trick dialyzer which thinks that Version.parse always returns :error
+    case apply(Version, :parse, [air_version]) do
       :error ->
         {:error, :invalid_version}
 

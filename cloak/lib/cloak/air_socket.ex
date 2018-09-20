@@ -59,7 +59,7 @@ defmodule Cloak.AirSocket do
     do: cast_air(socket, "main", "query_state", %{query_id: query_id, query_state: query_state})
 
   @doc "Sends cloak memory stats to the air."
-  @spec send_memory_stats(GenServer.server(), Keyword.t()) :: :ok | {:error, any}
+  @spec send_memory_stats(GenServer.server(), Map.t()) :: :ok | {:error, any}
   def send_memory_stats(socket \\ __MODULE__, memory_reading),
     do: cast_air(socket, "main", "memory_reading", memory_reading |> Enum.into(%{}))
 

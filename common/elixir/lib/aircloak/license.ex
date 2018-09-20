@@ -5,7 +5,8 @@ defmodule Aircloak.License do
           customer_id: any,
           license_id: any,
           expires_at: DateTime.t(),
-          features: [atom]
+          features: [atom],
+          text: String.t() | nil
         }
 
   @doc "Decrypts the given aircloak license text with the given public key."
@@ -34,7 +35,8 @@ defmodule Aircloak.License do
            license_id: license_id,
            expires_at: expires_at,
            auto_renew: data["auto_renew"] || false,
-           features: data |> Map.get("features", []) |> Enum.map(&String.to_atom/1)
+           features: data |> Map.get("features", []) |> Enum.map(&String.to_atom/1),
+           text: nil
          }}
 
       _ ->
