@@ -24,7 +24,15 @@ function prepare_for_compliance {
   container_name=$1
   ensure_database_containers
 
-  for db_container in postgres9.4 mongo3.4 mysql5.7 sqlserver2017 drill1.13; do
+  drill_container_name="${container_name}_drill1.13"
+  docker run \
+    --detach --name $drill_container_name -t \
+    -v $(pwd)/cloak/ci/data:/tmp/data \
+    harisekhon/apache-drill:1.13
+
+  docker network connect --alias drill1.13 $container_name $drill_container_name
+
+  for db_container in postgres9.4 mongo3.4 mysql5.7 sqlserver2017; do
     echo $db_container
     docker network connect --alias $db_container $container_name $db_container
   done
@@ -39,10 +47,6 @@ function ensure_database_containers {
 
   ensure_supporting_container sqlserver2017 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' \
     microsoft/mssql-server-linux:2017-latest
-
-  ensure_supporting_container drill1.13 -ti \
-    -v $(pwd)/cloak/ci/data:/tmp/data \
-    harisekhon/apache-drill:1.13
 }
 
 mount $(ci_tmp_folder)/cloak/.cargo /root/.cargo
