@@ -10,7 +10,7 @@ defmodule Compliance.DataSource.Drill do
   alias Cloak.DataSource.Drill
 
   @impl Connector
-  def setup(options = %{parameters: params}) do
+  def setup(%{parameters: params}) do
     Application.ensure_all_started(:httpoison)
     Application.ensure_all_started(:odbc)
 
@@ -18,7 +18,7 @@ defmodule Compliance.DataSource.Drill do
     Connector.await_port(params.hostname, port)
     configure_storage_plugin(params.hostname, port, params.workspace, params.drill_data_dir)
 
-    options
+    :ok
   end
 
   @impl Connector
