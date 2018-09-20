@@ -15,7 +15,7 @@ defmodule Aircloak.OutputStatus do
 
   @description_pad 80
   # Should allow for the longest status too, to clear the line
-  @total_pad 100
+  @total_pad 120
 
   @type state :: :done | :pending | :warning | :error
 
