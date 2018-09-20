@@ -31,14 +31,8 @@ defmodule DataQuality.Distributions.Beta do
         values =
           result
           |> String.split()
-          |> Enum.map(fn
-            "0" -> 0.0
-            "1" -> 1.0
-            other -> String.to_float(other)
-          end)
-          |> Enum.map(fn val ->
-            val * range + min
-          end)
+          |> Enum.map(&elem(Float.parse(&1), 0))
+          |> Enum.map(fn val -> val * range + min end)
 
         {values, port}
 
