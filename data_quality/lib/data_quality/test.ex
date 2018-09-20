@@ -53,10 +53,6 @@ defmodule DataQuality.Test do
   @spec run(Map.t()) :: :ok
   @doc "Performs data quality test"
   def run(config) do
-    # Start dependencies so we can make HTTP requests
-    Application.ensure_all_started(:inets)
-    Application.ensure_all_started(:ssl)
-
     [
       %{
         name: "COUNT",

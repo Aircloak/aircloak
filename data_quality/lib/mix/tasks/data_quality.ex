@@ -23,6 +23,8 @@ defmodule Mix.Tasks.DataQuality do
   @dialyzer :no_undefined_callbacks
 
   def run(args) do
+    Mix.Task.run("app.start")
+
     case OptionParser.parse(args, strict: [config: :string, generate_data: :boolean]) do
       {parameters, [], []} ->
         config = load_config(parameters)
