@@ -24,7 +24,7 @@ defmodule Compliance.QueryFeatures.Test do
     context
     |> assert_consistent_and_not_failing("""
       SELECT COUNT(*) FROM (
-        SELECT *
+        SELECT #{table1}.#{uid1}
         FROM #{table1} INNER JOIN #{table2}
         ON #{table1}.#{uid1} = #{table2}.#{uid2}
         INNER JOIN #{table3}
