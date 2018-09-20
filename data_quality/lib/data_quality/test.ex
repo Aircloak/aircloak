@@ -37,11 +37,28 @@ defmodule DataQuality.Test do
           }
         }
 
+  @type data_source_spec :: %{
+          api_token: String.t(),
+          data_source_name: String.t(),
+          host: String.t(),
+          name: String.t()
+        }
+  @type config :: %{
+          database: %{
+            database: String.t(),
+            host: String.t(),
+            user: String.t(),
+            port: integer
+          },
+          anonymized: [data_source_spec],
+          raw: data_source_spec
+        }
+
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
-  @spec run(Map.t()) :: :ok
+  @spec run(config) :: :ok
   @doc "Performs data quality test"
   def run(config) do
     # Note AVG doesn't yet work for no-uid, so is not included.

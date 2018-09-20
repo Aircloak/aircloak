@@ -10,7 +10,7 @@ defmodule DataQuality.Test.Query do
   # API
   # -------------------------------------------------------------------
 
-  @spec measure([Test.test()], Map.t(), [Test.dimension()]) :: Test.results()
+  @spec measure([Test.test()], Test.config(), [Test.dimension()]) :: Test.results()
   @doc "Queries the configured data sources producing raw results for further processing and analysis"
   def measure(tests, config, dimensions) do
     Logger.banner("Querying datasources")

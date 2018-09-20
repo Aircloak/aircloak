@@ -9,7 +9,7 @@ defmodule DataQuality.Test.Present do
   # API
   # -------------------------------------------------------------------
 
-  @spec mse(Test.results(), Map.t()) :: Test.results()
+  @spec mse(Test.results(), Test.config()) :: Test.results()
   @doc "Calculates the mean squared error for different sets of attributes and outputs the result to the screen"
   def mse(results, config) do
     Logger.banner("Data quality results")
