@@ -3,7 +3,7 @@ defmodule Mix.Tasks.DataQuality do
   @usage """
     Usage:
 
-      mix data_quality --config <path.json> [--generate-data]
+      mix data_quality --config <path.json>
 
       Runs a data quality test against the configured Aircloak instance.
       The configured user must have access to the data source the config lists,
@@ -11,14 +11,11 @@ defmodule Mix.Tasks.DataQuality do
       configured with.
 
       --config defaults to looking for a config.json in the same folder as the caller.
-
-      The optional --generate-data flag will recreate the database schema
-      and create data for the test.
   """
 
   @moduledoc "Runs data quality checks against an Aircloak system.\n\n" <> @usage
 
-  alias DataQuality.{GenerateData, Test}
+  alias DataQuality.Test
 
   use Mix.Task
 
@@ -29,13 +26,7 @@ defmodule Mix.Tasks.DataQuality do
     case OptionParser.parse(args, strict: [config: :string, generate_data: :boolean]) do
       {parameters, [], []} ->
         config = load_config(parameters)
-
         Application.ensure_all_started(:postgrex)
-
-        if Keyword.get(parameters, :generate_data, false) do
-          generate_data(config)
-        end
-
         run_tests(config)
 
       _ ->
@@ -46,8 +37,6 @@ defmodule Mix.Tasks.DataQuality do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp generate_data(config), do: GenerateData.run(config)
 
   defp run_tests(config), do: Test.run(config)
 
