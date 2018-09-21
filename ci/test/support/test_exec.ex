@@ -12,8 +12,10 @@ defmodule AircloakCI.TestExec do
   def add_exec_handler(matcher), do: :ets.insert(__MODULE__, {:erlang.unique_integer(), matcher})
 
   def run_link(cmd, _opts) do
-    {:ok, pid} = Task.start_link(fn -> simulate_command(cmd) end)
-    {:ok, pid, nil}
+    os_pid = :erlang.unique_integer()
+    cmd_runner = self()
+    {:ok, pid} = Task.start_link(fn -> simulate_command(cmd_runner, os_pid, cmd) end)
+    {:ok, pid, os_pid}
   end
 
   def stop(_pid) do
@@ -26,13 +28,17 @@ defmodule AircloakCI.TestExec do
     File.cp_r!("../#{component}/ci", "#{target_path}")
   end
 
-  defp simulate_command(cmd) do
-    :ets.tab2list(__MODULE__)
-    |> Enum.sort()
-    |> Enum.concat([{nil, &default_command_handler/1}])
-    |> Stream.map(fn {_, handler} -> handler.(cmd) end)
-    |> Stream.reject(&is_nil/1)
-    |> Enum.take(1)
+  defp simulate_command(cmd_runner, os_pid, cmd) do
+    output =
+      :ets.tab2list(__MODULE__)
+      |> Enum.sort()
+      |> Enum.concat([{nil, &default_command_handler/1}])
+      |> Stream.map(fn {_, handler} -> handler.(cmd) end)
+      |> Stream.reject(&is_nil/1)
+      |> Enum.take(1)
+      |> to_string()
+
+    send(cmd_runner, {:stdout, os_pid, output})
   end
 
   defp default_command_handler(cmd) do
@@ -48,5 +54,7 @@ defmodule AircloakCI.TestExec do
         |> AircloakCI.LocalProject.changed_components()
         |> Enum.each(&transfer_component(&1, target_folder))
     end
+
+    ""
   end
 end
