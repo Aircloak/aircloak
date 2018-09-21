@@ -53,7 +53,7 @@ defmodule DataQuality.GenerateData do
         |> Stream.zip(1..distribution[:users])
         |> Stream.flat_map(&to_rowspecs(name, &1))
         |> Stream.chunk_every(1000)
-        |> Enum.map(&insert(conn, &1))
+        |> Stream.map(&insert(conn, &1))
         |> Enum.all?(& &1)
 
       if success do
