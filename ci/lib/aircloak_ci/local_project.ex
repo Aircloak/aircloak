@@ -580,6 +580,7 @@ defmodule AircloakCI.LocalProject do
   defp resolve_changed_components("ci"), do: ~w(ci)
   defp resolve_changed_components("integration_tests"), do: ~w(integration_tests)
   defp resolve_changed_components("system_test"), do: ~w(system_test)
+  defp resolve_changed_components("data_quality"), do: ~w(data_quality)
   defp resolve_changed_components(_other), do: [:all]
 
   defp commands_available?(project, component, job) do
