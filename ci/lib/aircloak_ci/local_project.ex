@@ -562,13 +562,11 @@ defmodule AircloakCI.LocalProject do
   defp compute_changed_components(_other), do: :all
 
   defp changed_root_items(project) do
-    "git diff --name-status HEAD origin/#{project.base_branch}"
+    "git diff --name-only HEAD origin/#{project.base_branch}"
     |> CmdRunner.run_with_output!(cd: src_folder(project))
     |> String.trim()
     |> String.split("\n")
     |> Enum.reject(&(&1 == ""))
-    |> Stream.map(&String.split/1)
-    |> Stream.map(&Enum.drop(&1, 1))
     |> Stream.map(&(&1 |> Path.split() |> hd()))
     |> Enum.dedup()
   end
