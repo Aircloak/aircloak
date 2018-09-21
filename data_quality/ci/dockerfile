@@ -1,0 +1,11 @@
+FROM aircloak/elixir:$ELIXIR_VERSION
+MAINTAINER Aircloak
+
+MPI_INIT
+
+RUN apt-get install -y r-base
+
+ENV CI=true
+ENV DEPLOY_CONFIG=dockerized_ci
+
+WORKDIR /aircloak/data_quality

@@ -12,13 +12,12 @@ There are two main components:
 
 ## Prerequisites
 
-You need to have Erlang, Elixir, and NodeJS installed. The required versions are stated in [this file](.tool-versions).
+You need to have Erlang, Elixir, Rust, and NodeJS installed. The required versions are stated in [this file](.tool-versions).
 Please use the [asdf version manager](https://github.com/asdf-vm/asdf) to install the correct versions. `asdf` is also
 used on CI as well as when building docker containers.
 This way you can ensure the version you are using locally is the same as the one being used in production and during testing.
 You need to install [asdf](https://github.com/asdf-vm/asdf), together with the [Erlang](https://github.com/asdf-vm/asdf-erlang),
-[Elixir](https://github.com/asdf-vm/asdf-elixir),
-and [NodeJS](https://github.com/asdf-vm/asdf-nodejs) plugins.
+[Elixir](https://github.com/asdf-vm/asdf-elixir), [Rust](https://github.com/code-lever/asdf-rust), and [NodeJS](https://github.com/asdf-vm/asdf-nodejs) plugins.
 
 Before installing erlang, make sure you have `unixodbc` installed (__macOS developers__ see [here](./cloak/osx_erlang_with_odbc.md) for detailed instructions).
 Once `asdf` and the required plugins are installed, run `asdf install` from the root folder of the project.
