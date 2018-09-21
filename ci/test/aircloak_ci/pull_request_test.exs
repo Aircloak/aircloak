@@ -18,6 +18,23 @@ defmodule AircloakCI.PullRequestTest do
     assert successful_jobs(pr) == ~w(air_compile air_test cloak_compile cloak_test compliance prepare report_mergeable)
   end
 
+  test "only changed components are built", %{repo_data: repo_data} do
+    pr = pr(approved?: true)
+    repo_data = add_pr(repo_data, pr)
+    simulate_command("git diff --name-only HEAD origin/master", fn -> "air" end)
+    AircloakCI.Build.PullRequest.ensure_started(pr, repo_data)
+
+    assert_posted_status(pr, "mergeable", %{
+      state: :success,
+      description: "pull request can be merged"
+    })
+
+    assert_pr_comment(pr, %{body: comment_body})
+    assert comment_body =~ ~r/Pull request can be merged/
+
+    assert successful_jobs(pr) == ~w(air_compile air_test prepare report_mergeable)
+  end
+
   test "delayed PR approval", %{repo_data: repo_data} do
     pr = pr(approved?: false)
     repo_data = add_pr(repo_data, pr)
