@@ -43,7 +43,7 @@ defmodule Cloak.DataSource.SAPIQRODBC do
   defdelegate disconnect(connection), to: RODBC
 
   @impl Driver
-  def load_tables(connection, table), do: RODBC.load_tables(connection, update_in(table.db_name, &"\"#{&1}\""))
+  defdelegate load_tables(connection, table), to: RODBC
 
   @impl Driver
   defdelegate select(connection, sql_query, result_processor), to: RODBC

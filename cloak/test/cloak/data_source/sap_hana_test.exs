@@ -37,23 +37,17 @@ defmodule Cloak.DataSource.SAPHanaTest do
     end
   end
 
-  test(
-    "default nvarchar decoding",
-    context,
-    do:
-      assert_query(context.data_source, "select value from strings", %{
-        rows: [%{row: ["a string value"]}]
-      })
-  )
+  test "default nvarchar decoding", context do
+    assert_query(context.data_source, "select value from strings", %{
+      rows: [%{row: ["a string value"]}]
+    })
+  end
 
-  test(
-    "default varchar decoding",
-    context,
-    do:
-      assert_query(context.data_source, "select cast(value as text) from varchars", %{
-        rows: [%{row: ["a string value"]}]
-      })
-  )
+  test "default varchar decoding", context do
+    assert_query(context.data_source, "select cast(value as text) from varchars", %{
+      rows: [%{row: ["a string value"]}]
+    })
+  end
 
   defp schema(), do: Cloak.DataSource.SAPHana.default_schema()
 
@@ -104,7 +98,7 @@ defmodule Cloak.DataSource.SAPHanaTest do
       %{
         String.to_atom(table_name) => %{
           name: table_name,
-          db_name: db_name,
+          db_name: "\"#{db_name}\"",
           user_id: "uid",
           ignore_unsupported_types: true,
           query: nil
@@ -117,7 +111,7 @@ defmodule Cloak.DataSource.SAPHanaTest do
     connection = connect!(connection_params())
 
     Enum.each(tables_def, fn {_, %{db_name: table_name}} ->
-      SapHanaHelpers.execute!(connection, ~s/drop table "#{schema()}"."#{table_name}"/)
+      SapHanaHelpers.execute!(connection, ~s/drop table "#{schema()}".#{table_name}/)
     end)
   end
 
