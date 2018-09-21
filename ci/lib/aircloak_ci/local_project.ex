@@ -221,7 +221,7 @@ defmodule AircloakCI.LocalProject do
 
   @doc "Determines if CI can be invoked in this project."
   @spec ci_possible?(t) :: boolean
-  def ci_possible?(project), do: update_code(project) == :ok and not Enum.empty?(components(project))
+  def ci_possible?(project), do: update_code(project) == :ok and not Enum.empty?(changed_components(project))
 
   @doc "Returns true if the project source has been initialized."
   @spec initialized?(t) :: boolean
@@ -356,24 +356,28 @@ defmodule AircloakCI.LocalProject do
     end
   end
 
-  @doc "Returns the list of components for which CI can be executed."
-  @spec components(t) :: [String.t()]
-  def components(project) do
+  @doc "Returns the list of changed components for which tests must be performed."
+  @spec changed_components(t) :: [String.t()]
+  def changed_components(project) do
     project
-    |> all_components()
+    |> all_changed_components()
     |> standard_components()
     |> Enum.reject(&match?({:error, _}, commands(project, &1, :compile)))
   end
 
   @doc "Returns true if the project includes the system test component."
-  @spec system_test?(t) :: boolean
-  def system_test?(project) do
-    case commands(project, "system_test", :system_test) do
-      {:error, :no_ci} -> false
-      [] -> false
-      _ -> true
-    end
-  end
+  @spec system_test_available?(t) :: boolean
+  def system_test_available?(project), do: commands_available?(project, "system_test", :system_test)
+
+  @doc "Returns true if system tests exist and have been changed."
+  @spec run_system_test?(t) :: boolean
+  def run_system_test?(project),
+    do: system_test_available?(project) and Enum.member?(all_changed_components(project), "system_test")
+
+  @doc "Returns true if compliance tests exist and have been changed."
+  @spec run_compliance?(t) :: boolean
+  def run_compliance?(project),
+    do: Enum.member?(changed_components(project), "cloak") and commands_available?(project, "cloak", :compliance)
 
   @doc "Returns the location of logs folder."
   @spec logs_folder() :: String.t()
@@ -429,8 +433,12 @@ defmodule AircloakCI.LocalProject do
 
   defp do_update_code(project) do
     with :ok <- clone_repo(project),
-         :ok <- cmd(project, "main", "git #{project.update_git_command}", timeout: :timer.minutes(5)),
-         do: cmd(project, "main", "git checkout --force #{project.checkout}")
+         :ok <- cmd(project, "main", "git #{project.update_git_command}", timeout: :timer.minutes(5)) do
+      if project.type == :pull_request,
+        do: cmd(project, "main", "git fetch --force origin #{project.base_branch}", timeout: :timer.minutes(5))
+
+      cmd(project, "main", "git checkout --force #{project.checkout}")
+    end
   end
 
   defp clone_repo(project) do
@@ -511,6 +519,10 @@ defmodule AircloakCI.LocalProject do
         [cd: Path.join(src_folder(project), to_string(component))] ++ opts
       )
 
+  defp all_changed_components(project) do
+    with :all <- compute_changed_components(project), do: all_components(project)
+  end
+
   defp all_components(project) do
     project
     |> src_folder()
@@ -527,8 +539,50 @@ defmodule AircloakCI.LocalProject do
   end
 
   defp include_component?(_component, :all), do: true
-
   defp include_component?(component, {:except, blacklisted}), do: not Enum.member?(blacklisted, component)
-
   defp include_component?(component, {:only, whitelisted}), do: Enum.member?(whitelisted, component)
+
+  defp compute_changed_components(%__MODULE__{type: :pull_request} = project) do
+    changed_components =
+      project
+      |> changed_root_items()
+      |> Enum.flat_map(&resolve_changed_components/1)
+      |> Enum.dedup()
+
+    if Enum.member?(changed_components, :all), do: :all, else: changed_components
+  catch
+    type, error ->
+      Logger.error(Exception.format(type, error, __STACKTRACE__))
+      :all
+  end
+
+  defp compute_changed_components(_other), do: :all
+
+  defp changed_root_items(project) do
+    "git diff --name-only HEAD origin/#{project.base_branch}"
+    |> CmdRunner.run_with_output!(cd: src_folder(project))
+    |> String.trim()
+    |> String.split("\n")
+    |> Enum.reject(&(&1 == ""))
+    |> Stream.map(&(&1 |> Path.split() |> hd()))
+    |> Enum.dedup()
+  end
+
+  defp resolve_changed_components("cloak"), do: ~w(cloak integration_tests system_test)
+  defp resolve_changed_components("air"), do: ~w(air integration_tests system_test)
+  defp resolve_changed_components("central"), do: ~w(central integration_tests system_test)
+  defp resolve_changed_components("bom"), do: ~w(bom air cloak)
+  defp resolve_changed_components("ci"), do: ~w(ci)
+  defp resolve_changed_components("integration_tests"), do: ~w(integration_tests)
+  defp resolve_changed_components("system_test"), do: ~w(system_test)
+  defp resolve_changed_components("data_quality"), do: ~w(data_quality)
+  defp resolve_changed_components(_other), do: [:all]
+
+  defp commands_available?(project, component, job) do
+    case commands(project, component, job) do
+      {:error, :no_ci} -> false
+      [] -> false
+      _ -> true
+    end
+  end
 end

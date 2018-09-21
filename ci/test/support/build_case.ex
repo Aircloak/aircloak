@@ -102,11 +102,12 @@ defmodule AircloakCI.BuildCase do
   def fail_on_container_command(pr, component, cmd_regex) do
     cmd_prefix = "\.test_data/data/cache/builds/pr-#{pr.number}/src/#{component}/ci/container.sh"
     regex = Regex.compile!("^#{cmd_prefix}.*#{cmd_regex}$")
-
-    AircloakCI.TestExec.add_exec_handler(fn cmd ->
-      if to_string(cmd) =~ regex, do: exit({:exit_status, 1}), else: nil
-    end)
+    simulate_command(regex, fn -> exit({:exit_status, 1}) end)
   end
+
+  @doc "Simulates the command which matches the given regex."
+  def simulate_command(regex, fun),
+    do: AircloakCI.TestExec.add_exec_handler(fn cmd -> if to_string(cmd) =~ regex, do: fun.(), else: nil end)
 
   # -------------------------------------------------------------------
   # ExUnit.CaseTemplate definition

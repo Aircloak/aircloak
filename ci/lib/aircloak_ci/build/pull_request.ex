@@ -84,20 +84,26 @@ defmodule AircloakCI.Build.PullRequest do
   end
 
   defp maybe_start_compliance(state) do
-    if check_standard_tests(state) == :ok and check_approved(state) == :ok,
-      do: Job.Compliance.start_if_possible(state),
-      else: state
+    if check_standard_tests(state) == :ok and check_approved(state) == :ok and
+         LocalProject.run_compliance?(state.project),
+       do: Job.Compliance.start_if_possible(state),
+       else: state
   end
 
   defp maybe_start_system_test(state) do
-    if check_standard_tests(state) == :ok and check_approved(state) == :ok and compliance_outcome(state),
-      do: Job.SystemTest.start_if_possible(state),
-      else: state
+    if check_standard_tests(state) == :ok and check_approved(state) == :ok and
+         LocalProject.run_system_test?(state.project),
+       do: Job.SystemTest.start_if_possible(state),
+       else: state
   end
 
   defp report_status(state) do
-    if state.prepared?, do: report_standard_tests(state)
-    report_mergeable(state)
+    if state.prepared? do
+      report_standard_tests(state)
+      report_mergeable(state)
+    else
+      state
+    end
   end
 
   defp report_standard_tests(state) do
@@ -176,10 +182,15 @@ defmodule AircloakCI.Build.PullRequest do
   end
 
   defp approval_outcome(state), do: if(state.source.approved?, do: :ok, else: :pending)
-  defp compliance_outcome(state), do: LocalProject.job_outcome(state.project, "compliance") || :pending
+
+  defp compliance_outcome(state) do
+    if LocalProject.run_compliance?(state.project),
+      do: LocalProject.job_outcome(state.project, "compliance") || :pending,
+      else: :ok
+  end
 
   defp system_test_outcome(state) do
-    if LocalProject.system_test?(state.project),
+    if LocalProject.run_system_test?(state.project),
       do: LocalProject.job_outcome(state.project, "system_test") || :pending,
       else: :ok
   end
@@ -189,7 +200,7 @@ defmodule AircloakCI.Build.PullRequest do
 
     statuses =
       state.project
-      |> LocalProject.components()
+      |> LocalProject.changed_components()
       |> Enum.flat_map(&["#{&1}_compile", "#{&1}_test"])
       |> Enum.map(&{&1, Map.get(job_outcomes, &1, :pending)})
 

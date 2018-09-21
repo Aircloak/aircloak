@@ -13,7 +13,7 @@ defmodule AircloakCI.Build.Job.Test do
   def start_if_possible(build_state),
     do:
       Enum.reduce(
-        LocalProject.components(build_state.project),
+        LocalProject.changed_components(build_state.project),
         build_state,
         &start_if_possible(&2, &1)
       )
