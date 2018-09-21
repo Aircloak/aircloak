@@ -4,6 +4,7 @@ defmodule AircloakCI.PullRequestTest do
   test "successful build", %{repo_data: repo_data} do
     pr = pr(approved?: true)
     repo_data = add_pr(repo_data, pr)
+    simulate_command("git diff --name-only HEAD origin/master", fn -> "VERSION" end)
     AircloakCI.Build.PullRequest.ensure_started(pr, repo_data)
 
     assert_posted_status(pr, "mergeable", %{
@@ -20,6 +21,7 @@ defmodule AircloakCI.PullRequestTest do
   test "delayed PR approval", %{repo_data: repo_data} do
     pr = pr(approved?: false)
     repo_data = add_pr(repo_data, pr)
+    simulate_command("git diff --name-only HEAD origin/master", fn -> "VERSION" end)
     AircloakCI.Build.PullRequest.ensure_started(pr, repo_data)
     wait_for_jobs_to_finish(pr)
 
@@ -37,6 +39,7 @@ defmodule AircloakCI.PullRequestTest do
   test "merge conflict", %{repo_data: repo_data} do
     pr = pr(merge_state: :conflicting)
     repo_data = add_pr(repo_data, pr)
+    simulate_command("git diff --name-only HEAD origin/master", fn -> "VERSION" end)
     AircloakCI.Build.PullRequest.ensure_started(pr, repo_data)
     wait_for_jobs_to_finish(pr)
     assert successful_jobs(pr) == ["prepare"]
@@ -45,6 +48,7 @@ defmodule AircloakCI.PullRequestTest do
   test "resolved merge conflict", %{repo_data: repo_data} do
     pr = pr(merge_state: :conflicting)
     repo_data = add_pr(repo_data, pr)
+    simulate_command("git diff --name-only HEAD origin/master", fn -> "VERSION" end)
     AircloakCI.Build.PullRequest.ensure_started(pr, repo_data)
     wait_for_jobs_to_finish(pr)
 
@@ -64,6 +68,7 @@ defmodule AircloakCI.PullRequestTest do
   test "unknown merge state", %{repo_data: repo_data} do
     pr = pr(merge_state: :unknown)
     repo_data = add_pr(repo_data, pr)
+    simulate_command("git diff --name-only HEAD origin/master", fn -> "VERSION" end)
     AircloakCI.Build.PullRequest.ensure_started(pr, repo_data)
     wait_for_jobs_to_finish(pr)
     assert successful_jobs(pr) == ["prepare"]
@@ -72,6 +77,7 @@ defmodule AircloakCI.PullRequestTest do
   test "build restarted on new PR commit", %{repo_data: repo_data} do
     pr = pr(approved?: true)
     repo_data = add_pr(repo_data, pr)
+    simulate_command("git diff --name-only HEAD origin/master", fn -> "VERSION" end)
     AircloakCI.Build.PullRequest.ensure_started(pr, repo_data)
     wait_for_jobs_to_finish(pr)
 
@@ -93,6 +99,7 @@ defmodule AircloakCI.PullRequestTest do
     repo_data = add_pr(repo_data, pr)
 
     ExUnit.CaptureLog.capture_log(fn ->
+      simulate_command("git diff --name-only HEAD origin/master", fn -> "VERSION" end)
       fail_on_container_command(pr, "air", "mix compile")
       AircloakCI.Build.PullRequest.ensure_started(pr, repo_data)
       wait_for_jobs_to_finish(pr)
@@ -111,6 +118,7 @@ defmodule AircloakCI.PullRequestTest do
     repo_data = add_pr(repo_data, pr)
 
     ExUnit.CaptureLog.capture_log(fn ->
+      simulate_command("git diff --name-only HEAD origin/master", fn -> "VERSION" end)
       fail_on_container_command(pr, "air", "make test")
       AircloakCI.Build.PullRequest.ensure_started(pr, repo_data)
       wait_for_jobs_to_finish(pr)
