@@ -520,10 +520,7 @@ defmodule AircloakCI.LocalProject do
       )
 
   defp all_changed_components(project) do
-    case compute_changed_components(project) do
-      [_ | _] = changed_components -> changed_components
-      _other -> all_components(project)
-    end
+    with :all <- compute_changed_components(project), do: all_components(project)
   end
 
   defp all_components(project) do
