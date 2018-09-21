@@ -6,14 +6,14 @@ defmodule Cloak.DataSource.DrillRODBC do
 
   use Cloak.DataSource.Driver.SQL
   alias Cloak.DataSource
-  alias Cloak.DataSource.RODBC
+  alias Cloak.DataSource.{Drill, RODBC, SqlBuilder}
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
   @impl Driver
-  def sql_dialect_module(_), do: Cloak.DataSource.SqlBuilder.Drill
+  def sql_dialect_module(_), do: SqlBuilder.Drill
 
   @impl Driver
   def connect!(parameters), do: RODBC.connect!(parameters, &DataSource.Drill.conn_params/1)
@@ -22,7 +22,8 @@ defmodule Cloak.DataSource.DrillRODBC do
   defdelegate disconnect(connection), to: RODBC
 
   @impl Driver
-  def load_tables(connection, table), do: RODBC.load_tables(connection, update_in(table.db_name, &"`#{&1}`"))
+  def load_tables(connection, table),
+    do: RODBC.load_tables(connection, update_in(table.db_name, &SqlBuilder.quote_table_name(&1, ?`)))
 
   @impl Driver
   defdelegate select(connection, sql_query, result_processor), to: RODBC
@@ -32,4 +33,7 @@ defmodule Cloak.DataSource.DrillRODBC do
 
   @impl Driver
   defdelegate supports_connection_sharing?(), to: RODBC
+
+  @impl Driver
+  defdelegate supports_query?(query), to: Drill
 end

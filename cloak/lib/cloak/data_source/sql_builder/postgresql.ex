@@ -40,7 +40,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 
   @impl Dialect
-  def ilike_sql(what, match), do: [what, " ILIKE ", match]
+  def ilike_sql(what, {pattern, escape = "\\"}), do: [what, " ILIKE ", ?', pattern, ?', " ESCAPE ", ?', escape, ?']
 
   @impl Dialect
   def limit_sql(nil, offset), do: [" OFFSET ", to_string(offset)]

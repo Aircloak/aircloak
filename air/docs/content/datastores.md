@@ -245,9 +245,6 @@ collection is sharded, even `INNER JOIN` has to be emulated.
 With [Apache Drill](https://drill.apache.org/) you can query a multitude of data sources. Out of the box it provides support
 for big data environments such as MapR-DB and HBase, as well as for querying CSV, JSON, log, and
 Parquet files stored on disk, on HDFS, or in AWS S3.
-Using the [RDBMS storage plugin](https://drill.apache.org/docs/rdbms-storage-plugin/) you
-can also connect to any other relational database for which Aircloak Insights does not already offer native support.
-A prerequisite for this is that the database provides a JDBC driver.
 
 #### Exposing the dataset
 
@@ -283,3 +280,7 @@ create view products as select
  cast(p.pricing.price as float) as price
 from maprdb.products as p;
 ```
+
+#### JOINs
+
+Apache Drill doesn't support `CROSS JOIN` natively, so any `CROSS JOIN` will be emulated by Aircloak Insights.

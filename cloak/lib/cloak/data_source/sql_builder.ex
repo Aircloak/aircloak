@@ -152,14 +152,14 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp from_clause({:join, join}, query, sql_dialect_module, driver) do
     [
-      "(",
+      " ",
       from_clause(join.lhs, query, sql_dialect_module, driver),
       " ",
       join_sql(join.type),
       " ",
       from_clause(join.rhs, query, sql_dialect_module, driver),
       on_clause(join.conditions, sql_dialect_module, driver),
-      ")"
+      " "
     ]
   end
 
@@ -265,10 +265,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp conditions_to_fragments({:ilike, what, match}, sql_dialect_module, driver) do
     if sql_dialect_module.native_support_for_ilike?() do
-      sql_dialect_module.ilike_sql(
-        to_fragment(what, sql_dialect_module, driver),
-        to_fragment(match, sql_dialect_module, driver)
-      )
+      sql_dialect_module.ilike_sql(to_fragment(what, sql_dialect_module, driver), match.value)
     else
       conditions_to_fragments(
         {:like, Expression.lowercase(what), Expression.lowercase(match)},
@@ -321,7 +318,9 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp escape_string(string), do: String.replace(string, "'", "''")
 
-  defp like_pattern_to_fragment({pattern, escape = "\\"}), do: [?', pattern, ?', "ESCAPE", ?', escape, ?']
+  defp like_pattern_to_fragment({pattern, escape = "\\"}) do
+    [?', pattern, ?', "ESCAPE", ?', escape, ?']
+  end
 
   defp dot_terminate(%Expression{constant?: true, type: :text, value: value} = expression) when is_binary(value),
     do: %Expression{expression | value: value <> "."}

@@ -24,6 +24,14 @@ function prepare_for_compliance {
   container_name=$1
   ensure_database_containers
 
+  drill_container_name="${container_name}_drill1.13"
+  docker run \
+    --detach --name $drill_container_name -t \
+    -v $(pwd)/cloak/ci/data:/tmp/data \
+    harisekhon/apache-drill:1.13
+
+  docker network connect --alias drill1.13 $container_name $drill_container_name
+
   for db_container in postgres9.4 mongo3.4 mysql5.7 sqlserver2017; do
     echo $db_container
     docker network connect --alias $db_container $container_name $db_container
@@ -44,7 +52,7 @@ function ensure_database_containers {
 mount $(ci_tmp_folder)/cloak/.cargo /root/.cargo
 mount_to_aircloak VERSION common/elixir bom
 mount_to_component \
-  config datagen include lib src perftest priv rel test mix.exs mix.lock Makefile check_warnings.sh .formatter.exs
+  ci/data config datagen include lib src perftest priv rel test mix.exs mix.lock Makefile check_warnings.sh .formatter.exs
 mount_cached_component deps _build .bash_history priv/odbc/drivers priv/native
 
 case "$1" in

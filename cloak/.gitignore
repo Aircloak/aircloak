@@ -43,3 +43,5 @@ priv/serialization.lua
 /datagen/output/
 *.log
 /dev_container/
+
+ci/data

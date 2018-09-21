@@ -34,6 +34,8 @@ Enum.each(
           |> disable_for(:all, match?("weekday" <> _, unquote(function)))
           |> disable_subquery_interval(unquote(function))
           |> disable_unsupported_on_dates(unquote(function), {unquote(column), unquote(table), unquote(uid)})
+          |> disable_for(Cloak.DataSource.Drill, unquote(function) =~ ~r/quarter|interval/)
+          |> disable_for(Cloak.DataSource.DrillRODBC, unquote(function) =~ ~r/quarter|interval/)
           |> assert_consistent_and_not_failing("""
             SELECT
               output
@@ -72,6 +74,8 @@ Enum.each(
           |> disable_for(Cloak.DataSource.SAPIQ, true)
           |> disable_for(Cloak.DataSource.SAPIQRODBC, true)
           |> disable_for(Cloak.DataSource.MongoDB, true)
+          |> disable_for(Cloak.DataSource.Drill, true)
+          |> disable_for(Cloak.DataSource.DrillRODBC, true)
         else
           context
         end
