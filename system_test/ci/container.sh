@@ -170,13 +170,20 @@ function build_builder_images {
 }
 
 function build_releases {
-  cloak/build-image.sh release
-  air/build-image.sh release
+  exec_with_retry "cloak/build-image.sh release"
+  exec_with_retry "air/build-image.sh release"
 }
 
 function build_release_images {
   cloak/build-image.sh release_image
   air/build-image.sh release_image
+}
+
+function exec_with_retry {
+  if ! eval "$@"; then
+    sleep 5
+    eval "$@"
+  fi
 }
 
 case "$1" in

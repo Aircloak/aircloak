@@ -58,16 +58,6 @@ function build_release {
       cd /aircloak/air
       ./fetch_deps.sh --only prod
 
-      cd assets
-      yarn install
-      cd ..
-
-      cd docs
-      yarn install
-      gitbook_version=$(cat /aircloak/air/docs/node_modules/gitbook/package.json | jq -r ".version")
-      if [ ! -d /root/.gitbook/versions/$gitbook_version ]; then yarn run gitbook fetch $gitbook_version; fi
-      cd ..
-
       cd /aircloak/cloak
       ./fetch_deps.sh --only prod
 
