@@ -5,8 +5,7 @@ defmodule Cloak.DataSource.DrillRODBC do
   """
 
   use Cloak.DataSource.Driver.SQL
-  alias Cloak.DataSource
-  alias Cloak.DataSource.{Drill, RODBC, SqlBuilder}
+  alias Cloak.DataSource.{RODBC, SqlBuilder}
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
