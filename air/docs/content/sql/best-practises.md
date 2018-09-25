@@ -32,6 +32,13 @@ GROUP BY zip_code, gender
 ```
 
 you would be given the exact zip code and gender values as they appear in the database.
+The anonymized result might look something like this:
+
+| zip_code | gender | count |
+|----------|--------|-------|
+| 11000    | F      | 3     |
+| 10000    | M      | 4     |
+
 What is anonymised is the aggregate - in this case the count. Instead of getting a count of 4
 for the zip code and gender pair 10000 and M you might see the count 3, 5, 6, or maybe even 4.
 
@@ -292,18 +299,41 @@ FROM table
 GROUP BY last_name
 ```
 
+| last_name | avg  |
+|-----------|------|
+| Anderson  | null |
+| *         | null |
+
 The low count filter would filter out all last names other than Anderson. In the case of the 5 Andersons we have enough users
 to inform you as an analyst that users with the last name of Anderson exist in the dataset, but not enough to make a properly
 anomymized average age. The `avg(age)` would therefore be returned as `null`.
 
-In the case of `count` we would likely again not have enough users to produce a count, but unlike for `avg` Aircloak Insights
-cannot report a `null`-value as that would be incompatible with most existing tools. Instead the system will returnb the
-placeholder value of 2, which is a hardcoded value in the system. The existence of 2 in a `count` should therefore be considered
+In the case of `count` we might have enough distinct users to produce a count for the number of Anderson's, but not enough
+other users to generate a count for the `*` row. Unlike for `avg`-aggregate Aircloak Insights cannot report a `null`-value
+as that would be incompatible with most existing tools. Instead the system will return a placeholder value of 2, which is a
+hardcoded value in the system. The existence of 2 in a `count` should therefore be considered
 as information about the fact that there are users with the given properties in the dataset, but not enough to produce
 a proper count. To validate that this is what is going on, you could also request the equivalent `count_noise()`-value, which
 in this case would be `null`.
 
-If you want to hide these `2` values from your resultset you could add a `HAVING`-clause to your query like so:
+If we ran the query:
+
+```sql
+SELECT last_name, count(*), count_noise(*)
+FROM table
+GROUP BY last_name
+```
+
+We can validate that the count of 2 for the `*`-row is due to there being insufficiently many users. The `count_noise`
+being `null` confirms this.
+
+| last_name | count | count_noise |
+|-----------|-------|-------------|
+| Anderson  | 5     | 1.4         |
+| *         | 2     | null        |
+
+
+If you want to hide these `2` values from your resultset you can add a `HAVING`-clause to your query like this:
 
 ```sql
 SELECT last_name, count(*)
@@ -311,6 +341,10 @@ FROM players
 GROUP BY last_name
 HAVING count(*) > 2
 ```
+
+| last_name | count |
+|-----------|-------|
+| Anderson  | 5     |
 
 ## Implicit aggregate count
 
