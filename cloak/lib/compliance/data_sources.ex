@@ -186,7 +186,6 @@ defmodule Compliance.DataSources do
   defp handler_for_data_source(%{driver: Cloak.DataSource.SQLServerRODBC}), do: Compliance.DataSource.SQLServer
   defp handler_for_data_source(%{driver: Cloak.DataSource.SAPIQ}), do: Compliance.DataSource.SAPIQ
   defp handler_for_data_source(%{driver: Cloak.DataSource.SAPIQRODBC}), do: Compliance.DataSource.SAPIQ
-  defp handler_for_data_source(%{driver: Cloak.DataSource.Drill}), do: Compliance.DataSource.Drill
   defp handler_for_data_source(%{driver: Cloak.DataSource.DrillRODBC}), do: Compliance.DataSource.Drill
 
   # -------------------------------------------------------------------
