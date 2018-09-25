@@ -151,8 +151,6 @@ defmodule AircloakCI.Build.Server do
 
   @doc "Returns the job type, which is the name of the job without the component prefix."
   @spec job_type(job_name) :: String.t()
-  def job_type("system_test"), do: "system_test"
-
   def job_type(job_name) do
     case Regex.named_captures(~r/.*_(?<job_type>[^_]+)$/, job_name) do
       %{"job_type" => "compile"} -> "compile"
@@ -196,7 +194,7 @@ defmodule AircloakCI.Build.Server do
         LocalProject.clear_job_outcomes(state_after_job_termination.project)
         {:reply, :ok, restart(state_after_job_termination)}
 
-      job_type(job_name) in ["prepare", "compile", "test", "compliance", "system_test"] ->
+      job_type(job_name) in ["prepare", "compile", "test", "compliance"] ->
         LocalProject.mark_forced(state.project, job_name)
         {:reply, :ok, start_forced_jobs(state)}
 
@@ -311,9 +309,6 @@ defmodule AircloakCI.Build.Server do
 
       job_name == "compliance" ->
         Job.Compliance.start_if_possible(state)
-
-      job_name == "system_test" ->
-        Job.SystemTest.start_if_possible(state)
 
       String.ends_with?(job_name, "_test") ->
         Job.Test.start_if_possible(state, String.replace(job_name, ~r/_test$/, ""))

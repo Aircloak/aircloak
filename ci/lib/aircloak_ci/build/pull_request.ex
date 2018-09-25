@@ -77,7 +77,6 @@ defmodule AircloakCI.Build.PullRequest do
       |> Job.Compile.start_if_possible()
       |> Job.Test.start_if_possible()
       |> maybe_start_compliance()
-      |> maybe_start_system_test()
     else
       state
     end
@@ -87,13 +86,6 @@ defmodule AircloakCI.Build.PullRequest do
     if check_standard_tests(state) == :ok and check_approved(state) == :ok and
          LocalProject.run_compliance?(state.project),
        do: Job.Compliance.start_if_possible(state),
-       else: state
-  end
-
-  defp maybe_start_system_test(state) do
-    if check_standard_tests(state) == :ok and check_approved(state) == :ok and
-         LocalProject.run_system_test?(state.project),
-       do: Job.SystemTest.start_if_possible(state),
        else: state
   end
 
@@ -174,8 +166,7 @@ defmodule AircloakCI.Build.PullRequest do
   defp check_final_tests(state) do
     final_jobs = %{
       "approval" => approval_outcome(state),
-      "compliance" => compliance_outcome(state),
-      "system_test" => system_test_outcome(state)
+      "compliance" => compliance_outcome(state)
     }
 
     with :ok <- check_failures(final_jobs), do: check_pending(final_jobs)
@@ -186,12 +177,6 @@ defmodule AircloakCI.Build.PullRequest do
   defp compliance_outcome(state) do
     if LocalProject.run_compliance?(state.project),
       do: LocalProject.job_outcome(state.project, "compliance") || :pending,
-      else: :ok
-  end
-
-  defp system_test_outcome(state) do
-    if LocalProject.run_system_test?(state.project),
-      do: LocalProject.job_outcome(state.project, "system_test") || :pending,
       else: :ok
   end
 

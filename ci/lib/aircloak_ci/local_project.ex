@@ -365,15 +365,6 @@ defmodule AircloakCI.LocalProject do
     |> Enum.reject(&match?({:error, _}, commands(project, &1, :compile)))
   end
 
-  @doc "Returns true if the project includes the system test component."
-  @spec system_test_available?(t) :: boolean
-  def system_test_available?(project), do: commands_available?(project, "system_test", :system_test)
-
-  @doc "Returns true if system tests exist and have been changed."
-  @spec run_system_test?(t) :: boolean
-  def run_system_test?(project),
-    do: system_test_available?(project) and Enum.member?(all_changed_components(project), "system_test")
-
   @doc "Returns true if compliance tests exist and have been changed."
   @spec run_compliance?(t) :: boolean
   def run_compliance?(project),
@@ -568,13 +559,13 @@ defmodule AircloakCI.LocalProject do
     |> Enum.dedup()
   end
 
-  defp resolve_changed_components("cloak"), do: ~w(cloak integration_tests system_test)
-  defp resolve_changed_components("air"), do: ~w(air integration_tests system_test)
-  defp resolve_changed_components("central"), do: ~w(central integration_tests system_test)
+  defp resolve_changed_components("cloak"), do: ~w(cloak integration_tests)
+  defp resolve_changed_components("air"), do: ~w(air integration_tests)
+  defp resolve_changed_components("central"), do: ~w(central integration_tests)
   defp resolve_changed_components("bom"), do: ~w(bom air cloak)
   defp resolve_changed_components("ci"), do: ~w(ci)
   defp resolve_changed_components("integration_tests"), do: ~w(integration_tests)
-  defp resolve_changed_components("system_test"), do: ~w(system_test)
+  defp resolve_changed_components("system_test"), do: []
   defp resolve_changed_components("data_quality"), do: ~w(data_quality)
   defp resolve_changed_components(_other), do: [:all]
 

@@ -11,7 +11,7 @@ use Mix.Config
 
 # This can be used to simulate various tests by sleeping for 1 second, and thus reduce the execution in dev.
 # If you remove an item from this list, then the real job will be executed locally.
-# config :aircloak_ci, simulated_jobs: [:docker_build, :compile, :compliance, :test, :system_test]
+# config :aircloak_ci, simulated_jobs: [:docker_build, :compile, :compliance, :test]
 
 # Disables noisy console output for each build.
 # config :aircloak_ci, cmd_runner: [console_out: false]

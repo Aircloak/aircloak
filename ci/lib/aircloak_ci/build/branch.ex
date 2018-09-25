@@ -53,12 +53,8 @@ defmodule AircloakCI.Build.Branch do
 
   @impl Build.Server
   def handle_job_succeeded("prepare", state) do
-    # we're always compiling master and release branches, because they serve as a base (cache) for pull requests
-    state =
-      if target_branch?(state.source),
-        do: state |> Build.Job.Compile.start_if_possible() |> Build.Job.SystemTest.compile_if_possible(),
-        else: state
-
+    # we're always compiling target branches, because they serve as a base (cache) for pull requests
+    state = if target_branch?(state.source), do: Build.Job.Compile.start_if_possible(state), else: state
     {:noreply, maybe_perform_transfers(state)}
   end
 
