@@ -60,7 +60,7 @@ do not appear for enough distinct individuals in the dataset. Aircloak Insights 
 about males living in zip code 10000 (there are 4 of them), but not about the sole female living in the
 same zip code.
 
-Running the query `SELECT * FROM table` is, in the context of the dataset above, the same as writing the query:
+Running the query `SELECT * FROM table` is, in the context of the dataset above, the same as running the query:
 
 ```sql
 SELECT first_name, last_name, age, zip_code, gender
@@ -81,7 +81,7 @@ It will do so by selectively replacing one column at a time with a `*` (indicati
 This process takes place from the rightmost to the leftmost selected column. For the following examples we will assume
 the minimum threshold for the number of individuals needed to pass the low count filter is 3. The reality is somewhat
 more complex, but it's enough for the purposes of this example.
-In the example tables below we will add a metadata column as the first column showing how many
+In the example tables below we will add a metadata column as the first column, showing how many
 unique users share a set of column values. The initial value of 1 for each row
 indicates that each combination of column values only exists once:
 
@@ -164,11 +164,11 @@ We can take away a number of things from this example:
    the set of individual attributes occur frequently enough to pass the low count threshold.
 1. Queries such as `SELECT * ...` will usually not yield useful information in the context of Aircloak Insights.
 1. As an analyst you can directly influence the order in which Aircloak Insights will drop columns.
-   The process takes place from the right to left. Therefore you should order the columns from most to least important.
+   The process takes place from right to left. Therefore you should order the columns from most to least important.
 1. Selecting a column that has a unique value per user, or close to it,
    as one of your first columns will automatically lead to all the columns right of it being
    anonymised away. You are therefore likely better off selecting columns with a high number
-   of distinct values as one of your later columns as chances are they will get dropped.
+   of distinct values as one of your later columns, as chances are they will get dropped.
 
 Let us now revisit the same query again, but looking at what the result would have
 been if we changed the order in which we selected the columns.
@@ -234,7 +234,7 @@ Which is quite a bit more informative than what we got previously:
 ## Grouping values
 
 The problem shown above of there needing to be enough distinct users with a given set of column values
-gets exasperated when one of the columns contains values that are prone to have a large spread like
+gets exacerbated when one of the columns contains values that are prone to have a large spread like
 integer values, or that are likely to be unique like floating point values or high resolution date and time values.
 
 As an analyst you have more knowledge about what your desired outcome is than Aircloak Insights does.
@@ -282,7 +282,7 @@ This value is more likely to pass the low count filter than the high resolutiom 
 ## null values and counts of 2
 
 In most dialects of SQL all but the `count` aggregate may produce a `null` value. The `count` aggregate would, lacking
-data to produce a count return 0 rather than a `null`.
+data to produce a count, return 0 rather than a `null`.
 
 Aircloak Insights will return a `null` value if there are insuficient data to produce a properly anonymized aggregate,
 but there were enough data for a result to pass the low count filter.
