@@ -1,7 +1,7 @@
 defmodule Cloak.DataSource.Drill.Test do
   use ExUnit.Case
 
-  alias Cloak.DataSource.{Drill, Table}
+  alias Cloak.DataSource.{DrillRODBC, Table}
   import Cloak.Test.QueryHelpers
 
   test "CROSS JOIN is not supported" do
@@ -17,13 +17,13 @@ defmodule Cloak.DataSource.Drill.Test do
         data_source()
       )
 
-    refute Drill.supports_query?(query)
+    refute DrillRODBC.supports_query?(query)
   end
 
   def data_source do
     %{
       name: "drill_test_data_source",
-      driver: Drill,
+      driver: DrillRODBC,
       tables: %{
         table: Table.new("table", "uid", db_name: "table", columns: [Table.column("uid", :integer)])
       }
