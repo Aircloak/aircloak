@@ -43,22 +43,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Enum.uniq_by(&Expression.unalias/1)
 
   # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  def compile_anonymized_query(query) do
-    top_level_uid = Helpers.id_column(query)
-
-    query
-    |> Helpers.apply_bottom_up(&calculate_base_noise_layers(&1, top_level_uid))
-    |> Helpers.apply_top_down(&push_down_noise_layers/1)
-    |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
-    |> Helpers.apply_top_down(&normalize_datasource_case/1)
-    |> remove_meaningless_negative_noise_layers()
-    |> add_generic_uid_layer_if_needed(top_level_uid)
-  end
-
-  # -------------------------------------------------------------------
   # Pushing layers into subqueries
   # -------------------------------------------------------------------
 
