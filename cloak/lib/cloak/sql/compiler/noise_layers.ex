@@ -47,6 +47,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   # Cleanup
   # -------------------------------------------------------------------
 
+  # Because UIDs have special handling in many places it's somewhat difficult to instruct the query engine to select
+  # them. This makes it so that noise layers are built using the top-level UID in place of any other UID that might
+  # appear in expressions.
   defp replace_uid(query, top_level_uid) do
     put_in(query, [Lens.key(:noise_layers) |> uid_expressions()], top_level_uid)
   end
