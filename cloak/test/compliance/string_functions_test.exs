@@ -79,7 +79,6 @@ Enum.each(
                 Cloak.DataSource.MongoDB,
                 Cloak.DataSource.SQLServer,
                 Cloak.DataSource.SQLServerRODBC,
-                Cloak.DataSource.Drill,
                 Cloak.DataSource.DrillRODBC
               ],
               context,
@@ -87,9 +86,7 @@ Enum.each(
             )
 
           column == "name" and String.contains?(function, ~w(trim)) ->
-            context
-            |> disable_for(Cloak.DataSource.Drill, true)
-            |> disable_for(Cloak.DataSource.DrillRODBC, true)
+            disable_for(context, Cloak.DataSource.DrillRODBC, true)
 
           true ->
             context

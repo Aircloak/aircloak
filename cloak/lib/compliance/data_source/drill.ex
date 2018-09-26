@@ -7,7 +7,7 @@ defmodule Compliance.DataSource.Drill do
 
   use Compliance.DataSource.Connector
   alias Compliance.DataSource.Connector
-  alias Cloak.DataSource.Drill
+  alias Cloak.DataSource.{ODBC, DrillRODBC}
 
   @impl Connector
   def setup(%{parameters: params}) do
@@ -22,7 +22,7 @@ defmodule Compliance.DataSource.Drill do
   end
 
   @impl Connector
-  def connect(state), do: Map.put(state, :conn, Drill.connect!(state.parameters))
+  def connect(state), do: Map.put(state, :conn, ODBC.connect!(state.parameters, &DrillRODBC.conn_params/1))
 
   @impl Connector
   def create_table(_table_name, _columns, state), do: state
