@@ -78,7 +78,6 @@ defmodule Cloak.DataSource.Utility do
     {"sapiq_odbc", Cloak.DataSource.SAPIQ},
     {"sapiq_rodbc", Cloak.DataSource.SAPIQRODBC},
     {"drill", Cloak.DataSource.DrillRODBC},
-    {"drill_odbc", Cloak.DataSource.Drill},
     {"drill_rodbc", Cloak.DataSource.DrillRODBC}
   ]
 

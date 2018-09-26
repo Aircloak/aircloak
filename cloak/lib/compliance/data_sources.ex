@@ -2,6 +2,7 @@ defmodule Compliance.DataSources do
   @moduledoc false
 
   alias Compliance.{Data, TableDefinitions}
+  alias Cloak.DataSource.MongoDB
 
   @plain_name_postfix ""
   @encoded_name_postfix "_encoded"
@@ -185,6 +186,7 @@ defmodule Compliance.DataSources do
   defp handler_for_data_source(%{driver: Cloak.DataSource.SQLServerRODBC}), do: Compliance.DataSource.SQLServer
   defp handler_for_data_source(%{driver: Cloak.DataSource.SAPIQ}), do: Compliance.DataSource.SAPIQ
   defp handler_for_data_source(%{driver: Cloak.DataSource.SAPIQRODBC}), do: Compliance.DataSource.SAPIQ
+  defp handler_for_data_source(%{driver: Cloak.DataSource.DrillRODBC}), do: Compliance.DataSource.Drill
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -226,7 +228,7 @@ defmodule Compliance.DataSources do
     end)
   end
 
-  defp table_definitions(generator_fun, %{driver: Cloak.DataSource.MongoDB}), do: generator_fun.(true)
+  defp table_definitions(generator_fun, %{driver: MongoDB}), do: generator_fun.(true)
 
   defp table_definitions(generator_fun, _data_source), do: generator_fun.(false)
 

@@ -657,6 +657,7 @@ defmodule Cloak.Sql.Compiler.Specification do
       Function.arguments(function_call)
       |> Enum.map(fn
         %Expression{} = expression -> expression.type
+        {:distinct, %Expression{} = expression} -> expression.type
         :* -> "unspecified type"
       end)
 

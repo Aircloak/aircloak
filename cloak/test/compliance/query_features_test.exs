@@ -3,6 +3,36 @@ defmodule Compliance.QueryFeatures.Test do
 
   @moduletag :query_features
 
+  @tag compliance: "multiple join"
+  test "multiple join", context do
+    [{table1, uid1}, {table2, uid2}, {table3, uid3} | _] = table_uids()
+
+    context
+    |> assert_consistent_and_not_failing("""
+      SELECT COUNT(*)
+      FROM #{table1} INNER JOIN #{table2}
+      ON #{table1}.#{uid1} = #{table2}.#{uid2}
+      INNER JOIN #{table3}
+      ON #{table2}.#{uid2} = #{table3}.#{uid3}
+    """)
+  end
+
+  @tag compliance: "multiple join in subquery"
+  test "multiple join in subquery", context do
+    [{table1, uid1}, {table2, uid2}, {table3, uid3} | _] = table_uids()
+
+    context
+    |> assert_consistent_and_not_failing("""
+      SELECT COUNT(*) FROM (
+        SELECT #{table1}.#{uid1}
+        FROM #{table1} INNER JOIN #{table2}
+        ON #{table1}.#{uid1} = #{table2}.#{uid2}
+        INNER JOIN #{table3}
+        ON #{table2}.#{uid2} = #{table3}.#{uid3}
+      ) foo
+    """)
+  end
+
   Enum.each(table_uids(), fn {table, uid} ->
     @tag compliance: "offset and limit with order by constant on #{table}"
     test "offset and limit with order by constant on #{table}", context do
