@@ -44,7 +44,7 @@ defmodule AircloakCI.Build.Job.Test do
   defp start_test(build_state, build_server, project, component),
     do:
       Build.Server.start_job(build_state, "#{component}_test", fn ->
-        Component.start_job(
+        Component.run_standard_job(
           project,
           component,
           :test,

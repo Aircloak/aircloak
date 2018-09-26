@@ -17,12 +17,22 @@ defmodule AircloakCI.Build.Component do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Starts a job on the desired component."
-  @spec start_job(LocalProject.t(), String.t(), job, Job.run_queued_opts()) :: :ok | {:error, String.t()}
-  def start_job(project, component, job, opts \\ []) do
-    with :ok <- build_image(project, component) do
-      opts = Keyword.merge([log_name: "#{component}_#{job}"], opts)
-      Job.run_queued(job, project, fn -> run_job(project, component, job, opts) end, opts)
+  @doc """
+  Runs a standard job on the given project.
+
+  A standard job is described in `jobs.exs` file of the component.
+  """
+  @spec run_standard_job(LocalProject.t(), String.t(), job, Job.run_queued_opts()) :: :ok | {:error, String.t()}
+  def run_standard_job(project, component, job, opts \\ []) do
+    run_job(project, %{component: component, job: job, commands: LocalProject.commands(project, component, job)}, opts)
+  end
+
+  @doc "Runs the given job."
+  @spec run_job(LocalProject.t(), LocalProject.job_spec(), Job.run_queued_opts()) :: :ok | {:error, String.t()}
+  def run_job(project, job_spec, opts \\ []) do
+    with :ok <- build_image(project, job_spec.component) do
+      opts = Keyword.merge([log_name: "#{job_spec.component}_#{job_spec.job}"], opts)
+      Job.run_queued(job_spec.job, project, fn -> do_run_job(project, job_spec, opts) end, opts)
     end
   end
 
@@ -47,20 +57,21 @@ defmodule AircloakCI.Build.Component do
     end
   end
 
-  defp run_job(project, component, job, opts),
-    do: AircloakCI.Queue.exec(:job, fn -> do_run_job(project, component, job, opts) end)
-
-  defp do_run_job(project, component, job, opts),
-    do:
-      with_container(project, component, opts, fn container ->
-        with :ok <- prepare_for(container, job) do
-          commands = LocalProject.commands(project, component, job)
-          {result, outputs} = run_commands(project, component, job, container, commands)
-          # dump all outputs to the job log file
-          File.write(container.log_file, ["\n", outputs, "\n"], [:append])
-          result
-        end
-      end)
+  defp do_run_job(project, job_spec, opts) do
+    AircloakCI.Queue.exec(
+      :job,
+      fn ->
+        with_container(project, job_spec.component, opts, fn container ->
+          with :ok <- prepare_for(container, job_spec.job) do
+            {result, outputs} = run_commands(project, job_spec.component, job_spec.job, container, job_spec.commands)
+            # dump all outputs to the job log file
+            File.write(container.log_file, ["\n", outputs, "\n"], [:append])
+            result
+          end
+        end)
+      end
+    )
+  end
 
   defp run_commands(project, component, job, container, commands) when is_list(commands),
     do: run_commands(project, component, job, container, {:sequence, commands})
