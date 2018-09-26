@@ -1,12 +1,12 @@
 # Understanding query results
 
-All anonymization systems necessarily distort query results. While the amount of distortion in Aircloak is remarkably small, the analyst must nevertheless understand how and when distortion occurs to properly interpret query results.
+All anonymisation systems necessarily distort query results. While the amount of distortion in Aircloak is remarkably small, the analyst must nevertheless understand how and when distortion occurs to properly interpret query results.
 
 This section describes how and when distortion occurs, and suggests strategies for minimizing the impact of distortion.
 
 Aircloak distorts data in the following ways:
 
-* Adds zero mean noise to anonymizing aggregation function outputs
+* Adds zero mean noise to anonymising aggregation function outputs
 * May modify the values of *outlying* data (the highest or lowest values in a column)
 * May suppress certain results when too few users are represented (low-count filtering)
 
@@ -15,7 +15,7 @@ Aircloak distorts data in the following ways:
 * Use the noise reporting functions (e.g. `count_noise()`) to determine how much noise is added.
 * Remember that outlying values are *flattened*: sums, row counts, and maxes may be quite inaccurate when users with extreme outlying values are in the data.
 * Look for the `*` output row to gauge how much data is being hidden.
-* Output rows with `NULL` probably mean that there are not enough distinct users to compute an anonymized aggregate.
+* Output rows with `NULL` probably mean that there are not enough distinct users to compute an anonymised aggregate.
 * In the Aircloak web interface, output rows in italics have more relative distortion.
 * Queries with fewer and simpler conditions have less noise.
 
@@ -111,11 +111,11 @@ GROUP BY acct_date
 
 ## Low-count filtering
 
-The Aircloak anonymizing aggregator computes outputs from the data of multiple users. If the number of distinct users contributing to a single output row is too small, the row is suppressed (not reported). This suppression is called *low-count filtering*.
+The Aircloak anonymising aggregator computes outputs from the data of multiple users. If the number of distinct users contributing to a single output row is too small, the row is suppressed (not reported). This suppression is called *low-count filtering*.
 
 The threshold for the low-count filter is itself a noisy value with an average of 4. If there are 4 distinct users that comprise an output row, then there is a 50% chance the row will be suppressed. Fewer users increases the chance of suppression, and more users decreases the chance of suppression. Any reported output row always has at least 2 distinct users.
 
-For instance, suppose that a query counts the users with each given first name, and that the names in the `users` table (before anonymization) are distributed as follows:
+For instance, suppose that a query counts the users with each given first name, and that the names in the `users` table (before anonymisation) are distributed as follows:
 
 Name   | Number of distinct users
 ------ | ------------------------
@@ -125,7 +125,7 @@ John   | 150
 Mary   | 1
 Tom    | 2
 
-Since there is only one Mary, she definitely won't appear in the output. Since there are only two Bobs and Toms, their names probably won't appear in the output. Therefore, the anonymized result returned by Aircloak may be something like:
+Since there is only one Mary, she definitely won't appear in the output. Since there are only two Bobs and Toms, their names probably won't appear in the output. Therefore, the anonymised result returned by Aircloak may be something like:
 
 Name  |	Number of distinct users
 ----  | ------------------------
@@ -133,7 +133,7 @@ Alice |	102
 John  |	147
 `*`   |	7
 
-The `*` row provides the analyst with an indication that some names have been suppressed because of low-count filtering. This indication is particularly important in cases where a large number of values are low-count filtered: the analyst can learn that a substantial amount of data is being hidden. Note that the `*` row is itself anonymized: the anonymized aggregate associated with it has noise, and it itself is low-count filtered. In other words, lack of a `*` row does not mean that no data was suppressed, only that very little data was suppressed.
+The `*` row provides the analyst with an indication that some names have been suppressed because of low-count filtering. This indication is particularly important in cases where a large number of values are low-count filtered: the analyst can learn that a substantial amount of data is being hidden. Note that the `*` row is itself anonymised: the anonymised aggregate associated with it has noise, and it itself is low-count filtered. In other words, lack of a `*` row does not mean that no data was suppressed, only that very little data was suppressed.
 
 When a large number of non-aggregated columns is selected in a query, the chances of having lots of rows with very
 few users increase. That will lead to lots of rows being suppressed, making the query result less useful.
@@ -149,7 +149,7 @@ FROM table
 GROUP BY name, age
 ```
 
-and the non-anonymized results are:
+and the non-anonymised results are:
 
 | name | age | count | sufficient users |
 |------|-----|--------|-----------------|
@@ -181,13 +181,13 @@ This process is time-consuming, so it is limited by default to a maximum of 3 co
 limit, refer to the [Configuring the Insights Cloak](../ops/configuration.md#insights-cloak-configuration) section. A value
 of 1 results in a single bucket for suppressed data, while a value of 0 will drop the low-count filtered data completely.
 
-## Anonymizing aggregation functions
+## Anonymising aggregation functions
 
-These seven anonymizing aggregation functions may add additional distortion besides the zero mean noise and low-count filtering already described. Note in particular that Aircloak gives no indication of whether any additional distortion occurred, or how severe this additional distortion is. This is because such information itself may leak individual information.
+These seven anonymising aggregation functions may add additional distortion besides the zero mean noise and low-count filtering already described. Note in particular that Aircloak gives no indication of whether any additional distortion occurred, or how severe this additional distortion is. This is because such information itself may leak individual information.
 
-Anonymizing aggregation functions make a variety of computations that require some minimum number of distinct users. It can happen that there are enough distinct users to pass a low-count filter, but not enough distinct users to compute the aggregate. In these cases, Aircloak does not suppress the output, but rather reports `NULL` for all aggregation functions and noise reporting functions except `count()`. Aircloak reports 0 for `count()` because `NULL` is not a valid output for `count()`.
+Anonymising aggregation functions make a variety of computations that require some minimum number of distinct users. It can happen that there are enough distinct users to pass a low-count filter, but not enough distinct users to compute the aggregate. In these cases, Aircloak does not suppress the output, but rather reports `NULL` for all aggregation functions and noise reporting functions except `count()`. Aircloak reports 0 for `count()` because `NULL` is not a valid output for `count()`.
 
-Note also that when there are fewer than 15 distinct users (anonymized output) in a given output row, then the Aircloak web interfaces reports the output in italics. This serves as a reminder to the analyst that the result likely has high relative noise.
+Note also that when there are fewer than 15 distinct users (anonymised output) in a given output row, then the Aircloak web interfaces reports the output in italics. This serves as a reminder to the analyst that the result likely has high relative noise.
 
 ### sum()
 
@@ -213,7 +213,7 @@ The users with 500K and 1M have, essentially, disappeared from the system. The a
 
 In addition, the sigma of the noise is proportional to the average value of the modified group of high users (in this case 500). This can be observed from the `sum_noise()` function.
 
-In any event, as a result of this flattening, the answer distortion in this particular extreme case is very large. The anonymized answer will be in the neighborhood of 12K where the true answer is over 1.5M. More generally, the amount of distortion depends on how big the outlying values are relative to other values.
+In any event, as a result of this flattening, the answer distortion in this particular extreme case is very large. The anonymised answer will be in the neighborhood of 12K where the true answer is over 1.5M. More generally, the amount of distortion depends on how big the outlying values are relative to other values.
 
 ### count()
 
@@ -231,7 +231,7 @@ The `stddev()` function uses the `avg()` function, and so flattening occurs.
 
 ### max() and min()
 
-The `max()` function drops the rows for a small number of users with the highest values (using a noisy number of users as with `sum()`). It then takes the average value of the next small number of distinct users with the highest values, and uses this average as the max (with potentially some additional noise, if the spread among this set of values is high). As such, the anonymized max may be very far from the true max.
+The `max()` function drops the rows for a small number of users with the highest values (using a noisy number of users as with `sum()`). It then takes the average value of the next small number of distinct users with the highest values, and uses this average as the max (with potentially some additional noise, if the spread among this set of values is high). As such, the anonymised max may be very far from the true max.
 
 The `min()` function operates the same as `max()`, except using low numbers. Unless the data includes negative numbers, `min()` tends to have less distortion than `max()`.
 
