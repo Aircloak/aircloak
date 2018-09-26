@@ -236,4 +236,10 @@ defmodule Cloak.Query.SubqueryTest do
       rows: [%{row: [1, 2], occurrences: 100}]
     })
   end
+
+  test "[Issue #3081] selecting an expression containing a user id from a subquery" do
+    assert_query("select * from (select upper(user_id) from heights_sq) t", %{
+      rows: [%{row: [:*], occurrences: 100}]
+    })
+  end
 end
