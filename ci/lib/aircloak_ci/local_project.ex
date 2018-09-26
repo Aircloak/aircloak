@@ -33,6 +33,9 @@ defmodule AircloakCI.LocalProject do
             source_sha: String.t()
           }
 
+  @type job_spec :: %{component: String.t(), job: atom, commands: job_commands}
+  @type job_commands :: [job_commands] | {:sequence, [job_commands]} | {:parallel, [job_commands]} | String.t()
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -363,6 +366,18 @@ defmodule AircloakCI.LocalProject do
     |> all_changed_components()
     |> standard_components()
     |> Enum.reject(&match?({:error, _}, commands(project, &1, :compile)))
+  end
+
+  @doc "Returns the list of defined nightly jobs for the given project."
+  @spec nightly_jobs(t) :: [job_spec]
+  def nightly_jobs(project) do
+    all_components(project)
+    |> Stream.map(&{&1, Path.join([src_folder(project), &1, "ci", "nightly.exs"])})
+    |> Stream.filter(fn {_component, script} -> File.exists?(script) end)
+    |> Enum.flat_map(fn {component, script} ->
+      {jobs, _bindings} = Code.eval_file(script)
+      Enum.map(jobs, fn {job, commands} -> %{component: component, job: job, commands: commands} end)
+    end)
   end
 
   @doc "Returns true if compliance tests exist and have been changed."
