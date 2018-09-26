@@ -22,13 +22,13 @@ defmodule AircloakCI.Build.Component do
 
   A standard job is described in `jobs.exs` file of the component.
   """
-  @spec run_standard_job(LocalProject.t(), String.t(), job, Job.run_queued_opts()) :: :ok | {:error, String.t()}
+  @spec run_standard_job(LocalProject.t(), String.t(), job, Job.run_queued_opts()) :: :ok | :error
   def run_standard_job(project, component, job, opts \\ []) do
     run_job(project, %{component: component, job: job, commands: LocalProject.commands(project, component, job)}, opts)
   end
 
   @doc "Runs the given job."
-  @spec run_job(LocalProject.t(), LocalProject.job_spec(), Job.run_queued_opts()) :: :ok | {:error, String.t()}
+  @spec run_job(LocalProject.t(), LocalProject.job_spec(), Job.run_queued_opts()) :: :ok | :error
   def run_job(project, job_spec, opts \\ []) do
     opts = Keyword.merge([log_name: "#{job_spec.component}_#{job_spec.job}"], opts)
     Job.initialize(job_spec.job, project, opts)
