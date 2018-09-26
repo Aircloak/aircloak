@@ -42,10 +42,7 @@ defmodule AircloakCI.Build.Component do
         fn ->
           Container.build(script(project, component), LocalProject.log_file(project, log_name))
         end,
-        log_name: log_name,
-        # Not entering the queue here, since queuing is performed in `Container.build/2` in cooperation with the
-        # component script.
-        skip_queue?: true
+        log_name: log_name
       )
     end
   end

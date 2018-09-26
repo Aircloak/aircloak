@@ -4,7 +4,7 @@ defmodule AircloakCI.Build.Job do
   alias AircloakCI.{LocalProject, Queue}
   alias AircloakCI.Build
 
-  @type run_queued_opts :: [job_name: String.t(), log_name: String.t(), report_result: pid, skip_queue?: true]
+  @type run_queued_opts :: [job_name: String.t(), log_name: String.t(), report_result: pid]
 
   # -------------------------------------------------------------------
   # API functions
@@ -53,9 +53,13 @@ defmodule AircloakCI.Build.Job do
         ) :: :ok | :error
   def run_queued(queue, project, fun, opts \\ []) do
     start_watcher(self(), project, queue, opts)
-    LocalProject.truncate_log(project, log_name(queue, opts))
 
-    job = fn ->
+    LocalProject.truncate_log(project, log_name(queue, opts))
+    LocalProject.log(project, log_name(queue, opts), "entering queue `#{queue}`")
+
+    Queue.exec(queue, fn ->
+      LocalProject.log(project, log_name(queue, opts), "entered queue `#{queue}`")
+
       result =
         if Enum.member?(Application.get_env(:aircloak_ci, :simulated_jobs, []), queue) do
           IO.puts("simulating job #{log_name(queue, opts)}")
@@ -73,21 +77,7 @@ defmodule AircloakCI.Build.Job do
 
       maybe_report_result(queue, opts, result)
       result
-    end
-
-    if Keyword.get(opts, :skip_queue?, false) do
-      job.()
-    else
-      LocalProject.log(project, log_name(queue, opts), "entering queue `#{queue}`")
-
-      Queue.exec(
-        queue,
-        fn ->
-          LocalProject.log(project, log_name(queue, opts), "entered queue `#{queue}`")
-          job.()
-        end
-      )
-    end
+    end)
   end
 
   # -------------------------------------------------------------------

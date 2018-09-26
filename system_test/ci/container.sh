@@ -157,28 +157,11 @@ if [ "$GLOBAL_DB_NAMESPACE" == "" ]; then
 fi
 
 function handle_build_image {
-  case $1 in
-    builder_image)
-      build_base_images
-      build_builder_images
-      ;;
-
-    release)
-      build_releases
-      ;;
-
-    release_image)
-      build_release_images
-      build_component_image
-      ;;
-
-    all)
-      build_base_images
-      build_builder_images
-      build_releases
-      build_release_images
-      build_component_image
-  esac
+  build_base_images
+  build_builder_images
+  build_releases
+  build_release_images
+  build_component_image
 }
 
 function build_builder_images {
@@ -197,14 +180,8 @@ function build_release_images {
 }
 
 case "$1" in
-  build_phases)
-    echo "docker_build builder_image"
-    echo "compile release"
-    echo "docker_build release_image"
-    ;;
-
   build_image)
-    handle_build_image ${2:-all}
+    handle_build_image
     ;;
 
   prepare_for_system_test)
