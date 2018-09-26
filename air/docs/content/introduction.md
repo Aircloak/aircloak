@@ -13,7 +13,7 @@ If you are an __analyst__ or __data scientist__, we recommend the following sect
 - The [core language features](sql.md) chapter gives an overview of the subset of SQL supported by Aircloak Insights.
 - The [best practises](sql/best-practises.md) chapter walks through some important considerations when it comes to working
   with Aircloak Insights as an analyst.
-- [Understanding query results](sql/query-results.md) explains the effects of anonymization on the results you are
+- [Understanding query results](sql/query-results.md) explains the effects of anonymisation on the results you are
   receiving and how these can be quantified.
 
 ### System administrators

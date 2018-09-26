@@ -13,8 +13,8 @@ FROM table_name`.
 
 ## Querying the database
 
-The `SELECT` statement can be used to obtain anonymized data from tables. See [Understanding query
-results](sql/query-results.md) for an explanation of the effects of anonymization on the results.
+The `SELECT` statement can be used to obtain anonymised data from tables. See [Understanding query
+results](sql/query-results.md) for an explanation of the effects of anonymisation on the results.
 
 The syntax conforms to the standard SQL syntax (with some exceptions), but only a subset of features is supported. The
 general shape of the query looks like:
@@ -120,27 +120,27 @@ inequality_operator :=
 ## Query and subquery types
 
 Aircloak Insights supports both queries over sensitive data and queries over non-sensitive data. In this context sensitive
-data is data pertaining to individual entities, as opposed to an anonymized aggregate across multiple such entities.
+data is data pertaining to individual entities, as opposed to an anonymised aggregate across multiple such entities.
 
 Queries that process sensitive data are subject to various [restrictions](sql/restrictions.md), and are called restricted
-queries. Restricted queries can be arbitrarily nested. The top-most restricted query anonymizes the data by producing
-anonymized aggregates and filtering values that would allow an individual entity to be identified. Such a top-most query
-is called an anonymizing query.
+queries. Restricted queries can be arbitrarily nested. The top-most restricted query anonymises the data by producing
+anonymised aggregates and filtering values that would allow an individual entity to be identified. Such a top-most query
+is called an anonymising query.
 
-An anonymizing query could itself be a subquery to another query that further processes the anonymized query results or
+An anonymising query could itself be a subquery to another query that further processes the anonymised query results or
 combines it with that of a user-less table. Such a query is called a standard query. Standard queries have the usual SQL
-validations applied to them, but do not underly the anonymization related restrictions of the restricted queries.
-Standard queries can only refer to user-less tables or to other standard or anonymizing subqueries.
+validations applied to them, but do not underly the anonymisation related restrictions of the restricted queries.
+Standard queries can only refer to user-less tables or to other standard or anonymising subqueries.
 
 The following is an example:
 
 ```SQL
--- Standard query (only processes anonymized data)
+-- Standard query (only processes anonymised data)
 SELECT
   min(age), max(age),
   count(age), sum(individuals) as num_users
 FROM (
-  -- Anonymizing (and restricted) query
+  -- Anonymising (and restricted) query
   SELECT age, count(*) as individuals FROM (
     -- Restricted query
     SELECT uid, t1.age
