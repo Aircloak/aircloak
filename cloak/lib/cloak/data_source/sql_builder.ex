@@ -2,7 +2,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   @moduledoc "Provides functionality for constructing an SQL query from a compiled query."
 
   alias Cloak.Sql.{Query, Expression}
-  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, SAPIQ, MySQL}
+  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL}
 
   # -------------------------------------------------------------------
   # API
@@ -218,7 +218,7 @@ defmodule Cloak.DataSource.SqlBuilder do
          sql_dialect_module,
          query
        )
-       when sql_dialect_module in [SQLServer, SAPIQ, MySQL],
+       when sql_dialect_module in [SQLServer, MySQL],
        # Some servers ignore trailing spaces during text comparisons.
        do: [
          "(",
@@ -236,7 +236,7 @@ defmodule Cloak.DataSource.SqlBuilder do
     ]
 
   defp conditions_to_fragments({:in, %Expression{type: :text} = what, values}, sql_dialect_module, query)
-       when sql_dialect_module in [SQLServer, SAPIQ, MySQL],
+       when sql_dialect_module in [SQLServer, MySQL],
        # Some servers ignore trailing spaces during text comparisons.
        do: [
          what |> dot_terminate() |> to_fragment(query),

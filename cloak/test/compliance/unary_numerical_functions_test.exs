@@ -34,9 +34,9 @@ Enum.each(
         function =
           if function == "cast(<col> as text)" and column == "height" do
             # In this case, we're casting a float column to text. This can lead to some strange differences, such as
-            # one database reporting 174.88 and another one 174.8800048828125 (as seen when comparing PostgreSQL and
-            # SAP IQ). To eliminate this situation, we're casting the result back to real, which should give us the
-            # results which are same or similar enough (according to delta comparison).
+            # one database reporting 174.88 and another one 174.8800048828125. To eliminate this situation, we're
+            # casting the result back to real, which should give us the results which are same or similar enough
+            # (according to delta comparison).
             "cast(cast(<col> as text) as real)"
           else
             function
