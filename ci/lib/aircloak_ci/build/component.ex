@@ -30,8 +30,10 @@ defmodule AircloakCI.Build.Component do
   @doc "Runs the given job."
   @spec run_job(LocalProject.t(), LocalProject.job_spec(), Job.run_queued_opts()) :: :ok | {:error, String.t()}
   def run_job(project, job_spec, opts \\ []) do
-    with :ok <- build_image(project, job_spec.component) do
-      opts = Keyword.merge([log_name: "#{job_spec.component}_#{job_spec.job}"], opts)
+    opts = Keyword.merge([log_name: "#{job_spec.component}_#{job_spec.job}"], opts)
+    Job.initialize(job_spec.job, project, opts)
+
+    with :ok <- build_image(project, job_spec.component, opts) do
       Job.run_queued(job_spec.job, project, fn -> do_run_job(project, job_spec, opts) end, opts)
     end
   end
@@ -40,19 +42,17 @@ defmodule AircloakCI.Build.Component do
   # Private functions
   # -------------------------------------------------------------------
 
-  defp build_image(project, component) do
+  defp build_image(project, component, opts) do
     if Container.built?(script(project, component)) do
       :ok
     else
-      log_name = "#{component}_docker_build"
-
       Job.run_queued(
         :docker_build,
         project,
         fn ->
-          Container.build(script(project, component), LocalProject.log_file(project, log_name))
+          Container.build(script(project, component), LocalProject.log_file(project, Keyword.fetch!(opts, :log_name)))
         end,
-        log_name: log_name
+        opts
       )
     end
   end
