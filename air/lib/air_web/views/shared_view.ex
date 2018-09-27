@@ -2,11 +2,7 @@ defmodule AirWeb.SharedView do
   @moduledoc false
   use Air.Web, :view
 
-  def version() do
-    :air
-    |> Aircloak.Version.for_app()
-    |> Aircloak.Version.to_string()
-  end
+  def version(), do: Aircloak.Version.for_app(:air)
 
   def has_privacy_policy?(), do: Air.Service.PrivacyPolicy.exists?()
 end
