@@ -130,6 +130,35 @@ Another important thing of note is that when `:test` job is executed, it's not g
 
 Therefore, in the example above we include `make deps` in the `:test` job too. No other command from the `:compile` job is included in `:test`, since all other compile tasks (compilation, PLT build) will be performed implicitly if needed (due to how `mix` works).
 
+#### Command parallelism
+
+The commands of the same job are executed in the same container and therefore share the same execution context, and operate on the same files. For this reason, you shouldn't run multiple commands in parallel if they can step on each other's toes. Consider the following example:
+
+```elixir
+{:parallel,
+ [
+   "MIX_ENV=dev mix compile",
+   "MIX_ENV=test mix compile",
+   "MIX_ENV=prod mix compile"
+ ]}
+```
+
+These three commands all work on the `_build` folder. In particular, if deps are not yet compiled, they will work on the same `ebin` folder of each dep, which can lead to some strange failures (it's been proven in practice).
+
+In contrast, this is fine:
+
+```elixir
+{:parallel,
+ [
+   "make docs",
+   "make lint",
+   "make check-format",
+   "make test"
+ ]}
+```
+
+Assuming that the project has been compiled previously, the commands above work on the compiled project, and they outputs don't overlap, so they can be safely invoked in parallel.
+
 ### Nightly jobs
 
 These jobs are described in `ci/nightly.exs`. Here's an example:
