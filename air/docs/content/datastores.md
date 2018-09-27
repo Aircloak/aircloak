@@ -13,7 +13,6 @@ Aircloak Insights ships with Insights Datasource Connectors for the following da
 - MySQL, version 5 and newer, and MariaDB, version 10.1 and newer
 - PostgreSQL, version 9.1 and newer
 - SAP HANA, version 2.0 and newer
-- SAP IQ, version 16.0 and newer
 - Apache Drill, version 1.13 and newer
 
 If your preferred datastore is not in the list, please contact Aircloak.
@@ -163,13 +162,6 @@ The following constructs are not natively supported on this data source and will
   - `date_trunc`
   - `hex`
   - `median`
-
-#### SAP IQ
-
-  - `date_trunc`
-  - `hex`
-  - `median`
-  - `btrim`, `ltrim`, and `rtrim` with two arguments
 
 #### Apache Drill
 

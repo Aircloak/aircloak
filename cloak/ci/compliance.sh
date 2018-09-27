@@ -89,7 +89,7 @@ function start_dev_container {
 
   printf "\nyou can start the system with \`make start\`\n\n"
 
-  CLOAK_DATA_SOURCES='sapiq saphana' \
+  CLOAK_DATA_SOURCES='saphana' \
   DOCKER_ARGS="-e DEPLOY_CONFIG='dev' -e __AC__DEFAULT_SAP_HANA_SCHEMA__='' -t" \
     docker_script run_in_container $container_id "/bin/bash"
 }

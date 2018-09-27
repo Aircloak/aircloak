@@ -95,7 +95,7 @@ mysql-server-database:
 mongo-server-container:
 	$(call start_container, aircloak_mongodb_server, -p 27017:27017 -d mongo)
 
-odbc_drivers: odbc_drivers_folder priv/odbc/drivers/saphana/libodbcHDB.so priv/odbc/drivers/sapiq
+odbc_drivers: odbc_drivers_folder priv/odbc/drivers/saphana/libodbcHDB.so
 
 odbc_drivers_folder:
 	mkdir -p priv/odbc/drivers
@@ -103,9 +103,6 @@ odbc_drivers_folder:
 priv/odbc/drivers/saphana/libodbcHDB.so:
 	mkdir -p priv/odbc/drivers/saphana
 	wget -O priv/odbc/drivers/saphana/libodbcHDB.so https://www.dropbox.com/s/aerstjlatecny79/libodbc-sap-hana-v2.so
-
-priv/odbc/drivers/sapiq:
-	wget -qO- https://www.dropbox.com/s/63loejvt622kjtt/sapiq_odbc_17.tar.gz | tar xzv --directory priv/odbc/drivers/
 
 ci.compliance:
 	ci/compliance.sh compliance

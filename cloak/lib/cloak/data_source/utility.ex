@@ -74,9 +74,6 @@ defmodule Cloak.DataSource.Utility do
     {"saphana", Cloak.DataSource.SAPHanaRODBC},
     {"saphana_odbc", Cloak.DataSource.SAPHana},
     {"saphana_rodbc", Cloak.DataSource.SAPHanaRODBC},
-    {"sapiq", Cloak.DataSource.SAPIQRODBC},
-    {"sapiq_odbc", Cloak.DataSource.SAPIQ},
-    {"sapiq_rodbc", Cloak.DataSource.SAPIQRODBC},
     {"drill", Cloak.DataSource.DrillRODBC},
     {"drill_rodbc", Cloak.DataSource.DrillRODBC}
   ]
@@ -92,7 +89,7 @@ defmodule Cloak.DataSource.Utility do
   @doc "Returns the data source type name given a driver module"
   @spec driver_to_name(atom) :: {:ok, String.t()} | {:error, :unknown}
   @driver_name_to_module_mappings
-  |> Enum.reject(fn {name, _driver} -> name in ~w(sqlserver saphana sapiq drill) end)
+  |> Enum.reject(fn {name, _driver} -> name in ~w(sqlserver saphana drill) end)
   |> Enum.each(fn {name, driver} ->
     def driver_to_name(unquote(driver)), do: {:ok, unquote(name)}
   end)

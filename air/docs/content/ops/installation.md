@@ -114,14 +114,9 @@ Mounting of the persisted folder is optional. If you don't mount this folder, th
 
 ### External ODBC drivers
 
-For some database products, the cloak image doesn't include the necessary ODBC drivers. These products are:
+For legal reasons, the Insights Cloak image does not include the necessary ODBC drivers for the SAP HANA database. If you want to use this database, you will have to provide the drivers yourself. Your SAP site administrator should be able to assist you.
 
-- SAP HANA
-- SAP IQ
-
-For legal reasons the Insights Cloak image does not include the ODBC-drivers for SAP databases. If you want to use SAP HANA or SAP IQ, you will have to provide the drivers yourself. Your SAP site administrator should be able to assist you.
-
-The ODBC-drivers need to be mounted into the docker container as follows:
+The ODBC drivers need to be mounted into the docker container as follows:
 
 ```bash
 docker run \
@@ -132,66 +127,4 @@ docker run \
   ...
 ```
 
-Here, the folder `host_odbc_drivers_folder` is the folder on the host machine where ODBC drivers are stored. The drivers need to be stored using the required file structure, as explained below.
-
-#### SAP HANA
-
-For SAP HANA, you need to create the folder named `saphana` in the `host_odbc_drivers_folder`, and store the driver into that folder. The driver should be named `libodbcHDB.so`.
-
-#### SAP IQ
-
-For SAP IQ, you need to provide various files which are part of SAP IQ Client and SAP IQ ODBC Driver. These files typically reside in folders `lib64` and `res` in the `IQ-16_X` folder of your SAP IQ installation.
-
-You need to take the required files and place them in the `sapiq` folder (under the `host_odbc_drivers_folder`). In addition, in the `lib64` folder, you need to find the file named `libdbodbcXY.so`, where `XY` is a numeric suffix (e.g. 17) and copy it into `libdbodbc.so`. Notice that the file should be copied, not symlinked or renamed.
-
-Here is an example list of all required files in `host_odbc_drivers_folder/sapiq`:
-
-```
-lib64/libdbcapi.so
-lib64/libdbcapi_r.so
-lib64/libdbcrypto.so
-lib64/libdbfips17.so
-lib64/libdbfips17_r.so
-lib64/libdbftp17_r.so
-lib64/libdbicu17.so
-lib64/libdbicu17_r.so
-lib64/libdbicudt17.so
-lib64/libdbjdbc17.so
-lib64/libdbjodbc17.so
-lib64/libdbldap17.so
-lib64/libdbldap17_r.so
-lib64/libdbldapfips17_r.so
-lib64/libdblib17.so
-lib64/libdblib17_r.so
-lib64/libdbodbc.so
-lib64/libdbodbc17.so
-lib64/libdbodbc17_n.so
-lib64/libdbodbc17_r.so
-lib64/libdbodbcansi17_r.so
-lib64/libdbodbcinst17_r.so
-lib64/libdbodm17.so
-lib64/libdbput17_r.so
-lib64/libdbrsa17.so
-lib64/libdbrsa17_r.so
-lib64/libdbsmtp17_r.so
-lib64/libdbssl.so
-lib64/libdbtasks17.so
-lib64/libdbtasks17_r.so
-lib64/libiqtool16_r.so
-lib64/libjsyblib1700_r.so
-lib64/sapcpp47.so
-res/dblgen17.res
-res/dblgen_iq17.res
-res/dblgja17_eucjis.res
-res/dblgja17_sjis.res
-res/dblgja17_utf8.res
-res/dblgja_iq17_eucjis.res
-res/dblgja_iq17_sjis.res
-res/dblgja_iq17_utf8.res
-res/dblgzh17_cp936.res
-res/dblgzh17_eucgb.res
-res/dblgzh17_utf8.res
-res/dblgzh_iq17_cp936.res
-res/dblgzh_iq17_eucgb.res
-res/dblgzh_iq17_utf8.res
-```
+Here, the folder `host_odbc_drivers_folder` is the folder on the host machine where ODBC drivers are stored. Inside this folder you need to create the folder named `saphana`, and store the driver file into that folder. The driver file should be named `libodbcHDB.so`.
