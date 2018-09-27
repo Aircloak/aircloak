@@ -167,6 +167,7 @@ defmodule AircloakCI.Build.Server do
   def init({callback_mod, source_type, source_id, repo_data, arg}) do
     Process.flag(:trap_exit, true)
     AircloakCI.RepoDataProvider.subscribe()
+    enqueue_nightly()
 
     build_source = build_source(callback_mod, source_id, repo_data)
     false = is_nil(build_source)
@@ -260,6 +261,14 @@ defmodule AircloakCI.Build.Server do
       nil ->
         invoke_callback(state, :handle_info, [exit_message])
     end
+  end
+
+  def handle_info(:start_nightly_job, state) do
+    if Enum.empty?(running_jobs(state)) and state.source_type in [:local, :branch],
+      do: AircloakCI.Build.Nightly.maybe_start_job(state.project)
+
+    enqueue_nightly()
+    {:noreply, state}
   end
 
   def handle_info(other, state), do: invoke_callback(state, :handle_info, [other])
@@ -375,6 +384,8 @@ defmodule AircloakCI.Build.Server do
   defp handle_job_failed(state, name, reason), do: invoke_callback(state, :handle_job_failed, [name, reason])
 
   defp invoke_callback(state, fun, args), do: apply(state.callback_mod, fun, args ++ [state])
+
+  defp enqueue_nightly(), do: Process.send_after(self(), :start_nightly_job, :timer.seconds(1))
 
   @doc false
   defmacro __using__(opts) do

@@ -173,7 +173,7 @@ defmodule AircloakCI.Build.Component do
     # This is a quick fix for older builds which don't explicitly handle `prepare_*` argument. A concrete example
     # is `prepare_compile` which has been introduced, but it's not supported by older builds, such as previous release
     # branches.
-    if job in [:compile, :test, :compliance],
+    if job in [:compile, :test, :compliance, :nightly],
       do: Container.invoke_script(container, "prepare_for_#{job} #{container.name}", timeout: :timer.hours(1))
 
     :ok

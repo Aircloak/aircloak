@@ -27,7 +27,8 @@ config :aircloak_ci, :queues,
        queue_spec.(limit: {:per_second, 1})
      end),
   job: queue_spec.(limit: {:concurrent, 10}),
-  start_command: queue_spec.(limit: {:concurrent, 1})
+  start_command: queue_spec.(limit: {:concurrent, 1}),
+  nightly: queue_spec.(limit: {:concurrent, 1})
 
 import_config "#{Mix.env()}.exs"
 
