@@ -27,3 +27,6 @@ config :aircloak_ci, components_filter: {:except, ["air", "cloak"]}
 
 # Simulates approval of a PR
 config :aircloak_ci, simulate_approval: true
+
+# Prevents execution of nightly jobs
+config :aircloak_ci, run_nightly?: false

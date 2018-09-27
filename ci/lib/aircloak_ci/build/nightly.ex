@@ -23,7 +23,7 @@ defmodule AircloakCI.Build.Nightly do
 
   @impl GenServer
   def handle_call({:run_nightly, project}, _from, state) do
-    if Time.utc_now().hour in nightly_hours?() and not job_running?() do
+    if nightly_enabled?() and Time.utc_now().hour in nightly_hours?() and not job_running?() do
       project
       |> LocalProject.nightly_jobs()
       |> Stream.reject(&job_executed?(state, project, &1))
@@ -53,6 +53,8 @@ defmodule AircloakCI.Build.Nightly do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp nightly_enabled?(), do: Application.get_env(:aircloak_ci, :run_nightly?, true)
 
   defp nightly_hours?(), do: Aircloak.in_env(dev: 0..24, test: [], prod: 0..4)
 
