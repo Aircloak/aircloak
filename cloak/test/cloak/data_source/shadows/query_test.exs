@@ -35,5 +35,17 @@ defmodule Cloak.DataSource.Shadows.Query.Test do
         assert [10] = Query.build_shadow(data_source, "shadows", "value")
       end
     end
+
+    test "only 100 most popular values are kept" do
+      for i <- 1..100 do
+        :ok = insert_rows(_user_ids = 0..12, "shadows", ["value"], [i])
+      end
+
+      :ok = insert_rows(_user_ids = 0..11, "shadows", ["value"], [0])
+
+      for data_source <- DataSource.all() do
+        assert MapSet.new(Query.build_shadow(data_source, "shadows", "value")) == MapSet.new(1..100)
+      end
+    end
   end
 end

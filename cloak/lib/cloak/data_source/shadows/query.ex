@@ -11,7 +11,7 @@ defmodule Cloak.DataSource.Shadows.Query do
       FROM "#{table}"
       GROUP BY 1
       HAVING COUNT(DISTINCT "#{user_id(data_source, table)}") > #{@min_distinct_users}
-      ORDER BY COUNT(*)
+      ORDER BY COUNT(*) DESC
       LIMIT #{@max_values}
     """
     |> Parser.parse!()
