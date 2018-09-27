@@ -77,14 +77,15 @@ function deploy {
     (git branch -vv | grep ': gone]' | awk '{print $1}' | xargs git branch -d &>/dev/null || true)
   "
 
-  # update systemd service file and restart the service
+  # upload production files, update systemd, and restart services
   exec_as_root "
-    cp -rp $build_folder/production/fix_permissions.sh /root/ &&
-    cp -rp $build_folder/production/aircloak_ci.service /etc/systemd/system/ &&
-    cp -rp $build_folder/production/aircloak_ci_fix_permissions.* /etc/systemd/system/ &&
+    cp -rp $build_folder/production/*.sh /root/ &&
+    cp -rp $build_folder/production/*.service /etc/systemd/system/ &&
+    cp -rp $build_folder/production/*.timer /etc/systemd/system/ &&
     systemctl daemon-reload &&
     systemctl restart aircloak_ci.service &&
-    systemctl restart aircloak_ci_fix_permissions.timer
+    systemctl restart aircloak_ci_fix_permissions.timer &&
+    systemctl restart aircloak_ci_cleanup_cache.timer
   "
 
   # keep the most recent 10 releases

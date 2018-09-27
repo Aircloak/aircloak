@@ -1,0 +1,9 @@
+[Unit]
+Description=Timer for cache cleanup, see cleanup_cache.sh for details
+
+[Timer]
+OnBootSec=10s
+OnUnitActiveSec=1h
+
+[Install]
+WantedBy=timers.target

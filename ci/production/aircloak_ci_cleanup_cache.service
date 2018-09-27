@@ -1,0 +1,7 @@
+[Unit]
+Description=AircloakCI cache cleanup, see cleanup_cache.sh for details
+
+[Service]
+Type=oneshot
+ExecStart=/root/cleanup_cache.sh /home/ci/.aircloak_ci
+User=root
