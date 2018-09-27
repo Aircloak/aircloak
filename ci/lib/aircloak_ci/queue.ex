@@ -3,7 +3,7 @@ defmodule AircloakCI.Queue do
 
   require Logger
 
-  @type id :: :docker_build | :compile | :test | :compliance | :github_api | :job | :start_command
+  @type id :: :docker_build | :compile | :test | :compliance | :github_api | :job | :start_command | :nightly
 
   # -------------------------------------------------------------------
   # API functions

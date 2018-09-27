@@ -25,7 +25,7 @@ defmodule AircloakCI.Build.Job.Compliance do
   defp start_test(%{project: project} = build_state, build_server),
     do:
       Build.Server.start_job(build_state, "compliance", fn ->
-        Component.start_job(
+        Component.run_standard_job(
           project,
           "cloak",
           :compliance,

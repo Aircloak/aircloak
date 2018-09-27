@@ -12,6 +12,7 @@ defmodule AircloakCI.Build.Service do
   def start_link() do
     Supervisor.start_link(
       [
+        AircloakCI.Build.Nightly,
         ChildSpec.registry(:unique, AircloakCI.Build.Registry),
         AircloakCI.Build.Supervisor
       ],

@@ -35,7 +35,7 @@ defmodule AircloakCI.Build.Job.Compile do
   defp start_compilation(build_state, build_server, project, component),
     do:
       Build.Server.start_job(build_state, "#{component}_compile", fn ->
-        Component.start_job(
+        Component.run_standard_job(
           project,
           component,
           :compile,

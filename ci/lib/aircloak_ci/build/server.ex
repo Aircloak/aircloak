@@ -151,8 +151,6 @@ defmodule AircloakCI.Build.Server do
 
   @doc "Returns the job type, which is the name of the job without the component prefix."
   @spec job_type(job_name) :: String.t()
-  def job_type("system_test"), do: "system_test"
-
   def job_type(job_name) do
     case Regex.named_captures(~r/.*_(?<job_type>[^_]+)$/, job_name) do
       %{"job_type" => "compile"} -> "compile"
@@ -169,6 +167,7 @@ defmodule AircloakCI.Build.Server do
   def init({callback_mod, source_type, source_id, repo_data, arg}) do
     Process.flag(:trap_exit, true)
     AircloakCI.RepoDataProvider.subscribe()
+    enqueue_nightly()
 
     build_source = build_source(callback_mod, source_id, repo_data)
     false = is_nil(build_source)
@@ -196,7 +195,7 @@ defmodule AircloakCI.Build.Server do
         LocalProject.clear_job_outcomes(state_after_job_termination.project)
         {:reply, :ok, restart(state_after_job_termination)}
 
-      job_type(job_name) in ["prepare", "compile", "test", "compliance", "system_test"] ->
+      job_type(job_name) in ["prepare", "compile", "test", "compliance"] ->
         LocalProject.mark_forced(state.project, job_name)
         {:reply, :ok, start_forced_jobs(state)}
 
@@ -264,6 +263,14 @@ defmodule AircloakCI.Build.Server do
     end
   end
 
+  def handle_info(:start_nightly_job, state) do
+    if Enum.empty?(running_jobs(state)) and state.source_type in [:local, :branch],
+      do: AircloakCI.Build.Nightly.maybe_start_job(state.project)
+
+    enqueue_nightly()
+    {:noreply, state}
+  end
+
   def handle_info(other, state), do: invoke_callback(state, :handle_info, [other])
 
   @impl GenServer
@@ -311,9 +318,6 @@ defmodule AircloakCI.Build.Server do
 
       job_name == "compliance" ->
         Job.Compliance.start_if_possible(state)
-
-      job_name == "system_test" ->
-        Job.SystemTest.start_if_possible(state)
 
       String.ends_with?(job_name, "_test") ->
         Job.Test.start_if_possible(state, String.replace(job_name, ~r/_test$/, ""))
@@ -380,6 +384,8 @@ defmodule AircloakCI.Build.Server do
   defp handle_job_failed(state, name, reason), do: invoke_callback(state, :handle_job_failed, [name, reason])
 
   defp invoke_callback(state, fun, args), do: apply(state.callback_mod, fun, args ++ [state])
+
+  defp enqueue_nightly(), do: Process.send_after(self(), :start_nightly_job, :timer.seconds(1))
 
   @doc false
   defmacro __using__(opts) do

@@ -4,7 +4,7 @@ defmodule AircloakCI.Build.Job do
   alias AircloakCI.{LocalProject, Queue}
   alias AircloakCI.Build
 
-  @type run_queued_opts :: [job_name: String.t(), log_name: String.t(), report_result: pid, skip_queue?: true]
+  @type run_queued_opts :: [job_name: String.t(), log_name: String.t(), report_result: pid]
 
   # -------------------------------------------------------------------
   # API functions
@@ -39,6 +39,14 @@ defmodule AircloakCI.Build.Job do
     end
   end
 
+  @doc "Initializes job execution."
+  @spec initialize(Queue.id(), LocalProject.t(), run_queued_opts) :: :ok
+  def initialize(queue, project, opts) do
+    LocalProject.truncate_log(project, Keyword.fetch!(opts, :log_name))
+    start_watcher(self(), project, queue, opts)
+    :ok
+  end
+
   @doc """
   Executes a job in the given queue.
 
@@ -51,14 +59,15 @@ defmodule AircloakCI.Build.Job do
           (() -> :ok | {:error, String.t()}),
           run_queued_opts
         ) :: :ok | :error
-  def run_queued(queue, project, fun, opts \\ []) do
-    start_watcher(self(), project, queue, opts)
-    LocalProject.truncate_log(project, log_name(queue, opts))
+  def run_queued(queue, project, fun, opts) do
+    LocalProject.log(project, Keyword.fetch!(opts, :log_name), "entering queue `#{queue}`")
 
-    job = fn ->
+    Queue.exec(queue, fn ->
+      LocalProject.log(project, Keyword.fetch!(opts, :log_name), "entered queue `#{queue}`")
+
       result =
         if Enum.member?(Application.get_env(:aircloak_ci, :simulated_jobs, []), queue) do
-          IO.puts("simulating job #{log_name(queue, opts)}")
+          IO.puts("simulating job #{Keyword.fetch!(opts, :log_name)}")
           :timer.sleep(:timer.seconds(1))
           :ok
         else
@@ -67,27 +76,13 @@ defmodule AircloakCI.Build.Job do
 
       result =
         with {:error, reason} <- result do
-          LocalProject.log(project, log_name(queue, opts), "error: #{reason}")
+          LocalProject.log(project, Keyword.fetch!(opts, :log_name), "error: #{reason}")
           :error
         end
 
       maybe_report_result(queue, opts, result)
       result
-    end
-
-    if Keyword.get(opts, :skip_queue?, false) do
-      job.()
-    else
-      LocalProject.log(project, log_name(queue, opts), "entering queue `#{queue}`")
-
-      Queue.exec(
-        queue,
-        fn ->
-          LocalProject.log(project, log_name(queue, opts), "entered queue `#{queue}`")
-          job.()
-        end
-      )
-    end
+    end)
   end
 
   # -------------------------------------------------------------------
@@ -108,7 +103,7 @@ defmodule AircloakCI.Build.Job do
 
           diff_sec = :erlang.monotonic_time(:second) - start
           time_output = :io_lib.format("~b:~2..0b", [div(diff_sec, 60), rem(diff_sec, 60)])
-          LocalProject.log(project, log_name(queue, opts), "finished in #{time_output} min")
+          LocalProject.log(project, Keyword.fetch!(opts, :log_name), "finished in #{time_output} min")
       end
     end)
   end
@@ -120,7 +115,7 @@ defmodule AircloakCI.Build.Job do
 
     LocalProject.log(
       project,
-      log_name(queue, opts),
+      Keyword.fetch!(opts, :log_name),
       "crashed: #{Exception.format_exit(crash_reason)}"
     )
   end
@@ -133,6 +128,4 @@ defmodule AircloakCI.Build.Job do
   end
 
   defp job_name(queue, opts), do: Keyword.get(opts, :job_name, to_string(queue))
-
-  defp log_name(queue, opts), do: Keyword.get(opts, :log_name, to_string(queue))
 end
