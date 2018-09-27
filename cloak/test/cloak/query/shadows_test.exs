@@ -55,4 +55,8 @@ defmodule Cloak.Query.Shadows.Test do
 
     assert error =~ ~r/At most 2 negative conditions/
   end
+
+  test "conditions with constants are always safe" do
+    assert_query("SELECT COUNT(*) FROM query_shadows WHERE '1' NOT IN ('1', '2', '3')", %{rows: [%{row: [0]}]})
+  end
 end

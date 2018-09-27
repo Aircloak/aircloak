@@ -6,6 +6,9 @@ defmodule Cloak.DataSource.Shadows do
     expression = condition |> Sql.Condition.subject() |> expand_expression(query)
 
     case columns(expression) do
+      [] ->
+        {:ok, true}
+
       [{table, column}] ->
         value = Sql.Condition.value(condition)
         shadow = Shadows.Query.build_shadow(query.data_source, table, column)
