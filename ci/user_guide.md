@@ -62,7 +62,7 @@ Essentially, the script needs to:
 3. mount cached files and folders to the container
 4. perform the proper action, depending on the first argument
 
-In steps 2 and 3 we're mounting some files to the container. The difference is that in step 2 we're mounting source files, while in step 3 we're mounting cached files (which reside in the `tmp` folder under the root folder). Typically, in step 2 you should mount the required input source files, while in step 3 you should mount things which should be cached (e.g. deps and _build folders).
+In steps 2 and 3 we're mounting some files to the container. The difference is that in step 2 we're mounting source files, while in step 3 we're mounting cached files (which reside in the `aircloak/tmp` folder). Typically, in step 2 you should mount the required input source files, while in step 3 you should mount things which should be cached (e.g. deps and _build folders).
 
 In step 4 you need to analyze the first argument and perform the corresponding action. In most cases, this can be delegated to the generic `default_handle` function (which is defined in `docker/ci_helper.sh`).
 
@@ -125,7 +125,7 @@ All of the commands will be executed in the container of the component.
 
 #### Compile vs test jobs
 
-The distinction between compile and test jobs deserves a special mention. This distinction is encoded into AircloakCI, and it serves the caching purposes. On branch builds, AircloakCI invokes only compile jobs, to keep the caches (contents of the `tmp` folder) up to date. The caches from the source branch are then copied to the PR build during its initialization.
+The distinction between compile and test jobs deserves a special mention. This distinction is encoded into AircloakCI, and it serves the caching purposes. On branch builds, AircloakCI invokes only compile jobs, to keep the caches (contents of the `aircloak/tmp` folder) up to date. The caches from the source branch are then copied to the PR build during its initialization.
 
 Therefore, it's worth including all commands which create build artefacts in the `:compile` job. This includes deps fetching and compiling, but also some other actions, such as PLT building (`MIX_HOME=_build mix dialyze --no-analyse` in the example above).
 
