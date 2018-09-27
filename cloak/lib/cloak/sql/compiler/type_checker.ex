@@ -297,7 +297,17 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     |> Query.Lenses.conditions()
     |> Lens.filter(&Condition.not_equals?/1)
     |> Lens.to_list(query)
-    |> Enum.reject(&Shadows.safe?(&1, query))
+    |> Enum.reject(fn condition ->
+      case Shadows.safe?(condition, query) do
+        {:ok, result} ->
+          result
+
+        {:error, :multiple_columns} ->
+          raise CompilationError,
+            source_location: Condition.subject(condition).source_location,
+            message: "Negative conditions can only involve one database column."
+      end
+    end)
     |> case do
       list when length(list) <= @max_rare_negative_conditions ->
         :ok

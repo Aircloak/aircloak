@@ -4,7 +4,7 @@ defmodule Cloak.Query.Shadows.Test do
   import Cloak.Test.QueryHelpers
 
   setup_all do
-    :ok = Cloak.Test.DB.create_table("query_shadows", "value INTEGER")
+    :ok = Cloak.Test.DB.create_table("query_shadows", "value INTEGER, string TEXT")
   end
 
   setup do
@@ -46,6 +46,12 @@ defmodule Cloak.Query.Shadows.Test do
       """,
       %{error: error}
     )
+
+    assert error =~ ~r/At most 2 negative conditions/
+  end
+
+  test "condition on expression" do
+    assert_query("SELECT COUNT(*) FROM query_shadows WHERE lower(string) NOT IN ('1', '2', '3')", %{error: error})
 
     assert error =~ ~r/At most 2 negative conditions/
   end

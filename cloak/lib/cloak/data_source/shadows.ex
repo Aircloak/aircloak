@@ -3,10 +3,24 @@ defmodule Cloak.DataSource.Shadows do
   alias __MODULE__
 
   def safe?(condition, query) do
-    subject = condition |> Sql.Condition.subject() |> expand_expression(query)
-    value = Sql.Condition.value(condition)
-    shadow = Shadows.Query.build_shadow(query.data_source, subject.table.name, subject.name)
-    Shadows.Lookup.any?(subject, value, shadow)
+    expression = condition |> Sql.Condition.subject() |> expand_expression(query)
+
+    case columns(expression) do
+      [{table, column}] ->
+        value = Sql.Condition.value(condition)
+        shadow = Shadows.Query.build_shadow(query.data_source, table, column)
+        {:ok, Shadows.Lookup.any?(expression, value, shadow)}
+
+      _ ->
+        {:error, :multiple_columns}
+    end
+  end
+
+  defp columns(expression) do
+    expression
+    |> get_in([Sql.Query.Lenses.leaf_expressions() |> Lens.filter(&Sql.Expression.column?/1)])
+    |> Enum.map(&{&1.table.name, &1.name})
+    |> Enum.uniq()
   end
 
   defp expand_expression(expression, query) do
