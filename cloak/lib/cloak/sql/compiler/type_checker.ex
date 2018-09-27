@@ -9,9 +9,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   alias Cloak.Sql.{CompilationError, Condition, Expression, Function, Query, Range}
   alias Cloak.Sql.Compiler.TypeChecker.Type
   alias Cloak.Sql.Compiler.Helpers
-  alias Cloak.DataSource.Isolators
+  alias Cloak.DataSource.{Isolators, Shadows}
 
   @max_allowed_restricted_functions 5
+  @max_rare_negative_conditions 2
 
   # -------------------------------------------------------------------
   # API
@@ -30,6 +31,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         verify_string_based_expressions_are_clear(subquery)
         verify_ranges_are_clear(subquery)
         verify_isolator_conditions_are_clear(subquery)
+        verify_negative_conditions(subquery)
       end
     end)
 
@@ -283,6 +285,32 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     case Map.fetch(query.table_aliases, table) do
       :error -> table
       {:ok, actual} -> actual.name
+    end
+  end
+
+  # -------------------------------------------------------------------
+  # Negative conditions
+  # -------------------------------------------------------------------
+
+  defp verify_negative_conditions(query) do
+    Query.Lenses.db_filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.filter(&Condition.not_equals?/1)
+    |> Lens.to_list(query)
+    |> Enum.reject(fn condition ->
+      subject = Condition.subject(condition)
+      value = Condition.value(condition)
+      shadow = Shadows.Query.build_shadow(query.data_source, subject.table.name, subject.name)
+      Shadows.Lookup.any?(subject, value, shadow)
+    end)
+    |> case do
+      list when length(list) <= @max_rare_negative_conditions ->
+        :ok
+
+      conditions ->
+        raise CompilationError,
+          source_location: Condition.subject(Enum.at(conditions, @max_rare_negative_conditions)).source_location,
+          message: "At most #{@max_rare_negative_conditions} negative conditions are allowed."
     end
   end
 
