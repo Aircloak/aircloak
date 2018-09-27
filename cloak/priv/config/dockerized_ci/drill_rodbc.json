@@ -1,0 +1,14 @@
+{
+  "driver": "drill_rodbc",
+  "name": "drill",
+  "encoded": false,
+  "parameters": {
+    "hostname": "drill1.13",
+    "database": "dfs.cloak_compliance",
+    "workspace": "cloak_compliance",
+    "data_dir": "ci/data",
+    "drill_data_dir": "/tmp/data"
+  },
+  "tables": {
+  }
+}

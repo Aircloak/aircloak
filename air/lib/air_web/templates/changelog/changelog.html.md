@@ -39,7 +39,7 @@
 
 ### Features
 
-- Added support for userless tables and non-anonymizing queries.
+- Added support for userless tables and non-anonymising queries.
 - Users passwords can now be reset using a link provided by the system.
   administrator or via the commandline interface.
 - Support for the SAP IQ data store.
@@ -56,7 +56,7 @@
 - Improve identification of which conditions need emulation.
 - Support for date and time typed literals.
 - `SAMPLE_USERS` no longer causes SAP Hana queries to get emulated.
-- The cloak classifies columns by whether they isolate users or not, further improving the anonymization as a result.
+- The cloak classifies columns by whether they isolate users or not, further improving the anonymisation as a result.
 - Improve load performance on the activity monitor page for installations with high numbers of queries.
 
 ### Changes
@@ -134,7 +134,7 @@
 
 ### Changes
 
-- Improvements to the anonymization process will cause queries to return different results from what they did in the past.
+- Improvements to the anonymisation process will cause queries to return different results from what they did in the past.
 - The cloak can now make use of cached system memory for running queries. This allows more queries to be run on hosts
   with limited resources.
 
@@ -212,7 +212,7 @@
 
 ### Changes
 
-- Improvements to the anonymization mean queries will return different results from what they did in the past.
+- Improvements to the anonymisation mean queries will return different results from what they did in the past.
 - When there are too few users to produce a valid aggregate, `SUM`, `SUM_NOISE`, `AVG`, `AVG_NOISE` and `COUNT_NOISE` now return `null`. `COUNT` will under these circumstances return the lowest reportable number: `2`.
 - Audit logging can be disabled in the [settings](/admin/settings) section of the admin interface.
 - The source code of third party dependencies is available for download from the [third party licenses](/licenses) page.

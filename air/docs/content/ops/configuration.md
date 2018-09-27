@@ -298,7 +298,7 @@ In that case you'd use a configuration like this:
 The Insights Cloak configuration is used to provide the following information:
 
 - URL where the Insights Air component can be reached
-- Anonymization salt
+- Anonymisation salt
 - Data sources which can be queried - see [Data source configuration](#data-source-configuration)
 
 The general shape of `config.json` is:
@@ -315,7 +315,7 @@ The general shape of `config.json` is:
 
 The `air_site` parameter holds the URL where Insights Air component can be reached. It can be in the form of `"ws://air_host_name:port"` or `"wss://air_host_name:port"`, where `air_host_name` is the address of the machine where the Insights Air component is running. You should use the `ws` prefix if Insights Air is serving traffic over HTTP, while `wss` should be used for the HTTPS protocol.
 
-The `salt` parameter is used for anonymization purposes. Make sure to create a strongly random secret for this parameter, for example with the following command:
+The `salt` parameter is used for anonymisation purposes. Make sure to create a strongly random secret for this parameter, for example with the following command:
 
 ```
 cat /dev/urandom |
@@ -366,7 +366,7 @@ Some of these drivers use the ODBC protocol to talk to the database. These drive
 Since they rely on ODBC, they accept some additional connection parameters:
 
   - `encoding` which has possible values of "latin1", "unicode", "utf8", "utf16", "utf32", "utf16-big", "utf16-little", "utf32-big", "utf32-little".
-  - `odbc_parameters` - ODBC specific parameters for the ODBC driver which is used to talk to the database.
+  - `odbc_parameters` - ODBC-specific parameters for the ODBC driver which is used to talk to the database.
 
 These parameters are optional, and are only required for particular installations, where the default values do not suffice.
 
@@ -392,19 +392,26 @@ Each `table_name_x` key specifies the name the table will be available under whe
 
 The `user_id` field is the name of the column that uniquely identifies users - the people or entities whose anonymity
 should be preserved. If this field is set to `null` the table will be classified as not containing data requiring
-anonymization. Queries over such tables are not subject to the anonymization restrictions, filters and aggregations,
-and *no attempts will be made to anonymize the data the table contains!*
+anonymisation. Queries over such tables are not subject to the anonymisation restrictions, filters and aggregations,
+and *no attempts will be made to anonymise the data the table contains!*
 
 The database table can be declared by either using `db_name` or as an SQL view using `query`.
 These options are mutually exclusive.
 
 The `db_name` is the name of the table in the underlying database. In most situations you can use the same name
 (in which case the field can be omitted), but the distinction allows some special scenarios, such as exposing
-a table under a simpler name, or exposing the same database table multiple times under different names.
+a table under a simpler name, or exposing the same database table multiple times under different names. Note that if the
+name of the table in the underlying database requires quoting (for example because it contains spaces), you might need
+to quote the name in this configuration file as well. For example, for a `postgresql` data source and a table called
+`user data` defined in a schema called `user schema` you would write the following:
+
+```
+"db_name": "\"user data\".\"user schema\""
+```
 
 If the `query` field is present instead, a virtual table is created, similar to an SQL view. The provided query can gather
 data from multiple tables, filter what columns are exposed and pre-process, pre-filter or pre-aggregate the data. The
-supported SQL features are the same as in other Aircloak queries, but the anonymization specific restrictions (like
+supported SQL features are the same as in other Aircloak queries, but the anonymisation-specific restrictions (like
 requiring a numerical range to have an upper and lower bound, for example) do not apply.
 An example configuration for a virtual table would look like this:
 

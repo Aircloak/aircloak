@@ -25,7 +25,7 @@ Enum.each(
   fn {aggregate, allowed_in_subquery} ->
     defmodule Module.concat([Compliance.AggregateFunctions, String.to_atom(aggregate), Test]) do
       use ComplianceCase, async: true
-      alias Cloak.DataSource.MongoDB
+      alias Cloak.DataSource.{MongoDB, DrillRODBC}
 
       @moduletag :"#{aggregate}"
       @integer_columns for {column, _table, _user_id} <- integer_columns(), do: column
@@ -35,6 +35,7 @@ Enum.each(
           @tag compliance: "#{aggregate} #{column} #{table} subquery"
           test "aggregate #{aggregate} on input #{column} in a sub-query on #{table}", context do
             context
+            |> disable_for(DrillRODBC, unquote(aggregate) =~ ~r/stddev/)
             |> assert_consistent_and_not_failing("""
               SELECT
                 aggregate

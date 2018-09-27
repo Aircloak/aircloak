@@ -16,9 +16,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @callback native_support_for_ilike?() :: boolean
 
   @doc "Generates dialect-specific SQL for the ILIKE operator."
-  @callback ilike_sql(iodata, iodata) :: iodata
+  @callback ilike_sql(iodata, Cloak.Sql.LikePattern.t()) :: iodata
 
-  @doc "Generates dialect-specific SQL for the ILIKE operator."
+  @doc "Generates dialect-specific SQL for the LIMIT clause."
   @callback limit_sql(pos_integer | nil, non_neg_integer) :: iodata
 
   @doc "Generates dialect-specific SQL for casting a column."
@@ -61,7 +61,7 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       def native_support_for_ilike?(), do: true
 
       @impl unquote(__MODULE__)
-      def ilike_sql(what, match),
+      def ilike_sql(what, pattern),
         # ILIKE requires the support for collation. Each data source that returns true for
         # `native_support_for_ilike?/1` must explicitly handle this
         do:

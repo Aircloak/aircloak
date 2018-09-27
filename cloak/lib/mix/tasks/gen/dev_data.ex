@@ -112,7 +112,7 @@ defmodule Mix.Tasks.Gen.DevData do
     )
   end
 
-  defp open_connection(%{driver: Cloak.DataSource.SAPHana} = datasource) do
+  defp open_connection(%{driver: Cloak.DataSource.SAPHanaRODBC} = datasource) do
     with :ok <- sap_hana_connectivity_possible(),
          {:ok, _} <- Application.ensure_all_started(:odbc),
          {:ok, default_schema} <- __AC__DEFAULT_SAP_HANA_SCHEMA__(),

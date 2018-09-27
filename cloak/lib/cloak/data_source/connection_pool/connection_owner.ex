@@ -34,7 +34,9 @@ defmodule Cloak.DataSource.ConnectionPool.ConnectionOwner do
 
   @impl GenServer
   def handle_info({:connect, driver, connection_params}, state) do
-    state = %{state | connection: Cloak.DataSource.connect!(driver, connection_params)}
+    connection = Cloak.DataSource.connect!(driver, connection_params)
+    true = Process.link(connection)
+    state = %{state | connection: connection}
     {:noreply, state, timeout(state)}
   end
 

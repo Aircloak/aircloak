@@ -27,6 +27,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Helpers.apply_top_down(&normalize_datasource_case/1)
     |> remove_meaningless_negative_noise_layers()
     |> add_generic_uid_layer_if_needed(top_level_uid)
+    |> replace_uid(top_level_uid)
   end
 
   def compile(query = %{command: :select, type: :standard}),
@@ -43,19 +44,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Enum.uniq_by(&Expression.unalias/1)
 
   # -------------------------------------------------------------------
-  # Internal functions
+  # Cleanup
   # -------------------------------------------------------------------
 
-  def compile_anonymized_query(query) do
-    top_level_uid = Helpers.id_column(query)
-
-    query
-    |> Helpers.apply_bottom_up(&calculate_base_noise_layers(&1, top_level_uid))
-    |> Helpers.apply_top_down(&push_down_noise_layers/1)
-    |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
-    |> Helpers.apply_top_down(&normalize_datasource_case/1)
-    |> remove_meaningless_negative_noise_layers()
-    |> add_generic_uid_layer_if_needed(top_level_uid)
+  # Because UIDs have special handling in many places it's somewhat difficult to instruct the query engine to select
+  # them. This makes it so that noise layers are built using the top-level UID in place of any other UID that might
+  # appear in expressions.
+  defp replace_uid(query, top_level_uid) do
+    put_in(query, [Lens.key(:noise_layers) |> uid_expressions()], top_level_uid)
   end
 
   # -------------------------------------------------------------------
@@ -561,11 +557,18 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   end
 
   deflensp non_uid_expressions() do
+    all_expressions() |> Lens.reject(& &1.user_id?)
+  end
+
+  deflensp uid_expressions() do
+    all_expressions() |> Lens.filter(& &1.user_id?)
+  end
+
+  deflensp all_expressions() do
     Lens.all()
     |> Lens.key(:expressions)
     |> Lens.all()
     |> Lens.reject(& &1.constant?)
-    |> Lens.reject(& &1.user_id?)
   end
 
   defp clear_condition?(
