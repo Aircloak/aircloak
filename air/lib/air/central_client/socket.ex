@@ -254,7 +254,7 @@ defmodule Air.CentralClient.Socket do
     defp log_disconnected(reason), do: Logger.error("disconnected: #{inspect(reason)}")
   end
 
-  defp version(), do: Aircloak.Version.for_app(:air) |> Aircloak.Version.to_string()
+  defp version(), do: Aircloak.Version.for_app(:air)
 
   # -------------------------------------------------------------------
   # Supervision tree

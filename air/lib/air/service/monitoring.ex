@@ -29,7 +29,7 @@ defmodule Air.Service.Monitoring do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp fetch_version(), do: Aircloak.Version.for_app(:air) |> Aircloak.Version.to_string()
+  defp fetch_version(), do: Aircloak.Version.for_app(:air)
 
   defp fetch_group_names(), do: Group |> select([g], g.name) |> Repo.all()
 
