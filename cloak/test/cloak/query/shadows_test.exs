@@ -40,10 +40,6 @@ defmodule Cloak.Query.Shadows.Test do
   end
 
   test "forbids more than 2 <> conditions with rare values" do
-    :ok = insert_rows(_user_ids = 1..1, "query_shadows", ["value"], [1])
-    :ok = insert_rows(_user_ids = 1..1, "query_shadows", ["value"], [2])
-    :ok = insert_rows(_user_ids = 1..1, "query_shadows", ["value"], [3])
-
     assert_query(
       """
         SELECT COUNT(*) FROM query_shadows
@@ -55,6 +51,17 @@ defmodule Cloak.Query.Shadows.Test do
     assert error =~ ~r/At most 2 negative conditions/
   end
 
-  @tag :pending
-  test "condition on column from subquery"
+  test "condition on column from subquery" do
+    assert_query(
+      """
+        SELECT COUNT(*) FROM (
+          SELECT user_id, value FROM query_shadows
+        ) foo
+        WHERE value NOT IN (1, 2, 3)
+      """,
+      %{error: error}
+    )
+
+    assert error =~ ~r/At most 2 negative conditions/
+  end
 end

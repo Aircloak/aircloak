@@ -298,7 +298,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     |> Lens.filter(&Condition.not_equals?/1)
     |> Lens.to_list(query)
     |> Enum.reject(fn condition ->
-      subject = Condition.subject(condition)
+      subject = condition |> Condition.subject() |> expand_expression(query)
       value = Condition.value(condition)
       shadow = Shadows.Query.build_shadow(query.data_source, subject.table.name, subject.name)
       Shadows.Lookup.any?(subject, value, shadow)
@@ -312,6 +312,15 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
           source_location: Condition.subject(Enum.at(conditions, @max_rare_negative_conditions)).source_location,
           message: "At most #{@max_rare_negative_conditions} negative conditions are allowed."
     end
+  end
+
+  defp expand_expression(expression, query) do
+    update_in(expression, [Query.Lenses.leaf_expressions()], fn expression ->
+      case Query.resolve_subquery_column(expression, query) do
+        :database_column -> expression
+        {column, subquery} -> expand_expression(column, subquery)
+      end
+    end)
   end
 
   # -------------------------------------------------------------------
