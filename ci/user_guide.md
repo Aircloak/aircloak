@@ -66,7 +66,7 @@ In steps 2 and 3 we're mounting some files to the container. The difference is t
 
 In step 4 you need to analyze the first argument and perform the corresponding action. In most cases, this can be delegated to the generic `default_handle` function (which is defined in `docker/ci_helper.sh`).
 
-The only mandatory action you need to handle in the script is `prepare_for_job` (e.g. `prepare_for_test`, `prepare_for_compliance`) which is invoked after the container is started, but before the job commands are executed. The role of this action is to execute any additional commands which will setup the environment (e.g. start additional supporting containers). Even if you don't need to do anything in the preparation phase, this action must be handled, e.g. by executing a noop (`:`).
+The only mandatory action you need to handle in the script is `prepare_for_job` (e.g. `prepare_for_test`, `prepare_for_nightly`) which is invoked after the container is started, but before the job commands are executed. The role of this action is to execute any additional commands which will setup the environment (e.g. start additional supporting containers). Even if you don't need to do anything in the preparation phase, this action must be handled, e.g. by executing a noop (`:`).
 
 ### Describing the docker image
 
