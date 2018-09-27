@@ -97,14 +97,11 @@ The regular jobs are described in `ci/jobs.exs`. Here's an example:
     {:sequence,
      [
        "make deps",
-       {:sequence,
+       "MIX_ENV=test ./check_warnings.sh",
+       {:parallel,
         [
-          "MIX_ENV=test ./check_warnings.sh",
-          {:parallel,
-            [
-              "MIX_ENV=test mix lint",
-              "MIX_ENV=test mix test"
-            ]}
+          "MIX_ENV=test mix lint",
+          "MIX_ENV=test mix test"
         ]}
      ]}
 }
