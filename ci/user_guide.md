@@ -122,7 +122,7 @@ All of the commands will be executed in the container of the component.
 
 #### Compile vs test jobs
 
-The distinction between compile and test jobs deserves a special mention. This distinction is encoded into AircloakCI, and it serves the caching purposes. On branch builds, AircloakCI invokes only compile jobs, to keep the caches (contents of the `aircloak/tmp` folder) up to date. The caches from the source branch are then copied to the PR build during its initialization.
+The distinction between compile and test jobs deserves a special mention. This distinction is encoded into AircloakCI, and it serves caching purposes. On branch builds, AircloakCI invokes only compile jobs, to keep the caches (contents of the `aircloak/tmp` folder) up to date. The caches from the source branch are then copied to the PR build during its initialization.
 
 Therefore, it's worth including all commands which create build artefacts in the `:compile` job. This includes deps fetching and compiling, but also some other actions, such as PLT building (`MIX_HOME=_build mix dialyze --no-analyse` in the example above).
 
