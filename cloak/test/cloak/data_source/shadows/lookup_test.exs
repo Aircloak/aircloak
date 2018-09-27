@@ -18,6 +18,12 @@ defmodule Cloak.DataSource.Shadows.Lookup.Test do
       assert Lookup.any?(expression, 2, [1, 2, 3, 4, 5])
       refute Lookup.any?(expression, 5, [1, 2, 3, 4, 5])
     end
+
+    test "expression with constants" do
+      expression = Expression.function("+", [column(), Expression.constant(:integer, 10)], :integer)
+      assert Lookup.any?(expression, 13, [1, 2, 3, 4, 5])
+      refute Lookup.any?(expression, 2, [1, 2, 3, 4, 5])
+    end
   end
 
   defp column() do

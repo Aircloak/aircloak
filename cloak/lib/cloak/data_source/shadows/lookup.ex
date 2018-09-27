@@ -10,7 +10,7 @@ defmodule Cloak.DataSource.Shadows.Lookup do
   defp evaluate(expression, candidate) do
     expression
     |> put_in(
-      [Query.Lenses.leaf_expressions() |> Lens.reject(& &1.constant?)],
+      [Query.Lenses.leaf_expressions() |> Lens.filter(&Expression.column?/1)],
       Expression.constant(:ignored, candidate)
     )
     |> Expression.const_value()

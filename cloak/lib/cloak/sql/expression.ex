@@ -59,6 +59,13 @@ defmodule Cloak.Sql.Expression do
       key?: column.name in Map.get(table, :keys, [])
     }
 
+  @doc """
+  Returns true if the given expression represents a column reference, false otherwise. Note, that the reference might be
+  to a column in a subquery, not necessarily directly to a database column.
+  """
+  @spec column?(t) :: boolean
+  def column?(expression), do: not (expression.constant? or expression.function?)
+
   @doc "Returns a column struct representing the constant `value`."
   @spec constant(column_type, any, pos_integer | nil) :: t
   def constant(type, value, parameter_index \\ nil),
