@@ -4,6 +4,8 @@
 - [Getting started](#getting-started)
 - [Production](#production)
 
+This document describes how to develop and operate the AircloakCI component. If you're interested in writing tests, take a look at the [User's Guide](./user_guide.md).
+
 ## What it does
 
 This project implements our custom CI service which polls Github for changes on the [aircloak/aircloak](https://github.com/aircloak/aircloak) project, runs tests on pending pull requests, and reports results via PR comments.
