@@ -20,7 +20,7 @@ defmodule AircloakCI.Build.Component do
   @doc """
   Runs a standard job on the given project.
 
-  A standard job is described in `jobs.exs` file of the component.
+  A standard job is described in the `jobs.exs` file of the component.
   """
   @spec run_standard_job(LocalProject.t(), String.t(), job, Job.run_queued_opts()) :: :ok | :error
   def run_standard_job(project, component, job, opts \\ []) do
