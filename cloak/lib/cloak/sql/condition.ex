@@ -23,11 +23,16 @@ defmodule Cloak.Sql.Condition do
   def not_equals?({:comparison, _, :<>, _}), do: true
   def not_equals?(_), do: false
 
-  @doc "Returns true if the given where clause is a NOT LIKE clause, false otherwise."
+  @doc "Returns true if the given where clause is a NOT (I)LIKE clause, false otherwise."
   @spec not_like?(Query.where_clause()) :: boolean
   def not_like?({:not, {:like, _, _}}), do: true
   def not_like?({:not, {:ilike, _, _}}), do: true
   def not_like?(_), do: false
+
+  @doc "Returns true if the given where clause is a NOT ILIKE clause, false otherwise."
+  @spec not_ilike?(Query.where_clause()) :: boolean
+  def not_ilike?({:not, {:ilike, _, _}}), do: true
+  def not_ilike?(_), do: false
 
   @doc "Returns true if the given where clause is a LIKE clause, false otherwise."
   @spec like?(Query.where_clause()) :: boolean

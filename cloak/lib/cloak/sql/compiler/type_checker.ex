@@ -295,7 +295,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp verify_negative_conditions(query) do
     Query.Lenses.db_filter_clauses()
     |> Query.Lenses.conditions()
-    |> Lens.filter(&Condition.not_equals?/1)
+    |> Lens.filter(&(Condition.not_equals?(&1) or Condition.not_like?(&1)))
     |> Lens.to_list(query)
     |> Enum.reject(fn condition ->
       case Shadows.safe?(condition, query) do

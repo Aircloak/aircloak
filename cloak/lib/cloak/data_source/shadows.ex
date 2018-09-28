@@ -1,6 +1,5 @@
 defmodule Cloak.DataSource.Shadows do
   alias Cloak.Sql
-  alias __MODULE__
 
   require Aircloak
 
@@ -22,9 +21,8 @@ defmodule Cloak.DataSource.Shadows do
         {:ok, true}
 
       [{table, column}] ->
-        value = Sql.Condition.value(condition)
-        shadow = @cache_module.build_shadow(query.data_source, table, column)
-        {:ok, Shadows.Lookup.any?(expression, value, shadow)}
+        shadow = @cache_module.build_shadow(query.data_source, table, column) |> Stream.map(&evaluate(expression, &1))
+        any?(condition, shadow)
 
       _ ->
         {:error, :multiple_columns}
@@ -45,6 +43,34 @@ defmodule Cloak.DataSource.Shadows do
         {column, subquery} -> expand_expression(column, subquery)
       end
     end)
+  end
+
+  def any?(condition, shadow) do
+    cond do
+      Sql.Condition.not_equals?(condition) ->
+        value = Sql.Condition.value(condition)
+        {:ok, Enum.any?(shadow, &(&1 == value))}
+
+      Sql.Condition.not_ilike?(condition) ->
+        value = condition |> Sql.Condition.value() |> Sql.LikePattern.to_regex("usmi")
+        {:ok, Enum.any?(shadow, &(&1 =~ value))}
+
+      Sql.Condition.not_like?(condition) ->
+        value = condition |> Sql.Condition.value() |> Sql.LikePattern.to_regex("usm")
+        {:ok, Enum.any?(shadow, &(&1 =~ value))}
+
+      true ->
+        {:error, :invalid_condition}
+    end
+  end
+
+  defp evaluate(expression, candidate) do
+    expression
+    |> put_in(
+      [Sql.Query.Lenses.leaf_expressions() |> Lens.filter(&Sql.Expression.column?/1)],
+      Sql.Expression.constant(:ignored, candidate)
+    )
+    |> Sql.Expression.const_value()
   end
 
   # -------------------------------------------------------------------
