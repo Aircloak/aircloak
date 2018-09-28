@@ -7,6 +7,14 @@ defmodule Cloak.DataSource.Shadows do
   @cache_module Aircloak.in_env(test: Cloak.TestShadowCache, else: Cloak.DataSource.Shadows.Query)
 
   def safe?(condition, query) do
+    if condition |> Sql.Condition.targets() |> Enum.any?(&Sql.Expression.constant?/1) |> :erlang.not() do
+      {:ok, true}
+    else
+      do_safe?(condition, query)
+    end
+  end
+
+  defp do_safe?(condition, query) do
     expression = condition |> Sql.Condition.subject() |> expand_expression(query)
 
     case columns(expression) do
