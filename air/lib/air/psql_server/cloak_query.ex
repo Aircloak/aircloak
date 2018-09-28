@@ -134,7 +134,8 @@ defmodule Air.PsqlServer.CloakQuery do
         date: :date,
         time: :time,
         timestamp: :datetime,
-        text: :text
+        text: :text,
+        varchar: :text
       } do
     defp sql_type(unquote(psql_type), _value), do: unquote(sql_type)
   end
