@@ -14,6 +14,10 @@ defmodule AircloakCI.Build.Nightly do
   @spec maybe_start_job(LocalProject.t()) :: :ok
   def maybe_start_job(project), do: GenServer.call(__MODULE__, {:run_nightly, project})
 
+  @doc "Force starts the given nightly job."
+  @spec force(LocalProject.t(), String.t(), atom) :: :ok | {:error, String.t()}
+  def force(project, component, job), do: GenServer.call(__MODULE__, {:force, project, component, job})
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
@@ -33,6 +37,17 @@ defmodule AircloakCI.Build.Nightly do
     end
 
     {:reply, :ok, state}
+  end
+
+  def handle_call({:force, project, component, job}, _from, state) do
+    response =
+      with nil <- if(job_running?(), do: {:error, "another nightly job is currently running"}),
+           {:ok, job_spec} <- find_job_spec(project, component, job) do
+        start_nightly_job(project, job_spec)
+        :ok
+      end
+
+    {:reply, response, state}
   end
 
   @impl GenServer
@@ -132,6 +147,13 @@ defmodule AircloakCI.Build.Nightly do
   defp state_file() do
     file_name = "#{__MODULE__ |> to_string() |> String.replace(~r/^Elixir\./, "")}.state"
     Path.join([AircloakCI.data_folder(), "persist", file_name])
+  end
+
+  defp find_job_spec(project, component, job) do
+    case project |> LocalProject.nightly_jobs() |> Enum.find(&match?(%{component: ^component, job: ^job}, &1)) do
+      nil -> {:error, "can't find the given job"}
+      job_spec -> {:ok, job_spec}
+    end
   end
 
   # -------------------------------------------------------------------

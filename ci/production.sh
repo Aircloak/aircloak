@@ -161,6 +161,10 @@ case "$command" in
     service_command build force_build $1 $2 $3
     ;;
 
+  force_nightly)
+    service_command build force_nightly $1 $2 $3
+    ;;
+
   remote_console)
     remote_console $@
     ;;
@@ -174,6 +178,7 @@ case "$command" in
       service_log journalctl_args |
       build_log branch_or_pr branch_name_or_pr_number job_name |
       force_build branch_or_pr branch_name_or_pr_number job_name |
+      force_nightly branch_name component_name job_name |
       remote_console branch_or_pr branch_name_or_pr_number component_name
     "
 
