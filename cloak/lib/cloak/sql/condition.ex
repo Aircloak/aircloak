@@ -112,12 +112,12 @@ defmodule Cloak.Sql.Condition do
   end
 
   def to_function({:like, column, %Expression{type: :like_pattern, value: pattern}}, truth) do
-    regex = pattern |> LikePattern.to_regex("ums")
+    regex = LikePattern.to_regex(pattern)
     fn row -> compare(:=~, Expression.value(column, row), regex) == truth end
   end
 
   def to_function({:ilike, column, %Expression{type: :like_pattern, value: pattern}}, truth) do
-    regex = pattern |> LikePattern.to_regex("uims")
+    regex = LikePattern.to_case_insensitive_regex(pattern)
     fn row -> compare(:=~, Expression.value(column, row), regex) == truth end
   end
 

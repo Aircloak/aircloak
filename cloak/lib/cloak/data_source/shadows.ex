@@ -52,11 +52,11 @@ defmodule Cloak.DataSource.Shadows do
         {:ok, Enum.any?(shadow, &(&1 == value))}
 
       Sql.Condition.not_ilike?(condition) ->
-        value = condition |> Sql.Condition.value() |> Sql.LikePattern.to_regex("usmi")
+        value = condition |> Sql.Condition.value() |> Sql.LikePattern.to_case_insensitive_regex()
         {:ok, Enum.any?(shadow, &(&1 =~ value))}
 
       Sql.Condition.not_like?(condition) ->
-        value = condition |> Sql.Condition.value() |> Sql.LikePattern.to_regex("usm")
+        value = condition |> Sql.Condition.value() |> Sql.LikePattern.to_regex()
         {:ok, Enum.any?(shadow, &(&1 =~ value))}
 
       true ->
