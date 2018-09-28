@@ -159,10 +159,43 @@ defmodule AircloakCI.Build.Nightly do
     end
   end
 
+  defp cleanup_logs() do
+    ~w(#{AircloakCI.LocalProject.logs_folder()} * nightly *)
+    |> Path.join()
+    |> Path.wildcard()
+    |> Stream.filter(&(age_in_days(&1) > 30))
+    |> Enum.each(&File.rm/1)
+  end
+
+  defp age_in_days(file) do
+    file_mtime = NaiveDateTime.from_erl!(File.stat!(file).mtime)
+    age_in_sec = NaiveDateTime.diff(NaiveDateTime.utc_now(), file_mtime, :second)
+    div(age_in_sec, 60 * 60 * 24)
+  end
+
   # -------------------------------------------------------------------
   # Supervision tree
   # -------------------------------------------------------------------
 
   @doc false
-  def start_link(_), do: Parent.GenServer.start_link(__MODULE__, nil, name: __MODULE__)
+  def start_link(), do: Parent.GenServer.start_link(__MODULE__, nil, name: __MODULE__)
+
+  @doc false
+  def child_spec(_) do
+    Aircloak.ChildSpec.supervisor(
+      [server_spec(), periodic_log_cleanup_spec()],
+      strategy: :one_for_one,
+      name: __MODULE__.Supervisor
+    )
+  end
+
+  defp server_spec(), do: %{id: __MODULE__, start: {__MODULE__, :start_link, []}}
+
+  defp periodic_log_cleanup_spec() do
+    Periodic.child_spec(
+      run: &cleanup_logs/0,
+      every: Aircloak.in_env(dev: :timer.minutes(1), else: :timer.hours(1)),
+      overlap?: false
+    )
+  end
 end
