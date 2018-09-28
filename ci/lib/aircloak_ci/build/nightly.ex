@@ -18,6 +18,10 @@ defmodule AircloakCI.Build.Nightly do
   @spec force(LocalProject.t(), String.t(), atom) :: :ok | {:error, String.t()}
   def force(project, component, job), do: GenServer.call(__MODULE__, {:force, project, component, job})
 
+  @doc "Synchronously cancels the running job if it is running on the given project."
+  @spec cancel_job(LocalProject.t()) :: :ok
+  def cancel_job(project), do: GenServer.call(__MODULE__, {:cancel_job, project})
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
@@ -48,6 +52,17 @@ defmodule AircloakCI.Build.Nightly do
       end
 
     {:reply, response, state}
+  end
+
+  def handle_call({:cancel_job, project}, _from, state) do
+    with {:ok, {job_project, job_spec}} <- Parent.GenServer.child_meta(:nightly_job) do
+      if LocalProject.name(project) == LocalProject.name(job_project) do
+        Logger.info("cancelling night job #{job_spec.job} for #{LocalProject.name(project)}")
+        Parent.GenServer.shutdown_child(:nightly_job)
+      end
+    end
+
+    {:reply, :ok, state}
   end
 
   @impl GenServer

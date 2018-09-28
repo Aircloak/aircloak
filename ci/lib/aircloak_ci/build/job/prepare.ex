@@ -9,17 +9,20 @@ defmodule AircloakCI.Build.Job.Prepare do
 
   @doc "Prepares the source code for the given project."
   @spec start(Build.Server.t(), delay: non_neg_integer) :: Build.Server.t()
-  def start(%{project: project, base_branch: base_branch} = build_state, opts \\ []),
-    do:
-      Build.Server.start_job(build_state, "prepare", fn ->
-        initialize_repo(project, base_branch, opts)
-      end)
+  def start(%{project: project, base_branch: base_branch} = build_state, opts \\ []) do
+    Build.Server.start_job(build_state, "prepare", fn ->
+      # since we're preparing the project, we need to make sure that no nightly job is running on it
+      Build.Nightly.cancel_job(project)
+
+      initialize_project(project, base_branch, opts)
+    end)
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp initialize_repo(project, base_branch, opts) do
+  defp initialize_project(project, base_branch, opts) do
     case Keyword.fetch(opts, :delay) do
       :error -> :ok
       {:ok, delay} -> :timer.sleep(delay)
