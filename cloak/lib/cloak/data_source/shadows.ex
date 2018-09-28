@@ -18,7 +18,7 @@ defmodule Cloak.DataSource.Shadows do
   restrictions on negative conditions. Returns `{:error, :invalid_condition}` if the given condition is not a negative
   condition (<>, NOT LIKE, NOT ILIKE).
   """
-  @spec safe?(Sql.Parser.condition(), Sql.Query.t()) ::
+  @spec safe?(Sql.Query.filter_clause(), Sql.Query.t()) ::
           {:ok, boolean} | {:error, :multiple_columns} | {:error, :invalid_condition}
   def safe?(condition, query) do
     if condition |> Sql.Condition.targets() |> Enum.any?(&Sql.Expression.constant?/1) |> :erlang.not() do
@@ -87,7 +87,7 @@ defmodule Cloak.DataSource.Shadows do
     expression
     |> put_in(
       [Sql.Query.Lenses.leaf_expressions() |> Lens.filter(&Sql.Expression.column?/1)],
-      Sql.Expression.constant(:ignored, candidate)
+      Sql.Expression.constant(:unknown, candidate)
     )
     |> Sql.Expression.const_value()
   end
