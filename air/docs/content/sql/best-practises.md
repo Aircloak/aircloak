@@ -284,7 +284,7 @@ This value is more likely to pass the low count filter than the high resolution 
 In most dialects of SQL all but the `count` aggregate may produce a `null` value. The `count` aggregate would, lacking
 data to produce a count, return 0 rather than `null`. Aircloak Insights behaves similarly. When there is insufficient
 data to produce a properly anonymised aggregate but sufficient data that the set of column values passed the low count
-filter then `null` will be returned for all aggregates but the `count`. As tools expect a non-`null` value for `count`s
+filter, then `null` will be returned for all aggregates but the `count`. As tools expect a non-`null` value for `count`s,
 Aircloak Insights will return a hardcoded lower bound value of 2 instead.
 
 Say we ran the query:
@@ -305,7 +305,7 @@ to inform you as an analyst that users with the last name of Anderson exist in t
 anomymized average age. The `avg(age)` would therefore be returned as `null`.
 
 In the case of `count` we might have enough distinct users to produce a count for the number of Anderson's, but not enough
-other users to generate a count for the `*` row (the anonymised row). Unlike for `avg` aggregate Aircloak Insights cannot
+other users to generate a count for the `*` row (the anonymised row). Unlike for the `avg` Aircloak Insights cannot
 report a `null` value as that would be incompatible with most existing tools and would return 2 instead.
 The presence of 2 in a `count` should therefore be considered as information about the fact that there are users with the
 given properties in the dataset, but not enough to produce a proper count. To validate that this is what is going on,
