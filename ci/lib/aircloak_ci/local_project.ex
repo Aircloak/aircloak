@@ -466,7 +466,7 @@ defmodule AircloakCI.LocalProject do
     destination = Path.join(src_folder(target_project), folder)
     File.mkdir_p(Path.dirname(destination))
     # Using `cp -a` instead of File.cp_r, since `cp -a` properly handles symlinks
-    CmdRunner.run("cp -a #{source} #{destination}")
+    CmdRunner.run("cp -a #{source} #{destination}", timeout: :timer.minutes(5))
   end
 
   defp update_state(project, updater) do
