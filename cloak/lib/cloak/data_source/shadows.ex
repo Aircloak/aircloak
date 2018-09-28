@@ -1,10 +1,25 @@
 defmodule Cloak.DataSource.Shadows do
+  @moduledoc "Entry point for checking negative conditions against shadow tables."
+
   alias Cloak.Sql
 
   require Aircloak
 
   @cache_module Aircloak.in_env(test: Cloak.TestShadowCache, else: Cloak.DataSource.Shadows.Query)
 
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc """
+  Checks if the given negative condition matches a value in she shadow table for the appropriate column. Returns
+  `{:ok, true | false}` if the check was performed successfully. Returns `{:error, :multiple_columns}` if the condition
+  references multiple columns and is not a `column1 <> column2` condition. This should not happen given other
+  restrictions on negative conditions. Returns `{:error, :invalid_condition}` if the given condition is not a negative
+  condition (<>, NOT LIKE, NOT ILIKE).
+  """
+  @spec safe?(Sql.Parser.condition(), Sql.Query.t()) ::
+          {:ok, boolean} | {:error, :multiple_columns} | {:error, :invalid_condition}
   def safe?(condition, query) do
     if condition |> Sql.Condition.targets() |> Enum.any?(&Sql.Expression.constant?/1) |> :erlang.not() do
       {:ok, true}
@@ -12,6 +27,10 @@ defmodule Cloak.DataSource.Shadows do
       do_safe?(condition, query)
     end
   end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp do_safe?(condition, query) do
     expression = condition |> Sql.Condition.subject() |> expand_expression(query)
