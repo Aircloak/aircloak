@@ -19,7 +19,7 @@ defmodule AircloakCI.Build.Nightly do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(_), do: {:ok, %{executed_jobs: %{}}}
+  def init(_), do: {:ok, restore_state()}
 
   @impl GenServer
   def handle_call({:run_nightly, project}, _from, state) do
@@ -64,10 +64,14 @@ defmodule AircloakCI.Build.Nightly do
   defp job_id(project, job_spec), do: {LocalProject.name(project), job_spec.component, job_spec.job}
 
   defp mark_job_as_executed(state, project, job_spec) do
-    put_in(
-      state.executed_jobs[job_id(project, job_spec)],
-      %{date: Date.utc_today(), sha: LocalProject.target_sha(project)}
-    )
+    state =
+      put_in(
+        state.executed_jobs[job_id(project, job_spec)],
+        %{date: Date.utc_today(), sha: LocalProject.target_sha(project)}
+      )
+
+    persist_state(state)
+    state
   end
 
   defp executed_today?(state, project, job_spec) do
@@ -99,6 +103,35 @@ defmodule AircloakCI.Build.Nightly do
     Logger.info("starting nightly job #{job_spec.job} for #{LocalProject.name(project)}")
     result = AircloakCI.Build.Component.run_job(project, %{job_spec | job: :nightly})
     send(Process.whereis(__MODULE__), {:job_outcome, project, job_spec, result})
+  end
+
+  defp persist_state(state) do
+    File.mkdir_p(Path.dirname(state_file()))
+    File.write(state_file(), :erlang.term_to_binary(Map.take(state, [:executed_jobs])))
+  end
+
+  defp restore_state() do
+    initial_state = %{executed_jobs: %{}}
+
+    try do
+      case File.read(state_file()) do
+        {:error, :enoent} ->
+          initial_state
+
+        {:ok, content} ->
+          saved_state = :erlang.binary_to_term(content)
+          Map.merge(initial_state, saved_state)
+      end
+    catch
+      type, error ->
+        Logger.error("error reading nightly state: #{Exception.format(type, error, __STACKTRACE__)}")
+        initial_state
+    end
+  end
+
+  defp state_file() do
+    file_name = "#{__MODULE__ |> to_string() |> String.replace(~r/^Elixir\./, "")}.state"
+    Path.join([AircloakCI.data_folder(), "persist", file_name])
   end
 
   # -------------------------------------------------------------------
