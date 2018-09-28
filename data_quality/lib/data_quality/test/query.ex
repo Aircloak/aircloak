@@ -10,82 +10,63 @@ defmodule DataQuality.Test.Query do
   # API
   # -------------------------------------------------------------------
 
-  @spec measure([Test.test()], Test.config(), [Test.dimension()]) :: Test.results()
+  @spec measure([Test.test()], Test.config(), [Test.dimension()]) :: [Test.result()]
   @doc "Queries the configured data sources producing raw results for further processing and analysis"
   def measure(tests, config, dimensions) do
     Logger.banner("Querying datasources")
-    Enum.reduce(tests, %{}, &collect_measurements(config, dimensions, &1, &2))
+    Enum.flat_map(tests, &collect_measurements(config, dimensions, &1))
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp collect_measurements(config, dimensions, test, result_aggregate) do
+  defp collect_measurements(config, dimensions, test) do
     name = test[:name]
     aggregates = test[:aggregates]
 
     Logger.header(name)
 
-    measurements =
-      for distribution <- Distributions.list(), into: %{} do
-        distribution_name = Distributions.distribution_name(distribution)
-        OutputStatus.new_line(distribution_name, :pending, "querying")
+    Distributions.list()
+    |> Enum.flat_map(fn distribution ->
+      distribution_name = Distributions.distribution_name(distribution)
+      OutputStatus.new_line(distribution_name, :pending, "querying")
 
-        distribution_test_result =
-          Enum.reduce(
-            dimensions,
-            %{},
-            fn dimension, collector ->
-              case test_dimension(config, distribution_name, dimension, aggregates) do
-                :error ->
-                  # Couldn't complete the measurements.
-                  # This happens if the cloak error's for some reason.
-                  # This periodically happens.
-                  collector
-
-                measurements ->
-                  Map.put(collector, dimension, measurements)
-              end
-            end
+      results =
+        dimensions
+        |> Enum.flat_map(fn dimension ->
+          test_dimension(config, distribution_name, dimension, aggregates)
+          |> Enum.map(
+            &Map.merge(&1, %{
+              dimension: dimension,
+              distribution: distribution_name,
+              class: name
+            })
           )
+        end)
 
-        OutputStatus.done(distribution_name)
-
-        {distribution_name, distribution_test_result}
-      end
-
-    Map.put(result_aggregate, name, measurements)
+      OutputStatus.done(distribution_name)
+      results
+    end)
   end
 
   defp test_dimension(config, distribution_name, dimension, aggregate_variants, attempts \\ 4)
 
   defp test_dimension(_config, _distribution_name, dimension, _aggregate_variants, 0) do
     Logger.log("Giving up. Repeatedly fails: [dimension: #{Utility.name(dimension)}]")
-    :error
+    []
   end
 
   defp test_dimension(config, distribution_name, dimension, aggregate_variants, attempts) do
-    aggregate_variants
-    |> Enum.map(fn aggregate ->
-      query = for_class(distribution_name, dimension, aggregate)
-      query_result = create_aggregate_pairings(config, query)
-
-      result = %{
-        raw_data: query_result,
-        processed_data: %{mse: nil}
-      }
-
-      {aggregate, result}
+    Enum.flat_map(aggregate_variants, fn aggregate ->
+      results = generate_results(config, for_class(distribution_name, dimension, aggregate))
+      Enum.map(results, &Map.put(&1, :aggregate, aggregate))
     end)
-    |> Enum.into(%{})
   rescue
     _e -> test_dimension(config, distribution_name, dimension, aggregate_variants, attempts - 1)
   end
 
-  defp create_aggregate_pairings(config, query), do: generate_result_pairings(config, query)
-
-  defp generate_result_pairings(config, query) do
+  defp generate_results(config, query) do
     raw_results =
       run_query(config.raw, query)
       |> rows()
@@ -105,16 +86,25 @@ defmodule DataQuality.Test.Query do
       raise "Retry due to empty resultset for backend"
     end
 
-    raw_results
-    |> Enum.map(fn {dimension, val} ->
+    Enum.flat_map(raw_results, fn {dimension, real_value} ->
       anonymized_results
       |> Enum.map(fn {backend, values} ->
-        {backend, Map.get(values, dimension, 0)}
+        case Map.get(values, dimension) do
+          nil ->
+            nil
+
+          anonymized_value ->
+            %{
+              source: backend,
+              real_value: real_value,
+              anonymized_value: anonymized_value,
+              error: abs(real_value - anonymized_value),
+              relative_error: abs(anonymized_value - real_value) / real_value
+            }
+        end
       end)
-      |> Enum.into(%{})
-      |> Map.put("unanonymized", val)
+      |> Enum.reject(&is_nil/1)
     end)
-    |> Enum.sort_by(&Map.get(&1, "unanonymized"))
   end
 
   defp rows(raw_rows), do: Enum.map(raw_rows, & &1["row"])

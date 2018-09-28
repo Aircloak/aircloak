@@ -24,6 +24,16 @@ defmodule DataQuality.Test do
   @type query_result :: %{data_source => number}
   @type test :: %{name: aggregate_class, aggregates: [aggregate]}
 
+  @type result :: %{
+          class: String.t(),
+          distribution: String.t(),
+          dimension: dimension,
+          source: String.t(),
+          real_value: number,
+          anonymized_value: number,
+          relative_error: float,
+          error: number
+        }
   @type results :: %{
           aggregate_class => %{
             distribution_name => %{
