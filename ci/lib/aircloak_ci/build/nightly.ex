@@ -116,7 +116,10 @@ defmodule AircloakCI.Build.Nightly do
 
   defp run_nightly_job(project, job_spec) do
     Logger.info("starting nightly job #{job_spec.job} for #{LocalProject.name(project)}")
-    result = AircloakCI.Build.Component.run_job(project, %{job_spec | job: :nightly})
+    now = DateTime.utc_now()
+    timestamp = :io_lib.format('~b~2..0b~2..0b~2..0b~2..0b', [now.year, now.month, now.day, now.hour, now.minute])
+    log_name = Path.join("nightly", Enum.join([job_spec.component, job_spec.job, timestamp], "_"))
+    result = AircloakCI.Build.Component.run_job(project, %{job_spec | job: :nightly}, log_name: log_name)
     send(Process.whereis(__MODULE__), {:job_outcome, project, job_spec, result})
   end
 
