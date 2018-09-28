@@ -26,7 +26,8 @@ defmodule AircloakCI.Build.Nightly do
     if nightly_enabled?() and Time.utc_now().hour in nightly_hours?() and not job_running?() do
       project
       |> LocalProject.nightly_jobs()
-      |> Stream.reject(&job_executed?(state, project, &1))
+      |> Stream.reject(&executed_today?(state, project, &1))
+      |> Stream.filter(&changed?(state, project, &1))
       |> Stream.take(1)
       |> Enum.each(&start_nightly_job(project, &1))
     end
@@ -62,10 +63,22 @@ defmodule AircloakCI.Build.Nightly do
 
   defp job_id(project, job_spec), do: {LocalProject.name(project), job_spec.component, job_spec.job}
 
-  defp mark_job_as_executed(state, project, job_spec),
-    do: put_in(state.executed_jobs[job_id(project, job_spec)], Date.utc_today())
+  defp mark_job_as_executed(state, project, job_spec) do
+    put_in(
+      state.executed_jobs[job_id(project, job_spec)],
+      %{date: Date.utc_today(), sha: LocalProject.target_sha(project)}
+    )
+  end
 
-  defp job_executed?(state, project, job_spec), do: state.executed_jobs[job_id(project, job_spec)] == Date.utc_today()
+  defp executed_today?(state, project, job_spec) do
+    today = Date.utc_today()
+    match?({:ok, %{date: ^today}}, Map.fetch(state.executed_jobs, job_id(project, job_spec)))
+  end
+
+  defp changed?(state, project, job_spec) do
+    sha = LocalProject.target_sha(project)
+    not match?({:ok, %{sha: ^sha}}, Map.fetch(state.executed_jobs, job_id(project, job_spec)))
+  end
 
   defp report_job_outcome(project, job_spec, outcome),
     do: Logger.info("nightly job #{job_spec.job} for #{LocalProject.name(project)} #{explanation(outcome)}")
