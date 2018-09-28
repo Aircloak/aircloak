@@ -5,6 +5,13 @@ defmodule Cloak.Query.Shadows.Test do
 
   setup_all do
     :ok = Cloak.Test.DB.create_table("query_shadows", "value INTEGER, string TEXT")
+
+    for data_source <- Cloak.DataSource.all() do
+      Cloak.TestShadowCache.live(data_source, "query_shadows", "value")
+      Cloak.TestShadowCache.live(data_source, "query_shadows", "string")
+    end
+
+    :ok
   end
 
   setup do

@@ -2,6 +2,10 @@ defmodule Cloak.DataSource.Shadows do
   alias Cloak.Sql
   alias __MODULE__
 
+  require Aircloak
+
+  @cache_module Aircloak.in_env(test: Cloak.TestShadowCache, else: Cloak.DataSource.Shadows.Query)
+
   def safe?(condition, query) do
     expression = condition |> Sql.Condition.subject() |> expand_expression(query)
 
@@ -11,7 +15,7 @@ defmodule Cloak.DataSource.Shadows do
 
       [{table, column}] ->
         value = Sql.Condition.value(condition)
-        shadow = Shadows.Query.build_shadow(query.data_source, table, column)
+        shadow = @cache_module.build_shadow(query.data_source, table, column)
         {:ok, Shadows.Lookup.any?(expression, value, shadow)}
 
       _ ->
@@ -33,5 +37,15 @@ defmodule Cloak.DataSource.Shadows do
         {column, subquery} -> expand_expression(column, subquery)
       end
     end)
+  end
+
+  # -------------------------------------------------------------------
+  # Supervison tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_) do
+    children = Aircloak.in_env(test: [@cache_module], else: [])
+    Aircloak.ChildSpec.supervisor(children, strategy: :one_for_one, name: __MODULE__)
   end
 end

@@ -252,24 +252,21 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
   describe "exceptions" do
     for function <- ~w(upper lower ltrim btrim rtrim) do
       test "#{function} is allowed with IN" do
-        assert {:ok, _} =
-                 compile("SELECT COUNT(*) FROM table WHERE #{unquote(function)}(string) IN ('foo', 'bar', 'baz')")
+        assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE #{unquote(function)}(string) IN ('foo', 'bar')")
       end
 
       test "#{function} is allowed with NOT IN" do
-        assert {:ok, _} =
-                 compile("SELECT COUNT(*) FROM table WHERE #{unquote(function)}(string) NOT IN ('foo', 'bar', 'baz')")
+        assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE #{unquote(function)}(string) NOT IN ('foo', 'bar')")
       end
     end
 
     test "substring is allowed with IN" do
-      assert {:ok, _} =
-               compile("SELECT COUNT(*) FROM table WHERE substring(string FROM 1 FOR 10) IN ('foo', 'bar', 'baz')")
+      assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE substring(string FROM 1 FOR 10) IN ('foo', 'bar')")
     end
 
     test "substring is allowed with NOT IN" do
       assert {:ok, _} =
-               compile("SELECT COUNT(*) FROM table WHERE substring(string FROM 1 FOR 10) NOT IN ('foo', 'bar', 'baz')")
+               compile("SELECT COUNT(*) FROM table WHERE substring(string FROM 1 FOR 10) NOT IN ('foo', 'bar')")
     end
   end
 
