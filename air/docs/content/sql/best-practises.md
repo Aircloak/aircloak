@@ -305,7 +305,7 @@ to inform you as an analyst that users with the last name of Anderson exist in t
 anomymized average age. The `avg(age)` would therefore be returned as `null`.
 
 In the case of `count` we might have enough distinct users to produce a count for the number of Anderson's, but not enough
-other users to generate a count for the `*` row (the anonymised row). Unlike for the `avg` Aircloak Insights cannot
+other users to generate a count for the `*` row (the anonymised row). Unlike for `avg` Aircloak Insights cannot
 report a `null` value as that would be incompatible with most existing tools and would return 2 instead.
 The presence of 2 in a `count` should therefore be considered as information about the fact that there are users with the
 given properties in the dataset, but not enough to produce a proper count. To validate that this is what is going on,
