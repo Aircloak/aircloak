@@ -173,22 +173,13 @@ defmodule Cloak.DataSource.RODBC.Port do
     input
   end
 
-  defp read_input(port) do
-    receive do
-      {^port, {:data, <<size::unsigned-little-32, data::binary>>}} ->
-        flush_input(port, size - byte_size(data), data)
+  defp read_input(_port, buffer \\ <<>>)
+  defp read_input(_port, <<size::unsigned-little-32, data::binary-size(size)>>), do: data
 
-      {^port, :eof} ->
-        <<@status_err, "Unexpected port eof!">>
-    end
-  end
-
-  defp flush_input(_port, 0, buffer), do: buffer
-
-  defp flush_input(port, size, buffer) do
+  defp read_input(port, buffer) do
     receive do
       {^port, {:data, data}} ->
-        flush_input(port, size - byte_size(data), buffer <> data)
+        read_input(port, buffer <> data)
 
       {^port, :eof} ->
         <<@status_err, "Unexpected port eof!">>
