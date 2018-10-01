@@ -90,6 +90,9 @@ defmodule AircloakCI.Build.Server do
   @doc "Invoked to handle a plain message sent to this process."
   @callback handle_info(message :: any, state) :: async_message_result
 
+  @doc "Invoked to determine whether nightly build can be invoked."
+  @callback run_nightly?(state) :: boolean
+
   # -------------------------------------------------------------------
   # API Functions
   # -------------------------------------------------------------------
@@ -264,7 +267,7 @@ defmodule AircloakCI.Build.Server do
   end
 
   def handle_info(:start_nightly_job, state) do
-    if Enum.empty?(running_jobs(state)) and state.source_type in [:local, :branch],
+    if invoke_callback(state, :run_nightly?, []) and Enum.empty?(running_jobs(state)),
       do: AircloakCI.Build.Nightly.maybe_start_job(state.project)
 
     enqueue_nightly()
