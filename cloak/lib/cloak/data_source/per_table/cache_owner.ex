@@ -13,15 +13,15 @@ defmodule Cloak.DataSource.PerTable.CacheOwner do
   @spec lookup(GenServer.server(), Queue.column()) :: {:ok, boolean} | :error
   def lookup(server, column) do
     case :ets.match(server, {column, :"$1"}) do
-      [[isolates?]] -> {:ok, isolates?}
+      [[value]] -> {:ok, value}
       [] -> :error
     end
   end
 
   @doc "Stores an item into the cache table."
   @spec store(GenServer.server(), Queue.column(), boolean) :: :ok
-  def store(server, column, isolated) do
-    :ets.insert(server, {column, isolated})
+  def store(server, column, value) do
+    :ets.insert(server, {column, value})
     signal_change(server)
     :ok
   end

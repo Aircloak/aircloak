@@ -34,4 +34,7 @@ defmodule Cloak.DataSource.Isolators.CacheOwner do
 
   @doc false
   def start_link(_arg), do: CacheOwner.start_link(__MODULE__, @persisted_cache_version)
+
+  @doc false
+  def cache_file(), do: CacheOwner.cache_file(__MODULE__)
 end
