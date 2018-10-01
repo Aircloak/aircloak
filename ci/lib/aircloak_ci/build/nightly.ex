@@ -11,8 +11,8 @@ defmodule AircloakCI.Build.Nightly do
   # -------------------------------------------------------------------
 
   @doc "Starts one nightly job for the given project."
-  @spec maybe_start_job(LocalProject.t()) :: :ok
-  def maybe_start_job(project), do: GenServer.call(__MODULE__, {:run_nightly, project})
+  @spec maybe_start_job(LocalProject.t(), AircloakCI.Build.Server.source()) :: :ok
+  def maybe_start_job(project, source), do: GenServer.call(__MODULE__, {:run_nightly, project, source})
 
   @doc "Force starts the given nightly job."
   @spec force(LocalProject.t(), String.t(), atom) :: :ok | {:error, String.t()}
@@ -30,14 +30,14 @@ defmodule AircloakCI.Build.Nightly do
   def init(_), do: {:ok, restore_state()}
 
   @impl GenServer
-  def handle_call({:run_nightly, project}, _from, state) do
+  def handle_call({:run_nightly, project, source}, _from, state) do
     if nightly_enabled?() and Time.utc_now().hour in nightly_hours?() and not job_running?() do
       project
       |> LocalProject.nightly_jobs()
       |> Stream.reject(&executed_today?(state, project, &1))
       |> Stream.filter(&changed?(state, project, &1))
       |> Stream.take(1)
-      |> Enum.each(&start_nightly_job(project, &1))
+      |> Enum.each(&start_nightly_job(project, &1, source))
     end
 
     {:reply, :ok, state}
@@ -55,9 +55,9 @@ defmodule AircloakCI.Build.Nightly do
   end
 
   def handle_call({:cancel_job, project}, _from, state) do
-    with {:ok, {job_project, job_spec}} <- Parent.GenServer.child_meta(:nightly_job) do
-      if LocalProject.name(project) == LocalProject.name(job_project) do
-        Logger.info("cancelling night job #{job_spec.job} for #{LocalProject.name(project)}")
+    with {:ok, meta} <- Parent.GenServer.child_meta(:nightly_job) do
+      if LocalProject.name(project) == LocalProject.name(meta.project) do
+        Logger.info("cancelling night job #{job_name(meta)}")
         Parent.GenServer.shutdown_child(:nightly_job)
       end
     end
@@ -66,8 +66,9 @@ defmodule AircloakCI.Build.Nightly do
   end
 
   @impl GenServer
-  def handle_info({:job_outcome, project, job_spec, outcome}, state) do
-    report_job_outcome(project, job_spec, outcome)
+  def handle_info({:job_outcome, outcome}, state) do
+    {:ok, meta} = Parent.GenServer.child_meta(:nightly_job)
+    report_job_outcome(meta, outcome)
     {:noreply, state}
   end
 
@@ -76,9 +77,9 @@ defmodule AircloakCI.Build.Nightly do
   # -------------------------------------------------------------------
 
   @impl Parent.GenServer
-  def handle_child_terminated(:nightly_job, {project, job_spec}, _pid, reason, state) do
-    if reason != :normal, do: report_job_outcome(project, job_spec, :crash)
-    {:noreply, mark_job_as_executed(state, project, job_spec)}
+  def handle_child_terminated(:nightly_job, meta, _pid, reason, state) do
+    if reason != :normal, do: report_job_outcome(meta, :failure, "```\n#{Exception.format_exit(reason)}\n```")
+    {:noreply, mark_job_as_executed(state, meta.project, meta.job_spec)}
   end
 
   # -------------------------------------------------------------------
@@ -114,28 +115,42 @@ defmodule AircloakCI.Build.Nightly do
     not match?({:ok, %{sha: ^sha}}, Map.fetch(state.executed_jobs, job_id(project, job_spec)))
   end
 
-  defp report_job_outcome(project, job_spec, outcome),
-    do: Logger.info("nightly job #{job_spec.job} for #{LocalProject.name(project)} #{explanation(outcome)}")
+  defp report_job_outcome(meta, outcome, extra_info \\ nil) do
+    if meta.source != nil do
+      AircloakCI.Build.Reporter.report_result(%AircloakCI.Build.Reporter{
+        project: meta.project,
+        source: meta.source,
+        source_type: :branch,
+        job_name: "#{job_name(meta)} nightly",
+        log_name: meta.log_name,
+        result: outcome,
+        extra_info: extra_info
+      })
+    end
+
+    Logger.info("nightly job #{job_name(meta)} #{explanation(outcome)}")
+  end
 
   defp explanation(:ok), do: "succeeded"
   defp explanation(:error), do: "failed"
-  defp explanation(:crash), do: "crashed"
+  defp explanation(:failure), do: "crashed"
 
-  defp start_nightly_job(project, job_spec) do
-    Parent.GenServer.start_child(%{
-      id: :nightly_job,
-      start: {Task, :start_link, [fn -> run_nightly_job(project, job_spec) end]},
-      meta: {project, job_spec}
-    })
-  end
-
-  defp run_nightly_job(project, job_spec) do
-    Logger.info("starting nightly job #{job_spec.job} for #{LocalProject.name(project)}")
+  defp start_nightly_job(project, job_spec, source \\ nil) do
     now = DateTime.utc_now()
     timestamp = :io_lib.format('~b~2..0b~2..0b~2..0b~2..0b', [now.year, now.month, now.day, now.hour, now.minute])
     log_name = Path.join("nightly", Enum.join([job_spec.component, job_spec.job, timestamp], "_"))
+
+    Parent.GenServer.start_child(%{
+      id: :nightly_job,
+      start: {Task, :start_link, [fn -> run_nightly_job(project, job_spec, log_name) end]},
+      meta: %{project: project, job_spec: job_spec, source: source, log_name: log_name}
+    })
+  end
+
+  defp run_nightly_job(project, job_spec, log_name) do
+    Logger.info("starting nightly job #{job_spec.job} for #{LocalProject.name(project)}")
     result = AircloakCI.Build.Component.run_job(project, %{job_spec | job: :nightly}, log_name: log_name)
-    send(Process.whereis(__MODULE__), {:job_outcome, project, job_spec, result})
+    send(Process.whereis(__MODULE__), {:job_outcome, result})
   end
 
   defp persist_state(state) do
@@ -187,6 +202,8 @@ defmodule AircloakCI.Build.Nightly do
     age_in_sec = NaiveDateTime.diff(NaiveDateTime.utc_now(), file_mtime, :second)
     div(age_in_sec, 60 * 60 * 24)
   end
+
+  defp job_name(meta), do: "#{meta.job_spec.job} for #{LocalProject.name(meta.project)}"
 
   # -------------------------------------------------------------------
   # Supervision tree

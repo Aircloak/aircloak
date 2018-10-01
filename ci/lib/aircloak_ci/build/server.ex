@@ -280,7 +280,7 @@ defmodule AircloakCI.Build.Server do
 
   def handle_info(:start_nightly_job, state) do
     if invoke_callback(state, :run_nightly?, []) and Enum.empty?(running_jobs(state)),
-      do: AircloakCI.Build.Nightly.maybe_start_job(state.project)
+      do: AircloakCI.Build.Nightly.maybe_start_job(state.project, state.source)
 
     enqueue_nightly()
     {:noreply, state}
