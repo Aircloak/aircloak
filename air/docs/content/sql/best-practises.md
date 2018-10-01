@@ -270,22 +270,22 @@ which after low count filtering, would become:
 |---------------|-----|----------|
 | 6             | 10  | 10000    |
 
-where the age group 20 to 30 got removed because there were not enough individualas within the given
+where the age group 20 to 30 got removed because there were not enough individuals within the given
 zip code group.
 
 You can play similar tricks with times, dates, and datetimes by using the functions `year`, `month`,
 `day`, `hour`, `minute`, and `second` to extract components from the date or time, or alternatively use
 `date_trunc(part, dateTimeColumn)` which truncates everything going beyond a certain level of accuracy.
 For example `date_trunc('hour', '12:22:44.004200')` would turn the time into one at hour resolution: `12:00:00.000000`.
-This value is more likely to pass the low count filter than the high resolutiom time value would be.
+This value is more likely to pass the low count filter than the high resolution time value would be.
 
 ## null values and counts of 2
 
 In most dialects of SQL all but the `count` aggregate may produce a `null` value. The `count` aggregate would, lacking
-data to produce a count, return 0 rather than a `null`.
-
-Aircloak Insights will return a `null` value if there are insuficient data to produce a properly anonymized aggregate,
-but there were enough data for a result to pass the low count filter.
+data to produce a count, return 0 rather than `null`. Aircloak Insights behaves similarly. When there is insufficient
+data to produce a properly anonymised aggregate but sufficient data that the set of column values passed the low count
+filter, then `null` will be returned for all aggregates but the `count`. As tools expect a non-`null` value for `count`s,
+Aircloak Insights will return a hardcoded lower bound value of 2 instead.
 
 Say we ran the query:
 
@@ -305,12 +305,11 @@ to inform you as an analyst that users with the last name of Anderson exist in t
 anomymized average age. The `avg(age)` would therefore be returned as `null`.
 
 In the case of `count` we might have enough distinct users to produce a count for the number of Anderson's, but not enough
-other users to generate a count for the `*` row. Unlike for `avg` aggregate Aircloak Insights cannot report a `null` value
-as that would be incompatible with most existing tools. Instead the system will return a placeholder value of 2, which is a
-hardcoded value in the system. The presence of 2 in a `count` should therefore be considered
-as information about the fact that there are users with the given properties in the dataset, but not enough to produce
-a proper count. To validate that this is what is going on, you could also request the matching `count_noise()` value, which
-in this case would be `null`.
+other users to generate a count for the `*` row (the anonymised row). Unlike for `avg` Aircloak Insights cannot
+report a `null` value as that would be incompatible with most existing tools and would return 2 instead.
+The presence of 2 in a `count` should therefore be considered as information about the fact that there are users with the
+given properties in the dataset, but not enough to produce a proper count. To validate that this is what is going on,
+you could also request the matching `count_noise()` value, which in this case would be `null`.
 
 If we ran the query:
 
