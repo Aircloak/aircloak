@@ -50,9 +50,7 @@ defmodule Mix.Tasks.AircloakCi.ForceBuild do
     end
   end
 
-  def run(_other) do
-    Mix.raise("Usage: `mix aircloak_ci.force_build target_type target_id job_name`")
-  end
+  def run(_other), do: Mix.raise("Usage: `mix aircloak_ci.force_build target_type target_id job_name`")
 
   # -------------------------------------------------------------------
   # Internal functions
