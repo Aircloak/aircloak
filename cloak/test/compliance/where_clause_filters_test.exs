@@ -52,7 +52,7 @@ defmodule Compliance.WhereClauseFilters.Text do
         FROM (
           SELECT #{unquote(uid)}
           FROM #{unquote(table)}
-          WHERE #{unquote(column)} NOT IN (1, 2, 3)
+          WHERE #{unquote(column)} NOT IN (1, 2)
           GROUP BY 1
         ) table_alias
       """)
@@ -94,7 +94,7 @@ defmodule Compliance.WhereClauseFilters.Text do
       |> assert_consistent_and_not_failing("""
         SELECT count(*)
         FROM #{unquote(table)}
-        WHERE #{unquote(column)} NOT IN (1, 2, 3)
+        WHERE #{unquote(column)} NOT IN (1, 2)
       """)
     end
   end)
@@ -180,7 +180,7 @@ defmodule Compliance.WhereClauseFilters.Text do
         FROM (
           SELECT #{unquote(uid)}
           FROM #{unquote(table)}
-          WHERE #{unquote(column)} NOT IN ('Otto Emma', 'Bertha Emma', 'Emma')
+          WHERE #{unquote(column)} NOT IN ('Otto Emma', 'Bertha Emma')
           GROUP BY 1
         ) table_alias
       """)
@@ -252,7 +252,7 @@ defmodule Compliance.WhereClauseFilters.Text do
       |> assert_consistent_and_not_failing("""
         SELECT count(*)
         FROM #{unquote(table)}
-        WHERE #{unquote(column)} NOT IN ('This name', 'does not', 'exist')
+        WHERE #{unquote(column)} NOT IN ('This name', 'does not exist')
       """)
     end
 

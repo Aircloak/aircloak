@@ -59,14 +59,18 @@ defmodule Cloak.Sql.LikePattern.Test do
   end
 
   describe "to_regex" do
-    test "converts % to .*", do: assert(~r/^a.*c$/ = LikePattern.to_regex({"a%c", nil}))
+    test "converts % to .*", do: assert(~r/^a.*c$/usm = LikePattern.to_regex({"a%c", nil}))
 
-    test "converts _ to .", do: assert(~r/^a.c$/ = LikePattern.to_regex({"a_c", nil}))
+    test "converts _ to .", do: assert(~r/^a.c$/usm = LikePattern.to_regex({"a_c", nil}))
 
-    test "respects escapes", do: assert(~r/^a%c$/ = LikePattern.to_regex({"a~%c", "~"}))
+    test "respects escapes", do: assert(~r/^a%c$/usm = LikePattern.to_regex({"a~%c", "~"}))
 
-    test "escapes special regex chars", do: assert(~r/^\.\(\*$/ = LikePattern.to_regex({".(*", nil}))
+    test "escapes special regex chars", do: assert(~r/^\.\(\*$/usm = LikePattern.to_regex({".(*", nil}))
+  end
 
-    test "passes options to regex compilation", do: assert(~r/^abc$/i = LikePattern.to_regex({"abc", nil}, "i"))
+  describe "to_case_insensitive_regex" do
+    test "creates a case-insensitive regex" do
+      assert ~r/^abc$/usmi = LikePattern.to_case_insensitive_regex({"abc", nil})
+    end
   end
 end
