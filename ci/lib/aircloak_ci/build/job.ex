@@ -42,6 +42,11 @@ defmodule AircloakCI.Build.Job do
   @doc "Initializes job execution."
   @spec initialize(Queue.id(), LocalProject.t(), run_queued_opts) :: :ok
   def initialize(queue, project, opts) do
+    project
+    |> LocalProject.log_file(Keyword.fetch!(opts, :log_name))
+    |> Path.dirname()
+    |> File.mkdir_p!()
+
     LocalProject.truncate_log(project, Keyword.fetch!(opts, :log_name))
     start_watcher(self(), project, queue, opts)
     :ok

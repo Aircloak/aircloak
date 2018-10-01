@@ -28,6 +28,9 @@ defmodule AircloakCI.Build.PullRequest do
   # -------------------------------------------------------------------
 
   @impl Build.Server
+  def run_nightly?(_state), do: false
+
+  @impl Build.Server
   def build_source(pr_number, repo_data) do
     pr = Enum.find(repo_data.pull_requests, &(&1.number == pr_number))
 

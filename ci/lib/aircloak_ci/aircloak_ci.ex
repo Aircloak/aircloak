@@ -37,15 +37,38 @@ defmodule AircloakCI do
          do: AircloakCI.Build.Server.force_build(pid, job_name)
   end
 
+  @doc "Force starts the nightly job."
+  @spec force_nightly(String.t(), String.t(), String.t(), String.t()) :: :ok | {:error, String.t()}
+  def force_nightly("local", path, component, job) do
+    path
+    |> AircloakCI.LocalProject.for_local()
+    |> AircloakCI.Build.Nightly.force(component, String.to_atom(job))
+  end
+
+  def force_nightly("branch", branch_name, component, job) do
+    repo_data = AircloakCI.Github.repo_data("aircloak", "aircloak")
+
+    with {:ok, branch} <- find_branch(branch_name, repo_data) do
+      branch
+      |> AircloakCI.LocalProject.for_branch()
+      |> AircloakCI.Build.Nightly.force(component, String.to_atom(job))
+    end
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp ensure_started("branch", branch_name, repo_data) do
+  defp find_branch(branch_name, repo_data) do
     case Enum.find(repo_data.branches, &(&1.name == branch_name)) do
       nil -> {:error, "branch `#{branch_name}` not found"}
-      branch -> {:ok, AircloakCI.Build.Branch.ensure_started(branch, repo_data)}
+      branch -> {:ok, branch}
     end
+  end
+
+  defp ensure_started("branch", branch_name, repo_data) do
+    with {:ok, branch} <- find_branch(branch_name, repo_data),
+         do: {:ok, AircloakCI.Build.Branch.ensure_started(branch, repo_data)}
   end
 
   defp ensure_started("pr", pr_number, repo_data) do

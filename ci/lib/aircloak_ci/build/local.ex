@@ -32,6 +32,9 @@ defmodule AircloakCI.Build.Local do
   # -------------------------------------------------------------------
 
   @impl Build.Server
+  def run_nightly?(_state), do: true
+
+  @impl Build.Server
   def build_source(path, repo_data),
     do: %{
       source: source(path, repo_data),
