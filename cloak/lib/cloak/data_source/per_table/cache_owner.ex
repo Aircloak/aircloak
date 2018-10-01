@@ -22,7 +22,7 @@ defmodule Cloak.DataSource.PerTable.CacheOwner do
   @spec store(GenServer.server(), Queue.column(), boolean) :: :ok
   def store(server, column, isolated) do
     :ets.insert(server, {column, isolated})
-    signal_change()
+    signal_change(server)
     :ok
   end
 
@@ -30,7 +30,7 @@ defmodule Cloak.DataSource.PerTable.CacheOwner do
   @spec remove_unknown_columns(GenServer.server(), Queue.columns()) :: :ok
   def remove_unknown_columns(server, known_columns) do
     cached_columns(server) |> MapSet.difference(known_columns) |> Enum.each(&:ets.delete(server, &1))
-    signal_change()
+    signal_change(server)
   end
 
   @doc "Returns the collection of cached columns."
@@ -60,7 +60,7 @@ defmodule Cloak.DataSource.PerTable.CacheOwner do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp signal_change(), do: GenServer.cast(__MODULE__, :signal_change)
+  defp signal_change(server), do: GenServer.cast(server, :signal_change)
 
   defp maybe_start_persist_job(%{changed?: false} = state), do: state
 
@@ -74,7 +74,7 @@ defmodule Cloak.DataSource.PerTable.CacheOwner do
   end
 
   defp start_persist_job(state) do
-    cache_contents = :ets.tab2list(__MODULE__)
+    cache_contents = :ets.tab2list(state.name)
 
     Parent.GenServer.start_child(%{
       id: :persist_job,
@@ -83,7 +83,7 @@ defmodule Cloak.DataSource.PerTable.CacheOwner do
   end
 
   defp persist_cache(state, cache_contents) do
-    File.mkdir_p!(Path.dirname(IO.inspect(cache_file(state.name))))
+    File.mkdir_p!(Path.dirname(cache_file(state.name)))
 
     # Note: if you're changing the cache format, please bump `persisted_cache_version`. This will ensure that the
     # next version ignores the persisted cache of the previous version.
@@ -109,7 +109,7 @@ defmodule Cloak.DataSource.PerTable.CacheOwner do
   defp restore_cache(name, persisted_cache_version) do
     with {:ok, serialized_cache} <- File.read(cache_file(name)),
          {^name, ^persisted_cache_version, cache_contents} <- :erlang.binary_to_term(serialized_cache),
-         do: Enum.each(cache_contents, &:ets.insert(__MODULE__, &1))
+         do: Enum.each(cache_contents, &:ets.insert(name, &1))
   end
 
   @doc false
