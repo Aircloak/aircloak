@@ -1,6 +1,6 @@
-defmodule Cloak.DataSource.Isolators.Queue.Test do
+defmodule Cloak.DataSource.PerColumn.Queue.Test do
   use ExUnit.Case, async: true
-  alias Cloak.DataSource.Isolators.Queue
+  alias Cloak.DataSource.PerColumn.Queue
 
   test "fetching from an empty queue" do
     assert Queue.next_column(Queue.new([])) == :error

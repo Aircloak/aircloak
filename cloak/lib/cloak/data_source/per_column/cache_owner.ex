@@ -3,7 +3,7 @@ defmodule Cloak.DataSource.PerColumn.CacheOwner do
 
   use Parent.GenServer
   import Aircloak, only: [in_env: 1]
-  alias Cloak.DataSource.Isolators.Queue
+  alias Cloak.DataSource.PerColumn.Queue
 
   # -------------------------------------------------------------------
   # API functions

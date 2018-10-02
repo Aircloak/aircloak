@@ -3,8 +3,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
 
   use Parent.GenServer
   require Logger
-  alias Cloak.DataSource.PerColumn.CacheOwner
-  alias Cloak.DataSource.Isolators.Queue
+  alias Cloak.DataSource.PerColumn.{CacheOwner, Queue}
 
   # -------------------------------------------------------------------
   # API functions
