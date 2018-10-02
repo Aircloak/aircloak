@@ -1,4 +1,4 @@
-defmodule Cloak.DataSource.PerTable.Cache do
+defmodule Cloak.DataSource.PerColumn.Cache do
   @moduledoc "Implementation of the cache which holds a property for all known columns of all data sources."
 
   use Parent.GenServer

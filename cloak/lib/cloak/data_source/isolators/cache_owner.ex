@@ -3,7 +3,7 @@ defmodule Cloak.DataSource.Isolators.CacheOwner do
 
   use Parent.GenServer
   import Aircloak, only: [in_env: 1]
-  alias Cloak.DataSource.PerTable.CacheOwner
+  alias Cloak.DataSource.PerColumn.CacheOwner
 
   # Version of the persisted cache format. Bump this if you're changing the format.
   @persisted_cache_version 1

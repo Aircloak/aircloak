@@ -5,7 +5,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
 
   @refresh_interval :timer.hours(24)
 
-  alias Cloak.DataSource.PerTable.Cache
+  alias Cloak.DataSource.PerColumn.Cache
 
   # -------------------------------------------------------------------
   # API functions

@@ -1,4 +1,4 @@
-defmodule Cloak.DataSource.PerTable.CacheOwner do
+defmodule Cloak.DataSource.PerColumn.CacheOwner do
   @moduledoc "Owner of a per table cache ets table."
 
   use Parent.GenServer
