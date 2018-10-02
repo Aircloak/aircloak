@@ -1,6 +1,11 @@
 defmodule Cloak.DataSource.PerColumn.Cache.Test do
   use ExUnit.Case, async: true
-  alias Cloak.DataSource.PerColumn.Cache
+  alias Cloak.DataSource.PerColumn.{Cache, CacheOwner}
+
+  setup_all do
+    {:ok, _} = CacheOwner.start_link(%{name: __MODULE__, persisted_cache_version: 1})
+    :ok
+  end
 
   describe ".value" do
     test "computes isolated for known columns" do
@@ -156,7 +161,7 @@ defmodule Cloak.DataSource.PerColumn.Cache.Test do
           columns_provider: columns_provider(provider),
           property_fun: compute_isolation_fun(),
           refresh_interval: :timer.hours(1),
-          cache_owner: Cloak.DataSource.Isolators.CacheOwner,
+          cache_owner: __MODULE__,
           registered?: false
         ],
         opts
