@@ -128,11 +128,11 @@ defmodule Cloak.DataSource.PerColumn.CacheOwner do
   # -------------------------------------------------------------------
 
   @doc false
-  def start_link(name, persisted_cache_version) do
+  def start_link(opts) do
     Parent.GenServer.start_link(
       __MODULE__,
-      %{name: name, persisted_cache_version: persisted_cache_version},
-      name: name
+      %{name: opts.name, persisted_cache_version: opts.persisted_cache_version},
+      name: opts.name
     )
   end
 end
