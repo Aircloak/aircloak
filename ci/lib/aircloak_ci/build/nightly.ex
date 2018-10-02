@@ -23,8 +23,10 @@ defmodule AircloakCI.Build.Nightly do
   def maybe_start_job(project, source), do: GenServer.call(__MODULE__, {:run_nightly, project, source})
 
   @doc "Force starts the given nightly job."
-  @spec force(LocalProject.t(), String.t(), atom) :: {:ok, job_description} | {:error, String.t()}
-  def force(project, component, job), do: GenServer.call(__MODULE__, {:force, project, component, job})
+  @spec force(LocalProject.t(), String.t(), atom, AircloakCI.Build.Server.source() | nil) ::
+          {:ok, job_description} | {:error, String.t()}
+  def force(project, component, job, source \\ nil),
+    do: GenServer.call(__MODULE__, {:force, project, component, job, source})
 
   @doc "Synchronously cancels the running job if it is running on the given project."
   @spec cancel_job(LocalProject.t()) :: :ok
@@ -51,11 +53,11 @@ defmodule AircloakCI.Build.Nightly do
     {:reply, :ok, state}
   end
 
-  def handle_call({:force, project, component, job}, _from, state) do
+  def handle_call({:force, project, component, job, source}, _from, state) do
     response =
       with nil <- if(job_running?(), do: {:error, "another nightly job is currently running"}),
            {:ok, job_spec} <- find_job_spec(project, component, job) do
-        {:ok, start_nightly_job(project, job_spec)}
+        {:ok, start_nightly_job(project, job_spec, source)}
       end
 
     {:reply, response, state}
@@ -142,7 +144,7 @@ defmodule AircloakCI.Build.Nightly do
   defp explanation(:error), do: "failed"
   defp explanation(:failure), do: "crashed"
 
-  defp start_nightly_job(project, job_spec, source \\ nil) do
+  defp start_nightly_job(project, job_spec, source) do
     now = DateTime.utc_now()
     timestamp = :io_lib.format('~b~2..0b~2..0b~2..0b~2..0b', [now.year, now.month, now.day, now.hour, now.minute])
     log_name = Path.join("nightly", Enum.join([job_spec.component, job_spec.job, timestamp], "_"))
@@ -188,7 +190,8 @@ defmodule AircloakCI.Build.Nightly do
     end
   end
 
-  defp state_file() do
+  @doc false
+  def state_file() do
     file_name = "#{__MODULE__ |> to_string() |> String.replace(~r/^Elixir\./, "")}.state"
     Path.join([AircloakCI.data_folder(), "persist", file_name])
   end

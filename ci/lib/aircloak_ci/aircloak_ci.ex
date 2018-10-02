@@ -54,7 +54,7 @@ defmodule AircloakCI do
          {:ok, _job_data} <-
            branch
            |> AircloakCI.LocalProject.for_branch()
-           |> AircloakCI.Build.Nightly.force(component, String.to_atom(job)),
+           |> AircloakCI.Build.Nightly.force(component, String.to_atom(job), branch),
          do: :ok
   end
 
