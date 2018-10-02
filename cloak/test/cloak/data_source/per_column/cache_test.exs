@@ -1,8 +1,8 @@
-defmodule Cloak.DataSource.Isolators.Cache.Test do
+defmodule Cloak.DataSource.PerColumn.Cache.Test do
   use ExUnit.Case, async: true
-  alias Cloak.DataSource.Isolators.Cache
+  alias Cloak.DataSource.PerColumn.Cache
 
-  describe ".isolates_users?" do
+  describe ".value" do
     test "computes isolated for known columns" do
       known_columns = ~w(col1 col2 col3)
       provider = new_cache_provider(known_columns)
@@ -10,7 +10,7 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
 
       Enum.each(
         known_columns,
-        &assert(Cache.isolates_users?(cache, provider.data_source, provider.table_name, &1) == {:isolated, &1})
+        &assert(Cache.value(cache, provider.data_source, provider.table_name, &1) == {:isolated, &1})
       )
     end
 
@@ -20,7 +20,7 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
       {:ok, cache} = Cache.start_link(provider.cache_opts)
 
       assert_raise(RuntimeError, fn ->
-        Cache.isolates_users?(cache, provider.data_source, provider.table_name, "unknown col")
+        Cache.value(cache, provider.data_source, provider.table_name, "unknown col")
       end)
     end
 
@@ -38,7 +38,7 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
         )
 
       {:ok, cache} = Cache.start_link(provider.cache_opts)
-      assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col3") == {:isolated, "col3"}
+      assert Cache.value(cache, provider.data_source, provider.table_name, "col3") == {:isolated, "col3"}
     end
 
     test "handling columns which failed to load" do
@@ -52,7 +52,7 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
           )
 
         {:ok, cache} = Cache.start_link(provider.cache_opts)
-        assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1")
+        assert Cache.value(cache, provider.data_source, provider.table_name, "col1")
       end)
     end
 
@@ -71,7 +71,7 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
           )
 
         {:ok, cache} = Cache.start_link(provider.cache_opts)
-        assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col2")
+        assert Cache.value(cache, provider.data_source, provider.table_name, "col2")
       end)
     end
 
@@ -87,11 +87,11 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
 
       send(cache, {:data_sources_changed, nil})
 
-      assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "updated col1") ==
+      assert Cache.value(cache, provider.data_source, provider.table_name, "updated col1") ==
                {:isolated, "updated col1"}
 
       assert_raise(RuntimeError, fn ->
-        Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1")
+        Cache.value(cache, provider.data_source, provider.table_name, "col1")
       end)
     end
 
@@ -99,8 +99,8 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
       provider = new_cache_provider(~w(col1))
       {:ok, cache} = Cache.start_link(provider.cache_opts)
 
-      # invoking `isolates_users?` makes sure that isolated for `col1` is computed, and that the cache is persisted
-      Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1")
+      # invoking `value` makes sure that isolated for `col1` is computed, and that the cache is persisted
+      Cache.value(cache, provider.data_source, provider.table_name, "col1")
       GenServer.stop(cache)
 
       # make sure that new computation of isolated will never finish
@@ -111,15 +111,15 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
         )
 
       {:ok, cache} = Cache.start_link(provider.cache_opts)
-      assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1") == {:isolated, "col1"}
+      assert Cache.value(cache, provider.data_source, provider.table_name, "col1") == {:isolated, "col1"}
     end
 
     test "cached items are not primed during cache start" do
       provider = new_cache_provider(~w(col1))
       {:ok, cache} = Cache.start_link(provider.cache_opts)
 
-      # invoking `isolates_users?` makes sure that isolated for `col1` is computed, and that the cache is persisted
-      Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col1")
+      # invoking `value` makes sure that isolated for `col1` is computed, and that the cache is persisted
+      Cache.value(cache, provider.data_source, provider.table_name, "col1")
       GenServer.stop(cache)
 
       # add another column
@@ -138,7 +138,7 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
         )
 
       {:ok, cache} = Cache.start_link(provider.cache_opts)
-      assert Cache.isolates_users?(cache, provider.data_source, provider.table_name, "col2") == {:isolated, "col2"}
+      assert Cache.value(cache, provider.data_source, provider.table_name, "col2") == {:isolated, "col2"}
       refute_receive {:computing, "col1"}
     end
   end
@@ -154,7 +154,9 @@ defmodule Cloak.DataSource.Isolators.Cache.Test do
       Keyword.merge(
         [
           columns_provider: columns_provider(provider),
-          compute_isolation_fun: compute_isolation_fun(),
+          property_fun: compute_isolation_fun(),
+          refresh_interval: :timer.hours(1),
+          cache_owner: Cloak.DataSource.Isolators.CacheOwner,
           registered?: false
         ],
         opts
