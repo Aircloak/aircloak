@@ -6,6 +6,14 @@ defmodule AircloakCI.Build.Nightly do
   require Aircloak
   alias AircloakCI.LocalProject
 
+  @type job_description :: %{
+          project: LocalProject.t(),
+          source: AircloakCI.Build.Server.source(),
+          job_spec: LocalProject.job_spec(),
+          log_name: String.t(),
+          pid: pid
+        }
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -15,7 +23,7 @@ defmodule AircloakCI.Build.Nightly do
   def maybe_start_job(project, source), do: GenServer.call(__MODULE__, {:run_nightly, project, source})
 
   @doc "Force starts the given nightly job."
-  @spec force(LocalProject.t(), String.t(), atom) :: :ok | {:error, String.t()}
+  @spec force(LocalProject.t(), String.t(), atom) :: {:ok, job_description} | {:error, String.t()}
   def force(project, component, job), do: GenServer.call(__MODULE__, {:force, project, component, job})
 
   @doc "Synchronously cancels the running job if it is running on the given project."
@@ -47,8 +55,7 @@ defmodule AircloakCI.Build.Nightly do
     response =
       with nil <- if(job_running?(), do: {:error, "another nightly job is currently running"}),
            {:ok, job_spec} <- find_job_spec(project, component, job) do
-        start_nightly_job(project, job_spec)
-        :ok
+        {:ok, start_nightly_job(project, job_spec)}
       end
 
     {:reply, response, state}
@@ -88,7 +95,7 @@ defmodule AircloakCI.Build.Nightly do
 
   defp nightly_enabled?(), do: Application.get_env(:aircloak_ci, :run_nightly?, true)
 
-  defp nightly_hours?(), do: Aircloak.in_env(dev: 0..24, test: [], prod: 0..4)
+  defp nightly_hours?(), do: Aircloak.in_env(prod: 0..4, else: 0..24)
 
   defp job_running?(), do: Parent.GenServer.child?(:nightly_job)
 
@@ -139,12 +146,16 @@ defmodule AircloakCI.Build.Nightly do
     now = DateTime.utc_now()
     timestamp = :io_lib.format('~b~2..0b~2..0b~2..0b~2..0b', [now.year, now.month, now.day, now.hour, now.minute])
     log_name = Path.join("nightly", Enum.join([job_spec.component, job_spec.job, timestamp], "_"))
+    meta = %{project: project, job_spec: job_spec, source: source, log_name: log_name}
 
-    Parent.GenServer.start_child(%{
-      id: :nightly_job,
-      start: {Task, :start_link, [fn -> run_nightly_job(project, job_spec, log_name) end]},
-      meta: %{project: project, job_spec: job_spec, source: source, log_name: log_name}
-    })
+    {:ok, pid} =
+      Parent.GenServer.start_child(%{
+        id: :nightly_job,
+        start: {Task, :start_link, [fn -> run_nightly_job(project, job_spec, log_name) end]},
+        meta: meta
+      })
+
+    Map.put(meta, :pid, pid)
   end
 
   defp run_nightly_job(project, job_spec, log_name) do

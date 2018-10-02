@@ -53,6 +53,8 @@ defmodule AircloakCI.TestExec do
         AircloakCI.LocalProject.for_local("..")
         |> AircloakCI.LocalProject.changed_components()
         |> Enum.each(&transfer_component(&1, target_folder))
+
+        transfer_component("system_test", target_folder)
     end
 
     ""
