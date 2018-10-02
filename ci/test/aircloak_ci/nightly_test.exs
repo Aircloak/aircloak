@@ -37,6 +37,7 @@ defmodule AircloakCI.NightlyTest do
 
     assert_receive {:commented_on_commit, comment_data}, :timer.seconds(2)
     assert comment_data.sha == branch.sha
+    assert comment_data.body =~ ~r[^@Aircloak/developers]
     assert comment_data.body =~ ~r/error running `.+ make test`/
   end
 end

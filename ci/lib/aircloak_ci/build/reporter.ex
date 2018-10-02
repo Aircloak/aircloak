@@ -14,7 +14,8 @@ defmodule AircloakCI.Build.Reporter do
           extra_info: nil | String.t(),
           build_log_command: nil | String.t(),
           restart_command: nil | String.t(),
-          remote_console_command: nil | String.t()
+          remote_console_command: nil | String.t(),
+          prologue: nil | String.t()
         }
 
   @enforce_keys [:source_type, :source, :job_name, :log_name, :result]
@@ -28,7 +29,8 @@ defmodule AircloakCI.Build.Reporter do
     extra_info: nil,
     build_log_command: nil,
     restart_command: nil,
-    remote_console_command: nil
+    remote_console_command: nil,
+    prologue: nil
   ]
 
   # -------------------------------------------------------------------
@@ -64,6 +66,7 @@ defmodule AircloakCI.Build.Reporter do
   defp comment_body(report_info) do
     Enum.join(
       [
+        if(not is_nil(report_info.prologue), do: "#{report_info.prologue}\n\n"),
         "#{report_info.job_name} job #{crash_verb(report_info)} #{Emoji.sad()}",
         if(not is_nil(report_info.extra_info), do: "\n#{report_info.extra_info}\n", else: ""),
         report_command("see the full build log", report_info.build_log_command),

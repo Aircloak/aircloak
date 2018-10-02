@@ -133,7 +133,8 @@ defmodule AircloakCI.Build.Nightly do
         job_name: "#{job_name(meta)} nightly",
         log_name: meta.log_name,
         result: outcome,
-        extra_info: extra_info
+        extra_info: extra_info,
+        prologue: "@Aircloak/developers"
       })
     end
 
