@@ -17,32 +17,6 @@ defmodule Cloak.DataSource.RODBC.Port do
   use GenServer
 
   # -------------------------------------------------------------------
-  # GenServer callbacks
-  # -------------------------------------------------------------------
-
-  @impl GenServer
-  def init(nil) do
-    Process.flag(:trap_exit, true)
-    {:ok, open()}
-  end
-
-  @impl GenServer
-  def handle_call({command, data}, _from, port), do: {:reply, port_control(port, command, data), port}
-
-  @impl GenServer
-  def handle_info({port, :eof}, port), do: {:stop, {:shutdown, :eof}, port}
-  def handle_info({:EXIT, _from, _reason}, port), do: {:stop, :normal, port}
-
-  def handle_info(other, port) do
-    Logger.warn("Unknown message #{inspect(other)}")
-    {:noreply, port}
-  end
-
-  @impl GenServer
-  def terminate(:normal, port), do: close(port)
-  def terminate(_, _port), do: :ok
-
-  # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
@@ -84,6 +58,32 @@ defmodule Cloak.DataSource.RODBC.Port do
       {:ok, Enum.map(columns, &List.to_tuple/1)}
     end
   end
+
+  # -------------------------------------------------------------------
+  # GenServer callbacks
+  # -------------------------------------------------------------------
+
+  @impl GenServer
+  def init(nil) do
+    Process.flag(:trap_exit, true)
+    {:ok, open()}
+  end
+
+  @impl GenServer
+  def handle_call({command, data}, _from, port), do: {:reply, port_control(port, command, data), port}
+
+  @impl GenServer
+  def handle_info({port, :eof}, port), do: {:stop, {:shutdown, :eof}, port}
+  def handle_info({:EXIT, _from, _reason}, port), do: {:stop, :normal, port}
+
+  def handle_info(other, port) do
+    Logger.warn("Unknown message #{inspect(other)}")
+    {:noreply, port}
+  end
+
+  @impl GenServer
+  def terminate(:normal, port), do: close(port)
+  def terminate(_, _port), do: :ok
 
   # -------------------------------------------------------------------
   # Internal functions
