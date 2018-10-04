@@ -26,7 +26,7 @@ defmodule Cloak.DataSource.RODBC do
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
-  def disconnect(connection), do: GenServer.stop(connection)
+  def disconnect(connection), do: Port.stop(connection)
 
   def load_tables(connection, table) do
     case Port.execute(connection, "SELECT * FROM #{table.db_name} WHERE 0 = 1", Driver.timeout()) do
@@ -70,7 +70,7 @@ defmodule Cloak.DataSource.RODBC do
   # -------------------------------------------------------------------
 
   defp driver_connect!(conn_params, driver_params) do
-    {:ok, connection} = GenServer.start_link(Port, nil)
+    {:ok, connection} = Port.start_link()
 
     if Keyword.get(driver_params, :wstr_as_bin), do: :ok = Port.set_wstr_as_bin(connection)
 

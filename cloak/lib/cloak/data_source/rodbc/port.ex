@@ -20,6 +20,14 @@ defmodule Cloak.DataSource.RODBC.Port do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Starts the port owner process."
+  @spec start_link() :: GenServer.on_start()
+  def start_link(), do: GenServer.start_link(__MODULE__, nil)
+
+  @doc "Stops the port owner process."
+  @spec stop(pid()) :: :ok
+  def stop(pid), do: GenServer.stop(pid)
+
   @doc "Connects to a data source."
   @spec connect(pid(), String.t(), timeout()) :: :ok | {:error, String.t()}
   def connect(pid, connection_string, timeout),
