@@ -219,8 +219,8 @@ defmodule AircloakCI.Build.Server do
       log_name: job_name,
       result: result,
       extra_info: extra_info,
-      build_log_command: "`ci/production.sh build_log #{production_script_target(state)}`",
-      restart_command: "`ci/production.sh force_build #{production_script_target(state)}`",
+      build_log_command: "`ci/production.sh build_log #{production_script_target(state)} #{job_name}`",
+      restart_command: "`ci/production.sh force_build #{production_script_target(state)} #{job_name}`",
       remote_console_command: remote_console_command(state, job_name)
     })
 
