@@ -3,7 +3,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
 
   use Parent.GenServer
   require Logger
-  alias Cloak.DataSource.PerColumn.{CacheOwner, Queue}
+  alias Cloak.DataSource.PerColumn.{PersistentKeyValue, Queue}
 
   # -------------------------------------------------------------------
   # API functions
@@ -39,7 +39,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
     if opts.auto_refresh?, do: Cloak.DataSource.subscribe_to_changes()
     enqueue_next_refresh(opts.refresh_interval)
     known_columns = MapSet.new(opts.columns_provider.(Cloak.DataSource.all()))
-    queue = Queue.new(known_columns, CacheOwner.cached_columns(opts.cache_owner))
+    queue = Queue.new(known_columns, PersistentKeyValue.cached_columns(opts.cache_owner))
     state = %{cache_owner: opts.cache_owner, known_columns: known_columns, queue: queue, waiting: %{}, opts: opts}
     {:ok, start_next_computation(state)}
   end
@@ -70,7 +70,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
 
   def handle_info({:data_sources_changed, new_data_sources}, state) do
     known_columns = MapSet.new(state.opts.columns_provider.(new_data_sources))
-    CacheOwner.remove_unknown_columns(state.cache_owner, known_columns)
+    PersistentKeyValue.remove_unknown_columns(state.cache_owner, known_columns)
     state = %{state | known_columns: known_columns}
     state = update_in(state.queue, &Queue.update_known_columns(&1, known_columns))
     state = respond_error_on_missing_columns(state)
@@ -80,7 +80,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   @impl Parent.GenServer
   def handle_child_terminated(:compute_isolation_job, meta, _pid, _reason, state) do
     result =
-      case CacheOwner.lookup(state.cache_owner, meta.column) do
+      case PersistentKeyValue.lookup(state.cache_owner, meta.column) do
         :error -> {:error, :failed}
         {:ok, result} -> {:ok, result}
       end
@@ -95,10 +95,17 @@ defmodule Cloak.DataSource.PerColumn.Cache do
 
   defp column_status(column, state) do
     cond do
-      not MapSet.member?(state.known_columns, column) -> {:error, :unknown_column}
-      match?({:ok, _}, CacheOwner.lookup(state.cache_owner, column)) -> CacheOwner.lookup(state.cache_owner, column)
-      computing_isolation?(column) or not Queue.processed?(state.queue, column) -> {:error, :pending}
-      true -> {:error, :failed}
+      not MapSet.member?(state.known_columns, column) ->
+        {:error, :unknown_column}
+
+      match?({:ok, _}, PersistentKeyValue.lookup(state.cache_owner, column)) ->
+        PersistentKeyValue.lookup(state.cache_owner, column)
+
+      computing_isolation?(column) or not Queue.processed?(state.queue, column) ->
+        {:error, :pending}
+
+      true ->
+        {:error, :failed}
     end
   end
 
@@ -126,7 +133,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
     Task.start_link(fn ->
       Logger.debug(fn -> "computing isolated for #{inspect(column)}" end)
       isolated = state.opts.property_fun.(column)
-      CacheOwner.store(state.cache_owner, column, isolated)
+      PersistentKeyValue.store(state.cache_owner, column, isolated)
     end)
   end
 

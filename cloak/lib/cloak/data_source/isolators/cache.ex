@@ -52,7 +52,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
     [
       columns_provider: &known_columns/1,
       property_fun: &compute_column_isolation/1,
-      cache_owner: Cloak.DataSource.Isolators.CacheOwner,
+      cache_owner: Cloak.DataSource.Isolators.PersistentKeyValue,
       refresh_interval: @refresh_interval,
       name: __MODULE__,
       registered?: true,

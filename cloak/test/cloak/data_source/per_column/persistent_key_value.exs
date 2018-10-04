@@ -1,9 +1,9 @@
 defmodule Cloak.DataSource.PerColumn.Cache.Test do
   use ExUnit.Case, async: true
-  alias Cloak.DataSource.PerColumn.{Cache, CacheOwner}
+  alias Cloak.DataSource.PerColumn.{Cache, PersistentKeyValue}
 
   setup_all do
-    {:ok, _} = CacheOwner.start_link(%{name: __MODULE__, persisted_cache_version: 1})
+    {:ok, _} = PersistentKeyValue.start_link(%{name: __MODULE__, persisted_cache_version: 1})
     :ok
   end
 

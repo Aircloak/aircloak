@@ -1,5 +1,8 @@
-defmodule Cloak.DataSource.PerColumn.CacheOwner do
-  @moduledoc "Owner of a per table cache ets table."
+defmodule Cloak.DataSource.PerColumn.PersistentKeyValue do
+  @moduledoc """
+  A key-value store that keeps a value for each of a set of columns. The store provides in-memory reads, while writes
+  are asynchronously persisted to disk. The persisted data is used to initialize the cache on restart.
+  """
 
   use Parent.GenServer
   import Aircloak, only: [in_env: 1]
