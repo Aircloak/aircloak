@@ -86,11 +86,11 @@ defmodule AircloakCI.BuildCase do
   @doc "Generates the new unique SHA."
   def new_sha(), do: Base.encode16(:crypto.strong_rand_bytes(20))
 
-  @doc "Waits until all the jobs on the PR server have finished"
-  def wait_for_jobs_to_finish(pr) do
+  @doc "Waits until all the jobs on the build server have finished"
+  def wait_for_jobs_to_finish(branch_or_pr) do
     fn ->
       :timer.sleep(10)
-      AircloakCI.Build.Server.running_jobs(pr_state(pr))
+      AircloakCI.Build.Server.running_jobs(build_state(branch_or_pr))
     end
     |> Stream.repeatedly()
     |> Stream.drop_while(&(not Enum.empty?(&1)))
@@ -156,18 +156,23 @@ defmodule AircloakCI.BuildCase do
     )
   end
 
-  defp job_outcomes(pr), do: AircloakCI.LocalProject.job_outcomes(pr_state(pr).project)
+  defp job_outcomes(branch_or_pr), do: AircloakCI.LocalProject.job_outcomes(build_state(branch_or_pr).project)
 
-  defp pr_state(pr), do: pr |> pr_server() |> :sys.get_state()
+  defp build_state(branch_or_pr), do: branch_or_pr |> build_server() |> :sys.get_state()
 
-  defp update_repo_data(pr, repo_data) do
-    pr |> pr_server() |> send({:repo_data, repo_data})
+  defp update_repo_data(branch_or_pr, repo_data) do
+    branch_or_pr |> build_server() |> send({:repo_data, repo_data})
     # a dummy sync request which ensures that the `:repo_data` message has been processed
-    pr |> pr_server() |> :sys.get_state()
+    branch_or_pr |> build_server() |> :sys.get_state()
   end
 
-  defp pr_server(pr) do
-    [{pid, _}] = Registry.lookup(AircloakCI.Build.Registry, {:pull_request, pr.number})
+  defp build_server(%{number: number}) do
+    [{pid, _}] = Registry.lookup(AircloakCI.Build.Registry, {:pull_request, number})
+    pid
+  end
+
+  defp build_server(%{name: name}) do
+    [{pid, _}] = Registry.lookup(AircloakCI.Build.Registry, {:branch, name})
     pid
   end
 end

@@ -40,19 +40,22 @@ defmodule AircloakCI do
   @doc "Force starts the nightly job."
   @spec force_nightly(String.t(), String.t(), String.t(), String.t()) :: :ok | {:error, String.t()}
   def force_nightly("local", path, component, job) do
-    path
-    |> AircloakCI.LocalProject.for_local()
-    |> AircloakCI.Build.Nightly.force(component, String.to_atom(job))
+    with {:ok, _job_data} <-
+           path
+           |> AircloakCI.LocalProject.for_local()
+           |> AircloakCI.Build.Nightly.force(component, String.to_atom(job)),
+         do: :ok
   end
 
   def force_nightly("branch", branch_name, component, job) do
     repo_data = AircloakCI.Github.repo_data("aircloak", "aircloak")
 
-    with {:ok, branch} <- find_branch(branch_name, repo_data) do
-      branch
-      |> AircloakCI.LocalProject.for_branch()
-      |> AircloakCI.Build.Nightly.force(component, String.to_atom(job))
-    end
+    with {:ok, branch} <- find_branch(branch_name, repo_data),
+         {:ok, _job_data} <-
+           branch
+           |> AircloakCI.LocalProject.for_branch()
+           |> AircloakCI.Build.Nightly.force(component, String.to_atom(job), branch),
+         do: :ok
   end
 
   # -------------------------------------------------------------------

@@ -12,4 +12,4 @@ config :aircloak_ci,
   # Note: we're using a reduced set of components, because a single build for all components takes 0.5 seconds.
   # Since all the commands are mocked, it should be analyzed where the time is spent, and optimize the solution.
   # However, since this is not an issue in production at the moment, a simple solution has been chosen.
-  components_filter: {:only, ["air", "cloak"]}
+  components_filter: {:only, ["air", "cloak", "system_test"]}

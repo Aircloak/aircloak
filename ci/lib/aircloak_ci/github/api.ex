@@ -46,7 +46,7 @@ defmodule AircloakCI.Github.API do
   @doc "Returns the repository data, such as branches and open pull requests."
   @spec repo_data(String.t(), String.t()) :: {repo_data, rate_limit}
   def repo_data(owner, repo_name) do
-    result = graphql_request("query {#{repo_query(owner, repo_name, "#{branches_query()} #{prs_query()}")}}")
+    result = graphql_request(repo_query(owner, repo_name, "#{branches_query()} #{prs_query()}"))
 
     repository = Map.fetch!(result.response, "repository")
     repo = %{owner: owner, name: repo_name}
@@ -125,6 +125,15 @@ defmodule AircloakCI.Github.API do
       reviews(states: [APPROVED, DISMISSED, CHANGES_REQUESTED], last: 1) {nodes {state}}
     /
 
+  defp rate_limit_query(), do: ~s/
+      rateLimit {
+        limit
+        cost
+        remaining
+        resetAt
+      }
+    /
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -153,15 +162,23 @@ defmodule AircloakCI.Github.API do
   defp encode_status_check_state(:pending), do: "pending"
   defp encode_status_check_state(:success), do: "success"
 
-  defp graphql_request(query),
-    do:
-      update_in(
-        post_graphql_request(query).response,
-        &(&1
-          |> Map.fetch!(:body)
-          |> Poison.decode!()
-          |> extract_data!())
-      )
+  defp graphql_request(query) do
+    result = post_rest_request("/graphql", %{query: "query{#{query} #{rate_limit_query()}}"})
+
+    response = result.response |> Map.fetch!(:body) |> Poison.decode!() |> extract_data!()
+    {rate_limit, response} = Map.pop(response, "rateLimit", %{})
+
+    rate_limit =
+      with {:ok, remaining} <- Map.fetch(rate_limit, "remaining"),
+           {:ok, expires_at} <- Map.fetch(rate_limit, "resetAt"),
+           {:ok, expires_at, _offset} <- DateTime.from_iso8601(expires_at) do
+        %{category: :graphql, remaining: remaining, expires_at: expires_at}
+      else
+        _ -> nil
+      end
+
+    %{result | response: response, rate_limit: rate_limit}
+  end
 
   defp extract_data!(response) do
     if Map.has_key?(response, "errors") do
@@ -170,8 +187,6 @@ defmodule AircloakCI.Github.API do
       Map.fetch!(response, "data")
     end
   end
-
-  defp post_graphql_request(query), do: post_rest_request("/graphql", %{query: query})
 
   defp post_rest_request(path, params) do
     response =
@@ -186,17 +201,17 @@ defmodule AircloakCI.Github.API do
         recv_timeout: :timer.seconds(30)
       )
 
-    %{response: response, rate_limit: rate_limit(response, path)}
+    %{response: response, rate_limit: rate_limit(response)}
   end
 
-  defp rate_limit(response, path) do
+  defp rate_limit(response) do
     with {_, remaining} <- Enum.find(response.headers, &match?({"X-RateLimit-Remaining", _value}, &1)),
          {remaining_int, ""} <- Integer.parse(remaining),
          {_, reset} <- Enum.find(response.headers, &match?({"X-RateLimit-Reset", _value}, &1)),
          {reset_int, ""} <- Integer.parse(reset),
          {:ok, reset_time} <- DateTime.from_unix(reset_int) do
       %{
-        category: if(path == "/graphql", do: :graphql, else: :rest),
+        category: :rest,
         remaining: remaining_int,
         expires_at: reset_time
       }
