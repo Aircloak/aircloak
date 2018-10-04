@@ -8,7 +8,7 @@ defmodule Cloak.DataSource.RODBC.Port do
   @command_fetch_rows 2
   @command_set_flag 3
   @command_get_columns 4
-  @command_stop 5
+  # @command_stop 5
 
   @flag_wstr_as_bin 0
 
@@ -64,26 +64,18 @@ defmodule Cloak.DataSource.RODBC.Port do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(nil) do
-    Process.flag(:trap_exit, true)
-    {:ok, open()}
-  end
+  def init(nil), do: {:ok, open()}
 
   @impl GenServer
   def handle_call({command, data}, _from, port), do: {:reply, port_control(port, command, data), port}
 
   @impl GenServer
   def handle_info({port, :eof}, port), do: {:stop, {:shutdown, :eof}, port}
-  def handle_info({:EXIT, _from, _reason}, port), do: {:stop, :normal, port}
 
   def handle_info(other, port) do
     Logger.warn("Unknown message #{inspect(other)}")
     {:noreply, port}
   end
-
-  @impl GenServer
-  def terminate(:normal, port), do: close(port)
-  def terminate(_, _port), do: :ok
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -92,11 +84,6 @@ defmodule Cloak.DataSource.RODBC.Port do
   defp open() do
     path = Application.app_dir(:cloak, "priv/native/rodbc") |> to_charlist()
     :erlang.open_port({:spawn_executable, path}, [:binary, :stream, :use_stdio, :eof])
-  end
-
-  defp close(port) do
-    send_command(port, @command_stop, 0)
-    :erlang.port_close(port)
   end
 
   defp call_server(pid, command, data, timeout \\ :timer.seconds(30)) do
