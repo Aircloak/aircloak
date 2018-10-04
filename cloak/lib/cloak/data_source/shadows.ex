@@ -12,7 +12,7 @@ defmodule Cloak.DataSource.Shadows do
   # -------------------------------------------------------------------
 
   @doc """
-  Checks if the given negative condition matches a value in she shadow table for the appropriate column. Returns
+  Checks if the given negative condition matches a value in the shadow table for the appropriate column. Returns
   `{:ok, true | false}` if the check was performed successfully. Returns `{:error, :multiple_columns}` if the condition
   references multiple columns and is not a `column1 <> column2` condition. This should not happen given other
   restrictions on negative conditions. Returns `{:error, :invalid_condition}` if the given condition is not a negative
