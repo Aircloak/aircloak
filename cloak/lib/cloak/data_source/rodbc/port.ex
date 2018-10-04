@@ -70,7 +70,7 @@ defmodule Cloak.DataSource.RODBC.Port do
   def handle_call({command, data}, _from, port), do: {:reply, port_control(port, command, data), port}
 
   @impl GenServer
-  def handle_info({port, :eof}, port), do: {:stop, {:shutdown, :eof}, port}
+  def handle_info({port, :eof}, port), do: raise("RODBC port terminated unexpectedly.")
 
   def handle_info(other, port) do
     Logger.warn("Unknown message #{inspect(other)}")
