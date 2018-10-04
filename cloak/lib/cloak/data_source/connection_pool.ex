@@ -128,7 +128,7 @@ defmodule Cloak.DataSource.ConnectionPool do
   catch
     type, error ->
       stacktrace = System.stacktrace()
-      Process.exit(connection_owner, :kill)
+      Process.exit(connection_owner, :shutdown)
       raise_client_error(type, error, stacktrace)
   end
 
