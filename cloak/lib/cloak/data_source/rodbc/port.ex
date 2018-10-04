@@ -177,7 +177,7 @@ defmodule Cloak.DataSource.RODBC.Port do
         read_input(port, buffer <> data)
 
       {^port, :eof} ->
-        <<@status_err, "Unexpected port eof!">>
+        raise "RODBC port terminated unexpectedly."
     end
   end
 
