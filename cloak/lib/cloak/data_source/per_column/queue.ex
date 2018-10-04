@@ -1,4 +1,4 @@
-defmodule Cloak.DataSource.Isolators.Queue do
+defmodule Cloak.DataSource.PerColumn.Queue do
   @moduledoc "Queue of the columns which must be processed by the isolator cache."
 
   @opaque t :: %{processed_columns: columns, regular_queue: :queue.t(column), priority_queue: :queue.t(column)}
