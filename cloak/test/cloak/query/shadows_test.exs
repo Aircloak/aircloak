@@ -82,13 +82,25 @@ defmodule Cloak.Query.Shadows.Test do
     end
   end
 
-  test "condition on column from subquery" do
-    assert_forbidden("""
-      SELECT COUNT(*) FROM (
-        SELECT user_id, value FROM query_shadows
-      ) foo
-      WHERE value NOT IN (1, 2, 3)
-    """)
+  describe "subqueries" do
+    test "condition on column from subquery" do
+      assert_forbidden("""
+        SELECT COUNT(*) FROM (
+          SELECT user_id, value FROM query_shadows
+        ) foo
+        WHERE value NOT IN (1, 2, 3)
+      """)
+    end
+
+    test "condition are counted across subqueries" do
+      assert_forbidden("""
+        SELECT COUNT(*) FROM (
+          SELECT user_id, value FROM query_shadows
+          WHERE value <> 3
+        ) foo
+        WHERE value NOT IN (1, 2)
+      """)
+    end
   end
 
   test "condition on expression" do
