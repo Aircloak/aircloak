@@ -8,103 +8,113 @@ defmodule DataQuality.Test.Present do
   # API
   # -------------------------------------------------------------------
 
-  @spec mse(Test.results(), Test.global_results(), Test.config()) :: :ok
+  @spec mse([Test.result()], Test.config()) :: :ok
   @doc "Calculates the mean squared error for different sets of attributes and outputs the result to the screen"
-  def mse(results, global_results, config) do
+  def mse(results, config) do
     Logger.banner("Data quality results")
 
-    present_per_aggregate(results, config)
-    present_mse_by_categories(global_results)
-    present_mse_by_source(global_results)
+    present_per_aggregate(results)
+    present_mse_by_categories(results)
+    present_mse_by_source(results)
 
     :ok
+  end
+
+  # -------------------------------------------------------------------
+  # Presentations
+  # -------------------------------------------------------------------
+
+  defp present_per_aggregate(results) do
+    results
+    |> Enum.group_by(& &1[:class])
+    |> Enum.each(fn {class, values} ->
+      Logger.header(class)
+
+      dimensions = [:dimension, :distribution, :aggregate]
+
+      rows =
+        process_across_dimensions(values, %{}, dimensions, fn values, path ->
+          values
+          |> Enum.group_by(& &1[:source])
+          |> Enum.map(fn {source_name, source_values} -> {source_name, produce_mse(source_values)} end)
+          |> Enum.into(%{})
+          |> Map.merge(path)
+        end)
+
+      sources =
+        rows
+        |> Enum.at(0)
+        |> Map.drop(dimensions)
+        |> Map.keys()
+        |> Enum.sort()
+
+      source_names = Enum.map(sources, &(String.capitalize(&1) <> " (mse)"))
+
+      col_headers = ["Aggregate", "Dimension", "Distribution"] ++ source_names
+
+      table_rows =
+        rows
+        |> Enum.map(fn row ->
+          [
+            Utility.name(row[:aggregate]),
+            Utility.name(row[:dimension]),
+            Utility.name(row[:distribution])
+          ] ++ Enum.map(sources, &Map.get(row, &1))
+        end)
+        |> Enum.sort()
+        |> Enum.reverse()
+
+      IO.puts(AsciiTable.format([col_headers | table_rows]) <> "\n")
+    end)
+  end
+
+  defp present_mse_by_categories(results), do: present_mse_by_dimensions([:distribution, :dimensions, :class], results)
+
+  defp present_mse_by_source(results), do: present_mse_by_dimensions([:source], results)
+
+  defp present_mse_by_dimensions(dimensions, results) do
+    dimension_names = Enum.map(dimensions, &(&1 |> to_string() |> String.capitalize()))
+
+    Logger.header("MSE-values by #{Enum.join(dimension_names, ", ")}")
+    Logger.log("")
+
+    col_headers = dimension_names ++ ["mse"]
+
+    rows =
+      process_across_dimensions(results, %{}, dimensions, fn values, path ->
+        Enum.map(dimensions, &Utility.name(path[&1])) ++ [produce_mse(values)]
+      end)
+      |> Enum.sort()
+      |> Enum.reverse()
+
+    IO.puts(AsciiTable.format([col_headers | rows]) <> "\n")
+  end
+
+  # -------------------------------------------------------------------
+  # Slicing and dicing by dimensions
+  # -------------------------------------------------------------------
+
+  defp process_across_dimensions(values, path, [], callback), do: [callback.(values, path)]
+
+  defp process_across_dimensions(values, path, [dimension | dimensions], callback) do
+    values
+    |> Enum.group_by(& &1[dimension])
+    |> Enum.flat_map(fn {dimension_name, dimension_values} ->
+      updated_path = Map.put(path, dimension, dimension_name)
+      process_across_dimensions(dimension_values, updated_path, dimensions, callback)
+    end)
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp present_per_aggregate(results, config) do
-    joined_target_names = joined_target_names_from_config(config)
+  defp produce_mse(values) do
+    sum_squared_errors =
+      values
+      |> Enum.map(&(&1[:error] * &1[:error]))
+      |> Enum.sum()
 
-    for {aggregate, aggregate_results} <- results do
-      Logger.header(aggregate)
-
-      col_selectors = column_selectors_from_results(aggregate_results)
-
-      col_headers = [
-        "Distribution",
-        "Dimension" | Enum.map(col_selectors, &(Utility.name(&1) <> " (mse)"))
-      ]
-
-      table_rows = Enum.reduce(aggregate_results, [], &process_distribution_results(&1, &2, col_selectors))
-
-      IO.puts("Results are presented as: #{joined_target_names}.\n")
-      IO.puts(AsciiTable.format([col_headers | table_rows]) <> "\n")
-    end
-  end
-
-  defp process_distribution_results({distribution, distribution_results}, acc, col_selectors) do
-    rows =
-      distribution_results
-      |> Enum.map(fn {dimension, aggregate_results} ->
-        col_values =
-          col_selectors
-          |> Enum.map(fn col_selector ->
-            data = aggregate_results[col_selector][:processed_data]
-
-            data
-            |> Map.keys()
-            |> Enum.sort()
-            |> Enum.map(&Map.get(data, &1)[:mse])
-            |> Enum.join(" / ")
-          end)
-
-        [distribution, Utility.name(dimension) | col_values]
-      end)
-
-    rows ++ acc
-  end
-
-  defp joined_target_names_from_config(config),
-    do:
-      config
-      |> Map.get(:anonymized)
-      |> Enum.map(&Map.get(&1, :name))
-      |> Enum.sort()
-      |> Enum.join(" / ")
-
-  defp column_selectors_from_results(results),
-    do:
-      results
-      # This gets us the data of the first distribution
-      |> Enum.at(0)
-      |> elem(1)
-      # This gets us the data of the first dimension (like bucket)
-      |> Enum.at(0)
-      |> elem(1)
-      |> Map.keys()
-
-  defp present_mse_by_categories(global_results) do
-    Logger.header("MSE-values by category")
-
-    table_rows =
-      Enum.flat_map(global_results.mse_by_category, fn {grouping, grouping_values} ->
-        Enum.map(grouping_values, fn {dimension, mse_values} ->
-          [Utility.name(dimension), grouping | mse_values]
-        end)
-      end)
-
-    col_headers = ["", "grouping" | global_results.sources]
-    IO.puts(AsciiTable.format([col_headers | table_rows]) <> "\n")
-  end
-
-  defp present_mse_by_source(%{mse_by_source: mse_by_source}) do
-    Logger.header("Global MSE-values")
-
-    mse_by_source
-    |> Enum.each(fn {source, mse} ->
-      IO.puts(String.pad_trailing(source, 20, " ") <> to_string(mse))
-    end)
+    Float.round(sum_squared_errors / Enum.count(values), 2)
   end
 end
