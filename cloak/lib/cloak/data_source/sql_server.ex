@@ -1,11 +1,7 @@
-defmodule Cloak.DataSource.SAPHanaRODBC do
-  @moduledoc """
-  Implements the DataSource.Driver behaviour for SAP HANA using the Rust ODBC port driver.
-  For more information, see `DataSource`.
-  """
+defmodule Cloak.DataSource.SQLServer do
+  @moduledoc "Implements the DataSource.Driver behaviour for MS SQL Server. For more information, see `DataSource`."
 
   alias Cloak.DataSource.RODBC
-  alias Cloak.DataSource
 
   use Cloak.DataSource.Driver.SQL
 
@@ -14,21 +10,17 @@ defmodule Cloak.DataSource.SAPHanaRODBC do
   # -------------------------------------------------------------------
 
   @impl Driver
-  def sql_dialect_module(), do: Cloak.DataSource.SqlBuilder.SAPHana
-
-  @impl Driver
   def connect!(parameters) do
-    unless File.exists?(Cloak.SapHanaHelpers.driver_path()),
-      do: DataSource.raise_error("ODBC driver for SAP HANA is not mounted.")
-
-    RODBC.connect!(parameters, &conn_params/1)
+    connection = RODBC.connect!(parameters, &conn_params/1)
+    :ok = RODBC.Port.execute(connection, "SET ANSI_DEFAULTS ON")
+    connection
   end
 
   @impl Driver
   defdelegate disconnect(connection), to: RODBC
 
   @impl Driver
-  def load_tables(connection, table), do: RODBC.load_tables(connection, update_in(table.db_name, &"\"#{&1}\""))
+  defdelegate load_tables(connection, table), to: RODBC
 
   @impl Driver
   defdelegate select(connection, sql_query, result_processor), to: RODBC
@@ -40,6 +32,9 @@ defmodule Cloak.DataSource.SAPHanaRODBC do
   defdelegate supports_connection_sharing?(), to: RODBC
 
   @impl Driver
+  def sql_dialect_module(), do: SqlBuilder.SQLServer
+
+  @impl Driver
   defdelegate cast_to_text?(), to: RODBC
 
   # -------------------------------------------------------------------
@@ -48,15 +43,11 @@ defmodule Cloak.DataSource.SAPHanaRODBC do
 
   defp conn_params(normalized_parameters) do
     %{
-      servernode: "#{normalized_parameters[:hostname]}:#{normalized_parameters[:port]}",
+      DSN: "SQLServer",
+      Server: normalized_parameters[:hostname],
       Uid: normalized_parameters[:username],
       Pwd: normalized_parameters[:password],
-      databasename: normalized_parameters[:database],
-      DSN: "SAPHana"
+      Database: normalized_parameters[:database]
     }
-    |> Map.merge(schema_option(Cloak.DataSource.SAPHana.default_schema()))
   end
-
-  defp schema_option(nil), do: %{}
-  defp schema_option(schema), do: %{cs: ~s/"#{schema}"/}
 end
