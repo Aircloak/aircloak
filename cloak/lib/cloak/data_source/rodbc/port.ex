@@ -8,80 +8,97 @@ defmodule Cloak.DataSource.RODBC.Port do
   @command_fetch_rows 2
   @command_set_flag 3
   @command_get_columns 4
-  @command_stop 5
+  # @command_stop 5
 
   @flag_wstr_as_bin 0
 
   @typep row :: [any]
 
-  @doc "Creats a new port instance."
-  @spec open() :: port()
-  def open() do
-    path = Application.app_dir(:cloak, "priv/native/rodbc") |> to_charlist()
-    port = :erlang.open_port({:spawn_executable, path}, [:binary, :stream, :use_stdio, :eof])
-    true = :erlang.unlink(port)
-    port
-  end
+  use GenServer
 
-  @doc "Closes the port instance."
-  @spec close(port()) :: boolean
-  def close(port) do
-    send_command(port, @command_stop, 0)
-    :erlang.port_close(port)
-  end
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Starts the port owner process."
+  @spec start_link() :: GenServer.on_start()
+  def start_link(), do: GenServer.start_link(__MODULE__, nil)
+
+  @doc "Stops the port owner process."
+  @spec stop(pid()) :: :ok
+  def stop(pid), do: GenServer.stop(pid)
 
   @doc "Connects to a data source."
-  @spec connect(port(), String.t()) :: :ok | {:error, String.t()}
-  def connect(port, connection_string),
-    do: port |> port_control(@command_connect, connection_string) |> decode_response()
+  @spec connect(pid(), String.t(), timeout()) :: :ok | {:error, String.t()}
+  def connect(pid, connection_string, timeout),
+    do: call_server(pid, @command_connect, connection_string, timeout)
 
   @doc "Executes an SQL statement on the connected backend."
-  @spec execute(port(), String.t()) :: :ok | {:error, String.t()}
-  def execute(port, statement) do
+  @spec execute(pid(), String.t(), timeout()) :: :ok | {:error, String.t()}
+  def execute(pid, statement, timeout \\ :infinity) do
     Logger.debug(fn -> "Executing SQL query: #{statement}" end)
-    port |> port_control(@command_execute, statement) |> decode_response()
-  end
-
-  @doc "Starts the streaming of rows selected by the previous statement."
-  @spec start_fetching_rows(port(), pos_integer) :: boolean
-  def start_fetching_rows(port, size) when size > 0 do
-    true = :erlang.port_connect(port, self())
-    send_command(port, @command_fetch_rows, size)
+    call_server(pid, @command_execute, statement, timeout)
   end
 
   @doc "Returns a new batch, with the specified size, from the rows selected by the previous statement."
-  @spec fetch_batch(port(), (row -> row), pos_integer) :: {:ok, Enumerable.t()} | {:error, String.t()}
-  def fetch_batch(port, row_mapper, size) when size > 0 do
-    case fetch_rows(port, size) do
+  @spec fetch_batch(pid(), (row -> row), pos_integer) :: {:ok, Enumerable.t()} | {:error, String.t()}
+  def fetch_batch(pid, row_mapper, size) when size > 0 do
+    case call_server(pid, @command_fetch_rows, size, :timer.minutes(30)) do
       {:ok, []} ->
-        true = :erlang.unlink(port)
         {:ok, []}
 
       {:ok, rows} ->
         {:ok, Stream.map(rows, row_mapper)}
 
       {:error, error} ->
-        true = :erlang.unlink(port)
         {:error, error}
     end
   end
 
   @doc "Enables transfer of wide strings as binary data (avoids validation & conversion of string characters)."
-  @spec set_wstr_as_bin(port()) :: :ok | {:error, String.t()}
-  def set_wstr_as_bin(port),
-    do: port |> port_control(@command_set_flag, @flag_wstr_as_bin) |> decode_response()
+  @spec set_wstr_as_bin(pid()) :: :ok | {:error, String.t()}
+  def set_wstr_as_bin(pid), do: call_server(pid, @command_set_flag, @flag_wstr_as_bin)
 
   @doc "Returns {name, type} information about the columns selected by the previous statement."
-  @spec get_columns(port()) :: {:ok, [{String.t(), String.t()}]} | {:error, String.t()}
-  def get_columns(port) do
-    with {:ok, columns} <- port |> port_control(@command_get_columns, "") |> decode_response() do
+  @spec get_columns(pid()) :: {:ok, [{String.t(), String.t()}]} | {:error, String.t()}
+  def get_columns(pid) do
+    with {:ok, columns} <- call_server(pid, @command_get_columns, "") do
       {:ok, Enum.map(columns, &List.to_tuple/1)}
     end
   end
 
   # -------------------------------------------------------------------
+  # GenServer callbacks
+  # -------------------------------------------------------------------
+
+  @impl GenServer
+  def init(nil), do: {:ok, open()}
+
+  @impl GenServer
+  def handle_call({command, data}, _from, port), do: {:reply, port_control(port, command, data), port}
+
+  @impl GenServer
+  def handle_info({port, :eof}, port), do: raise("RODBC port terminated unexpectedly.")
+
+  def handle_info(other, port) do
+    Logger.warn("Unknown message #{inspect(other)}")
+    {:noreply, port}
+  end
+
+  # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp open() do
+    path = Application.app_dir(:cloak, "priv/native/rodbc") |> to_charlist()
+    :erlang.open_port({:spawn_executable, path}, [:binary, :stream, :use_stdio, :eof])
+  end
+
+  defp call_server(pid, command, data, timeout \\ :timer.seconds(30)) do
+    pid
+    |> GenServer.call({command, data}, timeout)
+    |> decode_response()
+  end
 
   @type_null 0
   @type_i32 1
@@ -146,31 +163,9 @@ defmodule Cloak.DataSource.RODBC.Port do
        ),
        do: decode_values(data, [str | acc])
 
-  defp fetch_rows(port, size) do
-    port
-    |> read_input()
-    |> decode_response()
-    |> case do
-      # end of data
-      {:ok, []} ->
-        {:ok, []}
-
-      {:ok, rows} ->
-        # queue next batch
-        true = send_command(port, @command_fetch_rows, size)
-        {:ok, rows}
-
-      {:error, message} ->
-        {:error, message}
-    end
-  end
-
   defp port_control(port, command, data) do
-    true = :erlang.port_connect(port, self())
     true = send_command(port, command, data)
-    input = read_input(port)
-    true = :erlang.unlink(port)
-    input
+    read_input(port)
   end
 
   defp read_input(_port, buffer \\ <<>>)
@@ -182,7 +177,7 @@ defmodule Cloak.DataSource.RODBC.Port do
         read_input(port, buffer <> data)
 
       {^port, :eof} ->
-        <<@status_err, "Unexpected port eof!">>
+        raise "RODBC port terminated unexpectedly."
     end
   end
 
