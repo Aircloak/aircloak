@@ -101,6 +101,18 @@ defmodule Cloak.Query.Shadows.Test do
         WHERE value NOT IN (1, 2)
       """)
     end
+
+    test "condition on popular value from subquery" do
+      :ok = insert_rows(_user_ids = 1..20, "query_shadows", ["value"], [1])
+
+      assert_allowed("""
+        SELECT COUNT(*) FROM (
+          SELECT user_id, value AS foo FROM query_shadows
+          WHERE value <> 3
+        ) foo
+        WHERE foo NOT IN (1, 2)
+      """)
+    end
   end
 
   test "condition on expression" do
