@@ -28,7 +28,7 @@ defmodule Cloak.DataSource.Shadows.Query do
     |> Parser.parse!()
     |> Compiler.compile_direct!(data_source)
     |> DbEmulator.select()
-    |> List.flatten()
+    |> Enum.map(&hd/1)
   end
 
   # -------------------------------------------------------------------
