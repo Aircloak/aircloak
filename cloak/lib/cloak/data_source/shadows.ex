@@ -40,12 +40,8 @@ defmodule Cloak.DataSource.Shadows do
         {:ok, true}
 
       [{table, column}] ->
-        if table.user_id do
-          shadow = @cache_module.shadow(query.data_source, table.name, column) |> Stream.map(&evaluate(expression, &1))
-          any?(condition, shadow)
-        else
-          {:ok, false}
-        end
+        shadow = @cache_module.shadow(query.data_source, table.name, column) |> Stream.map(&evaluate(expression, &1))
+        any?(condition, shadow)
 
       _ ->
         {:error, :multiple_columns}
