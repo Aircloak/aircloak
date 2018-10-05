@@ -4,7 +4,7 @@ defmodule Cloak.TestShadowCache do
   `Cloak.DataSource.Shadows.Query` for columns for which `live` was called.
   """
 
-  def build_shadow(data_source, table, column) do
+  def shadow(data_source, table, column) do
     case Agent.get(__MODULE__, &Map.fetch(&1, {data_source.name, table, column})) do
       :error -> []
       {:ok, :live} -> Cloak.DataSource.Shadows.Query.build_shadow(data_source, table, column)

@@ -5,7 +5,7 @@ defmodule Cloak.DataSource.Shadows do
 
   require Aircloak
 
-  @cache_module Aircloak.in_env(test: Cloak.TestShadowCache, else: Cloak.DataSource.Shadows.Query)
+  @cache_module Aircloak.in_env(test: Cloak.TestShadowCache, else: Cloak.DataSource.Shadows.Cache)
 
   # -------------------------------------------------------------------
   # API functions
@@ -40,7 +40,7 @@ defmodule Cloak.DataSource.Shadows do
         {:ok, true}
 
       [{table, column}] ->
-        shadow = @cache_module.build_shadow(query.data_source, table, column) |> Stream.map(&evaluate(expression, &1))
+        shadow = @cache_module.shadow(query.data_source, table, column) |> Stream.map(&evaluate(expression, &1))
         any?(condition, shadow)
 
       _ ->
@@ -97,8 +97,15 @@ defmodule Cloak.DataSource.Shadows do
   # -------------------------------------------------------------------
 
   @doc false
-  def child_spec(_) do
-    children = Aircloak.in_env(test: [@cache_module], else: [])
-    Aircloak.ChildSpec.supervisor(children, strategy: :one_for_one, name: __MODULE__)
+  def child_spec(arg) do
+    Aircloak.ChildSpec.supervisor(
+      [
+        # The cache table is owned by a separate process. This is mostly done for testing purposes, but it also improves
+        # fault-tolerance. If the cache process crashes, the cache table will survive.
+        __MODULE__.PersistentKeyValue,
+        {@cache_module, arg}
+      ],
+      strategy: :rest_for_one
+    )
   end
 end
