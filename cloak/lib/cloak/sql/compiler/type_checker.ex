@@ -20,7 +20,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   @spec validate_allowed_usage_of_math_and_functions(Query.t()) :: Query.t()
   def validate_allowed_usage_of_math_and_functions(query) do
-    verify_negative_conditions(query)
+    each_anonymized_subquery(query, &verify_negative_conditions/1)
 
     Helpers.each_subquery(query, fn subquery ->
       unless subquery.type == :standard do
@@ -354,4 +354,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       |> Lens.filter(predicate)
       |> Lens.to_list(query)
       |> Enum.each(action)
+
+  defp each_anonymized_subquery(query, function) do
+    Query.Lenses.all_queries()
+    |> Lens.filter(&(&1.type == :anonymized))
+    |> Lens.each(query, function)
+  end
 end

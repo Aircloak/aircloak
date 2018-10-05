@@ -17,11 +17,22 @@ defmodule Cloak.DataSource.Shadows.Query do
   """
   @spec build_shadow(DataSource.t(), String.t(), String.t()) :: [any]
   def build_shadow(data_source, table, column) do
+    case user_id(data_source, table) do
+      nil -> []
+      user_id -> do_build_shadow(data_source, table, column, user_id)
+    end
+  end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp do_build_shadow(data_source, table, column, user_id) do
     """
       SELECT "#{column}"
       FROM "#{table}"
       GROUP BY 1
-      HAVING COUNT(DISTINCT "#{user_id(data_source, table)}") > #{@min_distinct_users}
+      HAVING COUNT(DISTINCT "#{user_id}") > #{@min_distinct_users}
       ORDER BY COUNT(*) DESC
       LIMIT #{@max_values}
     """
@@ -31,9 +42,7 @@ defmodule Cloak.DataSource.Shadows.Query do
     |> List.flatten()
   end
 
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp user_id(data_source, table), do: data_source.tables[String.to_existing_atom(table)].user_id
+  defp user_id(data_source, table) do
+    data_source.tables[String.to_existing_atom(table)].user_id
+  end
 end
