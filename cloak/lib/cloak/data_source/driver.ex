@@ -20,14 +20,14 @@ defmodule Cloak.DataSource.Driver do
   @spec batch_size() :: pos_integer
   def batch_size(), do: Application.get_env(:cloak, :data_source) |> Keyword.fetch!(:batch_size)
 
-  @type connection :: any
+  @type connection :: identifier()
   @type parameters :: any
   @type driver_info :: any
 
   @doc "Returns an atom describing the query dialect of this specific driver implementation."
   @callback sql_dialect_module() :: module | nil
 
-  @doc "Opens a new connection to the data store."
+  @doc "Opens a new connection to the data store. The returned connection has to be linked to the current process."
   @callback connect!(parameters) :: connection
 
   @doc "Closes the connection to the data store."
