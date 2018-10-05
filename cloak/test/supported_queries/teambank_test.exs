@@ -1,6 +1,12 @@
 defmodule Cloak.Regressions.TeamBank.Test do
   use ExUnit.Case, async: true
 
+  setup_all do
+    data_source_scaffold()
+    |> generate_data_source_config()
+    |> Cloak.TestShadowCache.safe("bankzugang", "blz", ["47110815", "90090042"])
+  end
+
   test "simple query 1" do
     query = """
     SELECT

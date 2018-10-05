@@ -6,6 +6,11 @@ defmodule Cloak.Query.AnonymizedSubqueriesTest do
   setup_all do
     :ok = Cloak.Test.DB.create_table("anon_sq", "i INTEGER")
     for i <- 1..10, do: :ok = insert_rows(_user_ids = 1..10, "anon_sq", ["i"], [i])
+
+    for data_source <- Cloak.DataSource.all() do
+      Cloak.TestShadowCache.safe(data_source, "anon_sq", "i", Enum.into(1..10, []))
+    end
+
     :ok
   end
 

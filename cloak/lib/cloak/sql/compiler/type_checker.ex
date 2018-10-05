@@ -20,6 +20,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   @spec validate_allowed_usage_of_math_and_functions(Query.t()) :: Query.t()
   def validate_allowed_usage_of_math_and_functions(query) do
+    verify_negative_conditions(query)
+
     Helpers.each_subquery(query, fn subquery ->
       unless subquery.type == :standard do
         verify_usage_of_potentially_crashing_functions(subquery)
@@ -31,7 +33,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         verify_string_based_expressions_are_clear(subquery)
         verify_ranges_are_clear(subquery)
         verify_isolator_conditions_are_clear(subquery)
-        verify_negative_conditions(subquery)
       end
     end)
 
@@ -293,11 +294,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # -------------------------------------------------------------------
 
   defp verify_negative_conditions(query) do
-    Query.Lenses.db_filter_clauses()
-    |> Query.Lenses.conditions()
-    |> Lens.filter(&(Condition.not_equals?(&1) or Condition.not_like?(&1)))
+    Query.Lenses.all_queries()
+    |> Lens.context(negative_conditions())
     |> Lens.to_list(query)
-    |> Stream.reject(fn condition ->
+    |> Stream.reject(fn {query, condition} ->
       case Shadows.safe?(condition, query) do
         {:ok, result} ->
           result
@@ -314,11 +314,17 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       [] ->
         :ok
 
-      [condition] ->
+      [{_subquery, condition}] ->
         raise CompilationError,
           source_location: Condition.subject(condition).source_location,
           message: "At most #{@max_rare_negative_conditions} negative conditions are allowed."
     end
+  end
+
+  defp negative_conditions() do
+    Query.Lenses.db_filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.filter(&(Condition.not_equals?(&1) or Condition.not_like?(&1)))
   end
 
   # -------------------------------------------------------------------
