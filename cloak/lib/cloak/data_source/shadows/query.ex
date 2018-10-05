@@ -35,5 +35,10 @@ defmodule Cloak.DataSource.Shadows.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp user_id(data_source, table), do: data_source.tables[String.to_existing_atom(table)].user_id
+  defp user_id(data_source, table) do
+    case data_source.tables[String.to_existing_atom(table)].user_id do
+      nil -> raise "Shadow table cannot be built for a userless table"
+      user_id -> user_id
+    end
+  end
 end

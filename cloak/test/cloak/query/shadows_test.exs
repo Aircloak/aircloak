@@ -5,10 +5,12 @@ defmodule Cloak.Query.Shadows.Test do
 
   setup_all do
     :ok = Cloak.Test.DB.create_table("query_shadows", "value INTEGER, string TEXT")
+    :ok = Cloak.Test.DB.create_table("query_shadows_userless", "value INTEGER", user_id: nil)
 
     for data_source <- Cloak.DataSource.all() do
       Cloak.TestShadowCache.live(data_source, "query_shadows", "value")
       Cloak.TestShadowCache.live(data_source, "query_shadows", "string")
+      Cloak.TestShadowCache.live(data_source, "query_shadows_userless", "value")
     end
 
     :ok
@@ -112,6 +114,12 @@ defmodule Cloak.Query.Shadows.Test do
         ) foo
         WHERE foo NOT IN (1, 2)
       """)
+    end
+  end
+
+  describe "userless table" do
+    test "no anonymizing queries" do
+      assert_allowed("SELECT COUNT(*) FROM query_shadows_userless WHERE value NOT IN (1, 2)")
     end
   end
 
