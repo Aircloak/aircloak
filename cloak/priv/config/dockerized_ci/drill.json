@@ -1,5 +1,5 @@
 {
-  "driver": "drill_rodbc",
+  "driver": "drill",
   "name": "drill",
   "encoded": false,
   "parameters": {
