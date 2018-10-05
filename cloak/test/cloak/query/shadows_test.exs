@@ -117,9 +117,35 @@ defmodule Cloak.Query.Shadows.Test do
     end
   end
 
-  describe "userless table" do
-    test "no anonymizing queries" do
-      assert_allowed("SELECT COUNT(*) FROM query_shadows_userless WHERE value NOT IN (1, 2)")
+  describe "anonymizing subqueries" do
+    test "allows any negative conditions outside of anonymizing queries" do
+      assert_allowed("SELECT COUNT(*) FROM query_shadows_userless WHERE value NOT IN (1, 2, 3)")
+    end
+
+    test "allows 2 negative conditions in each anonymizing subquery" do
+      assert_allowed("""
+        SELECT COUNT(*)
+          FROM (
+            SELECT COUNT(*) AS a FROM query_shadows WHERE value NOT IN (1, 2)
+          ) x
+          JOIN (
+            SELECT COUNT(*) AS b FROM query_shadows WHERE value NOT IN (3, 4)
+          ) y
+          ON x.a = y.b
+      """)
+    end
+
+    test "forbids more than 2 negative conditions with rare values in anonymizing subquery" do
+      assert_forbidden("""
+        SELECT COUNT(*)
+          FROM (
+            SELECT COUNT(*) AS a FROM query_shadows WHERE value NOT IN (1, 2, 3)
+          ) x
+          JOIN (
+            SELECT COUNT(*) AS b FROM query_shadows WHERE value NOT IN (5, 6)
+          ) y
+          ON x.a = y.b
+      """)
     end
   end
 
