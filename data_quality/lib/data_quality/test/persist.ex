@@ -33,7 +33,7 @@ defmodule DataQuality.Test.Persist do
 
           values =
             relevant_results
-            |> Enum.map(&{&1[:source], %{value: &1[:anonymized_value], error: &1[:error]}})
+            |> Enum.map(&{&1[:source], &1})
             |> Enum.into(%{})
 
           real_value = relevant_results |> Enum.at(0) |> Map.get(:real_value)
@@ -72,7 +72,7 @@ defmodule DataQuality.Test.Persist do
   defp output_graph(dir, aggregate, data) do
     # No need creating a graph when there is hardly any data
     if Enum.count(data) > 5 do
-      graph_for(dir, aggregate, :value, data, include_raw: true)
+      graph_for(dir, aggregate, :anonymized_value, data, include_raw: true)
       graph_for(dir, aggregate, :error, data, include_raw: false)
       graph_for(dir, aggregate, :relative_error, data, include_raw: false)
     end
