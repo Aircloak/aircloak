@@ -20,7 +20,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
   @spec lookup(Cloak.DataSource.t(), String.t(), String.t()) ::
           {:ok, boolean} | {:error, :pending | :failed | :unknown_column}
   def lookup(cache_ref \\ __MODULE__, data_source, table_name, column_name),
-    do: GenServer.call(cache_ref, {:column_status, {data_source.name, table_name, column_name}})
+    do: Cache.lookup(cache_ref, data_source, table_name, column_name)
 
   # -------------------------------------------------------------------
   # Internal functions
