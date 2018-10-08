@@ -34,11 +34,11 @@ defmodule DataQuality.Test.Persist do
 
           values =
             relevant_results
-            |> Enum.map(&{&1[:source], &1[:anonymized_value]})
+            |> Enum.map(&{&1[:source], %{value: &1[:anonymized_value], error: &1[:error]}})
             |> Enum.into(%{})
 
           real_value = relevant_results |> Enum.at(0) |> Map.get(:real_value)
-          row_for_csv = [dimension_value, real_value | sources |> Enum.map(&Map.get(values, &1))]
+          row_for_csv = [dimension_value, real_value | sources |> Enum.map(&Map.get(values, &1)[:value])]
           data_for_graph = %{real_value: real_value, dimension_value: dimension_value, source_values: values}
           {row_for_csv, data_for_graph}
         end)
@@ -73,27 +73,34 @@ defmodule DataQuality.Test.Persist do
   defp output_graph(dir, aggregate, data) do
     # No need creating a graph when there is hardly any data
     if Enum.count(data) > 5 do
-      csv_path = Path.join([dir, Utility.name(aggregate) <> "-r.csv"])
-      img_path = Path.join([dir, Utility.name(aggregate) <> ".png"])
-
-      csv_header_line = "Dimension;Source;Result\n"
-
-      row_data =
-        data
-        |> Enum.flat_map(fn dimension_data ->
-          dimension = dimension_data[:dimension_value]
-
-          [[dimension, "Raw", dimension_data[:real_value]]] ++
-            Enum.map(dimension_data[:source_values], fn {name, value} ->
-              [dimension, name, value]
-            end)
-        end)
-        |> Enum.map(fn row -> row |> Enum.map(&to_string/1) |> Enum.join(";") end)
-        |> Enum.join("\n")
-
-      File.write!(csv_path, csv_header_line <> row_data, [:write])
-      :os.cmd(String.to_charlist("Rscript graph.r \"#{csv_path}\" \"#{img_path}\""))
-      File.rm!(csv_path)
+      graph_for(dir, aggregate, :value, data, include_raw: true)
+      graph_for(dir, aggregate, :error, data, include_raw: false)
     end
   end
+
+  defp graph_for(dir, aggregate, property, data, options) do
+    csv_path = Path.join([dir, Utility.name(aggregate) <> "-r.csv"])
+    img_path = Path.join([dir, Utility.name(aggregate) <> "-#{property}.png"])
+
+    csv_header_line = "Dimension;Source;Result\n"
+    row_data = row_data_for_property(data, property, options)
+
+    File.write!(csv_path, csv_header_line <> row_data, [:write])
+    :os.cmd(String.to_charlist("Rscript graph.r \"#{csv_path}\" \"#{img_path}\""))
+    File.rm!(csv_path)
+  end
+
+  defp row_data_for_property(data, property, options),
+    do:
+      data
+      |> Enum.flat_map(fn dimension_data ->
+        dimension = dimension_data[:dimension_value]
+
+        if(Keyword.get(options, :include_raw), do: [[dimension, "Raw", dimension_data[:real_value]]], else: []) ++
+          Enum.map(dimension_data[:source_values], fn {name, values} ->
+            [dimension, name, values[property]]
+          end)
+      end)
+      |> Enum.map(fn row -> row |> Enum.map(&to_string/1) |> Enum.join(";") end)
+      |> Enum.join("\n")
 end
