@@ -15,7 +15,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
     column = {data_source.name, table_name, column_name}
 
     with {:error, :failed} <- GenServer.call(server, {:compute_value, column}, :infinity) do
-      Logger.error("Cannot determine isolated property of `#{table_name}`.`#{column_name}`")
+      Logger.error("Cannot determine property of `#{table_name}`.`#{column_name}`")
       true
     else
       {:ok, isolates?} -> isolates?
@@ -131,7 +131,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
 
   defp start_compute_isolation(column, state) do
     Task.start_link(fn ->
-      Logger.debug(fn -> "computing isolated for #{inspect(column)}" end)
+      Logger.debug(fn -> "#{inspect(state.opts.name)} computing for #{inspect(column)}" end)
       isolated = state.opts.property_fun.(column)
       PersistentKeyValue.store(state.cache_owner, column, isolated)
     end)
