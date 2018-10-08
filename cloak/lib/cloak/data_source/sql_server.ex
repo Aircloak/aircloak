@@ -34,9 +34,6 @@ defmodule Cloak.DataSource.SQLServer do
   @impl Driver
   def sql_dialect_module(), do: SqlBuilder.SQLServer
 
-  @impl Driver
-  defdelegate cast_to_text?(), to: RODBC
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

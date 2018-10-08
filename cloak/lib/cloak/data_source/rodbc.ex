@@ -63,8 +63,6 @@ defmodule Cloak.DataSource.RODBC do
 
   def supports_connection_sharing?(), do: true
 
-  def cast_to_text?(), do: false
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

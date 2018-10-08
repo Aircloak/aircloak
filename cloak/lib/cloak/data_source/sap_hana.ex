@@ -49,9 +49,6 @@ defmodule Cloak.DataSource.SAPHana do
   @impl Driver
   defdelegate supports_connection_sharing?(), to: RODBC
 
-  @impl Driver
-  defdelegate cast_to_text?(), to: RODBC
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
