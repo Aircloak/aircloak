@@ -1,7 +1,6 @@
 defmodule DataQuality.Test.Persist do
   @moduledoc "Persist the results to disk as CSV and graphs"
 
-  alias Aircloak.OutputStatus
   alias DataQuality.Test.{Utility, Logger}
 
   # -------------------------------------------------------------------

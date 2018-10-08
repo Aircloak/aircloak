@@ -3,7 +3,7 @@ defmodule DataQuality.Test do
   Runs test queries against Aircloak and the un-anonymized query results,
   and compares the output quality.
   """
-  alias DataQuality.Test.{Processing, Query, Persist, Present}
+  alias DataQuality.Test.{Query, Persist, Present}
 
   @dimensions [
     {:dimension, "distribution"},
@@ -59,32 +59,32 @@ defmodule DataQuality.Test do
   @doc "Performs data quality test"
   def run(config) do
     # Note AVG doesn't yet work for no-uid, so is not included.
-    per_query_results =
-      [
-        %{
-          name: "COUNT",
-          aggregates: [
-            {:count, "count(*)"},
-            {:count, "count(distinct uid)"}
-            # count(distinct column) is not supported by no-uid design yet so not yet included
-          ]
-        },
-        %{
-          name: "MIN",
-          aggregates: [:min]
-        },
-        %{
-          name: "MAX",
-          aggregates: [:max]
-        },
-        %{
-          name: "SUM",
-          aggregates: [:sum]
-        }
-      ]
-      |> Query.measure(config, @dimensions)
-      |> Present.mse()
-      |> Persist.to_disk()
+
+    [
+      %{
+        name: "COUNT",
+        aggregates: [
+          {:count, "count(*)"},
+          {:count, "count(distinct uid)"}
+          # count(distinct column) is not supported by no-uid design yet so not yet included
+        ]
+      },
+      %{
+        name: "MIN",
+        aggregates: [:min]
+      },
+      %{
+        name: "MAX",
+        aggregates: [:max]
+      },
+      %{
+        name: "SUM",
+        aggregates: [:sum]
+      }
+    ]
+    |> Query.measure(config, @dimensions)
+    |> Present.mse()
+    |> Persist.to_disk()
 
     :ok
   end
