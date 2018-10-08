@@ -33,7 +33,7 @@ defmodule DataQuality.Test.Present do
       dimensions = [:dimension, :distribution, :aggregate]
 
       rows =
-        process_across_dimensions(values, %{}, dimensions, fn values, path ->
+        Utility.process_across_dimensions(values, %{}, dimensions, fn values, path ->
           values
           |> Enum.group_by(& &1[:source])
           |> Enum.map(fn {source_name, source_values} -> {source_name, produce_mse(source_values)} end)
@@ -81,28 +81,13 @@ defmodule DataQuality.Test.Present do
     col_headers = dimension_names ++ ["mse"]
 
     rows =
-      process_across_dimensions(results, %{}, dimensions, fn values, path ->
+      Utility.process_across_dimensions(results, %{}, dimensions, fn values, path ->
         Enum.map(dimensions, &Utility.name(path[&1])) ++ [produce_mse(values)]
       end)
       |> Enum.sort()
       |> Enum.reverse()
 
     IO.puts(AsciiTable.format([col_headers | rows]) <> "\n")
-  end
-
-  # -------------------------------------------------------------------
-  # Slicing and dicing by dimensions
-  # -------------------------------------------------------------------
-
-  defp process_across_dimensions(values, path, [], callback), do: [callback.(values, path)]
-
-  defp process_across_dimensions(values, path, [dimension | dimensions], callback) do
-    values
-    |> Enum.group_by(& &1[dimension])
-    |> Enum.flat_map(fn {dimension_name, dimension_values} ->
-      updated_path = Map.put(path, dimension, dimension_name)
-      process_across_dimensions(dimension_values, updated_path, dimensions, callback)
-    end)
   end
 
   # -------------------------------------------------------------------
