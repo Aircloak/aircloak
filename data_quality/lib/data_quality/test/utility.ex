@@ -14,6 +14,7 @@ defmodule DataQuality.Test.Utility do
   def name({:count, count}), do: count
   def name(name) when is_atom(name), do: to_string(name)
   def name(name) when is_binary(name), do: name
+  def name(other), do: to_string(other)
 
   @spec process_across_dimensions(
           [Test.result()],

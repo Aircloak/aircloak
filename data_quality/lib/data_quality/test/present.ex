@@ -50,25 +50,24 @@ defmodule DataQuality.Test.Present do
 
       source_names = Enum.map(sources, &(String.capitalize(&1) <> " (mse)"))
 
-      col_headers = ["Aggregate", "Dimension", "Distribution"] ++ source_names
+      col_headers = ["Distribution", "Dimension", "Aggregate"] ++ source_names
 
       table_rows =
         rows
         |> Enum.map(fn row ->
           [
-            Utility.name(row[:aggregate]),
+            Utility.name(row[:distribution]),
             Utility.name(row[:dimension]),
-            Utility.name(row[:distribution])
+            Utility.name(row[:aggregate])
           ] ++ Enum.map(sources, &Map.get(row, &1))
         end)
         |> Enum.sort()
-        |> Enum.reverse()
 
       IO.puts(AsciiTable.format([col_headers | table_rows]) <> "\n")
     end)
   end
 
-  defp present_mse_by_categories(results), do: present_mse_by_dimensions([:distribution, :dimension, :class], results)
+  defp present_mse_by_categories(results), do: present_mse_by_dimensions([:distribution, :class, :dimension], results)
 
   defp present_mse_by_source(results), do: present_mse_by_dimensions([:source], results)
 
@@ -82,10 +81,10 @@ defmodule DataQuality.Test.Present do
 
     rows =
       Utility.process_across_dimensions(results, %{}, dimensions, fn values, path ->
-        Enum.map(dimensions, &Utility.name(path[&1])) ++ [produce_mse(values)]
+        Enum.map(dimensions, &path[&1]) ++ [produce_mse(values)]
       end)
       |> Enum.sort()
-      |> Enum.reverse()
+      |> Enum.map(&Enum.map(&1, fn val -> Utility.name(val) end))
 
     IO.puts(AsciiTable.format([col_headers | rows]) <> "\n")
   end
