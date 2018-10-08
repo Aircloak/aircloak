@@ -68,7 +68,7 @@ defmodule DataQuality.Test.Present do
     end)
   end
 
-  defp present_mse_by_categories(results), do: present_mse_by_dimensions([:distribution, :dimensions, :class], results)
+  defp present_mse_by_categories(results), do: present_mse_by_dimensions([:distribution, :dimension, :class], results)
 
   defp present_mse_by_source(results), do: present_mse_by_dimensions([:source], results)
 
