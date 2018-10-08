@@ -58,7 +58,7 @@ defmodule Cloak.Test.DB do
           do: "user_id",
           else: Keyword.get(opts, :user_id)
         ),
-        [db_name: db_name] ++ Keyword.take(opts, [:user_id, :query, :projection])
+        [db_name: db_name] ++ Keyword.take(opts, [:user_id, :query, :projection, :decoders])
       )
 
     data_source_names_to_update =

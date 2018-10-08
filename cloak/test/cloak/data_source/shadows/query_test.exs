@@ -6,7 +6,10 @@ defmodule Cloak.DataSource.Shadows.Query.Test do
   alias Cloak.DataSource.Shadows.Query
 
   setup_all do
-    :ok = Cloak.Test.DB.create_table("shadows", "value INTEGER")
+    :ok =
+      Cloak.Test.DB.create_table("shadows", "value INTEGER, encoded_value TEXT",
+        decoders: [%{method: "base64", columns: ["encoded_value"]}]
+      )
   end
 
   setup do
@@ -45,6 +48,14 @@ defmodule Cloak.DataSource.Shadows.Query.Test do
 
       for data_source <- DataSource.all() do
         assert MapSet.new(Query.build_shadow(data_source, "shadows", "value")) == MapSet.new(1..100)
+      end
+    end
+
+    test "[BUG] building a shadow from an encoded column" do
+      :ok = insert_rows(_user_ids = 0..20, "shadows", ["encoded_value"], ["123" |> Base.encode64()])
+
+      for data_source <- DataSource.all() do
+        assert ["123"] = Query.build_shadow(data_source, "shadows", "encoded_value")
       end
     end
   end
