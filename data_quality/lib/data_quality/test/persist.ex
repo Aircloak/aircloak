@@ -74,6 +74,7 @@ defmodule DataQuality.Test.Persist do
     if Enum.count(data) > 5 do
       graph_for(dir, aggregate, :value, data, include_raw: true)
       graph_for(dir, aggregate, :error, data, include_raw: false)
+      graph_for(dir, aggregate, :relative_error, data, include_raw: false)
     end
   end
 
