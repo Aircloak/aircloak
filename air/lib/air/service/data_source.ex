@@ -209,7 +209,7 @@ defmodule Air.Service.DataSource do
     cond do
       not available?(data_source.name) -> :offline
       DataSource.errors(data_source) != [] -> :broken
-      not DataSource.analyzed?(data_source) -> :analyzing
+      not analyzed?(data_source) -> :analyzing
       true -> :online
     end
   end
@@ -496,6 +496,9 @@ defmodule Air.Service.DataSource do
       "#{table.id}.#{column.name}"
     end
   end
+
+  def analyzed?(%{isolated_computed_count: nil}), do: true
+  def analyzed?(data_source), do: data_source.isolated_computed_count == data_source.columns_count
 
   # -------------------------------------------------------------------
   # Supervision tree
