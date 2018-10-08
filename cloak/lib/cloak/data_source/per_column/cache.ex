@@ -15,10 +15,10 @@ defmodule Cloak.DataSource.PerColumn.Cache do
     column = {data_source.name, table_name, column_name}
 
     with {:error, :failed} <- GenServer.call(server, {:compute_value, column}, :infinity) do
-      Logger.error("Cannot determine isolated property of `#{table_name}`.`#{column_name}`")
+      Logger.error("Cannot determine property of `#{table_name}`.`#{column_name}`")
       true
     else
-      {:ok, isolates?} -> isolates?
+      {:ok, property} -> property
       {:error, :unknown_column} -> raise "Unknown column `#{table_name}`.`#{column_name}`"
     end
   end
@@ -78,7 +78,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   end
 
   @impl Parent.GenServer
-  def handle_child_terminated(:compute_isolation_job, meta, _pid, _reason, state) do
+  def handle_child_terminated(:compute_job, meta, _pid, _reason, state) do
     result =
       case PersistentKeyValue.lookup(state.cache_owner, meta.column) do
         :error -> {:error, :failed}
@@ -101,7 +101,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
       match?({:ok, _}, PersistentKeyValue.lookup(state.cache_owner, column)) ->
         PersistentKeyValue.lookup(state.cache_owner, column)
 
-      computing_isolation?(column) or not Queue.processed?(state.queue, column) ->
+      computing?(column) or not Queue.processed?(state.queue, column) ->
         {:error, :pending}
 
       true ->
@@ -110,15 +110,15 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   end
 
   defp maybe_start_next_computation(state) do
-    if Parent.GenServer.child?(:compute_isolation_job), do: state, else: start_next_computation(state)
+    if Parent.GenServer.child?(:compute_job), do: state, else: start_next_computation(state)
   end
 
   defp start_next_computation(state) do
     case Queue.next_column(state.queue) do
       {column, queue} ->
         Parent.GenServer.start_child(%{
-          id: :compute_isolation_job,
-          start: fn -> start_compute_isolation(column, state) end,
+          id: :compute_job,
+          start: fn -> start_compute(column, state) end,
           meta: %{column: column}
         })
 
@@ -129,22 +129,22 @@ defmodule Cloak.DataSource.PerColumn.Cache do
     end
   end
 
-  defp start_compute_isolation(column, state) do
+  defp start_compute(column, state) do
     Task.start_link(fn ->
-      Logger.debug(fn -> "computing isolated for #{inspect(column)}" end)
-      isolated = state.opts.property_fun.(column)
-      PersistentKeyValue.store(state.cache_owner, column, isolated)
+      Logger.debug(fn -> "#{inspect(state.opts.name)} computing for #{inspect(column)}" end)
+      property = state.opts.property_fun.(column)
+      PersistentKeyValue.store(state.cache_owner, column, property)
     end)
   end
 
   defp add_waiting_request(state, column, from) do
-    queue = if computing_isolation?(column), do: state.queue, else: Queue.set_high_priority(state.queue, column)
+    queue = if computing?(column), do: state.queue, else: Queue.set_high_priority(state.queue, column)
     waiting = Map.update(state.waiting, column, [from], &[from | &1])
     %{state | waiting: waiting, queue: queue}
   end
 
-  defp computing_isolation?(column),
-    do: match?({:ok, %{column: ^column}}, Parent.GenServer.child_meta(:compute_isolation_job))
+  defp computing?(column),
+    do: match?({:ok, %{column: ^column}}, Parent.GenServer.child_meta(:compute_job))
 
   defp respond_error_on_missing_columns(state) do
     {good, missing} =

@@ -1,7 +1,5 @@
 defmodule Cloak.DataSource.Shadows.Cache do
-  @moduledoc """
-  Implementation of the cache which holds the shadow table of all known columns of all data sources.
-  """
+  @moduledoc "Implementation of the cache which holds the shadow table of all known columns of all data sources."
 
   @day :timer.hours(24)
   @refresh_interval 7 * @day
@@ -12,7 +10,7 @@ defmodule Cloak.DataSource.Shadows.Cache do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Returns true if the given column in the given table is isolating, false otherwise."
+  @doc "Returns the shadow table for the given column."
   @spec shadow(atom | pid, Cloak.DataSource.t(), String.t(), String.t()) :: [any]
   def shadow(cache_ref \\ __MODULE__, data_source, table_name, column_name),
     do: Cache.value(cache_ref, data_source, table_name, column_name)

@@ -64,7 +64,7 @@ defmodule Cloak.DataSource.Shadows do
     end)
   end
 
-  def any?(condition, shadow) do
+  defp any?(condition, shadow) do
     cond do
       Sql.Condition.not_equals?(condition) ->
         value = Sql.Condition.value(condition)
