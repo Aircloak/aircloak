@@ -68,14 +68,12 @@ defmodule Cloak.DataSource.Utility do
     {"mongodb", Cloak.DataSource.MongoDB},
     {"mysql", Cloak.DataSource.MySQL},
     {"postgresql", Cloak.DataSource.PostgreSQL},
-    {"sqlserver", Cloak.DataSource.SQLServerRODBC},
-    {"sqlserver_odbc", Cloak.DataSource.SQLServer},
-    {"sqlserver_rodbc", Cloak.DataSource.SQLServerRODBC},
-    {"saphana", Cloak.DataSource.SAPHanaRODBC},
-    {"saphana_odbc", Cloak.DataSource.SAPHana},
-    {"saphana_rodbc", Cloak.DataSource.SAPHanaRODBC},
-    {"drill", Cloak.DataSource.DrillRODBC},
-    {"drill_rodbc", Cloak.DataSource.DrillRODBC}
+    {"sqlserver", Cloak.DataSource.SQLServer},
+    {"sqlserver_rodbc", Cloak.DataSource.SQLServer},
+    {"saphana", Cloak.DataSource.SAPHana},
+    {"saphana_rodbc", Cloak.DataSource.SAPHana},
+    {"drill", Cloak.DataSource.Drill},
+    {"drill_rodbc", Cloak.DataSource.Drill}
   ]
 
   @doc "Returns the data source driver module given a data source type name"

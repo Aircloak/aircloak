@@ -14,7 +14,7 @@ defmodule Cloak.DataSource.RODBC do
   @doc "Normalizes the connection parameters and connects to the data source via odbc."
   @spec connect!(Driver.parameters(), (map -> map), Keyword.t()) :: pid()
   def connect!(parameters, conn_params_extractor, driver_params \\ []) do
-    normalized_parameters = Cloak.DataSource.ODBC.normalize_parameters(parameters)
+    normalized_parameters = normalize_parameters(parameters)
 
     normalized_parameters
     |> conn_params_extractor.()
@@ -96,6 +96,23 @@ defmodule Cloak.DataSource.RODBC do
       "#{Atom.to_string(key)}=#{value}"
     end)
     |> Enum.join(";")
+  end
+
+  defp normalize_parameters(parameters) do
+    parameters
+    |> Stream.map(fn {key, value} -> {downcase_key(key), value} end)
+    |> Stream.reject(fn {key, _value} -> is_nil(key) end)
+    |> Enum.into(%{})
+  end
+
+  defp downcase_key(key) do
+    string_key = key |> Atom.to_string() |> String.downcase()
+
+    try do
+      String.to_existing_atom(string_key)
+    rescue
+      ArgumentError -> nil
+    end
   end
 
   defp stream_rows(connection, row_mapper) do

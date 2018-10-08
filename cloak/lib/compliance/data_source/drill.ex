@@ -7,12 +7,11 @@ defmodule Compliance.DataSource.Drill do
 
   use Compliance.DataSource.Connector
   alias Compliance.DataSource.Connector
-  alias Cloak.DataSource.{ODBC, DrillRODBC}
+  alias Cloak.DataSource.{RODBC, Drill}
 
   @impl Connector
   def setup(%{parameters: params}) do
     Application.ensure_all_started(:httpoison)
-    Application.ensure_all_started(:odbc)
 
     port = Map.get(params, :management_port, 8047)
     Connector.await_port(params.hostname, port)
@@ -22,7 +21,7 @@ defmodule Compliance.DataSource.Drill do
   end
 
   @impl Connector
-  def connect(state), do: Map.put(state, :conn, ODBC.connect!(state.parameters, &DrillRODBC.conn_params/1))
+  def connect(state), do: Map.put(state, :conn, RODBC.connect!(state.parameters, &Drill.conn_params/1))
 
   @impl Connector
   def create_table(_table_name, _columns, state), do: state
@@ -42,13 +41,13 @@ defmodule Compliance.DataSource.Drill do
     |> Path.join("#{table_name}_raw")
     |> File.write!(jsonized)
 
-    create_view(table_name, data, state.conn)
+    create_view!(table_name, data, state.conn)
 
     state
   end
 
   @impl Connector
-  def terminate(state), do: :odbc.disconnect(state.conn)
+  def terminate(state), do: RODBC.disconnect(state.conn)
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -58,9 +57,9 @@ defmodule Compliance.DataSource.Drill do
     update_in(data, [Lens.map_values() |> Lens.filter(&match?(%NaiveDateTime{}, &1))], &to_string/1)
   end
 
-  defp create_view(table_name, [item | _data], conn) do
-    run_query("DROP VIEW IF EXISTS #{table_name}", conn)
-    run_query("CREATE VIEW #{table_name} AS SELECT #{view_select_list(item)} FROM #{table_name}_raw", conn)
+  defp create_view!(table_name, [item | _data], conn) do
+    run_query!("DROP VIEW IF EXISTS #{table_name}", conn)
+    run_query!("CREATE VIEW #{table_name} AS SELECT #{view_select_list(item)} FROM #{table_name}_raw", conn)
   end
 
   defp view_select_list(item) do
@@ -74,10 +73,10 @@ defmodule Compliance.DataSource.Drill do
     |> Enum.join(", ")
   end
 
-  defp run_query(query, conn) do
-    case :odbc.sql_query(conn, to_charlist(query)) do
-      {:error, reason} -> raise to_string(reason)
-      _ -> :ok
+  defp run_query!(query, conn) do
+    case RODBC.Port.execute(conn, query) do
+      {:error, reason} -> raise reason
+      :ok -> :ok
     end
   end
 

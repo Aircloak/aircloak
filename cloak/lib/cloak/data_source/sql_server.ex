@@ -1,10 +1,7 @@
 defmodule Cloak.DataSource.SQLServer do
-  @moduledoc """
-  Implements the DataSource.Driver behaviour for Microsoft SQL Server.
-  For more information, see `DataSource`.
-  """
+  @moduledoc "Implements the DataSource.Driver behaviour for MS SQL Server. For more information, see `DataSource`."
 
-  alias Cloak.DataSource.ODBC
+  alias Cloak.DataSource.RODBC
 
   use Cloak.DataSource.Driver.SQL
 
@@ -14,28 +11,31 @@ defmodule Cloak.DataSource.SQLServer do
 
   @impl Driver
   def connect!(parameters) do
-    connection = ODBC.connect!(parameters, &conn_params/1)
-    {:updated, _} = :odbc.sql_query(connection, 'SET ANSI_DEFAULTS ON')
+    connection = RODBC.connect!(parameters, &conn_params/1)
+    :ok = RODBC.Port.execute(connection, "SET ANSI_DEFAULTS ON")
     connection
   end
 
   @impl Driver
-  defdelegate disconnect(connection), to: ODBC
+  defdelegate disconnect(connection), to: RODBC
 
   @impl Driver
-  defdelegate load_tables(connection, table), to: ODBC
+  defdelegate load_tables(connection, table), to: RODBC
 
   @impl Driver
-  defdelegate select(connection, sql_query, result_processor), to: ODBC
+  defdelegate select(connection, sql_query, result_processor), to: RODBC
 
   @impl Driver
-  defdelegate driver_info(connection), to: ODBC
+  defdelegate driver_info(connection), to: RODBC
 
   @impl Driver
-  defdelegate supports_connection_sharing?(), to: ODBC
+  defdelegate supports_connection_sharing?(), to: RODBC
 
   @impl Driver
-  defdelegate cast_to_text?(), to: ODBC
+  def sql_dialect_module(), do: SqlBuilder.SQLServer
+
+  @impl Driver
+  defdelegate cast_to_text?(), to: RODBC
 
   # -------------------------------------------------------------------
   # Internal functions

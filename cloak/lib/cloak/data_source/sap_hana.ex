@@ -1,15 +1,16 @@
 defmodule Cloak.DataSource.SAPHana do
   @moduledoc """
-  Implements the DataSource.Driver behaviour for SAP HANA.
+  Implements the DataSource.Driver behaviour for SAP HANA using the Rust ODBC port driver.
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.ODBC
+  alias Cloak.DataSource.RODBC
+  alias Cloak.DataSource
+
   use Cloak.DataSource.Driver.SQL
 
   @doc """
   Returns the SAP HANA schema as configured in app config.
-
   This is useful in development, to allow different developers to work on different schemas.
   """
   @spec default_schema() :: nil | String.t()
@@ -28,28 +29,28 @@ defmodule Cloak.DataSource.SAPHana do
   @impl Driver
   def connect!(parameters) do
     unless File.exists?(Cloak.SapHanaHelpers.driver_path()),
-      do: Cloak.DataSource.raise_error("ODBC driver for SAP HANA is not mounted.")
+      do: DataSource.raise_error("ODBC driver for SAP HANA is not mounted.")
 
-    ODBC.connect!(parameters, &conn_params/1)
+    RODBC.connect!(parameters, &conn_params/1)
   end
 
   @impl Driver
-  defdelegate disconnect(connection), to: ODBC
+  defdelegate disconnect(connection), to: RODBC
 
   @impl Driver
-  def load_tables(connection, table), do: ODBC.load_tables(connection, update_in(table.db_name, &~s/"#{&1}"/))
+  def load_tables(connection, table), do: RODBC.load_tables(connection, update_in(table.db_name, &"\"#{&1}\""))
 
   @impl Driver
-  defdelegate select(connection, sql_query, result_processor), to: ODBC
+  defdelegate select(connection, sql_query, result_processor), to: RODBC
 
   @impl Driver
-  defdelegate driver_info(connection), to: ODBC
+  defdelegate driver_info(connection), to: RODBC
 
   @impl Driver
-  defdelegate supports_connection_sharing?(), to: ODBC
+  defdelegate supports_connection_sharing?(), to: RODBC
 
   @impl Driver
-  defdelegate cast_to_text?(), to: ODBC
+  defdelegate cast_to_text?(), to: RODBC
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -63,8 +64,11 @@ defmodule Cloak.DataSource.SAPHana do
       databasename: normalized_parameters[:database],
       DSN: "SAPHana"
     }
-    |> Map.merge(schema_option(default_schema()))
+    |> Map.merge(schema_option(Cloak.DataSource.SAPHana.default_schema()))
   end
+
+  defp schema_option(nil), do: %{}
+  defp schema_option(schema), do: %{cs: ~s/"#{schema}"/}
 
   defp default_schema_from_app_config() do
     with {:ok, saphana_settings} <- Application.fetch_env(:cloak, :sap_hana),
@@ -78,7 +82,4 @@ defmodule Cloak.DataSource.SAPHana do
   defp non_empty_schema(nil), do: nil
   defp non_empty_schema(""), do: nil
   defp non_empty_schema(schema) when is_binary(schema), do: schema
-
-  defp schema_option(nil), do: %{}
-  defp schema_option(schema), do: %{cs: ~s/"#{schema}"/}
 end
