@@ -95,6 +95,7 @@ defmodule DataQuality.Test.Query do
 
           anonymized_value ->
             %{
+              dimension_value: dimension,
               source: backend,
               real_value: real_value,
               anonymized_value: anonymized_value,

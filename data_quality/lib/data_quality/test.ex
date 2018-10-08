@@ -30,6 +30,7 @@ defmodule DataQuality.Test do
           distribution: String.t(),
           dimension: dimension,
           source: String.t(),
+          dimension_value: any,
           real_value: number,
           anonymized_value: number,
           relative_error: float,
