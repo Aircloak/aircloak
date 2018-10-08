@@ -8,7 +8,7 @@ imagePath <- args[2]
 data <- read.csv(csvPath, header=TRUE, sep=";")
 
 graph <- ggplot(data=data) +
-  geom_line(aes(x=Index, y=Result, group=Source, color=Source)) +
+  geom_line(aes(x=Dimension, y=Result, group=Source, color=Source)) +
   xlab("Bucket index") +
   ylab("Value")
 
