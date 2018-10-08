@@ -95,18 +95,21 @@ defmodule DataQuality.Test.Query do
 
           anonymized_value ->
             %{
-              dimension_value: dimension,
+              dimension_value: integer_if_possible(dimension),
               source: backend,
               real_value: real_value,
               anonymized_value: anonymized_value,
               error: abs(real_value - anonymized_value),
-              relative_error: abs(anonymized_value - real_value) / real_value
+              relative_error: abs(anonymized_value - real_value) / non_zero(real_value)
             }
         end
       end)
       |> Enum.reject(&is_nil/1)
     end)
   end
+
+  defp non_zero(0), do: 1
+  defp non_zero(value), do: value
 
   defp rows(raw_rows), do: Enum.map(raw_rows, & &1["row"])
 
@@ -236,4 +239,15 @@ defmodule DataQuality.Test.Query do
     ) t
     GROUP BY numBucket
     """
+
+  defp integer_if_possible(nil), do: nil
+  defp integer_if_possible(value) when is_number(value), do: value
+
+  defp integer_if_possible(value) do
+    cond do
+      value =~ ~r/^\d+\.\d+$/ -> String.to_float(value)
+      value =~ ~r/^\d+$/ -> String.to_integer(value)
+      _otherwise = true -> value
+    end
+  end
 end

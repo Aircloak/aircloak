@@ -55,13 +55,10 @@ defmodule DataQuality.Test.Present do
       table_rows =
         rows
         |> Enum.map(fn row ->
-          [
-            Utility.name(row[:distribution]),
-            Utility.name(row[:dimension]),
-            Utility.name(row[:aggregate])
-          ] ++ Enum.map(sources, &Map.get(row, &1))
+          [row[:distribution], row[:dimension], row[:aggregate]] ++ Enum.map(sources, &Map.get(row, &1))
         end)
         |> Enum.sort()
+        |> Enum.map(&Enum.map(&1, fn value -> Utility.name(value) end))
 
       IO.puts(AsciiTable.format([col_headers | table_rows]) <> "\n")
     end)
