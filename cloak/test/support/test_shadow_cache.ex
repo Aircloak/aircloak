@@ -13,6 +13,15 @@ defmodule Cloak.TestShadowCache do
     end
   end
 
+  def lookup(data_source, table, column) do
+    case Agent.get(__MODULE__, &Map.fetch(&1, {data_source.name, table, column})) do
+      :error -> {:ok, []}
+      {:ok, {:safe, values}} -> {:ok, values}
+      {:ok, :live} -> {:ok, Cloak.DataSource.Shadows.Query.build_shadow(data_source, table, column)}
+      {:ok, :forward} -> Cloak.DataSource.Shadows.Cache.lookup(data_source, table, column)
+    end
+  end
+
   def live(data_source, table, column) do
     Agent.update(__MODULE__, &Map.put(&1, {data_source.name, table, column}, :live))
   end
