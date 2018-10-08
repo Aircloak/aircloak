@@ -469,36 +469,26 @@ defmodule Air.Service.DataSource do
       })
 
   defp data_source_to_db_data(name, tables, errors) do
-    # We're computing total column count, isolated computed count, and the list of failed isolators, and storing them
-    # directly. This allows us to have that data ready, without needing to decode the tables json. Since these counts
-    # are frequently needed to determine the column status, we're precomputing them once.
-
-    status =
-      for table <- tables, column <- table.columns do
-        {table.id, column.name, column.isolated}
-      end
-      |> Enum.reduce(
-        %{total: 0, computed: 0, failed: []},
-        fn
-          {table, column, :failed}, acc ->
-            %{acc | total: acc.total + 1, failed: ["#{table}.#{column}" | acc.failed]}
-
-          {_, _, isolated}, acc when is_boolean(isolated) ->
-            %{acc | total: acc.total + 1, computed: acc.computed + 1}
-
-          _, acc ->
-            %{acc | total: acc.total + 1}
-        end
-      )
+    # We're computing total column count, and computed and failed counts for isolators and shadow tables, and storing
+    # them directly. This allows us to have that data ready, without needing to decode the tables json. Since these
+    # counts are frequently needed to determine the column status, we're precomputing them once.
 
     %{
       name: name,
       tables: Poison.encode!(tables),
       errors: Poison.encode!(errors),
-      isolated_computed_count: status.computed,
-      columns_count: status.total,
-      isolated_failed: status.failed
+      columns_count: count_columns(tables, fn _ -> true end),
+      isolated_computed_count: count_columns(tables, &is_boolean(&1.isolated)),
+      isolated_failed: filter_columns(tables, &(&1.isolated == :failed))
     }
+  end
+
+  defp count_columns(tables, predicate), do: tables |> filter_columns(predicate) |> length()
+
+  defp filter_columns(tables, predicate) do
+    for table <- tables, column <- table.columns, predicate.(column) do
+      "#{table.id}.#{column.name}"
+    end
   end
 
   # -------------------------------------------------------------------
