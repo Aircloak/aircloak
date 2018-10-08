@@ -10,7 +10,7 @@ defmodule Compliance.DataSource.SQLServer do
 
   @impl Connector
   def setup(%{parameters: params}) do
-    Application.ensure_all_started(:odbc)
+    {:ok, _} = Application.ensure_all_started(:odbc)
     Connector.await_port(params.hostname, Map.get(params, :port, 1433))
     setup_database(params)
     :ok

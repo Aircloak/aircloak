@@ -69,7 +69,7 @@ defmodule Cloak.Mixfile do
     ]
   end
 
-  defp extra_applications(:test), do: common_extra_applications()
+  defp extra_applications(:test), do: [:odbc | common_extra_applications()]
   defp extra_applications(:dev), do: [:os_mon | common_extra_applications()]
   defp extra_applications(:prod), do: [:os_mon | common_extra_applications()]
 
