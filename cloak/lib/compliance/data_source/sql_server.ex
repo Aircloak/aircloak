@@ -18,7 +18,7 @@ defmodule Compliance.DataSource.SQLServer do
 
   @impl Connector
   def connect(%{parameters: params}) do
-    conn = Cloak.DataSource.SQLServer.connect!(params)
+    conn = create_connection!(params)
     execute!(conn, "SET IMPLICIT_TRANSACTIONS off")
     conn
   end
@@ -50,6 +50,26 @@ defmodule Compliance.DataSource.SQLServer do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp create_connection!(params) do
+    [
+      DSN: "SQLServer",
+      Server: params.hostname,
+      Uid: params.username,
+      Pwd: params.password,
+      Port: params[:port],
+      Database: params.database
+    ]
+    |> Enum.reject(&match?({_key, nil}, &1))
+    |> Enum.map(fn {key, value} -> [to_string(key), ?=, value] end)
+    |> Enum.join(";")
+    |> to_charlist()
+    |> :odbc.connect(auto_commit: :on, binary_strings: :on, tuple_row: :off)
+    |> case do
+      {:ok, connection} -> connection
+      {:error, error} -> raise error
+    end
+  end
 
   def chunks_to_insert(table_name, data) do
     column_names = column_names(data)
@@ -93,15 +113,7 @@ defmodule Compliance.DataSource.SQLServer do
   end
 
   defp setup_database(params) do
-    conn =
-      Cloak.DataSource.SQLServer.connect!(
-        hostname: params.hostname,
-        username: params.username,
-        password: params.password,
-        port: Map.get(params, :port, 1433),
-        database: "master"
-      )
-
+    conn = create_connection!(%{params | database: "master"})
     :odbc.sql_query(conn, ~c/
       IF EXISTS(select * from sys.databases where name='#{params.database}')
         DROP DATABASE #{params.database}
