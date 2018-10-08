@@ -25,6 +25,7 @@ defmodule DataQuality.Test do
   @type test :: %{name: aggregate_class, aggregates: [aggregate]}
 
   @type result :: %{
+          aggregate: aggregate,
           class: String.t(),
           distribution: String.t(),
           dimension: dimension,
