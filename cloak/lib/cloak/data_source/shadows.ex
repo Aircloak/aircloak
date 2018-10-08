@@ -40,7 +40,7 @@ defmodule Cloak.DataSource.Shadows do
         {:ok, true}
 
       [{table, column}] ->
-        shadow = @cache_module.shadow(query.data_source, table, column) |> Stream.map(&evaluate(expression, &1))
+        shadow = @cache_module.shadow(query.data_source, table.name, column) |> Stream.map(&evaluate(expression, &1))
         any?(condition, shadow)
 
       _ ->
@@ -51,7 +51,7 @@ defmodule Cloak.DataSource.Shadows do
   defp columns(expression) do
     expression
     |> get_in([Sql.Query.Lenses.leaf_expressions() |> Lens.filter(&Sql.Expression.column?/1)])
-    |> Enum.map(&{&1.table.name, &1.name})
+    |> Enum.map(&{&1.table, &1.name})
     |> Enum.uniq()
   end
 

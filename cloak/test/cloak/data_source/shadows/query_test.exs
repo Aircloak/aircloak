@@ -10,6 +10,8 @@ defmodule Cloak.DataSource.Shadows.Query.Test do
       Cloak.Test.DB.create_table("shadows", "value INTEGER, encoded_value TEXT",
         decoders: [%{method: "base64", columns: ["encoded_value"]}]
       )
+
+    :ok = Cloak.Test.DB.create_table("shadows_userless", "value INTEGER", user_id: nil)
   end
 
   setup do
@@ -48,6 +50,12 @@ defmodule Cloak.DataSource.Shadows.Query.Test do
 
       for data_source <- DataSource.all() do
         assert MapSet.new(Query.build_shadow(data_source, "shadows", "value")) == MapSet.new(1..100)
+      end
+    end
+
+    test "builds an empty list for userless tables" do
+      for data_source <- DataSource.all() do
+        assert Query.build_shadow(data_source, "shadows_userless", "value") == []
       end
     end
 
