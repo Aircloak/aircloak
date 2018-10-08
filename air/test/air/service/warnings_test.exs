@@ -11,7 +11,7 @@ defmodule Air.Service.WarningsTest do
   @data_sources_with_failed_isolators [
     %{
       name: @data_source_name,
-      tables: [%{id: "failed_table", columns: [%{name: "failed_isolator", isolated: :failed}]}],
+      tables: [%{id: "failed_table", columns: [%{name: "failed_isolator", shadow_table: :ok, isolated: :failed}]}],
       errors: []
     }
   ]

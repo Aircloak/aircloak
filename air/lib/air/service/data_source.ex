@@ -453,10 +453,14 @@ defmodule Air.Service.DataSource do
       {:error, :internal_error}
   end
 
+  @data_source_fields ~w(
+    name tables errors description columns_count isolated_computed_count isolated_failed shadow_tables_computed_count
+    shadow_tables_failed
+  )a
   defp data_source_changeset(data_source, params),
     do:
       data_source
-      |> cast(params, ~w(name tables errors description columns_count isolated_computed_count isolated_failed)a)
+      |> cast(params, @data_source_fields)
       |> validate_required(~w(name tables)a)
       |> unique_constraint(:name)
       |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
@@ -479,7 +483,9 @@ defmodule Air.Service.DataSource do
       errors: Poison.encode!(errors),
       columns_count: count_columns(tables, fn _ -> true end),
       isolated_computed_count: count_columns(tables, &is_boolean(&1.isolated)),
-      isolated_failed: filter_columns(tables, &(&1.isolated == :failed))
+      isolated_failed: filter_columns(tables, &(&1.isolated == :failed)),
+      shadow_tables_computed_count: count_columns(tables, &(&1.shadow_table == :ok)),
+      shadow_tables_failed: filter_columns(tables, &(&1.shadow_table == :failed))
     }
   end
 

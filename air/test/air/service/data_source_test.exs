@@ -243,20 +243,39 @@ defmodule Air.Service.DataSourceTest do
         %{
           id: "table_id",
           columns: [
-            %{name: "col1", isolated: true},
-            %{name: "col2", isolated: false},
-            %{name: "failure", isolated: :failed},
-            %{name: "col3", isolated: :other}
+            %{name: "col1", shadow_table: :ok, isolated: true},
+            %{name: "col2", shadow_table: :ok, isolated: false},
+            %{name: "failure", shadow_table: :ok, isolated: :failed},
+            %{name: "col3", shadow_table: :ok, isolated: :other}
           ]
         }
       ]
 
-      name = "new_name"
-      data_source = DataSource.create_or_update_data_source(name, tables, [])
+      data_source = DataSource.create_or_update_data_source("new_name", tables, [])
 
       assert data_source.columns_count == 4
       assert data_source.isolated_computed_count == 2
       assert data_source.isolated_failed == ["table_id.failure"]
+    end
+
+    test "should compute and store shadow table status" do
+      tables = [
+        %{
+          id: "table_id",
+          columns: [
+            %{name: "col1", isolated: true, shadow_table: :ok},
+            %{name: "col2", isolated: true, shadow_table: :ok},
+            %{name: "failure", isolated: true, shadow_table: :failed},
+            %{name: "col3", isolated: true, shadow_table: :other}
+          ]
+        }
+      ]
+
+      data_source = DataSource.create_or_update_data_source("new_name", tables, [])
+
+      assert data_source.columns_count == 4
+      assert data_source.shadow_tables_computed_count == 2
+      assert data_source.shadow_tables_failed == ["table_id.failure"]
     end
   end
 
