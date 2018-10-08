@@ -120,6 +120,7 @@ defmodule Cloak.Query.DbEmulator do
     |> Stream.concat()
     |> RowSplitters.split(query)
     |> Selector.select(query)
+    |> Stream.map(&Enum.take(&1, length(query.columns)))
     |> convert_rows(query)
   end
 
