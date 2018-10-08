@@ -16,13 +16,8 @@ defmodule DataQuality.Test do
     {:bucket, 500}
   ]
 
-  @type aggregate_class :: String.t()
-  @type distribution_name :: String.t()
   @type dimension :: {:dimension, String.t()} | {:bucket, integer}
   @type aggregate :: {:count, String.t()} | :min | :max | :sum
-  @type data_source :: String.t()
-  @type query_result :: %{data_source => number}
-  @type test :: %{name: aggregate_class, aggregates: [aggregate]}
 
   @type result :: %{
           aggregate: aggregate,
@@ -36,26 +31,8 @@ defmodule DataQuality.Test do
           relative_error: float,
           error: number
         }
-  @type results :: %{
-          aggregate_class => %{
-            distribution_name => %{
-              dimension => %{
-                aggregate => %{
-                  raw_data: [query_result],
-                  processed_data: %{mse: float | nil}
-                }
-              }
-            }
-          }
-        }
 
-  @type category :: String.t()
   @type source :: String.t()
-  @type global_results :: %{
-          sources: [String.t()],
-          mse_by_category: %{category => %{(dimension | aggregate) => [float]}},
-          mse_by_source: %{source => float}
-        }
 
   @type data_source_spec :: %{
           api_token: String.t(),
@@ -106,12 +83,8 @@ defmodule DataQuality.Test do
         }
       ]
       |> Query.measure(config, @dimensions)
-      |> Processing.calculate_mse()
-
-    global_results = Processing.calculate_global_mse(per_query_results)
-    Present.mse(per_query_results, global_results, config)
-
-    Persist.to_disk(per_query_results)
+      |> Present.mse()
+      |> Persist.to_disk()
 
     :ok
   end
