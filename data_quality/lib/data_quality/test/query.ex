@@ -37,15 +37,15 @@ defmodule DataQuality.Test.Query do
 
     results =
       dimensions
-      |> Enum.flat_map(&measurements_for_dimension(&1, distribution_name, config, test))
+      |> Enum.flat_map(&measurements_for_dimension(&1, distribution_name, test[:aggregates], config))
       |> Enum.map(&Map.put(&1, :distribution, distribution_name))
 
     OutputStatus.done(distribution_name)
     results
   end
 
-  def measurements_for_dimension(dimension, distribution_name, config, test) do
-    case run_queries(config, distribution_name, dimension, test[:aggregates]) do
+  def measurements_for_dimension(dimension, distribution_name, aggregates, config) do
+    case run_queries(config, distribution_name, dimension, aggregates) do
       {:ok, dimension_results} -> Enum.map(dimension_results, &Map.put(&1, :dimension, dimension))
       :error -> []
     end
