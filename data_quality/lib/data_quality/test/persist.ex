@@ -82,7 +82,7 @@ defmodule DataQuality.Test.Persist do
   end
 
   defp graph_for(dir, aggregate, property, data, options) do
-    csv_path = Path.join([dir, Utility.name(aggregate) <> "-r.csv"])
+    csv_path = Path.join([dir, Utility.name(aggregate) <> "-#{property}-r.csv"])
     img_path = Path.join([dir, Utility.name(aggregate) <> "-#{property}.png"])
 
     csv_header_line = "Dimension;Source;Result\n"
