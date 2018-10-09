@@ -20,6 +20,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
     |> Rows.filter(query |> Query.emulated_where() |> Condition.to_function())
     |> select_columns(columns, query)
     |> Sorter.order_rows(columns, query.order_by)
+    |> Stream.map(&Enum.take(&1, length(query.columns)))
     |> offset_rows(query)
     |> limit_rows(query)
   end
