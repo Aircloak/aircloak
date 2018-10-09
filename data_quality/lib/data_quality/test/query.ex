@@ -25,31 +25,29 @@ defmodule DataQuality.Test.Query do
 
   defp collect_measurements(config, dimensions, test) do
     Logger.header(test[:name])
-    Enum.flat_map(Distributions.list(), &measurements_for_distribution(&1, config, dimensions, test))
+
+    Distributions.list()
+    |> Enum.flat_map(&measurements_for_distribution(&1, config, dimensions, test))
+    |> Enum.map(&Map.put(&1, :class, test[:name]))
   end
 
   defp measurements_for_distribution(distribution, config, dimensions, test) do
     distribution_name = Distributions.distribution_name(distribution)
     OutputStatus.new_line(distribution_name, :pending, "querying")
-    results = Enum.flat_map(dimensions, &measurements_for_dimension(&1, distribution_name, config, test))
+
+    results =
+      dimensions
+      |> Enum.flat_map(&measurements_for_dimension(&1, distribution_name, config, test))
+      |> Enum.map(&Map.put(&1, :distribution, distribution_name))
+
     OutputStatus.done(distribution_name)
     results
   end
 
   def measurements_for_dimension(dimension, distribution_name, config, test) do
     case run_queries(config, distribution_name, dimension, test[:aggregates]) do
-      {:ok, dimension_results} ->
-        Enum.map(
-          dimension_results,
-          &Map.merge(&1, %{
-            dimension: dimension,
-            distribution: distribution_name,
-            class: test[:name]
-          })
-        )
-
-      :error ->
-        []
+      {:ok, dimension_results} -> Enum.map(dimension_results, &Map.put(&1, :dimension, dimension))
+      :error -> []
     end
   end
 
