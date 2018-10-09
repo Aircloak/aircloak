@@ -297,8 +297,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     Query.Lenses.all_queries()
     |> Lens.context(negative_conditions())
     |> Lens.to_list(query)
+    |> Stream.map(fn {query, condition} -> {query, expand_expressions(condition, query)} end)
     |> Stream.reject(fn {query, condition} ->
-      case Shadows.safe?(condition, query) do
+      case Shadows.safe?(condition, query.data_source) do
         {:ok, result} ->
           result
 
@@ -319,6 +320,15 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
           source_location: Condition.subject(condition).source_location,
           message: "At most #{@max_rare_negative_conditions} negative conditions are allowed."
     end
+  end
+
+  defp expand_expressions(condition, query) do
+    update_in(condition, [Query.Lenses.leaf_expressions() |> Lens.filter(&Expression.column?/1)], fn expression ->
+      case Query.resolve_subquery_column(expression, query) do
+        :database_column -> expression
+        {column, subquery} -> expand_expressions(column, subquery)
+      end
+    end)
   end
 
   defp negative_conditions() do
