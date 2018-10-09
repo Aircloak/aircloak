@@ -35,30 +35,37 @@ defmodule DataQuality.Test.Query do
   end
 
   def measurements_for_dimension(dimension, distribution_name, config, test) do
-    dimension_results = run_queries(config, distribution_name, dimension, test[:aggregates])
+    case run_queries(config, distribution_name, dimension, test[:aggregates]) do
+      {:ok, dimension_results} ->
+        Enum.map(
+          dimension_results,
+          &Map.merge(&1, %{
+            dimension: dimension,
+            distribution: distribution_name,
+            class: test[:name]
+          })
+        )
 
-    Enum.map(
-      dimension_results,
-      &Map.merge(&1, %{
-        dimension: dimension,
-        distribution: distribution_name,
-        class: test[:name]
-      })
-    )
+      :error ->
+        []
+    end
   end
 
   defp run_queries(config, distribution_name, dimension, aggregate_variants, attempts \\ 4)
 
   defp run_queries(_config, _distribution_name, dimension, _aggregate_variants, 0) do
     Logger.log("Giving up. Repeatedly fails: [dimension: #{Utility.name(dimension)}]")
-    []
+    :error
   end
 
   defp run_queries(config, distribution_name, dimension, aggregate_variants, attempts) do
-    Enum.flat_map(aggregate_variants, fn aggregate ->
-      results = run_query(config, for_class(distribution_name, dimension, aggregate))
-      Enum.map(results, &Map.put(&1, :aggregate, aggregate))
-    end)
+    result =
+      Enum.flat_map(aggregate_variants, fn aggregate ->
+        run_query(config, for_class(distribution_name, dimension, aggregate))
+        |> Enum.map(&Map.put(&1, :aggregate, aggregate))
+      end)
+
+    {:ok, result}
   rescue
     _e -> run_queries(config, distribution_name, dimension, aggregate_variants, attempts - 1)
   end
