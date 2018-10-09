@@ -50,6 +50,8 @@ defmodule Cloak.DataSource.Drill do
   @impl Driver
   def load_tables(connection, table) do
     table = update_in(table.db_name, &SqlBuilder.quote_table_name(&1, ?`))
+    # In order to workaround some Drill bugs, we need to use `LIMIT 1` when detecting columns.
+    # Both `WHERE 1=0` and `LIMIT 0` crash, in some scenarios, on version 1.14.
     RODBC.load_tables(connection, table, &"SELECT * FROM #{&1} LIMIT 1")
   end
 
