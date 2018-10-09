@@ -93,19 +93,15 @@ defmodule DataQuality.Test.Query do
     Enum.flat_map(raw_results, fn {dimension, real_value} ->
       anonymized_results
       |> Enum.map(fn {backend, values} ->
-        case Map.get(values, dimension) do
-          nil ->
-            nil
-
-          anonymized_value ->
-            %{
-              dimension_value: integer_if_possible(dimension),
-              source: backend,
-              real_value: real_value,
-              anonymized_value: anonymized_value,
-              error: abs(real_value - anonymized_value),
-              relative_error: abs(anonymized_value - real_value) / non_zero(real_value)
-            }
+        with anonymized_value when not is_nil(anonymized_value) <- Map.get(values, dimension) do
+          %{
+            dimension_value: integer_if_possible(dimension),
+            source: backend,
+            real_value: real_value,
+            anonymized_value: anonymized_value,
+            error: abs(real_value - anonymized_value),
+            relative_error: abs(anonymized_value - real_value) / non_zero(real_value)
+          }
         end
       end)
       |> Enum.reject(&is_nil/1)
