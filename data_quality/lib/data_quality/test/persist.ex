@@ -11,48 +11,49 @@ defmodule DataQuality.Test.Persist do
   @doc "Persist the query results to disk as CSV. Also generates graphs for inspection of the results"
   def to_disk(all_results) do
     Logger.banner("Writing raw query results and producing graphs")
-
-    Utility.process_across_dimensions(all_results, %{}, [:dimension, :distribution, :aggregate], fn segment_values,
-                                                                                                    selected_dimensions ->
-      dir = Path.join(["output", selected_dimensions[:distribution], Utility.name(selected_dimensions[:dimension])])
-      :ok = File.mkdir_p(dir)
-
-      sources =
-        segment_values
-        |> Enum.map(& &1[:source])
-        |> Enum.uniq()
-        |> Enum.sort()
-
-      {csv_data, graph_data} =
-        segment_values
-        |> Enum.map(& &1[:dimension_value])
-        |> Enum.uniq()
-        |> Enum.sort()
-        |> Enum.map(fn dimension_value ->
-          relevant_results = Enum.filter(segment_values, &(&1[:dimension_value] == dimension_value))
-
-          values =
-            relevant_results
-            |> Enum.map(&{&1[:source], &1})
-            |> Enum.into(%{})
-
-          real_value = relevant_results |> List.first() |> Map.get(:real_value)
-          row_for_csv = [dimension_value, real_value | sources |> Enum.map(&Map.get(values, &1)[:value])]
-          data_for_graph = %{real_value: real_value, dimension_value: dimension_value, source_values: values}
-          {row_for_csv, data_for_graph}
-        end)
-        |> Enum.unzip()
-
-      persist_human_friendly_table(dir, selected_dimensions[:aggregate], sources, csv_data)
-      output_graph(dir, selected_dimensions[:aggregate], graph_data)
-    end)
-
+    Utility.process_across_dimensions(all_results, %{}, [:dimension, :distribution, :aggregate], &persist/2)
     all_results
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp persist(segment_values, selected_dimensions) do
+    dir = Path.join(["output", selected_dimensions[:distribution], Utility.name(selected_dimensions[:dimension])])
+    :ok = File.mkdir_p(dir)
+
+    sources =
+      segment_values
+      |> Enum.map(& &1[:source])
+      |> Enum.uniq()
+      |> Enum.sort()
+
+    {csv_data, graph_data} =
+      segment_values
+      |> Enum.map(& &1[:dimension_value])
+      |> Enum.uniq()
+      |> Enum.sort()
+      |> Enum.map(&process_segment_values(&1, segment_values, sources))
+      |> Enum.unzip()
+
+    persist_human_friendly_table(dir, selected_dimensions[:aggregate], sources, csv_data)
+    output_graph(dir, selected_dimensions[:aggregate], graph_data)
+  end
+
+  defp process_segment_values(dimension_value, segment_values, sources) do
+    relevant_results = Enum.filter(segment_values, &(&1[:dimension_value] == dimension_value))
+
+    values =
+      relevant_results
+      |> Enum.map(&{&1[:source], &1})
+      |> Enum.into(%{})
+
+    real_value = relevant_results |> List.first() |> Map.get(:real_value)
+    row_for_csv = [dimension_value, real_value | sources |> Enum.map(&Map.get(values, &1)[:value])]
+    data_for_graph = %{real_value: real_value, dimension_value: dimension_value, source_values: values}
+    {row_for_csv, data_for_graph}
+  end
 
   defp persist_human_friendly_table(dir, aggregate, sources, rows) do
     csv_path = Path.join([dir, Utility.name(aggregate) <> ".csv"])
