@@ -6,6 +6,8 @@ defmodule DataQuality.Test.Query do
   alias DataQuality.Test
   alias DataQuality.Test.{Utility, Logger}
 
+  @approximation_of_zero 0.000000000001
+
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
@@ -99,8 +101,8 @@ defmodule DataQuality.Test.Query do
             source: backend,
             real_value: real_value,
             anonymized_value: anonymized_value,
-            error: abs(real_value - anonymized_value),
-            relative_error: abs(anonymized_value - real_value) / non_zero(real_value)
+            error: abs_error(anonymized_value, real_value),
+            relative_error: relative_error(anonymized_value, real_value)
           }
         end
       end)
@@ -108,8 +110,10 @@ defmodule DataQuality.Test.Query do
     end)
   end
 
-  defp non_zero(0), do: 1
-  defp non_zero(value), do: value
+  defp abs_error(anonymized_value, real_value), do: abs(anonymized_value - real_value)
+
+  defp relative_error(anonymized_value, 0), do: anonymized_value / @approximation_of_zero
+  defp relative_error(anonymized_value, real_value), do: abs_error(anonymized_value, real_value) / real_value
 
   defp rows(raw_rows), do: Enum.map(raw_rows, & &1["row"])
 
