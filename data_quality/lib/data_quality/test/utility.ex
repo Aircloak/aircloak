@@ -18,16 +18,6 @@ defmodule DataQuality.Test.Utility do
   def name(name) when is_binary(name), do: name
   def name(other), do: to_string(other)
 
-  @spec partition(
-          [Map.t()],
-          [atom]
-        ) :: %{Map.t() => [Map.t()]}
-  @doc """
-  Partition operates like `Enum.group_by` but instead of a key function it accepts a list of
-  keys by which the list of maps should be partitioned.
-  """
-  def partition(values, partition_keys), do: Enum.group_by(values, &Map.take(&1, partition_keys))
-
   @spec partition_and_process(
           [Test.result()],
           [atom],
@@ -39,7 +29,7 @@ defmodule DataQuality.Test.Utility do
   """
   def partition_and_process(values, partition_keys, callback) do
     values
-    |> partition(partition_keys)
+    |> Enum.group_by(&Map.take(&1, partition_keys))
     |> Task.async_stream(
       fn {partition_parameters, values} -> callback.(values, partition_parameters) end,
       timeout: @timeout
