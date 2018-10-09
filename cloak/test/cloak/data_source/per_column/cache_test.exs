@@ -35,8 +35,8 @@ defmodule Cloak.DataSource.PerColumn.Cache.Test do
       provider =
         new_cache_provider(
           known_columns,
-          compute_isolation_fun:
-            compute_isolation_fun(%{
+          property_fun:
+            property_fun(%{
               "col1" => fn -> Process.sleep(200) end,
               "col2" => fn -> Process.sleep(:infinity) end
             })
@@ -46,18 +46,19 @@ defmodule Cloak.DataSource.PerColumn.Cache.Test do
       assert Cache.value(cache, provider.data_source, provider.table_name, "col3") == {:isolated, "col3"}
     end
 
-    test "handling columns which failed to load" do
+    test "returns default for columns which failed to load" do
       known_columns = ~w(col1 col2 col3)
 
       ExUnit.CaptureLog.capture_log(fn ->
         provider =
           new_cache_provider(
             known_columns,
-            compute_isolation_fun: compute_isolation_fun(%{"col1" => fn -> raise "error" end})
+            property_fun: property_fun(%{"col1" => fn -> raise "error" end}),
+            default: :a_default
           )
 
         {:ok, cache} = Cache.start_link(provider.cache_opts)
-        assert Cache.value(cache, provider.data_source, provider.table_name, "col1")
+        assert :a_default = Cache.value(cache, provider.data_source, provider.table_name, "col1")
       end)
     end
 
@@ -68,15 +69,16 @@ defmodule Cloak.DataSource.PerColumn.Cache.Test do
         provider =
           new_cache_provider(
             known_columns,
-            compute_isolation_fun:
-              compute_isolation_fun(%{
+            property_fun:
+              property_fun(%{
                 "col1" => fn -> Process.sleep(200) end,
                 "col2" => fn -> raise "error" end
-              })
+              }),
+            default: :a_default
           )
 
         {:ok, cache} = Cache.start_link(provider.cache_opts)
-        assert Cache.value(cache, provider.data_source, provider.table_name, "col2")
+        assert :a_default = Cache.value(cache, provider.data_source, provider.table_name, "col2")
       end)
     end
 
@@ -111,8 +113,8 @@ defmodule Cloak.DataSource.PerColumn.Cache.Test do
       # make sure that new computation of isolated will never finish
       provider =
         put_in(
-          provider.cache_opts[:compute_isolation_fun],
-          compute_isolation_fun(%{"col1" => fn -> Process.sleep(:infinity) end})
+          provider.cache_opts[:property_fun],
+          property_fun(%{"col1" => fn -> Process.sleep(:infinity) end})
         )
 
       {:ok, cache} = Cache.start_link(provider.cache_opts)
@@ -138,8 +140,8 @@ defmodule Cloak.DataSource.PerColumn.Cache.Test do
 
       provider =
         put_in(
-          provider.cache_opts[:compute_isolation_fun],
-          compute_isolation_fun(%{"col1" => fn -> send(me, {:computing, "col1"}) end})
+          provider.cache_opts[:property_fun],
+          property_fun(%{"col1" => fn -> send(me, {:computing, "col1"}) end})
         )
 
       {:ok, cache} = Cache.start_link(provider.cache_opts)
@@ -159,10 +161,12 @@ defmodule Cloak.DataSource.PerColumn.Cache.Test do
       Keyword.merge(
         [
           columns_provider: columns_provider(provider),
-          property_fun: compute_isolation_fun(),
+          property_fun: property_fun(),
           refresh_interval: :timer.hours(1),
+          name: __MODULE__,
           cache_owner: __MODULE__,
-          registered?: false
+          registered?: false,
+          default: nil
         ],
         opts
       )
@@ -177,7 +181,7 @@ defmodule Cloak.DataSource.PerColumn.Cache.Test do
 
   defp columns_provider(provider), do: fn _data_sources -> Agent.get(provider, & &1) end
 
-  defp compute_isolation_fun(map \\ %{}) do
+  defp property_fun(map \\ %{}) do
     fn {_data_source_name, _table_name, column_name} ->
       with {:ok, fun} <- Map.fetch(map, column_name), do: fun.()
       {:isolated, column_name}

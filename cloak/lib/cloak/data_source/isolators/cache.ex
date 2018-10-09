@@ -56,7 +56,8 @@ defmodule Cloak.DataSource.Isolators.Cache do
       refresh_interval: @refresh_interval,
       name: __MODULE__,
       registered?: true,
-      auto_refresh?: true
+      auto_refresh?: true,
+      default: true
     ]
     |> Keyword.merge(opts)
     |> Cache.child_spec()
