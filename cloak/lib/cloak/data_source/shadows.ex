@@ -28,6 +28,11 @@ defmodule Cloak.DataSource.Shadows do
     end
   end
 
+  @doc "Performs a cache lookup for the given column."
+  @spec cache_lookup(Cloak.DataSource.t(), String.t(), String.t()) ::
+          {:ok, [any]} | {:error, :failed | :pending | :unknown_column}
+  def cache_lookup(data_source, table_name, column_name), do: @cache_module.lookup(data_source, table_name, column_name)
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
