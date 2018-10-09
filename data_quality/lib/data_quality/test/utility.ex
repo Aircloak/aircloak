@@ -3,8 +3,6 @@ defmodule DataQuality.Test.Utility do
 
   alias DataQuality.Test
 
-  @timeout :timer.minutes(10)
-
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
@@ -18,24 +16,15 @@ defmodule DataQuality.Test.Utility do
   def name(name) when is_binary(name), do: name
   def name(other), do: to_string(other)
 
-  @spec partition_and_process(
-          [Test.result()],
-          [atom],
-          ([Test.result()], %{atom => String.t()} -> any)
-        ) :: [any]
+  @spec partition(
+          [Map.t()],
+          [atom]
+        ) :: %{Map.t() => [Map.t()]}
   @doc """
-  Slices the query results along a set of given dimensions, and passes each group
-  to the callback function in turn. The list of return values are returned to the caller.
+  Slices the query results along a set of given dimensions. Effectively an `Enum.group_by`
+  allowing for passing a set of map keys that should be partitioned by.
   """
-  def partition_and_process(values, partition_keys, callback) do
-    values
-    |> Enum.group_by(&Map.take(&1, partition_keys))
-    |> Task.async_stream(
-      fn {partition_parameters, values} -> callback.(values, partition_parameters) end,
-      timeout: @timeout
-    )
-    |> Enum.map(fn {:ok, val} -> val end)
-  end
+  def partition(values, partition_keys), do: Enum.group_by(values, &Map.take(&1, partition_keys))
 
   def maybe_to_number(value) when is_binary(value) do
     case Integer.parse(value) do

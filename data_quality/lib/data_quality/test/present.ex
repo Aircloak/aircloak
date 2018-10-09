@@ -34,7 +34,12 @@ defmodule DataQuality.Test.Present do
     Logger.header(class)
 
     dimensions = [:dimension, :distribution, :aggregate]
-    rows = Utility.partition_and_process(values, dimensions, &rows_by_source/2)
+
+    rows =
+      values
+      |> Utility.partition(dimensions)
+      |> Enum.map(&rows_by_source/1)
+
     sources = sources_from_rows(rows, dimensions)
     source_names = Enum.map(sources, &(String.capitalize(&1) <> " (mse)"))
     col_headers = ["Distribution", "Dimension", "Aggregate"] ++ source_names
@@ -50,7 +55,7 @@ defmodule DataQuality.Test.Present do
     IO.puts(AsciiTable.format([col_headers | table_rows]) <> "\n")
   end
 
-  defp rows_by_source(values, path),
+  defp rows_by_source({path, values}),
     do:
       values
       |> Enum.group_by(& &1[:source])
@@ -79,9 +84,9 @@ defmodule DataQuality.Test.Present do
     col_headers = dimension_names ++ ["mse"]
 
     rows =
-      Utility.partition_and_process(results, dimensions, fn values, path ->
-        Enum.map(dimensions, &path[&1]) ++ [produce_mse(values)]
-      end)
+      results
+      |> Utility.partition(dimensions)
+      |> Enum.map(fn {path, values} -> Enum.map(dimensions, &path[&1]) ++ [produce_mse(values)] end)
       |> Enum.sort()
       |> Enum.map(&Enum.map(&1, fn val -> Utility.name(val) end))
 

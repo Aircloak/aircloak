@@ -4,24 +4,30 @@ defmodule DataQuality.Test.Persist do
   alias DataQuality.Test.{Utility, Logger}
 
   @min_threshold_for_graph 5
+  @processing_timeout :timer.minutes(10)
 
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
-  @spec to_disk([Test.result()]) :: [Test.result()]
+  @spec to_disk([Test.result()]) :: :ok
   @doc "Persist the query results to disk as CSV. Also generates graphs for inspection of the results"
   def to_disk(all_results) do
     Logger.banner("Writing raw query results and producing graphs")
-    Utility.partition_and_process(all_results, [:dimension, :distribution, :aggregate], &persist/2)
+
     all_results
+    |> Utility.partition([:dimension, :distribution, :aggregate])
+    |> Task.async_stream(&persist/1, timeout: @processing_timeout)
+    |> Enum.map(fn {:ok, val} -> val end)
+
+    :ok
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp persist(segment_values, selected_dimensions) do
+  defp persist({selected_dimensions, segment_values}) do
     dir = Path.join(["output", selected_dimensions[:distribution], Utility.name(selected_dimensions[:dimension])])
     :ok = File.mkdir_p(dir)
 
