@@ -8,6 +8,20 @@ defmodule Cloak.DataSource.ConnectionPool.ConnectionOwner do
   use GenServer
   require Logger
 
+  def start_link(driver, connection_params), do: GenServer.start_link(__MODULE__, {self(), driver, connection_params})
+
+  def start_client_usage(connection_owner) do
+    GenServer.call(connection_owner, :start_client_usage, :timer.minutes(1) + Cloak.DataSource.Driver.connect_timeout())
+  catch
+    # If this call fails, then we failed to connect to the database, so we're raising an informative exception.
+    # This prevents reporting "Unknown cloak error" when connecting to the database fails. Note that the real
+    # exit reason will still be properly included in the crash log of the connection owner process.
+    _type, _error ->
+      Cloak.DataSource.raise_error("Failed connecting to the database")
+  end
+
+  def checkin(connection_owner), do: GenServer.call(connection_owner, :checkin)
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------

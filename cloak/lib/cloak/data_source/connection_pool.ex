@@ -86,7 +86,7 @@ defmodule Cloak.DataSource.ConnectionPool do
   end
 
   defp new_connection(state) do
-    start = {GenServer, :start_link, [ConnectionOwner, {self(), state.driver, state.connection_params}]}
+    start = {ConnectionOwner, :start_link, [state.driver, state.connection_params]}
     {:ok, conn} = Parent.GenServer.start_child(%{id: make_ref(), meta: %{available?: true}, start: start})
     conn
   end
@@ -115,14 +115,14 @@ defmodule Cloak.DataSource.ConnectionPool do
   defp on_connection(connection_owner, fun) do
     res =
       connection_owner
-      |> start_client_usage()
+      |> ConnectionOwner.start_client_usage()
       |> fun.()
 
     # To avoid possible corrupt state, we're returning the connection back only on success.
     # On error, we'll terminate the connection owner, and reraise. Finally, this process (client), is monitored
     # by the connection owner, so if it's killed from the outside, the connection owner will terminate.
     # This ensures proper cleanup in all situations.
-    GenServer.call(connection_owner, :checkin)
+    ConnectionOwner.checkin(connection_owner)
 
     res
   catch
@@ -130,20 +130,6 @@ defmodule Cloak.DataSource.ConnectionPool do
       stacktrace = System.stacktrace()
       Process.exit(connection_owner, :kill)
       raise_client_error(type, error, stacktrace)
-  end
-
-  defp start_client_usage(connection_owner) do
-    GenServer.call(
-      connection_owner,
-      :start_client_usage,
-      :timer.minutes(1) + Driver.connect_timeout()
-    )
-  catch
-    # If this call fails, then we failed to connect to the database, so we're raising an informative exception.
-    # This prevents reporting "Unknown cloak error" when connecting to the database fails. Note that the real
-    # exit reason will still be properly included in the crash log of the connection owner process.
-    _type, _error ->
-      Cloak.DataSource.raise_error("Failed connecting to the database")
   end
 
   defp raise_client_error(:exit, {{%Cloak.Query.ExecutionError{} = error, _}, _}, _stacktrace), do: raise(error)
