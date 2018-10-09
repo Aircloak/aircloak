@@ -3,6 +3,8 @@ defmodule DataQuality.Test.Utility do
 
   alias DataQuality.Test
 
+  @timeout :timer.minutes(10)
+
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
@@ -42,7 +44,10 @@ defmodule DataQuality.Test.Utility do
   def partition_and_process(values, partition_keys, callback) do
     values
     |> partition(partition_keys)
-    |> Task.async_stream(fn {partition_parameters, values} -> callback.(values, partition_parameters) end)
+    |> Task.async_stream(
+      fn {partition_parameters, values} -> callback.(values, partition_parameters) end,
+      timeout: @timeout
+    )
     |> Enum.map(fn {:ok, val} -> val end)
   end
 
