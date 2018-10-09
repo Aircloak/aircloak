@@ -3,6 +3,8 @@ defmodule DataQuality.Test.Persist do
 
   alias DataQuality.Test.{Utility, Logger}
 
+  @min_threshold_for_graph 5
+
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
@@ -72,7 +74,7 @@ defmodule DataQuality.Test.Persist do
 
   defp output_graph(dir, aggregate, data) do
     # No need creating a graph when there is hardly any data
-    if Enum.count(data) > 5 do
+    if Enum.count(data) > @min_threshold_for_graph do
       graph_for(dir, aggregate, :anonymized_value, data, include_raw: true)
       graph_for(dir, aggregate, :error, data, include_raw: false)
       graph_for(dir, aggregate, :relative_error, data, include_raw: false)
