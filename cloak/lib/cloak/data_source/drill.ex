@@ -48,8 +48,10 @@ defmodule Cloak.DataSource.Drill do
   defdelegate disconnect(connection), to: RODBC
 
   @impl Driver
-  def load_tables(connection, table),
-    do: RODBC.load_tables(connection, update_in(table.db_name, &SqlBuilder.quote_table_name(&1, ?`)))
+  def load_tables(connection, table) do
+    table = update_in(table.db_name, &SqlBuilder.quote_table_name(&1, ?`))
+    RODBC.load_tables(connection, table, &"SELECT * FROM #{&1} LIMIT 0")
+  end
 
   @impl Driver
   defdelegate select(connection, sql_query, result_processor), to: RODBC

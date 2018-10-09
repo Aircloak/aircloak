@@ -28,8 +28,8 @@ defmodule Cloak.DataSource.RODBC do
 
   def disconnect(connection), do: Port.stop(connection)
 
-  def load_tables(connection, table) do
-    case Port.execute(connection, "SELECT * FROM #{table.db_name} WHERE 0 = 1", Driver.timeout()) do
+  def load_tables(connection, table, table_load_statement \\ &"SELECT * FROM #{&1} WHERE 0 = 1") do
+    case Port.execute(connection, table_load_statement.(table.db_name), Driver.timeout()) do
       :ok ->
         case Port.get_columns(connection) do
           {:ok, []} ->
