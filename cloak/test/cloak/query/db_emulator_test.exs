@@ -690,4 +690,18 @@ defmodule Cloak.Query.DBEmulatorTest do
       %{rows: [%{row: [10]}]}
     )
   end
+
+  test "[BUG]: order by unselected column in emulated standard query" do
+    :ok = insert_rows(_user_ids = 1..10, "#{@emulated_insert}", ["value"], [Base.encode64("123")])
+
+    assert_query(
+      """
+      select value from (
+        select distinct value from #{@vt}
+      ) as t group by 1 order by count(*)
+      """,
+      "select user_id, dec_b64(value) as value from #{@emulated}",
+      %{rows: [%{row: ["123"]}]}
+    )
+  end
 end
