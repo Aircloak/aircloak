@@ -6,95 +6,80 @@ defmodule DataQuality.Test.Query do
   alias DataQuality.Test
   alias DataQuality.Test.{Utility, Logger}
 
+  @approximation_of_zero 0.000000000001
+
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
-  @spec measure([Test.test()], Test.config(), [Test.dimension()]) :: Test.results()
+  @spec measure([Test.test()], Test.config(), [Test.dimension()]) :: [Test.result()]
   @doc "Queries the configured data sources producing raw results for further processing and analysis"
   def measure(tests, config, dimensions) do
     Logger.banner("Querying datasources")
-    Enum.reduce(tests, %{}, &collect_measurements(config, dimensions, &1, &2))
+    Enum.flat_map(tests, &collect_measurements(config, dimensions, &1))
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp collect_measurements(config, dimensions, test, result_aggregate) do
-    name = test[:name]
-    aggregates = test[:aggregates]
+  defp collect_measurements(config, dimensions, test) do
+    Logger.header(test[:name])
 
-    Logger.header(name)
-
-    measurements =
-      for distribution <- Distributions.list(), into: %{} do
-        distribution_name = Distributions.distribution_name(distribution)
-        OutputStatus.new_line(distribution_name, :pending, "querying")
-
-        distribution_test_result =
-          Enum.reduce(
-            dimensions,
-            %{},
-            fn dimension, collector ->
-              case test_dimension(config, distribution_name, dimension, aggregates) do
-                :error ->
-                  # Couldn't complete the measurements.
-                  # This happens if the cloak error's for some reason.
-                  # This periodically happens.
-                  collector
-
-                measurements ->
-                  Map.put(collector, dimension, measurements)
-              end
-            end
-          )
-
-        OutputStatus.done(distribution_name)
-
-        {distribution_name, distribution_test_result}
-      end
-
-    Map.put(result_aggregate, name, measurements)
+    Distributions.list()
+    |> Enum.flat_map(&measurements_for_distribution(&1, config, dimensions, test))
+    |> Enum.map(&Map.put(&1, :class, test[:name]))
   end
 
-  defp test_dimension(config, distribution_name, dimension, aggregate_variants, attempts \\ 4)
+  defp measurements_for_distribution(distribution, config, dimensions, test) do
+    distribution_name = Distributions.distribution_name(distribution)
+    OutputStatus.new_line(distribution_name, :pending, "querying")
 
-  defp test_dimension(_config, _distribution_name, dimension, _aggregate_variants, 0) do
+    results =
+      dimensions
+      |> Enum.flat_map(&measurements_for_dimension(&1, distribution_name, test[:aggregates], config))
+      |> Enum.map(&Map.put(&1, :distribution, distribution_name))
+
+    OutputStatus.done(distribution_name)
+    results
+  end
+
+  def measurements_for_dimension(dimension, distribution_name, aggregates, config) do
+    case run_queries(config, distribution_name, dimension, aggregates) do
+      {:ok, dimension_results} -> Enum.map(dimension_results, &Map.put(&1, :dimension, dimension))
+      :error -> []
+    end
+  end
+
+  defp run_queries(config, distribution_name, dimension, aggregate_variants, attempts \\ 4)
+
+  defp run_queries(_config, _distribution_name, dimension, _aggregate_variants, 0) do
     Logger.log("Giving up. Repeatedly fails: [dimension: #{Utility.name(dimension)}]")
     :error
   end
 
-  defp test_dimension(config, distribution_name, dimension, aggregate_variants, attempts) do
-    aggregate_variants
-    |> Enum.map(fn aggregate ->
-      query = for_class(distribution_name, dimension, aggregate)
-      query_result = create_aggregate_pairings(config, query)
+  defp run_queries(config, distribution_name, dimension, aggregate_variants, attempts) do
+    result =
+      Enum.flat_map(aggregate_variants, fn aggregate ->
+        run_query(config, for_class(distribution_name, dimension, aggregate))
+        |> Enum.map(&Map.put(&1, :aggregate, aggregate))
+      end)
 
-      result = %{
-        raw_data: query_result,
-        processed_data: %{mse: nil}
-      }
-
-      {aggregate, result}
-    end)
-    |> Enum.into(%{})
+    {:ok, result}
   rescue
-    _e -> test_dimension(config, distribution_name, dimension, aggregate_variants, attempts - 1)
+    _e -> run_queries(config, distribution_name, dimension, aggregate_variants, attempts - 1)
   end
 
-  defp create_aggregate_pairings(config, query), do: generate_result_pairings(config, query)
-
-  defp generate_result_pairings(config, query) do
+  defp run_query(config, query) do
     raw_results =
-      run_query(config.raw, query)
+      query_cloak(config.raw, query)
       |> rows()
       |> to_map()
 
     anonymized_results =
       config.anonymized
       |> Enum.map(fn dest_config ->
-        run_query(dest_config, query)
+        query_cloak(dest_config, query)
         |> rows()
         |> to_map()
         |> for_destination(dest_config.name)
@@ -105,17 +90,28 @@ defmodule DataQuality.Test.Query do
       raise "Retry due to empty resultset for backend"
     end
 
-    raw_results
-    |> Enum.map(fn {dimension, val} ->
+    Enum.flat_map(raw_results, fn {dimension, real_value} ->
       anonymized_results
       |> Enum.map(fn {backend, values} ->
-        {backend, Map.get(values, dimension, 0)}
+        with anonymized_value when not is_nil(anonymized_value) <- Map.get(values, dimension) do
+          %{
+            dimension_value: Utility.maybe_to_number(dimension),
+            source: backend,
+            real_value: real_value,
+            anonymized_value: anonymized_value,
+            error: abs_error(anonymized_value, real_value),
+            relative_error: relative_error(anonymized_value, real_value)
+          }
+        end
       end)
-      |> Enum.into(%{})
-      |> Map.put("unanonymized", val)
+      |> Enum.reject(&is_nil/1)
     end)
-    |> Enum.sort_by(&Map.get(&1, "unanonymized"))
   end
+
+  defp abs_error(anonymized_value, real_value), do: abs(anonymized_value - real_value)
+
+  defp relative_error(anonymized_value, 0), do: anonymized_value / @approximation_of_zero
+  defp relative_error(anonymized_value, real_value), do: abs_error(anonymized_value, real_value) / real_value
 
   defp rows(raw_rows), do: Enum.map(raw_rows, & &1["row"])
 
@@ -127,7 +123,7 @@ defmodule DataQuality.Test.Query do
 
   defp for_destination(data, name), do: {name, data}
 
-  defp run_query(config, query) do
+  defp query_cloak(config, query) do
     payload = %{
       query: %{
         statement: query,
