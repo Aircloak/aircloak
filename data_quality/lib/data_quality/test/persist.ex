@@ -13,7 +13,7 @@ defmodule DataQuality.Test.Persist do
   @doc "Persist the query results to disk as CSV. Also generates graphs for inspection of the results"
   def to_disk(all_results) do
     Logger.banner("Writing raw query results and producing graphs")
-    Utility.process_across_dimensions(all_results, %{}, [:dimension, :distribution, :aggregate], &persist/2)
+    Utility.partition_and_process(all_results, [:dimension, :distribution, :aggregate], &persist/2)
     all_results
   end
 

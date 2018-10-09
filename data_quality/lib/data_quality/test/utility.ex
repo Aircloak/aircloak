@@ -16,24 +16,51 @@ defmodule DataQuality.Test.Utility do
   def name(name) when is_binary(name), do: name
   def name(other), do: to_string(other)
 
-  @spec process_across_dimensions(
+  @spec partition(
+          [Map.t()],
+          [atom]
+        ) :: %{Map.t() => [Map.t()]}
+  @doc """
+  Partition operates like `Enum.group_by` but instead of a key function it accepts a list of
+  keys by which the list of maps should be partitioned.
+  """
+  def partition(values, partition_keys),
+    do:
+      values
+      |> partition(partition_keys, %{})
+      |> Enum.into(%{})
+
+  @spec partition_and_process(
           [Test.result()],
-          %{atom => String.t()},
           [atom],
           ([Test.result()], %{atom => String.t()} -> any)
-        ) :: any
+        ) :: [any]
   @doc """
   Slices the query results along a set of given dimensions, and passes each group
   to the callback function in turn. The list of return values are returned to the caller.
   """
-  def process_across_dimensions(values, path, [], callback), do: [callback.(values, path)]
-
-  def process_across_dimensions(values, path, [dimension | dimensions], callback) do
+  def partition_and_process(values, partition_keys, callback) do
     values
-    |> Enum.group_by(& &1[dimension])
-    |> Enum.flat_map(fn {dimension_name, dimension_values} ->
-      updated_path = Map.put(path, dimension, dimension_name)
-      process_across_dimensions(dimension_values, updated_path, dimensions, callback)
+    |> partition(partition_keys)
+    |> Task.async_stream(fn {partition_parameters, values} -> callback.(values, partition_parameters) end)
+    |> Enum.map(fn {:ok, val} -> val end)
+  end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp partition(values, [], partition_parameters), do: [{partition_parameters, values}]
+
+  defp partition(values, [partition_key | partition_keys], partition_parameters) do
+    values
+    |> Enum.group_by(& &1[partition_key])
+    |> Enum.flat_map(fn {partition_name, partition_values} ->
+      partition(
+        partition_values,
+        partition_keys,
+        Map.put(partition_parameters, partition_key, partition_name)
+      )
     end)
   end
 end
