@@ -95,7 +95,7 @@ defmodule DataQuality.Test.Query do
       |> Enum.map(fn {backend, values} ->
         with anonymized_value when not is_nil(anonymized_value) <- Map.get(values, dimension) do
           %{
-            dimension_value: maybe_to_number(dimension),
+            dimension_value: Utility.maybe_to_number(dimension),
             source: backend,
             real_value: real_value,
             anonymized_value: anonymized_value,
@@ -241,15 +241,4 @@ defmodule DataQuality.Test.Query do
     ) t
     GROUP BY numBucket
     """
-
-  defp maybe_to_number(nil), do: nil
-  defp maybe_to_number(value) when is_number(value), do: value
-
-  defp maybe_to_number(value) do
-    cond do
-      value =~ ~r/^\d+\.\d+$/ -> Float.parse(value)
-      value =~ ~r/^\d+$/ -> Integer.parse(value)
-      true -> value
-    end
-  end
 end

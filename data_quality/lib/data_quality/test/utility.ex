@@ -36,4 +36,23 @@ defmodule DataQuality.Test.Utility do
     )
     |> Enum.map(fn {:ok, val} -> val end)
   end
+
+  def maybe_to_number(value) when is_binary(value) do
+    case Integer.parse(value) do
+      :error ->
+        value
+
+      {int, ""} ->
+        int
+
+      _ ->
+        case Float.parse(value) do
+          :error -> value
+          {float, ""} -> float
+          _ -> value
+        end
+    end
+  end
+
+  def maybe_to_number(value), do: value
 end
