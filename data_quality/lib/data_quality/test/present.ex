@@ -24,45 +24,47 @@ defmodule DataQuality.Test.Present do
   # Presentations
   # -------------------------------------------------------------------
 
-  defp present_per_aggregate(results) do
-    results
-    |> Enum.group_by(& &1[:class])
-    |> Enum.each(fn {class, values} ->
-      Logger.header(class)
+  defp present_per_aggregate(results),
+    do:
+      results
+      |> Enum.group_by(& &1[:class])
+      |> Enum.each(&present_class/1)
 
-      dimensions = [:dimension, :distribution, :aggregate]
+  defp present_class({class, values}) do
+    Logger.header(class)
 
-      rows =
-        Utility.process_across_dimensions(values, %{}, dimensions, fn values, path ->
-          values
-          |> Enum.group_by(& &1[:source])
-          |> Enum.map(fn {source_name, source_values} -> {source_name, produce_mse(source_values)} end)
-          |> Enum.into(%{})
-          |> Map.merge(path)
-        end)
+    dimensions = [:dimension, :distribution, :aggregate]
+    rows = Utility.process_across_dimensions(values, %{}, dimensions, &rows_by_source/2)
+    sources = sources_from_rows(rows, dimensions)
+    source_names = Enum.map(sources, &(String.capitalize(&1) <> " (mse)"))
+    col_headers = ["Distribution", "Dimension", "Aggregate"] ++ source_names
 
-      sources =
-        rows
-        |> Enum.at(0)
-        |> Map.drop(dimensions)
-        |> Map.keys()
-        |> Enum.sort()
+    table_rows =
+      rows
+      |> Enum.map(fn row ->
+        [row[:distribution], row[:dimension], row[:aggregate]] ++ Enum.map(sources, &Map.get(row, &1))
+      end)
+      |> Enum.sort()
+      |> Enum.map(&Enum.map(&1, fn value -> Utility.name(value) end))
 
-      source_names = Enum.map(sources, &(String.capitalize(&1) <> " (mse)"))
-
-      col_headers = ["Distribution", "Dimension", "Aggregate"] ++ source_names
-
-      table_rows =
-        rows
-        |> Enum.map(fn row ->
-          [row[:distribution], row[:dimension], row[:aggregate]] ++ Enum.map(sources, &Map.get(row, &1))
-        end)
-        |> Enum.sort()
-        |> Enum.map(&Enum.map(&1, fn value -> Utility.name(value) end))
-
-      IO.puts(AsciiTable.format([col_headers | table_rows]) <> "\n")
-    end)
+    IO.puts(AsciiTable.format([col_headers | table_rows]) <> "\n")
   end
+
+  defp rows_by_source(values, path),
+    do:
+      values
+      |> Enum.group_by(& &1[:source])
+      |> Enum.map(fn {source_name, source_values} -> {source_name, produce_mse(source_values)} end)
+      |> Enum.into(%{})
+      |> Map.merge(path)
+
+  defp sources_from_rows(rows, dimensions),
+    do:
+      rows
+      |> Enum.at(0)
+      |> Map.drop(dimensions)
+      |> Map.keys()
+      |> Enum.sort()
 
   defp present_mse_by_categories(results), do: present_mse_by_dimensions([:distribution, :class, :dimension], results)
 
