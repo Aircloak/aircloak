@@ -4,11 +4,21 @@ defmodule Cloak.DataSource.ConnectionPool.ConnectionOwner do
   # This module is an internal implementation detail of `Cloak.DataSource.ConnectionPool`, and is therefore not
   # documented. For the same reason, the module doesn't expose interface functions. The knowledge about the message
   # protocol is shared between this module and its only client (connection pool).
+  #
+  # Note: this module is powered by the `Task` module, although it behaves as a GenServer (i.e. handles messages).
+  # Such implementation allows us to work with `DbConnection` drivers, where we need to atomically open up transaction,
+  # and stream the results.
+  #
+  # Note that for synchronous calls, we're still using `GenServer.call` and matching the message in the owner process.
+  # This is a bit hacky, but it simplifies the implementation, since we don't need to manually implement the client
+  # side of a synchronous request.
 
-  use GenServer
   require Logger
 
-  def start_link(driver, connection_params), do: GenServer.start_link(__MODULE__, {self(), driver, connection_params})
+  def start_link(driver, connection_params) do
+    pool_pid = self()
+    Task.start_link(fn -> start_loop({pool_pid, driver, connection_params}) end)
+  end
 
   def start_client_usage(connection_owner) do
     GenServer.call(connection_owner, :start_client_usage, :timer.minutes(1) + Cloak.DataSource.Driver.connect_timeout())
@@ -23,63 +33,65 @@ defmodule Cloak.DataSource.ConnectionPool.ConnectionOwner do
   def checkin(connection_owner), do: GenServer.call(connection_owner, :checkin)
 
   # -------------------------------------------------------------------
-  # GenServer callbacks
+  # Internal functions
   # -------------------------------------------------------------------
 
-  @impl GenServer
-  def init({pool_pid, driver, connection_params}) do
-    # Delayed connecting to avoid blocking the pool process.
-    send(self(), {:connect, driver, connection_params})
-    state = %{pool_pid: pool_pid, connection: nil, client_mref: nil}
-    {:ok, state, timeout(state)}
+  defp start_loop({pool_pid, driver, connection_params}) do
+    loop(%{pool_pid: pool_pid, connection: Cloak.DataSource.connect!(driver, connection_params), client_mref: nil})
   end
 
-  @impl GenServer
-  def handle_call(:start_client_usage, {client_pid, _}, state) do
-    {:reply, state.connection, %{state | client_mref: Process.monitor(client_pid)}}
+  defp loop(state) do
+    case handle_next_message(state) do
+      {:resume, state} -> loop(state)
+      {:stop, reason} -> exit(reason)
+    end
   end
 
-  def handle_call(:checkin, _from, state) do
+  defp handle_next_message(state) do
+    receive do
+      message -> handle_message(message, state)
+    after
+      timeout(state) ->
+        # We're asking the pool to remove this connection to avoid possible race condition, where the pool checks out
+        # the owner which is stopping.
+        GenServer.cast(state.pool_pid, {:remove_connection, self()})
+        {:resume, state}
+    end
+  end
+
+  defp handle_message({:"$gen_call", {client_pid, _} = from, :start_client_usage}, state) do
+    GenServer.reply(from, state.connection)
+    {:resume, %{state | client_mref: Process.monitor(client_pid)}}
+  end
+
+  defp handle_message({:"$gen_call", from, :checkin}, state) do
     Process.demonitor(state.client_mref, [:flush])
     GenServer.call(state.pool_pid, {:checkin, self()})
-    state = %{state | client_mref: nil}
-    {:reply, :ok, state, timeout(state)}
+    GenServer.reply(from, :ok)
+    {:resume, %{state | client_mref: nil}}
   end
 
-  @impl GenServer
-  def handle_info({:connect, driver, connection_params}, state) do
-    connection = Cloak.DataSource.connect!(driver, connection_params)
-    state = %{state | connection: connection}
-    {:noreply, state, timeout(state)}
-  end
-
-  def handle_info({:DOWN, client_mref, _, _, _}, state) do
+  defp handle_message({:DOWN, client_mref, _, _, _}, state) do
     if client_mref == state.client_mref do
       # If we end up here, then the client has crashed without returning the connection. In this case, we need to
       # terminate, since the connection might be in an open transaction state, and we don't want to reuse such
       # connection.
-      {:stop, :shutdown, state}
+      {:stop, :shutdown}
     else
       # leftover message of a previous client -> just ignore
-      {:noreply, state, timeout(state)}
+      {:resume, state}
     end
   end
 
-  def handle_info(:timeout, state) do
-    # We're asking the pool to remove this connection to avoid possible race condition, where the pool checks out
-    # the owner which is stopping.
+  defp handle_message(:timeout, state) do
     GenServer.cast(state.pool_pid, {:remove_connection, self()})
-    {:noreply, state}
+    {:resume, state}
   end
 
-  def handle_info(other, state) do
+  defp handle_message(other, state) do
     Logger.warn("Unknown message #{inspect(other)}")
-    {:noreply, state, timeout(state)}
+    {:resume, state}
   end
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
 
   defp timeout(state) do
     if is_nil(state.client_mref),
