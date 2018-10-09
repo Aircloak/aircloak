@@ -26,11 +26,7 @@ defmodule DataQuality.Test.Utility do
   Partition operates like `Enum.group_by` but instead of a key function it accepts a list of
   keys by which the list of maps should be partitioned.
   """
-  def partition(values, partition_keys),
-    do:
-      values
-      |> partition(partition_keys, %{})
-      |> Enum.into(%{})
+  def partition(values, partition_keys), do: Enum.group_by(values, &Map.take(&1, partition_keys))
 
   @spec partition_and_process(
           [Test.result()],
@@ -49,23 +45,5 @@ defmodule DataQuality.Test.Utility do
       timeout: @timeout
     )
     |> Enum.map(fn {:ok, val} -> val end)
-  end
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp partition(values, [], partition_parameters), do: [{partition_parameters, values}]
-
-  defp partition(values, [partition_key | partition_keys], partition_parameters) do
-    values
-    |> Enum.group_by(& &1[partition_key])
-    |> Enum.flat_map(fn {partition_name, partition_values} ->
-      partition(
-        partition_values,
-        partition_keys,
-        Map.put(partition_parameters, partition_key, partition_name)
-      )
-    end)
   end
 end
