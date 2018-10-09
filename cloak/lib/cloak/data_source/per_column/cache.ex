@@ -27,7 +27,10 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   @spec lookup(GenServer.server(), Cloak.DataSource.t(), String.t(), String.t()) ::
           {:ok, any} | {:error, :pending | :failed | :unknown_column}
   def lookup(server, data_source, table_name, column_name) do
-    GenServer.call(server, {:column_status, {data_source.name, table_name, column_name}})
+    case GenServer.call(server, {:column_status, {data_source.name, table_name, column_name}}) do
+      {:error, :failed, _, _} -> {:error, :failed}
+      other -> other
+    end
   end
 
   # -------------------------------------------------------------------
