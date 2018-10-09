@@ -138,10 +138,6 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp cast_type(value, :unknown, query), do: sql_dialect_module(query).cast_sql(value, :unknown, :text)
 
-  defp cast_type(value, :text, query) do
-    if driver(query).cast_to_text?(), do: sql_dialect_module(query).cast_sql(value, :text, :text), else: value
-  end
-
   defp cast_type(value, _type, _query), do: value
 
   defp from_clause({:join, join}, query) do
