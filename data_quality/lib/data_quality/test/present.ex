@@ -61,7 +61,7 @@ defmodule DataQuality.Test.Present do
   defp sources_from_rows(rows, dimensions),
     do:
       rows
-      |> Enum.at(0)
+      |> List.first()
       |> Map.drop(dimensions)
       |> Map.keys()
       |> Enum.sort()
