@@ -35,7 +35,7 @@ defmodule DataQuality.Test.Query do
   end
 
   def measurements_for_dimension(dimension, distribution_name, config, test) do
-    dimension_results = test_dimension(config, distribution_name, dimension, test[:aggregates])
+    dimension_results = run_queries(config, distribution_name, dimension, test[:aggregates])
 
     Enum.map(
       dimension_results,
@@ -47,32 +47,32 @@ defmodule DataQuality.Test.Query do
     )
   end
 
-  defp test_dimension(config, distribution_name, dimension, aggregate_variants, attempts \\ 4)
+  defp run_queries(config, distribution_name, dimension, aggregate_variants, attempts \\ 4)
 
-  defp test_dimension(_config, _distribution_name, dimension, _aggregate_variants, 0) do
+  defp run_queries(_config, _distribution_name, dimension, _aggregate_variants, 0) do
     Logger.log("Giving up. Repeatedly fails: [dimension: #{Utility.name(dimension)}]")
     []
   end
 
-  defp test_dimension(config, distribution_name, dimension, aggregate_variants, attempts) do
+  defp run_queries(config, distribution_name, dimension, aggregate_variants, attempts) do
     Enum.flat_map(aggregate_variants, fn aggregate ->
-      results = generate_results(config, for_class(distribution_name, dimension, aggregate))
+      results = run_query(config, for_class(distribution_name, dimension, aggregate))
       Enum.map(results, &Map.put(&1, :aggregate, aggregate))
     end)
   rescue
-    _e -> test_dimension(config, distribution_name, dimension, aggregate_variants, attempts - 1)
+    _e -> run_queries(config, distribution_name, dimension, aggregate_variants, attempts - 1)
   end
 
-  defp generate_results(config, query) do
+  defp run_query(config, query) do
     raw_results =
-      run_query(config.raw, query)
+      query_cloak(config.raw, query)
       |> rows()
       |> to_map()
 
     anonymized_results =
       config.anonymized
       |> Enum.map(fn dest_config ->
-        run_query(dest_config, query)
+        query_cloak(dest_config, query)
         |> rows()
         |> to_map()
         |> for_destination(dest_config.name)
@@ -118,7 +118,7 @@ defmodule DataQuality.Test.Query do
 
   defp for_destination(data, name), do: {name, data}
 
-  defp run_query(config, query) do
+  defp query_cloak(config, query) do
     payload = %{
       query: %{
         statement: query,
