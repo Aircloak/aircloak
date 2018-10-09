@@ -19,6 +19,7 @@ defmodule Cloak.DataSource.Shadows.Query do
   def build_shadow(data_source, table, column) do
     case user_id(data_source, table) do
       nil -> []
+      ^column -> []
       user_id -> do_build_shadow(data_source, table, column, user_id)
     end
   end
