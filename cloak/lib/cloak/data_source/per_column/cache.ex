@@ -14,9 +14,9 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   def value(server, data_source, table_name, column_name) do
     column = {data_source.name, table_name, column_name}
 
-    with {:error, :failed} <- GenServer.call(server, {:compute_value, column}, :infinity) do
-      Logger.error("Cannot determine property of `#{table_name}`.`#{column_name}`")
-      true
+    with {:error, :failed, name, default} <- GenServer.call(server, {:compute_value, column}, :infinity) do
+      Logger.error("#{inspect(name)} failed for `#{table_name}`.`#{column_name}`")
+      default
     else
       {:ok, property} -> property
       {:error, :unknown_column} -> raise "Unknown column `#{table_name}`.`#{column_name}`"
@@ -27,7 +27,10 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   @spec lookup(GenServer.server(), Cloak.DataSource.t(), String.t(), String.t()) ::
           {:ok, any} | {:error, :pending | :failed | :unknown_column}
   def lookup(server, data_source, table_name, column_name) do
-    GenServer.call(server, {:column_status, {data_source.name, table_name, column_name}})
+    case GenServer.call(server, {:column_status, {data_source.name, table_name, column_name}}) do
+      {:error, :failed, _, _} -> {:error, :failed}
+      other -> other
+    end
   end
 
   # -------------------------------------------------------------------
@@ -40,7 +43,16 @@ defmodule Cloak.DataSource.PerColumn.Cache do
     enqueue_next_refresh(opts.refresh_interval)
     known_columns = MapSet.new(opts.columns_provider.(Cloak.DataSource.all()))
     queue = Queue.new(known_columns, PersistentKeyValue.cached_columns(opts.cache_owner))
-    state = %{cache_owner: opts.cache_owner, known_columns: known_columns, queue: queue, waiting: %{}, opts: opts}
+
+    state = %{
+      default: opts.default,
+      cache_owner: opts.cache_owner,
+      known_columns: known_columns,
+      queue: queue,
+      waiting: %{},
+      opts: opts
+    }
+
     {:ok, start_next_computation(state)}
   end
 
@@ -81,7 +93,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   def handle_child_terminated(:compute_job, meta, _pid, _reason, state) do
     result =
       case PersistentKeyValue.lookup(state.cache_owner, meta.column) do
-        :error -> {:error, :failed}
+        :error -> failed(state)
         {:ok, result} -> {:ok, result}
       end
 
@@ -105,9 +117,11 @@ defmodule Cloak.DataSource.PerColumn.Cache do
         {:error, :pending}
 
       true ->
-        {:error, :failed}
+        failed(state)
     end
   end
+
+  defp failed(state), do: {:error, :failed, state.opts.name, state.default}
 
   defp maybe_start_next_computation(state) do
     if Parent.GenServer.child?(:compute_job), do: state, else: start_next_computation(state)
