@@ -159,10 +159,9 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
   end
 
   defp remove_noops!(query, data_source, parameters \\ [], views \\ %{}) do
-    {:ok, parsed} = Cloak.Sql.Parser.parse(query)
+    {:ok, parsed} = Cloak.Sql.Parser.parse_and_normalize(query)
 
     parsed
-    |> Cloak.Sql.Compiler.ASTNormalization.normalize()
     |> Cloak.Sql.Compiler.Specification.compile(data_source, parameters, views)
     |> Cloak.Sql.Compiler.Validation.verify_query()
     |> Cloak.Sql.Compiler.Normalization.remove_noops()

@@ -505,7 +505,7 @@ defmodule Cloak.Sql.QueryTest do
   end
 
   defp compile_with_features(data_source, statement) do
-    {:ok, parsed_query} = Parser.parse(statement)
+    {:ok, parsed_query} = Parser.parse_and_normalize(statement)
 
     {:ok, query} = Compiler.compile(parsed_query, data_source, _parameters = [], _views = %{})
 

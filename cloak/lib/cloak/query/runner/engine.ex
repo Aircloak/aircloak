@@ -56,7 +56,7 @@ defmodule Cloak.Query.Runner.Engine do
 
   defp parse!(statement, state_updater) do
     state_updater.(:parsing)
-    Sql.Parser.parse!(statement)
+    Sql.Parser.parse_and_normalize!(statement)
   end
 
   defp compile!(parsed_query, data_source, parameters, views, state_updater) do

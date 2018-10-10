@@ -1370,7 +1370,7 @@ defmodule Cloak.Query.BasicTest do
     )
   end
 
-  test "FAILING: select from a view that uses distinct" do
+  test "select from a view that uses distinct" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
 
@@ -1381,7 +1381,7 @@ defmodule Cloak.Query.BasicTest do
     )
   end
 
-  test "FAILING: select from table defined as view using distinct" do
+  test "select from table defined as view using distinct" do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
 

@@ -3,6 +3,8 @@ defmodule Cloak.Sql.Parser do
   import Combine.Parsers.Base
   import Cloak.Sql.Parsers
 
+  alias Cloak.Sql.Parser.ASTNormalization
+
   @type comparator ::
           :=
           | :<
@@ -93,10 +95,10 @@ defmodule Cloak.Sql.Parser do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Parses a SQL query in text form. Raises on error."
-  @spec parse!(String.t()) :: parsed_query
-  def parse!(string) do
-    case parse(string) do
+  @doc "Parses a and normalizes an SQL query in text form. Raises on error."
+  @spec parse_and_normalize!(String.t()) :: parsed_query
+  def parse_and_normalize!(string) do
+    case parse_and_normalize(string) do
       {:ok, query} ->
         query
 
@@ -113,20 +115,23 @@ defmodule Cloak.Sql.Parser do
     end
   end
 
-  @doc "Parses a SQL query in text form."
-  @spec parse(String.t()) :: {:ok, parsed_query} | {:error, any}
-  def parse(string) do
-    with {:ok, tokens} <- Cloak.Sql.Lexer.tokenize(string) do
-      case Combine.parse(tokens, parser()) do
-        {:error, _} = error -> error
-        [statement] -> {:ok, statement}
-      end
-    end
-  end
+  @doc "Parses and normalizes an SQL query in text form."
+  @spec parse_and_normalize(String.t()) :: {:ok, parsed_query} | {:error, any}
+  def parse_and_normalize(statement),
+    do: with({:ok, ast} <- parse(statement), do: {:ok, ASTNormalization.normalize(ast)})
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp parse(statement) do
+    with {:ok, tokens} <- Cloak.Sql.Lexer.tokenize(statement) do
+      case Combine.parse(tokens, parser()) do
+        {:error, _} = error -> error
+        [ast] -> {:ok, ast}
+      end
+    end
+  end
 
   defp parser() do
     init_token_parser()
@@ -1034,4 +1039,18 @@ defmodule Cloak.Sql.Parser do
     do:
       position()
       |> map(fn {line, column} -> {line, column + 1} end)
+
+  if Mix.env() == :test do
+  end
+
+  # -------------------------------------------------------------------
+  # For tests
+  # -------------------------------------------------------------------
+
+  if Mix.env() == :test do
+    def parse!(statement) do
+      {:ok, ast} = parse(statement)
+      ast
+    end
+  end
 end

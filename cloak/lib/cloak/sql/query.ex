@@ -160,7 +160,7 @@ defmodule Cloak.Sql.Query do
           | {:error, field :: atom, reason :: String.t()}
   def validate_view(data_source, name, sql, views) do
     with :ok <- view_name_ok?(data_source, name),
-         {:ok, parsed_query} <- Parser.parse(sql),
+         {:ok, parsed_query} <- Parser.parse_and_normalize(sql),
          {:ok, compiled_query} <- Compiler.validate_view(data_source, parsed_query, views) do
       {:ok,
        Enum.zip(compiled_query.column_titles, compiled_query.columns)
@@ -349,7 +349,7 @@ defmodule Cloak.Sql.Query do
   # -------------------------------------------------------------------
 
   defp make_query(data_source, query_string, parameters, views) do
-    with {:ok, parsed_query} <- Parser.parse(query_string) do
+    with {:ok, parsed_query} <- Parser.parse_and_normalize(query_string) do
       Compiler.compile(parsed_query, data_source, parameters, views)
     end
   end

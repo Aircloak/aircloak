@@ -104,7 +104,7 @@ defmodule Cloak.DataSource.Table do
   end
 
   defp parse_virtual_table({name, %{query: statement} = table}) when statement != nil do
-    case Parser.parse(statement) do
+    case Parser.parse_and_normalize(statement) do
       {:ok, parsed_query} ->
         {name, %{table | query: parsed_query}}
 

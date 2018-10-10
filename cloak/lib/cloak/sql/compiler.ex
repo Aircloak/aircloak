@@ -31,7 +31,6 @@ defmodule Cloak.Sql.Compiler do
         ) :: Query.t()
   def compile!(parsed_query, data_source, parameters, views) do
     parsed_query
-    |> Cloak.Sql.Parser.ASTNormalization.normalize()
     |> Compiler.Specification.compile(data_source, parameters, views)
     |> Compiler.Normalization.remove_noops()
     |> Compiler.Anonymization.compile()

@@ -170,7 +170,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         message: "There is both a table, and a view named `#{view_name}`. Rename the view to resolve the conflict."
     end
 
-    case Cloak.Sql.Parser.parse(view_sql) do
+    case Cloak.Sql.Parser.parse_and_normalize(view_sql) do
       {:ok, parsed_view} ->
         {:subquery, %{ast: Map.put(parsed_view, :view?, true), alias: view_name}}
 
