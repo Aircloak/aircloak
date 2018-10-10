@@ -298,6 +298,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     |> Lens.context(negative_conditions())
     |> Lens.to_list(query)
     |> Stream.map(fn {query, condition} -> {query, expand_expressions(condition, query)} end)
+    |> Stream.uniq_by(fn {_query, condition} -> column_and_condition(condition) end)
     |> Stream.reject(fn {query, condition} ->
       case Shadows.safe?(condition, query.data_source) do
         {:ok, result} ->
@@ -329,6 +330,20 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         {column, subquery} -> expand_expressions(column, subquery)
       end
     end)
+  end
+
+  defp column_and_condition(condition) do
+    case Condition.targets(condition) do
+      [subject, value] ->
+        if Expression.column?(subject) and Expression.constant?(value) do
+          {subject.name, subject.table, Condition.verb(condition), Expression.const_value(value)}
+        else
+          :erlang.unique_integer()
+        end
+
+      _ ->
+        :erlang.unique_integer()
+    end
   end
 
   defp negative_conditions() do
