@@ -121,9 +121,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
     end
   end
 
-  defp failed(state) do
-    {:error, :failed, state.opts.name, state.default}
-  end
+  defp failed(state), do: {:error, :failed, state.opts.name, state.default}
 
   defp maybe_start_next_computation(state) do
     if Parent.GenServer.child?(:compute_job), do: state, else: start_next_computation(state)
