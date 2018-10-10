@@ -1040,9 +1040,6 @@ defmodule Cloak.Sql.Parser do
       position()
       |> map(fn {line, column} -> {line, column + 1} end)
 
-  if Mix.env() == :test do
-  end
-
   # -------------------------------------------------------------------
   # For tests
   # -------------------------------------------------------------------
