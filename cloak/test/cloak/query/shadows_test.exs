@@ -40,6 +40,15 @@ defmodule Cloak.Query.Shadows.Test do
     test "forbids more than 2 <> conditions with rare values" do
       assert_forbidden("SELECT COUNT(*) FROM query_shadows WHERE value NOT IN (1, 2, 3)")
     end
+
+    test "treats the same condition appearing multiple times as 1" do
+      assert_allowed("""
+      SELECT COUNT(*) FROM (
+        SELECT user_id, value FROM query_shadows WHERE value <> 1
+      ) foo
+      WHERE value NOT IN (1, 1)
+      """)
+    end
   end
 
   describe "NOT LIKE" do
