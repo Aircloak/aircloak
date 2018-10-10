@@ -82,4 +82,19 @@ defmodule Cloak.Query.UserlessTableTest do
       %{error: "The `SAMPLE_USERS` clause is not valid in standard queries."}
     )
   end
+
+  test "[Issue #3070] ordering a userless query by a constant" do
+    assert_query(
+      """
+        SELECT *
+        FROM
+          (
+            SELECT 1 AS x
+            FROM (SELECT count(*) FROM userless_join) AS foo
+            ORDER BY 1
+          ) AS bar
+      """,
+      %{rows: [_ | _]}
+    )
+  end
 end
