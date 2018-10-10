@@ -1,5 +1,5 @@
-defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
-  alias Cloak.Sql.{Compiler.ASTNormalization, Parser}
+defmodule Cloak.Sql.Parser.ASTNormalization.Test do
+  alias Cloak.Sql.{Parser, Parser.ASTNormalization}
   alias Cloak.Test.QueryHelpers
 
   use ExUnit.Case, async: true

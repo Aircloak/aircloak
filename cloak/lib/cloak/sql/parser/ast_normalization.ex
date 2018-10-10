@@ -1,7 +1,7 @@
-defmodule Cloak.Sql.Compiler.ASTNormalization do
+defmodule Cloak.Sql.Parser.ASTNormalization do
   @moduledoc "Deals with normalizing the query AST so that less cases must be handled downstream."
 
-  alias Cloak.Sql.{CompilationError, Function, Parser, Compiler.Helpers, Query}
+  alias Cloak.Sql.{Function, Parser, Compiler.Helpers, Query}
 
   # -------------------------------------------------------------------
   # API functions
@@ -75,7 +75,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization do
   defp rewrite_distinct(%Query{type: :anonymized} = query), do: query
 
   defp rewrite_distinct(%{distinct?: true, group_by: [_ | _], order_by: [{column, _dir, _nulls} | _]}) do
-    raise CompilationError,
+    raise Cloak.Sql.ParseError,
       source_location: location(column),
       message:
         "Simultaneous usage of DISTINCT, GROUP BY, and ORDER BY in the same query is not supported." <>
