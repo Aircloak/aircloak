@@ -189,7 +189,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "forbids unclear >=/< arguments" do
       assert {:error, narrative} = compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) > 0 AND sqrt(numeric) < 10")
 
-      assert narrative =~ ~r/Range expressions cannot include any functions/
+      assert narrative =~ ~r/Only .* can be used in range expressions/
     end
 
     test "allows clear between arguments",
@@ -198,7 +198,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "forbids unclear between arguments" do
       assert {:error, narrative} = compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) BETWEEN 0 AND 10")
 
-      assert narrative =~ ~r/Range expressions cannot include any functions/
+      assert narrative =~ ~r/Only .* can be used in range expressions/
     end
 
     test "allows any ranges in top-level HAVING",
@@ -225,22 +225,22 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
                  SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING sqrt(COUNT(float)) BETWEEN 0 AND 10) x
                """)
 
-      assert narrative =~ ~r/Range expressions cannot include any functions/
+      assert narrative =~ ~r/Only .* can be used in range expressions/
     end
 
     test "forbids implicit ranges within another function" do
       assert {:error, narrative} = compile("SELECT abs(trunc(float)) FROM table")
-      assert narrative =~ ~r/Range expressions cannot include any functions/
+      assert narrative =~ ~r/Only .* can be used in range expressions/
     end
 
     test "forbids nested implicit ranges" do
       assert {:error, narrative} = compile("SELECT trunc(trunc(float), -11) FROM table")
-      assert narrative =~ ~r/Range expressions cannot include any functions/
+      assert narrative =~ ~r/Only .* can be used in range expressions/
     end
 
     test "forbids implicit ranges on function expressions" do
       assert {:error, narrative} = compile("SELECT trunc(float + 1) FROM table")
-      assert narrative =~ ~r/Range expressions cannot include any functions/
+      assert narrative =~ ~r/Only .* can be used in range expressions/
     end
 
     test "does not consider cast to integer as an implicit range",

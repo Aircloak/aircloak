@@ -190,8 +190,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         end
       end)
 
-  defp function_list(function_names), do: function_names |> Enum.map(&"`#{&1}`") |> Aircloak.OxfordComma.join()
-
   defp like_kind_name(:like), do: "LIKE"
   defp like_kind_name(:ilike), do: "ILIKE"
 
@@ -205,7 +203,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
           raise CompilationError,
             source_location: column.source_location,
             message: """
-            Range expressions cannot include any functions except aggregations and a cast.
+            Only #{function_list(@allowed_range_functions)} can be used in range expressions.
             For more information see the "Ranges" and "Implicit ranges" subsections of the "Restrictions"
             section in the user guides.
             """
@@ -220,6 +218,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   defp clear_range_lhs?(lhs, query, _),
     do: Type.establish_type(lhs, query) |> Type.clear_column?(&(&1 in @allowed_range_functions))
+
+  defp function_list(function_names), do: function_names |> Enum.map(&"`#{&1}`") |> Aircloak.OxfordComma.join()
 
   # -------------------------------------------------------------------
   # Isolators
