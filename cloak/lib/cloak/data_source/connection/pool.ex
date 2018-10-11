@@ -1,4 +1,4 @@
-defmodule Cloak.DataSource.ConnectionPool do
+defmodule Cloak.DataSource.Connection.Pool do
   @moduledoc """
   Pooling of data source connections.
 
@@ -15,41 +15,37 @@ defmodule Cloak.DataSource.ConnectionPool do
   Each distinct data source (uniquely identified by the driver and the connection parameters) is managed by its own
   pool, which is a `GenServer`.
 
-  The connection is established and managed by a separate GenServer, powered by the
-  `Cloak.DataSource.ConnectionPool.ConnectionOwner` module. Such implementation simplifies the implementation of the
-  pool server (which doesn't have to juggle with timers), and also improves throughput, since multiple clients can
-  simultaneously create a connection.
+  The connection is established and managed by a separate process, powered by the `Cloak.DataSource.Connection` module.
+  Such approach simplifies the implementation of the pool server (which doesn't have to juggle with timers), and also
+  improves throughput, since multiple clients can simultaneously create a connection.
   """
 
   use Parent.GenServer
   require Logger
   alias Aircloak.ChildSpec
-  alias Cloak.DataSource.Driver
-  alias Cloak.DataSource.ConnectionPool.ConnectionOwner
+  alias Cloak.DataSource.Connection
 
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
-  @doc "Acquires a connection, invokes the provided lambda, and returns its result."
-  @spec execute!(Cloak.DataSource.t(), (Driver.connection() -> result)) :: result when result: var
-  def execute!(data_source, fun) do
-    if data_source.driver.supports_connection_sharing?() do
-      data_source
-      |> pool_server()
-      |> GenServer.call(:checkout)
-      |> on_connection(fun)
-    else
-      # needed for drivers which don't support connection sharing, such as ODBC
-      connection = Cloak.DataSource.connect!(data_source.driver, data_source.parameters)
+  @doc "Checks out the connection from the connection pool."
+  @spec checkout(Cloak.DataSource.t()) :: pid
+  def checkout(data_source) do
+    Logger.debug(fn -> "Acquiring connection to `#{data_source.name}` ..." end)
 
-      try do
-        fun.(connection)
-      after
-        data_source.driver.disconnect(connection)
-      end
-    end
+    data_source
+    |> pool_server()
+    |> GenServer.call(:checkout)
   end
+
+  @doc "Returns the connection to the pool."
+  @spec checkin(pid, pid) :: :ok
+  def checkin(pool_pid, connection \\ self()), do: GenServer.call(pool_pid, {:checkin, connection})
+
+  @doc "Removes the connection from the pool."
+  @spec remove_connection(pid, pid) :: :ok
+  def remove_connection(pool_pid, connection \\ self()), do: GenServer.cast(pool_pid, {:remove_connection, connection})
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -72,6 +68,7 @@ defmodule Cloak.DataSource.ConnectionPool do
 
   @impl GenServer
   def handle_cast({:remove_connection, connection}, state) do
+    Logger.debug("removing an idle connection from the pool")
     Parent.GenServer.shutdown_child(child_id!(connection))
     {:noreply, state}
   end
@@ -86,7 +83,7 @@ defmodule Cloak.DataSource.ConnectionPool do
   end
 
   defp new_connection(state) do
-    start = {ConnectionOwner, :start_link, [state.driver, state.connection_params]}
+    start = {Connection, :start_link, [state.driver, state.connection_params]}
     {:ok, conn} = Parent.GenServer.start_child(%{id: make_ref(), meta: %{available?: true}, start: start})
     conn
   end
@@ -96,7 +93,8 @@ defmodule Cloak.DataSource.ConnectionPool do
          do: conn
   end
 
-  defp pool_server(data_source) do
+  @doc false
+  def pool_server(data_source) do
     case Registry.lookup(__MODULE__.Registry, {data_source.driver, data_source.parameters}) do
       [{pid, _}] ->
         pid
@@ -110,38 +108,6 @@ defmodule Cloak.DataSource.ConnectionPool do
           {:error, {:already_started, pid}} -> pid
         end
     end
-  end
-
-  defp on_connection(connection_owner, fun) do
-    res =
-      connection_owner
-      |> ConnectionOwner.start_client_usage()
-      |> fun.()
-
-    # To avoid possible corrupt state, we're returning the connection back only on success.
-    # On error, we'll terminate the connection owner, and reraise. Finally, this process (client), is monitored
-    # by the connection owner, so if it's killed from the outside, the connection owner will terminate.
-    # This ensures proper cleanup in all situations.
-    ConnectionOwner.checkin(connection_owner)
-
-    res
-  catch
-    type, error ->
-      stacktrace = System.stacktrace()
-      Process.exit(connection_owner, :kill)
-      raise_client_error(type, error, stacktrace)
-  end
-
-  defp raise_client_error(:exit, {{%Cloak.Query.ExecutionError{} = error, _}, _}, _stacktrace), do: raise(error)
-
-  defp raise_client_error(:error, %{__exception__: true} = error, stacktrace), do: reraise(error, stacktrace)
-
-  defp raise_client_error(type, error, stacktrace) do
-    :erlang.raise(
-      :error,
-      RuntimeError.exception("Connection error #{inspect(type)}: #{inspect(error)}"),
-      stacktrace
-    )
   end
 
   # -------------------------------------------------------------------
