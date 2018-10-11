@@ -95,20 +95,20 @@ defmodule Cloak.DataSource.Connection do
   defp handle_common_message({:EXIT, pid, reason}, state) do
     cond do
       pid == state.pool_pid ->
-        Logger.debug("shutting down connection", query_id: state.query_id)
+        Logger.debug("Shutting down connection", query_id: state.query_id)
 
       pid == state.connection ->
-        Logger.warn("database connection closed with reason #{inspect(reason)}", query_id: state.query_id)
+        Logger.warn("Database connection closed with reason #{inspect(reason)}", query_id: state.query_id)
 
       true ->
         Logger.warn(
-          "unknown linked process #{inspect(pid)} exited with reason #{inspect(reason)}",
+          "Unknown linked process #{inspect(pid)} exited with reason #{inspect(reason)}",
           query_id: state.query_id
         )
     end
 
     if pid != state.connection do
-      Logger.debug("closing database connection", query_id: state.query_id)
+      Logger.debug("Closing database connection", query_id: state.query_id)
       state.driver.disconnect(state.connection)
     end
 
