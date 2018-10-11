@@ -9,8 +9,7 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   use Cloak.DataSource.Driver.SQL
   require Logger
-
-  require Logger
+  require Aircloak
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
@@ -71,7 +70,13 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   @impl Driver
   def select(connection, sql_query, result_processor) do
-    statement = SqlBuilder.build(sql_query)
+    statement =
+      Aircloak.in_env(
+        # test_fake_statement is used for test purposes only, to simulate failing sql errors
+        test: Map.get(sql_query, :test_fake_statement, SqlBuilder.build(sql_query)),
+        else: SqlBuilder.build(sql_query)
+      )
+
     field_mappers = Enum.map(sql_query.db_columns, &type_to_field_mapper(&1.type))
     run_query(connection, statement, &map_fields(&1, field_mappers), result_processor)
   end
