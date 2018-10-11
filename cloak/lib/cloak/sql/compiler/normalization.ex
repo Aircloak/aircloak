@@ -9,10 +9,28 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # -------------------------------------------------------------------
 
   @doc """
-  Modifies the query to remove certain expressions without changing semantics. Specifically:
+  Performs semantics preserving query transformations that should be done ahead of the
+  query validation and before the noise layers and other anonymization properties are calculated.
 
-  * Applies the same normalization as `simplify_constants/1`
-  * Makes sure comparisons bewteen columns and constants have the form {column, operator, constant}
+  Performs rewrites such as:
+  * Removing casts that cast a value to the same type it already is
+  * Removing rounding/truncating of integers
+  * Ensuring comparisons bewteen columns and constants have the form {column, operator, constant}
+  """
+  @spec prevalidation_normalizations(Query.t()) :: Query.t()
+  def prevalidation_normalizations(query),
+    do:
+      query
+      |> Noops.remove()
+      |> Helpers.apply_bottom_up(&normalize_constants/1)
+      |> Helpers.apply_bottom_up(&normalize_comparisons/1)
+      |> Helpers.apply_bottom_up(&normalize_order_by/1)
+
+  @doc """
+  Performs semantics preserving query transformations that cannot be done before validations
+  have taken place as the validator (or other query compiler mechanics) rely on certain which
+  the normalizer would rewrite and or remove.
+
   * Removes redundant occurences of "%" from LIKE patterns (for example "%%" -> "%")
   * Normalizes sequences of "%" and "_" in like patterns so that the "%" always precedes a sequence of "_"
   * Expands `BUCKET` calls into equivalent mathematical expressions
@@ -20,34 +38,13 @@ defmodule Cloak.Sql.Compiler.Normalization do
   These are useful (among others) for noise layers - we want to generate the same layer for semantically identical
   conditions, otherwise we have to fall back to probing.
   """
-  @spec normalize(Query.t()) :: Query.t()
-  def normalize(query),
+  @spec postvalidation_normalizations(Query.t()) :: Query.t()
+  def postvalidation_normalizations(query),
     do:
       query
       |> Helpers.apply_bottom_up(&normalize_trivial_like/1)
       |> Helpers.apply_bottom_up(&normalize_bucket/1)
-      |> Helpers.apply_bottom_up(&normalize_constants/1)
-      |> Helpers.apply_bottom_up(&normalize_comparisons/1)
-      |> Helpers.apply_bottom_up(&normalize_order_by/1)
       |> Helpers.apply_bottom_up(&strip_source_location/1)
-
-  @doc """
-  Performs semantics preserving query transformations that should be done ahead of the
-  query validation and before the noise layers and other anonymization properties are calculated.
-
-  Rewrites includes things such as:
-  * Removing casts that cast a value to the same type it already is
-  * Removing rounding/truncating of integers
-  """
-  @spec prevalidation_normalizations(Query.t()) :: Query.t()
-  def prevalidation_normalizations(query),
-    do:
-      query
-      |> Noops.remove()
-
-  @doc "Switches complex expressions involving constants (like 1 + 2 + 3) to their results (6 in this case)"
-  @spec simplify_constants(Query.t()) :: Query.t()
-  def simplify_constants(query), do: Helpers.apply_bottom_up(query, &normalize_constants/1)
 
   # -------------------------------------------------------------------
   # Removing source location
