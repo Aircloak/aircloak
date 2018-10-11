@@ -61,8 +61,6 @@ defmodule Cloak.DataSource.RODBC do
 
   def driver_info(_connection), do: nil
 
-  def supports_connection_sharing?(), do: true
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

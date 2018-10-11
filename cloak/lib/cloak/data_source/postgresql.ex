@@ -10,8 +10,6 @@ defmodule Cloak.DataSource.PostgreSQL do
   use Cloak.DataSource.Driver.SQL
   require Logger
 
-  require Logger
-
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
@@ -78,9 +76,6 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   @impl Driver
   def driver_info(_connection), do: nil
-
-  @impl Driver
-  def supports_connection_sharing?(), do: true
 
   # -------------------------------------------------------------------
   # Internal functions

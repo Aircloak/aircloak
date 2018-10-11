@@ -34,4 +34,5 @@ config :cloak, :memory_limits,
 
 config :cloak, :data_source,
   timeout: :timer.hours(1),
-  batch_size: 100
+  batch_size: 100,
+  connection_keep_time: :timer.seconds(5)

@@ -170,18 +170,11 @@ defmodule Cloak.DataSource do
   The function returns the processed result. On error a `ExecutionError` is raised.
   """
   @spec select!(Query.t(), result_processor) :: processed_result
-  def select!(%{data_source: data_source} = select_query, result_processor) do
-    driver = data_source.driver
-    Logger.debug(fn -> "Acquiring connection to `#{data_source.name}` ..." end)
-
-    Cloak.DataSource.ConnectionPool.execute!(data_source, fn connection ->
-      Logger.debug("Selecting data ...")
-
-      case driver.select(connection, select_query, result_processor) do
-        {:ok, processed_result} -> processed_result
-        {:error, reason} -> raise_error(reason)
-      end
-    end)
+  def select!(query, result_processor) do
+    case Cloak.DataSource.Connection.chunks(query) do
+      {:ok, chunks} -> result_processor.(chunks)
+      {:error, reason} -> raise_error(reason)
+    end
   end
 
   @doc "Raises an error when something goes wrong during data processing."
@@ -526,7 +519,7 @@ defmodule Cloak.DataSource do
           [
             registry(:duplicate, __MODULE__.ChangeListenersRegistry),
             gen_server(__MODULE__, load_data_source_configs(), name: __MODULE__),
-            Cloak.DataSource.ConnectionPool,
+            Cloak.DataSource.Connection.Pool,
             Cloak.DataSource.Isolators
           ],
           strategy: :rest_for_one

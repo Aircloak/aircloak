@@ -189,9 +189,6 @@ defmodule Cloak.DataSource.MongoDB do
     version
   end
 
-  @impl Driver
-  def supports_connection_sharing?(), do: true
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

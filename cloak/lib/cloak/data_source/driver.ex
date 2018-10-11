@@ -48,7 +48,4 @@ defmodule Cloak.DataSource.Driver do
 
   @doc "Returns the driver specific information to be stored inside the data source structure."
   @callback driver_info(connection) :: driver_info
-
-  @doc "Returns true if the connection can be used from processes other than the creator process."
-  @callback supports_connection_sharing?() :: boolean
 end
