@@ -5,8 +5,8 @@ defmodule Cloak.DataSource.Connection do
   The connection process is responsible for the following:
 
     - streaming of the data from the database
-    - checking in to the connection pool (managed by `Cloak.DataSource.ConnectionPool`) when the connection is no longer
-      needed by the client
+    - checking in to the connection pool (managed by `Cloak.DataSource.Connection.Pool`) when the connection is no
+      longer needed by the client
     - closing the connection if it's been idle for a while
 
   See chunks/1 for more details.
