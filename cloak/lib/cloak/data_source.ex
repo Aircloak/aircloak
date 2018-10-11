@@ -520,7 +520,8 @@ defmodule Cloak.DataSource do
             registry(:duplicate, __MODULE__.ChangeListenersRegistry),
             gen_server(__MODULE__, load_data_source_configs(), name: __MODULE__),
             Cloak.DataSource.Connection.Pool,
-            Cloak.DataSource.Isolators
+            Supervisor.child_spec(Cloak.DataSource.Isolators, id: :isolators),
+            Supervisor.child_spec(Cloak.DataSource.Shadows, id: :shadows)
           ],
           strategy: :rest_for_one
         ),

@@ -9,9 +9,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   alias Cloak.Sql.{CompilationError, Condition, Expression, Function, Query, Range}
   alias Cloak.Sql.Compiler.TypeChecker.Type
   alias Cloak.Sql.Compiler.Helpers
-  alias Cloak.DataSource.Isolators
+  alias Cloak.DataSource.{Isolators, Shadows}
 
   @max_allowed_restricted_functions 5
+  @max_rare_negative_conditions 2
 
   # -------------------------------------------------------------------
   # API
@@ -19,6 +20,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   @spec validate_allowed_usage_of_math_and_functions(Query.t()) :: Query.t()
   def validate_allowed_usage_of_math_and_functions(query) do
+    each_anonymized_subquery(query, &verify_negative_conditions/1)
+
     Helpers.each_subquery(query, fn subquery ->
       unless subquery.type == :standard do
         verify_usage_of_potentially_crashing_functions(subquery)
@@ -287,6 +290,69 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   end
 
   # -------------------------------------------------------------------
+  # Negative conditions
+  # -------------------------------------------------------------------
+
+  defp verify_negative_conditions(query) do
+    Query.Lenses.all_queries()
+    |> Lens.context(negative_conditions())
+    |> Lens.to_list(query)
+    |> Stream.map(fn {query, condition} -> {query, expand_expressions(condition, query)} end)
+    |> Stream.uniq_by(fn {_query, condition} -> column_and_condition(condition) end)
+    |> Stream.reject(fn {query, condition} ->
+      case Shadows.safe?(condition, query.data_source) do
+        {:ok, result} ->
+          result
+
+        {:error, :multiple_columns} ->
+          raise CompilationError,
+            source_location: Condition.subject(condition).source_location,
+            message: "Negative conditions can only involve one database column."
+      end
+    end)
+    |> Stream.drop(@max_rare_negative_conditions)
+    |> Enum.take(1)
+    |> case do
+      [] ->
+        :ok
+
+      [{_subquery, condition}] ->
+        raise CompilationError,
+          source_location: Condition.subject(condition).source_location,
+          message: "At most #{@max_rare_negative_conditions} negative conditions are allowed."
+    end
+  end
+
+  defp expand_expressions(condition, query) do
+    update_in(condition, [Query.Lenses.leaf_expressions() |> Lens.filter(&Expression.column?/1)], fn expression ->
+      case Query.resolve_subquery_column(expression, query) do
+        :database_column -> expression
+        {column, subquery} -> expand_expressions(column, subquery)
+      end
+    end)
+  end
+
+  defp column_and_condition(condition) do
+    case Condition.targets(condition) do
+      [subject, value] ->
+        if Expression.column?(subject) and Expression.constant?(value) do
+          {subject.name, subject.table, Condition.verb(condition), Expression.const_value(value)}
+        else
+          :erlang.unique_integer()
+        end
+
+      _ ->
+        :erlang.unique_integer()
+    end
+  end
+
+  defp negative_conditions() do
+    Query.Lenses.db_filter_clauses()
+    |> Query.Lenses.conditions()
+    |> Lens.filter(&(Condition.not_equals?(&1) or Condition.not_like?(&1)))
+  end
+
+  # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
@@ -313,4 +379,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       |> Lens.filter(predicate)
       |> Lens.to_list(query)
       |> Enum.each(action)
+
+  defp each_anonymized_subquery(query, function) do
+    Query.Lenses.all_queries()
+    |> Lens.filter(&(&1.type == :anonymized))
+    |> Lens.each(query, function)
+  end
 end

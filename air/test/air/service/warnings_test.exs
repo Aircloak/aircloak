@@ -11,7 +11,14 @@ defmodule Air.Service.WarningsTest do
   @data_sources_with_failed_isolators [
     %{
       name: @data_source_name,
-      tables: [%{id: "failed_table", columns: [%{name: "failed_isolator", isolated: :failed}]}],
+      tables: [%{id: "failed_table", columns: [%{name: "failed_isolator", shadow_table: :ok, isolated: :failed}]}],
+      errors: []
+    }
+  ]
+  @data_sources_with_failed_shadows [
+    %{
+      name: @data_source_name,
+      tables: [%{id: "failed_table", columns: [%{name: "failed_shadow", shadow_table: :failed, isolated: true}]}],
       errors: []
     }
   ]
@@ -63,6 +70,11 @@ defmodule Air.Service.WarningsTest do
   test "warning when data source has failed isolators" do
     start_cloak_channel(@data_sources_with_failed_isolators)
     assert problem_with_description(~r/Cloak could not compute if columns `failed_table.failed_isolator` are isolating/)
+  end
+
+  test "warning when data source has failed shadows" do
+    start_cloak_channel(@data_sources_with_failed_shadows)
+    assert problem_with_description(~r/could not compute frequent values from columns `failed_table.failed_shadow`/)
   end
 
   describe("problems_for_resource") do

@@ -209,7 +209,7 @@ defmodule Air.Service.DataSource do
     cond do
       not available?(data_source.name) -> :offline
       DataSource.errors(data_source) != [] -> :broken
-      not DataSource.analyzed?(data_source) -> :analyzing
+      not analyzed?(data_source) -> :analyzing
       true -> :online
     end
   end
@@ -453,10 +453,14 @@ defmodule Air.Service.DataSource do
       {:error, :internal_error}
   end
 
+  @data_source_fields ~w(
+    name tables errors description columns_count isolated_computed_count isolated_failed shadow_tables_computed_count
+    shadow_tables_failed
+  )a
   defp data_source_changeset(data_source, params),
     do:
       data_source
-      |> cast(params, ~w(name tables errors description columns_count isolated_computed_count isolated_failed)a)
+      |> cast(params, @data_source_fields)
       |> validate_required(~w(name tables)a)
       |> unique_constraint(:name)
       |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
@@ -469,36 +473,36 @@ defmodule Air.Service.DataSource do
       })
 
   defp data_source_to_db_data(name, tables, errors) do
-    # We're computing total column count, isolated computed count, and the list of failed isolators, and storing them
-    # directly. This allows us to have that data ready, without needing to decode the tables json. Since these counts
-    # are frequently needed to determine the column status, we're precomputing them once.
-
-    status =
-      for table <- tables, column <- table.columns do
-        {table.id, column.name, column.isolated}
-      end
-      |> Enum.reduce(
-        %{total: 0, computed: 0, failed: []},
-        fn
-          {table, column, :failed}, acc ->
-            %{acc | total: acc.total + 1, failed: ["#{table}.#{column}" | acc.failed]}
-
-          {_, _, isolated}, acc when is_boolean(isolated) ->
-            %{acc | total: acc.total + 1, computed: acc.computed + 1}
-
-          _, acc ->
-            %{acc | total: acc.total + 1}
-        end
-      )
+    # We're computing total column count, and computed and failed counts for isolators and shadow tables, and storing
+    # them directly. This allows us to have that data ready, without needing to decode the tables json. Since these
+    # counts are frequently needed to determine the column status, we're precomputing them once.
 
     %{
       name: name,
       tables: Poison.encode!(tables),
       errors: Poison.encode!(errors),
-      isolated_computed_count: status.computed,
-      columns_count: status.total,
-      isolated_failed: status.failed
+      columns_count: count_columns(tables, fn _ -> true end),
+      isolated_computed_count: count_columns(tables, &is_boolean(&1.isolated)),
+      isolated_failed: filter_columns(tables, &(&1.isolated == :failed)),
+      shadow_tables_computed_count: count_columns(tables, &(&1.shadow_table == :ok)),
+      shadow_tables_failed: filter_columns(tables, &(&1.shadow_table == :failed))
     }
+  end
+
+  defp count_columns(tables, predicate), do: tables |> filter_columns(predicate) |> length()
+
+  defp filter_columns(tables, predicate) do
+    for table <- tables, column <- table.columns, predicate.(column) do
+      "#{table.id}.#{column.name}"
+    end
+  end
+
+  def analyzed?(%{isolated_computed_count: nil}), do: true
+  def analyzed?(%{shadow_tables_computed_count: nil}), do: true
+
+  def analyzed?(data_source) do
+    data_source.isolated_computed_count == data_source.columns_count and
+      data_source.shadow_tables_computed_count == data_source.columns_count
   end
 
   # -------------------------------------------------------------------

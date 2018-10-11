@@ -65,6 +65,7 @@ defmodule Air.Service.Warnings do
 
     offline_datasources(data_sources, :high) ++
       failed_isolator(data_sources, :medium) ++
+      failed_shadow_tables(data_sources, :medium) ++
       broken_datasources(data_sources, :medium) ++ no_group(data_sources, :low) ++ no_users(data_sources, :low)
   end
 
@@ -87,6 +88,19 @@ defmodule Air.Service.Warnings do
       message =
         "Cloak could not compute if columns #{columns} are isolating." <>
           " The columns will be treated as isolating unless manually classified." <>
+          " See the Restrictions section of the user guide for more information."
+
+      problem(data_source, message, severity)
+    end
+  end
+
+  defp failed_shadow_tables(data_sources, severity) do
+    for data_source = %{shadow_tables_failed: failed = [_ | _]} <- data_sources do
+      columns = failed |> Enum.map(&"`#{&1}`") |> Aircloak.OxfordComma.join()
+
+      message =
+        "Cloak could not compute frequent values from columns #{columns}." <>
+          " The columns will be treated as having no frequent values." <>
           " See the Restrictions section of the user guide for more information."
 
       problem(data_source, message, severity)

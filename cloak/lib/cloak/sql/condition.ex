@@ -23,11 +23,16 @@ defmodule Cloak.Sql.Condition do
   def not_equals?({:comparison, _, :<>, _}), do: true
   def not_equals?(_), do: false
 
-  @doc "Returns true if the given where clause is a NOT LIKE clause, false otherwise."
+  @doc "Returns true if the given where clause is a NOT (I)LIKE clause, false otherwise."
   @spec not_like?(Query.where_clause()) :: boolean
   def not_like?({:not, {:like, _, _}}), do: true
   def not_like?({:not, {:ilike, _, _}}), do: true
   def not_like?(_), do: false
+
+  @doc "Returns true if the given where clause is a NOT ILIKE clause, false otherwise."
+  @spec not_ilike?(Query.where_clause()) :: boolean
+  def not_ilike?({:not, {:ilike, _, _}}), do: true
+  def not_ilike?(_), do: false
 
   @doc "Returns true if the given where clause is a LIKE clause, false otherwise."
   @spec like?(Query.where_clause()) :: boolean
@@ -107,12 +112,12 @@ defmodule Cloak.Sql.Condition do
   end
 
   def to_function({:like, column, %Expression{type: :like_pattern, value: pattern}}, truth) do
-    regex = pattern |> LikePattern.to_regex("ums")
+    regex = LikePattern.to_regex(pattern)
     fn row -> compare(:=~, Expression.value(column, row), regex) == truth end
   end
 
   def to_function({:ilike, column, %Expression{type: :like_pattern, value: pattern}}, truth) do
-    regex = pattern |> LikePattern.to_regex("uims")
+    regex = LikePattern.to_case_insensitive_regex(pattern)
     fn row -> compare(:=~, Expression.value(column, row), regex) == truth end
   end
 

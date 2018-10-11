@@ -20,6 +20,7 @@ defmodule ComplianceCase do
         {_, table} <- data_source.tables,
         column <- table.columns do
       Cloak.TestIsolatorsCache.forward_isolator(data_source, table.name, column.name)
+      Cloak.TestShadowCache.forward(data_source, table.name, column.name)
     end
 
     {:ok, data_sources: data_sources(), disabled: false}
@@ -177,6 +178,7 @@ defmodule ComplianceCase do
         Application.put_env(:cloak, :cached_data_sources, Map.put(cached_data_sources, compliance_file, data_sources))
         for data_source <- data_sources, do: Cloak.DataSource.replace_data_source_config(data_source)
         Cloak.TestIsolatorsCache.data_sources_changed()
+        Cloak.TestShadowCache.data_sources_changed()
         data_sources
 
       {:ok, data_sources} ->

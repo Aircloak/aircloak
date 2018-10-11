@@ -77,7 +77,7 @@ defmodule Cloak.DataSource.Isolators do
       [
         # The cache table is owned by a separate process. This is mostly done for testing purposes, but it also improves
         # fault-tolerance. If the cache process crashes, the cache table will survive.
-        __MODULE__.CacheOwner,
+        __MODULE__.PersistentKeyValue,
         {@cache_module, arg}
       ],
       strategy: :rest_for_one

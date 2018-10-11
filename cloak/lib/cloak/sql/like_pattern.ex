@@ -57,9 +57,13 @@ defmodule Cloak.Sql.LikePattern do
       |> Enum.join()
       |> anchor()
 
-  @doc "Returns a regex implementing the given pattern with the given compilation options."
-  @spec to_regex(t, String.t()) :: Regex.t()
-  def to_regex(pattern, options \\ ""), do: pattern |> to_regex_pattern() |> Regex.compile!(options)
+  @doc "Returns a regex implementing the given pattern."
+  @spec to_regex(t) :: Regex.t()
+  def to_regex(pattern), do: pattern |> to_regex_pattern() |> Regex.compile!("usm")
+
+  @doc "Returns a regex implementing the given pattern that matches case-insensitively."
+  @spec to_case_insensitive_regex(t) :: Regex.t()
+  def to_case_insensitive_regex(pattern), do: pattern |> to_regex_pattern() |> Regex.compile!("usmi")
 
   @doc "Lowercases the LIKE match pattern."
   @spec lowercase(t) :: t

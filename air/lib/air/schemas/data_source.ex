@@ -13,7 +13,9 @@ defmodule Air.Schemas.DataSource do
     field(:errors, :string)
     field(:columns_count, :integer)
     field(:isolated_computed_count, :integer)
+    field(:shadow_tables_computed_count, :integer)
     field(:isolated_failed, {:array, :string})
+    field(:shadow_tables_failed, {:array, :string})
     field(:pending_delete, :boolean)
 
     has_many(:queries, Query, on_delete: :delete_all)
@@ -50,9 +52,4 @@ defmodule Air.Schemas.DataSource do
       _ -> []
     end
   end
-
-  @doc "Returns true if the datasource has been analyzed by the cloak."
-  @spec analyzed?(t) :: boolean
-  def analyzed?(%__MODULE__{isolated_computed_count: nil}), do: true
-  def analyzed?(data_source), do: data_source.isolated_computed_count == data_source.columns_count
 end
