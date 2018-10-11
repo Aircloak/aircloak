@@ -28,7 +28,7 @@ defmodule Cloak.DataSource.Connection do
 
   The streaming is done in a lookahead fashion. The connection process will try to ensure that the next item is
   available in the client process when the client needs it. Therefore, the extra process hop for each row should not
-  affect the query latency, especially not in the cases where the client processing takes more time.
+  affect the query duration, especially not in the cases where the client processing takes more time.
   """
   @spec chunks(Cloak.Sql.Query.t()) :: {:ok, Enumerable.t()} | {:error, String.t()}
   def chunks(query) do
