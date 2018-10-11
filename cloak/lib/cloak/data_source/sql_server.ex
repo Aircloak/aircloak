@@ -29,9 +29,6 @@ defmodule Cloak.DataSource.SQLServer do
   defdelegate driver_info(connection), to: RODBC
 
   @impl Driver
-  defdelegate supports_connection_sharing?(), to: RODBC
-
-  @impl Driver
   def sql_dialect_module(), do: SqlBuilder.SQLServer
 
   # -------------------------------------------------------------------

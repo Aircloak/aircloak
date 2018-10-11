@@ -62,9 +62,6 @@ defmodule Cloak.DataSource.Drill do
   defdelegate driver_info(connection), to: RODBC
 
   @impl Driver
-  defdelegate supports_connection_sharing?(), to: RODBC
-
-  @impl Driver
   def supports_query?(query),
     do: query |> get_in([Cloak.Sql.Query.Lenses.joins()]) |> Enum.any?(&(&1.type == :cross_join)) |> :erlang.not()
 end
