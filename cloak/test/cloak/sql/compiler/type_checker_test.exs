@@ -253,6 +253,13 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
 
     test "allows casts in ranges",
       do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE CAST(string AS INTEGER) BETWEEN 0 AND 10"))
+
+    for part <- ~w(hour minute second year quarter month day weekday dow) do
+      test "allows extract(#{part}) in ranges" do
+        assert {:ok, _} =
+                 compile("SELECT extract(#{unquote(part)} from datetime) AS x FROM table WHERE x BETWEEN 1 AND 3")
+      end
+    end
   end
 
   describe "exceptions" do

@@ -195,6 +195,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp like_kind_name(:like), do: "LIKE"
   defp like_kind_name(:ilike), do: "ILIKE"
 
+  @allowed_range_functions ~w(hour minute second year quarter month day weekday)
   defp verify_ranges_are_clear(query),
     do:
       query
@@ -217,7 +218,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp clear_range_lhs?(lhs, query, :implicit),
     do: not (Type.establish_type(lhs, query) |> Type.unclear_implicit_range?())
 
-  defp clear_range_lhs?(lhs, query, _), do: Type.establish_type(lhs, query) |> Type.clear_column?()
+  defp clear_range_lhs?(lhs, query, _),
+    do: Type.establish_type(lhs, query) |> Type.clear_column?(&(&1 in @allowed_range_functions))
 
   # -------------------------------------------------------------------
   # Isolators
