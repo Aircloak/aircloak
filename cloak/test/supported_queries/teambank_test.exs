@@ -983,7 +983,7 @@ defmodule Cloak.Regressions.TeamBank.Test do
   end
 
   defp assert_compiles_successfully(query, data_source_scaffold) do
-    parsed_query = Cloak.Sql.Parser.parse_and_normalize!(query)
+    parsed_query = Cloak.Sql.Parser.parse!(query)
     data_source = generate_data_source_config(data_source_scaffold)
     assert {:ok, _} = Cloak.Sql.Compiler.compile(parsed_query, data_source, nil, %{})
   end

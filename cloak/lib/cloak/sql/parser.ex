@@ -94,9 +94,9 @@ defmodule Cloak.Sql.Parser do
   # -------------------------------------------------------------------
 
   @doc "Parses a and normalizes an SQL query in text form. Raises on error."
-  @spec parse_and_normalize!(String.t()) :: parsed_query
-  def parse_and_normalize!(string) do
-    case parse_and_normalize(string) do
+  @spec parse!(String.t()) :: parsed_query
+  def parse!(string) do
+    case parse(string) do
       {:ok, query} ->
         query
 
@@ -114,7 +114,7 @@ defmodule Cloak.Sql.Parser do
   end
 
   @doc "Parses and normalizes an SQL query in text form."
-  @spec parse_and_normalize(String.t()) :: {:ok, parsed_query} | {:error, any}
-  def parse_and_normalize(statement),
+  @spec parse(String.t()) :: {:ok, parsed_query} | {:error, any}
+  def parse(statement),
     do: with({:ok, ast} <- Cloak.Sql.Parser.Internal.parse(statement), do: {:ok, ASTNormalization.normalize(ast)})
 end

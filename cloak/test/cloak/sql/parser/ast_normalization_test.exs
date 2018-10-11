@@ -8,7 +8,7 @@ defmodule Cloak.Sql.Parser.ASTNormalization.Test do
     quote bind_quoted: [to_normalize: to_normalize, expected: expected] do
       parsed =
         to_normalize
-        |> Parser.parse_and_normalize!()
+        |> Parser.parse!()
         |> QueryHelpers.scrub_locations()
 
       expected = with {:ok, ast} <- Parser.Internal.parse(expected), do: QueryHelpers.scrub_locations(ast)
@@ -231,7 +231,7 @@ defmodule Cloak.Sql.Parser.ASTNormalization.Test do
             columns: [
               {:function, %{canonical_name: unquote(function), synonym_used: unquote(synonym)}, _, _}
             ]
-          } = Parser.parse_and_normalize!("SELECT #{unquote(synonym)}(column) FROM table")
+          } = Parser.parse!("SELECT #{unquote(synonym)}(column) FROM table")
         )
   end)
 
@@ -247,7 +247,7 @@ defmodule Cloak.Sql.Parser.ASTNormalization.Test do
             columns: [
               {:function, %{canonical_name: unquote(operator), synonym_used: unquote(synonym)}, _, _}
             ]
-          } = Parser.parse_and_normalize!("SELECT #{unquote(synonym)}(column, 10) FROM table")
+          } = Parser.parse!("SELECT #{unquote(synonym)}(column, 10) FROM table")
         )
   end)
 
@@ -255,6 +255,6 @@ defmodule Cloak.Sql.Parser.ASTNormalization.Test do
     do:
       assert(
         %{columns: [{:function, %{canonical_name: "weekday", synonym_used: "dow"}, _, _}]} =
-          Parser.parse_and_normalize!("SELECT EXTRACT(dow FROM column) FROM table")
+          Parser.parse!("SELECT EXTRACT(dow FROM column) FROM table")
       )
 end

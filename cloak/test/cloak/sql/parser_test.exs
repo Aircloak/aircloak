@@ -17,14 +17,14 @@ defmodule Cloak.Sql.Parser.Test do
   # Runs the query string and asserts it matches to the given pattern.
   defmacrop assert_parse(query_string, expected_pattern) do
     quote do
-      assert unquote(expected_pattern) = Parser.parse_and_normalize!(unquote(query_string))
+      assert unquote(expected_pattern) = Parser.parse!(unquote(query_string))
     end
   end
 
   defmacrop assert_equal_parse(query1, query2) do
     quote do
-      result1 = unquote(query1) |> Parser.parse_and_normalize!() |> QueryHelpers.scrub_locations()
-      result2 = unquote(query2) |> Parser.parse_and_normalize!() |> QueryHelpers.scrub_locations()
+      result1 = unquote(query1) |> Parser.parse!() |> QueryHelpers.scrub_locations()
+      result2 = unquote(query2) |> Parser.parse!() |> QueryHelpers.scrub_locations()
 
       assert result1 == result2
     end
@@ -32,7 +32,7 @@ defmodule Cloak.Sql.Parser.Test do
 
   defmacrop assert_parse_error(query_string, expected_pattern) do
     quote do
-      assert {:error, unquote(expected_pattern)} = Parser.parse_and_normalize(unquote(query_string))
+      assert {:error, unquote(expected_pattern)} = Parser.parse(unquote(query_string))
     end
   end
 
@@ -1249,8 +1249,8 @@ defmodule Cloak.Sql.Parser.Test do
       )
 
   test "cast to timestamp" do
-    result1 = Parser.parse_and_normalize!("select cast(a as datetime) from bar")
-    result2 = Parser.parse_and_normalize!("select cast(a as timestamp) from bar")
+    result1 = Parser.parse!("select cast(a as datetime) from bar")
+    result2 = Parser.parse!("select cast(a as timestamp) from bar")
 
     assert result1 == result2
   end
@@ -1284,7 +1284,7 @@ defmodule Cloak.Sql.Parser.Test do
           select(columns: [function({:cast, :text}, [function({:cast, :integer}, [identifier("a")])])])
         )
 
-    test "a non-datatype on RHS of ::", do: assert({:error, _} = Parser.parse_and_normalize("select a::b from bar"))
+    test "a non-datatype on RHS of ::", do: assert({:error, _} = Parser.parse("select a::b from bar"))
   end
 
   for word <- ~w(date time datetime timestamp) do
@@ -1630,7 +1630,7 @@ defmodule Cloak.Sql.Parser.Test do
 
   create_test = fn description, statement, expected_error, line, column ->
     test description do
-      assert {:error, reason} = Parser.parse_and_normalize(unquote(statement))
+      assert {:error, reason} = Parser.parse(unquote(statement))
       assert reason =~ unquote(expected_error)
       assert reason =~ "line #{unquote(line)}, column #{unquote(column)}\."
     end
@@ -1710,12 +1710,12 @@ defmodule Cloak.Sql.Parser.Test do
   )
 
   describe "parse!" do
-    test "returns parsed query if OK", do: assert(select([]) = Parser.parse_and_normalize!("select foo from bar"))
+    test "returns parsed query if OK", do: assert(select([]) = Parser.parse!("select foo from bar"))
 
     test "raises ParseError with location if error" do
       error =
         try do
-          Parser.parse_and_normalize!("select select")
+          Parser.parse!("select select")
           nil
         rescue
           e in Cloak.Sql.Parser.ParseError -> e

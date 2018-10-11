@@ -35,7 +35,7 @@ defmodule Cloak.DataSource.Isolators.Query do
       GROUP BY 1
       ORDER BY 1
     """
-    |> Parser.parse_and_normalize!()
+    |> Parser.parse!()
     |> Compiler.compile_direct!(data_source)
     |> Cloak.Query.DbEmulator.select()
     |> case do
