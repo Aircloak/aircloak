@@ -1,5 +1,5 @@
 defmodule Cloak.Sql.Parser.ASTNormalization.Test do
-  alias Cloak.Sql.{Parser, Parser.ASTNormalization}
+  alias Cloak.Sql.Parser
   alias Cloak.Test.QueryHelpers
 
   use ExUnit.Case, async: true
@@ -8,11 +8,10 @@ defmodule Cloak.Sql.Parser.ASTNormalization.Test do
     quote bind_quoted: [to_normalize: to_normalize, expected: expected] do
       parsed =
         to_normalize
-        |> Parser.parse!()
-        |> ASTNormalization.normalize()
+        |> Parser.parse_and_normalize!()
         |> QueryHelpers.scrub_locations()
 
-      expected = expected |> Parser.parse!() |> QueryHelpers.scrub_locations()
+      expected = with {:ok, ast} <- Parser.Internal.parse(expected), do: QueryHelpers.scrub_locations(ast)
 
       assert parsed == expected
     end
