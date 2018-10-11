@@ -32,13 +32,15 @@ defmodule Cloak.Sql.Compiler.Normalization do
       |> Helpers.apply_bottom_up(&strip_source_location/1)
 
   @doc """
-  Modifies the query to remove expressions that do nothing, like:
+  Performs semantics preserving query transformations that should be done ahead of the
+  query validation and before the noise layers and other anonymization properties are calculated.
 
-  * Casting a value to the same type it already is
-  * Rounding/truncating integers
+  Rewrites includes things such as:
+  * Removing casts that cast a value to the same type it already is
+  * Removing rounding/truncating of integers
   """
-  @spec remove_noops(Query.t()) :: Query.t()
-  def remove_noops(query),
+  @spec prevalidation_normalizations(Query.t()) :: Query.t()
+  def prevalidation_normalizations(query),
     do:
       query
       |> Noops.remove()

@@ -32,7 +32,7 @@ defmodule Cloak.Sql.Compiler do
   def compile!(parsed_query, data_source, parameters, views) do
     parsed_query
     |> Compiler.Specification.compile(data_source, parameters, views)
-    |> Compiler.Normalization.remove_noops()
+    |> Compiler.Normalization.prevalidation_normalizations()
     |> Compiler.Anonymization.compile()
     |> Compiler.Validation.verify_query()
     |> Compiler.TypeChecker.validate_allowed_usage_of_math_and_functions()
@@ -50,7 +50,7 @@ defmodule Cloak.Sql.Compiler do
       parsed_query
       |> Compiler.Helpers.apply_top_down(&Map.put(&1, :type, :standard))
       |> Compiler.Specification.compile(data_source, nil, %{})
-      |> Compiler.Normalization.remove_noops()
+      |> Compiler.Normalization.prevalidation_normalizations()
       |> Compiler.Optimizer.optimize()
       |> Compiler.Normalization.simplify_constants()
       |> Compiler.Execution.prepare()
