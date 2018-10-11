@@ -34,6 +34,12 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       end
     end
 
+    for part <- ~w(hour minute second year quarter month day weekday dow) do
+      test "allows extract(#{part}) in IN lhs" do
+        assert {:ok, _} = compile("SELECT extract(#{unquote(part)} from datetime) AS x FROM table WHERE x IN (1, 2, 3)")
+      end
+    end
+
     test "allows substring in IN lhs" do
       assert {:ok, _} = compile("SELECT SUBSTRING(string FROM 3) AS x FROM table WHERE x IN ('a', 'b', 'c')")
     end
@@ -299,7 +305,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
               Table.column("float", :real),
               Table.column("string", :text),
               Table.column("time", :time),
-              Table.column("date", :date)
+              Table.column("date", :date),
+              Table.column("datetime", :datetime)
             ]
           )
       }

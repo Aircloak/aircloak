@@ -83,7 +83,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         end
       end)
 
-  @allowed_in_functions ~w(lower upper substring trim ltrim rtrim btrim extract_words)
+  @allowed_in_functions ~w(
+    lower upper substring trim ltrim rtrim btrim extract_words hour minute second year quarter month day weekday
+  )
   defp verify_lhs_of_in_is_clear(query),
     do:
       verify_conditions(query, &Condition.in?/1, fn {:in, lhs, _} ->
