@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Parser.Internal do
   @moduledoc "Parser for SQL queries."
   import Combine.Parsers.Base
-  import Cloak.Sql.Parsers
+  import Cloak.Sql.Parser.Parsers
 
   # -------------------------------------------------------------------
   # API functions
