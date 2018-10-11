@@ -99,7 +99,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         end
       end)
 
-  @allowed_not_equals_functions ~w(lower upper substring trim ltrim rtrim btrim extract_words)
+  @allowed_not_equals_functions ~w(
+    lower upper substring trim ltrim rtrim btrim extract_words hour minute second year quarter month day weekday
+  )
   defp verify_not_equals_is_clear(query),
     do:
       verify_conditions(query, &Condition.not_equals?/1, fn {:comparison, lhs, :<>, rhs} ->

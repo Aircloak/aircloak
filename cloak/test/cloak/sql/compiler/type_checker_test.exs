@@ -110,6 +110,12 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       end
     end
 
+    for part <- ~w(hour minute second year quarter month day weekday dow) do
+      test "allows extract(#{part}) in <> lhs" do
+        assert {:ok, _} = compile("SELECT extract(#{unquote(part)} from datetime) AS x FROM table WHERE x <> 1")
+      end
+    end
+
     test "allows substring in <> lhs" do
       assert {:ok, _} = compile("SELECT SUBSTRING(string FROM 3) AS x FROM table WHERE x <> 'a'")
     end
