@@ -43,12 +43,8 @@ defmodule Cloak.DataSource.Connection do
          fn -> Process.monitor(connection_owner) end,
          fn mref ->
            case next_chunk(connection_owner) do
-             nil ->
-               {:halt, mref}
-
-             chunk ->
-               Logger.debug("Processing chunk")
-               {[chunk], mref}
+             nil -> {:halt, mref}
+             chunk -> {[chunk], mref}
            end
          end,
          fn mref -> Process.demonitor(mref, [:flush]) end
@@ -200,7 +196,6 @@ defmodule Cloak.DataSource.Connection do
       stream,
       nil,
       fn chunk, nil ->
-        Logger.debug("Sending next chunk", query_id: state.query_id)
         send(client_pid, {:chunk, chunk})
 
         receive do
