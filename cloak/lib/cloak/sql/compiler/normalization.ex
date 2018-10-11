@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler.Normalization do
   @moduledoc "Deals with normalizing some expressions so that they are easier to deal with at later stages."
 
-  alias Cloak.Sql.Compiler.Helpers
+  alias Cloak.Sql.Compiler.{Helpers, Normalization.Noops}
   alias Cloak.Sql.{Expression, Query, LikePattern, Condition, CompilationError}
 
   # -------------------------------------------------------------------
@@ -41,8 +41,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   def remove_noops(query),
     do:
       query
-      |> Helpers.apply_bottom_up(&remove_redundant_casts/1)
-      |> Helpers.apply_bottom_up(&remove_redundant_rounds/1)
+      |> Noops.remove()
 
   @doc "Switches complex expressions involving constants (like 1 + 2 + 3) to their results (6 in this case)"
   @spec simplify_constants(Query.t()) :: Query.t()
@@ -53,36 +52,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # -------------------------------------------------------------------
 
   defp strip_source_location(query), do: update_in(query, [Query.Lenses.query_expressions()], &Expression.semantic/1)
-
-  # -------------------------------------------------------------------
-  # Removing useless casts
-  # -------------------------------------------------------------------
-
-  defp remove_redundant_casts(query),
-    do:
-      update_in(query, [Query.Lenses.terminals()], fn
-        %Expression{function: {:cast, type}, function_args: [expr = %Expression{type: type}]} ->
-          expr
-
-        other ->
-          other
-      end)
-
-  # -------------------------------------------------------------------
-  # Removing useless round/trunc
-  # -------------------------------------------------------------------
-
-  @round_funcs ~w/round trunc ceil floor/
-  defp remove_redundant_rounds(query),
-    do:
-      update_in(query, [Query.Lenses.terminals()], fn
-        %Expression{function: fun, function_args: [expr = %Expression{type: :integer}]}
-        when fun in @round_funcs ->
-          expr
-
-        other ->
-          other
-      end)
 
   # -------------------------------------------------------------------
   # Normalizing comparisons
