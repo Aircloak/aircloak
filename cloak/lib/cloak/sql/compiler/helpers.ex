@@ -10,7 +10,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
   # -------------------------------------------------------------------
 
   @doc "Returns one id column of the query."
-  @spec id_column(partial_query) :: Expression.t()
+  @spec id_column(partial_query) :: Expression.t() | nil
   def id_column(%Query{type: :standard}), do: nil
 
   def id_column(query) do
