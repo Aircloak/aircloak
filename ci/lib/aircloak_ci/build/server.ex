@@ -90,6 +90,9 @@ defmodule AircloakCI.Build.Server do
   @doc "Invoked to handle a plain message sent to this process."
   @callback handle_info(message :: any, state) :: async_message_result
 
+  @doc "Invoked to determine whether nightly build can be invoked."
+  @callback run_nightly?(state) :: boolean
+
   # -------------------------------------------------------------------
   # API Functions
   # -------------------------------------------------------------------
@@ -208,7 +211,19 @@ defmodule AircloakCI.Build.Server do
 
   @impl GenServer
   def handle_cast({:report_result, job_name, result, extra_info}, state) do
-    AircloakCI.Build.Reporter.report_result(state, job_name, result, extra_info)
+    AircloakCI.Build.Reporter.report_result(%AircloakCI.Build.Reporter{
+      project: state.project,
+      source_type: state.source_type,
+      source: state.source,
+      job_name: job_name,
+      log_name: job_name,
+      result: result,
+      extra_info: extra_info,
+      build_log_command: "`ci/production.sh build_log #{production_script_target(state)} #{job_name}`",
+      restart_command: "`ci/production.sh force_build #{production_script_target(state)} #{job_name}`",
+      remote_console_command: remote_console_command(state, job_name)
+    })
+
     {:noreply, state}
   end
 
@@ -264,8 +279,8 @@ defmodule AircloakCI.Build.Server do
   end
 
   def handle_info(:start_nightly_job, state) do
-    if Enum.empty?(running_jobs(state)) and state.source_type in [:local, :branch],
-      do: AircloakCI.Build.Nightly.maybe_start_job(state.project)
+    if invoke_callback(state, :run_nightly?, []) and Enum.empty?(running_jobs(state)),
+      do: AircloakCI.Build.Nightly.maybe_start_job(state.project, state.source)
 
     enqueue_nightly()
     {:noreply, state}
@@ -386,6 +401,24 @@ defmodule AircloakCI.Build.Server do
   defp invoke_callback(state, fun, args), do: apply(state.callback_mod, fun, args ++ [state])
 
   defp enqueue_nightly(), do: Process.send_after(self(), :start_nightly_job, :timer.seconds(1))
+
+  defp remote_console_command(state, job_name) do
+    with component_name when not is_nil(component_name) <- component_name(job_name) do
+      "`ci/production.sh remote_console #{production_script_target(state)} #{component_name}`\n"
+    end
+  end
+
+  defp component_name(job_name) do
+    cond do
+      String.ends_with?(job_name, "_compile") -> String.replace(job_name, ~r/_compile$/, "")
+      String.ends_with?(job_name, "_test") -> String.replace(job_name, ~r/_test$/, "")
+      true -> nil
+    end
+  end
+
+  defp production_script_target(%{source_type: :pull_request, source: pr}), do: "pr #{pr.number}"
+  defp production_script_target(%{source_type: :branch, source: branch}), do: "branch #{branch.name}"
+  defp production_script_target(%{source_type: :local, source: local}), do: "local #{local.path}"
 
   @doc false
   defmacro __using__(opts) do

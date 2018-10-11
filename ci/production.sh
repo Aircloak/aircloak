@@ -77,14 +77,15 @@ function deploy {
     (git branch -vv | grep ': gone]' | awk '{print $1}' | xargs git branch -d &>/dev/null || true)
   "
 
-  # update systemd service file and restart the service
+  # upload production files, update systemd, and restart services
   exec_as_root "
-    cp -rp $build_folder/production/fix_permissions.sh /root/ &&
-    cp -rp $build_folder/production/aircloak_ci.service /etc/systemd/system/ &&
-    cp -rp $build_folder/production/aircloak_ci_fix_permissions.* /etc/systemd/system/ &&
+    cp -rp $build_folder/production/*.sh /root/ &&
+    cp -rp $build_folder/production/*.service /etc/systemd/system/ &&
+    cp -rp $build_folder/production/*.timer /etc/systemd/system/ &&
     systemctl daemon-reload &&
     systemctl restart aircloak_ci.service &&
-    systemctl restart aircloak_ci_fix_permissions.timer
+    systemctl restart aircloak_ci_fix_permissions.timer &&
+    systemctl restart aircloak_ci_cleanup_cache.timer
   "
 
   # keep the most recent 10 releases
@@ -160,6 +161,10 @@ case "$command" in
     service_command build force_build $1 $2 $3
     ;;
 
+  force_nightly)
+    service_command build force_nightly $1 $2 $3
+    ;;
+
   remote_console)
     remote_console $@
     ;;
@@ -173,6 +178,7 @@ case "$command" in
       service_log journalctl_args |
       build_log branch_or_pr branch_name_or_pr_number job_name |
       force_build branch_or_pr branch_name_or_pr_number job_name |
+      force_nightly branch_name component_name job_name |
       remote_console branch_or_pr branch_name_or_pr_number component_name
     "
 

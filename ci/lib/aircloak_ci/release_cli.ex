@@ -14,6 +14,15 @@ defmodule AircloakCI.ReleaseCLI do
     end
   end
 
+  @doc "Force starts the nightly job."
+  @spec force_nightly(String.t(), String.t(), String.t()) :: :ok
+  def force_nightly(branch_name, component_name, job_name) do
+    case AircloakCI.force_nightly("branch", branch_name, component_name, job_name) do
+      :ok -> IO.puts("build started successfully")
+      {:error, reason} -> IO.puts("error: #{reason}")
+    end
+  end
+
   @doc "Prints the build log of the given pull request."
   @spec print_build_log(String.t(), String.t(), String.t()) :: :ok
   def print_build_log(target_type, target_id, job_name) do

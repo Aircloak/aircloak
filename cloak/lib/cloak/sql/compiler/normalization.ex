@@ -224,15 +224,19 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp normalize_order_by(query = %{subquery?: false}), do: query
 
   defp normalize_order_by(query) do
-    case {query.order_by, remove_constant_ordering(query.order_by)} do
-      {[], _} ->
+    case {query.order_by, remove_constant_ordering(query.order_by), Helpers.id_column(query)} do
+      {[], _, _} ->
         query
 
-      {_, []} ->
-        # We can't completely remove the `ORDER BY` clause here, because `LIMIT` and/or `OFFSET` might require it.
-        %{query | order_by: [{Helpers.id_column(query), :asc, :nulls_last}]}
+      {_, [], nil} ->
+        # The query doesn't have a uid, so it will be processed in the cloak - we can remove the order_by
+        %{query | order_by: []}
 
-      {_, order_list} ->
+      {_, [], id_column} ->
+        # We can't completely remove the `ORDER BY` clause here, because `LIMIT` and/or `OFFSET` might require it.
+        %{query | order_by: [{id_column, :asc, :nulls_last}]}
+
+      {_, order_list, _} ->
         %{query | order_by: order_list}
     end
   end

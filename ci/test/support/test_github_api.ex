@@ -31,4 +31,13 @@ defmodule AircloakCI.TestGithubAPI do
 
     {:ok, %{category: :rest, remaining: 5000, expires_at: NaiveDateTime.utc_now()}}
   end
+
+  def comment_on_commit(owner, repo, sha, body) do
+    send(
+      __MODULE__.Subscriber,
+      {:commented_on_commit, %{owner: owner, repo: repo, sha: sha, body: body}}
+    )
+
+    {:ok, %{category: :rest, remaining: 5000, expires_at: NaiveDateTime.utc_now()}}
+  end
 end

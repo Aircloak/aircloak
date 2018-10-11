@@ -42,6 +42,11 @@ defmodule AircloakCI.Build.Job do
   @doc "Initializes job execution."
   @spec initialize(Queue.id(), LocalProject.t(), run_queued_opts) :: :ok
   def initialize(queue, project, opts) do
+    project
+    |> LocalProject.log_file(Keyword.fetch!(opts, :log_name))
+    |> Path.dirname()
+    |> File.mkdir_p!()
+
     LocalProject.truncate_log(project, Keyword.fetch!(opts, :log_name))
     start_watcher(self(), project, queue, opts)
     :ok
@@ -111,12 +116,13 @@ defmodule AircloakCI.Build.Job do
   defp handle_exit(normal, _project, _queue, _opts) when normal in [:normal, :shutdown], do: :ok
 
   defp handle_exit(crash_reason, project, queue, opts) do
-    maybe_report_result(queue, opts, :failure, crash_reason)
+    exit_info = Exception.format_exit(crash_reason)
+    maybe_report_result(queue, opts, :failure, "```\n#{exit_info}\n```")
 
     LocalProject.log(
       project,
       Keyword.fetch!(opts, :log_name),
-      "crashed: #{Exception.format_exit(crash_reason)}"
+      "crashed: #{Exception.format_exit(exit_info)}"
     )
   end
 

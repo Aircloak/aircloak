@@ -4,7 +4,7 @@ defmodule Cloak.DataSource.RODBC do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.{RODBC.Port, SqlBuilder, Table}
+  alias Cloak.DataSource.{RODBC.Port, SqlBuilder, Table, Driver}
   alias Cloak.DataSource
 
   # -------------------------------------------------------------------
@@ -12,9 +12,9 @@ defmodule Cloak.DataSource.RODBC do
   # -------------------------------------------------------------------
 
   @doc "Normalizes the connection parameters and connects to the data source via odbc."
-  @spec connect!(Driver.parameters(), (map -> map), Keyword.t()) :: :odbc.connection_reference()
+  @spec connect!(Driver.parameters(), (map -> map), Keyword.t()) :: pid()
   def connect!(parameters, conn_params_extractor, driver_params \\ []) do
-    normalized_parameters = Cloak.DataSource.ODBC.normalize_parameters(parameters)
+    normalized_parameters = normalize_parameters(parameters)
 
     normalized_parameters
     |> conn_params_extractor.()
@@ -26,13 +26,10 @@ defmodule Cloak.DataSource.RODBC do
   # DataSource.Driver callbacks
   # -------------------------------------------------------------------
 
-  def disconnect(port) do
-    true = Port.close(port)
-    :ok
-  end
+  def disconnect(connection), do: Port.stop(connection)
 
-  def load_tables(connection, table) do
-    case Port.execute(connection, "SELECT * FROM #{table.db_name} WHERE 0 = 1") do
+  def load_tables(connection, table, table_load_statement \\ &"SELECT * FROM #{&1} WHERE 0 = 1") do
+    case Port.execute(connection, table_load_statement.(table.db_name), Driver.timeout()) do
       :ok ->
         case Port.get_columns(connection) do
           {:ok, []} ->
@@ -51,34 +48,30 @@ defmodule Cloak.DataSource.RODBC do
     end
   end
 
-  def select(port, sql_query, result_processor) do
+  def select(connection, sql_query, result_processor) do
     statement = SqlBuilder.build(sql_query)
     field_mappers = Enum.map(sql_query.db_columns, &type_to_field_mapper(&1.type))
     row_mapper = &map_fields(&1, field_mappers)
 
-    case Port.execute(port, statement) do
-      :ok -> {:ok, port |> stream_rows(row_mapper) |> result_processor.()}
+    case Port.execute(connection, statement, Driver.timeout()) do
+      :ok -> {:ok, connection |> stream_rows(row_mapper) |> result_processor.()}
       {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
     end
   end
 
   def driver_info(_connection), do: nil
 
-  def supports_connection_sharing?(), do: true
-
-  def cast_to_text?(), do: false
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
   defp driver_connect!(conn_params, driver_params) do
-    port = Port.open()
+    {:ok, connection} = Port.start_link()
 
-    if Keyword.get(driver_params, :wstr_as_bin), do: :ok = Port.set_wstr_as_bin(port)
+    if Keyword.get(driver_params, :wstr_as_bin), do: :ok = Port.set_wstr_as_bin(connection)
 
-    with :ok <- Port.connect(port, to_connection_string(conn_params)) do
-      port
+    with :ok <- Port.connect(connection, to_connection_string(conn_params), Driver.connect_timeout()) do
+      connection
     else
       {:error, reason} ->
         DataSource.raise_error(
@@ -101,18 +94,30 @@ defmodule Cloak.DataSource.RODBC do
     |> Enum.join(";")
   end
 
-  defp stream_rows(port, row_mapper) do
-    batch_size = Cloak.DataSource.Driver.batch_size()
+  defp normalize_parameters(parameters) do
+    parameters
+    |> Stream.map(fn {key, value} -> {downcase_key(key), value} end)
+    |> Stream.reject(fn {key, _value} -> is_nil(key) end)
+    |> Enum.into(%{})
+  end
 
+  defp downcase_key(key) do
+    string_key = key |> Atom.to_string() |> String.downcase()
+
+    try do
+      String.to_existing_atom(string_key)
+    rescue
+      ArgumentError -> nil
+    end
+  end
+
+  defp stream_rows(connection, row_mapper) do
     Stream.resource(
-      fn ->
-        true = Port.start_fetching_rows(port, batch_size)
-        port
-      end,
-      fn port ->
-        case Port.fetch_batch(port, row_mapper, batch_size) do
-          {:ok, []} -> {:halt, port}
-          {:ok, rows} -> {[rows], port}
+      fn -> connection end,
+      fn connection ->
+        case Port.fetch_batch(connection, row_mapper, Driver.batch_size()) do
+          {:ok, []} -> {:halt, connection}
+          {:ok, rows} -> {[rows], connection}
           {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
         end
       end,

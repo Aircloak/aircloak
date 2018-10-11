@@ -1,4 +1,4 @@
-defmodule Cloak.DataSource.DrillRODBC do
+defmodule Cloak.DataSource.Drill do
   @moduledoc """
   Implements the DataSource.Driver behaviour for Apache Drill using the Rust ODBC port driver.
   For more information, see `DataSource`.
@@ -48,20 +48,18 @@ defmodule Cloak.DataSource.DrillRODBC do
   defdelegate disconnect(connection), to: RODBC
 
   @impl Driver
-  def load_tables(connection, table),
-    do: RODBC.load_tables(connection, update_in(table.db_name, &SqlBuilder.quote_table_name(&1, ?`)))
+  def load_tables(connection, table) do
+    table = update_in(table.db_name, &SqlBuilder.quote_table_name(&1, ?`))
+    # In order to workaround some Drill bugs, we need to use `LIMIT 1` when detecting columns.
+    # Both `WHERE 1=0` and `LIMIT 0` crash, in some scenarios, on version 1.14.
+    RODBC.load_tables(connection, table, &"SELECT * FROM #{&1} LIMIT 1")
+  end
 
   @impl Driver
   defdelegate select(connection, sql_query, result_processor), to: RODBC
 
   @impl Driver
   defdelegate driver_info(connection), to: RODBC
-
-  @impl Driver
-  defdelegate supports_connection_sharing?(), to: RODBC
-
-  @impl Driver
-  defdelegate cast_to_text?(), to: RODBC
 
   @impl Driver
   def supports_query?(query),

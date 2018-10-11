@@ -1,6 +1,6 @@
 {
-  "driver": "sqlserver_odbc",
-  "name": "sqlserver2017_odbc",
+  "driver": "sqlserver",
+  "name": "sqlserver2017",
   "parameters": {
     "hostname": "sqlserver2017",
     "username": "sa",

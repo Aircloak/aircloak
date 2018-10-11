@@ -20,14 +20,14 @@ defmodule Cloak.DataSource.Driver do
   @spec batch_size() :: pos_integer
   def batch_size(), do: Application.get_env(:cloak, :data_source) |> Keyword.fetch!(:batch_size)
 
-  @type connection :: any
+  @type connection :: identifier()
   @type parameters :: any
   @type driver_info :: any
 
   @doc "Returns an atom describing the query dialect of this specific driver implementation."
   @callback sql_dialect_module() :: module | nil
 
-  @doc "Opens a new connection to the data store."
+  @doc "Opens a new connection to the data store. The returned connection has to be linked to the current process."
   @callback connect!(parameters) :: connection
 
   @doc "Closes the connection to the data store."
@@ -48,16 +48,4 @@ defmodule Cloak.DataSource.Driver do
 
   @doc "Returns the driver specific information to be stored inside the data source structure."
   @callback driver_info(connection) :: driver_info
-
-  @doc "Returns true if the connection can be used from processes other than the creator process."
-  @callback supports_connection_sharing?() :: boolean
-
-  @doc """
-  Returns true if text columns should be casted to unicode string type.
-
-  The driver should return true if it needs to enforce consistent return shape for string values, regardless of how
-  the type is represented in the database (e.g. VARCHAR or NVARCHAR). In most cases, this is not required, but for
-  some drivers (e.g. the ones based on Erlang's ODBC), you might need to turn this feature on.
-  """
-  @callback cast_to_text?() :: boolean
 end

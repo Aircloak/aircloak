@@ -28,6 +28,9 @@ defmodule AircloakCI.Build.PullRequest do
   # -------------------------------------------------------------------
 
   @impl Build.Server
+  def run_nightly?(_state), do: false
+
+  @impl Build.Server
   def build_source(pr_number, repo_data) do
     pr = Enum.find(repo_data.pull_requests, &(&1.number == pr_number))
 
@@ -90,17 +93,14 @@ defmodule AircloakCI.Build.PullRequest do
   end
 
   defp report_status(state) do
-    if state.prepared? do
-      report_standard_tests(state)
-      report_mergeable(state)
-    else
-      state
-    end
+    report_standard_tests(state)
+    report_mergeable(state)
   end
 
   defp report_standard_tests(state) do
     {status, _reason} =
       with :ok <- check_mergeable(state),
+           :ok <- check_prepared(state),
            :ok <- check_standard_tests(state),
            do: {:success, nil}
 
@@ -121,6 +121,7 @@ defmodule AircloakCI.Build.PullRequest do
   defp report_mergeable(state) do
     {status, message} =
       with :ok <- check_mergeable(state),
+           :ok <- check_prepared(state),
            :ok <- check_standard_tests(state),
            :ok <- check_final_tests(state),
            do: {:success, "pull request can be merged"}
@@ -153,6 +154,9 @@ defmodule AircloakCI.Build.PullRequest do
       state
     end
   end
+
+  defp check_prepared(%{prepared?: true}), do: :ok
+  defp check_prepared(%{prepared?: false}), do: {:pending, "initializing local folder"}
 
   defp check_mergeable(%{source: %{merge_state: :mergeable}}), do: :ok
 

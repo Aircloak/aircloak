@@ -15,21 +15,24 @@ defmodule AircloakCI.ImageCleaner do
   # -------------------------------------------------------------------
 
   defp cleanup_old_images() do
-    AircloakCI.CmdRunner.Supervisor.lock_start(fn ->
-      if AircloakCI.CmdRunner.Supervisor.job_count() == 0 do
-        known_shas = compute_known_shas()
+    AircloakCI.Queue.exec(
+      :docker_build,
+      fn ->
+        if AircloakCI.CmdRunner.Supervisor.job_count() == 0 do
+          known_shas = compute_known_shas()
 
-        existing_sha_tagged_images()
-        |> Stream.reject(&MapSet.member?(known_shas, &1.sha))
-        |> Enum.each(&remove_docker_image/1)
+          existing_sha_tagged_images()
+          |> Stream.reject(&MapSet.member?(known_shas, &1.sha))
+          |> Enum.each(&remove_docker_image/1)
+        end
       end
-    end)
+    )
   end
 
   defp remove_docker_image(descriptor) do
     full_image_name = "#{descriptor.image}:#{descriptor.tag}"
 
-    case CmdRunner.run_with_output("docker rmi #{full_image_name}", lock_start?: false) do
+    case CmdRunner.run_with_output("docker rmi #{full_image_name}") do
       {:ok, _success} -> Logger.info("removed docker image #{full_image_name}")
       {:error, error} -> Logger.error("error removing docker image #{full_image_name}:\n#{error}")
     end
@@ -37,7 +40,7 @@ defmodule AircloakCI.ImageCleaner do
 
   defp existing_sha_tagged_images() do
     ~s/docker images | grep aircloak | awk '{print $1 " " $2}' | grep 'git_sha_'/
-    |> CmdRunner.run_with_output!(lock_start?: false)
+    |> CmdRunner.run_with_output!()
     |> String.split("\n")
     |> Stream.reject(&(&1 == ""))
     |> Stream.map(&String.split/1)
@@ -60,7 +63,7 @@ defmodule AircloakCI.ImageCleaner do
 
   defp unique_shas(cmd) do
     ~s/set -eo pipefail; #{cmd}/
-    |> CmdRunner.run_with_output!(cd: AircloakCI.LocalProject.master_src_folder(), lock_start?: false)
+    |> CmdRunner.run_with_output!(cd: AircloakCI.LocalProject.master_src_folder())
     |> String.split("\n")
     |> Stream.reject(&(&1 == ""))
     |> MapSet.new()
@@ -78,7 +81,7 @@ defmodule AircloakCI.ImageCleaner do
       every: :timer.minutes(1),
       initial_delay: Aircloak.in_env(test: :infinity, else: 0),
       overlap?: false,
-      timeout: :timer.seconds(30)
+      timeout: :timer.minutes(90)
     )
   end
 end

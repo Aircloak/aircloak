@@ -11,7 +11,7 @@ defmodule Compliance.DataSource.SAPHana do
 
   @impl Connector
   def setup(_datasource) do
-    Application.ensure_all_started(:odbc)
+    {:ok, _} = Application.ensure_all_started(:odbc)
     :ok
   end
 

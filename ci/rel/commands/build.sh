@@ -12,6 +12,10 @@ case "$command" in
     exec_on_prod "force_build(<<\"$1\">>, <<\"$2\">>, <<\"$3\">>)"
     ;;
 
+  force_nightly)
+    exec_on_prod "force_nightly(<<\"$1\">>, <<\"$2\">>, <<\"$3\">>)"
+    ;;
+
   # backwards compatibility
   force_start)
     exec_on_prod "force_build(<<\"pr\">>, <<\"$1\">>, <<\"compliance\">>)"
@@ -25,6 +29,7 @@ case "$command" in
     echo "Commands:"
     echo ""
     echo "  force_build target_type target_id job_name"
+    echo "  force_nightly branch_name component_name job_name"
     echo "  log target_type target_id job_name"
     echo ""
     exit 1
