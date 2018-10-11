@@ -71,17 +71,20 @@ defmodule Cloak.DataSource.Connection do
   end
 
   defp start_loop({pool_pid, driver, connection_params}) do
+    Process.flag(:trap_exit, true)
+
     loop(%{
       pool_pid: pool_pid,
       driver: driver,
-      connection: Cloak.DataSource.connect!(driver, connection_params)
+      connection: Cloak.DataSource.connect!(driver, connection_params),
+      query_id: nil
     })
   end
 
   defp loop(state) do
     receive do
-      {:"$gen_call", from, {:start_stream, query, query_id}} -> stream_query(state, query, query_id, from)
-      other -> Logger.warn("Unknown message #{inspect(other)}")
+      {:"$gen_call", from, {:start_stream, query, query_id}} -> stream_query(%{state | query_id: query_id}, query, from)
+      message -> handle_common_message(message, state)
     after
       Cloak.DataSource.Driver.connection_keep_time() ->
         # We're asking the pool to remove this connection to avoid possible race condition, where the pool checks out
@@ -91,6 +94,34 @@ defmodule Cloak.DataSource.Connection do
     end
 
     loop(state)
+  end
+
+  defp handle_common_message({:EXIT, pid, reason}, state) do
+    cond do
+      pid == state.pool_pid ->
+        Logger.debug("shutting down connection", query_id: state.query_id)
+
+      pid == state.connection ->
+        Logger.warn("database connection closed with reason #{inspect(reason)}", query_id: state.query_id)
+
+      true ->
+        Logger.warn(
+          "unknown linked process #{inspect(pid)} exited with reason #{inspect(reason)}",
+          query_id: state.query_id
+        )
+    end
+
+    if pid != state.connection do
+      Logger.debug("closing database connection", query_id: state.query_id)
+      state.driver.disconnect(state.connection)
+    end
+
+    exit(reason)
+  end
+
+  defp handle_common_message(other, _state) do
+    Logger.warn("Unknown message: #{inspect(other)}")
+    false
   end
 
   # -------------------------------------------------------------------
@@ -142,40 +173,47 @@ defmodule Cloak.DataSource.Connection do
   # Connection-side streaming
   # -------------------------------------------------------------------
 
-  defp stream_query(state, query, query_id, from) do
-    with {:error, reason} <- state.driver.select(state.connection, query, &start_query_loop(&1, query_id, from)),
+  defp stream_query(state, query, from) do
+    with {:error, reason} <- state.driver.select(state.connection, query, &start_query_loop(state, &1, from)),
          do: GenServer.reply(from, {:error, reason})
 
     # at this point, we've streamed all the chunks to the client, so we're returning the connection
-    Logger.debug("Returning the connection to the pool", query_id: query_id)
+    Logger.debug("Returning the connection to the pool", query_id: state.query_id)
     Pool.checkin(state.pool_pid)
   end
 
-  defp start_query_loop(stream, query_id, from) do
+  defp start_query_loop(state, stream, from) do
     {client_pid, _} = from
     GenServer.reply(from, :ok)
     client_mref = Process.monitor(client_pid)
 
     try do
-      process_chunks(stream, query_id, client_pid)
+      process_chunks(state, stream, client_pid)
       send(client_pid, :end_of_chunks)
     after
       Process.demonitor(client_mref, [:flush])
     end
   end
 
-  defp process_chunks(stream, query_id, client_pid) do
+  defp process_chunks(state, stream, client_pid) do
     Enum.reduce_while(
       stream,
       nil,
       fn chunk, nil ->
-        Logger.debug("Sending next chunk", query_id: query_id)
+        Logger.debug("Sending next chunk", query_id: state.query_id)
         send(client_pid, {:chunk, chunk})
 
         receive do
-          {:next_chunk, ^client_pid} -> {:cont, nil}
-          {:DOWN, _mref, :process, ^client_pid, _} -> {:halt, nil}
-          other -> raise("invalid message #{inspect(other)} while streaming the query")
+          {:next_chunk, ^client_pid} ->
+            {:cont, nil}
+
+          {:DOWN, _mref, :process, ^client_pid, _} ->
+            {:halt, nil}
+
+          message ->
+            if handle_common_message(state, message),
+              do: {:cont, nil},
+              else: raise("invalid message #{inspect(message)} while streaming the query")
         end
       end
     )
