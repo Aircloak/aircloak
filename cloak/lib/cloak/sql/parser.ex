@@ -103,12 +103,12 @@ defmodule Cloak.Sql.Parser do
       {:error, error} ->
         case Regex.named_captures(@combine_error_regex, error) do
           %{"error" => simple_error, "line" => line, "column" => column} ->
-            raise Cloak.Sql.ParseError,
+            raise Cloak.Sql.Parser.ParseError,
               message: "#{simple_error}.",
               source_location: {String.to_integer(line), String.to_integer(column)}
 
           _ ->
-            raise Cloak.Sql.ParseError, message: error
+            raise Cloak.Sql.Parser.ParseError, message: error
         end
     end
   end

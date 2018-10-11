@@ -75,7 +75,7 @@ defmodule Cloak.Sql.Parser.ASTNormalization do
   defp rewrite_distinct(%Query{type: :anonymized} = query), do: query
 
   defp rewrite_distinct(%{distinct?: true, group_by: [_ | _], order_by: [{column, _dir, _nulls} | _]}) do
-    raise Cloak.Sql.ParseError,
+    raise Cloak.Sql.Parser.ParseError,
       source_location: location(column),
       message:
         "Simultaneous usage of DISTINCT, GROUP BY, and ORDER BY in the same query is not supported." <>

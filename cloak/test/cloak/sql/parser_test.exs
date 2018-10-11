@@ -1718,10 +1718,10 @@ defmodule Cloak.Sql.Parser.Test do
           Parser.parse_and_normalize!("select select")
           nil
         rescue
-          e in Cloak.Sql.ParseError -> e
+          e in Cloak.Sql.Parser.ParseError -> e
         end
 
-      assert %Cloak.Sql.ParseError{
+      assert %Cloak.Sql.Parser.ParseError{
                message: "Expected `column definition`.",
                source_location: {1, 8}
              } = error
