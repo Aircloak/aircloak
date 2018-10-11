@@ -96,14 +96,20 @@ defmodule Cloak.DataSource.ConnectionPoolTest do
   test "SQL error is properly reported" do
     assert_raise(
       Cloak.Query.ExecutionError,
-      ~r/column "foobar" does not exist/,
+      ~r/relation "cloak_test.temp_table" does not exist/,
       fn ->
         ExUnit.CaptureLog.capture_log(fn ->
-          Cloak.Sql.Parser.parse!("select * from test_pool")
-          |> Cloak.Sql.Compiler.compile!(data_source(), [], %{})
-          |> Cloak.Sql.Query.resolve_db_columns()
-          |> Map.put(:test_fake_statement, "select foobar")
-          |> Cloak.DataSource.Connection.chunks()
+          Cloak.Test.DB.create_table("temp_table", "intval INTEGER")
+
+          query =
+            Cloak.Sql.Parser.parse!("select * from temp_table")
+            |> Cloak.Sql.Compiler.compile!(data_source(), [], %{})
+            |> Cloak.Sql.Query.resolve_db_columns()
+
+          Cloak.Test.DB.delete_table("temp_table")
+
+          {:ok, chunks} = Cloak.DataSource.Connection.chunks(query)
+          Stream.run(chunks)
         end)
       end
     )

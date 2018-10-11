@@ -106,6 +106,7 @@ defmodule Cloak.Test.DB do
 
   def handle_call({:delete_table, table_name}, _from, state) do
     status = unregister_test_table(String.to_atom(table_name))
+    execute!("DROP TABLE IF EXISTS #{sanitized_table(table_name)}")
     {:reply, status, state}
   end
 
