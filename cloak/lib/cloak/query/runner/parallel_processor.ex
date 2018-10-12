@@ -13,16 +13,11 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
 
   @doc "Helper function for parallel processing of a chunked data stream. See module docs for details."
   @spec execute(Enumerable.t(), non_neg_integer, (Enumerable.t() -> any), (any, any -> any)) :: any
-  def execute(chunks, proc_count, processor, _state_merger) when proc_count <= 1,
-    do: chunks |> Stream.concat() |> processor.()
-
-  def execute(chunks, proc_count, processor, state_merger)
-      when is_integer(proc_count) and proc_count > 1,
-      do:
-        proc_count
-        |> start_workers(processor)
-        |> dispatch_chunks(chunks)
-        |> merge_results(state_merger)
+  def execute(chunks, proc_count, processor, state_merger) do
+    if proc_count <= 1,
+      do: chunks |> Stream.concat() |> processor.(),
+      else: proc_count |> start_workers(processor) |> dispatch_chunks(chunks) |> merge_results(state_merger)
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
