@@ -12,7 +12,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   alias Cloak.DataSource.{Isolators, Shadows}
 
   @max_allowed_restricted_functions 5
-  @max_rare_negative_conditions 2
 
   # -------------------------------------------------------------------
   # API
@@ -316,7 +315,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
             message: "Negative conditions can only involve one database column."
       end
     end)
-    |> Stream.drop(@max_rare_negative_conditions)
+    |> Stream.drop(max_rare_negative_conditions())
     |> Enum.take(1)
     |> case do
       [] ->
@@ -326,12 +325,15 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         raise CompilationError,
           source_location: Condition.subject(condition).source_location,
           message: """
-          At most #{@max_rare_negative_conditions} negative conditions matching rare values are allowed.
+          At most #{max_rare_negative_conditions()} negative conditions matching rare values are allowed.
           For further information see the "Number of conditions" subsection of the "Restrictions" section
           in the user guides.
           """
     end
   end
+
+  defp max_rare_negative_conditions(),
+    do: Application.get_env(:cloak, :shadow_tables) |> Keyword.fetch!(:max_rare_negative_conditions)
 
   defp expand_expressions(condition, query) do
     update_in(condition, [Query.Lenses.leaf_expressions() |> Lens.filter(&Expression.column?/1)], fn expression ->
