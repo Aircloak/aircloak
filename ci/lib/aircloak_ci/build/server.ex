@@ -219,8 +219,8 @@ defmodule AircloakCI.Build.Server do
       log_name: job_name,
       result: result,
       extra_info: extra_info,
-      build_log_command: "`ci/production.sh build_log #{production_script_target(state)} #{job_name}`",
-      restart_command: "`ci/production.sh force_build #{production_script_target(state)} #{job_name}`",
+      build_log_command: "ci/production.sh build_log #{production_script_target(state)} #{job_name}",
+      restart_command: "ci/production.sh force_build #{production_script_target(state)} #{job_name}",
       remote_console_command: remote_console_command(state, job_name)
     })
 
@@ -404,7 +404,7 @@ defmodule AircloakCI.Build.Server do
 
   defp remote_console_command(state, job_name) do
     with component_name when not is_nil(component_name) <- component_name(job_name) do
-      "`ci/production.sh remote_console #{production_script_target(state)} #{component_name}`\n"
+      "ci/production.sh remote_console #{production_script_target(state)} #{component_name}\n"
     end
   end
 
