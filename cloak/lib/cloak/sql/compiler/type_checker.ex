@@ -325,7 +325,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       [{_subquery, condition}] ->
         raise CompilationError,
           source_location: Condition.subject(condition).source_location,
-          message: "At most #{@max_rare_negative_conditions} negative conditions are allowed."
+          message: """
+          At most #{@max_rare_negative_conditions} negative conditions matching rare values are allowed.
+          For further information see the "Number of conditions" subsection of the "Restrictions" section
+          in the user guides.
+          """
     end
   end
 
