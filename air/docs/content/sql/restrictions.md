@@ -302,6 +302,8 @@ SELECT COUNT(*) FROM table WHERE number NOT IN (1, 2, 3)
 SELECT COUNT(*) FROM table WHERE number <> 1 AND number <> 2 AND number <> 3
 ```
 
+### Allowed functions
+
 Conditions using `IN` or `<>` cannot include any functions nor mathematical operations except the following: `lower`,
 `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `extract_words`, `year`, `month`, `quarter`, `day`, `weekday`,
 `hour`, `minute`, `second`, and all aggregators (`MIN`, `MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`). Conditions using `NOT
@@ -326,6 +328,37 @@ SELECT COUNT(*) FROM table GROUP BY name HAVING left(name) <> 'a'
 
 -- Correct - comparing two database columns
 SELECT COUNT(*) FROM table WHERE name <> surname
+```
+
+### Number of conditions
+
+There is a limit of two negative conditions (`NOT IN`, `NOT LIKE`, `NOT ILIKE`, and `<>`) for each anonymized query.
+Conditions that match values appearing frequently in a given column are excluded from this limitation. Note that a
+`NOT IN` condition will be counted multiple times - once for each element on the right-hand side.
+
+The examples below assume that the names `Alice` and `Bob` appear frequently in the column `name`, while all other
+values appear only rarely.
+
+```sql
+-- Allowed - only one negative condition matches a rare value
+SELECT COUNT(*) FROM table
+WHERE name <> 'Alice' AND name <> 'Bob' AND name <> 'Charles'
+
+-- Allowed - there are only two negative conditions
+SELECT COUNT(*) FROM table
+WHERE name <> 'Charles' AND name <> 'Damien'
+
+-- Disallowed - there are three negative conditions matching rare values
+SELECT COUNT(*) FROM table
+WHERE name <> 'Charles' AND name <> 'Damien' AND name <> 'Ecbert'
+
+-- Disallowed - equivalent to the previous query
+SELECT COUNT(*) FROM table
+WHERE name NOT IN ('Charles', 'Damien', 'Ecbert')
+
+-- Allowed - all conditions match frequent values
+SELECT COUNT(*) FROM table
+WHERE name NOT LIKE 'A%' AND name NOT LIKE 'B%' AND upper(name) <> 'BOB'
 ```
 
 ## Isolating columns
