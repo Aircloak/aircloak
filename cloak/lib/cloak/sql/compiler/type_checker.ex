@@ -86,7 +86,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         end
       end)
 
-  @allowed_in_functions ~w(lower upper substring trim ltrim rtrim btrim extract_words)
+  @allowed_in_functions ~w(
+    lower upper substring trim ltrim rtrim btrim extract_words hour minute second year quarter month day weekday
+  )
   defp verify_lhs_of_in_is_clear(query),
     do:
       verify_conditions(query, &Condition.in?/1, fn {:in, lhs, _} ->
@@ -100,7 +102,9 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         end
       end)
 
-  @allowed_not_equals_functions ~w(lower upper substring trim ltrim rtrim btrim extract_words)
+  @allowed_not_equals_functions ~w(
+    lower upper substring trim ltrim rtrim btrim extract_words hour minute second year quarter month day weekday
+  )
   defp verify_not_equals_is_clear(query),
     do:
       verify_conditions(query, &Condition.not_equals?/1, fn {:comparison, lhs, :<>, rhs} ->
@@ -191,11 +195,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         end
       end)
 
-  defp function_list(function_names), do: function_names |> Enum.map(&"`#{&1}`") |> Aircloak.OxfordComma.join()
-
   defp like_kind_name(:like), do: "LIKE"
   defp like_kind_name(:ilike), do: "ILIKE"
 
+  @allowed_range_functions ~w(hour minute second year quarter month day weekday)
   defp verify_ranges_are_clear(query),
     do:
       query
@@ -205,7 +208,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
           raise CompilationError,
             source_location: column.source_location,
             message: """
-            Range expressions cannot include any functions except aggregations and a cast.
+            Only #{function_list(@allowed_range_functions)} can be used in range expressions.
             For more information see the "Ranges" and "Implicit ranges" subsections of the "Restrictions"
             section in the user guides.
             """
@@ -218,7 +221,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp clear_range_lhs?(lhs, query, :implicit),
     do: not (Type.establish_type(lhs, query) |> Type.unclear_implicit_range?())
 
-  defp clear_range_lhs?(lhs, query, _), do: Type.establish_type(lhs, query) |> Type.clear_column?()
+  defp clear_range_lhs?(lhs, query, _),
+    do: Type.establish_type(lhs, query) |> Type.clear_column?(&(&1 in @allowed_range_functions))
+
+  defp function_list(function_names), do: function_names |> Enum.map(&"`#{&1}`") |> Aircloak.OxfordComma.join()
 
   # -------------------------------------------------------------------
   # Isolators

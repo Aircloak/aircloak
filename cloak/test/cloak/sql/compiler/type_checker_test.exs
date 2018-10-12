@@ -34,6 +34,12 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       end
     end
 
+    for part <- ~w(hour minute second year quarter month day weekday dow) do
+      test "allows extract(#{part}) in IN lhs" do
+        assert {:ok, _} = compile("SELECT extract(#{unquote(part)} from datetime) AS x FROM table WHERE x IN (1, 2, 3)")
+      end
+    end
+
     test "allows substring in IN lhs" do
       assert {:ok, _} = compile("SELECT SUBSTRING(string FROM 3) AS x FROM table WHERE x IN ('a', 'b', 'c')")
     end
@@ -101,6 +107,12 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     for function <- ~w(lower upper trim ltrim btrim extract_words) do
       test "allows #{function} in <> lhs" do
         assert {:ok, _} = compile("SELECT #{unquote(function)}(string) AS x FROM table WHERE x <> 'a'")
+      end
+    end
+
+    for part <- ~w(hour minute second year quarter month day weekday dow) do
+      test "allows extract(#{part}) in <> lhs" do
+        assert {:ok, _} = compile("SELECT extract(#{unquote(part)} from datetime) AS x FROM table WHERE x <> 1")
       end
     end
 
@@ -183,7 +195,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "forbids unclear >=/< arguments" do
       assert {:error, narrative} = compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) > 0 AND sqrt(numeric) < 10")
 
-      assert narrative =~ ~r/Range expressions cannot include any functions/
+      assert narrative =~ ~r/Only .* can be used in range expressions/
     end
 
     test "allows clear between arguments",
@@ -192,7 +204,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
     test "forbids unclear between arguments" do
       assert {:error, narrative} = compile("SELECT COUNT(*) FROM table WHERE sqrt(numeric) BETWEEN 0 AND 10")
 
-      assert narrative =~ ~r/Range expressions cannot include any functions/
+      assert narrative =~ ~r/Only .* can be used in range expressions/
     end
 
     test "allows any ranges in top-level HAVING",
@@ -219,22 +231,22 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
                  SELECT COUNT(*) FROM (SELECT uid FROM table GROUP BY uid HAVING sqrt(COUNT(float)) BETWEEN 0 AND 10) x
                """)
 
-      assert narrative =~ ~r/Range expressions cannot include any functions/
+      assert narrative =~ ~r/Only .* can be used in range expressions/
     end
 
     test "forbids implicit ranges within another function" do
       assert {:error, narrative} = compile("SELECT abs(trunc(float)) FROM table")
-      assert narrative =~ ~r/Range expressions cannot include any functions/
+      assert narrative =~ ~r/Only .* can be used in range expressions/
     end
 
     test "forbids nested implicit ranges" do
       assert {:error, narrative} = compile("SELECT trunc(trunc(float), -11) FROM table")
-      assert narrative =~ ~r/Range expressions cannot include any functions/
+      assert narrative =~ ~r/Only .* can be used in range expressions/
     end
 
     test "forbids implicit ranges on function expressions" do
       assert {:error, narrative} = compile("SELECT trunc(float + 1) FROM table")
-      assert narrative =~ ~r/Range expressions cannot include any functions/
+      assert narrative =~ ~r/Only .* can be used in range expressions/
     end
 
     test "does not consider cast to integer as an implicit range",
@@ -247,6 +259,13 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
 
     test "allows casts in ranges",
       do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE CAST(string AS INTEGER) BETWEEN 0 AND 10"))
+
+    for part <- ~w(hour minute second year quarter month day weekday dow) do
+      test "allows extract(#{part}) in ranges" do
+        assert {:ok, _} =
+                 compile("SELECT extract(#{unquote(part)} from datetime) AS x FROM table WHERE x BETWEEN 1 AND 3")
+      end
+    end
   end
 
   describe "exceptions" do
@@ -296,7 +315,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
               Table.column("float", :real),
               Table.column("string", :text),
               Table.column("time", :time),
-              Table.column("date", :date)
+              Table.column("date", :date),
+              Table.column("datetime", :datetime)
             ]
           )
       }
