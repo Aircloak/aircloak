@@ -54,19 +54,24 @@ defmodule Cloak.Query.DbEmulator do
   defp select_rows({:subquery, %{ast: %Query{emulated?: true, from: from} = subquery}}, state_updater)
        when not is_binary(from) do
     Query.debug_log(subquery, "Emulating query ...")
+
     rows = subquery.from |> select_rows(state_updater) |> Selector.pick_db_columns(subquery)
-    process_rows([rows], subquery, state_updater)
+    subquery = RowSplitters.compile(subquery)
+    rows |> group_rows(subquery) |> process_rows(subquery, state_updater)
   end
 
   defp select_rows({:subquery, %{ast: query}}, state_updater) do
     %Query{query | subquery?: not query.emulated? and query.type != :anonymized, where: Query.offloaded_where(query)}
     |> Query.debug_log("Offloading query ...")
     |> DataSource.select!(fn chunks ->
+      query = RowSplitters.compile(query)
+
       chunks
       |> Stream.transform(:first, fn
         chunk, :first -> {[state_updater.(chunk, :ingesting_data)], :not_first}
         chunk, :not_first -> {[chunk], :not_first}
       end)
+      |> process_chunks(query)
       |> process_rows(query, state_updater)
     end)
   end
@@ -86,48 +91,46 @@ defmodule Cloak.Query.DbEmulator do
     Selector.join(lhs_rows, rhs_rows, join)
   end
 
-  defp process_rows(chunks, %Query{type: :anonymized} = query, state_updater) do
-    Logger.debug("Anonymizing query result ...")
+  defp process_chunks(chunks, query) do
+    if query.type == :anonymized do
+      Logger.debug("Anonymizing query result ...")
+      ParallelProcessor.execute(chunks, concurrency(query), &group_rows(&1, query), &Aggregator.merge_groups/2)
+    else
+      Stream.concat(chunks)
+    end
+  end
 
-    query = RowSplitters.compile(query)
+  defp group_rows(rows, query) do
+    if query.type == :anonymized do
+      rows
+      |> RowSplitters.split(query)
+      |> Rows.filter(query |> Query.emulated_where() |> Condition.to_function())
+      |> Aggregator.group(query)
+    else
+      rows
+    end
+  end
 
-    chunks
-    |> ParallelProcessor.execute(
-      concurrency(query),
-      &consume_rows(&1, query),
-      &Aggregator.merge_groups/2
-    )
+  defp process_rows(rows, %Query{type: :anonymized} = query, state_updater) do
+    rows
     |> state_updater.(:processing)
     |> Aggregator.aggregate(query)
     |> state_updater.(:post_processing)
     |> convert_buckets(query)
   end
 
-  defp process_rows(chunks, %Query{emulated?: false} = query, _state_updater) do
-    query = RowSplitters.compile(query)
-
-    chunks
-    |> Stream.concat()
+  defp process_rows(rows, %Query{emulated?: false} = query, _state_updater) do
+    rows
     |> RowSplitters.split(query)
     |> Rows.filter(query |> Query.emulated_where() |> Condition.to_function())
     |> convert_rows(query)
   end
 
-  defp process_rows(chunks, %Query{emulated?: true} = query, _state_updater) do
-    query = RowSplitters.compile(query)
-
-    chunks
-    |> Stream.concat()
+  defp process_rows(rows, %Query{emulated?: true} = query, _state_updater) do
+    rows
     |> RowSplitters.split(query)
     |> Selector.select(query)
     |> convert_rows(query)
-  end
-
-  defp consume_rows(stream, query) do
-    stream
-    |> RowSplitters.split(query)
-    |> Rows.filter(query |> Query.emulated_where() |> Condition.to_function())
-    |> Aggregator.group(query)
   end
 
   defp concurrency(query), do: query.data_source.concurrency || Application.get_env(:cloak, :concurrency, 0)

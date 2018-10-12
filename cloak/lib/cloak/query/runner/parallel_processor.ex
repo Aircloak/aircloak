@@ -2,8 +2,7 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
   @moduledoc """
     Helper module for parallel processing of a chunked data stream.
 
-    When no additional processes are needed or when the input consists of a single chunk,
-    the data is processed sequentially in the current process.
+    When no additional processes are needed, the data is processed sequentially in the current process.
     Otherwise, multiple workers are created and the input is routed among them.
     After all the data chunks are consumed, the workers' partial states are merged into one
     using the supplied `state_merger` function.
@@ -16,8 +15,6 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
   @spec execute(Enumerable.t(), non_neg_integer, (Enumerable.t() -> any), (any, any -> any)) :: any
   def execute(chunks, proc_count, processor, _state_merger) when proc_count <= 1,
     do: chunks |> Stream.concat() |> processor.()
-
-  def execute([chunk], _proc_count, processor, _state_merger), do: processor.(chunk)
 
   def execute(chunks, proc_count, processor, state_merger)
       when is_integer(proc_count) and proc_count > 1,
