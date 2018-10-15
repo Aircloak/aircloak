@@ -240,15 +240,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   defp rewrite_distinct(ast), do: ast
 
-  defp temp_rewrite_distinct(%Query{distinct?: true, group_by: [_ | _]} = query) do
-    %Query{
-      command: :select,
-      # ... all columns from sub query (he previously used *
-      columns: [],
-      subquery?: query.subquery?
-    }
-  end
-
   defp aggregate_query?(query) do
     aggregate_expressions =
       Query.Lenses.query_expressions()

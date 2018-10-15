@@ -1590,6 +1590,16 @@ defmodule Cloak.Query.BasicTest do
     )
   end
 
+  test "Distinct in top-level query" do
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height", "male"], [180, true])
+    :ok = insert_rows(_user_ids = 21..40, "heights", ["height", "male"], [165, false])
+
+    assert_query(
+      "SELECT DISTINCT height, male FROM heights ORDER BY height DESC",
+      %{rows: [%{row: [180, true], occurrences: 1}, %{row: [165, false], occurrences: 1}]}
+    )
+  end
+
   test "[Issue #2860] DISTINCT in subquery with scoped columns" do
     :ok = insert_rows(_user_ids = 1..20, "heights", ["height", "male"], [160, true])
     :ok = insert_rows(_user_ids = 11..30, "heights", ["height", "male"], [170, false])
