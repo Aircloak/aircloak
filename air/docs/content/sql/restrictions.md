@@ -399,3 +399,5 @@ Insights Cloak will automatically discover which columns isolate users. This com
 resource-intensive for large data sources. See [Manually classifying isolating
 columns](/ops/configuration.md#manually-classifying-isolating-columns) for information on alternative means of
 classifying isolating columns.
+
+## Column analysis
