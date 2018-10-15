@@ -6,6 +6,18 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
 
   import Cloak.Test.QueryHelpers
 
+  defmacrop assert_equivalent(query, alternative) do
+    quote bind_quoted: [query: query, alternative: alternative] do
+      assert compile!(query, data_source()) == compile!(alternative, data_source())
+    end
+  end
+
+  defmacrop refute_equivalent(query, alternative) do
+    quote bind_quoted: [query: query, alternative: alternative] do
+      refute compile!(query, data_source()) == compile!(alternative, data_source())
+    end
+  end
+
   test "normalizing constant expressions" do
     result1 = compile!("SELECT * FROM table WHERE numeric = 2 * 3 + 4", data_source())
     result2 = compile!("SELECT * FROM table WHERE numeric = 10", data_source())
@@ -49,6 +61,65 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     result2 = compile!("SELECT * FROM table WHERE lower(string) <> 'abc'", data_source())
 
     assert scrub_locations(result1).where == scrub_locations(result2).where
+  end
+
+  describe "rewrite DISTINCT to GROUP BY" do
+    test "fails on combination of DISTINCT, GROUP BY and ORDER BY" do
+      assert {:error, error} =
+               compile(
+                 """
+                   SELECT DISTINCT numeric
+                   FROM table
+                   GROUP BY numeric
+                   ORDER BY numeric
+                 """,
+                 data_source()
+               )
+
+      assert error =~ ~r/Simultaneous usage of DISTINCT, GROUP BY, and ORDER BY/
+    end
+
+    test "distinct on top-level query" do
+      assert_equivalent(
+        "SELECT DISTINCT numeric FROM table",
+        "SELECT numeric FROM table GROUP BY numeric"
+      )
+    end
+
+    test "distinct on query with *",
+      do:
+        assert_equivalent(
+          "SELECT COUNT(*) FROM (SELECT DISTINCT * FROM table) x",
+          "SELECT COUNT(*) FROM (SELECT uid, numeric, string FROM table GROUP BY 1, 2, 3) x"
+        )
+
+    test "distinct with only aggregators",
+      do:
+        assert_equivalent(
+          "SELECT COUNT(*) FROM (SELECT DISTINCT COUNT(*) + 1, ABS(AVG(numeric)) FROM table) x",
+          "SELECT COUNT(*) FROM (SELECT COUNT(*) + 1, ABS(AVG(numeric)) FROM table) x"
+        )
+
+    test "rewrites subqueries in joins",
+      do:
+        assert_equivalent(
+          "SELECT * FROM (SELECT count(*) as c FROM table) x JOIN (SELECT DISTINCT COUNT(*) + 1 as c, ABS(AVG(numeric)) FROM table) y ON x.c = y.c",
+          "SELECT * FROM (SELECT count(*) as c FROM table) x JOIN (SELECT COUNT(*) + 1 as c, ABS(AVG(numeric)) FROM table) y ON x.c = y.c"
+        )
+
+    test "Drops DISTINCT and superfluous GROUP BYs when all selected columns are GROUPED BY" do
+      assert_equivalent(
+        "SELECT count(*) FROM (SELECT DISTINCT uid, numeric FROM table GROUP BY uid, numeric, string) x",
+        "SELECT count(*) FROM (SELECT uid, numeric FROM table GROUP BY 1, 2) x"
+      )
+    end
+
+    test "Does not drop DISTINCT when there is an aggregate" do
+      refute_equivalent(
+        "SELECT count(*) FROM (SELECT DISTINCT uid, count(*) FROM table GROUP BY 1) x",
+        "SELECT count(*) FROM (SELECT uid, count(*) FROM table GROUP BY 1) x"
+      )
+    end
   end
 
   describe "normalizing ORDER BY" do

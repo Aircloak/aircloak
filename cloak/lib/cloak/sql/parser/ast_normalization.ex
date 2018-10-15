@@ -22,7 +22,6 @@ defmodule Cloak.Sql.Parser.ASTNormalization do
   @spec normalize(Parser.parsed_query()) :: Parser.parsed_query()
   def normalize(ast) do
     ast
-    |> Helpers.apply_bottom_up(&rewrite_distinct/1)
     |> Helpers.apply_bottom_up(&rewrite_not_in/1)
     |> Helpers.apply_bottom_up(&rewrite_not/1)
     |> Helpers.apply_bottom_up(&rewrite_in/1)
@@ -69,56 +68,6 @@ defmodule Cloak.Sql.Parser.ASTNormalization do
   end
 
   # -------------------------------------------------------------------
-  # DISTINCT rewriting
-  # -------------------------------------------------------------------
-
-  defp rewrite_distinct(%Query{type: :anonymized} = query), do: query
-
-  defp rewrite_distinct(%{distinct?: true, group_by: [_ | _], order_by: [{column, _dir, _nulls} | _]}) do
-    raise Cloak.Sql.Parser.ParseError,
-      source_location: location(column),
-      message:
-        "Simultaneous usage of DISTINCT, GROUP BY, and ORDER BY in the same query is not supported." <>
-          " Try using a subquery instead."
-  end
-
-  defp rewrite_distinct(ast = %{distinct?: true, group_by: [_ | _]}) do
-    %{
-      command: :select,
-      distinct?: false,
-      columns: [:*],
-      from:
-        {:subquery,
-         %{
-           alias: "__ac_distinct",
-           ast:
-             Map.merge(ast, %{
-               command: :select,
-               distinct?: false
-             })
-         }},
-      group_by: grouping_clause(ast.columns)
-    }
-  end
-
-  defp rewrite_distinct(ast = %{distinct?: true, columns: columns}) do
-    if Enum.any?(columns, &aggregator?/1) do
-      %{ast | distinct?: false}
-    else
-      Map.merge(ast, %{distinct?: false, group_by: grouping_clause(columns)})
-    end
-  end
-
-  defp rewrite_distinct(ast), do: ast
-
-  defp grouping_clause(columns), do: Enum.map(1..length(columns), &{:constant, :integer, &1, _location = nil})
-
-  defp aggregator?({:function, name, args, _location}),
-    do: Function.has_attribute?(name, :aggregator) or Enum.any?(args, &aggregator?/1)
-
-  defp aggregator?(_), do: false
-
-  # -------------------------------------------------------------------
   # NOT rewriting
   # -------------------------------------------------------------------
 
@@ -161,11 +110,4 @@ defmodule Cloak.Sql.Parser.ASTNormalization do
         other
     end)
   end
-
-  # -------------------------------------------------------------------
-  # Helpers
-  # -------------------------------------------------------------------
-
-  defp location({_, _, _, location}), do: location
-  defp location(_), do: nil
 end

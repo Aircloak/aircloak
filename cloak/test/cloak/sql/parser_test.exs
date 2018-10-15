@@ -170,7 +170,7 @@ defmodule Cloak.Sql.Parser.Test do
   test "select distinct" do
     assert_parse(
       "select distinct foo from bar",
-      select(columns: [identifier("foo")], group_by: [constant(1)])
+      select(distinct?: true, columns: [identifier("foo")])
     )
   end
 

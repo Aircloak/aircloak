@@ -17,46 +17,6 @@ defmodule Cloak.Sql.Parser.ASTNormalization.Test do
     end
   end
 
-  describe "rewriting distinct" do
-    test "distinct without group by",
-      do:
-        assert_equivalent(
-          "SELECT COUNT(*) FROM (SELECT DISTINCT a, b, c FROM table) x",
-          "SELECT COUNT(*) FROM (SELECT a, b, c FROM table GROUP BY 1, 2, 3) x"
-        )
-
-    test "distinct with group by",
-      do:
-        assert_equivalent(
-          """
-            SELECT COUNT(*) FROM (
-              SELECT DISTINCT a, b + d, c FROM table GROUP BY b
-            ) x
-          """,
-          """
-              SELECT COUNT(*) FROM (
-                SELECT * FROM (
-                  SELECT a, b + d, c FROM table GROUP BY b
-                ) __ac_distinct GROUP BY 1, 2, 3
-              ) x
-          """
-        )
-
-    test "distinct with aggregators",
-      do:
-        assert_equivalent(
-          "SELECT COUNT(*) FROM (SELECT DISTINCT COUNT(*) + 1, ABS(AVG(a)) FROM table) x",
-          "SELECT COUNT(*) FROM (SELECT COUNT(*) + 1, ABS(AVG(a)) FROM table) x"
-        )
-
-    test "rewrites subqueries in joins",
-      do:
-        assert_equivalent(
-          "SELECT * FROM foo JOIN (SELECT DISTINCT COUNT(*) + 1, ABS(AVG(a)) FROM table) x ON a = b",
-          "SELECT * FROM foo JOIN (SELECT COUNT(*) + 1, ABS(AVG(a)) FROM table) x ON a = b"
-        )
-  end
-
   describe "rewriting NOT IN" do
     test "with one element in LHS",
       do:

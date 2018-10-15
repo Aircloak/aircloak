@@ -21,6 +21,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   def prevalidation_normalizations(query),
     do:
       query
+      |> Helpers.apply_bottom_up(&rewrite_distinct/1)
       |> Noops.remove()
       |> Helpers.apply_bottom_up(&normalize_constants/1)
       |> Helpers.apply_bottom_up(&normalize_comparisons/1)
@@ -207,4 +208,58 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   defp remove_constant_ordering(order_list),
     do: Enum.reject(order_list, fn {expression, _direction, _nulls} -> expression.constant? end)
+
+  # -------------------------------------------------------------------
+  # DISTINCT rewriting
+  # -------------------------------------------------------------------
+
+  defp rewrite_distinct(%Query{distinct?: true, group_by: [_ | _], order_by: [{column, _dir, _nulls} | _]} = query) do
+    raise Cloak.Sql.CompilationError,
+      source_location: column.source_location,
+      message:
+        "Simultaneous usage of DISTINCT, GROUP BY, and ORDER BY in the same query is not supported." <>
+          " Try using a subquery instead."
+  end
+
+  defp rewrite_distinct(%Query{distinct?: true, group_by: [], columns: columns} = query) do
+    if aggregate_query?(query) do
+      %Query{query | distinct?: false}
+    else
+      %Query{query | distinct?: false, group_by: columns}
+    end
+  end
+
+  defp rewrite_distinct(%Query{distinct?: true, columns: [column | _] = columns, group_by: [_ | _] = group_by} = query) do
+    if Enum.all?(columns, &shallow_in(&1, group_by)) do
+      functional_group_bys = Enum.filter(group_by, &shallow_in(&1, columns))
+      %Query{query | distinct?: false, group_by: functional_group_bys}
+    else
+      query
+    end
+  end
+
+  defp rewrite_distinct(ast), do: ast
+
+  defp temp_rewrite_distinct(%Query{distinct?: true, group_by: [_ | _]} = query) do
+    %Query{
+      command: :select,
+      # ... all columns from sub query (he previously used *
+      columns: [],
+      subquery?: query.subquery?
+    }
+  end
+
+  defp aggregate_query?(query) do
+    aggregate_expressions =
+      Query.Lenses.query_expressions()
+      |> Lens.filter(& &1.aggregate?)
+      |> Lens.to_list(query)
+
+    not Enum.empty?(aggregate_expressions)
+  end
+
+  defp shallow_in(expression, expressions),
+    do: drop_location(expression) in Enum.map(expressions, &drop_location/1)
+
+  defp drop_location(expression), do: Map.put(expression, :source_location, nil)
 end
