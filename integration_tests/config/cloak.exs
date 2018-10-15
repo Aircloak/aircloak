@@ -42,6 +42,14 @@ config :cloak, :memory_limits,
   # Time in seconds to wait between consecutive memory related query abortions
   time_between_abortions: 10_000
 
+config :cloak, :shadow_tables,
+  # Number of allowed negative conditions with rare values. See `Shadow tables` in anonymization.md.
+  max_rare_negative_conditions: 2,
+  # Number of popular values to keep in a shadow table
+  size: 100,
+  # Minimum users with a particular value needed to include it in a shadow table
+  min_users: 10
+
 config :cloak, :data_source,
   timeout: :timer.minutes(10),
   batch_size: 100,

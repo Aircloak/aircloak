@@ -4,9 +4,6 @@ defmodule Cloak.DataSource.Shadows.Query do
   alias Cloak.Sql.{DataSource, Parser, Compiler}
   alias Cloak.Query.DbEmulator
 
-  @min_distinct_users 10
-  @max_values 100
-
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -33,9 +30,9 @@ defmodule Cloak.DataSource.Shadows.Query do
       SELECT "#{column}"
       FROM "#{table}"
       GROUP BY 1
-      HAVING COUNT(DISTINCT "#{user_id}") > #{@min_distinct_users}
+      HAVING COUNT(DISTINCT "#{user_id}") > #{min_users()}
       ORDER BY COUNT(*) DESC
-      LIMIT #{@max_values}
+      LIMIT #{size()}
     """
     |> Parser.parse!()
     |> Compiler.compile_direct!(data_source)
@@ -46,4 +43,8 @@ defmodule Cloak.DataSource.Shadows.Query do
   defp user_id(data_source, table) do
     data_source.tables[String.to_existing_atom(table)].user_id
   end
+
+  defp min_users(), do: Application.get_env(:cloak, :shadow_tables) |> Keyword.fetch!(:size)
+
+  defp size(), do: Application.get_env(:cloak, :shadow_tables) |> Keyword.fetch!(:min_users)
 end

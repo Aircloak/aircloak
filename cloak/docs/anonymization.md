@@ -519,3 +519,17 @@ this way. It is also very useful, because while something like a time column mig
 obtained after "rounding" the column with a `date_trunc`.
 
 See [this issue](https://github.com/Aircloak/aircloak/issues/2485) for more.
+
+## Shadow tables
+
+We limit the number of negative conditions (`<>` and `NOT (I)LIKE`) that can appear in a single anonymized subquery. The
+limit is configured under `cloak -> shadow_tables -> max_rare_negative_conditions` in `config.exs`. This is done to
+prevent an attacker from issuing multiple queries with different conditions that are almost certain to have no effect,
+and controlling the noise in this way. See [this issue](https://github.com/Aircloak/aircloak/issues/2972) for a more
+detailed description of the problem.
+
+Because the problem only appears for clauses that have no effect, we try to detect negative clauses that do in fact have
+an effect, and so shouldn't be banned by this mechanism. To do that we store a list of values that appear for the most
+users for each column. Any negative clause is then checked against this list, and excluded from counting if it matches
+at least one value in the list. The number of values stored, as well as the minimum number of users with a given value
+required to store it are configured under `cloak -> shadow_tables` in `config.exs`.

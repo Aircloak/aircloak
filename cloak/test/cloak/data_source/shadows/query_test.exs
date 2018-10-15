@@ -41,15 +41,15 @@ defmodule Cloak.DataSource.Shadows.Query.Test do
       end
     end
 
-    test "only 100 most popular values are kept" do
-      for i <- 1..100 do
+    test "only a configured number of most popular values are kept" do
+      for i <- 1..max_values() do
         :ok = insert_rows(_user_ids = 0..12, "shadows", ["value"], [i])
       end
 
       :ok = insert_rows(_user_ids = 0..11, "shadows", ["value"], [0])
 
       for data_source <- DataSource.all() do
-        assert MapSet.new(Query.build_shadow(data_source, "shadows", "value")) == MapSet.new(1..100)
+        assert MapSet.new(Query.build_shadow(data_source, "shadows", "value")) == MapSet.new(1..max_values())
       end
     end
 
@@ -66,5 +66,7 @@ defmodule Cloak.DataSource.Shadows.Query.Test do
         assert ["123"] = Query.build_shadow(data_source, "shadows", "encoded_value")
       end
     end
+
+    defp max_values(), do: Application.get_env(:cloak, :shadow_tables) |> Keyword.fetch!(:size)
   end
 end
