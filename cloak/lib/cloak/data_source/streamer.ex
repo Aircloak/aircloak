@@ -19,11 +19,12 @@ defmodule Cloak.DataSource.Streamer do
   Returns a stream of rows for the given query.
 
   - The returned stream can be iterated only once.
-  - The stream is owned by the owner process (the process which invoked this function), and it can be only consumed
-    while the owner process is alive.
-  - The stream can be consumed concurrently by multiple consumer processes, none of which has to be the owner process.
+  - The stream can be only consumed while the query runner process (the process which invoked this function) is alive.
+  - The stream can be consumed concurrently by multiple consumer processes, none of which has to be the query runner
+    process.
   - Streaming is performed on a connection which is taken from the connection pool. As soon as the last row has been
-    delivered to some consumer, the connection is returned to the connection pool.
+    delivered to some consumer, the connection is returned to the connection pool. Closing errors (e.g closing the
+    query or transaction) won't affect the outcome of the query runner process.
   - Streaming is performed in a lookahead fashion to ensure that the next row is available in the consumer process when
     it's needed.
   - If the `reporter` function is provided, it will be invoked from the streamer process on every fetched chunk with the
@@ -36,18 +37,23 @@ defmodule Cloak.DataSource.Streamer do
     query_id = Keyword.get(Logger.metadata(), :query_id, nil)
     connection_owner = Connection.Pool.checkout(query.data_source)
 
-    with {:ok, streamer} <- start_streamer(connection_owner, query_id, query, reporter) do
-      start_cleanup_process(streamer)
-      {:ok, fetch_rows(streamer)}
-    end
+    with {:ok, streamer} <- Connection.start_streamer(connection_owner, query_id, query, reporter),
+         do: {:ok, fetch_rows(streamer)}
+  end
+
+  @doc "Invoked by the connection owner to start the streamer process."
+  @spec start_link(Cloak.DataSource.Driver.connection(), pid, String.t(), Cloak.Sql.Query.t(), reporter) ::
+          {:ok, pid} | {:error, pid, String.t()}
+  def start_link(driver_connection, query_runner, query_id, query, reporter) do
+    # Since streaming from the datasource has to be done in a lambda, we can't implement the streamer as a GenServer.
+    # Instead, we're starting an OTP compliant process via `:proc_lib`, and receive messages manually while streaming
+    # from the database.
+    :proc_lib.start_link(__MODULE__, :stream, [self(), driver_connection, query_runner, query_id, query, reporter])
   end
 
   # -------------------------------------------------------------------
   # Client-side functions
   # -------------------------------------------------------------------
-
-  defp start_streamer(connection_owner, query_id, query, reporter),
-    do: :proc_lib.start_link(__MODULE__, :stream, [connection_owner, query_id, query, self(), reporter])
 
   defp fetch_rows(streamer) do
     Stream.resource(
@@ -71,12 +77,12 @@ defmodule Cloak.DataSource.Streamer do
         # immediately asking for the next chunk, to increase the chance of it being available when we need it
         {chunk, request_next_chunk(streamer)}
 
-      {:DOWN, _, :process, ^streamer, reason} ->
-        # - If a process exited normally, then all the rows have been read, so we just return nil.
-        # - If a process doesn't exist, it means it has streamed to another client before we started monitoring it, so
-        #   we can also return nil.
-        # - Any other exit reason is abnormal, so we raise in the client process too.
-        if reason in [:normal, :noproc], do: nil, else: raise("connection owner terminated unexpectedly")
+      {:DOWN, _, :process, ^streamer, _reason} ->
+        # If the streamer exited, regardless of the reason, we're interpreting it as the end of the stream. Normally,
+        # this happens when the streamer has emitted the last row, and there are simultaneous consumers.
+        # If the streamer crashed, the connection owner process will send an exit signal to the runner process,
+        # which will ensure that the query execution is taken down.
+        nil
     end
   end
 
@@ -90,42 +96,37 @@ defmodule Cloak.DataSource.Streamer do
   # Server-side functions
   # -------------------------------------------------------------------
 
-  def stream(connection_owner, query_id, query, client_pid, reporter) do
-    Process.flag(:trap_exit, true)
+  @doc false
+  def stream(connection_owner, driver_connection, query_runner, query_id, query, reporter) do
     Logger.metadata(query_id: query_id)
 
-    case Connection.start_streaming(connection_owner) do
-      {:error, _} = error ->
-        :proc_lib.init_ack(client_pid, error)
+    try do
+      query.data_source.driver.select(
+        driver_connection,
+        query,
+        &stream_chunks(&1, connection_owner, query_runner, reporter)
+      )
 
-      {:ok, connection} ->
-        try do
-          query.data_source.driver.select(connection, query, &stream_chunks(&1, client_pid, reporter))
-          Logger.debug("Terminating streamer process")
-        rescue
-          error in [Cloak.Query.ExecutionError] -> :proc_lib.init_ack(client_pid, {:error, error.message})
-        catch
-          type, exception ->
-            formatted_error = Cloak.LoggerTranslator.format_exit({type, exception})
-
-            formatted_stacktrace =
-              Exception.format_stacktrace(Cloak.LoggerTranslator.filtered_stacktrace(__STACKTRACE__))
-
-            Logger.error("Error starting the query stream: #{formatted_error} at\n#{formatted_stacktrace}")
-
-            :proc_lib.init_ack(client_pid, {:error, "Unknown cloak error"})
-        end
+      Logger.debug("Terminating streamer process")
+    rescue
+      error in [Cloak.Query.ExecutionError] -> :proc_lib.init_ack(connection_owner, {:error, self(), error.message})
     end
   end
 
-  defp stream_chunks(stream, client_pid, reporter) do
-    :proc_lib.init_ack(client_pid, {:ok, self()})
-    process_chunks(stream, client_pid, reporter)
+  defp stream_chunks(chunks, connection_owner, query_runner, reporter) do
+    :proc_lib.init_ack(connection_owner, {:ok, self()})
+    process_chunks(chunks, query_runner, reporter)
+
+    # We're issuing this notification here, before we're closing the resources (e.g. query or transaction). This ensures
+    # that the query runner won't be taken down if closing of resources fails.
+    Connection.streaming_done(connection_owner)
   end
 
-  defp process_chunks(stream, client_pid, reporter) do
+  defp process_chunks(chunks, query_runner, reporter) do
+    query_runner_mref = Process.monitor(query_runner)
+
     Enum.reduce_while(
-      Stream.reject(stream, &Enum.empty?/1),
+      Stream.reject(chunks, &Enum.empty?/1),
       nil,
       fn chunk, reporter_state ->
         receive do
@@ -133,7 +134,7 @@ defmodule Cloak.DataSource.Streamer do
             send(requester_pid, {request_id, chunk})
             {:cont, invoke_reporter(reporter, reporter_state)}
 
-          {:EXIT, ^client_pid, _reason} ->
+          {:DOWN, ^query_runner_mref, :process, ^query_runner, _reason} ->
             {:halt, reporter_state}
 
           message ->
@@ -145,34 +146,4 @@ defmodule Cloak.DataSource.Streamer do
 
   defp invoke_reporter(nil, _reporter_state), do: nil
   defp invoke_reporter(reporter, reporter_state), do: reporter.(reporter_state)
-
-  # -------------------------------------------------------------------
-  # Cleanup process
-  # -------------------------------------------------------------------
-
-  defp start_cleanup_process(streamer) do
-    # This is a helper process which makes sure that the streamer process is taken down if the client process dies.
-    # Normally, this should happen by itself, but there is a remote possibility of a streamer process getting stuck and
-    # refusing to die. In this case, this process will forcefully kill the streamer.
-
-    client_pid = self()
-
-    Task.start_link(fn ->
-      Process.flag(:trap_exit, true)
-      mref = Process.monitor(streamer)
-
-      receive do
-        {:DOWN, ^mref, _, _, _} ->
-          :ok
-
-        {:EXIT, ^client_pid, _reason} ->
-          receive do
-            {:DOWN, ^mref, _, _, _} -> :ok
-          after
-            :timer.seconds(5) ->
-              Process.exit(streamer, :kill)
-          end
-      end
-    end)
-  end
 end
