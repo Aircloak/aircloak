@@ -21,13 +21,26 @@ defmodule Cloak.Sql.Compiler.Validation.Test do
       assert error =~ ~r/Simultaneous usage of DISTINCT, GROUP BY, and ORDER BY/
     end
 
+    test "Rejects non-aggregate queries with DISTINCT and GROUP BY where some but not all columns are grouped" do
+      assert {:error, error} =
+               compile(
+                 """
+                   SELECT DISTINCT numeric, string
+                   FROM table
+                   GROUP BY string
+                 """,
+                 data_source()
+               )
+
+      assert error =~ ~r/Column `numeric` .* needs to appear in the `GROUP BY` clause/
+    end
+
     test "DISTINCT rewrite does not affect regular warning about missing GROUP BY" do
       assert {:error, error} =
                compile(
                  """
                    SELECT DISTINCT numeric, count(*)
                    FROM table
-                   ORDER BY numeric
                  """,
                  data_source()
                )
