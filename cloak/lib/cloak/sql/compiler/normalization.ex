@@ -236,7 +236,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
     end
   end
 
-  defp rewrite_distinct(ast), do: ast
+  defp rewrite_distinct(query), do: query
 
   defp aggregate_query?(query) do
     aggregate_expressions =
