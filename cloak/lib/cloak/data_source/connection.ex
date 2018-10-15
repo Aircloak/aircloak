@@ -24,7 +24,7 @@ defmodule Cloak.DataSource.Connection do
 
   @impl GenServer
   def init({pool_pid, driver, connection_params}) do
-    state = %{pool_pid: pool_pid, driver: driver, connection: nil, streamer_mref: nil, streamer: nil}
+    state = %{pool_pid: pool_pid, driver: driver, connection: nil, streamer_mref: nil}
     {:ok, state, {:continue, {:connect, connection_params}}}
   end
 
@@ -34,10 +34,9 @@ defmodule Cloak.DataSource.Connection do
 
   @impl GenServer
   def handle_call(:start_streaming, {streamer, _}, state) do
-    nil = state.streamer
     nil = state.streamer_mref
 
-    {:reply, state.connection, %{state | streamer_mref: Process.monitor(streamer), streamer: streamer}}
+    {:reply, state.connection, %{state | streamer_mref: Process.monitor(streamer)}}
   end
 
   @impl GenServer
@@ -65,7 +64,7 @@ defmodule Cloak.DataSource.Connection do
     Logger.debug("Returning the connection to the pool")
     Process.demonitor(state.streamer_mref, [:flush])
     Pool.checkin(state.pool_pid)
-    %{state | streamer_mref: nil, streamer: nil}
+    %{state | streamer_mref: nil}
   end
 
   # -------------------------------------------------------------------
