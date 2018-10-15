@@ -13,8 +13,26 @@ defmodule Cloak.DataSource.StreamerTest do
     chunks = Enum.to_list(chunks_stream)
     assert length(chunks) == 5
 
-    rows = Enum.flat_map(chunks, & &1)
-    assert Enum.all?(rows, &match?([_user_id, _intval = 42], &1))
+    assert Enum.all?(rows(chunks), &match?([_user_id, _intval = 42], &1))
+  end
+
+  test "concurrent stream processing" do
+    assert {:ok, chunks_stream} = chunks("select intval from test_streamer")
+
+    [chunks1, chunks2] =
+      1..2
+      |> Enum.map(fn _ -> Task.async(fn -> Enum.to_list(chunks_stream) end) end)
+      |> Enum.map(&Task.await/1)
+
+    assert length(chunks1) + length(chunks2) == 5
+    refute Enum.empty?(chunks1)
+    refute Enum.empty?(chunks2)
+
+    rows1 = rows(chunks1)
+    rows2 = rows(chunks2)
+
+    assert MapSet.disjoint?(MapSet.new(rows1), MapSet.new(rows2))
+    assert Enum.all?(Enum.concat(rows1, rows2), &match?([_user_id, _intval = 42], &1))
   end
 
   test "connection failure" do
@@ -48,6 +66,8 @@ defmodule Cloak.DataSource.StreamerTest do
     |> Cloak.Sql.Query.resolve_db_columns()
     |> Streamer.chunks()
   end
+
+  defp rows(chunks), do: Enum.flat_map(chunks, & &1)
 
   defp with_short_connection_timeout(fun) do
     connect_retries = Application.get_env(:cloak, :connect_retries)

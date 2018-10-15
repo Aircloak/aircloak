@@ -19,7 +19,9 @@ defmodule Cloak.DataSource.Streamer do
   Returns a stream of chunks for the given query.
 
   This function will take a connection from the connection pool (or create a new one if needed), and stream the data
-  to the client process. Once the streaming is done, the connection will be returned to the pool.
+  to the client processes. Once the streaming is done, the connection will be returned to the pool.
+
+  The returned stream can be safely used by multiple concurrent processes.
   """
   @spec chunks(Cloak.Sql.Query.t()) :: {:ok, Enumerable.t()} | {:error, String.t()}
   def chunks(query) do
@@ -41,30 +43,35 @@ defmodule Cloak.DataSource.Streamer do
 
   defp fetch_chunks(streamer) do
     Stream.resource(
-      fn -> Process.monitor(streamer) end,
-      fn mref ->
-        case next_chunk(streamer) do
-          nil -> {:halt, mref}
-          chunk -> {[chunk], mref}
+      fn -> {Process.monitor(streamer), request_next_chunk(streamer)} end,
+      fn {mref, request_id} ->
+        case next_chunk(request_id, streamer) do
+          {chunk, next_request_id} -> {[chunk], {mref, next_request_id}}
+          nil -> {:halt, {mref, nil}}
         end
       end,
-      fn mref -> Process.demonitor(mref, [:flush]) end
+      fn {mref, _request_id} -> Process.demonitor(mref, [:flush]) end
     )
   end
 
-  defp next_chunk(streamer) do
+  defp next_chunk(request_id, streamer) do
     receive do
-      {:chunk, chunk} ->
-        # immediately asking for the next chunk, to increase the chance of it being available when we need it
-        send(streamer, {:next_chunk, self()})
-        chunk
-
-      :end_of_chunks ->
+      {^request_id, :end_of_chunks} ->
         nil
+
+      {^request_id, chunk} ->
+        # immediately asking for the next chunk, to increase the chance of it being available when we need it
+        {chunk, request_next_chunk(streamer)}
 
       {:DOWN, _, :process, ^streamer, _} ->
         raise("connection owner terminated unexpectedly")
     end
+  end
+
+  defp request_next_chunk(streamer) do
+    request_id = make_ref()
+    send(streamer, {:next_chunk, request_id, self()})
+    request_id
   end
 
   # -------------------------------------------------------------------
@@ -80,7 +87,10 @@ defmodule Cloak.DataSource.Streamer do
 
       {:ok, connection} ->
         try do
-          query.data_source.driver.select(connection, query, &stream_chunks(&1, connection_owner, client_pid))
+          query.data_source.driver.select(connection, query, &stream_chunks(&1, client_pid))
+          Connection.done_streaming(connection_owner)
+          if Process.alive?(client_pid), do: final_loop(client_pid)
+          Logger.debug("Terminating streamer process")
         rescue
           error in [Cloak.Query.ExecutionError] -> :proc_lib.init_ack(client_pid, {:error, error.message})
         catch
@@ -97,11 +107,9 @@ defmodule Cloak.DataSource.Streamer do
     end
   end
 
-  defp stream_chunks(stream, connection_owner, client_pid) do
+  defp stream_chunks(stream, client_pid) do
     :proc_lib.init_ack(client_pid, {:ok, self()})
     process_chunks(stream, client_pid)
-    Connection.done_streaming(connection_owner)
-    send(client_pid, :end_of_chunks)
   end
 
   defp process_chunks(stream, client_pid) do
@@ -109,15 +117,33 @@ defmodule Cloak.DataSource.Streamer do
       Stream.reject(stream, &Enum.empty?/1),
       nil,
       fn chunk, nil ->
-        send(client_pid, {:chunk, chunk})
-
         receive do
-          {:next_chunk, ^client_pid} -> {:cont, nil}
-          {:EXIT, ^client_pid, _reason} -> {:halt, nil}
-          message -> raise("invalid message #{inspect(message)} while streaming the query")
+          {:next_chunk, request_id, requester_pid} ->
+            send(requester_pid, {request_id, chunk})
+            {:cont, nil}
+
+          {:EXIT, ^client_pid, _reason} ->
+            {:halt, nil}
+
+          message ->
+            raise("invalid message #{inspect(message)} while streaming the query")
         end
       end
     )
+  end
+
+  defp final_loop(client_pid) do
+    receive do
+      {:next_chunk, request_id, requester_pid} ->
+        send(requester_pid, {request_id, :end_of_chunks})
+        final_loop(client_pid)
+
+      {:EXIT, ^client_pid, _reason} ->
+        :ok
+
+      message ->
+        raise("invalid message #{inspect(message)} while streaming the query")
+    end
   end
 
   # -------------------------------------------------------------------
