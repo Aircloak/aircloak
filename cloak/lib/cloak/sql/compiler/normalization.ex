@@ -213,13 +213,11 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # DISTINCT rewriting
   # -------------------------------------------------------------------
 
-  defp rewrite_distinct(%Query{distinct?: true, group_by: [_ | _], order_by: [{column, _dir, _nulls} | _]} = query) do
-    raise Cloak.Sql.CompilationError,
-      source_location: column.source_location,
-      message:
-        "Simultaneous usage of DISTINCT, GROUP BY, and ORDER BY in the same query is not supported." <>
-          " Try using a subquery instead."
-  end
+  defp rewrite_distinct(%Query{distinct?: true, group_by: [_ | _], order_by: [_ | _]} = query),
+    # Correctly rewriting a query that combines DISTINCT with GROUP BY and an ORDER BY is non-trivial.
+    # See the following discussion for further details:
+    # https://github.com/Aircloak/aircloak/pull/2864#pullrequestreview-135001173
+    do: query
 
   defp rewrite_distinct(%Query{distinct?: true, group_by: [], columns: columns} = query) do
     if aggregate_query?(query) do

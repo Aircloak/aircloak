@@ -1,0 +1,59 @@
+defmodule Cloak.Sql.Compiler.Validation.Test do
+  use ExUnit.Case, async: true
+
+  alias Cloak.DataSource.Table
+
+  import Cloak.Test.QueryHelpers
+
+  describe "DISTINCT" do
+    test "fails on combination of DISTINCT, GROUP BY and ORDER BY" do
+      assert {:error, error} =
+               compile(
+                 """
+                   SELECT DISTINCT numeric
+                   FROM table
+                   GROUP BY numeric
+                   ORDER BY numeric
+                 """,
+                 data_source()
+               )
+
+      assert error =~ ~r/Simultaneous usage of DISTINCT, GROUP BY, and ORDER BY/
+    end
+
+    test "DISTINCT rewrite does not affect regular warning about missing GROUP BY" do
+      assert {:error, error} =
+               compile(
+                 """
+                   SELECT DISTINCT numeric, count(*)
+                   FROM table
+                   ORDER BY numeric
+                 """,
+                 data_source()
+               )
+
+      assert error =~ ~r/Column `numeric` .* needs to appear in the `GROUP BY` clause/
+    end
+  end
+
+  defp data_source() do
+    %{
+      name: "normalization_data_source",
+      driver: Cloak.DataSource.PostgreSQL,
+      tables: %{
+        table:
+          Cloak.DataSource.Table.new(
+            "table",
+            "uid",
+            db_name: "table",
+            columns: [
+              Table.column("uid", :integer),
+              Table.column("numeric", :integer),
+              Table.column("string", :text)
+            ],
+            keys: ["key"]
+          )
+      }
+    }
+  end
+end

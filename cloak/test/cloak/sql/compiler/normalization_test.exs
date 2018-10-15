@@ -64,21 +64,6 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
   end
 
   describe "rewrite DISTINCT to GROUP BY" do
-    test "fails on combination of DISTINCT, GROUP BY and ORDER BY" do
-      assert {:error, error} =
-               compile(
-                 """
-                   SELECT DISTINCT numeric
-                   FROM table
-                   GROUP BY numeric
-                   ORDER BY numeric
-                 """,
-                 data_source()
-               )
-
-      assert error =~ ~r/Simultaneous usage of DISTINCT, GROUP BY, and ORDER BY/
-    end
-
     test "distinct on top-level query" do
       assert_equivalent(
         "SELECT DISTINCT numeric FROM table",
