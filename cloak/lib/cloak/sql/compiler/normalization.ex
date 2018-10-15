@@ -227,7 +227,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
     end
   end
 
-  defp rewrite_distinct(%Query{distinct?: true, columns: [column | _] = columns, group_by: [_ | _] = group_by} = query) do
+  defp rewrite_distinct(%Query{distinct?: true, columns: [_ | _] = columns, group_by: [_ | _] = group_by} = query) do
     if Enum.all?(columns, &shallow_in(&1, group_by)) do
       functional_group_bys = Enum.filter(group_by, &shallow_in(&1, columns))
       %Query{query | distinct?: false, group_by: functional_group_bys}
