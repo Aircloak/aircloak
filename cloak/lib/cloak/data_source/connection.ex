@@ -18,10 +18,6 @@ defmodule Cloak.DataSource.Connection do
       {:error, error.message}
   end
 
-  @doc "Invoked by the streamer process to indicate that the streaming has finished."
-  @spec done_streaming(pid) :: :ok
-  def done_streaming(connection), do: GenServer.cast(connection, {:done_streaming, self()})
-
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
@@ -43,10 +39,6 @@ defmodule Cloak.DataSource.Connection do
 
     {:reply, state.connection, %{state | streamer_mref: Process.monitor(streamer), streamer: streamer}}
   end
-
-  @impl GenServer
-  def handle_cast({:done_streaming, streamer}, %{streamer: streamer} = state),
-    do: {:noreply, checkin(state), Driver.connection_keep_time()}
 
   @impl GenServer
   def handle_info({:DOWN, streamer_mref, _, _, _reason}, %{streamer_mref: streamer_mref} = state),

@@ -69,8 +69,12 @@ defmodule Cloak.DataSource.Streamer do
         # immediately asking for the next chunk, to increase the chance of it being available when we need it
         {chunk, request_next_chunk(streamer)}
 
-      {:DOWN, _, :process, ^streamer, _} ->
-        raise("connection owner terminated unexpectedly")
+      {:DOWN, _, :process, ^streamer, reason} ->
+        # - If a process exited normally, then all the rows have been read, so we just return nil.
+        # - If a process doesn't exist, it means it has streamed to another client before we started monitoring it, so
+        #   we can also return nil.
+        # - Any other exit reason is abnormal, so we raise in the client process too.
+        if reason in [:normal, :noproc], do: nil, else: raise("connection owner terminated unexpectedly")
     end
   end
 
@@ -94,8 +98,6 @@ defmodule Cloak.DataSource.Streamer do
       {:ok, connection} ->
         try do
           query.data_source.driver.select(connection, query, &stream_chunks(&1, client_pid, reporter))
-          Connection.done_streaming(connection_owner)
-          if Process.alive?(client_pid), do: final_loop(client_pid)
           Logger.debug("Terminating streamer process")
         rescue
           error in [Cloak.Query.ExecutionError] -> :proc_lib.init_ack(client_pid, {:error, error.message})
@@ -136,20 +138,6 @@ defmodule Cloak.DataSource.Streamer do
         end
       end
     )
-  end
-
-  defp final_loop(client_pid) do
-    receive do
-      {:next_chunk, request_id, requester_pid} ->
-        send(requester_pid, {request_id, :end_of_chunks})
-        final_loop(client_pid)
-
-      {:EXIT, ^client_pid, _reason} ->
-        :ok
-
-      message ->
-        raise("invalid message #{inspect(message)} while streaming the query")
-    end
   end
 
   defp invoke_reporter(nil, _reporter_state), do: nil

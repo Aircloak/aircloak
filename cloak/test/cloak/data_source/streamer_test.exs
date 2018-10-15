@@ -11,24 +11,25 @@ defmodule Cloak.DataSource.StreamerTest do
   test "streaming" do
     assert {:ok, rows_stream} = rows("select intval from test_streamer")
     rows = Enum.to_list(rows_stream)
-    assert length(rows) == 500
 
+    assert length(rows) == 500
     assert Enum.all?(rows, &match?([_user_id, _intval = 42], &1))
   end
 
-  test "concurrent stream processing" do
-    assert {:ok, rows_stream} = rows("select intval from test_streamer")
+  for concurrency <- [2, 3, 5, 7] do
+    test "concurrent stream processing with #{concurrency} workers" do
+      {:ok, rows_stream} = rows("select intval from test_streamer")
+      sequential_rows = Enum.to_list(rows_stream)
 
-    [rows1, rows2] =
-      1..2
-      |> Enum.map(fn _ -> Task.async(fn -> Enum.to_list(rows_stream) end) end)
-      |> Enum.map(&Task.await/1)
+      {:ok, rows_stream} = rows("select intval from test_streamer")
 
-    assert length(rows1) + length(rows2) == 500
-    refute Enum.empty?(rows1)
-    refute Enum.empty?(rows2)
-    assert MapSet.disjoint?(MapSet.new(rows1), MapSet.new(rows2))
-    assert Enum.all?(Enum.concat(rows1, rows2), &match?([_user_id, _intval = 42], &1))
+      concurrent_rows =
+        1..unquote(concurrency)
+        |> Enum.map(fn _ -> Task.async(fn -> Enum.to_list(rows_stream) end) end)
+        |> Enum.flat_map(&Task.await/1)
+
+      assert MapSet.equal?(MapSet.new(concurrent_rows), MapSet.new(sequential_rows))
+    end
   end
 
   test "reporting" do
