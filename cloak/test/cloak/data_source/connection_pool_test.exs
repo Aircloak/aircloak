@@ -39,13 +39,13 @@ defmodule Cloak.DataSource.ConnectionPoolTest do
       conn = Pool.checkout(data_source())
       Pool.checkin(Pool.pool_server(data_source()), conn)
 
-      {:ok, chunks_stream} =
+      {:ok, rows_stream} =
         Cloak.Sql.Parser.parse!("select * from test_pool")
         |> Cloak.Sql.Compiler.compile!(data_source(), [], %{})
         |> Cloak.Sql.Query.resolve_db_columns()
-        |> Cloak.DataSource.Streamer.chunks()
+        |> Cloak.DataSource.Streamer.rows()
 
-      Stream.run(chunks_stream)
+      Stream.run(rows_stream)
 
       mref = Process.monitor(conn)
       assert_receive {:DOWN, ^mref, _, _, _}
@@ -65,7 +65,7 @@ defmodule Cloak.DataSource.ConnectionPoolTest do
         Cloak.Sql.Parser.parse!("select * from test_pool")
         |> Cloak.Sql.Compiler.compile!(data_source(), [], %{})
         |> Cloak.Sql.Query.resolve_db_columns()
-        |> Cloak.DataSource.Streamer.chunks()
+        |> Cloak.DataSource.Streamer.rows()
 
         client = self()
         spawn(fn -> Process.exit(client, :exit) end)

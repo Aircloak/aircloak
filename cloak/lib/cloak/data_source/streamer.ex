@@ -2,10 +2,10 @@ defmodule Cloak.DataSource.Streamer do
   @moduledoc """
   Query streamer process.
 
-  This process executes the given query and returns the stream of chunks, with each chunk containing multiple
-  rows. The streaming is done in a lookahead fashion. The streamer process will try to ensure that the next item is
-  available in the client process when the client needs it. Therefore, the extra process hop for each row should not
-  affect the query duration, especially not in the cases where the client processing takes more time.
+  This process executes the given query and returns the stream of rows The streaming is done in a lookahead fashion.
+  The streamer process will try to ensure that the next item is available in the client process when the client needs
+  it. Therefore, the extra process hop for each row should not affect the query duration, especially not in the cases
+  where the client processing takes more time.
   """
 
   require Logger
@@ -19,7 +19,7 @@ defmodule Cloak.DataSource.Streamer do
   # -------------------------------------------------------------------
 
   @doc """
-  Returns a stream of chunks for the given query.
+  Returns a stream of rows for the given query.
 
   This function will take a connection from the connection pool (or create a new one if needed), and stream the data
   to the client processes. Once the streaming is done, the connection will be returned to the pool.
@@ -29,14 +29,14 @@ defmodule Cloak.DataSource.Streamer do
   If the `reporter` function is provided, it will be invoked from the streamer process on every fetched chunk.
   The initial reporter state is `nil`.
   """
-  @spec chunks(Cloak.Sql.Query.t(), reporter) :: {:ok, Enumerable.t()} | {:error, String.t()}
-  def chunks(query, reporter \\ nil) do
+  @spec rows(Cloak.Sql.Query.t(), reporter) :: {:ok, Enumerable.t()} | {:error, String.t()}
+  def rows(query, reporter \\ nil) do
     connection_owner = Connection.Pool.checkout(query.data_source)
     Logger.debug("Selecting data ...")
 
     with {:ok, streamer} <- start_streamer(connection_owner, query, reporter) do
       start_cleanup_process(streamer)
-      {:ok, fetch_chunks(streamer)}
+      {:ok, fetch_rows(streamer)}
     end
   end
 
@@ -47,12 +47,12 @@ defmodule Cloak.DataSource.Streamer do
   defp start_streamer(connection_owner, query, reporter),
     do: :proc_lib.start_link(__MODULE__, :stream, [connection_owner, query, self(), reporter])
 
-  defp fetch_chunks(streamer) do
+  defp fetch_rows(streamer) do
     Stream.resource(
       fn -> {Process.monitor(streamer), request_next_chunk(streamer)} end,
       fn {mref, request_id} ->
         case next_chunk(request_id, streamer) do
-          {chunk, next_request_id} -> {[chunk], {mref, next_request_id}}
+          {chunk, next_request_id} -> {chunk, {mref, next_request_id}}
           nil -> {:halt, {mref, nil}}
         end
       end,

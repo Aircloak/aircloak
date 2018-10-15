@@ -9,28 +9,24 @@ defmodule Cloak.DataSource.StreamerTest do
   end
 
   test "streaming" do
-    assert {:ok, chunks_stream} = chunks("select intval from test_streamer")
-    chunks = Enum.to_list(chunks_stream)
-    assert length(chunks) == 5
+    assert {:ok, rows_stream} = rows("select intval from test_streamer")
+    rows = Enum.to_list(rows_stream)
+    assert length(rows) == 500
 
-    assert Enum.all?(rows(chunks), &match?([_user_id, _intval = 42], &1))
+    assert Enum.all?(rows, &match?([_user_id, _intval = 42], &1))
   end
 
   test "concurrent stream processing" do
-    assert {:ok, chunks_stream} = chunks("select intval from test_streamer")
+    assert {:ok, rows_stream} = rows("select intval from test_streamer")
 
-    [chunks1, chunks2] =
+    [rows1, rows2] =
       1..2
-      |> Enum.map(fn _ -> Task.async(fn -> Enum.to_list(chunks_stream) end) end)
+      |> Enum.map(fn _ -> Task.async(fn -> Enum.to_list(rows_stream) end) end)
       |> Enum.map(&Task.await/1)
 
-    assert length(chunks1) + length(chunks2) == 5
-    refute Enum.empty?(chunks1)
-    refute Enum.empty?(chunks2)
-
-    rows1 = rows(chunks1)
-    rows2 = rows(chunks2)
-
+    assert length(rows1) + length(rows2) == 500
+    refute Enum.empty?(rows1)
+    refute Enum.empty?(rows2)
     assert MapSet.disjoint?(MapSet.new(rows1), MapSet.new(rows2))
     assert Enum.all?(Enum.concat(rows1, rows2), &match?([_user_id, _intval = 42], &1))
   end
@@ -44,9 +40,8 @@ defmodule Cloak.DataSource.StreamerTest do
       chunk_index + 1
     end
 
-    assert {:ok, chunks_stream} = chunks("select intval from test_streamer", data_source(), reporter)
-
-    num_chunks = Enum.count(chunks_stream)
+    assert {:ok, rows_stream} = rows("select intval from test_streamer", data_source(), reporter)
+    num_chunks = rows_stream |> Enum.count() |> div(100)
     Enum.each(1..num_chunks, &assert_receive({:processing_chunk, &1}))
     refute_receive {:processing_chunk, _}
   end
@@ -60,13 +55,14 @@ defmodule Cloak.DataSource.StreamerTest do
       chunk_index + 1
     end
 
-    assert {:ok, chunks_stream} = chunks("select intval from test_streamer", data_source(), reporter)
+    assert {:ok, rows_stream} = rows("select intval from test_streamer", data_source(), reporter)
 
     num_chunks =
       1..2
-      |> Enum.map(fn _ -> Task.async(fn -> Enum.to_list(chunks_stream) end) end)
+      |> Enum.map(fn _ -> Task.async(fn -> Enum.to_list(rows_stream) end) end)
       |> Enum.flat_map(&Task.await/1)
       |> Enum.count()
+      |> div(100)
 
     Enum.each(1..num_chunks, &assert_receive({:processing_chunk, &1}))
     refute_receive {:processing_chunk, _}
@@ -75,7 +71,7 @@ defmodule Cloak.DataSource.StreamerTest do
   test "connection failure" do
     with_short_connection_timeout(fn ->
       ExUnit.CaptureLog.capture_log(fn ->
-        assert {:error, error} = chunks("select * from test_streamer", data_source(%{hostname: "invalid_host"}))
+        assert {:error, error} = rows("select * from test_streamer", data_source(%{hostname: "invalid_host"}))
         assert error =~ ~r/Failed to establish a connection to the database/
       end)
     end)
@@ -92,19 +88,17 @@ defmodule Cloak.DataSource.StreamerTest do
 
       Cloak.Test.DB.delete_table("temp_table")
 
-      assert {:error, reason} = Streamer.chunks(query)
+      assert {:error, reason} = Streamer.rows(query)
       assert reason =~ ~r/relation "cloak_test.temp_table" does not exist/
     end)
   end
 
-  defp chunks(query, data_source \\ data_source(), reporter \\ nil) do
+  defp rows(query, data_source \\ data_source(), reporter \\ nil) do
     Cloak.Sql.Parser.parse!(query)
     |> Cloak.Sql.Compiler.compile!(data_source, [], %{})
     |> Cloak.Sql.Query.resolve_db_columns()
-    |> Streamer.chunks(reporter)
+    |> Streamer.rows(reporter)
   end
-
-  defp rows(chunks), do: Enum.flat_map(chunks, & &1)
 
   defp with_short_connection_timeout(fun) do
     connect_retries = Application.get_env(:cloak, :connect_retries)
