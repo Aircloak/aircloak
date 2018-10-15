@@ -61,19 +61,8 @@ defmodule Cloak.Query.DbEmulator do
   end
 
   defp select_rows({:subquery, %{ast: query}}, state_updater) do
-    %Query{query | subquery?: not query.emulated? and query.type != :anonymized, where: Query.offloaded_where(query)}
-    |> Query.debug_log("Offloading query ...")
-    |> DataSource.select!(fn chunks ->
-      query = RowSplitters.compile(query)
-
-      chunks
-      |> Stream.transform(:first, fn
-        chunk, :first -> {[state_updater.(chunk, :ingesting_data)], :not_first}
-        chunk, :not_first -> {[chunk], :not_first}
-      end)
-      |> process_chunks(query)
-      |> process_rows(query, state_updater)
-    end)
+    Query.debug_log(query, "Offloading query ...")
+    process_chunks(RowSplitters.compile(query), chunks!(query, state_updater), state_updater)
   end
 
   defp select_rows({:join, join}, state_updater) do
@@ -91,12 +80,23 @@ defmodule Cloak.Query.DbEmulator do
     Selector.join(lhs_rows, rhs_rows, join)
   end
 
-  defp process_chunks(chunks, query) do
-    if query.type == :anonymized do
-      Logger.debug("Anonymizing query result ...")
-      ParallelProcessor.execute(chunks, concurrency(query), &group_rows(&1, query), &Aggregator.merge_groups/2)
-    else
-      Stream.concat(chunks)
+  defp chunks!(query, state_updater) do
+    %Query{query | subquery?: not query.emulated? and query.type != :anonymized, where: Query.offloaded_where(query)}
+    |> DataSource.Streamer.chunks(ingestion_reporter(state_updater))
+    |> case do
+      {:ok, chunks} -> chunks
+      {:error, reason} -> raise Cloak.Query.ExecutionError, message: reason
+    end
+  end
+
+  defp ingestion_reporter(state_updater) do
+    fn
+      nil ->
+        state_updater.(nil, :ingesting_data)
+        :done
+
+      :done ->
+        :done
     end
   end
 
@@ -109,6 +109,20 @@ defmodule Cloak.Query.DbEmulator do
     else
       rows
     end
+  end
+
+  defp process_chunks(%Query{type: :anonymized} = query, chunks, state_updater) do
+    Logger.debug("Anonymizing query result ...")
+
+    chunks
+    |> ParallelProcessor.execute(concurrency(query), &group_rows(&1, query), &Aggregator.merge_groups/2)
+    |> process_rows(query, state_updater)
+  end
+
+  defp process_chunks(non_anonymized_query, chunks, state_updater) do
+    chunks
+    |> Stream.concat()
+    |> process_rows(non_anonymized_query, state_updater)
   end
 
   defp process_rows(rows, %Query{type: :anonymized} = query, state_updater) do

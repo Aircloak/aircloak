@@ -1,7 +1,6 @@
 defmodule Cloak.DataSourceTest do
   use ExUnit.Case, async: true
 
-  alias Cloak.Sql.Query
   alias Cloak.DataSource
 
   import ExUnit.CaptureLog
@@ -30,27 +29,6 @@ defmodule Cloak.DataSourceTest do
             %{name: "value", type: :integer, visible?: true}
           ]
       )
-    end
-  end
-
-  test "data retrieval" do
-    id_column = %Cloak.Sql.Expression{table: %{db_name: "test", name: "test"}, name: "user_id"}
-    data_column = %Cloak.Sql.Expression{table: %{db_name: "test", name: "test"}, name: "value"}
-
-    query = %Query{
-      command: :select,
-      columns: [data_column],
-      db_columns: [id_column, data_column],
-      where: nil,
-      group_by: [],
-      data_source: nil,
-      from: "test",
-      selected_tables: [%{db_name: "cloak_test.test", name: "test"}]
-    }
-
-    for data_source <- DataSource.all() do
-      rows = DataSource.select!(%{query | data_source: data_source}, &Enum.concat/1)
-      assert [["user1", 10], ["user1", 20], ["user1", 30]] == rows
     end
   end
 
