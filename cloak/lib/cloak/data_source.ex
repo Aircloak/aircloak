@@ -169,9 +169,9 @@ defmodule Cloak.DataSource do
 
   The function returns the processed result. On error a `ExecutionError` is raised.
   """
-  @spec select!(Query.t(), result_processor) :: processed_result
-  def select!(query, result_processor) do
-    case Cloak.DataSource.Streamer.chunks(query) do
+  @spec select!(Query.t(), result_processor, Cloak.DataSource.Streamer.reporter()) :: processed_result
+  def select!(query, result_processor, reporter \\ nil) do
+    case Cloak.DataSource.Streamer.chunks(query, reporter) do
       {:ok, chunks} -> result_processor.(chunks)
       {:error, reason} -> raise_error(reason)
     end

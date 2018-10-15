@@ -11,6 +11,9 @@ defmodule Cloak.DataSource.Streamer do
   require Logger
   alias Cloak.DataSource.Connection
 
+  @type reporter :: (reporter_state -> reporter_state) | nil
+  @type reporter_state :: any
+
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
@@ -22,13 +25,16 @@ defmodule Cloak.DataSource.Streamer do
   to the client processes. Once the streaming is done, the connection will be returned to the pool.
 
   The returned stream can be safely used by multiple concurrent processes.
+
+  If the `reporter` function is provided, it will be invoked from the streamer process on every fetched chunk.
+  The initial reporter state is `nil`.
   """
-  @spec chunks(Cloak.Sql.Query.t()) :: {:ok, Enumerable.t()} | {:error, String.t()}
-  def chunks(query) do
+  @spec chunks(Cloak.Sql.Query.t(), reporter) :: {:ok, Enumerable.t()} | {:error, String.t()}
+  def chunks(query, reporter \\ nil) do
     connection_owner = Connection.Pool.checkout(query.data_source)
     Logger.debug("Selecting data ...")
 
-    with {:ok, streamer} <- start_streamer(connection_owner, query) do
+    with {:ok, streamer} <- start_streamer(connection_owner, query, reporter) do
       start_cleanup_process(streamer)
       {:ok, fetch_chunks(streamer)}
     end
@@ -38,8 +44,8 @@ defmodule Cloak.DataSource.Streamer do
   # Client-side functions
   # -------------------------------------------------------------------
 
-  defp start_streamer(connection_owner, query),
-    do: :proc_lib.start_link(__MODULE__, :stream, [connection_owner, query, self()])
+  defp start_streamer(connection_owner, query, reporter),
+    do: :proc_lib.start_link(__MODULE__, :stream, [connection_owner, query, self(), reporter])
 
   defp fetch_chunks(streamer) do
     Stream.resource(
@@ -78,7 +84,7 @@ defmodule Cloak.DataSource.Streamer do
   # Server-side functions
   # -------------------------------------------------------------------
 
-  def stream(connection_owner, query, client_pid) do
+  def stream(connection_owner, query, client_pid, reporter) do
     Process.flag(:trap_exit, true)
 
     case Connection.start_streaming(connection_owner) do
@@ -87,7 +93,7 @@ defmodule Cloak.DataSource.Streamer do
 
       {:ok, connection} ->
         try do
-          query.data_source.driver.select(connection, query, &stream_chunks(&1, client_pid))
+          query.data_source.driver.select(connection, query, &stream_chunks(&1, client_pid, reporter))
           Connection.done_streaming(connection_owner)
           if Process.alive?(client_pid), do: final_loop(client_pid)
           Logger.debug("Terminating streamer process")
@@ -107,23 +113,23 @@ defmodule Cloak.DataSource.Streamer do
     end
   end
 
-  defp stream_chunks(stream, client_pid) do
+  defp stream_chunks(stream, client_pid, reporter) do
     :proc_lib.init_ack(client_pid, {:ok, self()})
-    process_chunks(stream, client_pid)
+    process_chunks(stream, client_pid, reporter)
   end
 
-  defp process_chunks(stream, client_pid) do
+  defp process_chunks(stream, client_pid, reporter) do
     Enum.reduce_while(
       Stream.reject(stream, &Enum.empty?/1),
       nil,
-      fn chunk, nil ->
+      fn chunk, reporter_state ->
         receive do
           {:next_chunk, request_id, requester_pid} ->
             send(requester_pid, {request_id, chunk})
-            {:cont, nil}
+            {:cont, invoke_reporter(reporter, reporter_state)}
 
           {:EXIT, ^client_pid, _reason} ->
-            {:halt, nil}
+            {:halt, reporter_state}
 
           message ->
             raise("invalid message #{inspect(message)} while streaming the query")
@@ -145,6 +151,9 @@ defmodule Cloak.DataSource.Streamer do
         raise("invalid message #{inspect(message)} while streaming the query")
     end
   end
+
+  defp invoke_reporter(nil, _reporter_state), do: nil
+  defp invoke_reporter(reporter, reporter_state), do: reporter.(reporter_state)
 
   # -------------------------------------------------------------------
   # Cleanup process
