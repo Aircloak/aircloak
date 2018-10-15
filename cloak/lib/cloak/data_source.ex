@@ -171,7 +171,7 @@ defmodule Cloak.DataSource do
   """
   @spec select!(Query.t(), result_processor) :: processed_result
   def select!(query, result_processor) do
-    case Cloak.DataSource.Connection.chunks(query) do
+    case Cloak.DataSource.Streamer.chunks(query) do
       {:ok, chunks} -> result_processor.(chunks)
       {:error, reason} -> raise_error(reason)
     end

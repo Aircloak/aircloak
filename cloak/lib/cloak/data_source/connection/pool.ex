@@ -68,7 +68,7 @@ defmodule Cloak.DataSource.Connection.Pool do
 
   @impl GenServer
   def handle_cast({:remove_connection, connection}, state) do
-    Logger.debug("removing an idle connection from the pool")
+    Logger.debug("Removing an idle connection from the pool")
     Parent.GenServer.shutdown_child(child_id!(connection))
     {:noreply, state}
   end

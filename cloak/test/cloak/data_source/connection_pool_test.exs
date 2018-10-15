@@ -43,7 +43,7 @@ defmodule Cloak.DataSource.ConnectionPoolTest do
         Cloak.Sql.Parser.parse!("select * from test_pool")
         |> Cloak.Sql.Compiler.compile!(data_source(), [], %{})
         |> Cloak.Sql.Query.resolve_db_columns()
-        |> Cloak.DataSource.Connection.chunks()
+        |> Cloak.DataSource.Streamer.chunks()
 
       Stream.run(chunks_stream)
 
@@ -65,7 +65,7 @@ defmodule Cloak.DataSource.ConnectionPoolTest do
         Cloak.Sql.Parser.parse!("select * from test_pool")
         |> Cloak.Sql.Compiler.compile!(data_source(), [], %{})
         |> Cloak.Sql.Query.resolve_db_columns()
-        |> Cloak.DataSource.Connection.chunks()
+        |> Cloak.DataSource.Streamer.chunks()
 
         client = self()
         spawn(fn -> Process.exit(client, :exit) end)
@@ -78,41 +78,6 @@ defmodule Cloak.DataSource.ConnectionPoolTest do
     # sleep awhile to let the checkin finish first
     Process.sleep(100)
     assert Pool.checkout(data_source()) == conn
-  end
-
-  test "connection failure" do
-    with_short_connection_timeout(fn ->
-      ExUnit.CaptureLog.capture_log(fn ->
-        assert_raise(Cloak.Query.ExecutionError, ~r/Failed to establish a connection to the database/, fn ->
-          Cloak.Sql.Parser.parse!("select * from test_pool")
-          |> Cloak.Sql.Compiler.compile!(data_source(%{hostname: "invalid_host"}), [], %{})
-          |> Cloak.Sql.Query.resolve_db_columns()
-          |> Cloak.DataSource.Connection.chunks()
-        end)
-      end)
-    end)
-  end
-
-  test "SQL error is properly reported" do
-    assert_raise(
-      Cloak.Query.ExecutionError,
-      ~r/relation "cloak_test.temp_table" does not exist/,
-      fn ->
-        ExUnit.CaptureLog.capture_log(fn ->
-          Cloak.Test.DB.create_table("temp_table", "intval INTEGER")
-
-          query =
-            Cloak.Sql.Parser.parse!("select * from temp_table")
-            |> Cloak.Sql.Compiler.compile!(data_source(), [], %{})
-            |> Cloak.Sql.Query.resolve_db_columns()
-
-          Cloak.Test.DB.delete_table("temp_table")
-
-          {:ok, chunks} = Cloak.DataSource.Connection.chunks(query)
-          Stream.run(chunks)
-        end)
-      end
-    )
   end
 
   defp restart_pool() do
@@ -134,21 +99,6 @@ defmodule Cloak.DataSource.ConnectionPoolTest do
     Cloak.DataSource.all()
     |> hd()
     |> update_in([:parameters], &Map.merge(&1, extra_params))
-  end
-
-  defp with_short_connection_timeout(fun) do
-    connect_retries = Application.get_env(:cloak, :connect_retries)
-    data_source_config = Application.get_env(:cloak, :data_source)
-
-    Application.put_env(:cloak, :connect_retries, 0)
-    Application.put_env(:cloak, :data_source, Keyword.put(data_source_config, :connect_timeout, 50))
-
-    try do
-      fun.()
-    after
-      Application.put_env(:cloak, :connect_retries, connect_retries)
-      Application.put_env(:cloak, :data_source, data_source_config)
-    end
   end
 
   defp with_short_connection_keep_time(fun) do
