@@ -36,6 +36,25 @@ defmodule Cloak.Sql.LikePattern.Test do
     test "true when special characters are escaped", do: assert(LikePattern.trivial?({"a~%~_c", "~"}))
   end
 
+  describe "simple?" do
+    test "true when empty", do: assert(LikePattern.simple?({"", nil}))
+
+    test "true when trivial", do: assert(LikePattern.simple?({"abc", nil}))
+
+    test "false when a _ exists" do
+      refute(LikePattern.simple?({"_abc", nil}))
+      refute(LikePattern.simple?({"abc_", nil}))
+    end
+
+    test "true when the pattern starts or ends with a %" do
+      assert LikePattern.simple?({"%abc", nil})
+      assert LikePattern.simple?({"abc%", nil})
+      assert LikePattern.simple?({"%abc%", nil})
+    end
+
+    test "false when the pattern has a % in the middle", do: refute(LikePattern.simple?({"a%bc", nil}))
+  end
+
   describe "new" do
     test "does nothing for trivial patterns", do: assert({"abc", "\\"} = LikePattern.new("abc", nil))
 

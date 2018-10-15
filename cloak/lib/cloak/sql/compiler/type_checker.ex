@@ -6,7 +6,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   as checks to validate that columns used in certain filter conditions haven't been altered.
   """
 
-  alias Cloak.Sql.{CompilationError, Condition, Expression, Function, Query, Range}
+  alias Cloak.Sql.{CompilationError, Condition, Expression, Function, Query, Range, LikePattern}
   alias Cloak.Sql.Compiler.TypeChecker.Type
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.DataSource.{Isolators, Shadows}
@@ -246,7 +246,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     )
   end
 
+  defp unclear_isolator_usage?({:not, condition}, query), do: unclear_isolator_usage?(condition, query)
   defp unclear_isolator_usage?({:in, _, _}, _), do: true
+  defp unclear_isolator_usage?({:like, _, pattern}, _), do: not LikePattern.simple?(pattern.value)
+  defp unclear_isolator_usage?({:ilike, _, pattern}, _), do: not LikePattern.simple?(pattern.value)
 
   defp unclear_isolator_usage?(condition, query) do
     condition

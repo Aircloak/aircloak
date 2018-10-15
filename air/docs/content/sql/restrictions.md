@@ -368,10 +368,11 @@ table might contain a `user_id` column and an `email` column. The emails are in 
 can identify a user just as well as the `user_id` column. We call these columns "isolating" and apply some additional
 restrictions to expressions including them. Note that the `user_id` column is always isolating.
 
-Conditions using isolating columns cannot use the `IN` operator. Furthermore, only a limited number of functions are
-allowed for these conditions: `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `extract_words`, `year`,
-`quarter`, `month`, `day`, `hour`, `minute`, `second`, `weekday`, `date_trunc`, and `bucket`. All other functions and
-mathematical operations are forbidden.
+Conditions using isolating columns cannot use the `IN` operator. Conditions using the `LIKE` operator are limited to
+simple patterns of the form `%foo`, `foo%`, or `%foo%`. Furthermore, only a limited number of functions are allowed for
+these conditions: `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `extract_words`, `year`, `quarter`,
+`month`, `day`, `hour`, `minute`, `second`, `weekday`, `date_trunc`, and `bucket`. All other functions and mathematical
+operations are forbidden.
 
 ```sql
 -- These examples assume that the 'email' and 'social_security' columns are isolating
@@ -393,6 +394,12 @@ SELECT COUNT(*) FROM table WHERE social_security / 10 = 10000000
 
 -- Correct
 SELECT COUNT(*) FROM table WHERE BUCKET(social_security BY 10) = 100000000
+
+-- Incorrect - a disallowed LIKE pattern is used
+SELECT COUNT(*) FROM table WHERE email LIKE 'alice@%.com'
+
+-- Correct
+SELECT COUNT(*) FROM table WHERE email LIKE 'alice@example.%'
 ```
 
 Insights Cloak will automatically discover which columns isolate users. This computation might be very slow and
