@@ -159,6 +159,9 @@ defmodule Cloak.DataSource.Streamer do
       mref = Process.monitor(streamer)
 
       receive do
+        {:DOWN, ^mref, _, _, _} ->
+          :ok
+
         {:EXIT, ^client_pid, _reason} ->
           receive do
             {:DOWN, ^mref, _, _, _} -> :ok
