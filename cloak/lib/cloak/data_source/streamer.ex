@@ -31,10 +31,12 @@ defmodule Cloak.DataSource.Streamer do
   """
   @spec rows(Cloak.Sql.Query.t(), reporter) :: {:ok, Enumerable.t()} | {:error, String.t()}
   def rows(query, reporter \\ nil) do
-    connection_owner = Connection.Pool.checkout(query.data_source)
     Logger.debug("Selecting data ...")
 
-    with {:ok, streamer} <- start_streamer(connection_owner, query, reporter) do
+    query_id = Keyword.get(Logger.metadata(), :query_id, nil)
+    connection_owner = Connection.Pool.checkout(query.data_source)
+
+    with {:ok, streamer} <- start_streamer(connection_owner, query_id, query, reporter) do
       start_cleanup_process(streamer)
       {:ok, fetch_rows(streamer)}
     end
@@ -44,8 +46,8 @@ defmodule Cloak.DataSource.Streamer do
   # Client-side functions
   # -------------------------------------------------------------------
 
-  defp start_streamer(connection_owner, query, reporter),
-    do: :proc_lib.start_link(__MODULE__, :stream, [connection_owner, query, self(), reporter])
+  defp start_streamer(connection_owner, query_id, query, reporter),
+    do: :proc_lib.start_link(__MODULE__, :stream, [connection_owner, query_id, query, self(), reporter])
 
   defp fetch_rows(streamer) do
     Stream.resource(
@@ -88,8 +90,9 @@ defmodule Cloak.DataSource.Streamer do
   # Server-side functions
   # -------------------------------------------------------------------
 
-  def stream(connection_owner, query, client_pid, reporter) do
+  def stream(connection_owner, query_id, query, client_pid, reporter) do
     Process.flag(:trap_exit, true)
+    Logger.metadata(query_id: query_id)
 
     case Connection.start_streaming(connection_owner) do
       {:error, _} = error ->
