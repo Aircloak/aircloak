@@ -1,11 +1,8 @@
 defmodule Cloak.DataSource.Streamer do
   @moduledoc """
-  Query streamer process.
+  Implementation of the query streamer process.
 
-  This process executes the given query and returns the stream of rows The streaming is done in a lookahead fashion.
-  The streamer process will try to ensure that the next item is available in the client process when the client needs
-  it. Therefore, the extra process hop for each row should not affect the query duration, especially not in the cases
-  where the client processing takes more time.
+  See `rows/2` for details.
   """
 
   require Logger
@@ -21,13 +18,16 @@ defmodule Cloak.DataSource.Streamer do
   @doc """
   Returns a stream of rows for the given query.
 
-  This function will take a connection from the connection pool (or create a new one if needed), and stream the data
-  to the client processes. Once the streaming is done, the connection will be returned to the pool.
-
-  The returned stream can be safely used by multiple concurrent processes.
-
-  If the `reporter` function is provided, it will be invoked from the streamer process on every fetched chunk.
-  The initial reporter state is `nil`.
+  - The returned stream can be iterated only once.
+  - The stream is owned by the owner process (the process which invoked this function), and it can be only consumed
+    while the owner process is alive.
+  - The stream can be consumed concurrently by multiple consumer processes, none of which has to be the owner process.
+  - Streaming is performed on a connection which is taken from the connection pool. As soon as the last row has been
+    delivered to some consumer, the connection is returned to the connection pool.
+  - Streaming is performed in a lookahead fashion to ensure that the next row is available in the consumer process when
+    it's needed.
+  - If the `reporter` function is provided, it will be invoked from the streamer process on every fetched chunk with the
+    reporter state, which is the result of the previous reporter invocation. The initial reporter state is `nil`.
   """
   @spec rows(Cloak.Sql.Query.t(), reporter) :: {:ok, Enumerable.t()} | {:error, String.t()}
   def rows(query, reporter \\ nil) do
