@@ -40,6 +40,18 @@ defmodule Cloak.Sql.LikePattern do
   @spec trivial?(t) :: boolean
   def trivial?(pattern), do: pattern |> graphemes() |> Enum.all?(&(not wildcard?(&1)))
 
+  @doc "Returns true if the pattern is of the form 'foo', '%foo', 'foo%', or '%foo%', false otherwise."
+  @spec simple?(t) :: boolean
+  def simple?(pattern) do
+    graphemes = graphemes(pattern)
+
+    if Enum.any?(graphemes, &(&1 == :_)) do
+      false
+    else
+      graphemes |> Enum.drop(1) |> Enum.take(length(graphemes) - 2) |> Enum.any?(&wildcard?/1) |> :erlang.not()
+    end
+  end
+
   @doc "Converts a constant like pattern expression into a text expression. Fails if the pattern is not `trivial?/1`."
   @spec trivial_to_string(Expression.t()) :: Expression.t()
   def trivial_to_string(expression) do

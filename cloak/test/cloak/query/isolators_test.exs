@@ -72,6 +72,18 @@ defmodule Cloak.Query.Isolators.Test do
     assert_allowed("SELECT COUNT(*) FROM query_isolators AS a JOIN query_isolators AS b ON a.user_id = b.user_id")
   end
 
+  for kind <- ["LIKE", "ILIKE", "NOT LIKE", "NOT ILIKE"] do
+    describe kind do
+      test "arbitrary patterns are disallowed" do
+        assert_forbidden("SELECT COUNT(*) FROM query_isolators WHERE $col_string #{unquote(kind)} 'some_%pattern'")
+      end
+
+      test "simple patterns are allowed" do
+        assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE $col_string #{unquote(kind)} '%simple'")
+      end
+    end
+  end
+
   defp assert_allowed(query) do
     for column <- ["isolating", "regular"] do
       query |> String.replace("$col", column) |> assert_query(%{rows: [_ | _]})
