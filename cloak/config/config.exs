@@ -60,7 +60,7 @@ config :cloak, :shadow_tables,
   max_rare_negative_conditions: 2,
 
   # Number of popular values to keep in a shadow table
-  size: 100,
+  size: 10_000,
 
   # Minimum users with a particular value needed to include it in a shadow table
   min_users: 10
