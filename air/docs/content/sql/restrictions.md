@@ -404,10 +404,9 @@ classifying isolating columns.
 
 In order to apply the restrictions described in [Number of conditions](#number-of-conditions) and [Isolating
 columns](#isolating-columns) Insights Cloak needs to analyze the contents of the data source. This process might take
-some time, but the data source is available for querying while the analysis is under way. However, Insights Cloak needs
-to make conservative assumptions about the data, for which analysis is pending. Because of this, all columns are treated
-as isolating until the analysis for a particular column is complete. Similarly, all columns are treated as having no
-frequent values for the purposes of counting negative conditions until analysis is complete.
+some time, but the data source is available for querying while the analysis is under way. While the analysis is
+incomplete Insights Cloak needs to make conservative assumptions about the data. As a result, all columns are treated
+as if they were isolating and had no frequent values, until the analysis is completed for a particular column.
 
 You can check the status of a table by using the `SHOW COLUMNS` statement:
 
@@ -423,4 +422,4 @@ SHOW COLUMNS FROM users
 ```
 
 In this case the columns `uid` and `last_name` are isolating, while the column `first_name` is not. The status of the
-`email` column is not known yet, so it will be treated as isolating until its analysis is complete.
+`email` column is not yet known, so it will be treated as isolating until its analysis is complete.
