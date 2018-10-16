@@ -74,12 +74,7 @@ defmodule Cloak.DataSource.RODBC do
       connection
     else
       {:error, reason} ->
-        DataSource.raise_error(
-          "Failed to establish a connection to the database. " <>
-            "Please check that the database server is running, is reachable from the " <>
-            "Insights Cloak host, and the database credentials are correct. " <>
-            "The database driver reported the following exception: `#{to_string(reason)}`"
-        )
+        Driver.raise_connection_error(reason)
     end
   end
 

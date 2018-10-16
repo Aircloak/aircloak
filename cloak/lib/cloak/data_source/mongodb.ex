@@ -74,12 +74,7 @@ defmodule Cloak.DataSource.MongoDB do
     after
       Driver.connect_timeout() ->
         GenServer.stop(connection, :normal, :timer.seconds(5))
-
-        DataSource.raise_error(
-          "Failed to establish a connection to the database. " <>
-            "Please check that the database server is running, is reachable from the " <>
-            "Insights Cloak host, and the database credentials are correct"
-        )
+        Driver.raise_connection_error()
     end
   end
 

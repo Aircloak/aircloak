@@ -200,13 +200,7 @@ defmodule Cloak.DataSource.Connection do
         __STACKTRACE__ |> Cloak.LoggerTranslator.filtered_stacktrace() |> Exception.format_stacktrace()
 
       Logger.error("Error connecting to the database: #{formatted_reason} at \n#{formatted_stacktrace}")
-
-      generic_error =
-        "Failed to establish a connection to the database. " <>
-          "Please check that the database server is running, is reachable from the " <>
-          "Insights Cloak host, and the database credentials are correct."
-
-      {:error, generic_error}
+      {:error, Driver.generic_connection_error()}
   end
 
   defp assert_not_used!(state) do
