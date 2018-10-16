@@ -1,75 +1,30 @@
 defmodule Cloak.Query.Runner.ParallelProcessor do
-  @moduledoc """
-    Helper module for parallel processing of a chunked data stream.
-
-    When no additional processes are needed or when the input consists of a single chunk,
-    the data is processed sequentially in the current process.
-    Otherwise, multiple workers are created and the input is routed among them.
-    After all the data chunks are consumed, the workers' partial states are merged into one
-    using the supplied `state_merger` function.
-  """
+  @moduledoc "Helper module for processing of database rows."
 
   alias __MODULE__.Worker
   require Logger
 
-  @doc "Helper function for parallel processing of a chunked data stream. See module docs for details."
+  @doc """
+  Helper function for processing of database rows.
+
+  When no additional processes are needed, the data is processed sequentially in the current process.
+  Otherwise, multiple workers are created and the input is routed among them.
+  After all the data rows are consumed, the workers' partial states are merged into one
+  using the supplied `state_merger` function.
+  """
   @spec execute(Enumerable.t(), non_neg_integer, (Enumerable.t() -> any), (any, any -> any)) :: any
-  def execute(chunks, proc_count, processor, _state_merger) when proc_count <= 1,
-    do: chunks |> Stream.concat() |> processor.()
-
-  def execute([chunk], _proc_count, processor, _state_merger), do: processor.(chunk)
-
-  def execute(chunks, proc_count, processor, state_merger)
-      when is_integer(proc_count) and proc_count > 1,
-      do:
-        proc_count
-        |> start_workers(processor)
-        |> dispatch_chunks(chunks)
-        |> merge_results(state_merger)
+  def execute(db_rows, proc_count, processor, state_merger) do
+    if proc_count <= 1,
+      do: processor.(db_rows),
+      else: proc_count |> start_workers(db_rows, processor) |> merge_results(state_merger)
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp start_workers(count, processor) do
-    parent = self()
-
-    job = fn ->
-      parent |> stream_rows() |> processor.()
-    end
-
-    for _i <- 1..count, do: Worker.start_link!(job)
-  end
-
-  defp dispatch_chunks(workers, chunks) do
-    Logger.debug(fn -> "Processing data using #{length(workers)} processes ..." end)
-    Enum.each(chunks, &send_more_reply({:data, &1}))
-    for _worker <- workers, do: send_more_reply(:end_of_data)
-    Logger.debug(fn -> "Integrating partial results ..." end)
-    workers
-  end
-
-  defp send_more_reply(answer) do
-    receive do
-      {:send_more, destination} -> send(destination, answer)
-    end
-  end
-
-  defp stream_rows(source) do
-    Stream.resource(
-      fn -> send(source, {:send_more, self()}) end,
-      fn _ ->
-        receive do
-          :end_of_data ->
-            {:halt, :ok}
-
-          {:data, chunk} ->
-            send(source, {:send_more, self()})
-            {chunk, :ok}
-        end
-      end,
-      fn _ -> :ok end
-    )
+  defp start_workers(count, rows, processor) do
+    for _i <- 1..count, do: Worker.start_link!(rows, processor)
   end
 
   # For performance reasons, the workers will be grouped 2 by 2 in order to integrate all the results;
@@ -104,22 +59,8 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
 
     use GenServer
 
-    @impl GenServer
-    def init(job) do
-      GenServer.cast(self(), {:execute, job})
-      {:ok, nil}
-    end
-
-    @impl GenServer
-    def handle_cast({:execute, job}, nil), do: {:noreply, job.()}
-
-    def handle_cast({:merge, from, state_merger}, result), do: {:noreply, state_merger.(result, report!(from))}
-
-    @impl GenServer
-    def handle_call(:report, _from, result), do: {:stop, :normal, result, nil}
-
-    def start_link!(job) do
-      {:ok, worker} = GenServer.start_link(__MODULE__, job)
+    def start_link!(rows, processor) do
+      {:ok, worker} = GenServer.start_link(__MODULE__, {rows, processor})
       worker
     end
 
@@ -131,5 +72,17 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
       :ok = GenServer.cast(to, {:merge, from, state_merger})
       to
     end
+
+    @impl GenServer
+    def init({rows, processor}), do: {:ok, nil, {:continue, {:process_rows, rows, processor}}}
+
+    @impl GenServer
+    def handle_continue({:process_rows, rows, processor}, nil), do: {:noreply, processor.(rows)}
+
+    @impl GenServer
+    def handle_cast({:merge, from, state_merger}, result), do: {:noreply, state_merger.(result, report!(from))}
+
+    @impl GenServer
+    def handle_call(:report, _from, result), do: {:stop, :normal, result, nil}
   end
 end

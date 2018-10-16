@@ -37,7 +37,6 @@ defmodule Cloak.DataSource do
   The data source schema will also be sent to air, so it can be referenced by incoming tasks.
   """
 
-  alias Cloak.Sql.Query
   alias Cloak.DataSource.{Validations, Parameters, Driver, Table}
   alias Cloak.Query.ExecutionError
 
@@ -160,22 +159,6 @@ defmodule Cloak.DataSource do
   @doc "Returns all table descriptors for the given data source."
   @spec tables(t) :: [Table.t()]
   def tables(data_source), do: Map.values(data_source.tables)
-
-  @doc """
-  Executes the specified 'select' query.
-
-  Besides the query object, this methods also needs a result processing function
-  for handling the stream of rows produced as a result of executing the query.
-
-  The function returns the processed result. On error a `ExecutionError` is raised.
-  """
-  @spec select!(Query.t(), result_processor) :: processed_result
-  def select!(query, result_processor) do
-    case Cloak.DataSource.Connection.chunks(query) do
-      {:ok, chunks} -> result_processor.(chunks)
-      {:error, reason} -> raise_error(reason)
-    end
-  end
 
   @doc "Raises an error when something goes wrong during data processing."
   @spec raise_error(String.t()) :: no_return

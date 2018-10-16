@@ -36,7 +36,7 @@ defmodule Cloak.DataSource.Driver do
   @doc "Loads one or more table definitions from the data store."
   @callback load_tables(connection, Table.t()) :: [Table.t()]
 
-  @doc "Driver specific implementation for the `DataSource.select` functionality."
+  @doc "Driver specific implementation for the retrieving chunks of rows."
   @callback select(connection, Query.t(), Cloak.DataSource.result_processor()) ::
               {:ok, Cloak.DataSource.processed_result()} | {:error, any}
 
