@@ -10,7 +10,7 @@ defmodule AirWeb.QueryView do
   defp format_value(values) when is_list(values), do: Enum.join(values, ", ")
   defp format_value(value), do: to_string(value)
 
-  def banner(word, delimeter),
+  defp banner(word, delimeter),
     do:
       String.duplicate(delimeter, @banner_initial) <>
         " " <>
@@ -21,9 +21,9 @@ defmodule AirWeb.QueryView do
           max(0, @banner_length - @banner_initial - 2 - String.length(word))
         )
 
-  def print_rows([]), do: ""
+  defp print_rows([]), do: ""
 
-  def print_rows(data) do
+  defp print_rows(data) do
     cleaned_data =
       data
       |> Enum.map(fn raw_row ->
