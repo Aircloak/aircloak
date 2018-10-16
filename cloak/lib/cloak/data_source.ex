@@ -436,11 +436,8 @@ defmodule Cloak.DataSource do
   end
 
   defp update_data_source_connectivity(%{status: :online} = data_source) do
-    driver = data_source.driver
-
     try do
-      # Connection pool is not used here, since we want to always open the new connection to verify the connectivity.
-      data_source.parameters |> driver.connect!() |> driver.disconnect()
+      Cloak.DataSource.Connection.execute!(data_source, & &1, force_new_connection: true)
       data_source
     rescue
       error in ExecutionError ->

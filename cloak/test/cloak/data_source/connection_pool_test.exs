@@ -18,6 +18,13 @@ defmodule Cloak.DataSource.ConnectionPoolTest do
     assert Pool.checkout(data_source()) == conn
   end
 
+  test "checking out with `force_new_connection: true` starts a new connection" do
+    conn = Pool.checkout(data_source())
+    Pool.checkin(Pool.pool_server(data_source()), conn)
+
+    refute Pool.checkout(data_source(), force_new_connection: true) == conn
+  end
+
   test "new conn is used if no conns are available" do
     conn = Pool.checkout(data_source())
     refute Pool.checkout(data_source()) == conn

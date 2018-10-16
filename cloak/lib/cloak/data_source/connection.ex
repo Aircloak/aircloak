@@ -16,9 +16,9 @@ defmodule Cloak.DataSource.Connection do
   This function will checkout the connection from the pool, and then invoke the lambda, passing it the underlying
   driver connection. After the lambda is done (or if it crashes), the connection is returned to the pool.
   """
-  @spec execute!(DataSource.t(), (Driver.connection() -> result)) :: result when result: var
-  def execute!(data_source, fun) do
-    connection = Pool.checkout(data_source)
+  @spec execute!(DataSource.t(), (Driver.connection() -> result), Pool.checkout_options()) :: result when result: var
+  def execute!(data_source, fun, checkout_opts \\ []) do
+    connection = Pool.checkout(data_source, checkout_opts)
 
     with {:ok, driver_connection} <- GenServer.call(connection, :start_using) do
       try do
