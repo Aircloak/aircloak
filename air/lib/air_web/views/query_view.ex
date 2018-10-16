@@ -36,4 +36,13 @@ defmodule AirWeb.QueryView do
 
     Aircloak.AsciiTable.format([header] ++ cleaned_data)
   end
+
+  defp column_properties(column) do
+    [
+      column[:type],
+      if(column[:user_id], do: "user id column", else: nil),
+      "#{column[:shadow_table_size]} frequent values"
+    ]
+    |> Enum.reject(&is_nil/1)
+  end
 end

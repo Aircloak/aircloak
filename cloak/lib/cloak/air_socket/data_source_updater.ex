@@ -64,6 +64,12 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
     do: %{id: id, columns: Enum.map(table.columns, &column_info(data_source, table, &1))}
 
   defp column_info(data_source, table, column) do
+    {shadow_table, shadow_table_size} =
+      case Cloak.DataSource.Shadows.cache_lookup(data_source, table.name, column.name) do
+        {:ok, table} -> {:ok, length(table)}
+        {:error, status} -> {status, 0}
+      end
+
     %{
       name: column.name,
       type: column.type,
@@ -73,11 +79,8 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
           {:ok, value} -> value
           {:error, status} -> status
         end,
-      shadow_table:
-        case Cloak.DataSource.Shadows.cache_lookup(data_source, table.name, column.name) do
-          {:ok, _} -> :ok
-          {:error, status} -> status
-        end
+      shadow_table: shadow_table,
+      shadow_table_size: shadow_table_size
     }
   end
 

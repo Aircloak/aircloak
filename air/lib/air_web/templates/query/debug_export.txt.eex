@@ -40,7 +40,7 @@ Export by <%= get_in(@data, [:metadata, :user]) %> (<%= get_in(@data, [:metadata
 <%= for table <- get_in(@data, [:tables]) do %>
 <%= banner(table[:id], "-") %>
 <%= for column <- table[:columns] |> Enum.sort_by(& {not &1[:user_id], &1[:name]}) do %>
-  - <%= column[:name] %> (<%= column[:type] %><%= if column[:user_id], do: ", user id column" %>)<% end %>
+  - <%= column[:name] %> (<%= column |> column_properties() |> Enum.join(", ") %>)<% end %>
 <% end %>
 
 
