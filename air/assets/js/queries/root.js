@@ -19,6 +19,7 @@ import {Disconnected} from "../disconnected";
 import {isFinished} from "./state";
 import {startQuery, loadHistory} from "../request";
 import type {QueryData} from "../request";
+import {activateTooltips} from "../tooltips";
 
 type Props = {
   userId: number,
@@ -305,9 +306,26 @@ export default class QueriesView extends React.PureComponent {
     switch (this.state.dataSourceStatus) {
       case "online": return <span className="label label-success">Online</span>;
       case "offline": return <span className="label label-danger">Offline</span>;
-      case "analyzing": return <span className="label label-warning">Analyzing</span>;
+      case "analyzing": return this.analyzing();
       default: return <span className="label label-warning">Broken</span>;
     }
+  }
+
+  analyzing() {
+    return (<span className="label label-success">
+      Online
+      <sup>
+        <a
+          href="/docs/sql/restrictions.html#column-analysis"
+          target="blank"
+          data-toggle="tooltip"
+          data-placement="right"
+          title="Some features unavailable pending analysis"
+        >
+          *
+        </a>
+      </sup>
+    </span>);
   }
 
   renderDataSourceDescription() {
@@ -345,6 +363,7 @@ export default class QueriesView extends React.PureComponent {
   }
 
   render() {
+    activateTooltips();
     return (<div>
       <h2>
         {this.props.dataSourceName}
