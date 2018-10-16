@@ -12,12 +12,6 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     end
   end
 
-  defmacrop refute_equivalent(query, alternative) do
-    quote bind_quoted: [query: query, alternative: alternative] do
-      refute compile!(query, data_source()) == compile!(alternative, data_source())
-    end
-  end
-
   test "normalizing constant expressions" do
     result1 = compile!("SELECT * FROM table WHERE numeric = 2 * 3 + 4", data_source())
     result2 = compile!("SELECT * FROM table WHERE numeric = 10", data_source())
@@ -92,15 +86,15 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
           "SELECT * FROM (SELECT count(*) as c FROM table) x JOIN (SELECT COUNT(*) + 1 as c, ABS(AVG(numeric)) FROM table) y ON x.c = y.c"
         )
 
-    test "Drops DISTINCT and superfluous GROUP BYs when all selected columns are GROUPED BY" do
+    test "Drops DISTINCT and superfluous GROUP BYs when no aggregate and all selected columns are GROUPED BY" do
       assert_equivalent(
         "SELECT count(*) FROM (SELECT DISTINCT uid, numeric FROM table GROUP BY uid, numeric, string) x",
         "SELECT count(*) FROM (SELECT uid, numeric FROM table GROUP BY 1, 2) x"
       )
     end
 
-    test "Does not drop DISTINCT when there is an aggregate" do
-      refute_equivalent(
+    test "Drops DISTINCT when there is an aggregate if there is no extra GROUP BY" do
+      assert_equivalent(
         "SELECT count(*) FROM (SELECT DISTINCT uid, count(*) FROM table GROUP BY 1) x",
         "SELECT count(*) FROM (SELECT uid, count(*) FROM table GROUP BY 1) x"
       )

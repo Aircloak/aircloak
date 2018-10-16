@@ -220,7 +220,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
     do: query
 
   defp rewrite_distinct(%Query{distinct?: true, group_by: [], columns: columns} = query) do
-    if aggregate_query?(query) do
+    if Query.aggregate?(query) do
       %Query{query | distinct?: false}
     else
       %Query{query | distinct?: false, group_by: columns}
@@ -228,27 +228,46 @@ defmodule Cloak.Sql.Compiler.Normalization do
   end
 
   defp rewrite_distinct(%Query{distinct?: true, columns: [_ | _] = columns, group_by: [_ | _] = group_by} = query) do
-    if Enum.all?(columns, &shallow_in(&1, group_by)) do
-      functional_group_bys = Enum.filter(group_by, &shallow_in(&1, columns))
-      %Query{query | distinct?: false, group_by: functional_group_bys}
-    else
-      query
+    cond do
+      # - SELECT DISTINCT a, b FROM table GROUP a, b
+      # - SELECT DISTINCT a FROM table GROUP a, b
+      all_non_aggregates_grouped_by?(query) and not Query.aggregate?(query) ->
+        functional_group_bys = Enum.filter(group_by, &Expression.shallow_in(&1, columns))
+        %Query{query | distinct?: false, group_by: functional_group_bys}
+
+      # - SELECT DISTINCT a, count(*) FROM table GROUP a
+      # - SELECT DISTINCT count(*) FROM table
+      all_non_aggregates_grouped_by?(query) and Query.aggregate?(query) and not any_unselected_group_bys?(query) ->
+        %Query{query | distinct?: false}
+
+      # Currently not handled because it requires a complex subquery rewrite:
+      # - SELECT DISTINCT a, count(*) FROM table GROUP a, b
+      Query.aggregate?(query) and any_unselected_group_bys?(query) ->
+        query
+
+      # These can't be transformed correctly because the query is illegal
+      # - SELECT DISTINCT a, b FROM table GROUP a
+      true ->
+        query
     end
   end
 
   defp rewrite_distinct(query), do: query
 
-  defp aggregate_query?(query) do
-    aggregate_expressions =
-      Query.Lenses.query_expressions()
-      |> Lens.filter(& &1.aggregate?)
-      |> Lens.to_list(query)
+  defp any_unselected_group_bys?(query),
+    do:
+      query
+      |> Query.non_selected_group_bys()
+      |> Enum.count() > 0
 
-    not Enum.empty?(aggregate_expressions)
-  end
+  defp all_non_aggregates_grouped_by?(%Query{columns: columns, group_by: group_bys}),
+    do:
+      columns
+      |> Enum.reject(&aggregate_expression/1)
+      |> Enum.all?(&Expression.shallow_in(&1, group_bys))
 
-  defp shallow_in(expression, expressions),
-    do: drop_location(expression) in Enum.map(expressions, &drop_location/1)
+  defp aggregate_expression(%Expression{aggregate?: true}), do: true
 
-  defp drop_location(expression), do: Map.put(expression, :source_location, nil)
+  defp aggregate_expression(%Expression{aggregate?: false, function_args: args}),
+    do: Enum.any?(args, &aggregate_expression/1)
 end
