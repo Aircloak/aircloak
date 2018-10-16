@@ -104,6 +104,7 @@ defmodule Cloak.DataSource.Connection do
   @impl GenServer
   def terminate(_reason, state) do
     if is_pid(state.streamer), do: Process.exit(state.streamer, :kill)
+    if is_pid(state.query_runner), do: Process.exit(state.query_runner, :db_connection_closed)
 
     if state.connection != nil do
       Logger.debug("Closing database connection")
