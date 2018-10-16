@@ -441,9 +441,9 @@ defmodule Cloak.Sql.Expression.Test do
       assert Expression.member?(exp, [other_exp, exp, other_exp])
     end
 
-    test "disregards source location" do
-      exp = %Expression{name: "col1", source_location: {1, 1}}
-      other_exp = %Expression{exp | source_location: {2, 2}}
+    test "disregards source location and alias" do
+      exp = %Expression{name: "col1", alias: "alias1", source_location: {1, 1}}
+      other_exp = %Expression{exp | alias: "alias2", source_location: {2, 2}}
       assert Expression.member?(exp, [other_exp])
     end
   end

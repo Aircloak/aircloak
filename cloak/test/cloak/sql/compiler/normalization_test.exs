@@ -105,6 +105,13 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
       )
     end
 
+    test "distinct on top-level query with alias" do
+      assert_equivalent(
+        "SELECT DISTINCT numeric as a FROM table GROUP BY a",
+        "SELECT numeric as a FROM table GROUP BY numeric"
+      )
+    end
+
     test "distinct on query with *",
       do:
         assert_equivalent(
