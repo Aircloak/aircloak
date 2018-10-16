@@ -79,19 +79,17 @@ defmodule Cloak.DataSource.StreamerTest do
   end
 
   test "SQL error is properly reported" do
-    ExUnit.CaptureLog.capture_log(fn ->
-      Cloak.Test.DB.create_table("temp_table", "intval INTEGER")
+    Cloak.Test.DB.create_table("temp_table", "intval INTEGER")
 
-      query =
-        Cloak.Sql.Parser.parse!("select * from temp_table")
-        |> Cloak.Sql.Compiler.compile!(data_source(), [], %{})
-        |> Cloak.Sql.Query.resolve_db_columns()
+    query =
+      Cloak.Sql.Parser.parse!("select * from temp_table")
+      |> Cloak.Sql.Compiler.compile!(data_source(), [], %{})
+      |> Cloak.Sql.Query.resolve_db_columns()
 
-      Cloak.Test.DB.delete_table("temp_table")
+    Cloak.Test.DB.delete_table("temp_table")
 
-      assert {:error, reason} = Streamer.rows(query)
-      assert reason =~ ~r/relation "cloak_test.temp_table" does not exist/
-    end)
+    assert {:error, reason} = Streamer.rows(query)
+    assert reason =~ ~r/relation "cloak_test.temp_table" does not exist/
   end
 
   defp rows(query, data_source \\ data_source(), reporter \\ nil) do

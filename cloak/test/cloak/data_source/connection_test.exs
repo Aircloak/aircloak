@@ -47,10 +47,8 @@ defmodule Cloak.DataSource.ConnectionTest do
 
   test "reporting connect error on execution" do
     with_short_connection_timeout(fn ->
-      ExUnit.CaptureLog.capture_log(fn ->
-        error_operation = fn -> Connection.execute!(data_source(%{hostname: "invalid_host"}), & &1) end
-        assert_raise Cloak.Query.ExecutionError, ~r/Failed to establish a connection to the database/, error_operation
-      end)
+      error_operation = fn -> Connection.execute!(data_source(%{hostname: "invalid_host"}), & &1) end
+      assert_raise Cloak.Query.ExecutionError, ~r/Failed to establish a connection to the database/, error_operation
     end)
   end
 

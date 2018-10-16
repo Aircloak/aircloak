@@ -20,7 +20,7 @@ defmodule Cloak.DataSource.Connection do
   def execute!(data_source, fun) do
     connection = Pool.checkout(data_source)
 
-    with {:ok, driver_connection} <- start_using(connection) do
+    with {:ok, driver_connection} <- GenServer.call(connection, :start_using) do
       try do
         {:ok, fun.(driver_connection)}
       after
@@ -35,12 +35,8 @@ defmodule Cloak.DataSource.Connection do
 
   @doc "Starts the streamer process as the child of the given connection."
   @spec start_streamer(pid, String.t(), Cloak.Sql.Query.t(), Streamer.reporter()) :: {:ok, pid} | {:error, String.t()}
-  def start_streamer(connection, query_id, query, reporter) do
-    GenServer.call(connection, {:start_streamer, query_id, query, reporter})
-  catch
-    :exit, {{%Cloak.Query.ExecutionError{} = error, _}, _} ->
-      {:error, error.message}
-  end
+  def start_streamer(connection, query_id, query, reporter),
+    do: GenServer.call(connection, {:start_streamer, query_id, query, reporter})
 
   @doc "Invoked by the streamer process when it has sent all the rows to its consumers."
   @spec streaming_done(pid) :: :ok
@@ -54,40 +50,76 @@ defmodule Cloak.DataSource.Connection do
   def init({pool_pid, driver, connection_params}) do
     Process.flag(:trap_exit, true)
 
-    state = %{pool_pid: pool_pid, driver: driver, connection: nil, query_runner: nil, streamer: nil, user_mref: nil}
+    state = %{
+      pool_pid: pool_pid,
+      driver: driver,
+      connection: nil,
+      query_runner: nil,
+      streamer: nil,
+      user_mref: nil,
+      connection_error: nil
+    }
+
     {:ok, state, {:continue, {:connect, connection_params}}}
   end
 
   @impl GenServer
-  def handle_continue({:connect, connection_params}, state),
-    do: {:noreply, %{state | connection: state.driver.connect!(connection_params)}, Driver.connection_keep_time()}
+  def handle_continue({:connect, connection_params}, state) do
+    {:noreply, %{state | connection: state.driver.connect!(connection_params)}, Driver.connection_keep_time()}
+  rescue
+    error in Cloak.Query.ExecutionError ->
+      {:noreply, %{state | connection_error: error.message}}
+  catch
+    type, error ->
+      formatted_reason = Cloak.LoggerTranslator.format_exit({type, error})
+
+      formatted_stacktrace =
+        __STACKTRACE__ |> Cloak.LoggerTranslator.filtered_stacktrace() |> Exception.format_stacktrace()
+
+      Logger.error("Error connecting to the database: #{formatted_reason} at \n#{formatted_stacktrace}")
+
+      generic_error =
+        "Failed to establish a connection to the database. " <>
+          "Please check that the database server is running, is reachable from the " <>
+          "Insights Cloak host, and the database credentials are correct."
+
+      {:noreply, %{state | connection_error: generic_error}}
+  end
 
   @impl GenServer
   def handle_call({:start_streamer, query_id, query, reporter}, {query_runner, _} = from, state) do
-    assert_not_used!(state)
-    Logger.metadata(query_id: query_id)
+    if is_nil(state.connection_error) do
+      assert_not_used!(state)
+      Logger.metadata(query_id: query_id)
 
-    case Streamer.start_link(state.connection, query_runner, query_id, query, reporter) do
-      {:ok, streamer} ->
-        {:reply, {:ok, streamer}, %{state | query_runner: query_runner, streamer: streamer}}
+      case Streamer.start_link(state.connection, query_runner, query_id, query, reporter) do
+        {:ok, streamer} ->
+          {:reply, {:ok, streamer}, %{state | query_runner: query_runner, streamer: streamer}}
 
-      {:error, streamer_pid, reason} ->
-        GenServer.reply(from, {:error, reason})
+        {:error, streamer_pid, reason} ->
+          GenServer.reply(from, {:error, reason})
 
-        # flush the leftover exit message
-        receive do
-          {:EXIT, ^streamer_pid, _exit_reason} -> {:noreply, state}
-        after
-          :timer.seconds(5) ->
-            Process.exit(streamer_pid, :kill)
-            {:stop, :streamer_timeout, state}
-        end
+          # flush the leftover exit message
+          receive do
+            {:EXIT, ^streamer_pid, _exit_reason} -> {:noreply, state}
+          after
+            :timer.seconds(5) ->
+              Process.exit(streamer_pid, :kill)
+              {:stop, :streamer_timeout, state}
+          end
+      end
+    else
+      {:stop, :shutdown, {:error, state.connection_error}, state}
     end
   end
 
   def handle_call(:start_using, {user_pid, _}, state) do
-    assert_not_used!(state)
-    {:reply, {:ok, state.connection}, %{state | user_mref: Process.monitor(user_pid)}}
+    if is_nil(state.connection_error) do
+      assert_not_used!(state)
+      {:reply, {:ok, state.connection}, %{state | user_mref: Process.monitor(user_pid)}}
+    else
+      {:stop, :shutdown, {:error, state.connection_error}, state}
+    end
   end
 
   @impl GenServer
@@ -154,16 +186,6 @@ defmodule Cloak.DataSource.Connection do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp start_using(connection) do
-    GenServer.call(connection, :start_using)
-  catch
-    :exit, {{%Cloak.Query.ExecutionError{} = error, _}, _} ->
-      {:error, error.message}
-
-    _, _ ->
-      {:error, "database connection lost"}
-  end
 
   defp assert_not_used!(state) do
     true = is_nil(state.streamer)
