@@ -316,7 +316,7 @@ defmodule Cloak.Sql.Expression do
         String.last(name) != "."
 
   @doc """
-  Cariant of `exp in [exp,...]` that discounts for variances such as source location.
+  Variant of `exp in [exp,...]` that discounts for differences such as source location.
   This allows us to for example see if a selected expression appears as a group by expression too.
   """
   @spec shallow_in(t, [t]) :: boolean

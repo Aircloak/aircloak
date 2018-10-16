@@ -9,7 +9,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # -------------------------------------------------------------------
 
   @doc """
-  Performs semantics preserving query transformations that should be done ahead of the
+  Performs semantics-preserving query transformations that should be done ahead of the
   query validation and before the noise layers and other anonymization properties are calculated.
 
   Performs rewrites such as:
@@ -29,16 +29,13 @@ defmodule Cloak.Sql.Compiler.Normalization do
       |> Helpers.apply_bottom_up(&normalize_order_by/1)
 
   @doc """
-  Performs semantics preserving query transformations that cannot be done before validations
+  Performs semantics-preserving query transformations that cannot be done before validations
   have taken place as the validator (or other query compiler mechanics) rely on certain which
-  the normalizer would rewrite and or remove.
+  the normalizer would rewrite and/or remove.
 
   * Removes redundant occurences of "%" from LIKE patterns (for example "%%" -> "%")
   * Normalizes sequences of "%" and "_" in like patterns so that the "%" always precedes a sequence of "_"
   * Expands `BUCKET` calls into equivalent mathematical expressions
-
-  These are useful (among others) for noise layers - we want to generate the same layer for semantically identical
-  conditions, otherwise we have to fall back to probing.
   """
   @spec postvalidation_normalizations(Query.t()) :: Query.t()
   def postvalidation_normalizations(query),
