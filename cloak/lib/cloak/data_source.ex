@@ -182,17 +182,15 @@ defmodule Cloak.DataSource do
     driver = data_source.driver
 
     try do
-      # Not using the connection pool, since this function is invoked before the supervision tree is started.
-      connection = connect!(data_source.driver, data_source.parameters)
-
-      try do
-        data_source
-        |> Map.put(:driver_info, driver.driver_info(connection))
-        |> Table.load(connection)
-        |> Map.put(:status, :online)
-      after
-        driver.disconnect(connection)
-      end
+      Cloak.DataSource.Connection.execute!(
+        data_source,
+        fn connection ->
+          data_source
+          |> Map.put(:driver_info, driver.driver_info(connection))
+          |> Table.load(connection)
+          |> Map.put(:status, :online)
+        end
+      )
     rescue
       error in ExecutionError ->
         message = "Error loading data source: #{Exception.message(error)}."
