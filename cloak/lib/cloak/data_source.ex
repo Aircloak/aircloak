@@ -222,7 +222,7 @@ defmodule Cloak.DataSource do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(data_sources), do: {:ok, data_sources}
+  def init(_), do: {:ok, load_data_source_configs()}
 
   @impl GenServer
   def handle_call(:all, _from, data_sources) do
@@ -502,7 +502,7 @@ defmodule Cloak.DataSource do
           [
             registry(:duplicate, __MODULE__.ChangeListenersRegistry),
             Cloak.DataSource.Connection.Pool,
-            gen_server(__MODULE__, load_data_source_configs(), name: __MODULE__),
+            gen_server(__MODULE__, nil, name: __MODULE__),
             Supervisor.child_spec(Cloak.DataSource.Isolators, id: :isolators),
             Supervisor.child_spec(Cloak.DataSource.Shadows, id: :shadows)
           ],
