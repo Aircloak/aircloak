@@ -2,7 +2,6 @@
 
 import React from "react";
 import _ from "lodash";
-import $ from "jquery";
 
 import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
@@ -333,7 +332,7 @@ export class ResultView extends React.Component {
         </tr>);
       });
     });
-    activateTooltips()
+    activateTooltips();
     return rows;
   }
 

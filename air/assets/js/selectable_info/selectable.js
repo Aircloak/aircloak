@@ -1,7 +1,6 @@
 // @flow
 
 import React from "react";
-import $ from "jquery";
 
 import {ColumnsView} from "./columns";
 import {Filter} from "./filter";
@@ -115,7 +114,7 @@ export class SelectableView extends React.Component {
 
   render() {
     if (this.hasRenderableContent()) {
-      activateTooltips()
+      activateTooltips();
       return this.renderSelectableView();
     } else {
       return null;
