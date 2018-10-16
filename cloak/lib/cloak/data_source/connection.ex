@@ -40,6 +40,7 @@ defmodule Cloak.DataSource.Connection do
 
   @impl GenServer
   def handle_call({:start_streamer, query_id, query, reporter}, {query_runner, _} = from, state) do
+    true = is_nil(state.streamer)
     Logger.metadata(query_id: query_id)
 
     case Streamer.start_link(state.connection, query_runner, query_id, query, reporter) do
