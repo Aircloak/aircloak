@@ -52,29 +52,20 @@ defmodule Cloak.DataSource.MongoDB do
 
   @impl Driver
   def connect!(parameters) do
-    self = self()
-    timeout = Driver.timeout()
-
     parameters =
       Enum.to_list(parameters) ++
         [
           types: true,
           sync_connect: true,
-          timeout: timeout,
-          cursor_timeout: false,
-          pool: DBConnection.Connection,
-          pool_timeout: timeout,
-          after_connect: fn _ -> send(self, :connected) end
+          backoff_type: :stop,
+          timeout: Driver.timeout(),
+          cursor_timeout: false
         ]
 
-    {:ok, connection} = Mongo.start_link(parameters)
-
-    receive do
-      :connected -> connection
-    after
-      Driver.connect_timeout() ->
-        GenServer.stop(connection, :normal, :timer.seconds(5))
-        Driver.raise_connection_error()
+    case Mongo.start_link(parameters) do
+      {:ok, connection} -> connection
+      {:error, {%Mongo.Error{} = error, _stacktrace}} -> Driver.raise_connection_error(error.message)
+      {:error, _other} -> Driver.raise_connection_error()
     end
   end
 
