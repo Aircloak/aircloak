@@ -18,7 +18,7 @@ defmodule Cloak.Sql.Compiler.Validation.Test do
                  data_source()
                )
 
-      assert error =~ ~r/Simultaneous usage of DISTINCT, GROUP BY, and ORDER BY/
+      assert error =~ ~r/Simultaneous usage of `DISTINCT`, `GROUP BY`, and `ORDER BY`/
     end
 
     test "Rejects non-aggregate queries with DISTINCT and GROUP BY where some but not all columns are grouped" do
@@ -50,7 +50,7 @@ defmodule Cloak.Sql.Compiler.Validation.Test do
 
     test "Rejects DISTINCT with aggregate where additional GROUP BY columns exist" do
       assert {:error, error} = compile("SELECT DISTINCT count(*) FROM table GROUP BY numeric", data_source())
-      assert error =~ ~r/Grouping by unselected columns .* DISTINCT/
+      assert error =~ ~r/Grouping by unselected columns .* `DISTINCT`/
     end
   end
 

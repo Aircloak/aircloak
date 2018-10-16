@@ -60,7 +60,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     raise Cloak.Sql.CompilationError,
       source_location: column.source_location,
       message:
-        "Simultaneous usage of DISTINCT, GROUP BY, and ORDER BY in the same query is not supported." <>
+        "Simultaneous usage of `DISTINCT`, `GROUP BY`, and `ORDER BY` in the same query is not supported." <>
           " Try using a subquery instead."
   end
 
@@ -73,8 +73,8 @@ defmodule Cloak.Sql.Compiler.Validation do
       raise Cloak.Sql.CompilationError,
         source_location: column.source_location,
         message:
-          "Grouping by unselected columns while using DISTINCT is not supported." <>
-            " Try removing #{Expression.display_name(column)} from the GROUP BY clause"
+          "Grouping by unselected columns while using `DISTINCT` is not supported." <>
+            " Try removing #{Expression.display_name(column)} from the `GROUP BY` clause"
     end
   end
 
