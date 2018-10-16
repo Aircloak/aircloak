@@ -315,9 +315,18 @@ defmodule Cloak.Sql.Expression do
       String.match?(name, ~r/^[_#]*[a-zA-Z][a-zA-Z0-9_.#]*$/) and not String.contains?(name, "..") and
         String.last(name) != "."
 
+  @doc """
+  Cariant of `exp in [exp,...]` that discounts for variances such as source location.
+  This allows us to for example see if a selected expression appears as a group by expression too.
+  """
+  @spec shallow_in(t, [t]) :: boolean
+  def shallow_in(exp, exps), do: drop_source_location(exp) in Enum.map(exps, &drop_source_location/1)
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp drop_source_location(expression), do: %__MODULE__{expression | source_location: nil}
 
   defp apply_function(expression = %__MODULE__{function?: true}, args) do
     if Enum.member?(args, :*), do: :*, else: do_apply(expression.function, args)

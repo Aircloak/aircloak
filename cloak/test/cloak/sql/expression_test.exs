@@ -430,6 +430,24 @@ defmodule Cloak.Sql.Expression.Test do
     end
   end
 
+  describe "shallow_in" do
+    test "false for different expressions" do
+      refute Expression.shallow_in(%Expression{name: "col1"}, [%Expression{name: "col2"}])
+    end
+
+    test "true if in collection" do
+      exp = %Expression{name: "col1"}
+      other_exp = %Expression{name: "col2"}
+      assert Expression.shallow_in(exp, [other_exp, exp, other_exp])
+    end
+
+    test "disregards source location" do
+      exp = %Expression{name: "col1", source_location: {1, 1}}
+      other_exp = %Expression{exp | source_location: {2, 2}}
+      assert Expression.shallow_in(exp, [other_exp])
+    end
+  end
+
   defp apply_function(name, args) do
     name
     |> Expression.function(Enum.map(args, &Expression.constant(nil, &1)), nil)
