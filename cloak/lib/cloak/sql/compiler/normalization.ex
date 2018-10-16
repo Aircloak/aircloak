@@ -29,9 +29,8 @@ defmodule Cloak.Sql.Compiler.Normalization do
       |> Helpers.apply_bottom_up(&normalize_order_by/1)
 
   @doc """
-  Performs semantics-preserving query transformations that cannot be done before validations
-  have taken place as the validator (or other query compiler mechanics) rely on certain which
-  the normalizer would rewrite and/or remove.
+  Performs semantics-preserving query transformations that remove query properties needed by the validator
+  (or other query compiler mechanics) and therefore cannot be done earlier.
 
   * Removes redundant occurences of "%" from LIKE patterns (for example "%%" -> "%")
   * Normalizes sequences of "%" and "_" in like patterns so that the "%" always precedes a sequence of "_"
