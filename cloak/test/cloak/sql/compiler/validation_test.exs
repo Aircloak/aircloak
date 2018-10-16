@@ -47,6 +47,11 @@ defmodule Cloak.Sql.Compiler.Validation.Test do
 
       assert error =~ ~r/Column `numeric` .* needs to appear in the `GROUP BY` clause/
     end
+
+    test "Rejects DISTINCT with aggregate where additional GROUP BY columns exist" do
+      assert {:error, error} = compile("SELECT DISTINCT count(*) FROM table GROUP BY numeric", data_source())
+      assert error =~ ~r/Grouping by unselected columns .* DISTINCT/
+    end
   end
 
   defp data_source() do

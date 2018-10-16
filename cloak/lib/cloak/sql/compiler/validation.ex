@@ -64,6 +64,20 @@ defmodule Cloak.Sql.Compiler.Validation do
           " Try using a subquery instead."
   end
 
+  defp verify_distinct_usage(%Query{distinct?: true} = query) do
+    non_selected_group_bys = Query.non_selected_group_bys(query)
+
+    if Query.aggregate?(query) and Enum.count(non_selected_group_bys) > 0 do
+      [column | _] = non_selected_group_bys
+
+      raise Cloak.Sql.CompilationError,
+        source_location: column.source_location,
+        message:
+          "Grouping by unselected columns while using DISTINCT is not supported." <>
+            " Try removing #{Expression.display_name(column)} from the GROUP BY clause"
+    end
+  end
+
   defp verify_distinct_usage(query), do: query
 
   defp verify_function_usage(query) do
