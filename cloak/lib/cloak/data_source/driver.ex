@@ -20,7 +20,7 @@ defmodule Cloak.DataSource.Driver do
   @spec batch_size() :: pos_integer
   def batch_size(), do: Application.get_env(:cloak, :data_source) |> Keyword.fetch!(:batch_size)
 
-  @type connection :: identifier()
+  @type connection :: pid()
   @type parameters :: any
   @type driver_info :: any
 
