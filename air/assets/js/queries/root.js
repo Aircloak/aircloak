@@ -19,6 +19,7 @@ import {Disconnected} from "../disconnected";
 import {isFinished} from "./state";
 import {startQuery, loadHistory} from "../request";
 import type {QueryData} from "../request";
+import {activateTooltips} from "../tooltips";
 
 type Props = {
   userId: number,
@@ -353,6 +354,7 @@ export default class QueriesView extends React.PureComponent {
   }
 
   render() {
+    activateTooltips()
     return (<div>
       <h2>
         {this.props.dataSourceName}

@@ -16,6 +16,7 @@ import type {NumberFormat} from "../number_format";
 import {formatNumber} from "../number_format";
 import {loadBuckets} from "../request";
 import {DebugExport} from "./debug_export";
+import {activateTooltips} from "../tooltips";
 
 export type Row = {
   occurrences: number,
@@ -332,7 +333,7 @@ export class ResultView extends React.Component {
         </tr>);
       });
     });
-    $("tr[data-toggle='tooltip']").tooltip();
+    activateTooltips()
     return rows;
   }
 
