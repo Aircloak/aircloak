@@ -12,6 +12,12 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     end
   end
 
+  defmacrop refute_equivalent(query, alternative) do
+    quote bind_quoted: [query: query, alternative: alternative] do
+      refute compile!(query, data_source()) == compile!(alternative, data_source())
+    end
+  end
+
   test "normalizing constant expressions" do
     result1 = compile!("SELECT * FROM table WHERE numeric = 2 * 3 + 4", data_source())
     result2 = compile!("SELECT * FROM table WHERE numeric = 10", data_source())
@@ -55,6 +61,40 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     result2 = compile!("SELECT * FROM table WHERE lower(string) <> 'abc'", data_source())
 
     assert scrub_locations(result1).where == scrub_locations(result2).where
+  end
+
+  describe "remove noops" do
+    test "a cast of integer to integer" do
+      assert_equivalent(
+        "SELECT * FROM table WHERE cast(numeric AS integer) = 1",
+        "SELECT * FROM table WHERE numeric = 1"
+      )
+    end
+
+    for function <- ~w/round trunc/ do
+      test "#{function} of integer without precision is removed" do
+        assert_equivalent(
+          "SELECT * FROM table WHERE #{unquote(function)}(numeric) = 1",
+          "SELECT * FROM table WHERE numeric = 1"
+        )
+      end
+
+      test "#{function} of integer with precision isn't removed" do
+        refute_equivalent(
+          "SELECT * FROM table WHERE #{unquote(function)}(numeric, 0) = 1",
+          "SELECT * FROM table WHERE numeric = 1"
+        )
+      end
+    end
+
+    for function <- ~w/ceil ceiling floor/ do
+      test "#{function} of integer is removed" do
+        assert_equivalent(
+          "SELECT * FROM table WHERE #{unquote(function)}(numeric) = 1",
+          "SELECT * FROM table WHERE numeric = 1"
+        )
+      end
+    end
   end
 
   describe "rewrite DISTINCT to GROUP BY" do
