@@ -25,7 +25,7 @@ defmodule Cloak.DataSource.Connection.Pool do
   alias Aircloak.ChildSpec
   alias Cloak.DataSource.Connection
 
-  @type checkout_options :: [force_new_connection: boolean]
+  @type checkout_options :: [force_new_connection: boolean, connect_opts: [retries: non_neg_integer]]
 
   # -------------------------------------------------------------------
   # API
@@ -60,8 +60,8 @@ defmodule Cloak.DataSource.Connection.Pool do
   def handle_call({:checkout, options}, _from, state) do
     connection =
       if Keyword.get(options, :force_new_connection, false),
-        do: new_connection(state),
-        else: available_connection() || new_connection(state)
+        do: new_connection(state, Keyword.get(options, :connect_opts, [])),
+        else: available_connection() || new_connection(state, Keyword.get(options, :connect_opts, []))
 
     Parent.GenServer.update_child_meta(child_id!(connection), &%{&1 | available?: false})
     {:reply, connection, state}
@@ -88,8 +88,8 @@ defmodule Cloak.DataSource.Connection.Pool do
     id
   end
 
-  defp new_connection(state) do
-    start = {Connection, :start_link, [state.driver, state.connection_params]}
+  defp new_connection(state, connect_opts) do
+    start = {Connection, :start_link, [state.driver, state.connection_params, connect_opts]}
     {:ok, conn} = Parent.GenServer.start_child(%{id: make_ref(), meta: %{available?: true}, start: start})
     conn
   end

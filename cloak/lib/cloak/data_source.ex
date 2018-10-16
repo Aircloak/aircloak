@@ -199,15 +199,6 @@ defmodule Cloak.DataSource do
     end
   end
 
-  @doc """
-  Connects to the datasource.
-
-  This function will retry on failure, depending on `:connect_retries` and `:connect_retry_delay` app settings.
-  """
-  @spec connect!(module, Driver.parameters()) :: Driver.connection()
-  def connect!(driver, parameters),
-    do: connect_with_retries!(driver, parameters, Application.get_env(:cloak, :connect_retries, 0))
-
   @doc "Registers the calling process as a listener of data source changes."
   @spec subscribe_to_changes() :: :ok
   def subscribe_to_changes() do
@@ -448,16 +439,6 @@ defmodule Cloak.DataSource do
   end
 
   defp update_data_source_connectivity(%{status: :offline} = data_source), do: add_tables(data_source)
-
-  defp connect_with_retries!(driver, parameters, 0), do: driver.connect!(parameters)
-
-  defp connect_with_retries!(driver, parameters, num_retries) when num_retries > 0 do
-    driver.connect!(parameters)
-  catch
-    _type, _error ->
-      Process.sleep(Application.get_env(:cloak, :connect_retry_delay, :timer.seconds(1)))
-      connect_with_retries!(driver, parameters, num_retries - 1)
-  end
 
   defp log_unclassified_columns(data_sources) do
     Enum.each(data_sources, &log_unclassified_columns_for_data_source/1)

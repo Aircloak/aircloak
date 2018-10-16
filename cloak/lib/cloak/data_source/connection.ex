@@ -47,7 +47,7 @@ defmodule Cloak.DataSource.Connection do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init({pool_pid, driver, connection_params}) do
+  def init({pool_pid, driver, connection_params, connect_options}) do
     Process.flag(:trap_exit, true)
 
     state = %{
@@ -60,30 +60,16 @@ defmodule Cloak.DataSource.Connection do
       connection_error: nil
     }
 
-    {:ok, state, {:continue, {:connect, connection_params}}}
+    {:ok, state, {:continue, {:connect, connection_params, connect_options}}}
   end
 
   @impl GenServer
-  def handle_continue({:connect, connection_params}, state) do
-    {:noreply, %{state | connection: state.driver.connect!(connection_params)}, Driver.connection_keep_time()}
-  rescue
-    error in Cloak.Query.ExecutionError ->
-      {:noreply, %{state | connection_error: error.message}}
-  catch
-    type, error ->
-      formatted_reason = Cloak.LoggerTranslator.format_exit({type, error})
-
-      formatted_stacktrace =
-        __STACKTRACE__ |> Cloak.LoggerTranslator.filtered_stacktrace() |> Exception.format_stacktrace()
-
-      Logger.error("Error connecting to the database: #{formatted_reason} at \n#{formatted_stacktrace}")
-
-      generic_error =
-        "Failed to establish a connection to the database. " <>
-          "Please check that the database server is running, is reachable from the " <>
-          "Insights Cloak host, and the database credentials are correct."
-
-      {:noreply, %{state | connection_error: generic_error}}
+  def handle_continue({:connect, connection_params, connect_options}, state) do
+    {
+      :noreply,
+      connect_with_retry(state, connection_params, Keyword.get(connect_options, :retries, 0)),
+      Driver.connection_keep_time()
+    }
   end
 
   @impl GenServer
@@ -187,6 +173,42 @@ defmodule Cloak.DataSource.Connection do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp connect_with_retry(state, connection_params, retries) do
+    case connect(state, connection_params) do
+      {:ok, connection} ->
+        %{state | connection: connection}
+
+      {:error, reason} ->
+        if retries > 0 do
+          Process.sleep(:timer.seconds(1))
+          connect_with_retry(state, connection_params, retries - 1)
+        else
+          %{state | connection_error: reason}
+        end
+    end
+  end
+
+  defp connect(state, connection_params) do
+    {:ok, state.driver.connect!(connection_params)}
+  rescue
+    error in Cloak.Query.ExecutionError -> {:error, error.message}
+  catch
+    type, error ->
+      formatted_reason = Cloak.LoggerTranslator.format_exit({type, error})
+
+      formatted_stacktrace =
+        __STACKTRACE__ |> Cloak.LoggerTranslator.filtered_stacktrace() |> Exception.format_stacktrace()
+
+      Logger.error("Error connecting to the database: #{formatted_reason} at \n#{formatted_stacktrace}")
+
+      generic_error =
+        "Failed to establish a connection to the database. " <>
+          "Please check that the database server is running, is reachable from the " <>
+          "Insights Cloak host, and the database credentials are correct."
+
+      {:error, generic_error}
+  end
+
   defp assert_not_used!(state) do
     true = is_nil(state.streamer)
     true = is_nil(state.user_mref)
@@ -205,6 +227,6 @@ defmodule Cloak.DataSource.Connection do
   # -------------------------------------------------------------------
 
   @doc false
-  def start_link(driver, connection_params),
-    do: GenServer.start_link(__MODULE__, {self(), driver, connection_params})
+  def start_link(driver, connection_params, connect_options),
+    do: GenServer.start_link(__MODULE__, {self(), driver, connection_params, connect_options})
 end
