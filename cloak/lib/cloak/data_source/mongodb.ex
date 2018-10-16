@@ -51,7 +51,7 @@ defmodule Cloak.DataSource.MongoDB do
   def sql_dialect_module(), do: nil
 
   @impl Driver
-  def connect!(parameters) do
+  def connect(parameters) do
     parameters =
       Enum.to_list(parameters) ++
         [
@@ -63,9 +63,8 @@ defmodule Cloak.DataSource.MongoDB do
         ]
 
     case Mongo.start_link(parameters) do
-      {:ok, connection} -> connection
-      {:error, {%Mongo.Error{} = error, _stacktrace}} -> Driver.raise_connection_error(error.message)
-      {:error, _other} -> Driver.raise_connection_error()
+      {:ok, connection} -> {:ok, connection}
+      {:error, {%Mongo.Error{} = error, _stacktrace}} -> {:error, error.message}
     end
   end
 

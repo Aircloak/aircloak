@@ -15,26 +15,10 @@ defmodule Cloak.DataSource.PostgreSQL do
   # -------------------------------------------------------------------
 
   @impl Driver
-  def connect!(parameters) do
-    parameters =
-      Enum.to_list(parameters) ++
-        [
-          types: Postgrex.DefaultTypes,
-          sync_connect: true,
-          backoff_type: :stop,
-          pool: DBConnection.Connection
-        ]
-
-    case Postgrex.start_link(parameters) do
-      {:ok, connection} ->
-        {:ok, %Postgrex.Result{}} = Postgrex.query(connection, "SET standard_conforming_strings = ON", [])
-        connection
-
-      {:error, {%DBConnection.ConnectionError{} = error, _stacktrace}} ->
-        Driver.raise_connection_error(error.message)
-
-      {:error, _other} ->
-        Driver.raise_connection_error()
+  def connect(parameters) do
+    with {:ok, connection} <- do_connect(parameters) do
+      {:ok, %Postgrex.Result{}} = Postgrex.query(connection, "SET standard_conforming_strings = ON", [])
+      {:ok, connection}
     end
   end
 
@@ -72,6 +56,22 @@ defmodule Cloak.DataSource.PostgreSQL do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp do_connect(parameters) do
+    parameters =
+      Enum.to_list(parameters) ++
+        [
+          types: Postgrex.DefaultTypes,
+          sync_connect: true,
+          backoff_type: :stop,
+          pool: DBConnection.Connection
+        ]
+
+    case Postgrex.start_link(parameters) do
+      {:ok, connection} -> {:ok, connection}
+      {:error, {%DBConnection.ConnectionError{} = error, _stacktrace}} -> {:error, error.message}
+    end
+  end
 
   defp run_query(pool, statement, decode_mapper, result_processor) do
     Logger.debug(fn -> "Executing SQL query: #{statement}" end)

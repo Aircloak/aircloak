@@ -20,23 +20,6 @@ defmodule Cloak.DataSource.Driver do
   @spec batch_size() :: pos_integer
   def batch_size(), do: Application.get_env(:cloak, :data_source) |> Keyword.fetch!(:batch_size)
 
-  @doc "Raises the database connection error."
-  @spec raise_connection_error(term) :: no_return
-  def raise_connection_error(reason \\ nil) do
-    error_reason =
-      if is_nil(reason), do: "", else: " The database driver reported the following exception: `#{to_string(reason)}`"
-
-    Cloak.DataSource.raise_error(generic_connection_error() <> error_reason)
-  end
-
-  @doc "Returns the common text for a database connection error."
-  @spec generic_connection_error() :: String.t()
-  def generic_connection_error() do
-    "Failed to establish a connection to the database. " <>
-      "Please check that the database server is running, is reachable from the " <>
-      "Insights Cloak host, and the database credentials are correct."
-  end
-
   @type connection :: pid()
   @type parameters :: any
   @type driver_info :: any
@@ -44,8 +27,12 @@ defmodule Cloak.DataSource.Driver do
   @doc "Returns an atom describing the query dialect of this specific driver implementation."
   @callback sql_dialect_module() :: module | nil
 
-  @doc "Opens a new connection to the data store. The returned connection has to be linked to the current process."
-  @callback connect!(parameters) :: connection
+  @doc """
+  Opens a new connection to the data store.
+
+  The returned connection has to be a child process of the current process.
+  """
+  @callback connect(parameters) :: {:ok, connection} | {:error, String.t()}
 
   @doc "Closes the connection to the data store."
   @callback disconnect(connection) :: :ok

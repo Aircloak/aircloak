@@ -174,7 +174,7 @@ defmodule Cloak.DataSource.Connection do
   # -------------------------------------------------------------------
 
   defp connect_with_retry(state, connection_params, retries) do
-    case connect(state, connection_params) do
+    case connect(state, connection_params, log_unknown_error?: retries == 0) do
       {:ok, connection} ->
         %{state | connection: connection}
 
@@ -188,19 +188,34 @@ defmodule Cloak.DataSource.Connection do
     end
   end
 
-  defp connect(state, connection_params) do
-    {:ok, state.driver.connect!(connection_params)}
-  rescue
-    error in Cloak.Query.ExecutionError -> {:error, error.message}
+  defp connect(state, connection_params, opts) do
+    with {:error, reason} <- state.driver.connect(connection_params), do: {:error, connection_error(reason)}
   catch
     type, error ->
-      formatted_reason = Cloak.LoggerTranslator.format_exit({type, error})
+      if Keyword.get(opts, :log_unknown_error?, false), do: log_unknown_error(type, error, __STACKTRACE__)
+      {:error, generic_connection_error()}
+  end
 
-      formatted_stacktrace =
-        __STACKTRACE__ |> Cloak.LoggerTranslator.filtered_stacktrace() |> Exception.format_stacktrace()
+  defp connection_error(reason),
+    do: generic_connection_error() <> " The database driver reported the following exception: `#{to_string(reason)}`"
 
-      Logger.error("Error connecting to the database: #{formatted_reason} at \n#{formatted_stacktrace}")
-      {:error, Driver.generic_connection_error()}
+  defp generic_connection_error() do
+    "Failed to establish a connection to the database. " <>
+      "Please check that the database server is running, is reachable from the Insights Cloak host, " <>
+      "and the database credentials are correct."
+  end
+
+  def log_unknown_error(:exit, reason, _client_stacktrace), do: Logger.error(Cloak.LoggerTranslator.format_exit(reason))
+
+  def log_unknown_error(type, reason, stacktrace) do
+    formatted_error =
+      if Aircloak.DeployConfig.override_app_env!(:cloak, :sanitize_otp_errors) do
+        Exception.format(type, "filtered error", Cloak.LoggerTranslator.filtered_stacktrace(stacktrace))
+      else
+        Exception.format(type, reason, stacktrace)
+      end
+
+    Logger.error(formatted_error)
   end
 
   defp assert_not_used!(state) do

@@ -12,14 +12,14 @@ defmodule Cloak.DataSource.RODBC do
   # -------------------------------------------------------------------
 
   @doc "Normalizes the connection parameters and connects to the data source via odbc."
-  @spec connect!(Driver.parameters(), (map -> map), Keyword.t()) :: pid()
-  def connect!(parameters, conn_params_extractor, driver_params \\ []) do
+  @spec connect(Driver.parameters(), (map -> map), Keyword.t()) :: {:ok, pid()} | {:error, String.t()}
+  def connect(parameters, conn_params_extractor, driver_params \\ []) do
     normalized_parameters = normalize_parameters(parameters)
 
     normalized_parameters
     |> conn_params_extractor.()
     |> Map.merge(Map.get(normalized_parameters, :odbc_parameters, %{}))
-    |> driver_connect!(driver_params)
+    |> driver_connect(driver_params)
   end
 
   # -------------------------------------------------------------------
@@ -65,17 +65,13 @@ defmodule Cloak.DataSource.RODBC do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp driver_connect!(conn_params, driver_params) do
+  defp driver_connect(conn_params, driver_params) do
     {:ok, connection} = Port.start_link()
 
     if Keyword.get(driver_params, :wstr_as_bin), do: :ok = Port.set_wstr_as_bin(connection)
 
-    with :ok <- Port.connect(connection, to_connection_string(conn_params), Driver.connect_timeout()) do
-      connection
-    else
-      {:error, reason} ->
-        Driver.raise_connection_error(reason)
-    end
+    with :ok <- Port.connect(connection, to_connection_string(conn_params), Driver.connect_timeout()),
+         do: {:ok, connection}
   end
 
   defp to_connection_string(parameters) do

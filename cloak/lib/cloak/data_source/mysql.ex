@@ -16,27 +16,11 @@ defmodule Cloak.DataSource.MySQL do
   # -------------------------------------------------------------------
 
   @impl Driver
-  def connect!(parameters) do
-    parameters =
-      Enum.to_list(parameters) ++
-        [
-          types: true,
-          sync_connect: true,
-          backoff_type: :stop,
-          timeout: Driver.timeout()
-        ]
-
-    case Mariaex.start_link(parameters) do
-      {:ok, connection} ->
-        {:ok, %Mariaex.Result{}} = Mariaex.query(connection, "SET sql_mode = 'ANSI,NO_BACKSLASH_ESCAPES'", [])
-        {:ok, %Mariaex.Result{}} = Mariaex.query(connection, "SET div_precision_increment = 30", [])
-        connection
-
-      {:error, {%Mariaex.Error{} = error, _stacktrace}} ->
-        Driver.raise_connection_error(error.message)
-
-      {:error, _other} ->
-        Driver.raise_connection_error()
+  def connect(parameters) do
+    with {:ok, connection} <- do_connect(parameters) do
+      {:ok, %Mariaex.Result{}} = Mariaex.query(connection, "SET sql_mode = 'ANSI,NO_BACKSLASH_ESCAPES'", [])
+      {:ok, %Mariaex.Result{}} = Mariaex.query(connection, "SET div_precision_increment = 30", [])
+      {:ok, connection}
     end
   end
 
@@ -64,6 +48,22 @@ defmodule Cloak.DataSource.MySQL do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp do_connect(parameters) do
+    parameters =
+      Enum.to_list(parameters) ++
+        [
+          types: true,
+          sync_connect: true,
+          backoff_type: :stop,
+          timeout: Driver.timeout()
+        ]
+
+    case Mariaex.start_link(parameters) do
+      {:ok, connection} -> {:ok, connection}
+      {:error, {%Mariaex.Error{} = error, _stacktrace}} -> {:error, error.message}
+    end
+  end
 
   defp run_query(pool, statement, decode_mapper, result_processor) do
     Logger.debug(fn -> "Executing SQL query: #{statement}" end)
