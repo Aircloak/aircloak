@@ -16,27 +16,24 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   @impl Driver
   def connect!(parameters) do
-    self = self()
-
     parameters =
       Enum.to_list(parameters) ++
         [
           types: Postgrex.DefaultTypes,
           sync_connect: true,
-          pool: DBConnection.Connection,
-          after_connect: fn _ -> send(self, :connected) end
+          backoff_type: :stop,
+          pool: DBConnection.Connection
         ]
 
-    {:ok, connection} = Postgrex.start_link(parameters)
-
-    receive do
-      :connected ->
+    case Postgrex.start_link(parameters) do
+      {:ok, connection} ->
         {:ok, %Postgrex.Result{}} = Postgrex.query(connection, "SET standard_conforming_strings = ON", [])
-
         connection
-    after
-      Driver.connect_timeout() ->
-        GenServer.stop(connection, :normal, :timer.seconds(5))
+
+      {:error, {%DBConnection.ConnectionError{} = error, _stacktrace}} ->
+        Driver.raise_connection_error(error.message)
+
+      {:error, _other} ->
         Driver.raise_connection_error()
     end
   end
