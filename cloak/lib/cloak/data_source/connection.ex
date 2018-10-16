@@ -94,6 +94,8 @@ defmodule Cloak.DataSource.Connection do
     end
   end
 
+  def handle_info({:EXIT, connection, reason}, %{connection: connection} = state), do: {:stop, reason, state}
+
   def handle_info(:timeout, state) do
     Pool.remove_connection(state.pool_pid)
     {:noreply, state}
