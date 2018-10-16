@@ -347,7 +347,7 @@ defmodule Cloak.Sql.Query do
   @doc "Returns true if the query has GROUP BY columns that were not selected (ignoring subqueries)"
   @spec non_selected_group_bys(t) :: [Expression.t()]
   def non_selected_group_bys(%__MODULE__{columns: columns, group_by: group_bys}),
-    do: Enum.filter(group_bys, &(not Expression.shallow_in(&1, columns)))
+    do: Enum.filter(group_bys, &(not Expression.member?(&1, columns)))
 
   @doc "Returns true if the query contains aggregates"
   @spec aggregate?(t) :: boolean

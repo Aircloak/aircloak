@@ -319,8 +319,8 @@ defmodule Cloak.Sql.Expression do
   Variant of `exp in [exp,...]` that discounts for differences such as source location.
   This allows us to for example see if a selected expression appears as a group by expression too.
   """
-  @spec shallow_in(t, [t]) :: boolean
-  def shallow_in(exp, exps), do: drop_source_location(exp) in Enum.map(exps, &drop_source_location/1)
+  @spec member?(t, [t]) :: boolean
+  def member?(exp, exps), do: drop_source_location(exp) in Enum.map(exps, &drop_source_location/1)
 
   # -------------------------------------------------------------------
   # Internal functions
