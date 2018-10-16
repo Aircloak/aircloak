@@ -349,6 +349,15 @@ defmodule Cloak.Sql.Query do
   def non_selected_group_bys(%__MODULE__{columns: columns, group_by: group_bys}),
     do: Enum.filter(group_bys, &(not Expression.shallow_in(&1, columns)))
 
+  @doc "Returns true if the query contains aggregates"
+  @spec aggregate?(t) :: boolean
+  def aggregate?(query),
+    do:
+      Cloak.Sql.Query.Lenses.query_expressions()
+      |> Lens.filter(& &1.aggregate?)
+      |> Lens.to_list(query)
+      |> Enum.count() > 0
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

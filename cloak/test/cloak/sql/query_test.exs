@@ -493,6 +493,37 @@ defmodule Cloak.Sql.QueryTest do
     end
   end
 
+  describe "aggregate?" do
+    test "false if no column contains an aggregate" do
+      exp = %Expression{name: "test"}
+      refute Query.aggregate?(%Query{columns: [exp], group_by: [exp]})
+    end
+
+    test "true if selected columns contains an aggregate" do
+      exp = %Expression{name: "test", aggregate?: true}
+      assert Query.aggregate?(%Query{columns: [exp]})
+    end
+
+    test "true if group by aggregate" do
+      exp = %Expression{name: "test", aggregate?: true}
+      assert Query.aggregate?(%Query{group_by: [exp]})
+    end
+
+    test "true if nests an aggregate" do
+      exp = %Expression{
+        name: "trunc",
+        function: "trunc",
+        function?: true,
+        aggregate?: false,
+        function_args: [
+          %Expression{name: "test", aggregate?: true}
+        ]
+      }
+
+      assert Query.aggregate?(%Query{columns: [exp]})
+    end
+  end
+
   defp describe_query(statement, parameters \\ nil),
     do: Query.describe_query(hd(Cloak.DataSource.all()), statement, parameters, %{})
 
