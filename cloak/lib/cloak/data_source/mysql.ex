@@ -17,30 +17,25 @@ defmodule Cloak.DataSource.MySQL do
 
   @impl Driver
   def connect!(parameters) do
-    self = self()
-
     parameters =
       Enum.to_list(parameters) ++
         [
           types: true,
           sync_connect: true,
-          pool: DBConnection.Connection,
-          timeout: Driver.timeout(),
-          after_connect: fn _ -> send(self, :connected) end
+          backoff_type: :stop,
+          timeout: Driver.timeout()
         ]
 
-    {:ok, connection} = Mariaex.start_link(parameters)
-
-    receive do
-      :connected ->
+    case Mariaex.start_link(parameters) do
+      {:ok, connection} ->
         {:ok, %Mariaex.Result{}} = Mariaex.query(connection, "SET sql_mode = 'ANSI,NO_BACKSLASH_ESCAPES'", [])
-
         {:ok, %Mariaex.Result{}} = Mariaex.query(connection, "SET div_precision_increment = 30", [])
-
         connection
-    after
-      Driver.connect_timeout() ->
-        GenServer.stop(connection, :normal, :timer.seconds(5))
+
+      {:error, {%Mariaex.Error{} = error, _stacktrace}} ->
+        Driver.raise_connection_error(error.message)
+
+      {:error, _other} ->
         Driver.raise_connection_error()
     end
   end
