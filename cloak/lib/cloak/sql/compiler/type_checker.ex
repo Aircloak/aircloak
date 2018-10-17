@@ -302,11 +302,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # -------------------------------------------------------------------
 
   defp verify_negative_conditions(query) do
-    Query.Lenses.all_queries()
-    |> Lens.context(negative_conditions())
-    |> Lens.to_list(query)
-    |> Stream.map(fn {query, condition} -> {query, expand_expressions(condition, query)} end)
-    |> Stream.uniq_by(fn {_query, condition} -> column_and_condition(condition) end)
+    __MODULE__.Access.negative_conditions(query)
     |> Stream.reject(fn {query, condition} ->
       case Shadows.safe?(condition, query.data_source) do
         {:ok, result} ->
@@ -338,35 +334,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp max_rare_negative_conditions(),
     do: Application.get_env(:cloak, :shadow_tables) |> Keyword.fetch!(:max_rare_negative_conditions)
 
-  defp expand_expressions(condition, query) do
-    update_in(condition, [Query.Lenses.leaf_expressions() |> Lens.filter(&Expression.column?/1)], fn expression ->
-      case Query.resolve_subquery_column(expression, query) do
-        :database_column -> expression
-        {column, subquery} -> expand_expressions(column, subquery)
-      end
-    end)
-  end
-
-  defp column_and_condition(condition) do
-    case Condition.targets(condition) do
-      [subject, value] ->
-        if Expression.column?(subject) and Expression.constant?(value) do
-          {subject.name, subject.table, Condition.verb(condition), Expression.const_value(value)}
-        else
-          :erlang.unique_integer()
-        end
-
-      _ ->
-        :erlang.unique_integer()
-    end
-  end
-
-  defp negative_conditions() do
-    Query.Lenses.db_filter_clauses()
-    |> Query.Lenses.conditions()
-    |> Lens.filter(&(Condition.not_equals?(&1) or Condition.not_like?(&1)))
-  end
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -396,8 +363,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       |> Enum.each(action)
 
   defp each_anonymized_subquery(query, function) do
-    Query.Lenses.all_queries()
-    |> Lens.filter(&(&1.type == :anonymized))
-    |> Lens.each(query, function)
+    Lens.each(__MODULE__.Access.anonymized_queries(), query, function)
   end
 end

@@ -2,6 +2,7 @@ defmodule Cloak.Sql.Query.Features do
   @moduledoc false
 
   alias Cloak.Sql.{Function, Expression, Query, Condition}
+  alias Cloak.Sql.Compiler.TypeChecker
 
   # -------------------------------------------------------------------
   # API functions
@@ -205,22 +206,13 @@ defmodule Cloak.Sql.Query.Features do
   end
 
   defp shadow_tables_used?(query) do
-    Query.Lenses.all_queries()
-    |> Lens.filter(&(&1.type == :anonymized))
+    TypeChecker.Access.anonymized_queries()
     |> Lens.to_list(query)
     |> Enum.any?(&do_shadow_tables_used?/1)
   end
 
   defp do_shadow_tables_used?(anonymized_query) do
-    negative_conditions =
-      Query.Lenses.all_queries()
-      |> Query.Lenses.db_filter_clauses()
-      |> Query.Lenses.conditions()
-      |> Lens.filter(&(Condition.not_equals?(&1) or Condition.not_like?(&1)))
-      |> Lens.to_list(anonymized_query)
-      |> Enum.count()
-
-    negative_conditions > max_rare_negative_conditions()
+    Enum.count(TypeChecker.Access.negative_conditions(anonymized_query)) > max_rare_negative_conditions()
   end
 
   defp max_rare_negative_conditions(),
