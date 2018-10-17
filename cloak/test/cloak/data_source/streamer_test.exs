@@ -79,6 +79,12 @@ defmodule Cloak.DataSource.StreamerTest do
     end)
   end
 
+  test "connection timeout" do
+    with_short_connection_timeout(0, fn ->
+      assert rows("select * from test_streamer", data_source()) == {:error, "Timeout connecting to the database."}
+    end)
+  end
+
   test "SQL error is properly reported" do
     Cloak.Test.DB.create_table("temp_table", "intval INTEGER")
 
@@ -100,12 +106,12 @@ defmodule Cloak.DataSource.StreamerTest do
     |> Streamer.rows(reporter)
   end
 
-  defp with_short_connection_timeout(fun) do
+  defp with_short_connection_timeout(timeout \\ 50, fun) do
     connect_retries = Application.get_env(:cloak, :connect_retries)
     data_source_config = Application.get_env(:cloak, :data_source)
 
     Application.put_env(:cloak, :connect_retries, 0)
-    Application.put_env(:cloak, :data_source, Keyword.put(data_source_config, :connect_timeout, 50))
+    Application.put_env(:cloak, :data_source, Keyword.put(data_source_config, :connect_timeout, timeout))
 
     try do
       fun.()

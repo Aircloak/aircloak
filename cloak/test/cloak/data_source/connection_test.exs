@@ -52,6 +52,13 @@ defmodule Cloak.DataSource.ConnectionTest do
     end)
   end
 
+  test "reporting connection timeout" do
+    with_short_connection_timeout(0, fn ->
+      error_operation = fn -> Connection.execute!(data_source(), & &1) end
+      assert_raise Cloak.Query.ExecutionError, "Timeout connecting to the database.", error_operation
+    end)
+  end
+
   defp restart_pool() do
     pool_parent =
       Pool
@@ -67,12 +74,12 @@ defmodule Cloak.DataSource.ConnectionTest do
     :ok
   end
 
-  defp with_short_connection_timeout(fun) do
+  defp with_short_connection_timeout(timeout \\ 50, fun) do
     connect_retries = Application.get_env(:cloak, :connect_retries)
     data_source_config = Application.get_env(:cloak, :data_source)
 
     Application.put_env(:cloak, :connect_retries, 0)
-    Application.put_env(:cloak, :data_source, Keyword.put(data_source_config, :connect_timeout, 50))
+    Application.put_env(:cloak, :data_source, Keyword.put(data_source_config, :connect_timeout, timeout))
 
     try do
       fun.()

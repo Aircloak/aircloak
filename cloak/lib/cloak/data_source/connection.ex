@@ -20,7 +20,7 @@ defmodule Cloak.DataSource.Connection do
   def execute!(data_source, fun, checkout_opts \\ []) do
     connection = Pool.checkout(data_source, checkout_opts)
 
-    with {:ok, driver_connection} <- GenServer.call(connection, :start_using) do
+    with {:ok, driver_connection} <- start_using(connection) do
       try do
         {:ok, fun.(driver_connection)}
       after
@@ -35,8 +35,13 @@ defmodule Cloak.DataSource.Connection do
 
   @doc "Starts the streamer process as the child of the given connection."
   @spec start_streamer(pid, String.t(), Cloak.Sql.Query.t(), Streamer.reporter()) :: {:ok, pid} | {:error, String.t()}
-  def start_streamer(connection, query_id, query, reporter),
-    do: GenServer.call(connection, {:start_streamer, query_id, query, reporter})
+  def start_streamer(connection, query_id, query, reporter) do
+    GenServer.call(connection, {:start_streamer, query_id, query, reporter}, Driver.connect_timeout())
+  catch
+    :exit, {:timeout, _} ->
+      Process.exit(connection, :kill)
+      {:error, "Timeout connecting to the database."}
+  end
 
   @doc "Invoked by the streamer process when it has sent all the rows to its consumers."
   @spec streaming_done(pid) :: :ok
@@ -172,6 +177,14 @@ defmodule Cloak.DataSource.Connection do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp start_using(connection) do
+    GenServer.call(connection, :start_using, Driver.connect_timeout())
+  catch
+    :exit, {:timeout, _} ->
+      Process.exit(connection, :kill)
+      {:error, "Timeout connecting to the database."}
+  end
 
   defp connect_with_retry(state, connection_params, retries) do
     case connect(state, connection_params, log_unknown_error?: retries == 0) do
