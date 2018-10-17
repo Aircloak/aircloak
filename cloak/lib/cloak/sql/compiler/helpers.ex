@@ -51,14 +51,17 @@ defmodule Cloak.Sql.Compiler.Helpers do
     end)
   end
 
+  @doc "Returns true if a column is GROUPED BY"
+  @spec grouped_by?(partial_query, Expression.t()) :: boolean
+  def grouped_by?(query, column) do
+    normalizer = &(&1 |> Expression.unalias() |> Expression.semantic())
+    Enum.member?(Enum.map(query.group_by, normalizer), normalizer.(column))
+  end
+
   @doc "Returns true if the provided expression is aggregated."
   @spec aggregated_column?(partial_query, Expression.t()) :: boolean
-  def aggregated_column?(query, column) do
-    normalizer = &(&1 |> Expression.unalias() |> Expression.semantic())
-
-    Enum.member?(Enum.map(query.group_by, normalizer), normalizer.(column)) or
-      (column.function? and (column.aggregate? or Enum.any?(column.function_args, &aggregated_column?(query, &1))))
-  end
+  def aggregated_column?(query, column),
+    do: column.function? and (column.aggregate? or Enum.any?(column.function_args, &aggregated_column?(query, &1)))
 
   @doc "Returns true if the query GROUPS BY columns"
   @spec group_by?(partial_query) :: boolean
