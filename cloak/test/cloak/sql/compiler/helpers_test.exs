@@ -66,7 +66,7 @@ defmodule Cloak.Sql.Compiler.Helpers.Test do
              |> Helpers.aggregates?()
     end
 
-    test "true if nests an aggregates" do
+    test "true if an aggregate is nested" do
       assert "SELECT trunc(avg(numeric)) FROM table"
              |> compile!(data_source())
              |> Helpers.aggregates?()
