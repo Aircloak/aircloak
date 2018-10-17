@@ -344,11 +344,6 @@ defmodule Cloak.Sql.Query do
   @spec emulated_where(t) :: filter_clause
   def emulated_where(query), do: Condition.reject(query.where, &(not emulated_condition?(&1, query)))
 
-  @doc "Returns true if the query has GROUP BY columns that were not selected (ignoring subqueries)"
-  @spec non_selected_group_bys(t) :: [Expression.t()]
-  def non_selected_group_bys(%__MODULE__{columns: columns, group_by: group_bys}),
-    do: Enum.filter(group_bys, &(not Expression.member?(&1, columns)))
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

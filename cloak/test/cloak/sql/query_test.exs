@@ -477,22 +477,6 @@ defmodule Cloak.Sql.QueryTest do
     assert ["real"] = features_from("SELECT BUCKET(height BY 10) FROM feat_users").selected_types
   end
 
-  describe "non_selected_group_bys" do
-    test "false on no group by" do
-      assert [] == Query.non_selected_group_bys(%Query{group_by: []})
-    end
-
-    test "true on non-selected group by" do
-      exp = %Expression{name: "group by"}
-      assert [exp] == Query.non_selected_group_bys(%Query{group_by: [exp]})
-    end
-
-    test "ignores selected columns" do
-      exp = %Expression{name: "group by"}
-      assert [] == Query.non_selected_group_bys(%Query{columns: [exp], group_by: [exp]})
-    end
-  end
-
   defp describe_query(statement, parameters \\ nil),
     do: Query.describe_query(hd(Cloak.DataSource.all()), statement, parameters, %{})
 

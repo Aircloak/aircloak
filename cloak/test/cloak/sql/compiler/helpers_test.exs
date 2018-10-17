@@ -105,6 +105,22 @@ defmodule Cloak.Sql.Compiler.Helpers.Test do
     end
   end
 
+  describe "non_selected_group_bys" do
+    test "false on no group by" do
+      assert [] == Helpers.non_selected_group_bys(%Query{group_by: []})
+    end
+
+    test "true on non-selected group by" do
+      exp = %Expression{name: "group by"}
+      assert [exp] == Helpers.non_selected_group_bys(%Query{group_by: [exp]})
+    end
+
+    test "ignores selected columns" do
+      exp = %Expression{name: "group by"}
+      assert [] == Helpers.non_selected_group_bys(%Query{columns: [exp], group_by: [exp]})
+    end
+  end
+
   defp check_first_column(%Query{columns: [column | _]} = query, test), do: test.(query, column)
 
   def aggregated_column?(_, column), do: Helpers.aggregated_column?(column)

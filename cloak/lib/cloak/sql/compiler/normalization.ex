@@ -288,7 +288,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp rewrite_distinct(query), do: query
 
   defp reject_unselected_group_by(query) do
-    [column | _] = Query.non_selected_group_bys(query)
+    [column | _] = Helpers.non_selected_group_bys(query)
 
     raise Cloak.Sql.CompilationError,
       source_location: column.source_location,
@@ -300,7 +300,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp any_unselected_group_bys?(query),
     do:
       query
-      |> Query.non_selected_group_bys()
+      |> Helpers.non_selected_group_bys()
       |> Enum.count() > 0
 
   defp all_non_aggregates_grouped_by?(%Query{columns: columns, group_by: group_bys}),
