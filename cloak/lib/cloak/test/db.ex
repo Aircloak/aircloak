@@ -39,14 +39,8 @@ defmodule Cloak.Test.DB do
     end
     |> Enum.each(fn data_source ->
       # check if driver supports direct query execution
-      if data_source.driver.__info__(:functions)[:execute] do
-        {:ok, _result} =
-          Cloak.DataSource.Connection.execute!(
-            data_source,
-            &data_source.driver.execute(&1, statement, parameters),
-            connect_opts: [retries: Application.fetch_env!(:cloak, :connect_retries)]
-          )
-      end
+      if data_source.driver.__info__(:functions)[:execute],
+        do: {:ok, _result} = conn_execute!(data_source, &data_source.driver.execute(&1, statement, parameters))
     end)
 
     :ok
@@ -116,6 +110,22 @@ defmodule Cloak.Test.DB do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp conn_execute!(data_source, fun, retries \\ Application.fetch_env!(:cloak, :connect_retries)) do
+    case Cloak.DataSource.Connection.execute(data_source, fun) do
+      {:ok, result} ->
+        result
+
+      {:error, connection_error} ->
+        if retries > 0 do
+          # retrying in tests, since there are occasional connection failures with SAP HANA
+          Process.sleep(500)
+          execute!(data_source, fun, retries - 1)
+        else
+          raise Cloak.Query.ExecutionError, message: connection_error
+        end
+    end
+  end
 
   defp create_db_table(db_name, definition, opts) do
     if opts[:skip_db_create] do

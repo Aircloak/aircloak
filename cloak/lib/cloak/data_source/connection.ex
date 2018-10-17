@@ -16,8 +16,10 @@ defmodule Cloak.DataSource.Connection do
   This function will checkout the connection from the pool, and then invoke the lambda, passing it the underlying
   driver connection. After the lambda is done (or if it crashes), the connection is returned to the pool.
   """
-  @spec execute!(DataSource.t(), (Driver.connection() -> result), Pool.checkout_options()) :: result when result: var
-  def execute!(data_source, fun, checkout_opts \\ []) do
+  @spec execute(DataSource.t(), (Driver.connection() -> result), Pool.checkout_options()) ::
+          {:ok, result} | {:error, String.t()}
+        when result: var
+  def execute(data_source, fun, checkout_opts \\ []) do
     connection = Pool.checkout(data_source, checkout_opts)
 
     with {:ok, driver_connection} <- start_using(connection) do
@@ -27,7 +29,12 @@ defmodule Cloak.DataSource.Connection do
         GenServer.cast(connection, :stop_using)
       end
     end
-    |> case do
+  end
+
+  @doc "Same as `execute/2`, except it raises `Cloak.Query.ExecutionError` on connection error."
+  @spec execute!(DataSource.t(), (Driver.connection() -> result), Pool.checkout_options()) :: result when result: var
+  def execute!(data_source, fun, checkout_opts \\ []) do
+    case execute(data_source, fun, checkout_opts) do
       {:ok, result} -> result
       {:error, reason} -> raise Cloak.Query.ExecutionError, message: reason
     end
@@ -52,7 +59,7 @@ defmodule Cloak.DataSource.Connection do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init({pool_pid, driver, connection_params, connect_options}) do
+  def init({pool_pid, driver, connection_params}) do
     Process.flag(:trap_exit, true)
 
     state = %{
@@ -62,54 +69,48 @@ defmodule Cloak.DataSource.Connection do
       query_runner: nil,
       streamer: nil,
       user_mref: nil,
-      connection_error: nil
+      connection_params: connection_params
     }
 
-    {:ok, state, {:continue, {:connect, connection_params, connect_options}}}
-  end
-
-  @impl GenServer
-  def handle_continue({:connect, connection_params, connect_options}, state) do
-    {
-      :noreply,
-      connect_with_retry(state, connection_params, Keyword.get(connect_options, :retries, 0)),
-      Driver.connection_keep_time()
-    }
+    {:ok, state, Driver.connection_keep_time()}
   end
 
   @impl GenServer
   def handle_call({:start_streamer, query_id, query, reporter}, {query_runner, _} = from, state) do
-    if is_nil(state.connection_error) do
-      assert_not_used!(state)
-      Logger.metadata(query_id: query_id)
+    assert_not_used!(state)
 
-      case Streamer.start_link(state.connection, query_runner, query_id, query, reporter) do
-        {:ok, streamer} ->
-          {:reply, {:ok, streamer}, %{state | query_runner: query_runner, streamer: streamer}}
+    case ensure_connected(state) do
+      {:ok, state} ->
+        Logger.metadata(query_id: query_id)
 
-        {:error, streamer_pid, reason} ->
-          GenServer.reply(from, {:error, reason})
+        case Streamer.start_link(state.connection, query_runner, query_id, query, reporter) do
+          {:ok, streamer} ->
+            {:reply, {:ok, streamer}, %{state | query_runner: query_runner, streamer: streamer}}
 
-          # flush the leftover exit message
-          receive do
-            {:EXIT, ^streamer_pid, _exit_reason} -> {:noreply, state}
-          after
-            :timer.seconds(5) ->
-              Process.exit(streamer_pid, :kill)
-              {:stop, :streamer_timeout, state}
-          end
-      end
-    else
-      {:stop, :shutdown, {:error, state.connection_error}, state}
+          {:error, streamer_pid, reason} ->
+            GenServer.reply(from, {:error, reason})
+
+            # flush the leftover exit message
+            receive do
+              {:EXIT, ^streamer_pid, _exit_reason} -> checkin(state)
+            after
+              :timer.seconds(5) ->
+                Process.exit(streamer_pid, :kill)
+                {:stop, :streamer_timeout, state}
+            end
+        end
+
+      {:error, reason} ->
+        {:stop, :shutdown, {:error, reason}, state}
     end
   end
 
   def handle_call(:start_using, {user_pid, _}, state) do
-    if is_nil(state.connection_error) do
-      assert_not_used!(state)
-      {:reply, {:ok, state.connection}, %{state | user_mref: Process.monitor(user_pid)}}
-    else
-      {:stop, :shutdown, {:error, state.connection_error}, state}
+    assert_not_used!(state)
+
+    case ensure_connected(state) do
+      {:ok, state} -> {:reply, {:ok, state.connection}, %{state | user_mref: Process.monitor(user_pid)}}
+      {:error, reason} -> {:stop, :shutdown, {:error, reason}, state}
     end
   end
 
@@ -186,26 +187,19 @@ defmodule Cloak.DataSource.Connection do
       {:error, "Timeout connecting to the database."}
   end
 
-  defp connect_with_retry(state, connection_params, retries) do
-    case connect(state, connection_params, log_unknown_error?: retries == 0) do
-      {:ok, connection} ->
-        %{state | connection: connection}
-
-      {:error, reason} ->
-        if retries > 0 do
-          Process.sleep(:timer.seconds(1))
-          connect_with_retry(state, connection_params, retries - 1)
-        else
-          %{state | connection_error: reason}
-        end
+  defp ensure_connected(state) do
+    if is_nil(state.connection) do
+      with {:ok, connection} <- do_connect(state), do: {:ok, %{state | connection: connection}}
+    else
+      {:ok, state}
     end
   end
 
-  defp connect(state, connection_params, opts) do
-    with {:error, reason} <- state.driver.connect(connection_params), do: {:error, connection_error(reason)}
+  defp do_connect(state) do
+    with {:error, reason} <- state.driver.connect(state.connection_params), do: {:error, connection_error(reason)}
   catch
     type, error ->
-      if Keyword.get(opts, :log_unknown_error?, false), do: log_unknown_error(type, error, __STACKTRACE__)
+      log_unknown_error(type, error, __STACKTRACE__)
       {:error, generic_connection_error()}
   end
 
@@ -249,6 +243,6 @@ defmodule Cloak.DataSource.Connection do
   # -------------------------------------------------------------------
 
   @doc false
-  def start_link(driver, connection_params, connect_options),
-    do: GenServer.start_link(__MODULE__, {self(), driver, connection_params, connect_options})
+  def start_link(driver, connection_params),
+    do: GenServer.start_link(__MODULE__, {self(), driver, connection_params})
 end
