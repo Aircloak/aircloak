@@ -41,7 +41,8 @@ defmodule AirWeb.QueryView do
     [
       column[:type],
       if(column[:user_id], do: "user id column", else: nil),
-      "#{column[:shadow_table_size]} frequent values"
+      "#{column[:shadow_table_size]} frequent values",
+      if(column[:isolated], do: "isolating", else: "not isolating")
     ]
     |> Enum.reject(&is_nil/1)
   end
