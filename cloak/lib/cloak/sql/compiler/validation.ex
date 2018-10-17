@@ -118,7 +118,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp invalid_individual_columns(query) do
-    if Helpers.aggregate?(query) do
+    if Helpers.aggregate?(query) or Helpers.group_by?(query) do
       query
       |> Query.bucket_columns()
       |> Enum.reject(& &1.synthetic?)

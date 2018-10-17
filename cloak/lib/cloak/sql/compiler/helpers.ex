@@ -60,6 +60,11 @@ defmodule Cloak.Sql.Compiler.Helpers do
       (column.function? and (column.aggregate? or Enum.any?(column.function_args, &aggregated_column?(query, &1))))
   end
 
+  @doc "Returns true if the query GROUPS BY columns"
+  @spec group_by?(partial_query) :: boolean
+  def group_by?(%Query{command: :select, group_by: [_ | _]}), do: true
+  def group_by?(_), do: false
+
   @doc "Returns true if any of the query's bucket columns is aggregated."
   @spec aggregate?(partial_query) :: boolean
   def aggregate?(%Query{command: :select, group_by: [_ | _]}), do: true
