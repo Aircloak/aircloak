@@ -77,35 +77,37 @@ defmodule Cloak.Sql.Compiler.Helpers.Test do
     test "false for plain column" do
       refute "SELECT numeric FROM table"
              |> compile!(data_source())
-             |> check_first_column(&Helpers.aggregated_column?/2)
+             |> check_first_column(&aggregated_column?/2)
     end
 
     test "false for plain column with normal function" do
       refute "SELECT abs(numeric) FROM table"
              |> compile!(data_source())
-             |> check_first_column(&Helpers.aggregated_column?/2)
+             |> check_first_column(&aggregated_column?/2)
     end
 
     test "false for plain column that is grouped" do
       refute "SELECT numeric FROM table GROUP BY numeric"
              |> compile!(data_source())
-             |> check_first_column(&Helpers.aggregated_column?/2)
+             |> check_first_column(&aggregated_column?/2)
     end
 
     test "true for column that has an aggregate applied to it" do
       assert "SELECT avg(numeric) FROM table"
              |> compile!(data_source())
-             |> check_first_column(&Helpers.aggregated_column?/2)
+             |> check_first_column(&aggregated_column?/2)
     end
 
     test "true for column that has a nested aggregate applied to it" do
       assert "SELECT trunc(avg(numeric)) FROM table"
              |> compile!(data_source())
-             |> check_first_column(&Helpers.aggregated_column?/2)
+             |> check_first_column(&aggregated_column?/2)
     end
   end
 
   defp check_first_column(%Query{columns: [column | _]} = query, test), do: test.(query, column)
+
+  def aggregated_column?(_, column), do: Helpers.aggregated_column?(column)
 
   defp data_source() do
     %{

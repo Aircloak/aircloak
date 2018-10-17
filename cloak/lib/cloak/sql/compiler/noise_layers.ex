@@ -258,7 +258,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp needs_aggregation?(_query, %Expression{constant?: true}), do: true
 
   defp needs_aggregation?(query, expression),
-    do: Helpers.aggregated_column?(query, expression) or Helpers.grouped_by?(query, expression)
+    do: Helpers.aggregated_column?(expression) or Helpers.grouped_by?(query, expression)
 
   defp clear_noise_layers(query, top_level_uid),
     do:

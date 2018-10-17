@@ -59,9 +59,9 @@ defmodule Cloak.Sql.Compiler.Helpers do
   end
 
   @doc "Returns true if the provided expression is aggregated."
-  @spec aggregated_column?(partial_query, Expression.t()) :: boolean
-  def aggregated_column?(query, column),
-    do: column.function? and (column.aggregate? or Enum.any?(column.function_args, &aggregated_column?(query, &1)))
+  @spec aggregated_column?(Expression.t()) :: boolean
+  def aggregated_column?(column),
+    do: column.function? and (column.aggregate? or Enum.any?(column.function_args, &aggregated_column?/1))
 
   @doc "Returns true if the query GROUPS BY columns"
   @spec group_by?(partial_query) :: boolean
@@ -73,7 +73,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
   def aggregates?(%Query{command: :select, having: having}) when having != nil, do: true
 
   def aggregates?(%Query{command: :select} = query),
-    do: query |> Query.bucket_columns() |> Enum.any?(&aggregated_column?(query, &1))
+    do: query |> Query.bucket_columns() |> Enum.any?(&aggregated_column?/1)
 
   @doc "Returns all join conditions of the query."
   @spec all_join_conditions(partial_query) :: [Query.where_clause()]

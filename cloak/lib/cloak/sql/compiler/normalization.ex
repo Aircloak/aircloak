@@ -306,11 +306,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp all_non_aggregates_grouped_by?(%Query{columns: columns, group_by: group_bys}),
     do:
       columns
-      |> Enum.reject(&aggregate_expression/1)
+      |> Enum.reject(&Helpers.aggregated_column?/1)
       |> Enum.all?(&Expression.member?(&1, group_bys))
-
-  defp aggregate_expression(%Expression{aggregate?: true}), do: true
-
-  defp aggregate_expression(%Expression{aggregate?: false, function_args: args}),
-    do: Enum.any?(args, &aggregate_expression/1)
 end
