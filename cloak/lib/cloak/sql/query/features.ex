@@ -32,7 +32,8 @@ defmodule Cloak.Sql.Query.Features do
       selected_types: selected_types(query.columns),
       parameter_types: Enum.map(Query.parameter_types(query), &stringify/1),
       driver: to_string(query.data_source.driver),
-      driver_dialect: sql_dialect_name(query.data_source)
+      driver_dialect: sql_dialect_name(query.data_source),
+      shadow_tables_used: shadow_tables_used?(query)
     }
   end
 
@@ -202,4 +203,26 @@ defmodule Cloak.Sql.Query.Features do
         |> String.downcase()
     end
   end
+
+  defp shadow_tables_used?(query) do
+    Query.Lenses.all_queries()
+    |> Lens.filter(&(&1.type == :anonymized))
+    |> Lens.to_list(query)
+    |> Enum.any?(&do_shadow_tables_used?/1)
+  end
+
+  defp do_shadow_tables_used?(anonymized_query) do
+    negative_conditions =
+      Query.Lenses.all_queries()
+      |> Query.Lenses.db_filter_clauses()
+      |> Query.Lenses.conditions()
+      |> Lens.filter(&(Condition.not_equals?(&1) or Condition.not_like?(&1)))
+      |> Lens.to_list(anonymized_query)
+      |> Enum.count()
+
+    negative_conditions > max_rare_negative_conditions()
+  end
+
+  defp max_rare_negative_conditions(),
+    do: Application.get_env(:cloak, :shadow_tables) |> Keyword.fetch!(:max_rare_negative_conditions)
 end
