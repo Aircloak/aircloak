@@ -265,7 +265,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
       # - SELECT DISTINCT a, b FROM table GROUP a, b
       # - SELECT DISTINCT a FROM table GROUP a, b
       all_non_aggregates_grouped_by?(query) and not Helpers.aggregates?(query) ->
-        functional_group_bys = Enum.filter(group_by, &Expression.member?(&1, columns))
+        functional_group_bys = Enum.filter(group_by, &Expression.member?(columns, &1))
         %Query{query | distinct?: false, group_by: functional_group_bys}
 
       # - SELECT DISTINCT a, count(*) FROM table GROUP a
@@ -307,5 +307,5 @@ defmodule Cloak.Sql.Compiler.Normalization do
     do:
       columns
       |> Enum.reject(&Helpers.aggregated_column?/1)
-      |> Enum.all?(&Expression.member?(&1, group_bys))
+      |> Enum.all?(&Expression.member?(group_bys, &1))
 end
