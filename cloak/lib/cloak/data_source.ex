@@ -427,15 +427,13 @@ defmodule Cloak.DataSource do
   end
 
   defp update_data_source_connectivity(%{status: :online} = data_source) do
-    try do
-      Cloak.DataSource.Connection.execute!(data_source, & &1, force_new_connection: true)
-      data_source
-    rescue
-      error in ExecutionError ->
-        message = "Connection error: #{Exception.message(error)}."
-        Logger.error("Data source `#{data_source.name}` is offline: #{message}")
-        add_error_message(%{data_source | tables: %{}, status: :offline}, message)
-    end
+    Cloak.DataSource.Connection.execute!(data_source, & &1, force_new_connection: true)
+    data_source
+  rescue
+    error in ExecutionError ->
+      message = "Connection error: #{Exception.message(error)}."
+      Logger.error("Data source `#{data_source.name}` is offline: #{message}")
+      add_error_message(%{data_source | tables: %{}, status: :offline}, message)
   end
 
   defp update_data_source_connectivity(%{status: :offline} = data_source), do: add_tables(data_source)
