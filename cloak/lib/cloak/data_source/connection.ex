@@ -92,7 +92,7 @@ defmodule Cloak.DataSource.Connection do
 
             # flush the leftover exit message
             receive do
-              {:EXIT, ^streamer_pid, _exit_reason} -> {:noreply, state}
+              {:EXIT, ^streamer_pid, _exit_reason} -> checkin(state)
             after
               :timer.seconds(5) ->
                 Process.exit(streamer_pid, :kill)
