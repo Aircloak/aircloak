@@ -53,10 +53,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
 
   @doc "Returns true if a column is GROUPED BY"
   @spec grouped_by?(partial_query, Expression.t()) :: boolean
-  def grouped_by?(query, column) do
-    normalizer = &(&1 |> Expression.unalias() |> Expression.semantic())
-    Enum.member?(Enum.map(query.group_by, normalizer), normalizer.(column))
-  end
+  def grouped_by?(query, column), do: Expression.member?(query.group_by, column)
 
   @doc "Returns true if the query has GROUP BY columns that were not selected (ignoring subqueries)"
   @spec non_selected_group_bys(partial_query) :: [Expression.t()]

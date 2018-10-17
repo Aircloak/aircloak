@@ -320,13 +320,14 @@ defmodule Cloak.Sql.Expression do
   This allows us to for example see if a selected expression appears as a group by expression too.
   """
   @spec member?([t], t) :: boolean
-  def member?(exps, exp), do: ready_for_comparison(exp) in Enum.map(exps, &ready_for_comparison/1)
+  def member?(exps, exp) do
+    normalizer = &(&1 |> unalias() |> semantic())
+    Enum.member?(Enum.map(exps, normalizer), normalizer.(exp))
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp ready_for_comparison(expression), do: %__MODULE__{expression | alias: nil, source_location: nil}
 
   defp apply_function(expression = %__MODULE__{function?: true}, args) do
     if Enum.member?(args, :*), do: :*, else: do_apply(expression.function, args)
