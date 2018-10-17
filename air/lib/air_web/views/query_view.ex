@@ -10,16 +10,18 @@ defmodule AirWeb.QueryView do
   defp format_value(values) when is_list(values), do: Enum.join(values, ", ")
   defp format_value(value), do: to_string(value)
 
-  defp banner(word, delimeter),
-    do:
-      String.duplicate(delimeter, @banner_initial) <>
-        " " <>
-        word <>
-        " " <>
-        String.duplicate(
-          delimeter,
-          max(0, @banner_length - @banner_initial - 2 - String.length(word))
-        )
+  defp banner(word, delimeter) do
+    [
+      "\n",
+      String.duplicate(delimeter, @banner_initial),
+      " ",
+      word,
+      " ",
+      String.duplicate(delimeter, max(0, @banner_length - @banner_initial - 2 - String.length(word))),
+      "\n\n"
+    ]
+    |> to_string()
+  end
 
   defp print_rows([]), do: ""
 
