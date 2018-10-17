@@ -395,7 +395,7 @@ defmodule Cloak.Query.DBEmulatorTest do
           %{
             rows: [
               %{occurrences: 20, row: [1]},
-              %{occurrences: 40, row: [3]},
+              %{occurrences: 20, row: [3]},
               %{occurrences: 20, row: [4]},
               %{occurrences: 20, row: [5]},
               %{occurrences: 20, row: [nil]}

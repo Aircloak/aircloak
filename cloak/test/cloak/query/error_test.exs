@@ -287,7 +287,7 @@ defmodule Cloak.Query.ErrorTest do
            \t                 ^
            """)
 
-    assert String.contains?(error, "usage of DISTINCT, GROUP BY, and ORDER BY in the same query is not supported")
+    assert String.contains?(error, "usage of `DISTINCT`, `GROUP BY`, and `ORDER BY` in the same query is not supported")
   end
 
   test "error message for failed constant simplification" do

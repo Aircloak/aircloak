@@ -163,7 +163,6 @@ defmodule Cloak.Sql.Range.Test do
   defp compile(query_string) do
     query_string
     |> Parser.parse!()
-    |> Compiler.ASTNormalization.normalize()
     |> Compiler.Specification.compile(data_source(), _parameters = [], _views = %{})
   end
 

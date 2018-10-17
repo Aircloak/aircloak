@@ -9,44 +9,40 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # -------------------------------------------------------------------
 
   @doc """
-  Modifies the query to remove certain expressions without changing semantics. Specifically:
+  Performs semantics-preserving query transformations that should be done ahead of the
+  query validation and before the noise layers and other anonymization properties are calculated.
 
-  * Applies the same normalization as `simplify_constants/1`
-  * Makes sure comparisons bewteen columns and constants have the form {column, operator, constant}
+  Performs rewrites such as:
+  * Removing casts that cast a value to the same type it already is
+  * Removing rounding/truncating of integers
+  * Ensuring comparisons bewteen columns and constants have the form {column, operator, constant}
+  """
+  @spec prevalidation_normalizations(Query.t()) :: Query.t()
+  def prevalidation_normalizations(query),
+    do:
+      query
+      |> Helpers.apply_bottom_up(&rewrite_distinct/1)
+      |> Helpers.apply_bottom_up(&remove_redundant_casts/1)
+      |> Helpers.apply_bottom_up(&remove_redundant_rounds/1)
+      |> Helpers.apply_bottom_up(&normalize_constants/1)
+      |> Helpers.apply_bottom_up(&normalize_comparisons/1)
+      |> Helpers.apply_bottom_up(&normalize_order_by/1)
+
+  @doc """
+  Performs semantics-preserving query transformations that remove query properties needed by the validator
+  (or other query compiler mechanics) and therefore cannot be done earlier.
+
   * Removes redundant occurences of "%" from LIKE patterns (for example "%%" -> "%")
   * Normalizes sequences of "%" and "_" in like patterns so that the "%" always precedes a sequence of "_"
   * Expands `BUCKET` calls into equivalent mathematical expressions
-
-  These are useful (among others) for noise layers - we want to generate the same layer for semantically identical
-  conditions, otherwise we have to fall back to probing.
   """
-  @spec normalize(Query.t()) :: Query.t()
-  def normalize(query),
+  @spec postvalidation_normalizations(Query.t()) :: Query.t()
+  def postvalidation_normalizations(query),
     do:
       query
       |> Helpers.apply_bottom_up(&normalize_trivial_like/1)
       |> Helpers.apply_bottom_up(&normalize_bucket/1)
-      |> Helpers.apply_bottom_up(&normalize_constants/1)
-      |> Helpers.apply_bottom_up(&normalize_comparisons/1)
-      |> Helpers.apply_bottom_up(&normalize_order_by/1)
       |> Helpers.apply_bottom_up(&strip_source_location/1)
-
-  @doc """
-  Modifies the query to remove expressions that do nothing, like:
-
-  * Casting a value to the same type it already is
-  * Rounding/truncating integers
-  """
-  @spec remove_noops(Query.t()) :: Query.t()
-  def remove_noops(query),
-    do:
-      query
-      |> Helpers.apply_bottom_up(&remove_redundant_casts/1)
-      |> Helpers.apply_bottom_up(&remove_redundant_rounds/1)
-
-  @doc "Switches complex expressions involving constants (like 1 + 2 + 3) to their results (6 in this case)"
-  @spec simplify_constants(Query.t()) :: Query.t()
-  def simplify_constants(query), do: Helpers.apply_bottom_up(query, &normalize_constants/1)
 
   # -------------------------------------------------------------------
   # Removing source location
@@ -243,4 +239,77 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   defp remove_constant_ordering(order_list),
     do: Enum.reject(order_list, fn {expression, _direction, _nulls} -> expression.constant? end)
+
+  # -------------------------------------------------------------------
+  # DISTINCT rewriting
+  # -------------------------------------------------------------------
+
+  defp rewrite_distinct(%Query{distinct?: true, group_by: [_ | _], order_by: [{column, _dir, _nulls} | _]}),
+    # Correctly rewriting a query that combines DISTINCT with GROUP BY and an ORDER BY is non-trivial.
+    # See the following discussion for further details:
+    # https://github.com/Aircloak/aircloak/pull/2864#pullrequestreview-135001173
+    do:
+      raise(Cloak.Sql.CompilationError,
+        source_location: column.source_location,
+        message:
+          "Simultaneous usage of `DISTINCT`, `GROUP BY`, and `ORDER BY` in the same query is not supported." <>
+            " Try using a subquery instead."
+      )
+
+  defp rewrite_distinct(%Query{distinct?: true, group_by: [], columns: columns} = query) do
+    if Helpers.aggregates?(query) do
+      %Query{query | distinct?: false}
+    else
+      %Query{query | distinct?: false, group_by: columns}
+    end
+  end
+
+  defp rewrite_distinct(%Query{distinct?: true, columns: [_ | _] = columns, group_by: [_ | _] = group_by} = query) do
+    cond do
+      # - SELECT DISTINCT a, b FROM table GROUP a, b
+      # - SELECT DISTINCT a FROM table GROUP a, b
+      all_non_aggregates_grouped_by?(query) and not Helpers.aggregates?(query) ->
+        functional_group_bys = Enum.filter(group_by, &Expression.member?(columns, &1))
+        %Query{query | distinct?: false, group_by: functional_group_bys}
+
+      # - SELECT DISTINCT a, count(*) FROM table GROUP a
+      # - SELECT DISTINCT count(*) FROM table
+      all_non_aggregates_grouped_by?(query) and Helpers.aggregates?(query) and not any_unselected_group_bys?(query) ->
+        %Query{query | distinct?: false}
+
+      # Currently not handled because it requires a complex subquery rewrite:
+      # - SELECT DISTINCT a, count(*) FROM table GROUP a, b
+      Helpers.aggregates?(query) and any_unselected_group_bys?(query) ->
+        reject_unselected_group_by(query)
+
+      # These can't be transformed correctly because the query is illegal
+      # - SELECT DISTINCT a, b FROM table GROUP a
+      true ->
+        query
+    end
+  end
+
+  defp rewrite_distinct(query), do: query
+
+  defp reject_unselected_group_by(query) do
+    [column | _] = Helpers.non_selected_group_bys(query)
+
+    raise Cloak.Sql.CompilationError,
+      source_location: column.source_location,
+      message:
+        "Grouping by unselected columns while using `DISTINCT` is not supported." <>
+          " Try removing #{Expression.display_name(column)} from the `GROUP BY` clause"
+  end
+
+  defp any_unselected_group_bys?(query),
+    do:
+      query
+      |> Helpers.non_selected_group_bys()
+      |> Enum.count() > 0
+
+  defp all_non_aggregates_grouped_by?(%Query{columns: columns, group_by: group_bys}),
+    do:
+      columns
+      |> Enum.reject(&Helpers.aggregated_column?/1)
+      |> Enum.all?(&Expression.member?(group_bys, &1))
 end

@@ -31,16 +31,14 @@ defmodule Cloak.Sql.Compiler do
         ) :: Query.t()
   def compile!(parsed_query, data_source, parameters, views) do
     parsed_query
-    |> Compiler.ASTNormalization.normalize()
     |> Compiler.Specification.compile(data_source, parameters, views)
-    |> Compiler.Normalization.remove_noops()
+    |> Compiler.Normalization.prevalidation_normalizations()
     |> Compiler.Anonymization.compile()
     |> Compiler.Validation.verify_query()
     |> Compiler.TypeChecker.validate_allowed_usage_of_math_and_functions()
     |> Compiler.Optimizer.optimize()
-    |> Compiler.Normalization.simplify_constants()
     |> Compiler.Execution.prepare()
-    |> Compiler.Normalization.normalize()
+    |> Compiler.Normalization.postvalidation_normalizations()
     |> Compiler.NoiseLayers.compile()
   end
 
@@ -51,11 +49,10 @@ defmodule Cloak.Sql.Compiler do
       parsed_query
       |> Compiler.Helpers.apply_top_down(&Map.put(&1, :type, :standard))
       |> Compiler.Specification.compile(data_source, nil, %{})
-      |> Compiler.Normalization.remove_noops()
+      |> Compiler.Normalization.prevalidation_normalizations()
       |> Compiler.Optimizer.optimize()
-      |> Compiler.Normalization.simplify_constants()
       |> Compiler.Execution.prepare()
-      |> Compiler.Normalization.normalize()
+      |> Compiler.Normalization.postvalidation_normalizations()
 
   @doc "Prepares the parsed SQL query for directly querying the data source without any processing in the cloak."
   @spec compile_direct!(Parser.parsed_query(), DataSource.t()) :: Query.t()
