@@ -54,7 +54,7 @@ defmodule Cloak.Sql.Compiler.Helpers.Test do
   end
 
   describe "aggregates?" do
-    test "false if no column contains an aggregates" do
+    test "false if no column contains an aggregate" do
       refute "SELECT numeric FROM table"
              |> compile!(data_source())
              |> Helpers.aggregates?()
