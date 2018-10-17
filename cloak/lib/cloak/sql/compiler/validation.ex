@@ -16,7 +16,6 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   def verify_query(%Query{command: :select} = query) do
     verify_user_id_usage_in_subqueries(query)
-    Helpers.each_subquery(query, &verify_distinct_usage/1)
     Helpers.each_subquery(query, &verify_function_usage/1)
     Helpers.each_subquery(query, &verify_duplicate_tables/1)
     Helpers.each_subquery(query, &verify_aggregated_columns/1)
@@ -55,30 +54,6 @@ defmodule Cloak.Sql.Compiler.Validation do
   # -------------------------------------------------------------------
   # Columns and expressions
   # -------------------------------------------------------------------
-
-  defp verify_distinct_usage(%Query{distinct?: true, group_by: [_ | _], order_by: [{column, _dir, _nulls} | _]}) do
-    raise Cloak.Sql.CompilationError,
-      source_location: column.source_location,
-      message:
-        "Simultaneous usage of `DISTINCT`, `GROUP BY`, and `ORDER BY` in the same query is not supported." <>
-          " Try using a subquery instead."
-  end
-
-  defp verify_distinct_usage(%Query{distinct?: true} = query) do
-    non_selected_group_bys = Query.non_selected_group_bys(query)
-
-    if Query.aggregate?(query) and Enum.count(non_selected_group_bys) > 0 do
-      [column | _] = non_selected_group_bys
-
-      raise Cloak.Sql.CompilationError,
-        source_location: column.source_location,
-        message:
-          "Grouping by unselected columns while using `DISTINCT` is not supported." <>
-            " Try removing #{Expression.display_name(column)} from the `GROUP BY` clause"
-    end
-  end
-
-  defp verify_distinct_usage(query), do: query
 
   defp verify_function_usage(query) do
     Lenses.query_expressions()

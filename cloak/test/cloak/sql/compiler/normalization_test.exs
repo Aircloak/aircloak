@@ -98,6 +98,53 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
   end
 
   describe "rewrite DISTINCT to GROUP BY" do
+    test "fails on combination of DISTINCT, GROUP BY and ORDER BY" do
+      assert {:error, error} =
+               compile(
+                 """
+                   SELECT DISTINCT numeric
+                   FROM table
+                   GROUP BY numeric
+                   ORDER BY numeric
+                 """,
+                 data_source()
+               )
+
+      assert error =~ ~r/Simultaneous usage of `DISTINCT`, `GROUP BY`, and `ORDER BY`/
+    end
+
+    test "Rejects non-aggregate queries with DISTINCT and GROUP BY where some but not all columns are grouped" do
+      assert {:error, error} =
+               compile(
+                 """
+                   SELECT DISTINCT numeric, string
+                   FROM table
+                   GROUP BY string
+                 """,
+                 data_source()
+               )
+
+      assert error =~ ~r/Column `numeric` .* needs to appear in the `GROUP BY` clause/
+    end
+
+    test "DISTINCT rewrite does not affect regular warning about missing GROUP BY" do
+      assert {:error, error} =
+               compile(
+                 """
+                   SELECT DISTINCT numeric, count(*)
+                   FROM table
+                 """,
+                 data_source()
+               )
+
+      assert error =~ ~r/Column `numeric` .* needs to appear in the `GROUP BY` clause/
+    end
+
+    test "Rejects DISTINCT with aggregate where additional GROUP BY columns exist" do
+      assert {:error, error} = compile("SELECT DISTINCT count(*) FROM table GROUP BY numeric", data_source())
+      assert error =~ ~r/Grouping by unselected columns .* `DISTINCT`/
+    end
+
     test "distinct on top-level query" do
       assert_equivalent(
         "SELECT DISTINCT numeric FROM table",
