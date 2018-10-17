@@ -60,7 +60,7 @@ defmodule Cloak.Sql.Compiler.Helpers.Test do
              |> Helpers.aggregates?()
     end
 
-    test "true if selected columns contains an aggregates" do
+    test "true if selected columns contains an aggregate" do
       assert "SELECT count(*) FROM table"
              |> compile!(data_source())
              |> Helpers.aggregates?()
