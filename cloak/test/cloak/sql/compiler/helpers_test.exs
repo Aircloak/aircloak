@@ -27,6 +27,26 @@ defmodule Cloak.Sql.Compiler.Helpers.Test do
     end
   end
 
+  describe "aggregates?" do
+    test "false if no column contains an aggregates" do
+      refute "SELECT numeric FROM table"
+             |> compile!(data_source())
+             |> Helpers.aggregates?()
+    end
+
+    test "true if selected columns contains an aggregates" do
+      assert "SELECT count(*) FROM table"
+             |> compile!(data_source())
+             |> Helpers.aggregates?()
+    end
+
+    test "true if nests an aggregates" do
+      assert "SELECT trunc(avg(numeric)) FROM table"
+             |> compile!(data_source())
+             |> Helpers.aggregates?()
+    end
+  end
+
   defp data_source() do
     %{
       name: "normalization_data_source",

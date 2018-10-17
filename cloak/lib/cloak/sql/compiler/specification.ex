@@ -821,7 +821,7 @@ defmodule Cloak.Sql.Compiler.Specification do
         nil
 
       # no group by, no having and no aggregate -> select any uid column
-      match?(%Query{group_by: [], having: nil}, query) && not Helpers.aggregate?(query) ->
+      match?(%Query{group_by: [], having: nil}, query) && not Helpers.aggregates?(query) ->
         case Helpers.all_id_columns_from_tables(query) do
           [uid | _] -> uid
           [] -> nil
