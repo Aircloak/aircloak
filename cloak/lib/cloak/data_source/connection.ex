@@ -69,49 +69,48 @@ defmodule Cloak.DataSource.Connection do
       query_runner: nil,
       streamer: nil,
       user_mref: nil,
-      connection_error: nil
+      connection_params: connection_params
     }
 
-    {:ok, state, {:continue, {:connect, connection_params}}}
+    {:ok, state, Driver.connection_keep_time()}
   end
 
   @impl GenServer
-  def handle_continue({:connect, connection_params}, state),
-    do: {:noreply, connect(state, connection_params), Driver.connection_keep_time()}
-
-  @impl GenServer
   def handle_call({:start_streamer, query_id, query, reporter}, {query_runner, _} = from, state) do
-    if is_nil(state.connection_error) do
-      assert_not_used!(state)
-      Logger.metadata(query_id: query_id)
+    assert_not_used!(state)
 
-      case Streamer.start_link(state.connection, query_runner, query_id, query, reporter) do
-        {:ok, streamer} ->
-          {:reply, {:ok, streamer}, %{state | query_runner: query_runner, streamer: streamer}}
+    case ensure_connected(state) do
+      {:ok, state} ->
+        Logger.metadata(query_id: query_id)
 
-        {:error, streamer_pid, reason} ->
-          GenServer.reply(from, {:error, reason})
+        case Streamer.start_link(state.connection, query_runner, query_id, query, reporter) do
+          {:ok, streamer} ->
+            {:reply, {:ok, streamer}, %{state | query_runner: query_runner, streamer: streamer}}
 
-          # flush the leftover exit message
-          receive do
-            {:EXIT, ^streamer_pid, _exit_reason} -> {:noreply, state}
-          after
-            :timer.seconds(5) ->
-              Process.exit(streamer_pid, :kill)
-              {:stop, :streamer_timeout, state}
-          end
-      end
-    else
-      {:stop, :shutdown, {:error, state.connection_error}, state}
+          {:error, streamer_pid, reason} ->
+            GenServer.reply(from, {:error, reason})
+
+            # flush the leftover exit message
+            receive do
+              {:EXIT, ^streamer_pid, _exit_reason} -> {:noreply, state}
+            after
+              :timer.seconds(5) ->
+                Process.exit(streamer_pid, :kill)
+                {:stop, :streamer_timeout, state}
+            end
+        end
+
+      {:error, reason} ->
+        {:stop, :shutdown, {:error, reason}, state}
     end
   end
 
   def handle_call(:start_using, {user_pid, _}, state) do
-    if is_nil(state.connection_error) do
-      assert_not_used!(state)
-      {:reply, {:ok, state.connection}, %{state | user_mref: Process.monitor(user_pid)}}
-    else
-      {:stop, :shutdown, {:error, state.connection_error}, state}
+    assert_not_used!(state)
+
+    case ensure_connected(state) do
+      {:ok, state} -> {:reply, {:ok, state.connection}, %{state | user_mref: Process.monitor(user_pid)}}
+      {:error, reason} -> {:stop, :shutdown, {:error, reason}, state}
     end
   end
 
@@ -188,15 +187,16 @@ defmodule Cloak.DataSource.Connection do
       {:error, "Timeout connecting to the database."}
   end
 
-  defp connect(state, connection_params) do
-    case do_connect(state, connection_params) do
-      {:ok, connection} -> %{state | connection: connection}
-      {:error, reason} -> %{state | connection_error: reason}
+  defp ensure_connected(state) do
+    if is_nil(state.connection) do
+      with {:ok, connection} <- do_connect(state), do: {:ok, %{state | connection: connection}}
+    else
+      {:ok, state}
     end
   end
 
-  defp do_connect(state, connection_params) do
-    with {:error, reason} <- state.driver.connect(connection_params), do: {:error, connection_error(reason)}
+  defp do_connect(state) do
+    with {:error, reason} <- state.driver.connect(state.connection_params), do: {:error, connection_error(reason)}
   catch
     type, error ->
       log_unknown_error(type, error, __STACKTRACE__)
