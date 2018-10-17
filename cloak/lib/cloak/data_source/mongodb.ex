@@ -51,35 +51,20 @@ defmodule Cloak.DataSource.MongoDB do
   def sql_dialect_module(), do: nil
 
   @impl Driver
-  def connect!(parameters) do
-    self = self()
-    timeout = Driver.timeout()
-
+  def connect(parameters) do
     parameters =
       Enum.to_list(parameters) ++
         [
           types: true,
           sync_connect: true,
-          timeout: timeout,
-          cursor_timeout: false,
-          pool: DBConnection.Connection,
-          pool_timeout: timeout,
-          after_connect: fn _ -> send(self, :connected) end
+          backoff_type: :stop,
+          timeout: Driver.timeout(),
+          cursor_timeout: false
         ]
 
-    {:ok, connection} = Mongo.start_link(parameters)
-
-    receive do
-      :connected -> connection
-    after
-      Driver.connect_timeout() ->
-        GenServer.stop(connection, :normal, :timer.seconds(5))
-
-        DataSource.raise_error(
-          "Failed to establish a connection to the database. " <>
-            "Please check that the database server is running, is reachable from the " <>
-            "Insights Cloak host, and the database credentials are correct"
-        )
+    case Mongo.start_link(parameters) do
+      {:ok, connection} -> {:ok, connection}
+      {:error, {%Mongo.Error{} = error, _stacktrace}} -> {:error, error.message}
     end
   end
 

@@ -74,24 +74,29 @@ defmodule Cloak.DataSource.StreamerTest do
       ExUnit.CaptureLog.capture_log(fn ->
         assert {:error, error} = rows("select * from test_streamer", data_source(%{hostname: "invalid_host"}))
         assert error =~ ~r/Failed to establish a connection to the database/
+        assert error =~ ~r/tcp connect \(invalid_host:5432\)/
       end)
     end)
   end
 
-  test "SQL error is properly reported" do
-    ExUnit.CaptureLog.capture_log(fn ->
-      Cloak.Test.DB.create_table("temp_table", "intval INTEGER")
-
-      query =
-        Cloak.Sql.Parser.parse!("select * from temp_table")
-        |> Cloak.Sql.Compiler.compile!(data_source(), [], %{})
-        |> Cloak.Sql.Query.resolve_db_columns()
-
-      Cloak.Test.DB.delete_table("temp_table")
-
-      assert {:error, reason} = Streamer.rows(query)
-      assert reason =~ ~r/relation "cloak_test.temp_table" does not exist/
+  test "connection timeout" do
+    with_short_connection_timeout(0, fn ->
+      assert rows("select * from test_streamer", data_source()) == {:error, "Timeout connecting to the database."}
     end)
+  end
+
+  test "SQL error is properly reported" do
+    Cloak.Test.DB.create_table("temp_table", "intval INTEGER")
+
+    query =
+      Cloak.Sql.Parser.parse!("select * from temp_table")
+      |> Cloak.Sql.Compiler.compile!(data_source(), [], %{})
+      |> Cloak.Sql.Query.resolve_db_columns()
+
+    Cloak.Test.DB.delete_table("temp_table")
+
+    assert {:error, reason} = Streamer.rows(query)
+    assert reason =~ ~r/relation "cloak_test.temp_table" does not exist/
   end
 
   defp rows(query, data_source \\ data_source(), reporter \\ nil) do
@@ -101,12 +106,12 @@ defmodule Cloak.DataSource.StreamerTest do
     |> Streamer.rows(reporter)
   end
 
-  defp with_short_connection_timeout(fun) do
+  defp with_short_connection_timeout(timeout \\ 50, fun) do
     connect_retries = Application.get_env(:cloak, :connect_retries)
     data_source_config = Application.get_env(:cloak, :data_source)
 
     Application.put_env(:cloak, :connect_retries, 0)
-    Application.put_env(:cloak, :data_source, Keyword.put(data_source_config, :connect_timeout, 50))
+    Application.put_env(:cloak, :data_source, Keyword.put(data_source_config, :connect_timeout, timeout))
 
     try do
       fun.()

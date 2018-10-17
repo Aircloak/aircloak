@@ -40,9 +40,12 @@ defmodule Cloak.Test.DB do
     |> Enum.each(fn data_source ->
       # check if driver supports direct query execution
       if data_source.driver.__info__(:functions)[:execute] do
-        connection = Process.get({:connection, data_source.name}) || create_connection(data_source)
-
-        {:ok, _result} = data_source.driver.execute(connection, statement, parameters)
+        {:ok, _result} =
+          Cloak.DataSource.Connection.execute!(
+            data_source,
+            &data_source.driver.execute(&1, statement, parameters),
+            connect_opts: [retries: Application.fetch_env!(:cloak, :connect_retries)]
+          )
       end
     end)
 
@@ -163,10 +166,4 @@ defmodule Cloak.Test.DB do
   end
 
   defp full_table_name(table_name), do: "cloak_test.#{table_name}"
-
-  defp create_connection(data_source) do
-    connection = Cloak.DataSource.connect!(data_source.driver, data_source.parameters)
-    Process.put({:connection, data_source.name}, connection)
-    connection
-  end
 end

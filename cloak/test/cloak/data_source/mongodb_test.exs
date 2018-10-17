@@ -65,6 +65,14 @@ defmodule Cloak.DataSource.MongoDBTest do
     {:ok, data_source: data_source}
   end
 
+  test "connection error", %{data_source: data_source} do
+    assert_raise(
+      Cloak.Query.ExecutionError,
+      ~r/Failed to establish a connection to the database/,
+      fn -> Cloak.DataSource.Connection.execute!(put_in(data_source.parameters[:hostname], "invalid_host"), & &1) end
+    )
+  end
+
   test "schema mapping", context do
     %{@user_table => root, (@user_table <> "_bills") => bills, (@user_table <> "_bills_ids") => ids} =
       context.data_source.tables

@@ -15,34 +15,10 @@ defmodule Cloak.DataSource.PostgreSQL do
   # -------------------------------------------------------------------
 
   @impl Driver
-  def connect!(parameters) do
-    self = self()
-
-    parameters =
-      Enum.to_list(parameters) ++
-        [
-          types: Postgrex.DefaultTypes,
-          sync_connect: true,
-          pool: DBConnection.Connection,
-          after_connect: fn _ -> send(self, :connected) end
-        ]
-
-    {:ok, connection} = Postgrex.start_link(parameters)
-
-    receive do
-      :connected ->
-        {:ok, %Postgrex.Result{}} = Postgrex.query(connection, "SET standard_conforming_strings = ON", [])
-
-        connection
-    after
-      Driver.connect_timeout() ->
-        GenServer.stop(connection, :normal, :timer.seconds(5))
-
-        DataSource.raise_error(
-          "Failed to establish a connection to the database. " <>
-            "Please check that the database server is running, is reachable from the " <>
-            "Insights Cloak host, and the database credentials are correct"
-        )
+  def connect(parameters) do
+    with {:ok, connection} <- do_connect(parameters) do
+      {:ok, %Postgrex.Result{}} = Postgrex.query(connection, "SET standard_conforming_strings = ON", [])
+      {:ok, connection}
     end
   end
 
@@ -80,6 +56,22 @@ defmodule Cloak.DataSource.PostgreSQL do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp do_connect(parameters) do
+    parameters =
+      Enum.to_list(parameters) ++
+        [
+          types: Postgrex.DefaultTypes,
+          sync_connect: true,
+          backoff_type: :stop,
+          pool: DBConnection.Connection
+        ]
+
+    case Postgrex.start_link(parameters) do
+      {:ok, connection} -> {:ok, connection}
+      {:error, {%DBConnection.ConnectionError{} = error, _stacktrace}} -> {:error, error.message}
+    end
+  end
 
   defp run_query(pool, statement, decode_mapper, result_processor) do
     Logger.debug(fn -> "Executing SQL query: #{statement}" end)

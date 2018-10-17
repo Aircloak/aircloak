@@ -25,18 +25,20 @@ defmodule Cloak.DataSource.Connection.Pool do
   alias Aircloak.ChildSpec
   alias Cloak.DataSource.Connection
 
+  @type checkout_options :: [force_new_connection: boolean, connect_opts: [retries: non_neg_integer]]
+
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
   @doc "Checks out the connection from the connection pool."
-  @spec checkout(Cloak.DataSource.t()) :: pid
-  def checkout(data_source) do
+  @spec checkout(Cloak.DataSource.t(), checkout_options) :: pid
+  def checkout(data_source, options \\ []) do
     Logger.debug(fn -> "Acquiring connection to `#{data_source.name}` ..." end)
 
     data_source
     |> pool_server()
-    |> GenServer.call(:checkout)
+    |> GenServer.call({:checkout, options})
   end
 
   @doc "Returns the connection to the pool."
@@ -55,8 +57,12 @@ defmodule Cloak.DataSource.Connection.Pool do
   def init({driver, connection_params}), do: {:ok, %{driver: driver, connection_params: connection_params}}
 
   @impl GenServer
-  def handle_call(:checkout, _from, state) do
-    connection = available_connection() || new_connection(state)
+  def handle_call({:checkout, options}, _from, state) do
+    connection =
+      if Keyword.get(options, :force_new_connection, false),
+        do: new_connection(state, Keyword.get(options, :connect_opts, [])),
+        else: available_connection() || new_connection(state, Keyword.get(options, :connect_opts, []))
+
     Parent.GenServer.update_child_meta(child_id!(connection), &%{&1 | available?: false})
     {:reply, connection, state}
   end
@@ -82,8 +88,8 @@ defmodule Cloak.DataSource.Connection.Pool do
     id
   end
 
-  defp new_connection(state) do
-    start = {Connection, :start_link, [state.driver, state.connection_params]}
+  defp new_connection(state, connect_opts) do
+    start = {Connection, :start_link, [state.driver, state.connection_params, connect_opts]}
     {:ok, conn} = Parent.GenServer.start_child(%{id: make_ref(), meta: %{available?: true}, start: start})
     conn
   end
