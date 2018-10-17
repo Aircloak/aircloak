@@ -34,7 +34,8 @@ defmodule Cloak.Sql.Query.Features do
       parameter_types: Enum.map(Query.parameter_types(query), &stringify/1),
       driver: to_string(query.data_source.driver),
       driver_dialect: sql_dialect_name(query.data_source),
-      shadow_tables_used: shadow_tables_used?(query)
+      shadow_tables_used: shadow_tables_used?(query),
+      isolators_used: isolators_used?(query)
     }
   end
 
@@ -211,10 +212,11 @@ defmodule Cloak.Sql.Query.Features do
     |> Enum.any?(&do_shadow_tables_used?/1)
   end
 
-  defp do_shadow_tables_used?(anonymized_query) do
-    Enum.count(TypeChecker.Access.negative_conditions(anonymized_query)) > max_rare_negative_conditions()
-  end
+  defp do_shadow_tables_used?(anonymized_query),
+    do: Enum.count(TypeChecker.Access.negative_conditions(anonymized_query)) > max_rare_negative_conditions()
 
   defp max_rare_negative_conditions(),
     do: Application.get_env(:cloak, :shadow_tables) |> Keyword.fetch!(:max_rare_negative_conditions)
+
+  defp isolators_used?(query), do: Enum.count(TypeChecker.Access.potential_unclear_isolator_usages(query)) > 0
 end

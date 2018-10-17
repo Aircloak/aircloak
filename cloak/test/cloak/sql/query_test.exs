@@ -356,6 +356,16 @@ defmodule Cloak.Sql.QueryTest do
     end
   end
 
+  describe "features->isolators_used" do
+    test "false if conditions don't require isolator checks" do
+      refute features_from("SELECT COUNT(*) FROM feat_users WHERE name <> 'Albus'").isolators_used
+    end
+
+    test "true if at least one condition requires an isolator check" do
+      assert features_from("SELECT COUNT(*) FROM feat_purchases WHERE price IN (1, 2, 3)").isolators_used
+    end
+  end
+
   test "successful view validation" do
     assert {:ok, [col1, col2]} = validate_view("v1", "select user_id, name from feat_users")
     assert col1 == %{name: "user_id", type: "text", user_id: true}

@@ -6,7 +6,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   as checks to validate that columns used in certain filter conditions haven't been altered.
   """
 
-  alias Cloak.Sql.{CompilationError, Condition, Expression, Function, Query, Range, LikePattern}
+  alias Cloak.Sql.{CompilationError, Condition, Expression, Query, Range}
   alias Cloak.Sql.Compiler.TypeChecker.Type
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.DataSource.{Isolators, Shadows}
@@ -230,10 +230,15 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # -------------------------------------------------------------------
 
   defp verify_isolator_conditions_are_clear(query) do
-    verify_conditions(
-      query,
-      &(unclear_isolator_usage?(&1, query) and includes_isolating_column?(&1, query)),
-      fn condition ->
+    query
+    |> __MODULE__.Access.potential_unclear_isolator_usages()
+    |> Stream.filter(&includes_isolating_column?(&1, query))
+    |> Enum.take(1)
+    |> case do
+      [] ->
+        :ok
+
+      [condition] ->
         [offending_column | _] = isolating_columns(condition, query)
 
         raise CompilationError,
@@ -242,26 +247,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
           The column #{Expression.short_name(offending_column)} is isolating and cannot be used in this condition.
           For more information see the "Restrictions" section of the user guides.
           """
-      end
-    )
-  end
-
-  defp unclear_isolator_usage?({:not, condition}, query), do: unclear_isolator_usage?(condition, query)
-  defp unclear_isolator_usage?({:in, _, _}, _), do: true
-  defp unclear_isolator_usage?({:like, _, pattern}, _), do: not LikePattern.simple?(pattern.value)
-  defp unclear_isolator_usage?({:ilike, _, pattern}, _), do: not LikePattern.simple?(pattern.value)
-
-  defp unclear_isolator_usage?(condition, query) do
-    condition
-    |> Condition.targets()
-    |> Enum.any?(fn expression ->
-      not Type.clear_column?(Type.establish_type(expression, query), &allowed_isolator_function?/1)
-    end)
-  end
-
-  @allowed_isolator_functions ~w(lower upper substring trim ltrim rtrim btrim extract_words)
-  defp allowed_isolator_function?(function) do
-    function in @allowed_isolator_functions or Function.implicit_range?(function)
+    end
   end
 
   defp includes_isolating_column?(condition, query) do
@@ -355,14 +341,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       |> Enum.count()
 
   defp verify_conditions(query, predicate, action),
-    do:
-      Query.Lenses.db_filter_clauses()
-      |> Query.Lenses.conditions()
-      |> Lens.filter(predicate)
-      |> Lens.to_list(query)
-      |> Enum.each(action)
+    do: query |> __MODULE__.Access.conditions(predicate) |> Enum.each(action)
 
-  defp each_anonymized_subquery(query, function) do
-    Lens.each(__MODULE__.Access.anonymized_queries(), query, function)
-  end
+  defp each_anonymized_subquery(query, function), do: Lens.each(__MODULE__.Access.anonymized_queries(), query, function)
 end
