@@ -10,20 +10,22 @@ defmodule AirWeb.QueryView do
   defp format_value(values) when is_list(values), do: Enum.join(values, ", ")
   defp format_value(value), do: to_string(value)
 
-  def banner(word, delimeter),
-    do:
-      String.duplicate(delimeter, @banner_initial) <>
-        " " <>
-        word <>
-        " " <>
-        String.duplicate(
-          delimeter,
-          max(0, @banner_length - @banner_initial - 2 - String.length(word))
-        )
+  defp banner(word, delimeter) do
+    [
+      "\n",
+      String.duplicate(delimeter, @banner_initial),
+      " ",
+      word,
+      " ",
+      String.duplicate(delimeter, max(0, @banner_length - @banner_initial - 2 - String.length(word))),
+      "\n\n"
+    ]
+    |> to_string()
+  end
 
-  def print_rows([]), do: ""
+  defp print_rows([]), do: ""
 
-  def print_rows(data) do
+  defp print_rows(data) do
     cleaned_data =
       data
       |> Enum.map(fn raw_row ->
@@ -35,5 +37,15 @@ defmodule AirWeb.QueryView do
     header = List.duplicate(" ", (cleaned_data |> hd() |> length()) - 2) ++ ["unreliable", "occurrences"]
 
     Aircloak.AsciiTable.format([header] ++ cleaned_data)
+  end
+
+  defp column_properties(column) do
+    [
+      column[:type],
+      if(column[:user_id], do: "user id column", else: nil),
+      "#{column[:shadow_table_size]} frequent values",
+      if(column[:isolated], do: "isolating", else: "not isolating")
+    ]
+    |> Enum.reject(&is_nil/1)
   end
 end
