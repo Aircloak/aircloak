@@ -152,29 +152,25 @@ defmodule Cloak.Sql.Compiler.Execution do
   end
 
   defp compute_aggregators(%Query{group_by: [_ | _]} = query),
-    do: %Query{
-      query
-      | aggregators: Expression.unique_except(aggregators(query), &Expression.row_splitter?/1)
-    }
+    do: %Query{query | aggregators: aggregators(query)}
 
   defp compute_aggregators(query) do
     case aggregators(query) do
-      [] ->
-        %Query{query | aggregators: [Expression.count_star()], implicit_count?: true}
-
-      aggregators ->
-        %Query{
-          query
-          | aggregators: Expression.unique_except(aggregators, &Expression.row_splitter?/1)
-        }
+      [] -> %Query{query | aggregators: [Expression.count_star()], implicit_count?: true}
+      aggregators -> %Query{query | aggregators: aggregators}
     end
   end
 
   defp aggregators(query),
     do:
-      (query.columns ++ having_columns(query) ++ Query.order_by_expressions(query))
+      query
+      |> aggregator_sources()
       |> Enum.flat_map(&expand_arguments/1)
       |> Enum.filter(&match?(%Expression{function?: true, aggregate?: true}, &1))
+      |> Enum.map(&Expression.semantic/1)
+      |> Expression.unique_except(&Expression.row_splitter?/1)
+
+  defp aggregator_sources(query), do: query.columns ++ having_columns(query) ++ Query.order_by_expressions(query)
 
   defp having_columns(query),
     do:
