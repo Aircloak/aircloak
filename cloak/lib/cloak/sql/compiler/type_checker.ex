@@ -7,7 +7,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   """
 
   alias Cloak.Sql.{CompilationError, Condition, Expression, Query, Range}
-  alias Cloak.Sql.Compiler.TypeChecker.Type
+  alias Cloak.Sql.Compiler.TypeChecker.{Access, Type}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.DataSource.{Isolators, Shadows}
 
@@ -231,7 +231,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   defp verify_isolator_conditions_are_clear(query) do
     query
-    |> __MODULE__.Access.potential_unclear_isolator_usages()
+    |> Access.potential_unclear_isolator_usages()
     |> Stream.filter(&includes_isolating_column?(&1, query))
     |> Enum.take(1)
     |> case do
@@ -288,7 +288,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # -------------------------------------------------------------------
 
   defp verify_negative_conditions(query) do
-    __MODULE__.Access.negative_conditions(query)
+    query
+    |> Access.negative_conditions()
     |> Stream.reject(fn {query, condition} ->
       case Shadows.safe?(condition, query.data_source) do
         {:ok, result} ->
@@ -341,7 +342,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       |> Enum.count()
 
   defp verify_conditions(query, predicate, action),
-    do: query |> __MODULE__.Access.conditions(predicate) |> Enum.each(action)
+    do: query |> Access.conditions(predicate) |> Enum.each(action)
 
-  defp each_anonymized_subquery(query, function), do: Lens.each(__MODULE__.Access.anonymized_queries(), query, function)
+  defp each_anonymized_subquery(query, function), do: Lens.each(Access.anonymized_queries(), query, function)
 end
