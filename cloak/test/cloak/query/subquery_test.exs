@@ -242,4 +242,18 @@ defmodule Cloak.Query.SubqueryTest do
       rows: [%{row: [:*], occurrences: 100}]
     })
   end
+
+  test "[Issue #3191] grouping by user_id-derived column causes invalid noise layers" do
+    assert_query(
+      """
+        select count(*) from (
+          select user_id, upper(user_id) as uid2 from (
+            select user_id from heights_sq
+          ) t
+          group by 1, 2
+        ) t
+      """,
+      %{rows: [%{row: [100], occurrences: 1}]}
+    )
+  end
 end
