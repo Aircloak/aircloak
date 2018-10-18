@@ -59,15 +59,8 @@ defmodule Air.Service.Token do
   # -------------------------------------------------------------------
 
   defp normalized_max_age(max_age) when is_integer(max_age), do: max_age
-
-  defp normalized_max_age(nil),
-    # default max age is one day
-    do: 60 * 60 * 24
-
-  defp normalized_max_age(:infinity),
-    # Phoenix warns if we're not validating the token age, so we need to pass some integer value.
-    # Therefore, we're simulating infinity by using a ridiculously large value (10,000 years).
-    do: 60 * 60 * 24 * 365 * 10_000
+  defp normalized_max_age(nil), do: _one_day = 60 * 60 * 24
+  defp normalized_max_age(:infinity), do: :infinity
 
   defp api_token_salt do
     Application.get_env(:air, AirWeb.Endpoint) |> Keyword.fetch!(:api_token_salt)
