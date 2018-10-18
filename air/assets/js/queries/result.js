@@ -292,7 +292,7 @@ export class ResultView extends React.Component {
     return (
       <Modal show={this.state.showPermalinks} onHide={() => this.setState({showPermalinks: false})}>
         <Modal.Header>
-          <Modal.Title>Permalinks</Modal.Title>
+          <Modal.Title>Share</Modal.Title>
         </Modal.Header>
 
         <Modal.Body>
@@ -460,7 +460,7 @@ export class ResultView extends React.Component {
   renderOptionMenu() {
     return (
       <div className="options-menu">
-        <a className="btn btn-default btn-xs" onClick={() => this.setState({showPermalinks: true})}>Permalink</a>
+        <a className="btn btn-default btn-xs" onClick={() => this.setState({showPermalinks: true})}>Share</a>
         <a className="btn btn-default btn-xs" href={`/queries/${this.props.result.id}.csv`}>Download as CSV</a>
         <DebugExport id={this.props.result.id} debugModeEnabled={this.props.debugModeEnabled} />
         {this.renderChartButton()}
