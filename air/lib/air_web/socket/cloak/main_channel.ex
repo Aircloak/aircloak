@@ -62,13 +62,18 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   def join("main", cloak_info, socket) do
     Process.flag(:trap_exit, true)
 
+    socket =
+      socket
+      |> assign(:pending_calls, %{})
+      |> assign(:online_since, Timex.now())
+
     cloak = create_cloak(cloak_info, socket)
 
     cloak
     |> Air.Service.Cloak.register(cloak_info.data_sources)
     |> revalidate_views()
 
-    {:ok, %{}, assign(socket, :pending_calls, %{})}
+    {:ok, %{}, socket}
   end
 
   @impl Phoenix.Channel
@@ -253,7 +258,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
       id: socket.assigns.cloak_id,
       name: socket.assigns.name,
       version: socket.assigns.version,
-      online_since: Timex.now(),
+      online_since: socket.assigns.online_since,
       salt_hash: cloak_info.salt_hash
     }
 
