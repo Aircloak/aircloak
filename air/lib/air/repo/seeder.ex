@@ -53,7 +53,7 @@ defmodule Air.Repo.Seeder do
 
   if Mix.env() != :test do
     defp create_admin_token!(admin) do
-      token = Air.Token.create_api_token(admin, :api, "development admin token")
+      token = Air.Service.Token.create_api_token(admin, :api, "development admin token")
       file_name = Path.join(~w(#{Application.app_dir(:air)} priv dev admin_token))
       file_name |> Path.dirname() |> File.mkdir_p!()
       File.write!(file_name, token)
