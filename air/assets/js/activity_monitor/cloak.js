@@ -1,19 +1,17 @@
 // @flow
 
 import React from "react";
+import {Sparklines, SparklinesLine, SparklinesNormalBand} from "react-sparklines";
 
 export type Cloak = {
   id: string,
   name: string,
-  total_memory: number,
-  available_memory: {
-    current: number,
-    last_5_seconds: number,
-    last_1_minute: number,
-    last_5_minutes: number,
-    last_15_minutes: number,
-    last_1_hour: number,
-  },
+  memory: {
+    total: number,
+    currently_in_use: number,
+    in_use_percent: number,
+    readings: [number]
+  }
 };
 
 const toGB = (memoryInKBytes: number) => {
@@ -34,67 +32,34 @@ const toGBstring = (memoryInKBytes: number) => {
   }
 };
 
-const totalMemoryDisplayClasses = (memoryInKBytes) => {
-  const memoryInGB = toGB(memoryInKBytes);
-  if (memoryInGB <= 2) {
+const memoryUtilisationClasses = (memoryUtilisationPercentage) => {
+  if (memoryUtilisationPercentage >= 95) {
     return "label label-danger";
-  } else if (memoryInGB <= 4) {
+  } else if (memoryUtilisationPercentage >= 60) {
     return "label label-warning";
   } else {
     return "label label-success";
   }
 };
 
-const availableMemoryDisplayClasses = (memoryInKBytes) => {
-  const memoryInGB = toGB(memoryInKBytes);
-  if (memoryInGB <= 0.5) {
-    return "label label-danger";
-  } else if (memoryInGB <= 1.5) {
-    return "label label-warning";
-  } else {
-    return "label label-success";
-  }
-};
+const renderCurrentMemoryUtilisation = (memory) =>
+  <td>
+    <span className={memoryUtilisationClasses(memory.in_use_percent)}>
+      {toGBstring(memory.currently_in_use)} / {toGBstring(memory.total)}
+    </span>
+  </td>;
 
-const renderAvailableMemory = (availableMemory) => {
-  if (availableMemory === null) {
-    return (
-      <td>
-        <span className={availableMemoryDisplayClasses(0)}>
-          Uknown
-        </span>
-      </td>
-    );
-  } else {
-    return (
-      <td>
-        <span className={availableMemoryDisplayClasses(availableMemory.last_5_seconds)}>
-          5 sec - {toGBstring(availableMemory.last_5_seconds)}
-        </span>
-        {' '}
-        <span className={availableMemoryDisplayClasses(availableMemory.last_5_minutes)}>
-          5 min - {toGBstring(availableMemory.last_5_minutes)}
-        </span>
-        {' '}
-        <span className={availableMemoryDisplayClasses(availableMemory.last_15_minutes)}>
-          15 min - {toGBstring(availableMemory.last_15_minutes)}
-        </span>
-        {' '}
-        <span className={availableMemoryDisplayClasses(availableMemory.last_1_hour)}>
-          1 hour - {toGBstring(availableMemory.last_1_hour)}
-        </span>
-      </td>
-    );
-  }
-};
+const renderMemoryUtilisationGraph = (readings) =>
+  <td>
+    <Sparklines data={readings} svgHeight={25} svgWidth={190} min={0} max={100}>
+      <SparklinesLine />
+      <SparklinesNormalBand />
+    </Sparklines>
+  </td>;
 
 export const CloakView = (props: Cloak) =>
   <tr>
     <td>{props.name}</td>
-    <td>
-      <span className={totalMemoryDisplayClasses(props.total_memory)}>
-        {toGBstring(props.total_memory)}
-      </span>
-    </td>
-    {renderAvailableMemory(props.available_memory)}
+    {renderCurrentMemoryUtilisation(props.memory)}
+    {renderMemoryUtilisationGraph(props.memory.readings)}
   </tr>;
