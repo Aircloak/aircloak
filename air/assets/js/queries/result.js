@@ -305,7 +305,7 @@ export class ResultView extends React.Component {
           <div className="form-group">
             <label>Private link</label>
             <p className="help-block">
-              This link requires logging in with an Insights Air account to view the query and its results.
+              This link requires logging in with an Insights Air account that is allowed to access this data source.
             </p>
             <input type="email" className="form-control" readOnly="true" value="https://example.org/permalink" />
           </div>
