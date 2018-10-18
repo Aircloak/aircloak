@@ -2,6 +2,7 @@
 
 import React from "react";
 import _ from "lodash";
+import {Modal, Button} from "react-bootstrap";
 
 import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
@@ -56,6 +57,7 @@ type State = {
   rowsToShowCount: number,
   showChart: boolean,
   showChartConfig: boolean,
+  showPermalinks: boolean,
   graphConfig: GraphConfig,
   tableAligner: TableAlignerT,
   availableRows: Row[],
@@ -77,6 +79,7 @@ export class ResultView extends React.Component {
       rowsToShowCount: this.minRowsToShow,
       showChart: false,
       showChartConfig: true,
+      showPermalinks: false,
       graphConfig: new GraphConfig(),
       tableAligner: new TableAligner(this.props.result.rows),
       availableRows: this.props.result.rows,
@@ -98,6 +101,7 @@ export class ResultView extends React.Component {
     this.renderOptionMenu = this.renderOptionMenu.bind(this);
 
     this.conditionallyRenderChart = this.conditionallyRenderChart.bind(this);
+    this.conditionallyRenderPermalinks = this.conditionallyRenderPermalinks.bind(this);
     this.conditionallyRenderChartConfig = this.conditionallyRenderChartConfig.bind(this);
     this.formatValue = this.formatValue.bind(this);
 
@@ -126,6 +130,7 @@ export class ResultView extends React.Component {
   renderShowAll: () => void;
   renderOptionMenu: () => void;
   conditionallyRenderChart: () => void;
+  conditionallyRenderPermalinks: () => void;
   showingAllOfFewRows: () => void;
   showingAllOfManyRows: () => void;
   showingMinimumNumberOfManyRows: () => void;
@@ -283,6 +288,36 @@ export class ResultView extends React.Component {
     }
   }
 
+  conditionallyRenderPermalinks() {
+    return (
+      <Modal show={this.state.showPermalinks} onHide={() => this.setState({showPermalinks: false})}>
+        <Modal.Header>
+          <Modal.Title>Permalinks</Modal.Title>
+        </Modal.Header>
+
+        <Modal.Body>
+          <div className="form-group">
+            <label>Public link</label>
+            <p className="help-block">Anyone with this link will be able to view the query and its results.</p>
+            <input type="email" className="form-control" readOnly="true" value="https://example.org/permalink" />
+          </div>
+
+          <div className="form-group">
+            <label>Private link</label>
+            <p className="help-block">
+              This link requires logging in with an Insights Air account to view the query and its results.
+            </p>
+            <input type="email" className="form-control" readOnly="true" value="https://example.org/permalink" />
+          </div>
+        </Modal.Body>
+
+        <Modal.Footer>
+          <Button onClick={() => this.setState({showPermalinks: false})}>Close</Button>
+        </Modal.Footer>
+      </Modal>
+    );
+  }
+
   conditionallyRenderChartConfig() {
     if (this.state.loadingChunks) {
       return (
@@ -425,6 +460,7 @@ export class ResultView extends React.Component {
   renderOptionMenu() {
     return (
       <div className="options-menu">
+        <a className="btn btn-default btn-xs" onClick={() => this.setState({showPermalinks: true})}>Permalink</a>
         <a className="btn btn-default btn-xs" href={`/queries/${this.props.result.id}.csv`}>Download as CSV</a>
         <DebugExport id={this.props.result.id} debugModeEnabled={this.props.debugModeEnabled} />
         {this.renderChartButton()}
@@ -459,6 +495,7 @@ export class ResultView extends React.Component {
           {this.renderOptionMenu()}
           {this.conditionallyRenderChartConfig()}
           {this.conditionallyRenderChart()}
+          {this.conditionallyRenderPermalinks()}
         </div>
       </div>
     );
