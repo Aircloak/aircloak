@@ -4,6 +4,7 @@ defmodule Air.Service.User do
   alias Air.Repo
   alias Air.Service.{AuditLog, LDAP, Salts}
   alias Air.Schemas.{DataSource, Group, User}
+  alias AirWeb.Endpoint
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
 
@@ -52,7 +53,7 @@ defmodule Air.Service.User do
   @spec reset_password_token(User.t(), change_options) :: String.t()
   def reset_password_token(user, options \\ []) do
     check_ldap!(user, options)
-    Phoenix.Token.sign(AirWeb.Endpoint, Salts.get(:password_reset), user.id)
+    Phoenix.Token.sign(Endpoint, Salts.get(:password_reset), user.id)
   end
 
   @doc "Resets the user's password from the given params. The user is identified by the given reset token."
@@ -61,7 +62,7 @@ defmodule Air.Service.User do
     one_day = :timer.hours(24)
     one_week = 7 * one_day
 
-    with {:ok, user_id} <- Phoenix.Token.verify(AirWeb.Endpoint, Salts.get(:password_reset), token, max_age: one_week) do
+    with {:ok, user_id} <- Phoenix.Token.verify(Endpoint, Salts.get(:password_reset), token, max_age: one_week) do
       Repo.get!(User, user_id)
       |> password_reset_changeset(params)
       |> Repo.update()

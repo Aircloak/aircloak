@@ -11,7 +11,8 @@ defmodule Air.Service.Salts.Test do
 
     test "generates the same salt for the same name" do
       server = start_server()
-      assert Salts.get(server, :api_token) == Salts.get(server, :api_token)
+      salt = Salts.get(server, :api_token)
+      assert Salts.get(server, :api_token) == salt
     end
 
     test "generates different salt for different names" do
