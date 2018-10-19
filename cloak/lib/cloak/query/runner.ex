@@ -35,6 +35,9 @@ defmodule Cloak.Query.Runner do
           :ok | {:error, :too_many_queries}
   def start(query_id, data_source, statement, parameters, views, start_opts \\ []) do
     runner_arg = {query_id, data_source, statement, parameters, views, start_opts}
+
+    # Starting of a query is serialized (queries are started one at a time). This makes it possible to reliably decide
+    # if we can start the new query with respect to max concurrency settings.
     :jobs.run(__MODULE__, fn -> serialized_start_runner(query_id, runner_arg) end)
   end
 
