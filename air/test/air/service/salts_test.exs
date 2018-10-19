@@ -5,22 +5,30 @@ defmodule Air.Service.Salts.Test do
 
   describe ".get" do
     test "raises for unknown name" do
-      assert_raise RuntimeError, fn -> Salts.get(:unknown) end
+      server = start_server()
+      assert_raise RuntimeError, fn -> Salts.get(server, :unknown) end
     end
 
     test "generates the same salt for the same name" do
-      assert Salts.get(:api_token) == Salts.get(:api_token)
+      server = start_server()
+      assert Salts.get(server, :api_token) == Salts.get(server, :api_token)
     end
 
     test "generates different salt for different names" do
-      refute Salts.get(:api_token) == Salts.get(:password_reset)
+      server = start_server()
+      refute Salts.get(server, :api_token) == Salts.get(server, :password_reset)
     end
 
     test "the salts are pesistent" do
-      {:ok, first_instance} = Agent.start_link(fn -> %{} end)
-      {:ok, second_instance} = Agent.start_link(fn -> %{} end)
+      first_instance = start_server()
+      second_instance = start_server()
 
       assert Salts.get(first_instance, :api_token) == Salts.get(second_instance, :api_token)
+    end
+
+    defp start_server() do
+      {:ok, server} = Agent.start_link(fn -> %{} end)
+      server
     end
   end
 end
