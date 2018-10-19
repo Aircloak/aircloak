@@ -48,13 +48,17 @@ defmodule Air.Service.Cloak.Stats.Internal do
 
   @doc "Records cloak memory readings"
   @spec record_memory(state, cloak_id, raw_memory_reading) :: state
-  def record_memory(state, cloak_id, reading),
-    do:
+  def record_memory(state, cloak_id, reading) do
+    if registered?(state, cloak_id) do
       state
       |> update_in([:stats, cloak_id], &update_base_memory_stats(&1, reading))
       |> update_in([:pending_memory_readings], fn pending_memory_readings ->
         Map.update(pending_memory_readings, cloak_id, [reading], &[reading | &1])
       end)
+    else
+      state
+    end
+  end
 
   @doc "Processes and aggregating all memory readings, taking the max memory reading"
   @spec process(state) :: state
@@ -113,4 +117,6 @@ defmodule Air.Service.Cloak.Stats.Internal do
 
     {total, in_use, in_use_percent}
   end
+
+  defp registered?(%{stats: stats}, cloak_id), do: Map.has_key?(stats, cloak_id)
 end

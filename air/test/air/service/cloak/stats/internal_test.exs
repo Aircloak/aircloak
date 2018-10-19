@@ -32,6 +32,11 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
   end
 
   describe "record_memory" do
+    test "does not record anything for unregistered cloaks" do
+      state = Stats.Internal.initial_state()
+      assert state == Stats.Internal.record_memory(state, @cloak_id, memory_reading())
+    end
+
     test "records basic memory stats" do
       state = Stats.Internal.record_memory(initialized_state(), @cloak_id, memory_reading())
 
