@@ -34,7 +34,7 @@ defmodule Cloak.Query.RunnerTest do
       send(runner_pid, {:runner_result, {:error, "query error"}})
       assert_receive {:result, _result}
 
-      Aircloak.AssertionHelper.soon(match?({:ok, _query_id}, start_runner()))
+      assert Aircloak.AssertionHelper.soon(match?({:ok, _query_id}, start_runner()))
     end
 
     test "query count is updated when the query process crashes" do
@@ -45,7 +45,7 @@ defmodule Cloak.Query.RunnerTest do
       Process.exit(runner_pid, :kill)
       assert_receive {:result, _result}
 
-      Aircloak.AssertionHelper.soon(match?({:ok, _query_id}, start_runner()))
+      assert Aircloak.AssertionHelper.soon(match?({:ok, _query_id}, start_runner()))
     end
   end
 
