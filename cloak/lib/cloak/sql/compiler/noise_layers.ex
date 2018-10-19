@@ -492,6 +492,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Query.Lenses.leaf_expressions()
       |> Lens.filter(&match?(%Expression{synthetic?: false, constant?: false, function?: false}, &1))
       |> Lens.to_list(data)
+      |> Enum.map(&%Expression{&1 | user_id?: false})
 
   defp uid_noise_layer(base_column, layer_expression, top_level_uid, extras \\ nil) do
     expressions = [
