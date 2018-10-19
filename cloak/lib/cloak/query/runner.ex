@@ -9,6 +9,8 @@ defmodule Cloak.Query.Runner do
 
   use Parent.GenServer
   require Logger
+  require Aircloak
+  require Aircloak.DeployConfig
   alias Aircloak.ChildSpec
   alias Cloak.{Sql.Query, DataSource, Query.Runner.Engine, ResultSender}
 
@@ -107,12 +109,10 @@ defmodule Cloak.Query.Runner do
   end
 
   defp max_parallel_queries() do
-    {:ok, max_parallel_queries} =
-      with :error <- Application.fetch_env(:cloak, :max_parallel_queries),
-           :error <- Aircloak.DeployConfig.fetch(:cloak, "max_parallel_queries"),
-           do: {:ok, :infinity}
-
-    max_parallel_queries
+    Aircloak.in_env(
+      test: Application.get_env(:cloak, :max_parallel_queries, :infinity),
+      else: Aircloak.DeployConfig.get("max_parallel_queries", :infinity)
+    )
   end
 
   defp runner_spec(query_id, runner_arg) do
