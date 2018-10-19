@@ -83,19 +83,42 @@ defmodule Air.Service.Cloak.Test do
 
   describe "recording memory stats" do
     test "doesn't fail for unregistered cloak" do
-      assert :ok == Cloak.record_memory(%{reading: true})
+      assert :ok == Cloak.record_memory("cloak_id", %{reading: true})
     end
 
     test "records memory for registered cloak" do
-      Cloak.register(TestRepoHelper.cloak_info(), @data_sources)
-      reading = %{reading: true}
-      Cloak.record_memory(reading)
-      assert [%{memory: ^reading}] = Cloak.all_cloak_infos()
+      cloak_info = TestRepoHelper.cloak_info()
+      Cloak.register(cloak_info, @data_sources)
+
+      memory_reading = %{
+        total_memory: 100,
+        available_memory: %{
+          current: 60,
+          last_5_seconds: 60,
+          last_1_minute: 60,
+          last_5_minutes: 60,
+          last_15_minutes: 60,
+          last_1_hour: 60
+        }
+      }
+
+      Cloak.record_memory(cloak_info.id, memory_reading)
+
+      assert [%{memory: recorded_memory}] = Cloak.all_cloak_infos()
+      assert 100 == recorded_memory.total
+      assert 40 == recorded_memory.currently_in_use
+      assert 40 == recorded_memory.in_use_percent
+      assert 40 == List.first(recorded_memory.readings)
     end
 
-    test "has uninitialized memory reading by default" do
+    test "has initialized memory reading by default" do
       Cloak.register(TestRepoHelper.cloak_info(), @data_sources)
-      assert [%{memory: %{}}] = Cloak.all_cloak_infos()
+      assert [%{memory: recorded_memory}] = Cloak.all_cloak_infos()
+      assert 0 == recorded_memory.total
+      assert 0 == recorded_memory.currently_in_use
+      assert 0 == recorded_memory.in_use_percent
+      assert Enum.count(recorded_memory.readings) > 0
+      assert Enum.all?(recorded_memory.readings, &(&1 == 0))
     end
   end
 

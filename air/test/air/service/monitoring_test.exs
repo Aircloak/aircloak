@@ -26,8 +26,20 @@ defmodule Air.Service.Monitoring.Test do
     test "list of cloaks" do
       cloak_info = TestRepoHelper.cloak_info()
       Air.Service.Cloak.register(cloak_info, [%{name: "data_source_name", tables: []}])
-      memory_reading = %{free_memory: 100}
-      Air.Service.Cloak.record_memory(memory_reading)
+
+      memory_reading = %{
+        total_memory: 100,
+        available_memory: %{
+          current: 60,
+          last_5_seconds: 60,
+          last_1_minute: 60,
+          last_5_minutes: 60,
+          last_15_minutes: 60,
+          last_1_hour: 60
+        }
+      }
+
+      Air.Service.Cloak.record_memory(cloak_info.id, memory_reading)
       TestRepoHelper.create_query!(TestRepoHelper.create_user!(), %{cloak_id: cloak_info.id})
 
       cloak_name = cloak_info.name
@@ -45,10 +57,14 @@ defmodule Air.Service.Monitoring.Test do
                    last_1_hour: 1,
                    last_1_day: 1
                  },
-                 memory: ^memory_reading
+                 memory: memory_stats
                }
              ] = Monitoring.assemble_info(in_minutes(20)).cloaks
 
+      assert 100 == memory_stats.total
+      assert 40 == memory_stats.currently_in_use
+      assert 40 == memory_stats.in_use_percent
+      assert 40 == List.first(memory_stats.readings)
       assert uptime >= 20 * @seconds_in_minute
       assert uptime <= 21 * @seconds_in_minute
     end
