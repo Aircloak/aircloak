@@ -17,9 +17,17 @@ defmodule Air.Service.Cloak.Stats do
   @spec record_memory(Internal.cloak_id(), Internal.raw_memory_reading()) :: :ok
   def record_memory(cloak_id, reading), do: GenServer.cast(__MODULE__, {:record_memory, cloak_id, reading})
 
+  @doc "Registers a cloak for stats"
+  @spec register(Internal.cloak_id()) :: :ok
+  def register(cloak_id), do: GenServer.cast(__MODULE__, {:register, cloak_id})
+
   @doc "Returns memory stats for all Cloaks"
   @spec cloak_stats() :: Internal.stats()
   def cloak_stats(), do: GenServer.call(__MODULE__, :stats)
+
+  @doc "Returns memory stats for all Cloaks"
+  @spec cloak_stats(Internal.cloak_id()) :: Internal.memory_stats()
+  def cloak_stats(cloak_id), do: GenServer.call(__MODULE__, {:stats, cloak_id})
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -36,8 +44,16 @@ defmodule Air.Service.Cloak.Stats do
     do: {:noreply, Internal.record_memory(state, cloak_id, memory_reading)}
 
   @impl GenServer
+  def handle_cast({:register, cloak_id}, state),
+    do: {:noreply, Internal.register(state, cloak_id)}
+
+  @impl GenServer
   def handle_call(:stats, _from, state),
     do: {:reply, Internal.cloak_stats(state), state}
+
+  @impl GenServer
+  def handle_call({:stats, cloak_id}, _from, state),
+    do: {:reply, Internal.cloak_stats(state)[cloak_id], state}
 
   @impl GenServer
   def handle_info(:process_stats, state) do

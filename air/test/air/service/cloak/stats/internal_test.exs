@@ -6,19 +6,34 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
 
   @cloak_id "cloak_id"
 
-  describe "record_memory" do
+  describe "register" do
     test "adds cloak to stats" do
-      state = initial_state()
+      state = Stats.Internal.initial_state()
       refute Map.has_key?(state.stats, @cloak_id)
 
       assert state
-             |> Stats.Internal.record_memory(@cloak_id, memory_reading())
+             |> Stats.Internal.register(@cloak_id)
              |> Map.get(:stats)
              |> Map.has_key?(@cloak_id)
     end
 
+    test "adds dummy memory reading history" do
+      assert 360 ==
+               Stats.Internal.initial_state()
+               |> Stats.Internal.register(@cloak_id)
+               |> get_mem_stat(:readings)
+               |> Enum.count()
+
+      assert Stats.Internal.initial_state()
+             |> Stats.Internal.register(@cloak_id)
+             |> get_mem_stat(:readings)
+             |> Enum.all?(&(&1 == 0))
+    end
+  end
+
+  describe "record_memory" do
     test "records basic memory stats" do
-      state = Stats.Internal.record_memory(initial_state(), @cloak_id, memory_reading())
+      state = Stats.Internal.record_memory(initialized_state(), @cloak_id, memory_reading())
 
       assert 100 == get_mem_stat(state, :total)
       assert 60 == get_mem_stat(state, :currently_in_use)
@@ -26,7 +41,7 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
     end
 
     test "updates changes base stats" do
-      state = Stats.Internal.record_memory(initial_state(), @cloak_id, memory_reading())
+      state = Stats.Internal.record_memory(initialized_state(), @cloak_id, memory_reading())
       updated_state = Stats.Internal.record_memory(state, @cloak_id, other_memory_reading())
 
       Enum.each([:total, :currently_in_use, :in_use_percent], fn stat ->
@@ -34,22 +49,9 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
       end)
     end
 
-    test "adds dummy memory reading history" do
-      assert 360 ==
-               initial_state()
-               |> Stats.Internal.record_memory(@cloak_id, memory_reading())
-               |> get_mem_stat(:readings)
-               |> Enum.count()
-
-      assert initial_state()
-             |> Stats.Internal.record_memory(@cloak_id, memory_reading())
-             |> get_mem_stat(:readings)
-             |> Enum.all?(&(&1 == 0))
-    end
-
     test "adds reading to queue for later processing" do
       assert [memory_reading(), memory_reading()] ==
-               initial_state()
+               initialized_state()
                |> Stats.Internal.record_memory(@cloak_id, memory_reading())
                |> Stats.Internal.record_memory(@cloak_id, memory_reading())
                |> get_in([:pending_memory_readings, @cloak_id])
@@ -59,7 +61,7 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
   describe "process" do
     test "noop when no new measurements" do
       state =
-        initial_state()
+        initialized_state()
         |> Stats.Internal.record_memory(@cloak_id, memory_reading())
         |> Stats.Internal.process()
 
@@ -68,7 +70,7 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
 
     test "adds maximum in usage percentage to readings" do
       assert 100 ==
-               initial_state()
+               initialized_state()
                |> Stats.Internal.record_memory(@cloak_id, memory_reading())
                |> Stats.Internal.record_memory(@cloak_id, other_memory_reading())
                |> Stats.Internal.process()
@@ -80,7 +82,9 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
   describe "cloak_stats" do
     test "returns stats for all cloaks" do
       assert ["cloak1", "cloak2"] ==
-               initial_state()
+               Stats.Internal.initial_state()
+               |> Stats.Internal.register("cloak1")
+               |> Stats.Internal.register("cloak2")
                |> Stats.Internal.record_memory("cloak1", memory_reading())
                |> Stats.Internal.record_memory("cloak2", memory_reading())
                |> Stats.Internal.cloak_stats()
@@ -89,7 +93,7 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
 
     test "returns latest memory reading" do
       assert %{@cloak_id => stats} =
-               initial_state()
+               initialized_state()
                |> Stats.Internal.record_memory(@cloak_id, memory_reading())
                |> Stats.Internal.process()
                |> Stats.Internal.cloak_stats()
@@ -99,7 +103,10 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
     end
   end
 
-  defp initial_state(), do: Stats.Internal.initial_state()
+  defp initialized_state(),
+    do:
+      Stats.Internal.initial_state()
+      |> Stats.Internal.register(@cloak_id)
 
   defp get_mem_stat(stats, key) do
     get_in(stats, [:stats, @cloak_id, :memory, key])
