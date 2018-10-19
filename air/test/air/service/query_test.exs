@@ -7,7 +7,7 @@ defmodule Air.Service.QueryTest do
   setup [:sandbox]
 
   describe "create" do
-    setup [:sandbox, :with_user]
+    setup [:with_user]
 
     test "cannot create query for disabled user", %{user: user} do
       assert {:ok, _} = Air.Service.User.disable(user)
@@ -35,7 +35,7 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "get_as_user" do
-    setup [:sandbox, :with_user]
+    setup [:with_user]
 
     test "loads existing queries", %{user: user} do
       query = create_query!(user)
@@ -65,8 +65,6 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "last_for_user" do
-    setup [:sandbox]
-
     test "returns last query the user issued" do
       user = create_user!()
       _previous_one = create_query!(user)
@@ -98,8 +96,6 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "currently_running/0" do
-    setup [:sandbox]
-
     test "returns running queries" do
       user = create_user!()
       query = create_query!(user)
@@ -118,7 +114,7 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "currently_running/2" do
-    setup [:sandbox, :with_user, :with_data_source]
+    setup [:with_user, :with_data_source]
 
     test "returns running queries on the given data source", context do
       query = create_query!(context.user, %{data_source_id: context.data_source.id})
@@ -164,8 +160,6 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "update_state" do
-    setup [:sandbox]
-
     test "changes the query_state" do
       query = create_query!(create_user!(), %{query_state: :started})
 
@@ -206,8 +200,6 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "process_result" do
-    setup [:sandbox]
-
     test "processing a successful result" do
       query = create_query!(create_user!(), %{query_state: :started})
 
@@ -309,8 +301,6 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "query_died" do
-    setup [:sandbox]
-
     test "ignores completed queries" do
       query = create_query!(create_user!(), %{query_state: :completed})
 
@@ -335,8 +325,6 @@ defmodule Air.Service.QueryTest do
   end
 
   describe ".queries" do
-    setup [:sandbox]
-
     test "results are ordered from newest to oldest" do
       query1 = create_query!(create_user!())
       query2 = create_query!(create_user!())
