@@ -113,7 +113,7 @@ defmodule Air.Service.Cloak.Stats.Internal do
   defp base_stats(reading) do
     total = reading.total_memory
     in_use = total - reading.available_memory.current
-    in_use_percent = in_use * 100 / total
+    in_use_percent = round(in_use * 100 / total)
 
     {total, in_use, in_use_percent}
   end
