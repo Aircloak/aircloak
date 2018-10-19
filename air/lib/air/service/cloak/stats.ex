@@ -9,6 +9,8 @@ defmodule Air.Service.Cloak.Stats do
 
   use GenServer
 
+  @reporting_interval :timer.seconds(10)
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -81,7 +83,7 @@ defmodule Air.Service.Cloak.Stats do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp schedule_processing(), do: Process.send_after(self(), :process_stats, :timer.seconds(1))
+  defp schedule_processing(), do: Process.send_after(self(), :process_stats, @reporting_interval)
 
   defp push_updated_cloak_infos(), do: AirWeb.Socket.Frontend.MemoryChannel.broadcast_memory_readings()
 end
