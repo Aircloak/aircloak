@@ -3,7 +3,7 @@ defmodule Cloak.ResultSender do
 
   require Logger
 
-  @type target :: {:process, pid()} | :air_socket
+  @type target :: :air_socket | pid()
   @type query_state ::
           :parsing
           | :compiling
@@ -23,7 +23,7 @@ defmodule Cloak.ResultSender do
   @spec send_state(target(), String.t(), query_state()) :: :ok | {:error, any}
   def send_state(:air_socket, query_id, query_state), do: Elixir.Cloak.AirSocket.send_query_state(query_id, query_state)
 
-  def send_state({:process, pid}, query_id, query_state) do
+  def send_state(pid, query_id, query_state) when is_pid(pid) do
     send(pid, {:state, {query_id, query_state}})
     :ok
   end
@@ -48,17 +48,7 @@ defmodule Cloak.ResultSender do
     end
   end
 
-  def send_result({:process_encoded, pid}, result) do
-    with {:ok, encoded} <- encode_result(result) do
-      send(pid, encoded)
-    else
-      {:error, error} -> send(pid, {:error, error})
-    end
-
-    :ok
-  end
-
-  def send_result({:process, pid}, result) do
+  def send_result(pid, result) when is_pid(pid) do
     send(pid, {:result, result})
     :ok
   end
@@ -92,7 +82,8 @@ defmodule Cloak.ResultSender do
     end
   end
 
-  defp encode_result(result) do
+  @doc false
+  def encode_result(result) do
     {:ok,
      result
      |> Map.take([

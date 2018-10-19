@@ -16,6 +16,8 @@ defmodule Cloak.Query.Runner do
   @runner_registry_name __MODULE__.RunnerRegistry
   @queries_registry_name __MODULE__.QueriesRegistry
 
+  @type start_opts :: [result_target: :air_socket | pid()]
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -27,16 +29,10 @@ defmodule Cloak.Query.Runner do
   is sent to the required destination. If an error occurs, the result will contain
   error information.
   """
-  @spec start(
-          String.t(),
-          DataSource.t(),
-          String.t(),
-          [DataSource.field()],
-          Query.view_map(),
-          ResultSender.target()
-        ) :: :ok | {:error, :too_many_queries}
-  def start(query_id, data_source, statement, parameters, views, result_target \\ :air_socket) do
-    runner_arg = {query_id, data_source, statement, parameters, views, result_target}
+  @spec start(String.t(), DataSource.t(), String.t(), [DataSource.field()], Query.view_map(), start_opts) ::
+          :ok | {:error, :too_many_queries}
+  def start(query_id, data_source, statement, parameters, views, start_opts \\ []) do
+    runner_arg = {query_id, data_source, statement, parameters, views, start_opts}
     :jobs.run(__MODULE__, fn -> serialized_start_runner(query_id, runner_arg) end)
   end
 
@@ -65,7 +61,7 @@ defmodule Cloak.Query.Runner do
   @doc "Executes the query synchronously, and returns its result."
   @spec run_sync(String.t(), DataSource.t(), String.t(), [DataSource.field()], Query.view_map()) :: any
   def run_sync(query_id, data_source, statement, parameters, views) do
-    :ok = start(query_id, data_source, statement, parameters, views, {:process, self()})
+    :ok = start(query_id, data_source, statement, parameters, views, result_target: self())
 
     receive do
       {:result, response} -> response
@@ -140,7 +136,7 @@ defmodule Cloak.Query.Runner do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init({query_id, data_source, statement, parameters, views, result_target}) do
+  def init({query_id, data_source, statement, parameters, views, start_opts}) do
     {:ok, _pid} = Registry.register(@queries_registry_name, :instances, query_id)
     Logger.metadata(query_id: query_id)
     memory_callbacks = Cloak.MemoryReader.query_registering_callbacks()
@@ -154,7 +150,7 @@ defmodule Cloak.Query.Runner do
     {:ok,
      %{
        query_id: query_id,
-       result_target: result_target,
+       result_target: Keyword.get(start_opts, :result_target, :air_socket),
        start_time: :erlang.monotonic_time(:milli_seconds),
        execution_time: nil,
        features: nil,
