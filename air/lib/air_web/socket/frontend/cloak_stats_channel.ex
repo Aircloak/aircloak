@@ -1,4 +1,4 @@
-defmodule AirWeb.Socket.Frontend.MemoryChannel do
+defmodule AirWeb.Socket.Frontend.CloakStatsChannel do
   @moduledoc "Channel used for communicating cloak memory to admin users."
   use Air.Web, :channel
 
@@ -7,10 +7,10 @@ defmodule AirWeb.Socket.Frontend.MemoryChannel do
   # -------------------------------------------------------------------
 
   @doc "Broadcasts the latest cloak memory readings."
-  @spec broadcast_memory_readings() :: :ok
-  def broadcast_memory_readings() do
+  @spec broadcast_cloak_stats() :: :ok
+  def broadcast_cloak_stats() do
     message = %{cloaks: Air.Service.Cloak.all_cloak_infos()}
-    AirWeb.Endpoint.broadcast_from!(self(), "memory_readings", "updated_cloak_infos", message)
+    AirWeb.Endpoint.broadcast_from!(self(), "cloak_stats", "updated_cloak_infos", message)
     :ok
   end
 
@@ -19,7 +19,7 @@ defmodule AirWeb.Socket.Frontend.MemoryChannel do
   # -------------------------------------------------------------------
 
   @doc false
-  def join("memory_readings", _, socket) do
+  def join("cloak_stats", _, socket) do
     user = socket.assigns.user
 
     if Air.Schemas.User.admin?(user) do

@@ -85,5 +85,5 @@ defmodule Air.Service.Cloak.Stats do
 
   defp schedule_processing(), do: Process.send_after(self(), :process_stats, @reporting_interval)
 
-  defp push_updated_cloak_infos(), do: AirWeb.Socket.Frontend.MemoryChannel.broadcast_memory_readings()
+  defp push_updated_cloak_infos(), do: AirWeb.Socket.Frontend.CloakStatsChannel.broadcast_cloak_stats()
 end
