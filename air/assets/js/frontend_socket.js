@@ -32,7 +32,7 @@ export class FrontendSocket {
   }
 
   joinMemoryChannel(callbacks: Callbacks) {
-    return this.joinChannel(callbacks, "memory_readings", ["new_reading"]);
+    return this.joinChannel(callbacks, "memory_readings", ["updated_cloak_infos"]);
   }
 
   joinChannel(callbacks: Callbacks, channelName: string, eventNames: string[]) {

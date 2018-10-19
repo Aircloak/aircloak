@@ -6,11 +6,13 @@ import {Sparklines, SparklinesLine, SparklinesNormalBand} from "react-sparklines
 export type Cloak = {
   id: string,
   name: string,
-  memory: {
-    total: number,
-    currently_in_use: number,
-    in_use_percent: number,
-    readings: [number]
+  stats: {
+    memory: {
+      total: number,
+      currently_in_use: number,
+      in_use_percent: number,
+      readings: [number]
+    }
   }
 };
 
@@ -60,6 +62,6 @@ const renderMemoryUtilisationGraph = (readings) =>
 export const CloakView = (props: Cloak) =>
   <tr>
     <td>{props.name}</td>
-    {renderCurrentMemoryUtilisation(props.memory)}
-    {renderMemoryUtilisationGraph(props.memory.readings)}
+    {renderCurrentMemoryUtilisation(props.stats.memory)}
+    {renderMemoryUtilisationGraph(props.stats.memory.readings)}
   </tr>;

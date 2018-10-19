@@ -41,13 +41,13 @@ export default class ActivityMonitorView extends React.Component {
 
     this.handleQueryEvent = this.handleQueryEvent.bind(this);
     this.handleRemoveQuery = this.handleRemoveQuery.bind(this);
-    this.handleMemoryReading = this.handleMemoryReading.bind(this);
+    this.handleMemoryReadings = this.handleMemoryReadings.bind(this);
 
     this.channel = this.props.frontendSocket.joinAllQueryEventsChannel({
       handleEvent: this.handleQueryEvent,
     });
     this.props.frontendSocket.joinMemoryChannel({
-      handleEvent: this.handleMemoryReading,
+      handleEvent: this.handleMemoryReadings,
     });
   }
 
@@ -60,7 +60,7 @@ export default class ActivityMonitorView extends React.Component {
 
   handleQueryEvent: (queryEvent: QueryEvent) => void;
   handleRemoveQuery: (queryId: string) => void;
-  handleMemoryReading: (cloak: Cloak) => void;
+  handleMemoryReadings: (cloak: Cloak) => void;
 
   handleRemoveQuery(queryId: string) {
     const queries = _.reject(this.state.queries, (query) => query.id === queryId);
@@ -95,11 +95,8 @@ export default class ActivityMonitorView extends React.Component {
     this.setState({queries});
   }
 
-  handleMemoryReading(newOrUpdatedCloak: Cloak) {
-    const cloaks = _.chain([newOrUpdatedCloak, ...this.state.cloaks]).
-      uniqBy((cloak) => cloak.id).
-      sortBy((cloak) => cloak.name).
-      value();
+  handleMemoryReadings(update: {cloaks: Cloak[]}) {
+    const cloaks = _.sortBy(update.cloaks, ["name"]);
     this.setState({cloaks});
   }
 
