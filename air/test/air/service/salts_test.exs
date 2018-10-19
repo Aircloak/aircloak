@@ -1,5 +1,5 @@
 defmodule Air.Service.Salts.Test do
-  use AirWeb.ConnCase
+  use Air.SchemaCase
 
   alias Air.Service.Salts
 

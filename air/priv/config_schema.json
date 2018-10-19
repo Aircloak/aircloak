@@ -37,7 +37,7 @@
       "properties": {
         "auth_secret": {"type": "string", "minLength": 60},
         "endpoint_key_base": {"type": "string", "minLength": 60},
-        "api_token_salt": {"type": "string", "minLength": 60},
+        "api_token_salt": {"type": "string", "$comment": "allowed for backward compatibility"},
         "master_password": {"type": "string", "minLength": 1},
         "certfile": {"type": "string"},
         "keyfile": {"type": "string"},
@@ -46,7 +46,7 @@
         "alternate_aircloak_central": {"type": "string", "$comment": "used to connect to stage central"}
       },
       "additionalProperties": false,
-      "required": ["auth_secret", "endpoint_key_base", "api_token_salt", "master_password"]
+      "required": ["auth_secret", "endpoint_key_base", "master_password"]
     },
 
     "psql_server": {

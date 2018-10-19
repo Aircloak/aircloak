@@ -1,5 +1,5 @@
 defmodule Air.Service.Salts do
-  @known_names ~w[api_token password_reset]a
+  @known_names ~w[api_token password_reset session_signing session_encryption]a
   @salt_size 64
 
   alias Air.Repo
@@ -37,12 +37,11 @@ defmodule Air.Service.Salts do
 
   defp create_salt!(name) do
     %Salt{}
-    |> Ecto.Changeset.change(%{
-      name: to_string(name),
-      value: :crypto.strong_rand_bytes(@salt_size) |> Base.encode64()
-    })
+    |> Ecto.Changeset.change(%{name: to_string(name), value: random_string()})
     |> Repo.insert!()
   end
+
+  defp random_string(), do: :crypto.strong_rand_bytes(@salt_size) |> Base.encode64()
 
   def child_spec(_arg), do: Aircloak.ChildSpec.agent(fn -> %{} end, name: __MODULE__)
 end
