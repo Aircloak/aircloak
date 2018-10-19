@@ -104,9 +104,20 @@ defmodule Air.Service.Query do
     |> Repo.preload([:groups])
     |> query_scope()
     |> get(id)
+  end
+
+  @doc """
+  Returns the query with the given id, without associations preloaded. In most cases `get_as_user` should be used
+  instead as it enforces access rules. The client of this function is responsible for enforcing any such rules.
+  """
+  @spec get(Ecto.Queryable.t(), query_id) :: {:ok, Query.t()} | {:error, :not_found | :invalid_id}
+  def get(scope \\ Query, id) do
+    case Repo.get(scope, id) do
+      nil -> {:error, :not_found}
+      query -> {:ok, query}
+    end
   rescue
-    Ecto.Query.CastError ->
-      {:error, :invalid_id}
+    Ecto.Query.CastError -> {:error, :invalid_id}
   end
 
   @doc """
@@ -284,13 +295,6 @@ defmodule Air.Service.Query do
   defp error_text(%{error: error}) when is_binary(error), do: error
   defp error_text(%{cancelled: true}), do: "Cancelled."
   defp error_text(_), do: nil
-
-  defp get(scope \\ Query, id) do
-    case Repo.get(scope, id) do
-      nil -> {:error, :not_found}
-      query -> {:ok, query}
-    end
-  end
 
   defp log_result_error(query, result) do
     if result[:error],

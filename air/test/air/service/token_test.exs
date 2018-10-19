@@ -46,5 +46,39 @@ defmodule Air.Service.Token.Test do
     end
   end
 
+  describe "query_from_token" do
+    test "the user is ignored for public tokens" do
+      query = create_query!(create_user!())
+      token = Token.public_query_token(query)
+
+      query_id = query.id
+      assert {:ok, %{id: ^query_id}} = Token.query_from_token(nil, token)
+    end
+
+    test "the query is not returned if there is no user for private tokens" do
+      query = create_query!(create_user!())
+      token = Token.private_query_token(query)
+
+      assert :error = Token.query_from_token(nil, token)
+    end
+
+    test "the query is not returned if the user doesn't have access to the data source for private tokens" do
+      query = create_query!(create_user!())
+      token = Token.private_query_token(query)
+
+      assert :error = Token.query_from_token(create_user!(), token)
+    end
+
+    test "the query is returned if the user has access to the data source for private tokens" do
+      query = create_query!(create_user!()) |> Air.Repo.preload(:data_source)
+      token = Token.private_query_token(query)
+      group = create_group!(%{data_sources: [query.data_source_id]})
+      user = create_user!(%{groups: [group.id]})
+
+      query_id = query.id
+      assert {:ok, %{id: ^query_id}} = Token.query_from_token(user, token)
+    end
+  end
+
   def create_user(context), do: {:ok, Map.put(context, :user, create_user!())}
 end

@@ -64,6 +64,22 @@ defmodule Air.Service.QueryTest do
     end
   end
 
+  describe "get" do
+    test "loads existing queries" do
+      query = create_query!(create_user!())
+      query_id = query.id
+      assert {:ok, %Air.Schemas.Query{id: ^query_id}} = Query.get(query_id)
+    end
+
+    test "when the ID is garbage" do
+      assert {:error, :invalid_id} == Query.get("missing")
+    end
+
+    test "of non-existent query" do
+      assert {:error, :not_found} == Query.get(Ecto.UUID.generate())
+    end
+  end
+
   describe "last_for_user" do
     test "returns last query the user issued" do
       user = create_user!()
