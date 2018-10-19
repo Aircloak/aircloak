@@ -34,11 +34,10 @@ defmodule Cloak.Query.Runner do
           [DataSource.field()],
           Query.view_map(),
           ResultSender.target()
-        ) :: :ok
+        ) :: :ok | {:error, :too_many_queries}
   def start(query_id, data_source, statement, parameters, views, result_target \\ :air_socket) do
     runner_arg = {query_id, data_source, statement, parameters, views, result_target}
-    {:ok, _} = start_runner(query_id, runner_arg)
-    :ok
+    :jobs.run(__MODULE__, fn -> serialized_start_runner(query_id, runner_arg) end)
   end
 
   @spec stop(String.t() | pid, :cancelled | :oom) :: :ok
@@ -66,7 +65,7 @@ defmodule Cloak.Query.Runner do
   @doc "Executes the query synchronously, and returns its result."
   @spec run_sync(String.t(), DataSource.t(), String.t(), [DataSource.field()], Query.view_map()) :: any
   def run_sync(query_id, data_source, statement, parameters, views) do
-    start(query_id, data_source, statement, parameters, views, {:process, self()})
+    :ok = start(query_id, data_source, statement, parameters, views, {:process, self()})
 
     receive do
       {:result, response} -> response
@@ -99,8 +98,22 @@ defmodule Cloak.Query.Runner do
          do: :jobs.add_queue(__MODULE__, max_time: :timer.minutes(1), regulators: [counter: [limit: 1]])
   end
 
-  defp start_runner(query_id, runner_arg) do
-    :jobs.run(__MODULE__, fn -> DynamicSupervisor.start_child(@supervisor_name, runner_spec(query_id, runner_arg)) end)
+  defp serialized_start_runner(query_id, runner_arg) do
+    if Registry.count(@runner_registry_name) < max_parallel_queries() do
+      {:ok, _pid} = DynamicSupervisor.start_child(@supervisor_name, runner_spec(query_id, runner_arg))
+      :ok
+    else
+      {:error, :too_many_queries}
+    end
+  end
+
+  defp max_parallel_queries() do
+    {:ok, max_parallel_queries} =
+      with :error <- Application.fetch_env(:cloak, :max_parallel_queries),
+           :error <- Aircloak.DeployConfig.fetch(:cloak, "max_parallel_queries"),
+           do: {:ok, :infinity}
+
+    max_parallel_queries
   end
 
   defp runner_spec(query_id, runner_arg) do

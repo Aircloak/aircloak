@@ -16,6 +16,7 @@
     "concurrency": {"type": "integer", "minimum": 0},
     "lcf_buckets_aggregation_limit": {"type": "integer", "minimum": 0},
     "sanitize_otp_errors": {"type": "boolean"},
+    "max_parallel_queries": {"type": "integer", "minimum": 1},
     "memory_limits": {
       "type": "object",
       "properties": {
