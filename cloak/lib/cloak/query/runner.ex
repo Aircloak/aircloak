@@ -89,9 +89,12 @@ defmodule Cloak.Query.Runner do
   # Server starting
   # -------------------------------------------------------------------
 
-  defp setup_queue() do
+  @doc false
+  def setup_queue() do
     with :undefined <- :jobs.queue_info(__MODULE__),
          do: :jobs.add_queue(__MODULE__, max_time: :timer.minutes(1), regulators: [counter: [limit: 1]])
+
+    :proc_lib.init_ack({:ok, self()})
   end
 
   defp serialized_start_runner(query_id, runner_arg) do
@@ -352,10 +355,9 @@ defmodule Cloak.Query.Runner do
 
   @doc false
   def child_spec(_arg) do
-    setup_queue()
-
     ChildSpec.supervisor(
       [
+        setup_queue_spec(),
         ChildSpec.registry(:unique, @runner_registry_name),
         ChildSpec.registry(:duplicate, @queries_registry_name),
         ChildSpec.dynamic_supervisor(name: @supervisor_name)
@@ -363,5 +365,14 @@ defmodule Cloak.Query.Runner do
       strategy: :rest_for_one,
       name: __MODULE__
     )
+  end
+
+  defp setup_queue_spec() do
+    %{
+      id: :setup_queue,
+      # using :proc_lib ensures that the supervisor will start the next child only after the queue has been setup
+      start: {:proc_lib, :start_link, [__MODULE__, :setup_queue, []]},
+      restart: :transient
+    }
   end
 end
