@@ -46,6 +46,14 @@ defmodule Air.Service.Cloak.Stats.Internal do
   def register(%{stats: stats} = state, cloak_id),
     do: %{state | stats: Map.put(stats, cloak_id, initial_memory_stats())}
 
+  @doc "Removes a cloak from internal state"
+  @spec unregister(state, cloak_id) :: state
+  def unregister(state, cloak_id) do
+    state
+    |> update_in([:stats], &Map.delete(&1, cloak_id))
+    |> update_in([:pending_memory_readings], &Map.delete(&1, cloak_id))
+  end
+
   @doc "Records cloak memory readings"
   @spec record_memory(state, cloak_id, raw_memory_reading) :: state
   def record_memory(state, cloak_id, reading) do

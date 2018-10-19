@@ -31,6 +31,24 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
     end
   end
 
+  describe "unregister" do
+    test "removes cloak from stats" do
+      refute initialized_state()
+             |> Stats.Internal.unregister(@cloak_id)
+             |> Stats.Internal.cloak_stats()
+             |> Map.keys()
+             |> Enum.member?(@cloak_id)
+    end
+
+    test "removes pending data from state too" do
+      assert initialized_state()
+             |> Stats.Internal.record_memory(@cloak_id, memory_reading())
+             |> Stats.Internal.unregister(@cloak_id)
+             |> get_in([:pending_memory_readings, @cloak_id])
+             |> is_nil()
+    end
+  end
+
   describe "record_memory" do
     test "does not record anything for unregistered cloaks" do
       state = Stats.Internal.initial_state()
