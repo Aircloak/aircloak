@@ -7,9 +7,10 @@ defmodule AirWeb.Socket.Frontend.MemoryChannel do
   # -------------------------------------------------------------------
 
   @doc "Broadcasts the latest cloak memory readings."
-  @spec broadcast_memory_reading(Map.t()) :: :ok
-  def broadcast_memory_reading(cloak_info) do
-    AirWeb.Endpoint.broadcast_from!(self(), "memory_readings", "new_reading", cloak_info)
+  @spec broadcast_memory_readings() :: :ok
+  def broadcast_memory_readings() do
+    message = %{cloaks: Air.Service.Cloak.all_cloak_infos()}
+    AirWeb.Endpoint.broadcast_from!(self(), "memory_readings", "updated_cloak_infos", message)
     :ok
   end
 

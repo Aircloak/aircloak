@@ -58,8 +58,8 @@ defmodule Air.Service.Cloak.Stats do
   @impl GenServer
   def handle_info(:process_stats, state) do
     schedule_processing()
-    processed_state = Internal.process(state)
-    {:noreply, processed_state}
+    Task.start(&push_updated_cloak_infos/0)
+    {:noreply, Internal.process(state)}
   end
 
   # -------------------------------------------------------------------
@@ -67,4 +67,6 @@ defmodule Air.Service.Cloak.Stats do
   # -------------------------------------------------------------------
 
   defp schedule_processing(), do: Process.send_after(self(), :process_stats, :timer.seconds(1))
+
+  defp push_updated_cloak_infos(), do: AirWeb.Socket.Frontend.MemoryChannel.broadcast_memory_readings()
 end
