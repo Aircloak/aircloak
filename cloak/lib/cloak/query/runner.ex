@@ -143,7 +143,7 @@ defmodule Cloak.Query.Runner do
 
     Parent.GenServer.start_child(%{
       id: :query_execution,
-      start: fn -> start_query(query_id, data_source, statement, parameters, views, memory_callbacks) end,
+      start: fn -> start_query(query_id, data_source, statement, parameters, views, memory_callbacks, start_opts) end,
       shutdown: :brutal_kill
     })
 
@@ -234,18 +234,22 @@ defmodule Cloak.Query.Runner do
   # Query running
   # -------------------------------------------------------------------
 
-  defp start_query(query_id, data_source, statement, parameters, views, memory_callbacks) do
+  defp start_query(query_id, data_source, statement, parameters, views, memory_callbacks, start_opts) do
     parent = self()
-    Task.start_link(fn -> run_query(query_id, parent, data_source, statement, parameters, views, memory_callbacks) end)
+
+    Task.start_link(fn ->
+      run_query(query_id, parent, data_source, statement, parameters, views, memory_callbacks, start_opts)
+    end)
   end
 
-  defp run_query(query_id, owner, data_source, statement, parameters, views, memory_callbacks) do
+  defp run_query(query_id, owner, data_source, statement, parameters, views, memory_callbacks, start_opts) do
     Logger.metadata(query_id: query_id)
     Logger.debug(fn -> "Running statement `#{statement}` ..." end)
 
     state_updater = &send(owner, {:send_state, query_id, &1})
     feature_updater = &send(owner, {:features, &1})
-    result = Engine.run(data_source, statement, parameters, views, state_updater, feature_updater, memory_callbacks)
+    runner_fun = Keyword.get(start_opts, :runner_fun, &Engine.run/7)
+    result = runner_fun.(data_source, statement, parameters, views, state_updater, feature_updater, memory_callbacks)
     send(owner, {:query_result, result})
   end
 
@@ -356,7 +360,8 @@ defmodule Cloak.Query.Runner do
         ChildSpec.registry(:duplicate, @queries_registry_name),
         ChildSpec.dynamic_supervisor(name: @supervisor_name)
       ],
-      strategy: :rest_for_one
+      strategy: :rest_for_one,
+      name: __MODULE__
     )
   end
 end
