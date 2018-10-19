@@ -51,7 +51,7 @@ defmodule Air.Service.DataSource do
   @spec all() :: [DataSource.t()]
   def all(), do: DataSource |> not_pending_delete() |> Repo.all() |> Repo.preload([:groups])
 
-  @doc "Returns all data non-deleted sources belonging to the given user."
+  @doc "Returns all non-deleted data sources belonging to the given user."
   @spec for_user(User.t()) :: [DataSource.t()]
   def for_user(user), do: users_data_sources(user) |> not_pending_delete() |> Repo.all()
 
