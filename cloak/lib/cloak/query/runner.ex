@@ -37,7 +37,7 @@ defmodule Cloak.Query.Runner do
         ) :: :ok
   def start(query_id, data_source, statement, parameters, views, result_target \\ :air_socket) do
     runner_arg = {query_id, data_source, statement, parameters, views, result_target}
-    {:ok, _} = DynamicSupervisor.start_child(@supervisor_name, runner_spec(query_id, runner_arg))
+    {:ok, _} = start_runner(query_id, runner_arg)
     :ok
   end
 
@@ -88,6 +88,38 @@ defmodule Cloak.Query.Runner do
       [{pid, _}] -> send(pid, {:send_log_entry, level, message, timestamp, metadata})
       _ -> :ok
     end
+  end
+
+  # -------------------------------------------------------------------
+  # Server starting
+  # -------------------------------------------------------------------
+
+  defp setup_queue() do
+    with :undefined <- :jobs.queue_info(__MODULE__),
+         do: :jobs.add_queue(__MODULE__, max_time: :timer.minutes(1), regulators: [counter: [limit: 1]])
+  end
+
+  defp start_runner(query_id, runner_arg) do
+    :jobs.run(__MODULE__, fn -> DynamicSupervisor.start_child(@supervisor_name, runner_spec(query_id, runner_arg)) end)
+  end
+
+  defp runner_spec(query_id, runner_arg) do
+    %{
+      id: __MODULE__,
+      start: {Parent.GenServer, :start_link, [__MODULE__, runner_arg, [name: worker_name(query_id)]]},
+      restart: :temporary
+    }
+  end
+
+  @doc false
+  def worker_name(query_id) do
+    import Aircloak, only: [in_env: 1, unused: 2]
+    unused(query_id, in: [:test])
+
+    in_env(
+      test: {:via, Registry, {@runner_registry_name, :erlang.unique_integer()}},
+      else: {:via, Registry, {@runner_registry_name, query_id}}
+    )
   end
 
   # -------------------------------------------------------------------
@@ -307,6 +339,8 @@ defmodule Cloak.Query.Runner do
 
   @doc false
   def child_spec(_arg) do
+    setup_queue()
+
     ChildSpec.supervisor(
       [
         ChildSpec.registry(:unique, @runner_registry_name),
@@ -314,27 +348,6 @@ defmodule Cloak.Query.Runner do
         ChildSpec.dynamic_supervisor(name: @supervisor_name)
       ],
       strategy: :rest_for_one
-    )
-  end
-
-  defp runner_spec(query_id, runner_arg),
-    do: %{id: __MODULE__, start: {__MODULE__, :start_runner, [query_id, runner_arg]}, restart: :temporary}
-
-  @doc false
-  def start_runner(query_id, runner_arg),
-    do: Parent.GenServer.start_link(__MODULE__, runner_arg, name: worker_name(query_id))
-
-  # -------------------------------------------------------------------
-  # Test support
-  # -------------------------------------------------------------------
-
-  def worker_name(query_id) do
-    import Aircloak, only: [in_env: 1, unused: 2]
-    unused(query_id, in: [:test])
-
-    in_env(
-      test: {:via, Registry, {@runner_registry_name, :erlang.unique_integer()}},
-      else: {:via, Registry, {@runner_registry_name, query_id}}
     )
   end
 end
