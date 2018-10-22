@@ -10,6 +10,7 @@ Air.Repo.delete_all(Air.Schemas.ResultChunk)
 Air.Repo.delete_all(Air.Schemas.Query)
 Air.Repo.delete_all(Air.Schemas.DataSource)
 Air.Repo.delete_all(Air.Schemas.AuditLog)
+Air.Repo.delete_all(Air.Schemas.License)
 
 Ecto.Adapters.SQL.Sandbox.mode(Air.Repo, :manual)
 

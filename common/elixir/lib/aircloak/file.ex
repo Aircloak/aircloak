@@ -23,12 +23,24 @@ defmodule Aircloak.File do
           )
       )
 
-  @doc "Reads a file from the configuration folder for a given application"
+  @doc "Reads and parses a file as JSON from the configuration folder for a given application"
   @spec read_config_file(atom, String.t()) :: {:ok, Map.t()} | {:error, String.t() | atom}
   def read_config_file(app, path_segment) do
+    case read(app, path_segment) do
+      {:error, _} = error -> error
+      content -> Aircloak.Json.safe_decode(content)
+    end
+  end
+
+  @doc "Reads a file from the current applications config directory"
+  defmacro read(path_segment),
+    do: quote(do: unquote(__MODULE__).read(unquote(Mix.Project.config()[:app]), unquote(path_segment)))
+
+  @doc "Reads a file from the configuration folder for a given application"
+  @spec read(atom, String.t()) :: {:ok, binary()} | {:error, String.t() | atom}
+  def read(app, path_segment) do
     config_path(app, path_segment)
     |> File.read!()
-    |> Aircloak.Json.safe_decode()
   rescue
     error in File.Error ->
       {:error, error.reason}
