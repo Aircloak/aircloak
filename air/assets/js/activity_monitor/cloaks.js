@@ -30,6 +30,7 @@ export const CloaksView = (props: {cloaks: Cloak[]}) =>
           <th>Name</th>
           <th>Current memory</th>
           <th>% memory usage over time</th>
+          <th># queries over time</th>
         </tr>
       </thead>
       <tbody>
