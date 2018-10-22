@@ -9,8 +9,8 @@ defmodule Air do
   # -------------------------------------------------------------------
 
   @doc "Returns the site setting from the current deployment configuration (config.json)."
-  @spec site_setting(any) :: any
-  def site_setting(name), do: Map.fetch!(Aircloak.DeployConfig.fetch!("site"), name)
+  @spec site_setting!(any) :: any
+  def site_setting!(name), do: Map.fetch!(Aircloak.DeployConfig.fetch!("site"), name)
 
   @doc "Returns the name of this air instance"
   @spec instance_name() :: String.t()
@@ -54,7 +54,7 @@ defmodule Air do
     Air.Utils.update_app_env(
       :air,
       Air.Guardian,
-      &[{:secret_key, site_setting("auth_secret")} | &1]
+      &[{:secret_key, site_setting!("auth_secret")} | &1]
     )
 
     Air.Utils.update_app_env(
@@ -62,8 +62,8 @@ defmodule Air do
       AirWeb.Endpoint,
       &Keyword.merge(
         &1,
-        secret_key_base: site_setting("endpoint_key_base"),
-        api_token_salt: site_setting("api_token_salt"),
+        secret_key_base: site_setting!("endpoint_key_base"),
+        api_token_salt: site_setting!("api_token_salt"),
         https: https_config(Keyword.get(&1, :https, []))
       )
     )

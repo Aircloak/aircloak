@@ -114,7 +114,7 @@ defmodule Air.Service.User do
   def create_onboarding_admin_user(params) do
     changeset = user_changeset(%User{}, params)
 
-    if params["master_password"] == Air.site_setting("master_password") do
+    if params["master_password"] == Air.site_setting!("master_password") do
       group = get_admin_group()
 
       changeset =
