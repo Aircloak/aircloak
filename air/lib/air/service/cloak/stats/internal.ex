@@ -16,7 +16,7 @@ defmodule Air.Service.Cloak.Stats.Internal do
             last_1_hour: number
           }
         }
-  @type memory_stats :: %{
+  @type stats :: %{
           memory: %{
             total: number,
             currently_in_use: number,
@@ -24,9 +24,9 @@ defmodule Air.Service.Cloak.Stats.Internal do
             readings: [number]
           }
         }
-  @type stats :: %{cloak_id => memory_stats}
+  @type cloak_stats :: %{cloak_id => stats}
   @type state :: %{
-          stats: %{cloak_id => memory_stats},
+          stats: cloak_stats,
           pending_memory_readings: %{cloak_id => [raw_memory_reading]}
         }
 
@@ -92,7 +92,7 @@ defmodule Air.Service.Cloak.Stats.Internal do
   end
 
   @doc "Returns stats for all the cloaks"
-  @spec cloak_stats(state) :: stats
+  @spec cloak_stats(state) :: cloak_stats
   def cloak_stats(%{stats: stats}), do: stats
 
   # -------------------------------------------------------------------

@@ -24,11 +24,11 @@ defmodule Air.Service.Cloak.Stats do
   def register(cloak_id), do: GenServer.cast(__MODULE__, {:register, cloak_id, self()})
 
   @doc "Returns memory stats for all Cloaks"
-  @spec cloak_stats() :: Internal.stats()
+  @spec cloak_stats() :: Internal.cloak_stats()
   def cloak_stats(), do: GenServer.call(__MODULE__, :stats)
 
   @doc "Returns memory stats for all Cloaks"
-  @spec cloak_stats(Internal.cloak_id()) :: Internal.memory_stats()
+  @spec cloak_stats(Internal.cloak_id()) :: Internal.stats()
   def cloak_stats(cloak_id), do: GenServer.call(__MODULE__, {:stats, cloak_id})
 
   # -------------------------------------------------------------------
