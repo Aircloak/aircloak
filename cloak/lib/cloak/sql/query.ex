@@ -397,6 +397,7 @@ defmodule Cloak.Sql.Query do
       emulated_where(query),
       query.having,
       order_by_expressions(query),
+      query.aggregators,
       Compiler.NoiseLayers.noise_layer_columns(query)
     ]
 

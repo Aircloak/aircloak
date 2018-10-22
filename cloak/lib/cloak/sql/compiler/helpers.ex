@@ -117,6 +117,10 @@ defmodule Cloak.Sql.Compiler.Helpers do
       "To fix this error, add #{possible_uid_columns} to the subquery select list."
   end
 
+  @doc "Returns the list of expressions from a query that can contain aggregating clauses."
+  @spec aggregator_sources(Query.t()) :: [Expression.t()]
+  def aggregator_sources(query), do: query.columns ++ having_columns(query) ++ Query.order_by_expressions(query)
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -131,4 +135,10 @@ defmodule Cloak.Sql.Compiler.Helpers do
        do: true
 
   defp any_outer_join?({:join, join}), do: any_outer_join?(join.lhs) || any_outer_join?(join.rhs)
+
+  defp having_columns(query),
+    do:
+      Query.Lenses.conditions()
+      |> Query.Lenses.operands()
+      |> Lens.to_list(query.having)
 end

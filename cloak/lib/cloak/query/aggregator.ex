@@ -300,7 +300,7 @@ defmodule Cloak.Query.Aggregator do
         |> Stream.map(fn {_user, row_values} -> Enum.at(row_values, values_index) end)
         |> Enum.reject(&is_nil/1)
         |> preprocess_for_aggregation(aggregator)
-        |> aggregate_by(aggregator.function, aggregator.type, anonymizer)
+        |> aggregate_by(aggregator.alias || aggregator.function, aggregator.type, anonymizer)
       end)
 
     users_count = Anonymizer.noisy_count(anonymizer, Enum.count(users_rows))
@@ -407,6 +407,7 @@ defmodule Cloak.Query.Aggregator do
       aggregated_values =
         Enum.map(query.aggregators, fn
           %Expression{function: "count"} -> 0
+          %Expression{alias: "count", function: "sum"} -> 0
           %Expression{} -> nil
         end)
 

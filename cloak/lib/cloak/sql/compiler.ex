@@ -40,6 +40,7 @@ defmodule Cloak.Sql.Compiler do
     |> Compiler.Optimizer.optimize()
     |> Compiler.Normalization.simplify_constants()
     |> Compiler.Execution.prepare()
+    |> Compiler.Optimizer.optimize_per_user_aggregation()
     |> Compiler.Normalization.normalize()
     |> Compiler.NoiseLayers.compile()
   end

@@ -27,6 +27,7 @@ defmodule Cloak.Sql.Query.Lenses do
       Lens.key(:order_by) |> Lens.all() |> Lens.at(0),
       filters_operands() |> Lens.reject(& &1.synthetic?)
     ])
+    |> Lens.reject(& &1.synthetic?)
   end
 
   @doc "Lens focusing on all terminal elements in a list of conditions."
