@@ -8,6 +8,8 @@
 
 ### Changes
 
+- The format in which cloak memory is reported has changed
+
 ## Version 18.4.0
 
 ### Features
