@@ -1,8 +1,8 @@
 defmodule Air.Service.Salts do
   @moduledoc """
-  This module manages lazily-generated salt values to be used for various cryptographic needs. The values are stored in
-  the database and cached in-memory. Thanks to generating these in a deployed instance we avoid keeping the values in
-  our codebase and/or requiring additional configuration options. It also makes it extremely easy to add a new salt.
+  This module manages generated salt values to be used for various cryptographic needs. The values are stored in the
+  database and cached in-memory. Thanks to generating these in a deployed instance we avoid keeping the values in our
+  codebase and/or requiring additional configuration options. It also makes it extremely easy to add a new salt.
   """
 
   @known_names ~w[api_token password_reset session_signing session_encryption]a
@@ -11,7 +11,6 @@ defmodule Air.Service.Salts do
   alias Air.Repo
   alias Air.Schemas.Salt
   import Ecto.Query
-  import Aircloak, only: [in_env: 1]
 
   # -------------------------------------------------------------------
   # API functions
@@ -21,32 +20,27 @@ defmodule Air.Service.Salts do
   Returns the named salt. The name is checked against a list of registered names. This is done in order to avoid typos
   in matching calls such as `Phoenix.Token.sign`/`Phoenix.Token.verify`.
   """
-  @spec get(Agent.agent(), atom()) :: String.t()
-  def get(server \\ __MODULE__, name) do
-    unless name in @known_names do
-      raise "Unknown salt"
+  @spec get(atom()) :: String.t()
+  def get(name) do
+    case Application.get_env(:air, __MODULE__) |> Map.fetch(name) do
+      :error -> raise "Unknown salt"
+      {:ok, result} -> result
     end
-
-    in_env(test: get_test(server, name), else: do_get(server, name))
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp do_get(server, name) do
-    Agent.get_and_update(server, &fetch_from_cache(&1, name))
-  end
+  def setup_salts() do
+    salts =
+      @known_names
+      |> Enum.map(&{&1, fetch_from_db(&1)})
+      |> Enum.into(%{})
 
-  defp fetch_from_cache(cache, name) do
-    Map.get_and_update(cache, name, fn
-      nil ->
-        salt = fetch_from_db(name)
-        {salt, salt}
+    Application.put_env(:air, __MODULE__, salts)
 
-      salt ->
-        {salt, salt}
-    end)
+    :proc_lib.init_ack({:ok, self()})
   end
 
   defp fetch_from_db(name) do
@@ -67,14 +61,16 @@ defmodule Air.Service.Salts do
 
   defp random_string(), do: :crypto.strong_rand_bytes(@salt_size) |> Base.encode64()
 
-  if Mix.env() == :test do
-    defp get_test(__MODULE__, name), do: to_string(name)
-    defp get_test(server, name), do: do_get(server, name)
-  end
-
   # -------------------------------------------------------------------
   # Supervision tree
   # -------------------------------------------------------------------
 
-  def child_spec(_arg), do: Aircloak.ChildSpec.agent(fn -> %{} end, name: __MODULE__)
+  def child_spec(_arg) do
+    %{
+      id: __MODULE__,
+      # using :proc_lib ensures that the supervisor will start the next child only after the salts have been setup
+      start: {:proc_lib, :start_link, [__MODULE__, :setup_salts, []]},
+      restart: :transient
+    }
+  end
 end
