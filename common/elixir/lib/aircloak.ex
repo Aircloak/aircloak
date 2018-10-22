@@ -57,7 +57,7 @@ defmodule Aircloak do
   @doc "Recursively atomizes the keys in a map, leaving values untouched."
   @spec atomize_keys(Map.t()) :: Map.t()
   def atomize_keys(%{} = map) do
-    for {key, value} <- map, into: %{}, do: {String.to_atom(key), atomize_keys(value)}
+    for {key, value} <- map, into: %{}, do: {atomize_key(key), atomize_keys(value)}
   end
 
   def atomize_keys(list) when is_list(list) do
@@ -158,6 +158,13 @@ defmodule Aircloak do
     {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
     stacktrace
   end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp atomize_key(key) when is_binary(key), do: String.to_atom(key)
+  defp atomize_key(key), do: key
 
   # -------------------------------------------------------------------
   # Application callbacks

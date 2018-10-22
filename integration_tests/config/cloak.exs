@@ -58,6 +58,8 @@ config :cloak, :data_source,
 
 config :cloak, :flush_query_log_timeout, 0
 
+config :cloak, :connect_retries, 1
+
 config :logger,
   level: :debug,
   backends: [Cloak.Query.LogCollector],

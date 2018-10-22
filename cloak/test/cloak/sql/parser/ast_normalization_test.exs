@@ -1,5 +1,5 @@
-defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
-  alias Cloak.Sql.{Compiler.ASTNormalization, Parser}
+defmodule Cloak.Sql.Parser.ASTNormalization.Test do
+  alias Cloak.Sql.Parser
   alias Cloak.Test.QueryHelpers
 
   use ExUnit.Case, async: true
@@ -9,53 +9,12 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
       parsed =
         to_normalize
         |> Parser.parse!()
-        |> ASTNormalization.normalize()
         |> QueryHelpers.scrub_locations()
 
-      expected = expected |> Parser.parse!() |> QueryHelpers.scrub_locations()
+      expected = with {:ok, ast} <- Parser.Internal.parse(expected), do: QueryHelpers.scrub_locations(ast)
 
       assert parsed == expected
     end
-  end
-
-  describe "rewriting distinct" do
-    test "distinct without group by",
-      do:
-        assert_equivalent(
-          "SELECT COUNT(*) FROM (SELECT DISTINCT a, b, c FROM table) x",
-          "SELECT COUNT(*) FROM (SELECT a, b, c FROM table GROUP BY 1, 2, 3) x"
-        )
-
-    test "distinct with group by",
-      do:
-        assert_equivalent(
-          """
-            SELECT COUNT(*) FROM (
-              SELECT DISTINCT a, b + d, c FROM table GROUP BY b
-            ) x
-          """,
-          """
-              SELECT COUNT(*) FROM (
-                SELECT * FROM (
-                  SELECT a, b + d, c FROM table GROUP BY b
-                ) __ac_distinct GROUP BY 1, 2, 3
-              ) x
-          """
-        )
-
-    test "distinct with aggregators",
-      do:
-        assert_equivalent(
-          "SELECT COUNT(*) FROM (SELECT DISTINCT COUNT(*) + 1, ABS(AVG(a)) FROM table) x",
-          "SELECT COUNT(*) FROM (SELECT COUNT(*) + 1, ABS(AVG(a)) FROM table) x"
-        )
-
-    test "rewrites subqueries in joins",
-      do:
-        assert_equivalent(
-          "SELECT * FROM foo JOIN (SELECT DISTINCT COUNT(*) + 1, ABS(AVG(a)) FROM table) x ON a = b",
-          "SELECT * FROM foo JOIN (SELECT COUNT(*) + 1, ABS(AVG(a)) FROM table) x ON a = b"
-        )
   end
 
   describe "rewriting NOT IN" do
@@ -232,9 +191,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
             columns: [
               {:function, %{canonical_name: unquote(function), synonym_used: unquote(synonym)}, _, _}
             ]
-          } =
-            Parser.parse!("SELECT #{unquote(synonym)}(column) FROM table")
-            |> ASTNormalization.normalize()
+          } = Parser.parse!("SELECT #{unquote(synonym)}(column) FROM table")
         )
   end)
 
@@ -250,9 +207,7 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
             columns: [
               {:function, %{canonical_name: unquote(operator), synonym_used: unquote(synonym)}, _, _}
             ]
-          } =
-            Parser.parse!("SELECT #{unquote(synonym)}(column, 10) FROM table")
-            |> ASTNormalization.normalize()
+          } = Parser.parse!("SELECT #{unquote(synonym)}(column, 10) FROM table")
         )
   end)
 
@@ -261,6 +216,5 @@ defmodule Cloak.Sql.Compiler.ASTNormalization.Test do
       assert(
         %{columns: [{:function, %{canonical_name: "weekday", synonym_used: "dow"}, _, _}]} =
           Parser.parse!("SELECT EXTRACT(dow FROM column) FROM table")
-          |> ASTNormalization.normalize()
       )
 end

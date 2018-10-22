@@ -1,8 +1,8 @@
-defmodule Cloak.Sql.Parsers.Test do
+defmodule Cloak.Sql.Parser.Parsers.Test do
   use ExUnit.Case, async: true
 
   import Combine.Parsers.Text
-  import Cloak.Sql.Parsers
+  import Cloak.Sql.Parser.Parsers
 
   describe "sep_by1_eager" do
     test "a single item", do: assert([["a"]] = Combine.parse("a", sep_by1_eager(char("a"), char(","))))

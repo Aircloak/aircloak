@@ -110,7 +110,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp add_floated_noise_layers(query) do
     noise_layers =
-      if query.type == :restricted && Helpers.aggregate?(query),
+      if query.type == :restricted && (Helpers.aggregates?(query) or Helpers.group_by?(query)),
         do: float_noise_layers(query.noise_layers ++ floated_noise_layers(query), query),
         else: query.noise_layers ++ floated_noise_layers(query)
 
@@ -256,7 +256,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp select_noise_layers(_query, _top_level_uid), do: []
 
   defp needs_aggregation?(_query, %Expression{constant?: true}), do: true
-  defp needs_aggregation?(query, expression), do: Helpers.aggregated_column?(query, expression)
+
+  defp needs_aggregation?(query, expression),
+    do: Helpers.aggregated_column?(expression) or Helpers.grouped_by?(query, expression)
 
   defp clear_noise_layers(query, top_level_uid),
     do:

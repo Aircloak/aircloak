@@ -5,7 +5,6 @@ defmodule Cloak.DataSource.SAPHana do
   """
 
   alias Cloak.DataSource.RODBC
-  alias Cloak.DataSource
 
   use Cloak.DataSource.Driver.SQL
 
@@ -27,11 +26,10 @@ defmodule Cloak.DataSource.SAPHana do
   def sql_dialect_module(), do: Cloak.DataSource.SqlBuilder.SAPHana
 
   @impl Driver
-  def connect!(parameters) do
-    unless File.exists?(Cloak.SapHanaHelpers.driver_path()),
-      do: DataSource.raise_error("ODBC driver for SAP HANA is not mounted.")
-
-    RODBC.connect!(parameters, &conn_params/1)
+  def connect(parameters) do
+    if File.exists?(Cloak.SapHanaHelpers.driver_path()),
+      do: RODBC.connect(parameters, &conn_params/1),
+      else: {:error, "ODBC driver for SAP HANA is not mounted."}
   end
 
   @impl Driver

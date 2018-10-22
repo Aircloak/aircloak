@@ -46,7 +46,7 @@ defmodule Cloak.Query.Runner.Engine do
     e in Cloak.Query.ExecutionError ->
       {:error, e.message}
 
-    e in [Cloak.Sql.CompilationError, Cloak.Sql.ParseError] ->
+    e in [Cloak.Sql.CompilationError, Cloak.Sql.Parser.ParseError] ->
       {:error, Cloak.Sql.ErrorFormat.format(statement, e)}
   end
 

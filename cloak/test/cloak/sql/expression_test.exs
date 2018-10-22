@@ -430,6 +430,24 @@ defmodule Cloak.Sql.Expression.Test do
     end
   end
 
+  describe "member?" do
+    test "false for different expressions" do
+      refute Expression.member?([%Expression{name: "col2"}], %Expression{name: "col1"})
+    end
+
+    test "true if in collection" do
+      exp = %Expression{name: "col1"}
+      other_exp = %Expression{name: "col2"}
+      assert Expression.member?([other_exp, exp, other_exp], exp)
+    end
+
+    test "disregards source location and alias" do
+      exp = %Expression{name: "col1", alias: "alias1", source_location: {1, 1}}
+      other_exp = %Expression{exp | alias: "alias2", source_location: {2, 2}}
+      assert Expression.member?([other_exp], exp)
+    end
+  end
+
   defp apply_function(name, args) do
     name
     |> Expression.function(Enum.map(args, &Expression.constant(nil, &1)), nil)

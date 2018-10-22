@@ -322,6 +322,16 @@ defmodule Cloak.Sql.Expression do
       String.match?(name, ~r/^[_#]*[a-zA-Z][a-zA-Z0-9_.#]*$/) and not String.contains?(name, "..") and
         String.last(name) != "."
 
+  @doc """
+  Variant of `exp in [exp,...]` that discounts for differences such as source location.
+  This allows us to for example see if a selected expression appears as a group by expression too.
+  """
+  @spec member?([t], t) :: boolean
+  def member?(exps, exp) do
+    normalizer = &(&1 |> unalias() |> semantic())
+    Enum.member?(Enum.map(exps, normalizer), normalizer.(exp))
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

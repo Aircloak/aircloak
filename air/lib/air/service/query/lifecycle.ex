@@ -38,6 +38,10 @@ defmodule Air.Service.Query.Lifecycle do
   @spec query_died(String.t()) :: :ok
   def query_died(query_id), do: enqueue(query_id, {:query_died, query_id})
 
+  @doc "Asynchronously reports query error."
+  @spec report_query_error(String.t(), String.t()) :: :ok
+  def report_query_error(query_id, error), do: enqueue(query_id, {:report_query_error, query_id, error})
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
@@ -72,6 +76,14 @@ defmodule Air.Service.Query.Lifecycle do
         query_id: query_id,
         state: :query_died
       })
+    end)
+
+    {:stop, :normal, state}
+  end
+
+  def handle_cast({:report_query_error, query_id, error}, state) do
+    Air.ProcessQueue.run(__MODULE__.Queue, fn ->
+      Query.process_result(%{query_id: query_id, error: error, row_count: 0, chunks: []})
     end)
 
     {:stop, :normal, state}

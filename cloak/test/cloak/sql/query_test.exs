@@ -355,6 +355,32 @@ defmodule Cloak.Sql.QueryTest do
     end
   end
 
+  describe "features->shadow_tables_used" do
+    test "false if there are less than max_rare_negative_conditions" do
+      refute features_from("SELECT COUNT(*) FROM feat_users WHERE name <> 'Albus'").shadow_tables_used
+    end
+
+    test "true if there are more than max_rare_negative_conditions" do
+      for data_source <- Cloak.DataSource.all() do
+        Cloak.TestShadowCache.safe(data_source, "feat_users", "name", ["Alice"])
+      end
+
+      assert features_from("""
+               SELECT COUNT(*) FROM feat_users WHERE name NOT IN ('Alice', 'Bob') AND name NOT LIKE 'Charl%'
+             """).shadow_tables_used
+    end
+  end
+
+  describe "features->isolators_used" do
+    test "false if conditions don't require isolator checks" do
+      refute features_from("SELECT COUNT(*) FROM feat_users WHERE name <> 'Albus'").isolators_used
+    end
+
+    test "true if at least one condition requires an isolator check" do
+      assert features_from("SELECT COUNT(*) FROM feat_purchases WHERE price IN (1, 2, 3)").isolators_used
+    end
+  end
+
   test "successful view validation" do
     assert {:ok, [col1, col2]} = validate_view("v1", "select user_id, name from feat_users")
     assert col1 == %{name: "user_id", type: "text", user_id: true}

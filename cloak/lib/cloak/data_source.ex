@@ -182,17 +182,15 @@ defmodule Cloak.DataSource do
     driver = data_source.driver
 
     try do
-      # Not using the connection pool, since this function is invoked before the supervision tree is started.
-      connection = connect!(data_source.driver, data_source.parameters)
-
-      try do
-        data_source
-        |> Map.put(:driver_info, driver.driver_info(connection))
-        |> Table.load(connection)
-        |> Map.put(:status, :online)
-      after
-        driver.disconnect(connection)
-      end
+      Cloak.DataSource.Connection.execute!(
+        data_source,
+        fn connection ->
+          data_source
+          |> Map.put(:driver_info, driver.driver_info(connection))
+          |> Table.load(connection)
+          |> Map.put(:status, :online)
+        end
+      )
     rescue
       error in ExecutionError ->
         message = "Error loading data source: #{Exception.message(error)}."
@@ -200,15 +198,6 @@ defmodule Cloak.DataSource do
         add_error_message(%{data_source | tables: %{}, status: :offline}, message)
     end
   end
-
-  @doc """
-  Connects to the datasource.
-
-  This function will retry on failure, depending on `:connect_retries` and `:connect_retry_delay` app settings.
-  """
-  @spec connect!(module, Driver.parameters()) :: Driver.connection()
-  def connect!(driver, parameters),
-    do: connect_with_retries!(driver, parameters, Application.get_env(:cloak, :connect_retries, 0))
 
   @doc "Registers the calling process as a listener of data source changes."
   @spec subscribe_to_changes() :: :ok
@@ -222,7 +211,7 @@ defmodule Cloak.DataSource do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(data_sources), do: {:ok, data_sources}
+  def init(_), do: {:ok, load_data_source_configs()}
 
   @impl GenServer
   def handle_call(:all, _from, data_sources) do
@@ -438,31 +427,16 @@ defmodule Cloak.DataSource do
   end
 
   defp update_data_source_connectivity(%{status: :online} = data_source) do
-    driver = data_source.driver
-
-    try do
-      # Connection pool is not used here, since we want to always open the new connection to verify the connectivity.
-      data_source.parameters |> driver.connect!() |> driver.disconnect()
-      data_source
-    rescue
-      error in ExecutionError ->
-        message = "Connection error: #{Exception.message(error)}."
-        Logger.error("Data source `#{data_source.name}` is offline: #{message}")
-        add_error_message(%{data_source | tables: %{}, status: :offline}, message)
-    end
+    Cloak.DataSource.Connection.execute!(data_source, & &1, force_new_connection: true)
+    data_source
+  rescue
+    error in ExecutionError ->
+      message = "Connection error: #{Exception.message(error)}."
+      Logger.error("Data source `#{data_source.name}` is offline: #{message}")
+      add_error_message(%{data_source | tables: %{}, status: :offline}, message)
   end
 
   defp update_data_source_connectivity(%{status: :offline} = data_source), do: add_tables(data_source)
-
-  defp connect_with_retries!(driver, parameters, 0), do: driver.connect!(parameters)
-
-  defp connect_with_retries!(driver, parameters, num_retries) when num_retries > 0 do
-    driver.connect!(parameters)
-  catch
-    _type, _error ->
-      Process.sleep(Application.get_env(:cloak, :connect_retry_delay, :timer.seconds(1)))
-      connect_with_retries!(driver, parameters, num_retries - 1)
-  end
 
   defp log_unclassified_columns(data_sources) do
     Enum.each(data_sources, &log_unclassified_columns_for_data_source/1)
@@ -501,8 +475,8 @@ defmodule Cloak.DataSource do
         supervisor(
           [
             registry(:duplicate, __MODULE__.ChangeListenersRegistry),
-            gen_server(__MODULE__, load_data_source_configs(), name: __MODULE__),
             Cloak.DataSource.Connection.Pool,
+            gen_server(__MODULE__, nil, name: __MODULE__),
             Supervisor.child_spec(Cloak.DataSource.Isolators, id: :isolators),
             Supervisor.child_spec(Cloak.DataSource.Shadows, id: :shadows)
           ],

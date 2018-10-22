@@ -2,8 +2,8 @@ defmodule Cloak.Sql.Lexer do
   @moduledoc "Lexer for SQL queries"
   import Combine.Parsers.Base
   import Combine.Parsers.Text
-  import Cloak.Sql.Parsers
-  alias Cloak.Sql.Parsers.Token
+  import Cloak.Sql.Parser.Parsers
+  alias Cloak.Sql.Parser.Parsers.Token
 
   @keywords [
               "SELECT",

@@ -14,6 +14,19 @@ defmodule Air.Service.Cloak do
   @data_source_registry_name __MODULE__.DataSourceRegistry
   @memory_registry_name __MODULE__.MemoryRegistry
   @all_cloak_registry_name __MODULE__.AllCloakRegistry
+  @memory_readings_to_keep 250
+
+  @type memory_reading :: %{
+          total_memory: number,
+          available_memory: %{
+            current: number,
+            last_5_seconds: number,
+            last_1_minute: number,
+            last_5_minutes: number,
+            last_15_minutes: number,
+            last_1_hour: number
+          }
+        }
 
   # -------------------------------------------------------------------
   # API functions
@@ -28,6 +41,7 @@ defmodule Air.Service.Cloak do
     Enum.each(data_sources, &Air.PsqlServer.ShadowDb.update(&1.name))
 
     Registry.register(@all_cloak_registry_name, :all_cloaks, cloak_info)
+    Registry.register(@memory_registry_name, self(), initial_memory_readings())
 
     for data_source_name <- data_source_names do
       Registry.register(@data_source_registry_name, data_source_name, cloak_info)
@@ -44,11 +58,36 @@ defmodule Air.Service.Cloak do
   end
 
   @doc "Records cloak memory readings"
-  @spec record_memory(Map.t()) :: :ok
-  def record_memory(reading) do
-    Registry.register(@memory_registry_name, self(), reading)
+  @spec record_memory(String.t(), memory_reading) :: :ok
+  def record_memory(cloak_id, reading) do
+    result =
+      Registry.update_value(@memory_registry_name, self(), fn state ->
+        total_memory = reading[:total_memory]
+        current_available = reading[:available_memory][:current]
+        currently_in_use = total_memory - current_available
+        percent_used = currently_in_use * 100 / total_memory
+
+        %{
+          total: total_memory,
+          currently_in_use: currently_in_use,
+          in_use_percent: currently_in_use * 100 / total_memory,
+          readings: Enum.take([percent_used | state[:readings]], @memory_readings_to_keep)
+        }
+      end)
+
+    unless result == :error do
+      AirWeb.Socket.Frontend.MemoryChannel.broadcast_memory_reading(cloak_info(cloak_id))
+    end
+
     :ok
   end
+
+  @doc "Returns cloak info for given a cloak id"
+  @spec cloak_info(String.t()) :: Map.t()
+  def cloak_info(cloak_id),
+    do:
+      Air.Service.Cloak.all_cloak_infos()
+      |> Enum.find(&(&1[:id] == cloak_id))
 
   @doc "Returns a list of cloak channels for a given data source. The list consists of pairs `{pid, cloak_info}`."
   @spec channel_pids(String.t()) :: [{pid(), Map.t()}]
@@ -64,7 +103,7 @@ defmodule Air.Service.Cloak do
     do:
       for(
         {pid, info} <- Registry.lookup(@all_cloak_registry_name, :all_cloaks),
-        do: lookup_memory(pid, info)
+        do: add_memory_readings(pid, info)
       )
 
   @doc "Returns the cloak info of cloaks serving a data source"
@@ -73,7 +112,7 @@ defmodule Air.Service.Cloak do
     do:
       for(
         {pid, cloak_info} <- Registry.lookup(@data_source_registry_name, name),
-        do: lookup_memory(pid, cloak_info)
+        do: add_memory_readings(pid, cloak_info)
       )
 
   @doc "Returns the list of queries running on all connected cloaks."
@@ -202,12 +241,20 @@ defmodule Air.Service.Cloak do
         DataSource.create_or_update_data_source(data_source.name, data_source.tables, errors)
       end)
 
-  defp lookup_memory(pid, cloak_info) do
+  defp add_memory_readings(pid, cloak_info) do
     case Registry.lookup(@memory_registry_name, pid) do
-      [{_, memory}] -> cloak_info |> Map.put(:memory, memory)
-      [] -> cloak_info |> Map.put(:memory, %{})
+      [{_, memory}] -> Map.put(cloak_info, :memory, memory)
+      [] -> Map.put(cloak_info, :memory, [])
     end
   end
+
+  defp initial_memory_readings(),
+    do: %{
+      total: 0,
+      currently_in_use: 0,
+      in_use_percent: 0,
+      readings: List.duplicate(0, @memory_readings_to_keep)
+    }
 
   # -------------------------------------------------------------------
   # Supervision tree

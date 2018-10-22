@@ -1,11 +1,11 @@
 // @flow
 
 import React from "react";
-import $ from "jquery";
 
 import {ColumnsView} from "./columns";
 import {Filter} from "./filter";
 import type {Column} from "./columns";
+import {activateTooltips} from "../tooltips";
 
 export type Selectable = {
   id: string,
@@ -114,7 +114,7 @@ export class SelectableView extends React.Component {
 
   render() {
     if (this.hasRenderableContent()) {
-      setTimeout(() => $("[data-toggle='tooltip']").tooltip(), 0);
+      activateTooltips();
       return this.renderSelectableView();
     } else {
       return null;

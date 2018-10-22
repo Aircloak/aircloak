@@ -5,7 +5,14 @@ defmodule Cloak.Query.BasicTest do
 
   setup_all do
     :ok = Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, male BOOLEAN")
-    :ok = Cloak.Test.DB.create_table("heights_alias", nil, db_name: "heights", skip_db_create: true)
+    :ok = Cloak.Test.DB.create_table("heights_alias", nil, skip_db_create: true, db_name: "heights")
+
+    :ok =
+      Cloak.Test.DB.create_table("heights_query", nil,
+        skip_db_create: true,
+        query: "SELECT DISTINCT user_id, height FROM heights"
+      )
+
     :ok = Cloak.Test.DB.create_table("children", "age INTEGER, name TEXT")
     :ok = Cloak.Test.DB.create_table("weird things", "\"thing as thing\" INTEGER", db_name: "weird-things")
     :ok = Cloak.Test.DB.create_table("dates", "date timestamp")
@@ -1363,6 +1370,28 @@ defmodule Cloak.Query.BasicTest do
     )
   end
 
+  test "select from a view that uses distinct" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+
+    assert_query(
+      "select height from heights_view",
+      [views: %{"heights_view" => "select distinct user_id, height from heights"}],
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+    )
+  end
+
+  test "select from table defined as view using distinct" do
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+    :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
+
+    assert_query(
+      "select height from heights_query",
+      [],
+      %{columns: ["height"], rows: [%{row: [180], occurrences: 100}]}
+    )
+  end
+
   test "per-bucket reliability flag" do
     :ok = insert_rows(_user_ids = 30..59, "heights", ["height"], [150])
     :ok = insert_rows(_user_ids = 0..9, "heights", ["height"], [180])
@@ -1558,6 +1587,16 @@ defmodule Cloak.Query.BasicTest do
     assert_query(
       "select count(*) from (select distinct user_id, count(*) from heights where not male group by user_id) alias",
       %{rows: [%{row: [20]}]}
+    )
+  end
+
+  test "Distinct in top-level query" do
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height", "male"], [180, true])
+    :ok = insert_rows(_user_ids = 21..40, "heights", ["height", "male"], [165, false])
+
+    assert_query(
+      "SELECT DISTINCT height, male FROM heights ORDER BY height DESC",
+      %{rows: [%{row: [180, true], occurrences: 1}, %{row: [165, false], occurrences: 1}]}
     )
   end
 

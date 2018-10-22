@@ -21,7 +21,10 @@ defmodule Compliance.DataSource.Drill do
   end
 
   @impl Connector
-  def connect(state), do: Map.put(state, :conn, RODBC.connect!(state.parameters, &Drill.conn_params/1))
+  def connect(state) do
+    {:ok, conn} = RODBC.connect(state.parameters, &Drill.conn_params/1)
+    Map.put(state, :conn, conn)
+  end
 
   @impl Connector
   def create_table(_table_name, _columns, state), do: state

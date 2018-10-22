@@ -2,7 +2,7 @@ defmodule Cloak.Sql.Lexer.Test do
   use ExUnit.Case, async: true
 
   alias Cloak.Sql.Lexer
-  alias Cloak.Sql.Parsers.Token
+  alias Cloak.Sql.Parser.Parsers.Token
 
   test "lexing strings with escaped quotes" do
     assert {:ok, [%Token{category: :constant, value: %{type: :string, value: "a string with a '"}} | _]} =

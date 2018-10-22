@@ -1,0 +1,9 @@
+<div class="label label-success">
+  Online
+  <sup>
+    <a href="/docs/sql/restrictions.html#column-analysis" target="blank"
+      data-toggle="tooltip" data-placement="right" title="Some features unavailable pending analysis">
+      *
+    </a>
+  </sup>
+</div>

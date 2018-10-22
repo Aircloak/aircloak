@@ -51,22 +51,31 @@ defmodule Cloak.Sql.Compiler.Helpers do
     end)
   end
 
-  @doc "Returns true if the provided expression is aggregated."
-  @spec aggregated_column?(partial_query, Expression.t()) :: boolean
-  def aggregated_column?(query, column) do
-    normalizer = &(&1 |> Expression.unalias() |> Expression.semantic())
+  @doc "Returns true if a column is GROUPED BY"
+  @spec grouped_by?(partial_query, Expression.t()) :: boolean
+  def grouped_by?(query, column), do: Expression.member?(query.group_by, column)
 
-    Enum.member?(Enum.map(query.group_by, normalizer), normalizer.(column)) or
-      (column.function? and (column.aggregate? or Enum.any?(column.function_args, &aggregated_column?(query, &1))))
-  end
+  @doc "Returns true if the query has GROUP BY columns that were not selected (ignoring subqueries)"
+  @spec non_selected_group_bys(partial_query) :: [Expression.t()]
+  def non_selected_group_bys(%Query{columns: columns, group_by: group_bys}),
+    do: Enum.filter(group_bys, &(not Expression.member?(columns, &1)))
+
+  @doc "Returns true if the provided expression is aggregated."
+  @spec aggregated_column?(Expression.t()) :: boolean
+  def aggregated_column?(column),
+    do: column.function? and (column.aggregate? or Enum.any?(column.function_args, &aggregated_column?/1))
+
+  @doc "Returns true if the query GROUPS BY columns"
+  @spec group_by?(partial_query) :: boolean
+  def group_by?(%Query{command: :select, group_by: [_ | _]}), do: true
+  def group_by?(_), do: false
 
   @doc "Returns true if any of the query's bucket columns is aggregated."
-  @spec aggregate?(partial_query) :: boolean
-  def aggregate?(%Query{command: :select, group_by: [_ | _]}), do: true
-  def aggregate?(%Query{command: :select, having: having}) when having != nil, do: true
+  @spec aggregates?(partial_query) :: boolean
+  def aggregates?(%Query{command: :select, having: having}) when having != nil, do: true
 
-  def aggregate?(%Query{command: :select} = query),
-    do: query |> Query.bucket_columns() |> Enum.any?(&aggregated_column?(query, &1))
+  def aggregates?(%Query{command: :select} = query),
+    do: query |> Query.bucket_columns() |> Enum.any?(&aggregated_column?/1)
 
   @doc "Returns all join conditions of the query."
   @spec all_join_conditions(partial_query) :: [Query.where_clause()]

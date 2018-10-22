@@ -170,7 +170,7 @@ defmodule Cloak.Sql.Parser.Test do
   test "select distinct" do
     assert_parse(
       "select distinct foo from bar",
-      select(columns: [identifier("foo")], distinct?: true)
+      select(distinct?: true, columns: [identifier("foo")])
     )
   end
 
@@ -1578,7 +1578,7 @@ defmodule Cloak.Sql.Parser.Test do
       do:
         assert_parse(
           "select * from foo where NOT x = 1",
-          select(where: {:not, {:comparison, identifier("x"), :=, constant(1)}})
+          select(where: {:comparison, identifier("x"), :<>, constant(1)})
         )
 
     test "with a complex condition",
@@ -1587,8 +1587,7 @@ defmodule Cloak.Sql.Parser.Test do
           "select * from foo where NOT (x = 1 OR y = 2)",
           select(
             where:
-              {:not,
-               {:or, {:comparison, identifier("x"), :=, constant(1)}, {:comparison, identifier("y"), :=, constant(2)}}}
+              {:and, {:comparison, identifier("x"), :<>, constant(1)}, {:comparison, identifier("y"), :<>, constant(2)}}
           )
         )
 
@@ -1598,8 +1597,7 @@ defmodule Cloak.Sql.Parser.Test do
           "select count(*) from foo having NOT (x = 1 OR y = 2)",
           select(
             having:
-              {:not,
-               {:or, {:comparison, identifier("x"), :=, constant(1)}, {:comparison, identifier("y"), :=, constant(2)}}}
+              {:and, {:comparison, identifier("x"), :<>, constant(1)}, {:comparison, identifier("y"), :<>, constant(2)}}
           )
         )
 
@@ -1607,14 +1605,14 @@ defmodule Cloak.Sql.Parser.Test do
       do:
         assert_parse(
           "select count(*) from foo join bar ON NOT a = b",
-          select(from: {:join, %{conditions: {:not, {:comparison, identifier("a"), :=, identifier("b")}}}})
+          select(from: {:join, %{conditions: {:comparison, identifier("a"), :<>, identifier("b")}}})
         )
 
     test "many NOTs",
       do:
         assert_parse(
           "select count(*) from foo having NOT NOT NOT x = 1",
-          select(having: {:not, {:not, {:not, {:comparison, identifier("x"), :=, constant(1)}}}})
+          select(having: {:comparison, identifier("x"), :<>, constant(1)})
         )
   end
 
@@ -1720,10 +1718,10 @@ defmodule Cloak.Sql.Parser.Test do
           Parser.parse!("select select")
           nil
         rescue
-          e in Cloak.Sql.ParseError -> e
+          e in Cloak.Sql.Parser.ParseError -> e
         end
 
-      assert %Cloak.Sql.ParseError{
+      assert %Cloak.Sql.Parser.ParseError{
                message: "Expected `column definition`.",
                source_location: {1, 8}
              } = error
