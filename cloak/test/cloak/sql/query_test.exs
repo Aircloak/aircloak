@@ -60,7 +60,7 @@ defmodule Cloak.Sql.QueryTest do
 
   describe "num_db_columns" do
     test "simple query" do
-      assert %{num_db_columns: 3, num_distinct_db_columns: 2} = features_from("SELECT height FROM feat_users")
+      assert %{num_db_columns: 5, num_distinct_db_columns: 2} = features_from("SELECT height FROM feat_users")
     end
 
     test "deduplication" do
@@ -75,7 +75,7 @@ defmodule Cloak.Sql.QueryTest do
     end
 
     test "constants don't count" do
-      assert %{num_db_columns: 2, num_distinct_db_columns: 1} = features_from("SELECT '1' FROM feat_users")
+      assert %{num_db_columns: 3, num_distinct_db_columns: 1} = features_from("SELECT '1' FROM feat_users")
     end
 
     test "subqueries" do
@@ -143,18 +143,18 @@ defmodule Cloak.Sql.QueryTest do
     end
 
     test "function used in WHERE" do
-      assert %{functions: ["sqrt"], top_level_functions: ["sqrt"], subquery_functions: []} =
+      assert %{functions: ["sqrt"], top_level_functions: [], subquery_functions: ["sqrt"]} =
                features_from("SELECT * FROM feat_users WHERE sqrt(height) = 10")
     end
 
     test "nested functions used" do
-      assert %{functions: ["sqrt", "min"], top_level_functions: ["sqrt", "min"], subquery_functions: []} =
+      assert %{functions: ["min"], top_level_functions: ["min"], subquery_functions: []} =
                features_from("SELECT min(sqrt(height)) FROM feat_users")
     end
 
     test "subqueries" do
-      assert %{functions: ["sqrt"], top_level_functions: [], subquery_functions: ["sqrt"]} =
-               features_from("SELECT * FROM (SELECT sqrt(height) FROM feat_users) x")
+      assert %{functions: ["median", "sqrt"], top_level_functions: ["median"], subquery_functions: ["sqrt"]} =
+               features_from("SELECT median(h) FROM (SELECT sqrt(height) as h FROM feat_users) x")
     end
 
     test "deduplicates functions used" do
@@ -172,14 +172,17 @@ defmodule Cloak.Sql.QueryTest do
     test "function used" do
       assert %{
                top_level_select_functions: ["abs"],
-               subquery_select_functions: ["sqrt"],
-               select_functions: ["abs", "sqrt"]
+               subquery_select_functions: ["sqrt", "min", "max", "count"],
+               select_functions: ["abs", "sqrt", "min", "max", "count"]
              } = features_from("SELECT abs(foo) FROM (SELECT sqrt(height) AS foo FROM feat_users) x")
     end
 
     test "deduplicates" do
-      assert %{top_level_select_functions: ["sqrt"], subquery_select_functions: ["sqrt"], select_functions: ["sqrt"]} =
-               features_from("SELECT sqrt(x) FROM (SELECT sqrt(height) AS x FROM feat_users) foo")
+      assert %{
+               top_level_select_functions: ["sqrt"],
+               subquery_select_functions: ["sqrt", "min", "max", "count"],
+               select_functions: ["sqrt", "min", "max", "count"]
+             } = features_from("SELECT sqrt(x) FROM (SELECT sqrt(height) AS x FROM feat_users) foo")
     end
 
     test "function used in WHERE" do
@@ -269,17 +272,17 @@ defmodule Cloak.Sql.QueryTest do
   describe "number of group by clauses" do
     test "no group by" do
       assert %{num_top_level_group_by: 0, num_subquery_group_by: 0, num_group_by: 0} =
-               features_from("SELECT count(*) FROM feat_users")
+               features_from("SELECT median(height) FROM feat_users")
     end
 
     test "top-level group by" do
       assert %{num_top_level_group_by: 1, num_subquery_group_by: 0, num_group_by: 1} =
-               features_from("SELECT count(*) FROM feat_users GROUP BY height")
+               features_from("SELECT median(height) FROM feat_users GROUP BY height")
     end
 
     test "subquery group by" do
       assert %{num_top_level_group_by: 0, num_subquery_group_by: 1, num_group_by: 1} =
-               features_from("SELECT count(*) FROM (SELECT count(*) FROM feat_users GROUP BY height) foo")
+               features_from("SELECT median(m) FROM (SELECT median(height) as m FROM feat_users GROUP BY height) foo")
     end
   end
 
@@ -287,12 +290,24 @@ defmodule Cloak.Sql.QueryTest do
     @uid_type "text"
 
     test "simple case" do
-      assert %{db_column_types: [@uid_type, @uid_type, "integer", "text"]} =
+      assert %{db_column_types: [@uid_type, @uid_type, "integer", "text", "text", "integer", "text"]} =
                features_from("SELECT height, name FROM feat_users")
     end
 
     test "works across tables" do
-      assert %{db_column_types: [@uid_type, @uid_type, @uid_type, @uid_type, "integer", "datetime"]} =
+      assert %{
+               db_column_types: [
+                 @uid_type,
+                 @uid_type,
+                 @uid_type,
+                 @uid_type,
+                 "integer",
+                 "datetime",
+                 "text",
+                 "integer",
+                 "datetime"
+               ]
+             } =
                features_from("""
                  SELECT height, datetime
                  FROM feat_users, feat_purchases
@@ -301,7 +316,7 @@ defmodule Cloak.Sql.QueryTest do
     end
 
     test "constants are not DB columns" do
-      assert %{db_column_types: [@uid_type, @uid_type]} =
+      assert %{db_column_types: [@uid_type, @uid_type, @uid_type]} =
                features_from("SELECT 'string', date '2018-01-01' FROM feat_users")
     end
   end
@@ -322,13 +337,13 @@ defmodule Cloak.Sql.QueryTest do
 
   describe "features->expressions" do
     test "includes representations of expressions used" do
-      assert ["(min (+ const (sqrt col)))", "(+ col const)", "const"] =
-               features_from("SELECT min(1 + sqrt(height)) FROM feat_users WHERE height + 1 = 2").expressions
+      assert ["(median (+ const (sqrt col)))", "(+ col const)", "const"] =
+               features_from("SELECT median(1 + sqrt(height)) FROM feat_users WHERE height + 1 = 2").expressions
     end
 
     test "resolves references into subqueries" do
-      assert ["(min (+ col const))"] =
-               features_from("SELECT min(x) FROM (SELECT user_id, height + 1 AS x FROM feat_users) foo").expressions
+      assert ["(median (+ col const))"] =
+               features_from("SELECT median(x) FROM (SELECT user_id, height + 1 AS x FROM feat_users) foo").expressions
     end
 
     test "distinct" do
@@ -336,7 +351,7 @@ defmodule Cloak.Sql.QueryTest do
     end
 
     test "*" do
-      assert ["(count *)"] = features_from("SELECT count(*) FROM feat_users").expressions
+      assert ["(sum (count *))"] = features_from("SELECT count(*) FROM feat_users").expressions
     end
   end
 

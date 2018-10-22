@@ -71,7 +71,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "adds a uid and static noise layer for unclear conditions" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE numeric + 1 = 4")
+      result = compile!("SELECT MEDIAN(numeric) FROM table WHERE numeric + 1 = 4")
 
       assert [
                %{
@@ -104,7 +104,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "adds a uid and static noise layer for columns filtered with GROUP BY" do
-      result = compile!("SELECT numeric, COUNT(*) FROM table GROUP BY numeric")
+      result = compile!("SELECT numeric, MEDIAN(uid) FROM table GROUP BY numeric")
 
       assert [
                %{
@@ -131,7 +131,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "adds a uid and static noise layer for columns filtered with JOIN" do
-      result = compile!("SELECT COUNT(*) FROM table JOIN other ON table.numeric + 1 = 3 AND table.uid = other.uid")
+      result =
+        compile!("SELECT MEDIAN(table.uid) FROM table JOIN other ON table.numeric + 1 = 3 AND table.uid = other.uid")
 
       assert [
                %{
@@ -158,7 +159,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "adds a uid and static noise layer for each underlying column when a function is applied" do
-      result = compile!("SELECT COUNT(*) FROM table GROUP BY numeric + numeric2")
+      result = compile!("SELECT MEDIAN(uid) FROM table GROUP BY numeric + numeric2")
 
       assert [
                %{
@@ -185,7 +186,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "multiple filters on one column" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE numeric + 1 = 3 GROUP BY BUCKET(numeric BY 10)")
+      result = compile!("SELECT MEDIAN(uid) FROM table WHERE numeric + 1 = 3 GROUP BY BUCKET(numeric BY 10)")
 
       assert [
                %{
@@ -211,7 +212,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "columns in top-level select" do
-      result = compile!("SELECT numeric FROM table")
+      result = compile!("SELECT numeric, MEDIAN(uid) FROM table GROUP BY numeric")
 
       assert [
                %{
@@ -228,13 +229,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "aggregated columns in top-level select are ignored" do
-      result = compile!("SELECT COUNT(numeric) FROM table")
+      result = compile!("SELECT MEDIAN(numeric) FROM table")
 
       assert [generic_layer()] = result.noise_layers
     end
 
     test "having in top-level query" do
-      result = compile!("SELECT COUNT(*) FROM table HAVING COUNT(numeric) = 10")
+      result = compile!("SELECT MEDIAN(uid) FROM table HAVING COUNT(numeric) = 10")
 
       assert [generic_layer()] = result.noise_layers
     end
@@ -242,7 +243,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "having in subquery" do
       result =
         compile!("""
-          SELECT COUNT(*) FROM (SELECT uid, COUNT(*) FROM table GROUP BY uid HAVING COUNT(numeric) = 10) x
+          SELECT MEDIAN(uid) FROM (SELECT uid, COUNT(*) FROM table GROUP BY uid HAVING COUNT(numeric) = 10) x
         """)
 
       assert [
@@ -252,7 +253,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "clear condition in JOIN" do
-      result = compile!("SELECT COUNT(*) FROM table JOIN other ON table.numeric = 3 AND table.uid = other.uid")
+      result = compile!("SELECT MEDIAN(table.uid) FROM table JOIN other ON table.numeric = 3 AND table.uid = other.uid")
 
       assert [
                %{base: {"table", "numeric", nil}, expressions: [%Expression{value: 3}, _, _]},
@@ -267,7 +268,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "a comparison of two columns" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE numeric = numeric2")
+      result = compile!("SELECT MEDIAN(uid) FROM table WHERE numeric = numeric2")
 
       assert [
                %{base: {"table", "numeric", nil}, expressions: [%{name: "numeric"}, _, _]},
@@ -288,7 +289,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "fk = pk" do
       result =
         compile!("""
-          SELECT COUNT(*) FROM table JOIN key_table
+          SELECT MEDIAN(table.uid) FROM table JOIN key_table
           ON table.uid = key_table.uid AND key_table.table_id = table.id
         """)
 
@@ -298,7 +299,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "pk = fk" do
       result =
         compile!("""
-          SELECT COUNT(*) FROM table JOIN key_table
+          SELECT MEDIAN(table.uid) FROM table JOIN key_table
           ON table.uid = key_table.uid AND table.id = key_table.table_id
         """)
 
@@ -308,7 +309,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
   describe "noise layers from ranges" do
     test "noise layer from a >=/< range" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE numeric >= 0 AND numeric < 10")
+      result = compile!("SELECT MEDIAN(uid) FROM table WHERE numeric >= 0 AND numeric < 10")
 
       assert [
                %{
@@ -323,7 +324,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "noise layer from a BETWEEN" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE numeric BETWEEN 0 AND 10")
+      result = compile!("SELECT MEDIAN(uid) FROM table WHERE numeric BETWEEN 0 AND 10")
 
       assert [
                %{
@@ -338,7 +339,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "noise layer from an implicit range" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE trunc(numeric, -1) = 10")
+      result = compile!("SELECT MEDIAN(uid) FROM table WHERE trunc(numeric, -1) = 10")
 
       assert [
                %{
@@ -353,7 +354,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "no noise layer from sample_users" do
-      result = compile!("SELECT COUNT(*) FROM (SELECT uid FROM table SAMPLE_USERS 10%) x")
+      result = compile!("SELECT MEDIAN(uid) FROM (SELECT uid FROM table SAMPLE_USERS 10%) x")
 
       assert [generic_layer()] = result.noise_layers
     end
@@ -496,7 +497,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
     for operator <- ~w(LIKE ILIKE) do
       test "overrides NOT #{operator} noise layers when a more specific positive one exists" do
-        result = compile!("SELECT COUNT(*) FROM table WHERE name NOT #{unquote(operator)} 'a%b' GROUP BY name")
+        result = compile!("SELECT MEDIAN(uid) FROM table WHERE name NOT #{unquote(operator)} 'a%b' GROUP BY name")
 
         assert [
                  static_layer({"table", "name", nil}),
@@ -538,7 +539,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                  base: {"table", "name", nil},
                  expressions: [%Expression{name: "name"}, _, _, %Expression{name: "uid"}]
                }
-             ] = compile!("SELECT COUNT(*) FROM table WHERE name IS NULL").noise_layers
+             ] = compile!("SELECT MEDIAN(uid) FROM table WHERE name IS NULL").noise_layers
     end
 
     test "a noise layer for IS NOT NULL" do
@@ -548,19 +549,19 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                  base: {"table", "name", nil},
                  expressions: [%Expression{name: "name"}, _, _, %Expression{name: "uid"}]
                }
-             ] = compile!("SELECT COUNT(*) FROM table WHERE name IS NOT NULL").noise_layers
+             ] = compile!("SELECT MEDIAN(uid) FROM table WHERE name IS NOT NULL").noise_layers
     end
 
     test "no noise for IS NULL on uids",
-      do: assert([generic_layer()] = compile!("SELECT COUNT(*) FROM table WHERE uid IS NULL").noise_layers)
+      do: assert([generic_layer()] = compile!("SELECT MEDIAN(uid) FROM table WHERE uid IS NULL").noise_layers)
 
     test "no noise for IS NOT NULL on uids",
-      do: assert([generic_layer()] = compile!("SELECT COUNT(*) FROM table WHERE uid IS NOT NULL").noise_layers)
+      do: assert([generic_layer()] = compile!("SELECT MEDIAN(uid) FROM table WHERE uid IS NOT NULL").noise_layers)
   end
 
   describe "noise layers for LIKE" do
     test "a noise layers in LIKE" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE name || name2 LIKE 'b%_o_%b'")
+      result = compile!("SELECT MEDIAN(uid) FROM table WHERE name || name2 LIKE 'b%_o_%b'")
       len = String.length("b%_o_%b") - String.length("%%")
 
       assert [
@@ -602,7 +603,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "noise layers in ILIKE" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE name || name2 ILIKE 'b%_o_%b'")
+      result = compile!("SELECT MEDIAN(uid) FROM table WHERE name || name2 ILIKE 'b%_o_%b'")
       len = String.length("b%_o_%b") - String.length("%%")
 
       assert [
@@ -647,12 +648,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       [
         %{base: base1, expressions: [%{value: "bob"}, _, _]},
         %{base: base2, expressions: [%{value: "bob"}, _, _, %{name: "uid"}]}
-      ] = compile!("SELECT COUNT(*) FROM table WHERE name LIKE 'bob'").noise_layers
+      ] = compile!("SELECT MEDIAN(uid) FROM table WHERE name LIKE 'bob'").noise_layers
 
       assert [
                %{base: ^base1, expressions: [%{value: "bob"}, _, _]},
                %{base: ^base2, expressions: [%{value: "bob"}, _, _, %{name: "uid"}]}
-             ] = compile!("SELECT COUNT(*) FROM table WHERE name = 'bob'").noise_layers
+             ] = compile!("SELECT MEDIAN(uid) FROM table WHERE name = 'bob'").noise_layers
     end
 
     for column <- ~w(string uid) do
@@ -660,16 +661,18 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         [
           %{base: base1, expressions: [%{name: unquote(column)}, _, _]},
           %{base: base2, expressions: [%{name: unquote(column)}, _, _, %{name: "uid"}]}
-        ] = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} ILIKE 'bob'").noise_layers
+        ] =
+          compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE #{unquote(column)} ILIKE 'bob'").noise_layers
 
         assert [
                  %{base: ^base1, expressions: [%{value: "bob"}, _, _]},
                  %{base: ^base2, expressions: [%{value: "bob"}, _, _, %{name: "uid"}]}
-               ] = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} = 'bob'").noise_layers
+               ] =
+                 compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE #{unquote(column)} = 'bob'").noise_layers
       end
 
       test "noise layers for NOT LIKE (col: #{column})" do
-        result = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} NOT LIKE '_bob%'")
+        result = compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE #{unquote(column)} NOT LIKE '_bob%'")
 
         len = String.length("_bob%") - String.length("%")
 
@@ -690,7 +693,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       end
 
       test "noise layers for NOT ILIKE (col: #{column})" do
-        result = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} NOT ILIKE '_bob%'")
+        result = compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE #{unquote(column)} NOT ILIKE '_bob%'")
 
         len = String.length("_bob%") - String.length("%")
 
@@ -711,17 +714,17 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       end
 
       test "noise layers when NOT LIKE has no wildcards (col: #{column})" do
-        result1 = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} NOT LIKE 'bob'")
+        result1 = compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE #{unquote(column)} NOT LIKE 'bob'")
 
-        result2 = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} <> 'bob'")
+        result2 = compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE #{unquote(column)} <> 'bob'")
 
         assert Enum.map(result1.noise_layers, & &1.base) == Enum.map(result2.noise_layers, & &1.base)
       end
 
       test "noise layers when NOT ILIKE has no wildcards (col: #{column})" do
-        result1 = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} NOT ILIKE 'bOb'")
+        result1 = compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE #{unquote(column)} NOT ILIKE 'bOb'")
 
-        result2 = compile!("SELECT COUNT(*) FROM string_uid_table WHERE lower(#{unquote(column)}) <> 'bob'")
+        result2 = compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE lower(#{unquote(column)}) <> 'bob'")
 
         assert Enum.map(result1.noise_layers, & &1.base) == Enum.map(result2.noise_layers, & &1.base)
       end
@@ -734,16 +737,18 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         [
           %{base: base1, expressions: [%{name: name}, _, _]},
           %{base: base2, expressions: [%{name: name}, _, _, %{name: "uid"}]}
-        ] = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} IN ('bob')").noise_layers
+        ] =
+          compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE #{unquote(column)} IN ('bob')").noise_layers
 
         assert [
                  %{base: ^base1, expressions: [%{name: ^name}, _, _]},
                  %{base: ^base2, expressions: [%{name: ^name}, _, _, %{name: "uid"}]}
-               ] = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} = 'bob'").noise_layers
+               ] =
+                 compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE #{unquote(column)} = 'bob'").noise_layers
       end
 
       test "IN (many, values) on column #{column}" do
-        result = compile!("SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(column)} IN ('a', 'b')")
+        result = compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE #{unquote(column)} IN ('a', 'b')")
 
         assert [
                  %{
@@ -765,7 +770,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         test "#{function}(x) IN (many, values) on column #{column}" do
           result =
             compile!("""
-              SELECT COUNT(*) FROM string_uid_table WHERE #{unquote(function)}(#{unquote(column)}) IN ('a', 'b')
+              SELECT MEDIAN(length(uid)) FROM string_uid_table
+              WHERE #{unquote(function)}(#{unquote(column)}) IN ('a', 'b')
             """)
 
           assert [
@@ -789,7 +795,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
   describe "noise layers from subqueries" do
     test "floating noise layers from a subquery" do
-      result = compile!("SELECT COUNT(*) FROM (SELECT * FROM table WHERE numeric + 1 = 3) foo")
+      result = compile!("SELECT MEDIAN(uid) FROM (SELECT * FROM table WHERE numeric + 1 = 3) foo")
 
       assert [
                %{base: {"table", "numeric", nil}, expressions: [%Expression{name: name}, _, _]},
@@ -806,12 +812,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "floating noise layers from a join" do
       result =
         compile!("""
-          SELECT numeric FROM table JOIN (SELECT uid FROM table WHERE numeric + 1= 3) foo ON foo.uid = table.uid
+          SELECT MEDIAN(numeric) FROM table JOIN (SELECT uid FROM table WHERE numeric + 1 = 3) foo ON foo.uid = table.uid
         """)
 
       assert [
-               _select_static_layer = %{},
-               _select_uid_layer = %{},
                %{base: {"table", "numeric", nil}, expressions: [%Expression{name: name}, _, _]},
                %{
                  base: {"table", "numeric", nil},
@@ -940,7 +944,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "floating complex noise layers through non-aggregating queries" do
       result =
         compile!("""
-          SELECT COUNT(*) FROM (SELECT * FROM
+          SELECT MEDIAN(uid) FROM (SELECT * FROM
             (SELECT uid FROM table WHERE numeric + 1 = 3 GROUP BY uid, dummy) foo
           ) bar
         """)

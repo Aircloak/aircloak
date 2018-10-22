@@ -7,7 +7,7 @@ defmodule Cloak.Sql.Compiler.Optimizer.Test do
 
   test "unused columns selected in subquery are dropped" do
     assert %{from: {:subquery, %{ast: subquery}}} =
-             compile!("SELECT COUNT(x.numeric) FROM (SELECT * FROM table) x", data_source())
+             compile!("SELECT MEDIAN(x.numeric) FROM (SELECT * FROM table) x", data_source())
 
     assert ["uid", "numeric"] = subquery.column_titles
   end
@@ -16,7 +16,7 @@ defmodule Cloak.Sql.Compiler.Optimizer.Test do
     assert %{from: {:subquery, %{ast: subquery}}} =
              compile!(
                """
-                 SELECT min(n) FROM (
+                 SELECT median(n) FROM (
                    SELECT 1 AS a, t1.numeric AS n, t1.uid, t1.string, t2.* FROM
                    table AS t1 JOIN table AS t2 ON t1.uid = t2.uid
                  ) AS x
@@ -30,7 +30,7 @@ defmodule Cloak.Sql.Compiler.Optimizer.Test do
   test "grouped by columns selected in subquery are kept" do
     assert %{from: {:subquery, %{ast: subquery}}} =
              compile!(
-               "SELECT COUNT(*) FROM (SELECT * FROM table) x GROUP BY numeric",
+               "SELECT MEDIAN(x.uid) FROM (SELECT * FROM table) x GROUP BY numeric",
                data_source()
              )
 
@@ -53,7 +53,7 @@ defmodule Cloak.Sql.Compiler.Optimizer.Test do
     assert %{from: {:join, %{lhs: {:subquery, %{ast: subquery}}, conditions: conditions}}} =
              compile!(
                """
-                 SELECT count(*) FROM
+                 SELECT median(t1.uid) FROM
                    (SELECT uid, numeric FROM table) AS t1
                    JOIN table AS t2
                    ON t1.uid = t2.uid AND t1.numeric BETWEEN 0 AND 100
@@ -69,7 +69,7 @@ defmodule Cloak.Sql.Compiler.Optimizer.Test do
     assert %{from: from} =
              compile!(
                """
-                 SELECT count(*) FROM
+                 SELECT median(t1.uid) FROM
                    (SELECT uid, numeric FROM table) AS t1
                    JOIN table AS t2 ON t1.uid = t2.uid
                    LEFT JOIN table AS t3
@@ -87,7 +87,7 @@ defmodule Cloak.Sql.Compiler.Optimizer.Test do
     assert %{from: {:subquery, %{ast: subquery}}, where: where} =
              compile!(
                """
-                 SELECT count(*) FROM
+                 SELECT median(t.uid) FROM
                    (SELECT uid, numeric FROM table) AS t
                  WHERE numeric = 0
                """,
@@ -102,7 +102,7 @@ defmodule Cloak.Sql.Compiler.Optimizer.Test do
     assert %{from: {:subquery, %{ast: subquery}}, where: where} =
              compile!(
                """
-                 SELECT count(*) FROM
+                 SELECT median(t.uid) FROM
                  (SELECT uid, numeric FROM table) AS t
                  WHERE numeric BETWEEN -5 AND 0
                """,
