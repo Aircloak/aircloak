@@ -29,6 +29,19 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
              |> get_mem_stat(:readings)
              |> Enum.all?(&(&1 == 0))
     end
+
+    test "adds dummy queries history" do
+      assert 360 ==
+               Stats.Internal.initial_state()
+               |> Stats.Internal.register(@cloak_id)
+               |> get_queries_stat()
+               |> Enum.count()
+
+      assert Stats.Internal.initial_state()
+             |> Stats.Internal.register(@cloak_id)
+             |> get_queries_stat()
+             |> Enum.all?(&(&1 == 0))
+    end
   end
 
   describe "unregister" do
@@ -133,6 +146,10 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
 
   defp get_mem_stat(stats, key) do
     get_in(stats, [:stats, @cloak_id, :memory, key])
+  end
+
+  defp get_queries_stat(stats) do
+    get_in(stats, [:stats, @cloak_id, :queries])
   end
 
   defp other_memory_reading() do

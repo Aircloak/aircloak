@@ -22,7 +22,8 @@ defmodule Air.Service.Cloak.Stats.Internal do
             currently_in_use: number,
             in_use_percent: number,
             readings: [number]
-          }
+          },
+          queries: [number]
         }
   @type cloak_stats :: %{cloak_id => stats}
   @type state :: %{
@@ -113,7 +114,8 @@ defmodule Air.Service.Cloak.Stats.Internal do
         currently_in_use: 0,
         in_use_percent: 0,
         readings: List.duplicate(0, @timesteps_to_keep)
-      }
+      },
+      queries: List.duplicate(0, @timesteps_to_keep)
     }
 
   defp add_to_list_of_readings(readings, reading), do: Enum.take([reading | readings], @timesteps_to_keep)
