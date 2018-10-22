@@ -57,6 +57,7 @@ defmodule Air.Service.Cloak.Stats.Internal do
     state
     |> update_in([:stats], &Map.delete(&1, cloak_id))
     |> update_in([:pending_memory_readings], &Map.delete(&1, cloak_id))
+    |> update_in([:pending_queries], &Map.delete(&1, cloak_id))
   end
 
   @doc "Records cloak memory readings"

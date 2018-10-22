@@ -60,11 +60,19 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
              |> Enum.member?(@cloak_id)
     end
 
-    test "removes pending data from state too" do
+    test "removes pending data from state" do
       assert initialized_state()
              |> Stats.Internal.record_memory(@cloak_id, memory_reading())
              |> Stats.Internal.unregister(@cloak_id)
              |> get_in([:pending_memory_readings, @cloak_id])
+             |> is_nil()
+    end
+
+    test "removes pending queries from state" do
+      assert initialized_state()
+             |> Stats.Internal.record_query(@cloak_id)
+             |> Stats.Internal.unregister(@cloak_id)
+             |> get_in([:pending_queries, @cloak_id])
              |> is_nil()
     end
   end
