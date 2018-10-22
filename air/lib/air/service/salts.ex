@@ -8,6 +8,8 @@ defmodule Air.Service.Salts do
   @known_names ~w[api_token password_reset session_signing session_encryption]a
   @salt_size 64
 
+  @type known_name :: unquote(Enum.reduce(tl(@known_names), hd(@known_names), &quote(do: unquote(&1) | unquote(&2))))
+
   alias Air.Repo
   alias Air.Schemas.Salt
   import Ecto.Query
@@ -20,7 +22,7 @@ defmodule Air.Service.Salts do
   Returns the named salt. The name is checked against a list of registered names. This is done in order to avoid typos
   in matching calls such as `Phoenix.Token.sign`/`Phoenix.Token.verify`.
   """
-  @spec get(atom()) :: String.t()
+  @spec get(known_name) :: String.t()
   def get(name) do
     case Application.get_env(:air, __MODULE__) |> Map.fetch(name) do
       :error -> raise "Unknown salt"
