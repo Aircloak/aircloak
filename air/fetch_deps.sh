@@ -24,7 +24,7 @@ exec_with_retry "mix deps.get $@"
 exec_with_retry "cd $ROOT_DIR/air/assets && yarn install"
 exec_with_retry "cd $ROOT_DIR/air/docs && yarn install"
 exec_with_retry '
-  cd $ROOT_DIR/air
-  gitbook_version=$(cat docs/node_modules/gitbook/package.json | jq -r ".version")
+  cd $ROOT_DIR/air/docs
+  gitbook_version=$(cat node_modules/gitbook/package.json | jq -r ".version")
   if [ ! -d ~/.gitbook/versions/$gitbook_version ]; then yarn run gitbook fetch $gitbook_version; fi
 '
