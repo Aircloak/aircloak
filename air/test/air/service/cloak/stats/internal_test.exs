@@ -62,6 +62,21 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
     end
   end
 
+  describe "record_query" do
+    test "does not record anything for unregistered cloaks" do
+      state = Stats.Internal.initial_state()
+      assert state == Stats.Internal.record_query(state, @cloak_id)
+    end
+
+    test "adds query to queue for later processing" do
+      assert 2 ==
+               initialized_state()
+               |> Stats.Internal.record_query(@cloak_id)
+               |> Stats.Internal.record_query(@cloak_id)
+               |> get_in([:pending_queries, @cloak_id])
+    end
+  end
+
   describe "record_memory" do
     test "does not record anything for unregistered cloaks" do
       state = Stats.Internal.initial_state()

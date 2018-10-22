@@ -28,7 +28,8 @@ defmodule Air.Service.Cloak.Stats.Internal do
   @type cloak_stats :: %{cloak_id => stats}
   @type state :: %{
           stats: cloak_stats,
-          pending_memory_readings: %{cloak_id => [raw_memory_reading]}
+          pending_memory_readings: %{cloak_id => [raw_memory_reading]},
+          pending_queries: %{cloak_id => number}
         }
 
   # An hours worth of data at 10 second interval
@@ -40,7 +41,7 @@ defmodule Air.Service.Cloak.Stats.Internal do
 
   @doc "Initial empty memory reading"
   @spec initial_state() :: state
-  def initial_state(), do: %{stats: %{}, pending_memory_readings: %{}}
+  def initial_state(), do: %{stats: %{}, pending_memory_readings: %{}, pending_queries: %{}}
 
   @doc "Adds a cloak to the state with default empty data"
   @spec register(state, cloak_id()) :: state
@@ -63,6 +64,19 @@ defmodule Air.Service.Cloak.Stats.Internal do
       |> update_in([:stats, cloak_id], &update_base_memory_stats(&1, reading))
       |> update_in([:pending_memory_readings], fn pending_memory_readings ->
         Map.update(pending_memory_readings, cloak_id, [reading], &[reading | &1])
+      end)
+    else
+      state
+    end
+  end
+
+  @doc "Records a query as having been run"
+  @spec record_query(state, cloak_id) :: state
+  def record_query(state, cloak_id) do
+    if registered?(state, cloak_id) do
+      state
+      |> update_in([:pending_queries], fn pending_queries ->
+        Map.update(pending_queries, cloak_id, 1, &(&1 + 1))
       end)
     else
       state
