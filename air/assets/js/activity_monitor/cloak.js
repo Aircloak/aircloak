@@ -1,7 +1,8 @@
 // @flow
 
 import React from "react";
-import {Sparklines, SparklinesLine, SparklinesNormalBand, SparklinesBars, SparklinesReferenceLine} from "react-sparklines";
+import {Sparklines, SparklinesLine, SparklinesNormalBand, SparklinesBars,
+  SparklinesReferenceLine} from "react-sparklines";
 
 export type Cloak = {
   id: string,
@@ -12,7 +13,8 @@ export type Cloak = {
       currently_in_use: number,
       in_use_percent: number,
       readings: [number]
-    }
+    },
+    queries: [number]
   }
 };
 
@@ -63,7 +65,7 @@ const renderQueriesGraph = (queries) =>
   <td>
     <Sparklines data={queries} svgHeight={25} svgWidth={190}>
       <SparklinesBars />
-      <SparklinesLine style={{ fill: "none" }} />
+      <SparklinesLine style={{fill: "none"}} />
       <SparklinesReferenceLine type="mean" />
     </Sparklines>
   </td>;
