@@ -88,26 +88,11 @@ defmodule Air.Service.Cloak.Stats.Internal do
 
   @doc "Processes and aggregating all memory readings, taking the max memory reading"
   @spec process(state) :: state
-  def process(state) do
-    state.pending_memory_readings
-    |> Enum.reduce(state, fn
-      {_cloak_id, []}, acc ->
-        acc
-
-      {cloak_id, readings}, acc ->
-        max_in_use_percentage =
-          readings
-          |> Enum.map(fn reading ->
-            {_, _, in_use_percent} = base_stats(reading)
-            in_use_percent
-          end)
-          |> Enum.max()
-
-        acc
-        |> update_in([:stats, cloak_id, :memory, :readings], &add_to_list_of_readings(&1, max_in_use_percentage))
-        |> put_in([:pending_memory_readings, cloak_id], [])
-    end)
-  end
+  def process(state),
+    do:
+      state
+      |> process_pending(:pending_memory_readings, &process_memory/2)
+      |> process_pending(:pending_queries, &process_queries/2)
 
   @doc "Returns stats for all the cloaks"
   @spec cloak_stats(state) :: cloak_stats
@@ -116,6 +101,30 @@ defmodule Air.Service.Cloak.Stats.Internal do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp process_pending(state, what, callback), do: Enum.reduce(state[what], state, callback)
+
+  defp process_memory({_cloak_id, []}, acc), do: acc
+
+  defp process_memory({cloak_id, readings}, acc) do
+    max_in_use_percentage =
+      readings
+      |> Enum.map(fn reading ->
+        {_, _, in_use_percent} = base_stats(reading)
+        in_use_percent
+      end)
+      |> Enum.max()
+
+    acc
+    |> update_in([:stats, cloak_id, :memory, :readings], &add_to_list_of_readings(&1, max_in_use_percentage))
+    |> put_in([:pending_memory_readings, cloak_id], [])
+  end
+
+  defp process_queries({cloak_id, num_queries}, acc),
+    do:
+      acc
+      |> update_in([:stats, cloak_id, :queries], &add_to_list_of_readings(&1, num_queries))
+      |> put_in([:pending_queries, cloak_id], 0)
 
   defp update_base_memory_stats(stats, reading),
     do:

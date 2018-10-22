@@ -135,6 +135,18 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
                |> get_mem_stat(:readings)
                |> List.first()
     end
+
+    test "adds pending queries to the run queries" do
+      assert [1, 2] =
+               initialized_state()
+               |> Stats.Internal.record_query(@cloak_id)
+               |> Stats.Internal.record_query(@cloak_id)
+               |> Stats.Internal.process()
+               |> Stats.Internal.record_query(@cloak_id)
+               |> Stats.Internal.process()
+               |> get_queries_stat()
+               |> Enum.take(2)
+    end
   end
 
   describe "cloak_stats" do
