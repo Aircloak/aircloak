@@ -45,8 +45,11 @@ defmodule Air.Service.Cloak.Stats.Internal do
 
   @doc "Adds a cloak to the state with default empty data"
   @spec register(state, cloak_id()) :: state
-  def register(%{stats: stats} = state, cloak_id),
-    do: %{state | stats: Map.put(stats, cloak_id, initial_memory_stats())}
+  def register(state, cloak_id),
+    do:
+      state
+      |> put_in([:stats, cloak_id], initial_memory_stats())
+      |> put_in([:pending_queries, cloak_id], 0)
 
   @doc "Removes a cloak from internal state"
   @spec unregister(state, cloak_id) :: state

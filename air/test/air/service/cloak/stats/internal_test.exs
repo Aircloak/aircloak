@@ -42,6 +42,13 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
              |> get_queries_stat()
              |> Enum.all?(&(&1 == 0))
     end
+
+    test "initializes pending queries to 0" do
+      assert 0 ==
+               Stats.Internal.initial_state()
+               |> Stats.Internal.register(@cloak_id)
+               |> get_in([:pending_queries, @cloak_id])
+    end
   end
 
   describe "unregister" do
