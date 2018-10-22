@@ -24,7 +24,7 @@ defmodule Air.Service.Salts do
   """
   @spec get(known_name) :: String.t()
   def get(name) do
-    case Application.get_env(:air, __MODULE__) |> Map.fetch(name) do
+    case Application.fetch_env!(:air, __MODULE__) |> Map.fetch(name) do
       :error -> raise "Unknown salt"
       {:ok, result} -> result
     end
