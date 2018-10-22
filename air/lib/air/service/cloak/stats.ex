@@ -19,6 +19,10 @@ defmodule Air.Service.Cloak.Stats do
   @spec record_memory(Internal.cloak_id(), Internal.raw_memory_reading()) :: :ok
   def record_memory(cloak_id, reading), do: GenServer.cast(__MODULE__, {:record_memory, cloak_id, reading})
 
+  @doc "Records that a query was executed on a cloak"
+  @spec record_query(Internal.cloak_id()) :: :ok
+  def record_query(cloak_id), do: GenServer.cast(__MODULE__, {:record_query, cloak_id})
+
   @doc "Registers a cloak for stats"
   @spec register(Internal.cloak_id()) :: :ok
   def register(cloak_id), do: GenServer.cast(__MODULE__, {:register, cloak_id, self()})
@@ -44,6 +48,9 @@ defmodule Air.Service.Cloak.Stats do
   @impl GenServer
   def handle_cast({:record_memory, cloak_id, memory_reading}, state),
     do: {:noreply, %{state | metrics: Internal.record_memory(state.metrics, cloak_id, memory_reading)}}
+
+  def handle_cast({:record_query, cloak_id}, state),
+    do: {:noreply, %{state | metrics: Internal.record_query(state.metrics, cloak_id)}}
 
   @impl GenServer
   def handle_cast({:register, cloak_id, pid}, state) do

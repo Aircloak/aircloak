@@ -116,6 +116,8 @@ defmodule Air.Service.DataSource do
     opts = Keyword.merge([audit_meta: %{}, notify: false], opts)
 
     on_available_cloak(data_source_id_spec, query.user, fn data_source, channel_pid, %{id: cloak_id} ->
+      Air.Service.Cloak.Stats.record_query(cloak_id)
+
       query =
         Air.ProcessQueue.run(__MODULE__.Queue, fn ->
           query = add_data_source_info_to_query(query, cloak_id, data_source.id)
