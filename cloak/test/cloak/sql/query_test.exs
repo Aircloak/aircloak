@@ -373,11 +373,11 @@ defmodule Cloak.Sql.QueryTest do
 
   describe "features->isolators_used" do
     test "false if conditions don't require isolator checks" do
-      refute features_from("SELECT COUNT(*) FROM feat_users WHERE name <> 'Albus'").isolators_used
+      refute features_from("SELECT MEDIAN(height) FROM feat_users WHERE name <> 'Albus'").isolators_used
     end
 
     test "true if at least one condition requires an isolator check" do
-      assert features_from("SELECT COUNT(*) FROM feat_purchases WHERE price IN (1, 2, 3)").isolators_used
+      assert features_from("SELECT MEDIAN(price) FROM feat_purchases WHERE price IN (1, 2, 3)").isolators_used
     end
   end
 
