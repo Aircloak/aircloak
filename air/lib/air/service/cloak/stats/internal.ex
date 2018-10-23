@@ -102,7 +102,12 @@ defmodule Air.Service.Cloak.Stats.Internal do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp aggregate_pending(state, what, callback), do: Enum.reduce(state[what], Map.put(state, what, %{}), callback)
+  defp aggregate_pending(state, what, callback), do: Enum.reduce(state[what], state, callback)
+
+  defp aggregate_memory({cloak_id, []}, acc) do
+    last_reading = acc |> get_in([:stats, cloak_id, :memory, :readings]) |> List.first()
+    update_in(acc, [:stats, cloak_id, :memory, :readings], &add_to_list_of_readings(&1, last_reading))
+  end
 
   defp aggregate_memory({cloak_id, readings}, acc) do
     max_in_use_percentage =
@@ -110,11 +115,16 @@ defmodule Air.Service.Cloak.Stats.Internal do
       |> Enum.map(&base_stats(&1).in_use_percent)
       |> Enum.max()
 
-    update_in(acc, [:stats, cloak_id, :memory, :readings], &add_to_list_of_readings(&1, max_in_use_percentage))
+    acc
+    |> update_in([:stats, cloak_id, :memory, :readings], &add_to_list_of_readings(&1, max_in_use_percentage))
+    |> put_in([:pending_memory_readings, cloak_id], [])
   end
 
   defp aggregate_queries({cloak_id, num_queries}, acc),
-    do: update_in(acc, [:stats, cloak_id, :queries], &add_to_list_of_readings(&1, num_queries))
+    do:
+      acc
+      |> update_in([:stats, cloak_id, :queries], &add_to_list_of_readings(&1, num_queries))
+      |> put_in([:pending_queries, cloak_id], 0)
 
   defp update_base_memory_stats(stats, reading),
     do:

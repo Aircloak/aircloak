@@ -125,15 +125,6 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
   end
 
   describe "aggregate" do
-    test "noop when no new measurements" do
-      state =
-        initialized_state()
-        |> Stats.Internal.record_memory(@cloak_id, memory_reading())
-        |> Stats.Internal.aggregate()
-
-      assert state == Stats.Internal.aggregate(state)
-    end
-
     test "adds maximum in usage percentage to readings" do
       assert 100 ==
                initialized_state()
@@ -180,6 +171,23 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
       assert 60 == List.first(stats.memory.readings)
     end
 
+    test "repeats last memory reading if no new has arrived" do
+      initial_state =
+        initialized_state()
+        |> Stats.Internal.record_memory(@cloak_id, memory_reading())
+        |> Stats.Internal.aggregate()
+
+      initial_reading = initial_state |> get_mem_stat(:readings) |> List.first()
+
+      subsequent_reading =
+        initial_state
+        |> Stats.Internal.aggregate()
+        |> get_mem_stat(:readings)
+        |> List.first()
+
+      assert initial_reading == subsequent_reading
+    end
+
     test "returns latest queries" do
       assert %{@cloak_id => stats} =
                initialized_state()
@@ -188,6 +196,17 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
                |> Stats.Internal.cloak_stats()
 
       assert 1 == List.first(stats.queries)
+    end
+
+    test "returns 0 for queries if none have been run in last period" do
+      assert %{@cloak_id => stats} =
+               initialized_state()
+               |> Stats.Internal.record_query(@cloak_id)
+               |> Stats.Internal.aggregate()
+               |> Stats.Internal.aggregate()
+               |> Stats.Internal.cloak_stats()
+
+      assert 0 == List.first(stats.queries)
     end
   end
 
