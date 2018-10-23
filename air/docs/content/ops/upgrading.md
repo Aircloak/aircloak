@@ -1,3 +1,13 @@
+# Version 18.5.0
+
+## Insights Air
+
+### Change in monitoring report format
+
+The format of the reported memory stats in the monitoring API endpoint has changed.
+Please consult the [monitoring](/ops/monitoring.md) guide for information on the new
+format.
+
 # Version 18.4.0
 
 ## Insights Air

@@ -39,7 +39,8 @@ defmodule Air.Service.Monitoring.Test do
         }
       }
 
-      Air.Service.Cloak.record_memory(cloak_info.id, memory_reading)
+      Air.Service.Cloak.Stats.record_memory(cloak_info.id, memory_reading)
+      Air.Service.Cloak.Stats.aggregate()
       TestRepoHelper.create_query!(TestRepoHelper.create_user!(), %{cloak_id: cloak_info.id})
 
       cloak_name = cloak_info.name
@@ -57,14 +58,14 @@ defmodule Air.Service.Monitoring.Test do
                    last_1_hour: 1,
                    last_1_day: 1
                  },
-                 memory: memory_stats
+                 stats: %{memory: memory_stats}
                }
              ] = Monitoring.assemble_info(in_minutes(20)).cloaks
 
       assert 100 == memory_stats.total
       assert 40 == memory_stats.currently_in_use
       assert 40 == memory_stats.in_use_percent
-      assert 40 == List.first(memory_stats.readings)
+      # We can't test memory reading, since the stats processing happens asynchronously.
       assert uptime >= 20 * @seconds_in_minute
       assert uptime <= 21 * @seconds_in_minute
     end

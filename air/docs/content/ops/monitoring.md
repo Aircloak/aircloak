@@ -40,16 +40,14 @@ The endpoint presents data as the following JSON structure:
         "last_1_hour": ...,
         "last_1_day": ...
       },
-      "memory": {
-        "total_memory": number of bytes,
-        "free_memory": {
-          "current": number of free bytes,
-          "last_5_seconds": number of free bytes,
-          "last_1_minute": number of free bytes,
-          "last_5_minutes": number of free bytes,
-          "last_15_minutes": number of free bytes,
-          "last_1_hour": number of free bytes
-        }
+      "stats": {
+        "memory": {
+          "total": number of bytes,
+          "currently_in_use": number of bytes,
+          "in_use_percent": percentage of used memory as integer,
+          "readings": [list of in use percentages at 10 second interval for the last hour]
+        },
+        "queries": [list of number of queries per 10 second interval for the last hour]
       }
     },
     ...

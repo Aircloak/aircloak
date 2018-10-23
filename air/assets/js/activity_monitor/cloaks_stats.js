@@ -2,13 +2,13 @@
 
 import React from "react";
 
-import {CloakView} from "./cloak";
-import type {Cloak} from "./cloak";
+import {CloakView} from "./cloak_stats";
+import type {CloakStat} from "./cloak_stats";
 
-const renderCloaks = (cloaks: Cloak[]) => {
-  if (cloaks.length > 0) {
-    return cloaks.map((cloak) =>
-      <CloakView key={cloak.id} {...cloak} />
+const renderCloaks = (cloakStats: CloakStat[]) => {
+  if (cloakStats.length > 0) {
+    return cloakStats.map((cloakStat) =>
+      <CloakView key={cloakStat.id} {...cloakStat} />
     );
   } else {
     return (
@@ -21,7 +21,7 @@ const renderCloaks = (cloaks: Cloak[]) => {
   }
 };
 
-export const CloaksView = (props: {cloaks: Cloak[]}) =>
+export const CloaksView = (props: {cloakStats: CloakStat[]}) =>
   <div>
     <h3>Cloaks</h3>
     <table className="table">
@@ -30,10 +30,11 @@ export const CloaksView = (props: {cloaks: Cloak[]}) =>
           <th>Name</th>
           <th>Current memory</th>
           <th>% memory usage over time</th>
+          <th># queries over time</th>
         </tr>
       </thead>
       <tbody>
-        {renderCloaks(props.cloaks)}
+        {renderCloaks(props.cloakStats)}
       </tbody>
     </table>
   </div>;

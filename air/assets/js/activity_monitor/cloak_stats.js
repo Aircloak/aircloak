@@ -1,16 +1,20 @@
 // @flow
 
 import React from "react";
-import {Sparklines, SparklinesLine, SparklinesNormalBand} from "react-sparklines";
+import {Sparklines, SparklinesLine, SparklinesNormalBand, SparklinesBars,
+  SparklinesReferenceLine} from "react-sparklines";
 
-export type Cloak = {
+export type CloakStat = {
   id: string,
   name: string,
-  memory: {
-    total: number,
-    currently_in_use: number,
-    in_use_percent: number,
-    readings: [number]
+  stats: {
+    memory: {
+      total: number,
+      currently_in_use: number,
+      in_use_percent: number,
+      readings: [number]
+    },
+    queries: [number]
   }
 };
 
@@ -57,9 +61,19 @@ const renderMemoryUtilisationGraph = (readings) =>
     </Sparklines>
   </td>;
 
-export const CloakView = (props: Cloak) =>
+const renderQueriesGraph = (queries) =>
+  <td>
+    <Sparklines data={queries} svgHeight={25} svgWidth={190}>
+      <SparklinesBars />
+      <SparklinesLine style={{fill: "none"}} />
+      <SparklinesReferenceLine type="mean" />
+    </Sparklines>
+  </td>;
+
+export const CloakView = (props: CloakStat) =>
   <tr>
     <td>{props.name}</td>
-    {renderCurrentMemoryUtilisation(props.memory)}
-    {renderMemoryUtilisationGraph(props.memory.readings)}
+    {renderCurrentMemoryUtilisation(props.stats.memory)}
+    {renderMemoryUtilisationGraph(props.stats.memory.readings)}
+    {renderQueriesGraph(props.stats.queries)}
   </tr>;
