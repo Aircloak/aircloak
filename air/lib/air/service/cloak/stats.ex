@@ -23,10 +23,6 @@ defmodule Air.Service.Cloak.Stats do
   def record_query(cloak_id), do: GenServer.cast(__MODULE__, {:record_query, cloak_id})
 
   @doc "Returns memory stats for all Cloaks"
-  @spec cloak_stats() :: Internal.cloak_stats()
-  def cloak_stats(), do: GenServer.call(__MODULE__, :stats)
-
-  @doc "Returns memory stats for all Cloaks"
   @spec cloak_stats(Internal.cloak_id()) :: Internal.stats()
   def cloak_stats(cloak_id), do: GenServer.call(__MODULE__, {:stats, cloak_id})
 
@@ -89,10 +85,6 @@ defmodule Air.Service.Cloak.Stats do
 
     {:noreply, state}
   end
-
-  @impl GenServer
-  def handle_call(:stats, _from, state),
-    do: {:reply, %{state | metrics: Internal.cloak_stats(state.metrics)}, state}
 
   @impl GenServer
   def handle_call({:stats, cloak_id}, _from, state),
