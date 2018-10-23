@@ -9,7 +9,7 @@ defmodule AirWeb.Socket.Frontend.CloakStatsChannel do
   @doc "Broadcasts the latest cloak memory readings."
   @spec broadcast_cloak_stats([Map.t()]) :: :ok
   def broadcast_cloak_stats(stats) do
-    AirWeb.Endpoint.broadcast_from!(self(), "cloak_stats", "updated_cloak_infos", %{cloaks: stats})
+    AirWeb.Endpoint.broadcast_from!(self(), "cloak_stats", "updated_cloak_infos", %{cloak_stats: stats})
     :ok
   end
 

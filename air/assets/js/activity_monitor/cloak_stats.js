@@ -4,7 +4,7 @@ import React from "react";
 import {Sparklines, SparklinesLine, SparklinesNormalBand, SparklinesBars,
   SparklinesReferenceLine} from "react-sparklines";
 
-export type Cloak = {
+export type CloakStat = {
   id: string,
   name: string,
   stats: {
@@ -70,7 +70,7 @@ const renderQueriesGraph = (queries) =>
     </Sparklines>
   </td>;
 
-export const CloakView = (props: Cloak) =>
+export const CloakView = (props: CloakStat) =>
   <tr>
     <td>{props.name}</td>
     {renderCurrentMemoryUtilisation(props.stats.memory)}
