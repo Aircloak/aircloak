@@ -74,11 +74,7 @@ defmodule Air.Service.License.FSM.Test do
     end
   end
 
-  defp invalid_license(),
-    do: """
-    Some random text
-    More random text
-    """
+  defp invalid_license(), do: File.read!("priv/broken_license.lic")
 
   defp load_valid_license(_context), do: {:ok, valid_license: File.read!("priv/dev_license.lic")}
 

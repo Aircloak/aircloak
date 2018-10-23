@@ -8,9 +8,20 @@ defmodule Air do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc """
+  Returns the site setting from the current deployment configuration (config.json)
+  and raises if the parameter isn't found.
+  """
+  @spec site_setting!(any) :: any
+  def site_setting!(name) do
+    {:ok, value} = site_setting(name)
+    value
+  end
+
   @doc "Returns the site setting from the current deployment configuration (config.json)."
-  @spec site_setting(any) :: any
-  def site_setting(name), do: Map.fetch!(Aircloak.DeployConfig.fetch!("site"), name)
+  @spec site_setting(any) :: {:ok, any} | :error
+  def site_setting(name),
+    do: with({:ok, site_config} <- Aircloak.DeployConfig.fetch("site"), do: Map.fetch(site_config, name))
 
   @doc "Returns the name of this air instance"
   @spec instance_name() :: String.t()
@@ -37,7 +48,9 @@ defmodule Air do
     configure_appsignal()
     Air.Repo.configure()
     Air.PsqlServer.ShadowDb.init_queue()
-    Air.Supervisor.start_link()
+    result = Air.Supervisor.start_link()
+    maybe_load_license()
+    result
   end
 
   @doc false
@@ -54,7 +67,7 @@ defmodule Air do
     Air.Utils.update_app_env(
       :air,
       Air.Guardian,
-      &[{:secret_key, site_setting("auth_secret")} | &1]
+      &[{:secret_key, site_setting!("auth_secret")} | &1]
     )
 
     Air.Utils.update_app_env(
@@ -62,7 +75,7 @@ defmodule Air do
       AirWeb.Endpoint,
       &Keyword.merge(
         &1,
-        secret_key_base: site_setting("endpoint_key_base"),
+        secret_key_base: site_setting!("endpoint_key_base"),
         https: https_config(Keyword.get(&1, :https, []))
       )
     )
@@ -85,6 +98,30 @@ defmodule Air do
         Appsignal.config_change(:ignored, :ignored, :ignored)
     end
   end
+
+  defp maybe_load_license() do
+    case site_setting("license_file") do
+      {:ok, license_path} ->
+        case Air.Service.License.load_from_file(license_path) do
+          :ok ->
+            Logger.info("Applied Aircloak license from file: `#{license_path}`")
+
+          {:error, reason} ->
+            Logger.error(
+              "Failed to load an Aircloak license from file `#{license_path}`: " <>
+                error_reason_to_text(reason) <>
+                ". You will need to manually load a license in the Insights Air web interface in order " <>
+                "to use your Aircloak Insights installation"
+            )
+        end
+
+      :error ->
+        :ok
+    end
+  end
+
+  defp error_reason_to_text(reason) when is_atom(reason), do: Aircloak.File.humanize_posix_error(reason)
+  defp error_reason_to_text(reason), do: reason
 
   defp https_config(previous_https_config) do
     case {
