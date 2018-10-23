@@ -6,8 +6,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   as checks to validate that columns used in certain filter conditions haven't been altered.
   """
 
-  alias Cloak.Sql.{CompilationError, Condition, Expression, Function, Query, Range, LikePattern}
-  alias Cloak.Sql.Compiler.TypeChecker.Type
+  alias Cloak.Sql.{CompilationError, Condition, Expression, Query, Range}
+  alias Cloak.Sql.Compiler.TypeChecker.{Access, Type}
   alias Cloak.Sql.Compiler.Helpers
   alias Cloak.DataSource.{Isolators, Shadows}
 
@@ -230,10 +230,15 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # -------------------------------------------------------------------
 
   defp verify_isolator_conditions_are_clear(query) do
-    verify_conditions(
-      query,
-      &(unclear_isolator_usage?(&1, query) and includes_isolating_column?(&1, query)),
-      fn condition ->
+    query
+    |> Access.potential_unclear_isolator_usages()
+    |> Stream.filter(&includes_isolating_column?(&1, query))
+    |> Enum.take(1)
+    |> case do
+      [] ->
+        :ok
+
+      [condition] ->
         [offending_column | _] = isolating_columns(condition, query)
 
         raise CompilationError,
@@ -242,26 +247,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
           The column #{Expression.short_name(offending_column)} is isolating and cannot be used in this condition.
           For more information see the "Restrictions" section of the user guides.
           """
-      end
-    )
-  end
-
-  defp unclear_isolator_usage?({:not, condition}, query), do: unclear_isolator_usage?(condition, query)
-  defp unclear_isolator_usage?({:in, _, _}, _), do: true
-  defp unclear_isolator_usage?({:like, _, pattern}, _), do: not LikePattern.simple?(pattern.value)
-  defp unclear_isolator_usage?({:ilike, _, pattern}, _), do: not LikePattern.simple?(pattern.value)
-
-  defp unclear_isolator_usage?(condition, query) do
-    condition
-    |> Condition.targets()
-    |> Enum.any?(fn expression ->
-      not Type.clear_column?(Type.establish_type(expression, query), &allowed_isolator_function?/1)
-    end)
-  end
-
-  @allowed_isolator_functions ~w(lower upper substring trim ltrim rtrim btrim extract_words)
-  defp allowed_isolator_function?(function) do
-    function in @allowed_isolator_functions or Function.implicit_range?(function)
+    end
   end
 
   defp includes_isolating_column?(condition, query) do
@@ -302,11 +288,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # -------------------------------------------------------------------
 
   defp verify_negative_conditions(query) do
-    Query.Lenses.all_queries()
-    |> Lens.context(negative_conditions())
-    |> Lens.to_list(query)
-    |> Stream.map(fn {query, condition} -> {query, expand_expressions(condition, query)} end)
-    |> Stream.uniq_by(fn {_query, condition} -> column_and_condition(condition) end)
+    query
+    |> Access.negative_conditions()
     |> Stream.reject(fn {query, condition} ->
       case Shadows.safe?(condition, query.data_source) do
         {:ok, result} ->
@@ -338,35 +321,6 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   defp max_rare_negative_conditions(),
     do: Application.get_env(:cloak, :shadow_tables) |> Keyword.fetch!(:max_rare_negative_conditions)
 
-  defp expand_expressions(condition, query) do
-    update_in(condition, [Query.Lenses.leaf_expressions() |> Lens.filter(&Expression.column?/1)], fn expression ->
-      case Query.resolve_subquery_column(expression, query) do
-        :database_column -> expression
-        {column, subquery} -> expand_expressions(column, subquery)
-      end
-    end)
-  end
-
-  defp column_and_condition(condition) do
-    case Condition.targets(condition) do
-      [subject, value] ->
-        if Expression.column?(subject) and Expression.constant?(value) do
-          {subject.name, subject.table, Condition.verb(condition), Expression.const_value(value)}
-        else
-          :erlang.unique_integer()
-        end
-
-      _ ->
-        :erlang.unique_integer()
-    end
-  end
-
-  defp negative_conditions() do
-    Query.Lenses.db_filter_clauses()
-    |> Query.Lenses.conditions()
-    |> Lens.filter(&(Condition.not_equals?(&1) or Condition.not_like?(&1)))
-  end
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -388,16 +342,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       |> Enum.count()
 
   defp verify_conditions(query, predicate, action),
-    do:
-      Query.Lenses.db_filter_clauses()
-      |> Query.Lenses.conditions()
-      |> Lens.filter(predicate)
-      |> Lens.to_list(query)
-      |> Enum.each(action)
+    do: query |> Access.conditions(predicate) |> Enum.each(action)
 
-  defp each_anonymized_subquery(query, function) do
-    Query.Lenses.all_queries()
-    |> Lens.filter(&(&1.type == :anonymized))
-    |> Lens.each(query, function)
-  end
+  defp each_anonymized_subquery(query, function), do: Lens.each(Access.anonymized_queries(), query, function)
 end

@@ -6,8 +6,8 @@ import {Channel} from "phoenix";
 
 import {QueriesView} from "./queries";
 import type {Query} from "./query";
-import {CloaksView} from "./cloaks";
-import type {Cloak} from "./cloak";
+import {CloaksView} from "./cloaks_stats";
+import type {CloakStat} from "./cloak_stats";
 
 import {FrontendSocket} from "../frontend_socket";
 import {isFinished} from "../queries/state";
@@ -24,7 +24,7 @@ type Props = {
   guardianToken: string,
   frontendSocket: FrontendSocket,
   queries: Query[],
-  cloaks: Cloak[],
+  cloak_stats: CloakStat[],
 };
 
 export default class ActivityMonitorView extends React.Component {
@@ -36,31 +36,31 @@ export default class ActivityMonitorView extends React.Component {
 
     this.state = {
       queries: this.props.queries,
-      cloaks: this.props.cloaks,
+      cloakStats: this.props.cloak_stats,
     };
 
     this.handleQueryEvent = this.handleQueryEvent.bind(this);
     this.handleRemoveQuery = this.handleRemoveQuery.bind(this);
-    this.handleMemoryReading = this.handleMemoryReading.bind(this);
+    this.handleCloakStatsUpdate = this.handleCloakStatsUpdate.bind(this);
 
     this.channel = this.props.frontendSocket.joinAllQueryEventsChannel({
       handleEvent: this.handleQueryEvent,
     });
-    this.props.frontendSocket.joinMemoryChannel({
-      handleEvent: this.handleMemoryReading,
+    this.props.frontendSocket.joinCloakStatsChannel({
+      handleEvent: this.handleCloakStatsUpdate,
     });
   }
 
   state: {
     queries: Query[],
-    cloaks: Cloak[],
+    cloakStats: CloakStat[],
   };
   queryRemovalTime: number;
   channel: Channel;
 
   handleQueryEvent: (queryEvent: QueryEvent) => void;
   handleRemoveQuery: (queryId: string) => void;
-  handleMemoryReading: (cloak: Cloak) => void;
+  handleCloakStatsUpdate: (cloakStatUpdate: {cloak_stats: CloakStat[]}) => void;
 
   handleRemoveQuery(queryId: string) {
     const queries = _.reject(this.state.queries, (query) => query.id === queryId);
@@ -95,19 +95,16 @@ export default class ActivityMonitorView extends React.Component {
     this.setState({queries});
   }
 
-  handleMemoryReading(newOrUpdatedCloak: Cloak) {
-    const cloaks = _.chain([newOrUpdatedCloak, ...this.state.cloaks]).
-      uniqBy((cloak) => cloak.id).
-      sortBy((cloak) => cloak.name).
-      value();
-    this.setState({cloaks});
+  handleCloakStatsUpdate(cloakStatsUpdate: {cloak_stats: CloakStat[]}) {
+    const cloakStats = _.sortBy(cloakStatsUpdate.cloak_stats, ["name"]);
+    this.setState({cloakStats});
   }
 
   render() {
     return (
       <div>
         <Disconnected channel={this.channel} />
-        <CloaksView cloaks={this.state.cloaks} />
+        <CloaksView cloakStats={this.state.cloakStats} />
         <QueriesView queries={this.state.queries} />
       </div>
     );

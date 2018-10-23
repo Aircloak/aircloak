@@ -226,15 +226,16 @@ defmodule Cloak.AirSocket do
       {:ok, data_source} ->
         Logger.info("starting query", query_id: serialized_query.id)
 
-        Cloak.Query.Runner.start(
-          serialized_query.id,
-          data_source,
-          serialized_query.statement || "",
-          decode_params(serialized_query.parameters),
-          serialized_query.views
-        )
-
-        respond_to_air(from, :ok)
+        case Cloak.Query.Runner.start(
+               serialized_query.id,
+               data_source,
+               serialized_query.statement || "",
+               decode_params(serialized_query.parameters),
+               serialized_query.views
+             ) do
+          :ok -> respond_to_air(from, :ok)
+          {:error, reason} -> respond_to_air(from, :error, reason)
+        end
     end
 
     {:ok, state}

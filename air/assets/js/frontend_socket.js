@@ -31,8 +31,8 @@ export class FrontendSocket {
     return this.joinChannel(callbacks, `data_source:${dataSourceName}`, ["status"]);
   }
 
-  joinMemoryChannel(callbacks: Callbacks) {
-    return this.joinChannel(callbacks, "memory_readings", ["new_reading"]);
+  joinCloakStatsChannel(callbacks: Callbacks) {
+    return this.joinChannel(callbacks, "cloak_stats", ["updated_cloak_infos"]);
   }
 
   joinChannel(callbacks: Callbacks, channelName: string, eventNames: string[]) {

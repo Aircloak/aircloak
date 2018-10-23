@@ -144,13 +144,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   # -------------------------------------------------------------------
 
   defp handle_cloak_message("memory_reading", reading, socket) do
-    Air.Service.Cloak.record_memory(reading)
-
-    AirWeb.Socket.Frontend.MemoryChannel.broadcast_memory_reading(
-      socket.assigns.cloak_id,
-      reading
-    )
-
+    Air.Service.Cloak.Stats.record_memory(socket.assigns.cloak_id, Aircloak.atomize_keys(reading))
     {:noreply, socket}
   end
 

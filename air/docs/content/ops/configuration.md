@@ -62,7 +62,6 @@ This part of the configuration is used to configure the web server of the Insigh
 "site": {
   "auth_secret": secret_string,
   "endpoint_key_base": secret_string,
-  "api_token_salt": secret_string,
   "master_password": string,
   "certfile": string,
   "keyfile": string

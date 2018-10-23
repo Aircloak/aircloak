@@ -52,7 +52,7 @@ Yarn you can get from the [yarnpkg](https://yarnpkg.com/).
 Once the language environment is setup, run the following two commands to download the dependencies:
 
 - `mix deps.get` installs our elixir and erlang dependencies
-- `yarn install` installs our node dependencies
+- `cd assets && yarn install` installs our node dependencies
 
 Before you run the application for the first time, you also need to make sure you initialize the database
 with `make recreate-db`

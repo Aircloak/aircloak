@@ -3,6 +3,7 @@ defmodule Air.Service.Token do
 
   alias Air.Repo
   alias Air.Schemas.{ApiToken, User, Query}
+  alias Air.Service.Salts
   alias AirWeb.Endpoint
 
   # -------------------------------------------------------------------
@@ -104,8 +105,15 @@ defmodule Air.Service.Token do
   defp normalized_max_age(nil), do: _one_day = 60 * 60 * 24
   defp normalized_max_age(:infinity), do: :infinity
 
-  defp api_token_salt do
-    Application.get_env(:air, AirWeb.Endpoint) |> Keyword.fetch!(:api_token_salt)
+  defp api_token_salt(), do: legacy_salt() || Salts.get(:api_token)
+
+  defp legacy_salt() do
+    require Aircloak.DeployConfig
+
+    case Aircloak.DeployConfig.fetch("site") do
+      :error -> nil
+      {:ok, settings} -> settings["api_token_salt"]
+    end
   end
 
   defp query_token_salt(), do: "ZlpIszXdQ0NhuC8E3a7qS+QOHtTHMk89cV0B4+iOejYR58KDpBbosZk7LBCGx+mcBX3Fzy9+xmCvUOnemsOH2w"

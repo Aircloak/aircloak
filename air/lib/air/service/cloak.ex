@@ -9,10 +9,11 @@ defmodule Air.Service.Cloak do
 
   alias Aircloak.ChildSpec
   alias Air.Service.DataSource
+  alias Air.Service.Cloak.Stats
 
   @serializer_name __MODULE__.Serializer
+  @stats_name Stats
   @data_source_registry_name __MODULE__.DataSourceRegistry
-  @memory_registry_name __MODULE__.MemoryRegistry
   @all_cloak_registry_name __MODULE__.AllCloakRegistry
 
   # -------------------------------------------------------------------
@@ -43,12 +44,12 @@ defmodule Air.Service.Cloak do
     register(cloak_info, data_sources)
   end
 
-  @doc "Records cloak memory readings"
-  @spec record_memory(Map.t()) :: :ok
-  def record_memory(reading) do
-    Registry.register(@memory_registry_name, self(), reading)
-    :ok
-  end
+  @doc "Returns cloak info for given a cloak id"
+  @spec cloak_info(String.t()) :: Map.t()
+  def cloak_info(cloak_id),
+    do:
+      Air.Service.Cloak.all_cloak_infos()
+      |> Enum.find(&(&1[:id] == cloak_id))
 
   @doc "Returns a list of cloak channels for a given data source. The list consists of pairs `{pid, cloak_info}`."
   @spec channel_pids(String.t()) :: [{pid(), Map.t()}]
@@ -63,8 +64,8 @@ defmodule Air.Service.Cloak do
   def all_cloak_infos(),
     do:
       for(
-        {pid, info} <- Registry.lookup(@all_cloak_registry_name, :all_cloaks),
-        do: lookup_memory(pid, info)
+        {_pid, cloak_info} <- Registry.lookup(@all_cloak_registry_name, :all_cloaks),
+        do: add_stats(cloak_info)
       )
 
   @doc "Returns the cloak info of cloaks serving a data source"
@@ -72,8 +73,8 @@ defmodule Air.Service.Cloak do
   def cloak_infos_for_data_source(name),
     do:
       for(
-        {pid, cloak_info} <- Registry.lookup(@data_source_registry_name, name),
-        do: lookup_memory(pid, cloak_info)
+        {_pid, cloak_info} <- Registry.lookup(@data_source_registry_name, name),
+        do: add_stats(cloak_info)
       )
 
   @doc "Returns the list of queries running on all connected cloaks."
@@ -108,11 +109,7 @@ defmodule Air.Service.Cloak do
       |> combined_data_source_errors(cloak_info)
       |> register_data_sources()
 
-    cloak_info =
-      Map.merge(cloak_info, %{
-        data_sources: data_sources_by_name,
-        memory: %{}
-      })
+    cloak_info = Map.merge(cloak_info, %{data_sources: data_sources_by_name})
 
     {:reply, {Map.keys(data_sources_by_name), cloak_info, data_source_schemas}, state}
   end
@@ -202,12 +199,7 @@ defmodule Air.Service.Cloak do
         DataSource.create_or_update_data_source(data_source.name, data_source.tables, errors)
       end)
 
-  defp lookup_memory(pid, cloak_info) do
-    case Registry.lookup(@memory_registry_name, pid) do
-      [{_, memory}] -> cloak_info |> Map.put(:memory, memory)
-      [] -> cloak_info |> Map.put(:memory, %{})
-    end
-  end
+  defp add_stats(cloak_info), do: Map.put(cloak_info, :stats, Stats.cloak_stats(cloak_info.id))
 
   # -------------------------------------------------------------------
   # Supervision tree
@@ -218,9 +210,10 @@ defmodule Air.Service.Cloak do
     ChildSpec.supervisor(
       [
         ChildSpec.gen_server(__MODULE__, [], name: @serializer_name),
+        ChildSpec.gen_server(Stats, [], name: @stats_name),
         ChildSpec.registry(:duplicate, @data_source_registry_name),
-        ChildSpec.registry(:unique, @memory_registry_name),
-        ChildSpec.registry(:duplicate, @all_cloak_registry_name)
+        ChildSpec.registry(:duplicate, @all_cloak_registry_name),
+        {Periodic, run: {Stats, :aggregate_and_report, []}, every: :timer.seconds(10)}
       ],
       strategy: :one_for_one,
       name: __MODULE__

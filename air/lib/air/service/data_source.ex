@@ -116,6 +116,8 @@ defmodule Air.Service.DataSource do
     opts = Keyword.merge([audit_meta: %{}, notify: false], opts)
 
     on_available_cloak(data_source_id_spec, query.user, fn data_source, channel_pid, %{id: cloak_id} ->
+      Air.Service.Cloak.Stats.record_query(cloak_id)
+
       query =
         Air.ProcessQueue.run(__MODULE__.Queue, fn ->
           query = add_data_source_info_to_query(query, cloak_id, data_source.id)
@@ -136,10 +138,14 @@ defmodule Air.Service.DataSource do
         :ok ->
           {:ok, query}
 
-        {:error, :timeout} ->
-          post_timeout_result(query)
-          stop_query_async(query)
-          {:error, :timeout}
+        {:error, reason} ->
+          Service.Query.Events.trigger_result(%{query_id: query.id, error: start_query_error(reason)})
+
+          if reason == :timeout,
+            do: stop_query_async(query),
+            else: Service.Query.Lifecycle.report_query_error(query.id, start_query_error(reason))
+
+          {:error, reason}
       end
     end)
   end
@@ -465,12 +471,8 @@ defmodule Air.Service.DataSource do
       |> unique_constraint(:name)
       |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
 
-  defp post_timeout_result(query),
-    do:
-      Service.Query.Events.trigger_result(%{
-        query_id: query.id,
-        error: "The query could not be started due to a communication timeout."
-      })
+  defp start_query_error(:timeout), do: "The query could not be started due to a communication timeout."
+  defp start_query_error(:too_many_queries), do: "Too many queries running on the cloak."
 
   defp data_source_to_db_data(name, tables, errors) do
     # We're computing total column count, and computed and failed counts for isolators and shadow tables, and storing

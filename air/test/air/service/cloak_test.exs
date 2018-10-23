@@ -81,24 +81,6 @@ defmodule Air.Service.Cloak.Test do
     assert cloak.data_sources[@data_source_name] == @data_source
   end
 
-  describe "recording memory stats" do
-    test "doesn't fail for unregistered cloak" do
-      assert :ok == Cloak.record_memory(%{reading: true})
-    end
-
-    test "records memory for registered cloak" do
-      Cloak.register(TestRepoHelper.cloak_info(), @data_sources)
-      reading = %{reading: true}
-      Cloak.record_memory(reading)
-      assert [%{memory: ^reading}] = Cloak.all_cloak_infos()
-    end
-
-    test "has uninitialized memory reading by default" do
-      Cloak.register(TestRepoHelper.cloak_info(), @data_sources)
-      assert [%{memory: %{}}] = Cloak.all_cloak_infos()
-    end
-  end
-
   test "should record that a data source has conflicting definitions across cloaks" do
     Cloak.register(TestRepoHelper.cloak_info(), @data_sources)
     Cloak.register(TestRepoHelper.cloak_info("other_cloak"), @data_sources_that_differ)

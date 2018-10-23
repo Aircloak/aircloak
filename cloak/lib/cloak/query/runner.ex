@@ -9,12 +9,16 @@ defmodule Cloak.Query.Runner do
 
   use Parent.GenServer
   require Logger
+  require Aircloak
+  require Aircloak.DeployConfig
   alias Aircloak.ChildSpec
   alias Cloak.{Sql.Query, DataSource, Query.Runner.Engine, ResultSender}
 
   @supervisor_name __MODULE__.Supervisor
   @runner_registry_name __MODULE__.RunnerRegistry
   @queries_registry_name __MODULE__.QueriesRegistry
+
+  @type start_opts :: [result_target: :air_socket | pid()]
 
   # -------------------------------------------------------------------
   # API functions
@@ -27,18 +31,14 @@ defmodule Cloak.Query.Runner do
   is sent to the required destination. If an error occurs, the result will contain
   error information.
   """
-  @spec start(
-          String.t(),
-          DataSource.t(),
-          String.t(),
-          [DataSource.field()],
-          Query.view_map(),
-          ResultSender.target()
-        ) :: :ok
-  def start(query_id, data_source, statement, parameters, views, result_target \\ :air_socket) do
-    runner_arg = {query_id, data_source, statement, parameters, views, result_target}
-    {:ok, _} = DynamicSupervisor.start_child(@supervisor_name, runner_spec(query_id, runner_arg))
-    :ok
+  @spec start(String.t(), DataSource.t(), String.t(), [DataSource.field()], Query.view_map(), start_opts) ::
+          :ok | {:error, :too_many_queries}
+  def start(query_id, data_source, statement, parameters, views, start_opts \\ []) do
+    runner_arg = {query_id, data_source, statement, parameters, views, start_opts}
+
+    # Starting of a query is serialized (queries are started one at a time). This makes it possible to reliably decide
+    # if we can start the new query with respect to max concurrency settings.
+    :jobs.run(__MODULE__, fn -> serialized_start_runner(query_id, runner_arg) end)
   end
 
   @spec stop(String.t() | pid, :cancelled | :oom) :: :ok
@@ -66,7 +66,7 @@ defmodule Cloak.Query.Runner do
   @doc "Executes the query synchronously, and returns its result."
   @spec run_sync(String.t(), DataSource.t(), String.t(), [DataSource.field()], Query.view_map()) :: any
   def run_sync(query_id, data_source, statement, parameters, views) do
-    start(query_id, data_source, statement, parameters, views, {:process, self()})
+    :ok = start(query_id, data_source, statement, parameters, views, result_target: self())
 
     receive do
       {:result, response} -> response
@@ -91,25 +91,72 @@ defmodule Cloak.Query.Runner do
   end
 
   # -------------------------------------------------------------------
+  # Server starting
+  # -------------------------------------------------------------------
+
+  @doc false
+  def setup_queue() do
+    with :undefined <- :jobs.queue_info(__MODULE__),
+         do: :jobs.add_queue(__MODULE__, max_time: :timer.minutes(1), regulators: [counter: [limit: 1]])
+
+    :proc_lib.init_ack({:ok, self()})
+  end
+
+  defp serialized_start_runner(query_id, runner_arg) do
+    if Registry.count(@runner_registry_name) < max_parallel_queries() do
+      {:ok, _pid} = DynamicSupervisor.start_child(@supervisor_name, runner_spec(query_id, runner_arg))
+      :ok
+    else
+      {:error, :too_many_queries}
+    end
+  end
+
+  defp max_parallel_queries() do
+    Aircloak.in_env(
+      test: Application.get_env(:cloak, :max_parallel_queries, :infinity),
+      else: Aircloak.DeployConfig.get("max_parallel_queries", :infinity)
+    )
+  end
+
+  defp runner_spec(query_id, runner_arg) do
+    %{
+      id: __MODULE__,
+      start: {Parent.GenServer, :start_link, [__MODULE__, runner_arg, [name: worker_name(query_id)]]},
+      restart: :temporary
+    }
+  end
+
+  @doc false
+  def worker_name(query_id) do
+    import Aircloak, only: [in_env: 1, unused: 2]
+    unused(query_id, in: [:test])
+
+    in_env(
+      test: {:via, Registry, {@runner_registry_name, :erlang.unique_integer()}},
+      else: {:via, Registry, {@runner_registry_name, query_id}}
+    )
+  end
+
+  # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init({query_id, data_source, statement, parameters, views, result_target}) do
+  def init({query_id, data_source, statement, parameters, views, start_opts}) do
     {:ok, _pid} = Registry.register(@queries_registry_name, :instances, query_id)
     Logger.metadata(query_id: query_id)
     memory_callbacks = Cloak.MemoryReader.query_registering_callbacks()
 
     Parent.GenServer.start_child(%{
       id: :query_execution,
-      start: fn -> start_query(query_id, data_source, statement, parameters, views, memory_callbacks) end,
+      start: fn -> start_query(query_id, data_source, statement, parameters, views, memory_callbacks, start_opts) end,
       shutdown: :brutal_kill
     })
 
     {:ok,
      %{
        query_id: query_id,
-       result_target: result_target,
+       result_target: Keyword.get(start_opts, :result_target, :air_socket),
        start_time: :erlang.monotonic_time(:milli_seconds),
        execution_time: nil,
        features: nil,
@@ -193,18 +240,22 @@ defmodule Cloak.Query.Runner do
   # Query running
   # -------------------------------------------------------------------
 
-  defp start_query(query_id, data_source, statement, parameters, views, memory_callbacks) do
+  defp start_query(query_id, data_source, statement, parameters, views, memory_callbacks, start_opts) do
     parent = self()
-    Task.start_link(fn -> run_query(query_id, parent, data_source, statement, parameters, views, memory_callbacks) end)
+
+    Task.start_link(fn ->
+      run_query(query_id, parent, data_source, statement, parameters, views, memory_callbacks, start_opts)
+    end)
   end
 
-  defp run_query(query_id, owner, data_source, statement, parameters, views, memory_callbacks) do
+  defp run_query(query_id, owner, data_source, statement, parameters, views, memory_callbacks, start_opts) do
     Logger.metadata(query_id: query_id)
     Logger.debug(fn -> "Running statement `#{statement}` ..." end)
 
     state_updater = &send(owner, {:send_state, query_id, &1})
     feature_updater = &send(owner, {:features, &1})
-    result = Engine.run(data_source, statement, parameters, views, state_updater, feature_updater, memory_callbacks)
+    runner_fun = Keyword.get(start_opts, :runner_fun, &Engine.run/7)
+    result = runner_fun.(data_source, statement, parameters, views, state_updater, feature_updater, memory_callbacks)
     send(owner, {:query_result, result})
   end
 
@@ -309,32 +360,22 @@ defmodule Cloak.Query.Runner do
   def child_spec(_arg) do
     ChildSpec.supervisor(
       [
+        setup_queue_spec(),
         ChildSpec.registry(:unique, @runner_registry_name),
         ChildSpec.registry(:duplicate, @queries_registry_name),
         ChildSpec.dynamic_supervisor(name: @supervisor_name)
       ],
-      strategy: :rest_for_one
+      strategy: :rest_for_one,
+      name: __MODULE__
     )
   end
 
-  defp runner_spec(query_id, runner_arg),
-    do: %{id: __MODULE__, start: {__MODULE__, :start_runner, [query_id, runner_arg]}, restart: :temporary}
-
-  @doc false
-  def start_runner(query_id, runner_arg),
-    do: Parent.GenServer.start_link(__MODULE__, runner_arg, name: worker_name(query_id))
-
-  # -------------------------------------------------------------------
-  # Test support
-  # -------------------------------------------------------------------
-
-  def worker_name(query_id) do
-    import Aircloak, only: [in_env: 1, unused: 2]
-    unused(query_id, in: [:test])
-
-    in_env(
-      test: {:via, Registry, {@runner_registry_name, :erlang.unique_integer()}},
-      else: {:via, Registry, {@runner_registry_name, query_id}}
-    )
+  defp setup_queue_spec() do
+    %{
+      id: :setup_queue,
+      # using :proc_lib ensures that the supervisor will start the next child only after the queue has been setup
+      start: {:proc_lib, :start_link, [__MODULE__, :setup_queue, []]},
+      restart: :transient
+    }
   end
 end

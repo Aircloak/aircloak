@@ -46,6 +46,7 @@ defmodule Cloak.Mixfile do
       {:jiffy, "~> 0.14.1"},
       {:file_system, "~> 0.2.2"},
       {:parent, "~> 0.4.0"},
+      {:jobs, "~> 0.7.0"},
 
       # Rustler is needed for compiling Rust port driver on MacOS
       {:rustler, github: "cristianberneanu/rustler", sparse: "rustler_mix", runtime: false},
@@ -54,6 +55,7 @@ defmodule Cloak.Mixfile do
       # in order to build under Erlang 20.0. Earlier versions indirectly included too old versions of a
       # unicode compatibility layer that doesn't jell with our version of Erlang.
       {:hackney, ">= 1.8.6", override: true},
+      {:parse_trans, ">= 3.2.0", override: true},
 
       # Test deps
 
@@ -61,7 +63,7 @@ defmodule Cloak.Mixfile do
       {:cowboy, "~> 1.0", only: :test},
       {:bypass, "~> 0.5.1", only: :test},
       {:excheck, "~> 0.5.3", only: :test},
-      {:triq, github: "triqng/triq", only: :test},
+      {:triq, "~> 1.3", only: :test},
 
       # Only used for perf tests
       {:httpoison, "~> 0.13.0", runtime: false, override: true},

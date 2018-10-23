@@ -8,7 +8,7 @@ defmodule Air.ConfigValidationTest do
     assert_missing_field_reported("site")
 
     Enum.each(
-      ~w(auth_secret endpoint_key_base api_token_salt master_password),
+      ~w(auth_secret endpoint_key_base master_password),
       &assert_missing_field_reported("site/#{&1}")
     )
 
