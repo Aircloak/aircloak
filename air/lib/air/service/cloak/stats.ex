@@ -40,7 +40,7 @@ defmodule Air.Service.Cloak.Stats do
       {:ok,
        %{
          metrics: Internal.new(),
-         cloak_presence: %{seen_in_reporting_interval: MapSet.new(), last_seen: Map.new()}
+         cloak_presence: %{seen_in_reporting_interval: MapSet.new(), unseen_periods: Map.new()}
        }}
 
   @impl GenServer
@@ -51,20 +51,20 @@ defmodule Air.Service.Cloak.Stats do
     do: {:noreply, record_metric(state, cloak_id, &Internal.record_query(&1, &2))}
 
   def handle_cast(:aggregate, state) do
-    last_seen = state.cloak_presence.last_seen
+    unseen_periods = state.cloak_presence.unseen_periods
 
     cloaks_with_reports = MapSet.to_list(state.cloak_presence.seen_in_reporting_interval)
-    existing_cloaks = Map.keys(last_seen)
+    existing_cloaks = Map.keys(unseen_periods)
     new_cloaks = cloaks_with_reports -- existing_cloaks
     cloaks_without_reports = existing_cloaks -- cloaks_with_reports
 
     expired_cloaks =
-      last_seen
+      unseen_periods
       |> Enum.filter(fn {_cloak_id, periods_since_seen} -> periods_since_seen >= @max_allowed_idle_periods end)
       |> Enum.map(fn {cloak_id, _periods_since_seen} -> cloak_id end)
 
     updated_last_seen =
-      last_seen
+      unseen_periods
       |> flipped_reduce(cloaks_with_reports, &Map.put(&2, &1, 0))
       |> flipped_reduce(
         cloaks_without_reports,
@@ -81,7 +81,7 @@ defmodule Air.Service.Cloak.Stats do
         |> Internal.aggregate()
       end)
       |> put_in([:cloak_presence, :seen_in_reporting_interval], MapSet.new())
-      |> put_in([:cloak_presence, :last_seen], updated_last_seen)
+      |> put_in([:cloak_presence, :unseen_periods], updated_last_seen)
 
     {:noreply, state}
   end
