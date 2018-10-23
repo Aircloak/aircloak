@@ -83,7 +83,7 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
       assert state == Stats.Internal.record_query(state, @cloak_id)
     end
 
-    test "adds query to queue for later processing" do
+    test "adds query to queue for later aggregation" do
       assert 2 ==
                initialized_state()
                |> Stats.Internal.record_query(@cloak_id)
@@ -115,7 +115,7 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
       end)
     end
 
-    test "adds reading to queue for later processing" do
+    test "adds reading to queue for later aggregation" do
       assert [memory_reading(), memory_reading()] ==
                initialized_state()
                |> Stats.Internal.record_memory(@cloak_id, memory_reading())
@@ -124,14 +124,14 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
     end
   end
 
-  describe "process" do
+  describe "aggregate" do
     test "noop when no new measurements" do
       state =
         initialized_state()
         |> Stats.Internal.record_memory(@cloak_id, memory_reading())
-        |> Stats.Internal.process()
+        |> Stats.Internal.aggregate()
 
-      assert state == Stats.Internal.process(state)
+      assert state == Stats.Internal.aggregate(state)
     end
 
     test "adds maximum in usage percentage to readings" do
@@ -139,7 +139,7 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
                initialized_state()
                |> Stats.Internal.record_memory(@cloak_id, memory_reading())
                |> Stats.Internal.record_memory(@cloak_id, other_memory_reading())
-               |> Stats.Internal.process()
+               |> Stats.Internal.aggregate()
                |> get_mem_stat(:readings)
                |> List.first()
     end
@@ -149,9 +149,9 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
                initialized_state()
                |> Stats.Internal.record_query(@cloak_id)
                |> Stats.Internal.record_query(@cloak_id)
-               |> Stats.Internal.process()
+               |> Stats.Internal.aggregate()
                |> Stats.Internal.record_query(@cloak_id)
-               |> Stats.Internal.process()
+               |> Stats.Internal.aggregate()
                |> get_queries_stat()
                |> Enum.take(2)
     end
@@ -173,7 +173,7 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
       assert %{@cloak_id => stats} =
                initialized_state()
                |> Stats.Internal.record_memory(@cloak_id, memory_reading())
-               |> Stats.Internal.process()
+               |> Stats.Internal.aggregate()
                |> Stats.Internal.cloak_stats()
 
       assert 100 == stats.memory.total

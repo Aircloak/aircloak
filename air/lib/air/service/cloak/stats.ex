@@ -41,7 +41,7 @@ defmodule Air.Service.Cloak.Stats do
 
   @impl GenServer
   def init(_) do
-    schedule_processing()
+    schedule_aggregation()
     {:ok, %{metrics: Internal.initial_state(), monitoring: %{}}}
   end
 
@@ -73,10 +73,10 @@ defmodule Air.Service.Cloak.Stats do
     do: {:reply, Internal.cloak_stats(state.metrics)[cloak_id], state}
 
   @impl GenServer
-  def handle_info(:process_stats, state) do
-    schedule_processing()
+  def handle_info(:aggregate_last_interval, state) do
+    schedule_aggregation()
     Task.start(&push_updated_cloak_infos/0)
-    {:noreply, %{state | metrics: Internal.process(state.metrics)}}
+    {:noreply, %{state | metrics: Internal.aggregate(state.metrics)}}
   end
 
   def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
@@ -90,7 +90,7 @@ defmodule Air.Service.Cloak.Stats do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp schedule_processing(), do: Process.send_after(self(), :process_stats, @reporting_interval)
+  defp schedule_aggregation(), do: Process.send_after(self(), :aggregate_last_interval, @reporting_interval)
 
   defp push_updated_cloak_infos(), do: AirWeb.Socket.Frontend.CloakStatsChannel.broadcast_cloak_stats()
 end

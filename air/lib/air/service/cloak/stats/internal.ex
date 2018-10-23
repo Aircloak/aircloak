@@ -86,13 +86,13 @@ defmodule Air.Service.Cloak.Stats.Internal do
     end
   end
 
-  @doc "Processes and aggregating all memory readings, taking the max memory reading"
-  @spec process(state) :: state
-  def process(state),
+  @doc "Aggregates pending stats for reporting."
+  @spec aggregate(state) :: state
+  def aggregate(state),
     do:
       state
-      |> process_pending(:pending_memory_readings, &process_memory/2)
-      |> process_pending(:pending_queries, &process_queries/2)
+      |> aggregate_pending(:pending_memory_readings, &aggregate_memory/2)
+      |> aggregate_pending(:pending_queries, &aggregate_queries/2)
 
   @doc "Returns stats for all the cloaks"
   @spec cloak_stats(state) :: cloak_stats
@@ -102,9 +102,9 @@ defmodule Air.Service.Cloak.Stats.Internal do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp process_pending(state, what, callback), do: Enum.reduce(state[what], Map.put(state, what, %{}), callback)
+  defp aggregate_pending(state, what, callback), do: Enum.reduce(state[what], Map.put(state, what, %{}), callback)
 
-  defp process_memory({cloak_id, readings}, acc) do
+  defp aggregate_memory({cloak_id, readings}, acc) do
     max_in_use_percentage =
       readings
       |> Enum.map(&base_stats(&1).in_use_percent)
@@ -113,7 +113,7 @@ defmodule Air.Service.Cloak.Stats.Internal do
     update_in(acc, [:stats, cloak_id, :memory, :readings], &add_to_list_of_readings(&1, max_in_use_percentage))
   end
 
-  defp process_queries({cloak_id, num_queries}, acc),
+  defp aggregate_queries({cloak_id, num_queries}, acc),
     do: update_in(acc, [:stats, cloak_id, :queries], &add_to_list_of_readings(&1, num_queries))
 
   defp update_base_memory_stats(stats, reading),
