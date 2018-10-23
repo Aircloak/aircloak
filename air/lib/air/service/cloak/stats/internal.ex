@@ -78,8 +78,7 @@ defmodule Air.Service.Cloak.Stats.Internal do
   @spec record_query(state, cloak_id) :: state
   def record_query(state, cloak_id) do
     if registered?(state, cloak_id) do
-      state
-      |> update_in([:pending_queries], fn pending_queries ->
+      update_in(state.pending_queries, fn pending_queries ->
         Map.update(pending_queries, cloak_id, 1, &(&1 + 1))
       end)
     else
@@ -122,7 +121,7 @@ defmodule Air.Service.Cloak.Stats.Internal do
 
   defp update_base_memory_stats(stats, reading),
     do:
-      update_in(stats, [:memory], fn mem_stats ->
+      update_in(stats.memory, fn mem_stats ->
         {total, in_use, in_use_percent} = base_stats(reading)
         %{mem_stats | total: total, currently_in_use: in_use, in_use_percent: in_use_percent}
       end)
