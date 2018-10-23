@@ -110,8 +110,7 @@ defmodule Air do
             Logger.error(
               "Failed to load an Aircloak license from file `#{license_path}`: " <>
                 Aircloak.File.humanize_posix_error(reason) <>
-                ". You will need to " <>
-                "manually apply a license in the Insights Air web interface in order " <>
+                ". You will need to manually load a license in the Insights Air web interface in order " <>
                 "to use your Aircloak Insights installation"
             )
         end
