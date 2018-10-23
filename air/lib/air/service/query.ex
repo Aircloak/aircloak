@@ -65,6 +65,18 @@ defmodule Air.Service.Query do
     end
   end
 
+  @doc "Returns queries which have been created but not yet started on any cloak."
+  @spec not_started() :: [Query.t()]
+  def not_started() do
+    Repo.all(
+      from(
+        q in Query,
+        where: q.query_state == ^:created and not is_nil(q.data_source_id) and is_nil(q.cloak_id),
+        preload: [:user, :data_source]
+      )
+    )
+  end
+
   @doc """
   Returns a list of queries matching the given filters, ordered by `inserted_at`. At most `max_results` most recent
   queries will be returned.

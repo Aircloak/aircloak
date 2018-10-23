@@ -450,6 +450,16 @@ defmodule Air.Service.QueryTest do
     end
   end
 
+  describe ".not_started" do
+    test "fetching not started queries" do
+      user = create_user!()
+      q1 = create_query!(user)
+      q2 = create_query!(user)
+      create_query!(user, %{query_state: :completed})
+      assert Query.not_started() |> Enum.map(& &1.id) |> Enum.sort() == Enum.sort([q1.id, q2.id])
+    end
+  end
+
   defp filters(overrides \\ %{}) do
     Map.merge(
       %{
