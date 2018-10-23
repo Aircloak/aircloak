@@ -107,10 +107,7 @@ defmodule Air.Service.Cloak.Stats.Internal do
   defp process_memory({cloak_id, readings}, acc) do
     max_in_use_percentage =
       readings
-      |> Enum.map(fn reading ->
-        {_, _, in_use_percent} = base_stats(reading)
-        in_use_percent
-      end)
+      |> Enum.map(&base_stats(&1).in_use_percent)
       |> Enum.max()
 
     update_in(acc, [:stats, cloak_id, :memory, :readings], &add_to_list_of_readings(&1, max_in_use_percentage))
@@ -122,8 +119,8 @@ defmodule Air.Service.Cloak.Stats.Internal do
   defp update_base_memory_stats(stats, reading),
     do:
       update_in(stats.memory, fn mem_stats ->
-        {total, in_use, in_use_percent} = base_stats(reading)
-        %{mem_stats | total: total, currently_in_use: in_use, in_use_percent: in_use_percent}
+        stats = base_stats(reading)
+        %{mem_stats | total: stats.total, currently_in_use: stats.in_use, in_use_percent: stats.in_use_percent}
       end)
 
   defp initial_memory_stats(),
@@ -144,7 +141,7 @@ defmodule Air.Service.Cloak.Stats.Internal do
     in_use = total - reading.available_memory.current
     in_use_percent = round(in_use * 100 / total)
 
-    {total, in_use, in_use_percent}
+    %{total: total, in_use: in_use, in_use_percent: in_use_percent}
   end
 
   defp registered?(%{stats: stats}, cloak_id), do: Map.has_key?(stats, cloak_id)
