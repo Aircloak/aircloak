@@ -59,13 +59,13 @@ defmodule Air.Service.Token do
   @doc "Returns a token representing the right to view the given query without authenticating."
   @spec public_query_token(Query.t()) :: String.t()
   def public_query_token(query) do
-    Phoenix.Token.sign(Endpoint, query_token_salt(), {:public, :query, query.id})
+    Phoenix.Token.sign(Endpoint, Salts.get(:query_permalink), {:public, :query, query.id})
   end
 
   @doc "Returns a token representing the right to view the given query while having access to its data source."
   @spec private_query_token(Query.t()) :: String.t()
   def private_query_token(query) do
-    Phoenix.Token.sign(Endpoint, query_token_salt(), {:private, :query, query.id})
+    Phoenix.Token.sign(Endpoint, Salts.get(:query_permalink), {:private, :query, query.id})
   end
 
   @doc """
@@ -74,7 +74,7 @@ defmodule Air.Service.Token do
   """
   @spec query_from_token(User.t(), String.t()) :: {:ok, Query.t()} | :error
   def query_from_token(user, token) do
-    with {:ok, token} <- Phoenix.Token.verify(Endpoint, query_token_salt(), token, max_age: :infinity),
+    with {:ok, token} <- Phoenix.Token.verify(Endpoint, Salts.get(:query_permalink), token, max_age: :infinity),
          {:ok, query} <- do_query_from_token(user, token) do
       {:ok, query}
     else
@@ -115,8 +115,6 @@ defmodule Air.Service.Token do
       {:ok, settings} -> settings["api_token_salt"]
     end
   end
-
-  defp query_token_salt(), do: "ZlpIszXdQ0NhuC8E3a7qS+QOHtTHMk89cV0B4+iOejYR58KDpBbosZk7LBCGx+mcBX3Fzy9+xmCvUOnemsOH2w"
 
   if Mix.env() == :test do
     # Starting an async task that uses the DB plays badly with the Ecto Sandbox
