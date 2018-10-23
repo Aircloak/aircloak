@@ -107,5 +107,5 @@ defmodule Cloak.Query.Rows do
   defp select_values(bucket, expressions) when is_map(bucket),
     do: %{bucket | row: select_values(bucket.row, expressions)}
 
-  defp clear(expression), do: %Expression{expression | alias: nil, row_index: nil}
+  defp clear(expression), do: %Expression{expression | alias: nil, row_index: nil, synthetic?: nil}
 end

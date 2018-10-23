@@ -119,6 +119,7 @@ defmodule Cloak.Sql.Query.Features do
       initial_lens
       |> Query.Lenses.all_expressions()
       |> Lens.filter(& &1.function?)
+      |> Lens.reject(& &1.synthetic?)
     ])
     |> Enum.map(&Function.readable_name(&1.function))
     |> Enum.uniq()
