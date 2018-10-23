@@ -45,6 +45,8 @@ export type Result = {
   },
   inserted_at: string,
   session_id: string,
+  private_permalink: string,
+  public_permalink: string,
 };
 
 type Props = {
@@ -299,7 +301,7 @@ export class ResultView extends React.Component {
           <div className="form-group">
             <label>Public link</label>
             <p className="help-block">Anyone with this link will be able to view the query and its results.</p>
-            <input type="email" className="form-control" readOnly="true" value="https://example.org/permalink" />
+            <input type="email" className="form-control" readOnly="true" value={this.publicPermalink()} />
           </div>
 
           <div className="form-group">
@@ -307,7 +309,7 @@ export class ResultView extends React.Component {
             <p className="help-block">
               This link requires logging in with an Insights Air account that is allowed to access this data source.
             </p>
-            <input type="email" className="form-control" readOnly="true" value="https://example.org/permalink" />
+            <input type="email" className="form-control" readOnly="true" value={this.privatePermalink()} />
           </div>
         </Modal.Body>
 
@@ -316,6 +318,14 @@ export class ResultView extends React.Component {
         </Modal.Footer>
       </Modal>
     );
+  }
+
+  privatePermalink() {
+    return `${window.location.origin}${this.props.result.private_permalink}`;
+  }
+
+  publicPermalink() {
+    return `${window.location.origin}${this.props.result.public_permalink}`;
   }
 
   conditionallyRenderChartConfig() {

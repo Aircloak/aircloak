@@ -43,6 +43,18 @@ defmodule AirWeb.Router do
     post("/", SessionController, :create)
   end
 
+  scope "/permalink/public", AirWeb do
+    pipe_through([:browser, :browser_for_all])
+
+    get("/:token", PermalinkController, :public)
+  end
+
+  scope "/permalink/private", AirWeb do
+    pipe_through([:browser, :browser_auth])
+
+    get("/:token", PermalinkController, :private)
+  end
+
   scope "/reset_password", AirWeb do
     pipe_through([:browser, :anonymous_only])
 

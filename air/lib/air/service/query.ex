@@ -3,6 +3,7 @@ defmodule Air.Service.Query do
 
   alias Air.Repo
   alias Air.Schemas.{DataSource, Query, ResultChunk, User}
+  alias Air.Service.Token
   alias AirWeb.Socket.Frontend.UserChannel
 
   import Ecto.Query
@@ -38,6 +39,7 @@ defmodule Air.Service.Query do
     |> Map.merge(data_source_info(query))
     |> Map.merge(user_info(query))
     |> Map.put(:completed, completed?(query))
+    |> Map.merge(permalinks(query))
   end
 
   @doc """
@@ -493,6 +495,14 @@ defmodule Air.Service.Query do
 
   defp add_result(result, nil), do: result
   defp add_result(result, buckets), do: Map.put(result, :rows, buckets)
+
+  defp permalinks(query) do
+    %{
+      private_permalink:
+        AirWeb.Router.Helpers.permalink_path(AirWeb.Endpoint, :private, Token.private_query_token(query)),
+      public_permalink: AirWeb.Router.Helpers.permalink_path(AirWeb.Endpoint, :public, Token.public_query_token(query))
+    }
+  end
 
   # -------------------------------------------------------------------
   # Supervision tree
