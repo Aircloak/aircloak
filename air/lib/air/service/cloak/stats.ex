@@ -30,6 +30,20 @@ defmodule Air.Service.Cloak.Stats do
   @spec aggregate() :: :ok
   def aggregate(), do: GenServer.cast(__MODULE__, :aggregate)
 
+  @doc "Triggers an aggregation of stats and sends an update to all subscribed web socket clients"
+  @spec aggregate_and_report() :: :ok
+  def aggregate_and_report() do
+    aggregate()
+
+    stats =
+      Enum.map(
+        Air.Service.Cloak.all_cloak_infos(),
+        &Map.take(&1, [:id, :name, :online_since, :stats])
+      )
+
+    AirWeb.Socket.Frontend.CloakStatsChannel.broadcast_cloak_stats(stats)
+  end
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
