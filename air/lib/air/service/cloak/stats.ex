@@ -9,8 +9,6 @@ defmodule Air.Service.Cloak.Stats do
 
   use GenServer
 
-  @reporting_interval :timer.seconds(10)
-
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -41,7 +39,7 @@ defmodule Air.Service.Cloak.Stats do
 
   @impl GenServer
   def init(_) do
-    schedule_aggregation()
+    schedule_next_aggregation()
     {:ok, %{metrics: Internal.initial_state(), monitoring: %{}}}
   end
 
@@ -74,7 +72,7 @@ defmodule Air.Service.Cloak.Stats do
 
   @impl GenServer
   def handle_info(:aggregate_last_interval, state) do
-    schedule_aggregation()
+    schedule_next_aggregation()
     Task.start(&push_updated_cloak_infos/0)
     {:noreply, %{state | metrics: Internal.aggregate(state.metrics)}}
   end
@@ -90,7 +88,7 @@ defmodule Air.Service.Cloak.Stats do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp schedule_aggregation(), do: Process.send_after(self(), :aggregate_last_interval, @reporting_interval)
+  defp schedule_next_aggregation(), do: Process.send_after(self(), :aggregate_last_interval, :timer.seconds(10))
 
   defp push_updated_cloak_infos(), do: AirWeb.Socket.Frontend.CloakStatsChannel.broadcast_cloak_stats()
 end
