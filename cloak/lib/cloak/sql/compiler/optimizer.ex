@@ -242,8 +242,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   end
 
   defp update_aggregator(old_aggregator, inner_table, aggregators) do
-    old_aggregator = Expression.semantic(old_aggregator)
-    index = Enum.find_index(aggregators, &(&1 == old_aggregator))
+    index = Enum.find_index(aggregators, &Expression.equals?(&1, old_aggregator))
     true = index != nil
     column_name = "__ac_agg__#{index}"
     inner_column = inner_table.columns |> Enum.find(&(&1.name == column_name)) |> Expression.column(inner_table)

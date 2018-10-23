@@ -212,17 +212,17 @@ defmodule Cloak.Sql.Expression do
     do: apply_function(expression, Enum.map(args, &const_value/1))
 
   @doc "Checks two columns for equality."
-  @spec equals(any, any) :: boolean
-  def equals({:distinct, c1}, {:distinct, c2}), do: equals(c1, c2)
-  def equals(:*, :*), do: true
+  @spec equals?(any, any) :: boolean
+  def equals?({:distinct, c1}, {:distinct, c2}), do: equals?(c1, c2)
+  def equals?(:*, :*), do: true
 
-  def equals(%__MODULE__{} = c1, %__MODULE__{} = c2),
+  def equals?(%__MODULE__{} = c1, %__MODULE__{} = c2),
     do:
       c1.table == c2.table and c1.name == c2.name and c1.value == c2.value and c1.function == c2.function and
         Enum.zip(c1.function_args, c2.function_args)
-        |> Enum.all?(fn {arg1, arg2} -> equals(arg1, arg2) end)
+        |> Enum.all?(fn {arg1, arg2} -> equals?(arg1, arg2) end)
 
-  def equals(_c1, _c2), do: false
+  def equals?(_c1, _c2), do: false
 
   @doc "Returns a string id for the specified column."
   @spec id(t) :: nil | String.t()
@@ -291,7 +291,7 @@ defmodule Cloak.Sql.Expression do
     do:
       put_in(
         expression,
-        [Cloak.Sql.Query.Lenses.all_expressions() |> Lens.key(:source_location)],
+        [Cloak.Sql.Query.Lenses.all_expressions() |> Lens.keys([:source_location, :row_index])],
         nil
       )
 
@@ -327,10 +327,7 @@ defmodule Cloak.Sql.Expression do
   This allows us to for example see if a selected expression appears as a group by expression too.
   """
   @spec member?([t], t) :: boolean
-  def member?(exps, exp) do
-    normalizer = &(&1 |> unalias() |> semantic())
-    Enum.member?(Enum.map(exps, normalizer), normalizer.(exp))
-  end
+  def member?(expressions, expression), do: Enum.any?(expressions, &equals?(&1, expression))
 
   # -------------------------------------------------------------------
   # Internal functions

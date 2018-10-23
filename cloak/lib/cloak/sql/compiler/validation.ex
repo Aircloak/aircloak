@@ -129,13 +129,11 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp valid_expression_in_aggregate?(query, column) do
-    normalizer = &(&1 |> Expression.unalias() |> Expression.semantic())
-
     cond do
       Expression.constant?(column) ->
         true
 
-      Enum.member?(Enum.map(query.group_by, normalizer), normalizer.(column)) ->
+      Expression.member?(query.group_by, column) ->
         true
 
       Function.has_attribute?(column, :row_splitter) ->
@@ -195,10 +193,10 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_non_selected_where_splitters(query) do
-    selected_splitters = Query.outermost_selected_splitters(query) |> Enum.map(&Expression.semantic/1)
+    selected_splitters = Query.outermost_selected_splitters(query)
 
     Query.outermost_where_splitters(query)
-    |> Enum.reject(&(Expression.semantic(&1) in selected_splitters))
+    |> Enum.reject(&Expression.member?(selected_splitters, &1))
     |> case do
       [] ->
         query

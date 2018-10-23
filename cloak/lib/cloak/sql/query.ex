@@ -305,7 +305,7 @@ defmodule Cloak.Sql.Query do
   def replace_expression(query, expression, new_expression),
     do:
       Lenses.query_expressions()
-      |> Lens.satisfy(&(Expression.semantic(&1) == Expression.semantic(expression)))
+      |> Lens.satisfy(&Expression.equals?(&1, expression))
       |> Lens.map(query, fn _ -> new_expression end)
 
   @doc """

@@ -321,7 +321,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
          _groups
        ) do
     # For distinct count, we gather values into a set and then project the size of the set.
-    index = Enum.find_index(aggregators, &Expression.equals(column, &1))
+    index = Enum.find_index(aggregators, &Expression.equals?(column, &1))
 
     %Expression{
       column
@@ -337,7 +337,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
          _groups
        ) do
     # For distinct aggregators, we gather values into a set and then project the aggregator over the set.
-    index = Enum.find_index(aggregators, &Expression.equals(column, &1))
+    index = Enum.find_index(aggregators, &Expression.equals?(column, &1))
 
     %Expression{
       column
@@ -346,9 +346,9 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   end
 
   defp extract_column_top(column, aggregators, groups) do
-    case Enum.find_index(aggregators, &Expression.equals(column, &1)) do
+    case Enum.find_index(aggregators, &Expression.equals?(column, &1)) do
       nil ->
-        case Enum.find_index(groups, &Expression.equals(column, &1)) do
+        case Enum.find_index(groups, &Expression.equals?(column, &1)) do
           nil ->
             # Has to be a function call since the lookups failed.
             args = Enum.map(column.function_args, &extract_column_top(&1, aggregators, groups))
