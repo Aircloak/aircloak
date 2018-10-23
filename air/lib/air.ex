@@ -49,7 +49,7 @@ defmodule Air do
     Air.Repo.configure()
     Air.PsqlServer.ShadowDb.init_queue()
     result = Air.Supervisor.start_link()
-    maybe_apply_license()
+    maybe_load_license()
     result
   end
 
@@ -99,7 +99,7 @@ defmodule Air do
     end
   end
 
-  defp maybe_apply_license() do
+  defp maybe_load_license() do
     case site_setting("license_file") do
       {:ok, license_path} ->
         case Air.Service.License.load_from_file(license_path) do
