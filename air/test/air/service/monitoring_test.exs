@@ -40,6 +40,7 @@ defmodule Air.Service.Monitoring.Test do
       }
 
       Air.Service.Cloak.Stats.record_memory(cloak_info.id, memory_reading)
+      Air.Service.Cloak.Stats.aggregate()
       TestRepoHelper.create_query!(TestRepoHelper.create_user!(), %{cloak_id: cloak_info.id})
 
       cloak_name = cloak_info.name

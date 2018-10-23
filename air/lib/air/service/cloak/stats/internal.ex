@@ -58,29 +58,19 @@ defmodule Air.Service.Cloak.Stats.Internal do
 
   @doc "Records cloak memory readings"
   @spec record_memory(state, cloak_id, raw_memory_reading) :: state
-  def record_memory(state, cloak_id, reading) do
-    if registered?(state, cloak_id) do
-      state
-      |> update_in([:stats, cloak_id], &update_base_memory_stats(&1, reading))
-      |> update_in([:pending_memory_readings], fn pending_memory_readings ->
+  def record_memory(state, cloak_id, reading),
+    do:
+      update_in(state.pending_memory_readings, fn pending_memory_readings ->
         Map.update(pending_memory_readings, cloak_id, [reading], &[reading | &1])
       end)
-    else
-      state
-    end
-  end
 
   @doc "Records a query as having been run"
   @spec record_query(state, cloak_id) :: state
-  def record_query(state, cloak_id) do
-    if registered?(state, cloak_id) do
+  def record_query(state, cloak_id),
+    do:
       update_in(state.pending_queries, fn pending_queries ->
         Map.update(pending_queries, cloak_id, 1, &(&1 + 1))
       end)
-    else
-      state
-    end
-  end
 
   @doc "Aggregates pending stats for reporting."
   @spec aggregate(state) :: state
@@ -111,7 +101,10 @@ defmodule Air.Service.Cloak.Stats.Internal do
       |> Enum.map(&base_stats(&1).in_use_percent)
       |> Enum.max()
 
+    last_reading = List.first(readings)
+
     acc
+    |> update_in([:stats, cloak_id], &update_base_memory_stats(&1, last_reading))
     |> update_in([:stats, cloak_id, :memory, :readings], &add_to_list_of_readings(&1, max_in_use_percentage))
     |> put_in([:pending_memory_readings, cloak_id], [])
   end
@@ -149,6 +142,4 @@ defmodule Air.Service.Cloak.Stats.Internal do
 
     %{total: total, in_use: in_use, in_use_percent: in_use_percent}
   end
-
-  defp registered?(%{stats: stats}, cloak_id), do: Map.has_key?(stats, cloak_id)
 end

@@ -24,8 +24,6 @@ defmodule Air.Service.Cloak do
   @doc "Registers a data source (if needed), and associates the calling cloak with the data source."
   @spec register(Map.t(), Map.t()) :: [Air.Schemas.DataSource.t()]
   def register(cloak_info, data_sources) do
-    Stats.register(cloak_info.id)
-
     {data_source_names, cloak_info, data_source_schemas} =
       GenServer.call(@serializer_name, {:register, cloak_info, data_sources})
 

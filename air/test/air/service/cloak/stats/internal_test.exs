@@ -71,11 +71,6 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
   end
 
   describe "record_query" do
-    test "does not record anything for unregistered cloaks" do
-      state = Stats.Internal.new()
-      assert state == Stats.Internal.record_query(state, @cloak_id)
-    end
-
     test "adds query to queue for later aggregation" do
       assert 2 ==
                initialized_state()
@@ -86,26 +81,15 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
   end
 
   describe "record_memory" do
-    test "does not record anything for unregistered cloaks" do
-      state = Stats.Internal.new()
-      assert state == Stats.Internal.record_memory(state, @cloak_id, memory_reading())
-    end
-
     test "records basic memory stats" do
-      state = Stats.Internal.record_memory(initialized_state(), @cloak_id, memory_reading())
+      state =
+        initialized_state()
+        |> Stats.Internal.record_memory(@cloak_id, memory_reading())
+        |> Stats.Internal.aggregate()
 
       assert 100 == get_mem_stat(state, :total)
       assert 60 == get_mem_stat(state, :currently_in_use)
       assert 60 == get_mem_stat(state, :in_use_percent)
-    end
-
-    test "updates changes base stats" do
-      state = Stats.Internal.record_memory(initialized_state(), @cloak_id, memory_reading())
-      updated_state = Stats.Internal.record_memory(state, @cloak_id, other_memory_reading())
-
-      Enum.each([:total, :currently_in_use, :in_use_percent], fn stat ->
-        refute get_mem_stat(state, stat) == get_mem_stat(updated_state, stat)
-      end)
     end
 
     test "adds reading to queue for later aggregation" do
