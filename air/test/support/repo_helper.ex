@@ -104,7 +104,7 @@ defmodule Air.TestRepoHelper do
       })
       |> Repo.insert!()
 
-    salt = Application.get_env(:air, AirWeb.Endpoint) |> Keyword.fetch!(:api_token_salt)
+    salt = Air.Service.Salts.get(:api_token)
     Phoenix.Token.sign(AirWeb.Endpoint, salt, token.id)
   end
 
