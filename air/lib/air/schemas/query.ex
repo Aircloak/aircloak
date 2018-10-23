@@ -2,7 +2,7 @@ defmodule Air.Schemas.Query do
   @moduledoc "The query schema."
   use Air.Schemas.Base
 
-  alias Air.{Repo, PsqlServer.Protocol}
+  alias Air.PsqlServer.Protocol
   alias Air.Schemas.{DataSource, User, ResultChunk}
 
   require EctoEnum
@@ -101,21 +101,6 @@ defmodule Air.Schemas.Query do
     |> unique_constraint(:id, name: @inherited_pkey_name)
   end
 
-  @doc "Produces a JSON blob of the query and its result for rendering"
-  @spec for_display(t, nil | [map]) :: Map.t()
-  def for_display(query, buckets \\ nil) do
-    query = Repo.preload(query, [:user, :data_source])
-
-    query
-    |> Repo.preload([:user, :data_source])
-    |> Map.take([:id, :data_source_id, :statement, :session_id, :inserted_at, :query_state])
-    |> Map.merge(query.result || %{})
-    |> add_result(buckets)
-    |> Map.merge(data_source_info(query))
-    |> Map.merge(user_info(query))
-    |> Map.put(:completed, completed?(query))
-  end
-
   @doc "Exports the query as CSV"
   @spec to_csv_stream(t, Enumerable.t()) :: Enumerable.t()
   def to_csv_stream(query, buckets),
@@ -123,18 +108,4 @@ defmodule Air.Schemas.Query do
       [query.result["columns"]]
       |> Stream.concat(ResultChunk.rows_stream(buckets))
       |> CSV.encode()
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp data_source_info(query),
-    do: %{data_source: %{name: Map.get(query.data_source || %{}, :name, "Unknown data source")}}
-
-  defp user_info(query), do: %{user: %{name: Map.get(query.user || %{}, :name, "Unknown user")}}
-
-  defp completed?(query), do: query.query_state in [:error, :completed, :cancelled]
-
-  defp add_result(result, nil), do: result
-  defp add_result(result, buckets), do: Map.put(result, :rows, buckets)
 end

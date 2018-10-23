@@ -53,7 +53,7 @@ defmodule AirWeb.QueryController do
            before
          ) do
       {:ok, queries} ->
-        json(conn, Enum.map(queries, &Query.for_display(&1, Air.Service.Query.buckets(&1, 0))))
+        json(conn, Enum.map(queries, &Air.Service.Query.for_display(&1, Air.Service.Query.buckets(&1, 0))))
 
       _ ->
         send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
@@ -172,7 +172,7 @@ defmodule AirWeb.QueryController do
     # new style result -> compute json in streaming fashion and send chunked response
     json_without_rows =
       query
-      |> Query.for_display()
+      |> Air.Service.Query.for_display()
       |> Poison.encode!(strict_keys: true)
 
     prefix_size = byte_size(json_without_rows) - 1

@@ -27,6 +27,19 @@ defmodule Air.Service.Query do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Produces a JSON blob of the query and its result for rendering"
+  @spec for_display(Query.t(), nil | [map]) :: Map.t()
+  def for_display(query, buckets \\ nil) do
+    query
+    |> Repo.preload([:user, :data_source])
+    |> Map.take([:id, :data_source_id, :statement, :session_id, :inserted_at, :query_state])
+    |> Map.merge(query.result || %{})
+    |> add_result(buckets)
+    |> Map.merge(data_source_info(query))
+    |> Map.merge(user_info(query))
+    |> Map.put(:completed, completed?(query))
+  end
+
   @doc """
   Creates and registers a query placeholder in the database. Given that it has an ID
   it can be used to attach and dispatch events to, and passed around for execution.
@@ -466,6 +479,20 @@ defmodule Air.Service.Query do
     filtered_items = schema |> where([q], q.id in ^filtered_ids) |> Repo.all()
     Enum.uniq(items ++ filtered_items)
   end
+
+  # -------------------------------------------------------------------
+  # Helpers for for_display
+  # -------------------------------------------------------------------
+
+  defp data_source_info(query),
+    do: %{data_source: %{name: Map.get(query.data_source || %{}, :name, "Unknown data source")}}
+
+  defp user_info(query), do: %{user: %{name: Map.get(query.user || %{}, :name, "Unknown user")}}
+
+  defp completed?(query), do: query.query_state in [:error, :completed, :cancelled]
+
+  defp add_result(result, nil), do: result
+  defp add_result(result, buckets), do: Map.put(result, :rows, buckets)
 
   # -------------------------------------------------------------------
   # Supervision tree
