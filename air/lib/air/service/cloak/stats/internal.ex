@@ -103,9 +103,7 @@ defmodule Air.Service.Cloak.Stats.Internal do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp process_pending(state, what, callback), do: Enum.reduce(state[what], state, callback)
-
-  defp process_memory({_cloak_id, []}, acc), do: acc
+  defp process_pending(state, what, callback), do: Enum.reduce(state[what], Map.put(state, what, %{}), callback)
 
   defp process_memory({cloak_id, readings}, acc) do
     max_in_use_percentage =
@@ -116,16 +114,11 @@ defmodule Air.Service.Cloak.Stats.Internal do
       end)
       |> Enum.max()
 
-    acc
-    |> update_in([:stats, cloak_id, :memory, :readings], &add_to_list_of_readings(&1, max_in_use_percentage))
-    |> put_in([:pending_memory_readings, cloak_id], [])
+    update_in(acc, [:stats, cloak_id, :memory, :readings], &add_to_list_of_readings(&1, max_in_use_percentage))
   end
 
   defp process_queries({cloak_id, num_queries}, acc),
-    do:
-      acc
-      |> update_in([:stats, cloak_id, :queries], &add_to_list_of_readings(&1, num_queries))
-      |> put_in([:pending_queries, cloak_id], 0)
+    do: update_in(acc, [:stats, cloak_id, :queries], &add_to_list_of_readings(&1, num_queries))
 
   defp update_base_memory_stats(stats, reading),
     do:
