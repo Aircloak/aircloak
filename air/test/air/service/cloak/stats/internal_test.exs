@@ -8,7 +8,7 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
 
   describe "register" do
     test "adds cloak to stats" do
-      state = Stats.Internal.initial_state()
+      state = Stats.Internal.new()
       refute Map.has_key?(state.stats, @cloak_id)
 
       assert state
@@ -19,12 +19,12 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
 
     test "adds dummy memory reading history" do
       assert 360 ==
-               Stats.Internal.initial_state()
+               Stats.Internal.new()
                |> Stats.Internal.register(@cloak_id)
                |> get_mem_stat(:readings)
                |> Enum.count()
 
-      assert Stats.Internal.initial_state()
+      assert Stats.Internal.new()
              |> Stats.Internal.register(@cloak_id)
              |> get_mem_stat(:readings)
              |> Enum.all?(&(&1 == 0))
@@ -32,12 +32,12 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
 
     test "adds dummy queries history" do
       assert 360 ==
-               Stats.Internal.initial_state()
+               Stats.Internal.new()
                |> Stats.Internal.register(@cloak_id)
                |> get_queries_stat()
                |> Enum.count()
 
-      assert Stats.Internal.initial_state()
+      assert Stats.Internal.new()
              |> Stats.Internal.register(@cloak_id)
              |> get_queries_stat()
              |> Enum.all?(&(&1 == 0))
@@ -72,7 +72,7 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
 
   describe "record_query" do
     test "does not record anything for unregistered cloaks" do
-      state = Stats.Internal.initial_state()
+      state = Stats.Internal.new()
       assert state == Stats.Internal.record_query(state, @cloak_id)
     end
 
@@ -87,7 +87,7 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
 
   describe "record_memory" do
     test "does not record anything for unregistered cloaks" do
-      state = Stats.Internal.initial_state()
+      state = Stats.Internal.new()
       assert state == Stats.Internal.record_memory(state, @cloak_id, memory_reading())
     end
 
@@ -144,7 +144,7 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
   describe "cloak_stats" do
     test "returns stats for all cloaks" do
       assert ["cloak1", "cloak2"] ==
-               Stats.Internal.initial_state()
+               Stats.Internal.new()
                |> Stats.Internal.register("cloak1")
                |> Stats.Internal.register("cloak2")
                |> Stats.Internal.record_memory("cloak1", memory_reading())
@@ -205,7 +205,7 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
 
   defp initialized_state(),
     do:
-      Stats.Internal.initial_state()
+      Stats.Internal.new()
       |> Stats.Internal.register(@cloak_id)
 
   defp get_mem_stat(stats, key) do

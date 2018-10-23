@@ -40,8 +40,8 @@ defmodule Air.Service.Cloak.Stats.Internal do
   # -------------------------------------------------------------------
 
   @doc "Initial empty memory reading"
-  @spec initial_state() :: state
-  def initial_state(), do: %{stats: %{}, pending_memory_readings: %{}, pending_queries: %{}}
+  @spec new() :: state
+  def new(), do: %{stats: %{}, pending_memory_readings: %{}, pending_queries: %{}}
 
   @doc "Adds a cloak to the state with default empty data"
   @spec register(state, cloak_id()) :: state
