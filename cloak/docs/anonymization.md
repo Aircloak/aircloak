@@ -533,3 +533,22 @@ an effect, and so shouldn't be banned by this mechanism. To do that we store a l
 users for each column. Any negative clause is then checked against this list, and excluded from counting if it matches
 at least one value in the list. The number of values stored, as well as the minimum number of users with a given value
 required to store it are configured under `cloak -> shadow_tables` in `config.exs`.
+
+
+## Optimizations
+
+The cloak compiler will apply various optimizations to the query, during the analysis phase, in order to
+speed up query execution. The currently implemented optimization techniques are:
+
+- Unused or redundant columns are dropped.
+- Simple filtering conditions are moved into the lower queries.
+- Simple join conditions are moved into the lower queries.
+- Per-user grouping and aggregation of data for anonymizing queries is offloaded to the database server.
+
+The last technique implies the creation of a synthetic subquery for each anonymizing query, that will pre-group
+and pre-aggregate per-user data, in order to reduce the amount of rows streamed into the cloak.
+This will speed up query execution for datasets that have many rows per-user, at the cost of increased
+duration for cases where there is only one row (or very few rows) per-user.
+The synthetic subquery is created only when no per-user grouping is already done, when not using any row
+splitting functions, and only when using one of the following aggregating functions:
+`count`, `sum`, `min`, `max`, `avg`.
