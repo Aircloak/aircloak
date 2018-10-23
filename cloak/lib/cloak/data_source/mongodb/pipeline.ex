@@ -327,7 +327,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       column
       | function?: true,
         function: "size",
-        function_args: [%Expression{name: "aggregated_#{index}", table: :unknown}]
+        function_args: [%Expression{name: "aggregated_#{index}", table: :unknown, type: :integer}]
     }
   end
 
@@ -363,7 +363,8 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
         end
 
       index ->
-        %Expression{name: "aggregated_#{index}", table: :unknown, alias: column.alias}
+        aggregator = Enum.at(aggregators, index)
+        %Expression{name: "aggregated_#{index}", table: :unknown, alias: column.alias, type: aggregator.type}
     end
   end
 
