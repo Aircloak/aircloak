@@ -6,13 +6,13 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
 
   @cloak_id "cloak_id"
 
-  describe "register" do
+  describe "initialize" do
     test "adds cloak to stats" do
       state = Stats.Internal.new()
       refute Map.has_key?(state.stats, @cloak_id)
 
       assert state
-             |> Stats.Internal.register(@cloak_id)
+             |> Stats.Internal.initialize(@cloak_id)
              |> Map.get(:stats)
              |> Map.has_key?(@cloak_id)
     end
@@ -20,12 +20,12 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
     test "adds dummy memory reading history" do
       assert 360 ==
                Stats.Internal.new()
-               |> Stats.Internal.register(@cloak_id)
+               |> Stats.Internal.initialize(@cloak_id)
                |> get_mem_stat(:readings)
                |> Enum.count()
 
       assert Stats.Internal.new()
-             |> Stats.Internal.register(@cloak_id)
+             |> Stats.Internal.initialize(@cloak_id)
              |> get_mem_stat(:readings)
              |> Enum.all?(&(&1 == 0))
     end
@@ -33,21 +33,21 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
     test "adds dummy queries history" do
       assert 360 ==
                Stats.Internal.new()
-               |> Stats.Internal.register(@cloak_id)
+               |> Stats.Internal.initialize(@cloak_id)
                |> get_queries_stat()
                |> Enum.count()
 
       assert Stats.Internal.new()
-             |> Stats.Internal.register(@cloak_id)
+             |> Stats.Internal.initialize(@cloak_id)
              |> get_queries_stat()
              |> Enum.all?(&(&1 == 0))
     end
   end
 
-  describe "unregister" do
+  describe "remove" do
     test "removes cloak from stats" do
       refute initialized_state()
-             |> Stats.Internal.unregister(@cloak_id)
+             |> Stats.Internal.remove(@cloak_id)
              |> Stats.Internal.cloak_stats()
              |> Map.keys()
              |> Enum.member?(@cloak_id)
@@ -56,7 +56,7 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
     test "removes pending data from state" do
       assert initialized_state()
              |> Stats.Internal.record_memory(@cloak_id, memory_reading())
-             |> Stats.Internal.unregister(@cloak_id)
+             |> Stats.Internal.remove(@cloak_id)
              |> get_in([:pending_memory_readings, @cloak_id])
              |> is_nil()
     end
@@ -64,7 +64,7 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
     test "removes pending queries from state" do
       assert initialized_state()
              |> Stats.Internal.record_query(@cloak_id)
-             |> Stats.Internal.unregister(@cloak_id)
+             |> Stats.Internal.remove(@cloak_id)
              |> get_in([:pending_queries, @cloak_id])
              |> is_nil()
     end
@@ -145,8 +145,8 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
     test "returns stats for all cloaks" do
       assert ["cloak1", "cloak2"] ==
                Stats.Internal.new()
-               |> Stats.Internal.register("cloak1")
-               |> Stats.Internal.register("cloak2")
+               |> Stats.Internal.initialize("cloak1")
+               |> Stats.Internal.initialize("cloak2")
                |> Stats.Internal.record_memory("cloak1", memory_reading())
                |> Stats.Internal.record_memory("cloak2", memory_reading())
                |> Stats.Internal.cloak_stats()
@@ -206,7 +206,7 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
   defp initialized_state(),
     do:
       Stats.Internal.new()
-      |> Stats.Internal.register(@cloak_id)
+      |> Stats.Internal.initialize(@cloak_id)
 
   defp get_mem_stat(stats, key) do
     get_in(stats, [:stats, @cloak_id, :memory, key])

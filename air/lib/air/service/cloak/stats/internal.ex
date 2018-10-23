@@ -44,12 +44,12 @@ defmodule Air.Service.Cloak.Stats.Internal do
   def new(), do: %{stats: %{}, pending_memory_readings: %{}, pending_queries: %{}}
 
   @doc "Adds a cloak to the state with default empty data"
-  @spec register(state, cloak_id()) :: state
-  def register(state, cloak_id), do: put_in(state, [:stats, cloak_id], initial_memory_stats())
+  @spec initialize(state, cloak_id()) :: state
+  def initialize(state, cloak_id), do: put_in(state, [:stats, cloak_id], initial_memory_stats())
 
   @doc "Removes a cloak from internal state"
-  @spec unregister(state, cloak_id) :: state
-  def unregister(state, cloak_id) do
+  @spec remove(state, cloak_id) :: state
+  def remove(state, cloak_id) do
     state
     |> update_in([:stats], &Map.delete(&1, cloak_id))
     |> update_in([:pending_memory_readings], &Map.delete(&1, cloak_id))
