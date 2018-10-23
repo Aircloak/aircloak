@@ -2,6 +2,7 @@ defmodule Air.Token do
   @moduledoc "Functions for token management."
 
   alias Air.{Schemas.ApiToken, Schemas.User, Repo}
+  alias Air.Service.Salts
   alias AirWeb.Endpoint
 
   # -------------------------------------------------------------------
@@ -69,8 +70,15 @@ defmodule Air.Token do
     # Therefore, we're simulating infinity by using a ridiculously large value (10,000 years).
     do: 60 * 60 * 24 * 365 * 10_000
 
-  defp api_token_salt do
-    Application.get_env(:air, AirWeb.Endpoint) |> Keyword.fetch!(:api_token_salt)
+  defp api_token_salt(), do: legacy_salt() || Salts.get(:api_token)
+
+  defp legacy_salt() do
+    require Aircloak.DeployConfig
+
+    case Aircloak.DeployConfig.fetch("site") do
+      :error -> nil
+      {:ok, settings} -> settings["api_token_salt"]
+    end
   end
 
   if Mix.env() == :test do

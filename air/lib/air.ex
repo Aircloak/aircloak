@@ -76,7 +76,6 @@ defmodule Air do
       &Keyword.merge(
         &1,
         secret_key_base: site_setting!("endpoint_key_base"),
-        api_token_salt: site_setting!("api_token_salt"),
         https: https_config(Keyword.get(&1, :https, []))
       )
     )
