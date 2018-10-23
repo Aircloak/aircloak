@@ -33,15 +33,16 @@ defmodule Air.Service.Cloak.Stats do
   @spec cloak_stats(Internal.cloak_id()) :: Internal.stats()
   def cloak_stats(cloak_id), do: GenServer.call(__MODULE__, {:stats, cloak_id})
 
+  @doc "Triggers aggregation of stats"
+  @spec aggregate() :: :ok
+  def aggregate(), do: GenServer.cast(__MODULE__, :aggregate)
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(_) do
-    schedule_next_aggregation()
-    {:ok, %{metrics: Internal.initial_state(), monitoring: %{}}}
-  end
+  def init(_), do: {:ok, %{metrics: Internal.initial_state(), monitoring: %{}}}
 
   @impl GenServer
   def handle_cast({:record_memory, cloak_id, memory_reading}, state),
@@ -49,6 +50,9 @@ defmodule Air.Service.Cloak.Stats do
 
   def handle_cast({:record_query, cloak_id}, state),
     do: {:noreply, %{state | metrics: Internal.record_query(state.metrics, cloak_id)}}
+
+  def handle_cast(:aggregate, state),
+    do: {:noreply, update_in(state.metrics, &Internal.aggregate(&1))}
 
   @impl GenServer
   def handle_cast({:register, cloak_id, pid}, state) do
@@ -71,24 +75,10 @@ defmodule Air.Service.Cloak.Stats do
     do: {:reply, Internal.cloak_stats(state.metrics)[cloak_id], state}
 
   @impl GenServer
-  def handle_info(:aggregate_last_interval, state) do
-    schedule_next_aggregation()
-    Task.start(&push_updated_cloak_infos/0)
-    {:noreply, %{state | metrics: Internal.aggregate(state.metrics)}}
-  end
-
   def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
     cloak_id = Map.get(state.monitoring, pid)
 
     {:noreply,
      %{state | metrics: Internal.unregister(state.metrics, cloak_id), monitoring: Map.delete(state.monitoring, pid)}}
   end
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp schedule_next_aggregation(), do: Process.send_after(self(), :aggregate_last_interval, :timer.seconds(10))
-
-  defp push_updated_cloak_infos(), do: AirWeb.Socket.Frontend.CloakStatsChannel.broadcast_cloak_stats()
 end

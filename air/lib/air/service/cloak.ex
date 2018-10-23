@@ -9,10 +9,11 @@ defmodule Air.Service.Cloak do
 
   alias Aircloak.ChildSpec
   alias Air.Service.DataSource
-  alias Air.Service.Cloak.Stats
+  alias Air.Service.Cloak.{Stats, StatsReporter}
 
   @serializer_name __MODULE__.Serializer
   @stats_name Stats
+  @stats_reporter_name StatsReporter
   @data_source_registry_name __MODULE__.DataSourceRegistry
   @all_cloak_registry_name __MODULE__.AllCloakRegistry
 
@@ -213,6 +214,7 @@ defmodule Air.Service.Cloak do
       [
         ChildSpec.gen_server(__MODULE__, [], name: @serializer_name),
         ChildSpec.gen_server(Stats, [], name: @stats_name),
+        ChildSpec.gen_server(StatsReporter, [], name: @stats_reporter_name),
         ChildSpec.registry(:duplicate, @data_source_registry_name),
         ChildSpec.registry(:duplicate, @all_cloak_registry_name)
       ],

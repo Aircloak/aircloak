@@ -7,14 +7,8 @@ defmodule AirWeb.Socket.Frontend.CloakStatsChannel do
   # -------------------------------------------------------------------
 
   @doc "Broadcasts the latest cloak memory readings."
-  @spec broadcast_cloak_stats() :: :ok
-  def broadcast_cloak_stats() do
-    stats =
-      Enum.map(
-        Air.Service.Cloak.all_cloak_infos(),
-        &Map.take(&1, [:id, :name, :online_since, :stats])
-      )
-
+  @spec broadcast_cloak_stats([Map.t()]) :: :ok
+  def broadcast_cloak_stats(stats) do
     AirWeb.Endpoint.broadcast_from!(self(), "cloak_stats", "updated_cloak_infos", %{cloaks: stats})
     :ok
   end
