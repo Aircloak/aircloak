@@ -9,12 +9,21 @@ defmodule Air.Service.QueryTest do
   describe "create" do
     setup [:sandbox, :with_user]
 
-    test "cannot create query for disabled user", %{user: user} do
+    test "cannot create query for disabled user", %{user: user, data_source: data_source} do
       assert {:ok, _} = Air.Service.User.disable(user)
-      assert {:error, :unable_to_create_query} = Air.Service.Query.create(:autogenerate, user, nil, nil, nil, [])
+
+      assert {:error, :unable_to_create_query} =
+               Air.Service.Query.create({:id, data_source.id}, :autogenerate, user, nil, nil, nil, [])
     end
 
-    test "time spent defaults to 0 for all states", %{user: user} do
+    test "cannot create query for an unpermitted data source", %{user: user} do
+      data_source = create_data_source!()
+
+      assert {:error, :unauthorized} =
+               Air.Service.Query.create({:id, data_source.id}, :autogenerate, user, nil, nil, nil, [])
+    end
+
+    test "time spent defaults to 0 for all states", %{user: user, data_source: data_source} do
       assert {:ok,
               %{
                 time_spent: %{
@@ -30,7 +39,7 @@ defmodule Air.Service.QueryTest do
                   "error" => 0,
                   "cancelled" => 0
                 }
-              }} = Air.Service.Query.create(:autogenerate, user, :http, "", %{}, [])
+              }} = Air.Service.Query.create({:id, data_source.id}, :autogenerate, user, :http, "", %{}, [])
     end
   end
 
@@ -462,7 +471,10 @@ defmodule Air.Service.QueryTest do
   end
 
   def with_user(_context) do
-    {:ok, user: create_user!()}
+    group = create_group!()
+    user = create_user!(%{groups: [group.id]})
+    data_source = create_data_source!(%{groups: [group.id]})
+    {:ok, user: user, data_source: data_source}
   end
 
   def with_data_source(_context) do

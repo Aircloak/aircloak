@@ -251,6 +251,7 @@ defmodule AirWeb.QueryController do
 
   defp create_query(conn, params) do
     Air.Service.Query.create(
+      data_source_id_spec(params),
       Map.get(params, "id", :autogenerate),
       conn.assigns.current_user,
       conn.private.context,

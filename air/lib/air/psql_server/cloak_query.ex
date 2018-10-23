@@ -16,11 +16,13 @@ defmodule Air.PsqlServer.CloakQuery do
           (RanchServer.t(), any -> RanchServer.t())
         ) :: :ok
   def run_query(conn, statement, params, on_success) do
-    with {:ok, query} <- create_query(conn.assigns.user, statement, convert_params(params)) do
-      ConnectionRegistry.register_query(conn.assigns.key_data, conn.assigns.user.id, query.id)
+    %{data_source_id: data_source_id, user: user, key_data: key_data} = conn.assigns
+
+    with {:ok, query} <- create_query(data_source_id, user, statement, convert_params(params)) do
+      ConnectionRegistry.register_query(key_data, user.id, query.id)
 
       RanchServer.run_async(
-        fn -> query |> DataSource.run_query(conn.assigns.data_source_id) |> decode_cloak_query_result() end,
+        fn -> query |> DataSource.run_query(data_source_id) |> decode_cloak_query_result() end,
         on_success: on_success,
         on_failure: fn conn, _exit_reason -> RanchServer.query_result(conn, {:error, "query failed"}) end
       )
@@ -64,8 +66,9 @@ defmodule Air.PsqlServer.CloakQuery do
   defp convert_params(params),
     do: Enum.map(params, fn {type, value} -> %{type: sql_type(type, value), value: value} end)
 
-  defp create_query(user, statement, parameters) do
+  defp create_query(data_source_id, user, statement, parameters) do
     Air.Service.Query.create(
+      data_source_id,
       :autogenerate,
       user,
       :psql,

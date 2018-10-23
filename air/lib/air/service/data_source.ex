@@ -120,7 +120,7 @@ defmodule Air.Service.DataSource do
 
       query =
         Air.ProcessQueue.run(__MODULE__.Queue, fn ->
-          query = add_data_source_info_to_query(query, cloak_id, data_source.id)
+          query = add_cloak_info_to_query(query, cloak_id)
           UserChannel.broadcast_state_change(query)
 
           Air.Service.AuditLog.log(
@@ -399,13 +399,9 @@ defmodule Air.Service.DataSource do
   defp user_data_source(user, {:name, name}),
     do: from(data_source in users_data_sources(user), where: data_source.name == ^name)
 
-  defp add_data_source_info_to_query(query, cloak_id, data_source_id) do
+  defp add_cloak_info_to_query(query, cloak_id) do
     query
-    |> Query.changeset(%{
-      cloak_id: cloak_id,
-      data_source_id: data_source_id,
-      query_state: :started
-    })
+    |> Query.changeset(%{cloak_id: cloak_id, query_state: :started})
     |> Repo.update!()
     |> Repo.preload(:data_source)
   end

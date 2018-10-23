@@ -32,32 +32,36 @@ defmodule Air.Service.Query do
   it can be used to attach and dispatch events to, and passed around for execution.
   """
   @spec create(
+          Air.Service.DataSource.data_source_id_spec(),
           query_id,
           User.t(),
           Query.Context.t(),
           Query.statement(),
           Query.parameters(),
           options
-        ) :: {:ok, Query.t()} | {:error, :unable_to_create_query}
-  def create(query_id, user, context, statement, parameters, opts) do
-    if Air.Service.User.is_enabled?(user) do
-      user
-      |> Ecto.build_assoc(:queries)
-      |> Query.changeset(%{
-        statement: statement,
-        parameters: %{values: parameters},
-        session_id: Keyword.get(opts, :session_id),
-        query_state: :created,
-        context: context
-      })
-      |> add_id_to_changeset(query_id)
-      |> Repo.insert()
-      |> case do
-        {:ok, query} -> {:ok, Repo.preload(query, :user)}
-        {:error, _changeset} -> {:error, :unable_to_create_query}
+        ) :: {:ok, Query.t()} | {:error, :unable_to_create_query | :unauthorized}
+  def create(data_source_id_spec, query_id, user, context, statement, parameters, opts) do
+    with {:ok, data_source} <- Air.Service.DataSource.fetch_as_user(data_source_id_spec, user) do
+      if Air.Service.User.is_enabled?(user) do
+        user
+        |> Ecto.build_assoc(:queries)
+        |> Query.changeset(%{
+          statement: statement,
+          parameters: %{values: parameters},
+          session_id: Keyword.get(opts, :session_id),
+          data_source_id: data_source.id,
+          query_state: :created,
+          context: context
+        })
+        |> add_id_to_changeset(query_id)
+        |> Repo.insert()
+        |> case do
+          {:ok, query} -> {:ok, Repo.preload(query, :user)}
+          {:error, _changeset} -> {:error, :unable_to_create_query}
+        end
+      else
+        {:error, :unable_to_create_query}
       end
-    else
-      {:error, :unable_to_create_query}
     end
   end
 
