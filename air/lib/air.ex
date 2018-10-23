@@ -115,6 +115,13 @@ defmodule Air do
                 "manually apply a license in the Insights Air web interface in order " <>
                 "to use your Aircloak Insights installation"
             )
+
+          :error ->
+            Logger.error(
+              "Failed at applying Aircloak license from file `#{license_path}`. " <>
+                "Could not verify license file. This may be due to the file being corrupted. " <>
+                "Contact support at support@aircloak.com to resolve this problem."
+            )
         end
 
       :error ->

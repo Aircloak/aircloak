@@ -23,7 +23,7 @@ defmodule Air.Service.License do
   def load(text), do: GenServer.call(__MODULE__, {:load, text})
 
   @doc "Tries to apply a license text from a file on disk."
-  @spec load_from_file(String.t()) :: :ok | {:error, String.t() | atom}
+  @spec load_from_file(String.t()) :: :ok | {:error, String.t() | atom} | :error
   def load_from_file(path) do
     case Aircloak.File.read(path) do
       {:error, _} = error -> error

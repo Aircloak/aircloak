@@ -37,7 +37,7 @@ defmodule Aircloak.File do
     do: quote(do: unquote(__MODULE__).read(unquote(Mix.Project.config()[:app]), unquote(path_segment)))
 
   @doc "Reads a file from the configuration folder for a given application"
-  @spec read(atom, String.t()) :: {:ok, binary()} | {:error, String.t() | atom}
+  @spec read(atom, String.t()) :: binary() | {:error, String.t() | atom}
   def read(app, path_segment) do
     config_path(app, path_segment)
     |> File.read!()
