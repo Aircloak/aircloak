@@ -179,6 +179,16 @@ defmodule Air.Service.Cloak.Stats.Internal.Test do
       assert 100 == stats.memory.total
       assert 60 == List.first(stats.memory.readings)
     end
+
+    test "returns latest queries" do
+      assert %{@cloak_id => stats} =
+               initialized_state()
+               |> Stats.Internal.record_query(@cloak_id)
+               |> Stats.Internal.aggregate()
+               |> Stats.Internal.cloak_stats()
+
+      assert 1 == List.first(stats.queries)
+    end
   end
 
   defp initialized_state(),
