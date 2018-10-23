@@ -65,19 +65,16 @@ defmodule Air.Service.Cloak.Stats do
 
     updated_last_seen =
       unseen_periods
-      |> flipped_reduce(cloaks_with_reports, &Map.put(&2, &1, 0))
-      |> flipped_reduce(
-        cloaks_without_reports,
-        &Map.update!(&2, &1, fn periods_since_seen -> periods_since_seen + 1 end)
-      )
-      |> flipped_reduce(expired_cloaks, &Map.delete(&2, &1))
+      |> reset_seen_cloaks(cloaks_with_reports)
+      |> increment_unseen_cloaks(cloaks_without_reports)
+      |> remove_expired(expired_cloaks)
 
     state =
       state
       |> update_in([:metrics], fn metrics ->
         metrics
-        |> flipped_reduce(new_cloaks, &Internal.initialize(&2, &1))
-        |> flipped_reduce(expired_cloaks, &Internal.remove(&2, &1))
+        |> initialize(new_cloaks)
+        |> remove(expired_cloaks)
         |> Internal.aggregate()
       end)
       |> put_in([:cloak_presence, :seen_in_reporting_interval], MapSet.new())
@@ -94,7 +91,22 @@ defmodule Air.Service.Cloak.Stats do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp flipped_reduce(initial_acc, enumerable, function), do: Enum.reduce(enumerable, initial_acc, function)
+  defp remove_expired(unseen_periods, expired_cloaks),
+    do: Enum.reduce(expired_cloaks, unseen_periods, &Map.delete(&2, &1))
+
+  defp reset_seen_cloaks(unseen_periods, seen_cloaks), do: Enum.reduce(seen_cloaks, unseen_periods, &Map.put(&2, &1, 0))
+
+  defp increment_unseen_cloaks(unseen_periods, unseen_cloaks),
+    do:
+      Enum.reduce(
+        unseen_cloaks,
+        unseen_periods,
+        &Map.update!(&2, &1, fn periods_since_seen -> periods_since_seen + 1 end)
+      )
+
+  defp initialize(metrics, new_cloaks), do: Enum.reduce(new_cloaks, metrics, &Internal.initialize(&2, &1))
+
+  defp remove(metrics, expired_cloaks), do: Enum.reduce(expired_cloaks, metrics, &Internal.remove(&2, &1))
 
   defp record_metric(state, cloak_id, callback),
     do:
