@@ -109,7 +109,7 @@ defmodule Air do
           {:error, reason} ->
             Logger.error(
               "Failed to load an Aircloak license from file `#{license_path}`: " <>
-                Aircloak.File.humanize_posix_error(reason) <>
+                error_reason_to_text(reason) <>
                 ". You will need to manually load a license in the Insights Air web interface in order " <>
                 "to use your Aircloak Insights installation"
             )
@@ -119,6 +119,9 @@ defmodule Air do
         :ok
     end
   end
+
+  defp error_reason_to_text(reason) when is_atom(reason), do: Aircloak.File.humanize_posix_error(reason)
+  defp error_reason_to_text(reason), do: reason
 
   defp https_config(previous_https_config) do
     case {
