@@ -28,4 +28,24 @@ defmodule Air.Service.Password.Test do
       refute Password.validate(@password, nil)
     end
   end
+
+  describe ".process_credentials" do
+    test "creates list of users with password validateable hashes from file content" do
+      content = """
+      USERS
+      =====
+
+      login1:password1
+      login2:password2
+      """
+
+      assert [
+               %{login: "login1", hash: hash1},
+               %{login: "login2", hash: hash2}
+             ] = Password.process_credentials(content)
+
+      assert Password.validate("password1", hash1)
+      assert Password.validate("password2", hash2)
+    end
+  end
 end
