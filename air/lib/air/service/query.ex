@@ -9,7 +9,7 @@ defmodule Air.Service.Query do
   require Logger
 
   @type query_id :: Query.id() | :autogenerate
-  @type option :: {:session_id, Query.session_id()}
+  @type option :: {:session_id, Query.session_id()} | {:audit_meta, map}
   @type options :: [option]
 
   @type user_id :: non_neg_integer
@@ -49,6 +49,7 @@ defmodule Air.Service.Query do
           statement: statement,
           parameters: %{values: parameters},
           session_id: Keyword.get(opts, :session_id),
+          audit_meta: Keyword.get(opts, :audit_meta),
           data_source_id: data_source.id,
           query_state: :created,
           context: context

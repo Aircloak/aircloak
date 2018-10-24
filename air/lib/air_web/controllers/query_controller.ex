@@ -96,7 +96,7 @@ defmodule AirWeb.QueryController do
     case Air.Service.Query.get_as_user(conn.assigns.current_user, query_id) do
       {:ok, query} ->
         query
-        |> DataSource.stop_query(conn.assigns.current_user, audit_log_meta(conn))
+        |> DataSource.stop_query()
         |> case do
           :ok -> json(conn, %{success: true})
           {:error, reason} -> query_error(conn, reason)
@@ -245,7 +245,8 @@ defmodule AirWeb.QueryController do
       conn.private.context,
       Map.fetch!(params, "statement"),
       _parameters = [],
-      session_id: Map.get(params, "session_id")
+      session_id: Map.get(params, "session_id"),
+      audit_meta: audit_log_meta(conn)
     )
   end
 end

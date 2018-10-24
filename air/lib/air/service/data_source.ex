@@ -14,10 +14,6 @@ defmodule Air.Service.DataSource do
 
   @type data_source_id_spec :: {:id, integer} | {:name, String.t()}
 
-  @type start_query_option :: {:audit_meta, %{atom => any}}
-
-  @type start_query_options :: [start_query_option]
-
   @type data_source_operation_error :: {:error, :expired | :unauthorized | :not_connected | :internal_error | any}
 
   @type data_source_status :: :online | :offline | :broken | :analyzing
@@ -108,21 +104,13 @@ defmodule Air.Service.DataSource do
       end)
 
   @doc "Starts the query on the given data source as the given user."
-  @spec start_query(Query.t(), data_source_id_spec, start_query_options) ::
-          {:ok, Query.t()} | data_source_operation_error
-  def start_query(query, data_source_id_spec, opts \\ []) do
-    opts = Keyword.merge([audit_meta: %{}], opts)
-
-    on_available_cloak(data_source_id_spec, query.user, fn data_source, channel_pid, %{id: cloak_id} ->
+  @spec start_query(Query.t(), data_source_id_spec) :: {:ok, Query.t()} | data_source_operation_error
+  def start_query(query, data_source_id_spec) do
+    on_available_cloak(data_source_id_spec, query.user, fn _data_source, channel_pid, %{id: cloak_id} ->
       Air.Service.Cloak.Stats.record_query(cloak_id)
       query = add_cloak_info_to_query(query, cloak_id)
       UserChannel.broadcast_state_change(query)
-
-      Air.Service.AuditLog.log(
-        query.user,
-        "Executed query",
-        Map.merge(opts[:audit_meta], %{query: query.statement, data_source: data_source.name})
-      )
+      Air.Service.AuditLog.log(query.user, "Executed query", Query.audit_meta(query))
 
       case MainChannel.run_query(channel_pid, cloak_query_map(query)) do
         :ok ->
@@ -163,16 +151,10 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Stops a previously started query."
-  @spec stop_query(Query.t(), User.t(), %{atom => any}) :: :ok | {:error, :internal_error | :not_connected}
-  def stop_query(query, user, audit_meta \\ %{}) do
-    query = Repo.preload(query, :data_source)
-
-    Air.Service.AuditLog.log(
-      user,
-      "Stopped query",
-      Map.merge(audit_meta, %{query: query.statement, data_source: query.data_source.name})
-    )
-
+  @spec stop_query(Query.t()) :: :ok | {:error, :internal_error | :not_connected}
+  def stop_query(query) do
+    query = Repo.preload(query, [:user, :data_source])
+    Air.Service.AuditLog.log(query.user, "Stopped query", Query.audit_meta(query))
     do_stop_query(query)
   end
 
