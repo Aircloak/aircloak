@@ -71,8 +71,7 @@ defmodule Cloak.Query.Runner do
       end)
 
   @doc "Executes the query synchronously, and returns its result."
-  @spec run_sync(String.t(), DataSource.t(), String.t(), [DataSource.field()], Query.view_map()) ::
-          any
+  @spec run_sync(String.t(), DataSource.t(), String.t(), [DataSource.field()], Query.view_map()) :: any
   def run_sync(query_id, data_source, statement, parameters, views) do
     :ok = start(query_id, data_source, statement, parameters, views, result_target: self())
 
@@ -113,8 +112,7 @@ defmodule Cloak.Query.Runner do
 
   defp serialized_start_runner(query_id, runner_arg) do
     if Registry.count(@runner_registry_name) < max_parallel_queries() do
-      {:ok, _pid} =
-        DynamicSupervisor.start_child(@supervisor_name, runner_spec(query_id, runner_arg))
+      {:ok, _pid} = DynamicSupervisor.start_child(@supervisor_name, runner_spec(query_id, runner_arg))
 
       :ok
     else
@@ -132,8 +130,7 @@ defmodule Cloak.Query.Runner do
   defp runner_spec(query_id, runner_arg) do
     %{
       id: __MODULE__,
-      start:
-        {Parent.GenServer, :start_link, [__MODULE__, runner_arg, [name: worker_name(query_id)]]},
+      start: {Parent.GenServer, :start_link, [__MODULE__, runner_arg, [name: worker_name(query_id)]]},
       restart: :temporary
     }
   end
