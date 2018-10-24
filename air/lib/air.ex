@@ -53,6 +53,7 @@ defmodule Air do
     case Air.Supervisor.start_link() do
       {:ok, _pid} = result ->
         maybe_load_license()
+        maybe_load_privacy_policy()
         result
 
       other ->
@@ -151,10 +152,28 @@ defmodule Air do
   # -------------------------------------------------------------------
 
   defp maybe_load_license() do
-    on_setting_file("license_file", "Aircloak Insights license", fn %{content: license_content, path: path} ->
+    on_setting_file("license_file", "Aircloak Insights license", fn license_content, path ->
       case Air.Service.License.load(license_content) do
         :ok -> Logger.info("Applied statically configured Aircloak license from file `#{path}`")
         {:error, reason} -> Logger.error("Failed to load an Aircloak Insights license from file `#{path}`: " <> reason)
+      end
+    end)
+  end
+
+  defp maybe_load_privacy_policy() do
+    on_setting_file("privacy_policy_file", "Aircloak Insights privacy policy", fn policy_content, path ->
+      if Air.Service.PrivacyPolicy.exists?() do
+        {:ok, current_policy} = Air.Service.PrivacyPolicy.get()
+
+        unless current_policy.content == policy_content do
+          Logger.error(
+            "The system is statically configured with a privacy policy, but has already been given " <>
+              "a different one. The statically configured privacy policy will not be applied."
+          )
+        end
+      else
+        Air.Service.PrivacyPolicy.set(policy_content)
+        Logger.info("Applied statically configured privacy policy from file `#{path}`")
       end
     end)
   end
@@ -165,12 +184,12 @@ defmodule Air do
         case Aircloak.File.read(setting_file_path) do
           {:error, reason} ->
             Logger.error(
-              "Could not read file containing the #{purpose} from path: '#{setting_file_path}'. " <>
+              "Could not read the file containing the #{purpose} from path: '#{setting_file_path}'. " <>
                 "The reported error is: " <> Aircloak.File.humanize_posix_error(reason)
             )
 
           setting_content ->
-            callback.(%{content: setting_content, path: setting_file_path})
+            callback.(setting_content, setting_file_path)
         end
 
       :error ->
