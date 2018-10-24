@@ -37,7 +37,10 @@ defmodule Aircloak.ChildSpec do
       id: Keyword.get(supervisor_options, :name, DynamicSupervisor)
     ]
 
-    Supervisor.child_spec({DynamicSupervisor, Keyword.merge(default_options, supervisor_options)}, [])
+    Supervisor.child_spec(
+      {DynamicSupervisor, Keyword.merge(default_options, supervisor_options)},
+      []
+    )
   end
 
   @doc "Specifies a child powered by the `Task.Supervisor` module."
@@ -93,6 +96,29 @@ defmodule Aircloak.ChildSpec do
         overrides
       )
 
+  @doc """
+  Specifies a synchronous setup job powered by the given function.
+
+  A setup job is a one-off job which runs in a blocking fashion. The supervisor will wait for the job to finish before
+  starting the next child. By default, the `:restart` option of the child is set to `:transient`.
+  """
+  def setup_job(fun, overrides \\ []) do
+    wrapper = fn ->
+      fun.()
+      :proc_lib.init_ack({:ok, self()})
+    end
+
+    Supervisor.child_spec(
+      %{
+        id: :proc_lib,
+        start: {:proc_lib, :start_link, [Kernel, :apply, [wrapper, []]]},
+        shutdown: :brutal_kill,
+        restart: :transient
+      },
+      overrides
+    )
+  end
+
   defmodule Supervisor do
     @moduledoc """
     Simplifies the `child_spec/2` definition for a supervisor module.
@@ -113,7 +139,8 @@ defmodule Aircloak.ChildSpec do
     defmacro __using__(overrides) do
       quote bind_quoted: [overrides: Macro.escape(overrides)] do
         @doc false
-        def child_spec(_arg), do: Aircloak.ChildSpec.supervisor(__MODULE__, :start_link, [], unquote(overrides))
+        def child_spec(_arg),
+          do: Aircloak.ChildSpec.supervisor(__MODULE__, :start_link, [], unquote(overrides))
       end
     end
   end

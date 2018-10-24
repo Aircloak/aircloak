@@ -8,7 +8,7 @@ defmodule Cloak.DataSource.Drill.Test do
     query =
       compile!(
         """
-          SELECT * FROM
+          SELECT MEDIAN(a.uid) FROM
           table AS a
             CROSS JOIN table AS b
             JOIN table AS c ON a.uid = c.uid

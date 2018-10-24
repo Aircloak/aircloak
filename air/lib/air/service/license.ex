@@ -10,6 +10,9 @@ defmodule Air.Service.License do
   alias Air.{Repo, Schemas, CentralClient}
   import Ecto.Query
 
+  @could_not_verify "Could not verify license file. This may be due to the file being corrupted. " <>
+                      "Contact support at support@aircloak.com to resolve this problem."
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -18,7 +21,7 @@ defmodule Air.Service.License do
   def valid?(), do: GenServer.call(__MODULE__, :valid?)
 
   @doc "Tries to load the given license text as the system license."
-  @spec load(String.t()) :: :ok | :error
+  @spec load(String.t()) :: :ok | {:error, String.t()}
   def load(text), do: GenServer.call(__MODULE__, {:load, text})
 
   @doc "Returns the expiry time for the system license."
@@ -67,7 +70,7 @@ defmodule Air.Service.License do
         {:reply, :ok, %{state | fsm: fsm}}
 
       {:error, fsm} ->
-        {:reply, :error, %{state | fsm: fsm}}
+        {:reply, {:error, @could_not_verify}, %{state | fsm: fsm}}
     end
   end
 

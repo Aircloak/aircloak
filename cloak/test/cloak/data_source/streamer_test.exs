@@ -9,7 +9,7 @@ defmodule Cloak.DataSource.StreamerTest do
   end
 
   test "streaming" do
-    assert {:ok, rows_stream} = rows("select intval from test_streamer")
+    assert {:ok, rows_stream} = rows("select MEDIAN(intval) from test_streamer")
     rows = Enum.to_list(rows_stream)
 
     assert length(rows) == 500

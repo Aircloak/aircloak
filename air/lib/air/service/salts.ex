@@ -34,15 +34,13 @@ defmodule Air.Service.Salts do
   # Internal functions
   # -------------------------------------------------------------------
 
-  def setup_salts() do
+  defp setup_salts() do
     salts =
       @known_names
       |> Enum.map(&{&1, fetch_from_db(&1)})
       |> Enum.into(%{})
 
     Application.put_env(:air, __MODULE__, salts)
-
-    :proc_lib.init_ack({:ok, self()})
   end
 
   defp fetch_from_db(name) do
@@ -67,12 +65,5 @@ defmodule Air.Service.Salts do
   # Supervision tree
   # -------------------------------------------------------------------
 
-  def child_spec(_arg) do
-    %{
-      id: __MODULE__,
-      # using :proc_lib ensures that the supervisor will start the next child only after the salts have been setup
-      start: {:proc_lib, :start_link, [__MODULE__, :setup_salts, []]},
-      restart: :transient
-    }
-  end
+  def child_spec(_arg), do: Aircloak.ChildSpec.setup_job(&setup_salts/0)
 end

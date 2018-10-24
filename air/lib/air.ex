@@ -3,14 +3,26 @@ defmodule Air do
   use Application
   require Logger
   require Aircloak.DeployConfig
+  require Aircloak.File
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
+  @doc """
+  Returns the site setting from the current deployment configuration (config.json)
+  and raises if the parameter isn't found.
+  """
+  @spec site_setting!(any) :: any
+  def site_setting!(name) do
+    {:ok, value} = site_setting(name)
+    value
+  end
+
   @doc "Returns the site setting from the current deployment configuration (config.json)."
-  @spec site_setting(any) :: any
-  def site_setting(name), do: Map.fetch!(Aircloak.DeployConfig.fetch!("site"), name)
+  @spec site_setting(any) :: {:ok, any} | :error
+  def site_setting(name),
+    do: with({:ok, site_config} <- Aircloak.DeployConfig.fetch("site"), do: Map.fetch(site_config, name))
 
   @doc "Returns the name of this air instance"
   @spec instance_name() :: String.t()
@@ -37,7 +49,12 @@ defmodule Air do
     configure_appsignal()
     Air.Repo.configure()
     Air.PsqlServer.ShadowDb.init_queue()
-    Air.Supervisor.start_link()
+
+    with {:ok, _pid} = result <- Air.Supervisor.start_link() do
+      load_license()
+      load_privacy_policy()
+      result
+    end
   end
 
   @doc false
@@ -54,7 +71,7 @@ defmodule Air do
     Air.Utils.update_app_env(
       :air,
       Air.Guardian,
-      &[{:secret_key, site_setting("auth_secret")} | &1]
+      &[{:secret_key, site_setting!("auth_secret")} | &1]
     )
 
     Air.Utils.update_app_env(
@@ -62,7 +79,7 @@ defmodule Air do
       AirWeb.Endpoint,
       &Keyword.merge(
         &1,
-        secret_key_base: site_setting("endpoint_key_base"),
+        secret_key_base: site_setting!("endpoint_key_base"),
         https: https_config(Keyword.get(&1, :https, []))
       )
     )
@@ -123,6 +140,56 @@ defmodule Air do
             Logger.warn("the file `#{certfile}` is missing")
             nil
         end
+    end
+  end
+
+  # -------------------------------------------------------------------
+  # Post boot static configuration
+  # -------------------------------------------------------------------
+
+  defp load_license() do
+    on_setting_file("license_file", fn license_content, path ->
+      case Air.Service.License.load(license_content) do
+        :ok -> Logger.info("Applied statically configured Aircloak license from file `#{path}`")
+        {:error, reason} -> Logger.error("Failed to load an Aircloak Insights license from file `#{path}`: " <> reason)
+      end
+    end)
+  end
+
+  defp load_privacy_policy() do
+    on_setting_file("privacy_policy_file", fn policy_content, path ->
+      if Air.Service.PrivacyPolicy.exists?() do
+        {:ok, current_policy} = Air.Service.PrivacyPolicy.get()
+
+        unless current_policy.content == policy_content do
+          Logger.error(
+            "The system is statically configured with a privacy policy, but has already been given " <>
+              "a different one. The statically configured privacy policy will not be applied."
+          )
+        end
+      else
+        Air.Service.PrivacyPolicy.set(policy_content)
+        Logger.info("Applied statically configured privacy policy from file `#{path}`")
+      end
+    end)
+  end
+
+  defp on_setting_file(setting, callback) do
+    case site_setting(setting) do
+      {:ok, setting_file_path} ->
+        case Aircloak.File.read(setting_file_path) do
+          {:error, reason} ->
+            Logger.error(
+              "Could not read file `#{setting_file_path}` configured under site configuration parameter " <>
+                "`#{setting}`. The reported error is: " <> Aircloak.File.humanize_posix_error(reason)
+            )
+
+          setting_content ->
+            callback.(setting_content, setting_file_path)
+        end
+
+      :error ->
+        :ok
     end
   end
 end
