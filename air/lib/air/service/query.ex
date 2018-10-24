@@ -71,8 +71,8 @@ defmodule Air.Service.Query do
   end
 
   @doc "Returns queries which have been created but not yet started on any cloak."
-  @spec not_started() :: [Query.t()]
-  def not_started() do
+  @spec awiting_start() :: [Query.t()]
+  def awiting_start() do
     from(
       q in Query,
       where: q.query_state == ^:created and is_nil(q.cloak_id),
