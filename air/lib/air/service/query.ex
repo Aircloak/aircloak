@@ -80,7 +80,7 @@ defmodule Air.Service.Query do
     )
     |> Repo.all()
     |> Stream.reject(&is_nil(&1.data_source))
-    |> Stream.reject(&is_nil(&1.user))
+    |> Enum.reject(&is_nil(&1.user))
   end
 
   @doc """
