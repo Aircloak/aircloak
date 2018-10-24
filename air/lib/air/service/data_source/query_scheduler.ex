@@ -31,12 +31,8 @@ defmodule Air.Service.DataSource.QueryScheduler do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp start_pending_queries() do
-    Air.Service.Query.not_started()
-    |> Stream.reject(&is_nil(&1.data_source))
-    |> Stream.reject(&is_nil(&1.user))
-    |> Enum.each(&Air.Service.DataSource.start_query(&1, {:id, &1.data_source.id}))
-  end
+  defp start_pending_queries(),
+    do: Enum.each(Air.Service.Query.not_started(), &Air.Service.DataSource.start_query(&1, {:id, &1.data_source.id}))
 
   @doc false
   # Needed in tests to ensure synchronism

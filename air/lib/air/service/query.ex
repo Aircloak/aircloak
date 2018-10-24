@@ -73,13 +73,14 @@ defmodule Air.Service.Query do
   @doc "Returns queries which have been created but not yet started on any cloak."
   @spec not_started() :: [Query.t()]
   def not_started() do
-    Repo.all(
-      from(
-        q in Query,
-        where: q.query_state == ^:created and not is_nil(q.data_source_id) and is_nil(q.cloak_id),
-        preload: [:user, :data_source]
-      )
+    from(
+      q in Query,
+      where: q.query_state == ^:created and is_nil(q.cloak_id),
+      preload: [:user, :data_source]
     )
+    |> Repo.all()
+    |> Stream.reject(&is_nil(&1.data_source))
+    |> Stream.reject(&is_nil(&1.user))
   end
 
   @doc """
