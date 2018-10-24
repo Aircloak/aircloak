@@ -148,7 +148,7 @@ defmodule Air do
   # -------------------------------------------------------------------
 
   defp maybe_load_license() do
-    on_setting_file("license_file", "Aircloak Insights license", fn license_content, path ->
+    on_setting_file("license_file", fn license_content, path ->
       case Air.Service.License.load(license_content) do
         :ok -> Logger.info("Applied statically configured Aircloak license from file `#{path}`")
         {:error, reason} -> Logger.error("Failed to load an Aircloak Insights license from file `#{path}`: " <> reason)
@@ -157,7 +157,7 @@ defmodule Air do
   end
 
   defp maybe_load_privacy_policy() do
-    on_setting_file("privacy_policy_file", "Aircloak Insights privacy policy", fn policy_content, path ->
+    on_setting_file("privacy_policy_file", fn policy_content, path ->
       if Air.Service.PrivacyPolicy.exists?() do
         {:ok, current_policy} = Air.Service.PrivacyPolicy.get()
 
@@ -174,14 +174,14 @@ defmodule Air do
     end)
   end
 
-  defp on_setting_file(setting, purpose, callback) do
+  defp on_setting_file(setting, callback) do
     case site_setting(setting) do
       {:ok, setting_file_path} ->
         case Aircloak.File.read(setting_file_path) do
           {:error, reason} ->
             Logger.error(
-              "Could not read the file containing the #{purpose} from path: '#{setting_file_path}'. " <>
-                "The reported error is: " <> Aircloak.File.humanize_posix_error(reason)
+              "Could not read file `#{setting_file_path}` configured under site configuration parameter " <>
+                "`#{setting}`. The reported error is: " <> Aircloak.File.humanize_posix_error(reason)
             )
 
           setting_content ->
