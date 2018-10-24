@@ -79,12 +79,9 @@ defmodule Air.Service.Query.Lifecycle do
   @doc false
   def start_link(query_id), do: GenServer.start_link(__MODULE__, nil, name: name(query_id))
 
-  @doc false
-  def setup_queue() do
+  defp setup_queue() do
     with :undefined <- :jobs.queue_info(__MODULE__),
          do: :jobs.add_queue(__MODULE__, max_time: :timer.hours(1), regulators: [counter: [limit: 5]])
-
-    :proc_lib.init_ack({:ok, self()})
   end
 
   defp name(query_id), do: {:via, Registry, {__MODULE__.Registry, query_id}}
@@ -111,21 +108,12 @@ defmodule Air.Service.Query.Lifecycle do
   def child_spec(_arg) do
     ChildSpec.supervisor(
       [
-        setup_queue_spec(),
+        ChildSpec.sync_job(&setup_queue/0),
         ChildSpec.registry(:unique, __MODULE__.Registry),
         ChildSpec.dynamic_supervisor(name: __MODULE__.QuerySupervisor)
       ],
       strategy: :rest_for_one,
       name: __MODULE__
     )
-  end
-
-  defp setup_queue_spec() do
-    %{
-      id: :setup_queue,
-      # using :proc_lib ensures that the supervisor will start the next child only after the queue has been setup
-      start: {:proc_lib, :start_link, [__MODULE__, :setup_queue, []]},
-      restart: :transient
-    }
   end
 end
