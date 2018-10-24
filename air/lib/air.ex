@@ -51,8 +51,8 @@ defmodule Air do
     Air.PsqlServer.ShadowDb.init_queue()
 
     with {:ok, _pid} = result <- Air.Supervisor.start_link() do
-      maybe_load_license()
-      maybe_load_privacy_policy()
+      load_license()
+      load_privacy_policy()
       result
     end
   end
@@ -147,7 +147,7 @@ defmodule Air do
   # Post boot static configuration
   # -------------------------------------------------------------------
 
-  defp maybe_load_license() do
+  defp load_license() do
     on_setting_file("license_file", fn license_content, path ->
       case Air.Service.License.load(license_content) do
         :ok -> Logger.info("Applied statically configured Aircloak license from file `#{path}`")
@@ -156,7 +156,7 @@ defmodule Air do
     end)
   end
 
-  defp maybe_load_privacy_policy() do
+  defp load_privacy_policy() do
     on_setting_file("privacy_policy_file", fn policy_content, path ->
       if Air.Service.PrivacyPolicy.exists?() do
         {:ok, current_policy} = Air.Service.PrivacyPolicy.get()
