@@ -9,7 +9,14 @@ import {Error} from "./error";
 import {Cancelled} from "./cancelled";
 import type {NumberFormat} from "../number_format";
 
-export const Results = (props: {results: Result[], numberFormat: NumberFormat, debugModeEnabled: boolean}) =>
+type Props = {
+  results: Result[],
+  numberFormat: NumberFormat,
+  debugModeEnabled: boolean,
+  shareButton: boolean
+};
+
+export const Results = (props: Props) =>
   <div>
     {props.results.map((result) => {
       switch (result.query_state) {
@@ -18,6 +25,7 @@ export const Results = (props: {results: Result[], numberFormat: NumberFormat, d
             key={result.id} result={result}
             numberFormat={props.numberFormat}
             debugModeEnabled={props.debugModeEnabled}
+            shareButton={props.shareButton}
           />);
         case "cancelled":
           return <Cancelled key={result.id} debugModeEnabled={props.debugModeEnabled} {...result} />;
