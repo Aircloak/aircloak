@@ -1,5 +1,3 @@
-<h2>Query</h2>
-
 <div id="query-view"></div>
 
 <script>
@@ -7,10 +5,13 @@
     onLoad: function(App) {
       var props = {
         result: <%= to_json(@query) %>,
+        CSRFToken: "<%= @csrf_token %>",
+        numberFormat: <%= to_json(@number_format) %>,
+        shareButton: false,
         debugModeEnabled: false
       };
 
-      App.queryShowPage(props, document.getElementById("query-view"));
+      App.immutableQueryShowPage(props, document.getElementById("query-view"));
     }
   };
 </script>
