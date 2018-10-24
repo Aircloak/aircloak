@@ -4,21 +4,15 @@ defmodule Air.Service.DataSource do
   alias Aircloak.ChildSpec
   alias Air.Schemas.{DataSource, Group, Query, User}
   alias Air.{PsqlServer.Protocol, Repo}
-  alias Air.Service.{License, Cloak, View}
   alias Air.Service
+  alias Air.Service.{License, Cloak, View}
+  alias Air.Service.DataSource.QueryScheduler
   alias AirWeb.Socket.{Cloak.MainChannel, Frontend.UserChannel}
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
   require Logger
 
   @type data_source_id_spec :: {:id, integer} | {:name, String.t()}
-
-  @type start_query_option ::
-          {:audit_meta, %{atom => any}}
-          | {:notify, boolean}
-          | {:session_id, String.t() | nil}
-
-  @type start_query_options :: [start_query_option]
 
   @type data_source_operation_error :: {:error, :expired | :unauthorized | :not_connected | :internal_error | any}
 
@@ -110,29 +104,13 @@ defmodule Air.Service.DataSource do
       end)
 
   @doc "Starts the query on the given data source as the given user."
-  @spec start_query(Query.t(), data_source_id_spec, start_query_options) ::
-          {:ok, Query.t()} | data_source_operation_error
-  def start_query(query, data_source_id_spec, opts \\ []) do
-    opts = Keyword.merge([audit_meta: %{}, notify: false], opts)
-
-    on_available_cloak(data_source_id_spec, query.user, fn data_source, channel_pid, %{id: cloak_id} ->
+  @spec start_query(Query.t(), data_source_id_spec) :: {:ok, Query.t()} | data_source_operation_error
+  def start_query(query, data_source_id_spec) do
+    on_available_cloak(data_source_id_spec, query.user, fn _data_source, channel_pid, %{id: cloak_id} ->
       Air.Service.Cloak.Stats.record_query(cloak_id)
-
-      query =
-        Air.ProcessQueue.run(__MODULE__.Queue, fn ->
-          query = add_data_source_info_to_query(query, cloak_id, data_source.id)
-          UserChannel.broadcast_state_change(query)
-
-          Air.Service.AuditLog.log(
-            query.user,
-            "Executed query",
-            Map.merge(opts[:audit_meta], %{query: query.statement, data_source: data_source.name})
-          )
-
-          query
-        end)
-
-      if opts[:notify] == true, do: Service.Query.Events.subscribe(query.id)
+      query = add_cloak_info_to_query(query, cloak_id)
+      UserChannel.broadcast_state_change(query)
+      Air.Service.AuditLog.log(query.user, "Executed query", Query.audit_meta(query))
 
       case MainChannel.run_query(channel_pid, cloak_query_map(query)) do
         :ok ->
@@ -150,43 +128,33 @@ defmodule Air.Service.DataSource do
     end)
   end
 
-  @doc "Runs the query synchronously and returns its result."
-  @spec run_query(Query.t(), data_source_id_spec, start_query_options) :: {:ok, Query.t()} | data_source_operation_error
-  def run_query(query, data_source_id_spec, opts \\ []) do
-    opts = [{:notify, true} | opts]
+  @doc "Awaits for the query to finish, and returns it's result"
+  @spec await_query(Query.t()) :: {:ok, Query.t()} | data_source_operation_error
+  def await_query(%Query{id: query_id} = query) do
+    Service.Query.Events.subscribe(query_id)
 
-    with {:ok, %{id: query_id}} <- start_query(query, data_source_id_spec, opts) do
-      result =
-        receive do
-          {:query_state_change, %{query_id: ^query_id, state: terminal_state}}
-          when terminal_state in [:query_died, :cancelled] ->
-            {:error, terminal_state}
+    receive do
+      {:query_state_change, %{query_id: ^query_id, state: terminal_state}}
+      when terminal_state in [:query_died, :cancelled] ->
+        {:error, terminal_state}
 
-          {:query_result, %{query_id: ^query_id} = result} ->
-            {:ok, query} = Air.Service.Query.get_as_user(query.user, query_id)
+      {:query_result, %{query_id: ^query_id} = result} ->
+        {:ok, query} = Air.Service.Query.get_as_user(query.user, query_id)
 
-            {:ok,
-             result
-             |> Map.delete(:chunks)
-             |> Map.put(:buckets, Air.Service.Query.buckets(query, :all))}
-        end
-
-      Service.Query.Events.unsubscribe(query_id)
-      result
+        {:ok,
+         result
+         |> Map.delete(:chunks)
+         |> Map.put(:buckets, Air.Service.Query.buckets(query, :all))}
     end
+  after
+    Service.Query.Events.unsubscribe(query_id)
   end
 
   @doc "Stops a previously started query."
-  @spec stop_query(Query.t(), User.t(), %{atom => any}) :: :ok | {:error, :internal_error | :not_connected}
-  def stop_query(query, user, audit_meta \\ %{}) do
-    query = Repo.preload(query, :data_source)
-
-    Air.Service.AuditLog.log(
-      user,
-      "Stopped query",
-      Map.merge(audit_meta, %{query: query.statement, data_source: query.data_source.name})
-    )
-
+  @spec stop_query(Query.t()) :: :ok | {:error, :internal_error | :not_connected}
+  def stop_query(query) do
+    query = Repo.preload(query, [:user, :data_source])
+    Air.Service.AuditLog.log(query.user, "Stopped query", Query.audit_meta(query))
     do_stop_query(query)
   end
 
@@ -399,13 +367,9 @@ defmodule Air.Service.DataSource do
   defp user_data_source(user, {:name, name}),
     do: from(data_source in users_data_sources(user), where: data_source.name == ^name)
 
-  defp add_data_source_info_to_query(query, cloak_id, data_source_id) do
+  defp add_cloak_info_to_query(query, cloak_id) do
     query
-    |> Query.changeset(%{
-      cloak_id: cloak_id,
-      data_source_id: data_source_id,
-      query_state: :started
-    })
+    |> Query.changeset(%{cloak_id: cloak_id, query_state: :started})
     |> Repo.update!()
     |> Repo.preload(:data_source)
   end
@@ -438,14 +402,25 @@ defmodule Air.Service.DataSource do
       id: query.id,
       statement: query.statement,
       data_source: query.data_source.name,
-      parameters: encode_parameters(query.parameters[:values]),
+      parameters: encode_parameters(query.parameters["values"]),
       views: View.user_views_map(query.user, query.data_source.id)
     }
   end
 
-  defp encode_parameters(parameters),
-    # JSON won't work for types such as date, time, and datetime, so we're encoding parameter array to BERT.
-    do: Base.encode16(:erlang.term_to_binary(parameters))
+  defp encode_parameters(parameters) do
+    parameters
+    |> normalize_parameters()
+    |> :erlang.term_to_binary()
+    |> Base.encode16()
+  end
+
+  defp normalize_parameters(nil), do: nil
+  defp normalize_parameters(params) when is_list(params), do: Enum.map(params, &normalize_parameter/1)
+
+  defp normalize_parameter(param) do
+    param = Aircloak.atomize_keys(param)
+    with %{type: string} when is_binary(string) <- param, do: update_in(param.type, &String.to_existing_atom/1)
+  end
 
   defp exception_to_tuple(fun) do
     fun.()
@@ -515,7 +490,7 @@ defmodule Air.Service.DataSource do
   def child_spec(_arg) do
     ChildSpec.supervisor(
       [
-        {Air.ProcessQueue, {__MODULE__.Queue, size: 5}},
+        QueryScheduler,
         ChildSpec.task_supervisor(name: @task_supervisor, restart: :temporary),
         ChildSpec.task_supervisor(name: @delete_supervisor, restart: :temporary)
       ],

@@ -27,6 +27,7 @@ defmodule AirWeb.API.QueryController.Test do
       TestSocketHelper.respond_to_start_task_request!(context.socket, :ok)
 
       assert %{"success" => true} = JSON.decode!(Task.await(task))
+      Air.Service.DataSource.QueryScheduler.sync()
     end
   end
 

@@ -32,7 +32,7 @@ defmodule Air.Service.Cleanup.Test do
 
   describe "cleanup_dead_queries" do
     test "erroring a query not found in connected cloaks" do
-      query = create_query!()
+      query = create_query!(%{query_state: :started})
       Cleanup.cleanup_dead_queries()
       :timer.sleep(100)
 
@@ -52,15 +52,24 @@ defmodule Air.Service.Cleanup.Test do
 
       assert %Query{query_state: :created, result: nil} = Repo.get!(Query, query.id)
     end
+
+    test "query which is not yet started is not cleaned up" do
+      query = create_query!()
+      Cleanup.cleanup_dead_queries()
+      :timer.sleep(100)
+
+      assert %Query{query_state: :created} = Repo.get!(Query, query.id)
+    end
   end
 
   defp in_days(days) do
     Timex.shift(NaiveDateTime.utc_now(), days: days)
   end
 
-  defp create_query!(),
-    do:
-      TestRepoHelper.create_query!(TestRepoHelper.create_user!(), %{
-        data_source_id: TestRepoHelper.create_data_source!().id
-      })
+  defp create_query!(additional_data \\ %{}) do
+    TestRepoHelper.create_query!(
+      TestRepoHelper.create_user!(),
+      Map.merge(%{data_source_id: TestRepoHelper.create_data_source!().id}, additional_data)
+    )
+  end
 end
