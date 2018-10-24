@@ -48,9 +48,15 @@ defmodule Air do
     configure_appsignal()
     Air.Repo.configure()
     Air.PsqlServer.ShadowDb.init_queue()
-    result = Air.Supervisor.start_link()
-    maybe_load_license()
-    result
+
+    case Air.Supervisor.start_link() do
+      {:ok, _pid} = result ->
+        maybe_load_license()
+        result
+
+      other ->
+        other
+    end
   end
 
   @doc false
