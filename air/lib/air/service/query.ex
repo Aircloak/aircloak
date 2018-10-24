@@ -5,6 +5,7 @@ defmodule Air.Service.Query do
   alias Air.Schemas.{DataSource, Query, ResultChunk, User}
   alias Air.Service.Token
   alias AirWeb.Socket.Frontend.UserChannel
+  alias AirWeb.Router
 
   import Ecto.Query
   require Logger
@@ -499,8 +500,8 @@ defmodule Air.Service.Query do
   defp permalinks(query) do
     %{
       private_permalink:
-        AirWeb.Router.Helpers.permalink_path(AirWeb.Endpoint, :private, Token.private_query_token(query)),
-      public_permalink: AirWeb.Router.Helpers.permalink_path(AirWeb.Endpoint, :public, Token.public_query_token(query))
+        Router.Helpers.private_permalink_path(AirWeb.Endpoint, :query, Token.private_query_token(query)),
+      public_permalink: Router.Helpers.public_permalink_path(AirWeb.Endpoint, :query, Token.public_query_token(query))
     }
   end
 

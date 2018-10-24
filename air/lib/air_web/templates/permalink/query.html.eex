@@ -1,0 +1,16 @@
+<h2>Query</h2>
+
+<div id="query-view"></div>
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      var props = {
+        result: <%= to_json(@query) %>,
+        debugModeEnabled: false
+      };
+
+      App.queryShowPage(props, document.getElementById("query-view"));
+    }
+  };
+</script>
