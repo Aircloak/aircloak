@@ -56,8 +56,12 @@ defmodule Air.Service.Query do
         |> add_id_to_changeset(query_id)
         |> Repo.insert()
         |> case do
-          {:ok, query} -> {:ok, Repo.preload(query, :user)}
-          {:error, _changeset} -> {:error, :unable_to_create_query}
+          {:ok, query} ->
+            Air.Service.DataSource.QueryScheduler.notify()
+            {:ok, Repo.preload(query, :user)}
+
+          {:error, _changeset} ->
+            {:error, :unable_to_create_query}
         end
       else
         {:error, :unable_to_create_query}

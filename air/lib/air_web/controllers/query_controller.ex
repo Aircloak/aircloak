@@ -23,15 +23,7 @@ defmodule AirWeb.QueryController do
   # -------------------------------------------------------------------
 
   def create(conn, %{"query" => params}) do
-    with {:ok, query} <- create_query(conn, params) do
-      DataSource.start_query(
-        query,
-        data_source_id_spec(params),
-        audit_meta: audit_log_meta(conn),
-        session_id: Map.get(params, "session_id")
-      )
-    end
-    |> case do
+    case create_query(conn, params) do
       {:ok, query} -> json(conn, %{success: true, query_id: query.id})
       {:error, reason} -> query_error(conn, reason)
     end
@@ -150,11 +142,7 @@ defmodule AirWeb.QueryController do
         "No cloak is available for the given data source"
       )
 
-  defp query_error(conn, :timeout), do: send_resp(conn, Status.code(:gateway_timeout), "The cloak connection timed out")
   defp query_error(conn, :internal_error), do: send_resp(conn, Status.code(:internal_server_error), "")
-
-  defp query_error(conn, :too_many_queries),
-    do: send_resp(conn, Status.code(:service_unavailable), "Too many queries running on the cloak.")
 
   defp query_error(conn, other_error) do
     Logger.error(fn -> "Query start error: #{other_error}" end)

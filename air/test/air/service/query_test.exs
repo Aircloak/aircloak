@@ -14,6 +14,8 @@ defmodule Air.Service.QueryTest do
 
       assert {:error, :unable_to_create_query} =
                Air.Service.Query.create({:id, data_source.id}, :autogenerate, user, nil, nil, nil, [])
+
+      Air.Service.DataSource.QueryScheduler.sync()
     end
 
     test "cannot create query for an unpermitted data source", %{user: user} do
@@ -21,6 +23,8 @@ defmodule Air.Service.QueryTest do
 
       assert {:error, :unauthorized} =
                Air.Service.Query.create({:id, data_source.id}, :autogenerate, user, nil, nil, nil, [])
+
+      Air.Service.DataSource.QueryScheduler.sync()
     end
 
     test "time spent defaults to 0 for all states", %{user: user, data_source: data_source} do
@@ -40,6 +44,8 @@ defmodule Air.Service.QueryTest do
                   "cancelled" => 0
                 }
               }} = Air.Service.Query.create({:id, data_source.id}, :autogenerate, user, :http, "", %{}, [])
+
+      Air.Service.DataSource.QueryScheduler.sync()
     end
   end
 

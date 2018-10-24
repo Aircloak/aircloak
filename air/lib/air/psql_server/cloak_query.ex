@@ -22,7 +22,7 @@ defmodule Air.PsqlServer.CloakQuery do
       ConnectionRegistry.register_query(key_data, user.id, query.id)
 
       RanchServer.run_async(
-        fn -> query |> DataSource.run_query(data_source_id) |> decode_cloak_query_result() end,
+        fn -> query |> DataSource.await_query() |> decode_cloak_query_result() end,
         on_success: on_success,
         on_failure: fn conn, _exit_reason -> RanchServer.query_result(conn, {:error, "query failed"}) end
       )
