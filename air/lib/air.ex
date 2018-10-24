@@ -3,6 +3,7 @@ defmodule Air do
   use Application
   require Logger
   require Aircloak.DeployConfig
+  require Aircloak.File
 
   # -------------------------------------------------------------------
   # API functions
@@ -105,9 +106,6 @@ defmodule Air do
     end
   end
 
-  defp error_reason_to_text(reason) when is_atom(reason), do: Aircloak.File.humanize_posix_error(reason)
-  defp error_reason_to_text(reason), do: reason
-
   defp https_config(previous_https_config) do
     case {
       Map.get(Aircloak.DeployConfig.fetch!("site"), "keyfile"),
@@ -153,26 +151,30 @@ defmodule Air do
   # -------------------------------------------------------------------
 
   defp maybe_load_license() do
-    on_setting("license_file", fn license_file_path ->
-      case Air.Service.License.load_from_file(license_path) do
-        :ok ->
-          Logger.info("Applied Aircloak license from file: `#{license_path}`")
-
-        {:error, reason} ->
-          Logger.error(
-            "Failed to load an Aircloak license from file `#{license_path}`: " <>
-              error_reason_to_text(reason) <>
-              ". You will need to manually load a license in the Insights Air web interface in order " <>
-              "to use your Aircloak Insights installation"
-          )
+    on_setting_file("license_file", "Aircloak Insights license", fn %{content: license_content, path: path} ->
+      case Air.Service.License.load(license_content) do
+        :ok -> Logger.info("Applied statically configured Aircloak license from file `#{path}`")
+        {:error, reason} -> Logger.error("Failed to load an Aircloak Insights license from file `#{path}`: " <> reason)
       end
     end)
   end
 
-  defp on_setting(setting, callback) do
+  defp on_setting_file(setting, purpose, callback) do
     case site_setting(setting) do
-      {:ok, value} -> callback.(value)
-      :error -> :ok
+      {:ok, setting_file_path} ->
+        case Aircloak.File.read(setting_file_path) do
+          {:error, reason} ->
+            Logger.error(
+              "Could not read file containing the #{purpose} from path: '#{setting_file_path}'. " <>
+                "The reported error is: " <> Aircloak.File.humanize_posix_error(reason)
+            )
+
+          setting_content ->
+            callback.(%{content: setting_content, path: setting_file_path})
+        end
+
+      :error ->
+        :ok
     end
   end
 end
