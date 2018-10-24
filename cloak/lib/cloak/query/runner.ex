@@ -31,8 +31,14 @@ defmodule Cloak.Query.Runner do
   is sent to the required destination. If an error occurs, the result will contain
   error information.
   """
-  @spec start(String.t(), DataSource.t(), String.t(), [DataSource.field()], Query.view_map(), start_opts) ::
-          :ok | {:error, :too_many_queries}
+  @spec start(
+          String.t(),
+          DataSource.t(),
+          String.t(),
+          [DataSource.field()],
+          Query.view_map(),
+          start_opts
+        ) :: :ok | {:error, :too_many_queries}
   def start(query_id, data_source, statement, parameters, views, start_opts \\ []) do
     runner_arg = {query_id, data_source, statement, parameters, views, start_opts}
 
@@ -42,7 +48,8 @@ defmodule Cloak.Query.Runner do
   end
 
   @spec stop(String.t() | pid, :cancelled | :oom) :: :ok
-  def stop(query_pid, reason) when is_pid(query_pid), do: GenServer.cast(query_pid, {:stop_query, reason})
+  def stop(query_pid, reason) when is_pid(query_pid),
+    do: GenServer.cast(query_pid, {:stop_query, reason})
 
   def stop(query_id, reason), do: GenServer.cast(worker_name(query_id), {:stop_query, reason})
 
@@ -64,7 +71,8 @@ defmodule Cloak.Query.Runner do
       end)
 
   @doc "Executes the query synchronously, and returns its result."
-  @spec run_sync(String.t(), DataSource.t(), String.t(), [DataSource.field()], Query.view_map()) :: any
+  @spec run_sync(String.t(), DataSource.t(), String.t(), [DataSource.field()], Query.view_map()) ::
+          any
   def run_sync(query_id, data_source, statement, parameters, views) do
     :ok = start(query_id, data_source, statement, parameters, views, result_target: self())
 
@@ -96,12 +104,18 @@ defmodule Cloak.Query.Runner do
 
   defp setup_queue() do
     with :undefined <- :jobs.queue_info(__MODULE__),
-         do: :jobs.add_queue(__MODULE__, max_time: :timer.minutes(1), regulators: [counter: [limit: 1]])
+         do:
+           :jobs.add_queue(__MODULE__,
+             max_time: :timer.minutes(1),
+             regulators: [counter: [limit: 1]]
+           )
   end
 
   defp serialized_start_runner(query_id, runner_arg) do
     if Registry.count(@runner_registry_name) < max_parallel_queries() do
-      {:ok, _pid} = DynamicSupervisor.start_child(@supervisor_name, runner_spec(query_id, runner_arg))
+      {:ok, _pid} =
+        DynamicSupervisor.start_child(@supervisor_name, runner_spec(query_id, runner_arg))
+
       :ok
     else
       {:error, :too_many_queries}
@@ -118,7 +132,8 @@ defmodule Cloak.Query.Runner do
   defp runner_spec(query_id, runner_arg) do
     %{
       id: __MODULE__,
-      start: {Parent.GenServer, :start_link, [__MODULE__, runner_arg, [name: worker_name(query_id)]]},
+      start:
+        {Parent.GenServer, :start_link, [__MODULE__, runner_arg, [name: worker_name(query_id)]]},
       restart: :temporary
     }
   end
@@ -146,7 +161,17 @@ defmodule Cloak.Query.Runner do
 
     Parent.GenServer.start_child(%{
       id: :query_execution,
-      start: fn -> start_query(query_id, data_source, statement, parameters, views, memory_callbacks, start_opts) end,
+      start: fn ->
+        start_query(
+          query_id,
+          data_source,
+          statement,
+          parameters,
+          views,
+          memory_callbacks,
+          start_opts
+        )
+      end,
       shutdown: :brutal_kill
     })
 
@@ -194,7 +219,8 @@ defmodule Cloak.Query.Runner do
       when iterations > 1,
       do: {:noreply, state}
 
-  def handle_info({:send_state, _query_id, query_state}, %{query_state: query_state} = state), do: {:noreply, state}
+  def handle_info({:send_state, _query_id, query_state}, %{query_state: query_state} = state),
+    do: {:noreply, state}
 
   def handle_info({:send_state, query_id, query_state}, state) do
     Logger.debug(fn -> "Query #{query_id} state changed to: #{query_state}..." end)
@@ -204,7 +230,8 @@ defmodule Cloak.Query.Runner do
 
   def handle_info({:features, features}, state), do: {:noreply, %{state | features: features}}
 
-  def handle_info({:query_result, result}, state), do: {:noreply, send_result_report(state, result)}
+  def handle_info({:query_result, result}, state),
+    do: {:noreply, send_result_report(state, result)}
 
   def handle_info({:send_log_entry, level, message, timestamp, metadata}, state) do
     {:noreply, add_log_entry(state, level, message, timestamp, metadata)}
@@ -237,22 +264,59 @@ defmodule Cloak.Query.Runner do
   # Query running
   # -------------------------------------------------------------------
 
-  defp start_query(query_id, data_source, statement, parameters, views, memory_callbacks, start_opts) do
+  defp start_query(
+         query_id,
+         data_source,
+         statement,
+         parameters,
+         views,
+         memory_callbacks,
+         start_opts
+       ) do
     parent = self()
 
     Task.start_link(fn ->
-      run_query(query_id, parent, data_source, statement, parameters, views, memory_callbacks, start_opts)
+      run_query(
+        query_id,
+        parent,
+        data_source,
+        statement,
+        parameters,
+        views,
+        memory_callbacks,
+        start_opts
+      )
     end)
   end
 
-  defp run_query(query_id, owner, data_source, statement, parameters, views, memory_callbacks, start_opts) do
+  defp run_query(
+         query_id,
+         owner,
+         data_source,
+         statement,
+         parameters,
+         views,
+         memory_callbacks,
+         start_opts
+       ) do
     Logger.metadata(query_id: query_id)
     Logger.debug(fn -> "Running statement `#{statement}` ..." end)
 
     state_updater = &send(owner, {:send_state, query_id, &1})
     feature_updater = &send(owner, {:features, &1})
     runner_fun = Keyword.get(start_opts, :runner_fun, &Engine.run/7)
-    result = runner_fun.(data_source, statement, parameters, views, state_updater, feature_updater, memory_callbacks)
+
+    result =
+      runner_fun.(
+        data_source,
+        statement,
+        parameters,
+        views,
+        state_updater,
+        feature_updater,
+        memory_callbacks
+      )
+
     send(owner, {:query_result, result})
   end
 
@@ -267,7 +331,13 @@ defmodule Cloak.Query.Runner do
       state.log,
       &[
         &1,
-        Logger.Formatter.format(state.log_format, level, message, Cloak.Time.truncate(timestamp, :second), metadata)
+        Logger.Formatter.format(
+          state.log_format,
+          level,
+          message,
+          Cloak.Time.truncate(timestamp, :second),
+          metadata
+        )
       ]
     )
   end
@@ -338,9 +408,11 @@ defmodule Cloak.Query.Runner do
       features: result.features
     }
 
-  defp format_result({:error, reason}, state) when is_binary(reason), do: %{error: reason, features: state[:features]}
+  defp format_result({:error, reason}, state) when is_binary(reason),
+    do: %{error: reason, features: state[:features]}
 
-  defp format_result(:oom, state), do: %{error: "Query aborted due to low memory.", features: state[:features]}
+  defp format_result(:oom, state),
+    do: %{error: "Query aborted due to low memory.", features: state[:features]}
 
   defp format_result(:cancelled, state), do: %{cancelled: true, features: state[:features]}
 
@@ -357,7 +429,7 @@ defmodule Cloak.Query.Runner do
   def child_spec(_arg) do
     ChildSpec.supervisor(
       [
-        ChildSpec.sync_job(&setup_queue/0),
+        ChildSpec.setup_job(&setup_queue/0),
         ChildSpec.registry(:unique, @runner_registry_name),
         ChildSpec.registry(:duplicate, @queries_registry_name),
         ChildSpec.dynamic_supervisor(name: @supervisor_name)

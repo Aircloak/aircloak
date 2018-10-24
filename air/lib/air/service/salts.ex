@@ -8,7 +8,10 @@ defmodule Air.Service.Salts do
   @known_names ~w[api_token password_reset session_signing session_encryption]a
   @salt_size 64
 
-  @type known_name :: unquote(Enum.reduce(tl(@known_names), hd(@known_names), &quote(do: unquote(&1) | unquote(&2))))
+  @type known_name ::
+          unquote(
+            Enum.reduce(tl(@known_names), hd(@known_names), &quote(do: unquote(&1) | unquote(&2)))
+          )
 
   alias Air.Repo
   alias Air.Schemas.Salt
@@ -65,5 +68,5 @@ defmodule Air.Service.Salts do
   # Supervision tree
   # -------------------------------------------------------------------
 
-  def child_spec(_arg), do: Aircloak.ChildSpec.sync_job(&setup_salts/0)
+  def child_spec(_arg), do: Aircloak.ChildSpec.setup_job(&setup_salts/0)
 end

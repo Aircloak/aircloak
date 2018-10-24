@@ -97,12 +97,12 @@ defmodule Aircloak.ChildSpec do
       )
 
   @doc """
-  Specifies a synchronous job powered by the given function.
+  Specifies a synchronous setup job powered by the given function.
 
-  A synchronous job will run in a blocking fashion. The supervisor will wait for the job to finish before starting the
-  next child. By default, the `:restart` option of the child is set to `:transient`.
+  A setup job is a one-off job which runs in a blocking fashion. The supervisor will wait for the job to finish before
+  starting the next child. By default, the `:restart` option of the child is set to `:transient`.
   """
-  def sync_job(fun, overrides \\ []) do
+  def setup_job(fun, overrides \\ []) do
     wrapper = fn ->
       fun.()
       :proc_lib.init_ack({:ok, self()})

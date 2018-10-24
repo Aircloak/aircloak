@@ -28,7 +28,8 @@ defmodule Air.Service.Query.Lifecycle do
 
   @doc "Asynchronously handles query state change."
   @spec state_changed(String.t(), Air.Schemas.Query.QueryState.t()) :: :ok
-  def state_changed(query_id, query_state), do: enqueue(query_id, {:state_changed, query_id, query_state})
+  def state_changed(query_id, query_state),
+    do: enqueue(query_id, {:state_changed, query_id, query_state})
 
   @doc "Asynchronously handles query result arrival."
   @spec result_arrived(cloak_result) :: :ok
@@ -40,7 +41,8 @@ defmodule Air.Service.Query.Lifecycle do
 
   @doc "Asynchronously reports query error."
   @spec report_query_error(String.t(), String.t()) :: :ok
-  def report_query_error(query_id, error), do: enqueue(query_id, {:report_query_error, query_id, error})
+  def report_query_error(query_id, error),
+    do: enqueue(query_id, {:report_query_error, query_id, error})
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -68,7 +70,10 @@ defmodule Air.Service.Query.Lifecycle do
   end
 
   def handle_cast({:report_query_error, query_id, error}, state) do
-    :jobs.run(__MODULE__, fn -> Query.process_result(%{query_id: query_id, error: error, row_count: 0, chunks: []}) end)
+    :jobs.run(__MODULE__, fn ->
+      Query.process_result(%{query_id: query_id, error: error, row_count: 0, chunks: []})
+    end)
+
     {:stop, :normal, state}
   end
 
@@ -81,7 +86,11 @@ defmodule Air.Service.Query.Lifecycle do
 
   defp setup_queue() do
     with :undefined <- :jobs.queue_info(__MODULE__),
-         do: :jobs.add_queue(__MODULE__, max_time: :timer.hours(1), regulators: [counter: [limit: 5]])
+         do:
+           :jobs.add_queue(__MODULE__,
+             max_time: :timer.hours(1),
+             regulators: [counter: [limit: 5]]
+           )
   end
 
   defp name(query_id), do: {:via, Registry, {__MODULE__.Registry, query_id}}
@@ -108,7 +117,7 @@ defmodule Air.Service.Query.Lifecycle do
   def child_spec(_arg) do
     ChildSpec.supervisor(
       [
-        ChildSpec.sync_job(&setup_queue/0),
+        ChildSpec.setup_job(&setup_queue/0),
         ChildSpec.registry(:unique, __MODULE__.Registry),
         ChildSpec.dynamic_supervisor(name: __MODULE__.QuerySupervisor)
       ],
