@@ -51,41 +51,24 @@ defmodule Air.Service.Query.Lifecycle do
 
   @impl GenServer
   def handle_cast({:result_arrived, result}, state) do
-    Air.ProcessQueue.run(__MODULE__.Queue, fn -> Query.process_result(result) end)
+    :jobs.run(__MODULE__, fn -> Query.process_result(result) end)
     {:stop, :normal, state}
   end
 
   def handle_cast({:state_changed, query_id, query_state}, state) do
-    Air.ProcessQueue.run(__MODULE__.Queue, fn -> Query.update_state(query_id, query_state) end)
-
-    Air.ProcessQueue.run(__MODULE__.Queue, fn ->
-      Air.Service.Query.Events.trigger_state_change(%{
-        query_id: query_id,
-        state: query_state
-      })
-    end)
-
+    :jobs.run(__MODULE__, fn -> Query.update_state(query_id, query_state) end)
+    Air.Service.Query.Events.trigger_state_change(%{query_id: query_id, state: query_state})
     {:noreply, state}
   end
 
   def handle_cast({:query_died, query_id}, state) do
-    Air.ProcessQueue.run(__MODULE__.Queue, fn -> Query.query_died(query_id) end)
-
-    Air.ProcessQueue.run(__MODULE__.Queue, fn ->
-      Air.Service.Query.Events.trigger_state_change(%{
-        query_id: query_id,
-        state: :query_died
-      })
-    end)
-
+    :jobs.run(__MODULE__, fn -> Query.query_died(query_id) end)
+    Air.Service.Query.Events.trigger_state_change(%{query_id: query_id, state: :query_died})
     {:stop, :normal, state}
   end
 
   def handle_cast({:report_query_error, query_id, error}, state) do
-    Air.ProcessQueue.run(__MODULE__.Queue, fn ->
-      Query.process_result(%{query_id: query_id, error: error, row_count: 0, chunks: []})
-    end)
-
+    :jobs.run(__MODULE__, fn -> Query.process_result(%{query_id: query_id, error: error, row_count: 0, chunks: []}) end)
     {:stop, :normal, state}
   end
 
@@ -95,6 +78,14 @@ defmodule Air.Service.Query.Lifecycle do
 
   @doc false
   def start_link(query_id), do: GenServer.start_link(__MODULE__, nil, name: name(query_id))
+
+  @doc false
+  def setup_queue() do
+    with :undefined <- :jobs.queue_info(__MODULE__),
+         do: :jobs.add_queue(__MODULE__, max_time: :timer.hours(1), regulators: [counter: [limit: 5]])
+
+    :proc_lib.init_ack({:ok, self()})
+  end
 
   defp name(query_id), do: {:via, Registry, {__MODULE__.Registry, query_id}}
 
@@ -120,12 +111,21 @@ defmodule Air.Service.Query.Lifecycle do
   def child_spec(_arg) do
     ChildSpec.supervisor(
       [
+        setup_queue_spec(),
         ChildSpec.registry(:unique, __MODULE__.Registry),
-        {Air.ProcessQueue, {__MODULE__.Queue, size: 5}},
         ChildSpec.dynamic_supervisor(name: __MODULE__.QuerySupervisor)
       ],
       strategy: :rest_for_one,
       name: __MODULE__
     )
+  end
+
+  defp setup_queue_spec() do
+    %{
+      id: :setup_queue,
+      # using :proc_lib ensures that the supervisor will start the next child only after the queue has been setup
+      start: {:proc_lib, :start_link, [__MODULE__, :setup_queue, []]},
+      restart: :transient
+    }
   end
 end
