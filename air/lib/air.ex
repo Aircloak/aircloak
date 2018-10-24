@@ -50,14 +50,10 @@ defmodule Air do
     Air.Repo.configure()
     Air.PsqlServer.ShadowDb.init_queue()
 
-    case Air.Supervisor.start_link() do
-      {:ok, _pid} = result ->
-        maybe_load_license()
-        maybe_load_privacy_policy()
-        result
-
-      other ->
-        other
+    with {:ok, _pid} = result <- Air.Supervisor.start_link() do
+      maybe_load_license()
+      maybe_load_privacy_policy()
+      result
     end
   end
 
