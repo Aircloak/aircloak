@@ -117,9 +117,10 @@ defmodule Air.Service.QueryTest do
 
     test "returns running queries" do
       user = create_user!()
-      query = create_query!(user)
-      query_id = query.id
-      assert [%Air.Schemas.Query{id: ^query_id}] = Query.currently_running()
+      _not_started_query = create_query!(user)
+      started_query = create_query!(user, %{query_state: :started})
+      assert [%Air.Schemas.Query{id: query_id}] = Query.currently_running()
+      assert query_id == started_query.id
     end
 
     test "does not return not running queries" do

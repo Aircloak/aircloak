@@ -165,7 +165,9 @@ defmodule Air.Service.Query do
 
   @doc "Returns a list of the queries that are currently executing in all contexts."
   @spec currently_running() :: [Query.t()]
-  def currently_running(), do: pending() |> Repo.all()
+  def currently_running() do
+    Repo.all(from(q in pending(), where: q.query_state != ^:created))
+  end
 
   @doc "Returns a list of queries that are currently executing, started by the given user on the given data source."
   @spec currently_running(User.t(), DataSource.t(), Query.Context.t()) :: [Query.t()]
