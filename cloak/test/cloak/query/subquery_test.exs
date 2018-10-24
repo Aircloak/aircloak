@@ -4,12 +4,12 @@ defmodule Cloak.Query.SubqueryTest do
   import Cloak.Test.QueryHelpers
 
   setup_all do
-    :ok = Cloak.Test.DB.create_table("heights_sq", "height INTEGER")
+    :ok = Cloak.Test.DB.create_table("heights_sq", "height INTEGER, name TEXT")
   end
 
   setup do
     Cloak.Test.DB.clear_table("heights_sq")
-    :ok = insert_rows(_user_ids = 1..100, "heights_sq", ["height"], [180])
+    :ok = insert_rows(_user_ids = 1..100, "heights_sq", ["height", "name"], [180, "Tom"])
   end
 
   test "selecting from a subquery" do
@@ -254,6 +254,13 @@ defmodule Cloak.Query.SubqueryTest do
         ) t
       """,
       %{rows: [%{row: [100], occurrences: 1}]}
+    )
+  end
+
+  test "[BUG] group by multiple columns" do
+    assert_query(
+      "select count(*) from (select user_id, height, name from heights_sq group by 1, 2, 3) t",
+      %{columns: ["count"], rows: [%{row: [100], occurrences: 1}]}
     )
   end
 end
