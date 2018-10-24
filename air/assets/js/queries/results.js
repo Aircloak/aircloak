@@ -22,15 +22,26 @@ export const Results = (props: Props) =>
       switch (result.query_state) {
         case "completed":
           return (<ResultView
-            key={result.id} result={result}
+            key={result.id}
+            result={result}
             numberFormat={props.numberFormat}
             debugModeEnabled={props.debugModeEnabled}
             shareButton={props.shareButton}
           />);
         case "cancelled":
-          return <Cancelled key={result.id} debugModeEnabled={props.debugModeEnabled} {...result} />;
+          return (<Cancelled
+            key={result.id}
+            result={result}
+            debugModeEnabled={props.debugModeEnabled}
+            shareButton={props.shareButton}
+          />);
         case "error":
-          return <Error key={result.id} debugModeEnabled={props.debugModeEnabled} {...result} />;
+          return (<Error
+            key={result.id}
+            result={result}
+            debugModeEnabled={props.debugModeEnabled}
+            shareButton={props.shareButton}
+          />);
         default:
           return <PendingResult key={result.id} result={result} />;
       }

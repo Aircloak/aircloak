@@ -6,20 +6,25 @@ import pagedown from "pagedown";
 import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";
 import {DebugExport} from "./debug_export";
+import {ShareButton} from "./share_button";
+
+import type {Result} from "./result";
 
 const mdToHtml = (text: string) => ({__html: pagedown.getSanitizingConverter().makeHtml(text)});
 
 export const Error =
-  (props: {id: string, statement: string, error: string, info: string[], debugModeEnabled: boolean}) =>
+  (props: {result: Result, debugModeEnabled: boolean, shareButton: boolean}) =>
     <div className="panel panel-danger">
       <div className="panel-heading" />
       <div className="panel-body">
-        <CodeViewer statement={props.statement} />
+        <CodeViewer statement={props.result.statement} />
 
         <h4>Query failed</h4>
-        <p dangerouslySetInnerHTML={mdToHtml(props.error)} />
+        <p dangerouslySetInnerHTML={mdToHtml(props.result.error)} />
 
-        <Info info={props.info} />
-        <DebugExport id={props.id} debugModeEnabled={props.debugModeEnabled} />
+        <Info info={props.result.info} />
+
+        <ShareButton result={props.result} enabled={props.shareButton} />
+        <DebugExport id={props.result.id} debugModeEnabled={props.result.debugModeEnabled} />
       </div>
     </div>;
