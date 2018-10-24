@@ -105,27 +105,6 @@ defmodule Air do
     end
   end
 
-  defp maybe_load_license() do
-    case site_setting("license_file") do
-      {:ok, license_path} ->
-        case Air.Service.License.load_from_file(license_path) do
-          :ok ->
-            Logger.info("Applied Aircloak license from file: `#{license_path}`")
-
-          {:error, reason} ->
-            Logger.error(
-              "Failed to load an Aircloak license from file `#{license_path}`: " <>
-                error_reason_to_text(reason) <>
-                ". You will need to manually load a license in the Insights Air web interface in order " <>
-                "to use your Aircloak Insights installation"
-            )
-        end
-
-      :error ->
-        :ok
-    end
-  end
-
   defp error_reason_to_text(reason) when is_atom(reason), do: Aircloak.File.humanize_posix_error(reason)
   defp error_reason_to_text(reason), do: reason
 
@@ -166,6 +145,31 @@ defmodule Air do
             Logger.warn("the file `#{certfile}` is missing")
             nil
         end
+    end
+  end
+
+  # -------------------------------------------------------------------
+  # Post boot static configuration
+  # -------------------------------------------------------------------
+
+  defp maybe_load_license() do
+    case site_setting("license_file") do
+      {:ok, license_path} ->
+        case Air.Service.License.load_from_file(license_path) do
+          :ok ->
+            Logger.info("Applied Aircloak license from file: `#{license_path}`")
+
+          {:error, reason} ->
+            Logger.error(
+              "Failed to load an Aircloak license from file `#{license_path}`: " <>
+                error_reason_to_text(reason) <>
+                ". You will need to manually load a license in the Insights Air web interface in order " <>
+                "to use your Aircloak Insights installation"
+            )
+        end
+
+      :error ->
+        :ok
     end
   end
 end
