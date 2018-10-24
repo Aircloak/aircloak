@@ -115,20 +115,14 @@ defmodule Air.Service.DataSource do
 
     on_available_cloak(data_source_id_spec, query.user, fn data_source, channel_pid, %{id: cloak_id} ->
       Air.Service.Cloak.Stats.record_query(cloak_id)
+      query = add_cloak_info_to_query(query, cloak_id)
+      UserChannel.broadcast_state_change(query)
 
-      query =
-        Air.ProcessQueue.run(__MODULE__.Queue, fn ->
-          query = add_cloak_info_to_query(query, cloak_id)
-          UserChannel.broadcast_state_change(query)
-
-          Air.Service.AuditLog.log(
-            query.user,
-            "Executed query",
-            Map.merge(opts[:audit_meta], %{query: query.statement, data_source: data_source.name})
-          )
-
-          query
-        end)
+      Air.Service.AuditLog.log(
+        query.user,
+        "Executed query",
+        Map.merge(opts[:audit_meta], %{query: query.statement, data_source: data_source.name})
+      )
 
       case MainChannel.run_query(channel_pid, cloak_query_map(query)) do
         :ok ->
@@ -515,7 +509,6 @@ defmodule Air.Service.DataSource do
     ChildSpec.supervisor(
       [
         QueryScheduler,
-        {Air.ProcessQueue, {__MODULE__.Queue, size: 5}},
         ChildSpec.task_supervisor(name: @task_supervisor, restart: :temporary),
         ChildSpec.task_supervisor(name: @delete_supervisor, restart: :temporary)
       ],
