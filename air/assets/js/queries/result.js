@@ -16,6 +16,7 @@ import type {NumberFormat} from "../number_format";
 import {formatNumber} from "../number_format";
 import {loadBuckets} from "../request";
 import {DebugExport} from "./debug_export";
+import {ShareButton} from "./share_button";
 import {activateTooltips} from "../tooltips";
 
 export type Row = {
@@ -60,7 +61,6 @@ type State = {
   rowsToShowCount: number,
   showChart: boolean,
   showChartConfig: boolean,
-  showPermalinks: boolean,
   graphConfig: GraphConfig,
   tableAligner: TableAlignerT,
   availableRows: Row[],
@@ -82,7 +82,6 @@ export class ResultView extends React.Component {
       rowsToShowCount: this.minRowsToShow,
       showChart: false,
       showChartConfig: true,
-      showPermalinks: false,
       graphConfig: new GraphConfig(),
       tableAligner: new TableAligner(this.props.result.rows),
       availableRows: this.props.result.rows,
@@ -104,7 +103,6 @@ export class ResultView extends React.Component {
     this.renderOptionMenu = this.renderOptionMenu.bind(this);
 
     this.conditionallyRenderChart = this.conditionallyRenderChart.bind(this);
-    this.conditionallyRenderPermalinks = this.conditionallyRenderPermalinks.bind(this);
     this.conditionallyRenderChartConfig = this.conditionallyRenderChartConfig.bind(this);
     this.formatValue = this.formatValue.bind(this);
 
@@ -133,7 +131,6 @@ export class ResultView extends React.Component {
   renderShowAll: () => void;
   renderOptionMenu: () => void;
   conditionallyRenderChart: () => void;
-  conditionallyRenderPermalinks: () => void;
   showingAllOfFewRows: () => void;
   showingAllOfManyRows: () => void;
   showingMinimumNumberOfManyRows: () => void;
@@ -291,44 +288,6 @@ export class ResultView extends React.Component {
     }
   }
 
-  conditionallyRenderPermalinks() {
-    return (
-      <Modal show={this.state.showPermalinks} onHide={() => this.setState({showPermalinks: false})}>
-        <Modal.Header>
-          <Modal.Title>Share</Modal.Title>
-        </Modal.Header>
-
-        <Modal.Body>
-          <div className="form-group">
-            <label>Public link</label>
-            <p className="help-block">Anyone with this link will be able to view the query and its results.</p>
-            <input type="email" className="form-control" readOnly="true" value={this.publicPermalink()} />
-          </div>
-
-          <div className="form-group">
-            <label>Private link</label>
-            <p className="help-block">
-              This link requires logging in with an Insights Air account that is allowed to access this data source.
-            </p>
-            <input type="email" className="form-control" readOnly="true" value={this.privatePermalink()} />
-          </div>
-        </Modal.Body>
-
-        <Modal.Footer>
-          <Button onClick={() => this.setState({showPermalinks: false})}>Close</Button>
-        </Modal.Footer>
-      </Modal>
-    );
-  }
-
-  privatePermalink() {
-    return `${window.location.origin}${this.props.result.private_permalink}`;
-  }
-
-  publicPermalink() {
-    return `${window.location.origin}${this.props.result.public_permalink}`;
-  }
-
   conditionallyRenderChartConfig() {
     if (this.state.loadingChunks) {
       return (
@@ -468,18 +427,10 @@ export class ResultView extends React.Component {
     }
   }
 
-  renderShareButton() {
-    if (this.props.shareButton) {
-      return <a className="btn btn-default btn-xs" onClick={() => this.setState({showPermalinks: true})}>Share</a>;
-    } else {
-      return null;
-    }
-  }
-
   renderOptionMenu() {
     return (
       <div className="options-menu">
-        {this.renderShareButton()}
+        <ShareButton result={this.props.result} enabled={this.props.shareButton} />
         <a className="btn btn-default btn-xs" href={`/queries/${this.props.result.id}.csv`}>Download as CSV</a>
         <DebugExport id={this.props.result.id} debugModeEnabled={this.props.debugModeEnabled} />
         {this.renderChartButton()}
@@ -514,7 +465,6 @@ export class ResultView extends React.Component {
           {this.renderOptionMenu()}
           {this.conditionallyRenderChartConfig()}
           {this.conditionallyRenderChart()}
-          {this.conditionallyRenderPermalinks()}
         </div>
       </div>
     );
