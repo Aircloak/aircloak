@@ -153,23 +153,26 @@ defmodule Air do
   # -------------------------------------------------------------------
 
   defp maybe_load_license() do
-    case site_setting("license_file") do
-      {:ok, license_path} ->
-        case Air.Service.License.load_from_file(license_path) do
-          :ok ->
-            Logger.info("Applied Aircloak license from file: `#{license_path}`")
+    on_setting("license_file", fn license_file_path ->
+      case Air.Service.License.load_from_file(license_path) do
+        :ok ->
+          Logger.info("Applied Aircloak license from file: `#{license_path}`")
 
-          {:error, reason} ->
-            Logger.error(
-              "Failed to load an Aircloak license from file `#{license_path}`: " <>
-                error_reason_to_text(reason) <>
-                ". You will need to manually load a license in the Insights Air web interface in order " <>
-                "to use your Aircloak Insights installation"
-            )
-        end
+        {:error, reason} ->
+          Logger.error(
+            "Failed to load an Aircloak license from file `#{license_path}`: " <>
+              error_reason_to_text(reason) <>
+              ". You will need to manually load a license in the Insights Air web interface in order " <>
+              "to use your Aircloak Insights installation"
+          )
+      end
+    end)
+  end
 
-      :error ->
-        :ok
+  defp on_setting(setting, callback) do
+    case site_setting(setting) do
+      {:ok, value} -> callback.(value)
+      :error -> :ok
     end
   end
 end
