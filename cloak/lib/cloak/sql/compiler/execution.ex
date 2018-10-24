@@ -14,6 +14,21 @@ defmodule Cloak.Sql.Compiler.Execution do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Aligns the query parameters before execution."
+  @spec align(Query.t()) :: Query.t()
+  def align(%Query{command: :show} = query), do: query
+
+  def align(query) do
+    {info, query} =
+      Query.Lenses.all_queries()
+      |> Lens.get_and_map(query, fn subquery ->
+        subquery = align_subquery(subquery)
+        {subquery.info, subquery}
+      end)
+
+    %Query{query | info: Enum.concat(info)}
+  end
+
   @doc "Prepares the query for execution."
   @spec prepare(Query.t()) :: Query.t()
   def prepare(%Query{command: :show} = query), do: query
@@ -21,15 +36,10 @@ defmodule Cloak.Sql.Compiler.Execution do
   def prepare(%Query{command: :select} = query),
     do:
       query
-      |> prepare_subqueries()
-      |> censor_selected_uids()
-      |> align_buckets()
-      |> align_where()
-      |> align_join_ranges()
-      |> compile_sample_rate()
-      |> reject_null_user_ids()
-      |> compute_aggregators()
-      |> expand_virtual_tables()
+      |> Helpers.apply_bottom_up(&censor_selected_uids/1)
+      |> Helpers.apply_bottom_up(&reject_null_user_ids/1)
+      |> Helpers.apply_bottom_up(&compute_aggregators/1)
+      |> Helpers.apply_bottom_up(&expand_virtual_tables/1)
 
   # -------------------------------------------------------------------
   # UID handling
@@ -98,23 +108,16 @@ defmodule Cloak.Sql.Compiler.Execution do
   # Subqueries
   # -------------------------------------------------------------------
 
-  defp prepare_subqueries(query) do
-    {info, prepared_subquery} =
-      Lens.get_and_map(Query.Lenses.direct_subqueries(), query, fn subquery ->
-        ast = prepare_subquery(subquery.ast)
-        {ast.info, %{subquery | ast: ast}}
-      end)
-
-    Query.add_info(prepared_subquery, Enum.concat(info))
+  defp align_subquery(query) do
+    query
+    |> align_buckets()
+    |> align_where()
+    |> align_join_ranges()
+    |> align_limit()
+    |> align_offset()
+    |> align_having()
+    |> align_sample_rate()
   end
-
-  defp prepare_subquery(parsed_subquery),
-    do:
-      parsed_subquery
-      |> prepare()
-      |> align_limit()
-      |> align_offset()
-      |> align_having()
 
   @minimum_subquery_limit 10
   defp align_limit(query = %{limit: limit, type: :restricted}) when limit != nil do
@@ -282,7 +285,7 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp extract_columns(columns), do: Query.Lenses.leaf_expressions() |> Lens.to_list(columns)
 
-  defp compile_sample_rate(%Query{sample_rate: amount} = query) when amount != nil do
+  defp align_sample_rate(%Query{sample_rate: amount} = query) when amount != nil do
     if query.type == :standard,
       do: raise(CompilationError, message: "The `SAMPLE_USERS` clause is not valid in standard queries.")
 
@@ -290,8 +293,14 @@ defmodule Cloak.Sql.Compiler.Execution do
       Expression.function("hash", [Helpers.id_column(query)], :text)
       |> put_in([Query.Lenses.all_expressions() |> Lens.key(:synthetic?)], true)
 
-    {aligned_sample_rate, messages} = align_sample_rate(amount)
-    hash_limit = round(aligned_sample_rate / 100 * 4_294_967_295)
+    aligned_amount = FixAlign.align(amount)
+
+    messages =
+      if amount == aligned_amount,
+        do: [],
+        else: ["Sample rate adjusted from #{amount}% to #{aligned_amount}%"]
+
+    hash_limit = round(aligned_amount / 100 * 4_294_967_295)
     hex_hash_limit = <<hash_limit::32>> |> Base.encode16(case: :lower) |> String.pad_leading(8, "0")
 
     sample_condition = {:comparison, user_id_hash, :<=, Expression.constant(:text, hex_hash_limit)}
@@ -300,17 +309,7 @@ defmodule Cloak.Sql.Compiler.Execution do
     |> Query.add_info(messages)
   end
 
-  defp compile_sample_rate(query), do: query
-
-  defp align_sample_rate(sample_rate) do
-    aligned_sample_rate = FixAlign.align(sample_rate)
-
-    if sample_rate == aligned_sample_rate do
-      {aligned_sample_rate, []}
-    else
-      {aligned_sample_rate, ["Sample rate adjusted from #{sample_rate}% to #{aligned_sample_rate}%"]}
-    end
-  end
+  defp align_sample_rate(query), do: query
 
   # -------------------------------------------------------------------
   # Virtual tables
