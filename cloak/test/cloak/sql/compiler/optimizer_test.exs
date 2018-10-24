@@ -41,7 +41,7 @@ defmodule Cloak.Sql.Compiler.Optimizer.Test do
     assert %{from: {:join, %{lhs: {:subquery, %{ast: subquery}}}}} =
              compile!(
                """
-                 SELECT avg(t1.numeric) FROM (SELECT * FROM table) AS t1 JOIN table AS t2 ON t1.uid = t2.uid
+                 SELECT MEDIAN(t1.numeric) FROM (SELECT * FROM table) AS t1 JOIN table AS t2 ON t1.uid = t2.uid
                """,
                data_source()
              )
