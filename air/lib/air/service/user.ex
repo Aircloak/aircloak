@@ -2,7 +2,7 @@ defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
   alias Air.Repo
-  alias Air.Service.{AuditLog, LDAP, Salts}
+  alias Air.Service.{AuditLog, LDAP, Salts, Password}
   alias Air.Schemas.{DataSource, Group, User}
   alias AirWeb.Endpoint
   import Ecto.Query, only: [from: 2]
@@ -414,11 +414,11 @@ defmodule Air.Service.User do
   defp valid_password?(user, password) do
     case user do
       %{source: :ldap} ->
-        {_, result} = {User.validate_password(user, password), LDAP.simple_bind(user.ldap_dn, password)}
+        {_, result} = {validate_password(user, password), LDAP.simple_bind(user.ldap_dn, password)}
         match?(:ok, result)
 
       _ ->
-        {result, _} = {User.validate_password(user, password), LDAP.dummy_bind()}
+        {result, _} = {validate_password(user, password), LDAP.dummy_bind()}
         result
     end
   end
@@ -464,7 +464,7 @@ defmodule Air.Service.User do
   end
 
   defp password_changeset(user, params) do
-    old_password_valid = User.validate_password(user, params["old_password"] || "")
+    old_password_valid = validate_password(user, params["old_password"] || "")
 
     case {params["password"], old_password_valid} do
       {"", _} -> user_changeset(user, %{})
@@ -476,10 +476,13 @@ defmodule Air.Service.User do
 
   defp update_password_hash(%Ecto.Changeset{valid?: true, changes: %{password: password}} = changeset)
        when password != "" do
-    put_change(changeset, :hashed_password, Comeonin.Pbkdf2.hashpwsalt(password))
+    put_change(changeset, :hashed_password, Password.hash(password))
   end
 
   defp update_password_hash(changeset), do: changeset
+
+  defp validate_password(nil, password), do: Password.validate(password, nil)
+  defp validate_password(user, password), do: Password.validate(password, user.hashed_password)
 
   defp group_changeset(group, params, options \\ []),
     do:
