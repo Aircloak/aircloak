@@ -481,6 +481,16 @@ defmodule Air.Service.QueryTest do
       assert :error == Map.fetch(display, :columns)
     end
 
+    test "includes the owner's name" do
+      user = create_user!()
+      assert Query.for_display(create_query!(user)).user.name == user.name
+    end
+
+    test "includes the data source name" do
+      data_source = create_data_source!()
+      assert display(%{data_source_id: data_source.id}).data_source.name == data_source.name
+    end
+
     defp display(create_query_params),
       do:
         create_user!()

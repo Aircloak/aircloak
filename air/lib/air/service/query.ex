@@ -32,8 +32,9 @@ defmodule Air.Service.Query do
   @doc "Produces a JSON blob of the query and its result for rendering"
   @spec for_display(Query.t(), nil | [map]) :: Map.t()
   def for_display(query, buckets \\ nil) do
+    query = Repo.preload(query, [:user, :data_source])
+
     query
-    |> Repo.preload([:user, :data_source])
     |> Map.take([:id, :data_source_id, :statement, :session_id, :inserted_at, :query_state])
     |> Map.merge(query.result || %{})
     |> add_result(buckets)
