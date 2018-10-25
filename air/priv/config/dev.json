@@ -4,7 +4,8 @@
     "endpoint_key_base": "7nOn9WDwUZLjXnQah8+ocSF0r/YhYpDp0hSw4FE6Zq+Ic2TVYcDCQe+2MT8wqD/R",
     "master_password": "super_secret_master_password",
     "certfile": "ssl_cert.pem",
-    "keyfile": "ssl_key.pem"
+    "keyfile": "ssl_key.pem",
+    "privacy_policy_file": "privacy_policy.md"
   },
 
   "psql_server": {

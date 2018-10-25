@@ -9,7 +9,7 @@ defmodule Air.Service.Query do
   require Logger
 
   @type query_id :: Query.id() | :autogenerate
-  @type option :: {:session_id, Query.session_id()}
+  @type option :: {:session_id, Query.session_id()} | {:audit_meta, map}
   @type options :: [option]
 
   @type user_id :: non_neg_integer
@@ -32,33 +32,55 @@ defmodule Air.Service.Query do
   it can be used to attach and dispatch events to, and passed around for execution.
   """
   @spec create(
+          Air.Service.DataSource.data_source_id_spec(),
           query_id,
           User.t(),
           Query.Context.t(),
           Query.statement(),
           Query.parameters(),
           options
-        ) :: {:ok, Query.t()} | {:error, :unable_to_create_query}
-  def create(query_id, user, context, statement, parameters, opts) do
-    if Air.Service.User.is_enabled?(user) do
-      user
-      |> Ecto.build_assoc(:queries)
-      |> Query.changeset(%{
-        statement: statement,
-        parameters: %{values: parameters},
-        session_id: Keyword.get(opts, :session_id),
-        query_state: :created,
-        context: context
-      })
-      |> add_id_to_changeset(query_id)
-      |> Repo.insert()
-      |> case do
-        {:ok, query} -> {:ok, Repo.preload(query, :user)}
-        {:error, _changeset} -> {:error, :unable_to_create_query}
+        ) :: {:ok, Query.t()} | {:error, :unable_to_create_query | :unauthorized}
+  def create(data_source_id_spec, query_id, user, context, statement, parameters, opts) do
+    with {:ok, data_source} <- Air.Service.DataSource.fetch_as_user(data_source_id_spec, user) do
+      if Air.Service.User.is_enabled?(user) do
+        user
+        |> Ecto.build_assoc(:queries)
+        |> Query.changeset(%{
+          statement: statement,
+          parameters: %{values: parameters},
+          session_id: Keyword.get(opts, :session_id),
+          audit_meta: Keyword.get(opts, :audit_meta),
+          data_source_id: data_source.id,
+          query_state: :created,
+          context: context
+        })
+        |> add_id_to_changeset(query_id)
+        |> Repo.insert()
+        |> case do
+          {:ok, query} ->
+            Air.Service.DataSource.QueryScheduler.notify()
+            {:ok, Repo.preload(query, :user)}
+
+          {:error, _changeset} ->
+            {:error, :unable_to_create_query}
+        end
+      else
+        {:error, :unable_to_create_query}
       end
-    else
-      {:error, :unable_to_create_query}
     end
+  end
+
+  @doc "Returns queries which have been created but not yet started on any cloak."
+  @spec awiting_start() :: [Query.t()]
+  def awiting_start() do
+    from(
+      q in Query,
+      where: q.query_state == ^:created and is_nil(q.cloak_id),
+      preload: [:user, :data_source]
+    )
+    |> Repo.all()
+    |> Stream.reject(&is_nil(&1.data_source))
+    |> Enum.reject(&is_nil(&1.user))
   end
 
   @doc """
@@ -144,7 +166,9 @@ defmodule Air.Service.Query do
 
   @doc "Returns a list of the queries that are currently executing in all contexts."
   @spec currently_running() :: [Query.t()]
-  def currently_running(), do: pending() |> Repo.all()
+  def currently_running() do
+    Repo.all(from(q in pending(), where: q.query_state != ^:created))
+  end
 
   @doc "Returns a list of queries that are currently executing, started by the given user on the given data source."
   @spec currently_running(User.t(), DataSource.t(), Query.Context.t()) :: [Query.t()]

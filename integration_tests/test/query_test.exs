@@ -84,7 +84,8 @@ defmodule IntegrationTest.QueryTest do
       |> Keyword.fetch!(:port)
 
   defp run_query(user, query, params \\ []) do
-    {:ok, query} = Air.Service.Query.create(:autogenerate, user, :http, query, params, [])
-    Air.Service.DataSource.run_query(query, {:name, Manager.data_source_name()})
+    data_source_id_spec = {:id, Manager.data_source().id}
+    {:ok, query} = Air.Service.Query.create(data_source_id_spec, :autogenerate, user, :http, query, params, [])
+    Air.Service.DataSource.await_query(query)
   end
 end

@@ -3,6 +3,7 @@ defmodule Air do
   use Application
   require Logger
   require Aircloak.DeployConfig
+  require Aircloak.File
 
   # -------------------------------------------------------------------
   # API functions
@@ -48,9 +49,12 @@ defmodule Air do
     configure_appsignal()
     Air.Repo.configure()
     Air.PsqlServer.ShadowDb.init_queue()
-    result = Air.Supervisor.start_link()
-    maybe_load_license()
-    result
+
+    with {:ok, _pid} = result <- Air.Supervisor.start_link() do
+      load_license()
+      load_privacy_policy()
+      result
+    end
   end
 
   @doc false
@@ -99,30 +103,6 @@ defmodule Air do
     end
   end
 
-  defp maybe_load_license() do
-    case site_setting("license_file") do
-      {:ok, license_path} ->
-        case Air.Service.License.load_from_file(license_path) do
-          :ok ->
-            Logger.info("Applied Aircloak license from file: `#{license_path}`")
-
-          {:error, reason} ->
-            Logger.error(
-              "Failed to load an Aircloak license from file `#{license_path}`: " <>
-                error_reason_to_text(reason) <>
-                ". You will need to manually load a license in the Insights Air web interface in order " <>
-                "to use your Aircloak Insights installation"
-            )
-        end
-
-      :error ->
-        :ok
-    end
-  end
-
-  defp error_reason_to_text(reason) when is_atom(reason), do: Aircloak.File.humanize_posix_error(reason)
-  defp error_reason_to_text(reason), do: reason
-
   defp https_config(previous_https_config) do
     case {
       Map.get(Aircloak.DeployConfig.fetch!("site"), "keyfile"),
@@ -160,6 +140,56 @@ defmodule Air do
             Logger.warn("the file `#{certfile}` is missing")
             nil
         end
+    end
+  end
+
+  # -------------------------------------------------------------------
+  # Post boot static configuration
+  # -------------------------------------------------------------------
+
+  defp load_license() do
+    on_setting_file("license_file", fn license_content, path ->
+      case Air.Service.License.load(license_content) do
+        :ok -> Logger.info("Applied statically configured Aircloak license from file `#{path}`")
+        {:error, reason} -> Logger.error("Failed to load an Aircloak Insights license from file `#{path}`: " <> reason)
+      end
+    end)
+  end
+
+  defp load_privacy_policy() do
+    on_setting_file("privacy_policy_file", fn policy_content, path ->
+      if Air.Service.PrivacyPolicy.exists?() do
+        {:ok, current_policy} = Air.Service.PrivacyPolicy.get()
+
+        unless current_policy.content == policy_content do
+          Logger.error(
+            "The system is statically configured with a privacy policy, but has already been given " <>
+              "a different one. The statically configured privacy policy will not be applied."
+          )
+        end
+      else
+        Air.Service.PrivacyPolicy.set(policy_content)
+        Logger.info("Applied statically configured privacy policy from file `#{path}`")
+      end
+    end)
+  end
+
+  defp on_setting_file(setting, callback) do
+    case site_setting(setting) do
+      {:ok, setting_file_path} ->
+        case Aircloak.File.read(setting_file_path) do
+          {:error, reason} ->
+            Logger.error(
+              "Could not read file `#{setting_file_path}` configured under site configuration parameter " <>
+                "`#{setting}`. The reported error is: " <> Aircloak.File.humanize_posix_error(reason)
+            )
+
+          setting_content ->
+            callback.(setting_content, setting_file_path)
+        end
+
+      :error ->
+        :ok
     end
   end
 end

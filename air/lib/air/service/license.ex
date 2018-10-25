@@ -9,7 +9,6 @@ defmodule Air.Service.License do
   alias __MODULE__.{FSM, Key}
   alias Air.{Repo, Schemas, CentralClient}
   import Ecto.Query
-  require Aircloak.File
 
   @could_not_verify "Could not verify license file. This may be due to the file being corrupted. " <>
                       "Contact support at support@aircloak.com to resolve this problem."
@@ -24,15 +23,6 @@ defmodule Air.Service.License do
   @doc "Tries to load the given license text as the system license."
   @spec load(String.t()) :: :ok | {:error, String.t()}
   def load(text), do: GenServer.call(__MODULE__, {:load, text})
-
-  @doc "Tries to apply a license text from a file on disk."
-  @spec load_from_file(String.t()) :: :ok | {:error, String.t() | atom} | :error
-  def load_from_file(path) do
-    case Aircloak.File.read(path) do
-      {:error, _} = error -> error
-      license_content -> load(license_content)
-    end
-  end
 
   @doc "Returns the expiry time for the system license."
   @spec expiry() :: DateTime.t()

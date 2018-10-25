@@ -9,12 +9,25 @@ defmodule Air.Service.QueryTest do
   describe "create" do
     setup [:sandbox, :with_user]
 
-    test "cannot create query for disabled user", %{user: user} do
+    test "cannot create query for disabled user", %{user: user, data_source: data_source} do
       assert {:ok, _} = Air.Service.User.disable(user)
-      assert {:error, :unable_to_create_query} = Air.Service.Query.create(:autogenerate, user, nil, nil, nil, [])
+
+      assert {:error, :unable_to_create_query} =
+               Air.Service.Query.create({:id, data_source.id}, :autogenerate, user, nil, nil, nil, [])
+
+      Air.Service.DataSource.QueryScheduler.sync()
     end
 
-    test "time spent defaults to 0 for all states", %{user: user} do
+    test "cannot create query for an unpermitted data source", %{user: user} do
+      data_source = create_data_source!()
+
+      assert {:error, :unauthorized} =
+               Air.Service.Query.create({:id, data_source.id}, :autogenerate, user, nil, nil, nil, [])
+
+      Air.Service.DataSource.QueryScheduler.sync()
+    end
+
+    test "time spent defaults to 0 for all states", %{user: user, data_source: data_source} do
       assert {:ok,
               %{
                 time_spent: %{
@@ -30,7 +43,9 @@ defmodule Air.Service.QueryTest do
                   "error" => 0,
                   "cancelled" => 0
                 }
-              }} = Air.Service.Query.create(:autogenerate, user, :http, "", %{}, [])
+              }} = Air.Service.Query.create({:id, data_source.id}, :autogenerate, user, :http, "", %{}, [])
+
+      Air.Service.DataSource.QueryScheduler.sync()
     end
   end
 
@@ -102,9 +117,10 @@ defmodule Air.Service.QueryTest do
 
     test "returns running queries" do
       user = create_user!()
-      query = create_query!(user)
-      query_id = query.id
-      assert [%Air.Schemas.Query{id: ^query_id}] = Query.currently_running()
+      _not_started_query = create_query!(user)
+      started_query = create_query!(user, %{query_state: :started})
+      assert [%Air.Schemas.Query{id: query_id}] = Query.currently_running()
+      assert query_id == started_query.id
     end
 
     test "does not return not running queries" do
@@ -441,6 +457,16 @@ defmodule Air.Service.QueryTest do
     end
   end
 
+  describe ".awiting_start" do
+    test "fetching not started queries" do
+      user = create_user!()
+      q1 = create_query!(user)
+      q2 = create_query!(user)
+      create_query!(user, %{query_state: :completed})
+      assert Query.awiting_start() |> Enum.map(& &1.id) |> Enum.sort() == Enum.sort([q1.id, q2.id])
+    end
+  end
+
   defp filters(overrides \\ %{}) do
     Map.merge(
       %{
@@ -462,7 +488,10 @@ defmodule Air.Service.QueryTest do
   end
 
   def with_user(_context) do
-    {:ok, user: create_user!()}
+    group = create_group!()
+    user = create_user!(%{groups: [group.id]})
+    data_source = create_data_source!(%{groups: [group.id]})
+    {:ok, user: user, data_source: data_source}
   end
 
   def with_data_source(_context) do

@@ -61,6 +61,7 @@ defmodule Air.Schemas.Query do
     field(:result, :map)
     field(:time_spent, :map, default: @states |> Enum.map(&{to_string(&1), 0}) |> Enum.into(%{}))
     field(:last_state_change_at, :naive_datetime)
+    field(:audit_meta, :map)
 
     belongs_to(:user, User)
     belongs_to(:data_source, DataSource)
@@ -72,7 +73,7 @@ defmodule Air.Schemas.Query do
   @required_fields ~w()a
   @optional_fields ~w(
     cloak_id statement data_source_id tables execution_time users_count features session_id parameters query_state
-    context result last_state_change_at time_spent
+    context result last_state_change_at time_spent audit_meta
   )a
 
   # -------------------------------------------------------------------
@@ -123,6 +124,14 @@ defmodule Air.Schemas.Query do
       [query.result["columns"]]
       |> Stream.concat(ResultChunk.rows_stream(buckets))
       |> CSV.encode()
+
+  @doc "Returns full audit log metadata for the given query."
+  @spec audit_meta(t) :: map
+  def audit_meta(query) do
+    (query.audit_meta || %{})
+    |> Aircloak.atomize_keys()
+    |> Map.merge(%{query: query.statement, data_source: query.data_source.name})
+  end
 
   # -------------------------------------------------------------------
   # Internal functions

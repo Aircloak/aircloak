@@ -31,6 +31,7 @@ defmodule AirWeb.QueryController.Test do
     }
 
     data_source = Air.Service.DataSource.create!(params)
+    on_exit(&Air.Service.DataSource.QueryScheduler.sync/0)
     {:ok, data_source: data_source, user: user}
   end
 
@@ -115,14 +116,6 @@ defmodule AirWeb.QueryController.Test do
     }
 
     assert login(create_user!()) |> post("/queries", query_data_params) |> response(401)
-  end
-
-  test "returns error when data source unavailable", context do
-    query_data_params = %{
-      query: %{statement: "Query code", data_source_id: context[:data_source].id}
-    }
-
-    login(context[:user]) |> post("/queries", query_data_params) |> response(503)
   end
 
   test "fetching desired chunk", context do
