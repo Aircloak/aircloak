@@ -53,6 +53,7 @@ defmodule Air do
     with {:ok, _pid} = result <- Air.Supervisor.start_link() do
       load_license()
       load_privacy_policy()
+      load_users()
       result
     end
   end
@@ -170,6 +171,19 @@ defmodule Air do
       else
         Air.Service.PrivacyPolicy.set(policy_content)
         Logger.info("Applied statically configured privacy policy from file `#{path}`")
+      end
+    end)
+  end
+
+  defp load_users() do
+    on_setting_file("user_credentials_file", fn credentials_content, _path ->
+      case Air.Service.User.add_users_from_credentials_file_content(credentials_content) do
+        [] ->
+          :ok
+
+        users ->
+          user_logins = users |> Enum.map(& &1.login) |> Enum.join(", ")
+          Logger.info("Created user accounts for: #{user_logins}")
       end
     end)
   end
