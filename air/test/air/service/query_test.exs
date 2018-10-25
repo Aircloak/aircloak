@@ -7,7 +7,7 @@ defmodule Air.Service.QueryTest do
   setup [:sandbox]
 
   describe "create" do
-    setup [:sandbox, :with_user]
+    setup [:with_user]
 
     test "cannot create query for disabled user", %{user: user, data_source: data_source} do
       assert {:ok, _} = Air.Service.User.disable(user)
@@ -50,7 +50,7 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "get_as_user" do
-    setup [:sandbox, :with_user]
+    setup [:with_user]
 
     test "loads existing queries", %{user: user} do
       query = create_query!(user)
@@ -79,9 +79,23 @@ defmodule Air.Service.QueryTest do
     end
   end
 
-  describe "last_for_user" do
-    setup [:sandbox]
+  describe "get" do
+    test "loads existing queries" do
+      query = create_query!(create_user!())
+      query_id = query.id
+      assert {:ok, %Air.Schemas.Query{id: ^query_id}} = Query.get(query_id)
+    end
 
+    test "when the ID is garbage" do
+      assert {:error, :invalid_id} == Query.get("missing")
+    end
+
+    test "of non-existent query" do
+      assert {:error, :not_found} == Query.get(Ecto.UUID.generate())
+    end
+  end
+
+  describe "last_for_user" do
     test "returns last query the user issued" do
       user = create_user!()
       _previous_one = create_query!(user)
@@ -113,8 +127,6 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "currently_running/0" do
-    setup [:sandbox]
-
     test "returns running queries" do
       user = create_user!()
       _not_started_query = create_query!(user)
@@ -134,7 +146,7 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "currently_running/2" do
-    setup [:sandbox, :with_user, :with_data_source]
+    setup [:with_user, :with_data_source]
 
     test "returns running queries on the given data source", context do
       query = create_query!(context.user, %{data_source_id: context.data_source.id})
@@ -180,8 +192,6 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "update_state" do
-    setup [:sandbox]
-
     test "changes the query_state" do
       query = create_query!(create_user!(), %{query_state: :started})
 
@@ -222,8 +232,6 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "process_result" do
-    setup [:sandbox]
-
     test "processing a successful result" do
       query = create_query!(create_user!(), %{query_state: :started})
 
@@ -325,8 +333,6 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "query_died" do
-    setup [:sandbox]
-
     test "ignores completed queries" do
       query = create_query!(create_user!(), %{query_state: :completed})
 
@@ -351,8 +357,6 @@ defmodule Air.Service.QueryTest do
   end
 
   describe ".queries" do
-    setup [:sandbox]
-
     test "results are ordered from newest to oldest" do
       query1 = create_query!(create_user!())
       query2 = create_query!(create_user!())
@@ -455,6 +459,59 @@ defmodule Air.Service.QueryTest do
       assert Query.data_sources_for_filters(filters(%{data_sources: Enum.map(data_sources, & &1.id)}))
              |> Enum.map(& &1.name) == data_sources |> Enum.map(& &1.name) |> Enum.sort()
     end
+  end
+
+  describe ".for_display" do
+    test "for_display of a finished query",
+      do:
+        Enum.each(
+          [:error, :completed, :cancelled],
+          &assert(%{completed: true} = display(%{query_state: &1}))
+        )
+
+    test "for_display of an unfinished query",
+      do:
+        Enum.each(
+          [
+            :created,
+            :started,
+            :parsing,
+            :compiling,
+            :awaiting_data,
+            :ingesting_data,
+            :processing,
+            :post_processing
+          ],
+          &assert(%{completed: false} = display(%{query_state: &1}))
+        )
+
+    test "for_display includes all data from result",
+      do: assert(%{"some" => "data"} = display(%{result: %{"some" => "data"}}))
+
+    test "for_display when result is not preloaded" do
+      query = create_user!() |> create_query!(%{result: %{rows: [], columns: []}})
+      query_without_result = Air.Repo.get!(Air.Schemas.Query, query.id)
+      display = Query.for_display(query_without_result)
+
+      assert :error == Map.fetch(display, :rows)
+      assert :error == Map.fetch(display, :columns)
+    end
+
+    test "includes the owner's name" do
+      user = create_user!()
+      assert Query.for_display(create_query!(user)).user.name == user.name
+    end
+
+    test "includes the data source name" do
+      data_source = create_data_source!()
+      assert display(%{data_source_id: data_source.id}).data_source.name == data_source.name
+    end
+
+    defp display(create_query_params),
+      do:
+        create_user!()
+        |> create_query!(create_query_params)
+        |> Query.for_display()
   end
 
   describe ".awiting_start" do

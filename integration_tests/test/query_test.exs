@@ -74,7 +74,7 @@ defmodule IntegrationTest.QueryTest do
   defp air_api_get!(user, path),
     do:
       HTTPoison.get!("http://localhost:#{air_http_port()}/api/#{path}", %{
-        "auth-token" => Air.Token.create_api_token(user, :api, "test token")
+        "auth-token" => Air.Service.Token.create_api_token(user, :api, "test token")
       })
 
   defp air_http_port(),

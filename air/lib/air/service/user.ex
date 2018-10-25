@@ -358,7 +358,10 @@ defmodule Air.Service.User do
   def admin_groups(), do: Repo.all(from(g in Group, where: g.admin))
 
   @doc "Returns the number format settings for the specified user."
-  @spec number_format_settings(User.t()) :: Map.t()
+  @spec number_format_settings(User.t() | nil) :: Map.t()
+  def number_format_settings(nil),
+    do: Air.Service.Settings.read() |> Map.take([:decimal_digits, :decimal_sep, :thousand_sep])
+
   def number_format_settings(user) do
     default_settings = Air.Service.Settings.read()
 

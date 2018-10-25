@@ -4,7 +4,7 @@ defmodule AirWeb.Admin.QueryController do
   use Timex
 
   require Logger
-  alias Air.Schemas.Query
+  alias Air.Service.Query
   alias Plug.CSRFProtection
 
   # -------------------------------------------------------------------
@@ -20,10 +20,10 @@ defmodule AirWeb.Admin.QueryController do
   # -------------------------------------------------------------------
 
   def show(conn, %{"id" => query_id}) do
-    case Air.Service.Query.get_as_user(conn.assigns.current_user, query_id) do
+    case Query.get_as_user(conn.assigns.current_user, query_id) do
       {:ok, query} ->
         render(conn, %{
-          query: Query.for_display(query, Air.Service.Query.buckets(query, 0)),
+          query: Query.for_display(query, Query.buckets(query, 0)),
           guardian_token: Air.Guardian.Plug.current_token(conn),
           csrf_token: CSRFProtection.get_csrf_token(),
           number_format: Air.Service.User.number_format_settings(conn.assigns.current_user),
@@ -53,9 +53,9 @@ defmodule AirWeb.Admin.QueryController do
         csrf_token: CSRFProtection.get_csrf_token(),
         number_format: Air.Service.User.number_format_settings(conn.assigns.current_user),
         debug_mode_enabled: conn.assigns.current_user.debug_mode_enabled,
-        failed_queries: Air.Service.Query.queries(filters) |> Enum.map(&Query.for_display(&1, nil)),
-        users: Air.Service.Query.users_for_filters(filters) |> Enum.map(&%{label: &1.name, value: &1.id}),
-        data_sources: Air.Service.Query.data_sources_for_filters(filters) |> Enum.map(&%{label: &1.name, value: &1.id})
+        failed_queries: Query.queries(filters) |> Enum.map(&Query.for_display(&1, nil)),
+        users: Query.users_for_filters(filters) |> Enum.map(&%{label: &1.name, value: &1.id}),
+        data_sources: Query.data_sources_for_filters(filters) |> Enum.map(&%{label: &1.name, value: &1.id})
       })
     )
   end

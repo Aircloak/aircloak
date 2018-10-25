@@ -45,4 +45,12 @@ defmodule AirWeb.ApiTokenControllerTest do
 
     refute Repo.get(ApiToken, token.id)
   end
+
+  test "creating a token", %{conn: conn, user: user} do
+    result = login(user) |> post(api_token_path(conn, :create), %{api_token: %{access: :api, description: "test"}})
+    token = get_flash(result, :api_token)
+
+    assert "/api_tokens" = redirected_to(result)
+    assert Air.Service.Token.user_for_token(token, :api).id == user.id
+  end
 end

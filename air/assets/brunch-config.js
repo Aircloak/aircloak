@@ -81,6 +81,7 @@ exports.config = {
       "phoenix_html",
       "react",
       "react-dom",
+      "react-bootstrap",
       "codemirror",
       "react-codemirror",
       "jquery",

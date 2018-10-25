@@ -15,6 +15,7 @@ import type {NumberFormat} from "../number_format";
 import {formatNumber} from "../number_format";
 import {loadBuckets} from "../request";
 import {DebugExport} from "./debug_export";
+import {ShareButton} from "./share_button";
 import {activateTooltips} from "../tooltips";
 
 export type Row = {
@@ -44,12 +45,14 @@ export type Result = {
   },
   inserted_at: string,
   session_id: string,
+  private_permalink: string,
+  public_permalink: string,
 };
 
 type Props = {
   result: Result,
   numberFormat: NumberFormat,
-  debugModeEnabled: boolean,
+  debugModeEnabled: boolean
 };
 
 type State = {
@@ -425,6 +428,7 @@ export class ResultView extends React.Component {
   renderOptionMenu() {
     return (
       <div className="options-menu">
+        <ShareButton result={this.props.result} />
         <a className="btn btn-default btn-xs" href={`/queries/${this.props.result.id}.csv`}>Download as CSV</a>
         <DebugExport id={this.props.result.id} debugModeEnabled={this.props.debugModeEnabled} />
         {this.renderChartButton()}
