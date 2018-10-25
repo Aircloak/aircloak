@@ -285,6 +285,8 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp extract_columns(columns), do: Query.Lenses.leaf_expressions() |> Lens.to_list(columns)
 
+  @max_hash_value 4_294_967_295
+
   defp align_sample_rate(%Query{sample_rate: amount} = query) when amount != nil do
     if query.type == :standard,
       do: raise(CompilationError, message: "The `SAMPLE_USERS` clause is not valid in standard queries.")
@@ -300,7 +302,7 @@ defmodule Cloak.Sql.Compiler.Execution do
         do: [],
         else: ["Sample rate adjusted from #{amount}% to #{aligned_amount}%"]
 
-    hash_limit = round(aligned_amount / 100 * 4_294_967_295)
+    hash_limit = round(aligned_amount / 100 * @max_hash_value)
     hex_hash_limit = <<hash_limit::32>> |> Base.encode16(case: :lower) |> String.pad_leading(8, "0")
 
     sample_condition = {:comparison, user_id_hash, :<=, Expression.constant(:text, hex_hash_limit)}
