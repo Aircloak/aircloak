@@ -54,6 +54,7 @@ defmodule Air do
       load_license()
       load_privacy_policy()
       load_users()
+      load_datasources()
       result
     end
   end
@@ -184,6 +185,22 @@ defmodule Air do
         users ->
           user_logins = users |> Enum.map(& &1.login) |> Enum.join(", ")
           Logger.info("Created user accounts for: #{user_logins}")
+      end
+    end)
+  end
+
+  defp load_datasources() do
+    on_setting_file("data_sources_file", fn data_sources_content, _path ->
+      case Air.Service.DataSource.add_data_sources_from_file_content(data_sources_content) do
+        [] ->
+          :ok
+
+        data_sources ->
+          data_sources
+          |> Enum.map(fn data_source_info ->
+            user_logins = data_source_info.users |> Enum.map(& &1.login) |> Enum.join(", ")
+            Logger.info("Created data source `#{data_source_info.data_source.name}`. It's available to: #{user_logins}")
+          end)
       end
     end)
   end
