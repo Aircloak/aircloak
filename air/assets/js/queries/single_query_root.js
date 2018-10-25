@@ -42,8 +42,8 @@ export default class QueryView extends React.Component {
     return (<ImmutableSingleQuery
       numberFormat={this.props.numberFormat}
       debugModeEnabled={this.props.debugModeEnabled}
-      shareButton={true}
       result={this.state.result}
+      shareButton
     />);
   }
 }

@@ -2,7 +2,6 @@
 
 import React from "react";
 import _ from "lodash";
-import {Modal, Button} from "react-bootstrap";
 
 import {CodeViewer} from "../code_viewer";
 import {Info} from "./info";

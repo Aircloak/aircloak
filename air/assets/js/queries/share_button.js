@@ -62,4 +62,4 @@ export class ShareButton extends React.Component {
       return null;
     }
   }
-};
+}
