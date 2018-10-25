@@ -2,6 +2,8 @@
 
 ### Features
 
+- The share button under a query result allows creating permalinks to queries
+
 ### Bugfixes
 
 ### Enhancements
