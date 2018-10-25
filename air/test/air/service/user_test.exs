@@ -486,6 +486,12 @@ defmodule Air.Service.UserTest do
       assert [user] = User.add_users_from_credentials_file_content(content)
       assert {:ok, _user} = User.login("login", "password1234")
     end
+
+    test "creates admin users" do
+      content = "login:pass:admin"
+      assert [user] = User.add_users_from_credentials_file_content(content)
+      assert user |> Air.Repo.preload(:groups) |> Air.Schemas.User.admin?()
+    end
   end
 
   defp error_on(fun, field, value), do: errors_on(fun, %{field => value})[field]

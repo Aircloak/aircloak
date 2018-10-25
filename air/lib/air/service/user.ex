@@ -420,15 +420,25 @@ defmodule Air.Service.User do
     content
     |> String.split("\n", trim: true)
     |> Enum.map(&String.split(&1, ":", trim: true))
-    |> Enum.filter(fn
-      [_login, _hash] -> true
-      _ -> false
+    |> Enum.map(fn
+      [login, hash] -> %{login: login, password_hash: hash, admin: false}
+      [login, hash, "admin"] -> %{login: login, password_hash: hash, admin: true}
+      [login, hash, _] -> %{login: login, password_hash: hash, admin: false}
+      _ -> :error
     end)
-    |> Enum.flat_map(fn [login, password_hash] ->
-      user_result =
+    |> Enum.reject(&(&1 == :error))
+    |> Enum.flat_map(fn user_data ->
+      changeset =
         %User{}
-        |> user_changeset(%{login: login, name: login})
-        |> put_change(:hashed_password, password_hash)
+        |> user_changeset(%{login: user_data.login, name: user_data.login})
+        |> put_change(:hashed_password, user_data.password_hash)
+
+      user_result =
+        if user_data.admin do
+          user_changeset(changeset, %{groups: [get_admin_group().id]})
+        else
+          changeset
+        end
         |> Repo.insert()
 
       case user_result do
