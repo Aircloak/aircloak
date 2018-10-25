@@ -17,6 +17,8 @@ export class ShareButton extends React.Component {
     this.state = {showModal: false};
   }
 
+  state: {showModal: boolean}
+
   privatePermalink() {
     return `${window.location.origin}${this.props.result.private_permalink}`;
   }

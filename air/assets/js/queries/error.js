@@ -25,6 +25,6 @@ export const Error =
         <Info info={props.result.info} />
 
         <ShareButton result={props.result} enabled={props.shareButton} />
-        <DebugExport id={props.result.id} debugModeEnabled={props.result.debugModeEnabled} />
+        <DebugExport id={props.result.id} debugModeEnabled={props.debugModeEnabled} />
       </div>
     </div>;
