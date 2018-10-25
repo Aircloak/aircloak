@@ -47,5 +47,10 @@ defmodule Air.Service.Password.Test do
       assert Password.validate("password1", hash1)
       assert Password.validate("password2", hash2)
     end
+
+    test "captures whether a user is an admin" do
+      content = "login1:password1:admin"
+      assert [%{admin: true}] = Password.process_credentials(content)
+    end
   end
 end

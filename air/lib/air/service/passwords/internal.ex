@@ -1,7 +1,7 @@
 defmodule Air.Service.Password.Internal do
   @moduledoc "Service module for tasks surrounding working with passwords "
 
-  @type raw_credentials :: %{login: String.t(), password: String.t()}
+  @type raw_credentials :: %{login: String.t(), password: String.t(), admin: boolean}
 
   # -------------------------------------------------------------------
   # API functions
@@ -21,6 +21,11 @@ defmodule Air.Service.Password.Internal do
   # -------------------------------------------------------------------
 
   defp parse_line(line) do
-    with [login, password] <- String.split(line, ":"), do: %{login: login, password: password}
+    case String.split(line, ":") do
+      [login, password, "admin"] -> %{login: login, password: password, admin: true}
+      [login, password, _] -> %{login: login, password: password, admin: false}
+      [login, password] -> %{login: login, password: password, admin: false}
+      _line -> :error
+    end
   end
 end
