@@ -258,10 +258,14 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     true = index != nil
     column_name = "__ac_agg__#{index}"
     inner_column = inner_table.columns |> Enum.find(&(&1.name == column_name)) |> Expression.column(inner_table)
-    function_name = if old_aggregator.function == "count", do: "sum", else: old_aggregator.function
+    function_name = global_aggregator(old_aggregator.function)
     new_aggregator = Expression.function(function_name, [inner_column], inner_column.type, true)
     %Expression{new_aggregator | alias: old_aggregator.function}
   end
+
+  defp global_aggregator("count"), do: "sum"
+  defp global_aggregator("count_noise"), do: "sum_noise"
+  defp global_aggregator(function_name), do: function_name
 
   defp update_base_column(column, inner_table),
     do: %Expression{column | table: inner_table, name: "#{column.table.name}.#{column.name}", synthetic?: true}
