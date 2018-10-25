@@ -455,6 +455,17 @@ defmodule Air.Service.UserTest do
     end
   end
 
+  describe ".get_by_login" do
+    test "returns not found for bogus login" do
+      assert {:error, :not_found} = User.get_by_login("bogus")
+    end
+
+    test "returns user if exists" do
+      user = TestRepoHelper.create_user!()
+      assert {:ok, _} = User.get_by_login(user.login)
+    end
+  end
+
   describe ".add_users_from_credentials_file_content" do
     test "ignores rubbish" do
       users = User.all()

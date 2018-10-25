@@ -407,6 +407,15 @@ defmodule Air.Service.User do
     end
   end
 
+  @doc "Returns a user by login"
+  @spec get_by_login(String.t()) :: {:ok, User.t()} | {:error, :not_found}
+  def get_by_login(login) do
+    case Repo.get_by(User, login: login) do
+      nil -> {:error, :not_found}
+      user -> {:ok, user}
+    end
+  end
+
   @doc """
   Adds users from a user credentials file content. The content will take the form of:
 
