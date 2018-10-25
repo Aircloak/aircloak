@@ -52,8 +52,7 @@ export type Result = {
 type Props = {
   result: Result,
   numberFormat: NumberFormat,
-  debugModeEnabled: boolean,
-  shareButton: boolean
+  debugModeEnabled: boolean
 };
 
 type State = {
@@ -429,7 +428,7 @@ export class ResultView extends React.Component {
   renderOptionMenu() {
     return (
       <div className="options-menu">
-        <ShareButton result={this.props.result} enabled={this.props.shareButton} />
+        <ShareButton result={this.props.result} />
         <a className="btn btn-default btn-xs" href={`/queries/${this.props.result.id}.csv`}>Download as CSV</a>
         <DebugExport id={this.props.result.id} debugModeEnabled={this.props.debugModeEnabled} />
         {this.renderChartButton()}

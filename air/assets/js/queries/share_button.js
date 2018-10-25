@@ -7,7 +7,6 @@ import type {Result} from "./result";
 
 type Props = {
   result: Result,
-  enabled: boolean
 }
 
 export class ShareButton extends React.Component {
@@ -27,8 +26,12 @@ export class ShareButton extends React.Component {
     return `${window.location.origin}${this.props.result.public_permalink}`;
   }
 
+  isEnabled() {
+    return this.props.result.private_permalink || this.props.result.public_permalink;
+  }
+
   render() {
-    if (this.props.enabled) {
+    if (this.isEnabled()) {
       return (
         <span>
           <a className="btn btn-default btn-xs" onClick={() => this.setState({showModal: true})}>Share</a>

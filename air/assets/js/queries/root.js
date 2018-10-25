@@ -383,7 +383,6 @@ export default class QueriesView extends React.PureComponent {
         results={this.state.sessionResults}
         numberFormat={this.props.numberFormat}
         debugModeEnabled={this.props.debugModeEnabled}
-        shareButton
       />
 
       <HistoryLoader history={this.state.history} handleLoadHistory={this.handleLoadHistory} />

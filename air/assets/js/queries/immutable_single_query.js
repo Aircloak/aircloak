@@ -11,7 +11,6 @@ type Props = {
   result: Result,
   numberFormat: NumberFormat,
   debugModeEnabled: boolean,
-  shareButton: boolean
 };
 
 export default (props: Props) =>
@@ -24,6 +23,5 @@ export default (props: Props) =>
       numberFormat={props.numberFormat}
       results={[props.result]}
       debugModeEnabled={props.debugModeEnabled}
-      shareButton={props.shareButton}
     />
   </div>;

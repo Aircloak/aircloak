@@ -7,7 +7,6 @@
         result: <%= to_json(@query) %>,
         CSRFToken: "<%= @csrf_token %>",
         numberFormat: <%= to_json(@number_format) %>,
-        shareButton: false,
         debugModeEnabled: false
       };
 

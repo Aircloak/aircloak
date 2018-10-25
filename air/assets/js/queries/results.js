@@ -13,7 +13,6 @@ type Props = {
   results: Result[],
   numberFormat: NumberFormat,
   debugModeEnabled: boolean,
-  shareButton: boolean
 };
 
 export const Results = (props: Props) =>
@@ -26,21 +25,18 @@ export const Results = (props: Props) =>
             result={result}
             numberFormat={props.numberFormat}
             debugModeEnabled={props.debugModeEnabled}
-            shareButton={props.shareButton}
           />);
         case "cancelled":
           return (<Cancelled
             key={result.id}
             result={result}
             debugModeEnabled={props.debugModeEnabled}
-            shareButton={props.shareButton}
           />);
         case "error":
           return (<Error
             key={result.id}
             result={result}
             debugModeEnabled={props.debugModeEnabled}
-            shareButton={props.shareButton}
           />);
         default:
           return <PendingResult key={result.id} result={result} />;

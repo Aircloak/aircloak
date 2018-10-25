@@ -43,7 +43,6 @@ export default class QueryView extends React.Component {
       numberFormat={this.props.numberFormat}
       debugModeEnabled={this.props.debugModeEnabled}
       result={this.state.result}
-      shareButton
     />);
   }
 }

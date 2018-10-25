@@ -13,7 +13,7 @@ import type {Result} from "./result";
 const mdToHtml = (text: string) => ({__html: pagedown.getSanitizingConverter().makeHtml(text)});
 
 export const Error =
-  (props: {result: Result, debugModeEnabled: boolean, shareButton: boolean}) =>
+  (props: {result: Result, debugModeEnabled: boolean}) =>
     <div className="panel panel-danger">
       <div className="panel-heading" />
       <div className="panel-body">
@@ -24,7 +24,7 @@ export const Error =
 
         <Info info={props.result.info} />
 
-        <ShareButton result={props.result} enabled={props.shareButton} />
+        <ShareButton result={props.result} />
         <DebugExport id={props.result.id} debugModeEnabled={props.debugModeEnabled} />
       </div>
     </div>;
