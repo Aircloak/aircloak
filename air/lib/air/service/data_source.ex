@@ -365,7 +365,7 @@ defmodule Air.Service.DataSource do
   Silently ignores rows that don't follow the expected format, or rows for data sources that
   already exist.
   """
-  @spec add_data_sources_from_file_content(String.t()) :: [DataSource.t()]
+  @spec add_data_sources_from_file_content(String.t()) :: [%{data_source: DataSource.t(), users: [User.t()]}]
   def add_data_sources_from_file_content(content) do
     content
     |> String.split("\n", trim: true)
@@ -385,7 +385,7 @@ defmodule Air.Service.DataSource do
       group = create_group(data_source_info)
 
       case create(%{name: data_source_info.name, tables: "[]", groups: [group.id]}) do
-        {:ok, data_source} -> data_source
+        {:ok, data_source} -> %{data_source: data_source, users: data_source_info.users}
         _ -> nil
       end
     end)
