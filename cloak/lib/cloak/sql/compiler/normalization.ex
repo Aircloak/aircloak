@@ -35,6 +35,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   * Removes redundant occurences of "%" from LIKE patterns (for example "%%" -> "%")
   * Normalizes sequences of "%" and "_" in like patterns so that the "%" always precedes a sequence of "_"
   * Expands `BUCKET` calls into equivalent mathematical expressions
+  * Expands `AVG` calls into `SUM/COUNT` calls.
   """
   @spec postvalidation_normalizations(Query.t()) :: Query.t()
   def postvalidation_normalizations(query),
@@ -42,6 +43,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
       query
       |> Helpers.apply_bottom_up(&normalize_trivial_like/1)
       |> Helpers.apply_bottom_up(&normalize_bucket/1)
+      |> Helpers.apply_bottom_up(&normalize_anonymized_avg/1)
       |> Helpers.apply_bottom_up(&strip_source_location/1)
 
   # -------------------------------------------------------------------
@@ -209,6 +211,47 @@ defmodule Cloak.Sql.Compiler.Normalization do
         [
           Expression.function("*", [Expression.constant(:real, 0.5), arg2], :real),
           expand_bucket({:bucket, :lower}, [arg1, arg2])
+        ],
+        :real
+      )
+
+  # -------------------------------------------------------------------
+  # Normalizing anonymized avg calls
+  # -------------------------------------------------------------------
+
+  defp normalize_anonymized_avg(%Query{type: :anonymized} = query) do
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&(&1.function in ["avg", "avg_noise"]))
+    |> Lens.reject(&row_splitter_expression?/1)
+    |> Lens.map(query, &expand_avg/1)
+  end
+
+  defp normalize_anonymized_avg(query), do: query
+
+  defp row_splitter_expression?({:distinct, expression}), do: row_splitter_expression?(expression)
+
+  defp row_splitter_expression?(expression) do
+    Expression.row_splitter?(expression) or Enum.any?(expression.function_args, &row_splitter_expression?/1)
+  end
+
+  defp expand_avg(%Expression{function: "avg", function_args: [arg]}),
+    do:
+      Expression.function(
+        "/",
+        [
+          Expression.function("sum", [arg], :real, true),
+          Expression.function("count", [arg], :integer, true)
+        ],
+        :real
+      )
+
+  defp expand_avg(%Expression{function: "avg_noise", function_args: [arg]}),
+    do:
+      Expression.function(
+        "/",
+        [
+          Expression.function("sum_noise", [arg], :real, true),
+          Expression.function("count", [arg], :integer, true)
         ],
         :real
       )

@@ -36,9 +36,10 @@ defmodule Cloak.Sql.Compiler do
     |> Compiler.Anonymization.compile()
     |> Compiler.Validation.verify_query()
     |> Compiler.TypeChecker.validate_allowed_usage_of_math_and_functions()
+    |> Compiler.Execution.align()
+    |> Compiler.Normalization.postvalidation_normalizations()
     |> Compiler.Optimizer.optimize()
     |> Compiler.Execution.prepare()
-    |> Compiler.Normalization.postvalidation_normalizations()
     |> Compiler.Optimizer.optimize_per_user_aggregation()
     |> Compiler.NoiseLayers.compile()
   end
