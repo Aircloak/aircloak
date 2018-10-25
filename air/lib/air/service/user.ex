@@ -407,6 +407,37 @@ defmodule Air.Service.User do
     end
   end
 
+  @doc """
+  Adds users from a user credentials file content. The content will take the form of:
+
+    login:password-hash
+
+  Returns a list of users that were added.
+  Silently ignores users that already exist in the system.
+  """
+  @spec add_users_from_credentials_file_content(String.t()) :: [User.t()]
+  def add_users_from_credentials_file_content(content) do
+    content
+    |> String.split("\n", trim: true)
+    |> Enum.map(&String.split(&1, ":", trim: true))
+    |> Enum.filter(fn
+      [_login, _hash] -> true
+      _ -> false
+    end)
+    |> Enum.flat_map(fn [login, password_hash] ->
+      user_result =
+        %User{}
+        |> user_changeset(%{login: login, name: login})
+        |> put_change(:hashed_password, password_hash)
+        |> Repo.insert()
+
+      case user_result do
+        {:ok, user} -> [user]
+        {:error, _} -> []
+      end
+    end)
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

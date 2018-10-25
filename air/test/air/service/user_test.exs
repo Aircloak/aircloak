@@ -455,6 +455,39 @@ defmodule Air.Service.UserTest do
     end
   end
 
+  describe ".add_users_from_credentials_file_content" do
+    test "ignores rubbish" do
+      users = User.all()
+      assert [] == User.add_users_from_credentials_file_content("bogus file content")
+      assert users == User.all()
+    end
+
+    test "adds unknown users" do
+      content = """
+      login1:password1hash
+      login2:password2hash
+      """
+
+      assert [user1, user2] = User.add_users_from_credentials_file_content(content)
+      assert user1.login == "login1"
+      assert user2.login == "login2"
+      assert user1.hashed_password == "password1hash"
+      assert user2.hashed_password == "password2hash"
+    end
+
+    test "ignores existing users" do
+      user = TestRepoHelper.create_user!()
+      content = "#{user.login}:#{user.hashed_password}"
+      assert [] == User.add_users_from_credentials_file_content(content)
+    end
+
+    test "creates user accounts that can be used to log in" do
+      content = "login:#{Air.Service.Password.hash("password1234")}"
+      assert [user] = User.add_users_from_credentials_file_content(content)
+      assert {:ok, _user} = User.login("login", "password1234")
+    end
+  end
+
   defp error_on(fun, field, value), do: errors_on(fun, %{field => value})[field]
 
   defp errors_on(fun, changes) do
