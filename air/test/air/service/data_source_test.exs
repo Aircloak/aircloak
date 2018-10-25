@@ -400,6 +400,24 @@ defmodule Air.Service.DataSourceTest do
     end
   end
 
+  describe ".add_data_sources_from_file_content" do
+    test "ignores data sources with no users" do
+      assert [] == DataSource.add_data_sources_from_file_content("foobar")
+    end
+
+    test "creates a data source and gives the users access to it" do
+      user = TestRepoHelper.create_user!()
+      assert [data_source] = DataSource.add_data_sources_from_file_content("DS1:#{user.login}")
+      assert [user.login] == data_source |> DataSource.users() |> Enum.map(& &1.login)
+    end
+
+    test "ignores missing users" do
+      user = TestRepoHelper.create_user!()
+      assert [data_source] = DataSource.add_data_sources_from_file_content("DS1:#{user.login},missing,users")
+      assert [user.login] == data_source |> DataSource.users() |> Enum.map(& &1.login)
+    end
+  end
+
   defp create_query(user, data_source, additional_data \\ %{}),
     do:
       TestRepoHelper.create_query!(

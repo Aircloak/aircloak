@@ -351,9 +351,75 @@ defmodule Air.Service.DataSource do
         )
       )
 
+  @doc """
+  Adds data sources from data source config file content. The content will take the form of:
+
+    data source 1:login1,login2,login3
+    data source 2:login1,login2,login3
+
+  A scaffold will be created for the data source, and a group by the same name as the data source
+  will be created. All of the listed users that already exist in the data base will be added to
+  the group, and will be given access to query the data source.
+
+  Returns a list of data sources.
+  Silently ignores rows that don't follow the expected format, or rows for data sources that
+  already exist.
+  """
+  @spec add_data_sources_from_file_content(String.t()) :: [DataSource.t()]
+  def add_data_sources_from_file_content(content) do
+    content
+    |> String.split("\n", trim: true)
+    |> Enum.map(&String.split(&1, ":", trim: true))
+    |> Enum.filter(fn
+      [_data_source_name, _users] -> true
+      _ -> false
+    end)
+    |> Enum.filter(fn [data_source_name, _] ->
+      case by_names([data_source_name]) do
+        [] -> true
+        _ -> false
+      end
+    end)
+    |> Enum.map(&extract_data_source_creation_info/1)
+    |> Enum.map(fn data_source_info ->
+      group = create_group(data_source_info)
+
+      case create(%{name: data_source_info.name, tables: "[]", groups: [group.id]}) do
+        {:ok, data_source} -> data_source
+        _ -> nil
+      end
+    end)
+    |> Enum.reject(&is_nil/1)
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp create_group(data_source_info) do
+    group_name = "#{data_source_info.name} - #{:rand.uniform(100)}"
+    params = %{name: group_name, admin: false, users: Enum.map(data_source_info.users, & &1.id)}
+
+    case Air.Service.User.create_group(params) do
+      {:ok, group} -> group
+      _ -> create_group(data_source_info)
+    end
+  end
+
+  defp extract_data_source_creation_info([name, logins]) do
+    users =
+      logins
+      |> String.split(",", trim: true)
+      |> Enum.map(fn login ->
+        case Air.Service.User.get_by_login(login) do
+          {:ok, user} -> user
+          {:error, :not_found} -> nil
+        end
+      end)
+      |> Enum.reject(&is_nil/1)
+
+    %{name: name, users: users}
+  end
 
   defp stop_query_async(query), do: Task.Supervisor.start_child(@task_supervisor, fn -> do_stop_query(query) end)
 
