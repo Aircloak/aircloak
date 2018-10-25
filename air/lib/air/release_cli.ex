@@ -38,13 +38,16 @@ defmodule Air.ReleaseCLI do
   def hash_credentials(content) do
     Application.load(:air)
 
-    credentials =
-      content
-      |> Enum.join("\n")
-      |> Service.Password.process_credentials()
-      |> Enum.map(&"#{&1.login}:#{&1.hash}")
-      |> Enum.join("\n")
-
-    IO.puts(:stdio, credentials)
+    content
+    |> Enum.join("\n")
+    |> Service.Password.process_credentials()
+    |> Enum.each(&output_user/1)
   end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp output_user(%{admin: true} = user), do: IO.puts("#{user.login}:#{user.hash}:admin")
+  defp output_user(user), do: IO.puts("#{user.login}:#{user.hash}")
 end
