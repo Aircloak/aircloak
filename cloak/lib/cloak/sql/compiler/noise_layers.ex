@@ -214,9 +214,9 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     all_expressions =
       noise_layers
       |> Enum.flat_map(& &1.expressions)
+      |> Enum.reject(& &1.constant?)
       |> Enum.map(&Expression.unalias/1)
       |> Enum.uniq()
-      |> Enum.reject(& &1.constant?)
 
     Lens.all()
     |> Lens.key(:expressions)
@@ -595,15 +595,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp reference_aliased(column, subquery, table),
     do: %Expression{
-      name: column.alias || find_alias(column, subquery) || column.name,
+      name: find_alias(column, subquery) || column.alias || column.name,
       table: table,
       type: column.type
     }
 
   defp find_alias(column, query) do
-    id = Expression.id(column)
-
-    case Enum.find_index(query.columns, &(Expression.id(&1) == id)) do
+    case Enum.find_index(query.columns, &Expression.equals?(&1, column)) do
       nil ->
         nil
 

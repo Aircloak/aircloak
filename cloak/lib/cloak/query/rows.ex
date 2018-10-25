@@ -22,18 +22,13 @@ defmodule Cloak.Query.Rows do
   """
   @spec extract_groups(Enumerable.t(), [Expression.t()], Query.t()) :: Enumerable.t()
   def extract_groups(rows, columns_to_select, query) do
-    source =
-      (group_expressions(query) ++ query.aggregators)
-      |> Enum.map(&clear/1)
-      |> Enum.with_index()
-      |> Enum.into(%{})
-
-    columns_to_select = Enum.map(columns_to_select, &update_row_index(&1, source))
+    selected_columns = group_expressions(query) ++ query.aggregators
+    columns_to_select = Enum.map(columns_to_select, &update_row_index(&1, selected_columns))
 
     filters =
       Query.Lenses.conditions()
       |> Query.Lenses.operands()
-      |> Lens.map(query.having, &update_row_index(&1, source))
+      |> Lens.map(query.having, &update_row_index(&1, selected_columns))
       |> Condition.to_function()
 
     rows
@@ -84,18 +79,18 @@ defmodule Cloak.Query.Rows do
     end
   end
 
-  defp update_row_index(column, source) do
-    case Map.fetch(source, clear(column)) do
-      {:ok, index} ->
-        %Expression{column | row_index: index}
-
-      :error ->
+  defp update_row_index(column, selected_columns) do
+    case Enum.find_index(selected_columns, &Expression.equals?(&1, column)) do
+      nil ->
         if column.function? do
-          args = Enum.map(column.function_args, &update_row_index(&1, source))
+          args = Enum.map(column.function_args, &update_row_index(&1, selected_columns))
           %Expression{column | function_args: args}
         else
           column
         end
+
+      index ->
+        %Expression{column | row_index: index}
     end
   end
 
@@ -106,6 +101,4 @@ defmodule Cloak.Query.Rows do
 
   defp select_values(bucket, expressions) when is_map(bucket),
     do: %{bucket | row: select_values(bucket.row, expressions)}
-
-  defp clear(expression), do: %Expression{expression | alias: nil, row_index: nil, synthetic?: nil}
 end
