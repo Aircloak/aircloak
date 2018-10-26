@@ -3,6 +3,7 @@
 ### Features
 
 - The share button under a query result allows creating permalinks to queries
+- You can statically configure Aircloak Insights for fully automated deployments
 
 ### Bugfixes
 
