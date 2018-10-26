@@ -407,14 +407,25 @@ defmodule Air.Service.DataSourceTest do
 
     test "creates a data source and gives the users access to it" do
       user = TestRepoHelper.create_user!()
-      assert [data_source] = DataSource.add_data_sources_from_file_content("DS1:#{user.login}")
+      assert [%{data_source: data_source}] = DataSource.add_data_sources_from_file_content("DS1:#{user.login}")
       assert [user.login] == data_source |> DataSource.users() |> Enum.map(& &1.login)
+    end
+
+    test "returns a list of the users that have been added" do
+      user = TestRepoHelper.create_user!()
+
+      assert [%{data_source: data_source, users: users}] =
+               DataSource.add_data_sources_from_file_content("DS1:#{user.login}")
+
+      assert Enum.map(users, & &1.login) == data_source |> DataSource.users() |> Enum.map(& &1.login)
     end
 
     test "ignores missing users" do
       user = TestRepoHelper.create_user!()
-      assert [data_source] = DataSource.add_data_sources_from_file_content("DS1:#{user.login},missing,users")
-      assert [user.login] == data_source |> DataSource.users() |> Enum.map(& &1.login)
+
+      assert [%{users: [used_user]}] = DataSource.add_data_sources_from_file_content("DS1:#{user.login},missing,users")
+
+      assert user.login == used_user.login
     end
   end
 
