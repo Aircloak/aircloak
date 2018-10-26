@@ -82,8 +82,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Access do
   # -------------------------------------------------------------------
 
   defp group_by_expressions(query, predicate) do
-    Query.Lenses.all_queries()
-    |> Lens.key(:group_by)
+    Lens.key(:group_by)
     |> Lens.all()
     |> Lens.filter(predicate)
     |> Lens.to_list(query)
