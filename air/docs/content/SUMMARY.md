@@ -76,6 +76,7 @@
 - [Configuring the system](ops/configuration.md)
   - [Overview](ops/configuration.md#overview)
   - [Insights Air](ops/configuration.md#insights-air-configuration)
+    - [Ahead of time configuration](ops/ahead-of-time-configuration.md)
   - [Insights Cloak](ops/configuration.md#insights-cloak-configuration)
   - [Running without Docker containers](/ops/configuration.md#running-without-docker-containers)
 - [Upgrading](ops/upgrading.md)

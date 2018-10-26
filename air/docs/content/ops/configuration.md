@@ -64,7 +64,10 @@ This part of the configuration is used to configure the web server of the Insigh
   "endpoint_key_base": secret_string,
   "master_password": string,
   "certfile": string,
-  "keyfile": string
+  "keyfile": string,
+  "privacy_policy_file": string,
+  "license_file": string,
+  "users_and_datasources_file": string
 },
 ```
 
@@ -77,13 +80,24 @@ cat /dev/urandom |
   head -n 1
 ```
 
-The `master_password` parameter specifies the password (in clear text) which is required when creating the first administrator user. When you attempt to access the site for the very first time, there are no users in the database. At this point, the system will ask you to create the first administrator user, and it will require you to enter the `master_password`. Once the first administrator is created, this password will not be needed anymore.
+Of the parameters above, the only required ones are the `auth_secret` and `endpoint_key_base` parameters, as well as one
+of `master_password` or `users_and_datasources_file`. The other parameters such as the `privacy_policy_file`,
+`users_and_datasources_file`, and `license_file` all specify values that can also be configured in the
+Insights Air web interface.
+These parameters can be used to fully configure a system ahead of time. This is useful when performing automated
+deployments. For more information on ahead of time configuration, please read the [ahead of time
+configuration](ahead-of-time-configuration.md) guide.
+
+The `master_password` parameter specifies the password (in clear text) which is required when creating the first administrator
+in the Insights Air web interface. If you attempt to access the Insights Air interface while no administrative user has been setup,
+you will be prompted to create one. To do so you have to type in the `master_password` the system is configured with.
+This password will no longer be needed once the first administrator has been created.
 
 The final two parameters `certfile` and `keyfile` are optional. They are used to specify the certificate and key for the HTTPS interface. If these parameters are provided, you will also need to put the corresponding files in the same folder as the `config.json` file. Once you do that, the site will accept HTTPS traffic as well as HTTP traffic. If you omit these parameters, the site will only accept HTTP traffic.
 
-The ports on which the site will listen are hardcoded. HTTP traffic is served via port 8080, while HTTPS is served via 8443. As explained in the [Installation guide](installation.md#insights-air), you can use Docker port mapping option to decide which of these two ports you want to expose, and to choose different port numbers on the host server.
+The ports on which the site will listen are hardcoded. HTTP traffic is served via port 8080, while HTTPS is served via 8443. As explained in the [Installation guide](installation.md#insights-air), you can use the Docker port mapping option to decide under which port numbers you want to expose these endpoints on the host server.
 
-We strongly suggest to use only HTTPS for communication between the clients (browsers) and the server (the Insights Air component). Otherwise, the security of the system might be compromised.
+We strongly suggest only exposing the Insights Air interface to clients using HTTPS. You might want to terminate the SSL connection at a reverse proxy such as [nginx](https://nginx.org/) or [apache](https://httpd.apache.org/), or alternatively make use of the HTTPS server offered as part of Insights Air.
 
 ### Insights Air PostgreSQL interface configuration
 
