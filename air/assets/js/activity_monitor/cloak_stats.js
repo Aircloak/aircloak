@@ -62,11 +62,11 @@ const renderMemoryUtilisationGraph = (readings) =>
     </Sparklines>
   </td>;
 
-const renderQueriesGraph = (queries) => {
-  const maxQueriesStat = _.max([1, ...queries]);
+const renderQueriesGraph = (queryStats) => {
+  const maxQueriesStat = _.max([1, ...queryStats]);
   return (
     <td>
-      <Sparklines data={queries} svgHeight={25} svgWidth={190} min={0} max={maxQueriesStat}>
+      <Sparklines data={queryStats} svgHeight={25} svgWidth={190} min={0} max={maxQueriesStat}>
         <SparklinesBars />
         <SparklinesLine style={{fill: "none"}} />
         <SparklinesReferenceLine type="mean" />
