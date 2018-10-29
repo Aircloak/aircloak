@@ -3,6 +3,7 @@
   "properties": {
     "air_site": {"type": "string", "minLength": 1},
     "salt": {"type": "string", "minLength": 1},
+    "cloak_secret": {"type": "string", "minLength": 60},
     "data_sources": {
       "anyOf": [
         {"type": "string", "minLength": 1},
