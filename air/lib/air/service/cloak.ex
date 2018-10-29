@@ -61,21 +61,12 @@ defmodule Air.Service.Cloak do
   additionally augmented with a list of the IDs of the data sources served by the cloak
   """
   @spec all_cloak_infos() :: [Map.t()]
-  def all_cloak_infos(),
-    do:
-      for(
-        {_pid, cloak_info} <- Registry.lookup(@all_cloak_registry_name, :all_cloaks),
-        do: add_stats(cloak_info)
-      )
+  def all_cloak_infos(), do: @all_cloak_registry_name |> Registry.lookup(:all_cloaks) |> Enum.map(&full_cloak_info/1)
 
   @doc "Returns the cloak info of cloaks serving a data source"
   @spec cloak_infos_for_data_source(String.t()) :: [Map.t()]
   def cloak_infos_for_data_source(name),
-    do:
-      for(
-        {_pid, cloak_info} <- Registry.lookup(@data_source_registry_name, name),
-        do: add_stats(cloak_info)
-      )
+    do: @data_source_registry_name |> Registry.lookup(name) |> Enum.map(&full_cloak_info/1)
 
   @doc "Returns the list of queries running on all connected cloaks."
   @spec running_queries() :: [String.t()]
@@ -199,7 +190,8 @@ defmodule Air.Service.Cloak do
         DataSource.create_or_update_data_source(data_source.name, data_source.tables, errors)
       end)
 
-  defp add_stats(cloak_info), do: Map.put(cloak_info, :stats, Stats.cloak_stats(cloak_info.id))
+  defp full_cloak_info({main_channel_pid, cloak_info}),
+    do: Map.merge(cloak_info, %{main_channel_pid: main_channel_pid, stats: Stats.cloak_stats(cloak_info.id)})
 
   # -------------------------------------------------------------------
   # Supervision tree

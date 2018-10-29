@@ -70,6 +70,7 @@ defmodule Air.Service.Cloak.Test do
     assert cloak.id == cloak_info.id
     assert cloak.name == cloak_info.name
     assert cloak.data_sources[@data_source_name] == @data_source
+    assert cloak.main_channel_pid == self()
   end
 
   test "returns a list of cloaks for a data sources" do
@@ -79,6 +80,7 @@ defmodule Air.Service.Cloak.Test do
     assert cloak.id == cloak_info.id
     assert cloak.name == cloak_info.name
     assert cloak.data_sources[@data_source_name] == @data_source
+    assert cloak.main_channel_pid == self()
   end
 
   test "should record that a data source has conflicting definitions across cloaks" do
