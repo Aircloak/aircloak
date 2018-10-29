@@ -133,12 +133,15 @@ defmodule Air.Service.Cloak do
   defp add_error_on_conflicting_data_source_definitions(data_sources) do
     for data_source <- data_sources do
       name = data_source.name
-      tables = data_source.tables
+
+      tables = strip_tables_of_temporal_state(data_source.tables)
 
       existing_definitions_for_data_source_by_cloak(name)
       |> Enum.map(fn {_cloak_name, data_source} -> data_source end)
       |> Enum.reject(&is_nil/1)
-      |> Enum.all?(&(tables == &1.tables))
+      |> Enum.map(& &1.tables)
+      |> Enum.map(&strip_tables_of_temporal_state/1)
+      |> Enum.all?(&(tables == &1))
       |> if do
         data_source
       else
@@ -148,6 +151,13 @@ defmodule Air.Service.Cloak do
       end
     end
   end
+
+  defp strip_tables_of_temporal_state(tables),
+    do:
+      Lens.all()
+      |> Lens.key(:columns)
+      |> Lens.all()
+      |> Lens.map(tables, &Map.drop(&1, [:isolated, :shadow_table, :shadow_table_size]))
 
   defp add_error_on_different_salts(data_sources, cloak_info) do
     for data_source <- data_sources do

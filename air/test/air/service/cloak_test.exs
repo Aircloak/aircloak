@@ -10,6 +10,62 @@ defmodule Air.Service.Cloak.Test do
   @data_source %{name: @data_source_name, tables: []}
   @data_sources [@data_source]
   @data_sources_that_differ [%{name: @data_source_name, tables: [%{different: true, columns: []}]}]
+  @data_sources_with_stats1 [
+    %{
+      name: @data_source_name,
+      tables: [
+        %{
+          columns: [
+            %{
+              isolated: true,
+              name: "id",
+              shadow_table: :ok,
+              shadow_table_size: 0,
+              type: :integer,
+              user_id: false
+            },
+            %{
+              isolated: true,
+              name: "customer_id",
+              shadow_table: :ok,
+              shadow_table_size: 0,
+              type: :integer,
+              user_id: true
+            }
+          ],
+          id: :accounts
+        }
+      ]
+    }
+  ]
+  @data_sources_with_stats2 [
+    %{
+      name: @data_source_name,
+      tables: [
+        %{
+          columns: [
+            %{
+              isolated: false,
+              name: "id",
+              shadow_table: :ok,
+              shadow_table_size: 0,
+              type: :integer,
+              user_id: false
+            },
+            %{
+              isolated: true,
+              name: "customer_id",
+              shadow_table: :ok,
+              shadow_table_size: 1,
+              type: :integer,
+              user_id: true
+            }
+          ],
+          id: :accounts
+        }
+      ]
+    }
+  ]
 
   setup do
     wait_for_cleanup()
@@ -86,6 +142,12 @@ defmodule Air.Service.Cloak.Test do
     Cloak.register(TestRepoHelper.cloak_info("other_cloak"), @data_sources_that_differ)
     [error] = Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
     assert error =~ ~r/differs between .+ cloaks/
+  end
+
+  test "should not record that a data source that differ in shadow or isolating columns only" do
+    Cloak.register(TestRepoHelper.cloak_info(), @data_sources_with_stats1)
+    Cloak.register(TestRepoHelper.cloak_info("other_cloak"), @data_sources_with_stats2)
+    assert [] == Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
   end
 
   test "should retain errors from all cloaks" do
