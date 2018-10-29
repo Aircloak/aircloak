@@ -7,7 +7,7 @@ defmodule Air.Service.DataSource do
   alias Air.Service
   alias Air.Service.{License, Cloak, View}
   alias Air.Service.DataSource.QueryScheduler
-  alias AirWeb.Socket.{Cloak.MainChannel, Frontend.UserChannel}
+  alias AirWeb.Socket.Cloak.MainChannel
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
   require Logger
@@ -85,7 +85,7 @@ defmodule Air.Service.DataSource do
       MainChannel.describe_query(channel_pid, %{
         statement: statement,
         data_source: data_source.name,
-        parameters: encode_parameters(parameters),
+        parameters: parameters,
         views: View.user_views_map(user, data_source.id)
       })
     end)
@@ -102,16 +102,6 @@ defmodule Air.Service.DataSource do
            views: view_map
          })}
       end)
-
-  @doc "Starts the query on the given data source as the given user."
-  @spec start_query(Query.t(), Map.t()) :: {:ok, Query.t()} | data_source_operation_error
-  def start_query(query, cloak_info) do
-    Air.Service.Cloak.Stats.record_query(cloak_info.id)
-    query = add_cloak_info_to_query(query, cloak_info.id)
-    UserChannel.broadcast_state_change(query)
-    Air.Service.AuditLog.log(query.user, "Executed query", Query.audit_meta(query))
-    MainChannel.run_query(cloak_info.main_channel_pid, cloak_query_map(query))
-  end
 
   @doc "Awaits for the query to finish, and returns it's result"
   @spec await_query(Query.t()) :: {:ok, Query.t()} | data_source_operation_error
@@ -357,13 +347,6 @@ defmodule Air.Service.DataSource do
   defp user_data_source(user, {:name, name}),
     do: from(data_source in users_data_sources(user), where: data_source.name == ^name)
 
-  defp add_cloak_info_to_query(query, cloak_id) do
-    query
-    |> Query.changeset(%{cloak_id: cloak_id, query_state: :started})
-    |> Repo.update!()
-    |> Repo.preload(:data_source)
-  end
-
   defp on_available_cloak(data_source_id, user, fun) do
     if not License.valid?() do
       {:error, :license_invalid}
@@ -385,31 +368,6 @@ defmodule Air.Service.DataSource do
         end
       end)
     end
-  end
-
-  defp cloak_query_map(query) do
-    %{
-      id: query.id,
-      statement: query.statement,
-      data_source: query.data_source.name,
-      parameters: encode_parameters(query.parameters["values"]),
-      views: View.user_views_map(query.user, query.data_source.id)
-    }
-  end
-
-  defp encode_parameters(parameters) do
-    parameters
-    |> normalize_parameters()
-    |> :erlang.term_to_binary()
-    |> Base.encode16()
-  end
-
-  defp normalize_parameters(nil), do: nil
-  defp normalize_parameters(params) when is_list(params), do: Enum.map(params, &normalize_parameter/1)
-
-  defp normalize_parameter(param) do
-    param = Aircloak.atomize_keys(param)
-    with %{type: string} when is_binary(string) <- param, do: update_in(param.type, &String.to_existing_atom/1)
   end
 
   defp exception_to_tuple(fun) do
