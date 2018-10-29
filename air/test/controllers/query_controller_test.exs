@@ -48,6 +48,7 @@ defmodule AirWeb.QueryController.Test do
       end)
 
     TestSocketHelper.respond_to_start_task_request!(socket, :ok)
+    Air.Service.DataSource.QueryScheduler.sync()
 
     assert %{"success" => true} = Poison.decode!(Task.await(task))
   end
@@ -67,6 +68,7 @@ defmodule AirWeb.QueryController.Test do
       end)
 
     TestSocketHelper.respond_to_start_task_request!(socket, :ok)
+    Air.Service.DataSource.QueryScheduler.sync()
 
     assert %{"success" => true, "query_id" => ^query_id} = Poison.decode!(Task.await(task))
   end

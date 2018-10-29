@@ -107,11 +107,13 @@ defmodule Air.Service.DataSource.QueryScheduler do
   defp has_data_source?(cloak_info, data_source), do: Map.has_key?(cloak_info.data_sources, data_source.name)
 
   defp start_query(query, cloak_info) do
-    Air.Service.Cloak.Stats.record_query(cloak_info.id)
-    query = add_cloak_info_to_query(query, cloak_info.id)
-    AirWeb.Socket.Frontend.UserChannel.broadcast_state_change(query)
-    Air.Service.AuditLog.log(query.user, "Executed query", Air.Schemas.Query.audit_meta(query))
-    AirWeb.Socket.Cloak.MainChannel.run_query(cloak_info.main_channel_pid, cloak_query_map(query))
+    with :ok <- AirWeb.Socket.Cloak.MainChannel.run_query(cloak_info.main_channel_pid, cloak_query_map(query)) do
+      Air.Service.Cloak.Stats.record_query(cloak_info.id)
+      query = add_cloak_info_to_query(query, cloak_info.id)
+      AirWeb.Socket.Frontend.UserChannel.broadcast_state_change(query)
+      Air.Service.AuditLog.log(query.user, "Executed query", Air.Schemas.Query.audit_meta(query))
+      :ok
+    end
   end
 
   defp add_cloak_info_to_query(query, cloak_id) do
