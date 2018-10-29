@@ -3,6 +3,7 @@ defmodule Air.Service.Cloak do
   The Cloak service holds metadata about cloaks and their datastores as well as facilities
   for registering them with the database backing the air system.
   """
+  require Aircloak
   require Logger
 
   use GenServer
@@ -34,6 +35,8 @@ defmodule Air.Service.Cloak do
       Registry.register(@data_source_registry_name, data_source_name, cloak_info)
     end
 
+    # not sending notification in tests, because it leads to a lot of log noise
+    Aircloak.in_env(test: nil, else: Air.Service.DataSource.QueryScheduler.notify())
     data_source_schemas
   end
 

@@ -201,6 +201,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
     Logger.info("received result for query #{query_result.query_id}")
     respond_to_cloak(socket, request_id, :ok)
     Air.Service.Query.Lifecycle.result_arrived(query_result)
+    Air.Service.DataSource.QueryScheduler.notify()
     {:noreply, socket}
   end
 
