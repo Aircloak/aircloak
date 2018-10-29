@@ -104,28 +104,13 @@ defmodule Air.Service.DataSource do
       end)
 
   @doc "Starts the query on the given data source as the given user."
-  @spec start_query(Query.t(), data_source_id_spec) :: {:ok, Query.t()} | data_source_operation_error
-  def start_query(query, data_source_id_spec) do
-    on_available_cloak(data_source_id_spec, query.user, fn _data_source, channel_pid, %{id: cloak_id} ->
-      Air.Service.Cloak.Stats.record_query(cloak_id)
-      query = add_cloak_info_to_query(query, cloak_id)
-      UserChannel.broadcast_state_change(query)
-      Air.Service.AuditLog.log(query.user, "Executed query", Query.audit_meta(query))
-
-      case MainChannel.run_query(channel_pid, cloak_query_map(query)) do
-        :ok ->
-          {:ok, query}
-
-        {:error, reason} ->
-          Service.Query.Events.trigger_result(%{query_id: query.id, error: start_query_error(reason)})
-
-          if reason == :timeout,
-            do: stop_query_async(query),
-            else: Service.Query.Lifecycle.report_query_error(query.id, start_query_error(reason))
-
-          {:error, reason}
-      end
-    end)
+  @spec start_query(Query.t(), Map.t()) :: {:ok, Query.t()} | data_source_operation_error
+  def start_query(query, cloak_info) do
+    Air.Service.Cloak.Stats.record_query(cloak_info.id)
+    query = add_cloak_info_to_query(query, cloak_info.id)
+    UserChannel.broadcast_state_change(query)
+    Air.Service.AuditLog.log(query.user, "Executed query", Query.audit_meta(query))
+    MainChannel.run_query(cloak_info.main_channel_pid, cloak_query_map(query))
   end
 
   @doc "Awaits for the query to finish, and returns it's result"
@@ -319,11 +304,16 @@ defmodule Air.Service.DataSource do
         )
       )
 
+  @doc "Asynchronously stops the given query."
+  @spec stop_query_async(Query.t()) :: :ok
+  def stop_query_async(query) do
+    Task.Supervisor.start_child(@task_supervisor, fn -> do_stop_query(query) end)
+    :ok
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp stop_query_async(query), do: Task.Supervisor.start_child(@task_supervisor, fn -> do_stop_query(query) end)
 
   defp do_stop_query(query) do
     query = Repo.preload(query, :data_source)
@@ -445,9 +435,6 @@ defmodule Air.Service.DataSource do
       |> validate_required(~w(name tables)a)
       |> unique_constraint(:name)
       |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
-
-  defp start_query_error(:timeout), do: "The query could not be started due to a communication timeout."
-  defp start_query_error(:too_many_queries), do: "Too many queries running on the cloak."
 
   defp data_source_to_db_data(name, tables, errors) do
     # We're computing total column count, and computed and failed counts for isolators and shadow tables, and storing

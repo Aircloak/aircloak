@@ -45,6 +45,10 @@ defmodule Air.Service.DataSource.QueryScheduler do
   # Internal functions
   # -------------------------------------------------------------------
 
+  @doc false
+  # Needed in tests to ensure synchronism
+  def sync(), do: GenServer.call(__MODULE__, :sync)
+
   defp maybe_start_queries(state) do
     if state.changed? and not Parent.GenServer.child?(:query_starter) do
       Parent.GenServer.start_child(%{id: :query_starter, start: {Task, :start_link, [&start_pending_queries/0]}})
@@ -54,12 +58,62 @@ defmodule Air.Service.DataSource.QueryScheduler do
     end
   end
 
-  defp start_pending_queries(),
-    do: Enum.each(Air.Service.Query.awaiting_start(), &Air.Service.DataSource.start_query(&1, {:id, &1.data_source.id}))
+  # This function tries to distribute currently pending queries over the available cloaks. The function takes the
+  # snapshot of the available cloaks immediately, and doesn't handle cloak connects/disconnects which might happen in
+  # the meantime. If another cloak joins while this function is running, it's ignored. If a cloak disconnects, we'll
+  # still try to start a query on it. In this case, the query will fail due to a disconnect.
+  defp start_pending_queries() do
+    Enum.reduce(
+      Air.Service.Query.awaiting_start(),
+      # shuffling the cloak infos to improve distribution
+      Enum.shuffle(Air.Service.Cloak.all_cloak_infos()),
+      &try_query_start(&2, &1)
+    )
+  end
 
-  @doc false
-  # Needed in tests to ensure synchronism
-  def sync(), do: GenServer.call(__MODULE__, :sync)
+  defp try_query_start(cloak_infos, query) do
+    case pop_cloak(cloak_infos, query.data_source) do
+      nil ->
+        cloak_infos
+
+      {cloak_info, remaining_cloak_infos} ->
+        query
+        |> Air.Service.DataSource.start_query(cloak_info)
+        |> case do
+          :ok ->
+            # put the cloak at the end of the list to ensure fair spread of queries over available cloaks
+            remaining_cloak_infos ++ [cloak_info]
+
+          {:error, :too_many_queries} ->
+            # this cloak is at max capacity, so we won't try it again in this iteration
+            try_query_start(remaining_cloak_infos, query)
+
+          {:error, :timeout} ->
+            # timeout (likely a disconnect) -> we'll report an error, and won't try this cloak again in this iteration
+            report_start_timeout(query)
+            remaining_cloak_infos
+        end
+    end
+  end
+
+  defp pop_cloak([], _data_source), do: nil
+
+  defp pop_cloak([cloak_info | rest_infos], data_source) do
+    if has_data_source?(cloak_info, data_source),
+      do: {cloak_info, rest_infos},
+      else: with({found, rest_infos} <- pop_cloak(rest_infos, data_source), do: {found, [cloak_info | rest_infos]})
+  end
+
+  defp has_data_source?(cloak_info, data_source), do: Map.has_key?(cloak_info.data_sources, data_source.name)
+
+  defp report_start_timeout(query) do
+    Air.Service.Query.Events.trigger_result(%{
+      query_id: query.id,
+      error: "The query could not be started due to a communication timeout."
+    })
+
+    Air.Service.DataSource.stop_query_async(query)
+  end
 
   # -------------------------------------------------------------------
   # Supervision tree
