@@ -55,7 +55,7 @@ defmodule Air.Service.DataSource.QueryScheduler do
   end
 
   defp start_pending_queries(),
-    do: Enum.each(Air.Service.Query.awiting_start(), &Air.Service.DataSource.start_query(&1, {:id, &1.data_source.id}))
+    do: Enum.each(Air.Service.Query.awaiting_start(), &Air.Service.DataSource.start_query(&1, {:id, &1.data_source.id}))
 
   @doc false
   # Needed in tests to ensure synchronism
