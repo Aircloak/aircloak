@@ -459,10 +459,10 @@ defmodule Air.Service.DataSource do
       tables: Poison.encode!(tables),
       errors: Poison.encode!(errors),
       columns_count: count_columns(tables, fn _ -> true end),
-      isolated_computed_count: count_columns(tables, &is_boolean(&1.isolated)),
-      isolated_failed: filter_columns(tables, &(&1.isolated == :failed)),
-      shadow_tables_computed_count: count_columns(tables, &(&1.shadow_table == :ok)),
-      shadow_tables_failed: filter_columns(tables, &(&1.shadow_table == :failed))
+      isolated_computed_count: count_columns(tables, &(&1 |> Map.get(:isolated, false) |> is_boolean())),
+      isolated_failed: filter_columns(tables, &(&1 |> Map.get(:isolated, false) == :failed)),
+      shadow_tables_computed_count: count_columns(tables, &(&1 |> Map.get(:shadow_table, :ok) == :ok)),
+      shadow_tables_failed: filter_columns(tables, &(&1 |> Map.get(:shadow_table) == :failed))
     }
   end
 
