@@ -134,13 +134,13 @@ defmodule Air.Service.Cloak do
     for data_source <- data_sources do
       name = data_source.name
 
-      tables = strip_tables_of_temporal_state(data_source.tables)
+      tables = strip_tables_of_temporary_state(data_source.tables)
 
       existing_definitions_for_data_source_by_cloak(name)
       |> Enum.map(fn {_cloak_name, data_source} -> data_source end)
       |> Enum.reject(&is_nil/1)
       |> Enum.map(& &1.tables)
-      |> Enum.map(&strip_tables_of_temporal_state/1)
+      |> Enum.map(&strip_tables_of_temporary_state/1)
       |> Enum.all?(&(tables == &1))
       |> if do
         data_source
@@ -152,7 +152,7 @@ defmodule Air.Service.Cloak do
     end
   end
 
-  defp strip_tables_of_temporal_state(tables),
+  defp strip_tables_of_temporary_state(tables),
     do:
       Lens.all()
       |> Lens.key(:columns)
