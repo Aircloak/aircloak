@@ -130,16 +130,6 @@ defmodule AirWeb.QueryController do
   defp query_error(conn, :unauthorized),
     do: send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
 
-  defp query_error(conn, :not_connected),
-    do:
-      send_resp(
-        conn,
-        Status.code(:service_unavailable),
-        "No cloak is available for the given data source"
-      )
-
-  defp query_error(conn, :internal_error), do: send_resp(conn, Status.code(:internal_server_error), "")
-
   defp query_error(conn, other_error) do
     Logger.error(fn -> "Query start error: #{other_error}" end)
     json(conn, %{success: false, reason: other_error})
