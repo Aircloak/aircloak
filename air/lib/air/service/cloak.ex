@@ -134,13 +134,23 @@ defmodule Air.Service.Cloak do
     for data_source <- data_sources do
       name = data_source.name
 
-      tables = strip_tables_of_temporary_state(data_source.tables)
+      tables = data_source.tables
 
-      existing_definitions_for_data_source_by_cloak(name)
-      |> Enum.map(fn {_cloak_name, data_source} -> data_source end)
-      |> Enum.reject(&is_nil/1)
-      |> Enum.map(& &1.tables)
-      |> Enum.map(&strip_tables_of_temporary_state/1)
+      existing_datasource_tables =
+        existing_definitions_for_data_source_by_cloak(name)
+        |> Enum.map(fn {_cloak_name, data_source} -> data_source end)
+        |> Enum.reject(&is_nil/1)
+        |> Enum.map(& &1.tables)
+
+      {tables, existing_datasource_tables} =
+        if all_data_sources_done?([tables | existing_datasource_tables]) do
+          {tables, existing_datasource_tables}
+        else
+          {strip_tables_of_temporary_state(tables),
+           Enum.map(existing_datasource_tables, &strip_tables_of_temporary_state/1)}
+        end
+
+      existing_datasource_tables
       |> Enum.all?(&(tables == &1))
       |> if do
         data_source
@@ -151,6 +161,17 @@ defmodule Air.Service.Cloak do
       end
     end
   end
+
+  # Note the double Lens.all() because it's a list of lists of tables
+  defp all_data_sources_done?(datasource_tables),
+    do:
+      Lens.all()
+      |> Lens.all()
+      |> Lens.key(:columns)
+      |> Lens.all()
+      |> Lens.filter(&(&1.isolated == :pending or &1.shadow_table == :pending))
+      |> Lens.to_list(datasource_tables)
+      |> Enum.empty?()
 
   defp strip_tables_of_temporary_state(tables),
     do:
