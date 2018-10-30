@@ -62,7 +62,8 @@ defmodule Air.Service.DataSource.QueryScheduler do
   # snapshot of the available cloaks immediately, and doesn't handle cloak connects/disconnects which might happen in
   # the meantime. If another cloak joins while this function is running, it's ignored. If a cloak disconnects, we'll
   # still try to start a query on it. In this case, the query will fail due to a disconnect.
-  defp start_pending_queries() do
+  @doc false
+  def start_pending_queries() do
     Enum.reduce(
       Air.Service.Query.awaiting_start(),
       # shuffling the cloak infos to improve distribution
