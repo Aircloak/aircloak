@@ -125,12 +125,28 @@ defmodule Air.Service.DataSource do
     Service.Query.Events.unsubscribe(query_id)
   end
 
-  @doc "Stops a previously started query."
-  @spec stop_query(Query.t()) :: :ok | {:error, :internal_error | :not_connected}
-  def stop_query(query) do
+  @doc """
+  Stops a previously started query.
+
+  This function will attempt to asynchronously stop the query on all currently connected cloaks. If the cloak where the
+  query is running is not connected, the query will not be stopped on the cloak.
+
+  Regardless of whether the cloak is connected, the query state is immediately set to cancelled in the air database.
+  """
+  @spec stop_query(Query.t(), audit_log?: boolean) :: :ok
+  def stop_query(query, opts \\ []) do
     query = Repo.preload(query, [:user, :data_source])
-    Air.Service.AuditLog.log(query.user, "Stopped query", Query.audit_meta(query))
-    do_stop_query(query)
+
+    if Keyword.get(opts, :audit_log?, true),
+      do: Air.Service.AuditLog.log(query.user, "Stopped query", Query.audit_meta(query))
+
+    query.data_source.name
+    |> Cloak.channel_pids()
+    |> Enum.each(fn {channel, _cloak} ->
+      Task.Supervisor.start_child(@task_supervisor, fn -> MainChannel.stop_query(channel, query.id) end)
+    end)
+
+    Service.Query.Lifecycle.state_changed(query.id, :cancelled)
   end
 
   @doc "Returns a list of data sources given their names"
@@ -294,33 +310,9 @@ defmodule Air.Service.DataSource do
         )
       )
 
-  @doc "Asynchronously stops the given query."
-  @spec stop_query_async(Query.t()) :: :ok
-  def stop_query_async(query) do
-    Task.Supervisor.start_child(@task_supervisor, fn -> do_stop_query(query) end)
-    :ok
-  end
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp do_stop_query(query) do
-    query = Repo.preload(query, :data_source)
-
-    exception_to_tuple(fn ->
-      if available?(query.data_source.name) do
-        for {channel, _cloak} <- Cloak.channel_pids(query.data_source.name),
-            do: MainChannel.stop_query(channel, query.id)
-
-        Service.Query.Lifecycle.state_changed(query.id, :cancelled)
-
-        :ok
-      else
-        {:error, :not_connected}
-      end
-    end)
-  end
 
   defp data_sources_with_groups_and_users(),
     do:

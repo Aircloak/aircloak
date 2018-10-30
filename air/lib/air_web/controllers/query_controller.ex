@@ -95,12 +95,8 @@ defmodule AirWeb.QueryController do
   def cancel(conn, %{"id" => query_id}) do
     case Air.Service.Query.get_as_user(conn.assigns.current_user, query_id) do
       {:ok, query} ->
-        query
-        |> DataSource.stop_query()
-        |> case do
-          :ok -> json(conn, %{success: true})
-          {:error, reason} -> query_error(conn, reason)
-        end
+        DataSource.stop_query(query)
+        json(conn, %{success: true})
 
       _ ->
         send_resp(conn, Status.code(:not_found), "A query with that id does not exist")

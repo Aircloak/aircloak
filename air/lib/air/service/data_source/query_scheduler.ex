@@ -139,7 +139,7 @@ defmodule Air.Service.DataSource.QueryScheduler do
       error: "The query could not be started due to a communication timeout."
     })
 
-    Air.Service.DataSource.stop_query_async(query)
+    Air.Service.DataSource.stop_query(query, audit_log?: false)
   end
 
   # -------------------------------------------------------------------

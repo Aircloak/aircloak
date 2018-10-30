@@ -49,6 +49,9 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   @spec stop_query(pid | nil, String.t()) :: :ok | {:error, any}
   def stop_query(channel_pid, query_id) do
     with {:ok, _} <- call(channel_pid, "stop_query", query_id, :timer.seconds(5)), do: :ok
+  catch
+    :exit, _reason ->
+      {:error, :disconnected}
   end
 
   @doc "Returns the list of queries running on this cloak."
