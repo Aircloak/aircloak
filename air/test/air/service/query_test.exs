@@ -520,7 +520,7 @@ defmodule Air.Service.QueryTest do
       q1 = create_query!(user)
       q2 = create_query!(user)
       create_query!(user, %{query_state: :completed})
-      assert Query.awaiting_start() |> Enum.map(& &1.id) |> Enum.sort() == Enum.sort([q1.id, q2.id])
+      assert Enum.map(Query.awaiting_start(), & &1.id) == [q1.id, q2.id]
     end
   end
 

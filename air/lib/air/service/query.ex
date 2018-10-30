@@ -87,12 +87,13 @@ defmodule Air.Service.Query do
     end
   end
 
-  @doc "Returns queries which have been created but not yet started on any cloak."
+  @doc "Returns queries, ordered by `inserted_at`, which have been created but not yet started on any cloak."
   @spec awaiting_start() :: [Query.t()]
   def awaiting_start() do
     from(
       q in Query,
       where: q.query_state == ^:created and is_nil(q.cloak_id),
+      order_by: [asc: q.inserted_at],
       preload: [:user, :data_source]
     )
     |> Repo.all()
