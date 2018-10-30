@@ -96,6 +96,7 @@ defmodule Air.Service.DataSource.QuerySchedulerTest do
     assert result.error == "The query could not be started due to a communication timeout."
     assert soon(Air.Repo.get!(Air.Schemas.Query, query_id).query_state == :cancelled)
     assert Query.awaiting_start() == []
+    assert soon(is_nil(Air.Service.Query.Lifecycle.whereis(query_id)))
   end
 
   test "scheduler ignores the cloak which times out" do
@@ -109,6 +110,7 @@ defmodule Air.Service.DataSource.QuerySchedulerTest do
     assert_receive {:query_result, %{query_id: ^query_id, error: _} = result}
     assert soon(Air.Repo.get!(Air.Schemas.Query, query_id).query_state == :cancelled)
     assert same_queries?(Query.awaiting_start(), other_queries)
+    assert soon(is_nil(Air.Service.Query.Lifecycle.whereis(query_id)))
   end
 
   defp create_user!(), do: TestRepoHelper.create_user!(%{groups: [TestRepoHelper.create_group!().id]})
