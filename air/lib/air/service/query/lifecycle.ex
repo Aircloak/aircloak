@@ -60,7 +60,7 @@ defmodule Air.Service.Query.Lifecycle do
   def handle_cast({:state_changed, query_id, query_state}, state) do
     :jobs.run(__MODULE__, fn -> Query.update_state(query_id, query_state) end)
     Air.Service.Query.Events.trigger_state_change(%{query_id: query_id, state: query_state})
-    {:noreply, state}
+    if query_state == :cancelled, do: {:stop, :normal, state}, else: {:noreply, state}
   end
 
   def handle_cast({:query_died, query_id}, state) do
@@ -80,6 +80,9 @@ defmodule Air.Service.Query.Lifecycle do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  @doc false
+  def whereis(query_id), do: GenServer.whereis(name(query_id))
 
   @doc false
   def start_link(query_id), do: GenServer.start_link(__MODULE__, nil, name: name(query_id))

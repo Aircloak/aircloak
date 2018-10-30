@@ -3,6 +3,7 @@ defmodule AirWeb.QueryController.Test do
   # (see https://hexdocs.pm/ecto/Ecto.Adapters.SQL.Sandbox.html)
   use AirWeb.ConnCase, async: false
 
+  import Aircloak.AssertionHelper
   import Air.{TestConnHelper, TestRepoHelper}
   alias Air.{TestSocketHelper, Repo}
   alias Phoenix.Channels.GenSocketClient.TestSocket
@@ -110,6 +111,7 @@ defmodule AirWeb.QueryController.Test do
     query_id = query.id
 
     assert {:ok, {"main", "air_call", %{event: "stop_query", payload: ^query_id}}} = TestSocket.await_message(socket)
+    assert soon(is_nil(Air.Service.Query.Lifecycle.whereis(query_id)))
   end
 
   test "returns unauthorized when not authorized to query data source", context do
