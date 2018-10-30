@@ -1,6 +1,7 @@
 defmodule Air.Service.DataSource.QueryScheduler do
   @moduledoc "Synchronous starting of queries"
 
+  require Aircloak
   use Parent.GenServer
 
   # -------------------------------------------------------------------
@@ -16,7 +17,10 @@ defmodule Air.Service.DataSource.QueryScheduler do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(nil), do: {:ok, %{changed?: false}}
+  def init(nil) do
+    schedule_start()
+    {:ok, %{changed?: false}}
+  end
 
   @impl GenServer
   def handle_cast(:notify, state), do: {:noreply, maybe_start_queries(%{state | changed?: true})}
@@ -35,6 +39,11 @@ defmodule Air.Service.DataSource.QueryScheduler do
   end
 
   @impl GenServer
+  def handle_info(:start_queries, state) do
+    schedule_start()
+    {:noreply, maybe_start_queries(%{state | changed?: true})}
+  end
+
   # this clause handles normal exits of parallel tasks which are started when ecto preloads associations
   def handle_info({:EXIT, _pid, :normal}, state), do: {:noreply, :ok, state}
 
@@ -44,6 +53,10 @@ defmodule Air.Service.DataSource.QueryScheduler do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  # A safeguard to ensure that we'll start the queries even if we missed some notification.
+  defp schedule_start(),
+    do: Aircloak.in_env(test: nil, else: Process.send_after(self(), :start_queries, :timer.minutes(1)))
 
   @doc false
   # Needed in tests to ensure synchronism
