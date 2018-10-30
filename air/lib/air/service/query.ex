@@ -90,9 +90,11 @@ defmodule Air.Service.Query do
   @doc "Returns queries, ordered by `inserted_at`, which have been created but not yet started on any cloak."
   @spec awaiting_start() :: [Query.t()]
   def awaiting_start() do
+    expired = NaiveDateTime.add(NaiveDateTime.utc_now(), -:timer.hours(24), :millisecond)
+
     from(
       q in Query,
-      where: q.query_state == ^:created and is_nil(q.cloak_id),
+      where: q.query_state == ^:created and is_nil(q.cloak_id) and q.inserted_at > ^expired,
       order_by: [asc: q.inserted_at],
       preload: [:user, :data_source]
     )
@@ -195,9 +197,7 @@ defmodule Air.Service.Query do
 
   @doc "Returns a list of the queries that are currently executing in all contexts."
   @spec currently_running() :: [Query.t()]
-  def currently_running() do
-    Repo.all(from(q in pending(), where: q.query_state != ^:created))
-  end
+  def currently_running(), do: Repo.all(from(q in pending()))
 
   @doc "Returns a list of queries that are currently executing, started by the given user on the given data source."
   @spec currently_running(User.t(), DataSource.t(), Query.Context.t()) :: [Query.t()]
