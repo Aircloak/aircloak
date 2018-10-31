@@ -2,7 +2,6 @@ defmodule Air.Service.Password do
   @moduledoc "Service module for working with passwords"
 
   alias Comeonin.Pbkdf2, as: Hash
-  alias Air.Service.Password.Internal
 
   @type credentials :: %{login: String.t(), hash: String.t()}
 
