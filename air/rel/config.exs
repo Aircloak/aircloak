@@ -37,7 +37,7 @@ release :air do
   set(
     commands: [
       reset_password: "rel/commands/reset_password.sh",
-      hash_credentials: "rel/commands/hash_credentials.sh"
+      hash_passwords: "rel/commands/hash_passwords.sh"
     ]
   )
 end

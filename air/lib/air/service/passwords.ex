@@ -18,22 +18,4 @@ defmodule Air.Service.Password do
   @spec validate(String.t(), nil | String.t()) :: boolean
   def validate(_password, nil), do: Hash.dummy_checkpw()
   def validate(password, hash), do: Hash.checkpw(password, hash)
-
-  @doc "Processes a passwords accounts file into a list of user and password maps"
-  @spec process_credentials(String.t()) :: [credentials()]
-  def process_credentials(content) do
-    content
-    |> Internal.parse_credentials()
-    |> Enum.map(&hash_credential_password/1)
-  end
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp hash_credential_password(credential),
-    do:
-      credential
-      |> Map.put(:hash, hash(credential.password))
-      |> Map.delete(:password)
 end

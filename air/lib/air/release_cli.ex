@@ -21,33 +21,18 @@ defmodule Air.ReleaseCLI do
   end
 
   @doc """
-  Takes username and password data as the first argument of the form:
+  Takes a list of passwords and produces a list of password hashes.
 
-    login1:password1
-    login2:password2
-
-  and outputs a string to STDOUT of the form:
-
-    login1:password1-hash
-    login2:password2-hash
-
-  The output can later be given as an input to Insights Air as a
-  list of statically configured users that should be added to the system.
+  The output can be used to create a users and data source credentials file
+  in order to statically configure Insights Air.
   """
-  @spec hash_credentials([String.t()]) :: :ok
-  def hash_credentials(content) do
+  @spec hash_passwords([String.t()]) :: :ok
+  def hash_passwords(passwords) do
     Application.load(:air)
 
-    content
+    passwords
+    |> Enum.map(&Service.Password.hash/1)
     |> Enum.join("\n")
-    |> Service.Password.process_credentials()
-    |> Enum.each(&output_user/1)
+    |> IO.puts()
   end
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp output_user(%{admin: true} = user), do: IO.puts("#{user.login}:#{user.hash}:admin")
-  defp output_user(user), do: IO.puts("#{user.login}:#{user.hash}")
 end
