@@ -20,6 +20,19 @@ defmodule Cloak.Query.Runner do
 
   @type start_opts :: [result_target: :air_socket | pid()]
 
+  @type args :: %{
+          query_id: String.t(),
+          data_source: Cloak.DataSource.t(),
+          statement: String.t(),
+          parameters: [Cloak.DataSource.field()],
+          views: [Cloak.Sql.Query.view_map()],
+          state_updater: (Cloak.ResultSender.query_state() -> any),
+          feature_updater: (Cloak.Query.features() -> any),
+          memory_callbacks: Cloak.MemoryReader.query_killer_callbacks()
+        }
+
+  @type result :: {:ok, Sql.Query.Result.t(), [String.t()]} | {:error, String.t()}
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -40,11 +53,20 @@ defmodule Cloak.Query.Runner do
           start_opts
         ) :: :ok | {:error, :too_many_queries}
   def start(query_id, data_source, statement, parameters, views, start_opts \\ []) do
-    runner_arg = {query_id, data_source, statement, parameters, views, start_opts}
+    runner_args =
+      start_opts
+      |> Map.new()
+      |> Map.merge(%{
+        query_id: query_id,
+        data_source: data_source,
+        statement: statement,
+        parameters: parameters,
+        views: views
+      })
 
     # Starting of a query is serialized (queries are started one at a time). This makes it possible to reliably decide
     # if we can start the new query with respect to max concurrency settings.
-    :jobs.run(__MODULE__, fn -> serialized_start_runner(query_id, runner_arg) end)
+    :jobs.run(__MODULE__, fn -> serialized_start_runner(query_id, runner_args) end)
   end
 
   @spec stop(String.t() | pid, :cancelled | :oom) :: :ok
@@ -110,9 +132,9 @@ defmodule Cloak.Query.Runner do
            )
   end
 
-  defp serialized_start_runner(query_id, runner_arg) do
+  defp serialized_start_runner(query_id, runner_args) do
     if Registry.count(@runner_registry_name) < max_parallel_queries() do
-      {:ok, _pid} = DynamicSupervisor.start_child(@supervisor_name, runner_spec(query_id, runner_arg))
+      {:ok, _pid} = DynamicSupervisor.start_child(@supervisor_name, runner_spec(query_id, runner_args))
 
       :ok
     else
@@ -127,10 +149,10 @@ defmodule Cloak.Query.Runner do
     )
   end
 
-  defp runner_spec(query_id, runner_arg) do
+  defp runner_spec(query_id, runner_args) do
     %{
       id: __MODULE__,
-      start: {Parent.GenServer, :start_link, [__MODULE__, runner_arg, [name: worker_name(query_id)]]},
+      start: {Parent.GenServer, :start_link, [__MODULE__, runner_args, [name: worker_name(query_id)]]},
       restart: :temporary
     }
   end
@@ -151,31 +173,29 @@ defmodule Cloak.Query.Runner do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init({query_id, data_source, statement, parameters, views, start_opts}) do
-    {:ok, _pid} = Registry.register(@queries_registry_name, :instances, query_id)
-    Logger.metadata(query_id: query_id)
-    memory_callbacks = Cloak.MemoryReader.query_registering_callbacks()
+  def init(runner_args) do
+    {:ok, _pid} = Registry.register(@queries_registry_name, :instances, runner_args.query_id)
+    Logger.metadata(query_id: runner_args.query_id)
+
+    {runner_fun, runner_args} = Map.pop(runner_args, :runner_fun, &Engine.run/1)
+
+    runner_args =
+      Map.merge(runner_args, %{
+        memory_callbacks: Cloak.MemoryReader.query_registering_callbacks(),
+        state_updater: with(me <- self(), do: &send(me, {:send_state, runner_args.query_id, &1})),
+        feature_updater: with(me <- self(), do: &send(me, {:features, &1}))
+      })
 
     Parent.GenServer.start_child(%{
       id: :query_execution,
-      start: fn ->
-        start_query(
-          query_id,
-          data_source,
-          statement,
-          parameters,
-          views,
-          memory_callbacks,
-          start_opts
-        )
-      end,
+      start: with(me <- self(), do: {Task, :start_link, [fn -> run_query(runner_args, runner_fun, me) end]}),
       shutdown: :brutal_kill
     })
 
     {:ok,
      %{
-       query_id: query_id,
-       result_target: Keyword.get(start_opts, :result_target, :air_socket),
+       query_id: runner_args.query_id,
+       result_target: Map.get(runner_args, :result_target, :air_socket),
        start_time: :erlang.monotonic_time(:milli_seconds),
        execution_time: nil,
        features: nil,
@@ -261,60 +281,14 @@ defmodule Cloak.Query.Runner do
   # Query running
   # -------------------------------------------------------------------
 
-  defp start_query(
-         query_id,
-         data_source,
-         statement,
-         parameters,
-         views,
-         memory_callbacks,
-         start_opts
-       ) do
-    parent = self()
+  @spec run_query(args, (args -> result), pid()) :: :ok
+  defp run_query(runner_args, runner_fun, parent) do
+    Logger.metadata(query_id: runner_args.query_id)
+    Logger.debug(fn -> "Running statement `#{runner_args.statement}` ..." end)
 
-    Task.start_link(fn ->
-      run_query(
-        query_id,
-        parent,
-        data_source,
-        statement,
-        parameters,
-        views,
-        memory_callbacks,
-        start_opts
-      )
-    end)
-  end
-
-  defp run_query(
-         query_id,
-         owner,
-         data_source,
-         statement,
-         parameters,
-         views,
-         memory_callbacks,
-         start_opts
-       ) do
-    Logger.metadata(query_id: query_id)
-    Logger.debug(fn -> "Running statement `#{statement}` ..." end)
-
-    state_updater = &send(owner, {:send_state, query_id, &1})
-    feature_updater = &send(owner, {:features, &1})
-    runner_fun = Keyword.get(start_opts, :runner_fun, &Engine.run/7)
-
-    result =
-      runner_fun.(
-        data_source,
-        statement,
-        parameters,
-        views,
-        state_updater,
-        feature_updater,
-        memory_callbacks
-      )
-
-    send(owner, {:query_result, result})
+    result = runner_fun.(runner_args)
+    send(parent, {:query_result, result})
+    :ok
   end
 
   # -------------------------------------------------------------------
