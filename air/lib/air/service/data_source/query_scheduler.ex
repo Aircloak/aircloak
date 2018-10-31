@@ -3,24 +3,23 @@ defmodule Air.Service.DataSource.QueryScheduler do
 
   use Parent.GenServer
   require Aircloak
-  alias Air.Service.DataSource.QueryScheduler.Starter
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Notifies the scheduler that some queries are pending to be started."
-  @spec notify() :: :ok
-  def notify(), do: GenServer.cast(__MODULE__, :notify)
+  @spec notify(GenServer.server()) :: :ok
+  def notify(server \\ __MODULE__), do: GenServer.cast(server, :notify)
 
   # -------------------------------------------------------------------
   # GenServer and Parent.GenServer callbacks
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(nil) do
+  def init(opts) do
     schedule_start()
-    {:ok, %{changed?: false}}
+    {:ok, %{changed?: false, runner: Keyword.fetch!(opts, :runner)}}
   end
 
   @impl GenServer
@@ -65,7 +64,7 @@ defmodule Air.Service.DataSource.QueryScheduler do
 
   defp maybe_start_queries(state) do
     if state.changed? and not Parent.GenServer.child?(:query_starter) do
-      Parent.GenServer.start_child(%{id: :query_starter, start: {Task, :start_link, [&Starter.run/0]}})
+      Parent.GenServer.start_child(%{id: :query_starter, start: {Task, :start_link, [state.runner]}})
       %{state | changed?: false}
     else
       state
@@ -77,5 +76,15 @@ defmodule Air.Service.DataSource.QueryScheduler do
   # -------------------------------------------------------------------
 
   @doc false
-  def start_link(_), do: Parent.GenServer.start_link(__MODULE__, nil, name: __MODULE__)
+  def start_link(opts) do
+    opts = Keyword.merge([runner: &__MODULE__.Starter.run/0], opts)
+
+    {gen_server_opts, opts} =
+      case Keyword.pop(opts, :name, __MODULE__) do
+        {nil, opts} -> {[], opts}
+        {name, opts} -> {[name: name], opts}
+      end
+
+    Parent.GenServer.start_link(__MODULE__, opts, gen_server_opts)
+  end
 end
