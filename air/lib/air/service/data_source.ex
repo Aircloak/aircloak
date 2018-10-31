@@ -355,7 +355,8 @@ defmodule Air.Service.DataSource do
   @spec add_preconfigured_datasource(Map.t()) ::
           {:ok, DataSource.t()} | {:error, :data_source_exists | :group_exists | :no_users}
   def add_preconfigured_datasource(%{name: name, logins: logins, group_name: group_name}) do
-    with {:ok, group} <- add_group(group_name, get_users(logins)) do
+    with {:ok, users} <- get_users(logins),
+         {:ok, group} <- add_group(group_name, users) do
       create_if_not_exists(name, group)
     end
   end
@@ -378,16 +379,20 @@ defmodule Air.Service.DataSource do
     end
   end
 
-  defp get_users(logins),
-    do:
-      logins
-      |> Enum.map(fn login ->
-        case Air.Service.User.get_by_login(login) do
-          {:ok, user} -> user
-          {:error, :not_found} -> nil
-        end
-      end)
-      |> Enum.reject(&is_nil/1)
+  defp get_users(logins) do
+    logins
+    |> Enum.map(fn login ->
+      case Air.Service.User.get_by_login(login) do
+        {:ok, user} -> user
+        {:error, :not_found} -> nil
+      end
+    end)
+    |> Enum.reject(&is_nil/1)
+    |> case do
+      [] -> {:error, :no_users}
+      users -> {:ok, users}
+    end
+  end
 
   defp create_if_not_exists(name, group) do
     case by_names([name]) do
