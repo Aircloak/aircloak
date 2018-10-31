@@ -6,10 +6,6 @@ defmodule Air.Service.DataSource.QuerySchedulerTest do
   alias Air.Service.Query
   alias Air.Service.DataSource.QueryScheduler
 
-  setup do
-    Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
-  end
-
   test "query starting" do
     user = create_user!()
     data_source = create_data_source!(user)
