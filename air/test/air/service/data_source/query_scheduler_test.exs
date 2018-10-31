@@ -45,7 +45,16 @@ defmodule Air.Service.DataSource.QuerySchedulerTest do
     refute_receive {:runner_started, _runner_pid}
   end
 
-  defp start_scheduler!() do
+  test "scheduler periodically starts the runner when it's idle" do
+    start_scheduler!(idle_timeout: 10)
+
+    Enum.each(1..5, fn _ ->
+      assert_receive {:runner_started, runner_pid}
+      send(runner_pid, :continue)
+    end)
+  end
+
+  defp start_scheduler!(opts \\ []) do
     test_process = self()
 
     runner = fn ->
@@ -56,7 +65,7 @@ defmodule Air.Service.DataSource.QuerySchedulerTest do
       end
     end
 
-    {:ok, pid} = QueryScheduler.start_link(name: nil, runner: runner)
+    {:ok, pid} = QueryScheduler.start_link(Keyword.merge([name: nil, runner: runner], opts))
     pid
   end
 end

@@ -17,10 +17,7 @@ defmodule Air.Service.DataSource.QueryScheduler do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(opts) do
-    schedule_start()
-    {:ok, %{changed?: false, runner: Keyword.fetch!(opts, :runner)}}
-  end
+  def init(opts), do: {:ok, %{changed?: false, runner: opts.runner, idle_timeout: opts.idle_timeout}, opts.idle_timeout}
 
   @impl GenServer
   def handle_cast(:notify, state), do: {:noreply, maybe_start_queries(%{state | changed?: true})}
@@ -39,24 +36,17 @@ defmodule Air.Service.DataSource.QueryScheduler do
   end
 
   @impl GenServer
-  def handle_info(:start_queries, state) do
-    schedule_start()
-    {:noreply, maybe_start_queries(%{state | changed?: true})}
-  end
-
-  # this clause handles normal exits of parallel tasks which are started when ecto preloads associations
-  def handle_info({:EXIT, _pid, :normal}, state), do: {:noreply, :ok, state}
+  def handle_info(:timeout, state), do: {:noreply, maybe_start_queries(%{state | changed?: true})}
 
   @impl Parent.GenServer
-  def handle_child_terminated(:query_starter, _meta, _pid, _reason, state), do: {:noreply, maybe_start_queries(state)}
+  def handle_child_terminated(:query_starter, _meta, _pid, _reason, state),
+    do: {:noreply, maybe_start_queries(state), state.idle_timeout}
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  # A safeguard to ensure that we'll start the queries even if we missed some notification.
-  defp schedule_start(),
-    do: Aircloak.in_env(test: nil, else: Process.send_after(self(), :start_queries, :timer.minutes(1)))
+  defp idle_timeout(), do: Aircloak.in_env(test: :infinity, else: :timer.minutes(1))
 
   @doc false
   # Needed in tests to ensure synchronism
@@ -77,7 +67,7 @@ defmodule Air.Service.DataSource.QueryScheduler do
 
   @doc false
   def start_link(opts) do
-    opts = Keyword.merge([runner: &__MODULE__.Starter.run/0], opts)
+    opts = Keyword.merge([runner: &__MODULE__.Starter.run/0, idle_timeout: idle_timeout()], opts)
 
     {gen_server_opts, opts} =
       case Keyword.pop(opts, :name, __MODULE__) do
@@ -85,6 +75,6 @@ defmodule Air.Service.DataSource.QueryScheduler do
         {name, opts} -> {[name: name], opts}
       end
 
-    Parent.GenServer.start_link(__MODULE__, opts, gen_server_opts)
+    Parent.GenServer.start_link(__MODULE__, Map.new(opts), gen_server_opts)
   end
 end
