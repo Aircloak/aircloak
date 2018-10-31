@@ -324,8 +324,6 @@ defmodule Air.Service.DataSource do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp add_group(_name, []), do: {:error, :no_users}
-
   defp add_group(name, users) do
     case Air.Service.User.get_group_by_name(name) do
       {:ok, _group} ->
