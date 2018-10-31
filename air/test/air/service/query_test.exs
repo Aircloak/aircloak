@@ -129,10 +129,8 @@ defmodule Air.Service.QueryTest do
   describe "currently_running/0" do
     test "returns running queries" do
       user = create_user!()
-      _not_started_query = create_query!(user)
-      started_query = create_query!(user, %{query_state: :started})
-      assert [%Air.Schemas.Query{id: query_id}] = Query.currently_running()
-      assert query_id == started_query.id
+      query_ids = [create_query!(user).id, create_query!(user, %{query_state: :started}).id]
+      assert Query.currently_running() |> Enum.map(& &1.id) |> Enum.sort() == Enum.sort(query_ids)
     end
 
     test "does not return not running queries" do
@@ -514,13 +512,13 @@ defmodule Air.Service.QueryTest do
         |> Query.for_display()
   end
 
-  describe ".awiting_start" do
+  describe ".awaiting_start" do
     test "fetching not started queries" do
       user = create_user!()
       q1 = create_query!(user)
       q2 = create_query!(user)
       create_query!(user, %{query_state: :completed})
-      assert Query.awiting_start() |> Enum.map(& &1.id) |> Enum.sort() == Enum.sort([q1.id, q2.id])
+      assert Enum.map(Query.awaiting_start(), & &1.id) == [q1.id, q2.id]
     end
   end
 

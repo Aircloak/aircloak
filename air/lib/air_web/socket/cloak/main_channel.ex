@@ -20,7 +20,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   """
   @spec run_query(pid | nil, map) :: :ok | {:error, any}
   def run_query(channel_pid, query) do
-    with {:ok, _} <- call(channel_pid, "run_query", query, :timer.seconds(5)), do: :ok
+    with {:ok, _} <- call(channel_pid, "run_query", encode(query), :timer.seconds(5)), do: :ok
   end
 
   @doc """
@@ -30,7 +30,8 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   cloak to respond, and returns the result obtained by the cloak.
   """
   @spec describe_query(pid | nil, map) :: {:ok, map} | {:error, any}
-  def describe_query(channel_pid, query_data), do: call(channel_pid, "describe_query", query_data, :timer.seconds(5))
+  def describe_query(channel_pid, query_data),
+    do: call(channel_pid, "describe_query", encode(query_data), :timer.seconds(5))
 
   @doc "Validates the view on the cloak."
   @spec validate_views(pid | nil, map) :: map
@@ -49,6 +50,9 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   @spec stop_query(pid | nil, String.t()) :: :ok | {:error, any}
   def stop_query(channel_pid, query_id) do
     with {:ok, _} <- call(channel_pid, "stop_query", query_id, :timer.seconds(5)), do: :ok
+  catch
+    :exit, _reason ->
+      {:error, :disconnected}
   end
 
   @doc "Returns the list of queries running on this cloak."
@@ -205,6 +209,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
     Logger.info("received result for query #{query_result.query_id}")
     respond_to_cloak(socket, request_id, :ok)
     Air.Service.Query.Lifecycle.result_arrived(query_result)
+    Air.Service.DataSource.QueryScheduler.notify()
     {:noreply, socket}
   end
 
@@ -271,5 +276,22 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
     defp revalidate_views(_data_sources), do: :ok
   else
     defp revalidate_views(data_sources), do: Enum.each(data_sources, &Air.Service.View.revalidate_all_views/1)
+  end
+
+  defp encode(query), do: update_in(query.parameters, &encode_parameters/1)
+
+  defp encode_parameters(parameters) do
+    parameters
+    |> normalize_parameters()
+    |> :erlang.term_to_binary()
+    |> Base.encode16()
+  end
+
+  defp normalize_parameters(nil), do: nil
+  defp normalize_parameters(params) when is_list(params), do: Enum.map(params, &normalize_parameter/1)
+
+  defp normalize_parameter(param) do
+    param = Aircloak.atomize_keys(param)
+    with %{type: string} when is_binary(string) <- param, do: update_in(param.type, &String.to_existing_atom/1)
   end
 end

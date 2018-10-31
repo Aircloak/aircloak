@@ -1,45 +1,27 @@
 defmodule Cloak.Query.Runner.Engine do
   @moduledoc "Execution of SQL queries."
-  alias Cloak.{Sql, DataSource, Query, ResultSender}
-
+  alias Cloak.{Sql, Query}
   require Logger
-
-  @type state_updater :: (ResultSender.query_state() -> any)
-  @type feature_updater :: (Query.features() -> any)
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Executes the SQL query and returns the query result with info messages or the corresponding error."
-  @spec run(
-          DataSource.t(),
-          String.t(),
-          [DataSource.field()],
-          Sql.Query.view_map(),
-          state_updater,
-          feature_updater,
-          Cloak.MemoryReader.query_killer_callbacks()
-        ) :: {:ok, Sql.Query.Result.t(), [String.t()]} | {:error, String.t()}
-  def run(
-        data_source,
-        statement,
-        parameters,
-        views,
-        state_updater,
-        feature_updater,
-        {query_killer_reg, query_killer_unreg}
-      ) do
+  @spec run(Cloak.Query.Runner.args()) :: Cloak.Query.Runner.result()
+  def run(runner_args) do
+    {query_killer_reg, query_killer_unreg} = runner_args.memory_callbacks
+
     query =
-      statement
-      |> parse!(state_updater)
-      |> compile!(data_source, parameters, views, state_updater)
+      runner_args.statement
+      |> parse!(runner_args.state_updater)
+      |> compile!(runner_args)
 
     features = Sql.Query.features(query)
 
-    feature_updater.(features)
+    runner_args.feature_updater.(features)
     query_killer_reg.()
-    result = run_statement(query, features, state_updater)
+    result = run_statement(query, features, runner_args.state_updater)
     query_killer_unreg.()
     {:ok, result, Sql.Query.info_messages(query)}
   rescue
@@ -47,7 +29,7 @@ defmodule Cloak.Query.Runner.Engine do
       {:error, e.message}
 
     e in [Cloak.Sql.CompilationError, Cloak.Sql.Parser.ParseError] ->
-      {:error, Cloak.Sql.ErrorFormat.format(statement, e)}
+      {:error, Cloak.Sql.ErrorFormat.format(runner_args.statement, e)}
   end
 
   # -------------------------------------------------------------------
@@ -59,9 +41,9 @@ defmodule Cloak.Query.Runner.Engine do
     Sql.Parser.parse!(statement)
   end
 
-  defp compile!(parsed_query, data_source, parameters, views, state_updater) do
-    state_updater.(:compiling)
-    Sql.Compiler.compile!(parsed_query, data_source, parameters, views)
+  defp compile!(parsed_query, runner_args) do
+    runner_args.state_updater.(:compiling)
+    Sql.Compiler.compile!(parsed_query, runner_args.data_source, runner_args.parameters, runner_args.views)
   end
 
   defp run_statement(%Sql.Query{command: :show, show: :tables} = query, features, _state_updater),
