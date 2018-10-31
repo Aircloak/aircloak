@@ -334,7 +334,7 @@ The `lcf_buckets_aggregation_limit` is optional and controls the maximum number 
 of low-count filtered rows is done. The default value is 3. This setting can be overridden per data-source. More details
 can be found in the [Low-count filtering](../sql/query-results.md#low-count-filtering) section.
 
-The `max_parallel_queries` field is optional and controls the maximum number of queries that the cloak will run simultaneously. If this setting is not provided, the query parallelism is unbounded.
+The `max_parallel_queries` field is optional and controls the maximum number of queries that the cloak will run simultaneously. The default value is 10.
 
 ### Data source configuration
 

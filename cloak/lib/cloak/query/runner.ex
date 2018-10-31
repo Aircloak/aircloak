@@ -123,7 +123,7 @@ defmodule Cloak.Query.Runner do
   defp max_parallel_queries() do
     Aircloak.in_env(
       test: Application.get_env(:cloak, :max_parallel_queries, :infinity),
-      else: Aircloak.DeployConfig.get("max_parallel_queries", :infinity)
+      else: Aircloak.DeployConfig.get("max_parallel_queries", 10)
     )
   end
 
