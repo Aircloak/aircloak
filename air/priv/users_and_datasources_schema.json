@@ -1,0 +1,41 @@
+{
+  "type": "object",
+  "properties": {
+    "users": {"type": "array", "items": {"$ref": "#/definitions/user"}},
+    "data_sources": {"type": "array", "items": {"$ref": "#/definitions/data_source"}}
+  },
+  "required": ["users"],
+  "additionalProperties": false,
+  "definitions": {
+    "user": {
+      "type": "object",
+      "properties": {
+        "login": {"type": "string"},
+        "password_hash": {
+          "type": "string",
+          "pattern": "\\$pbkdf2\\-sha512\\$.{116}",
+          "$comment": "The users password hashed using the Aircloak Insights hashing utility"
+        },
+        "admin": {"type": "boolean"}
+      },
+      "additionalProperties": false,
+      "required": ["login", "password_hash"]
+    },
+    "data_source": {
+      "type": "object",
+      "properties": {
+        "name": {"type": "string"},
+        "logins": {"$ref": "#/definitions/stringArray"},
+        "group_name": {"type": "string"}
+      },
+      "additionalProperties": false,
+      "required": ["name", "logins", "group_name"]
+    },
+    "stringArray": {
+      "type": "array",
+      "items": { "type": "string"},
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  }
+}
