@@ -14,7 +14,7 @@ defmodule Air.Service.Password do
   @spec hash(String.t()) :: String.t()
   def hash(password), do: Hash.hashpwsalt(password)
 
-  @doc "Validates whether a password"
+  @doc "Validates whether a password is valid"
   @spec validate(String.t(), nil | String.t()) :: boolean
   def validate(_password, nil), do: Hash.dummy_checkpw()
   def validate(password, hash), do: Hash.checkpw(password, hash)
