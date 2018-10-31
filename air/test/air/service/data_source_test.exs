@@ -400,32 +400,96 @@ defmodule Air.Service.DataSourceTest do
     end
   end
 
-  describe ".add_data_sources_from_file_content" do
-    test "ignores data sources with no users" do
-      assert [] == DataSource.add_data_sources_from_file_content("foobar")
-    end
-
+  describe ".add_preconfigured_datasource" do
     test "creates a data source and gives the users access to it" do
       user = TestRepoHelper.create_user!()
-      assert [%{data_source: data_source}] = DataSource.add_data_sources_from_file_content("DS1:#{user.login}")
+
+      data = %{
+        logins: [user.login],
+        name: "foobar",
+        group_name: "foobar_group"
+      }
+
+      assert {:ok, data_source} = DataSource.add_preconfigured_datasource(data)
       assert [user.login] == data_source |> DataSource.users() |> Enum.map(& &1.login)
-    end
-
-    test "returns a list of the users that have been added" do
-      user = TestRepoHelper.create_user!()
-
-      assert [%{data_source: data_source, users: users}] =
-               DataSource.add_data_sources_from_file_content("DS1:#{user.login}")
-
-      assert Enum.map(users, & &1.login) == data_source |> DataSource.users() |> Enum.map(& &1.login)
     end
 
     test "ignores missing users" do
       user = TestRepoHelper.create_user!()
+      login = user.login
 
-      assert [%{users: [used_user]}] = DataSource.add_data_sources_from_file_content("DS1:#{user.login},missing,users")
+      data = %{
+        logins: [login, "missing", "user"],
+        name: "foobar",
+        group_name: "foobar_group"
+      }
 
-      assert user.login == used_user.login
+      assert {:ok, data_source} = DataSource.add_preconfigured_datasource(data)
+      assert [^login] = data_source |> DataSource.users() |> Enum.map(& &1.login)
+    end
+
+    test "names the group used for assigning users as configured" do
+      user = TestRepoHelper.create_user!()
+
+      data = %{
+        logins: [user.login, "missing", "user"],
+        name: "foobar",
+        group_name: "foobar_group"
+      }
+
+      assert {:ok, data_source} = DataSource.add_preconfigured_datasource(data)
+      assert [group] = data_source.groups
+      assert group.name == "foobar_group"
+    end
+
+    test "the created group does not have give users admin rights" do
+      user = TestRepoHelper.create_user!()
+
+      data = %{
+        logins: [user.login],
+        name: "foobar",
+        group_name: "foobar_group"
+      }
+
+      assert {:ok, data_source} = DataSource.add_preconfigured_datasource(data)
+      assert [group] = data_source.groups
+      refute group.admin
+    end
+
+    test "fails if data source exists" do
+      data_source = TestRepoHelper.create_data_source!()
+      user = TestRepoHelper.create_user!()
+
+      data = %{
+        logins: [user.login],
+        name: data_source.name,
+        group_name: "foobar_group"
+      }
+
+      assert {:error, :data_source_exists} == DataSource.add_preconfigured_datasource(data)
+    end
+
+    test "fails if the group already exists" do
+      user = TestRepoHelper.create_user!()
+      group = TestRepoHelper.create_group!()
+
+      data = %{
+        logins: [user.login],
+        name: "foobar",
+        group_name: group.name
+      }
+
+      assert {:error, :group_exists} == DataSource.add_preconfigured_datasource(data)
+    end
+
+    test "fails if no users would be given access to the data source" do
+      data = %{
+        logins: ["bogus", "logins"],
+        name: "foobar",
+        group_name: "foobar_group"
+      }
+
+      assert {:error, :no_users} == DataSource.add_preconfigured_datasource(data)
     end
   end
 
