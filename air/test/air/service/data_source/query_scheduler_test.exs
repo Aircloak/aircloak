@@ -54,6 +54,18 @@ defmodule Air.Service.DataSource.QuerySchedulerTest do
     end)
   end
 
+  test "scheduler periodically retries the runner after a brief timeout if it crashes" do
+    scheduler = start_scheduler!(failure_timeout: 10)
+
+    QueryScheduler.notify(scheduler)
+    assert_receive {:runner_started, runner_pid}
+
+    ExUnit.CaptureLog.capture_log(fn ->
+      send(runner_pid, :crash)
+      assert_receive {:runner_started, _runner_pid}
+    end)
+  end
+
   defp start_scheduler!(opts \\ []) do
     test_process = self()
 
@@ -62,6 +74,7 @@ defmodule Air.Service.DataSource.QuerySchedulerTest do
 
       receive do
         :continue -> :ok
+        :crash -> exit(:crash)
       end
     end
 

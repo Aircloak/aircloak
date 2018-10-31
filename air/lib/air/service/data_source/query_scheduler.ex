@@ -17,7 +17,7 @@ defmodule Air.Service.DataSource.QueryScheduler do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(opts), do: {:ok, %{changed?: false, runner: opts.runner, idle_timeout: opts.idle_timeout}, opts.idle_timeout}
+  def init(initial_state), do: {:ok, Map.put(initial_state, :changed?, false), initial_state.idle_timeout}
 
   @impl GenServer
   def handle_cast(:notify, state), do: {:noreply, maybe_start_queries(%{state | changed?: true})}
@@ -39,14 +39,14 @@ defmodule Air.Service.DataSource.QueryScheduler do
   def handle_info(:timeout, state), do: {:noreply, maybe_start_queries(%{state | changed?: true})}
 
   @impl Parent.GenServer
-  def handle_child_terminated(:query_starter, _meta, _pid, _reason, state),
-    do: {:noreply, maybe_start_queries(state), state.idle_timeout}
+  def handle_child_terminated(:query_starter, _meta, _pid, reason, state) do
+    timeout = if reason == :normal, do: state.idle_timeout, else: state.failure_timeout
+    {:noreply, maybe_start_queries(state), timeout}
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp idle_timeout(), do: Aircloak.in_env(test: :infinity, else: :timer.minutes(1))
 
   @doc false
   # Needed in tests to ensure synchronism
@@ -67,14 +67,24 @@ defmodule Air.Service.DataSource.QueryScheduler do
 
   @doc false
   def start_link(opts) do
-    opts = Keyword.merge([runner: &__MODULE__.Starter.run/0, idle_timeout: idle_timeout()], opts)
+    opts = Keyword.merge(default_opts(), opts)
 
-    {gen_server_opts, opts} =
-      case Keyword.pop(opts, :name, __MODULE__) do
-        {nil, opts} -> {[], opts}
-        {name, opts} -> {[name: name], opts}
+    gen_server_opts =
+      case Keyword.get(opts, :name) do
+        nil -> []
+        name -> [name: name]
       end
 
-    Parent.GenServer.start_link(__MODULE__, Map.new(opts), gen_server_opts)
+    initial_state = opts |> Keyword.take(~w/runner idle_timeout failure_timeout/a) |> Map.new()
+    Parent.GenServer.start_link(__MODULE__, initial_state, gen_server_opts)
+  end
+
+  defp default_opts() do
+    [
+      name: __MODULE__,
+      runner: &__MODULE__.Starter.run/0,
+      idle_timeout: Aircloak.in_env(test: :infinity, else: :timer.minutes(1)),
+      failure_timeout: Aircloak.in_env(test: :infinity, else: :timer.seconds(10))
+    ]
   end
 end
