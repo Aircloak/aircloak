@@ -13,6 +13,10 @@ defmodule Air.Service.Password.Test do
     test "hashed passwords differ" do
       refute Password.hash(@password <> "1") == Password.hash(@password <> "2")
     end
+
+    test "passwords hashed multiple times differ" do
+      refute Password.hash(@password) == Password.hash(Password.hash(@password))
+    end
   end
 
   describe ".validate" do
