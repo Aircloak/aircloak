@@ -53,8 +53,7 @@ defmodule Air do
     with {:ok, _pid} = result <- Air.Supervisor.start_link() do
       load_license()
       load_privacy_policy()
-      load_users()
-      load_datasources()
+      load_users_and_datasources()
       result
     end
   end
@@ -176,31 +175,67 @@ defmodule Air do
     end)
   end
 
-  defp load_users() do
-    on_setting_file("user_credentials_file", fn credentials_content, _path ->
-      case Air.Service.User.add_users_from_credentials_file_content(credentials_content) do
-        [] ->
-          :ok
+  defp load_users_and_datasources() do
+    on_setting_file("users_and_datasources_file", fn raw_users_and_datasources, path ->
+      case Aircloak.Json.safe_decode(raw_users_and_datasources) do
+        {:ok, map} ->
+          main_error =
+            "Could not validate the format of the users and data sources file `#{path}` " <>
+              "configured in the Insights Air configuration under the site parameter"
 
-        users ->
-          user_logins = users |> Enum.map(& &1.login) |> Enum.join(", ")
-          Logger.info("Created user accounts for: #{user_logins}")
+          case Aircloak.validate_decoded_json(:air, "users_and_datasources_schema.json", map, main_error) do
+            :ok ->
+              map = Aircloak.atomize_keys(map)
+              add_users(map.users)
+              add_data_sources(map.data_sources)
+
+            {:error, message} ->
+              Logger.error(message)
+          end
       end
     end)
   end
 
-  defp load_datasources() do
-    on_setting_file("data_sources_file", fn data_sources_content, _path ->
-      case Air.Service.DataSource.add_data_sources_from_file_content(data_sources_content) do
-        [] ->
-          :ok
+  defp add_users(users) do
+    users
+    |> Enum.map(fn user_data ->
+      case Air.Service.User.add_preconfigured_user(user_data) do
+        :error -> nil
+        {:ok, user} -> user
+      end
+    end)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.map(& &1.login)
+    |> case do
+      [] ->
+        []
 
-        data_sources ->
-          data_sources
-          |> Enum.map(fn data_source_info ->
-            user_logins = data_source_info.users |> Enum.map(& &1.login) |> Enum.join(", ")
-            Logger.info("Created data source `#{data_source_info.data_source.name}`. It's available to: #{user_logins}")
-          end)
+      added_logins ->
+        Logger.info("Added user accounts for logins: #{Enum.join(added_logins, ", ")}")
+    end
+  end
+
+  def add_data_sources(data_sources) do
+    data_sources
+    |> Enum.each(fn %{name: name, group_name: group_name} = data_source_data ->
+      case Air.Service.DataSource.add_preconfigured_datasource(data_source_data) do
+        {:error, :no_users} ->
+          Logger.info("Did not add data source `#{name}`. It would not be available to any registered users.")
+
+        {:error, :group_exists} ->
+          Logger.info("Did not add data source `#{name}`. A group with name `#{group_name}` already exists.")
+
+        {:error, :data_source_exists} ->
+          Logger.info("Did not add data source `#{name}`. It already exists.")
+
+        {:ok, data_source} ->
+          user_logins =
+            data_source
+            |> Air.Service.DataSource.users()
+            |> Enum.map(& &1.login)
+            |> Enum.join(", ")
+
+          Logger.info("Added data source `#{name}`. It's available to the following users: #{user_logins}.")
       end
     end)
   end
