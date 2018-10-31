@@ -466,6 +466,17 @@ defmodule Air.Service.UserTest do
     end
   end
 
+  describe ".get_group_by_name" do
+    test "returns not found for bogus name" do
+      assert {:error, :not_found} = User.get_group_by_name("bogus")
+    end
+
+    test "returns group if exists" do
+      group = TestRepoHelper.create_group!()
+      assert {:ok, _} = User.get_group_by_name(group.name)
+    end
+  end
+
   describe ".add_preconfigured_user" do
     test "adds unknown user" do
       data = %{

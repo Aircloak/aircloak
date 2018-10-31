@@ -357,6 +357,15 @@ defmodule Air.Service.User do
   @spec admin_groups() :: [Group.t()]
   def admin_groups(), do: Repo.all(from(g in Group, where: g.admin))
 
+  @doc "Returns a group by name"
+  @spec get_group_by_name(String.t()) :: {:ok, Group.t()} | {:error, :not_found}
+  def get_group_by_name(name) do
+    case(Air.Repo.get_by(Air.Schemas.Group, name: name)) do
+      nil -> {:error, :not_found}
+      group -> {:ok, group}
+    end
+  end
+
   @doc "Returns the number format settings for the specified user."
   @spec number_format_settings(User.t()) :: Map.t()
   def number_format_settings(user) do
