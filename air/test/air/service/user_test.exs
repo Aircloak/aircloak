@@ -466,41 +466,47 @@ defmodule Air.Service.UserTest do
     end
   end
 
-  describe ".add_users_from_credentials_file_content" do
-    test "ignores rubbish" do
-      users = User.all()
-      assert [] == User.add_users_from_credentials_file_content("bogus file content")
-      assert users == User.all()
-    end
+  describe ".add_preconfigured_user" do
+    test "adds unknown user" do
+      data = %{
+        login: "login",
+        password_hash: "hash"
+      }
 
-    test "adds unknown users" do
-      content = """
-      login1:password1hash
-      login2:password2hash
-      """
-
-      assert [user1, user2] = User.add_users_from_credentials_file_content(content)
-      assert user1.login == "login1"
-      assert user2.login == "login2"
-      assert user1.hashed_password == "password1hash"
-      assert user2.hashed_password == "password2hash"
+      assert {:ok, user} = User.add_preconfigured_user(data)
+      assert user.login == "login"
+      assert user.hashed_password == "hash"
     end
 
     test "ignores existing users" do
       user = TestRepoHelper.create_user!()
-      content = "#{user.login}:#{user.hashed_password}"
-      assert [] == User.add_users_from_credentials_file_content(content)
+
+      data = %{
+        login: user.login,
+        password_hash: user.hashed_password
+      }
+
+      assert :error == User.add_preconfigured_user(data)
     end
 
     test "creates user accounts that can be used to log in" do
-      content = "login:#{Air.Service.Password.hash("password1234")}"
-      assert [user] = User.add_users_from_credentials_file_content(content)
+      data = %{
+        login: "login",
+        password_hash: Air.Service.Password.hash("password1234")
+      }
+
+      assert {:ok, user} = User.add_preconfigured_user(data)
       assert {:ok, _user} = User.login("login", "password1234")
     end
 
     test "creates admin users" do
-      content = "login:pass:admin"
-      assert [user] = User.add_users_from_credentials_file_content(content)
+      data = %{
+        login: "login",
+        password_hash: "hash",
+        admin: true
+      }
+
+      assert {:ok, user} = User.add_preconfigured_user(data)
       assert user |> Air.Repo.preload(:groups) |> Air.Schemas.User.admin?()
     end
   end

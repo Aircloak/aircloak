@@ -416,45 +416,26 @@ defmodule Air.Service.User do
     end
   end
 
-  @doc """
-  Adds users from a user credentials file content. The content will take the form of:
+  @doc "Adds a user preconfigured in a users or data source config file."
+  @spec add_preconfigured_user(Map.t()) :: {:ok, User.t()} | :error
+  def add_preconfigured_user(user_data) do
+    changeset =
+      %User{}
+      |> user_changeset(%{login: user_data.login, name: user_data.login})
+      |> put_change(:hashed_password, user_data.password_hash)
 
-    login:password-hash
-
-  Returns a list of users that were added.
-  Silently ignores users that already exist in the system.
-  """
-  @spec add_users_from_credentials_file_content(String.t()) :: [User.t()]
-  def add_users_from_credentials_file_content(content) do
-    content
-    |> String.split("\n", trim: true)
-    |> Enum.map(&String.split(&1, ":", trim: true))
-    |> Enum.map(fn
-      [login, hash] -> %{login: login, password_hash: hash, admin: false}
-      [login, hash, "admin"] -> %{login: login, password_hash: hash, admin: true}
-      [login, hash, _] -> %{login: login, password_hash: hash, admin: false}
-      _ -> :error
-    end)
-    |> Enum.reject(&(&1 == :error))
-    |> Enum.flat_map(fn user_data ->
-      changeset =
-        %User{}
-        |> user_changeset(%{login: user_data.login, name: user_data.login})
-        |> put_change(:hashed_password, user_data.password_hash)
-
-      user_result =
-        if user_data.admin do
-          user_changeset(changeset, %{groups: [get_admin_group().id]})
-        else
-          changeset
-        end
-        |> Repo.insert()
-
-      case user_result do
-        {:ok, user} -> [user]
-        {:error, _} -> []
+    user_result =
+      if Map.get(user_data, :admin, false) do
+        user_changeset(changeset, %{groups: [get_admin_group().id]})
+      else
+        changeset
       end
-    end)
+      |> Repo.insert()
+
+    case user_result do
+      {:error, _} -> :error
+      {:ok, _user} = result -> result
+    end
   end
 
   # -------------------------------------------------------------------
