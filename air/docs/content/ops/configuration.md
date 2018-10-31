@@ -308,7 +308,8 @@ The general shape of `config.json` is:
   "salt": string,
   "data_sources": string,
   "concurrency": integer,
-  "lcf_buckets_aggregation_limit": integer
+  "lcf_buckets_aggregation_limit": integer,
+  "max_parallel_queries": positive_integer
 }
 ```
 
@@ -332,6 +333,8 @@ executing the query faster, but also consuming more memory. This setting can be 
 The `lcf_buckets_aggregation_limit` is optional and controls the maximum number of columns for which partial aggregation
 of low-count filtered rows is done. The default value is 3. This setting can be overridden per data-source. More details
 can be found in the [Low-count filtering](../sql/query-results.md#low-count-filtering) section.
+
+The `max_parallel_queries` field is optional and controls the maximum number of queries that the cloak will run simultaneously. If this setting is not provided, the query parallelism is unbounded.
 
 ### Data source configuration
 
