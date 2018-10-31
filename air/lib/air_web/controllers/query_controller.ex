@@ -23,15 +23,7 @@ defmodule AirWeb.QueryController do
   # -------------------------------------------------------------------
 
   def create(conn, %{"query" => params}) do
-    with {:ok, query} <- create_query(conn, params) do
-      DataSource.start_query(
-        query,
-        data_source_id_spec(params),
-        audit_meta: audit_log_meta(conn),
-        session_id: Map.get(params, "session_id")
-      )
-    end
-    |> case do
+    case create_query(conn, params) do
       {:ok, query} -> json(conn, %{success: true, query_id: query.id})
       {:error, reason} -> query_error(conn, reason)
     end
@@ -53,7 +45,7 @@ defmodule AirWeb.QueryController do
            before
          ) do
       {:ok, queries} ->
-        json(conn, Enum.map(queries, &Query.for_display(&1, Air.Service.Query.buckets(&1, 0))))
+        json(conn, Enum.map(queries, &Air.Service.Query.for_display(&1, Air.Service.Query.buckets(&1, 0))))
 
       _ ->
         send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
@@ -103,12 +95,8 @@ defmodule AirWeb.QueryController do
   def cancel(conn, %{"id" => query_id}) do
     case Air.Service.Query.get_as_user(conn.assigns.current_user, query_id) do
       {:ok, query} ->
-        query
-        |> DataSource.stop_query(conn.assigns.current_user, audit_log_meta(conn))
-        |> case do
-          :ok -> json(conn, %{success: true})
-          {:error, reason} -> query_error(conn, reason)
-        end
+        DataSource.stop_query(query)
+        json(conn, %{success: true})
 
       _ ->
         send_resp(conn, Status.code(:not_found), "A query with that id does not exist")
@@ -142,20 +130,6 @@ defmodule AirWeb.QueryController do
   defp query_error(conn, :unauthorized),
     do: send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
 
-  defp query_error(conn, :not_connected),
-    do:
-      send_resp(
-        conn,
-        Status.code(:service_unavailable),
-        "No cloak is available for the given data source"
-      )
-
-  defp query_error(conn, :timeout), do: send_resp(conn, Status.code(:gateway_timeout), "The cloak connection timed out")
-  defp query_error(conn, :internal_error), do: send_resp(conn, Status.code(:internal_server_error), "")
-
-  defp query_error(conn, :too_many_queries),
-    do: send_resp(conn, Status.code(:service_unavailable), "Too many queries running on the cloak.")
-
   defp query_error(conn, other_error) do
     Logger.error(fn -> "Query start error: #{other_error}" end)
     json(conn, %{success: false, reason: other_error})
@@ -172,7 +146,7 @@ defmodule AirWeb.QueryController do
     # new style result -> compute json in streaming fashion and send chunked response
     json_without_rows =
       query
-      |> Query.for_display()
+      |> Air.Service.Query.for_display()
       |> Poison.encode!(strict_keys: true)
 
     prefix_size = byte_size(json_without_rows) - 1
@@ -251,12 +225,14 @@ defmodule AirWeb.QueryController do
 
   defp create_query(conn, params) do
     Air.Service.Query.create(
+      data_source_id_spec(params),
       Map.get(params, "id", :autogenerate),
       conn.assigns.current_user,
       conn.private.context,
       Map.fetch!(params, "statement"),
       _parameters = [],
-      session_id: Map.get(params, "session_id")
+      session_id: Map.get(params, "session_id"),
+      audit_meta: audit_log_meta(conn)
     )
   end
 end

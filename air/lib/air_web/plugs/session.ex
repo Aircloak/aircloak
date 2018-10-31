@@ -34,7 +34,7 @@ defmodule AirWeb.Plug.Session do
           |> halt()
 
         token ->
-          case Air.Token.user_for_token(token, Keyword.fetch!(opts, :access), max_age: :infinity) do
+          case Air.Service.Token.user_for_token(token, Keyword.fetch!(opts, :access), max_age: :infinity) do
             :error ->
               conn
               |> put_status(Plug.Conn.Status.code(:unauthorized))

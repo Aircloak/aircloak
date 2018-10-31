@@ -3,13 +3,15 @@ defmodule Air.Service.Query do
 
   alias Air.Repo
   alias Air.Schemas.{DataSource, Query, ResultChunk, User}
+  alias Air.Service.Token
   alias AirWeb.Socket.Frontend.UserChannel
+  alias AirWeb.Router
 
   import Ecto.Query
   require Logger
 
   @type query_id :: Query.id() | :autogenerate
-  @type option :: {:session_id, Query.session_id()}
+  @type option :: {:session_id, Query.session_id()} | {:audit_meta, map}
   @type options :: [option]
 
   @type user_id :: non_neg_integer
@@ -27,38 +29,78 @@ defmodule Air.Service.Query do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Produces a JSON blob of the query and its result for rendering"
+  @spec for_display(Query.t(), nil | [map]) :: Map.t()
+  def for_display(query, buckets \\ nil) do
+    query = Repo.preload(query, [:user, :data_source])
+
+    query
+    |> Map.take([:id, :data_source_id, :statement, :session_id, :inserted_at, :query_state])
+    |> Map.merge(query.result || %{})
+    |> add_result(buckets)
+    |> Map.merge(data_source_info(query))
+    |> Map.merge(user_info(query))
+    |> Map.put(:completed, completed?(query))
+    |> Map.merge(permalinks(query))
+  end
+
   @doc """
   Creates and registers a query placeholder in the database. Given that it has an ID
   it can be used to attach and dispatch events to, and passed around for execution.
   """
   @spec create(
+          Air.Service.DataSource.data_source_id_spec(),
           query_id,
           User.t(),
           Query.Context.t(),
           Query.statement(),
           Query.parameters(),
           options
-        ) :: {:ok, Query.t()} | {:error, :unable_to_create_query}
-  def create(query_id, user, context, statement, parameters, opts) do
-    if Air.Service.User.is_enabled?(user) do
-      user
-      |> Ecto.build_assoc(:queries)
-      |> Query.changeset(%{
-        statement: statement,
-        parameters: %{values: parameters},
-        session_id: Keyword.get(opts, :session_id),
-        query_state: :created,
-        context: context
-      })
-      |> add_id_to_changeset(query_id)
-      |> Repo.insert()
-      |> case do
-        {:ok, query} -> {:ok, Repo.preload(query, :user)}
-        {:error, _changeset} -> {:error, :unable_to_create_query}
+        ) :: {:ok, Query.t()} | {:error, :unable_to_create_query | :unauthorized}
+  def create(data_source_id_spec, query_id, user, context, statement, parameters, opts) do
+    with {:ok, data_source} <- Air.Service.DataSource.fetch_as_user(data_source_id_spec, user) do
+      if Air.Service.User.is_enabled?(user) do
+        user
+        |> Ecto.build_assoc(:queries)
+        |> Query.changeset(%{
+          statement: statement,
+          parameters: %{values: parameters},
+          session_id: Keyword.get(opts, :session_id),
+          audit_meta: Keyword.get(opts, :audit_meta),
+          data_source_id: data_source.id,
+          query_state: :created,
+          context: context
+        })
+        |> add_id_to_changeset(query_id)
+        |> Repo.insert()
+        |> case do
+          {:ok, query} ->
+            Air.Service.DataSource.QueryScheduler.notify()
+            {:ok, Repo.preload(query, :user)}
+
+          {:error, _changeset} ->
+            {:error, :unable_to_create_query}
+        end
+      else
+        {:error, :unable_to_create_query}
       end
-    else
-      {:error, :unable_to_create_query}
     end
+  end
+
+  @doc "Returns queries, ordered by `inserted_at`, which have been created but not yet started on any cloak."
+  @spec awaiting_start() :: [Query.t()]
+  def awaiting_start() do
+    expired = NaiveDateTime.add(NaiveDateTime.utc_now(), -:timer.hours(24), :millisecond)
+
+    from(
+      q in Query,
+      where: q.query_state == ^:created and is_nil(q.cloak_id) and q.inserted_at > ^expired,
+      order_by: [asc: q.inserted_at],
+      preload: [:user, :data_source]
+    )
+    |> Repo.all()
+    |> Stream.reject(&is_nil(&1.data_source))
+    |> Enum.reject(&is_nil(&1.user))
   end
 
   @doc """
@@ -104,9 +146,20 @@ defmodule Air.Service.Query do
     |> Repo.preload([:groups])
     |> query_scope()
     |> get(id)
+  end
+
+  @doc """
+  Returns the query with the given id, without associations preloaded. In most cases `get_as_user` should be used
+  instead as it enforces access rules. The client of this function is responsible for enforcing any such rules.
+  """
+  @spec get(Ecto.Queryable.t(), query_id) :: {:ok, Query.t()} | {:error, :not_found | :invalid_id}
+  def get(scope \\ Query, id) do
+    case Repo.get(scope, id) do
+      nil -> {:error, :not_found}
+      query -> {:ok, query}
+    end
   rescue
-    Ecto.Query.CastError ->
-      {:error, :invalid_id}
+    Ecto.Query.CastError -> {:error, :invalid_id}
   end
 
   @doc """
@@ -144,7 +197,7 @@ defmodule Air.Service.Query do
 
   @doc "Returns a list of the queries that are currently executing in all contexts."
   @spec currently_running() :: [Query.t()]
-  def currently_running(), do: pending() |> Repo.all()
+  def currently_running(), do: Repo.all(from(q in pending()))
 
   @doc "Returns a list of queries that are currently executing, started by the given user on the given data source."
   @spec currently_running(User.t(), DataSource.t(), Query.Context.t()) :: [Query.t()]
@@ -284,13 +337,6 @@ defmodule Air.Service.Query do
   defp error_text(%{error: error}) when is_binary(error), do: error
   defp error_text(%{cancelled: true}), do: "Cancelled."
   defp error_text(_), do: nil
-
-  defp get(scope \\ Query, id) do
-    case Repo.get(scope, id) do
-      nil -> {:error, :not_found}
-      query -> {:ok, query}
-    end
-  end
 
   defp log_result_error(query, result) do
     if result[:error],
@@ -461,6 +507,28 @@ defmodule Air.Service.Query do
   defp include_filtered(items, schema, filtered_ids) do
     filtered_items = schema |> where([q], q.id in ^filtered_ids) |> Repo.all()
     Enum.uniq(items ++ filtered_items)
+  end
+
+  # -------------------------------------------------------------------
+  # Helpers for for_display
+  # -------------------------------------------------------------------
+
+  defp data_source_info(query),
+    do: %{data_source: %{name: Map.get(query.data_source || %{}, :name, "Unknown data source")}}
+
+  defp user_info(query), do: %{user: %{name: Map.get(query.user || %{}, :name, "Unknown user")}}
+
+  defp completed?(query), do: query.query_state in [:error, :completed, :cancelled]
+
+  defp add_result(result, nil), do: result
+  defp add_result(result, buckets), do: Map.put(result, :rows, buckets)
+
+  defp permalinks(query) do
+    %{
+      private_permalink:
+        Router.Helpers.private_permalink_path(AirWeb.Endpoint, :query, Token.private_query_token(query)),
+      public_permalink: Router.Helpers.public_permalink_path(AirWeb.Endpoint, :query, Token.public_query_token(query))
+    }
   end
 
   # -------------------------------------------------------------------

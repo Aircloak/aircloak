@@ -60,7 +60,7 @@ defmodule Air.Service.Export.Test do
   end
 
   test "includes api tokens", %{user: user} do
-    Air.Token.create_api_token(user, :api, "Some token")
+    Air.Service.Token.create_api_token(user, :api, "Some token")
 
     assert [%{"access" => "api", "description" => "Some token"}] = export(user)["api_tokens"]
   end

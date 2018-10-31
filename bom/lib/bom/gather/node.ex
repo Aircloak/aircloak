@@ -13,7 +13,7 @@ defmodule BOM.Gather.Node do
   """
   @spec run(String.t()) :: {String.t(), [Package.t()]}
   def run(path) do
-    {path, path |> list_packages() |> Enum.map(&package/1)}
+    {path, path |> list_packages() |> Enum.filter(&package_json_present?/1) |> Enum.map(&package/1)}
   end
 
   # -------------------------------------------------------------------
@@ -136,5 +136,9 @@ defmodule BOM.Gather.Node do
         # parent directory to multiple packages.
         [path]
     end
+  end
+
+  defp package_json_present?(path) do
+    path |> Path.join("package.json") |> File.exists?()
   end
 end

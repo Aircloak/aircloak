@@ -3,6 +3,7 @@ defmodule AirWeb.QueryController.Test do
   # (see https://hexdocs.pm/ecto/Ecto.Adapters.SQL.Sandbox.html)
   use AirWeb.ConnCase, async: false
 
+  import Aircloak.AssertionHelper
   import Air.{TestConnHelper, TestRepoHelper}
   alias Air.{TestSocketHelper, Repo}
   alias Phoenix.Channels.GenSocketClient.TestSocket
@@ -31,6 +32,7 @@ defmodule AirWeb.QueryController.Test do
     }
 
     data_source = Air.Service.DataSource.create!(params)
+    on_exit(&Air.Service.DataSource.QueryScheduler.sync/0)
     {:ok, data_source: data_source, user: user}
   end
 
@@ -47,6 +49,7 @@ defmodule AirWeb.QueryController.Test do
       end)
 
     TestSocketHelper.respond_to_start_task_request!(socket, :ok)
+    Air.Service.DataSource.QueryScheduler.sync()
 
     assert %{"success" => true} = Poison.decode!(Task.await(task))
   end
@@ -66,6 +69,7 @@ defmodule AirWeb.QueryController.Test do
       end)
 
     TestSocketHelper.respond_to_start_task_request!(socket, :ok)
+    Air.Service.DataSource.QueryScheduler.sync()
 
     assert %{"success" => true, "query_id" => ^query_id} = Poison.decode!(Task.await(task))
   end
@@ -107,6 +111,7 @@ defmodule AirWeb.QueryController.Test do
     query_id = query.id
 
     assert {:ok, {"main", "air_call", %{event: "stop_query", payload: ^query_id}}} = TestSocket.await_message(socket)
+    assert soon(is_nil(Air.Service.Query.Lifecycle.whereis(query_id)))
   end
 
   test "returns unauthorized when not authorized to query data source", context do
@@ -115,14 +120,6 @@ defmodule AirWeb.QueryController.Test do
     }
 
     assert login(create_user!()) |> post("/queries", query_data_params) |> response(401)
-  end
-
-  test "returns error when data source unavailable", context do
-    query_data_params = %{
-      query: %{statement: "Query code", data_source_id: context[:data_source].id}
-    }
-
-    login(context[:user]) |> post("/queries", query_data_params) |> response(503)
   end
 
   test "fetching desired chunk", context do

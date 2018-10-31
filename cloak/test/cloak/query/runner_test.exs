@@ -65,7 +65,7 @@ defmodule Cloak.Query.RunnerTest do
   defp runner_fun() do
     test_pid = self()
 
-    fn _data_source, _statement, _parameters, _views, _state_updater, _feature_updater, _memory_callbacks ->
+    fn _runner_args ->
       send(test_pid, {:get_runner_result, self()})
 
       receive do

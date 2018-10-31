@@ -277,6 +277,23 @@ defmodule Air.Service.DataSourceTest do
       assert data_source.shadow_tables_computed_count == 2
       assert data_source.shadow_tables_failed == ["table_id.failure"]
     end
+
+    test "[Issue #3208] does not crash for old cloaks" do
+      tables = [
+        %{
+          id: "table_id",
+          columns: [%{name: "col1"}]
+        }
+      ]
+
+      data_source = DataSource.create_or_update_data_source("new_name", tables, [])
+
+      assert data_source.columns_count == 1
+      assert data_source.shadow_tables_computed_count == 1
+      assert data_source.isolated_computed_count == 1
+      assert data_source.shadow_tables_failed == []
+      assert data_source.isolated_failed == []
+    end
   end
 
   test "should be able to tell when a data source is available" do

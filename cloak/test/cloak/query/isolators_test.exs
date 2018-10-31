@@ -31,6 +31,14 @@ defmodule Cloak.Query.Isolators.Test do
     assert_forbidden("SELECT COUNT(*) FROM query_isolators WHERE sqrt($col) = 10")
   end
 
+  test "clear GROUP BYs are allowed for isolators" do
+    assert_allowed("SELECT COUNT(*) FROM query_isolators GROUP BY $col")
+  end
+
+  test "GROUP BYs with math are forbidden for isolators" do
+    assert_forbidden("SELECT COUNT(*) FROM query_isolators GROUP BY $col / 2")
+  end
+
   test "IN is forbidden" do
     assert_forbidden("SELECT COUNT(*) FROM query_isolators WHERE $col IN (1, 2)")
   end
@@ -86,12 +94,12 @@ defmodule Cloak.Query.Isolators.Test do
 
   defp assert_allowed(query) do
     for column <- ["isolating", "regular"] do
-      query |> String.replace("$col", column) |> assert_query(%{rows: [_ | _]})
+      query |> String.replace("$col", column) |> assert_query(%{rows: rows} when not is_nil(rows))
     end
   end
 
   defp assert_forbidden(query) do
-    query |> String.replace("$col", "regular") |> assert_query(%{rows: [_ | _]})
+    query |> String.replace("$col", "regular") |> assert_query(%{rows: rows} when not is_nil(rows))
     query |> String.replace("$col", "isolating") |> assert_query(%{error: error})
     assert error =~ ~r/The column `isolating.*` is isolating/
   end

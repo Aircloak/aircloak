@@ -323,6 +323,7 @@ defmodule Cloak.Sql.Query do
 
       %{ast: subquery} ->
         column_index = Enum.find_index(subquery.column_titles, &(&1 == column.name))
+        false = is_nil(column_index)
         column = Enum.at(subquery.columns, column_index)
         {column, subquery}
     end

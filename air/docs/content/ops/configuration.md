@@ -56,19 +56,21 @@ The following fields are optional:
 
 ### Web site configuration
 
-This part of the configuration is used to configure the web server of the Insights Air component. The shape of this section is as follows:
+This part of the configuration is used to configure the web server of the Insights Air component. The shape of this
+section is as follows:
 
 ```
 "site": {
   "auth_secret": secret_string,
   "endpoint_key_base": secret_string,
+  "cloak_secret": secret_string,
   "master_password": string,
   "certfile": string,
   "keyfile": string
 },
 ```
 
-In the snippet above, the type `secret_string` indicates a string which should consist of at least 64 characters. The corresponding parameters are used to sign and encrypt various data sent to the client. Make sure to choose values which are random enough, or otherwise the security of the system might be compromised. For example, to generate a random secret, you can use the following command:
+In the snippet above, the type `secret_string` indicates a string which should consist of at least 64 characters. The corresponding parameters are used to sign and encrypt various data. Make sure to choose values which are random enough, or otherwise the security of the system might be compromised. For example, to generate a random secret, you can use the following command:
 
 ```
 cat /dev/urandom |
@@ -78,6 +80,10 @@ cat /dev/urandom |
 ```
 
 The `master_password` parameter specifies the password (in clear text) which is required when creating the first administrator user. When you attempt to access the site for the very first time, there are no users in the database. At this point, the system will ask you to create the first administrator user, and it will require you to enter the `master_password`. Once the first administrator is created, this password will not be needed anymore.
+
+The `cloak_secret` setting is optional. If not set (default) all Insights Cloak instances will be allowed to connect to
+the Insights Air instance. If set, then only instances with the same `cloak_secret` set in their configuration files
+will be allowed. See [Insights Cloak configuration](#insights-cloak-configuration) for more.
 
 The final two parameters `certfile` and `keyfile` are optional. They are used to specify the certificate and key for the HTTPS interface. If these parameters are provided, you will also need to put the corresponding files in the same folder as the `config.json` file. Once you do that, the site will accept HTTPS traffic as well as HTTP traffic. If you omit these parameters, the site will only accept HTTP traffic.
 
@@ -306,9 +312,11 @@ The general shape of `config.json` is:
 {
   "air_site": string,
   "salt": string,
+  "cloak_secret": string,
   "data_sources": string,
   "concurrency": integer,
-  "lcf_buckets_aggregation_limit": integer
+  "lcf_buckets_aggregation_limit": integer,
+  "max_parallel_queries": positive_integer
 }
 ```
 
@@ -323,6 +331,10 @@ cat /dev/urandom |
   head -n 1
 ```
 
+The `cloak_secret` setting is used to authenticate the Insights Cloak instance when connecting to Insights Air. It is
+required only if `cloak_secret` was configured in Insights Air (see [Web site configuration](#web-site-configuration)),
+and in that case it needs to be set to the same value.
+
 The `concurrency` field is optional and controls the amount of additional threads used for processing the selected data.
 The default setting is 0, which means a single thread processes the data coming in from the database server. For small
 data sets, this is usually sufficient, but for bigger data sets, this might turn out to be a bottleneck during query
@@ -332,6 +344,8 @@ executing the query faster, but also consuming more memory. This setting can be 
 The `lcf_buckets_aggregation_limit` is optional and controls the maximum number of columns for which partial aggregation
 of low-count filtered rows is done. The default value is 3. This setting can be overridden per data-source. More details
 can be found in the [Low-count filtering](../sql/query-results.md#low-count-filtering) section.
+
+The `max_parallel_queries` field is optional and controls the maximum number of queries that the cloak will run simultaneously. The default value is 10.
 
 ### Data source configuration
 

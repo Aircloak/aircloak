@@ -545,10 +545,23 @@ speed up query execution. The currently implemented optimization techniques are:
 - Simple join conditions are moved into the lower queries.
 - Per-user grouping and aggregation of data for anonymizing queries is offloaded to the database server.
 
-The last technique implies the creation of a synthetic subquery for each anonymizing query, that will pre-group
-and pre-aggregate per-user data, in order to reduce the amount of rows streamed into the cloak.
+The last technique implies the creation of a synthetic subquery for each anonymizing query, that will
+pre-group and pre-aggregate per-user data, in order to reduce the amount of rows streamed into the cloak.
 This will speed up query execution for datasets that have many rows per-user, at the cost of increased
 duration for cases where there is only one row (or very few rows) per-user.
 The synthetic subquery is created only when no per-user grouping is already done, when not using any row
-splitting functions, and only when using one of the following aggregating functions:
-`count`, `sum`, `min`, `max`, `avg`.
+splitting functions, and only when using one of the following aggregating functions without `DISTINCT`:
+`count`, `sum`, `min`, `max`, `avg`, `count_noise`, `sum_noise`, `avg_noise`.
+
+The following table shows the mapping between the anonymized aggregator and the offloaded version:
+
+|   aggregator   |                     translation                     |
+|:--------------:|:---------------------------------------------------:|
+| count(x)       | sum(count(per-user x))                              |
+| sum(x)         | sum(sum(per-user x))                                |
+| min(x)         | min(min(per-user x))                                |
+| max(x)         | max(max(per-user x))                                |
+| avg(X)         | sum(sum(per-user x)) / sum(count(per-user x))       |
+| count_noise(x) | sum_noise(count(per-user x))                        |
+| sum_noise(x)   | sum_noise(sum(per-user x))                          |
+| avg_noise(x)   | sum_noise(sum(per-user x)) / sum(count(per-user x)) |

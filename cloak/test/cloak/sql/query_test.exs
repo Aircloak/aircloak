@@ -198,14 +198,17 @@ defmodule Cloak.Sql.QueryTest do
     end
 
     test "filter in HAVING" do
-      assert %{filters: ["(= (avg col) const)"], top_level_filters: ["(= (avg col) const)"], subquery_filters: []} =
-               features_from("SELECT COUNT(*) FROM feat_users GROUP BY name HAVING AVG(height) = 0")
+      assert %{
+               filters: ["(= (median col) const)"],
+               top_level_filters: ["(= (median col) const)"],
+               subquery_filters: []
+             } = features_from("SELECT COUNT(*) FROM feat_users GROUP BY name HAVING MEDIAN(height) = 0")
     end
 
     test "subqueries" do
       assert %{
-               filters: ["(= (avg col) const)", "(<> col const)"],
-               top_level_filters: ["(= (avg col) const)"],
+               filters: ["(= (median col) const)", "(<> col const)"],
+               top_level_filters: ["(= (median col) const)"],
                subquery_filters: ["(<> col const)"]
              } =
                features_from("""
@@ -215,7 +218,7 @@ defmodule Cloak.Sql.QueryTest do
                    WHERE height <> 0
                  ) foo
                  GROUP BY foo.height
-                 HAVING AVG(foo.height) = 0
+                 HAVING MEDIAN(foo.height) = 0
                """)
     end
 

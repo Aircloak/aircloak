@@ -40,7 +40,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Access do
   @doc "Returns a list of conditions that are not allowed on isolating columns in the given query."
   @spec potential_unclear_isolator_usages(Query.t()) :: [Query.where_clause()]
   def potential_unclear_isolator_usages(query) do
-    conditions(query, &unclear_isolator_usage?(&1, query))
+    conditions(query, &unclear_isolator_condition?(&1, query)) ++
+      group_by_expressions(query, &unclear_isolator_expression?(&1, query))
   end
 
   # -------------------------------------------------------------------
@@ -80,17 +81,23 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Access do
   # Isolators
   # -------------------------------------------------------------------
 
-  defp unclear_isolator_usage?({:not, condition}, query), do: unclear_isolator_usage?(condition, query)
-  defp unclear_isolator_usage?({:in, _, _}, _), do: true
-  defp unclear_isolator_usage?({:like, _, pattern}, _), do: not LikePattern.simple?(pattern.value)
-  defp unclear_isolator_usage?({:ilike, _, pattern}, _), do: not LikePattern.simple?(pattern.value)
+  defp group_by_expressions(query, predicate) do
+    Lens.key(:group_by)
+    |> Lens.all()
+    |> Lens.filter(predicate)
+    |> Lens.to_list(query)
+  end
 
-  defp unclear_isolator_usage?(condition, query) do
-    condition
-    |> Condition.targets()
-    |> Enum.any?(fn expression ->
-      not Type.clear_column?(Type.establish_type(expression, query), &allowed_isolator_function?/1)
-    end)
+  defp unclear_isolator_condition?({:not, condition}, query), do: unclear_isolator_condition?(condition, query)
+  defp unclear_isolator_condition?({:in, _, _}, _), do: true
+  defp unclear_isolator_condition?({:like, _, pattern}, _), do: not LikePattern.simple?(pattern.value)
+  defp unclear_isolator_condition?({:ilike, _, pattern}, _), do: not LikePattern.simple?(pattern.value)
+
+  defp unclear_isolator_condition?(condition, query),
+    do: condition |> Condition.targets() |> Enum.any?(&unclear_isolator_expression?(&1, query))
+
+  defp unclear_isolator_expression?(expression, query) do
+    not Type.clear_column?(Type.establish_type(expression, query), &allowed_isolator_function?/1)
   end
 
   @allowed_isolator_functions ~w(lower upper substring trim ltrim rtrim btrim extract_words)

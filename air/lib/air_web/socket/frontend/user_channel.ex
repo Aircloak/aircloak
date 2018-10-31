@@ -9,8 +9,6 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
   """
   use Air.Web, :channel
 
-  alias Air.Schemas
-
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
@@ -18,7 +16,7 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
   @doc """
   Broadcasts the change in the state of a query to all listening clients.
   """
-  @spec broadcast_state_change(Schemas.Query.t(), nil | [map]) :: :ok
+  @spec broadcast_state_change(Air.Schemas.Query.t(), nil | [map]) :: :ok
   def broadcast_state_change(query, buckets \\ nil) do
     AirWeb.Endpoint.broadcast_from!(
       self(),
@@ -27,7 +25,7 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
       state_change_message(query)
     )
 
-    payload = Schemas.Query.for_display(query, buckets)
+    payload = Air.Service.Query.for_display(query, buckets)
 
     AirWeb.Endpoint.broadcast_from!(
       self(),

@@ -29,7 +29,7 @@ defmodule Cloak.Sql.Range.Test do
         compile("""
           SELECT COUNT(*) FROM (SELECT uid FROM table SAMPLE_USERS 10%) x
         """)
-        |> Compiler.Execution.prepare()
+        |> Compiler.Execution.align()
 
       assert [%Range{interval: :invalid}] = Range.find_ranges(subquery)
     end

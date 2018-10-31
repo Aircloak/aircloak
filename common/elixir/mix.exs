@@ -56,7 +56,8 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       {:ex_crypto, "~> 0.9.0"},
       {:timex, ">= 3.1.10 and < 4.0.0"},
       {:ex_json_schema, "~> 0.5.6"},
-      {:html_sanitize_ex, "~> 1.3"}
+      {:html_sanitize_ex, "~> 1.3"},
+      {:comeonin, "~> 2.5"}
     ]
   end
 

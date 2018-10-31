@@ -51,26 +51,15 @@ defmodule Air.TestSocketHelper do
     {:ok, response}
   end
 
-  @doc "Awaits run_query request and responds with a given status."
-  @spec respond_to_start_task_request!(pid, String.t(), String.t()) :: :ok
-  def respond_to_start_task_request!(socket, task_id, status) do
-    timeout = :timer.seconds(1)
-    {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
-    %{event: "run_query", payload: %{id: ^task_id}, request_id: request_id} = request
-
-    {:ok, _ref} = TestSocket.push(socket, "main", "cloak_response", %{request_id: request_id, status: status})
-
-    :ok
-  end
-
   @doc "Awaits run_query request with any task_id and responds with the given status."
-  @spec respond_to_start_task_request!(pid, String.t()) :: :ok
-  def respond_to_start_task_request!(socket, status) do
+  @spec respond_to_start_task_request!(pid, String.t(), any) :: :ok
+  def respond_to_start_task_request!(socket, status, result \\ nil) do
     timeout = :timer.seconds(1)
     {:ok, {"main", "air_call", request}} = TestSocket.await_message(socket, timeout)
     %{event: "run_query", request_id: request_id} = request
 
-    {:ok, _ref} = TestSocket.push(socket, "main", "cloak_response", %{request_id: request_id, status: status})
+    {:ok, _ref} =
+      TestSocket.push(socket, "main", "cloak_response", %{request_id: request_id, status: status, result: result})
 
     :ok
   end
