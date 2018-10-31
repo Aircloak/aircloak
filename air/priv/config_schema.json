@@ -46,8 +46,7 @@
         "alternate_aircloak_central": {"type": "string", "$comment": "used to connect to stage central"},
         "license_file": {"type": "string", "$comment": "path to license file in mount"},
         "privacy_policy_file": {"type": "string", "$comment": "path to privacy policy content"},
-        "user_credentials_file": {"type": "string", "$comment": "path to user credentials content"},
-        "data_sources_file": {"type": "string", "$comment": "path to data sources content"}
+        "users_and_datasources_file": {"type": "string", "$comment": "path to user and data sources content"}
       },
       "additionalProperties": false,
       "required": ["auth_secret", "endpoint_key_base", "master_password"]
