@@ -112,23 +112,11 @@ defmodule Air.Service.DataSource.QuerySchedulerTest do
   defp create_user!(), do: TestRepoHelper.create_user!(%{groups: [TestRepoHelper.create_group!().id]})
 
   defp create_data_source!(user) do
-    tables = [
-      %{
-        id: "table",
-        columns: [
-          %{user_id: true, type: :string, name: "uid"},
-          %{user_id: false, type: :integer, name: "age"}
-        ]
-      }
-    ]
-
-    params = %{
+    Air.Service.DataSource.create!(%{
       "name" => "data_source_#{System.unique_integer([:positive, :monotonic])}",
-      "tables" => Poison.encode!(tables),
+      "tables" => Poison.encode!([]),
       "groups" => [hd(user.groups).id]
-    }
-
-    Air.Service.DataSource.create!(params)
+    })
   end
 
   defp create_query!(user, data_source), do: TestRepoHelper.create_query!(user, %{data_source_id: data_source.id})
