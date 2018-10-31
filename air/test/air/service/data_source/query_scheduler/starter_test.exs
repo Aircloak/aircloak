@@ -1,17 +1,17 @@
-defmodule Air.Service.DataSource.QuerySchedulerTest do
+defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
   use Air.SchemaCase, async: false
 
   import Aircloak.AssertionHelper
   alias Air.{TestRepoHelper, TestSocketHelper}
   alias Air.Service.Query
-  alias Air.Service.DataSource.QueryScheduler
+  alias Air.Service.DataSource.QueryScheduler.Starter
 
   test "query starting" do
     user = create_user!()
     data_source = create_data_source!(user)
     queries = Enum.map(1..10, fn _ -> create_query!(user, data_source) end)
     cloak_name = start_cloak(data_source, List.duplicate(:ok, length(queries)))
-    QueryScheduler.start_pending_queries()
+    Starter.run()
 
     assert Query.awaiting_start() == []
     assert query_cloaks(queries) == [cloak_name]
@@ -22,7 +22,7 @@ defmodule Air.Service.DataSource.QuerySchedulerTest do
     data_source = create_data_source!(user)
     queries = Enum.map(1..10, fn _ -> create_query!(user, data_source) end)
     cloak_names = Enum.map(queries, fn _ -> start_cloak(data_source, [:ok]) end)
-    QueryScheduler.start_pending_queries()
+    Starter.run()
 
     assert Query.awaiting_start() == []
     assert Enum.sort(query_cloaks(queries)) == Enum.sort(cloak_names)
@@ -40,7 +40,7 @@ defmodule Air.Service.DataSource.QuerySchedulerTest do
     cloak1 = start_cloak(ds1, List.duplicate(:ok, length(queries1)))
     cloak2 = start_cloak(ds2, List.duplicate(:ok, length(queries2)))
 
-    QueryScheduler.start_pending_queries()
+    Starter.run()
 
     assert Query.awaiting_start() == []
     assert query_cloaks(queries1) == [cloak1]
@@ -55,7 +55,7 @@ defmodule Air.Service.DataSource.QuerySchedulerTest do
     _cloak1 = start_cloak(data_source, [{:error, :too_many_queries}])
     cloak2 = start_cloak(data_source, List.duplicate(:ok, length(queries)))
 
-    QueryScheduler.start_pending_queries()
+    Starter.run()
 
     assert Query.awaiting_start() == []
     assert query_cloaks(queries) == [cloak2]
@@ -65,7 +65,7 @@ defmodule Air.Service.DataSource.QuerySchedulerTest do
     user = create_user!()
     data_source = create_data_source!(user)
     query = create_query!(user, data_source)
-    QueryScheduler.start_pending_queries()
+    Starter.run()
 
     assert same_queries?(Query.awaiting_start(), [query])
   end
@@ -75,7 +75,7 @@ defmodule Air.Service.DataSource.QuerySchedulerTest do
     data_source = create_data_source!(user)
     query = create_query!(user, data_source)
     Enum.each(1..10, fn _ -> start_cloak(data_source, [{:error, :too_many_queries}]) end)
-    QueryScheduler.start_pending_queries()
+    Starter.run()
 
     assert same_queries?(Query.awaiting_start(), [query])
   end
@@ -86,7 +86,7 @@ defmodule Air.Service.DataSource.QuerySchedulerTest do
     %{id: query_id} = create_query!(user, data_source)
     Air.Service.Query.Events.subscribe(query_id)
     start_cloak(data_source, [{:error, :timeout}])
-    QueryScheduler.start_pending_queries()
+    Starter.run()
 
     assert_receive {:query_result, %{query_id: ^query_id} = result}
     assert result.error == "The query could not be started due to a communication timeout."
@@ -101,7 +101,7 @@ defmodule Air.Service.DataSource.QuerySchedulerTest do
     [%{id: query_id} | other_queries] = Enum.map(1..10, fn _ -> create_query!(user, data_source) end)
     Air.Service.Query.Events.subscribe(query_id)
     start_cloak(data_source, [{:error, :timeout}])
-    QueryScheduler.start_pending_queries()
+    Starter.run()
 
     assert_receive {:query_result, %{query_id: ^query_id, error: _} = result}
     assert soon(Air.Repo.get!(Air.Schemas.Query, query_id).query_state == :cancelled)
