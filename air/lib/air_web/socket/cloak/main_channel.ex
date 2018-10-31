@@ -4,6 +4,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   """
   use Phoenix.Channel, log_handle_in: false
   require Logger
+  require Aircloak.DeployConfig
 
   alias Air.CentralClient.Socket
 
@@ -60,20 +61,24 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
 
   @impl Phoenix.Channel
   def join("main", cloak_info, socket) do
-    Process.flag(:trap_exit, true)
+    with :ok <- validate_shared_secret(cloak_info[:secret_proof]) do
+      Process.flag(:trap_exit, true)
 
-    socket =
-      socket
-      |> assign(:pending_calls, %{})
-      |> assign(:online_since, Timex.now())
+      socket =
+        socket
+        |> assign(:pending_calls, %{})
+        |> assign(:online_since, Timex.now())
 
-    cloak = create_cloak(cloak_info, socket)
+      cloak = create_cloak(cloak_info, socket)
 
-    cloak
-    |> Air.Service.Cloak.register(cloak_info.data_sources)
-    |> revalidate_views()
+      cloak
+      |> Air.Service.Cloak.register(cloak_info.data_sources)
+      |> revalidate_views()
 
-    {:ok, %{}, socket}
+      {:ok, %{}, socket}
+    else
+      _ -> {:error, :cloak_secret_invalid}
+    end
   end
 
   @impl Phoenix.Channel
@@ -213,6 +218,11 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp validate_shared_secret(proof, shared_secret \\ Aircloak.DeployConfig.fetch!("site")["cloak_secret"])
+  defp validate_shared_secret(_, nil), do: :ok
+  defp validate_shared_secret(nil, _), do: :error
+  defp validate_shared_secret(proof, shared_secret), do: Aircloak.SharedSecret.verify(proof, shared_secret)
 
   @spec respond_to_cloak(Socket.t(), request_id :: String.t(), :ok | :error, any) :: :ok
   defp respond_to_cloak(socket, request_id, status, result \\ nil) do
