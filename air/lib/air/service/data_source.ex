@@ -7,7 +7,7 @@ defmodule Air.Service.DataSource do
   alias Air.Service
   alias Air.Service.{License, Cloak, View}
   alias Air.Service.DataSource.QueryScheduler
-  alias AirWeb.Socket.{Cloak.MainChannel, Frontend.UserChannel}
+  alias AirWeb.Socket.Cloak.MainChannel
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
   require Logger
@@ -85,7 +85,7 @@ defmodule Air.Service.DataSource do
       MainChannel.describe_query(channel_pid, %{
         statement: statement,
         data_source: data_source.name,
-        parameters: encode_parameters(parameters),
+        parameters: parameters,
         views: View.user_views_map(user, data_source.id)
       })
     end)
@@ -102,31 +102,6 @@ defmodule Air.Service.DataSource do
            views: view_map
          })}
       end)
-
-  @doc "Starts the query on the given data source as the given user."
-  @spec start_query(Query.t(), data_source_id_spec) :: {:ok, Query.t()} | data_source_operation_error
-  def start_query(query, data_source_id_spec) do
-    on_available_cloak(data_source_id_spec, query.user, fn _data_source, channel_pid, %{id: cloak_id} ->
-      Air.Service.Cloak.Stats.record_query(cloak_id)
-      query = add_cloak_info_to_query(query, cloak_id)
-      UserChannel.broadcast_state_change(query)
-      Air.Service.AuditLog.log(query.user, "Executed query", Query.audit_meta(query))
-
-      case MainChannel.run_query(channel_pid, cloak_query_map(query)) do
-        :ok ->
-          {:ok, query}
-
-        {:error, reason} ->
-          Service.Query.Events.trigger_result(%{query_id: query.id, error: start_query_error(reason)})
-
-          if reason == :timeout,
-            do: stop_query_async(query),
-            else: Service.Query.Lifecycle.report_query_error(query.id, start_query_error(reason))
-
-          {:error, reason}
-      end
-    end)
-  end
 
   @doc "Awaits for the query to finish, and returns it's result"
   @spec await_query(Query.t()) :: {:ok, Query.t()} | data_source_operation_error
@@ -150,12 +125,28 @@ defmodule Air.Service.DataSource do
     Service.Query.Events.unsubscribe(query_id)
   end
 
-  @doc "Stops a previously started query."
-  @spec stop_query(Query.t()) :: :ok | {:error, :internal_error | :not_connected}
-  def stop_query(query) do
+  @doc """
+  Stops a previously started query.
+
+  This function will attempt to asynchronously stop the query on all currently connected cloaks. If the cloak where the
+  query is running is not connected, the query will not be stopped on the cloak.
+
+  Regardless of whether the cloak is connected, the query state is immediately set to cancelled in the air database.
+  """
+  @spec stop_query(Query.t(), audit_log?: boolean) :: :ok
+  def stop_query(query, opts \\ []) do
     query = Repo.preload(query, [:user, :data_source])
-    Air.Service.AuditLog.log(query.user, "Stopped query", Query.audit_meta(query))
-    do_stop_query(query)
+
+    if Keyword.get(opts, :audit_log?, true),
+      do: Air.Service.AuditLog.log(query.user, "Stopped query", Query.audit_meta(query))
+
+    query.data_source.name
+    |> Cloak.channel_pids()
+    |> Enum.each(fn {channel, _cloak} ->
+      Task.Supervisor.start_child(@task_supervisor, fn -> MainChannel.stop_query(channel, query.id) end)
+    end)
+
+    Service.Query.Lifecycle.state_changed(query.id, :cancelled)
   end
 
   @doc "Returns a list of data sources given their names"
@@ -323,25 +314,6 @@ defmodule Air.Service.DataSource do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp stop_query_async(query), do: Task.Supervisor.start_child(@task_supervisor, fn -> do_stop_query(query) end)
-
-  defp do_stop_query(query) do
-    query = Repo.preload(query, :data_source)
-
-    exception_to_tuple(fn ->
-      if available?(query.data_source.name) do
-        for {channel, _cloak} <- Cloak.channel_pids(query.data_source.name),
-            do: MainChannel.stop_query(channel, query.id)
-
-        Service.Query.Lifecycle.state_changed(query.id, :cancelled)
-
-        :ok
-      else
-        {:error, :not_connected}
-      end
-    end)
-  end
-
   defp data_sources_with_groups_and_users(),
     do:
       from(
@@ -367,13 +339,6 @@ defmodule Air.Service.DataSource do
   defp user_data_source(user, {:name, name}),
     do: from(data_source in users_data_sources(user), where: data_source.name == ^name)
 
-  defp add_cloak_info_to_query(query, cloak_id) do
-    query
-    |> Query.changeset(%{cloak_id: cloak_id, query_state: :started})
-    |> Repo.update!()
-    |> Repo.preload(:data_source)
-  end
-
   defp on_available_cloak(data_source_id, user, fun) do
     if not License.valid?() do
       {:error, :license_invalid}
@@ -395,31 +360,6 @@ defmodule Air.Service.DataSource do
         end
       end)
     end
-  end
-
-  defp cloak_query_map(query) do
-    %{
-      id: query.id,
-      statement: query.statement,
-      data_source: query.data_source.name,
-      parameters: encode_parameters(query.parameters["values"]),
-      views: View.user_views_map(query.user, query.data_source.id)
-    }
-  end
-
-  defp encode_parameters(parameters) do
-    parameters
-    |> normalize_parameters()
-    |> :erlang.term_to_binary()
-    |> Base.encode16()
-  end
-
-  defp normalize_parameters(nil), do: nil
-  defp normalize_parameters(params) when is_list(params), do: Enum.map(params, &normalize_parameter/1)
-
-  defp normalize_parameter(param) do
-    param = Aircloak.atomize_keys(param)
-    with %{type: string} when is_binary(string) <- param, do: update_in(param.type, &String.to_existing_atom/1)
   end
 
   defp exception_to_tuple(fun) do
@@ -446,9 +386,6 @@ defmodule Air.Service.DataSource do
       |> unique_constraint(:name)
       |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
 
-  defp start_query_error(:timeout), do: "The query could not be started due to a communication timeout."
-  defp start_query_error(:too_many_queries), do: "Too many queries running on the cloak."
-
   defp data_source_to_db_data(name, tables, errors) do
     # We're computing total column count, and computed and failed counts for isolators and shadow tables, and storing
     # them directly. This allows us to have that data ready, without needing to decode the tables json. Since these
@@ -459,10 +396,10 @@ defmodule Air.Service.DataSource do
       tables: Poison.encode!(tables),
       errors: Poison.encode!(errors),
       columns_count: count_columns(tables, fn _ -> true end),
-      isolated_computed_count: count_columns(tables, &is_boolean(&1.isolated)),
-      isolated_failed: filter_columns(tables, &(&1.isolated == :failed)),
-      shadow_tables_computed_count: count_columns(tables, &(&1.shadow_table == :ok)),
-      shadow_tables_failed: filter_columns(tables, &(&1.shadow_table == :failed))
+      isolated_computed_count: count_columns(tables, &(&1 |> Map.get(:isolated, false) |> is_boolean())),
+      isolated_failed: filter_columns(tables, &(&1 |> Map.get(:isolated, false) == :failed)),
+      shadow_tables_computed_count: count_columns(tables, &(&1 |> Map.get(:shadow_table, :ok) == :ok)),
+      shadow_tables_failed: filter_columns(tables, &(&1 |> Map.get(:shadow_table) == :failed))
     }
   end
 
