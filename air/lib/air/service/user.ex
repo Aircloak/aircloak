@@ -436,15 +436,13 @@ defmodule Air.Service.User do
       |> user_changeset(%{login: user_data.login, name: user_data.login})
       |> put_change(:hashed_password, user_data.password_hash)
 
-    user_result =
-      if Map.get(user_data, :admin, false) do
-        user_changeset(changeset, %{groups: [get_admin_group().id]})
-      else
-        changeset
-      end
-      |> Repo.insert()
-
-    case user_result do
+    if Map.get(user_data, :admin, false) do
+      user_changeset(changeset, %{groups: [get_admin_group().id]})
+    else
+      changeset
+    end
+    |> Repo.insert()
+    |> case do
       {:error, _} -> :error
       {:ok, _user} = result -> result
     end
