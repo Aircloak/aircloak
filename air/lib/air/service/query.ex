@@ -25,9 +25,42 @@ defmodule Air.Service.Query do
           max_results: non_neg_integer
         }
 
+  @active_states [
+    :created,
+    :started,
+    :parsing,
+    :compiling,
+    :awaiting_data,
+    :ingesting_data,
+    :processing,
+    :post_processing
+  ]
+
+  @completed_states [
+    :cancelled,
+    :error,
+    :completed
+  ]
+
+  @state_order @active_states ++ @completed_states
+
+  @type active_state ::
+          unquote(Enum.reduce(tl(@active_states), hd(@active_states), &quote(do: unquote(&1) | unquote(&2))))
+
+  @type completed_state ::
+          unquote(Enum.reduce(tl(@completed_states), hd(@completed_states), &quote(do: unquote(&1) | unquote(&2))))
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @doc "Returns the list of all states representing an active (not finished) query."
+  @spec active_states() :: [active_state]
+  def active_states(), do: @active_states
+
+  @doc "Returns the list of all states representing a complete query."
+  @spec completed_states() :: [completed_state]
+  def completed_states(), do: @completed_states
 
   @doc "Produces a JSON blob of the query and its result for rendering"
   @spec for_display(Query.t(), nil | [map]) :: Map.t()
@@ -303,23 +336,6 @@ defmodule Air.Service.Query do
     Air.Service.Query.Events.trigger_result(result)
     report_query_result(result)
   end
-
-  @active_states [
-    :created,
-    :started,
-    :parsing,
-    :compiling,
-    :awaiting_data,
-    :ingesting_data,
-    :processing,
-    :post_processing
-  ]
-  @completed_states [
-    :cancelled,
-    :error,
-    :completed
-  ]
-  @state_order @active_states ++ @completed_states
 
   defp valid_state_transition?(same_state, same_state), do: true
 
