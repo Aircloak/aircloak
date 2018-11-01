@@ -79,6 +79,7 @@
     - [Ahead of time configuration](ops/ahead-of-time-configuration.md)
   - [Insights Cloak](ops/configuration.md#insights-cloak-configuration)
   - [Running without Docker containers](/ops/configuration.md#running-without-docker-containers)
+  - [File permissions](/ops/configuration.md#file-permissions)
 - [Upgrading](ops/upgrading.md)
   - [18.4.0 Default Privacy Policy](ops/upgrade/1804_privacy_policy.md)
 - [Monitoring](ops/monitoring.md)

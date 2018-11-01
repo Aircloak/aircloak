@@ -764,3 +764,43 @@ of the Air component under the `shadow_database` key.
 ```
 
 Here, the `"name"` parameter configures the name of the database to which the given user can connect. The database name is needed because a PostgreSQL connection can only be established to an existing database. For this purpose, you can use either the `postgres` database, or create a dedicated database. Make sure to grant `CONNECT` permission on the database to the user.
+
+## File permissions
+
+The Aircloak Insights software is run inside a docker container under a user called `deployer`.
+The privileges of the software is limited by those of the `deployer` user.
+In order for Aircloak Insights to read the configuration files they need [file
+permissions](https://en.wikipedia.org/wiki/File_system_permissions#Traditional_Unix_permissions) that allow
+everyone to read them.
+
+Unix file permissions distinguish between the rights of the owner of a file, the members of a particular group, and
+everyone else. The `deployer` user belongs to the latter of the three, namely the everyone else category.
+
+If you consider file permissions in their symbolic notation (like they are shown when running `ls -la` in the terminal),
+then the permissions need to end in `r--`. If you consider the privileges in their numeric notation, then the last digit
+needs to be at least a 4 (meaning it grants read privileges).
+
+Below follows a set of file permissions that would work:
+
+```
+$ ls -la
+-rwxr--r--  25 owner  group     800 Jan  1 00:01 ideal
+-rwxrwxr--  25 owner  group     800 Jan  1 00:01 ideal
+-rwxr-xr-x  25 owner  group     800 Jan  1 00:01 ok-but-too-permissive
+-rwxrw-rw-  25 owner  group     800 Jan  1 00:01 ok-but-too-permissive
+-rwxrwxrwx  25 owner  group     800 Jan  1 00:01 ok-but-too-permissive
+```
+
+whereas the following set of file permissions _would not work_ because they do not give the `deployer` user permission
+to read the file:
+
+```
+$ ls -la
+-rwxr-----  25 owner  group     800 Jan  1 00:01 missing-read-privileges
+-rwxrw----  25 owner  group     800 Jan  1 00:01 missing-read-privileges
+-rwxr-x---  25 owner  group     800 Jan  1 00:01 missing-read-privileges
+-rwxrwx---  25 owner  group     800 Jan  1 00:01 missing-read-privileges
+```
+
+In a unix shell you can add the required read permission with the following command: `chmod o+r file-name`.
+The `o` signifies the everyone else category (also known as "other") and the `+r` grants read permission.
