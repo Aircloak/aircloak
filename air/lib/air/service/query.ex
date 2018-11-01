@@ -242,6 +242,10 @@ defmodule Air.Service.Query do
     |> Repo.all()
   end
 
+  @doc "Returns a list of the queries that have been started on cloak, but not yet finished."
+  @spec started_on_cloak() :: [Query.t()]
+  def started_on_cloak(), do: Repo.all(from(q in pending(), where: q.query_state != ^:created))
+
   @doc """
   Updates the state of the query with the given id to the given state. Only performs the update if the given state can
   occur after the current state of the query (for example "completed" after "started"). Does nothing otherwise.

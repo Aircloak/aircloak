@@ -186,6 +186,31 @@ defmodule Air.Service.QueryTest do
     end
   end
 
+  describe "started_on_cloak/0" do
+    test "returns active queries" do
+      user = create_user!()
+
+      query_ids =
+        Query.active_states()
+        |> Stream.reject(&(&1 == :created))
+        |> Enum.map(&create_query!(user, %{query_state: &1}).id)
+
+      assert Query.started_on_cloak() |> Enum.map(& &1.id) |> Enum.sort() == Enum.sort(query_ids)
+    end
+
+    test "does not return created query" do
+      user = create_user!()
+      create_query!(user, %{query_state: :created})
+      assert [] == Query.started_on_cloak()
+    end
+
+    test "does not return finished queries" do
+      user = create_user!()
+      Enum.each(Query.completed_states(), &create_query!(user, %{query_state: &1}).id)
+      assert [] == Query.started_on_cloak()
+    end
+  end
+
   describe "update_state" do
     test "changes the query_state" do
       query = create_query!(create_user!(), %{query_state: :started})
