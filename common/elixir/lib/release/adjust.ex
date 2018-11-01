@@ -93,7 +93,7 @@ defmodule Aircloak.Release.Adjust do
   end
 
   defp app_dir(release, app, folder) do
-    [release.output_dir, "lib", "#{app}-#{app_vsn(release, app)}", folder]
+    [Mix.Releases.Release.lib_path(release), "#{app}-#{app_vsn(release, app)}", folder]
     |> Path.join()
     |> Path.expand()
   end

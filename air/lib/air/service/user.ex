@@ -2,7 +2,7 @@ defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
   alias Air.Repo
-  alias Air.Service.{AuditLog, LDAP, Salts}
+  alias Air.Service.{AuditLog, LDAP, Salts, Password}
   alias Air.Schemas.{DataSource, Group, User}
   alias AirWeb.Endpoint
   import Ecto.Query, only: [from: 2]
@@ -357,6 +357,15 @@ defmodule Air.Service.User do
   @spec admin_groups() :: [Group.t()]
   def admin_groups(), do: Repo.all(from(g in Group, where: g.admin))
 
+  @doc "Returns a group by name"
+  @spec get_group_by_name(String.t()) :: {:ok, Group.t()} | {:error, :not_found}
+  def get_group_by_name(name) do
+    case(Air.Repo.get_by(Air.Schemas.Group, name: name)) do
+      nil -> {:error, :not_found}
+      group -> {:ok, group}
+    end
+  end
+
   @doc "Returns the number format settings for the specified user."
   @spec number_format_settings(User.t() | nil) :: Map.t()
   def number_format_settings(nil),
@@ -410,6 +419,35 @@ defmodule Air.Service.User do
     end
   end
 
+  @doc "Returns a user by login"
+  @spec get_by_login(String.t()) :: {:ok, User.t()} | {:error, :not_found}
+  def get_by_login(login) do
+    case Repo.get_by(User, login: login) do
+      nil -> {:error, :not_found}
+      user -> {:ok, user}
+    end
+  end
+
+  @doc "Adds a user preconfigured in a users or data source config file."
+  @spec add_preconfigured_user(Map.t()) :: {:ok, User.t()} | :error
+  def add_preconfigured_user(user_data) do
+    changeset =
+      %User{}
+      |> user_changeset(%{login: user_data.login, name: user_data.login})
+      |> put_change(:hashed_password, user_data.password_hash)
+
+    if Map.get(user_data, :admin, false) do
+      user_changeset(changeset, %{groups: [get_admin_group().id]})
+    else
+      changeset
+    end
+    |> Repo.insert()
+    |> case do
+      {:error, _} -> :error
+      {:ok, _user} = result -> result
+    end
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -417,11 +455,11 @@ defmodule Air.Service.User do
   defp valid_password?(user, password) do
     case user do
       %{source: :ldap} ->
-        {_, result} = {User.validate_password(user, password), LDAP.simple_bind(user.ldap_dn, password)}
+        {_, result} = {validate_password(user, password), LDAP.simple_bind(user.ldap_dn, password)}
         match?(:ok, result)
 
       _ ->
-        {result, _} = {User.validate_password(user, password), LDAP.dummy_bind()}
+        {result, _} = {validate_password(user, password), LDAP.dummy_bind()}
         result
     end
   end
@@ -467,7 +505,7 @@ defmodule Air.Service.User do
   end
 
   defp password_changeset(user, params) do
-    old_password_valid = User.validate_password(user, params["old_password"] || "")
+    old_password_valid = validate_password(user, params["old_password"] || "")
 
     case {params["password"], old_password_valid} do
       {"", _} -> user_changeset(user, %{})
@@ -479,10 +517,13 @@ defmodule Air.Service.User do
 
   defp update_password_hash(%Ecto.Changeset{valid?: true, changes: %{password: password}} = changeset)
        when password != "" do
-    put_change(changeset, :hashed_password, Comeonin.Pbkdf2.hashpwsalt(password))
+    put_change(changeset, :hashed_password, Password.hash(password))
   end
 
   defp update_password_hash(changeset), do: changeset
+
+  defp validate_password(nil, password), do: Password.validate(password, nil)
+  defp validate_password(user, password), do: Password.validate(password, user.hashed_password)
 
   defp group_changeset(group, params, options \\ []),
     do:

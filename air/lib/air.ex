@@ -53,6 +53,7 @@ defmodule Air do
     with {:ok, _pid} = result <- Air.Supervisor.start_link() do
       load_license()
       load_privacy_policy()
+      load_users_and_datasources()
       result
     end
   end
@@ -170,6 +171,68 @@ defmodule Air do
       else
         Air.Service.PrivacyPolicy.set(policy_content)
         Logger.info("Applied statically configured privacy policy from file `#{path}`")
+      end
+    end)
+  end
+
+  defp load_users_and_datasources() do
+    on_setting_file("users_and_datasources_file", fn raw_users_and_datasources, path ->
+      case Aircloak.Json.safe_decode(raw_users_and_datasources) do
+        {:ok, map} ->
+          main_error =
+            "Could not validate the format of the users and data sources file `#{path}` " <>
+              "configured in the Insights Air configuration under the site parameter"
+
+          case Aircloak.validate_decoded_json(:air, "users_and_datasources_schema.json", map, main_error) do
+            :ok ->
+              map = Aircloak.atomize_keys(map)
+              add_users(map.users)
+              add_data_sources(map.data_sources)
+
+            {:error, message} ->
+              Logger.error(message)
+          end
+      end
+    end)
+  end
+
+  defp add_users(users) do
+    users
+    |> Enum.map(fn user_data ->
+      case Air.Service.User.add_preconfigured_user(user_data) do
+        :error -> nil
+        {:ok, user} -> user
+      end
+    end)
+    |> Enum.reject(&is_nil/1)
+    |> Enum.map(& &1.login)
+    |> case do
+      [] -> :ok
+      added_logins -> Logger.info("Added user accounts for logins: #{Enum.join(added_logins, ", ")}")
+    end
+  end
+
+  def add_data_sources(data_sources) do
+    data_sources
+    |> Enum.each(fn %{name: name, group_name: group_name} = data_source_data ->
+      case Air.Service.DataSource.add_preconfigured_datasource(data_source_data) do
+        {:error, :no_users} ->
+          Logger.info("Did not add data source `#{name}`. It would not be available to any registered users.")
+
+        {:error, :group_exists} ->
+          Logger.info("Did not add data source `#{name}`. A group with name `#{group_name}` already exists.")
+
+        {:error, :data_source_exists} ->
+          Logger.info("Did not add data source `#{name}`. It already exists.")
+
+        {:ok, data_source} ->
+          user_logins =
+            data_source
+            |> Air.Service.DataSource.users()
+            |> Enum.map(& &1.login)
+            |> Enum.join(", ")
+
+          Logger.info("Added data source `#{name}`. It's available to the following users: #{user_logins}.")
       end
     end)
   end
