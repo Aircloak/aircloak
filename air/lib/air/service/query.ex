@@ -123,11 +123,9 @@ defmodule Air.Service.Query do
   @doc "Returns queries, ordered by `inserted_at`, which have been created but not yet started on any cloak."
   @spec awaiting_start() :: [Query.t()]
   def awaiting_start() do
-    expired = NaiveDateTime.add(NaiveDateTime.utc_now(), -:timer.hours(24), :millisecond)
-
     from(
       q in Query,
-      where: q.query_state == ^:created and is_nil(q.cloak_id) and q.inserted_at > ^expired,
+      where: q.query_state == ^:created and is_nil(q.cloak_id),
       order_by: [asc: q.inserted_at],
       preload: [:user, :data_source]
     )
