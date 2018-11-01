@@ -3,6 +3,7 @@
 ### Features
 
 - The share button under a query result allows creating permalinks to queries
+- You can statically configure Aircloak Insights for fully automated deployments
 - Support for limiting maximum number of simultaneous queries per each cloak. See the section on configuring [Insights Cloak](/docs/ops/configuration.html#insights-cloak-configuration) for details.
 
 ### Bugfixes
