@@ -58,7 +58,7 @@ defmodule DataQuality.Test.Persist do
       |> Enum.into(%{})
 
     real_value = relevant_results |> List.first() |> Map.get(:real_value)
-    row_for_csv = [dimension_value, real_value | sources |> Enum.map(&Map.get(values, &1)[:value])]
+    row_for_csv = [dimension_value, real_value | sources |> Enum.map(&Map.get(values, &1)[:anonymized_value])]
     data_for_graph = %{real_value: real_value, dimension_value: dimension_value, source_values: values}
     {row_for_csv, data_for_graph}
   end
