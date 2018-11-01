@@ -15,15 +15,24 @@ defmodule Air.Service.DataSource.QueryScheduler.Starter do
   """
   @spec run() :: :ok
   def run() do
-    Air.Service.Query.awaiting_start()
+    {expired, pending} = Enum.split_with(Air.Service.Query.awaiting_start(), &expired?/1)
+
+    pending
     # shuffling the cloak infos to improve distribution
     |> Stream.scan(Enum.shuffle(Air.Service.Cloak.all_cloak_infos()), &try_query_start(&2, &1))
     |> Stream.run()
+
+    Enum.each(expired, &stop_query(&1, "The query could not be started because there was no cloak available."))
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp expired?(query) do
+    expiry_time = NaiveDateTime.add(NaiveDateTime.utc_now(), -:timer.hours(24), :millisecond)
+    NaiveDateTime.compare(query.inserted_at, expiry_time) != :gt
+  end
 
   defp try_query_start(cloak_infos, query) do
     case pop_cloak(cloak_infos, query.data_source) do
@@ -44,7 +53,7 @@ defmodule Air.Service.DataSource.QueryScheduler.Starter do
 
           {:error, :timeout} ->
             # timeout (likely a disconnect) -> we'll report an error, and won't try this cloak again in this iteration
-            report_start_timeout(query)
+            stop_query(query, "The query could not be started due to a communication timeout.")
             remaining_cloak_infos
         end
     end
@@ -86,12 +95,8 @@ defmodule Air.Service.DataSource.QueryScheduler.Starter do
     }
   end
 
-  defp report_start_timeout(query) do
-    Air.Service.Query.Events.trigger_result(%{
-      query_id: query.id,
-      error: "The query could not be started due to a communication timeout."
-    })
-
+  defp stop_query(query, error) do
+    Air.Service.Query.Events.trigger_result(%{query_id: query.id, error: error})
     Air.Service.DataSource.stop_query(query, audit_log?: false)
   end
 end
