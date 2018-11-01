@@ -90,6 +90,70 @@ defmodule Air.Service.Cloak.Test do
     assert error =~ ~r/differs between .+ cloaks/
   end
 
+  test "should not record differences in isolating stats when not all data sources done" do
+    data_sources_done = [data_source_with_columns()]
+
+    data_sources_pending = [
+      data_source_with_columns([
+        table_column(%{isolated: :pending})
+      ])
+    ]
+
+    Cloak.register(TestRepoHelper.cloak_info(), data_sources_pending)
+    Cloak.register(TestRepoHelper.cloak_info("other_cloak"), data_sources_done)
+    assert [] == Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
+  end
+
+  test "should record differences in isolating stats when all data sources done" do
+    data_sources_done1 = [
+      data_source_with_columns([
+        table_column(%{isolated: true})
+      ])
+    ]
+
+    data_sources_done2 = [
+      data_source_with_columns([
+        table_column(%{isolated: false})
+      ])
+    ]
+
+    Cloak.register(TestRepoHelper.cloak_info(), data_sources_done1)
+    Cloak.register(TestRepoHelper.cloak_info("other_cloak"), data_sources_done2)
+    refute [] == Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
+  end
+
+  test "should not record differences in shadow db stats when not all data sources done" do
+    data_sources_done = [data_source_with_columns()]
+
+    data_sources_pending = [
+      data_source_with_columns([
+        table_column(%{shadow_table: :pending})
+      ])
+    ]
+
+    Cloak.register(TestRepoHelper.cloak_info(), data_sources_pending)
+    Cloak.register(TestRepoHelper.cloak_info("other_cloak"), data_sources_done)
+    assert [] == Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
+  end
+
+  test "should record differences in shadow db stats when all data sources done" do
+    data_sources_done1 = [
+      data_source_with_columns([
+        table_column(%{shadow_table: :ok})
+      ])
+    ]
+
+    data_sources_done2 = [
+      data_source_with_columns([
+        table_column(%{shadow_table: :unknown_column})
+      ])
+    ]
+
+    Cloak.register(TestRepoHelper.cloak_info(), data_sources_done1)
+    Cloak.register(TestRepoHelper.cloak_info("other_cloak"), data_sources_done2)
+    refute [] == Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
+  end
+
   test "should retain errors from all cloaks" do
     Cloak.register(TestRepoHelper.cloak_info("cloak1"), data_source_with_errors(["error 1"]))
     Cloak.register(TestRepoHelper.cloak_info("cloak2"), data_source_with_errors(["error 2"]))
@@ -117,6 +181,32 @@ defmodule Air.Service.Cloak.Test do
     TestSocketHelper.respond_to_running_queries!(cloak1, ["foo", "bar"])
     TestSocketHelper.respond_to_running_queries!(cloak2, ["baz"])
     assert Enum.sort(Task.await(task)) == ["bar", "baz", "foo"]
+  end
+
+  defp data_source_with_columns(columns \\ [table_column()]) do
+    %{
+      name: @data_source_name,
+      tables: [
+        %{
+          columns: columns,
+          id: :accounts
+        }
+      ]
+    }
+  end
+
+  defp table_column(params \\ %{}) do
+    Map.merge(
+      %{
+        isolated: true,
+        name: "column_name",
+        shadow_table: :ok,
+        shadow_table_size: 1,
+        type: :integer,
+        user_id: false
+      },
+      params
+    )
   end
 
   defp data_source_with_errors(errors) do
