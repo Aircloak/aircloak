@@ -207,11 +207,8 @@ defmodule Air do
     |> Enum.reject(&is_nil/1)
     |> Enum.map(& &1.login)
     |> case do
-      [] ->
-        []
-
-      added_logins ->
-        Logger.info("Added user accounts for logins: #{Enum.join(added_logins, ", ")}")
+      [] -> :ok
+      added_logins -> Logger.info("Added user accounts for logins: #{Enum.join(added_logins, ", ")}")
     end
   end
 
