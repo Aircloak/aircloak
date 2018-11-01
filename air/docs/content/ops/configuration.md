@@ -768,7 +768,7 @@ Here, the `"name"` parameter configures the name of the database to which the gi
 ## File permissions
 
 The Aircloak Insights software is run inside a docker container under a user called `deployer`.
-The privileges of the software is limited by those of the `deployer` user.
+The privileges of the software are limited by those of the `deployer` user.
 In order for Aircloak Insights to read the configuration files they need [file
 permissions](https://en.wikipedia.org/wiki/File_system_permissions#Traditional_Unix_permissions) that allow
 everyone to read them.
