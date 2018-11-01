@@ -9,14 +9,6 @@ defmodule Air.Service.Password.Test do
     test "hashed password is different from plain text" do
       refute @password == Password.hash(@password)
     end
-
-    test "hashed passwords differ" do
-      refute Password.hash(@password <> "1") == Password.hash(@password <> "2")
-    end
-
-    test "password hashes differ due to randomly selected salt" do
-      refute Password.hash(@password) == Password.hash(@password)
-    end
   end
 
   describe ".validate" do
