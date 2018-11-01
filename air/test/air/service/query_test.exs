@@ -127,18 +127,15 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "not_finished/0" do
-    test "returns running queries" do
+    test "returns active queries" do
       user = create_user!()
-      query_ids = [create_query!(user).id, create_query!(user, %{query_state: :started}).id]
+      query_ids = Enum.map(Query.active_states(), &create_query!(user, %{query_state: &1}).id)
       assert Query.not_finished() |> Enum.map(& &1.id) |> Enum.sort() == Enum.sort(query_ids)
     end
 
-    test "does not return not running queries" do
+    test "does not return finished queries" do
       user = create_user!()
-      create_query!(user, %{query_state: :completed})
-      create_query!(user, %{query_state: :error})
-      create_query!(user, %{query_state: :cancelled})
-
+      Enum.each(Query.completed_states(), &create_query!(user, %{query_state: &1}))
       assert [] == Query.not_finished()
     end
   end
