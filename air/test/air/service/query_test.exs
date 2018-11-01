@@ -129,13 +129,13 @@ defmodule Air.Service.QueryTest do
   describe "not_finished/0" do
     test "returns active queries" do
       user = create_user!()
-      query_ids = Enum.map(Query.active_states(), &create_query!(user, %{query_state: &1}).id)
+      query_ids = Enum.map(Query.State.active(), &create_query!(user, %{query_state: &1}).id)
       assert Query.not_finished() |> Enum.map(& &1.id) |> Enum.sort() == Enum.sort(query_ids)
     end
 
     test "does not return finished queries" do
       user = create_user!()
-      Enum.each(Query.completed_states(), &create_query!(user, %{query_state: &1}))
+      Enum.each(Query.State.completed(), &create_query!(user, %{query_state: &1}))
       assert [] == Query.not_finished()
     end
   end
@@ -191,7 +191,7 @@ defmodule Air.Service.QueryTest do
       user = create_user!()
 
       query_ids =
-        Query.active_states()
+        Query.State.active()
         |> Stream.reject(&(&1 == :created))
         |> Enum.map(&create_query!(user, %{query_state: &1}).id)
 
@@ -206,7 +206,7 @@ defmodule Air.Service.QueryTest do
 
     test "does not return finished queries" do
       user = create_user!()
-      Enum.each(Query.completed_states(), &create_query!(user, %{query_state: &1}).id)
+      Enum.each(Query.State.completed(), &create_query!(user, %{query_state: &1}).id)
       assert [] == Query.started_on_cloak()
     end
   end

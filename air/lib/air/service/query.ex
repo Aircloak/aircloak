@@ -25,42 +25,9 @@ defmodule Air.Service.Query do
           max_results: non_neg_integer
         }
 
-  @active_states [
-    :created,
-    :started,
-    :parsing,
-    :compiling,
-    :awaiting_data,
-    :ingesting_data,
-    :processing,
-    :post_processing
-  ]
-
-  @completed_states [
-    :cancelled,
-    :error,
-    :completed
-  ]
-
-  @state_order @active_states ++ @completed_states
-
-  @type active_state ::
-          unquote(Enum.reduce(tl(@active_states), hd(@active_states), &quote(do: unquote(&1) | unquote(&2))))
-
-  @type completed_state ::
-          unquote(Enum.reduce(tl(@completed_states), hd(@completed_states), &quote(do: unquote(&1) | unquote(&2))))
-
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
-
-  @doc "Returns the list of all states representing an active (not finished) query."
-  @spec active_states() :: [active_state]
-  def active_states(), do: @active_states
-
-  @doc "Returns the list of all states representing a complete query."
-  @spec completed_states() :: [completed_state]
-  def completed_states(), do: @completed_states
 
   @doc "Produces a JSON blob of the query and its result for rendering"
   @spec for_display(Query.t(), nil | [map]) :: Map.t()
@@ -251,7 +218,7 @@ defmodule Air.Service.Query do
   @spec update_state(query_id, Query.QueryState.t()) :: :ok | {:error, :not_found | :invalid_id}
   def update_state(query_id, state) do
     with {:ok, query} <- get(query_id) do
-      if valid_state_transition?(query.query_state, state) do
+      if __MODULE__.State.valid_state_transition?(query.query_state, state) do
         query
         |> Query.changeset(Map.merge(updated_time_spent(query), %{query_state: state}))
         |> Repo.update!()
@@ -270,7 +237,8 @@ defmodule Air.Service.Query do
   def process_result(result) do
     query = Repo.get!(Query, result.query_id) |> Repo.preload([:user])
 
-    if valid_state_transition?(query.query_state, query_state(result)), do: do_process_result(query, result)
+    if __MODULE__.State.valid_state_transition?(query.query_state, query_state(result)),
+      do: do_process_result(query, result)
 
     Logger.info("processed result for query #{result.query_id}")
     :ok
@@ -284,7 +252,7 @@ defmodule Air.Service.Query do
   def query_died(query_id) do
     query = Repo.get!(Query, query_id)
 
-    if valid_state_transition?(query.query_state, :error) do
+    if __MODULE__.State.valid_state_transition?(query.query_state, :error) do
       query =
         query
         |> Query.changeset(%{query_state: :error, result: %{error: "Query died."}})
@@ -338,15 +306,6 @@ defmodule Air.Service.Query do
     Air.Service.Query.Events.trigger_result(result)
     report_query_result(result)
   end
-
-  defp valid_state_transition?(same_state, same_state), do: true
-
-  defp valid_state_transition?(current_state, _next_state)
-       when current_state in [:cancelled, :completed, :error],
-       do: false
-
-  defp valid_state_transition?(current_state, next_state),
-    do: Enum.find_index(@state_order, &(&1 == current_state)) < Enum.find_index(@state_order, &(&1 == next_state))
 
   defp query_state(%{error: error}) when is_binary(error), do: :error
   defp query_state(%{cancelled: true}), do: :cancelled
@@ -433,9 +392,7 @@ defmodule Air.Service.Query do
     where(scope, [q], q.user_id == ^user.id)
   end
 
-  defp pending(scope \\ Query) do
-    where(scope, [q], q.query_state in ^@active_states)
-  end
+  defp pending(scope \\ Query), do: where(scope, [q], q.query_state in ^__MODULE__.State.active())
 
   defp apply_filters(scope, filters) do
     scope

@@ -4,28 +4,12 @@ defmodule Air.Schemas.Query do
 
   alias Air.PsqlServer.Protocol
   alias Air.Schemas.{DataSource, User, ResultChunk}
+  alias Air.Service.Query.State
 
   require EctoEnum
+  require State
 
-  @states [
-    :created,
-    :started,
-    :parsing,
-    :compiling,
-    :awaiting_data,
-    :ingesting_data,
-    :processing,
-    :post_processing,
-    :completed,
-    :error,
-    :cancelled
-  ]
-
-  # The last argument to `EctoEnum.defenum` needs to be a list literal
-  quote do
-    EctoEnum.defenum(QueryState, :query_state, unquote(@states))
-  end
-  |> Code.eval_quoted([], __ENV__)
+  Code.eval_quoted(quote(do: EctoEnum.defenum(QueryState, :query_state, unquote(State.all()))), [], __ENV__)
 
   EctoEnum.defenum(Context, :query_context, [:http, :psql, :api])
 
@@ -59,7 +43,7 @@ defmodule Air.Schemas.Query do
     field(:query_state, __MODULE__.QueryState)
     field(:context, Context)
     field(:result, :map)
-    field(:time_spent, :map, default: @states |> Enum.map(&{to_string(&1), 0}) |> Enum.into(%{}))
+    field(:time_spent, :map, default: State.all() |> Enum.map(&{to_string(&1), 0}) |> Enum.into(%{}))
     field(:last_state_change_at, :naive_datetime)
     field(:audit_meta, :map)
 

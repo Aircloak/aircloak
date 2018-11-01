@@ -29,7 +29,7 @@ defmodule Air.Service.Query.Lifecycle do
   @doc "Asynchronously handles query state change."
   @spec state_changed(String.t(), Air.Schemas.Query.QueryState.t()) :: :ok
   def state_changed(query_id, query_state) do
-    if query_state == :cancelled, do: Air.Service.DataSource.QueryScheduler.notify()
+    if query_state in Air.Service.Query.State.completed(), do: Air.Service.DataSource.QueryScheduler.notify()
     enqueue(query_id, {:state_changed, query_id, query_state})
   end
 
@@ -65,7 +65,7 @@ defmodule Air.Service.Query.Lifecycle do
   def handle_cast({:state_changed, query_id, query_state}, state) do
     :jobs.run(__MODULE__, fn -> Query.update_state(query_id, query_state) end)
     Air.Service.Query.Events.trigger_state_change(%{query_id: query_id, state: query_state})
-    if query_state == :cancelled, do: {:stop, :normal, state}, else: {:noreply, state}
+    if query_state in Air.Service.Query.State.completed(), do: {:stop, :normal, state}, else: {:noreply, state}
   end
 
   def handle_cast({:query_died, query_id}, state) do
