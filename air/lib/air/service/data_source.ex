@@ -133,7 +133,7 @@ defmodule Air.Service.DataSource do
 
   Regardless of whether the cloak is connected, the query state is immediately set to cancelled in the air database.
   """
-  @spec stop_query(Query.t(), audit_log?: boolean) :: :ok
+  @spec stop_query(Query.t(), audit_log?: boolean, query_state: Service.Query.State.completed()) :: :ok
   def stop_query(query, opts \\ []) do
     query = Repo.preload(query, [:user, :data_source])
 
@@ -146,7 +146,7 @@ defmodule Air.Service.DataSource do
       Task.Supervisor.start_child(@task_supervisor, fn -> MainChannel.stop_query(channel, query.id) end)
     end)
 
-    Service.Query.Lifecycle.state_changed(query.id, :cancelled)
+    Service.Query.Lifecycle.state_changed(query.id, Keyword.get(opts, :query_state, :cancelled))
   end
 
   @doc "Returns a list of data sources given their names"
