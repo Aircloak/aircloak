@@ -7,7 +7,7 @@ you can fully configure the system in the Insights Air `config.json` file.
 ## Aircloak Insights license file
 
 The Aircloak Insights license can be configured under the `license_file` key of the `site` object in the Insights Air
-`config.json` file. The license file must be readable from within the Insights Air container (see the [File permissions](configuration.md#file-permissions)-section for more information on the required permissions) and should reside in the same or a subfolder of the folder in which the `config.json` file is stored.
+`config.json` file. The license file must be readable from within the Insights Air container (see the [File permissions](configuration.md#file-permissions) section for more information on the required permissions) and should reside in the same or a subfolder of the folder in which the `config.json` file is stored.
 
 ```
 $ ls -la
@@ -32,7 +32,7 @@ Given a setup as shown above, the `config.json` file would look like this:
 In some jurisdictions it is a legal requirement to provide a privacy policy on any website accessible from the internet.
 The privacy policy can be provided under the `privacy_policy_file` key of the `site` object in the Insights Air
 `config.json` file. The file containing the privacy policy must be readable from within the Insights Air container
-(see the [File permissions](configuration.md#file-permissions)-section for more information on the required permissions) and should reside in the same or a subfolder of the folder in which the `config.json` file is stored. The file can contain markdown formatting.
+(see the [File permissions](configuration.md#file-permissions) section for more information on the required permissions) and should reside in the same or a subfolder of the folder in which the `config.json` file is stored. The file can contain markdown formatting.
 Preconfiguring the privacy policy does not prevent you from later updating it through the web interface.
 
 ```
@@ -68,7 +68,7 @@ Given a setup as shown above, the `config.json` file would look like this:
 Aircloak Insights allows you to preconfigure a set of users and data sources. The user accounts, data sources and information
 about which user accounts should have access to which data sources can be configured as a JSON object in a file available
 under the `users_and_datasources_file` key of the `site` object in the Insights Air `config.json` file.
-The users and data source definitions file must be readable from within the Insights Air container (see the [File permissions](configuration.md#file-permissions)-section for more information on the required permissions) and should reside in the same or a subfolder of the folder in which the `config.json` file is stored.
+The users and data source definitions file must be readable from within the Insights Air container (see the [File permissions](configuration.md#file-permissions) section for more information on the required permissions) and should reside in the same or a subfolder of the folder in which the `config.json` file is stored.
 
 ```
 $ ls -la
