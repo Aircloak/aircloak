@@ -195,13 +195,13 @@ defmodule Air.Service.Query do
       |> Repo.all()
       |> Repo.preload([:user, :data_source])
 
-  @doc "Returns a list of the queries that are currently executing in all contexts."
-  @spec currently_running() :: [Query.t()]
-  def currently_running(), do: Repo.all(from(q in pending()))
+  @doc "Returns a list of the queries that have not yet finished."
+  @spec not_finished() :: [Query.t()]
+  def not_finished(), do: Repo.all(from(q in pending()))
 
-  @doc "Returns a list of queries that are currently executing, started by the given user on the given data source."
-  @spec currently_running(User.t(), DataSource.t(), Query.Context.t()) :: [Query.t()]
-  def currently_running(user, data_source, context) do
+  @doc "Returns a list of queries that have not yet finished, started by the given user on the given data source."
+  @spec not_finished(User.t(), DataSource.t(), Query.Context.t()) :: [Query.t()]
+  def not_finished(user, data_source, context) do
     pending()
     |> started_by(user)
     |> for_data_source(data_source)

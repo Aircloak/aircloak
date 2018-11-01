@@ -126,11 +126,11 @@ defmodule Air.Service.QueryTest do
     end
   end
 
-  describe "currently_running/0" do
+  describe "not_finished/0" do
     test "returns running queries" do
       user = create_user!()
       query_ids = [create_query!(user).id, create_query!(user, %{query_state: :started}).id]
-      assert Query.currently_running() |> Enum.map(& &1.id) |> Enum.sort() == Enum.sort(query_ids)
+      assert Query.not_finished() |> Enum.map(& &1.id) |> Enum.sort() == Enum.sort(query_ids)
     end
 
     test "does not return not running queries" do
@@ -139,11 +139,11 @@ defmodule Air.Service.QueryTest do
       create_query!(user, %{query_state: :error})
       create_query!(user, %{query_state: :cancelled})
 
-      assert [] == Query.currently_running()
+      assert [] == Query.not_finished()
     end
   end
 
-  describe "currently_running/2" do
+  describe "not_finished/2" do
     setup [:with_user, :with_data_source]
 
     test "returns running queries on the given data source", context do
@@ -151,7 +151,7 @@ defmodule Air.Service.QueryTest do
 
       query_id = query.id
 
-      assert [%Air.Schemas.Query{id: ^query_id}] = Query.currently_running(context.user, context.data_source, :http)
+      assert [%Air.Schemas.Query{id: ^query_id}] = Query.not_finished(context.user, context.data_source, :http)
     end
 
     test "does not return not running queries", context do
@@ -167,25 +167,25 @@ defmodule Air.Service.QueryTest do
         query_state: :cancelled
       })
 
-      assert [] == Query.currently_running(context.user, context.data_source, :http)
+      assert [] == Query.not_finished(context.user, context.data_source, :http)
     end
 
     test "does not return other users' queries", context do
       create_query!(_other_user = create_user!(), %{data_source_id: context.data_source.id})
 
-      assert [] = Query.currently_running(context.user, context.data_source, :http)
+      assert [] = Query.not_finished(context.user, context.data_source, :http)
     end
 
     test "does not return queries to other data sources", context do
       create_query!(context.user, %{data_source_id: _other_source = create_data_source!().id})
 
-      assert [] = Query.currently_running(context.user, context.data_source, :http)
+      assert [] = Query.not_finished(context.user, context.data_source, :http)
     end
 
     test "does not return queries in other contexts", context do
       create_query!(context.user, %{data_source_id: context.data_source.id, context: :psql})
 
-      assert [] = Query.currently_running(context.user, context.data_source, :http)
+      assert [] = Query.not_finished(context.user, context.data_source, :http)
     end
   end
 
