@@ -81,6 +81,7 @@ defmodule DataQuality.Test.Query do
       |> Enum.map(fn dest_config ->
         query_cloak(dest_config, query)
         |> rows()
+        |> raise_on_no_rows()
         |> to_map()
         |> for_destination(dest_config.name)
       end)
@@ -122,6 +123,9 @@ defmodule DataQuality.Test.Query do
       |> Enum.into(%{})
 
   defp for_destination(data, name), do: {name, data}
+
+  defp raise_on_no_rows([]), do: raise("DataSource returned no rows")
+  defp raise_on_no_rows(rows), do: rows
 
   defp query_cloak(config, query) do
     payload = %{
