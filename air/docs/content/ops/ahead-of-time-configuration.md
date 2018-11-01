@@ -30,7 +30,7 @@ Given a setup as shown above, the `config.json` file would look like this:
 
 ## Aircloak Insights privacy policy
 
-In some jurisdiction it is a legal requirement to provide a privacy policy on any website accessible from the internet.
+In some jurisdictions it is a legal requirement to provide a privacy policy on any website accessible from the internet.
 The privacy policy can be provided under the `privacy_policy_file` key of the `site` object in the Insights Air
 `config.json` file. The file containing the privacy policy must be readable from within the Insights Air container
 (readable by world) and should reside in the same or a subfolder of the folder in which the `config.json` file is stored. The file can contain markdown formatting.
@@ -117,7 +117,7 @@ line history! This would compromise the security of the accounts.
 [The following article](https://stackoverflow.com/questions/640403/can-you-prevent-a-command-from-going-into-the-bash-shell-command-history)
 explains measures that can be taken to ensure the command is not recorded.
 
-You can run the Aircloak provided utility as follows:
+You can run the Aircloak-provided utility as follows:
 
 ```
 $ docker run -it quay.io/aircloak/air:VERSION bin/air hash_passwords password1 password2
@@ -129,7 +129,7 @@ where `VERSION` is the version of the Insights Air system you are running.
 
 ### Data sources
 
-The data source definitions take the fomr of:
+The data source definitions take the form of:
 
 ```json
 {
@@ -141,8 +141,8 @@ The data source definitions take the fomr of:
 
 Where `name` is the data source name. It must be provided _exactly_
 as it is configued using the `name` parameter in the Insights Cloak data source configuration.
-`logins` is should be an array of the `login`s of user accounts that should be given access to the data source.
-These accounts need exist in the system (for example have been preconfigured using the `users`
+`logins` should be an array of the `login`s of user accounts that should be given access to the data source.
+These accounts need exist in the system (for example having been preconfigured using the `users`
 field) before the data source is created.
 `group_name` is the desired name of the group that the users and data source should belong to.
 It can generally be set to the name of the data source itself, but is not allowed to be the same as the name
@@ -223,6 +223,6 @@ The Insights Air configuration file (`config.json`) needs to be amended to inclu
 }
 ```
 
-Upon starting up Insights Air will configure the accounts for Alice and Bob and pre-create data source
-scaffolds for the two data sources. Alice' account will have access to query both data sources,
+Upon starting up, Insights Air will configure the accounts for Alice and Bob and pre-create data source
+scaffolds for the two data sources. Alice's account will have access to query both data sources,
 whereas Bob's account will only have access rights to the `BobCorpData` data source.
