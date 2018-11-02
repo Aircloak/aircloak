@@ -4,25 +4,25 @@ command="$1"
 shift || true
 
 exec_on_prod() {
-  $RELEASE_ROOT_DIR/bin/aircloak_ci eval "'Elixir.AircloakCI.ReleaseCLI':$1"
+  $RELEASE_ROOT_DIR/bin/aircloak_ci rpc "AircloakCI.ReleaseCLI.$1"
 }
 
 case "$command" in
   force_build)
-    exec_on_prod "force_build(<<\"$1\">>, <<\"$2\">>, <<\"$3\">>)"
+    exec_on_prod "force_build(\"$1\", \"$2\", \"$3\")"
     ;;
 
   force_nightly)
-    exec_on_prod "force_nightly(<<\"$1\">>, <<\"$2\">>, <<\"$3\">>)"
+    exec_on_prod "force_nightly(\"$1\", \"$2\", \"$3\")"
     ;;
 
   # backwards compatibility
   force_start)
-    exec_on_prod "force_build(<<\"pr\">>, <<\"$1\">>, <<\"compliance\">>)"
+    exec_on_prod "force_build(\"pr\", \"$1\", \"compliance\")"
     ;;
 
   log)
-    exec_on_prod "print_build_log(<<\"$1\">>, <<\"$2\">>, <<\"$3\">>)"
+    exec_on_prod "print_build_log(\"$1\", \"$2\", \"$3\")"
     ;;
 
   *)
