@@ -88,9 +88,8 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
     start_cloak(data_source, [{:error, :timeout}])
     Starter.run()
 
-    assert_receive {:query_result, %{query_id: ^query_id} = result}
-    assert result.error == "The query could not be started due to a communication timeout."
-    assert soon(Air.Repo.get!(Air.Schemas.Query, query_id).query_state == :cancelled)
+    assert_receive {:query_state_change, %{query_id: ^query_id, state: :query_died}}
+    assert soon(Air.Repo.get!(Air.Schemas.Query, query_id).query_state == :error)
     assert Query.awaiting_start() == []
     assert soon(is_nil(Air.Service.Query.Lifecycle.whereis(query_id)))
   end
@@ -103,8 +102,12 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
     start_cloak(data_source, [{:error, :timeout}])
     Starter.run()
 
-    assert_receive {:query_result, %{query_id: ^query_id, error: _} = result}
-    assert soon(Air.Repo.get!(Air.Schemas.Query, query_id).query_state == :cancelled)
+    assert_receive {:query_state_change, %{query_id: ^query_id, state: :query_died}}
+    assert soon(Air.Repo.get!(Air.Schemas.Query, query_id).query_state == :error)
+
+    assert Air.Repo.get!(Air.Schemas.Query, query_id).result["error"] ==
+             "The query could not be started due to a communication timeout."
+
     assert same_queries?(Query.awaiting_start(), other_queries)
     assert soon(is_nil(Air.Service.Query.Lifecycle.whereis(query_id)))
   end
@@ -123,9 +126,12 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
     Air.Service.Query.Events.subscribe(query_id)
     Starter.run()
 
-    assert_receive {:query_result, %{query_id: ^query_id} = result}
-    assert result.error == "The query could not be started because there was no cloak available."
-    assert soon(Air.Repo.get!(Air.Schemas.Query, query_id).query_state == :cancelled)
+    assert_receive {:query_state_change, %{query_id: ^query_id, state: :query_died}}
+    assert soon(Air.Repo.get!(Air.Schemas.Query, query_id).query_state == :error)
+
+    assert Air.Repo.get!(Air.Schemas.Query, query_id).result["error"] ==
+             "The query could not be started because there was no cloak available."
+
     assert Query.awaiting_start() == []
     assert soon(is_nil(Air.Service.Query.Lifecycle.whereis(query_id)))
   end
