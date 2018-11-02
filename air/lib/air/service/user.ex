@@ -5,7 +5,7 @@ defmodule Air.Service.User do
   alias Air.Service.{AuditLog, LDAP, Salts}
   alias Air.Schemas.{DataSource, Group, User, Login}
   alias AirWeb.Endpoint
-  import Ecto.Query, only: [from: 2]
+  import Ecto.Query, only: [from: 2, join: 4, where: 3, preload: 3]
   import Ecto.Changeset
 
   @required_fields ~w(name)a
@@ -25,15 +25,22 @@ defmodule Air.Service.User do
   @doc "Authenticates the given user."
   @spec login(String.t(), String.t(), %{atom => any}) :: {:ok, User.t()} | {:error, :invalid_login_or_password}
   def login(login, password, meta \\ %{}) do
-    user = Repo.one(from(u in User, where: u.login == ^login, where: u.enabled))
+    login =
+      Login
+      |> join(:left, [login], user in assoc(login, :user))
+      |> where([login, _user], login.login == ^login)
+      |> where([login, _user], login.login_type == ^:main)
+      |> where([_login, user], user.enabled)
+      |> preload([_login, user], user: user)
+      |> Repo.one()
 
     cond do
-      valid_password?(user, password) ->
-        AuditLog.log(user, "Logged in", meta)
-        {:ok, user}
+      valid_password?(login, password) ->
+        AuditLog.log(login.user, "Logged in", meta)
+        {:ok, login.user}
 
-      user ->
-        AuditLog.log(user, "Failed login", meta)
+      login ->
+        AuditLog.log(login.user, "Failed login", meta)
         {:error, :invalid_login_or_password}
 
       true ->
@@ -415,14 +422,14 @@ defmodule Air.Service.User do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp valid_password?(user, password) do
-    case user do
+  defp valid_password?(login, password) do
+    case login do
       %{source: :ldap} ->
-        {_, result} = {User.validate_password(user, password), LDAP.simple_bind(user.ldap_dn, password)}
+        {_, result} = {User.validate_password(login, password), LDAP.simple_bind(login.user.ldap_dn, password)}
         match?(:ok, result)
 
       _ ->
-        {result, _} = {User.validate_password(user, password), LDAP.dummy_bind()}
+        {result, _} = {User.validate_password(login, password), LDAP.dummy_bind()}
         result
     end
   end
