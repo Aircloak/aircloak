@@ -356,7 +356,7 @@ defmodule Air.Service.QueryTest do
     test "ignores completed queries" do
       query = create_query!(create_user!(), %{query_state: :completed})
 
-      Query.query_died(query.id)
+      Query.query_died(query.id, "some error")
 
       {:ok, query} = get_query(query.id)
       assert %{query_state: :completed} = query
@@ -365,13 +365,13 @@ defmodule Air.Service.QueryTest do
     test "sets the result" do
       query = create_query!(create_user!(), %{query_state: :started})
 
-      Query.query_died(query.id)
+      Query.query_died(query.id, "some error")
 
       {:ok, query} = get_query(query.id)
 
       assert %{
                query_state: :error,
-               result: %{"error" => "Query died."}
+               result: %{"error" => "some error"}
              } = query
     end
   end

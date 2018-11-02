@@ -27,7 +27,7 @@ defmodule Air.Service.Cleanup do
 
     started_on_cloak_as_seen_by_air
     |> Enum.reject(&MapSet.member?(currently_running_on_connected_cloaks, &1.id))
-    |> Enum.each(&Air.Service.Query.Lifecycle.query_died(&1.id))
+    |> Enum.each(&Air.Service.Query.Lifecycle.query_died(&1.id, "Query died."))
 
     :ok
   end

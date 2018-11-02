@@ -248,14 +248,14 @@ defmodule Air.Service.Query do
   Marks the query as errored due to unknown reasons. This can happen when for example the cloak goes down during
   processing and a normal error result is not received.
   """
-  @spec query_died(query_id) :: :ok
-  def query_died(query_id) do
+  @spec query_died(query_id, String.t()) :: :ok
+  def query_died(query_id, error) do
     query = Repo.get!(Query, query_id)
 
     if __MODULE__.State.valid_state_transition?(query.query_state, :error) do
       query =
         query
-        |> Query.changeset(%{query_state: :error, result: %{error: "Query died."}})
+        |> Query.changeset(%{query_state: :error, result: %{error: error}})
         |> Repo.update!()
 
       UserChannel.broadcast_state_change(query)

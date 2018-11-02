@@ -38,10 +38,10 @@ defmodule Air.Service.Query.Lifecycle do
   def result_arrived(result), do: enqueue(result.query_id, {:result_arrived, result})
 
   @doc "Asynchronously handles query's termination."
-  @spec query_died(String.t()) :: :ok
-  def query_died(query_id) do
+  @spec query_died(String.t(), String.t()) :: :ok
+  def query_died(query_id, error) do
     Air.Service.DataSource.QueryScheduler.notify()
-    enqueue(query_id, {:query_died, query_id})
+    enqueue(query_id, {:query_died, query_id, error})
   end
 
   @doc "Asynchronously reports query error."
@@ -68,8 +68,8 @@ defmodule Air.Service.Query.Lifecycle do
     if query_state in Air.Service.Query.State.completed(), do: {:stop, :normal, state}, else: {:noreply, state}
   end
 
-  def handle_cast({:query_died, query_id}, state) do
-    :jobs.run(__MODULE__, fn -> Query.query_died(query_id) end)
+  def handle_cast({:query_died, query_id, error}, state) do
+    :jobs.run(__MODULE__, fn -> Query.query_died(query_id, error) end)
     Air.Service.Query.Events.trigger_state_change(%{query_id: query_id, state: :query_died})
     {:stop, :normal, state}
   end
