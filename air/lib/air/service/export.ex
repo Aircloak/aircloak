@@ -68,10 +68,11 @@ defmodule Air.Service.Export do
   end
 
   defp prepare_user(user) do
-    user = Repo.preload(user, groups: :data_sources)
+    user = Repo.preload(user, [:logins, groups: :data_sources])
 
     user
     |> Map.put(:groups, Enum.map(user.groups, &prepare_group/1))
+    |> Map.put(:logins, Enum.map(user.logins, &encode/1))
     |> encode()
   end
 
