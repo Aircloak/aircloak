@@ -14,7 +14,6 @@ defmodule Air.Service.Query.State do
   active_states = [:created | running_states]
 
   completed_states = [
-    :start_expired,
     :cancelled,
     :error,
     :completed
