@@ -126,24 +126,21 @@ defmodule Air.Service.QueryTest do
     end
   end
 
-  describe "currently_running/0" do
-    test "returns running queries" do
+  describe "not_finished/0" do
+    test "returns active queries" do
       user = create_user!()
-      query_ids = [create_query!(user).id, create_query!(user, %{query_state: :started}).id]
-      assert Query.currently_running() |> Enum.map(& &1.id) |> Enum.sort() == Enum.sort(query_ids)
+      query_ids = Enum.map(Query.State.active(), &create_query!(user, %{query_state: &1}).id)
+      assert Query.not_finished() |> Enum.map(& &1.id) |> Enum.sort() == Enum.sort(query_ids)
     end
 
-    test "does not return not running queries" do
+    test "does not return finished queries" do
       user = create_user!()
-      create_query!(user, %{query_state: :completed})
-      create_query!(user, %{query_state: :error})
-      create_query!(user, %{query_state: :cancelled})
-
-      assert [] == Query.currently_running()
+      Enum.each(Query.State.completed(), &create_query!(user, %{query_state: &1}))
+      assert [] == Query.not_finished()
     end
   end
 
-  describe "currently_running/2" do
+  describe "not_finished/2" do
     setup [:with_user, :with_data_source]
 
     test "returns running queries on the given data source", context do
@@ -151,7 +148,7 @@ defmodule Air.Service.QueryTest do
 
       query_id = query.id
 
-      assert [%Air.Schemas.Query{id: ^query_id}] = Query.currently_running(context.user, context.data_source, :http)
+      assert [%Air.Schemas.Query{id: ^query_id}] = Query.not_finished(context.user, context.data_source, :http)
     end
 
     test "does not return not running queries", context do
@@ -167,25 +164,50 @@ defmodule Air.Service.QueryTest do
         query_state: :cancelled
       })
 
-      assert [] == Query.currently_running(context.user, context.data_source, :http)
+      assert [] == Query.not_finished(context.user, context.data_source, :http)
     end
 
     test "does not return other users' queries", context do
       create_query!(_other_user = create_user!(), %{data_source_id: context.data_source.id})
 
-      assert [] = Query.currently_running(context.user, context.data_source, :http)
+      assert [] = Query.not_finished(context.user, context.data_source, :http)
     end
 
     test "does not return queries to other data sources", context do
       create_query!(context.user, %{data_source_id: _other_source = create_data_source!().id})
 
-      assert [] = Query.currently_running(context.user, context.data_source, :http)
+      assert [] = Query.not_finished(context.user, context.data_source, :http)
     end
 
     test "does not return queries in other contexts", context do
       create_query!(context.user, %{data_source_id: context.data_source.id, context: :psql})
 
-      assert [] = Query.currently_running(context.user, context.data_source, :http)
+      assert [] = Query.not_finished(context.user, context.data_source, :http)
+    end
+  end
+
+  describe "started_on_cloak/0" do
+    test "returns active queries" do
+      user = create_user!()
+
+      query_ids =
+        Query.State.active()
+        |> Stream.reject(&(&1 == :created))
+        |> Enum.map(&create_query!(user, %{query_state: &1}).id)
+
+      assert Query.started_on_cloak() |> Enum.map(& &1.id) |> Enum.sort() == Enum.sort(query_ids)
+    end
+
+    test "does not return created query" do
+      user = create_user!()
+      create_query!(user, %{query_state: :created})
+      assert [] == Query.started_on_cloak()
+    end
+
+    test "does not return finished queries" do
+      user = create_user!()
+      Enum.each(Query.State.completed(), &create_query!(user, %{query_state: &1}).id)
+      assert [] == Query.started_on_cloak()
     end
   end
 
@@ -334,7 +356,7 @@ defmodule Air.Service.QueryTest do
     test "ignores completed queries" do
       query = create_query!(create_user!(), %{query_state: :completed})
 
-      Query.query_died(query.id)
+      Query.query_died(query.id, "some error")
 
       {:ok, query} = get_query(query.id)
       assert %{query_state: :completed} = query
@@ -343,13 +365,13 @@ defmodule Air.Service.QueryTest do
     test "sets the result" do
       query = create_query!(create_user!(), %{query_state: :started})
 
-      Query.query_died(query.id)
+      Query.query_died(query.id, "some error")
 
       {:ok, query} = get_query(query.id)
 
       assert %{
                query_state: :error,
-               result: %{"error" => "Query died."}
+               result: %{"error" => "some error"}
              } = query
     end
   end
