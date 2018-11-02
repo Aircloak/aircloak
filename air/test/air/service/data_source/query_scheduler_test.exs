@@ -26,7 +26,7 @@ defmodule Air.Service.DataSource.QuerySchedulerTest do
     QueryScheduler.notify(scheduler)
     refute_receive {:runner_started, _runner_pid}
 
-    send(runner_pid, :continue)
+    continue_runner(runner_pid)
     assert_receive {:runner_started, _runner_pid}
   end
 
@@ -39,7 +39,7 @@ defmodule Air.Service.DataSource.QuerySchedulerTest do
     QueryScheduler.notify(scheduler)
     QueryScheduler.notify(scheduler)
     QueryScheduler.notify(scheduler)
-    send(runner_pid, :continue)
+    continue_runner(runner_pid)
 
     assert_receive {:runner_started, _runner_pid}
     refute_receive {:runner_started, _runner_pid}
@@ -49,8 +49,8 @@ defmodule Air.Service.DataSource.QuerySchedulerTest do
     start_scheduler!(idle_timeout: 10)
 
     Enum.each(1..5, fn _ ->
-      assert_receive {:runner_started, runner_pid}
-      send(runner_pid, :continue)
+      assert_receive {:runner_started, runner_pid}, :timer.seconds(1)
+      continue_runner(runner_pid)
     end)
   end
 
@@ -61,8 +61,8 @@ defmodule Air.Service.DataSource.QuerySchedulerTest do
     assert_receive {:runner_started, runner_pid}
 
     ExUnit.CaptureLog.capture_log(fn ->
-      send(runner_pid, :crash)
-      assert_receive {:runner_started, _runner_pid}
+      crash_runner(runner_pid)
+      assert_receive {:runner_started, _runner_pid}, :timer.seconds(1)
     end)
   end
 
@@ -80,5 +80,17 @@ defmodule Air.Service.DataSource.QuerySchedulerTest do
 
     {:ok, pid} = QueryScheduler.start_link(Keyword.merge([name: nil, runner: runner], opts))
     pid
+  end
+
+  defp continue_runner(runner_pid) do
+    mref = Process.monitor(runner_pid)
+    send(runner_pid, :continue)
+    assert_receive {:DOWN, ^mref, _, _, _}, :timer.seconds(1)
+  end
+
+  defp crash_runner(runner_pid) do
+    mref = Process.monitor(runner_pid)
+    send(runner_pid, :crash)
+    assert_receive {:DOWN, ^mref, _, _, _}, :timer.seconds(1)
   end
 end
