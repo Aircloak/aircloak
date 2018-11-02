@@ -95,7 +95,7 @@ defmodule AirWeb.QueryController do
   def cancel(conn, %{"id" => query_id}) do
     case Air.Service.Query.get_as_user(conn.assigns.current_user, query_id) do
       {:ok, query} ->
-        DataSource.stop_query(query)
+        DataSource.cancel_query(query)
         json(conn, %{success: true})
 
       _ ->

@@ -70,7 +70,7 @@ defmodule Air.PsqlServer.ConnectionRegistry do
               "Issued request to cancel query: #{query_id} on behalf of user #{user_id}"
             end)
 
-            DataSource.stop_query(query)
+            DataSource.cancel_query(query)
             :ok
 
           {:error, _reason} ->
