@@ -48,6 +48,13 @@ defmodule Air.Service.User do
     end
   end
 
+  @doc "Returns the main login of the user as a string."
+  @spec main_login(User.t()) :: String.t()
+  def main_login(user) do
+    login = user.logins |> Enum.find(&(&1.login_type == :main))
+    login.login
+  end
+
   @doc """
   Performs a database check to validate if a user is enabled or not.
   Useful when a user record exists in memory, and no database operation
@@ -81,15 +88,15 @@ defmodule Air.Service.User do
 
   @doc "Returns a list of all users in the system."
   @spec all() :: [User.t()]
-  def all(), do: Repo.all(from(user in User, preload: [:groups]))
+  def all(), do: Repo.all(from(user in User, preload: [:logins, :groups]))
 
   @doc "Returns a list of all native users in the system."
   @spec all_native() :: [User.t()]
-  def all_native(), do: Repo.all(from(user in User, where: [source: ^:native], preload: [:groups]))
+  def all_native(), do: Repo.all(from(user in User, where: [source: ^:native], preload: [:logins, :groups]))
 
   @doc "Loads the user with the given id."
   @spec load(pos_integer) :: User.t() | nil
-  def load(user_id), do: Repo.one(from(user in User, where: user.id == ^user_id, preload: [:groups]))
+  def load(user_id), do: Repo.one(from(user in User, where: user.id == ^user_id, preload: [:logins, :groups]))
 
   @doc "Creates the new user, raises on error."
   @spec create!(map) :: User.t()
@@ -269,7 +276,7 @@ defmodule Air.Service.User do
           inner_join: data_source in assoc(group, :data_sources),
           where: data_source.id == ^data_source.id,
           select: user,
-          preload: [:groups]
+          preload: [:logins, :groups]
         )
       )
 
