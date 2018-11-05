@@ -43,7 +43,7 @@ defmodule Cloak.DataSource.Connection.Pool do
 
   @doc "Returns the connection to the pool."
   @spec checkin(pid, pid) :: :ok
-  def checkin(pool_pid, connection \\ self()), do: GenServer.call(pool_pid, {:checkin, connection})
+  def checkin(pool_pid, connection \\ self()), do: GenServer.cast(pool_pid, {:checkin, connection})
 
   @doc "Removes the connection from the pool."
   @spec remove_connection(pid, pid) :: :ok
@@ -67,12 +67,12 @@ defmodule Cloak.DataSource.Connection.Pool do
     {:reply, connection, state}
   end
 
-  def handle_call({:checkin, connection}, _from, state) do
+  @impl GenServer
+  def handle_cast({:checkin, connection}, state) do
     Parent.GenServer.update_child_meta(child_id!(connection), &%{&1 | available?: true})
-    {:reply, :ok, state}
+    {:noreply, state}
   end
 
-  @impl GenServer
   def handle_cast({:remove_connection, connection}, state) do
     Logger.debug("Removing an idle connection from the pool")
     Parent.GenServer.shutdown_child(child_id!(connection))
