@@ -64,6 +64,24 @@ defmodule Cloak.DataSource.Connection do
   @spec set_checkout_id(pid, reference) :: :ok
   def set_checkout_id(connection, checkout_id), do: GenServer.cast(connection, {:set_checkout_id, checkout_id})
 
+  @doc "Synchronously stops the connection process."
+  @spec stop(pid) :: :ok
+  def stop(connection) do
+    mref = Process.monitor(connection)
+    GenServer.cast(connection, :stop)
+
+    receive do
+      {:DOWN, ^mref, _, _, _} -> :ok
+    after
+      :timer.seconds(5) ->
+        Process.exit(connection, :kill)
+
+        receive do
+          {:DOWN, ^mref, _, _, _} -> :ok
+        end
+    end
+  end
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
@@ -157,6 +175,8 @@ defmodule Cloak.DataSource.Connection do
     assert_not_used!(state)
     {:noreply, %{state | checkout_id: checkout_id}, Driver.connection_keep_time()}
   end
+
+  def handle_cast(:stop, state), do: {:stop, :normal, state}
 
   @impl GenServer
   def handle_info({:EXIT, streamer, reason}, %{streamer: streamer} = state) do

@@ -80,8 +80,14 @@ defmodule Cloak.DataSource.Connection.Pool do
     {:ok, meta} = Parent.GenServer.child_meta(child_id)
 
     if meta.checkout_id == checkout_id do
-      Logger.debug("Removing an idle connection from the pool")
-      Parent.GenServer.shutdown_child(child_id)
+      # mark the connection as not available so it's not checked out
+      Parent.GenServer.update_child_meta(child_id, &%{&1 | available?: false})
+
+      # stoping the connection from a task to avoid longer disconnect blocking the pool process
+      Parent.GenServer.start_child(%{
+        id: {:shutdown, make_ref()},
+        start: {Task, :start_link, [fn -> stop_connection(connection) end]}
+      })
     end
 
     {:noreply, state}
@@ -100,7 +106,11 @@ defmodule Cloak.DataSource.Connection.Pool do
     start = {Connection, :start_link, [state.driver, state.connection_params, checkout_id]}
 
     {:ok, conn} =
-      Parent.GenServer.start_child(%{id: make_ref(), meta: %{available?: true, checkout_id: checkout_id}, start: start})
+      Parent.GenServer.start_child(%{
+        id: {:connection, make_ref()},
+        meta: %{available?: true, checkout_id: checkout_id},
+        start: start
+      })
 
     conn
   end
@@ -110,6 +120,11 @@ defmodule Cloak.DataSource.Connection.Pool do
       Connection.set_checkout_id(conn, checkout_id)
       conn
     end
+  end
+
+  defp stop_connection(connection) do
+    Logger.debug("Removing an idle connection from the pool")
+    Connection.stop(connection)
   end
 
   @doc false
