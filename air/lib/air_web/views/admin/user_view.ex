@@ -42,6 +42,10 @@ defmodule AirWeb.Admin.UserView do
     end
   end
 
+  defp login(user) do
+    Air.Service.User.main_login(user)
+  end
+
   defp can_disable?(%{source: :ldap}), do: false
   defp can_disable?(%{source: :native, enabled: enabled}), do: enabled
 
