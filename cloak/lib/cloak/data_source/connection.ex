@@ -54,12 +54,22 @@ defmodule Cloak.DataSource.Connection do
   @spec streaming_done(pid) :: :ok
   def streaming_done(connection), do: GenServer.cast(connection, {:streaming_done, self()})
 
+  @doc """
+  Invoked by the pool process to set the unique checkout id.
+
+  Checkout id is needed to resolve a subtle race condition where the connection owner process decides to stop the idle
+  connection while the pool process checks it out. In this case, the connection owner will request the pool to stop the
+  connection, but the checkout id won't match, and the request will be ignored.
+  """
+  @spec set_checkout_id(pid, reference) :: :ok
+  def set_checkout_id(connection, checkout_id), do: GenServer.cast(connection, {:set_checkout_id, checkout_id})
+
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init({pool_pid, driver, connection_params}) do
+  def init({pool_pid, driver, connection_params, checkout_id}) do
     Process.flag(:trap_exit, true)
 
     state = %{
@@ -69,7 +79,8 @@ defmodule Cloak.DataSource.Connection do
       query_runner: nil,
       streamer: nil,
       user_mref: nil,
-      connection_params: connection_params
+      connection_params: connection_params,
+      checkout_id: checkout_id
     }
 
     {:ok, state, Driver.connection_keep_time()}
@@ -142,6 +153,11 @@ defmodule Cloak.DataSource.Connection do
     checkin(state)
   end
 
+  def handle_cast({:set_checkout_id, checkout_id}, state) do
+    assert_not_used!(state)
+    {:noreply, %{state | checkout_id: checkout_id}, Driver.connection_keep_time()}
+  end
+
   @impl GenServer
   def handle_info({:EXIT, streamer, reason}, %{streamer: streamer} = state) do
     if reason == :normal do
@@ -160,7 +176,7 @@ defmodule Cloak.DataSource.Connection do
     do: checkin(state)
 
   def handle_info(:timeout, state) do
-    Pool.remove_connection(state.pool_pid)
+    Pool.remove_connection(state.pool_pid, state.checkout_id)
     {:noreply, state}
   end
 
@@ -243,6 +259,6 @@ defmodule Cloak.DataSource.Connection do
   # -------------------------------------------------------------------
 
   @doc false
-  def start_link(driver, connection_params),
-    do: GenServer.start_link(__MODULE__, {self(), driver, connection_params})
+  def start_link(driver, connection_params, checkout_id),
+    do: GenServer.start_link(__MODULE__, {self(), driver, connection_params, checkout_id})
 end
