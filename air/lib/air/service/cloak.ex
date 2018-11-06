@@ -167,7 +167,7 @@ defmodule Air.Service.Cloak do
       |> Lens.to_list(datasource_tables)
       |> Enum.empty?()
 
-  defp pending?(column), do: Enum.any?([:isolated, :shadow_table], &(Map.get(column, &1) == :pending))
+  defp pending?(column), do: column[:shadow_table] == :pending or column[:isolated] == :pending
 
   defp strip_tables_of_temporary_state(tables),
     do:
