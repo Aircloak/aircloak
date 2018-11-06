@@ -376,24 +376,24 @@ defmodule Air.Service.UserTest do
     end
 
     test "cannot change fields", %{user: user, token: token} do
-      old_login = user.login
+      old_name = user.name
 
-      assert {:ok, %{login: ^old_login}} =
+      assert {:ok, %{name: ^old_name}} =
                User.reset_password(token, %{
                  password: "password1234",
                  password_confirmation: "password1234",
-                 login: "new@email.com"
+                 name: "new name"
                })
     end
 
     test "successful change", %{user: user, token: token} do
       assert {:ok, _} = User.reset_password(token, %{password: "new password", password_confirmation: "new password"})
-      assert {:ok, _} = User.login(user.login, "new password")
+      assert {:ok, _} = User.login(User.main_login(user), "new password")
     end
 
     test "incorrect confirmation", %{user: user, token: token} do
       assert {:error, _} = User.reset_password(token, %{password: "new password", password_confirmation: "other"})
-      assert {:error, _} = User.login(user.login, "new password")
+      assert {:error, _} = User.login(User.main_login(user), "new password")
     end
   end
 

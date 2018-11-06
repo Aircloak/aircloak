@@ -78,8 +78,8 @@ defmodule Air.Service.User do
     one_week = 7 * one_day
 
     with {:ok, user_id} <- Phoenix.Token.verify(Endpoint, Salts.get(:password_reset), token, max_age: one_week) do
-      Repo.get!(User, user_id)
-      |> password_reset_changeset(params)
+      load(user_id)
+      |> change_main_login(&password_reset_changeset(&1, params))
       |> Repo.update()
     else
       _ -> {:error, :invalid_token}
