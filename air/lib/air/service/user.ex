@@ -3,12 +3,13 @@ defmodule Air.Service.User do
 
   alias Air.Repo
   alias Air.Service.{AuditLog, LDAP, Salts}
-  alias Air.Schemas.{DataSource, Group, User}
+  alias Air.Schemas.{DataSource, Group, User, Login}
   alias AirWeb.Endpoint
   import Ecto.Query, only: [from: 2]
   import Ecto.Changeset
 
-  @required_fields ~w(login name)a
+  @required_fields ~w(name)a
+  @login_fields ~w(login)a
   @password_fields ~w(password password_confirmation)a
   @ldap_fields ~w(ldap_dn source)a
   @ldap_required_fields ~w(ldap_dn)a
@@ -95,7 +96,7 @@ defmodule Air.Service.User do
   def create(params) do
     %User{}
     |> user_changeset(params)
-    |> merge(random_password_changeset(%User{}))
+    |> merge(random_password_changeset(%User{}, params))
     |> Repo.insert()
   end
 
@@ -104,7 +105,7 @@ defmodule Air.Service.User do
   def create_ldap(params) do
     %User{}
     |> user_changeset(params)
-    |> merge(random_password_changeset(%User{}))
+    |> merge(random_password_changeset(%User{}, params))
     |> merge(ldap_changeset(%User{}, params))
     |> Repo.insert()
   end
@@ -434,9 +435,16 @@ defmodule Air.Service.User do
       |> cast(params, @required_fields ++ @optional_fields)
       |> validate_required(@required_fields)
       |> validate_length(:name, min: 2)
-      |> unique_constraint(:login)
+      |> merge(change_main_login(user, &main_login_changeset(&1, params)))
       |> merge(number_format_changeset(user, params))
       |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
+
+  defp main_login_changeset(login, params) do
+    login
+    |> cast(params, @login_fields)
+    |> validate_required(@login_fields)
+    |> unique_constraint(:login)
+  end
 
   defp number_format_changeset(user, params) do
     user
@@ -452,13 +460,18 @@ defmodule Air.Service.User do
     |> validate_required(@ldap_required_fields)
   end
 
-  defp random_password_changeset(user) do
-    password = :crypto.strong_rand_bytes(64) |> Base.encode64()
-    password_reset_changeset(user, %{password: password, password_confirmation: password})
+  defp random_password_changeset(user, params) do
+    change_main_login(user, fn login ->
+      password = :crypto.strong_rand_bytes(64) |> Base.encode64()
+
+      login
+      |> password_reset_changeset(%{password: password, password_confirmation: password})
+      |> merge(main_login_changeset(login, params))
+    end)
   end
 
-  defp password_reset_changeset(user, params) do
-    user
+  defp password_reset_changeset(login, params) do
+    login
     |> cast(params, @password_fields)
     |> validate_required(@password_fields)
     |> validate_length(:password, min: 10)
@@ -549,6 +562,24 @@ defmodule Air.Service.User do
       {:ldap, false} -> raise "Accidental LDAP change"
       {_, true} -> raise "Accidental non-LDAP change"
       _ -> object
+    end
+  end
+
+  defp change_main_login(user, action) do
+    user
+    |> Repo.preload([:logins])
+    |> get_in([Access.key(:logins)])
+    |> Enum.find(%Login{}, &(&1.login_type == :main))
+    |> action.()
+    |> change(%{login_type: :main})
+    |> case do
+      login_changeset = %{valid?: true} ->
+        put_assoc(change(user), :logins, [login_changeset])
+
+      login_changeset = %{valid?: false} ->
+        Enum.reduce(login_changeset.errors, change(user), fn {field, {msg, opts}}, changeset ->
+          add_error(changeset, field, msg, opts)
+        end)
     end
   end
 

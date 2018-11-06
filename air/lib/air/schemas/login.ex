@@ -2,14 +2,29 @@ defmodule Air.Schemas.Login do
   @moduledoc "The login model."
 
   use Air.Schemas.Base
+  require EctoEnum
 
-  @type t :: %__MODULE__{}
+  @type t :: %__MODULE__{
+          login: String.t(),
+          hashed_password: String.t(),
+          login_type: __MODULE__.LoginType
+        }
+
+  EctoEnum.defenum(LoginType, :login_type, [:main, :psql])
 
   schema "logins" do
     belongs_to(:user, Air.Schemas.User)
 
     field(:login, :string)
     field(:hashed_password, :string)
+    field(:login_type, __MODULE__.LoginType)
+
+    # These virtual fields are used for validation,
+    # but never persisted to the database
+    field(:password, :string, virtual: true)
+    field(:password_confirmation, :string, virtual: true)
+
+    timestamps()
   end
 
   defimpl Inspect do

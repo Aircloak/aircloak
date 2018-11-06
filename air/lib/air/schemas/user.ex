@@ -17,7 +17,6 @@ defmodule Air.Schemas.User do
     field(:pseudonym, :string)
     field(:ldap_dn, :string)
     field(:source, Air.Schemas.Source)
-    field(:ldap_dn, :string)
     field(:enabled, :boolean)
 
     has_many(:queries, Air.Schemas.Query)
