@@ -163,9 +163,11 @@ defmodule Air.Service.Cloak do
       |> Lens.all()
       |> Lens.key(:columns)
       |> Lens.all()
-      |> Lens.filter(&(&1.isolated == :pending or &1.shadow_table == :pending))
+      |> Lens.filter(&pending?/1)
       |> Lens.to_list(datasource_tables)
       |> Enum.empty?()
+
+  defp pending?(column), do: column[:shadow_table] == :pending or column[:isolated] == :pending
 
   defp strip_tables_of_temporary_state(tables),
     do:
