@@ -169,8 +169,8 @@ defmodule Air.Service.User do
     check_ldap!(user, options)
 
     user
-    |> user_changeset(Map.take(params, ~w(name login decimal_sep thousand_sep decimal_digits)))
-    |> merge(full_login_changeset(user, params))
+    |> user_changeset(Map.take(params, ~w(name decimal_sep thousand_sep decimal_digits)))
+    |> merge(change_main_login(user, &password_changeset(&1, params)))
     |> Repo.update()
   end
 
@@ -442,15 +442,14 @@ defmodule Air.Service.User do
 
   defp random_string, do: Base.encode16(:crypto.strong_rand_bytes(10))
 
-  defp user_changeset(user, params),
-    do:
-      user
-      |> cast(params, @required_fields ++ @optional_fields)
-      |> validate_required(@required_fields)
-      |> validate_length(:name, min: 2)
-      |> merge(change_main_login(user, &main_login_changeset(&1, params)))
-      |> merge(number_format_changeset(user, params))
-      |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
+  defp user_changeset(user, params) do
+    user
+    |> cast(params, @required_fields ++ @optional_fields)
+    |> validate_required(@required_fields)
+    |> validate_length(:name, min: 2)
+    |> merge(number_format_changeset(user, params))
+    |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
+  end
 
   defp full_login_changeset(login, params) do
     login
@@ -498,14 +497,14 @@ defmodule Air.Service.User do
     |> update_password_hash()
   end
 
-  defp password_changeset(user, params) do
-    old_password_valid = User.validate_password(user, params["old_password"] || "")
+  defp password_changeset(login, params) do
+    old_password_valid = User.validate_password(login, params["old_password"] || "")
 
     case {params["password"], old_password_valid} do
-      {"", _} -> user_changeset(user, %{})
-      {nil, _} -> user_changeset(user, %{})
-      {_, true} -> password_reset_changeset(user, params)
-      {_, false} -> user_changeset(user, %{}) |> add_error(:old_password, "Password invalid")
+      {"", _} -> change(login)
+      {nil, _} -> change(login)
+      {_, true} -> password_reset_changeset(login, params)
+      {_, false} -> change(login) |> add_error(:old_password, "Password invalid")
     end
   end
 

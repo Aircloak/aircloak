@@ -68,7 +68,7 @@ defmodule Air.Service.UserTest do
       user = TestRepoHelper.create_user!(%{password: "password1234"})
 
       {:ok, updated_user} = User.update_full_profile(user, %{"name" => "foobar"})
-      assert updated_user.hashed_password == user.hashed_password
+      assert hd(updated_user.logins).hashed_password == hd(user.logins).hashed_password
 
       {:ok, updated_user} =
         User.update_full_profile(user, %{
@@ -77,7 +77,24 @@ defmodule Air.Service.UserTest do
           "password_confirmation" => "passwordwxyz"
         })
 
-      refute updated_user.hashed_password == user.hashed_password
+      refute hd(updated_user.logins).hashed_password == hd(user.logins).hashed_password
+    end
+
+    test "password is not changed if old password is invalid" do
+      user = TestRepoHelper.create_user!(%{password: "password1234"})
+
+      assert errors_on(
+               &User.update_full_profile(user, &1),
+               %{
+                 "old_password" => "invalid",
+                 "password" => "passwordwxyz",
+                 "password_confirmation" => "passwordwxyz"
+               }
+             ) == [
+               old_password: "Password invalid"
+             ]
+
+      assert {:error, :invalid_login_or_password} = User.login(hd(user.logins).login, "invalid")
     end
 
     test "the only admin can't be deleted",
@@ -443,7 +460,7 @@ defmodule Air.Service.UserTest do
     test "cannot change login, name, and password" do
       user = TestRepoHelper.create_user!(%{login: "alice", name: "Alice"})
 
-      assert {:ok, %{login: "alice", name: "Alice"}} =
+      assert {:ok, %{logins: [%{login: "alice"}], name: "Alice"}} =
                User.update_profile_settings(user, %{
                  login: "bob",
                  name: "Bob",
