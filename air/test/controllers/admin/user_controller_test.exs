@@ -72,7 +72,7 @@ defmodule AirWeb.Admin.UserController.Test do
     assert "/admin/users" == redirected_to(conn)
     users_html = login(%{logins: [%{login: changed_login}]}) |> get("/admin/users") |> response(200)
     assert users_html =~ changed_login
-    refute users_html =~ admin.login
+    refute users_html =~ User.main_login(admin)
   end
 
   test "error is reported when updating tha last admin to non-admin status" do

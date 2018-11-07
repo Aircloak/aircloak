@@ -159,6 +159,7 @@ defmodule Air.Service.User do
     commit_if_active_last_admin(fn ->
       user
       |> user_changeset(params)
+      |> merge(change_main_login(user, &main_login_changeset(&1, params)))
       |> Repo.update()
     end)
   end
