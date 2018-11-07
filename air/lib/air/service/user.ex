@@ -5,6 +5,7 @@ defmodule Air.Service.User do
   alias Air.Service.{AuditLog, LDAP, Salts}
   alias Air.Schemas.{DataSource, Group, User, Login}
   alias AirWeb.Endpoint
+  alias Comeonin.Pbkdf2, as: Hash
   import Ecto.Query, only: [from: 2, join: 4, where: 3, preload: 3]
   import Ecto.Changeset
 
@@ -441,14 +442,17 @@ defmodule Air.Service.User do
   defp valid_password?(login, password) do
     case login do
       %{user: %{source: :ldap}} ->
-        {_, result} = {User.validate_password(login, password), LDAP.simple_bind(login.user.ldap_dn, password)}
+        {_, result} = {validate_password(login, password), LDAP.simple_bind(login.user.ldap_dn, password)}
         match?(:ok, result)
 
       _ ->
-        {result, _} = {User.validate_password(login, password), LDAP.dummy_bind()}
+        {result, _} = {validate_password(login, password), LDAP.dummy_bind()}
         result
     end
   end
+
+  defp validate_password(nil, _password), do: Hash.dummy_checkpw()
+  defp validate_password(user, password), do: Hash.checkpw(password, user.hashed_password)
 
   @timing_mask 20
   defp mask_timing(action) do
@@ -520,7 +524,7 @@ defmodule Air.Service.User do
   end
 
   defp password_changeset(login, params) do
-    old_password_valid = User.validate_password(login, params["old_password"] || "")
+    old_password_valid = validate_password(login, params["old_password"] || "")
 
     case {params["password"], old_password_valid} do
       {"", _} -> change(login)

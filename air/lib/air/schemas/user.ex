@@ -4,7 +4,6 @@ defmodule Air.Schemas.User do
 
   use Air.Schemas.Base
 
-  alias Comeonin.Pbkdf2, as: Hash
   alias Air.Schemas.Group
 
   @type t :: %__MODULE__{}
@@ -92,11 +91,6 @@ defmodule Air.Schemas.User do
       allowed -> Enum.member?(allowed, operation)
     end)
   end
-
-  @doc "Validates the user password."
-  @spec validate_password(nil | t, String.t()) :: boolean
-  def validate_password(nil, _password), do: Hash.dummy_checkpw()
-  def validate_password(user, password), do: Hash.checkpw(password, user.hashed_password)
 
   # -------------------------------------------------------------------
   # Internal functions
