@@ -17,7 +17,9 @@ defmodule Air.Service.LDAP.Sync.Test do
     test "LDAP user not created if such Aircloak user exists" do
       create_user!(%{login: "alice"})
 
-      Sync.sync([%User{dn: "some dn", login: "alice", name: "Alice"}], _groups = [])
+      ExUnit.CaptureLog.capture_log(fn ->
+        Sync.sync([%User{dn: "some dn", login: "alice", name: "Alice"}], _groups = [])
+      end)
 
       refute Air.Repo.get_by(Air.Schemas.User, ldap_dn: "some dn", name: "Alice")
     end
@@ -34,7 +36,9 @@ defmodule Air.Service.LDAP.Sync.Test do
       user_from_ldap = create_user!(%{login: "alice", name: "Alice", ldap_dn: "some dn"})
       create_user!(%{login: "bob", name: "Bob"})
 
-      Sync.sync([%User{dn: "some dn", login: "bob", name: "Bob"}], _groups = [])
+      ExUnit.CaptureLog.capture_log(fn ->
+        Sync.sync([%User{dn: "some dn", login: "bob", name: "Bob"}], _groups = [])
+      end)
 
       refute Air.Repo.get(Air.Schemas.User, user_from_ldap.id).enabled
     end
@@ -90,10 +94,12 @@ defmodule Air.Service.LDAP.Sync.Test do
     end
 
     test "two conflicting groups arrive from LDAP" do
-      Sync.sync(_users = [], [
-        %Group{dn: "some dn", name: "group1", member_ids: []},
-        %Group{dn: "some other dn", name: "group1", member_ids: []}
-      ])
+      ExUnit.CaptureLog.capture_log(fn ->
+        Sync.sync(_users = [], [
+          %Group{dn: "some dn", name: "group1", member_ids: []},
+          %Group{dn: "some other dn", name: "group1", member_ids: []}
+        ])
+      end)
 
       assert Air.Repo.get_by(Air.Schemas.Group, name: "group1", source: :ldap, ldap_dn: "some dn")
       refute Air.Repo.get_by(Air.Schemas.Group, ldap_dn: "some other dn")
