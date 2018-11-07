@@ -58,7 +58,7 @@ defmodule Air.Service.AuditLog do
     |> order_by_event()
     |> limit(^params.max_results)
     |> Repo.all()
-    |> Repo.preload(:user)
+    |> Repo.preload(user: :logins)
   end
 
   @doc """
