@@ -57,7 +57,7 @@ defmodule Air.Service.UserTest do
     end
 
     test "update with ldap: true can change LDAP users" do
-      assert {:ok, %{login: "new login"}} =
+      assert {:ok, %{logins: [%{login: "new login"}]}} =
                User.update(TestRepoHelper.create_user!(%{ldap_dn: "some dn"}), %{login: "new login"}, ldap: true)
     end
 

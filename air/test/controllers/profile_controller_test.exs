@@ -4,6 +4,7 @@ defmodule Air.ProfileController.Test do
   import Air.TestConnHelper
   alias Air.TestRepoHelper
   alias Air.{Repo, Schemas.User}
+  alias Air.Service
 
   setup do
     {:ok, user: TestRepoHelper.create_user!()}
@@ -22,7 +23,7 @@ defmodule Air.ProfileController.Test do
       )
 
     assert redirected_to(conn) == "/profile/edit"
-    assert Repo.get!(User, user.id).login == changed_login
+    assert Service.User.load(user.id) |> Service.User.main_login() == changed_login
   end
 
   test "cannot update own groups", %{user: user} do
@@ -41,7 +42,7 @@ defmodule Air.ProfileController.Test do
   end
 
   test "cannot change password without the old password", %{user: user} do
-    old_password_hash = user.hashed_password
+    old_password_hash = hd(user.logins).hashed_password
 
     login(user)
     |> put(
@@ -53,11 +54,11 @@ defmodule Air.ProfileController.Test do
       }
     )
 
-    assert Repo.get!(User, user.id).hashed_password == old_password_hash
+    assert hd(Service.User.load(user.id).logins).hashed_password == old_password_hash
   end
 
   test "can change password with the old password", %{user: user} do
-    old_password_hash = user.hashed_password
+    old_password_hash = hd(user.logins).hashed_password
 
     login(user)
     |> put(
@@ -69,6 +70,6 @@ defmodule Air.ProfileController.Test do
       }
     )
 
-    assert Repo.get!(User, user.id).hashed_password != old_password_hash
+    refute hd(Service.User.load(user.id).logins).hashed_password == old_password_hash
   end
 end

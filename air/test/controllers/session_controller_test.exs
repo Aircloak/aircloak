@@ -3,6 +3,8 @@ defmodule AirWeb.SessionControllerTest do
 
   import Air.{TestConnHelper, TestRepoHelper}
 
+  alias Air.Service.User
+
   setup do
     {:ok, user: create_user!()}
   end
@@ -19,11 +21,11 @@ defmodule AirWeb.SessionControllerTest do
     assert html =~ "Invalid login or password"
 
     # invalid password
-    html = build_conn() |> post("/auth", login: user.login, password: "") |> response(200)
+    html = build_conn() |> post("/auth", login: User.main_login(user), password: "") |> response(200)
     assert html =~ "Invalid login or password"
 
     # correct login
-    logged_in_conn = build_conn() |> post("/auth", login: user.login, password: "password1234")
+    logged_in_conn = build_conn() |> post("/auth", login: User.main_login(user), password: "password1234")
     assert "/" == redirected_to(logged_in_conn)
     assert get_flash(logged_in_conn)["info"] =~ "Logged in successfully"
     # verify that the user can now access a page requiring authentication

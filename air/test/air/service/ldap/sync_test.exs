@@ -8,7 +8,10 @@ defmodule Air.Service.LDAP.Sync.Test do
   describe "syncing users" do
     test "creating a user from LDAP" do
       Sync.sync([%User{dn: "some dn", login: "alice", name: "Alice"}], _groups = [])
-      assert Air.Repo.get_by(Air.Schemas.User, ldap_dn: "some dn", login: "alice", name: "Alice")
+
+      user = Air.Repo.get_by(Air.Schemas.User, ldap_dn: "some dn", name: "Alice") |> Air.Repo.preload(:logins)
+      assert user
+      assert Air.Service.User.main_login(user) == "alice"
     end
 
     test "LDAP user not created if such Aircloak user exists" do
@@ -16,7 +19,7 @@ defmodule Air.Service.LDAP.Sync.Test do
 
       Sync.sync([%User{dn: "some dn", login: "alice", name: "Alice"}], _groups = [])
 
-      refute Air.Repo.get_by(Air.Schemas.User, ldap_dn: "some dn", login: "alice", name: "Alice")
+      refute Air.Repo.get_by(Air.Schemas.User, ldap_dn: "some dn", name: "Alice")
     end
 
     test "user updated if already synced" do
@@ -24,7 +27,7 @@ defmodule Air.Service.LDAP.Sync.Test do
 
       Sync.sync([%User{dn: "some dn", login: "alice", name: "Alice the Magnificent"}], _groups = [])
 
-      assert %{login: "alice", name: "Alice the Magnificent"} = Air.Repo.get(Air.Schemas.User, user.id)
+      assert %{name: "Alice the Magnificent"} = Air.Repo.get(Air.Schemas.User, user.id)
     end
 
     test "user conflicts caused by a change in LDAP" do
@@ -114,10 +117,10 @@ defmodule Air.Service.LDAP.Sync.Test do
       )
 
       assert %{groups: [%{name: "group1"}, %{name: "group2"}]} =
-               Air.Repo.get_by(Air.Schemas.User, login: "alice") |> Air.Repo.preload(:groups)
+               Air.Repo.get_by(Air.Schemas.User, name: "Alice") |> Air.Repo.preload(:groups)
 
       assert %{groups: [%{name: "group1"}]} =
-               Air.Repo.get_by(Air.Schemas.User, login: "bob") |> Air.Repo.preload(:groups)
+               Air.Repo.get_by(Air.Schemas.User, name: "Bob") |> Air.Repo.preload(:groups)
     end
 
     test "updating group members" do
@@ -128,7 +131,7 @@ defmodule Air.Service.LDAP.Sync.Test do
         [%Group{dn: "group dn 1", name: "group1", member_ids: ["alice", "bob"]}]
       )
 
-      assert %{users: [%{login: "alice"}, %{login: "bob"}]} =
+      assert %{users: [%{name: "Alice"}, %{name: "Bob"}]} =
                Air.Repo.get(Air.Schemas.Group, group.id) |> Air.Repo.preload(:users)
     end
   end

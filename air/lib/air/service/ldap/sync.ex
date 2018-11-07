@@ -97,7 +97,7 @@ defmodule Air.Service.LDAP.Sync do
   end
 
   defp sync_user(ldap_user) do
-    if air_user = Air.Repo.get_by(Air.Schemas.User, ldap_dn: ldap_user.dn) do
+    if air_user = Air.Repo.get_by(Air.Schemas.User, ldap_dn: ldap_user.dn) |> Air.Repo.preload(:logins) do
       update_user(air_user, ldap_user)
     else
       create_user(ldap_user)

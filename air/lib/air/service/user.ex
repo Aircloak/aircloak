@@ -171,7 +171,13 @@ defmodule Air.Service.User do
 
     user
     |> user_changeset(Map.take(params, ~w(name decimal_sep thousand_sep decimal_digits)))
-    |> merge(change_main_login(user, &password_changeset(&1, params)))
+    |> merge(
+      change_main_login(user, fn login ->
+        login
+        |> password_changeset(params)
+        |> merge(main_login_changeset(login, params))
+      end)
+    )
     |> Repo.update()
   end
 
