@@ -437,7 +437,7 @@ defmodule Air.Service.User do
 
   defp valid_password?(login, password) do
     case login do
-      %{source: :ldap} ->
+      %{user: %{source: :ldap}} ->
         {_, result} = {User.validate_password(login, password), LDAP.simple_bind(login.user.ldap_dn, password)}
         match?(:ok, result)
 
