@@ -26,24 +26,27 @@ defmodule Air.Service.User do
   @spec login(String.t(), String.t(), %{atom => any}) :: {:ok, User.t()} | {:error, :invalid_login_or_password}
   def login(login, password, meta \\ %{}) do
     login =
-      Login
-      |> join(:left, [login], user in assoc(login, :user))
-      |> where([login, _user], login.login == ^login)
-      |> where([login, _user], login.login_type == ^:main)
-      |> where([_login, user], user.enabled)
-      |> preload([_login, user], user: user)
-      |> Repo.one()
+      mask_timing(fn ->
+        Login
+        |> join(:left, [login], user in assoc(login, :user))
+        |> where([login, _user], login.login == ^login)
+        |> where([login, _user], login.login_type == ^:main)
+        |> where([_login, user], user.enabled)
+        |> preload([_login, user], user: user)
+        |> Repo.one()
+      end)
 
     cond do
       valid_password?(login, password) ->
-        AuditLog.log(login.user, "Logged in", meta)
+        mask_timing(fn -> AuditLog.log(login.user, "Logged in", meta) end)
         {:ok, login.user}
 
       login ->
-        AuditLog.log(login.user, "Failed login", meta)
+        mask_timing(fn -> AuditLog.log(login.user, "Failed login", meta) end)
         {:error, :invalid_login_or_password}
 
       true ->
+        mask_timing(fn -> :noop end)
         {:error, :invalid_login_or_password}
     end
   end
@@ -444,6 +447,18 @@ defmodule Air.Service.User do
       _ ->
         {result, _} = {User.validate_password(login, password), LDAP.dummy_bind()}
         result
+    end
+  end
+
+  @timing_mask 20
+  defp mask_timing(action) do
+    :timer.send_after(@timing_mask, :wake_up)
+    res = action.()
+
+    receive do
+      :wake_up -> res
+    after
+      2 * @timing_mask -> res
     end
   end
 
