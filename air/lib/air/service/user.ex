@@ -132,11 +132,10 @@ defmodule Air.Service.User do
     if params["master_password"] == Air.site_setting!("master_password") do
       group = get_admin_group()
 
-      changeset =
-        user_changeset(changeset, %{groups: [group.id]})
-        |> merge(password_reset_changeset(%User{}, params))
-
-      Repo.insert(changeset)
+      changeset
+      |> user_changeset(%{groups: [group.id]})
+      |> merge(change_main_login(%User{}, &full_login_changeset(&1, params)))
+      |> Repo.insert()
     else
       changeset = add_error(changeset, :master_password, "The master password is incorrect")
       # We need to trick add the action being performed, to get the form to render errors
@@ -171,7 +170,7 @@ defmodule Air.Service.User do
 
     user
     |> user_changeset(Map.take(params, ~w(name login decimal_sep thousand_sep decimal_digits)))
-    |> merge(password_changeset(user, params))
+    |> merge(full_login_changeset(user, params))
     |> Repo.update()
   end
 
@@ -453,6 +452,12 @@ defmodule Air.Service.User do
       |> merge(number_format_changeset(user, params))
       |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
 
+  defp full_login_changeset(login, params) do
+    login
+    |> password_reset_changeset(params)
+    |> merge(main_login_changeset(login, params))
+  end
+
   defp main_login_changeset(login, params) do
     login
     |> cast(params, @login_fields)
@@ -579,6 +584,12 @@ defmodule Air.Service.User do
     end
   end
 
+  defp change_main_login(changeset = %Ecto.Changeset{changes: %{logins: [login_changeset]}}, action) do
+    login_changeset
+    |> action.()
+    |> merge_login_changeset(changeset)
+  end
+
   defp change_main_login(user, action) do
     user
     |> Repo.preload([:logins])
@@ -586,14 +597,16 @@ defmodule Air.Service.User do
     |> Enum.find(%Login{}, &(&1.login_type == :main))
     |> action.()
     |> change(%{login_type: :main})
-    |> case do
-      login_changeset = %{valid?: true} ->
-        put_assoc(change(user), :logins, [login_changeset])
+    |> merge_login_changeset(change(user))
+  end
 
-      login_changeset = %{valid?: false} ->
-        Enum.reduce(login_changeset.errors, change(user), fn {field, {msg, opts}}, changeset ->
-          add_error(changeset, field, msg, opts)
-        end)
+  defp merge_login_changeset(login_changeset, user_changeset) do
+    if login_changeset.valid? do
+      put_assoc(user_changeset, :logins, [login_changeset])
+    else
+      Enum.reduce(login_changeset.errors, user_changeset, fn {field, {msg, opts}}, changeset ->
+        add_error(changeset, field, msg, opts)
+      end)
     end
   end
 
