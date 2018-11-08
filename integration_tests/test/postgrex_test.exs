@@ -116,7 +116,7 @@ defmodule IntegrationTest.PostgrexTest do
     Postgrex.start_link(
       hostname: "localhost",
       port: Application.fetch_env!(:air, Air.PsqlServer) |> Keyword.fetch!(:port),
-      username: user.login,
+      username: Manager.login(user),
       password: Manager.user_password(),
       database: Manager.data_source_name(),
       ssl: true
