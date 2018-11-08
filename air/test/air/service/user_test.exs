@@ -122,6 +122,13 @@ defmodule Air.Service.UserTest do
       user = User.load(user.id)
       assert [group2.id] == Enum.map(user.groups, & &1.id)
     end
+
+    test "error in case of conflicting login" do
+      user = TestRepoHelper.create_user!()
+
+      assert errors_on(&User.create(&1), %{name: "Bob", login: User.main_login(user)})[:login] ==
+               "has already been taken"
+    end
   end
 
   describe ".login" do

@@ -84,7 +84,7 @@ defmodule Air.Service.User do
     with {:ok, user_id} <- Phoenix.Token.verify(Endpoint, Salts.get(:password_reset), token, max_age: one_week) do
       load(user_id)
       |> change_main_login(&password_reset_changeset(&1, params))
-      |> Repo.update()
+      |> update()
     else
       _ -> {:error, :invalid_token}
     end
@@ -115,7 +115,7 @@ defmodule Air.Service.User do
     %User{}
     |> user_changeset(params)
     |> merge(random_password_changeset(%User{}, params))
-    |> Repo.insert()
+    |> insert()
   end
 
   @doc "Creates a new LDAP user from the given parameters."
@@ -125,7 +125,7 @@ defmodule Air.Service.User do
     |> user_changeset(params)
     |> merge(random_password_changeset(%User{}, params))
     |> merge(ldap_changeset(%User{}, params))
-    |> Repo.insert()
+    |> insert()
   end
 
   @doc "Creates the onboarding admin user."
@@ -139,7 +139,7 @@ defmodule Air.Service.User do
       changeset
       |> user_changeset(%{groups: [group.id]})
       |> merge(change_main_login(%User{}, &full_login_changeset(&1, params)))
-      |> Repo.insert()
+      |> insert()
     else
       changeset = add_error(changeset, :master_password, "The master password is incorrect")
       # We need to trick add the action being performed, to get the form to render errors
@@ -164,7 +164,7 @@ defmodule Air.Service.User do
       user
       |> user_changeset(params)
       |> merge(change_main_login(user, &main_login_changeset(&1, params)))
-      |> Repo.update()
+      |> update()
     end)
   end
 
@@ -182,7 +182,7 @@ defmodule Air.Service.User do
         |> merge(main_login_changeset(login, params))
       end)
     )
-    |> Repo.update()
+    |> update()
   end
 
   @doc "Updates the profile of the given user, only allowing changes to non-login-related settings, like number format."
@@ -190,7 +190,7 @@ defmodule Air.Service.User do
   def update_profile_settings(user, params) do
     user
     |> number_format_changeset(params)
-    |> Repo.update()
+    |> update()
   end
 
   @doc """
@@ -238,7 +238,7 @@ defmodule Air.Service.User do
     commit_if_active_last_admin(fn ->
       user
       |> cast(%{enabled: false}, [:enabled])
-      |> Repo.update()
+      |> update()
     end)
   end
 
@@ -308,7 +308,7 @@ defmodule Air.Service.User do
     do:
       %Group{}
       |> group_changeset(params)
-      |> Repo.insert()
+      |> insert()
 
   @doc "Creates a new LDAP group."
   @spec create_ldap_group(map) :: {:ok, Group.t()} | {:error, Ecto.Changeset.t()}
@@ -316,7 +316,7 @@ defmodule Air.Service.User do
     %Group{}
     |> group_changeset(params, ldap: true)
     |> merge(ldap_changeset(%Group{}, params))
-    |> Repo.insert()
+    |> insert()
   end
 
   @doc "Updates the given group, raises on error."
@@ -335,7 +335,7 @@ defmodule Air.Service.User do
     commit_if_active_last_admin(fn ->
       group
       |> group_changeset(params, options)
-      |> Repo.update()
+      |> update()
     end)
   end
 
@@ -344,7 +344,7 @@ defmodule Air.Service.User do
   def update_group_data_sources(group, params) do
     group
     |> group_data_source_changeset(params)
-    |> Repo.update()
+    |> update()
   end
 
   @doc "Deletes the given group, raises on error."
@@ -624,6 +624,15 @@ defmodule Air.Service.User do
     |> change(%{login_type: :main})
     |> merge_login_changeset(change(user))
   end
+
+  defp insert(changeset), do: changeset |> Repo.insert() |> merge_login_errors()
+
+  defp update(changeset), do: changeset |> Repo.update() |> merge_login_errors()
+
+  defp merge_login_errors({:error, changeset = %{changes: %{logins: [%{errors: login_errors}]}}}),
+    do: {:error, update_in(changeset, [Access.key(:errors)], fn errors -> errors ++ login_errors end)}
+
+  defp merge_login_errors(other), do: other
 
   defp merge_login_changeset(login_changeset, user_changeset) do
     if login_changeset.valid? do
