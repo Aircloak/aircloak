@@ -104,7 +104,7 @@ defmodule AircloakCI.Build.PullRequest do
            :ok <- check_standard_tests(state),
            do: {:success, nil}
 
-    if LocalProject.job_outcome(state.project, "report_standard_tests") != status do
+    if status not in [:pending, LocalProject.job_outcome(state.project, "report_standard_tests")] do
       if status == :success and not state.source.approved? do
         Github.comment_on_issue(
           state.source.repo.owner,

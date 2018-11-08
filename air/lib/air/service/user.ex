@@ -2,10 +2,9 @@ defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
   alias Air.Repo
-  alias Air.Service.{AuditLog, LDAP, Salts}
+  alias Air.Service.{AuditLog, LDAP, Salts, Password}
   alias Air.Schemas.{DataSource, Group, User, Login}
   alias AirWeb.Endpoint
-  alias Comeonin.Pbkdf2, as: Hash
   import Ecto.Query, only: [from: 2, join: 4, where: 3, preload: 3]
   import Ecto.Changeset
 
@@ -382,6 +381,15 @@ defmodule Air.Service.User do
   @spec admin_groups() :: [Group.t()]
   def admin_groups(), do: Repo.all(from(g in Group, where: g.admin))
 
+  @doc "Returns a group by name"
+  @spec get_group_by_name(String.t()) :: {:ok, Group.t()} | {:error, :not_found}
+  def get_group_by_name(name) do
+    case(Air.Repo.get_by(Air.Schemas.Group, name: name)) do
+      nil -> {:error, :not_found}
+      group -> {:ok, group}
+    end
+  end
+
   @doc "Returns the number format settings for the specified user."
   @spec number_format_settings(User.t() | nil) :: Map.t()
   def number_format_settings(nil),
@@ -435,6 +443,47 @@ defmodule Air.Service.User do
     end
   end
 
+  @doc "Returns a user by login"
+  @spec get_by_login(String.t()) :: {:ok, User.t()} | {:error, :not_found}
+  def get_by_login(login) do
+    User
+    |> join(:left, [user], login in assoc(user, :logins))
+    |> where([_user, login], login.login == ^login)
+    |> where([_user, login], login.login_type == ^:main)
+    |> Repo.one()
+    |> Repo.preload([:logins, :groups])
+    |> case do
+      nil -> {:error, :not_found}
+      user -> {:ok, user}
+    end
+  end
+
+  @doc "Adds a user preconfigured in a users or data source config file."
+  @spec add_preconfigured_user(Map.t()) :: {:ok, User.t()} | :error
+  def add_preconfigured_user(user_data) do
+    changeset =
+      %User{}
+      |> user_changeset(%{name: user_data.login})
+      |> merge(
+        change_main_login(%User{}, fn login ->
+          login
+          |> main_login_changeset(%{login: user_data.login})
+          |> put_change(:hashed_password, user_data.password_hash)
+        end)
+      )
+
+    if Map.get(user_data, :admin, false) do
+      user_changeset(changeset, %{groups: [get_admin_group().id]})
+    else
+      changeset
+    end
+    |> insert()
+    |> case do
+      {:error, _} -> :error
+      {:ok, _user} = result -> result
+    end
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -450,9 +499,6 @@ defmodule Air.Service.User do
         result
     end
   end
-
-  defp validate_password(nil, _password), do: Hash.dummy_checkpw()
-  defp validate_password(user, password), do: Hash.checkpw(password, user.hashed_password)
 
   @timing_mask 20
   defp mask_timing(action) do
@@ -536,10 +582,13 @@ defmodule Air.Service.User do
 
   defp update_password_hash(%Ecto.Changeset{valid?: true, changes: %{password: password}} = changeset)
        when password != "" do
-    put_change(changeset, :hashed_password, Comeonin.Pbkdf2.hashpwsalt(password))
+    put_change(changeset, :hashed_password, Password.hash(password))
   end
 
   defp update_password_hash(changeset), do: changeset
+
+  defp validate_password(nil, password), do: Password.validate(password, nil)
+  defp validate_password(user, password), do: Password.validate(password, user.hashed_password)
 
   defp group_changeset(group, params, options \\ []),
     do:

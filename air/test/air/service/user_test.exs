@@ -491,6 +491,72 @@ defmodule Air.Service.UserTest do
     end
   end
 
+  describe ".get_by_login" do
+    test "returns not found for bogus login" do
+      assert {:error, :not_found} = User.get_by_login("bogus")
+    end
+
+    test "returns user if exists" do
+      user = TestRepoHelper.create_user!()
+      assert {:ok, _} = user |> User.main_login() |> User.get_by_login()
+    end
+  end
+
+  describe ".get_group_by_name" do
+    test "returns not found for bogus name" do
+      assert {:error, :not_found} = User.get_group_by_name("bogus")
+    end
+
+    test "returns group if exists" do
+      group = TestRepoHelper.create_group!()
+      assert {:ok, _} = User.get_group_by_name(group.name)
+    end
+  end
+
+  describe ".add_preconfigured_user" do
+    test "adds unknown user" do
+      data = %{
+        login: "login",
+        password_hash: "hash"
+      }
+
+      assert {:ok, user} = User.add_preconfigured_user(data)
+      assert [%{login: "login", hashed_password: "hash"}] = user.logins
+    end
+
+    test "ignores existing users" do
+      user = TestRepoHelper.create_user!()
+
+      data = %{
+        login: User.main_login(user),
+        password_hash: hd(user.logins).hashed_password
+      }
+
+      assert :error == User.add_preconfigured_user(data)
+    end
+
+    test "creates user accounts that can be used to log in" do
+      data = %{
+        login: "login",
+        password_hash: Air.Service.Password.hash("password1234")
+      }
+
+      assert {:ok, user} = User.add_preconfigured_user(data)
+      assert {:ok, _user} = User.login("login", "password1234")
+    end
+
+    test "creates admin users" do
+      data = %{
+        login: "login",
+        password_hash: "hash",
+        admin: true
+      }
+
+      assert {:ok, user} = User.add_preconfigured_user(data)
+      assert user |> Air.Repo.preload(:groups) |> Air.Schemas.User.admin?()
+    end
+  end
+
   defp error_on(fun, field, value), do: errors_on(fun, %{field => value})[field]
 
   defp errors_on(fun, changes) do

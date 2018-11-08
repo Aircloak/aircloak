@@ -19,4 +19,20 @@ defmodule Air.ReleaseCLI do
 
     :ok
   end
+
+  @doc """
+  Takes a list of passwords and produces a list of password hashes.
+
+  The output can be used to create a users and data source credentials file
+  in order to statically configure Insights Air.
+  """
+  @spec hash_passwords([String.t()]) :: :ok
+  def hash_passwords(passwords) do
+    Application.load(:air)
+
+    passwords
+    |> Enum.map(&Service.Password.hash/1)
+    |> Enum.join("\n")
+    |> IO.puts()
+  end
 end

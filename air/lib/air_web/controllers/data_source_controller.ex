@@ -40,7 +40,7 @@ defmodule AirWeb.DataSourceController do
     with {:ok, data_source} <- DataSource.fetch_as_user({:name, name}, conn.assigns.current_user),
          {:ok, last_query} <- DataSource.last_query({:name, name}, conn.assigns.current_user, :http) do
       pending_queries =
-        Query.currently_running(conn.assigns.current_user, data_source, :http)
+        Query.not_finished(conn.assigns.current_user, data_source, :http)
         |> Enum.map(&Query.for_display/1)
 
       conn

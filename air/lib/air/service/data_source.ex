@@ -126,26 +126,29 @@ defmodule Air.Service.DataSource do
   end
 
   @doc """
-  Stops a previously started query.
+  Stops a previously started query on the running cloak.
 
   This function will attempt to asynchronously stop the query on all currently connected cloaks. If the cloak where the
   query is running is not connected, the query will not be stopped on the cloak.
 
-  Regardless of whether the cloak is connected, the query state is immediately set to cancelled in the air database.
+  This function will not change the query state. It's up to the caller to set the state of the query to the desired
+  final state.
   """
-  @spec stop_query(Query.t(), audit_log?: boolean) :: :ok
-  def stop_query(query, opts \\ []) do
-    query = Repo.preload(query, [:user, :data_source])
-
-    if Keyword.get(opts, :audit_log?, true),
-      do: Air.Service.AuditLog.log(query.user, "Stopped query", Query.audit_meta(query))
-
+  @spec stop_query_on_cloak(Query.t()) :: :ok
+  def stop_query_on_cloak(query) do
     query.data_source.name
     |> Cloak.channel_pids()
     |> Enum.each(fn {channel, _cloak} ->
       Task.Supervisor.start_child(@task_supervisor, fn -> MainChannel.stop_query(channel, query.id) end)
     end)
+  end
 
+  @doc "Stops a previously started query and sets its state to `:cancelled`."
+  @spec cancel_query(Query.t()) :: :ok
+  def cancel_query(query) do
+    query = Repo.preload(query, [:user, :data_source])
+    stop_query_on_cloak(query)
+    Air.Service.AuditLog.log(query.user, "Cancelled query", Query.audit_meta(query))
     Service.Query.Lifecycle.state_changed(query.id, :cancelled)
   end
 
@@ -309,10 +312,55 @@ defmodule Air.Service.DataSource do
           distinct: true
         )
       )
+      |> Repo.preload(:logins)
+
+  @doc "Adds a data source from data source config file content."
+  @spec add_preconfigured_datasource(Map.t()) ::
+          {:ok, DataSource.t()} | {:error, :data_source_exists | :group_exists | :no_users}
+  def add_preconfigured_datasource(%{name: name, logins: logins, group_name: group_name}) do
+    with {:ok, users} <- get_users(logins),
+         {:ok, group} <- add_group(group_name, users) do
+      create_if_not_exists(name, group)
+    end
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp add_group(name, users) do
+    case Air.Service.User.get_group_by_name(name) do
+      {:ok, _group} ->
+        {:error, :group_exists}
+
+      {:error, :not_found} ->
+        user_ids = Enum.map(users, & &1.id)
+        params = %{name: name, admin: false, users: user_ids}
+        {:ok, Air.Service.User.create_group!(params)}
+    end
+  end
+
+  defp get_users(logins) do
+    logins
+    |> Enum.map(fn login ->
+      case Air.Service.User.get_by_login(login) do
+        {:ok, user} -> user
+        {:error, :not_found} -> nil
+      end
+    end)
+    |> Enum.reject(&is_nil/1)
+    |> case do
+      [] -> {:error, :no_users}
+      users -> {:ok, users}
+    end
+  end
+
+  defp create_if_not_exists(name, group) do
+    case by_names([name]) do
+      [] -> {:ok, create!(%{name: name, tables: "[]", groups: [group.id]})}
+      [_data_source] -> {:error, :data_source_exists}
+    end
+  end
 
   defp data_sources_with_groups_and_users(),
     do:
