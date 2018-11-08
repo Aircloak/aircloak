@@ -99,7 +99,7 @@ defmodule Air.Service.User do
   def all_native(), do: Repo.all(from(user in User, where: [source: ^:native], preload: [:logins, :groups]))
 
   @doc "Loads the user with the given id."
-  @spec load(pos_integer) :: User.t() | nil
+  @spec load(pos_integer | binary) :: User.t() | nil
   def load(user_id), do: Repo.one(from(user in User, where: user.id == ^user_id, preload: [:logins, :groups]))
 
   @doc "Creates the new user, raises on error."

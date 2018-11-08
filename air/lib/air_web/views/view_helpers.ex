@@ -21,7 +21,7 @@ defmodule AirWeb.ViewHelpers do
   def audit_log_enabled?(), do: Air.Service.Settings.read().audit_log_enabled
 
   @doc "Returns true if the currently logged-in user is an administrator."
-  @spec admin?(Plug.Conn.t() | Air.Schemas.User.t()) :: boolean
+  @spec admin?(nil | Plug.Conn.t() | Air.Schemas.User.t()) :: boolean
   def admin?(nil), do: false
   def admin?(%Air.Schemas.User{} = user), do: Air.Schemas.User.admin?(user)
   def admin?(%Plug.Conn{} = conn), do: admin?(conn.assigns.current_user)
