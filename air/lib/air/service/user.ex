@@ -254,11 +254,11 @@ defmodule Air.Service.User do
 
   @doc "Returns the empty changeset for the new user."
   @spec empty_changeset() :: Ecto.Changeset.t()
-  def empty_changeset(), do: user_changeset(%User{}, %{})
+  def empty_changeset(), do: change(%User{})
 
   @doc "Converts the user into a changeset."
   @spec to_changeset(User.t()) :: Ecto.Changeset.t()
-  def to_changeset(user), do: user_changeset(user, %{})
+  def to_changeset(user), do: change(user, %{login: main_login(user)})
 
   @doc "Computes the number of data sources accessible by each user."
   @spec data_sources_count() :: %{pos_integer => non_neg_integer}

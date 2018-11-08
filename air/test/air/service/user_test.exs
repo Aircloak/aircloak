@@ -479,6 +479,18 @@ defmodule Air.Service.UserTest do
     end
   end
 
+  describe ".to_changeset" do
+    test "includes the main login" do
+      user = TestRepoHelper.create_user!()
+      changeset = User.to_changeset(user)
+
+      Phoenix.HTML.Form.form_for(changeset, "/some/path", fn form ->
+        assert Phoenix.HTML.Form.input_value(form, :login) == User.main_login(user)
+        ""
+      end)
+    end
+  end
+
   defp error_on(fun, field, value), do: errors_on(fun, %{field => value})[field]
 
   defp errors_on(fun, changes) do

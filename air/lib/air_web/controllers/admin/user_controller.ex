@@ -42,15 +42,15 @@ defmodule AirWeb.Admin.UserController do
 
   def new(conn, _params), do: render(conn, "new.html", changeset: User.empty_changeset())
 
-  def edit(conn, _params),
-    do:
-      render(
-        conn,
-        "edit.html",
-        changeset: User.to_changeset(conn.assigns.user),
-        user: conn.assigns.user,
-        reset_path: reset_path(conn)
-      )
+  def edit(conn, _params) do
+    render(
+      conn,
+      "edit.html",
+      changeset: User.to_changeset(conn.assigns.user),
+      user: conn.assigns.user,
+      reset_path: reset_path(conn)
+    )
+  end
 
   def create(conn, params) do
     case User.create(params["user"]) do
