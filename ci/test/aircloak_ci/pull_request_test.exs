@@ -42,14 +42,13 @@ defmodule AircloakCI.PullRequestTest do
     AircloakCI.Build.PullRequest.ensure_started(pr, repo_data)
     wait_for_jobs_to_finish(pr)
 
-    assert successful_jobs(pr) == ~w(air_compile air_test cloak_compile cloak_test prepare)
+    assert successful_jobs(pr) == ~w(air_compile air_test cloak_compile cloak_test compliance prepare)
     assert_pr_comment(pr, %{body: comment_body})
     assert comment_body =~ ~r/Standard tests have passed/
 
     {pr, _repo_data} = update_pr_data(repo_data, pr, &put_in(&1.approved?, true))
     wait_for_jobs_to_finish(pr)
 
-    assert successful_job?(pr, "compliance")
     assert successful_job?(pr, "report_mergeable")
   end
 
@@ -72,14 +71,7 @@ defmodule AircloakCI.PullRequestTest do
     {pr, _repo_data} = update_pr_data(repo_data, pr, &%{&1 | merge_state: :mergeable, merge_sha: new_sha()})
 
     wait_for_jobs_to_finish(pr)
-
-    assert successful_jobs(pr) == [
-             "air_compile",
-             "air_test",
-             "cloak_compile",
-             "cloak_test",
-             "prepare"
-           ]
+    assert successful_jobs(pr) == ~w(air_compile air_test cloak_compile cloak_test compliance prepare)
   end
 
   test "unknown merge state", %{repo_data: repo_data} do
@@ -102,7 +94,7 @@ defmodule AircloakCI.PullRequestTest do
 
     assert_posted_status(pr, "mergeable", %{
       state: :pending,
-      description: "awaiting air_compile, air_test, cloak_compile, cloak_test"
+      description: "awaiting air_compile, air_test, cloak_compile, cloak_test, compliance"
     })
 
     assert_posted_status(pr, "mergeable", %{
@@ -122,8 +114,8 @@ defmodule AircloakCI.PullRequestTest do
       wait_for_jobs_to_finish(pr)
     end)
 
-    assert successful_jobs(pr) == ["cloak_compile", "cloak_test", "prepare"]
-    assert failed_jobs(pr) == ["air_compile", "report_standard_tests"]
+    assert successful_jobs(pr) == ~w(cloak_compile cloak_test compliance prepare)
+    assert failed_jobs(pr) == ~w(air_compile report_standard_tests)
 
     assert_posted_status(pr, "mergeable", %{state: :error, description: "air_compile failed"})
     assert_pr_comment(pr, %{body: comment_body})
@@ -141,8 +133,8 @@ defmodule AircloakCI.PullRequestTest do
       wait_for_jobs_to_finish(pr)
     end)
 
-    assert successful_jobs(pr) == ["air_compile", "cloak_compile", "cloak_test", "prepare"]
-    assert failed_jobs(pr) == ["air_test", "report_standard_tests"]
+    assert successful_jobs(pr) == ~w(air_compile cloak_compile cloak_test compliance prepare)
+    assert failed_jobs(pr) == ~w(air_test report_standard_tests)
 
     assert_posted_status(pr, "mergeable", %{state: :error, description: "air_test failed"})
     assert_pr_comment(pr, %{body: comment_body})
