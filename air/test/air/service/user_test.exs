@@ -151,6 +151,12 @@ defmodule Air.Service.UserTest do
       TestRepoHelper.create_user!(%{login: "alice", ldap_dn: "cn=admin,dc=example,dc=org"})
       assert {:error, :invalid_login_or_password} = User.login("alice", "invalid_password")
     end
+
+    test "disabled users cannot log in" do
+      user = TestRepoHelper.create_user!(%{login: "alice", password: "password1234", enabled: false})
+      User.disable(user)
+      assert {:error, :invalid_login_or_password} = User.login("alice", "password1234")
+    end
   end
 
   describe "deleting a user" do
