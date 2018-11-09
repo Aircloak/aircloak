@@ -312,6 +312,7 @@ defmodule Air.Service.DataSource do
           distinct: true
         )
       )
+      |> Repo.preload(:logins)
 
   @doc "Adds a data source from data source config file content."
   @spec add_preconfigured_datasource(Map.t()) ::

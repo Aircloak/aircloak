@@ -38,7 +38,7 @@ defmodule Air.Service.Token do
           where: token.access == ^access,
           inner_join: user in assoc(token, :user),
           where: user.enabled,
-          preload: [{:user, :groups}],
+          preload: [{:user, [:groups, :logins]}],
           select: token
         )
         |> Repo.one()

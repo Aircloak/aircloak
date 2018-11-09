@@ -57,7 +57,7 @@ defmodule Air.Service.UserTest do
     end
 
     test "update with ldap: true can change LDAP users" do
-      assert {:ok, %{login: "new login"}} =
+      assert {:ok, %{logins: [%{login: "new login"}]}} =
                User.update(TestRepoHelper.create_user!(%{ldap_dn: "some dn"}), %{login: "new login"}, ldap: true)
     end
 
@@ -68,7 +68,7 @@ defmodule Air.Service.UserTest do
       user = TestRepoHelper.create_user!(%{password: "password1234"})
 
       {:ok, updated_user} = User.update_full_profile(user, %{"name" => "foobar"})
-      assert updated_user.hashed_password == user.hashed_password
+      assert hd(updated_user.logins).hashed_password == hd(user.logins).hashed_password
 
       {:ok, updated_user} =
         User.update_full_profile(user, %{
@@ -77,7 +77,24 @@ defmodule Air.Service.UserTest do
           "password_confirmation" => "passwordwxyz"
         })
 
-      refute updated_user.hashed_password == user.hashed_password
+      refute hd(updated_user.logins).hashed_password == hd(user.logins).hashed_password
+    end
+
+    test "password is not changed if old password is invalid" do
+      user = TestRepoHelper.create_user!(%{password: "password1234"})
+
+      assert errors_on(
+               &User.update_full_profile(user, &1),
+               %{
+                 "old_password" => "invalid",
+                 "password" => "passwordwxyz",
+                 "password_confirmation" => "passwordwxyz"
+               }
+             ) == [
+               old_password: "Password invalid"
+             ]
+
+      assert {:error, :invalid_login_or_password} = User.login(hd(user.logins).login, "invalid")
     end
 
     test "the only admin can't be deleted",
@@ -105,6 +122,13 @@ defmodule Air.Service.UserTest do
       user = User.load(user.id)
       assert [group2.id] == Enum.map(user.groups, & &1.id)
     end
+
+    test "error in case of conflicting login" do
+      user = TestRepoHelper.create_user!()
+
+      assert errors_on(&User.create(&1), %{name: "Bob", login: User.main_login(user)})[:login] ==
+               "has already been taken"
+    end
   end
 
   describe ".login" do
@@ -126,6 +150,12 @@ defmodule Air.Service.UserTest do
     test "failure for LDAP user" do
       TestRepoHelper.create_user!(%{login: "alice", ldap_dn: "cn=admin,dc=example,dc=org"})
       assert {:error, :invalid_login_or_password} = User.login("alice", "invalid_password")
+    end
+
+    test "disabled users cannot log in" do
+      user = TestRepoHelper.create_user!(%{login: "alice", password: "password1234", enabled: false})
+      User.disable(user)
+      assert {:error, :invalid_login_or_password} = User.login("alice", "password1234")
     end
   end
 
@@ -376,24 +406,24 @@ defmodule Air.Service.UserTest do
     end
 
     test "cannot change fields", %{user: user, token: token} do
-      old_login = user.login
+      old_name = user.name
 
-      assert {:ok, %{login: ^old_login}} =
+      assert {:ok, %{name: ^old_name}} =
                User.reset_password(token, %{
                  password: "password1234",
                  password_confirmation: "password1234",
-                 login: "new@email.com"
+                 name: "new name"
                })
     end
 
     test "successful change", %{user: user, token: token} do
       assert {:ok, _} = User.reset_password(token, %{password: "new password", password_confirmation: "new password"})
-      assert {:ok, _} = User.login(user.login, "new password")
+      assert {:ok, _} = User.login(User.main_login(user), "new password")
     end
 
     test "incorrect confirmation", %{user: user, token: token} do
       assert {:error, _} = User.reset_password(token, %{password: "new password", password_confirmation: "other"})
-      assert {:error, _} = User.login(user.login, "new password")
+      assert {:error, _} = User.login(User.main_login(user), "new password")
     end
   end
 
@@ -443,7 +473,7 @@ defmodule Air.Service.UserTest do
     test "cannot change login, name, and password" do
       user = TestRepoHelper.create_user!(%{login: "alice", name: "Alice"})
 
-      assert {:ok, %{login: "alice", name: "Alice"}} =
+      assert {:ok, %{logins: [%{login: "alice"}], name: "Alice"}} =
                User.update_profile_settings(user, %{
                  login: "bob",
                  name: "Bob",
@@ -455,6 +485,18 @@ defmodule Air.Service.UserTest do
     end
   end
 
+  describe ".to_changeset" do
+    test "includes the main login" do
+      user = TestRepoHelper.create_user!()
+      changeset = User.to_changeset(user)
+
+      Phoenix.HTML.Form.form_for(changeset, "/some/path", fn form ->
+        assert Phoenix.HTML.Form.input_value(form, :login) == User.main_login(user)
+        ""
+      end)
+    end
+  end
+
   describe ".get_by_login" do
     test "returns not found for bogus login" do
       assert {:error, :not_found} = User.get_by_login("bogus")
@@ -462,7 +504,7 @@ defmodule Air.Service.UserTest do
 
     test "returns user if exists" do
       user = TestRepoHelper.create_user!()
-      assert {:ok, _} = User.get_by_login(user.login)
+      assert {:ok, _} = user |> User.main_login() |> User.get_by_login()
     end
   end
 
@@ -485,16 +527,15 @@ defmodule Air.Service.UserTest do
       }
 
       assert {:ok, user} = User.add_preconfigured_user(data)
-      assert user.login == "login"
-      assert user.hashed_password == "hash"
+      assert [%{login: "login", hashed_password: "hash"}] = user.logins
     end
 
     test "ignores existing users" do
       user = TestRepoHelper.create_user!()
 
       data = %{
-        login: user.login,
-        password_hash: user.hashed_password
+        login: User.main_login(user),
+        password_hash: hd(user.logins).hashed_password
       }
 
       assert :error == User.add_preconfigured_user(data)

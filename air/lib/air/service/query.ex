@@ -235,7 +235,7 @@ defmodule Air.Service.Query do
   """
   @spec process_result(map) :: :ok
   def process_result(result) do
-    query = Repo.get!(Query, result.query_id) |> Repo.preload([:user])
+    query = Repo.get!(Query, result.query_id) |> Repo.preload(user: [:logins])
 
     if __MODULE__.State.valid_state_transition?(query.query_state, query_state(result)),
       do: do_process_result(query, result)
@@ -326,7 +326,7 @@ defmodule Air.Service.Query do
             statement: query.statement,
             data_source_id: query.data_source_id,
             user_id: query.user.id,
-            user_login: query.user.login
+            user_login: Air.Service.User.main_login(query.user)
           })
         ])
   end

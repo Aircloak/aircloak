@@ -2,7 +2,7 @@ defmodule Air.Service.Monitoring.Test do
   use ExUnit.Case, async: false
   use Air.SchemaCase
 
-  alias Air.{Service.Monitoring, TestRepoHelper}
+  alias Air.{Service.Monitoring, Service.User, TestRepoHelper}
 
   @seconds_in_minute 60
 
@@ -20,7 +20,7 @@ defmodule Air.Service.Monitoring.Test do
       group = TestRepoHelper.create_group!()
       user = TestRepoHelper.create_user!(%{groups: [group.id]})
 
-      assert %{login: user.login, name: user.name, groups: [group.name]} in Monitoring.assemble_info().users
+      assert %{login: User.main_login(user), name: user.name, groups: [group.name]} in Monitoring.assemble_info().users
     end
 
     test "list of cloaks" do

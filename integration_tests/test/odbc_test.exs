@@ -220,7 +220,7 @@ defmodule IntegrationTest.OdbcTest do
     params =
       Keyword.merge(
         [
-          user: user.login,
+          user: Manager.login(user),
           password: Manager.user_password(),
           database: Manager.data_source_name(),
           sslmode: "require"

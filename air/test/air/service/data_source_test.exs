@@ -2,7 +2,7 @@ defmodule Air.Service.DataSourceTest do
   # because of shared mode
   use Air.SchemaCase, async: false
 
-  alias Air.Service.DataSource
+  alias Air.Service.{User, DataSource}
   alias Air.Schemas
   alias Air.TestRepoHelper
 
@@ -422,18 +422,18 @@ defmodule Air.Service.DataSourceTest do
       user = TestRepoHelper.create_user!()
 
       data = %{
-        logins: [user.login],
+        logins: [User.main_login(user)],
         name: "foobar",
         group_name: "foobar_group"
       }
 
       assert {:ok, data_source} = DataSource.add_preconfigured_datasource(data)
-      assert [user.login] == data_source |> DataSource.users() |> Enum.map(& &1.login)
+      assert [User.main_login(user)] == data_source |> DataSource.users() |> Enum.map(&User.main_login/1)
     end
 
     test "ignores missing users" do
       user = TestRepoHelper.create_user!()
-      login = user.login
+      login = User.main_login(user)
 
       data = %{
         logins: [login, "missing", "user"],
@@ -442,14 +442,14 @@ defmodule Air.Service.DataSourceTest do
       }
 
       assert {:ok, data_source} = DataSource.add_preconfigured_datasource(data)
-      assert [^login] = data_source |> DataSource.users() |> Enum.map(& &1.login)
+      assert [^login] = data_source |> DataSource.users() |> Enum.map(&User.main_login/1)
     end
 
     test "names the group used for assigning users as configured" do
       user = TestRepoHelper.create_user!()
 
       data = %{
-        logins: [user.login, "missing", "user"],
+        logins: [User.main_login(user), "missing", "user"],
         name: "foobar",
         group_name: "foobar_group"
       }
@@ -463,7 +463,7 @@ defmodule Air.Service.DataSourceTest do
       user = TestRepoHelper.create_user!()
 
       data = %{
-        logins: [user.login],
+        logins: [User.main_login(user)],
         name: "foobar",
         group_name: "foobar_group"
       }
@@ -478,7 +478,7 @@ defmodule Air.Service.DataSourceTest do
       user = TestRepoHelper.create_user!()
 
       data = %{
-        logins: [user.login],
+        logins: [User.main_login(user)],
         name: data_source.name,
         group_name: "foobar_group"
       }
@@ -491,7 +491,7 @@ defmodule Air.Service.DataSourceTest do
       group = TestRepoHelper.create_group!()
 
       data = %{
-        logins: [user.login],
+        logins: [User.main_login(user)],
         name: "foobar",
         group_name: group.name
       }

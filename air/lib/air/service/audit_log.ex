@@ -58,7 +58,7 @@ defmodule Air.Service.AuditLog do
     |> order_by_event()
     |> limit(^params.max_results)
     |> Repo.all()
-    |> Repo.preload(:user)
+    |> Repo.preload(user: :logins)
   end
 
   @doc """
@@ -208,7 +208,8 @@ defmodule Air.Service.AuditLog do
       join: log in ^query,
       on: user.id == log.user_id,
       distinct: user.id,
-      select: user
+      select: user,
+      preload: :logins
     )
   end
 
@@ -216,7 +217,8 @@ defmodule Air.Service.AuditLog do
     from(
       user in User,
       where: user.id in ^users,
-      select: user
+      select: user,
+      preload: :logins
     )
     |> Repo.all()
   end
