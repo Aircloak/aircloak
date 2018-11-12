@@ -10,10 +10,10 @@ RUN useradd --create-home --shell /bin/bash deployer && mkdir -p /aircloak/app
 
 WORKDIR /aircloak/central
 
-COPY central/artifacts/rel /aircloak/central
-COPY central/docker/start.sh /aircloak/
-
 RUN chown -R deployer:deployer /aircloak/central && chown -R deployer:deployer /var/run/
+
+COPY --chown=deployer:deployer central/artifacts/rel /aircloak/central
+COPY central/docker/start.sh /aircloak/
 
 # We'll run as root, but step down in the init script to the non-privileged user
 USER root
