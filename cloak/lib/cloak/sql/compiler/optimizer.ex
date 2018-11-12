@@ -178,12 +178,15 @@ defmodule Cloak.Sql.Compiler.Optimizer do
 
   @uid_offloaded_aggregators ~w(count sum min max count_noise sum_noise)
   defp can_be_uid_grouped?(aggregator),
-    do: aggregator.function in @uid_offloaded_aggregators and not match?([{:distinct, _}], aggregator.function_args)
+    do: aggregator.function in @uid_offloaded_aggregators and not distinct_input?(aggregator.function_args)
 
   defp no_uid_grouping?(%Query{from: {:subquery, %{ast: inner_query}}}),
     do: not Enum.any?(inner_query.group_by, & &1.user_id?)
 
   defp no_uid_grouping?(_query), do: true
+
+  defp distinct_input?([{:distinct, %Expression{user_id?: false}}]), do: true
+  defp distinct_input?([_]), do: false
 
   defp no_row_splitters?(query),
     do: Query.outermost_selected_splitters(query) == [] and Query.outermost_where_splitters(query) == []
@@ -245,10 +248,16 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   end
 
   defp uid_aggregator(%Expression{function: "count_noise"} = expression),
-    do: %Expression{expression | function: "count", type: :integer}
+    do: uid_aggregator(%Expression{expression | function: "count", type: :integer})
 
   defp uid_aggregator(%Expression{function: "sum_noise", function_args: [arg]} = expression),
-    do: %Expression{expression | function: "sum", type: Function.type(arg)}
+    do: uid_aggregator(%Expression{expression | function: "sum", type: Function.type(arg)})
+
+  defp uid_aggregator(%Expression{function: "count", function_args: [{:distinct, %Expression{user_id?: true}}]}),
+    do: Expression.constant(:integer, 1)
+
+  defp uid_aggregator(%Expression{function_args: [{:distinct, %Expression{user_id?: true} = user_id}]}),
+    do: user_id
 
   defp uid_aggregator(aggregator), do: aggregator
 
