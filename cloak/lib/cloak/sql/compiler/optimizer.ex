@@ -206,7 +206,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
       |> Enum.uniq_by(&Expression.semantic/1)
       |> Enum.with_index()
       |> Enum.map(fn {expression, index} ->
-        %Expression{expression | alias: "__ac_agg__#{index}", synthetic?: true}
+        %Expression{expression | alias: "__ac_agg_#{index}", synthetic?: true}
       end)
 
     inner_columns = [user_id | base_columns] ++ aggregated_columns
@@ -265,7 +265,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     uid_aggregator = uid_aggregator(old_aggregator)
     index = Enum.find_index(aggregated_columns, &Expression.equals?(&1, uid_aggregator))
     true = index != nil
-    column_name = "__ac_agg__#{index}"
+    column_name = "__ac_agg_#{index}"
     inner_column = inner_table.columns |> Enum.find(&(&1.name == column_name)) |> Expression.column(inner_table)
     function_name = global_aggregator(old_aggregator.function)
     new_aggregator = Expression.function(function_name, [inner_column], inner_column.type, true)
