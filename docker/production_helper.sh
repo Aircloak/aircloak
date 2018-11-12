@@ -26,6 +26,8 @@ function build_image {
   ssh acdbuild.mpi-sws.org "
     set -eo pipefail
 
+    .  /etc/profile.d/proxy.sh
+
     $(lock_command "build_$1")
 
     echo 'Pulling the latest version'
@@ -95,6 +97,7 @@ function run_production_command {
   case "$1" in
     versions)
       ssh acdbuild.mpi-sws.org "
+        .  /etc/profile.d/proxy.sh &&
         . /aircloak/quay_deploy/aircloak/docker/docker_helper.sh &&
         published_image_versions $(image_name)
       "
