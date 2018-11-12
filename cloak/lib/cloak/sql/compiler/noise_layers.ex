@@ -123,7 +123,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     noise_columns =
       non_uid_expressions()
       |> Lens.to_list(query.noise_layers)
-      |> Enum.reject(&(&1 in query.columns))
+      |> Enum.reject(&Expression.member?(query.columns, &1))
       |> Enum.uniq()
 
     %{
