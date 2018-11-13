@@ -81,7 +81,7 @@ defmodule AirWeb.Socket.Frontend.UserChannelTest do
 
   defp made_admin(context), do: {:ok, user: make_admin!(context[:user])}
 
-  defp with_socket(context), do: {:ok, socket: socket("user", %{user: context[:user]})}
+  defp with_socket(context), do: {:ok, socket: socket(AirWeb.Socket.Cloak, "user", %{user: context[:user]})}
 
   defp subscribed_to_all_state_changes(context) do
     {:ok, _, _} = subscribe_and_join(context[:socket], UserChannel, "state_changes:all")

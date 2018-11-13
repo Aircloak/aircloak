@@ -48,7 +48,7 @@ defmodule AirWeb.Socket.Frontend.DataSourceChannel.Test do
 
   defp with_user(_), do: {:ok, user: create_user!()}
 
-  defp with_socket(context), do: {:ok, socket: socket("user", %{user: context[:user]})}
+  defp with_socket(context), do: {:ok, socket: socket(AirWeb.Socket.Cloak, "user", %{user: context[:user]})}
 
   defp with_data_source(_), do: {:ok, data_source: create_data_source!()}
 
