@@ -51,8 +51,8 @@ defmodule Air.Web do
       def audit_log_meta(conn) do
         %{
           peer:
-            case conn.peer do
-              {{a, b, c, d}, port} -> "#{a}.#{b}.#{c}.#{d}:#{port}"
+            case Plug.Conn.get_peer_data(conn) do
+              %{address: {a, b, c, d}, port: port} -> "#{a}.#{b}.#{c}.#{d}:#{port}"
               _ -> "Unknown"
             end,
           remote_ip:
