@@ -2,7 +2,6 @@ defmodule AirWeb.MonitoringEndpoint do
   @moduledoc "Implements the HTTP server for serving monitoring data."
 
   use Phoenix.Endpoint, otp_app: :air
-  use Aircloak.ChildSpec.Supervisor
 
   # -------------------------------------------------------------------
   # Endpoint HTTP specification

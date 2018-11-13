@@ -2,16 +2,7 @@ defmodule CentralWeb.Endpoint do
   @moduledoc "Implements the HTTP server for insights.aircloak.com."
 
   use Phoenix.Endpoint, otp_app: :central
-  use Aircloak.ChildSpec.Supervisor, start: {__MODULE__, :start_site, []}
   require Logger
-
-  # -------------------------------------------------------------------
-  # API functions
-  # -------------------------------------------------------------------
-
-  @doc "Starts the site supervision tree."
-  @spec start_site() :: Supervisor.on_start()
-  def start_site(), do: start_link()
 
   # -------------------------------------------------------------------
   # Endpoint HTTP specification

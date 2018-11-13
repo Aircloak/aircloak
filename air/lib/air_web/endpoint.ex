@@ -3,7 +3,6 @@ defmodule AirWeb.Endpoint do
 
   use Phoenix.Endpoint, otp_app: :air
   use Appsignal.Phoenix
-  use Aircloak.ChildSpec.Supervisor
 
   # -------------------------------------------------------------------
   # Endpoint HTTP specification
