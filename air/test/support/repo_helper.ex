@@ -25,7 +25,7 @@ defmodule Air.TestRepoHelper do
     password = additional_changes[:password] || "password1234"
     {:ok, user} = User.reset_password(password_token, %{password: password, password_confirmation: password})
 
-    Repo.preload(user, [:groups])
+    Repo.preload(user, [:groups, :logins])
   end
 
   @doc "Creates a user that is an admin. See create_user!/0 and make_admin!/1"

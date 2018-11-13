@@ -3,6 +3,7 @@ defmodule Air.Service.Cloak do
   The Cloak service holds metadata about cloaks and their datastores as well as facilities
   for registering them with the database backing the air system.
   """
+  require Aircloak
   require Logger
 
   use GenServer
@@ -34,6 +35,8 @@ defmodule Air.Service.Cloak do
       Registry.register(@data_source_registry_name, data_source_name, cloak_info)
     end
 
+    # not sending notification in tests, because it leads to a lot of log noise
+    Aircloak.in_env(test: nil, else: Air.Service.DataSource.QueryScheduler.notify())
     data_source_schemas
   end
 
@@ -61,21 +64,12 @@ defmodule Air.Service.Cloak do
   additionally augmented with a list of the IDs of the data sources served by the cloak
   """
   @spec all_cloak_infos() :: [Map.t()]
-  def all_cloak_infos(),
-    do:
-      for(
-        {_pid, cloak_info} <- Registry.lookup(@all_cloak_registry_name, :all_cloaks),
-        do: add_stats(cloak_info)
-      )
+  def all_cloak_infos(), do: @all_cloak_registry_name |> Registry.lookup(:all_cloaks) |> Enum.map(&full_cloak_info/1)
 
   @doc "Returns the cloak info of cloaks serving a data source"
   @spec cloak_infos_for_data_source(String.t()) :: [Map.t()]
   def cloak_infos_for_data_source(name),
-    do:
-      for(
-        {_pid, cloak_info} <- Registry.lookup(@data_source_registry_name, name),
-        do: add_stats(cloak_info)
-      )
+    do: @data_source_registry_name |> Registry.lookup(name) |> Enum.map(&full_cloak_info/1)
 
   @doc "Returns the list of queries running on all connected cloaks."
   @spec running_queries() :: [String.t()]
@@ -133,12 +127,25 @@ defmodule Air.Service.Cloak do
   defp add_error_on_conflicting_data_source_definitions(data_sources) do
     for data_source <- data_sources do
       name = data_source.name
+
       tables = data_source.tables
 
-      existing_definitions_for_data_source_by_cloak(name)
-      |> Enum.map(fn {_cloak_name, data_source} -> data_source end)
-      |> Enum.reject(&is_nil/1)
-      |> Enum.all?(&(tables == &1.tables))
+      existing_datasource_tables =
+        existing_definitions_for_data_source_by_cloak(name)
+        |> Enum.map(fn {_cloak_name, data_source} -> data_source end)
+        |> Enum.reject(&is_nil/1)
+        |> Enum.map(& &1.tables)
+
+      {tables, existing_datasource_tables} =
+        if all_data_sources_done?([tables | existing_datasource_tables]) do
+          {tables, existing_datasource_tables}
+        else
+          {strip_tables_of_temporary_state(tables),
+           Enum.map(existing_datasource_tables, &strip_tables_of_temporary_state/1)}
+        end
+
+      existing_datasource_tables
+      |> Enum.all?(&(tables == &1))
       |> if do
         data_source
       else
@@ -148,6 +155,26 @@ defmodule Air.Service.Cloak do
       end
     end
   end
+
+  # Note the double Lens.all() because it's a list of lists of tables
+  defp all_data_sources_done?(datasource_tables),
+    do:
+      Lens.all()
+      |> Lens.all()
+      |> Lens.key(:columns)
+      |> Lens.all()
+      |> Lens.filter(&pending?/1)
+      |> Lens.to_list(datasource_tables)
+      |> Enum.empty?()
+
+  defp pending?(column), do: column[:shadow_table] == :pending or column[:isolated] == :pending
+
+  defp strip_tables_of_temporary_state(tables),
+    do:
+      Lens.all()
+      |> Lens.key(:columns)
+      |> Lens.all()
+      |> Lens.map(tables, &Map.drop(&1, [:isolated, :shadow_table, :shadow_table_size]))
 
   defp add_error_on_different_salts(data_sources, cloak_info) do
     for data_source <- data_sources do
@@ -199,7 +226,8 @@ defmodule Air.Service.Cloak do
         DataSource.create_or_update_data_source(data_source.name, data_source.tables, errors)
       end)
 
-  defp add_stats(cloak_info), do: Map.put(cloak_info, :stats, Stats.cloak_stats(cloak_info.id))
+  defp full_cloak_info({main_channel_pid, cloak_info}),
+    do: Map.merge(cloak_info, %{main_channel_pid: main_channel_pid, stats: Stats.cloak_stats(cloak_info.id)})
 
   # -------------------------------------------------------------------
   # Supervision tree

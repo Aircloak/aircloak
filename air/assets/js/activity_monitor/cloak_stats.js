@@ -1,6 +1,7 @@
 // @flow
 
 import React from "react";
+import _ from "lodash";
 import {Sparklines, SparklinesLine, SparklinesNormalBand, SparklinesBars,
   SparklinesReferenceLine} from "react-sparklines";
 
@@ -61,14 +62,18 @@ const renderMemoryUtilisationGraph = (readings) =>
     </Sparklines>
   </td>;
 
-const renderQueriesGraph = (queries) =>
-  <td>
-    <Sparklines data={queries} svgHeight={25} svgWidth={190}>
-      <SparklinesBars />
-      <SparklinesLine style={{fill: "none"}} />
-      <SparklinesReferenceLine type="mean" />
-    </Sparklines>
-  </td>;
+const renderQueriesGraph = (queryStats) => {
+  const maxQueriesStat = _.max([1, ...queryStats]);
+  return (
+    <td>
+      <Sparklines data={queryStats} svgHeight={25} svgWidth={190} min={0} max={maxQueriesStat}>
+        <SparklinesBars />
+        <SparklinesLine style={{fill: "none"}} />
+        <SparklinesReferenceLine type="mean" />
+      </Sparklines>
+    </td>
+  );
+};
 
 export const CloakView = (props: CloakStat) =>
   <tr>

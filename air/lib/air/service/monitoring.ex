@@ -3,7 +3,7 @@ defmodule Air.Service.Monitoring do
 
   import Ecto.Query
 
-  alias Air.{Repo, Schemas.Group, Schemas.User, Schemas.Query, Service.Cloak}
+  alias Air.{Repo, Schemas.Group, Schemas.Query, Service.Cloak}
   alias Air.{Schemas, Service}
 
   @miliseconds_in_second 1000
@@ -39,10 +39,10 @@ defmodule Air.Service.Monitoring do
   end
 
   defp fetch_users() do
-    for user <- User |> preload(:groups) |> Repo.all() do
+    for user <- Service.User.all() do
       %{
         name: user.name,
-        login: user.login,
+        login: Service.User.main_login(user),
         groups: user.groups |> Enum.map(& &1.name)
       }
     end

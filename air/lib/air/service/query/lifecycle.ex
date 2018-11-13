@@ -28,16 +28,21 @@ defmodule Air.Service.Query.Lifecycle do
 
   @doc "Asynchronously handles query state change."
   @spec state_changed(String.t(), Air.Schemas.Query.QueryState.t()) :: :ok
-  def state_changed(query_id, query_state),
-    do: enqueue(query_id, {:state_changed, query_id, query_state})
+  def state_changed(query_id, query_state) do
+    if query_state in Air.Service.Query.State.completed(), do: Air.Service.DataSource.QueryScheduler.notify()
+    enqueue(query_id, {:state_changed, query_id, query_state})
+  end
 
   @doc "Asynchronously handles query result arrival."
   @spec result_arrived(cloak_result) :: :ok
   def result_arrived(result), do: enqueue(result.query_id, {:result_arrived, result})
 
   @doc "Asynchronously handles query's termination."
-  @spec query_died(String.t()) :: :ok
-  def query_died(query_id), do: enqueue(query_id, {:query_died, query_id})
+  @spec query_died(String.t(), String.t()) :: :ok
+  def query_died(query_id, error) do
+    Air.Service.DataSource.QueryScheduler.notify()
+    enqueue(query_id, {:query_died, query_id, error})
+  end
 
   @doc "Asynchronously reports query error."
   @spec report_query_error(String.t(), String.t()) :: :ok
@@ -60,11 +65,11 @@ defmodule Air.Service.Query.Lifecycle do
   def handle_cast({:state_changed, query_id, query_state}, state) do
     :jobs.run(__MODULE__, fn -> Query.update_state(query_id, query_state) end)
     Air.Service.Query.Events.trigger_state_change(%{query_id: query_id, state: query_state})
-    {:noreply, state}
+    if query_state in Air.Service.Query.State.completed(), do: {:stop, :normal, state}, else: {:noreply, state}
   end
 
-  def handle_cast({:query_died, query_id}, state) do
-    :jobs.run(__MODULE__, fn -> Query.query_died(query_id) end)
+  def handle_cast({:query_died, query_id, error}, state) do
+    :jobs.run(__MODULE__, fn -> Query.query_died(query_id, error) end)
     Air.Service.Query.Events.trigger_state_change(%{query_id: query_id, state: :query_died})
     {:stop, :normal, state}
   end
@@ -80,6 +85,9 @@ defmodule Air.Service.Query.Lifecycle do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  @doc false
+  def whereis(query_id), do: GenServer.whereis(name(query_id))
 
   @doc false
   def start_link(query_id), do: GenServer.start_link(__MODULE__, nil, name: name(query_id))

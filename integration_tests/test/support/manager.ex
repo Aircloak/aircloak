@@ -37,6 +37,8 @@ defmodule IntegrationTest.Manager do
 
   def user_password(), do: @user_password
 
+  def login(user), do: Air.Service.User.main_login(user)
+
   def create_air_user() do
     admin_group = Repo.one!(from(group in Group, where: group.name == @admin_group_name))
 

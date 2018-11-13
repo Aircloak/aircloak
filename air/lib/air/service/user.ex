@@ -2,13 +2,14 @@ defmodule Air.Service.User do
   @moduledoc "Service module for working with users"
 
   alias Air.Repo
-  alias Air.Service.{AuditLog, LDAP, Salts}
-  alias Air.Schemas.{DataSource, Group, User}
+  alias Air.Service.{AuditLog, LDAP, Salts, Password}
+  alias Air.Schemas.{DataSource, Group, User, Login}
   alias AirWeb.Endpoint
-  import Ecto.Query, only: [from: 2]
+  import Ecto.Query, only: [from: 2, join: 4, where: 3, preload: 3]
   import Ecto.Changeset
 
-  @required_fields ~w(login name)a
+  @required_fields ~w(name)a
+  @login_fields ~w(login)a
   @password_fields ~w(password password_confirmation)a
   @ldap_fields ~w(ldap_dn source)a
   @ldap_required_fields ~w(ldap_dn)a
@@ -24,20 +25,37 @@ defmodule Air.Service.User do
   @doc "Authenticates the given user."
   @spec login(String.t(), String.t(), %{atom => any}) :: {:ok, User.t()} | {:error, :invalid_login_or_password}
   def login(login, password, meta \\ %{}) do
-    user = Repo.one(from(u in User, where: u.login == ^login, where: u.enabled))
+    login =
+      mask_timing(fn ->
+        Login
+        |> join(:left, [login], user in assoc(login, :user))
+        |> where([login, _user], login.login == ^login)
+        |> where([login, _user], login.login_type == ^:main)
+        |> where([_login, user], user.enabled)
+        |> preload([_login, user], user: user)
+        |> Repo.one()
+      end)
 
     cond do
-      valid_password?(user, password) ->
-        AuditLog.log(user, "Logged in", meta)
-        {:ok, user}
+      valid_password?(login, password) ->
+        mask_timing(fn -> AuditLog.log(login.user, "Logged in", meta) end)
+        {:ok, login.user}
 
-      user ->
-        AuditLog.log(user, "Failed login", meta)
+      login ->
+        mask_timing(fn -> AuditLog.log(login.user, "Failed login", meta) end)
         {:error, :invalid_login_or_password}
 
       true ->
+        mask_timing(fn -> :noop end)
         {:error, :invalid_login_or_password}
     end
+  end
+
+  @doc "Returns the main login of the user as a string."
+  @spec main_login(User.t()) :: String.t()
+  def main_login(user) do
+    login = user.logins |> Enum.find(&(&1.login_type == :main))
+    login.login
   end
 
   @doc """
@@ -63,9 +81,9 @@ defmodule Air.Service.User do
     one_week = 7 * one_day
 
     with {:ok, user_id} <- Phoenix.Token.verify(Endpoint, Salts.get(:password_reset), token, max_age: one_week) do
-      Repo.get!(User, user_id)
-      |> password_reset_changeset(params)
-      |> Repo.update()
+      load(user_id)
+      |> change_main_login(&password_reset_changeset(&1, params))
+      |> update()
     else
       _ -> {:error, :invalid_token}
     end
@@ -73,15 +91,15 @@ defmodule Air.Service.User do
 
   @doc "Returns a list of all users in the system."
   @spec all() :: [User.t()]
-  def all(), do: Repo.all(from(user in User, preload: [:groups]))
+  def all(), do: Repo.all(from(user in User, preload: [:logins, :groups]))
 
   @doc "Returns a list of all native users in the system."
   @spec all_native() :: [User.t()]
-  def all_native(), do: Repo.all(from(user in User, where: [source: ^:native], preload: [:groups]))
+  def all_native(), do: Repo.all(from(user in User, where: [source: ^:native], preload: [:logins, :groups]))
 
   @doc "Loads the user with the given id."
-  @spec load(pos_integer) :: User.t() | nil
-  def load(user_id), do: Repo.one(from(user in User, where: user.id == ^user_id, preload: [:groups]))
+  @spec load(pos_integer | binary) :: User.t() | nil
+  def load(user_id), do: Repo.one(from(user in User, where: user.id == ^user_id, preload: [:logins, :groups]))
 
   @doc "Creates the new user, raises on error."
   @spec create!(map) :: User.t()
@@ -95,8 +113,8 @@ defmodule Air.Service.User do
   def create(params) do
     %User{}
     |> user_changeset(params)
-    |> merge(random_password_changeset(%User{}))
-    |> Repo.insert()
+    |> merge(random_password_changeset(%User{}, params))
+    |> insert()
   end
 
   @doc "Creates a new LDAP user from the given parameters."
@@ -104,9 +122,9 @@ defmodule Air.Service.User do
   def create_ldap(params) do
     %User{}
     |> user_changeset(params)
-    |> merge(random_password_changeset(%User{}))
+    |> merge(random_password_changeset(%User{}, params))
     |> merge(ldap_changeset(%User{}, params))
-    |> Repo.insert()
+    |> insert()
   end
 
   @doc "Creates the onboarding admin user."
@@ -117,11 +135,10 @@ defmodule Air.Service.User do
     if params["master_password"] == Air.site_setting!("master_password") do
       group = get_admin_group()
 
-      changeset =
-        user_changeset(changeset, %{groups: [group.id]})
-        |> merge(password_reset_changeset(%User{}, params))
-
-      Repo.insert(changeset)
+      changeset
+      |> user_changeset(%{groups: [group.id]})
+      |> merge(change_main_login(%User{}, &full_login_changeset(&1, params)))
+      |> insert()
     else
       changeset = add_error(changeset, :master_password, "The master password is incorrect")
       # We need to trick add the action being performed, to get the form to render errors
@@ -145,7 +162,8 @@ defmodule Air.Service.User do
     commit_if_active_last_admin(fn ->
       user
       |> user_changeset(params)
-      |> Repo.update()
+      |> merge(change_main_login(user, &main_login_changeset(&1, params)))
+      |> update()
     end)
   end
 
@@ -155,9 +173,15 @@ defmodule Air.Service.User do
     check_ldap!(user, options)
 
     user
-    |> user_changeset(Map.take(params, ~w(name login decimal_sep thousand_sep decimal_digits)))
-    |> merge(password_changeset(user, params))
-    |> Repo.update()
+    |> user_changeset(Map.take(params, ~w(name decimal_sep thousand_sep decimal_digits)))
+    |> merge(
+      change_main_login(user, fn login ->
+        login
+        |> password_changeset(params)
+        |> merge(main_login_changeset(login, params))
+      end)
+    )
+    |> update()
   end
 
   @doc "Updates the profile of the given user, only allowing changes to non-login-related settings, like number format."
@@ -165,7 +189,7 @@ defmodule Air.Service.User do
   def update_profile_settings(user, params) do
     user
     |> number_format_changeset(params)
-    |> Repo.update()
+    |> update()
   end
 
   @doc """
@@ -213,7 +237,7 @@ defmodule Air.Service.User do
     commit_if_active_last_admin(fn ->
       user
       |> cast(%{enabled: false}, [:enabled])
-      |> Repo.update()
+      |> update()
     end)
   end
 
@@ -229,11 +253,11 @@ defmodule Air.Service.User do
 
   @doc "Returns the empty changeset for the new user."
   @spec empty_changeset() :: Ecto.Changeset.t()
-  def empty_changeset(), do: user_changeset(%User{}, %{})
+  def empty_changeset(), do: change(%User{})
 
   @doc "Converts the user into a changeset."
   @spec to_changeset(User.t()) :: Ecto.Changeset.t()
-  def to_changeset(user), do: user_changeset(user, %{})
+  def to_changeset(user), do: change(user, %{login: main_login(user)})
 
   @doc "Computes the number of data sources accessible by each user."
   @spec data_sources_count() :: %{pos_integer => non_neg_integer}
@@ -261,7 +285,7 @@ defmodule Air.Service.User do
           inner_join: data_source in assoc(group, :data_sources),
           where: data_source.id == ^data_source.id,
           select: user,
-          preload: [:groups]
+          preload: [:logins, :groups]
         )
       )
 
@@ -283,7 +307,7 @@ defmodule Air.Service.User do
     do:
       %Group{}
       |> group_changeset(params)
-      |> Repo.insert()
+      |> insert()
 
   @doc "Creates a new LDAP group."
   @spec create_ldap_group(map) :: {:ok, Group.t()} | {:error, Ecto.Changeset.t()}
@@ -291,7 +315,7 @@ defmodule Air.Service.User do
     %Group{}
     |> group_changeset(params, ldap: true)
     |> merge(ldap_changeset(%Group{}, params))
-    |> Repo.insert()
+    |> insert()
   end
 
   @doc "Updates the given group, raises on error."
@@ -310,7 +334,7 @@ defmodule Air.Service.User do
     commit_if_active_last_admin(fn ->
       group
       |> group_changeset(params, options)
-      |> Repo.update()
+      |> update()
     end)
   end
 
@@ -319,7 +343,7 @@ defmodule Air.Service.User do
   def update_group_data_sources(group, params) do
     group
     |> group_data_source_changeset(params)
-    |> Repo.update()
+    |> update()
   end
 
   @doc "Deletes the given group, raises on error."
@@ -357,8 +381,20 @@ defmodule Air.Service.User do
   @spec admin_groups() :: [Group.t()]
   def admin_groups(), do: Repo.all(from(g in Group, where: g.admin))
 
+  @doc "Returns a group by name"
+  @spec get_group_by_name(String.t()) :: {:ok, Group.t()} | {:error, :not_found}
+  def get_group_by_name(name) do
+    case(Air.Repo.get_by(Air.Schemas.Group, name: name)) do
+      nil -> {:error, :not_found}
+      group -> {:ok, group}
+    end
+  end
+
   @doc "Returns the number format settings for the specified user."
-  @spec number_format_settings(User.t()) :: Map.t()
+  @spec number_format_settings(User.t() | nil) :: Map.t()
+  def number_format_settings(nil),
+    do: Air.Service.Settings.read() |> Map.take([:decimal_digits, :decimal_sep, :thousand_sep])
+
   def number_format_settings(user) do
     default_settings = Air.Service.Settings.read()
 
@@ -407,33 +443,98 @@ defmodule Air.Service.User do
     end
   end
 
+  @doc "Returns a user by login"
+  @spec get_by_login(String.t()) :: {:ok, User.t()} | {:error, :not_found}
+  def get_by_login(login) do
+    User
+    |> join(:left, [user], login in assoc(user, :logins))
+    |> where([_user, login], login.login == ^login)
+    |> where([_user, login], login.login_type == ^:main)
+    |> Repo.one()
+    |> Repo.preload([:logins, :groups])
+    |> case do
+      nil -> {:error, :not_found}
+      user -> {:ok, user}
+    end
+  end
+
+  @doc "Adds a user preconfigured in a users or data source config file."
+  @spec add_preconfigured_user(Map.t()) :: {:ok, User.t()} | :error
+  def add_preconfigured_user(user_data) do
+    changeset =
+      %User{}
+      |> user_changeset(%{name: user_data.login})
+      |> merge(
+        change_main_login(%User{}, fn login ->
+          login
+          |> main_login_changeset(%{login: user_data.login})
+          |> put_change(:hashed_password, user_data.password_hash)
+        end)
+      )
+
+    if Map.get(user_data, :admin, false) do
+      user_changeset(changeset, %{groups: [get_admin_group().id]})
+    else
+      changeset
+    end
+    |> insert()
+    |> case do
+      {:error, _} -> :error
+      {:ok, _user} = result -> result
+    end
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp valid_password?(user, password) do
-    case user do
-      %{source: :ldap} ->
-        {_, result} = {User.validate_password(user, password), LDAP.simple_bind(user.ldap_dn, password)}
+  defp valid_password?(login, password) do
+    case login do
+      %{user: %{source: :ldap}} ->
+        {_, result} = {validate_password(login, password), LDAP.simple_bind(login.user.ldap_dn, password)}
         match?(:ok, result)
 
       _ ->
-        {result, _} = {User.validate_password(user, password), LDAP.dummy_bind()}
+        {result, _} = {validate_password(login, password), LDAP.dummy_bind()}
         result
+    end
+  end
+
+  @timing_mask 20
+  defp mask_timing(action) do
+    :timer.send_after(@timing_mask, :wake_up)
+    res = action.()
+
+    receive do
+      :wake_up -> res
+    after
+      2 * @timing_mask -> res
     end
   end
 
   defp random_string, do: Base.encode16(:crypto.strong_rand_bytes(10))
 
-  defp user_changeset(user, params),
-    do:
-      user
-      |> cast(params, @required_fields ++ @optional_fields)
-      |> validate_required(@required_fields)
-      |> validate_length(:name, min: 2)
-      |> unique_constraint(:login)
-      |> merge(number_format_changeset(user, params))
-      |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
+  defp user_changeset(user, params) do
+    user
+    |> cast(params, @required_fields ++ @optional_fields)
+    |> validate_required(@required_fields)
+    |> validate_length(:name, min: 2)
+    |> merge(number_format_changeset(user, params))
+    |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
+  end
+
+  defp full_login_changeset(login, params) do
+    login
+    |> password_reset_changeset(params)
+    |> merge(main_login_changeset(login, params))
+  end
+
+  defp main_login_changeset(login, params) do
+    login
+    |> cast(params, @login_fields)
+    |> validate_required(@login_fields)
+    |> unique_constraint(:login)
+  end
 
   defp number_format_changeset(user, params) do
     user
@@ -449,13 +550,18 @@ defmodule Air.Service.User do
     |> validate_required(@ldap_required_fields)
   end
 
-  defp random_password_changeset(user) do
-    password = :crypto.strong_rand_bytes(64) |> Base.encode64()
-    password_reset_changeset(user, %{password: password, password_confirmation: password})
+  defp random_password_changeset(user, params) do
+    change_main_login(user, fn login ->
+      password = :crypto.strong_rand_bytes(64) |> Base.encode64()
+
+      login
+      |> password_reset_changeset(%{password: password, password_confirmation: password})
+      |> merge(main_login_changeset(login, params))
+    end)
   end
 
-  defp password_reset_changeset(user, params) do
-    user
+  defp password_reset_changeset(login, params) do
+    login
     |> cast(params, @password_fields)
     |> validate_required(@password_fields)
     |> validate_length(:password, min: 10)
@@ -463,23 +569,26 @@ defmodule Air.Service.User do
     |> update_password_hash()
   end
 
-  defp password_changeset(user, params) do
-    old_password_valid = User.validate_password(user, params["old_password"] || "")
+  defp password_changeset(login, params) do
+    old_password_valid = validate_password(login, params["old_password"] || "")
 
     case {params["password"], old_password_valid} do
-      {"", _} -> user_changeset(user, %{})
-      {nil, _} -> user_changeset(user, %{})
-      {_, true} -> password_reset_changeset(user, params)
-      {_, false} -> user_changeset(user, %{}) |> add_error(:old_password, "Password invalid")
+      {"", _} -> change(login)
+      {nil, _} -> change(login)
+      {_, true} -> password_reset_changeset(login, params)
+      {_, false} -> change(login) |> add_error(:old_password, "Password invalid")
     end
   end
 
   defp update_password_hash(%Ecto.Changeset{valid?: true, changes: %{password: password}} = changeset)
        when password != "" do
-    put_change(changeset, :hashed_password, Comeonin.Pbkdf2.hashpwsalt(password))
+    put_change(changeset, :hashed_password, Password.hash(password))
   end
 
   defp update_password_hash(changeset), do: changeset
+
+  defp validate_password(nil, password), do: Password.validate(password, nil)
+  defp validate_password(user, password), do: Password.validate(password, user.hashed_password)
 
   defp group_changeset(group, params, options \\ []),
     do:
@@ -546,6 +655,41 @@ defmodule Air.Service.User do
       {:ldap, false} -> raise "Accidental LDAP change"
       {_, true} -> raise "Accidental non-LDAP change"
       _ -> object
+    end
+  end
+
+  defp change_main_login(changeset = %Ecto.Changeset{changes: %{logins: [login_changeset]}}, action) do
+    login_changeset
+    |> action.()
+    |> merge_login_changeset(changeset)
+  end
+
+  defp change_main_login(user, action) do
+    user
+    |> Repo.preload([:logins])
+    |> get_in([Access.key(:logins)])
+    |> Enum.find(%Login{}, &(&1.login_type == :main))
+    |> action.()
+    |> change(%{login_type: :main})
+    |> merge_login_changeset(change(user))
+  end
+
+  defp insert(changeset), do: changeset |> Repo.insert() |> merge_login_errors()
+
+  defp update(changeset), do: changeset |> Repo.update() |> merge_login_errors()
+
+  defp merge_login_errors({:error, changeset = %{changes: %{logins: [%{errors: login_errors}]}}}),
+    do: {:error, update_in(changeset, [Access.key(:errors)], fn errors -> errors ++ login_errors end)}
+
+  defp merge_login_errors(other), do: other
+
+  defp merge_login_changeset(login_changeset, user_changeset) do
+    if login_changeset.valid? do
+      put_assoc(user_changeset, :logins, [login_changeset])
+    else
+      Enum.reduce(login_changeset.errors, user_changeset, fn {field, {msg, opts}}, changeset ->
+        add_error(changeset, field, msg, opts)
+      end)
     end
   end
 

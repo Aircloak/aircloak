@@ -40,8 +40,8 @@ defmodule AirWeb.DataSourceController do
     with {:ok, data_source} <- DataSource.fetch_as_user({:name, name}, conn.assigns.current_user),
          {:ok, last_query} <- DataSource.last_query({:name, name}, conn.assigns.current_user, :http) do
       pending_queries =
-        Air.Service.Query.currently_running(conn.assigns.current_user, data_source, :http)
-        |> Enum.map(&Air.Schemas.Query.for_display/1)
+        Query.not_finished(conn.assigns.current_user, data_source, :http)
+        |> Enum.map(&Query.for_display/1)
 
       conn
       |> put_layout("raw.html")
@@ -51,7 +51,7 @@ defmodule AirWeb.DataSourceController do
         pending_queries: pending_queries,
         guardian_token: Air.Guardian.Plug.current_token(conn),
         csrf_token: CSRFProtection.get_csrf_token(),
-        last_query: if(last_query != nil, do: Air.Schemas.Query.for_display(last_query)),
+        last_query: if(last_query != nil, do: Query.for_display(last_query)),
         session_id: Ecto.UUID.generate(),
         number_format: Air.Service.User.number_format_settings(conn.assigns.current_user),
         debug_mode_enabled: conn.assigns.current_user.debug_mode_enabled

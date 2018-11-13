@@ -4,7 +4,6 @@ defmodule Air.Schemas.User do
 
   use Air.Schemas.Base
 
-  alias Comeonin.Pbkdf2, as: Hash
   alias Air.Schemas.Group
 
   @type t :: %__MODULE__{}
@@ -13,17 +12,16 @@ defmodule Air.Schemas.User do
   @type permissions :: %{role_key => [operation] | :all}
 
   schema "users" do
-    field(:login, :string)
-    field(:hashed_password, :string)
     field(:name, :string)
     field(:pseudonym, :string)
-    field(:source, Air.Schemas.Source)
     field(:ldap_dn, :string)
+    field(:source, Air.Schemas.Source)
     field(:enabled, :boolean)
 
     has_many(:queries, Air.Schemas.Query)
     has_many(:views, Air.Schemas.View)
     has_many(:audit_logs, Air.Schemas.AuditLog)
+    has_many(:logins, Air.Schemas.Login)
 
     many_to_many(
       :groups,
@@ -93,11 +91,6 @@ defmodule Air.Schemas.User do
       allowed -> Enum.member?(allowed, operation)
     end)
   end
-
-  @doc "Validates the user password."
-  @spec validate_password(nil | t, String.t()) :: boolean
-  def validate_password(nil, _password), do: Hash.dummy_checkpw()
-  def validate_password(user, password), do: Hash.checkpw(password, user.hashed_password)
 
   # -------------------------------------------------------------------
   # Internal functions

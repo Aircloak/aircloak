@@ -43,11 +43,11 @@ defmodule Cloak.DataSource.Connection.Pool do
 
   @doc "Returns the connection to the pool."
   @spec checkin(pid, pid) :: :ok
-  def checkin(pool_pid, connection \\ self()), do: GenServer.call(pool_pid, {:checkin, connection})
+  def checkin(pool_pid, connection \\ self()), do: GenServer.cast(pool_pid, {:checkin, connection})
 
   @doc "Removes the connection from the pool."
-  @spec remove_connection(pid, pid) :: :ok
-  def remove_connection(pool_pid, connection \\ self()), do: GenServer.cast(pool_pid, {:remove_connection, connection})
+  @spec remove_connection(pid, reference) :: :ok
+  def remove_connection(pool_pid, checkout_id), do: GenServer.cast(pool_pid, {:remove_connection, self(), checkout_id})
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -58,24 +58,38 @@ defmodule Cloak.DataSource.Connection.Pool do
 
   @impl GenServer
   def handle_call({:checkout, options}, _from, state) do
+    checkout_id = make_ref()
+
     connection =
       if Keyword.get(options, :force_new_connection, false),
-        do: new_connection(state),
-        else: available_connection() || new_connection(state)
+        do: new_connection(state, checkout_id),
+        else: available_connection(checkout_id) || new_connection(state, checkout_id)
 
-    Parent.GenServer.update_child_meta(child_id!(connection), &%{&1 | available?: false})
+    Parent.GenServer.update_child_meta(child_id!(connection), &%{&1 | available?: false, checkout_id: checkout_id})
     {:reply, connection, state}
   end
 
-  def handle_call({:checkin, connection}, _from, state) do
+  @impl GenServer
+  def handle_cast({:checkin, connection}, state) do
     Parent.GenServer.update_child_meta(child_id!(connection), &%{&1 | available?: true})
-    {:reply, :ok, state}
+    {:noreply, state}
   end
 
-  @impl GenServer
-  def handle_cast({:remove_connection, connection}, state) do
-    Logger.debug("Removing an idle connection from the pool")
-    Parent.GenServer.shutdown_child(child_id!(connection))
+  def handle_cast({:remove_connection, connection, checkout_id}, state) do
+    child_id = child_id!(connection)
+    {:ok, meta} = Parent.GenServer.child_meta(child_id)
+
+    if meta.checkout_id == checkout_id do
+      # mark the connection as not available so it's not checked out
+      Parent.GenServer.update_child_meta(child_id, &%{&1 | available?: false})
+
+      # stoping the connection from a task to avoid longer disconnect blocking the pool process
+      Parent.GenServer.start_child(%{
+        id: {:shutdown, make_ref()},
+        start: {Task, :start_link, [fn -> stop_connection(connection) end]}
+      })
+    end
+
     {:noreply, state}
   end
 
@@ -88,15 +102,29 @@ defmodule Cloak.DataSource.Connection.Pool do
     id
   end
 
-  defp new_connection(state) do
-    start = {Connection, :start_link, [state.driver, state.connection_params]}
-    {:ok, conn} = Parent.GenServer.start_child(%{id: make_ref(), meta: %{available?: true}, start: start})
+  defp new_connection(state, checkout_id) do
+    start = {Connection, :start_link, [state.driver, state.connection_params, checkout_id]}
+
+    {:ok, conn} =
+      Parent.GenServer.start_child(%{
+        id: {:connection, make_ref()},
+        meta: %{available?: true, checkout_id: checkout_id},
+        start: start
+      })
+
     conn
   end
 
-  defp available_connection() do
-    with {_id, conn, _meta} <- Enum.find(Parent.GenServer.children(), fn {_id, _conn, meta} -> meta.available? end),
-         do: conn
+  defp available_connection(checkout_id) do
+    with {_id, conn, _meta} <- Enum.find(Parent.GenServer.children(), fn {_id, _conn, meta} -> meta.available? end) do
+      Connection.set_checkout_id(conn, checkout_id)
+      conn
+    end
+  end
+
+  defp stop_connection(connection) do
+    Logger.debug("Removing an idle connection from the pool")
+    Connection.stop(connection)
   end
 
   @doc false

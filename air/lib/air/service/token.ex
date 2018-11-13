@@ -1,7 +1,8 @@
-defmodule Air.Token do
+defmodule Air.Service.Token do
   @moduledoc "Functions for token management."
 
-  alias Air.{Schemas.ApiToken, Schemas.User, Repo}
+  alias Air.Repo
+  alias Air.Schemas.{ApiToken, User, Query}
   alias Air.Service.Salts
   alias AirWeb.Endpoint
 
@@ -37,7 +38,7 @@ defmodule Air.Token do
           where: token.access == ^access,
           inner_join: user in assoc(token, :user),
           where: user.enabled,
-          preload: [{:user, :groups}],
+          preload: [{:user, [:groups, :logins]}],
           select: token
         )
         |> Repo.one()
@@ -55,20 +56,54 @@ defmodule Air.Token do
     end
   end
 
+  @doc "Returns a token representing the right to view the given query without authenticating."
+  @spec public_query_token(Query.t()) :: String.t()
+  def public_query_token(query) do
+    Phoenix.Token.sign(Endpoint, Salts.get(:query_permalink), {:public, :query, query.id})
+  end
+
+  @doc "Returns a token representing the right to view the given query while having access to its data source."
+  @spec private_query_token(Query.t()) :: String.t()
+  def private_query_token(query) do
+    Phoenix.Token.sign(Endpoint, Salts.get(:query_permalink), {:private, :query, query.id})
+  end
+
+  @doc """
+  Returns the query specified by the given token. If the query is private, it's only returned if the user can access its
+  data source. Returns `:error` if the token is invalid or the query inaccessible.
+  """
+  @spec query_from_token(User.t(), String.t()) :: {:ok, Query.t()} | :error
+  def query_from_token(user, token) do
+    with {:ok, token} <- Phoenix.Token.verify(Endpoint, Salts.get(:query_permalink), token, max_age: :infinity),
+         {:ok, query} <- do_query_from_token(user, token) do
+      {:ok, query}
+    else
+      _ -> :error
+    end
+  end
+
+  # -------------------------------------------------------------------
+  # Query from token
+  # -------------------------------------------------------------------
+
+  defp do_query_from_token(_user, {:public, :query, id}), do: Air.Service.Query.get(id)
+
+  defp do_query_from_token(nil, {:private, :query, _id}), do: :error
+
+  defp do_query_from_token(user, {:private, :query, id}) do
+    with {:ok, query} <- Air.Service.Query.get(id),
+         {:ok, _data_source} <- Air.Service.DataSource.fetch_as_user({:id, query.data_source_id}, user) do
+      {:ok, query}
+    end
+  end
+
   # -------------------------------------------------------------------
   # Salt configuration
   # -------------------------------------------------------------------
 
   defp normalized_max_age(max_age) when is_integer(max_age), do: max_age
-
-  defp normalized_max_age(nil),
-    # default max age is one day
-    do: 60 * 60 * 24
-
-  defp normalized_max_age(:infinity),
-    # Phoenix warns if we're not validating the token age, so we need to pass some integer value.
-    # Therefore, we're simulating infinity by using a ridiculously large value (10,000 years).
-    do: 60 * 60 * 24 * 365 * 10_000
+  defp normalized_max_age(nil), do: _one_day = 60 * 60 * 24
+  defp normalized_max_age(:infinity), do: :infinity
 
   defp api_token_salt(), do: legacy_salt() || Salts.get(:api_token)
 

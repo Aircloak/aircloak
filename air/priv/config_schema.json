@@ -36,7 +36,8 @@
       "type": "object",
       "properties": {
         "auth_secret": {"type": "string", "minLength": 60},
-        "endpoint_key_base": {"type": "string", "minLength": 60},
+        "endpoint_key_base": {"type": "string", "minLength": 64},
+        "cloak_secret": {"type": "string", "minLength": 64},
         "api_token_salt": {"type": "string", "$comment": "allowed for backward compatibility"},
         "master_password": {"type": "string", "minLength": 1},
         "certfile": {"type": "string"},
@@ -45,7 +46,8 @@
         "customer_token": {"type": "string", "minLength": 1, "$comment": "allowed for backward compatibility"},
         "alternate_aircloak_central": {"type": "string", "$comment": "used to connect to stage central"},
         "license_file": {"type": "string", "$comment": "path to license file in mount"},
-        "privacy_policy_file": {"type": "string", "$comment": "path to privacy policy content"}
+        "privacy_policy_file": {"type": "string", "$comment": "path to privacy policy content"},
+        "users_and_datasources_file": {"type": "string", "$comment": "path to user and data sources content"}
       },
       "additionalProperties": false,
       "required": ["auth_secret", "endpoint_key_base", "master_password"]

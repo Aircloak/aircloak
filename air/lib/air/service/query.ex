@@ -3,7 +3,9 @@ defmodule Air.Service.Query do
 
   alias Air.Repo
   alias Air.Schemas.{DataSource, Query, ResultChunk, User}
+  alias Air.Service.Token
   alias AirWeb.Socket.Frontend.UserChannel
+  alias AirWeb.Router
 
   import Ecto.Query
   require Logger
@@ -26,6 +28,21 @@ defmodule Air.Service.Query do
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
+
+  @doc "Produces a JSON blob of the query and its result for rendering"
+  @spec for_display(Query.t(), nil | [map]) :: Map.t()
+  def for_display(query, buckets \\ nil) do
+    query = Repo.preload(query, [:user, :data_source])
+
+    query
+    |> Map.take([:id, :data_source_id, :statement, :session_id, :inserted_at, :query_state])
+    |> Map.merge(query.result || %{})
+    |> add_result(buckets)
+    |> Map.merge(data_source_info(query))
+    |> Map.merge(user_info(query))
+    |> Map.put(:completed, completed?(query))
+    |> Map.merge(permalinks(query))
+  end
 
   @doc """
   Creates and registers a query placeholder in the database. Given that it has an ID
@@ -70,12 +87,13 @@ defmodule Air.Service.Query do
     end
   end
 
-  @doc "Returns queries which have been created but not yet started on any cloak."
-  @spec awiting_start() :: [Query.t()]
-  def awiting_start() do
+  @doc "Returns queries, ordered by `inserted_at`, which have been created but not yet started on any cloak."
+  @spec awaiting_start() :: [Query.t()]
+  def awaiting_start() do
     from(
       q in Query,
       where: q.query_state == ^:created and is_nil(q.cloak_id),
+      order_by: [asc: q.inserted_at],
       preload: [:user, :data_source]
     )
     |> Repo.all()
@@ -126,9 +144,20 @@ defmodule Air.Service.Query do
     |> Repo.preload([:groups])
     |> query_scope()
     |> get(id)
+  end
+
+  @doc """
+  Returns the query with the given id, without associations preloaded. In most cases `get_as_user` should be used
+  instead as it enforces access rules. The client of this function is responsible for enforcing any such rules.
+  """
+  @spec get(Ecto.Queryable.t(), query_id) :: {:ok, Query.t()} | {:error, :not_found | :invalid_id}
+  def get(scope \\ Query, id) do
+    case Repo.get(scope, id) do
+      nil -> {:error, :not_found}
+      query -> {:ok, query}
+    end
   rescue
-    Ecto.Query.CastError ->
-      {:error, :invalid_id}
+    Ecto.Query.CastError -> {:error, :invalid_id}
   end
 
   @doc """
@@ -164,21 +193,23 @@ defmodule Air.Service.Query do
       |> Repo.all()
       |> Repo.preload([:user, :data_source])
 
-  @doc "Returns a list of the queries that are currently executing in all contexts."
-  @spec currently_running() :: [Query.t()]
-  def currently_running() do
-    Repo.all(from(q in pending(), where: q.query_state != ^:created))
-  end
+  @doc "Returns a list of the queries that have not yet finished."
+  @spec not_finished() :: [Query.t()]
+  def not_finished(), do: Repo.all(from(q in pending()))
 
-  @doc "Returns a list of queries that are currently executing, started by the given user on the given data source."
-  @spec currently_running(User.t(), DataSource.t(), Query.Context.t()) :: [Query.t()]
-  def currently_running(user, data_source, context) do
+  @doc "Returns a list of queries that have not yet finished, started by the given user on the given data source."
+  @spec not_finished(User.t(), DataSource.t(), Query.Context.t()) :: [Query.t()]
+  def not_finished(user, data_source, context) do
     pending()
     |> started_by(user)
     |> for_data_source(data_source)
     |> in_context(context)
     |> Repo.all()
   end
+
+  @doc "Returns a list of the queries that have been started on cloak, but not yet finished."
+  @spec started_on_cloak() :: [Query.t()]
+  def started_on_cloak(), do: Repo.all(from(q in pending(), where: q.query_state != ^:created))
 
   @doc """
   Updates the state of the query with the given id to the given state. Only performs the update if the given state can
@@ -187,7 +218,7 @@ defmodule Air.Service.Query do
   @spec update_state(query_id, Query.QueryState.t()) :: :ok | {:error, :not_found | :invalid_id}
   def update_state(query_id, state) do
     with {:ok, query} <- get(query_id) do
-      if valid_state_transition?(query.query_state, state) do
+      if __MODULE__.State.valid_state_transition?(query.query_state, state) do
         query
         |> Query.changeset(Map.merge(updated_time_spent(query), %{query_state: state}))
         |> Repo.update!()
@@ -204,9 +235,10 @@ defmodule Air.Service.Query do
   """
   @spec process_result(map) :: :ok
   def process_result(result) do
-    query = Repo.get!(Query, result.query_id) |> Repo.preload([:user])
+    query = Repo.get!(Query, result.query_id) |> Repo.preload(user: [:logins])
 
-    if valid_state_transition?(query.query_state, query_state(result)), do: do_process_result(query, result)
+    if __MODULE__.State.valid_state_transition?(query.query_state, query_state(result)),
+      do: do_process_result(query, result)
 
     Logger.info("processed result for query #{result.query_id}")
     :ok
@@ -216,14 +248,14 @@ defmodule Air.Service.Query do
   Marks the query as errored due to unknown reasons. This can happen when for example the cloak goes down during
   processing and a normal error result is not received.
   """
-  @spec query_died(query_id) :: :ok
-  def query_died(query_id) do
+  @spec query_died(query_id, String.t()) :: :ok
+  def query_died(query_id, error) do
     query = Repo.get!(Query, query_id)
 
-    if valid_state_transition?(query.query_state, :error) do
+    if __MODULE__.State.valid_state_transition?(query.query_state, :error) do
       query =
         query
-        |> Query.changeset(%{query_state: :error, result: %{error: "Query died."}})
+        |> Query.changeset(%{query_state: :error, result: %{error: error}})
         |> Repo.update!()
 
       UserChannel.broadcast_state_change(query)
@@ -275,32 +307,6 @@ defmodule Air.Service.Query do
     report_query_result(result)
   end
 
-  @active_states [
-    :created,
-    :started,
-    :parsing,
-    :compiling,
-    :awaiting_data,
-    :ingesting_data,
-    :processing,
-    :post_processing
-  ]
-  @completed_states [
-    :cancelled,
-    :error,
-    :completed
-  ]
-  @state_order @active_states ++ @completed_states
-
-  defp valid_state_transition?(same_state, same_state), do: true
-
-  defp valid_state_transition?(current_state, _next_state)
-       when current_state in [:cancelled, :completed, :error],
-       do: false
-
-  defp valid_state_transition?(current_state, next_state),
-    do: Enum.find_index(@state_order, &(&1 == current_state)) < Enum.find_index(@state_order, &(&1 == next_state))
-
   defp query_state(%{error: error}) when is_binary(error), do: :error
   defp query_state(%{cancelled: true}), do: :cancelled
   defp query_state(_), do: :completed
@@ -308,13 +314,6 @@ defmodule Air.Service.Query do
   defp error_text(%{error: error}) when is_binary(error), do: error
   defp error_text(%{cancelled: true}), do: "Cancelled."
   defp error_text(_), do: nil
-
-  defp get(scope \\ Query, id) do
-    case Repo.get(scope, id) do
-      nil -> {:error, :not_found}
-      query -> {:ok, query}
-    end
-  end
 
   defp log_result_error(query, result) do
     if result[:error],
@@ -327,7 +326,7 @@ defmodule Air.Service.Query do
             statement: query.statement,
             data_source_id: query.data_source_id,
             user_id: query.user.id,
-            user_login: query.user.login
+            user_login: Air.Service.User.main_login(query.user)
           })
         ])
   end
@@ -393,9 +392,7 @@ defmodule Air.Service.Query do
     where(scope, [q], q.user_id == ^user.id)
   end
 
-  defp pending(scope \\ Query) do
-    where(scope, [q], q.query_state in ^@active_states)
-  end
+  defp pending(scope \\ Query), do: where(scope, [q], q.query_state in ^__MODULE__.State.active())
 
   defp apply_filters(scope, filters) do
     scope
@@ -485,6 +482,28 @@ defmodule Air.Service.Query do
   defp include_filtered(items, schema, filtered_ids) do
     filtered_items = schema |> where([q], q.id in ^filtered_ids) |> Repo.all()
     Enum.uniq(items ++ filtered_items)
+  end
+
+  # -------------------------------------------------------------------
+  # Helpers for for_display
+  # -------------------------------------------------------------------
+
+  defp data_source_info(query),
+    do: %{data_source: %{name: Map.get(query.data_source || %{}, :name, "Unknown data source")}}
+
+  defp user_info(query), do: %{user: %{name: Map.get(query.user || %{}, :name, "Unknown user")}}
+
+  defp completed?(query), do: query.query_state in [:error, :completed, :cancelled]
+
+  defp add_result(result, nil), do: result
+  defp add_result(result, buckets), do: Map.put(result, :rows, buckets)
+
+  defp permalinks(query) do
+    %{
+      private_permalink:
+        Router.Helpers.private_permalink_path(AirWeb.Endpoint, :query, Token.private_query_token(query)),
+      public_permalink: Router.Helpers.public_permalink_path(AirWeb.Endpoint, :query, Token.public_query_token(query))
+    }
   end
 
   # -------------------------------------------------------------------

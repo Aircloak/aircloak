@@ -45,7 +45,7 @@ defmodule AirWeb.QueryController do
            before
          ) do
       {:ok, queries} ->
-        json(conn, Enum.map(queries, &Query.for_display(&1, Air.Service.Query.buckets(&1, 0))))
+        json(conn, Enum.map(queries, &Air.Service.Query.for_display(&1, Air.Service.Query.buckets(&1, 0))))
 
       _ ->
         send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
@@ -95,12 +95,8 @@ defmodule AirWeb.QueryController do
   def cancel(conn, %{"id" => query_id}) do
     case Air.Service.Query.get_as_user(conn.assigns.current_user, query_id) do
       {:ok, query} ->
-        query
-        |> DataSource.stop_query()
-        |> case do
-          :ok -> json(conn, %{success: true})
-          {:error, reason} -> query_error(conn, reason)
-        end
+        DataSource.cancel_query(query)
+        json(conn, %{success: true})
 
       _ ->
         send_resp(conn, Status.code(:not_found), "A query with that id does not exist")
@@ -134,16 +130,6 @@ defmodule AirWeb.QueryController do
   defp query_error(conn, :unauthorized),
     do: send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
 
-  defp query_error(conn, :not_connected),
-    do:
-      send_resp(
-        conn,
-        Status.code(:service_unavailable),
-        "No cloak is available for the given data source"
-      )
-
-  defp query_error(conn, :internal_error), do: send_resp(conn, Status.code(:internal_server_error), "")
-
   defp query_error(conn, other_error) do
     Logger.error(fn -> "Query start error: #{other_error}" end)
     json(conn, %{success: false, reason: other_error})
@@ -160,7 +146,7 @@ defmodule AirWeb.QueryController do
     # new style result -> compute json in streaming fashion and send chunked response
     json_without_rows =
       query
-      |> Query.for_display()
+      |> Air.Service.Query.for_display()
       |> Poison.encode!(strict_keys: true)
 
     prefix_size = byte_size(json_without_rows) - 1

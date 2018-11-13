@@ -379,7 +379,13 @@ defmodule Cloak.AirSocket do
     "#{vm_short_name}@#{hostname}"
   end
 
-  defp join_info(data_sources), do: %{data_sources: data_sources, salt_hash: get_salt_hash()}
+  defp join_info(data_sources) do
+    %{
+      data_sources: data_sources,
+      salt_hash: get_salt_hash(),
+      secret_proof: Aircloak.DeployConfig.get("cloak_secret", "") |> Aircloak.SharedSecret.proof()
+    }
+  end
 
   defp next_interval(current_interval) do
     min(current_interval * 2, config(:max_reconnect_interval))

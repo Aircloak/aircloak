@@ -56,19 +56,24 @@ The following fields are optional:
 
 ### Web site configuration
 
-This part of the configuration is used to configure the web server of the Insights Air component. The shape of this section is as follows:
+This part of the configuration is used to configure the web server of the Insights Air component. The shape of this
+section is as follows:
 
 ```
 "site": {
   "auth_secret": secret_string,
   "endpoint_key_base": secret_string,
+  "cloak_secret": secret_string,
   "master_password": string,
   "certfile": string,
-  "keyfile": string
+  "keyfile": string,
+  "privacy_policy_file": string,
+  "license_file": string,
+  "users_and_datasources_file": string
 },
 ```
 
-In the snippet above, the type `secret_string` indicates a string which should consist of at least 64 characters. The corresponding parameters are used to sign and encrypt various data sent to the client. Make sure to choose values which are random enough, or otherwise the security of the system might be compromised. For example, to generate a random secret, you can use the following command:
+In the snippet above, the type `secret_string` indicates a string which should consist of at least 64 characters. The corresponding parameters are used to sign and encrypt various data. Make sure to choose values which are random enough, or otherwise the security of the system might be compromised. For example, to generate a random secret, you can use the following command:
 
 ```
 cat /dev/urandom |
@@ -77,13 +82,28 @@ cat /dev/urandom |
   head -n 1
 ```
 
-The `master_password` parameter specifies the password (in clear text) which is required when creating the first administrator user. When you attempt to access the site for the very first time, there are no users in the database. At this point, the system will ask you to create the first administrator user, and it will require you to enter the `master_password`. Once the first administrator is created, this password will not be needed anymore.
+Of the parameters above, the only required ones are the `auth_secret` and `endpoint_key_base` parameters, as well as one
+of `master_password` or `users_and_datasources_file`. The other parameters such as the `privacy_policy_file`,
+`users_and_datasources_file`, and `license_file` all specify values that can also be configured in the
+Insights Air web interface.
+These parameters can be used to fully configure a system ahead of time. This is useful when performing automated
+deployments. For more information on ahead of time configuration, please read the [ahead of time
+configuration](ahead-of-time-configuration.md) guide.
+
+The `master_password` parameter specifies the password (in clear text) which is required when creating the first administrator
+in the Insights Air web interface. If you attempt to access the Insights Air interface while no administrative user has been setup,
+you will be prompted to create one. To do so you have to type in the `master_password` the system is configured with.
+This password will no longer be needed once the first administrator has been created.
+
+The `cloak_secret` setting is optional. If not set (default) all Insights Cloak instances will be allowed to connect to
+the Insights Air instance. If set, then only instances with the same `cloak_secret` set in their configuration files
+will be allowed. See [Insights Cloak configuration](#insights-cloak-configuration) for more.
 
 The final two parameters `certfile` and `keyfile` are optional. They are used to specify the certificate and key for the HTTPS interface. If these parameters are provided, you will also need to put the corresponding files in the same folder as the `config.json` file. Once you do that, the site will accept HTTPS traffic as well as HTTP traffic. If you omit these parameters, the site will only accept HTTP traffic.
 
-The ports on which the site will listen are hardcoded. HTTP traffic is served via port 8080, while HTTPS is served via 8443. As explained in the [Installation guide](installation.md#insights-air), you can use Docker port mapping option to decide which of these two ports you want to expose, and to choose different port numbers on the host server.
+The ports on which the site will listen are hardcoded. HTTP traffic is served via port 8080, while HTTPS is served via 8443. As explained in the [Installation guide](installation.md#insights-air), you can use the Docker port mapping option to decide under which port numbers you want to expose these endpoints on the host server.
 
-We strongly suggest to use only HTTPS for communication between the clients (browsers) and the server (the Insights Air component). Otherwise, the security of the system might be compromised.
+We strongly suggest only exposing the Insights Air interface to clients using HTTPS. You might want to terminate the SSL connection at a reverse proxy such as [nginx](https://nginx.org/) or [apache](https://httpd.apache.org/), or alternatively make use of the HTTPS server offered as part of Insights Air.
 
 ### Insights Air PostgreSQL interface configuration
 
@@ -306,9 +326,11 @@ The general shape of `config.json` is:
 {
   "air_site": string,
   "salt": string,
+  "cloak_secret": string,
   "data_sources": string,
   "concurrency": integer,
-  "lcf_buckets_aggregation_limit": integer
+  "lcf_buckets_aggregation_limit": integer,
+  "max_parallel_queries": positive_integer
 }
 ```
 
@@ -323,6 +345,10 @@ cat /dev/urandom |
   head -n 1
 ```
 
+The `cloak_secret` setting is used to authenticate the Insights Cloak instance when connecting to Insights Air. It is
+required only if `cloak_secret` was configured in Insights Air (see [Web site configuration](#web-site-configuration)),
+and in that case it needs to be set to the same value.
+
 The `concurrency` field is optional and controls the amount of additional threads used for processing the selected data.
 The default setting is 0, which means a single thread processes the data coming in from the database server. For small
 data sets, this is usually sufficient, but for bigger data sets, this might turn out to be a bottleneck during query
@@ -332,6 +358,8 @@ executing the query faster, but also consuming more memory. This setting can be 
 The `lcf_buckets_aggregation_limit` is optional and controls the maximum number of columns for which partial aggregation
 of low-count filtered rows is done. The default value is 3. This setting can be overridden per data-source. More details
 can be found in the [Low-count filtering](../sql/query-results.md#low-count-filtering) section.
+
+The `max_parallel_queries` field is optional and controls the maximum number of queries that the cloak will run simultaneously. The default value is 10.
 
 ### Data source configuration
 
@@ -736,3 +764,43 @@ of the Air component under the `shadow_database` key.
 ```
 
 Here, the `"name"` parameter configures the name of the database to which the given user can connect. The database name is needed because a PostgreSQL connection can only be established to an existing database. For this purpose, you can use either the `postgres` database, or create a dedicated database. Make sure to grant `CONNECT` permission on the database to the user.
+
+## File permissions
+
+The Aircloak Insights software is run inside a docker container under a user called `deployer`.
+The privileges of the software are limited by those of the `deployer` user.
+In order for Aircloak Insights to read the configuration files they need [file
+permissions](https://en.wikipedia.org/wiki/File_system_permissions#Traditional_Unix_permissions) that allow
+everyone to read them.
+
+Unix file permissions distinguish between the rights of the owner of a file, the members of a particular group, and
+everyone else. The `deployer` user belongs to the latter of the three, namely the everyone else category.
+
+If you consider file permissions in their symbolic notation (like they are shown when running `ls -la` in the terminal),
+then the permissions need to end in `r--`. If you consider the privileges in their numeric notation, then the last digit
+needs to be at least a 4 (meaning it grants read privileges).
+
+Below follows a set of file permissions that would work:
+
+```
+$ ls -la
+-rwxr--r--  25 owner  group     800 Jan  1 00:01 ideal
+-rwxrwxr--  25 owner  group     800 Jan  1 00:01 ideal
+-rwxr-xr-x  25 owner  group     800 Jan  1 00:01 ok-but-too-permissive
+-rwxrw-rw-  25 owner  group     800 Jan  1 00:01 ok-but-too-permissive
+-rwxrwxrwx  25 owner  group     800 Jan  1 00:01 ok-but-too-permissive
+```
+
+whereas the following set of file permissions _would not work_ because they do not give the `deployer` user permission
+to read the file:
+
+```
+$ ls -la
+-rwxr-----  25 owner  group     800 Jan  1 00:01 missing-read-privileges
+-rwxrw----  25 owner  group     800 Jan  1 00:01 missing-read-privileges
+-rwxr-x---  25 owner  group     800 Jan  1 00:01 missing-read-privileges
+-rwxrwx---  25 owner  group     800 Jan  1 00:01 missing-read-privileges
+```
+
+In a unix shell you can add the required read permission with the following command: `chmod o+r file-name`.
+The `o` signifies the everyone else category (also known as "other") and the `+r` grants read permission.

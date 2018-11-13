@@ -238,8 +238,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       [] ->
         :ok
 
-      [condition] ->
-        [offending_column | _] = isolating_columns(condition, query)
+      [clause] ->
+        [offending_column | _] = isolating_columns(clause, query)
 
         raise CompilationError,
           source_location: offending_column.source_location,
@@ -250,8 +250,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     end
   end
 
-  defp includes_isolating_column?(condition, query) do
-    not Enum.empty?(isolating_columns(condition, query))
+  defp includes_isolating_column?(clause, query) do
+    not Enum.empty?(isolating_columns(clause, query))
   end
 
   defp isolating_columns(condition_or_expression, query) do

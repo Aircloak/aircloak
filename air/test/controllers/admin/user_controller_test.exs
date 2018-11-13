@@ -4,6 +4,8 @@ defmodule AirWeb.Admin.UserController.Test do
   import Air.{TestConnHelper, TestRepoHelper}
   import Aircloak.AssertionHelper
 
+  alias Air.Service.User
+
   test "regular user can't manage users" do
     user = create_user!()
 
@@ -20,7 +22,7 @@ defmodule AirWeb.Admin.UserController.Test do
     users = Enum.map(1..4, fn _ -> create_user!() end)
 
     users_html = login(admin) |> get("/admin/users") |> response(200)
-    Enum.each([admin | users], &assert(users_html =~ &1.login))
+    Enum.each([admin | users], &assert(users_html =~ User.main_login(&1)))
   end
 
   test "accessing new and edit forms" do
@@ -68,9 +70,9 @@ defmodule AirWeb.Admin.UserController.Test do
       )
 
     assert "/admin/users" == redirected_to(conn)
-    users_html = login(%{login: changed_login}) |> get("/admin/users") |> response(200)
+    users_html = login(%{logins: [%{login: changed_login}]}) |> get("/admin/users") |> response(200)
     assert users_html =~ changed_login
-    refute users_html =~ admin.login
+    refute users_html =~ User.main_login(admin)
   end
 
   test "error is reported when updating tha last admin to non-admin status" do
@@ -83,7 +85,7 @@ defmodule AirWeb.Admin.UserController.Test do
     assert get_flash(conn)["error"] ==
              "The given action cannot be performed, because it would remove the only administrator."
 
-    assert Air.Service.User.active_admin_user_exists?()
+    assert User.active_admin_user_exists?()
   end
 
   test "deleting a user" do
@@ -92,7 +94,7 @@ defmodule AirWeb.Admin.UserController.Test do
 
     assert "/admin/users" == login(admin) |> delete("/admin/users/#{user.id}") |> redirected_to()
     users_html = login(admin) |> get("/admin/users") |> response(200)
-    refute users_html =~ user.login
+    refute users_html =~ User.main_login(user)
   end
 
   test "disabling a user" do
@@ -101,19 +103,19 @@ defmodule AirWeb.Admin.UserController.Test do
 
     assert "/admin/users" == login(admin) |> put("/admin/users/#{user.id}/disable") |> redirected_to()
 
-    refute Air.Service.User.load(user.id).enabled
+    refute User.load(user.id).enabled
   end
 
   test "enabling a user" do
     admin = create_admin_user!()
     user = create_user!()
 
-    {:ok, disabled_user} = Air.Service.User.disable(user)
+    {:ok, disabled_user} = User.disable(user)
     refute disabled_user.enabled
 
     assert "/admin/users" == login(admin) |> put("/admin/users/#{user.id}/enable") |> redirected_to()
 
-    assert Air.Service.User.load(user.id).enabled
+    assert User.load(user.id).enabled
   end
 
   test "success is reported via audit log" do

@@ -1,0 +1,16 @@
+<div id="query-view"></div>
+
+<script>
+  window.pageConfig = {
+    onLoad: function(App) {
+      var props = {
+        result: <%= to_json(@query) %>,
+        CSRFToken: "<%= @csrf_token %>",
+        numberFormat: <%= to_json(@number_format) %>,
+        debugModeEnabled: false
+      };
+
+      App.immutableQueryShowPage(props, document.getElementById("query-view"));
+    }
+  };
+</script>

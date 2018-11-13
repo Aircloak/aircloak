@@ -79,17 +79,10 @@ defmodule AircloakCI.Build.PullRequest do
       state
       |> Job.Compile.start_if_possible()
       |> Job.Test.start_if_possible()
-      |> maybe_start_compliance()
+      |> Job.Compliance.start_if_possible()
     else
       state
     end
-  end
-
-  defp maybe_start_compliance(state) do
-    if check_standard_tests(state) == :ok and check_approved(state) == :ok and
-         LocalProject.run_compliance?(state.project),
-       do: Job.Compliance.start_if_possible(state),
-       else: state
   end
 
   defp report_status(state) do
@@ -104,7 +97,7 @@ defmodule AircloakCI.Build.PullRequest do
            :ok <- check_standard_tests(state),
            do: {:success, nil}
 
-    if LocalProject.job_outcome(state.project, "report_standard_tests") != status do
+    if status not in [:pending, LocalProject.job_outcome(state.project, "report_standard_tests")] do
       if status == :success and not state.source.approved? do
         Github.comment_on_issue(
           state.source.repo.owner,
@@ -123,7 +116,7 @@ defmodule AircloakCI.Build.PullRequest do
       with :ok <- check_mergeable(state),
            :ok <- check_prepared(state),
            :ok <- check_standard_tests(state),
-           :ok <- check_final_tests(state),
+           :ok <- check_approval(state),
            do: {:success, "pull request can be merged"}
 
     if status == :success and not LocalProject.finished?(state.project, "report_mergeable") do
@@ -159,30 +152,10 @@ defmodule AircloakCI.Build.PullRequest do
   defp check_prepared(%{prepared?: false}), do: {:pending, "initializing local folder"}
 
   defp check_mergeable(%{source: %{merge_state: :mergeable}}), do: :ok
-
   defp check_mergeable(%{source: %{merge_state: :unknown}}), do: {:pending, "awaiting merge status"}
-
   defp check_mergeable(%{source: %{merge_state: :conflicting}}), do: {:error, "there are merge conflicts"}
 
-  defp check_approved(%{source: %{approved?: true}}), do: :ok
-  defp check_approved(%{source: %{approved?: false}}), do: {:pending, "awaiting approval"}
-
-  defp check_final_tests(state) do
-    final_jobs = %{
-      "approval" => approval_outcome(state),
-      "compliance" => compliance_outcome(state)
-    }
-
-    with :ok <- check_failures(final_jobs), do: check_pending(final_jobs)
-  end
-
-  defp approval_outcome(state), do: if(state.source.approved?, do: :ok, else: :pending)
-
-  defp compliance_outcome(state) do
-    if LocalProject.run_compliance?(state.project),
-      do: LocalProject.job_outcome(state.project, "compliance") || :pending,
-      else: :ok
-  end
+  defp check_approval(state), do: if(state.source.approved?, do: :ok, else: {:pending, "awaiting approval"})
 
   defp check_standard_tests(state) do
     job_outcomes = LocalProject.job_outcomes(state.project)
@@ -191,6 +164,7 @@ defmodule AircloakCI.Build.PullRequest do
       state.project
       |> LocalProject.changed_components()
       |> Enum.flat_map(&["#{&1}_compile", "#{&1}_test"])
+      |> Enum.concat(if LocalProject.run_compliance?(state.project), do: ["compliance"], else: [])
       |> Enum.map(&{&1, Map.get(job_outcomes, &1, :pending)})
 
     with :ok <- check_failures(statuses), do: check_pending(statuses)

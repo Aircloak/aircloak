@@ -7,7 +7,7 @@ defmodule Air.Service.QueryTest do
   setup [:sandbox]
 
   describe "create" do
-    setup [:sandbox, :with_user]
+    setup [:with_user]
 
     test "cannot create query for disabled user", %{user: user, data_source: data_source} do
       assert {:ok, _} = Air.Service.User.disable(user)
@@ -50,7 +50,7 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "get_as_user" do
-    setup [:sandbox, :with_user]
+    setup [:with_user]
 
     test "loads existing queries", %{user: user} do
       query = create_query!(user)
@@ -79,9 +79,23 @@ defmodule Air.Service.QueryTest do
     end
   end
 
-  describe "last_for_user" do
-    setup [:sandbox]
+  describe "get" do
+    test "loads existing queries" do
+      query = create_query!(create_user!())
+      query_id = query.id
+      assert {:ok, %Air.Schemas.Query{id: ^query_id}} = Query.get(query_id)
+    end
 
+    test "when the ID is garbage" do
+      assert {:error, :invalid_id} == Query.get("missing")
+    end
+
+    test "of non-existent query" do
+      assert {:error, :not_found} == Query.get(Ecto.UUID.generate())
+    end
+  end
+
+  describe "last_for_user" do
     test "returns last query the user issued" do
       user = create_user!()
       _previous_one = create_query!(user)
@@ -112,36 +126,29 @@ defmodule Air.Service.QueryTest do
     end
   end
 
-  describe "currently_running/0" do
-    setup [:sandbox]
-
-    test "returns running queries" do
+  describe "not_finished/0" do
+    test "returns active queries" do
       user = create_user!()
-      _not_started_query = create_query!(user)
-      started_query = create_query!(user, %{query_state: :started})
-      assert [%Air.Schemas.Query{id: query_id}] = Query.currently_running()
-      assert query_id == started_query.id
+      query_ids = Enum.map(Query.State.active(), &create_query!(user, %{query_state: &1}).id)
+      assert Query.not_finished() |> Enum.map(& &1.id) |> Enum.sort() == Enum.sort(query_ids)
     end
 
-    test "does not return not running queries" do
+    test "does not return finished queries" do
       user = create_user!()
-      create_query!(user, %{query_state: :completed})
-      create_query!(user, %{query_state: :error})
-      create_query!(user, %{query_state: :cancelled})
-
-      assert [] == Query.currently_running()
+      Enum.each(Query.State.completed(), &create_query!(user, %{query_state: &1}))
+      assert [] == Query.not_finished()
     end
   end
 
-  describe "currently_running/2" do
-    setup [:sandbox, :with_user, :with_data_source]
+  describe "not_finished/2" do
+    setup [:with_user, :with_data_source]
 
     test "returns running queries on the given data source", context do
       query = create_query!(context.user, %{data_source_id: context.data_source.id})
 
       query_id = query.id
 
-      assert [%Air.Schemas.Query{id: ^query_id}] = Query.currently_running(context.user, context.data_source, :http)
+      assert [%Air.Schemas.Query{id: ^query_id}] = Query.not_finished(context.user, context.data_source, :http)
     end
 
     test "does not return not running queries", context do
@@ -157,31 +164,54 @@ defmodule Air.Service.QueryTest do
         query_state: :cancelled
       })
 
-      assert [] == Query.currently_running(context.user, context.data_source, :http)
+      assert [] == Query.not_finished(context.user, context.data_source, :http)
     end
 
     test "does not return other users' queries", context do
       create_query!(_other_user = create_user!(), %{data_source_id: context.data_source.id})
 
-      assert [] = Query.currently_running(context.user, context.data_source, :http)
+      assert [] = Query.not_finished(context.user, context.data_source, :http)
     end
 
     test "does not return queries to other data sources", context do
       create_query!(context.user, %{data_source_id: _other_source = create_data_source!().id})
 
-      assert [] = Query.currently_running(context.user, context.data_source, :http)
+      assert [] = Query.not_finished(context.user, context.data_source, :http)
     end
 
     test "does not return queries in other contexts", context do
       create_query!(context.user, %{data_source_id: context.data_source.id, context: :psql})
 
-      assert [] = Query.currently_running(context.user, context.data_source, :http)
+      assert [] = Query.not_finished(context.user, context.data_source, :http)
+    end
+  end
+
+  describe "started_on_cloak/0" do
+    test "returns active queries" do
+      user = create_user!()
+
+      query_ids =
+        Query.State.active()
+        |> Stream.reject(&(&1 == :created))
+        |> Enum.map(&create_query!(user, %{query_state: &1}).id)
+
+      assert Query.started_on_cloak() |> Enum.map(& &1.id) |> Enum.sort() == Enum.sort(query_ids)
+    end
+
+    test "does not return created query" do
+      user = create_user!()
+      create_query!(user, %{query_state: :created})
+      assert [] == Query.started_on_cloak()
+    end
+
+    test "does not return finished queries" do
+      user = create_user!()
+      Enum.each(Query.State.completed(), &create_query!(user, %{query_state: &1}).id)
+      assert [] == Query.started_on_cloak()
     end
   end
 
   describe "update_state" do
-    setup [:sandbox]
-
     test "changes the query_state" do
       query = create_query!(create_user!(), %{query_state: :started})
 
@@ -222,8 +252,6 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "process_result" do
-    setup [:sandbox]
-
     test "processing a successful result" do
       query = create_query!(create_user!(), %{query_state: :started})
 
@@ -325,12 +353,10 @@ defmodule Air.Service.QueryTest do
   end
 
   describe "query_died" do
-    setup [:sandbox]
-
     test "ignores completed queries" do
       query = create_query!(create_user!(), %{query_state: :completed})
 
-      Query.query_died(query.id)
+      Query.query_died(query.id, "some error")
 
       {:ok, query} = get_query(query.id)
       assert %{query_state: :completed} = query
@@ -339,20 +365,18 @@ defmodule Air.Service.QueryTest do
     test "sets the result" do
       query = create_query!(create_user!(), %{query_state: :started})
 
-      Query.query_died(query.id)
+      Query.query_died(query.id, "some error")
 
       {:ok, query} = get_query(query.id)
 
       assert %{
                query_state: :error,
-               result: %{"error" => "Query died."}
+               result: %{"error" => "some error"}
              } = query
     end
   end
 
   describe ".queries" do
-    setup [:sandbox]
-
     test "results are ordered from newest to oldest" do
       query1 = create_query!(create_user!())
       query2 = create_query!(create_user!())
@@ -457,13 +481,66 @@ defmodule Air.Service.QueryTest do
     end
   end
 
-  describe ".awiting_start" do
+  describe ".for_display" do
+    test "for_display of a finished query",
+      do:
+        Enum.each(
+          [:error, :completed, :cancelled],
+          &assert(%{completed: true} = display(%{query_state: &1}))
+        )
+
+    test "for_display of an unfinished query",
+      do:
+        Enum.each(
+          [
+            :created,
+            :started,
+            :parsing,
+            :compiling,
+            :awaiting_data,
+            :ingesting_data,
+            :processing,
+            :post_processing
+          ],
+          &assert(%{completed: false} = display(%{query_state: &1}))
+        )
+
+    test "for_display includes all data from result",
+      do: assert(%{"some" => "data"} = display(%{result: %{"some" => "data"}}))
+
+    test "for_display when result is not preloaded" do
+      query = create_user!() |> create_query!(%{result: %{rows: [], columns: []}})
+      query_without_result = Air.Repo.get!(Air.Schemas.Query, query.id)
+      display = Query.for_display(query_without_result)
+
+      assert :error == Map.fetch(display, :rows)
+      assert :error == Map.fetch(display, :columns)
+    end
+
+    test "includes the owner's name" do
+      user = create_user!()
+      assert Query.for_display(create_query!(user)).user.name == user.name
+    end
+
+    test "includes the data source name" do
+      data_source = create_data_source!()
+      assert display(%{data_source_id: data_source.id}).data_source.name == data_source.name
+    end
+
+    defp display(create_query_params),
+      do:
+        create_user!()
+        |> create_query!(create_query_params)
+        |> Query.for_display()
+  end
+
+  describe ".awaiting_start" do
     test "fetching not started queries" do
       user = create_user!()
       q1 = create_query!(user)
       q2 = create_query!(user)
       create_query!(user, %{query_state: :completed})
-      assert Query.awiting_start() |> Enum.map(& &1.id) |> Enum.sort() == Enum.sort([q1.id, q2.id])
+      assert Enum.map(Query.awaiting_start(), & &1.id) == [q1.id, q2.id]
     end
   end
 

@@ -22,12 +22,12 @@ defmodule Air.Service.Cleanup do
   @spec cleanup_dead_queries() :: :ok
   def cleanup_dead_queries() do
     # We need to first fetch pending queries on air, to avoid possible race conditions.
-    currently_running_as_seen_by_air = Air.Service.Query.currently_running()
+    started_on_cloak_as_seen_by_air = Air.Service.Query.started_on_cloak()
     currently_running_on_connected_cloaks = MapSet.new(Air.Service.Cloak.running_queries())
 
-    currently_running_as_seen_by_air
+    started_on_cloak_as_seen_by_air
     |> Enum.reject(&MapSet.member?(currently_running_on_connected_cloaks, &1.id))
-    |> Enum.each(&Air.Service.Query.Lifecycle.query_died(&1.id))
+    |> Enum.each(&Air.Service.Query.Lifecycle.query_died(&1.id, "Query died."))
 
     :ok
   end

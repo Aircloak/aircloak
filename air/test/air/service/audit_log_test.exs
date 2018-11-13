@@ -2,7 +2,7 @@ defmodule Air.Service.AuditLogTest do
   use Air.SchemaCase, async: true
 
   import Air.TestRepoHelper
-  alias Air.{Repo, Service.AuditLog}
+  alias Air.{Repo, Service.AuditLog, Service.User}
   import Ecto.Query
 
   test "creating audit log entries should save a db record" do
@@ -116,13 +116,9 @@ defmodule Air.Service.AuditLogTest do
     AuditLog.log(user1, "event1", %{meta: true})
     AuditLog.log(user2, "event2", %{meta: true})
 
-    logins =
-      [user1, user2]
-      |> Enum.sort_by(& &1.name)
-      |> Enum.map(& &1.login)
+    logins = [user1, user2] |> Enum.sort_by(& &1.name) |> Enum.map(&User.main_login/1)
 
-    assert AuditLog.users(params(%{users: [user1.id]}))
-           |> Enum.map(& &1.login) == logins
+    assert AuditLog.users(params(%{users: [user1.id]})) |> Enum.map(&User.main_login/1) == logins
   end
 
   test "lists all users for audit logs" do
@@ -133,8 +129,7 @@ defmodule Air.Service.AuditLogTest do
     AuditLog.log(user1, "event1", %{meta: true})
     AuditLog.log(user2, "event2", %{meta: true, data_source: data_source.name})
 
-    assert AuditLog.users(params(%{events: ["event1"]}))
-           |> Enum.map(& &1.login) == [user1.login]
+    assert AuditLog.users(params(%{events: ["event1"]})) |> Enum.map(&User.main_login/1) == [User.main_login(user1)]
   end
 
   test "includes selected users irrespective of filters" do

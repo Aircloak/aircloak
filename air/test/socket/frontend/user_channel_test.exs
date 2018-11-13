@@ -31,8 +31,11 @@ defmodule AirWeb.Socket.Frontend.UserChannelTest do
 
       UserChannel.broadcast_state_change(query)
 
-      expected = Air.Schemas.Query.for_display(query)
-      assert_push("state_change", ^expected)
+      expected = Air.Service.Query.for_display(query)
+      assert_push("state_change", actual)
+
+      assert Map.drop(expected, [:private_permalink, :public_permalink]) ==
+               Map.drop(actual, [:private_permalink, :public_permalink])
     end
 
     test "no state updates for queries belonging to other users" do
