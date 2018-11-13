@@ -154,7 +154,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count]}, query),
     do:
       if(
-        not needs_aggregation?(query, min),
+        not need_aggregation?(query, [min, max, count]),
         do: %{
           noise_layer
           | expressions: [min_of_min(min), max_of_max(max), sum_of_count(min, count)]
@@ -168,7 +168,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
        ),
        do:
          if(
-           not needs_aggregation?(query, min),
+           not need_aggregation?(query, [min, max, count]),
            do: %{
              noise_layer
              | expressions: [min_of_min(min), max_of_max(max), sum_of_count(min, count), user_id]
@@ -255,6 +255,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
 
   defp select_noise_layers(_query, _top_level_uid), do: []
+
+  defp need_aggregation?(query, expressions), do: Enum.all?(expressions, &needs_aggregation?(query, &1))
 
   defp needs_aggregation?(_query, %Expression{constant?: true}), do: true
 
