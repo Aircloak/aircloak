@@ -17,8 +17,9 @@ defmodule CentralWeb.Endpoint do
   # Endpoint HTTP specification
   # -------------------------------------------------------------------
 
-  socket("/air/socket", CentralWeb.Socket.Air)
-  socket("/frontend/socket", CentralWeb.Socket.Frontend)
+  socket("/air/socket", CentralWeb.Socket.Air, websocket: [serializer: [{CentralWeb.Socket.Air.Serializer, "~> 2.0.0"}]])
+
+  socket("/frontend/socket", CentralWeb.Socket.Frontend, websocket: true, longpoll: true)
 
   # Serve at "/" the static files from "priv/static" directory.
   #

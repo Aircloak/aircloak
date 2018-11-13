@@ -16,9 +16,6 @@ defmodule AirWeb.Socket.Frontend do
   use Phoenix.Socket
   require Logger
 
-  transport(:websocket, Phoenix.Transports.WebSocket)
-  transport(:longpoll, Phoenix.Transports.LongPoll)
-
   # List of exposed channels
   channel("user_queries:*", AirWeb.Socket.Frontend.UserChannel)
   channel("query:*", AirWeb.Socket.Frontend.UserChannel)
