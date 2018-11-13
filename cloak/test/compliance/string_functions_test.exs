@@ -40,7 +40,7 @@ Enum.each(
         test "#{function} on input #{column} in a sub-query on #{table}", context do
           context
           |> disable_for(Cloak.DataSource.SQLServer, match?("hex" <> _, unquote(function)))
-          |> disable_unicode(unquote(function), unquote(column))
+          |> disable_unicode(unquote(column))
           |> disallowed_in_subqueries("extract_words", unquote(function))
           |> assert_consistent_and_not_failing("""
             SELECT
@@ -55,39 +55,25 @@ Enum.each(
             ORDER BY output
           """)
         end
-
-        @tag compliance: "#{function} #{column} #{table} query"
-        test "#{function} on input #{column} in query on #{table}", context do
-          context
-          |> assert_consistent_and_not_failing("""
-            SELECT #{on_column(unquote(function), "\"#{unquote(column)}\"")}
-            FROM #{unquote(table)}
-            ORDER BY 1
-          """)
-        end
       end)
 
       defp disallowed_in_subqueries(context, function, current_test),
         do: disable_for(context, :all, String.starts_with?(current_test, function))
 
-      defp disable_unicode(context, function, column) do
-        cond do
-          column == "name" and String.starts_with?(function, ~w(lower lcase upper ucase)) ->
-            Enum.reduce(
-              [
-                Cloak.DataSource.MongoDB,
-                Cloak.DataSource.SQLServer,
-                Cloak.DataSource.Drill
-              ],
-              context,
-              &disable_for(&2, &1, true)
-            )
-
-          column == "name" and String.contains?(function, ~w(trim)) ->
-            disable_for(context, Cloak.DataSource.Drill, true)
-
-          true ->
-            context
+      defp disable_unicode(context, column) do
+        if column == "name" do
+          Enum.reduce(
+            [
+              Cloak.DataSource.MongoDB,
+              Cloak.DataSource.SQLServer,
+              Cloak.DataSource.MySQL,
+              Cloak.DataSource.Drill
+            ],
+            context,
+            &disable_for(&2, &1, true)
+          )
+        else
+          context
         end
       end
     end
