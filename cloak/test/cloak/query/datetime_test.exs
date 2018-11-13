@@ -46,7 +46,7 @@ defmodule Cloak.Query.DatetimeTest do
 
     assert_query("select year(datetime) from datetimes", %{
       columns: ["year"],
-      rows: [%{occurrences: 20, row: [2015]}, %{occurrences: 10, row: [2016]}]
+      rows: [%{occurrences: 22, row: [2015]}, %{occurrences: 10, row: [2016]}]
     })
   end
 
@@ -59,7 +59,7 @@ defmodule Cloak.Query.DatetimeTest do
       columns: ["count", "year"],
       rows: [
         %{occurrences: 1, row: [10, 2016]},
-        %{occurrences: 1, row: [20, 2015]}
+        %{occurrences: 1, row: [22, 2015]}
       ]
     })
   end
@@ -73,7 +73,7 @@ defmodule Cloak.Query.DatetimeTest do
       columns: ["count", "the_year"],
       rows: [
         %{occurrences: 1, row: [10, 2016]},
-        %{occurrences: 1, row: [20, 2015]}
+        %{occurrences: 1, row: [22, 2015]}
       ]
     })
   end

@@ -18,10 +18,10 @@ defmodule Cloak.DataSource.StreamerTest do
 
   for concurrency <- [2, 3, 5, 7] do
     test "concurrent stream processing with #{concurrency} workers" do
-      {:ok, rows_stream} = rows("select intval from test_streamer")
+      {:ok, rows_stream} = rows("select median(intval) from test_streamer")
       sequential_rows = Enum.to_list(rows_stream)
 
-      {:ok, rows_stream} = rows("select intval from test_streamer")
+      {:ok, rows_stream} = rows("select median(intval) from test_streamer")
 
       concurrent_rows =
         1..unquote(concurrency)
@@ -41,7 +41,7 @@ defmodule Cloak.DataSource.StreamerTest do
       chunk_index + 1
     end
 
-    assert {:ok, rows_stream} = rows("select intval from test_streamer", data_source(), reporter)
+    assert {:ok, rows_stream} = rows("select median(intval) from test_streamer", data_source(), reporter)
     num_chunks = rows_stream |> Enum.count() |> div(100)
     Enum.each(1..num_chunks, &assert_receive({:processing_chunk, &1}))
     refute_receive {:processing_chunk, _}
@@ -56,7 +56,7 @@ defmodule Cloak.DataSource.StreamerTest do
       chunk_index + 1
     end
 
-    assert {:ok, rows_stream} = rows("select intval from test_streamer", data_source(), reporter)
+    assert {:ok, rows_stream} = rows("select median(intval) from test_streamer", data_source(), reporter)
 
     num_chunks =
       1..2
