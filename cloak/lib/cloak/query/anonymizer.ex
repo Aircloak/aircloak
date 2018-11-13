@@ -486,7 +486,7 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   defp edge_sigma(edge, avg, count) do
-    newAvg = (avg * count - edge) / (count - 1)
-    abs(avg - newAvg)
+    new_avg = (avg * count - edge) / (count - 1)
+    abs(avg - new_avg)
   end
 end
