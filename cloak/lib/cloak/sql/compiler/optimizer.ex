@@ -174,16 +174,11 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   end
 
   defp needs_uid_grouping?(query),
-    do: Enum.all?(query.aggregators, &can_be_uid_grouped?/1) and no_uid_grouping?(query) and no_row_splitters?(query)
+    do: Enum.all?(query.aggregators, &can_be_uid_grouped?/1) and no_row_splitters?(query)
 
   @uid_offloaded_aggregators ~w(count sum min max count_noise sum_noise)
   defp can_be_uid_grouped?(aggregator),
     do: aggregator.function in @uid_offloaded_aggregators and not distinct_input?(aggregator.function_args)
-
-  defp no_uid_grouping?(%Query{from: {:subquery, %{ast: inner_query}}}),
-    do: not Enum.any?(inner_query.group_by, & &1.user_id?)
-
-  defp no_uid_grouping?(_query), do: true
 
   defp distinct_input?([{:distinct, %Expression{user_id?: false}}]), do: true
   defp distinct_input?([_]), do: false
