@@ -7,7 +7,7 @@ defmodule Cloak.Query.Aggregator.Statistics do
 
   @type user_id :: DataSource.field()
   @type bucket_statistics :: [pos_integer() | user_id]
-  @type aggregation_statistics :: [number]
+  @type aggregation_statistics :: [number | nil]
   @type t :: [bucket_statistics | aggregation_statistics]
 
   @typep values :: [DataSource.field() | :*]
@@ -136,7 +136,6 @@ defmodule Cloak.Query.Aggregator.Statistics do
     {users_count, property ++ aggregation_results}
   end
 
-  defp float_to_type(nil, _type), do: nil
   defp float_to_type(value, :integer), do: round(value)
   defp float_to_type(value, :real), do: value
 end
