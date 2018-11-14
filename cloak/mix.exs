@@ -40,7 +40,6 @@ defmodule Cloak.Mixfile do
       {:websocket_client, "~> 1.2.4"},
       {:combine, "~> 0.9.6"},
       {:timex, "~> 3.1"},
-      {:poison, github: "sasa1977/poison", override: true},
       {:mongodb, "~> 0.3.0"},
       {:backoff, "~> 1.1.3"},
       {:jiffy, "~> 0.14.1"},
@@ -75,7 +74,9 @@ defmodule Cloak.Mixfile do
   defp extra_applications(:dev), do: [:os_mon | common_extra_applications()]
   defp extra_applications(:prod), do: [:os_mon | common_extra_applications()]
 
-  defp common_extra_applications(), do: [:logger, :runtime_tools, :crypto, :odbc, :ssl, :public_key]
+  defp common_extra_applications(), do: [:logger, :runtime_tools, :crypto, :odbc, :ssl, :public_key] ++ dialyzer_deps()
+
+  defp dialyzer_deps(), do: [:jason]
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]

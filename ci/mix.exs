@@ -24,7 +24,6 @@ defmodule AircloakCI.Mixfile do
   defp deps do
     [
       {:httpoison, "~> 0.13.0"},
-      {:poison, "~> 2.0"},
       {:aircloak_common, path: "../common/elixir"},
       {:erlexec, "~> 1.9", only: [:dev, :prod]},
       {:jobs, "~> 0.7"},

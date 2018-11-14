@@ -35,13 +35,13 @@ defmodule Aircloak.ElixirCommon.Mixfile do
   def application do
     [
       mod: {Aircloak, []},
-      extra_applications: [:logger, :poison | dialyzer_deps()]
+      extra_applications: [:logger | dialyzer_deps()]
     ]
   end
 
   defp deps do
     [
-      {:poison, "~> 2.2.0"},
+      {:jason, "~> 1.1"},
       {:lens, "~> 0.6.0"},
       {:ex_doc, "~> 0.19", runtime: false},
       {:meck, github: "eproxus/meck", tag: "0.8.12", override: true, runtime: false},

@@ -16,7 +16,7 @@ defmodule Aircloak.License do
     |> String.split("\n")
     |> Enum.map(fn line ->
       with {:ok, plain_text} <- line |> String.trim() |> ExPublicKey.decrypt_public(public_key),
-           {:ok, map} <- Poison.decode(plain_text),
+           {:ok, map} <- Jason.decode(plain_text),
            {:ok, license} <- unpack(map) do
         {:ok, license}
       else

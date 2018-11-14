@@ -18,7 +18,7 @@ Export by <%= get_in(@data, [:metadata, :user]) %> (<%= get_in(@data, [:metadata
 
 <%= banner("RESULT", "=") %>
 
-<%= print_rows(get_in(@data, [:result]) |> Poison.decode!()) %>
+<%= print_rows(get_in(@data, [:result]) |> Jason.decode!()) %>
 
 <%= if Enum.count(get_in(@data, [:views])) > 0 do %>
 <%= banner("VIEWS", "=") %>

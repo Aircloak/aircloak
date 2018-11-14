@@ -110,7 +110,7 @@ defmodule Mix.Tasks.Compile.UserDocs do
   end
 
   defp update_book_config(current_version) do
-    book_config = File.read!(@book_config_path) |> Poison.decode!()
+    book_config = File.read!(@book_config_path) |> Jason.decode!()
 
     if String.contains?(book_config["title"], current_version) do
       # All good
@@ -123,7 +123,7 @@ defmodule Mix.Tasks.Compile.UserDocs do
           "This copy of the Aircloak user guide describes the features of, and how to " <>
             "configure and work with Aircloak Insights version #{current_version}."
         )
-        |> Poison.encode!(pretty: true)
+        |> Jason.encode!(pretty: true)
 
       File.write(@book_config_path, updated_book_config)
     end

@@ -30,7 +30,7 @@ defmodule Air.BOM do
   defp read_bom do
     path_for(:bom_file)
     |> File.read!()
-    |> Poison.decode!()
+    |> Jason.decode!()
   end
 
   defp path_for(type) do

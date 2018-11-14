@@ -76,7 +76,7 @@ defmodule AirWeb.ViewHelpers do
   @doc "Encodes the given term to json which can be safely embedded in .eex templates."
   @spec to_json(any) :: {:safe, iodata}
   def to_json(term) do
-    {:safe, Poison.encode!(term)}
+    {:safe, Jason.encode!(term)}
   end
 
   @doc "Conditionally creates a navbar link if there are warnings"

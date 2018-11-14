@@ -51,7 +51,7 @@ defmodule Compliance do
     |> Map.take([:name, :parameters])
     |> Map.put(:driver, driver_name)
     |> Map.put(:tables, tables_map(data_source.tables))
-    |> Poison.encode!(pretty: true)
+    |> Jason.encode!(pretty: true)
   end
 
   defp tables_map(tables) do

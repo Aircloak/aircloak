@@ -96,7 +96,7 @@ defmodule Cloak.DataSource do
   def initialize_data_source_from_path(file_path) do
     file_path
     |> File.read!()
-    |> Aircloak.Json.safe_decode()
+    |> Aircloak.decode_json()
     |> case do
       {:ok, data_source_definition} ->
         [data_source] = initialize_data_source_configs([data_source_definition])

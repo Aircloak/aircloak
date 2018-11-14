@@ -338,7 +338,7 @@ defmodule Cloak.Query.Runner do
 
   defp log_completion(result) do
     message =
-      Poison.encode!(%{
+      Jason.encode!(%{
         query_id: result.query_id,
         type: :query_complete,
         execution_time: result.execution_time,

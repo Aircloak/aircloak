@@ -116,7 +116,7 @@ defmodule Air.Service.Warnings do
   defp unwrap_errors(data_source, severity),
     do:
       data_source.errors
-      |> Poison.decode!()
+      |> Jason.decode!()
       |> Enum.map(&problem(data_source, &1, severity))
 
   defp no_group(data_sources, severity),

@@ -73,6 +73,6 @@ defmodule Air.Service.Export.Test do
 
     result
     |> to_string()
-    |> Poison.decode!()
+    |> Jason.decode!()
   end
 end

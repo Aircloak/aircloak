@@ -5,7 +5,6 @@ defmodule AirWeb.API.DataSourceController.Test do
 
   import Air.{TestConnHelper, TestRepoHelper}
   alias Air.{TestSocketHelper, Schemas.DataSource, Repo}
-  alias Poison, as: JSON
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
@@ -21,7 +20,7 @@ defmodule AirWeb.API.DataSourceController.Test do
         api_conn(api_token)
         |> get("/api/data_sources")
         |> response(200)
-        |> JSON.decode!()
+        |> Jason.decode!()
       end)
 
     [data_source] = Repo.all(DataSource)
@@ -44,7 +43,7 @@ defmodule AirWeb.API.DataSourceController.Test do
         api_conn(api_token)
         |> get("/api/data_sources")
         |> response(200)
-        |> JSON.decode!()
+        |> Jason.decode!()
       end)
 
     assert [%{"id" => ^view_name}] = api_cloak["tables"]

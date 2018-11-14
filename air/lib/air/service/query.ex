@@ -320,7 +320,7 @@ defmodule Air.Service.Query do
       do:
         Logger.error([
           "JSON_LOG ",
-          Poison.encode_to_iodata!(%{
+          Jason.encode_to_iodata!(%{
             type: "failed_query",
             message: result.error,
             statement: query.statement,
