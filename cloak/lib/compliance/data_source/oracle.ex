@@ -43,11 +43,11 @@ defmodule Compliance.DataSource.Oracle do
 
   @impl Connector
   def insert_rows(table_name, data, conn) do
-    # table_name
-    # |> chunks_to_insert(data)
-    # |> Enum.each(fn {sql, params} -> execute!(conn, sql, params) end)
+    table_name
+    |> chunks_to_insert(data)
+    |> Enum.each(&execute!(conn, &1))
 
-    # conn
+    conn
   end
 
   @impl Connector
@@ -76,69 +76,50 @@ defmodule Compliance.DataSource.Oracle do
 
     data
     |> rows(column_names)
-    |> Stream.chunk_every(100)
-    |> Enum.map(&chunk_to_insert(table_name, column_names, &1))
+    |> Stream.chunk_every(1)
+    |> Stream.map(&chunk_to_insert(table_name, column_names, &1))
   end
 
   defp chunk_to_insert(table_name, column_names, rows) do
-    columns = column_names |> escaped_column_names() |> Enum.join(", ")
-    row_placeholders = column_names |> Stream.map(fn _column -> "?" end) |> Enum.join(",")
+    values = rows |> Enum.map(&cast_row/1) |> Enum.map(&Enum.join(&1, ", ")) |> Enum.map(&"SELECT #{&1} FROM DUAL")
 
-    all_placeholders = rows |> Stream.map(fn _row -> "(#{row_placeholders})" end) |> Enum.join(", ")
-
-    query = "
-      INSERT INTO #{table_name}(#{columns})
-      SELECT #{columns} FROM (VALUES #{all_placeholders}) subquery (#{columns})
-    "
-
-    {query, List.flatten(rows)}
+    """
+    INSERT INTO #{table_name}
+    (#{column_names |> escaped_column_names() |> Enum.join(", ")})
+    #{Enum.join(values, "\nUNION ALL ")}
+    """
   end
 
-  defp cast_type(binary) when is_binary(binary) do
-    binary = :unicode.characters_to_binary(binary, :utf8, {:utf16, :little})
-    {{:sql_wvarchar, byte_size(binary) + 1}, [binary]}
+  defp cast_row(row), do: Enum.map(row, &cast_type/1)
+
+  defp cast_type(binary) when is_binary(binary), do: ~s(q'[#{binary}]')
+  defp cast_type(integer) when is_integer(integer), do: integer
+  defp cast_type(float) when is_float(float), do: float
+  defp cast_type(true), do: 1
+  defp cast_type(false), do: 0
+  defp cast_type(%NaiveDateTime{} = datetime), do: "TIMESTAMP '#{to_string(datetime)}'"
+  defp cast_type(%Date{} = date), do: "DATE '#{to_string(date)}'"
+  defp cast_type(nil), do: "NULL"
+
+  defp column_names(data), do: data |> hd() |> Map.keys() |> Enum.sort()
+
+  defp rows(data, column_names) do
+    Enum.map(data, fn entry ->
+      Enum.map(column_names, &Map.get(entry, &1))
+    end)
   end
 
-  defp cast_type(integer) when is_integer(integer), do: {:sql_integer, [integer]}
-  defp cast_type(float) when is_float(float), do: {:sql_double, [float]}
-  defp cast_type(boolean) when is_boolean(boolean), do: {:sql_bit, [boolean]}
-  defp cast_type(%{calendar: Calendar.ISO} = datetime), do: datetime |> to_string() |> cast_type()
-  defp cast_type(nil), do: {{:sql_wvarchar, 10}, [:null]}
-
-  defp setup_database(params) do
-    conn = create_connection!(%{params | database: "master"})
-    :odbc.sql_query(conn, ~c/
-      IF EXISTS(select * from sys.databases where name='#{params.database}')
-        DROP DATABASE #{params.database}
-
-      CREATE DATABASE #{params.database}
-    /)
+  defp escaped_column_names(column_names) do
+    column_names
+    |> Enum.map(&Atom.to_string/1)
+    |> Enum.map(&escape_name/1)
   end
 
-  defp column_names(data),
-    do:
-      data
-      |> hd()
-      |> Map.keys()
-      |> Enum.sort()
-
-  defp rows(data, column_names),
-    do:
-      Enum.map(data, fn entry ->
-        Enum.map(column_names, &Map.get(entry, &1))
-      end)
-
-  defp escaped_column_names(column_names),
-    do:
-      column_names
-      |> Enum.map(&Atom.to_string/1)
-      |> Enum.map(&escape_name/1)
-
-  defp columns_sql(columns),
-    do:
-      columns
-      |> Enum.map(&column_sql/1)
-      |> Enum.join(", ")
+  defp columns_sql(columns) do
+    columns
+    |> Enum.map(&column_sql/1)
+    |> Enum.join(", ")
+  end
 
   defp column_sql({name, type}), do: "#{escape_name(name)} #{sql_type(type)}"
 
