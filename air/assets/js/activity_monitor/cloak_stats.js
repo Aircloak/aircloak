@@ -66,9 +66,7 @@ const renderQueriesGraph = (queryStats) => {
   return (
     <td>
       <Sparklines data={queryStats} svgHeight={25} svgWidth={190} min={0} max={maxQueriesStat}>
-        <SparklinesBars />
-        <SparklinesLine style={{fill: "none"}} />
-        <SparklinesReferenceLine type="mean" />
+        <SparklinesLine />
       </Sparklines>
     </td>
   );
