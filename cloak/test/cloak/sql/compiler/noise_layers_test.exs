@@ -885,7 +885,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                Enum.filter(
                  subquery.db_columns,
                  &match?(
-                   %Expression{function: "count", function_args: [%Expression{name: "numeric"}]},
+                   %Expression{function: "sum", function_args: [%Expression{value: 1}]},
                    &1
                  )
                )
@@ -978,7 +978,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                Enum.filter(
                  inner_subquery.db_columns,
                  &match?(
-                   %Expression{function: "count", function_args: [%Expression{name: "numeric"}]},
+                   %Expression{function: "sum", function_args: [%Expression{value: 1}]},
                    &1
                  )
                )
@@ -1040,7 +1040,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                Enum.filter(
                  inner_subquery.db_columns,
                  &match?(
-                   %Expression{function: "count", function_args: [%Expression{name: "numeric"}]},
+                   %Expression{function: "sum", function_args: [%Expression{value: 1}]},
                    &1
                  )
                )

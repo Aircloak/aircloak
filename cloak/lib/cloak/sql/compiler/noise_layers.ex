@@ -157,7 +157,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         not need_aggregation?(query, [min, max, count]),
         do: %{
           noise_layer
-          | expressions: [min_of_min(min), max_of_max(max), sum_of_count(min, count)]
+          | expressions: [min_of_min(min), max_of_max(max), sum_of_count(count)]
         },
         else: noise_layer
       )
@@ -171,7 +171,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
            not need_aggregation?(query, [min, max, count]),
            do: %{
              noise_layer
-             | expressions: [min_of_min(min), max_of_max(max), sum_of_count(min, count), user_id]
+             | expressions: [min_of_min(min), max_of_max(max), sum_of_count(count), user_id]
            },
            else: noise_layer
          )
@@ -186,10 +186,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp max_of_max(max), do: Expression.function("max", [Expression.unalias(max)], max.type, _aggregate = true)
 
-  defp sum_of_count(column, %Expression{value: 1}),
-    do: Expression.function("count", [Expression.unalias(column)], :integer, _aggregate = true)
-
-  defp sum_of_count(_column, count),
+  defp sum_of_count(count),
     do: Expression.function("sum", [Expression.unalias(count)], :integer, _aggregate = true)
 
   # -------------------------------------------------------------------
