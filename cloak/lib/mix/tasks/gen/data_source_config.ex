@@ -64,7 +64,7 @@ defmodule Mix.Tasks.Gen.DataSourceConfig do
       build_data_source_definitions(config_name)
       |> Enum.each(fn data_source_config ->
         path = Path.join([output_dir, data_source_config[:name] <> ".json"])
-        File.write!(path, Poison.encode!(data_source_config, pretty: true))
+        File.write!(path, Jason.encode!(data_source_config, pretty: true))
         IO.puts("OK: #{path}")
       end)
     end
@@ -73,7 +73,7 @@ defmodule Mix.Tasks.Gen.DataSourceConfig do
       build_data_source_definitions(config_name)
       |> Enum.each(fn data_source_config ->
         IO.puts("# #{data_source_config[:name]}:")
-        IO.puts(Poison.encode!(data_source_config, pretty: true))
+        IO.puts(Jason.encode!(data_source_config, pretty: true))
         IO.puts("\n")
       end)
     end

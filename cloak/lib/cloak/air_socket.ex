@@ -175,7 +175,7 @@ defmodule Cloak.AirSocket do
   end
 
   def handle_info({{__MODULE__, :cast_air}, topic, event, payload}, transport, state) do
-    push(transport, topic, event, payload)
+    GenSocketClient.push(transport, topic, event, payload)
     {:ok, state}
   end
 
@@ -188,7 +188,7 @@ defmodule Cloak.AirSocket do
 
   def handle_info({:data_sources_changed, new_data_sources}, transport, state) do
     Logger.info("Data sources changed, sending new configurations to air ...")
-    push(transport, "main", "update_config", join_info(new_data_sources))
+    GenSocketClient.push(transport, "main", "update_config", join_info(new_data_sources))
     {:ok, state}
   end
 
@@ -199,12 +199,12 @@ defmodule Cloak.AirSocket do
 
   @impl GenSocketClient
   def handle_call({:call_air, request_id, topic, event, payload, timeout}, from, transport, state) do
-    case push(transport, topic, "cloak_call", %{
+    case GenSocketClient.push(transport, topic, "cloak_call", %{
            request_id: request_id,
            event: event,
            payload: payload
          }) do
-      :ok ->
+      {:ok, _push_ref} ->
         timeout_ref = Process.send_after(self(), {:call_timeout, request_id}, timeout)
 
         {:noreply, put_in(state.pending_calls[request_id], %{from: from, timeout_ref: timeout_ref})}
@@ -291,22 +291,6 @@ defmodule Cloak.AirSocket do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp push(transport, topic, event, payload) do
-    GenSocketClient.push(transport, topic, event, payload)
-    :ok
-  rescue
-    error in Poison.EncodeError ->
-      error =
-        if Aircloak.DeployConfig.override_app_env!(:cloak, :sanitize_otp_errors) do
-          Poison.EncodeError.exception(message: "Poison encode error", value: "`sanitized`")
-        else
-          error
-        end
-
-      Logger.error("Message could not be encoded: #{Exception.message(error)}")
-      {:error, error}
-  end
 
   defp decode_params(params), do: :erlang.binary_to_term(Base.decode16!(params))
 
