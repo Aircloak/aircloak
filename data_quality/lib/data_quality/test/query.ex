@@ -159,7 +159,7 @@ defmodule DataQuality.Test.Query do
 
     case :httpc.request(:get, {String.to_charlist(url), headers}, [], []) do
       {:ok, {{_, 200, _}, _headers, raw_body}} ->
-        raw_body |> to_string() |> Poison.decode!() |> success_callback.()
+        raw_body |> to_string() |> Jason.decode!() |> success_callback.()
 
       _result ->
         raise "Unexpected result on GET to #{url}"
@@ -169,7 +169,7 @@ defmodule DataQuality.Test.Query do
   defp http_post(url, payload, api_token, success_callback) do
     headers = [{'auth-token', String.to_charlist(api_token)}]
     content_type = 'application/json'
-    json_payload = payload |> Poison.encode!() |> String.to_charlist()
+    json_payload = payload |> Jason.encode!() |> String.to_charlist()
 
     case :httpc.request(
            :post,
@@ -178,7 +178,7 @@ defmodule DataQuality.Test.Query do
            []
          ) do
       {:ok, {{_, 200, _}, _headers, raw_body}} ->
-        raw_body |> to_string() |> Poison.decode!() |> success_callback.()
+        raw_body |> to_string() |> Jason.decode!() |> success_callback.()
 
       _result ->
         raise "Unexpected result on POST to #{url}"
