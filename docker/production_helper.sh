@@ -1,7 +1,7 @@
 function lock_command {
   printf "
     echo 'Acquiring lock for $1'
-    if lockfile -1 -r 120 /tmp/$1; then
+    if lockfile -1 -r 1800 /tmp/$1; then
       trap '{ rm -f /tmp/$1; }' EXIT
     else
       echo 'Could not acquire lock for $1.'
