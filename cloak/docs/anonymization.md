@@ -549,8 +549,8 @@ The last technique implies the creation of a synthetic subquery for each anonymi
 pre-group and pre-aggregate per-user data, in order to reduce the amount of rows streamed into the cloak.
 This will speed up query execution for datasets that have many rows per-user, at the cost of increased
 duration for cases where there is only one row (or very few rows) per-user.
-The synthetic subquery is created only when no per-user grouping is already done, when not using any row
-splitting functions, and only when using one of the following aggregating functions without `DISTINCT`:
+The synthetic subquery is created only when not using any row splitting functions, and only when using one
+of the following aggregating functions without `distinct` (except `count(distinct user_id)`):
 `count`, `sum`, `min`, `max`, `avg`, `count_noise`, `sum_noise`, `avg_noise`.
 
 The following table shows the mapping between the anonymized aggregator and the offloaded version:
@@ -565,3 +565,81 @@ The following table shows the mapping between the anonymized aggregator and the 
 | count_noise(x) | sum_noise(count(per-user x))                        |
 | sum_noise(x)   | sum_noise(sum(per-user x))                          |
 | avg_noise(x)   | sum_noise(sum(per-user x)) / sum(count(per-user x)) |
+
+
+## Statistics-based (no-uid) anonymization
+
+Besides the standard anonymization method, based on individual data about all the users contributing to the result,
+we now have another anonymization method, based instead on statistics on the per-user data contributing to the result.
+
+This anonymization algorithm can be largely offloaded to the database, resulting in vast performance improvements to
+query execution. Extended details can be found in #2561, #2807 and #3013.
+
+Statistics-based anonymization becomes active only when the automatic offloading of per-user data aggregation is done.
+
+### Algorithm details
+
+For each bucket, the count of distinct users, the min and max user are retrieved. The user count takes place of the
+user id with regards to noise layers. The min and max users are only used during low-count bucket aggregation, in
+order to improve the quality of the estimation for the users count in the merged bucket (we can't directly add counts
+of distinct users, so we practically take two samples from each bucket which are then used to compute lower bounds
+for the users count).
+
+For each aggregated value, we compute the following statistics from the per-user partial aggregations: `sum`, `min`,
+`max` and `stddev`. These are then used in the cloak to compute noisy values for the anonymized `count`, `sum`, `min`
+and `max` aggregators (`avg` is `sum/count_duid`, while `stddev` is `sqrt(sum(input^2)/count_duid -avg^2)`).
+
+For example, a query like the following:
+
+```SQL
+SELECT
+  name,
+  COUNT(*)
+FROM items
+GROUP BY 1
+```
+
+Will first be re-written by the optimizer, in order to offload the per-user data aggregation, to:
+
+```SQL
+SELECT
+  name,
+  SUM(agg_0)
+FROM (
+  SELECT
+    uid,
+    name,
+    COUNT(*) AS agg_0
+  FROM items
+  GROUP BY 1, 2
+) AS uid_grouping
+GROUP BY 1
+```
+
+Afterwards, it will be converted by the compiler anonymization module, so it returns the necessary statistics from
+the database, to this form:
+
+```SQL
+SELECT
+  name,
+  COUNT(uid) AS count_duid,
+  MIN(uid) AS min_uid,
+  MAX(uid) AS max_uid,
+  SUM(agg_0) AS agg_0_sum,
+  MIN(agg_0) AS agg_0_min,
+  MAX(agg_0) AS agg_0_max,
+  STDDEV(agg_0) AS agg_0_stddev
+FROM (
+  SELECT
+    uid,
+    name,
+    COUNT(*) AS agg_0
+  FROM items
+  GROUP BY 1, 2
+) AS uid_grouping
+GROUP BY 1
+```
+
+The aggregation pipeline will mostly run identical to the standard method, but with specific steps (like data
+ingestion, low-count buckets aggregation and noisy computation of aggregated data) replaced by the sub-module
+responsible for statistics-based anonymization.
