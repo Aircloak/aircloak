@@ -1,13 +1,13 @@
 defmodule CentralWeb.Socket.Air.Serializer do
   @moduledoc "Gzip based socket serializer."
-  @behaviour Phoenix.Transports.Serializer
+  @behaviour Phoenix.Socket.Serializer
 
   alias Phoenix.Socket.Reply
   alias Phoenix.Socket.Message
   alias Phoenix.Socket.Broadcast
 
   # -------------------------------------------------------------------
-  # Phoenix.Transports.Serializer callbacks
+  # Phoenix.Socket.Serializer callbacks
   # -------------------------------------------------------------------
 
   @doc false

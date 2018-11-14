@@ -44,7 +44,7 @@ defmodule Cloak.Mixfile do
       {:mongodb, "~> 0.3.0"},
       {:backoff, "~> 1.1.3"},
       {:jiffy, "~> 0.14.1"},
-      {:file_system, "~> 0.2.2"},
+      {:file_system, "~> 0.2.6"},
       {:parent, "~> 0.4.0"},
       {:jobs, "~> 0.7.0"},
 
@@ -59,7 +59,7 @@ defmodule Cloak.Mixfile do
 
       # Test deps
 
-      {:phoenix, "~> 1.3.0", only: :test},
+      {:phoenix, "~> 1.4.0", only: :test},
       {:cowboy, "~> 1.0", only: :test},
       {:bypass, "~> 0.5.1", only: :test},
       {:excheck, "~> 0.5.3", only: :test},
