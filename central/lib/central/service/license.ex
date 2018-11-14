@@ -49,7 +49,7 @@ defmodule Central.Service.License do
       auto_renew: license.auto_renew and not license.revoked,
       features: license.features
     }
-    |> Poison.encode!()
+    |> Jason.encode!()
     |> encrypt!()
   end
 
