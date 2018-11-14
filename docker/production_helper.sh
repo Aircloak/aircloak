@@ -28,17 +28,21 @@ function build_image {
 
     .  /etc/profile.d/proxy.sh
 
-    $(lock_command "build_$1")
+    # Builds are serialized for the following reasons:
+    # 1. We perform a git checkout in the build folder, so building e.g. air and cloak in parallel might lead to
+    #    unpredictable results.
+    # 2. Running docker build simultaneously can cause occasional failures.
+    $(lock_command "build_image")
 
     echo 'Pulling the latest version'
-    mkdir -p $(build_folder $2)
-    cd $(build_folder $2)/..
+    mkdir -p $(build_folder $1)
+    cd $(build_folder $1)/..
     git reset --hard HEAD
     git fetch
     git checkout $(build_branch)
     git reset --hard origin/$(build_branch)
     echo 'Building the image'
-    CONTAINER_ENV=prod MPI=true IMAGE_CATEGORY=$DEPLOYMENT_NAME PERFORM_VERSION_CHECK=$PERFORM_VERSION_CHECK $(build_folder $2)/package.sh
+    CONTAINER_ENV=prod MPI=true IMAGE_CATEGORY=$DEPLOYMENT_NAME PERFORM_VERSION_CHECK=$PERFORM_VERSION_CHECK $(build_folder $1)/package.sh
 
     # checkout master and remove all the obsolete branches
     {
@@ -91,9 +95,6 @@ function print_usage {
 }
 
 function run_production_command {
-  component_name="$1"
-  shift
-
   component_folder="$1"
   shift
 
@@ -125,7 +126,7 @@ function run_production_command {
         if ! [[ $REPLY =~ ^[Yy]$ ]]; then exit 1; fi
       fi
 
-      build_image $component_name $component_folder
+      build_image $component_folder
       ;;
 
     deploy)
@@ -135,7 +136,7 @@ function run_production_command {
         if ! [[ $REPLY =~ ^[Yy]$ ]]; then exit 1; fi
       fi
 
-      build_image $component_name $component_folder
+      build_image $component_folder
       start_component $container_name latest
       ;;
 
