@@ -58,7 +58,6 @@ const renderMemoryUtilisationGraph = (readings) =>
   <td>
     <Sparklines data={readings} svgHeight={25} svgWidth={190} min={0} max={100}>
       <SparklinesLine />
-      <SparklinesNormalBand />
     </Sparklines>
   </td>;
 
