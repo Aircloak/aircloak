@@ -26,13 +26,15 @@ defmodule Compliance.DataSource.Oracle do
         sid: to_charlist(params.sid)
       )
 
+    execute(conn, "COMON")
+
     conn
   end
 
   @impl Connector
   def create_table(table_name, columns, conn) do
     execute(conn, "DROP TABLE #{table_name}")
-    execute!(conn, "CREATE TABLE #{table_name} (#{columns_sql(columns)})" |> IO.inspect())
+    execute!(conn, "CREATE TABLE #{table_name} (#{columns_sql(columns)})")
     conn
   end
 
