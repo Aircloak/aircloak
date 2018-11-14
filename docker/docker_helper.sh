@@ -431,8 +431,8 @@ function registry_v2_req {
   # 1. make a request which is bound to fail, but will return auth specification in `WWW-Authenticate`
   authenticate_header=$(
     curl -s -I https://quay.io/v2/$1 |
-      grep 'WWW-Authenticate: ' |
-      sed 's/WWW-Authenticate: //'
+      grep -i 'WWW-Authenticate: ' |
+      sed 's/WWW-Authenticate: //I'
   )
 
   # 2. Extract auth params
