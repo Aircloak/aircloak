@@ -54,7 +54,7 @@ defmodule Cloak.Query.FloatTest do
 
     assert_query("select round(avg(value)) from floats", %{
       columns: ["round"],
-      rows: [%{row: [9], occurrences: 1}]
+      rows: [%{row: [8], occurrences: 1}]
     })
   end
 

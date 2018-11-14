@@ -174,16 +174,14 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   end
 
   defp needs_uid_grouping?(query),
-    do: Enum.all?(query.aggregators, &can_be_uid_grouped?/1) and no_uid_grouping?(query) and no_row_splitters?(query)
+    do: Enum.all?(query.aggregators, &can_be_uid_grouped?/1) and no_row_splitters?(query)
 
   @uid_offloaded_aggregators ~w(count sum min max count_noise sum_noise)
   defp can_be_uid_grouped?(aggregator),
-    do: aggregator.function in @uid_offloaded_aggregators and not match?([{:distinct, _}], aggregator.function_args)
+    do: aggregator.function in @uid_offloaded_aggregators and not distinct_input?(aggregator.function_args)
 
-  defp no_uid_grouping?(%Query{from: {:subquery, %{ast: inner_query}}}),
-    do: not Enum.any?(inner_query.group_by, & &1.user_id?)
-
-  defp no_uid_grouping?(_query), do: true
+  defp distinct_input?([{:distinct, %Expression{user_id?: false}}]), do: true
+  defp distinct_input?([_]), do: false
 
   defp no_row_splitters?(query),
     do: Query.outermost_selected_splitters(query) == [] and Query.outermost_where_splitters(query) == []
@@ -203,7 +201,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
       |> Enum.uniq_by(&Expression.semantic/1)
       |> Enum.with_index()
       |> Enum.map(fn {expression, index} ->
-        %Expression{expression | alias: "__ac_agg__#{index}", synthetic?: true}
+        %Expression{expression | alias: "__ac_agg_#{index}", synthetic?: true}
       end)
 
     inner_columns = [user_id | base_columns] ++ aggregated_columns
@@ -212,7 +210,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
       query
       | subquery?: true,
         type: :restricted,
-        aggregators: aggregated_columns,
+        aggregators: Enum.filter(aggregated_columns, & &1.aggregate?),
         columns: inner_columns,
         column_titles: Enum.map(inner_columns, &(&1.alias || &1.name)),
         group_by: Enum.map([user_id | base_columns], &Expression.unalias/1),
@@ -245,10 +243,16 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   end
 
   defp uid_aggregator(%Expression{function: "count_noise"} = expression),
-    do: %Expression{expression | function: "count", type: :integer}
+    do: uid_aggregator(%Expression{expression | function: "count", type: :integer})
 
   defp uid_aggregator(%Expression{function: "sum_noise", function_args: [arg]} = expression),
-    do: %Expression{expression | function: "sum", type: Function.type(arg)}
+    do: uid_aggregator(%Expression{expression | function: "sum", type: Function.type(arg)})
+
+  defp uid_aggregator(%Expression{function: "count", function_args: [{:distinct, %Expression{user_id?: true}}]}),
+    do: Expression.constant(:integer, 1)
+
+  defp uid_aggregator(%Expression{function_args: [{:distinct, %Expression{user_id?: true} = user_id}]}),
+    do: user_id
 
   defp uid_aggregator(aggregator), do: aggregator
 
@@ -256,7 +260,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     uid_aggregator = uid_aggregator(old_aggregator)
     index = Enum.find_index(aggregated_columns, &Expression.equals?(&1, uid_aggregator))
     true = index != nil
-    column_name = "__ac_agg__#{index}"
+    column_name = "__ac_agg_#{index}"
     inner_column = inner_table.columns |> Enum.find(&(&1.name == column_name)) |> Expression.column(inner_table)
     function_name = global_aggregator(old_aggregator.function)
     new_aggregator = Expression.function(function_name, [inner_column], inner_column.type, true)

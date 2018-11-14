@@ -198,4 +198,14 @@ defmodule Cloak.Query.AnonimyzerTest do
     assert anonymizer |> Anonymizer.max(Enum.map(data, &{:max, &1})) |> is_nil()
     assert anonymizer |> Anonymizer.median(Enum.map(data, &[&1])) |> is_nil()
   end
+
+  test "noisy statistics" do
+    statistics = {10, 100, 1, 20, 10, 5}
+    anonymizer = Anonymizer.new([MapSet.new()])
+    assert {sum, min, max, sd} = Anonymizer.noisy_statistics(anonymizer, statistics)
+    assert_in_delta sum, 100, 1
+    assert_in_delta min, 1, 1
+    assert_in_delta max, 20, 1
+    assert_in_delta sd, 10, 1
+  end
 end

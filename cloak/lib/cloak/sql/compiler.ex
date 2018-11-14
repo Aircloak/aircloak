@@ -33,7 +33,7 @@ defmodule Cloak.Sql.Compiler do
     parsed_query
     |> Compiler.Specification.compile(data_source, parameters, views)
     |> Compiler.Normalization.prevalidation_normalizations()
-    |> Compiler.Anonymization.compile()
+    |> Compiler.Anonymization.set_query_type()
     |> Compiler.Validation.verify_query()
     |> Compiler.TypeChecker.validate_allowed_usage_of_math_and_functions()
     |> Compiler.Execution.align()
@@ -41,6 +41,7 @@ defmodule Cloak.Sql.Compiler do
     |> Compiler.Optimizer.optimize()
     |> Compiler.Execution.prepare()
     |> Compiler.Optimizer.optimize_per_user_aggregation()
+    |> Compiler.Anonymization.compile()
     |> Compiler.NoiseLayers.compile()
   end
 

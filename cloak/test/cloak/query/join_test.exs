@@ -339,7 +339,7 @@ defmodule Cloak.Query.JoinTest do
           join heights_join as t2
           on uid1 = user_id and uid2 = user_id
       """,
-      %{query_id: "1", rows: [%{row: [25]}]}
+      %{query_id: "1", rows: [%{row: [34]}]}
     )
   end
 

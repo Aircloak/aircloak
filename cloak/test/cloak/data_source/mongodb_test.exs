@@ -118,8 +118,8 @@ defmodule Cloak.DataSource.MongoDBTest do
       rows: [%{occurrences: 1, row: [10]}]
     })
 
-    assert_query(context, "SELECT AVG(age) FROM #{@user_table}", %{
-      rows: [%{occurrences: 1, row: [30.0]}]
+    assert_query(context, "SELECT round(AVG(age)) FROM #{@user_table}", %{
+      rows: [%{occurrences: 1, row: [30]}]
     })
 
     assert_query(context, "SELECT DISTINCT male FROM #{@user_table} WHERE male IS NOT NULL", %{
@@ -195,8 +195,8 @@ defmodule Cloak.DataSource.MongoDBTest do
   end
 
   test "basic sub-queries", context do
-    assert_query(context, "SELECT AVG(age) FROM (SELECT _id, age FROM #{@user_table}) AS t", %{
-      rows: [%{occurrences: 1, row: [30.0]}]
+    assert_query(context, "SELECT round(AVG(age)) FROM (SELECT _id, age FROM #{@user_table}) AS t", %{
+      rows: [%{occurrences: 1, row: [30]}]
     })
 
     assert_query(context, "SELECT COUNT(name) FROM (SELECT _id, name FROM #{@user_table}_bills) AS t", %{
@@ -243,8 +243,8 @@ defmodule Cloak.DataSource.MongoDBTest do
   end
 
   test "functions in sub-queries", context do
-    assert_query(context, "SELECT AVG(age) FROM (SELECT _id, age * 2 + 1 AS age FROM #{@user_table}) AS t", %{
-      rows: [%{occurrences: 1, row: [61.0]}]
+    assert_query(context, "SELECT round(AVG(age)) FROM (SELECT _id, age * 2 + 1 AS age FROM #{@user_table}) AS t", %{
+      rows: [%{occurrences: 1, row: [61]}]
     })
 
     assert_query(context, "SELECT name FROM (SELECT _id, left(name, 4) AS name FROM #{@user_table}) AS t", %{
@@ -272,9 +272,9 @@ defmodule Cloak.DataSource.MongoDBTest do
     assert_query(
       context,
       """
-        SELECT COUNT(*), SUM(value) FROM (SELECT _id, AVG(age) AS value FROM #{@user_table} GROUP BY _id) AS t
+        SELECT COUNT(*), round(SUM(value)) FROM (SELECT _id, AVG(age) AS value FROM #{@user_table} GROUP BY _id) AS t
       """,
-      %{rows: [%{occurrences: 1, row: [19, 300.0]}]}
+      %{rows: [%{occurrences: 1, row: [19, 298]}]}
     )
 
     assert_query(

@@ -12,7 +12,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
   defmacrop uid_layer(base) do
     quote do
-      %NoiseLayer{expressions: [_, _, _, %Expression{name: "uid"}], base: unquote(base)}
+      %NoiseLayer{expressions: [_, _, _, %Expression{user_id?: true}], base: unquote(base)}
     end
   end
 
@@ -33,7 +33,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
   end
 
   test "adds a uid noise layer if no other layers are present" do
-    assert [%{base: nil, expressions: [%Expression{name: "uid"}]}] = compile!("SELECT COUNT(*) FROM table").noise_layers
+    assert [%{base: nil, expressions: [%Expression{user_id?: true}]}] =
+             compile!("SELECT COUNT(*) FROM table").noise_layers
   end
 
   describe "basic noise layers" do
@@ -55,12 +56,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                    %Expression{value: 3},
                    %Expression{value: 3},
                    %Expression{value: 1},
-                   %Expression{name: "uid"}
+                   %Expression{user_id?: true}
                  ]
                }
              ] = result.noise_layers
 
-      assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
+      assert Enum.any?(result.db_columns, &match?(%Expression{user_id?: true}, &1))
     end
 
     test "noise layers for clear condition don't depend on equality order" do
@@ -368,7 +369,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                %{base: {"table", "numeric", :<>}, expressions: [%Expression{value: 10}, _, _]},
                %{
                  base: {"table", "numeric", :<>},
-                 expressions: [%Expression{value: 10}, _, _, %Expression{name: "uid"}]
+                 expressions: [%Expression{value: 10}, _, _, %Expression{user_id?: true}]
                }
              ] = result.noise_layers
     end
@@ -385,7 +386,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                %{base: {"table", "numeric", :<>}, expressions: [%Expression{value: 1}, _, _]},
                %{
                  base: {"table", "numeric", :<>},
-                 expressions: [%Expression{value: 1}, _, _, %Expression{name: "uid"}]
+                 expressions: [%Expression{value: 1}, _, _, %Expression{user_id?: true}]
                }
              ] = result.noise_layers
     end
@@ -397,7 +398,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                %{base: {"table", "uid", :<>}, expressions: [%Expression{value: 1}, _, _]},
                %{
                  base: {"table", "uid", :<>},
-                 expressions: [%Expression{value: 1}, _, _, %Expression{name: "uid"}]
+                 expressions: [%Expression{value: 1}, _, _, %Expression{user_id?: true}]
                }
              ] = result.noise_layers
     end
@@ -409,7 +410,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                %{base: {"table", "name", :<>}, expressions: [%Expression{value: "Foo"}, _, _]},
                %{
                  base: {"table", "name", :<>},
-                 expressions: [%Expression{value: "Foo"}, _, _, %Expression{name: "uid"}]
+                 expressions: [%Expression{value: "Foo"}, _, _, %Expression{user_id?: true}]
                },
                %{
                  base: {"table", "name", {:<>, :lower}},
@@ -425,7 +426,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                %{base: {"table", "name", :<>}, expressions: [%Expression{value: "FOO"}, _, _]},
                %{
                  base: {"table", "name", :<>},
-                 expressions: [%Expression{value: "FOO"}, _, _, %Expression{name: "uid"}]
+                 expressions: [%Expression{value: "FOO"}, _, _, %Expression{user_id?: true}]
                },
                %{
                  base: {"table", "name", {:<>, :lower}},
@@ -441,7 +442,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                %{base: {"table", "name", :<>}, expressions: [%Expression{value: "foo"}, _, _]},
                %{
                  base: {"table", "name", :<>},
-                 expressions: [%Expression{value: "foo"}, _, _, %Expression{name: "uid"}]
+                 expressions: [%Expression{value: "foo"}, _, _, %Expression{user_id?: true}]
                },
                %{
                  base: {"table", "name", {:<>, :lower}},
@@ -466,7 +467,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                %{base: {"table", "numeric", :<>}, expressions: [%Expression{}, _, _]},
                %{
                  base: {"table", "numeric", :<>},
-                 expressions: [%Expression{}, _, _, %Expression{name: "uid"}]
+                 expressions: [%Expression{}, _, _, %Expression{user_id?: true}]
                }
              ] = result.noise_layers
     end
@@ -801,12 +802,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                %{base: {"table", "numeric", nil}, expressions: [%Expression{name: name}, _, _]},
                %{
                  base: {"table", "numeric", nil},
-                 expressions: [%Expression{name: name}, _, _, %Expression{name: "uid"}]
+                 expressions: [%Expression{name: name}, _, _, %Expression{user_id?: true}]
                }
              ] = result.noise_layers
 
       assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: ^name}, &1))
-      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: "uid"}, &1))
+      assert 1 = Enum.count(result.db_columns, &match?(%Expression{user_id?: true}, &1))
     end
 
     test "floating noise layers from a join" do
@@ -839,7 +840,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "floating noise layers from an aggregating subquery" do
-      result = compile!("SELECT COUNT(*) FROM (SELECT uid, numeric FROM table GROUP BY uid, numeric) foo")
+      result = compile!("SELECT MEDIAN(numeric) FROM (SELECT uid, numeric FROM table GROUP BY uid, numeric) foo")
 
       {:subquery, %{ast: subquery}} = result.from
 
@@ -847,7 +848,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                %{base: {"table", "numeric", nil}, expressions: [%Expression{name: alias}, _, _]},
                %{
                  base: {"table", "numeric", nil},
-                 expressions: [%Expression{name: alias}, _, _, %Expression{name: "uid"}]
+                 expressions: [%Expression{name: alias}, _, _, %Expression{user_id?: true}]
                }
              ] = result.noise_layers
 
@@ -855,7 +856,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     end
 
     test "floating columns that are not aggregated" do
-      result = compile!("SELECT COUNT(*) FROM (SELECT uid FROM table WHERE numeric + 1 = 3 GROUP BY uid, dummy) foo")
+      result =
+        compile!("""
+          SELECT MEDIAN(c) FROM (SELECT uid, COUNT(*) AS c FROM table WHERE numeric + 1 = 3 GROUP BY uid, dummy) foo
+        """)
 
       %{from: {:subquery, %{ast: subquery}}} = result
 
@@ -924,7 +928,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "* expansion doesn't include the carry columns" do
       result = compile!("SELECT * FROM (SELECT uid, numeric as n FROM table GROUP BY uid, numeric) foo")
 
-      assert [%Expression{value: :*}, %Expression{name: "n"}] = result.columns
+      assert [%Expression{value: :*}, %Expression{name: "foo.n"}] = result.columns
     end
   end
 
@@ -937,7 +941,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
       assert [
                %{base: {"table", "numeric", nil}},
-               %{base: {"table", "numeric", nil}, expressions: [_, _, _, %{name: "uid"}]}
+               %{base: {"table", "numeric", nil}, expressions: [_, _, _, %{user_id?: true}]}
              ] = result.noise_layers
     end
 
@@ -1006,7 +1010,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "floating columns that are not aggregated" do
       result =
         compile!("""
-          SELECT COUNT(*) FROM (SELECT uid FROM
+          SELECT COUNT(DISTINCT dummy) FROM (SELECT uid, dummy FROM
             (SELECT uid, dummy FROM table WHERE numeric + 1 = 3 GROUP BY uid, dummy, dummy2) foo
           GROUP BY uid, dummy) bar
         """)
@@ -1244,9 +1248,13 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
   test "performance sanity check" do
     %{db_columns: db_columns} =
-      compile!("SELECT COUNT(*) FROM (SELECT uid FROM table AS t WHERE numeric BETWEEN 0 AND 1000000 GROUP BY 1) x")
+      compile!("""
+        SELECT MEDIAN(numeric) FROM (
+          SELECT uid, numeric FROM table AS t WHERE numeric BETWEEN 0 AND 1000000 GROUP BY 1, 2
+        ) x
+      """)
 
-    assert 4 = length(db_columns)
+    assert 3 = length(db_columns)
   end
 
   test "[Issue #2395] range noise layer shouldn't override equality noise layer" do

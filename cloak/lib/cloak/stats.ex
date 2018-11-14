@@ -30,7 +30,7 @@ defmodule Cloak.Stats do
   def stddev(values) do
     {count, sum, sum_squares} = count_and_sums(values, 0, 0, 0)
     variance = (count * sum_squares - sum * sum) / (count * (count - 1))
-    :math.sqrt(variance)
+    variance |> max(0.0) |> :math.sqrt()
   end
 
   @doc "Returns the sum of the input list of values. Should be 3-4 times faster than Enum.sum/1."
