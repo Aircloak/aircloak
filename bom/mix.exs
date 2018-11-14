@@ -18,9 +18,11 @@ defmodule Bom.Mixfile do
   # Type "mix help compile.app" for more information
   def application do
     [
-      extra_applications: [:ssl, :inets, :logger]
+      extra_applications: [:ssl, :inets, :logger] ++ dialyzer_deps()
     ]
   end
+
+  defp dialyzer_deps(), do: [:jason]
 
   # Dependencies can be Hex packages:
   #
