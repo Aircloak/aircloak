@@ -2,8 +2,7 @@
 
 import React from "react";
 import _ from "lodash";
-import {Sparklines, SparklinesLine, SparklinesNormalBand, SparklinesBars,
-  SparklinesReferenceLine} from "react-sparklines";
+import {Sparklines, SparklinesLine} from "react-sparklines";
 
 export type CloakStat = {
   id: string,
