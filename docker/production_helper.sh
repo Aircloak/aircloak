@@ -26,6 +26,8 @@ function build_image {
   ssh acdbuild.mpi-sws.org "
     set -eo pipefail
 
+    .  /etc/profile.d/proxy.sh
+
     $(lock_command "build_$1")
 
     echo 'Pulling the latest version'
@@ -37,6 +39,17 @@ function build_image {
     git reset --hard origin/$(build_branch)
     echo 'Building the image'
     CONTAINER_ENV=prod MPI=true IMAGE_CATEGORY=$DEPLOYMENT_NAME PERFORM_VERSION_CHECK=$PERFORM_VERSION_CHECK $(build_folder $2)/package.sh
+
+    # checkout master and remove all the obsolete branches
+    {
+      git checkout master
+      git remote prune origin
+      git branch -vv | grep 'origin/.*: gone]' | awk '{print $1}' | xargs git branch -D
+    } || true
+
+    # remove obsolete docker images
+    . /aircloak/quay_deploy/aircloak/docker/docker_helper.sh
+    remove_old_git_head_image_tags 'aircloak'
   "
 }
 
@@ -95,6 +108,7 @@ function run_production_command {
   case "$1" in
     versions)
       ssh acdbuild.mpi-sws.org "
+        .  /etc/profile.d/proxy.sh &&
         . /aircloak/quay_deploy/aircloak/docker/docker_helper.sh &&
         published_image_versions $(image_name)
       "

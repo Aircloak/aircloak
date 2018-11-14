@@ -78,6 +78,15 @@ This process of updating the system is separate from the process of creating the
 release itself. A [production release](https://github.com/Aircloak/aircloak/wiki/Releases) should
 be made prior to the script being run.
 
+### Setting up the build server
+
+1. The machine needs to be able to access github.com at ports 22 (ssh) and 9418 (git protocol).
+2. Setup proper GitHub ssh access in `~/.ssh/config`. The configured user should be able to clone the aircloak repo.
+3. `mkdir -p /aircloak/quay_deploy && cd /aircloak/quay_deploy/`
+4. `git clone git@github.com:aircloak/aircloak`
+5. Ensure that `/aircloak/quay_deploy/aircloak/secrets/quay_auth_token` exists with the proper `quay.io` auth token
+6. `apt-get install procmail jq uuid-runtime`
+
 ## Producing production containers
 
 The following two commands will build, tag, and upload new production `air` and `cloak` images to quay. It should be run from the root folder.
