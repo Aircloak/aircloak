@@ -33,7 +33,7 @@ defmodule Compliance.DataSource.Oracle do
 
   @impl Connector
   def create_table(table_name, columns, conn) do
-    execute(conn, "DROP TABLE #{table_name}")
+    drop_table!(conn, table_name)
     execute!(conn, "CREATE TABLE #{table_name} (#{columns_sql(columns)})")
     conn
   end
@@ -58,6 +58,14 @@ defmodule Compliance.DataSource.Oracle do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp drop_table!(conn, table_name) do
+    case execute(conn, "DROP TABLE #{table_name}") do
+      {:ok, [affected_rows: 0]} -> :ok
+      {:ok, [{:proc_result, _table_does_not_exist = 942, _}]} -> :ok
+      other -> raise inspect(other)
+    end
+  end
 
   defp execute!(conn, query), do: {:ok, [affected_rows: _]} = execute(conn, query)
 
