@@ -441,8 +441,8 @@ defmodule Air.Service.DataSource do
 
     %{
       name: name,
-      tables: Poison.encode!(tables),
-      errors: Poison.encode!(errors),
+      tables: Jason.encode!(tables),
+      errors: Jason.encode!(errors),
       columns_count: count_columns(tables, fn _ -> true end),
       isolated_computed_count: count_columns(tables, &(&1 |> Map.get(:isolated, false) |> is_boolean())),
       isolated_failed: filter_columns(tables, &(&1 |> Map.get(:isolated, false) == :failed)),

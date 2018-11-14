@@ -6,7 +6,7 @@ defmodule AirWeb.API.MonitoringController.Test do
   import Air.TestRepoHelper
 
   test "error when not authenticated", %{conn: conn} do
-    body = get(conn, "/") |> response(401) |> Poison.decode!()
+    body = get(conn, "/") |> response(401) |> Jason.decode!()
     refute body["success"]
     assert body["description"] =~ ~r/authenticate/
   end
@@ -18,7 +18,7 @@ defmodule AirWeb.API.MonitoringController.Test do
       conn
       |> get("/?auth_token=#{token}")
       |> response(200)
-      |> Poison.decode!()
+      |> Jason.decode!()
 
     for expected_key <- ~w(cloaks data_sources groups users version), do: assert(Map.has_key?(body, expected_key))
   end

@@ -5,7 +5,6 @@ defmodule AirWeb.API.QueryController.Test do
 
   import Air.{TestConnHelper, TestRepoHelper}
   alias Air.{TestSocketHelper, Repo, Schemas.DataSource}
-  alias Poison, as: JSON
 
   setup do
     Ecto.Adapters.SQL.Sandbox.mode(Repo, {:shared, self()})
@@ -26,7 +25,7 @@ defmodule AirWeb.API.QueryController.Test do
 
       TestSocketHelper.respond_to_start_task_request!(context.socket, :ok)
 
-      assert %{"success" => true} = JSON.decode!(Task.await(task))
+      assert %{"success" => true} = Jason.decode!(Task.await(task))
       Air.Service.DataSource.QueryScheduler.sync()
     end
   end
@@ -38,7 +37,7 @@ defmodule AirWeb.API.QueryController.Test do
 
     result = api_conn(token) |> get("/api/queries/#{query.id}") |> response(200)
 
-    assert %{"query" => %{"statement" => "text of the query"}} = JSON.decode!(result)
+    assert %{"query" => %{"statement" => "text of the query"}} = Jason.decode!(result)
   end
 
   test "showing the result of the query" do
@@ -63,7 +62,7 @@ defmodule AirWeb.API.QueryController.Test do
       [%{occurrences: 10, row: [1, 1]}]
     )
 
-    result = api_conn(token) |> get("/api/queries/#{query.id}") |> response(200) |> JSON.decode!()
+    result = api_conn(token) |> get("/api/queries/#{query.id}") |> response(200) |> Jason.decode!()
     assert result |> Map.fetch!("query") |> Map.fetch!("columns") == ["col1", "col2"]
     assert result |> Map.fetch!("query") |> Map.fetch!("row_count") == 10
 
@@ -79,7 +78,7 @@ defmodule AirWeb.API.QueryController.Test do
 
     result = api_conn(token) |> get("/api/queries/#{query.id}") |> response(404)
 
-    assert %{"error" => _} = JSON.decode!(result)
+    assert %{"error" => _} = Jason.decode!(result)
   end
 
   defp with_group(_context), do: {:ok, group: create_group!()}

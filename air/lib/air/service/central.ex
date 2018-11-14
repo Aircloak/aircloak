@@ -176,7 +176,7 @@ defmodule Air.Service.Central do
         air_version: Aircloak.Version.for_app(:air),
         license: License.text()
       }
-      |> Poison.encode!()
+      |> Jason.encode!()
       |> :zlib.gzip()
 
   defp filter_error(nil), do: nil

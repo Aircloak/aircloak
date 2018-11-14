@@ -86,7 +86,7 @@ defmodule Air.Service.Cloak.Test do
   test "should record that a data source has conflicting definitions across cloaks" do
     Cloak.register(TestRepoHelper.cloak_info(), @data_sources)
     Cloak.register(TestRepoHelper.cloak_info("other_cloak"), @data_sources_that_differ)
-    [error] = Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
+    [error] = Jason.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
     assert error =~ ~r/differs between .+ cloaks/
   end
 
@@ -101,7 +101,7 @@ defmodule Air.Service.Cloak.Test do
 
     Cloak.register(TestRepoHelper.cloak_info(), data_sources_pending)
     Cloak.register(TestRepoHelper.cloak_info("other_cloak"), data_sources_done)
-    assert [] == Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
+    assert [] == Jason.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
   end
 
   test "should record differences in isolating stats when all data sources done" do
@@ -119,7 +119,7 @@ defmodule Air.Service.Cloak.Test do
 
     Cloak.register(TestRepoHelper.cloak_info(), data_sources_done1)
     Cloak.register(TestRepoHelper.cloak_info("other_cloak"), data_sources_done2)
-    refute [] == Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
+    refute [] == Jason.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
   end
 
   test "should not record differences in shadow db stats when not all data sources done" do
@@ -133,7 +133,7 @@ defmodule Air.Service.Cloak.Test do
 
     Cloak.register(TestRepoHelper.cloak_info(), data_sources_pending)
     Cloak.register(TestRepoHelper.cloak_info("other_cloak"), data_sources_done)
-    assert [] == Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
+    assert [] == Jason.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
   end
 
   test "should allow old cloak's to connect" do
@@ -148,7 +148,7 @@ defmodule Air.Service.Cloak.Test do
     ]
 
     Cloak.register(TestRepoHelper.cloak_info(), data_sources_old)
-    assert [] == Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
+    assert [] == Jason.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
   end
 
   test "should record differences in shadow db stats when all data sources done" do
@@ -166,7 +166,7 @@ defmodule Air.Service.Cloak.Test do
 
     Cloak.register(TestRepoHelper.cloak_info(), data_sources_done1)
     Cloak.register(TestRepoHelper.cloak_info("other_cloak"), data_sources_done2)
-    refute [] == Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
+    refute [] == Jason.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
   end
 
   test "should retain errors from all cloaks" do
@@ -174,7 +174,7 @@ defmodule Air.Service.Cloak.Test do
     Cloak.register(TestRepoHelper.cloak_info("cloak2"), data_source_with_errors(["error 2"]))
 
     ["On cloak cloak2: error 2", "On cloak cloak1: error 1"] =
-      Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
+      Jason.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
   end
 
   test "tags errors with the originating cloak, to help debug problems" do
@@ -182,7 +182,7 @@ defmodule Air.Service.Cloak.Test do
     Cloak.register(TestRepoHelper.cloak_info("cloak2"), data_source_with_errors(["error"]))
 
     ["On cloak cloak2: error", "On cloak cloak1: error"] =
-      Poison.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
+      Jason.decode!(Repo.get_by!(DataSource, name: @data_source_name).errors)
   end
 
   test "collecting running queries from connected cloaks" do
