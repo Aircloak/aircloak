@@ -1,6 +1,7 @@
 defmodule BOM.License do
   @moduledoc "Utilities for manipulating licenses."
 
+  @derive Jason.Encoder
   defstruct [:type, :text]
 
   @type t :: %__MODULE__{type: atom, text: String.t()}

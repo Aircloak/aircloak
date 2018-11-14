@@ -53,7 +53,7 @@ defmodule Mix.Tasks.Bom do
       |> Enum.split_with(& &1.error)
 
     if Enum.empty?(invalid) do
-      json = Poison.encode!(valid)
+      json = Jason.encode!(valid)
       bom_file_path = Path.join([outdir, "bom.json"])
       File.write!(bom_file_path, json)
       IO.puts("Bill of Materials written to #{bom_file_path}")
