@@ -135,7 +135,7 @@ defmodule Aircloak do
       |> Application.app_dir("priv")
       |> Path.join(file_name)
       |> File.read!()
-      |> Aircloak.Json.safe_decode!()
+      |> Jason.decode!()
       |> ExJsonSchema.Schema.resolve()
 
     with {:error, errors} <- ExJsonSchema.Validator.validate(schema, data) do
