@@ -53,59 +53,27 @@ defmodule Cloak.Sql.Compiler.Anonymization do
   end
 
   def compile_anonymization(%Query{type: :anonymized, from: {:subquery, %{alias: "__ac_uid_grouping"}}} = query) do
-    if Enum.all?(query.aggregators, &supports_no_uid?/1), do: rewrite_to_no_uid(query), else: query
+    if Enum.all?(query.aggregators, &supports_statistics_anonymization?/1),
+      do: rewrite_to_statistics_anonymization(query),
+      else: query
   end
 
   def compile_anonymization(query), do: query
 
-  defp supports_no_uid?(%Expression{function: function, type: type})
+  defp supports_statistics_anonymization?(%Expression{function: function, type: type})
        when function in ["min", "max"] and type in [:date, :time, :datetime],
        do: false
 
-  defp supports_no_uid?(_aggregator), do: true
+  defp supports_statistics_anonymization?(_aggregator), do: true
 
-  defp rewrite_to_no_uid(query) do
+  defp rewrite_to_statistics_anonymization(query) do
     {:subquery, %{ast: uid_grouping_query}} = query.from
-
     [uid_grouping_table] = query.selected_tables
-    uid_column = column_from_table(uid_grouping_table, uid_grouping_table.user_id)
-    true = uid_column != nil
 
-    # It would be more efficient (and simpler) to group the statistics query by the final grouping expressions.
-    # But that is not possible to do because noise layers need to access the raw columns used in the various clauses.
-    groups =
-      uid_grouping_query.columns
-      |> Enum.take(Enum.count(uid_grouping_query.group_by))
-      |> Enum.reject(& &1.user_id?)
-      |> Enum.map(&column_from_table(uid_grouping_table, &1.alias || &1.name))
+    groups = aggregation_groups(uid_grouping_query, uid_grouping_table)
 
-    count_duid =
-      Expression.function("count", [Expression.column(uid_column, uid_grouping_table)], :integer, true)
-      |> set_fields(alias: "__ac_count_duid", user_id?: true, synthetic?: true)
-
-    max_uid =
-      Expression.function("max", [Expression.column(uid_column, uid_grouping_table)], uid_column.type, true)
-      |> set_fields(alias: "__ac_max_uid", synthetic?: true)
-
-    min_uid =
-      Expression.function("min", [Expression.column(uid_column, uid_grouping_table)], uid_column.type, true)
-      |> set_fields(alias: "__ac_min_uid", synthetic?: true)
-
-    statistics =
-      Enum.flat_map(query.aggregators, fn %Expression{aggregate?: true, function_args: [column]} ->
-        for {function, type} <- [
-              {"sum", column.type},
-              {"min", column.type},
-              {"max", column.type},
-              {"stddev", :real}
-            ] do
-          function
-          |> Expression.function([column], type, true)
-          |> set_fields(alias: "#{column.name}_#{function}", synthetic?: true)
-        end
-      end)
-
-    aggregators = [count_duid, min_uid, max_uid | statistics]
+    {count_duid, min_uid, max_uid} = uid_statistics(uid_grouping_table)
+    aggregators = [count_duid, min_uid, max_uid | aggregation_statistics(query.aggregators)]
 
     inner_columns = Enum.uniq(groups ++ aggregators)
 
@@ -177,5 +145,48 @@ defmodule Cloak.Sql.Compiler.Anonymization do
       end
 
     %Expression{aggregator | function_args: args}
+  end
+
+  defp uid_statistics(uid_grouping_table) do
+    uid_column = column_from_table(uid_grouping_table, uid_grouping_table.user_id)
+    true = uid_column != nil
+
+    count_duid =
+      Expression.function("count", [Expression.column(uid_column, uid_grouping_table)], :integer, true)
+      |> set_fields(alias: "__ac_count_duid", user_id?: true, synthetic?: true)
+
+    min_uid =
+      Expression.function("min", [Expression.column(uid_column, uid_grouping_table)], uid_column.type, true)
+      |> set_fields(alias: "__ac_min_uid", synthetic?: true)
+
+    max_uid =
+      Expression.function("max", [Expression.column(uid_column, uid_grouping_table)], uid_column.type, true)
+      |> set_fields(alias: "__ac_max_uid", synthetic?: true)
+
+    {count_duid, min_uid, max_uid}
+  end
+
+  defp aggregation_statistics(aggregators) do
+    Enum.flat_map(aggregators, fn %Expression{aggregate?: true, function_args: [column]} ->
+      for {function, type} <- [
+            {"sum", column.type},
+            {"min", column.type},
+            {"max", column.type},
+            {"stddev", :real}
+          ] do
+        function
+        |> Expression.function([column], type, true)
+        |> set_fields(alias: "#{column.name}_#{function}", synthetic?: true)
+      end
+    end)
+  end
+
+  defp aggregation_groups(uid_grouping_query, uid_grouping_table) do
+    # It would be more efficient (and simpler) to group the statistics query by the final grouping expressions.
+    # But that is not possible to do because noise layers need to access the raw columns used in the various clauses.
+    uid_grouping_query.columns
+    |> Enum.take(Enum.count(uid_grouping_query.group_by))
+    |> Enum.reject(& &1.user_id?)
+    |> Enum.map(&column_from_table(uid_grouping_table, &1.alias || &1.name))
   end
 end
