@@ -165,7 +165,7 @@ defmodule AircloakCI.Github.API do
   defp graphql_request(query) do
     result = post_rest_request("/graphql", %{query: "query{#{query} #{rate_limit_query()}}"})
 
-    response = result.response |> Map.fetch!(:body) |> Poison.decode!() |> extract_data!()
+    response = result.response |> Map.fetch!(:body) |> Jason.decode!() |> extract_data!()
     {rate_limit, response} = Map.pop(response, "rateLimit", %{})
 
     rate_limit =
@@ -192,7 +192,7 @@ defmodule AircloakCI.Github.API do
     response =
       HTTPoison.post!(
         "https://api.github.com#{path}",
-        Poison.encode!(params),
+        Jason.encode!(params),
         [
           {"authorization", "bearer #{AircloakCI.github_token!()}"},
           {"Content-Type", "application/json"}
