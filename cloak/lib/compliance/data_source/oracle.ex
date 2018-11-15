@@ -34,7 +34,7 @@ defmodule Compliance.DataSource.Oracle do
   @impl Connector
   def create_table(table_name, columns, conn) do
     drop_table!(conn, table_name)
-    execute!(conn, "CREATE TABLE #{table_name} (#{columns_sql(columns)})")
+    execute!(conn, "CREATE TABLE \"#{table_name}\" (#{columns_sql(columns)})")
     conn
   end
 
@@ -60,7 +60,7 @@ defmodule Compliance.DataSource.Oracle do
   # -------------------------------------------------------------------
 
   defp drop_table!(conn, table_name) do
-    case execute(conn, "DROP TABLE #{table_name}") do
+    case execute(conn, "DROP TABLE \"#{table_name}\"") do
       {:ok, [affected_rows: 0]} -> :ok
       {:ok, [{:proc_result, _table_does_not_exist = 942, _}]} -> :ok
       other -> raise inspect(other)
@@ -84,7 +84,7 @@ defmodule Compliance.DataSource.Oracle do
     values = rows |> Enum.map(&cast_row/1) |> Enum.map(&Enum.join(&1, ", ")) |> Enum.map(&"SELECT #{&1} FROM DUAL")
 
     """
-    INSERT INTO #{table_name}
+    INSERT INTO "#{table_name}"
     (#{column_names |> escaped_column_names() |> Enum.join(", ")})
     #{Enum.join(values, "\nUNION ALL ")}
     """
