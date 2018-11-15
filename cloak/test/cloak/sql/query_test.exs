@@ -133,17 +133,17 @@ defmodule Cloak.Sql.QueryTest do
 
   describe "functions" do
     test "no function" do
-      assert %{functions: [], top_level_functions: [], subquery_functions: []} =
+      assert %{functions: ["sum"], top_level_functions: [], subquery_functions: ["sum"]} =
                features_from("SELECT height FROM feat_users")
     end
 
     test "function used" do
-      assert %{functions: ["abs", "cast"], top_level_functions: ["abs", "cast"], subquery_functions: []} =
+      assert %{functions: ["abs", "cast", "sum"], top_level_functions: ["abs", "cast"], subquery_functions: ["sum"]} =
                features_from("SELECT abs(height), CAST(height AS text) FROM feat_users")
     end
 
     test "function used in WHERE" do
-      assert %{functions: ["sqrt"], top_level_functions: [], subquery_functions: ["sqrt"]} =
+      assert %{functions: ["sum", "sqrt"], top_level_functions: [], subquery_functions: ["sum", "sqrt"]} =
                features_from("SELECT * FROM feat_users WHERE sqrt(height) = 10")
     end
 
@@ -165,7 +165,7 @@ defmodule Cloak.Sql.QueryTest do
 
   describe "select_functions" do
     test "no function" do
-      assert %{top_level_select_functions: [], subquery_select_functions: [], select_functions: []} =
+      assert %{top_level_select_functions: [], subquery_select_functions: ["sum"], select_functions: ["sum"]} =
                features_from("SELECT height FROM feat_users")
     end
 
@@ -186,7 +186,7 @@ defmodule Cloak.Sql.QueryTest do
     end
 
     test "function used in WHERE" do
-      assert %{top_level_select_functions: [], subquery_select_functions: [], select_functions: []} =
+      assert %{top_level_select_functions: [], subquery_select_functions: ["sum"], select_functions: ["sum"]} =
                features_from("SELECT * FROM feat_users WHERE sqrt(height) = 10")
     end
   end
