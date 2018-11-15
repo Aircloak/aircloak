@@ -5,6 +5,7 @@ import React from "react";
 import {StateView} from "./state_view";
 import {cancel} from "../request";
 import {isFinished} from "../queries/state";
+import type {Authentication} from "../request";
 
 export type Query = {
   id: string,
@@ -14,6 +15,11 @@ export type Query = {
   cloak_name: string,
   statement: string,
 };
+
+type Props = {
+  query: Query,
+  authentication: Authentication
+}
 
 const maxExcerptLength = 40;
 
@@ -28,9 +34,13 @@ const queryExcerpt = (statement: string) => {
   }
 };
 
-const queryViewUrl = (props) => `/admin/queries/${props.id}`;
+const queryViewUrl = (query: Query) => `/admin/queries/${query.id}`;
 
-export class QueryView extends React.PureComponent {
+export class QueryView extends React.Component {
+  shouldComponentUpdate(nextProps: Props) {
+    return nextProps.query.state !== this.props.query.state;
+  }
+
   render() {
     return (
       <tr>
