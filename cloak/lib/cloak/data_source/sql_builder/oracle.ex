@@ -18,6 +18,11 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
     )
 
   @impl Dialect
+  def function_sql("bool_op", [[?', op, ?'], arg1, arg2]) do
+    condition = [arg1, " ", op, " ", arg2]
+    ["(CASE WHEN ", condition, " THEN 1 WHEN NOT (", condition, ") THEN 0 ELSE NULL END)"]
+  end
+
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 
   @impl Dialect
