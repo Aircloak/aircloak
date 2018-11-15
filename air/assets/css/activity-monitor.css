@@ -7,11 +7,11 @@
   transition: opacity 500ms ease-in;
 }
 
-.activity-monitor-queries-leave {
+.activity-monitor-query-exit {
   opacity: 1;
 }
 
-.activity-monitor-queries-leave.activity-monitor-queries-leave-active {
+.activity-monitor-query-exit.activity-monitor-query-exit-active {
   opacity: 0.01;
   transition: opacity 300ms ease-in;
 }
