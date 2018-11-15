@@ -1,6 +1,7 @@
 // @flow
 
 import React from "react";
+import PropTypes from "prop-types";
 
 import {StateView} from "./state_view";
 import {cancel} from "../request";
@@ -63,3 +64,17 @@ export class QueryView extends React.Component {
     );
   }
 }
+
+QueryView.propTypes = {
+  query: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    state: PropTypes.string.isRequired,
+    analyst_name: PropTypes.string.isRequired,
+    data_source_name: PropTypes.string.isRequired,
+    cloak_name: PropTypes.string.isRequired,
+    statement: PropTypes.string.isRequired,
+  }).isRequired,
+  authentication: PropTypes.shape({
+    CSRFToken: PropTypes.string.isRequired,
+  }).isRequired,
+};

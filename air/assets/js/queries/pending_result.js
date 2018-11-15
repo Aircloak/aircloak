@@ -1,6 +1,7 @@
 // @flow
 
 import React from "react";
+import PropTypes from "prop-types";
 
 import type {Result} from "./result";
 import {CodeViewer} from "../code_viewer";
@@ -49,5 +50,5 @@ export const PendingResult = (props: Props, context: Context) =>
   </div>;
 
 PendingResult.contextTypes = {
-  authentication: React.PropTypes.object.isRequired,
+  authentication: PropTypes.object.isRequired,
 };

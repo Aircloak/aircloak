@@ -20,6 +20,7 @@
     "pagedown": "https://github.com/aircloak/pagedown",
     "phoenix": "file:../deps/phoenix",
     "phoenix_html": "file:../deps/phoenix_html",
+    "prop-types": "^15.6.2",
     "react": "^15.6.2",
     "react-bootstrap": "^0.32.4",
     "react-chartjs-2": "^2.0.0",
