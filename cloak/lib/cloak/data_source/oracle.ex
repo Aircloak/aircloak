@@ -36,11 +36,12 @@ defmodule Cloak.DataSource.Oracle do
 
   @impl Driver
   def load_tables(connection, table) do
-    run_query(connection, """
+    """
       SELECT column_name, data_type
       FROM all_tab_columns
-      WHERE upper(table_name) = '#{table.db_name |> String.upcase() |> String.replace("'", "''")}'
-    """)
+      WHERE table_name = '#{table.db_name |> String.replace("'", "''")}'
+    """
+    |> run_query(connection)
     |> case do
       {:ok, []} -> DataSource.raise_error("Table `#{table.db_name}` does not exist")
       {:ok, rows} -> [%{table | columns: Enum.map(rows, &build_column/1)}]
@@ -49,14 +50,20 @@ defmodule Cloak.DataSource.Oracle do
   end
 
   @impl Driver
-  defdelegate select(connection, sql_query, result_processor), to: Cloak.DataSource.RODBC
+  def select(connection, sql_query, result_processor) do
+    SqlBuilder.build(sql_query)
+    |> run_query(connection)
+    |> case do
+      {:ok, rows} -> {:ok, result_processor.(rows)}
+      {:error, reason} -> {:error, reason}
+    end
+  end
 
   @impl Driver
-  defdelegate driver_info(connection), to: Cloak.DataSource.RODBC
+  def driver_info(_connection), do: nil
 
   @impl Driver
-  def supports_query?(query),
-    do: query |> get_in([Cloak.Sql.Query.Lenses.joins()]) |> Enum.any?(&(&1.type == :cross_join)) |> :erlang.not()
+  def supports_query?(_query), do: true
 
   # -------------------------------------------------------------------
   # Internal functions
