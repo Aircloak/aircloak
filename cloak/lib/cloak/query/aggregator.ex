@@ -158,8 +158,8 @@ defmodule Cloak.Query.Aggregator do
   defp collapse_grouped_rows({values, grouped_rows}, aggregator_sub_module) do
     user_rows =
       grouped_rows
-      |> Stream.map(fn {_values, _anonymizer, aggregation_data} -> aggregation_data end)
-      |> Enum.reduce(&aggregator_sub_module.merge_aggregation_data/2)
+      |> Enum.map(fn {_values, _anonymizer, aggregation_data} -> aggregation_data end)
+      |> collapse_aggregation_data(&aggregator_sub_module.merge_aggregation_data/2)
 
     anonymizer =
       grouped_rows
@@ -168,6 +168,16 @@ defmodule Cloak.Query.Aggregator do
       |> Anonymizer.new()
 
     {values, anonymizer, user_rows}
+  end
+
+  defp collapse_aggregation_data([data], _data_merger), do: data
+  defp collapse_aggregation_data([data1, data2], data_merger), do: data_merger.(data1, data2)
+
+  defp collapse_aggregation_data(list, data_merger) when is_list(list) do
+    list
+    |> Enum.chunk_every(2)
+    |> Enum.map(&collapse_aggregation_data(&1, data_merger))
+    |> collapse_aggregation_data(data_merger)
   end
 
   defp aggregate_groups(groups, query) do
