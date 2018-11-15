@@ -6,7 +6,7 @@ defmodule Cloak.Query.Aggregator.Statistics do
   alias Cloak.Query.{Anonymizer, Rows}
 
   @type user_id :: DataSource.field()
-  @type bucket_statistics :: [pos_integer() | user_id]
+  @type bucket_statistics :: [pos_integer() | MapSet.t()]
   @type aggregation_statistics :: [number | nil]
   @type t :: [bucket_statistics | aggregation_statistics]
 
