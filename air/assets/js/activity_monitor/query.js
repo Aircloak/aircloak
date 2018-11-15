@@ -4,7 +4,6 @@ import React from "react";
 
 import {StateView} from "./state_view";
 import {cancel} from "../request";
-import type {Authentication} from "../request";
 import {isFinished} from "../queries/state";
 
 export type Query = {
@@ -31,25 +30,26 @@ const queryExcerpt = (statement: string) => {
 
 const queryViewUrl = (props) => `/admin/queries/${props.id}`;
 
-export const QueryView = ({query}: {query: Query}, context: {authentication: Authentication}) =>
-  <tr>
-    <td>{query.data_source_name}</td>
-    <td>{query.cloak_name}</td>
-    <td>{query.analyst_name}</td>
-    <td>
-      <code>{queryExcerpt(query.statement)}</code>
-    </td>
-    <td><StateView state={query.state} /></td>
-    <td>
-      <button
-        className="btn btn-warning btn-xs"
-        onClick={() => cancel(query.id, context.authentication)}
-        disabled={isFinished(query.state)}
-      > cancel </button>
-    </td>
-    <td><a href={queryViewUrl(query)}>view</a></td>
-  </tr>;
-
-QueryView.contextTypes = {
-  authentication: React.PropTypes.object.isRequired,
-};
+export class QueryView extends React.PureComponent {
+  render() {
+    return (
+      <tr>
+        <td>{this.props.query.data_source_name}</td>
+        <td>{this.props.query.cloak_name}</td>
+        <td>{this.props.query.analyst_name}</td>
+        <td>
+          <code>{queryExcerpt(this.props.query.statement)}</code>
+        </td>
+        <td><StateView state={this.props.query.state} /></td>
+        <td>
+          <button
+            className="btn btn-warning btn-xs"
+            onClick={() => cancel(this.props.query.id, this.props.authentication)}
+            disabled={isFinished(this.props.query.state)}
+          > cancel </button>
+        </td>
+        <td><a href={queryViewUrl(this.props.query)}>view</a></td>
+      </tr>
+    );
+  }
+}
