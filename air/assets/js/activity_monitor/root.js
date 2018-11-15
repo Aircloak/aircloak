@@ -6,7 +6,7 @@ import {Channel} from "phoenix";
 
 import {QueriesView} from "./queries";
 import type {Query} from "./query";
-import {CloaksView} from "./cloaks_stats";
+import {CloaksStatsView} from "./cloaks_stats";
 import type {CloakStat} from "./cloak_stats";
 
 import {FrontendSocket} from "../frontend_socket";
@@ -104,7 +104,7 @@ export default class ActivityMonitorView extends React.Component {
     return (
       <div>
         <Disconnected channel={this.channel} />
-        <CloaksView cloakStats={this.state.cloakStats} />
+        <CloaksStatsView cloakStats={this.state.cloakStats} />
         <QueriesView queries={this.state.queries} />
       </div>
     );

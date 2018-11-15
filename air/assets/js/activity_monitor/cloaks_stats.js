@@ -2,13 +2,13 @@
 
 import React from "react";
 
-import {CloakView} from "./cloak_stats";
+import {CloakStatsView} from "./cloak_stats";
 import type {CloakStat} from "./cloak_stats";
 
 const renderCloaks = (cloakStats: CloakStat[]) => {
   if (cloakStats.length > 0) {
     return cloakStats.map((cloakStat) =>
-      <CloakView key={cloakStat.id} {...cloakStat} />
+      <CloakStatsView key={cloakStat.id} {...cloakStat} />
     );
   } else {
     return (
@@ -21,7 +21,7 @@ const renderCloaks = (cloakStats: CloakStat[]) => {
   }
 };
 
-export const CloaksView = (props: {cloakStats: CloakStat[]}) =>
+export const CloaksStatsView = (props: {cloakStats: CloakStat[]}) =>
   <div>
     <h3>Cloaks</h3>
     <table className="table">

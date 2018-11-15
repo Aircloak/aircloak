@@ -71,7 +71,7 @@ const renderQueriesGraph = (queryStats) => {
   );
 };
 
-export const CloakView = (props: CloakStat) =>
+export const CloakStatsView = (props: CloakStat) =>
   <tr>
     <td>{props.name}</td>
     {renderCurrentMemoryUtilisation(props.stats.memory)}
