@@ -151,46 +151,37 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         )
       end)
 
-  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count]}, query),
-    do:
-      if(
-        not need_aggregation?(query, [min, max, count]),
-        do: %{
-          noise_layer
-          | expressions: [min_of_min(min), max_of_max(max), sum_of_count(min, count)]
-        },
-        else: noise_layer
-      )
+  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count]}, query) do
+    if Helpers.aggregates?(query) or Helpers.group_by?(query) do
+      min = if Helpers.grouped_by?(query, min), do: min, else: min_of_min(min)
+      max = if Helpers.grouped_by?(query, max), do: max, else: max_of_max(max)
+      %{noise_layer | expressions: [min, max, sum_of_count(count)]}
+    else
+      noise_layer
+    end
+  end
 
-  defp float_noise_layer(
-         noise_layer = %NoiseLayer{expressions: [min, max, count, user_id]},
-         query
-       ),
-       do:
-         if(
-           not need_aggregation?(query, [min, max, count]),
-           do: %{
-             noise_layer
-             | expressions: [min_of_min(min), max_of_max(max), sum_of_count(min, count), user_id]
-           },
-           else: noise_layer
-         )
+  defp float_noise_layer(noise_layer = %NoiseLayer{expressions: [min, max, count, user_id]}, query) do
+    if Helpers.aggregates?(query) or Helpers.group_by?(query) do
+      min = if Helpers.grouped_by?(query, min), do: min, else: min_of_min(min)
+      max = if Helpers.grouped_by?(query, max), do: max, else: max_of_max(max)
+      %{noise_layer | expressions: [min, max, sum_of_count(count), user_id]}
+    else
+      noise_layer
+    end
+  end
 
   defp cast(expression, type), do: Expression.function({:cast, type}, [expression], type)
 
+  defp min_of_min(%Expression{constant?: true} = constant), do: constant
   defp min_of_min(%Expression{type: :boolean} = min), do: min |> cast(:integer) |> min_of_min() |> cast(:boolean)
-
   defp min_of_min(min), do: Expression.function("min", [Expression.unalias(min)], min.type, _aggregate = true)
 
+  defp max_of_max(%Expression{constant?: true} = constant), do: constant
   defp max_of_max(%Expression{type: :boolean} = max), do: max |> cast(:integer) |> max_of_max() |> cast(:boolean)
-
   defp max_of_max(max), do: Expression.function("max", [Expression.unalias(max)], max.type, _aggregate = true)
 
-  defp sum_of_count(column, %Expression{value: 1}),
-    do: Expression.function("count", [Expression.unalias(column)], :integer, _aggregate = true)
-
-  defp sum_of_count(_column, count),
-    do: Expression.function("sum", [Expression.unalias(count)], :integer, _aggregate = true)
+  defp sum_of_count(count), do: Expression.function("sum", [Expression.unalias(count)], :integer, _aggregate = true)
 
   # -------------------------------------------------------------------
   # Computing base noise layers
@@ -255,8 +246,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
 
   defp select_noise_layers(_query, _top_level_uid), do: []
-
-  defp need_aggregation?(query, expressions), do: Enum.all?(expressions, &needs_aggregation?(query, &1))
 
   defp needs_aggregation?(_query, %Expression{constant?: true}), do: true
 

@@ -59,6 +59,18 @@ defmodule Cloak.Query.NoiseLayerTest do
     })
   end
 
+  test "an unclear condition produces the same noise as a clear condition" do
+    for i <- 1..100, do: :ok = insert_rows(_user_ids = i..i, "noise_layers", ["number", "other"], [i, 3])
+
+    assert_query("select avg(number) from noise_layers where other = 3", %{
+      rows: [%{row: [result1]}]
+    })
+
+    assert_query("select avg(number) from noise_layers where other + 1 = 4", %{
+      rows: [%{row: [^result1]}]
+    })
+  end
+
   test "noise layers on different columns" do
     :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["number", "other"], [6, 9])
     :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number", "other"], [6, 9])
@@ -173,5 +185,15 @@ defmodule Cloak.Query.NoiseLayerTest do
     assert_query("select sum_noise(number) from noise_layers where number = 100", %{
       rows: [%{row: [140.0]}]
     })
+  end
+
+  test "same noise is generated if analyst forces floating" do
+    :ok = insert_rows(_user_ids = 1..50, "noise_layers", ["number"], [40])
+
+    query1 = "SELECT count(*) FROM noise_layers WHERE number = 40"
+    query2 = "SELECT count(*) FROM (SELECT user_id FROM noise_layers GROUP BY user_id HAVING max(number) + 1 = 41) t"
+
+    assert_query(query1, %{rows: [%{row: [count]}]})
+    assert_query(query2, %{rows: [%{row: [^count]}]})
   end
 end

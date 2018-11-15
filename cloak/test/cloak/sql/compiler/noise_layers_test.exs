@@ -39,7 +39,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
   describe "basic noise layers" do
     test "adds a uid and static noise layer for clear conditions" do
-      result = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3")
+      result = compile!("SELECT MEDIAN(numeric) FROM table WHERE numeric = 3")
 
       assert [
                %{
@@ -885,7 +885,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                Enum.filter(
                  subquery.db_columns,
                  &match?(
-                   %Expression{function: "count", function_args: [%Expression{name: "numeric"}]},
+                   %Expression{function: "sum", function_args: [%Expression{value: 1}]},
                    &1
                  )
                )
@@ -978,7 +978,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                Enum.filter(
                  inner_subquery.db_columns,
                  &match?(
-                   %Expression{function: "count", function_args: [%Expression{name: "numeric"}]},
+                   %Expression{function: "sum", function_args: [%Expression{value: 1}]},
                    &1
                  )
                )
@@ -1040,7 +1040,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                Enum.filter(
                  inner_subquery.db_columns,
                  &match?(
-                   %Expression{function: "count", function_args: [%Expression{name: "numeric"}]},
+                   %Expression{function: "sum", function_args: [%Expression{value: 1}]},
                    &1
                  )
                )
@@ -1254,7 +1254,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         ) x
       """)
 
-    assert 3 = length(db_columns)
+    assert 4 = length(db_columns)
   end
 
   test "[Issue #2395] range noise layer shouldn't override equality noise layer" do
