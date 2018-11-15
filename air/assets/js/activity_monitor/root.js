@@ -75,14 +75,13 @@ export default class ActivityMonitorView extends React.Component {
   }
 
   handleQueryEvent(queryEvent: QueryEvent) {
-    let queries = _.cloneDeep(this.state.queries);
-
     this.conditionallyScheduleQueryRemoval(queryEvent);
 
     if (queryEvent.event === "started") {
-      queries.unshift(queryEvent.query);
+      const newQuery = queryEvent.query;
+      this.setState({queries: [newQuery, ...this.state.queries]});
     } else {
-      queries = _.map(queries, (existingQuery) => {
+      this.setState({queries: _.map(this.state.queries, (existingQuery) => {
         if (existingQuery.id === queryEvent.query_id) {
           const alteredQuery = _.clone(existingQuery);
           alteredQuery.state = queryEvent.event;
@@ -90,10 +89,8 @@ export default class ActivityMonitorView extends React.Component {
         } else {
           return existingQuery;
         }
-      });
+      })});
     }
-
-    this.setState({queries});
   }
 
   handleCloakStatsUpdate(cloakStatsUpdate: {cloak_stats: CloakStat[]}) {
