@@ -59,6 +59,19 @@ defmodule Compliance.QueryFeatures.Test do
         ) x
       """)
     end
+
+    @tag compliance: "limit only with order by constant on subquery to #{table}"
+    test "limit only with order by constant on subquery to #{table}", context do
+      context
+      |> assert_consistent_and_not_failing("""
+        SELECT COUNT(*) FROM (
+          SELECT #{unquote(uid)}, 'a constant'
+          FROM #{unquote(table)}
+          ORDER BY 2
+          LIMIT 10
+        ) x
+      """)
+    end
   end)
 
   Enum.each(nullable_columns(), fn {column, table, uid} ->
