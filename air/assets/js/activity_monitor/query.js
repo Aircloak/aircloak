@@ -6,7 +6,6 @@ import PropTypes from "prop-types";
 import {StateView} from "./state_view";
 import {cancel} from "../request";
 import {isFinished} from "../queries/state";
-import type {Authentication} from "../request";
 
 export type Query = {
   id: string,
@@ -18,8 +17,7 @@ export type Query = {
 };
 
 type Props = {
-  query: Query,
-  authentication: Authentication
+  query: Query
 }
 
 const maxExcerptLength = 40;
@@ -55,7 +53,7 @@ export class QueryView extends React.Component {
         <td>
           <button
             className="btn btn-warning btn-xs"
-            onClick={() => cancel(this.props.query.id, this.props.authentication)}
+            onClick={() => cancel(this.props.query.id, this.context.authentication)}
             disabled={isFinished(this.props.query.state)}
           > cancel </button>
         </td>
@@ -65,6 +63,10 @@ export class QueryView extends React.Component {
   }
 }
 
+QueryView.contextTypes = {
+  authentication: React.PropTypes.object.isRequired,
+};
+
 QueryView.propTypes = {
   query: PropTypes.shape({
     id: PropTypes.string.isRequired,
@@ -73,8 +75,5 @@ QueryView.propTypes = {
     data_source_name: PropTypes.string.isRequired,
     cloak_name: PropTypes.string.isRequired,
     statement: PropTypes.string.isRequired,
-  }).isRequired,
-  authentication: PropTypes.shape({
-    CSRFToken: PropTypes.string.isRequired,
   }).isRequired,
 };

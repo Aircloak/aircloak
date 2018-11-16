@@ -20,7 +20,6 @@ type QueryEvent = {
 };
 
 type Props = {
-  CSRFToken: string,
   userId: number,
   guardianToken: string,
   frontendSocket: FrontendSocket,
@@ -103,7 +102,7 @@ export default class ActivityMonitorView extends React.Component {
       <div>
         <Disconnected channel={this.channel} />
         <CloaksStatsView cloakStats={this.state.cloakStats} />
-        <QueriesView queries={this.state.queries} authentication={{CSRFToken: this.props.CSRFToken}} />
+        <QueriesView queries={this.state.queries} />
       </div>
     );
   }

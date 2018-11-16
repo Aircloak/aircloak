@@ -5,15 +5,14 @@ import _ from "lodash";
 
 import {StateView} from "./state_view";
 import {QueryView} from "./query";
-import type {Authentication} from "../request";
 import type {Query} from "./query";
 
 const MAX_QUERIES_TO_SHOW = 20;
 
-const renderQueries = (queries: Query[], authentication: Authentication) => {
+const renderQueries = (queries: Query[]) => {
   if (queries.length > 0) {
     return queries.slice(0, MAX_QUERIES_TO_SHOW).map((query) =>
-      <QueryView key={query.id} query={query} authentication={authentication} />
+      <QueryView key={query.id} query={query} />
     );
   } else {
     return (
@@ -96,7 +95,7 @@ export class QueriesView extends React.PureComponent {
             </tr>
           </thead>
           <tbody>
-            {renderQueries(this.props.queries, this.props.authentication)}
+            {renderQueries(this.props.queries)}
           </tbody>
         </table>
       </div>
