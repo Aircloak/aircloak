@@ -1,5 +1,5 @@
 defmodule Cloak.Query.AnonymizationTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   import Cloak.Test.QueryHelpers
 
@@ -63,6 +63,47 @@ defmodule Cloak.Query.AnonymizationTest do
         columns: ["count"],
         rows: [%{row: [6], occurrences: 1}]
       })
+    end
+  end
+
+  describe "noisy counts are always positive" do
+    setup do
+      anonymizer_config = Application.get_env(:cloak, :anonymizer)
+
+      Application.put_env(
+        :cloak,
+        :anonymizer,
+        anonymizer_config
+        |> Keyword.put(:outliers_count, {2, 4, 0.5})
+        |> Keyword.put(:low_count_soft_lower_bound, {5, 1})
+        |> Keyword.put(:sum_noise_sigma, 3)
+        |> Keyword.put(:sum_noise_sigma_scale_params, {1, 0.5})
+      )
+
+      on_exit(fn -> Application.put_env(:cloak, :anonymizer, anonymizer_config) end)
+
+      :ok
+    end
+
+    test "no-uid" do
+      for i <- 1..50, do: :ok = insert_rows(_user_ids = (i * 2)..100, "anonymizations", ["number"], [i])
+
+      assert_query("select count(number) from anonymizations where number between 1 and 100 group by number", %{
+        rows: rows
+      })
+
+      assert Enum.all?(rows, fn %{row: [count]} -> count > 0 end)
+    end
+
+    test "uid" do
+      for i <- 1..50, do: :ok = insert_rows(_user_ids = (i * 2)..100, "anonymizations", ["number"], [i])
+
+      assert_query(
+        "select count(number), median(number) from anonymizations where number between 1 and 100 group by number",
+        %{rows: rows}
+      )
+
+      assert Enum.all?(rows, fn %{row: [count, _]} -> count > 0 end)
     end
   end
 end

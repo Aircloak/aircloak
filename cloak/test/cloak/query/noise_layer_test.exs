@@ -26,7 +26,6 @@ defmodule Cloak.Query.NoiseLayerTest do
       |> Keyword.put(:outliers_count, {2, 4, 0.5})
       |> Keyword.put(:low_count_soft_lower_bound, {5, 1})
       |> Keyword.put(:sum_noise_sigma, 1)
-      |> Keyword.put(:sum_noise_sigma, 1)
       |> Keyword.put(:sum_noise_sigma_scale_params, {1, 0.5})
     )
 

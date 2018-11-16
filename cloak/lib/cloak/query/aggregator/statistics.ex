@@ -125,10 +125,12 @@ defmodule Cloak.Query.Aggregator.Statistics do
 
         {noisy_sum, noisy_min, noisy_max, noisy_sum_sigma} = Anonymizer.noisy_statistics(anonymizer, statistics)
 
-        case aggregator.function do
+        case aggregator.alias do
+          "count" -> noisy_sum |> round() |> Kernel.max(Anonymizer.config(:low_count_absolute_lower_bound))
           "sum" -> float_to_type(noisy_sum, aggregator.type)
           "min" -> float_to_type(noisy_min, aggregator.type)
           "max" -> float_to_type(noisy_max, aggregator.type)
+          "count_noise" -> noisy_sum_sigma
           "sum_noise" -> noisy_sum_sigma
         end
       end)
