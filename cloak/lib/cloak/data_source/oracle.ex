@@ -57,7 +57,7 @@ defmodule Cloak.DataSource.Oracle do
     |> run_query(connection)
     |> case do
       {:ok, rows} -> {:ok, result_processor.([unpack(rows, field_mappers)])}
-      {:error, reason} -> {:error, reason}
+      {:error, reason} -> DataSource.raise_error("`#{reason}`")
     end
   end
 
