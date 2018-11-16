@@ -51,10 +51,12 @@ defmodule Cloak.DataSource.Oracle do
 
   @impl Driver
   def select(connection, sql_query, result_processor) do
+    field_mappers = Enum.map(sql_query.db_columns, &type_to_field_mapper(&1.type))
+
     SqlBuilder.build(sql_query)
     |> run_query(connection)
     |> case do
-      {:ok, rows} -> {:ok, result_processor.(rows)}
+      {:ok, rows} -> {:ok, result_processor.([unpack(rows, field_mappers)])}
       {:error, reason} -> {:error, reason}
     end
   end
@@ -69,7 +71,19 @@ defmodule Cloak.DataSource.Oracle do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp run_query(connection, query) do
+  defp type_to_field_mapper(:text), do: &to_string/1
+  defp type_to_field_mapper(:integer), do: fn {x} -> x end
+  defp type_to_field_mapper(:real), do: fn {x} -> x end
+  defp type_to_field_mapper(:boolean), do: fn {x} -> x != 0 end
+
+  defp unpack(rows, field_mappers), do: Stream.map(rows, &map_fields(&1, field_mappers))
+
+  defp map_fields([], []), do: []
+
+  defp map_fields([field | rest_fields], [mapper | rest_mappers]),
+    do: [mapper.(field) | map_fields(rest_fields, rest_mappers)]
+
+  defp run_query(query, connection) do
     case :jamdb_oracle.sql_query(connection, to_charlist(query)) do
       {:ok, [{:result_set, _columns, _, rows}]} -> {:ok, rows}
       {:ok, [{:proc_result, _code, text}]} -> {:error, to_string(text)}
