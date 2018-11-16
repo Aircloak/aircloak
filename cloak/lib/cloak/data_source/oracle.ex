@@ -65,7 +65,7 @@ defmodule Cloak.DataSource.Oracle do
   def driver_info(_connection), do: nil
 
   @impl Driver
-  def supports_query?(_query), do: true
+  def supports_query?(query), do: query.limit == nil and query.offset == 0
 
   # -------------------------------------------------------------------
   # Internal functions
