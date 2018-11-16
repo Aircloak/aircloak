@@ -71,10 +71,15 @@ const renderQueriesGraph = (queryStats) => {
   );
 };
 
-export const CloakView = (props: CloakStat) =>
-  <tr>
-    <td>{props.name}</td>
-    {renderCurrentMemoryUtilisation(props.stats.memory)}
-    {renderMemoryUtilisationGraph(props.stats.memory.readings)}
-    {renderQueriesGraph(props.stats.queries)}
-  </tr>;
+export class CloakStatsView extends React.PureComponent {
+  render() {
+    return (
+      <tr>
+        <td>{this.props.name}</td>
+        {renderCurrentMemoryUtilisation(this.props.stats.memory)}
+        {renderMemoryUtilisationGraph(this.props.stats.memory.readings)}
+        {renderQueriesGraph(this.props.stats.queries)}
+      </tr>
+    );
+  }
+}

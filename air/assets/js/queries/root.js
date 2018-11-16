@@ -1,6 +1,7 @@
 // @flow
 
 import React from "react";
+import PropTypes from "prop-types";
 import _ from "lodash";
 import Mousetrap from "mousetrap";
 import Channel from "phoenix";
@@ -391,5 +392,5 @@ export default class QueriesView extends React.PureComponent {
 }
 
 QueriesView.contextTypes = {
-  authentication: React.PropTypes.object.isRequired,
+  authentication: PropTypes.object.isRequired,
 };
