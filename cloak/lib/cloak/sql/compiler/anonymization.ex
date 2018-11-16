@@ -53,20 +53,26 @@ defmodule Cloak.Sql.Compiler.Anonymization do
   end
 
   def compile_anonymization(%Query{type: :anonymized, from: {:subquery, %{alias: "__ac_uid_grouping"}}} = query) do
-    if Enum.all?(query.aggregators, &supports_statistics_anonymization?/1),
-      do: rewrite_to_statistics_anonymization(query),
+    if supports_statistics_anonymization?(query),
+      do: convert_to_statistics_anonymization(query),
       else: query
   end
 
   def compile_anonymization(query), do: query
 
-  defp supports_statistics_anonymization?(%Expression{function: function, type: type})
+  defp supports_statistics_anonymization?(query) do
+    Enum.all?(query.aggregators, &aggregator_supports_statistics?/1) and not groups_by_user_id?(query)
+  end
+
+  defp groups_by_user_id?(query), do: Enum.any?(query.group_by, & &1.user_id?)
+
+  defp aggregator_supports_statistics?(%Expression{function: function, type: type})
        when function in ["min", "max"] and type in [:date, :time, :datetime],
        do: false
 
-  defp supports_statistics_anonymization?(_aggregator), do: true
+  defp aggregator_supports_statistics?(_aggregator), do: true
 
-  defp rewrite_to_statistics_anonymization(query) do
+  defp convert_to_statistics_anonymization(query) do
     {:subquery, %{ast: uid_grouping_query}} = query.from
     [uid_grouping_table] = query.selected_tables
 

@@ -1700,4 +1700,10 @@ defmodule Cloak.Query.BasicTest do
       error: "Function `stddev` requires arguments of type (`integer` | `real`), but got (`text`)." <> _
     })
   end
+
+  test "group by user id" do
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
+
+    assert_query("select user_id, count(*) from heights group by 1", %{rows: [%{row: [:*, 20]}]})
+  end
 end
