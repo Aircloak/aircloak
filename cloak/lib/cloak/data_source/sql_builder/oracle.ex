@@ -12,7 +12,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def supported_functions(), do: ~w(
       count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct stddev_distinct
       year quarter month day hour minute second weekday date_trunc
-      sqrt floor ceil abs round trunc div mod ^ * / + -
+      sqrt floor ceil abs round trunc div mod ^ % * / + -
       length lower upper btrim ltrim rtrim left right substring concat
       hex cast coalesce hash bool_op
     )
@@ -21,6 +21,10 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def function_sql("bool_op", [[?', op, ?'], arg1, arg2]) do
     condition = [arg1, " ", op, " ", arg2]
     ["(CASE WHEN ", condition, " THEN 1 WHEN NOT (", condition, ") THEN 0 ELSE NULL END)"]
+  end
+
+  for binary_operator <- ~w(+ - * /) do
+    def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
 
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
