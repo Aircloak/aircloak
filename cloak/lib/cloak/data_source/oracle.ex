@@ -76,6 +76,12 @@ defmodule Cloak.DataSource.Oracle do
   defp type_to_field_mapper(:real), do: fn {x} -> x end
   defp type_to_field_mapper(:boolean), do: fn {x} -> x != 0 end
 
+  defp type_to_field_mapper(:datetime),
+    do: fn datetime -> datetime |> NaiveDateTime.from_erl!() |> Cloak.Time.max_precision() end
+
+  defp type_to_field_mapper(:date),
+    do: fn {date, _time} -> Date.from_erl!(date) end
+
   defp unpack(rows, field_mappers), do: Stream.map(rows, &map_fields(&1, field_mappers))
 
   defp map_fields([], []), do: []
