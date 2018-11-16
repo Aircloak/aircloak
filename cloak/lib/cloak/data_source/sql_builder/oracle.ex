@@ -31,6 +31,12 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   @impl Dialect
   def unicode_literal(value), do: [?', value, ?']
 
+  @impl Dialect
+  def alias_sql(object, alias), do: [object, " ", alias]
+
+  @impl Dialect
+  def limit_sql(_, _), do: []
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

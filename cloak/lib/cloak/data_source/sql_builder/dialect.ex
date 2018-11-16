@@ -24,6 +24,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @doc "Generates dialect-specific SQL for casting a column."
   @callback cast_sql(iodata, atom, atom) :: iodata
 
+  @doc "Generates dialect-specific SQL for aliasing an object."
+  @callback alias_sql(iodata, iodata) :: iodata
+
   @doc "Returns the dialect-specific SQL for a unicode string literal."
   @callback unicode_literal(iodata) :: iodata
 
@@ -80,6 +83,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
         do: raise(ExecutionError, message: "LIMIT operator is not supported on this data source")
 
       @impl unquote(__MODULE__)
+      def alias_sql(object, alias), do: [object, " AS ", alias]
+
+      @impl unquote(__MODULE__)
       def time_arithmetic_expression(operator, [arg1, arg2]), do: ["(", arg1, " ", operator, " ", arg2, ")"]
 
       @impl unquote(__MODULE__)
@@ -108,6 +114,7 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       defoverridable like_sql: 2,
                      ilike_sql: 2,
                      limit_sql: 2,
+                     alias_sql: 2,
                      interval_literal: 1,
                      boolean_literal: 1,
                      time_arithmetic_expression: 2,
