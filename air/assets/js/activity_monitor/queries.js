@@ -1,10 +1,9 @@
 // @flow
 
 import React from "react";
-import _ from "lodash";
 
-import {StateView} from "./state_view";
 import {QueryView} from "./query";
+import {QueryStatsSummaryView} from "./query_stats_summary";
 import type {Query} from "./query";
 
 const MAX_QUERIES_TO_SHOW = 20;
@@ -25,45 +24,12 @@ const renderQueries = (queries: Query[]) => {
   }
 };
 
-const renderQueryStatsBreakdown = (queries: Query[]) => {
-  const queryStats = {};
-  queries.forEach(query => {
-    if (queryStats[query.state]) {
-      queryStats[query.state] += 1;
-    } else {
-      queryStats[query.state] = 1;
-    }
-  });
-  return (
-    <div>
-      <h4>Snapshot of current query states</h4>
-
-      <table className="table">
-        <thead>
-          <tr>
-            <th>State</th>
-            <th>Number of queries in state</th>
-          </tr>
-        </thead>
-        <tbody>
-          {_.map(queryStats, (count, queryState) =>
-            <tr key={queryState}>
-              <td><StateView state={queryState} /></td>
-              <td>{count}</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
-};
-
 const renderNumActiveQueriesShown = (queries: Query[]) => {
   const numQueries = queries.length;
   if (numQueries > MAX_QUERIES_TO_SHOW) {
     return (
       <div>
-        {renderQueryStatsBreakdown(queries)}
+        <QueryStatsSummaryView queries={queries} />
 
         <p>
           Showing the <strong>{MAX_QUERIES_TO_SHOW}</strong> most recent
