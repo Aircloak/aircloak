@@ -71,16 +71,27 @@ defmodule Cloak.DataSource.Oracle do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp type_to_field_mapper(:text), do: &to_string/1
-  defp type_to_field_mapper(:integer), do: fn {x} -> x end
-  defp type_to_field_mapper(:real), do: fn {x} -> x end
-  defp type_to_field_mapper(:boolean), do: fn {x} -> x != 0 end
+  defp type_to_field_mapper(:text), do: &string_field_mapper/1
+  defp type_to_field_mapper(:integer), do: &number_field_mapper/1
+  defp type_to_field_mapper(:real), do: &number_field_mapper/1
+  defp type_to_field_mapper(:boolean), do: &boolean_field_mapper/1
+  defp type_to_field_mapper(:datetime), do: &datetime_field_mapper/1
+  defp type_to_field_mapper(:date), do: &date_field_mapper/1
 
-  defp type_to_field_mapper(:datetime),
-    do: fn datetime -> datetime |> NaiveDateTime.from_erl!() |> Cloak.Time.max_precision() end
+  defp string_field_mapper(:null), do: nil
+  defp string_field_mapper(other), do: to_string(other)
 
-  defp type_to_field_mapper(:date),
-    do: fn {date, _time} -> Date.from_erl!(date) end
+  defp number_field_mapper(:null), do: nil
+  defp number_field_mapper({value}), do: value
+
+  defp boolean_field_mapper(:null), do: nil
+  defp boolean_field_mapper({value}), do: value != 0
+
+  defp datetime_field_mapper(:null), do: nil
+  defp datetime_field_mapper(datetime), do: datetime |> NaiveDateTime.from_erl!() |> Cloak.Time.max_precision()
+
+  defp date_field_mapper(:null), do: nil
+  defp date_field_mapper({date, _time}), do: Date.from_erl!(date)
 
   defp unpack(rows, field_mappers), do: Stream.map(rows, &map_fields(&1, field_mappers))
 
