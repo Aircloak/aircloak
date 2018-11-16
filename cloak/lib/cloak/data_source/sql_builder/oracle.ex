@@ -38,6 +38,8 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   def cast_sql(value, number, :text) when number in [:integer, :real], do: ["TO_CHAR(", value, ?)]
 
+  def cast_sql(value, :real, :integer), do: ["ROUND(", value, ?)]
+
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect
