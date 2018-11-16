@@ -6,7 +6,7 @@ defmodule Cloak.Query.Aggregator.Statistics do
   alias Cloak.Query.{Anonymizer, Rows}
 
   @type user_id :: DataSource.field()
-  @type bucket_statistics :: [pos_integer() | user_id]
+  @type bucket_statistics :: [pos_integer() | MapSet.t()]
   @type aggregation_statistics :: [number | nil]
   @type t :: [bucket_statistics | aggregation_statistics]
 
@@ -44,11 +44,12 @@ defmodule Cloak.Query.Aggregator.Statistics do
     fn {accumulated_statistics, default_noise_layers}, row ->
       noise_accumulator = NoiseLayer.accumulate(processed_noise_layers, default_noise_layers, row)
 
-      statistics =
+      [[count_duid, min_uid, max_uid] | aggregation_statistics] =
         Enum.map(statistics_columns, fn columns_group ->
           Enum.map(columns_group, &Expression.value(&1, row))
         end)
 
+      statistics = [[count_duid, MapSet.new([min_uid, max_uid])] | aggregation_statistics]
       {merge_aggregation_data(accumulated_statistics, statistics), noise_accumulator}
     end
   end
@@ -58,10 +59,10 @@ defmodule Cloak.Query.Aggregator.Statistics do
   def merge_aggregation_data(%{}, statistics) when is_list(statistics), do: statistics
 
   def merge_aggregation_data(statistics1, statistics2) when is_list(statistics1) and is_list(statistics2) do
-    [[count_duid1 | uids1] | aggregation_statistics1] = statistics1
-    [[count_duid2 | uids2] | aggregation_statistics2] = statistics2
+    [[count_duid1, uids1] | aggregation_statistics1] = statistics1
+    [[count_duid2, uids2] | aggregation_statistics2] = statistics2
 
-    uids = Enum.uniq(uids1 ++ uids2)
+    uids = MapSet.union(uids1, uids2)
     {min_uid1, max_uid1} = Enum.min_max(uids1)
     {min_uid2, max_uid2} = Enum.min_max(uids2)
 
@@ -72,7 +73,7 @@ defmodule Cloak.Query.Aggregator.Statistics do
         true -> max(max(count_duid1, count_duid2), Enum.count(uids))
       end
 
-    bucket_statistics = [count_duid | uids]
+    bucket_statistics = [count_duid, uids]
 
     aggregation_statistics =
       Enum.zip(aggregation_statistics1, aggregation_statistics2)
