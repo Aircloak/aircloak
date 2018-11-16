@@ -31,7 +31,7 @@
             <%= for user <- @users do %>
               <tr>
                 <td><%= user.name %></td>
-                <td class="login-column"><%= user.login %></td>
+                <td class="login-column"><%= Air.Service.User.main_login(user) %></td>
                 <td>
                   <%= if admin?(user) do %>
                     <span class="label label-danger">Admin</span>
