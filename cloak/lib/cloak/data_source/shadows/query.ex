@@ -15,9 +15,18 @@ defmodule Cloak.DataSource.Shadows.Query do
   @spec build_shadow(DataSource.t(), String.t(), String.t()) :: [any]
   def build_shadow(data_source, table, column) do
     case user_id(data_source, table) do
-      nil -> []
-      ^column -> []
-      user_id -> do_build_shadow(data_source, table, column, user_id)
+      nil ->
+        []
+
+      ^column ->
+        []
+
+      user_id ->
+        if should_maintain_shadow?(data_source, table) do
+          do_build_shadow(data_source, table, column, user_id)
+        else
+          []
+        end
     end
   end
 
@@ -39,6 +48,9 @@ defmodule Cloak.DataSource.Shadows.Query do
     |> DbEmulator.select()
     |> Enum.map(&hd/1)
   end
+
+  defp should_maintain_shadow?(data_source, table),
+    do: Map.get(data_source.tables[String.to_existing_atom(table)], :maintain_shadow_db, true)
 
   defp user_id(data_source, table) do
     data_source.tables[String.to_existing_atom(table)].user_id

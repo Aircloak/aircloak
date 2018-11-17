@@ -67,6 +67,18 @@ defmodule Cloak.DataSource.Shadows.Query.Test do
       end
     end
 
+    test "does not build shadow tables when configured not to do so" do
+      :ok = insert_rows(_user_ids = 0..20, "shadows", ["value"], [10])
+      :ok = insert_rows(_user_ids = 0..20, "shadows", ["value"], [20])
+
+      for data_source <- DataSource.all() do
+        data_source =
+          update_in(data_source, [Lens.key(:tables) |> Lens.map_values()], &Map.put(&1, :maintain_shadow_db, false))
+
+        assert [] = Query.build_shadow(data_source, "shadows", "value")
+      end
+    end
+
     defp max_values(), do: Application.get_env(:cloak, :shadow_tables) |> Keyword.fetch!(:size)
   end
 end
