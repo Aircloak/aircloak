@@ -24,14 +24,14 @@ defmodule Air.Performance.Queries do
       "SELECT active, max(height), min(age) FROM users GROUP BY active",
       "SELECT name, active, max(height), min(age) FROM users GROUP BY active, name",
       "SELECT name, count(*) FROM users GROUP BY name",
-      "SELECT length(name), left(name, 3), max(age), min(age) FROM users GROUP BY 1,2",
+      "SELECT upper(name), max(age), min(age) FROM users GROUP BY 1",
       %{
         db: "SELECT ('x0' || substr(md5(name::text), 1, 15))::bit(64)::bigint, count(*) FROM users GROUP BY 1",
         cloak: "SELECT hash(name), count(*) FROM users GROUP BY 1"
       },
       "
       SELECT
-        length(title) as title_length,
+        upper(title) as upper_title,
         name,
         count(*)
       FROM users u INNER JOIN notes n ON u.user_id = n.uid
@@ -100,7 +100,7 @@ defmodule Air.Performance.Queries do
     ",
       "SELECT height, max(age) FROM users WHERE active = true GROUP BY height",
       "
-      SELECT left(title, 4), count(*), sum(notes_count)
+      SELECT lower(title), count(*), sum(notes_count)
       FROM (
         SELECT
           uid,
