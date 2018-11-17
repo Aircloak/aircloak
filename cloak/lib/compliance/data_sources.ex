@@ -211,6 +211,7 @@ defmodule Compliance.DataSources do
         encoded_tables =
           table_definitions(&TableDefinitions.encoded/1, data_source_scaffold)
           |> create_table_structure(@encoded_name_postfix, data_source_scaffold)
+          |> disable_analysis_operations()
 
         encoded_data_source =
           data_source_scaffold
@@ -241,6 +242,15 @@ defmodule Compliance.DataSources do
       {name, rawling}
     end)
     |> Enum.into(%{})
+  end
+
+  defp disable_analysis_operations(tables) do
+    feature_disabling_configuration = %{auto_isolating_column_classification: false, maintain_shadow_db: false}
+
+    Enum.map(tables, fn {table_name, table_def} ->
+      expanded_table_def = Map.merge(table_def, feature_disabling_configuration)
+      {table_name, expanded_table_def}
+    end)
   end
 
   defp add_uid_construct(rawling, name) do
