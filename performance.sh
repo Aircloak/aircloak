@@ -21,22 +21,22 @@ function recreate_db {
 
   sleep 5
 
-  docker exec -it performance_cloak /aircloak/cloak/bin/cloak eval "
-    'Elixir.Cloak.PerformanceData':generate([
-      {num_users, $num_users},
-      {hostname, <<\"diffix0.mpi-sws.org\">>},
-      {port, 15432},
-      {username, <<\"postgres\">>}
-    ])
+  docker exec -it performance_cloak /aircloak/cloak/bin/cloak rpc "
+    Cloak.PerformanceData.generate(
+      num_users: $num_users,
+      hostname: \"diffix0.mpi-sws.org\",
+      port: 15432,
+      username: \"postgres\"
+    )
   " > /dev/null
 }
 
 function performance {
-  docker exec -it performance_air /aircloak/air/bin/air eval "
-    'Elixir.Air.Performance':run(
-      'Elixir.Path':join('Elixir.Application':app_dir(air, <<\"priv\">>), <<\"config\">>),
-      <<\"performance@aircloak.com\">>,
-      <<\"1234\">>
+  docker exec -it performance_air /aircloak/air/bin/air rpc "
+    Air.Performance.run(
+      Path.join(Application.app_dir(:air, \"priv\"), \"config\"),
+      \"performance@aircloak.com\",
+      \"1234\"
     )
   "
 }
