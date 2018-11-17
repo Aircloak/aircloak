@@ -640,6 +640,39 @@ to privacy loss. It is safe to classify columns as not isolating only when sure 
 for multiple users. Please contact [support@aircloak.com](mailto:support@aircloak.com) if you need help classifying your
 data.
 
+#### Column value shadow database
+
+Insights Cloak automatically maintains a cache of column values that occur frequently.
+This allows certain anonymization practises to be relaxed when doing so does not cause harm.
+The creation of this cache requires a set of database queries to be run against the database
+that can become prohibitively expensive for large databases. You can turn of the creation
+and maintenance of this shadow database when you either do not need the
+[extra capabilities](/sql/restrictions.md#number-of-conditions) this feature offers, or
+operate in a resource constrained environment where running the required database
+queries is of concern.
+
+The shadow database which is created by default can be toggled on and off on a per-table basis.
+If your data source configuration looked as follows and you wanted to disable the shadow
+database creation for the `very_large_table` table, you could include the `maintain_shadow_db`
+parameter and give it the value false:
+
+```
+{
+  "tables": {
+    "regular_table": {
+      ...
+    },
+
+    "very_large_table": {
+      ...
+      "maintain_shadow_db": false
+    },
+
+    ...
+  }
+}
+```
+
 #### Tips and tricks
 
 It is common to have multiple Insights Cloak instances sharing the same datasource definitions.
