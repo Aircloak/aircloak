@@ -77,6 +77,7 @@ defmodule Cloak.DataSource.Oracle do
   defp type_to_field_mapper(:boolean), do: &boolean_field_mapper/1
   defp type_to_field_mapper(:datetime), do: &datetime_field_mapper/1
   defp type_to_field_mapper(:date), do: &date_field_mapper/1
+  defp type_to_field_mapper(:interval), do: &interval_field_mapper/1
 
   defp string_field_mapper(:null), do: nil
   defp string_field_mapper(other), do: to_string(other)
@@ -92,6 +93,9 @@ defmodule Cloak.DataSource.Oracle do
 
   defp date_field_mapper(:null), do: nil
   defp date_field_mapper({date, _time}), do: Date.from_erl!(date)
+
+  defp interval_field_mapper(:null), do: nil
+  defp interval_field_mapper({number}), do: Timex.Duration.from_seconds(number)
 
   defp unpack(rows, field_mappers), do: Stream.map(rows, &map_fields(&1, field_mappers))
 
