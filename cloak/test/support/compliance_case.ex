@@ -46,7 +46,8 @@ defmodule ComplianceCase do
           :ok
 
         true ->
-          result = assert_query_consistency(query, data_sources: context.data_sources, timeout: @timeout)
+          delta = Map.get(context, :delta, 0.0001)
+          result = assert_query_consistency(query, delta: delta, data_sources: context.data_sources, timeout: @timeout)
 
           if match?(%{error: _}, result) or match?({:exit, _}, result) do
             raise ExUnit.AssertionError,

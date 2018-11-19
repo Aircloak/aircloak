@@ -9,7 +9,8 @@ defmodule Cloak.Test.QueryHelpers do
             parameters: Keyword.get(options, :parameters, []),
             views: Keyword.get(options, :views, quote(do: %{})),
             data_sources: Keyword.get(options, :data_sources, quote(do: Cloak.DataSource.all())),
-            timeout: Keyword.get(options, :timeout, :timer.hours(1))
+            timeout: Keyword.get(options, :timeout, :timer.hours(1)),
+            delta: Keyword.get(options, :delta, 0.0001)
           ] do
       run_query = &Cloak.Query.Runner.run_sync("1", &1, query, parameters, views)
 
@@ -33,7 +34,7 @@ defmodule Cloak.Test.QueryHelpers do
             {data_source, exit_value}
         end)
 
-      case Enum.reduce(results, [], &Cloak.Test.QueryHelpers.append_result(&2, &1)) do
+      case Enum.reduce(results, [], &Cloak.Test.QueryHelpers.append_result(&2, &1, delta)) do
         [[{_first_data_source, first_result} | _]] ->
           first_result
 
@@ -59,15 +60,15 @@ defmodule Cloak.Test.QueryHelpers do
     end
   end
 
-  def append_result([], {data_source, result}), do: [[{name_datasource(data_source), result}]]
+  def append_result([], {data_source, result}, _delta), do: [[{name_datasource(data_source), result}]]
 
-  def append_result([group | other_groups], {data_source, result}) do
+  def append_result([group | other_groups], {data_source, result}, delta) do
     if Enum.any?(group, fn {_data_source, group_result} ->
-         compare_to_within_delta(result, group_result, ["root"], 0.000001) == :ok
+         compare_to_within_delta(result, group_result, ["root"], delta) == :ok
        end) do
       [[{name_datasource(data_source), result} | group] | other_groups]
     else
-      [group | append_result(other_groups, {data_source, result})]
+      [group | append_result(other_groups, {data_source, result}, delta)]
     end
   end
 
@@ -184,7 +185,7 @@ defmodule Cloak.Test.QueryHelpers do
   end
 
   defp compare_to_within_delta(value1, value2, trace, delta)
-       when is_float(value1) and is_float(value2) do
+       when is_number(value1) and is_number(value2) do
     magnitude = abs((value1 + value2) / 2)
     diff = abs(value1 - value2) / max(magnitude, delta)
 
