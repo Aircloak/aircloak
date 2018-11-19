@@ -1,6 +1,8 @@
 defmodule Cloak.DataSource.SqlBuilder.Oracle do
   @moduledoc "Helper module for converting a query to Oracle- specific SQL."
 
+  @fmt_no_extra_whitespace "FM"
+
   # -------------------------------------------------------------------
   # SqlBuilder.Dialect callbacks
   # -------------------------------------------------------------------
@@ -30,6 +32,8 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   for {from, to} <- %{"^" => "POWER", "%" => "MOD"} do
     def function_sql(unquote(from), args), do: function_sql(unquote(to), args)
   end
+
+  def function_sql("hash", [arg]), do: ["TO_CHAR(ORA_HASH(", arg, "), '#{@fmt_no_extra_whitespace}0000000X')"]
 
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 
