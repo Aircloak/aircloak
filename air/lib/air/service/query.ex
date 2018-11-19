@@ -41,7 +41,7 @@ defmodule Air.Service.Query do
     |> Map.merge(data_source_info(query))
     |> Map.merge(user_info(query))
     |> Map.put(:completed, completed?(query))
-    |> Map.merge(permalinks(query))
+    |> Map.merge(links(query))
   end
 
   @doc """
@@ -498,12 +498,13 @@ defmodule Air.Service.Query do
   defp add_result(result, nil), do: result
   defp add_result(result, buckets), do: Map.put(result, :rows, buckets)
 
-  defp permalinks(query) do
+  defp links(query) do
+    import Router.Helpers, only: [private_permalink_path: 3, public_permalink_path: 3, query_path: 3]
+
     %{
-      private_permalink:
-        Router.Helpers.private_permalink_path(AirWeb.Endpoint, :permalink_show, Token.private_query_token(query)),
-      public_permalink:
-        Router.Helpers.public_permalink_path(AirWeb.Endpoint, :permalink_show, Token.public_query_token(query))
+      private_permalink: private_permalink_path(AirWeb.Endpoint, :permalink_show, Token.private_query_token(query)),
+      public_permalink: public_permalink_path(AirWeb.Endpoint, :permalink_show, Token.public_query_token(query)),
+      buckets_link: query_path(AirWeb.Endpoint, :buckets, query.id)
     }
   end
 
