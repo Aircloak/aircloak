@@ -25,6 +25,10 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
     ["(CASE WHEN ", condition, " THEN 1 WHEN NOT (", condition, ") THEN 0 ELSE NULL END)"]
   end
 
+  for datepart <- ~w(year month day hour minute second quarter) do
+    def function_sql(unquote(datepart), args), do: ["EXTRACT(", unquote(datepart), " FROM ", args, ")"]
+  end
+
   for binary_operator <- ~w(+ - * /) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
