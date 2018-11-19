@@ -177,7 +177,7 @@ defmodule Air.Service.DataSource do
     cond do
       not available?(data_source.name) -> :offline
       DataSource.errors(data_source) != [] -> :broken
-      not analyzed?(data_source) -> :analyzing
+      not DataSource.analyzed?(data_source) -> :analyzing
       true -> :online
     end
   end
@@ -457,14 +457,6 @@ defmodule Air.Service.DataSource do
     for table <- tables, column <- table.columns, predicate.(column) do
       "#{table.id}.#{column.name}"
     end
-  end
-
-  def analyzed?(%{isolated_computed_count: nil}), do: true
-  def analyzed?(%{shadow_tables_computed_count: nil}), do: true
-
-  def analyzed?(data_source) do
-    data_source.isolated_computed_count == data_source.columns_count and
-      data_source.shadow_tables_computed_count == data_source.columns_count
   end
 
   # -------------------------------------------------------------------
