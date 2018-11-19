@@ -60,10 +60,9 @@ defmodule Compliance.DataSource.Oracle do
   # -------------------------------------------------------------------
 
   defp drop_table!(conn, table_name) do
-    case execute(conn, "DROP TABLE \"#{table_name}\"") do
-      {:ok, [affected_rows: 0]} -> :ok
-      {:ok, [{:proc_result, _table_does_not_exist = 942, _}]} -> :ok
-      other -> raise inspect(other)
+    case execute(conn, "SELECT COUNT(*) FROM ALL_TAB_COLUMNS WHERE table_name = '#{table_name}'") do
+      {:ok, [{:result_set, [_], [], [[{0}]]}]} -> :ok
+      _ -> execute(conn, "DROP TABLE \"#{table_name}\"")
     end
   end
 
