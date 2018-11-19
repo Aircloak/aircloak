@@ -64,6 +64,9 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def boolean_literal(true), do: ?1
   def boolean_literal(false), do: ?0
 
+  @impl Dialect
+  def native_support_for_ilike?(), do: false
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
