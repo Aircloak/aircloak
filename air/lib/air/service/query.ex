@@ -501,8 +501,9 @@ defmodule Air.Service.Query do
   defp permalinks(query) do
     %{
       private_permalink:
-        Router.Helpers.private_permalink_path(AirWeb.Endpoint, :query, Token.private_query_token(query)),
-      public_permalink: Router.Helpers.public_permalink_path(AirWeb.Endpoint, :query, Token.public_query_token(query))
+        Router.Helpers.private_permalink_path(AirWeb.Endpoint, :permalink_show, Token.private_query_token(query)),
+      public_permalink:
+        Router.Helpers.public_permalink_path(AirWeb.Endpoint, :permalink_show, Token.public_query_token(query))
     }
   end
 

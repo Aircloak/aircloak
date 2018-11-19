@@ -14,7 +14,8 @@ defmodule AirWeb.QueryController do
   def permissions do
     %{
       user: [:cancel, :create, :show, :load_history, :buckets, :debug_export],
-      admin: :all
+      admin: :all,
+      anonymous: [:permalink_show]
     }
   end
 
@@ -89,6 +90,22 @@ defmodule AirWeb.QueryController do
           ["csv"] -> text(conn, error_text)
           _ -> json(conn, %{error: error_text})
         end
+    end
+  end
+
+  def permalink_show(conn, params) do
+    with {:ok, query} <- Air.Service.Token.query_from_token(conn.assigns.current_user, params["token"]) do
+      render(conn, "permalink_show.html",
+        query:
+          query
+          |> Air.Service.Query.for_display(Air.Service.Query.buckets(query, 0))
+          # removing permalinks to avoid privilege escalation
+          |> Map.drop([:private_permalink, :public_permalink]),
+        csrf_token: Plug.CSRFProtection.get_csrf_token(),
+        number_format: Air.Service.User.number_format_settings(conn.assigns.current_user)
+      )
+    else
+      :error -> not_found(conn)
     end
   end
 

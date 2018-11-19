@@ -46,13 +46,13 @@ defmodule AirWeb.Router do
   scope "/permalink/public", AirWeb do
     pipe_through([:browser, :browser_for_all])
 
-    get("/query/:token", PermalinkController, :query, as: :public_permalink)
+    get("/query/:token", QueryController, :permalink_show, as: :public_permalink)
   end
 
   scope "/permalink/private", AirWeb do
     pipe_through([:browser, :browser_auth])
 
-    get("/query/:token", PermalinkController, :query, as: :private_permalink)
+    get("/query/:token", QueryController, :permalink_show, as: :private_permalink)
   end
 
   scope "/reset_password", AirWeb do
