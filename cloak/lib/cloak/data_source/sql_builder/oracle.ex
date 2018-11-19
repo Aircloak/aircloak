@@ -27,7 +27,9 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
 
-  def function_sql("^", [arg1, arg2]), do: ["POWER(", arg1, ", ", arg2, ")"]
+  for {from, to} <- %{"^" => "POWER", "%" => "MOD"} do
+    def function_sql(unquote(from), args), do: function_sql(unquote(to), args)
+  end
 
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 
