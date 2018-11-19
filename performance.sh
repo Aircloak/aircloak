@@ -36,7 +36,8 @@ function performance {
     Air.Performance.run(
       Path.join(Application.app_dir(:air, \"priv\"), \"config\"),
       \"performance@aircloak.com\",
-      \"1234\"
+      \"1234\",
+      exclude_encoded: true
     )
   "
 }
