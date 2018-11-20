@@ -17,16 +17,7 @@ defmodule AirWeb.QueryTest do
 
   test "for_display of an unfinished query" do
     Enum.each(
-      [
-        :created,
-        :started,
-        :parsing,
-        :compiling,
-        :awaiting_data,
-        :ingesting_data,
-        :processing,
-        :post_processing
-      ],
+      ~w(created started parsing compiling awaiting_data ingesting_data processing post_processing)a,
       &assert(%{completed: false} = display(%{query_state: &1}))
     )
   end
