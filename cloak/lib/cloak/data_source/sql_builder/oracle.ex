@@ -2,6 +2,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   @moduledoc "Helper module for converting a query to Oracle- specific SQL."
 
   @fmt_no_extra_whitespace "FM"
+  @unicode_substring "SUBSTRC"
 
   # -------------------------------------------------------------------
   # SqlBuilder.Dialect callbacks
@@ -34,6 +35,8 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   for binary_operator <- ~w(+ - * /) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
+
+  def function_sql("left", [string, number]), do: [@unicode_substring, "(", string, ", 0, ", number, ")"]
 
   for {from, to} <- %{"^" => "POWER", "%" => "MOD"} do
     def function_sql(unquote(from), args), do: function_sql(unquote(to), args)
