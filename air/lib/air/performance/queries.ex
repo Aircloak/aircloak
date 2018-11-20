@@ -32,22 +32,6 @@ defmodule Air.Performance.Queries do
         db: "SELECT ('x0' || substr(md5(name::text), 1, 15))::bit(64)::bigint, count(*) FROM users GROUP BY 1",
         cloak: "SELECT hash(name), count(*) FROM users GROUP BY 1"
       },
-      "
-      SELECT
-        name,
-        upper(title) as upper_title,
-        count(*)
-      FROM users u INNER JOIN notes n ON u.user_id = n.uid
-      GROUP BY 1, 2
-    ",
-      "
-      SELECT
-        upper(title) as upper_title,
-        name,
-        count(*)
-      FROM users u INNER JOIN notes n ON u.user_id = n.uid
-      GROUP BY 1, 2
-    ",
       %{
         cloak: "
           SELECT bucket(notes_count by 4 align middle), count(*)
