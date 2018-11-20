@@ -192,6 +192,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     base_columns =
       (Helpers.aggregator_sources(query) ++ query.group_by)
       |> Enum.flat_map(&extract_base_columns/1)
+      |> Enum.reject(& &1.user_id?)
       |> Enum.uniq_by(&Expression.semantic/1)
       |> Enum.map(&%Expression{&1 | alias: "#{&1.table.name}.#{&1.name}"})
 
@@ -270,6 +271,9 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   defp global_aggregator("count"), do: "sum"
   defp global_aggregator("count_noise"), do: "sum_noise"
   defp global_aggregator(function_name), do: function_name
+
+  defp update_base_column(%Expression{user_id?: true}, inner_table),
+    do: inner_table.columns |> Enum.find(&(&1.name == inner_table.user_id)) |> Expression.column(inner_table)
 
   defp update_base_column(column, inner_table),
     do: %Expression{column | table: inner_table, name: "#{column.table.name}.#{column.name}", synthetic?: true}
