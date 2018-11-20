@@ -12,8 +12,6 @@ defmodule Air.Performance.Queries do
   @spec queries() :: [plain_query | differentiated_query]
   def queries(),
     do: [
-      "SELECT * FROM addresses",
-      "SELECT * FROM users",
       "SELECT active, age, height FROM users",
       "SELECT active, age, height FROM users WHERE name LIKE 'An%'",
       "SELECT count(*) FROM addresses",
