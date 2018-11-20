@@ -95,7 +95,16 @@ defmodule Cloak.DataSource.Oracle do
   defp date_field_mapper({date, _time}), do: Date.from_erl!(date)
 
   defp interval_field_mapper(:null), do: nil
-  defp interval_field_mapper({number}), do: Timex.Duration.from_seconds(number)
+
+  defp interval_field_mapper({days, {hours, minutes, seconds}}) do
+    full_seconds = round(seconds)
+    microseconds = round(seconds - full_seconds * 100_000)
+
+    Timex.Duration.add(
+      Timex.Duration.from_days(days),
+      Timex.Duration.from_clock({hours, minutes, full_seconds, microseconds})
+    )
+  end
 
   defp unpack(rows, field_mappers), do: Stream.map(rows, &map_fields(&1, field_mappers))
 

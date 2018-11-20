@@ -70,6 +70,7 @@ Enum.each(
           |> disable_for(Cloak.DataSource.SAPHana, true)
           |> disable_for(Cloak.DataSource.MongoDB, true)
           |> disable_for(Cloak.DataSource.Drill, true)
+          |> disable_for(Cloak.DataSource.Oracle, function =~ ~r/P1Y/ or function =~ ~r/P1M/)
         else
           context
         end

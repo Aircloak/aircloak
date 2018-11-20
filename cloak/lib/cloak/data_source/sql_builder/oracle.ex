@@ -80,6 +80,10 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   @impl Dialect
   def native_support_for_ilike?(), do: false
 
+  @impl Dialect
+  def interval_literal(duration),
+    do: ["NUMTODSINTERVAL(", duration |> Timex.Duration.to_seconds() |> to_string(), ", 'SECOND')"]
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
