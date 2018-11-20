@@ -72,8 +72,8 @@ defmodule Cloak.DataSource.Oracle do
   # -------------------------------------------------------------------
 
   defp type_to_field_mapper(:text), do: &string_field_mapper/1
-  defp type_to_field_mapper(:integer), do: &number_field_mapper/1
-  defp type_to_field_mapper(:real), do: &number_field_mapper/1
+  defp type_to_field_mapper(:integer), do: &integer_field_mapper/1
+  defp type_to_field_mapper(:real), do: &real_field_mapper/1
   defp type_to_field_mapper(:boolean), do: &boolean_field_mapper/1
   defp type_to_field_mapper(:datetime), do: &datetime_field_mapper/1
   defp type_to_field_mapper(:date), do: &date_field_mapper/1
@@ -84,8 +84,12 @@ defmodule Cloak.DataSource.Oracle do
   defp string_field_mapper(:null), do: ""
   defp string_field_mapper(other), do: to_string(other)
 
-  defp number_field_mapper(:null), do: nil
-  defp number_field_mapper({value}), do: value
+  # The lib seems to be giving us X.0 even for example as a result from cast to integer
+  defp integer_field_mapper(:null), do: nil
+  defp integer_field_mapper({value}), do: trunc(value)
+
+  defp real_field_mapper(:null), do: nil
+  defp real_field_mapper({value}), do: value
 
   defp boolean_field_mapper(:null), do: nil
   defp boolean_field_mapper({value}), do: value != 0
