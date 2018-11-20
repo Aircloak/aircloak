@@ -60,8 +60,8 @@ defmodule AirWeb.QueryTest do
     display = AirWeb.Query.for_display(query, authenticated?: false, permalink_token: token)
 
     assert String.starts_with?(display.buckets_link, "/permalink/private")
-    assert String.starts_with?(display.public_permalink, "/permalink/public/query/")
-    assert String.starts_with?(display.private_permalink, "/permalink/private/query/")
+    assert is_nil(display.public_permalink)
+    assert is_nil(display.private_permalink)
   end
 
   test "provided links when authenticated" do

@@ -52,14 +52,14 @@ defmodule AirWeb.Query do
   end
 
   defp private_permalink(query, opts) do
-    # Permalinks are not rendered if query is accessed via a public permalink to avoid privilege escalation.
-    if Keyword.get(opts, :authenticated?) == true or permalink_token_type(opts) == :private,
+    # Permalinks are not rendered if query is accessed via a permalink to avoid privilege escalation.
+    if Keyword.get(opts, :authenticated?) == true,
       do: private_permalink_path(AirWeb.Endpoint, :permalink_show, Token.private_query_token(query))
   end
 
   defp public_permalink(query, opts) do
-    # Permalinks are not rendered if query is accessed via a public permalink to avoid privilege escalation.
-    if Keyword.get(opts, :authenticated?) == true or permalink_token_type(opts) == :private,
+    # Permalinks are not rendered if query is accessed via a permalink to avoid privilege escalation.
+    if Keyword.get(opts, :authenticated?) == true,
       do: public_permalink_path(AirWeb.Endpoint, :permalink_show, Token.public_query_token(query))
   end
 
