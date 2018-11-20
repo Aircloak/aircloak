@@ -149,10 +149,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
 
     args =
       for input <- ~w(sum min max stddev) do
-        inner_table.columns
-        |> Enum.find(&(&1.name == "#{name}_#{input}"))
-        |> Expression.column(inner_table)
-        |> set_fields(synthetic?: true)
+        inner_table |> column_from_table("#{name}_#{input}") |> set_fields(synthetic?: true)
       end
 
     %Expression{aggregator | function_args: args}
