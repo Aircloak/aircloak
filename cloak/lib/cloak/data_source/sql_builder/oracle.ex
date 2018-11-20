@@ -38,6 +38,11 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   def function_sql("left", [string, number]), do: [@unicode_substring, "(", string, ", 0, ", number, ")"]
 
+  def function_sql("right", [string, number]) do
+    number = ["LEAST(LENGTH(", string, "), ", number, ")"]
+    [@unicode_substring, "(", string, ", -", number, ", ", number, ")"]
+  end
+
   for {from, to} <- %{"^" => "POWER", "%" => "MOD"} do
     def function_sql(unquote(from), args), do: function_sql(unquote(to), args)
   end
