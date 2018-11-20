@@ -4,12 +4,18 @@ defmodule AirWeb.Query do
   alias Air.Service.Token
   import AirWeb.Router.Helpers, only: [private_permalink_path: 3, public_permalink_path: 3, query_path: 3]
 
+  @type for_display_options :: [
+          buckets: [map] | nil,
+          authenticated?: boolean,
+          permalink_token: String.t()
+        ]
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Produces a JSON blob of the query and its result for rendering"
-  @spec for_display(Air.Schemas.Query.t(), buckets: [map] | nil) :: map
+  @spec for_display(Air.Schemas.Query.t(), for_display_options) :: map
   def for_display(query, opts \\ []) do
     query = Air.Repo.preload(query, [:user, :data_source])
 
