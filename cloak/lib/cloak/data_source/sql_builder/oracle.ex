@@ -46,6 +46,9 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def function_sql("date_trunc", [[?', "quarter", ?'], arg2]), do: function_sql("TRUNC", [arg2, "'q'"])
   def function_sql("date_trunc", [arg1, arg2]), do: function_sql("TRUNC", [arg2, arg1])
 
+  def function_sql("btrim", [arg]), do: ["TRIM(", arg, ")"]
+  def function_sql("btrim", [arg1, arg2]), do: ["TRIM(", arg1, " FROM ", arg2, ")"]
+
   def function_sql("hash", [arg]), do: ["TO_CHAR(ORA_HASH(", arg, "), '#{@fmt_no_extra_whitespace}0000000X')"]
 
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
