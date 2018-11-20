@@ -44,21 +44,38 @@ defmodule AirWeb.QueryTest do
     assert display(%{data_source_id: data_source.id}).data_source.name == data_source.name
   end
 
-  test "for display doesn't include permalinks if not authenticated" do
-    display = display(%{}, authenticated?: false)
-    refute Map.has_key?(display, :private_permalink)
-    refute Map.has_key?(display, :public_permalink)
+  test "provided links when public permalink is used" do
+    query = create_query!(create_user!())
+    token = Air.Service.Token.public_query_token(query)
+    display = AirWeb.Query.for_display(query, authenticated?: false, permalink_token: token)
+
+    assert String.starts_with?(display.buckets_link, "/permalink/public")
+    assert is_nil(display.public_permalink)
+    assert is_nil(display.private_permalink)
   end
 
-  test "for display includes permalinks if authenticated" do
-    display = display(%{}, authenticated?: true)
-    assert Map.has_key?(display, :private_permalink)
-    assert Map.has_key?(display, :public_permalink)
+  test "provided links when private permalink is used" do
+    query = create_query!(create_user!())
+    token = Air.Service.Token.private_query_token(query)
+    display = AirWeb.Query.for_display(query, authenticated?: false, permalink_token: token)
+
+    assert String.starts_with?(display.buckets_link, "/permalink/private")
+    assert String.starts_with?(display.public_permalink, "/permalink/public/query/")
+    assert String.starts_with?(display.private_permalink, "/permalink/private/query/")
+  end
+
+  test "provided links when authenticated" do
+    query = create_query!(create_user!())
+    display = AirWeb.Query.for_display(query, authenticated?: true)
+
+    assert display.buckets_link == "/queries/#{query.id}/buckets"
+    assert String.starts_with?(display.public_permalink, "/permalink/public/query/")
+    assert String.starts_with?(display.private_permalink, "/permalink/private/query/")
   end
 
   test "for display is by default non-authenticated" do
     query = create_query!(create_user!())
-    assert Map.keys(AirWeb.Query.for_display(query)) == Map.keys(AirWeb.Query.for_display(query, authenticated?: false))
+    assert AirWeb.Query.for_display(query) == AirWeb.Query.for_display(query, authenticated?: false)
   end
 
   defp display(create_query_params, for_display_opts \\ []),

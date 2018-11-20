@@ -208,12 +208,13 @@ defmodule AirWeb.QueryController.Test do
              |> response(404)
     end
 
-    test "the result does not include permalinks to avoid privilege escalation" do
+    test "the result does not include permalinks if query is accessed via a public permalink" do
       query = create_query!(create_user!())
       token = Air.Service.Token.public_query_token(query)
 
       result = build_conn() |> get(public_permalink_path(build_conn(), :permalink_show, token)) |> response(200)
-      refute result =~ "/permalink"
+      refute result =~ ~r[/permalink/public/query/.+/query]
+      refute result =~ ~r[/permalink/private/query/.+/query]
     end
   end
 

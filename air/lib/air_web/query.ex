@@ -38,16 +38,40 @@ defmodule AirWeb.Query do
   defp completed?(query), do: query.query_state in [:error, :completed, :cancelled]
 
   defp links(query, opts) do
-    if Keyword.get(opts, :authenticated?, false) == true do
-      %{
-        private_permalink: private_permalink_path(AirWeb.Endpoint, :permalink_show, Token.private_query_token(query)),
-        public_permalink: public_permalink_path(AirWeb.Endpoint, :permalink_show, Token.public_query_token(query)),
-        buckets_link: query_path(AirWeb.Endpoint, :buckets, query.id)
-      }
-    else
-      %{
-        buckets_link: public_permalink_path(AirWeb.Endpoint, :permalink_buckets, Token.public_query_token(query))
-      }
+    %{
+      private_permalink: private_permalink(query, opts),
+      public_permalink: public_permalink(query, opts),
+      buckets_link: buckets_link(query, opts)
+    }
+  end
+
+  defp private_permalink(query, opts) do
+    # Permalinks are not rendered if query is accessed via a public permalink to avoid privilege escalation.
+    if Keyword.get(opts, :authenticated?) == true or permalink_token_type(opts) == :private,
+      do: private_permalink_path(AirWeb.Endpoint, :permalink_show, Token.private_query_token(query))
+  end
+
+  defp public_permalink(query, opts) do
+    # Permalinks are not rendered if query is accessed via a public permalink to avoid privilege escalation.
+    if Keyword.get(opts, :authenticated?) == true or permalink_token_type(opts) == :private,
+      do: public_permalink_path(AirWeb.Endpoint, :permalink_show, Token.public_query_token(query))
+  end
+
+  defp buckets_link(query, opts) do
+    cond do
+      Keyword.get(opts, :authenticated?) == true -> query_path(AirWeb.Endpoint, :buckets, query.id)
+      permalink_token_type(opts) == :public -> public_permalink_path(AirWeb.Endpoint, :permalink_buckets, token(opts))
+      permalink_token_type(opts) == :private -> private_permalink_path(AirWeb.Endpoint, :permalink_buckets, token(opts))
+      true -> nil
     end
   end
+
+  defp permalink_token_type(opts) do
+    case Keyword.fetch(opts, :permalink_token) do
+      {:ok, token} -> Air.Service.Token.query_token_type!(token)
+      :error -> nil
+    end
+  end
+
+  defp token(opts), do: Keyword.fetch!(opts, :permalink_token)
 end
