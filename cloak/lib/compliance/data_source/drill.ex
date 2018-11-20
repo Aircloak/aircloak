@@ -37,7 +37,7 @@ defmodule Compliance.DataSource.Drill do
     jsonized =
       data
       |> Enum.map(&format_datetimes/1)
-      |> Enum.map(&Poison.encode!/1)
+      |> Enum.map(&Jason.encode!/1)
       |> Enum.join("\n")
 
     state.parameters.data_dir
@@ -85,7 +85,7 @@ defmodule Compliance.DataSource.Drill do
 
   defp configure_storage_plugin(drill_hostname, drill_port, workspace, drill_data_dir) do
     config =
-      Poison.encode!(%{
+      Jason.encode!(%{
         type: "file",
         enabled: true,
         connection: "file:///",

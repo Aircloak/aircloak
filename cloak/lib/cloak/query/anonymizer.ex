@@ -247,6 +247,43 @@ defmodule Cloak.Query.Anonymizer do
   @spec config(atom) :: term
   def config(name), do: Application.get_env(:cloak, :anonymizer) |> Keyword.fetch!(name)
 
+  @factor 4
+  @avg_scale 1
+  @top_scale 0.5
+
+  @doc "Computes the noisy sum, min and max aggregates from the no-uid statistics for a bucket."
+  @spec noisy_statistics(t, {non_neg_integer, number, number, number, float, float}) :: {float, float, float, float}
+  def noisy_statistics(anonymizer, {count, sum, min, max, avg, stddev} = _statistics) do
+    {std_above, std_below} =
+      if min == max do
+        # In this case we want edge_{above,below} to become the avg
+        {0, 0}
+      else
+        range = max - min
+        std_above = stddev * (max - avg) / range
+        std_below = stddev * (avg - min) / range
+        {std_above, std_below}
+      end
+
+    edge_above = avg + @factor * std_above
+    edge_below = avg - @factor * std_below
+
+    flatten = max - edge_above + min - edge_below
+
+    adj_avg = avg - if flatten > 0, do: flatten / count, else: 0
+
+    sum_sigma = Enum.max([abs(@avg_scale * adj_avg), abs(@top_scale * edge_above), abs(@top_scale * edge_below)])
+
+    {noise, _anonymizer} = add_noise(anonymizer, {0, config(:sum_noise_sigma)})
+
+    noisy_sum = sum + noise * sum_sigma - flatten
+    noisy_min = edge_below + noise * edge_sigma(edge_below, avg, count) * @top_scale
+    noisy_max = edge_above + noise * edge_sigma(edge_above, avg, count) * @top_scale
+    noisy_sum_sigma = sum_sigma |> scale_sigma_by_noise_layers(anonymizer) |> round_noise_sigma()
+
+    {noisy_sum, noisy_min, noisy_max, noisy_sum_sigma}
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -446,5 +483,10 @@ defmodule Cloak.Query.Anonymizer do
     {count, anonymizer} = add_noise(anonymizer, {mean_count, sigma})
     count = count |> round() |> Kernel.max(min_count) |> Kernel.min(max_count)
     {count, anonymizer}
+  end
+
+  defp edge_sigma(edge, avg, count) do
+    new_avg = (avg * count - edge) / (count - 1)
+    abs(avg - new_avg)
   end
 end

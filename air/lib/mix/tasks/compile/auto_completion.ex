@@ -34,7 +34,7 @@ defmodule Mix.Tasks.Compile.AutoCompletion do
       |> Enum.reduce(%{}, fn {key, val}, acc ->
         Map.update(acc, key, val, &(val ++ &1))
       end)
-      |> Poison.encode!(pretty: true)
+      |> Jason.encode!(pretty: true)
 
     File.write!("assets/js/code_editor/function_completion_keywords.json", supported_functions)
   end

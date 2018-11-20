@@ -28,7 +28,7 @@ defmodule Aircloak.File do
   def read_config_file(app, path_segment) do
     case read(app, path_segment) do
       {:error, _} = error -> error
-      content -> Aircloak.Json.safe_decode(content)
+      content -> Aircloak.decode_json(content)
     end
   end
 

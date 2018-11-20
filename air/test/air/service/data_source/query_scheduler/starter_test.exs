@@ -141,7 +141,7 @@ defmodule Air.Service.DataSource.QueryScheduler.StarterTest do
   defp create_data_source!(user) do
     Air.Service.DataSource.create!(%{
       "name" => "data_source_#{System.unique_integer([:positive, :monotonic])}",
-      "tables" => Poison.encode!([]),
+      "tables" => Jason.encode!([]),
       "groups" => [hd(user.groups).id]
     })
   end

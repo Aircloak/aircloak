@@ -79,7 +79,7 @@ defmodule Cloak.Sql.QueryTest do
     end
 
     test "subqueries" do
-      assert %{num_db_columns: 8, num_distinct_db_columns: 3} =
+      assert %{num_db_columns: 7, num_distinct_db_columns: 3} =
                features_from("""
                  SELECT COUNT(*) FROM (
                    SELECT user_id FROM feat_users GROUP BY user_id, name HAVING sum(height) = 0
@@ -133,17 +133,17 @@ defmodule Cloak.Sql.QueryTest do
 
   describe "functions" do
     test "no function" do
-      assert %{functions: [], top_level_functions: [], subquery_functions: []} =
+      assert %{functions: ["sum"], top_level_functions: [], subquery_functions: ["sum"]} =
                features_from("SELECT height FROM feat_users")
     end
 
     test "function used" do
-      assert %{functions: ["abs", "cast"], top_level_functions: ["abs", "cast"], subquery_functions: []} =
+      assert %{functions: ["abs", "cast", "sum"], top_level_functions: ["abs", "cast"], subquery_functions: ["sum"]} =
                features_from("SELECT abs(height), CAST(height AS text) FROM feat_users")
     end
 
     test "function used in WHERE" do
-      assert %{functions: ["sqrt"], top_level_functions: [], subquery_functions: ["sqrt"]} =
+      assert %{functions: ["sum", "sqrt"], top_level_functions: [], subquery_functions: ["sum", "sqrt"]} =
                features_from("SELECT * FROM feat_users WHERE sqrt(height) = 10")
     end
 
@@ -165,28 +165,28 @@ defmodule Cloak.Sql.QueryTest do
 
   describe "select_functions" do
     test "no function" do
-      assert %{top_level_select_functions: [], subquery_select_functions: [], select_functions: []} =
+      assert %{top_level_select_functions: [], subquery_select_functions: ["sum"], select_functions: ["sum"]} =
                features_from("SELECT height FROM feat_users")
     end
 
     test "function used" do
       assert %{
                top_level_select_functions: ["abs"],
-               subquery_select_functions: ["sqrt", "min", "max", "count"],
-               select_functions: ["abs", "sqrt", "min", "max", "count"]
+               subquery_select_functions: ["sqrt", "min", "max", "sum"],
+               select_functions: ["abs", "sqrt", "min", "max", "sum"]
              } = features_from("SELECT abs(foo) FROM (SELECT sqrt(height) AS foo FROM feat_users) x")
     end
 
     test "deduplicates" do
       assert %{
                top_level_select_functions: ["sqrt"],
-               subquery_select_functions: ["sqrt", "min", "max", "count"],
-               select_functions: ["sqrt", "min", "max", "count"]
+               subquery_select_functions: ["sqrt", "min", "max", "sum"],
+               select_functions: ["sqrt", "min", "max", "sum"]
              } = features_from("SELECT sqrt(x) FROM (SELECT sqrt(height) AS x FROM feat_users) foo")
     end
 
     test "function used in WHERE" do
-      assert %{top_level_select_functions: [], subquery_select_functions: [], select_functions: []} =
+      assert %{top_level_select_functions: [], subquery_select_functions: ["sum"], select_functions: ["sum"]} =
                features_from("SELECT * FROM feat_users WHERE sqrt(height) = 10")
     end
   end
@@ -354,7 +354,8 @@ defmodule Cloak.Sql.QueryTest do
     end
 
     test "*" do
-      assert ["(sum (count *))"] = features_from("SELECT count(*) FROM feat_users").expressions
+      assert ["(count *)", "(median col)"] =
+               features_from("SELECT count(*), median(height) FROM feat_users").expressions
     end
   end
 

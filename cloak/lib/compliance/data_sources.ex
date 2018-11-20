@@ -84,7 +84,7 @@ defmodule Compliance.DataSources do
       |> config_name()
       |> config_file_path()
       |> File.read!()
-      |> Poison.decode!()
+      |> Jason.decode!()
 
   # -------------------------------------------------------------------
   # Data source setup

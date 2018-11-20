@@ -142,7 +142,7 @@ defmodule Central.Service.License.Test do
 
   defp decode(cipher_text, public_key) do
     with {:ok, plain} <- ExPublicKey.decrypt_public(cipher_text, public_key) do
-      Poison.decode(plain)
+      Jason.decode(plain)
     end
   end
 end

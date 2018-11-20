@@ -91,7 +91,7 @@ defmodule AircloakCI do
 
   defp read_user_config() do
     with {:ok, config_contents} <- read_config_file(),
-         {:error, _} <- Poison.decode(config_contents),
+         {:error, _} <- Jason.decode(config_contents),
          do: {:error, "config file is not a valid JSON"}
   end
 

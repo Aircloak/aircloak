@@ -16,11 +16,11 @@ RUN useradd --shell /bin/bash deployer && mkdir -p /aircloak/app
 
 WORKDIR /aircloak/cloak
 
-COPY cloak/artifacts/rel /aircloak/cloak
+RUN chown -R deployer:deployer /aircloak/cloak && chown -R deployer:deployer /var/run/
+
+COPY --chown=deployer:deployer cloak/artifacts/rel /aircloak/cloak
 COPY cloak/docker/start.sh /aircloak/
 RUN sed -i 's|$VERSION|$RELEASE_VERSION|g' /aircloak/start.sh
-
-RUN chown -R deployer:deployer /aircloak/cloak && chown -R deployer:deployer /var/run/
 
 # We'll run as root, but step down in the init script to the non-privileged user
 USER root

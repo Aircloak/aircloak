@@ -7,6 +7,7 @@ defmodule Cloak.Sql.NoiseLayer do
   @type t :: %__MODULE__{base: any, expressions: [Expression.t()]}
   @type hash_set :: MapSet.t()
   @type accumulator :: [hash_set]
+  @type processed :: {[Expression.t()], [[integer()]]}
 
   defstruct [:base, :expressions]
 
@@ -24,7 +25,7 @@ defmodule Cloak.Sql.NoiseLayer do
     do: Enum.map(layers, &MapSet.new([&1.base |> :erlang.term_to_binary() |> compute_hash()]))
 
   @doc "Pre-processes the noise layers so that expressions are computed only once during accumulation."
-  @spec pre_process_layers([t]) :: {[Expression.t()], [[integer()]]}
+  @spec pre_process_layers([t]) :: processed
   def pre_process_layers(layers) do
     unique_expressions = layers |> Enum.flat_map(& &1.expressions) |> Enum.uniq()
     indices_list = Enum.map(layers, &expressions_to_indices(&1.expressions, unique_expressions))
@@ -32,7 +33,7 @@ defmodule Cloak.Sql.NoiseLayer do
   end
 
   @doc "Adds the values from the given row to the noise layer accumulator."
-  @spec accumulate({[Expression.t()], [[integer()]]}, accumulator, Row.t()) :: accumulator
+  @spec accumulate(processed, accumulator, Row.t()) :: accumulator
   def accumulate({unique_expressions, indices_list}, accumulator, row) do
     values = Enum.map(unique_expressions, &normalize(Expression.value(&1, row)))
 

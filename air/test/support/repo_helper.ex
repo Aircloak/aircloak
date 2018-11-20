@@ -200,7 +200,7 @@ defmodule Air.TestRepoHelper do
 
       rows ->
         rows
-        |> Poison.encode_to_iodata!()
+        |> Jason.encode_to_iodata!()
         |> :zlib.gzip()
     end
   end

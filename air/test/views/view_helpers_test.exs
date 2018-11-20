@@ -64,7 +64,7 @@ defmodule Air.ViewHelpersTest do
     conn = Map.put(build_conn(), :assigns, %{current_user: user})
 
     tables =
-      Poison.encode!([
+      Jason.encode!([
         %{
           id: @table_name,
           columns: [

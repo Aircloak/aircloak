@@ -112,7 +112,7 @@ defmodule Air.Service.Export do
     |> Map.drop([:__meta__, :user_id])
     |> Enum.reject(&match?({_, %Ecto.Association.NotLoaded{}}, &1))
     |> Enum.into(%{})
-    |> Poison.encode!()
+    |> Jason.encode!()
   end
 
   # -------------------------------------------------------------------

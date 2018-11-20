@@ -3,14 +3,13 @@ defmodule AirWeb.Endpoint do
 
   use Phoenix.Endpoint, otp_app: :air
   use Appsignal.Phoenix
-  use Aircloak.ChildSpec.Supervisor
 
   # -------------------------------------------------------------------
   # Endpoint HTTP specification
   # -------------------------------------------------------------------
 
-  socket("/cloak/socket", AirWeb.Socket.Cloak)
-  socket("/frontend/socket", AirWeb.Socket.Frontend)
+  socket("/cloak/socket", AirWeb.Socket.Cloak, websocket: [serializer: [{AirWeb.Socket.Cloak.Serializer, "~> 2.0.0"}]])
+  socket("/frontend/socket", AirWeb.Socket.Frontend, websocket: true, longpoll: true)
 
   plug(
     AirWeb.Plug.Rewrite,
@@ -53,7 +52,7 @@ defmodule AirWeb.Endpoint do
     Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
-    json_decoder: Poison
+    json_decoder: Jason
   )
 
   plug(Plug.MethodOverride)

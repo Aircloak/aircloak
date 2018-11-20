@@ -39,7 +39,7 @@ defmodule Central.Service.Customer.AirMessage do
       } =
       payload
       |> :zlib.gunzip()
-      |> Poison.decode!()
+      |> Jason.decode!()
 
     {:ok,
      %{

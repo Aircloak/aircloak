@@ -6,7 +6,7 @@ import {Channel} from "phoenix";
 
 import {QueriesView} from "./queries";
 import type {Query} from "./query";
-import {CloaksView} from "./cloaks_stats";
+import {CloaksStatsView} from "./cloaks_stats";
 import type {CloakStat} from "./cloak_stats";
 
 import {FrontendSocket} from "../frontend_socket";
@@ -74,14 +74,13 @@ export default class ActivityMonitorView extends React.Component {
   }
 
   handleQueryEvent(queryEvent: QueryEvent) {
-    let queries = _.cloneDeep(this.state.queries);
-
     this.conditionallyScheduleQueryRemoval(queryEvent);
 
     if (queryEvent.event === "started") {
-      queries.unshift(queryEvent.query);
+      const newQuery = queryEvent.query;
+      this.setState({queries: [newQuery, ...this.state.queries]});
     } else {
-      queries = _.map(queries, (existingQuery) => {
+      this.setState({queries: _.map(this.state.queries, (existingQuery) => {
         if (existingQuery.id === queryEvent.query_id) {
           const alteredQuery = _.clone(existingQuery);
           alteredQuery.state = queryEvent.event;
@@ -89,10 +88,8 @@ export default class ActivityMonitorView extends React.Component {
         } else {
           return existingQuery;
         }
-      });
+      })});
     }
-
-    this.setState({queries});
   }
 
   handleCloakStatsUpdate(cloakStatsUpdate: {cloak_stats: CloakStat[]}) {
@@ -104,7 +101,7 @@ export default class ActivityMonitorView extends React.Component {
     return (
       <div>
         <Disconnected channel={this.channel} />
-        <CloaksView cloakStats={this.state.cloakStats} />
+        <CloaksStatsView cloakStats={this.state.cloakStats} />
         <QueriesView queries={this.state.queries} />
       </div>
     );

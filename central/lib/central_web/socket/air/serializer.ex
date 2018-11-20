@@ -1,13 +1,13 @@
 defmodule CentralWeb.Socket.Air.Serializer do
   @moduledoc "Gzip based socket serializer."
-  @behaviour Phoenix.Transports.Serializer
+  @behaviour Phoenix.Socket.Serializer
 
   alias Phoenix.Socket.Reply
   alias Phoenix.Socket.Message
   alias Phoenix.Socket.Broadcast
 
   # -------------------------------------------------------------------
-  # Phoenix.Transports.Serializer callbacks
+  # Phoenix.Socket.Serializer callbacks
   # -------------------------------------------------------------------
 
   @doc false
@@ -33,7 +33,7 @@ defmodule CentralWeb.Socket.Air.Serializer do
     do:
       message
       |> :zlib.gunzip()
-      |> Poison.decode!()
+      |> Jason.decode!()
       |> to_message()
 
   # -------------------------------------------------------------------
@@ -43,7 +43,7 @@ defmodule CentralWeb.Socket.Air.Serializer do
   defp encode(message) do
     {:socket_push, :binary,
      [message.join_ref, message.ref, message.topic, message.event, message.payload]
-     |> Poison.encode_to_iodata!()
+     |> Jason.encode_to_iodata!()
      |> :zlib.gzip()}
   end
 

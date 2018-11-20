@@ -26,8 +26,7 @@ Enum.each(
     "substring(<col> FOR 1000)",
     "trim(<col>)",
     "ucase(<col>)",
-    "upper(<col>)",
-    "extract_words(<col>)"
+    "upper(<col>)"
   ],
   fn function ->
     defmodule Module.concat([Compliance.StringFunctions, String.to_atom(function), Test]) do
@@ -41,10 +40,11 @@ Enum.each(
           context
           |> disable_for(Cloak.DataSource.SQLServer, match?("hex" <> _, unquote(function)))
           |> disable_unicode(unquote(function), unquote(column))
-          |> disallowed_in_subqueries("extract_words", unquote(function))
           |> assert_consistent_and_not_failing("""
             SELECT
-              output
+              output,
+              COUNT(*),
+              MEDIAN(1)
             FROM (
               SELECT
                 #{unquote(uid)},
@@ -52,24 +52,11 @@ Enum.each(
               FROM #{unquote(table)}
               ORDER BY 1, 2
             ) table_alias
+            GROUP BY output
             ORDER BY output
           """)
         end
-
-        @tag compliance: "#{function} #{column} #{table} query"
-        test "#{function} on input #{column} in query on #{table}", context do
-          context
-          |> disable_for(Cloak.DataSource.Oracle, unquote(column) == "name")
-          |> assert_consistent_and_not_failing("""
-            SELECT #{on_column(unquote(function), "\"#{unquote(column)}\"")}
-            FROM #{unquote(table)}
-            ORDER BY 1
-          """)
-        end
       end)
-
-      defp disallowed_in_subqueries(context, function, current_test),
-        do: disable_for(context, :all, String.starts_with?(current_test, function))
 
       defp disable_unicode(context, function, column) do
         if column == "name" do

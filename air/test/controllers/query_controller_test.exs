@@ -27,7 +27,7 @@ defmodule AirWeb.QueryController.Test do
 
     params = %{
       "name" => "data source name",
-      "tables" => Poison.encode!(tables),
+      "tables" => Jason.encode!(tables),
       "groups" => [group.id]
     }
 
@@ -51,7 +51,7 @@ defmodule AirWeb.QueryController.Test do
     TestSocketHelper.respond_to_start_task_request!(socket, :ok)
     Air.Service.DataSource.QueryScheduler.sync()
 
-    assert %{"success" => true} = Poison.decode!(Task.await(task))
+    assert %{"success" => true} = Jason.decode!(Task.await(task))
   end
 
   test "can run a query providing the desired query id", context do
@@ -71,7 +71,7 @@ defmodule AirWeb.QueryController.Test do
     TestSocketHelper.respond_to_start_task_request!(socket, :ok)
     Air.Service.DataSource.QueryScheduler.sync()
 
-    assert %{"success" => true, "query_id" => ^query_id} = Poison.decode!(Task.await(task))
+    assert %{"success" => true, "query_id" => ^query_id} = Jason.decode!(Task.await(task))
   end
 
   test "starting a query with an already used id fails", context do
@@ -90,14 +90,14 @@ defmodule AirWeb.QueryController.Test do
 
     TestSocketHelper.respond_to_start_task_request!(socket, :ok)
 
-    assert %{"success" => true, "query_id" => ^query_id} = Poison.decode!(Task.await(task))
+    assert %{"success" => true, "query_id" => ^query_id} = Jason.decode!(Task.await(task))
 
     rerun_task =
       Task.async(fn ->
         login(context[:user]) |> post("/queries", query_data_params) |> response(200)
       end)
 
-    assert %{"success" => false, "reason" => "unable_to_create_query"} = Poison.decode!(Task.await(rerun_task))
+    assert %{"success" => false, "reason" => "unable_to_create_query"} = Jason.decode!(Task.await(rerun_task))
   end
 
   test "can cancel a query", context do
@@ -215,6 +215,6 @@ defmodule AirWeb.QueryController.Test do
       login(context.user)
       |> get(query_path(context.conn, :buckets, query_id, chunk: chunk))
       |> response(200)
-      |> Poison.decode!()
+      |> Jason.decode!()
       |> Enum.map(&(&1 |> Map.fetch!("row") |> hd()))
 end

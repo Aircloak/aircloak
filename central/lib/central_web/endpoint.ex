@@ -2,23 +2,15 @@ defmodule CentralWeb.Endpoint do
   @moduledoc "Implements the HTTP server for insights.aircloak.com."
 
   use Phoenix.Endpoint, otp_app: :central
-  use Aircloak.ChildSpec.Supervisor, start: {__MODULE__, :start_site, []}
   require Logger
-
-  # -------------------------------------------------------------------
-  # API functions
-  # -------------------------------------------------------------------
-
-  @doc "Starts the site supervision tree."
-  @spec start_site() :: Supervisor.on_start()
-  def start_site(), do: start_link()
 
   # -------------------------------------------------------------------
   # Endpoint HTTP specification
   # -------------------------------------------------------------------
 
-  socket("/air/socket", CentralWeb.Socket.Air)
-  socket("/frontend/socket", CentralWeb.Socket.Frontend)
+  socket("/air/socket", CentralWeb.Socket.Air, websocket: [serializer: [{CentralWeb.Socket.Air.Serializer, "~> 2.0.0"}]])
+
+  socket("/frontend/socket", CentralWeb.Socket.Frontend, websocket: true, longpoll: true)
 
   # Serve at "/" the static files from "priv/static" directory.
   #
@@ -47,7 +39,7 @@ defmodule CentralWeb.Endpoint do
     Plug.Parsers,
     parsers: [:urlencoded, :multipart, :json],
     pass: ["*/*"],
-    json_decoder: Poison
+    json_decoder: Jason
   )
 
   plug(Plug.MethodOverride)

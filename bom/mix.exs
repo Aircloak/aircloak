@@ -18,9 +18,11 @@ defmodule Bom.Mixfile do
   # Type "mix help compile.app" for more information
   def application do
     [
-      extra_applications: [:ssl, :inets, :logger]
+      extra_applications: [:ssl, :inets, :logger] ++ dialyzer_deps()
     ]
   end
+
+  defp dialyzer_deps(), do: [:jason]
 
   # Dependencies can be Hex packages:
   #
@@ -33,7 +35,6 @@ defmodule Bom.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      {:poison, "~> 2.2.0", override: true},
       {:aircloak_common, path: "../common/elixir"},
       {:tomlex, "0.0.5"}
     ]

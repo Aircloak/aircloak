@@ -1,6 +1,7 @@
 // @flow
 
 import React from "react";
+import PropTypes from "prop-types";
 
 import ImmutableSingleQuery from "./immutable_single_query";
 import type {Result} from "./result";
@@ -48,5 +49,5 @@ export default class QueryView extends React.Component {
 }
 
 QueryView.contextTypes = {
-  authentication: React.PropTypes.object.isRequired,
+  authentication: PropTypes.object.isRequired,
 };

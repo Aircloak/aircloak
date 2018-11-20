@@ -50,7 +50,7 @@ defmodule Mix.Tasks.DataQuality.GenerateData do
     case File.read(path) do
       {:ok, data} ->
         data
-        |> Poison.decode!()
+        |> Jason.decode!()
         |> Aircloak.atomize_keys()
 
       {:error, reason} ->

@@ -26,7 +26,6 @@ defmodule Cloak.Query.NoiseLayerTest do
       |> Keyword.put(:outliers_count, {2, 4, 0.5})
       |> Keyword.put(:low_count_soft_lower_bound, {5, 1})
       |> Keyword.put(:sum_noise_sigma, 1)
-      |> Keyword.put(:sum_noise_sigma, 1)
       |> Keyword.put(:sum_noise_sigma_scale_params, {1, 0.5})
     )
 
@@ -47,7 +46,19 @@ defmodule Cloak.Query.NoiseLayerTest do
     assert value1 != value2
   end
 
-  test "an unclear condition produces the same noise as an equivalent clear condition" do
+  test "an unclear condition produces the same noise as another equivalent unclear condition" do
+    for i <- 1..100, do: :ok = insert_rows(_user_ids = i..i, "noise_layers", ["number", "other"], [i, 3])
+
+    assert_query("select avg(number) from noise_layers where other - 1 = 2", %{
+      rows: [%{row: [result1]}]
+    })
+
+    assert_query("select avg(number) from noise_layers where other + 1 = 4", %{
+      rows: [%{row: [^result1]}]
+    })
+  end
+
+  test "an unclear condition produces the same noise as a clear condition" do
     for i <- 1..100, do: :ok = insert_rows(_user_ids = i..i, "noise_layers", ["number", "other"], [i, 3])
 
     assert_query("select avg(number) from noise_layers where other = 3", %{
@@ -179,7 +190,6 @@ defmodule Cloak.Query.NoiseLayerTest do
     :ok = insert_rows(_user_ids = 1..50, "noise_layers", ["number"], [40])
 
     query1 = "SELECT count(*) FROM noise_layers WHERE number = 40"
-
     query2 = "SELECT count(*) FROM (SELECT user_id FROM noise_layers GROUP BY user_id HAVING max(number) + 1 = 41) t"
 
     assert_query(query1, %{rows: [%{row: [count]}]})

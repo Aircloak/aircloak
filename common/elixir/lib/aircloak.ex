@@ -135,7 +135,7 @@ defmodule Aircloak do
       |> Application.app_dir("priv")
       |> Path.join(file_name)
       |> File.read!()
-      |> Aircloak.Json.safe_decode!()
+      |> Jason.decode!()
       |> ExJsonSchema.Schema.resolve()
 
     with {:error, errors} <- ExJsonSchema.Validator.validate(schema, data) do
@@ -157,6 +157,12 @@ defmodule Aircloak do
   def current_stacktrace() do
     {:current_stacktrace, stacktrace} = Process.info(self(), :current_stacktrace)
     stacktrace
+  end
+
+  @doc "Decodes a JSON string, converting an error into a string message."
+  @spec decode_json(String.t()) :: {:ok, Map.t()} | {:error, String.t()}
+  def decode_json(raw_json) do
+    with {:error, error} <- Jason.decode(raw_json), do: {:error, Exception.message(error)}
   end
 
   # -------------------------------------------------------------------

@@ -23,7 +23,8 @@ defmodule AirWeb.Plug.ValidateLicense.Browser do
       true ->
         conn
         |> Plug.Conn.put_status(Plug.Conn.Status.code(:payment_required))
-        |> Phoenix.Controller.render(AirWeb.LicenseInvalidView, :invalid, layout: false)
+        |> Phoenix.Controller.put_view(AirWeb.LicenseInvalidView)
+        |> Phoenix.Controller.render(:invalid, layout: false)
         |> Plug.Conn.halt()
     end
   end
@@ -47,7 +48,8 @@ defmodule AirWeb.Plug.ValidateLicense.API do
     else
       conn
       |> Plug.Conn.put_status(Plug.Conn.Status.code(:payment_required))
-      |> Phoenix.Controller.render(AirWeb.LicenseInvalidView, :invalid, layout: false)
+      |> Phoenix.Controller.put_view(AirWeb.LicenseInvalidView)
+      |> Phoenix.Controller.render(:invalid, layout: false)
       |> Plug.Conn.halt()
     end
   end

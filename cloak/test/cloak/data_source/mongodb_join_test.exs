@@ -49,9 +49,9 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
     assert_query(
       context,
       """
-        SELECT AVG(salary) FROM "left" INNER JOIN "right" ON "left".id = "right".id WHERE age = 30
+        SELECT round(MEDIAN(salary)) FROM "left" INNER JOIN "right" ON "left".id = "right".id WHERE age = 30
       """,
-      %{rows: [%{occurrences: 1, row: [95.0]}]}
+      %{rows: [%{occurrences: 1, row: [102]}]}
     )
   end
 
@@ -103,11 +103,11 @@ defmodule Cloak.DataSource.MongoDBJoinTest do
     assert_query(
       context,
       """
-        SELECT AVG(salary)
+        SELECT round(MEDIAN(salary))
         FROM "left" INNER JOIN "right"
         ON "left".id = "right".id AND age + 1 = 31
       """,
-      %{rows: [%{occurrences: 1, row: [95.0]}]}
+      %{rows: [%{occurrences: 1, row: [102]}]}
     )
   end
 

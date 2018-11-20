@@ -1,6 +1,7 @@
 defmodule BOM.Package do
   @moduledoc "A structure for keeping information about a single dependency."
 
+  @derive Jason.Encoder
   defstruct [:realm, :name, :path, :license, :error, :version]
 
   @type t :: %__MODULE__{

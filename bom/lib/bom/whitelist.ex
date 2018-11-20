@@ -14,7 +14,7 @@ defmodule BOM.Whitelist do
       {"ecto_enum", "1.0.2"} => %{type: :mit, text: :provided},
       {"erlware_commons", "0.21.0"} => %{type: :mit, text: :provided},
       {"excoveralls", "0.5.7"} => %{type: :mit, text: :standard},
-      {"file_system", "0.2.2"} => %{type: :wtfpl, text: :standard},
+      {"file_system", "0.2.6"} => %{type: :wtfpl, text: :standard},
       {"scrivener", "2.3.0"} => %{type: :mit, text: :standard},
       {"scrivener_ecto", "1.2.2"} => %{type: :mit, text: :standard},
       {"scrivener_html", "1.3.3"} => %{type: :mit, text: :standard},
@@ -136,6 +136,8 @@ defmodule BOM.Whitelist do
     "330031db3ec2b47f6e9d7923b8e1f95b" => :mit,
     # node/react-chartjs-2
     "6d2716539b6e3fee1dff17903670f1cd" => :mit,
+    # node/ua-parser-js
+    "c8a186b02a48de60f8df66ba326360a2" => :mit,
     # elixir/fs
     "0b36f89594d6a8a4b5e8efa73f1f4fc5" => :mit,
     # elixir/getopt

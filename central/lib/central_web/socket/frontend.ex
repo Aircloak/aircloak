@@ -16,9 +16,6 @@ defmodule CentralWeb.Socket.Frontend do
   use Phoenix.Socket
   require Logger
 
-  transport(:websocket, Phoenix.Transports.WebSocket)
-  transport(:longpoll, Phoenix.Transports.LongPoll)
-
   # List of exposed channels
   channel("user:*", CentralWeb.Socket.Frontend.UserChannel)
 

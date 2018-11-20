@@ -124,7 +124,7 @@ defmodule Air.Performance do
       cloak_datasource_folder
       |> Path.join("cloak_performance.json")
       |> File.read!()
-      |> Poison.decode!()
+      |> Jason.decode!()
       |> Map.fetch!("parameters")
       |> Enum.map(fn {name, value} -> {String.to_atom(name), value} end)
       |> Enum.concat(after_connect: &Postgrex.query!(&1, "set search_path to projections, public", []))

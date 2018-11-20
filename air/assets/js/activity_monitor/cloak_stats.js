@@ -2,8 +2,7 @@
 
 import React from "react";
 import _ from "lodash";
-import {Sparklines, SparklinesLine, SparklinesNormalBand, SparklinesBars,
-  SparklinesReferenceLine} from "react-sparklines";
+import {Sparklines, SparklinesLine} from "react-sparklines";
 
 export type CloakStat = {
   id: string,
@@ -58,7 +57,6 @@ const renderMemoryUtilisationGraph = (readings) =>
   <td>
     <Sparklines data={readings} svgHeight={25} svgWidth={190} min={0} max={100}>
       <SparklinesLine />
-      <SparklinesNormalBand />
     </Sparklines>
   </td>;
 
@@ -67,18 +65,21 @@ const renderQueriesGraph = (queryStats) => {
   return (
     <td>
       <Sparklines data={queryStats} svgHeight={25} svgWidth={190} min={0} max={maxQueriesStat}>
-        <SparklinesBars />
-        <SparklinesLine style={{fill: "none"}} />
-        <SparklinesReferenceLine type="mean" />
+        <SparklinesLine />
       </Sparklines>
     </td>
   );
 };
 
-export const CloakView = (props: CloakStat) =>
-  <tr>
-    <td>{props.name}</td>
-    {renderCurrentMemoryUtilisation(props.stats.memory)}
-    {renderMemoryUtilisationGraph(props.stats.memory.readings)}
-    {renderQueriesGraph(props.stats.queries)}
-  </tr>;
+export class CloakStatsView extends React.PureComponent {
+  render() {
+    return (
+      <tr>
+        <td>{this.props.name}</td>
+        {renderCurrentMemoryUtilisation(this.props.stats.memory)}
+        {renderMemoryUtilisationGraph(this.props.stats.memory.readings)}
+        {renderQueriesGraph(this.props.stats.queries)}
+      </tr>
+    );
+  }
+}

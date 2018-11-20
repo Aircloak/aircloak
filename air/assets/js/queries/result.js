@@ -1,6 +1,7 @@
 // @flow
 
 import React from "react";
+import PropTypes from "prop-types";
 import _ from "lodash";
 
 import {CodeViewer} from "../code_viewer";
@@ -471,5 +472,5 @@ export class ResultView extends React.Component {
 }
 
 ResultView.contextTypes = {
-  authentication: React.PropTypes.object.isRequired,
+  authentication: PropTypes.object.isRequired,
 };
