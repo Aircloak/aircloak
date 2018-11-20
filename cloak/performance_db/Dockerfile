@@ -1,10 +1,8 @@
-FROM postgres:9.6
-
-MPI_INIT
+FROM postgres:11.1
 
 RUN \
   apt-get update && \
-  apt-get install -y git libpq-dev  libprotobuf-c0-dev make postgresql-server-dev-9.6 protobuf-c-compiler gcc
+  apt-get install -y git libprotobuf-c0-dev make postgresql-server-dev-11 protobuf-c-compiler gcc
 
 RUN \
   git clone https://github.com/citusdata/cstore_fdw.git && \
