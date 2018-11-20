@@ -19,6 +19,7 @@ function restart_performance_db {
   docker run \
     --detach --name performance_db -p 15432:5432 \
     -v $data_path:/var/lib/postgresql/data \
+    --shm-size=200G \
     quay.io/aircloak/performance_db:latest postgres -c config_file=/etc/postgresql/postgresql.conf \
     > /dev/null
 }
