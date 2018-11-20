@@ -8,14 +8,25 @@ function stop_container {
   docker rm -f $1 > /dev/null 2>&1 || true
 }
 
-function recreate_db {
-  local num_users=$1
+data_path=/dev/shm/performance-db-data-store
+
+function restart_performance_db {
   stop_container performance_db
+
+  rm -rf $data_path
+  mkdir -p $data_path
 
   docker run \
     --detach --name performance_db -p 15432:5432 \
+    -v $data_path:/var/lib/postgresql/data \
     quay.io/aircloak/performance_db:latest postgres -c config_file=/etc/postgresql/postgresql.conf \
     > /dev/null
+}
+
+function recreate_db {
+  local num_users=$1
+
+  restart_performance_db
 
   docker restart performance_cloak > /dev/null
 
@@ -51,12 +62,6 @@ docker pull quay.io/aircloak/performance_db:latest > /dev/null
 
 for num_users in "$@"; do
   recreate_db $num_users
-  performance_output=$(performance | head -n -2)
-
-  if [ "$header" == "" ]; then
-    echo "$performance_output" | head -n 1
-    header=true
-  fi
-
-  echo "$performance_output" | tail -n +2
+  performance
+  echo "DB size of just completed: $(du -sh $data_path)"
 done
