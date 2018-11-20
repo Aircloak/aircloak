@@ -23,7 +23,7 @@ defmodule AirWeb.Admin.QueryController do
     case Query.get_as_user(conn.assigns.current_user, query_id) do
       {:ok, query} ->
         render(conn, %{
-          query: AirWeb.Query.for_display(query, buckets: Query.buckets(query, 0)),
+          query: AirWeb.Query.for_display(query, authenticated?: true, buckets: Query.buckets(query, 0)),
           guardian_token: Air.Guardian.Plug.current_token(conn),
           csrf_token: CSRFProtection.get_csrf_token(),
           number_format: Air.Service.User.number_format_settings(conn.assigns.current_user),

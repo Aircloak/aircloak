@@ -17,7 +17,7 @@ defmodule AirWeb.Query do
     |> Map.merge(data_source_info(query))
     |> Map.merge(user_info(query))
     |> Map.put(:completed, completed?(query))
-    |> Map.merge(links(query))
+    |> Map.merge(links(query, opts))
   end
 
   # -------------------------------------------------------------------
@@ -34,14 +34,18 @@ defmodule AirWeb.Query do
 
   defp completed?(query), do: query.query_state in [:error, :completed, :cancelled]
 
-  defp links(query) do
-    alias Air.Service.Token
-    import AirWeb.Router.Helpers, only: [private_permalink_path: 3, public_permalink_path: 3, query_path: 3]
+  defp links(query, opts) do
+    if Keyword.get(opts, :authenticated?, false) == true do
+      alias Air.Service.Token
+      import AirWeb.Router.Helpers, only: [private_permalink_path: 3, public_permalink_path: 3, query_path: 3]
 
-    %{
-      private_permalink: private_permalink_path(AirWeb.Endpoint, :permalink_show, Token.private_query_token(query)),
-      public_permalink: public_permalink_path(AirWeb.Endpoint, :permalink_show, Token.public_query_token(query)),
-      buckets_link: query_path(AirWeb.Endpoint, :buckets, query.id)
-    }
+      %{
+        private_permalink: private_permalink_path(AirWeb.Endpoint, :permalink_show, Token.private_query_token(query)),
+        public_permalink: public_permalink_path(AirWeb.Endpoint, :permalink_show, Token.public_query_token(query)),
+        buckets_link: query_path(AirWeb.Endpoint, :buckets, query.id)
+      }
+    else
+      %{}
+    end
   end
 end

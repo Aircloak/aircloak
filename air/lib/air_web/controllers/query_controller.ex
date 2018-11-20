@@ -46,7 +46,13 @@ defmodule AirWeb.QueryController do
            before
          ) do
       {:ok, queries} ->
-        json(conn, Enum.map(queries, &AirWeb.Query.for_display(&1, buckets: Air.Service.Query.buckets(&1, 0))))
+        json(
+          conn,
+          Enum.map(
+            queries,
+            &AirWeb.Query.for_display(&1, authenticated?: true, buckets: Air.Service.Query.buckets(&1, 0))
+          )
+        )
 
       _ ->
         send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
@@ -96,11 +102,7 @@ defmodule AirWeb.QueryController do
   def permalink_show(conn, params) do
     with {:ok, query} <- Air.Service.Token.query_from_token(conn.assigns.current_user, params["token"]) do
       render(conn, "permalink_show.html",
-        query:
-          query
-          |> AirWeb.Query.for_display(buckets: Air.Service.Query.buckets(query, 0))
-          # removing permalinks to avoid privilege escalation
-          |> Map.drop([:private_permalink, :public_permalink]),
+        query: AirWeb.Query.for_display(query, authenticated?: false, buckets: Air.Service.Query.buckets(query, 0)),
         csrf_token: Plug.CSRFProtection.get_csrf_token(),
         number_format: Air.Service.User.number_format_settings(conn.assigns.current_user)
       )
@@ -163,7 +165,7 @@ defmodule AirWeb.QueryController do
     # new style result -> compute json in streaming fashion and send chunked response
     json_without_rows =
       query
-      |> AirWeb.Query.for_display()
+      |> AirWeb.Query.for_display(authenticated?: true)
       |> Jason.encode!(strict_keys: true)
 
     prefix_size = byte_size(json_without_rows) - 1
