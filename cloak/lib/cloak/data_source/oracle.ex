@@ -80,7 +80,8 @@ defmodule Cloak.DataSource.Oracle do
   defp type_to_field_mapper(:interval), do: &interval_field_mapper/1
   defp type_to_field_mapper(:time), do: &time_field_mapper/1
 
-  defp string_field_mapper(:null), do: nil
+  # Oracle seems to treat empty strings as NULL, and this is reflected in what the lib returns in those cases
+  defp string_field_mapper(:null), do: ""
   defp string_field_mapper(other), do: to_string(other)
 
   defp number_field_mapper(:null), do: nil
