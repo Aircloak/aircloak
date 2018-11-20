@@ -49,13 +49,13 @@ export const loadHistory = (
 };
 
 export const loadBuckets = (
-  queryId: string,
+  bucketsLink: string,
   chunk: number,
   authentication: Authentication,
   callbacks: Callbacks
 ) => {
   const desiredChunk = (chunk >= 0) ? chunk : "all";
-  $.ajax(`/queries/${queryId}/buckets?chunk=${desiredChunk}`, {
+  $.ajax(`${bucketsLink}?chunk=${desiredChunk}`, {
     method: "GET",
     headers: headers(authentication),
     success: callbacks.success,

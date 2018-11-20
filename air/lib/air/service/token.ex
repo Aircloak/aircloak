@@ -82,6 +82,15 @@ defmodule Air.Service.Token do
     end
   end
 
+  @doc "Returns the type of the given query token."
+  @spec query_token_type!(String.t()) :: :public | :private
+  def query_token_type!(token) do
+    case Phoenix.Token.verify(Endpoint, Salts.get(:query_permalink), token, max_age: :infinity) do
+      {:ok, {type, :query, _id}} when type in [:public, :private] -> type
+      _ -> raise "invalid query token"
+    end
+  end
+
   # -------------------------------------------------------------------
   # Query from token
   # -------------------------------------------------------------------
