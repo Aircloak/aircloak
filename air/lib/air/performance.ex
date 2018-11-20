@@ -97,7 +97,7 @@ defmodule Air.Performance do
   defp measurement_title(key), do: :"#{key}_time"
 
   defp measure_statement(conn, statement) do
-    {time, _result} = :timer.tc(fn -> Postgrex.query!(conn, statement, [], timeout: :timer.hours(1)) end)
+    {time, _result} = :timer.tc(fn -> Postgrex.query!(conn, statement, [], timeout: :timer.hours(5)) end)
 
     :erlang.convert_time_unit(time, :microsecond, :millisecond)
   end
