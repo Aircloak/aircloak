@@ -73,8 +73,9 @@ defmodule Compliance.DataSources do
   end
 
   @doc "Takes a rawling data source definition and expands it with table definitions"
-  @spec complete_data_source_definitions([DataSource.t()]) :: [DataSource.t()]
-  def complete_data_source_definitions(data_sources), do: expand_and_add_table_definitions(data_sources)
+  @spec complete_data_source_definitions([DataSource.t()], disable_analysis_operations: boolean) :: [DataSource.t()]
+  def complete_data_source_definitions(data_sources, opts \\ []),
+    do: expand_and_add_table_definitions(data_sources, opts)
 
   @doc "Returns a data source config as JSON"
   @spec read_config(String.t()) :: Map.t()
@@ -192,7 +193,7 @@ defmodule Compliance.DataSources do
 
   defp config_file_path(name), do: Path.join([Application.app_dir(:cloak, "priv"), "config", "#{name}.json"])
 
-  defp expand_and_add_table_definitions(data_source_scaffolds) do
+  defp expand_and_add_table_definitions(data_source_scaffolds, opts) do
     Enum.flat_map(data_source_scaffolds, fn data_source_scaffold ->
       plain_tables =
         table_definitions(&TableDefinitions.plain/1, data_source_scaffold)
@@ -211,7 +212,7 @@ defmodule Compliance.DataSources do
         encoded_tables =
           table_definitions(&TableDefinitions.encoded/1, data_source_scaffold)
           |> create_table_structure(@encoded_name_postfix, data_source_scaffold)
-          |> disable_analysis_operations()
+          |> conditionally_disable_analysis_operations(Keyword.get(opts, :disable_analysis_operations, false))
 
         encoded_data_source =
           data_source_scaffold
@@ -244,7 +245,9 @@ defmodule Compliance.DataSources do
     |> Enum.into(%{})
   end
 
-  defp disable_analysis_operations(tables) do
+  defp conditionally_disable_analysis_operations(tables, false), do: tables
+
+  defp conditionally_disable_analysis_operations(tables, true) do
     feature_disabling_configuration = %{auto_isolating_column_classification: false, maintain_shadow_db: false}
 
     Enum.map(tables, fn {table_name, table_def} ->
