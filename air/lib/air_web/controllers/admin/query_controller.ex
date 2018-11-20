@@ -23,7 +23,7 @@ defmodule AirWeb.Admin.QueryController do
     case Query.get_as_user(conn.assigns.current_user, query_id) do
       {:ok, query} ->
         render(conn, %{
-          query: Query.for_display(query, Query.buckets(query, 0)),
+          query: AirWeb.Query.for_display(query, Query.buckets(query, 0)),
           guardian_token: Air.Guardian.Plug.current_token(conn),
           csrf_token: CSRFProtection.get_csrf_token(),
           number_format: Air.Service.User.number_format_settings(conn.assigns.current_user),
@@ -53,7 +53,7 @@ defmodule AirWeb.Admin.QueryController do
         csrf_token: CSRFProtection.get_csrf_token(),
         number_format: Air.Service.User.number_format_settings(conn.assigns.current_user),
         debug_mode_enabled: conn.assigns.current_user.debug_mode_enabled,
-        failed_queries: Query.queries(filters) |> Enum.map(&Query.for_display(&1, nil)),
+        failed_queries: Query.queries(filters) |> Enum.map(&AirWeb.Query.for_display(&1, nil)),
         users: Query.users_for_filters(filters) |> Enum.map(&%{label: &1.name, value: &1.id}),
         data_sources: Query.data_sources_for_filters(filters) |> Enum.map(&%{label: &1.name, value: &1.id})
       })
