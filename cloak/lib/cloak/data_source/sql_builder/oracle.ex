@@ -61,6 +61,8 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   def cast_sql(value, :real, :integer), do: ["ROUND(", value, ?)]
 
+  def cast_sql(value, _, :time), do: ["(", value, " - TRUNC(", value, "))"]
+
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect

@@ -78,6 +78,7 @@ defmodule Cloak.DataSource.Oracle do
   defp type_to_field_mapper(:datetime), do: &datetime_field_mapper/1
   defp type_to_field_mapper(:date), do: &date_field_mapper/1
   defp type_to_field_mapper(:interval), do: &interval_field_mapper/1
+  defp type_to_field_mapper(:time), do: &time_field_mapper/1
 
   defp string_field_mapper(:null), do: nil
   defp string_field_mapper(other), do: to_string(other)
@@ -97,13 +98,25 @@ defmodule Cloak.DataSource.Oracle do
   defp interval_field_mapper(:null), do: nil
 
   defp interval_field_mapper({days, {hours, minutes, seconds}}) do
-    full_seconds = round(seconds)
-    microseconds = round(seconds - full_seconds * 100_000)
+    {full_seconds, microseconds} = seconds_micros(seconds)
 
     Timex.Duration.add(
       Timex.Duration.from_days(days),
       Timex.Duration.from_clock({hours, minutes, full_seconds, microseconds})
     )
+  end
+
+  defp time_field_mapper(:null), do: nil
+
+  defp time_field_mapper({_days, {hours, minutes, seconds}}) do
+    {full_seconds, microseconds} = seconds_micros(seconds)
+    Time.from_erl!({hours, minutes, full_seconds}, {microseconds, _precision = 6})
+  end
+
+  defp seconds_micros(seconds) do
+    full_seconds = trunc(seconds)
+    microseconds = trunc((seconds - full_seconds) * 100_000) |> max(0)
+    {full_seconds, microseconds}
   end
 
   defp unpack(rows, field_mappers), do: Stream.map(rows, &map_fields(&1, field_mappers))
