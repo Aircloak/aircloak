@@ -44,9 +44,26 @@ defmodule AirWeb.QueryTest do
     assert display(%{data_source_id: data_source.id}).data_source.name == data_source.name
   end
 
-  defp display(create_query_params),
+  test "for display doesn't include permalinks if not authenticated" do
+    display = display(%{}, authenticated?: false)
+    refute Map.has_key?(display, :private_permalink)
+    refute Map.has_key?(display, :public_permalink)
+  end
+
+  test "for display includes permalinks if authenticated" do
+    display = display(%{}, authenticated?: true)
+    assert Map.has_key?(display, :private_permalink)
+    assert Map.has_key?(display, :public_permalink)
+  end
+
+  test "for display is by default non-authenticated" do
+    query = create_query!(create_user!())
+    assert AirWeb.Query.for_display(query) == AirWeb.Query.for_display(query, authenticated?: false)
+  end
+
+  defp display(create_query_params, for_display_opts \\ []),
     do:
       create_user!()
       |> create_query!(create_query_params)
-      |> AirWeb.Query.for_display()
+      |> AirWeb.Query.for_display(for_display_opts)
 end
