@@ -61,10 +61,15 @@ defmodule Cloak.Sql.Compiler.Anonymization do
   def compile_anonymization(query), do: query
 
   defp supports_statistics_anonymization?(query) do
-    Enum.all?(query.aggregators, &aggregator_supports_statistics?/1) and not groups_by_user_id?(query)
+    Enum.all?(query.aggregators, &aggregator_supports_statistics?/1) and user_id_not_selected?(query)
   end
 
-  defp groups_by_user_id?(query), do: Enum.any?(query.group_by, & &1.user_id?)
+  defp user_id_not_selected?(query) do
+    Query.Lenses.leaf_expressions()
+    |> Lens.filter(& &1.user_id?)
+    |> Lens.to_list(query.group_by ++ Query.order_by_expressions(query))
+    |> Enum.empty?()
+  end
 
   defp aggregator_supports_statistics?(%Expression{function: function, type: type})
        when function in ["min", "max"] and type in [:date, :time, :datetime],
