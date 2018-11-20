@@ -58,7 +58,7 @@ defmodule AirWeb.QueryTest do
 
   test "for display is by default non-authenticated" do
     query = create_query!(create_user!())
-    assert AirWeb.Query.for_display(query) == AirWeb.Query.for_display(query, authenticated?: false)
+    assert Map.keys(AirWeb.Query.for_display(query)) == Map.keys(AirWeb.Query.for_display(query, authenticated?: false))
   end
 
   defp display(create_query_params, for_display_opts \\ []),

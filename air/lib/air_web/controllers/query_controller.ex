@@ -15,7 +15,7 @@ defmodule AirWeb.QueryController do
     %{
       user: [:cancel, :create, :show, :load_history, :buckets, :debug_export],
       admin: :all,
-      anonymous: [:permalink_show]
+      anonymous: [:permalink_show, :permalink_buckets]
     }
   end
 
@@ -61,17 +61,15 @@ defmodule AirWeb.QueryController do
 
   def buckets(conn, params) do
     case Air.Service.Query.get_as_user(conn.assigns.current_user, Map.fetch!(params, "id")) do
-      {:ok, query} ->
-        desired_chunk =
-          case Map.fetch!(params, "chunk") do
-            "all" -> :all
-            other -> String.to_integer(other)
-          end
+      {:ok, query} -> render_buckets(conn, params, query)
+      _ -> send_resp(conn, Status.code(:not_found), "Query not found")
+    end
+  end
 
-        send_buckets_as_json(conn, query, desired_chunk)
-
-      _ ->
-        send_resp(conn, Status.code(:not_found), "Query not found")
+  def permalink_buckets(conn, params) do
+    case Air.Service.Token.query_from_token(conn.assigns.current_user, params["token"]) do
+      {:ok, query} -> render_buckets(conn, params, query)
+      _ -> send_resp(conn, Status.code(:not_found), "Query not found")
     end
   end
 
@@ -183,6 +181,16 @@ defmodule AirWeb.QueryController do
         ["}}"]
       ])
     )
+  end
+
+  defp render_buckets(conn, params, query) do
+    desired_chunk =
+      case Map.fetch!(params, "chunk") do
+        "all" -> :all
+        other -> String.to_integer(other)
+      end
+
+    send_buckets_as_json(conn, query, desired_chunk)
   end
 
   defp send_buckets_as_json(conn, %Query{result: %{"rows" => _buckets}} = query, desired_chunk),

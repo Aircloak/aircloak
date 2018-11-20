@@ -1,6 +1,9 @@
 defmodule AirWeb.Query do
   @moduledoc "Web specific query transformations."
 
+  alias Air.Service.Token
+  import AirWeb.Router.Helpers, only: [private_permalink_path: 3, public_permalink_path: 3, query_path: 3]
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -36,16 +39,15 @@ defmodule AirWeb.Query do
 
   defp links(query, opts) do
     if Keyword.get(opts, :authenticated?, false) == true do
-      alias Air.Service.Token
-      import AirWeb.Router.Helpers, only: [private_permalink_path: 3, public_permalink_path: 3, query_path: 3]
-
       %{
         private_permalink: private_permalink_path(AirWeb.Endpoint, :permalink_show, Token.private_query_token(query)),
         public_permalink: public_permalink_path(AirWeb.Endpoint, :permalink_show, Token.public_query_token(query)),
         buckets_link: query_path(AirWeb.Endpoint, :buckets, query.id)
       }
     else
-      %{}
+      %{
+        buckets_link: public_permalink_path(AirWeb.Endpoint, :permalink_buckets, Token.public_query_token(query))
+      }
     end
   end
 end
