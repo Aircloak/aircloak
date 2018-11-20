@@ -6,14 +6,14 @@ defmodule AirWeb.Query do
   # -------------------------------------------------------------------
 
   @doc "Produces a JSON blob of the query and its result for rendering"
-  @spec for_display(Air.Schemas.Query.t(), nil | [map]) :: map
-  def for_display(query, buckets \\ nil) do
+  @spec for_display(Air.Schemas.Query.t(), buckets: [map] | nil) :: map
+  def for_display(query, opts \\ []) do
     query = Air.Repo.preload(query, [:user, :data_source])
 
     query
     |> Map.take([:id, :data_source_id, :statement, :session_id, :inserted_at, :query_state])
     |> Map.merge(query.result || %{})
-    |> add_result(buckets)
+    |> add_result(Keyword.get(opts, :buckets))
     |> Map.merge(data_source_info(query))
     |> Map.merge(user_info(query))
     |> Map.put(:completed, completed?(query))

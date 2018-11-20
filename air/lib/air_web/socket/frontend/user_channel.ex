@@ -25,7 +25,7 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
       state_change_message(query)
     )
 
-    payload = AirWeb.Query.for_display(query, buckets)
+    payload = AirWeb.Query.for_display(query, buckets: buckets)
 
     AirWeb.Endpoint.broadcast_from!(
       self(),

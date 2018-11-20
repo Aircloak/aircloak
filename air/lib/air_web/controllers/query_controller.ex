@@ -46,7 +46,7 @@ defmodule AirWeb.QueryController do
            before
          ) do
       {:ok, queries} ->
-        json(conn, Enum.map(queries, &AirWeb.Query.for_display(&1, Air.Service.Query.buckets(&1, 0))))
+        json(conn, Enum.map(queries, &AirWeb.Query.for_display(&1, buckets: Air.Service.Query.buckets(&1, 0))))
 
       _ ->
         send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
@@ -98,7 +98,7 @@ defmodule AirWeb.QueryController do
       render(conn, "permalink_show.html",
         query:
           query
-          |> AirWeb.Query.for_display(Air.Service.Query.buckets(query, 0))
+          |> AirWeb.Query.for_display(buckets: Air.Service.Query.buckets(query, 0))
           # removing permalinks to avoid privilege escalation
           |> Map.drop([:private_permalink, :public_permalink]),
         csrf_token: Plug.CSRFProtection.get_csrf_token(),
