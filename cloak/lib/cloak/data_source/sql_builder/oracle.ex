@@ -43,6 +43,8 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
     [@unicode_substring, "(", string, ", -", number, ", ", number, ")"]
   end
 
+  def function_sql("hex", [data]), do: ["LOWER(RAWTOHEX(", data, "))"]
+
   for {from, to} <- %{"^" => "POWER", "%" => "MOD"} do
     def function_sql(unquote(from), args), do: function_sql(unquote(to), args)
   end
