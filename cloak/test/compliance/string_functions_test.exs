@@ -59,23 +59,14 @@ Enum.each(
       end)
 
       defp disable_unicode(context, function, column) do
-        cond do
-          column == "name" and String.starts_with?(function, ~w(lower lcase upper ucase)) ->
-            Enum.reduce(
-              [
-                Cloak.DataSource.MongoDB,
-                Cloak.DataSource.SQLServer,
-                Cloak.DataSource.Drill
-              ],
-              context,
-              &disable_for(&2, &1, true)
-            )
-
-          column == "name" and String.contains?(function, ~w(trim)) ->
-            disable_for(context, Cloak.DataSource.Drill, true)
-
-          true ->
-            context
+        if column == "name" do
+          context
+          |> disable_for(Cloak.DataSource.MongoDB, String.starts_with?(function, ~w(lower lcase upper ucase)))
+          |> disable_for(Cloak.DataSource.SQLServer, String.starts_with?(function, ~w(lower lcase upper ucase)))
+          |> disable_for(Cloak.DataSource.Drill, String.contains?(function, ~w(lower lcase upper ucase trim)))
+          |> disable_for(Cloak.DataSource.Oracle, true)
+        else
+          context
         end
       end
     end

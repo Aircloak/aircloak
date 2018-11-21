@@ -1,0 +1,15 @@
+{
+  "driver": "oracle",
+  "name": "oracle",
+  "parameters": {
+    "hostname": "oracle11g",
+    "port": 1521,
+    "username": "system",
+    "password": "oracle",
+    "database": "XE",
+    "sid": "XE"
+  },
+  "encoded": false,
+  "tables": {
+  }
+}

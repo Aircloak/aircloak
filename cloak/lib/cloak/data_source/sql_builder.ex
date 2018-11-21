@@ -70,13 +70,12 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp column_sql({:distinct, column}, query),
     do: ["DISTINCT ", column_sql(column, query)]
 
-  defp column_sql(%Expression{alias: alias} = column, query)
-       when alias != nil and alias != "",
-       do: [
-         column_sql(%Expression{column | alias: nil}, query),
-         " AS ",
-         quote_name(alias, sql_dialect_module(query).quote_char())
-       ]
+  defp column_sql(%Expression{alias: alias} = column, query) when alias != nil and alias != "" do
+    sql_dialect_module(query).alias_sql(
+      column_sql(%Expression{column | alias: nil}, query),
+      quote_name(alias, sql_dialect_module(query).quote_char())
+    )
+  end
 
   defp column_sql(
          %Expression{function?: true, function: fun_name, type: type, function_args: args},
@@ -154,18 +153,16 @@ defmodule Cloak.DataSource.SqlBuilder do
   end
 
   defp from_clause({:subquery, subquery}, query) do
-    [
-      "(",
-      build_fragments(subquery.ast),
-      ") AS ",
+    sql_dialect_module(query).alias_sql(
+      ["(", build_fragments(subquery.ast), ")"],
       quote_name(subquery.alias, sql_dialect_module(query).quote_char)
-    ]
+    )
   end
 
   defp from_clause(table_name, query) when is_binary(table_name) do
     query.selected_tables
     |> Enum.find(&(&1.name == table_name))
-    |> table_to_from(sql_dialect_module(query).quote_char())
+    |> table_to_from(query)
   end
 
   defp on_clause(nil, _query), do: []
@@ -178,10 +175,15 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp join_sql(:left_outer_join), do: "LEFT OUTER JOIN"
   defp join_sql(:right_outer_join), do: "RIGHT OUTER JOIN"
 
-  defp table_to_from(%{name: table_name, db_name: table_name}, quote_char), do: quote_table_name(table_name, quote_char)
+  defp table_to_from(%{name: table_name, db_name: table_name}, query),
+    do: quote_table_name(table_name, sql_dialect_module(query).quote_char())
 
-  defp table_to_from(table, quote_char),
-    do: "#{quote_table_name(table.db_name, quote_char)} AS #{quote_name(table.name, quote_char)}"
+  defp table_to_from(table, query) do
+    sql_dialect_module(query).alias_sql(
+      quote_table_name(table.db_name, sql_dialect_module(query).quote_char()),
+      quote_name(table.name, sql_dialect_module(query).quote_char())
+    )
+  end
 
   defp where_fragments(nil, _query), do: []
 
