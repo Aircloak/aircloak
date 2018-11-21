@@ -87,8 +87,8 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def limit_sql(_, _), do: Cloak.DataSource.raise_error("Non-zero OFFSET is not natively supported on this data source")
 
   @impl Dialect
-  def boolean_literal(true), do: ?1
-  def boolean_literal(false), do: ?0
+  def boolean_literal(true), do: "1"
+  def boolean_literal(false), do: "0"
 
   @impl Dialect
   def native_support_for_ilike?(), do: false
