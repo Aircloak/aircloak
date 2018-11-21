@@ -12,6 +12,8 @@ defmodule Cloak.Query.Runner.Engine do
   def run(runner_args) do
     {query_killer_reg, query_killer_unreg} = runner_args.memory_callbacks
 
+    start_time = :erlang.monotonic_time(:milli_seconds)
+
     query =
       runner_args.statement
       |> parse!(runner_args.state_updater)
@@ -23,6 +25,10 @@ defmodule Cloak.Query.Runner.Engine do
     query_killer_reg.()
     result = run_statement(query, features, runner_args.state_updater)
     query_killer_unreg.()
+
+    runtime = :erlang.monotonic_time(:milli_seconds) - start_time
+    query = Sql.Query.add_info(query, "[Debug] Query executed in #{runtime / 1000} seconds.")
+
     {:ok, result, Sql.Query.info_messages(query)}
   rescue
     e in Cloak.Query.ExecutionError ->
