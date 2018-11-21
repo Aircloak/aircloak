@@ -144,6 +144,13 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     end)
   end
 
+  defp update_aggregator(
+         %Expression{function_args: [{:distinct, %Expression{user_id?: true, table: inner_table}}]} = aggregator
+       ) do
+    arg = inner_table |> column_from_table("__ac_count_duid") |> set_fields(user_id?: true, synthetic?: true)
+    %Expression{aggregator | function_args: [{:distinct, arg}]}
+  end
+
   defp update_aggregator(aggregator) do
     [%Expression{name: "__ac_agg_" <> _ = name, table: inner_table}] = aggregator.function_args
 
@@ -175,17 +182,21 @@ defmodule Cloak.Sql.Compiler.Anonymization do
   end
 
   defp aggregation_statistics(aggregators) do
-    Enum.flat_map(aggregators, fn %Expression{aggregate?: true, function_args: [column]} ->
-      for {function, type} <- [
-            {"sum", column.type},
-            {"min", column.type},
-            {"max", column.type},
-            {"stddev", :real}
-          ] do
-        function
-        |> Expression.function([column], type, true)
-        |> set_fields(alias: "#{column.name}_#{function}", synthetic?: true)
-      end
+    Enum.flat_map(aggregators, fn
+      %Expression{function_args: [{:distinct, %Expression{user_id?: true}}]} ->
+        []
+
+      %Expression{aggregate?: true, function_args: [column]} ->
+        for {function, type} <- [
+              {"sum", column.type},
+              {"min", column.type},
+              {"max", column.type},
+              {"stddev", :real}
+            ] do
+          function
+          |> Expression.function([column], type, true)
+          |> set_fields(alias: "#{column.name}_#{function}", synthetic?: true)
+        end
     end)
   end
 

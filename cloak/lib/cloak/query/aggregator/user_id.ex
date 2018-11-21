@@ -171,16 +171,24 @@ defmodule Cloak.Query.Aggregator.UserId do
   defp per_user_aggregator_and_column(aggregator), do: {per_user_aggregator(aggregator), aggregated_column(aggregator)}
 
   defp aggregate_group({values, anonymizer, users_rows}, indexed_aggregators) do
+    users_count = Anonymizer.noisy_count(anonymizer, Enum.count(users_rows))
+
     aggregation_results =
-      Enum.map(indexed_aggregators, fn {values_index, aggregator} ->
-        users_rows
-        |> Stream.map(fn {_user, row_values} -> Enum.at(row_values, values_index) end)
-        |> Enum.reject(&is_nil/1)
-        |> preprocess_for_aggregation(aggregator)
-        |> aggregate_by(aggregator.alias || aggregator.function, aggregator.type, anonymizer)
+      Enum.map(indexed_aggregators, fn
+        {_values_index, %Expression{function: "count", function_args: [{:distinct, %Expression{user_id?: true}}]}} ->
+          users_count
+
+        {_values_index, %Expression{function: "count_noise", function_args: [{:distinct, %Expression{user_id?: true}}]}} ->
+          1
+
+        {values_index, aggregator} ->
+          users_rows
+          |> Stream.map(fn {_user, row_values} -> Enum.at(row_values, values_index) end)
+          |> Enum.reject(&is_nil/1)
+          |> preprocess_for_aggregation(aggregator)
+          |> aggregate_by(aggregator.alias || aggregator.function, aggregator.type, anonymizer)
       end)
 
-    users_count = Anonymizer.noisy_count(anonymizer, Enum.count(users_rows))
     {users_count, values ++ aggregation_results}
   end
 
