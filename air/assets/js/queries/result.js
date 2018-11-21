@@ -144,6 +144,7 @@ export class ResultView extends React.Component {
   addX: (col: number) => () => void;
   addY: (col: number) => () => void;
   removeColumn: (col: number) => () => void;
+  getInfoMessages: () => string[];
 
   componentDidUpdate() {
     this.rebuildGraphData();
