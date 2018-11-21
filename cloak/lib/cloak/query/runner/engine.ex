@@ -27,7 +27,7 @@ defmodule Cloak.Query.Runner.Engine do
     query_killer_unreg.()
 
     runtime = :erlang.monotonic_time(:milli_seconds) - start_time
-    query = Sql.Query.add_info(query, "[Debug] Query executed in #{runtime / 1000} seconds.")
+    query = Sql.Query.add_debug_info(query, "Query executed in #{runtime / 1000} seconds.")
 
     {:ok, result, Sql.Query.info_messages(query)}
   rescue

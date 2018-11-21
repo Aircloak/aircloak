@@ -130,7 +130,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
       [Lenses.query_expressions() |> Lens.filter(& &1.aggregate?)],
       &update_aggregator/1
     )
-    |> Query.add_info("[Debug] Statistics-based anonymization enabled.")
+    |> Query.add_debug_info("Using statistics-based anonymization.")
   end
 
   defp column_from_table(table, name) do

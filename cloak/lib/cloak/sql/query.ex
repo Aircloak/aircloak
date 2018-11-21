@@ -184,12 +184,17 @@ defmodule Cloak.Sql.Query do
   def add_info(query, info_messages) when is_list(info_messages),
     do: Enum.reduce(info_messages, query, &add_info(&2, &1))
 
-  def add_info(query, info_message) do
-    if Logger.level() != :debug and String.starts_with?(info_message, "[Debug]") do
-      query
-    else
-      %__MODULE__{query | info: [info_message | query.info]}
-    end
+  def add_info(query, info_message), do: %__MODULE__{query | info: [info_message | query.info]}
+
+  @doc "Adds one or more debug info messages to the query."
+  @spec add_debug_info(t, String.t() | [String.t()]) :: t
+  def add_debug_info(query, info_messages) when is_list(info_messages),
+    do: Enum.reduce(info_messages, query, &add_debug_info(&2, &1))
+
+  def add_debug_info(query, info_message) do
+    if Logger.level() == :debug,
+      do: add_info(query, "[Debug] " <> info_message),
+      else: query
   end
 
   @doc "Returns all info messages in the given query."
