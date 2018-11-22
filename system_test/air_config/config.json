@@ -5,7 +5,8 @@
     "master_password": "super_secret_master_password",
     "use_staging_license_key": true,
     "license_file": "license.lic",
-    "privacy_policy_file": "privacy_policy.md"
+    "privacy_policy_file": "privacy_policy.md",
+    "users_and_datasources_file": "credentials.json"
   },
 
   "database": {
