@@ -3,9 +3,7 @@ defmodule Air.Service.Query do
 
   alias Air.Repo
   alias Air.Schemas.{DataSource, Query, ResultChunk, User}
-  alias Air.Service.Token
   alias AirWeb.Socket.Frontend.UserChannel
-  alias AirWeb.Router
 
   import Ecto.Query
   require Logger
@@ -28,21 +26,6 @@ defmodule Air.Service.Query do
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
-
-  @doc "Produces a JSON blob of the query and its result for rendering"
-  @spec for_display(Query.t(), nil | [map]) :: Map.t()
-  def for_display(query, buckets \\ nil) do
-    query = Repo.preload(query, [:user, :data_source])
-
-    query
-    |> Map.take([:id, :data_source_id, :statement, :session_id, :inserted_at, :query_state])
-    |> Map.merge(query.result || %{})
-    |> add_result(buckets)
-    |> Map.merge(data_source_info(query))
-    |> Map.merge(user_info(query))
-    |> Map.put(:completed, completed?(query))
-    |> Map.merge(permalinks(query))
-  end
 
   @doc """
   Creates and registers a query placeholder in the database. Given that it has an ID
@@ -482,28 +465,6 @@ defmodule Air.Service.Query do
   defp include_filtered(items, schema, filtered_ids) do
     filtered_items = schema |> where([q], q.id in ^filtered_ids) |> Repo.all()
     Enum.uniq(items ++ filtered_items)
-  end
-
-  # -------------------------------------------------------------------
-  # Helpers for for_display
-  # -------------------------------------------------------------------
-
-  defp data_source_info(query),
-    do: %{data_source: %{name: Map.get(query.data_source || %{}, :name, "Unknown data source")}}
-
-  defp user_info(query), do: %{user: %{name: Map.get(query.user || %{}, :name, "Unknown user")}}
-
-  defp completed?(query), do: query.query_state in [:error, :completed, :cancelled]
-
-  defp add_result(result, nil), do: result
-  defp add_result(result, buckets), do: Map.put(result, :rows, buckets)
-
-  defp permalinks(query) do
-    %{
-      private_permalink:
-        Router.Helpers.private_permalink_path(AirWeb.Endpoint, :query, Token.private_query_token(query)),
-      public_permalink: Router.Helpers.public_permalink_path(AirWeb.Endpoint, :query, Token.public_query_token(query))
-    }
   end
 
   # -------------------------------------------------------------------

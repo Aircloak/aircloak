@@ -14,7 +14,8 @@ defmodule AirWeb.QueryController do
   def permissions do
     %{
       user: [:cancel, :create, :show, :load_history, :buckets, :debug_export],
-      admin: :all
+      admin: :all,
+      anonymous: [:permalink_show, :permalink_buckets]
     }
   end
 
@@ -45,7 +46,13 @@ defmodule AirWeb.QueryController do
            before
          ) do
       {:ok, queries} ->
-        json(conn, Enum.map(queries, &Air.Service.Query.for_display(&1, Air.Service.Query.buckets(&1, 0))))
+        json(
+          conn,
+          Enum.map(
+            queries,
+            &AirWeb.Query.for_display(&1, authenticated?: true, buckets: Air.Service.Query.buckets(&1, 0))
+          )
+        )
 
       _ ->
         send_resp(conn, Status.code(:unauthorized), "Unauthorized to query data source")
@@ -54,17 +61,15 @@ defmodule AirWeb.QueryController do
 
   def buckets(conn, params) do
     case Air.Service.Query.get_as_user(conn.assigns.current_user, Map.fetch!(params, "id")) do
-      {:ok, query} ->
-        desired_chunk =
-          case Map.fetch!(params, "chunk") do
-            "all" -> :all
-            other -> String.to_integer(other)
-          end
+      {:ok, query} -> render_buckets(conn, params, query)
+      _ -> send_resp(conn, Status.code(:not_found), "Query not found")
+    end
+  end
 
-        send_buckets_as_json(conn, query, desired_chunk)
-
-      _ ->
-        send_resp(conn, Status.code(:not_found), "Query not found")
+  def permalink_buckets(conn, params) do
+    case Air.Service.Token.query_from_token(conn.assigns.current_user, params["token"]) do
+      {:ok, query} -> render_buckets(conn, params, query)
+      _ -> send_resp(conn, Status.code(:not_found), "Query not found")
     end
   end
 
@@ -89,6 +94,25 @@ defmodule AirWeb.QueryController do
           ["csv"] -> text(conn, error_text)
           _ -> json(conn, %{error: error_text})
         end
+    end
+  end
+
+  def permalink_show(conn, params) do
+    with {:ok, query} <- Air.Service.Token.query_from_token(conn.assigns.current_user, params["token"]) do
+      query_for_display =
+        AirWeb.Query.for_display(query,
+          authenticated?: false,
+          permalink_token: params["token"],
+          buckets: Air.Service.Query.buckets(query, 0)
+        )
+
+      render(conn, "permalink_show.html",
+        query: query_for_display,
+        csrf_token: Plug.CSRFProtection.get_csrf_token(),
+        number_format: Air.Service.User.number_format_settings(conn.assigns.current_user)
+      )
+    else
+      :error -> not_found(conn)
     end
   end
 
@@ -146,7 +170,7 @@ defmodule AirWeb.QueryController do
     # new style result -> compute json in streaming fashion and send chunked response
     json_without_rows =
       query
-      |> Air.Service.Query.for_display()
+      |> AirWeb.Query.for_display(authenticated?: true)
       |> Jason.encode!(strict_keys: true)
 
     prefix_size = byte_size(json_without_rows) - 1
@@ -164,6 +188,16 @@ defmodule AirWeb.QueryController do
         ["}}"]
       ])
     )
+  end
+
+  defp render_buckets(conn, params, query) do
+    desired_chunk =
+      case Map.fetch!(params, "chunk") do
+        "all" -> :all
+        other -> String.to_integer(other)
+      end
+
+    send_buckets_as_json(conn, query, desired_chunk)
   end
 
   defp send_buckets_as_json(conn, %Query{result: %{"rows" => _buckets}} = query, desired_chunk),

@@ -38,7 +38,7 @@ defmodule Cloak.Query.Aggregator.Statistics do
     [count_duid_column | _] = query.db_columns
 
     bucket_statistics_columns = [count_duid_column, min_uid_column, max_uid_column]
-    aggregation_statistics_columns = Enum.map(per_user_aggregators, & &1.function_args)
+    aggregation_statistics_columns = Enum.map(per_user_aggregators, &extract_args(&1.function_args))
     statistics_columns = [bucket_statistics_columns | aggregation_statistics_columns]
 
     fn {accumulated_statistics, default_noise_layers}, row ->
@@ -92,6 +92,8 @@ defmodule Cloak.Query.Aggregator.Statistics do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp merge_aggregation_statistics(count, count1, [count1], count2, [count2]), do: [count]
+
   defp merge_aggregation_statistics(count, count1, [sum1, min1, max1, stddev1], count2, [sum2, min2, max2, stddev2]) do
     avg1 = sum1 / count1
     avg2 = sum2 / count2
@@ -117,28 +119,41 @@ defmodule Cloak.Query.Aggregator.Statistics do
     [bucket_statistics | aggregation_statistics] = statistics
     [count_duid | _] = bucket_statistics
 
+    users_count = Anonymizer.noisy_count(anonymizer, count_duid)
+
     aggregation_results =
       Enum.zip(aggregators, aggregation_statistics)
-      |> Enum.map(fn {aggregator, [sum, min, max, stddev]} ->
-        avg = sum / count_duid
-        statistics = {count_duid, sum, min, max, avg, stddev}
+      |> Enum.map(fn
+        {%Expression{function: "count", function_args: [{:distinct, %Expression{user_id?: true}}]}, [^count_duid]} ->
+          users_count
 
-        {noisy_sum, noisy_min, noisy_max, noisy_sum_sigma} = Anonymizer.noisy_statistics(anonymizer, statistics)
+        {%Expression{function: "count_noise", function_args: [{:distinct, %Expression{user_id?: true}}]}, [^count_duid]} ->
+          1
 
-        case aggregator.alias do
-          "count" -> noisy_sum |> round() |> Kernel.max(Anonymizer.config(:low_count_absolute_lower_bound))
-          "sum" -> float_to_type(noisy_sum, aggregator.type)
-          "min" -> float_to_type(noisy_min, aggregator.type)
-          "max" -> float_to_type(noisy_max, aggregator.type)
-          "count_noise" -> noisy_sum_sigma
-          "sum_noise" -> noisy_sum_sigma
-        end
+        {aggregator, [sum, min, max, stddev]} ->
+          avg = sum / count_duid
+          statistics = {count_duid, sum, min, max, avg, stddev}
+
+          {noisy_sum, noisy_min, noisy_max, noisy_sum_sigma} = Anonymizer.noisy_statistics(anonymizer, statistics)
+
+          case aggregator.alias do
+            "count" -> noisy_sum |> round() |> Kernel.max(Anonymizer.config(:low_count_absolute_lower_bound))
+            "sum" -> float_to_type(noisy_sum, aggregator.type)
+            "min" -> float_to_type(noisy_min, aggregator.type)
+            "max" -> float_to_type(noisy_max, aggregator.type)
+            "count_noise" -> noisy_sum_sigma
+            "sum_noise" -> noisy_sum_sigma
+          end
       end)
 
-    users_count = Anonymizer.noisy_count(anonymizer, count_duid)
     {users_count, property ++ aggregation_results}
   end
 
   defp float_to_type(value, :integer), do: round(value)
   defp float_to_type(value, :real), do: value
+
+  defp extract_args(args), do: Enum.map(args, &extract_arg/1)
+
+  defp extract_arg({:distinct, arg}), do: arg
+  defp extract_arg(arg), do: arg
 end
