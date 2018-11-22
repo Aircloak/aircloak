@@ -8,7 +8,7 @@ cd $ROOT_DIR
 
 . docker/ci_helper.sh system_test
 
-function prepare_for_nightly {
+function prepare_for_system_test {
   local container_name="$1"
 
   # starting databases first, so they have the time to boot and initialize before client containers are started
@@ -182,8 +182,8 @@ case "$1" in
     handle_build_image
     ;;
 
-  prepare_for_nightly)
-    prepare_for_nightly $2
+  prepare_for_system_test)
+    prepare_for_system_test $2
     ;;
 
   *)
