@@ -170,7 +170,7 @@ defmodule Cloak.Query.AnonimyzerTest do
       [-3]
     ]
 
-    assert 2 = Anonymizer.new([MapSet.new()]) |> Anonymizer.median(rows) |> round()
+    assert 1 = Anonymizer.new([MapSet.new()]) |> Anonymizer.median(rows) |> round()
   end
 
   test "same noise layers are collapsed" do
