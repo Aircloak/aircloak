@@ -8,7 +8,7 @@ cd $ROOT_DIR
 
 . docker/docker_helper.sh
 
-CONTAINER_ID="ci_debug_$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c 16; echo '')"
+CONTAINER_ID="ci_debug_$(cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z' | head -c 16; echo '')"
 
 trap cleanup EXIT TERM INT
 
