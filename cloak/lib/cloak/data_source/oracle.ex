@@ -5,9 +5,7 @@ defmodule Cloak.DataSource.Oracle do
   """
 
   use Cloak.DataSource.Driver.SQL
-
-  alias Cloak.DataSource
-  alias Cloak.DataSource.{SqlBuilder, Table}
+  alias Cloak.DataSource.RODBC
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
@@ -17,52 +15,19 @@ defmodule Cloak.DataSource.Oracle do
   def sql_dialect_module(), do: SqlBuilder.Oracle
 
   @impl Driver
-  def connect(parameters) do
-    :jamdb_oracle.start_link(
-      host: to_charlist(parameters.hostname),
-      port: parameters[:port],
-      user: to_charlist(parameters.username),
-      password: to_charlist(parameters.password),
-      sid: to_charlist(parameters.sid)
-    )
-    |> case do
-      {:ok, conn} -> {:ok, conn}
-      error -> {:error, inspect(error)}
-    end
-  end
+  def connect(parameters), do: RODBC.connect(parameters, &conn_params/1)
 
   @impl Driver
-  def disconnect(connection), do: :jamdb_oracle.stop(connection)
+  defdelegate disconnect(connection), to: RODBC
 
   @impl Driver
-  def load_tables(connection, table) do
-    """
-      SELECT column_name, data_type
-      FROM all_tab_columns
-      WHERE table_name = '#{table.db_name |> String.replace("'", "''")}'
-    """
-    |> run_query(connection)
-    |> case do
-      {:ok, []} -> DataSource.raise_error("Table `#{table.db_name}` does not exist")
-      {:ok, rows} -> [%{table | columns: Enum.map(rows, &build_column/1)}]
-      {:error, reason} -> DataSource.raise_error("`#{reason}`")
-    end
-  end
+  def load_tables(connection, table), do: RODBC.load_tables(connection, update_in(table.db_name, &"\"#{&1}\""))
 
   @impl Driver
-  def select(connection, sql_query, result_processor) do
-    field_mappers = Enum.map(sql_query.db_columns, &type_to_field_mapper(&1.type))
-
-    SqlBuilder.build(sql_query)
-    |> run_query(connection)
-    |> case do
-      {:ok, rows} -> {:ok, result_processor.([unpack(rows, field_mappers)])}
-      {:error, reason} -> DataSource.raise_error("`#{reason}`")
-    end
-  end
+  defdelegate select(connection, sql_query, result_processor), to: RODBC
 
   @impl Driver
-  def driver_info(_connection), do: nil
+  defdelegate driver_info(connection), to: RODBC
 
   @impl Driver
   def supports_query?(query), do: query.limit == nil and query.offset == 0
@@ -71,82 +36,16 @@ defmodule Cloak.DataSource.Oracle do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp type_to_field_mapper(:text), do: &string_field_mapper/1
-  defp type_to_field_mapper(:integer), do: &integer_field_mapper/1
-  defp type_to_field_mapper(:real), do: &real_field_mapper/1
-  defp type_to_field_mapper(:boolean), do: &boolean_field_mapper/1
-  defp type_to_field_mapper(:datetime), do: &datetime_field_mapper/1
-  defp type_to_field_mapper(:date), do: &date_field_mapper/1
-  defp type_to_field_mapper(:interval), do: &interval_field_mapper/1
-  defp type_to_field_mapper(:time), do: &time_field_mapper/1
+  defp conn_params(normalized_parameters) do
+    hostname = normalized_parameters.hostname
+    port = Map.get(normalized_parameters, :port, 1521)
+    database = normalized_parameters.database
 
-  # Oracle seems to treat empty strings as NULL, and this is reflected in what the lib returns in those cases
-  defp string_field_mapper(:null), do: ""
-  defp string_field_mapper(other), do: to_string(other)
-
-  # The lib seems to be giving us X.0 even for example as a result from cast to integer
-  defp integer_field_mapper(:null), do: nil
-  defp integer_field_mapper({value}), do: trunc(value)
-
-  defp real_field_mapper(:null), do: nil
-  defp real_field_mapper({value}), do: value
-
-  defp boolean_field_mapper(:null), do: nil
-  defp boolean_field_mapper({value}), do: value != 0
-
-  defp datetime_field_mapper(:null), do: nil
-  defp datetime_field_mapper(datetime), do: datetime |> NaiveDateTime.from_erl!() |> Cloak.Time.max_precision()
-
-  defp date_field_mapper(:null), do: nil
-  defp date_field_mapper({date, _time}), do: Date.from_erl!(date)
-
-  defp interval_field_mapper(:null), do: nil
-
-  defp interval_field_mapper({days, {hours, minutes, seconds}}) do
-    {full_seconds, microseconds} = seconds_micros(seconds)
-
-    Timex.Duration.add(
-      Timex.Duration.from_days(days),
-      Timex.Duration.from_clock({hours, minutes, full_seconds, microseconds})
-    )
+    %{
+      DBQ: "#{hostname}:#{port}/#{database}",
+      Uid: normalized_parameters[:username],
+      Pwd: normalized_parameters[:password],
+      DSN: "Oracle"
+    }
   end
-
-  defp time_field_mapper(:null), do: nil
-
-  defp time_field_mapper({_days, {hours, minutes, seconds}}) do
-    {full_seconds, microseconds} = seconds_micros(seconds)
-    Time.from_erl!({hours, minutes, full_seconds}, {microseconds, _precision = 6})
-  end
-
-  defp seconds_micros(seconds) do
-    full_seconds = trunc(seconds)
-    microseconds = trunc((seconds - full_seconds) * 100_000) |> max(0)
-    {full_seconds, microseconds}
-  end
-
-  defp unpack(rows, field_mappers), do: Stream.map(rows, &map_fields(&1, field_mappers))
-
-  defp map_fields([], []), do: []
-
-  defp map_fields([field | rest_fields], [mapper | rest_mappers]),
-    do: [mapper.(field) | map_fields(rest_fields, rest_mappers)]
-
-  defp run_query(query, connection) do
-    case :jamdb_oracle.sql_query(connection, to_charlist(query)) do
-      {:ok, [{:result_set, _columns, _, rows}]} -> {:ok, rows}
-      {:ok, [{:proc_result, _code, text}]} -> {:error, to_string(text)}
-      other -> {:error, inspect(other)}
-    end
-  end
-
-  defp build_column([name, type]), do: Table.column(to_string(name), type |> to_string() |> parse_type())
-
-  defp parse_type("DATE"), do: :date
-  defp parse_type("TIMESTAMP" <> _), do: :datetime
-  defp parse_type("BINARY_FLOAT"), do: :real
-  defp parse_type("BINARY_DOUBLE"), do: :real
-  defp parse_type("NUMBER" <> rest), do: if(rest =~ ~r/\(.*,.*\)/, do: :real, else: :integer)
-  defp parse_type("VARCHAR" <> _), do: :text
-  defp parse_type("VARCHAR2" <> _), do: :text
-  defp parse_type(other), do: {:unsupported, other}
 end
