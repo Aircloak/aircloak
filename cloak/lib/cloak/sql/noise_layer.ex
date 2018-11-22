@@ -91,8 +91,10 @@ defmodule Cloak.Sql.NoiseLayer do
   defp normalize(data) when is_binary(data), do: data
 
   defp compute_hash(data) do
-    <<a::16-binary, b::16-binary>> = :crypto.hash(:sha256, data)
-    <<a::58-unsigned, b::58-unsigned, _c::12>> = :crypto.exor(a, b)
+    # We only keep 58-bits of data for the RNG seed, so there is no point in using a hash function with longer output.
+    # From the tested cryptographic hash functions (MD5, SHA1 and SHA2), SHA1 executes the fastest.
+    # xxHash was also tested (which is not cryptographically secure), and it runs only 4% faster than SHA1.
+    <<a::58-unsigned, b::58-unsigned, _c::44>> = :crypto.hash(:sha, data)
     a ^^^ b
   end
 
