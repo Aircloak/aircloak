@@ -35,10 +35,7 @@ function start_air_container {
     'Elixir.Air.Repo.Seeder':seed(),
 
     ok = 'Elixir.Air.Service.PrivacyPolicy':set(<<\"privacy policy\">>),
-    {ok, User} = 'Elixir.Air.Service.User':login(<<\"admin@aircloak.com\">>, <<\"password1234\">>),
-
-    {ok, License} = file:read_file(code:priv_dir(air) ++ \"/config/license.lic\"),
-    ok = 'Elixir.Air.Service.License':load(License)
+    {ok, User} = 'Elixir.Air.Service.User':login(<<\"admin@aircloak.com\">>, <<\"password1234\">>)
   "
 
   admin_token=$(docker exec ${container_name}_air cat /aircloak/air/lib/air-$(cat VERSION)/priv/dev/admin_token)
