@@ -32,9 +32,7 @@ function start_air_container {
 
   echo "configuring air"
   erlang_eval $container_name air "
-    'Elixir.Air.Repo.Seeder':seed(),
-
-    {ok, User} = 'Elixir.Air.Service.User':login(<<\"admin@aircloak.com\">>, <<\"password1234\">>)
+    'Elixir.Air.Repo.Seeder':seed()
   "
 
   admin_token=$(docker exec ${container_name}_air cat /aircloak/air/lib/air-$(cat VERSION)/priv/dev/admin_token)
