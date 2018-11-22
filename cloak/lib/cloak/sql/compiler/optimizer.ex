@@ -192,11 +192,13 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     base_columns =
       (Helpers.aggregator_sources(query) ++ query.group_by)
       |> Enum.flat_map(&extract_base_columns/1)
+      |> Enum.reject(& &1.user_id?)
       |> Enum.uniq_by(&Expression.semantic/1)
       |> Enum.map(&%Expression{&1 | alias: "#{&1.table.name}.#{&1.name}"})
 
     aggregated_columns =
       query.aggregators
+      |> Enum.reject(&match?(%Expression{function_args: [{:distinct, %Expression{user_id?: true}}]}, &1))
       |> Enum.map(&uid_aggregator/1)
       |> Enum.uniq_by(&Expression.semantic/1)
       |> Enum.with_index()
@@ -210,7 +212,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
       query
       | subquery?: true,
         type: :restricted,
-        aggregators: Enum.filter(aggregated_columns, & &1.aggregate?),
+        aggregators: aggregated_columns,
         columns: inner_columns,
         column_titles: Enum.map(inner_columns, &(&1.alias || &1.name)),
         group_by: Enum.map([user_id | base_columns], &Expression.unalias/1),
@@ -248,13 +250,17 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   defp uid_aggregator(%Expression{function: "sum_noise", function_args: [arg]} = expression),
     do: uid_aggregator(%Expression{expression | function: "sum", type: Function.type(arg)})
 
-  defp uid_aggregator(%Expression{function: "count", function_args: [{:distinct, %Expression{user_id?: true}}]}),
-    do: Expression.constant(:integer, 1)
-
   defp uid_aggregator(%Expression{function_args: [{:distinct, %Expression{user_id?: true} = user_id}]}),
     do: user_id
 
   defp uid_aggregator(aggregator), do: aggregator
+
+  defp update_aggregator(
+         %Expression{function_args: [{:distinct, %Expression{user_id?: true}}]} = aggregator,
+         _inner_table,
+         _aggregated_columns
+       ),
+       do: aggregator
 
   defp update_aggregator(old_aggregator, inner_table, aggregated_columns) do
     uid_aggregator = uid_aggregator(old_aggregator)
@@ -270,6 +276,9 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   defp global_aggregator("count"), do: "sum"
   defp global_aggregator("count_noise"), do: "sum_noise"
   defp global_aggregator(function_name), do: function_name
+
+  defp update_base_column(%Expression{user_id?: true}, inner_table),
+    do: inner_table.columns |> Enum.find(&(&1.name == inner_table.user_id)) |> Expression.column(inner_table)
 
   defp update_base_column(column, inner_table),
     do: %Expression{column | table: inner_table, name: "#{column.table.name}.#{column.name}", synthetic?: true}

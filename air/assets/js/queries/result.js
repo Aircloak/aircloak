@@ -48,6 +48,7 @@ export type Result = {
   session_id: string,
   private_permalink: string,
   public_permalink: string,
+  buckets_link: string,
 };
 
 type Props = {
@@ -197,7 +198,7 @@ export class ResultView extends React.Component {
 
   loadChunks(desiredChunk: number, fun: ((rows: Row[]) => void)) {
     this.setState({loadingChunks: true, loadError: false});
-    loadBuckets(this.props.result.id, desiredChunk, this.context.authentication, {
+    loadBuckets(this.props.result.buckets_link, desiredChunk, this.context.authentication, {
       success: (buckets) => {
         this.setState({loadingChunks: false, loadError: false});
         fun(buckets);

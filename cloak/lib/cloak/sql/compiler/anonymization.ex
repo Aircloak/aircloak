@@ -61,10 +61,15 @@ defmodule Cloak.Sql.Compiler.Anonymization do
   def compile_anonymization(query), do: query
 
   defp supports_statistics_anonymization?(query) do
-    Enum.all?(query.aggregators, &aggregator_supports_statistics?/1) and not groups_by_user_id?(query)
+    Enum.all?(query.aggregators, &aggregator_supports_statistics?/1) and user_id_not_selected?(query)
   end
 
-  defp groups_by_user_id?(query), do: Enum.any?(query.group_by, & &1.user_id?)
+  defp user_id_not_selected?(query) do
+    Query.Lenses.leaf_expressions()
+    |> Lens.filter(& &1.user_id?)
+    |> Lens.to_list(query.group_by ++ Query.order_by_expressions(query))
+    |> Enum.empty?()
+  end
 
   defp aggregator_supports_statistics?(%Expression{function: function, type: type})
        when function in ["min", "max"] and type in [:date, :time, :datetime],
@@ -139,15 +144,19 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     end)
   end
 
+  defp update_aggregator(
+         %Expression{function_args: [{:distinct, %Expression{user_id?: true, table: inner_table}}]} = aggregator
+       ) do
+    arg = inner_table |> column_from_table("__ac_count_duid") |> set_fields(user_id?: true, synthetic?: true)
+    %Expression{aggregator | function_args: [{:distinct, arg}]}
+  end
+
   defp update_aggregator(aggregator) do
     [%Expression{name: "__ac_agg_" <> _ = name, table: inner_table}] = aggregator.function_args
 
     args =
       for input <- ~w(sum min max stddev) do
-        inner_table.columns
-        |> Enum.find(&(&1.name == "#{name}_#{input}"))
-        |> Expression.column(inner_table)
-        |> set_fields(synthetic?: true)
+        inner_table |> column_from_table("#{name}_#{input}") |> set_fields(synthetic?: true)
       end
 
     %Expression{aggregator | function_args: args}
@@ -173,17 +182,21 @@ defmodule Cloak.Sql.Compiler.Anonymization do
   end
 
   defp aggregation_statistics(aggregators) do
-    Enum.flat_map(aggregators, fn %Expression{aggregate?: true, function_args: [column]} ->
-      for {function, type} <- [
-            {"sum", column.type},
-            {"min", column.type},
-            {"max", column.type},
-            {"stddev", :real}
-          ] do
-        function
-        |> Expression.function([column], type, true)
-        |> set_fields(alias: "#{column.name}_#{function}", synthetic?: true)
-      end
+    Enum.flat_map(aggregators, fn
+      %Expression{function_args: [{:distinct, %Expression{user_id?: true}}]} ->
+        []
+
+      %Expression{aggregate?: true, function_args: [column]} ->
+        for {function, type} <- [
+              {"sum", column.type},
+              {"min", column.type},
+              {"max", column.type},
+              {"stddev", :real}
+            ] do
+          function
+          |> Expression.function([column], type, true)
+          |> set_fields(alias: "#{column.name}_#{function}", synthetic?: true)
+        end
     end)
   end
 
