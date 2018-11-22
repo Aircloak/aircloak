@@ -36,7 +36,7 @@ defmodule Cloak.Query.ParallelStreamingTest do
     end
   end
 
-  test "parallel data ingestion" do
+  test "parallel data ingestion for uid anonymization" do
     :ok = insert_rows(_user_ids = 1..700, @table, ["value"], [1])
     :ok = insert_rows(_user_ids = 1..1000, @table, ["value"], [2])
     :ok = insert_rows(_user_ids = 1..500, @table, ["value"], [-1])
@@ -45,6 +45,18 @@ defmodule Cloak.Query.ParallelStreamingTest do
 
     assert_query("SELECT COUNT(*), COUNT(DISTINCT value), MIN(value), MEDIAN(value), SUM(value) FROM #{@table}", %{
       rows: [%{row: [4200, 5, -2, 0, -200]}]
+    })
+  end
+
+  test "parallel data ingestion for no-uid anonymization" do
+    :ok = insert_rows(_user_ids = 1..700, @table, ["value"], [1])
+    :ok = insert_rows(_user_ids = 1..1000, @table, ["value"], [2])
+    :ok = insert_rows(_user_ids = 1..500, @table, ["value"], [-1])
+    :ok = insert_rows(_user_ids = 1..800, @table, ["value"], [0])
+    :ok = insert_rows(_user_ids = 1..1200, @table, ["value"], [-2])
+
+    assert_query("SELECT BUCKET(value BY 5), COUNT(*) FROM #{@table} GROUP BY 1 ORDER BY 1", %{
+      rows: [%{row: [-5.0, 1701]}, %{row: [0.0, 2503]}]
     })
   end
 end
