@@ -34,7 +34,6 @@ function start_air_container {
   erlang_eval $container_name air "
     'Elixir.Air.Repo.Seeder':seed(),
 
-    ok = 'Elixir.Air.Service.PrivacyPolicy':set(<<\"privacy policy\">>),
     {ok, User} = 'Elixir.Air.Service.User':login(<<\"admin@aircloak.com\">>, <<\"password1234\">>)
   "
 

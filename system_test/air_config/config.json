@@ -5,7 +5,8 @@
     "api_token_salt": "ik/WxOrtgkv5Aervx2GPbxXYNxMOVw9QEgfe+NMUhjblzYon8ivPXGa+7Y2WI54n1inakG3wm1fQGRg7xFoIMA",
     "master_password": "super_secret_master_password",
     "use_staging_license_key": true,
-    "license_file": "license.lic"
+    "license_file": "license.lic",
+    "privacy_policy_file": "privacy_policy.md"
   },
 
   "database": {
