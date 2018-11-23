@@ -24,7 +24,8 @@ defmodule Cloak.DataSource.Oracle do
   def load_tables(connection, table), do: RODBC.load_tables(connection, update_in(table.db_name, &"\"#{&1}\""))
 
   @impl Driver
-  defdelegate select(connection, sql_query, result_processor), to: RODBC
+  def select(connection, sql_query, result_processor),
+    do: RODBC.select(connection, sql_query, %{:text => &text_mapper/1}, result_processor)
 
   @impl Driver
   defdelegate driver_info(connection), to: RODBC
@@ -48,4 +49,9 @@ defmodule Cloak.DataSource.Oracle do
       DSN: "Oracle"
     }
   end
+
+  # In Oracle, NULL and empty string are the same thing (e.g. `select coalesce(trim('  '), 'is null') from dual` returns
+  # 'is null'). Therefore, we're converting NULL into an empty string.
+  defp text_mapper(nil), do: ""
+  defp text_mapper(value), do: value
 end
