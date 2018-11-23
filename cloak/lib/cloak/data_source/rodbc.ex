@@ -28,19 +28,18 @@ defmodule Cloak.DataSource.RODBC do
 
   @doc "Loads one or more table definitions from the database."
   @spec load_tables(pid, Table.t()) :: [Table.t()]
-  def load_tables(connection, table, table_load_statement \\ &"SELECT * FROM #{&1} WHERE 0 = 1") do
+  def load_tables(connection, table, table_load_statement \\ &"SELECT * FROM #{&1} WHERE 0 = 1"),
+    do: [%{table | columns: table_columns(connection, table, table_load_statement)}]
+
+  @doc "Returns the list of columns for the given table."
+  @spec table_columns(pid, Table.t()) :: [Table.column()]
+  def table_columns(connection, table, table_load_statement \\ &"SELECT * FROM #{&1} WHERE 0 = 1") do
     case Port.execute(connection, table_load_statement.(table.db_name), Driver.timeout()) do
       :ok ->
         case Port.get_columns(connection) do
-          {:ok, []} ->
-            DataSource.raise_error("Table #{table.db_name} does not have any columns")
-
-          {:ok, columns} ->
-            columns = Enum.map(columns, fn {name, type_name} -> Table.column(name, parse_type(type_name)) end)
-            [%{table | columns: columns}]
-
-          {:error, reason} ->
-            DataSource.raise_error("`#{to_string(reason)}`")
+          {:ok, []} -> DataSource.raise_error("Table #{table.db_name} does not have any columns")
+          {:ok, columns} -> Enum.map(columns, fn {name, type_name} -> Table.column(name, parse_type(type_name)) end)
+          {:error, reason} -> DataSource.raise_error("`#{to_string(reason)}`")
         end
 
       {:error, reason} ->
@@ -60,6 +59,13 @@ defmodule Cloak.DataSource.RODBC do
       :ok -> {:ok, connection |> stream_rows(row_mapper) |> result_processor.()}
       {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
     end
+  end
+
+  @doc "Executes a raw SQL SELECT statement on the given connection."
+  @spec select_direct(pid, String.t()) :: Enumerable.t()
+  def select_direct(connection, statement) do
+    with :ok <- Port.execute(connection, statement, Driver.timeout()),
+         do: {:ok, Stream.concat(stream_rows(connection, & &1))}
   end
 
   @doc "Returns the driver specific information to be stored inside the data source structure."
