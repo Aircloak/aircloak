@@ -22,12 +22,12 @@ defmodule Cloak.DataSource.RODBC do
     |> driver_connect(driver_params)
   end
 
-  # -------------------------------------------------------------------
-  # DataSource.Driver callbacks
-  # -------------------------------------------------------------------
-
+  @doc "Closes the connection"
+  @spec disconnect(pid) :: :ok
   def disconnect(connection), do: Port.stop(connection)
 
+  @doc "Loads one or more table definitions from the database."
+  @spec load_tables(pid, Table.t()) :: [Table.t()]
   def load_tables(connection, table, table_load_statement \\ &"SELECT * FROM #{&1} WHERE 0 = 1") do
     case Port.execute(connection, table_load_statement.(table.db_name), Driver.timeout()) do
       :ok ->
@@ -48,6 +48,9 @@ defmodule Cloak.DataSource.RODBC do
     end
   end
 
+  @doc "Selects the data from the database."
+  @spec select(pid, Cloak.Sql.Query.t(), DataSource.result_processor()) ::
+          {:ok, DataSource.processed_result()} | {:error, any}
   def select(connection, sql_query, result_processor) do
     statement = SqlBuilder.build(sql_query)
     field_mappers = Enum.map(sql_query.db_columns, &type_to_field_mapper(&1.type))
@@ -59,6 +62,8 @@ defmodule Cloak.DataSource.RODBC do
     end
   end
 
+  @doc "Returns the driver specific information to be stored inside the data source structure."
+  @spec driver_info(pid) :: nil
   def driver_info(_connection), do: nil
 
   # -------------------------------------------------------------------
