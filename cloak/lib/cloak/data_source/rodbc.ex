@@ -49,11 +49,11 @@ defmodule Cloak.DataSource.RODBC do
   end
 
   @doc "Selects the data from the database."
-  @spec select(pid, Cloak.Sql.Query.t(), DataSource.result_processor()) ::
+  @spec select(pid, Cloak.Sql.Query.t(), %{Table.data_type() => (term -> term)}, DataSource.result_processor()) ::
           {:ok, DataSource.processed_result()} | {:error, any}
-  def select(connection, sql_query, result_processor) do
+  def select(connection, sql_query, driver_mappers \\ %{}, result_processor) do
     statement = SqlBuilder.build(sql_query)
-    field_mappers = Enum.map(sql_query.db_columns, &type_to_field_mapper(&1.type))
+    field_mappers = Enum.map(sql_query.db_columns, &type_to_field_mapper(driver_mappers, &1.type))
     row_mapper = &map_fields(&1, field_mappers)
 
     case Port.execute(connection, statement, Driver.timeout()) do
@@ -126,14 +126,24 @@ defmodule Cloak.DataSource.RODBC do
   defp map_fields([field | rest_fields], [mapper | rest_mappers]),
     do: [mapper.(field) | map_fields(rest_fields, rest_mappers)]
 
-  defp type_to_field_mapper(:datetime), do: &datetime_field_mapper/1
-  defp type_to_field_mapper(:time), do: &time_field_mapper/1
-  defp type_to_field_mapper(:date), do: &date_field_mapper/1
-  defp type_to_field_mapper(:real), do: &real_field_mapper/1
-  defp type_to_field_mapper(:integer), do: &integer_field_mapper/1
-  defp type_to_field_mapper(:interval), do: &interval_field_mapper(&1)
-  defp type_to_field_mapper(:boolean), do: &boolean_field_mapper(&1)
-  defp type_to_field_mapper(_), do: &generic_field_mapper/1
+  defp type_to_field_mapper(driver_mappers, type) do
+    default_mappers = %{
+      :datetime => &datetime_field_mapper/1,
+      :time => &time_field_mapper/1,
+      :date => &date_field_mapper/1,
+      :real => &real_field_mapper/1,
+      :integer => &integer_field_mapper/1,
+      :interval => &interval_field_mapper(&1),
+      :boolean => &boolean_field_mapper(&1)
+    }
+
+    {:ok, mapper} =
+      with :error <- Map.fetch(driver_mappers, type),
+           :error <- Map.fetch(default_mappers, type),
+           do: {:ok, &generic_field_mapper/1}
+
+    mapper
+  end
 
   defp generic_field_mapper(nil), do: nil
   defp generic_field_mapper(value), do: value
