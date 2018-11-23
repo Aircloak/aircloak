@@ -39,7 +39,7 @@ defmodule Cloak.DataSource.Oracle do
 
   @impl Driver
   def select(connection, sql_query, result_processor),
-    do: RODBC.select(connection, sql_query, %{:text => &text_mapper/1, :date => &date_mapper/1}, result_processor)
+    do: RODBC.select(connection, sql_query, custom_mappers(), result_processor)
 
   @impl Driver
   defdelegate driver_info(connection), to: RODBC
@@ -77,10 +77,30 @@ defmodule Cloak.DataSource.Oracle do
     |> MapSet.new()
   end
 
+  defp custom_mappers() do
+    %{
+      :text => &text_mapper/1,
+      :date => &date_mapper/1,
+      :datetime => &datetime_mapper/1
+    }
+  end
+
   # In Oracle, NULL and empty string are the same thing (e.g. `select coalesce(trim('  '), 'is null') from dual` returns
   # 'is null'). Therefore, we're converting NULL into an empty string.
   defp text_mapper(nil), do: ""
   defp text_mapper(value), do: value
+
+  defp datetime_mapper(string) do
+    string
+    # In some cases (e.g. when data type is timestamp(0)), we can get a trailing `.` which we need to remove.
+    |> String.split(~r/\.$/)
+    |> hd()
+    |> Cloak.Time.parse_datetime()
+    |> case do
+      {:ok, datetime} -> datetime
+      {:error, _reason} -> nil
+    end
+  end
 
   defp date_mapper(string) do
     case Cloak.Time.parse_datetime(string) do
