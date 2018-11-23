@@ -7,7 +7,8 @@ defmodule Compliance.MiscTest do
     @tag compliance: "sample users from #{table} in query"
     test "sample users from #{table} test in query", context do
       context
-      |> Map.put(:delta, 0.4)
+      # Oracle uses a different sample algorithm than other databases, so it's not included in these tests.
+      |> disable_for(Cloak.DataSource.Oracle)
       |> assert_consistent_and_not_failing("""
         SELECT COUNT(*), COUNT(DISTINCT #{unquote(uid)}) FROM #{unquote(table)} SAMPLE_USERS 25%
       """)
@@ -16,7 +17,8 @@ defmodule Compliance.MiscTest do
     @tag compliance: "sample users from #{table} in subquery"
     test "sample users from #{table} test in subquery", context do
       context
-      |> Map.put(:delta, 0.4)
+      # Oracle uses a different sample algorithm than other databases, so it's not included in these tests.
+      |> disable_for(Cloak.DataSource.Oracle)
       |> assert_consistent_and_not_failing("""
         SELECT COUNT(*) FROM (SELECT DISTINCT #{unquote(uid)} FROM #{unquote(table)} SAMPLE_USERS 25%) AS t
       """)
