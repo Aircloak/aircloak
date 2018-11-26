@@ -64,7 +64,7 @@ function clean_dangling {
 function start_compliance_container {
   clean_dangling
 
-  container_id="local_ci_$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c 16; echo '')"
+  container_id="local_ci_$(cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z' | head -c 16; echo '')"
 
   docker_script build_image
 
@@ -84,7 +84,7 @@ function start_dev_container {
   clean_dangling
   docker_script build_image
 
-  container_id="local_ci_$(cat /dev/urandom | LC_CTYPE=C tr -dc 'a-zA-Z' | head -c 16; echo '')"
+  container_id="local_ci_$(cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z' | head -c 16; echo '')"
   STOP_AFTER=infinity DOCKER_ARGS="--network='container:air'" docker_script start_container $container_id
 
   printf "\nyou can start the system with \`make start\`\n\n"

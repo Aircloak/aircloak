@@ -77,7 +77,7 @@ In the snippet above, the type `secret_string` indicates a string which should c
 
 ```
 cat /dev/urandom |
-  LC_CTYPE=C tr -dc 'a-zA-Z0-9' |
+  LC_ALL=C tr -dc 'a-zA-Z0-9' |
   fold -w 64 |
   head -n 1
 ```
@@ -340,7 +340,7 @@ The `salt` parameter is used for anonymisation purposes. Make sure to create a s
 
 ```
 cat /dev/urandom |
-  LC_CTYPE=C tr -dc 'a-zA-Z0-9' |
+  LC_ALL=C tr -dc 'a-zA-Z0-9' |
   fold -w 64 |
   head -n 1
 ```

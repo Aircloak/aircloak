@@ -115,7 +115,7 @@ defmodule Cloak.Query.DbEmulator do
     Logger.debug("Anonymizing query result ...")
 
     db_rows
-    |> ParallelProcessor.execute(concurrency(query), &group_rows(&1, query), &Aggregator.merge_groups/2)
+    |> ParallelProcessor.execute(concurrency(query), &group_rows(&1, query), Aggregator.group_merger(query))
     |> process_rows(query, state_updater)
   end
 

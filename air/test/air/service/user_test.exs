@@ -389,6 +389,26 @@ defmodule Air.Service.UserTest do
     end
   end
 
+  describe ".logins" do
+    test "returns main login" do
+      user = TestRepoHelper.create_user!()
+      main_login = User.main_login(user)
+      assert main_login in User.logins(user)
+    end
+
+    test "returns a full list of logins" do
+      user = TestRepoHelper.create_user!()
+      login1 = TestRepoHelper.create_login_for_user!(user)
+      login2 = TestRepoHelper.create_login_for_user!(user)
+      user = User.load(user.id)
+
+      expected_logins = Enum.sort([login1.login, login2.login, User.main_login(user)])
+      actual_logins = user |> User.logins() |> Enum.sort()
+
+      assert actual_logins == expected_logins
+    end
+  end
+
   describe "password reset" do
     setup do
       user = TestRepoHelper.create_user!()

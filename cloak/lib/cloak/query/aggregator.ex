@@ -63,18 +63,21 @@ defmodule Cloak.Query.Aggregator do
   end
 
   @doc """
-    Returns the union of two sets of groups.
+    Returns the function that performans the union of two sets of groups.
     Merging is needed when grouping over multiple processes, before the start of the aggregation step.
   """
-  @spec merge_groups(Rows.groups(), Rows.groups()) :: Rows.groups()
-  def merge_groups(groups1, groups2),
-    do:
+  @spec group_merger(Query.t()) :: (Rows.groups(), Rows.groups() -> Rows.groups())
+  def group_merger(query) do
+    aggregation_sub_module = aggregation_sub_module(query)
+
+    fn groups1, groups2 ->
       Map.merge(groups1, groups2, fn _key, {aggregation_data1, noise_layers1}, {aggregation_data2, noise_layers2} ->
-        # We directly call the UserId aggregator here because it is the only one that can have group collisions.
-        aggregation_data = UserId.merge_aggregation_data(aggregation_data1, aggregation_data2)
+        aggregation_data = aggregation_sub_module.merge_aggregation_data(aggregation_data1, aggregation_data2)
         noise_layers = NoiseLayer.merge_accumulators(noise_layers1, noise_layers2)
         {aggregation_data, noise_layers}
       end)
+    end
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
