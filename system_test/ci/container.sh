@@ -74,15 +74,7 @@ function start_cloak_container {
   wait_for_app $container_name cloak
 
   echo "populating database ..."
-  elixir_rcp $container_name cloak "
-    Compliance.initialize(\"config\", 10, 1)
-    Compliance.regenerate_config_from_db(\"config\")
-    Cloak.DataSource.reinitialize_all_data_sources()
-    :sys.get_state(Cloak.DataSource)
-    Supervisor.terminate_child(Cloak.Supervisor, Cloak.AirSocket.Supervisor)
-    Supervisor.restart_child(Cloak.Supervisor, Cloak.AirSocket.Supervisor)
-    :ok
-  "
+  elixir_rcp $container_name cloak "Cloak.SystemTest.Setup.run()"
 
   # using a dummy sleep to make sure async datasource reloading has finished
   sleep 10
@@ -125,7 +117,7 @@ function elixir_rcp {
   local app=$2
   shift 2 || true
 
-  docker exec ${container}_${app} /aircloak/$app/bin/$app rpc $@
+  docker exec ${container}_${app} /aircloak/$app/bin/$app rpc "$@"
 }
 
 mkdir -p system_test/priv/dev

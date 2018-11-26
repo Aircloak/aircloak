@@ -10,23 +10,23 @@ function app_running {
   local container=$1
   local app=$2
 
-  local running=$(erlang_eval $container $app "[App || {App, _, _} <- application:which_applications(), App =:= $app]")
-  if [ "$running" == "[]" ]; then return 1; else return 0; fi
+  running=$(elixir_rpc $container $app "Application.loaded_applications() |> Enum.any?(& elem(&1,0) == :$app)")
+  if [ "$running" == "true" ]; then return 0; else return 1; fi
 }
 
-function erlang_eval {
+function elixir_rpc {
   local container=$1
   local app=$2
   shift 2 || true
 
-  docker exec ${container}_${app} /aircloak/$app/bin/$app eval $@
+  docker exec ${container}_${app} /aircloak/$app/bin/$app rpc "$@"
 }
 
 container=$1
 app=$2
 
 # wait for the beam process to start
-while [ "$(docker exec ${container}_${app} ps aux | grep beam.smp)" == "" ]; do sleep 1; done
+while [ "$(docker exec ${container}_${app} ps aux | grep progname\ aircloak)" == "" ]; do sleep 1; done
 
 # wait for the node to be available
 while [ "$(docker exec ${container}_${app} /aircloak/$app/bin/$app ping)" != "pong" ]; do sleep 1; done
