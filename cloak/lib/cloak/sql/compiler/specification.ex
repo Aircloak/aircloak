@@ -820,6 +820,10 @@ defmodule Cloak.Sql.Compiler.Specification do
       Helpers.uid_column_selected?(query) ->
         nil
 
+      # auto-selecting an user id here would change the behaviour of the query
+      query.distinct? ->
+        nil
+
       # no group by, no having and no aggregate -> select any uid column
       match?(%Query{group_by: [], having: nil}, query) && not Helpers.aggregates?(query) ->
         case Helpers.all_id_columns_from_tables(query) do

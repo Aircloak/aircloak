@@ -64,4 +64,10 @@ defmodule Cloak.Query.AnonymizedSubqueriesTest do
       }
     )
   end
+
+  test "distinct in subquery is anonymized" do
+    assert_query("select count(*) from (select distinct i from anon_sq) as t", %{
+      rows: [%{row: [10]}]
+    })
+  end
 end

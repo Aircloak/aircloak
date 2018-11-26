@@ -19,7 +19,6 @@
 
 ### Known issues
 
-- Certain uses of `DISTINCT` outside of an aggregate lead to unexpected query behaviour and results
 
 ## Version 18.4.0
 
