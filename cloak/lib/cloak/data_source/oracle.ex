@@ -6,6 +6,7 @@ defmodule Cloak.DataSource.Oracle do
 
   use Cloak.DataSource.Driver.SQL
   alias Cloak.DataSource.RODBC
+  alias Cloak.Sql.Expression
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
@@ -32,7 +33,7 @@ defmodule Cloak.DataSource.Oracle do
 
   @impl Driver
   def select(connection, sql_query, result_processor),
-    do: RODBC.select(connection, sql_query, custom_mappers(), result_processor)
+    do: RODBC.select(connection, map_selected_expressions(sql_query), custom_mappers(), result_processor)
 
   @impl Driver
   defdelegate driver_info(connection), to: RODBC
@@ -77,10 +78,20 @@ defmodule Cloak.DataSource.Oracle do
     Enum.map(rodbc_columns, &%{&1 | type: Map.get(correct_column_types, &1.name, &1.type)})
   end
 
+  # We need to perform explicit casting on some selected types, because ODBC driver can't handle them.
+  defp map_selected_expressions(sql_query),
+    do: %Cloak.Sql.Query{sql_query | db_columns: Enum.map(sql_query.db_columns, &map_selected_expression/1)}
+
+  defp map_selected_expression(%Expression{type: :time} = expression),
+    do: Expression.function({:cast, {:native_type, "TIMESTAMP"}}, [expression], :time)
+
+  defp map_selected_expression(%Expression{} = expression), do: expression
+
   defp custom_mappers() do
     %{
       :text => &text_mapper/1,
       :date => &date_mapper/1,
+      :time => &time_mapper/1,
       :datetime => &datetime_mapper/1,
       :boolean => &boolean_mapper/1
     }
@@ -108,6 +119,10 @@ defmodule Cloak.DataSource.Oracle do
       {:ok, datetime} -> NaiveDateTime.to_date(datetime)
       {:error, _reason} -> nil
     end
+  end
+
+  defp time_mapper(string) do
+    with datetime when not is_nil(datetime) <- datetime_mapper(string), do: NaiveDateTime.to_time(datetime)
   end
 
   defp boolean_mapper(value), do: round(value) == 1
