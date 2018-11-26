@@ -17,6 +17,10 @@
 - The format in which cloak memory is reported has changed
 - By default, the cloak accepts at most 10 simultaneous queries. This setting can be changed with the `max_parallel_queries` cloak configuration parameter. See the section on configuring [Insights Cloak](/docs/ops/configuration.html#insights-cloak-configuration) for details.
 
+### Known issues
+
+- Certain uses of `DISTINCT` outside of an aggregate lead to unexpected query behaviour and results
+
 ## Version 18.4.0
 
 ### Features

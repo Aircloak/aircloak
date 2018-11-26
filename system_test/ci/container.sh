@@ -31,16 +31,7 @@ function start_air_container {
   wait_for_app "$container_name" air
 
   echo "configuring air"
-  erlang_eval $container_name air "
-    'Elixir.Air.Repo.Seeder':seed(),
-
-    ok = 'Elixir.Air.Service.PrivacyPolicy':set(<<\"privacy policy\">>),
-    {ok, User} = 'Elixir.Air.Service.User':login(<<\"admin@aircloak.com\">>, <<\"password1234\">>),
-
-    {ok, License} = file:read_file(code:priv_dir(air) ++ \"/config/license.lic\"),
-    ok = 'Elixir.Air.Service.License':load(License)
-  "
-
+  elixir_rcp $container_name air "Air.Repo.Seeder.seed()"
   admin_token=$(docker exec ${container_name}_air cat /aircloak/air/lib/air-$(cat VERSION)/priv/dev/admin_token)
   echo "$admin_token" > system_test/priv/dev/admin_token
 }
@@ -83,15 +74,7 @@ function start_cloak_container {
   wait_for_app $container_name cloak
 
   echo "populating database ..."
-  erlang_eval $container_name cloak "
-    'Elixir.Compliance':initialize(<<\"config\">>, 10, 1),
-    'Elixir.Compliance':regenerate_config_from_db(<<\"config\">>),
-    'Elixir.Cloak.DataSource':reinitialize_all_data_sources(),
-    sys:get_state('Elixir.Cloak.DataSource'),
-    'Elixir.Supervisor':terminate_child('Elixir.Cloak.Supervisor', 'Elixir.Cloak.AirSocket.Supervisor'),
-    'Elixir.Supervisor':restart_child('Elixir.Cloak.Supervisor', 'Elixir.Cloak.AirSocket.Supervisor'),
-    ok
-  "
+  elixir_rcp $container_name cloak "Cloak.SystemTest.Setup.run()"
 
   # using a dummy sleep to make sure async datasource reloading has finished
   sleep 10
@@ -129,12 +112,12 @@ function wait_for_app {
   }
 }
 
-function erlang_eval {
+function elixir_rcp {
   local container=$1
   local app=$2
   shift 2 || true
 
-  docker exec ${container}_${app} /aircloak/$app/bin/$app eval $@
+  docker exec ${container}_${app} /aircloak/$app/bin/$app rpc "$@"
 }
 
 mkdir -p system_test/priv/dev
