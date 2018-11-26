@@ -85,6 +85,9 @@ defmodule Cloak.DataSource.Oracle do
   defp map_selected_expression(%Expression{type: :time} = expression),
     do: Expression.function({:cast, {:native_type, "TIMESTAMP"}}, [expression], :time)
 
+  defp map_selected_expression(%Expression{type: :interval} = expression),
+    do: Expression.function("TO_CHAR", [expression], :interval)
+
   defp map_selected_expression(%Expression{} = expression), do: expression
 
   defp custom_mappers() do
@@ -93,6 +96,7 @@ defmodule Cloak.DataSource.Oracle do
       :date => &date_mapper/1,
       :time => &time_mapper/1,
       :datetime => &datetime_mapper/1,
+      :interval => &interval_mapper/1,
       :boolean => &boolean_mapper/1
     }
   end
@@ -126,4 +130,37 @@ defmodule Cloak.DataSource.Oracle do
   end
 
   defp boolean_mapper(value), do: round(value) == 1
+
+  defp interval_mapper(string) do
+    import Combine.Parsers.{Base, Text}
+
+    # Parsing of Oracle interval string format. The interval is given as SDDDDDDDDD HH:MM:SS.FFFFFFFFF
+    #   S - sign (+ or -)
+    #   D - number of days
+    #   H - hours
+    #   M - minutes
+    #   S - seconds
+    #   F - fractions of seconds
+    case Combine.parse(
+           string,
+           sequence([
+             map(either(char(?-), char(?+)), &Map.fetch!(%{"-" => -1, "+" => +1}, &1)),
+             integer(),
+             ignore(space()),
+             integer(),
+             ignore(char(?:)),
+             integer(),
+             ignore(char(?:)),
+             integer(),
+             ignore(char(?.)),
+             ignore(integer())
+           ])
+         ) do
+      [[sign, days, hours, minutes, seconds]] ->
+        Timex.Duration.from_seconds(sign * (((days * 24 + hours) * 60 + minutes) * 60 + seconds))
+
+      {:error, _reason} ->
+        nil
+    end
+  end
 end
