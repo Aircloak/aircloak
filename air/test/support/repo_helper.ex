@@ -28,6 +28,25 @@ defmodule Air.TestRepoHelper do
     Repo.preload(user, [:groups, :logins])
   end
 
+  @doc "Creates a login for a user"
+  @spec create_login_for_user!(User.t(), String.t(), String.t(), :psql | :main) :: Air.Schemas.Login.t()
+  def create_login_for_user!(
+        user,
+        login \\ random_string(),
+        password \\ "password1234",
+        type \\ :psql
+      ) do
+    params = %{
+      login: login,
+      hashed_password: Air.Service.Password.hash(password),
+      login_type: type,
+      user_id: user.id
+    }
+
+    changeset = Ecto.Changeset.cast(%Air.Schemas.Login{}, params, [:login, :hashed_password, :login_type, :user_id])
+    Repo.insert!(changeset)
+  end
+
   @doc "Creates a user that is an admin. See create_user!/0 and make_admin!/1"
   @spec create_admin_user!() :: Air.Schemas.User.t()
   def create_admin_user!() do

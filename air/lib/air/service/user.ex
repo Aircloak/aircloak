@@ -58,6 +58,13 @@ defmodule Air.Service.User do
     login.login
   end
 
+  @doc "Returns all logins associated with a user account"
+  @spec logins(User.t()) :: [String.t()]
+  def logins(user) do
+    user = Air.Repo.preload(user, :logins)
+    Enum.map(user.logins, & &1.login)
+  end
+
   @doc """
   Performs a database check to validate if a user is enabled or not.
   Useful when a user record exists in memory, and no database operation

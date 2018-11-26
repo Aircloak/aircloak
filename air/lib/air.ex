@@ -205,7 +205,7 @@ defmodule Air do
       end
     end)
     |> Enum.reject(&is_nil/1)
-    |> Enum.map(& &1.login)
+    |> Enum.flat_map(&Air.Service.User.logins(&1))
     |> case do
       [] -> :ok
       added_logins -> Logger.info("Added user accounts for logins: #{Enum.join(added_logins, ", ")}")
@@ -229,7 +229,7 @@ defmodule Air do
           user_logins =
             data_source
             |> Air.Service.DataSource.users()
-            |> Enum.map(& &1.login)
+            |> Enum.flat_map(&Air.Service.User.logins(&1))
             |> Enum.join(", ")
 
           Logger.info("Added data source `#{name}`. It's available to the following users: #{user_logins}.")
