@@ -204,7 +204,6 @@ defmodule Cloak.DataSource.RODBC do
 
   defp boolean_field_mapper(0), do: false
   defp boolean_field_mapper(other) when is_integer(other), do: true
-  defp boolean_field_mapper(float) when is_float(float), do: boolean_field_mapper(integer_field_mapper(float))
   defp boolean_field_mapper(nil), do: nil
 
   defp parse_type("varchar"), do: :text

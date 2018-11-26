@@ -81,7 +81,8 @@ defmodule Cloak.DataSource.Oracle do
     %{
       :text => &text_mapper/1,
       :date => &date_mapper/1,
-      :datetime => &datetime_mapper/1
+      :datetime => &datetime_mapper/1,
+      :boolean => &boolean_mapper/1
     }
   end
 
@@ -108,4 +109,6 @@ defmodule Cloak.DataSource.Oracle do
       {:error, _reason} -> nil
     end
   end
+
+  defp boolean_mapper(value), do: round(value) == 1
 end
