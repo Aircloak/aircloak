@@ -5,8 +5,13 @@ This project runs tests against the aircloak system. The components, such as air
 ## Air-setup
 
 The Air is setup automatically using a predefined license, privacy policy and user accounts.
-Users `admin@aircloak.com` and `user@aircloak.com` are created. Both have password `password1234`, 
-and both have access to all data sources.
+Two sets of user accounts are created:
+
+- `admin@aircloak.com` and `user@aircloak.com` are created by the
+  [Seeder](https://github.com/Aircloak/aircloak/blob/master/air/lib/air/repo/seeder.ex)-module
+- `admin` and `user` are created using the automatic creation of users during boot functionality
+
+All users share the password `password1234`.
 
 ## Running
 
