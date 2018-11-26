@@ -25,6 +25,9 @@ defmodule Cloak.DataSource.Oracle do
     # ODBC driver returns datetime for all date columns, so we need to query oracle directly to determine date columns
     date_columns = date_columns(connection, table)
 
+    # ODBC driver returns float for all numeric columns, so we need to query oracle directly to determine date columns
+    integer_columns = integer_columns(connection, table)
+
     # Once we've figured out which columns are dates, we'll delegate to RODBC to get all the column types, and manually
     # set the `:date` type for date columns.
     columns =
@@ -32,6 +35,9 @@ defmodule Cloak.DataSource.Oracle do
       |> RODBC.table_columns(update_in(table.db_name, &"\"#{&1}\""))
       |> Enum.map(fn column ->
         if MapSet.member?(date_columns, column.name), do: %{column | type: :date}, else: column
+      end)
+      |> Enum.map(fn column ->
+        if MapSet.member?(integer_columns, column.name), do: %{column | type: :integer}, else: column
       end)
 
     [%{table | columns: columns}]
@@ -69,6 +75,19 @@ defmodule Cloak.DataSource.Oracle do
       SELECT COLUMN_NAME
       FROM ALL_TAB_COLUMNS
       WHERE TABLE_NAME = '#{table.db_name}' AND DATA_TYPE = 'DATE'
+    /
+    {:ok, rows} = RODBC.select_direct(connection, statement)
+
+    rows
+    |> Stream.map(fn [name] -> name end)
+    |> MapSet.new()
+  end
+
+  defp integer_columns(connection, table) do
+    statement = ~s/
+      SELECT COLUMN_NAME
+      FROM ALL_TAB_COLUMNS
+      WHERE TABLE_NAME = '#{table.db_name}' AND DATA_TYPE = 'NUMBER' and COALESCE(DATA_SCALE, 0) = 0
     /
     {:ok, rows} = RODBC.select_direct(connection, statement)
 
