@@ -94,6 +94,9 @@ defmodule Cloak.Query.Aggregator.Statistics do
 
   defp merge_aggregation_statistics(count, count1, [count1], count2, [count2]), do: [count]
 
+  defp merge_aggregation_statistics(_count, _count1, [nil, nil, nil, nil], _count2, statistics2), do: statistics2
+  defp merge_aggregation_statistics(_count, _count1, statistics1, _count2, [nil, nil, nil, nil]), do: statistics1
+
   defp merge_aggregation_statistics(count, count1, [sum1, min1, max1, stddev1], count2, [sum2, min2, max2, stddev2]) do
     avg1 = sum1 / count1
     avg2 = sum2 / count2
@@ -129,6 +132,9 @@ defmodule Cloak.Query.Aggregator.Statistics do
 
         {%Expression{function: "count_noise", function_args: [{:distinct, %Expression{user_id?: true}}]}, [^count_duid]} ->
           1
+
+        {_aggregator, [nil, nil, nil, nil]} ->
+          nil
 
         {aggregator, [sum, min, max, stddev]} ->
           avg = sum / count_duid

@@ -106,4 +106,15 @@ defmodule Cloak.Query.AnonymizationTest do
       assert Enum.all?(rows, fn %{row: [count, _]} -> count > 0 end)
     end
   end
+
+  test "no-uid with nulls" do
+    :ok = insert_rows(_user_ids = 0..10, "anonymizations", ["number", "string"], [nil, "aa"])
+    :ok = insert_rows(_user_ids = 5..15, "anonymizations", ["number", "string"], [nil, "ab"])
+    :ok = insert_rows(_user_ids = 5..15, "anonymizations", ["number", "string"], [nil, "ba"])
+    :ok = insert_rows(_user_ids = 15..25, "anonymizations", ["number", "string"], [1, "bb"])
+
+    assert_query("select left(string, 1), round(avg(number)) from anonymizations group by 1 order by 1", %{
+      rows: [%{row: ["a", nil]}, %{row: ["b", 1]}]
+    })
+  end
 end
