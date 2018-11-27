@@ -74,8 +74,38 @@ defmodule Compliance.DataSources do
 
   @doc "Takes a data source template definition and expands it with table definitions"
   @spec complete_data_source_definitions([DataSource.t()], disable_analysis_operations: boolean) :: [DataSource.t()]
-  def complete_data_source_definitions(data_sources, opts \\ []),
-    do: expand_and_add_table_definitions(data_sources, opts)
+  def complete_data_source_definitions(data_source_defintion_templates, opts \\ []) do
+    Enum.flat_map(data_source_defintion_templates, fn data_source_defintion_template ->
+      plain_tables =
+        table_definitions(&TableDefinitions.plain/1, data_source_defintion_template)
+        |> create_table_structure(@plain_name_postfix, data_source_defintion_template)
+
+      plain_data_source =
+        data_source_defintion_template
+        |> Map.put(:tables, plain_tables)
+        |> Map.put(:initial_tables, plain_tables)
+        |> Map.put(:name, "#{data_source_defintion_template.name}#{@plain_name_postfix}")
+        |> Map.put(:marker, "normal")
+
+      if data_source_defintion_template[:encoded] == false do
+        [plain_data_source]
+      else
+        encoded_tables =
+          table_definitions(&TableDefinitions.encoded/1, data_source_defintion_template)
+          |> create_table_structure(@encoded_name_postfix, data_source_defintion_template)
+          |> conditionally_disable_analysis_operations(Keyword.get(opts, :disable_analysis_operations, false))
+
+        encoded_data_source =
+          data_source_defintion_template
+          |> Map.put(:tables, encoded_tables)
+          |> Map.put(:initial_tables, encoded_tables)
+          |> Map.put(:name, "#{data_source_defintion_template.name}#{@encoded_name_postfix}")
+          |> Map.put(:marker, "encoded")
+
+        [plain_data_source, encoded_data_source]
+      end
+    end)
+  end
 
   @doc "Returns a data source config as JSON"
   @spec read_config(String.t()) :: Map.t()
@@ -192,39 +222,6 @@ defmodule Compliance.DataSources do
   defp config_name(other), do: other
 
   defp config_file_path(name), do: Path.join([Application.app_dir(:cloak, "priv"), "config", "#{name}.json"])
-
-  defp expand_and_add_table_definitions(data_source_scaffolds, opts) do
-    Enum.flat_map(data_source_scaffolds, fn data_source_scaffold ->
-      plain_tables =
-        table_definitions(&TableDefinitions.plain/1, data_source_scaffold)
-        |> create_table_structure(@plain_name_postfix, data_source_scaffold)
-
-      plain_data_source =
-        data_source_scaffold
-        |> Map.put(:tables, plain_tables)
-        |> Map.put(:initial_tables, plain_tables)
-        |> Map.put(:name, "#{data_source_scaffold.name}#{@plain_name_postfix}")
-        |> Map.put(:marker, "normal")
-
-      if data_source_scaffold[:encoded] == false do
-        [plain_data_source]
-      else
-        encoded_tables =
-          table_definitions(&TableDefinitions.encoded/1, data_source_scaffold)
-          |> create_table_structure(@encoded_name_postfix, data_source_scaffold)
-          |> conditionally_disable_analysis_operations(Keyword.get(opts, :disable_analysis_operations, false))
-
-        encoded_data_source =
-          data_source_scaffold
-          |> Map.put(:tables, encoded_tables)
-          |> Map.put(:initial_tables, encoded_tables)
-          |> Map.put(:name, "#{data_source_scaffold.name}#{@encoded_name_postfix}")
-          |> Map.put(:marker, "encoded")
-
-        [plain_data_source, encoded_data_source]
-      end
-    end)
-  end
 
   defp table_definitions(generator_fun, %{driver: MongoDB}), do: generator_fun.(true)
 
