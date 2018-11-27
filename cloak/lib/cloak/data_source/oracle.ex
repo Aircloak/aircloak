@@ -5,9 +5,8 @@ defmodule Cloak.DataSource.Oracle do
   """
 
   use Cloak.DataSource.Driver.SQL
-
-  alias Cloak.DataSource
-  alias Cloak.DataSource.{SqlBuilder, Table}
+  alias Cloak.DataSource.RODBC
+  alias Cloak.Sql.Expression
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
@@ -17,52 +16,27 @@ defmodule Cloak.DataSource.Oracle do
   def sql_dialect_module(), do: SqlBuilder.Oracle
 
   @impl Driver
-  def connect(parameters) do
-    :jamdb_oracle.start_link(
-      host: to_charlist(parameters.hostname),
-      port: parameters[:port],
-      user: to_charlist(parameters.username),
-      password: to_charlist(parameters.password),
-      sid: to_charlist(parameters.sid)
-    )
-    |> case do
-      {:ok, conn} -> {:ok, conn}
-      error -> {:error, inspect(error)}
-    end
-  end
+  def connect(parameters), do: RODBC.connect(parameters, &conn_params/1)
 
   @impl Driver
-  def disconnect(connection), do: :jamdb_oracle.stop(connection)
+  defdelegate disconnect(connection), to: RODBC
 
   @impl Driver
   def load_tables(connection, table) do
-    """
-      SELECT column_name, data_type
-      FROM all_tab_columns
-      WHERE table_name = '#{table.db_name |> String.replace("'", "''")}'
-    """
-    |> run_query(connection)
-    |> case do
-      {:ok, []} -> DataSource.raise_error("Table `#{table.db_name}` does not exist")
-      {:ok, rows} -> [%{table | columns: Enum.map(rows, &build_column/1)}]
-      {:error, reason} -> DataSource.raise_error("`#{reason}`")
-    end
+    columns =
+      connection
+      |> RODBC.table_columns(update_in(table.db_name, &"\"#{&1}\""))
+      |> fix_column_types(connection, table)
+
+    [%{table | columns: columns}]
   end
 
   @impl Driver
-  def select(connection, sql_query, result_processor) do
-    field_mappers = Enum.map(sql_query.db_columns, &type_to_field_mapper(&1.type))
-
-    SqlBuilder.build(sql_query)
-    |> run_query(connection)
-    |> case do
-      {:ok, rows} -> {:ok, result_processor.([unpack(rows, field_mappers)])}
-      {:error, reason} -> DataSource.raise_error("`#{reason}`")
-    end
-  end
+  def select(connection, sql_query, result_processor),
+    do: RODBC.select(connection, map_selected_expressions(sql_query), custom_mappers(), result_processor)
 
   @impl Driver
-  def driver_info(_connection), do: nil
+  defdelegate driver_info(connection), to: RODBC
 
   @impl Driver
   def supports_query?(query), do: query.limit == nil and query.offset == 0
@@ -71,82 +45,123 @@ defmodule Cloak.DataSource.Oracle do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp type_to_field_mapper(:text), do: &string_field_mapper/1
-  defp type_to_field_mapper(:integer), do: &integer_field_mapper/1
-  defp type_to_field_mapper(:real), do: &real_field_mapper/1
-  defp type_to_field_mapper(:boolean), do: &boolean_field_mapper/1
-  defp type_to_field_mapper(:datetime), do: &datetime_field_mapper/1
-  defp type_to_field_mapper(:date), do: &date_field_mapper/1
-  defp type_to_field_mapper(:interval), do: &interval_field_mapper/1
-  defp type_to_field_mapper(:time), do: &time_field_mapper/1
+  defp conn_params(normalized_parameters) do
+    hostname = normalized_parameters.hostname
+    port = Map.get(normalized_parameters, :port, 1521)
+    database = normalized_parameters.database
 
-  # Oracle seems to treat empty strings as NULL, and this is reflected in what the lib returns in those cases
-  defp string_field_mapper(:null), do: ""
-  defp string_field_mapper(other), do: to_string(other)
-
-  # The lib seems to be giving us X.0 even for example as a result from cast to integer
-  defp integer_field_mapper(:null), do: nil
-  defp integer_field_mapper({value}), do: trunc(value)
-
-  defp real_field_mapper(:null), do: nil
-  defp real_field_mapper({value}), do: value
-
-  defp boolean_field_mapper(:null), do: nil
-  defp boolean_field_mapper({value}), do: value != 0
-
-  defp datetime_field_mapper(:null), do: nil
-  defp datetime_field_mapper(datetime), do: datetime |> NaiveDateTime.from_erl!() |> Cloak.Time.max_precision()
-
-  defp date_field_mapper(:null), do: nil
-  defp date_field_mapper({date, _time}), do: Date.from_erl!(date)
-
-  defp interval_field_mapper(:null), do: nil
-
-  defp interval_field_mapper({days, {hours, minutes, seconds}}) do
-    {full_seconds, microseconds} = seconds_micros(seconds)
-
-    Timex.Duration.add(
-      Timex.Duration.from_days(days),
-      Timex.Duration.from_clock({hours, minutes, full_seconds, microseconds})
-    )
+    %{
+      DBQ: "#{hostname}:#{port}/#{database}",
+      Uid: normalized_parameters[:username],
+      Pwd: normalized_parameters[:password],
+      DSN: "Oracle"
+    }
   end
 
-  defp time_field_mapper(:null), do: nil
+  defp fix_column_types(rodbc_columns, connection, table) do
+    # Oracle ODBC driver returns wrong information for some data types (see below). Therefore, we'll query the
+    # metadata table ALL_TAB_COLUMNS to figure out the correct types.
+    correct_column_types =
+      %{
+        # Oracle ODBC driver returns datetime for date type
+        date: "DATA_TYPE = 'DATE'",
+        # Oracle ODBC driver returns float for `NUMBER` type, so we need to check the scale to recognize integers
+        integer: "DATA_TYPE = 'NUMBER' and COALESCE(DATA_SCALE, 0) = 0"
+      }
+      |> Stream.flat_map(fn {type, filter} ->
+        statement = ~s/SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS WHERE TABLE_NAME= '#{table.db_name}' AND #{filter}/
+        {:ok, rows} = RODBC.select_direct(connection, statement)
+        Enum.map(rows, fn [name] -> {name, type} end)
+      end)
+      |> Map.new()
 
-  defp time_field_mapper({_days, {hours, minutes, seconds}}) do
-    {full_seconds, microseconds} = seconds_micros(seconds)
-    Time.from_erl!({hours, minutes, full_seconds}, {microseconds, _precision = 6})
+    Enum.map(rodbc_columns, &%{&1 | type: Map.get(correct_column_types, &1.name, &1.type)})
   end
 
-  defp seconds_micros(seconds) do
-    full_seconds = trunc(seconds)
-    microseconds = trunc((seconds - full_seconds) * 100_000) |> max(0)
-    {full_seconds, microseconds}
+  # We need to perform explicit casting on some selected types, because ODBC driver can't handle them.
+  defp map_selected_expressions(sql_query),
+    do: %Cloak.Sql.Query{sql_query | db_columns: Enum.map(sql_query.db_columns, &map_selected_expression/1)}
+
+  defp map_selected_expression(%Expression{type: :time} = expression),
+    do: Expression.function({:cast, {:native_type, "TIMESTAMP"}}, [expression], :time)
+
+  defp map_selected_expression(%Expression{type: :interval} = expression),
+    do: Expression.function("TO_CHAR", [expression], :interval)
+
+  defp map_selected_expression(%Expression{} = expression), do: expression
+
+  defp custom_mappers() do
+    %{
+      :text => &text_mapper/1,
+      :date => &date_mapper/1,
+      :time => &time_mapper/1,
+      :datetime => &datetime_mapper/1,
+      :interval => &interval_mapper/1,
+      :boolean => &boolean_mapper/1
+    }
   end
 
-  defp unpack(rows, field_mappers), do: Stream.map(rows, &map_fields(&1, field_mappers))
+  # In Oracle, NULL and empty string are the same thing (e.g. `select coalesce(trim('  '), 'is null') from dual` returns
+  # 'is null'). Therefore, we're converting NULL into an empty string.
+  defp text_mapper(nil), do: ""
+  defp text_mapper(value), do: value
 
-  defp map_fields([], []), do: []
-
-  defp map_fields([field | rest_fields], [mapper | rest_mappers]),
-    do: [mapper.(field) | map_fields(rest_fields, rest_mappers)]
-
-  defp run_query(query, connection) do
-    case :jamdb_oracle.sql_query(connection, to_charlist(query)) do
-      {:ok, [{:result_set, _columns, _, rows}]} -> {:ok, rows}
-      {:ok, [{:proc_result, _code, text}]} -> {:error, to_string(text)}
-      other -> {:error, inspect(other)}
+  defp datetime_mapper(string) do
+    string
+    # In some cases (e.g. when data type is timestamp(0)), we can get a trailing `.` which we need to remove.
+    |> String.split(~r/\.$/)
+    |> hd()
+    |> Cloak.Time.parse_datetime()
+    |> case do
+      {:ok, datetime} -> datetime
+      {:error, _reason} -> nil
     end
   end
 
-  defp build_column([name, type]), do: Table.column(to_string(name), type |> to_string() |> parse_type())
+  defp date_mapper(string) do
+    case Cloak.Time.parse_datetime(string) do
+      {:ok, datetime} -> NaiveDateTime.to_date(datetime)
+      {:error, _reason} -> nil
+    end
+  end
 
-  defp parse_type("DATE"), do: :date
-  defp parse_type("TIMESTAMP" <> _), do: :datetime
-  defp parse_type("BINARY_FLOAT"), do: :real
-  defp parse_type("BINARY_DOUBLE"), do: :real
-  defp parse_type("NUMBER" <> rest), do: if(rest =~ ~r/\(.*,.*\)/, do: :real, else: :integer)
-  defp parse_type("VARCHAR" <> _), do: :text
-  defp parse_type("VARCHAR2" <> _), do: :text
-  defp parse_type(other), do: {:unsupported, other}
+  defp time_mapper(string) do
+    with datetime when not is_nil(datetime) <- datetime_mapper(string), do: NaiveDateTime.to_time(datetime)
+  end
+
+  defp boolean_mapper(value), do: round(value) != 0
+
+  @doc false
+  def interval_mapper(string) do
+    import Combine.Parsers.{Base, Text}
+
+    # Parsing of Oracle interval string format. The interval is given as SDDDDDDDDD HH:MM:SS.FFFFFFFFF
+    #   S - sign (+ or -)
+    #   D - number of days
+    #   H - hours
+    #   M - minutes
+    #   S - seconds
+    #   F - fractions of seconds
+    case Combine.parse(
+           string,
+           sequence([
+             map(either(char(?-), char(?+)), &Map.fetch!(%{"-" => -1, "+" => +1}, &1)),
+             integer(),
+             ignore(space()),
+             integer(),
+             ignore(char(?:)),
+             integer(),
+             ignore(char(?:)),
+             integer(),
+             ignore(char(?.)),
+             ignore(integer())
+           ])
+         ) do
+      [[sign, days, hours, minutes, seconds]] ->
+        Timex.Duration.from_seconds(sign * (((days * 24 + hours) * 60 + minutes) * 60 + seconds))
+
+      {:error, _reason} ->
+        nil
+    end
+  end
 end

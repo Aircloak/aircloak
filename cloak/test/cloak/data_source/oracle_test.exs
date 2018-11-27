@@ -19,6 +19,23 @@ defmodule Cloak.DataSource.Oracle.Test do
     refute Oracle.supports_query?(query)
   end
 
+  describe "interval_mapper/1" do
+    test "positive intervals" do
+      assert Oracle.interval_mapper("+000000000 00:00:00.000000000") |> Timex.Duration.to_clock() == {0, 0, 0, 0}
+      assert Oracle.interval_mapper("+000000001 02:03:04.000000000") |> Timex.Duration.to_clock() == {26, 3, 4, 0}
+    end
+
+    test "negative intervals" do
+      assert Oracle.interval_mapper("-000000000 00:00:00.000000000") |> Timex.Duration.to_clock() == {0, 0, 0, 0}
+      assert Oracle.interval_mapper("-000000001 02:03:04.000000000") |> Timex.Duration.to_clock() == {-26, -3, -4, 0}
+    end
+
+    test "fractions of a second are ignored",
+      do: assert(Oracle.interval_mapper("-000000000 00:00:00.100000000") |> Timex.Duration.to_clock() == {0, 0, 0, 0})
+
+    test "error is converted into a nil", do: assert(is_nil(Oracle.interval_mapper("invalid string")))
+  end
+
   def data_source do
     %{
       name: "oracle_test_data_source",

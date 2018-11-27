@@ -72,8 +72,6 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   def cast_sql(value, number, :text) when number in [:integer, :real], do: ["TO_CHAR(", value, ?)]
 
-  def cast_sql(value, _, :time), do: ["(", value, " - TRUNC(", value, "))"]
-
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect
@@ -107,5 +105,6 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   defp sql_type(:integer), do: "INTEGER"
   defp sql_type(:date), do: "DATE"
   defp sql_type(:text), do: "VARCHAR2"
-  defp sql_type(:time), do: "INTERVAL DAY(0) TO SECOND(6)"
+  defp sql_type(:time), do: "TIME"
+  defp sql_type({:native_type, type}), do: type
 end

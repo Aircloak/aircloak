@@ -7,7 +7,7 @@ defmodule Cloak.DataSource.Table do
 
   require Logger
 
-  @type data_type :: :text | :integer | :real | :boolean | :datetime | :time | :date | :unknown
+  @type data_type :: :text | :integer | :real | :boolean | :datetime | :time | :date | :interval | :unknown
   @type column :: %{name: String.t(), type: data_type, visible?: boolean}
 
   @type t :: %{
