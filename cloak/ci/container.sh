@@ -32,7 +32,7 @@ function prepare_for_compliance {
 
   docker network connect --alias drill1.13 $container_name $drill_container_name
 
-  for db_container in postgres9.4 mongo3.4 mysql5.7 sqlserver2017; do
+  for db_container in postgres9.4 mongo3.4 mysql5.7 sqlserver2017 oracle11g; do
     echo $db_container
     docker network connect --alias $db_container $container_name $db_container
   done
@@ -47,6 +47,8 @@ function ensure_database_containers {
 
   ensure_supporting_container sqlserver2017 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' \
     microsoft/mssql-server-linux:2017-latest
+
+  ensure_supporting_container oracle11g -e ORACLE_DISABLE_ASYNCH_IO=true wnameless/oracle-xe-11g
 }
 
 mount $(ci_tmp_folder)/cloak/.cargo /root/.cargo
@@ -67,6 +69,7 @@ case "$1" in
   start_container)
     container_name="$2"
     push_docker_arg "-e __AC__DEFAULT_SAP_HANA_SCHEMA__=\"TEST_SCHEMA_$container_name\""
+    push_docker_arg "-e LD_LIBRARY_PATH=/aircloak/cloak/priv/odbc/drivers/oracle/instantclient_18_3"
     push_docker_arg "--tmpfs=/data/db:rw,size=1G"
     default_handle "$@"
     ;;
@@ -74,6 +77,7 @@ case "$1" in
   run_in_container)
     container_name="$2"
     push_docker_arg "-e __AC__DEFAULT_SAP_HANA_SCHEMA__=\"TEST_SCHEMA_$container_name\""
+    push_docker_arg "-e LD_LIBRARY_PATH=/aircloak/cloak/priv/odbc/drivers/oracle/instantclient_18_3"
     push_docker_arg "-e CLOAK_DATA_SOURCES=\"$CLOAK_DATA_SOURCES\""
     default_handle "$@"
     ;;

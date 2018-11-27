@@ -11,7 +11,7 @@ defmodule Cloak.Sql.Expression do
   @type column_type :: DataSource.Table.data_type() | :like_pattern | :interval | nil
   @type function_name ::
           String.t()
-          | {:cast, DataSource.Table.data_type() | :varbinary}
+          | {:cast, DataSource.Table.data_type() | :varbinary | {:native_type, String.t()}}
           | {:bucket, :lower | :upper | :middle}
   @type t :: %__MODULE__{
           table: :unknown | DataSource.Table.t(),

@@ -29,6 +29,8 @@ defmodule ComplianceCase do
   import Cloak.Test.QueryHelpers
 
   @doc false
+  def disable_for(context, driver, disable? \\ true)
+
   def disable_for(context, _driver, false), do: context
   def disable_for(context, :all, true), do: %{context | disabled: true}
 
@@ -46,7 +48,8 @@ defmodule ComplianceCase do
           :ok
 
         true ->
-          result = assert_query_consistency(query, data_sources: context.data_sources, timeout: @timeout)
+          delta = Map.get(context, :delta, 0.0001)
+          result = assert_query_consistency(query, delta: delta, data_sources: context.data_sources, timeout: @timeout)
 
           if match?(%{error: _}, result) or match?({:exit, _}, result) do
             raise ExUnit.AssertionError,

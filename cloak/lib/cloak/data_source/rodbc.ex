@@ -22,25 +22,24 @@ defmodule Cloak.DataSource.RODBC do
     |> driver_connect(driver_params)
   end
 
-  # -------------------------------------------------------------------
-  # DataSource.Driver callbacks
-  # -------------------------------------------------------------------
-
+  @doc "Closes the connection"
+  @spec disconnect(pid) :: :ok
   def disconnect(connection), do: Port.stop(connection)
 
-  def load_tables(connection, table, table_load_statement \\ &"SELECT * FROM #{&1} WHERE 0 = 1") do
+  @doc "Loads one or more table definitions from the database."
+  @spec load_tables(pid, Table.t()) :: [Table.t()]
+  def load_tables(connection, table, table_load_statement \\ &"SELECT * FROM #{&1} WHERE 0 = 1"),
+    do: [%{table | columns: table_columns(connection, table, table_load_statement)}]
+
+  @doc "Returns the list of columns for the given table."
+  @spec table_columns(pid, Table.t()) :: [Table.column()]
+  def table_columns(connection, table, table_load_statement \\ &"SELECT * FROM #{&1} WHERE 0 = 1") do
     case Port.execute(connection, table_load_statement.(table.db_name), Driver.timeout()) do
       :ok ->
         case Port.get_columns(connection) do
-          {:ok, []} ->
-            DataSource.raise_error("Table #{table.db_name} does not have any columns")
-
-          {:ok, columns} ->
-            columns = Enum.map(columns, fn {name, type_name} -> Table.column(name, parse_type(type_name)) end)
-            [%{table | columns: columns}]
-
-          {:error, reason} ->
-            DataSource.raise_error("`#{to_string(reason)}`")
+          {:ok, []} -> DataSource.raise_error("Table #{table.db_name} does not have any columns")
+          {:ok, columns} -> Enum.map(columns, fn {name, type_name} -> Table.column(name, parse_type(type_name)) end)
+          {:error, reason} -> DataSource.raise_error("`#{to_string(reason)}`")
         end
 
       {:error, reason} ->
@@ -48,9 +47,12 @@ defmodule Cloak.DataSource.RODBC do
     end
   end
 
-  def select(connection, sql_query, result_processor) do
+  @doc "Selects the data from the database."
+  @spec select(pid, Cloak.Sql.Query.t(), %{Table.data_type() => (term -> term)}, DataSource.result_processor()) ::
+          {:ok, DataSource.processed_result()} | {:error, any}
+  def select(connection, sql_query, driver_mappers \\ %{}, result_processor) do
     statement = SqlBuilder.build(sql_query)
-    field_mappers = Enum.map(sql_query.db_columns, &type_to_field_mapper(&1.type))
+    field_mappers = Enum.map(sql_query.db_columns, &type_to_field_mapper(driver_mappers, &1.type))
     row_mapper = &map_fields(&1, field_mappers)
 
     case Port.execute(connection, statement, Driver.timeout()) do
@@ -59,6 +61,15 @@ defmodule Cloak.DataSource.RODBC do
     end
   end
 
+  @doc "Executes a raw SQL SELECT statement on the given connection."
+  @spec select_direct(pid, String.t()) :: Enumerable.t()
+  def select_direct(connection, statement) do
+    with :ok <- Port.execute(connection, statement, Driver.timeout()),
+         do: {:ok, Stream.concat(stream_rows(connection, & &1))}
+  end
+
+  @doc "Returns the driver specific information to be stored inside the data source structure."
+  @spec driver_info(pid) :: nil
   def driver_info(_connection), do: nil
 
   # -------------------------------------------------------------------
@@ -121,14 +132,24 @@ defmodule Cloak.DataSource.RODBC do
   defp map_fields([field | rest_fields], [mapper | rest_mappers]),
     do: [mapper.(field) | map_fields(rest_fields, rest_mappers)]
 
-  defp type_to_field_mapper(:datetime), do: &datetime_field_mapper/1
-  defp type_to_field_mapper(:time), do: &time_field_mapper/1
-  defp type_to_field_mapper(:date), do: &date_field_mapper/1
-  defp type_to_field_mapper(:real), do: &real_field_mapper/1
-  defp type_to_field_mapper(:integer), do: &integer_field_mapper/1
-  defp type_to_field_mapper(:interval), do: &interval_field_mapper(&1)
-  defp type_to_field_mapper(:boolean), do: &boolean_field_mapper(&1)
-  defp type_to_field_mapper(_), do: &generic_field_mapper/1
+  defp type_to_field_mapper(driver_mappers, type) do
+    default_mappers = %{
+      :datetime => &datetime_field_mapper/1,
+      :time => &time_field_mapper/1,
+      :date => &date_field_mapper/1,
+      :real => &real_field_mapper/1,
+      :integer => &integer_field_mapper/1,
+      :interval => &interval_field_mapper(&1),
+      :boolean => &boolean_field_mapper(&1)
+    }
+
+    {:ok, mapper} =
+      with :error <- Map.fetch(driver_mappers, type),
+           :error <- Map.fetch(default_mappers, type),
+           do: {:ok, &generic_field_mapper/1}
+
+    mapper
+  end
 
   defp generic_field_mapper(nil), do: nil
   defp generic_field_mapper(value), do: value

@@ -9,16 +9,18 @@ defmodule BOM.Whitelist do
 
   @licenses %{
     :elixir => %{
-      {"ecto", "2.2.6"} => %{type: :apache2, text: :provided},
       {"ecto", "2.2.10"} => %{type: :apache2, text: :provided},
+      {"ecto", "2.2.11"} => %{type: :apache2, text: :provided},
+      {"ecto", "2.2.6"} => %{type: :apache2, text: :provided},
       {"ecto_enum", "1.0.2"} => %{type: :mit, text: :provided},
       {"erlware_commons", "0.21.0"} => %{type: :mit, text: :provided},
       {"excoveralls", "0.5.7"} => %{type: :mit, text: :standard},
       {"file_system", "0.2.6"} => %{type: :wtfpl, text: :standard},
+      {"jamdb_oracle", "0.2.0"} => %{type: :mit, text: :provided},
+      {"makeup_elixir", "0.8.0"} => %{type: :bsd_4_clause, text: :standard},
       {"scrivener", "2.3.0"} => %{type: :mit, text: :standard},
       {"scrivener_ecto", "1.2.2"} => %{type: :mit, text: :standard},
-      {"scrivener_html", "1.3.3"} => %{type: :mit, text: :standard},
-      {"makeup_elixir", "0.8.0"} => %{type: :bsd_4_clause, text: :standard}
+      {"scrivener_html", "1.3.3"} => %{type: :mit, text: :standard}
     },
     :node => %{
       {"base64-js", "0.0.2"} => %{type: :mit, text: :provided},

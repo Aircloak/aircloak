@@ -2,7 +2,7 @@ SHELL=/bin/bash -o pipefail
 
 .PHONY: deps docs proper proper-std proper-extended test clean all compile
 .PHONY: recreate-db recreate-perf-db dialyze lint release release-local perftest
-.PHONY: odbc_drivers odbc_drivers_folder
+.PHONY: odbc_drivers odbc_drivers_folder oracle_drivers oracle_drivers_folder
 .PHONY: sql-server-container sql-server-database
 .PHONY: mysql-server-container mysql-server-database
 .PHONY: mongo-server-container
@@ -95,7 +95,7 @@ mysql-server-database:
 mongo-server-container:
 	$(call start_container, aircloak_mongodb_server, -p 27017:27017 -d mongo)
 
-odbc_drivers: odbc_drivers_folder priv/odbc/drivers/saphana/libodbcHDB.so
+odbc_drivers: odbc_drivers_folder priv/odbc/drivers/saphana/libodbcHDB.so oracle_drivers
 
 odbc_drivers_folder:
 	mkdir -p priv/odbc/drivers
@@ -103,6 +103,19 @@ odbc_drivers_folder:
 priv/odbc/drivers/saphana/libodbcHDB.so:
 	mkdir -p priv/odbc/drivers/saphana
 	wget -O priv/odbc/drivers/saphana/libodbcHDB.so https://www.dropbox.com/s/aerstjlatecny79/libodbc-sap-hana-v2.so
+
+oracle_drivers: oracle_drivers_folder priv/odbc/drivers/oracle/instantclient_18_3
+
+oracle_drivers_folder:
+	mkdir -p priv/odbc/drivers/oracle
+
+priv/odbc/drivers/oracle/instantclient_18_3:
+	wget -O priv/odbc/drivers/oracle/instantclient-odbc-linux.zip https://www.dropbox.com/s/uq5btss0ani4rpd/instantclient-odbc-linux.x64-18.3.0.0.0dbru.zip?dl=0
+	wget -O priv/odbc/drivers/oracle/instantclient-basic-linux.zip https://www.dropbox.com/s/fntfxihjd9p1ojk/instantclient-basic-linux.x64-18.3.0.0.0dbru.zip?dl=0
+	unzip priv/odbc/drivers/oracle/instantclient-basic-linux.zip -d priv/odbc/drivers/oracle
+	unzip priv/odbc/drivers/oracle/instantclient-odbc-linux.zip -d priv/odbc/drivers/oracle
+	rm priv/odbc/drivers/oracle/instantclient-basic-linux.zip
+	rm priv/odbc/drivers/oracle/instantclient-odbc-linux.zip
 
 ci.compliance:
 	ci/compliance.sh compliance

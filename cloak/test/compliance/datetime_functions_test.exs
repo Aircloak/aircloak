@@ -70,6 +70,7 @@ Enum.each(
           |> disable_for(Cloak.DataSource.SAPHana, true)
           |> disable_for(Cloak.DataSource.MongoDB, true)
           |> disable_for(Cloak.DataSource.Drill, true)
+          |> disable_for(Cloak.DataSource.Oracle, function =~ ~r/P1Y/ or function =~ ~r/P1M/)
         else
           context
         end
@@ -120,6 +121,38 @@ Enum.each(
               FROM #{unquote(table)}
               WHERE #{on_column(unquote(condition), unquote(column))}
             ) foo
+          """)
+        end
+      end)
+    end
+  end
+)
+
+Enum.each(
+  [
+    "cast(<col> as time)"
+  ],
+  fn function ->
+    defmodule Module.concat([Compliance.DateTimeFunctions.TimestampOnly, String.to_atom(function), Test]) do
+      use ComplianceCase, async: true
+
+      @moduletag :"#{function}"
+
+      Enum.each(datetime_columns(), fn {column, table, uid} ->
+        @tag compliance: "#{function} #{column} #{table} subquery"
+        test "#{function} on input #{column} in a sub-query on #{table}", context do
+          context
+          |> assert_consistent_and_not_failing("""
+            SELECT
+              output
+            FROM (
+              SELECT
+                #{unquote(uid)},
+                #{on_column(unquote(function), unquote(column))} as output
+              FROM #{unquote(table)}
+              ORDER BY 1, 2
+            ) table_alias
+            ORDER BY output
           """)
         end
       end)

@@ -87,6 +87,14 @@ function start_dev_container {
   container_id="local_ci_$(cat /dev/urandom | LC_ALL=C tr -dc 'a-zA-Z' | head -c 16; echo '')"
   STOP_AFTER=infinity DOCKER_ARGS="--network='container:air'" docker_script start_container $container_id
 
+  local oracle_container_id="${container_id}_oracle"
+  docker run \
+    -detached \
+    --name $oracle_container_id \
+    --network=container:$container_id \
+    -e ORACLE_DISABLE_ASYNCH_IO=true \
+    wnameless/oracle-xe-11g
+
   printf "\nyou can start the system with \`make start\`\n\n"
 
   CLOAK_DATA_SOURCES='saphana' \
