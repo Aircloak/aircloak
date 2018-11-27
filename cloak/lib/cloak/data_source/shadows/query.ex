@@ -17,7 +17,7 @@ defmodule Cloak.DataSource.Shadows.Query do
     case user_id(data_source, table) do
       nil -> []
       ^column -> []
-      user_id -> do_build_shadow(data_source, table, column, user_id)
+      user_id -> maybe_build_shadow(data_source, table, column, user_id)
     end
   end
 
@@ -25,7 +25,7 @@ defmodule Cloak.DataSource.Shadows.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp do_build_shadow(data_source, table, column, user_id) do
+  defp maybe_build_shadow(data_source, table, column, user_id) do
     if should_maintain_shadow?(data_source, table) do
       """
         SELECT "#{column}"
