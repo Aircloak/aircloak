@@ -116,6 +116,8 @@ export class ResultView extends React.Component {
     this.addX = this.addX.bind(this);
     this.addY = this.addY.bind(this);
     this.removeColumn = this.removeColumn.bind(this);
+
+    this.getInfoMessages = this.getInfoMessages.bind(this);
   }
 
   state: State;
@@ -142,6 +144,7 @@ export class ResultView extends React.Component {
   addX: (col: number) => () => void;
   addY: (col: number) => () => void;
   removeColumn: (col: number) => () => void;
+  getInfoMessages: () => string[];
 
   componentDidUpdate() {
     this.rebuildGraphData();
@@ -322,6 +325,15 @@ export class ResultView extends React.Component {
     }
   }
 
+  getInfoMessages() {
+    const messages = this.props.result.info;
+    if (!this.props.debugModeEnabled) {
+      return messages.filter((message) => !message.startsWith("[Debug]"));
+    } else {
+      return messages;
+    }
+  }
+
   renderRows() {
     let remainingRowsToProduce = this.state.rowsToShowCount;
     const rows = _.flatMap(this.state.availableRows, (accumulateRow, i) => {
@@ -445,7 +457,7 @@ export class ResultView extends React.Component {
         <div className="panel-heading" />
         <div className="panel-body">
           <CodeViewer statement={this.props.result.statement} />
-          <Info info={this.props.result.info} />
+          <Info info={this.getInfoMessages()} />
           <div className="result-table">
             <table className="table table-striped table-condensed table-hover">
               <thead>

@@ -150,7 +150,7 @@ defmodule Air.PsqlServer.Protocol.Messages do
 
   def encode_message(:query_cancelled), do: notice_message("NOTICE", "57014", "The query was cancelled.")
 
-  def encode_message({:notice, notice_content}), do: notice_message("NOTICE", "57014", notice_content)
+  def encode_message({:notice, notice_content}), do: notice_message("NOTICE", "00000", notice_content)
 
   def encode_message({:syntax_error, error}), do: error_message("ERROR", "42601", error)
   def encode_message({:fatal_error, reason}), do: error_message("FATAL", "28000", reason)
