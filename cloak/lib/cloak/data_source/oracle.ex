@@ -131,7 +131,8 @@ defmodule Cloak.DataSource.Oracle do
 
   defp boolean_mapper(value), do: round(value) == 1
 
-  defp interval_mapper(string) do
+  @doc false
+  def interval_mapper(string) do
     import Combine.Parsers.{Base, Text}
 
     # Parsing of Oracle interval string format. The interval is given as SDDDDDDDDD HH:MM:SS.FFFFFFFFF
