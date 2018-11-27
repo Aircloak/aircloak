@@ -72,7 +72,7 @@ defmodule Compliance.DataSources do
     handler.terminate(conn)
   end
 
-  @doc "Takes a rawling data source definition and expands it with table definitions"
+  @doc "Takes a data source template definition and expands it with table definitions"
   @spec complete_data_source_definitions([DataSource.t()], disable_analysis_operations: boolean) :: [DataSource.t()]
   def complete_data_source_definitions(data_sources, opts \\ []),
     do: expand_and_add_table_definitions(data_sources, opts)
@@ -235,12 +235,12 @@ defmodule Compliance.DataSources do
     |> Enum.map(fn {name, definition} ->
       db_table_name = handler_for_data_source(data_source_scaffold).db_table_name(name)
 
-      rawling =
+      data_source_defintion_template =
         %{decoders: Map.get(definition, :decoders, []), query: nil}
         |> add_uid_construct(name)
         |> Map.put(:db_name, "#{db_table_name}#{table_postfix}")
 
-      {name, rawling}
+      {name, data_source_defintion_template}
     end)
     |> Enum.into(%{})
   end
@@ -256,10 +256,10 @@ defmodule Compliance.DataSources do
     end)
   end
 
-  defp add_uid_construct(rawling, name) do
+  defp add_uid_construct(data_source_defintion_template, name) do
     case Map.get(TableDefinitions.uid_definitions(), name) do
-      %{user_id: uid_column_name} -> Map.put(rawling, :user_id, uid_column_name)
-      %{projection: projection} -> Map.put(rawling, :projection, projection)
+      %{user_id: uid_column_name} -> Map.put(data_source_defintion_template, :user_id, uid_column_name)
+      %{projection: projection} -> Map.put(data_source_defintion_template, :projection, projection)
     end
   end
 end
