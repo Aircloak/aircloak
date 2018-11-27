@@ -129,7 +129,7 @@ defmodule Cloak.DataSource.Oracle do
     with datetime when not is_nil(datetime) <- datetime_mapper(string), do: NaiveDateTime.to_time(datetime)
   end
 
-  defp boolean_mapper(value), do: round(value) == 1
+  defp boolean_mapper(value), do: round(value) != 0
 
   @doc false
   def interval_mapper(string) do
