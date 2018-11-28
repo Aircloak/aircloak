@@ -14,6 +14,7 @@ Aircloak Insights ships with Insights Datasource Connectors for the following da
 - PostgreSQL, version 9.1 and newer
 - SAP HANA, version 2.0 and newer
 - Apache Drill, version 1.13 and newer
+- Oracle 11g
 
 If your preferred datastore is not in the list, please contact Aircloak.
 
@@ -168,6 +169,10 @@ The following constructs are not natively supported on this data source and will
 - `hex`
 - `median`
 
+#### Oracle
+
+- `median`
+
 
 ## Database-specific notes
 
@@ -276,3 +281,7 @@ from maprdb.products as p;
 #### JOINs
 
 Apache Drill doesn't support `CROSS JOIN` natively, so any `CROSS JOIN` will be emulated by Aircloak Insights.
+
+### Oracle
+
+- `OFFSET` clause is currently not supported.

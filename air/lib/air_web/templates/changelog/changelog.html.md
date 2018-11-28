@@ -6,6 +6,7 @@
 - You can statically configure Aircloak Insights for fully automated deployments
 - Support for limiting maximum number of simultaneous queries per each cloak. See the section on configuring [Insights Cloak](/docs/ops/configuration.html#insights-cloak-configuration) for details.
 - Faster statistics-based (no-uid) anonymization implemented for certain cases.
+- Support for Oracle 11g
 
 ### Bugfixes
 
