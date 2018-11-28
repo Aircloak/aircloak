@@ -39,7 +39,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def function_sql("left", [string, number]), do: [@unicode_substring, "(", string, ", 0, ", number, ")"]
 
   def function_sql("right", [string, number]) do
-    number = ["LEAST(LENGTH(", string, "), ", number, ")"]
+    number = ["LEAST(LENGTHC(", string, "), ", number, ")"]
     [@unicode_substring, "(", string, ", -", number, ", ", number, ")"]
   end
 
