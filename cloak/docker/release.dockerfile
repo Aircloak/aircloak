@@ -27,6 +27,9 @@ USER root
 
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/aircloak/cloak/priv/odbc/drivers/oracle/instantclient_18_3
 
+# Oracle locale
+ENV NLS_LANG=.AL32UTF8
+
 CMD /aircloak/start.sh
 
 VOLUME /runtime_config
