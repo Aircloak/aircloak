@@ -16,13 +16,13 @@ fn main() -> io::Result<()> {
 
     let mut output = Vec::with_capacity(1024);
 
-    let mut wstr_as_bin = false;
+    let mut wstr_as_utf16 = false;
 
     loop {
         match read_command(&mut stdin_handle)? {
             (COMMAND_STOP, _) => break,
-            (COMMAND_SET_FLAG, FLAG_WSTR_AS_BIN) => {
-                wstr_as_bin = true;
+            (COMMAND_SET_FLAG, FLAG_WSTR_AS_UTF16) => {
+                wstr_as_utf16 = true;
                 send_ok(&mut stdout_handle)?;
             }
             (COMMAND_CONNECT, size) => {
@@ -45,7 +45,7 @@ fn main() -> io::Result<()> {
                                 (COMMAND_EXECUTE, size) => {
                                     let parameter = read_binary(&mut stdin_handle, size)?;
                                     output.push(STATUS_OK);
-                                    if let Err(error) = execute(&conn, &mut state, wstr_as_bin, &parameter) {
+                                    if let Err(error) = execute(&conn, &mut state, wstr_as_utf16, &parameter) {
                                         write_error(&mut output, error);
                                     }
                                 }

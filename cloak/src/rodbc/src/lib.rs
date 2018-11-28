@@ -3,6 +3,7 @@ use std::io::{self, Read, Write, ErrorKind};
 use std::mem::transmute;
 use std::result;
 use std::str::from_utf8;
+use std::slice::from_raw_parts;
 
 extern crate odbc;
 use odbc::ffi::SqlDataType::*;
@@ -27,7 +28,7 @@ pub const COMMAND_SET_FLAG: u32 = 3;
 pub const COMMAND_GET_COLUMNS: u32 = 4;
 pub const COMMAND_STOP: u32 = 5;
 
-pub const FLAG_WSTR_AS_BIN: u32 = 0;
+pub const FLAG_WSTR_AS_UTF16: u32 = 0;
 
 // Replies go out under the forms:
 //      (size-u32, STATUS_OK-u8)
@@ -49,6 +50,7 @@ const TYPE_F32: u8 = 3;
 const TYPE_F64: u8 = 4;
 const TYPE_STR: u8 = 5;
 const TYPE_BIN: u8 = 6;
+const TYPE_WSTR: u8 = 7;
 
 // -------------------------------------------------------------------
 // Port IO functions
@@ -115,7 +117,7 @@ pub fn connect<'env>(
     Ok(env.connect_with_connection_string(connection_string)?)
 }
 
-fn field_type(t: ffi::SqlDataType, wstr_as_bin: bool) -> u8 {
+fn field_type(t: ffi::SqlDataType, wstr_as_utf16: bool) -> u8 {
     match t {
         SQL_INTEGER | SQL_SMALLINT | SQL_EXT_TINYINT | SQL_EXT_BIT => TYPE_I32,
         SQL_EXT_BIGINT => TYPE_I64,
@@ -123,7 +125,7 @@ fn field_type(t: ffi::SqlDataType, wstr_as_bin: bool) -> u8 {
         SQL_FLOAT | SQL_DOUBLE => TYPE_F64,
         SQL_EXT_BINARY | SQL_EXT_VARBINARY | SQL_EXT_LONGVARBINARY => TYPE_BIN,
         SQL_EXT_WCHAR | SQL_EXT_WVARCHAR | SQL_EXT_WLONGVARCHAR =>
-            if wstr_as_bin { TYPE_BIN } else { TYPE_STR},
+            if wstr_as_utf16 { TYPE_WSTR } else { TYPE_STR},
         _ => TYPE_STR,
     }
 }
@@ -136,7 +138,7 @@ pub struct ConnectionState<'conn> {
 pub fn execute<'conn, 'env>(
     conn: &'conn Connection<'env>,
     state: &mut Option<ConnectionState<'conn>>,
-    wstr_as_bin: bool,
+    wstr_as_utf16: bool,
     statement_text: &Vec<u8>,
 ) -> GenError {
     *state = None;
@@ -145,7 +147,7 @@ pub fn execute<'conn, 'env>(
         let cols = stmt.num_result_cols()? as u16;
         let mut field_types = Vec::with_capacity(cols as usize);
         for i in 1..(cols + 1) {
-            let field_type = field_type(stmt.describe_col(i)?.data_type, wstr_as_bin);
+            let field_type = field_type(stmt.describe_col(i)?.data_type, wstr_as_utf16);
             field_types.push(field_type);
         }
         *state = Some(ConnectionState { stmt, field_types });
@@ -208,6 +210,14 @@ fn write_field<'a, 'b, 'c, S>(
         TYPE_BIN => if let Some(val) = cursor.get_data::<&[u8]>(index)? {
             buf.push(TYPE_BIN);
             push_binary(buf, val);
+        } else {
+            buf.push(TYPE_NULL);
+        },
+
+        TYPE_WSTR => if let Some(val) = cursor.get_data::<&[u16]>(index)? {
+            buf.push(TYPE_WSTR);
+            let bytes = unsafe { from_raw_parts(val.as_ptr() as *const u8, val.len() * 2) };
+            push_binary(buf, bytes);
         } else {
             buf.push(TYPE_NULL);
         },
