@@ -30,6 +30,8 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
 
   def function_sql("left", [arg1, arg2]), do: ["SUBSTR(", arg1, ", 1, ", arg2, ")"]
 
+  def function_sql("stddev", [arg]), do: ["STDDEV_SAMP(", arg, ")"]
+
   def function_sql("right", [arg1, arg2]),
     do: ["SUBSTR(", arg1, ", ", larger_int(["LENGTH(", arg1, ") - ", arg2, " + 1"], "1"), ?)]
 
