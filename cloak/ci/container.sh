@@ -69,7 +69,6 @@ case "$1" in
   start_container)
     container_name="$2"
     push_docker_arg "-e __AC__DEFAULT_SAP_HANA_SCHEMA__=\"TEST_SCHEMA_$container_name\""
-    push_docker_arg "-e LD_LIBRARY_PATH=/aircloak/cloak/priv/odbc/drivers/oracle/instantclient_18_3"
     push_docker_arg "--tmpfs=/data/db:rw,size=1G"
     default_handle "$@"
     ;;
@@ -77,7 +76,6 @@ case "$1" in
   run_in_container)
     container_name="$2"
     push_docker_arg "-e __AC__DEFAULT_SAP_HANA_SCHEMA__=\"TEST_SCHEMA_$container_name\""
-    push_docker_arg "-e LD_LIBRARY_PATH=/aircloak/cloak/priv/odbc/drivers/oracle/instantclient_18_3"
     push_docker_arg "-e CLOAK_DATA_SOURCES=\"$CLOAK_DATA_SOURCES\""
     default_handle "$@"
     ;;
