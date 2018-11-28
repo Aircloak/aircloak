@@ -7,7 +7,7 @@ authors = ["Aircloak GmbH <solutions@aircloak.com>"]
 name = "rodbc"
 
 [dependencies]
-odbc = ">= 0.9.10"
+odbc = { git = "https://github.com/cristianberneanu/odbc-rs"}
 simple-error = "*"
 
 [dependencies.odbc-sys]

@@ -10,7 +10,7 @@ defmodule Cloak.DataSource.RODBC.Port do
   @command_get_columns 4
   # @command_stop 5
 
-  @flag_wstr_as_bin 0
+  @flag_wstr_as_utf16 0
 
   @typep row :: [any]
 
@@ -55,9 +55,9 @@ defmodule Cloak.DataSource.RODBC.Port do
     end
   end
 
-  @doc "Enables transfer of wide strings as binary data (avoids validation & conversion of string characters)."
-  @spec set_wstr_as_bin(pid()) :: :ok | {:error, String.t()}
-  def set_wstr_as_bin(pid), do: call_server(pid, @command_set_flag, @flag_wstr_as_bin)
+  @doc "Transfers wide strings encoded as UTF-16 (for ODBC drivers that don't support UTF-8)."
+  @spec set_wstr_as_utf16(pid()) :: :ok | {:error, String.t()}
+  def set_wstr_as_utf16(pid), do: call_server(pid, @command_set_flag, @flag_wstr_as_utf16)
 
   @doc "Returns {name, type} information about the columns selected by the previous statement."
   @spec get_columns(pid()) :: {:ok, [{String.t(), String.t()}]} | {:error, String.t()}
@@ -107,6 +107,7 @@ defmodule Cloak.DataSource.RODBC.Port do
   @type_f64 4
   @type_str 5
   @type_bin 6
+  @type_wstr 7
 
   @status_err ?E
   @status_ok ?K
@@ -151,17 +152,16 @@ defmodule Cloak.DataSource.RODBC.Port do
   defp decode_values(<<@type_f64, num::float-little-64, data::binary>>, acc),
     do: decode_values(data, [num | acc])
 
-  defp decode_values(
-         <<@type_str, len::unsigned-little-32, str::bytes-size(len), data::binary>>,
-         acc
-       ),
-       do: decode_values(data, [str | acc])
+  defp decode_values(<<@type_str, len::unsigned-little-32, str::bytes-size(len), data::binary>>, acc),
+    do: decode_values(data, [str | acc])
 
-  defp decode_values(
-         <<@type_bin, len::unsigned-little-32, str::bytes-size(len), data::binary>>,
-         acc
-       ),
-       do: decode_values(data, [str | acc])
+  defp decode_values(<<@type_bin, len::unsigned-little-32, str::bytes-size(len), data::binary>>, acc),
+    do: decode_values(data, [str | acc])
+
+  defp decode_values(<<@type_wstr, len::unsigned-little-32, str::bytes-size(len), data::binary>>, acc) do
+    str = :unicode.characters_to_binary(str, {:utf16, :little}, :utf8)
+    decode_values(data, [str | acc])
+  end
 
   defp port_control(port, command, data) do
     true = send_command(port, command, data)
