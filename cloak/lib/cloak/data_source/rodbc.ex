@@ -4,7 +4,7 @@ defmodule Cloak.DataSource.RODBC do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.{RODBC.Port, SqlBuilder, Table, Driver}
+  alias Cloak.DataSource.{RODBC.Port, SqlBuilder, Table, Driver, Parameters}
   alias Cloak.DataSource
 
   # -------------------------------------------------------------------
@@ -88,10 +88,7 @@ defmodule Cloak.DataSource.RODBC do
   defp to_connection_string(parameters) do
     parameters
     |> Enum.map(fn {key, value} ->
-      if value |> to_string() |> String.contains?([";", "{"]),
-        do: DataSource.raise_error("The characters ';' and '{' are not allowed inside ODBC driver parameters!")
-
-      "#{Atom.to_string(key)}=#{value}"
+      "#{Atom.to_string(key)}=#{Parameters.odbc_escape(value)}"
     end)
     |> Enum.join(";")
   end

@@ -45,7 +45,7 @@ defmodule Compliance.DataSources do
 
     data_sources
     |> Enum.map(&Task.async(fn -> setup_data_source(&1) end))
-    |> Enum.each(&Task.await(&1, :timer.minutes(1)))
+    |> Enum.each(&Task.await(&1, :timer.minutes(2)))
 
     insert_servers = Enum.map(data_sources, &start_insert_servers!(&1, concurrency))
 

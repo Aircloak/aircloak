@@ -4,7 +4,7 @@
   "parameters": {
     "hostname": "sqlserver2017",
     "username": "sa",
-    "password": "7fNBjlaeoRwz*zH9",
+    "password": "sql{}server",
     "database": "cloak_compliance",
     "odbc_parameters": {
       "Port": "1433"

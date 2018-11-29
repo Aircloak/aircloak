@@ -81,10 +81,10 @@ perftest: deps
 	PERFORMANCE_TEST=true MIX_ENV=prod mix run perftest/main.exs
 
 sql-server-container:
-	$(call start_container, aircloak_sql_server, -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=7fNBjlaeoRwz*zH9' -p 1433:1433 -d microsoft/mssql-server-linux:2017-latest)
+	$(call start_container, aircloak_sql_server, -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=sql{}server' -p 1433:1433 -d microsoft/mssql-server-linux:2017-latest)
 
 sql-server-database:
-	docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 7fNBjlaeoRwz*zH9 -Q "CREATE DATABASE $(DB_NAME)"
+	docker exec -it aircloak_sql_server /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P sql{}server -Q "CREATE DATABASE $(DB_NAME)"
 
 mysql-server-container:
 	$(call start_container, aircloak_mysql_server, -e MYSQL_ALLOW_EMPTY_PASSWORD=true -p 3306:3306 -d mysql:5.7.19)

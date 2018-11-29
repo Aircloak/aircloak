@@ -17,4 +17,10 @@ defmodule Cloak.DataSource.ParametersTest do
   test "returns nil if no match is found" do
     assert nil === Parameters.get_one_of(%{:key => "value"}, ["missing key"])
   end
+
+  test "odbc value escaping" do
+    assert "{aa;a}" == Parameters.odbc_escape("aa;a")
+    assert "{a{a}" == Parameters.odbc_escape("a{a")
+    assert "{a}}a}" == Parameters.odbc_escape("a}a")
+  end
 end
