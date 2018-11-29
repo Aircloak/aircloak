@@ -404,9 +404,10 @@ If not present, the global setting is used.
 The `lcf_buckets_aggregation_limit` field is optional and controls the maximum number of columns for which partial
 aggregation of low-count filtered rows is done. If not present, the global setting is used.
 
-The `max_rare_negative_conditions` affects how many negative conditions containing rare values are allowed per query. It
-defaults to a safe value of 1 and should under most circumstances not be altered.
-If your organization underlies specific requirements it can be set to 0 or if it is known to be safe set to a higher value.
+The `max_rare_negative_conditions` affects how many negative conditions containing rare values are allowed per anonymizing query.
+It defaults to a safe value of 1 and should under most circumstances not be altered.
+Setting it to 0 rejects all rare negative conditions.
+Increasing the value above the default should only be done if it has been deemed safe.
 
 The database tables that should be made available for querying are defined in the `tables` section of the cloak config. The value of the `tables` key is a JSON object that looks as follows:
 
