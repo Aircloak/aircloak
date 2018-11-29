@@ -214,10 +214,9 @@ defmodule Cloak.Sql.Query.Features do
   end
 
   defp do_shadow_tables_used?(anonymized_query),
-    do: Enum.count(TypeChecker.Access.negative_conditions(anonymized_query)) > max_rare_negative_conditions()
-
-  defp max_rare_negative_conditions(),
-    do: Application.get_env(:cloak, :shadow_tables) |> Keyword.fetch!(:max_rare_negative_conditions)
+    do:
+      Enum.count(TypeChecker.Access.negative_conditions(anonymized_query)) >
+        Query.max_rare_negative_conditions(anonymized_query)
 
   defp isolators_used?(query), do: Enum.count(TypeChecker.Access.potential_unclear_isolator_usages(query)) > 0
 end

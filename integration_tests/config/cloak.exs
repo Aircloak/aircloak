@@ -44,7 +44,7 @@ config :cloak, :memory_limits,
 
 config :cloak, :shadow_tables,
   # Number of allowed negative conditions with rare values. See `Shadow tables` in anonymization.md.
-  max_rare_negative_conditions: 2,
+  max_rare_negative_conditions: 1,
   # Number of popular values to keep in a shadow table
   size: 100,
   # Minimum users with a particular value needed to include it in a shadow table

@@ -301,7 +301,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
             message: "Negative conditions can only involve one database column."
       end
     end)
-    |> Stream.drop(max_rare_negative_conditions())
+    |> Stream.drop(Query.max_rare_negative_conditions(query))
     |> Enum.take(1)
     |> case do
       [] ->
@@ -311,15 +311,19 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         raise CompilationError,
           source_location: Condition.subject(condition).source_location,
           message: """
-          At most #{max_rare_negative_conditions()} negative conditions matching rare values are allowed.
+          #{
+            case Query.max_rare_negative_conditions(query) do
+              0 -> "No negative conditions "
+              1 -> "At most 1 negative condition "
+              count -> "At most #{count} negative conditions "
+            end
+          }
+          matching rare values are allowed.
           For further information see the "Number of conditions" subsection of the "Restrictions" section
           in the user guides.
           """
     end
   end
-
-  defp max_rare_negative_conditions(),
-    do: Application.get_env(:cloak, :shadow_tables) |> Keyword.fetch!(:max_rare_negative_conditions)
 
   # -------------------------------------------------------------------
   # Internal functions

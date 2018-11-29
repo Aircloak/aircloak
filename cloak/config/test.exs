@@ -44,6 +44,8 @@ config :cloak, :anonymizer,
 
 config :cloak, :shadow_tables,
   # Number of allowed negative conditions with rare values. See `Shadow tables` in anonymization.md.
+  # In production it's set to 1 by default, but it's kept at 2 for tests as it easier to validate
+  # that the mechanism operates as expected.
   max_rare_negative_conditions: 2,
 
   # Number of popular values to keep in a shadow table
