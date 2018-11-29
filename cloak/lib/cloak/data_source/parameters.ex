@@ -30,6 +30,14 @@ defmodule Cloak.DataSource.Parameters do
     Enum.find_value(names, &find_parameter_by_name(parameters, &1))
   end
 
+  @doc "Escapes an ODBC value for including it in a connection string."
+  @spec odbc_escape(String.t()) :: String.t()
+  def odbc_escape(value) do
+    if value |> to_string() |> String.contains?(~w(; { })),
+      do: "{#{String.replace(value, "}", "}}")}}",
+      else: value
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
