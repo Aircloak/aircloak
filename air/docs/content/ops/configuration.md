@@ -460,9 +460,29 @@ Constant columns are also dropped from the table.
 
 #### Projected tables
 
-In some cases a table does not have a `user_id` column but is related to another table that does. You could for example have an `accounts` table with a `customer_id` column, and a table named `transactions` with an `account_id` column.
+In some cases a table does not have a `user_id` column but is related to another table that does.
+Let us assume we have two tables: `accounts` and `transactions`. The tables contain the following columns:
 
-To get a `customer_id` column in the `transactions` table, the cloak needs to be configured to derive it from the `accounts` table:
+```
+accounts:
+- id: integer
+- customer_id: some value
+- name: string
+```
+
+```
+transactions:
+- id: integer
+- account_id: integer
+- amount: integer
+- description: text
+```
+
+The `accounts` contains a `customer_id` column which is the canonical id used throughout the system to identify a user,
+whereas the `transactions` table does not. The `transactions` table does however have a foreign key relationship with the
+`accounts` table on the column `account_id` which matches the primary key `id` in the `accounts` table.
+To get a `customer_id` column in the `transactions` table, Insights Cloak would need to be configured to derive it from the `accounts`
+table as follows:
 
 ```
 "tables": {
@@ -482,10 +502,9 @@ To get a `customer_id` column in the `transactions` table, the cloak needs to be
 }
 ```
 
-Here, we are specifying that the `transactions` table derives its `user_id` column from the `accounts` table. The `account_id` field of the `transactions` table corresponds to the `id` field of the `accounts` table. This results in the `transactions` table getting an extra column called `customer_id`.
-
-The extra column added to the table has the name of the user id column in the related table. If the name clashes with
-a column that already exists in the table, you can rename it using the `user_id_alias` option.
+The extra column added through projection takes the name of the user id column in the related table.
+In the example above this would be `customer_id`. If the name clashes with an already existing column
+you can rename it using the `user_id_alias` option.
 As an example let's assume you have two tables: `users` and `purchases`. The `users` table has a column `uuid` that
 should be used as the user identifier, as well as an `id` column used to refer to a specific user in the context of the
 database. The `purchases` table has a `users_fk_id` column referring to the `id` column of the `users` table, as well as
