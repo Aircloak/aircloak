@@ -44,7 +44,7 @@ defmodule Cloak.DataSource.Shadows.Query do
     data_source.tables[String.to_existing_atom(table)].user_id
   end
 
-  defp min_users(), do: Application.get_env(:cloak, :shadow_tables) |> Keyword.fetch!(:size)
+  defp min_users(), do: Application.get_env(:cloak, :shadow_tables) |> Keyword.fetch!(:min_users)
 
-  defp size(), do: Application.get_env(:cloak, :shadow_tables) |> Keyword.fetch!(:min_users)
+  defp size(), do: Application.get_env(:cloak, :shadow_tables) |> Keyword.fetch!(:size)
 end
