@@ -332,7 +332,7 @@ SELECT COUNT(*) FROM table WHERE name <> surname
 
 ### Number of conditions
 
-There is a limit of two negative conditions (`NOT IN`, `NOT LIKE`, `NOT ILIKE`, and `<>`) for each anonymized query.
+There is a limit of one negative condition (`NOT IN`, `NOT LIKE`, `NOT ILIKE`, and `<>`) for each anonymized query.
 Conditions that match values appearing frequently in a given column are excluded from this limitation. Note that a
 `NOT IN` condition will be counted multiple times - once for each element on the right-hand side.
 
@@ -344,9 +344,9 @@ values appear only rarely.
 SELECT COUNT(*) FROM table
 WHERE name <> 'Alice' AND name <> 'Bob' AND name <> 'Charles'
 
--- Allowed - there are only two negative conditions
+-- Allowed - there is only one negative conditions on a rare value
 SELECT COUNT(*) FROM table
-WHERE name <> 'Charles' AND name <> 'Damien'
+WHERE name <> 'Charles'
 
 -- Disallowed - there are three negative conditions matching rare values
 SELECT COUNT(*) FROM table
