@@ -358,6 +358,13 @@ defmodule Cloak.Sql.Query do
   @spec emulated_where(t) :: filter_clause
   def emulated_where(query), do: Condition.reject(query.where, &(not emulated_condition?(&1, query)))
 
+  @doc "Returns the maximum allowed number of rare conditions for the query"
+  @spec max_rare_negative_conditions(t) :: non_neg_integer
+  def max_rare_negative_conditions(%Cloak.Sql.Query{data_source: data_source}) do
+    default_limit = Application.get_env(:cloak, :shadow_tables) |> Keyword.fetch!(:max_rare_negative_conditions)
+    data_source[:max_rare_negative_conditions] || default_limit
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

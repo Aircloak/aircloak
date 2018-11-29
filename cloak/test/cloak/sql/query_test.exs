@@ -375,6 +375,16 @@ defmodule Cloak.Sql.QueryTest do
     end
   end
 
+  describe ".max_rare_negative_conditions" do
+    test "defaults to the globally configured maximum (2 for tests)" do
+      assert 2 == Query.max_rare_negative_conditions(%Query{data_source: %{}})
+    end
+
+    test "accepts max rare conditions number configured for the data source" do
+      assert 0 == Query.max_rare_negative_conditions(%Query{data_source: %{max_rare_negative_conditions: 0}})
+    end
+  end
+
   describe "features->isolators_used" do
     test "false if conditions don't require isolator checks" do
       refute features_from("SELECT MEDIAN(height) FROM feat_users WHERE name <> 'Albus'").isolators_used
