@@ -1356,6 +1356,14 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error =~ "Usage of `x` is ambiguous."
   end
 
+  test "output user ids are censored" do
+    assert %{
+             columns: [%Expression{value: :*}],
+             group_by: [%Expression{value: :*}],
+             order_by: [{%Expression{value: :*}, _, _}]
+           } = compile!("select uid from table group by 1 order by 1", data_source())
+  end
+
   defp validate_view(view_sql, data_source, options \\ []) do
     with {:ok, parsed_view} <- Parser.parse(view_sql),
          do: Compiler.validate_view(data_source, parsed_view, Keyword.get(options, :views, %{}))
