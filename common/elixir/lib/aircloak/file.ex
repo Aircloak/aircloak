@@ -27,8 +27,14 @@ defmodule Aircloak.File do
   @spec read_config_file(atom, String.t()) :: {:ok, Map.t()} | {:error, String.t() | atom}
   def read_config_file(app, path_segment) do
     case read(app, path_segment) do
-      {:error, _} = error -> error
-      content -> Aircloak.decode_json(content)
+      {:error, _} = error ->
+        error
+
+      content ->
+        # We use the permissive decode rather than the standard decode since this is a
+        # json file coming from a user, and we want to be slightly more relaxed in the syntax
+        # we accept. Secondly the errors produced on failed parsing are better this way.
+        Aircloak.Json.permissive_decode(content)
     end
   end
 
