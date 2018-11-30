@@ -159,12 +159,6 @@ defmodule Aircloak do
     stacktrace
   end
 
-  @doc "Decodes a JSON string, converting an error into a string message."
-  @spec decode_json(String.t()) :: {:ok, Map.t()} | {:error, String.t()}
-  def decode_json(raw_json) do
-    with {:error, error} <- Jason.decode(raw_json), do: {:error, Exception.message(error)}
-  end
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

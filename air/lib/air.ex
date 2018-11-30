@@ -177,7 +177,7 @@ defmodule Air do
 
   defp load_users_and_datasources() do
     on_setting_file("users_and_datasources_file", fn raw_users_and_datasources, path ->
-      case Aircloak.decode_json(raw_users_and_datasources) do
+      case Aircloak.Json.permissive_decode(raw_users_and_datasources) do
         {:ok, map} ->
           main_error =
             "Could not validate the format of the users and data sources file `#{path}` " <>
@@ -192,6 +192,9 @@ defmodule Air do
             {:error, message} ->
               Logger.error(message)
           end
+
+        {:error, message} ->
+          Logger.error("Failed at parsing users and datasource file at path `#{path}`: #{message}")
       end
     end)
   end
