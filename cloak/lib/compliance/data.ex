@@ -167,6 +167,7 @@ defmodule Compliance.Data do
   lines_from_file = fn file ->
     File.read!(file)
     |> String.split("\n")
+    |> Enum.reject(&String.starts_with?(&1, "#"))
     |> Enum.reverse()
     # Get rid of empty entry due to empty line at the end of file
     |> tl()
