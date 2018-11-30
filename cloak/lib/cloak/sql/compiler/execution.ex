@@ -63,8 +63,10 @@ defmodule Cloak.Sql.Compiler.Execution do
     # rows. However, with this replacement, we can return names which are frequent enough, without revealing
     # any sensitive information. For example, we could return: `(*, Alice), (*, Bob), (*, *)`, which is
     # not possible without this replacement.
-    Lens.key(:columns)
-    |> Lens.all()
+    Lens.both(
+      Lens.keys([:columns, :group_by]) |> Lens.all(),
+      Lens.key(:order_by) |> Lens.all() |> Lens.at(0)
+    )
     |> Lens.filter(&non_aggregated_uid_expression?/1)
     |> Lens.map(query, &Expression.constant(&1.type, :*))
   end
