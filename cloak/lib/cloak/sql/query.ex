@@ -206,7 +206,7 @@ defmodule Cloak.Sql.Query do
   def add_db_column(query, column) do
     # A db column we're adding has to have a well-defined id
     false = is_nil(Expression.id(column))
-    column_matcher = &(Expression.id(&1) == Expression.id(column) and &1.alias == column.alias)
+    column_matcher = &(Expression.equals?(&1, column) and &1.alias == column.alias)
 
     case Enum.find(query.db_columns, column_matcher) do
       nil ->

@@ -97,4 +97,10 @@ defmodule Cloak.Query.UserlessTableTest do
       %{rows: [_ | _]}
     )
   end
+
+  test "selecting complex expressions with identical names from userless table" do
+    assert_query("select count(i), count(*) from userless", %{
+      rows: [%{row: [4, 4]}]
+    })
+  end
 end
