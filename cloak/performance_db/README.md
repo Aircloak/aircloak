@@ -6,4 +6,6 @@ You can build the local image with `./build-image.sh`. Then you can start it wit
 
 ## Publishing the image
 
-Running `./publish.sh aircloak` will build the new version of the image and push it to [quay.io](quay.io). The build process takes place on the build server using your current local branch.
+Running `./publish.sh` will build the new version of the image locally and push it to [quay.io](quay.io).
+In order for the image to be successfully pushed to quay it requires that you have authorised your computer
+with write privileges to the performance_db repository on quay.

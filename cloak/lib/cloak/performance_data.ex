@@ -30,7 +30,7 @@ defmodule Cloak.PerformanceData do
 
     [performance_config(opts)]
     |> Cloak.DataSource.config_to_datasources()
-    |> Compliance.DataSources.complete_data_source_definitions()
+    |> Compliance.DataSources.complete_data_source_definitions(disable_analysis_operations: true)
     |> Enum.each(&Compliance.store_json_config/1)
   end
 

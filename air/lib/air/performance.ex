@@ -7,39 +7,44 @@ defmodule Air.Performance do
 
   @doc "Synchronously executes the performance comparison and return observed measurements."
   @spec run(String.t(), String.t(), String.t()) :: :ok
-  def run(cloak_datasource_folder, user_name, password) do
+  def run(cloak_datasource_folder, user_name, password, opts \\ []) do
     conns = %{
       db: connect_db!(cloak_datasource_folder),
-      cloak_unencoded: connect_aircloak!("cloak_performance", user_name, password),
-      cloak_encoded: connect_aircloak!("cloak_performance_encoded", user_name, password)
+      cloak_unencoded: connect_aircloak!("cloak_performance", user_name, password)
     }
 
-    aircloak_latency = aircloak_latency(conns)
-    num_users = num_users(conns)
+    conns =
+      if Keyword.get(opts, :exclude_encoded, false) do
+        conns
+      else
+        encoded_conn = connect_aircloak!("cloak_performance_encoded", user_name, password)
+        Map.put(conns, :cloak_encoded, encoded_conn)
+      end
+
+    default_params = %{
+      aircloak_latency: aircloak_latency(conns),
+      num_users: num_users(conns),
+      db_size: db_size(conns)
+    }
 
     result =
       fn ->
         Enum.map(
           Air.Performance.Queries.queries(),
-          &measure_query(conns, aircloak_latency, num_users, &1)
+          &measure_query(conns, &1)
         )
       end
       |> Task.async()
       |> Task.await(:timer.hours(10))
+      |> Enum.map(&Map.merge(&1, default_params))
 
     # closing connections in background to avoid possible disconnect error to prevent returning the result
     Enum.each(conns, fn {_key, conn} ->
       Task.async(fn -> GenServer.stop(conn, :normal, :timer.seconds(5)) end)
     end)
 
-    fields = [
-      :num_users,
-      :db_time,
-      :cloak_unencoded_time,
-      :cloak_encoded_time,
-      :aircloak_latency,
-      :statement
-    ]
+    connection_fields = Enum.map(conns, fn {key, _conn} -> measurement_title(key) end)
+    fields = [:num_users, :db_time] ++ connection_fields ++ [:aircloak_latency, :db_size, :statement]
 
     result
     |> CSV.encode(headers: fields)
@@ -68,15 +73,17 @@ defmodule Air.Performance do
     count
   end
 
-  defp measure_query(conns, aircloak_latency, num_users, statement) do
-    conns
-    |> Enum.map(&measure_conn(&1, statement))
-    |> Enum.into(%{
-      num_users: num_users,
-      aircloak_latency: aircloak_latency,
-      statement: display_statement(statement)
-    })
+  defp db_size(conns) do
+    %Postgrex.Result{rows: [[size]]} = Postgrex.query!(conns.db, "select pg_database_size('cloak_performance');", [])
+
+    size
   end
+
+  defp measure_query(conns, statement),
+    do:
+      conns
+      |> Enum.map(&measure_conn(&1, statement))
+      |> Enum.into(%{statement: display_statement(statement)})
 
   defp display_statement(%{cloak: statement}), do: normalize_whitespaces(statement)
 
@@ -90,11 +97,13 @@ defmodule Air.Performance do
 
   defp measure_conn({key, conn}, statement) do
     statement = parse_statement(key, statement)
-    {:"#{key}_time", measure_statement(conn, statement)}
+    {measurement_title(key), measure_statement(conn, statement)}
   end
 
+  defp measurement_title(key), do: :"#{key}_time"
+
   defp measure_statement(conn, statement) do
-    {time, _result} = :timer.tc(fn -> Postgrex.query!(conn, statement, [], timeout: :timer.hours(1)) end)
+    {time, _result} = :timer.tc(fn -> Postgrex.query!(conn, statement, [], timeout: :timer.hours(5)) end)
 
     :erlang.convert_time_unit(time, :microsecond, :millisecond)
   end

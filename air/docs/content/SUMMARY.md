@@ -42,6 +42,7 @@
   - [Implicit ranges](sql/restrictions.md#implicit-ranges)
   - [Text operations](sql/restrictions.md#text-operations)
   - [IN, NOT IN, NOT LIKE, and <>](sql/restrictions.md#in-not-in-not-like-and-)
+  - [Number of conditions](sql/restrictions.md#number-of-conditions)
   - [Isolating columns](sql/restrictions.md#isolating-columns)
   - [Column analysis](sql/restrictions.md#column-analysis)
 - [Best practises](sql/best-practises.md)

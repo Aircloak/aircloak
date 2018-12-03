@@ -17,7 +17,7 @@ defmodule Cloak.DataSource.Shadows.Query do
     case user_id(data_source, table) do
       nil -> []
       ^column -> []
-      user_id -> do_build_shadow(data_source, table, column, user_id)
+      user_id -> maybe_build_shadow(data_source, table, column, user_id)
     end
   end
 
@@ -25,20 +25,27 @@ defmodule Cloak.DataSource.Shadows.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp do_build_shadow(data_source, table, column, user_id) do
-    """
-      SELECT "#{column}"
-      FROM "#{table}"
-      GROUP BY 1
-      HAVING COUNT(DISTINCT "#{user_id}") > #{min_users()}
-      ORDER BY COUNT(*) DESC
-      LIMIT #{size()}
-    """
-    |> Parser.parse!()
-    |> Compiler.compile_direct!(data_source)
-    |> DbEmulator.select()
-    |> Enum.map(&hd/1)
+  defp maybe_build_shadow(data_source, table, column, user_id) do
+    if should_maintain_shadow?(data_source, table) do
+      """
+        SELECT "#{column}"
+        FROM "#{table}"
+        GROUP BY 1
+        HAVING COUNT(DISTINCT "#{user_id}") > #{min_users()}
+        ORDER BY COUNT(*) DESC
+        LIMIT #{size()}
+      """
+      |> Parser.parse!()
+      |> Compiler.compile_direct!(data_source)
+      |> DbEmulator.select()
+      |> Enum.map(&hd/1)
+    else
+      []
+    end
   end
+
+  defp should_maintain_shadow?(data_source, table),
+    do: Map.get(data_source.tables[String.to_existing_atom(table)], :maintain_shadow_db, true)
 
   defp user_id(data_source, table) do
     data_source.tables[String.to_existing_atom(table)].user_id

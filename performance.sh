@@ -8,35 +8,43 @@ function stop_container {
   docker rm -f $1 > /dev/null 2>&1 || true
 }
 
-function recreate_db {
-  local num_users=$1
+function restart_performance_db {
   stop_container performance_db
 
   docker run \
     --detach --name performance_db -p 15432:5432 \
+    --tmpfs=/ramdisk:rw \
+    -e PGDATA=/ramdisk \
     quay.io/aircloak/performance_db:latest postgres -c config_file=/etc/postgresql/postgresql.conf \
     > /dev/null
+}
+
+function recreate_db {
+  local num_users=$1
+
+  restart_performance_db
 
   docker restart performance_cloak > /dev/null
 
   sleep 5
 
-  docker exec -it performance_cloak /aircloak/cloak/bin/cloak eval "
-    'Elixir.Cloak.PerformanceData':generate([
-      {num_users, $num_users},
-      {hostname, <<\"diffix0.mpi-sws.org\">>},
-      {port, 15432},
-      {username, <<\"postgres\">>}
-    ])
+  docker exec -it performance_cloak /aircloak/cloak/bin/cloak rpc "
+    Cloak.PerformanceData.generate(
+      num_users: $num_users,
+      hostname: \"diffix0.mpi-sws.org\",
+      port: 15432,
+      username: \"postgres\"
+    )
   " > /dev/null
 }
 
 function performance {
-  docker exec -it performance_air /aircloak/air/bin/air eval "
-    'Elixir.Air.Performance':run(
-      'Elixir.Path':join('Elixir.Application':app_dir(air, <<\"priv\">>), <<\"config\">>),
-      <<\"performance@aircloak.com\">>,
-      <<\"1234\">>
+  docker exec -it performance_air /aircloak/air/bin/air rpc "
+    Air.Performance.run(
+      Path.join(Application.app_dir(:air, \"priv\"), \"config\"),
+      \"performance@aircloak.com\",
+      \"1234\",
+      exclude_encoded: true
     )
   "
 }
@@ -50,12 +58,5 @@ docker pull quay.io/aircloak/performance_db:latest > /dev/null
 
 for num_users in "$@"; do
   recreate_db $num_users
-  performance_output=$(performance | head -n -2)
-
-  if [ "$header" == "" ]; then
-    echo "$performance_output" | head -n 1
-    header=true
-  fi
-
-  echo "$performance_output" | tail -n +2
+  performance
 done

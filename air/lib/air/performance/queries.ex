@@ -20,23 +20,36 @@ defmodule Air.Performance.Queries do
       "SELECT count(*) FROM notes",
       "SELECT count(*) FROM notes_changes",
       "SELECT count(*) FROM users",
+      "SELECT active, count(*) FROM users GROUP BY active",
+      "SELECT age, count(*) FROM users GROUP BY age",
+      "SELECT active, avg(age), count(*), count(distinct id) FROM users GROUP BY 1",
+      "SELECT height, avg(age) FROM users GROUP BY 1",
       "SELECT max(height), min(age) FROM users",
       "SELECT active, max(height), min(age) FROM users GROUP BY active",
       "SELECT name, active, max(height), min(age) FROM users GROUP BY active, name",
       "SELECT name, count(*) FROM users GROUP BY name",
-      "SELECT length(name), left(name, 3), max(age), min(age) FROM users GROUP BY 1,2",
+      "SELECT upper(name), max(age), min(age) FROM users GROUP BY 1",
+      "SELECT \"home.postal_code\", avg(age) FROM users u INNER JOIN addresses a ON u.user_id = a.uid GROUP BY 1",
       %{
         db: "SELECT ('x0' || substr(md5(name::text), 1, 15))::bit(64)::bigint, count(*) FROM users GROUP BY 1",
         cloak: "SELECT hash(name), count(*) FROM users GROUP BY 1"
       },
       "
       SELECT
-        length(title) as title_length,
+        name,
+        upper(title) as upper_title,
+        count(*)
+      FROM users u INNER JOIN notes n ON u.user_id = n.uid
+      GROUP BY 1, 2
+      ",
+      "
+      SELECT
+        upper(title) as upper_title,
         name,
         count(*)
       FROM users u INNER JOIN notes n ON u.user_id = n.uid
       GROUP BY 1, 2
-    ",
+      ",
       %{
         cloak: "
           SELECT bucket(notes_count by 4 align middle), count(*)
@@ -100,7 +113,7 @@ defmodule Air.Performance.Queries do
     ",
       "SELECT height, max(age) FROM users WHERE active = true GROUP BY height",
       "
-      SELECT left(title, 4), count(*), sum(notes_count)
+      SELECT lower(title), count(*), sum(notes_count)
       FROM (
         SELECT
           uid,
@@ -142,15 +155,6 @@ defmodule Air.Performance.Queries do
           GROUP BY 1, 2
           ORDER BY 1 ASC, 2 ASC
         "
-      },
-      """
-        SELECT \"changes.change\" AS ch
-        FROM notes_changes
-        ORDER BY
-          SQRT(0.25) ASC,
-          ((interval 'PT1S' - (notes_changes.uid * interval 'PT1S')) / notes_changes.uid)
-          DESC
-          NULLS FIRST
-      """
+      }
     ]
 end
