@@ -35,7 +35,8 @@ defmodule Cloak.Sql.Query.Features do
       driver: to_string(query.data_source.driver),
       driver_dialect: sql_dialect_name(query.data_source),
       shadow_tables_used: shadow_tables_used?(query),
-      isolators_used: isolators_used?(query)
+      isolators_used: isolators_used?(query),
+      anonymization_type: anonymization_type(query)
     }
   end
 
@@ -219,4 +220,7 @@ defmodule Cloak.Sql.Query.Features do
         Query.max_rare_negative_conditions(anonymized_query)
 
   defp isolators_used?(query), do: Enum.count(TypeChecker.Access.potential_unclear_isolator_usages(query)) > 0
+
+  defp anonymization_type(%Query{from: {:subquery, %{alias: "__ac_statistics"}}}), do: "Statistics"
+  defp anonymization_type(_query), do: "UserId"
 end
