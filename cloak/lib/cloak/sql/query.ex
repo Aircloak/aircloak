@@ -104,7 +104,8 @@ defmodule Cloak.Sql.Query do
           driver: String.t(),
           driver_dialect: String.t(),
           shadow_tables_used: boolean,
-          isolators_used: boolean
+          isolators_used: boolean,
+          anonymization_type: String.t()
         }
 
   defstruct columns: [],
