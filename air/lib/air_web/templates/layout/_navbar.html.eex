@@ -31,6 +31,10 @@
                   <%= navbar_link(@conn, "API Tokens", api_token_path(@conn, :index)) %>
                 <% end %>
 
+                <%= if permitted?(@conn, AirWeb.AppLoginController, :index) do %>
+                  <%= navbar_link(@conn, "App logins", app_login_path(@conn, :index)) %>
+                <% end %>
+
                 <%= if permitted?(@conn, AirWeb.ProfileController, :edit) do %>
                   <%= navbar_link(@conn, "Settings", profile_path(@conn, :edit)) %>
                 <% end %>

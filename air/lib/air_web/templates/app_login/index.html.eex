@@ -1,0 +1,66 @@
+<%= if get_flash(@conn, :api_token) do %>
+<div class="alert alert-success" role="alert">
+  <p>Your new token has been added. Please copy and paste it into your application:</p>
+  <br />
+  <pre><%= get_flash(@conn, :api_token) %></pre>
+</div>
+<% end %>
+
+<h2>App logins</h2>
+
+<div class="row">
+  <div class="col-sm-6">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title">Existing logins</h3>
+      </div>
+      <p class="panel-body">
+        You can create app-specific logins that can only be used to access the PSQL API. 
+        See the <%= link "authentication section in the API documentation", to: "/docs/api.html#authentication" %> for
+        more.
+      </p>
+      <table class="table table-striped table-hover">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Last used</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="4">No app logins have been created</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="col-sm-6">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h3 class="panel-title">Add a new login</h3>
+      </div>
+      <div class="panel-body">
+        <%= form_for @changeset, api_token_path(@conn, :create), fn f -> %>
+          <%= if @changeset.action do %>
+            <div class="alert alert-danger">
+              <p>Oops, something went wrong! Please check the errors below.</p>
+            </div>
+          <% end %>
+
+          <div class="form-group">
+            <%= label f, :description, "Description" %>
+            <%= text_input f, :description, class: "form-control" %>
+            <%= error_tag f, :description %>
+          </div>
+
+          <div class="form-group">
+            <%= submit "Create login", class: "btn btn-primary" %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
