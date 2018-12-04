@@ -105,29 +105,14 @@ defmodule Cloak.DataSource.Connection do
   end
 
   @impl GenServer
-  def handle_call({:start_streamer, query_id, query, reporter}, {query_runner, _} = from, state) do
+  def handle_call({:start_streamer, query_id, query, reporter}, {query_runner, _}, state) do
     assert_not_used!(state)
 
     case ensure_connected(state) do
       {:ok, state} ->
         Logger.metadata(query_id: query_id)
-
-        case Streamer.start_link(state.connection, query_runner, query_id, query, reporter) do
-          {:ok, streamer} ->
-            {:reply, {:ok, streamer}, %{state | query_runner: query_runner, streamer: streamer}}
-
-          {:error, streamer_pid, reason} ->
-            GenServer.reply(from, {:error, reason})
-
-            # flush the leftover exit message
-            receive do
-              {:EXIT, ^streamer_pid, _exit_reason} -> checkin(state)
-            after
-              :timer.seconds(5) ->
-                Process.exit(streamer_pid, :kill)
-                {:stop, :streamer_timeout, state}
-            end
-        end
+        {:ok, streamer} = Streamer.start_link(state.connection, query_runner, query_id, query, reporter)
+        {:reply, {:ok, streamer}, %{state | query_runner: query_runner, streamer: streamer}}
 
       {:error, reason} ->
         {:stop, :shutdown, {:error, reason}, state}

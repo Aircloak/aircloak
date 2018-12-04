@@ -95,8 +95,9 @@ defmodule Cloak.DataSource.StreamerTest do
 
     Cloak.Test.DB.delete_table("temp_table")
 
-    assert {:error, reason} = Streamer.rows(query)
-    assert reason =~ ~r/relation "cloak_test.temp_table" does not exist/
+    assert {:ok, stream} = Streamer.rows(query)
+    e = assert_raise Cloak.Query.ExecutionError, fn -> Stream.run(stream) end
+    assert e.message =~ ~r/relation "cloak_test.temp_table" does not exist/
   end
 
   defp rows(query, data_source \\ data_source(), reporter \\ nil) do

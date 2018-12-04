@@ -42,13 +42,11 @@ defmodule Cloak.DataSource.Streamer do
   end
 
   @doc "Invoked by the connection owner to start the streamer process."
-  @spec start_link(Cloak.DataSource.Driver.connection(), pid, String.t(), Cloak.Sql.Query.t(), reporter) ::
-          {:ok, pid} | {:error, pid, String.t()}
+  @spec start_link(Cloak.DataSource.Driver.connection(), pid, String.t(), Cloak.Sql.Query.t(), reporter) :: {:ok, pid}
   def start_link(driver_connection, query_runner, query_id, query, reporter) do
     # Since streaming from the datasource has to be done in a lambda, we can't implement the streamer as a GenServer.
-    # Instead, we're starting an OTP compliant process via `:proc_lib`, and receive messages manually while streaming
-    # from the database.
-    :proc_lib.start_link(__MODULE__, :stream, [self(), driver_connection, query_runner, query_id, query, reporter])
+    # Instead, we're starting a task, and receive messages manually while streaming from the database.
+    Task.start_link(fn -> stream(self(), driver_connection, query_runner, query_id, query, reporter) end)
   end
 
   # -------------------------------------------------------------------
@@ -73,6 +71,9 @@ defmodule Cloak.DataSource.Streamer do
       {^request_id, :end_of_chunks} ->
         nil
 
+      {^request_id, {:error, reason}} ->
+        raise Cloak.Query.ExecutionError, message: reason
+
       {^request_id, chunk} ->
         # immediately asking for the next chunk, to increase the chance of it being available when we need it
         {chunk, request_next_chunk(streamer)}
@@ -96,8 +97,7 @@ defmodule Cloak.DataSource.Streamer do
   # Server-side functions
   # -------------------------------------------------------------------
 
-  @doc false
-  def stream(connection_owner, driver_connection, query_runner, query_id, query, reporter) do
+  defp stream(connection_owner, driver_connection, query_runner, query_id, query, reporter) do
     Logger.metadata(query_id: query_id)
 
     try do
@@ -109,12 +109,11 @@ defmodule Cloak.DataSource.Streamer do
 
       Logger.debug("Terminating streamer process")
     rescue
-      error in [Cloak.Query.ExecutionError] -> :proc_lib.init_ack(connection_owner, {:error, self(), error.message})
+      error in [Cloak.Query.ExecutionError] -> stream_error(query_runner, error.message)
     end
   end
 
   defp stream_chunks(chunks, connection_owner, query_runner, reporter) do
-    :proc_lib.init_ack(connection_owner, {:ok, self()})
     process_chunks(chunks, query_runner, reporter)
 
     # We're issuing this notification here, before we're closing the resources (e.g. query or transaction). This ensures
@@ -142,6 +141,21 @@ defmodule Cloak.DataSource.Streamer do
         end
       end
     )
+  end
+
+  defp stream_error(query_runner, error) do
+    query_runner_mref = Process.monitor(query_runner)
+
+    receive do
+      {:next_chunk, request_id, requester_pid} ->
+        send(requester_pid, {request_id, {:error, error}})
+
+      {:DOWN, ^query_runner_mref, :process, ^query_runner, _reason} ->
+        {:halt, nil}
+
+      message ->
+        raise("invalid message #{inspect(message)} while streaming the query")
+    end
   end
 
   defp invoke_reporter(nil, _reporter_state), do: nil
