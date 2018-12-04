@@ -2,7 +2,7 @@ defmodule AirWeb.AppLoginController do
   @moduledoc false
   use Air.Web, :controller
 
-  alias Air.Schemas.ApiToken
+  alias Air.Service.User
 
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
@@ -19,15 +19,21 @@ defmodule AirWeb.AppLoginController do
   # -------------------------------------------------------------------
 
   def index(conn, _params) do
-    changeset = ApiToken.changeset(%ApiToken{})
-    render(conn, "index.html", api_tokens: existing_tokens(conn), changeset: changeset)
+    render(conn, "index.html", api_tokens: [], changeset: User.app_login_changeset())
   end
 
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
+  def create(conn, %{"login" => params}) do
+    case User.create_app_login(conn.assigns.current_user, params) do
+      {:error, changeset} ->
+        render(conn, "index.html", api_tokens: [], changeset: changeset)
 
-  defp existing_tokens(conn) do
-    Repo.all(from(t in ApiToken, where: t.user_id == ^conn.assigns.current_user.id, select: t))
+      {:ok, login, password} ->
+        audit_log(conn, "Created app login")
+
+        conn
+        |> put_flash(:app_login, login)
+        |> put_flash(:app_password, password)
+        |> redirect(to: app_login_path(conn, :index))
+    end
   end
 end

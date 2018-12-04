@@ -17,6 +17,8 @@ defmodule Air.Service.User do
   @optional_fields @format_fields
 
   @type change_options :: [ldap: true | false | :any]
+  @type login :: String.t()
+  @type password :: String.t()
 
   # -------------------------------------------------------------------
   # API functions
@@ -153,6 +155,12 @@ defmodule Air.Service.User do
     end
   end
 
+  @doc "Creates a new app login."
+  @spec create_app_login(User.t(), map) :: {:ok, login, password} | {:error, Ecto.Changeset.t()}
+  def create_app_login(user, params) do
+    {:ok, "hello", "world"}
+  end
+
   @doc "Updates the given user, raises on error."
   @spec update!(User.t(), map, change_options) :: User.t()
   def update!(user, params, options \\ []) do
@@ -261,6 +269,10 @@ defmodule Air.Service.User do
   @doc "Returns the empty changeset for the new user."
   @spec empty_changeset() :: Ecto.Changeset.t()
   def empty_changeset(), do: change(%User{})
+
+  @doc "Returns an empty changeset for a new app login."
+  @spec app_login_changeset() :: Ecto.Changeset.t()
+  def app_login_changeset(), do: change(%Login{})
 
   @doc "Converts the user into a changeset."
   @spec to_changeset(User.t()) :: Ecto.Changeset.t()
