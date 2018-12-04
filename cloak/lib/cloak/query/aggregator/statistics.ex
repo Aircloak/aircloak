@@ -104,16 +104,16 @@ defmodule Cloak.Query.Aggregator.Statistics do
 
     stddev1 = stddev1 || 0
     stddev2 = stddev2 || 0
-    sum_sqrs1 = :math.sqrt((stddev1 * stddev1 + avg1 * avg1) * count1)
-    sum_sqrs2 = :math.sqrt((stddev2 * stddev2 + avg2 * avg2) * count2)
+    # use the formula `sd(v) = sqrt(sum(v^2)/count - avg(v)^2)` to extract sum of squares
+    sum_sqrs1 = (stddev1 * stddev1 + avg1 * avg1) * count1
+    sum_sqrs2 = (stddev2 * stddev2 + avg2 * avg2) * count2
     sum_sqrs = sum_sqrs1 + sum_sqrs2
-
-    stddev = (sum_sqrs * sum_sqrs / count - avg * avg) |> Kernel.max(0) |> :math.sqrt()
 
     min = min(min1, min2)
     max = max(max1, max2)
     sum = sum1 + sum2
-    stddev = Kernel.min(stddev, (max - min) / 2)
+    # use the formula `sd(v) = sqrt(sum(v^2)/count - avg(v)^2)` to combine standard deviations
+    stddev = (sum_sqrs / count - avg * avg) |> Kernel.max(0) |> :math.sqrt() |> Kernel.min((max - min) / 2)
 
     [sum, min, max, stddev]
   end
