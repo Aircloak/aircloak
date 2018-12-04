@@ -1,5 +1,5 @@
 defmodule Cloak.Query.ParallelStreamingTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   @table "parallel_streaming"
 
@@ -56,5 +56,29 @@ defmodule Cloak.Query.ParallelStreamingTest do
     assert_query("SELECT BUCKET(value BY 500), COUNT(*) FROM #{@table} GROUP BY 1 ORDER BY 1", %{
       rows: [%{row: [0.0, 5986]}, %{row: [500.0, 5998]}, %{row: [1000.0, 10]}]
     })
+  end
+
+  test "error during parallel ingestion" do
+    :ok = Cloak.Test.DB.create_table("invalid_table", "value INTEGER")
+
+    try do
+      Cloak.Test.DB.execute!("DROP TABLE cloak_test.invalid_table")
+
+      for i <- 1..1000 do
+        :ok = insert_rows(_user_ids = 1..10, @table, ["value"], [i])
+      end
+
+      log =
+        ExUnit.CaptureLog.capture_log(fn ->
+          assert_query(
+            "SELECT BUCKET(value BY 500), COUNT(*) FROM invalid_table GROUP BY 1 ORDER BY 1",
+            %{error: "Unknown cloak error."}
+          )
+        end)
+
+      assert log =~ ~r/relation "cloak_test.invalid_table" does not exist/
+    after
+      Cloak.Test.DB.delete_table("invalid_table")
+    end
   end
 end
