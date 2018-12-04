@@ -199,7 +199,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     test "normalizing unordered queries" do
       assert %{from: {:subquery, %{ast: %{order_by: []}}}} =
                compile!(
-                 "SELECT COUNT(*) FROM (SELECT 'constant' FROM table) x",
+                 "SELECT MEDIAN(uid) FROM (SELECT 'constant' FROM table) x",
                  sql_server_data_source()
                )
     end
