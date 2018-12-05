@@ -6,7 +6,7 @@ defmodule Cloak.DataSource.Oracle do
 
   use Cloak.DataSource.Driver.SQL
   alias Cloak.DataSource.RODBC
-  alias Cloak.Sql.Expression
+  alias Cloak.Sql.{Expression, Query.Lenses, Compiler.Helpers}
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
@@ -32,8 +32,10 @@ defmodule Cloak.DataSource.Oracle do
   end
 
   @impl Driver
-  def select(connection, sql_query, result_processor),
-    do: RODBC.select(connection, map_selected_expressions(sql_query), custom_mappers(), result_processor)
+  def select(connection, sql_query, result_processor) do
+    sql_query = sql_query |> limit_column_names() |> map_selected_expressions()
+    RODBC.select(connection, sql_query, custom_mappers(), result_processor)
+  end
 
   @impl Driver
   defdelegate driver_info(connection), to: RODBC
@@ -172,4 +174,22 @@ defmodule Cloak.DataSource.Oracle do
         nil
     end
   end
+
+  defp limit_name(name) when byte_size(name) > 30 do
+    <<hash_lo::8-binary, hash_hi::8-binary>> = :crypto.hash(:md5, name)
+    hash = :crypto.exor(hash_lo, hash_hi) |> Base.url_encode64(padding: false)
+    String.slice(name, 0, 17) <> "_" <> hash
+  end
+
+  defp limit_name(name), do: name
+
+  defp limit_names_in_subquery(subquery) do
+    Lenses.all_expressions()
+    |> Lens.filter(& &1.synthetic?)
+    |> Lens.filter(&(&1.name != nil or &1.alias != nil))
+    |> Lens.map(subquery, &%Expression{&1 | name: limit_name(&1.name), alias: limit_name(&1.alias)})
+  end
+
+  # Oracle has a 30 characters limit per identifier name
+  defp limit_column_names(query), do: Helpers.apply_bottom_up(query, &limit_names_in_subquery/1)
 end
