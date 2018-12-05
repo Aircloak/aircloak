@@ -32,12 +32,13 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
   # One worker will ask another one for its state, merge it with its own partial state, and so on,
   # until only a single worker remains, which will send the final result back to the parent process.
   # Once a worker reports a result, it will automatically exit. Each worker will report exactly once.
-  defp merge_results([worker], _state_merger), do: Worker.report!(worker)
-
   defp merge_results([worker1, worker2], state_merger) do
-    state1 = Worker.report!(worker1)
-    state2 = Worker.report!(worker2)
-    state_merger.(state1, state2)
+    with {:ok, state1} <- Worker.report(worker1),
+         {:ok, state2} <- Worker.report(worker2) do
+      state_merger.(state1, state2)
+    else
+      {:error, %Cloak.Query.ExecutionError{} = error} -> raise(error)
+    end
   end
 
   defp merge_results(workers, state_merger) do
@@ -65,7 +66,7 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
     end
 
     # Reports the result of the job to the caller and stops the worker.
-    def report!(worker), do: GenServer.call(worker, :report, :infinity)
+    def report(worker), do: GenServer.call(worker, :report, :infinity)
 
     # Merges the job result of the first worker into the job result of the second one. Stops the first worker.
     def merge(from, to, state_merger) do
@@ -77,10 +78,21 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
     def init({rows, processor}), do: {:ok, nil, {:continue, {:process_rows, rows, processor}}}
 
     @impl GenServer
-    def handle_continue({:process_rows, rows, processor}, nil), do: {:noreply, processor.(rows)}
+    def handle_continue({:process_rows, rows, processor}, nil) do
+      {:noreply, {:ok, processor.(rows)}}
+    rescue
+      e in Cloak.Query.ExecutionError -> {:noreply, {:error, e}}
+    end
 
     @impl GenServer
-    def handle_cast({:merge, from, state_merger}, result), do: {:noreply, state_merger.(result, report!(from))}
+    def handle_cast({:merge, from, state_merger}, {:ok, result}) do
+      case report(from) do
+        {:ok, other_result} -> {:noreply, {:ok, state_merger.(result, other_result)}}
+        {:error, _} = error -> {:noreply, error}
+      end
+    end
+
+    def handle_cast({:merge, _from, _state_merger}, {:error, _} = error), do: {:noreply, error}
 
     @impl GenServer
     def handle_call(:report, _from, result), do: {:stop, :normal, result, nil}
