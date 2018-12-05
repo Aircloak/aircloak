@@ -53,9 +53,9 @@ defmodule Cloak.DataSource.SqlBuilder do
     range_clause = range_fragments(query)
 
     if sql_dialect_module(query).range_at_statement_start?() do
-      ["SELECT ", range_clause, " ", common_clauses]
+      ["SELECT ", sql_dialect_module(query).select_hints(), range_clause, " ", common_clauses]
     else
-      ["SELECT ", common_clauses, range_clause]
+      ["SELECT ", sql_dialect_module(query).select_hints(), common_clauses, range_clause]
     end
   end
 
