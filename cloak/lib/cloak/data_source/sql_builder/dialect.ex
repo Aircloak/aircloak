@@ -6,6 +6,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @doc "Returns the list of supported functions for this SQL dialect."
   @callback supported_functions() :: [String.t()]
 
+  @doc "Generates dialect specific SELECT statement hints"
+  @callback select_hints() :: iodata
+
   @doc "Generates dialect-specific SQL for a function invocation. Provided arguments list must contain SQL fragments."
   @callback function_sql(Expression.function_name(), [iodata]) :: iodata
 
@@ -56,6 +59,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   defmacro __using__(_opts) do
     quote do
       @behaviour unquote(__MODULE__)
+
+      @impl unquote(__MODULE__)
+      def select_hints(), do: ""
 
       @impl unquote(__MODULE__)
       def like_sql(what, match), do: [what, " LIKE ", match]
@@ -111,7 +117,8 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       @impl unquote(__MODULE__)
       def quote_char(), do: ?"
 
-      defoverridable like_sql: 2,
+      defoverridable select_hints: 0,
+                     like_sql: 2,
                      ilike_sql: 2,
                      limit_sql: 2,
                      alias_sql: 2,
