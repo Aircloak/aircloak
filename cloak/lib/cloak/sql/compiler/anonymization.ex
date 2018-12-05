@@ -88,6 +88,11 @@ defmodule Cloak.Sql.Compiler.Anonymization do
 
     inner_columns = Enum.uniq(groups ++ aggregators)
 
+    # `Stddev` combine algorithm is dependent on input order, so we need to sort by uid range to get consistent results.
+    # Drill doesn't like `order by` clauses with global aggregators only (queries crash with a truncated error message).
+    # As a workaround, we set the `order by` clause only when we have a non-empty `group by` clause in the query.
+    order_by = if groups == [], do: [], else: [min_uid, max_uid]
+
     inner_query = %Query{
       query
       | subquery?: true,
@@ -96,7 +101,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
         columns: inner_columns,
         column_titles: Enum.map(inner_columns, &(&1.alias || &1.name)),
         group_by: Enum.map(groups, &Expression.unalias/1),
-        order_by: [min_uid, max_uid] |> Enum.map(&Expression.unalias/1) |> Enum.map(&{&1, :asc, :nulls_first}),
+        order_by: order_by |> Enum.map(&Expression.unalias/1) |> Enum.map(&{&1, :asc, :nulls_first}),
         having: nil,
         limit: nil,
         offset: 0,
