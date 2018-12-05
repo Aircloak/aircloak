@@ -293,7 +293,7 @@ defmodule Cloak.Sql.QueryTest do
     @uid_type "text"
 
     test "simple case" do
-      assert %{db_column_types: [@uid_type, @uid_type, "integer", "text", "text", "integer", "text"]} =
+      assert %{db_column_types: [@uid_type, @uid_type, "integer", "text", "integer", "text", "text"]} =
                features_from("SELECT height, name FROM feat_users")
     end
 
@@ -306,9 +306,9 @@ defmodule Cloak.Sql.QueryTest do
                  @uid_type,
                  "integer",
                  "datetime",
-                 "text",
                  "integer",
-                 "datetime"
+                 "datetime",
+                 "text"
                ]
              } =
                features_from("""

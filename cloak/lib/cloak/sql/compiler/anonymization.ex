@@ -88,6 +88,8 @@ defmodule Cloak.Sql.Compiler.Anonymization do
 
     inner_columns = Enum.uniq(groups ++ aggregators)
 
+    order_by = if groups == [], do: [], else: [min_uid, max_uid]
+
     inner_query = %Query{
       query
       | subquery?: true,
@@ -96,7 +98,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
         columns: inner_columns,
         column_titles: Enum.map(inner_columns, &(&1.alias || &1.name)),
         group_by: Enum.map(groups, &Expression.unalias/1),
-        order_by: [],
+        order_by: order_by |> Enum.map(&Expression.unalias/1) |> Enum.map(&{&1, :asc, :nulls_first}),
         having: nil,
         limit: nil,
         offset: 0,
