@@ -32,11 +32,11 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
   # One worker will ask another one for its state, merge it with its own partial state, and so on,
   # until only a single worker remains, which will send the final result back to the parent process.
   # Once a worker reports a result, it will automatically exit. Each worker will report exactly once.
-  defp merge_results([worker], _state_merger), do: Worker.report!(worker)
+  defp merge_results([worker], _state_merger), do: Worker.report(worker)
 
   defp merge_results([worker1, worker2], state_merger) do
-    with {:ok, state1} <- Worker.report!(worker1),
-         {:ok, state2} <- Worker.report!(worker2) do
+    with {:ok, state1} <- Worker.report(worker1),
+         {:ok, state2} <- Worker.report(worker2) do
       state_merger.(state1, state2)
     else
       {:error, %Cloak.Query.ExecutionError{} = error} -> raise(error)
@@ -68,7 +68,7 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
     end
 
     # Reports the result of the job to the caller and stops the worker.
-    def report!(worker), do: GenServer.call(worker, :report, :infinity)
+    def report(worker), do: GenServer.call(worker, :report, :infinity)
 
     # Merges the job result of the first worker into the job result of the second one. Stops the first worker.
     def merge(from, to, state_merger) do
@@ -88,7 +88,7 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
 
     @impl GenServer
     def handle_cast({:merge, from, state_merger}, {:ok, result}) do
-      case report!(from) do
+      case report(from) do
         {:ok, other_result} -> {:noreply, {:ok, state_merger.(result, other_result)}}
         {:error, _} = error -> {:noreply, error}
       end
