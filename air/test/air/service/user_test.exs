@@ -131,6 +131,23 @@ defmodule Air.Service.UserTest do
     end
   end
 
+  describe ".create_app_login" do
+    test "returns the login and password" do
+      user = TestRepoHelper.create_user!()
+      {:ok, login, password} = User.create_app_login(user, %{})
+
+      user_id = user.id
+      assert {:ok, %{id: ^user_id}} = User.login_psql(login, password)
+    end
+
+    test "the returned login and password can only be used in the psql scope" do
+      {:ok, login, password} = User.create_app_login(TestRepoHelper.create_user!(), %{})
+      assert {:error, :invalid_login_or_password} = User.login(login, password)
+    end
+
+    test "multiple calls create different logins with different passwords"
+  end
+
   describe ".login" do
     test "success for native user" do
       user_id = TestRepoHelper.create_user!(%{login: "alice", password: "password1234"}).id
