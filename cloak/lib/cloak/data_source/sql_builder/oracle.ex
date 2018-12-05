@@ -22,7 +22,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   @impl Dialect
   def select_hints() do
-    "/*+ parallel (8) */ "
+    "/*+ parallel (4) */ "
   end
 
   @impl Dialect
