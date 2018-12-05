@@ -36,6 +36,16 @@ defmodule Cloak.DataSource.Oracle.Test do
     test "error is converted into a nil", do: assert(is_nil(Oracle.interval_mapper("invalid string")))
   end
 
+  describe "nil_mapper/1" do
+    test "doesn't invoke the inner mapper if the value is nil" do
+      assert Oracle.nil_mapper(fn _ -> flunk("shouldn't happen") end).(nil) == nil
+    end
+
+    test "invokes the inner mapper if the value is not nil" do
+      assert Oracle.nil_mapper(fn value -> {:invoked, value} end).(:value) == {:invoked, :value}
+    end
+  end
+
   def data_source do
     %{
       name: "oracle_test_data_source",

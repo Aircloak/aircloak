@@ -93,12 +93,20 @@ defmodule Cloak.DataSource.Oracle do
   defp custom_mappers() do
     %{
       :text => &text_mapper/1,
-      :date => &date_mapper/1,
-      :time => &time_mapper/1,
-      :datetime => &datetime_mapper/1,
-      :interval => &interval_mapper/1,
-      :boolean => &boolean_mapper/1
+      :date => nil_mapper(&date_mapper/1),
+      :time => nil_mapper(&time_mapper/1),
+      :datetime => nil_mapper(&datetime_mapper/1),
+      :interval => nil_mapper(&interval_mapper/1),
+      :boolean => nil_mapper(&boolean_mapper/1)
     }
+  end
+
+  @doc false
+  def nil_mapper(mapper) do
+    fn
+      nil -> nil
+      other -> mapper.(other)
+    end
   end
 
   # In Oracle, NULL and empty string are the same thing (e.g. `select coalesce(trim('  '), 'is null') from dual` returns
