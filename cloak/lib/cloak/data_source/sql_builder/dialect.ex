@@ -117,7 +117,8 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       @impl unquote(__MODULE__)
       def quote_char(), do: ?"
 
-      defoverridable like_sql: 2,
+      defoverridable select_hints: 0,
+                     like_sql: 2,
                      ilike_sql: 2,
                      limit_sql: 2,
                      alias_sql: 2,
