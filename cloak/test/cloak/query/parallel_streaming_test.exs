@@ -68,15 +68,12 @@ defmodule Cloak.Query.ParallelStreamingTest do
         :ok = insert_rows(_user_ids = 1..10, @table, ["value"], [i])
       end
 
-      log =
-        ExUnit.CaptureLog.capture_log(fn ->
-          assert_query(
-            "SELECT BUCKET(value BY 500), COUNT(*) FROM invalid_table GROUP BY 1 ORDER BY 1",
-            %{error: "Unknown cloak error."}
-          )
-        end)
+      assert_query(
+        "SELECT BUCKET(value BY 500), COUNT(*) FROM invalid_table GROUP BY 1 ORDER BY 1",
+        %{error: error}
+      )
 
-      assert log =~ ~r/relation "cloak_test.invalid_table" does not exist/
+      assert error =~ ~r/relation "cloak_test.invalid_table" does not exist/
     after
       Cloak.Test.DB.delete_table("invalid_table")
     end

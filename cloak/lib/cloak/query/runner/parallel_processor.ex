@@ -35,9 +35,12 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
   defp merge_results([worker], _state_merger), do: Worker.report!(worker)
 
   defp merge_results([worker1, worker2], state_merger) do
-    state1 = Worker.report!(worker1)
-    state2 = Worker.report!(worker2)
-    state_merger.(state1, state2)
+    with {:ok, state1} <- Worker.report!(worker1),
+         {:ok, state2} <- Worker.report!(worker2) do
+      state_merger.(state1, state2)
+    else
+      {:error, %Cloak.Query.ExecutionError{} = error} -> raise(error)
+    end
   end
 
   defp merge_results(workers, state_merger) do
@@ -77,10 +80,21 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
     def init({rows, processor}), do: {:ok, nil, {:continue, {:process_rows, rows, processor}}}
 
     @impl GenServer
-    def handle_continue({:process_rows, rows, processor}, nil), do: {:noreply, processor.(rows)}
+    def handle_continue({:process_rows, rows, processor}, nil) do
+      {:noreply, {:ok, processor.(rows)}}
+    rescue
+      e in Cloak.Query.ExecutionError -> {:noreply, {:error, e}}
+    end
 
     @impl GenServer
-    def handle_cast({:merge, from, state_merger}, result), do: {:noreply, state_merger.(result, report!(from))}
+    def handle_cast({:merge, from, state_merger}, {:ok, result}) do
+      case report!(from) do
+        {:ok, other_result} -> {:noreply, {:ok, state_merger.(result, other_result)}}
+        {:error, _} = error -> {:noreply, error}
+      end
+    end
+
+    def handle_cast({:merge, _from, _state_merger}, {:error, _} = error), do: {:noreply, error}
 
     @impl GenServer
     def handle_call(:report, _from, result), do: {:stop, :normal, result, nil}
