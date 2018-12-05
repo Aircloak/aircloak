@@ -16,17 +16,17 @@ defmodule Cloak.Query.ParallelStreamingTest do
     :ok
   end
 
-  defp data_source() do
+  defp data_source(concurrency) do
     data_source = Enum.find(Cloak.DataSource.all(), &(&1.driver === Cloak.DataSource.PostgreSQL))
-    %{data_source | concurrency: 3}
+    %{data_source | concurrency: concurrency}
   end
 
-  defmacrop assert_query(query, expected_response) do
+  defmacrop assert_query(query, expected_response, opts) do
     quote do
       result =
         Runner.run_sync(
           "#{:erlang.unique_integer([:positive])}",
-          data_source(),
+          data_source(Keyword.get(unquote(opts), :concurrency, 3)),
           unquote(query),
           [],
           %{}
@@ -43,9 +43,13 @@ defmodule Cloak.Query.ParallelStreamingTest do
     :ok = insert_rows(_user_ids = 1..800, @table, ["value"], [0])
     :ok = insert_rows(_user_ids = 1..1200, @table, ["value"], [-2])
 
-    assert_query("SELECT COUNT(*), COUNT(DISTINCT value), MIN(value), MEDIAN(value), SUM(value) FROM #{@table}", %{
-      rows: [%{row: [4200, 5, -2, 0, -200]}]
-    })
+    for concurrency <- 2..5 do
+      assert_query(
+        "SELECT COUNT(*), COUNT(DISTINCT value), MIN(value), MEDIAN(value), SUM(value) FROM #{@table}",
+        %{rows: [%{row: [4200, 5, -2, 0, -200]}]},
+        concurrency: concurrency
+      )
+    end
   end
 
   test "parallel data ingestion for no-uid anonymization" do
@@ -53,9 +57,13 @@ defmodule Cloak.Query.ParallelStreamingTest do
       :ok = insert_rows(_user_ids = 1..10, @table, ["value"], [i])
     end
 
-    assert_query("SELECT BUCKET(value BY 500), COUNT(*) FROM #{@table} GROUP BY 1 ORDER BY 1", %{
-      rows: [%{row: [0.0, 5986]}, %{row: [500.0, 5998]}, %{row: [1000.0, 10]}]
-    })
+    for concurrency <- 2..5 do
+      assert_query(
+        "SELECT BUCKET(value BY 500), COUNT(*) FROM #{@table} GROUP BY 1 ORDER BY 1",
+        %{rows: [%{row: [0.0, 5986]}, %{row: [500.0, 5998]}, %{row: [1000.0, 10]}]},
+        concurrency: concurrency
+      )
+    end
   end
 
   test "error during parallel ingestion" do
@@ -68,12 +76,15 @@ defmodule Cloak.Query.ParallelStreamingTest do
         :ok = insert_rows(_user_ids = 1..10, @table, ["value"], [i])
       end
 
-      assert_query(
-        "SELECT BUCKET(value BY 500), COUNT(*) FROM invalid_table GROUP BY 1 ORDER BY 1",
-        %{error: error}
-      )
+      for concurrency <- 2..5 do
+        assert_query(
+          "SELECT BUCKET(value BY 500), COUNT(*) FROM invalid_table GROUP BY 1 ORDER BY 1",
+          %{error: error},
+          concurrency: concurrency
+        )
 
-      assert error =~ ~r/relation "cloak_test.invalid_table" does not exist/
+        assert error =~ ~r/relation "cloak_test.invalid_table" does not exist/
+      end
     after
       Cloak.Test.DB.delete_table("invalid_table")
     end

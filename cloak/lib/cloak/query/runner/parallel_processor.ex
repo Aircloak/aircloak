@@ -32,8 +32,6 @@ defmodule Cloak.Query.Runner.ParallelProcessor do
   # One worker will ask another one for its state, merge it with its own partial state, and so on,
   # until only a single worker remains, which will send the final result back to the parent process.
   # Once a worker reports a result, it will automatically exit. Each worker will report exactly once.
-  defp merge_results([worker], _state_merger), do: Worker.report(worker)
-
   defp merge_results([worker1, worker2], state_merger) do
     with {:ok, state1} <- Worker.report(worker1),
          {:ok, state2} <- Worker.report(worker2) do
