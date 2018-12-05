@@ -25,34 +25,31 @@
         <p class="alert alert-danger" role="alert"><%= get_flash(@conn, :error) %></p>
 
         <main role="main">
-          <div class="<%= container_class(assigns) %>">
+          <div class="row">
+            <div class="col-lg-2 col-md-3">
+              <ul class="nav nav-pills nav-stacked">
+                <%= warning_navbar_link(@conn) %>
 
-            <div class="row">
-              <div class="col-lg-2 col-md-3">
-                <ul class="nav nav-pills nav-stacked">
-                  <%= warning_navbar_link(@conn) %>
-
-                  <%= navbar_link(@conn, "Activity monitor", admin_activity_monitor_path(@conn, :index)) %>
-                  <%= if audit_log_enabled?() do %>
-                    <%= navbar_link(@conn, "Audit log", admin_audit_log_path(@conn, :index)) %>
-                  <% end %>
-                  <%= navbar_link(@conn, "Cloaks", admin_cloaks_path(@conn, :index)) %>
-                  <%= navbar_link(@conn, "Data sources", admin_data_source_path(@conn, :index)) %>
-                  <%= navbar_link(@conn, "Groups", admin_group_path(@conn, :index)) %>
-                  <%= navbar_link(@conn, "Users", admin_user_path(@conn, :index)) %>
-                  <%= navbar_link(@conn, "Failed queries", admin_query_path(@conn, :failed)) %>
-                  <%= navbar_link(@conn, "Settings", admin_settings_path(@conn, :show)) %>
-                  <%=
-                    if Air.Service.Central.manual_export?(), do:
-                      navbar_link(@conn, "Export for Aircloak", admin_central_path(@conn, :export))
-                  %>
-                  <%= navbar_link(@conn, "Privacy policy", admin_privacy_policy_path(@conn, :index)) %>
-                  <%= navbar_link(@conn, "Aircloak license", admin_license_path(@conn, :edit)) %>
-                </ul>
-              </div>
-              <div class="col-lg-10 col-md-9">
-                <%= render @view_module, @view_template, assigns %>
-              </div>
+                <%= navbar_link(@conn, "Activity monitor", admin_activity_monitor_path(@conn, :index)) %>
+                <%= if audit_log_enabled?() do %>
+                  <%= navbar_link(@conn, "Audit log", admin_audit_log_path(@conn, :index)) %>
+                <% end %>
+                <%= navbar_link(@conn, "Cloaks", admin_cloaks_path(@conn, :index)) %>
+                <%= navbar_link(@conn, "Data sources", admin_data_source_path(@conn, :index)) %>
+                <%= navbar_link(@conn, "Groups", admin_group_path(@conn, :index)) %>
+                <%= navbar_link(@conn, "Users", admin_user_path(@conn, :index)) %>
+                <%= navbar_link(@conn, "Failed queries", admin_query_path(@conn, :failed)) %>
+                <%= navbar_link(@conn, "Settings", admin_settings_path(@conn, :show)) %>
+                <%=
+                  if Air.Service.Central.manual_export?(), do:
+                    navbar_link(@conn, "Export for Aircloak", admin_central_path(@conn, :export))
+                %>
+                <%= navbar_link(@conn, "Privacy policy", admin_privacy_policy_path(@conn, :index)) %>
+                <%= navbar_link(@conn, "Aircloak license", admin_license_path(@conn, :edit)) %>
+              </ul>
+            </div>
+            <div class="col-lg-10 col-md-9">
+              <%= render @view_module, @view_template, assigns %>
             </div>
           </div>
         </main>
