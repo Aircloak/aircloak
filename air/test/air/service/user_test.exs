@@ -216,6 +216,16 @@ defmodule Air.Service.UserTest do
     end
   end
 
+  describe ".login_psql" do
+    test "app login for LDAP user" do
+      user = TestRepoHelper.create_user!(%{login: "alice", ldap_dn: "cn=admin,dc=example,dc=org"})
+      {:ok, login, password} = User.create_app_login(user, %{})
+
+      user_id = user.id
+      assert {:ok, %{id: ^user_id}} = User.login_psql(login, password)
+    end
+  end
+
   describe "deleting a user" do
     test "doesn't delete the group" do
       group = TestRepoHelper.create_group!()
