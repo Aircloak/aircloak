@@ -175,7 +175,9 @@ defmodule Cloak.DataSource.Oracle do
     end
   end
 
-  defp limit_name(name) when byte_size(name) > 30 do
+  @max_name_length 30
+
+  defp limit_name(name) when byte_size(name) > @max_name_length do
     <<hash_lo::8-binary, hash_hi::8-binary>> = :crypto.hash(:md5, name)
     hash = :crypto.exor(hash_lo, hash_hi) |> Base.url_encode64(padding: false)
     String.slice(name, 0, 17) <> "_" <> hash
@@ -183,10 +185,12 @@ defmodule Cloak.DataSource.Oracle do
 
   defp limit_name(name), do: name
 
+  defp has_long_name?(%Expression{name: name, alias: alias}),
+    do: byte_size(name || "") > @max_name_length or byte_size(alias || "") > @max_name_length
+
   defp limit_names_in_subquery(subquery) do
     Lenses.all_expressions()
-    |> Lens.filter(& &1.synthetic?)
-    |> Lens.filter(&(&1.name != nil or &1.alias != nil))
+    |> Lens.filter(&has_long_name?/1)
     |> Lens.map(subquery, &%Expression{&1 | name: limit_name(&1.name), alias: limit_name(&1.alias)})
   end
 
