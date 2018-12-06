@@ -2,7 +2,7 @@ defmodule Cloak.DataSource.Shadows.Cache do
   @moduledoc "Implementation of the cache which holds the shadow table of all known columns of all data sources."
 
   @day :timer.hours(24)
-  @refresh_interval 7 * @day
+  @refresh_interval 30 * @day
 
   alias Cloak.DataSource.PerColumn.Cache
 

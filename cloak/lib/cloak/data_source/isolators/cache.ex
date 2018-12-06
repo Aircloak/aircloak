@@ -3,7 +3,8 @@ defmodule Cloak.DataSource.Isolators.Cache do
   Implementation of the cache which holds the isolator property of all known columns of all data sources.
   """
 
-  @refresh_interval :timer.hours(24)
+  @day :timer.hours(24)
+  @refresh_interval 60 * @day
 
   alias Cloak.DataSource.PerColumn.Cache
 
