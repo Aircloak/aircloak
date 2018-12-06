@@ -10,6 +10,7 @@ defmodule Air.Service.User do
 
   @required_fields ~w(name)a
   @login_fields ~w(login)a
+  @app_login_fields ~w(description)a
   @password_fields ~w(password password_confirmation)a
   @ldap_fields ~w(ldap_dn source)a
   @ldap_required_fields ~w(ldap_dn)a
@@ -136,7 +137,7 @@ defmodule Air.Service.User do
 
   @doc "Creates a new app login."
   @spec create_app_login(User.t(), map) :: {:ok, login, password} | {:error, Ecto.Changeset.t()}
-  def create_app_login(user, _params) do
+  def create_app_login(user, params) do
     login = "#{main_login(user)}-#{random_string()}"
     password = random_password()
 
@@ -144,6 +145,7 @@ defmodule Air.Service.User do
     |> Ecto.build_assoc(:logins)
     |> change(%{login_type: :psql, login: login, hashed_password: Password.hash(password)})
     |> unique_constraint(:login)
+    |> cast(params, @app_login_fields)
     |> Repo.insert()
     |> case do
       {:ok, _} -> {:ok, login, password}

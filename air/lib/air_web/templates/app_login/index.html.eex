@@ -70,7 +70,7 @@ password: <%= get_flash(@conn, :app_password) %></pre>
             <%= for login <- @app_logins do %>
               <tr>
                 <td><%= login.login %></td>
-                <td></td>
+                <td><%= login.description %></td>
                 <td><%= Air.Utils.DateTime.time_ago(login.updated_at) %></td>
                 <td>
                   <%= link "Revoke", to: app_login_path(@conn, :delete, login),

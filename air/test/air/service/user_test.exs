@@ -140,6 +140,11 @@ defmodule Air.Service.UserTest do
       assert {:ok, %{id: ^user_id}} = User.login_psql(login, password)
     end
 
+    test "stores the description" do
+      {:ok, login, _} = User.create_app_login(TestRepoHelper.create_user!(), %{description: "some description"})
+      assert Repo.get_by(Air.Schemas.Login, login: login).description == "some description"
+    end
+
     test "the returned login and password can only be used in the psql scope" do
       {:ok, login, password} = User.create_app_login(TestRepoHelper.create_user!(), %{})
       assert {:error, :invalid_login_or_password} = User.login(login, password)
