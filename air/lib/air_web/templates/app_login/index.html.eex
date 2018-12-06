@@ -57,6 +57,7 @@ password: <%= get_flash(@conn, :app_password) %></pre>
           <tr>
             <th>Login name</th>
             <th>Description</th>
+            <th>Created</th>
             <th>Last used</th>
             <th></th>
           </tr>
@@ -64,13 +65,14 @@ password: <%= get_flash(@conn, :app_password) %></pre>
         <tbody>
           <%= if Enum.empty?(@app_logins) do %>
             <tr>
-              <td colspan="4">No app logins have been created</td>
+              <td colspan="5">No app logins have been created</td>
             </tr>
           <% else %>
             <%= for login <- @app_logins do %>
               <tr>
                 <td><%= login.login %></td>
                 <td><%= login.description %></td>
+                <td><%= Air.Utils.DateTime.time_ago(login.inserted_at) %></td>
                 <td><%= Air.Utils.DateTime.time_ago(login.updated_at) %></td>
                 <td>
                   <%= link "Revoke", to: app_login_path(@conn, :delete, login),
