@@ -72,7 +72,7 @@ defmodule Air.PsqlServer do
   def login(conn, password) do
     with data_source_name = conn.login_params["database"],
          data_source_id <- {:name, data_source_name},
-         {:ok, user} <- User.login(conn.login_params["user"], password),
+         {:ok, user} <- User.login_psql(conn.login_params["user"], password) |> IO.inspect(),
          {:ok, _} <- DataSource.fetch_as_user(data_source_id, user) do
       # We're not storing data source, since access permissions have to be checked on every query.
       # Otherwise, revoking permissions on a data source would have no effects on currently connected
