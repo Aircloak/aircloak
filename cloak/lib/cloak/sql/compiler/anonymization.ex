@@ -91,7 +91,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     # `Stddev` combine algorithm is dependent on input order, so we need to sort by uid range to get consistent results.
     # Drill doesn't like `order by` clauses with global aggregators only (queries crash with a truncated error message).
     # As a workaround, we set the `order by` clause only when we have a non-empty `group by` clause in the query.
-    order_by = if groups == [], do: [], else: [min_uid, max_uid]
+    order_by = if groups == [], do: [], else: groups ++ [min_uid, max_uid]
 
     inner_query = %Query{
       query
