@@ -97,8 +97,8 @@ defmodule Cloak.LoggerTranslator do
 
   defp filter_error_message(_), do: :skip
 
-  defp filter_reason({:EXIT, {_exception, stacktrace}}), do: {"filtered", do_filter_stacktrace(stacktrace)}
-  defp filter_reason({_exception, stacktrace}), do: {"filtered", do_filter_stacktrace(stacktrace)}
+  defp filter_reason({:EXIT, {reason, stacktrace}}), do: {do_filter_reason(reason), do_filter_stacktrace(stacktrace)}
+  defp filter_reason({exception, stacktrace}), do: {do_filter_reason(exception), do_filter_stacktrace(stacktrace)}
 
   defp do_filter_stacktrace(stacktrace) when is_list(stacktrace) do
     stacktrace
@@ -112,8 +112,13 @@ defmodule Cloak.LoggerTranslator do
 
   defp do_filter_stacktrace(_), do: []
 
-  defp filtered_format_exit({_exit_reason, stacktrace}) when is_list(stacktrace),
-    do: Exception.format_exit({"filtered exit reason", do_filter_stacktrace(stacktrace)})
+  defp filtered_format_exit({exit_reason, stacktrace}) when is_list(stacktrace),
+    do: Exception.format_exit({do_filter_reason(exit_reason), do_filter_stacktrace(stacktrace)})
 
   defp filtered_format_exit(_other), do: Exception.format_exit({"filtered exit reason", Aircloak.current_stacktrace()})
+
+  # We're not filtering `Cloak.Query.ExecutionError` exception, because these errors are considered safe, so keeping
+  # them in the log, helps troubleshooting.
+  defp do_filter_reason(%Cloak.Query.ExecutionError{} = reason), do: reason
+  defp do_filter_reason(_other), do: "filtered"
 end
