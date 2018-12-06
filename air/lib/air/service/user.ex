@@ -151,6 +151,23 @@ defmodule Air.Service.User do
     end
   end
 
+  @doc """
+  Delete the app login of the given user with the given id. Returns error and doesn't delete if the identified login
+  does not belong to that user or is a main login.
+  """
+  @spec delete_app_login(User.t(), integer() | String.t()) :: {:ok, Login.t()} | :error
+  def delete_app_login(user, id) do
+    Login
+    |> where([l], l.id == ^id)
+    |> where([l], l.user_id == ^user.id)
+    |> where([l], l.login_type != ^:main)
+    |> Repo.one()
+    |> case do
+      nil -> :error
+      login -> Repo.delete(login)
+    end
+  end
+
   @doc "Updates the given user, raises on error."
   @spec update!(User.t(), map, change_options) :: User.t()
   def update!(user, params, options \\ []) do

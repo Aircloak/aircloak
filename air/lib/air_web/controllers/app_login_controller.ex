@@ -37,6 +37,20 @@ defmodule AirWeb.AppLoginController do
     end
   end
 
+  def delete(conn, %{"id" => id}) do
+    case User.delete_app_login(conn.assigns.current_user, id) do
+      {:ok, _} ->
+        audit_log(conn, "Revoked app login")
+
+        conn
+        |> put_flash(:info, "Login revoked")
+        |> redirect(to: app_login_path(conn, :index))
+
+      :error ->
+        not_found(conn)
+    end
+  end
+
   # -------------------------------------------------------------------
   # Actions
   # -------------------------------------------------------------------

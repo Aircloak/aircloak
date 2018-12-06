@@ -155,6 +155,34 @@ defmodule Air.Service.UserTest do
     end
   end
 
+  describe ".delete_app_login" do
+    test "deletes the login" do
+      user = TestRepoHelper.create_user!()
+      {:ok, login, _} = User.create_app_login(user, %{})
+      login_id = Repo.get_by(Air.Schemas.Login, login: login).id
+
+      assert {:ok, _} = User.delete_app_login(user, login_id)
+      assert is_nil(Repo.get(Air.Schemas.Login, login_id))
+    end
+
+    test "does not delete other user's logins" do
+      user = TestRepoHelper.create_user!()
+      {:ok, login, _} = User.create_app_login(TestRepoHelper.create_user!(), %{})
+      login_id = Repo.get_by(Air.Schemas.Login, login: login).id
+
+      assert :error = User.delete_app_login(user, login_id)
+      refute is_nil(Repo.get(Air.Schemas.Login, login_id))
+    end
+
+    test "does not delete the main login" do
+      user = TestRepoHelper.create_user!()
+      login_id = hd(user.logins).id
+
+      assert :error = User.delete_app_login(user, login_id)
+      refute is_nil(Repo.get(Air.Schemas.Login, login_id))
+    end
+  end
+
   describe ".login" do
     test "success for native user" do
       user_id = TestRepoHelper.create_user!(%{login: "alice", password: "password1234"}).id
