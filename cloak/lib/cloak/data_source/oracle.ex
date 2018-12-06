@@ -189,7 +189,7 @@ defmodule Cloak.DataSource.Oracle do
     do: byte_size(name || "") > @max_name_length or byte_size(alias || "") > @max_name_length
 
   defp limit_names_in_subquery(subquery) do
-    Lenses.all_expressions()
+    Lenses.query_expressions()
     |> Lens.filter(&has_long_name?/1)
     |> Lens.map(subquery, &%Expression{&1 | name: limit_name(&1.name), alias: limit_name(&1.alias)})
   end
