@@ -60,3 +60,15 @@ __Notice about suppressed values__: Standard SQL doesn't have an exact way to in
 returning `*` (which is a specific character value) would not be valid for non-text fields and `NULL` is returned in those cases.
 
 In order to work around this restriction, you can either cast the specific non-text column to text, ensuring `*` is correctly returned when data was suppressed, or explicitly filter out regular `NULL` values for that column, with an `IS NOT NULL` or any other filter, ensuring any remaining `NULL` values in the result represent data that was suppressed.
+
+### App logins
+
+As noted previously you can simply use your normal login name and password to authenticate with the PostgreSQL server.
+However, if you want to use the PSQL protocol for automated scripts or other applications we recommend that you create
+a dedicated app login for each such application, so that your password does not need to be stored on the machines
+executing those scripts/applications.
+
+To do so navigate to `your-aircloak-instance>/app_logins`. You can provide a description for your app login for your
+reference. After clicking `Create login` a login/password pair will be shown - copy it into your application and use it
+like you would a normal login/password pair. It is only valid for accessing the PSQL protocol - no changes to your
+account can be made using it.

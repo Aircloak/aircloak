@@ -20,8 +20,11 @@ password: <%= get_flash(@conn, :app_password) %></pre>
       <div class="panel-body">
         <p>
           You can create app-specific logins that can only be used to access the PSQL API.
-          See the <%= link "authentication section in the API documentation", to: "/docs/api.html#authentication" %> for
-          more.
+          See the <%=
+            link "App logins section in the PSQL protocol documentation",
+              to: "/docs/api/psql.html#app-logins",
+              target: :_blank
+          %> for more.
         </p>
 
         <%= form_for @changeset, app_login_path(@conn, :create), fn f -> %>
