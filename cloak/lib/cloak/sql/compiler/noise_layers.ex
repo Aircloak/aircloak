@@ -181,6 +181,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp max_of_max(%Expression{type: :boolean} = max), do: max |> cast(:integer) |> max_of_max() |> cast(:boolean)
   defp max_of_max(max), do: Expression.function("max", [Expression.unalias(max)], max.type, _aggregate = true)
 
+  defp sum_of_count(%Expression{value: 1}), do: Expression.function("count", [:*], :integer, _aggregate = true)
   defp sum_of_count(count), do: Expression.function("sum", [Expression.unalias(count)], :integer, _aggregate = true)
 
   # -------------------------------------------------------------------
