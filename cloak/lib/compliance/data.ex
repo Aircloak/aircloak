@@ -86,7 +86,8 @@ defmodule Compliance.Data do
       addresses: generate_addresses(samples),
       notes: generate_notes(samples),
       nullable: samples.floats |> sample_one() |> nullable(),
-      birthday: samples.dates |> sample_one() |> NaiveDateTime.to_date()
+      birthday: samples.dates |> sample_one() |> NaiveDateTime.to_date(),
+      column_with_a_very_long_name: :rand.uniform() < 0.50
     }
 
     {user, encode_user(user)}
