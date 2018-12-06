@@ -528,7 +528,11 @@ defmodule Air.Service.User do
 
     cond do
       valid_password?(login, password) ->
-        mask_timing(fn -> AuditLog.log(login.user, "Logged in", meta) end)
+        mask_timing(fn ->
+          AuditLog.log(login.user, "Logged in", meta)
+          Air.TimestampUpdater.start_toucher(login)
+        end)
+
         {:ok, login.user}
 
       login ->

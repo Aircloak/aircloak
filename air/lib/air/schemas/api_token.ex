@@ -46,17 +46,4 @@ defmodule Air.Schemas.ApiToken do
     |> unique_constraint(:token, name: :api_tokens_pkey)
     |> validate_length(:description, min: 3)
   end
-
-  @doc """
-  Updates the token with information about when it was last used,
-  and other stats, like how frequently it has been accessed etc.
-
-  This allows a user to determine whether or not a token is still
-  in active use, or whether it can be removed.
-  """
-  @spec touch(ApiToken.t()) :: Changeset.t()
-  def touch(model) do
-    time_params = %{updated_at: NaiveDateTime.utc_now()}
-    cast(model, time_params, [:updated_at])
-  end
 end
