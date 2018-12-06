@@ -9,6 +9,14 @@
         </div>
         <%= button "Export", to: admin_central_path(@conn, :new_export), class: "btn btn-primary" %>
       </div>
+    <% else %>
+      <p>
+        Currently there is no data to export.
+        Exportable data includes such things as statistics about queries that have been executed.
+      </p>
+      <p>
+        An export button will appear on this page once exportable data has been generated.
+      </p>
     <% end %>
 
     <%= if Enum.count(@exports) > 0 do %>
