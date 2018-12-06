@@ -87,7 +87,7 @@ defmodule Compliance.Data do
       notes: generate_notes(samples),
       nullable: samples.floats |> sample_one() |> nullable(),
       birthday: samples.dates |> sample_one() |> NaiveDateTime.to_date(),
-      column_with_a_very_long_name: :rand.uniform() < 0.50
+      column_with_a_very_long_name: sample_one(samples.cities)
     }
 
     {user, encode_user(user)}
@@ -227,7 +227,21 @@ defmodule Compliance.Data do
       end)
 
   defp flatten_users(users),
-    do: Enum.map(users, &Map.take(&1, [:id, :user_id, :name, :age, :height, :active, :nullable, :birthday]))
+    do:
+      Enum.map(
+        users,
+        &Map.take(&1, [
+          :id,
+          :user_id,
+          :name,
+          :age,
+          :height,
+          :active,
+          :nullable,
+          :birthday,
+          :column_with_a_very_long_name
+        ])
+      )
 
   defp flatten_addresses(users) do
     Enum.flat_map(users, fn user ->
@@ -308,7 +322,7 @@ defmodule Compliance.Data do
   defp encode_user(user) do
     user
     |> encrypt_keys([:name])
-    |> stringify_keys([:age, :height, :active, :nullable])
+    |> stringify_keys([:age, :height, :active, :nullable, :column_with_a_very_long_name])
     |> Map.put(:addresses, encode_addresses(user[:addresses]))
     |> Map.put(:notes, encode_notes(user[:notes]))
   end
