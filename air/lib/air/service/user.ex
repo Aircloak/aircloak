@@ -136,13 +136,14 @@ defmodule Air.Service.User do
 
   @doc "Creates a new app login."
   @spec create_app_login(User.t(), map) :: {:ok, login, password} | {:error, Ecto.Changeset.t()}
-  def create_app_login(user, params) do
-    login = "#{main_login(user)}-app-login"
+  def create_app_login(user, _params) do
+    login = "#{main_login(user)}-#{random_string()}"
     password = random_password()
 
     user
     |> Ecto.build_assoc(:logins)
     |> change(%{login_type: :psql, login: login, hashed_password: Password.hash(password)})
+    |> unique_constraint(:login)
     |> Repo.insert()
     |> case do
       {:ok, _} -> {:ok, login, password}

@@ -145,7 +145,14 @@ defmodule Air.Service.UserTest do
       assert {:error, :invalid_login_or_password} = User.login(login, password)
     end
 
-    test "multiple calls create different logins with different passwords"
+    test "multiple calls create different logins with different passwords" do
+      user = TestRepoHelper.create_user!()
+      {:ok, login1, password1} = User.create_app_login(user, %{})
+      {:ok, login2, password2} = User.create_app_login(user, %{})
+
+      assert login1 != login2
+      assert password1 != password2
+    end
   end
 
   describe ".login" do
