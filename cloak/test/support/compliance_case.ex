@@ -132,6 +132,7 @@ defmodule ComplianceCase do
     do: [
       # {column name, table name, uid column in table}
       {"name", "users", "user_id"},
+      {"column_with_a_very_long_name", "users", "user_id"},
       {"home.city", "addresses", "uid"},
       {"work.city", "addresses", "uid"},
       {"title", "notes", "uid"},
