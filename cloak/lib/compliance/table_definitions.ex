@@ -135,7 +135,8 @@ defmodule Compliance.TableDefinitions do
           active: %{type: :boolean, decoders: [:text_to_boolean]},
           name: %{type: :text, decoders: [:base64, aes_cbc_128: [key: Data.encryption_key()]]},
           nullable: %{type: :real, decoders: [:text_to_real]},
-          birthday: %{type: :date}
+          birthday: %{type: :date},
+          column_with_a_very_long_name: %{type: :boolean}
         }
       },
       addresses: %{
