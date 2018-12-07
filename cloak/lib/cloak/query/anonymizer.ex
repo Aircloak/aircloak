@@ -252,7 +252,8 @@ defmodule Cloak.Query.Anonymizer do
   @top_scale 0.5
 
   @doc "Computes the noisy sum, min and max aggregates from the no-uid statistics for a bucket."
-  @spec noisy_statistics(t, {non_neg_integer, number, number, number, float, float}) :: {float, float, float, float}
+  @spec noisy_statistics(t, {non_neg_integer, number, number, number, float, float}) ::
+          {float | nil, float | nil, float | nil, float | nil}
   def noisy_statistics(anonymizer, {count, sum, min, max, avg, stddev} = _statistics) do
     {std_above, std_below} =
       if min == max do
