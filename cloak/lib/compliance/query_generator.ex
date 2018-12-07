@@ -19,6 +19,8 @@ defmodule Cloak.Compliance.QueryGenerator do
     defstruct [:from, :complexity, :select_user_id?, :aggregate?]
   end
 
+  @max_unrestricted_functions 5
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -204,13 +206,20 @@ defmodule Cloak.Compliance.QueryGenerator do
     end
   end
 
-  defp expression(type, aggregate?, complexity, tables)
+  defp expression(type, aggregate?, complexity, tables) do
+    fn -> do_expression(type, aggregate?, complexity, tables) end
+    |> reject(&(number_of_functions(&1) > @max_unrestricted_functions))
+  end
 
-  defp expression(type, true, complexity, _tables) do
+  defp number_of_functions(expression_tree) do
+    nodes() |> Lens.filter(&match?({:function, _, _}, &1)) |> Lens.to_list(expression_tree) |> length()
+  end
+
+  defp do_expression(type, true, complexity, _tables) do
     constant(type, complexity)
   end
 
-  defp expression(type, false, complexity, tables) do
+  defp do_expression(type, false, complexity, tables) do
     frequency(complexity, [
       {1, constant(type, complexity)},
       {1, column(type, complexity, tables)},
@@ -469,4 +478,6 @@ defmodule Cloak.Compliance.QueryGenerator do
   end
 
   defp empty(), do: {:empty, nil, []}
+
+  defp nodes(), do: Lens.both(Lens.root(), Lens.index(2) |> Lens.all() |> Lens.recur())
 end
