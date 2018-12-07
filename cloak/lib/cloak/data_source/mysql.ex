@@ -6,6 +6,7 @@ defmodule Cloak.DataSource.MySQL do
 
   alias Cloak.DataSource.Table
   alias Cloak.DataSource
+  alias Cloak.Query.ExecutionError
 
   use Cloak.DataSource.Driver.SQL
 
@@ -31,7 +32,7 @@ defmodule Cloak.DataSource.MySQL do
 
     case run_query(connection, query, column_info_mapper, &Enum.concat/1) do
       {:ok, columns} -> [%{table | columns: columns}]
-      {:error, reason} -> DataSource.raise_error("`#{reason}`")
+      {:error, reason} -> raise ExecutionError, message: "`#{reason}`"
     end
   end
 

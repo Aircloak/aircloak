@@ -6,6 +6,7 @@ defmodule Cloak.DataSource.RODBC do
 
   alias Cloak.DataSource.{RODBC.Port, SqlBuilder, Table, Driver, Parameters}
   alias Cloak.DataSource
+  alias Cloak.Query.ExecutionError
 
   # -------------------------------------------------------------------
   # API functions
@@ -37,13 +38,13 @@ defmodule Cloak.DataSource.RODBC do
     case Port.execute(connection, table_load_statement.(table.db_name), Driver.timeout()) do
       :ok ->
         case Port.get_columns(connection) do
-          {:ok, []} -> DataSource.raise_error("Table #{table.db_name} does not have any columns")
+          {:ok, []} -> raise ExecutionError, message: "Table #{table.db_name} does not have any columns"
           {:ok, columns} -> Enum.map(columns, fn {name, type_name} -> Table.column(name, parse_type(type_name)) end)
-          {:error, reason} -> DataSource.raise_error("`#{to_string(reason)}`")
+          {:error, reason} -> raise ExecutionError, message: "`#{to_string(reason)}`"
         end
 
       {:error, reason} ->
-        DataSource.raise_error("`#{to_string(reason)}`")
+        raise ExecutionError, message: "`#{to_string(reason)}`"
     end
   end
 

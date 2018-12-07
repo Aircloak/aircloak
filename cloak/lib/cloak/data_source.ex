@@ -302,7 +302,7 @@ defmodule Cloak.DataSource do
         Map.put(data_source, :driver, driver)
 
       {:error, :unknown} ->
-        raise_error("Unknown driver `#{data_source.driver}` for data source `#{data_source.name}`")
+        raise ExecutionError, message: "Unknown driver `#{data_source.driver}` for data source `#{data_source.name}`"
     end
   end
 

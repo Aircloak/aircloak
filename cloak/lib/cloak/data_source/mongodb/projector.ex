@@ -2,7 +2,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   @moduledoc "MongoDB helper functions for projecting columns into the aggregation pipeline."
 
   alias Cloak.Sql.Expression
-  alias Cloak.DataSource
+  alias Cloak.Query.ExecutionError
   alias Cloak.DataSource.MongoDB.Schema
 
   # -------------------------------------------------------------------
@@ -93,7 +93,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
 
   defp project_alias(name) do
     if not Expression.valid_alias?(name),
-      do: DataSource.raise_error("MongoDB column alias `#{name}` contains invalid character(s).")
+      do: raise(ExecutionError, message: "MongoDB column alias `#{name}` contains invalid character(s).")
 
     name
   end
@@ -238,16 +238,15 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   defp parse_function("cast", [value, :datetime, :text]),
     do: %{"$dateToString": %{format: "%Y-%m-%d %H:%M:%S.000%L", date: value}}
 
-  defp parse_function("cast", [_value, from, to]),
-    do:
-      DataSource.raise_error(
-        "Casting from `#{from}` to `#{to}` is not supported in subqueries on MongoDB data sources."
-      )
+  defp parse_function("cast", [_value, from, to]) do
+    raise ExecutionError,
+      message: "Casting from `#{from}` to `#{to}` is not supported in subqueries on MongoDB data sources."
+  end
 
   @bool_operators %{"=" => "$eq", "<>" => "$neq", ">" => "$gt", ">=" => "$gte", "<" => "$lt", "<=" => "$lte"}
   defp parse_function("bool_op", [%{"$literal": op}, arg1, arg2]),
     do: %{Map.fetch!(@bool_operators, op) => [arg1, arg2]}
 
   defp parse_function(name, _args) when is_binary(name),
-    do: DataSource.raise_error("Function `#{name}` is not supported in subqueries on MongoDB data sources.")
+    do: raise(ExecutionError, message: "Function `#{name}` is not supported in subqueries on MongoDB data sources.")
 end

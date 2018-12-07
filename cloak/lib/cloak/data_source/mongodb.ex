@@ -36,7 +36,7 @@ defmodule Cloak.DataSource.MongoDB do
   """
 
   alias Cloak.Sql.{Query, Expression}
-  alias Cloak.DataSource
+  alias Cloak.Query.ExecutionError
   alias Cloak.DataSource.{Driver, MongoDB.Schema, MongoDB.Pipeline}
 
   require Logger
@@ -83,7 +83,7 @@ defmodule Cloak.DataSource.MongoDB do
     sample_rate = table[:sample_rate] || 100
 
     unless is_integer(sample_rate) and sample_rate >= 1 and sample_rate <= 100,
-      do: DataSource.raise_error("Sample rate for schema detection has to be an integer between 1 and 100.")
+      do: raise(ExecutionError, message: "Sample rate for schema detection has to be an integer between 1 and 100.")
 
     map_code = """
       function() {
@@ -195,7 +195,7 @@ defmodule Cloak.DataSource.MongoDB do
         result
 
       {:error, %Mongo.Error{message: error}} ->
-        DataSource.raise_error("MongoDB execute command error: #{error}")
+        raise ExecutionError, message: "MongoDB execute command error: #{error}"
     end
   end
 
@@ -251,7 +251,7 @@ defmodule Cloak.DataSource.MongoDB do
   defp supported_functions(version) do
     # Using apply to trick dialyzer, which thinks that `Version.compare` can only work on version structures.
     if apply(Version, :compare, [version, "3.4.0"]) == :lt do
-      DataSource.raise_error("Unsupported MongoDB version: #{version}. At least 3.4 required.")
+      raise ExecutionError, message: "Unsupported MongoDB version: #{version}. At least 3.4 required."
     else
       @supported_functions
     end
