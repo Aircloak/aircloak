@@ -112,12 +112,7 @@ defmodule Cloak.DataSource.Streamer do
       Logger.debug("Terminating streamer process")
     rescue
       exception in [Cloak.Query.ExecutionError] -> stream_error(query_runner, Exception.message(exception))
-    catch
-      {:error, reason} ->
-        stream_error(
-          query_runner,
-          Exception.normalize(:error, reason) |> Exception.message() |> sanitize_database_error()
-        )
+      exception -> stream_error(query_runner, exception |> Exception.message() |> sanitize_database_error())
     end
   end
 
