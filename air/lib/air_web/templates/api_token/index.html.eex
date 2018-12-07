@@ -80,7 +80,7 @@
           <div class="form-group">
             <%= label f, :access, "Access" %>
             <%= select f, :access, ["API": :api, "Monitoring": :monitoring], class: "form-control" %>
-            <%= error_tag f, :description %>
+            <%= error_tag f, :access %>
           </div>
         <% end %>
 
