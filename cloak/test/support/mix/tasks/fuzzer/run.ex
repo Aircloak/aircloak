@@ -12,6 +12,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
       --crashes-out specifies where to store a log with unexpected errors, defaults to /tmp/crashes.txt
       --concurrency specifies how many concurrent queries to run, defaults to System.schedulers_online()
       --timeout specifies the timeout per query in miliseconds, defaults to 30000
+      --no-minimization turns off failed query minimization
   """
 
   @moduledoc """
@@ -39,7 +40,8 @@ defmodule Mix.Tasks.Fuzzer.Run do
     crashes_out: :string,
     concurrency: :integer,
     timeout: :integer,
-    seed: :string
+    seed: :string,
+    no_minimization: :boolean
   ]
 
   @impl Mix.Task
@@ -74,7 +76,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
             queries,
             fn {query, seed} ->
               IO.write(".")
-              run_query(query, seed, data_sources)
+              run_query(query, seed, data_sources, !options[:no_minimization])
             end,
             max_concurrency: concurrency,
             timeout: timeout,
@@ -92,13 +94,13 @@ defmodule Mix.Tasks.Fuzzer.Run do
     print_stats(results, options)
   end
 
-  defp do_run(%{seed: seed}) do
+  defp do_run(options = %{seed: seed}) do
     initialize()
     data_sources = [%{tables: tables} | _] = ComplianceCase.data_sources()
 
     seed
     |> QueryGenerator.ast_from_seed(Map.values(tables))
-    |> run_query(seed, data_sources)
+    |> run_query(seed, data_sources, !options[:no_minimization])
     |> print_result()
   end
 
@@ -121,23 +123,16 @@ defmodule Mix.Tasks.Fuzzer.Run do
 
   defp print_result(device \\ :stdio, result)
 
-  defp print_result(device, %{result: :error, query: query, seed: seed, minimized: minimized, error: error}) do
-    IO.puts(device, [
-      "Query:\n\n",
-      query,
-      "\n\nMinimized query:\n\n",
-      minimized,
-      "\n\nSeed: ",
-      inspect(seed),
-      "\n\n",
-      error,
-      "\n\n"
-    ])
+  defp print_result(device, result = %{result: :error, query: query, seed: seed, error: error}) do
+    IO.puts(device, ["Query:\n\n", query, minimized_query(result), "\n\nSeed: ", inspect(seed), "\n\n", error, "\n\n"])
   end
 
   defp print_result(device, %{result: result, query: query, seed: seed}) do
     IO.puts(device, [query, "\n\n", "Seed: ", inspect(seed), "\n\n", inspect(result), "\n\n"])
   end
+
+  defp minimized_query(%{minimized: minimized}), do: ["\n\nMinimized query:\n\n", minimized]
+  defp minimized_query(_), do: ""
 
   defp print_stats(results, options) do
     stats_path = Map.get(options, :stats_out, "/tmp/stats.txt")
@@ -153,10 +148,10 @@ defmodule Mix.Tasks.Fuzzer.Run do
     end)
   end
 
-  defp run_query(ast, seed, data_sources) do
+  defp run_query(ast, seed, data_sources, minimize?) do
     case do_run_query(ast, data_sources) do
       result = %{result: :ok} -> result
-      result -> Map.put(result, :minimized, minimize(ast, result, data_sources))
+      result -> if minimize?, do: Map.put(result, :minimized, minimize(ast, result, data_sources)), else: result
     end
     |> Map.put(:seed, seed)
   end
