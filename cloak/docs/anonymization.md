@@ -643,3 +643,29 @@ GROUP BY 1
 The aggregation pipeline will mostly run identical to the standard method, but with specific steps (like data
 ingestion, low-count buckets aggregation and noisy computation of aggregated data) replaced by the sub-module
 responsible for statistics-based anonymization.
+
+Even if a bucket has enough distinct users to pass the LCF, it might not have enough users with valid (non-null)
+values for the aggregator to produce an anonymized result. The count of users actually contributing to the computed
+statistics is passed through the LCF again before producing the final noisy result. If insufficient data is available,
+a `null` value will be returned.
+
+### Bucket merging
+
+At various stages of the pipeline, partial buckets might need to be merged before the final bucket is created.
+Assuming we have the following partial buckets: `bucket1 = {uids1, count1, sum1, min1, max1, avg1, sd1}` and
+`bucket2 = {uids2, count2, sum2, min2, max2, avg2, sd2}`, the values for the combined bucket are computed as
+follows:
+
+ - `combined_uids = union(uids1, uids2)`
+ - `combined_sum = sum1 + sum2`
+ - `combined_min = min(min1, min2)`
+ - `combined_max = min(max1, max2)`
+ - If the two uid ranges do not overlap: `combined_count = count1 + count2`
+ - If the two uid ranges touch: `combined_count = count1 + count2 - 1`
+ - Otherwise, combined count is estimated as the maximum count plus a quarter of the minimum count
+ (because some collisions could occur): `combined_count = max(count1, count2) + min(count1, count2) / 4`
+ - `combined_avg = combined_sum / combined_count`
+ - For the standard deviation, we use the formula: `sd(v) = sqrt(sum(v^2) / count - avg(v)^2)`
+ We first extract the sums of squared values: `sum_sqrs1 = (sd1^2 + avg1^2) * count1` and
+ `sum_sqrs2 = (sd2^2 + avg2^2) * count2`, we then add them together to get the combined sum of squared values,
+ resulting in: `combined_sd = sqrt(combined_sum_sqrs / combined_count - combined_avg^2)`
