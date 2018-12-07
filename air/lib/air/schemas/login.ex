@@ -19,6 +19,7 @@ defmodule Air.Schemas.Login do
     field(:hashed_password, :string)
     field(:login_type, __MODULE__.LoginType)
     field(:description, :string)
+    field(:last_used_at, :naive_datetime)
 
     # These virtual fields are used for validation,
     # but never persisted to the database

@@ -22,7 +22,7 @@ defmodule Air.TimestampUpdater do
     def start_toucher(model) do
       Task.Supervisor.start_child(__MODULE__, fn ->
         model
-        |> Ecto.Changeset.change(%{updated_at: NaiveDateTime.utc_now()})
+        |> Ecto.Changeset.change(%{last_used_at: NaiveDateTime.utc_now()})
         |> Air.Repo.update()
       end)
 

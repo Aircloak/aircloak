@@ -24,6 +24,7 @@ defmodule Air.Schemas.ApiToken do
   schema "api_tokens" do
     field(:description, :string)
     field(:access, __MODULE__.Access)
+    field(:last_used_at, :naive_datetime)
     belongs_to(:user, Air.Schemas.User, references: :id)
 
     timestamps()
