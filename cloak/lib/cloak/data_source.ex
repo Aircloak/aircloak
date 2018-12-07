@@ -160,10 +160,6 @@ defmodule Cloak.DataSource do
   @spec tables(t) :: [Table.t()]
   def tables(data_source), do: Map.values(data_source.tables)
 
-  @doc "Raises an error when something goes wrong during data processing."
-  @spec raise_error(String.t()) :: no_return
-  def raise_error(message), do: raise(ExecutionError, message: message)
-
   @doc "Converts a data source config as found in a config into a data source"
   @spec config_to_datasources(Map.t()) :: [t]
   def config_to_datasources(config),
