@@ -1,4 +1,4 @@
-## Version 18.5.0-dev
+## Version 19.1.0
 
 ### Features
 
@@ -11,14 +11,13 @@
 ### Bugfixes
 
 ### Enhancements
+
 - Per-user data aggregation is offloaded to the database in some cases.
 
 ### Changes
 
 - The format in which cloak memory is reported has changed
 - By default, the cloak accepts at most 10 simultaneous queries. This setting can be changed with the `max_parallel_queries` cloak configuration parameter. See the section on configuring [Insights Cloak](/docs/ops/configuration.html#insights-cloak-configuration) for details.
-
-### Known issues
 
 
 ## Version 18.4.0
