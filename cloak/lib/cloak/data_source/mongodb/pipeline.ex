@@ -2,7 +2,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   @moduledoc "MongoDB helper functions for mapping a query to an aggregation pipeline."
 
   alias Cloak.Sql.{Query, Expression, Condition, LikePattern}
-  alias Cloak.DataSource
+  alias Cloak.Query.ExecutionError
   alias Cloak.DataSource.MongoDB.{Schema, Projector}
 
   # -------------------------------------------------------------------
@@ -120,12 +120,12 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   defp map_constant(%Expression{constant?: true, value: value}), do: value
 
   defp map_constant(_),
-    do: DataSource.raise_error("Conditions on MongoDB data sources have to be between a column and a constant.")
+    do: raise(ExecutionError, message: "Conditions on MongoDB data sources have to be between a column and a constant.")
 
   defp map_field(%Expression{name: field}) when is_binary(field), do: field
 
   defp map_field(_),
-    do: DataSource.raise_error("Conditions on MongoDB data sources have to be between a column and a constant.")
+    do: raise(ExecutionError, message: "Conditions on MongoDB data sources have to be between a column and a constant.")
 
   defp parse_where_condition({:and, lhs, rhs}), do: %{"$and": [parse_where_condition(lhs), parse_where_condition(rhs)]}
 

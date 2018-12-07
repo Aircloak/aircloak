@@ -5,7 +5,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   """
 
   alias Cloak.DataSource.Table
-  alias Cloak.DataSource
+  alias Cloak.Query.ExecutionError
 
   use Cloak.DataSource.Driver.SQL
   require Logger
@@ -37,9 +37,9 @@ defmodule Cloak.DataSource.PostgreSQL do
     row_mapper = fn [name, type_name] -> Table.column(name, parse_type(type_name)) end
 
     case run_query(connection, query, row_mapper, &Enum.concat/1) do
-      {:ok, []} -> DataSource.raise_error("Table `#{table.db_name}` does not exist")
+      {:ok, []} -> raise ExecutionError, message: "Table `#{table.db_name}` does not exist"
       {:ok, columns} -> [%{table | columns: columns}]
-      {:error, reason} -> DataSource.raise_error("`#{reason}`")
+      {:error, reason} -> raise ExecutionError, message: "`#{reason}`"
     end
   end
 
@@ -94,8 +94,7 @@ defmodule Cloak.DataSource.PostgreSQL do
             safe_close(connection, query)
           end
         else
-          {:error, error} ->
-            DataSource.raise_error("Driver exception: `#{Exception.message(error)}`")
+          {:error, error} -> Postgrex.rollback(connection, Exception.message(error))
         end
       end,
       timeout: Driver.timeout()

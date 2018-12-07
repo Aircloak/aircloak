@@ -109,7 +109,7 @@ defmodule Cloak.DataSource.Table do
         {name, %{table | query: parsed_query}}
 
       {:error, reason} ->
-        DataSource.raise_error("Failed to parse the query for virtual table `#{name}`: `#{reason}`")
+        raise ExecutionError, message: "Failed to parse the query for virtual table `#{name}`: `#{reason}`"
     end
   end
 
@@ -140,7 +140,8 @@ defmodule Cloak.DataSource.Table do
         error in CompilationError ->
           reason = Exception.message(error)
 
-          DataSource.raise_error("Failed to compile the query for virtual table `#{name}`: `#{reason}`")
+          # credo:disable-for-next-line Credo.Check.Warning.RaiseInsideRescue
+          raise ExecutionError, message: "Failed to compile the query for virtual table `#{name}`: `#{reason}`"
       end
 
     Enum.each(compiled_query.column_titles, &verify_column_name(name, &1))
@@ -157,12 +158,12 @@ defmodule Cloak.DataSource.Table do
   defp compile_virtual_table(table, _data_source), do: table
 
   defp verify_column_name(table, name) do
-    if not Expression.valid_alias?(name),
-      do:
-        DataSource.raise_error(
+    if not Expression.valid_alias?(name) do
+      raise ExecutionError,
+        message:
           "Invalid column name `#{name}` in virtual table `#{table}`. " <>
             "Complex selected expressions have to be aliased with a valid column name."
-        )
+    end
   end
 
   defp drop_duplicate_columns(query) do
@@ -232,7 +233,7 @@ defmodule Cloak.DataSource.Table do
 
   defp verify_columns(data_source, table) do
     verify_user_id(data_source, table)
-    if table.columns == [], do: DataSource.raise_error("no data columns found in table")
+    if table.columns == [], do: raise(ExecutionError, message: "no data columns found in table")
   end
 
   defp verify_user_id(_data_source, %{user_id: nil}), do: :ok
@@ -243,11 +244,11 @@ defmodule Cloak.DataSource.Table do
 
     case Enum.find(table.columns, &(&1.name == projected_uid_name)) do
       %{} ->
-        DataSource.raise_error(
-          "the projected uid-column named `#{projected_uid_name}` conflicts with an " <>
-            "identically named column in the table. Rename the projected uid-column using the `user_id_alias` " <>
-            "option in the projection section of your cloak configuration"
-        )
+        raise ExecutionError,
+          message:
+            "the projected uid-column named `#{projected_uid_name}` conflicts with an " <>
+              "identically named column in the table. Rename the projected uid-column using the `user_id_alias` " <>
+              "option in the projection section of your cloak configuration"
 
       nil ->
         :ok
@@ -258,7 +259,7 @@ defmodule Cloak.DataSource.Table do
     case Enum.find(table.columns, &(&1.name == table.user_id)) do
       %{} = column ->
         unless column.type in [:integer, :text, :real, :unknown],
-          do: DataSource.raise_error("unsupported user id type: #{column.type}")
+          do: raise(ExecutionError, message: "unsupported user id type: #{column.type}")
 
       nil ->
         columns_string =
@@ -266,10 +267,10 @@ defmodule Cloak.DataSource.Table do
           |> Enum.map(&"`#{&1.name}`")
           |> Enum.join(", ")
 
-        DataSource.raise_error(
-          "the user id column `#{table.user_id}` for table `#{table.name}` does not exist. " <>
-            "Available columns are: #{columns_string}."
-        )
+        raise ExecutionError,
+          message:
+            "the user id column `#{table.user_id}` for table `#{table.name}` does not exist. " <>
+              "Available columns are: #{columns_string}."
     end
   end
 
@@ -444,7 +445,10 @@ defmodule Cloak.DataSource.Table do
 
   defp translate_decoder(%{method: "aes_cbc_128"}, column) do
     key = Application.get_env(:cloak, :aes_key)
-    if key == nil, do: DataSource.raise_error("No global `aes_key` value specified for key-less `aes_cbc_128` decoder")
+
+    if key == nil,
+      do: raise(ExecutionError, message: "No global `aes_key` value specified for key-less `aes_cbc_128` decoder")
+
     "dec_aes_cbc128(#{column}, '#{String.replace(key, "'", "''")}')"
   end
 
@@ -462,7 +466,7 @@ defmodule Cloak.DataSource.Table do
        do: "substring(#{column} FROM #{from} FOR #{for})"
 
   defp translate_decoder(%{method: method}, _column),
-    do: DataSource.raise_error("Invalid decoding method specified: `#{method}`")
+    do: raise(ExecutionError, message: "Invalid decoding method specified: `#{method}`")
 
   defp quote_db_name("\"" <> _ = name), do: name
   defp quote_db_name(name), do: ~s/"#{name}"/

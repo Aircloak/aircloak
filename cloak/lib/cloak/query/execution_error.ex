@@ -3,7 +3,10 @@ defmodule Cloak.Query.ExecutionError do
   An error that occurred while processing the query.
 
   This error can be used to signal an error that will be caught by the query engine
-  and reported to the user.
+  and reported to the analyst.
+
+  Since the error message is reported to the analyst, you shouldn't raise this
+  error in situations where the message might leak sensitive data.
 
   You're advised to not overuse this mechanism. However, sometimes it can be
   quite complicated to bubble up an error from a deep nested stack of maps,

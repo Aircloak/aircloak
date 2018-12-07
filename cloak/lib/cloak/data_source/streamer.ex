@@ -101,16 +101,25 @@ defmodule Cloak.DataSource.Streamer do
     Logger.metadata(query_id: query_id)
 
     try do
-      query.data_source.driver.select(
-        driver_connection,
-        query,
-        &stream_chunks(&1, connection_owner, query_runner, reporter)
-      )
+      with {:error, error} <-
+             query.data_source.driver.select(
+               driver_connection,
+               query,
+               &stream_chunks(&1, connection_owner, query_runner, reporter)
+             ),
+           do: stream_error(query_runner, sanitize_database_error(error))
 
       Logger.debug("Terminating streamer process")
     rescue
-      error in [Cloak.Query.ExecutionError] -> stream_error(query_runner, error.message)
+      exception in [Cloak.Query.ExecutionError] -> stream_error(query_runner, Exception.message(exception))
+      exception -> stream_error(query_runner, exception |> Exception.message() |> sanitize_database_error())
     end
+  end
+
+  defp sanitize_database_error(message) do
+    if Aircloak.DeployConfig.override_app_env!(:cloak, :sanitize_otp_errors),
+      do: "Error fetching data from the database.",
+      else: message
   end
 
   defp stream_chunks(chunks, connection_owner, query_runner, reporter) do
