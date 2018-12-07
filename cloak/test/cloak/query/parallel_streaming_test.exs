@@ -60,9 +60,12 @@ defmodule Cloak.Query.ParallelStreamingTest do
     for concurrency <- 2..5 do
       assert_query(
         "SELECT BUCKET(value BY 500), COUNT(*) FROM #{@table} GROUP BY 1 ORDER BY 1",
-        %{rows: [%{row: [0.0, 5986]}, %{row: [500.0, 5998]}, %{row: [1000.0, 10]}]},
+        %{rows: [%{row: [0.0, row1]}, %{row: [500.0, row2]}, %{row: [1000.0, 10]}]},
         concurrency: concurrency
       )
+
+      assert_in_delta(row1, 5000, 50)
+      assert_in_delta(row2, 5000, 50)
     end
   end
 

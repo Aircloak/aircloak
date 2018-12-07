@@ -252,7 +252,8 @@ defmodule Cloak.Query.Anonymizer do
   @top_scale 0.5
 
   @doc "Computes the noisy sum, min and max aggregates from the no-uid statistics for a bucket."
-  @spec noisy_statistics(t, {non_neg_integer, number, number, number, float, float}) :: {float, float, float, float}
+  @spec noisy_statistics(t, {non_neg_integer, number, number, number, float, float}) ::
+          {float | nil, float | nil, float | nil, float | nil}
   def noisy_statistics(anonymizer, {count, sum, min, max, avg, stddev} = _statistics) do
     {std_above, std_below} =
       if min == max do
@@ -274,14 +275,16 @@ defmodule Cloak.Query.Anonymizer do
 
     sum_sigma = Enum.max([abs(@avg_scale * adj_avg), abs(@top_scale * edge_above), abs(@top_scale * edge_below)])
 
-    {noise, _anonymizer} = add_noise(anonymizer, {0, config(:sum_noise_sigma)})
+    {noise, anonymizer} = add_noise(anonymizer, {0, config(:sum_noise_sigma)})
 
     noisy_sum = sum + noise * sum_sigma - flatten
     noisy_min = edge_below + noise * edge_sigma(edge_below, avg, count) * @top_scale
     noisy_max = edge_above + noise * edge_sigma(edge_above, avg, count) * @top_scale
     noisy_sum_sigma = sum_sigma |> scale_sigma_by_noise_layers(anonymizer) |> round_noise_sigma()
 
-    {noisy_sum, noisy_min, noisy_max, noisy_sum_sigma}
+    if sufficiently_large?(anonymizer, count),
+      do: {noisy_sum, noisy_min, noisy_max, noisy_sum_sigma},
+      else: {nil, nil, nil, nil}
   end
 
   # -------------------------------------------------------------------
@@ -486,7 +489,7 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   defp edge_sigma(edge, avg, count) do
-    new_avg = (avg * count - edge) / (count - 1)
+    new_avg = (avg * count - edge) / Kernel.max(count - 1, 1)
     abs(avg - new_avg)
   end
 end

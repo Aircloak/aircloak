@@ -66,19 +66,23 @@ defmodule Cloak.Query.Aggregator.Statistics do
     {min_uid1, max_uid1} = Enum.min_max(uids1)
     {min_uid2, max_uid2} = Enum.min_max(uids2)
 
-    count_duid =
+    count_adder = fn count1, count2 ->
       cond do
-        max_uid1 < min_uid2 or max_uid2 < min_uid1 -> count_duid1 + count_duid2
-        max_uid1 == min_uid2 or max_uid2 == min_uid1 -> count_duid1 + count_duid2 - 1
-        true -> max(max(count_duid1, count_duid2), Enum.count(uids))
+        max_uid1 < min_uid2 or max_uid2 < min_uid1 -> count1 + count2
+        max_uid1 == min_uid2 or max_uid2 == min_uid1 -> count1 + count2 - 1
+        # Estimate the combined count as maximum count plus a quarter of
+        # minimum count (since some collisions can occur).
+        true -> max(max(count1, count2) + div(min(count1, count2), 4), Enum.count(uids))
       end
+    end
 
+    count_duid = count_adder.(count_duid1, count_duid2)
     bucket_statistics = [count_duid, uids]
 
     aggregation_statistics =
       Enum.zip(aggregation_statistics1, aggregation_statistics2)
       |> Enum.map(fn {column_statistics1, column_statistics2} ->
-        merge_aggregation_statistics(count_duid, count_duid1, column_statistics1, count_duid2, column_statistics2)
+        merge_aggregation_statistics(count_adder, column_statistics1, column_statistics2)
       end)
 
     [bucket_statistics | aggregation_statistics]
@@ -92,12 +96,17 @@ defmodule Cloak.Query.Aggregator.Statistics do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp merge_aggregation_statistics(count, count1, [count1], count2, [count2]), do: [count]
+  defp merge_aggregation_statistics(count_adder, [count1], [count2]), do: [count_adder.(count1, count2)]
 
-  defp merge_aggregation_statistics(_count, _count1, [nil, nil, nil, nil], _count2, statistics2), do: statistics2
-  defp merge_aggregation_statistics(_count, _count1, statistics1, _count2, [nil, nil, nil, nil]), do: statistics1
+  defp merge_aggregation_statistics(_count_adder, [0, nil, nil, nil, nil], statistics2), do: statistics2
+  defp merge_aggregation_statistics(_count_adder, statistics1, [0, nil, nil, nil, nil]), do: statistics1
 
-  defp merge_aggregation_statistics(count, count1, [sum1, min1, max1, stddev1], count2, [sum2, min2, max2, stddev2]) do
+  defp merge_aggregation_statistics(count_adder, statistics1, statistics2) do
+    [count1, sum1, min1, max1, stddev1] = statistics1
+    [count2, sum2, min2, max2, stddev2] = statistics2
+
+    count = count_adder.(count1, count2)
+
     avg1 = sum1 / count1
     avg2 = sum2 / count2
     avg = (sum1 + sum2) / count
@@ -115,7 +124,7 @@ defmodule Cloak.Query.Aggregator.Statistics do
     # use the formula `sd(v) = sqrt(sum(v^2)/count - avg(v)^2)` to combine standard deviations
     stddev = (sum_sqrs / count - avg * avg) |> Kernel.max(0) |> :math.sqrt() |> Kernel.min((max - min) / 2)
 
-    [sum, min, max, stddev]
+    [count, sum, min, max, stddev]
   end
 
   defp aggregate_group({property, anonymizer, statistics}, aggregators) do
@@ -133,17 +142,17 @@ defmodule Cloak.Query.Aggregator.Statistics do
         {%Expression{function: "count_noise", function_args: [{:distinct, %Expression{user_id?: true}}]}, [^count_duid]} ->
           1
 
-        {_aggregator, [nil, nil, nil, nil]} ->
+        {_aggregator, [0, nil, nil, nil, nil]} ->
           nil
 
-        {aggregator, [sum, min, max, stddev]} ->
-          avg = sum / count_duid
-          statistics = {count_duid, sum, min, max, avg, stddev}
+        {aggregator, [count, sum, min, max, stddev]} ->
+          avg = sum / count
+          statistics = {count, sum, min, max, avg, stddev}
 
           {noisy_sum, noisy_min, noisy_max, noisy_sum_sigma} = Anonymizer.noisy_statistics(anonymizer, statistics)
 
           case aggregator.alias do
-            "count" -> noisy_sum |> round() |> Kernel.max(Anonymizer.config(:low_count_absolute_lower_bound))
+            "count" -> (noisy_sum || 0) |> round() |> Kernel.max(Anonymizer.config(:low_count_absolute_lower_bound))
             "sum" -> float_to_type(noisy_sum, aggregator.type)
             "min" -> float_to_type(noisy_min, aggregator.type)
             "max" -> float_to_type(noisy_max, aggregator.type)
@@ -155,6 +164,7 @@ defmodule Cloak.Query.Aggregator.Statistics do
     {users_count, property ++ aggregation_results}
   end
 
+  defp float_to_type(nil, _), do: nil
   defp float_to_type(value, :integer), do: round(value)
   defp float_to_type(value, :real), do: value
 

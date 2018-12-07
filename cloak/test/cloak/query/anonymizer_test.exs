@@ -208,4 +208,10 @@ defmodule Cloak.Query.AnonimyzerTest do
     assert_in_delta max, 20, 1
     assert_in_delta sd, 10, 1
   end
+
+  test "insufficient statistics" do
+    statistics = {1, 100, 1, 20, 10, 5}
+    anonymizer = Anonymizer.new([MapSet.new()])
+    assert {nil, nil, nil, nil} = Anonymizer.noisy_statistics(anonymizer, statistics)
+  end
 end

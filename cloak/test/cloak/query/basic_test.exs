@@ -292,7 +292,7 @@ defmodule Cloak.Query.BasicTest do
       columns: ["height"],
       rows: [
         %{row: [180], occurrences: 20},
-        %{row: [:*], occurrences: 25}
+        %{row: [:*], occurrences: 24}
       ]
     })
   end
@@ -400,21 +400,21 @@ defmodule Cloak.Query.BasicTest do
     test "sum" do
       assert_query("select sum(height) from heights", %{
         columns: ["sum"],
-        rows: [%{row: [5459], occurrences: 1}]
+        rows: [%{row: [5400], occurrences: 1}]
       })
     end
 
     test "min" do
       assert_query("select min(height) from heights", %{
         columns: ["min"],
-        rows: [%{row: [193], occurrences: 1}]
+        rows: [%{row: [163], occurrences: 1}]
       })
     end
 
     test "max" do
       assert_query("select max(height) from heights", %{
         columns: ["max"],
-        rows: [%{row: [226], occurrences: 1}]
+        rows: [%{row: [197], occurrences: 1}]
       })
     end
 
@@ -446,21 +446,21 @@ defmodule Cloak.Query.BasicTest do
     test "sum(qualified_column)" do
       assert_query("select sum(heights.height) from heights", %{
         columns: ["sum"],
-        rows: [%{row: [5459], occurrences: 1}]
+        rows: [%{row: [5400], occurrences: 1}]
       })
     end
 
     test "min(qualified_column)" do
       assert_query("select min(heights.height) from heights", %{
         columns: ["min"],
-        rows: [%{row: [193], occurrences: 1}]
+        rows: [%{row: [163], occurrences: 1}]
       })
     end
 
     test "max(qualified_column)" do
       assert_query("select max(heights.height) from heights", %{
         columns: ["max"],
-        rows: [%{row: [226], occurrences: 1}]
+        rows: [%{row: [197], occurrences: 1}]
       })
     end
 
@@ -501,21 +501,21 @@ defmodule Cloak.Query.BasicTest do
     test "sum" do
       assert_query("select sum(height) from heights", %{
         columns: ["sum"],
-        rows: [%{row: [-5491], occurrences: 1}]
+        rows: [%{row: [-5429], occurrences: 1}]
       })
     end
 
     test "min" do
       assert_query("select min(height) from heights", %{
         columns: ["min"],
-        rows: [%{row: [-227], occurrences: 1}]
+        rows: [%{row: [-196], occurrences: 1}]
       })
     end
 
     test "max" do
       assert_query("select max(height) from heights", %{
         columns: ["max"],
-        rows: [%{row: [-193], occurrences: 1}]
+        rows: [%{row: [-162], occurrences: 1}]
       })
     end
 
@@ -556,21 +556,21 @@ defmodule Cloak.Query.BasicTest do
     test "sum" do
       assert_query("select sum(height) from heights", %{
         columns: ["sum"],
-        rows: [%{row: [-1777], occurrences: 1}]
+        rows: [%{row: [-1750], occurrences: 1}]
       })
     end
 
     test "min" do
       assert_query("select min(height) from heights", %{
         columns: ["min"],
-        rows: [%{row: [-317], occurrences: 1}]
+        rows: [%{row: [-303], occurrences: 1}]
       })
     end
 
     test "max" do
       assert_query("select max(height) from heights", %{
         columns: ["max"],
-        rows: [%{row: [379], occurrences: 1}]
+        rows: [%{row: [393], occurrences: 1}]
       })
     end
 
@@ -1256,14 +1256,14 @@ defmodule Cloak.Query.BasicTest do
     test "sum" do
       assert_query("select sum_noise(height) from heights", %{
         columns: ["sum_noise"],
-        rows: [%{row: [135.0], occurrences: 1}]
+        rows: [%{row: [180.0], occurrences: 1}]
       })
     end
 
     test "avg" do
       assert_query("select avg_noise(height) from heights", %{
         columns: ["avg_noise"],
-        rows: [%{row: [4.5], occurrences: 1}]
+        rows: [%{row: [6.0], occurrences: 1}]
       })
     end
 

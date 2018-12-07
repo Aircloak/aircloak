@@ -161,7 +161,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     [%Expression{name: "__ac_agg_" <> _ = name, table: inner_table}] = aggregator.function_args
 
     args =
-      for input <- ~w(sum min max stddev) do
+      for input <- ~w(count sum min max stddev) do
         inner_table |> column_from_table("#{name}_#{input}") |> set_fields(synthetic?: true)
       end
 
@@ -194,6 +194,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
 
       %Expression{aggregate?: true, function_args: [column]} ->
         for {function, type} <- [
+              {"count", :integer},
               {"sum", column.type},
               {"min", column.type},
               {"max", column.type},
