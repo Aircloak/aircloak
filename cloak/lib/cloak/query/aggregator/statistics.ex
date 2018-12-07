@@ -70,7 +70,8 @@ defmodule Cloak.Query.Aggregator.Statistics do
       cond do
         max_uid1 < min_uid2 or max_uid2 < min_uid1 -> count1 + count2
         max_uid1 == min_uid2 or max_uid2 == min_uid1 -> count1 + count2 - 1
-        # Estimate the combined count as maximum count plus a quarter of minimum count (since some collisions can occur).
+        # Estimate the combined count as maximum count plus a quarter of
+        # minimum count (since some collisions can occur).
         true -> max(max(count1, count2) + div(min(count1, count2), 4), Enum.count(uids))
       end
     end
