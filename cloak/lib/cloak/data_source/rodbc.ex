@@ -56,10 +56,8 @@ defmodule Cloak.DataSource.RODBC do
     field_mappers = Enum.map(sql_query.db_columns, &type_to_field_mapper(driver_mappers, &1.type))
     row_mapper = &map_fields(&1, field_mappers)
 
-    case Port.execute(connection, statement, Driver.timeout()) do
-      :ok -> {:ok, connection |> stream_rows(row_mapper) |> result_processor.()}
-      {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
-    end
+    with :ok <- Port.execute(connection, statement, Driver.timeout()),
+         do: {:ok, connection |> stream_rows(row_mapper) |> result_processor.()}
   end
 
   @doc "Executes a raw SQL SELECT statement on the given connection."
@@ -118,7 +116,7 @@ defmodule Cloak.DataSource.RODBC do
         case Port.fetch_batch(connection, row_mapper, Driver.batch_size()) do
           {:ok, []} -> {:halt, connection}
           {:ok, rows} -> {[rows], connection}
-          {:error, reason} -> DataSource.raise_error("Driver exception: `#{to_string(reason)}`")
+          {:error, reason} -> raise reason
         end
       end,
       fn _port -> :ok end

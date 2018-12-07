@@ -5,7 +5,6 @@ defmodule Cloak.DataSource.PostgreSQL do
   """
 
   alias Cloak.DataSource.Table
-  alias Cloak.DataSource
   alias Cloak.Query.ExecutionError
 
   use Cloak.DataSource.Driver.SQL
@@ -95,8 +94,7 @@ defmodule Cloak.DataSource.PostgreSQL do
             safe_close(connection, query)
           end
         else
-          {:error, error} ->
-            DataSource.raise_error("Driver exception: `#{Exception.message(error)}`")
+          {:error, error} -> Postgrex.rollback(connection, Exception.message(error))
         end
       end,
       timeout: Driver.timeout()
