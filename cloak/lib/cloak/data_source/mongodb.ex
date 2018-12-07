@@ -188,14 +188,9 @@ defmodule Cloak.DataSource.MongoDB do
 
   defp execute!(conn, command) do
     case Mongo.command(conn, command, timeout: Driver.timeout()) do
-      {:ok, %{"results" => results}} ->
-        results
-
-      {:ok, %{"result" => result}} ->
-        result
-
-      {:error, %Mongo.Error{message: error}} ->
-        raise ExecutionError, message: "MongoDB execute command error: #{error}"
+      {:ok, %{"results" => results}} -> results
+      {:ok, %{"result" => result}} -> result
+      {:error, %Mongo.Error{message: error}} -> raise "MongoDB execute command error: #{error}"
     end
   end
 
