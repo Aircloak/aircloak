@@ -131,6 +131,63 @@ defmodule Air.Service.UserTest do
     end
   end
 
+  describe ".create_app_login" do
+    test "returns the login and password" do
+      user = TestRepoHelper.create_user!()
+      {:ok, login, password} = User.create_app_login(user, %{})
+
+      user_id = user.id
+      assert {:ok, %{id: ^user_id}} = User.login_psql(login, password)
+    end
+
+    test "stores the description" do
+      {:ok, login, _} = User.create_app_login(TestRepoHelper.create_user!(), %{description: "some description"})
+      assert Repo.get_by(Air.Schemas.Login, login: login).description == "some description"
+    end
+
+    test "the returned login and password can only be used in the psql scope" do
+      {:ok, login, password} = User.create_app_login(TestRepoHelper.create_user!(), %{})
+      assert {:error, :invalid_login_or_password} = User.login(login, password)
+    end
+
+    test "multiple calls create different logins with different passwords" do
+      user = TestRepoHelper.create_user!()
+      {:ok, login1, password1} = User.create_app_login(user, %{})
+      {:ok, login2, password2} = User.create_app_login(user, %{})
+
+      assert login1 != login2
+      assert password1 != password2
+    end
+  end
+
+  describe ".delete_app_login" do
+    test "deletes the login" do
+      user = TestRepoHelper.create_user!()
+      {:ok, login, _} = User.create_app_login(user, %{})
+      login_id = Repo.get_by(Air.Schemas.Login, login: login).id
+
+      assert {:ok, _} = User.delete_app_login(user, login_id)
+      assert is_nil(Repo.get(Air.Schemas.Login, login_id))
+    end
+
+    test "does not delete other user's logins" do
+      user = TestRepoHelper.create_user!()
+      {:ok, login, _} = User.create_app_login(TestRepoHelper.create_user!(), %{})
+      login_id = Repo.get_by(Air.Schemas.Login, login: login).id
+
+      assert :error = User.delete_app_login(user, login_id)
+      refute is_nil(Repo.get(Air.Schemas.Login, login_id))
+    end
+
+    test "does not delete the main login" do
+      user = TestRepoHelper.create_user!()
+      login_id = hd(user.logins).id
+
+      assert :error = User.delete_app_login(user, login_id)
+      refute is_nil(Repo.get(Air.Schemas.Login, login_id))
+    end
+  end
+
   describe ".login" do
     test "success for native user" do
       user_id = TestRepoHelper.create_user!(%{login: "alice", password: "password1234"}).id
@@ -156,6 +213,16 @@ defmodule Air.Service.UserTest do
       user = TestRepoHelper.create_user!(%{login: "alice", password: "password1234", enabled: false})
       User.disable(user)
       assert {:error, :invalid_login_or_password} = User.login("alice", "password1234")
+    end
+  end
+
+  describe ".login_psql" do
+    test "app login for LDAP user" do
+      user = TestRepoHelper.create_user!(%{login: "alice", ldap_dn: "cn=admin,dc=example,dc=org"})
+      {:ok, login, password} = User.create_app_login(user, %{})
+
+      user_id = user.id
+      assert {:ok, %{id: ^user_id}} = User.login_psql(login, password)
     end
   end
 

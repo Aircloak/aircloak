@@ -20,7 +20,7 @@ defmodule Air.Supervisor do
         Air.Service.Export,
         Air.Service.Cleanup,
         in_env(test: nil, else: Air.Service.LDAP.PeriodicSync),
-        Air.ApiTokenTimestampUpdater,
+        Air.TimestampUpdater,
         Air.PsqlServer,
         Air.Web,
         AirWeb.MonitoringEndpoint,

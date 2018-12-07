@@ -10,6 +10,7 @@ defmodule Air.Service.User do
 
   @required_fields ~w(name)a
   @login_fields ~w(login)a
+  @app_login_fields ~w(description)a
   @password_fields ~w(password password_confirmation)a
   @ldap_fields ~w(ldap_dn source)a
   @ldap_required_fields ~w(ldap_dn)a
@@ -17,39 +18,20 @@ defmodule Air.Service.User do
   @optional_fields @format_fields
 
   @type change_options :: [ldap: true | false | :any]
+  @type login :: String.t()
+  @type password :: String.t()
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Authenticates the given user."
+  @doc "Authenticates the given user, only allowing the main login to be used."
   @spec login(String.t(), String.t(), %{atom => any}) :: {:ok, User.t()} | {:error, :invalid_login_or_password}
-  def login(login, password, meta \\ %{}) do
-    login =
-      mask_timing(fn ->
-        Login
-        |> join(:left, [login], user in assoc(login, :user))
-        |> where([login, _user], login.login == ^login)
-        |> where([login, _user], login.login_type == ^:main)
-        |> where([_login, user], user.enabled)
-        |> preload([_login, user], user: user)
-        |> Repo.one()
-      end)
+  def login(login, password, meta \\ %{}), do: do_login(login, password, meta, [:main])
 
-    cond do
-      valid_password?(login, password) ->
-        mask_timing(fn -> AuditLog.log(login.user, "Logged in", meta) end)
-        {:ok, login.user}
-
-      login ->
-        mask_timing(fn -> AuditLog.log(login.user, "Failed login", meta) end)
-        {:error, :invalid_login_or_password}
-
-      true ->
-        mask_timing(fn -> :noop end)
-        {:error, :invalid_login_or_password}
-    end
-  end
+  @doc "Authenticates the user identified by the login and password, allowing the main or psql login to be used."
+  @spec login_psql(String.t(), String.t(), %{atom => any}) :: {:ok, User.t()} | {:error, :invalid_login_or_password}
+  def login_psql(login, password, meta \\ %{}), do: do_login(login, password, meta, [:main, :psql])
 
   @doc "Returns the main login of the user as a string."
   @spec main_login(User.t()) :: String.t()
@@ -150,6 +132,41 @@ defmodule Air.Service.User do
       changeset = add_error(changeset, :master_password, "The master password is incorrect")
       # We need to trick add the action being performed, to get the form to render errors
       {:error, %{changeset | action: :insert}}
+    end
+  end
+
+  @doc "Creates a new app login."
+  @spec create_app_login(User.t(), map) :: {:ok, login, password} | {:error, Ecto.Changeset.t()}
+  def create_app_login(user, params) do
+    login = "#{main_login(user)}-#{random_string()}"
+    password = random_password()
+
+    user
+    |> Ecto.build_assoc(:logins)
+    |> change(%{login_type: :psql, login: login, hashed_password: Password.hash(password)})
+    |> unique_constraint(:login)
+    |> cast(params, @app_login_fields)
+    |> Repo.insert()
+    |> case do
+      {:ok, _} -> {:ok, login, password}
+      {:error, changeset} -> {:error, changeset}
+    end
+  end
+
+  @doc """
+  Delete the app login of the given user with the given id. Returns error and doesn't delete if the identified login
+  does not belong to that user or is a main login.
+  """
+  @spec delete_app_login(User.t(), integer() | String.t()) :: {:ok, Login.t()} | :error
+  def delete_app_login(user, id) do
+    Login
+    |> where([l], l.id == ^id)
+    |> where([l], l.user_id == ^user.id)
+    |> where([l], l.login_type != ^:main)
+    |> Repo.one()
+    |> case do
+      nil -> :error
+      login -> Repo.delete(login)
     end
   end
 
@@ -261,6 +278,10 @@ defmodule Air.Service.User do
   @doc "Returns the empty changeset for the new user."
   @spec empty_changeset() :: Ecto.Changeset.t()
   def empty_changeset(), do: change(%User{})
+
+  @doc "Returns an empty changeset for a new app login."
+  @spec app_login_changeset() :: Ecto.Changeset.t()
+  def app_login_changeset(), do: change(%Login{})
 
   @doc "Converts the user into a changeset."
   @spec to_changeset(User.t()) :: Ecto.Changeset.t()
@@ -495,9 +516,40 @@ defmodule Air.Service.User do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp do_login(login, password, meta, login_types) do
+    login =
+      mask_timing(fn ->
+        Login
+        |> join(:left, [login], user in assoc(login, :user))
+        |> where([login, _user], login.login == ^login)
+        |> where([login, _user], login.login_type in ^login_types)
+        |> where([_login, user], user.enabled)
+        |> preload([_login, user], user: user)
+        |> Repo.one()
+      end)
+
+    cond do
+      valid_password?(login, password) ->
+        mask_timing(fn ->
+          AuditLog.log(login.user, "Logged in", meta)
+          Air.TimestampUpdater.start_toucher(login)
+        end)
+
+        {:ok, login.user}
+
+      login ->
+        mask_timing(fn -> AuditLog.log(login.user, "Failed login", meta) end)
+        {:error, :invalid_login_or_password}
+
+      true ->
+        mask_timing(fn -> :noop end)
+        {:error, :invalid_login_or_password}
+    end
+  end
+
   defp valid_password?(login, password) do
     case login do
-      %{user: %{source: :ldap}} ->
+      %{login_type: :main, user: %{source: :ldap}} ->
         {_, result} = {validate_password(login, password), LDAP.simple_bind(login.user.ldap_dn, password)}
         match?(:ok, result)
 
@@ -519,7 +571,9 @@ defmodule Air.Service.User do
     end
   end
 
-  defp random_string, do: Base.encode16(:crypto.strong_rand_bytes(10))
+  defp random_string(), do: :crypto.strong_rand_bytes(10) |> Base.encode16()
+
+  defp random_password(), do: :crypto.strong_rand_bytes(64) |> Base.encode64()
 
   defp user_changeset(user, params) do
     user
@@ -559,7 +613,7 @@ defmodule Air.Service.User do
 
   defp random_password_changeset(user, params) do
     change_main_login(user, fn login ->
-      password = :crypto.strong_rand_bytes(64) |> Base.encode64()
+      password = random_password()
 
       login
       |> password_reset_changeset(%{password: password, password_confirmation: password})

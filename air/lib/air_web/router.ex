@@ -87,6 +87,7 @@ defmodule AirWeb.Router do
     get("/help_guide/:article", HelpGuideController, :article)
 
     resources("/api_tokens", ApiTokenController)
+    resources("/app_logins", AppLoginController)
 
     resources "/data_sources", DataSourceController do
       resources("/views", ViewController)

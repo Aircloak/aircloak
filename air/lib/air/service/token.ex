@@ -125,10 +125,5 @@ defmodule Air.Service.Token do
     end
   end
 
-  if Mix.env() == :test do
-    # Starting an async task that uses the DB plays badly with the Ecto Sandbox
-    defp touch_token(_), do: :ok
-  else
-    defp touch_token(token), do: Air.ApiTokenTimestampUpdater.start_token_toucher(token)
-  end
+  defp touch_token(token), do: Air.TimestampUpdater.start_toucher(token)
 end
