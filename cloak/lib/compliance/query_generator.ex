@@ -457,7 +457,9 @@ defmodule Cloak.Compliance.QueryGenerator do
   )
 
   defp name(complexity) do
-    reject(fn -> do_name(complexity) end, &(String.downcase(&1) in @keywords))
+    name = reject(fn -> do_name(complexity) end, &(String.downcase(&1) in @keywords))
+    number = :erlang.unique_integer([:positive])
+    "#{name}#{number}"
   end
 
   defp do_name(complexity) do
