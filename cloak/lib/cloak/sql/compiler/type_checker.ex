@@ -291,7 +291,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
     query
     |> Access.negative_conditions()
     |> Stream.reject(fn {query, condition} ->
-      case Shadows.safe?(condition, query.data_source) do
+      case Shadows.safe?(condition, query) do
         {:ok, result} ->
           result
 
