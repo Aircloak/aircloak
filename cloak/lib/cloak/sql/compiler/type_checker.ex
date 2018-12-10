@@ -19,7 +19,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
 
   @spec validate_allowed_usage_of_math_and_functions(Query.t()) :: Query.t()
   def validate_allowed_usage_of_math_and_functions(query) do
-    each_anonymized_subquery(query, &verify_negative_conditions/1)
+    each_anonymized_subquery(query, &verify_negative_conditions!/1)
 
     Helpers.each_subquery(query, fn subquery ->
       unless subquery.type == :standard do
@@ -287,42 +287,54 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
   # Negative conditions
   # -------------------------------------------------------------------
 
-  defp verify_negative_conditions(query) do
-    query
-    |> Access.negative_conditions()
-    |> Stream.reject(fn {query, condition} ->
-      case Shadows.safe?(condition, query) do
-        {:ok, result} ->
-          result
+  defp verify_negative_conditions!(query) do
+    negative_conditions = query |> Access.negative_conditions() |> Enum.to_list()
 
-        {:error, :multiple_columns} ->
-          raise CompilationError,
-            source_location: Condition.subject(condition).source_location,
-            message: "Negative conditions can only involve one database column."
-      end
-    end)
+    # We only verify negative conditions if there are enough of them. As a result, a potential cache bug won't
+    # crash the queries with too few conditions to raise an error. Similarly, in such situations we don't need to wait
+    # for cache to be primed.
+    if length(negative_conditions) > Query.max_rare_negative_conditions(query),
+      do: verify_negative_conditions!(query, negative_conditions)
+  end
+
+  defp verify_negative_conditions!(query, negative_conditions) do
+    negative_conditions
+    |> Stream.reject(&safe_negative_condition?/1)
     |> Stream.drop(Query.max_rare_negative_conditions(query))
     |> Enum.take(1)
     |> case do
-      [] ->
-        :ok
+      [] -> :ok
+      [{_subquery, condition}] -> raise_negative_condition_error(query, condition)
+    end
+  end
 
-      [{_subquery, condition}] ->
+  defp safe_negative_condition?({query, condition}) do
+    case Shadows.safe?(condition, query) do
+      {:ok, result} ->
+        result
+
+      {:error, :multiple_columns} ->
         raise CompilationError,
           source_location: Condition.subject(condition).source_location,
-          message: """
-          #{
-            case Query.max_rare_negative_conditions(query) do
-              0 -> "No negative conditions "
-              1 -> "At most 1 negative condition "
-              count -> "At most #{count} negative conditions "
-            end
-          }
-          matching rare values are allowed.
-          For further information see the "Number of conditions" subsection of the "Restrictions" section
-          in the user guides.
-          """
+          message: "Negative conditions can only involve one database column."
     end
+  end
+
+  defp raise_negative_condition_error(query, offending_condition) do
+    raise CompilationError,
+      source_location: Condition.subject(offending_condition).source_location,
+      message: """
+      #{
+        case Query.max_rare_negative_conditions(query) do
+          0 -> "No negative conditions "
+          1 -> "At most 1 negative condition "
+          count -> "At most #{count} negative conditions "
+        end
+      }
+      matching rare values are allowed.
+      For further information see the "Number of conditions" subsection of the "Restrictions" section
+      in the user guides.
+      """
   end
 
   # -------------------------------------------------------------------
