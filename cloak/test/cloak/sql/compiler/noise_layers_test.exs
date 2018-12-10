@@ -239,23 +239,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
     end
 
-    test "columns in top-level select" do
-      result = compile!("SELECT numeric, MEDIAN(uid) FROM table GROUP BY numeric")
-
-      assert [
-               %{
-                 base: {"table", "numeric", nil},
-                 expressions: [%Expression{name: "numeric"}, _, _]
-               },
-               %{
-                 base: {"table", "numeric", nil},
-                 expressions: [%Expression{name: "numeric"}, _, _, %Expression{name: "uid"}]
-               }
-             ] = result.noise_layers
-
-      assert 1 = Enum.count(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
-    end
-
     test "aggregated columns in top-level select are ignored" do
       result = compile!("SELECT COUNT(*) FROM table")
 
