@@ -1,7 +1,7 @@
 defmodule Cloak.DataSource.Shadows do
   @moduledoc "Entry point for checking negative conditions against shadow tables."
 
-  alias Cloak.{Sql, DataSource}
+  alias Cloak.Sql
 
   require Aircloak
 
@@ -19,13 +19,13 @@ defmodule Cloak.DataSource.Shadows do
   condition (<>, NOT LIKE, NOT ILIKE). Note that any leaf nodes in the provided condition should either be constants or
   actual DB columns. No attempt will be made to resolve columns in subqueries.
   """
-  @spec safe?(Sql.Query.filter_clause(), DataSource.t()) ::
+  @spec safe?(Sql.Query.filter_clause(), Sql.Query.t()) ::
           {:ok, boolean} | {:error, :multiple_columns} | {:error, :invalid_condition}
-  def safe?(condition, data_source) do
+  def safe?(condition, query) do
     if condition |> Sql.Condition.targets() |> Enum.any?(&Sql.Expression.constant?/1) |> :erlang.not() do
       {:ok, true}
     else
-      do_safe?(condition, data_source)
+      do_safe?(condition, query)
     end
   end
 
@@ -38,15 +38,15 @@ defmodule Cloak.DataSource.Shadows do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp do_safe?(condition, data_source) do
+  defp do_safe?(condition, query) do
     expression = Sql.Condition.subject(condition)
 
-    case columns(expression) do
+    case columns(expression, query) do
       [] ->
         {:ok, true}
 
-      [{table, column}] ->
-        shadow = @cache_module.shadow(data_source, table.name, column) |> Stream.map(&evaluate(expression, &1))
+      [{table_name, column}] ->
+        shadow = @cache_module.shadow(query.data_source, table_name, column) |> Stream.map(&evaluate(expression, &1))
         any?(condition, shadow)
 
       _ ->
@@ -54,11 +54,18 @@ defmodule Cloak.DataSource.Shadows do
     end
   end
 
-  defp columns(expression) do
+  defp columns(expression, query) do
     expression
     |> get_in([Sql.Query.Lenses.leaf_expressions() |> Lens.filter(&Sql.Expression.column?/1)])
-    |> Enum.map(&{&1.table, &1.name})
+    |> Enum.map(&{resolve_table_alias(&1.table.name, query), &1.name})
     |> Enum.uniq()
+  end
+
+  defp resolve_table_alias(table_name, query) do
+    case Map.fetch(query.table_aliases, table_name) do
+      :error -> table_name
+      {:ok, actual} -> actual.name
+    end
   end
 
   defp any?(condition, shadow) do

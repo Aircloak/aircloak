@@ -13,7 +13,8 @@ defmodule Cloak.Query.Shadows.Test do
       Cloak.TestShadowCache.live(data_source, "query_shadows_userless", "value")
     end
 
-    :ok
+    Cloak.TestShadowCache.strict(true)
+    on_exit(fn -> Cloak.TestShadowCache.strict(false) end)
   end
 
   setup do
@@ -160,6 +161,10 @@ defmodule Cloak.Query.Shadows.Test do
 
   test "condition on expression" do
     assert_forbidden("SELECT COUNT(*) FROM query_shadows WHERE lower(string) NOT IN ('1', '2', '3')")
+  end
+
+  test "aliased query" do
+    assert_forbidden("SELECT COUNT(*) FROM query_shadows qs WHERE qs.value <> 5 and qs.value <> 6 and qs.value <> 7")
   end
 
   test "conditions with constants are always safe" do
