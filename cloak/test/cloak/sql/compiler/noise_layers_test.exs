@@ -104,7 +104,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       assert [%{base: {"cameltable", "camelcolumn", nil}}, _] = result.noise_layers
     end
 
-    test "adds a uid and static noise layer for columns filtered with GROUP BY" do
+    test "adds a uid and static noise layer for columns filtered with GROUP BY - uid anon" do
       result = compile!("SELECT numeric, MEDIAN(uid) FROM table GROUP BY numeric")
 
       assert [
@@ -122,13 +122,40 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                    %Expression{name: "numeric"},
                    %Expression{name: "numeric"},
                    %Expression{value: 1},
-                   %Expression{name: "uid"}
+                   %Expression{user_id?: true}
                  ]
                }
              ] = result.noise_layers
 
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "numeric"}, &1))
       assert Enum.any?(result.db_columns, &match?(%Expression{name: "uid"}, &1))
+    end
+
+    test "adds a uid and static noise layer for columns filtered with GROUP BY - stats anon" do
+      result = compile!("SELECT numeric, COUNT(*) FROM table GROUP BY numeric")
+
+      assert [
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [
+                   %Expression{name: "table.numeric"},
+                   %Expression{name: "table.numeric"},
+                   %Expression{name: "__ac_agg_0_sum"}
+                 ]
+               },
+               %{
+                 base: {"table", "numeric", nil},
+                 expressions: [
+                   %Expression{name: "table.numeric"},
+                   %Expression{name: "table.numeric"},
+                   %Expression{name: "__ac_agg_0_sum"},
+                   %Expression{user_id?: true}
+                 ]
+               }
+             ] = result.noise_layers
+
+      assert Enum.any?(result.db_columns, &match?(%Expression{name: "table.numeric"}, &1))
+      assert Enum.any?(result.db_columns, &match?(%Expression{user_id?: true}, &1))
     end
 
     test "adds a uid and static noise layer for columns filtered with JOIN" do
