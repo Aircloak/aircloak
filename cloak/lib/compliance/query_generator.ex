@@ -255,6 +255,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp function_spec(type) do
     Aircloak.Functions.function_spec()
     |> Stream.reject(fn {_, properties} -> :aggregator in Map.get(properties, :attributes, []) end)
+    |> Stream.reject(fn {_, properties} -> :internal in Map.get(properties, :attributes, []) end)
     |> Stream.reject(&match?({{:bucket, _}, _}, &1))
     |> Stream.flat_map(fn {name, properties} -> Enum.map(properties.type_specs, &{name, &1}) end)
     |> Stream.filter(fn {_name, {_args, return_type}} -> return_type == type end)
