@@ -117,8 +117,8 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     # references to the min and max user ids, in order to keep them in the aggregation input.
     # The user ids count column has the `user_id?` flag set, so it will be automatically selected,
     # as it will take place of user id column for the synthetic statistics query.
-    min_uid_top_ref = column_from_table(inner_table, "__ac_min_uid")
-    max_uid_top_ref = column_from_table(inner_table, "__ac_max_uid")
+    min_uid_top_ref = column_from_synthetic_table(inner_table, "__ac_min_uid")
+    max_uid_top_ref = column_from_synthetic_table(inner_table, "__ac_max_uid")
 
     %Query{
       query
@@ -138,10 +138,11 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     |> Query.add_debug_info("Using statistics-based anonymization.")
   end
 
-  defp column_from_table(table, name) do
+  defp column_from_synthetic_table(table, name) do
     table.columns
     |> Enum.find(&(&1.name == name))
     |> Expression.column(table)
+    |> set_fields(synthetic?: true)
   end
 
   defp set_fields(expression, fields) do
@@ -153,23 +154,18 @@ defmodule Cloak.Sql.Compiler.Anonymization do
   defp update_aggregator(
          %Expression{function_args: [{:distinct, %Expression{user_id?: true, table: inner_table}}]} = aggregator
        ) do
-    arg = inner_table |> column_from_table("__ac_count_duid") |> set_fields(user_id?: true, synthetic?: true)
+    arg = column_from_synthetic_table(inner_table, "__ac_count_duid")
     %Expression{aggregator | function_args: [{:distinct, arg}]}
   end
 
   defp update_aggregator(aggregator) do
     [%Expression{name: "__ac_agg_" <> _ = name, table: inner_table}] = aggregator.function_args
-
-    args =
-      for input <- ~w(count sum min max stddev) do
-        inner_table |> column_from_table("#{name}_#{input}") |> set_fields(synthetic?: true)
-      end
-
+    args = for input <- ~w(count sum min max stddev), do: column_from_synthetic_table(inner_table, "#{name}_#{input}")
     %Expression{aggregator | function_args: args}
   end
 
   defp uid_statistics(uid_grouping_table) do
-    uid_column = column_from_table(uid_grouping_table, uid_grouping_table.user_id)
+    uid_column = column_from_synthetic_table(uid_grouping_table, uid_grouping_table.user_id)
     true = uid_column != nil
 
     count_duid =
@@ -213,6 +209,6 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     uid_grouping_query.columns
     |> Enum.take(Enum.count(uid_grouping_query.group_by))
     |> Enum.reject(& &1.user_id?)
-    |> Enum.map(&column_from_table(uid_grouping_table, &1.alias || &1.name))
+    |> Enum.map(&column_from_synthetic_table(uid_grouping_table, &1.alias || &1.name))
   end
 end
