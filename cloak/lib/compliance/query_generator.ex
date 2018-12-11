@@ -206,6 +206,26 @@ defmodule Cloak.Compliance.QueryGenerator do
     end
   end
 
+  defp expression({:or, types}, aggregate?, complexity, tables) do
+    expression(Enum.random(types), aggregate?, complexity, tables)
+  end
+
+  defp expression({:optional, type}, aggregate?, complexity, tables) do
+    expression(type, aggregate?, complexity, tables)
+  end
+
+  defp expression({:many1, type}, aggregate?, complexity, tables) do
+    expression(type, aggregate?, complexity, tables)
+  end
+
+  defp expression(:any, aggregate?, complexity, tables) do
+    expression(type(complexity), aggregate?, complexity, tables)
+  end
+
+  defp expression({:constant, type}, _, complexity, _) do
+    constant(type, complexity)
+  end
+
   defp expression(type, aggregate?, complexity, tables) do
     fn -> do_expression(type, aggregate?, complexity, tables) end
     |> reject(&(number_of_functions(&1) > @max_unrestricted_functions))
@@ -223,16 +243,22 @@ defmodule Cloak.Compliance.QueryGenerator do
     frequency(complexity, [
       {1, constant(type, complexity)},
       {1, column(type, complexity, tables)},
-      {1, function(type, complexity, tables)}
+      {1, function(type, div(complexity, 2), tables)}
     ])
   end
 
-  defp function(:integer, complexity, tables) do
-    {:function, "+", [expression(:integer, false, complexity, tables), expression(:integer, false, complexity, tables)]}
+  defp function(type, complexity, tables) do
+    {name, {arguments, _return_type}} = function_spec(type)
+    {:function, name, Enum.map(arguments, &expression(&1, false, complexity, tables))}
   end
 
-  defp function(type, complexity, _tables) do
-    constant(type, complexity)
+  defp function_spec(type) do
+    Aircloak.Functions.function_spec()
+    |> Stream.filter(fn {_, properties} -> !properties[:aggregate?] end)
+    |> Stream.reject(&match?({{:bucket, _}, _}, &1))
+    |> Stream.flat_map(fn {name, properties} -> Enum.map(properties.type_specs, &{name, &1}) end)
+    |> Stream.filter(fn {_name, {_args, return_type}} -> return_type == type end)
+    |> Enum.random()
   end
 
   defp constant(:integer, complexity), do: {:integer, uniform(complexity), []}

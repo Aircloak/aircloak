@@ -79,21 +79,21 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
     |> group()
   end
 
-  defp to_doc({:function, name, args}) do
-    name
-    |> concat("(")
-    |> glue("", args |> Enum.map(&to_doc/1) |> comma_separated())
-    |> nest()
-    |> glue("", ")")
-    |> group()
-  end
-
-  defp to_doc({:cast, type, [argument]}) do
+  defp to_doc({:function, {:cast, type}, [argument]}) do
     "CAST"
     |> concat("(")
     |> glue("", to_doc(argument))
     |> glue(" ", "AS")
     |> glue(" ", type |> to_string() |> String.upcase())
+    |> nest()
+    |> glue("", ")")
+    |> group()
+  end
+
+  defp to_doc({:function, name, args}) do
+    name
+    |> concat("(")
+    |> glue("", args |> Enum.map(&to_doc/1) |> comma_separated())
     |> nest()
     |> glue("", ")")
     |> group()
