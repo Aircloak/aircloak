@@ -110,6 +110,8 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
     |> group()
   end
 
+  defp to_doc({:many1, nil, arguments}), do: arguments |> Enum.map(&to_doc/1) |> comma_separated()
+
   defp to_doc({:keyword_arg, name, [value]}),
     do: name |> to_string() |> String.upcase() |> concat(" ") |> concat(to_doc(value))
 

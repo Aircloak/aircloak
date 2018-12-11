@@ -218,7 +218,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   end
 
   defp expression({:many1, type}, aggregate?, complexity, tables) do
-    expression(type, aggregate?, complexity, tables)
+    {:many1, nil, many1(complexity, fn complexity -> expression(type, aggregate?, complexity, tables) end)}
   end
 
   defp expression(:any, aggregate?, complexity, tables) do
