@@ -251,9 +251,19 @@ defmodule Cloak.Compliance.QueryGenerator do
   end
 
   defp function(type, complexity, tables) do
-    {name, {arguments, _return_type}} = function_spec(type)
-    {:function, name, Enum.map(arguments, &expression(&1, false, complexity, tables))}
+    case function_spec(type) do
+      {"date_trunc", {[_, argument], _return_type}} -> date_trunc(argument, complexity, tables)
+      {name, {arguments, _return_type}} -> regular_function(name, arguments, complexity, tables)
+    end
   end
+
+  defp date_trunc(argument_type, complexity, tables) do
+    trunc_part = Enum.random(~w(second minute hour day month quarter year))
+    {:function, "date_trunc", [{:text, trunc_part, []}, expression(argument_type, false, complexity, tables)]}
+  end
+
+  defp regular_function(name, arguments, complexity, tables),
+    do: {:function, name, Enum.map(arguments, &expression(&1, false, complexity, tables))}
 
   defp function_spec(type) do
     Aircloak.Functions.function_spec()
