@@ -93,7 +93,7 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
   defp to_doc({:function, name, args}) do
     name
     |> concat("(")
-    |> glue("", args |> Enum.map(&to_doc/1) |> comma_separated())
+    |> glue("", args |> except_empty() |> Enum.map(&to_doc/1) |> comma_separated())
     |> nest()
     |> glue("", ")")
     |> group()

@@ -211,7 +211,10 @@ defmodule Cloak.Compliance.QueryGenerator do
   end
 
   defp expression({:optional, type}, aggregate?, complexity, tables) do
-    expression(type, aggregate?, complexity, tables)
+    frequency(complexity, [
+      {2, expression(type, aggregate?, complexity, tables)},
+      {1, empty()}
+    ])
   end
 
   defp expression({:many1, type}, aggregate?, complexity, tables) do
