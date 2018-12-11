@@ -261,6 +261,7 @@ defmodule Cloak.Compliance.QueryGenerator do
     |> Enum.random()
   end
 
+  defp constant(:boolean, _complexity), do: {:boolean, :rand.uniform() > 0.5, []}
   defp constant(:integer, complexity), do: {:integer, uniform(complexity), []}
   defp constant(:real, complexity), do: {:real, real(complexity), []}
   defp constant(:text, complexity), do: {:text, name(complexity), []}
