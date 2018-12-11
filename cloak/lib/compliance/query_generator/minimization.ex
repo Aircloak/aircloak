@@ -25,6 +25,9 @@ defmodule Cloak.Compliance.QueryGenerator.Minimization do
       {:table, _, _} ->
         query
 
+      {:as, _, [{:table, _, _}]} ->
+        query
+
       {:join, nil, [left, right, _on]} ->
         cond do
           fun.(modified = put_in(query, [from()], left)) -> collapse_subqueries(modified, fun)
