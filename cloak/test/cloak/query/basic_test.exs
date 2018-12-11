@@ -418,7 +418,7 @@ defmodule Cloak.Query.BasicTest do
       })
     end
 
-    test "avg" do
+    test "avg no-uid" do
       assert_query("select avg(height) from heights", %{
         columns: ["avg"],
         rows: [%{row: [avg], occurrences: 1}]
@@ -427,13 +427,31 @@ defmodule Cloak.Query.BasicTest do
       assert_in_delta(avg, 178, 182)
     end
 
-    test "stddev" do
+    test "avg uid" do
+      assert_query("select avg(height), median(height) from heights", %{
+        columns: ["avg", _],
+        rows: [%{row: [avg, _], occurrences: 1}]
+      })
+
+      assert_in_delta(avg, 178, 182)
+    end
+
+    test "stddev uid" do
+      assert_query("select stddev(height), median(height) from heights", %{
+        columns: ["stddev", _],
+        rows: [%{row: [stddev, _], occurrences: 1}]
+      })
+
+      assert_in_delta(stddev, 8.1, 0.1)
+    end
+
+    test "stddev no-uid" do
       assert_query("select stddev(height) from heights", %{
         columns: ["stddev"],
         rows: [%{row: [stddev], occurrences: 1}]
       })
 
-      assert_in_delta(stddev, 8.1, 0.1)
+      assert_in_delta(stddev, 8.1, 0.2)
     end
 
     test "median" do
@@ -479,7 +497,7 @@ defmodule Cloak.Query.BasicTest do
         rows: [%{row: [stddev], occurrences: 1}]
       })
 
-      assert_in_delta(stddev, 8.1, 0.1)
+      assert_in_delta(stddev, 8.1, 0.2)
     end
 
     test "median(qualified_column)" do
@@ -589,7 +607,7 @@ defmodule Cloak.Query.BasicTest do
         rows: [%{row: [stddev], occurrences: 1}]
       })
 
-      assert_in_delta(stddev, 170.99, 0.1)
+      assert_in_delta(stddev, 172, 1)
     end
 
     test "median" do
@@ -1260,18 +1278,30 @@ defmodule Cloak.Query.BasicTest do
       })
     end
 
-    test "avg" do
+    test "avg uid" do
+      assert_query("select avg_noise(height), median(height) from heights", %{
+        rows: [%{row: [0.0, _], occurrences: 1}]
+      })
+    end
+
+    test "avg no-uid" do
       assert_query("select avg_noise(height) from heights", %{
-        columns: ["avg_noise"],
         rows: [%{row: [6.0], occurrences: 1}]
       })
     end
 
-    test "stddev" do
-      assert_query("select stddev_noise(height) from heights", %{
-        columns: ["stddev_noise"],
-        rows: [%{row: [0.0], occurrences: 1}]
+    test "stddev uid" do
+      assert_query("select stddev_noise(height), median(height) from heights", %{
+        rows: [%{row: [0.0, _], occurrences: 1}]
       })
+    end
+
+    test "stddev no-uid" do
+      assert_query("select stddev_noise(height) from heights", %{
+        rows: [%{row: [sd], occurrences: 1}]
+      })
+
+      assert_in_delta sd, 2.4, 0.1
     end
   end
 

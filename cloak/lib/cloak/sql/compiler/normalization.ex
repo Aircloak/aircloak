@@ -43,6 +43,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
       query
       |> Helpers.apply_bottom_up(&normalize_trivial_like/1)
       |> Helpers.apply_bottom_up(&normalize_bucket/1)
+      |> Helpers.apply_bottom_up(&normalize_anonymized_stddev/1)
       |> Helpers.apply_bottom_up(&normalize_anonymized_avg/1)
       |> Helpers.apply_bottom_up(&strip_source_location/1)
 
@@ -219,19 +220,48 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # Normalizing anonymized avg calls
   # -------------------------------------------------------------------
 
-  defp normalize_anonymized_avg(%Query{type: :anonymized} = query) do
+  defp map_anonymized_aggregators(%Query{type: :anonymized} = query, functions, mapper) do
     Query.Lenses.query_expressions()
-    |> Lens.filter(&(&1.function in ["avg", "avg_noise"]))
+    |> Lens.filter(&(&1.function in functions))
     |> Lens.reject(&row_splitter_expression?/1)
-    |> Lens.map(query, &expand_avg/1)
+    |> Lens.reject(&match?(%Expression{function_args: [{:distinct, _}]}, &1))
+    |> Lens.map(query, mapper)
   end
 
-  defp normalize_anonymized_avg(query), do: query
+  defp map_anonymized_aggregators(query, _, _), do: query
+
+  defp normalize_anonymized_stddev(query),
+    do: map_anonymized_aggregators(query, ["stddev", "stddev_noise"], &expand_stddev/1)
+
+  defp normalize_anonymized_avg(query), do: map_anonymized_aggregators(query, ["avg", "avg_noise"], &expand_avg/1)
 
   defp row_splitter_expression?({:distinct, expression}), do: row_splitter_expression?(expression)
 
   defp row_splitter_expression?(expression) do
     Expression.row_splitter?(expression) or Enum.any?(expression.function_args, &row_splitter_expression?/1)
+  end
+
+  defp square_expression(expression), do: Expression.function("^", [expression, Expression.constant(:real, 2.0)], :real)
+
+  defp sum_of_squares({:distinct, expression}),
+    do: Expression.function("sum", [{:distinct, square_expression(expression)}], :real, true)
+
+  defp sum_of_squares(expression), do: Expression.function("sum", [square_expression(expression)], :real, true)
+
+  defp expand_stddev(%Expression{function: "stddev", function_args: [arg]}) do
+    # `sd(v) = sqrt(sum(v^2)/count - avg(v)^2)`
+    squares_sum = sum_of_squares(arg)
+    count = Expression.function("count", [arg], :integer, true)
+    avg = Expression.function("avg", [arg], :real, true)
+    avg_squared = square_expression(avg)
+    squares_avg = Expression.function("/", [squares_sum, count], :real)
+    variance = Expression.function("-", [squares_avg, avg_squared], :real)
+    Expression.function("sqrt", [variance], :real)
+  end
+
+  defp expand_stddev(%Expression{function: "stddev_noise", function_args: [arg]}) do
+    avg_noise = Expression.function("avg_noise", [arg], :real, true)
+    Expression.function("sqrt", [avg_noise], :real)
   end
 
   defp expand_avg(%Expression{function: "avg", function_args: [arg]}),
