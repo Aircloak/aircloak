@@ -198,12 +198,8 @@ defmodule Cloak.Compliance.QueryGenerator do
   end
 
   defp select_element(aggregate?, complexity, tables) do
-    if aggregate? do
-      {{:function, "count", [{:star, nil, []}]}, %{name: "count", type: :integer}}
-    else
-      name = name(complexity)
-      {{:as, name, [expression(:integer, false, complexity, tables)]}, %{name: name, type: :integer}}
-    end
+    name = name(complexity)
+    {{:as, name, [expression(:integer, aggregate?, complexity, tables)]}, %{name: name, type: :integer}}
   end
 
   defp expression({:or, types}, aggregate?, complexity, tables) do
@@ -238,16 +234,26 @@ defmodule Cloak.Compliance.QueryGenerator do
     nodes() |> Lens.filter(&match?({:function, _, _}, &1)) |> Lens.to_list(expression_tree) |> length()
   end
 
-  defp do_expression(type, true, complexity, _tables) do
-    constant(type, complexity)
+  defp do_expression(:interval, true, complexity, _tables), do: constant(:interval, complexity)
+
+  defp do_expression(type, true, complexity, tables) do
+    frequency(complexity, [
+      {1, constant(type, complexity)},
+      {2, aggregator(type, complexity, tables)}
+    ])
   end
 
   defp do_expression(type, false, complexity, tables) do
     frequency(complexity, [
       {1, constant(type, complexity)},
-      {1, column(type, complexity, tables)},
-      {1, function(type, div(complexity, 2), tables)}
+      {2, column(type, complexity, tables)},
+      {2, function(type, div(complexity, 2), tables)}
     ])
+  end
+
+  defp aggregator(type, complexity, tables) do
+    {name, {arguments, _}} = aggregator_spec(type)
+    regular_function(name, arguments, complexity, tables)
   end
 
   defp function(type, complexity, tables) do
@@ -274,6 +280,17 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp regular_function(name, arguments, complexity, tables),
     do: {:function, name, Enum.map(arguments, &expression(&1, false, complexity, tables))}
+
+  defp aggregator_spec(type) do
+    Aircloak.Functions.function_spec()
+    |> Stream.filter(fn {_, properties} -> :aggregator in Map.get(properties, :attributes, []) end)
+    |> Stream.reject(fn {_, properties} -> :internal in Map.get(properties, :attributes, []) end)
+    |> Stream.reject(fn {_, properties} -> {:not_in, :restricted} in Map.get(properties, :attributes, []) end)
+    |> Stream.flat_map(fn {name, properties} -> Enum.map(properties.type_specs, &{name, &1}) end)
+    |> Stream.filter(fn {_name, {_args, return_type}} -> return_type == type end)
+    |> Enum.to_list()
+    |> Enum.random()
+  end
 
   defp function_spec(type) do
     Aircloak.Functions.function_spec()
