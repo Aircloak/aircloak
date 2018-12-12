@@ -252,6 +252,7 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp function(type, complexity, tables) do
     case function_spec(type) do
+      {{:bucket, align}, _} -> bucket(align, complexity, tables)
       {"date_trunc", {[_, argument], _return_type}} -> date_trunc(argument, complexity, tables)
       {name, {arguments, _return_type}} -> regular_function(name, arguments, complexity, tables)
     end
@@ -262,6 +263,15 @@ defmodule Cloak.Compliance.QueryGenerator do
     {:function, "date_trunc", [{:text, trunc_part, []}, expression(argument_type, false, complexity, tables)]}
   end
 
+  defp bucket(align, complexity, tables) do
+    {:bucket, nil,
+     [
+       expression({:or, [:integer, :real]}, false, complexity, tables),
+       {:keyword_arg, "by", [constant(:integer, complexity)]},
+       {:keyword_arg, "align", [{:keyword, align, []}]}
+     ]}
+  end
+
   defp regular_function(name, arguments, complexity, tables),
     do: {:function, name, Enum.map(arguments, &expression(&1, false, complexity, tables))}
 
@@ -269,7 +279,6 @@ defmodule Cloak.Compliance.QueryGenerator do
     Aircloak.Functions.function_spec()
     |> Stream.reject(fn {_, properties} -> :aggregator in Map.get(properties, :attributes, []) end)
     |> Stream.reject(fn {_, properties} -> :internal in Map.get(properties, :attributes, []) end)
-    |> Stream.reject(&match?({{:bucket, _}, _}, &1))
     |> Stream.flat_map(fn {name, properties} -> Enum.map(properties.type_specs, &{name, &1}) end)
     |> Stream.filter(fn {_name, {_args, return_type}} -> return_type == type end)
     |> Enum.random()
