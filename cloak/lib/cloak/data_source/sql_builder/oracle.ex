@@ -109,7 +109,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp sql_type(:real), do: "BINARY_FLOAT"
+  defp sql_type(:real), do: "BINARY_DOUBLE"
   defp sql_type(:boolean), do: "NUMBER(1)"
   defp sql_type(:datetime), do: "TIMESTAMP"
   defp sql_type(:integer), do: "INTEGER"
