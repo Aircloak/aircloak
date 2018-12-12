@@ -10,8 +10,10 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   @spec build(Query.t()) :: String.t()
   @doc "Constructs a parametrized SQL query that can be executed against a backend."
-  def build(query),
-    do: to_string(build_fragments(query))
+  def build(query) do
+    [select | rest] = build_fragments(query)
+    to_string([select, sql_dialect_module(query).select_hints() | rest])
+  end
 
   @doc "Makes sure the specified partial or full table name is quoted."
   @spec quote_table_name(String.t(), integer) :: String.t()
@@ -53,9 +55,9 @@ defmodule Cloak.DataSource.SqlBuilder do
     range_clause = range_fragments(query)
 
     if sql_dialect_module(query).range_at_statement_start?() do
-      ["SELECT ", sql_dialect_module(query).select_hints(), range_clause, " ", common_clauses]
+      ["SELECT ", range_clause, " ", common_clauses]
     else
-      ["SELECT ", sql_dialect_module(query).select_hints(), common_clauses, range_clause]
+      ["SELECT ", common_clauses, range_clause]
     end
   end
 
