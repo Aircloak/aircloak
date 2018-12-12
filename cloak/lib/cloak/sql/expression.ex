@@ -82,7 +82,7 @@ defmodule Cloak.Sql.Expression do
     do: constant(:like_pattern, Cloak.Sql.LikePattern.new(pattern, escape_character))
 
   @doc "Creates a column representing a function call."
-  @spec function(function_name, [t | :*], column_type, boolean) :: t
+  @spec function(function_name, [t | :* | {:distinct, t}], column_type, boolean) :: t
   def function(function_name, function_args, type, aggregate? \\ false),
     do: %__MODULE__{
       function: function_name,
