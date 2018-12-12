@@ -69,7 +69,7 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
   defp to_doc({:not, nil, [expression]}),
     do: "NOT (" |> glue("", to_doc(expression)) |> nest() |> glue("", ")") |> group()
 
-  defp to_doc({:function, name, [lhs, rhs]}) when name in ~w(+ - * / ^) do
+  defp to_doc({:function, name, [lhs, rhs]}) when name in ~w(+ - * / ^ %) do
     "("
     |> glue("", to_doc(lhs))
     |> glue(" ", name)
@@ -79,21 +79,21 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
     |> group()
   end
 
-  defp to_doc({:function, name, args}) do
-    name
-    |> concat("(")
-    |> glue("", args |> Enum.map(&to_doc/1) |> comma_separated())
-    |> nest()
-    |> glue("", ")")
-    |> group()
-  end
-
-  defp to_doc({:cast, type, [argument]}) do
+  defp to_doc({:function, {:cast, type}, [argument]}) do
     "CAST"
     |> concat("(")
     |> glue("", to_doc(argument))
     |> glue(" ", "AS")
     |> glue(" ", type |> to_string() |> String.upcase())
+    |> nest()
+    |> glue("", ")")
+    |> group()
+  end
+
+  defp to_doc({:function, name, args}) do
+    name
+    |> concat("(")
+    |> glue("", args |> except_empty() |> Enum.map(&to_doc/1) |> comma_separated())
     |> nest()
     |> glue("", ")")
     |> group()
@@ -109,6 +109,8 @@ defmodule Cloak.Compliance.QueryGenerator.Format do
     |> glue("", ")")
     |> group()
   end
+
+  defp to_doc({:many1, nil, arguments}), do: arguments |> Enum.map(&to_doc/1) |> comma_separated()
 
   defp to_doc({:keyword_arg, name, [value]}),
     do: name |> to_string() |> String.upcase() |> concat(" ") |> concat(to_doc(value))
