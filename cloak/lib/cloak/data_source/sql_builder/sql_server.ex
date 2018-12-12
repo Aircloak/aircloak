@@ -45,7 +45,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
 
   def function_sql("substring", [arg1, arg2]), do: ["SUBSTRING(", arg1, ", ", arg2, ", LEN(", arg1, "))"]
 
-  def function_sql("^", [arg1, arg2]), do: ["POWER(", arg1, ", ", arg2, ")"]
+  def function_sql("^", [arg1, arg2]), do: ["POWER(", cast_sql(arg1, :numeric, :real), ", ", arg2, ")"]
   def function_sql("/", [arg1, arg2]), do: ["(", cast_sql(arg1, :numeric, :real), " / ", arg2, ")"]
 
   for binary_operator <- ~w(+ - * %) do
