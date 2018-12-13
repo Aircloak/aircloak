@@ -282,20 +282,21 @@ defmodule Cloak.Compliance.QueryGenerator do
     do: {:function, name, Enum.map(arguments, &expression(&1, false, complexity, tables))}
 
   defp aggregator_spec(type) do
-    Aircloak.Functions.function_spec()
-    |> Stream.filter(fn {_, properties} -> :aggregator in Map.get(properties, :attributes, []) end)
-    |> Stream.reject(fn {_, properties} -> :internal in Map.get(properties, :attributes, []) end)
-    |> Stream.reject(fn {_, properties} -> {:not_in, :restricted} in Map.get(properties, :attributes, []) end)
-    |> Stream.flat_map(fn {name, properties} -> Enum.map(properties.type_specs, &{name, &1}) end)
-    |> Stream.filter(fn {_name, {_args, return_type}} -> return_type == type end)
-    |> Enum.to_list()
-    |> Enum.random()
+    do_function_spec(type, fn attributes ->
+      :aggregator in attributes and not ({:not_in, :restricted} in attributes)
+    end)
   end
 
-  defp function_spec(type) do
+  defp function_spec(type),
+    do: do_function_spec(type, fn attributes -> not (:aggregator in attributes) end)
+
+  defp do_function_spec(type, filter) do
     Aircloak.Functions.function_spec()
-    |> Stream.reject(fn {_, properties} -> :aggregator in Map.get(properties, :attributes, []) end)
-    |> Stream.reject(fn {_, properties} -> :internal in Map.get(properties, :attributes, []) end)
+    |> Enum.sort()
+    |> Stream.filter(fn {_, properties} ->
+      attributes = Map.get(properties, :attributes, [])
+      filter.(attributes) and not (:internal in attributes)
+    end)
     |> Stream.flat_map(fn {name, properties} -> Enum.map(properties.type_specs, &{name, &1}) end)
     |> Stream.filter(fn {_name, {_args, return_type}} -> return_type == type end)
     |> Enum.random()
