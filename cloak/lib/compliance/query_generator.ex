@@ -259,9 +259,22 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp function(type, complexity, tables) do
     case function_spec(type) do
       {{:bucket, align}, _} -> bucket(align, complexity, tables)
+      {{:cast, target_type}, {[input_type], _return_type}} -> cast(target_type, input_type, complexity, tables)
       {"date_trunc", {[_, argument], _return_type}} -> date_trunc(argument, complexity, tables)
       {name, {arguments, _return_type}} -> regular_function(name, arguments, complexity, tables)
     end
+  end
+
+  defp cast(target_type, {:or, types}, complexity, tables),
+    do: cast(target_type, Enum.random(types), complexity, tables)
+
+  defp cast(target_type, :text, complexity, tables) do
+    {:function, {:cast, target_type},
+     [{:function, {:cast, :text}, [expression(target_type, false, complexity, tables)]}]}
+  end
+
+  defp cast(target_type, input_type, complexity, tables) do
+    {:function, {:cast, target_type}, [expression(input_type, false, complexity, tables)]}
   end
 
   defp date_trunc(argument_type, complexity, tables) do
