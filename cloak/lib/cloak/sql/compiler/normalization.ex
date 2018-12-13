@@ -43,8 +43,8 @@ defmodule Cloak.Sql.Compiler.Normalization do
       query
       |> Helpers.apply_bottom_up(&normalize_trivial_like/1)
       |> Helpers.apply_bottom_up(&normalize_bucket/1)
-      |> Helpers.apply_bottom_up(&normalize_anonymized_stddev/1)
-      |> Helpers.apply_bottom_up(&normalize_anonymized_avg/1)
+      |> Helpers.apply_bottom_up(&normalize_anonymizing_stddev/1)
+      |> Helpers.apply_bottom_up(&normalize_anonymizing_avg/1)
       |> Helpers.apply_bottom_up(&strip_source_location/1)
 
   # -------------------------------------------------------------------
@@ -220,7 +220,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # Normalizing anonymized avg calls
   # -------------------------------------------------------------------
 
-  defp map_anonymized_aggregators(%Query{type: :anonymized} = query, functions, mapper) do
+  defp map_anonymizing_aggregators(%Query{type: :anonymized} = query, functions, mapper) do
     Query.Lenses.query_expressions()
     |> Lens.filter(&(&1.function in functions))
     |> Lens.reject(&row_splitter_expression?/1)
@@ -228,12 +228,12 @@ defmodule Cloak.Sql.Compiler.Normalization do
     |> Lens.map(query, mapper)
   end
 
-  defp map_anonymized_aggregators(query, _, _), do: query
+  defp map_anonymizing_aggregators(query, _, _), do: query
 
-  defp normalize_anonymized_stddev(query),
-    do: map_anonymized_aggregators(query, ["stddev", "stddev_noise"], &expand_stddev/1)
+  defp normalize_anonymizing_stddev(query),
+    do: map_anonymizing_aggregators(query, ["stddev", "stddev_noise"], &expand_stddev/1)
 
-  defp normalize_anonymized_avg(query), do: map_anonymized_aggregators(query, ["avg", "avg_noise"], &expand_avg/1)
+  defp normalize_anonymizing_avg(query), do: map_anonymizing_aggregators(query, ["avg", "avg_noise"], &expand_avg/1)
 
   defp row_splitter_expression?({:distinct, expression}), do: row_splitter_expression?(expression)
 
