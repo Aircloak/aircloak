@@ -195,44 +195,43 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp select_elements(scaffold, tables) do
     {elements, columns} =
       many1(scaffold.complexity, fn complexity ->
-        select_element(scaffold.aggregate?, %{complexity: complexity, tables: tables})
+        select_element(%{aggregate?: scaffold.aggregate?, complexity: complexity, tables: tables})
       end)
       |> Enum.unzip()
 
     {elements, [%{user_id: nil, columns: columns}]}
   end
 
-  defp select_element(aggregate?, context) do
+  defp select_element(context) do
     name = name(context)
-    {{:as, name, [expression(:integer, aggregate?, context)]}, %{name: name, type: :integer}}
+    {{:as, name, [expression(:integer, context)]}, %{name: name, type: :integer}}
   end
 
-  defp expression({:or, types}, aggregate?, context) do
-    expression(Enum.random(types), aggregate?, context)
+  defp expression({:or, types}, context) do
+    expression(Enum.random(types), context)
   end
 
-  defp expression({:optional, type}, aggregate?, context) do
+  defp expression({:optional, type}, context) do
     frequency(context.complexity, [
-      {2, expression(type, aggregate?, context)},
+      {2, expression(type, context)},
       {1, empty()}
     ])
   end
 
-  defp expression({:many1, type}, aggregate?, context) do
-    {:many1, nil,
-     many1(context.complexity, fn complexity -> expression(type, aggregate?, %{context | complexity: complexity}) end)}
+  defp expression({:many1, type}, context) do
+    {:many1, nil, many1(context.complexity, fn complexity -> expression(type, %{context | complexity: complexity}) end)}
   end
 
-  defp expression(:any, aggregate?, context) do
-    expression(type(context), aggregate?, context)
+  defp expression(:any, context) do
+    expression(type(context), context)
   end
 
-  defp expression({:constant, type}, _, context) do
+  defp expression({:constant, type}, context) do
     constant(type, context)
   end
 
-  defp expression(type, aggregate?, context) do
-    fn -> do_expression(type, aggregate?, context) end
+  defp expression(type, context) do
+    fn -> do_expression(type, context) end
     |> reject(&(number_of_functions(&1) > @max_unrestricted_functions))
   end
 
@@ -240,16 +239,16 @@ defmodule Cloak.Compliance.QueryGenerator do
     nodes() |> Lens.filter(&match?({:function, _, _}, &1)) |> Lens.to_list(expression_tree) |> length()
   end
 
-  defp do_expression(:interval, true, context), do: constant(:interval, context)
+  defp do_expression(:interval, context), do: constant(:interval, context)
 
-  defp do_expression(type, true, context) do
+  defp do_expression(type, context = %{aggregate?: true}) do
     frequency(context.complexity, [
       {1, constant(type, context)},
-      {2, aggregator(type, simplify(context))}
+      {2, aggregator(type, %{simplify(context) | aggregate?: false})}
     ])
   end
 
-  defp do_expression(type, false, context) do
+  defp do_expression(type, context = %{aggregate?: false}) do
     frequency(context.complexity, [
       {1, constant(type, context)},
       {2, column(type, context)},
@@ -275,29 +274,29 @@ defmodule Cloak.Compliance.QueryGenerator do
     do: cast(target_type, Enum.random(types), context)
 
   defp cast(target_type, :text, context) do
-    {:function, {:cast, target_type}, [{:function, {:cast, :text}, [expression(target_type, false, context)]}]}
+    {:function, {:cast, target_type}, [{:function, {:cast, :text}, [expression(target_type, context)]}]}
   end
 
   defp cast(target_type, input_type, context) do
-    {:function, {:cast, target_type}, [expression(input_type, false, context)]}
+    {:function, {:cast, target_type}, [expression(input_type, context)]}
   end
 
   defp date_trunc(argument_type, context) do
     trunc_part = Enum.random(~w(second minute hour day month quarter year))
-    {:function, "date_trunc", [{:text, trunc_part, []}, expression(argument_type, false, context)]}
+    {:function, "date_trunc", [{:text, trunc_part, []}, expression(argument_type, context)]}
   end
 
   defp bucket(align, context) do
     {:bucket, nil,
      [
-       expression({:or, [:integer, :real]}, false, context),
+       expression({:or, [:integer, :real]}, context),
        {:keyword_arg, "by", [constant(:integer, context)]},
        {:keyword_arg, "align", [{:keyword, align, []}]}
      ]}
   end
 
   defp regular_function(name, arguments, context),
-    do: {:function, name, Enum.map(arguments, &expression(&1, false, context))}
+    do: {:function, name, Enum.map(arguments, &expression(&1, context))}
 
   defp aggregator_spec(type) do
     do_function_spec(type, fn attributes ->
@@ -402,34 +401,34 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp where(scaffold, tables) do
     frequency(scaffold.complexity, [
-      {1, {:where, nil, [where_condition(false, %{complexity: scaffold.complexity, tables: tables})]}},
+      {1, {:where, nil, [where_condition(%{aggregate?: false, complexity: scaffold.complexity, tables: tables})]}},
       {1, empty()}
     ])
   end
 
-  defp where_condition(aggregate?, context) do
+  defp where_condition(context) do
     frequency(context.complexity, [
-      {2, simple_condition(aggregate?, context)},
+      {2, simple_condition(context)},
       {1,
        {:and, nil,
         [
-          where_condition(aggregate?, simplify(context)),
-          where_condition(aggregate?, simplify(context))
+          where_condition(simplify(context)),
+          where_condition(simplify(context))
         ]}}
     ])
   end
 
-  defp simple_condition(aggregate?, context) do
+  defp simple_condition(context) do
     frequency(context.complexity, [
-      {1, equality(aggregate?, context)}
+      {1, equality(context)}
     ])
   end
 
-  defp equality(aggregate?, context) do
+  defp equality(context) do
     type = type(context)
     kind = Enum.random([:=, :<>])
 
-    {kind, nil, [expression(type, aggregate?, context), expression(type, aggregate?, context)]}
+    {kind, nil, [expression(type, context), expression(type, context)]}
   end
 
   defp group_by(%{aggregate?: false}, _select), do: empty()
@@ -461,7 +460,9 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp having(%{aggregate?: false}, _tables), do: empty()
 
   defp having(scaffold, tables),
-    do: {:having, nil, [where_condition(scaffold.aggregate?, %{complexity: scaffold.complexity, tables: tables})]}
+    do:
+      {:having, nil,
+       [where_condition(%{aggregate?: scaffold.aggregate?, complexity: scaffold.complexity, tables: tables})]}
 
   defp order_by(scaffold, select) do
     case order_by_elements(scaffold, select) do
