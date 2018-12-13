@@ -182,7 +182,7 @@ defmodule Cloak.Query.Anonymizer do
         {acc_sum + sum, acc_count + count}
       end)
 
-    mean = sum / count
+    mean = sum / Kernel.max(count, 1)
 
     variances =
       Stream.map(rows, fn {:stddev, sum, sum_sqrs, count} ->

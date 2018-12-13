@@ -365,7 +365,7 @@ Note that the tests submit results to InfluxDB - it will be started with `start_
   "parameters": {
     "hostname": "docker.for.mac.localhost",
     "username": "sa",
-    "password": "sql{}server",
+    "password": "Sql{}server1",
     "database": "cloaktest2",
     "odbc_parameters": {
       "Port": "1433"

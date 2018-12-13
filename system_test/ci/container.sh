@@ -47,7 +47,7 @@ function start_cloak_dbs {
   local container_name=$1
 
   start_supporting_container $container_name sqlserver2017 \
-    -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=sql{}server' \
+    -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=Sql{}server1' \
     microsoft/mssql-server-linux:2017-latest
 
   start_supporting_container $container_name cloak_postgres \

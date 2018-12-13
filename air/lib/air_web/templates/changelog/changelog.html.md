@@ -8,8 +8,6 @@
 - Faster statistics-based (no-uid) anonymization implemented for certain cases.
 - Support for Oracle 11g
 
-### Bugfixes
-
 ### Enhancements
 
 - Per-user data aggregation is offloaded to the database in some cases.
