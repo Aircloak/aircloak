@@ -78,6 +78,10 @@ case "$1" in
     default_handle "$@"
     ;;
 
+  ensure_database_containers)
+    ensure_database_containers
+    ;;
+
   *)
     default_handle "$@"
     ;;
