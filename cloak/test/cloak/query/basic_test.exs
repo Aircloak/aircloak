@@ -418,7 +418,7 @@ defmodule Cloak.Query.BasicTest do
       })
     end
 
-    test "avg no-uid" do
+    test "avg statistics" do
       assert_query("select avg(height) from heights", %{
         columns: ["avg"],
         rows: [%{row: [avg], occurrences: 1}]
@@ -445,7 +445,7 @@ defmodule Cloak.Query.BasicTest do
       assert_in_delta(stddev, 8.1, 0.1)
     end
 
-    test "stddev no-uid" do
+    test "stddev statistics" do
       assert_query("select stddev(height) from heights", %{
         columns: ["stddev"],
         rows: [%{row: [stddev], occurrences: 1}]
@@ -1284,7 +1284,7 @@ defmodule Cloak.Query.BasicTest do
       })
     end
 
-    test "avg no-uid" do
+    test "avg statistics" do
       assert_query("select avg_noise(height) from heights", %{
         rows: [%{row: [6.0], occurrences: 1}]
       })
@@ -1296,7 +1296,7 @@ defmodule Cloak.Query.BasicTest do
       })
     end
 
-    test "stddev no-uid" do
+    test "stddev statistics" do
       assert_query("select stddev_noise(height) from heights", %{
         rows: [%{row: [sd], occurrences: 1}]
       })
