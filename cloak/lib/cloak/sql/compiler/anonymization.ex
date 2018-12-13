@@ -61,7 +61,8 @@ defmodule Cloak.Sql.Compiler.Anonymization do
   def compile_anonymization(query), do: query
 
   defp supports_statistics_anonymization?(query) do
-    Enum.all?(query.aggregators, &aggregator_supports_statistics?/1) and user_id_not_selected?(query)
+    Enum.all?(query.aggregators, &aggregator_supports_statistics?/1) and user_id_not_selected?(query) and
+      query.data_source.statistics_anonymization
   end
 
   defp user_id_not_selected?(query) do

@@ -56,6 +56,7 @@ defmodule Cloak.DataSource do
           status: :online | :offline,
           concurrency: non_neg_integer | nil,
           lcf_buckets_aggregation_limit: non_neg_integer | nil,
+          statistics_anonymization: boolean,
           # we need to store the initial tables and errors in case we need to re-scan the data source tables later
           initial_tables: %{atom => Table.t()},
           initial_errors: [String.t()]
@@ -278,6 +279,7 @@ defmodule Cloak.DataSource do
     |> Map.put(:status, nil)
     |> Map.put_new(:concurrency, nil)
     |> Map.put_new(:lcf_buckets_aggregation_limit, nil)
+    |> Map.put_new(:statistics_anonymization, true)
     |> set_table_defaults()
     |> Validations.Name.ensure_permitted()
     |> potentially_create_temp_name()
