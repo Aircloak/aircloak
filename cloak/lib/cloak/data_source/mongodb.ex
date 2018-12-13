@@ -231,8 +231,13 @@ defmodule Cloak.DataSource.MongoDB do
   defp mongo_version(%{driver_info: version}) when is_binary(version), do: version
 
   defp is_sharded?(connection, collection) do
-    {:ok, stats} = Mongo.command(connection, [{:collStats, collection}])
-    stats["sharded"] == true
+    case Mongo.command(connection, [{:collStats, collection}]) do
+      {:ok, stats} ->
+        stats["sharded"] == true
+
+      {:error, %Mongo.Error{message: error}} ->
+        raise ExecutionError, message: "Error getting sharding status for collection `#{collection}`: #{error}."
+    end
   end
 
   @supported_functions ~w(
