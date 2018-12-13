@@ -402,7 +402,7 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp where(scaffold, tables) do
     frequency(scaffold.complexity, [
-      {1, {:where, nil, [where_condition(scaffold.aggregate?, %{complexity: scaffold.complexity, tables: tables})]}},
+      {1, {:where, nil, [where_condition(false, %{complexity: scaffold.complexity, tables: tables})]}},
       {1, empty()}
     ])
   end
