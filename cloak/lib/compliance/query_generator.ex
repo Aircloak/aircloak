@@ -175,28 +175,27 @@ defmodule Cloak.Compliance.QueryGenerator do
   end
 
   defp select(scaffold, tables) do
+    context = scaffold_to_context(scaffold, tables)
+
     {elements, tables} =
       if scaffold.select_user_id? do
-        select_elements_with_user_id(scaffold, tables)
+        select_elements_with_user_id(context)
       else
-        select_elements(scaffold, tables)
+        select_elements(context)
       end
 
     {{:select, nil, elements}, tables}
   end
 
-  defp select_elements_with_user_id(scaffold, tables) do
-    {elements, [table]} = select_elements(scaffold, tables)
-    {column, name, type} = user_id_from_tables(tables)
-
+  defp select_elements_with_user_id(context) do
+    {elements, [table]} = select_elements(context)
+    {column, name, type} = user_id_from_tables(context.tables)
     {[column | elements], [%{user_id: name, columns: [%{name: name, type: type} | table.columns]}]}
   end
 
-  defp select_elements(scaffold, tables) do
+  defp select_elements(context) do
     {elements, columns} =
-      many1(scaffold.complexity, fn complexity ->
-        select_element(%{aggregate?: scaffold.aggregate?, complexity: complexity, tables: tables})
-      end)
+      many1(context.complexity, fn complexity -> select_element(%{context | complexity: complexity}) end)
       |> Enum.unzip()
 
     {elements, [%{user_id: nil, columns: columns}]}
@@ -257,16 +256,18 @@ defmodule Cloak.Compliance.QueryGenerator do
   end
 
   defp aggregator(type, context) do
-    {name, {arguments, _}} = aggregator_spec(type)
-    regular_function(name, arguments, context)
+    case aggregator_spec(type) do
+      {:ok, {name, {arguments, _}, _}} -> regular_function(name, arguments, context)
+      :error -> constant(type, context)
+    end
   end
 
   defp function(type, context) do
     case function_spec(type) do
-      {{:bucket, align}, _} -> bucket(align, context)
-      {{:cast, target_type}, {[input_type], _return_type}} -> cast(target_type, input_type, context)
-      {"date_trunc", {[_, argument], _return_type}} -> date_trunc(argument, context)
-      {name, {arguments, _return_type}} -> regular_function(name, arguments, context)
+      {:ok, {{:bucket, align}, _, _}} -> bucket(align, context)
+      {:ok, {{:cast, target_type}, {[input_type], _return_type}, _}} -> cast(target_type, input_type, context)
+      {:ok, {"date_trunc", {[_, argument], _return_type}, _}} -> date_trunc(argument, context)
+      {:ok, {name, {arguments, _return_type}, _}} -> regular_function(name, arguments, context)
     end
   end
 
@@ -299,24 +300,33 @@ defmodule Cloak.Compliance.QueryGenerator do
     do: {:function, name, Enum.map(arguments, &expression(&1, context))}
 
   defp aggregator_spec(type) do
-    do_function_spec(type, fn attributes ->
-      :aggregator in attributes and not ({:not_in, :restricted} in attributes)
+    do_function_spec(type, fn {name, {_, return_type}, attributes} ->
+      cond do
+        :aggregator not in attributes -> false
+        {:not_in, :restricted} in attributes -> false
+        name in ~w(min max median) and return_type == :text -> false
+        true -> true
+      end
     end)
   end
 
   defp function_spec(type),
-    do: do_function_spec(type, fn attributes -> not (:aggregator in attributes) end)
+    do: do_function_spec(type, fn {_name, _type_spec, attributes} -> not (:aggregator in attributes) end)
 
   defp do_function_spec(type, filter) do
     Aircloak.Functions.function_spec()
     |> Enum.sort()
-    |> Stream.filter(fn {_, properties} ->
+    |> Stream.flat_map(fn {name, properties} ->
       attributes = Map.get(properties, :attributes, [])
-      filter.(attributes) and not (:internal in attributes)
+      Enum.map(properties.type_specs, &{name, &1, attributes})
     end)
-    |> Stream.flat_map(fn {name, properties} -> Enum.map(properties.type_specs, &{name, &1}) end)
-    |> Stream.filter(fn {_name, {_args, return_type}} -> return_type == type end)
-    |> Enum.random()
+    |> Stream.filter(fn {_, _, attributes} -> not (:internal in attributes) end)
+    |> Stream.filter(filter)
+    |> Enum.filter(fn {_name, {_args, return_type}, _} -> return_type == type end)
+    |> case do
+      [] -> :error
+      options -> {:ok, Enum.random(options)}
+    end
   end
 
   defp constant(:boolean, _context), do: {:boolean, :rand.uniform() > 0.5, []}
@@ -401,7 +411,7 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp where(scaffold, tables) do
     frequency(scaffold.complexity, [
-      {1, {:where, nil, [where_condition(%{aggregate?: false, complexity: scaffold.complexity, tables: tables})]}},
+      {1, {:where, nil, [where_condition(%{scaffold_to_context(scaffold, tables) | aggregate?: false})]}},
       {1, empty()}
     ])
   end
@@ -460,9 +470,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp having(%{aggregate?: false}, _tables), do: empty()
 
   defp having(scaffold, tables),
-    do:
-      {:having, nil,
-       [where_condition(%{aggregate?: scaffold.aggregate?, complexity: scaffold.complexity, tables: tables})]}
+    do: {:having, nil, [where_condition(scaffold_to_context(scaffold, tables))]}
 
   defp order_by(scaffold, select) do
     case order_by_elements(scaffold, select) do
@@ -570,4 +578,16 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp nodes(), do: Lens.both(Lens.root(), Lens.index(2) |> Lens.all() |> Lens.recur())
 
   defp simplify(context), do: update_in(context, [:complexity], &div(&1, 2))
+
+  # -------------------------------------------------------------------
+  # Helpers
+  # -------------------------------------------------------------------
+
+  defp scaffold_to_context(scaffold, tables) do
+    %{
+      aggregate?: scaffold.aggregate?,
+      complexity: scaffold.complexity,
+      tables: tables
+    }
+  end
 end
