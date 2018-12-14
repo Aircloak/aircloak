@@ -53,7 +53,7 @@ config :cloak, :anonymizer,
   sum_noise_sigma_scale_params: {1, 0.5},
 
   # This value specifies the isolating factor threshold. See `Isolating columns` in anonymization.md.
-  isolating_column_threshold: 0.5
+  isolating_column_threshold: 0.8
 
 config :cloak, :shadow_tables,
   # Number of allowed negative conditions with rare values. See `Shadow tables` in anonymization.md.
