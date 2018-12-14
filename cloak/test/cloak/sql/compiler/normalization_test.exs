@@ -252,6 +252,13 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     assert result1 == result2
   end
 
+  test "removing grouping by constant" do
+    result1 = compile!("SELECT count(*), 0 FROM table GROUP BY 2", data_source())
+    result2 = compile!("SELECT count(*), 0 FROM table", data_source())
+
+    assert result1 == result2
+  end
+
   defp sql_server_data_source(), do: %{data_source() | driver: Cloak.DataSource.SQLServer}
 
   defp data_source() do
