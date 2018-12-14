@@ -85,7 +85,8 @@ function deploy {
     systemctl daemon-reload &&
     systemctl restart aircloak_ci.service &&
     systemctl restart aircloak_ci_fix_permissions.timer &&
-    systemctl restart aircloak_ci_cleanup_cache.timer
+    systemctl restart aircloak_ci_cleanup_cache.timer &&
+    systemctl restart aircloak_ci_restart_docker.timer
   "
 
   # keep the most recent 10 releases

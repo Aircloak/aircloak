@@ -1,0 +1,12 @@
+[Unit]
+Description=Timer for docker restarter, see restart_docker.sh for details
+
+[Timer]
+# restarting just before midnight, to increase the chances of system test succeeding
+OnCalendar=*-*-* 23:55:00
+
+# restarting before regular start of the day, to fix any possible hang caused by system test
+OnCalendar=*-*-* 05:00:00
+
+[Install]
+WantedBy=timers.target
