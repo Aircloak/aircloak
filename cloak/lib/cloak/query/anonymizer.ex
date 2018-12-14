@@ -201,28 +201,11 @@ defmodule Cloak.Query.Anonymizer do
   @doc "Computes the median value of all values in rows, where each row is an enumerable of numbers."
   @spec median(t, Enumerable.t()) :: number | nil
   def median(anonymizer, rows) do
-    values =
-      rows
-      |> Stream.with_index()
-      |> Stream.flat_map(fn {row, user_index} -> Stream.map(row, &{user_index, &1}) end)
-      |> Enum.sort_by(fn {_user_index, value} -> value end)
-
-    {max_count, min_count, noisy_count, anonymizer} = min_max_groups(anonymizer)
-
-    middle = round((Enum.count(values) - 1) / 2)
-
-    {bottom_values, [{_middle_user_index, middle_value} | top_values]} = Enum.split(values, middle - 1)
-
-    above_values = take_values_from_distinct_users(top_values, noisy_count + max_count)
-    below_values = take_values_from_distinct_users(bottom_values, -(noisy_count + min_count))
-
-    if Enum.count(above_values) + Enum.count(below_values) < 2 * noisy_count + min_count + max_count do
-      nil
-    else
-      middle_values = Enum.take(below_values, -noisy_count) ++ [middle_value] ++ Enum.take(above_values, noisy_count)
-
-      noisy_average(middle_values, anonymizer)
-    end
+    rows
+    |> Stream.with_index()
+    |> Stream.flat_map(fn {row, user_index} -> Stream.map(row, &{user_index, &1}) end)
+    |> Enum.sort_by(fn {_user_index, value} -> value end)
+    |> noisy_median(anonymizer)
   end
 
   @doc """
@@ -454,6 +437,27 @@ defmodule Cloak.Query.Anonymizer do
     quarter_stddev = :math.sqrt(variance) / 4
     {noisy_average, _anonymizer} = add_noise(anonymizer, {average, quarter_stddev})
     noisy_average
+  end
+
+  defp noisy_median([], _anonymizer), do: nil
+
+  defp noisy_median(values, anonymizer) do
+    {max_count, min_count, noisy_count, anonymizer} = min_max_groups(anonymizer)
+
+    middle = round((Enum.count(values) - 1) / 2)
+
+    {bottom_values, [{_middle_user_index, middle_value} | top_values]} = Enum.split(values, middle - 1)
+
+    above_values = take_values_from_distinct_users(top_values, noisy_count + max_count)
+    below_values = take_values_from_distinct_users(bottom_values, -(noisy_count + min_count))
+
+    if Enum.count(above_values) + Enum.count(below_values) < 2 * noisy_count + min_count + max_count do
+      nil
+    else
+      middle_values = Enum.take(below_values, -noisy_count) ++ [middle_value] ++ Enum.take(above_values, noisy_count)
+
+      noisy_average(middle_values, anonymizer)
+    end
   end
 
   # Rounds a value to money style increments (1, 2, 5, 10, 20, 50, 100, ...).
