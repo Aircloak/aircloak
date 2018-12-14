@@ -62,7 +62,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
 
   defp supports_statistics_anonymization?(query) do
     Enum.all?(query.aggregators, &aggregator_supports_statistics?/1) and user_id_not_selected?(query) and
-      query.data_source[:statistics_anonymization] != false
+      statistics_anonymization_enabled?(query.data_source)
   end
 
   defp user_id_not_selected?(query) do
@@ -77,6 +77,8 @@ defmodule Cloak.Sql.Compiler.Anonymization do
        do: false
 
   defp aggregator_supports_statistics?(_aggregator), do: true
+
+  defp statistics_anonymization_enabled?(data_source), do: data_source[:statistics_anonymization] != false
 
   defp convert_to_statistics_anonymization(query) do
     {:subquery, %{ast: uid_grouping_query}} = query.from
