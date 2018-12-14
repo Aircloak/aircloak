@@ -263,6 +263,13 @@ defmodule Cloak.Compliance.QueryGenerator do
     ])
   end
 
+  defp aggregator(type, context = %{negative_condition?: true}) do
+    case aggregator_spec(type) do
+      {:ok, {name, {[argument], _}, _}} -> {:function, name, [column(argument, context)]}
+      :error -> constant(type, context)
+    end
+  end
+
   defp aggregator(type, context) do
     case aggregator_spec(type) do
       {:ok, {name, {arguments, _}, _}} -> regular_function(name, arguments, context)
@@ -331,6 +338,8 @@ defmodule Cloak.Compliance.QueryGenerator do
     end
   end
 
+  defp constant(:any, context), do: constant(type(context), context)
+  defp constant({:or, types}, context), do: constant(Enum.random(types), context)
   defp constant(:boolean, _context), do: {:boolean, :rand.uniform() > 0.5, []}
   defp constant(:integer, context), do: {:integer, uniform(context.complexity), []}
   defp constant(:real, context), do: {:real, real(context), []}
@@ -448,7 +457,12 @@ defmodule Cloak.Compliance.QueryGenerator do
     frequency(context.complexity, [
       {1, {:<>, nil, [expression(type, context), constant(type, context)]}},
       {1, {:<>, nil, [constant(type, context), expression(type, context)]}},
-      {1, {:<>, nil, [column(type, context), column(type, context)]}}
+      {1,
+       {:<>, nil,
+        [
+          expression(type, %{context | negative_condition?: true}),
+          expression(type, %{context | negative_condition?: true})
+        ]}}
     ])
   end
 
@@ -598,7 +612,8 @@ defmodule Cloak.Compliance.QueryGenerator do
     %{
       aggregate?: scaffold.aggregate?,
       complexity: scaffold.complexity,
-      tables: tables
+      tables: tables,
+      negative_condition?: false
     }
   end
 end
