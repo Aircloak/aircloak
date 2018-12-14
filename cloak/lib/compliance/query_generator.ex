@@ -21,6 +21,14 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   @max_unrestricted_functions 5
 
+  @function_specs Aircloak.Functions.function_spec()
+                  |> Enum.sort()
+                  |> Enum.flat_map(fn {name, properties} ->
+                    attributes = Map.get(properties, :attributes, [])
+                    Enum.map(properties.type_specs, &{name, &1, attributes})
+                  end)
+                  |> Enum.filter(fn {_, _, attributes} -> not (:internal in attributes) end)
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -314,13 +322,7 @@ defmodule Cloak.Compliance.QueryGenerator do
     do: do_function_spec(type, fn {_name, _type_spec, attributes} -> not (:aggregator in attributes) end)
 
   defp do_function_spec(type, filter) do
-    Aircloak.Functions.function_spec()
-    |> Enum.sort()
-    |> Stream.flat_map(fn {name, properties} ->
-      attributes = Map.get(properties, :attributes, [])
-      Enum.map(properties.type_specs, &{name, &1, attributes})
-    end)
-    |> Stream.filter(fn {_, _, attributes} -> not (:internal in attributes) end)
+    @function_specs
     |> Stream.filter(filter)
     |> Enum.filter(fn {_name, {_args, return_type}, _} -> return_type == type end)
     |> case do
