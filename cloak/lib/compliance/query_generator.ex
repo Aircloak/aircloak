@@ -430,15 +430,24 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp simple_condition(context) do
     frequency(context.complexity, [
-      {1, equality(context)}
+      {1, equality(context)},
+      {1, inequality(context)}
     ])
   end
 
   defp equality(context) do
     type = type(context)
-    kind = Enum.random([:=, :<>])
+    {:=, nil, [expression(type, context), expression(type, context)]}
+  end
 
-    {kind, nil, [expression(type, context), expression(type, context)]}
+  defp inequality(context) do
+    type = type(context)
+
+    frequency(context.complexity, [
+      {1, {:<>, nil, [expression(type, context), constant(type, context)]}},
+      {1, {:<>, nil, [constant(type, context), expression(type, context)]}},
+      {1, {:<>, nil, [column(type, context), column(type, context)]}}
+    ])
   end
 
   defp group_by(%{aggregate?: false}, _select), do: empty()
