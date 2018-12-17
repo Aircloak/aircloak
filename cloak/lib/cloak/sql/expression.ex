@@ -134,6 +134,7 @@ defmodule Cloak.Sql.Expression do
 
   def display_name(%__MODULE__{alias: alias}) when is_binary(alias), do: "`#{alias}`"
   def display_name(%__MODULE__{function: {:cast, _type}}), do: "`cast`"
+  def display_name(%__MODULE__{function: {:bucket, _align}}), do: "`bucket`"
   def display_name(%__MODULE__{function: function}) when is_binary(function), do: "`#{function}`"
 
   def display_name(%__MODULE__{constant?: true, type: :interval, value: value}),
