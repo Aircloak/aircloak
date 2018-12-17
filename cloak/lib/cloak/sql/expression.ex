@@ -134,6 +134,7 @@ defmodule Cloak.Sql.Expression do
 
   def display_name(%__MODULE__{alias: alias}) when is_binary(alias), do: "`#{alias}`"
   def display_name(%__MODULE__{function: {:cast, _type}}), do: "`cast`"
+  def display_name(%__MODULE__{function: {:bucket, _align}}), do: "`bucket`"
   def display_name(%__MODULE__{function: function}) when is_binary(function), do: "`#{function}`"
 
   def display_name(%__MODULE__{constant?: true, type: :interval, value: value}),
@@ -152,6 +153,9 @@ defmodule Cloak.Sql.Expression do
 
   def display(%__MODULE__{name: name}) when is_binary(name), do: name
   def display(%__MODULE__{function: {:cast, type}, function_args: [arg]}), do: "cast(#{display(arg)} as #{type})"
+
+  def display(%__MODULE__{function: {:bucket, align}, function_args: [value, by]}),
+    do: "bucket(#{display(value)} by #{display(by)} align #{align})"
 
   def display(%__MODULE__{function: function, function_args: [arg1, arg2]}) when function in ~w(+ - / * ^ %),
     do: "#{display(arg1)} #{function} #{display(arg2)}"
@@ -432,6 +436,14 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("-", [x, y = %Duration{}]), do: do_apply("+", [x, Duration.scale(y, -1)])
   defp do_apply("-", [x, y]), do: x - y
   defp do_apply({:cast, target}, [value]), do: cast(value, target)
+  defp do_apply({:bucket, :lower}, [value, bucket_size]), do: Float.floor(value / bucket_size) * bucket_size
+
+  defp do_apply({:bucket, :upper}, [value, bucket_size]),
+    do: do_apply({:bucket, :lower}, [value, bucket_size]) + bucket_size
+
+  defp do_apply({:bucket, :middle}, [value, bucket_size]),
+    do: Float.floor(value / bucket_size) * bucket_size + 0.5 * bucket_size
+
   defp do_apply("coalesce", values), do: Enum.find(values, & &1)
 
   defp do_trunc(value, 0), do: trunc(value)

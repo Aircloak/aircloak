@@ -45,7 +45,7 @@ function ensure_database_containers {
     -e MYSQL_ALLOW_EMPTY_PASSWORD=true mysql:5.7.19 \
     --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
 
-  ensure_supporting_container sqlserver2017 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=sql{}server' \
+  ensure_supporting_container sqlserver2017 -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=Sql{}server1' \
     microsoft/mssql-server-linux:2017-latest
 
   ensure_supporting_container oracle11g -e ORACLE_DISABLE_ASYNCH_IO=true wnameless/oracle-xe-11g
@@ -78,6 +78,10 @@ case "$1" in
     push_docker_arg "-e __AC__DEFAULT_SAP_HANA_SCHEMA__=\"TEST_SCHEMA_$container_name\""
     push_docker_arg "-e CLOAK_DATA_SOURCES=\"$CLOAK_DATA_SOURCES\""
     default_handle "$@"
+    ;;
+
+  ensure_database_containers)
+    ensure_database_containers
     ;;
 
   *)
