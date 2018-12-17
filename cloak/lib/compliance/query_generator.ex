@@ -264,25 +264,38 @@ defmodule Cloak.Compliance.QueryGenerator do
   end
 
   defp aggregator(type, context = %{negative_condition?: true}) do
-    case aggregator_spec(type) do
+    case aggregator_spec(type, context) do
       {:ok, {name, {[argument], _}, _}} -> {:function, name, [column(argument, context)]}
       :error -> constant(type, context)
     end
   end
 
   defp aggregator(type, context) do
-    case aggregator_spec(type) do
+    case aggregator_spec(type, context) do
       {:ok, {name, {arguments, _}, _}} -> regular_function(name, arguments, context)
       :error -> constant(type, context)
     end
   end
 
   defp function(type, context) do
-    case function_spec(type) do
-      {:ok, {{:bucket, align}, _, _}} -> bucket(align, context)
-      {:ok, {{:cast, target_type}, {[input_type], _return_type}, _}} -> cast(target_type, input_type, context)
-      {:ok, {"date_trunc", {[_, argument], _return_type}, _}} -> date_trunc(argument, context)
-      {:ok, {name, {arguments, _return_type}, _}} -> regular_function(name, arguments, context)
+    case function_spec(type, context) do
+      {:ok, {{:bucket, align}, _, _}} ->
+        bucket(align, context)
+
+      {:ok, {{:cast, target_type}, {[input_type], _return_type}, _}} ->
+        cast(target_type, input_type, context)
+
+      {:ok, {"date_trunc", {[_, argument], _return_type}, _}} ->
+        date_trunc(argument, context)
+
+      {:ok, {name, {arguments, _return_type}, _}} ->
+        regular_function(name, arguments, context)
+
+      :error ->
+        frequency(context.complexity, [
+          {1, column(type, context)},
+          {1, constant(type, context)}
+        ])
     end
   end
 
@@ -314,28 +327,40 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp regular_function(name, arguments, context),
     do: {:function, name, Enum.map(arguments, &expression(&1, context))}
 
-  defp aggregator_spec(type) do
-    do_function_spec(type, fn {name, {_, return_type}, attributes} ->
-      cond do
-        :aggregator not in attributes -> false
-        {:not_in, :restricted} in attributes -> false
-        name in ~w(min max median) and return_type == :text -> false
-        true -> true
-      end
-    end)
+  defp aggregator_spec(type, context) do
+    do_function_spec(
+      type,
+      fn {name, {_, return_type}, attributes} ->
+        cond do
+          :aggregator not in attributes -> false
+          {:not_in, :restricted} in attributes -> false
+          name in ~w(min max median) and return_type == :text -> false
+          true -> true
+        end
+      end,
+      context
+    )
   end
 
-  defp function_spec(type),
-    do: do_function_spec(type, fn {_name, _type_spec, attributes} -> not (:aggregator in attributes) end)
+  defp function_spec(type, context),
+    do: do_function_spec(type, fn {_name, _type_spec, attributes} -> not (:aggregator in attributes) end, context)
 
-  defp do_function_spec(type, filter) do
+  defp do_function_spec(type, filter, context) do
     @function_specs
     |> Stream.filter(filter)
     |> Enum.filter(fn {_name, {_args, return_type}, _} -> return_type == type end)
+    |> Enum.filter(&function_allowed?(&1, context))
     |> case do
       [] -> :error
       options -> {:ok, Enum.random(options)}
     end
+  end
+
+  defp function_allowed?({_name, {_args, _return_type}, _attributes}, %{negative_condition?: false}), do: true
+
+  defp function_allowed?({name, {_args, _return_type}, _attributes}, %{negative_condition?: true}) do
+    name in ~w(
+      lower upper substring trim ltrim rtrim btrim extract_words hour minute second year quarter month day weekday)
   end
 
   defp constant(:any, context), do: constant(type(context), context)
@@ -455,8 +480,8 @@ defmodule Cloak.Compliance.QueryGenerator do
     type = type(context)
 
     frequency(context.complexity, [
-      {1, {:<>, nil, [expression(type, context), constant(type, context)]}},
-      {1, {:<>, nil, [constant(type, context), expression(type, context)]}},
+      {1, {:<>, nil, [expression(type, %{context | negative_condition?: true}), constant(type, context)]}},
+      {1, {:<>, nil, [constant(type, context), expression(type, %{context | negative_condition?: true})]}},
       {1,
        {:<>, nil,
         [
