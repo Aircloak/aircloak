@@ -122,8 +122,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp normalize_constants(query),
     do: update_in(query, [Query.Lenses.terminals() |> Lens.filter(&Expression.constant?/1)], &do_normalize_constants/1)
 
-  defp do_normalize_constants(expression = %Expression{function: {:bucket, _}}), do: expression
-
   defp do_normalize_constants(expression = %Expression{function?: true, aggregate?: false}) do
     case Expression.const_value(expression) do
       nil ->

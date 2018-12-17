@@ -25,6 +25,13 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     assert result1.where == result2.where
   end
 
+  test "[Issue #3384] normalizing constant bucket" do
+    result1 = compile!("SELECT bucket(2 BY 7) FROM table", data_source())
+    result2 = compile!("SELECT 0::real AS \"bucket\" FROM table", data_source())
+
+    assert result1 == result2
+  end
+
   test "normalization in subqueries" do
     %{from: {:subquery, %{ast: result1}}} =
       compile!("SELECT * FROM (SELECT * FROM table WHERE numeric = 2 * 3 + 4) x", data_source())
