@@ -153,6 +153,9 @@ defmodule Cloak.Sql.Expression do
   def display(%__MODULE__{name: name}) when is_binary(name), do: name
   def display(%__MODULE__{function: {:cast, type}, function_args: [arg]}), do: "cast(#{display(arg)} as #{type})"
 
+  def display(%__MODULE__{function: {:bucket, align}, function_args: [value, by]}),
+    do: "bucket(#{display(value)} by #{display(by)} align #{align})"
+
   def display(%__MODULE__{function: function, function_args: [arg1, arg2]}) when function in ~w(+ - / * ^ %),
     do: "#{display(arg1)} #{function} #{display(arg2)}"
 

@@ -428,6 +428,15 @@ defmodule Cloak.Sql.Expression.Test do
     test "date" do
       assert Expression.constant(:date, ~D[2016-02-01]) |> Expression.display() == "date '2016-02-01'"
     end
+
+    test "bucket" do
+      assert Expression.function(
+               {:bucket, :lower},
+               [Expression.constant(:integer, 1), Expression.constant(:integer, 10)],
+               :integer
+             )
+             |> Expression.display() == "bucket(1 by 10 align lower)"
+    end
   end
 
   describe "member?" do
