@@ -89,7 +89,15 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # -------------------------------------------------------------------
 
   defp remove_constant_group_by(query) do
-    update_in(query, [Lens.key(:group_by)], fn group_by -> Enum.reject(group_by, &Expression.constant?/1) end)
+    if Enum.all?(query.columns, &Expression.constant?/1) do
+      put_in(
+        query,
+        [Lens.key(:group_by) |> Lens.all() |> Lens.filter(&Expression.constant?/1)],
+        Expression.constant(:integer, 1)
+      )
+    else
+      update_in(query, [Lens.key(:group_by)], fn group_by -> Enum.reject(group_by, &Expression.constant?/1) end)
+    end
   end
 
   # -------------------------------------------------------------------
