@@ -340,6 +340,13 @@ defmodule Cloak.Sql.Expression.Test do
     assert apply_function("extract_words", [nil]) == [nil]
   end
 
+  test "bucket" do
+    assert apply_function({:bucket, :lower}, [3, 10]) == 0
+    assert apply_function({:bucket, :lower}, [13, 10]) == 10
+    assert apply_function({:bucket, :middle}, [3, 10]) == 5
+    assert apply_function({:bucket, :upper}, [3, 10]) == 10
+  end
+
   describe "first_column" do
     test "nil if given constant column", do: assert(nil == Expression.first_column(%Expression{constant?: true}))
 
