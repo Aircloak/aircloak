@@ -1,0 +1,7 @@
+[Unit]
+Description=Restart docker service, see restart_docker.sh for details
+
+[Service]
+Type=oneshot
+ExecStart=/root/restart_docker.sh
+User=root
