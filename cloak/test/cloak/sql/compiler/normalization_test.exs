@@ -259,7 +259,7 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     assert result1 == result2
   end
 
-  test "changin grouping by constant when select list is constant" do
+  test "changing grouping by constant when select list is constant" do
     result1 = compile!("SELECT 0, 1, 2 FROM table GROUP BY 3", data_source())
     result2 = compile!("SELECT 0, 1, 2 FROM table GROUP BY 1", data_source())
 

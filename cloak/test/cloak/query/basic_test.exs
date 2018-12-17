@@ -1734,4 +1734,20 @@ defmodule Cloak.Query.BasicTest do
       %{rows: [%{row: [10]}]}
     )
   end
+
+  test "[Issue #3386] grouping by constant referenced by number with constant select list" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [100])
+
+    assert_query(
+      """
+        SELECT COUNT(*)
+        FROM (
+          SELECT 10, 20
+          FROM heights
+          GROUP BY 1, 2
+        ) foo
+      """,
+      %{rows: [%{row: [1]}]}
+    )
+  end
 end
