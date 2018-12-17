@@ -143,6 +143,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
       |> Enum.map(fn {result, items} -> {result, Enum.count(items)} end)
       |> Enum.sort_by(fn {_, count} -> count end, &Kernel.>/2)
       |> Enum.each(fn {result, count} ->
+        IO.puts([to_string(result), ": ", to_string(count)])
         IO.puts(file, [to_string(result), ": ", to_string(count)])
       end)
     end)
