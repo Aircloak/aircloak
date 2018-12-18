@@ -125,7 +125,7 @@ defmodule Compliance.DataSource.Oracle do
   defp escape_name(name), do: ~s("#{name}")
 
   defp sql_type(:integer), do: "NUMBER"
-  defp sql_type(:real), do: "BINARY_FLOAT"
+  defp sql_type(:real), do: "BINARY_DOUBLE"
   defp sql_type(:boolean), do: "NUMBER(1)"
   defp sql_type(:text), do: "VARCHAR2(4000)"
   defp sql_type(:datetime), do: "TIMESTAMP"

@@ -407,18 +407,18 @@ defmodule Cloak.Query.BasicTest do
     test "min" do
       assert_query("select min(height) from heights", %{
         columns: ["min"],
-        rows: [%{row: [163], occurrences: 1}]
+        rows: [%{row: [170], occurrences: 1}]
       })
     end
 
     test "max" do
       assert_query("select max(height) from heights", %{
         columns: ["max"],
-        rows: [%{row: [197], occurrences: 1}]
+        rows: [%{row: [190], occurrences: 1}]
       })
     end
 
-    test "avg" do
+    test "avg statistics" do
       assert_query("select avg(height) from heights", %{
         columns: ["avg"],
         rows: [%{row: [avg], occurrences: 1}]
@@ -427,13 +427,31 @@ defmodule Cloak.Query.BasicTest do
       assert_in_delta(avg, 178, 182)
     end
 
-    test "stddev" do
+    test "avg uid" do
+      assert_query("select avg(height), median(height) from heights", %{
+        columns: ["avg", _],
+        rows: [%{row: [avg, _], occurrences: 1}]
+      })
+
+      assert_in_delta(avg, 178, 182)
+    end
+
+    test "stddev uid" do
+      assert_query("select stddev(height), median(height) from heights", %{
+        columns: ["stddev", _],
+        rows: [%{row: [stddev, _], occurrences: 1}]
+      })
+
+      assert_in_delta(stddev, 8.1, 0.1)
+    end
+
+    test "stddev statistics" do
       assert_query("select stddev(height) from heights", %{
         columns: ["stddev"],
         rows: [%{row: [stddev], occurrences: 1}]
       })
 
-      assert_in_delta(stddev, 8.1, 0.1)
+      assert_in_delta(stddev, 8.1, 0.2)
     end
 
     test "median" do
@@ -453,14 +471,14 @@ defmodule Cloak.Query.BasicTest do
     test "min(qualified_column)" do
       assert_query("select min(heights.height) from heights", %{
         columns: ["min"],
-        rows: [%{row: [163], occurrences: 1}]
+        rows: [%{row: [170], occurrences: 1}]
       })
     end
 
     test "max(qualified_column)" do
       assert_query("select max(heights.height) from heights", %{
         columns: ["max"],
-        rows: [%{row: [197], occurrences: 1}]
+        rows: [%{row: [190], occurrences: 1}]
       })
     end
 
@@ -479,7 +497,7 @@ defmodule Cloak.Query.BasicTest do
         rows: [%{row: [stddev], occurrences: 1}]
       })
 
-      assert_in_delta(stddev, 8.1, 0.1)
+      assert_in_delta(stddev, 8.1, 0.2)
     end
 
     test "median(qualified_column)" do
@@ -508,14 +526,14 @@ defmodule Cloak.Query.BasicTest do
     test "min" do
       assert_query("select min(height) from heights", %{
         columns: ["min"],
-        rows: [%{row: [-196], occurrences: 1}]
+        rows: [%{row: [-190], occurrences: 1}]
       })
     end
 
     test "max" do
       assert_query("select max(height) from heights", %{
         columns: ["max"],
-        rows: [%{row: [-162], occurrences: 1}]
+        rows: [%{row: [-170], occurrences: 1}]
       })
     end
 
@@ -563,14 +581,14 @@ defmodule Cloak.Query.BasicTest do
     test "min" do
       assert_query("select min(height) from heights", %{
         columns: ["min"],
-        rows: [%{row: [-303], occurrences: 1}]
+        rows: [%{row: [-190], occurrences: 1}]
       })
     end
 
     test "max" do
       assert_query("select max(height) from heights", %{
         columns: ["max"],
-        rows: [%{row: [393], occurrences: 1}]
+        rows: [%{row: [180], occurrences: 1}]
       })
     end
 
@@ -589,7 +607,7 @@ defmodule Cloak.Query.BasicTest do
         rows: [%{row: [stddev], occurrences: 1}]
       })
 
-      assert_in_delta(stddev, 170.99, 0.1)
+      assert_in_delta(stddev, 172, 1)
     end
 
     test "median" do
@@ -1260,18 +1278,30 @@ defmodule Cloak.Query.BasicTest do
       })
     end
 
-    test "avg" do
+    test "avg uid" do
+      assert_query("select avg_noise(height), median(height) from heights", %{
+        rows: [%{row: [0.0, _], occurrences: 1}]
+      })
+    end
+
+    test "avg statistics" do
       assert_query("select avg_noise(height) from heights", %{
-        columns: ["avg_noise"],
         rows: [%{row: [6.0], occurrences: 1}]
       })
     end
 
-    test "stddev" do
-      assert_query("select stddev_noise(height) from heights", %{
-        columns: ["stddev_noise"],
-        rows: [%{row: [0.0], occurrences: 1}]
+    test "stddev uid" do
+      assert_query("select stddev_noise(height), median(height) from heights", %{
+        rows: [%{row: [0.0, _], occurrences: 1}]
       })
+    end
+
+    test "stddev statistics" do
+      assert_query("select stddev_noise(height) from heights", %{
+        rows: [%{row: [sd], occurrences: 1}]
+      })
+
+      assert_in_delta sd, 2.4, 0.1
     end
   end
 
@@ -1732,6 +1762,22 @@ defmodule Cloak.Query.BasicTest do
         ) foo
       """,
       %{rows: [%{row: [10]}]}
+    )
+  end
+
+  test "[Issue #3386] grouping by constant referenced by number with constant select list" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [100])
+
+    assert_query(
+      """
+        SELECT COUNT(*)
+        FROM (
+          SELECT 10, 20
+          FROM heights
+          GROUP BY 1, 2
+        ) foo
+      """,
+      %{rows: [%{row: [1]}]}
     )
   end
 end

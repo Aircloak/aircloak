@@ -389,6 +389,13 @@ defmodule AircloakCI.LocalProject do
   @spec logs_folder() :: String.t()
   def logs_folder(), do: Path.join(AircloakCI.data_folder(), "logs")
 
+  @doc "Executes the container script of the given component with the given arguments."
+  @spec exec_container_script(t, String.t(), [String.t()]) :: {:ok, String.t()} | {:error, String.t()}
+  def exec_container_script(project, component, args) do
+    script = Path.join(~w(#{src_folder(project)} #{component} ci container.sh))
+    CmdRunner.run_with_output("#{script} #{Enum.join(args, " ")}")
+  end
+
   # -------------------------------------------------------------------
   # Build folders
   # -------------------------------------------------------------------

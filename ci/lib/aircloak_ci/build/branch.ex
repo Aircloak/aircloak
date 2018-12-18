@@ -56,8 +56,11 @@ defmodule AircloakCI.Build.Branch do
 
   @impl Build.Server
   def handle_job_succeeded("prepare", state) do
+    if state.source.name == "master", do: ensure_database_containers(state)
+
     # we're always compiling target branches, because they serve as a base (cache) for pull requests
     state = if build_branch?(state), do: Build.Job.Compile.start_if_possible(state), else: state
+
     {:noreply, maybe_perform_transfers(state)}
   end
 
@@ -105,6 +108,11 @@ defmodule AircloakCI.Build.Branch do
   defp transfer_project(state, target_project, from) do
     LocalProject.initialize_from(target_project, state.project)
     GenServer.reply(from, :ok)
+  end
+
+  defp ensure_database_containers(state) do
+    with {:error, error} <- LocalProject.exec_container_script(state.project, "cloak", ["ensure_database_containers"]),
+         do: Logger.error("error starting compliance containers: #{error}")
   end
 
   # -------------------------------------------------------------------
