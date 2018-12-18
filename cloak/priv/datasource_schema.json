@@ -7,6 +7,7 @@
     "parameters": {"$ref": "#/definitions/parameters"},
     "tables": {"type": "object", "patternProperties": {"^.*$": {"$ref": "#/definitions/table"}}},
     "encoded": {"type": "boolean"},
+    "statistics_anonymization": {"type": "boolean"},
     "concurrency": {"type": "integer", "minimum": 0},
     "lcf_buckets_aggregation_limit": {"type": "integer", "minimum": 0},
     "max_rare_negative_conditions": {"type": "integer", "minimum": 0}

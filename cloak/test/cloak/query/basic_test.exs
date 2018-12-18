@@ -407,14 +407,14 @@ defmodule Cloak.Query.BasicTest do
     test "min" do
       assert_query("select min(height) from heights", %{
         columns: ["min"],
-        rows: [%{row: [163], occurrences: 1}]
+        rows: [%{row: [170], occurrences: 1}]
       })
     end
 
     test "max" do
       assert_query("select max(height) from heights", %{
         columns: ["max"],
-        rows: [%{row: [197], occurrences: 1}]
+        rows: [%{row: [190], occurrences: 1}]
       })
     end
 
@@ -471,14 +471,14 @@ defmodule Cloak.Query.BasicTest do
     test "min(qualified_column)" do
       assert_query("select min(heights.height) from heights", %{
         columns: ["min"],
-        rows: [%{row: [163], occurrences: 1}]
+        rows: [%{row: [170], occurrences: 1}]
       })
     end
 
     test "max(qualified_column)" do
       assert_query("select max(heights.height) from heights", %{
         columns: ["max"],
-        rows: [%{row: [197], occurrences: 1}]
+        rows: [%{row: [190], occurrences: 1}]
       })
     end
 
@@ -526,14 +526,14 @@ defmodule Cloak.Query.BasicTest do
     test "min" do
       assert_query("select min(height) from heights", %{
         columns: ["min"],
-        rows: [%{row: [-196], occurrences: 1}]
+        rows: [%{row: [-190], occurrences: 1}]
       })
     end
 
     test "max" do
       assert_query("select max(height) from heights", %{
         columns: ["max"],
-        rows: [%{row: [-162], occurrences: 1}]
+        rows: [%{row: [-170], occurrences: 1}]
       })
     end
 
@@ -581,14 +581,14 @@ defmodule Cloak.Query.BasicTest do
     test "min" do
       assert_query("select min(height) from heights", %{
         columns: ["min"],
-        rows: [%{row: [-303], occurrences: 1}]
+        rows: [%{row: [-190], occurrences: 1}]
       })
     end
 
     test "max" do
       assert_query("select max(height) from heights", %{
         columns: ["max"],
-        rows: [%{row: [393], occurrences: 1}]
+        rows: [%{row: [180], occurrences: 1}]
       })
     end
 
@@ -1741,5 +1741,43 @@ defmodule Cloak.Query.BasicTest do
     :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
 
     assert_query("select height from heights order by user_id", %{rows: [%{row: [180], occurrences: 20}]})
+  end
+
+  test "median with nulls" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [nil])
+
+    assert_query("select median(height) from heights", %{rows: [%{row: [nil], occurrences: 1}]})
+  end
+
+  test "[Issue #3386] grouping by constant referenced by number" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [100])
+
+    assert_query(
+      """
+        SELECT COUNT(*)
+        FROM (
+          SELECT user_id, 0
+          FROM heights
+          GROUP BY 1, 2
+        ) foo
+      """,
+      %{rows: [%{row: [10]}]}
+    )
+  end
+
+  test "[Issue #3386] grouping by constant referenced by number with constant select list" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [100])
+
+    assert_query(
+      """
+        SELECT COUNT(*)
+        FROM (
+          SELECT 10, 20
+          FROM heights
+          GROUP BY 1, 2
+        ) foo
+      """,
+      %{rows: [%{row: [1]}]}
+    )
   end
 end

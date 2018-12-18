@@ -16,6 +16,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   * Removing casts that cast a value to the same type it already is
   * Removing rounding/truncating of integers
   * Ensuring comparisons bewteen columns and constants have the form {column, operator, constant}
+  * Removing grouping by constant (column number references should have been compiled at this point)
   """
   @spec prevalidation_normalizations(Query.t()) :: Query.t()
   def prevalidation_normalizations(query),
@@ -24,6 +25,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
       |> Helpers.apply_bottom_up(&rewrite_distinct/1)
       |> Helpers.apply_bottom_up(&remove_redundant_casts/1)
       |> Helpers.apply_bottom_up(&remove_redundant_rounds/1)
+      |> Helpers.apply_bottom_up(&remove_constant_group_by/1)
       |> Helpers.apply_bottom_up(&normalize_constants/1)
       |> Helpers.apply_bottom_up(&normalize_comparisons/1)
       |> Helpers.apply_bottom_up(&normalize_order_by/1)
@@ -84,6 +86,22 @@ defmodule Cloak.Sql.Compiler.Normalization do
       end)
 
   # -------------------------------------------------------------------
+  # Removing GROUP BY constant
+  # -------------------------------------------------------------------
+
+  defp remove_constant_group_by(query) do
+    if Enum.all?(query.columns, &Expression.constant?/1) do
+      put_in(
+        query,
+        [Lens.key(:group_by) |> Lens.all() |> Lens.filter(&Expression.constant?/1)],
+        Expression.constant(:integer, 1)
+      )
+    else
+      update_in(query, [Lens.key(:group_by)], fn group_by -> Enum.reject(group_by, &Expression.constant?/1) end)
+    end
+  end
+
+  # -------------------------------------------------------------------
   # Normalizing comparisons
   # -------------------------------------------------------------------
 
@@ -122,8 +140,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   defp normalize_constants(query),
     do: update_in(query, [Query.Lenses.terminals() |> Lens.filter(&Expression.constant?/1)], &do_normalize_constants/1)
-
-  defp do_normalize_constants(expression = %Expression{function: {:bucket, _}}), do: expression
 
   defp do_normalize_constants(expression = %Expression{function?: true, aggregate?: false}) do
     case Expression.const_value(expression) do
