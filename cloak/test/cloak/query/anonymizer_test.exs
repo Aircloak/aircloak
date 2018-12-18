@@ -209,6 +209,14 @@ defmodule Cloak.Query.AnonimyzerTest do
     assert_in_delta sd, 10, 1
   end
 
+  test "statistics aggregators bounds around 0" do
+    anonymizer = Anonymizer.new([MapSet.new()])
+
+    assert {_sum, 0.0, _max, _sd} = Anonymizer.noisy_statistics(anonymizer, {5, 15, 1, 10, 3, 4})
+    assert {_sum, _min, 0.0, _sd} = Anonymizer.noisy_statistics(anonymizer, {5, -15, -10, -1, -3, 4})
+    assert {0.0, _min, _max, _sd} = Anonymizer.noisy_statistics(anonymizer, {5, 0.1, 0, 0.02, 0.1, 0.01})
+  end
+
   test "insufficient statistics" do
     statistics = {1, 100, 1, 20, 10, 5}
     anonymizer = Anonymizer.new([MapSet.new()])
