@@ -37,14 +37,10 @@ defmodule Mix.Tasks.Gen.TestData do
       case OptionParser.parse!(args, switches: [seed: :string, concurrency: :integer]) do
         {options, [config_name, num_users]} ->
           seed =
-            case Keyword.fetch(options, :seed) do
-              {:ok, seed} ->
-                seed
-
-              :error ->
-                :rand.seed(:exrop)
-                :rand.export_seed() |> :erlang.term_to_binary() |> Base.encode64()
-            end
+            Keyword.get_lazy(options, :seed, fn ->
+              :rand.seed(:exrop)
+              :rand.export_seed() |> :erlang.term_to_binary() |> Base.encode64()
+            end)
 
           concurrency = Keyword.get(options, :concurrency, System.schedulers_online())
           num_users = String.to_integer(num_users)
