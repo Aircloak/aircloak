@@ -99,7 +99,7 @@ defmodule Cloak.Compliance.QueryGenerator.Minimization do
     end)
   end
 
-  defp removable?(parent, _) when parent in [:select, :order_by], do: true
+  defp removable?(parent, _) when parent in [:select, :order_by, :group_by], do: true
   defp removable?(_parent, {type, _, _}), do: type in [:where, :having, :offset, :limit, :order_by, :sample_users]
 
   defp minimizable?({type, _, _}), do: type in [:query, :subquery, :join, :from, :as, :select, :order_by]
