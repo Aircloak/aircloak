@@ -10,7 +10,7 @@ function app_running {
   local container=$1
   local app=$2
 
-  running=$(elixir_rpc $container $app "Application.loaded_applications() |> Enum.any?(& elem(&1,0) == :$app)")
+  running=$(elixir_rpc $container $app "Application.started_applications() |> Enum.any?(& elem(&1,0) == :$app)")
   if [ "$running" == "true" ]; then return 0; else return 1; fi
 }
 
