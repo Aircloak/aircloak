@@ -725,14 +725,29 @@ defmodule Air.Service.User do
     |> merge_login_changeset(changeset)
   end
 
-  defp change_main_login(user, action) do
-    user
-    |> Repo.preload([:logins])
-    |> get_in([Access.key(:logins)])
-    |> Enum.find(%Login{}, &(&1.login_type == :main))
+  defp change_main_login(new_user = %User{id: nil}, action) do
+    %Login{}
     |> action.()
     |> change(%{login_type: :main})
-    |> merge_login_changeset(change(user))
+    |> merge_login_changeset(change(new_user))
+  end
+
+  defp change_main_login(existing_user, action) do
+    main_login = Enum.find(existing_user.logins, &(&1.login_type == :main))
+    main_login_changeset = action.(main_login)
+
+    changeset_mapper = fn
+      _, %{login_type: :main} -> main_login_changeset
+      _, login -> change(login)
+    end
+
+    if main_login_changeset.valid? do
+      existing_user
+      |> cast(%{logins: existing_user.logins}, [])
+      |> cast_assoc(:logins, with: changeset_mapper)
+    else
+      merge_login_changeset(main_login_changeset, change(existing_user))
+    end
   end
 
   defp insert(changeset), do: changeset |> Repo.insert() |> merge_login_errors()
