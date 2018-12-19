@@ -272,7 +272,7 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp aggregator(type, context) do
     case aggregator_spec(type, context) do
-      {:ok, {name, {arguments, _}, _}} -> regular_function(name, arguments, context)
+      {:ok, {name, {arguments, _}, attributes}} -> regular_function(name, arguments, attributes, context)
       :error -> constant(type, context)
     end
   end
@@ -288,8 +288,8 @@ defmodule Cloak.Compliance.QueryGenerator do
       {:ok, {"date_trunc", {[_, argument], _return_type}, _}} ->
         date_trunc(argument, context)
 
-      {:ok, {name, {arguments, _return_type}, _}} ->
-        regular_function(name, arguments, context)
+      {:ok, {name, {arguments, _return_type}, attributes}} ->
+        regular_function(name, arguments, attributes, context)
 
       :error ->
         frequency(context.complexity, [
@@ -312,20 +312,22 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp date_trunc(argument_type, context) do
     trunc_part = Enum.random(~w(second minute hour day month quarter year))
-    {:function, "date_trunc", [{:text, trunc_part, []}, expression(argument_type, context)]}
+    {:function, "date_trunc", [{:text, trunc_part, []}, expression(argument_type, %{context | range: true})]}
   end
 
   defp bucket(align, context) do
     {:bucket, nil,
      [
-       expression({:or, [:integer, :real]}, context),
+       expression({:or, [:integer, :real]}, %{context | range: true}),
        {:keyword_arg, "by", [constant(:integer, context)]},
        {:keyword_arg, "align", [{:keyword, align, []}]}
      ]}
   end
 
-  defp regular_function(name, arguments, context),
-    do: {:function, name, Enum.map(arguments, &expression(&1, context))}
+  defp regular_function(name, arguments, attributes, context) do
+    context = if :implicit_range in attributes, do: %{context | range: true}, else: context
+    {:function, name, Enum.map(arguments, &expression(&1, context))}
+  end
 
   defp aggregator_spec(type, context) do
     do_function_spec(
@@ -356,9 +358,18 @@ defmodule Cloak.Compliance.QueryGenerator do
     end
   end
 
-  defp function_allowed?({_name, {_args, _return_type}, _attributes}, %{negative_condition?: false}), do: true
+  defp function_allowed?(function, context),
+    do: allowed_in_negative_condition?(function, context) and allowed_in_range(function, context)
 
-  defp function_allowed?({name, {_args, _return_type}, _attributes}, %{negative_condition?: true}) do
+  defp allowed_in_range(_function, %{range: false}), do: true
+
+  defp allowed_in_range({name, _typespec, _attributes}, %{range: true}) do
+    name in ~w(hour minute second year quarter month day weekday)
+  end
+
+  defp allowed_in_negative_condition?({_name, _typespec, _attributes}, %{negative_condition?: false}), do: true
+
+  defp allowed_in_negative_condition?({name, _typespec, _attributes}, %{negative_condition?: true}) do
     name in ~w(
       lower upper substring trim ltrim rtrim btrim extract_words hour minute second year quarter month day weekday)
   end
@@ -638,7 +649,9 @@ defmodule Cloak.Compliance.QueryGenerator do
       aggregate?: scaffold.aggregate?,
       complexity: scaffold.complexity,
       tables: tables,
-      negative_condition?: false
+      negative_condition?: false,
+      range: false,
+      cast: false
     }
   end
 end
