@@ -303,11 +303,11 @@ defmodule Cloak.Compliance.QueryGenerator do
     do: cast(target_type, Enum.random(types), context)
 
   defp cast(target_type, :text, context) do
-    {:function, {:cast, target_type}, [{:function, {:cast, :text}, [expression(target_type, context)]}]}
+    {:function, {:cast, target_type}, [{:function, {:cast, :text}, [expression(target_type, %{context | cast: true})]}]}
   end
 
   defp cast(target_type, input_type, context) do
-    {:function, {:cast, target_type}, [expression(input_type, context)]}
+    {:function, {:cast, target_type}, [expression(input_type, %{context | cast: true})]}
   end
 
   defp date_trunc(argument_type, context) do
@@ -359,13 +359,13 @@ defmodule Cloak.Compliance.QueryGenerator do
   end
 
   defp function_allowed?(function, context),
-    do: allowed_in_negative_condition?(function, context) and allowed_in_range(function, context)
+    do: allowed_in_negative_condition?(function, context) and allowed_in_range?(function, context)
 
-  defp allowed_in_range(_function, %{range: false}), do: true
+  defp allowed_in_range?(_function, %{range: false}), do: true
+  defp allowed_in_range?({{:cast, _}, _, _}, %{range: true, cast: false}), do: true
 
-  defp allowed_in_range({name, _typespec, _attributes}, %{range: true}) do
-    name in ~w(hour minute second year quarter month day weekday)
-  end
+  defp allowed_in_range?({name, _typespec, _attributes}, %{range: true}),
+    do: name in ~w(hour minute second year quarter month day weekday)
 
   defp allowed_in_negative_condition?({_name, _typespec, _attributes}, %{negative_condition?: false}), do: true
 
