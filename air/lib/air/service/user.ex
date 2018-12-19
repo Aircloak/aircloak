@@ -719,16 +719,12 @@ defmodule Air.Service.User do
     end
   end
 
-  defp change_main_login(new_user = %User{id: nil}, action) do
-    %Login{}
-    |> action.()
-    |> change(%{login_type: :main})
-    |> merge_login_changeset(change(new_user))
-  end
-
-  defp change_main_login(existing_user = %User{}, action) do
-    main_login = Enum.find(existing_user.logins, &(&1.login_type == :main))
-    main_login_changeset = action.(main_login)
+  defp change_main_login(user, action) do
+    # Needed because data needs to be the same when merging changesets
+    user_with_logins = Repo.preload(user, :logins)
+    main_login = Enum.find(user_with_logins.logins, %Login{}, &(&1.login_type == :main))
+    main_login_changeset = main_login |> action.() |> change(%{login_type: :main})
+    logins = if user.id, do: user_with_logins.logins, else: [%{login_type: :main}]
 
     changeset_mapper = fn
       _, %{login_type: :main} -> main_login_changeset
@@ -736,11 +732,13 @@ defmodule Air.Service.User do
     end
 
     if main_login_changeset.valid? do
-      existing_user
-      |> cast(%{logins: existing_user.logins}, [])
+      user
+      |> cast(%{logins: logins}, [])
       |> cast_assoc(:logins, with: changeset_mapper)
     else
-      merge_login_changeset(main_login_changeset, change(existing_user))
+      Enum.reduce(main_login_changeset.errors, change(user), fn {field, {msg, opts}}, changeset ->
+        add_error(changeset, field, msg, opts)
+      end)
     end
   end
 
@@ -752,16 +750,6 @@ defmodule Air.Service.User do
     do: {:error, update_in(changeset, [Access.key(:errors)], fn errors -> errors ++ login_errors end)}
 
   defp merge_login_errors(other), do: other
-
-  defp merge_login_changeset(login_changeset, user_changeset) do
-    if login_changeset.valid? do
-      put_assoc(user_changeset, :logins, [login_changeset])
-    else
-      Enum.reduce(login_changeset.errors, user_changeset, fn {field, {msg, opts}}, changeset ->
-        add_error(changeset, field, msg, opts)
-      end)
-    end
-  end
 
   # -------------------------------------------------------------------
   # GenServer callbacks
