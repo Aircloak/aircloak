@@ -719,12 +719,6 @@ defmodule Air.Service.User do
     end
   end
 
-  defp change_main_login(changeset = %Ecto.Changeset{changes: %{logins: [login_changeset]}}, action) do
-    login_changeset
-    |> action.()
-    |> merge_login_changeset(changeset)
-  end
-
   defp change_main_login(new_user = %User{id: nil}, action) do
     %Login{}
     |> action.()
@@ -732,7 +726,7 @@ defmodule Air.Service.User do
     |> merge_login_changeset(change(new_user))
   end
 
-  defp change_main_login(existing_user, action) do
+  defp change_main_login(existing_user = %User{}, action) do
     main_login = Enum.find(existing_user.logins, &(&1.login_type == :main))
     main_login_changeset = action.(main_login)
 
