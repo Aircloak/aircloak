@@ -251,14 +251,15 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp do_expression(type, context = %{aggregate?: true}) do
     frequency(context.complexity, [
       {1, constant(type, context)},
-      {2, aggregator(type, %{simplify(context) | aggregate?: false})}
+      {3, aggregator(type, %{simplify(context) | aggregate?: false})},
+      {2, function(type, simplify(context))}
     ])
   end
 
   defp do_expression(type, context = %{aggregate?: false}) do
     frequency(context.complexity, [
       {1, constant(type, context)},
-      {2, column(type, context)},
+      {3, column(type, context)},
       {2, function(type, simplify(context))}
     ])
   end
