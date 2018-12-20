@@ -18,18 +18,27 @@ defmodule Cloak.Sql.Compiler.Normalization.Test do
     end
   end
 
-  test "normalizing constant expressions" do
-    result1 = compile!("SELECT * FROM table WHERE numeric = 2 * 3 + 4", data_source())
-    result2 = compile!("SELECT * FROM table WHERE numeric = 10", data_source())
+  describe "constant normalization" do
+    test "normalizing constant expressions" do
+      result1 = compile!("SELECT * FROM table WHERE numeric = 2 * 3 + 4", data_source())
+      result2 = compile!("SELECT * FROM table WHERE numeric = 10", data_source())
 
-    assert result1.where == result2.where
-  end
+      assert result1.where == result2.where
+    end
 
-  test "[Issue #3384] normalizing constant bucket" do
-    result1 = compile!("SELECT bucket(2 BY 7) FROM table", data_source())
-    result2 = compile!("SELECT 0::real AS \"bucket\" FROM table", data_source())
+    test "[Issue #3384] normalizing constant bucket" do
+      result1 = compile!("SELECT bucket(2 BY 7) FROM table", data_source())
+      result2 = compile!("SELECT 0::real AS \"bucket\" FROM table", data_source())
 
-    assert result1 == result2
+      assert result1 == result2
+    end
+
+    test "[Issue #3413] normalizing aggregators over constants" do
+      result1 = compile!("SELECT ABS(SUM(1 - 10)) FROM table", data_source())
+      result2 = compile!("SELECT ABS(SUM(-9)) FROM table", data_source())
+
+      assert result1 == result2
+    end
   end
 
   test "normalization in subqueries" do
