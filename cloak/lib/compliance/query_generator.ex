@@ -479,7 +479,8 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp simple_condition(context) do
     frequency(context.complexity, [
       {1, equality(context)},
-      {1, inequality(context)}
+      {1, inequality(context)},
+      {1, in_clause(context)}
     ])
   end
 
@@ -501,6 +502,14 @@ defmodule Cloak.Compliance.QueryGenerator do
           expression(type, %{context | negative_condition?: true})
         ]}}
     ])
+  end
+
+  defp in_clause(context) do
+    type = type(context)
+    lhs = expression(type, context)
+    items = many1(context.complexity, fn complexity -> constant(type, %{context | complexity: complexity}) end)
+
+    {:in, nil, [lhs, {:in_set, nil, items}]}
   end
 
   defp group_by(%{aggregate?: false}, _select), do: empty()
