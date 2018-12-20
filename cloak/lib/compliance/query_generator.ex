@@ -304,29 +304,30 @@ defmodule Cloak.Compliance.QueryGenerator do
     do: cast(target_type, Enum.random(types), context)
 
   defp cast(target_type, :text, context) do
-    {:function, {:cast, target_type}, [{:function, {:cast, :text}, [expression(target_type, %{context | cast: true})]}]}
+    {:function, {:cast, target_type},
+     [{:function, {:cast, :text}, [expression(target_type, %{context | cast?: true})]}]}
   end
 
   defp cast(target_type, input_type, context) do
-    {:function, {:cast, target_type}, [expression(input_type, %{context | cast: true})]}
+    {:function, {:cast, target_type}, [expression(input_type, %{context | cast?: true})]}
   end
 
   defp date_trunc(argument_type, context) do
     trunc_part = Enum.random(~w(second minute hour day month quarter year))
-    {:function, "date_trunc", [{:text, trunc_part, []}, expression(argument_type, %{context | range: true})]}
+    {:function, "date_trunc", [{:text, trunc_part, []}, expression(argument_type, %{context | range?: true})]}
   end
 
   defp bucket(align, context) do
     {:bucket, nil,
      [
-       expression({:or, [:integer, :real]}, %{context | range: true}),
+       expression({:or, [:integer, :real]}, %{context | range?: true}),
        {:keyword_arg, "by", [constant(:integer, context)]},
        {:keyword_arg, "align", [{:keyword, align, []}]}
      ]}
   end
 
   defp regular_function(name, arguments, attributes, context) do
-    context = if :implicit_range in attributes, do: %{context | range: true}, else: context
+    context = if :implicit_range in attributes, do: %{context | range?: true}, else: context
     {:function, name, Enum.map(arguments, &expression(&1, context))}
   end
 
@@ -362,10 +363,10 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp function_allowed?(function, context),
     do: allowed_in_negative_condition?(function, context) and allowed_in_range?(function, context)
 
-  defp allowed_in_range?(_function, %{range: false}), do: true
-  defp allowed_in_range?({{:cast, _}, _, _}, %{range: true, cast: false}), do: true
+  defp allowed_in_range?(_function, %{range?: false}), do: true
+  defp allowed_in_range?({{:cast, _}, _, _}, %{range?: true, cast?: false}), do: true
 
-  defp allowed_in_range?({name, _typespec, _attributes}, %{range: true}),
+  defp allowed_in_range?({name, _typespec, _attributes}, %{range?: true}),
     do: name in ~w(hour minute second year quarter month day weekday)
 
   defp allowed_in_negative_condition?({_name, _typespec, _attributes}, %{negative_condition?: false}), do: true
@@ -656,12 +657,12 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp scaffold_to_context(scaffold, tables) do
     %{
-      aggregate?: scaffold.aggregate?,
-      complexity: scaffold.complexity,
       tables: tables,
+      complexity: scaffold.complexity,
+      aggregate?: scaffold.aggregate?,
       negative_condition?: false,
-      range: false,
-      cast: false
+      range?: false,
+      cast?: false
     }
   end
 end
