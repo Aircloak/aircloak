@@ -100,7 +100,7 @@ defmodule Cloak.Sql.Expression do
   @spec constant?(Cloak.Sql.Parser.column() | t) :: boolean
   def constant?(%__MODULE__{constant?: true}), do: true
 
-  def constant?(%__MODULE__{function?: true, function_args: args} = function),
+  def constant?(%__MODULE__{function?: true, aggregate?: false, function_args: args} = function),
     do: not row_splitter?(function) and Enum.all?(args, &constant?/1)
 
   def constant?(_), do: false

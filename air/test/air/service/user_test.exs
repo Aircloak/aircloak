@@ -97,6 +97,21 @@ defmodule Air.Service.UserTest do
       assert {:error, :invalid_login_or_password} = User.login(hd(user.logins).login, "invalid")
     end
 
+    test "[Issue #3407] change password for user with an app login" do
+      user = TestRepoHelper.create_user!(%{password: "password1234"})
+      {:ok, login, password} = User.create_app_login(user, %{})
+
+      assert {:ok, _} =
+               User.update_full_profile(user, %{
+                 "old_password" => "password1234",
+                 "password" => "passwordwxyz",
+                 "password_confirmation" => "passwordwxyz"
+               })
+
+      assert {:ok, _} = User.login(User.main_login(user), "passwordwxyz")
+      assert {:ok, _} = User.login_psql(login, password)
+    end
+
     test "the only admin can't be deleted",
       do: assert(User.delete(TestRepoHelper.create_only_user_as_admin!()) == {:error, :forbidden_no_active_admin})
 
