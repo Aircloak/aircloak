@@ -360,8 +360,17 @@ defmodule Cloak.Compliance.QueryGenerator do
     end
   end
 
-  defp function_allowed?(function, context),
-    do: allowed_in_negative_condition?(function, context) and allowed_in_range?(function, context)
+  defp function_allowed?(function, context) do
+    allowed_in_negative_condition?(function, context) and allowed_in_range?(function, context) and
+      allowed_in_in?(function, context)
+  end
+
+  defp allowed_in_in?(_function, %{in?: false}), do: true
+
+  defp allowed_in_in?({name, _type_spec, _attributes}, %{in?: true}) do
+    name in ~w(
+      lower upper substring trim ltrim rtrim btrim extract_words hour minute second year quarter month day weekday)
+  end
 
   defp allowed_in_range?(_function, %{range?: false}), do: true
   defp allowed_in_range?({{:cast, _}, _, _}, %{range?: true, cast?: false}), do: true
@@ -507,7 +516,7 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp in_clause(context) do
     type = type(context)
-    lhs = expression(type, context)
+    lhs = expression(type, %{context | in?: true})
     items = many1(context.complexity, fn complexity -> constant(type, %{context | complexity: complexity}) end)
 
     {:in, nil, [lhs, {:in_set, nil, items}]}
@@ -663,7 +672,8 @@ defmodule Cloak.Compliance.QueryGenerator do
       negative_condition?: false,
       range?: false,
       cast?: false,
-      having?: false
+      having?: false,
+      in?: false
     }
   end
 end
