@@ -73,6 +73,9 @@ defmodule AircloakCI.Build.Component do
     )
   end
 
+  defp prepare_for(container, job),
+    do: Container.invoke_script(container, "prepare_for_#{job} #{container.name}", timeout: :timer.hours(1))
+
   defp run_commands(project, component, job, container, commands) when is_list(commands),
     do: run_commands(project, component, job, container, {:sequence, commands})
 
@@ -167,17 +170,6 @@ defmodule AircloakCI.Build.Component do
         LocalProject.log_file(project, Keyword.fetch!(opts, :log_name)),
         fun
       )
-
-  defp prepare_for(container, job) do
-    # Note that we're ignoring the script outcome, meaning that we push forward even if preparation fails.
-    # This is a quick fix for older builds which don't explicitly handle `prepare_*` argument. A concrete example
-    # is `prepare_compile` which has been introduced, but it's not supported by older builds, such as previous release
-    # branches.
-    if job in [:compile, :test, :compliance, :nightly],
-      do: Container.invoke_script(container, "prepare_for_#{job} #{container.name}", timeout: :timer.hours(1))
-
-    :ok
-  end
 
   defp script(project, component) do
     [path] =
