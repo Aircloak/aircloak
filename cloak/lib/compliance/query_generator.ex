@@ -481,7 +481,7 @@ defmodule Cloak.Compliance.QueryGenerator do
     frequency(context.complexity, [
       {1, equality(context)},
       {1, inequality(context)},
-      {1, in_clause(context)}
+      {if(context.having?, do: 0, else: 1), in_clause(context)}
     ])
   end
 
@@ -542,7 +542,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp having(%{aggregate?: false}, _tables), do: empty()
 
   defp having(scaffold, tables),
-    do: {:having, nil, [where_condition(scaffold_to_context(scaffold, tables))]}
+    do: {:having, nil, [where_condition(%{scaffold_to_context(scaffold, tables) | having?: true})]}
 
   defp order_by(scaffold, select) do
     case order_by_elements(scaffold, select) do
@@ -662,7 +662,8 @@ defmodule Cloak.Compliance.QueryGenerator do
       aggregate?: scaffold.aggregate?,
       negative_condition?: false,
       range?: false,
-      cast?: false
+      cast?: false,
+      having?: false
     }
   end
 end
