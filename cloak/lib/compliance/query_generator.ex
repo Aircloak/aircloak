@@ -327,7 +327,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   end
 
   defp regular_function(name, arguments, attributes, context) do
-    context = if :implicit_range in attributes, do: %{context | range?: true}, else: context
+    context = if :implicit_range in attributes, do: %{context | range?: true}, else: %{context | function?: true}
     {:function, name, Enum.map(arguments, &expression(&1, context))}
   end
 
@@ -362,8 +362,13 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp function_allowed?(function, context) do
     allowed_in_negative_condition?(function, context) and allowed_in_range?(function, context) and
-      allowed_in_in?(function, context)
+      allowed_in_in?(function, context) and allowed_in_function?(function, context)
   end
+
+  defp allowed_in_function?(_function, %{function?: false}), do: true
+
+  defp allowed_in_function?({_name, _type_spec, attributes}, %{function?: true}),
+    do: not (:implicit_range in attributes)
 
   defp allowed_in_in?(_function, %{in?: false}), do: true
 
@@ -673,7 +678,8 @@ defmodule Cloak.Compliance.QueryGenerator do
       range?: false,
       cast?: false,
       having?: false,
-      in?: false
+      in?: false,
+      function?: false
     }
   end
 end
