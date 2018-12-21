@@ -385,8 +385,8 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp allowed_in_negative_condition?({_name, _typespec, _attributes}, %{negative_condition?: false}), do: true
 
-  defp allowed_in_negative_condition?({name, _typespec, _attributes}, %{negative_condition?: true}) do
-    name in ~w(
+  defp allowed_in_negative_condition?({name, _typespec, attributes}, %{negative_condition?: true}) do
+    :aggregator in attributes or name in ~w(
       lower upper substring trim ltrim rtrim btrim extract_words hour minute second year quarter month day weekday)
   end
 
