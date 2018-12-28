@@ -190,11 +190,12 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     user_id = %Expression{Helpers.id_column(query) | synthetic?: true}
 
     base_columns =
-      (Helpers.aggregator_sources(query) ++ query.group_by)
-      |> Enum.flat_map(&extract_base_columns/1)
+      query
+      |> required_groups()
       |> Enum.reject(& &1.user_id?)
       |> Enum.uniq_by(&Expression.semantic/1)
-      |> Enum.map(&%Expression{&1 | alias: "#{&1.table.name}.#{&1.name}"})
+      |> Enum.with_index()
+      |> Enum.map(fn {column, index} -> %Expression{column | alias: "__ac_group_#{index}"} end)
 
     aggregated_columns =
       query.aggregators
@@ -226,7 +227,8 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     }
 
     table_columns = Enum.map(inner_columns, &Table.column(&1.alias || &1.name, Function.type(&1)))
-    inner_table = Table.new("__ac_uid_grouping", user_id.alias || user_id.name, columns: table_columns)
+    keys = inner_columns |> Enum.filter(&key?/1) |> Enum.map(&(&1.alias || &1.name))
+    inner_table = Table.new("__ac_uid_grouping", user_id.alias || user_id.name, columns: table_columns, keys: keys)
 
     %Query{
       query
@@ -239,8 +241,12 @@ defmodule Cloak.Sql.Compiler.Optimizer do
       &update_aggregator(&1, inner_table, aggregated_columns)
     )
     |> update_in(
-      [Lenses.query_expressions() |> Lens.filter(&is_binary(&1.name)) |> Lens.reject(&(&1.table == inner_table))],
-      &update_base_column(&1, inner_table)
+      [
+        Lenses.query_expressions()
+        |> Lens.filter(&Expression.member?(base_columns, &1))
+        |> Lens.reject(&(&1.table == inner_table))
+      ],
+      &update_base_column(&1, inner_table, base_columns)
     )
   end
 
@@ -267,7 +273,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     index = Enum.find_index(aggregated_columns, &Expression.equals?(&1, uid_aggregator))
     true = index != nil
     column_name = "__ac_agg_#{index}"
-    inner_column = inner_table.columns |> Enum.find(&(&1.name == column_name)) |> Expression.column(inner_table)
+    inner_column = column_from_table(inner_table, column_name)
     function_name = global_aggregator(old_aggregator.function)
     new_aggregator = Expression.function(function_name, [inner_column], inner_column.type, true)
     %Expression{new_aggregator | alias: old_aggregator.function}
@@ -277,16 +283,42 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   defp global_aggregator("count_noise"), do: "sum_noise"
   defp global_aggregator(function_name), do: function_name
 
-  defp update_base_column(%Expression{user_id?: true}, inner_table),
-    do: inner_table.columns |> Enum.find(&(&1.name == inner_table.user_id)) |> Expression.column(inner_table)
+  defp update_base_column(%Expression{user_id?: true}, inner_table, _base_columns),
+    do: column_from_table(inner_table, inner_table.user_id)
 
-  defp update_base_column(column, inner_table),
-    do: %Expression{column | table: inner_table, name: "#{column.table.name}.#{column.name}", synthetic?: true}
+  defp update_base_column(column, inner_table, base_columns) do
+    base_column = Enum.find(base_columns, &Expression.equals?(&1, column))
+    column_from_table(inner_table, base_column.alias)
+  end
 
-  defp extract_base_columns(%Expression{name: name} = column) when is_binary(name), do: [column]
+  defp column_from_table(table, name) do
+    table.columns
+    |> Enum.find(&(&1.name == name))
+    |> Expression.column(table)
+  end
 
-  defp extract_base_columns(%Expression{function?: true, aggregate?: false} = expression),
-    do: Enum.flat_map(expression.function_args, &extract_base_columns/1)
+  defp required_groups(%Query{group_by: []} = query),
+    do: query |> Helpers.aggregator_sources() |> Enum.flat_map(&extract_groups/1)
 
-  defp extract_base_columns(_), do: []
+  defp required_groups(%Query{group_by: groups}), do: Enum.reject(groups, &Expression.constant?/1)
+
+  defp extract_groups(%Expression{name: name} = column) when is_binary(name), do: [column]
+
+  defp extract_groups(%Expression{function?: true, aggregate?: false} = expression) do
+    if Helpers.aggregated_column?(expression) or uses_multiple_columns?(expression),
+      do: Enum.flat_map(expression.function_args, &extract_groups/1),
+      else: [expression]
+  end
+
+  defp extract_groups(_), do: []
+
+  defp uses_multiple_columns?(expression) do
+    Lenses.leaf_expressions()
+    |> Lens.filter(&(&1.name != nil))
+    |> Lens.to_list(expression)
+    |> Enum.count() > 1
+  end
+
+  defp key?(%Expression{name: name, table: %{keys: keys}}), do: name in keys
+  defp key?(_expression), do: false
 end
