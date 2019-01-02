@@ -387,7 +387,7 @@ defmodule Cloak.Sql.QueryTest do
 
   describe "features->isolators_used" do
     test "false if conditions don't require isolator checks" do
-      refute features_from("SELECT MEDIAN(height) FROM feat_users WHERE name <> 'Albus'").isolators_used
+      refute features_from("SELECT MEDIAN(height) FROM feat_users WHERE name = 'Albus'").isolators_used
     end
 
     test "true if at least one condition requires an isolator check" do

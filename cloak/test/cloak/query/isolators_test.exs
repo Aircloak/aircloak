@@ -27,6 +27,15 @@ defmodule Cloak.Query.Isolators.Test do
     assert_allowed("SELECT COUNT(*) FROM query_isolators WHERE $col = $col")
   end
 
+  test "negative conditions are forbidden for isolators" do
+    assert_forbidden("SELECT COUNT(*) FROM query_isolators WHERE $col <> 10")
+  end
+
+  test "NOT LIKE conditions are forbidden for isolators" do
+    assert_forbidden("SELECT COUNT(*) FROM query_isolators WHERE $col_string NOT LIKE '%1'")
+    assert_forbidden("SELECT COUNT(*) FROM query_isolators WHERE $col_string NOT ILIKE '%1'")
+  end
+
   test "conditions with math are forbidden for isolators" do
     assert_forbidden("SELECT COUNT(*) FROM query_isolators WHERE sqrt($col) = 10")
   end
@@ -80,7 +89,7 @@ defmodule Cloak.Query.Isolators.Test do
     assert_allowed("SELECT COUNT(*) FROM query_isolators AS a JOIN query_isolators AS b ON a.user_id = b.user_id")
   end
 
-  for kind <- ["LIKE", "ILIKE", "NOT LIKE", "NOT ILIKE"] do
+  for kind <- ["LIKE", "ILIKE"] do
     describe kind do
       test "arbitrary patterns are disallowed" do
         assert_forbidden("SELECT COUNT(*) FROM query_isolators WHERE $col_string #{unquote(kind)} 'some_%pattern'")

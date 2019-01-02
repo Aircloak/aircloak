@@ -88,10 +88,18 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Access do
     |> Lens.to_list(query)
   end
 
-  defp unclear_isolator_condition?({:not, condition}, query), do: unclear_isolator_condition?(condition, query)
+  defp unclear_isolator_condition?({:not, condition}, query) do
+    if Condition.like?(condition) do
+      true
+    else
+      unclear_isolator_condition?(condition, query)
+    end
+  end
+
   defp unclear_isolator_condition?({:in, _, _}, _), do: true
   defp unclear_isolator_condition?({:like, _, pattern}, _), do: not LikePattern.simple?(pattern.value)
   defp unclear_isolator_condition?({:ilike, _, pattern}, _), do: not LikePattern.simple?(pattern.value)
+  defp unclear_isolator_condition?({:comparison, _, :<>, _}, _), do: true
 
   defp unclear_isolator_condition?(condition, query),
     do: condition |> Condition.targets() |> Enum.any?(&unclear_isolator_expression?(&1, query))
