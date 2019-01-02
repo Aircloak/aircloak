@@ -809,7 +809,7 @@ defmodule Cloak.Sql.Parser.Internal do
 
   defp end_of_input(parser) do
     parser
-    |> error_message(token(:eof), "Expected end of input.")
+    |> error_message(token(:eof), "Unexpected input after end of valid query")
     |> ignore()
   end
 
