@@ -222,22 +222,6 @@ defmodule Cloak.Sql.Parser.Parsers do
     end
   end
 
-  @doc "Assert that there are no more tokens in the input."
-  @spec end_of_tokens(Combine.previous_parser()) :: Combine.parser()
-  defparser end_of_tokens(%ParserState{status: :ok, line: line, column: column} = state) do
-    case state.input do
-      [] ->
-        state
-
-      _ ->
-        %{
-          state
-          | :status => :error,
-            :error => "Expected end of input at line #{line}, column #{column}"
-        }
-    end
-  end
-
   @doc """
   Runs the parser and sets the error message if it fails, appending the position
   information.
