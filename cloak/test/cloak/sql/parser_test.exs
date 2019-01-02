@@ -1678,7 +1678,7 @@ defmodule Cloak.Sql.Parser.Test do
       {"invalid interval", "select interval 'does not parse' from foo", "Expected `from`", {1, 17}},
       {"table can't be parameterized", "select x from $1", "Expected `table name`", {1, 15}},
       # parsed subqueries
-      {"unclosed parens in a parsed subquery expression", "select foo from (select bar from baz", "Expected `)`",
+      {"unclosed parens in a parsed subquery expression", "select foo from (select bar from baz", "expected `)`",
        {1, 37}},
       {"empty parsed subquery expression", "select foo from ()", "Expected `select`", {1, 18}},
       {"missing alias in a parsed subquery expression", "select foo from (select bar from baz)",
@@ -1703,7 +1703,10 @@ defmodule Cloak.Sql.Parser.Test do
        "Expected `substring arguments`", {1, 52}},
       {"invalid extract part", "select extract(invalid from date) from table", "Expected `date part`", {1, 16}},
       {"invalid input after end of query", "select * from table where condition where some random stuff",
-       "Unexpected input after end of valid query", {1, 37}}
+       "Unexpected input after end of valid query", {1, 37}},
+      {"invalid input after end of subqquery",
+       "select * from (select * from table where condition where some random stuff) foo",
+       "Unexpected input after end of valid subquery, expected `)`", {1, 52}}
     ],
     fn {description, statement, expected_error, {line, column}} ->
       create_test.(description, statement, expected_error, line, column)
