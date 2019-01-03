@@ -40,8 +40,9 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   @impl GenServer
   def init(opts) do
     if opts.auto_refresh?, do: Cloak.DataSource.subscribe_to_changes()
-    enqueue_next_refresh(opts.refresh_interval)
+    :timer.send_interval(:timer.hours(1), :refresh)
     known_columns = MapSet.new(opts.columns_provider.(Cloak.DataSource.all()))
+
     queue = Queue.new(known_columns, PersistentKeyValue.cached_columns(opts.cache_owner))
 
     state = %{
@@ -71,12 +72,11 @@ defmodule Cloak.DataSource.PerColumn.Cache do
 
   @impl GenServer
   def handle_info(:refresh, state) do
-    # Refresh is handled by resetting the queue (see `Queue.reset/1` for details), which means that the previously
-    # processed columns are moved to the back of the queue.
+    # Refresh is handled by the queue (see `Queue.refresh/1` for details), which means that the previously
+    # processed columns are moved to the back of the queue so long as their expiry elapsed.
     # This gives us a simple solution to the overload problem. If we can't compute all columns during the refresh
     # interval, we'll end up constantly refreshing, but tail columns won't starve, and no queue will grow indefinitely.
-    state = maybe_start_next_computation(update_in(state.queue, &Queue.reset/1))
-    enqueue_next_refresh(state.refresh_interval)
+    state = maybe_start_next_computation(update_in(state.queue, &Queue.refresh/1))
     {:noreply, state}
   end
 
@@ -128,7 +128,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   end
 
   defp start_next_computation(state) do
-    case Queue.next_column(state.queue) do
+    case Queue.next_column(state.queue, expiry(state)) do
       {column, queue} ->
         Parent.GenServer.start_child(%{
           id: :compute_job,
@@ -147,7 +147,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
     Task.start_link(fn ->
       Logger.debug(fn -> "#{inspect(state.opts.name)} computing for #{inspect(column)}" end)
       property = state.opts.property_fun.(column)
-      PersistentKeyValue.store(state.cache_owner, column, property)
+      PersistentKeyValue.store(state.cache_owner, column, property, expiry(state))
     end)
   end
 
@@ -168,7 +168,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
     %{state | waiting: Map.new(good)}
   end
 
-  defp enqueue_next_refresh(refresh_interval), do: Process.send_after(self(), :refresh, refresh_interval)
+  defp expiry(state), do: NaiveDateTime.utc_now() |> NaiveDateTime.add(state.opts.refresh_interval, :millisecond)
 
   # -------------------------------------------------------------------
   # Supervision tree
