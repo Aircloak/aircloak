@@ -12,7 +12,7 @@ defmodule Cloak.DataSource.PerColumn.Queue.Test do
   end
 
   test "providing processed columns" do
-    queue = Queue.new(columns(1..3), columns(1..2))
+    queue = Queue.new(columns(1..3), %{col_1: NaiveDateTime.utc_now(), col_2: NaiveDateTime.utc_now()})
     assert pop_all(queue) == [:col_3]
   end
 
@@ -44,19 +44,31 @@ defmodule Cloak.DataSource.PerColumn.Queue.Test do
     assert pop_all(queue) == [:col_3, :col_4]
   end
 
-  test "resetting the queue resets processed items" do
-    queue = Queue.new(columns(1..3))
-    {_, queue} = Queue.next_column(queue)
-    {_, queue} = Queue.next_column(queue)
-    queue = Queue.reset(queue)
-    assert pop_all(queue) == [:col_3, :col_1, :col_2]
-  end
+  describe ".refresh" do
+    test "refreshes processed items" do
+      queue = Queue.new(columns(1..3))
+      {_, queue} = Queue.next_column(queue)
+      {_, queue} = Queue.next_column(queue)
+      queue = Queue.refresh(queue)
+      assert pop_all(queue) == [:col_3, :col_1, :col_2]
+    end
 
-  test "resetting the queue leaves the priority queue intact" do
-    queue = Queue.new(columns(1..3))
-    {_, queue} = Queue.next_column(queue)
-    queue = queue |> Queue.set_high_priority(:col_3) |> Queue.reset()
-    assert pop_all(queue) == [:col_3, :col_2, :col_1]
+    test "leaves the priority queue intact" do
+      queue = Queue.new(columns(1..3))
+      {_, queue} = Queue.next_column(queue)
+      queue = queue |> Queue.set_high_priority(:col_3) |> Queue.refresh()
+      assert pop_all(queue) == [:col_3, :col_2, :col_1]
+    end
+
+    test "only refreshes stale items" do
+      queue = Queue.new(columns(1..3))
+      {:col_1, queue} = Queue.next_column(queue, ~N[2018-01-01 12:00:00])
+      {:col_2, queue} = Queue.next_column(queue, ~N[2018-01-01 14:00:00])
+
+      queue = Queue.refresh(queue, ~N[2018-01-01 13:00:00])
+
+      assert pop_all(queue) == [:col_3, :col_1]
+    end
   end
 
   defp columns(indices), do: Enum.map(indices, &:"col_#{&1}")
