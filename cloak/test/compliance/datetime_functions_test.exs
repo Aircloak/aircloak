@@ -7,7 +7,7 @@ Enum.each(
     "quarter(<col>)",
     "second(<col>)",
     "year(<col>)",
-    "weekday(<col>)",
+    # "weekday(<col>)",
     "date_trunc('year', <col>)",
     "date_trunc('quarter', <col>)",
     "date_trunc('month', <col>)",
@@ -31,7 +31,6 @@ Enum.each(
         @tag compliance: "#{function} #{column} #{table} subquery"
         test "#{function} on input #{column} in a sub-query on #{table}", context do
           context
-          |> disable_for(:all, match?("weekday" <> _, unquote(function)))
           |> disable_subquery_interval(unquote(function))
           |> disable_unsupported_on_dates(unquote(function), {unquote(column), unquote(table), unquote(uid)})
           |> disable_for(Cloak.DataSource.Drill, unquote(function) =~ ~r/quarter|interval/)
@@ -52,7 +51,9 @@ Enum.each(
         @tag compliance: "#{function} #{column} #{table} query"
         test "#{function} on input #{column} in query on #{table}", context do
           context
+          |> disable_subquery_interval(unquote(function))
           |> disable_unsupported_on_dates(unquote(function), {unquote(column), unquote(table), unquote(uid)})
+          |> disable_for(Cloak.DataSource.Drill, unquote(function) =~ ~r/quarter|interval/)
           |> assert_consistent_and_not_failing("""
             SELECT #{on_column(unquote(function), unquote(column))}
             FROM #{unquote(table)}
@@ -69,7 +70,6 @@ Enum.each(
           |> disable_for(Cloak.DataSource.SQLServer, true)
           |> disable_for(Cloak.DataSource.SAPHana, true)
           |> disable_for(Cloak.DataSource.MongoDB, true)
-          |> disable_for(Cloak.DataSource.Drill, true)
           |> disable_for(Cloak.DataSource.Oracle, function =~ ~r/P1Y/ or function =~ ~r/P1M/)
         else
           context

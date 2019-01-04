@@ -639,13 +639,13 @@ defmodule Cloak.Sql.Compiler.Test do
 
     assert [
              %{value: :*},
-             column("t1.c1"),
-             column("t1.c2"),
+             column("__ac_group_0"),
+             column("__ac_group_1"),
              %{value: :*},
-             column("t2.c1"),
-             column("t2.c3"),
+             column("__ac_group_2"),
+             column("__ac_group_3"),
              %{value: :*},
-             column("t3.c1")
+             column("__ac_group_4")
            ] = result.columns
   end
 

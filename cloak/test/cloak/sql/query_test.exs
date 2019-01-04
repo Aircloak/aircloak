@@ -138,8 +138,11 @@ defmodule Cloak.Sql.QueryTest do
     end
 
     test "function used" do
-      assert %{functions: ["abs", "cast"], top_level_functions: ["abs", "cast"], subquery_functions: []} =
-               features_from("SELECT abs(height), CAST(height AS text) FROM feat_users")
+      assert %{
+               functions: ["abs", "cast", "min", "max"],
+               top_level_functions: [],
+               subquery_functions: ["abs", "cast", "min", "max"]
+             } = features_from("SELECT abs(height), CAST(height AS text) FROM feat_users")
     end
 
     test "function used in WHERE" do
@@ -171,15 +174,15 @@ defmodule Cloak.Sql.QueryTest do
 
     test "function used" do
       assert %{
-               top_level_select_functions: ["abs"],
-               subquery_select_functions: ["sqrt", "min", "max"],
-               select_functions: ["abs", "sqrt", "min", "max"]
+               top_level_select_functions: [],
+               subquery_select_functions: ["sqrt", "abs", "min", "max"],
+               select_functions: ["sqrt", "abs", "min", "max"]
              } = features_from("SELECT abs(foo) FROM (SELECT sqrt(height) AS foo FROM feat_users) x")
     end
 
     test "deduplicates" do
       assert %{
-               top_level_select_functions: ["sqrt"],
+               top_level_select_functions: [],
                subquery_select_functions: ["sqrt", "min", "max"],
                select_functions: ["sqrt", "min", "max"]
              } = features_from("SELECT sqrt(x) FROM (SELECT sqrt(height) AS x FROM feat_users) foo")

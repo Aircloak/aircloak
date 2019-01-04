@@ -115,10 +115,19 @@ defmodule Cloak.Sql.Compiler.Optimizer.Test do
             {:comparison, %{name: "numeric"}, :<, %{value: 0}}} = subquery.where
   end
 
+  test "complex groups are offloaded" do
+    assert query = compile!("SELECT count(*) FROM table GROUP BY trunc(numeric, -1)", data_source())
+    assert %{from: {:subquery, %{ast: subquery}}} = query
+    assert [%{name: "__ac_group_0"}] = query.group_by
+    assert [%{name: "uid"}, %{function: "trunc"}] = subquery.group_by
+    assert ["uid", "__ac_group_0", "__ac_agg_0" | _] = subquery.column_titles
+  end
+
   defp data_source() do
     %{
       name: "optimizer_test_data_source",
       driver: Cloak.DataSource.PostgreSQL,
+      statistics_anonymization: false,
       tables: %{
         table:
           Cloak.DataSource.Table.new(

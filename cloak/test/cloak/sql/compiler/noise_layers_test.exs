@@ -138,23 +138,23 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
                %{
                  base: {"table", "numeric", nil},
                  expressions: [
-                   %Expression{name: "table.numeric"},
-                   %Expression{name: "table.numeric"},
+                   %Expression{name: "__ac_group_0"},
+                   %Expression{name: "__ac_group_0"},
                    %Expression{name: "__ac_agg_0_sum"}
                  ]
                },
                %{
                  base: {"table", "numeric", nil},
                  expressions: [
-                   %Expression{name: "table.numeric"},
-                   %Expression{name: "table.numeric"},
+                   %Expression{name: "__ac_group_0"},
+                   %Expression{name: "__ac_group_0"},
                    %Expression{name: "__ac_agg_0_sum"},
                    %Expression{user_id?: true}
                  ]
                }
              ] = result.noise_layers
 
-      assert Enum.any?(result.db_columns, &match?(%Expression{name: "table.numeric"}, &1))
+      assert Enum.any?(result.db_columns, &match?(%Expression{name: "__ac_group_0"}, &1))
       assert Enum.any?(result.db_columns, &match?(%Expression{user_id?: true}, &1))
     end
 
@@ -938,7 +938,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
     test "* expansion doesn't include the carry columns" do
       result = compile!("SELECT * FROM (SELECT uid, numeric as n FROM table GROUP BY uid, numeric) foo")
 
-      assert [%Expression{value: :*}, %Expression{name: "foo.n"}] = result.columns
+      assert [%Expression{value: :*}, %Expression{name: "__ac_group_0"}] = result.columns
     end
   end
 
