@@ -44,4 +44,6 @@ defmodule AirWeb.Admin.DataSourceView do
         ]
     end
   end
+
+  defp total_columns(tables), do: tables |> Enum.map(&length(&1["columns"])) |> Enum.sum()
 end

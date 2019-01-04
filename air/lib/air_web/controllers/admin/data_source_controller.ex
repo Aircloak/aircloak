@@ -74,6 +74,7 @@ defmodule AirWeb.Admin.DataSourceController do
       conn,
       "show.html",
       data_source: data_source,
+      tables: Air.Schemas.DataSource.tables(data_source),
       conn: conn,
       users: User.data_source_users(data_source),
       problems: Warnings.problems_for_resource(data_source)

@@ -93,11 +93,23 @@
         </p>
       <% else %>
         <table class="table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Columns</th>
+            </tr>
+
+            <tr>
+              <th>Total</th>
+              <th><%= total_columns(@tables) %></th>
+            </tr>
+          </thead>
+
           <tbody>
-            <%= for table <- Air.Schemas.DataSource.tables(@data_source) do %>
+            <%= for table <- @tables do %>
               <tr>
                 <td><%= table["id"] %></td>
-                <td><%= length(table["columns"]) %> columns</td>
+                <td><%= length(table["columns"]) %></td>
               </tr>
             <% end %>
           </tbody>
