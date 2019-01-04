@@ -97,11 +97,13 @@
             <tr>
               <th>Name</th>
               <th>Columns</th>
+              <th>Analyzed</th>
             </tr>
 
             <tr>
               <th>Total</th>
               <th><%= total_columns(@tables) %></th>
+              <th><%= total_analyzed(@tables) %></th>
             </tr>
           </thead>
 
@@ -110,6 +112,7 @@
               <tr>
                 <td><%= table["id"] %></td>
                 <td><%= length(table["columns"]) %></td>
+                <td><%= analyzed(table["columns"]) %></td>
               </tr>
             <% end %>
           </tbody>

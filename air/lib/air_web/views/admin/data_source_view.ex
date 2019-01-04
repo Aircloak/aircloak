@@ -46,4 +46,12 @@ defmodule AirWeb.Admin.DataSourceView do
   end
 
   defp total_columns(tables), do: tables |> Enum.map(&length(&1["columns"])) |> Enum.sum()
+
+  defp total_analyzed(tables), do: tables |> Enum.map(& &1["columns"]) |> List.flatten() |> analyzed()
+
+  defp analyzed(columns) do
+    Enum.count(columns, fn column ->
+      is_boolean(column["isolated"]) and column["shadow_table"] == "ok"
+    end)
+  end
 end
