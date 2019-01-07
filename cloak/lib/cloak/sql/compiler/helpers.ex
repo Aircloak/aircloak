@@ -62,6 +62,8 @@ defmodule Cloak.Sql.Compiler.Helpers do
 
   @doc "Returns true if the provided expression is aggregated."
   @spec aggregated_column?(Expression.t()) :: boolean
+  def aggregated_column?({:distinct, _column}), do: true
+
   def aggregated_column?(column),
     do: column.function? and (column.aggregate? or Enum.any?(column.function_args, &aggregated_column?/1))
 

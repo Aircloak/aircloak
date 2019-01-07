@@ -582,7 +582,8 @@ defmodule Cloak.Sql.Compiler.Test do
                data_source()
              )
 
-    assert error =~ ~r/Missing where comparison.*`t1` and `t2`/
+    assert error ==
+             "Column `cast` of type `text` and column `uid` from table `t2` of type `integer` cannot be compared."
   end
 
   test "allows qualified identifiers in function calls" do
@@ -1362,6 +1363,21 @@ defmodule Cloak.Sql.Compiler.Test do
              group_by: [%Expression{value: :*}],
              order_by: [{%Expression{value: :*}, _, _}]
            } = compile!("select uid from table group by 1 order by 1", data_source())
+  end
+
+  test "internal queries are validated" do
+    assert {:error, "Expected a constant of type `integer`, got `text`."} =
+             compile_standard("select count(*) from table where numeric in (3, 's')", data_source())
+  end
+
+  defp compile_standard(query_string, data_source) do
+    {:ok, parsed_query} = Parser.parse(query_string)
+
+    try do
+      Compiler.compile_standard!(parsed_query, data_source)
+    rescue
+      error in Cloak.Sql.CompilationError -> {:error, error.message}
+    end
   end
 
   defp validate_view(view_sql, data_source, options \\ []) do

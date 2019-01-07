@@ -10,27 +10,37 @@ defmodule Cloak.Sql.Compiler.Validation do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Checks that the query specification is valid."
-  @spec verify_query(Query.t()) :: Query.t()
-  def verify_query(%Query{command: :show} = query), do: query
+  @doc "Checks that the query specification respects the SQL standard."
+  @spec verify_standard_restrictions(Query.t()) :: Query.t()
+  def verify_standard_restrictions(%Query{command: :show} = query), do: query
 
-  def verify_query(%Query{command: :select} = query) do
-    verify_user_id_usage_in_subqueries(query)
-    Helpers.each_subquery(query, &verify_function_usage/1)
+  def verify_standard_restrictions(%Query{command: :select} = query) do
+    Helpers.each_subquery(query, &verify_standard_functions_usage/1)
     Helpers.each_subquery(query, &verify_duplicate_tables/1)
     Helpers.each_subquery(query, &verify_aggregated_columns/1)
     Helpers.each_subquery(query, &verify_aggregators/1)
     Helpers.each_subquery(query, &verify_group_by_functions/1)
-    Helpers.each_subquery(query, &verify_non_selected_where_splitters/1)
-    Helpers.each_subquery(query, &verify_joins/1)
+    Helpers.each_subquery(query, &verify_standard_joins/1)
     Helpers.each_subquery(query, &verify_where/1)
     Helpers.each_subquery(query, &verify_having/1)
     Helpers.each_subquery(query, &verify_limit/1)
     Helpers.each_subquery(query, &verify_offset/1)
-    Helpers.each_subquery(query, &verify_sample_rate/1)
-    Helpers.each_subquery(query, &verify_inequalities/1)
     Helpers.each_subquery(query, &verify_in/1)
     Helpers.each_subquery(query, &verify_division_by_zero/1)
+    query
+  end
+
+  @doc "Checks that the query specification respects the anonymization restrictions."
+  @spec verify_anonymization_restrictions(Query.t()) :: Query.t()
+  def verify_anonymization_restrictions(%Query{command: :show} = query), do: query
+
+  def verify_anonymization_restrictions(%Query{command: :select} = query) do
+    verify_user_id_usage_in_subqueries(query)
+    Helpers.each_subquery(query, &verify_anonymization_functions_usage/1)
+    Helpers.each_subquery(query, &verify_non_selected_where_splitters/1)
+    Helpers.each_subquery(query, &verify_anonymization_joins/1)
+    Helpers.each_subquery(query, &verify_sample_rate/1)
+    Helpers.each_subquery(query, &verify_inequalities/1)
     query
   end
 
@@ -55,27 +65,14 @@ defmodule Cloak.Sql.Compiler.Validation do
   # Columns and expressions
   # -------------------------------------------------------------------
 
-  defp verify_function_usage(query) do
+  defp verify_standard_functions_usage(query) do
     Lenses.query_expressions()
     |> Lens.filter(& &1.function?)
     |> Lens.to_list(query)
-    |> Enum.map(&verify_function_usage(&1, query.type))
+    |> Enum.map(&verify_standard_function_usage/1)
   end
 
-  defp verify_function_usage(%Expression{function: name, function_args: [arg]} = expression, _query_type = :anonymized)
-       when name in ["min", "max", "median"] do
-    if Function.type(arg) == :text,
-      do:
-        raise(
-          CompilationError,
-          source_location: expression.source_location,
-          message: "Aggregator `#{name}` is not allowed over arguments of type `text` in anonymized subqueries."
-        )
-
-    :ok
-  end
-
-  defp verify_function_usage(%Expression{function: name, function_args: args} = expression, query_type) do
+  defp verify_standard_function_usage(%Expression{function: name, function_args: args} = expression) do
     if not Function.aggregator?(name) and match?([{:distinct, _}], args),
       do:
         raise(
@@ -84,12 +81,34 @@ defmodule Cloak.Sql.Compiler.Validation do
           message: "`DISTINCT` specified in non-aggregating function `#{Function.readable_name(name)}`."
         )
 
-    if Function.has_attribute?(name, {:not_in, query_type}),
+    :ok
+  end
+
+  defp verify_anonymization_functions_usage(query) do
+    Lenses.query_expressions()
+    |> Lens.filter(& &1.function?)
+    |> Lens.to_list(query)
+    |> Enum.map(&verify_anonymization_function_usage(&1, query))
+  end
+
+  defp verify_anonymization_function_usage(%Expression{function: name} = expression, query) do
+    if query.type == :anonymized and name in ~w(min max median) and
+         expression.function_args |> Enum.at(0) |> Function.type() == :text,
+       do:
+         raise(
+           CompilationError,
+           source_location: expression.source_location,
+           message: "Aggregator `#{name}` is not allowed over arguments of type `text` in anonymized subqueries."
+         )
+
+    :ok
+
+    if Function.has_attribute?(name, {:not_in, query.type}),
       do:
         raise(
           CompilationError,
           source_location: expression.source_location,
-          message: "Function `#{Function.readable_name(name)}` is not allowed in `#{query_type}` subqueries."
+          message: "Function `#{Function.readable_name(name)}` is not allowed in `#{query.type}` subqueries."
         )
 
     if Function.internal?(name),
@@ -213,9 +232,12 @@ defmodule Cloak.Sql.Compiler.Validation do
   # Joins
   # -------------------------------------------------------------------
 
-  defp verify_joins(query) do
+  defp verify_standard_joins(query) do
     verify_join_types(query)
     verify_join_conditions_scope(query.from, [])
+  end
+
+  defp verify_anonymization_joins(query) do
     verify_all_selected_tables_have_uids(query)
     verify_all_uid_columns_are_compared_in_joins(query)
   end
