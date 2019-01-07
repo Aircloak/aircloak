@@ -4,7 +4,7 @@ defmodule Cloak.DataSource.Isolators.PersistentKeyValue do
   alias Cloak.DataSource.PerColumn.PersistentKeyValue
 
   # Version of the persisted cache format. Bump this if you're changing the format.
-  @persisted_cache_version 1
+  @persisted_cache_version 2
 
   # -------------------------------------------------------------------
   # Supervison tree

@@ -1,8 +1,12 @@
 defmodule Cloak.DataSource.PerColumn.Queue do
   @moduledoc "Queue of the columns which must be processed by the isolator cache."
 
-  @opaque t :: %{processed_columns: columns, regular_queue: :queue.t(column), priority_queue: :queue.t(column)}
-  @type columns :: MapSet.t(columns)
+  @opaque t :: %{
+            processed_columns: processed_columns,
+            regular_queue: :queue.t(column),
+            priority_queue: :queue.t(column)
+          }
+  @type processed_columns :: %{column => NaiveDateTime.t()}
   @type column :: {datasource_name :: String.t(), table_name :: String.t(), column_name :: String.t()}
 
   # -------------------------------------------------------------------
@@ -11,9 +15,9 @@ defmodule Cloak.DataSource.PerColumn.Queue do
 
   @doc "Creates a new queue instance from the given collection of columns."
   @spec new(Enumerable.t(), Enumerable.t()) :: t
-  def new(known_columns, processed_columns \\ []) do
+  def new(known_columns, processed_columns \\ %{}) do
     %{
-      processed_columns: MapSet.new(processed_columns),
+      processed_columns: processed_columns,
       regular_queue: :queue.new(),
       priority_queue: :queue.new()
     }
@@ -26,9 +30,11 @@ defmodule Cloak.DataSource.PerColumn.Queue do
   The function first tries to pull from the high priority queue. If that queue is empty, the data is pulled from the
   regular queue. If both queues are empty, the function returns `:error`. See also `set_high_priority/2`.
   """
-  @spec next_column(t) :: {column, t} | :error
-  def next_column(queue) do
-    with {column, queue} <- pop(queue), do: {column, update_in(queue.processed_columns, &MapSet.put(&1, column))}
+  @spec next_column(t, NaiveDateTime.t()) :: {column, t} | :error
+  def next_column(queue, expires_at \\ NaiveDateTime.utc_now()) do
+    with {column, queue} <- pop(queue) do
+      {column, update_in(queue.processed_columns, &Map.put(&1, column, expires_at))}
+    end
   end
 
   @doc """
@@ -51,7 +57,7 @@ defmodule Cloak.DataSource.PerColumn.Queue do
 
     %{
       queue
-      | processed_columns: MapSet.intersection(queue.processed_columns, known_columns),
+      | processed_columns: Map.take(queue.processed_columns, known_columns),
         regular_queue:
           queue.regular_queue |> delete_unknown_columns(known_columns) |> :queue.join(new_unprocessed_columns),
         priority_queue: delete_unknown_columns(queue.priority_queue, known_columns)
@@ -65,7 +71,7 @@ defmodule Cloak.DataSource.PerColumn.Queue do
   """
   @spec set_high_priority(t, column) :: t
   def set_high_priority(queue, column) do
-    false = MapSet.member?(queue.processed_columns, column)
+    false = processed?(queue, column)
 
     if :queue.member(column, queue.priority_queue) do
       queue
@@ -78,19 +84,27 @@ defmodule Cloak.DataSource.PerColumn.Queue do
     end
   end
 
-  @doc "Moves all processed items to the end of the regular queue, leaving the priority queue intact."
-  @spec reset(t) :: t
-  def reset(queue) do
+  @doc """
+  Moves processed items with expiries earlier than `now` to the end of the regular queue, leaving the priority queue
+  intact.
+  """
+  @spec refresh(t, NaiveDateTime.t()) :: t
+  def refresh(queue, now \\ NaiveDateTime.utc_now()) do
+    {stale, processed_columns} =
+      Enum.split_with(queue.processed_columns, fn {_, expires_at} ->
+        Cloak.Data.lt_eq(expires_at, now)
+      end)
+
     %{
       queue
-      | regular_queue: Enum.reduce(queue.processed_columns, queue.regular_queue, &:queue.in/2),
-        processed_columns: MapSet.new()
+      | regular_queue: stale |> Enum.map(&elem(&1, 0)) |> Enum.reduce(queue.regular_queue, &:queue.in/2),
+        processed_columns: Enum.into(processed_columns, %{})
     }
   end
 
   @doc "Returns true if the column has been processed."
   @spec processed?(t, column) :: boolean
-  def processed?(queue, column), do: MapSet.member?(queue.processed_columns, column)
+  def processed?(queue, column), do: Map.has_key?(queue.processed_columns, column)
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -113,7 +127,7 @@ defmodule Cloak.DataSource.PerColumn.Queue do
     [
       :queue.to_list(queue.regular_queue),
       :queue.to_list(queue.priority_queue),
-      queue.processed_columns
+      Map.keys(queue.processed_columns)
     ]
     |> Enum.concat()
     |> MapSet.new()

@@ -15,30 +15,30 @@ defmodule Cloak.DataSource.PerColumn.PersistentKeyValue do
   @doc "Performs a lookup into the cache table."
   @spec lookup(GenServer.server(), Queue.column()) :: {:ok, any} | :error
   def lookup(server, column) do
-    case :ets.match(server, {column, :"$1"}) do
+    case :ets.match(server, {column, :"$1", :_}) do
       [[value]] -> {:ok, value}
       [] -> :error
     end
   end
 
   @doc "Stores an item into the cache table."
-  @spec store(GenServer.server(), Queue.column(), any) :: :ok
-  def store(server, column, value) do
-    :ets.insert(server, {column, value})
+  @spec store(GenServer.server(), Queue.column(), any, NaiveDateTime.t()) :: :ok
+  def store(server, column, value, expires) do
+    :ets.insert(server, {column, value, expires})
     signal_change(server)
     :ok
   end
 
   @doc "Deletes unkown columns from the cache table."
-  @spec remove_unknown_columns(GenServer.server(), Queue.columns()) :: :ok
+  @spec remove_unknown_columns(GenServer.server(), MapSet.t(Queue.column())) :: :ok
   def remove_unknown_columns(server, known_columns) do
-    cached_columns(server) |> MapSet.difference(known_columns) |> Enum.each(&:ets.delete(server, &1))
+    cached_columns(server) |> Map.drop(known_columns) |> Enum.each(&:ets.delete(server, &1))
     signal_change(server)
   end
 
   @doc "Returns the collection of cached columns."
-  @spec cached_columns(GenServer.server()) :: Queue.columns()
-  def cached_columns(server), do: :ets.match(server, {:"$1", :_}) |> Enum.concat() |> MapSet.new()
+  @spec cached_columns(GenServer.server()) :: Queue.processed_columns()
+  def cached_columns(server), do: :ets.match(server, {:"$1", :_, :"$2"}) |> Enum.map(&List.to_tuple/1) |> Enum.into(%{})
 
   # -------------------------------------------------------------------
   # GenServer callbacks
