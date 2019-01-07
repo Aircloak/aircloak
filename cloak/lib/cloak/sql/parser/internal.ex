@@ -571,13 +571,19 @@ defmodule Cloak.Sql.Parser.Internal do
     sequence([
       ignore(keyword(:select)),
       lazy(fn -> select_statement() end),
-      ignore(keyword(:")")),
+      subquery_close_paren(),
       option(keyword(:as)),
       label(identifier() |> map(fn {_type, value} -> value end), "subquery alias")
     ])
     |> map(fn [select_statement, _as_keyword, alias] ->
       %{ast: statement_map(:select, select_statement), alias: alias}
     end)
+  end
+
+  defp subquery_close_paren() do
+    keyword(:")")
+    |> error_message("Unexpected input after end of valid subquery, expected `)`")
+    |> ignore()
   end
 
   defp table_with_schema() do
@@ -809,7 +815,7 @@ defmodule Cloak.Sql.Parser.Internal do
 
   defp end_of_input(parser) do
     parser
-    |> error_message(token(:eof), "Expected end of input.")
+    |> error_message(token(:eof), "Unexpected input after end of valid query")
     |> ignore()
   end
 
