@@ -46,7 +46,6 @@ defmodule Cloak.Mixfile do
       {:file_system, "~> 0.2.6"},
       {:parent, "~> 0.4.0"},
       {:jobs, "~> 0.7.0"},
-      {:jamdb_oracle, "~> 0.2.0"},
 
       # Rustler is needed for compiling Rust port driver on MacOS
       {:rustler, github: "hansihe/rustler", sparse: "rustler_mix", runtime: false},
