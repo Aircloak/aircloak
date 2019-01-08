@@ -36,6 +36,7 @@
                 <% end %>
                 <%= navbar_link(@conn, "Cloaks", admin_cloaks_path(@conn, :index)) %>
                 <%= navbar_link(@conn, "Data sources", admin_data_source_path(@conn, :index)) %>
+                <%= navbar_link(@conn, "Analysis", admin_analysis_path(@conn, :index)) %>
                 <%= navbar_link(@conn, "Groups", admin_group_path(@conn, :index)) %>
                 <%= navbar_link(@conn, "Users", admin_user_path(@conn, :index)) %>
                 <%= navbar_link(@conn, "Failed queries", admin_query_path(@conn, :failed)) %>

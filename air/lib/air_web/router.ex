@@ -118,6 +118,7 @@ defmodule AirWeb.Router do
 
     resources("/groups", GroupController)
     resources("/data_sources", DataSourceController)
+    resources("/analysis", AnalysisController)
     resources("/settings", SettingsController, singleton: true)
 
     get("/audit_log", AuditLogController, :index)
