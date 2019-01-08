@@ -10,24 +10,15 @@ defmodule Compliance.DataSource.Oracle do
 
   @impl Connector
   def setup(%{parameters: params}) do
-    {:ok, _} = Application.ensure_all_started(:jamdb_oracle)
+    {:ok, _} = Application.ensure_all_started(:odbc)
     Connector.await_port(params.hostname, Map.get(params, :port, 1521))
     :ok
   end
 
   @impl Connector
   def connect(%{parameters: params}) do
-    {:ok, conn} =
-      :jamdb_oracle.start_link(
-        host: to_charlist(params.hostname),
-        port: params[:port],
-        user: to_charlist(params.username),
-        password: to_charlist(params.password),
-        sid: to_charlist(params.sid)
-      )
-
+    conn = create_connection!(params)
     execute(conn, "COMON")
-
     conn
   end
 
@@ -44,8 +35,8 @@ defmodule Compliance.DataSource.Oracle do
   @impl Connector
   def insert_rows(table_name, data, conn) do
     table_name
-    |> chunks_to_insert(data)
-    |> Enum.each(&execute!(conn, &1))
+    |> rows_to_insert(data)
+    |> Enum.each(fn {sql, params} -> execute!(conn, sql, params) end)
 
     conn
   end
@@ -59,6 +50,23 @@ defmodule Compliance.DataSource.Oracle do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp create_connection!(params) do
+    [
+      DSN: "Oracle",
+      DBQ: "#{params.hostname}:#{Map.get(params, :port, 1521)}/#{params.database}",
+      Uid: params.username,
+      Pwd: params.password
+    ]
+    |> Stream.map(fn {key, value} -> [to_string(key), ?=, value] end)
+    |> Enum.join(";")
+    |> to_charlist()
+    |> :odbc.connect(scrollable_cursors: :off, binary_strings: :on, tuple_row: :off)
+    |> case do
+      {:ok, connection} -> connection
+      {:error, error} -> raise error
+    end
+  end
+
   defp drop_table!(conn, table_name) do
     case execute(conn, "SELECT COUNT(*) FROM ALL_TAB_COLUMNS WHERE table_name = '#{table_name}'") do
       {:ok, [{:result_set, [_], [], [[{0}]]}]} -> :ok
@@ -66,39 +74,37 @@ defmodule Compliance.DataSource.Oracle do
     end
   end
 
-  defp execute!(conn, query), do: {:ok, [affected_rows: _]} = execute(conn, query)
+  defp execute!(conn, query, params \\ []), do: {:updated, _} = execute(conn, query, params)
 
-  defp execute(conn, query), do: :jamdb_oracle.sql_query(conn, to_charlist(query))
+  defp execute(conn, query, params \\ []),
+    do: :odbc.param_query(conn, String.to_charlist(query), Enum.map(params, &cast_type/1))
 
-  def chunks_to_insert(table_name, data) do
+  def rows_to_insert(table_name, data) do
     column_names = column_names(data)
 
     data
     |> rows(column_names)
-    |> Stream.chunk_every(1)
-    |> Stream.map(&chunk_to_insert(table_name, column_names, &1))
+    |> Stream.map(&row_insert_data(table_name, column_names, &1))
   end
 
-  defp chunk_to_insert(table_name, column_names, rows) do
-    values = rows |> Enum.map(&cast_row/1) |> Enum.map(&Enum.join(&1, ", ")) |> Enum.map(&"SELECT #{&1} FROM DUAL")
-
-    """
-    INSERT INTO "#{table_name}"
-    (#{column_names |> escaped_column_names() |> Enum.join(", ")})
-    #{Enum.join(values, "\nUNION ALL ")}
-    """
+  defp row_insert_data(table_name, column_names, row) do
+    columns = column_names |> escaped_column_names() |> Enum.join(", ")
+    row_placeholders = column_names |> Stream.map(fn _column -> "?" end) |> Enum.join(",")
+    query = ~s/INSERT INTO "#{table_name}"(#{columns}) SELECT #{row_placeholders} FROM DUAL/
+    {query, row}
   end
 
-  defp cast_row(row), do: Enum.map(row, &cast_type/1)
+  defp cast_type(binary) when is_binary(binary) do
+    binary = :unicode.characters_to_binary(binary, :utf8, {:utf16, :little})
+    {{:sql_wvarchar, byte_size(binary) + 1}, [binary]}
+  end
 
-  defp cast_type(binary) when is_binary(binary), do: ~s(q'[#{binary}]')
-  defp cast_type(integer) when is_integer(integer), do: integer
-  defp cast_type(float) when is_float(float), do: float
-  defp cast_type(true), do: 1
-  defp cast_type(false), do: 0
-  defp cast_type(%NaiveDateTime{} = datetime), do: "TIMESTAMP '#{to_string(datetime)}'"
-  defp cast_type(%Date{} = date), do: "DATE '#{to_string(date)}'"
-  defp cast_type(nil), do: "NULL"
+  defp cast_type(integer) when is_integer(integer), do: {:sql_integer, [integer]}
+  defp cast_type(float) when is_float(float), do: {:sql_double, [float]}
+  defp cast_type(boolean) when is_boolean(boolean), do: {:sql_bit, [boolean]}
+  defp cast_type(%NaiveDateTime{} = datetime), do: {:sql_timestamp, [NaiveDateTime.to_erl(datetime)]}
+  defp cast_type(%Date{} = date), do: {:sql_timestamp, [{Date.to_erl(date), {0, 0, 0}}]}
+  defp cast_type(nil), do: {{:sql_wvarchar, 10}, [:null]}
 
   defp column_names(data), do: data |> hd() |> Map.keys() |> Enum.sort()
 
