@@ -1,0 +1,42 @@
+<h2>Analysis queries</h2>
+
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Source</th>
+      <th>Columns</th>
+      <th>Isolators computed</th>
+      <th>Isolators failed</th>
+      <th>Rare values computed</th>
+      <th>Rare values failed</th>
+      <th>Analyzed</th>
+      <th>Analysis failed</th>
+    </tr>
+
+    <tr>
+      <th>Total</th>
+      <th><%= total(@groups, :columns) %></th>
+      <th><%= total(@groups, :isolators_computed) %></th>
+      <th><%= total(@groups, :isolators_failed) %></th>
+      <th><%= total(@groups, :rare_values_computed) %></th>
+      <th><%= total(@groups, :rare_values_failed) %></th>
+      <th><%= total(@groups, :analyzed) %></th>
+      <th><%= total(@groups, :analysis_failed) %></th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <%= for group <- @groups do %>
+      <tr>
+        <td><%= group.name %></td>
+        <td><%= group.columns %></td>
+        <td><%= group.isolators_computed %></td>
+        <td><%= group.isolators_failed %></td>
+        <td><%= group.rare_values_computed %></td>
+        <td><%= group.rare_values_failed %></td>
+        <td><%= group.analyzed %></td>
+        <td><%= group.analysis_failed %></td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>
