@@ -20,29 +20,19 @@ defmodule IntegrationTest.OdbcTest do
 
   describe "max_connections" do
     test "can accept up to max_connections connections", context do
-      config = Air.PsqlServer.configuration()
-      max_clients = config.max_connections
-
       Stream.repeatedly(fn -> connect(context.user) end)
-      |> Stream.take(max_clients)
+      |> Stream.take(Air.PsqlServer.configuration().max_connections)
       |> Enum.all?(&match?({:ok, _pid}, &1))
       |> assert()
     end
 
     test "after max connections are established, subsequent connections are not accepted", context do
-      config = Air.PsqlServer.configuration()
-      max_clients = config.max_connections + 10
+      assert {:error, error} =
+               Stream.repeatedly(fn -> connect(context.user) end)
+               |> Stream.drop(Air.PsqlServer.configuration().max_connections)
+               |> Enum.at(0)
 
-      Stream.repeatedly(fn ->
-        try do
-          connect(context.user, timeout: :timer.seconds(1))
-        catch
-          :exit, :timeout -> {:error, :timeout}
-        end
-      end)
-      |> Stream.take(max_clients + 1)
-      |> Enum.any?(&(&1 == {:error, :timeout}))
-      |> assert()
+      assert to_string(error) =~ ~r/server closed the connection/
     end
   end
 
@@ -271,6 +261,6 @@ defmodule IntegrationTest.OdbcTest do
       |> Enum.join()
       |> to_charlist()
 
-    :odbc.connect(connection_string, Keyword.take(params, [:timeout]))
+    :odbc.connect(connection_string, [])
   end
 end
