@@ -53,8 +53,6 @@ config :air, AirWeb.Endpoint,
 
 config :air, AirWeb.MonitoringEndpoint, http: [acceptors: 2]
 
-config :air, Air.PsqlServer, ranch_opts: [num_acceptors: 2]
-
 config :air, Air.Repo,
   pool_size: 2,
   loggers: []

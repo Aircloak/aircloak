@@ -11,7 +11,8 @@ defmodule Air.PsqlServer do
   @type configuration :: %{
           require_ssl: boolean,
           certfile: String.t() | nil,
-          keyfile: String.t() | nil
+          keyfile: String.t() | nil,
+          max_connections: pos_integer
         }
 
   # -------------------------------------------------------------------
@@ -21,7 +22,7 @@ defmodule Air.PsqlServer do
   @doc "Returns the postgresql server configuration."
   @spec configuration() :: configuration
   def configuration() do
-    default_config = %{require_ssl: true, certfile: nil, keyfile: nil}
+    default_config = %{require_ssl: true, certfile: nil, keyfile: nil, max_connections: 1024}
 
     user_config =
       case Aircloak.DeployConfig.fetch("psql_server") do
@@ -34,7 +35,7 @@ defmodule Air.PsqlServer do
 
     normalized_user_config =
       user_config
-      |> Map.take(["require_ssl", "certfile", "keyfile"])
+      |> Map.take(["require_ssl", "certfile", "keyfile", "max_connections"])
       |> Enum.map(fn {key, value} -> {String.to_atom(key), value} end)
       |> Enum.into(%{})
 
@@ -121,10 +122,7 @@ defmodule Air.PsqlServer do
   end
 
   defp ranch_opts(),
-    do:
-      Application.get_env(:air, Air.PsqlServer, [])
-      |> Keyword.get(:ranch_opts, [])
-      |> Keyword.merge(ssl_settings())
+    do: Keyword.merge(ssl_settings(), max_connections: configuration().max_connections, num_acceptors: 10, backlog: 100)
 
   defp ssl_settings() do
     case validate_ssl_config() do

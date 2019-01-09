@@ -36,7 +36,9 @@ defmodule Air.PsqlServer.RanchServer do
 
   @type opts :: [
           ssl: [:ssl.ssl_option()],
-          num_acceptors: pos_integer
+          num_acceptors: pos_integer,
+          max_connections: pos_integer,
+          backlog: non_neg_integer
         ]
 
   @type behaviour_init_arg :: any
@@ -70,14 +72,13 @@ defmodule Air.PsqlServer.RanchServer do
   @doc "Starts the TCP server as the linked child of the caller process."
   @spec start_embedded_server(pos_integer, module, behaviour_init_arg, opts) :: Supervisor.on_start()
   def start_embedded_server(port, behaviour_mod, behaviour_init_arg, opts \\ []) do
-    opts = Keyword.merge([num_acceptors: 100], opts)
     Logger.info("Accepting PostgreSQL requests on port #{port}")
 
     :ranch_listener_sup.start_link(
       {__MODULE__, port},
-      Keyword.fetch!(opts, :num_acceptors),
+      Keyword.get(opts, :num_acceptors, 10),
       :ranch_tcp,
-      [port: port],
+      [port: port] ++ Keyword.take(opts, [:max_connections, :backlog]),
       __MODULE__,
       {opts, behaviour_mod, behaviour_init_arg}
     )
