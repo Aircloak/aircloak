@@ -20,6 +20,7 @@ defmodule AirWeb.Admin.AnalysisController do
     tables = tables()
 
     render(conn, "index.html",
+      full_width: true,
       by_table: group(tables, & &1.name),
       by_data_source: group(tables, & &1.data_source),
       by_host: group(tables, & &1.host)
