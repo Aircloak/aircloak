@@ -26,7 +26,13 @@
   <tbody>
     <%= for group <- @groups do %>
       <tr>
-        <td><%= group.name %></td>
+        <td>
+          <%= if @links do %>
+            <a href="<%= admin_data_source_path(@conn, :show, group.data_source) %>"><%= group.name %></a>
+          <% else %>
+            <%= group.name %>
+          <% end %>
+        </td>
         <td><%= group.columns %></td>
         <td><%= group.isolators_computed %></td>
         <td><%= group.isolators_failed %></td>

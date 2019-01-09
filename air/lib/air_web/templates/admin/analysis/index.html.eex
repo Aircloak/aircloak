@@ -11,15 +11,15 @@
 
   <div class="tab-content">
     <div id="data-source" class="tab-pane active" role="tabpanel">
-      <%= render("_analysis_table.html", groups: @by_data_source) %>
+      <%= render("_analysis_table.html", conn: @conn, groups: @by_data_source, links: true) %>
     </div>
 
     <div id="table" class="tab-pane" role="tabpanel">
-      <%= render("_analysis_table.html", groups: @by_table) %>
+      <%= render("_analysis_table.html", conn: @conn, groups: @by_table, links: true) %>
     </div>
 
     <div id="host" class="tab-pane" role="tabpanel">
-      <%= render("_analysis_table.html", groups: @by_host) %>
+      <%= render("_analysis_table.html", conn: @conn, groups: @by_host, links: false) %>
     </div>
   </div>
 </div>

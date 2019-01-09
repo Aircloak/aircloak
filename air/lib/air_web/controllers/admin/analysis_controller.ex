@@ -20,7 +20,7 @@ defmodule AirWeb.Admin.AnalysisController do
     tables = tables()
 
     render(conn, "index.html",
-      by_table: tables,
+      by_table: group(tables, & &1.name),
       by_data_source: group(tables, & &1.data_source),
       by_host: group(tables, & &1.host)
     )
@@ -37,7 +37,8 @@ defmodule AirWeb.Admin.AnalysisController do
     tables
     |> Enum.group_by(fun)
     |> Enum.map(fn {name, tables} ->
-      initial = Enum.reduce(@stats, %{name: name}, &Map.put(&2, &1, 0))
+      initial = %{name: name, data_source: hd(tables).data_source}
+      initial = Enum.reduce(@stats, initial, &Map.put(&2, &1, 0))
 
       Enum.reduce(tables, initial, fn table, acc ->
         Enum.reduce(@stats, acc, fn key, acc ->
