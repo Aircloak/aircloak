@@ -227,15 +227,15 @@ defmodule Air.Service.DataSourceTest do
     test "should update existing data source" do
       table = %{id: "table_id", columns: []}
       name = "new_name"
-      data_source = DataSource.create_or_update_data_source(name, [table], [])
-      assert data_source.id == DataSource.create_or_update_data_source(name, [table], []).id
+      data_source = DataSource.create_or_update_data_source(%{name: name, tables: [table]})
+      assert data_source.id == DataSource.create_or_update_data_source(%{name: name, tables: [table]}).id
     end
 
     test "should create new data source if none exists" do
       table = %{id: "table_id", columns: []}
       name = "new_name"
       refute Repo.all(Air.Schemas.DataSource) |> Enum.any?(&(&1.name == name))
-      assert %Air.Schemas.DataSource{} = DataSource.create_or_update_data_source(name, [table], [])
+      assert %Air.Schemas.DataSource{} = DataSource.create_or_update_data_source(%{name: name, tables: [table]})
     end
 
     test "should precompute and store isolator status" do
@@ -251,7 +251,7 @@ defmodule Air.Service.DataSourceTest do
         }
       ]
 
-      data_source = DataSource.create_or_update_data_source("new_name", tables, [])
+      data_source = DataSource.create_or_update_data_source(%{name: "new_name", tables: tables})
 
       assert data_source.columns_count == 4
       assert data_source.isolated_computed_count == 2
@@ -271,7 +271,7 @@ defmodule Air.Service.DataSourceTest do
         }
       ]
 
-      data_source = DataSource.create_or_update_data_source("new_name", tables, [])
+      data_source = DataSource.create_or_update_data_source(%{name: "new_name", tables: tables})
 
       assert data_source.columns_count == 4
       assert data_source.shadow_tables_computed_count == 2
@@ -286,7 +286,7 @@ defmodule Air.Service.DataSourceTest do
         }
       ]
 
-      data_source = DataSource.create_or_update_data_source("new_name", tables, [])
+      data_source = DataSource.create_or_update_data_source(%{name: "new_name", tables: tables})
 
       assert data_source.columns_count == 1
       assert data_source.shadow_tables_computed_count == 1
@@ -387,14 +387,14 @@ defmodule Air.Service.DataSourceTest do
     test "should list available tables" do
       tables = [%{id: "table_id", columns: []}]
       name = "new_name"
-      data_source = DataSource.create_or_update_data_source(name, tables, [])
+      data_source = DataSource.create_or_update_data_source(%{name: name, tables: tables})
       assert [%{"id" => "table_id", "columns" => []}] == Schemas.DataSource.tables(data_source)
     end
 
     test "should list views as part of tables" do
       tables = []
       name = "new_name"
-      data_source = DataSource.create_or_update_data_source(name, tables, [])
+      data_source = DataSource.create_or_update_data_source(%{name: name, tables: tables})
 
       group = TestRepoHelper.create_group!()
       user = TestRepoHelper.create_user!(%{groups: [group.id]})

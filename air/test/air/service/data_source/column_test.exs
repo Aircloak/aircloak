@@ -66,6 +66,6 @@ defmodule Air.Service.DataSource.Column.Test do
       }
     ]
 
-    Air.Service.DataSource.create_or_update_data_source("new_name", tables, [])
+    Air.Service.DataSource.create_or_update_data_source(%{name: "new_name", tables: tables})
   end
 end

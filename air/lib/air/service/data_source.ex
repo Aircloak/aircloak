@@ -12,6 +12,8 @@ defmodule Air.Service.DataSource do
   import Ecto.Changeset
   require Logger
 
+  @type data_source_map :: %{name: String.t(), tables: [table], errors: [String.t()]}
+
   @type data_source_id_spec :: {:id, integer} | {:name, String.t()}
 
   @type data_source_operation_error :: {:error, :expired | :unauthorized | :not_connected | :internal_error | any}
@@ -157,11 +159,11 @@ defmodule Air.Service.DataSource do
   def by_names(names \\ []), do: Repo.all(from(data_source in DataSource, where: data_source.name in ^names))
 
   @doc "Creates or updates a data source, returning the updated data source"
-  @spec create_or_update_data_source(String.t(), [table], [String.t()]) :: DataSource.t()
-  def create_or_update_data_source(name, tables, errors) do
-    db_data = data_source_to_db_data(name, tables, errors)
+  @spec create_or_update_data_source(data_source_map()) :: DataSource.t()
+  def create_or_update_data_source(data_source_map) do
+    db_data = data_source_to_db_data(data_source_map)
 
-    case Repo.get_by(DataSource, name: name) do
+    case Repo.get_by(DataSource, name: data_source_map.name) do
       nil -> create!(db_data)
       data_source -> update!(data_source, db_data)
     end
@@ -434,13 +436,16 @@ defmodule Air.Service.DataSource do
       |> unique_constraint(:name)
       |> PhoenixMTM.Changeset.cast_collection(:groups, Air.Repo, Group)
 
-  defp data_source_to_db_data(name, tables, errors) do
+  defp data_source_to_db_data(data_source_map) do
     # We're computing total column count, and computed and failed counts for isolators and shadow tables, and storing
     # them directly. This allows us to have that data ready, without needing to decode the tables json. Since these
     # counts are frequently needed to determine the column status, we're precomputing them once.
 
+    tables = data_source_map.tables
+    errors = Map.get(data_source_map, :errors, [])
+
     %{
-      name: name,
+      name: data_source_map.name,
       tables: Jason.encode!(tables),
       errors: Jason.encode!(errors),
       columns_count: count_columns(tables, fn _ -> true end),
