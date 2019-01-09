@@ -18,6 +18,34 @@ defmodule IntegrationTest.OdbcTest do
     assert to_string(msg) =~ ~r/Authentication failed/
   end
 
+  describe "max_connections" do
+    test "can accept up to max_connections connections", context do
+      config = Air.PsqlServer.configuration()
+      max_clients = config.max_connections
+
+      Stream.repeatedly(fn -> connect(context.user) end)
+      |> Stream.take(max_clients)
+      |> Enum.all?(&match?({:ok, _pid}, &1))
+      |> assert()
+    end
+
+    test "after max connections are established, subsequent connections are not accepted", context do
+      config = Air.PsqlServer.configuration()
+      max_clients = config.max_connections + 10
+
+      Stream.repeatedly(fn ->
+        try do
+          connect(context.user, timeout: :timer.seconds(1))
+        catch
+          :exit, :timeout -> {:error, :timeout}
+        end
+      end)
+      |> Stream.take(max_clients + 1)
+      |> Enum.any?(&(&1 == {:error, :timeout}))
+      |> assert()
+    end
+  end
+
   for {client_ssl_mode, ssl_config, should_succeed?} <- [
         # supported successful combinations
         {"disable", %{"require_ssl" => false}, true},
@@ -223,7 +251,8 @@ defmodule IntegrationTest.OdbcTest do
           user: Manager.login(user),
           password: Manager.user_password(),
           database: Manager.data_source_name(),
-          sslmode: "require"
+          sslmode: "require",
+          timeout: :infinity
         ],
         params
       )
@@ -242,6 +271,6 @@ defmodule IntegrationTest.OdbcTest do
       |> Enum.join()
       |> to_charlist()
 
-    :odbc.connect(connection_string, [])
+    :odbc.connect(connection_string, Keyword.take(params, [:timeout]))
   end
 end
