@@ -2,7 +2,6 @@ defmodule AirWeb.Endpoint do
   @moduledoc "Implements the HTTP server for insights.aircloak.com."
 
   use Phoenix.Endpoint, otp_app: :air
-  use Appsignal.Phoenix
 
   # -------------------------------------------------------------------
   # Endpoint HTTP specification
