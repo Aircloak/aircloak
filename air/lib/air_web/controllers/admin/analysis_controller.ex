@@ -18,7 +18,12 @@ defmodule AirWeb.Admin.AnalysisController do
 
   def index(conn, _params) do
     tables = tables()
-    render(conn, "index.html", by_table: tables, by_data_source: group(tables, & &1.data_source), by_host: tables)
+
+    render(conn, "index.html",
+      by_table: tables,
+      by_data_source: group(tables, & &1.data_source),
+      by_host: group(tables, & &1.host)
+    )
   end
 
   # -------------------------------------------------------------------
@@ -47,6 +52,7 @@ defmodule AirWeb.Admin.AnalysisController do
       %{
         name: "#{data_source.name}/#{table["id"]}",
         data_source: data_source.name,
+        host: data_source.database_host,
         columns: length(table["columns"]),
         isolators_computed: Enum.count(table["columns"], &Column.isolators_computed?/1),
         isolators_failed: Enum.count(table["columns"], &Column.isolators_failed?/1),
