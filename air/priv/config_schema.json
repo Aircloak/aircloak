@@ -64,10 +64,6 @@
       "required": ["require_ssl"]
     },
 
-    "appsignal": {
-      "$comment": "allowed for backward compatibility"
-    },
-
     "ldap": {
       "type": "object",
       "properties": {
