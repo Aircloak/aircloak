@@ -12,7 +12,12 @@ defmodule Air.Service.DataSource do
   import Ecto.Changeset
   require Logger
 
-  @type data_source_map :: %{name: String.t(), tables: [table], errors: [String.t()]}
+  @type data_source_map :: %{
+          required(:name) => String.t(),
+          required(:tables) => [table],
+          optional(:errors) => [String.t()],
+          optional(:database_host) => String.t()
+        }
 
   @type data_source_id_spec :: {:id, integer} | {:name, String.t()}
 
@@ -426,7 +431,7 @@ defmodule Air.Service.DataSource do
 
   @data_source_fields ~w(
     name tables errors description columns_count isolated_computed_count isolated_failed shadow_tables_computed_count
-    shadow_tables_failed
+    shadow_tables_failed database_host
   )a
   defp data_source_changeset(data_source, params),
     do:
@@ -448,6 +453,7 @@ defmodule Air.Service.DataSource do
       name: data_source_map.name,
       tables: Jason.encode!(tables),
       errors: Jason.encode!(errors),
+      database_host: data_source_map[:database_host],
       columns_count: count_columns(tables, fn _ -> true end),
       isolated_computed_count: count_columns(tables, &(&1 |> Map.get(:isolated, false) |> is_boolean())),
       isolated_failed: filter_columns(tables, &(&1 |> Map.get(:isolated, false) == :failed)),

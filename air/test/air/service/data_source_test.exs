@@ -238,6 +238,11 @@ defmodule Air.Service.DataSourceTest do
       assert %Air.Schemas.DataSource{} = DataSource.create_or_update_data_source(%{name: name, tables: [table]})
     end
 
+    test "should store the database host" do
+      data_source = DataSource.create_or_update_data_source(%{name: "new_name", tables: [], database_host: "a_host"})
+      assert data_source.database_host == "a_host"
+    end
+
     test "should precompute and store isolator status" do
       tables = [
         %{

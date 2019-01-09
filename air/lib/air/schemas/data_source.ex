@@ -11,6 +11,7 @@ defmodule Air.Schemas.DataSource do
     field(:description, :string)
     field(:tables, :string)
     field(:errors, :string)
+    field(:database_host, :string)
     field(:columns_count, :integer)
     field(:isolated_computed_count, :integer)
     field(:shadow_tables_computed_count, :integer)
