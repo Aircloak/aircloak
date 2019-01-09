@@ -48,6 +48,14 @@ defmodule Air.Service.DataSource.Column.Test do
     refute Column.analysis_failed?(column("pending", data_source))
   end
 
+  test ".analysis_pending?", %{data_source: data_source} do
+    refute Column.analysis_pending?(column("all_ok", data_source))
+    refute Column.analysis_pending?(column("isolated_failed", data_source))
+    refute Column.analysis_pending?(column("shadow_failed", data_source))
+    assert Column.analysis_pending?(column("pending", data_source))
+    assert Column.analysis_pending?(column("one_pending", data_source))
+  end
+
   defp column(name, data_source) do
     hd(Air.Schemas.DataSource.tables(data_source))["columns"]
     |> Enum.find(&(&1["name"] == name))
@@ -61,7 +69,8 @@ defmodule Air.Service.DataSource.Column.Test do
           %{name: "all_ok", shadow_table: :ok, isolated: true},
           %{name: "isolated_failed", shadow_table: :ok, isolated: :failed},
           %{name: "shadow_failed", shadow_table: :failed, isolated: true},
-          %{name: "pending", shadow_table: :pending, isolated: :pending}
+          %{name: "pending", shadow_table: :pending, isolated: :pending},
+          %{name: "one_pending", shadow_table: :ok, isolated: :pending}
         ]
       }
     ]

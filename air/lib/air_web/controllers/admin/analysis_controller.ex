@@ -32,7 +32,8 @@ defmodule AirWeb.Admin.AnalysisController do
   # -------------------------------------------------------------------
 
   @stats ~w(
-    columns isolators_computed isolators_failed rare_values_computed rare_values_failed analyzed analysis_failed)a
+    columns isolators_computed isolators_failed rare_values_computed rare_values_failed analyzed
+    analysis_failed analysis_pending)a
 
   defp group(tables, fun) do
     tables
@@ -56,12 +57,13 @@ defmodule AirWeb.Admin.AnalysisController do
         data_source: data_source.name,
         host: data_source.database_host,
         columns: length(table["columns"]),
+        analyzed: Enum.count(table["columns"], &Column.analyzed?/1),
+        analysis_pending: Enum.count(table["columns"], &Column.analysis_pending?/1),
+        analysis_failed: Enum.count(table["columns"], &Column.analysis_failed?/1),
         isolators_computed: Enum.count(table["columns"], &Column.isolators_computed?/1),
         isolators_failed: Enum.count(table["columns"], &Column.isolators_failed?/1),
         rare_values_computed: Enum.count(table["columns"], &Column.shadow_computed?/1),
-        rare_values_failed: Enum.count(table["columns"], &Column.shadow_failed?/1),
-        analyzed: Enum.count(table["columns"], &Column.analyzed?/1),
-        analysis_failed: Enum.count(table["columns"], &Column.analysis_failed?/1)
+        rare_values_failed: Enum.count(table["columns"], &Column.shadow_failed?/1)
       }
     end
   end
