@@ -28,7 +28,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert message =~ ~r[Only .* can be used in the left-hand side of an IN operator]
     end
 
-    for function <- ~w(lower upper trim ltrim btrim extract_words) do
+    for function <- ~w(lower upper trim ltrim btrim) do
       test "allows #{function} in IN lhs" do
         assert {:ok, _} = compile("SELECT #{unquote(function)}(string) AS x FROM table WHERE x IN ('a', 'b', 'c')")
       end
@@ -104,7 +104,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert message =~ ~r/Expressions with NOT ILIKE cannot include any functions/
     end
 
-    for function <- ~w(lower upper trim ltrim btrim extract_words) do
+    for function <- ~w(lower upper trim ltrim btrim) do
       test "allows #{function} in <> lhs" do
         assert {:ok, _} = compile("SELECT #{unquote(function)}(string) AS x FROM table WHERE x <> 'a'")
       end

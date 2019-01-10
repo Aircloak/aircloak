@@ -10,7 +10,7 @@ defmodule Cloak.Query.DbEmulator do
 
   alias Cloak.{DataSource, DataSource.Table}
   alias Cloak.Sql.{Query, Expression, Function, Condition, Compiler}
-  alias Cloak.Query.{DbEmulator.Selector, Rows, RowSplitters, Aggregator, Runner.ParallelProcessor, Runner.Engine}
+  alias Cloak.Query.{DbEmulator.Selector, Rows, Aggregator, Runner.ParallelProcessor, Runner.Engine}
 
   # -------------------------------------------------------------------
   # API functions
@@ -56,13 +56,12 @@ defmodule Cloak.Query.DbEmulator do
     Query.debug_log(subquery, "Emulating query ...")
 
     rows = subquery.from |> select_rows(state_updater) |> Selector.pick_db_columns(subquery)
-    subquery = RowSplitters.compile(subquery)
     rows |> group_rows(subquery) |> process_rows(subquery, state_updater)
   end
 
   defp select_rows({:subquery, %{ast: query}}, state_updater) do
     Query.debug_log(query, "Offloading query ...")
-    process_db_rows(RowSplitters.compile(query), db_rows!(query, state_updater), state_updater)
+    process_db_rows(query, db_rows!(query, state_updater), state_updater)
   end
 
   defp select_rows({:join, join}, state_updater) do
@@ -103,7 +102,6 @@ defmodule Cloak.Query.DbEmulator do
   defp group_rows(rows, query) do
     if query.type == :anonymized do
       rows
-      |> RowSplitters.split(query)
       |> Rows.filter(query |> Query.emulated_where() |> Condition.to_function())
       |> Aggregator.group(query)
     else
@@ -132,14 +130,12 @@ defmodule Cloak.Query.DbEmulator do
 
   defp process_rows(rows, %Query{emulated?: false} = query, _state_updater) do
     rows
-    |> RowSplitters.split(query)
     |> Rows.filter(query |> Query.emulated_where() |> Condition.to_function())
     |> convert_rows(query)
   end
 
   defp process_rows(rows, %Query{emulated?: true} = query, _state_updater) do
     rows
-    |> RowSplitters.split(query)
     |> Selector.select(query)
     |> convert_rows(query)
   end

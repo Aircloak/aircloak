@@ -15,8 +15,6 @@ defmodule Aircloak.Functions do
   }
 
   @deprecated_functions %{
-    "extract_match" => %{alternative: "extract_words"},
-    "extract_matches" => %{alternative: "extract_words"},
     "div" => %{alternative: "/"}
   }
 
@@ -167,12 +165,6 @@ defmodule Aircloak.Functions do
                ~w(hex) => %{type_specs: %{[:text] => :text}},
                ~w(hash) => %{
                  type_specs: %{[{:or, [:text, :integer, :real]}] => :text}
-               },
-               # NOTICE: The `{:not_in, :restricted}` is set for `extract_words` because we are not
-               # yet sure it's safe in restricted queries.
-               ~w(extract_words) => %{
-                 type_specs: %{[:text] => :text},
-                 attributes: [{:not_in, :restricted}, :row_splitter]
                },
                [{:cast, :integer}] => %{
                  type_specs: %{[{:or, [:real, :integer, :text, :boolean]}] => :integer},

@@ -173,8 +173,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
       else: query
   end
 
-  defp needs_uid_grouping?(query),
-    do: Enum.all?(query.aggregators, &can_be_uid_grouped?/1) and no_row_splitters?(query)
+  defp needs_uid_grouping?(query), do: Enum.all?(query.aggregators, &can_be_uid_grouped?/1)
 
   @uid_offloaded_aggregators ~w(count sum min max count_noise sum_noise)
   defp can_be_uid_grouped?(aggregator),
@@ -182,9 +181,6 @@ defmodule Cloak.Sql.Compiler.Optimizer do
 
   defp distinct_input?([{:distinct, %Expression{user_id?: false}}]), do: true
   defp distinct_input?([_]), do: false
-
-  defp no_row_splitters?(query),
-    do: Query.outermost_selected_splitters(query) == [] and Query.outermost_where_splitters(query) == []
 
   defp group_by_uid(query) do
     user_id = %Expression{Helpers.id_column(query) | synthetic?: true}

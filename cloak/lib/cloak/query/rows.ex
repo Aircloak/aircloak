@@ -52,15 +52,12 @@ defmodule Cloak.Query.Rows do
   @spec group_expressions(Query.t()) :: [Expression.t()]
   def group_expressions(%Query{group_by: [_ | _] = group_by}),
     # There are group by clauses -> we're grouping on these clauses
-    do: Expression.unique_except(group_by, &Expression.row_splitter?/1)
+    do: Expression.unique(group_by)
 
   def group_expressions(%Query{group_by: [], implicit_count?: true} = query) do
     # Group by is not provided, and no selected expression is an aggregation function ->
     #   we're grouping on all selected columns + non selected order by expressions.
-    Expression.unique_except(
-      query.columns ++ non_selected_order_by_expressions(query),
-      &Expression.row_splitter?/1
-    )
+    Expression.unique(query.columns ++ non_selected_order_by_expressions(query))
   end
 
   def group_expressions(%Query{group_by: [], implicit_count?: false}),

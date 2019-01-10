@@ -499,41 +499,6 @@ defmodule Cloak.Regressions.TeamBank.Test do
     assert_compiles_successfully(query, data_source_scaffold())
   end
 
-  test "sebastian 8" do
-    query = """
-    SELECT
-      EXTRACT_WORDS(
-        buchungstext || verwendungszweck || name
-      ) as shop,
-      count(*)
-    FROM umsatz
-    WHERE EXTRACT_WORDS(
-      buchungstext || verwendungszweck || name
-    ) IS NOT NULL
-    GROUP BY shop
-    ORDER BY count(*) DESC
-    """
-
-    assert_compiles_successfully(query, data_source_scaffold())
-  end
-
-  test "sebastian 9" do
-    query = """
-    SELECT
-      year(buchungsDatum) as year,
-      month(buchungsDatum) as month,
-      EXTRACT_WORDS(UPPER(buchungstext)) as card,
-      count(*),
-      count_noise(*)
-    FROM umsatz
-    WHERE EXTRACT_WORDS(UPPER(buchungstext)) IN ('EC', 'Visa', 'Master', 'Maestro', 'American')
-    GROUP BY card, year, month
-    ORDER BY year, month, count(*) DESC
-    """
-
-    assert_compiles_successfully(query, data_source_scaffold())
-  end
-
   test "sebastian 10" do
     query = """
     SELECT
@@ -599,19 +564,6 @@ defmodule Cloak.Regressions.TeamBank.Test do
     assert_compiles_successfully(query, data_source_scaffold())
   end
 
-  test "sebastian 13" do
-    query = """
-    SELECT
-      left(cast(buchungsDatum as text), 7) as month,
-      extract_words(buchungstext) as card,
-      count(*)
-    FROM umsatz
-    GROUP BY month, card
-    """
-
-    assert_compiles_successfully(query, data_source_scaffold())
-  end
-
   test "sebastian 14" do
     query = """
     SELECT
@@ -657,50 +609,6 @@ defmodule Cloak.Regressions.TeamBank.Test do
     ) as user_incomes
     GROUP BY institution, income_class
     ORDER BY institution, income_class
-    """
-
-    assert_compiles_successfully(query, data_source_scaffold())
-  end
-
-  test "sebastian 16" do
-    query = """
-    SELECT
-      left(cast(buchungsDatum as text), 7) as month,
-      extract_words(verwendungszweck) as shop,
-      avg(betrag),
-      min(betrag),
-      max(betrag),
-      count(*)
-    FROM umsatz
-    GROUP BY month, shop
-    ORDER BY month desc, shop asc
-    """
-
-    assert_compiles_successfully(query, data_source_scaffold())
-  end
-
-  test "sebastian 17" do
-    query = """
-    SELECT
-      extract_words(verwendungszweck) as shop,
-      bucket(income by 200 align middle) as income_class,
-      count(*)
-    FROM (
-      SELECT inhaberId, median(monthly_income) as income
-      FROM (
-        SELECT
-          inhaberId,
-          left(cast(buchungsDatum as text), 7) as year_month,
-          sum(betrag) as monthly_income
-        FROM umsatz
-        WHERE betrag >= 0 and betrag < 1000000000
-        GROUP BY inhaberId, year_month
-      ) as income_by_month
-      GROUP BY inhaberId
-    ) customer_incomes INNER JOIN umsatz ON
-      umsatz.inhaberId = customer_incomes.inhaberId
-    GROUP BY income_class, shop
-    ORDER BY shop ASC, income_class ASC
     """
 
     assert_compiles_successfully(query, data_source_scaffold())
@@ -813,34 +721,6 @@ defmodule Cloak.Regressions.TeamBank.Test do
       income_by_month.year = expenses_by_month.year and
       income_by_month.month = expenses_by_month.month
     GROUP BY expenses_by_month.inhaberId
-    """
-
-    assert_compiles_successfully(query, data_source_scaffold())
-  end
-
-  test "sebastian 21" do
-    query = """
-    SELECT
-      EXTRACT_WORDS(verwendungszweck) as word,
-      count(*)
-    FROM umsatz
-    GROUP BY word
-    ORDER BY count(*) DESC
-    """
-
-    assert_compiles_successfully(query, data_source_scaffold())
-  end
-
-  test "sebastian 22" do
-    query = """
-    SELECT
-      EXTRACT_WORDS(verwendungszweck) as word,
-      count(*)
-    FROM umsatz
-    WHERE verwendungszweck ILIKE '%rückzahlung%'
-    GROUP BY word
-    ORDER BY count(*) DESC
-    LIMIT 10
     """
 
     assert_compiles_successfully(query, data_source_scaffold())

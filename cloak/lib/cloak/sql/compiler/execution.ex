@@ -173,7 +173,7 @@ defmodule Cloak.Sql.Compiler.Execution do
       |> Enum.flat_map(&expand_arguments/1)
       |> Enum.filter(&match?(%Expression{function?: true, aggregate?: true}, &1))
       |> Enum.map(&Expression.semantic/1)
-      |> Expression.unique_except(&Expression.row_splitter?/1)
+      |> Expression.unique()
 
   defp align_join_ranges(%Query{type: :standard} = query), do: query
 

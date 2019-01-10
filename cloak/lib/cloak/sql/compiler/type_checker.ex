@@ -86,7 +86,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       end)
 
   @allowed_in_functions ~w(
-    lower upper substring trim ltrim rtrim btrim extract_words hour minute second year quarter month day weekday
+    lower upper substring trim ltrim rtrim btrim hour minute second year quarter month day weekday
   )
   defp verify_lhs_of_in_is_clear(query),
     do:
@@ -102,7 +102,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       end)
 
   @allowed_not_equals_functions ~w(
-    lower upper substring trim ltrim rtrim btrim extract_words hour minute second year quarter month day weekday
+    lower upper substring trim ltrim rtrim btrim hour minute second year quarter month day weekday
   )
   defp verify_not_equals_is_clear(query),
     do:
