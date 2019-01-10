@@ -59,7 +59,7 @@ defmodule Aircloak.Functions do
                  }
                },
                ~w(avg stddev variance) => %{attributes: [:aggregator], type_specs: %{[numeric] => :real}},
-               ~w(avg_noise stddev_noise) => %{
+               ~w(avg_noise stddev_noise variance_noise) => %{
                  attributes: [:aggregator, {:not_in, :restricted}, {:not_in, :standard}],
                  type_specs: %{[numeric] => :real}
                },

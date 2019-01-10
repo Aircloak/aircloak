@@ -245,8 +245,13 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   defp map_anonymizing_aggregators(query, _, _), do: query
 
-  defp normalize_anonymizing_stddev(query),
-    do: map_anonymizing_aggregators(query, ["stddev", "stddev_noise", "variance"], &expand_anonymizing_aggregator/1)
+  defp normalize_anonymizing_stddev(query) do
+    map_anonymizing_aggregators(
+      query,
+      ["stddev", "stddev_noise", "variance", "variance_noise"],
+      &expand_anonymizing_aggregator/1
+    )
+  end
 
   defp normalize_anonymizing_avg(query), do: map_anonymizing_aggregators(query, ["avg", "avg_noise"], &expand_avg/1)
 
@@ -266,6 +271,9 @@ defmodule Cloak.Sql.Compiler.Normalization do
     squares_avg = Expression.function("/", [squares_sum, count], :real)
     Expression.function("-", [squares_avg, avg_squared], :real)
   end
+
+  defp expand_anonymizing_aggregator(%Expression{function: "variance_noise", function_args: [arg]}),
+    do: Expression.function("avg_noise", [arg], :real, true)
 
   defp expand_anonymizing_aggregator(%Expression{function: "stddev"} = stddev_expression) do
     # `sd(v) = sqrt(variance(v))`

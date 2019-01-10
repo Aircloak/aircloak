@@ -1353,6 +1353,21 @@ defmodule Cloak.Query.BasicTest do
 
       assert_in_delta sd, 2.4, 0.1
     end
+
+    test "variance uid" do
+      assert_query("select variance_noise(height), median(height) from heights", %{
+        rows: [%{row: [0.0, _], occurrences: 1}]
+      })
+    end
+
+    test "variance statistics" do
+      assert_query("select variance_noise(height) from heights", %{
+        rows: [%{row: [variance], occurrences: 1}]
+      })
+
+      # comparing stddev (sqrt(variance)) to match the stddev test above
+      assert_in_delta :math.sqrt(variance), 2.4, 0.1
+    end
   end
 
   test "bucketing values" do
