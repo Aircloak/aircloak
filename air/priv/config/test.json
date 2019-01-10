@@ -11,7 +11,8 @@
   "psql_server": {
     "require_ssl": false,
     "certfile": "ssl_cert.pem",
-    "keyfile": "ssl_key.pem"
+    "keyfile": "ssl_key.pem",
+    "max_connections": 5
   },
 
   "database": {

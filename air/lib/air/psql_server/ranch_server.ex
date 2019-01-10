@@ -15,7 +15,7 @@ defmodule Air.PsqlServer.RanchServer do
 
   require Logger
 
-  alias Air.PsqlServer.Protocol
+  alias Air.PsqlServer.{ConnectionLimiter, Protocol}
 
   defstruct [
     :ref,
@@ -36,7 +36,9 @@ defmodule Air.PsqlServer.RanchServer do
 
   @type opts :: [
           ssl: [:ssl.ssl_option()],
-          num_acceptors: pos_integer
+          num_acceptors: pos_integer,
+          max_connections: pos_integer,
+          backlog: non_neg_integer
         ]
 
   @type behaviour_init_arg :: any
@@ -70,14 +72,23 @@ defmodule Air.PsqlServer.RanchServer do
   @doc "Starts the TCP server as the linked child of the caller process."
   @spec start_embedded_server(pos_integer, module, behaviour_init_arg, opts) :: Supervisor.on_start()
   def start_embedded_server(port, behaviour_mod, behaviour_init_arg, opts \\ []) do
-    opts = Keyword.merge([num_acceptors: 100], opts)
     Logger.info("Accepting PostgreSQL requests on port #{port}")
+
+    # The `max_connections` we're setting in ranch is a bit higher then the one configured by the admin. This allows us
+    # to accept overloaded connections, so we can immediately refuse them. Without this, the connections might be left
+    # in the pending state indefinitely.
+    #
+    # The reason why we're still using `max_connections` is to ensure that we're not accepting too many connections at
+    # once (useful if the system is being DoS-ed).
+    #
+    # For more details on why we need our own application-level limiter, see the documentation of `ConnectionLimiter`.
+    max_connections = Keyword.fetch!(opts, :max_connections) + 10
 
     :ranch_listener_sup.start_link(
       {__MODULE__, port},
-      Keyword.fetch!(opts, :num_acceptors),
+      Keyword.get(opts, :num_acceptors, 10),
       :ranch_tcp,
-      [port: port],
+      [port: port, max_connections: max_connections, backlog: Keyword.fetch!(opts, :backlog)],
       __MODULE__,
       {opts, behaviour_mod, behaviour_init_arg}
     )
@@ -163,11 +174,23 @@ defmodule Air.PsqlServer.RanchServer do
     :ok = :ranch.accept_ack(conn.ref)
     set_active_mode(conn)
 
-    # We need to init behaviour after the connection has been accepted. Otherwise
-    # in the case of an error, the client might hang forever.
-    case conn.behaviour_mod.init(conn, behaviour_init_arg) do
-      {:ok, conn} -> {:noreply, conn}
-      {:error, reason} -> {:stop, reason, conn}
+    if ConnectionLimiter.register() do
+      # We need to init behaviour after the connection has been accepted. Otherwise
+      # in the case of an error, the client might hang forever.
+      case conn.behaviour_mod.init(conn, behaviour_init_arg) do
+        {:ok, conn} -> {:noreply, conn}
+        {:error, reason} -> {:stop, reason, conn}
+      end
+    else
+      # We're dropping the connection after we've accepted it. Doing it earlier can cause exceeding ranch process
+      # restarts, or hanged clients. In contrast, doing it here will just result in an unexpected close at the client
+      # end, and won't cause any process crash.
+      #
+      # Also note that we can't send any feedback information to the client, since the PostgreSQL handshake has not yet
+      # been performed.
+      Logger.warn("Too many connections open, closing the connection.")
+      conn.transport.close(conn.socket)
+      {:stop, :normal, conn}
     end
   end
 
@@ -286,12 +309,21 @@ defmodule Air.PsqlServer.RanchServer do
   # -------------------------------------------------------------------
 
   @doc false
-  def child_spec({port, behaviour_mod, behaviour_init_arg, opts}),
-    do:
-      Aircloak.ChildSpec.supervisor(__MODULE__, :start_embedded_server, [
-        port,
-        behaviour_mod,
-        behaviour_init_arg,
-        opts
-      ])
+  def child_spec({port, behaviour_mod, behaviour_init_arg, opts}) do
+    Aircloak.ChildSpec.supervisor(
+      [
+        {ConnectionLimiter, Keyword.fetch!(opts, :max_connections)},
+        ranch_server(port, behaviour_mod, behaviour_init_arg, opts)
+      ],
+      strategy: :rest_for_one
+    )
+  end
+
+  defp ranch_server(port, behaviour_mod, behaviour_init_arg, opts) do
+    Aircloak.ChildSpec.supervisor(
+      __MODULE__,
+      :start_embedded_server,
+      [port, behaviour_mod, behaviour_init_arg, opts]
+    )
+  end
 end
