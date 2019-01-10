@@ -204,6 +204,8 @@ defmodule Cloak.DataSource.MongoDB.Projector do
       },
       do: defp(parse_function(unquote(name), args), do: %{unquote(translation) => args})
 
+  defp parse_function("variance", [value]), do: %{"$pow": [%{"$stdDevSamp" => [value]}, 2]}
+
   defp parse_function("cast", [value, from, :text]) when from in [:real, :integer], do: %{"$substr": [value, 0, -1]}
 
   defp parse_function("cast", [value, :integer, :real]), do: value
