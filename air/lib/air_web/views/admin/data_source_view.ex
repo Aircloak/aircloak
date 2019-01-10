@@ -52,7 +52,7 @@ defmodule AirWeb.Admin.DataSourceView do
 
   defp total_failed(tables), do: tables |> Enum.map(& &1["columns"]) |> List.flatten() |> analysis_failed()
 
-  defp analyzed(columns), do: Enum.count(columns, &Column.analyzed?/1)
+  defp analyzed(columns), do: Enum.count(columns, &Column.analyzed_successfully?/1)
 
   defp analysis_failed(columns), do: Enum.count(columns, &Column.analysis_failed?/1)
 end

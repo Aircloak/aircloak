@@ -34,11 +34,11 @@ defmodule Air.Service.DataSource.Column.Test do
     refute Column.shadow_failed?(column("pending", data_source))
   end
 
-  test ".analyzed?", %{data_source: data_source} do
-    assert Column.analyzed?(column("all_ok", data_source))
-    refute Column.analyzed?(column("isolated_failed", data_source))
-    refute Column.analyzed?(column("shadow_failed", data_source))
-    refute Column.analyzed?(column("pending", data_source))
+  test ".analyzed_successfully?", %{data_source: data_source} do
+    assert Column.analyzed_successfully?(column("all_ok", data_source))
+    refute Column.analyzed_successfully?(column("isolated_failed", data_source))
+    refute Column.analyzed_successfully?(column("shadow_failed", data_source))
+    refute Column.analyzed_successfully?(column("pending", data_source))
   end
 
   test ".analysis_failed?", %{data_source: data_source} do

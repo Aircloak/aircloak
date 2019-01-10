@@ -3,7 +3,7 @@
     <tr>
       <th>Source</th>
       <th>Columns</th>
-      <th>Analyzed</th>
+      <th>Analysis successful</th>
       <th>Analysis pending</th>
       <th>Analysis failed</th>
       <th>Isolators computed</th>
@@ -15,7 +15,7 @@
     <tr>
       <th>Total</th>
       <th><%= total(@groups, :columns) %></th>
-      <th><%= total(@groups, :analyzed) %></th>
+      <th><%= total(@groups, :analyzed_successfully) %></th>
       <th><%= total(@groups, :analysis_pending) %></th>
       <th><%= total(@groups, :analysis_failed) %></th>
       <th><%= total(@groups, :isolators_computed) %></th>
@@ -36,7 +36,7 @@
           <% end %>
         </td>
         <td><%= group.columns %></td>
-        <td><%= group.analyzed %></td>
+        <td><%= group.analyzed_successfully %></td>
         <td><%= group.analysis_pending %></td>
         <td><%= group.analysis_failed %></td>
         <td><%= group.isolators_computed %></td>
