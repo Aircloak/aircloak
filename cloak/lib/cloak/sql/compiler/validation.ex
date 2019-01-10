@@ -97,7 +97,10 @@ defmodule Cloak.Sql.Compiler.Validation do
       raise(
         CompilationError,
         source_location: expression.source_location,
-        message: "Aggregator `#{name}` is not allowed over arguments of type `text` in anonymized subqueries."
+        message: """
+        Aggregator `#{name}` is not allowed over arguments of type `text` in anonymizing contexts.
+        For more information see the "Text operations" subsection of the "Restrictions" section in the user guides.
+        """
       )
     end
 
