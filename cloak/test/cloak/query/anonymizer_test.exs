@@ -38,6 +38,12 @@ defmodule Cloak.Query.AnonimyzerTest do
       rows = [{:stddev, 1, 1, 1}, {:stddev, 2, 4, 1}]
       assert {nil, nil} = Anonymizer.new([MapSet.new()]) |> Anonymizer.stddev(rows)
     end
+
+    test "variance" do
+      # per-user row format = {:stddev, sum of values, sum of squared values, count of values}
+      rows = [{:stddev, 1, 1, 1}, {:stddev, 2, 4, 1}]
+      assert {nil, nil} = Anonymizer.new([MapSet.new()]) |> Anonymizer.variance(rows)
+    end
   end
 
   test "count" do
@@ -97,6 +103,23 @@ defmodule Cloak.Query.AnonimyzerTest do
     ]
 
     assert {0.8988882021697692, 0.0} = Anonymizer.new([MapSet.new()]) |> Anonymizer.stddev(rows)
+  end
+
+  test "variance" do
+    # per-user row format = {:stddev, sum of values, sum of squared values, count of values}
+    rows = [
+      {:stddev, 1, 1, 1},
+      {:stddev, 2, 4, 1},
+      {:stddev, -1, 1, 1},
+      {:stddev, 0, 0, 1},
+      {:stddev, 1, 1, 1},
+      {:stddev, 2, 2, 2},
+      {:stddev, -4, 4, 4},
+      {:stddev, -2, 4, 1},
+      {:stddev, 4, 6, 3}
+    ]
+
+    assert {0.8079999999999998, 0.0} = Anonymizer.new([MapSet.new()]) |> Anonymizer.variance(rows)
   end
 
   test "min" do

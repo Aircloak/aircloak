@@ -175,8 +175,20 @@ defmodule Cloak.Query.Anonymizer do
   Computes the noisy standard deviation and noise sigma of all values in rows,
   where each row is an enumerable of numbers.
   """
-  @spec stddev(t, Enumerable.t()) :: {float, float}
+  @spec stddev(t, Enumerable.t()) :: {float, float} | {nil, nil}
   def stddev(anonymizer, rows) do
+    case variance(anonymizer, rows) do
+      {nil, nil} -> {nil, nil}
+      {avg_variance, noise_sigma_variance} -> {:math.sqrt(abs(avg_variance)), :math.sqrt(noise_sigma_variance)}
+    end
+  end
+
+  @doc """
+  Computes the noisy variance and noise sigma of all values in rows,
+  where each row is an enumerable of numbers.
+  """
+  @spec variance(t, Enumerable.t()) :: {float, float} | {nil, nil}
+  def variance(anonymizer, rows) do
     {sum, count} =
       Enum.reduce(rows, {0, 0}, fn {:stddev, sum, _sum_sqrs, count}, {acc_sum, acc_count} ->
         {acc_sum + sum, acc_count + count}
@@ -189,13 +201,7 @@ defmodule Cloak.Query.Anonymizer do
         {:avg, sum_sqrs + mean * (count * mean - 2 * sum), count}
       end)
 
-    case avg(anonymizer, variances) do
-      {nil, nil} ->
-        {nil, nil}
-
-      {avg_variance, noise_sigma_variance} ->
-        {:math.sqrt(abs(avg_variance)), :math.sqrt(noise_sigma_variance)}
-    end
+    avg(anonymizer, variances)
   end
 
   @doc "Computes the median value of all values in rows, where each row is an enumerable of numbers."

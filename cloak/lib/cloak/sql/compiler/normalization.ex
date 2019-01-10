@@ -246,7 +246,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp map_anonymizing_aggregators(query, _, _), do: query
 
   defp normalize_anonymizing_stddev(query),
-    do: map_anonymizing_aggregators(query, ["stddev", "stddev_noise"], &expand_stddev/1)
+    do: map_anonymizing_aggregators(query, ["stddev", "stddev_noise", "variance"], &expand_anonymizing_aggregator/1)
 
   defp normalize_anonymizing_avg(query), do: map_anonymizing_aggregators(query, ["avg", "avg_noise"], &expand_avg/1)
 
@@ -257,18 +257,26 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   defp sum_of_squares(expression), do: Expression.function("sum", [square_expression(expression)], :real, true)
 
-  defp expand_stddev(%Expression{function: "stddev", function_args: [arg]}) do
-    # `sd(v) = sqrt(sum(v^2)/count - avg(v)^2)`
+  defp expand_anonymizing_aggregator(%Expression{function: "variance", function_args: [arg]}) do
+    # `var(v) = sum(v^2)/count - avg(v)^2`
     squares_sum = sum_of_squares(arg)
     count = Expression.function("count", [arg], :integer, true)
     avg = Expression.function("avg", [arg], :real, true)
     avg_squared = square_expression(avg)
     squares_avg = Expression.function("/", [squares_sum, count], :real)
-    variance = Expression.function("-", [squares_avg, avg_squared], :real)
-    Expression.function("sqrt", [variance], :real)
+    Expression.function("-", [squares_avg, avg_squared], :real)
   end
 
-  defp expand_stddev(%Expression{function: "stddev_noise", function_args: [arg]}) do
+  defp expand_anonymizing_aggregator(%Expression{function: "stddev"} = stddev_expression) do
+    # `sd(v) = sqrt(variance(v))`
+    Expression.function(
+      "sqrt",
+      [expand_anonymizing_aggregator(%Expression{stddev_expression | function: "variance"})],
+      :real
+    )
+  end
+
+  defp expand_anonymizing_aggregator(%Expression{function: "stddev_noise", function_args: [arg]}) do
     avg_noise = Expression.function("avg_noise", [arg], :real, true)
     Expression.function("sqrt", [avg_noise], :real)
   end
