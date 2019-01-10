@@ -269,7 +269,7 @@ defmodule Cloak.Sql.Compiler.Test do
     end
   end
 
-  for function <- ~w(avg stddev sqrt) do
+  for function <- ~w(avg stddev sqrt variance) do
     test "allowing #{function} on numeric columns" do
       assert {:ok, _} = compile("select #{unquote(function)}(numeric) from table", data_source())
     end

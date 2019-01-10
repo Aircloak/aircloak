@@ -58,7 +58,7 @@ defmodule Aircloak.Functions do
                    [:unknown] => :unknown
                  }
                },
-               ~w(avg stddev) => %{attributes: [:aggregator], type_specs: %{[numeric] => :real}},
+               ~w(avg stddev variance) => %{attributes: [:aggregator], type_specs: %{[numeric] => :real}},
                ~w(avg_noise stddev_noise) => %{
                  attributes: [:aggregator, {:not_in, :restricted}, {:not_in, :standard}],
                  type_specs: %{[numeric] => :real}
