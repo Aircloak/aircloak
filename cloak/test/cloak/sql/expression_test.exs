@@ -335,11 +335,6 @@ defmodule Cloak.Sql.Expression.Test do
     assert apply_function("div", [12, 0]) == nil
   end
 
-  test "extract_words" do
-    assert apply_function("extract_words", ["some words"]) == ["some", "words"]
-    assert apply_function("extract_words", [nil]) == [nil]
-  end
-
   test "bucket" do
     assert apply_function({:bucket, :lower}, [3, 10]) == 0
     assert apply_function({:bucket, :lower}, [13, 10]) == 10

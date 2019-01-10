@@ -498,19 +498,6 @@ defmodule Cloak.Query.DBEmulatorTest do
           %{rows: [%{occurrences: 10, row: ["a b c"]}, %{occurrences: 5, row: [nil]}]}
         )
 
-    test "join with a row splitter function" do
-      assert_query(
-        "select extract_words(value) from #{@joined} as t1 inner join #{@vt} as t2 on t1.user_id = t2.user_id",
-        "select user_id, dec_b64(value) as value from #{@emulated}",
-        %{rows: rows}
-      )
-
-      assert length(rows) == 3
-
-      Enum.zip(["a", "b", "c"], rows)
-      |> Enum.each(fn {value, row} -> assert %{occurrences: 10, row: [^value]} = row end)
-    end
-
     test "where inequality" do
       :ok = insert_rows(_user_ids = 21..25, "#{@emulated_insert}", ["number"], [3])
 

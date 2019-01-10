@@ -311,10 +311,6 @@ defmodule Cloak.Sql.Function.Test do
     assert well_typed?({:cast, :interval}, [:interval])
   end
 
-  test "can tell when a function splits rows", do: assert(Function.has_attribute?("extract_words", :row_splitter))
-
-  test "can tell when a function does not split rows", do: refute(Function.has_attribute?("substring", :row_splitter))
-
   test "knows `ceil` is allowed in a subquery",
     do: refute(Function.has_attribute?({:function, "ceil", [], nil}, :not_in_subquery))
 
@@ -344,18 +340,6 @@ defmodule Cloak.Sql.Function.Test do
 
     test "no deprecation info for non-existent functions",
       do: assert({:error, :not_found} = Function.deprecation_info({:function, "foo", [], nil}))
-
-    test "extract_match is deprecated",
-      do:
-        assert(
-          {:ok, %{alternative: "extract_words"}} = Function.deprecation_info({:function, "extract_match", [], nil})
-        )
-
-    test "extract_matches is deprecated",
-      do:
-        assert(
-          {:ok, %{alternative: "extract_words"}} = Function.deprecation_info({:function, "extract_match", [], nil})
-        )
   end
 
   defp return_type(name, arg_types), do: Function.return_type({:function, name, simulate_types(arg_types), nil})

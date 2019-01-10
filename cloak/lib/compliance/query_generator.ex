@@ -374,7 +374,7 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp allowed_in_in?({name, _type_spec, _attributes}, %{in?: true}) do
     name in ~w(
-      lower upper substring trim ltrim rtrim btrim extract_words hour minute second year quarter month day weekday)
+      lower upper substring trim ltrim rtrim btrim hour minute second year quarter month day weekday)
   end
 
   defp allowed_in_range?(_function, %{range?: false}), do: true
@@ -387,7 +387,7 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp allowed_in_negative_condition?({name, _typespec, attributes}, %{negative_condition?: true}) do
     :aggregator in attributes or name in ~w(
-      lower upper substring trim ltrim rtrim btrim extract_words hour minute second year quarter month day weekday)
+      lower upper substring trim ltrim rtrim btrim hour minute second year quarter month day weekday)
   end
 
   defp constant(:any, context), do: constant(type(context), context)

@@ -100,8 +100,8 @@ defmodule Cloak.Sql.Expression do
   @spec constant?(Cloak.Sql.Parser.column() | t) :: boolean
   def constant?(%__MODULE__{constant?: true}), do: true
 
-  def constant?(%__MODULE__{function?: true, aggregate?: false, function_args: args} = function),
-    do: not row_splitter?(function) and Enum.all?(args, &constant?/1)
+  def constant?(%__MODULE__{function?: true, aggregate?: false, function_args: args}),
+    do: Enum.all?(args, &constant?/1)
 
   def constant?(_), do: false
 
@@ -259,24 +259,11 @@ defmodule Cloak.Sql.Expression do
 
   def first_column(%__MODULE__{} = column), do: column
 
-  @doc "Returns true if the given expression is the row splitting function."
-  @spec row_splitter?(t) :: boolean
-  def row_splitter?(%__MODULE__{function?: true} = function),
-    do: Cloak.Sql.Function.has_attribute?(function, :row_splitter)
-
-  def row_splitter?(_), do: false
-
   @doc """
-  Returns the list of unique expression, preserving duplicates of some expressions.
-
-  Expressions for which the provided lambda returns true are not deduplicated.
+  Returns the list of unique expression.
   """
-  @spec unique_except([t], (t -> boolean)) :: [t]
-  def unique_except(expressions, except_fun),
-    do:
-      Enum.uniq_by(expressions, fn expression ->
-        if except_fun.(expression), do: :erlang.unique_integer(), else: semantic(expression)
-      end)
+  @spec unique([t]) :: [t]
+  def unique(expressions), do: Enum.uniq_by(expressions, &semantic/1)
 
   @doc """
   Removes the alias from the given expression.
@@ -298,14 +285,6 @@ defmodule Cloak.Sql.Expression do
         [Cloak.Sql.Query.Lenses.all_expressions() |> Lens.keys([:source_location, :row_index])],
         nil
       )
-
-  @doc "Recursively evaluates a split expression and returns all the values yielded by the splitter."
-  @spec splitter_values(t, DataSource.row()) :: [DataSource.field()]
-  def splitter_values(splitter, row),
-    do:
-      Enum.map(eval_split_expression(splitter, row), fn %__MODULE__{constant?: true, value: value} ->
-        value
-      end)
 
   @doc "Wraps a string expression in the lower case function"
   @spec lowercase(t) :: t
@@ -607,41 +586,6 @@ defmodule Cloak.Sql.Expression do
 
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _}), do: nil
-
-  defp eval_split_expression(%__MODULE__{constant?: true} = expression, _row), do: [expression]
-
-  defp eval_split_expression(%__MODULE__{function?: false} = expression, row),
-    do: [constant(expression.type, value(expression, row))]
-
-  defp eval_split_expression(%__MODULE__{function?: true} = expression, row) do
-    apply_args_instances(expression, eval_args(expression.function_args, row))
-  end
-
-  defp eval_args([], _row), do: [[]]
-
-  defp eval_args([arg | rest], row) do
-    for arg_value <- eval_split_expression(arg, row),
-        remaining_arg_values <- eval_args(rest, row),
-        do: [arg_value | remaining_arg_values]
-  end
-
-  defp apply_args_instances(function, args_instances) do
-    Enum.flat_map(args_instances, &invoke_fun(function, &1))
-  end
-
-  defp invoke_fun(function, args),
-    do:
-      function
-      |> function_results(args)
-      |> Enum.map(&constant(function.type, &1))
-
-  defp function_results(function, args) do
-    if row_splitter?(function) do
-      %{function | function_args: args, row_index: nil} |> value() |> List.wrap()
-    else
-      [value(%{function | function_args: args})]
-    end
-  end
 
   @zero_iv String.duplicate(<<0>>, 16)
   defp dec_aes_cbc128(value, key) when value in [nil, ""] or key in [nil, ""], do: nil

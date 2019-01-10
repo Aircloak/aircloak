@@ -37,7 +37,6 @@ defmodule Cloak.Sql.Compiler.Validation do
   def verify_anonymization_restrictions(%Query{command: :select} = query) do
     verify_user_id_usage_in_subqueries(query)
     Helpers.each_subquery(query, &verify_anonymization_functions_usage/1)
-    Helpers.each_subquery(query, &verify_non_selected_where_splitters/1)
     Helpers.each_subquery(query, &verify_anonymization_joins/1)
     Helpers.each_subquery(query, &verify_sample_rate/1)
     Helpers.each_subquery(query, &verify_inequalities/1)
@@ -155,9 +154,6 @@ defmodule Cloak.Sql.Compiler.Validation do
       Expression.member?(query.group_by, column) ->
         true
 
-      Function.has_attribute?(column, :row_splitter) ->
-        false
-
       column.function? ->
         column.aggregate? or Enum.all?(column.function_args, &valid_expression_in_aggregate?(query, &1))
 
@@ -172,7 +168,6 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp invalid_columns_in_aggregate(query, expression) do
     cond do
       valid_expression_in_aggregate?(query, expression) -> []
-      Function.has_attribute?(expression, :row_splitter) -> [expression]
       expression.function? -> Enum.flat_map(expression.function_args, &invalid_columns_in_aggregate(query, &1))
       true -> [expression]
     end
@@ -208,23 +203,6 @@ defmodule Cloak.Sql.Compiler.Validation do
           source_location: aggregate.source_location,
           message:
             "Aggregate function `#{Function.readable_name(aggregate.function)}` can not be used in the `GROUP BY` clause."
-    end
-  end
-
-  defp verify_non_selected_where_splitters(query) do
-    selected_splitters = Query.outermost_selected_splitters(query)
-
-    Query.outermost_where_splitters(query)
-    |> Enum.reject(&Expression.member?(selected_splitters, &1))
-    |> case do
-      [] ->
-        query
-
-      [non_selected_where_splitter | _] ->
-        raise CompilationError,
-          source_location: non_selected_where_splitter.source_location,
-          message:
-            "Row splitter functions used in the `WHERE`-clause have to be used identically in the `SELECT`-clause first."
     end
   end
 

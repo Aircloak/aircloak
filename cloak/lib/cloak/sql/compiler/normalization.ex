@@ -239,7 +239,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
   defp map_anonymizing_aggregators(%Query{type: :anonymized} = query, functions, mapper) do
     Query.Lenses.query_expressions()
     |> Lens.filter(&(&1.function in functions))
-    |> Lens.reject(&row_splitter_expression?/1)
     |> Lens.reject(&match?(%Expression{function_args: [{:distinct, _}]}, &1))
     |> Lens.map(query, mapper)
   end
@@ -250,12 +249,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
     do: map_anonymizing_aggregators(query, ["stddev", "stddev_noise"], &expand_stddev/1)
 
   defp normalize_anonymizing_avg(query), do: map_anonymizing_aggregators(query, ["avg", "avg_noise"], &expand_avg/1)
-
-  defp row_splitter_expression?({:distinct, expression}), do: row_splitter_expression?(expression)
-
-  defp row_splitter_expression?(expression) do
-    Expression.row_splitter?(expression) or Enum.any?(expression.function_args, &row_splitter_expression?/1)
-  end
 
   defp square_expression(expression), do: Expression.function("^", [expression, Expression.constant(:real, 2.0)], :real)
 
