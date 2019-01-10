@@ -305,7 +305,7 @@ SELECT COUNT(*) FROM table WHERE number <> 1 AND number <> 2 AND number <> 3
 ### Allowed functions
 
 Conditions using `IN` or `<>` cannot include any functions nor mathematical operations except the following: `lower`,
-`upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `extract_words`, `year`, `month`, `quarter`, `day`, `weekday`,
+`upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `year`, `month`, `quarter`, `day`, `weekday`,
 `hour`, `minute`, `second`, and all aggregators (`MIN`, `MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`). Conditions using `NOT
 LIKE` or `NOT ILIKE` cannot contain any functions except for aggregators.  A single `CAST` is allowed. Furthermore, one
 of the expressions being compared must be a constant. In the case of `IN` all items on the right-hand side of the `IN`
@@ -370,7 +370,7 @@ restrictions to expressions including them. Note that the `user_id` column is al
 
 Conditions using isolating columns cannot use the `IN` operator. Conditions using the `LIKE` operator are limited to
 simple patterns of the form `%foo`, `foo%`, or `%foo%`. Furthermore, only a limited number of functions are allowed for
-these conditions: `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `extract_words`, `year`, `quarter`,
+these conditions: `lower`, `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `year`, `quarter`,
 `month`, `day`, `hour`, `minute`, `second`, `weekday`, `date_trunc`, and `bucket`. All other functions and mathematical
 operations are forbidden.
 

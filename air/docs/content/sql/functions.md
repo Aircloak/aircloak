@@ -319,43 +319,6 @@ CONCAT('a', 'b', 'c')
 -- 'abc'
 ```
 
-### extract_words
-
-Splits a string into words, each becoming an individual row.
-
-```sql
-EXTRACT_WORDS('Some Text')
--- 'Some'
--- 'Text'
-```
-
-This function is not allowed in subqueries.
-
-Keep in mind that this function might affect your analysis in unexpected ways.
-When a column value is split into multiple values, the whole row is replecated.
-This will affect the behaviour of other aggregate functions!
-
-For example, consider the following row coming from the database:
-
-| user-id | price | description |
-|---------|-------|-------------|
-| 1 | 10.00 | purchase of a book |
-| 2 | 15.00 | book of the year |
-
-If used in conjunction with `extract_words(description)`, the input data will be
-converted into the following rows before furhter analysis takes place
-
-| user-id | price | description |
-|---------|-------|-------------|
-| 1 | 10.00 | purchase |
-| 1 | 10.00 | of |
-| 1 | 10.00 | a |
-| 1 | 10.00 | book |
-| 2 | 15.00 | book |
-| 2 | 15.00 | of |
-| 2 | 15.00 | the |
-| 2 | 15.00 | year |
-
 ### hex
 
 Transforms all characters in the given string into hexadecimal.
