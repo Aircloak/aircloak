@@ -136,7 +136,6 @@ This section lists the functions which will cause a query to be emulated.
 - `ltrim`
 - `median`
 - `rtrim`
-- `stddev`
 - `trim`
 
 __Notes__
