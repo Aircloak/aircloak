@@ -12,7 +12,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
 
   @impl Dialect
   def supported_functions(), do: ~w(
-      count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct
+      count sum min max avg stddev variance count_distinct sum_distinct min_distinct max_distinct avg_distinct
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc mod div ^ % * / + -
       length lower upper btrim/1 ltrim rtrim left right substring concat
@@ -57,6 +57,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
 
   def function_sql("avg", [arg]), do: ["AVG(TO_DECIMAL(", arg, "))"]
   def function_sql("stddev", [arg]), do: ["STDDEV_SAMP(", arg, ")"]
+  def function_sql("variance", [arg]), do: ["VAR_SAMP(", arg, ")"]
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 
   @impl Dialect

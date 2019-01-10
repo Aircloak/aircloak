@@ -12,7 +12,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
 
   @impl Dialect
   def supported_functions(), do: ~w(
-      count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct
+      count sum min max avg stddev variance count_distinct sum_distinct min_distinct max_distinct avg_distinct
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc div mod ^ * / + -
       length lower upper btrim/1 ltrim/1 rtrim/1 left right substring concat
@@ -32,6 +32,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   def function_sql("div", [arg1, arg2]), do: [arg1, " DIV ", arg2]
   def function_sql("hex", [arg]), do: ["LOWER(HEX(", arg, "))"]
   def function_sql("stddev", [arg]), do: ["STDDEV_SAMP(", arg, ")"]
+  def function_sql("variance", [arg]), do: ["VAR_SAMP(", arg, ")"]
 
   def function_sql("hash", [arg]), do: ["SUBSTR(MD5(CAST(", arg, " AS char)), 5, 8)"]
 
