@@ -1,0 +1,25 @@
+<h2>Analysis</h2>
+
+<div>
+  <ul class="nav nav-tabs" role="tablist">
+    <li class="active">
+      <a href="#data-source" aria-controls="data-source" role="tab" data-toggle="tab">By data source</a>
+    </li>
+    <li><a href="#table" aria-controls="home" role="tab" data-toggle="tab">By table</a></li>
+    <li><a href="#host" aria-controls="host" role="tab" data-toggle="tab">By host</a></li>
+  </ul>
+
+  <div class="tab-content">
+    <div id="data-source" class="tab-pane active" role="tabpanel">
+      <%= render("_analysis_table.html", conn: @conn, groups: @by_data_source, links: true) %>
+    </div>
+
+    <div id="table" class="tab-pane" role="tabpanel">
+      <%= render("_analysis_table.html", conn: @conn, groups: @by_table, links: true) %>
+    </div>
+
+    <div id="host" class="tab-pane" role="tabpanel">
+      <%= render("_analysis_table.html", conn: @conn, groups: @by_host, links: false) %>
+    </div>
+  </div>
+</div>

@@ -219,12 +219,7 @@ defmodule Air.Service.Cloak do
       |> Enum.reject(&match?({_name, nil}, &1))
 
   defp register_data_sources(data_sources),
-    do:
-      Enum.map(data_sources, fn data_source ->
-        errors = Map.get(data_source, :errors, [])
-
-        DataSource.create_or_update_data_source(data_source.name, data_source.tables, errors)
-      end)
+    do: Enum.map(data_sources, fn data_source -> DataSource.create_or_update_data_source(data_source) end)
 
   defp full_cloak_info({main_channel_pid, cloak_info}),
     do: Map.merge(cloak_info, %{main_channel_pid: main_channel_pid, stats: Stats.cloak_stats(cloak_info.id)})

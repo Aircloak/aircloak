@@ -97,7 +97,7 @@
             <tr>
               <th>Name</th>
               <th>Columns</th>
-              <th>Analyzed</th>
+              <th>Analysis successful</th>
               <th>Analysis failed</th>
             </tr>
 

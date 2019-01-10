@@ -56,7 +56,8 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
     %{
       name: data_source.name,
       tables: Enum.map(data_source.tables, &table_info(data_source, &1)),
-      errors: data_source.errors
+      errors: data_source.errors,
+      database_host: data_source.parameters.hostname
     }
   end
 

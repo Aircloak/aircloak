@@ -3,6 +3,7 @@ defmodule AirWeb.Admin.DataSourceView do
   use Air.Web, :view
 
   alias Air.Repo
+  alias Air.Service.DataSource.Column
 
   defdelegate availability_label(data_source), to: AirWeb.DataSourceView
   defdelegate number_of_tables(data_source), to: AirWeb.DataSourceView
@@ -51,15 +52,7 @@ defmodule AirWeb.Admin.DataSourceView do
 
   defp total_failed(tables), do: tables |> Enum.map(& &1["columns"]) |> List.flatten() |> analysis_failed()
 
-  defp analyzed(columns) do
-    Enum.count(columns, fn column ->
-      is_boolean(column["isolated"]) and column["shadow_table"] == "ok"
-    end)
-  end
+  defp analyzed(columns), do: Enum.count(columns, &Column.analyzed_successfully?/1)
 
-  defp analysis_failed(columns) do
-    Enum.count(columns, fn column ->
-      column["isolated"] == "failed" or column["shadow_table"] == "failed"
-    end)
-  end
+  defp analysis_failed(columns), do: Enum.count(columns, &Column.analysis_failed?/1)
 end
