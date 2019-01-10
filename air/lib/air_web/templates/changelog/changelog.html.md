@@ -4,7 +4,7 @@
 
 ### Enhancements
 
-- Added support for configuring maximum number of concurrent PostgreSQL connections accepted by the Insights Air. See the section on configuring [Insights Air PostgreSQL interface](docs/ops/configuration.html#insights-air-postgresql-interface-configuration) for details.
+- Added support for configuring the maximum allowed number of concurrent PostgreSQL connections accepted by the Insights Air. See the section on configuring [Insights Air PostgreSQL interface](docs/ops/configuration.html#insights-air-postgresql-interface-configuration) for details.
 
 ### Changes
 

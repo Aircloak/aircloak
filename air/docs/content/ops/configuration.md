@@ -136,7 +136,7 @@ Where `postgresql_interface_port` is the PostgreSQL interface port provided when
 
 In order for the above command to work, the cloak component must be started as well, and the user must have permissions to query the given data source.
 
-The `max_connections` property can be used to configure the maximum number of simultaneously open connections. The incoming connections which would cause the limit to be exceeded are immediately closed. This property is optional, and if not provided, the default value of 1024 is used.
+The `max_connections` property can be used to configure the maximum allowed number of simultaneously open connections. The incoming connections which would cause the limit to be exceeded are immediately closed. This property is optional, and if not provided, the default value of 1024 is used.
 
 ### LDAP configuration
 
