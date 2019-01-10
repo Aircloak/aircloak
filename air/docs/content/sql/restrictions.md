@@ -233,7 +233,7 @@ SELECT COUNT(*) FROM table WHERE number >= 9.5 AND number < 10.5
 Because of this, usage of such functions must be restricted in a similar way to inequalities and the `BETWEEN` operator.
 The restrictions disallow the usage of most functions or mathematical operations before or after applying an implicit
 range function. The operations that can be applied are a single `CAST`, any number of aggregators (`MIN`, `MAX`,
-`COUNT`, `SUM`, `AVG`, `STDDEV`), and date extraction functions (`extract`, `year`, `month`, `quarter`, `day`,
+`COUNT`, `SUM`, `AVG`, `STDDEV`, `VARIANCE`), and date extraction functions (`extract`, `year`, `month`, `quarter`, `day`,
 `weekday`, `hour`, `minute`, `second`). The restrictions apply when an implict range function is used in a `WHERE` or
 `JOIN` clause, selected in the top-level `SELECT` clause or used in a non-top-level `HAVING` clause - see [Top-level
 HAVING clause](#top-level-having-clause).
@@ -306,7 +306,7 @@ SELECT COUNT(*) FROM table WHERE number <> 1 AND number <> 2 AND number <> 3
 
 Conditions using `IN` or `<>` cannot include any functions nor mathematical operations except the following: `lower`,
 `upper`, `substring`, `trim`, `ltrim`, `rtrim`, `btrim`, `year`, `month`, `quarter`, `day`, `weekday`,
-`hour`, `minute`, `second`, and all aggregators (`MIN`, `MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`). Conditions using `NOT
+`hour`, `minute`, `second`, and all aggregators (`MIN`, `MAX`, `COUNT`, `SUM`, `AVG`, `STDDEV`, `VARIANCE`). Conditions using `NOT
 LIKE` or `NOT ILIKE` cannot contain any functions except for aggregators.  A single `CAST` is allowed. Furthermore, one
 of the expressions being compared must be a constant. In the case of `IN` all items on the right-hand side of the `IN`
 operator must be constants. An exception to this is comparing two columns with `<>`, but in that case no functions can

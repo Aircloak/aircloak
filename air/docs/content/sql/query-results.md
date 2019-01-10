@@ -21,7 +21,7 @@ Aircloak distorts data in the following ways:
 
 ## Zero-mean noise
 
-Aircloak adds zero-mean Gaussian noise to the outputs of `count`, `sum`, `avg`, and `stddev`. The *amount* (standard deviation, or *sigma*) of the noise may vary. As a rule, the noise is roughly proportional to the influence that the most influential users have on the output. For example:
+Aircloak adds zero-mean Gaussian noise to the outputs of `count`, `sum`, `avg`, `stddev`, and `variance`. The *amount* (standard deviation, or *sigma*) of the noise may vary. As a rule, the noise is roughly proportional to the influence that the most influential users have on the output. For example:
 
 * If the sum of salaries is being computed, and the highest salaries are around $1,000,000, then the sigma will be proportional to $1,000,000.
 * If the count of distinct users is being computed, then the sigma will be proportional to 1 (the maximum amount that any user contributes to the count).
@@ -45,7 +45,7 @@ Aircloak increases the noise with an increase in the number of certain query *co
 | None | One noise layer |
 
 
-Aircloak provides functions that report the sigma of the zero-mean noise for `count()`, `sum()`, `avg()`, and `stddev()`. They are `count_noise()`, `sum_noise()`, `avg_noise()`, and `stddev_noise()` respectively. Note that the reported sigma are themselves rounded, but are generally within 5% of the true value.
+Aircloak provides functions that report the sigma of the zero-mean noise for `count()`, `sum()`, `avg()`, `stddev()`, and `variance()`. They are `count_noise()`, `sum_noise()`, `avg_noise()`, `stddev_noise()`, and `variance_noise()` respectively. Note that the reported sigma are themselves rounded, but are generally within 5% of the true value.
 
 ### Examples
 
@@ -225,9 +225,9 @@ Note that when counting distinct users, there is no added distortion.
 
 The `avg(col)` function is literally the result of the `sum(col)` function divided by the result of the `count(col)` function. As such, it also flattens the high (or negative low) users.
 
-### stddev()
+### stddev() and variance()
 
-The `stddev()` function uses the `avg()` function, and so flattening occurs.
+The functions `stddev()` and `variance()` use the `avg()` function, and so flattening occurs.
 
 ### max() and min()
 

@@ -56,8 +56,8 @@ join :=
   table { [INNER] | { LEFT | RIGHT } [OUTER] } JOIN table ON where_expression
 
 aggregation_function :=
-  COUNT | SUM | AVG | MIN | MAX | STDDEV | MEDIAN |
-  COUNT_NOISE | SUM_NOISE | AVG_NOISE | STDDEV_NOISE
+  COUNT | SUM | AVG | MIN | MAX | STDDEV | VARIANCE | MEDIAN |
+  COUNT_NOISE | SUM_NOISE | AVG_NOISE | STDDEV_NOISE | VARIANCE_NOISE
 
 where_expression :=
   column_expression equality_operator (value | column_expression) |
