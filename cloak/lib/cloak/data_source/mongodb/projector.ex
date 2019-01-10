@@ -199,7 +199,7 @@ defmodule Cloak.DataSource.MongoDB.Projector do
         "avg" => "$avg",
         "min" => "$min",
         "max" => "$max",
-        "stddev" => "$stdDevPop",
+        "stddev" => "$stdDevSamp",
         "size" => "$size"
       },
       do: defp(parse_function(unquote(name), args), do: %{unquote(translation) => args})
