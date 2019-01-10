@@ -55,7 +55,7 @@
   - [Pro Tips](sql/query-results.md#pro-tips)
   - [Zero-mean noise](sql/query-results.md#zero-mean-noise)
   - [Low-count filtering](sql/query-results.md#low-count-filtering)
-  - [Aggregates](sql/query-results.md#anonymizing-aggregation-functions)
+  - [Aggregates](sql/query-results.md#anonymising-aggregation-functions)
 - [Supported functions](sql/functions.md)
   - [Date/time functions](sql/functions.md#datetime-functions)
   - [Working with intervals](sql/functions.md#working-with-intervals)
