@@ -156,6 +156,13 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   defp aggregator_to_default(%Expression{
          function?: true,
+         function: "variance",
+         function_args: [_column]
+       }),
+       do: []
+
+  defp aggregator_to_default(%Expression{
+         function?: true,
          function: "median",
          function_args: [_column]
        }),
@@ -237,6 +244,13 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   defp aggregator_to_accumulator(%Expression{
          function?: true,
+         function: "variance",
+         function_args: [column]
+       }),
+       do: null_ignore_accumulator(do: [value | accumulator])
+
+  defp aggregator_to_accumulator(%Expression{
+         function?: true,
          function: "median",
          function_args: [column]
        }),
@@ -283,6 +297,13 @@ defmodule Cloak.Query.DbEmulator.Selector do
          function_args: [{:distinct, _column}]
        }),
        do: &(&1 |> MapSet.to_list() |> Stats.stddev())
+
+  defp aggregator_to_finalizer(%Expression{
+         function?: true,
+         function: "variance",
+         function_args: [{:distinct, _column}]
+       }),
+       do: &(&1 |> MapSet.to_list() |> Stats.variance())
 
   defp aggregator_to_finalizer(%Expression{
          function?: true,
@@ -347,6 +368,13 @@ defmodule Cloak.Query.DbEmulator.Selector do
          function_args: [_column]
        }),
        do: &Stats.stddev/1
+
+  defp aggregator_to_finalizer(%Expression{
+         function?: true,
+         function: "variance",
+         function_args: [_column]
+       }),
+       do: &Stats.variance/1
 
   defp aggregator_to_finalizer(%Expression{
          function?: true,

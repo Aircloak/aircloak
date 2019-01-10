@@ -285,6 +285,21 @@ defmodule Cloak.Query.DBEmulatorTest do
       )
     end
 
+    test "variance" do
+      :ok =
+        insert_rows(_user_ids = 21..21, "#{@emulated_insert}", ["value"], [
+          Base.encode64("wasabi")
+        ])
+
+      assert_query(
+        "select round(avg(v)) from #{@vt}",
+        """
+          select user_id, variance(length(dec_b64(value))) as v from #{@emulated} group by user_id
+        """,
+        %{rows: [%{occurrences: 1, row: [2]}]}
+      )
+    end
+
     test "min/max/median with numbers" do
       assert_query(
         "select * from #{@vt}",
