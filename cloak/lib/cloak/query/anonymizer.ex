@@ -178,14 +178,14 @@ defmodule Cloak.Query.Anonymizer do
   @spec variance(t, Enumerable.t()) :: {float, float} | {nil, nil}
   def variance(anonymizer, rows) do
     {sum, count} =
-      Enum.reduce(rows, {0, 0}, fn {:stddev, sum, _sum_sqrs, count}, {acc_sum, acc_count} ->
+      Enum.reduce(rows, {0, 0}, fn {:variance, sum, _sum_sqrs, count}, {acc_sum, acc_count} ->
         {acc_sum + sum, acc_count + count}
       end)
 
     mean = sum / Kernel.max(count, 1)
 
     variances =
-      Stream.map(rows, fn {:stddev, sum, sum_sqrs, count} ->
+      Stream.map(rows, fn {:variance, sum, sum_sqrs, count} ->
         {:avg, sum_sqrs + mean * (count * mean - 2 * sum), count}
       end)
 

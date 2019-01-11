@@ -108,8 +108,8 @@ defmodule Cloak.Query.Aggregator.UserId do
   defp per_user_aggregator(%Expression{function: "sum_noise"}), do: :sum
   defp per_user_aggregator(%Expression{function: "avg"}), do: :avg
   defp per_user_aggregator(%Expression{function: "avg_noise"}), do: :avg
-  defp per_user_aggregator(%Expression{function: "variance"}), do: :stddev
-  defp per_user_aggregator(%Expression{function: "variance_noise"}), do: :stddev
+  defp per_user_aggregator(%Expression{function: "variance"}), do: :variance
+  defp per_user_aggregator(%Expression{function: "variance_noise"}), do: :variance
   defp per_user_aggregator(%Expression{function: "min"}), do: :min
   defp per_user_aggregator(%Expression{function: "max"}), do: :max
   defp per_user_aggregator(%Expression{function: "median"}), do: :list
@@ -120,10 +120,10 @@ defmodule Cloak.Query.Aggregator.UserId do
   defp aggregate_value(:sum, value, sum), do: sum + value
   defp aggregate_value(:avg, value, nil), do: {:avg, value, 1}
   defp aggregate_value(:avg, value, {:avg, sum, count}), do: {:avg, sum + value, count + 1}
-  defp aggregate_value(:stddev, value, nil), do: {:stddev, value, value * value, 1}
+  defp aggregate_value(:variance, value, nil), do: {:variance, value, value * value, 1}
 
-  defp aggregate_value(:stddev, value, {:stddev, sum, sum_sqrs, count}),
-    do: {:stddev, sum + value, sum_sqrs + value * value, count + 1}
+  defp aggregate_value(:variance, value, {:variance, sum, sum_sqrs, count}),
+    do: {:variance, sum + value, sum_sqrs + value * value, count + 1}
 
   defp aggregate_value(:set, value, nil), do: MapSet.new([value])
   defp aggregate_value(:set, value, prev_values), do: MapSet.put(prev_values, value)
@@ -158,8 +158,8 @@ defmodule Cloak.Query.Aggregator.UserId do
   defp merge_accumulators({{:avg, value1a, value1b}, {:avg, value2a, value2b}}),
     do: {:avg, value1a + value2a, value1b + value2b}
 
-  defp merge_accumulators({{:stddev, value1a, value1b, value1c}, {:stddev, value2a, value2b, value2c}}),
-    do: {:stddev, value1a + value2a, value1b + value2b, value1c + value2c}
+  defp merge_accumulators({{:variance, value1a, value1b, value1c}, {:variance, value2a, value2b, value2c}}),
+    do: {:variance, value1a + value2a, value1b + value2b, value1c + value2c}
 
   defp merge_accumulators({{:min, value1}, {:min, value2}}), do: {:min, min(value1, value2)}
   defp merge_accumulators({{:max, value1}, {:max, value2}}), do: {:max, max(value1, value2)}
