@@ -103,4 +103,14 @@ defmodule Cloak.Query.UserlessTableTest do
       rows: [%{row: [4, 4]}]
     })
   end
+
+  describe "*_noise" do
+    for function <- ~w(count_noise avg_noise stddev_noise sum_noise variance_noise) do
+      test "using #{function} in standard query" do
+        assert_query("select #{unquote(function)}(i) from userless", %{
+          rows: [%{row: [0.0]}]
+        })
+      end
+    end
+  end
 end

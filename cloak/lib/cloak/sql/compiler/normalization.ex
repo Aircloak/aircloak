@@ -25,6 +25,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
       |> Helpers.apply_bottom_up(&rewrite_distinct/1)
       |> Helpers.apply_bottom_up(&remove_redundant_casts/1)
       |> Helpers.apply_bottom_up(&remove_redundant_rounds/1)
+      |> Helpers.apply_bottom_up(&normalize_non_anonymizing_noise/1)
       |> Helpers.apply_bottom_up(&remove_constant_group_by/1)
       |> Helpers.apply_bottom_up(&normalize_constants/1)
       |> Helpers.apply_bottom_up(&normalize_comparisons/1)
@@ -233,7 +234,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
       )
 
   # -------------------------------------------------------------------
-  # Normalizing anonymized avg calls
+  # Normalizing anonymized aggregators calls
   # -------------------------------------------------------------------
 
   defp map_anonymizing_aggregators(%Query{type: :anonymized} = query, functions, mapper) do
@@ -310,6 +311,35 @@ defmodule Cloak.Sql.Compiler.Normalization do
         ],
         :real
       )
+
+  # -------------------------------------------------------------------
+  # Normalizing non-anonymized noise calls
+  # -------------------------------------------------------------------
+
+  @noise_functions ~w(count_noise sum_noise avg_noise stddev_noise variance_noise)
+  defp normalize_non_anonymizing_noise(%Query{type: type} = query) when type in [:standard, :restricted] do
+    Query.Lenses.query_expressions()
+    |> Lens.filter(&(&1.function in @noise_functions))
+    |> Lens.to_list(query)
+    |> Enum.count()
+    |> case do
+      0 ->
+        query
+
+      _ ->
+        Query.Lenses.query_expressions()
+        |> Lens.filter(&(&1.function in @noise_functions))
+        |> Lens.map(query, fn _ -> Expression.constant(:real, 0.0) end)
+        |> group_global_aggregators()
+    end
+  end
+
+  defp normalize_non_anonymizing_noise(query), do: query
+
+  defp group_global_aggregators(%Query{group_by: []} = query),
+    do: %Query{query | group_by: [Expression.constant(:real, 0.0)]}
+
+  defp group_global_aggregators(query), do: query
 
   # -------------------------------------------------------------------
   # Normalizing ORDER BY

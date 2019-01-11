@@ -32,8 +32,8 @@ defmodule Cloak.Sql.Compiler do
   def compile!(parsed_query, data_source, parameters, views) do
     parsed_query
     |> Compiler.Specification.compile(data_source, parameters, views)
-    |> Compiler.Normalization.prevalidation_normalizations()
     |> Compiler.Anonymization.set_query_type()
+    |> Compiler.Normalization.prevalidation_normalizations()
     |> Compiler.Validation.verify_standard_restrictions()
     |> Compiler.Validation.verify_anonymization_restrictions()
     |> Compiler.TypeChecker.validate_allowed_usage_of_math_and_functions()

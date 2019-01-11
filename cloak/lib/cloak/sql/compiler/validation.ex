@@ -102,14 +102,6 @@ defmodule Cloak.Sql.Compiler.Validation do
 
     :ok
 
-    if Function.has_attribute?(name, {:not_in, query.type}),
-      do:
-        raise(
-          CompilationError,
-          source_location: expression.source_location,
-          message: "Function `#{Function.readable_name(name)}` is not allowed in `#{query.type}` subqueries."
-        )
-
     if Function.internal?(name),
       do:
         raise(
