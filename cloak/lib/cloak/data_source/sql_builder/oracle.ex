@@ -83,9 +83,6 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect
-  def unicode_literal(value), do: [?', value, ?']
-
-  @impl Dialect
   def alias_sql(object, alias), do: [object, " ", alias]
 
   @impl Dialect
@@ -95,15 +92,16 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
     do: raise(ExecutionError, message: "Non-zero OFFSET is not natively supported on this data source")
 
   @impl Dialect
-  def boolean_literal(true), do: "1"
-  def boolean_literal(false), do: "0"
+  def literal(true), do: "1"
+  def literal(false), do: "0"
+
+  def literal(%Timex.Duration{} = duration),
+    do: ["NUMTODSINTERVAL(", duration |> Timex.Duration.to_seconds() |> to_string(), ", 'SECOND')"]
+
+  def literal(value), do: Dialect.literal_default(value)
 
   @impl Dialect
   def native_support_for_ilike?(), do: false
-
-  @impl Dialect
-  def interval_literal(duration),
-    do: ["NUMTODSINTERVAL(", duration |> Timex.Duration.to_seconds() |> to_string(), ", 'SECOND')"]
 
   # -------------------------------------------------------------------
   # Internal functions

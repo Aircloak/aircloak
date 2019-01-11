@@ -30,14 +30,8 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @doc "Generates dialect-specific SQL for aliasing an object."
   @callback alias_sql(iodata, iodata) :: iodata
 
-  @doc "Returns the dialect-specific SQL for a unicode string literal."
-  @callback unicode_literal(iodata) :: iodata
-
-  @doc "Returns the dialect-specific SQL for a boolean literal."
-  @callback boolean_literal(boolean) :: iodata
-
-  @doc "Returns the dialect-specific SQL for an interval literal."
-  @callback interval_literal(Timex.Duration.t()) :: iodata
+  @doc "Returns the dialect-specific SQL for a literal."
+  @callback literal(Cloak.DataSource.field()) :: iodata
 
   @doc "Returns the dialect-specific SQL for adding/subtracting to a date/time/datetime."
   @callback time_arithmetic_expression(String.t(), iodata) :: iodata
@@ -98,10 +92,7 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       def date_subtraction_expression([arg1, arg2]), do: ["(", arg1, " - ", arg2, ")"]
 
       @impl unquote(__MODULE__)
-      def interval_literal(duration), do: duration |> Timex.Duration.to_seconds() |> to_string()
-
-      @impl unquote(__MODULE__)
-      def boolean_literal(value), do: to_string(value)
+      def literal(value), do: literal_default(value)
 
       @impl unquote(__MODULE__)
       def order_by(column, :asc, :nulls_natural), do: [column, " ASC"]
@@ -122,8 +113,7 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
                      ilike_sql: 2,
                      limit_sql: 2,
                      alias_sql: 2,
-                     interval_literal: 1,
-                     boolean_literal: 1,
+                     literal: 1,
                      time_arithmetic_expression: 2,
                      date_subtraction_expression: 1,
                      native_support_for_ilike?: 0,
@@ -132,4 +122,21 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
                      quote_char: 0
     end
   end
+
+  @spec literal_default(Cloak.DataSource.field()) :: iodata
+  def literal_default(%NaiveDateTime{} = value), do: ["timestamp '", to_string(value), ?']
+
+  def literal_default(%Time{} = value), do: ["time '", to_string(value), ?']
+  def literal_default(%Date{} = value), do: ["date '", to_string(value), ?']
+
+  def literal_default(%Timex.Duration{} = duration),
+    do: duration |> Timex.Duration.to_seconds() |> to_string()
+
+  def literal_default(value) when is_number(value), do: to_string(value)
+
+  def literal_default(value) when is_boolean(value), do: to_string(value)
+
+  def literal_default(value) when is_binary(value), do: [?', value, ?']
+
+  def literal_default(nil), do: "NULL"
 end

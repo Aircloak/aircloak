@@ -67,11 +67,13 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   def limit_sql(limit, offset), do: [" OFFSET ", to_string(offset), " ROWS FETCH NEXT ", to_string(limit), " ROWS ONLY"]
 
   @impl Dialect
-  def unicode_literal(value), do: ["N'", value, ?']
-
-  @impl Dialect
-  def boolean_literal(false), do: "0"
-  def boolean_literal(true), do: "1"
+  def literal(%NaiveDateTime{} = value), do: [?', to_string(value), ?']
+  def literal(%Date{} = value), do: [?', to_string(value), ?']
+  def literal(%Time{} = value), do: [?', to_string(value), ?']
+  def literal(false), do: "0"
+  def literal(true), do: "1"
+  def literal(value) when is_binary(value), do: ["N'", value, ?']
+  def literal(value), do: Dialect.literal_default(value)
 
   @impl Dialect
   def cast_sql(["DISTINCT " | value], from, to), do: ["DISTINCT " | cast_sql(value, from, to)]
