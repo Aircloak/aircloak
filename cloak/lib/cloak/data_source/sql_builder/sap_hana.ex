@@ -68,7 +68,8 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   def limit_sql(limit, offset), do: [" LIMIT ", to_string(limit), " OFFSET ", to_string(offset)]
 
   @impl Dialect
-  def unicode_literal(value), do: ["N'", value, ?']
+  def literal(value) when is_binary(value), do: ["N'", value, ?']
+  def literal(value), do: Dialect.literal_default(value)
 
   @impl Dialect
   def cast_sql(value, :real, :integer), do: ["CAST(", function_sql("round", [value]), " AS bigint)"]
