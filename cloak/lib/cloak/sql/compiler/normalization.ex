@@ -261,30 +261,30 @@ defmodule Cloak.Sql.Compiler.Normalization do
     )
   end
 
-  defp normalize_anonymizing_variance(query),
-    do: map_anonymizing_aggregators(query, ["variance", "variance_noise"], &expand_variance/1)
-
-  defp expand_variance(%Expression{function: "variance", function_args: [arg]}) do
-    # `var(v) = sum(v^2)/count - avg(v)^2`
-    squares_sum = sum_of_squares(arg)
-    count = Expression.function("count", [arg], :integer, true)
-    avg = Expression.function("avg", [arg], :real, true)
-    avg_squared = square_expression(avg)
-    squares_avg = Expression.function("/", [squares_sum, count], :real)
-    Expression.function("-", [squares_avg, avg_squared], :real)
+  defp normalize_anonymizing_variance(query) do
+    map_anonymizing_aggregators(
+      query,
+      ["variance"],
+      fn %Expression{function: "variance", function_args: [arg]} ->
+        # `var(v) = sum(v^2)/count - avg(v)^2`
+        squares_sum = sum_of_squares(arg)
+        count = Expression.function("count", [arg], :integer, true)
+        avg = Expression.function("avg", [arg], :real, true)
+        avg_squared = square_expression(avg)
+        squares_avg = Expression.function("/", [squares_sum, count], :real)
+        Expression.function("-", [squares_avg, avg_squared], :real)
+      end
+    )
   end
-
-  defp expand_variance(%Expression{function: "variance_noise", function_args: [arg]}),
-    do: Expression.function("avg_noise", [arg], :real, true)
 
   defp sum_of_squares({:distinct, expression}),
     do: Expression.function("sum", [{:distinct, square_expression(expression)}], :real, true)
 
   defp sum_of_squares(expression), do: Expression.function("sum", [square_expression(expression)], :real, true)
 
-  defp normalize_anonymizing_avg(query), do: map_anonymizing_aggregators(query, ["avg", "avg_noise"], &expand_avg/1)
-
   defp square_expression(expression), do: Expression.function("^", [expression, Expression.constant(:real, 2.0)], :real)
+
+  defp normalize_anonymizing_avg(query), do: map_anonymizing_aggregators(query, ["avg", "avg_noise"], &expand_avg/1)
 
   defp expand_avg(%Expression{function: "avg", function_args: [arg]}),
     do:
