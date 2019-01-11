@@ -102,8 +102,8 @@ defmodule Cloak.Query.Aggregator.Statistics do
   defp merge_aggregation_statistics(_count_adder, statistics1, [0, nil, nil, nil, nil]), do: statistics1
 
   defp merge_aggregation_statistics(count_adder, statistics1, statistics2) do
-    [count1, sum1, min1, max1, stddev1] = statistics1
-    [count2, sum2, min2, max2, stddev2] = statistics2
+    [count1, sum1, min1, max1, variance1] = statistics1
+    [count2, sum2, min2, max2, variance2] = statistics2
 
     count = count_adder.(count1, count2)
 
@@ -111,20 +111,29 @@ defmodule Cloak.Query.Aggregator.Statistics do
     avg2 = sum2 / count2
     avg = (sum1 + sum2) / count
 
-    stddev1 = stddev1 || 0
-    stddev2 = stddev2 || 0
-    # use the formula `sd(v) = sqrt(sum(v^2)/count - avg(v)^2)` to extract sum of squares
-    sum_sqrs1 = (stddev1 * stddev1 + avg1 * avg1) * count1
-    sum_sqrs2 = (stddev2 * stddev2 + avg2 * avg2) * count2
+    variance1 = variance1 || 0
+    variance2 = variance2 || 0
+    # use the formula `var(v) = sum(v^2)/count - avg(v)^2` to extract sum of squares
+    sum_sqrs1 = (variance1 + avg1 * avg1) * count1
+    sum_sqrs2 = (variance2 + avg2 * avg2) * count2
     sum_sqrs = sum_sqrs1 + sum_sqrs2
 
     min = min(min1, min2)
     max = max(max1, max2)
     sum = sum1 + sum2
-    # use the formula `sd(v) = sqrt(sum(v^2)/count - avg(v)^2)` to combine standard deviations
-    stddev = (sum_sqrs / count - avg * avg) |> Kernel.max(0) |> :math.sqrt() |> Kernel.min((max - min) / 2)
+    # use the formula `var(v) = sum(v^2)/count - avg(v)^2` to combine variances
+    variance = sum_sqrs / count - avg * avg
 
-    [count, sum, min, max, stddev]
+    # Since the merging is lossy and uid count is estimated, variance might fall outside of theoretical bounds.
+    # Here, we're compensating by making sure that variance stays within possible bounds.
+    normalized_variance =
+      variance
+      # theoretical minimum for variance is zero (when all the values are the same)
+      |> Kernel.max(0)
+      # theoretical maximum for variance is ((max - min)/2)^2 (half the values are min, and other half are max)
+      |> Kernel.min((max - min) * (max - min) / 4)
+
+    [count, sum, min, max, normalized_variance]
   end
 
   defp aggregate_group({property, anonymizer, statistics}, aggregators) do
@@ -145,9 +154,9 @@ defmodule Cloak.Query.Aggregator.Statistics do
         {_aggregator, [0, nil, nil, nil, nil]} ->
           nil
 
-        {aggregator, [count, sum, min, max, stddev]} ->
+        {aggregator, [count, sum, min, max, variance]} ->
           avg = sum / count
-          statistics = {count, sum, min, max, avg, stddev}
+          statistics = {count, sum, min, max, avg, :math.sqrt(variance)}
 
           {noisy_sum, noisy_min, noisy_max, noisy_sum_sigma} = Anonymizer.noisy_statistics(anonymizer, statistics)
 
