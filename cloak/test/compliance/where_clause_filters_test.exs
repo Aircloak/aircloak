@@ -271,6 +271,7 @@ defmodule Compliance.WhereClauseFilters.Text do
     @tag compliance: "#{column} #{table} WHERE-clause equality in subquery"
     test "input #{column} with a WHERE-clause range on #{table}", context do
       context
+      |> disable_for(Cloak.DataSource.MongoDB, true)
       |> assert_consistent_and_not_failing("""
         SELECT count(*)
         FROM #{unquote(table)}
