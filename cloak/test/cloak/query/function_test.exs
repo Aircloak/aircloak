@@ -85,6 +85,7 @@ defmodule Cloak.Query.FunctionTest do
   test "sum(height)", do: assert_subquery_aggregate("sum(height)", "heights_ft", 360)
   test "median(height)", do: assert_subquery_aggregate("median(height)", "heights_ft", 180)
   test "stddev(height)", do: assert_subquery_aggregate("stddev(height)", "heights_ft", 0.0)
+  test "variance(height)", do: assert_subquery_aggregate("variance(height)", "heights_ft", 0.0)
   test "count(*)", do: assert_subquery_aggregate("count(*)", "heights_ft", 2)
   test "count(height)", do: assert_subquery_aggregate("count(height)", "heights_ft", 2)
 

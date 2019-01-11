@@ -454,6 +454,26 @@ defmodule Cloak.Query.BasicTest do
       assert_in_delta(stddev, 8.1, 0.2)
     end
 
+    test "variance uid" do
+      assert_query("select variance(height), median(height) from heights", %{
+        columns: ["variance", _],
+        rows: [%{row: [variance, _], occurrences: 1}]
+      })
+
+      # comparing stddev (sqrt(variance)) to match the stddev test above
+      assert_in_delta(:math.sqrt(variance), 8.1, 0.1)
+    end
+
+    test "variance statistics" do
+      assert_query("select variance(height) from heights", %{
+        columns: ["variance"],
+        rows: [%{row: [variance], occurrences: 1}]
+      })
+
+      # comparing stddev (sqrt(variance)) to match the stddev test above
+      assert_in_delta(:math.sqrt(variance), 8.1, 0.2)
+    end
+
     test "median" do
       assert_query("select median(height) from heights", %{
         columns: ["median"],
@@ -498,6 +518,16 @@ defmodule Cloak.Query.BasicTest do
       })
 
       assert_in_delta(stddev, 8.1, 0.2)
+    end
+
+    test "variance(qualified_column)" do
+      assert_query("select variance(heights.height) from heights", %{
+        columns: ["variance"],
+        rows: [%{row: [variance], occurrences: 1}]
+      })
+
+      # comparing stddev (sqrt(variance)) to match the stddev test above
+      assert_in_delta(:math.sqrt(variance), 8.1, 0.2)
     end
 
     test "median(qualified_column)" do
@@ -555,6 +585,16 @@ defmodule Cloak.Query.BasicTest do
       assert_in_delta(stddev, 8.29, 0.1)
     end
 
+    test "variance" do
+      assert_query("select variance(height) from heights", %{
+        columns: ["variance"],
+        rows: [%{row: [variance], occurrences: 1}]
+      })
+
+      # comparing stddev (sqrt(variance)) to match the stddev test above
+      assert_in_delta(:math.sqrt(variance), 8.29, 0.1)
+    end
+
     test "median" do
       assert_query("select median(height) from heights", %{
         columns: ["median"],
@@ -608,6 +648,16 @@ defmodule Cloak.Query.BasicTest do
       })
 
       assert_in_delta(stddev, 172, 1)
+    end
+
+    test "variance" do
+      assert_query("select variance(height) from heights", %{
+        columns: ["variance"],
+        rows: [%{row: [variance], occurrences: 1}]
+      })
+
+      # comparing stddev (sqrt(variance)) to match the stddev test above
+      assert_in_delta(:math.sqrt(variance), 172, 1)
     end
 
     test "median" do
@@ -1302,6 +1352,21 @@ defmodule Cloak.Query.BasicTest do
       })
 
       assert_in_delta sd, 2.4, 0.1
+    end
+
+    test "variance uid" do
+      assert_query("select variance_noise(height), median(height) from heights", %{
+        rows: [%{row: [0.0, _], occurrences: 1}]
+      })
+    end
+
+    test "variance statistics" do
+      assert_query("select variance_noise(height) from heights", %{
+        rows: [%{row: [variance], occurrences: 1}]
+      })
+
+      # comparing stddev (sqrt(variance)) to match the stddev test above
+      assert_in_delta :math.sqrt(variance), 2.4, 0.1
     end
   end
 

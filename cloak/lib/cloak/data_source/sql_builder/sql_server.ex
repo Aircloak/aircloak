@@ -11,6 +11,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   @impl Dialect
   def supported_functions(), do: ~w(
       count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct stddev_distinct
+      variance variance_distinct
       year quarter month day hour minute second weekday
       sqrt floor ceil abs round trunc div mod ^ * / + -
       length lower upper ltrim rtrim left right substring concat
@@ -42,6 +43,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
 
   def function_sql("avg", [arg]), do: ["AVG(", cast_sql(arg, :numeric, :real), ")"]
   def function_sql("stddev", [arg]), do: ["STDEV(", cast_sql(arg, :numeric, :real), ")"]
+  def function_sql("variance", [arg]), do: ["VAR(", cast_sql(arg, :numeric, :real), ")"]
 
   def function_sql("substring", [arg1, arg2]), do: ["SUBSTRING(", arg1, ", ", arg2, ", LEN(", arg1, "))"]
 

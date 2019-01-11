@@ -12,6 +12,7 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
   @impl Dialect
   def supported_functions(), do: ~w(
       count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct stddev_distinct
+      variance variance_distinct
       year month day hour minute second date_trunc
       sqrt floor ceil abs round trunc div mod * / + - ^ %
       length lower upper btrim ltrim rtrim left right substring concat
@@ -31,6 +32,8 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
   def function_sql("left", [arg1, arg2]), do: ["SUBSTR(", arg1, ", 1, ", arg2, ")"]
 
   def function_sql("stddev", [arg]), do: ["STDDEV_SAMP(", arg, ")"]
+
+  def function_sql("variance", [arg]), do: ["VAR_SAMP(", arg, ")"]
 
   def function_sql("right", [arg1, arg2]),
     do: ["SUBSTR(", arg1, ", ", larger_int(["LENGTH(", arg1, ") - ", arg2, " + 1"], "1"), ?)]

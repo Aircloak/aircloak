@@ -28,9 +28,17 @@ defmodule Cloak.Stats do
   def stddev([_value]), do: nil
 
   def stddev(values) do
+    with variance when not is_nil(variance) <- variance(values), do: :math.sqrt(variance)
+  end
+
+  @doc "Returns the variance of the input list of values. Single pass through the values."
+  @spec variance([number]) :: number
+  def variance([]), do: nil
+  def variance([_value]), do: nil
+
+  def variance(values) do
     {count, sum, sum_squares} = count_and_sums(values, 0, 0, 0)
-    variance = (count * sum_squares - sum * sum) / (count * (count - 1))
-    variance |> max(0.0) |> :math.sqrt()
+    max((count * sum_squares - sum * sum) / (count * (count - 1)), 0.0)
   end
 
   @doc "Returns the sum of the input list of values. Should be 3-4 times faster than Enum.sum/1."
