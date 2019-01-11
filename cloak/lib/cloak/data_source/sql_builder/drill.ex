@@ -80,18 +80,17 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect
-  def unicode_literal(value), do: [?', value, ?']
-
-  @impl Dialect
   def time_arithmetic_expression("+", [date, interval]), do: ["DATE_ADD(", date, ", ", interval, ")"]
   def time_arithmetic_expression("-", [date, interval]), do: ["DATE_SUB(", date, ", ", interval, ")"]
 
   @impl Dialect
-  def interval_literal(interval) do
+  def literal(%Timex.Duration{} = interval) do
     days = Duration.to_days(interval, truncate: true)
     time = interval |> Duration.diff(Duration.from_days(days)) |> Duration.to_time!() |> to_string()
     "interval '#{days} #{time}' day(9) to second"
   end
+
+  def literal(value), do: Dialect.literal_default(value)
 
   @impl Dialect
   def quote_char(), do: ?`
