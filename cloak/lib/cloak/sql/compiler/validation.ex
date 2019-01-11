@@ -92,31 +92,32 @@ defmodule Cloak.Sql.Compiler.Validation do
 
   defp verify_anonymization_function_usage(%Expression{function: name} = expression, query) do
     if query.type == :anonymized and name in ~w(min max median) and
-         expression.function_args |> Enum.at(0) |> Function.type() == :text,
-       do:
-         raise(
-           CompilationError,
-           source_location: expression.source_location,
-           message: "Aggregator `#{name}` is not allowed over arguments of type `text` in anonymized subqueries."
-         )
+         expression.function_args |> Enum.at(0) |> Function.type() == :text do
+      raise(
+        CompilationError,
+        source_location: expression.source_location,
+        message: """
+        Aggregator `#{name}` is not allowed over arguments of type `text` in anonymizing contexts.
+        For more information see the "Text operations" subsection of the "Restrictions" section in the user guides.
+        """
+      )
+    end
 
-    :ok
+    if Function.has_attribute?(name, {:not_in, query.type}) do
+      raise(
+        CompilationError,
+        source_location: expression.source_location,
+        message: "Function `#{Function.readable_name(name)}` is not allowed in `#{query.type}` subqueries."
+      )
+    end
 
-    if Function.has_attribute?(name, {:not_in, query.type}),
-      do:
-        raise(
-          CompilationError,
-          source_location: expression.source_location,
-          message: "Function `#{Function.readable_name(name)}` is not allowed in `#{query.type}` subqueries."
-        )
-
-    if Function.internal?(name),
-      do:
-        raise(
-          CompilationError,
-          source_location: expression.source_location,
-          message: "Function `#{Function.readable_name(name)}` can only be used internally."
-        )
+    if Function.internal?(name) do
+      raise(
+        CompilationError,
+        source_location: expression.source_location,
+        message: "Function `#{Function.readable_name(name)}` can only be used internally."
+      )
+    end
 
     :ok
   end
