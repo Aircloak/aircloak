@@ -108,8 +108,6 @@ defmodule Cloak.Query.Aggregator.UserId do
   defp per_user_aggregator(%Expression{function: "sum_noise"}), do: :sum
   defp per_user_aggregator(%Expression{function: "avg"}), do: :avg
   defp per_user_aggregator(%Expression{function: "avg_noise"}), do: :avg
-  defp per_user_aggregator(%Expression{function: "stddev"}), do: :stddev
-  defp per_user_aggregator(%Expression{function: "stddev_noise"}), do: :stddev
   defp per_user_aggregator(%Expression{function: "variance"}), do: :stddev
   defp per_user_aggregator(%Expression{function: "variance_noise"}), do: :stddev
   defp per_user_aggregator(%Expression{function: "min"}), do: :min
@@ -233,11 +231,6 @@ defmodule Cloak.Query.Aggregator.UserId do
     avg
   end
 
-  defp aggregate_by(aggregation_data, "stddev", _type, anonymizer) do
-    {stddev, _noise_sigma} = Anonymizer.stddev(anonymizer, aggregation_data)
-    stddev
-  end
-
   defp aggregate_by(aggregation_data, "count_noise", _type, anonymizer) do
     {_count, noise_sigma} = Anonymizer.count(anonymizer, aggregation_data)
     noise_sigma
@@ -250,11 +243,6 @@ defmodule Cloak.Query.Aggregator.UserId do
 
   defp aggregate_by(aggregation_data, "avg_noise", _type, anonymizer) do
     {_avg, noise_sigma} = Anonymizer.avg(anonymizer, aggregation_data)
-    noise_sigma
-  end
-
-  defp aggregate_by(aggregation_data, "stddev_noise", _type, anonymizer) do
-    {_stddev, noise_sigma} = Anonymizer.stddev(anonymizer, aggregation_data)
     noise_sigma
   end
 

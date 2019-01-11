@@ -172,18 +172,6 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   @doc """
-  Computes the noisy standard deviation and noise sigma of all values in rows,
-  where each row is an enumerable of numbers.
-  """
-  @spec stddev(t, Enumerable.t()) :: {float, float} | {nil, nil}
-  def stddev(anonymizer, rows) do
-    case variance(anonymizer, rows) do
-      {nil, nil} -> {nil, nil}
-      {avg_variance, noise_sigma_variance} -> {:math.sqrt(abs(avg_variance)), :math.sqrt(noise_sigma_variance)}
-    end
-  end
-
-  @doc """
   Computes the noisy variance and noise sigma of all values in rows,
   where each row is an enumerable of numbers.
   """
