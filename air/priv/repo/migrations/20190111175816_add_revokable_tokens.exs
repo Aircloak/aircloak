@@ -6,7 +6,7 @@ defmodule Air.Repo.Migrations.AddRevokableTokens do
 
     create table(:revokable_tokens, primary_key: false) do
       add(:id, :uuid, primary_key: true)
-      add(:user_id, references(:users, on_delete: :delete_all))
+      add(:user_id, references(:users, on_delete: :delete_all), null: false)
       add(:type, :revokable_token_type, null: false)
       add(:payload, :binary, null: false)
 

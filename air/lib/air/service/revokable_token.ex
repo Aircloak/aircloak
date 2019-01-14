@@ -3,9 +3,9 @@ defmodule Air.Service.RevokableToken do
   alias Air.Schemas.RevokableToken
   alias Air.Service.Salts
 
-  def sign(payload, type, options \\ []) do
+  def sign(payload, user, type, options \\ []) do
     payload = Phoenix.Token.sign(AirWeb.Endpoint, Salts.get(type), payload)
-    token = create_token!(payload, type, options)
+    token = create_token!(payload, user, type, options)
     token.id
   end
 
@@ -22,8 +22,8 @@ defmodule Air.Service.RevokableToken do
     :ok
   end
 
-  defp create_token!(payload, type, options) do
-    RevokableToken.changeset(%RevokableToken{}, %{type: type, payload: payload})
+  defp create_token!(payload, user, type, options) do
+    Ecto.build_assoc(user, :revokable_tokens, type: type, payload: payload)
     |> Repo.insert!()
   end
 end

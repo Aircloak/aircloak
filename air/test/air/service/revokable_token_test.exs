@@ -4,13 +4,13 @@ defmodule Air.Service.RevokableToken.Test do
   alias Air.Service.RevokableToken
 
   describe ".sign/.verify" do
-    test "generates tokens with the given data" do
-      token = RevokableToken.sign(%{:some => :data}, :session)
+    test "generates tokens with the given data", %{user: user} do
+      token = RevokableToken.sign(%{:some => :data}, user, :session)
       assert {:ok, %{:some => :data}} = RevokableToken.verify(token, :session)
     end
 
-    test "uses the given domain" do
-      token = RevokableToken.sign(%{:some => :data}, :session)
+    test "uses the given domain", %{user: user} do
+      token = RevokableToken.sign(%{:some => :data}, user, :session)
       assert {:error, :invalid_token} = RevokableToken.verify(token, :password_reset)
     end
 
@@ -26,6 +26,10 @@ defmodule Air.Service.RevokableToken.Test do
       RevokableToken.revoke(token, "some domain")
 
       assert {:error, :invalid_token} = RevokableToken.verify(token, "some domain")
+    end
+
+    setup do
+      {:ok, user: Air.TestRepoHelper.create_user!()}
     end
   end
 
