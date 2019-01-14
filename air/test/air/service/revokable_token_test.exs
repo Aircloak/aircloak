@@ -34,12 +34,11 @@ defmodule Air.Service.RevokableToken.Test do
                )
     end
 
-    @tag :pending
-    test "can be revoked" do
-      token = RevokableToken.sign(%{:some => :data}, "some domain")
-      RevokableToken.revoke(token, "some domain")
+    test "can be revoked", %{user: user} do
+      token = RevokableToken.sign(%{:some => :data}, user, :session)
+      RevokableToken.revoke(token, :session)
 
-      assert {:error, :invalid_token} = RevokableToken.verify(token, "some domain")
+      assert {:error, :invalid_token} = RevokableToken.verify(token, :session, max_age: :infinity)
     end
 
     setup do

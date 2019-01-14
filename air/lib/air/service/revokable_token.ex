@@ -12,8 +12,7 @@ defmodule Air.Service.RevokableToken do
     now = Keyword.get(options, :now, NaiveDateTime.utc_now())
     max_age = Keyword.fetch!(options, :max_age)
 
-    with {:ok, id} <- Phoenix.Token.verify(AirWeb.Endpoint, Salts.get(type), token, max_age: :infinity),
-         token when not is_nil(token) <- Air.Repo.get(RevokableToken, id),
+    with {:ok, token} <- find_record(token, type),
          true <- NaiveDateTime.diff(now, token.inserted_at) < max_age do
       {:ok, :erlang.binary_to_term(token.payload)}
     else
@@ -22,6 +21,10 @@ defmodule Air.Service.RevokableToken do
   end
 
   def revoke(token, type) do
+    with {:ok, token} <- find_record(token, type) do
+      Repo.delete!(token)
+    end
+
     :ok
   end
 
@@ -31,5 +34,14 @@ defmodule Air.Service.RevokableToken do
       payload: :erlang.term_to_binary(payload)
     })
     |> Repo.insert!()
+  end
+
+  defp find_record(token, type) do
+    with {:ok, id} <- Phoenix.Token.verify(AirWeb.Endpoint, Salts.get(type), token, max_age: :infinity) do
+      case Air.Repo.get(RevokableToken, id) do
+        nil -> {:error, :not_found}
+        token -> {:ok, token}
+      end
+    end
   end
 end
