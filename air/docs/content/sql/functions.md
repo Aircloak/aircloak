@@ -7,6 +7,18 @@
 The functions `current_date`, `current_time`, `current_datetime`, `now` and `current_timestamp` are supported. They
 are evaluated during query compilation and replaced with the current date and/or time value.
 
+```sql
+current_date()
+-- 2016-05-22
+
+-- current_timestamp(), now() and current_datetime() are identical
+current_timestamp()
+-- 2016-05-22 12:30:21.340
+
+current_time()
+-- 12:22:44.220
+```
+
 ### Date extraction functions
 
 The functions `year`, `quarter`, `month`, `day`, `hour`, `minute`, `second`, `weekday`, and `dow` (a synonym for
@@ -25,10 +37,10 @@ are `year`, `quarter`, `month`, `day`, `hour`, `minute`, and `second`.
 
 ```sql
 DATE_TRUNC('quarter', date)
--- 2016-05-22T12:30:00.000000 -> 2016-04-01T00:00:00.000000
+-- 2016-05-22 12:30:00.000 -> 2016-04-01 00:00:00.000
 
 DATE_TRUNC('hour', time)
--- 12:22:44.000000 -> 12:00:00.000000
+-- 12:22:44.000 -> 12:00:00.000
 ```
 
 ## Working with intervals
