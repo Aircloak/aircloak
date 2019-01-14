@@ -5,7 +5,7 @@ defmodule Air.Service.Salts do
   codebase and/or requiring additional configuration options. It also makes it extremely easy to add a new salt.
   """
 
-  @known_names ~w[api_token password_reset session_signing session_encryption query_permalink]a
+  @known_names ~w[api_token password_reset session session_signing session_encryption query_permalink]a
   @salt_size 64
 
   @type known_name :: unquote(Enum.reduce(tl(@known_names), hd(@known_names), &quote(do: unquote(&1) | unquote(&2))))
