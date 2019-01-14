@@ -305,8 +305,10 @@ defmodule Cloak.Sql.Parser.Internal do
       all_identifier(),
       keyword(:*)
     ])
+    |> option()
     |> map(fn
       [_ | _] = arguments -> arguments
+      nil -> []
       single_argument -> [single_argument]
     end)
   end

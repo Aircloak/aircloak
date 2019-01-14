@@ -2,6 +2,11 @@
 
 ## Date/time functions
 
+### Current date/time functions
+
+The functions `current_date`, `current_time`, `current_datetime`, `now` and `current_timestamp` are supported. They
+are evaluated during query compilation and replaced with the current date and/or time value.
+
 ### Date extraction functions
 
 The functions `year`, `quarter`, `month`, `day`, `hour`, `minute`, `second`, `weekday`, and `dow` (a synonym for

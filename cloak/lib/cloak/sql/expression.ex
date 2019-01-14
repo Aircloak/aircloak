@@ -334,6 +334,9 @@ defmodule Cloak.Sql.Expression do
   defp do_apply("minute", [value]), do: value.minute
   defp do_apply("second", [value]), do: value.second
   defp do_apply("weekday", [value]), do: Timex.weekday(value)
+  defp do_apply("current_datetime", []), do: NaiveDateTime.utc_now()
+  defp do_apply("current_date", []), do: Date.utc_today()
+  defp do_apply("current_time", []), do: Time.utc_now()
   defp do_apply("date_trunc", [spec, value]), do: date_trunc(spec, value)
   defp do_apply("sqrt", [value]), do: :math.sqrt(value)
   defp do_apply("floor", [value]) when is_integer(value), do: value

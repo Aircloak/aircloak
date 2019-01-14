@@ -249,4 +249,33 @@ defmodule Cloak.Query.DatetimeTest do
       )
     end
   end
+
+  describe "curren date/time functions" do
+    test "current_date" do
+      today = Date.utc_today() |> to_string()
+
+      assert_query(
+        "select count(*), current_date() from datetimes",
+        %{rows: [%{row: [0, ^today]}]}
+      )
+    end
+
+    test "current_datetime" do
+      today = Date.utc_today() |> to_string()
+
+      assert_query(
+        "select count(*), cast(now() as date) from datetimes",
+        %{rows: [%{row: [0, ^today]}]}
+      )
+    end
+
+    test "current_time" do
+      hour = Time.utc_now().hour
+
+      assert_query(
+        "select count(*), hour(current_time()) from datetimes",
+        %{rows: [%{row: [0, ^hour]}]}
+      )
+    end
+  end
 end
