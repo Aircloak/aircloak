@@ -1,8 +1,14 @@
 defmodule Cloak.MemoryUsage do
+  @moduledoc "Periodical logging of some memory usage stats."
+
   require Logger
 
   @interval :timer.minutes(1)
   @large_mem_usage_in_mb 100
+
+  # -------------------------------------------------------------------
+  # Total memory
+  # -------------------------------------------------------------------
 
   @doc false
   def total() do
@@ -15,6 +21,10 @@ defmodule Cloak.MemoryUsage do
 
     Logger.info("memory usage: #{stats}")
   end
+
+  # -------------------------------------------------------------------
+  # Large processes
+  # -------------------------------------------------------------------
 
   @doc false
   def processes() do
@@ -43,6 +53,10 @@ defmodule Cloak.MemoryUsage do
     end
   end
 
+  # -------------------------------------------------------------------
+  # Large ETS tables
+  # -------------------------------------------------------------------
+
   @doc false
   def ets() do
     :ets.all()
@@ -54,10 +68,19 @@ defmodule Cloak.MemoryUsage do
     |> Enum.each(&Logger.info("memory usage: ETS table #{&1.name} uses #{words_to_mb(&1.memory)} MB"))
   end
 
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
   defp bytes_to_mb(bytes), do: div(bytes, 1024 * 1024)
 
   defp words_to_mb(words), do: bytes_to_mb(words * :erlang.system_info(:wordsize))
 
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
   def child_spec(_) do
     Aircloak.ChildSpec.supervisor(
       [reader(:total), reader(:processes), reader(:ets)],
