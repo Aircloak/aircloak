@@ -6,18 +6,32 @@ defmodule Air.Service.RevokableToken.Test do
   describe ".sign/.verify" do
     test "generates tokens with the given data", %{user: user} do
       token = RevokableToken.sign(%{:some => :data}, user, :session)
-      assert {:ok, %{:some => :data}} = RevokableToken.verify(token, :session)
+      assert {:ok, %{:some => :data}} = RevokableToken.verify(token, :session, max_age: :infinity)
     end
 
     test "uses the given domain", %{user: user} do
-      token = RevokableToken.sign(%{:some => :data}, user, :session)
-      assert {:error, :invalid_token} = RevokableToken.verify(token, :password_reset)
+      token = RevokableToken.sign(%{:some => :data}, user, :password_reset)
+      assert {:error, :invalid_token} = RevokableToken.verify(token, :session, max_age: :infinity)
     end
 
-    @tag :pending
-    test "verifies age" do
-      token = RevokableToken.sign(%{:some => :data}, :session, valid_until: ~N[2019-01-01 12:00:00])
-      assert {:error, :invalid_token} = RevokableToken.verify(token, :session, now: ~N[2019-01-01 12:22:33])
+    test "rejects old tokens", %{user: user} do
+      token = RevokableToken.sign(%{:some => :data}, user, :session)
+
+      assert {:error, :invalid_token} =
+               RevokableToken.verify(token, :session,
+                 max_age: :timer.hours(1) / :timer.seconds(1),
+                 now: NaiveDateTime.utc_now() |> NaiveDateTime.add(:timer.hours(2), :millisecond)
+               )
+    end
+
+    test "allows tokens within max_age", %{user: user} do
+      token = RevokableToken.sign(%{:some => :data}, user, :session)
+
+      assert {:ok, %{:some => :data}} =
+               RevokableToken.verify(token, :session,
+                 max_age: :timer.hours(1) / :timer.seconds(1),
+                 now: NaiveDateTime.utc_now() |> NaiveDateTime.add(:timer.minutes(30), :millisecond)
+               )
     end
 
     @tag :pending
