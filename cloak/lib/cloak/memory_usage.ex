@@ -1,7 +1,11 @@
 defmodule Cloak.MemoryUsage do
   require Logger
 
-  defp total() do
+  @interval :timer.minutes(1)
+  @large_mem_usage_in_mb 100
+
+  @doc false
+  def total() do
     memory_usage = :erlang.memory()
 
     stats =
@@ -12,12 +16,13 @@ defmodule Cloak.MemoryUsage do
     Logger.info("memory usage: #{stats}")
   end
 
-  defp processes() do
+  @doc false
+  def processes() do
     Process.list()
     |> Stream.map(&{&1, Process.info(&1, [:memory, :registered_name, :initial_call])})
     |> Stream.reject(fn {_pid, info} -> is_nil(info) end)
     |> Stream.map(fn {pid, info} -> info |> Map.new() |> Map.put(:pid, pid) end)
-    |> Stream.filter(&(bytes_to_mb(&1.memory) >= 1))
+    |> Stream.filter(&(bytes_to_mb(&1.memory) >= @large_mem_usage_in_mb))
     |> Enum.sort_by(& &1.memory, &>=/2)
     |> Enum.each(&log_process/1)
   end
@@ -38,12 +43,13 @@ defmodule Cloak.MemoryUsage do
     end
   end
 
-  defp ets() do
+  @doc false
+  def ets() do
     :ets.all()
     |> Stream.map(&:ets.info/1)
     |> Stream.reject(&(&1 == :undefined))
     |> Stream.map(&Map.new/1)
-    |> Stream.filter(&(words_to_mb(&1.memory) >= 1))
+    |> Stream.filter(&(words_to_mb(&1.memory) >= @large_mem_usage_in_mb))
     |> Enum.sort_by(& &1.memory, &>=/2)
     |> Enum.each(&Logger.info("memory usage: ETS table #{&1.name} uses #{words_to_mb(&1.memory)} MB"))
   end
@@ -54,21 +60,12 @@ defmodule Cloak.MemoryUsage do
 
   def child_spec(_) do
     Aircloak.ChildSpec.supervisor(
-      [total_reader(), processes_reader(), ets_reader()],
+      [reader(:total), reader(:processes), reader(:ets)],
       strategy: :one_for_one,
       name: __MODULE__
     )
   end
 
-  defp total_reader() do
-    {Periodic, run: &total/0, every: :timer.minutes(1), overlap?: false, timeout: :timer.minutes(1), id: :total}
-  end
-
-  defp processes_reader() do
-    {Periodic, run: &processes/0, every: :timer.minutes(1), overlap?: false, timeout: :timer.minutes(1), id: :processes}
-  end
-
-  defp ets_reader() do
-    {Periodic, run: &ets/0, every: :timer.minutes(1), overlap?: false, timeout: :timer.minutes(1), id: :ets}
-  end
+  defp reader(fun),
+    do: {Periodic, id: fun, run: {__MODULE__, fun, []}, every: @interval, overlap?: false, timeout: 2 * @interval}
 end
