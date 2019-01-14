@@ -4,15 +4,14 @@ defmodule Air.Service.RevokableToken do
   alias Air.Service.Salts
 
   def sign(payload, user, type, options \\ []) do
-    payload = Phoenix.Token.sign(AirWeb.Endpoint, Salts.get(type), payload)
     token = create_token!(payload, user, type, options)
-    token.id
+    Phoenix.Token.sign(AirWeb.Endpoint, Salts.get(type), token.id)
   end
 
-  def verify(token_id, type, options \\ []) do
-    with token when not is_nil(token) <- Air.Repo.get(RevokableToken, token_id),
-         {:ok, payload} <- Phoenix.Token.verify(AirWeb.Endpoint, Salts.get(type), token.payload, max_age: :infinity) do
-      {:ok, payload}
+  def verify(token, type, options \\ []) do
+    with {:ok, id} <- Phoenix.Token.verify(AirWeb.Endpoint, Salts.get(type), token, max_age: :infinity),
+         token when not is_nil(token) <- Air.Repo.get(RevokableToken, id) do
+      {:ok, :erlang.binary_to_term(token.payload)}
     else
       _ -> {:error, :invalid_token}
     end
@@ -23,7 +22,10 @@ defmodule Air.Service.RevokableToken do
   end
 
   defp create_token!(payload, user, type, options) do
-    Ecto.build_assoc(user, :revokable_tokens, type: type, payload: payload)
+    Ecto.build_assoc(user, :revokable_tokens, %{
+      type: type,
+      payload: :erlang.term_to_binary(payload)
+    })
     |> Repo.insert!()
   end
 end
