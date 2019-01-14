@@ -86,7 +86,8 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect
-  def unicode_literal(value), do: ["N'", value, ?']
+  def literal(value) when is_binary(value), do: ["N'", value, ?']
+  def literal(value), do: Dialect.literal_default(value)
 
   @impl Dialect
   def order_by(column, :asc, :nulls_last), do: [column, " IS NULL, ", column, " ASC"]

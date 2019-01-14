@@ -66,10 +66,8 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect
-  def unicode_literal(value), do: [?', value, ?']
-
-  @impl Dialect
-  def interval_literal(value), do: ["interval '", interval_to_string(value), ?']
+  def literal(%Timex.Duration{} = value), do: ["interval '", interval_to_string(value), ?']
+  def literal(value), do: Dialect.literal_default(value)
 
   # -------------------------------------------------------------------
   # Internal functions

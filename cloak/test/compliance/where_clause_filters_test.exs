@@ -266,4 +266,29 @@ defmodule Compliance.WhereClauseFilters.Text do
       """)
     end
   end)
+
+  Enum.each(date_columns(), fn {column, table, _uid} ->
+    @tag compliance: "#{column} #{table} WHERE-clause equality in subquery"
+    test "input #{column} with a WHERE-clause range on #{table}", context do
+      context
+      |> disable_for(Cloak.DataSource.MongoDB, true)
+      |> assert_consistent_and_not_failing("""
+        SELECT count(*)
+        FROM #{unquote(table)}
+        WHERE #{unquote(column)} BETWEEN date '2010-01-01' AND date '2020-01-01'
+      """)
+    end
+  end)
+
+  Enum.each(datetime_columns(), fn {column, table, _uid} ->
+    @tag compliance: "#{column} #{table} WHERE-clause equality in subquery"
+    test "input #{column} with a WHERE-clause range on #{table}", context do
+      context
+      |> assert_consistent_and_not_failing("""
+        SELECT count(*)
+        FROM #{unquote(table)}
+        WHERE #{unquote(column)} BETWEEN timestamp '2010-01-01 00:00:00' AND timestamp '2020-01-01 00:00:00'
+      """)
+    end
+  end)
 end

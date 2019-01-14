@@ -292,23 +292,11 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp to_fragment(%Expression{} = column, query),
     do: column_sql(column, query)
 
-  defp constant_to_fragment(%NaiveDateTime{} = value, _query), do: [?', to_string(value), ?']
-
-  defp constant_to_fragment(%Time{} = value, _query), do: [?', to_string(value), ?']
-  defp constant_to_fragment(%Date{} = value, _query), do: [?', to_string(value), ?']
-
-  defp constant_to_fragment(%Timex.Duration{} = value, query),
-    do: sql_dialect_module(query).interval_literal(value)
-
-  defp constant_to_fragment(value, _query) when is_number(value), do: to_string(value)
-
-  defp constant_to_fragment(value, query) when is_boolean(value),
-    do: sql_dialect_module(query).boolean_literal(value)
-
   defp constant_to_fragment(value, query) when is_binary(value),
-    do: sql_dialect_module(query).unicode_literal(escape_string(value))
+    do: sql_dialect_module(query).literal(escape_string(value))
 
-  defp constant_to_fragment(nil, _query), do: "NULL"
+  defp constant_to_fragment(value, query),
+    do: sql_dialect_module(query).literal(value)
 
   defp escape_string(string), do: String.replace(string, "'", "''")
 
