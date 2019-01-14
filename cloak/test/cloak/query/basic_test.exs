@@ -307,6 +307,13 @@ defmodule Cloak.Query.BasicTest do
     })
   end
 
+  test "global aggregators over empty input" do
+    assert_query(
+      "select 1 + count(*) from heights",
+      %{rows: [%{row: [1]}]}
+    )
+  end
+
   test "count(column)" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [nil])
