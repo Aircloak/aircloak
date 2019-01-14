@@ -31,6 +31,7 @@ defmodule Cloak do
     import Aircloak, only: [in_env: 1]
 
     [
+      Cloak.MemoryUsage,
       Cloak.DataSource,
       Cloak.Query.Runner,
       in_env(test: nil, else: Cloak.AirSocket),
