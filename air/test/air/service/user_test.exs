@@ -523,7 +523,6 @@ defmodule Air.Service.UserTest do
       assert {:ok, _} = User.login(User.main_login(user), "new password")
     end
 
-    @tag :pending
     test "cannot reuse token", %{token: token} do
       {:ok, _} = User.reset_password(token, %{password: "new password", password_confirmation: "new password"})
 
