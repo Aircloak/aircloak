@@ -1,20 +1,21 @@
 defmodule Air.ReleaseCLI do
   @moduledoc "Contains functions exposed to the system administrator via CLI commands."
 
-  alias Air.{Repo, Schemas, Service}
+  alias Air.Service
 
   @doc "Prints a password reset token for the user with the given login."
   @spec reset_password(String.t()) :: :ok
   def reset_password(login) do
-    Schemas.User
-    |> Repo.get_by(login: to_string(login))
+    login
+    |> to_string()
+    |> Service.User.get_by_login()
     |> case do
-      nil ->
-        IO.puts("A user with that login does not exist.")
-
-      user ->
+      {:ok, user} ->
         token = Service.User.reset_password_token(user)
         IO.puts("Use the following token in the `Forgot password` form:\n\n#{token}\n")
+
+      _ ->
+        IO.puts("A user with that login does not exist.")
     end
 
     :ok

@@ -742,9 +742,18 @@ defmodule Air.Service.User do
     end
   end
 
-  defp insert(changeset), do: changeset |> Repo.insert() |> merge_login_errors()
+  defp insert(changeset), do: in_transaction(fn -> changeset |> Repo.insert() |> merge_login_errors() end)
 
-  defp update(changeset), do: changeset |> Repo.update() |> merge_login_errors()
+  defp update(changeset), do: in_transaction(fn -> changeset |> Repo.update() |> merge_login_errors() end)
+
+  defp in_transaction(action) do
+    Repo.transaction(fn ->
+      case action.() do
+        {:ok, result} -> result
+        {:error, changeset} -> Repo.rollback(changeset)
+      end
+    end)
+  end
 
   defp merge_login_errors({:error, changeset = %{changes: %{logins: [%{errors: login_errors}]}}}),
     do: {:error, update_in(changeset, [Access.key(:errors)], fn errors -> errors ++ login_errors end)}
