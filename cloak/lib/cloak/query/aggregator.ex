@@ -201,10 +201,9 @@ defmodule Cloak.Query.Aggregator do
 
       [%{row: aggregated_values, occurrences: 1, unreliable: true}]
     else
-      rows
-      |> make_non_empty_buckets(query)
-      |> Rows.extract_groups(Query.bucket_columns(query), query)
+      make_non_empty_buckets(rows, query)
     end
+    |> Rows.extract_groups(Query.bucket_columns(query), query)
   end
 
   defp make_non_empty_buckets(rows, %Query{implicit_count?: false}) do

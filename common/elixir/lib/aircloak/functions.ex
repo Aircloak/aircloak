@@ -213,6 +213,15 @@ defmodule Aircloak.Functions do
                ~w(coalesce) => %{
                  type_specs: %{{:many1, :any} => :any},
                  attributes: [:internal]
+               },
+               ~w(current_datetime) => %{
+                 type_specs: %{[] => :datetime}
+               },
+               ~w(current_date) => %{
+                 type_specs: %{[] => :date}
+               },
+               ~w(current_time) => %{
+                 type_specs: %{[] => :time}
                }
              }
              |> Enum.flat_map(fn {functions, traits} -> Enum.map(functions, &{&1, traits}) end)
@@ -224,7 +233,9 @@ defmodule Aircloak.Functions do
     "ceiling" => "ceil",
     "pow" => "^",
     "mod" => "%",
-    "dow" => "weekday"
+    "dow" => "weekday",
+    "now" => "current_datetime",
+    "current_timestamp" => "current_datetime"
   }
 
   # -------------------------------------------------------------------
