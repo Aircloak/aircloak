@@ -34,16 +34,14 @@ defmodule Cloak.Query.NoiseLayerTest do
     :ok
   end
 
-  test "count(*) uses a different noise layer than count(column)" do
-    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["other"], [15])
-    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["other"], [3])
-    :ok = insert_rows(_user_ids = 101..111, "noise_layers", ["other"], [0])
+  test "count(*) uses the same noise as count(column)" do
+    :ok = insert_rows(_user_ids = 1..100, "noise_layers", ["other", "number"], [15, 1])
+    :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["other", "number"], [3, 1])
+    :ok = insert_rows(_user_ids = 101..111, "noise_layers", ["other", "number"], [0, 1])
 
     assert_query("select count(*), count(number) from noise_layers where other <> 0", %{
-      rows: [%{row: [value1, value2]}]
+      rows: [%{row: [count, count]}]
     })
-
-    assert value1 != value2
   end
 
   test "an unclear condition produces the same noise as another equivalent unclear condition" do
