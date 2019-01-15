@@ -46,6 +46,40 @@ defmodule Cloak.DataSource.Oracle.Test do
     end
   end
 
+  describe "table_parts" do
+    test "unqualified single part", do: assert(Oracle.table_parts("foo") == ["foo"])
+    test "unqualified with whitespace", do: assert(Oracle.table_parts("foo bar baz") == ["foo bar baz"])
+    test "unqualified multi parts", do: assert(Oracle.table_parts("foo.bar.baz") == ["foo", "bar", "baz"])
+
+    test "qualified single part", do: assert(Oracle.table_parts(~s/"foo"/) == ["foo"])
+    test "qualified with quotes in the name", do: assert(Oracle.table_parts(~s/"f""oo"/) == [~s(f"oo)])
+    test "qualified multi part", do: assert(Oracle.table_parts(~s/"foo"."bar"."baz"/) == ["foo", "bar", "baz"])
+
+    test "mixed multi part", do: assert(Oracle.table_parts(~s/"foo".bar."baz"/) == ["foo", "bar", "baz"])
+
+    test "empty parts are not allowed" do
+      assert_raise ArgumentError, fn -> Oracle.table_parts("") end
+      assert_raise ArgumentError, fn -> Oracle.table_parts(".") end
+      assert_raise ArgumentError, fn -> Oracle.table_parts("foo.") end
+      assert_raise ArgumentError, fn -> Oracle.table_parts(".foo") end
+      assert_raise ArgumentError, fn -> Oracle.table_parts("foo..bar") end
+    end
+
+    test "non-matching quotes are not allowed",
+      do: assert_raise(ArgumentError, fn -> Oracle.table_parts(~s/"foobar/) end)
+  end
+
+  describe "fix_column_types_filter" do
+    test "single part" do
+      assert Oracle.fix_column_types_filter(%{db_name: "foo"}, "X = 1") == "X = 1 AND TABLE_NAME = 'foo'"
+    end
+
+    test "two parts" do
+      assert Oracle.fix_column_types_filter(%{db_name: "foo.bar"}, "X = 1") ==
+               "X = 1 AND OWNER = 'foo' AND TABLE_NAME = 'bar'"
+    end
+  end
+
   def data_source do
     %{
       name: "oracle_test_data_source",
