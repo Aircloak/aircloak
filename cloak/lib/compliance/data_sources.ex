@@ -18,6 +18,7 @@ defmodule Compliance.DataSources do
       name
       |> all_from_config()
       |> complete_data_source_definitions()
+      |> Stream.map(&adjust_data_source/1)
       |> Enum.map(&Cloak.DataSource.add_tables/1)
 
   @doc "Creates configured data sources from a configuration file without attempting to connect to the dataources"
@@ -260,4 +261,6 @@ defmodule Compliance.DataSources do
       %{projection: projection} -> Map.put(data_source_defintion_template, :projection, projection)
     end
   end
+
+  defp adjust_data_source(data_source), do: handler_for_data_source(data_source).adjust_data_source(data_source)
 end

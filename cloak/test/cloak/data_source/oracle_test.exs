@@ -69,17 +69,6 @@ defmodule Cloak.DataSource.Oracle.Test do
       do: assert_raise(ArgumentError, fn -> Oracle.table_parts(~s/"foobar/) end)
   end
 
-  describe "fix_column_types_filter" do
-    test "single part" do
-      assert Oracle.fix_column_types_filter(%{db_name: "foo"}, "X = 1") == "X = 1 AND TABLE_NAME = 'foo'"
-    end
-
-    test "two parts" do
-      assert Oracle.fix_column_types_filter(%{db_name: "foo.bar"}, "X = 1") ==
-               "X = 1 AND OWNER = 'foo' AND TABLE_NAME = 'bar'"
-    end
-  end
-
   defp data_source do
     %{
       name: "oracle_test_data_source",

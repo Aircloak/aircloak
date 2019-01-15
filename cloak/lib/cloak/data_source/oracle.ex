@@ -101,8 +101,7 @@ defmodule Cloak.DataSource.Oracle do
     Enum.map(rodbc_columns, &%{&1 | type: Map.get(correct_column_types, &1.name, &1.type)})
   end
 
-  @doc false
-  def fix_column_types_filter(table, filter) do
+  defp fix_column_types_filter(table, filter) do
     table_filters =
       case table_parts(table.db_name) do
         [table_name] -> ["TABLE_NAME = '#{table_name}'"]
