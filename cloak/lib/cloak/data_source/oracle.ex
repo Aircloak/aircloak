@@ -5,6 +5,7 @@ defmodule Cloak.DataSource.Oracle do
   """
 
   use Cloak.DataSource.Driver.SQL
+  use Combine
   alias Cloak.DataSource.RODBC
   alias Cloak.Sql.{Expression, Query.Lenses, Compiler.Helpers}
 
@@ -25,7 +26,7 @@ defmodule Cloak.DataSource.Oracle do
   def load_tables(connection, table) do
     columns =
       connection
-      |> RODBC.table_columns(update_in(table.db_name, &"\"#{&1}\""))
+      |> RODBC.table_columns(update_in(table.db_name, &SqlBuilder.quote_table_name/1))
       |> fix_column_types(connection, table)
 
     [%{table | columns: columns}]
@@ -46,6 +47,28 @@ defmodule Cloak.DataSource.Oracle do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  @doc false
+  def table_parts(table_name) do
+    case Combine.parse(table_name, sep_by1(part(), string(".")) |> eof()) do
+      [parts] -> parts
+      {:error, error} -> raise ArgumentError, error
+    end
+  end
+
+  defp part(), do: either(qualified_part(), unqualified_part()) |> map(&to_string/1)
+
+  defp qualified_part() do
+    sequence([
+      ignore(string(~s/"/)),
+      many1(either(escaped_quote(), satisfy(char(), &(&1 != ~s/"/)))),
+      ignore(string(~s/"/))
+    ])
+  end
+
+  defp escaped_quote(), do: map(string(~s/""/), fn _ -> ~s/"/ end)
+
+  defp unqualified_part(), do: many1(satisfy(char(), &(&1 not in ~w(. "))))
 
   defp conn_params(normalized_parameters) do
     hostname = normalized_parameters.hostname
@@ -71,13 +94,24 @@ defmodule Cloak.DataSource.Oracle do
         integer: "DATA_TYPE = 'NUMBER' and COALESCE(DATA_SCALE, 0) = 0"
       }
       |> Stream.flat_map(fn {type, filter} ->
-        statement = ~s/SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS WHERE TABLE_NAME= '#{table.db_name}' AND #{filter}/
+        statement = "SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS WHERE #{fix_column_types_filter(table, filter)}"
         {:ok, rows} = RODBC.select_direct(connection, statement)
         Enum.map(rows, fn [name] -> {name, type} end)
       end)
       |> Map.new()
 
     Enum.map(rodbc_columns, &%{&1 | type: Map.get(correct_column_types, &1.name, &1.type)})
+  end
+
+  @doc false
+  def fix_column_types_filter(table, filter) do
+    table_filters =
+      case table_parts(table.db_name) do
+        [table_name] -> ["TABLE_NAME = '#{table_name}'"]
+        [schema_name, table_name] -> ["OWNER = '#{schema_name}'", "TABLE_NAME = '#{table_name}'"]
+      end
+
+    Enum.join([filter | table_filters], " AND ")
   end
 
   # We need to perform explicit casting on some selected types, because ODBC driver can't handle them.
