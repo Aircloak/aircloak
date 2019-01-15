@@ -3,7 +3,11 @@ defmodule Air.Service.RevokableToken.Test do
 
   alias Air.Service.RevokableToken
 
-  describe ".sign/.verify" do
+  setup do
+    {:ok, user: Air.TestRepoHelper.create_user!()}
+  end
+
+  describe ".sign/.verify/.revoke" do
     test "generates tokens with the given data", %{user: user} do
       token = RevokableToken.sign(%{:some => :data}, user, :session)
       assert {:ok, %{:some => :data}} = RevokableToken.verify(token, :session, max_age: :infinity)
@@ -40,23 +44,25 @@ defmodule Air.Service.RevokableToken.Test do
 
       assert {:error, :invalid_token} = RevokableToken.verify(token, :session, max_age: :infinity)
     end
-
-    setup do
-      {:ok, user: Air.TestRepoHelper.create_user!()}
-    end
   end
 
   describe ".revoke_all" do
-    @tag :pending
-    test "revokes all tokens with the given owner and type"
+    test "revokes all tokens with the given owner and type", %{user: user} do
+      token = RevokableToken.sign(%{:some => :data}, user, :session)
+      RevokableToken.revoke_all(user, :session)
+      assert {:error, :invalid_token} = RevokableToken.verify(token, :session, max_age: :infinity)
+    end
 
-    @tag :pending
-    test "doesn't revoke tokens with no owner"
+    test "doesn't revoke tokens with another owner", %{user: user} do
+      token = RevokableToken.sign(%{:some => :data}, Air.TestRepoHelper.create_user!(), :session)
+      RevokableToken.revoke_all(user, :session)
+      assert {:ok, _} = RevokableToken.verify(token, :session, max_age: :infinity)
+    end
 
-    @tag :pending
-    test "doesn't revoke tokens with another owner"
-
-    @tag :pending
-    test "doesn't revoke tokens with another type"
+    test "doesn't revoke tokens with another type", %{user: user} do
+      token = RevokableToken.sign(%{:some => :data}, user, :password_reset)
+      RevokableToken.revoke_all(user, :session)
+      assert {:ok, _} = RevokableToken.verify(token, :password_reset, max_age: :infinity)
+    end
   end
 end

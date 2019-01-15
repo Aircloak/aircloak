@@ -28,6 +28,17 @@ defmodule Air.Service.RevokableToken do
     :ok
   end
 
+  def revoke_all(user, type) do
+    import Ecto.Query
+
+    RevokableToken
+    |> where([q], q.user_id == ^user.id)
+    |> where([q], q.type == ^type)
+    |> Repo.delete_all()
+
+    :ok
+  end
+
   defp create_token!(payload, user, type) do
     Ecto.build_assoc(user, :revokable_tokens, %{
       type: type,
