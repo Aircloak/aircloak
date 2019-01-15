@@ -48,7 +48,7 @@ defmodule Air.Service.RevokableToken do
     max_age = Keyword.fetch!(options, :max_age)
 
     with {:ok, token} <- find_record(token, type),
-         true <- NaiveDateTime.diff(now, token.inserted_at) < max_age do
+         :ok <- verify_age(token, now, max_age) do
       {:ok, :erlang.binary_to_term(token.payload)}
     else
       _ -> {:error, :invalid_token}
@@ -81,6 +81,11 @@ defmodule Air.Service.RevokableToken do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp verify_age(_, _, :infinity), do: :ok
+
+  defp verify_age(token, now, max_age),
+    do: if(NaiveDateTime.diff(now, token.inserted_at) < max_age, do: :ok, else: :error)
 
   defp create_token!(payload, user, type) do
     Ecto.build_assoc(user, :revokable_tokens, %{
