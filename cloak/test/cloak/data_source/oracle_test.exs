@@ -80,7 +80,7 @@ defmodule Cloak.DataSource.Oracle.Test do
     end
   end
 
-  def data_source do
+  defp data_source do
     %{
       name: "oracle_test_data_source",
       driver: Oracle,
