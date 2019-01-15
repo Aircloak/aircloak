@@ -5,6 +5,7 @@ defmodule Cloak.DataSource.Oracle do
   """
 
   use Cloak.DataSource.Driver.SQL
+  use Combine
   alias Cloak.DataSource.RODBC
   alias Cloak.Sql.{Expression, Query.Lenses, Compiler.Helpers}
 
@@ -46,6 +47,28 @@ defmodule Cloak.DataSource.Oracle do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  @doc false
+  def table_parts(table_name) do
+    case Combine.parse(table_name, sep_by1(part(), string(".")) |> eof()) do
+      [parts] -> parts
+      {:error, error} -> raise ArgumentError, error
+    end
+  end
+
+  defp part(), do: either(qualified_part(), unqualified_part()) |> map(&to_string/1)
+
+  defp qualified_part() do
+    sequence([
+      ignore(string(~s/"/)),
+      many1(either(escaped_quote(), satisfy(char(), &(&1 != ~s/"/)))),
+      ignore(string(~s/"/))
+    ])
+  end
+
+  defp escaped_quote(), do: map(string(~s/""/), fn _ -> ~s/"/ end)
+
+  defp unqualified_part(), do: many1(satisfy(char(), &(&1 not in ~w(. "))))
 
   defp conn_params(normalized_parameters) do
     hostname = normalized_parameters.hostname
