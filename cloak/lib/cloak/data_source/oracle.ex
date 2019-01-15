@@ -26,7 +26,7 @@ defmodule Cloak.DataSource.Oracle do
   def load_tables(connection, table) do
     columns =
       connection
-      |> RODBC.table_columns(update_in(table.db_name, &"\"#{&1}\""))
+      |> RODBC.table_columns(update_in(table.db_name, &SqlBuilder.quote_table_name/1))
       |> fix_column_types(connection, table)
 
     [%{table | columns: columns}]
