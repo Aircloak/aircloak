@@ -720,7 +720,6 @@ defmodule Cloak.Query.BasicTest do
       :ok = insert_rows(_user_ids = 20..39, "heights", ["height", "weight"], [190, 200])
     end
 
-    @tag :pending
     test "col1 > col2" do
       assert_query("select count(*) from heights where height > weight", %{
         columns: ["count"],

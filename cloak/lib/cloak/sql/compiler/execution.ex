@@ -195,7 +195,7 @@ defmodule Cloak.Sql.Compiler.Execution do
 
     verify_ranges(grouped_inequalities)
 
-    non_range_conditions = Condition.reject(clause, &Condition.inequality?/1)
+    non_range_conditions = Condition.reject(clause, &range_condition?/1)
 
     query = put_in(query, [lens], non_range_conditions)
     Enum.reduce(grouped_inequalities, query, &add_aligned_range(&1, &2, lens))
@@ -263,12 +263,14 @@ defmodule Cloak.Sql.Compiler.Execution do
   defp range_inequalities_by_column(where_clause) do
     Lenses.conditions()
     |> Lens.to_list(where_clause)
-    |> Enum.filter(&Condition.inequality?/1)
-    |> Enum.filter(fn condition -> Enum.any?(Condition.targets(condition), &Expression.constant?/1) end)
+    |> Enum.filter(&range_condition?/1)
     |> Enum.group_by(&(&1 |> Condition.subject() |> Expression.semantic()))
     |> Enum.map(&discard_redundant_inequalities/1)
     |> Enum.into(%{})
   end
+
+  defp range_condition?(condition),
+    do: Condition.inequality?(condition) and Enum.any?(Condition.targets(condition), &Expression.constant?/1)
 
   defp discard_redundant_inequalities({column, inequalities}) do
     case {bottom, top} = Enum.split_with(inequalities, &(Condition.direction(&1) == :>)) do
