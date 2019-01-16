@@ -32,6 +32,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
         verify_string_based_expressions_are_clear(subquery)
         verify_ranges_are_clear(subquery)
         verify_isolator_conditions_are_clear(subquery)
+        verify_raw_inequalities(subquery)
       end
     end)
 
@@ -335,6 +336,32 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
       For further information see the "Number of conditions" subsection of the "Restrictions" section
       in the user guides.
       """
+  end
+
+  # -------------------------------------------------------------------
+  # Inequalities
+  # -------------------------------------------------------------------
+
+  defp verify_raw_inequalities(query) do
+    verify_conditions(query, &Condition.inequality?/1, fn condition ->
+      sides = Condition.targets(condition)
+
+      case {Enum.any?(sides, &Expression.constant?/1),
+            Enum.find(sides, &(not Type.establish_type(&1, query).raw_column?))} do
+        {true, _} ->
+          :ok
+
+        {_, nil} ->
+          :ok
+
+        {_, invalid} ->
+          raise(
+            CompilationError,
+            source_location: invalid.source_location,
+            message: "Only unmodified columns can be used in inequalities without constants."
+          )
+      end
+    end)
   end
 
   # -------------------------------------------------------------------

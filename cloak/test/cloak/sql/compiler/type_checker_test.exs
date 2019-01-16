@@ -203,8 +203,12 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
         assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric #{unquote(operator)} numeric2")
       end
 
-      @tag :pending
-      test "forbids function(col1) #{operator} col2"
+      test "forbids function(col1) #{operator} col2" do
+        assert {:error, narrative} =
+                 compile("SELECT COUNT(*) FROM table WHERE numeric #{unquote(operator)} sqrt(numeric2)")
+
+        assert narrative =~ ~r/Only unmodified columns can be used in inequalities/
+      end
     end
 
     @tag :pending
