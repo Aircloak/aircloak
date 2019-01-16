@@ -16,7 +16,24 @@ defmodule Cloak.DataSource.SqlBuilder do
     to_string([select, sql_dialect_module(query).select_hints() | rest])
   end
 
-  @doc "Makes sure the specified partial or full table name is quoted."
+  @doc """
+  Makes sure the specified partial or full table name is quoted.
+
+  iex> SqlBuilder.quote_table_name("name")
+  ~s/"name"/
+
+  iex> SqlBuilder.quote_table_name(~s/"name"/)
+  ~s/"name"/
+
+  iex> SqlBuilder.quote_table_name("full.name")
+  ~s/"full"."name"/
+
+  iex> SqlBuilder.quote_table_name(~s/"quoted.name"/)
+  ~s/"quoted.name"/
+
+  iex> SqlBuilder.quote_table_name("long.full.name")
+  ~s/"long"."full"."name"/
+  """
   @spec quote_table_name(String.t(), integer) :: String.t()
   def quote_table_name(table_name, quote_char \\ ?") do
     table_name
@@ -38,6 +55,9 @@ defmodule Cloak.DataSource.SqlBuilder do
   ["foo", "bar"]
 
   iex> SqlBuilder.table_name_parts(~s/"foo"."bar"/)
+  ["foo", "bar"]
+
+  iex> SqlBuilder.table_name_parts(~s/"foo".bar/)
   ["foo", "bar"]
   ```
   """
