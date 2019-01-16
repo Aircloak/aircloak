@@ -4,7 +4,7 @@ defmodule Cloak.Query.BasicTest do
   import Cloak.Test.QueryHelpers
 
   setup_all do
-    :ok = Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, male BOOLEAN")
+    :ok = Cloak.Test.DB.create_table("heights", "height INTEGER, name TEXT, male BOOLEAN, weight INTEGER")
     :ok = Cloak.Test.DB.create_table("heights_alias", nil, skip_db_create: true, db_name: "heights")
 
     :ok =
@@ -122,7 +122,7 @@ defmodule Cloak.Query.BasicTest do
   test "select all query" do
     assert_query("select * from heights", %{
       query_id: "1",
-      columns: ["user_id", "height", "name", "male"],
+      columns: ["user_id", "height", "name", "male", "weight"],
       rows: _
     })
   end
@@ -139,18 +139,20 @@ defmodule Cloak.Query.BasicTest do
              "height",
              "name",
              "male",
+             "weight",
              "h",
              "user_id",
              "height",
              "name",
-             "male"
+             "male",
+             "weight"
            ]
   end
 
   test "select all from a table" do
     assert_query("select heights.* from heights", %{
       query_id: "1",
-      columns: ["user_id", "height", "name", "male"],
+      columns: ["user_id", "height", "name", "male", "weight"],
       rows: _
     })
   end
@@ -185,14 +187,14 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query("select * from heights order by name", %{
       query_id: "1",
-      columns: ["user_id", "height", "name", "male"],
+      columns: ["user_id", "height", "name", "male", "weight"],
       rows: rows
     })
 
     assert Enum.map(rows, & &1[:row]) == [
-             [:*, 180, "adam", true],
-             [:*, 180, "john", true],
-             [:*, 180, "mike", true]
+             [:*, 180, "adam", true, nil],
+             [:*, 180, "john", true, nil],
+             [:*, 180, "mike", true, nil]
            ]
   end
 
@@ -713,9 +715,25 @@ defmodule Cloak.Query.BasicTest do
 
   describe "inequalities" do
     setup do
-      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [170])
-      :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
-      :ok = insert_rows(_user_ids = 20..39, "heights", ["height"], [190])
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height", "weight"], [170, 10])
+      :ok = insert_rows(_user_ids = 0..19, "heights", ["height", "weight"], [180, 200])
+      :ok = insert_rows(_user_ids = 20..39, "heights", ["height", "weight"], [190, 200])
+    end
+
+    @tag :pending
+    test "col1 > col2" do
+      assert_query("select count(*) from heights where height > weight", %{
+        columns: ["count"],
+        rows: [%{row: [20], occurrences: 1}]
+      })
+    end
+
+    @tag :pending
+    test "col1 BETWEEN col2 AND col3" do
+      assert_query("select count(*) from heights where height BETWEEN height AND weight", %{
+        columns: ["count"],
+        rows: [%{row: [20], occurrences: 1}]
+      })
     end
 
     test "should allow ranges in where clause" do
@@ -1584,8 +1602,8 @@ defmodule Cloak.Query.BasicTest do
     :ok = insert_rows(_user_ids = 1..100, "heights", ["height"], [180])
 
     assert_query("select * from heights h", %{
-      columns: ["user_id", "height", "name", "male"],
-      rows: [%{occurrences: 100, row: [:*, 180, nil, nil]}]
+      columns: ["user_id", "height", "name", "male", "weight"],
+      rows: [%{occurrences: 100, row: [:*, 180, nil, nil, nil]}]
     })
   end
 
