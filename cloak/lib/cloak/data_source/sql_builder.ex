@@ -18,16 +18,12 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   @doc "Makes sure the specified partial or full table name is quoted."
   @spec quote_table_name(String.t(), integer) :: String.t()
-  def quote_table_name(table_name, quote_char \\ ?")
-
-  def quote_table_name(<<quote_char::utf8, _::binary>> = table_name, quote_char), do: table_name
-
-  def quote_table_name(table_name, quote_char),
-    do:
-      table_name
-      |> String.split(".")
-      |> Enum.map(&quote_name(&1, quote_char))
-      |> Enum.join(".")
+  def quote_table_name(table_name, quote_char \\ ?") do
+    table_name
+    |> table_name_parts()
+    |> Enum.map(&quote_name(&1, quote_char))
+    |> Enum.join(".")
+  end
 
   @doc """
   Returns unquoted parts of the table name.
