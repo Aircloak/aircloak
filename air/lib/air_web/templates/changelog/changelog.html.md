@@ -1,4 +1,4 @@
-## Version 19.2.0
+## Version 19.2.0 Development version
 
 ### Bugfixes
  - Fixed date/time literals support on Oracle.
