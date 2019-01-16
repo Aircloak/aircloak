@@ -15,7 +15,7 @@ defmodule Cloak.DataSource.SqlBuilderTest do
 
   describe "quote_table_name" do
     property "quotes each part" do
-      check all quote_char <- constant_of([?", ?']),
+      check all quote_char <- one_of([constant(?"), constant(?`)]),
                 parts_data <- parts_data(),
                 {parts, unquoted_parts} = Enum.unzip(parts_data),
                 table_name = Enum.join(parts, ".") do
@@ -80,32 +80,46 @@ defmodule Cloak.DataSource.SqlBuilderTest do
 
   defp parts_data(), do: nonempty(list_of(one_of([unquoted_part_data(), quoted_part_data()])))
 
-  defp unquoted_part_data(), do: map(nonempty_string_of(unquoted_char()), &{&1, &1})
+  defp unquoted_part_data(), do: map(nonempty_string_of(regular_char()), &{&1, &1})
 
   defp quoted_part_data() do
     map(
-      nonempty_string_of(one_of([unquoted_char(), special_char()])),
-      &{~s/"#{&1}"/, String.replace(&1, ~s/""/, ~s/"/)}
+      nonempty_string_of(one_of([regular_char(), special_char()])),
+      &{~s/"#{String.replace(&1, ~s/"/, ~s/""/)}"/, &1}
     )
   end
 
-  defp unquoted_char(), do: constant_of(Enum.concat([?a..?z, ?A..?Z, ?0..?9, [?_]]))
+  @special_chars [?., ?"]
 
-  defp special_char() do
+  defp regular_char() do
     frequency([
-      {2, constant_of([?\s, ~s/""/, ?', ?.])},
-      {1, constant_of(0xA0..0xD7FF)}
+      {20, [?a..?z, ?A..?Z, ?0..?9] |> Enum.map(&integer/1) |> one_of()},
+      {10, constant(?\s)},
+      {1, filter(integer(0..0xD7FF), &(&1 not in @special_chars))}
     ])
   end
 
-  defp constant_of(elements), do: elements |> Enum.map(&constant/1) |> one_of()
+  defp special_char(), do: @special_chars |> Enum.map(&constant/1) |> one_of()
 
   defp nonempty_string_of(char_generator), do: map(nonempty(list_of(char_generator)), &to_string/1)
 
-  defp invalid_part(), do: one_of([empty_unquoted(), non_closed_quote()])
+  defp invalid_part(), do: one_of([empty_unquoted(), non_closed_quote(), unquoted_special_char()])
 
   defp empty_unquoted(), do: constant("")
 
   defp non_closed_quote(),
     do: map(quoted_part_data(), fn {quoted, _unquoted} -> String.replace(quoted, ~r/"$/, "") end)
+
+  defp unquoted_special_char() do
+    bind(list_of(regular_char()), fn regular_chars ->
+      bind(special_char(), fn special_char ->
+        map(special_char_insert_pos(special_char, regular_chars), fn insert_pos ->
+          regular_chars |> List.insert_at(insert_pos, special_char) |> to_string()
+        end)
+      end)
+    end)
+  end
+
+  defp special_char_insert_pos(?., regular_chars), do: one_of([constant(0), constant(length(regular_chars))])
+  defp special_char_insert_pos(_char, regular_chars), do: integer(0..length(regular_chars))
 end
