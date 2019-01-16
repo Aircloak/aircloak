@@ -523,6 +523,16 @@ defmodule Air.Service.UserTest do
       assert {:ok, _} = User.login(User.main_login(user), "new password")
     end
 
+    test "cannot reuse token", %{token: token} do
+      {:ok, _} = User.reset_password(token, %{password: "new password", password_confirmation: "new password"})
+
+      assert {:error, :invalid_token} =
+               User.reset_password(token, %{
+                 password: "another password",
+                 password_confirmation: "another password"
+               })
+    end
+
     test "incorrect confirmation", %{user: user, token: token} do
       assert {:error, _} = User.reset_password(token, %{password: "new password", password_confirmation: "other"})
       assert {:error, _} = User.login(User.main_login(user), "new password")

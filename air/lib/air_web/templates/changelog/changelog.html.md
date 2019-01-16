@@ -19,6 +19,8 @@
 ### Changes
 
  - Removed support for `extract_words`.
+ - Password reset tokens and links will now expire after a single use. All password reset linkes/tokens generated with a
+   previous version will be invalid as a consequence of this change.
 
 ## Version 19.1.0
 
