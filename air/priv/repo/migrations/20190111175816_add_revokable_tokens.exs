@@ -2,7 +2,7 @@ defmodule Air.Repo.Migrations.AddRevokableTokens do
   use Ecto.Migration
 
   def up do
-    Ecto.Migration.execute("CREATE TYPE revokable_token_type AS ENUM ('password_reset', 'session')")
+    execute("CREATE TYPE revokable_token_type AS ENUM ('password_reset', 'session')")
 
     create table(:revokable_tokens, primary_key: false) do
       add(:id, :uuid, primary_key: true)
@@ -16,6 +16,6 @@ defmodule Air.Repo.Migrations.AddRevokableTokens do
 
   def down do
     drop(table(:revokable_tokens))
-    Ecto.Migration.execute("DROP TYPE revokable_token_type")
+    execute("DROP TYPE revokable_token_type")
   end
 end
