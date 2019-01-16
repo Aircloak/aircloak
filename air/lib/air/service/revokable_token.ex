@@ -89,7 +89,7 @@ defmodule Air.Service.RevokableToken do
   defp verify_age(_, _, :infinity), do: :ok
 
   defp verify_age(token, now, max_age),
-    do: if(NaiveDateTime.diff(now, token.inserted_at) < max_age, do: :ok, else: :error)
+    do: if(NaiveDateTime.diff(now, token.inserted_at) <= max_age, do: :ok, else: :error)
 
   defp create_token!(payload, user, type) do
     Ecto.build_assoc(user, :revokable_tokens, %{
