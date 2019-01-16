@@ -67,17 +67,19 @@ defmodule Air.Service.User do
   def reset_password(token, params) do
     one_week_in_seconds = 7 * :timer.hours(24) / :timer.seconds(1)
 
-    with {:ok, user_id} <- RevokableToken.verify(token, :password_reset, max_age: one_week_in_seconds) do
-      in_transaction(fn ->
-        RevokableToken.revoke(token, :password_reset)
+    :global.trans({__MODULE__, token}, fn ->
+      with {:ok, user_id} <- RevokableToken.verify(token, :password_reset, max_age: one_week_in_seconds) do
+        in_transaction(fn ->
+          RevokableToken.revoke(token, :password_reset)
 
-        load(user_id)
-        |> change_main_login(&password_reset_changeset(&1, params))
-        |> update()
-      end)
-    else
-      _ -> {:error, :invalid_token}
-    end
+          load(user_id)
+          |> change_main_login(&password_reset_changeset(&1, params))
+          |> update()
+        end)
+      else
+        _ -> {:error, :invalid_token}
+      end
+    end)
   end
 
   @doc "Returns a list of all users in the system."
