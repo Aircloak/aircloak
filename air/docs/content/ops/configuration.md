@@ -442,7 +442,7 @@ to quote the name in this configuration file as well. For example, for a `postgr
 `user data` defined in a schema called `user schema` you would write the following:
 
 ```
-"db_name": "\"user data\".\"user schema\""
+"db_name": "\"user schema\".\"user data\""
 ```
 
 If the `query` field is present instead, a virtual table is created, similar to an SQL view. The provided query can gather
