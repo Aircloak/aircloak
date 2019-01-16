@@ -474,7 +474,7 @@ If the `"` character is a part of the table name, you need to quote the table na
 "db_name": "\"some\"\"table\""
 ```
 
-In some cases you might need to specify a fully qualified name, for example to provide a different database schema. In this case, you need to separate different parts via the dot character:
+In some cases you might need to specify a fully qualified name, for example to provide a different database schema. In this case, you need to separate different parts with the dot character:
 
 ```
 "db_name": "some_schema.some_table"
@@ -486,7 +486,7 @@ When quoting a multi-part identifier, you need to quote each part separately:
 "db_name": "\"some schema\".\"some table\""
 ```
 
-In contrast, if the `.` character is quoted, it's interpreted as the part of the table name. The following example specifies the table which is called `some.table`:
+In contrast, if the `.` character is quoted, it's interpreted as the part of the table name. The following example specifies a table called `some.table`:
 
 ```
 "db_name": "\"some.table\""
@@ -500,7 +500,7 @@ Also note that you only need to quote the part which requires quoting. In the fo
 
 However, it's not an error if you quote each part, regardless of whether it requires quoting or not.
 
-It's also worth mentioning that `db_name` is case sensitive, irrespective of whether it's quoted or not. Therefore, you should use the exact capitalization as in the underlying database.
+It's also worth mentioning that `db_name` is case sensitive, irrespective of whether it's quoted or not. Therefore, you should use the exact capitalization of the underlying database.
 
 For example, let's say that the table is created with the following statement:
 
