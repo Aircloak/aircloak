@@ -1,5 +1,9 @@
 ## Version 19.2.0
 
+### __Breaking changes__
+
+ - When quoting `db_name` in drill data sources, the double quote (") character must be used instead of backtick (\`).
+
 ### Bugfixes
  - Fixed date/time literals support on Oracle.
  - Fixed crash in anonymising `median` and `stddev` aggregators.
