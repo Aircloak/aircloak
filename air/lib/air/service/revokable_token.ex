@@ -1,11 +1,13 @@
 defmodule Air.Service.RevokableToken do
   @moduledoc """
   This service provides a way of giving the user a token that we can later verify for authenticity and expiry and that
-  is associated with some arbitrary data. The tokens are stored in the database to make it possible to revoke them on
-  the server side. This is in contrast to the default Guardian tokens for example, where we can be sure of the token's
-  authenticity, but there is now way to mark the token as invalid later on. An example use might be tokens that allow
-  a certain action, but only a single time (like resetting a password). The drawback of this approach is that each
-  creation or verification of a token requires a database query.
+  is associated with some arbitrary data.
+
+  The tokens are stored in the database to make it possible to revoke them on the server side. This is in contrast to
+  the default Guardian tokens for example, where we can be sure of the token's authenticity, but there is now way to
+  mark the token as invalid later on. An example use might be tokens that allow a certain action, but only a single time
+  (like resetting a password). The drawback of this approach is that each creation or verification of a token requires a
+  database query.
 
   The token given out to the user is the id of the actual token in the database signed with `Phoenix.Token`. This is
   in order to ascertain that the user has indeed been given the token by us, instead of guessing it. The ids are UUIDs
@@ -34,7 +36,9 @@ defmodule Air.Service.RevokableToken do
   end
 
   @doc """
-  Decodes the provided token. Checks that:
+  Decodes the provided token.
+
+  Checks that:
 
   1. It's a valid token we have given out.
   2. The token has not expired according to the provided `max_age`.
