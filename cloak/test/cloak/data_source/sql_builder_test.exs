@@ -7,6 +7,8 @@ defmodule Cloak.DataSource.SqlBuilderTest do
   import Cloak.Test.QueryHelpers
   import StreamData
 
+  doctest SqlBuilder
+
   test "non-text column is not force casted",
     do: refute(sql_string("select int from table") =~ ~r/CAST\("table"\."int"/)
 
