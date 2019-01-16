@@ -103,6 +103,13 @@ defmodule Cloak.Query.SubqueryTest do
     )
   end
 
+  test "having in a subquery" do
+    assert_query(
+      "select count(*) from (select user_id from heights_sq group by 1 having max(height) in (170, 180)) alias",
+      %{rows: [%{row: [100]}]}
+    )
+  end
+
   test "function in where in a subquery" do
     assert_query("select height from (select user_id, height from heights_sq where height / 2 = 90) alias", %{
       columns: ["height"],

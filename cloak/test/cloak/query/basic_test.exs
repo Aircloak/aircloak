@@ -1291,6 +1291,13 @@ defmodule Cloak.Query.BasicTest do
       })
     end
 
+    test "not null filter" do
+      assert_query("select name from heights group by name having median(height) is not null order by 1", %{
+        columns: ["name"],
+        rows: [%{row: ["dan"], occurrences: 1}, %{row: ["jon"], occurrences: 1}]
+      })
+    end
+
     test "BUG: range in having" do
       assert_query("select height, count(*) as c from heights group by height having c between 20 and 100", %{
         columns: ["height", "c"],
