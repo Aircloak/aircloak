@@ -18,6 +18,29 @@ defmodule Cloak.DataSource.SqlBuilderTest do
     assert SqlBuilder.quote_table_name("long.full.name") == "\"long\".\"full\".\"name\""
   end
 
+  describe "table_name_parts" do
+    test "unqualified single part", do: assert(SqlBuilder.table_name_parts("foo") == ["foo"])
+    test "unqualified with whitespace", do: assert(SqlBuilder.table_name_parts("foo bar baz") == ["foo bar baz"])
+    test "unqualified multi parts", do: assert(SqlBuilder.table_name_parts("foo.bar.baz") == ["foo", "bar", "baz"])
+
+    test "qualified single part", do: assert(SqlBuilder.table_name_parts(~s/"foo"/) == ["foo"])
+    test "qualified with quotes in the name", do: assert(SqlBuilder.table_name_parts(~s/"f""oo"/) == [~s(f"oo)])
+    test "qualified multi part", do: assert(SqlBuilder.table_name_parts(~s/"foo"."bar"."baz"/) == ["foo", "bar", "baz"])
+
+    test "mixed multi part", do: assert(SqlBuilder.table_name_parts(~s/"foo".bar."baz"/) == ["foo", "bar", "baz"])
+
+    test "empty parts are not allowed" do
+      assert_raise ArgumentError, fn -> SqlBuilder.table_name_parts("") end
+      assert_raise ArgumentError, fn -> SqlBuilder.table_name_parts(".") end
+      assert_raise ArgumentError, fn -> SqlBuilder.table_name_parts("foo.") end
+      assert_raise ArgumentError, fn -> SqlBuilder.table_name_parts(".foo") end
+      assert_raise ArgumentError, fn -> SqlBuilder.table_name_parts("foo..bar") end
+    end
+
+    test "non-matching quotes are not allowed",
+      do: assert_raise(ArgumentError, fn -> SqlBuilder.table_name_parts(~s/"foobar/) end)
+  end
+
   defp sql_string(query, dialect \\ PostgreSQL) do
     compiled_query =
       query
