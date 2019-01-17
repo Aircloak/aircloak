@@ -173,6 +173,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
       fn row, var!(accumulator) ->
         case Expression.value(var!(column), row) do
           nil -> var!(accumulator)
+          :* -> var!(accumulator)
           var!(value) -> unquote(expression)
         end
       end

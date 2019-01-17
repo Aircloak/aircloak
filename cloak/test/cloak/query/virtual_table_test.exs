@@ -117,6 +117,11 @@ defmodule Cloak.Query.VirtualTableTest do
     })
   end
 
+  test "quoting in virtual tables" do
+    create_virtual_table!("vtt_fake", ~s/select user_id, ival * 2 as x from "cloak_test"."vtt_real"/)
+    assert_query("select sum(x) from vtt_fake", %{rows: [%{row: [600]}]})
+  end
+
   test "virtual columns" do
     create_virtual_table!("vtt_fake", "select user_id, ival * 2 as x from cloak_test.vtt_real")
     assert_query("select sum(x) from vtt_fake", %{rows: [%{row: [600]}]})

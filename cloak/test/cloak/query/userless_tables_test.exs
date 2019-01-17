@@ -24,9 +24,15 @@ defmodule Cloak.Query.UserlessTableTest do
     })
   end
 
-  test "select with filter" do
+  test "select with where filter" do
     assert_query("select name from userless where name in ('fun', 'car') order by name", %{
       rows: [%{row: ["car"]}, %{row: ["fun"]}]
+    })
+  end
+
+  test "select with having filter" do
+    assert_query("select name from userless group by name having name like 'ca_'", %{
+      rows: [%{row: ["car"]}]
     })
   end
 

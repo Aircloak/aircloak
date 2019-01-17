@@ -176,7 +176,7 @@ defmodule Cloak.Sql.Expression do
   def display(value), do: to_string(value)
 
   @doc "Returns the column value of a database row."
-  @spec value(t, DataSource.row()) :: DataSource.field()
+  @spec value(t, DataSource.row()) :: DataSource.field() | :*
   def value(expression, row \\ [])
   def value(%__MODULE__{constant?: true, value: value}, _row), do: value
 

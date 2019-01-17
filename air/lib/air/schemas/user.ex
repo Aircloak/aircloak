@@ -22,6 +22,7 @@ defmodule Air.Schemas.User do
     has_many(:views, Air.Schemas.View)
     has_many(:audit_logs, Air.Schemas.AuditLog)
     has_many(:logins, Air.Schemas.Login)
+    has_many(:revokable_tokens, Air.Schemas.RevokableToken)
 
     many_to_many(
       :groups,

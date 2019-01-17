@@ -1,4 +1,8 @@
-## Version 19.2.0
+## Version 19.2.0 Development version
+
+### __Breaking changes__
+
+ - When quoting `db_name` in drill data sources, the double quote (") character must be used instead of backtick (\`).
 
 ### Bugfixes
  - Fixed date/time literals support on Oracle.
@@ -16,10 +20,13 @@
 - Added validation of virtual queries.
 - Implemented offloading of complex per-user grouping.
 - Inequalities between raw columns are now allowed both as `col1 >/>=/</<= col2` and `col1 BETWEEN col2 AND col3`
+- Extended support for filters in the `HAVING` clause.
 
 ### Changes
 
  - Removed support for `extract_words`.
+ - Password reset tokens and links will now expire after a single use. All password reset linkes/tokens generated with a
+   previous version will be invalid as a consequence of this change.
 
 ## Version 19.1.0
 

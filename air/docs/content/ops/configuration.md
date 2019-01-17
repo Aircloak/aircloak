@@ -436,14 +436,7 @@ These options are mutually exclusive.
 
 The `db_name` is the name of the table in the underlying database. In most situations you can use the same name
 (in which case the field can be omitted), but the distinction allows some special scenarios, such as exposing
-a table under a simpler name, or exposing the same database table multiple times under different names. Note that if the
-name of the table in the underlying database requires quoting (for example because it contains spaces), you might need
-to quote the name in this configuration file as well. For example, for a `postgresql` data source and a table called
-`user data` defined in a schema called `user schema` you would write the following:
-
-```
-"db_name": "\"user data\".\"user schema\""
-```
+a table under a simpler name, or exposing the same database table multiple times under different names. See the [Referencing database tables](#referencing-database-tables) section for details.
 
 If the `query` field is present instead, a virtual table is created, similar to an SQL view. The provided query can gather
 data from multiple tables, filter what columns are exposed and pre-process, pre-filter or pre-aggregate the data. The
@@ -466,6 +459,61 @@ The query can only select data from existing tables (or views) in the source dat
 or projected tables from the configuration file).
 If the virtual table contains columns with duplicated names, only the first one is kept and the rest are dropped.
 Constant columns are also dropped from the table.
+
+#### Referencing database tables
+
+Database tables are referenced when providing the `db_name` property. They can also be referenced in the query of virtual tables. The rules explained here are the same for both cases.
+
+When referencing a database table, two characters are considered as special: the dot character (`.`) and the double quote character (`"`). If the name contains any of these characters, the name has to be quoted inside double quotes. Since the JSON string is already quoted inside double quotes, you need to use the `\"` syntax:
+
+```
+"db_name": "\"some.table\""
+```
+
+If the `"` character is a part of the table name, you need to quote the table name, and provide the double quote as `\"\"` inside the quoted name. For example, if the table name is `some"table`, you can specify it as:
+
+```
+"db_name": "\"some\"\"table\""
+```
+
+In some cases you might need to specify a fully qualified name, for example to provide a different database schema. In this case, you need to separate different parts with the dot character:
+
+```
+"db_name": "some_schema.some_table"
+```
+
+When quoting a multi-part identifier, you need to quote each part separately. For example, if the schema name is `some.schema`, and the table name is `some.table`, you can specify it as follows:
+
+```
+"db_name": "\"some.schema\".\"some.table\""
+```
+
+Also note that you only need to quote the part which contains special characters. In the following example, we quote the schema name (because it contains the dot character), but not the table name (because it doesn't contain any special characters).
+
+```
+"db_name": "\"some.schema\".some_table"
+```
+
+However, it's not an error if you quote each part, regardless of whether it requires quoting or not.
+
+It's also worth mentioning that `db_name` is case sensitive, irrespective of whether it's quoted or not. Therefore, you should use the exact capitalization of the underlying database.
+
+For example, let's say that the table is created with the following statement:
+
+```
+create table user_data(uid integer, ...)
+```
+
+In PostgreSQL, the table name will be lower-cased, while in Oracle, it will be upper-cased. Therefore, when providing `db_name`, you should specify `"user_data"` if the data source is a PostgreSQL database, or `"USER_DATA"` if the data source is an Oracle database.
+
+Of course, if you explicitly used a non-default capitalization, then you need to use the same capitalization when specifying the `db_name`. For example, let's say that the following create statement was used to create a PostgreSQL table:
+
+```
+create table "UserData"(uid integer, ...)
+```
+
+In this case, you need to provide `"UserData"` as the `db_name` property.
+
 
 #### Projected tables
 

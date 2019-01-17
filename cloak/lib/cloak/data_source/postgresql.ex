@@ -25,7 +25,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   @impl Driver
   def load_tables(connection, table) do
     {schema_name, table_name} =
-      case String.split(table.db_name, ".") do
+      case SqlBuilder.table_name_parts(table.db_name) do
         [full_table_name] -> {"public", full_table_name}
         [schema_name, table_name] -> {schema_name, table_name}
       end
