@@ -462,9 +462,9 @@ Constant columns are also dropped from the table.
 
 #### Referencing database tables
 
-Database tables are referenced when providing the `db_name` property. They can also be referenced in the query of the virtual tables. The rules explained here are the same for both cases.
+Database tables are referenced when providing the `db_name` property. They can also be referenced in the query of virtual tables. The rules explained here are the same for both cases.
 
-When referencing a database table, two characters are considered as special: the dot character (`.`) and the double quote character (`"`). If the name contains any of these characters, you need to quote the name has to be quoted inside double quotes. Since the JSON string is already quoted inside double quotes, you need to use the `\"` syntax:
+When referencing a database table, two characters are considered as special: the dot character (`.`) and the double quote character (`"`). If the name contains any of these characters, the name has to be quoted inside double quotes. Since the JSON string is already quoted inside double quotes, you need to use the `\"` syntax:
 
 ```
 "db_name": "\"some.table\""
