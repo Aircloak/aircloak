@@ -358,7 +358,10 @@ defmodule Cloak.Sql.Compiler.TypeChecker do
           raise(
             CompilationError,
             source_location: invalid.source_location,
-            message: "Only unmodified columns can be used in inequalities without constants."
+            message: """
+            Only unmodified columns can be used in inequalities without constants.
+            For further information see the "Ranges" subsection of the "Restrictions" section in the user guides.
+            """
           )
       end
     end)
