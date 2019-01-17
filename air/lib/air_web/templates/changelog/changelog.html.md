@@ -19,6 +19,7 @@
 - Added the support for the `VARIANCE` function.
 - Added validation of virtual queries.
 - Implemented offloading of complex per-user grouping.
+- Inequalities between raw columns are now allowed both as `col1 >/>=/</<= col2` and `col1 BETWEEN col2 AND col3`
 - Extended support for filters in the `HAVING` clause.
 
 ### Changes

@@ -155,6 +155,18 @@ SELECT COUNT(*) FROM table WHERE column BETWEEN 10 AND 20
 SELECT COUNT(*) FROM table WHERE column >= 10 AND column < 20
 ```
 
+Expressions only including unmodified database columns are excluded from this restriction:
+
+```sql
+-- Correct - only unmodified columns used:
+SELECT COUNT(*) FROM table WHERE column1 > column2
+SELECT COUNT(*) FROM table WHERE column1 BETWEEN column2 AND column3
+
+-- Incorrect - a function or operator is used:
+SELECT COUNT(*) FROM table WHERE column1 > sqrt(column2)
+SELECT COUNT(*) FROM table WHERE column1 BETWWEEN column2 + column3 AND column4
+```
+
 
 ## Range alignment
 

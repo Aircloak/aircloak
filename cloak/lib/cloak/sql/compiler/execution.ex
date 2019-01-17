@@ -6,7 +6,7 @@ defmodule Cloak.Sql.Compiler.Execution do
   to the query, in order to be able to safely execute it.
   """
 
-  alias Cloak.Sql.{CompilationError, Condition, Expression, FixAlign, Function, Query}
+  alias Cloak.Sql.{CompilationError, Condition, Expression, FixAlign, Function, Query, Range}
   alias Cloak.Sql.Compiler.{Helpers, Optimizer}
   alias Cloak.Sql.Query.Lenses
 
@@ -191,11 +191,11 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   defp align_ranges(query, lens) do
     clause = Lens.one!(lens, query)
-    grouped_inequalities = inequalities_by_column(clause)
+    grouped_inequalities = range_inequalities_by_column(clause)
 
     verify_ranges(grouped_inequalities)
 
-    non_range_conditions = Condition.reject(clause, &Condition.inequality?/1)
+    non_range_conditions = Condition.reject(clause, &Range.range_inequality?/1)
 
     query = put_in(query, [lens], non_range_conditions)
     Enum.reduce(grouped_inequalities, query, &add_aligned_range(&1, &2, lens))
@@ -260,10 +260,10 @@ defmodule Cloak.Sql.Compiler.Execution do
     end
   end
 
-  defp inequalities_by_column(where_clause) do
+  defp range_inequalities_by_column(where_clause) do
     Lenses.conditions()
     |> Lens.to_list(where_clause)
-    |> Enum.filter(&Condition.inequality?/1)
+    |> Enum.filter(&Range.range_inequality?/1)
     |> Enum.group_by(&(&1 |> Condition.subject() |> Expression.semantic()))
     |> Enum.map(&discard_redundant_inequalities/1)
     |> Enum.into(%{})

@@ -198,6 +198,30 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       assert narrative =~ ~r/Only .* can be used in range expressions/
     end
 
+    for operator <- ~w(> < >= <=) do
+      test "allows arbitrary col1 #{operator} col2" do
+        assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric #{unquote(operator)} numeric2")
+      end
+
+      test "forbids function(col1) #{operator} col2" do
+        assert {:error, narrative} =
+                 compile("SELECT COUNT(*) FROM table WHERE numeric #{unquote(operator)} sqrt(numeric2)")
+
+        assert narrative =~ ~r/Only unmodified columns can be used in inequalities/
+      end
+    end
+
+    test "allows col1 BETWEEN col2 AND col3" do
+      assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric BETWEEN numeric2 AND numeric3")
+    end
+
+    test "forbids functions in col1 BETWEEN col2 AND col3" do
+      assert {:error, narrative} =
+               compile("SELECT COUNT(*) FROM table WHERE numeric BETWEEN sqrt(numeric2) AND numeric3")
+
+      assert narrative =~ ~r/Only unmodified columns can be used in inequalities/
+    end
+
     test "allows clear between arguments",
       do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric BETWEEN 0 AND 10"))
 
@@ -313,6 +337,8 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
             columns: [
               Table.column("uid", :integer),
               Table.column("numeric", :integer),
+              Table.column("numeric2", :integer),
+              Table.column("numeric3", :integer),
               Table.column("float", :real),
               Table.column("string", :text),
               Table.column("time", :time),
