@@ -58,7 +58,8 @@ defmodule Compliance.DataSource.MySQL do
   end
 
   @impl Connector
-  def adjust_data_source(data_source), do: Connector.update_db_name(data_source, :users, &"cloak_compliance.#{&1}")
+  def adjust_data_source(data_source),
+    do: Connector.update_db_name(data_source, :users, &~s/"cloak_compliance"."#{&1}"/)
 
   # -------------------------------------------------------------------
   # Internal functions

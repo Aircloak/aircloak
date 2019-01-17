@@ -74,7 +74,7 @@ defmodule Compliance.DataSource.PostgreSQL do
   end
 
   @impl Connector
-  def adjust_data_source(data_source), do: Connector.update_db_name(data_source, :users, &"public.#{&1}")
+  def adjust_data_source(data_source), do: Connector.update_db_name(data_source, :users, &~s/"public"."#{&1}"/)
 
   # -------------------------------------------------------------------
   # Internal functions

@@ -48,7 +48,7 @@ defmodule Compliance.DataSource.SQLServer do
   end
 
   @impl Connector
-  def adjust_data_source(data_source), do: Connector.update_db_name(data_source, :users, &"dbo.#{&1}")
+  def adjust_data_source(data_source), do: Connector.update_db_name(data_source, :users, &~s/"dbo"."#{&1}"/)
 
   # -------------------------------------------------------------------
   # Internal functions

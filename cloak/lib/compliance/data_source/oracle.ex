@@ -47,7 +47,7 @@ defmodule Compliance.DataSource.Oracle do
   end
 
   @impl Connector
-  def adjust_data_source(data_source), do: Connector.update_db_name(data_source, :users, &"SYSTEM.#{&1}")
+  def adjust_data_source(data_source), do: Connector.update_db_name(data_source, :users, &~s/"SYSTEM".#{&1}/)
 
   # -------------------------------------------------------------------
   # Internal functions
