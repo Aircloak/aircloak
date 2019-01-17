@@ -232,12 +232,10 @@ defmodule Compliance.DataSources do
   defp create_table_structure(definitions, table_postfix, data_source_scaffold) do
     definitions
     |> Enum.map(fn {name, definition} ->
-      db_table_name = handler_for_data_source(data_source_scaffold).db_table_name(name)
-
       data_source_defintion_template =
         %{decoders: Map.get(definition, :decoders, []), query: nil}
         |> add_uid_construct(name)
-        |> Map.put(:db_name, "#{db_table_name}#{table_postfix}")
+        |> Map.put(:db_name, handler_for_data_source(data_source_scaffold).db_table_name("#{name}#{table_postfix}"))
 
       {name, data_source_defintion_template}
     end)

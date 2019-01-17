@@ -51,7 +51,7 @@ defmodule Compliance.DataSource.SAPHana do
   def terminate(conn), do: :odbc.disconnect(conn)
 
   @impl Connector
-  def db_table_name(table_name), do: ~s/compliance.#{table_name}/
+  def db_table_name(table_name), do: ~s/"compliance.#{table_name}"/
 
   # -------------------------------------------------------------------
   # Internal functions
