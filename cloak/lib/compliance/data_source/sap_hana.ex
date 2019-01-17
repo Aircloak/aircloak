@@ -53,6 +53,10 @@ defmodule Compliance.DataSource.SAPHana do
   @impl Connector
   def db_table_name(table_name), do: ~s/"compliance.#{table_name}"/
 
+  @impl Connector
+  def adjust_data_source(data_source),
+    do: Connector.update_db_name(data_source, :users, &~s/"#{Cloak.DataSource.SAPHana.default_schema()}".#{&1}/)
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
