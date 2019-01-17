@@ -436,7 +436,7 @@ These options are mutually exclusive.
 
 The `db_name` is the name of the table in the underlying database. In most situations you can use the same name
 (in which case the field can be omitted), but the distinction allows some special scenarios, such as exposing
-a table under a simpler name, or exposing the same database table multiple times under different names. See the [Providing db_name](#providing-dbname) section for details.
+a table under a simpler name, or exposing the same database table multiple times under different names. See the [Referencing database tables](#referencing-database-tables) section for details.
 
 If the `query` field is present instead, a virtual table is created, similar to an SQL view. The provided query can gather
 data from multiple tables, filter what columns are exposed and pre-process, pre-filter or pre-aggregate the data. The
@@ -460,9 +460,11 @@ or projected tables from the configuration file).
 If the virtual table contains columns with duplicated names, only the first one is kept and the rest are dropped.
 Constant columns are also dropped from the table.
 
-#### Providing db_name
+#### Referencing database tables
 
-When specifying the `db_name` property, two characters are considered as special: the dot character (`.`) and the double quote character (`"`). If the name contains any of these characters, you need to quote the name has to be quoted inside double quotes. Since the JSON string is already quoted inside double quotes, you need to use the `\"` syntax:
+Database tables are referenced when providing the `db_name` property. They can also be referenced in the query of the virtual tables. The rules explained here are the same for both cases.
+
+When referencing a database table, two characters are considered as special: the dot character (`.`) and the double quote character (`"`). If the name contains any of these characters, you need to quote the name has to be quoted inside double quotes. Since the JSON string is already quoted inside double quotes, you need to use the `\"` syntax:
 
 ```
 "db_name": "\"some.table\""
