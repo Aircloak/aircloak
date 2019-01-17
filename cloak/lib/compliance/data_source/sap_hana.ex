@@ -29,7 +29,7 @@ defmodule Compliance.DataSource.SAPHana do
     SapHanaHelpers.recreate_table!(
       conn,
       schema(),
-      db_table_name(table_name),
+      unquoted_db_table_name(table_name),
       columns_sql(columns)
     )
 
@@ -43,7 +43,7 @@ defmodule Compliance.DataSource.SAPHana do
   def insert_rows(table_name, data, conn) do
     column_names = column_names(data)
     rows = rows(data, column_names)
-    SapHanaHelpers.insert_rows!(conn, schema(), db_table_name(table_name), column_names, rows)
+    SapHanaHelpers.insert_rows!(conn, schema(), unquoted_db_table_name(table_name), column_names, rows)
     conn
   end
 
@@ -51,7 +51,7 @@ defmodule Compliance.DataSource.SAPHana do
   def terminate(conn), do: :odbc.disconnect(conn)
 
   @impl Connector
-  def db_table_name(table_name), do: ~s/"compliance.#{table_name}"/
+  def db_table_name(table_name), do: ~s/"#{unquoted_db_table_name(table_name)}"/
 
   @impl Connector
   def adjust_data_source(data_source),
@@ -60,6 +60,8 @@ defmodule Compliance.DataSource.SAPHana do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp unquoted_db_table_name(table_name), do: "compliance.#{table_name}"
 
   defp schema() do
     case Cloak.DataSource.SAPHana.default_schema() do
