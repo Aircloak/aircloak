@@ -462,10 +462,10 @@ Constant columns are also dropped from the table.
 
 #### Providing db_name
 
-When specifying the `db_name` property, if the name contains some special characters (e.g. whitespace), you need to quote it inside double quotes. Since the JSON string is already quoted inside double quotes, you need to use the `\"` syntax:
+When specifying the `db_name` property, two characters are considered as special: the dot character (`.`) and the double quote character (`"`). If the name contains any of these characters, you need to quote the name has to be quoted inside double quotes. Since the JSON string is already quoted inside double quotes, you need to use the `\"` syntax:
 
 ```
-"db_name": "\"some table\""
+"db_name": "\"some.table\""
 ```
 
 If the `"` character is a part of the table name, you need to quote the table name, and provide the double quote as `\"\"` inside the quoted name. For example, if the table name is `some"table`, you can specify it as:
@@ -480,22 +480,16 @@ In some cases you might need to specify a fully qualified name, for example to p
 "db_name": "some_schema.some_table"
 ```
 
-When quoting a multi-part identifier, you need to quote each part separately:
+When quoting a multi-part identifier, you need to quote each part separately. For example, if the schema name is `some.schema`, and the table name is `some.table`, you can specify it as follows:
 
 ```
-"db_name": "\"some schema\".\"some table\""
+"db_name": "\"some.schema\".\"some.table\""
 ```
 
-In contrast, if the `.` character is quoted, it's interpreted as the part of the table name. The following example specifies a table called `some.table`:
+Also note that you only need to quote the part which contains special characters. In the following example, we quote the schema name (because it contains the dot character), but not the table name (because it doesn't contain any special characters).
 
 ```
-"db_name": "\"some.table\""
-```
-
-Also note that you only need to quote the part which requires quoting. In the following example, we quote the schema name (because it contains a whitespace), but not the table name (because it doesn't contain any special characters).
-
-```
-"db_name": "\"some schema\".some_table"
+"db_name": "\"some.schema\".some_table"
 ```
 
 However, it's not an error if you quote each part, regardless of whether it requires quoting or not.
