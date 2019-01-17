@@ -75,32 +75,32 @@ defmodule Compliance.DataSources do
 
   @doc "Takes a data source template definition and expands it with table definitions"
   @spec complete_data_source_definitions([DataSource.t()], disable_analysis_operations: boolean) :: [DataSource.t()]
-  def complete_data_source_definitions(data_source_defintion_templates, opts \\ []) do
-    Enum.flat_map(data_source_defintion_templates, fn data_source_defintion_template ->
+  def complete_data_source_definitions(data_source_definition_templates, opts \\ []) do
+    Enum.flat_map(data_source_definition_templates, fn data_source_definition_template ->
       plain_tables =
-        table_definitions(&TableDefinitions.plain/1, data_source_defintion_template)
-        |> create_table_structure(@plain_name_postfix, data_source_defintion_template)
+        table_definitions(&TableDefinitions.plain/1, data_source_definition_template)
+        |> create_table_structure(@plain_name_postfix, data_source_definition_template)
 
       plain_data_source =
-        data_source_defintion_template
+        data_source_definition_template
         |> Map.put(:tables, plain_tables)
         |> Map.put(:initial_tables, plain_tables)
-        |> Map.put(:name, "#{data_source_defintion_template.name}#{@plain_name_postfix}")
+        |> Map.put(:name, "#{data_source_definition_template.name}#{@plain_name_postfix}")
         |> Map.put(:marker, "normal")
 
-      if data_source_defintion_template[:encoded] == false do
+      if data_source_definition_template[:encoded] == false do
         [plain_data_source]
       else
         encoded_tables =
-          table_definitions(&TableDefinitions.encoded/1, data_source_defintion_template)
-          |> create_table_structure(@encoded_name_postfix, data_source_defintion_template)
+          table_definitions(&TableDefinitions.encoded/1, data_source_definition_template)
+          |> create_table_structure(@encoded_name_postfix, data_source_definition_template)
           |> conditionally_disable_analysis_operations(Keyword.get(opts, :disable_analysis_operations, false))
 
         encoded_data_source =
-          data_source_defintion_template
+          data_source_definition_template
           |> Map.put(:tables, encoded_tables)
           |> Map.put(:initial_tables, encoded_tables)
-          |> Map.put(:name, "#{data_source_defintion_template.name}#{@encoded_name_postfix}")
+          |> Map.put(:name, "#{data_source_definition_template.name}#{@encoded_name_postfix}")
           |> Map.put(:marker, "encoded")
 
         [plain_data_source, encoded_data_source]
@@ -232,12 +232,12 @@ defmodule Compliance.DataSources do
   defp create_table_structure(definitions, table_postfix, data_source_scaffold) do
     definitions
     |> Enum.map(fn {name, definition} ->
-      data_source_defintion_template =
+      data_source_definition_template =
         %{decoders: Map.get(definition, :decoders, []), query: nil}
         |> add_uid_construct(name)
         |> Map.put(:db_name, handler_for_data_source(data_source_scaffold).db_table_name("#{name}#{table_postfix}"))
 
-      {name, data_source_defintion_template}
+      {name, data_source_definition_template}
     end)
     |> Enum.into(%{})
   end
@@ -253,10 +253,10 @@ defmodule Compliance.DataSources do
     end)
   end
 
-  defp add_uid_construct(data_source_defintion_template, name) do
+  defp add_uid_construct(data_source_definition_template, name) do
     case Map.get(TableDefinitions.uid_definitions(), name) do
-      %{user_id: uid_column_name} -> Map.put(data_source_defintion_template, :user_id, uid_column_name)
-      %{projection: projection} -> Map.put(data_source_defintion_template, :projection, projection)
+      %{user_id: uid_column_name} -> Map.put(data_source_definition_template, :user_id, uid_column_name)
+      %{projection: projection} -> Map.put(data_source_definition_template, :projection, projection)
     end
   end
 
