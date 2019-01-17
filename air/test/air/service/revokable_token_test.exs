@@ -46,6 +46,15 @@ defmodule Air.Service.RevokableToken.Test do
     end
   end
 
+  describe ".verify_and_revoke" do
+    test "does a verify/revoke combo", %{user: user} do
+      token = RevokableToken.sign(%{some: :data}, user, :session)
+
+      assert {:ok, %{some: :data}} == RevokableToken.verify_and_revoke(token, :session, max_age: :infinity)
+      assert {:error, :invalid_token} = RevokableToken.verify(token, :session, max_age: :infinity)
+    end
+  end
+
   describe ".revoke_all" do
     test "revokes all tokens with the given owner and type", %{user: user} do
       token = RevokableToken.sign(%{:some => :data}, user, :session)
