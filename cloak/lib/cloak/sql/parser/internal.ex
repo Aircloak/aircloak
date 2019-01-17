@@ -513,7 +513,7 @@ defmodule Cloak.Sql.Parser.Internal do
       sequence([
         table_or_subquery(),
         keyword(:on),
-        where_expressions(),
+        filter_expressions(),
         next_join()
       ])
     end)
@@ -597,18 +597,18 @@ defmodule Cloak.Sql.Parser.Internal do
 
   defp optional_where() do
     switch([
-      {keyword(:where), where_expressions()},
+      {keyword(:where), filter_expressions()},
       {:else, noop()}
     ])
     |> map(fn
-      {[:where], [where_expressions]} -> {:where, where_expressions}
+      {[:where], [filter_expressions]} -> {:where, filter_expressions}
       other -> other
     end)
   end
 
-  defp where_expressions(), do: disjunction_expression(where_expression())
+  defp filter_expressions(), do: disjunction_expression(filter_expression())
 
-  defp where_expression() do
+  defp filter_expression() do
     switch([
       {column()
        |> option(keyword(:not))
@@ -841,32 +841,12 @@ defmodule Cloak.Sql.Parser.Internal do
 
   defp optional_having() do
     switch([
-      {keyword(:having), having_expressions()},
+      {keyword(:having), filter_expressions()},
       {:else, noop()}
     ])
     |> map(fn
-      {[:having], [having_expressions]} -> {:having, having_expressions}
+      {[:having], [filter_expressions]} -> {:having, filter_expressions}
       other -> other
-    end)
-  end
-
-  defp having_expressions(), do: disjunction_expression(having_expression())
-
-  defp having_expression() do
-    switch([
-      {column() |> keyword(:between), allowed_where_range()},
-      {column() |> comparator(), column()},
-      {sequence([next_position(), column()]), return(:implicit)}
-    ])
-    |> map(fn
-      {[column, :between], [{min, max}]} ->
-        {:and, {:comparison, column, :>=, min}, {:comparison, column, :<=, max}}
-
-      {[[location, column]], [:implicit]} ->
-        {:comparison, column, :=, {:constant, :boolean, true, location}}
-
-      {[column, comparator], [value]} ->
-        {:comparison, column, comparator, value}
     end)
   end
 

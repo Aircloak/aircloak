@@ -15,6 +15,7 @@
 - Added the support for the `VARIANCE` function.
 - Added validation of virtual queries.
 - Implemented offloading of complex per-user grouping.
+- Extended support for filters in the `HAVING` clause.
 
 ### Changes
 
