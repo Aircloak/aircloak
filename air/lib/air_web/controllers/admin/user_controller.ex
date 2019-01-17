@@ -4,7 +4,7 @@ defmodule AirWeb.Admin.UserController do
 
   alias Air.Service.User
 
-  plug(:load_user when action in [:edit, :update, :delete, :disable, :enable])
+  plug(:load_user when action in [:edit, :update, :delete, :disable, :enable, :reset_password])
 
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
@@ -47,8 +47,7 @@ defmodule AirWeb.Admin.UserController do
       conn,
       "edit.html",
       changeset: User.to_changeset(conn.assigns.user),
-      user: conn.assigns.user,
-      reset_path: reset_path(conn)
+      user: conn.assigns.user
     )
   end
 
@@ -78,7 +77,7 @@ defmodule AirWeb.Admin.UserController do
         |> redirect(to: admin_user_path(conn, :index))
 
       {:error, changeset} ->
-        render(conn, "edit.html", changeset: changeset, reset_path: reset_path(conn))
+        render(conn, "edit.html", changeset: changeset)
     end)
   end
 
@@ -132,6 +131,10 @@ defmodule AirWeb.Admin.UserController do
 
     conn
     |> redirect(to: admin_user_path(conn, :index))
+  end
+
+  def reset_password(conn, _params) do
+    render(conn, "reset_password.html", reset_path: reset_path(conn))
   end
 
   # -------------------------------------------------------------------
