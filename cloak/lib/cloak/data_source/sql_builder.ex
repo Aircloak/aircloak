@@ -1,6 +1,7 @@
 defmodule Cloak.DataSource.SqlBuilder do
   @moduledoc "Provides functionality for constructing an SQL query from a compiled query."
 
+  use Combine
   alias Cloak.Sql.{Query, Expression}
   alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL}
 
@@ -15,18 +16,78 @@ defmodule Cloak.DataSource.SqlBuilder do
     to_string([select, sql_dialect_module(query).select_hints() | rest])
   end
 
-  @doc "Makes sure the specified partial or full table name is quoted."
+  @doc """
+  Makes sure the specified partial or full table name is quoted.
+
+  ```
+  iex> SqlBuilder.quote_table_name("name")
+  ~s/"name"/
+
+  iex> SqlBuilder.quote_table_name(~s/"name"/)
+  ~s/"name"/
+
+  iex> SqlBuilder.quote_table_name("full.name")
+  ~s/"full"."name"/
+
+  iex> SqlBuilder.quote_table_name(~s/"quoted.name"/)
+  ~s/"quoted.name"/
+
+  iex> SqlBuilder.quote_table_name("long.full.name")
+  ~s/"long"."full"."name"/
+  ```
+  """
   @spec quote_table_name(String.t(), integer) :: String.t()
-  def quote_table_name(table_name, quote_char \\ ?")
+  def quote_table_name(table_name, quote_char \\ ?") do
+    table_name
+    |> table_name_parts()
+    |> Enum.map(&quote_name(&1, quote_char))
+    |> Enum.join(".")
+  end
 
-  def quote_table_name(<<quote_char::utf8, _::binary>> = table_name, quote_char), do: table_name
+  @doc """
+  Returns unquoted parts of the table name.
 
-  def quote_table_name(table_name, quote_char),
-    do:
-      table_name
-      |> String.split(".")
-      |> Enum.map(&quote_name(&1, quote_char))
-      |> Enum.join(".")
+  Examples:
+
+  ```
+  iex> SqlBuilder.table_name_parts("foobar")
+  ["foobar"]
+
+  iex> SqlBuilder.table_name_parts("foo.bar")
+  ["foo", "bar"]
+
+  iex> SqlBuilder.table_name_parts(~s/"foo"."bar"/)
+  ["foo", "bar"]
+
+  iex> SqlBuilder.table_name_parts(~s/"foo".bar/)
+  ["foo", "bar"]
+  ```
+  """
+  @spec table_name_parts(String.t()) :: [String.t()]
+  def table_name_parts(table_name) do
+    case Combine.parse(table_name, sep_by1(part(), string(".")) |> eof()) do
+      [parts] -> parts
+      {:error, error} -> raise ArgumentError, error
+    end
+  end
+
+  # -------------------------------------------------------------------
+  # Table name parsing
+  # -------------------------------------------------------------------
+
+  defp part(), do: either(qualified_part(), unqualified_part()) |> map(&to_string/1)
+
+  defp qualified_part() do
+    sequence([
+      ignore(string(~s/"/)),
+      many1(either(escaped_quote(), satisfy(char(), &(&1 != ~s/"/)))),
+      ignore(string(~s/"/))
+    ])
+  end
+
+  defp escaped_quote(), do: map(string(~s/""/), fn _ -> ~s/"/ end)
+
+  defp unqualified_part(), do: many1(satisfy(char(), &(&1 not in ~w(. "))))
 
   # -------------------------------------------------------------------
   # Transformation of query AST to query specification

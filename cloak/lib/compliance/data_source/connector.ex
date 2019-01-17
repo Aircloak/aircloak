@@ -28,6 +28,9 @@ defmodule Compliance.DataSource.Connector do
   @doc "Is supposed to do any cleanup if required."
   @callback terminate(state) :: :ok
 
+  @doc "Invoked during compliance tests before the data source is loaded."
+  @callback adjust_data_source(Cloak.DataSource.t()) :: Cloak.DataSource.t()
+
   @doc """
   Is supposed to return the database table name from the given table name.
 
@@ -45,7 +48,10 @@ defmodule Compliance.DataSource.Connector do
       @impl unquote(__MODULE__)
       def insert_documents(_collection_name, _documents, conn), do: conn
 
-      defoverridable db_table_name: 1, insert_documents: 3
+      @impl unquote(__MODULE__)
+      def adjust_data_source(data_source), do: data_source
+
+      defoverridable db_table_name: 1, insert_documents: 3, adjust_data_source: 1
     end
   end
 
@@ -66,5 +72,13 @@ defmodule Compliance.DataSource.Connector do
       nil -> Mix.raise("#{host}:#{port} is not available")
       _ -> IO.puts("#{host}:#{port} is available")
     end
+  end
+
+  @doc "Updates the `db_name` of the given table using the provided updater function."
+  @spec update_db_name(Cloak.DataSource.t(), atom, (String.t() -> String.t())) :: Cloak.DataSource.t()
+  def update_db_name(data_source, table, updater) do
+    data_source
+    |> update_in([:tables, table, :db_name], updater)
+    |> update_in([:initial_tables, table, :db_name], updater)
   end
 end

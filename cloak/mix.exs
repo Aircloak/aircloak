@@ -63,6 +63,7 @@ defmodule Cloak.Mixfile do
       {:bypass, "~> 0.5.1", only: :test},
       {:excheck, "~> 0.5.3", only: :test},
       {:triq, "~> 1.3", only: :test},
+      {:stream_data, "~> 0.4.0", only: :test},
 
       # Only used for perf tests
       {:httpoison, "~> 0.13.0", runtime: false, override: true},

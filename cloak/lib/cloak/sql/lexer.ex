@@ -258,12 +258,14 @@ defmodule Cloak.Sql.Lexer do
   defp quoted_identifier() do
     sequence([
       ignore(char(?")),
-      word_of(~r/[^"]/),
+      many1(either(escaped_quote(), satisfy(char(), &(&1 != ~s/"/)))),
       ignore(char(?"))
     ])
-    |> map(fn [identifier] -> {:quoted, identifier} end)
+    |> map(fn [identifier] -> {:quoted, to_string(identifier)} end)
     |> output_token()
   end
+
+  defp escaped_quote(), do: map(string(~s/""/), fn _ -> ~s/"/ end)
 
   defp output_token(token_parser) do
     sequence([offset(), position(), token_parser])
