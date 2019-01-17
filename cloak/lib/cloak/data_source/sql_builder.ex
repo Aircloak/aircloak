@@ -19,6 +19,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   @doc """
   Makes sure the specified partial or full table name is quoted.
 
+  ```
   iex> SqlBuilder.quote_table_name("name")
   ~s/"name"/
 
@@ -33,6 +34,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   iex> SqlBuilder.quote_table_name("long.full.name")
   ~s/"long"."full"."name"/
+  ```
   """
   @spec quote_table_name(String.t(), integer) :: String.t()
   def quote_table_name(table_name, quote_char \\ ?") do
