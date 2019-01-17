@@ -211,13 +211,16 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
       end
     end
 
-    @tag :pending
     test "allows col1 BETWEEN col2 AND col3" do
       assert {:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric BETWEEN numeric2 AND numeric3")
     end
 
-    @tag :pending
-    test "forbids functions in col1 BETWEEN col2 AND col3"
+    test "forbids functions in col1 BETWEEN col2 AND col3" do
+      assert {:error, narrative} =
+               compile("SELECT COUNT(*) FROM table WHERE numeric BETWEEN sqrt(numeric2) AND numeric3")
+
+      assert narrative =~ ~r/Only unmodified columns can be used in inequalities/
+    end
 
     test "allows clear between arguments",
       do: assert({:ok, _} = compile("SELECT COUNT(*) FROM table WHERE numeric BETWEEN 0 AND 10"))

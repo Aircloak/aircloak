@@ -727,11 +727,10 @@ defmodule Cloak.Query.BasicTest do
       })
     end
 
-    @tag :pending
     test "col1 BETWEEN col2 AND col3" do
       assert_query("select count(*) from heights where height BETWEEN height AND weight", %{
         columns: ["count"],
-        rows: [%{row: [20], occurrences: 1}]
+        rows: [%{row: [40], occurrences: 1}]
       })
     end
 

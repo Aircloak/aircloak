@@ -24,17 +24,24 @@ defmodule Cloak.Sql.Range do
   def find_ranges(query), do: inequality_ranges(query) ++ function_ranges(query)
 
   @doc """
-  Returns true if the condition is a range in the context of the query, false otherwise. "Being a range" here means
-  either being an inequality and thus part of a range or containing an implicit range expression.
+  Returns true if the condition is a range in the context of the query, false otherwise.
+
+  "Being a range" here means either being an inequality with a constant and thus part of a range or containing an
+  implicit range expression.
   """
-  @spec range?(Condition.t(), QUery.t()) :: boolean
+  @spec range?(Condition.t(), Query.t()) :: boolean
   def range?(condition, query) do
     cond do
-      Condition.inequality?(condition) -> true
+      range_inequality?(condition) -> true
       condition |> Condition.targets() |> Enum.any?(&implicit_range?(&1, query)) -> true
       true -> false
     end
   end
+
+  @doc "Returns true if the condition is part of an explicit range, false otherwise."
+  @spec range_inequality?(Condition.t()) :: boolean
+  def range_inequality?(condition),
+    do: Condition.inequality?(condition) and Enum.any?(Condition.targets(condition), &Expression.constant?/1)
 
   # -------------------------------------------------------------------
   # Inequality ranges
@@ -56,7 +63,7 @@ defmodule Cloak.Sql.Range do
   defp inequalities_by_column(query) do
     Query.Lenses.db_filter_clauses()
     |> Query.Lenses.conditions()
-    |> Lens.filter(&Condition.inequality?/1)
+    |> Lens.filter(&range_inequality?/1)
     |> Lens.to_list(query)
     |> Enum.group_by(&(&1 |> Condition.subject() |> Expression.semantic()))
   end
