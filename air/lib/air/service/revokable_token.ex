@@ -47,7 +47,7 @@ defmodule Air.Service.RevokableToken do
   Returns `{:ok, data}` for valid tokens and `{:error, :invalid_token}` otherwise.
   """
   @spec verify(String.t(), RevokableToken.RevokableTokenType.t(), options()) :: {:ok, term()} | {:error, :invalid_token}
-  def verify(token, type, options \\ []) do
+  def verify(token, type, options) do
     now = Keyword.get(options, :now, NaiveDateTime.utc_now())
     max_age = Keyword.fetch!(options, :max_age)
 
@@ -67,6 +67,22 @@ defmodule Air.Service.RevokableToken do
     end
 
     :ok
+  end
+
+  @doc """
+  Atomically verifies and revokes the token.
+
+  Note that the revocation is a database operation, so if you rollback a transaction including this operation you will
+  also undo the revocation.
+  """
+  @spec verify_and_revoke(String.t(), RevokableToken.RevokableTokenType.t(), options()) ::
+          {:ok, term()} | {:error, :invalid_token}
+  def verify_and_revoke(token, type, options) do
+    :global.trans({__MODULE__, token}, fn ->
+      result = verify(token, type, options)
+      revoke(token, type)
+      result
+    end)
   end
 
   @doc "Revokes all of the given user's tokens with the given type."

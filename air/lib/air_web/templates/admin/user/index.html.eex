@@ -15,7 +15,7 @@
 
 <%= if length(@enabled_ldap_users) > 0 do %>
 <h3>Enabled LDAP user accounts</h3>
-<div class="alert alert-info">These accounts are managed through LDAP, and cannot be changed.</div>
+<div class="alert alert-info">These accounts are managed through LDAP and cannot be changed.</div>
 <%= render "_list.html", conn: @conn, users: @enabled_ldap_users, data_sources_count: @data_sources_count, role: false %>
 <% end %>
 
