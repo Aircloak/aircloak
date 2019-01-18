@@ -1,16 +1,25 @@
 defmodule AirWeb.Plug.Session do
-  @moduledoc false
+  @moduledoc "Base module for plugs dealing with authentication."
 
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
+  alias Air.Service.RevokableToken
+
+  @doc "Returns the name of the session key where the session id is stored."
+  @spec session_key() :: String.t()
+  def session_key(), do: "_air_session_token"
+
+  @doc "Creates a new session token for the user and sets it in the given conn."
+  @spec sign_in(Plug.Conn.t(), Air.Schemas.User.t()) :: Plug.Conn.t()
+  def sign_in(conn, user), do: Plug.Conn.put_session(conn, session_key(), RevokableToken.sign(user.id, user, :session))
+
   defmodule ApiAuth do
     @moduledoc """
-    This plug ensures that callers of our API's supply a valid auth-token header.
-    It is not compatible with, and can not be used in conjunction with, the
-    plugs for the browser pipelines, as these rely heavily on parameters set
-    and validated by Guardian.
+    This plug ensures that callers of our APIs supply a valid auth-token header. It is not compatible with, and can not
+    be used in conjunction with, the plugs for the browser pipelines, as these rely heavily on parameters set and
+    validated by Guardian.
     """
     @behaviour Plug
 
@@ -197,36 +206,6 @@ defmodule AirWeb.Plug.Session do
     end
 
     defp storage_key(conn, opts), do: Guardian.Plug.Pipeline.fetch_key(conn, opts)
-  end
-
-  defmodule Authenticated do
-    @moduledoc """
-    Authenticates the current user and loads the user data.
-
-    The user data will be available in the `conn.assigns.current_user`
-    """
-    use Guardian.Plug.Pipeline, otp_app: :air, module: Air.Guardian, error_handler: __MODULE__
-
-    plug(AirWeb.Plug.Session.Restoration)
-    plug(Guardian.Plug.VerifySession)
-    plug(Guardian.Plug.EnsureAuthenticated)
-    plug(Guardian.Plug.LoadResource)
-    plug(AirWeb.Plug.Session.EnsureEnabled)
-    plug(AirWeb.Plug.Session.AssignCurrentUser)
-
-    @doc false
-    def auth_error(conn, {:no_resource_found, reason}, params) do
-      conn
-      |> Air.Guardian.Plug.sign_out()
-      |> auth_error({:unauthenticated, reason}, params)
-    end
-
-    def auth_error(%Plug.Conn{request_path: path} = conn, _error, _params) do
-      conn
-      |> Phoenix.Controller.put_flash(:error, "You must be authenticated to view this page")
-      |> Plug.Conn.put_session(:return_path, path)
-      |> Phoenix.Controller.redirect(to: AirWeb.Router.Helpers.session_path(conn, :new))
-    end
   end
 
   defmodule EveryoneAllowed do

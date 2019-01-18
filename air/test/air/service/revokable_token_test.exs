@@ -28,6 +28,10 @@ defmodule Air.Service.RevokableToken.Test do
                )
     end
 
+    test "rejects nil tokens" do
+      assert {:error, :invalid_token} = RevokableToken.verify(nil, :session, max_age: :infinity)
+    end
+
     test "allows tokens within max_age", %{user: user} do
       token = RevokableToken.sign(%{:some => :data}, user, :session)
 

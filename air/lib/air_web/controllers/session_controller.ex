@@ -39,6 +39,7 @@ defmodule AirWeb.SessionController do
 
         conn
         |> Air.Guardian.Plug.sign_in(user)
+        |> AirWeb.Plug.Session.sign_in(user)
         |> conditionally_create_persistent_login(user, params)
         |> put_session(:return_path, nil)
         |> put_flash(:info, "Logged in successfully. Welcome back!")
