@@ -19,6 +19,10 @@ defmodule AirWeb.Plug.Session do
   @spec current_token(Plug.Conn.t()) :: String.t()
   def current_token(conn), do: Plug.Conn.get_session(conn, session_key())
 
+  @doc "Returns true if the connection is authenticated (as any user), false otherwise."
+  @spec authenticated?(Plug.Conn.t()) :: boolean()
+  def authenticated?(conn), do: not is_nil(conn.assigns.current_user)
+
   defmodule ApiAuth do
     @moduledoc """
     This plug ensures that callers of our APIs supply a valid auth-token header. It is not compatible with, and can not

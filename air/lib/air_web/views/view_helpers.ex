@@ -143,7 +143,7 @@ defmodule AirWeb.ViewHelpers do
     end
   end
 
-  def logged_in?(conn), do: Air.Guardian.Plug.authenticated?(conn)
+  def logged_in?(conn), do: AirWeb.Plug.Session.authenticated?(conn)
 
   def severity_class(:high), do: "danger"
   def severity_class(:medium), do: "warning"
