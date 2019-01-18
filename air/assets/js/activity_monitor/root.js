@@ -21,7 +21,7 @@ type QueryEvent = {
 
 type Props = {
   userId: number,
-  guardianToken: string,
+  socketToken: string,
   frontendSocket: FrontendSocket,
   queries: Query[],
   cloak_stats: CloakStat[],

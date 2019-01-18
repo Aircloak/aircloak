@@ -7,7 +7,7 @@
     onLoad: function(App) {
       var props = {
         CSRFToken: "<%= @csrf_token %>",
-        guardianToken: "<%= @guardian_token %>",
+        socketToken: "<%= @socket_token %>",
         userId: "<%= @current_user.id %>",
         queries: <%= to_json(format_queries(@running_queries)) %>,
         cloak_stats: <%= to_json(@cloak_stats) %>
