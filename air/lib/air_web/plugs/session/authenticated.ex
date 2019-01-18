@@ -2,13 +2,10 @@ defmodule AirWeb.Plug.Session.Authenticated do
   def init(options), do: options
 
   def call(conn, _opts) do
-    conn
-    |> Plug.Conn.get_session(AirWeb.Plug.Session.session_key())
-    |> Air.Service.RevokableToken.verify(:session, max_age: :infinity)
-    |> case do
-      {:ok, user_id} ->
-        Plug.Conn.assign(conn, :current_user, Air.Service.User.load(user_id))
-
+    with {:ok, user_id} <- unpack_session(conn),
+         {:ok, user} <- Air.Service.User.load_enabled(user_id) do
+      Plug.Conn.assign(conn, :current_user, Air.Service.User.load(user_id))
+    else
       _ ->
         conn
         |> Phoenix.Controller.put_flash(:error, "You must be authenticated to view this page")
@@ -16,5 +13,11 @@ defmodule AirWeb.Plug.Session.Authenticated do
         |> Phoenix.Controller.redirect(to: AirWeb.Router.Helpers.session_path(conn, :new))
         |> Plug.Conn.halt()
     end
+  end
+
+  defp unpack_session(conn) do
+    conn
+    |> Plug.Conn.get_session(AirWeb.Plug.Session.session_key())
+    |> Air.Service.RevokableToken.verify(:session, max_age: :infinity)
   end
 end

@@ -92,6 +92,18 @@ defmodule Air.Service.User do
   @spec load(pos_integer | binary) :: User.t() | nil
   def load(user_id), do: Repo.one(from(user in User, where: user.id == ^user_id, preload: [:logins, :groups]))
 
+  @doc "Loads the user with the given id if they are enabled."
+  @spec load(pos_integer | binary) :: {:ok, User.t()} | {:error, :not_found}
+  def load_enabled(user_id) do
+    User
+    |> where([q], q.enabled)
+    |> Repo.get(user_id)
+    |> case do
+      nil -> {:error, :not_found}
+      user -> {:ok, user}
+    end
+  end
+
   @doc "Creates the new user, raises on error."
   @spec create!(map) :: User.t()
   def create!(params) do

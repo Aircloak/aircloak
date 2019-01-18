@@ -675,6 +675,24 @@ defmodule Air.Service.UserTest do
     end
   end
 
+  describe ".load_enabled" do
+    test "loads enabled users" do
+      user_id = TestRepoHelper.create_user!().id
+      assert {:ok, %{id: ^user_id}} = User.load_enabled(user_id)
+    end
+
+    test "does not find disabled users" do
+      user = TestRepoHelper.create_user!()
+      User.disable(user)
+
+      assert {:error, :not_found} = User.load_enabled(user.id)
+    end
+
+    test "does not find nonexistent users" do
+      assert {:error, :not_found} = User.load_enabled(123_456_789)
+    end
+  end
+
   defp error_on(fun, field, value), do: errors_on(fun, %{field => value})[field]
 
   defp errors_on(fun, changes) do
