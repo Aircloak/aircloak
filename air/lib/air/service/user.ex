@@ -98,6 +98,7 @@ defmodule Air.Service.User do
     User
     |> where([q], q.enabled)
     |> Repo.get(user_id)
+    |> Repo.preload([:logins, :groups])
     |> case do
       nil -> {:error, :not_found}
       user -> {:ok, user}
