@@ -53,6 +53,9 @@ defmodule Cloak.DataSource.PostgreSQL do
   @impl Driver
   def driver_info(_connection), do: nil
 
+  @impl Driver
+  def supports_materialized_views?(), do: true
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
