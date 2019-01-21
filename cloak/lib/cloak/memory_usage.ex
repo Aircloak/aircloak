@@ -44,7 +44,7 @@ defmodule Cloak.MemoryUsage do
       stacktrace = Cloak.LoggerTranslator.filtered_stacktrace(stacktrace)
 
       [
-        "memory usage: process #{name} uses #{bytes_to_mb(process.memory)} MB",
+        "memory usage: process #{inspect(name)} uses #{bytes_to_mb(process.memory)} MB",
         "initial_call: #{inspect(process.initial_call)}",
         "stacktrace: #{inspect(stacktrace)}"
       ]
@@ -65,7 +65,7 @@ defmodule Cloak.MemoryUsage do
     |> Stream.map(&Map.new/1)
     |> Stream.filter(&(words_to_mb(&1.memory) >= @large_mem_usage_in_mb))
     |> Enum.sort_by(& &1.memory, &>=/2)
-    |> Enum.each(&Logger.info("memory usage: ETS table #{&1.name} uses #{words_to_mb(&1.memory)} MB"))
+    |> Enum.each(&Logger.info("memory usage: ETS table #{inspect(&1.name)} uses #{words_to_mb(&1.memory)} MB"))
   end
 
   # -------------------------------------------------------------------
