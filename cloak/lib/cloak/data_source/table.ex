@@ -449,6 +449,7 @@ defmodule Cloak.DataSource.Table do
     "dec_aes_cbc128(#{column}, '#{String.replace(key, "'", "''")}')"
   end
 
+  defp translate_decoder(%{method: "to_text"}, column), do: "CAST(#{column} AS text)"
   defp translate_decoder(%{method: "text_to_integer"}, column), do: "CAST(#{column} AS integer)"
   defp translate_decoder(%{method: "real_to_integer"}, column), do: "CAST(#{column} AS integer)"
   defp translate_decoder(%{method: "text_to_real"}, column), do: "CAST(#{column} AS real)"
