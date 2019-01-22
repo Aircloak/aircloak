@@ -10,7 +10,7 @@ defmodule Cloak.DataSource.Driver.SQL do
     quote do
       alias Cloak.DataSource.{Driver, SqlBuilder}
 
-      @behaviour Driver
+      use Driver
 
       @impl Driver
       def sql_dialect_module(), do: unquote(dialect)

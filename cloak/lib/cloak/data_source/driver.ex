@@ -52,4 +52,10 @@ defmodule Cloak.DataSource.Driver do
 
   @doc "Returns the driver specific information to be stored inside the data source structure."
   @callback driver_info(connection) :: driver_info
+
+  defmacro __using__(_opts) do
+    quote do
+      @behaviour unquote(__MODULE__)
+    end
+  end
 end
