@@ -611,9 +611,9 @@ Where `sample_rate` is an integer between 1 and 100, representing the percentage
 
 #### Data decoding
 
-Some tables might contain data encoded in a way that it is difficult or impossible to work with directly by analysts. The cloak has support for decoding the data before a query is executed. The decoders are set in the table section. Each one will be applied, sequentially, in the specified order. If an error is encountered by a decoder, processing is skipped for that decoder and the input value is returned (for example, if a decoder tries to decrypt a value and it fails, the original value is kept during further processing; this is useful in case the column holds mixed (encrypted and plain-text) values).
-
-Be careful when using this feature and only decode data in the cloak when there is no other alternative, as any query accessing an encoded column will have greatly reduced performance, due to the cloak not being able to offload processing to the database server.
+Some tables might contain data encoded in a way that it is difficult or impossible to work with directly by
+analysts. The cloak has support for decoding the data before a query is executed.
+The decoders are set in the table section. Each one will be applied, sequentially, in the specified order.
 
 To configure a decoder, you need to provide the `decoders` section under the table configuration:
 
@@ -637,7 +637,7 @@ Each decoder is a json in the shape of:
 {"method": string, "columns": ["some_column_name", ...], additional_parameters}
 ```
 
-The `method` parameter can have one of the following values: `aes_cbc_128`, `base64`, `text_to_integer`, `text_to_real`, `text_to_datetime`, `text_to_date`, `text_to_time`, `substring`.
+The `method` parameter can have one of the following values: `aes_cbc_128`, `base64`, `text_to_integer`, `text_to_real`, `text_to_datetime`, `text_to_date`, `text_to_time`, `substring`, `to_text`.
 
 The `columns` parameter holds a list of columns which must be decoded with the given method.
 
