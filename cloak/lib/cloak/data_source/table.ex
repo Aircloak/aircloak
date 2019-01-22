@@ -388,24 +388,27 @@ defmodule Cloak.DataSource.Table do
   end
 
   defp validate_primary_key(table, referenced_table) do
-    foreign_key_type = Enum.find(table.columns, &(&1.name == table.projection.foreign_key)).type
+    projection = table.projection
+    foreign_key_type = find_key_type(table, projection.foreign_key)
 
-    case Enum.find(referenced_table.columns, &(&1.name == table.projection.primary_key)) do
+    case find_key_type(referenced_table, projection.primary_key) do
       nil ->
-        {
-          :error,
-          "primary key column `#{table.projection.primary_key}` not found in table `#{referenced_table.db_name}`"
-        }
+        {:error, "primary key column `#{projection.primary_key}` not found in table `#{referenced_table.db_name}`"}
 
-      %{type: primary_key_type} when primary_key_type != foreign_key_type ->
-        {
-          :error,
-          "foreign key type is `#{foreign_key_type}` while primary key type is `#{primary_key_type}`"
-        }
-
-      %{type: ^foreign_key_type} ->
+      ^foreign_key_type ->
         :ok
+
+      primary_key_type ->
+        {:error, "foreign key type is `#{foreign_key_type}` while primary key type is `#{primary_key_type}`"}
     end
+  end
+
+  defp find_key_type(table, key_name) do
+    column = Enum.find(table.columns, &(&1.name == key_name))
+
+    Enum.reduce(table.decoders, column.type, fn %{columns: columns, method: method}, type ->
+      if key_name in columns, do: decoder_type(method), else: type
+    end)
   end
 
   defp translate_projections_and_decoders(%{tables: tables} = data_source),
@@ -449,6 +452,7 @@ defmodule Cloak.DataSource.Table do
     "dec_aes_cbc128(#{column}, '#{String.replace(key, "'", "''")}')"
   end
 
+  defp translate_decoder(%{method: "to_text"}, column), do: "CAST(#{column} AS text)"
   defp translate_decoder(%{method: "text_to_integer"}, column), do: "CAST(#{column} AS integer)"
   defp translate_decoder(%{method: "real_to_integer"}, column), do: "CAST(#{column} AS integer)"
   defp translate_decoder(%{method: "text_to_real"}, column), do: "CAST(#{column} AS real)"
@@ -465,6 +469,19 @@ defmodule Cloak.DataSource.Table do
   defp translate_decoder(%{method: method}, _column),
     do: raise(ExecutionError, message: "Invalid decoding method specified: `#{method}`")
 
+  defp decoder_type("text_to_integer"), do: :integer
+  defp decoder_type("real_to_integer"), do: :integer
+  defp decoder_type("text_to_real"), do: :real
+  defp decoder_type("text_to_datetime"), do: :datetime
+  defp decoder_type("text_to_date"), do: :date
+  defp decoder_type("text_to_boolean"), do: :boolean
+  defp decoder_type("real_to_boolean"), do: :boolean
+  defp decoder_type("base64"), do: :text
+  defp decoder_type("to_text"), do: :text
+  defp decoder_type("substring"), do: :text
+  defp decoder_type("dec_aes_cbc128"), do: :text
+  defp decoder_type(method), do: raise(ExecutionError, message: "Invalid decoding method specified: `#{method}`")
+
   defp quote_db_name(name), do: ~s/"#{String.replace(name, ~s/"/, ~s/""/)}"/
 
   defp translate_projection({id, %{projection: nil, user_id: user_id, db_name: db_name}}, _tables),
@@ -473,9 +490,10 @@ defmodule Cloak.DataSource.Table do
   defp translate_projection({id, %{projection: projection, db_name: db_name}}, tables) do
     projection_id = String.to_atom(projection.table)
     {user_id, alias, from} = translate_projection({projection_id, tables[projection_id]}, tables)
+    referenced_table = tables[projection_id]
 
     {user_id, alias, from} =
-      if tables[projection_id].projection != nil do
+      if referenced_table.projection != nil do
         # for mongodb data sources, it is faster to use a subquery here as the driver doesn't support complex joins
         from =
           ~s/(SELECT #{user_id} AS #{alias}, "#{projection_id}"."#{projection.primary_key}" / <>
@@ -486,9 +504,18 @@ defmodule Cloak.DataSource.Table do
         {user_id, alias, from}
       end
 
-    from =
-      ~s/#{from} JOIN #{quote_db_name(db_name)} AS "#{id}" ON "#{id}"."#{projection.foreign_key}" = / <>
-        ~s/"#{projection_id}"."#{projection.primary_key}"/
+    primary_key =
+      referenced_table.decoders
+      |> translate_decoders(projection_id)
+      |> Enum.find_value(fn {name, expression} ->
+        if name == projection.primary_key, do: expression, else: nil
+      end)
+      |> case do
+        nil -> ~s/"#{projection_id}"."#{projection.primary_key}"/
+        expression -> expression
+      end
+
+    from = ~s/#{from} JOIN #{quote_db_name(db_name)} AS "#{id}" ON "#{id}"."#{projection.foreign_key}" = #{primary_key}/
 
     alias = if projection[:user_id_alias] != nil, do: ~s/"#{projection.user_id_alias}"/, else: alias
 
