@@ -1,13 +1,13 @@
 defmodule Cloak.MaterializedView do
-  @enforce_keys [:id, :data_source, :db_select]
-  defstruct [:id, :data_source, :db_select]
+  @enforce_keys [:id, :data_source, :query]
+  defstruct [:id, :data_source, :query]
 
   def new(id, statement, data_source) do
     with :ok <- supports_materialized_views?(data_source),
          {:ok, query} <- compile_statement(statement, data_source),
          :ok <- verify_query_type(query),
          :ok <- verify_offloading(query),
-         do: {:ok, %__MODULE__{id: id, data_source: data_source, db_select: Cloak.DataSource.SqlBuilder.build(query)}}
+         do: {:ok, %__MODULE__{id: id, data_source: data_source, query: query}}
   end
 
   @doc """
@@ -29,7 +29,7 @@ defmodule Cloak.MaterializedView do
   ```
   """
   def name(view) do
-    hash = :crypto.hash(:sha256, :erlang.term_to_binary([view.id, view.db_select]))
+    hash = :crypto.hash(:sha256, :erlang.term_to_binary([view.id, view.data_source.driver.db_query(view.query)]))
     encoded_hash = Base.encode64(hash, padding: false)
 
     # make sure the name is not longer than 30 characters to avoid possible issues with some databases, such as Oracle

@@ -24,6 +24,9 @@ defmodule Cloak.DataSource.Driver.SQL do
       @impl Driver
       defdelegate supports_function?(expression, data_source), to: SqlBuilder.Support
 
+      @impl Driver
+      def db_query(query), do: SqlBuilder.build(query)
+
       defoverridable sql_dialect_module: 0,
                      disconnect: 1,
                      supports_query?: 1,

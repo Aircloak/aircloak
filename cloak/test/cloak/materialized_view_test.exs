@@ -12,13 +12,15 @@ defmodule Cloak.MaterializedViewTest do
   describe "compiled sql - " do
     test "simple materialized view" do
       view = view!(1, "select user_id, x from mv1")
-      assert view.db_select == ~s/SELECT "mv1"."user_id" AS "user_id","mv1"."x" AS "x" FROM "cloak_test"."mv1" AS "mv1"/
+
+      assert db_select(view) ==
+               ~s/SELECT "mv1"."user_id" AS "user_id","mv1"."x" AS "x" FROM "cloak_test"."mv1" AS "mv1"/
     end
 
     test "function support" do
       view = view!(1, "select user_id, hash(y) from mv1")
 
-      assert view.db_select ==
+      assert db_select(view) ==
                ~s/SELECT "mv1"."user_id" AS "user_id",SUBSTR(MD5("mv1"."y"::text), 5, 8) AS "hash" / <>
                  ~s/FROM "cloak_test"."mv1" AS "mv1"/
     end
@@ -26,7 +28,7 @@ defmodule Cloak.MaterializedViewTest do
     test "subquery support" do
       view = view!(1, "select user_id, x from (select * from mv1) sq")
 
-      assert view.db_select ==
+      assert db_select(view) ==
                ~s/SELECT "sq"."user_id" AS "user_id","sq"."x" AS "x" FROM / <>
                  ~s/(SELECT "mv1"."user_id" AS "user_id","mv1"."x" AS "x" FROM "cloak_test"."mv1" AS "mv1") AS "sq"/
     end
@@ -34,7 +36,7 @@ defmodule Cloak.MaterializedViewTest do
     test "join support" do
       view = view!(1, "select mv1.user_id, mv2.x from mv1 inner join mv2 on mv1.user_id = mv2.user_id")
 
-      assert view.db_select ==
+      assert db_select(view) ==
                ~s/SELECT "mv1"."user_id" AS "user_id","mv2"."x" AS "x" / <>
                  ~s/FROM  "cloak_test"."mv1" AS "mv1" / <>
                  ~s/INNER JOIN "cloak_test"."db_name_mv2" AS "mv2" ON "mv1"."user_id" = "mv2"."user_id" /
@@ -43,7 +45,7 @@ defmodule Cloak.MaterializedViewTest do
     test "tables are referenced by the user name" do
       view = view!(1, "select user_id, x from mv2")
 
-      assert view.db_select ==
+      assert db_select(view) ==
                ~s/SELECT "mv2"."user_id" AS "user_id","mv2"."x" AS "x" FROM "cloak_test"."db_name_mv2" AS "mv2"/
     end
 
@@ -101,4 +103,6 @@ defmodule Cloak.MaterializedViewTest do
   defp view(id, statement), do: MaterializedView.new(id, statement, data_source())
 
   defp data_source(), do: hd(Cloak.DataSource.all())
+
+  defp db_select(view), do: Cloak.DataSource.PostgreSQL.db_query(view.query)
 end
