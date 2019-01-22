@@ -1,13 +1,13 @@
 defmodule Cloak.MaterializedView do
-  @enforce_keys [:id, :data_source, :query]
-  defstruct [:id, :data_source, :query]
+  @enforce_keys [:id, :data_source, :query, :statement]
+  defstruct [:id, :data_source, :query, :statement]
 
   def new(id, statement, data_source) do
     with :ok <- supports_materialized_views?(data_source),
          {:ok, query} <- compile_statement(statement, data_source),
          :ok <- verify_query_type(query),
          :ok <- verify_offloading(query),
-         do: {:ok, %__MODULE__{id: id, data_source: data_source, query: query}}
+         do: {:ok, %__MODULE__{id: id, data_source: data_source, query: query, statement: statement}}
   end
 
   @doc """
@@ -54,5 +54,15 @@ defmodule Cloak.MaterializedView do
 
   defp verify_offloading(query) do
     if query.emulated?, do: {:error, "Emulated query can't be materialized."}, else: :ok
+  end
+
+  defimpl Inspect do
+    import Inspect.Algebra
+
+    def inspect(view, opts) do
+      # reduce inspected data for easier debugging
+      data = [id: view.id, data_source: view.data_source.name, statement: view.statement]
+      concat(["#Cloak.MaterializedView<", to_doc(data, opts), ">"])
+    end
   end
 end

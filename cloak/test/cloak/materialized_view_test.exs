@@ -95,6 +95,14 @@ defmodule Cloak.MaterializedViewTest do
     end
   end
 
+  test "inspect" do
+    view = view!(1, "select user_id, x from mv1")
+
+    assert inspect(view) ==
+             ~s/#Cloak.MaterializedView/ <>
+               ~s/<[id: 1, data_source: "data_source_name", statement: "select user_id, x from mv1"]>/
+  end
+
   defp view!(id, statement) do
     {:ok, view} = view(id, statement)
     view
