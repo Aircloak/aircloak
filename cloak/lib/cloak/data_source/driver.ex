@@ -53,9 +53,17 @@ defmodule Cloak.DataSource.Driver do
   @doc "Returns the driver specific information to be stored inside the data source structure."
   @callback driver_info(connection) :: driver_info
 
+  @doc "Returns true if the driver supports materialized views."
+  @callback supports_materialized_views?() :: boolean
+
   defmacro __using__(_opts) do
     quote do
       @behaviour unquote(__MODULE__)
+
+      @impl unquote(__MODULE__)
+      def supports_materialized_views?(), do: false
+
+      defoverridable(supports_materialized_views?: 0)
     end
   end
 end
