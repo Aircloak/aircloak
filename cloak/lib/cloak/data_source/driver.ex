@@ -59,6 +59,9 @@ defmodule Cloak.DataSource.Driver do
   @doc "Returns the driver-specific query which is derived from the cloak query."
   @callback db_query(Cloak.Query.t()) :: String.t()
 
+  @doc "Stores the materialized view to database."
+  @callback store_materialized_view(connection, String.t(), Query.t()) :: :ok | {:error, String.t()}
+
   defmacro __using__(_opts) do
     quote do
       @behaviour unquote(__MODULE__)
@@ -67,9 +70,12 @@ defmodule Cloak.DataSource.Driver do
       def supports_materialized_views?(), do: false
 
       @impl unquote(__MODULE__)
-      def db_query(_query), do: raise(ArgumentError, "not implemented")
+      def db_query(_query), do: raise(RuntimeError, "not implemented")
 
-      defoverridable(supports_materialized_views?: 0, db_query: 1)
+      @impl unquote(__MODULE__)
+      def store_materialized_view(_connection, _name, _query), do: raise(RuntimeError, "not implemented")
+
+      defoverridable(supports_materialized_views?: 0, db_query: 1, store_materialized_view: 3)
     end
   end
 end

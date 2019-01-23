@@ -56,6 +56,16 @@ defmodule Cloak.DataSource.PostgreSQL do
   @impl Driver
   def supports_materialized_views?(), do: true
 
+  @impl Driver
+  def store_materialized_view(connection, name, query) do
+    sql = "CREATE TABLE IF NOT EXISTS #{SqlBuilder.quote_table_name(name)} AS #{SqlBuilder.build(query)}"
+
+    case Postgrex.query(connection, sql, []) do
+      {:ok, %Postgrex.Result{}} -> :ok
+      {:error, %Postgrex.Error{} = error} -> {:error, Exception.message(error)}
+    end
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

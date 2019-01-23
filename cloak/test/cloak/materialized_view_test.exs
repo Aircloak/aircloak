@@ -1,6 +1,7 @@
 defmodule Cloak.MaterializedViewTest do
   use ExUnit.Case, async: true
 
+  import Cloak.Test.QueryHelpers
   alias Cloak.MaterializedView
   doctest MaterializedView
 
@@ -93,6 +94,49 @@ defmodule Cloak.MaterializedViewTest do
       view2 = view!(1, "select user_id, y from mv1")
       refute MaterializedView.name(view1) == MaterializedView.name(view2)
     end
+  end
+
+  describe "store" do
+    setup do
+      query!("
+        SELECT table_name FROM information_schema.tables
+        WHERE table_schema='public' AND table_name like '__ac_%'
+      ").rows
+      |> Stream.map(fn [table_name] -> table_name end)
+      |> Enum.each(&query!("DROP TABLE #{quote_table_name(&1)}"))
+    end
+
+    test "success" do
+      view = view!(1, "select user_id, x from mv1")
+      assert MaterializedView.store(view) == :ok
+    end
+
+    test "stored view contains desired rows" do
+      Enum.each(1..100, &insert_rows(_user_ids = &1..&1, "mv1", ["x"], [&1]))
+      view = view!(1, "select user_id, x from mv1 where x < 50")
+      :ok = MaterializedView.store(view)
+
+      materialized_rows = query!("select * from #{quote_table_name(view)}").rows
+      expected_rows = query!("select user_id, x from #{quote_table_name("cloak_test.mv1")} where x < 50").rows
+      assert materialized_rows == expected_rows
+    end
+
+    test "idempotency" do
+      Enum.each(1..100, &insert_rows(_user_ids = &1..&1, "mv1", ["x"], [&1]))
+      view = view!(1, "select user_id, x from mv1 where x < 50")
+      :ok = MaterializedView.store(view)
+
+      assert :ok = MaterializedView.store(view)
+
+      materialized_rows = query!("select * from #{quote_table_name(view)}").rows
+      expected_rows = query!("select user_id, x from #{quote_table_name("cloak_test.mv1")} where x < 50").rows
+      assert materialized_rows == expected_rows
+    end
+
+    defp quote_table_name(%MaterializedView{} = view), do: quote_table_name(MaterializedView.name(view))
+    defp quote_table_name(name), do: Cloak.DataSource.SqlBuilder.quote_table_name(name)
+
+    defp query!(sql), do: Cloak.DataSource.Connection.execute!(data_source(), &Postgrex.query!(&1, sql, []))
   end
 
   test "inspect" do

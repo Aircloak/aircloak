@@ -2,6 +2,8 @@ defmodule Cloak.MaterializedView do
   @enforce_keys [:id, :data_source, :query, :statement]
   defstruct [:id, :data_source, :query, :statement]
 
+  @type t :: %__MODULE__{id: any, data_source: Cloak.DataSource.t(), query: Cloak.Sql.Query.t(), statement: String.t()}
+
   def new(id, statement, data_source) do
     with :ok <- supports_materialized_views?(data_source),
          {:ok, query} <- compile_statement(statement, data_source),
@@ -34,6 +36,13 @@ defmodule Cloak.MaterializedView do
 
     # make sure the name is not longer than 30 characters to avoid possible issues with some databases, such as Oracle
     String.slice("__ac_#{encoded_hash}", 0, 30)
+  end
+
+  def store(view) do
+    Cloak.DataSource.Connection.execute!(
+      view.data_source,
+      &view.data_source.driver.store_materialized_view(&1, name(view), view.query)
+    )
   end
 
   defp supports_materialized_views?(data_source) do
