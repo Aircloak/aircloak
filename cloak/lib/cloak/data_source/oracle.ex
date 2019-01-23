@@ -66,7 +66,7 @@ defmodule Cloak.DataSource.Oracle do
         # Oracle ODBC driver returns datetime for date type
         date: "DATA_TYPE = 'DATE'",
         # Oracle ODBC driver returns float for `NUMBER` type, so we need to check the scale to recognize integers
-        integer: "DATA_TYPE = 'NUMBER' and COALESCE(DATA_SCALE, 0) = 0"
+        integer: "DATA_TYPE = 'NUMBER' and DATA_SCALE = 0"
       }
       |> Stream.flat_map(fn {type, filter} ->
         statement = "SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS WHERE #{fix_column_types_filter(table, filter)}"
