@@ -41,6 +41,22 @@ defmodule Cloak.DataSource.Oracle do
   @impl Driver
   def supports_query?(query), do: query.limit == nil and query.offset == 0
 
+  @impl Driver
+  def supports_materialized_views?(), do: true
+
+  @impl Driver
+  def store_materialized_view(connection, name, query) do
+    table_name = SqlBuilder.quote_table_name(name)
+    sql = "CREATE TABLE #{table_name} AS #{SqlBuilder.build(query)}"
+    with {:ok, _} = RODBC.select_direct(connection, sql), do: :ok
+  end
+
+  @impl Driver
+  def materialized_views(connection) do
+    {:ok, rows} = RODBC.select_direct(connection, "select table_name from user_tables where table_name like '__ac_%'")
+    Enum.map(rows, fn [table_name] -> table_name end)
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
