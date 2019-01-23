@@ -58,12 +58,22 @@ defmodule Cloak.DataSource.PostgreSQL do
 
   @impl Driver
   def store_materialized_view(connection, name, query) do
-    sql = "CREATE TABLE IF NOT EXISTS #{SqlBuilder.quote_table_name(name)} AS #{SqlBuilder.build(query)}"
+    sql = "CREATE TABLE #{SqlBuilder.quote_table_name(name)} AS #{SqlBuilder.build(query)}"
 
     case Postgrex.query(connection, sql, []) do
       {:ok, %Postgrex.Result{}} -> :ok
       {:error, %Postgrex.Error{} = error} -> {:error, Exception.message(error)}
     end
+  end
+
+  @impl Driver
+  def materialized_views(connection) do
+    Postgrex.query!(
+      connection,
+      "SELECT table_name FROM information_schema.tables WHERE table_name like '__ac_%'",
+      []
+    ).rows
+    |> Enum.map(fn [table_name] -> table_name end)
   end
 
   # -------------------------------------------------------------------

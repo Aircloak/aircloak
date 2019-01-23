@@ -98,11 +98,8 @@ defmodule Cloak.MaterializedViewTest do
 
   describe "store" do
     setup do
-      query!("
-        SELECT table_name FROM information_schema.tables
-        WHERE table_schema='public' AND table_name like '__ac_%'
-      ").rows
-      |> Stream.map(fn [table_name] -> table_name end)
+      data_source()
+      |> MaterializedView.all()
       |> Enum.each(&query!("DROP TABLE #{quote_table_name(&1)}"))
     end
 
@@ -137,6 +134,27 @@ defmodule Cloak.MaterializedViewTest do
     defp quote_table_name(name), do: Cloak.DataSource.SqlBuilder.quote_table_name(name)
 
     defp query!(sql), do: Cloak.DataSource.Connection.execute!(data_source(), &Postgrex.query!(&1, sql, []))
+  end
+
+  describe "all" do
+    setup do
+      data_source()
+      |> MaterializedView.all()
+      |> Enum.each(&query!("DROP TABLE #{quote_table_name(&1)}"))
+    end
+
+    test "returns an empty list when there are no views", do: assert(MaterializedView.all(data_source()) == [])
+
+    test "returns the list of the created views" do
+      view1 = view!(1, "select user_id, x from mv1")
+      :ok = MaterializedView.store(view1)
+
+      view2 = view!(2, "select user_id, y from mv1")
+      :ok = MaterializedView.store(view2)
+
+      assert Enum.sort(MaterializedView.all(data_source())) ==
+               [view1, view2] |> Enum.map(&MaterializedView.name/1) |> Enum.sort()
+    end
   end
 
   test "inspect" do

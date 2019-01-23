@@ -41,9 +41,17 @@ defmodule Cloak.MaterializedView do
   def store(view) do
     Cloak.DataSource.Connection.execute!(
       view.data_source,
-      &view.data_source.driver.store_materialized_view(&1, name(view), view.query)
+      fn connection ->
+        view_name = name(view)
+
+        if Enum.any?(view.data_source.driver.materialized_views(connection), &(&1 == view_name)),
+          do: :ok,
+          else: view.data_source.driver.store_materialized_view(connection, view_name, view.query)
+      end
     )
   end
+
+  def all(data_source), do: Cloak.DataSource.Connection.execute!(data_source, &data_source.driver.materialized_views/1)
 
   defp supports_materialized_views?(data_source) do
     if data_source.driver.supports_materialized_views?(),
