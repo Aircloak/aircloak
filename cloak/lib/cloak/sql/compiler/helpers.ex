@@ -137,15 +137,15 @@ defmodule Cloak.Sql.Compiler.Helpers do
   @spec create_table_from_columns([Expression.t()], String.t()) :: Table.t()
   def create_table_from_columns(selected_columns, table_name) do
     table_columns =
-      Enum.map(selected_columns, &Table.column(&1.alias || &1.name, Function.type(&1), visible?: not &1.synthetic?))
+      Enum.map(selected_columns, &Table.column(Expression.title(&1), Function.type(&1), visible?: not &1.synthetic?))
 
     user_id_column = Enum.find(selected_columns, & &1.user_id?)
-    user_id_name = user_id_column && (user_id_column.alias || user_id_column.name)
+    user_id_name = user_id_column && Expression.title(user_id_column)
 
     keys =
       selected_columns
       |> Enum.filter(&Expression.key?/1)
-      |> Enum.map(&{&1.alias || &1.name, Expression.key_type(&1)})
+      |> Enum.map(&{Expression.title(&1), Expression.key_type(&1)})
       |> Enum.into(%{})
 
     Table.new(table_name, user_id_name, columns: table_columns, keys: keys)

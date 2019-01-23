@@ -99,7 +99,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
         type: :restricted,
         aggregators: aggregators,
         columns: inner_columns,
-        column_titles: Enum.map(inner_columns, &(&1.alias || &1.name)),
+        column_titles: Enum.map(inner_columns, &Expression.title(&1)),
         group_by: Enum.map(groups, &Expression.unalias/1),
         order_by: order_by |> Enum.map(&Expression.unalias/1) |> Enum.map(&{&1, :asc, :nulls_first}),
         having: nil,
@@ -208,6 +208,6 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     uid_grouping_query.columns
     |> Enum.take(Enum.count(uid_grouping_query.group_by))
     |> Enum.reject(& &1.user_id?)
-    |> Enum.map(&column_from_synthetic_table(uid_grouping_table, &1.alias || &1.name))
+    |> Enum.map(&column_from_synthetic_table(uid_grouping_table, Expression.title(&1)))
   end
 end

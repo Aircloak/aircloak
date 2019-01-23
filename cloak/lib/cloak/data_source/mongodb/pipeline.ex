@@ -80,7 +80,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   end
 
   defp project_output(columns, _top_level? = true),
-    do: [%{"$project": %{row: Enum.map(columns, &"$#{&1.alias || &1.name}"), _id: false}}]
+    do: [%{"$project": %{row: Enum.map(columns, &"$#{Expression.title(&1)}"), _id: false}}]
 
   defp project_output(_columns, _top_level? = false), do: []
 
@@ -247,7 +247,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
             1
           end
 
-        {column.alias || column.name, dir}
+        {Expression.title(column), dir}
       end
 
     [%{"$sort": order_by}]
@@ -273,7 +273,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       |> Enum.uniq()
       |> Enum.with_index(1)
       |> Enum.map(fn {column, index} ->
-        alias = column.alias || column.name || "__unknown_#{index}"
+        alias = Expression.title(column) || "__unknown_#{index}"
         %Expression{column | alias: alias}
       end)
 
@@ -358,7 +358,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
             %Expression{
               name: "_id.property_#{index}",
               table: :unknown,
-              alias: column.alias || column.name
+              alias: Expression.title(column)
             }
         end
 

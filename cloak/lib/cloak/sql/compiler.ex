@@ -86,7 +86,7 @@ defmodule Cloak.Sql.Compiler do
       command: :select,
       subquery?: true,
       columns: select_expressions,
-      column_titles: Enum.map(select_expressions, &(&1.alias || &1.name)),
+      column_titles: Enum.map(select_expressions, &Expression.title(&1)),
       from: table.name,
       data_source: data_source,
       selected_tables: [table]

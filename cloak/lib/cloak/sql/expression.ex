@@ -314,6 +314,10 @@ defmodule Cloak.Sql.Expression do
   @spec member?([t], t) :: boolean
   def member?(expressions, expression), do: Enum.any?(expressions, &equals?(&1, expression))
 
+  @doc "Returns the title for the specified column."
+  @spec title(t) :: nil | String.t()
+  def title(%__MODULE__{name: name, alias: alias}), do: alias || name
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

@@ -210,7 +210,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
         type: :restricted,
         aggregators: aggregated_columns,
         columns: inner_columns,
-        column_titles: Enum.map(inner_columns, &(&1.alias || &1.name)),
+        column_titles: Enum.map(inner_columns, &Expression.title/1),
         group_by: Enum.map([user_id | base_columns], &Expression.unalias/1),
         order_by: [],
         having: nil,
