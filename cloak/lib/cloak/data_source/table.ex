@@ -19,7 +19,7 @@ defmodule Cloak.DataSource.Table do
           # the SQL query for a virtual table
           :query => Query.t() | nil,
           :columns => [column],
-          :keys => [String.t()],
+          :keys => Map.t(),
           :auto_isolating_column_classification => boolean,
           :isolating_columns => Map.t(),
           optional(any) => any
@@ -32,7 +32,7 @@ defmodule Cloak.DataSource.Table do
           | {:columns, [column]}
           | {:decoders, [Map.t()]}
           | {:projection, projection}
-          | {:keys, [String.t()]}
+          | {:keys, Map.t()}
           | {:query, Query.t()}
           | {atom, any}
 
@@ -52,7 +52,7 @@ defmodule Cloak.DataSource.Table do
           columns: [],
           decoders: [],
           projection: nil,
-          keys: [],
+          keys: %{},
           query: nil,
           auto_isolating_column_classification: true,
           isolating_columns: %{}

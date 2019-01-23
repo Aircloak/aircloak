@@ -10,10 +10,11 @@ defmodule Cloak.DataSource do
       parameters: ..., # database connection parameters
       tables: [
         table_id: [
+          type: :private,
           db_name: "table name",
-          user_id: "user id column name",
-          ignore_unsupported_types: false,
-          keys: ["another_table_id"]
+          keys: {
+            "column_name" => key_type
+          }
         ]
       ]
     ]
@@ -23,12 +24,10 @@ defmodule Cloak.DataSource do
   The database specific module needs to implement the `DataSource.Driver` behaviour.
 
   The data source must also specify the list of tables containing the data to be queried.
-  A table is accessed by id. It must contain the name of the table in the database and the column
-  identifying the users (text or integer value).
+  A table is accessed by id. It must contain the name of the table in the database, the data protection type and
+  the key columns identifying rows in other tables.
 
   During startup, the list of columns available in all defined tables is loaded and cached for later lookups.
-  If 'ignore_unsupported_types' is set to true then columns with types that aren't supported by the driver
-  will be ignored at this point and unavailable for processing.
 
   The keys field in each table can be used to list fields that refer to other tables. That way when a join
   condition of the form fk = pk will be added, no additional noise layers will be generated, resulting in less overall
@@ -318,8 +317,6 @@ defmodule Cloak.DataSource do
   defp standardize_key_lists(data_source) do
     tables =
       for {name, table} <- data_source.tables, into: %{} do
-        keys = Map.get(table, :keys, [])
-
         primary_keys =
           data_source.tables
           |> Map.values()
@@ -332,7 +329,12 @@ defmodule Cloak.DataSource do
             do: [table.projection.foreign_key],
             else: []
 
-        {name, Map.put(table, :keys, keys ++ primary_keys ++ foreign_keys)}
+        keys =
+          (primary_keys ++ foreign_keys)
+          |> Enum.map(&{&1, :unknown})
+          |> Enum.into(Map.get(table, :keys, %{}))
+
+        {name, Map.put(table, :keys, keys)}
       end
 
     %{data_source | tables: tables}

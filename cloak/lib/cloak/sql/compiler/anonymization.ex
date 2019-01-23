@@ -4,8 +4,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     validations in later steps. It also prepares the anonymized subqueries for the anonymized aggregation pipeline.
   """
 
-  alias Cloak.Sql.{Query, Expression, Function, Query.Lenses}
-  alias Cloak.DataSource.Table
+  alias Cloak.Sql.{Query, Expression, Query.Lenses}
   alias Cloak.Sql.Compiler.Helpers
 
   # -------------------------------------------------------------------
@@ -111,8 +110,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
         implicit_count?: false
     }
 
-    table_columns = Enum.map(inner_columns, &Table.column(&1.alias || &1.name, Function.type(&1)))
-    inner_table = Table.new("__ac_statistics", count_duid.alias, columns: table_columns)
+    inner_table = Helpers.create_table_from_columns(inner_columns, "__ac_statistics")
 
     # Since only referenced columns are selected from the inner query, we need to add dummy
     # references to the min and max user ids, in order to keep them in the aggregation input.

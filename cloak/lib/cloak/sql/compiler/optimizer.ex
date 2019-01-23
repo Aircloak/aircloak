@@ -3,7 +3,6 @@ defmodule Cloak.Sql.Compiler.Optimizer do
 
   alias Cloak.Sql.{Expression, Query, Condition, Function}
   alias Cloak.Sql.Compiler.Helpers
-  alias Cloak.DataSource.Table
   alias Cloak.Sql.Query.Lenses
 
   use Lens.Macros
@@ -222,9 +221,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
         implicit_count?: false
     }
 
-    table_columns = Enum.map(inner_columns, &Table.column(&1.alias || &1.name, Function.type(&1)))
-    keys = inner_columns |> Enum.filter(&key?/1) |> Enum.map(&(&1.alias || &1.name))
-    inner_table = Table.new("__ac_uid_grouping", user_id.alias || user_id.name, columns: table_columns, keys: keys)
+    inner_table = Helpers.create_table_from_columns(inner_columns, "__ac_uid_grouping")
 
     %Query{
       query
@@ -314,7 +311,4 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     |> Lens.to_list(expression)
     |> Enum.count() > 1
   end
-
-  defp key?(%Expression{name: name, table: %{keys: keys}}), do: name in keys
-  defp key?(_expression), do: false
 end

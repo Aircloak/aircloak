@@ -1241,12 +1241,13 @@ defmodule Cloak.Sql.Compiler.Test do
   describe "key columns" do
     test "marking key columns" do
       result = compile!("SELECT key, median(uid) FROM table group by 1", data_source())
-      assert [%{name: "key", key?: true}, _] = result.columns
+
+      assert result.columns |> Enum.at(0) |> Expression.key?()
     end
 
     test "marking aliased key columns" do
       result = compile!("SELECT key AS something FROM table", data_source())
-      assert [%{key?: true}] = result.columns
+      assert result.columns |> Enum.at(0) |> Expression.key?()
     end
 
     test "marking key columns from subqueries" do
@@ -1256,7 +1257,7 @@ defmodule Cloak.Sql.Compiler.Test do
           data_source()
         )
 
-      assert [%{key?: true}] = result.columns
+      assert result.columns |> Enum.at(0) |> Expression.key?()
     end
   end
 
@@ -1352,7 +1353,7 @@ defmodule Cloak.Sql.Compiler.Test do
               Table.column("string", :text),
               Table.column("key", :integer)
             ],
-            keys: ["key"]
+            keys: %{"key" => :unknown}
           ),
         other_table:
           Cloak.DataSource.Table.new(

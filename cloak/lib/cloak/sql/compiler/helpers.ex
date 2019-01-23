@@ -1,7 +1,8 @@
 defmodule Cloak.Sql.Compiler.Helpers do
   @moduledoc "Common helper functions used in compilation phases."
 
-  alias Cloak.Sql.{Expression, Query, Parser}
+  alias Cloak.Sql.{Expression, Query, Parser, Function}
+  alias Cloak.DataSource.Table
 
   @type partial_query :: %Query{}
 
@@ -131,6 +132,24 @@ defmodule Cloak.Sql.Compiler.Helpers do
   @doc "Returns the list of expressions from a query that can contain aggregating clauses."
   @spec aggregator_sources(Query.t()) :: [Expression.t()]
   def aggregator_sources(query), do: query.columns ++ having_columns(query) ++ Query.order_by_expressions(query)
+
+  @doc "Creates a synthetic table from a list of selected columns."
+  @spec create_table_from_columns([Expression.t()], String.t()) :: Table.t()
+  def create_table_from_columns(selected_columns, table_name) do
+    table_columns =
+      Enum.map(selected_columns, &Table.column(&1.alias || &1.name, Function.type(&1), visible?: not &1.synthetic?))
+
+    user_id_column = Enum.find(selected_columns, & &1.user_id?)
+    user_id_name = user_id_column && (user_id_column.alias || user_id_column.name)
+
+    keys =
+      selected_columns
+      |> Enum.filter(&Expression.key?/1)
+      |> Enum.map(&{&1.alias || &1.name, Expression.key_type(&1)})
+      |> Enum.into(%{})
+
+    Table.new(table_name, user_id_name, columns: table_columns, keys: keys)
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
