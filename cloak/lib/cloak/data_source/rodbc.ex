@@ -67,6 +67,13 @@ defmodule Cloak.DataSource.RODBC do
          do: {:ok, Stream.concat(stream_rows(connection, & &1))}
   end
 
+  @doc "Executes a raw SQL SELECT statement on the given connection, raises on error."
+  @spec select_direct!(pid, String.t()) :: Enumerable.t()
+  def select_direct!(connection, statement) do
+    {:ok, res} = select_direct(connection, statement)
+    res
+  end
+
   @doc "Returns the driver specific information to be stored inside the data source structure."
   @spec driver_info(pid) :: nil
   def driver_info(_connection), do: nil
