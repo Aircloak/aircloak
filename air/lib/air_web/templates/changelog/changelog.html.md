@@ -7,6 +7,7 @@
 ### Bugfixes
  - Fixed date/time literals support on Oracle.
  - Fixed crash in anonymising `median` and `stddev` aggregators.
+ - Detects and terminates analysis queries that cause high memory consumption and put the system stability at risk.
 
 ### Features
 
