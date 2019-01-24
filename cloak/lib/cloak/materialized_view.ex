@@ -1,9 +1,18 @@
 defmodule Cloak.MaterializedView do
+  @moduledoc "Functions for working with materialized views."
+
   @enforce_keys [:id, :data_source, :query, :statement]
   defstruct [:id, :data_source, :query, :statement]
 
-  @type t :: %__MODULE__{id: any, data_source: Cloak.DataSource.t(), query: Cloak.Sql.Query.t(), statement: String.t()}
+  @type t :: %__MODULE__{id: id, data_source: Cloak.DataSource.t(), query: Cloak.Sql.Query.t(), statement: String.t()}
+  @type id :: any
 
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Creates the structure representing the materialized view."
+  @spec new(id, String.t(), Cloak.DataSource.t()) :: {:ok, t} | {:error, String.t()}
   def new(id, statement, data_source) do
     with :ok <- supports_materialized_views?(data_source),
          {:ok, query} <- compile_statement(statement, data_source),
@@ -30,6 +39,7 @@ defmodule Cloak.MaterializedView do
   "__ac_2tiqXfcCKW9iKREwe5aLfUFgf"
   ```
   """
+  @spec name(t) :: String.t()
   def name(view) do
     hash = :crypto.hash(:sha256, :erlang.term_to_binary([view.id, view.data_source.driver.db_query(view.query)]))
     encoded_hash = Base.encode64(hash, padding: false)
@@ -38,6 +48,8 @@ defmodule Cloak.MaterializedView do
     String.slice("__ac_#{encoded_hash}", 0, 30)
   end
 
+  @doc "Stores the material view to database."
+  @spec store(t) :: :ok | {:error, String.t()}
   def store(view) do
     Cloak.DataSource.Connection.execute!(
       view.data_source,
@@ -51,7 +63,13 @@ defmodule Cloak.MaterializedView do
     )
   end
 
+  @doc "Returns the names of all stored materialized views."
+  @spec all(Cloak.DataSource.t()) :: [String.t()]
   def all(data_source), do: Cloak.DataSource.Connection.execute!(data_source, &data_source.driver.materialized_views/1)
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
 
   defp supports_materialized_views?(data_source) do
     if data_source.driver.supports_materialized_views?(),
