@@ -7,7 +7,7 @@ defmodule Compliance.MaterializedViewTest do
 
   setup do
     for data_source <- tested_data_sources(),
-        table_name <- MaterializedView.all(data_source),
+        table_name <- MaterializedView.stored(data_source),
         quote_char = data_source.driver.sql_dialect_module.quote_char(),
         quoted_table_name = Cloak.DataSource.SqlBuilder.quote_table_name(table_name, quote_char),
         do: execute!(data_source, "drop table #{quoted_table_name}")
@@ -19,7 +19,7 @@ defmodule Compliance.MaterializedViewTest do
     describe "#{data_source_name}" do
       test "all returns an empty list when there are no views" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)),
-             do: assert(MaterializedView.all(data_source) == [])
+             do: assert(MaterializedView.stored(data_source) == [])
       end
 
       test "all returns the list of the created views" do
@@ -30,7 +30,7 @@ defmodule Compliance.MaterializedViewTest do
           {:ok, view2} = MaterializedView.new(2, "select user_id, height from users where age < 70", data_source)
           :ok = MaterializedView.store(view2)
 
-          assert Enum.sort(MaterializedView.all(data_source)) ==
+          assert Enum.sort(MaterializedView.stored(data_source)) ==
                    [view1, view2] |> Enum.map(&MaterializedView.name/1) |> Enum.sort()
         end
       end

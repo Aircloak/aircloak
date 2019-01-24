@@ -64,8 +64,9 @@ defmodule Cloak.MaterializedView do
   end
 
   @doc "Returns the names of all stored materialized views."
-  @spec all(Cloak.DataSource.t()) :: [String.t()]
-  def all(data_source), do: Cloak.DataSource.Connection.execute!(data_source, &data_source.driver.materialized_views/1)
+  @spec stored(Cloak.DataSource.t()) :: [String.t()]
+  def stored(data_source),
+    do: Cloak.DataSource.Connection.execute!(data_source, &data_source.driver.materialized_views/1)
 
   # -------------------------------------------------------------------
   # Internal functions
