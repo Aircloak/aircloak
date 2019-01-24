@@ -100,7 +100,7 @@ defmodule Cloak.MaterializedViewTest do
 
     assert inspect(view) ==
              ~s/#Cloak.MaterializedView/ <>
-               ~s/<[id: 1, data_source: "data_source_name", statement: "select user_id, x from mv1"]>/
+               ~s/<[id: 1, data_source: "#{data_source().name}", statement: "select user_id, x from mv1"]>/
   end
 
   defp view!(id, statement) do
