@@ -59,9 +59,6 @@ defmodule Cloak.DataSource.Driver do
   @doc "Stores the analyst table to database."
   @callback store_analyst_table(connection, any, Query.t()) :: {:ok, table_name :: String.t()} | {:error, String.t()}
 
-  @doc "Returns the list of stored analyst tables."
-  @callback analyst_tables(connection) :: [String.t()]
-
   defmacro __using__(_opts) do
     quote do
       @behaviour unquote(__MODULE__)
@@ -72,14 +69,7 @@ defmodule Cloak.DataSource.Driver do
       @impl unquote(__MODULE__)
       def store_analyst_table(_connection, _id, _query), do: raise(RuntimeError, "not implemented")
 
-      @impl unquote(__MODULE__)
-      def analyst_tables(_connection), do: raise(RuntimeError, "not implemented")
-
-      defoverridable(
-        supports_analyst_tables?: 0,
-        store_analyst_table: 3,
-        analyst_tables: 1
-      )
+      defoverridable supports_analyst_tables?: 0, store_analyst_table: 3
     end
   end
 end

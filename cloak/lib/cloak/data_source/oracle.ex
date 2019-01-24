@@ -55,15 +55,15 @@ defmodule Cloak.DataSource.Oracle do
     end
   end
 
-  @impl Driver
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  @doc false
   def analyst_tables(connection) do
     {:ok, rows} = RODBC.execute_direct(connection, "select table_name from user_tables where table_name like '__ac_%'")
     Enum.map(rows, fn [table_name] -> table_name end)
   end
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
 
   defp conn_params(normalized_parameters) do
     hostname = normalized_parameters.hostname

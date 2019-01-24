@@ -70,7 +70,11 @@ defmodule Cloak.DataSource.PostgreSQL do
     end
   end
 
-  @impl Driver
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  @doc false
   def analyst_tables(connection) do
     Postgrex.query!(
       connection,
@@ -79,10 +83,6 @@ defmodule Cloak.DataSource.PostgreSQL do
     ).rows
     |> Enum.map(fn [table_name] -> table_name end)
   end
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
 
   defp do_connect(parameters) do
     parameters =

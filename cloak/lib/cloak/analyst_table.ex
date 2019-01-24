@@ -32,11 +32,6 @@ defmodule Cloak.AnalystTable do
     )
   end
 
-  @doc "Returns the names of all stored analyst tables."
-  @spec stored(Cloak.DataSource.t()) :: [String.t()]
-  def stored(data_source),
-    do: Cloak.DataSource.Connection.execute!(data_source, &data_source.driver.analyst_tables/1)
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
