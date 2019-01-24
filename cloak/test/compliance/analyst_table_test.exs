@@ -3,6 +3,7 @@ defmodule Compliance.AnalystTableTest do
   alias Cloak.AnalystTable
 
   @moduletag :compliance
+  @moduletag :analyst_tables
   @tested_data_sources ~w(oracle postgresql9.4 postgresql)
 
   setup do

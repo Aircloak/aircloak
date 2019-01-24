@@ -4,6 +4,8 @@ defmodule Cloak.AnalystTableTest do
   alias Cloak.AnalystTable
   doctest AnalystTable
 
+  @moduletag :analyst_tables
+
   setup_all do
     Cloak.Test.DB.create_table("mv1", "x integer, y text")
     Cloak.Test.DB.create_table("mv2", "x integer, y text", db_name: "db_name_mv2")
