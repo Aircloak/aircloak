@@ -70,8 +70,8 @@ defmodule Cloak.MemoryReader do
   end
 
   @impl GenServer
-  def handle_cast({:unregister_query, pid}, %{queries: queries} = state),
-    do: {:noreply, %{state | queries: Enum.reject(queries, &(&1 == pid))}}
+  def handle_cast({:unregister_query, pid}, state),
+    do: {:noreply, remove_query_pid(state, pid)}
 
   def handle_cast({:register_query, pid}, %{queries: queries} = state) do
     Process.monitor(pid)
@@ -79,8 +79,8 @@ defmodule Cloak.MemoryReader do
   end
 
   @impl GenServer
-  def handle_info({:DOWN, _monitor_ref, :process, pid, _info}, %{queries: queries} = state),
-    do: {:noreply, %{state | queries: Enum.reject(queries, &(&1 == pid))}}
+  def handle_info({:DOWN, _monitor_ref, :process, pid, _info}, state),
+    do: {:noreply, remove_query_pid(state, pid)}
 
   def handle_info(:read_memory, %{memory_projector: projector} = state) do
     reading = ProcMemInfo.read()
@@ -111,6 +111,8 @@ defmodule Cloak.MemoryReader do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp remove_query_pid(state, pid), do: %{state | queries: Enum.reject(state.queries, &(&1 == pid))}
 
   defp perform_memory_check(
          %{params: %{limit_to_start_checks: limit_to_start_checks}} = state,
