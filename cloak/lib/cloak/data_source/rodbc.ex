@@ -61,7 +61,7 @@ defmodule Cloak.DataSource.RODBC do
   end
 
   @doc "Executes a raw SQL statement on the given connection."
-  @spec execute_direct(pid, String.t()) :: Enumerable.t()
+  @spec execute_direct(pid, String.t()) :: {:ok, Enumerable.t()} | {:error, String.t()}
   def execute_direct(connection, statement) do
     with :ok <- Port.execute(connection, statement, Driver.timeout()),
          do: {:ok, Stream.concat(stream_rows(connection, & &1))}
