@@ -53,6 +53,29 @@ defmodule Cloak.DataSource.PostgreSQL do
   @impl Driver
   def driver_info(_connection), do: nil
 
+  @impl Driver
+  def supports_analyst_tables?(), do: true
+
+  @impl Driver
+  def store_analyst_table(connection, name, query) do
+    sql = "CREATE TABLE #{SqlBuilder.quote_table_name(name)} AS #{SqlBuilder.build(query)}"
+
+    case Postgrex.query(connection, sql, []) do
+      {:ok, %Postgrex.Result{}} -> :ok
+      {:error, %Postgrex.Error{} = error} -> {:error, Exception.message(error)}
+    end
+  end
+
+  @impl Driver
+  def analyst_tables(connection) do
+    Postgrex.query!(
+      connection,
+      "SELECT table_name FROM information_schema.tables WHERE table_name like '__ac_%'",
+      []
+    ).rows
+    |> Enum.map(fn [table_name] -> table_name end)
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

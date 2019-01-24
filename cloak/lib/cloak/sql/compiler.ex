@@ -73,6 +73,14 @@ defmodule Cloak.Sql.Compiler do
     end)
   end
 
+  @doc "Prepares the parsed SQL query for directly querying the data source without any processing in the cloak."
+  @spec compile_direct(Parser.parsed_query(), DataSource.t()) :: {:ok, Query.t()} | {:error, String.t()}
+  def compile_direct(parsed_query, data_source) do
+    {:ok, compile_direct!(parsed_query, data_source)}
+  rescue
+    e in CompilationError -> {:error, CompilationError.message(e)}
+  end
+
   @doc "Validates a user-defined view."
   @spec validate_view(DataSource.t(), Parser.parsed_query(), Query.view_map()) ::
           {:ok, Query.t()} | {:error, String.t()}

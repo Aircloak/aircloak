@@ -41,6 +41,22 @@ defmodule Cloak.DataSource.Oracle do
   @impl Driver
   def supports_query?(query), do: query.limit == nil and query.offset == 0
 
+  @impl Driver
+  def supports_analyst_tables?(), do: true
+
+  @impl Driver
+  def store_analyst_table(connection, name, query) do
+    table_name = SqlBuilder.quote_table_name(name)
+    sql = "CREATE TABLE #{table_name} AS #{SqlBuilder.build(query)}"
+    with {:ok, _} = RODBC.execute_direct(connection, sql), do: :ok
+  end
+
+  @impl Driver
+  def analyst_tables(connection) do
+    {:ok, rows} = RODBC.execute_direct(connection, "select table_name from user_tables where table_name like '__ac_%'")
+    Enum.map(rows, fn [table_name] -> table_name end)
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -70,7 +86,7 @@ defmodule Cloak.DataSource.Oracle do
       }
       |> Stream.flat_map(fn {type, filter} ->
         statement = "SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS WHERE #{fix_column_types_filter(table, filter)}"
-        {:ok, rows} = RODBC.select_direct(connection, statement)
+        {:ok, rows} = RODBC.execute_direct(connection, statement)
         Enum.map(rows, fn [name] -> {name, type} end)
       end)
       |> Map.new()
