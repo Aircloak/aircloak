@@ -26,39 +26,62 @@ defmodule Compliance.AnalystTableTest do
       test "all returns the list of the created tables" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
           {:ok, table1} = AnalystTable.new(1, "select user_id, height from users where age < 70", data_source)
-          :ok = AnalystTable.store(table1)
+          {:ok, name1} = AnalystTable.store(table1)
 
           {:ok, table2} = AnalystTable.new(2, "select user_id, height from users where age < 70", data_source)
-          :ok = AnalystTable.store(table2)
+          {:ok, name2} = AnalystTable.store(table2)
 
-          assert Enum.sort(AnalystTable.stored(data_source)) ==
-                   [table1, table2] |> Enum.map(&AnalystTable.name/1) |> Enum.sort()
+          assert Enum.sort(AnalystTable.stored(data_source)) == Enum.sort([name1, name2])
         end
       end
 
       test "table can be created" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
           {:ok, table} = AnalystTable.new(1, "select user_id, height from users where age < 70", data_source)
-          assert AnalystTable.store(table) == :ok
+          assert {:ok, _name} = AnalystTable.store(table)
         end
       end
 
-      test "table can be created multiple times" do
+      test "same query and id produce the same table name" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
           {:ok, table} = AnalystTable.new(1, "select user_id, height from users where age < 70", data_source)
-          assert AnalystTable.store(table) == :ok
-          assert AnalystTable.store(table) == :ok
+          assert {:ok, name} = AnalystTable.store(table)
+          assert {:ok, ^name} = AnalystTable.store(table)
+        end
+      end
+
+      test "different query leads to a different table name" do
+        with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
+          {:ok, table1} = AnalystTable.new(1, "select user_id, height from users where age < 70", data_source)
+          {:ok, table2} = AnalystTable.new(1, "select user_id, height from users where age > 70", data_source)
+
+          {:ok, name1} = AnalystTable.store(table1)
+          {:ok, name2} = AnalystTable.store(table2)
+
+          assert name1 != name2
+        end
+      end
+
+      test "different id leads to a different table name" do
+        with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
+          {:ok, table1} = AnalystTable.new(1, "select user_id, height from users where age < 70", data_source)
+          {:ok, table2} = AnalystTable.new(2, "select user_id, height from users where age < 70", data_source)
+
+          {:ok, name1} = AnalystTable.store(table1)
+          {:ok, name2} = AnalystTable.store(table2)
+
+          assert name1 != name2
         end
       end
 
       test "stored table contains desired rows" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
           {:ok, table} = AnalystTable.new(1, "select user_id, height from users where age < 70", data_source)
-          :ok = AnalystTable.store(table)
+          {:ok, table_name} = AnalystTable.store(table)
 
           materialized =
             data_source
-            |> select!("select * from #{quote_table_name(table)}")
+            |> select!("select * from #{quote_table_name(data_source, table_name)}")
             |> Enum.map(fn [user_id, height] -> [to_integer(user_id), height] end)
 
           expected = select_direct!(data_source, "select user_id, height from users where age < 70")
@@ -94,8 +117,6 @@ defmodule Compliance.AnalystTableTest do
     compiled = Cloak.Sql.Compiler.compile_direct!(parsed, data_source)
     Cloak.Query.DbEmulator.select(compiled)
   end
-
-  defp quote_table_name(%AnalystTable{} = table), do: quote_table_name(table.data_source, AnalystTable.name(table))
 
   defp quote_table_name(data_source, name) do
     quote_char = data_source.driver.sql_dialect_module.quote_char()

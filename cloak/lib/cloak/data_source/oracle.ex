@@ -45,10 +45,14 @@ defmodule Cloak.DataSource.Oracle do
   def supports_analyst_tables?(), do: true
 
   @impl Driver
-  def store_analyst_table(connection, name, query) do
-    table_name = SqlBuilder.quote_table_name(name)
-    sql = "CREATE TABLE #{table_name} AS #{SqlBuilder.build(query)}"
-    with {:ok, _} = RODBC.execute_direct(connection, sql), do: :ok
+  def store_analyst_table(connection, table_id, query) do
+    {sql, table_name} = SqlBuilder.create_table_statement(table_id, query)
+
+    if Enum.any?(analyst_tables(connection), &(&1 == table_name)) do
+      {:ok, table_name}
+    else
+      with {:ok, _} = RODBC.execute_direct(connection, sql), do: {:ok, table_name}
+    end
   end
 
   @impl Driver

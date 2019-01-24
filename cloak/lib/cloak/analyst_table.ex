@@ -21,44 +21,13 @@ defmodule Cloak.AnalystTable do
          do: {:ok, %__MODULE__{id: id, data_source: data_source, query: query, statement: statement}}
   end
 
-  @doc """
-  Computes the database table name.
-
-  The table name is derived from the table id and the generated sql. If any of these pieces of data changes, the table
-  name will be different. This helps us remove various conflicting situations such as:
-
-  - the new version of the cloak generates a different SQL
-  - the table has been modified while a previous query is running
-  - shields us from possible attacks (see https://github.com/Aircloak/aircloak/issues/3467#issuecomment-455563526 for
-    example)
-
-  Example:
-
-  ```
-  iex> AnalystTable.name(table!(1, "select user_id, x from mv1"))
-  "__ac_2tiqXfcCKW9iKREwe5aLfUFgf"
-  ```
-  """
-  @spec name(t) :: String.t()
-  def name(table) do
-    hash = :crypto.hash(:sha256, :erlang.term_to_binary([table.id, table.data_source.driver.db_query(table.query)]))
-    encoded_hash = Base.encode64(hash, padding: false)
-
-    # make sure the name is not longer than 30 characters to avoid possible issues with some databases, such as Oracle
-    String.slice("__ac_#{encoded_hash}", 0, 30)
-  end
-
   @doc "Stores the analyst table to database."
-  @spec store(t) :: :ok | {:error, String.t()}
+  @spec store(t) :: {:ok, String.t()} | {:error, String.t()}
   def store(table) do
     Cloak.DataSource.Connection.execute!(
       table.data_source,
       fn connection ->
-        table_name = name(table)
-
-        if Enum.any?(table.data_source.driver.analyst_tables(connection), &(&1 == table_name)),
-          do: :ok,
-          else: table.data_source.driver.store_analyst_table(connection, table_name, table.query)
+        table.data_source.driver.store_analyst_table(connection, table.id, table.query)
       end
     )
   end
