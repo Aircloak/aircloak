@@ -53,39 +53,39 @@ defmodule Cloak.DataSource.Driver do
   @doc "Returns the driver specific information to be stored inside the data source structure."
   @callback driver_info(connection) :: driver_info
 
-  @doc "Returns true if the driver supports materialized views."
-  @callback supports_materialized_views?() :: boolean
+  @doc "Returns true if the driver supports analyst tables."
+  @callback supports_analyst_tables?() :: boolean
 
   @doc "Returns the driver-specific query which is derived from the cloak query."
   @callback db_query(Cloak.Query.t()) :: String.t()
 
-  @doc "Stores the materialized view to database."
-  @callback store_materialized_view(connection, String.t(), Query.t()) :: :ok | {:error, String.t()}
+  @doc "Stores the analyst table to database."
+  @callback store_analyst_table(connection, String.t(), Query.t()) :: :ok | {:error, String.t()}
 
-  @doc "Returns the list of stored materialized views."
-  @callback materialized_views(connection) :: [String.t()]
+  @doc "Returns the list of stored analyst tables."
+  @callback analyst_tables(connection) :: [String.t()]
 
   defmacro __using__(_opts) do
     quote do
       @behaviour unquote(__MODULE__)
 
       @impl unquote(__MODULE__)
-      def supports_materialized_views?(), do: false
+      def supports_analyst_tables?(), do: false
 
       @impl unquote(__MODULE__)
       def db_query(_query), do: raise(RuntimeError, "not implemented")
 
       @impl unquote(__MODULE__)
-      def store_materialized_view(_connection, _name, _query), do: raise(RuntimeError, "not implemented")
+      def store_analyst_table(_connection, _name, _query), do: raise(RuntimeError, "not implemented")
 
       @impl unquote(__MODULE__)
-      def materialized_views(_connection), do: raise(RuntimeError, "not implemented")
+      def analyst_tables(_connection), do: raise(RuntimeError, "not implemented")
 
       defoverridable(
-        supports_materialized_views?: 0,
+        supports_analyst_tables?: 0,
         db_query: 1,
-        store_materialized_view: 3,
-        materialized_views: 1
+        store_analyst_table: 3,
+        analyst_tables: 1
       )
     end
   end

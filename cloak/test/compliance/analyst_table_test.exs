@@ -1,13 +1,13 @@
-defmodule Compliance.MaterializedViewTest do
+defmodule Compliance.AnalystTableTest do
   use ComplianceCase, async: true
-  alias Cloak.MaterializedView
+  alias Cloak.AnalystTable
 
   @moduletag :compliance
   @tested_data_sources ~w(oracle postgresql9.4 postgresql)
 
   setup do
     for data_source <- tested_data_sources(),
-        table_name <- MaterializedView.stored(data_source),
+        table_name <- AnalystTable.stored(data_source),
         quote_char = data_source.driver.sql_dialect_module.quote_char(),
         quoted_table_name = Cloak.DataSource.SqlBuilder.quote_table_name(table_name, quote_char),
         do: execute!(data_source, "drop table #{quoted_table_name}")
@@ -17,47 +17,47 @@ defmodule Compliance.MaterializedViewTest do
 
   for data_source_name <- @tested_data_sources do
     describe "#{data_source_name}" do
-      test "all returns an empty list when there are no views" do
+      test "all returns an empty list when there are no tables" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)),
-             do: assert(MaterializedView.stored(data_source) == [])
+             do: assert(AnalystTable.stored(data_source) == [])
       end
 
-      test "all returns the list of the created views" do
+      test "all returns the list of the created tables" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, view1} = MaterializedView.new(1, "select user_id, height from users where age < 70", data_source)
-          :ok = MaterializedView.store(view1)
+          {:ok, table1} = AnalystTable.new(1, "select user_id, height from users where age < 70", data_source)
+          :ok = AnalystTable.store(table1)
 
-          {:ok, view2} = MaterializedView.new(2, "select user_id, height from users where age < 70", data_source)
-          :ok = MaterializedView.store(view2)
+          {:ok, table2} = AnalystTable.new(2, "select user_id, height from users where age < 70", data_source)
+          :ok = AnalystTable.store(table2)
 
-          assert Enum.sort(MaterializedView.stored(data_source)) ==
-                   [view1, view2] |> Enum.map(&MaterializedView.name/1) |> Enum.sort()
+          assert Enum.sort(AnalystTable.stored(data_source)) ==
+                   [table1, table2] |> Enum.map(&AnalystTable.name/1) |> Enum.sort()
         end
       end
 
-      test "view can be created" do
+      test "table can be created" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, view} = MaterializedView.new(1, "select user_id, height from users where age < 70", data_source)
-          assert MaterializedView.store(view) == :ok
+          {:ok, table} = AnalystTable.new(1, "select user_id, height from users where age < 70", data_source)
+          assert AnalystTable.store(table) == :ok
         end
       end
 
-      test "view can be created multiple times" do
+      test "table can be created multiple times" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, view} = MaterializedView.new(1, "select user_id, height from users where age < 70", data_source)
-          assert MaterializedView.store(view) == :ok
-          assert MaterializedView.store(view) == :ok
+          {:ok, table} = AnalystTable.new(1, "select user_id, height from users where age < 70", data_source)
+          assert AnalystTable.store(table) == :ok
+          assert AnalystTable.store(table) == :ok
         end
       end
 
-      test "stored view contains desired rows" do
+      test "stored table contains desired rows" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, view} = MaterializedView.new(1, "select user_id, height from users where age < 70", data_source)
-          :ok = MaterializedView.store(view)
+          {:ok, table} = AnalystTable.new(1, "select user_id, height from users where age < 70", data_source)
+          :ok = AnalystTable.store(table)
 
           materialized =
             data_source
-            |> select!("select * from #{quote_view_name(view)}")
+            |> select!("select * from #{quote_table_name(table)}")
             |> Enum.map(fn [user_id, height] -> [to_integer(user_id), height] end)
 
           expected = select_direct!(data_source, "select user_id, height from users where age < 70")
@@ -94,7 +94,7 @@ defmodule Compliance.MaterializedViewTest do
     Cloak.Query.DbEmulator.select(compiled)
   end
 
-  defp quote_view_name(%MaterializedView{} = view), do: quote_table_name(view.data_source, MaterializedView.name(view))
+  defp quote_table_name(%AnalystTable{} = table), do: quote_table_name(table.data_source, AnalystTable.name(table))
 
   defp quote_table_name(data_source, name) do
     quote_char = data_source.driver.sql_dialect_module.quote_char()

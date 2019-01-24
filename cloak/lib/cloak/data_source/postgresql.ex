@@ -54,10 +54,10 @@ defmodule Cloak.DataSource.PostgreSQL do
   def driver_info(_connection), do: nil
 
   @impl Driver
-  def supports_materialized_views?(), do: true
+  def supports_analyst_tables?(), do: true
 
   @impl Driver
-  def store_materialized_view(connection, name, query) do
+  def store_analyst_table(connection, name, query) do
     sql = "CREATE TABLE #{SqlBuilder.quote_table_name(name)} AS #{SqlBuilder.build(query)}"
 
     case Postgrex.query(connection, sql, []) do
@@ -67,7 +67,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   end
 
   @impl Driver
-  def materialized_views(connection) do
+  def analyst_tables(connection) do
     Postgrex.query!(
       connection,
       "SELECT table_name FROM information_schema.tables WHERE table_name like '__ac_%'",
