@@ -55,7 +55,11 @@ defmodule Compliance.MaterializedViewTest do
           {:ok, view} = MaterializedView.new(1, "select user_id, height from users where age < 70", data_source)
           :ok = MaterializedView.store(view)
 
-          materialized = select!(data_source, "select * from #{quote_view_name(view)}")
+          materialized =
+            data_source
+            |> select!("select * from #{quote_view_name(view)}")
+            |> Enum.map(fn [user_id, height] -> [to_integer(user_id), height] end)
+
           expected = select_direct!(data_source, "select user_id, height from users where age < 70")
           assert materialized == expected
         end
@@ -96,4 +100,7 @@ defmodule Compliance.MaterializedViewTest do
     quote_char = data_source.driver.sql_dialect_module.quote_char()
     Cloak.DataSource.SqlBuilder.quote_table_name(name, quote_char)
   end
+
+  defp to_integer(int) when is_integer(int), do: int
+  defp to_integer(string) when is_binary(string), do: String.to_integer(string)
 end
