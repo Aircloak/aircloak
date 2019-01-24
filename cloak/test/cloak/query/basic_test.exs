@@ -1750,8 +1750,8 @@ defmodule Cloak.Query.BasicTest do
         add_user_id: false
       )
 
-    :ok = Cloak.Test.DB.add_users_data("numeric_user_ids", _columns = [], Enum.map(0..9, &[&1]))
-    :ok = Cloak.Test.DB.add_users_data("numeric_user_ids", _columns = [], Enum.map(10..19, &[&1]))
+    :ok = Cloak.Test.DB.insert_data("numeric_user_ids", _columns = ["user_id"], Enum.map(0..9, &[&1]))
+    :ok = Cloak.Test.DB.insert_data("numeric_user_ids", _columns = ["user_id"], Enum.map(10..19, &[&1]))
 
     assert_query("select count(*) from numeric_user_ids where user_id between 0 and 10", %{
       rows: [%{row: [10]}]

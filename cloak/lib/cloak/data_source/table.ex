@@ -20,6 +20,7 @@ defmodule Cloak.DataSource.Table do
           :query => Query.t() | nil,
           :columns => [column],
           :keys => Map.t(),
+          :type => :private | :public,
           :auto_isolating_column_classification => boolean,
           :isolating_columns => Map.t(),
           optional(any) => any
@@ -34,6 +35,7 @@ defmodule Cloak.DataSource.Table do
           | {:projection, projection}
           | {:keys, Map.t()}
           | {:query, Query.t()}
+          | {:type, :private | :public}
           | {atom, any}
 
   # -------------------------------------------------------------------
@@ -53,6 +55,7 @@ defmodule Cloak.DataSource.Table do
           decoders: [],
           projection: nil,
           keys: %{},
+          type: if(user_id_column_name == nil, do: :public, else: :private),
           query: nil,
           auto_isolating_column_classification: true,
           isolating_columns: %{}
