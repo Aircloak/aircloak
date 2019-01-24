@@ -56,14 +56,8 @@ defmodule Cloak.DataSource.Driver do
   @doc "Returns true if the driver supports analyst tables."
   @callback supports_analyst_tables?() :: boolean
 
-  @doc "Returns the driver-specific query which is derived from the cloak query."
-  @callback db_query(Cloak.Query.t()) :: String.t()
-
   @doc "Stores the analyst table to database."
-  @callback store_analyst_table(connection, String.t(), Query.t()) :: :ok | {:error, String.t()}
-
-  @doc "Returns the list of stored analyst tables."
-  @callback analyst_tables(connection) :: [String.t()]
+  @callback store_analyst_table(connection, any, Query.t()) :: {:ok, table_name :: String.t()} | {:error, String.t()}
 
   defmacro __using__(_opts) do
     quote do
@@ -73,20 +67,9 @@ defmodule Cloak.DataSource.Driver do
       def supports_analyst_tables?(), do: false
 
       @impl unquote(__MODULE__)
-      def db_query(_query), do: raise(RuntimeError, "not implemented")
+      def store_analyst_table(_connection, _id, _query), do: raise(RuntimeError, "not implemented")
 
-      @impl unquote(__MODULE__)
-      def store_analyst_table(_connection, _name, _query), do: raise(RuntimeError, "not implemented")
-
-      @impl unquote(__MODULE__)
-      def analyst_tables(_connection), do: raise(RuntimeError, "not implemented")
-
-      defoverridable(
-        supports_analyst_tables?: 0,
-        db_query: 1,
-        store_analyst_table: 3,
-        analyst_tables: 1
-      )
+      defoverridable supports_analyst_tables?: 0, store_analyst_table: 3
     end
   end
 end

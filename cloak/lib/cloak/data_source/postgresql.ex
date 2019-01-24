@@ -57,16 +57,24 @@ defmodule Cloak.DataSource.PostgreSQL do
   def supports_analyst_tables?(), do: true
 
   @impl Driver
-  def store_analyst_table(connection, name, query) do
-    sql = "CREATE TABLE #{SqlBuilder.quote_table_name(name)} AS #{SqlBuilder.build(query)}"
+  def store_analyst_table(connection, table_id, query) do
+    {sql, table_name} = SqlBuilder.create_table_statement(table_id, query)
 
-    case Postgrex.query(connection, sql, []) do
-      {:ok, %Postgrex.Result{}} -> :ok
-      {:error, %Postgrex.Error{} = error} -> {:error, Exception.message(error)}
+    if Enum.any?(analyst_tables(connection), &(&1 == table_name)) do
+      {:ok, table_name}
+    else
+      case Postgrex.query(connection, sql, []) do
+        {:ok, %Postgrex.Result{}} -> {:ok, table_name}
+        {:error, %Postgrex.Error{} = error} -> {:error, Exception.message(error)}
+      end
     end
   end
 
-  @impl Driver
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  @doc false
   def analyst_tables(connection) do
     Postgrex.query!(
       connection,
@@ -75,10 +83,6 @@ defmodule Cloak.DataSource.PostgreSQL do
     ).rows
     |> Enum.map(fn [table_name] -> table_name end)
   end
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
 
   defp do_connect(parameters) do
     parameters =

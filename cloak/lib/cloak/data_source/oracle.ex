@@ -45,21 +45,25 @@ defmodule Cloak.DataSource.Oracle do
   def supports_analyst_tables?(), do: true
 
   @impl Driver
-  def store_analyst_table(connection, name, query) do
-    table_name = SqlBuilder.quote_table_name(name)
-    sql = "CREATE TABLE #{table_name} AS #{SqlBuilder.build(query)}"
-    with {:ok, _} = RODBC.execute_direct(connection, sql), do: :ok
-  end
+  def store_analyst_table(connection, table_id, query) do
+    {sql, table_name} = SqlBuilder.create_table_statement(table_id, query)
 
-  @impl Driver
-  def analyst_tables(connection) do
-    {:ok, rows} = RODBC.execute_direct(connection, "select table_name from user_tables where table_name like '__ac_%'")
-    Enum.map(rows, fn [table_name] -> table_name end)
+    if Enum.any?(analyst_tables(connection), &(&1 == table_name)) do
+      {:ok, table_name}
+    else
+      with {:ok, _} = RODBC.execute_direct(connection, sql), do: {:ok, table_name}
+    end
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  @doc false
+  def analyst_tables(connection) do
+    {:ok, rows} = RODBC.execute_direct(connection, "select table_name from user_tables where table_name like '__ac_%'")
+    Enum.map(rows, fn [table_name] -> table_name end)
+  end
 
   defp conn_params(normalized_parameters) do
     hostname = normalized_parameters.hostname

@@ -71,6 +71,22 @@ defmodule Cloak.DataSource.SqlBuilder do
     end
   end
 
+  @doc "Returns the SQL statement for creating the table populated with the given query."
+  @spec create_table_statement(any, Query.t()) :: {statement :: String.t(), table_name :: String.t()}
+  def create_table_statement(table_id, query) do
+    select_statement = build(query)
+
+    hash = :crypto.hash(:sha256, :erlang.term_to_binary([table_id, select_statement]))
+    encoded_hash = Base.encode64(hash, padding: false)
+    # make sure the name is not longer than 30 characters to avoid possible issues with some databases, such as Oracle
+    table_name = String.slice("__ac_#{encoded_hash}", 0, 30)
+
+    quoted_table_name = quote_table_name(table_name, query.data_source.driver.sql_dialect_module.quote_char())
+    create_statement = "CREATE TABLE #{quoted_table_name} AS #{select_statement}"
+
+    {create_statement, table_name}
+  end
+
   # -------------------------------------------------------------------
   # Table name parsing
   # -------------------------------------------------------------------

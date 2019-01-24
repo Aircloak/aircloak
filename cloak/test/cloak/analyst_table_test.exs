@@ -83,20 +83,6 @@ defmodule Cloak.AnalystTableTest do
     end
   end
 
-  describe "name - " do
-    test "different id leads to a different name" do
-      table1 = table!(1, "select user_id, x from mv1")
-      table2 = table!(2, "select user_id, x from mv1")
-      refute AnalystTable.name(table1) == AnalystTable.name(table2)
-    end
-
-    test "different query leads to a different name" do
-      table1 = table!(1, "select user_id, x from mv1")
-      table2 = table!(1, "select user_id, y from mv1")
-      refute AnalystTable.name(table1) == AnalystTable.name(table2)
-    end
-  end
-
   test "inspect" do
     table = table!(1, "select user_id, x from mv1")
 
@@ -114,5 +100,8 @@ defmodule Cloak.AnalystTableTest do
 
   defp data_source(), do: hd(Cloak.DataSource.all())
 
-  defp db_select(table), do: Cloak.DataSource.PostgreSQL.db_query(table.query)
+  defp db_select(table) do
+    {create_statement, _table_name} = Cloak.DataSource.SqlBuilder.create_table_statement(table.id, table.query)
+    "SELECT #{String.replace(create_statement, ~r/^CREATE TABLE ".*" AS SELECT /, "")}"
+  end
 end
