@@ -76,7 +76,7 @@ defmodule Compliance.AnalystTableTest do
       fn connection ->
         case data_source.driver do
           Cloak.DataSource.PostgreSQL -> Postgrex.query!(connection, statement, [])
-          Cloak.DataSource.Oracle -> Cloak.DataSource.RODBC.select_direct!(connection, statement)
+          Cloak.DataSource.Oracle -> Cloak.DataSource.RODBC.execute_direct!(connection, statement)
         end
       end
     )
