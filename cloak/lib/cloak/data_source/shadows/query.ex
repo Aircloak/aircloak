@@ -22,7 +22,7 @@ defmodule Cloak.DataSource.Shadows.Query do
         []
 
       user_id ->
-        {query_killer_reg, query_killer_unreg} = Cloak.MemoryReader.query_registering_callbacks()
+        {query_killer_reg, query_killer_unreg} = Cloak.MemoryReader.query_registering_callbacks(:system_query)
         query_killer_reg.()
         result = maybe_build_shadow(data_source, table, column, user_id)
         query_killer_unreg.()

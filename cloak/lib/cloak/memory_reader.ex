@@ -16,6 +16,7 @@ defmodule Cloak.MemoryReader do
   require Logger
 
   @type query_killer_callbacks :: {(() -> :ok), (() -> :ok)}
+  @type query_type :: :analyst_query | :system_query
 
   # -------------------------------------------------------------------
   # API functions
@@ -26,12 +27,12 @@ defmodule Cloak.MemoryReader do
   def start_link(), do: GenServer.start_link(__MODULE__, [], name: __MODULE__)
 
   @doc "Registers a query such that it can later be killed in case of a low memory event"
-  @spec query_registering_callbacks() :: query_killer_callbacks
-  def query_registering_callbacks() do
+  @spec query_registering_callbacks(query_type) :: query_killer_callbacks
+  def query_registering_callbacks(query_type) do
     query_pid = self()
 
     {
-      fn -> GenServer.cast(__MODULE__, {:register_query, query_pid}) end,
+      fn -> GenServer.cast(__MODULE__, {:register_query, query_type, query_pid}) end,
       fn -> GenServer.cast(__MODULE__, {:unregister_query, query_pid}) end
     }
   end
@@ -50,7 +51,8 @@ defmodule Cloak.MemoryReader do
 
     state = %{
       memory_projector: MemoryProjector.new(),
-      queries: [],
+      analyst_queries: [],
+      system_queries: [],
       params: params,
       last_reading: nil,
       readings:
@@ -73,9 +75,19 @@ defmodule Cloak.MemoryReader do
   def handle_cast({:unregister_query, pid}, state),
     do: {:noreply, remove_query_pid(state, pid)}
 
-  def handle_cast({:register_query, pid}, %{queries: queries} = state) do
+  def handle_cast({:register_query, query_type, pid}, state) do
     Process.monitor(pid)
-    {:noreply, %{state | queries: [pid | queries]}}
+
+    stateWithQuery =
+      case query_type do
+        :analyst_query ->
+          %{state | analyst_queries: [pid | state.analyst_queries]}
+
+        :system_query ->
+          %{state | system_queries: [pid | state.system_queries]}
+      end
+
+    {:noreply, stateWithQuery}
   end
 
   @impl GenServer
@@ -112,7 +124,12 @@ defmodule Cloak.MemoryReader do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp remove_query_pid(state, pid), do: %{state | queries: Enum.reject(state.queries, &(&1 == pid))}
+  defp remove_query_pid(state, pid),
+    do: %{
+      state
+      | analyst_queries: Enum.reject(state.analyst_queries, &(&1 == pid)),
+        system_queries: Enum.reject(state.system_queries, &(&1 == pid))
+    }
 
   defp perform_memory_check(
          %{params: %{limit_to_start_checks: limit_to_start_checks}} = state,
@@ -153,21 +170,25 @@ defmodule Cloak.MemoryReader do
 
   defp to_sec(ms), do: max(trunc(ms / 1_000), 0)
 
-  defp kill_query(%{queries: []} = state), do: {:noreply, state}
+  defp kill_query(%{system_queries: [query | queries]} = state) do
+    Process.exit(query, :oom)
+    {:noreply, add_killing_cooldown(%{state | system_queries: queries})}
+  end
 
-  defp kill_query(%{queries: [query | queries]} = state) do
+  defp kill_query(%{analyst_queries: []} = state), do: {:noreply, state}
+
+  defp kill_query(%{analyst_queries: [query | queries]} = state) do
     Cloak.Query.Runner.stop(query, :oom)
+    {:noreply, add_killing_cooldown(%{state | analyst_queries: queries})}
+  end
 
-    state = %{
+  defp add_killing_cooldown(state),
+    do: %{
       state
       | # This adds an artificial cool down period between consecutive killings, proportional
         # to the length of the memory projection buffer.
-        memory_projector: MemoryProjector.drop(state.memory_projector, num_measurements_to_drop(state)),
-        queries: queries
+        memory_projector: MemoryProjector.drop(state.memory_projector, num_measurements_to_drop(state))
     }
-
-    {:noreply, state}
-  end
 
   defp schedule_check(%{params: %{check_interval: interval}}), do: Process.send_after(self(), :read_memory, interval)
 

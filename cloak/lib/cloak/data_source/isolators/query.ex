@@ -19,7 +19,7 @@ defmodule Cloak.DataSource.Isolators.Query do
         true
 
       _ ->
-        {query_killer_reg, query_killer_unreg} = Cloak.MemoryReader.query_registering_callbacks()
+        {query_killer_reg, query_killer_unreg} = Cloak.MemoryReader.query_registering_callbacks(:system_query)
         query_killer_reg.()
         result = isolating_ratio(data_source, table, column) > threshold()
         query_killer_unreg.()

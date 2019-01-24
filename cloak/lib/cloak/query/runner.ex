@@ -181,7 +181,7 @@ defmodule Cloak.Query.Runner do
 
     runner_args =
       Map.merge(runner_args, %{
-        memory_callbacks: Cloak.MemoryReader.query_registering_callbacks(),
+        memory_callbacks: Cloak.MemoryReader.query_registering_callbacks(:analyst_query),
         state_updater: with(me <- self(), do: &send(me, {:send_state, runner_args.query_id, &1})),
         feature_updater: with(me <- self(), do: &send(me, {:features, &1}))
       })
