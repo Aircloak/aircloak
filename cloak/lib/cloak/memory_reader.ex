@@ -78,7 +78,7 @@ defmodule Cloak.MemoryReader do
   def handle_cast({:register_query, query_type, pid}, state) do
     Process.monitor(pid)
 
-    stateWithQuery =
+    state_with_query =
       case query_type do
         :analyst_query ->
           %{state | analyst_queries: [pid | state.analyst_queries]}
@@ -87,7 +87,7 @@ defmodule Cloak.MemoryReader do
           %{state | system_queries: [pid | state.system_queries]}
       end
 
-    {:noreply, stateWithQuery}
+    {:noreply, state_with_query}
   end
 
   @impl GenServer
