@@ -15,9 +15,18 @@ defmodule Cloak.DataSource.Shadows.Query do
   @spec build_shadow(DataSource.t(), String.t(), String.t()) :: [any]
   def build_shadow(data_source, table, column) do
     case user_id(data_source, table) do
-      nil -> []
-      ^column -> []
-      user_id -> maybe_build_shadow(data_source, table, column, user_id)
+      nil ->
+        []
+
+      ^column ->
+        []
+
+      user_id ->
+        {query_killer_reg, query_killer_unreg} = Cloak.MemoryReader.query_registering_callbacks()
+        query_killer_reg.()
+        result = maybe_build_shadow(data_source, table, column, user_id)
+        query_killer_unreg.()
+        result
     end
   end
 

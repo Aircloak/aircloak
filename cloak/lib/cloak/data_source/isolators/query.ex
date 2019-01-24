@@ -12,9 +12,18 @@ defmodule Cloak.DataSource.Isolators.Query do
   @spec isolates_users?(DataSource.t(), String.t(), String.t()) :: boolean
   def isolates_users?(data_source, table, column) do
     case user_id(data_source, table) do
-      nil -> false
-      ^column -> true
-      _ -> isolating_ratio(data_source, table, column) > threshold()
+      nil ->
+        false
+
+      ^column ->
+        true
+
+      _ ->
+        {query_killer_reg, query_killer_unreg} = Cloak.MemoryReader.query_registering_callbacks()
+        query_killer_reg.()
+        result = isolating_ratio(data_source, table, column) > threshold()
+        query_killer_unreg.()
+        result
     end
   end
 
