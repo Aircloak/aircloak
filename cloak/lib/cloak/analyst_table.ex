@@ -3,14 +3,14 @@ defmodule Cloak.AnalystTable do
 
   use GenServer
   alias Cloak.AnalystTable.Helpers
+  alias Cloak.DataSource
 
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Stores the analyst table to the database."
-  @spec store(any, String.t(), String.t(), Cloak.DataSource.t()) ::
-          {:ok, table_name :: String.t()} | {:error, String.t()}
+  @spec store(any, String.t(), String.t(), DataSource.t()) :: {:ok, table_name :: String.t()} | {:error, String.t()}
   def store(analyst, table_name, statement, data_source) do
     GenServer.call(
       __MODULE__,
@@ -18,6 +18,11 @@ defmodule Cloak.AnalystTable do
       :timer.hours(1)
     )
   end
+
+  @doc "Returns the analyst table definition."
+  @spec table_definition(any, String.t(), DataSource.t()) :: {:ok, DataSource.Table.t()} | {:error, String.t()}
+  def table_definition(analyst, table_name, data_source),
+    do: GenServer.call(__MODULE__, {:table_definition, analyst, table_name, data_source}, :timer.hours(1))
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -29,9 +34,18 @@ defmodule Cloak.AnalystTable do
   @impl GenServer
   def handle_call({:store, table}, _from, state) do
     case store_table_to_database(table) do
-      {:ok, db_table} -> {:reply, {:ok, db_table}, store_table_to_state(state, Map.put(table, :db_table, db_table))}
+      {:ok, db_name} -> {:reply, {:ok, db_name}, store_table_to_state(state, Map.put(table, :db_name, db_name))}
       {:error, _reason} = error -> {:reply, error, state}
     end
+  end
+
+  def handle_call({:table_definition, analyst, table_name, data_source}, _from, state) do
+    response =
+      with {:ok, table_data} <- table_data(state, analyst, table_name, data_source),
+           {:ok, query} <- Helpers.compile(table_name, table_data.statement, data_source),
+           do: {:ok, table_definition(table_data, query)}
+
+    {:reply, response, state}
   end
 
   # -------------------------------------------------------------------
@@ -46,7 +60,7 @@ defmodule Cloak.AnalystTable do
   defp store_table_to_state(state, table) do
     update_in(
       state.tables[table.data_source.name],
-      &put_table(&1, Map.take(table, [:analyst, :name, :statement, :db_table]))
+      &put_table(&1, Map.take(table, [:analyst, :name, :statement, :db_name]))
     )
   end
 
@@ -54,6 +68,28 @@ defmodule Cloak.AnalystTable do
   defp put_table([], table), do: [table]
   defp put_table([%{analyst: analyst, name: name} | rest], %{analyst: analyst, name: name} = table), do: [table | rest]
   defp put_table([other_table | rest], table), do: [other_table | put_table(rest, table)]
+
+  defp table_data(state, analyst, table_name, data_source) do
+    with {:ok, tables} <- Map.fetch(state.tables, data_source.name),
+         table_data when not is_nil(table_data) <- Enum.find(tables, &(&1.analyst == analyst && &1.name == table_name)),
+         do: {:ok, table_data},
+         else: (_ -> {:error, "Table not found."})
+  end
+
+  defp table_definition(table_data, query) do
+    DataSource.Table.new(
+      table_data.name,
+      Cloak.Sql.Compiler.Helpers.id_column(query).name,
+      %{db_name: table_data.db_name, columns: columns(query)}
+    )
+  end
+
+  defp columns(query) do
+    Enum.map(
+      Enum.zip(query.column_titles, query.columns),
+      fn {column_title, column} -> DataSource.Table.column(column_title, column.type) end
+    )
+  end
 
   # -------------------------------------------------------------------
   # Supervision tree

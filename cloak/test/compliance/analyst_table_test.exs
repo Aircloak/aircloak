@@ -67,6 +67,54 @@ defmodule Compliance.AnalystTableTest do
           assert materialized == expected
         end
       end
+
+      test "simple table definition" do
+        with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
+          {:ok, table_name} = AnalystTable.store(1, "foo", "select user_id, sqrt(age) from users", data_source)
+
+          assert {:ok, table_definition} = AnalystTable.table_definition(1, "foo", data_source)
+          assert table_definition.name == "foo"
+          assert table_definition.db_name == table_name
+          assert table_definition.user_id == "user_id"
+
+          assert table_definition.columns == [
+                   %{name: "user_id", type: :integer, visible?: true},
+                   %{name: "sqrt", type: :real, visible?: true}
+                 ]
+        end
+      end
+
+      test "table definition in select all" do
+        with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
+          {:ok, table_name} = AnalystTable.store(1, "foo", "select * from users", data_source)
+
+          assert {:ok, table_definition} = AnalystTable.table_definition(1, "foo", data_source)
+          assert table_definition.name == "foo"
+          assert table_definition.db_name == table_name
+          assert table_definition.user_id == "user_id"
+
+          assert table_definition.columns == [
+                   %{visible?: true, name: "active", type: :boolean},
+                   %{visible?: true, name: "age", type: :integer},
+                   %{name: "birthday", type: :date, visible?: true},
+                   %{name: "column_with_a_very_long_name", type: :text, visible?: true},
+                   %{name: "height", type: :real, visible?: true},
+                   %{name: "id", type: :integer, visible?: true},
+                   %{name: "name", type: :text, visible?: true},
+                   %{name: "nullable", type: :real, visible?: true},
+                   %{name: "user_id", type: :integer, visible?: true}
+                 ]
+        end
+      end
+
+      test "table definition error" do
+        with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
+          {:ok, table_name} = AnalystTable.store(1, "foo", "select user_id, sqrt(age) from users", data_source)
+          data_source = update_in(data_source.tables, &Map.delete(&1, :users))
+
+          assert {:error, "Table `users` doesn't exist."} = AnalystTable.table_definition(1, "foo", data_source)
+        end
+      end
     end
   end
 
