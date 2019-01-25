@@ -30,7 +30,7 @@ defmodule Compliance.MiscTest do
     test "limit rows on #{column} from #{table} in subquery", context do
       context
       |> assert_consistent_and_not_failing("""
-        SELECT ROUND(CAST(x AS real)) FROM (
+        SELECT MEDIAN(CAST(x AS real)) FROM (
           SELECT #{unquote(uid)}, #{unquote(column)} AS x FROM #{unquote(table)} ORDER BY 1, 2 LIMIT 50
         ) t
       """)
