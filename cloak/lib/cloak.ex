@@ -33,6 +33,7 @@ defmodule Cloak do
     [
       Cloak.MemoryUsage,
       Cloak.DataSource,
+      Cloak.AnalystTable,
       Cloak.Query.Runner,
       in_env(test: nil, else: Cloak.AirSocket),
       in_env(test: nil, else: Cloak.MemoryReader)

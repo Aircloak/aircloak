@@ -18,45 +18,23 @@ defmodule Compliance.AnalystTableTest do
 
   for data_source_name <- @tested_data_sources do
     describe "#{data_source_name}" do
-      test "all returns an empty list when there are no tables" do
-        with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)),
-             do: assert(stored_tables(data_source) == [])
-      end
-
-      test "all returns the list of the created tables" do
-        with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, table1} = AnalystTable.new(1, "select user_id, height from users where age < 70", data_source)
-          {:ok, name1} = AnalystTable.store(table1)
-
-          {:ok, table2} = AnalystTable.new(2, "select user_id, height from users where age < 70", data_source)
-          {:ok, name2} = AnalystTable.store(table2)
-
-          assert Enum.sort(stored_tables(data_source)) == Enum.sort([name1, name2])
-        end
-      end
-
       test "table can be created" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, table} = AnalystTable.new(1, "select user_id, height from users where age < 70", data_source)
-          assert {:ok, _name} = AnalystTable.store(table)
+          assert {:ok, _name} = AnalystTable.store(1, "select user_id, height from users where age < 70", data_source)
         end
       end
 
       test "same query and id produce the same table name" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, table} = AnalystTable.new(1, "select user_id, height from users where age < 70", data_source)
-          assert {:ok, name} = AnalystTable.store(table)
-          assert {:ok, ^name} = AnalystTable.store(table)
+          assert {:ok, name} = AnalystTable.store(1, "select user_id, height from users where age < 70", data_source)
+          assert {:ok, ^name} = AnalystTable.store(1, "select user_id, height from users where age < 70", data_source)
         end
       end
 
       test "different query leads to a different table name" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, table1} = AnalystTable.new(1, "select user_id, height from users where age < 70", data_source)
-          {:ok, table2} = AnalystTable.new(1, "select user_id, height from users where age > 70", data_source)
-
-          {:ok, name1} = AnalystTable.store(table1)
-          {:ok, name2} = AnalystTable.store(table2)
+          {:ok, name1} = AnalystTable.store(1, "select user_id, height from users where age < 70", data_source)
+          {:ok, name2} = AnalystTable.store(1, "select user_id, height from users where age > 70", data_source)
 
           assert name1 != name2
         end
@@ -64,11 +42,8 @@ defmodule Compliance.AnalystTableTest do
 
       test "different id leads to a different table name" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, table1} = AnalystTable.new(1, "select user_id, height from users where age < 70", data_source)
-          {:ok, table2} = AnalystTable.new(2, "select user_id, height from users where age < 70", data_source)
-
-          {:ok, name1} = AnalystTable.store(table1)
-          {:ok, name2} = AnalystTable.store(table2)
+          {:ok, name1} = AnalystTable.store(1, "select user_id, height from users where age < 70", data_source)
+          {:ok, name2} = AnalystTable.store(2, "select user_id, height from users where age < 70", data_source)
 
           assert name1 != name2
         end
@@ -76,8 +51,7 @@ defmodule Compliance.AnalystTableTest do
 
       test "stored table contains desired rows" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, table} = AnalystTable.new(1, "select user_id, height from users where age < 70", data_source)
-          {:ok, table_name} = AnalystTable.store(table)
+          {:ok, table_name} = AnalystTable.store(1, "select user_id, height from users where age < 70", data_source)
 
           materialized =
             data_source

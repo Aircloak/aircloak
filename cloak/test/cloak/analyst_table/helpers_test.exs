@@ -1,8 +1,7 @@
-defmodule Cloak.AnalystTableTest do
+defmodule Cloak.AnalystTable.HelpersTest do
   use ExUnit.Case, async: true
 
-  alias Cloak.AnalystTable
-  doctest AnalystTable
+  alias Cloak.AnalystTable.Helpers
 
   @moduletag :analyst_tables
 
@@ -13,95 +12,81 @@ defmodule Cloak.AnalystTableTest do
 
   describe "compiled sql - " do
     test "simple analyst table" do
-      table = table!(1, "select user_id, x from mv1")
+      {:ok, query} = Helpers.compile("select user_id, x from mv1", data_source())
 
-      assert db_select(table) ==
+      assert db_select(query) ==
                ~s/SELECT "mv1"."user_id" AS "user_id","mv1"."x" AS "x" FROM "cloak_test"."mv1" AS "mv1"/
     end
 
     test "function support" do
-      table = table!(1, "select user_id, hash(y) from mv1")
+      {:ok, query} = Helpers.compile("select user_id, hash(y) from mv1", data_source())
 
-      assert db_select(table) ==
+      assert db_select(query) ==
                ~s/SELECT "mv1"."user_id" AS "user_id",SUBSTR(MD5("mv1"."y"::text), 5, 8) AS "hash" / <>
                  ~s/FROM "cloak_test"."mv1" AS "mv1"/
     end
 
     test "subquery support" do
-      table = table!(1, "select user_id, x from (select * from mv1) sq")
+      {:ok, query} = Helpers.compile("select user_id, x from (select * from mv1) sq", data_source())
 
-      assert db_select(table) ==
+      assert db_select(query) ==
                ~s/SELECT "sq"."user_id" AS "user_id","sq"."x" AS "x" FROM / <>
                  ~s/(SELECT "mv1"."user_id" AS "user_id","mv1"."x" AS "x" FROM "cloak_test"."mv1" AS "mv1") AS "sq"/
     end
 
     test "join support" do
-      table = table!(1, "select mv1.user_id, mv2.x from mv1 inner join mv2 on mv1.user_id = mv2.user_id")
+      {:ok, query} =
+        Helpers.compile("select mv1.user_id, mv2.x from mv1 inner join mv2 on mv1.user_id = mv2.user_id", data_source())
 
-      assert db_select(table) ==
+      assert db_select(query) ==
                ~s/SELECT "mv1"."user_id" AS "user_id","mv2"."x" AS "x" / <>
                  ~s/FROM  "cloak_test"."mv1" AS "mv1" / <>
                  ~s/INNER JOIN "cloak_test"."db_name_mv2" AS "mv2" ON "mv1"."user_id" = "mv2"."user_id" /
     end
 
     test "tables are referenced by the user name" do
-      table = table!(1, "select user_id, x from mv2")
+      {:ok, query} = Helpers.compile("select user_id, x from mv2", data_source())
 
-      assert db_select(table) ==
+      assert db_select(query) ==
                ~s/SELECT "mv2"."user_id" AS "user_id","mv2"."x" AS "x" FROM "cloak_test"."db_name_mv2" AS "mv2"/
     end
 
     test "tables can't be referenced by the db name" do
-      assert {:error, error} = table(1, "select user_id, x from db_name_mv2")
+      assert {:error, error} = Helpers.compile("select user_id, x from db_name_mv2", data_source())
       assert error == "Table `db_name_mv2` doesn't exist."
     end
 
     test "parsing error is reported" do
-      assert {:error, error} = table(1, "select")
+      assert {:error, error} = Helpers.compile("select", data_source())
       assert error == "Expected `column definition` at line 1, column 7."
     end
 
     test "compilation error is reported" do
-      assert {:error, error} = table(1, "select sqrt(y) from mv1")
+      assert {:error, error} = Helpers.compile("select sqrt(y) from mv1", data_source())
       assert error == "Function `sqrt` requires arguments of type (`integer` | `real`), but got (`text`)."
     end
 
     test "anonymized subqueries can't be materialized" do
-      assert {:error, error} = table(1, "select x from mv1")
+      assert {:error, error} = Helpers.compile("select x from mv1", data_source())
       assert error == "At least one user id column must be selected."
     end
 
     test "emulated subqueries can't be materialized" do
-      assert {:error, error} = table(1, "select user_id, dec_b64(y) from mv1")
+      assert {:error, error} = Helpers.compile("select user_id, dec_b64(y) from mv1", data_source())
       assert error == "Emulated query can't be materialized."
     end
 
     test "analyst table can't be created if the driver doesn't support it" do
       mongo_data_source = Map.put(data_source(), :driver, Cloak.DataSource.MongoDB)
-      assert {:error, error} = AnalystTable.new(1, "select * from mv1", mongo_data_source)
+      assert {:error, error} = Helpers.compile("select * from mv1", mongo_data_source)
       assert error == "This data source doesn't support analyst tables."
     end
   end
 
-  test "inspect" do
-    table = table!(1, "select user_id, x from mv1")
-
-    assert inspect(table) ==
-             ~s/#Cloak.AnalystTable/ <>
-               ~s/<[id: 1, data_source: "#{data_source().name}", statement: "select user_id, x from mv1"]>/
-  end
-
-  defp table!(id, statement) do
-    {:ok, table} = table(id, statement)
-    table
-  end
-
-  defp table(id, statement), do: AnalystTable.new(id, statement, data_source())
-
   defp data_source(), do: hd(Cloak.DataSource.all())
 
-  defp db_select(table) do
-    {create_statement, _table_name} = Cloak.DataSource.SqlBuilder.create_table_statement(table.id, table.query)
-    "SELECT #{String.replace(create_statement, ~r/^CREATE TABLE ".*" AS SELECT /, "")}"
+  defp db_select(query) do
+    {create_statement, _table_name} = Cloak.DataSource.SqlBuilder.create_table_statement(1, query)
+    String.replace(create_statement, ~r/^CREATE TABLE "[^\s]*" AS /, "")
   end
 end
