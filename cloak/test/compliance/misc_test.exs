@@ -31,7 +31,7 @@ defmodule Compliance.MiscTest do
       context
       |> assert_consistent_and_not_failing("""
         SELECT MEDIAN(x) FROM (
-          SELECT #{unquote(uid)}, #{unquote(column)} AS x FROM #{unquote(table)} ORDER BY 2 LIMIT 50
+          SELECT #{unquote(uid)}, #{unquote(column)} AS x FROM #{unquote(table)} ORDER BY 1, 2 LIMIT 50
         ) t
       """)
     end
