@@ -75,7 +75,7 @@ defmodule Compliance.AnalystTableTest do
 
       test "simple table definition" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          :ok = AnalystTable.store(1, "foo", "select user_id, sqrt(age) from users", data_source)
+          :ok = AnalystTable.store(1, "foo", "select user_id, sqrt(age), height as h from users", data_source)
 
           assert {:ok, table_definition} = AnalystTable.table_definition(1, "foo", data_source)
           assert table_definition.name == "foo"
@@ -84,7 +84,8 @@ defmodule Compliance.AnalystTableTest do
 
           assert table_definition.columns == [
                    %{name: "user_id", type: :integer, visible?: true},
-                   %{name: "sqrt", type: :real, visible?: true}
+                   %{name: "sqrt", type: :real, visible?: true},
+                   %{name: "h", type: :real, visible?: true}
                  ]
         end
       end
