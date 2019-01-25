@@ -205,6 +205,10 @@ defmodule Cloak.DataSource.Oracle do
     end
   end
 
+  # Thee semantics of `ROWNUM` are pretty weird and not compatible at all with the semantics
+  # of the standard `LIMIT` clause: this variable gets incremented after all predicates have passed and
+  # before any sorting or aggregation starts. So any filters over it need to be applied in a simple
+  # query to ensure we get the proper behavior.
   defp wrap_limit(%Query{subquery?: true, limit: limit} = query) when limit != nil do
     table_columns =
       Enum.zip(query.column_titles, query.columns)
