@@ -6,9 +6,10 @@ defmodule Cloak.AnalystTable.Helpers do
   # -------------------------------------------------------------------
 
   @doc "Compiles the analyst table select statement."
-  @spec compile(String.t(), Cloak.DataSource.t()) :: {:ok, Cloak.Sql.Query.t()} | {:error, String.t()}
-  def compile(statement, data_source) do
+  @spec compile(String.t(), String.t(), Cloak.DataSource.t()) :: {:ok, Cloak.Sql.Query.t()} | {:error, String.t()}
+  def compile(table_name, statement, data_source) do
     with :ok <- supports_analyst_tables?(data_source),
+         :ok <- verify_table_name(table_name, data_source),
          {:ok, query} <- compile_statement(statement, data_source),
          :ok <- verify_query_type(query),
          :ok <- verify_offloading(query),
@@ -34,6 +35,12 @@ defmodule Cloak.AnalystTable.Helpers do
     with {:ok, parsed_query} <- Cloak.Sql.Parser.parse(statement),
          {:ok, query} <- Cloak.Sql.Compiler.compile_direct(parsed_query, data_source),
          do: {:ok, query |> Cloak.Sql.Query.set_emulation_flag() |> Cloak.Sql.Compiler.Anonymization.set_query_type()}
+  end
+
+  defp verify_table_name(table_name, data_source) do
+    if Enum.any?(Cloak.DataSource.tables(data_source), &(&1.name == table_name)),
+      do: {:error, "The table with the given name already exists."},
+      else: :ok
   end
 
   defp verify_query_type(query) do

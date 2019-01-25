@@ -20,21 +20,25 @@ defmodule Compliance.AnalystTableTest do
     describe "#{data_source_name}" do
       test "table can be created" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          assert {:ok, _name} = AnalystTable.store(1, "select user_id, height from users where age < 70", data_source)
+          assert {:ok, _name} =
+                   AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
         end
       end
 
       test "same query and id produce the same table name" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          assert {:ok, name} = AnalystTable.store(1, "select user_id, height from users where age < 70", data_source)
-          assert {:ok, ^name} = AnalystTable.store(1, "select user_id, height from users where age < 70", data_source)
+          assert {:ok, name} =
+                   AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
+
+          assert {:ok, ^name} =
+                   AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
         end
       end
 
       test "different query leads to a different table name" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, name1} = AnalystTable.store(1, "select user_id, height from users where age < 70", data_source)
-          {:ok, name2} = AnalystTable.store(1, "select user_id, height from users where age > 70", data_source)
+          {:ok, name1} = AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
+          {:ok, name2} = AnalystTable.store(1, "foo", "select user_id, height from users where age > 70", data_source)
 
           assert name1 != name2
         end
@@ -42,8 +46,8 @@ defmodule Compliance.AnalystTableTest do
 
       test "different id leads to a different table name" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, name1} = AnalystTable.store(1, "select user_id, height from users where age < 70", data_source)
-          {:ok, name2} = AnalystTable.store(2, "select user_id, height from users where age < 70", data_source)
+          {:ok, name1} = AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
+          {:ok, name2} = AnalystTable.store(2, "foo", "select user_id, height from users where age < 70", data_source)
 
           assert name1 != name2
         end
@@ -51,7 +55,8 @@ defmodule Compliance.AnalystTableTest do
 
       test "stored table contains desired rows" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, table_name} = AnalystTable.store(1, "select user_id, height from users where age < 70", data_source)
+          {:ok, table_name} =
+            AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
 
           materialized =
             data_source
