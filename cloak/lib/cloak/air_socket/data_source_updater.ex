@@ -23,19 +23,19 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
   @impl GenServer
   def init(nil) do
     Cloak.DataSource.subscribe_to_changes()
-    {:ok, %{data_sources: data_sources_info(Cloak.DataSource.all()), socket_pid: nil}}
+    {:ok, %{data_sources: data_sources_info(Cloak.DataSource.all()), socket_pid: nil}, :hibernate}
   end
 
   @impl GenServer
   def handle_call(:register_socket, {socket_pid, _ref}, state),
-    do: {:reply, state.data_sources, %{state | socket_pid: socket_pid}}
+    do: {:reply, state.data_sources, %{state | socket_pid: socket_pid}, :hibernate}
 
   def handle_call(:force_refresh, _from, state),
-    do: {:reply, :ok, update_data_sources(state, data_sources_info(Cloak.DataSource.all()))}
+    do: {:reply, :ok, update_data_sources(state, data_sources_info(Cloak.DataSource.all())), :hibernate}
 
   @impl GenServer
   def handle_info({:data_sources_changed, new_data_sources}, state),
-    do: {:noreply, update_data_sources(state, data_sources_info(new_data_sources))}
+    do: {:noreply, update_data_sources(state, data_sources_info(new_data_sources)), :hibernate}
 
   # -------------------------------------------------------------------
   # Internal functions
