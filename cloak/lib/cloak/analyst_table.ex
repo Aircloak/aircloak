@@ -10,7 +10,7 @@ defmodule Cloak.AnalystTable do
   # -------------------------------------------------------------------
 
   @doc "Stores the analyst table to the database."
-  @spec store(any, String.t(), String.t(), DataSource.t()) :: {:ok, table_name :: String.t()} | {:error, String.t()}
+  @spec store(any, String.t(), String.t(), DataSource.t()) :: :ok | {:error, String.t()}
   def store(analyst, table_name, statement, data_source) do
     GenServer.call(
       __MODULE__,
@@ -34,7 +34,7 @@ defmodule Cloak.AnalystTable do
   @impl GenServer
   def handle_call({:store, table}, _from, state) do
     case store_table_to_database(table) do
-      {:ok, db_name} -> {:reply, {:ok, db_name}, store_table_to_state(state, Map.put(table, :db_name, db_name))}
+      {:ok, db_name} -> {:reply, :ok, store_table_to_state(state, Map.put(table, :db_name, db_name))}
       {:error, _reason} = error -> {:reply, error, state}
     end
   end
