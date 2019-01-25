@@ -97,18 +97,7 @@ defmodule Compliance.AnalystTableTest do
           assert table_definition.name == "foo"
           assert String.starts_with?(table_definition.db_name, "__ac_")
           assert table_definition.user_id == "user_id"
-
-          assert table_definition.columns == [
-                   %{visible?: true, name: "active", type: :boolean},
-                   %{visible?: true, name: "age", type: :integer},
-                   %{name: "birthday", type: :date, visible?: true},
-                   %{name: "column_with_a_very_long_name", type: :text, visible?: true},
-                   %{name: "height", type: :real, visible?: true},
-                   %{name: "id", type: :integer, visible?: true},
-                   %{name: "name", type: :text, visible?: true},
-                   %{name: "nullable", type: :real, visible?: true},
-                   %{name: "user_id", type: :integer, visible?: true}
-                 ]
+          assert table_definition.columns == Cloak.DataSource.table(data_source, :users).columns
         end
       end
 
