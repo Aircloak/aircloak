@@ -13,6 +13,7 @@ defmodule Cloak.AnalystTable.Helpers do
          {:ok, query} <- compile_statement(statement, data_source),
          :ok <- verify_query_type(query),
          :ok <- verify_offloading(query),
+         :ok <- verify_selected_columns(query),
          do: {:ok, query}
   end
 
@@ -49,5 +50,25 @@ defmodule Cloak.AnalystTable.Helpers do
 
   defp verify_offloading(query) do
     if query.emulated?, do: {:error, "Emulated query can't be materialized."}, else: :ok
+  end
+
+  defp verify_selected_columns(query) do
+    duplicates =
+      query.column_titles
+      |> Stream.transform(
+        {MapSet.new(), MapSet.new()},
+        fn title, {duplicates, uniques} ->
+          cond do
+            MapSet.member?(duplicates, title) -> {[], {duplicates, uniques}}
+            MapSet.member?(uniques, title) -> {[title], {MapSet.put(duplicates, title), MapSet.delete(uniques, title)}}
+            true -> {[], {duplicates, MapSet.put(uniques, title)}}
+          end
+        end
+      )
+      |> Enum.to_list()
+
+    if Enum.empty?(duplicates),
+      do: :ok,
+      else: {:error, "Duplicate column names: #{duplicates |> Stream.map(&"`#{&1}`") |> Enum.join(", ")}"}
   end
 end

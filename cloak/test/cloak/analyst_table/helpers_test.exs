@@ -90,6 +90,23 @@ defmodule Cloak.AnalystTable.HelpersTest do
       assert {:error, error} = Helpers.compile("mv1", "select user_id from mv1", data_source())
       assert error == "The table with the given name already exists."
     end
+
+    test "analyst table can't be created if column names are duplicate" do
+      assert {:error, error} = Helpers.compile("table_name", "select user_id, x, y, x, y, x from mv1", data_source())
+      assert error == "Duplicate column names: `x`, `y`"
+
+      assert {:error, error} = Helpers.compile("table_name", "select user_id, sqrt(x), sqrt(3) from mv1", data_source())
+      assert error == "Duplicate column names: `sqrt`"
+
+      assert {:error, error} =
+               Helpers.compile(
+                 "table_name",
+                 "select * from mv1 inner join mv2 on mv1.user_id = mv2.user_id",
+                 data_source()
+               )
+
+      assert error == "Duplicate column names: `user_id`, `x`, `y`"
+    end
   end
 
   defp data_source(), do: hd(Cloak.DataSource.all())
