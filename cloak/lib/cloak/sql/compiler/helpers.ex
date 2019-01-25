@@ -2,6 +2,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
   @moduledoc "Common helper functions used in compilation phases."
 
   alias Cloak.Sql.{Expression, Query, Parser}
+  alias Cloak.DataSource.Table
 
   @type partial_query :: %Query{}
 
@@ -111,6 +112,14 @@ defmodule Cloak.Sql.Compiler.Helpers do
   def each_subquery(query, function) do
     Lens.each(Query.Lenses.all_queries(), query, function)
     :ok
+  end
+
+  @doc "Returns a column expression from a table."
+  @spec column_from_table(Table.t(), String.t()) :: Expression.t()
+  def column_from_table(table, name) do
+    table.columns
+    |> Enum.find(&(&1.name == name))
+    |> Expression.column(table)
   end
 
   @doc "Returns an error message about a user id missing from the select list for the given query."

@@ -41,7 +41,7 @@ defmodule Cloak.DataSource.Table do
   # -------------------------------------------------------------------
 
   @doc "Creates the new table instance."
-  @spec new(String.t(), String.t(), [option] | Map.t()) :: t
+  @spec new(String.t(), String.t() | nil, [option] | Map.t()) :: t
   def new(name, user_id_column_name, opts \\ []),
     do:
       Map.merge(

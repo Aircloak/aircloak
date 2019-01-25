@@ -5,8 +5,8 @@ defmodule Cloak.DataSource.Oracle do
   """
 
   use Cloak.DataSource.Driver.SQL
-  alias Cloak.DataSource.RODBC
-  alias Cloak.Sql.Expression
+  alias Cloak.DataSource.{RODBC, Table}
+  alias Cloak.Sql.{Expression, Query, Compiler.Helpers, Function}
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
@@ -32,14 +32,16 @@ defmodule Cloak.DataSource.Oracle do
   end
 
   @impl Driver
-  def select(connection, sql_query, result_processor),
-    do: RODBC.select(connection, map_selected_expressions(sql_query), custom_mappers(), result_processor)
+  def select(connection, query, result_processor) do
+    query = query |> map_selected_expressions() |> Helpers.apply_bottom_up(&wrap_limit/1)
+    RODBC.select(connection, query, custom_mappers(), result_processor)
+  end
 
   @impl Driver
   defdelegate driver_info(connection), to: RODBC
 
   @impl Driver
-  def supports_query?(query), do: query.limit == nil and query.offset == 0
+  def supports_query?(query), do: not query.subquery? or query.offset == 0
 
   @impl Driver
   def supports_analyst_tables?(), do: true
@@ -202,4 +204,33 @@ defmodule Cloak.DataSource.Oracle do
         nil
     end
   end
+
+  # Thee semantics of `ROWNUM` are pretty weird and not compatible at all with the semantics
+  # of the standard `LIMIT` clause: this variable gets incremented after all predicates have passed and
+  # before any sorting or aggregation starts. So any filters over it need to be applied in a simple
+  # query to ensure we get the proper behavior.
+  defp wrap_limit(%Query{subquery?: true, limit: limit} = query) when limit != nil do
+    table_columns =
+      Enum.zip(query.column_titles, query.columns)
+      |> Enum.map(fn {alias, column} ->
+        Table.column(alias, Function.type(column))
+      end)
+
+    inner_table = Table.new("__ac_limit_wrapper", nil, columns: table_columns)
+
+    outer_columns = Enum.map(query.column_titles, &Helpers.column_from_table(inner_table, &1))
+
+    %Query{
+      command: :select,
+      data_source: query.data_source,
+      columns: outer_columns,
+      db_columns: outer_columns,
+      from: {:subquery, %{ast: %Query{query | limit: nil}, alias: "__ac_limit_wrapper"}},
+      selected_tables: [inner_table],
+      subquery?: true,
+      limit: limit
+    }
+  end
+
+  defp wrap_limit(query), do: query
 end
