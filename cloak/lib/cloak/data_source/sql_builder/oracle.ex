@@ -89,6 +89,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   @impl Dialect
   def limit_sql(nil, 0), do: []
+  def limit_sql(limit, 0), do: [" WHERE ROWNUM <= ", to_string(limit)]
 
   def limit_sql(_, _),
     do: raise(ExecutionError, message: "Non-zero OFFSET is not natively supported on this data source")

@@ -140,9 +140,8 @@ defmodule Cloak.Sql.Compiler.Anonymization do
   end
 
   defp column_from_synthetic_table(table, name) do
-    table.columns
-    |> Enum.find(&(&1.name == name))
-    |> Expression.column(table)
+    table
+    |> Helpers.column_from_table(name)
     |> set_fields(synthetic?: true)
   end
 

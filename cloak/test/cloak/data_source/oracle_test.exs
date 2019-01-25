@@ -2,21 +2,22 @@ defmodule Cloak.DataSource.Oracle.Test do
   use ExUnit.Case
 
   alias Cloak.DataSource.{Oracle, Table}
+  alias Cloak.Sql.Query
   import Cloak.Test.QueryHelpers
 
   test "queries without limit and offset are supported" do
     query = compile!("SELECT * FROM table ORDER BY uid", data_source())
-    assert Oracle.supports_query?(query)
+    assert Oracle.supports_query?(%Query{query | subquery?: true})
   end
 
-  test "limit is unsupported" do
+  test "limit is supported" do
     query = compile!("SELECT * FROM table ORDER BY uid LIMIT 10", data_source())
-    refute Oracle.supports_query?(query)
+    assert Oracle.supports_query?(%Query{query | subquery?: true})
   end
 
   test "offset is not supported" do
     query = compile!("SELECT * FROM table ORDER BY uid OFFSET 10", data_source())
-    refute Oracle.supports_query?(query)
+    refute Oracle.supports_query?(%Query{query | subquery?: true})
   end
 
   describe "interval_mapper/1" do

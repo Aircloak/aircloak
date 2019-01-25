@@ -24,4 +24,16 @@ defmodule Compliance.MiscTest do
       """)
     end
   end)
+
+  Enum.each(numerical_columns(), fn {column, table, uid} ->
+    @tag compliance: "limit rows on #{column} from #{table} in subquery"
+    test "limit rows on #{column} from #{table} in subquery", context do
+      context
+      |> assert_consistent_and_not_failing("""
+        SELECT MEDIAN(x) FROM (
+          SELECT #{unquote(uid)}, #{unquote(column)} AS x FROM #{unquote(table)} ORDER BY 2 LIMIT 50
+        ) t
+      """)
+    end
+  end)
 end
