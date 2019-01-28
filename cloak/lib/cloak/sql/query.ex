@@ -61,7 +61,8 @@ defmodule Cloak.Sql.Query do
           noise_layers: [NoiseLayer.t()],
           view?: boolean,
           table_aliases: %{String.t() => DataSource.Table.t()},
-          type: type
+          type: type,
+          available_tables: [DataSource.Table.t()]
         }
 
   @type analyst_id :: pos_integer | nil
@@ -125,7 +126,8 @@ defmodule Cloak.Sql.Query do
             noise_layers: [],
             view?: false,
             table_aliases: %{},
-            type: :restricted
+            type: :restricted,
+            available_tables: []
 
   # -------------------------------------------------------------------
   # API functions

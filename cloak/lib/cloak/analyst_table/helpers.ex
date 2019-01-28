@@ -34,7 +34,7 @@ defmodule Cloak.AnalystTable.Helpers do
 
   defp compile_statement(statement, data_source) do
     with {:ok, parsed_query} <- Cloak.Sql.Parser.parse(statement),
-         {:ok, query} <- Cloak.Sql.Compiler.compile_direct(parsed_query, data_source),
+         {:ok, query} <- Cloak.Sql.Compiler.compile_direct(parsed_query, nil, data_source),
          do: {:ok, query |> Cloak.Sql.Query.set_emulation_flag() |> Cloak.Sql.Compiler.Anonymization.set_query_type()}
   end
 

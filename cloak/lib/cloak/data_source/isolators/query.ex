@@ -36,7 +36,7 @@ defmodule Cloak.DataSource.Isolators.Query do
       ORDER BY 1
     """
     |> Parser.parse!()
-    |> Compiler.compile_direct!(data_source)
+    |> Compiler.compile_direct!(nil, data_source)
     |> Cloak.Query.DbEmulator.select()
     |> case do
       [[false, non_isolating_values], [true, isolating_values]] ->

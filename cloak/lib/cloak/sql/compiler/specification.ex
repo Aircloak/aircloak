@@ -19,16 +19,19 @@ defmodule Cloak.Sql.Compiler.Specification do
           [Query.parameter()] | nil,
           Query.view_map()
         ) :: Query.t()
-  def compile(parsed_query, analyst_id, data_source, parameters, views),
-    do:
-      %Query{
-        analyst_id: analyst_id,
-        data_source: data_source,
-        parameters: parameters,
-        views: views
-      }
-      |> Map.merge(parsed_query)
-      |> compile_query()
+  def compile(parsed_query, analyst_id, data_source, parameters, views) do
+    available_tables = DataSource.tables(data_source) ++ Cloak.AnalystTable.analyst_tables(analyst_id, data_source)
+
+    %Query{
+      analyst_id: analyst_id,
+      data_source: data_source,
+      available_tables: available_tables,
+      parameters: parameters,
+      views: views
+    }
+    |> Map.merge(parsed_query)
+    |> compile_query()
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -81,7 +84,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     do:
       query
       |> collect_table_aliases()
-      |> update_in([Lenses.ast_tables()], &normalize_from(&1, query.data_source))
+      |> update_in([Lenses.ast_tables()], &normalize_from(&1, query))
 
   defp collect_table_aliases(query) do
     aliases =
@@ -89,7 +92,7 @@ defmodule Cloak.Sql.Compiler.Specification do
       |> get_in([Lenses.ast_tables()])
       |> Enum.filter(&match?({_table_identifier, :as, _alias}, &1))
       |> Enum.map(fn {table_identifier, :as, alias} ->
-        {alias, find_table!(query.data_source, table_identifier)}
+        {alias, find_table!(query, table_identifier)}
       end)
 
     verify_duplicate_aliases(aliases)
@@ -112,12 +115,12 @@ defmodule Cloak.Sql.Compiler.Specification do
     end
   end
 
-  defp normalize_from({_table_identifier, :as, alias}, _data_source), do: alias
+  defp normalize_from({_table_identifier, :as, alias}, _query), do: alias
 
-  defp normalize_from(table_identifier, data_source), do: find_table!(data_source, table_identifier).name
+  defp normalize_from(table_identifier, query), do: find_table!(query, table_identifier).name
 
-  defp find_table!(data_source, table_identifier = {_, table_name}) do
-    case data_source |> DataSource.tables() |> find_table(table_identifier) do
+  defp find_table!(query, table_identifier = {_, table_name}) do
+    case find_table(query.available_tables, table_identifier) do
       nil -> raise CompilationError, message: "Table `#{table_name}` doesn't exist."
       table -> table
     end
@@ -231,7 +234,12 @@ defmodule Cloak.Sql.Compiler.Specification do
     do: [%{table_from_name_or_alias!(query, table_name) | name: table_name}]
 
   defp table_from_name_or_alias!(query, table_name) do
-    table = Map.get(query.table_aliases, table_name, DataSource.table(query.data_source, table_name))
+    table =
+      Map.get_lazy(
+        query.table_aliases,
+        table_name,
+        fn -> Enum.find(query.available_tables, &(&1.name == table_name)) end
+      )
 
     true = table != nil
     table

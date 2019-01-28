@@ -1323,7 +1323,7 @@ defmodule Cloak.Sql.Compiler.Test do
     {:ok, parsed_query} = Parser.parse(query_string)
 
     try do
-      Compiler.compile_standard!(parsed_query, data_source)
+      Compiler.compile_standard!(parsed_query, nil, data_source)
     rescue
       error in Cloak.Sql.CompilationError -> {:error, error.message}
     end

@@ -1,6 +1,7 @@
 defmodule Compliance.AnalystTableTest do
   use ComplianceCase, async: true
   alias Cloak.AnalystTable
+  import Cloak.Test.QueryHelpers
 
   @moduletag :compliance
   @moduletag :analyst_tables
@@ -61,15 +62,22 @@ defmodule Compliance.AnalystTableTest do
       test "stored table contains desired rows" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
           :ok = AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
-          table = AnalystTable.table_definition!(1, "foo", data_source)
+          expected = select_direct!(1, data_source, "select user_id, height from users where age < 70")
+          materialized = select_direct!(1, data_source, "select user_id, height from foo")
 
-          materialized =
-            data_source
-            |> select!("select * from #{quote_table_name(data_source, table.db_name)}")
-            |> Enum.map(fn [user_id, height] -> [to_integer(user_id), height] end)
-
-          expected = select_direct!(data_source, "select user_id, height from users where age < 70")
           assert materialized == expected
+        end
+      end
+
+      test "analyst table can be queried" do
+        with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
+          :ok = AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
+
+          assert_query(
+            "select * from foo",
+            [analyst_id: 1, data_sources: [data_source]],
+            %{columns: ["user_id", "height"]}
+          )
         end
       end
 
@@ -136,27 +144,12 @@ defmodule Compliance.AnalystTableTest do
     )
   end
 
-  defp select!(data_source, statement) do
-    case data_source.driver do
-      Cloak.DataSource.PostgreSQL -> execute!(data_source, statement).rows
-      Cloak.DataSource.Oracle -> Enum.to_list(execute!(data_source, statement))
-    end
-  end
-
-  defp select_direct!(data_source, statement) do
+  defp select_direct!(analyst_id, data_source, statement) do
     statement
     |> Cloak.Sql.Parser.parse!()
-    |> Cloak.Sql.Compiler.compile_direct!(data_source)
+    |> Cloak.Sql.Compiler.compile_direct!(analyst_id, data_source)
     |> Cloak.Query.DbEmulator.select()
   end
-
-  defp quote_table_name(data_source, name) do
-    quote_char = data_source.driver.sql_dialect_module.quote_char()
-    Cloak.DataSource.SqlBuilder.quote_table_name(name, quote_char)
-  end
-
-  defp to_integer(int) when is_integer(int), do: int
-  defp to_integer(string) when is_binary(string), do: String.to_integer(string)
 
   defp stored_tables(data_source),
     do: Cloak.DataSource.Connection.execute!(data_source, &data_source.driver.analyst_tables/1)

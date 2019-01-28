@@ -239,6 +239,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
 
   defp data_source() do
     %{
+      name: "data_source",
       driver: Cloak.DataSource.PostgreSQL,
       tables: %{
         table:

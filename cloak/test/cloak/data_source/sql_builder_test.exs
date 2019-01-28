@@ -57,6 +57,7 @@ defmodule Cloak.DataSource.SqlBuilderTest do
 
   defp data_source(driver) do
     %{
+      name: "data_source",
       driver: driver,
       tables: %{
         table:
