@@ -4,7 +4,7 @@ defmodule AirWeb.Plug.Session.Authenticated do
   def call(conn, _opts) do
     with {:ok, user_id} <- unpack_session(conn),
          {:ok, user} <- Air.Service.User.load_enabled(user_id) do
-      Plug.Conn.assign(conn, :current_user, Air.Service.User.load(user_id))
+      Plug.Conn.assign(conn, :current_user, user)
     else
       _ ->
         conn
