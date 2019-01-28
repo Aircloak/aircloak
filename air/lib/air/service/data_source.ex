@@ -90,6 +90,7 @@ defmodule Air.Service.DataSource do
   def describe_query(data_source_id_spec, user, statement, parameters) do
     on_available_cloak(data_source_id_spec, user, fn data_source, channel_pid, _cloak_info ->
       MainChannel.describe_query(channel_pid, %{
+        analyst_id: user.id,
         statement: statement,
         data_source: data_source.name,
         parameters: parameters,
@@ -105,6 +106,7 @@ defmodule Air.Service.DataSource do
       on_available_cloak(data_source_id_spec, user, fn data_source, channel_pid, _cloak_info ->
         {:ok,
          MainChannel.validate_views(channel_pid, %{
+           analyst_id: user.id,
            data_source: data_source.name,
            views: view_map
          })}

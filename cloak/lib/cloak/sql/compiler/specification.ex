@@ -14,13 +14,15 @@ defmodule Cloak.Sql.Compiler.Specification do
   @doc "Compiles the parsed query."
   @spec compile(
           Parser.parsed_query(),
+          Query.analyst_id(),
           DataSource.t(),
           [Query.parameter()] | nil,
           Query.view_map()
         ) :: Query.t()
-  def compile(parsed_query, data_source, parameters, views),
+  def compile(parsed_query, analyst_id, data_source, parameters, views),
     do:
       %Query{
+        analyst_id: analyst_id,
         data_source: data_source,
         parameters: parameters,
         views: views
@@ -184,13 +186,20 @@ defmodule Cloak.Sql.Compiler.Specification do
   # Subqueries
   # -------------------------------------------------------------------
 
-  defp compile_subqueries(query),
-    do:
-      Lens.map(
-        Lenses.direct_subqueries(),
-        query,
-        &%{&1 | ast: &1.ast |> Map.put(:subquery?, true) |> compile(query.data_source, query.parameters, query.views)}
-      )
+  defp compile_subqueries(query) do
+    Lens.map(
+      Lenses.direct_subqueries(),
+      query,
+      fn subquery ->
+        update_in(
+          subquery.ast,
+          &(&1
+            |> Map.put(:subquery?, true)
+            |> compile(query.analyst_id, query.data_source, query.parameters, query.views))
+        )
+      end
+    )
+  end
 
   # -------------------------------------------------------------------
   # Selected tables

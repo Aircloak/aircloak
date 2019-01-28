@@ -228,6 +228,7 @@ defmodule Cloak.AirSocket do
 
         case Cloak.Query.Runner.start(
                serialized_query.id,
+               serialized_query.analyst_id,
                data_source,
                serialized_query.statement || "",
                decode_params(serialized_query.parameters),
@@ -248,6 +249,7 @@ defmodule Cloak.AirSocket do
 
       {:ok, data_source} ->
         case Cloak.Sql.Query.describe_query(
+               serialized_query.analyst_id,
                data_source,
                serialized_query.statement || "",
                decode_params(serialized_query.parameters),
@@ -270,7 +272,7 @@ defmodule Cloak.AirSocket do
         respond_to_air(from, :error, "Unknown data source.")
 
       {:ok, data_source} ->
-        respond_to_air(from, :ok, validate_views(data_source, serialized_view.views))
+        respond_to_air(from, :ok, validate_views(serialized_view.analyst_id, data_source, serialized_view.views))
     end
 
     {:ok, state}
@@ -379,10 +381,10 @@ defmodule Cloak.AirSocket do
     Application.get_env(:cloak, :air) |> Keyword.fetch!(key)
   end
 
-  defp validate_views(data_source, views) do
+  defp validate_views(analyst_id, data_source, views) do
     for {name, sql} <- views do
       Task.async(fn ->
-        case Cloak.Sql.Query.validate_view(data_source, name, sql, views) do
+        case Cloak.Sql.Query.validate_view(analyst_id, data_source, name, sql, views) do
           {:ok, columns} -> %{name: name, valid: true, columns: columns}
           {:error, field, reason} -> %{name: name, valid: false, field: field, error: reason}
         end

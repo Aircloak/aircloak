@@ -12,6 +12,7 @@ defmodule Cloak.DataSource.SAPHanaTest do
       result =
         Runner.run_sync(
           "#{:erlang.unique_integer([:positive])}",
+          nil,
           unquote(data_source),
           unquote(query),
           [],

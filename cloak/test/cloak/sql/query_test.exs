@@ -536,12 +536,12 @@ defmodule Cloak.Sql.QueryTest do
   end
 
   defp describe_query(statement, parameters \\ nil),
-    do: Query.describe_query(hd(Cloak.DataSource.all()), statement, parameters, %{})
+    do: Query.describe_query(nil, hd(Cloak.DataSource.all()), statement, parameters, %{})
 
   defp validate_view(name, sql, views \\ %{}) do
     [first_ds | rest_ds] = Cloak.DataSource.all()
-    result = Query.validate_view(first_ds, name, sql, views)
-    Enum.each(rest_ds, &assert(result == Query.validate_view(&1, name, sql, views)))
+    result = Query.validate_view(nil, first_ds, name, sql, views)
+    Enum.each(rest_ds, &assert(result == Query.validate_view(nil, &1, name, sql, views)))
     result
   end
 
@@ -565,7 +565,7 @@ defmodule Cloak.Sql.QueryTest do
   defp compile_with_features(data_source, statement) do
     {:ok, parsed_query} = Parser.parse(statement)
 
-    {:ok, query} = Compiler.compile(parsed_query, data_source, _parameters = [], _views = %{})
+    {:ok, query} = Compiler.compile(parsed_query, nil, data_source, _parameters = [], _views = %{})
 
     features = Query.features(query)
 

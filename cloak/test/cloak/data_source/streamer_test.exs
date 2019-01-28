@@ -90,7 +90,7 @@ defmodule Cloak.DataSource.StreamerTest do
 
     query =
       Cloak.Sql.Parser.parse!("select * from temp_table")
-      |> Cloak.Sql.Compiler.compile!(data_source(), [], %{})
+      |> Cloak.Sql.Compiler.compile!(nil, data_source(), [], %{})
       |> Cloak.Sql.Query.resolve_db_columns()
 
     Cloak.Test.DB.delete_table("temp_table")
@@ -102,7 +102,7 @@ defmodule Cloak.DataSource.StreamerTest do
 
   defp rows(query, data_source \\ data_source(), reporter \\ nil) do
     Cloak.Sql.Parser.parse!(query)
-    |> Cloak.Sql.Compiler.compile!(data_source, [], %{})
+    |> Cloak.Sql.Compiler.compile!(nil, data_source, [], %{})
     |> Cloak.Sql.Query.resolve_db_columns()
     |> Streamer.rows(reporter)
   end

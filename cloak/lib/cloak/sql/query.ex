@@ -34,6 +34,7 @@ defmodule Cloak.Sql.Query do
   @type type :: :standard | :restricted | :anonymized
 
   @type t :: %__MODULE__{
+          analyst_id: analyst_id,
           data_source: DataSource.t(),
           command: :select | :show,
           columns: [Expression.t()],
@@ -62,6 +63,8 @@ defmodule Cloak.Sql.Query do
           table_aliases: %{String.t() => DataSource.Table.t()},
           type: type
         }
+
+  @type analyst_id :: pos_integer | nil
 
   @type features :: %{
           num_top_level_dimensions: non_neg_integer,
@@ -102,6 +105,7 @@ defmodule Cloak.Sql.Query do
             info: [],
             selected_tables: [],
             implicit_count?: false,
+            analyst_id: nil,
             data_source: nil,
             command: nil,
             show: nil,
@@ -133,23 +137,23 @@ defmodule Cloak.Sql.Query do
   This function will return the description of the result, such as column names
   and types, without executing the query.
   """
-  @spec describe_query(DataSource.t(), String.t(), [parameter] | nil, view_map) ::
+  @spec describe_query(analyst_id, DataSource.t(), String.t(), [parameter] | nil, view_map) ::
           {:ok, [String.t()], features} | {:error, String.t()}
-  def describe_query(data_source, statement, parameters, views),
+  def describe_query(analyst_id, data_source, statement, parameters, views),
     do:
       with(
-        {:ok, query} <- make_query(data_source, statement, parameters, views),
+        {:ok, query} <- make_query(analyst_id, data_source, statement, parameters, views),
         do: {:ok, query.column_titles, features(query)}
       )
 
   @doc "Validates a user-defined view."
-  @spec validate_view(DataSource.t(), String.t(), String.t(), view_map) ::
+  @spec validate_view(analyst_id(), DataSource.t(), String.t(), String.t(), view_map) ::
           {:ok, [%{name: String.t(), type: String.t(), user_id: boolean}]}
           | {:error, field :: atom, reason :: String.t()}
-  def validate_view(data_source, name, sql, views) do
+  def validate_view(analyst_id, data_source, name, sql, views) do
     with :ok <- view_name_ok?(data_source, name),
          {:ok, parsed_query} <- Parser.parse(sql),
-         {:ok, compiled_query} <- Compiler.validate_view(data_source, parsed_query, views) do
+         {:ok, compiled_query} <- Compiler.validate_view(analyst_id, data_source, parsed_query, views) do
       {:ok,
        Enum.zip(compiled_query.column_titles, compiled_query.columns)
        |> Enum.map(fn {name, column} ->
@@ -347,9 +351,9 @@ defmodule Cloak.Sql.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp make_query(data_source, query_string, parameters, views) do
+  defp make_query(analyst_id, data_source, query_string, parameters, views) do
     with {:ok, parsed_query} <- Parser.parse(query_string) do
-      Compiler.compile(parsed_query, data_source, parameters, views)
+      Compiler.compile(parsed_query, analyst_id, data_source, parameters, views)
     end
   end
 

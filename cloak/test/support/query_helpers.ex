@@ -12,7 +12,7 @@ defmodule Cloak.Test.QueryHelpers do
             timeout: Keyword.get(options, :timeout, :timer.hours(1)),
             delta: Keyword.get(options, :delta, 0.0001)
           ] do
-      run_query = &Cloak.Query.Runner.run_sync("1", &1, query, parameters, views)
+      run_query = &Cloak.Query.Runner.run_sync("1", nil, &1, query, parameters, views)
 
       results =
         data_sources
@@ -144,6 +144,7 @@ defmodule Cloak.Test.QueryHelpers do
          {:ok, query} <-
            Compiler.compile(
              parsed_query,
+             nil,
              data_source,
              Keyword.get(options, :parameters, []),
              Keyword.get(options, :views, %{})

@@ -1331,7 +1331,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   defp validate_view(view_sql, data_source, options \\ []) do
     with {:ok, parsed_view} <- Parser.parse(view_sql),
-         do: Compiler.validate_view(data_source, parsed_view, Keyword.get(options, :views, %{}))
+         do: Compiler.validate_view(nil, data_source, parsed_view, Keyword.get(options, :views, %{}))
   end
 
   defp data_source() do
