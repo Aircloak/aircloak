@@ -10,7 +10,7 @@ defmodule Cloak.AnalystTable do
   # -------------------------------------------------------------------
 
   @doc "Stores the analyst table to the database."
-  @spec store(any, String.t(), String.t(), DataSource.t()) :: :ok | {:error, String.t()}
+  @spec store(Cloak.Sql.Query.analyst_id(), String.t(), String.t(), DataSource.t()) :: :ok | {:error, String.t()}
   def store(analyst, table_name, statement, data_source) do
     GenServer.call(
       __MODULE__,
@@ -20,7 +20,8 @@ defmodule Cloak.AnalystTable do
   end
 
   @doc "Returns the analyst table definition."
-  @spec table_definition(any, String.t(), DataSource.t()) :: {:ok, DataSource.Table.t()} | {:error, String.t()}
+  @spec table_definition(Cloak.Sql.Query.analyst_id(), String.t(), DataSource.t()) ::
+          {:ok, DataSource.Table.t()} | {:error, String.t()}
   def table_definition(analyst, table_name, data_source),
     do: GenServer.call(__MODULE__, {:table_definition, analyst, table_name, data_source}, :timer.hours(1))
 
