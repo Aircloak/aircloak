@@ -1,5 +1,5 @@
 defmodule Cloak.AnalystTable do
-  @doc "Service for working with analyst tables"
+  @moduledoc "Service for working with analyst tables"
 
   use GenServer
   alias Cloak.AnalystTable.Helpers
