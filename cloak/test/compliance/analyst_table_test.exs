@@ -27,20 +27,20 @@ defmodule Compliance.AnalystTableTest do
       test "same query and id produce the same db_name" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
           :ok = AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
-          {:ok, %{db_name: name}} = AnalystTable.table_definition(1, "foo", data_source)
+          name = AnalystTable.table_definition!(1, "foo", data_source).db_name
 
           :ok = AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
-          assert {:ok, %{db_name: ^name}} = AnalystTable.table_definition(1, "foo", data_source)
+          assert %{db_name: ^name} = AnalystTable.table_definition!(1, "foo", data_source)
         end
       end
 
       test "different query leads to a different db_name" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
           :ok = AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
-          {:ok, %{db_name: name1}} = AnalystTable.table_definition(1, "foo", data_source)
+          name1 = AnalystTable.table_definition!(1, "foo", data_source).db_name
 
           :ok = AnalystTable.store(1, "foo", "select user_id, height from users where age > 70", data_source)
-          {:ok, %{db_name: name2}} = AnalystTable.table_definition(1, "foo", data_source)
+          name2 = AnalystTable.table_definition!(1, "foo", data_source).db_name
 
           assert name1 != name2
         end
@@ -49,10 +49,10 @@ defmodule Compliance.AnalystTableTest do
       test "different id leads to a different db_name" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
           :ok = AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
-          {:ok, %{db_name: name1}} = AnalystTable.table_definition(1, "foo", data_source)
+          name1 = AnalystTable.table_definition!(1, "foo", data_source).db_name
 
           :ok = AnalystTable.store(2, "foo", "select user_id, height from users where age < 70", data_source)
-          {:ok, %{db_name: name2}} = AnalystTable.table_definition(2, "foo", data_source)
+          name2 = AnalystTable.table_definition!(2, "foo", data_source).db_name
 
           assert name1 != name2
         end
@@ -61,7 +61,7 @@ defmodule Compliance.AnalystTableTest do
       test "stored table contains desired rows" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
           :ok = AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
-          {:ok, table} = AnalystTable.table_definition(1, "foo", data_source)
+          table = AnalystTable.table_definition!(1, "foo", data_source)
 
           materialized =
             data_source
@@ -77,7 +77,8 @@ defmodule Compliance.AnalystTableTest do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
           :ok = AnalystTable.store(1, "foo", "select user_id, sqrt(age), height as h from users", data_source)
 
-          assert {:ok, table_definition} = AnalystTable.table_definition(1, "foo", data_source)
+          table_definition = AnalystTable.table_definition!(1, "foo", data_source)
+
           assert table_definition.name == "foo"
           assert String.starts_with?(table_definition.db_name, "__ac_")
           assert table_definition.user_id == "user_id"
@@ -94,7 +95,8 @@ defmodule Compliance.AnalystTableTest do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
           :ok = AnalystTable.store(1, "foo", "select * from users", data_source)
 
-          assert {:ok, table_definition} = AnalystTable.table_definition(1, "foo", data_source)
+          table_definition = AnalystTable.table_definition!(1, "foo", data_source)
+
           assert table_definition.name == "foo"
           assert String.starts_with?(table_definition.db_name, "__ac_")
           assert table_definition.user_id == "user_id"
@@ -102,12 +104,19 @@ defmodule Compliance.AnalystTableTest do
         end
       end
 
-      test "table definition error" do
+      test "analyst_tables returns all tables of the given analyst" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          :ok = AnalystTable.store(1, "foo", "select user_id, sqrt(age) from users", data_source)
-          data_source = update_in(data_source.tables, &Map.delete(&1, :users))
+          :ok = AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
+          table1 = AnalystTable.table_definition!(1, "foo", data_source)
 
-          assert {:error, "Table `users` doesn't exist."} = AnalystTable.table_definition(1, "foo", data_source)
+          :ok = AnalystTable.store(1, "bar", "select user_id, height from users where age < 70", data_source)
+          table2 = AnalystTable.table_definition!(1, "bar", data_source)
+
+          :ok = AnalystTable.store(2, "bar", "select user_id, height from users where age < 70", data_source)
+          _table3 = AnalystTable.table_definition!(2, "baz", data_source)
+
+          assert Enum.sort_by(AnalystTable.analyst_tables(1, data_source), & &1.name) ==
+                   Enum.sort_by([table1, table2], & &1.name)
         end
       end
     end

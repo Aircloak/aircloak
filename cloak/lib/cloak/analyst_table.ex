@@ -12,41 +12,33 @@ defmodule Cloak.AnalystTable do
   @doc "Stores the analyst table to the database."
   @spec store(Cloak.Sql.Query.analyst_id(), String.t(), String.t(), DataSource.t()) :: :ok | {:error, String.t()}
   def store(analyst, table_name, statement, data_source) do
-    GenServer.call(
-      __MODULE__,
-      {:store, %{analyst: analyst, name: table_name, statement: statement, data_source: data_source}},
-      :timer.hours(1)
-    )
+    table = %{analyst: analyst, name: table_name, statement: statement, data_source: data_source}
+
+    with {:ok, query, db_name} <- store_table_to_database(table), do: store_table_to_ets(table, query, db_name)
   end
 
   @doc "Returns the analyst table definition."
-  @spec table_definition(Cloak.Sql.Query.analyst_id(), String.t(), DataSource.t()) ::
-          {:ok, DataSource.Table.t()} | {:error, String.t()}
-  def table_definition(analyst, table_name, data_source),
-    do: GenServer.call(__MODULE__, {:table_definition, analyst, table_name, data_source}, :timer.hours(1))
+  @spec table_definition!(Cloak.Sql.Query.analyst_id(), String.t(), DataSource.t()) :: DataSource.Table.t()
+  def table_definition!(analyst, table_name, data_source),
+    do: Enum.find(analyst_tables(analyst, data_source), &(&1.name == table_name))
+
+  @doc "Returns analyst tables for the given analyst in the given data source."
+  @spec analyst_tables(Cloak.Sql.Query.analyst_id(), DataSource.t()) :: [DataSource.Table.t()]
+  def analyst_tables(analyst, data_source) do
+    Enum.map(
+      :ets.match(__MODULE__, {{analyst, data_source.name, :_}, :"$1"}),
+      fn [table] -> table end
+    )
+  end
 
   # -------------------------------------------------------------------
   # GenServer callbacks
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(nil), do: {:ok, %{tables: %{}}}
-
-  @impl GenServer
-  def handle_call({:store, table}, _from, state) do
-    case store_table_to_database(table) do
-      {:ok, db_name} -> {:reply, :ok, store_table_to_state(state, Map.put(table, :db_name, db_name))}
-      {:error, _reason} = error -> {:reply, error, state}
-    end
-  end
-
-  def handle_call({:table_definition, analyst, table_name, data_source}, _from, state) do
-    response =
-      with {:ok, table_data} <- table_data(state, analyst, table_name, data_source),
-           {:ok, query} <- Helpers.compile(table_name, table_data.statement, data_source),
-           do: {:ok, table_definition(table_data, query)}
-
-    {:reply, response, state}
+  def init(nil) do
+    :ets.new(__MODULE__, [:named_table, :public, :set, read_concurrency: true, write_concurrency: true])
+    {:ok, nil}
   end
 
   # -------------------------------------------------------------------
@@ -55,26 +47,19 @@ defmodule Cloak.AnalystTable do
 
   defp store_table_to_database(table) do
     with {:ok, query} <- Helpers.compile(table.name, table.statement, table.data_source),
-         do: Helpers.store({table.analyst, table.name}, query, table.data_source)
+         {:ok, db_name} <- Helpers.store({table.analyst, table.name}, query, table.data_source),
+         do: {:ok, query, db_name}
   end
 
-  defp store_table_to_state(state, table) do
-    update_in(
-      state.tables[table.data_source.name],
-      &put_table(&1, Map.take(table, [:analyst, :name, :statement, :db_name]))
-    )
-  end
+  defp store_table_to_ets(table, query, db_name) do
+    table_definition =
+      table
+      |> Map.take([:name, :statement])
+      |> Map.put(:db_name, db_name)
+      |> table_definition(query)
 
-  defp put_table(nil, table), do: [table]
-  defp put_table([], table), do: [table]
-  defp put_table([%{analyst: analyst, name: name} | rest], %{analyst: analyst, name: name} = table), do: [table | rest]
-  defp put_table([other_table | rest], table), do: [other_table | put_table(rest, table)]
-
-  defp table_data(state, analyst, table_name, data_source) do
-    with {:ok, tables} <- Map.fetch(state.tables, data_source.name),
-         table_data when not is_nil(table_data) <- Enum.find(tables, &(&1.analyst == analyst && &1.name == table_name)),
-         do: {:ok, table_data},
-         else: (_ -> {:error, "Table not found."})
+    :ets.insert(__MODULE__, {{table.analyst, table.data_source.name, table.name}, table_definition})
+    :ok
   end
 
   defp table_definition(table_data, query) do
