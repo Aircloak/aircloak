@@ -23,6 +23,7 @@ defmodule Cloak.DataSource.Table do
           :type => :private | :public,
           :auto_isolating_column_classification => boolean,
           :isolating_columns => Map.t(),
+          :maintain_shadow_db => boolean,
           optional(any) => any
         }
 
@@ -58,7 +59,8 @@ defmodule Cloak.DataSource.Table do
           type: if(user_id_column_name == nil, do: :public, else: :private),
           query: nil,
           auto_isolating_column_classification: true,
-          isolating_columns: %{}
+          isolating_columns: %{},
+          maintain_shadow_db: true
         },
         Map.new(opts)
       )
