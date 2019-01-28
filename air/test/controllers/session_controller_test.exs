@@ -87,6 +87,15 @@ defmodule AirWeb.SessionControllerTest do
 
       assert logged_in_conn |> recycle() |> delete_req_cookie("_air_key") |> get("/data_sources") |> response(200)
     end
+
+    test "when checked, the session is not restored after logout", %{user: user} do
+      logged_in_conn =
+        build_conn() |> post("/auth", login: User.main_login(user), password: "password1234", remember: "on")
+
+      logged_in_conn |> recycle() |> delete("/logout")
+
+      assert "/auth" = logged_in_conn |> recycle() |> get("/data_sources") |> redirected_to()
+    end
   end
 
   defp perform_onboarding(), do: create_admin_user!()

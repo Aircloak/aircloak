@@ -49,13 +49,6 @@ defmodule AirWeb.Plug.Session.Restoration do
     Plug.Conn.put_resp_cookie(conn, @cookie_key, token, max_age: @cookie_max_age_s)
   end
 
-  @doc "Removes the persisted session from the cookie."
-  @spec remove_token(Plug.Conn.t()) :: Plug.Conn.t()
-  def remove_token(conn) do
-    Logger.debug("The user wants us to forget that they are logged in")
-    Plug.Conn.delete_resp_cookie(conn, @cookie_key, max_age: @cookie_max_age_s)
-  end
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
