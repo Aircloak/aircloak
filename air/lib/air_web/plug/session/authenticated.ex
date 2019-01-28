@@ -2,8 +2,7 @@ defmodule AirWeb.Plug.Session.Authenticated do
   def init(options), do: options
 
   def call(conn, _opts) do
-    with {:ok, user_id} <- unpack_session(conn),
-         {:ok, user} <- Air.Service.User.load_enabled(user_id) do
+    with {:ok, user} <- AirWeb.Plug.Session.load_user(conn) do
       Plug.Conn.assign(conn, :current_user, user)
     else
       _ ->
@@ -13,11 +12,5 @@ defmodule AirWeb.Plug.Session.Authenticated do
         |> Phoenix.Controller.redirect(to: AirWeb.Router.Helpers.session_path(conn, :new))
         |> Plug.Conn.halt()
     end
-  end
-
-  defp unpack_session(conn) do
-    conn
-    |> AirWeb.Plug.Session.get()
-    |> Air.Service.RevokableToken.verify(:session, max_age: :infinity)
   end
 end

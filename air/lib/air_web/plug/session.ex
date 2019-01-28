@@ -8,6 +8,7 @@ defmodule AirWeb.Plug.Session do
   @session_key "_air_session_token"
 
   alias Air.Service.RevokableToken
+  alias Air.Schemas.User
 
   @doc "Returns the session token stored in the given connection."
   @spec get(Plug.Conn.t()) :: String.t() | nil
@@ -35,6 +36,31 @@ defmodule AirWeb.Plug.Session do
   @doc "Returns true if the connection is authenticated (as any user), false otherwise."
   @spec authenticated?(Plug.Conn.t()) :: boolean()
   def authenticated?(conn), do: not is_nil(conn.assigns.current_user)
+
+  @doc "Returns {:ok, user} if the conn contains a valid session, :error otherwise."
+  @spec load_user(Plug.Conn.t()) :: {:ok, User.t()} | :error
+  def load_user(conn) do
+    with {:ok, user_id} <- unpack_session(conn),
+         {:ok, user} <- Air.Service.User.load_enabled(user_id) do
+      {:ok, user}
+    else
+      _ -> :error
+    end
+  end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp unpack_session(conn) do
+    conn
+    |> get()
+    |> Air.Service.RevokableToken.verify(:session, max_age: :infinity)
+  end
+
+  # -------------------------------------------------------------------
+  # Submodules
+  # -------------------------------------------------------------------
 
   defmodule ApiAuth do
     @moduledoc """
@@ -115,17 +141,6 @@ defmodule AirWeb.Plug.Session do
   # Browser
   # -------------------------------------------------------------------
 
-  defmodule AssignCurrentUser do
-    @moduledoc false
-    @behaviour Plug
-
-    def init(opts), do: opts
-
-    def call(conn, _opts) do
-      Plug.Conn.assign(conn, :current_user, Air.Guardian.Plug.current_resource(conn))
-    end
-  end
-
   defmodule EveryoneAllowed do
     @moduledoc """
     This plug will never halt the request, whether or not the user is logged in.
@@ -135,7 +150,6 @@ defmodule AirWeb.Plug.Session do
 
     plug(Guardian.Plug.VerifySession)
     plug(Guardian.Plug.LoadResource, allow_blank: true)
-    plug(AirWeb.Plug.Session.AssignCurrentUser)
 
     # -------------------------------------------------------------------
     # Callback for Guardian.Plug.Pipeline
@@ -143,30 +157,5 @@ defmodule AirWeb.Plug.Session do
 
     @doc false
     def auth_error(conn, _error, _params), do: conn
-  end
-
-  defmodule Anonymous do
-    @moduledoc """
-    Ensures that the user is anonymous.
-
-    This plug will also assign `nil` to `:current_user` so `conn.assigns.current_user`
-    can be safely used in subsequent controllers and views.
-    """
-    use Guardian.Plug.Pipeline, otp_app: :air, module: Air.Guardian, error_handler: __MODULE__
-
-    plug(Guardian.Plug.VerifySession)
-    plug(Guardian.Plug.EnsureNotAuthenticated)
-    plug(AirWeb.Plug.Session.AssignCurrentUser)
-
-    @doc false
-    def auth_error(conn, {:already_authenticated, _}, _params) do
-      Phoenix.Controller.redirect(conn, to: "/")
-    end
-
-    def auth_error(conn, {:invalid_token, _}, _params) do
-      conn
-      |> Air.Guardian.Plug.sign_out()
-      |> Phoenix.Controller.redirect(to: "/auth")
-    end
   end
 end
