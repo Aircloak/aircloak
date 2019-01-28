@@ -537,6 +537,14 @@ defmodule Air.Service.UserTest do
       assert {:error, _} = User.reset_password(token, %{password: "new password", password_confirmation: "other"})
       assert {:error, _} = User.login(User.main_login(user), "new password")
     end
+
+    test "revokes all existing sessions", %{user: user, token: token} do
+      session = Air.Service.RevokableToken.sign(:data, user, :session)
+
+      {:ok, _} = User.reset_password(token, %{password: "new password", password_confirmation: "new password"})
+
+      assert {:error, :invalid_token} = Air.Service.RevokableToken.verify(session, :session, max_age: :infinity)
+    end
   end
 
   describe "disabling and enabling users" do

@@ -69,9 +69,12 @@ defmodule Air.Service.User do
 
     with {:ok, user_id} <- RevokableToken.verify(token, :password_reset, max_age: one_week_in_seconds) do
       in_transaction(fn ->
-        RevokableToken.revoke(token, :password_reset)
+        user = load(user_id)
 
-        load(user_id)
+        RevokableToken.revoke(token, :password_reset)
+        RevokableToken.revoke_all(user, :session)
+
+        user
         |> change_main_login(&password_reset_changeset(&1, params))
         |> update()
       end)
