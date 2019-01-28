@@ -15,6 +15,13 @@ defmodule AirWeb.Plug.Session do
   @spec sign_in(Plug.Conn.t(), Air.Schemas.User.t()) :: Plug.Conn.t()
   def sign_in(conn, user), do: Plug.Conn.put_session(conn, session_key(), RevokableToken.sign(user.id, user, :session))
 
+  @doc "Revokes the session token in the given conn."
+  @spec sign_out(Plug.Conn.t()) :: Plug.Conn.t()
+  def sign_out(conn) do
+    conn |> Plug.Conn.get_session(session_key()) |> RevokableToken.revoke(:session)
+    Plug.Conn.delete_session(conn, session_key())
+  end
+
   @doc "Returns the current session token."
   @spec current_token(Plug.Conn.t()) :: String.t()
   def current_token(conn), do: Plug.Conn.get_session(conn, session_key())

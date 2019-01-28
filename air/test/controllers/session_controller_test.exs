@@ -14,7 +14,7 @@ defmodule AirWeb.SessionControllerTest do
     conn |> get("/auth") |> response(200)
   end
 
-  test "logging in/out", %{user: user} do
+  test "logging in", %{user: user} do
     # invalid login
     html = build_conn() |> post("/auth", login: "foo@aircloak.com", password: "password1234") |> response(200)
 
@@ -30,11 +30,15 @@ defmodule AirWeb.SessionControllerTest do
     assert get_flash(logged_in_conn)["info"] =~ "Logged in successfully"
     # verify that the user can now access a page requiring authentication
     recycle(logged_in_conn) |> get("/data_sources") |> response(200)
+  end
 
-    # verify that we can now logout
+  test "logging out", %{user: user} do
+    logged_in_conn = build_conn() |> post("/auth", login: User.main_login(user), password: "password1234")
     logged_out_conn = recycle(logged_in_conn) |> delete("/logout")
+
     assert "/auth" == redirected_to(logged_out_conn)
     assert get_flash(logged_out_conn)["info"] =~ "Logged out successfully"
+    assert "/auth" == logged_out_conn |> recycle() |> get("/data_sources") |> redirected_to()
   end
 
   test "logged in user can't log in", %{user: user} do

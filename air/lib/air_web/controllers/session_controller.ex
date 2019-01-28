@@ -58,6 +58,7 @@ defmodule AirWeb.SessionController do
 
     conn
     |> Air.Guardian.Plug.sign_out()
+    |> AirWeb.Plug.Session.sign_out()
     |> AirWeb.Plug.Session.Restoration.remove_token()
     |> put_flash(:info, "Logged out successfully")
     |> redirect(to: session_path(conn, :new))
