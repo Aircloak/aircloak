@@ -5,26 +5,32 @@ defmodule AirWeb.Plug.Session do
   # API
   # -------------------------------------------------------------------
 
+  @session_key "_air_session_token"
+
   alias Air.Service.RevokableToken
 
-  @doc "Returns the name of the session key where the session id is stored."
-  @spec session_key() :: String.t()
-  def session_key(), do: "_air_session_token"
+  @doc "Returns the session token stored in the given connection."
+  @spec get(Plug.Conn.t()) :: String.t() | nil
+  def get(conn), do: Plug.Conn.get_session(conn, @session_key)
+
+  @doc "Replaces the session token stored in the given connection."
+  @spec put(Plug.Conn.t(), String.t()) :: Plug.Conn.t()
+  def put(conn, token), do: Plug.Conn.put_session(conn, @session_key, token)
 
   @doc "Creates a new session token for the user and sets it in the given conn."
   @spec sign_in(Plug.Conn.t(), Air.Schemas.User.t()) :: Plug.Conn.t()
-  def sign_in(conn, user), do: Plug.Conn.put_session(conn, session_key(), RevokableToken.sign(user.id, user, :session))
+  def sign_in(conn, user), do: Plug.Conn.put_session(conn, @session_key, RevokableToken.sign(user.id, user, :session))
 
   @doc "Revokes the session token in the given conn."
   @spec sign_out(Plug.Conn.t()) :: Plug.Conn.t()
   def sign_out(conn) do
-    conn |> Plug.Conn.get_session(session_key()) |> RevokableToken.revoke(:session)
-    Plug.Conn.delete_session(conn, session_key())
+    conn |> Plug.Conn.get_session(@session_key) |> RevokableToken.revoke(:session)
+    Plug.Conn.delete_session(conn, @session_key)
   end
 
   @doc "Returns the current session token."
   @spec current_token(Plug.Conn.t()) :: String.t()
-  def current_token(conn), do: Plug.Conn.get_session(conn, session_key())
+  def current_token(conn), do: Plug.Conn.get_session(conn, @session_key)
 
   @doc "Returns true if the connection is authenticated (as any user), false otherwise."
   @spec authenticated?(Plug.Conn.t()) :: boolean()

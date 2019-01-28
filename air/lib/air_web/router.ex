@@ -20,6 +20,7 @@ defmodule AirWeb.Router do
   end
 
   pipeline :browser_auth do
+    plug(AirWeb.Plug.Session.Restoration)
     plug(AirWeb.Plug.Session.Authenticated)
   end
 

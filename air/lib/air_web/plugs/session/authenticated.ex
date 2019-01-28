@@ -17,7 +17,7 @@ defmodule AirWeb.Plug.Session.Authenticated do
 
   defp unpack_session(conn) do
     conn
-    |> Plug.Conn.get_session(AirWeb.Plug.Session.session_key())
+    |> AirWeb.Plug.Session.get()
     |> Air.Service.RevokableToken.verify(:session, max_age: :infinity)
   end
 end

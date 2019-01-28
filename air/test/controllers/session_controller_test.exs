@@ -73,5 +73,21 @@ defmodule AirWeb.SessionControllerTest do
     assert "/auth" == redirected_to(conn)
   end
 
+  describe "remember me" do
+    test "when unchecked, the session is not restored", %{user: user} do
+      logged_in_conn = build_conn() |> post("/auth", login: User.main_login(user), password: "password1234")
+
+      assert "/auth" =
+               logged_in_conn |> recycle() |> delete_req_cookie("_air_key") |> get("/data_sources") |> redirected_to()
+    end
+
+    test "when checked, the session is restored", %{user: user} do
+      logged_in_conn =
+        build_conn() |> post("/auth", login: User.main_login(user), password: "password1234", remember: "on")
+
+      assert logged_in_conn |> recycle() |> delete_req_cookie("_air_key") |> get("/data_sources") |> response(200)
+    end
+  end
+
   defp perform_onboarding(), do: create_admin_user!()
 end
