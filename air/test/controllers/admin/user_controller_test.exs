@@ -144,4 +144,23 @@ defmodule AirWeb.Admin.UserController.Test do
     admin = create_admin_user!()
     assert login(admin) |> delete("/admin/users/99999") |> response(404)
   end
+
+  describe ".delete_sessions" do
+    setup do
+      {:ok, admin: create_admin_user!(), user: create_user!()}
+    end
+
+    test "redirects back to user edit", %{admin: admin, user: user} do
+      assert "/admin/users/#{user.id}/edit" ==
+               admin |> login() |> delete("/admin/users/#{user.id}/sessions") |> redirected_to()
+    end
+
+    test "invalidates the user's sessions", %{admin: admin, user: user} do
+      session = Air.Service.RevokableToken.sign(:data, user, :session)
+
+      admin |> login() |> delete("/admin/users/#{user.id}/sessions")
+
+      assert {:error, :invalid_token} = Air.Service.RevokableToken.verify(session, :session, max_age: :infinity)
+    end
+  end
 end

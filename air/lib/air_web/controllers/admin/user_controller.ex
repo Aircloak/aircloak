@@ -4,7 +4,7 @@ defmodule AirWeb.Admin.UserController do
 
   alias Air.Service.User
 
-  plug(:load_user when action in [:edit, :update, :delete, :disable, :enable, :reset_password])
+  plug(:load_user when action in [:edit, :update, :delete, :disable, :enable, :reset_password, :delete_sessions])
 
   # -------------------------------------------------------------------
   # AirWeb.VerifyPermissions callback
@@ -135,6 +135,17 @@ defmodule AirWeb.Admin.UserController do
 
   def reset_password(conn, _params) do
     render(conn, "reset_password.html", reset_path: reset_path(conn))
+  end
+
+  def delete_sessions(conn, _params) do
+    Air.Service.RevokableToken.revoke_all(conn.assigns.user, :session)
+
+    audit_log(conn, "Cleared user sessions")
+    audit_log_for_user(conn, conn.assigns.user, "Cleared sessions")
+
+    conn
+    |> put_flash(:info, "The user was signed out from all devices.")
+    |> redirect(to: admin_user_path(conn, :edit, conn.assigns.user))
   end
 
   # -------------------------------------------------------------------
