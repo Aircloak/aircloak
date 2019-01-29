@@ -119,6 +119,7 @@ defmodule AirWeb.Router do
       put("/enable", UserController, :enable)
       put("/disable", UserController, :disable)
       get("/reset_password", UserController, :reset_password)
+      delete("/sessions", UserController, :delete_sessions)
     end
 
     resources("/groups", GroupController)
