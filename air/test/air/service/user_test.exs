@@ -539,7 +539,7 @@ defmodule Air.Service.UserTest do
     end
 
     test "revokes all existing sessions", %{user: user, token: token} do
-      session = Air.Service.RevokableToken.sign(:data, user, :session)
+      session = Air.Service.RevokableToken.sign(:data, user, :session, :infinity)
 
       {:ok, _} = User.reset_password(token, %{password: "new password", password_confirmation: "new password"})
 

@@ -156,11 +156,11 @@ defmodule AirWeb.Admin.UserController.Test do
     end
 
     test "invalidates the user's sessions", %{admin: admin, user: user} do
-      session = Air.Service.RevokableToken.sign(:data, user, :session)
+      session = Air.Service.RevokableToken.sign(:data, user, :session, :infinity)
 
       admin |> login() |> delete("/admin/users/#{user.id}/sessions")
 
-      assert {:error, :invalid_token} = Air.Service.RevokableToken.verify(session, :session, max_age: :infinity)
+      assert {:error, :invalid_token} = Air.Service.RevokableToken.verify(session, :session)
     end
   end
 end

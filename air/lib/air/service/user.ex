@@ -58,17 +58,17 @@ defmodule Air.Service.User do
   @doc "Returns a token that can be used to reset the given user's password."
   @spec reset_password_token(User.t(), change_options) :: String.t()
   def reset_password_token(user, options \\ []) do
+    one_week_in_seconds = div(7 * :timer.hours(24), :timer.seconds(1))
+
     check_ldap!(user, options)
-    RevokableToken.sign(user.id, user, :password_reset)
+    RevokableToken.sign(user.id, user, :password_reset, one_week_in_seconds)
   end
 
   @doc "Resets the user's password from the given params. The user is identified by the given reset token."
   @spec reset_password(String.t(), Map.t()) :: {:error, :invalid_token} | {:error, Ecto.Changeset.t()} | {:ok, User.t()}
   def reset_password(token, params) do
-    one_week_in_seconds = 7 * :timer.hours(24) / :timer.seconds(1)
-
     in_transaction(fn ->
-      with {:ok, user_id} <- RevokableToken.verify_and_revoke(token, :password_reset, max_age: one_week_in_seconds) do
+      with {:ok, user_id} <- RevokableToken.verify_and_revoke(token, :password_reset) do
         user = load(user_id)
 
         RevokableToken.revoke_all(user, :session)

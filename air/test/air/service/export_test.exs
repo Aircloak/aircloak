@@ -66,7 +66,7 @@ defmodule Air.Service.Export.Test do
   end
 
   test "includes revokable tokens", %{user: user} do
-    Air.Service.RevokableToken.sign(:data, user, :session)
+    Air.Service.RevokableToken.sign(:data, user, :session, :infinity)
 
     assert [%{"payload" => "data", "type" => "session"}] = export(user)["revokable_tokens"]
   end

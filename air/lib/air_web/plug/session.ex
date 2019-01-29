@@ -6,6 +6,7 @@ defmodule AirWeb.Plug.Session do
   # -------------------------------------------------------------------
 
   @session_key "_air_session_token"
+  @max_session_age_seconds div(30 * :timer.hours(24), :timer.seconds(1))
 
   alias Air.Service.RevokableToken
   alias Air.Schemas.User
@@ -20,7 +21,9 @@ defmodule AirWeb.Plug.Session do
 
   @doc "Creates a new session token for the user and sets it in the given conn."
   @spec sign_in(Plug.Conn.t(), Air.Schemas.User.t()) :: Plug.Conn.t()
-  def sign_in(conn, user), do: Plug.Conn.put_session(conn, @session_key, RevokableToken.sign(user.id, user, :session))
+  def sign_in(conn, user) do
+    Plug.Conn.put_session(conn, @session_key, RevokableToken.sign(user.id, user, :session, @max_session_age_seconds))
+  end
 
   @doc "Revokes the session token in the given conn."
   @spec sign_out(Plug.Conn.t()) :: Plug.Conn.t()
@@ -52,11 +55,7 @@ defmodule AirWeb.Plug.Session do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp unpack_session(conn) do
-    conn
-    |> get()
-    |> Air.Service.RevokableToken.verify(:session, max_age: :infinity)
-  end
+  defp unpack_session(conn), do: conn |> get() |> Air.Service.RevokableToken.verify(:session)
 
   # -------------------------------------------------------------------
   # Submodules

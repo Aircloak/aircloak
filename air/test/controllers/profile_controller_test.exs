@@ -79,11 +79,11 @@ defmodule Air.ProfileController.Test do
     end
 
     test "invalidates all sessions", %{user: user} do
-      session = Air.Service.RevokableToken.sign(:data, user, :session)
+      session = Air.Service.RevokableToken.sign(:data, user, :session, :infinity)
 
       user |> login() |> delete("/profile/sessions")
 
-      assert {:error, :invalid_token} = Air.Service.RevokableToken.verify(session, :session, max_age: :infinity)
+      assert {:error, :invalid_token} = Air.Service.RevokableToken.verify(session, :session)
     end
 
     test "keeps the user logged in", %{user: user} do

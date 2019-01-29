@@ -22,16 +22,17 @@ defmodule Air.Service.RevokableToken do
   alias Air.Schemas.{User, RevokableToken}
   alias Air.Service.Salts
 
-  @type options :: [now: NaiveDateTime.t(), max_age: number() | :infinity]
+  @type options :: [now: NaiveDateTime.t()]
+  @type seconds :: non_neg_integer() | :infinity
 
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
   @doc "Returns a new token of the given type for the user."
-  @spec sign(term(), User.t(), RevokableToken.RevokableTokenType.t()) :: String.t()
-  def sign(payload, user, type) do
-    token = create_token!(payload, user, type)
+  @spec sign(term(), User.t(), RevokableToken.RevokableTokenType.t(), seconds()) :: String.t()
+  def sign(payload, user, type, valid_for_seconds) do
+    token = create_token!(payload, user, type, valid_for_seconds)
     Phoenix.Token.sign(AirWeb.Endpoint, Salts.get(type), token.id)
   end
 
@@ -47,12 +48,11 @@ defmodule Air.Service.RevokableToken do
   Returns `{:ok, data}` for valid tokens and `{:error, :invalid_token}` otherwise.
   """
   @spec verify(String.t(), RevokableToken.RevokableTokenType.t(), options()) :: {:ok, term()} | {:error, :invalid_token}
-  def verify(token, type, options) do
+  def verify(token, type, options \\ []) do
     now = Keyword.get(options, :now, NaiveDateTime.utc_now())
-    max_age = Keyword.fetch!(options, :max_age)
 
     with {:ok, token} <- find_record(token, type),
-         :ok <- verify_age(token, now, max_age) do
+         :ok <- verify_age(token, now) do
       {:ok, :erlang.binary_to_term(token.payload)}
     else
       _ -> {:error, :invalid_token}
@@ -75,11 +75,10 @@ defmodule Air.Service.RevokableToken do
   Note that the revocation is a database operation, so if you rollback a transaction including this operation you will
   also undo the revocation.
   """
-  @spec verify_and_revoke(String.t(), RevokableToken.RevokableTokenType.t(), options()) ::
-          {:ok, term()} | {:error, :invalid_token}
-  def verify_and_revoke(token, type, options) do
+  @spec verify_and_revoke(String.t(), RevokableToken.RevokableTokenType.t()) :: {:ok, term()} | {:error, :invalid_token}
+  def verify_and_revoke(token, type) do
     :global.trans({__MODULE__, token}, fn ->
-      result = verify(token, type, options)
+      result = verify(token, type)
       revoke(token, type)
       result
     end)
@@ -102,19 +101,19 @@ defmodule Air.Service.RevokableToken do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp verify_age(_, _, :infinity), do: :ok
+  defp verify_age(token, now), do: if(NaiveDateTime.diff(now, token.valid_until) <= 0, do: :ok, else: :error)
 
-  defp verify_age(token, now, max_age),
-    do: if(NaiveDateTime.diff(now, token.inserted_at) <= max_age, do: :ok, else: :error)
-
-  defp create_token!(payload, user, type) do
+  defp create_token!(payload, user, type, valid_for_seconds) do
     Ecto.build_assoc(user, :revokable_tokens, %{
       type: type,
       payload: :erlang.term_to_binary(payload),
-      valid_until: ~N[1970-01-01 12:00:00]
+      valid_until: valid_until(valid_for_seconds)
     })
     |> Repo.insert!()
   end
+
+  defp valid_until(:infinity), do: ~N[9999-12-12 23:59:59]
+  defp valid_until(seconds), do: NaiveDateTime.utc_now() |> NaiveDateTime.add(seconds)
 
   defp find_record(token, type) do
     with {:ok, id} <- Phoenix.Token.verify(AirWeb.Endpoint, Salts.get(type), token, max_age: :infinity) do
