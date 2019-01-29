@@ -63,6 +63,8 @@ defmodule Air.Service.Export do
       result_chunks(user),
       [~s(], "api_tokens": [)],
       api_tokens(user),
+      [~s(], "revokable_tokens": [)],
+      revokable_tokens(user),
       ["]}"]
     ])
   end
@@ -97,6 +99,12 @@ defmodule Air.Service.Export do
   end
 
   defp api_tokens(user), do: Air.Schemas.ApiToken |> where(user_id: ^user.id) |> stream()
+
+  defp revokable_tokens(user) do
+    Air.Schemas.RevokableToken
+    |> where(user_id: ^user.id)
+    |> stream(fn token -> update_in(token, [Access.key(:payload)], &:erlang.binary_to_term/1) end)
+  end
 
   defp stream(queryable, preprocessor \\ & &1) do
     queryable

@@ -65,6 +65,12 @@ defmodule Air.Service.Export.Test do
     assert [%{"access" => "api", "description" => "Some token"}] = export(user)["api_tokens"]
   end
 
+  test "includes revokable tokens", %{user: user} do
+    Air.Service.RevokableToken.sign(:data, user, :session)
+
+    assert [%{"payload" => "data", "type" => "session"}] = export(user)["revokable_tokens"]
+  end
+
   defp export(user) do
     {:ok, result} =
       Export.reduce_while(user, [], fn next, acc ->
