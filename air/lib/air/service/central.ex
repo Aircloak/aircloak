@@ -120,8 +120,6 @@ defmodule Air.Service.Central do
   def report_query_result(result) do
     query = Repo.get!(Air.Schemas.Query, result.query_id) |> Repo.preload([:user, :data_source])
 
-    Plug.Crypto.MessageVerifier
-
     user_pseudonym = Air.Service.User.pseudonym(query.user)
     data_source = query.data_source || %{name: "Unknown data source", id: nil}
     row_count = result.row_count || 0
