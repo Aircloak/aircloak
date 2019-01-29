@@ -34,8 +34,11 @@ defmodule AirWeb.ProfileController do
   def delete_sessions(conn, _params) do
     Air.Service.RevokableToken.revoke_all(conn.assigns.current_user, :session)
 
+    audit_log(conn, "Cleared sessions")
+
     conn
     |> AirWeb.Plug.Session.sign_in(conn.assigns.current_user)
+    |> put_flash(:info, "All sessions signed out.")
     |> redirect(to: profile_path(conn, :edit))
   end
 
