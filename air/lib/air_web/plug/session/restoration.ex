@@ -29,7 +29,8 @@ defmodule AirWeb.Plug.Session.Restoration do
   end
 
   def call(conn, _opts) do
-    with {:ok, token} <- find_token_from_cookies(conn) do
+    with {:ok, token} <- find_token_from_cookies(conn),
+         nil <- Session.get(conn) do
       Session.put(conn, token)
     else
       _ -> conn
