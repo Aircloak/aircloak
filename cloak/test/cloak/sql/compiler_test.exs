@@ -1323,7 +1323,7 @@ defmodule Cloak.Sql.Compiler.Test do
     {:ok, parsed_query} = Parser.parse(query_string)
 
     try do
-      Compiler.compile_standard!(parsed_query, data_source)
+      Compiler.compile_standard!(parsed_query, nil, data_source)
     rescue
       error in Cloak.Sql.CompilationError -> {:error, error.message}
     end
@@ -1331,7 +1331,7 @@ defmodule Cloak.Sql.Compiler.Test do
 
   defp validate_view(view_sql, data_source, options \\ []) do
     with {:ok, parsed_view} <- Parser.parse(view_sql),
-         do: Compiler.validate_view(data_source, parsed_view, Keyword.get(options, :views, %{}))
+         do: Compiler.validate_view(nil, data_source, parsed_view, Keyword.get(options, :views, %{}))
   end
 
   defp data_source() do

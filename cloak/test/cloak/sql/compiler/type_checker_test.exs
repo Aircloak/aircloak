@@ -314,7 +314,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
   end
 
   defp error_with_location(query_string) do
-    query_string |> Parser.parse!() |> Compiler.compile!(data_source(), [], %{})
+    query_string |> Parser.parse!() |> Compiler.compile!(nil, data_source(), [], %{})
     flunk("Expected an error")
   rescue
     e in Cloak.Sql.CompilationError ->
@@ -322,7 +322,7 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Test do
   end
 
   defp compile(query_string),
-    do: query_string |> Parser.parse!() |> Compiler.compile(data_source(), [], %{})
+    do: query_string |> Parser.parse!() |> Compiler.compile(nil, data_source(), [], %{})
 
   defp data_source() do
     %{

@@ -12,12 +12,13 @@ defmodule Cloak.Sql.Compiler do
   @doc "Prepares the parsed SQL query for execution."
   @spec compile(
           Parser.parsed_query(),
+          Query.analyst_id(),
           DataSource.t(),
           [Query.parameter()] | nil,
           Query.view_map()
         ) :: {:ok, Query.t()} | {:error, String.t()}
-  def compile(parsed_query, data_source, parameters, views) do
-    {:ok, compile!(parsed_query, data_source, parameters, views)}
+  def compile(parsed_query, analyst_id, data_source, parameters, views) do
+    {:ok, compile!(parsed_query, analyst_id, data_source, parameters, views)}
   rescue
     e in CompilationError -> {:error, CompilationError.message(e)}
   end
@@ -25,13 +26,14 @@ defmodule Cloak.Sql.Compiler do
   @doc "Prepares the parsed SQL query for execution. Raises CompilationErrors instead of returning `{:error, message}`"
   @spec compile!(
           Parser.parsed_query(),
+          Query.analyst_id(),
           DataSource.t(),
           [Query.parameter()] | nil,
           Query.view_map()
         ) :: Query.t()
-  def compile!(parsed_query, data_source, parameters, views) do
+  def compile!(parsed_query, analyst_id, data_source, parameters, views) do
     parsed_query
-    |> Compiler.Specification.compile(data_source, parameters, views)
+    |> Compiler.Specification.compile(analyst_id, data_source, parameters, views)
     |> Compiler.Anonymization.set_query_type()
     |> Compiler.Normalization.prevalidation_normalizations()
     |> Compiler.Validation.verify_standard_restrictions()
@@ -47,12 +49,12 @@ defmodule Cloak.Sql.Compiler do
   end
 
   @doc "Prepares the parsed SQL query for standard (non-anonymized) execution."
-  @spec compile_standard!(Parser.parsed_query(), DataSource.t()) :: Query.t()
-  def compile_standard!(parsed_query, data_source),
+  @spec compile_standard!(Parser.parsed_query(), Query.analyst_id(), DataSource.t()) :: Query.t()
+  def compile_standard!(parsed_query, analyst_id, data_source),
     do:
       parsed_query
       |> Compiler.Helpers.apply_top_down(&Map.put(&1, :type, :standard))
-      |> Compiler.Specification.compile(data_source, nil, %{})
+      |> Compiler.Specification.compile(analyst_id, data_source, nil, %{})
       |> Compiler.Normalization.prevalidation_normalizations()
       |> Compiler.Validation.verify_standard_restrictions()
       |> Compiler.Optimizer.optimize()
@@ -60,9 +62,9 @@ defmodule Cloak.Sql.Compiler do
       |> Compiler.Normalization.postvalidation_normalizations()
 
   @doc "Prepares the parsed SQL query for directly querying the data source without any processing in the cloak."
-  @spec compile_direct!(Parser.parsed_query(), DataSource.t()) :: Query.t()
-  def compile_direct!(parsed_query, data_source) do
-    compile_standard!(parsed_query, data_source)
+  @spec compile_direct!(Parser.parsed_query(), Query.analyst_id(), DataSource.t()) :: Query.t()
+  def compile_direct!(parsed_query, analyst_id, data_source) do
+    compile_standard!(parsed_query, analyst_id, data_source)
     |> update_in([Query.Lenses.all_queries()], fn query ->
       columns =
         query.columns
@@ -74,18 +76,19 @@ defmodule Cloak.Sql.Compiler do
   end
 
   @doc "Prepares the parsed SQL query for directly querying the data source without any processing in the cloak."
-  @spec compile_direct(Parser.parsed_query(), DataSource.t()) :: {:ok, Query.t()} | {:error, String.t()}
-  def compile_direct(parsed_query, data_source) do
-    {:ok, compile_direct!(parsed_query, data_source)}
+  @spec compile_direct(Parser.parsed_query(), Query.analyst_id(), DataSource.t()) ::
+          {:ok, Query.t()} | {:error, String.t()}
+  def compile_direct(parsed_query, analyst_id, data_source) do
+    {:ok, compile_direct!(parsed_query, analyst_id, data_source)}
   rescue
     e in CompilationError -> {:error, CompilationError.message(e)}
   end
 
   @doc "Validates a user-defined view."
-  @spec validate_view(DataSource.t(), Parser.parsed_query(), Query.view_map()) ::
+  @spec validate_view(Query.analyst_id(), DataSource.t(), Parser.parsed_query(), Query.view_map()) ::
           {:ok, Query.t()} | {:error, String.t()}
-  def validate_view(data_source, parsed_query, views),
-    do: parsed_query |> Map.put(:subquery?, true) |> compile(data_source, [], views)
+  def validate_view(analyst_id, data_source, parsed_query, views),
+    do: parsed_query |> Map.put(:subquery?, true) |> compile(analyst_id, data_source, [], views)
 
   @doc "Creates the query which describes a SELECT statement from a single table."
   @spec make_select_query(DataSource.t(), DataSource.Table.t(), [Expression.t()]) :: Query.t()

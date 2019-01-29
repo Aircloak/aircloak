@@ -235,10 +235,11 @@ defmodule Cloak.Sql.Compiler.TypeChecker.Type.Test do
   end
 
   defp compile(query_string),
-    do: query_string |> Parser.parse!() |> Compiler.compile(data_source(), [], %{})
+    do: query_string |> Parser.parse!() |> Compiler.compile(nil, data_source(), [], %{})
 
   defp data_source() do
     %{
+      name: "data_source",
       driver: Cloak.DataSource.PostgreSQL,
       tables: %{
         table:

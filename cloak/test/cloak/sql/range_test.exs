@@ -163,11 +163,12 @@ defmodule Cloak.Sql.Range.Test do
   defp compile(query_string) do
     query_string
     |> Parser.parse!()
-    |> Compiler.Specification.compile(data_source(), _parameters = [], _views = %{})
+    |> Compiler.Specification.compile(nil, data_source(), _parameters = [], _views = %{})
   end
 
   defp data_source() do
     %{
+      name: "data_source",
       driver: Cloak.DataSource.PostgreSQL,
       tables: %{
         table:
