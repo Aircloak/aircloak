@@ -110,7 +110,8 @@ defmodule Air.Service.RevokableToken do
   defp create_token!(payload, user, type) do
     Ecto.build_assoc(user, :revokable_tokens, %{
       type: type,
-      payload: :erlang.term_to_binary(payload)
+      payload: :erlang.term_to_binary(payload),
+      valid_until: ~N[1970-01-01 12:00:00]
     })
     |> Repo.insert!()
   end
