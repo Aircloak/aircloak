@@ -14,4 +14,6 @@ defmodule AirWeb.ProfileView do
 
   defp can_edit?(%{source: :ldap}), do: false
   defp can_edit?(%{source: :native}), do: true
+
+  defp session_count(conn), do: Air.Service.RevokableToken.count(conn.assigns.current_user, :session)
 end

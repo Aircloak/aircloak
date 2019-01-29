@@ -78,4 +78,23 @@ defmodule Air.Service.RevokableToken.Test do
       assert {:ok, _} = RevokableToken.verify(token, :password_reset, max_age: :infinity)
     end
   end
+
+  describe ".count" do
+    test "counts the users tokens", %{user: user} do
+      RevokableToken.sign(:data, user, :session)
+      RevokableToken.sign(:data, user, :session)
+
+      assert RevokableToken.count(user, :session) == 2
+    end
+
+    test "does not count other types", %{user: user} do
+      RevokableToken.sign(:data, user, :password_reset)
+      assert RevokableToken.count(user, :session) == 0
+    end
+
+    test "does not count other user's tokens", %{user: user} do
+      RevokableToken.sign(:data, Air.TestRepoHelper.create_user!(), :session)
+      assert RevokableToken.count(user, :session) == 0
+    end
+  end
 end

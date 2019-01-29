@@ -88,14 +88,14 @@ defmodule Air.Service.RevokableToken do
   @doc "Revokes all of the given user's tokens with the given type."
   @spec revoke_all(User.t(), RevokableToken.RevokableTokenType.t()) :: :ok
   def revoke_all(user, type) do
-    import Ecto.Query
-
-    RevokableToken
-    |> where([q], q.user_id == ^user.id)
-    |> where([q], q.type == ^type)
-    |> Repo.delete_all()
-
+    token_scope(user, type) |> Repo.delete_all()
     :ok
+  end
+
+  @doc "Returns the number of stored tokens with the given user and type."
+  @spec count(User.t(), RevokableToken.RevokableTokenType.t()) :: non_neg_integer
+  def count(user, type) do
+    token_scope(user, type) |> Repo.aggregate(:count, :id)
   end
 
   # -------------------------------------------------------------------
@@ -122,5 +122,13 @@ defmodule Air.Service.RevokableToken do
         token -> {:ok, token}
       end
     end
+  end
+
+  defp token_scope(user, type) do
+    import Ecto.Query
+
+    RevokableToken
+    |> where([q], q.user_id == ^user.id)
+    |> where([q], q.type == ^type)
   end
 end
