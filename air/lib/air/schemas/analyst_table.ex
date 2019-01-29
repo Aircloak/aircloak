@@ -10,6 +10,6 @@ defmodule Air.Schemas.AnalystTable do
     field(:sql, :string)
 
     belongs_to(:user, Air.Schemas.User)
-    belongs_to(:data_source, Air.Schemas.User)
+    belongs_to(:data_source, Air.Schemas.DataSource)
   end
 end
