@@ -4,7 +4,7 @@ defmodule Air.Service.RevokableToken do
   is associated with some arbitrary data.
 
   The tokens are stored in the database to make it possible to revoke them on the server side. This is in contrast to
-  the default Guardian tokens for example, where we can be sure of the token's authenticity, but there is no way to
+  the default Phoenix.Token tokens for example, where we can be sure of the token's authenticity, but there is no way to
   mark the token as invalid later on. An example use might be tokens that allow a certain action, but only a single time
   (like resetting a password). The drawback of this approach is that each creation or verification of a token requires a
   database query.

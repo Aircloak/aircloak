@@ -70,12 +70,6 @@ defmodule Air do
   defp configure_secrets do
     Air.Utils.update_app_env(
       :air,
-      Air.Guardian,
-      &[{:secret_key, site_setting!("auth_secret")} | &1]
-    )
-
-    Air.Utils.update_app_env(
-      :air,
       AirWeb.Endpoint,
       &Keyword.merge(
         &1,

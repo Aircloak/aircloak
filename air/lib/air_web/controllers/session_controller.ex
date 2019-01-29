@@ -38,7 +38,6 @@ defmodule AirWeb.SessionController do
         return_path = get_session(conn, :return_path) || data_source_path(conn, :redirect_to_last_used)
 
         conn
-        |> Air.Guardian.Plug.sign_in(user)
         |> AirWeb.Plug.Session.sign_in(user)
         |> conditionally_create_persistent_login(params)
         |> put_session(:return_path, nil)
@@ -57,7 +56,6 @@ defmodule AirWeb.SessionController do
     audit_log(conn, "Logged out")
 
     conn
-    |> Air.Guardian.Plug.sign_out()
     |> AirWeb.Plug.Session.sign_out()
     |> put_flash(:info, "Logged out successfully")
     |> redirect(to: session_path(conn, :new))

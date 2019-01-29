@@ -64,9 +64,9 @@ defmodule AirWeb.Plug.Session do
 
   defmodule ApiAuth do
     @moduledoc """
-    This plug ensures that callers of our APIs supply a valid auth-token header. It is not compatible with, and can not
-    be used in conjunction with, the plugs for the browser pipelines, as these rely heavily on parameters set and
-    validated by Guardian.
+    This plug ensures that callers of our APIs supply a valid auth-token header. It conflicts with
+    `AirWeb.Plug.Session.Authenticated` and `AirWeb.Plug.Session.EveryoneAllowed`, as all of them set the `current_user`
+    assign.
     """
     @behaviour Plug
 

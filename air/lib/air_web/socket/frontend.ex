@@ -2,7 +2,7 @@ defmodule AirWeb.Socket.Frontend do
   @moduledoc """
   Implements websocket interface for web clients using our interface
 
-  The client needs to include their guardian auth token as a parameter
+  The client needs to include their auth token as a parameter
   to the request, which is then used to validate that the user is at
   all allowed to establish a connection.
 
