@@ -31,6 +31,18 @@ defmodule AirWeb.ProfileController do
     redirect(conn, to: profile_path(conn, :edit))
   end
 
+  def delete_sessions(conn, _params) do
+    Air.Service.RevokableToken.revoke_all(conn.assigns.current_user, :session)
+
+    conn
+    |> AirWeb.Plug.Session.sign_in(conn.assigns.current_user)
+    |> redirect(to: profile_path(conn, :edit))
+  end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
   defp update(conn, params, flash, log_tag) do
     case update_profile(conn.assigns.current_user, params["user"]) do
       {:ok, _} ->
@@ -45,10 +57,6 @@ defmodule AirWeb.ProfileController do
         render(conn, "edit.html", changeset: changeset, global_settings: global_settings)
     end
   end
-
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
 
   defp update_profile(user = %{source: :native}, params), do: User.update_full_profile(user, params)
   defp update_profile(user = %{source: :ldap}, params), do: User.update_profile_settings(user, params)
