@@ -7,22 +7,35 @@ defmodule IntegrationTest.AnalystTableTest do
     {:ok, user: Manager.create_air_user()}
   end
 
-  test "error is reported", context do
-    assert {:error, "Expected `from` at line 1, column 11."} = store_table(context.user, "foo", "select foo")
-  end
-
   test "successful table creation", context do
-    assert :ok = store_table(context.user, "foo", "select user_id, name from users")
+    name = unique_name()
+    assert {:ok, %Air.Schemas.AnalystTable{}} = create_table(context.user, name, "select user_id, name from users")
   end
 
-  test "selecting from a table", context do
-    :ok = store_table(context.user, "foo", "select user_id, name from users")
-    assert {:ok, result} = run_query(context.user, "select * from foo")
+  test "selecting from an analyst table", context do
+    name = unique_name()
+    {:ok, _table} = create_table(context.user, name, "select user_id, name from users")
+    assert {:ok, result} = run_query(context.user, "select * from #{name}")
     assert result.columns == ~w(user_id name)
     assert result.buckets == [%{"occurrences" => 100, "row" => ["*", "john"], "unreliable" => false}]
   end
 
-  defp store_table(user, name, sql), do: Air.Service.AnalystTable.create(user, Manager.data_source(), name, sql)
+  test "cloak error is reported", context do
+    name = unique_name()
+    assert {:error, changeset} = create_table(context.user, name, "select foo")
+    assert changeset.errors[:sql] == {"Expected `from` at line 1, column 11.", []}
+  end
+
+  test "duplicate name error is reported", context do
+    name = unique_name()
+    {:ok, _table} = create_table(context.user, name, "select user_id, name from users")
+    assert {:error, changeset} = create_table(context.user, name, "select user_id, name from users")
+    assert changeset.errors[:name] == {"has already been taken", []}
+  end
+
+  defp unique_name(), do: "table_#{:erlang.unique_integer([:positive])}"
+
+  defp create_table(user, name, sql), do: Air.Service.AnalystTable.create(user, Manager.data_source(), name, sql)
 
   defp run_query(user, query, params \\ []) do
     data_source_id_spec = {:id, Manager.data_source().id}
