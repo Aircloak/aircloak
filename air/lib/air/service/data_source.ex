@@ -333,6 +333,15 @@ defmodule Air.Service.DataSource do
     end
   end
 
+  @doc "Validates all of the given views on the cloak."
+  @spec store_analyst_table(data_source_id_spec, User.t(), map) ::
+          :ok | {:error, String.t()} | data_source_operation_error
+  def store_analyst_table(data_source_id_spec, user, table_data) do
+    on_available_cloak(data_source_id_spec, user, fn _data_source, channel_pid, _cloak_info ->
+      MainChannel.store_analyst_table(channel_pid, table_data)
+    end)
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

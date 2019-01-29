@@ -219,60 +219,45 @@ defmodule Cloak.AirSocket do
   # -------------------------------------------------------------------
 
   defp handle_air_call("run_query", serialized_query, from, state) do
-    case Cloak.DataSource.fetch(serialized_query.data_source) do
-      :error ->
-        respond_to_air(from, :error, "Unknown data source.")
-
-      {:ok, data_source} ->
-        Logger.info("starting query", query_id: serialized_query.id)
-
-        case Cloak.Query.Runner.start(
-               serialized_query.id,
-               serialized_query.analyst_id,
-               data_source,
-               serialized_query.statement || "",
-               decode_params(serialized_query.parameters),
-               serialized_query.views
-             ) do
-          :ok -> respond_to_air(from, :ok)
-          {:error, reason} -> respond_to_air(from, :error, reason)
-        end
-    end
+    with {:ok, data_source} <- fetch_data_source(serialized_query.data_source),
+         :ok <-
+           Cloak.Query.Runner.start(
+             serialized_query.id,
+             serialized_query.analyst_id,
+             data_source,
+             serialized_query.statement || "",
+             decode_params(serialized_query.parameters),
+             serialized_query.views
+           ),
+         do: respond_to_air(from, :ok),
+         else: ({:error, reason} -> respond_to_air(from, :error, reason))
 
     {:ok, state}
   end
 
   defp handle_air_call("describe_query", serialized_query, from, state) do
-    case Cloak.DataSource.fetch(serialized_query.data_source) do
-      :error ->
-        respond_to_air(from, :error, "Unknown data source.")
-
-      {:ok, data_source} ->
-        case Cloak.Sql.Query.describe_query(
-               serialized_query.analyst_id,
-               data_source,
-               serialized_query.statement || "",
-               decode_params(serialized_query.parameters),
-               serialized_query.views
-             ) do
-          {:ok, columns, features} ->
-            respond_to_air(from, :ok, %{columns: columns, features: features})
-
-          {:error, reason} ->
-            respond_to_air(from, :ok, %{error: reason})
-        end
-    end
+    with {:ok, data_source} <- fetch_data_source(serialized_query.data_source),
+         {:ok, columns, features} <-
+           Cloak.Sql.Query.describe_query(
+             serialized_query.analyst_id,
+             data_source,
+             serialized_query.statement || "",
+             decode_params(serialized_query.parameters),
+             serialized_query.views
+           ),
+         do: respond_to_air(from, :ok, %{columns: columns, features: features}),
+         else: ({:error, reason} -> respond_to_air(from, :ok, %{error: reason}))
 
     {:ok, state}
   end
 
   defp handle_air_call("validate_views", serialized_view, from, state) do
-    case Cloak.DataSource.fetch(serialized_view.data_source) do
-      :error ->
-        respond_to_air(from, :error, "Unknown data source.")
-
+    case fetch_data_source(serialized_view.data_source) do
       {:ok, data_source} ->
         respond_to_air(from, :ok, validate_views(serialized_view.analyst_id, data_source, serialized_view.views))
+
+      {:error, reason} ->
+        respond_to_air(from, :error, reason)
     end
 
     {:ok, state}
@@ -290,9 +275,21 @@ defmodule Cloak.AirSocket do
     {:ok, state}
   end
 
+  defp handle_air_call("store_analyst_table", data, from, state) do
+    with {:ok, data_source} <- fetch_data_source(data.data_source),
+         :ok <- Cloak.AnalystTable.store(data.analyst_id, data.table_name, data.statement, data_source),
+         do: respond_to_air(from, :ok),
+         else: ({:error, reason} -> respond_to_air(from, :error, reason))
+
+    {:ok, state}
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp fetch_data_source(data_source_name),
+    do: with(:error <- Cloak.DataSource.fetch(data_source_name), do: {:error, "Unknown data source."})
 
   defp decode_params(params), do: :erlang.binary_to_term(Base.decode16!(params))
 

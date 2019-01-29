@@ -59,6 +59,12 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   @spec running_queries(pid | nil) :: {:ok, [String.t()]} | {:error, any}
   def running_queries(channel_pid), do: call(channel_pid, "running_queries", nil, :timer.minutes(4))
 
+  @doc "Stores the analyst table on the cloak."
+  @spec store_analyst_table(pid | nil, map) :: :ok | {:error, String.t()}
+  def store_analyst_table(channel_pid, table_data) do
+    with {:ok, _} <- call(channel_pid, "store_analyst_table", table_data, :timer.hours(1)), do: :ok
+  end
+
   # -------------------------------------------------------------------
   # Phoenix.Channel callback functions
   # -------------------------------------------------------------------
