@@ -13,6 +13,7 @@
 
 - Support noise aggregators in non-anonymising queries.
 - Support for current date/time functions.
+- Support for signing out all sessions of a user from the settings page or from the admin panel
 
 ### Enhancements
 
@@ -22,6 +23,7 @@
 - Implemented offloading of complex per-user grouping.
 - Inequalities between raw columns are now allowed both as `col1 >/>=/</<= col2` and `col1 BETWEEN col2 AND col3`
 - Extended support for filters in the `HAVING` clause.
+- Resetting the password automatically signs out all sessions
 
 ### Changes
 
