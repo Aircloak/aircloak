@@ -1,7 +1,9 @@
 defmodule AirWeb.Plug.Session.EveryoneAllowed do
   @moduledoc """
-  This plug will never halt the request, whether or not the user is logged in.
-  However when the user is logged in, the user will be assigned to `:current_user`.
+  A plug that allows authenticated and unauthenticated requests, always setting `conn.assigns.current_user`.
+
+  This plug will never halt the request, whether or not the user is logged in.  However when the user is logged in, the
+  user will be assigned to `conn.assigns.current_user`. Otherwise `conn.assigns.current_user` will be set to `nil`.
   """
 
   @behaviour Plug

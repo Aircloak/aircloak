@@ -1,7 +1,9 @@
 defmodule AirWeb.Plug.Session.Authenticated do
   @moduledoc """
-  A plug that ensures the user is authenticated with a session. It will block the request if no valid session token
-  is found. If one is found it will set `conn.assigns.current_user` to the user indicated in that token.
+  A plug that ensures the request is authenticated with a session.
+
+  It will block the request if no valid session token is found. If one is found it will set `conn.assigns.current_user`
+  to the user indicated in that token.
   """
 
   @behaviour Plug

@@ -1,7 +1,9 @@
 defmodule AirWeb.Plug.Session.Anonymous do
   @moduledoc """
-  A plug that ensures the user is not authenticated with a session. If a valid session token is found, it will redirect
-  to `/` and halt the request. Otherwise, it will set `conn.assigns.current_user` to nil and let the request through.
+  A plug that ensures the request is not authenticated with a session.
+
+  If a valid session token is found, it will redirect to `/` and halt the request. Otherwise, it will set
+  `conn.assigns.current_user` to nil and let the request through.
   """
 
   @behaviour Plug
