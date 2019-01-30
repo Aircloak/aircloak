@@ -22,6 +22,8 @@ defmodule Air.Service.RevokableToken do
   alias Air.Schemas.{User, RevokableToken}
   alias Air.Service.Salts
 
+  import Ecto.Query
+
   @type options :: [now: NaiveDateTime.t()]
   @type seconds :: non_neg_integer() | :infinity
 
@@ -97,6 +99,16 @@ defmodule Air.Service.RevokableToken do
     token_scope(user, type) |> Repo.aggregate(:count, :id)
   end
 
+  @doc "Revokes all tokens that have a validity date in the past."
+  @spec cleanup() :: :ok
+  def cleanup(now \\ NaiveDateTime.utc_now()) do
+    RevokableToken
+    |> where([q], q.valid_until < ^now)
+    |> Repo.delete_all()
+
+    :ok
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -125,8 +137,6 @@ defmodule Air.Service.RevokableToken do
   end
 
   defp token_scope(user, type) do
-    import Ecto.Query
-
     RevokableToken
     |> where([q], q.user_id == ^user.id)
     |> where([q], q.type == ^type)

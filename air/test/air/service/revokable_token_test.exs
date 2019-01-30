@@ -95,4 +95,18 @@ defmodule Air.Service.RevokableToken.Test do
       assert RevokableToken.count(user, :session) == 0
     end
   end
+
+  describe ".cleanup" do
+    test "removes tokens with validity in the past", %{user: user} do
+      token = RevokableToken.sign(:data, user, :session, 10)
+      RevokableToken.cleanup(NaiveDateTime.utc_now() |> NaiveDateTime.add(20))
+      assert {:error, :invalid_token} = RevokableToken.verify(token, :session)
+    end
+
+    test "does not remove still valid tokens", %{user: user} do
+      token = RevokableToken.sign(:data, user, :session, 10)
+      RevokableToken.cleanup()
+      assert {:ok, :data} = RevokableToken.verify(token, :session)
+    end
+  end
 end
