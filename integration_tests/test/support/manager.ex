@@ -74,6 +74,15 @@ defmodule IntegrationTest.Manager do
       |> Air.Service.License.load()
   end
 
+  def restart_cloak() do
+    Application.stop(:cloak)
+    ensure_cloak_disconnected()
+
+    Application.start(:cloak)
+    :ok = create_users_table(skip_db_create: true)
+    ensure_cloak_connected()
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -87,8 +96,12 @@ defmodule IntegrationTest.Manager do
 
   defp setup_cloak_database() do
     Cloak.Test.DB.start_link()
-    :ok = Cloak.Test.DB.create_table("users", "name TEXT, height INTEGER")
+    :ok = create_users_table()
     :ok = insert_rows(1..100, "users", ["name", "height"], ["john", 180])
+  end
+
+  defp create_users_table(opts \\ []) do
+    Cloak.Test.DB.create_table("users", "name TEXT, height INTEGER", opts)
   end
 
   defp setup_air_database() do
@@ -140,5 +153,17 @@ defmodule IntegrationTest.Manager do
       })
 
     license
+  end
+
+  defp ensure_cloak_disconnected() do
+    fn -> Enum.empty?(Air.Service.Cloak.channel_pids(data_source().name)) end
+    |> Stream.repeatedly()
+    |> Enum.find(& &1)
+  end
+
+  defp ensure_cloak_connected() do
+    fn -> not Enum.empty?(Air.Service.Cloak.channel_pids(data_source().name)) end
+    |> Stream.repeatedly()
+    |> Enum.find(& &1)
   end
 end

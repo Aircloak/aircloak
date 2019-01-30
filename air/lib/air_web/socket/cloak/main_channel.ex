@@ -109,6 +109,8 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
       |> Air.Service.Cloak.register(cloak_info.data_sources)
       |> revalidate_views()
 
+      send(self(), :send_analyst_tables)
+
       {:ok, %{}, socket}
     else
       _ -> {:error, :cloak_secret_invalid}
@@ -137,10 +139,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
 
   @impl Phoenix.Channel
   def handle_info(message, socket),
-    do:
-      Aircloak.report_long({:handle_info, message}, fn ->
-        handle_erlang_message(message, socket)
-      end)
+    do: Aircloak.report_long({:handle_info, message}, fn -> handle_erlang_message(message, socket) end)
 
   # -------------------------------------------------------------------
   # Handling of messages from other processes
@@ -169,6 +168,16 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
 
   defp handle_erlang_message({:EXIT, _, :normal}, socket) do
     # probably the linked reporter terminated successfully
+    {:noreply, socket}
+  end
+
+  defp handle_erlang_message(:send_analyst_tables, socket) do
+    push(
+      socket,
+      "register_analyst_tables",
+      %{registration_infos: Enum.map(Air.Service.AnalystTable.all(), & &1.registration_info)}
+    )
+
     {:noreply, socket}
   end
 

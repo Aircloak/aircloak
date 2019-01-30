@@ -1,7 +1,8 @@
 defmodule IntegrationTest.AnalystTableTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   alias IntegrationTest.Manager
+  import Aircloak.AssertionHelper
 
   setup_all do
     {:ok, user: Manager.create_air_user()}
@@ -48,6 +49,23 @@ defmodule IntegrationTest.AnalystTableTest do
     refute table.registration_info == updated_table.registration_info
 
     assert {:ok, result} = run_query(context.user, "select * from #{new_name}")
+    assert result.columns == ~w(user_id)
+    assert result.buckets == [%{"occurrences" => 100, "row" => ["*"], "unreliable" => false}]
+  end
+
+  test "after the cloak reconnects, it will receive analyst tables from the air", context do
+    {:ok, table} = create_table(context.user, unique_name(), "select user_id from users")
+    Manager.restart_cloak()
+
+    assert soon(
+             not Enum.empty?(Cloak.AnalystTable.analyst_tables(context.user.id, Manager.data_source())),
+             :timer.seconds(5)
+           )
+
+    cloak_tables = Cloak.AnalystTable.analyst_tables(context.user.id, Manager.data_source())
+    refute is_nil(Enum.find(cloak_tables, &(&1.name == table.name)))
+
+    assert {:ok, result} = run_query(context.user, "select * from #{table.name}")
     assert result.columns == ~w(user_id)
     assert result.buckets == [%{"occurrences" => 100, "row" => ["*"], "unreliable" => false}]
   end

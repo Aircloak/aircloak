@@ -144,6 +144,11 @@ defmodule Cloak.AirSocket do
     {:ok, update_in(state.pending_calls, &Map.delete(&1, request_id))}
   end
 
+  def handle_message("main", "register_analyst_tables", data, _transport, state) do
+    Enum.each(data.registration_infos, &Cloak.AnalystTable.register_table/1)
+    {:ok, state}
+  end
+
   def handle_message(topic, event, payload, _transport, state) do
     Logger.warn("unhandled message on topic #{topic}: #{event} #{inspect(payload)}")
     {:ok, state}

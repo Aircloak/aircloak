@@ -35,6 +35,10 @@ defmodule Air.Service.AnalystTable do
     |> transactional_store(table.user, table.data_source)
   end
 
+  @doc "Returns all known analyst tables."
+  @spec all() :: [AnalystTable.t()]
+  def all(), do: Repo.all(AnalystTable)
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
