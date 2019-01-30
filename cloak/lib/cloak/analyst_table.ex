@@ -2,7 +2,6 @@ defmodule Cloak.AnalystTable do
   @moduledoc "Service for working with analyst tables"
 
   use GenServer
-  alias Cloak.AnalystTable.Helpers
   alias Cloak.DataSource
 
   # -------------------------------------------------------------------
@@ -15,7 +14,15 @@ defmodule Cloak.AnalystTable do
   def store(analyst, table_name, statement, data_source) do
     table = %{analyst: analyst, name: table_name, statement: statement, data_source: data_source}
 
-    with {:ok, table} <- store_table_to_database(table) do
+    with {:ok, query} <- Cloak.AnalystTable.Compiler.compile(table.name, table.statement, table.data_source),
+         {:ok, db_name, recreate_info} <- store_table_to_database(table, query) do
+      table =
+        Map.merge(table, %{
+          db_name: db_name,
+          id_column: Cloak.Sql.Compiler.Helpers.id_column(query).name,
+          recreate_info: recreate_info
+        })
+
       store_table_to_ets(table)
       {:ok, registration_info(table)}
     end
@@ -57,16 +64,11 @@ defmodule Cloak.AnalystTable do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp store_table_to_database(table) do
-    with {:ok, query} <- Helpers.compile(table.name, table.statement, table.data_source),
-         {:ok, db_name, recreate_info} <- Helpers.store({table.analyst, table.name}, query, table.data_source) do
-      {:ok,
-       Map.merge(table, %{
-         db_name: db_name,
-         id_column: Cloak.Sql.Compiler.Helpers.id_column(query).name,
-         recreate_info: recreate_info
-       })}
-    end
+  defp store_table_to_database(table, query) do
+    Cloak.DataSource.Connection.execute!(
+      table.data_source,
+      &table.data_source.driver.store_analyst_table(&1, {table.analyst, table.name}, query)
+    )
   end
 
   defp recreate_table_in_database(table) do

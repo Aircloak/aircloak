@@ -1,5 +1,5 @@
-defmodule Cloak.AnalystTable.Helpers do
-  @moduledoc "Helper functions for working with analyst tables."
+defmodule Cloak.AnalystTable.Compiler do
+  @moduledoc "Compilation of analyst table query."
 
   # -------------------------------------------------------------------
   # API functions
@@ -16,12 +16,6 @@ defmodule Cloak.AnalystTable.Helpers do
          :ok <- verify_selected_columns(query),
          do: {:ok, query}
   end
-
-  @doc "Stores the analyst table to database."
-  @spec store(any, Cloak.Sql.Query.t(), Cloak.DataSource.t()) ::
-          {:ok, db_name :: String.t(), recreate_info :: String.t()} | {:error, String.t()}
-  def store(id, query, data_source),
-    do: Cloak.DataSource.Connection.execute!(data_source, &data_source.driver.store_analyst_table(&1, id, query))
 
   # -------------------------------------------------------------------
   # Internal functions
