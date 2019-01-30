@@ -57,7 +57,18 @@ defmodule Cloak.DataSource.Driver do
   @callback supports_analyst_tables?() :: boolean
 
   @doc "Stores the analyst table to database."
-  @callback store_analyst_table(connection, any, Query.t()) :: {:ok, table_name :: String.t()} | {:error, String.t()}
+  @callback store_analyst_table(connection, any, Query.t()) ::
+              {:ok, db_name :: String.t(), recreate_info :: String.t()} | {:error, String.t()}
+
+  @doc """
+  Recreates the analyst table from the given data.
+
+  This function allows us to create the analyst table without needing to recompile the query. The recompilation is
+  bypassed to ensure that multiple cloaks operate on exactly the same analyst table. Otherwise, if a new cloak is
+  added on some future version, recompilation might generate a different table.
+  """
+  @callback recreate_analyst_table(connection, db_name :: String.t(), recreate_info :: String.t()) ::
+              :ok | {:error, String.t()}
 
   defmacro __using__(_opts) do
     quote do
@@ -69,7 +80,10 @@ defmodule Cloak.DataSource.Driver do
       @impl unquote(__MODULE__)
       def store_analyst_table(_connection, _id, _query), do: raise(RuntimeError, "not implemented")
 
-      defoverridable supports_analyst_tables?: 0, store_analyst_table: 3
+      @impl unquote(__MODULE__)
+      def recreate_analyst_table(_connection, _id, _query), do: raise(RuntimeError, "not implemented")
+
+      defoverridable supports_analyst_tables?: 0, store_analyst_table: 3, recreate_analyst_table: 3
     end
   end
 end

@@ -18,7 +18,8 @@ defmodule Cloak.AnalystTable.Helpers do
   end
 
   @doc "Stores the analyst table to database."
-  @spec store(any, Cloak.Sql.Query.t(), Cloak.DataSource.t()) :: {:ok, String.t()} | {:error, String.t()}
+  @spec store(any, Cloak.Sql.Query.t(), Cloak.DataSource.t()) ::
+          {:ok, db_name :: String.t(), recreate_info :: String.t()} | {:error, String.t()}
   def store(id, query, data_source),
     do: Cloak.DataSource.Connection.execute!(data_source, &data_source.driver.store_analyst_table(&1, id, query))
 

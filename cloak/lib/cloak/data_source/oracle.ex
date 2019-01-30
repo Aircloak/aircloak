@@ -48,13 +48,15 @@ defmodule Cloak.DataSource.Oracle do
 
   @impl Driver
   def store_analyst_table(connection, table_id, query) do
-    {sql, table_name} = SqlBuilder.create_table_statement(table_id, query)
+    {sql, db_name} = SqlBuilder.create_table_statement(table_id, query)
+    with :ok <- recreate_analyst_table(connection, db_name, sql), do: {:ok, db_name, sql}
+  end
 
-    if Enum.any?(analyst_tables(connection), &(&1 == table_name)) do
-      {:ok, table_name}
-    else
-      with {:ok, _} = RODBC.execute_direct(connection, sql), do: {:ok, table_name}
-    end
+  @impl Driver
+  def recreate_analyst_table(connection, db_name, sql) do
+    if Enum.any?(analyst_tables(connection), &(&1 == db_name)),
+      do: :ok,
+      else: with({:ok, _} = RODBC.execute_direct(connection, sql), do: :ok)
   end
 
   # -------------------------------------------------------------------

@@ -277,7 +277,8 @@ defmodule Cloak.AirSocket do
 
   defp handle_air_call("store_analyst_table", data, from, state) do
     with {:ok, data_source} <- fetch_data_source(data.data_source),
-         :ok <- Cloak.AnalystTable.store(data.analyst_id, data.table_name, data.statement, data_source),
+         {:ok, _registration_info} <-
+           Cloak.AnalystTable.store(data.analyst_id, data.table_name, data.statement, data_source),
          do: respond_to_air(from, :ok),
          else: ({:error, reason} -> respond_to_air(from, :error, reason))
 
