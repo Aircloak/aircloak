@@ -95,7 +95,7 @@ defmodule Air.Service.User do
   def load(user_id), do: Repo.one(from(user in User, where: user.id == ^user_id, preload: [:logins, :groups]))
 
   @doc "Loads the user with the given id if they are enabled."
-  @spec load(pos_integer | binary) :: {:ok, User.t()} | {:error, :not_found}
+  @spec load_enabled(pos_integer | binary) :: {:ok, User.t()} | {:error, :not_found}
   def load_enabled(user_id) do
     User
     |> where([q], q.enabled)

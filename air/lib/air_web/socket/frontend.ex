@@ -29,7 +29,7 @@ defmodule AirWeb.Socket.Frontend do
 
   @impl Phoenix.Socket
   def connect(%{"token" => token}, socket) do
-    with {:ok, user_id} <- Air.Service.RevokableToken.verify(token, :session, max_age: :infinity),
+    with {:ok, user_id} <- Air.Service.RevokableToken.verify(token, :session),
          {:ok, user} <- Air.Service.User.load_enabled(user_id) do
       {:ok, assign(socket, :user, user)}
     else
