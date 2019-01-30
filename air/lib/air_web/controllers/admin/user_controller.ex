@@ -143,9 +143,16 @@ defmodule AirWeb.Admin.UserController do
     audit_log(conn, "Cleared user sessions")
     audit_log_for_user(conn, conn.assigns.user, "Cleared sessions")
 
+    redirect_path =
+      if conn.assigns.user.source == :ldap do
+        admin_user_path(conn, :index)
+      else
+        admin_user_path(conn, :edit, conn.assigns.user)
+      end
+
     conn
     |> put_flash(:info, "The user was signed out from all devices.")
-    |> redirect(to: admin_user_path(conn, :edit, conn.assigns.user))
+    |> redirect(to: redirect_path)
   end
 
   # -------------------------------------------------------------------

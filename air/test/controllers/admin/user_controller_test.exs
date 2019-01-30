@@ -155,6 +155,11 @@ defmodule AirWeb.Admin.UserController.Test do
                admin |> login() |> delete("/admin/users/#{user.id}/sessions") |> redirected_to()
     end
 
+    test "redirects to user list for LDAP users", %{admin: admin} do
+      user = create_user!(%{ldap_dn: "some dn"})
+      assert "/admin/users" == admin |> login() |> delete("/admin/users/#{user.id}/sessions") |> redirected_to()
+    end
+
     test "invalidates the user's sessions", %{admin: admin, user: user} do
       session = Air.Service.RevokableToken.sign(:data, user, :session, :infinity)
 
