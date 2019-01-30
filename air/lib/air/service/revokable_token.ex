@@ -141,4 +141,13 @@ defmodule Air.Service.RevokableToken do
     |> where([q], q.user_id == ^user.id)
     |> where([q], q.type == ^type)
   end
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg) do
+    Periodic.child_spec(run: &cleanup/0, every: :timer.hours(1), overlap?: false)
+  end
 end
