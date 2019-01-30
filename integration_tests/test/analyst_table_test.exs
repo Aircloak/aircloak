@@ -54,7 +54,9 @@ defmodule IntegrationTest.AnalystTableTest do
   end
 
   test "after the cloak reconnects, it will receive analyst tables from the air", context do
-    {:ok, table} = create_table(context.user, unique_name(), "select user_id from users")
+    Air.Repo.delete_all(Air.Schemas.AnalystTable)
+    table_name = unique_name()
+    {:ok, _} = create_table(context.user, table_name, "select user_id from users")
     Manager.restart_cloak()
 
     assert soon(
@@ -62,10 +64,8 @@ defmodule IntegrationTest.AnalystTableTest do
              :timer.seconds(5)
            )
 
-    cloak_tables = Cloak.AnalystTable.analyst_tables(context.user.id, Manager.data_source())
-    refute is_nil(Enum.find(cloak_tables, &(&1.name == table.name)))
-
-    assert {:ok, result} = run_query(context.user, "select * from #{table.name}")
+    assert [%{name: ^table_name}] = Cloak.AnalystTable.analyst_tables(context.user.id, Manager.data_source())
+    assert {:ok, result} = run_query(context.user, "select * from #{table_name}")
     assert result.columns == ~w(user_id)
     assert result.buckets == [%{"occurrences" => 100, "row" => ["*"], "unreliable" => false}]
   end

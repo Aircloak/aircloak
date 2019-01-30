@@ -4,11 +4,10 @@ defmodule Cloak.DataSource.PostgreSQL do
   For more information, see `DataSource`.
   """
 
-  alias Cloak.DataSource.Table
-  alias Cloak.Query.ExecutionError
-
   use Cloak.DataSource.Driver.SQL
   require Logger
+  alias Cloak.DataSource.Table
+  alias Cloak.Query.ExecutionError
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
@@ -72,6 +71,21 @@ defmodule Cloak.DataSource.PostgreSQL do
         {:error, %Postgrex.Error{} = error} -> {:error, Exception.message(error)}
       end
     end
+  end
+
+  @impl Driver
+  def drop_unused_analyst_tables(connection, known_db_names) do
+    connection
+    |> analyst_tables()
+    |> MapSet.new()
+    |> MapSet.difference(MapSet.new(known_db_names))
+    |> Stream.map(fn db_name ->
+      case Postgrex.query(connection, "DROP TABLE #{SqlBuilder.quote_table_name(db_name)}", []) do
+        {:ok, _result} -> db_name
+        {:error, error} -> Logger.error("Error removing table: `#{db_name}`: #{Exception.message(error)}")
+      end
+    end)
+    |> Enum.reject(&is_nil/1)
   end
 
   # -------------------------------------------------------------------

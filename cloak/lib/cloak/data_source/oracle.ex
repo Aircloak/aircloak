@@ -5,6 +5,7 @@ defmodule Cloak.DataSource.Oracle do
   """
 
   use Cloak.DataSource.Driver.SQL
+  require Logger
   alias Cloak.DataSource.{RODBC, Table}
   alias Cloak.Sql.{Expression, Query, Compiler.Helpers, Function}
 
@@ -57,6 +58,21 @@ defmodule Cloak.DataSource.Oracle do
     if Enum.any?(analyst_tables(connection), &(&1 == db_name)),
       do: :ok,
       else: with({:ok, _} = RODBC.execute_direct(connection, sql), do: :ok)
+  end
+
+  @impl Driver
+  def drop_unused_analyst_tables(connection, known_db_names) do
+    connection
+    |> analyst_tables()
+    |> MapSet.new()
+    |> MapSet.difference(MapSet.new(known_db_names))
+    |> Stream.map(fn db_name ->
+      case RODBC.execute_direct(connection, "DROP TABLE #{SqlBuilder.quote_table_name(db_name)}") do
+        {:ok, _result} -> db_name
+        {:error, error} -> Logger.error("Error removing table: `#{db_name}`: #{error}")
+      end
+    end)
+    |> Enum.reject(&is_nil/1)
   end
 
   # -------------------------------------------------------------------

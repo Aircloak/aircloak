@@ -127,17 +127,33 @@ defmodule Compliance.AnalystTableTest do
         end
       end
 
-      test "analyst table recreation" do
+      test "analyst table registration" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
           {:ok, registration_info} = AnalystTable.store(1, "foo", "select user_id from users", data_source)
           drop_table!(data_source, AnalystTable.table_definition!(1, "foo", data_source).db_name)
-          assert AnalystTable.register_table(registration_info) == :ok
+          assert AnalystTable.register_tables([registration_info]) == :ok
 
           assert_query(
             "select * from foo",
             [analyst_id: 1, data_sources: [data_source]],
             %{columns: ["user_id"]}
           )
+        end
+      end
+
+      test "obsolete analyst tables are dropped when tables are registered" do
+        with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
+          {:ok, info1} = AnalystTable.store(1, "foo", "select user_id as a from users", data_source)
+          {:ok, info2} = AnalystTable.store(1, "foo", "select user_id as b from users", data_source)
+          {:ok, info3} = AnalystTable.store(1, "foo", "select user_id as c from users", data_source)
+          {:ok, info4} = AnalystTable.store(2, "bar", "select user_id from users", data_source)
+
+          db_name1 = AnalystTable.table_definition!(1, "foo", data_source).db_name
+          db_name2 = AnalystTable.table_definition!(2, "bar", data_source).db_name
+
+          :ok = AnalystTable.register_tables([info1, info2, info3, info4])
+
+          assert Enum.sort(stored_tables(data_source)) == Enum.sort([db_name1, db_name2])
         end
       end
     end

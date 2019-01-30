@@ -145,7 +145,7 @@ defmodule Cloak.AirSocket do
   end
 
   def handle_message("main", "register_analyst_tables", data, _transport, state) do
-    Enum.each(data.registration_infos, &Cloak.AnalystTable.register_table/1)
+    Cloak.AnalystTable.register_tables(data.registration_infos)
     {:ok, state}
   end
 

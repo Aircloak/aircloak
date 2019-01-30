@@ -70,6 +70,9 @@ defmodule Cloak.DataSource.Driver do
   @callback recreate_analyst_table(connection, db_name :: String.t(), recreate_info :: String.t()) ::
               :ok | {:error, String.t()}
 
+  @doc "Given the list of known analyst tables, drops all existing but unused analyst tables."
+  @callback drop_unused_analyst_tables(connection, known_db_names :: [String.t()]) :: removed :: [String.t()]
+
   defmacro __using__(_opts) do
     quote do
       @behaviour unquote(__MODULE__)
@@ -83,7 +86,13 @@ defmodule Cloak.DataSource.Driver do
       @impl unquote(__MODULE__)
       def recreate_analyst_table(_connection, _id, _query), do: raise(RuntimeError, "not implemented")
 
-      defoverridable supports_analyst_tables?: 0, store_analyst_table: 3, recreate_analyst_table: 3
+      @impl unquote(__MODULE__)
+      def drop_unused_analyst_tables(_connection, _known_db_names), do: raise(RuntimeError, "not implemented")
+
+      defoverridable supports_analyst_tables?: 0,
+                     store_analyst_table: 3,
+                     recreate_analyst_table: 3,
+                     drop_unused_analyst_tables: 2
     end
   end
 end
