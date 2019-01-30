@@ -45,6 +45,7 @@ defmodule IntegrationTest.AnalystTableTest do
     assert updated_table.id == table.id
     assert updated_table.name == new_name
     assert updated_table.sql == "select user_id from users"
+    refute table.registration_info == updated_table.registration_info
 
     assert {:ok, result} = run_query(context.user, "select * from #{new_name}")
     assert result.columns == ~w(user_id)

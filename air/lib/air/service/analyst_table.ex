@@ -52,7 +52,9 @@ defmodule Air.Service.AnalystTable do
       # there's no guarantee that the table will be successfully stored in the cloak, so we're running this inside
       # a transaction.
       with {:ok, table} <- apply(Repo, changeset.action, [changeset]),
-           :ok <- store_to_cloak(table, user, data_source) do
+           {:ok, registration_info} <- store_to_cloak(table, user, data_source),
+           # at this point we can update the table with the registration info obtaine from cloak
+           {:ok, table} <- table |> Ecto.Changeset.change(%{registration_info: registration_info}) |> Repo.update() do
         table
       else
         {:error, changeset} -> Repo.rollback(changeset)
@@ -61,18 +63,13 @@ defmodule Air.Service.AnalystTable do
   end
 
   defp store_to_cloak(table, user, data_source) do
-    case do_store_to_cloak(table, user, data_source) do
-      :ok -> :ok
-      {:error, reason} -> {:error, add_cloak_error(table, reason)}
-    end
-  end
-
-  defp do_store_to_cloak(table, user, data_source) do
-    DataSource.with_available_cloak(
-      data_source,
-      user,
-      &MainChannel.store_analyst_table(&1.channel_pid, user.id, table.name, table.sql, data_source.name)
-    )
+    with {:error, reason} <-
+           DataSource.with_available_cloak(
+             data_source,
+             user,
+             &MainChannel.store_analyst_table(&1.channel_pid, user.id, table.name, table.sql, data_source.name)
+           ),
+         do: {:error, add_cloak_error(table, reason)}
   end
 
   defp add_cloak_error(table, error),
