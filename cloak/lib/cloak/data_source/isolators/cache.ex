@@ -41,6 +41,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
   defp table_columns(data_source, {_table_id, table}) do
     table.columns
     |> Enum.reject(&Map.has_key?(table.isolating_columns, &1.name))
+    |> Enum.reject(&Map.has_key?(table.keys, &1.name))
     |> Enum.map(&{data_source.name, table.name, &1.name})
   end
 

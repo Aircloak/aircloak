@@ -13,11 +13,13 @@ defmodule Cloak.DataSource.Shadows.Query do
   many users.
   """
   @spec build_shadow(DataSource.t(), String.t(), String.t()) :: [any]
-  def build_shadow(data_source, table, column) do
-    case user_id(data_source, table) do
-      nil -> []
-      ^column -> []
-      user_id -> maybe_build_shadow(data_source, table, column, user_id)
+  def build_shadow(data_source, table_name, column) do
+    table = data_source.tables[String.to_existing_atom(table_name)]
+
+    cond do
+      table.user_id == nil -> []
+      table.keys[column] != nil -> []
+      true -> maybe_build_shadow(data_source, table_name, column, table.user_id)
     end
   end
 
@@ -25,11 +27,11 @@ defmodule Cloak.DataSource.Shadows.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp maybe_build_shadow(data_source, table, column, user_id) do
-    if should_maintain_shadow?(data_source, table) do
+  defp maybe_build_shadow(data_source, table_name, column, user_id) do
+    if should_maintain_shadow?(data_source, table_name) do
       """
         SELECT "#{column}"
-        FROM "#{table}"
+        FROM "#{table_name}"
         GROUP BY 1
         HAVING COUNT(DISTINCT "#{user_id}") > #{min_users()}
         ORDER BY COUNT(*) DESC
@@ -46,10 +48,6 @@ defmodule Cloak.DataSource.Shadows.Query do
 
   defp should_maintain_shadow?(data_source, table),
     do: Map.get(data_source.tables[String.to_existing_atom(table)], :maintain_shadow_db, true)
-
-  defp user_id(data_source, table) do
-    data_source.tables[String.to_existing_atom(table)].user_id
-  end
 
   defp min_users(), do: Application.get_env(:cloak, :shadow_tables) |> Keyword.fetch!(:min_users)
 
