@@ -79,6 +79,7 @@ defmodule Cloak.DataSource.Table do
       |> resolve_projected_tables()
       |> translate_projections_and_decoders()
       |> scan_virtual_tables(connection)
+      |> resolve_tables_keys()
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -525,5 +526,35 @@ defmodule Cloak.DataSource.Table do
     alias = if projection[:user_id_alias] != nil, do: ~s/"#{projection.user_id_alias}"/, else: alias
 
     {user_id, alias, from}
+  end
+
+  defp resolve_tables_keys(data_source) do
+    %{data_source | tables: data_source.tables |> Enum.map(&resolve_table_keys/1) |> Enum.into(%{})}
+  end
+
+  defp resolve_table_keys({name, %{keys: keys} = table}) do
+    column_names = Enum.map(table.columns, & &1.name)
+
+    keys
+    |> Enum.map(fn {name, _tag} -> name end)
+    |> Enum.reject(&(&1 in column_names))
+    |> case do
+      [] ->
+        :ok
+
+      [invalid_name | _] ->
+        raise(ExecutionError, message: "Invalid key name: column #{invalid_name} doesn't exist in table #{name}")
+    end
+
+    keys = if table.user_id != nil, do: Map.put(keys, table.user_id, :user_id), else: keys
+
+    user_id =
+      Enum.filter(keys, fn {_name, type} -> type == :user_id end)
+      |> case do
+        [{user_id, :user_id} | _] -> user_id
+        [] -> nil
+      end
+
+    {name, %{table | keys: keys, user_id: user_id}}
   end
 end

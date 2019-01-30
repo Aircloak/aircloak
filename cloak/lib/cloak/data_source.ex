@@ -278,19 +278,68 @@ defmodule Cloak.DataSource do
     |> Map.put(:status, nil)
     |> Map.put_new(:concurrency, nil)
     |> Map.put_new(:lcf_buckets_aggregation_limit, nil)
-    |> map_tables()
     |> Validations.Name.ensure_permitted()
     |> potentially_create_temp_name()
+    |> map_tables()
     |> map_driver()
   end
 
   defp map_tables(data_source) do
-    %{data_source | tables: data_source.tables |> Enum.map(&to_table/1) |> Enum.into(%{})}
+    %{data_source | tables: data_source.tables |> Enum.map(&map_table/1) |> Enum.into(%{})}
   end
 
-  defp to_table(table) do
-    table
-    |> update_in([Lens.key(:isolating_columns) |> Lens.map_keys()], &to_string/1)
+  defp map_table({name, table}) do
+    {name, table}
+    |> map_isolators()
+    |> map_table_type()
+    |> map_keys()
+  end
+
+  def map_isolators({name, %{isolating_columns: _} = table}),
+    do: {name, update_in(table, [Lens.key(:isolating_columns) |> Lens.map_keys()], &to_string/1)}
+
+  def map_isolators({name, table}), do: {name, table}
+
+  defp map_table_type({name, %{user_id: _} = table}), do: {name, Map.delete(table, :type)}
+
+  defp map_table_type({name, table}) do
+    type =
+      case table[:type] do
+        "public" ->
+          :public
+
+        "private" ->
+          :private
+
+        nil ->
+          :private
+
+        type ->
+          raise ExecutionError,
+            message:
+              "Invalid table type `#{to_string(type)}` for table `#{name}`. " <>
+                "The table type has to have one of the following values: `public` or `private` (default)."
+      end
+
+    {name, Map.put(table, :type, type)}
+  end
+
+  defp map_keys({name, %{keys: keys} = table}) do
+    keys = keys |> Enum.map(&map_key(&1, name)) |> Enum.into(%{})
+    {name, %{table | keys: keys}}
+  end
+
+  defp map_keys({name, table}), do: {name, table}
+
+  defp map_key(%{} = key, table_name) do
+    if Map.size(key) != 1 do
+      raise ExecutionError,
+        message: "Invalid key entry for table `#{table_name}`. A key has the format `{key_type: column_name}`."
+    end
+
+    [type] = Map.keys(key)
+    [column] = Map.values(key)
+    {column, type}
   end
 
   defp map_driver(data_source) do
@@ -330,12 +379,8 @@ defmodule Cloak.DataSource do
             do: [table.projection.foreign_key],
             else: []
 
-        keys =
-          (primary_keys ++ foreign_keys)
-          |> Enum.map(&{&1, :unknown})
-          |> Enum.into(Map.get(table, :keys, %{}))
-
-        {name, Map.put(table, :keys, keys)}
+        keys = Enum.map(primary_keys ++ foreign_keys, &%{projection_key: &1})
+        {name, Map.put_new(table, :keys, keys)}
       end
 
     %{data_source | tables: tables}
