@@ -4,6 +4,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   """
   use Phoenix.Channel, log_handle_in: false
   require Logger
+  require Aircloak
   require Aircloak.DeployConfig
 
   alias Air.CentralClient.Socket
@@ -109,7 +110,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
       |> Air.Service.Cloak.register(cloak_info.data_sources)
       |> revalidate_views()
 
-      send(self(), :send_analyst_tables)
+      Aircloak.in_env(test: :ok, else: send(self(), :send_analyst_tables))
 
       {:ok, %{}, socket}
     else
