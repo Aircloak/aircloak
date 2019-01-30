@@ -1,6 +1,15 @@
 defmodule AirWeb.Plug.Session.Authenticated do
+  @moduledoc """
+  A plug that ensures the user is authenticated with a session. It will block the request if no valid session token
+  is found. If one is found it will set `conn.assigns.current_user` to the user indicated in that token.
+  """
+
+  @behaviour Plug
+
+  @impl Plug
   def init(options), do: options
 
+  @impl Plug
   def call(conn, _opts) do
     with {:ok, user} <- AirWeb.Plug.Session.load_user(conn) do
       Plug.Conn.assign(conn, :current_user, user)
