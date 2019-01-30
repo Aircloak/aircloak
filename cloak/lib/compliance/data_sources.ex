@@ -233,7 +233,7 @@ defmodule Compliance.DataSources do
     definitions
     |> Enum.map(fn {name, definition} ->
       data_source_definition_template =
-        %{decoders: Map.get(definition, :decoders, []), query: nil}
+        %{decoders: Map.get(definition, :decoders, []), query: nil, type: :private}
         |> add_uid_construct(name)
         |> Map.put(:db_name, handler_for_data_source(data_source_scaffold).db_table_name("#{name}#{table_postfix}"))
 
