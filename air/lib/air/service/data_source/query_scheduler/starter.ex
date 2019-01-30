@@ -76,7 +76,16 @@ defmodule Air.Service.DataSource.QueryScheduler.Starter do
   defp has_data_source?(cloak_info, data_source), do: Map.has_key?(cloak_info.data_sources, data_source.name)
 
   defp start_query(query, cloak_info) do
-    with :ok <- AirWeb.Socket.Cloak.MainChannel.run_query(cloak_info.main_channel_pid, cloak_query_map(query)) do
+    with :ok <-
+           AirWeb.Socket.Cloak.MainChannel.run_query(
+             cloak_info.main_channel_pid,
+             query.id,
+             query.user.id,
+             query.statement,
+             query.data_source.name,
+             query.parameters["values"],
+             Air.Service.View.user_views_map(query.user, query.data_source.id)
+           ) do
       Cloak.Stats.record_query(cloak_info.id)
       query = add_cloak_info_to_query(query, cloak_info.id)
       AirWeb.Socket.Frontend.UserChannel.broadcast_state_change(query)
@@ -89,16 +98,5 @@ defmodule Air.Service.DataSource.QueryScheduler.Starter do
     query
     |> Air.Schemas.Query.changeset(%{cloak_id: cloak_id, query_state: :started})
     |> Air.Repo.update!()
-  end
-
-  defp cloak_query_map(query) do
-    %{
-      id: query.id,
-      analyst_id: query.user.id,
-      statement: query.statement,
-      data_source: query.data_source.name,
-      parameters: query.parameters["values"],
-      views: Air.Service.View.user_views_map(query.user, query.data_source.id)
-    }
   end
 end

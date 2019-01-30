@@ -4,6 +4,7 @@ defmodule Air.Service.AnalystTable do
   alias Air.Service.DataSource
   alias Air.Schemas.AnalystTable
   alias Air.Repo
+  alias AirWeb.Socket.Cloak.MainChannel
 
   # -------------------------------------------------------------------
   # API functions
@@ -60,14 +61,19 @@ defmodule Air.Service.AnalystTable do
   end
 
   defp store_to_cloak(table, user, data_source) do
-    case DataSource.store_analyst_table({:id, data_source.id}, user, table_data(user, data_source, table)) do
+    case do_store_to_cloak(table, user, data_source) do
       :ok -> :ok
       {:error, reason} -> {:error, add_cloak_error(table, reason)}
     end
   end
 
-  defp table_data(user, data_source, table),
-    do: %{analyst_id: user.id, table_name: table.name, statement: table.sql, data_source: data_source.name}
+  defp do_store_to_cloak(table, user, data_source) do
+    DataSource.with_available_cloak(
+      data_source,
+      user,
+      &MainChannel.store_analyst_table(&1.channel_pid, user.id, table.name, table.sql, data_source.name)
+    )
+  end
 
   defp add_cloak_error(table, error),
     do: table |> Ecto.Changeset.change() |> Ecto.Changeset.add_error(:sql, cloak_error(error))
