@@ -2,16 +2,17 @@
 
 ### __Breaking changes__
 
- - When quoting `db_name` in drill data sources, the double quote (") character must be used instead of backtick (\`).
+- When quoting `db_name` in drill data sources, the double quote (") character must be used instead of backtick (\`).
 
 ### Bugfixes
- - Fixed date/time literals support on Oracle.
- - Fixed crash in anonymising `median` and `stddev` aggregators.
+
+- Fixed date/time literals support on Oracle.
+- Fixed crash in anonymising `median` and `stddev` aggregators.
 
 ### Features
 
- - Support noise aggregators in non-anonymising queries.
- - Support for current date/time functions.
+- Support noise aggregators in non-anonymising queries.
+- Support for current date/time functions.
 
 ### Enhancements
 
@@ -24,9 +25,9 @@
 
 ### Changes
 
- - Removed support for `extract_words`.
- - Password reset tokens and links will now expire after a single use. All password reset linkes/tokens generated with a
-   previous version will be invalid as a consequence of this change.
+- Removed support for `extract_words`.
+- Password reset tokens and links will now expire after a single use. All password reset linkes/tokens generated with a
+  previous version will be invalid as a consequence of this change.
 
 ## Version 19.1.0
 
