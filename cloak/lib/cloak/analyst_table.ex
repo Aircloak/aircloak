@@ -99,6 +99,7 @@ defmodule Cloak.AnalystTable do
         db_names = Enum.map(:ets.match(__MODULE__, {{:_, :_, :_}, :"$1"}), fn [table] -> table.db_name end)
 
         Cloak.DataSource.all()
+        |> Stream.filter(& &1.driver.supports_analyst_tables?)
         |> Stream.filter(&(&1.status == :online))
         |> Stream.flat_map(fn data_source ->
           data_source
