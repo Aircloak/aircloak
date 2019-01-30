@@ -52,4 +52,24 @@ defmodule Cloak.DataSource.Driver do
 
   @doc "Returns the driver specific information to be stored inside the data source structure."
   @callback driver_info(connection) :: driver_info
+
+  @doc "Returns true if the driver supports analyst tables."
+  @callback supports_analyst_tables?() :: boolean
+
+  @doc "Stores the analyst table to database."
+  @callback store_analyst_table(connection, any, Query.t()) :: {:ok, table_name :: String.t()} | {:error, String.t()}
+
+  defmacro __using__(_opts) do
+    quote do
+      @behaviour unquote(__MODULE__)
+
+      @impl unquote(__MODULE__)
+      def supports_analyst_tables?(), do: false
+
+      @impl unquote(__MODULE__)
+      def store_analyst_table(_connection, _id, _query), do: raise(RuntimeError, "not implemented")
+
+      defoverridable supports_analyst_tables?: 0, store_analyst_table: 3
+    end
+  end
 end

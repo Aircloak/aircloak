@@ -60,11 +60,18 @@ defmodule Cloak.DataSource.RODBC do
          do: {:ok, connection |> stream_rows(row_mapper) |> result_processor.()}
   end
 
-  @doc "Executes a raw SQL SELECT statement on the given connection."
-  @spec select_direct(pid, String.t()) :: Enumerable.t()
-  def select_direct(connection, statement) do
+  @doc "Executes a raw SQL statement on the given connection."
+  @spec execute_direct(pid, String.t()) :: {:ok, Enumerable.t()} | {:error, String.t()}
+  def execute_direct(connection, statement) do
     with :ok <- Port.execute(connection, statement, Driver.timeout()),
          do: {:ok, Stream.concat(stream_rows(connection, & &1))}
+  end
+
+  @doc "Executes a raw SQL statement on the given connection, raises on error."
+  @spec execute_direct!(pid, String.t()) :: Enumerable.t()
+  def execute_direct!(connection, statement) do
+    {:ok, res} = execute_direct(connection, statement)
+    res
   end
 
   @doc "Returns the driver specific information to be stored inside the data source structure."

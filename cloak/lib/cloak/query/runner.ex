@@ -22,6 +22,7 @@ defmodule Cloak.Query.Runner do
 
   @type args :: %{
           query_id: String.t(),
+          analyst_id: Query.analyst_id(),
           data_source: Cloak.DataSource.t(),
           statement: String.t(),
           parameters: [Cloak.DataSource.field()],
@@ -46,18 +47,20 @@ defmodule Cloak.Query.Runner do
   """
   @spec start(
           String.t(),
+          Query.analyst_id(),
           DataSource.t(),
           String.t(),
           [DataSource.field()],
           Query.view_map(),
           start_opts
         ) :: :ok | {:error, :too_many_queries}
-  def start(query_id, data_source, statement, parameters, views, start_opts \\ []) do
+  def start(query_id, analyst_id, data_source, statement, parameters, views, start_opts \\ []) do
     runner_args =
       start_opts
       |> Map.new()
       |> Map.merge(%{
         query_id: query_id,
+        analyst_id: analyst_id,
         data_source: data_source,
         statement: statement,
         parameters: parameters,
@@ -93,9 +96,10 @@ defmodule Cloak.Query.Runner do
       end)
 
   @doc "Executes the query synchronously, and returns its result."
-  @spec run_sync(String.t(), DataSource.t(), String.t(), [DataSource.field()], Query.view_map()) :: any
-  def run_sync(query_id, data_source, statement, parameters, views) do
-    :ok = start(query_id, data_source, statement, parameters, views, result_target: self())
+  @spec run_sync(String.t(), Query.analyst_id(), DataSource.t(), String.t(), [DataSource.field()], Query.view_map()) ::
+          any
+  def run_sync(query_id, analyst_id, data_source, statement, parameters, views) do
+    :ok = start(query_id, analyst_id, data_source, statement, parameters, views, result_target: self())
 
     receive do
       {:result, response} -> response

@@ -237,16 +237,10 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
   defp order_rows(order_by) do
     order_by =
-      for {column, dir, nulls} <- order_by, into: %{} do
+      for {column, dir, nulls} <- order_by do
         true = {dir, nulls} in @supported_orders
 
-        dir =
-          if dir == :desc do
-            -1
-          else
-            1
-          end
-
+        dir = if dir == :desc, do: -1, else: 1
         {Expression.title(column), dir}
       end
 

@@ -207,7 +207,7 @@ defmodule Cloak.DataSource do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(_), do: {:ok, load_data_source_configs()}
+  def init(_), do: {:ok, load_data_source_configs(), :hibernate}
 
   @impl GenServer
   def handle_call(:all, _from, data_sources) do
@@ -223,12 +223,12 @@ defmodule Cloak.DataSource do
   def handle_cast({:update_data_source, data_source}, old_data_sources) do
     updated_data_sources = replace_data_source(old_data_sources, data_source)
     publish_data_sources_change(updated_data_sources, old_data_sources)
-    {:noreply, updated_data_sources}
+    {:noreply, updated_data_sources, :hibernate}
   end
 
   def handle_cast({:replace_data_sources, new_data_sources}, old_data_sources) do
     publish_data_sources_change(new_data_sources, old_data_sources)
-    {:noreply, new_data_sources}
+    {:noreply, new_data_sources, :hibernate}
   end
 
   # -------------------------------------------------------------------

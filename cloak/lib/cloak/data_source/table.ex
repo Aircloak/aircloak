@@ -44,7 +44,7 @@ defmodule Cloak.DataSource.Table do
   # -------------------------------------------------------------------
 
   @doc "Creates the new table instance."
-  @spec new(String.t(), String.t(), [option] | Map.t()) :: t
+  @spec new(String.t(), String.t() | nil, [option] | Map.t()) :: t
   def new(name, user_id_column_name, opts \\ []),
     do:
       Map.merge(
@@ -139,7 +139,7 @@ defmodule Cloak.DataSource.Table do
       try do
         parsed_query
         |> Map.put(:subquery?, true)
-        |> Compiler.compile_standard!(data_source)
+        |> Compiler.compile_standard!(nil, data_source)
         |> drop_duplicate_columns()
         |> drop_constant_columns()
       rescue

@@ -266,7 +266,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     index = Enum.find_index(aggregated_columns, &Expression.equals?(&1, uid_aggregator))
     true = index != nil
     column_name = "__ac_agg_#{index}"
-    inner_column = column_from_table(inner_table, column_name)
+    inner_column = Helpers.column_from_table(inner_table, column_name)
     function_name = global_aggregator(old_aggregator.function)
     new_aggregator = Expression.function(function_name, [inner_column], inner_column.type, true)
     %Expression{new_aggregator | alias: old_aggregator.function}
@@ -277,17 +277,11 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   defp global_aggregator(function_name), do: function_name
 
   defp update_base_column(%Expression{user_id?: true}, inner_table, _base_columns),
-    do: column_from_table(inner_table, inner_table.user_id)
+    do: Helpers.column_from_table(inner_table, inner_table.user_id)
 
   defp update_base_column(column, inner_table, base_columns) do
     base_column = Enum.find(base_columns, &Expression.equals?(&1, column))
-    column_from_table(inner_table, base_column.alias)
-  end
-
-  defp column_from_table(table, name) do
-    table.columns
-    |> Enum.find(&(&1.name == name))
-    |> Expression.column(table)
+    Helpers.column_from_table(inner_table, base_column.alias)
   end
 
   defp required_groups(%Query{group_by: []} = query),

@@ -114,6 +114,14 @@ defmodule Cloak.Sql.Compiler.Helpers do
     :ok
   end
 
+  @doc "Returns a column expression from a table."
+  @spec column_from_table(Table.t(), String.t()) :: Expression.t()
+  def column_from_table(table, name) do
+    table.columns
+    |> Enum.find(&(&1.name == name))
+    |> Expression.column(table)
+  end
+
   @doc "Returns the list of expressions from a query that can contain aggregating clauses."
   @spec aggregator_sources(Query.t()) :: [Expression.t()]
   def aggregator_sources(query), do: query.columns ++ having_columns(query) ++ Query.order_by_expressions(query)

@@ -26,6 +26,7 @@ defmodule Cloak.Query.ParallelStreamingTest do
       result =
         Runner.run_sync(
           "#{:erlang.unique_integer([:positive])}",
+          nil,
           data_source(Keyword.get(unquote(opts), :concurrency, 3)),
           unquote(query),
           [],

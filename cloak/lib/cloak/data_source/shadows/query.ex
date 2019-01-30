@@ -38,7 +38,7 @@ defmodule Cloak.DataSource.Shadows.Query do
         LIMIT #{size()}
       """
       |> Parser.parse!()
-      |> Compiler.compile_direct!(data_source)
+      |> Compiler.compile_direct!(nil, data_source)
       |> DbEmulator.select()
       |> Enum.map(&hd/1)
     else

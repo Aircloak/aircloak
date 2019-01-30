@@ -49,7 +49,14 @@ defmodule Cloak.Query.Runner.Engine do
 
   defp compile!(parsed_query, runner_args) do
     runner_args.state_updater.(:compiling)
-    Sql.Compiler.compile!(parsed_query, runner_args.data_source, runner_args.parameters, runner_args.views)
+
+    Sql.Compiler.compile!(
+      parsed_query,
+      runner_args.analyst_id,
+      runner_args.data_source,
+      runner_args.parameters,
+      runner_args.views
+    )
   end
 
   defp run_statement(%Sql.Query{command: :show, show: :tables} = query, features, _state_updater),

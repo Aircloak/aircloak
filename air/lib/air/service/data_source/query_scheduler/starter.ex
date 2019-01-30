@@ -94,6 +94,7 @@ defmodule Air.Service.DataSource.QueryScheduler.Starter do
   defp cloak_query_map(query) do
     %{
       id: query.id,
+      analyst_id: query.user.id,
       statement: query.statement,
       data_source: query.data_source.name,
       parameters: query.parameters["values"],
