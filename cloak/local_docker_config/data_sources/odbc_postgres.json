@@ -11,18 +11,15 @@
   "tables": {
     "test": {
       "db_name": "user_data",
-      "user_id": "user_id",
-      "ignore_unsupported_types": false
+      "user_id": "user_id"
     },
     "purchases": {
       "db_name": "purchases",
-      "user_id": "uid",
-      "ignore_unsupported_types": false
+      "user_id": "uid"
     },
     "demographics": {
       "db_name": "demographics",
-      "user_id": "uid",
-      "ignore_unsupported_types": false
+      "user_id": "uid"
     },
     "customers": {
       "db_name": "customers",
