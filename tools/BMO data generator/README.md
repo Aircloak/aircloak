@@ -31,6 +31,7 @@ docker \
   run -i \
   -v FOLDER_WITH_DATA:/opt/generated \
   -p 8047:8047 \
+  -p 31010:31010 \
   -t \
   drill/apache-drill:1.15.0 /bin/bash
 ```
