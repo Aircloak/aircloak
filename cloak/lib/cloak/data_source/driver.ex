@@ -56,18 +56,11 @@ defmodule Cloak.DataSource.Driver do
   @doc "Returns true if the driver supports analyst tables."
   @callback supports_analyst_tables?() :: boolean
 
-  @doc "Stores the analyst table to database."
-  @callback store_analyst_table(connection, any, Query.t()) ::
-              {:ok, db_name :: String.t(), recreate_info :: String.t()} | {:error, String.t()}
+  @doc "Prepare analyst table for storing."
+  @callback prepare_analyst_table(any, Query.t()) :: {db_name :: String.t(), store_info :: String.t()}
 
-  @doc """
-  Recreates the analyst table from the given data.
-
-  This function allows us to create the analyst table without needing to recompile the query. The recompilation is
-  bypassed to ensure that multiple cloaks operate on exactly the same analyst table. Otherwise, if a new cloak is
-  added on some future version, recompilation might generate a different table.
-  """
-  @callback recreate_analyst_table(connection, db_name :: String.t(), recreate_info :: String.t()) ::
+  @doc "Stores the analyst table from the given data obtained via `prepare_analyst_table/2`."
+  @callback store_analyst_table(connection, db_name :: String.t(), store_info :: String.t()) ::
               :ok | {:error, String.t()}
 
   @doc "Given the list of known analyst tables, drops all existing but unused analyst tables."
@@ -81,10 +74,10 @@ defmodule Cloak.DataSource.Driver do
       def supports_analyst_tables?(), do: false
 
       @impl unquote(__MODULE__)
-      def store_analyst_table(_connection, _id, _query), do: raise(RuntimeError, "not implemented")
+      def prepare_analyst_table(_id, _query), do: raise(RuntimeError, "not implemented")
 
       @impl unquote(__MODULE__)
-      def recreate_analyst_table(_connection, _id, _query), do: raise(RuntimeError, "not implemented")
+      def store_analyst_table(_connection, _id, _query), do: raise(RuntimeError, "not implemented")
 
       @impl unquote(__MODULE__)
       def drop_unused_analyst_tables(_connection, _known_db_names), do: raise(RuntimeError, "not implemented")

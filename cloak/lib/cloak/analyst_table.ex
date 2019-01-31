@@ -21,14 +21,10 @@ defmodule Cloak.AnalystTable do
         table = %{analyst: analyst, name: table_name, statement: statement, data_source: data_source}
 
         with {:ok, query} <- Cloak.AnalystTable.Compiler.compile(table.name, table.statement, table.data_source),
-             {:ok, db_name, recreate_info} <- store_table_to_database(table, query) do
-          table =
-            Map.merge(table, %{
-              db_name: db_name,
-              id_column: Cloak.Sql.Compiler.Helpers.id_column(query).name,
-              recreate_info: recreate_info
-            })
-
+             {db_name, store_info} = data_source.driver.prepare_analyst_table({analyst, table_name}, query),
+             id_column = Cloak.Sql.Compiler.Helpers.id_column(query).name,
+             table = Map.merge(table, %{db_name: db_name, id_column: id_column, store_info: store_info}),
+             :ok <- store_table_in_database(table) do
           store_table_to_ets(table)
           {:ok, registration_info(table)}
         end
@@ -73,17 +69,10 @@ defmodule Cloak.AnalystTable do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp store_table_to_database(table, query) do
-    Cloak.DataSource.Connection.execute!(
-      table.data_source,
-      &table.data_source.driver.store_analyst_table(&1, {table.analyst, table.name}, query)
-    )
-  end
-
-  defp recreate_table_in_database(table) do
+  defp store_table_in_database(table) do
     DataSource.Connection.execute!(
       table.data_source,
-      &table.data_source.driver.recreate_analyst_table(&1, table.db_name, table.recreate_info)
+      &table.data_source.driver.store_analyst_table(&1, table.db_name, table.store_info)
     )
   end
 
@@ -118,7 +107,6 @@ defmodule Cloak.AnalystTable do
   defp store_table_to_ets(table) do
     table_definition = table_definition(table)
     :ets.insert(__MODULE__, {{table.analyst, table.data_source.name, table.name}, table_definition})
-    :ok
   end
 
   defp table_definition(table) do
@@ -137,7 +125,7 @@ defmodule Cloak.AnalystTable do
 
   defp register_table(registration_info) do
     with {:ok, table} <- table(registration_info),
-         :ok <- recreate_table_in_database(table) do
+         :ok <- store_table_in_database(table) do
       store_table_to_ets(table)
       {:ok, table}
     end
@@ -147,7 +135,7 @@ defmodule Cloak.AnalystTable do
     table =
       registration_info
       |> Jason.decode!()
-      |> Map.take(~w(analyst name statement data_source db_name id_column recreate_info))
+      |> Map.take(~w(analyst name statement data_source db_name id_column store_info))
       |> Aircloak.atomize_keys()
 
     case DataSource.fetch(table.data_source) do
