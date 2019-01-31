@@ -4,9 +4,13 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   """
   use Phoenix.Channel, log_handle_in: false
   require Logger
+  require Aircloak
   require Aircloak.DeployConfig
 
   alias Air.CentralClient.Socket
+
+  @type views :: %{String.t() => String.t()}
+  @type parameters :: nil | [map]
 
   # -------------------------------------------------------------------
   # API functions
@@ -18,9 +22,18 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   The function returns when the cloak responds. If the timeout occurs, it is
   still possible that a cloak has received the request.
   """
-  @spec run_query(pid | nil, map) :: :ok | {:error, any}
-  def run_query(channel_pid, query) do
-    with {:ok, _} <- call(channel_pid, "run_query", encode(query), :timer.seconds(5)), do: :ok
+  @spec run_query(pid, String.t(), String.t(), String.t(), String.t(), parameters, views) :: :ok | {:error, any}
+  def run_query(channel_pid, query_id, analyst_id, statement, data_source_name, parameters, views) do
+    payload = %{
+      id: query_id,
+      analyst_id: analyst_id,
+      statement: statement,
+      data_source: data_source_name,
+      parameters: parameters,
+      views: views
+    }
+
+    with {:ok, _} <- call(channel_pid, "run_query", encode(payload), :timer.seconds(5)), do: :ok
   end
 
   @doc """
@@ -29,14 +42,24 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   Unlike `run_query/2`, this function is synchronous, meaning it waits for the
   cloak to respond, and returns the result obtained by the cloak.
   """
-  @spec describe_query(pid | nil, map) :: {:ok, map} | {:error, any}
-  def describe_query(channel_pid, query_data),
-    do: call(channel_pid, "describe_query", encode(query_data), :timer.seconds(5))
+  @spec describe_query(pid, pos_integer, String.t(), String.t(), parameters, views) :: {:ok, map} | {:error, any}
+  def describe_query(channel_pid, analyst_id, statement, data_source_name, parameters, views) do
+    payload = %{
+      analyst_id: analyst_id,
+      statement: statement,
+      data_source: data_source_name,
+      parameters: parameters,
+      views: views
+    }
+
+    call(channel_pid, "describe_query", encode(payload), :timer.seconds(5))
+  end
 
   @doc "Validates the view on the cloak."
-  @spec validate_views(pid | nil, map) :: map
-  def validate_views(channel_pid, view_data) do
-    {:ok, results} = call(channel_pid, "validate_views", view_data, :timer.seconds(5))
+  @spec validate_views(pid, String.t(), String.t(), views) :: map
+  def validate_views(channel_pid, analyst_id, data_source_name, views) do
+    payload = %{analyst_id: analyst_id, data_source: data_source_name, views: views}
+    {:ok, results} = call(channel_pid, "validate_views", payload, :timer.seconds(5))
 
     for result <- results, into: %{} do
       case result do
@@ -47,7 +70,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   end
 
   @doc "Stops a query on the given cloak."
-  @spec stop_query(pid | nil, String.t()) :: :ok | {:error, any}
+  @spec stop_query(pid, String.t()) :: :ok | {:error, any}
   def stop_query(channel_pid, query_id) do
     with {:ok, _} <- call(channel_pid, "stop_query", query_id, :timer.seconds(5)), do: :ok
   catch
@@ -56,8 +79,23 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   end
 
   @doc "Returns the list of queries running on this cloak."
-  @spec running_queries(pid | nil) :: {:ok, [String.t()]} | {:error, any}
+  @spec running_queries(pid) :: {:ok, [String.t()]} | {:error, any}
   def running_queries(channel_pid), do: call(channel_pid, "running_queries", nil, :timer.minutes(4))
+
+  @doc "Stores the analyst table on the cloak."
+  @spec store_analyst_table(pid, pos_integer, String.t(), String.t(), String.t()) ::
+          {:ok, registration_info :: String.t()} | {:error, String.t()}
+  def store_analyst_table(channel_pid, analyst_id, table_name, statement, data_source_name) do
+    payload = %{analyst_id: analyst_id, table_name: table_name, statement: statement, data_source: data_source_name}
+    call(channel_pid, "store_analyst_table", payload, :timer.hours(1))
+  end
+
+  @doc "Asynchronously sends all known analyst tables to the cloak."
+  @spec send_analyst_tables_to_cloak(pid) :: :ok
+  def send_analyst_tables_to_cloak(channel_pid) do
+    send(channel_pid, :send_analyst_tables)
+    :ok
+  end
 
   # -------------------------------------------------------------------
   # Phoenix.Channel callback functions
@@ -78,6 +116,8 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
       cloak
       |> Air.Service.Cloak.register(cloak_info.data_sources)
       |> revalidate_views()
+
+      Aircloak.in_env(test: :ok, else: send_analyst_tables_to_cloak(self()))
 
       {:ok, %{}, socket}
     else
@@ -107,10 +147,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
 
   @impl Phoenix.Channel
   def handle_info(message, socket),
-    do:
-      Aircloak.report_long({:handle_info, message}, fn ->
-        handle_erlang_message(message, socket)
-      end)
+    do: Aircloak.report_long({:handle_info, message}, fn -> handle_erlang_message(message, socket) end)
 
   # -------------------------------------------------------------------
   # Handling of messages from other processes
@@ -139,6 +176,16 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
 
   defp handle_erlang_message({:EXIT, _, :normal}, socket) do
     # probably the linked reporter terminated successfully
+    {:noreply, socket}
+  end
+
+  defp handle_erlang_message(:send_analyst_tables, socket) do
+    push(
+      socket,
+      "register_analyst_tables",
+      %{registration_infos: Enum.map(Air.Service.AnalystTable.all(), & &1.registration_info)}
+    )
+
     {:noreply, socket}
   end
 

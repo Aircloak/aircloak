@@ -35,7 +35,7 @@ defmodule Air.PsqlServer.CloakQuery do
     user = conn.assigns.user
     data_source_id = conn.assigns.data_source_id
     converted_params = convert_params(params)
-    job_fun = fn -> DataSource.describe_query(data_source_id, user, query, converted_params) end
+    job_fun = fn -> describe_query(data_source_id, user, query, converted_params) end
 
     result_handler = fn conn, describe_result ->
       result =
@@ -60,6 +60,21 @@ defmodule Air.PsqlServer.CloakQuery do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp describe_query(data_source_id_spec, user, statement, parameters) do
+    DataSource.with_available_cloak(
+      data_source_id_spec,
+      user,
+      &AirWeb.Socket.Cloak.MainChannel.describe_query(
+        &1.channel_pid,
+        user.id,
+        statement,
+        &1.data_source.name,
+        parameters,
+        Air.Service.View.user_views_map(user, &1.data_source.id)
+      )
+    )
+  end
 
   defp convert_params(nil), do: nil
 

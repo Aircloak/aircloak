@@ -33,6 +33,16 @@ defmodule Cloak.DataSource.SQLServer do
   def sql_dialect_module(), do: SqlBuilder.SQLServer
 
   # -------------------------------------------------------------------
+  # DataSource.Driver.SQL callbacks
+  # -------------------------------------------------------------------
+
+  @impl Driver.SQL
+  def execute(connection, sql), do: RODBC.execute_direct(connection, sql)
+
+  @impl Driver.SQL
+  def select(connection, sql), do: execute(connection, sql)
+
+  # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 

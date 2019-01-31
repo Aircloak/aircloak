@@ -46,6 +46,16 @@ defmodule Cloak.DataSource.SAPHana do
   defdelegate driver_info(connection), to: RODBC
 
   # -------------------------------------------------------------------
+  # DataSource.Driver.SQL callbacks
+  # -------------------------------------------------------------------
+
+  @impl Driver.SQL
+  def execute(connection, sql), do: RODBC.execute_direct(connection, sql)
+
+  @impl Driver.SQL
+  def select(connection, sql), do: execute(connection, sql)
+
+  # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 

@@ -2,7 +2,7 @@ defmodule Cloak.AnalystTable do
   @moduledoc "Service for working with analyst tables"
 
   use GenServer
-  alias Cloak.AnalystTable.Helpers
+  require Logger
   alias Cloak.DataSource
 
   # -------------------------------------------------------------------
@@ -10,11 +10,39 @@ defmodule Cloak.AnalystTable do
   # -------------------------------------------------------------------
 
   @doc "Stores the analyst table to the database."
-  @spec store(Cloak.Sql.Query.analyst_id(), String.t(), String.t(), DataSource.t()) :: :ok | {:error, String.t()}
+  @spec store(Cloak.Sql.Query.analyst_id(), String.t(), String.t(), DataSource.t()) ::
+          {:ok, registration_info :: String.t()} | {:error, String.t()}
   def store(analyst, table_name, statement, data_source) do
-    table = %{analyst: analyst, name: table_name, statement: statement, data_source: data_source}
+    # Using global ensures that drop_unused_analyst_tables can't run while the store is running. On the other hand,
+    # multiple stores can run simultaneously since the lock id (`:store`) is not pid-dependent.
+    :global.trans(
+      {:database_store, :store},
+      fn ->
+        table = %{analyst: analyst, name: table_name, statement: statement, data_source: data_source}
 
-    with {:ok, query, db_name} <- store_table_to_database(table), do: store_table_to_ets(table, query, db_name)
+        with {:ok, query} <- Cloak.AnalystTable.Compiler.compile(table.name, table.statement, table.data_source),
+             {:ok, db_name, recreate_info} <- store_table_to_database(table, query) do
+          table =
+            Map.merge(table, %{
+              db_name: db_name,
+              id_column: Cloak.Sql.Compiler.Helpers.id_column(query).name,
+              recreate_info: recreate_info
+            })
+
+          store_table_to_ets(table)
+          {:ok, registration_info(table)}
+        end
+      end,
+      [node()]
+    )
+  end
+
+  @doc "Registers the analyst tables from the given registration infos, creating them in the database if needed."
+  @spec register_table(String.t()) :: :ok
+  def register_tables(registration_infos) do
+    Enum.each(registration_infos, &register_table/1)
+    drop_unused_analyst_tables()
+    :ok
   end
 
   @doc "Returns the analyst table definition."
@@ -45,36 +73,87 @@ defmodule Cloak.AnalystTable do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp store_table_to_database(table) do
-    with {:ok, query} <- Helpers.compile(table.name, table.statement, table.data_source),
-         {:ok, db_name} <- Helpers.store({table.analyst, table.name}, query, table.data_source),
-         do: {:ok, query, db_name}
+  defp store_table_to_database(table, query) do
+    Cloak.DataSource.Connection.execute!(
+      table.data_source,
+      &table.data_source.driver.store_analyst_table(&1, {table.analyst, table.name}, query)
+    )
   end
 
-  defp store_table_to_ets(table, query, db_name) do
-    table_definition =
-      table
-      |> Map.take([:name, :statement])
-      |> Map.put(:db_name, db_name)
-      |> table_definition(query)
+  defp recreate_table_in_database(table) do
+    DataSource.Connection.execute!(
+      table.data_source,
+      &table.data_source.driver.recreate_analyst_table(&1, table.db_name, table.recreate_info)
+    )
+  end
 
+  defp drop_unused_analyst_tables() do
+    # Using global ensures that this function is running in isolation to all other database operations (including
+    # concurrent executions of this function.
+    :global.trans(
+      {:database_store, {:drop_unused_analyst_tables, self()}},
+      fn ->
+        # We're taking a list of all known registered db_names in all the data sources, since one name can be valid
+        # in one data source, but unknown in another which uses the same database. Taking all the names ensures that
+        # such tables are not removed.
+        db_names = Enum.map(:ets.match(__MODULE__, {{:_, :_, :_}, :"$1"}), fn [table] -> table.db_name end)
+
+        Cloak.DataSource.all()
+        |> Stream.filter(& &1.driver.supports_analyst_tables?)
+        |> Stream.filter(&(&1.status == :online))
+        |> Stream.flat_map(fn data_source ->
+          data_source
+          |> Cloak.DataSource.Connection.execute!(&data_source.driver.drop_unused_analyst_tables(&1, db_names))
+          |> Enum.map(&{data_source, &1})
+        end)
+        |> Enum.each(fn {data_source, db_name} ->
+          Logger.info("removed unused analyst table `#{db_name}` from `#{data_source.name}`")
+        end)
+      end,
+      [node()],
+      _retries = 5
+    )
+  end
+
+  defp store_table_to_ets(table) do
+    table_definition = table_definition(table)
     :ets.insert(__MODULE__, {{table.analyst, table.data_source.name, table.name}, table_definition})
     :ok
   end
 
-  defp table_definition(table_data, query) do
-    DataSource.Table.new(
-      table_data.name,
-      Cloak.Sql.Compiler.Helpers.id_column(query).name,
-      %{db_name: table_data.db_name, columns: columns(query)}
-    )
+  defp table_definition(table) do
+    table_definition = DataSource.Table.new(table.name, table.id_column, %{db_name: table.db_name})
+
+    [full_definition] =
+      Cloak.DataSource.Connection.execute!(
+        table.data_source,
+        &table.data_source.driver.load_tables(&1, table_definition)
+      )
+
+    full_definition
   end
 
-  defp columns(query) do
-    Enum.map(
-      Enum.zip(query.column_titles, query.columns),
-      fn {column_title, column} -> DataSource.Table.column(column_title, column.type) end
-    )
+  defp registration_info(table), do: Jason.encode!(update_in(table.data_source, & &1.name))
+
+  defp register_table(registration_info) do
+    with {:ok, table} <- table(registration_info),
+         :ok <- recreate_table_in_database(table) do
+      store_table_to_ets(table)
+      {:ok, table}
+    end
+  end
+
+  defp table(registration_info) do
+    table =
+      registration_info
+      |> Jason.decode!()
+      |> Map.take(~w(analyst name statement data_source db_name id_column recreate_info))
+      |> Aircloak.atomize_keys()
+
+    case DataSource.fetch(table.data_source) do
+      {:ok, data_source} -> {:ok, %{table | data_source: data_source}}
+      :error -> {:error, "Data source not found!"}
+    end
   end
 
   # -------------------------------------------------------------------
@@ -82,5 +161,24 @@ defmodule Cloak.AnalystTable do
   # -------------------------------------------------------------------
 
   @doc false
-  def start_link(_arg), do: GenServer.start_link(__MODULE__, nil, name: __MODULE__)
+  def child_spec(_arg) do
+    import Aircloak.ChildSpec
+
+    supervisor(
+      [
+        gen_server(__MODULE__, nil, name: __MODULE__),
+        periodic_cleaner()
+      ],
+      strategy: :one_for_one
+    )
+  end
+
+  defp periodic_cleaner() do
+    {Periodic,
+     id: :periodic_cleaner,
+     run: &drop_unused_analyst_tables/0,
+     every: :timer.hours(1),
+     timeout: :timer.minutes(1),
+     overlap?: false}
+  end
 end

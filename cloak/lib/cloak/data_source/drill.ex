@@ -63,4 +63,14 @@ defmodule Cloak.DataSource.Drill do
   @impl Driver
   def supports_query?(query),
     do: query |> get_in([Cloak.Sql.Query.Lenses.joins()]) |> Enum.any?(&(&1.type == :cross_join)) |> :erlang.not()
+
+  # -------------------------------------------------------------------
+  # DataSource.Driver.SQL callbacks
+  # -------------------------------------------------------------------
+
+  @impl Driver.SQL
+  def execute(connection, sql), do: RODBC.execute_direct(connection, sql)
+
+  @impl Driver.SQL
+  def select(connection, sql), do: execute(connection, sql)
 end

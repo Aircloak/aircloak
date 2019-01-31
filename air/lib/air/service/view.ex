@@ -178,7 +178,7 @@ defmodule Air.Service.View do
   defp sync_revalidate_views!(user, data_source_id) do
     Logger.info("revalidating views for user #{user.id}, data source #{data_source_id}")
 
-    {:ok, results} = DataSource.validate_views({:id, data_source_id}, user, user_views_map(user, data_source_id))
+    {:ok, results} = validate_views(data_source_id, user, user_views_map(user, data_source_id))
 
     for {name, result} <- results do
       view =
@@ -194,6 +194,14 @@ defmodule Air.Service.View do
     end
 
     notify_subscribers(:revalidated_views, %{user_id: user.id, data_source_id: data_source_id})
+  end
+
+  defp validate_views(data_source_id, user, views) do
+    DataSource.with_available_cloak(
+      {:id, data_source_id},
+      user,
+      &{:ok, AirWeb.Socket.Cloak.MainChannel.validate_views(&1.channel_pid, user.id, &1.data_source.name, views)}
+    )
   end
 
   defp view_status(validation_result) do
@@ -249,7 +257,7 @@ defmodule Air.Service.View do
       user_views_map(user, view.data_source_id)
       |> Map.put(view.name, view.sql)
 
-    case DataSource.validate_views({:id, view.data_source_id}, user, views) do
+    case validate_views(view.data_source_id, user, views) do
       {:ok, results} -> Map.fetch!(results, view.name)
       error -> error
     end
