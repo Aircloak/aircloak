@@ -513,7 +513,7 @@ defmodule Cloak.Sql.Compiler.Validation do
       Helpers.all_id_columns_from_tables(query)
       |> Enum.map(&Expression.display_name/1)
       |> case do
-        [] -> "a table or subquery containing an `user id` key column to the `FROM` clause"
+        [] -> "a table or subquery containing a `user id` key column to the `FROM` clause"
         [column] -> "the column #{column} to the `SELECT` clause"
         columns -> "one of the columns #{Enum.join(columns, ", ")} to the `SELECT` clause"
       end
@@ -524,7 +524,7 @@ defmodule Cloak.Sql.Compiler.Validation do
         _ -> "select list of subquery `#{alias}`"
       end
 
-    "Missing an `user id` key column in the #{error_location}. To fix this error, add #{suggested_fix_message}."
+    "Missing a `user id` key column in the #{error_location}. To fix this error, add #{suggested_fix_message}."
   end
 
   # -------------------------------------------------------------------

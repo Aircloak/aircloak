@@ -118,13 +118,13 @@ defmodule Cloak.Query.KeysTest do
 
   test "error on missing uid in main query" do
     assert_query("select count(*) from keys_transactions", %{
-      error: "Missing an `user id` key column in the tables referenced by the top-level query." <> _
+      error: "Missing a `user id` key column in the tables referenced by the top-level query." <> _
     })
   end
 
   test "error on missing uid in subquery" do
     assert_query("select count(*) from (select product_id from keys_transactions) as t", %{
-      error: "Missing an `user id` key column in the select list of subquery `t`." <> _
+      error: "Missing a `user id` key column in the select list of subquery `t`." <> _
     })
   end
 
