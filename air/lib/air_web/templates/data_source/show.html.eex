@@ -40,7 +40,7 @@
         dataSourceDescription: "<%= @data_source.description %>",
         dataSourceStatus: "<%= status(@data_source) %>",
         CSRFToken: "<%= @csrf_token %>",
-        guardianToken: "<%= @guardian_token %>",
+        socketToken: "<%= @socket_token %>",
         userId: "<%= @current_user.id %>",
         sessionId: "<%= @session_id %>",
         selectables: <%= selectables(@conn, @data_source) |> to_json() %>,

@@ -25,7 +25,7 @@ import {activateTooltips} from "../tooltips";
 type Props = {
   userId: number,
   sessionId: string,
-  guardianToken: string,
+  socketToken: string,
   dataSourceName: string,
   dataSourceDescription: string,
   dataSourceStatus: string,

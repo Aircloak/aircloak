@@ -58,26 +58,28 @@ defmodule Air.Service.User do
   @doc "Returns a token that can be used to reset the given user's password."
   @spec reset_password_token(User.t(), change_options) :: String.t()
   def reset_password_token(user, options \\ []) do
+    one_week_in_seconds = div(7 * :timer.hours(24), :timer.seconds(1))
+
     check_ldap!(user, options)
-    RevokableToken.sign(user.id, user, :password_reset)
+    RevokableToken.sign(user.id, user, :password_reset, one_week_in_seconds)
   end
 
   @doc "Resets the user's password from the given params. The user is identified by the given reset token."
   @spec reset_password(String.t(), Map.t()) :: {:error, :invalid_token} | {:error, Ecto.Changeset.t()} | {:ok, User.t()}
   def reset_password(token, params) do
-    one_week_in_seconds = 7 * :timer.hours(24) / :timer.seconds(1)
+    in_transaction(fn ->
+      with {:ok, user_id} <- RevokableToken.verify_and_revoke(token, :password_reset) do
+        user = load(user_id)
 
-    with {:ok, user_id} <- RevokableToken.verify(token, :password_reset, max_age: one_week_in_seconds) do
-      in_transaction(fn ->
-        RevokableToken.revoke(token, :password_reset)
+        RevokableToken.revoke_all(user, :session)
 
-        load(user_id)
+        user
         |> change_main_login(&password_reset_changeset(&1, params))
         |> update()
-      end)
-    else
-      _ -> {:error, :invalid_token}
-    end
+      else
+        _ -> {:error, :invalid_token}
+      end
+    end)
   end
 
   @doc "Returns a list of all users in the system."
@@ -91,6 +93,19 @@ defmodule Air.Service.User do
   @doc "Loads the user with the given id."
   @spec load(pos_integer | binary) :: User.t() | nil
   def load(user_id), do: Repo.one(from(user in User, where: user.id == ^user_id, preload: [:logins, :groups]))
+
+  @doc "Loads the user with the given id if they are enabled."
+  @spec load_enabled(pos_integer | binary) :: {:ok, User.t()} | {:error, :not_found}
+  def load_enabled(user_id) do
+    User
+    |> where([q], q.enabled)
+    |> Repo.get(user_id)
+    |> Repo.preload([:logins, :groups])
+    |> case do
+      nil -> {:error, :not_found}
+      user -> {:ok, user}
+    end
+  end
 
   @doc "Creates the new user, raises on error."
   @spec create!(map) :: User.t()

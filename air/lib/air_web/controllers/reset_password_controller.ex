@@ -21,7 +21,7 @@ defmodule AirWeb.ResetPasswordController do
       {:ok, user} ->
         conn
         |> put_flash(:info, "Your new password has been saved.")
-        |> Air.Guardian.Plug.sign_in(user)
+        |> AirWeb.Plug.Session.sign_in(user)
         |> redirect(to: "/")
 
       {:error, :invalid_token} ->
