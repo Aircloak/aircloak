@@ -22,9 +22,6 @@ defmodule Cloak.DataSource.SAPHana do
   # -------------------------------------------------------------------
 
   @impl Driver
-  def sql_dialect_module(), do: Cloak.DataSource.SqlBuilder.SAPHana
-
-  @impl Driver
   def connect(parameters) do
     if File.exists?(Cloak.SapHanaHelpers.driver_path()),
       do: RODBC.connect(parameters, &conn_params/1),

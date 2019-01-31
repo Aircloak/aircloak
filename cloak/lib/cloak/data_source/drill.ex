@@ -39,9 +39,6 @@ defmodule Cloak.DataSource.Drill do
   # -------------------------------------------------------------------
 
   @impl Driver
-  def sql_dialect_module(), do: SqlBuilder.Drill
-
-  @impl Driver
   def connect(parameters), do: RODBC.connect(parameters, &conn_params/1)
 
   @impl Driver

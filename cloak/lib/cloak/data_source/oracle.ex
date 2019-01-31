@@ -14,9 +14,6 @@ defmodule Cloak.DataSource.Oracle do
   # -------------------------------------------------------------------
 
   @impl Driver
-  def sql_dialect_module(), do: SqlBuilder.Oracle
-
-  @impl Driver
   def connect(parameters), do: RODBC.connect(parameters, &conn_params/1)
 
   @impl Driver

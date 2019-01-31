@@ -16,9 +16,6 @@ defmodule Cloak.DataSource.SQLServer do
     end
   end
 
-  @impl Driver
-  def sql_dialect_module(), do: SqlBuilder.SQLServer
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
