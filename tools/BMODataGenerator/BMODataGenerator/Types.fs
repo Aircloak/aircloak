@@ -8,7 +8,7 @@ type Row = {
     userId: int
 
     merchName: string
-    
+
     (*
     MERCH_SIC text
         MERCH_SIC contains numbers stored as strings such as:
@@ -19,7 +19,7 @@ type Row = {
     merchSic: string
     merchCity: string
     merchState: string
-    
+
     // This should really be a double, but Drill fails at importing it.
     // Create a string and then cast it later in Drill...
     tranAmt: string
@@ -27,7 +27,7 @@ type Row = {
     // datetime looking strings here, and then make Drill interpret
     // them as datetimes
     tranDt: string
-    
+
     (*
     SPOUSE contains mostly spouse names, but there’s other values that seem nonsensical to me (like numbers?) in strings:
     ·         HELEN
@@ -45,13 +45,13 @@ type Row = {
     spouse: string
     workPlace: string
     // ANNUAL_INCOME looks like a decimal encoded as a string, that can also be null.
-    annualInc: string 
+    annualInc: string
     (*
     CARD_NBR are string encoded credit card numbers.
     I will not be posting examples of this column here, but they are 16 digit numbers.
     CARD_NBR can also be null.       
     *)
-    cardNbr: string 
+    cardNbr: string
     (*
     I think genesis_id is some sort of identifier? Looks like a bunch of numbers stored as strings.
     0: jdbc:drill:zk=local> select distinct genesis_id from genesis2_parquet limit 10;
@@ -68,7 +68,7 @@ type Row = {
     | 67110286    |
     | 67110801    |
     | 67110853    |
-    +-------------+ 
+    +-------------+
     *)
     genesisId: int
 }
