@@ -46,6 +46,17 @@ defmodule Cloak.DataSource.MySQL do
   def driver_info(_connection), do: nil
 
   # -------------------------------------------------------------------
+  # DataSource.Driver.SQL callbacks
+  # -------------------------------------------------------------------
+
+  @impl Driver.SQL
+  def execute(connection, sql),
+    do: with({:error, error} <- Mariaex.query(connection, sql), do: {:error, Exception.message(error)})
+
+  @impl Driver.SQL
+  def select(connection, sql), do: with({:ok, result} <- execute(connection, sql), do: {:ok, result.rows})
+
+  # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
@@ -162,7 +173,7 @@ defmodule Cloak.DataSource.MySQL do
     defp parameter_mapper(value), do: value
 
     @doc false
-    def execute(connection, statement, parameters \\ [])
+    def execute(connection, statement, parameters)
 
     def execute(connection, "DROP SCHEMA " <> _rest = statement, []),
       do: Mariaex.query(connection, String.replace(statement, "CASCADE", ""))
