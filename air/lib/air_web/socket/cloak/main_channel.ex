@@ -90,6 +90,13 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
     call(channel_pid, "store_analyst_table", payload, :timer.hours(1))
   end
 
+  @doc "Asynchronously sends all known analyst tables to the cloak."
+  @spec send_analyst_tables_to_cloak(pid) :: :ok
+  def send_analyst_tables_to_cloak(channel_pid) do
+    send(channel_pid, :send_analyst_tables)
+    :ok
+  end
+
   # -------------------------------------------------------------------
   # Phoenix.Channel callback functions
   # -------------------------------------------------------------------
@@ -110,7 +117,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
       |> Air.Service.Cloak.register(cloak_info.data_sources)
       |> revalidate_views()
 
-      Aircloak.in_env(test: :ok, else: send(self(), :send_analyst_tables))
+      Aircloak.in_env(test: :ok, else: send_analyst_tables_to_cloak(self()))
 
       {:ok, %{}, socket}
     else
