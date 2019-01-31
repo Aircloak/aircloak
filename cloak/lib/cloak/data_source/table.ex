@@ -549,7 +549,7 @@ defmodule Cloak.DataSource.Table do
         :ok
 
       [invalid_name | _] ->
-        raise(ExecutionError, message: "Invalid key name: column #{invalid_name} doesn't exist in table #{name}")
+        raise(ExecutionError, message: "Invalid key name: column `#{invalid_name}` doesn't exist in table `#{name}`")
     end
 
     keys = if table.user_id != nil, do: Map.put(keys, table.user_id, :user_id), else: keys
@@ -610,7 +610,7 @@ defmodule Cloak.DataSource.Table do
   defp map_key(%{} = key, table_name) do
     if Map.size(key) != 1 do
       raise ExecutionError,
-        message: "Invalid key entry for table `#{table_name}`. A key has the format `{key_type: column_name}`."
+        message: ~s(Invalid key entry for table `#{table_name}`. A key has the format `{"key_type": "column_name"}`.)
     end
 
     [type] = Map.keys(key)
