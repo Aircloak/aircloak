@@ -81,6 +81,12 @@ defmodule Cloak.DataSource.Table do
       |> scan_virtual_tables(connection)
       |> resolve_tables_keys()
 
+  @doc "Maps configured tables into the proper table structure."
+  @spec map_tables(DataSource.t()) :: DataSource.t()
+  def map_tables(data_source) do
+    %{data_source | tables: data_source.tables |> Enum.map(&map_table/1) |> Enum.into(%{})}
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -556,5 +562,59 @@ defmodule Cloak.DataSource.Table do
       end
 
     {name, %{table | keys: keys, user_id: user_id}}
+  end
+
+  defp map_table({name, table}) do
+    {name, table}
+    |> map_isolators()
+    |> map_table_type()
+    |> map_keys()
+  end
+
+  def map_isolators({name, %{isolating_columns: _} = table}),
+    do: {name, update_in(table, [Lens.key(:isolating_columns) |> Lens.map_keys()], &to_string/1)}
+
+  def map_isolators({name, table}), do: {name, table}
+
+  defp map_table_type({name, %{user_id: _} = table}), do: {name, Map.delete(table, :type)}
+
+  defp map_table_type({name, table}) do
+    type =
+      case table[:type] do
+        "public" ->
+          :public
+
+        "private" ->
+          :private
+
+        nil ->
+          :private
+
+        type ->
+          raise ExecutionError,
+            message:
+              "Invalid table type `#{to_string(type)}` for table `#{name}`. " <>
+                "The table type has to have one of the following values: `public` or `private` (default)."
+      end
+
+    {name, Map.put(table, :type, type)}
+  end
+
+  defp map_keys({name, %{keys: keys} = table}) do
+    keys = keys |> Enum.map(&map_key(&1, name)) |> Enum.into(%{})
+    {name, %{table | keys: keys}}
+  end
+
+  defp map_keys({name, table}), do: {name, table}
+
+  defp map_key(%{} = key, table_name) do
+    if Map.size(key) != 1 do
+      raise ExecutionError,
+        message: "Invalid key entry for table `#{table_name}`. A key has the format `{key_type: column_name}`."
+    end
+
+    [type] = Map.keys(key)
+    [column] = Map.values(key)
+    {column, type}
   end
 end
