@@ -112,7 +112,8 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       def quote_char(), do: ?"
 
       @impl unquote(__MODULE__)
-      def select_analyst_tables(_prefix), do: raise(RuntimeError, "not implemented")
+      def select_analyst_tables(_prefix),
+        do: raise(RuntimeError, "Analyst tables are not supported on this data source.")
 
       defoverridable select_hints: 0,
                      like_sql: 2,
