@@ -4,7 +4,7 @@ defmodule Cloak.DataSource.Oracle do
   For more information, see `DataSource`.
   """
 
-  use Cloak.DataSource.Driver.SQL
+  use Cloak.DataSource.Driver.RodbcSql
   require Logger
   alias Cloak.DataSource.{RODBC, Table}
   alias Cloak.Sql.{Expression, Query, Compiler.Helpers, Function}
@@ -18,9 +18,6 @@ defmodule Cloak.DataSource.Oracle do
 
   @impl Driver
   def connect(parameters), do: RODBC.connect(parameters, &conn_params/1)
-
-  @impl Driver
-  defdelegate disconnect(connection), to: RODBC
 
   @impl Driver
   def load_tables(connection, table) do
@@ -39,23 +36,10 @@ defmodule Cloak.DataSource.Oracle do
   end
 
   @impl Driver
-  defdelegate driver_info(connection), to: RODBC
-
-  @impl Driver
   def supports_query?(query), do: not query.subquery? or query.offset == 0
 
   @impl Driver
   def supports_analyst_tables?(), do: true
-
-  # -------------------------------------------------------------------
-  # DataSource.Driver.SQL callbacks
-  # -------------------------------------------------------------------
-
-  @impl Driver.SQL
-  def execute(connection, sql), do: RODBC.execute_direct(connection, sql)
-
-  @impl Driver.SQL
-  def select(connection, sql), do: execute(connection, sql)
 
   # -------------------------------------------------------------------
   # Internal functions

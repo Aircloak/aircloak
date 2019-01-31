@@ -4,7 +4,7 @@ defmodule Cloak.DataSource.Drill do
   For more information, see `DataSource`.
   """
 
-  use Cloak.DataSource.Driver.SQL
+  use Cloak.DataSource.Driver.RodbcSql
   alias Cloak.DataSource.{RODBC, SqlBuilder}
 
   # -------------------------------------------------------------------
@@ -45,9 +45,6 @@ defmodule Cloak.DataSource.Drill do
   def connect(parameters), do: RODBC.connect(parameters, &conn_params/1)
 
   @impl Driver
-  defdelegate disconnect(connection), to: RODBC
-
-  @impl Driver
   def load_tables(connection, table) do
     # In order to workaround some Drill bugs, we need to use `LIMIT 1` when detecting columns.
     # Both `WHERE 1=0` and `LIMIT 0` crash, in some scenarios, on version 1.14.
@@ -55,22 +52,6 @@ defmodule Cloak.DataSource.Drill do
   end
 
   @impl Driver
-  defdelegate select(connection, sql_query, result_processor), to: RODBC
-
-  @impl Driver
-  defdelegate driver_info(connection), to: RODBC
-
-  @impl Driver
   def supports_query?(query),
     do: query |> get_in([Cloak.Sql.Query.Lenses.joins()]) |> Enum.any?(&(&1.type == :cross_join)) |> :erlang.not()
-
-  # -------------------------------------------------------------------
-  # DataSource.Driver.SQL callbacks
-  # -------------------------------------------------------------------
-
-  @impl Driver.SQL
-  def execute(connection, sql), do: RODBC.execute_direct(connection, sql)
-
-  @impl Driver.SQL
-  def select(connection, sql), do: execute(connection, sql)
 end
