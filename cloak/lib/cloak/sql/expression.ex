@@ -106,7 +106,7 @@ defmodule Cloak.Sql.Expression do
   @spec set_location(t, Cloak.Sql.Parser.location()) :: t
   def set_location(expression, location), do: %{expression | source_location: location}
 
-  @doc "Returns the key type of the column, if any."
+  @doc "Returns the key type of the column, if any. Key types are provided by admins in the data source config file."
   @spec key_type(t) :: atom
   def key_type(%__MODULE__{user_id?: true}), do: :user_id
   def key_type(%__MODULE__{name: name, table: table}) when is_binary(name) and is_map(table), do: table.keys[name]
