@@ -10,12 +10,17 @@ the parquet files.
 
 It is a simplistic generator, and I only understood the ramification of using
 `Async.Parallel` after the fact (namely that it consumes the whole sequence
-immediately. This means that there is a somewhat high start time when generating
+immediately). This means that there is a somewhat high start time when generating
 large amounts of user data which is not parallelized.
 
 I also think the process could be simplified by not parallelizing the system
 that much in the first place. However some simple performance tests seemed to
 indicate that the current version generates data with an _adequate_ (not great) speed.
+For reference on my mac I can generate the data for 10k users in under half a minute.
+Irony is that on `acatlas3` (slower CPUs, but a lot more of them) it takes around
+a minute to generate 10k users. Seems a simpler more serial approach could do better,
+or that we might be better of writing larger chunks (i.e. multiple lines) at a time.
+Either way, since this is a one-off I have not invested more time into it.
 
 The goal was to create a dataset with some 100 million users. At the time of writing
 I have used the tool to generate data for some 10 million users (roughly 250 million rows).
