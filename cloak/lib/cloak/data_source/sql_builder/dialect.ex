@@ -115,19 +115,7 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       def select_table_names(_prefix),
         do: raise(RuntimeError, "Analyst tables are not supported on this data source.")
 
-      defoverridable select_hints: 0,
-                     like_sql: 2,
-                     ilike_sql: 2,
-                     limit_sql: 2,
-                     alias_sql: 2,
-                     literal: 1,
-                     time_arithmetic_expression: 2,
-                     date_subtraction_expression: 1,
-                     native_support_for_ilike?: 0,
-                     order_by: 3,
-                     range_at_statement_start?: 0,
-                     quote_char: 0,
-                     select_table_names: 1
+      defoverridable unquote(__MODULE__)
     end
   end
 

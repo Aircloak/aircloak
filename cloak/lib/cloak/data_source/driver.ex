@@ -89,10 +89,7 @@ defmodule Cloak.DataSource.Driver do
       @impl unquote(__MODULE__)
       def drop_unused_analyst_tables(_connection, _known_db_names), do: raise(RuntimeError, "not implemented")
 
-      defoverridable supports_analyst_tables?: 0,
-                     store_analyst_table: 3,
-                     recreate_analyst_table: 3,
-                     drop_unused_analyst_tables: 2
+      defoverridable unquote(__MODULE__)
     end
   end
 end
