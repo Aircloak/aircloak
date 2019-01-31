@@ -1,7 +1,7 @@
 defmodule Cloak.AnalystTable do
   @moduledoc "Service for working with analyst tables"
 
-  use GenServer
+  use Parent.GenServer
   require Logger
   alias Cloak.DataSource
 
@@ -149,17 +149,9 @@ defmodule Cloak.AnalystTable do
   # -------------------------------------------------------------------
 
   @doc false
-  def child_spec(_arg) do
-    import Aircloak.ChildSpec
+  def child_spec(_arg), do: Aircloak.ChildSpec.supervisor([gen_server(), periodic_cleaner()], strategy: :one_for_one)
 
-    supervisor(
-      [
-        gen_server(__MODULE__, nil, name: __MODULE__),
-        periodic_cleaner()
-      ],
-      strategy: :one_for_one
-    )
-  end
+  defp gen_server(), do: %{id: :gen_server, start: {__MODULE__, :start_link, []}}
 
   defp periodic_cleaner() do
     {Periodic,
@@ -169,4 +161,7 @@ defmodule Cloak.AnalystTable do
      timeout: :timer.minutes(1),
      overlap?: false}
   end
+
+  @doc false
+  def start_link(), do: Parent.GenServer.start_link(__MODULE__, nil, name: __MODULE__)
 end
