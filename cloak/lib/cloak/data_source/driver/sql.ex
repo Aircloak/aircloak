@@ -23,12 +23,6 @@ defmodule Cloak.DataSource.Driver.SQL do
       @behaviour unquote(__MODULE__)
 
       @impl unquote(__MODULE__)
-      def execute(_connection, _sql), do: raise(RuntimeError, "not implemented")
-
-      @impl unquote(__MODULE__)
-      def select(_connection, _sql), do: raise(RuntimeError, "not implemented")
-
-      @impl unquote(__MODULE__)
       def analyst_tables(connection) do
         connection
         # using apply here to trick the dialyzer which will report errors for data sources which don't implement
@@ -97,9 +91,7 @@ defmodule Cloak.DataSource.Driver.SQL do
         end
       end
 
-      defoverridable execute: 2,
-                     select: 2,
-                     analyst_tables: 1,
+      defoverridable analyst_tables: 1,
                      sql_dialect_module: 0,
                      disconnect: 1,
                      supports_query?: 1,
