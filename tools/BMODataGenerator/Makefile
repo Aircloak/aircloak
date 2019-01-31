@@ -7,4 +7,4 @@ publish-osx:
 publish: publish-osx publish-linux
 
 start:
-	dotnet run -p BMODataGenerator/BMODataGenerator.fsproj 100 $(PWD)/test.json
+	dotnet run -p BMODataGenerator/BMODataGenerator.fsproj 10 $(PWD)/test.json
