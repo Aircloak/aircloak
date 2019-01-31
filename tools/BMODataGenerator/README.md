@@ -83,7 +83,10 @@ CREATE TABLE dfs.generated.genesis_parquet AS (
 
 You can build a standalone version for OSX and Linux as follows:
 
-```
-dotnet publish -c Release -r osx-x64 --self-contained true
-dotnet publish -c Release -r linux-x64 --self-contained true
-```
+- macOS: `make publish-osx`
+- linux: `make publish-linux`
+- both: `make publish`
+
+## Running
+
+`make start` will run the program and save data for 10 users in a file called `test.json`.
