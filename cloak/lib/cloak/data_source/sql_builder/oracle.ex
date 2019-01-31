@@ -108,7 +108,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   @impl Dialect
   def select_analyst_tables(prefix),
-    do: "select table_name from user_tables where table_name like '#{prefix}%'"
+    do: "SELECT table_name FROM user_tables WHERE table_name LIKE '#{prefix}%'"
 
   # -------------------------------------------------------------------
   # Internal functions

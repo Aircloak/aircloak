@@ -72,7 +72,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
 
   @impl Dialect
   def select_analyst_tables(prefix),
-    do: "SELECT table_name FROM information_schema.tables WHERE table_name like '#{prefix}%'"
+    do: "SELECT table_name FROM information_schema.tables WHERE table_name LIKE '#{prefix}%'"
 
   # -------------------------------------------------------------------
   # Internal functions
