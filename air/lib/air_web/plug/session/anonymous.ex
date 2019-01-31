@@ -8,6 +8,10 @@ defmodule AirWeb.Plug.Session.Anonymous do
 
   @behaviour Plug
 
+  # -------------------------------------------------------------------
+  # Plug callbacks
+  # -------------------------------------------------------------------
+
   @impl Plug
   def init(options), do: options
 
