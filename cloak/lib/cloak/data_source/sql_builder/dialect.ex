@@ -48,6 +48,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @doc "Returns the charcter used for quoting names."
   @callback quote_char() :: integer
 
+  @doc "Returns the select statement for retrieving all tables which start with the given prefix."
+  @callback select_analyst_tables(prefix :: String.t()) :: String.t()
+
   alias Cloak.Query.ExecutionError
 
   defmacro __using__(_opts) do
@@ -108,6 +111,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       @impl unquote(__MODULE__)
       def quote_char(), do: ?"
 
+      @impl unquote(__MODULE__)
+      def select_analyst_tables(_prefix), do: raise(RuntimeError, "not implemented")
+
       defoverridable select_hints: 0,
                      like_sql: 2,
                      ilike_sql: 2,
@@ -119,7 +125,8 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
                      native_support_for_ilike?: 0,
                      order_by: 3,
                      range_at_statement_start?: 0,
-                     quote_char: 0
+                     quote_char: 0,
+                     select_analyst_tables: 1
     end
   end
 

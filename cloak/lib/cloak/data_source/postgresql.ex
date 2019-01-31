@@ -16,7 +16,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   @impl Driver
   def connect(parameters) do
     with {:ok, connection} <- do_connect(parameters) do
-      {:ok, %Postgrex.Result{}} = Postgrex.query(connection, "SET standard_conforming_strings = ON", [])
+      execute!(connection, "SET standard_conforming_strings = ON")
       {:ok, connection}
     end
   end
@@ -55,52 +55,20 @@ defmodule Cloak.DataSource.PostgreSQL do
   @impl Driver
   def supports_analyst_tables?(), do: true
 
-  @impl Driver
-  def store_analyst_table(connection, table_id, query) do
-    {sql, db_name} = SqlBuilder.create_table_statement(table_id, query)
-    with :ok <- recreate_analyst_table(connection, db_name, sql), do: {:ok, db_name, sql}
-  end
+  # -------------------------------------------------------------------
+  # DataSource.Driver.SQL callbacks
+  # -------------------------------------------------------------------
 
-  @impl Driver
-  def recreate_analyst_table(connection, db_name, sql) do
-    if Enum.any?(analyst_tables(connection), &(&1 == db_name)) do
-      :ok
-    else
-      case Postgrex.query(connection, sql, []) do
-        {:ok, %Postgrex.Result{}} -> :ok
-        {:error, %Postgrex.Error{} = error} -> {:error, Exception.message(error)}
-      end
-    end
-  end
+  @impl Driver.SQL
+  def execute(connection, sql),
+    do: with({:error, error} <- Postgrex.query(connection, sql, []), do: {:error, Exception.message(error)})
 
-  @impl Driver
-  def drop_unused_analyst_tables(connection, known_db_names) do
-    connection
-    |> analyst_tables()
-    |> MapSet.new()
-    |> MapSet.difference(MapSet.new(known_db_names))
-    |> Stream.map(fn db_name ->
-      case Postgrex.query(connection, "DROP TABLE #{SqlBuilder.quote_table_name(db_name)}", []) do
-        {:ok, _result} -> db_name
-        {:error, error} -> Logger.error("Error removing table: `#{db_name}`: #{Exception.message(error)}")
-      end
-    end)
-    |> Enum.reject(&is_nil/1)
-  end
+  @impl Driver.SQL
+  def select(connection, sql), do: with({:ok, result} <- execute(connection, sql), do: {:ok, result.rows})
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  @doc false
-  def analyst_tables(connection) do
-    Postgrex.query!(
-      connection,
-      "SELECT table_name FROM information_schema.tables WHERE table_name like '__ac_%'",
-      []
-    ).rows
-    |> Enum.map(fn [table_name] -> table_name end)
-  end
 
   defp do_connect(parameters) do
     parameters =

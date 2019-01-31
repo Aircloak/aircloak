@@ -39,7 +39,7 @@ defmodule Cloak.Test.DB do
     end
     |> Enum.each(fn data_source ->
       # check if driver supports direct query execution
-      if data_source.driver.__info__(:functions)[:execute],
+      if Enum.any?(data_source.driver.__info__(:functions), &(&1 == {:execute, 3})),
         do: {:ok, _result} = conn_execute!(data_source, &data_source.driver.execute(&1, statement, parameters))
     end)
 

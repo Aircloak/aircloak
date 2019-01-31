@@ -3,14 +3,37 @@ defmodule Cloak.DataSource.Driver.SQL do
 
   alias Cloak.DataSource.SqlBuilder
 
+  @doc "Executes the given SQL statement."
+  @callback execute(Cloak.DataSource.Driver.connection(), String.t()) :: {:ok, any} | {:error, String.t()}
+
+  @doc "Executes the given select statement and returns an enumerable of rows, where each row should be a list."
+  @callback select(Cloak.DataSource.Driver.connection(), String.t()) :: {:ok, Enumerable.t()} | {:error, String.t()}
+
+  @doc "Returns the list of analyst tables."
+  @callback analyst_tables(Cloak.DataSource.Driver.connection()) :: [String.t()]
+
   defmacro __using__(_opts) do
     module = __CALLER__.module |> Module.split() |> List.last()
     dialect = Module.concat(SqlBuilder, module)
 
     quote do
       alias Cloak.DataSource.{Driver, SqlBuilder}
-
       use Driver
+
+      @behaviour unquote(__MODULE__)
+
+      @impl unquote(__MODULE__)
+      def execute(_connection, _sql), do: raise(RuntimeError, "not implemented")
+
+      @impl unquote(__MODULE__)
+      def select(_connection, _sql), do: raise(RuntimeError, "not implemented")
+
+      @impl unquote(__MODULE__)
+      def analyst_tables(connection) do
+        connection
+        |> select!(sql_dialect_module().select_analyst_tables("__ac_"))
+        |> Enum.map(fn [table_name] -> table_name end)
+      end
 
       @impl Driver
       def sql_dialect_module(), do: unquote(dialect)
@@ -24,10 +47,64 @@ defmodule Cloak.DataSource.Driver.SQL do
       @impl Driver
       defdelegate supports_function?(expression, data_source), to: SqlBuilder.Support
 
-      defoverridable sql_dialect_module: 0,
+      @impl Driver
+      def store_analyst_table(connection, table_id, query) do
+        {sql, db_name} = SqlBuilder.create_table_statement(table_id, query)
+        with :ok <- recreate_analyst_table(connection, db_name, sql), do: {:ok, db_name, sql}
+      end
+
+      @impl Driver
+      def recreate_analyst_table(connection, db_name, sql) do
+        if Enum.any?(analyst_tables(connection), &(&1 == db_name)) do
+          :ok
+        else
+          with {:ok, _} <- execute(connection, sql), do: :ok
+        end
+      end
+
+      @impl Driver
+      def drop_unused_analyst_tables(connection, known_db_names) do
+        require Logger
+
+        connection
+        |> analyst_tables()
+        |> MapSet.new()
+        |> MapSet.difference(MapSet.new(known_db_names))
+        |> Stream.map(fn db_name ->
+          case execute(connection, "DROP TABLE #{SqlBuilder.quote_table_name(db_name)}") do
+            {:ok, _result} -> db_name
+            {:error, error} -> Logger.error("Error removing table: `#{db_name}`: #{error}")
+          end
+        end)
+        |> Enum.reject(&is_nil/1)
+      end
+
+      @doc false
+      def execute!(connection, sql) do
+        case execute(connection, sql) do
+          {:ok, result} -> result
+          {:error, reason} -> raise(RuntimeError, reason)
+        end
+      end
+
+      @doc false
+      def select!(connection, sql) do
+        case select(connection, sql) do
+          {:ok, result} -> result
+          {:error, reason} -> raise(RuntimeError, reason)
+        end
+      end
+
+      defoverridable execute: 2,
+                     select: 2,
+                     analyst_tables: 1,
+                     sql_dialect_module: 0,
                      disconnect: 1,
                      supports_query?: 1,
-                     supports_function?: 2
+                     supports_function?: 2,
+                     recreate_analyst_table: 3,
+                     drop_unused_analyst_tables: 2,
+                     store_analyst_table: 3
     end
   end
 end

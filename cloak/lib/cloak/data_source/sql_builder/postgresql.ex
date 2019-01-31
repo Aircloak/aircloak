@@ -70,6 +70,10 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   def literal(%Timex.Duration{} = value), do: ["interval '", interval_to_string(value), ?']
   def literal(value), do: Dialect.literal_default(value)
 
+  @impl Dialect
+  def select_analyst_tables(prefix),
+    do: "SELECT table_name FROM information_schema.tables WHERE table_name like '#{prefix}%'"
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
