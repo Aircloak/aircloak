@@ -48,8 +48,8 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @doc "Returns the charcter used for quoting names."
   @callback quote_char() :: integer
 
-  @doc "Returns the select statement for retrieving all tables which start with the given prefix."
-  @callback select_analyst_tables(prefix :: String.t()) :: String.t()
+  @doc "Returns the select statement for retrieving the names of all tables which start with the given prefix."
+  @callback select_table_names(prefix :: String.t()) :: String.t()
 
   alias Cloak.Query.ExecutionError
 
@@ -112,7 +112,7 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       def quote_char(), do: ?"
 
       @impl unquote(__MODULE__)
-      def select_analyst_tables(_prefix),
+      def select_table_names(_prefix),
         do: raise(RuntimeError, "Analyst tables are not supported on this data source.")
 
       defoverridable select_hints: 0,
@@ -127,7 +127,7 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
                      order_by: 3,
                      range_at_statement_start?: 0,
                      quote_char: 0,
-                     select_analyst_tables: 1
+                     select_table_names: 1
     end
   end
 

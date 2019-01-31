@@ -26,8 +26,8 @@ defmodule Cloak.DataSource.Driver.SQL do
       def analyst_tables(connection) do
         connection
         # using apply here to trick the dialyzer which will report errors for data sources which don't implement
-        # select_analyst_tables function in the dialect
-        |> select!(apply(__MODULE__, :sql_dialect_module, []).select_analyst_tables("__ac_"))
+        # select_table_names function in the dialect
+        |> select!(apply(__MODULE__, :sql_dialect_module, []).select_table_names("__ac_"))
         |> Enum.map(fn [table_name] -> table_name end)
       end
 

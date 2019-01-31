@@ -71,7 +71,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   def literal(value), do: Dialect.literal_default(value)
 
   @impl Dialect
-  def select_analyst_tables(prefix),
+  def select_table_names(prefix),
     do: "SELECT table_name FROM information_schema.tables WHERE table_name LIKE '#{prefix}%'"
 
   # -------------------------------------------------------------------
