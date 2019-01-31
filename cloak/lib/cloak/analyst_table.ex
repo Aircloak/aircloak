@@ -133,7 +133,7 @@ defmodule Cloak.AnalystTable do
     full_definition
   end
 
-  defp registration_info(table), do: Poison.encode!(update_in(table.data_source, & &1.name))
+  defp registration_info(table), do: Jason.encode!(update_in(table.data_source, & &1.name))
 
   defp register_table(registration_info) do
     with {:ok, table} <- table(registration_info),
@@ -146,7 +146,7 @@ defmodule Cloak.AnalystTable do
   defp table(registration_info) do
     table =
       registration_info
-      |> Poison.decode!()
+      |> Jason.decode!()
       |> Map.take(~w(analyst name statement data_source db_name id_column recreate_info))
       |> Aircloak.atomize_keys()
 
