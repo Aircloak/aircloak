@@ -9,4 +9,9 @@
     <Compile Include="Program.fs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Argu" Version="5.2.0" />
+    <PackageReference Include="mongocsharpdriver" Version="2.7.3" />
+  </ItemGroup>
+
 </Project>
