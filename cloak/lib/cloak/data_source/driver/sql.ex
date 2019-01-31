@@ -31,7 +31,9 @@ defmodule Cloak.DataSource.Driver.SQL do
       @impl unquote(__MODULE__)
       def analyst_tables(connection) do
         connection
-        |> select!(sql_dialect_module().select_analyst_tables("__ac_"))
+        # using apply here to trick the dialyzer which will report errors for data sources which don't implement
+        # select_analyst_tables function in the dialect
+        |> select!(apply(__MODULE__, :sql_dialect_module, []).select_analyst_tables("__ac_"))
         |> Enum.map(fn [table_name] -> table_name end)
       end
 
