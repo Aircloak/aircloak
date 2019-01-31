@@ -1,5 +1,5 @@
 ﻿open Argu
-open System
+open MongoDB.Driver
 
 type CLIArguments =
     | [<Mandatory>] Connection_String of string
@@ -10,11 +10,20 @@ type CLIArguments =
 
 let optionParser = ArgumentParser.Create<CLIArguments>(programName = "MongoCleanup")
 
+let run (options: ParseResults<CLIArguments>): unit =
+    let conn = MongoClient (options.GetResult Connection_String)
+    let db = conn.GetDatabase "teambank_konto_service"
+
+    db.ListCollectionNames().ToList()
+    |> printfn "%A"
+
+    ()
+
 [<EntryPoint>]
 let main argv =
     try
         let options = optionParser.ParseCommandLine(inputs = argv, raiseOnUsage= true)
-        printfn "%A" options
+        run options
     with
     | e -> printfn "%s" e.Message
 
