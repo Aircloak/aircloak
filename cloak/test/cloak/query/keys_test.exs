@@ -139,4 +139,30 @@ defmodule Cloak.Query.KeysTest do
       %{error: "There is no connection path using key match filters between the tables `a` and `p`." <> _}
     )
   end
+
+  test "anonymizing subquery" do
+    assert_query(
+      """
+        select count(*) from (
+          select count(*) from keys_accounts
+          ) accounts
+      """,
+      %{rows: [%{row: [1]}]}
+    )
+  end
+
+  test "join between anonymizing subqueries" do
+    assert_query(
+      """
+        select count(*) from (
+          select count(*) from keys_accounts
+        ) accounts, (
+          select distinct p.name from keys_products p
+          join keys_transactions t on p.id = t.product_id
+          join keys_accounts a on t.account_id = a.id
+        ) purchased_products
+      """,
+      %{rows: [%{row: [1]}]}
+    )
+  end
 end

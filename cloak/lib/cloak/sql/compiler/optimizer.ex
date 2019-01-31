@@ -43,7 +43,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
       Lens.map(
         Query.Lenses.direct_subqueries(),
         query,
-        &%{&1 | ast: optimized_subquery_ast(&1.ast, used_columns_from_table(query, &1.alias))}
+        &%{&1 | ast: optimize_subquery_columns(&1.ast, used_columns_from_table(query, &1.alias))}
       )
 
   defp used_columns_from_table(query, table_name),
@@ -56,15 +56,19 @@ defmodule Cloak.Sql.Compiler.Optimizer do
       |> Enum.uniq_by(&Expression.id/1)
       |> Enum.map(& &1.name)
 
-  defp optimized_subquery_ast(ast, required_column_names) do
+  defp optimize_subquery_columns(subquery, required_column_names) do
     {columns, column_titles} =
-      Enum.zip(ast.columns, ast.column_titles)
+      Enum.zip(subquery.columns, subquery.column_titles)
       |> Enum.filter(fn {column, column_name} ->
         column.user_id? or column_name in required_column_names
       end)
       |> Enum.unzip()
 
-    %Query{ast | columns: columns, column_titles: column_titles}
+    if subquery.group_by == [] and columns == [] and Helpers.aggregated_column?(hd(subquery.columns)) do
+      %Query{subquery | columns: [hd(subquery.columns)], column_titles: [hd(subquery.column_titles)]}
+    else
+      %Query{subquery | columns: columns, column_titles: column_titles}
+    end
   end
 
   defp optimize_joins(query), do: Lens.map(Lenses.joins(), query, &push_down_simple_conditions/1)
