@@ -41,7 +41,7 @@ defmodule AirWeb.ViewHelpers do
       if table.view do
         additional_data = %{
           edit_link:
-            AirWeb.Router.Helpers.data_source_view_path(
+            AirWeb.Router.Helpers.data_source_selectable_path(
               conn,
               :edit,
               data_source.name,
@@ -52,7 +52,7 @@ defmodule AirWeb.ViewHelpers do
               link(
                 "delete",
                 to:
-                  AirWeb.Router.Helpers.data_source_view_path(
+                  AirWeb.Router.Helpers.data_source_selectable_path(
                     conn,
                     :delete,
                     data_source.name,

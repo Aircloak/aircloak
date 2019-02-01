@@ -1,4 +1,4 @@
-defmodule AirWeb.ViewController do
+defmodule AirWeb.SelectableController do
   @moduledoc false
 
   use Air.Web, :controller

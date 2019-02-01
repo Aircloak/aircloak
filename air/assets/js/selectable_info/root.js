@@ -9,7 +9,7 @@ import type {Selectable} from "./selectable";
 
 type Props = {
   selectables: Selectable[],
-  newViewURL: string,
+  newSelectableURL: string,
   supportsCreateTable: boolean,
 };
 
@@ -81,7 +81,7 @@ export default class SelectableInfo extends React.Component {
 
           <div className="panel-footer">
             <CreateToolbarView
-              newViewURL={this.props.newViewURL}
+              newSelectableURL={this.props.newSelectableURL}
               supportsCreateTable={this.props.supportsCreateTable} />
           </div>
         </div>

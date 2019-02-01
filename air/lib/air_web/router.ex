@@ -91,7 +91,7 @@ defmodule AirWeb.Router do
     resources("/app_logins", AppLoginController)
 
     resources "/data_sources", DataSourceController do
-      resources("/views", ViewController)
+      resources("/selectables", SelectableController)
     end
 
     get("/licenses", LicenseController, :index)

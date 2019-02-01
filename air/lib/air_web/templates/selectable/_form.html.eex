@@ -61,7 +61,7 @@
       };
       var selectableInfoProps = {
         selectables: <%= selectables(@conn, @data_source, @view_to_exclude_from_selectables) |> to_json() %>,
-        newViewURL: "<%= data_source_view_path(@conn, :new, @data_source.name) %>",
+        newSelectableURL: "<%= data_source_selectable_path(@conn, :new, @data_source.name) %>",
         supportsCreateTable: true
       };
 

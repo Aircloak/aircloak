@@ -3,7 +3,7 @@
 import React from "react";
 
 type Props = {
-  newViewURL: string,
+  newSelectableURL: string,
   supportsCreateTable: boolean,
 };
 
@@ -21,7 +21,7 @@ export class CreateToolbarView extends React.Component {
   render() {
     return (
       <div className="btn-group btn-group-sm" role="group" aria-label="Create view">
-        <a href={this.props.newViewURL} className="btn btn-default">New view</a>
+        <a href={this.props.newSelectableURL} className="btn btn-default">New view</a>
         {this.conditionallyRenderCreateTable()}
       </div>
     );
