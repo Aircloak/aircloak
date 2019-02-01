@@ -10,7 +10,7 @@ defmodule Cloak.DataSource do
       parameters: ..., # database connection parameters
       tables: [
         table_id: [
-          type: :private,
+          content_type: :private,
           db_name: "table name",
           keys: {
             "column_name" => key_type
@@ -24,7 +24,7 @@ defmodule Cloak.DataSource do
   The database specific module needs to implement the `DataSource.Driver` behaviour.
 
   The data source must also specify the list of tables containing the data to be queried.
-  A table is accessed by id. It must contain the name of the table in the database, the data protection type and
+  A table is accessed by id. It must contain the name of the table in the database, the content protection type and
   the key columns identifying rows in other tables.
 
   During startup, the list of columns available in all defined tables is loaded and cached for later lookups.

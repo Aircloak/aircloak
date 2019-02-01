@@ -15,7 +15,7 @@ defmodule Cloak.Query.KeysTest do
       Cloak.Test.DB.create_table("keys_transactions", "account_id INTEGER, product_id INTEGER",
         user_id: nil,
         add_user_id: false,
-        type: :private,
+        content_type: :private,
         keys: %{"account_id" => :account_id, "product_id" => :product_id}
       )
 
@@ -25,7 +25,7 @@ defmodule Cloak.Query.KeysTest do
       Cloak.Test.DB.create_table("keys_products", "id INTEGER, name TEXT",
         user_id: nil,
         add_user_id: false,
-        type: :public,
+        content_type: :public,
         keys: %{"id" => :product_id}
       )
 

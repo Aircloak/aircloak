@@ -20,7 +20,7 @@ defmodule Cloak.DataSource.Table do
           :query => Query.t() | nil,
           :columns => [column],
           :keys => Map.t(),
-          :type => :private | :public,
+          :content_type => :private | :public,
           :auto_isolating_column_classification => boolean,
           :isolating_columns => Map.t(),
           :maintain_shadow_db => boolean,
@@ -36,7 +36,7 @@ defmodule Cloak.DataSource.Table do
           | {:projection, projection}
           | {:keys, Map.t()}
           | {:query, Query.t()}
-          | {:type, :private | :public}
+          | {:content_type, :private | :public}
           | {atom, any}
 
   # -------------------------------------------------------------------
@@ -56,7 +56,7 @@ defmodule Cloak.DataSource.Table do
           decoders: [],
           projection: nil,
           keys: %{},
-          type: if(user_id_column_name == nil, do: :public, else: :private),
+          content_type: if(user_id_column_name == nil, do: :public, else: :private),
           query: nil,
           auto_isolating_column_classification: true,
           isolating_columns: %{},
@@ -567,7 +567,7 @@ defmodule Cloak.DataSource.Table do
   defp map_table({name, table}) do
     {name, table}
     |> map_isolators()
-    |> map_table_type()
+    |> map_content_type()
     |> map_keys()
   end
 
@@ -576,11 +576,11 @@ defmodule Cloak.DataSource.Table do
 
   def map_isolators({name, table}), do: {name, table}
 
-  defp map_table_type({name, %{user_id: _} = table}), do: {name, Map.delete(table, :type)}
+  defp map_content_type({name, %{user_id: _} = table}), do: {name, Map.delete(table, :content_type)}
 
-  defp map_table_type({name, table}) do
+  defp map_content_type({name, table}) do
     type =
-      case table[:type] do
+      case table[:content_type] do
         "public" ->
           :public
 
@@ -593,11 +593,11 @@ defmodule Cloak.DataSource.Table do
         type ->
           raise ExecutionError,
             message:
-              "Invalid table type `#{to_string(type)}` for table `#{name}`. " <>
-                "The table type has to have one of the following values: `public` or `private` (default)."
+              "Invalid content type `#{to_string(type)}` for table `#{name}`. " <>
+                "The content type has to have one of the following values: `public` or `private` (default)."
       end
 
-    {name, Map.put(table, :type, type)}
+    {name, Map.put(table, :content_type, type)}
   end
 
   defp map_keys({name, %{keys: keys} = table}) do
