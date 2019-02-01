@@ -18,20 +18,22 @@ defmodule AirWeb.SelectableController do
   # Actions
   # -------------------------------------------------------------------
 
-  def new(conn, _params),
+  def new(conn, %{"kind" => kind}),
     do:
       render(
         conn,
         "new.html",
+        kind: kind,
         changeset: View.new_changeset(),
         data_source: conn.assigns.data_source
       )
 
-  def edit(conn, %{"id" => id}),
+  def edit(conn, %{"id" => id, "kind" => kind}),
     do:
       render(
         conn,
         "edit.html",
+        kind: kind,
         changeset: View.changeset(id),
         data_source: conn.assigns.data_source
       )

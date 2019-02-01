@@ -46,7 +46,8 @@
         selectables: <%= selectables(@conn, @data_source) |> to_json() %>,
         numberFormat: <%= to_json(@number_format) %>,
         debugModeEnabled: <%= @debug_mode_enabled %>,
-        newSelectableURL: "<%= data_source_selectable_path(@conn, :new, @data_source.name) %>",
+        newTableURL: "<%= data_source_selectable_path(@conn, :new, @data_source.name, :table) %>",
+        newViewURL: "<%= data_source_selectable_path(@conn, :new, @data_source.name, :view) %>",
         supportsCreateTable: true
       };
 

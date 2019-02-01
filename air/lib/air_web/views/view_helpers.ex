@@ -45,6 +45,7 @@ defmodule AirWeb.ViewHelpers do
               conn,
               :edit,
               data_source.name,
+              :view,
               table.internal_id
             ),
           delete_html:
@@ -56,6 +57,7 @@ defmodule AirWeb.ViewHelpers do
                     conn,
                     :delete,
                     data_source.name,
+                    :view,
                     table.internal_id
                   ),
                 method: :delete,
