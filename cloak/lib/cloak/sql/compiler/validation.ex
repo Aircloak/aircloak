@@ -234,11 +234,7 @@ defmodule Cloak.Sql.Compiler.Validation do
         end
 
         with [{table1, table2} | _] <- CyclicGraph.disconnected_pairs(graph) do
-          raise CompilationError,
-            message:
-              "There is no connection path using key match filters between the tables `#{table1}` and `#{table2}`. " <>
-                "Connect the two tables by adding `table1.key1 = table2.key2` conditions " <>
-                "to the `WHERE` or `ON` clauses in the query."
+          raise CompilationError, message: unconnected_tables_error_message(query.selected_tables, table1, table2)
         end
       end)
 
@@ -248,6 +244,28 @@ defmodule Cloak.Sql.Compiler.Validation do
       {type, type} -> true
       {_type1, _type2} -> false
     end
+  end
+
+  defp unconnected_tables_error_message(selected_tables, table_name1, table_name2) do
+    table1 = Enum.find(selected_tables, &(&1.name == table_name1))
+    table2 = Enum.find(selected_tables, &(&1.name == table_name2))
+
+    "The tables `#{table_name1}` and `#{table_name2}` are not joined using matching keys filters. " <>
+      "Connect the two tables by adding `table1.key1 = table2.key2` conditions " <>
+      "to the `WHERE` or `ON` clauses in the query. #{table_join_hint(table1)} #{table_join_hint(table2)}"
+  end
+
+  defp table_join_hint(table) do
+    keys_hint =
+      table.keys
+      |> Enum.map(fn {column, type} -> "column `#{column}` of type `#{type}`" end)
+      |> case do
+        [] -> "has no keys through which it can be joined"
+        [key_info] -> "has to be joined through #{key_info}"
+        keys_info -> "can be joined through one of the following keys: #{Aircloak.OxfordComma.join(keys_info, "or")}"
+      end
+
+    "Table `#{table.name}` #{keys_hint}."
   end
 
   defp verify_join_conditions_scope({:join, join}, selected_tables) do

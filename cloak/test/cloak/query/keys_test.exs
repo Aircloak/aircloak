@@ -136,8 +136,12 @@ defmodule Cloak.Query.KeysTest do
         join keys_transactions as t on a.id = t.account_id
         join keys_products as p on a.id = p.id
       """,
-      %{error: "There is no connection path using key match filters between the tables `a` and `p`." <> _}
+      %{error: error}
     )
+
+    assert "The tables `a` and `p` are not joined" <> _ = error
+    assert error =~ "column `id` of type `account_id` or column `user_id` of type `user_id`"
+    assert error =~ "column `id` of type `product_id`"
   end
 
   test "anonymizing subquery" do
