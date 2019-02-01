@@ -97,28 +97,36 @@ defmodule Cloak.AnalystTable do
   defp start_table_store(table), do: GenServer.call(__MODULE__, {:store_table, table})
 
   defp store_table(table) do
-    with {:ok, data_source} <- DataSource.fetch(table.data_source_name) do
-      DataSource.Connection.execute!(
-        data_source,
-        fn connection ->
-          [{_key, table_definition}] = :ets.lookup(__MODULE__, {table.analyst, table.data_source_name, table.name})
+    [{_key, table_definition}] = :ets.lookup(__MODULE__, {table.analyst, table.data_source_name, table.name})
 
-          table_definition =
-            case data_source.driver.store_analyst_table(connection, table.db_name, table.store_info) do
-              :ok ->
-                [table_definition] = data_source.driver.load_tables(connection, table_definition)
-                %{table_definition | status: :created}
+    table_definition =
+      with {:ok, data_source} <- fetch_data_source(table),
+           {:ok, table_definition} <- store_table_to_database(data_source, table, table_definition) do
+        table_definition
+      else
+        {:error, reason} ->
+          Logger.error("Error creating table: #{inspect(table)}: #{reason}")
+          %{table_definition | status: :create_error}
+      end
 
-              {:error, reason} ->
-                Logger.error("Error creating table: #{inspect(table)}: #{reason}")
-                %{table_definition | status: :create_error}
-            end
+    :ets.insert(__MODULE__, {{table.analyst, table.data_source_name, table.name}, table_definition})
+  end
 
-          :ets.insert(__MODULE__, {{table.analyst, table.data_source_name, table.name}, table_definition})
-        end,
-        force_new_connection: true
-      )
-    end
+  defp fetch_data_source(table) do
+    with :error <- DataSource.fetch(table.data_source_name), do: {:error, "data source not found"}
+  end
+
+  defp store_table_to_database(data_source, table, table_definition) do
+    DataSource.Connection.execute!(
+      data_source,
+      fn connection ->
+        with :ok <- data_source.driver.store_analyst_table(connection, table.db_name, table.store_info) do
+          [table_definition] = data_source.driver.load_tables(connection, table_definition)
+          {:ok, %{table_definition | status: :created}}
+        end
+      end,
+      force_new_connection: true
+    )
   end
 
   defp drop_unused_analyst_tables() do
