@@ -250,7 +250,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     table1 = Enum.find(selected_tables, &(&1.name == table_name1))
     table2 = Enum.find(selected_tables, &(&1.name == table_name2))
 
-    "The tables `#{table_name1}` and `#{table_name2}` are not joined using matching keys filters. " <>
+    "The tables `#{table_name1}` and `#{table_name2}` are not joined using key match filters. " <>
       "Connect the two tables by adding `table1.key1 = table2.key2` conditions " <>
       "to the `WHERE` or `ON` clauses in the query. #{table_join_hint(table1)} #{table_join_hint(table2)}"
   end

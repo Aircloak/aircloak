@@ -139,7 +139,7 @@ defmodule Cloak.Query.KeysTest do
       %{error: error}
     )
 
-    assert "The tables `a` and `p` are not joined" <> _ = error
+    assert "The tables `a` and `p` are not joined " <> _ = error
     assert error =~ "column `id` of type `account_id` or column `user_id` of type `user_id`"
     assert error =~ "column `id` of type `product_id`"
   end

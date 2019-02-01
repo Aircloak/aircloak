@@ -546,13 +546,13 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejecting improper joins" do
-    assert {:error, "The tables `t1` and `t2` are not joined using matching keys filters." <> _} =
+    assert {:error, "The tables `t1` and `t2` are not joined " <> _} =
              compile("SELECT t1.c1 from t1, t2", data_source())
 
-    assert {:error, "The tables `t1` and `t3` are not joined using matching keys filters." <> _} =
+    assert {:error, "The tables `t1` and `t3` are not joined " <> _} =
              compile("SELECT t1.c1 from t1, t2, t3 WHERE t1.uid = t2.uid", data_source())
 
-    assert {:error, "The tables `t1` and `t3` are not joined using matching keys filters." <> _} =
+    assert {:error, "The tables `t1` and `t3` are not joined " <> _} =
              compile(
                "SELECT t1.c1 from t1, t2, t3, t4 WHERE t1.uid = t2.uid AND t3.uid = t4.uid",
                data_source()
@@ -560,12 +560,12 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejecting improper joins with aliases" do
-    assert {:error, "The tables `a1` and `a2` are not joined using matching keys filters." <> _} =
+    assert {:error, "The tables `a1` and `a2` are not joined " <> _} =
              compile("SELECT a1.c1 from t1 a1, t2 a2", data_source())
   end
 
   test "rejecting a join with a subquery that is unconnected" do
-    assert {:error, "The tables `sq` and `t1` are not joined using matching keys filters." <> _} =
+    assert {:error, "The tables `sq` and `t1` are not joined " <> _} =
              compile("SELECT t1.c1 from t1, (select c1 from t2) sq", data_source())
   end
 

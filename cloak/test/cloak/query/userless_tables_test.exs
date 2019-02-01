@@ -55,10 +55,10 @@ defmodule Cloak.Query.UserlessTableTest do
     )
   end
 
-  test "join between user and userless tables" do
+  test "error on join between user and userless tables" do
     assert_query(
       "select count(*) from userless as t1 join userless_join as t2 on t1.i = t2.i",
-      %{error: "The tables `t1` and `t2` are not joined using matching keys filters. " <> _}
+      %{error: "The tables `t1` and `t2` are not joined " <> _}
     )
   end
 
