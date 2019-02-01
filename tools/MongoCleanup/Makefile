@@ -1,7 +1,7 @@
 .PHONY: run publish publish-osx publish-linux
 
 run:
-	dotnet run --connection-string mongodb://localhost:27017
+	dotnet run --cloak-config teambank_mongo_34.json
 
 publish: publish-osx publish-linux
 

@@ -1,0 +1,137 @@
+    {
+      "driver": "mongodb",
+      "name": "teambank_mongo34",
+      "parameters": {
+        "hostname": "localhost",
+        "database": "teambank_konto_service"
+      },
+      "tables": {
+        "UMSATZ_OHNE_FIGO": {
+          "user_id": "inhaberId",
+          "query": "
+            -- Join von konto, bankzugang und umsatz
+            SELECT bankzugang.inhaberId, konto.kontostand.betrag, CAST(betrag AS INTEGER) AS betrag, letzterUmsatz.buchungsDatum, CAST(buchungsDatum AS DATE) AS buchungsDatum
+            FROM bankzugang
+            INNER JOIN konto ON
+              bankzugang._id = konto.bankzugangId
+            INNER JOIN umsatz ON
+              konto._id = umsatz.kontoId AND
+              konto.aktiv = true
+            WHERE bankzugang.blz NOT IN ('47110815', '90090042')
+          "
+        },
+        "bankzugang": {
+          "user_id": "inhaberId",
+          "decoders": [
+            {"method": "aes_cbc_128", "key": "1234567890ABCDEF", "columns": ["benutzerName1"]},
+            {"method": "text_to_integer", "columns": ["blz"]},
+            {"method": "text_to_datetime", "columns": ["syncStatus.timeStamp"]}
+          ]
+        },
+        "konto": {
+          "decoders": [
+            {"method": "aes_cbc_128", "key": "1234567890ABCDEF", "columns": [
+              "iban", "kontonummer", 
+              "letzterUmsatz.buchungstext", 
+              "letzterUmsatz.bankverbindung.kontonummer",
+              "letzterUmsatz.bankverbindung.referenzname",
+              "letzterUmsatz.bankverbindung.bankname",
+              "letzterUmsatz.name",
+              "letzterUmsatz.verwendungszweck"
+            ]},
+            {"method": "text_to_datetime", "columns": [
+              "syncStatus.timeStamp", 
+              "letzterUmsatz.buchungsDatum", 
+              "letzterUmsatz.wertstellungsDatum",
+              "kontostand.datum",
+              "easycreditInfo.datumNaechsteRate",
+              "easycreditInfo.datumLetzteRate"
+            ]},
+            {"method": "text_to_date", "columns": [
+              "planumsaetze.naechsteAusfuehrung"
+            ]},
+            {"method": "text_to_real", "columns": [
+              "letzterUmsatz.betrag",
+              "kontostand.betrag",
+              "kontostand.dispo",
+              "kontostand.limit",
+              "easycreditInfo.gesamtBetrag",
+              "easycreditInfo.restBetrag",
+              "easycreditInfo.bestandGesamtBetrag",
+              "easycreditInfo.bestandRestBetrag",
+              "easycreditInfo.betragNaechsteRate",
+              "planumsaetze.geplanterBetrag",
+              "planumsaetze.aktuellerBetrag"
+            ]},
+            {"method": "text_to_integer", "columns": [
+              "letzterUmsatz.transaktionsCode",
+              "letzterUmsatz.bankverbindung.blz",
+              "easycreditInfo.abgerufeneFinanzreserve",
+              "easycreditInfo.verfuegbaresLimit",
+              "easycreditInfo.aktivierungsWert",
+              "easycreditInfo.kreditkartenSaldo"
+            ]}
+          ],
+          "projection": {
+            "table": "bankzugang",
+            "foreign_key": "bankzugangId",
+            "primary_key": "_id"
+          }
+        },
+        "umsatz": {
+          "decoders": [
+            {"method": "aes_cbc_128", "key": "1234567890ABCDEF", "columns": [
+              "buchungstext", "bankverbindung.kontonummer", "name", "bankverbindung.referenzname", "bankverbindung.bankname",
+              "bankverbindung.iban",
+              "verwendungszweck"
+            ]},
+            {"method": "text_to_real", "columns": ["betrag"]},
+            {"method": "text_to_integer", "columns": [
+              "bankverbindung.blz",
+              "transaktionsCode"
+            ]},
+            {"method": "text_to_datetime", "columns": [
+              "buchungsDatum", "wertstellungsDatum"
+            ]}
+          ],
+          "projection": {
+            "table": "konto",
+            "foreign_key": "kontoId",
+            "primary_key": "_id"
+          }
+        },
+        "finanzperiode": {
+          "decoders": [
+            {"method": "text_to_date", "columns": ["start", "ende"]},
+            {"method": "text_to_real", "columns": ["saldoStart"]}
+          ],
+          "projection": {
+            "table": "konto",
+            "foreign_key": "kontoId",
+            "primary_key": "_id"
+          }
+        },
+        "haushaltsrechnung": {
+          "decoders": [
+            {"method": "text_to_date", "columns": ["finanzperiodeEndeDatum"]},
+            {"method": "text_to_real", "columns": [
+              "nettoauszahlungsbetrag",
+              "elterngeld",
+              "kindergeld",
+              "rente",
+              "baufinanzierung",
+              "unterhaltsverpflichtung",
+              "unterhaltseinkuenfte",
+              "leasing",
+              "mietausgaben",
+              "mieteinnahmen"
+            ]}
+          ],
+          "projection": {
+            "table": "konto",
+            "foreign_key": "kontoId",
+            "primary_key": "_id"
+          }
+        }
+      }
+    }
