@@ -11,7 +11,7 @@ type Props = {
 export class CreateToolbarView extends React.Component {
   props: Props;
 
-  conditionallyRenderCreateTable() {
+  conditionallyRenderNewTableButton() {
     if (this.props.supportsCreateTable) {
       return <a href={this.props.newTableURL} className="btn btn-default">New table</a>;
     } else {
@@ -23,7 +23,7 @@ export class CreateToolbarView extends React.Component {
     return (
       <div className="btn-group btn-group-sm" role="group" aria-label="Create view">
         <a href={this.props.newViewURL} className="btn btn-default">New view</a>
-        {this.conditionallyRenderCreateTable()}
+        {this.conditionallyRenderNewTableButton()}
       </div>
     );
   }
