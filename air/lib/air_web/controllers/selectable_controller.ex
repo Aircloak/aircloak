@@ -66,7 +66,7 @@ defmodule AirWeb.SelectableController do
     end
   end
 
-  def delete(conn, %{"id" => id, "kind" => "table"}),
+  def delete(conn, %{"id" => id, "kind" => "analyst_table"}),
     do:
       conn
       |> put_flash(:error, "Deleting analyst created tables is currently not supported.")
@@ -129,10 +129,10 @@ defmodule AirWeb.SelectableController do
     end
   end
 
-  defp new_changeset_of_kind("table"), do: AnalystTable.new_changeset()
+  defp new_changeset_of_kind("analyst_table"), do: AnalystTable.new_changeset()
   defp new_changeset_of_kind("view"), do: View.new_changeset()
 
-  defp existing_changeset_of_kind(id, "table"), do: AnalystTable.changeset(id)
+  defp existing_changeset_of_kind(id, "analyst_table"), do: AnalystTable.changeset(id)
   defp existing_changeset_of_kind(id, "view"), do: View.changeset(id)
 
   defp get_name_and_sql(params, kind) do
@@ -140,13 +140,13 @@ defmodule AirWeb.SelectableController do
     {name, sql}
   end
 
-  defp create_selectable(conn, "table", {name, sql}),
+  defp create_selectable(conn, "analyst_table", {name, sql}),
     do: AnalystTable.create(conn.assigns.current_user, conn.assigns.data_source, name, sql)
 
   defp create_selectable(conn, "view", {name, sql}),
     do: View.create(conn.assigns.current_user, conn.assigns.data_source, name, sql)
 
-  defp update_selectable(conn, "table", id, {name, sql}),
+  defp update_selectable(conn, "analyst_table", id, {name, sql}),
     do: AnalystTable.update(id, conn.assigns.current_user, name, sql)
 
   defp update_selectable(conn, "view", id, {name, sql}),
