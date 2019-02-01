@@ -115,7 +115,8 @@ defmodule Cloak.AnalystTable do
             end
 
           :ets.insert(__MODULE__, {{table.analyst, table.data_source_name, table.name}, table_definition})
-        end
+        end,
+        force_new_connection: true
       )
     end
   end
