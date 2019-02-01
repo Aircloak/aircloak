@@ -84,7 +84,8 @@ export default class SelectableInfo extends React.Component {
             <CreateToolbarView
               newTableURL={this.props.newTableURL}
               newViewURL={this.props.newViewURL}
-              supportsCreateTable={this.props.supportsCreateTable} />
+              supportsCreateTable={this.props.supportsCreateTable}
+            />
           </div>
         </div>
       </div>

@@ -66,13 +66,13 @@ defmodule AirWeb.SelectableController do
     end
   end
 
-  def delete(conn, %{"id" => id, "kind" => "analyst_table"}),
+  def delete(conn, %{"kind" => "analyst_table"}),
     do:
       conn
       |> put_flash(:error, "Deleting analyst created tables is currently not supported.")
       |> redirect(to: data_source_path(conn, :show, conn.assigns.data_source.name))
 
-  def delete(conn, %{"id" => id, "kind" => kind}) do
+  def delete(conn, %{"id" => id}) do
     View.delete(id, conn.assigns.current_user, revalidation_timeout: :timer.seconds(5))
 
     path =
