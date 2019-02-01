@@ -12,7 +12,7 @@ export class CreateToolbarView extends React.Component {
 
   conditionallyRenderCreateTable() {
     if (this.props.supportsCreateTable) {
-      return <a href="" className="btn btn-default">Create table</a>;
+      return <a href="" className="btn btn-default">New table</a>;
     } else {
       return null;
     }
@@ -21,7 +21,7 @@ export class CreateToolbarView extends React.Component {
   render() {
     return (
       <div className="btn-group btn-group-sm" role="group" aria-label="Create view">
-        <a href={this.props.newViewURL} className="btn btn-default">Create view</a>
+        <a href={this.props.newViewURL} className="btn btn-default">New view</a>
         {this.conditionallyRenderCreateTable()}
       </div>
     );
