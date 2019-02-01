@@ -3,7 +3,7 @@
 import React from "react";
 
 import {SelectableView} from "./selectable";
-import {CreateToolbarView} from "./create_toolbar";
+import {NewSelectableToolbarView} from "./new_selectable_toolbar";
 import {FilterView, Filter, EmptyFilter} from "./filter";
 import type {Selectable} from "./selectable";
 
@@ -81,7 +81,7 @@ export default class SelectableInfo extends React.Component {
           </div>
 
           <div className="panel-footer">
-            <CreateToolbarView
+            <NewSelectableToolbarView
               newTableURL={this.props.newTableURL}
               newViewURL={this.props.newViewURL}
               supportsCreateTable={this.props.supportsCreateTable}
