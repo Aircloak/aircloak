@@ -24,9 +24,12 @@ defmodule Air.Service.AnalystTable do
   end
 
   @doc "Updates the existing analyst table, and stores it in cloak and in air."
-  @spec update(pos_integer, String.t(), String.t()) :: {:ok, AnalystTable.t()} | {:error, Ecto.ChangeSet.t()}
-  def update(table_id, name, sql) do
+  @spec update(pos_integer, User.t(), String.t(), String.t()) :: {:ok, AnalystTable.t()} | {:error, Ecto.ChangeSet.t()}
+  def update(table_id, user, name, sql) do
     table = AnalystTable |> Repo.get!(table_id) |> Repo.preload([:user, :data_source])
+
+    # table must be owned by the user
+    true = table.user_id == user.id
 
     table
     |> Ecto.Changeset.cast(%{name: name, sql: sql}, ~w(name sql)a)
