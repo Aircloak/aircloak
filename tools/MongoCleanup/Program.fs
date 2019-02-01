@@ -18,8 +18,27 @@ type ConnectionProperties = {
     password: string option
 }
 
+type Projection = {
+    table: string
+    foreignKey: string
+    primaryKey: string
+}
+
+type Decoder = {
+    method: string
+    key: string option
+    columns: string list
+}
+
+type CloakTable = {
+    userId: string option
+    decoders: (Decoder list) option
+    projection: Projection option
+}
+
 type CloakConfig = {
     parameters: ConnectionProperties
+    tables: Map<string, CloakTable>
 }
 
 let optionParser = ArgumentParser.Create<CLIArguments>(programName = "MongoCleanup")
@@ -40,9 +59,10 @@ let mongoConnString (cloakConfig: CloakConfig): string =
 let run (options: ParseResults<CLIArguments>): unit =
     use stream = new StreamReader(options.GetResult Cloak_Config)
 
-    let config = stream.ReadToEnd () |> Json.deserialize<CloakConfig>
+    let jsonConfig = JsonConfig.create(jsonFieldNaming = Json.snakeCase)
+    let config = stream.ReadToEnd () |> Json.deserializeEx<CloakConfig> jsonConfig
+
     let connString = mongoConnString config
-    printfn "%A" connString
     let conn = MongoClient connString
     let db = conn.GetDatabase config.parameters.database
 
