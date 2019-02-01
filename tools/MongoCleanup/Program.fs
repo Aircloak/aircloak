@@ -24,19 +24,26 @@ type CloakConfig = {
 
 let optionParser = ArgumentParser.Create<CLIArguments>(programName = "MongoCleanup")
 
-let buildMongoSettings (cloakConfig: CloakConfig): MongoClientSettings =
+let mongoConnString (cloakConfig: CloakConfig): string =
     let options = cloakConfig.parameters
+    let port = options.port |> Option.defaultValue 27017
 
-    MongoClientSettings(
-        Server = MongoServerAddress(options.hostname, options.port |> Option.defaultValue 27017)
-    )
+    let userpass =
+        match (options.username, options.password) with
+        | (None, None) -> ""
+        | (Some(user), None) -> sprintf "%s@" user
+        | (Some(user), Some(pass)) -> sprintf "%s:%s@" user pass
+        | (None, Some(pass)) -> sprintf ":%s@" pass
+
+    sprintf "mongodb://%s%s:%i" userpass options.hostname port
 
 let run (options: ParseResults<CLIArguments>): unit =
     use stream = new StreamReader(options.GetResult Cloak_Config)
 
     let config = stream.ReadToEnd () |> Json.deserialize<CloakConfig>
-    let mongoSettings = buildMongoSettings config
-    let conn = MongoClient mongoSettings
+    let connString = mongoConnString config
+    printfn "%A" connString
+    let conn = MongoClient connString
     let db = conn.GetDatabase config.parameters.database
 
     db.ListCollectionNames().ToList()
