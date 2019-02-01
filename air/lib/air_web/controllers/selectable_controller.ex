@@ -3,7 +3,7 @@ defmodule AirWeb.SelectableController do
 
   use Air.Web, :controller
 
-  alias Air.Service.View
+  alias Air.Service.{View, AnalystTable}
 
   plug(:load_data_source)
   plug(:put_layout, "raw.html")
@@ -24,7 +24,7 @@ defmodule AirWeb.SelectableController do
         conn,
         "new.html",
         kind: kind,
-        changeset: View.new_changeset(),
+        changeset: new_changeset_of_kind(kind),
         data_source: conn.assigns.data_source
       )
 
@@ -34,29 +34,23 @@ defmodule AirWeb.SelectableController do
         conn,
         "edit.html",
         kind: kind,
-        changeset: View.changeset(id),
+        changeset: new_changeset_of_kind(kind),
         data_source: conn.assigns.data_source
       )
 
-  def create(conn, %{"view" => %{"name" => name, "sql" => sql}}) do
-    case View.create(conn.assigns.current_user, conn.assigns.data_source, name, sql) do
-      {:ok, _view} ->
+  def create(conn, params = %{"kind" => kind}) do
+    case create_selectable(conn, kind, params) do
+      {:ok, _selectable} ->
         redirect(conn, to: data_source_path(conn, :show, conn.assigns.data_source.name))
 
       {:error, changeset} ->
-        render(conn, "new.html", changeset: changeset, data_source: conn.assigns.data_source)
+        render(conn, "new.html", kind: kind, changeset: changeset, data_source: conn.assigns.data_source)
     end
   end
 
-  def update(conn, %{"id" => id, "view" => %{"name" => name, "sql" => sql}}) do
-    case View.update(
-           id,
-           conn.assigns.current_user,
-           name,
-           sql,
-           revalidation_timeout: :timer.seconds(5)
-         ) do
-      {:ok, _view} ->
+  def update(conn, %{"id" => id, "kind" => kind, "view" => %{"name" => name, "sql" => sql}}) do
+    case update_selectable(conn, kind, id, name, sql) do
+      {:ok, _selectable} ->
         conn
         |> maybe_broken_message()
         |> redirect(to: data_source_path(conn, :show, conn.assigns.data_source.name))
@@ -65,14 +59,20 @@ defmodule AirWeb.SelectableController do
         render(
           conn,
           "edit.html",
+          kind: kind,
           changeset: changeset,
-          data_source: conn.assigns.data_source,
-          view_id: id
+          data_source: conn.assigns.data_source
         )
     end
   end
 
-  def delete(conn, %{"id" => id}) do
+  def delete(conn, %{"id" => id, "kind" => "table"}),
+    do:
+      conn
+      |> put_flash(:error, "Deleting analyst created tables is currently not supported.")
+      |> redirect(to: data_source_path(conn, :show, conn.assigns.data_source.name))
+
+  def delete(conn, %{"id" => id, "kind" => kind}) do
     View.delete(id, conn.assigns.current_user, revalidation_timeout: :timer.seconds(5))
 
     path =
@@ -128,4 +128,19 @@ defmodule AirWeb.SelectableController do
         )
     end
   end
+
+  defp new_changeset_of_kind("table"), do: AnalystTable.new_changeset()
+  defp new_changeset_of_kind("view"), do: View.new_changeset()
+
+  defp create_selectable(conn, "table", %{"analyst_table" => %{"name" => name, "sql" => sql}}),
+    do: AnalystTable.create(conn.assigns.current_user, conn.assigns.data_source, name, sql)
+
+  defp create_selectable(conn, "view", %{"view" => %{"name" => name, "sql" => sql}}),
+    do: View.create(conn.assigns.current_user, conn.assigns.data_source, name, sql)
+
+  defp update_selectable(conn, "table", id, name, sql),
+    do: AnalystTable.update(id, conn.assigns.current_user, name, sql)
+
+  defp update_selectable(conn, "view", id, name, sql),
+    do: View.update(id, conn.assigns.current_user, name, sql, revalidation_timeout: :timer.seconds(5))
 end

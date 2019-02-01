@@ -42,6 +42,10 @@ defmodule Air.Service.AnalystTable do
   @spec all() :: [AnalystTable.t()]
   def all(), do: Repo.all(AnalystTable)
 
+  @doc "Returns the changeset representing an empty table."
+  @spec new_changeset() :: Changeset.t()
+  def new_changeset(), do: Ecto.Changeset.cast(%AnalystTable{}, %{}, [])
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
