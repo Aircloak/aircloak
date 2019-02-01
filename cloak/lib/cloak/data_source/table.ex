@@ -579,25 +579,13 @@ defmodule Cloak.DataSource.Table do
   defp map_content_type({name, %{user_id: _} = table}), do: {name, Map.delete(table, :content_type)}
 
   defp map_content_type({name, table}) do
-    type =
-      case table[:content_type] do
-        "public" ->
-          :public
+    cond do
+      table[:content_type] in ["public", "general"] ->
+        {name, Map.put(table, :content_type, :public)}
 
-        "private" ->
-          :private
-
-        nil ->
-          :private
-
-        type ->
-          raise ExecutionError,
-            message:
-              "Invalid content type `#{to_string(type)}` for table `#{name}`. " <>
-                "The content type has to have one of the following values: `public` or `private` (default)."
-      end
-
-    {name, Map.put(table, :content_type, type)}
+      table[:content_type] in [nil, "private", "individual"] ->
+        {name, Map.put(table, :content_type, :private)}
+    end
   end
 
   defp map_keys({name, %{keys: keys} = table}) do
