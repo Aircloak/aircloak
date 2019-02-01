@@ -82,7 +82,7 @@ defmodule Cloak.DataSource.Table do
       |> resolve_tables_keys()
 
   @doc "Maps configured tables into the proper table structure."
-  @spec map_tables(DataSource.t()) :: DataSource.t()
+  @spec map_tables(Map.t()) :: Map.t()
   def map_tables(data_source) do
     %{data_source | tables: data_source.tables |> Enum.map(&map_table/1) |> Enum.into(%{})}
   end
