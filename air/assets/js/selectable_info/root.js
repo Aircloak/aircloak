@@ -3,12 +3,15 @@
 import React from "react";
 
 import {SelectableView} from "./selectable";
+import {CreateToolbarView} from "./create_toolbar";
 import {FilterView, Filter, EmptyFilter} from "./filter";
 import type {Selectable} from "./selectable";
 
 type Props = {
   selectables: Selectable[],
+  newTableURL: string,
   newViewURL: string,
+  supportsCreateTable: boolean,
 };
 
 export default class SelectableInfo extends React.Component {
@@ -57,10 +60,8 @@ export default class SelectableInfo extends React.Component {
     return (
       <div>
         <div className="panel panel-default selectable-info">
+
           <div className="panel-heading selectable-heading">
-            <a href={this.props.newViewURL} className="btn btn-default btn-xs pull-right">
-              New view
-            </a>
             <strong>Tables and views</strong>
           </div>
 
@@ -77,6 +78,14 @@ export default class SelectableInfo extends React.Component {
                 onClick={this.toggleExpand(selectable)}
               />
             )}
+          </div>
+
+          <div className="panel-footer">
+            <CreateToolbarView
+              newTableURL={this.props.newTableURL}
+              newViewURL={this.props.newViewURL}
+              supportsCreateTable={this.props.supportsCreateTable}
+            />
           </div>
         </div>
       </div>
