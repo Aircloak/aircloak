@@ -91,14 +91,8 @@ defmodule Cloak.DataSource.Driver.SQL do
         end
       end
 
-      defoverridable analyst_tables: 1,
-                     sql_dialect_module: 0,
-                     disconnect: 1,
-                     supports_query?: 1,
-                     supports_function?: 2,
-                     recreate_analyst_table: 3,
-                     drop_unused_analyst_tables: 2,
-                     store_analyst_table: 3
+      defoverridable Driver
+      defoverridable unquote(__MODULE__)
     end
   end
 end
