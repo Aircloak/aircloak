@@ -33,7 +33,7 @@
           </div>
 
           <div class="form-group pull-right">
-            <%= submit "Save", class: "btn btn-primary" %>
+            <%= submit @action_name, class: "btn btn-primary" %>
             or
             <kbd>Ctrl + Enter</kbd>
           </div>
