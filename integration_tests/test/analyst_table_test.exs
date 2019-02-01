@@ -84,7 +84,7 @@ defmodule IntegrationTest.AnalystTableTest do
 
     with table_definition <- Cloak.AnalystTable.table_definition(analyst_id, name, cloak_data_source),
          false <- is_nil(table_definition),
-         :created <- table_definition.status,
+         true <- table_definition.status != :creating,
          do: true,
          else: (_ -> false)
   end

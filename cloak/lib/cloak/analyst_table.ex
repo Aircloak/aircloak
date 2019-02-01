@@ -84,11 +84,20 @@ defmodule Cloak.AnalystTable do
     table_definition = DataSource.Table.new(table.name, table.id_column, %{db_name: table.db_name, status: :creating})
     :ets.insert(__MODULE__, {{table.analyst, table.data_source_name, table.name}, table_definition})
 
-    {:reply, :ok, enqueue_job(state, child_id, fn -> store_table(table) end)}
+    {:reply, :ok, enqueue_job(state, child_id, table, fn -> store_table(table) end)}
   end
 
   @impl Parent.GenServer
-  def handle_child_terminated(_job, _meta, _pid, _reason, state), do: {:noreply, maybe_start_job(state)}
+  def handle_child_terminated(job_id, meta, _pid, reason, state) do
+    if reason != :normal and match?({:store, _table_name}, job_id) do
+      Logger.error("Error creating table: #{inspect(meta)}: #{inspect(reason)}")
+      [{_key, table_definition}] = :ets.lookup(__MODULE__, {meta.analyst, meta.data_source_name, meta.name})
+      table_definition = %{table_definition | status: :create_error}
+      :ets.insert(__MODULE__, {{meta.analyst, meta.data_source_name, meta.name}, table_definition})
+    end
+
+    {:noreply, maybe_start_job(state)}
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -158,14 +167,21 @@ defmodule Cloak.AnalystTable do
     |> start_table_store()
   end
 
-  defp enqueue_job(state, id, fun), do: maybe_start_job(update_in(state.jobs, &:queue.in({id, fun}, &1)))
+  defp enqueue_job(state, id, meta \\ nil, fun),
+    do: maybe_start_job(update_in(state.jobs, &:queue.in({id, meta, fun}, &1)))
 
   defp maybe_start_job(state) do
     with false <- serialized_job_running?(),
          true <- Parent.GenServer.num_children() < @max_concurrent_stores,
-         {{:value, {job_id, job_fun}}, queue} <- :queue.out(state.jobs),
+         {{:value, {job_id, job_meta, job_fun}}, queue} <- :queue.out(state.jobs),
          false <- job_id == :serialized and Parent.GenServer.num_children() > 0 do
-      Parent.GenServer.start_child(%{id: job_id, start: {Task, :start_link, [job_fun]}, shutdown: :brutal_kill})
+      Parent.GenServer.start_child(%{
+        id: job_id,
+        meta: job_meta,
+        start: {Task, :start_link, [job_fun]},
+        shutdown: :brutal_kill
+      })
+
       %{state | jobs: queue}
     else
       _ -> state
