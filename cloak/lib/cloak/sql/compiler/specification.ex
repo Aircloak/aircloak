@@ -208,7 +208,8 @@ defmodule Cloak.Sql.Compiler.Specification do
   # Selected tables
   # -------------------------------------------------------------------
 
-  defp compile_selected_tables(query), do: %Query{query | selected_tables: selected_tables(query.from, query)}
+  defp compile_selected_tables(query),
+    do: verify_selected_tables(%Query{query | selected_tables: selected_tables(query.from, query)})
 
   defp selected_tables({:join, join}, query), do: selected_tables(join.lhs, query) ++ selected_tables(join.rhs, query)
 
@@ -244,6 +245,16 @@ defmodule Cloak.Sql.Compiler.Specification do
     true = table != nil
     table
   end
+
+  defp verify_selected_tables(query) do
+    case Enum.find(query.selected_tables, &(&1.status != :created)) do
+      nil -> query
+      table -> raise(CompilationError, message: table_error(table))
+    end
+  end
+
+  defp table_error(%{status: :creating} = table), do: "The table `#{table.name}` is still being created."
+  defp table_error(%{status: :create_error} = table), do: "An error happened while creating the table `#{table.name}`."
 
   # -------------------------------------------------------------------
   # Parameter types

@@ -8,28 +8,16 @@ defmodule Compliance.AnalystTableTest do
   @moduletag :analyst_tables
   @tested_data_sources ~w(oracle postgresql9.4 postgresql)
 
-  setup do
-    AnalystTable.sync_serialized(fn ->
-      for data_source <- tested_data_sources(),
-          table_name <- stored_tables(data_source),
-          do: drop_table!(data_source, table_name)
-
-      :ets.delete_all_objects(AnalystTable)
-    end)
-
-    :ok
-  end
-
   for data_source_name <- @tested_data_sources do
     describe "#{data_source_name}" do
       test "table can be created" do
-        with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           assert {:ok, _} = store_table(1, "view1", "select user_id, height from users where age < 70", data_source)
         end
       end
 
       test "same query and id produce the same db_name" do
-        with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           {:ok, _} = store_table(1, "view2", "select user_id, height from users where age < 70", data_source)
           name = AnalystTable.table_definition(1, "view2", data_source).db_name
 
@@ -39,7 +27,7 @@ defmodule Compliance.AnalystTableTest do
       end
 
       test "different query leads to a different db_name" do
-        with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           {:ok, _} = store_table(1, "view3", "select user_id, height from users where age < 70", data_source)
           name1 = AnalystTable.table_definition(1, "view3", data_source).db_name
 
@@ -51,7 +39,7 @@ defmodule Compliance.AnalystTableTest do
       end
 
       test "different id leads to a different db_name" do
-        with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           {:ok, _} = store_table(1, "view4", "select user_id, height from users where age < 70", data_source)
           name1 = AnalystTable.table_definition(1, "view4", data_source).db_name
 
@@ -63,7 +51,7 @@ defmodule Compliance.AnalystTableTest do
       end
 
       test "stored table contains desired rows" do
-        with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           {:ok, _} = store_table(1, "view5", "select user_id, height from users where age < 70", data_source)
           expected = select_direct!(1, data_source, "select user_id, height from users where age < 70")
           materialized = select_direct!(1, data_source, "select user_id, height from view5")
@@ -73,7 +61,7 @@ defmodule Compliance.AnalystTableTest do
       end
 
       test "analyst table can be queried" do
-        with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           {:ok, _} = store_table(1, "view6", "select user_id, height from users where age < 70", data_source)
 
           assert_query(
@@ -85,7 +73,7 @@ defmodule Compliance.AnalystTableTest do
       end
 
       test "simple table definition" do
-        with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           {:ok, _} = store_table(1, "view7", "select user_id, sqrt(age), height as h from users", data_source)
 
           table_definition = AnalystTable.table_definition(1, "view7", data_source)
@@ -103,7 +91,7 @@ defmodule Compliance.AnalystTableTest do
       end
 
       test "table definition in select all" do
-        with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           {:ok, _} = store_table(1, "view8", "select * from users", data_source)
 
           table_definition = AnalystTable.table_definition(1, "view8", data_source)
@@ -116,7 +104,7 @@ defmodule Compliance.AnalystTableTest do
       end
 
       test "analyst_tables returns all tables of the given analyst" do
-        with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           {:ok, _} = store_table(1, "view9", "select user_id, height from users where age < 70", data_source)
           {:ok, _} = store_table(1, "view10", "select user_id, height from users where age < 70", data_source)
           {:ok, _} = store_table(2, "view11", "select user_id, height from users where age < 70", data_source)
@@ -126,10 +114,12 @@ defmodule Compliance.AnalystTableTest do
       end
 
       test "analyst table registration" do
-        with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           {:ok, registration_info} = store_table(1, "view12", "select user_id from users", data_source)
           drop_table!(data_source, AnalystTable.table_definition(1, "view12", data_source).db_name)
+
           assert AnalystTable.register_tables([registration_info]) == :ok
+          assert soon(table_created?(1, "view12", data_source), :timer.seconds(5), repeat_wait_time: 10)
 
           assert_query(
             "select * from view12",
@@ -140,7 +130,7 @@ defmodule Compliance.AnalystTableTest do
       end
 
       test "obsolete analyst tables are dropped when tables are registered" do
-        with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           {:ok, _info} = store_table(1, "view13", "select user_id as a from users", data_source)
           {:ok, _info} = store_table(1, "view13", "select user_id as b from users", data_source)
           {:ok, info1} = store_table(1, "view13", "select user_id as c from users", data_source)
@@ -153,25 +143,94 @@ defmodule Compliance.AnalystTableTest do
           assert soon(Enum.sort(stored_tables(data_source)) == Enum.sort([db_name1, db_name2]), 5000)
         end
       end
+
+      test "failed analyst table creation" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          {:ok, registration_info} = store_table(1, "view15", "select user_id from users", data_source)
+          clear_analyst_tables(data_source)
+
+          log =
+            ExUnit.CaptureLog.capture_log(fn ->
+              registration_info =
+                registration_info
+                |> Jason.decode!()
+                |> put_in(["store_info"], "foo bar baz")
+                |> Jason.encode!()
+
+              AnalystTable.register_tables([registration_info])
+
+              assert soon(
+                       table_created?(1, "view15", data_source, :create_error),
+                       :timer.seconds(5),
+                       repeat_wait_time: 10
+                     )
+            end)
+
+          assert log =~ ~r/Error creating table.*view15/
+
+          assert_query(
+            "select * from view15",
+            [analyst_id: 1, data_sources: [data_source]],
+            %{error: "An error happened while creating the table `view15`."}
+          )
+        end
+      end
+
+      test "pending creation" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)),
+             true <- String.starts_with?(data_source.name, "postgresql") do
+          {:ok, registration_info} = store_table(1, "view16", "select user_id, name from users", data_source)
+          clear_analyst_tables(data_source)
+
+          registration_info =
+            registration_info
+            |> Jason.decode!()
+            |> update_in(
+              ["store_info"],
+              &String.replace(&1, ~r/AS SELECT/, "AS SELECT -1, pg_sleep(1)::text UNION SELECT")
+            )
+            |> Jason.encode!()
+
+          AnalystTable.register_tables([registration_info])
+
+          assert_query(
+            "select * from view16",
+            [analyst_id: 1, data_sources: [data_source]],
+            %{error: "The table `view16` is still being created."}
+          )
+        end
+      end
     end
+  end
+
+  defp prepare_data_source(data_source_name) do
+    with {:ok, data_source} <- Cloak.DataSource.fetch(data_source_name) do
+      clear_analyst_tables(data_source)
+      {:ok, data_source}
+    end
+  end
+
+  defp clear_analyst_tables(data_source) do
+    AnalystTable.sync_serialized(fn ->
+      data_source |> stored_tables() |> Enum.each(&drop_table!(data_source, &1))
+      :ets.match_delete(AnalystTable, {{:_, data_source.name, :_}, :_})
+    end)
   end
 
   defp store_table(analyst_id, name, statement, data_source) do
     with {:ok, registration_info} <- AnalystTable.store(analyst_id, name, statement, data_source) do
-      db_name = registration_info |> Jason.decode!() |> Map.fetch!("db_name")
-
-      assert soon(
-               not is_nil(AnalystTable.table_definition(analyst_id, name, data_source)) and
-                 data_source |> stored_tables() |> Enum.any?(&(&1 == db_name)),
-               :timer.seconds(5),
-               repeat_wait_time: 10
-             )
-
+      assert soon(table_created?(analyst_id, name, data_source), :timer.seconds(5), repeat_wait_time: 10)
       {:ok, registration_info}
     end
   end
 
-  defp tested_data_sources(), do: Enum.filter(Cloak.DataSource.all(), &(&1.name in @tested_data_sources))
+  defp table_created?(analyst_id, name, data_source, expected_status \\ :created) do
+    with table_definition <- AnalystTable.table_definition(analyst_id, name, data_source),
+         false <- is_nil(table_definition),
+         ^expected_status <- table_definition.status,
+         do: true,
+         else: (_ -> false)
+  end
 
   defp drop_table!(data_source, table_name) do
     quote_char = data_source.driver.sql_dialect_module.quote_char()

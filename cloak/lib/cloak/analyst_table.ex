@@ -80,6 +80,10 @@ defmodule Cloak.AnalystTable do
   def handle_call({:store_table, table}, _from, state) do
     child_id = {:store, table.name}
     if Parent.GenServer.child?(child_id), do: Parent.GenServer.shutdown_child(child_id)
+
+    table_definition = DataSource.Table.new(table.name, table.id_column, %{db_name: table.db_name, status: :creating})
+    :ets.insert(__MODULE__, {{table.analyst, table.data_source_name, table.name}, table_definition})
+
     {:reply, :ok, enqueue_job(state, child_id, fn -> store_table(table) end)}
   end
 
@@ -97,11 +101,20 @@ defmodule Cloak.AnalystTable do
       DataSource.Connection.execute!(
         data_source,
         fn connection ->
-          with :ok <- data_source.driver.store_analyst_table(connection, table.db_name, table.store_info) do
-            table_definition = DataSource.Table.new(table.name, table.id_column, %{db_name: table.db_name})
-            [table_definition] = data_source.driver.load_tables(connection, table_definition)
-            :ets.insert(__MODULE__, {{table.analyst, table.data_source_name, table.name}, table_definition})
-          end
+          [{_key, table_definition}] = :ets.lookup(__MODULE__, {table.analyst, table.data_source_name, table.name})
+
+          table_definition =
+            case data_source.driver.store_analyst_table(connection, table.db_name, table.store_info) do
+              :ok ->
+                [table_definition] = data_source.driver.load_tables(connection, table_definition)
+                %{table_definition | status: :created}
+
+              {:error, reason} ->
+                Logger.error("Error creating table: #{inspect(table)}: #{reason}")
+                %{table_definition | status: :create_error}
+            end
+
+          :ets.insert(__MODULE__, {{table.analyst, table.data_source_name, table.name}, table_definition})
         end
       )
     end
