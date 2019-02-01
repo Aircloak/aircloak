@@ -34,12 +34,12 @@ defmodule AirWeb.SelectableController do
         conn,
         "edit.html",
         kind: kind,
-        changeset: new_changeset_of_kind(kind),
+        changeset: existing_changeset_of_kind(id, kind),
         data_source: conn.assigns.data_source
       )
 
-  def create(conn, params = %{"kind" => kind}) do
-    case create_selectable(conn, kind, params) do
+  def create(conn, %{"kind" => kind} = params) do
+    case create_selectable(conn, kind, get_name_and_sql(params, kind)) do
       {:ok, _selectable} ->
         redirect(conn, to: data_source_path(conn, :show, conn.assigns.data_source.name))
 
@@ -48,8 +48,8 @@ defmodule AirWeb.SelectableController do
     end
   end
 
-  def update(conn, %{"id" => id, "kind" => kind, "view" => %{"name" => name, "sql" => sql}}) do
-    case update_selectable(conn, kind, id, name, sql) do
+  def update(conn, %{"id" => id, "kind" => kind} = params) do
+    case update_selectable(conn, kind, id, get_name_and_sql(params, kind)) do
       {:ok, _selectable} ->
         conn
         |> maybe_broken_message()
@@ -132,15 +132,23 @@ defmodule AirWeb.SelectableController do
   defp new_changeset_of_kind("table"), do: AnalystTable.new_changeset()
   defp new_changeset_of_kind("view"), do: View.new_changeset()
 
-  defp create_selectable(conn, "table", %{"analyst_table" => %{"name" => name, "sql" => sql}}),
+  defp existing_changeset_of_kind(id, "table"), do: AnalystTable.changeset(id)
+  defp existing_changeset_of_kind(id, "view"), do: View.changeset(id)
+
+  defp get_name_and_sql(params, kind) do
+    %{"name" => name, "sql" => sql} = params[kind]
+    {name, sql}
+  end
+
+  defp create_selectable(conn, "table", {name, sql}),
     do: AnalystTable.create(conn.assigns.current_user, conn.assigns.data_source, name, sql)
 
-  defp create_selectable(conn, "view", %{"view" => %{"name" => name, "sql" => sql}}),
+  defp create_selectable(conn, "view", {name, sql}),
     do: View.create(conn.assigns.current_user, conn.assigns.data_source, name, sql)
 
-  defp update_selectable(conn, "table", id, name, sql),
+  defp update_selectable(conn, "table", id, {name, sql}),
     do: AnalystTable.update(id, conn.assigns.current_user, name, sql)
 
-  defp update_selectable(conn, "view", id, name, sql),
+  defp update_selectable(conn, "view", id, {name, sql}),
     do: View.update(id, conn.assigns.current_user, name, sql, revalidation_timeout: :timer.seconds(5))
 end

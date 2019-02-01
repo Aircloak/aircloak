@@ -46,6 +46,10 @@ defmodule Air.Service.AnalystTable do
   @spec new_changeset() :: Changeset.t()
   def new_changeset(), do: Ecto.Changeset.cast(%AnalystTable{}, %{}, [])
 
+  @doc "Returns the changeset representing the table with the given id."
+  @spec changeset(integer) :: Changeset.t()
+  def changeset(table_id), do: Ecto.Changeset.cast(Repo.get!(AnalystTable, table_id), %{}, [])
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
