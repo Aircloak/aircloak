@@ -2,15 +2,20 @@ defmodule Compliance.AnalystTableTest do
   use ComplianceCase, async: true
   alias Cloak.AnalystTable
   import Cloak.Test.QueryHelpers
+  import Aircloak.AssertionHelper
 
   @moduletag :compliance
   @moduletag :analyst_tables
   @tested_data_sources ~w(oracle postgresql9.4 postgresql)
 
   setup do
-    for data_source <- tested_data_sources(),
-        table_name <- stored_tables(data_source),
-        do: drop_table!(data_source, table_name)
+    AnalystTable.sync_serialized(fn ->
+      for data_source <- tested_data_sources(),
+          table_name <- stored_tables(data_source),
+          do: drop_table!(data_source, table_name)
+
+      :ets.delete_all_objects(AnalystTable)
+    end)
 
     :ok
   end
@@ -19,28 +24,27 @@ defmodule Compliance.AnalystTableTest do
     describe "#{data_source_name}" do
       test "table can be created" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          assert {:ok, _} =
-                   AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
+          assert {:ok, _} = store_table(1, "view1", "select user_id, height from users where age < 70", data_source)
         end
       end
 
       test "same query and id produce the same db_name" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, _} = AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
-          name = AnalystTable.table_definition!(1, "foo", data_source).db_name
+          {:ok, _} = store_table(1, "view2", "select user_id, height from users where age < 70", data_source)
+          name = AnalystTable.table_definition(1, "view2", data_source).db_name
 
-          {:ok, _} = AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
-          assert %{db_name: ^name} = AnalystTable.table_definition!(1, "foo", data_source)
+          {:ok, _} = store_table(1, "view2", "select user_id, height from users where age < 70", data_source)
+          assert %{db_name: ^name} = AnalystTable.table_definition(1, "view2", data_source)
         end
       end
 
       test "different query leads to a different db_name" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, _} = AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
-          name1 = AnalystTable.table_definition!(1, "foo", data_source).db_name
+          {:ok, _} = store_table(1, "view3", "select user_id, height from users where age < 70", data_source)
+          name1 = AnalystTable.table_definition(1, "view3", data_source).db_name
 
-          {:ok, _} = AnalystTable.store(1, "foo", "select user_id, height from users where age > 70", data_source)
-          name2 = AnalystTable.table_definition!(1, "foo", data_source).db_name
+          {:ok, _} = store_table(1, "view3", "select user_id, height from users where age > 70", data_source)
+          name2 = AnalystTable.table_definition(1, "view3", data_source).db_name
 
           assert name1 != name2
         end
@@ -48,11 +52,11 @@ defmodule Compliance.AnalystTableTest do
 
       test "different id leads to a different db_name" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, _} = AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
-          name1 = AnalystTable.table_definition!(1, "foo", data_source).db_name
+          {:ok, _} = store_table(1, "view4", "select user_id, height from users where age < 70", data_source)
+          name1 = AnalystTable.table_definition(1, "view4", data_source).db_name
 
-          {:ok, _} = AnalystTable.store(2, "foo", "select user_id, height from users where age < 70", data_source)
-          name2 = AnalystTable.table_definition!(2, "foo", data_source).db_name
+          {:ok, _} = store_table(2, "view4", "select user_id, height from users where age < 70", data_source)
+          name2 = AnalystTable.table_definition(2, "view4", data_source).db_name
 
           assert name1 != name2
         end
@@ -60,9 +64,9 @@ defmodule Compliance.AnalystTableTest do
 
       test "stored table contains desired rows" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, _} = AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
+          {:ok, _} = store_table(1, "view5", "select user_id, height from users where age < 70", data_source)
           expected = select_direct!(1, data_source, "select user_id, height from users where age < 70")
-          materialized = select_direct!(1, data_source, "select user_id, height from foo")
+          materialized = select_direct!(1, data_source, "select user_id, height from view5")
 
           assert materialized == expected
         end
@@ -70,10 +74,10 @@ defmodule Compliance.AnalystTableTest do
 
       test "analyst table can be queried" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, _} = AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
+          {:ok, _} = store_table(1, "view6", "select user_id, height from users where age < 70", data_source)
 
           assert_query(
-            "select * from foo",
+            "select * from view6",
             [analyst_id: 1, data_sources: [data_source]],
             %{columns: ["user_id", "height"]}
           )
@@ -82,11 +86,11 @@ defmodule Compliance.AnalystTableTest do
 
       test "simple table definition" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, _} = AnalystTable.store(1, "foo", "select user_id, sqrt(age), height as h from users", data_source)
+          {:ok, _} = store_table(1, "view7", "select user_id, sqrt(age), height as h from users", data_source)
 
-          table_definition = AnalystTable.table_definition!(1, "foo", data_source)
+          table_definition = AnalystTable.table_definition(1, "view7", data_source)
 
-          assert table_definition.name == "foo"
+          assert table_definition.name == "view7"
           assert String.starts_with?(table_definition.db_name, "__ac_")
           assert table_definition.user_id == "user_id"
 
@@ -100,11 +104,11 @@ defmodule Compliance.AnalystTableTest do
 
       test "table definition in select all" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, _} = AnalystTable.store(1, "foo", "select * from users", data_source)
+          {:ok, _} = store_table(1, "view8", "select * from users", data_source)
 
-          table_definition = AnalystTable.table_definition!(1, "foo", data_source)
+          table_definition = AnalystTable.table_definition(1, "view8", data_source)
 
-          assert table_definition.name == "foo"
+          assert table_definition.name == "view8"
           assert String.starts_with?(table_definition.db_name, "__ac_")
           assert table_definition.user_id == "user_id"
           assert table_definition.columns == Cloak.DataSource.table(data_source, :users).columns
@@ -113,28 +117,22 @@ defmodule Compliance.AnalystTableTest do
 
       test "analyst_tables returns all tables of the given analyst" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, _} = AnalystTable.store(1, "foo", "select user_id, height from users where age < 70", data_source)
-          table1 = AnalystTable.table_definition!(1, "foo", data_source)
+          {:ok, _} = store_table(1, "view9", "select user_id, height from users where age < 70", data_source)
+          {:ok, _} = store_table(1, "view10", "select user_id, height from users where age < 70", data_source)
+          {:ok, _} = store_table(2, "view11", "select user_id, height from users where age < 70", data_source)
 
-          {:ok, _} = AnalystTable.store(1, "bar", "select user_id, height from users where age < 70", data_source)
-          table2 = AnalystTable.table_definition!(1, "bar", data_source)
-
-          {:ok, _} = AnalystTable.store(2, "bar", "select user_id, height from users where age < 70", data_source)
-          _table3 = AnalystTable.table_definition!(2, "baz", data_source)
-
-          assert Enum.sort_by(AnalystTable.analyst_tables(1, data_source), & &1.name) ==
-                   Enum.sort_by([table1, table2], & &1.name)
+          assert Enum.sort(Enum.map(AnalystTable.analyst_tables(1, data_source), & &1.name)) == ~w(view10 view9)
         end
       end
 
       test "analyst table registration" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, registration_info} = AnalystTable.store(1, "foo", "select user_id from users", data_source)
-          drop_table!(data_source, AnalystTable.table_definition!(1, "foo", data_source).db_name)
+          {:ok, registration_info} = store_table(1, "view12", "select user_id from users", data_source)
+          drop_table!(data_source, AnalystTable.table_definition(1, "view12", data_source).db_name)
           assert AnalystTable.register_tables([registration_info]) == :ok
 
           assert_query(
-            "select * from foo",
+            "select * from view12",
             [analyst_id: 1, data_sources: [data_source]],
             %{columns: ["user_id"]}
           )
@@ -143,19 +141,33 @@ defmodule Compliance.AnalystTableTest do
 
       test "obsolete analyst tables are dropped when tables are registered" do
         with {:ok, data_source} <- Cloak.DataSource.fetch(unquote(data_source_name)) do
-          {:ok, info1} = AnalystTable.store(1, "foo", "select user_id as a from users", data_source)
-          {:ok, info2} = AnalystTable.store(1, "foo", "select user_id as b from users", data_source)
-          {:ok, info3} = AnalystTable.store(1, "foo", "select user_id as c from users", data_source)
-          {:ok, info4} = AnalystTable.store(2, "bar", "select user_id from users", data_source)
+          {:ok, _info} = store_table(1, "view13", "select user_id as a from users", data_source)
+          {:ok, _info} = store_table(1, "view13", "select user_id as b from users", data_source)
+          {:ok, info1} = store_table(1, "view13", "select user_id as c from users", data_source)
+          {:ok, info2} = store_table(2, "view14", "select user_id from users", data_source)
 
-          db_name1 = AnalystTable.table_definition!(1, "foo", data_source).db_name
-          db_name2 = AnalystTable.table_definition!(2, "bar", data_source).db_name
+          db_name1 = AnalystTable.table_definition(1, "view13", data_source).db_name
+          db_name2 = AnalystTable.table_definition(2, "view14", data_source).db_name
+          :ok = AnalystTable.register_tables([info1, info2])
 
-          :ok = AnalystTable.register_tables([info1, info2, info3, info4])
-
-          assert Enum.sort(stored_tables(data_source)) == Enum.sort([db_name1, db_name2])
+          assert soon(Enum.sort(stored_tables(data_source)) == Enum.sort([db_name1, db_name2]), 5000)
         end
       end
+    end
+  end
+
+  defp store_table(analyst_id, name, statement, data_source) do
+    with {:ok, registration_info} <- AnalystTable.store(analyst_id, name, statement, data_source) do
+      db_name = registration_info |> Jason.decode!() |> Map.fetch!("db_name")
+
+      assert soon(
+               not is_nil(AnalystTable.table_definition(analyst_id, name, data_source)) and
+                 data_source |> stored_tables() |> Enum.any?(&(&1 == db_name)),
+               :timer.seconds(5),
+               repeat_wait_time: 10
+             )
+
+      {:ok, registration_info}
     end
   end
 

@@ -87,7 +87,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
           {:ok, registration_info :: String.t()} | {:error, String.t()}
   def store_analyst_table(channel_pid, analyst_id, table_name, statement, data_source_name) do
     payload = %{analyst_id: analyst_id, table_name: table_name, statement: statement, data_source: data_source_name}
-    call(channel_pid, "store_analyst_table", payload, :timer.hours(1))
+    call(channel_pid, "store_analyst_table", payload, :timer.seconds(5))
   end
 
   @doc "Asynchronously sends all known analyst tables to the cloak."
