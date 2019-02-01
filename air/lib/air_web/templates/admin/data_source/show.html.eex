@@ -131,14 +131,14 @@
           Cloaks hosting data source
         </h1>
       </div>
-      <%= if number_of_tables(@data_source) == 0 do %>
+      <%= if number_of_cloaks_serving(@data_source) == 0 do %>
         <p class="panel-body">
-          No tables are made available by this data source.
+          No online cloak is serving this data source.
         </p>
       <% else %>
         <table class="table">
           <tbody>
-            <%= for cloak_info <- Air.Service.Cloak.cloak_infos_for_data_source(@data_source.name) do %>
+            <%= for cloak_info <- cloak_infos_for_data_source(@data_source) do %>
               <tr>
                 <td><%= cloak_info.name %></td>
                 <td>Available since <%= Timex.from_now(cloak_info.online_since) %></td>
