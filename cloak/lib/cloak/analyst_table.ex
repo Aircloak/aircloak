@@ -81,8 +81,10 @@ defmodule Cloak.AnalystTable do
     child_id = {:store, table.name}
     if Parent.GenServer.child?(child_id), do: Parent.GenServer.shutdown_child(child_id)
 
-    table_definition = DataSource.Table.new(table.name, table.id_column, %{db_name: table.db_name, status: :creating})
-    :ets.insert(__MODULE__, {{table.analyst, table.data_source_name, table.name}, table_definition})
+    store_table_definition(
+      table,
+      DataSource.Table.new(table.name, table.id_column, %{db_name: table.db_name, status: :creating})
+    )
 
     {:reply, :ok, enqueue_job(state, child_id, table, fn -> store_table(table) end)}
   end
@@ -91,9 +93,7 @@ defmodule Cloak.AnalystTable do
   def handle_child_terminated(job_id, meta, _pid, reason, state) do
     if reason != :normal and match?({:store, _table_name}, job_id) do
       Logger.error("Error creating table: #{inspect(meta)}: #{inspect(reason)}")
-      [{_key, table_definition}] = :ets.lookup(__MODULE__, {meta.analyst, meta.data_source_name, meta.name})
-      table_definition = %{table_definition | status: :create_error}
-      :ets.insert(__MODULE__, {{meta.analyst, meta.data_source_name, meta.name}, table_definition})
+      update_table_definition(meta, &%{&1 | status: :create_error})
     end
 
     {:noreply, maybe_start_job(state)}
@@ -103,35 +103,48 @@ defmodule Cloak.AnalystTable do
   # Internal functions
   # -------------------------------------------------------------------
 
+  defp key(table), do: {table.analyst, table.data_source_name, table.name}
+
+  defp store_table_definition(table, table_definition) do
+    :ets.insert(__MODULE__, {key(table), table_definition})
+    :ok
+  end
+
+  defp update_table_definition(table, updater_fun) do
+    [{_key, table_definition}] = :ets.lookup(__MODULE__, key(table))
+    store_table_definition(table, updater_fun.(table_definition))
+    :ok
+  end
+
   defp start_table_store(table), do: GenServer.call(__MODULE__, {:store_table, table})
 
   defp store_table(table) do
-    [{_key, table_definition}] = :ets.lookup(__MODULE__, {table.analyst, table.data_source_name, table.name})
-
-    table_definition =
-      with {:ok, data_source} <- fetch_data_source(table),
-           {:ok, table_definition} <- store_table_to_database(data_source, table, table_definition) do
-        table_definition
-      else
-        {:error, reason} ->
-          Logger.error("Error creating table: #{inspect(table)}: #{reason}")
-          %{table_definition | status: :create_error}
-      end
-
-    :ets.insert(__MODULE__, {{table.analyst, table.data_source_name, table.name}, table_definition})
+    with {:ok, data_source} <- fetch_data_source(table),
+         :ok <- store_table_to_database(data_source, table) do
+      :ok
+    else
+      {:error, reason} ->
+        Logger.error("Error creating table: #{inspect(table)}: #{reason}")
+        update_table_definition(table, &%{&1 | status: :create_error})
+    end
   end
 
   defp fetch_data_source(table) do
     with :error <- DataSource.fetch(table.data_source_name), do: {:error, "data source not found"}
   end
 
-  defp store_table_to_database(data_source, table, table_definition) do
+  defp store_table_to_database(data_source, table) do
     DataSource.Connection.execute!(
       data_source,
       fn connection ->
         with :ok <- data_source.driver.store_analyst_table(connection, table.db_name, table.store_info) do
-          [table_definition] = data_source.driver.load_tables(connection, table_definition)
-          {:ok, %{table_definition | status: :created}}
+          update_table_definition(
+            table,
+            fn table_definition ->
+              [table_definition] = data_source.driver.load_tables(connection, %{table_definition | status: :created})
+              table_definition
+            end
+          )
         end
       end,
       force_new_connection: true
