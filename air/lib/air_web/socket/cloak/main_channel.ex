@@ -186,7 +186,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
     push(
       socket,
       "register_analyst_tables",
-      %{registration_infos: Enum.map(Air.Service.AnalystTable.all(), & &1.registration_info)}
+      %{registration_infos: Enum.map(Air.Service.AnalystTable.all(), & &1.result_info.registration_info)}
     )
 
     {:noreply, socket}
