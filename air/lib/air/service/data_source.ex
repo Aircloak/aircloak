@@ -5,7 +5,7 @@ defmodule Air.Service.DataSource do
   alias Air.Schemas.{DataSource, Group, Query, User}
   alias Air.Repo
   alias Air.Service
-  alias Air.Service.{License, Cloak, View}
+  alias Air.Service.{License, Cloak, View, AnalystTable}
   alias Air.Service.DataSource.QueryScheduler
   alias AirWeb.Socket.Cloak.MainChannel
   import Ecto.Query, only: [from: 2]
@@ -169,6 +169,7 @@ defmodule Air.Service.DataSource do
           %{
             id: String.t(),
             selectable: boolean,
+            kind: :view | :analyst_table,
             # Always false for tables
             broken: boolean,
             internal_id: String.t() | nil,
@@ -188,17 +189,40 @@ defmodule Air.Service.DataSource do
       internal_id: nil
     }
 
-    View.all(user, data_source)
-    |> Enum.map(fn view ->
-      %{
-        selectable: true,
-        id: view.name,
-        broken: view.broken,
-        columns: Map.fetch!(view.result_info, "columns") |> Aircloak.atomize_keys(),
-        internal_id: view.id
-      }
-    end)
-    |> Enum.concat(DataSource.tables(data_source) |> Aircloak.atomize_keys())
+    views =
+      View.all(user, data_source)
+      |> Enum.map(fn view ->
+        %{
+          selectable: true,
+          id: view.name,
+          kind: :view,
+          broken: view.broken,
+          columns: Map.fetch!(view.result_info, "columns") |> Aircloak.atomize_keys(),
+          internal_id: view.id
+        }
+      end)
+
+    analyst_tables =
+      AnalystTable.all(user, data_source)
+      |> Enum.map(fn analyst_table ->
+        %{
+          selectable: true,
+          id: analyst_table.name,
+          kind: :analyst_table,
+          # we don't yet track breakage for analyst tables
+          broken: false,
+          # this information is not yet present in the meta data
+          columns: [],
+          internal_id: analyst_table.id
+        }
+      end)
+
+    views
+    |> Enum.concat(analyst_tables)
+    |> Enum.concat(
+      DataSource.tables(data_source)
+      |> Aircloak.atomize_keys()
+    )
     |> Enum.map(&Map.merge(default_values, &1))
   end
 

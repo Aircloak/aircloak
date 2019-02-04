@@ -425,7 +425,28 @@ defmodule Air.Service.DataSourceTest do
       )
       |> Repo.insert!()
 
-      assert [%{id: ^view_name, selectable: true}] = DataSource.selectables(context[:user], context[:data_source])
+      assert [%{id: ^view_name, selectable: true, kind: :view}] =
+               DataSource.selectables(context[:user], context[:data_source])
+    end
+
+    test "lists analyst tables as part of selectables", context do
+      analyst_table_name = "analyst_table1"
+
+      %Air.Schemas.AnalystTable{}
+      |> Ecto.Changeset.cast(
+        %{
+          user_id: context[:user].id,
+          data_source_id: context[:data_source].id,
+          name: analyst_table_name,
+          sql: "sql for #{analyst_table_name}",
+          registration_info: "Registration info"
+        },
+        ~w(name sql user_id data_source_id registration_info)a
+      )
+      |> Repo.insert!()
+
+      assert [%{id: ^analyst_table_name, selectable: true, kind: :analyst_table}] =
+               DataSource.selectables(context[:user], context[:data_source])
     end
   end
 
