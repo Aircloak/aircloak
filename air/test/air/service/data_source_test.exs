@@ -397,7 +397,7 @@ defmodule Air.Service.DataSourceTest do
     end
   end
 
-  describe ".views_and_tables" do
+  describe ".selectables" do
     test "should list views as part of tables" do
       tables = []
       name = "new_name"
@@ -420,7 +420,7 @@ defmodule Air.Service.DataSourceTest do
       )
       |> Repo.insert!()
 
-      assert [%{id: ^view_name, view: true}] = DataSource.views_and_tables(user, data_source)
+      assert [%{id: ^view_name, view: true}] = DataSource.selectables(user, data_source)
     end
   end
 

@@ -165,7 +165,7 @@ defmodule Air.Service.DataSource do
   end
 
   @doc "Same as tables/1 but also includes views visible to the user"
-  @spec views_and_tables(User.t(), DataSource.t()) :: [
+  @spec selectables(User.t(), DataSource.t()) :: [
           %{
             id: String.t(),
             view: boolean,
@@ -181,7 +181,7 @@ defmodule Air.Service.DataSource do
             ]
           }
         ]
-  def views_and_tables(user, data_source) do
+  def selectables(user, data_source) do
     default_values = %{
       view: false,
       broken: false,

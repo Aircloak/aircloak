@@ -35,7 +35,7 @@ defmodule AirWeb.ViewHelpers do
         id -> id
       end
 
-    Service.DataSource.views_and_tables(conn.assigns[:current_user], data_source)
+    Service.DataSource.selectables(conn.assigns[:current_user], data_source)
     |> Enum.reject(&(&1.internal_id == view_to_exclude))
     |> Enum.map(fn table ->
       if table.view do
