@@ -12,6 +12,8 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   @type views :: %{String.t() => String.t()}
   @type parameters :: nil | [map]
 
+  @short_timeout :timer.seconds(20)
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -33,7 +35,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
       views: views
     }
 
-    with {:ok, _} <- call(channel_pid, "run_query", encode(payload), :timer.seconds(5)), do: :ok
+    with {:ok, _} <- call(channel_pid, "run_query", encode(payload), @short_timeout), do: :ok
   end
 
   @doc """
@@ -52,14 +54,14 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
       views: views
     }
 
-    call(channel_pid, "describe_query", encode(payload), :timer.seconds(5))
+    call(channel_pid, "describe_query", encode(payload), @short_timeout)
   end
 
   @doc "Validates the view on the cloak."
   @spec validate_views(pid, String.t(), String.t(), views) :: map
   def validate_views(channel_pid, analyst_id, data_source_name, views) do
     payload = %{analyst_id: analyst_id, data_source: data_source_name, views: views}
-    {:ok, results} = call(channel_pid, "validate_views", payload, :timer.seconds(5))
+    {:ok, results} = call(channel_pid, "validate_views", payload, @short_timeout)
 
     for result <- results, into: %{} do
       case result do
@@ -72,7 +74,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   @doc "Stops a query on the given cloak."
   @spec stop_query(pid, String.t()) :: :ok | {:error, any}
   def stop_query(channel_pid, query_id) do
-    with {:ok, _} <- call(channel_pid, "stop_query", query_id, :timer.seconds(5)), do: :ok
+    with {:ok, _} <- call(channel_pid, "stop_query", query_id, @short_timeout), do: :ok
   catch
     :exit, _reason ->
       {:error, :disconnected}
@@ -87,7 +89,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
           {:ok, registration_info :: String.t()} | {:error, String.t()}
   def store_analyst_table(channel_pid, analyst_id, table_name, statement, data_source_name) do
     payload = %{analyst_id: analyst_id, table_name: table_name, statement: statement, data_source: data_source_name}
-    call(channel_pid, "store_analyst_table", payload, :timer.seconds(5))
+    call(channel_pid, "store_analyst_table", payload, @short_timeout)
   end
 
   @doc "Asynchronously sends all known analyst tables to the cloak."
