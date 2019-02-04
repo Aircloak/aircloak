@@ -52,10 +52,24 @@ let textToInteger (value: BsonValue): BsonValue =
     | true, num -> BsonInt64(num).AsBsonValue
     | _ -> BsonNull.Value.AsBsonValue
 
+let textToReal (value: BsonValue): BsonValue =
+    match System.Double.TryParse value.AsString with
+    | true, num -> BsonDouble(num).AsBsonValue
+    | _ -> BsonNull.Value.AsBsonValue
+
 let applyDecoder (document : BsonDocument) (decoder : Decoder) : unit =
     for column in decoder.columns do
         match decoder.method with
         | "text_to_integer" -> update document column textToInteger
+        | "text_to_real" -> update document column textToReal
+        // | "aes_cbc_128" -> with_or_without_key
+        // | "real_to_integer"
+        // | "text_to_datetime"
+        // | "text_to_date"
+        // | "text_to_boolean"
+        // | "real_to_boolean"
+        // | "base64"
+        // | "substring"
         | _ -> ()
 
 let applyDecoders (decoders : Decoder list) (document : BsonDocument) : unit =
