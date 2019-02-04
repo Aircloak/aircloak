@@ -48,12 +48,9 @@ defmodule IntegrationTest.TableauTest do
                'relhasoids'
              ],
              [
-               {'public', 'users', 'user_id', 25, 'text', 1, -1, -1, false, false, 'r', _, :null,
-                0, -1, false},
-               {'public', 'users', 'name', 25, 'text', 2, -1, -1, false, false, 'r', _, :null, 0,
-                -1, false},
-               {'public', 'users', 'height', 23, 'int4', 3, 4, -1, false, false, 'r', _, :null, 0,
-                -1, false}
+               {'public', 'users', 'user_id', 25, 'text', 1, -1, -1, false, false, 'r', _, :null, 0, -1, false},
+               {'public', 'users', 'name', 25, 'text', 2, -1, -1, false, false, 'r', _, :null, 0, -1, false},
+               {'public', 'users', 'height', 23, 'int4', 3, 4, -1, false, false, 'r', _, :null, 0, -1, false}
              ]
            } = :odbc.sql_query(context.conn, query)
   end
@@ -136,8 +133,7 @@ defmodule IntegrationTest.TableauTest do
   end
 
   test "arbitrary query through a cursor", context do
-    query =
-      'BEGIN;declare "SQL_CUR04AD8270" cursor for show tables;fetch 2048 in "SQL_CUR04AD8270"'
+    query = 'BEGIN;declare "SQL_CUR04AD8270" cursor for show tables;fetch 2048 in "SQL_CUR04AD8270"'
 
     assert :odbc.sql_query(context.conn, query) == [
              {:updated, 0},
@@ -147,8 +143,7 @@ defmodule IntegrationTest.TableauTest do
   end
 
   test "arbitrary query through a cursor with hold", context do
-    query =
-      'BEGIN;declare "SQL_CUR04AD8270" cursor with hold for show tables;fetch 2048 in "SQL_CUR04AD8270"'
+    query = 'BEGIN;declare "SQL_CUR04AD8270" cursor with hold for show tables;fetch 2048 in "SQL_CUR04AD8270"'
 
     assert :odbc.sql_query(context.conn, query) == [
              {:updated, 0},
@@ -158,8 +153,7 @@ defmodule IntegrationTest.TableauTest do
   end
 
   test "multiline query through a cursor", context do
-    query =
-      'BEGIN;declare "SQL_CUR04AD8270" cursor for show\ntables;fetch 2048 in "SQL_CUR04AD8270"'
+    query = 'BEGIN;declare "SQL_CUR04AD8270" cursor for show\ntables;fetch 2048 in "SQL_CUR04AD8270"'
 
     assert :odbc.sql_query(context.conn, query) == [
              {:updated, 0},
@@ -174,15 +168,13 @@ defmodule IntegrationTest.TableauTest do
     assert :odbc.sql_query(context.conn, query) == [
              {:updated, 0},
              {:updated, 0},
-             {:selected, ['name', 'data type', 'isolator?', 'key type'],
-              [{'user_id', 'text', 'true', 'user_id'}]}
+             {:selected, ['name', 'data type', 'isolator?', 'key type'], [{'user_id', 'text', 'true', 'user_id'}]}
            ]
 
     assert :odbc.sql_query(context.conn, 'fetch 2 in "my_cursor"') ==
              {:selected, ['name', 'type'], [{'name', 'text'}, {'height', 'integer'}]}
 
-    assert :odbc.sql_query(context.conn, 'fetch 1 in "my_cursor"') ==
-             {:selected, ['name', 'type'], []}
+    assert :odbc.sql_query(context.conn, 'fetch 1 in "my_cursor"') == {:selected, ['name', 'type'], []}
 
     assert :odbc.sql_query(context.conn, 'close "my_cursor"') == {:updated, 0}
   end
@@ -212,10 +204,7 @@ defmodule IntegrationTest.TableauTest do
   )
 
   test "select current schema", context do
-    assert(
-      :odbc.sql_query(context.conn, 'select current_schema()') ==
-        {:selected, ['current_schema'], [{'public'}]}
-    )
+    assert(:odbc.sql_query(context.conn, 'select current_schema()') == {:selected, ['current_schema'], [{'public'}]})
   end
 
   test(
@@ -279,13 +268,11 @@ defmodule IntegrationTest.TableauTest do
 
   describe "simple queries for testing connectivity" do
     test "integer", context do
-      assert :odbc.sql_query(context.conn, ' \n seLect  \n  -1234\n') ==
-               {:selected, ['?column?'], [{-1234}]}
+      assert :odbc.sql_query(context.conn, ' \n seLect  \n  -1234\n') == {:selected, ['?column?'], [{-1234}]}
     end
 
     test "float", context do
-      assert :odbc.sql_query(context.conn, 'SELECT  \n 34.457::float ') ==
-               {:selected, ['float8'], [{34.457}]}
+      assert :odbc.sql_query(context.conn, 'SELECT  \n 34.457::float ') == {:selected, ['float8'], [{34.457}]}
     end
 
     test "bool", context do
@@ -293,8 +280,7 @@ defmodule IntegrationTest.TableauTest do
     end
 
     test "text", context do
-      assert :odbc.sql_query(context.conn, 'seLect \'ab\'\'cd\'') ==
-               {:selected, ['?column?'], [{'ab\'cd'}]}
+      assert :odbc.sql_query(context.conn, 'seLect \'ab\'\'cd\'') == {:selected, ['?column?'], [{'ab\'cd'}]}
     end
   end
 
