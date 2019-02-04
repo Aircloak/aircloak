@@ -388,14 +388,16 @@ defmodule Air.Service.DataSourceTest do
              [u1, u2] |> Enum.map(& &1.id) |> Enum.sort()
   end
 
-  describe "listing data source tables" do
+  describe ".tables" do
     test "should list available tables" do
       tables = [%{id: "table_id", columns: []}]
       name = "new_name"
       data_source = DataSource.create_or_update_data_source(%{name: name, tables: tables})
       assert [%{"id" => "table_id", "columns" => []}] == Schemas.DataSource.tables(data_source)
     end
+  end
 
+  describe ".views_and_tables" do
     test "should list views as part of tables" do
       tables = []
       name = "new_name"
