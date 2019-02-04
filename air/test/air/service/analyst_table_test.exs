@@ -63,10 +63,9 @@ defmodule Air.Service.AnalystTableTest do
           user_id: user.id,
           data_source_id: data_source.id,
           name: name,
-          sql: "sql for #{name}",
-          registration_info: "Registration info"
+          sql: "sql for #{name}"
         },
-        ~w(name sql user_id data_source_id registration_info)a
+        ~w(name sql user_id data_source_id)a
       )
       |> Repo.insert!()
 end
