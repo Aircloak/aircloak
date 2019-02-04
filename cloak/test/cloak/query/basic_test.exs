@@ -28,24 +28,22 @@ defmodule Cloak.Query.BasicTest do
     :ok
   end
 
-  test "show tables" do
-    assert_query("show tables", %{columns: ["name"], rows: table_rows})
-    tables = Enum.map(table_rows, fn %{row: [table_name]} -> table_name end)
-
-    [:children, :heights, :heights_alias, :"weird things", :dates]
-    |> Enum.each(&assert(Enum.member?(tables, to_string(&1))))
-  end
-
   test "show tables and views" do
     assert_query("show tables", [views: %{"v1" => "select user_id, height from heights"}], %{
-      columns: ["name"],
-      rows: table_rows
+      columns: ["name", "type"],
+      rows: rows
     })
 
-    tables = Enum.map(table_rows, fn %{row: [table_name]} -> table_name end)
+    rows = Enum.map(rows, & &1.row)
 
-    [:children, :heights, :heights_alias, :"weird things", :dates, :v1]
-    |> Enum.each(&assert(Enum.member?(tables, to_string(&1))))
+    [
+      ["children", "personal"],
+      ["heights", "personal"],
+      ["weird things", "personal"],
+      ["dates", "personal"],
+      ["v1", "view"]
+    ]
+    |> Enum.each(&assert(Enum.member?(rows, &1)))
   end
 
   test "show columns" do
