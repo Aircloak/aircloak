@@ -63,10 +63,14 @@ let applyDecoders (decoders : Decoder list) (document : BsonDocument) : unit =
         applyDecoder document decoder
 
 let decode (table : string) (decoders : Decoder list) (db : IMongoDatabase) : unit =
-    let mutable documents = db.GetCollection<BsonDocument>(table).Find(fun _ -> true).ToList()
+    let collection = db.GetCollection<BsonDocument>(table)
+    let mutable documents = collection.Find(fun _ -> true).ToList()
 
     for document in documents do
-        applyDecoders decoders document
+        applyDecoders decoders document |> ignore
+        let field = StringFieldDefinition<BsonDocument, BsonValue>("_id")
+        let filter = Builders<BsonDocument>.Filter.Eq(field, document.GetValue("_id"))
+        collection.ReplaceOne(filter, document) |> ignore
 
     documents
     |> Seq.map (fun x -> x.ToJson ())
