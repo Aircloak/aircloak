@@ -56,7 +56,7 @@ export class SelectableView extends React.Component {
 
   isAnalystCreatedSelectable() {
     const kind = this.props.selectable.kind;
-    return kind == "view" || kind == "analyst_table";
+    return kind === "view" || kind === "analyst_table";
   }
 
   hasRenderableContent() {
