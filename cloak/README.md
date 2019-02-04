@@ -115,8 +115,7 @@ configuration might look like this:
   "tables": {
     "<table name as seen by user>": {
       "db_name": "<table as named in the database>",
-      "user_id": "<user id column name in the table>",
-      "ignore_unsupported_types": true | false
+      "user_id": "<user id column name in the table>"
     },
     ...
   }
@@ -141,10 +140,6 @@ you can use the `marker` option to add more context to the global identifier pro
 The `tables` section lists the set of tables that should be made available to the analyst.
 It allows the system to be configured such that the table name presented to the analyst doesn't necessarily
 reflect the name used by the underlying data store.
-
-If `ignore_unsupported_types` is set to `true` the cloak will fail to start if there are columns with data
-types not natively supported by the cloak. If it is set to false, these columns will be ignored, and not made
-available for analysis to the analyst.
 
 
 ### Typical tasks

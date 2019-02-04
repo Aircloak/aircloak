@@ -44,13 +44,13 @@ defmodule Cloak.DataSource.Driver.SQL do
       defdelegate supports_function?(expression, data_source), to: SqlBuilder.Support
 
       @impl Driver
-      def store_analyst_table(connection, table_id, query) do
+      def prepare_analyst_table(table_id, query) do
         {sql, db_name} = SqlBuilder.create_table_statement(table_id, query)
-        with :ok <- recreate_analyst_table(connection, db_name, sql), do: {:ok, db_name, sql}
+        {db_name, sql}
       end
 
       @impl Driver
-      def recreate_analyst_table(connection, db_name, sql) do
+      def store_analyst_table(connection, db_name, sql) do
         if Enum.any?(analyst_tables(connection), &(&1 == db_name)) do
           :ok
         else

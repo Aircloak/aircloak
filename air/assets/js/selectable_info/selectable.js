@@ -48,7 +48,7 @@ export class SelectableView extends React.Component {
     // However, the problem here is that we're injecting some html provided by the server, which
     // internally generates A elements. Therefore, we don't have such option, so we're doing it
     // here.
-    if (event.target.tagName !== "A") {
+    if (event.target.tagName !== "A" && ! this.pending()) {
       event.preventDefault();
       this.props.onClick();
     }
@@ -64,17 +64,21 @@ export class SelectableView extends React.Component {
   }
 
   renderSelectableActionMenu() {
-    return (
-      <span className="pull-right">
-        &nbsp;
-        <a className="btn btn-xs btn-default" href={this.props.selectable.edit_link}>Edit</a>
-        &nbsp;
-        <span
-          dangerouslySetInnerHTML={{__html: this.props.selectable.delete_html}}
-          onClick={(event) => event.preventDefault()}
-        />
-      </span>
-    );
+    if (this.pending()) {
+      return null;
+    } else {
+      return (
+        <span className="pull-right">
+          &nbsp;
+          <a className="btn btn-xs btn-default" href={this.props.selectable.edit_link}>Edit</a>
+          &nbsp;
+          <span
+            dangerouslySetInnerHTML={{__html: this.props.selectable.delete_html}}
+            onClick={(event) => event.preventDefault()}
+          />
+        </span>
+      );
+    }
   }
 
   broken() {
@@ -91,12 +95,24 @@ export class SelectableView extends React.Component {
     }
   }
 
+  pending() {
+    return (! this.props.selectable.broken) && (this.props.selectable.columns === []);
+  }
+
+  renderIcon() {
+    if (this.pending()) {
+      return <img src="/images/loader.gif" role="presentation" height="12" width="12" />;
+    } else {
+      const glyphType = this.props.expanded ? "glyphicon glyphicon-minus" : "glyphicon glyphicon-plus";
+      return <span className={glyphType} />;
+    }
+  }
+
   renderSelectableView() {
-    const glyphType = this.props.expanded ? "glyphicon glyphicon-minus" : "glyphicon glyphicon-plus";
     return (
       <div className="list-group-item">
         <div onClick={this.handleToggleClick} {...this.broken()}>
-          <span className={glyphType} />
+          {this.renderIcon()}
           &nbsp;
           {this.props.selectable.id}
 

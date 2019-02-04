@@ -28,7 +28,6 @@ defmodule Cloak.Sql.Expression do
           aggregate?: boolean,
           parameter_index: pos_integer | nil,
           synthetic?: boolean,
-          key?: boolean,
           source_location: Cloak.Sql.Parser.location()
         }
   defstruct table: :unknown,
@@ -45,7 +44,6 @@ defmodule Cloak.Sql.Expression do
             function?: false,
             parameter_index: nil,
             synthetic?: false,
-            key?: false,
             source_location: nil
 
   @doc "Returns an expression representing a reference to the given column in the given table."
@@ -55,8 +53,7 @@ defmodule Cloak.Sql.Expression do
       table: table,
       name: column.name,
       type: column.type,
-      user_id?: table.user_id == column.name,
-      key?: column.name in Map.get(table, :keys, [])
+      user_id?: table.user_id == column.name
     }
 
   @doc """
@@ -109,10 +106,15 @@ defmodule Cloak.Sql.Expression do
   @spec set_location(t, Cloak.Sql.Parser.location()) :: t
   def set_location(expression, location), do: %{expression | source_location: location}
 
-  @doc "Returns true if the given column is a key (public/private/user_id), false otherwise."
+  @doc "Returns the key type of the column, if any. Key types are provided by admins in the data source config file."
+  @spec key_type(t) :: atom
+  def key_type(%__MODULE__{user_id?: true}), do: :user_id
+  def key_type(%__MODULE__{name: name, table: table}) when is_binary(name) and is_map(table), do: table.keys[name]
+  def key_type(_), do: nil
+
+  @doc "Returns true if the given column is a key, false otherwise."
   @spec key?(t) :: boolean
-  def key?(%__MODULE__{user_id?: true}), do: true
-  def key?(%__MODULE__{key?: key}), do: key
+  def key?(expression), do: key_type(expression) != nil
 
   @doc """
   Returns a shorter version of the display name of the column.
@@ -311,6 +313,10 @@ defmodule Cloak.Sql.Expression do
   """
   @spec member?([t], t) :: boolean
   def member?(expressions, expression), do: Enum.any?(expressions, &equals?(&1, expression))
+
+  @doc "Returns the title for the specified column."
+  @spec title(t) :: nil | String.t()
+  def title(%__MODULE__{name: name, alias: alias}), do: alias || name
 
   # -------------------------------------------------------------------
   # Internal functions

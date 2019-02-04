@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler.Helpers do
   @moduledoc "Common helper functions used in compilation phases."
 
-  alias Cloak.Sql.{Expression, Query, Parser}
+  alias Cloak.Sql.{Expression, Query, Parser, Function}
   alias Cloak.DataSource.Table
 
   @type partial_query :: %Query{}
@@ -122,24 +122,27 @@ defmodule Cloak.Sql.Compiler.Helpers do
     |> Expression.column(table)
   end
 
-  @doc "Returns an error message about a user id missing from the select list for the given query."
-  @spec missing_uid_error_message(Query.t(), String.t()) :: String.t()
-  def missing_uid_error_message(query, alias) do
-    possible_uid_columns =
-      all_id_columns_from_tables(query)
-      |> Enum.map(&Expression.display_name/1)
-      |> case do
-        [column] -> "the column #{column}"
-        columns -> "one of the columns #{Enum.join(columns, ", ")}"
-      end
-
-    "Missing a user id column in the select list of #{"subquery `#{alias}`"}. " <>
-      "To fix this error, add #{possible_uid_columns} to the subquery select list."
-  end
-
   @doc "Returns the list of expressions from a query that can contain aggregating clauses."
   @spec aggregator_sources(Query.t()) :: [Expression.t()]
   def aggregator_sources(query), do: query.columns ++ having_columns(query) ++ Query.order_by_expressions(query)
+
+  @doc "Creates a synthetic table from a list of selected columns."
+  @spec create_table_from_columns([Expression.t()], String.t()) :: Table.t()
+  def create_table_from_columns(selected_columns, table_name) do
+    table_columns =
+      Enum.map(selected_columns, &Table.column(Expression.title(&1), Function.type(&1), visible?: not &1.synthetic?))
+
+    user_id_column = Enum.find(selected_columns, & &1.user_id?)
+    user_id_name = user_id_column && Expression.title(user_id_column)
+
+    keys =
+      selected_columns
+      |> Enum.filter(&Expression.key?/1)
+      |> Enum.map(&{Expression.title(&1), Expression.key_type(&1)})
+      |> Enum.into(%{})
+
+    Table.new(table_name, user_id_name, columns: table_columns, keys: keys)
+  end
 
   # -------------------------------------------------------------------
   # Internal functions

@@ -39,7 +39,7 @@ defmodule Cloak.DataSource.Isolators.Query.Test do
 
   test "a column with many users per value is not isolating" do
     :ok =
-      Cloak.Test.DB.add_users_data("isolators", ["value"], [
+      Cloak.Test.DB.insert_data("isolators", ["user_id", "value"], [
         ["user1", 10],
         ["user2", 10],
         ["user3", 30],
@@ -53,7 +53,7 @@ defmodule Cloak.DataSource.Isolators.Query.Test do
 
   test "a column with one user per value is isolating" do
     :ok =
-      Cloak.Test.DB.add_users_data("isolators", ["value"], [
+      Cloak.Test.DB.insert_data("isolators", ["user_id", "value"], [
         ["user1", 10],
         ["user2", 20],
         ["user3", 30],
@@ -67,7 +67,7 @@ defmodule Cloak.DataSource.Isolators.Query.Test do
 
   test "[BUG] a column with many rows per user" do
     :ok =
-      Cloak.Test.DB.add_users_data("isolators", ["value"], [
+      Cloak.Test.DB.insert_data("isolators", ["user_id", "value"], [
         ["user1", 10],
         ["user1", 10],
         ["user2", 20],
@@ -83,7 +83,7 @@ defmodule Cloak.DataSource.Isolators.Query.Test do
 
   test "[BUG] null user ids do not produce crashes" do
     :ok =
-      Cloak.Test.DB.add_users_data("isolators", ["value"], [
+      Cloak.Test.DB.insert_data("isolators", ["user_id", "value"], [
         ["user1", 10],
         ["user2", 10],
         ["user2", 20],
@@ -105,7 +105,7 @@ defmodule Cloak.DataSource.Isolators.Query.Test do
 
   test "projected table" do
     :ok =
-      Cloak.Test.DB.add_users_data("isolators", ["pk"], [
+      Cloak.Test.DB.insert_data("isolators", ["user_id", "pk"], [
         ["user1", 1],
         ["user2", 2],
         ["user3", 3],
@@ -127,7 +127,7 @@ defmodule Cloak.DataSource.Isolators.Query.Test do
 
   test "[BUG] names with spaces are handled properly" do
     :ok =
-      Cloak.Test.DB.add_users_data("isolators with spaces", ["\"val ue\""], [
+      Cloak.Test.DB.insert_data("isolators with spaces", ["user_id", "\"val ue\""], [
         ["user1", 10],
         ["user2", 10],
         ["user3", 30],

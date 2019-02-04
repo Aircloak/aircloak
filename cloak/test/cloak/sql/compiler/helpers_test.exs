@@ -140,7 +140,7 @@ defmodule Cloak.Sql.Compiler.Helpers.Test do
               Table.column("numeric", :integer),
               Table.column("string", :text)
             ],
-            keys: ["key"]
+            keys: %{"key" => :unknown}
           )
       }
     }

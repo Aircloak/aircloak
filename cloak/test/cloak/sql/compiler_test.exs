@@ -546,33 +546,27 @@ defmodule Cloak.Sql.Compiler.Test do
   end
 
   test "rejecting improper joins" do
-    assert {:error, error} = compile("SELECT t1.c1 from t1, t2", data_source())
-    assert error =~ ~r/Missing where comparison.*`t1` and `t2`/
+    assert {:error, "The tables `t1` and `t2` are not joined " <> _} =
+             compile("SELECT t1.c1 from t1, t2", data_source())
 
-    assert {:error, error} = compile("SELECT t1.c1 from t1, t2, t3 WHERE t1.uid = t2.uid", data_source())
+    assert {:error, "The tables `t1` and `t3` are not joined " <> _} =
+             compile("SELECT t1.c1 from t1, t2, t3 WHERE t1.uid = t2.uid", data_source())
 
-    assert error =~ ~r/Missing where comparison.*`t1` and `t3`/
-
-    assert {:error, error} =
+    assert {:error, "The tables `t1` and `t3` are not joined " <> _} =
              compile(
                "SELECT t1.c1 from t1, t2, t3, t4 WHERE t1.uid = t2.uid AND t3.uid = t4.uid",
                data_source()
              )
-
-    assert error =~ ~r/Missing where comparison.*`t1` and `t3`/
   end
 
   test "rejecting improper joins with aliases" do
-    assert {:error, error} = compile("SELECT a1.c1 from t1 a1, t2 a2", data_source())
-    assert error =~ ~r/Missing where comparison.*`a1` and `a2`/
+    assert {:error, "The tables `a1` and `a2` are not joined " <> _} =
+             compile("SELECT a1.c1 from t1 a1, t2 a2", data_source())
   end
 
-  test "rejecting a join with a subquery that has no explicit id" do
-    assert {:error, error} = compile("SELECT t1.c1 from t1, (select c1 from t2) sq", data_source())
-
-    assert error ==
-             "Missing where comparison for uid columns of tables `sq` and `t1`." <>
-               " You can fix the error by adding `sq.uid = t1.uid` condition to the `WHERE` clause."
+  test "rejecting a join with a subquery that is unconnected" do
+    assert {:error, "The tables `sq` and `t1` are not joined " <> _} =
+             compile("SELECT t1.c1 from t1, (select c1 from t2) sq", data_source())
   end
 
   test "rejecting a join when cast changes the uid type" do
@@ -1241,12 +1235,13 @@ defmodule Cloak.Sql.Compiler.Test do
   describe "key columns" do
     test "marking key columns" do
       result = compile!("SELECT key, median(uid) FROM table group by 1", data_source())
-      assert [%{name: "key", key?: true}, _] = result.columns
+
+      assert result.columns |> Enum.at(0) |> Expression.key?()
     end
 
     test "marking aliased key columns" do
       result = compile!("SELECT key AS something FROM table", data_source())
-      assert [%{key?: true}] = result.columns
+      assert result.columns |> Enum.at(0) |> Expression.key?()
     end
 
     test "marking key columns from subqueries" do
@@ -1256,7 +1251,7 @@ defmodule Cloak.Sql.Compiler.Test do
           data_source()
         )
 
-      assert [%{key?: true}] = result.columns
+      assert result.columns |> Enum.at(0) |> Expression.key?()
     end
   end
 
@@ -1352,7 +1347,7 @@ defmodule Cloak.Sql.Compiler.Test do
               Table.column("string", :text),
               Table.column("key", :integer)
             ],
-            keys: ["key"]
+            keys: %{"key" => :unknown}
           ),
         other_table:
           Cloak.DataSource.Table.new(

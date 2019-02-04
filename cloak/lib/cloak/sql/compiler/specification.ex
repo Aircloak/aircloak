@@ -208,26 +208,17 @@ defmodule Cloak.Sql.Compiler.Specification do
   # Selected tables
   # -------------------------------------------------------------------
 
-  defp compile_selected_tables(query), do: %Query{query | selected_tables: selected_tables(query.from, query)}
+  defp compile_selected_tables(query),
+    do: verify_selected_tables(%Query{query | selected_tables: selected_tables(query.from, query)})
 
   defp selected_tables({:join, join}, query), do: selected_tables(join.lhs, query) ++ selected_tables(join.rhs, query)
 
   defp selected_tables({:subquery, subquery}, _query) do
-    user_id_index = Enum.find_index(subquery.ast.columns, & &1.user_id?)
-    user_id_name = user_id_index && Enum.at(subquery.ast.column_titles, user_id_index)
-
-    columns =
+    [
       Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
-      |> Enum.map(fn {alias, column} ->
-        DataSource.Table.column(alias, Function.type(column), visible?: not column.synthetic?)
-      end)
-
-    keys =
-      Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
-      |> Enum.filter(fn {_, column} -> Expression.key?(column) end)
-      |> Enum.map(fn {title, _} -> title end)
-
-    [DataSource.Table.new(subquery.alias, user_id_name, columns: columns, keys: keys)]
+      |> Enum.map(fn {title, column} -> %Expression{column | alias: title} end)
+      |> Helpers.create_table_from_columns(subquery.alias)
+    ]
   end
 
   defp selected_tables(table_name, query) when is_binary(table_name),
@@ -244,6 +235,16 @@ defmodule Cloak.Sql.Compiler.Specification do
     true = table != nil
     table
   end
+
+  defp verify_selected_tables(query) do
+    case Enum.find(query.selected_tables, &(&1.status != :created)) do
+      nil -> query
+      table -> raise(CompilationError, message: table_error(table))
+    end
+  end
+
+  defp table_error(%{status: :creating} = table), do: "The table `#{table.name}` is still being created."
+  defp table_error(%{status: :create_error} = table), do: "An error happened while creating the table `#{table.name}`."
 
   # -------------------------------------------------------------------
   # Parameter types

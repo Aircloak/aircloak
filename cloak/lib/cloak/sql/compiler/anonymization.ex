@@ -4,8 +4,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     validations in later steps. It also prepares the anonymized subqueries for the anonymized aggregation pipeline.
   """
 
-  alias Cloak.Sql.{Query, Expression, Function, Query.Lenses}
-  alias Cloak.DataSource.Table
+  alias Cloak.Sql.{Query, Expression, Query.Lenses}
   alias Cloak.Sql.Compiler.Helpers
 
   # -------------------------------------------------------------------
@@ -41,7 +40,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
   # -------------------------------------------------------------------
 
   defp get_query_type(query) do
-    if Enum.all?(query.selected_tables, &(&1.user_id == nil)) do
+    if Enum.all?(query.selected_tables, &(&1.content_type == :public)) do
       :standard
     else
       if query.subquery? and Helpers.uid_column_selected?(query) do
@@ -100,7 +99,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
         type: :restricted,
         aggregators: aggregators,
         columns: inner_columns,
-        column_titles: Enum.map(inner_columns, &(&1.alias || &1.name)),
+        column_titles: Enum.map(inner_columns, &Expression.title(&1)),
         group_by: Enum.map(groups, &Expression.unalias/1),
         order_by: order_by |> Enum.map(&Expression.unalias/1) |> Enum.map(&{&1, :asc, :nulls_first}),
         having: nil,
@@ -111,8 +110,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
         implicit_count?: false
     }
 
-    table_columns = Enum.map(inner_columns, &Table.column(&1.alias || &1.name, Function.type(&1)))
-    inner_table = Table.new("__ac_statistics", count_duid.alias, columns: table_columns)
+    inner_table = Helpers.create_table_from_columns(inner_columns, "__ac_statistics")
 
     # Since only referenced columns are selected from the inner query, we need to add dummy
     # references to the min and max user ids, in order to keep them in the aggregation input.
@@ -209,6 +207,6 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     uid_grouping_query.columns
     |> Enum.take(Enum.count(uid_grouping_query.group_by))
     |> Enum.reject(& &1.user_id?)
-    |> Enum.map(&column_from_synthetic_table(uid_grouping_table, &1.alias || &1.name))
+    |> Enum.map(&column_from_synthetic_table(uid_grouping_table, Expression.title(&1)))
   end
 end

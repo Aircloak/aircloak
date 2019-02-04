@@ -129,7 +129,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     %{
       query
       | columns: query.columns ++ noise_columns,
-        column_titles: query.column_titles ++ Enum.map(noise_columns, &(&1.alias || &1.name)),
+        column_titles: query.column_titles ++ Enum.map(noise_columns, &Expression.title/1),
         aggregators: query.aggregators ++ Enum.filter(noise_columns, & &1.aggregate?)
     }
   end
@@ -587,7 +587,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp reference_aliased(column, subquery, table),
     do: %Expression{
-      name: find_alias(column, subquery) || column.alias || column.name,
+      name: find_alias(column, subquery) || Expression.title(column),
       table: table,
       type: column.type
     }
