@@ -28,21 +28,24 @@
     },
     "customers": {
       "db_name": "customers",
-      "user_id": "id"
+      "keys": [
+        {"user_id": "id"}
+      ]
     },
     "accounts": {
       "db_name": "accounts",
-      "user_id": "customer_id",
       "auto_isolating_column_classification": false,
       "isolating_columns": {"swift": false, "account_number": true}
+      "keys": [
+        {"user_id": "customer_id"},
+        {"account": "id"}
+      ]
     },
     "transactions": {
       "db_name": "transactions",
-      "projection": {
-        "table": "accounts",
-        "foreign_key": "account_id",
-        "primary_key": "id"
-      }
+      "keys": [
+        {"account": "account_id"}
+      ]
     },
     "integers": {
       "db_name": "integers",

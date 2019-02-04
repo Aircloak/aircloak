@@ -10,6 +10,15 @@ export type Column = {
   user_id: boolean,
 };
 
+const potentiallyRenderColumnIcon = (column: Column) => {
+  if (column.user_id) {
+    return <span className="glyphicon glyphicon-user" >&nbsp;</span>;
+  } else {
+    return null;
+  }
+};
+
+
 export const ColumnsView = (props: {filter: Filter, columns: Column[]}) =>
   <table className="table table-condensed">
     <thead>
@@ -29,6 +38,7 @@ export const ColumnsView = (props: {filter: Filter, columns: Column[]}) =>
             }}
             className={column.user_id ? "id-column" : "name-column"}
           >
+            {potentiallyRenderColumnIcon(column)}
             {column.name}
           </td>
           <td>{column.type}</td>
