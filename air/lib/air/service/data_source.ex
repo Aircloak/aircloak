@@ -168,7 +168,7 @@ defmodule Air.Service.DataSource do
   @spec selectables(User.t(), DataSource.t()) :: [
           %{
             id: String.t(),
-            selectable: boolean,
+            analyst_created: boolean,
             kind: :view | :analyst_table,
             # Always false for tables
             broken: boolean,
@@ -184,7 +184,7 @@ defmodule Air.Service.DataSource do
         ]
   def selectables(user, data_source) do
     default_values = %{
-      selectable: false,
+      analyst_created: false,
       broken: false,
       internal_id: nil
     }
@@ -193,7 +193,7 @@ defmodule Air.Service.DataSource do
       View.all(user, data_source)
       |> Enum.map(fn view ->
         %{
-          selectable: true,
+          analyst_created: true,
           id: view.name,
           kind: :view,
           broken: view.broken,
@@ -206,7 +206,7 @@ defmodule Air.Service.DataSource do
       AnalystTable.all(user, data_source)
       |> Enum.map(fn analyst_table ->
         %{
-          selectable: true,
+          analyst_created: true,
           id: analyst_table.name,
           kind: :analyst_table,
           # we don't yet track breakage for analyst tables

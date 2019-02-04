@@ -38,7 +38,7 @@ defmodule AirWeb.ViewHelpers do
     Service.DataSource.selectables(conn.assigns[:current_user], data_source)
     |> Enum.reject(&(&1.internal_id == selectable_to_exclude))
     |> Enum.map(fn table ->
-      if table.selectable do
+      if table.analyst_created do
         additional_data = %{
           edit_link:
             AirWeb.Router.Helpers.data_source_selectable_path(

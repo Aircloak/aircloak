@@ -425,7 +425,7 @@ defmodule Air.Service.DataSourceTest do
       )
       |> Repo.insert!()
 
-      assert [%{id: ^view_name, selectable: true, kind: :view}] =
+      assert [%{id: ^view_name, analyst_created: true, kind: :view}] =
                DataSource.selectables(context[:user], context[:data_source])
     end
 
@@ -445,7 +445,7 @@ defmodule Air.Service.DataSourceTest do
       )
       |> Repo.insert!()
 
-      assert [%{id: ^analyst_table_name, selectable: true, kind: :analyst_table}] =
+      assert [%{id: ^analyst_table_name, analyst_created: true, kind: :analyst_table}] =
                DataSource.selectables(context[:user], context[:data_source])
     end
   end
