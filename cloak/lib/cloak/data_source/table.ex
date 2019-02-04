@@ -22,6 +22,7 @@ defmodule Cloak.DataSource.Table do
           :keys => [String.t()],
           :auto_isolating_column_classification => boolean,
           :isolating_columns => Map.t(),
+          :status => :created | :creating | :create_error,
           optional(any) => any
         }
 
@@ -55,7 +56,8 @@ defmodule Cloak.DataSource.Table do
           keys: [],
           query: nil,
           auto_isolating_column_classification: true,
-          isolating_columns: %{}
+          isolating_columns: %{},
+          status: :created
         },
         Map.new(opts)
       )

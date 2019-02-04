@@ -81,9 +81,29 @@ defmodule IntegrationTest.AnalystTableTest do
 
   defp unique_name(), do: "table_#{:erlang.unique_integer([:positive])}"
 
-  defp create_table(user, name, sql), do: Air.Service.AnalystTable.create(user, Manager.data_source(), name, sql)
+  defp create_table(user, name, sql) do
+    with {:ok, table} <- Air.Service.AnalystTable.create(user, Manager.data_source(), name, sql) do
+      assert soon(table_created?(user.id, name, Manager.data_source()), :timer.seconds(5), repeat_wait_time: 10)
+      {:ok, table}
+    end
+  end
 
-  defp update_table(table_id, user, name, sql), do: Air.Service.AnalystTable.update(table_id, user, name, sql)
+  defp table_created?(analyst_id, name, data_source) do
+    {:ok, cloak_data_source} = Cloak.DataSource.fetch(data_source.name)
+
+    with table_definition <- Cloak.AnalystTable.table_definition(analyst_id, name, cloak_data_source),
+         false <- is_nil(table_definition),
+         true <- table_definition.status != :creating,
+         do: true,
+         else: (_ -> false)
+  end
+
+  defp update_table(table_id, user, name, sql) do
+    with {:ok, table} <- Air.Service.AnalystTable.update(table_id, user, name, sql) do
+      assert soon(table_created?(table.user_id, name, Manager.data_source()), :timer.seconds(5), repeat_wait_time: 10)
+      {:ok, table}
+    end
+  end
 
   defp run_query(user, query, params \\ []) do
     data_source_id_spec = {:id, Manager.data_source().id}

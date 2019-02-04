@@ -11,12 +11,14 @@ defmodule Aircloak.AssertionHelper do
     assert soon(check_that_will_eventually_be_true())
     assert soon(check_that_will_eventually_be_true(), 1000) # Wait's up to a second
   """
-  defmacro soon(check, timeout \\ 100) do
+  defmacro soon(check, timeout \\ 100, opts \\ []) do
     quote do
+      repeat_wait_time = Keyword.get(unquote(opts), :repeat_wait_time, div(unquote(timeout), 10))
+
       Aircloak.AssertionHelper.perform_soon_check(
         fn -> unquote(check) end,
-        10,
-        div(unquote(timeout), 10)
+        trunc(Float.ceil(unquote(timeout) / repeat_wait_time)),
+        repeat_wait_time
       )
     end
   end
