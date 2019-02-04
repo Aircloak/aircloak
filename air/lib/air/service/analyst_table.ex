@@ -5,6 +5,7 @@ defmodule Air.Service.AnalystTable do
   alias Air.Schemas.AnalystTable
   alias Air.Repo
   alias AirWeb.Socket.Cloak.MainChannel
+  import Ecto.Query
 
   # -------------------------------------------------------------------
   # API functions
@@ -43,6 +44,11 @@ defmodule Air.Service.AnalystTable do
   @doc "Returns all known analyst tables."
   @spec all() :: [AnalystTable.t()]
   def all(), do: Repo.all(AnalystTable)
+
+  @doc "Returns all of an analysts analyst tables for a given data source"
+  @spec all(User.t(), DataSource.t()) :: [AnalystTable.t()]
+  def all(user, data_source),
+    do: AnalystTable |> by_user_id(user.id) |> by_data_source_id(data_source.id) |> Repo.all()
 
   @doc "Returns the changeset representing an empty table."
   @spec new_changeset() :: Changeset.t()
@@ -113,4 +119,8 @@ defmodule Air.Service.AnalystTable do
     "The table cannot be saved because no cloak is currently available for the given data source. " <>
       "Please contact your administrator."
   end
+
+  defp by_user_id(scope, user_id), do: where(scope, [v], v.user_id == ^user_id)
+
+  defp by_data_source_id(scope, data_source_id), do: where(scope, [v], v.data_source_id == ^data_source_id)
 end
