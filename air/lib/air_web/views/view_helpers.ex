@@ -26,17 +26,17 @@ defmodule AirWeb.ViewHelpers do
   def admin?(%Air.Schemas.User{} = user), do: Air.Schemas.User.admin?(user)
   def admin?(%Plug.Conn{} = conn), do: admin?(conn.assigns.current_user)
 
-  @doc "Returns an embeddable json representing selectable tables and views."
+  @doc "Returns an embeddable json representing selectable tables, views, and analyst created tables."
   @spec selectables(Plug.Conn.t(), Schemas.DataSource.t(), non_neg_integer | nil) :: [Map.t()]
-  def selectables(conn, data_source, view_to_exclude \\ nil) do
-    view_to_exclude =
-      case view_to_exclude do
+  def selectables(conn, data_source, selectable_to_exclude \\ nil) do
+    selectable_to_exclude =
+      case selectable_to_exclude do
         nil -> :do_not_exclude_any
         id -> id
       end
 
     Service.DataSource.selectables(conn.assigns[:current_user], data_source)
-    |> Enum.reject(&(&1.internal_id == view_to_exclude))
+    |> Enum.reject(&(&1.internal_id == selectable_to_exclude))
     |> Enum.map(fn table ->
       if table.selectable do
         additional_data = %{
@@ -45,7 +45,7 @@ defmodule AirWeb.ViewHelpers do
               conn,
               :edit,
               data_source.name,
-              :view,
+              table.kind,
               table.internal_id
             ),
           delete_html:
@@ -57,7 +57,7 @@ defmodule AirWeb.ViewHelpers do
                     conn,
                     :delete,
                     data_source.name,
-                    :view,
+                    table.kind,
                     table.internal_id
                   ),
                 method: :delete,
@@ -69,7 +69,7 @@ defmodule AirWeb.ViewHelpers do
 
         Map.merge(table, additional_data)
       else
-        table
+        Map.merge(table, %{kind: :table})
       end
     end)
     |> Enum.sort_by(& &1.id)

@@ -9,6 +9,7 @@ import {activateTooltips} from "../tooltips";
 
 export type Selectable = {
   id: string,
+  kind: string,
   columns: Column[],
   edit_link: string,
   delete_html: string,
@@ -27,8 +28,8 @@ const VIEW_INVALID_MESSAGE =
 
 export class SelectableView extends React.Component {
   handleToggleClick: () => void;
-  isDatabaseView: () => boolean;
-  renderDatabaseViewMenu: () => void;
+  isAnalystCreatedSelectable: () => boolean;
+  renderSelectableActionMenu: () => void;
   renderSelectableView: () => void;
   hasRenderableContent: () => boolean;
 
@@ -36,9 +37,9 @@ export class SelectableView extends React.Component {
     super(props);
 
     this.handleToggleClick = this.handleToggleClick.bind(this);
-    this.isDatabaseView = this.isDatabaseView.bind(this);
+    this.isAnalystCreatedSelectable = this.isAnalystCreatedSelectable.bind(this);
     this.hasRenderableContent = this.hasRenderableContent.bind(this);
-    this.renderDatabaseViewMenu = this.renderDatabaseViewMenu.bind(this);
+    this.renderSelectableActionMenu = this.renderSelectableActionMenu.bind(this);
     this.renderSelectableView = this.renderSelectableView.bind(this);
   }
 
@@ -53,15 +54,16 @@ export class SelectableView extends React.Component {
     }
   }
 
-  isDatabaseView() {
-    return this.props.selectable.edit_link && this.props.selectable.delete_html;
+  isAnalystCreatedSelectable() {
+    const kind = this.props.selectable.kind;
+    return kind == "view" || kind == "analyst_table";
   }
 
   hasRenderableContent() {
     return this.props.filter.anyColumnMatches(this.props.selectable.columns);
   }
 
-  renderDatabaseViewMenu() {
+  renderSelectableActionMenu() {
     return (
       <span className="pull-right">
         &nbsp;
@@ -98,7 +100,7 @@ export class SelectableView extends React.Component {
           &nbsp;
           {this.props.selectable.id}
 
-          {this.isDatabaseView() ? this.renderDatabaseViewMenu() : null}
+          {this.isAnalystCreatedSelectable() ? this.renderSelectableActionMenu() : null}
         </div>
 
         {(() => {
