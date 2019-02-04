@@ -42,11 +42,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     do: %Query{
       query
       | column_titles: @table_attributes,
-        columns:
-          Enum.map(
-            @table_attributes,
-            &%Expression{table: :unknown, constant?: true, name: &1, type: :text}
-          )
+        columns: Enum.map(@table_attributes, &Expression.constant(:text, &1))
     }
 
   @column_attributes ["name", "data type", "isolator?", "key type"]
@@ -54,11 +50,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     do: %Query{
       compile_from(query)
       | column_titles: @column_attributes,
-        columns:
-          Enum.map(
-            @column_attributes,
-            &%Expression{table: :unknown, constant?: true, name: &1, type: :text}
-          )
+        columns: Enum.map(@column_attributes, &Expression.constant(:text, &1))
     }
 
   defp compile_query(%Query{command: :select} = query),
