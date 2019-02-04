@@ -10,11 +10,13 @@ defmodule Cloak.DataSource.Isolators.Query do
 
   @doc "Returns true if the given column in the given table is isolating, false otherwise."
   @spec isolates_users?(DataSource.t(), String.t(), String.t()) :: boolean
-  def isolates_users?(data_source, table, column) do
-    case user_id(data_source, table) do
-      nil -> false
-      ^column -> true
-      _ -> isolating_ratio(data_source, table, column) > threshold()
+  def isolates_users?(data_source, table_name, column) do
+    table = data_source.tables[String.to_existing_atom(table_name)]
+
+    cond do
+      table.user_id == nil -> true
+      table.keys[column] -> true
+      true -> isolating_ratio(data_source, table_name, column, table.user_id) > threshold()
     end
   end
 
@@ -22,13 +24,11 @@ defmodule Cloak.DataSource.Isolators.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp isolating_ratio(data_source, table, column) do
-    uid_column = user_id(data_source, table)
-
+  defp isolating_ratio(data_source, table_name, column, uid_column) do
     """
       SELECT isolating, COUNT(*) FROM (
         SELECT BOOL_OP('=', MAX("#{uid_column}"), MIN("#{uid_column}")) AS isolating
-        FROM "#{table}"
+        FROM "#{table_name}"
         GROUP BY "#{column}"
       ) x
       WHERE isolating IS NOT NULL
@@ -54,6 +54,4 @@ defmodule Cloak.DataSource.Isolators.Query do
   end
 
   defp threshold(), do: Application.fetch_env!(:cloak, :anonymizer) |> Keyword.fetch!(:isolating_column_threshold)
-
-  defp user_id(data_source, table), do: data_source.tables[String.to_existing_atom(table)].user_id
 end

@@ -86,12 +86,13 @@ defmodule Cloak.Test.QueryHelpers do
     end
   end
 
-  def insert_rows(user_id_range, table, columns, values) do
-    Cloak.Test.DB.add_users_data(table, columns, Enum.map(user_id_range, &["user#{&1}" | values]))
-  end
+  def insert_rows(user_id_range, table, columns, values),
+    do: Cloak.Test.DB.insert_data(table, ["user_id" | columns], Enum.map(user_id_range, &["user#{&1}" | values]))
+
+  def insert_rows(table, columns, values), do: Cloak.Test.DB.insert_data(table, columns, [values])
 
   def insert_null_uid_row(table, columns, values) do
-    Cloak.Test.DB.add_users_data(table, columns, [[nil | values]])
+    Cloak.Test.DB.insert_data(table, ["user_id" | columns], [[nil | values]])
   end
 
   defp only_structs_lens(root), do: Lens.filter(root, &is_map/1)

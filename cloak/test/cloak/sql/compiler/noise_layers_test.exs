@@ -1303,7 +1303,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
               Table.column("name2", :text),
               Table.column("id", :integer)
             ],
-            keys: ["id"]
+            keys: %{"id" => :unknown}
           ),
         other:
           Cloak.DataSource.Table.new(
@@ -1325,7 +1325,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
             "uid",
             db_name: "key_table",
             columns: [Table.column("uid", :integer), Table.column("table_id", :integer)],
-            keys: ["table_id"]
+            keys: %{"table_id" => :unknown}
           ),
         string_uid_table:
           Cloak.DataSource.Table.new(

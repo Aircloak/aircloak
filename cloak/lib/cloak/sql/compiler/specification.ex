@@ -214,21 +214,11 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp selected_tables({:join, join}, query), do: selected_tables(join.lhs, query) ++ selected_tables(join.rhs, query)
 
   defp selected_tables({:subquery, subquery}, _query) do
-    user_id_index = Enum.find_index(subquery.ast.columns, & &1.user_id?)
-    user_id_name = user_id_index && Enum.at(subquery.ast.column_titles, user_id_index)
-
-    columns =
+    [
       Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
-      |> Enum.map(fn {alias, column} ->
-        DataSource.Table.column(alias, Function.type(column), visible?: not column.synthetic?)
-      end)
-
-    keys =
-      Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
-      |> Enum.filter(fn {_, column} -> Expression.key?(column) end)
-      |> Enum.map(fn {title, _} -> title end)
-
-    [DataSource.Table.new(subquery.alias, user_id_name, columns: columns, keys: keys)]
+      |> Enum.map(fn {title, column} -> %Expression{column | alias: title} end)
+      |> Helpers.create_table_from_columns(subquery.alias)
+    ]
   end
 
   defp selected_tables(table_name, query) when is_binary(table_name),

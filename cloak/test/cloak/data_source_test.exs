@@ -9,7 +9,7 @@ defmodule Cloak.DataSourceTest do
     :ok = Cloak.Test.DB.create_table("test", "value INTEGER")
 
     :ok =
-      Cloak.Test.DB.add_users_data("test", ["value"], [
+      Cloak.Test.DB.insert_data("test", ["user_id", "value"], [
         ["user1", 10],
         ["user1", 20],
         ["user1", 30]
