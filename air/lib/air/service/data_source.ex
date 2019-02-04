@@ -38,6 +38,22 @@ defmodule Air.Service.DataSource do
           ]
         }
 
+  @type selectable :: %{
+          id: String.t(),
+          analyst_created: boolean,
+          kind: :view | :analyst_table,
+          # Always false for tables
+          broken: boolean,
+          internal_id: String.t() | nil,
+          columns: [
+            %{
+              name: String.t(),
+              type: String.t(),
+              user_id: boolean
+            }
+          ]
+        }
+
   @task_supervisor __MODULE__.TaskSupervisor
   @delete_supervisor __MODULE__.DeleteSupervisor
 
@@ -164,66 +180,13 @@ defmodule Air.Service.DataSource do
     end
   end
 
-  @doc "Same as tables/1 but also includes views visible to the user"
-  @spec selectables(User.t(), DataSource.t()) :: [
-          %{
-            id: String.t(),
-            analyst_created: boolean,
-            kind: :view | :analyst_table,
-            # Always false for tables
-            broken: boolean,
-            internal_id: String.t() | nil,
-            columns: [
-              %{
-                name: String.t(),
-                type: String.t(),
-                user_id: boolean
-              }
-            ]
-          }
-        ]
+  @doc "Returns tables, views, and analyst tables visible to the user"
+  @spec selectables(User.t(), DataSource.t()) :: [selectable]
   def selectables(user, data_source) do
-    default_values = %{
-      analyst_created: false,
-      broken: false,
-      internal_id: nil
-    }
-
-    views =
-      View.all(user, data_source)
-      |> Enum.map(fn view ->
-        %{
-          analyst_created: true,
-          id: view.name,
-          kind: :view,
-          broken: view.broken,
-          columns: Map.fetch!(view.result_info, "columns") |> Aircloak.atomize_keys(),
-          internal_id: view.id
-        }
-      end)
-
-    analyst_tables =
-      AnalystTable.all(user, data_source)
-      |> Enum.map(fn analyst_table ->
-        %{
-          analyst_created: true,
-          id: analyst_table.name,
-          kind: :analyst_table,
-          # we don't yet track breakage for analyst tables
-          broken: false,
-          # this information is not yet present in the meta data
-          columns: [],
-          internal_id: analyst_table.id
-        }
-      end)
-
-    views
-    |> Enum.concat(analyst_tables)
-    |> Enum.concat(
-      DataSource.tables(data_source)
-      |> Aircloak.atomize_keys()
-    )
-    |> Enum.map(&Map.merge(default_values, &1))
+    views(user, data_source)
+    |> Enum.concat(analyst_tables(user, data_source))
+    |> Enum.concat(data_source |> DataSource.tables() |> Aircloak.atomize_keys())
+    |> Enum.map(&Map.merge(%{analyst_created: false, broken: false, internal_id: nil}, &1))
   end
 
   @doc "Creates a data source, raises on error."
@@ -474,6 +437,35 @@ defmodule Air.Service.DataSource do
     for table <- tables, column <- table.columns, predicate.(column) do
       "#{table.id}.#{column.name}"
     end
+  end
+
+  defp views(user, data_source) do
+    Enum.map(
+      View.all(user, data_source),
+      &%{
+        analyst_created: true,
+        id: &1.name,
+        kind: :view,
+        broken: &1.broken,
+        columns: Map.fetch!(&1.result_info, "columns") |> Aircloak.atomize_keys(),
+        internal_id: &1.id
+      }
+    )
+  end
+
+  defp analyst_tables(user, data_source) do
+    Enum.map(
+      AnalystTable.all(user, data_source),
+      &%{
+        analyst_created: true,
+        id: &1.name,
+        kind: :analyst_table,
+        # we don't yet track breakage for analyst tables
+        broken: false,
+        columns: &1.result_info.columns,
+        internal_id: &1.id
+      }
+    )
   end
 
   # -------------------------------------------------------------------

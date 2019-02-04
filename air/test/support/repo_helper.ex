@@ -179,10 +179,9 @@ defmodule Air.TestRepoHelper do
         user_id: user.id,
         data_source_id: data_source.id,
         name: table_name,
-        sql: "sql for #{table_name}",
-        registration_info: "Registration info"
+        sql: "sql for #{table_name}"
       },
-      ~w(name sql user_id data_source_id registration_info)a
+      ~w(name sql user_id data_source_id)a
     )
     |> Repo.insert!()
   end

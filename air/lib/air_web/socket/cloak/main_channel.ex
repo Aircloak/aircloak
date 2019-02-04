@@ -11,6 +11,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
 
   @type views :: %{String.t() => String.t()}
   @type parameters :: nil | [map]
+  @type described_columns :: [%{name: String.t(), type: String.t(), user_id: boolean}]
 
   @short_timeout :timer.seconds(20)
 
@@ -86,7 +87,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
 
   @doc "Stores the analyst table on the cloak."
   @spec store_analyst_table(pid, pos_integer, String.t(), String.t(), String.t()) ::
-          {:ok, registration_info :: String.t()} | {:error, String.t()}
+          {:ok, %{registration_info: String.t(), columns: described_columns}} | {:error, String.t()}
   def store_analyst_table(channel_pid, analyst_id, table_name, statement, data_source_name) do
     payload = %{analyst_id: analyst_id, table_name: table_name, statement: statement, data_source: data_source_name}
     call(channel_pid, "store_analyst_table", payload, @short_timeout)
@@ -185,7 +186,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
     push(
       socket,
       "register_analyst_tables",
-      %{registration_infos: Enum.map(Air.Service.AnalystTable.all(), & &1.registration_info)}
+      %{registration_infos: Enum.map(Air.Service.AnalystTable.all(), & &1.result_info.registration_info)}
     )
 
     {:noreply, socket}

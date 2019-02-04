@@ -171,7 +171,7 @@ defmodule AirWeb.QueryController do
     json_without_rows =
       query
       |> AirWeb.Query.for_display(authenticated?: true)
-      |> Jason.encode!(strict_keys: true)
+      |> Jason.encode!()
 
     prefix_size = byte_size(json_without_rows) - 1
     <<json_prefix::binary-size(prefix_size), ?}>> = json_without_rows

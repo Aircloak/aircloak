@@ -4,6 +4,7 @@ defmodule Cloak.AnalystTable do
   use Parent.GenServer
   require Logger
   alias Cloak.DataSource
+  alias Cloak.Sql.Query
 
   @max_concurrent_stores 5
 
@@ -12,8 +13,8 @@ defmodule Cloak.AnalystTable do
   # -------------------------------------------------------------------
 
   @doc "Stores the analyst table to the database."
-  @spec store(Cloak.Sql.Query.analyst_id(), String.t(), String.t(), DataSource.t()) ::
-          {:ok, registration_info :: String.t()} | {:error, String.t()}
+  @spec store(Query.analyst_id(), String.t(), String.t(), DataSource.t()) ::
+          {:ok, registration_info :: String.t(), Query.described_columns()} | {:error, String.t()}
   def store(analyst, table_name, statement, data_source) do
     with {:ok, query} <- Cloak.AnalystTable.Compiler.compile(table_name, statement, data_source) do
       {db_name, store_info} = data_source.driver.prepare_analyst_table({analyst, table_name}, query)
@@ -29,7 +30,7 @@ defmodule Cloak.AnalystTable do
       }
 
       start_table_store(table)
-      {:ok, registration_info(table)}
+      {:ok, registration_info(table), Query.describe_selected(query)}
     end
   end
 
@@ -41,12 +42,12 @@ defmodule Cloak.AnalystTable do
   end
 
   @doc "Returns the analyst table definition."
-  @spec table_definition(Cloak.Sql.Query.analyst_id(), String.t(), DataSource.t()) :: DataSource.Table.t() | nil
+  @spec table_definition(Query.analyst_id(), String.t(), DataSource.t()) :: DataSource.Table.t() | nil
   def table_definition(analyst, table_name, data_source),
     do: Enum.find(analyst_tables(analyst, data_source), &(&1.name == table_name))
 
   @doc "Returns analyst tables for the given analyst in the given data source."
-  @spec analyst_tables(Cloak.Sql.Query.analyst_id(), DataSource.t()) :: [DataSource.Table.t()]
+  @spec analyst_tables(Query.analyst_id(), DataSource.t()) :: [DataSource.Table.t()]
   def analyst_tables(analyst, data_source) do
     Enum.map(
       :ets.match(__MODULE__, {{analyst, data_source.name, :_}, :"$1"}),
