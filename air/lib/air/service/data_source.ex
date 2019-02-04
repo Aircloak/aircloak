@@ -462,7 +462,6 @@ defmodule Air.Service.DataSource do
         kind: :analyst_table,
         # we don't yet track breakage for analyst tables
         broken: false,
-        # this information is not yet present in the meta data
         columns: &1.result_info.columns,
         internal_id: &1.id
       }
