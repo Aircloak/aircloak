@@ -24,20 +24,33 @@ defmodule Air.Service.AnalystTable do
   end
 
   @doc "Updates the existing analyst table, and stores it in cloak and in air."
-  @spec update(pos_integer, String.t(), String.t()) :: {:ok, AnalystTable.t()} | {:error, Ecto.ChangeSet.t()}
-  def update(table_id, name, sql) do
+  @spec update(pos_integer, User.t(), String.t(), String.t()) ::
+          {:ok, AnalystTable.t()} | {:error, Ecto.ChangeSet.t() | :not_allowed}
+  def update(table_id, user, name, sql) do
     table = AnalystTable |> Repo.get!(table_id) |> Repo.preload([:user, :data_source])
 
-    table
-    |> Ecto.Changeset.cast(%{name: name, sql: sql}, ~w(name sql)a)
-    |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
-    |> Map.put(:action, :update)
-    |> store_table(table.user, table.data_source)
+    if table.user_id == user.id do
+      table
+      |> Ecto.Changeset.cast(%{name: name, sql: sql}, ~w(name sql)a)
+      |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
+      |> Map.put(:action, :update)
+      |> store_table(table.user, table.data_source)
+    else
+      {:error, :not_allowed}
+    end
   end
 
   @doc "Returns all known analyst tables."
   @spec all() :: [AnalystTable.t()]
   def all(), do: Repo.all(AnalystTable)
+
+  @doc "Returns the changeset representing an empty table."
+  @spec new_changeset() :: Changeset.t()
+  def new_changeset(), do: Ecto.Changeset.cast(%AnalystTable{}, %{}, [])
+
+  @doc "Returns the changeset representing the table with the given id."
+  @spec changeset(integer) :: Changeset.t()
+  def changeset(table_id), do: Ecto.Changeset.cast(Repo.get!(AnalystTable, table_id), %{}, [])
 
   # -------------------------------------------------------------------
   # Internal functions

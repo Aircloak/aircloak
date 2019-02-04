@@ -41,7 +41,7 @@ defmodule IntegrationTest.AnalystTableTest do
     new_name = unique_name()
 
     {:ok, table} = create_table(context.user, name, "select user_id, name from users")
-    assert {:ok, updated_table} = update_table(table.id, new_name, "select user_id from users")
+    assert {:ok, updated_table} = update_table(table.id, context.user, new_name, "select user_id from users")
 
     assert updated_table.id == table.id
     assert updated_table.name == new_name
@@ -51,6 +51,15 @@ defmodule IntegrationTest.AnalystTableTest do
     assert {:ok, result} = run_query(context.user, "select * from #{new_name}")
     assert result.columns == ~w(user_id)
     assert result.buckets == [%{"occurrences" => 100, "row" => ["*"], "unreliable" => false}]
+  end
+
+  test "failed update when other user", context do
+    name = unique_name()
+    new_name = unique_name()
+    other_user = Manager.create_air_user()
+
+    {:ok, table} = create_table(context.user, name, "select user_id, name from users")
+    assert {:error, :not_allowed} = update_table(table.id, other_user, new_name, "select user_id from users")
   end
 
   test "after the cloak reconnects, it will receive analyst tables from the air", context do
@@ -89,8 +98,8 @@ defmodule IntegrationTest.AnalystTableTest do
          else: (_ -> false)
   end
 
-  defp update_table(table_id, name, sql) do
-    with {:ok, table} <- Air.Service.AnalystTable.update(table_id, name, sql) do
+  defp update_table(table_id, user, name, sql) do
+    with {:ok, table} <- Air.Service.AnalystTable.update(table_id, user, name, sql) do
       assert soon(table_created?(table.user_id, name, Manager.data_source()), :timer.seconds(5), repeat_wait_time: 10)
       {:ok, table}
     end

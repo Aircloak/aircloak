@@ -22,7 +22,7 @@
 }
 
 .selectable-info .selectable-info-content {
-  max-height: calc(100vh - 197px);
+  max-height: calc(100vh - 249px);
   overflow: auto;
 }
 

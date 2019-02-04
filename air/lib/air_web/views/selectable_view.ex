@@ -1,4 +1,4 @@
-defmodule AirWeb.ViewView do
+defmodule AirWeb.SelectableView do
   @moduledoc false
   use Air.Web, :view
 
