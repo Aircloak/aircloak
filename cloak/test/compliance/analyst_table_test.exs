@@ -203,7 +203,7 @@ defmodule Compliance.AnalystTableTest do
 
       test "columns information" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, columns} = store_table(1, "view1", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, columns} = store_table(1, "view17", "select user_id, height from users", data_source)
 
           assert Enum.sort_by(columns, & &1.name) == [
                    %{name: "height", type: "real", user_id: false},

@@ -66,14 +66,8 @@ defmodule AirWeb.SelectableController do
     end
   end
 
-  def delete(conn, %{"kind" => "analyst_table"}),
-    do:
-      conn
-      |> put_flash(:error, "Deleting analyst created tables is currently not supported.")
-      |> redirect(to: data_source_path(conn, :show, conn.assigns.data_source.name))
-
-  def delete(conn, %{"id" => id}) do
-    View.delete(id, conn.assigns.current_user, revalidation_timeout: :timer.seconds(5))
+  def delete(conn, %{"id" => id, "kind" => kind}) do
+    :ok = delete_selectable(conn, kind, id)
 
     path =
       case get_req_header(conn, "referer") do
@@ -151,4 +145,10 @@ defmodule AirWeb.SelectableController do
 
   defp update_selectable(conn, "view", id, {name, sql}),
     do: View.update(id, conn.assigns.current_user, name, sql, revalidation_timeout: :timer.seconds(5))
+
+  defp delete_selectable(conn, "view", id),
+    do: View.delete(id, conn.assigns.current_user, revalidation_timeout: :timer.seconds(5))
+
+  defp delete_selectable(conn, "analyst_table", id),
+    do: AnalystTable.delete(id, conn.assigns.current_user)
 end
