@@ -20,6 +20,7 @@ defmodule AirWeb.Router do
   end
 
   pipeline :browser_auth do
+    plug(AirWeb.Plug.Session.Restoration)
     plug(AirWeb.Plug.Session.Authenticated)
   end
 
@@ -90,14 +91,17 @@ defmodule AirWeb.Router do
     resources("/app_logins", AppLoginController)
 
     resources "/data_sources", DataSourceController do
-      resources("/views", ViewController)
+      resources("/selectables/:kind", SelectableController)
     end
 
     get("/licenses", LicenseController, :index)
     get("/licenses/:realm/:name", LicenseController, :show)
     get("/licenses/dependencies.zip", LicenseController, :dependencies)
 
-    resources("/profile", ProfileController, singleton: true, only: [:edit, :update])
+    resources("/profile", ProfileController, singleton: true, only: [:edit, :update]) do
+      delete("/sessions", ProfileController, :delete_sessions)
+    end
+
     get("/export", ExportsController, :show)
     put("/profile/change_password", ProfileController, :change_password)
     post("/profile/toggle_debug_mode", ProfileController, :toggle_debug_mode)
@@ -115,6 +119,7 @@ defmodule AirWeb.Router do
       put("/enable", UserController, :enable)
       put("/disable", UserController, :disable)
       get("/reset_password", UserController, :reset_password)
+      delete("/sessions", UserController, :delete_sessions)
     end
 
     resources("/groups", GroupController)

@@ -8,4 +8,13 @@
 <%= render "_form.html", changeset: @changeset,
   action: admin_user_path(@conn, :update, @changeset.data.id), conn: @conn, chosen_groups: @user.groups %>
 
-<%= link "Reset password", to: admin_user_user_path(@conn, :reset_password, @user), class: "btn btn-default" %>
+<h2>Actions</h2>
+
+<span>
+  <%= link "Reset password", to: admin_user_user_path(@conn, :reset_password, @user), class: "btn btn-default" %>
+</span>
+
+<span>
+  <%= link "Sign out all sessions", to: admin_user_user_path(@conn, :delete_sessions, @user), class: "btn btn-danger",
+    method: :delete, "data-confirm": "Sign out the user #{@user.name} from all devices?" %>
+</span>

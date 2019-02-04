@@ -4,7 +4,8 @@ defmodule Cloak.DataSource.Oracle do
   For more information, see `DataSource`.
   """
 
-  use Cloak.DataSource.Driver.SQL
+  use Cloak.DataSource.Driver.RodbcSql
+  require Logger
   alias Cloak.DataSource.{RODBC, Table}
   alias Cloak.Sql.{Expression, Query, Compiler.Helpers, Function}
 
@@ -13,13 +14,7 @@ defmodule Cloak.DataSource.Oracle do
   # -------------------------------------------------------------------
 
   @impl Driver
-  def sql_dialect_module(), do: SqlBuilder.Oracle
-
-  @impl Driver
   def connect(parameters), do: RODBC.connect(parameters, &conn_params/1)
-
-  @impl Driver
-  defdelegate disconnect(connection), to: RODBC
 
   @impl Driver
   def load_tables(connection, table) do
@@ -38,34 +33,14 @@ defmodule Cloak.DataSource.Oracle do
   end
 
   @impl Driver
-  defdelegate driver_info(connection), to: RODBC
-
-  @impl Driver
   def supports_query?(query), do: not query.subquery? or query.offset == 0
 
   @impl Driver
   def supports_analyst_tables?(), do: true
 
-  @impl Driver
-  def store_analyst_table(connection, table_id, query) do
-    {sql, table_name} = SqlBuilder.create_table_statement(table_id, query)
-
-    if Enum.any?(analyst_tables(connection), &(&1 == table_name)) do
-      {:ok, table_name}
-    else
-      with {:ok, _} = RODBC.execute_direct(connection, sql), do: {:ok, table_name}
-    end
-  end
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  @doc false
-  def analyst_tables(connection) do
-    {:ok, rows} = RODBC.execute_direct(connection, "select table_name from user_tables where table_name like '__ac_%'")
-    Enum.map(rows, fn [table_name] -> table_name end)
-  end
 
   defp conn_params(normalized_parameters) do
     hostname = normalized_parameters.hostname
@@ -91,9 +66,9 @@ defmodule Cloak.DataSource.Oracle do
         integer: "DATA_TYPE = 'NUMBER' and DATA_SCALE = 0"
       }
       |> Stream.flat_map(fn {type, filter} ->
-        statement = "SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS WHERE #{fix_column_types_filter(table, filter)}"
-        {:ok, rows} = RODBC.execute_direct(connection, statement)
-        Enum.map(rows, fn [name] -> {name, type} end)
+        connection
+        |> select!("SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS WHERE #{fix_column_types_filter(table, filter)}")
+        |> Enum.map(fn [name] -> {name, type} end)
       end)
       |> Map.new()
 

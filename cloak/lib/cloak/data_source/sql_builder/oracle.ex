@@ -106,6 +106,10 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   @impl Dialect
   def native_support_for_ilike?(), do: false
 
+  @impl Dialect
+  def select_table_names(prefix),
+    do: "SELECT table_name FROM user_tables WHERE table_name LIKE '#{prefix}%'"
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

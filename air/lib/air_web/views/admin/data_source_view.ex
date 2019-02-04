@@ -55,4 +55,9 @@ defmodule AirWeb.Admin.DataSourceView do
   defp analyzed(columns), do: Enum.count(columns, &Column.analyzed_successfully?/1)
 
   defp analysis_failed(columns), do: Enum.count(columns, &Column.analysis_failed?/1)
+
+  defp cloak_infos_for_data_source(data_source),
+    do: Air.Service.Cloak.cloak_infos_for_data_source(data_source.name)
+
+  defp number_of_cloaks_serving(data_source), do: length(cloak_infos_for_data_source(data_source))
 end

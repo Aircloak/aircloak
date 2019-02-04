@@ -72,4 +72,22 @@ defmodule Air.ProfileController.Test do
 
     refute hd(Service.User.load(user.id).logins).hashed_password == old_password_hash
   end
+
+  describe ".delete_sessions" do
+    test "redirects to profile", %{user: user} do
+      assert "/profile/edit" = user |> login() |> delete("/profile/sessions") |> redirected_to()
+    end
+
+    test "invalidates all sessions", %{user: user} do
+      session = Air.Service.RevokableToken.sign(:data, user, :session, :infinity)
+
+      user |> login() |> delete("/profile/sessions")
+
+      assert {:error, :invalid_token} = Air.Service.RevokableToken.verify(session, :session)
+    end
+
+    test "keeps the user logged in", %{user: user} do
+      assert user |> login() |> delete("/profile/sessions") |> recycle() |> get("/profile/edit") |> response(200)
+    end
+  end
 end

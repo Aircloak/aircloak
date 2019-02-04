@@ -2,7 +2,7 @@ defmodule AirWeb.Socket.Frontend do
   @moduledoc """
   Implements websocket interface for web clients using our interface
 
-  The client needs to include their guardian auth token as a parameter
+  The client needs to include their auth token as a parameter
   to the request, which is then used to validate that the user is at
   all allowed to establish a connection.
 
@@ -29,15 +29,11 @@ defmodule AirWeb.Socket.Frontend do
 
   @impl Phoenix.Socket
   def connect(%{"token" => token}, socket) do
-    case Air.Guardian.decode_and_verify(token) do
-      {:ok, claims} ->
-        case Air.Guardian.resource_from_claims(claims) do
-          {:ok, %Air.Schemas.User{} = user} -> {:ok, assign(socket, :user, user)}
-          {:error, _reason} -> :error
-        end
-
-      {:error, _reason} ->
-        :error
+    with {:ok, user_id} <- Air.Service.RevokableToken.verify(token, :session),
+         {:ok, user} <- Air.Service.User.load_enabled(user_id) do
+      {:ok, assign(socket, :user, user)}
+    else
+      _ -> :error
     end
   end
 

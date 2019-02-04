@@ -75,6 +75,21 @@
         <% end %>
       </div>
     </div>
+
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h4>Sessions</h4>
+        </div>
+        <div class="panel-body">
+          <p>
+            You are currently signed in on <strong><%= session_count(@conn) %></strong> devices. Press the button below,
+            to sign out from all devices except this one.
+          </p>
+
+          <%= link "Sign out other sessions", class: "btn btn-primary",
+            to: profile_profile_path(@conn, :delete_sessions), method: :delete %>
+        </div>
+      </div>
   </div>
 
   <%= if can_edit?(@changeset.data) do %>

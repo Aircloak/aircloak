@@ -41,10 +41,11 @@ defmodule AirWeb.ViewHelpers do
       if table.view do
         additional_data = %{
           edit_link:
-            AirWeb.Router.Helpers.data_source_view_path(
+            AirWeb.Router.Helpers.data_source_selectable_path(
               conn,
               :edit,
               data_source.name,
+              :view,
               table.internal_id
             ),
           delete_html:
@@ -52,10 +53,11 @@ defmodule AirWeb.ViewHelpers do
               link(
                 "delete",
                 to:
-                  AirWeb.Router.Helpers.data_source_view_path(
+                  AirWeb.Router.Helpers.data_source_selectable_path(
                     conn,
                     :delete,
                     data_source.name,
+                    :view,
                     table.internal_id
                   ),
                 method: :delete,
@@ -130,7 +132,8 @@ defmodule AirWeb.ViewHelpers do
     end
   end
 
-  defp active_class(path, "/admin/activity_monitor") when path in ["/admin", "/admin/"], do: "active"
+  defp active_class(path, "/admin/activity_monitor") when path in ["/admin", "/admin/"],
+    do: "active"
 
   defp active_class("/admin/queries/failed" <> _, "/admin/activity_monitor"), do: nil
   defp active_class("/admin/queries/" <> _, "/admin/activity_monitor"), do: "active"
@@ -143,7 +146,7 @@ defmodule AirWeb.ViewHelpers do
     end
   end
 
-  def logged_in?(conn), do: Air.Guardian.Plug.authenticated?(conn)
+  def logged_in?(conn), do: AirWeb.Plug.Session.authenticated?(conn)
 
   def severity_class(:high), do: "danger"
   def severity_class(:medium), do: "warning"

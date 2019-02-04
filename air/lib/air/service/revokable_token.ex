@@ -4,7 +4,7 @@ defmodule Air.Service.RevokableToken do
   is associated with some arbitrary data.
 
   The tokens are stored in the database to make it possible to revoke them on the server side. This is in contrast to
-  the default Guardian tokens for example, where we can be sure of the token's authenticity, but there is no way to
+  the default Phoenix.Token tokens for example, where we can be sure of the token's authenticity, but there is no way to
   mark the token as invalid later on. An example use might be tokens that allow a certain action, but only a single time
   (like resetting a password). The drawback of this approach is that each creation or verification of a token requires a
   database query.
@@ -22,16 +22,19 @@ defmodule Air.Service.RevokableToken do
   alias Air.Schemas.{User, RevokableToken}
   alias Air.Service.Salts
 
-  @type options :: [now: NaiveDateTime.t(), max_age: number() | :infinity]
+  import Ecto.Query
+
+  @type options :: [now: NaiveDateTime.t()]
+  @type seconds :: non_neg_integer() | :infinity
 
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
 
   @doc "Returns a new token of the given type for the user."
-  @spec sign(term(), User.t(), RevokableToken.RevokableTokenType.t()) :: String.t()
-  def sign(payload, user, type) do
-    token = create_token!(payload, user, type)
+  @spec sign(term(), User.t(), RevokableToken.RevokableTokenType.t(), seconds()) :: String.t()
+  def sign(payload, user, type, valid_for_seconds) do
+    token = create_token!(payload, user, type, valid_for_seconds)
     Phoenix.Token.sign(AirWeb.Endpoint, Salts.get(type), token.id)
   end
 
@@ -47,12 +50,11 @@ defmodule Air.Service.RevokableToken do
   Returns `{:ok, data}` for valid tokens and `{:error, :invalid_token}` otherwise.
   """
   @spec verify(String.t(), RevokableToken.RevokableTokenType.t(), options()) :: {:ok, term()} | {:error, :invalid_token}
-  def verify(token, type, options) do
+  def verify(token, type, options \\ []) do
     now = Keyword.get(options, :now, NaiveDateTime.utc_now())
-    max_age = Keyword.fetch!(options, :max_age)
 
     with {:ok, token} <- find_record(token, type),
-         :ok <- verify_age(token, now, max_age) do
+         :ok <- verify_age(token, now) do
       {:ok, :erlang.binary_to_term(token.payload)}
     else
       _ -> {:error, :invalid_token}
@@ -75,11 +77,10 @@ defmodule Air.Service.RevokableToken do
   Note that the revocation is a database operation, so if you rollback a transaction including this operation you will
   also undo the revocation.
   """
-  @spec verify_and_revoke(String.t(), RevokableToken.RevokableTokenType.t(), options()) ::
-          {:ok, term()} | {:error, :invalid_token}
-  def verify_and_revoke(token, type, options) do
+  @spec verify_and_revoke(String.t(), RevokableToken.RevokableTokenType.t()) :: {:ok, term()} | {:error, :invalid_token}
+  def verify_and_revoke(token, type) do
     :global.trans({__MODULE__, token}, fn ->
-      result = verify(token, type, options)
+      result = verify(token, type)
       revoke(token, type)
       result
     end)
@@ -88,11 +89,21 @@ defmodule Air.Service.RevokableToken do
   @doc "Revokes all of the given user's tokens with the given type."
   @spec revoke_all(User.t(), RevokableToken.RevokableTokenType.t()) :: :ok
   def revoke_all(user, type) do
-    import Ecto.Query
+    token_scope(user, type) |> Repo.delete_all()
+    :ok
+  end
 
+  @doc "Returns the number of stored tokens with the given user and type."
+  @spec count(User.t(), RevokableToken.RevokableTokenType.t()) :: non_neg_integer
+  def count(user, type) do
+    token_scope(user, type) |> Repo.aggregate(:count, :id)
+  end
+
+  @doc "Revokes all tokens that have a validity date in the past."
+  @spec cleanup() :: :ok
+  def cleanup(now \\ NaiveDateTime.utc_now()) do
     RevokableToken
-    |> where([q], q.user_id == ^user.id)
-    |> where([q], q.type == ^type)
+    |> where([q], q.valid_until < ^now)
     |> Repo.delete_all()
 
     :ok
@@ -102,18 +113,19 @@ defmodule Air.Service.RevokableToken do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp verify_age(_, _, :infinity), do: :ok
+  defp verify_age(token, now), do: if(NaiveDateTime.diff(now, token.valid_until) <= 0, do: :ok, else: :error)
 
-  defp verify_age(token, now, max_age),
-    do: if(NaiveDateTime.diff(now, token.inserted_at) <= max_age, do: :ok, else: :error)
-
-  defp create_token!(payload, user, type) do
+  defp create_token!(payload, user, type, valid_for_seconds) do
     Ecto.build_assoc(user, :revokable_tokens, %{
       type: type,
-      payload: :erlang.term_to_binary(payload)
+      payload: :erlang.term_to_binary(payload),
+      valid_until: valid_until(valid_for_seconds)
     })
     |> Repo.insert!()
   end
+
+  defp valid_until(:infinity), do: ~N[9999-12-12 23:59:59]
+  defp valid_until(seconds), do: NaiveDateTime.utc_now() |> NaiveDateTime.add(seconds)
 
   defp find_record(token, type) do
     with {:ok, id} <- Phoenix.Token.verify(AirWeb.Endpoint, Salts.get(type), token, max_age: :infinity) do
@@ -122,5 +134,20 @@ defmodule Air.Service.RevokableToken do
         token -> {:ok, token}
       end
     end
+  end
+
+  defp token_scope(user, type) do
+    RevokableToken
+    |> where([q], q.user_id == ^user.id)
+    |> where([q], q.type == ^type)
+  end
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_arg) do
+    Periodic.child_spec(run: &cleanup/0, every: :timer.hours(1), overlap?: false)
   end
 end

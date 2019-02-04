@@ -56,8 +56,15 @@ defmodule Cloak.DataSource.Driver do
   @doc "Returns true if the driver supports analyst tables."
   @callback supports_analyst_tables?() :: boolean
 
-  @doc "Stores the analyst table to database."
-  @callback store_analyst_table(connection, any, Query.t()) :: {:ok, table_name :: String.t()} | {:error, String.t()}
+  @doc "Prepare analyst table for storing."
+  @callback prepare_analyst_table(any, Query.t()) :: {db_name :: String.t(), store_info :: String.t()}
+
+  @doc "Stores the analyst table from the given data obtained via `prepare_analyst_table/2`."
+  @callback store_analyst_table(connection, db_name :: String.t(), store_info :: String.t()) ::
+              :ok | {:error, String.t()}
+
+  @doc "Given the list of known analyst tables, drops all existing but unused analyst tables."
+  @callback drop_unused_analyst_tables(connection, known_db_names :: [String.t()]) :: removed :: [String.t()]
 
   defmacro __using__(_opts) do
     quote do
@@ -67,9 +74,15 @@ defmodule Cloak.DataSource.Driver do
       def supports_analyst_tables?(), do: false
 
       @impl unquote(__MODULE__)
+      def prepare_analyst_table(_id, _query), do: raise(RuntimeError, "not implemented")
+
+      @impl unquote(__MODULE__)
       def store_analyst_table(_connection, _id, _query), do: raise(RuntimeError, "not implemented")
 
-      defoverridable supports_analyst_tables?: 0, store_analyst_table: 3
+      @impl unquote(__MODULE__)
+      def drop_unused_analyst_tables(_connection, _known_db_names), do: raise(RuntimeError, "not implemented")
+
+      defoverridable unquote(__MODULE__)
     end
   end
 end

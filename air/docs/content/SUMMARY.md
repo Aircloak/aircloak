@@ -84,4 +84,6 @@
 - [Upgrading](ops/upgrading.md)
   - [18.4.0 Default Privacy Policy](ops/upgrade/1804_privacy_policy.md)
 - [Monitoring](ops/monitoring.md)
-- [Forgotten password](ops/forgotten_password.md)
+- [Passwords and sessions](ops/passwords_and_sessions.md)
+  - [Forgotten password](ops/passwords_and_sessions.md#forgotten-password)
+  - [User sessions](ops/passwords_and_sessions.md#user-sessions)

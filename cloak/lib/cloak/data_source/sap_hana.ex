@@ -5,8 +5,7 @@ defmodule Cloak.DataSource.SAPHana do
   """
 
   alias Cloak.DataSource.RODBC
-
-  use Cloak.DataSource.Driver.SQL
+  use Cloak.DataSource.Driver.RodbcSql
 
   @doc """
   Returns the SAP HANA schema as configured in app config.
@@ -23,9 +22,6 @@ defmodule Cloak.DataSource.SAPHana do
   # -------------------------------------------------------------------
 
   @impl Driver
-  def sql_dialect_module(), do: Cloak.DataSource.SqlBuilder.SAPHana
-
-  @impl Driver
   def connect(parameters) do
     if File.exists?(Cloak.SapHanaHelpers.driver_path()),
       do: RODBC.connect(parameters, &conn_params/1),
@@ -33,17 +29,8 @@ defmodule Cloak.DataSource.SAPHana do
   end
 
   @impl Driver
-  defdelegate disconnect(connection), to: RODBC
-
-  @impl Driver
   def load_tables(connection, table),
     do: RODBC.load_tables(connection, update_in(table.db_name, &SqlBuilder.quote_table_name/1))
-
-  @impl Driver
-  defdelegate select(connection, sql_query, result_processor), to: RODBC
-
-  @impl Driver
-  defdelegate driver_info(connection), to: RODBC
 
   # -------------------------------------------------------------------
   # Internal functions

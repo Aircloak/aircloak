@@ -4,7 +4,7 @@ defmodule Cloak.DataSource.Drill do
   For more information, see `DataSource`.
   """
 
-  use Cloak.DataSource.Driver.SQL
+  use Cloak.DataSource.Driver.RodbcSql
   alias Cloak.DataSource.{RODBC, SqlBuilder}
 
   # -------------------------------------------------------------------
@@ -39,13 +39,7 @@ defmodule Cloak.DataSource.Drill do
   # -------------------------------------------------------------------
 
   @impl Driver
-  def sql_dialect_module(), do: SqlBuilder.Drill
-
-  @impl Driver
   def connect(parameters), do: RODBC.connect(parameters, &conn_params/1)
-
-  @impl Driver
-  defdelegate disconnect(connection), to: RODBC
 
   @impl Driver
   def load_tables(connection, table) do
@@ -53,12 +47,6 @@ defmodule Cloak.DataSource.Drill do
     # Both `WHERE 1=0` and `LIMIT 0` crash, in some scenarios, on version 1.14.
     RODBC.load_tables(connection, table, &"SELECT * FROM #{SqlBuilder.quote_table_name(&1, ?`)} LIMIT 1")
   end
-
-  @impl Driver
-  defdelegate select(connection, sql_query, result_processor), to: RODBC
-
-  @impl Driver
-  defdelegate driver_info(connection), to: RODBC
 
   @impl Driver
   def supports_query?(query),

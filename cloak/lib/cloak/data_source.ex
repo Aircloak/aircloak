@@ -111,9 +111,9 @@ defmodule Cloak.DataSource do
 
   @doc """
   Validates that the Cloak can connect to the data source, and updates the online status of the
-  data source. If the data source has been offline, it also has it's table definitions refreshed.
+  data source. If the data source has been offline, it also has its table definitions refreshed.
 
-  Changes to the data source or it's online status will be propagated to the Air.
+  Changes to the data source or its online status will be propagated to the Air.
   """
   @spec perform_data_source_availability_checks() :: :ok
   def perform_data_source_availability_checks() do

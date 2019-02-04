@@ -49,7 +49,7 @@ defmodule AirWeb.DataSourceController do
         "show.html",
         data_source: data_source,
         pending_queries: pending_queries,
-        guardian_token: Air.Guardian.Plug.current_token(conn),
+        socket_token: AirWeb.Plug.Session.current_token(conn),
         csrf_token: CSRFProtection.get_csrf_token(),
         last_query: if(last_query != nil, do: AirWeb.Query.for_display(last_query, authenticated?: true)),
         session_id: Ecto.UUID.generate(),

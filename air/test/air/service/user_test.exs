@@ -537,6 +537,14 @@ defmodule Air.Service.UserTest do
       assert {:error, _} = User.reset_password(token, %{password: "new password", password_confirmation: "other"})
       assert {:error, _} = User.login(User.main_login(user), "new password")
     end
+
+    test "revokes all existing sessions", %{user: user, token: token} do
+      session = Air.Service.RevokableToken.sign(:data, user, :session, :infinity)
+
+      {:ok, _} = User.reset_password(token, %{password: "new password", password_confirmation: "new password"})
+
+      assert {:error, :invalid_token} = Air.Service.RevokableToken.verify(session, :session, max_age: :infinity)
+    end
   end
 
   describe "disabling and enabling users" do
@@ -672,6 +680,24 @@ defmodule Air.Service.UserTest do
 
       assert {:ok, user} = User.add_preconfigured_user(data)
       assert user |> Air.Repo.preload(:groups) |> Air.Schemas.User.admin?()
+    end
+  end
+
+  describe ".load_enabled" do
+    test "loads enabled users" do
+      user_id = TestRepoHelper.create_user!().id
+      assert {:ok, %{id: ^user_id}} = User.load_enabled(user_id)
+    end
+
+    test "does not find disabled users" do
+      user = TestRepoHelper.create_user!()
+      User.disable(user)
+
+      assert {:error, :not_found} = User.load_enabled(user.id)
+    end
+
+    test "does not find nonexistent users" do
+      assert {:error, :not_found} = User.load_enabled(123_456_789)
     end
   end
 

@@ -27,7 +27,7 @@ defmodule AirWeb.Admin.ActivityMonitorController do
       conn,
       "index.html",
       csrf_token: CSRFProtection.get_csrf_token(),
-      guardian_token: Air.Guardian.Plug.current_token(conn),
+      socket_token: AirWeb.Plug.Session.current_token(conn),
       running_queries: Query.not_finished(),
       cloak_stats: Stats.cloak_stats()
     )

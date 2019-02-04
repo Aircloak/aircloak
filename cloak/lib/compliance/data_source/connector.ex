@@ -51,7 +51,7 @@ defmodule Compliance.DataSource.Connector do
       @impl unquote(__MODULE__)
       def adjust_data_source(data_source), do: data_source
 
-      defoverridable db_table_name: 1, insert_documents: 3, adjust_data_source: 1
+      defoverridable unquote(__MODULE__)
     end
   end
 

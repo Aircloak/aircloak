@@ -3,7 +3,7 @@ defmodule Air.Service.DataSource do
 
   alias Aircloak.ChildSpec
   alias Air.Schemas.{DataSource, Group, Query, User}
-  alias Air.{PsqlServer.Protocol, Repo}
+  alias Air.Repo
   alias Air.Service
   alias Air.Service.{License, Cloak, View}
   alias Air.Service.DataSource.QueryScheduler
@@ -21,7 +21,8 @@ defmodule Air.Service.DataSource do
 
   @type data_source_id_spec :: {:id, integer} | {:name, String.t()}
 
-  @type data_source_operation_error :: {:error, :expired | :unauthorized | :not_connected | :internal_error | any}
+  @type data_source_operation_error ::
+          {:error, :expired | :unauthorized | :not_connected | :internal_error | :license_invalid}
 
   @type data_source_status :: :online | :offline | :broken | :analyzing
 
@@ -84,36 +85,8 @@ defmodule Air.Service.DataSource do
     end
   end
 
-  @doc "Asks the cloak to describe the query, and returns the result."
-  @spec describe_query(data_source_id_spec, User.t(), String.t(), [Protocol.db_value()]) ::
-          {:ok, map} | data_source_operation_error
-  def describe_query(data_source_id_spec, user, statement, parameters) do
-    on_available_cloak(data_source_id_spec, user, fn data_source, channel_pid, _cloak_info ->
-      MainChannel.describe_query(channel_pid, %{
-        analyst_id: user.id,
-        statement: statement,
-        data_source: data_source.name,
-        parameters: parameters,
-        views: View.user_views_map(user, data_source.id)
-      })
-    end)
-  end
-
-  @doc "Validates all of the given views on the cloak."
-  @spec validate_views(data_source_id_spec, User.t(), View.view_map()) :: {:ok, map} | data_source_operation_error
-  def validate_views(data_source_id_spec, user, view_map),
-    do:
-      on_available_cloak(data_source_id_spec, user, fn data_source, channel_pid, _cloak_info ->
-        {:ok,
-         MainChannel.validate_views(channel_pid, %{
-           analyst_id: user.id,
-           data_source: data_source.name,
-           views: view_map
-         })}
-      end)
-
   @doc "Awaits for the query to finish, and returns it's result"
-  @spec await_query(Query.t()) :: {:ok, Query.t()} | data_source_operation_error
+  @spec await_query(Query.t()) :: {:ok, Query.t()} | {:error, :cancelled | :query_died}
   def await_query(%Query{id: query_id} = query) do
     Service.Query.Events.subscribe(query_id)
 
@@ -333,6 +306,19 @@ defmodule Air.Service.DataSource do
     end
   end
 
+  @doc "Finds the available connected cloak and executes the provided lambda."
+  @spec with_available_cloak(
+          DataSource.t() | data_source_id_spec,
+          User.t(),
+          (%{channel_pid: pid, data_source: DataSource.t(), cloak_info: Map.t()} -> result)
+        ) :: result | data_source_operation_error
+        when result: :ok | {:ok, any} | {:error, any}
+  def with_available_cloak(data_source_or_id, user, fun) do
+    if not License.valid?(),
+      do: {:error, :license_invalid},
+      else: do_with_available_cloak(data_source_or_id, user, fun)
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -396,15 +382,9 @@ defmodule Air.Service.DataSource do
   defp user_data_source(user, {:name, name}),
     do: from(data_source in users_data_sources(user), where: data_source.name == ^name)
 
-  defp on_available_cloak(data_source_id, user, fun) do
-    if not License.valid?() do
-      {:error, :license_invalid}
-    else
-      do_on_available_cloak(data_source_id, user, fun)
-    end
-  end
+  defp do_with_available_cloak(%DataSource{} = ds, user, fun), do: do_with_available_cloak({:id, ds.id}, user, fun)
 
-  defp do_on_available_cloak(data_source_id_spec, user, fun) do
+  defp do_with_available_cloak(data_source_id_spec, user, fun) do
     with {:ok, data_source} <- fetch_as_user(data_source_id_spec, user) do
       exception_to_tuple(fn ->
         case Cloak.channel_pids(data_source.name) do
@@ -413,7 +393,7 @@ defmodule Air.Service.DataSource do
 
           channel_pids ->
             {channel_pid, cloak_info} = Enum.random(channel_pids)
-            fun.(data_source, channel_pid, cloak_info)
+            fun.(%{data_source: data_source, channel_pid: channel_pid, cloak_info: cloak_info})
         end
       end)
     end

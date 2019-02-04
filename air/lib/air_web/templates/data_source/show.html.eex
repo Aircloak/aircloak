@@ -40,13 +40,15 @@
         dataSourceDescription: "<%= @data_source.description %>",
         dataSourceStatus: "<%= status(@data_source) %>",
         CSRFToken: "<%= @csrf_token %>",
-        guardianToken: "<%= @guardian_token %>",
+        socketToken: "<%= @socket_token %>",
         userId: "<%= @current_user.id %>",
         sessionId: "<%= @session_id %>",
         selectables: <%= selectables(@conn, @data_source) |> to_json() %>,
         numberFormat: <%= to_json(@number_format) %>,
         debugModeEnabled: <%= @debug_mode_enabled %>,
-        newViewURL: "<%= data_source_view_path(@conn, :new, @data_source.name) %>"
+        newTableURL: "<%= data_source_selectable_path(@conn, :new, @data_source.name, :analyst_table) %>",
+        newViewURL: "<%= data_source_selectable_path(@conn, :new, @data_source.name, :view) %>",
+        supportsCreateTable: true
       };
 
       App.selectableInfo(props, document.getElementById("selectable-info"));

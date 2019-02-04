@@ -24,6 +24,7 @@ defmodule Cloak.DataSource.Table do
           :auto_isolating_column_classification => boolean,
           :isolating_columns => Map.t(),
           :maintain_shadow_db => boolean,
+          :status => :created | :creating | :create_error,
           optional(any) => any
         }
 
@@ -60,7 +61,8 @@ defmodule Cloak.DataSource.Table do
           query: nil,
           auto_isolating_column_classification: true,
           isolating_columns: %{},
-          maintain_shadow_db: true
+          maintain_shadow_db: true,
+          status: :created
         },
         Map.new(opts)
       )
