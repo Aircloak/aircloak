@@ -56,32 +56,35 @@ defmodule Cloak.Query.BasicTest do
       Cloak.TestIsolatorsCache.register_pending(data_source, "basic_isolators", "pending")
     end
 
-    assert_query("show columns from basic_isolators", %{columns: ["name", "type", "isolates_users"], rows: rows})
+    assert_query("show columns from basic_isolators", %{
+      columns: ["name", "data type", "isolator?", "key type"],
+      rows: rows
+    })
 
     assert Enum.sort_by(rows, & &1[:row]) == [
-             %{occurrences: 1, row: ["isolates", "integer", "true"]},
-             %{occurrences: 1, row: ["pending", "boolean", "pending"]},
-             %{occurrences: 1, row: ["regular", "text", "false"]},
-             %{occurrences: 1, row: ["user_id", "text", "false"]}
+             %{occurrences: 1, row: ["isolates", "integer", "true", nil]},
+             %{occurrences: 1, row: ["pending", "boolean", "pending", nil]},
+             %{occurrences: 1, row: ["regular", "text", "false", nil]},
+             %{occurrences: 1, row: ["user_id", "text", "false", :user_id]}
            ]
   end
 
   test "show columns using the `public.` prefix for a table" do
-    assert_query("show columns from public.heights", %{columns: ~w(name type isolates_users), rows: _})
-    assert_query(~s/show columns from "public"."heights"/, %{columns: ~w(name type isolates_users), rows: _})
-    assert_query(~s/show columns from "public.heights"/, %{columns: ~w(name type isolates_users), rows: _})
+    assert_query("show columns from public.heights", %{columns: _, rows: _})
+    assert_query(~s/show columns from "public"."heights"/, %{columns: _, rows: _})
+    assert_query(~s/show columns from "public.heights"/, %{columns: _, rows: _})
   end
 
   test "show columns from a view" do
     assert_query("show columns from v1", [views: %{"v1" => "select user_id, height from heights"}], %{
       query_id: "1",
-      columns: ["name", "type", "isolates_users"],
+      columns: _,
       rows: rows
     })
 
     assert Enum.sort_by(rows, & &1[:row]) == [
-             %{occurrences: 1, row: ["height", "integer", nil]},
-             %{occurrences: 1, row: ["user_id", "text", nil]}
+             %{occurrences: 1, row: ["height", "integer", nil, nil]},
+             %{occurrences: 1, row: ["user_id", "text", nil, :user_id]}
            ]
   end
 

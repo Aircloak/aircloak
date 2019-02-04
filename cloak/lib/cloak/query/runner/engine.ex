@@ -70,7 +70,10 @@ defmodule Cloak.Query.Runner.Engine do
 
     table.columns
     |> Enum.map(
-      &%{occurrences: 1, row: [&1.name, to_string(&1.type), isolator_status(query.data_source, table, &1.name)]}
+      &%{
+        occurrences: 1,
+        row: [&1.name, to_string(&1.type), isolator_status(query.data_source, table, &1.name), table.keys[&1.name]]
+      }
     )
     |> Query.Result.new(query.column_titles, features)
   end

@@ -33,6 +33,12 @@ defmodule Cloak.Query.KeysTest do
     :ok
   end
 
+  test "show columns" do
+    assert_query("show columns from keys_transactions", %{
+      rows: [%{row: ["account_id", _, _, :account_id]}, %{row: ["product_id", _, _, :product_id]}]
+    })
+  end
+
   test "simple select" do
     assert_query("select name, count(id) from keys_accounts group by 1", %{
       rows: [%{row: ["Jon", 10]}]
