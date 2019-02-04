@@ -35,7 +35,7 @@
     "accounts": {
       "db_name": "accounts",
       "auto_isolating_column_classification": false,
-      "isolating_columns": {"swift": false, "account_number": true}
+      "isolating_columns": {"swift": false, "account_number": true},
       "keys": [
         {"user_id": "customer_id"},
         {"account": "id"}
