@@ -398,20 +398,25 @@ defmodule Air.Service.DataSourceTest do
   end
 
   describe ".selectables" do
-    test "should list views as part of tables" do
+    setup do
       tables = []
       name = "new_name"
       data_source = DataSource.create_or_update_data_source(%{name: name, tables: tables})
 
       group = TestRepoHelper.create_group!()
       user = TestRepoHelper.create_user!(%{groups: [group.id]})
+
+      {:ok, user: user, data_source: data_source}
+    end
+
+    test "should list views as part of tables", context do
       view_name = "view1"
 
       %Air.Schemas.View{}
       |> Ecto.Changeset.cast(
         %{
-          user_id: user.id,
-          data_source_id: data_source.id,
+          user_id: context[:user].id,
+          data_source_id: context[:data_source].id,
           name: view_name,
           sql: "sql for #{view_name}",
           result_info: %{"columns" => ["foo", "bar"]}
@@ -420,7 +425,7 @@ defmodule Air.Service.DataSourceTest do
       )
       |> Repo.insert!()
 
-      assert [%{id: ^view_name, view: true}] = DataSource.selectables(user, data_source)
+      assert [%{id: ^view_name, view: true}] = DataSource.selectables(context[:user], context[:data_source])
     end
   end
 
