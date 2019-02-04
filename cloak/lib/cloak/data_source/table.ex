@@ -579,10 +579,10 @@ defmodule Cloak.DataSource.Table do
   defp map_content_type({name, %{user_id: _} = table}), do: {name, Map.delete(table, :content_type)}
 
   defp map_content_type({name, table}) do
-    if table[:content_type] in ["public", "general"] do
+    if table[:content_type] == "non-personal" do
       {name, Map.put(table, :content_type, :public)}
     else
-      true = table[:content_type] in [nil, "private", "individual"]
+      true = table[:content_type] in [nil, "personal"]
       {name, Map.put(table, :content_type, :private)}
     end
   end

@@ -25,7 +25,7 @@
             { "type": "null" }
           ]
         },
-        "content_type": {"type": "string", "enum": ["general", "public", "private", "individual"]},
+        "content_type": {"type": "string", "enum": ["personal", "non-personal"]},
         "keys": {"type": "array", "items": {"type": "object"}},
         "ignore_unsupported_types": {"type": "boolean", "$comment": "allowed for backward compatibility"},
         "sample_rate": {"type": "integer", "minimum": 1, "maximum": 100},
