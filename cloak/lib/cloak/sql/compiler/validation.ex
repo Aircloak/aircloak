@@ -260,9 +260,16 @@ defmodule Cloak.Sql.Compiler.Validation do
       table.keys
       |> Enum.map(fn {column, type} -> "column `#{column}` of type `#{type}`" end)
       |> case do
-        [] -> "has no keys through which it can be joined"
-        [key_info] -> "has to be joined through #{key_info}"
-        keys_info -> "can be joined through one of the following keys: #{Aircloak.OxfordComma.join(keys_info, "or")}"
+        [] ->
+          "has no keys through which it can be joined, either because the table has not been configured to allow " <>
+            "joining with other tables with personal data, or in the case of a sub query, " <>
+            "because you did not select the necessary key columns"
+
+        [key_info] ->
+          "has to be joined through #{key_info}"
+
+        keys_info ->
+          "can be joined through one of the following keys: #{Aircloak.OxfordComma.join(keys_info, "or")}"
       end
 
     "Table `#{table.name}` #{keys_hint}."
@@ -531,18 +538,31 @@ defmodule Cloak.Sql.Compiler.Validation do
       Helpers.all_id_columns_from_tables(query)
       |> Enum.map(&Expression.display_name/1)
       |> case do
-        [] -> "a table or subquery containing a `user id` key column to the `FROM` clause"
-        [column] -> "the column #{column} to the `SELECT` clause"
-        columns -> "one of the columns #{Enum.join(columns, ", ")} to the `SELECT` clause"
+        [] -> "join in one of the following tables: #{user_id_tables_hint(query.data_source.tables)}"
+        [column] -> "add the column #{column} to the `SELECT` clause"
+        columns -> "add one of the columns #{Aircloak.OxfordComma.join(columns, "or")} to the `SELECT` clause"
       end
 
     error_location =
       case alias do
-        nil -> "tables referenced by the top-level query"
+        nil -> "tables selected by the top-level query"
         _ -> "select list of subquery `#{alias}`"
       end
 
-    "Missing a `user id` key column in the #{error_location}. To fix this error, add #{suggested_fix_message}."
+    "Missing a `user id` key column in the #{error_location}. To fix this error, #{suggested_fix_message}."
+  end
+
+  defp user_id_tables_hint(tables) do
+    user_id_tables =
+      tables
+      |> Enum.filter(fn {_name, table} -> table.user_id != nil end)
+      |> Enum.map(fn {name, _table} -> "`#{name}`" end)
+
+    if Enum.count(user_id_tables) > 5 do
+      "#{user_id_tables |> Enum.take(5) |> Enum.join(", ")}, ... "
+    else
+      Aircloak.OxfordComma.join(user_id_tables, "or")
+    end
   end
 
   # -------------------------------------------------------------------
