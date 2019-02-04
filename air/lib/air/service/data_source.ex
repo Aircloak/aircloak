@@ -168,7 +168,7 @@ defmodule Air.Service.DataSource do
   @spec selectables(User.t(), DataSource.t()) :: [
           %{
             id: String.t(),
-            view: boolean,
+            selectable: boolean,
             # Always false for tables
             broken: boolean,
             internal_id: String.t() | nil,
@@ -183,7 +183,7 @@ defmodule Air.Service.DataSource do
         ]
   def selectables(user, data_source) do
     default_values = %{
-      view: false,
+      selectable: false,
       broken: false,
       internal_id: nil
     }
@@ -191,7 +191,7 @@ defmodule Air.Service.DataSource do
     View.all(user, data_source)
     |> Enum.map(fn view ->
       %{
-        view: true,
+        selectable: true,
         id: view.name,
         broken: view.broken,
         columns: Map.fetch!(view.result_info, "columns") |> Aircloak.atomize_keys(),

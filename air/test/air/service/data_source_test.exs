@@ -409,7 +409,7 @@ defmodule Air.Service.DataSourceTest do
       {:ok, user: user, data_source: data_source}
     end
 
-    test "should list views as part of tables", context do
+    test "lists views as part of selectables", context do
       view_name = "view1"
 
       %Air.Schemas.View{}
@@ -425,7 +425,7 @@ defmodule Air.Service.DataSourceTest do
       )
       |> Repo.insert!()
 
-      assert [%{id: ^view_name, view: true}] = DataSource.selectables(context[:user], context[:data_source])
+      assert [%{id: ^view_name, selectable: true}] = DataSource.selectables(context[:user], context[:data_source])
     end
   end
 
