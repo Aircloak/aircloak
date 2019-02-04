@@ -18,13 +18,16 @@ defmodule Air.ViewHelpersTest do
     test(
       "lists selectables that belong to a data source",
       context,
-      do: assert([%{id: @table_name, view: false}] = ViewHelpers.selectables(context.conn, context.data_source))
+      do:
+        assert(
+          [%{id: @table_name, analyst_created: false}] = ViewHelpers.selectables(context.conn, context.data_source)
+        )
     )
 
     test(
-      "no views amongst selectables if none is setup",
+      "no analyst created selectables amongst selectables if none have been setup",
       context,
-      do: assert([] = only_views(context))
+      do: assert([] = only_analyst_created(context))
     )
   end
 
@@ -33,30 +36,43 @@ defmodule Air.ViewHelpersTest do
 
     test "includes views in selectables", context do
       view_name = context.view.name
-      assert [%{id: ^view_name}] = only_views(context)
+      assert [%{id: ^view_name}] = only_analyst_created(context)
     end
+  end
+
+  describe "selectables for analyst table" do
+    setup [:normal_setup, :create_analyst_table]
+
+    test "includes analyst table in selectables", context do
+      table_name = context.analyst_table.name
+      assert [%{id: ^table_name}] = only_analyst_created(context)
+    end
+  end
+
+  describe "selectables for analyst created selectables" do
+    setup [:normal_setup, :create_view]
 
     test(
       "filters out a selectable by internal_id",
       context,
-      do: assert([] = only_views(context, context.view.id))
+      do: assert([] = only_analyst_created(context, context.view.id))
     )
 
-    test "views contain edit link", context do
-      [view_selectable] = only_views(context)
-      assert view_selectable.edit_link
+    test "selectable contains edit link", context do
+      [selectable] = only_analyst_created(context)
+      assert selectable.edit_link
     end
 
-    test "views contain delete html", context do
-      [view_selectable] = only_views(context)
-      assert view_selectable.delete_html
+    test "selectable contains delete html", context do
+      [selectable] = only_analyst_created(context)
+      assert selectable.delete_html
     end
   end
 
-  defp only_views(context, filter_name \\ nil),
+  defp only_analyst_created(context, filter_name \\ nil),
     do:
       ViewHelpers.selectables(context.conn, context.data_source, filter_name)
-      |> Enum.filter(& &1.view)
+      |> Enum.filter(& &1.analyst_created)
 
   defp normal_setup(context) do
     group = TestRepoHelper.create_group!()
@@ -90,5 +106,10 @@ defmodule Air.ViewHelpersTest do
   defp create_view(context) do
     view = TestRepoHelper.create_view!(context.user, context.data_source)
     {:ok, Map.put(context, :view, view)}
+  end
+
+  defp create_analyst_table(context) do
+    analyst_table = TestRepoHelper.create_analyst_table!(context.user, context.data_source)
+    {:ok, Map.put(context, :analyst_table, analyst_table)}
   end
 end
