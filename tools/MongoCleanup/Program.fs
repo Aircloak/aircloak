@@ -1,7 +1,10 @@
 ﻿open Argu
 open MongoDB.Driver
+open MongoDB.Bson
 open System.IO
 open FSharp.Json
+open MongoDB.Bson
+open MongoDB.Bson
 
 type CLIArguments =
     | [<Mandatory>] Cloak_Config of path:string
@@ -43,6 +46,18 @@ type CloakConfig = {
 
 let optionParser = ArgumentParser.Create<CLIArguments>(programName = "MongoCleanup")
 
+let applyDecoders (decoders: Decoder list) (document: BsonDocument): BsonDocument =
+    printfn "%A" document.["buchungstext"]
+
+    BsonDocument ()
+
+let decode (table: string) (decoders: Decoder list) (db: IMongoDatabase): unit =
+    db.GetCollection<BsonDocument>(table).Find(fun _ -> true).ToList()
+    |> Seq.map (applyDecoders decoders)
+    |> printfn "%A"
+
+    ()
+
 let mongoConnString (cloakConfig: CloakConfig): string =
     let options = cloakConfig.parameters
     let port = options.port |> Option.defaultValue 27017
@@ -66,8 +81,8 @@ let run (options: ParseResults<CLIArguments>): unit =
     let conn = MongoClient connString
     let db = conn.GetDatabase config.parameters.database
 
-    db.ListCollectionNames().ToList()
-    |> printfn "%A"
+    for kv in config.tables |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders) do
+        decode kv.Key kv.Value.decoders.Value db
 
     ()
 
