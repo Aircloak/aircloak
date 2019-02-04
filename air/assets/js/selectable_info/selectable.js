@@ -9,6 +9,7 @@ import {activateTooltips} from "../tooltips";
 
 export type Selectable = {
   id: string,
+  kind: string,
   columns: Column[],
   edit_link: string,
   delete_html: string,
@@ -27,8 +28,8 @@ const VIEW_INVALID_MESSAGE =
 
 export class SelectableView extends React.Component {
   handleToggleClick: () => void;
-  isDatabaseView: () => boolean;
-  renderDatabaseViewMenu: () => void;
+  isAnalystCreatedSelectable: () => boolean;
+  renderSelectableActionMenu: () => void;
   renderSelectableView: () => void;
   hasRenderableContent: () => boolean;
 
@@ -36,9 +37,9 @@ export class SelectableView extends React.Component {
     super(props);
 
     this.handleToggleClick = this.handleToggleClick.bind(this);
-    this.isDatabaseView = this.isDatabaseView.bind(this);
+    this.isAnalystCreatedSelectable = this.isAnalystCreatedSelectable.bind(this);
     this.hasRenderableContent = this.hasRenderableContent.bind(this);
-    this.renderDatabaseViewMenu = this.renderDatabaseViewMenu.bind(this);
+    this.renderSelectableActionMenu = this.renderSelectableActionMenu.bind(this);
     this.renderSelectableView = this.renderSelectableView.bind(this);
   }
 
@@ -47,32 +48,37 @@ export class SelectableView extends React.Component {
     // However, the problem here is that we're injecting some html provided by the server, which
     // internally generates A elements. Therefore, we don't have such option, so we're doing it
     // here.
-    if (event.target.tagName !== "A") {
+    if (event.target.tagName !== "A" && ! this.pending()) {
       event.preventDefault();
       this.props.onClick();
     }
   }
 
-  isDatabaseView() {
-    return this.props.selectable.edit_link && this.props.selectable.delete_html;
+  isAnalystCreatedSelectable() {
+    const kind = this.props.selectable.kind;
+    return kind === "view" || kind === "analyst_table";
   }
 
   hasRenderableContent() {
     return this.props.filter.anyColumnMatches(this.props.selectable.columns);
   }
 
-  renderDatabaseViewMenu() {
-    return (
-      <span className="pull-right">
-        &nbsp;
-        <a className="btn btn-xs btn-default" href={this.props.selectable.edit_link}>Edit</a>
-        &nbsp;
-        <span
-          dangerouslySetInnerHTML={{__html: this.props.selectable.delete_html}}
-          onClick={(event) => event.preventDefault()}
-        />
-      </span>
-    );
+  renderSelectableActionMenu() {
+    if (this.pending()) {
+      return null;
+    } else {
+      return (
+        <span className="pull-right">
+          &nbsp;
+          <a className="btn btn-xs btn-default" href={this.props.selectable.edit_link}>Edit</a>
+          &nbsp;
+          <span
+            dangerouslySetInnerHTML={{__html: this.props.selectable.delete_html}}
+            onClick={(event) => event.preventDefault()}
+          />
+        </span>
+      );
+    }
   }
 
   broken() {
@@ -89,16 +95,28 @@ export class SelectableView extends React.Component {
     }
   }
 
+  pending() {
+    return (! this.props.selectable.broken) && (this.props.selectable.columns === []);
+  }
+
+  renderIcon() {
+    if (this.pending()) {
+      return <img src="/images/loader.gif" role="presentation" height="12" width="12" />;
+    } else {
+      const glyphType = this.props.expanded ? "glyphicon glyphicon-minus" : "glyphicon glyphicon-plus";
+      return <span className={glyphType} />;
+    }
+  }
+
   renderSelectableView() {
-    const glyphType = this.props.expanded ? "glyphicon glyphicon-minus" : "glyphicon glyphicon-plus";
     return (
       <div className="list-group-item">
         <div onClick={this.handleToggleClick} {...this.broken()}>
-          <span className={glyphType} />
+          {this.renderIcon()}
           &nbsp;
           {this.props.selectable.id}
 
-          {this.isDatabaseView() ? this.renderDatabaseViewMenu() : null}
+          {this.isAnalystCreatedSelectable() ? this.renderSelectableActionMenu() : null}
         </div>
 
         {(() => {

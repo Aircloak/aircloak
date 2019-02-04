@@ -388,28 +388,35 @@ defmodule Air.Service.DataSourceTest do
              [u1, u2] |> Enum.map(& &1.id) |> Enum.sort()
   end
 
-  describe "listing data source tables" do
+  describe ".tables" do
     test "should list available tables" do
       tables = [%{id: "table_id", columns: []}]
       name = "new_name"
       data_source = DataSource.create_or_update_data_source(%{name: name, tables: tables})
       assert [%{"id" => "table_id", "columns" => []}] == Schemas.DataSource.tables(data_source)
     end
+  end
 
-    test "should list views as part of tables" do
+  describe ".selectables" do
+    setup do
       tables = []
       name = "new_name"
       data_source = DataSource.create_or_update_data_source(%{name: name, tables: tables})
 
       group = TestRepoHelper.create_group!()
       user = TestRepoHelper.create_user!(%{groups: [group.id]})
+
+      {:ok, user: user, data_source: data_source}
+    end
+
+    test "lists views as part of selectables", context do
       view_name = "view1"
 
       %Air.Schemas.View{}
       |> Ecto.Changeset.cast(
         %{
-          user_id: user.id,
-          data_source_id: data_source.id,
+          user_id: context[:user].id,
+          data_source_id: context[:data_source].id,
           name: view_name,
           sql: "sql for #{view_name}",
           result_info: %{"columns" => ["foo", "bar"]}
@@ -418,7 +425,28 @@ defmodule Air.Service.DataSourceTest do
       )
       |> Repo.insert!()
 
-      assert [%{id: ^view_name, view: true}] = DataSource.views_and_tables(user, data_source)
+      assert [%{id: ^view_name, analyst_created: true, kind: :view}] =
+               DataSource.selectables(context[:user], context[:data_source])
+    end
+
+    test "lists analyst tables as part of selectables", context do
+      analyst_table_name = "analyst_table1"
+
+      %Air.Schemas.AnalystTable{}
+      |> Ecto.Changeset.cast(
+        %{
+          user_id: context[:user].id,
+          data_source_id: context[:data_source].id,
+          name: analyst_table_name,
+          sql: "sql for #{analyst_table_name}",
+          registration_info: "Registration info"
+        },
+        ~w(name sql user_id data_source_id registration_info)a
+      )
+      |> Repo.insert!()
+
+      assert [%{id: ^analyst_table_name, analyst_created: true, kind: :analyst_table}] =
+               DataSource.selectables(context[:user], context[:data_source])
     end
   end
 

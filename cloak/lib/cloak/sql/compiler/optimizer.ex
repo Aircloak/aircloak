@@ -3,7 +3,6 @@ defmodule Cloak.Sql.Compiler.Optimizer do
 
   alias Cloak.Sql.{Expression, Query, Condition, Function}
   alias Cloak.Sql.Compiler.Helpers
-  alias Cloak.DataSource.Table
   alias Cloak.Sql.Query.Lenses
 
   use Lens.Macros
@@ -44,7 +43,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
       Lens.map(
         Query.Lenses.direct_subqueries(),
         query,
-        &%{&1 | ast: optimized_subquery_ast(&1.ast, used_columns_from_table(query, &1.alias))}
+        &%{&1 | ast: optimize_subquery_columns(&1.ast, used_columns_from_table(query, &1.alias))}
       )
 
   defp used_columns_from_table(query, table_name),
@@ -57,15 +56,19 @@ defmodule Cloak.Sql.Compiler.Optimizer do
       |> Enum.uniq_by(&Expression.id/1)
       |> Enum.map(& &1.name)
 
-  defp optimized_subquery_ast(ast, required_column_names) do
+  defp optimize_subquery_columns(subquery, required_column_names) do
     {columns, column_titles} =
-      Enum.zip(ast.columns, ast.column_titles)
+      Enum.zip(subquery.columns, subquery.column_titles)
       |> Enum.filter(fn {column, column_name} ->
         column.user_id? or column_name in required_column_names
       end)
       |> Enum.unzip()
 
-    %Query{ast | columns: columns, column_titles: column_titles}
+    if subquery.group_by == [] and columns == [] and Helpers.aggregated_column?(hd(subquery.columns)) do
+      %Query{subquery | columns: [hd(subquery.columns)], column_titles: [hd(subquery.column_titles)]}
+    else
+      %Query{subquery | columns: columns, column_titles: column_titles}
+    end
   end
 
   defp optimize_joins(query), do: Lens.map(Lenses.joins(), query, &push_down_simple_conditions/1)
@@ -211,7 +214,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
         type: :restricted,
         aggregators: aggregated_columns,
         columns: inner_columns,
-        column_titles: Enum.map(inner_columns, &(&1.alias || &1.name)),
+        column_titles: Enum.map(inner_columns, &Expression.title/1),
         group_by: Enum.map([user_id | base_columns], &Expression.unalias/1),
         order_by: [],
         having: nil,
@@ -222,9 +225,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
         implicit_count?: false
     }
 
-    table_columns = Enum.map(inner_columns, &Table.column(&1.alias || &1.name, Function.type(&1)))
-    keys = inner_columns |> Enum.filter(&key?/1) |> Enum.map(&(&1.alias || &1.name))
-    inner_table = Table.new("__ac_uid_grouping", user_id.alias || user_id.name, columns: table_columns, keys: keys)
+    inner_table = Helpers.create_table_from_columns(inner_columns, "__ac_uid_grouping")
 
     %Query{
       query
@@ -308,7 +309,4 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     |> Lens.to_list(expression)
     |> Enum.count() > 1
   end
-
-  defp key?(%Expression{name: name, table: %{keys: keys}}), do: name in keys
-  defp key?(_expression), do: false
 end

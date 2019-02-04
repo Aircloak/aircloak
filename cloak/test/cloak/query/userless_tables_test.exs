@@ -4,11 +4,11 @@ defmodule Cloak.Query.UserlessTableTest do
   import Cloak.Test.QueryHelpers
 
   setup_all do
-    :ok = Cloak.Test.DB.create_table("userless", "i INTEGER, name TEXT", user_id: nil)
-    :ok = insert_rows(_user_ids = [0], "userless", ["i", "name"], [1, "car"])
-    :ok = insert_rows(_user_ids = [0], "userless", ["i", "name"], [2, "food"])
-    :ok = insert_rows(_user_ids = [0], "userless", ["i", "name"], [2, "drinks"])
-    :ok = insert_rows(_user_ids = [0], "userless", ["i", "name"], [3, "fun"])
+    :ok = Cloak.Test.DB.create_table("userless", "i INTEGER, name TEXT", user_id: nil, add_user_id: false)
+    :ok = insert_rows("userless", ["i", "name"], [1, "car"])
+    :ok = insert_rows("userless", ["i", "name"], [2, "food"])
+    :ok = insert_rows("userless", ["i", "name"], [2, "drinks"])
+    :ok = insert_rows("userless", ["i", "name"], [3, "fun"])
 
     :ok = Cloak.Test.DB.create_table("userless_join", "i INTEGER")
     :ok = insert_rows(_user_ids = 1..10, "userless_join", ["i"], [1])
@@ -55,10 +55,10 @@ defmodule Cloak.Query.UserlessTableTest do
     )
   end
 
-  test "join between user and userless tables" do
+  test "error on join between user and userless tables" do
     assert_query(
       "select count(*) from userless as t1 join userless_join as t2 on t1.i = t2.i",
-      %{error: "Table/subquery `t1` has no associated user id. Userless data can not be used in anonymizing queries."}
+      %{error: "The tables `t1` and `t2` are not joined " <> _}
     )
   end
 

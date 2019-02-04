@@ -10,10 +10,11 @@ defmodule Cloak.DataSource do
       parameters: ..., # database connection parameters
       tables: [
         table_id: [
+          content_type: :private,
           db_name: "table name",
-          user_id: "user id column name",
-          ignore_unsupported_types: false,
-          keys: ["another_table_id"]
+          keys: {
+            "column_name" => key_type
+          }
         ]
       ]
     ]
@@ -23,12 +24,10 @@ defmodule Cloak.DataSource do
   The database specific module needs to implement the `DataSource.Driver` behaviour.
 
   The data source must also specify the list of tables containing the data to be queried.
-  A table is accessed by id. It must contain the name of the table in the database and the column
-  identifying the users (text or integer value).
+  A table is accessed by id. It must contain the name of the table in the database, the content protection type and
+  the key columns identifying rows in other tables.
 
   During startup, the list of columns available in all defined tables is loaded and cached for later lookups.
-  If 'ignore_unsupported_types' is set to true then columns with types that aren't supported by the driver
-  will be ignored at this point and unavailable for processing.
 
   The keys field in each table can be used to list fields that refer to other tables. That way when a join
   condition of the form fk = pk will be added, no additional noise layers will be generated, resulting in less overall
@@ -279,18 +278,10 @@ defmodule Cloak.DataSource do
     |> Map.put(:status, nil)
     |> Map.put_new(:concurrency, nil)
     |> Map.put_new(:lcf_buckets_aggregation_limit, nil)
-    |> set_table_defaults()
     |> Validations.Name.ensure_permitted()
     |> potentially_create_temp_name()
+    |> Table.map_tables()
     |> map_driver()
-    |> validate_choice_of_encoding()
-  end
-
-  defp set_table_defaults(data_source) do
-    update_in(data_source, [Lens.key(:tables) |> Lens.map_values()], fn table ->
-      Map.merge(%{auto_isolating_column_classification: true, isolating_columns: %{}, maintain_shadow_db: true}, table)
-      |> update_in([Lens.key(:isolating_columns) |> Lens.map_keys()], &to_string/1)
-    end)
   end
 
   defp map_driver(data_source) do
@@ -318,8 +309,6 @@ defmodule Cloak.DataSource do
   defp standardize_key_lists(data_source) do
     tables =
       for {name, table} <- data_source.tables, into: %{} do
-        keys = Map.get(table, :keys, [])
-
         primary_keys =
           data_source.tables
           |> Map.values()
@@ -332,7 +321,8 @@ defmodule Cloak.DataSource do
             do: [table.projection.foreign_key],
             else: []
 
-        {name, Map.put(table, :keys, keys ++ primary_keys ++ foreign_keys)}
+        keys = Enum.map(primary_keys ++ foreign_keys, &%{projection_key: &1})
+        {name, Map.put_new(table, :keys, keys)}
       end
 
     %{data_source | tables: tables}
@@ -355,36 +345,6 @@ defmodule Cloak.DataSource do
       data_source
     end
   end
-
-  defp validate_choice_of_encoding(%{parameters: %{encoding: encoding}} = data_source) do
-    cond do
-      encoding in ["latin1", "unicode", "utf8", "utf16", "utf32"] ->
-        set_encoding(data_source, String.to_atom(encoding))
-
-      encoding == "utf16-big" ->
-        set_encoding(data_source, {:utf16, :big})
-
-      encoding == "utf16-little" ->
-        set_encoding(data_source, {:utf16, :little})
-
-      encoding == "utf32-big" ->
-        set_encoding(data_source, {:utf32, :big})
-
-      encoding == "utf32-little" ->
-        set_encoding(data_source, {:utf32, :little})
-
-      true ->
-        add_error_message(
-          set_encoding(data_source, :latin1),
-          "Unsupported encoding type: `#{encoding}`. Falling back to `latin1`"
-        )
-    end
-  end
-
-  defp validate_choice_of_encoding(data_source), do: data_source
-
-  defp set_encoding(%{parameters: parameters} = data_source, encoding),
-    do: %{data_source | parameters: Map.put(parameters, :encoding, encoding)}
 
   defp add_error_message(data_source, message), do: %{data_source | errors: [message | data_source.errors]}
 

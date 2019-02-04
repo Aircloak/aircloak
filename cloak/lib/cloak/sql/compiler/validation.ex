@@ -35,7 +35,7 @@ defmodule Cloak.Sql.Compiler.Validation do
   def verify_anonymization_restrictions(%Query{command: :show} = query), do: query
 
   def verify_anonymization_restrictions(%Query{command: :select} = query) do
-    verify_user_id_usage_in_subqueries(query)
+    verify_user_id_usage(query, nil)
     Helpers.each_subquery(query, &verify_anonymization_functions_usage/1)
     Helpers.each_subquery(query, &verify_anonymization_joins/1)
     Helpers.each_subquery(query, &verify_sample_rate/1)
@@ -216,50 +216,64 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   defp verify_anonymization_joins(query) do
-    verify_all_selected_tables_have_uids(query)
-    verify_all_uid_columns_are_compared_in_joins(query)
+    verify_all_tables_are_connected_in_joins(query)
   end
 
-  defp verify_all_selected_tables_have_uids(%Query{type: :standard}), do: :ok
+  defp verify_all_tables_are_connected_in_joins(%Query{type: :standard}), do: :ok
 
-  defp verify_all_selected_tables_have_uids(query) do
-    Enum.each(query.selected_tables, fn table ->
-      unless table.user_id != nil do
-        raise CompilationError,
-          message:
-            "Table/subquery `#{table.name}` has no associated user id." <>
-              " Userless data can not be used in anonymizing queries."
-      end
-    end)
-  end
-
-  defp verify_all_uid_columns_are_compared_in_joins(%Query{type: :standard}), do: :ok
-
-  defp verify_all_uid_columns_are_compared_in_joins(query),
+  defp verify_all_tables_are_connected_in_joins(query),
     do:
       CyclicGraph.with(fn graph ->
-        query
-        |> Helpers.all_id_columns_from_tables()
-        |> Enum.each(&CyclicGraph.add_vertex(graph, {&1.table.name, &1.name}))
-
+        Enum.each(query.selected_tables, &CyclicGraph.add_vertex(graph, &1.name))
         conditions = Lens.to_list(Query.Lenses.conditions(), query.where) ++ Helpers.all_join_conditions(query)
 
-        for {:comparison, column1, :=, column2} <- conditions, column1.user_id?, column2.user_id?, column1 != column2 do
-          CyclicGraph.connect!(
-            graph,
-            {column1.table.name, column1.name},
-            {column2.table.name, column2.name}
-          )
+        for {:comparison, column1, :=, column2} <- conditions,
+            matching_key_types?(column1, column2),
+            column1 != column2 do
+          CyclicGraph.connect!(graph, column1.table.name, column2.table.name)
         end
 
-        with [{{table1, column1}, {table2, column2}} | _] <- CyclicGraph.disconnected_pairs(graph) do
-          raise CompilationError,
-            message:
-              "Missing where comparison for uid columns of tables `#{table1}` and `#{table2}`. " <>
-                "You can fix the error by adding `#{table1}.#{column1} = #{table2}.#{column2}` " <>
-                "condition to the `WHERE` clause."
+        with [{table1, table2} | _] <- CyclicGraph.disconnected_pairs(graph) do
+          raise CompilationError, message: unconnected_tables_error_message(query.selected_tables, table1, table2)
         end
       end)
+
+  defp matching_key_types?(column1, column2) do
+    case {Expression.key_type(column1), Expression.key_type(column2)} do
+      {nil, nil} -> false
+      {type, type} -> true
+      {_type1, _type2} -> false
+    end
+  end
+
+  defp unconnected_tables_error_message(selected_tables, table_name1, table_name2) do
+    table1 = Enum.find(selected_tables, &(&1.name == table_name1))
+    table2 = Enum.find(selected_tables, &(&1.name == table_name2))
+
+    "The tables `#{table_name1}` and `#{table_name2}` are not joined using key match filters. " <>
+      "Connect the two tables by adding `table1.key1 = table2.key2` conditions " <>
+      "to the `WHERE` or `ON` clauses in the query. #{table_join_hint(table1)} #{table_join_hint(table2)}"
+  end
+
+  defp table_join_hint(table) do
+    keys_hint =
+      table.keys
+      |> Enum.map(fn {column, type} -> "column `#{column}` of type `#{type}`" end)
+      |> case do
+        [] ->
+          "has no keys through which it can be joined, either because the table has not been configured to allow " <>
+            "joining with other tables with personal data, or in the case of a sub query, " <>
+            "because you did not select the necessary key columns"
+
+        [key_info] ->
+          "has to be joined through #{key_info}"
+
+        keys_info ->
+          "can be joined through one of the following keys: #{Aircloak.OxfordComma.join(keys_info, "or")}"
+      end
+
+    "Table `#{table.name}` #{keys_hint}."
+  end
 
   defp verify_join_conditions_scope({:join, join}, selected_tables) do
     selected_tables = verify_join_conditions_scope(join.lhs, selected_tables)
@@ -479,7 +493,7 @@ defmodule Cloak.Sql.Compiler.Validation do
 
       item ->
         raise CompilationError,
-          message: "Only constants are allowed on the right-hand side of the IN operator.",
+          message: "Only constants are allowed on the right-hand side of the `IN` operator.",
           source_location: item.source_location
     end
   end
@@ -499,25 +513,57 @@ defmodule Cloak.Sql.Compiler.Validation do
   end
 
   # -------------------------------------------------------------------
-  # UserId usage in subqueries
+  # UserId usage
   # -------------------------------------------------------------------
 
-  defp verify_user_id_usage_in_subqueries(query),
-    do:
-      Lens.each(
-        Lenses.direct_subqueries(),
-        query,
-        &verify_user_id_usage_in_subquery(&1.ast, &1.alias)
-      )
+  defp verify_user_id_usage(query, alias) do
+    unless valid_user_id?(query), do: raise(CompilationError, missing_uid_error_message(query, alias))
 
-  defp verify_user_id_usage_in_subquery(subquery, alias) do
-    unless valid_user_id?(subquery), do: raise(CompilationError, Helpers.missing_uid_error_message(subquery, alias))
-
-    verify_user_id_usage_in_subqueries(subquery)
+    Lens.each(
+      Lenses.direct_subqueries(),
+      query,
+      &verify_user_id_usage(&1.ast, &1.alias)
+    )
   end
 
   defp valid_user_id?(%Query{type: :restricted} = query), do: Helpers.uid_column_selected?(query)
-  defp valid_user_id?(_query), do: true
+
+  defp valid_user_id?(%Query{type: :anonymized} = query),
+    do: not Enum.empty?(Helpers.all_id_columns_from_tables(query))
+
+  defp valid_user_id?(%Query{type: :standard}), do: true
+
+  defp missing_uid_error_message(query, alias) do
+    suggested_fix_message =
+      Helpers.all_id_columns_from_tables(query)
+      |> Enum.map(&Expression.display_name/1)
+      |> case do
+        [] -> "join in one of the following tables: #{user_id_tables_hint(query.data_source.tables)}"
+        [column] -> "add the column #{column} to the `SELECT` clause"
+        columns -> "add one of the columns #{Aircloak.OxfordComma.join(columns, "or")} to the `SELECT` clause"
+      end
+
+    error_location =
+      case alias do
+        nil -> "tables selected by the top-level query"
+        _ -> "select list of subquery `#{alias}`"
+      end
+
+    "Missing a `user id` key column in the #{error_location}. To fix this error, #{suggested_fix_message}."
+  end
+
+  defp user_id_tables_hint(tables) do
+    user_id_tables =
+      tables
+      |> Enum.filter(fn {_name, table} -> table.user_id != nil end)
+      |> Enum.map(fn {name, _table} -> "`#{name}`" end)
+
+    if Enum.count(user_id_tables) > 5 do
+      "#{user_id_tables |> Enum.take(5) |> Enum.join(", ")}, ... "
+    else
+      Aircloak.OxfordComma.join(user_id_tables, "or")
+    end
+  end
 
   # -------------------------------------------------------------------
   # Division by zero

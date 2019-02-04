@@ -19,9 +19,11 @@ defmodule Cloak.DataSource.Table do
           # the SQL query for a virtual table
           :query => Query.t() | nil,
           :columns => [column],
-          :keys => [String.t()],
+          :keys => Map.t(),
+          :content_type => :private | :public,
           :auto_isolating_column_classification => boolean,
           :isolating_columns => Map.t(),
+          :maintain_shadow_db => boolean,
           :status => :created | :creating | :create_error,
           optional(any) => any
         }
@@ -33,8 +35,9 @@ defmodule Cloak.DataSource.Table do
           | {:columns, [column]}
           | {:decoders, [Map.t()]}
           | {:projection, projection}
-          | {:keys, [String.t()]}
+          | {:keys, Map.t()}
           | {:query, Query.t()}
+          | {:content_type, :private | :public}
           | {atom, any}
 
   # -------------------------------------------------------------------
@@ -53,10 +56,12 @@ defmodule Cloak.DataSource.Table do
           columns: [],
           decoders: [],
           projection: nil,
-          keys: [],
+          keys: %{},
+          content_type: if(user_id_column_name == nil, do: :public, else: :private),
           query: nil,
           auto_isolating_column_classification: true,
           isolating_columns: %{},
+          maintain_shadow_db: true,
           status: :created
         },
         Map.new(opts)
@@ -76,6 +81,13 @@ defmodule Cloak.DataSource.Table do
       |> resolve_projected_tables()
       |> translate_projections_and_decoders()
       |> scan_virtual_tables(connection)
+      |> resolve_tables_keys()
+
+  @doc "Maps configured tables into the proper table structure."
+  @spec map_tables(Map.t()) :: Map.t()
+  def map_tables(data_source) do
+    %{data_source | tables: data_source.tables |> Enum.map(&map_table/1) |> Enum.into(%{})}
+  end
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -522,5 +534,76 @@ defmodule Cloak.DataSource.Table do
     alias = if projection[:user_id_alias] != nil, do: ~s/"#{projection.user_id_alias}"/, else: alias
 
     {user_id, alias, from}
+  end
+
+  defp resolve_tables_keys(data_source) do
+    %{data_source | tables: data_source.tables |> Enum.map(&resolve_table_keys/1) |> Enum.into(%{})}
+  end
+
+  defp resolve_table_keys({name, %{keys: keys} = table}) do
+    column_names = Enum.map(table.columns, & &1.name)
+
+    keys
+    |> Enum.map(fn {name, _tag} -> name end)
+    |> Enum.reject(&(&1 in column_names))
+    |> case do
+      [] ->
+        :ok
+
+      [invalid_name | _] ->
+        raise(ExecutionError, message: "Invalid key name: column `#{invalid_name}` doesn't exist in table `#{name}`")
+    end
+
+    keys = if table.user_id != nil, do: Map.put(keys, table.user_id, :user_id), else: keys
+
+    user_id =
+      Enum.filter(keys, fn {_name, type} -> type == :user_id end)
+      |> case do
+        [{user_id, :user_id} | _] -> user_id
+        [] -> nil
+      end
+
+    {name, %{table | keys: keys, user_id: user_id}}
+  end
+
+  defp map_table({name, table}) do
+    {name, table}
+    |> map_isolators()
+    |> map_content_type()
+    |> map_keys()
+  end
+
+  def map_isolators({name, %{isolating_columns: _} = table}),
+    do: {name, update_in(table, [Lens.key(:isolating_columns) |> Lens.map_keys()], &to_string/1)}
+
+  def map_isolators({name, table}), do: {name, table}
+
+  defp map_content_type({name, %{user_id: _} = table}), do: {name, Map.delete(table, :content_type)}
+
+  defp map_content_type({name, table}) do
+    if table[:content_type] == "non-personal" do
+      {name, Map.put(table, :content_type, :public)}
+    else
+      true = table[:content_type] in [nil, "personal"]
+      {name, Map.put(table, :content_type, :private)}
+    end
+  end
+
+  defp map_keys({name, %{keys: keys} = table}) do
+    keys = keys |> Enum.map(&map_key(&1, name)) |> Enum.into(%{})
+    {name, %{table | keys: keys}}
+  end
+
+  defp map_keys({name, table}), do: {name, table}
+
+  defp map_key(%{} = key, table_name) do
+    if Map.size(key) != 1 do
+      raise ExecutionError,
+        message: ~s(Invalid key entry for table `#{table_name}`. A key has the format `{"key_type": "column_name"}`.)
+    end
+
+    [type] = Map.keys(key)
+    [column] = Map.values(key)
+    {column, type}
   end
 end

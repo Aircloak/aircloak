@@ -52,20 +52,28 @@ defmodule IntegrationTest.Manager do
     token = Air.Service.User.reset_password_token(user)
 
     {:ok, user} =
-      Air.Service.User.reset_password(token, %{password: @user_password, password_confirmation: @user_password})
+      Air.Service.User.reset_password(token, %{
+        password: @user_password,
+        password_confirmation: @user_password
+      })
 
     user
   end
 
-  def load_valid_license(), do: :ok = create_license() |> Central.Service.License.export() |> Air.Service.License.load()
+  def load_valid_license(),
+    do: :ok = create_license() |> Central.Service.License.export() |> Air.Service.License.load()
 
   def load_expired_license() do
     license = create_license()
 
     {:ok, _} =
-      Ecto.Adapters.SQL.query(Central.Repo, "UPDATE licenses SET inserted_at = '2000-01-01 00:00:00' WHERE id = $1", [
-        license.id
-      ])
+      Ecto.Adapters.SQL.query(
+        Central.Repo,
+        "UPDATE licenses SET inserted_at = '2000-01-01 00:00:00' WHERE id = $1",
+        [
+          license.id
+        ]
+      )
 
     :ok =
       Central.Schemas.License
@@ -131,7 +139,11 @@ defmodule IntegrationTest.Manager do
   end
 
   defp insert_rows(user_id_range, table, columns, values) do
-    Cloak.Test.DB.add_users_data(table, columns, Enum.map(user_id_range, &["user#{&1}" | values]))
+    Cloak.Test.DB.insert_data(
+      table,
+      ["user_id" | columns],
+      Enum.map(user_id_range, &["user#{&1}" | values])
+    )
   end
 
   defp setup_central() do

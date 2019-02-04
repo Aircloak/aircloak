@@ -24,9 +24,6 @@ defmodule Cloak.Test.DB do
     GenServer.call(__MODULE__, {:delete_table, table_name}, :infinity)
   end
 
-  def add_users_data(table_name, columns, rows, data_source \\ nil),
-    do: insert_data(table_name, ["user_id" | columns], rows, data_source)
-
   def insert_data(table_name, columns, rows, data_source \\ nil) do
     {sql, params} = prepare_insert(table_name, columns, rows)
     execute!(sql, params, data_source)
@@ -55,7 +52,7 @@ defmodule Cloak.Test.DB do
           do: "user_id",
           else: Keyword.get(opts, :user_id)
         ),
-        [db_name: db_name] ++ Keyword.take(opts, [:user_id, :query, :projection, :decoders])
+        [db_name: db_name] ++ Keyword.drop(opts, [:name, :db_name])
       )
 
     data_source_names_to_update =
