@@ -125,8 +125,8 @@ defmodule IntegrationTest.OdbcTest do
             {:selected, ['name', 'data type', 'isolator?', 'key type'],
              [
                {'user_id', 'text', 'true', 'user_id'},
-               {'name', 'text', 'failed', nil},
-               {'height', 'integer', 'failed', nil}
+               {'name', 'text', 'failed', :null},
+               {'height', 'integer', 'failed', :null}
              ]}
         )
     )

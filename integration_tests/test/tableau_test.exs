@@ -172,9 +172,11 @@ defmodule IntegrationTest.TableauTest do
            ]
 
     assert :odbc.sql_query(context.conn, 'fetch 2 in "my_cursor"') ==
-             {:selected, ['name', 'type'], [{'name', 'text'}, {'height', 'integer'}]}
+             {:selected, ['name', 'data type', 'isolator?', 'key type'],
+              [{'name', 'text', 'failed', :null}, {'height', 'integer', 'failed', :null}]}
 
-    assert :odbc.sql_query(context.conn, 'fetch 1 in "my_cursor"') == {:selected, ['name', 'type'], []}
+    assert :odbc.sql_query(context.conn, 'fetch 1 in "my_cursor"') ==
+             {:selected, ['name', 'data type', 'isolator?', 'key type'], []}
 
     assert :odbc.sql_query(context.conn, 'close "my_cursor"') == {:updated, 0}
   end
