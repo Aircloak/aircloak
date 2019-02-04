@@ -40,15 +40,38 @@ type CloakConfig =
 
 let optionParser =
     ArgumentParser.Create<CLIArguments>(programName = "MongoCleanup")
-let applyDecoder (decode : Decoder) (document : BsonDocument) : BsonDocument =
-    BsonDocument
-let applyDecoders (decoders : Decoder list) (document : BsonDocument) : BsonDocument =
-    Seq.fold applyDecoder document decoders
+
+let update (document: BsonDocument) (key: string) (f: (BsonValue -> BsonValue)): unit =
+    if document.Contains(key) then
+        let result = document.GetValue key |> f
+        document.Remove(key)
+        document.Add(key, result) |> ignore
+
+let textToInteger (value: BsonValue): BsonValue =
+    match System.Int64.TryParse value.AsString with
+    | true, num -> BsonInt64(num).AsBsonValue
+    | _ -> BsonNull.Value.AsBsonValue
+
+let applyDecoder (document : BsonDocument) (decoder : Decoder) : unit =
+    for column in decoder.columns do
+        match decoder.method with
+        | "text_to_integer" -> update document column textToInteger
+        | _ -> ()
+
+let applyDecoders (decoders : Decoder list) (document : BsonDocument) : unit =
+    for decoder in decoders do
+        applyDecoder document decoder
 
 let decode (table : string) (decoders : Decoder list) (db : IMongoDatabase) : unit =
-    db.GetCollection<BsonDocument>(table).Find(fun _ -> true).ToList()
-    |> Seq.map (applyDecoders decoders)
+    let mutable documents = db.GetCollection<BsonDocument>(table).Find(fun _ -> true).ToList()
+
+    for document in documents do
+        applyDecoders decoders document
+
+    documents
+    |> Seq.map (fun x -> x.ToJson ())
     |> printfn "%A"
+
     ()
 
 let mongoConnString (cloakConfig : CloakConfig) : string =
