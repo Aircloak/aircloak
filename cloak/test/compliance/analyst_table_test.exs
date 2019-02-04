@@ -218,7 +218,7 @@ defmodule Compliance.AnalystTableTest do
   end
 
   defp store_table(analyst_id, name, statement, data_source) do
-    with {:ok, registration_info} <- AnalystTable.store(analyst_id, name, statement, data_source) do
+    with {:ok, registration_info, _columns} <- AnalystTable.store(analyst_id, name, statement, data_source) do
       assert soon(table_created?(analyst_id, name, data_source), :timer.seconds(5), repeat_wait_time: 10)
       {:ok, registration_info}
     end

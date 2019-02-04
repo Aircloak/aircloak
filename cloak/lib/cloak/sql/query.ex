@@ -97,6 +97,8 @@ defmodule Cloak.Sql.Query do
           anonymization_type: String.t()
         }
 
+  @type described_columns :: [%{name: String.t(), type: String.t(), user_id: boolean}]
+
   defstruct columns: [],
             where: nil,
             group_by: [],
@@ -150,25 +152,31 @@ defmodule Cloak.Sql.Query do
 
   @doc "Validates a user-defined view."
   @spec validate_view(analyst_id(), DataSource.t(), String.t(), String.t(), view_map) ::
-          {:ok, [%{name: String.t(), type: String.t(), user_id: boolean}]}
+          {:ok, described_columns}
           | {:error, field :: atom, reason :: String.t()}
   def validate_view(analyst_id, data_source, name, sql, views) do
     with :ok <- view_name_ok?(data_source, name),
          {:ok, parsed_query} <- Parser.parse(sql),
          {:ok, compiled_query} <- Compiler.validate_view(analyst_id, data_source, parsed_query, views) do
-      {:ok,
-       Enum.zip(compiled_query.column_titles, compiled_query.columns)
-       |> Enum.map(fn {name, column} ->
-         %{
-           name: name,
-           type: Atom.to_string(Function.type(column)),
-           user_id: match?(%Expression{user_id?: true}, column)
-         }
-       end)}
+      {:ok, describe_selected(compiled_query)}
     else
       {:error, _field, _error} = error -> error
       {:error, sql_error} -> {:error, :sql, sql_error}
     end
+  end
+
+  @doc "Describes the selected coumns of the given query."
+  @spec describe_selected(t) :: described_columns
+  def describe_selected(query) do
+    query.column_titles
+    |> Stream.zip(query.columns)
+    |> Enum.map(fn {name, column} ->
+      %{
+        name: name,
+        type: Atom.to_string(Function.type(column)),
+        user_id: match?(%Expression{user_id?: true}, column)
+      }
+    end)
   end
 
   @doc "Adds one or more info messages to the query."
