@@ -57,15 +57,20 @@ let textToReal (value: BsonValue): BsonValue =
     | true, num -> BsonDouble(num).AsBsonValue
     | _ -> BsonNull.Value.AsBsonValue
 
+let textToDate (value: BsonValue): BsonValue =
+    match System.DateTime.TryParse value.AsString with
+    | true, date -> BsonDateTime(date).AsBsonValue
+    | _ -> BsonNull.Value.AsBsonValue
+
 let applyDecoder (document : BsonDocument) (decoder : Decoder) : unit =
     for column in decoder.columns do
         match decoder.method with
         | "text_to_integer" -> update document column textToInteger
         | "text_to_real" -> update document column textToReal
+        | "text_to_date" -> update document column textToDate
+        | "text_to_datetime" -> update document column textToDate
         // | "aes_cbc_128" -> with_or_without_key
         // | "real_to_integer"
-        // | "text_to_datetime"
-        // | "text_to_date"
         // | "text_to_boolean"
         // | "real_to_boolean"
         // | "base64"
@@ -85,10 +90,6 @@ let decode (table : string) (decoders : Decoder list) (db : IMongoDatabase) : un
         let field = StringFieldDefinition<BsonDocument, BsonValue>("_id")
         let filter = Builders<BsonDocument>.Filter.Eq(field, document.GetValue("_id"))
         collection.ReplaceOne(filter, document) |> ignore
-
-    documents
-    |> Seq.map (fun x -> x.ToJson ())
-    |> printfn "%A"
 
     ()
 
