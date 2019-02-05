@@ -16,6 +16,7 @@ defmodule IntegrationTest.AnalystTableTest do
     assert [column1, column2] = Enum.sort_by(table.result_info.columns, & &1.name)
     assert %{name: "name", type: "text", user_id: false} = column1
     assert %{name: "user_id", type: "text", user_id: true} = column2
+    refute is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id))
   end
 
   test "selecting from an analyst table", context do
@@ -83,11 +84,29 @@ defmodule IntegrationTest.AnalystTableTest do
     assert result.buckets == [%{"occurrences" => 100, "row" => ["*"], "unreliable" => false}]
   end
 
+  test "successful table delete", context do
+    name = unique_name()
+
+    {:ok, table} = create_table(context.user, name, "select user_id, name from users")
+    db_name = table.result_info.registration_info |> Jason.decode!() |> Map.fetch!("db_name")
+
+    assert :ok = Air.Service.AnalystTable.delete(table.id, context.user)
+    assert soon(table_not_in_db?(db_name), :timer.seconds(5), repeat_wait_time: 10)
+    assert is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id))
+  end
+
   defp unique_name(), do: "table_#{:erlang.unique_integer([:positive])}"
 
   defp create_table(user, name, sql) do
     with {:ok, table} <- Air.Service.AnalystTable.create(user, Manager.data_source(), name, sql) do
       assert soon(table_created?(user.id, name, Manager.data_source()), :timer.seconds(5), repeat_wait_time: 10)
+      {:ok, table}
+    end
+  end
+
+  defp update_table(table_id, user, name, sql) do
+    with {:ok, table} <- Air.Service.AnalystTable.update(table_id, user, name, sql) do
+      assert soon(table_created?(table.user_id, name, Manager.data_source()), :timer.seconds(5), repeat_wait_time: 10)
       {:ok, table}
     end
   end
@@ -102,11 +121,12 @@ defmodule IntegrationTest.AnalystTableTest do
          else: (_ -> false)
   end
 
-  defp update_table(table_id, user, name, sql) do
-    with {:ok, table} <- Air.Service.AnalystTable.update(table_id, user, name, sql) do
-      assert soon(table_created?(table.user_id, name, Manager.data_source()), :timer.seconds(5), repeat_wait_time: 10)
-      {:ok, table}
-    end
+  defp table_not_in_db?(db_name) do
+    {:ok, data_source} = Cloak.DataSource.fetch(Manager.data_source().name)
+
+    data_source
+    |> Cloak.DataSource.Connection.execute!(&data_source.driver.analyst_tables/1)
+    |> Enum.all?(&(&1 != db_name))
   end
 
   defp run_query(user, query, params \\ []) do

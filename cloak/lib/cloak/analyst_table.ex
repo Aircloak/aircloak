@@ -36,10 +36,7 @@ defmodule Cloak.AnalystTable do
 
   @doc "Registers the analyst tables from the given registration infos, creating them in the database if needed."
   @spec register_tables([String.t()]) :: :ok
-  def register_tables(registration_infos) do
-    Enum.each(registration_infos, &register_table/1)
-    GenServer.cast(__MODULE__, {:async_serialized, &drop_unused_analyst_tables/0})
-  end
+  def register_tables(registration_infos), do: GenServer.call(__MODULE__, {:register_tables, registration_infos})
 
   @doc "Returns the analyst table definition."
   @spec table_definition(Query.analyst_id(), String.t(), DataSource.t()) :: DataSource.Table.t() | nil
@@ -71,28 +68,20 @@ defmodule Cloak.AnalystTable do
   end
 
   @impl GenServer
-  def handle_cast({:async_serialized, fun}, state),
-    do: {:noreply, enqueue_job(state, :serialized, fun)}
-
-  @impl GenServer
   def handle_call({:sync_serialized, fun}, from, state),
     do: {:noreply, enqueue_job(state, :serialized, fn -> GenServer.reply(from, fun.()) end)}
 
-  def handle_call({:store_table, table}, _from, state) do
-    child_id = {:store, table.name}
-    if Parent.GenServer.child?(child_id), do: Parent.GenServer.shutdown_child(child_id)
+  def handle_call({:store_table, table}, _from, state), do: {:reply, :ok, enqueue_store_table(state, table)}
 
-    store_table_definition(
-      table,
-      DataSource.Table.new(table.name, table.id_column, %{db_name: table.db_name, status: :creating})
-    )
-
-    {:reply, :ok, enqueue_job(state, child_id, table, fn -> store_table(table) end)}
+  def handle_call({:register_tables, registration_infos}, _from, state) do
+    :ets.delete_all_objects(__MODULE__)
+    state = Enum.reduce(registration_infos, state, &register_table(&2, &1))
+    {:reply, :ok, enqueue_job(state, :serialized, &drop_unused_analyst_tables/0)}
   end
 
   @impl Parent.GenServer
   def handle_child_terminated(job_id, meta, _pid, reason, state) do
-    if reason != :normal and match?({:store, _table_name}, job_id) do
+    if reason != :normal and match?({:store, _analyst, _table_name, _data_source_name}, job_id) do
       Logger.error("Error creating table: #{inspect(meta)}: #{inspect(reason)}")
       update_table_definition(meta, &%{&1 | status: :create_error})
     end
@@ -103,6 +92,11 @@ defmodule Cloak.AnalystTable do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp stop_current_store(table),
+    do: if(Parent.GenServer.child?(store_job_id(table)), do: Parent.GenServer.shutdown_child(store_job_id(table)))
+
+  defp store_job_id(table), do: {:store, table.analyst, table.name, table.data_source_name}
 
   defp key(table), do: {table.analyst, table.data_source_name, table.name}
 
@@ -118,6 +112,17 @@ defmodule Cloak.AnalystTable do
   end
 
   defp start_table_store(table), do: GenServer.call(__MODULE__, {:store_table, table})
+
+  defp enqueue_store_table(state, table) do
+    stop_current_store(table)
+
+    store_table_definition(
+      table,
+      DataSource.Table.new(table.name, table.id_column, %{db_name: table.db_name, status: :creating})
+    )
+
+    enqueue_job(state, store_job_id(table), table, fn -> store_table(table) end)
+  end
 
   defp store_table(table) do
     with {:ok, data_source} <- fetch_data_source(table),
@@ -173,12 +178,14 @@ defmodule Cloak.AnalystTable do
 
   defp registration_info(table), do: Jason.encode!(table)
 
-  defp register_table(registration_info) do
-    registration_info
-    |> Jason.decode!()
-    |> Map.take(~w(analyst name statement data_source_name db_name id_column store_info))
-    |> Aircloak.atomize_keys()
-    |> start_table_store()
+  defp register_table(state, registration_info) do
+    table =
+      registration_info
+      |> Jason.decode!()
+      |> Map.take(~w(analyst name statement data_source_name db_name id_column store_info))
+      |> Aircloak.atomize_keys()
+
+    enqueue_store_table(state, table)
   end
 
   defp enqueue_job(state, id, meta \\ nil, fun),

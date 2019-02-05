@@ -41,6 +41,24 @@ defmodule Air.Service.AnalystTable do
     end
   end
 
+  @doc "Deletes the analyst table."
+  @spec delete(pos_integer, User.t()) :: :ok | {:error, :not_allowed}
+  def delete(table_id, user) do
+    table = AnalystTable |> Repo.get!(table_id) |> Repo.preload([:user, :data_source])
+
+    if table.user_id == user.id do
+      Repo.delete!(table)
+
+      Air.Service.Cloak.channel_pids(table.data_source.name)
+      |> Stream.map(fn {pid, _cloak_info} -> pid end)
+      |> Enum.each(&MainChannel.send_analyst_tables_to_cloak/1)
+
+      :ok
+    else
+      {:error, :not_allowed}
+    end
+  end
+
   @doc "Returns all known analyst tables."
   @spec all() :: [AnalystTable.t()]
   def all(), do: Repo.all(AnalystTable)
