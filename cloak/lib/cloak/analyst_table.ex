@@ -13,9 +13,9 @@ defmodule Cloak.AnalystTable do
   # -------------------------------------------------------------------
 
   @doc "Stores the analyst table to the database, recreating it if it already exists."
-  @spec store(Query.analyst_id(), String.t(), String.t(), DataSource.t()) ::
+  @spec recreate(Query.analyst_id(), String.t(), String.t(), DataSource.t()) ::
           {:ok, registration_info :: String.t(), Query.described_columns()} | {:error, String.t()}
-  def store(analyst, table_name, statement, data_source) do
+  def recreate(analyst, table_name, statement, data_source) do
     with {:ok, query} <- Cloak.AnalystTable.Compiler.compile(table_name, statement, data_source) do
       {db_name, store_info} = data_source.driver.prepare_analyst_table({analyst, table_name}, query)
 

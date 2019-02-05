@@ -12,26 +12,27 @@ defmodule Compliance.AnalystTableTest do
     describe "#{data_source_name}" do
       test "table can be created" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          assert {:ok, _, _} = store_table(1, "view1", "select user_id, height from users where age < 70", data_source)
+          assert {:ok, _, _} =
+                   recreate_table(1, "view1", "select user_id, height from users where age < 70", data_source)
         end
       end
 
       test "same query and id produce the same db_name" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, _} = store_table(1, "view2", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, _} = recreate_table(1, "view2", "select user_id, height from users where age < 70", data_source)
           name = AnalystTable.table_definition(1, "view2", data_source).db_name
 
-          {:ok, _, _} = store_table(1, "view2", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, _} = recreate_table(1, "view2", "select user_id, height from users where age < 70", data_source)
           assert %{db_name: ^name} = AnalystTable.table_definition(1, "view2", data_source)
         end
       end
 
       test "different query leads to a different db_name" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, _} = store_table(1, "view3", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, _} = recreate_table(1, "view3", "select user_id, height from users where age < 70", data_source)
           name1 = AnalystTable.table_definition(1, "view3", data_source).db_name
 
-          {:ok, _, _} = store_table(1, "view3", "select user_id, height from users where age > 70", data_source)
+          {:ok, _, _} = recreate_table(1, "view3", "select user_id, height from users where age > 70", data_source)
           name2 = AnalystTable.table_definition(1, "view3", data_source).db_name
 
           assert name1 != name2
@@ -40,10 +41,10 @@ defmodule Compliance.AnalystTableTest do
 
       test "different id leads to a different db_name" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, _} = store_table(1, "view4", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, _} = recreate_table(1, "view4", "select user_id, height from users where age < 70", data_source)
           name1 = AnalystTable.table_definition(1, "view4", data_source).db_name
 
-          {:ok, _, _} = store_table(2, "view4", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, _} = recreate_table(2, "view4", "select user_id, height from users where age < 70", data_source)
           name2 = AnalystTable.table_definition(2, "view4", data_source).db_name
 
           assert name1 != name2
@@ -52,7 +53,7 @@ defmodule Compliance.AnalystTableTest do
 
       test "stored table contains desired rows" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, _} = store_table(1, "view5", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, _} = recreate_table(1, "view5", "select user_id, height from users where age < 70", data_source)
           expected = select_direct!(1, data_source, "select user_id, height from users where age < 70")
           materialized = select_direct!(1, data_source, "select user_id, height from view5")
 
@@ -62,7 +63,7 @@ defmodule Compliance.AnalystTableTest do
 
       test "analyst table can be queried" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, _} = store_table(1, "view6", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, _} = recreate_table(1, "view6", "select user_id, height from users where age < 70", data_source)
 
           assert_query(
             "select * from view6",
@@ -74,7 +75,7 @@ defmodule Compliance.AnalystTableTest do
 
       test "simple table definition" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, _} = store_table(1, "view7", "select user_id, sqrt(age), height as h from users", data_source)
+          {:ok, _, _} = recreate_table(1, "view7", "select user_id, sqrt(age), height as h from users", data_source)
 
           table_definition = AnalystTable.table_definition(1, "view7", data_source)
 
@@ -92,7 +93,7 @@ defmodule Compliance.AnalystTableTest do
 
       test "table definition in select all" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, _} = store_table(1, "view8", "select * from users", data_source)
+          {:ok, _, _} = recreate_table(1, "view8", "select * from users", data_source)
 
           table_definition = AnalystTable.table_definition(1, "view8", data_source)
 
@@ -105,9 +106,9 @@ defmodule Compliance.AnalystTableTest do
 
       test "analyst_tables returns all tables of the given analyst" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, _} = store_table(1, "view9", "select user_id, height from users where age < 70", data_source)
-          {:ok, _, _} = store_table(1, "view10", "select user_id, height from users where age < 70", data_source)
-          {:ok, _, _} = store_table(2, "view11", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, _} = recreate_table(1, "view9", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, _} = recreate_table(1, "view10", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, _} = recreate_table(2, "view11", "select user_id, height from users where age < 70", data_source)
 
           assert Enum.sort(Enum.map(AnalystTable.analyst_tables(1, data_source), & &1.name)) == ~w(view10 view9)
         end
@@ -115,7 +116,7 @@ defmodule Compliance.AnalystTableTest do
 
       test "analyst table registration" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, registration_info, _} = store_table(1, "view12", "select user_id from users", data_source)
+          {:ok, registration_info, _} = recreate_table(1, "view12", "select user_id from users", data_source)
           drop_table!(data_source, AnalystTable.table_definition(1, "view12", data_source).db_name)
 
           assert AnalystTable.register_tables([registration_info]) == :ok
@@ -131,10 +132,10 @@ defmodule Compliance.AnalystTableTest do
 
       test "obsolete analyst tables are dropped when tables are registered" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _info, _} = store_table(1, "view13", "select user_id as a from users", data_source)
-          {:ok, _info, _} = store_table(1, "view13", "select user_id as b from users", data_source)
-          {:ok, info1, _} = store_table(1, "view13", "select user_id as c from users", data_source)
-          {:ok, info2, _} = store_table(2, "view14", "select user_id from users", data_source)
+          {:ok, _info, _} = recreate_table(1, "view13", "select user_id as a from users", data_source)
+          {:ok, _info, _} = recreate_table(1, "view13", "select user_id as b from users", data_source)
+          {:ok, info1, _} = recreate_table(1, "view13", "select user_id as c from users", data_source)
+          {:ok, info2, _} = recreate_table(2, "view14", "select user_id from users", data_source)
 
           db_name1 = AnalystTable.table_definition(1, "view13", data_source).db_name
           db_name2 = AnalystTable.table_definition(2, "view14", data_source).db_name
@@ -146,7 +147,7 @@ defmodule Compliance.AnalystTableTest do
 
       test "failed analyst table creation" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, registration_info, _} = store_table(1, "view15", "select user_id from users", data_source)
+          {:ok, registration_info, _} = recreate_table(1, "view15", "select user_id from users", data_source)
           clear_analyst_tables(data_source)
 
           log =
@@ -179,7 +180,7 @@ defmodule Compliance.AnalystTableTest do
       test "pending creation" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)),
              true <- String.starts_with?(data_source.name, "postgresql") do
-          {:ok, registration_info, _} = store_table(1, "view16", "select user_id, name from users", data_source)
+          {:ok, registration_info, _} = recreate_table(1, "view16", "select user_id, name from users", data_source)
           clear_analyst_tables(data_source)
 
           registration_info =
@@ -203,7 +204,7 @@ defmodule Compliance.AnalystTableTest do
 
       test "columns information" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, columns} = store_table(1, "view17", "select user_id, height from users", data_source)
+          {:ok, _, columns} = recreate_table(1, "view17", "select user_id, height from users", data_source)
 
           assert Enum.sort_by(columns, & &1.name) == [
                    %{name: "height", type: "real", user_id: false},
@@ -214,7 +215,7 @@ defmodule Compliance.AnalystTableTest do
 
       test "table is always recreated" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, _} = store_table(1, "view18", "select user_id, height from users", data_source)
+          {:ok, _, _} = recreate_table(1, "view18", "select user_id, height from users", data_source)
           db_name = AnalystTable.table_definition(1, "view18", data_source).db_name
 
           level = Logger.level()
@@ -224,7 +225,7 @@ defmodule Compliance.AnalystTableTest do
 
             log =
               ExUnit.CaptureLog.capture_log(fn ->
-                assert {:ok, _, _} = store_table(1, "view18", "select user_id, height from users", data_source)
+                assert {:ok, _, _} = recreate_table(1, "view18", "select user_id, height from users", data_source)
               end)
 
             assert log =~ ~r/dropping database table `#{Regex.escape(db_name)}`/
@@ -251,8 +252,8 @@ defmodule Compliance.AnalystTableTest do
     end)
   end
 
-  defp store_table(analyst_id, name, statement, data_source) do
-    with {:ok, registration_info, columns} <- AnalystTable.store(analyst_id, name, statement, data_source) do
+  defp recreate_table(analyst_id, name, statement, data_source) do
+    with {:ok, registration_info, columns} <- AnalystTable.recreate(analyst_id, name, statement, data_source) do
       assert soon(table_created?(analyst_id, name, data_source), :timer.seconds(5), repeat_wait_time: 10)
       {:ok, registration_info, columns}
     end
