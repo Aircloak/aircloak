@@ -211,6 +211,29 @@ defmodule Compliance.AnalystTableTest do
                  ]
         end
       end
+
+      test "table is always recreated" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          {:ok, _, _} = store_table(1, "view18", "select user_id, height from users", data_source)
+          db_name = AnalystTable.table_definition(1, "view18", data_source).db_name
+
+          level = Logger.level()
+
+          try do
+            Logger.configure(level: :info)
+
+            log =
+              ExUnit.CaptureLog.capture_log(fn ->
+                assert {:ok, _, _} = store_table(1, "view18", "select user_id, height from users", data_source)
+              end)
+
+            assert log =~ ~r/dropping database table `#{Regex.escape(db_name)}`/
+            assert log =~ ~r/creating database table `#{Regex.escape(db_name)}`/
+          after
+            Logger.configure(level: level)
+          end
+        end
+      end
     end
   end
 

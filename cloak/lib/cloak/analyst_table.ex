@@ -12,7 +12,7 @@ defmodule Cloak.AnalystTable do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Stores the analyst table to the database."
+  @doc "Stores the analyst table to the database, recreating it if it already exists."
   @spec store(Query.analyst_id(), String.t(), String.t(), DataSource.t()) ::
           {:ok, registration_info :: String.t(), Query.described_columns()} | {:error, String.t()}
   def store(analyst, table_name, statement, data_source) do
@@ -71,7 +71,7 @@ defmodule Cloak.AnalystTable do
   def handle_call({:sync_serialized, fun}, from, state),
     do: {:noreply, enqueue_job(state, :serialized, fn -> GenServer.reply(from, fun.()) end)}
 
-  def handle_call({:store_table, table}, _from, state), do: {:reply, :ok, enqueue_store_table(state, table)}
+  def handle_call({:store_table, table}, _from, state), do: {:reply, :ok, enqueue_store_table(state, table, true)}
 
   def handle_call({:register_tables, registration_infos}, _from, state) do
     :ets.delete_all_objects(__MODULE__)
@@ -113,7 +113,7 @@ defmodule Cloak.AnalystTable do
 
   defp start_table_store(table), do: GenServer.call(__MODULE__, {:store_table, table})
 
-  defp enqueue_store_table(state, table) do
+  defp enqueue_store_table(state, table, recreate?) do
     stop_current_store(table)
 
     store_table_definition(
@@ -121,12 +121,12 @@ defmodule Cloak.AnalystTable do
       DataSource.Table.new(table.name, table.id_column, %{db_name: table.db_name, status: :creating})
     )
 
-    enqueue_job(state, store_job_id(table), table, fn -> store_table(table) end)
+    enqueue_job(state, store_job_id(table), table, fn -> store_table(table, recreate?) end)
   end
 
-  defp store_table(table) do
+  defp store_table(table, recreate?) do
     with {:ok, data_source} <- fetch_data_source(table),
-         :ok <- store_table_to_database(data_source, table) do
+         :ok <- store_table_to_database(data_source, table, recreate?) do
       :ok
     else
       {:error, reason} ->
@@ -139,11 +139,11 @@ defmodule Cloak.AnalystTable do
     with :error <- DataSource.fetch(table.data_source_name), do: {:error, "data source not found"}
   end
 
-  defp store_table_to_database(data_source, table) do
+  defp store_table_to_database(data_source, table, recreate?) do
     DataSource.Connection.execute!(
       data_source,
       fn connection ->
-        with :ok <- data_source.driver.store_analyst_table(connection, table.db_name, table.store_info) do
+        with :ok <- data_source.driver.store_analyst_table(connection, table.db_name, table.store_info, recreate?) do
           update_table_definition(
             table,
             fn table_definition ->
@@ -186,7 +186,7 @@ defmodule Cloak.AnalystTable do
       |> Aircloak.atomize_keys()
 
     case Cloak.DataSource.fetch(table.data_source_name) do
-      {:ok, _} -> enqueue_store_table(state, table)
+      {:ok, _} -> enqueue_store_table(state, table, false)
       :error -> state
     end
   end
