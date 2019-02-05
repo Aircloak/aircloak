@@ -3,6 +3,7 @@ open MongoDB.Driver
 open MongoDB.Bson
 open System.IO
 open FSharp.Json
+open System.Security.Cryptography
 
 type CLIArguments =
     | [<Mandatory>] Cloak_Config of path : string
@@ -62,6 +63,31 @@ let textToDate (value: BsonValue): BsonValue =
     | true, date -> BsonDateTime(date).AsBsonValue
     | _ -> BsonNull.Value.AsBsonValue
 
+let convertToBytes (value: BsonValue): byte[] =
+    if value.IsBsonBinaryData
+    then value.AsByteArray
+    else System.Text.Encoding.ASCII.GetBytes value.AsString
+
+let decodeAES (key: string option) (value: BsonValue): BsonValue =
+    match key with
+    | None -> failwith "No key for aes_cbc_128"
+    | Some key ->
+        use alg = new RijndaelManaged ()
+        alg.Key <- System.Text.Encoding.ASCII.GetBytes key
+        alg.IV <- List.replicate 16 0uy |> List.toArray<byte>
+
+        let decryptor = alg.CreateDecryptor(alg.Key, alg.IV)
+
+        try
+            use memoryStream = new MemoryStream(convertToBytes value)
+            use cryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read)
+            use reader = new StreamReader(cryptoStream)
+
+            let plaintext = reader.ReadToEnd()
+            BsonString(plaintext).AsBsonValue
+        with
+        | _ -> BsonNull.Value.AsBsonValue
+
 let applyDecoder (document : BsonDocument) (decoder : Decoder) : unit =
     for column in decoder.columns do
         match decoder.method with
@@ -69,7 +95,7 @@ let applyDecoder (document : BsonDocument) (decoder : Decoder) : unit =
         | "text_to_real" -> update document column textToReal
         | "text_to_date" -> update document column textToDate
         | "text_to_datetime" -> update document column textToDate
-        // | "aes_cbc_128" -> with_or_without_key
+        | "aes_cbc_128" -> update document column (decodeAES decoder.key)
         // | "real_to_integer"
         // | "text_to_boolean"
         // | "real_to_boolean"
