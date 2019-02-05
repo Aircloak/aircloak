@@ -219,9 +219,14 @@ defmodule Compliance.AnalystTableTest do
           execute!(data_source, "delete from users where user_id = -1")
 
           {:ok, _, _} = recreate_table(1, "table18", "select user_id, height from users", data_source)
+
           execute!(data_source, "insert into users(user_id) values (-1)")
 
-          assert select_direct!(1, data_source, "select count(*) from table18 where user_id = -1") == [[0]]
+          try do
+            assert select_direct!(1, data_source, "select count(*) from table18 where user_id = -1") == [[0]]
+          after
+            execute!(data_source, "delete from users where user_id = -1")
+          end
         end
       end
 
@@ -232,9 +237,14 @@ defmodule Compliance.AnalystTableTest do
 
           {:ok, _, _} = recreate_table(1, "table19", "select user_id, height from users", data_source)
           execute!(data_source, "insert into users(user_id) values (-1)")
-          {:ok, _, _} = recreate_table(1, "table19", "select user_id, height from users", data_source)
 
-          assert select_direct!(1, data_source, "select count(*) from table19 where user_id = -1") == [[1]]
+          try do
+            {:ok, _, _} = recreate_table(1, "table19", "select user_id, height from users", data_source)
+
+            assert select_direct!(1, data_source, "select count(*) from table19 where user_id = -1") == [[1]]
+          after
+            execute!(data_source, "delete from users where user_id = -1")
+          end
         end
       end
     end
