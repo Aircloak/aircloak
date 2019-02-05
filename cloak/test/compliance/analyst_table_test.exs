@@ -213,26 +213,26 @@ defmodule Compliance.AnalystTableTest do
         end
       end
 
-      test "table is always recreated" do
+      test "table is not automatically updated if the underlying table is changed" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          execute!(data_source, "delete from users where user_id = -1")
+
           {:ok, _, _} = recreate_table(1, "view18", "select user_id, height from users", data_source)
-          db_name = AnalystTable.table_definition(1, "view18", data_source).db_name
+          execute!(data_source, "insert into users(user_id) values (-1)")
 
-          level = Logger.level()
+          assert select_direct!(1, data_source, "select count(*) from view18 where user_id = -1") == [[0]]
+        end
+      end
 
-          try do
-            Logger.configure(level: :info)
+      test "table is repopulated on recreate" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          execute!(data_source, "delete from users where user_id = -1")
 
-            log =
-              ExUnit.CaptureLog.capture_log(fn ->
-                assert {:ok, _, _} = recreate_table(1, "view18", "select user_id, height from users", data_source)
-              end)
+          {:ok, _, _} = recreate_table(1, "view19", "select user_id, height from users", data_source)
+          execute!(data_source, "insert into users(user_id) values (-1)")
+          {:ok, _, _} = recreate_table(1, "view19", "select user_id, height from users", data_source)
 
-            assert log =~ ~r/dropping database table `#{Regex.escape(db_name)}`/
-            assert log =~ ~r/creating database table `#{Regex.escape(db_name)}`/
-          after
-            Logger.configure(level: level)
-          end
+          assert select_direct!(1, data_source, "select count(*) from view19 where user_id = -1") == [[1]]
         end
       end
     end
