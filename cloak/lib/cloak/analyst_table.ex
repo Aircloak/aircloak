@@ -185,7 +185,10 @@ defmodule Cloak.AnalystTable do
       |> Map.take(~w(analyst name statement data_source_name db_name id_column store_info))
       |> Aircloak.atomize_keys()
 
-    enqueue_store_table(state, table)
+    case Cloak.DataSource.fetch(table.data_source_name) do
+      {:ok, _} -> enqueue_store_table(state, table)
+      :error -> state
+    end
   end
 
   defp enqueue_job(state, id, meta \\ nil, fun),
