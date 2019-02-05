@@ -51,28 +51,24 @@ defmodule Cloak.DataSource.Driver.SQL do
       end
 
       @impl Driver
-      def store_analyst_table(connection, db_name, sql, recreate?) do
+      def create_or_update_analyst_table(connection, db_name, sql) do
         table_exists? = Enum.any?(analyst_tables(connection), &(&1 == db_name))
 
-        if table_exists? and not recreate? do
-          :ok
-        else
-          drop_table = fn ->
-            if table_exists? do
-              Logger.info("dropping database table `#{db_name}` because it will be recreated")
-              execute(connection, "DROP TABLE #{SqlBuilder.quote_table_name(db_name)}")
-            else
-              {:ok, nil}
-            end
+        drop_table = fn ->
+          if table_exists? do
+            Logger.info("dropping database table `#{db_name}` because it will be recreated")
+            execute(connection, "DROP TABLE #{SqlBuilder.quote_table_name(db_name)}")
+          else
+            {:ok, nil}
           end
-
-          create_table = fn ->
-            Logger.info("creating database table `#{db_name}`")
-            execute(connection, sql)
-          end
-
-          with {:ok, _} <- drop_table.(), {:ok, _} <- create_table.(), do: :ok
         end
+
+        create_table = fn ->
+          Logger.info("creating database table `#{db_name}`")
+          execute(connection, sql)
+        end
+
+        with {:ok, _} <- drop_table.(), {:ok, _} <- create_table.(), do: :ok
       end
 
       @impl Driver

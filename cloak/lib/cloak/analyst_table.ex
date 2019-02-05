@@ -71,7 +71,12 @@ defmodule Cloak.AnalystTable do
   def handle_call({:sync_serialized, fun}, from, state),
     do: {:noreply, enqueue_job(state, :serialized, fn -> GenServer.reply(from, fun.()) end)}
 
-  def handle_call({:store_table, table}, _from, state), do: {:reply, :ok, enqueue_store_table(state, table, true)}
+  def handle_call({:store_table, table}, _from, state) do
+    stop_current_store(table)
+    store_table_definition(table, data_source_table(table, status: :creating))
+
+    {:reply, :ok, enqueue_job(state, store_job_id(table), table, fn -> store_table(table) end)}
+  end
 
   def handle_call({:register_tables, registration_infos}, _from, state) do
     tables = Enum.map(registration_infos, &decode_registration_info/1)
@@ -115,18 +120,12 @@ defmodule Cloak.AnalystTable do
 
   defp start_table_store(table), do: GenServer.call(__MODULE__, {:store_table, table})
 
-  defp enqueue_store_table(state, table, recreate?) do
-    stop_current_store(table)
-    store_table_definition(table, data_source_table(table, status: :creating))
-    enqueue_job(state, store_job_id(table), table, fn -> store_table(table, recreate?) end)
-  end
-
   defp data_source_table(table, opts),
     do: DataSource.Table.new(table.name, table.id_column, Map.merge(%{db_name: table.db_name}, Map.new(opts)))
 
-  defp store_table(table, recreate?) do
+  defp store_table(table) do
     with {:ok, data_source} <- fetch_data_source(table),
-         :ok <- store_table_to_database(data_source, table, recreate?) do
+         :ok <- store_table_to_database(data_source, table) do
       :ok
     else
       {:error, reason} ->
@@ -139,11 +138,11 @@ defmodule Cloak.AnalystTable do
     with :error <- DataSource.fetch(table.data_source_name), do: {:error, "data source not found"}
   end
 
-  defp store_table_to_database(data_source, table, recreate?) do
+  defp store_table_to_database(data_source, table) do
     DataSource.Connection.execute!(
       data_source,
       fn connection ->
-        with :ok <- data_source.driver.store_analyst_table(connection, table.db_name, table.store_info, recreate?) do
+        with :ok <- data_source.driver.create_or_update_analyst_table(connection, table.db_name, table.store_info) do
           update_table_definition(
             table,
             fn table_definition ->
