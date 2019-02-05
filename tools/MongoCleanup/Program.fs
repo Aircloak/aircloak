@@ -33,7 +33,8 @@ type Decoder =
 type CloakTable =
     { userId : string option
       decoders : Decoder list option
-      projection : Projection option }
+      projection : Projection option
+      query : string option }
 
 type CloakConfig =
     { parameters : ConnectionProperties
@@ -126,17 +127,19 @@ let applyDecoders (decoders : Decoder list) (document : BsonDocument) : unit =
     for decoder in decoders do
         applyDecoder document decoder
 
-let decode (table : string) (decoders : Decoder list) (db : IMongoDatabase) : unit =
-    let collection = db.GetCollection<BsonDocument>(table)
-    let mutable documents = collection.Find(fun _ -> true).ToList()
+let readCollection (db: IMongoDatabase) (name: string) : System.Collections.Generic.List<BsonDocument> =
+    db.GetCollection<BsonDocument>(name).Find(fun _ -> true).ToList()
 
+let writeCollection (db: IMongoDatabase) (name: string) (documents: seq<BsonDocument>): unit =
+    let collection = db.GetCollection<BsonDocument>(name)
     for document in documents do
-        applyDecoders decoders document |> ignore
         let field = StringFieldDefinition<BsonDocument, BsonValue>("_id")
         let filter = Builders<BsonDocument>.Filter.Eq(field, document.GetValue("_id"))
         collection.ReplaceOne(filter, document) |> ignore
 
-    ()
+let decode (documents: seq<BsonDocument>) (decoders : Decoder list) : unit =
+    for document in documents do
+        applyDecoders decoders document
 
 let mongoConnString (cloakConfig : CloakConfig) : string =
     let options = cloakConfig.parameters
@@ -150,17 +153,27 @@ let mongoConnString (cloakConfig : CloakConfig) : string =
         | (None, Some(pass)) -> sprintf ":%s@" pass
     sprintf "mongodb://%s%s:%i" userpass options.hostname port
 
+let project (tables: Map<string, CloakTable>) (db: IMongoDatabase) : unit =
+    ()
+
 let run (options : ParseResults<CLIArguments>) : unit =
     use stream = new StreamReader(options.GetResult Cloak_Config)
     let jsonConfig = JsonConfig.create (jsonFieldNaming = Json.snakeCase)
     let config =
         stream.ReadToEnd() |> Json.deserializeEx<CloakConfig> jsonConfig
-    let connString = mongoConnString config
-    let conn = MongoClient connString
+    let conn = config |> mongoConnString |> MongoClient
     let db = conn.GetDatabase config.parameters.database
-    for kv in config.tables
-              |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders) do
-        decode kv.Key kv.Value.decoders.Value db
+
+    let data = config.tables |> Map.map (fun k _ -> readCollection db k)
+
+    for KeyValue(k, v) in config.tables |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders) do
+        decode (data.Item k) v.decoders.Value
+
+    project config.tables db
+
+    for KeyValue(k, v) in config.tables |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders || Option.isSome kv.Value.projection) do
+        writeCollection db k (data.Item k)
+
     ()
 
 [<EntryPoint>]
