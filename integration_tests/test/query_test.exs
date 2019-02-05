@@ -9,22 +9,25 @@ defmodule IntegrationTest.QueryTest do
 
   test "show tables", context do
     assert {:ok, result} = run_query(context.user, "show tables")
-    assert result.columns == ["name"]
+    assert result.columns == ["name", "type"]
     assert result.features.db_column_types == []
-    assert result.features.selected_types == ["text"]
-    assert result.buckets == [%{"occurrences" => 1, "row" => ["users"]}]
+    assert result.features.selected_types == ["text", "text"]
+    assert result.buckets == [%{"occurrences" => 1, "row" => ["users", "personal"]}]
   end
 
   test "show columns", context do
     {:ok, result} = run_query(context.user, "show columns from users")
 
     assert [
-             %{"occurrences" => 1, "row" => ["user_id", "text", isolator1]},
-             %{"occurrences" => 1, "row" => ["name", "text", isolator2]},
-             %{"occurrences" => 1, "row" => ["height", "integer", isolator3]}
+             %{"occurrences" => 1, "row" => ["user_id", "text", isolator1, "user_id"]},
+             %{"occurrences" => 1, "row" => ["name", "text", isolator2, nil]},
+             %{"occurrences" => 1, "row" => ["height", "integer", isolator3, nil]}
            ] = result.buckets
 
-    assert Enum.all?([isolator1, isolator2, isolator3], &(&1 in ["true", "false", "pending", "failed"]))
+    assert Enum.all?(
+             [isolator1, isolator2, isolator3],
+             &(&1 in ["true", "false", "pending", "failed"])
+           )
   end
 
   test "select", context do
@@ -85,7 +88,9 @@ defmodule IntegrationTest.QueryTest do
 
   defp run_query(user, query, params \\ []) do
     data_source_id_spec = {:id, Manager.data_source().id}
+
     {:ok, query} = Air.Service.Query.create(data_source_id_spec, :autogenerate, user, :http, query, params, [])
+
     Air.Service.DataSource.await_query(query)
   end
 end

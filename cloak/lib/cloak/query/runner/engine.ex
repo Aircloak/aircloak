@@ -59,18 +59,31 @@ defmodule Cloak.Query.Runner.Engine do
     )
   end
 
-  defp run_statement(%Sql.Query{command: :show, show: :tables} = query, features, _state_updater),
-    do:
-      (Map.keys(query.data_source.tables) ++ Map.keys(query.views))
-      |> Enum.map(&%{occurrences: 1, row: [to_string(&1)]})
-      |> Query.Result.new(query.column_titles, features)
+  defp display_content_type(:private), do: "personal"
+  defp display_content_type(:public), do: "non-personal"
+
+  defp run_statement(%Sql.Query{command: :show, show: :tables} = query, features, _state_updater) do
+    tables =
+      query.data_source.tables
+      |> Enum.to_list()
+      |> Enum.map(fn {name, table} -> [to_string(name), display_content_type(table.content_type)] end)
+
+    views = query.views |> Map.keys() |> Enum.map(&[to_string(&1), "view"])
+
+    (tables ++ views)
+    |> Enum.map(&%{occurrences: 1, row: &1})
+    |> Query.Result.new(query.column_titles, features)
+  end
 
   defp run_statement(%Sql.Query{command: :show, show: :columns} = query, features, _state_updater) do
     [table] = query.selected_tables
 
     table.columns
     |> Enum.map(
-      &%{occurrences: 1, row: [&1.name, to_string(&1.type), isolator_status(query.data_source, table, &1.name)]}
+      &%{
+        occurrences: 1,
+        row: [&1.name, to_string(&1.type), isolator_status(query.data_source, table, &1.name), table.keys[&1.name]]
+      }
     )
     |> Query.Result.new(query.column_titles, features)
   end

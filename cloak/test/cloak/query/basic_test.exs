@@ -28,24 +28,22 @@ defmodule Cloak.Query.BasicTest do
     :ok
   end
 
-  test "show tables" do
-    assert_query("show tables", %{columns: ["name"], rows: table_rows})
-    tables = Enum.map(table_rows, fn %{row: [table_name]} -> table_name end)
-
-    [:children, :heights, :heights_alias, :"weird things", :dates]
-    |> Enum.each(&assert(Enum.member?(tables, to_string(&1))))
-  end
-
   test "show tables and views" do
     assert_query("show tables", [views: %{"v1" => "select user_id, height from heights"}], %{
-      columns: ["name"],
-      rows: table_rows
+      columns: ["name", "type"],
+      rows: rows
     })
 
-    tables = Enum.map(table_rows, fn %{row: [table_name]} -> table_name end)
+    rows = Enum.map(rows, & &1.row)
 
-    [:children, :heights, :heights_alias, :"weird things", :dates, :v1]
-    |> Enum.each(&assert(Enum.member?(tables, to_string(&1))))
+    [
+      ["children", "personal"],
+      ["heights", "personal"],
+      ["weird things", "personal"],
+      ["dates", "personal"],
+      ["v1", "view"]
+    ]
+    |> Enum.each(&assert(Enum.member?(rows, &1)))
   end
 
   test "show columns" do
@@ -56,32 +54,35 @@ defmodule Cloak.Query.BasicTest do
       Cloak.TestIsolatorsCache.register_pending(data_source, "basic_isolators", "pending")
     end
 
-    assert_query("show columns from basic_isolators", %{columns: ["name", "type", "isolates_users"], rows: rows})
+    assert_query("show columns from basic_isolators", %{
+      columns: ["name", "data type", "isolator?", "key type"],
+      rows: rows
+    })
 
     assert Enum.sort_by(rows, & &1[:row]) == [
-             %{occurrences: 1, row: ["isolates", "integer", "true"]},
-             %{occurrences: 1, row: ["pending", "boolean", "pending"]},
-             %{occurrences: 1, row: ["regular", "text", "false"]},
-             %{occurrences: 1, row: ["user_id", "text", "false"]}
+             %{occurrences: 1, row: ["isolates", "integer", "true", nil]},
+             %{occurrences: 1, row: ["pending", "boolean", "pending", nil]},
+             %{occurrences: 1, row: ["regular", "text", "false", nil]},
+             %{occurrences: 1, row: ["user_id", "text", "false", :user_id]}
            ]
   end
 
   test "show columns using the `public.` prefix for a table" do
-    assert_query("show columns from public.heights", %{columns: ~w(name type isolates_users), rows: _})
-    assert_query(~s/show columns from "public"."heights"/, %{columns: ~w(name type isolates_users), rows: _})
-    assert_query(~s/show columns from "public.heights"/, %{columns: ~w(name type isolates_users), rows: _})
+    assert_query("show columns from public.heights", %{columns: _, rows: _})
+    assert_query(~s/show columns from "public"."heights"/, %{columns: _, rows: _})
+    assert_query(~s/show columns from "public.heights"/, %{columns: _, rows: _})
   end
 
   test "show columns from a view" do
     assert_query("show columns from v1", [views: %{"v1" => "select user_id, height from heights"}], %{
       query_id: "1",
-      columns: ["name", "type", "isolates_users"],
+      columns: _,
       rows: rows
     })
 
     assert Enum.sort_by(rows, & &1[:row]) == [
-             %{occurrences: 1, row: ["height", "integer", nil]},
-             %{occurrences: 1, row: ["user_id", "text", nil]}
+             %{occurrences: 1, row: ["height", "integer", nil, nil]},
+             %{occurrences: 1, row: ["user_id", "text", nil, :user_id]}
            ]
   end
 

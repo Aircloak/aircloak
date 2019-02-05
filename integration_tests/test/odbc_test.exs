@@ -26,7 +26,8 @@ defmodule IntegrationTest.OdbcTest do
       |> assert()
     end
 
-    test "after max connections are established, subsequent connections are not accepted", context do
+    test "after max connections are established, subsequent connections are not accepted",
+         context do
       assert {:error, error} =
                Stream.repeatedly(fn -> connect(context.user) end)
                |> Stream.drop(Air.PsqlServer.configuration().max_connections)
@@ -64,7 +65,8 @@ defmodule IntegrationTest.OdbcTest do
         {"require", %{"require_ssl" => false, "keyfile" => "invalid_file"}, false},
         {"require", %{"require_ssl" => false, "keyfile" => nil}, false}
       ] do
-    test "connecting when client sslmode=`#{client_ssl_mode}`, server config #{inspect(ssl_config)}", context do
+    test "connecting when client sslmode=`#{client_ssl_mode}`, server config #{inspect(ssl_config)}",
+         context do
       ExUnit.CaptureLog.capture_log(fn ->
         original_settings = Aircloak.DeployConfig.fetch!(:air, "psql_server")
 
@@ -111,7 +113,7 @@ defmodule IntegrationTest.OdbcTest do
     test(
       "show tables",
       context,
-      do: assert(:odbc.sql_query(context.conn, 'show tables') == {:selected, ['name'], [{'users'}]})
+      do: assert(:odbc.sql_query(context.conn, 'show tables') == {:selected, ['name', 'type'], [{'users', 'personal'}]})
     )
 
     test(
@@ -120,11 +122,11 @@ defmodule IntegrationTest.OdbcTest do
       do:
         assert(
           :odbc.sql_query(context.conn, 'show columns from users') ==
-            {:selected, ['name', 'type'],
+            {:selected, ['name', 'data type', 'isolator?', 'key type'],
              [
-               {'user_id', 'text'},
-               {'name', 'text'},
-               {'height', 'integer'}
+               {'user_id', 'text', 'true', 'user_id'},
+               {'name', 'text', 'failed', :null},
+               {'height', 'integer', 'failed', :null}
              ]}
         )
     )

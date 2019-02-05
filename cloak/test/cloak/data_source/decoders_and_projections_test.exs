@@ -64,9 +64,9 @@ defmodule Cloak.DataSource.DecodersAndProjectionsTest do
   test "show columns from an encoded table", context do
     assert_query(context, "show columns from dec_proj_enc", %{
       rows: [
-        %{row: ["_id", "text", _isolator_status1]},
-        %{row: ["val", "integer", _isolator_status2]},
-        %{row: ["pk", "real", _isolator_status3]}
+        %{row: ["_id", "text", _isolator_status1, _key_type1]},
+        %{row: ["val", "integer", _isolator_status2, _key_type2]},
+        %{row: ["pk", "real", _isolator_status3, _key_type3]}
       ]
     })
   end
@@ -74,9 +74,9 @@ defmodule Cloak.DataSource.DecodersAndProjectionsTest do
   test "show columns from a projected table", context do
     assert_query(context, "show columns from dec_proj_projected", %{
       rows: [
-        %{row: ["uid", "text", _isolator_status1]},
-        %{row: ["_id", "text", _isolator_status2]},
-        %{row: ["fk", "real", _isolator_status3]}
+        %{row: ["uid", "text", _isolator_status1, _key_type1]},
+        %{row: ["_id", "text", _isolator_status2, _key_type2]},
+        %{row: ["fk", "real", _isolator_status3, _key_type3]}
       ]
     })
   end
