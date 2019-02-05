@@ -74,8 +74,10 @@ defmodule Cloak.AnalystTable do
   def handle_call({:store_table, table}, _from, state), do: {:reply, :ok, enqueue_store_table(state, table, true)}
 
   def handle_call({:register_tables, registration_infos}, _from, state) do
-    :ets.delete_all_objects(__MODULE__)
-    state = Enum.reduce(registration_infos, state, &register_table(&2, &1))
+    tables = Enum.map(registration_infos, &decode_registration_info/1)
+    stop_obsolete_stores(tables)
+    update_ets_table(tables)
+
     {:reply, :ok, enqueue_job(state, :serialized, &drop_unused_analyst_tables/0)}
   end
 
@@ -96,7 +98,7 @@ defmodule Cloak.AnalystTable do
   defp stop_current_store(table),
     do: if(Parent.GenServer.child?(store_job_id(table)), do: Parent.GenServer.shutdown_child(store_job_id(table)))
 
-  defp store_job_id(table), do: {:store, table.analyst, table.name, table.data_source_name}
+  defp store_job_id(table), do: {:store, Map.take(table, [:analyst, :name, :data_source_name])}
 
   defp key(table), do: {table.analyst, table.data_source_name, table.name}
 
@@ -115,14 +117,12 @@ defmodule Cloak.AnalystTable do
 
   defp enqueue_store_table(state, table, recreate?) do
     stop_current_store(table)
-
-    store_table_definition(
-      table,
-      DataSource.Table.new(table.name, table.id_column, %{db_name: table.db_name, status: :creating})
-    )
-
+    store_table_definition(table, data_source_table(table, status: :creating))
     enqueue_job(state, store_job_id(table), table, fn -> store_table(table, recreate?) end)
   end
+
+  defp data_source_table(table, opts),
+    do: DataSource.Table.new(table.name, table.id_column, Map.merge(%{db_name: table.db_name}, Map.new(opts)))
 
   defp store_table(table, recreate?) do
     with {:ok, data_source} <- fetch_data_source(table),
@@ -177,17 +177,40 @@ defmodule Cloak.AnalystTable do
 
   defp registration_info(table), do: Jason.encode!(table)
 
-  defp register_table(state, registration_info) do
-    table =
-      registration_info
-      |> Jason.decode!()
-      |> Map.take(~w(analyst name statement data_source_name db_name id_column store_info))
-      |> Aircloak.atomize_keys()
+  defp decode_registration_info(registration_info) do
+    registration_info
+    |> Jason.decode!()
+    |> Map.take(~w(analyst name statement data_source_name db_name id_column store_info))
+    |> Aircloak.atomize_keys()
+  end
 
-    case Cloak.DataSource.fetch(table.data_source_name) do
-      {:ok, _} -> enqueue_store_table(state, table, false)
-      :error -> state
-    end
+  defp stop_obsolete_stores(new_tables) do
+    storing_tables =
+      Parent.GenServer.children()
+      |> Enum.filter(&match?({{:store, _data}, _pid, _meta}, &1))
+      |> Enum.map(fn {_id, _pid, table} -> table end)
+      |> MapSet.new()
+
+    obsolete_storing_tables = MapSet.difference(storing_tables, MapSet.new(new_tables))
+
+    Enum.each(obsolete_storing_tables, &Parent.GenServer.shutdown_child(store_job_id(&1)))
+  end
+
+  defp update_ets_table(new_tables) do
+    new_keys = new_tables |> Enum.map(&key/1) |> MapSet.new()
+    known_keys = :ets.match(__MODULE__, {:"$1", :_}) |> Enum.map(fn [key] -> key end) |> MapSet.new()
+    obsolete_keys = MapSet.difference(known_keys, new_keys)
+    Enum.each(obsolete_keys, &:ets.delete(__MODULE__, &1))
+
+    missing_tables =
+      new_tables
+      |> Enum.filter(&(not MapSet.member?(known_keys, key(&1))))
+      |> Enum.filter(&match?({:ok, _}, Cloak.DataSource.fetch(&1.data_source_name)))
+
+    Enum.each(
+      missing_tables,
+      fn table -> store_table_definition(table, data_source_table(table, status: :created)) end
+    )
   end
 
   defp enqueue_job(state, id, meta \\ nil, fun),
