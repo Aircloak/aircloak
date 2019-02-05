@@ -1,5 +1,6 @@
 <%= render "_form.html", Map.merge(assigns, %{
   view_name: "New #{selectable_kind_name(@kind)}",
   action_name: "Create",
+  method: :post,
   action: data_source_selectable_path(@conn, :create, @data_source.name, @kind)
 }) %>
