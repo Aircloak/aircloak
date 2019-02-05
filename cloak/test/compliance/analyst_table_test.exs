@@ -214,7 +214,8 @@ defmodule Compliance.AnalystTableTest do
       end
 
       test "table is not automatically updated if the underlying table is changed" do
-        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)),
+             true <- String.starts_with?(data_source.name, "postgresql") do
           execute!(data_source, "delete from users where user_id = -1")
 
           {:ok, _, _} = recreate_table(1, "view18", "select user_id, height from users", data_source)
@@ -225,7 +226,8 @@ defmodule Compliance.AnalystTableTest do
       end
 
       test "table is repopulated on recreate" do
-        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)),
+             true <- String.starts_with?(data_source.name, "postgresql") do
           execute!(data_source, "delete from users where user_id = -1")
 
           {:ok, _, _} = recreate_table(1, "view19", "select user_id, height from users", data_source)
