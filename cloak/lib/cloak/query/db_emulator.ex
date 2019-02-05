@@ -16,6 +16,15 @@ defmodule Cloak.Query.DbEmulator do
   # API functions
   # -------------------------------------------------------------------
 
+  @doc "Prepares the query and its subqueries for emulated or offloaded execution."
+  @spec compile(Query.t()) :: Query.t()
+  def compile(query) do
+    query
+    |> Query.set_emulation_flag()
+    |> Query.resolve_db_columns()
+    |> Compiler.Helpers.apply_top_down(&compile_emulated_subqueries/1)
+  end
+
   @doc "Retrieves rows according to the specification in the compiled query. This version ignores query state updates."
   @spec select(Query.t()) :: Enumerable.t()
   def select(query), do: select(query, _state_updater = fn _ -> :ignore end)
@@ -23,12 +32,6 @@ defmodule Cloak.Query.DbEmulator do
   @doc "Retrieves rows according to the specification in the compiled query."
   @spec select(Query.t(), Engine.state_updater()) :: Enumerable.t()
   def select(query, state_updater) do
-    query =
-      query
-      |> Query.set_emulation_flag()
-      |> Query.resolve_db_columns()
-      |> Compiler.Helpers.apply_top_down(&compile_emulated_subqueries/1)
-
     state_updater.(:awaiting_data)
 
     processing_steps =

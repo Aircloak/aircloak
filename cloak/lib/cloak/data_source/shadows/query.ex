@@ -39,6 +39,7 @@ defmodule Cloak.DataSource.Shadows.Query do
       """
       |> Parser.parse!()
       |> Compiler.compile_direct!(nil, data_source)
+      |> DbEmulator.compile()
       |> DbEmulator.select()
       |> Enum.map(&hd/1)
     else

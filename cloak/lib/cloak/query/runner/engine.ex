@@ -18,16 +18,22 @@ defmodule Cloak.Query.Runner.Engine do
       runner_args.statement
       |> parse!(runner_args.state_updater)
       |> compile!(runner_args)
+      |> Query.DbEmulator.compile()
 
     features = Sql.Query.features(query)
 
     runner_args.feature_updater.(features)
     query_killer_reg.()
-    result = run_statement(query, features, runner_args.state_updater)
+    result = query |> run_statement(runner_args.state_updater) |> Query.Result.new(query.column_titles, features)
     query_killer_unreg.()
 
     runtime = :erlang.monotonic_time(:milli_seconds) - start_time
-    query = Sql.Query.add_debug_info(query, "Query executed in #{runtime / 1000} seconds.")
+
+    query =
+      Sql.Query.add_debug_info(query, [
+        "Query executed in #{runtime / 1000} seconds."
+        | if(query.emulated?, do: ["Query was partially emulated."], else: [])
+      ])
 
     {:ok, result, Sql.Query.info_messages(query)}
   rescue
@@ -62,7 +68,7 @@ defmodule Cloak.Query.Runner.Engine do
   defp display_content_type(:private), do: "personal"
   defp display_content_type(:public), do: "non-personal"
 
-  defp run_statement(%Sql.Query{command: :show, show: :tables} = query, features, _state_updater) do
+  defp run_statement(%Sql.Query{command: :show, show: :tables} = query, _state_updater) do
     tables =
       query.data_source.tables
       |> Enum.to_list()
@@ -70,29 +76,23 @@ defmodule Cloak.Query.Runner.Engine do
 
     views = query.views |> Map.keys() |> Enum.map(&[to_string(&1), "view"])
 
-    (tables ++ views)
-    |> Enum.map(&%{occurrences: 1, row: &1})
-    |> Query.Result.new(query.column_titles, features)
+    Enum.map(tables ++ views, &%{occurrences: 1, row: &1})
   end
 
-  defp run_statement(%Sql.Query{command: :show, show: :columns} = query, features, _state_updater) do
+  defp run_statement(%Sql.Query{command: :show, show: :columns} = query, _state_updater) do
     [table] = query.selected_tables
 
-    table.columns
-    |> Enum.map(
+    Enum.map(
+      table.columns,
       &%{
         occurrences: 1,
         row: [&1.name, to_string(&1.type), isolator_status(query.data_source, table, &1.name), table.keys[&1.name]]
       }
     )
-    |> Query.Result.new(query.column_titles, features)
   end
 
-  defp run_statement(%Sql.Query{command: :select} = query, features, state_updater),
-    do:
-      query
-      |> Query.DbEmulator.select(state_updater)
-      |> Query.Result.new(query.column_titles, features)
+  defp run_statement(%Sql.Query{command: :select} = query, state_updater),
+    do: Query.DbEmulator.select(query, state_updater)
 
   defp isolator_status(_data_source, _view = %{db_name: nil, query: nil}, _column), do: nil
 
