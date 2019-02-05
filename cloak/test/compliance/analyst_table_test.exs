@@ -174,6 +174,37 @@ defmodule Compliance.AnalystTableTest do
           end
         end
       end
+
+      test "tables can be queried after registration" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          {:ok, table_info1, _} = create_or_update(1, "table20", "select user_id from users", data_source)
+          {:ok, table_info2, _} = create_or_update(1, "table21", "select user_id from users", data_source)
+
+          :ets.delete_all_objects(AnalystTable)
+
+          assert AnalystTable.register_tables([table_info1, table_info2]) == :ok
+          assert soon(table_created?(1, "table20", data_source), :timer.seconds(5), repeat_wait_time: 10)
+          assert soon(table_created?(1, "table21", data_source), :timer.seconds(5), repeat_wait_time: 10)
+
+          assert_query("select * from table20", [analyst_id: 1, data_sources: [data_source]], %{columns: ["user_id"]})
+          assert_query("select * from table21", [analyst_id: 1, data_sources: [data_source]], %{columns: ["user_id"]})
+        end
+      end
+
+      test "obsolete tables are deleted after registration" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          {:ok, table_info, _} = create_or_update(1, "table22", "select user_id from users", data_source)
+          {:ok, _, _} = create_or_update(1, "table23", "select user_id from users", data_source)
+
+          db_name = AnalystTable.table_definition(1, "table22", data_source).db_name
+
+          :ets.delete_all_objects(AnalystTable)
+
+          assert AnalystTable.register_tables([table_info]) == :ok
+          assert AnalystTable.table_definition(1, "table23", data_source) == nil
+          assert soon(stored_tables(data_source) == [db_name], 5000)
+        end
+      end
     end
   end
 
