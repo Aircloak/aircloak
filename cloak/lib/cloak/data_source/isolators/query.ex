@@ -3,6 +3,7 @@ defmodule Cloak.DataSource.Isolators.Query do
 
   alias Cloak.Sql.{Parser, Compiler}
   alias Cloak.DataSource
+  alias Cloak.Query.DbEmulator
 
   # -------------------------------------------------------------------
   # API functions
@@ -37,7 +38,8 @@ defmodule Cloak.DataSource.Isolators.Query do
     """
     |> Parser.parse!()
     |> Compiler.compile_direct!(nil, data_source)
-    |> Cloak.Query.DbEmulator.select()
+    |> DbEmulator.compile()
+    |> DbEmulator.select()
     |> case do
       [[false, non_isolating_values], [true, isolating_values]] ->
         isolating_values / (isolating_values + non_isolating_values + 1)
