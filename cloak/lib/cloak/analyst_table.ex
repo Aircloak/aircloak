@@ -152,8 +152,7 @@ defmodule Cloak.AnalystTable do
             end
           )
         end
-      end,
-      force_new_connection: true
+      end
     )
   end
 

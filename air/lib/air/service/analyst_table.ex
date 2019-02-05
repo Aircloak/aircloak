@@ -81,15 +81,16 @@ defmodule Air.Service.AnalystTable do
   # -------------------------------------------------------------------
 
   defp store_table(changeset, user, data_source) do
-    with {:ok, _table} = success <- transactional_store(changeset, user, data_source) do
+    with {:ok, {table, cloak_name}} <- transactional_store(changeset, user, data_source) do
       # transactional_store stored the view on a single cloak. At this point, we're notifying all connected cloaks
       # about the change. This ensures that all the cloaks have the table stored, including those which have connected
       # during the transactional store.
       Air.Service.Cloak.channel_pids(data_source.name)
+      |> Stream.reject(&match?({_pid, %{name: ^cloak_name}}, &1))
       |> Stream.map(fn {pid, _cloak_info} -> pid end)
       |> Enum.each(&MainChannel.send_analyst_tables_to_cloak/1)
 
-      success
+      {:ok, table}
     end
   end
 
@@ -106,7 +107,7 @@ defmodule Air.Service.AnalystTable do
       # there's no guarantee that the table will be successfully stored in the cloak, so we're running this inside
       # a transaction.
       with {:ok, table} <- apply(Repo, changeset.action, [changeset]),
-           {:ok, result_info} <- store_to_cloak(table, user, data_source),
+           {:ok, {result_info, cloak_name}} <- store_to_cloak(table, user, data_source),
            # at this point we can update the table with the registration info obtaine from cloak
            result_info_changeset = Ecto.Changeset.change(table.result_info || %AnalystTable.ResultInfo{}, result_info),
            table_changeset =
@@ -114,7 +115,7 @@ defmodule Air.Service.AnalystTable do
              |> Ecto.Changeset.change()
              |> Ecto.Changeset.put_embed(:result_info, result_info_changeset),
            {:ok, table} <- Repo.update(table_changeset) do
-        table
+        {table, cloak_name}
       else
         {:error, error_changeset} ->
           # Through various transformations the error changeset does no longer
@@ -130,7 +131,18 @@ defmodule Air.Service.AnalystTable do
            DataSource.with_available_cloak(
              data_source,
              user,
-             &MainChannel.store_analyst_table(&1.channel_pid, user.id, table.name, table.sql, data_source.name)
+             fn cloak_data ->
+               with {:ok, result_info} <-
+                      MainChannel.store_analyst_table(
+                        cloak_data.channel_pid,
+                        user.id,
+                        table.name,
+                        table.sql,
+                        data_source.name
+                      ) do
+                 {:ok, {result_info, cloak_data.cloak_info.name}}
+               end
+             end
            ),
          do: {:error, add_cloak_error(table, reason)}
   end
