@@ -57,7 +57,8 @@ defmodule Cloak.AirSocket.DataSourceUpdater do
       name: data_source.name,
       tables: Enum.map(data_source.tables, &table_info(data_source, &1)),
       errors: data_source.errors,
-      database_host: data_source.parameters.hostname
+      database_host: data_source.parameters.hostname,
+      supports_analyst_tables: data_source.driver.supports_analyst_tables?()
     }
   end
 

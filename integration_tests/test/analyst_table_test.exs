@@ -8,6 +8,9 @@ defmodule IntegrationTest.AnalystTableTest do
     {:ok, user: Manager.create_air_user()}
   end
 
+  test "supports flag is passed to air and stored in database",
+    do: assert(Manager.data_source().supports_analyst_tables == true)
+
   test "successful table creation", context do
     name = unique_name()
     assert {:ok, table} = create_table(context.user, name, "select user_id, name from users")

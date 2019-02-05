@@ -18,6 +18,7 @@ defmodule Air.Schemas.DataSource do
     field(:isolated_failed, {:array, :string})
     field(:shadow_tables_failed, {:array, :string})
     field(:pending_delete, :boolean)
+    field(:supports_analyst_tables, :boolean)
 
     has_many(:queries, Query, on_delete: :delete_all)
 
