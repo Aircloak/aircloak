@@ -39,14 +39,27 @@ type CloakConfig =
     { parameters : ConnectionProperties
       tables : Map<string, CloakTable> }
 
+type BsonUpdate = BsonValue -> BsonValue
+
 let optionParser =
     ArgumentParser.Create<CLIArguments>(programName = "MongoCleanup")
 
-let update (document: BsonDocument) (key: string) (f: (BsonValue -> BsonValue)): unit =
-    if document.Contains(key) then
-        let result = document.GetValue key |> f
-        document.Remove(key)
-        document.Add(key, result) |> ignore
+let rec update' (document: BsonDocument) (keys: string list) (f: BsonUpdate) =
+    match keys with
+    | [] -> ()
+    | [key] ->
+        if document.Contains(key) then
+            let result = document.GetValue key |> f
+            document.Remove(key)
+            document.Add(key, result) |> ignore
+    | key :: rest ->
+        if document.Contains(key) then
+            let nested = document.GetValue(key).AsBsonDocument
+            update' nested rest f
+
+let update (document: BsonDocument) (key: string) (f: BsonUpdate): unit =
+    let keys = key.Split [| '.' |] |> Array.toList
+    update' document keys f
 
 let textToInteger (value: BsonValue): BsonValue =
     match System.Int64.TryParse value.AsString with
