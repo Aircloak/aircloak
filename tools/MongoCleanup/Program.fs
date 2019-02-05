@@ -102,19 +102,25 @@ let decodeAES (key: string option) (value: BsonValue): BsonValue =
         | _ -> BsonNull.Value.AsBsonValue
 
 let applyDecoder (document : BsonDocument) (decoder : Decoder) : unit =
-    for column in decoder.columns do
-        match decoder.method with
-        | "text_to_integer" -> update document column textToInteger
-        | "text_to_real" -> update document column textToReal
-        | "text_to_date" -> update document column textToDate
-        | "text_to_datetime" -> update document column textToDate
-        | "aes_cbc_128" -> update document column (decodeAES decoder.key)
-        // | "real_to_integer"
-        // | "text_to_boolean"
-        // | "real_to_boolean"
-        // | "base64"
-        // | "substring"
-        | _ -> ()
+    let applyDecoder' document decoder =
+        for column in decoder.columns do
+            match decoder.method with
+            | "text_to_integer" -> update document column textToInteger
+            | "text_to_real" -> update document column textToReal
+            | "text_to_date" -> update document column textToDate
+            | "text_to_datetime" -> update document column textToDate
+            | "aes_cbc_128" -> update document column (decodeAES decoder.key)
+            // | "real_to_integer"
+            // | "text_to_boolean"
+            // | "real_to_boolean"
+            // | "base64"
+            // | "substring"
+            | _ -> ()
+
+    try
+        applyDecoder' document decoder
+    with
+    | e -> printfn "Error %A when applying %A" e.Message decoder
 
 let applyDecoders (decoders : Decoder list) (document : BsonDocument) : unit =
     for decoder in decoders do
