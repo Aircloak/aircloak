@@ -153,7 +153,28 @@ let mongoConnString (cloakConfig : CloakConfig) : string =
         | (None, Some(pass)) -> sprintf ":%s@" pass
     sprintf "mongodb://%s%s:%i" userpass options.hostname port
 
-let project (tables: Map<string, CloakTable>) (db: IMongoDatabase) : unit =
+let project (config: Map<string, CloakTable>) (data: Map<string, ^T> when ^T :> seq<BsonDocument>): unit =
+    let easy =
+        config
+        |> Seq.filter (fun kv -> kv.Value.projection.IsSome)
+        |> Seq.filter (fun kv -> config.Item(kv.Value.projection.Value.table).userId.IsSome)
+
+    for KeyValue(table, _) in easy do
+        let {table = target; foreignKey = foreignKey; primaryKey = primaryKey} = config.Item(table).projection.Value
+
+        let userIdKey = config.Item(target).userId.Value
+
+        let userIds =
+            data.Item target
+            |> Seq.map (fun doc -> (doc.GetValue(primaryKey).ToString (), doc.GetValue(userIdKey)))
+            |> Map.ofSeq
+
+        for document in data.Item(table) do
+            if document.Contains(foreignKey) then
+                match Map.tryFind (document.GetValue(foreignKey).ToString ()) userIds with
+                | Some userId -> document.Add(userIdKey, userId) |> ignore
+                | None -> ()
+
     ()
 
 let run (options : ParseResults<CLIArguments>) : unit =
@@ -169,7 +190,7 @@ let run (options : ParseResults<CLIArguments>) : unit =
     for KeyValue(k, v) in config.tables |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders) do
         decode (data.Item k) v.decoders.Value
 
-    project config.tables db
+    project config.tables data
 
     for KeyValue(k, v) in config.tables |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders || Option.isSome kv.Value.projection) do
         writeCollection db k (data.Item k)
