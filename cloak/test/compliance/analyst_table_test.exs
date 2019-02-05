@@ -13,26 +13,26 @@ defmodule Compliance.AnalystTableTest do
       test "table can be created" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           assert {:ok, _, _} =
-                   recreate_table(1, "table1", "select user_id, height from users where age < 70", data_source)
+                   create_or_update(1, "table1", "select user_id, height from users where age < 70", data_source)
         end
       end
 
       test "same query and id produce the same db_name" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, _} = recreate_table(1, "table2", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, _} = create_or_update(1, "table2", "select user_id, height from users where age < 70", data_source)
           name = AnalystTable.table_definition(1, "table2", data_source).db_name
 
-          {:ok, _, _} = recreate_table(1, "table2", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, _} = create_or_update(1, "table2", "select user_id, height from users where age < 70", data_source)
           assert %{db_name: ^name} = AnalystTable.table_definition(1, "table2", data_source)
         end
       end
 
       test "different query leads to a different db_name" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, _} = recreate_table(1, "table3", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, _} = create_or_update(1, "table3", "select user_id, height from users where age < 70", data_source)
           name1 = AnalystTable.table_definition(1, "table3", data_source).db_name
 
-          {:ok, _, _} = recreate_table(1, "table3", "select user_id, height from users where age > 70", data_source)
+          {:ok, _, _} = create_or_update(1, "table3", "select user_id, height from users where age > 70", data_source)
           name2 = AnalystTable.table_definition(1, "table3", data_source).db_name
 
           assert name1 != name2
@@ -41,10 +41,10 @@ defmodule Compliance.AnalystTableTest do
 
       test "different id leads to a different db_name" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, _} = recreate_table(1, "table4", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, _} = create_or_update(1, "table4", "select user_id, height from users where age < 70", data_source)
           name1 = AnalystTable.table_definition(1, "table4", data_source).db_name
 
-          {:ok, _, _} = recreate_table(2, "table4", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, _} = create_or_update(2, "table4", "select user_id, height from users where age < 70", data_source)
           name2 = AnalystTable.table_definition(2, "table4", data_source).db_name
 
           assert name1 != name2
@@ -53,7 +53,7 @@ defmodule Compliance.AnalystTableTest do
 
       test "stored table contains desired rows" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, _} = recreate_table(1, "table5", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, _} = create_or_update(1, "table5", "select user_id, height from users where age < 70", data_source)
           expected = select_direct!(1, data_source, "select user_id, height from users where age < 70")
           materialized = select_direct!(1, data_source, "select user_id, height from table5")
 
@@ -63,7 +63,7 @@ defmodule Compliance.AnalystTableTest do
 
       test "analyst table can be queried" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, _} = recreate_table(1, "table6", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, _} = create_or_update(1, "table6", "select user_id, height from users where age < 70", data_source)
 
           assert_query(
             "select * from table6",
@@ -75,7 +75,7 @@ defmodule Compliance.AnalystTableTest do
 
       test "simple table definition" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, _} = recreate_table(1, "table7", "select user_id, sqrt(age), height as h from users", data_source)
+          {:ok, _, _} = create_or_update(1, "table7", "select user_id, sqrt(age), height as h from users", data_source)
 
           table_definition = AnalystTable.table_definition(1, "table7", data_source)
 
@@ -93,7 +93,7 @@ defmodule Compliance.AnalystTableTest do
 
       test "table definition in select all" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, _} = recreate_table(1, "table8", "select * from users", data_source)
+          {:ok, _, _} = create_or_update(1, "table8", "select * from users", data_source)
 
           table_definition = AnalystTable.table_definition(1, "table8", data_source)
 
@@ -106,9 +106,9 @@ defmodule Compliance.AnalystTableTest do
 
       test "analyst_tables returns all tables of the given analyst" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, _} = recreate_table(1, "table9", "select user_id, height from users where age < 70", data_source)
-          {:ok, _, _} = recreate_table(1, "table10", "select user_id, height from users where age < 70", data_source)
-          {:ok, _, _} = recreate_table(2, "table11", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, _} = create_or_update(1, "table9", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, _} = create_or_update(1, "table10", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, _} = create_or_update(2, "table11", "select user_id, height from users where age < 70", data_source)
 
           assert Enum.sort(Enum.map(AnalystTable.analyst_tables(1, data_source), & &1.name)) == ~w(table10 table9)
         end
@@ -116,7 +116,7 @@ defmodule Compliance.AnalystTableTest do
 
       test "analyst table registration" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, registration_info, _} = recreate_table(1, "table12", "select user_id from users", data_source)
+          {:ok, registration_info, _} = create_or_update(1, "table12", "select user_id from users", data_source)
           drop_table!(data_source, AnalystTable.table_definition(1, "table12", data_source).db_name)
 
           assert AnalystTable.register_tables([registration_info]) == :ok
@@ -132,10 +132,10 @@ defmodule Compliance.AnalystTableTest do
 
       test "obsolete analyst tables are dropped when tables are registered" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _info, _} = recreate_table(1, "table13", "select user_id as a from users", data_source)
-          {:ok, _info, _} = recreate_table(1, "table13", "select user_id as b from users", data_source)
-          {:ok, info1, _} = recreate_table(1, "table13", "select user_id as c from users", data_source)
-          {:ok, info2, _} = recreate_table(2, "table14", "select user_id from users", data_source)
+          {:ok, _info, _} = create_or_update(1, "table13", "select user_id as a from users", data_source)
+          {:ok, _info, _} = create_or_update(1, "table13", "select user_id as b from users", data_source)
+          {:ok, info1, _} = create_or_update(1, "table13", "select user_id as c from users", data_source)
+          {:ok, info2, _} = create_or_update(2, "table14", "select user_id from users", data_source)
 
           db_name1 = AnalystTable.table_definition(1, "table13", data_source).db_name
           db_name2 = AnalystTable.table_definition(2, "table14", data_source).db_name
@@ -147,7 +147,7 @@ defmodule Compliance.AnalystTableTest do
 
       test "failed analyst table creation" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, registration_info, _} = recreate_table(1, "table15", "select user_id from users", data_source)
+          {:ok, registration_info, _} = create_or_update(1, "table15", "select user_id from users", data_source)
           clear_analyst_tables(data_source)
 
           log =
@@ -180,7 +180,7 @@ defmodule Compliance.AnalystTableTest do
       test "pending creation" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)),
              true <- String.starts_with?(data_source.name, "postgresql") do
-          {:ok, registration_info, _} = recreate_table(1, "table16", "select user_id, name from users", data_source)
+          {:ok, registration_info, _} = create_or_update(1, "table16", "select user_id, name from users", data_source)
           clear_analyst_tables(data_source)
 
           registration_info =
@@ -204,7 +204,7 @@ defmodule Compliance.AnalystTableTest do
 
       test "columns information" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, columns} = recreate_table(1, "table17", "select user_id, height from users", data_source)
+          {:ok, _, columns} = create_or_update(1, "table17", "select user_id, height from users", data_source)
 
           assert Enum.sort_by(columns, & &1.name) == [
                    %{name: "height", type: "real", user_id: false},
@@ -218,7 +218,7 @@ defmodule Compliance.AnalystTableTest do
              true <- String.starts_with?(data_source.name, "postgresql") do
           execute!(data_source, "delete from users where user_id = -1")
 
-          {:ok, _, _} = recreate_table(1, "table18", "select user_id, height from users", data_source)
+          {:ok, _, _} = create_or_update(1, "table18", "select user_id, height from users", data_source)
 
           execute!(data_source, "insert into users(user_id) values (-1)")
 
@@ -235,11 +235,11 @@ defmodule Compliance.AnalystTableTest do
              true <- String.starts_with?(data_source.name, "postgresql") do
           execute!(data_source, "delete from users where user_id = -1")
 
-          {:ok, _, _} = recreate_table(1, "table19", "select user_id, height from users", data_source)
+          {:ok, _, _} = create_or_update(1, "table19", "select user_id, height from users", data_source)
           execute!(data_source, "insert into users(user_id) values (-1)")
 
           try do
-            {:ok, _, _} = recreate_table(1, "table19", "select user_id, height from users", data_source)
+            {:ok, _, _} = create_or_update(1, "table19", "select user_id, height from users", data_source)
 
             assert select_direct!(1, data_source, "select count(*) from table19 where user_id = -1") == [[1]]
           after
@@ -264,8 +264,8 @@ defmodule Compliance.AnalystTableTest do
     end)
   end
 
-  defp recreate_table(analyst_id, name, statement, data_source) do
-    with {:ok, registration_info, columns} <- AnalystTable.recreate(analyst_id, name, statement, data_source) do
+  defp create_or_update(analyst_id, name, statement, data_source) do
+    with {:ok, registration_info, columns} <- AnalystTable.create_or_update(analyst_id, name, statement, data_source) do
       assert soon(table_created?(analyst_id, name, data_source), :timer.seconds(5), repeat_wait_time: 10)
       {:ok, registration_info, columns}
     end

@@ -86,11 +86,11 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   def running_queries(channel_pid), do: call(channel_pid, "running_queries", nil, :timer.minutes(4))
 
   @doc "Recreates the analyst table on cloaks."
-  @spec recreate_analyst_table(pid, pos_integer, String.t(), String.t(), String.t()) ::
+  @spec create_or_update_analyst_table(pid, pos_integer, String.t(), String.t(), String.t()) ::
           {:ok, %{registration_info: String.t(), columns: described_columns}} | {:error, String.t()}
-  def recreate_analyst_table(channel_pid, analyst_id, table_name, statement, data_source_name) do
+  def create_or_update_analyst_table(channel_pid, analyst_id, table_name, statement, data_source_name) do
     payload = %{analyst_id: analyst_id, table_name: table_name, statement: statement, data_source: data_source_name}
-    call(channel_pid, "recreate_analyst_table", payload, @short_timeout)
+    call(channel_pid, "create_or_update_analyst_table", payload, @short_timeout)
   end
 
   @doc "Asynchronously sends all known analyst tables to the cloak."
