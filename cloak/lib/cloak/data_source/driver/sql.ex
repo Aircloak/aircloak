@@ -19,6 +19,7 @@ defmodule Cloak.DataSource.Driver.SQL do
     quote do
       alias Cloak.DataSource.{Driver, SqlBuilder}
       use Driver
+      require Logger
 
       @behaviour unquote(__MODULE__)
 
@@ -50,11 +51,27 @@ defmodule Cloak.DataSource.Driver.SQL do
       end
 
       @impl Driver
-      def store_analyst_table(connection, db_name, sql) do
-        if Enum.any?(analyst_tables(connection), &(&1 == db_name)) do
+      def store_analyst_table(connection, db_name, sql, recreate?) do
+        table_exists? = Enum.any?(analyst_tables(connection), &(&1 == db_name))
+
+        if table_exists? and not recreate? do
           :ok
         else
-          with {:ok, _} <- execute(connection, sql), do: :ok
+          drop_table = fn ->
+            if table_exists? do
+              Logger.info("dropping database table `#{db_name}` because it will be recreated")
+              execute(connection, "DROP TABLE #{SqlBuilder.quote_table_name(db_name)}")
+            else
+              {:ok, nil}
+            end
+          end
+
+          create_table = fn ->
+            Logger.info("creating database table `#{db_name}`")
+            execute(connection, sql)
+          end
+
+          with {:ok, _} <- drop_table.(), {:ok, _} <- create_table.(), do: :ok
         end
       end
 
