@@ -26,7 +26,8 @@ defmodule Cloak.AnalystTable do
         data_source_name: data_source.name,
         db_name: db_name,
         id_column: Cloak.Sql.Compiler.Helpers.id_column(query).name,
-        store_info: store_info
+        store_info: store_info,
+        columns: columns(query)
       }
 
       start_table_store(table)
@@ -120,13 +121,26 @@ defmodule Cloak.AnalystTable do
 
   defp start_table_store(table), do: GenServer.call(__MODULE__, {:store_table, table})
 
-  defp data_source_table(table, opts),
-    do: DataSource.Table.new(table.name, table.id_column, Map.merge(%{db_name: table.db_name}, Map.new(opts)))
+  defp data_source_table(table, opts) do
+    DataSource.Table.new(
+      table.name,
+      table.id_column,
+      Map.merge(%{db_name: table.db_name, columns: table.columns}, Map.new(opts))
+    )
+  end
+
+  defp columns(query) do
+    Enum.map(
+      Enum.zip(query.column_titles, query.columns),
+      fn {column_title, column} -> DataSource.Table.column(column_title, column.type) end
+    )
+  end
 
   defp store_table(table) do
     with {:ok, data_source} <- fetch_data_source(table),
          :ok <- store_table_to_database(data_source, table) do
-      :ok
+      Logger.info("Table `#{table.name}` created successfully")
+      update_table_definition(table, &%{&1 | status: :created})
     else
       {:error, reason} ->
         Logger.error("Error creating table: #{inspect(table)}: #{reason}")
@@ -141,17 +155,7 @@ defmodule Cloak.AnalystTable do
   defp store_table_to_database(data_source, table) do
     DataSource.Connection.execute!(
       data_source,
-      fn connection ->
-        with :ok <- data_source.driver.create_or_update_analyst_table(connection, table.db_name, table.store_info) do
-          update_table_definition(
-            table,
-            fn table_definition ->
-              [table_definition] = data_source.driver.load_tables(connection, %{table_definition | status: :created})
-              table_definition
-            end
-          )
-        end
-      end
+      &data_source.driver.create_or_update_analyst_table(&1, table.db_name, table.store_info)
     )
   end
 
@@ -179,8 +183,12 @@ defmodule Cloak.AnalystTable do
   defp decode_registration_info(registration_info) do
     registration_info
     |> Jason.decode!()
-    |> Map.take(~w(analyst name statement data_source_name db_name id_column store_info))
+    |> Map.take(~w(analyst name statement data_source_name db_name id_column store_info columns))
     |> Aircloak.atomize_keys()
+    |> update_in(
+      [:columns],
+      fn columns -> Enum.map(columns, &update_in(&1.type, fn type -> String.to_existing_atom(type) end)) end
+    )
   end
 
   defp stop_obsolete_stores(new_tables) do
