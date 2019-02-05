@@ -1,5 +1,6 @@
 <%= render "_form.html", Map.merge(assigns, %{
   view_name: @changeset.data.name,
   action_name: "Update",
+  method: :put,
   action: data_source_selectable_path(@conn, :update, @data_source.name, @kind, @changeset.data.id)
 }) %>

@@ -116,7 +116,11 @@ defmodule Air.Service.AnalystTable do
            {:ok, table} <- Repo.update(table_changeset) do
         table
       else
-        {:error, changeset} -> Repo.rollback(changeset)
+        {:error, error_changeset} ->
+          # Through various transformations the error changeset does no longer
+          # contain all the state of the original changeset. This is problematic
+          # for consumers. We have to artificially recreate it.
+          Repo.rollback(%{error_changeset | action: changeset.action, changes: changeset.changes})
       end
     end)
   end

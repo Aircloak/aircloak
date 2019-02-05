@@ -33,6 +33,52 @@ defmodule IntegrationTest.AnalystTableTest do
     assert changeset.errors[:sql] == {"Expected `from` at line 1, column 11.", []}
   end
 
+  test "create changeset error takes same shape irrespective of origin", context do
+    # Immediate failure due to missing name before the query is validated by the Cloak
+    {:error,
+     immediate_changeset = %Ecto.Changeset{
+       action: immediate_action,
+       changes: immediate_changes
+     }} = create_table(context.user, nil, "Invalid SQL")
+
+    # Rejected by the Cloak due to invalid SQL
+    {:error,
+     cloak_changeset = %Ecto.Changeset{
+       action: cloak_action,
+       changes: cloak_changes
+     }} = create_table(context.user, "tableName", "Invalid SQL")
+
+    refute immediate_changeset.valid?
+    refute cloak_changeset.valid?
+    assert immediate_action == :insert
+    assert immediate_action == cloak_action
+    assert immediate_changes == Map.drop(cloak_changes, [:name])
+  end
+
+  test "update changeset error takes same shape irrespective of origin", context do
+    {:ok, table} = create_table(context.user, "tableName", "select user_id, name from users")
+
+    # Immediate failure due to missing name before the query is validated by the Cloak
+    {:error,
+     immediate_changeset = %Ecto.Changeset{
+       action: immediate_action,
+       changes: immediate_changes
+     }} = update_table(table.id, context.user, nil, "Invalid SQL")
+
+    # Rejected by the Cloak due to invalid SQL
+    {:error,
+     cloak_changeset = %Ecto.Changeset{
+       action: cloak_action,
+       changes: cloak_changes
+     }} = update_table(table.id, context.user, "tableName", "Invalid SQL")
+
+    refute immediate_changeset.valid?
+    refute cloak_changeset.valid?
+    assert immediate_action == :update
+    assert immediate_action == cloak_action
+    assert immediate_changes == Map.drop(cloak_changes, [:name])
+  end
+
   test "duplicate name error is reported", context do
     name = unique_name()
     {:ok, _table} = create_table(context.user, name, "select user_id, name from users")
