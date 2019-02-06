@@ -62,6 +62,15 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
   def join("state_changes:all", _, socket), do: accept_join_for_admins(socket)
   def join("query:" <> _query_id, _, socket), do: accept_join_for_admins(socket)
 
+  def handle_in("delete_selectable", msg = %{"internal_id" => id, "kind" => kind}, socket) do
+    case kind do
+      "view" -> Air.Service.View.delete(id, socket.assigns.user, revalidation_timeout: :timer.seconds(5))
+      "analyst_table" -> Air.Service.AnalystTable.delete(id, socket.assigns.user)
+    end
+
+    {:noreply, socket}
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

@@ -39,35 +39,7 @@ defmodule AirWeb.ViewHelpers do
     |> Enum.reject(&(&1.internal_id == selectable_to_exclude))
     |> Enum.map(fn table ->
       if table.analyst_created do
-        additional_data = %{
-          edit_link:
-            AirWeb.Router.Helpers.data_source_selectable_path(
-              conn,
-              :edit,
-              data_source.name,
-              table.kind,
-              table.internal_id
-            ),
-          delete_html:
-            Phoenix.HTML.safe_to_string(
-              link(
-                "delete",
-                to:
-                  AirWeb.Router.Helpers.data_source_selectable_path(
-                    conn,
-                    :delete,
-                    data_source.name,
-                    table.kind,
-                    table.internal_id
-                  ),
-                method: :delete,
-                "data-confirm": "Delete #{table.id}?",
-                class: "btn btn-danger btn-xs"
-              )
-            )
-        }
-
-        Map.merge(table, additional_data)
+        table
       else
         Map.merge(table, %{kind: :table})
       end

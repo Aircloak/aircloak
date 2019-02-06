@@ -35,8 +35,8 @@ export default class SelectableInfo extends React.Component {
     this.toggleExpand = this.toggleExpand.bind(this);
     this.onFilterChange = this.onFilterChange.bind(this);
 
-    this.props.frontendSocket.joinSelectablesChannel(this.props.dataSourceName, {
-      handleEvent: (event) => console.log("Placeholder event handler")
+    this.channel = this.props.frontendSocket.joinSelectablesChannel(this.props.dataSourceName, {
+      handleEvent: (event) => this.updateSelectables(event)
     });
   }
 
@@ -83,6 +83,7 @@ export default class SelectableInfo extends React.Component {
                 filter={this.state.filter}
                 selectable={selectable}
                 selectablesEditUrlTemplate={this.props.selectablesEditUrlTemplate}
+                channel={this.channel}
                 expanded={this.expanded(selectable)}
                 onClick={this.toggleExpand(selectable)}
               />
