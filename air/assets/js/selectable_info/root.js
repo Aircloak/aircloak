@@ -2,6 +2,7 @@
 
 import React from "react";
 import _ from "lodash";
+import Channel from "phoenix";
 
 import {SelectableView} from "./selectable";
 import {NewSelectableToolbarView} from "./new_selectable_toolbar";
@@ -17,14 +18,16 @@ type Props = {
   dataSourceName: string,
   frontendSocket: FrontendSocket,
   supportsCreateTable: boolean,
-  selectableToExclude: int,
+  selectableToExclude: number,
 };
 
 export default class SelectableInfo extends React.Component {
   props: Props;
-  state: {expanded: Set<string>, filter: Filter};
+  state: {expanded: Set<string>, filter: Filter, selectables: Selectable[]};
   toggleExpand: (t: Selectable) => (() => void);
   onFilterChange: (filter: Filter) => void;
+  updateSelectables: (event: {selectables: Selectable[]}) => void;
+  channel: Channel;
 
   constructor(props: Props) {
     super(props);
@@ -40,7 +43,7 @@ export default class SelectableInfo extends React.Component {
     this.updateSelectables = this.updateSelectables.bind(this);
 
     this.channel = this.props.frontendSocket.joinSelectablesChannel(this.props.dataSourceName, {
-      handleEvent: (event) => this.updateSelectables(event)
+      handleEvent: (event) => this.updateSelectables(event),
     });
   }
 
@@ -69,7 +72,8 @@ export default class SelectableInfo extends React.Component {
   }
 
   selectables() {
-    return _.reject(this.state.selectables, (selectable) => selectable.internal_id === (this.props.selectableToExclude || "don't exclude any"));
+    return _.reject(this.state.selectables, (selectable) =>
+      selectable.internal_id === (this.props.selectableToExclude || "don't exclude any"));
   }
 
   render() {

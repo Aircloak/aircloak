@@ -11,7 +11,7 @@ import {activateTooltips} from "../tooltips";
 
 export type Selectable = {
   id: string,
-  internal_id: int,
+  internal_id: number,
   kind: string,
   columns: Column[],
   delete_html: string,
@@ -36,6 +36,7 @@ export class SelectableView extends React.Component {
   renderSelectableActionMenu: () => void;
   renderSelectableView: () => void;
   hasRenderableContent: () => boolean;
+  triggerDelete: (event: {preventDefault: () => void}) => void;
 
   constructor(props: Props) {
     super(props);
@@ -75,8 +76,8 @@ export class SelectableView extends React.Component {
       value();
   }
 
-  triggerDelete(event) {
-    if (confirm(`Do you want to permanently delete ${this.props.selectable.id}?`)) {
+  triggerDelete(event: {preventDefault: () => void}) {
+    if (confirm(`Do you want to permanently delete ${this.props.selectable.id}?`)) { // eslint-disable-line no-alert
       this.props.channel.push("delete_selectable", {
         internal_id: this.props.selectable.internal_id,
         kind: this.props.selectable.kind,
