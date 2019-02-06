@@ -49,12 +49,18 @@ defmodule Cloak.Sql.Compiler do
   end
 
   @doc "Prepares the parsed SQL query for standard (non-anonymized) execution."
-  @spec compile_standard!(Parser.parsed_query(), Query.analyst_id(), DataSource.t()) :: Query.t()
-  def compile_standard!(parsed_query, analyst_id, data_source),
+  @spec compile_standard!(
+          Parser.parsed_query(),
+          Query.analyst_id(),
+          DataSource.t(),
+          [Query.parameter()] | nil,
+          Query.view_map()
+        ) :: Query.t()
+  def compile_standard!(parsed_query, analyst_id, data_source, parameters \\ nil, views \\ %{}),
     do:
       parsed_query
       |> Compiler.Helpers.apply_top_down(&Map.put(&1, :type, :standard))
-      |> Compiler.Specification.compile(analyst_id, data_source, nil, %{})
+      |> Compiler.Specification.compile(analyst_id, data_source, parameters, views)
       |> Compiler.Normalization.prevalidation_normalizations()
       |> Compiler.Validation.verify_standard_restrictions()
       |> Compiler.Optimizer.optimize()
@@ -62,9 +68,15 @@ defmodule Cloak.Sql.Compiler do
       |> Compiler.Normalization.postvalidation_normalizations()
 
   @doc "Prepares the parsed SQL query for directly querying the data source without any processing in the cloak."
-  @spec compile_direct!(Parser.parsed_query(), Query.analyst_id(), DataSource.t()) :: Query.t()
-  def compile_direct!(parsed_query, analyst_id, data_source) do
-    compile_standard!(parsed_query, analyst_id, data_source)
+  @spec compile_direct!(
+          Parser.parsed_query(),
+          Query.analyst_id(),
+          DataSource.t(),
+          [Query.parameter()] | nil,
+          Query.view_map()
+        ) :: Query.t()
+  def compile_direct!(parsed_query, analyst_id, data_source, parameters \\ nil, views \\ %{}) do
+    compile_standard!(parsed_query, analyst_id, data_source, parameters, views)
     |> update_in([Query.Lenses.all_queries()], fn query ->
       columns =
         query.columns
@@ -76,10 +88,15 @@ defmodule Cloak.Sql.Compiler do
   end
 
   @doc "Prepares the parsed SQL query for directly querying the data source without any processing in the cloak."
-  @spec compile_direct(Parser.parsed_query(), Query.analyst_id(), DataSource.t()) ::
-          {:ok, Query.t()} | {:error, String.t()}
-  def compile_direct(parsed_query, analyst_id, data_source) do
-    {:ok, compile_direct!(parsed_query, analyst_id, data_source)}
+  @spec compile_direct(
+          Parser.parsed_query(),
+          Query.analyst_id(),
+          DataSource.t(),
+          [Query.parameter()] | nil,
+          Query.view_map()
+        ) :: {:ok, Query.t()} | {:error, String.t()}
+  def compile_direct(parsed_query, analyst_id, data_source, parameters, views) do
+    {:ok, compile_direct!(parsed_query, analyst_id, data_source, parameters, views)}
   rescue
     e in CompilationError -> {:error, CompilationError.message(e)}
   end

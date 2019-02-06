@@ -135,7 +135,9 @@ defmodule Air.Service.AnalystTable do
                user.id,
                table.name,
                table.sql,
-               data_source.name
+               data_source.name,
+               nil,
+               Air.Service.View.user_views_map(user, data_source.id)
              )
            ),
          do: {:error, add_cloak_error(table, reason)}

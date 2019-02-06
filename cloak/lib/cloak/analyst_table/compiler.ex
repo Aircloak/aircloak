@@ -1,16 +1,25 @@
 defmodule Cloak.AnalystTable.Compiler do
   @moduledoc "Compilation of analyst table query."
 
+  alias Cloak.Sql.Query
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
 
   @doc "Compiles the analyst table select statement."
-  @spec compile(String.t(), String.t(), Cloak.DataSource.t()) :: {:ok, Cloak.Sql.Query.t()} | {:error, String.t()}
-  def compile(table_name, statement, data_source) do
+  @spec compile(
+          String.t(),
+          String.t(),
+          Query.analyst_id(),
+          Cloak.DataSource.t(),
+          [Query.parameters()] | nil,
+          Query.view_map()
+        ) :: {:ok, Query.t()} | {:error, String.t()}
+  def compile(table_name, statement, analyst, data_source, parameters, views) do
     with :ok <- supports_analyst_tables?(data_source),
          :ok <- verify_table_name(table_name, data_source),
-         {:ok, query} <- compile_statement(statement, data_source),
+         {:ok, query} <- compile_statement(statement, analyst, data_source, parameters, views),
          :ok <- verify_query_type(query),
          :ok <- verify_offloading(query),
          :ok <- verify_selected_columns(query),
@@ -27,10 +36,10 @@ defmodule Cloak.AnalystTable.Compiler do
       else: {:error, "This data source doesn't support analyst tables."}
   end
 
-  defp compile_statement(statement, data_source) do
+  defp compile_statement(statement, analyst, data_source, parameters, views) do
     with {:ok, parsed_query} <- Cloak.Sql.Parser.parse(statement),
-         {:ok, query} <- Cloak.Sql.Compiler.compile_direct(parsed_query, nil, data_source),
-         do: {:ok, query |> Cloak.Sql.Query.set_emulation_flag() |> Cloak.Sql.Compiler.Anonymization.set_query_type()}
+         {:ok, query} <- Cloak.Sql.Compiler.compile_direct(parsed_query, analyst, data_source, parameters, views),
+         do: {:ok, query |> Query.set_emulation_flag() |> Cloak.Sql.Compiler.Anonymization.set_query_type()}
   end
 
   defp verify_table_name(table_name, data_source) do
