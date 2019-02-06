@@ -6,7 +6,7 @@ open FSharp.Json
 open System.Security.Cryptography
 
 type CLIArguments =
-    | [<Mandatory>] Cloak_Config of path : string
+    |  [<Mandatory>] Cloak_Config of path : string
     interface IArgParserTemplate with
         member s.Usage =
             match s with
@@ -45,10 +45,10 @@ type BsonUpdate = BsonValue -> BsonValue
 let optionParser =
     ArgumentParser.Create<CLIArguments>(programName = "MongoCleanup")
 
-let rec update' (document: BsonDocument) (keys: string list) (f: BsonUpdate) =
+let rec update' (document : BsonDocument) (keys : string list) (f : BsonUpdate) =
     match keys with
     | [] -> ()
-    | [key] ->
+    | [ key ] ->
         if document.Contains(key) then
             let result = document.GetValue key |> f
             document.Remove(key)
@@ -58,35 +58,35 @@ let rec update' (document: BsonDocument) (keys: string list) (f: BsonUpdate) =
             let nested = document.GetValue(key).AsBsonDocument
             update' nested rest f
 
-let update (document: BsonDocument) (key: string) (f: BsonUpdate): unit =
+let update (document : BsonDocument) (key : string) (f : BsonUpdate) : unit =
     let keys = key.Split [| '.' |] |> Array.toList
     update' document keys f
 
-let textToInteger (value: BsonValue): BsonValue =
+let textToInteger (value : BsonValue) : BsonValue =
     match System.Int64.TryParse value.AsString with
     | true, num -> BsonInt64(num).AsBsonValue
     | _ -> BsonNull.Value.AsBsonValue
 
-let textToReal (value: BsonValue): BsonValue =
+let textToReal (value : BsonValue) : BsonValue =
     match System.Double.TryParse value.AsString with
     | true, num -> BsonDouble(num).AsBsonValue
     | _ -> BsonNull.Value.AsBsonValue
 
-let textToDate (value: BsonValue): BsonValue =
+let textToDate (value : BsonValue) : BsonValue =
     match System.DateTime.TryParse value.AsString with
     | true, date -> BsonDateTime(date).AsBsonValue
     | _ -> BsonNull.Value.AsBsonValue
 
-let convertToBytes (value: BsonValue): byte[] =
+let convertToBytes (value : BsonValue) : byte [] =
     if value.IsBsonBinaryData
     then value.AsByteArray
     else System.Text.Encoding.ASCII.GetBytes value.AsString
 
-let decodeAES (key: string option) (value: BsonValue): BsonValue =
+let decodeAES (key : string option) (value : BsonValue) : BsonValue =
     match key with
     | None -> failwith "No key for aes_cbc_128"
     | Some key ->
-        use alg = new RijndaelManaged ()
+        use alg = new RijndaelManaged()
         alg.Key <- System.Text.Encoding.ASCII.GetBytes key
         alg.IV <- List.replicate 16 0uy |> List.toArray<byte>
 
@@ -127,17 +127,17 @@ let applyDecoders (decoders : Decoder list) (document : BsonDocument) : unit =
     for decoder in decoders do
         applyDecoder document decoder
 
-let readCollection (db: IMongoDatabase) (name: string) : System.Collections.Generic.List<BsonDocument> =
+let readCollection (db : IMongoDatabase) (name : string) : System.Collections.Generic.List<BsonDocument> =
     db.GetCollection<BsonDocument>(name).Find(fun _ -> true).ToList()
 
-let writeCollection (db: IMongoDatabase) (name: string) (documents: seq<BsonDocument>): unit =
+let writeCollection (db : IMongoDatabase) (name : string) (documents : seq<BsonDocument>) : unit =
     let collection = db.GetCollection<BsonDocument>(name)
     for document in documents do
         let field = StringFieldDefinition<BsonDocument, BsonValue>("_id")
         let filter = Builders<BsonDocument>.Filter.Eq(field, document.GetValue("_id"))
         collection.ReplaceOne(filter, document) |> ignore
 
-let decode (documents: seq<BsonDocument>) (decoders : Decoder list) : unit =
+let decode (documents : seq<BsonDocument>) (decoders : Decoder list) : unit =
     for document in documents do
         applyDecoders decoders document
 
@@ -153,27 +153,40 @@ let mongoConnString (cloakConfig : CloakConfig) : string =
         | (None, Some(pass)) -> sprintf ":%s@" pass
     sprintf "mongodb://%s%s:%i" userpass options.hostname port
 
-let project (config: Map<string, CloakTable>) (data: Map<string, ^T> when ^T :> seq<BsonDocument>): unit =
-    let easy =
+
+let project' (data : Map<string, ^T> when ^T :> seq<BsonDocument>) (config : Map<string, CloakTable>) (table : string) : Map<string, CloakTable> =
+    let tableConfig = config.Item(table)
+    let { table = target; foreignKey = foreignKey; primaryKey = primaryKey } = tableConfig.projection.Value
+    let userIdKey = config.Item(target).userId.Value
+
+    let userIds =
+        data.Item target
+        |> Seq.filter (fun doc -> doc.Contains(userIdKey))
+        |> Seq.filter (fun doc -> doc.Contains(primaryKey))
+        |> Seq.map (fun doc -> (doc.GetValue(primaryKey).ToString(), doc.GetValue(userIdKey)))
+        |> Map.ofSeq
+
+    for document in data.Item(table) do
+        if document.Contains(foreignKey) then
+            match Map.tryFind (document.GetValue(foreignKey).ToString()) userIds with
+            | Some userId -> document.Add(userIdKey, userId) |> ignore
+            | None -> ()
+
+    Map.add table { tableConfig with projection = None; userId = Some(userIdKey) } config
+
+let rec project (config : Map<string, CloakTable>) (data : Map<string, ^T> when ^T :> seq<BsonDocument>) : unit =
+    let canProject =
         config
         |> Seq.filter (fun kv -> kv.Value.projection.IsSome)
         |> Seq.filter (fun kv -> config.Item(kv.Value.projection.Value.table).userId.IsSome)
+        |> Seq.map (fun kv -> kv.Key)
 
-    for KeyValue(table, _) in easy do
-        let {table = target; foreignKey = foreignKey; primaryKey = primaryKey} = config.Item(table).projection.Value
 
-        let userIdKey = config.Item(target).userId.Value
-
-        let userIds =
-            data.Item target
-            |> Seq.map (fun doc -> (doc.GetValue(primaryKey).ToString (), doc.GetValue(userIdKey)))
-            |> Map.ofSeq
-
-        for document in data.Item(table) do
-            if document.Contains(foreignKey) then
-                match Map.tryFind (document.GetValue(foreignKey).ToString ()) userIds with
-                | Some userId -> document.Add(userIdKey, userId) |> ignore
-                | None -> ()
+    match Seq.toList canProject with
+    | [] -> ()
+    | canProject ->
+        let config = List.fold (project' data) config canProject
+        project config data
 
     ()
 
