@@ -50,6 +50,11 @@
   font-weight: bold;
 }
 
+.selectable-info .key-column {
+  word-break: break-all;
+  font-style: italic;
+}
+
 .column-filter {
   padding: 5px;
   background-color: #ccc;

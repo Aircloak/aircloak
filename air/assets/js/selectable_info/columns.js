@@ -7,17 +7,29 @@ import {Filter} from "./filter";
 export type Column = {
   name: string,
   type: string,
-  user_id: boolean,
+  key_type: string,
 };
 
 const potentiallyRenderColumnIcon = (column: Column) => {
-  if (column.user_id) {
-    return <span className="glyphicon glyphicon-user" >&nbsp;</span>;
+  if (column.key_type) {
+    const icon = column.key_type === "user_id" ? "user" : "link";
+    return <span className={`glyphicon glyphicon-${icon}`}>&nbsp;</span>;
   } else {
     return null;
   }
 };
 
+const columnClassName = (column: Column) => {
+  if (column.key_type) {
+    if (column.key_type === "user_id") {
+      return "id-column";
+    } else {
+      return "key-column";
+    }
+  } else {
+    return "name-column";
+  }
+};
 
 export const ColumnsView = (props: {filter: Filter, columns: Column[]}) =>
   <table className="table table-condensed">
@@ -36,12 +48,12 @@ export const ColumnsView = (props: {filter: Filter, columns: Column[]}) =>
               event.preventDefault();
               window.insertWordInEditor(column.name);
             }}
-            className={column.user_id ? "id-column" : "name-column"}
+            className={columnClassName(column)}
           >
             {potentiallyRenderColumnIcon(column)}
             {column.name}
           </td>
-          <td>{column.type}</td>
+          <td>{column.key_type ? `${column.key_type} (${column.type})` : column.type}</td>
         </tr>
       )}
     </tbody>
