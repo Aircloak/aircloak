@@ -1,8 +1,10 @@
+open System
 open Argu
 open MongoDB.Driver
 open MongoDB.Bson
 open System.IO
 open FSharp.Json
+open MongoDB.Bson
 open System.Security.Cryptography
 
 type CLIArguments =
@@ -62,10 +64,17 @@ let update (document : BsonDocument) (key : string) (f : BsonUpdate) : unit =
     let keys = key.Split [| '.' |] |> Array.toList
     update' document keys f
 
+let bsonNull = BsonNull.Value.AsBsonValue
+
+let safely<'T when 'T :> BsonValue> (f : unit -> 'T) : BsonValue =
+    try
+        (f()).AsBsonValue
+    with
+    | :? InvalidCastException -> bsonNull
+    | :? FormatException -> bsonNull
+
 let textToInteger (value : BsonValue) : BsonValue =
-    match System.Int64.TryParse value.AsString with
-    | true, num -> BsonInt64(num).AsBsonValue
-    | _ -> BsonNull.Value.AsBsonValue
+    safely (fun () -> value.AsString |> System.Int64.Parse |> BsonInt64)
 
 let textToReal (value : BsonValue) : BsonValue =
     match System.Double.TryParse value.AsString with
