@@ -12,7 +12,7 @@ defmodule Air.ViewHelpersTest do
     test(
       "empty list for data source without tables",
       context,
-      do: assert([] == ViewHelpers.selectables(context.conn, TestRepoHelper.create_data_source!()))
+      do: assert([] == ViewHelpers.selectables(context.user, TestRepoHelper.create_data_source!()))
     )
 
     test(
@@ -20,7 +20,7 @@ defmodule Air.ViewHelpersTest do
       context,
       do:
         assert(
-          [%{id: @table_name, analyst_created: false}] = ViewHelpers.selectables(context.conn, context.data_source)
+          [%{id: @table_name, analyst_created: false}] = ViewHelpers.selectables(context.user, context.data_source)
         )
     )
 
@@ -49,35 +49,14 @@ defmodule Air.ViewHelpersTest do
     end
   end
 
-  describe "selectables for analyst created selectables" do
-    setup [:normal_setup, :create_view]
-
-    test(
-      "filters out a selectable by internal_id",
-      context,
-      do: assert([] = only_analyst_created(context, context.view.id))
-    )
-
-    test "selectable contains edit link", context do
-      [selectable] = only_analyst_created(context)
-      assert selectable.edit_link
-    end
-
-    test "selectable contains delete html", context do
-      [selectable] = only_analyst_created(context)
-      assert selectable.delete_html
-    end
-  end
-
-  defp only_analyst_created(context, filter_name \\ nil),
+  defp only_analyst_created(context),
     do:
-      ViewHelpers.selectables(context.conn, context.data_source, filter_name)
+      ViewHelpers.selectables(context.user, context.data_source)
       |> Enum.filter(& &1.analyst_created)
 
   defp normal_setup(context) do
     group = TestRepoHelper.create_group!()
     user = TestRepoHelper.create_user!(%{groups: [group.id]})
-    conn = Map.put(build_conn(), :assigns, %{current_user: user})
 
     tables =
       Jason.encode!([
@@ -97,7 +76,6 @@ defmodule Air.ViewHelpersTest do
 
     {:ok,
      Map.merge(context, %{
-       conn: conn,
        user: user,
        data_source: data_source
      })}
