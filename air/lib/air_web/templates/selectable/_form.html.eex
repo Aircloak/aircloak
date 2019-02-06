@@ -65,7 +65,7 @@
         newViewURL: "<%= data_source_selectable_path(@conn, :new, @data_source.name, :view) %>",
         dataSourceName: "<%= @data_source.name %>",
         socketToken: "<%= AirWeb.Plug.Session.current_token(@conn) %>",
-        supportsCreateTable: true
+        supportsCreateTable: <%= @data_source.supports_analyst_tables %>
       };
 
       App.viewEditor(viewEditorProps, document.getElementById("viewEditor"));
