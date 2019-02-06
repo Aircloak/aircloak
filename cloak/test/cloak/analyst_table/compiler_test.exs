@@ -103,7 +103,7 @@ defmodule Cloak.AnalystTable.CompilerTest do
   end
 
   defp compile(table_name, statement, data_source \\ data_source()),
-    do: Compiler.compile(table_name, statement, 1, data_source)
+    do: Compiler.compile(table_name, statement, 1, data_source, nil, %{})
 
   defp data_source(), do: hd(Cloak.DataSource.all())
 

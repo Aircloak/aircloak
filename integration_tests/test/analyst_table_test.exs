@@ -144,6 +144,19 @@ defmodule IntegrationTest.AnalystTableTest do
     assert is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id))
   end
 
+  test "analyst table can reference a view", context do
+    name = unique_name()
+
+    {:ok, _} =
+      Air.Service.View.create(context.user, Manager.data_source(), "some_view", "select user_id, name from users")
+
+    {:ok, _table} = create_table(context.user, name, "select * from some_view")
+
+    assert {:ok, result} = run_query(context.user, "select * from #{name}")
+    assert result.columns == ~w(user_id name)
+    assert result.buckets == [%{"occurrences" => 100, "row" => ["*", "john"], "unreliable" => false}]
+  end
+
   defp unique_name(), do: "table_#{:erlang.unique_integer([:positive])}"
 
   defp create_table(user, name, sql) do
