@@ -30,3 +30,5 @@ npm-debug.log.*
 /assets/js/code_editor/function_completion_keywords.json
 
 config/*.local.exs
+
+.elixir_ls
