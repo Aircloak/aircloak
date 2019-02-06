@@ -205,7 +205,7 @@ defmodule Cloak.AnalystTable do
 
   defp update_ets_table(new_tables) do
     new_keys = new_tables |> Enum.map(&key/1) |> MapSet.new()
-    known_keys = :ets.match(__MODULE__, {:"$1", :_}) |> Enum.map(fn [key] -> key end) |> MapSet.new()
+    known_keys = :ets.match(__MODULE__, {:"$1", :_}) |> List.flatten() |> MapSet.new()
     obsolete_keys = MapSet.difference(known_keys, new_keys)
     Enum.each(obsolete_keys, &:ets.delete(__MODULE__, &1))
 
