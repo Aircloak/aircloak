@@ -205,6 +205,19 @@ defmodule Compliance.AnalystTableTest do
           assert soon(stored_tables(data_source) == [db_name], 5000)
         end
       end
+
+      test "table can reference another table" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          {:ok, _, _} = create_or_update(1, "table24", "select user_id, height from users", data_source)
+          {:ok, _, _} = create_or_update(1, "table25", "select * from table24", data_source)
+
+          assert_query(
+            "select * from table25",
+            [analyst_id: 1, data_sources: [data_source]],
+            %{columns: ["user_id", "height"]}
+          )
+        end
+      end
     end
   end
 

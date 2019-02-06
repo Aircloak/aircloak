@@ -16,7 +16,7 @@ defmodule Cloak.AnalystTable do
   @spec create_or_update(Query.analyst_id(), String.t(), String.t(), DataSource.t()) ::
           {:ok, registration_info :: String.t(), Query.described_columns()} | {:error, String.t()}
   def create_or_update(analyst, table_name, statement, data_source) do
-    with {:ok, query} <- Cloak.AnalystTable.Compiler.compile(table_name, statement, data_source) do
+    with {:ok, query} <- Cloak.AnalystTable.Compiler.compile(table_name, statement, analyst, data_source) do
       {db_name, store_info} = data_source.driver.prepare_analyst_table({analyst, table_name}, query)
 
       table = %{
