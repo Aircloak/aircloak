@@ -114,22 +114,6 @@ defmodule Compliance.AnalystTableTest do
         end
       end
 
-      test "analyst table registration" do
-        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, registration_info, _} = create_or_update(1, "table12", "select user_id from users", data_source)
-          drop_table!(data_source, AnalystTable.table_definition(1, "table12", data_source).db_name)
-
-          assert AnalystTable.register_tables([registration_info]) == :ok
-          assert soon(table_created?(1, "table12", data_source), :timer.seconds(5), repeat_wait_time: 10)
-
-          assert_query(
-            "select * from table12",
-            [analyst_id: 1, data_sources: [data_source]],
-            %{columns: ["user_id"]}
-          )
-        end
-      end
-
       test "obsolete analyst tables are dropped when tables are registered" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           {:ok, _info, _} = create_or_update(1, "table13", "select user_id as a from users", data_source)
@@ -142,63 +126,6 @@ defmodule Compliance.AnalystTableTest do
           :ok = AnalystTable.register_tables([info1, info2])
 
           assert soon(Enum.sort(stored_tables(data_source)) == Enum.sort([db_name1, db_name2]), 5000)
-        end
-      end
-
-      test "failed analyst table creation" do
-        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, registration_info, _} = create_or_update(1, "table15", "select user_id from users", data_source)
-          clear_analyst_tables(data_source)
-
-          log =
-            ExUnit.CaptureLog.capture_log(fn ->
-              registration_info =
-                registration_info
-                |> Jason.decode!()
-                |> put_in(["store_info"], "foo bar baz")
-                |> Jason.encode!()
-
-              AnalystTable.register_tables([registration_info])
-
-              assert soon(
-                       table_created?(1, "table15", data_source, :create_error),
-                       :timer.seconds(5),
-                       repeat_wait_time: 10
-                     )
-            end)
-
-          assert log =~ ~r/Error creating table.*table15/
-
-          assert_query(
-            "select * from table15",
-            [analyst_id: 1, data_sources: [data_source]],
-            %{error: "An error happened while creating the table `table15`."}
-          )
-        end
-      end
-
-      test "pending creation" do
-        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)),
-             true <- String.starts_with?(data_source.name, "postgresql") do
-          {:ok, registration_info, _} = create_or_update(1, "table16", "select user_id, name from users", data_source)
-          clear_analyst_tables(data_source)
-
-          registration_info =
-            registration_info
-            |> Jason.decode!()
-            |> update_in(
-              ["store_info"],
-              &String.replace(&1, ~r/AS SELECT/, "AS SELECT -1, pg_sleep(1)::text UNION SELECT")
-            )
-            |> Jason.encode!()
-
-          AnalystTable.register_tables([registration_info])
-
-          assert_query(
-            "select * from table16",
-            [analyst_id: 1, data_sources: [data_source]],
-            %{error: "The table `table16` is still being created."}
-          )
         end
       end
 
@@ -245,6 +172,37 @@ defmodule Compliance.AnalystTableTest do
           after
             execute!(data_source, "delete from users where user_id = -1")
           end
+        end
+      end
+
+      test "tables can be queried after registration" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          {:ok, table_info1, _} = create_or_update(1, "table20", "select user_id from users", data_source)
+          {:ok, table_info2, _} = create_or_update(1, "table21", "select user_id from users", data_source)
+
+          :ets.delete_all_objects(AnalystTable)
+
+          assert AnalystTable.register_tables([table_info1, table_info2]) == :ok
+          assert soon(table_created?(1, "table20", data_source), :timer.seconds(5), repeat_wait_time: 10)
+          assert soon(table_created?(1, "table21", data_source), :timer.seconds(5), repeat_wait_time: 10)
+
+          assert_query("select * from table20", [analyst_id: 1, data_sources: [data_source]], %{columns: ["user_id"]})
+          assert_query("select * from table21", [analyst_id: 1, data_sources: [data_source]], %{columns: ["user_id"]})
+        end
+      end
+
+      test "obsolete tables are deleted after registration" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          {:ok, table_info, _} = create_or_update(1, "table22", "select user_id from users", data_source)
+          {:ok, _, _} = create_or_update(1, "table23", "select user_id from users", data_source)
+
+          db_name = AnalystTable.table_definition(1, "table22", data_source).db_name
+
+          :ets.delete_all_objects(AnalystTable)
+
+          assert AnalystTable.register_tables([table_info]) == :ok
+          assert AnalystTable.table_definition(1, "table23", data_source) == nil
+          assert soon(stored_tables(data_source) == [db_name], 5000)
         end
       end
     end

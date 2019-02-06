@@ -26,7 +26,8 @@ defmodule Cloak.AnalystTable do
         data_source_name: data_source.name,
         db_name: db_name,
         id_column: Cloak.Sql.Compiler.Helpers.id_column(query).name,
-        store_info: store_info
+        store_info: store_info,
+        columns: columns(query)
       }
 
       start_table_store(table)
@@ -71,11 +72,18 @@ defmodule Cloak.AnalystTable do
   def handle_call({:sync_serialized, fun}, from, state),
     do: {:noreply, enqueue_job(state, :serialized, fn -> GenServer.reply(from, fun.()) end)}
 
-  def handle_call({:store_table, table}, _from, state), do: {:reply, :ok, enqueue_store_table(state, table, true)}
+  def handle_call({:store_table, table}, _from, state) do
+    stop_current_store(table)
+    store_table_definition(table, data_source_table(table, status: :creating))
+
+    {:reply, :ok, enqueue_job(state, store_job_id(table), table, fn -> store_table(table) end)}
+  end
 
   def handle_call({:register_tables, registration_infos}, _from, state) do
-    :ets.delete_all_objects(__MODULE__)
-    state = Enum.reduce(registration_infos, state, &register_table(&2, &1))
+    tables = Enum.map(registration_infos, &decode_registration_info/1)
+    stop_obsolete_stores(tables)
+    update_ets_table(tables)
+
     {:reply, :ok, enqueue_job(state, :serialized, &drop_unused_analyst_tables/0)}
   end
 
@@ -96,7 +104,7 @@ defmodule Cloak.AnalystTable do
   defp stop_current_store(table),
     do: if(Parent.GenServer.child?(store_job_id(table)), do: Parent.GenServer.shutdown_child(store_job_id(table)))
 
-  defp store_job_id(table), do: {:store, table.analyst, table.name, table.data_source_name}
+  defp store_job_id(table), do: {:store, Map.take(table, [:analyst, :name, :data_source_name])}
 
   defp key(table), do: {table.analyst, table.data_source_name, table.name}
 
@@ -113,21 +121,26 @@ defmodule Cloak.AnalystTable do
 
   defp start_table_store(table), do: GenServer.call(__MODULE__, {:store_table, table})
 
-  defp enqueue_store_table(state, table, recreate?) do
-    stop_current_store(table)
-
-    store_table_definition(
-      table,
-      DataSource.Table.new(table.name, table.id_column, %{db_name: table.db_name, status: :creating})
+  defp data_source_table(table, opts) do
+    DataSource.Table.new(
+      table.name,
+      table.id_column,
+      Map.merge(%{db_name: table.db_name, columns: table.columns}, Map.new(opts))
     )
-
-    enqueue_job(state, store_job_id(table), table, fn -> store_table(table, recreate?) end)
   end
 
-  defp store_table(table, recreate?) do
+  defp columns(query) do
+    Enum.map(
+      Enum.zip(query.column_titles, query.columns),
+      fn {column_title, column} -> DataSource.Table.column(column_title, column.type) end
+    )
+  end
+
+  defp store_table(table) do
     with {:ok, data_source} <- fetch_data_source(table),
-         :ok <- store_table_to_database(data_source, table, recreate?) do
-      :ok
+         :ok <- store_table_to_database(data_source, table) do
+      Logger.info("Table `#{table.name}` created successfully")
+      update_table_definition(table, &%{&1 | status: :created})
     else
       {:error, reason} ->
         Logger.error("Error creating table: #{inspect(table)}: #{reason}")
@@ -139,20 +152,10 @@ defmodule Cloak.AnalystTable do
     with :error <- DataSource.fetch(table.data_source_name), do: {:error, "data source not found"}
   end
 
-  defp store_table_to_database(data_source, table, recreate?) do
+  defp store_table_to_database(data_source, table) do
     DataSource.Connection.execute!(
       data_source,
-      fn connection ->
-        with :ok <- data_source.driver.store_analyst_table(connection, table.db_name, table.store_info, recreate?) do
-          update_table_definition(
-            table,
-            fn table_definition ->
-              [table_definition] = data_source.driver.load_tables(connection, %{table_definition | status: :created})
-              table_definition
-            end
-          )
-        end
-      end
+      &data_source.driver.create_or_update_analyst_table(&1, table.db_name, table.store_info)
     )
   end
 
@@ -177,17 +180,44 @@ defmodule Cloak.AnalystTable do
 
   defp registration_info(table), do: Jason.encode!(table)
 
-  defp register_table(state, registration_info) do
-    table =
-      registration_info
-      |> Jason.decode!()
-      |> Map.take(~w(analyst name statement data_source_name db_name id_column store_info))
-      |> Aircloak.atomize_keys()
+  defp decode_registration_info(registration_info) do
+    registration_info
+    |> Jason.decode!()
+    |> Map.take(~w(analyst name statement data_source_name db_name id_column store_info columns))
+    |> Aircloak.atomize_keys()
+    |> update_in(
+      [:columns],
+      fn columns -> Enum.map(columns, &update_in(&1.type, fn type -> String.to_existing_atom(type) end)) end
+    )
+  end
 
-    case Cloak.DataSource.fetch(table.data_source_name) do
-      {:ok, _} -> enqueue_store_table(state, table, false)
-      :error -> state
-    end
+  defp stop_obsolete_stores(new_tables) do
+    storing_tables =
+      Parent.GenServer.children()
+      |> Enum.filter(&match?({{:store, _data}, _pid, _meta}, &1))
+      |> Enum.map(fn {_id, _pid, table} -> table end)
+      |> MapSet.new()
+
+    obsolete_storing_tables = MapSet.difference(storing_tables, MapSet.new(new_tables))
+
+    Enum.each(obsolete_storing_tables, &Parent.GenServer.shutdown_child(store_job_id(&1)))
+  end
+
+  defp update_ets_table(new_tables) do
+    new_keys = new_tables |> Enum.map(&key/1) |> MapSet.new()
+    known_keys = :ets.match(__MODULE__, {:"$1", :_}) |> Enum.map(fn [key] -> key end) |> MapSet.new()
+    obsolete_keys = MapSet.difference(known_keys, new_keys)
+    Enum.each(obsolete_keys, &:ets.delete(__MODULE__, &1))
+
+    missing_tables =
+      new_tables
+      |> Enum.filter(&(not MapSet.member?(known_keys, key(&1))))
+      |> Enum.filter(&match?({:ok, _}, Cloak.DataSource.fetch(&1.data_source_name)))
+
+    Enum.each(
+      missing_tables,
+      fn table -> store_table_definition(table, data_source_table(table, status: :created)) end
+    )
   end
 
   defp enqueue_job(state, id, meta \\ nil, fun),
