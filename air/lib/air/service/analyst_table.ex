@@ -99,7 +99,7 @@ defmodule Air.Service.AnalystTable do
         Ecto.Changeset.unique_constraint(
           changeset,
           :name,
-          name: :analyst_tables_user_id_data_source_id_name_index
+          name: :user_selectables_user_id_data_source_id_name_index
         )
 
       # We need to store locally first to check for duplicate table name. However, once we stored locally,
