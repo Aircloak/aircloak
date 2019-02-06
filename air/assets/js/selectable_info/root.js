@@ -1,6 +1,7 @@
 // @flow
 
 import React from "react";
+import _ from "lodash";
 
 import {SelectableView} from "./selectable";
 import {NewSelectableToolbarView} from "./new_selectable_toolbar";
@@ -16,6 +17,7 @@ type Props = {
   dataSourceName: string,
   frontendSocket: FrontendSocket,
   supportsCreateTable: boolean,
+  selectableToExclude: int,
 };
 
 export default class SelectableInfo extends React.Component {
@@ -61,7 +63,7 @@ export default class SelectableInfo extends React.Component {
   }
 
   selectables() {
-    return this.props.selectables;
+    return _.reject(this.props.selectables, (selectable) => selectable.internal_id === (this.props.selectableToExclude || "don't exclude any"));
   }
 
   render() {
