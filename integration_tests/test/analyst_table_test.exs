@@ -160,8 +160,7 @@ defmodule IntegrationTest.AnalystTableTest do
   test "analyst table name can't be the same as a name of an existing view", context do
     name = unique_name()
 
-    {:ok, _} =
-      Air.Service.View.create(context.user, Manager.data_source(), "#{name}", "select user_id, name from users")
+    {:ok, _} = Air.Service.View.create(context.user, Manager.data_source(), name, "select user_id, name from users")
 
     assert {:error, changeset} = create_table(context.user, name, "select * from some_view")
     assert changeset.errors[:name] == {"has already been taken", []}
