@@ -218,6 +218,133 @@ defmodule Compliance.AnalystTableTest do
           )
         end
       end
+
+      test "reporting an error when querying a table which is still being created" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          AnalystTable.with_custom_store_fun(
+            fn _ -> Process.sleep(:timer.seconds(1)) end,
+            fn ->
+              {:ok, _, _} = AnalystTable.create_or_update(1, "table26", "select user_id from users", data_source)
+
+              assert_query(
+                "select * from table26",
+                [analyst_id: 1, data_sources: [data_source]],
+                %{error: "The table `table26` is still being created."}
+              )
+            end
+          )
+        end
+      end
+
+      test "reporting an error if the table creation failed" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          AnalystTable.with_custom_store_fun(
+            fn _ -> {:error, "some error"} end,
+            fn ->
+              log =
+                ExUnit.CaptureLog.capture_log(fn ->
+                  {:ok, _, _} = AnalystTable.create_or_update(1, "table27", "select user_id from users", data_source)
+
+                  assert soon(
+                           table_created?(1, "table27", data_source, :create_error),
+                           :timer.seconds(5),
+                           repeat_wait_time: 10
+                         )
+                end)
+
+              assert log =~ ~r/Error creating table.*some error/
+
+              assert_query(
+                "select * from table27",
+                [analyst_id: 1, data_sources: [data_source]],
+                %{error: "An error happened while creating the table `table27`."}
+              )
+            end
+          )
+        end
+      end
+
+      test "invoking create_or_update kills the store process for the same table" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          me = self()
+
+          AnalystTable.with_custom_store_fun(
+            fn real_store ->
+              send(me, {:create_process, self()})
+              Process.sleep(:timer.seconds(1))
+              real_store.()
+            end,
+            fn ->
+              {:ok, _, _} = AnalystTable.create_or_update(1, "table28", "select user_id from users", data_source)
+              assert_receive {:create_process, pid}
+              mref = Process.monitor(pid)
+
+              {:ok, _, _} = create_or_update(1, "table28", "select user_id from users", data_source)
+
+              assert_receive {:DOWN, ^mref, :process, ^pid, :killed}, :timer.seconds(1)
+
+              assert_query(
+                "select * from table28",
+                [analyst_id: 1, data_sources: [data_source]],
+                %{columns: ["user_id"]}
+              )
+            end
+          )
+        end
+      end
+
+      test "registration while the table is being stored" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          AnalystTable.with_custom_store_fun(
+            fn real_store ->
+              Process.sleep(:timer.seconds(1))
+              real_store.()
+            end,
+            fn ->
+              {:ok, table_info, _} =
+                AnalystTable.create_or_update(1, "table29", "select user_id from users", data_source)
+
+              assert AnalystTable.register_tables([table_info]) == :ok
+              assert soon(table_created?(1, "table29", data_source), :timer.seconds(5), repeat_wait_time: 10)
+
+              assert_query(
+                "select * from table29",
+                [analyst_id: 1, data_sources: [data_source]],
+                %{columns: ["user_id"]}
+              )
+            end
+          )
+        end
+      end
+
+      test "storing of an obsolete table is stopped during registration" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          me = self()
+
+          AnalystTable.with_custom_store_fun(
+            fn real_store ->
+              send(me, {:create_process, self()})
+              Process.sleep(:timer.seconds(1))
+              real_store.()
+            end,
+            fn ->
+              {:ok, _, _} = AnalystTable.create_or_update(1, "table30", "select user_id from users", data_source)
+
+              assert_receive {:create_process, pid}
+              mref = Process.monitor(pid)
+
+              assert AnalystTable.register_tables([]) == :ok
+              assert_receive {:DOWN, ^mref, :process, ^pid, :killed}, :timer.seconds(1)
+
+              assert soon(
+                       is_nil(AnalystTable.table_definition(1, "table30", data_source)),
+                       :timer.seconds(5),
+                       repeat_wait_time: 10
+                     )
+            end
+          )
+        end
+      end
     end
   end
 
