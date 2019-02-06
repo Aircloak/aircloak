@@ -1,7 +1,7 @@
 .PHONY: run publish publish-osx publish-linux
 
 run: reset-db
-	dotnet run --cloak-config teambank_mongo_34.json
+	dotnet run --project MongoCleanup -- --cloak-config teambank_mongo_34.json
 
 reset-db:
 	mongo teambank_konto_service --eval "printjson(db.dropDatabase())"
