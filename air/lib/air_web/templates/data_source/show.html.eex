@@ -44,6 +44,7 @@
         userId: "<%= @current_user.id %>",
         sessionId: "<%= @session_id %>",
         selectables: <%= selectables(@conn, @data_source) |> to_json() %>,
+        selectablesEditUrlTemplate: "<%= data_source_selectable_path(@conn, :edit, @data_source.name, :KIND, :INTERNAL_ID) %>",
         numberFormat: <%= to_json(@number_format) %>,
         debugModeEnabled: <%= @debug_mode_enabled %>,
         newTableURL: "<%= data_source_selectable_path(@conn, :new, @data_source.name, :analyst_table) %>",

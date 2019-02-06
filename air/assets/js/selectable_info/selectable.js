@@ -1,6 +1,7 @@
 // @flow
 
 import React from "react";
+import _ from "lodash";
 
 import {ColumnsView} from "./columns";
 import {Filter} from "./filter";
@@ -9,15 +10,16 @@ import {activateTooltips} from "../tooltips";
 
 export type Selectable = {
   id: string,
+  internal_id: int,
   kind: string,
   columns: Column[],
-  edit_link: string,
   delete_html: string,
   broken: boolean,
 };
 
 type Props = {
   selectable: Selectable,
+  selectablesEditUrlTemplate: string,
   onClick: () => void,
   expanded: boolean,
   filter: Filter,
@@ -63,6 +65,13 @@ export class SelectableView extends React.Component {
     return this.props.filter.anyColumnMatches(this.props.selectable.columns);
   }
 
+  editLinkUrl() {
+    return _.chain(this.props.selectablesEditUrlTemplate).
+      replace("KIND", this.props.selectable.kind).
+      replace("INTERNAL_ID", this.props.selectable.internal_id).
+      value();
+  }
+
   renderSelectableActionMenu() {
     if (this.pending()) {
       return null;
@@ -70,7 +79,7 @@ export class SelectableView extends React.Component {
       return (
         <span className="pull-right">
           &nbsp;
-          <a className="btn btn-xs btn-default" href={this.props.selectable.edit_link}>Edit</a>
+          <a className="btn btn-xs btn-default" href={this.editLinkUrl()}>Edit</a>
           &nbsp;
           <span
             dangerouslySetInnerHTML={{__html: this.props.selectable.delete_html}}

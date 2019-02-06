@@ -61,6 +61,7 @@
       };
       var selectableInfoProps = {
         selectables: <%= selectables(@conn, @data_source, @view_to_exclude_from_selectables) |> to_json() %>,
+        selectablesEditUrlTemplate: "<%= data_source_selectable_path(@conn, :edit, @data_source.name, :KIND, :INTERNAL_ID) %>",
         newTableURL: "<%= data_source_selectable_path(@conn, :new, @data_source.name, :analyst_table) %>",
         newViewURL: "<%= data_source_selectable_path(@conn, :new, @data_source.name, :view) %>",
         dataSourceName: "<%= @data_source.name %>",
