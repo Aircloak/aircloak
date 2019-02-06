@@ -86,7 +86,7 @@ const App = {
       case "queries": return <Queries frontendSocket={App.buildSocket(props)} {...props} />;
       case "query_show": return <SingleQuery frontendSocket={App.buildSocket(props)} {...props} />;
       case "immutable_query_show": return <ImmutableSingleQuery {...props} />;
-      case "selectable_info": return <SelectableInfo {...props} />;
+      case "selectable_info": return <SelectableInfo frontendSocket={App.buildSocket(props)} {...props} />;
       case "view_editor": return <Editor {...props} />;
       case "activity_monitor": return <ActivityMonitor frontendSocket={App.buildSocket(props)} {...props} />;
       case "number_format_example": return <NumberFormatExample {...props} />;

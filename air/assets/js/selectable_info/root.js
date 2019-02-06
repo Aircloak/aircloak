@@ -5,12 +5,15 @@ import React from "react";
 import {SelectableView} from "./selectable";
 import {NewSelectableToolbarView} from "./new_selectable_toolbar";
 import {FilterView, Filter, EmptyFilter} from "./filter";
+import {FrontendSocket} from "../frontend_socket";
 import type {Selectable} from "./selectable";
 
 type Props = {
   selectables: Selectable[],
   newTableURL: string,
   newViewURL: string,
+  dataSourceName: string,
+  frontendSocket: FrontendSocket,
   supportsCreateTable: boolean,
 };
 
@@ -30,6 +33,10 @@ export default class SelectableInfo extends React.Component {
 
     this.toggleExpand = this.toggleExpand.bind(this);
     this.onFilterChange = this.onFilterChange.bind(this);
+
+    this.props.frontendSocket.joinSelectablesChannel(this.props.dataSourceName, {
+      handleEvent: (event) => console.log("Placeholder event handler")
+    });
   }
 
   onFilterChange(filter: Filter) {

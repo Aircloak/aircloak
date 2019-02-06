@@ -52,6 +52,13 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
     end
   end
 
+  def join("selectables:" <> data_source_name, _, socket) do
+    case Air.Service.DataSource.fetch_as_user({:name, data_source_name}, socket.assigns.user) do
+      {:ok, _} -> {:ok, socket}
+      {:error, :unauthorized} -> {:error, %{reason: "Not authorized to subscribe to this data source"}}
+    end
+  end
+
   def join("state_changes:all", _, socket), do: accept_join_for_admins(socket)
   def join("query:" <> _query_id, _, socket), do: accept_join_for_admins(socket)
 

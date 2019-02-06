@@ -63,6 +63,8 @@
         selectables: <%= selectables(@conn, @data_source, @view_to_exclude_from_selectables) |> to_json() %>,
         newTableURL: "<%= data_source_selectable_path(@conn, :new, @data_source.name, :analyst_table) %>",
         newViewURL: "<%= data_source_selectable_path(@conn, :new, @data_source.name, :view) %>",
+        dataSourceName: "<%= @data_source.name %>",
+        socketToken: "<%= AirWeb.Plug.Session.current_token(@conn) %>",
         supportsCreateTable: true
       };
 
