@@ -157,6 +157,15 @@ defmodule IntegrationTest.AnalystTableTest do
     assert result.buckets == [%{"occurrences" => 100, "row" => ["*", "john"], "unreliable" => false}]
   end
 
+  test "analyst table name can't be the same as a name of an existing view", context do
+    name = unique_name()
+
+    {:ok, _} = Air.Service.View.create(context.user, Manager.data_source(), name, "select user_id, name from users")
+
+    assert {:error, changeset} = create_table(context.user, name, "select * from some_view")
+    assert changeset.errors[:name] == {"has already been taken", []}
+  end
+
   defp unique_name(), do: "table_#{:erlang.unique_integer([:positive])}"
 
   defp create_table(user, name, sql) do
