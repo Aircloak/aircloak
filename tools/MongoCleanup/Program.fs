@@ -77,6 +77,17 @@ let textToDate (value : BsonValue) : BsonValue =
     | true, date -> BsonDateTime(date).AsBsonValue
     | _ -> BsonNull.Value.AsBsonValue
 
+let realToInteger (value : BsonValue) : BsonValue =
+    BsonInt64(int64 value.AsDouble).AsBsonValue
+
+let realToBoolean (value : BsonValue) : BsonValue =
+    BsonBoolean(value.AsDouble = 1.0).AsBsonValue
+
+let textToBoolean (value : BsonValue) : BsonValue =
+    match System.Boolean.TryParse value.AsString with
+    | true, result -> BsonBoolean(result).AsBsonValue
+    | _ -> BsonNull.Value.AsBsonValue
+
 let convertToBytes (value : BsonValue) : byte [] =
     if value.IsBsonBinaryData
     then value.AsByteArray
@@ -111,9 +122,9 @@ let applyDecoder (document : BsonDocument) (decoder : Decoder) : unit =
             | "text_to_date" -> update document column textToDate
             | "text_to_datetime" -> update document column textToDate
             | "aes_cbc_128" -> update document column (decodeAES decoder.key)
-            // | "real_to_integer"
-            // | "text_to_boolean"
-            // | "real_to_boolean"
+            | "real_to_integer" -> update document column realToInteger
+            | "real_to_boolean" -> update document column realToBoolean
+            | "text_to_boolean" -> update document column textToBoolean
             // | "base64"
             // | "substring"
             | _ -> ()
