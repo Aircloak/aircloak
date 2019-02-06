@@ -32,10 +32,12 @@ export default class SelectableInfo extends React.Component {
     this.state = {
       expanded: new Set(),
       filter: new EmptyFilter(),
+      selectables: props.selectables,
     };
 
     this.toggleExpand = this.toggleExpand.bind(this);
     this.onFilterChange = this.onFilterChange.bind(this);
+    this.updateSelectables = this.updateSelectables.bind(this);
 
     this.channel = this.props.frontendSocket.joinSelectablesChannel(this.props.dataSourceName, {
       handleEvent: (event) => this.updateSelectables(event)
@@ -58,12 +60,16 @@ export default class SelectableInfo extends React.Component {
     };
   }
 
+  updateSelectables(event: {selectables: Selectable[]}) {
+    this.setState({selectables: event.selectables});
+  }
+
   expanded(selectable: Selectable) {
     return this.state.expanded.has(selectable.id);
   }
 
   selectables() {
-    return _.reject(this.props.selectables, (selectable) => selectable.internal_id === (this.props.selectableToExclude || "don't exclude any"));
+    return _.reject(this.state.selectables, (selectable) => selectable.internal_id === (this.props.selectableToExclude || "don't exclude any"));
   }
 
   render() {

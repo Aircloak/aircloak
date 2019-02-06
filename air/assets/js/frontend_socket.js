@@ -36,7 +36,7 @@ export class FrontendSocket {
   }
 
   joinSelectablesChannel(dataSourceName: string, callbacks: Callbacks) {
-    return this.joinChannel(callbacks, `selectables:${dataSourceName}`, ["change"]);
+    return this.joinChannel(callbacks, `selectables:${dataSourceName}`, ["selectables_change"]);
   }
 
   joinChannel(callbacks: Callbacks, channelName: string, eventNames: string[]) {

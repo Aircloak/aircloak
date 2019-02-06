@@ -38,6 +38,22 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
     :ok
   end
 
+  @doc """
+  Broadcasts changes to a data sources selectables for a given user.
+  This function is used when analyst generated selectables have changed.
+  """
+  @spec broadcast_analyst_selectables_change(Air.Schemas.User.t(), String.t()) :: :ok
+  def broadcast_analyst_selectables_change(user, data_source_name) do
+    AirWeb.Endpoint.broadcast_from!(
+      self(),
+      "selectables:#{data_source_name}",
+      "selectables_change",
+      %{user_id: user.id, data_source_name: data_source_name}
+    )
+
+    :ok
+  end
+
   # -------------------------------------------------------------------
   # Phoenix.Channel callback functions
   # -------------------------------------------------------------------
@@ -54,7 +70,7 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
 
   def join("selectables:" <> data_source_name, _, socket) do
     case Air.Service.DataSource.fetch_as_user({:name, data_source_name}, socket.assigns.user) do
-      {:ok, _} -> {:ok, socket}
+      {:ok, data_source} -> {:ok, assign(socket, :data_source, data_source)}
       {:error, :unauthorized} -> {:error, %{reason: "Not authorized to subscribe to this data source"}}
     end
   end
@@ -62,10 +78,33 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
   def join("state_changes:all", _, socket), do: accept_join_for_admins(socket)
   def join("query:" <> _query_id, _, socket), do: accept_join_for_admins(socket)
 
-  def handle_in("delete_selectable", msg = %{"internal_id" => id, "kind" => kind}, socket) do
+  def handle_in("delete_selectable", %{"internal_id" => id, "kind" => kind}, socket) do
+    user = socket.assigns.user
+
     case kind do
-      "view" -> Air.Service.View.delete(id, socket.assigns.user, revalidation_timeout: :timer.seconds(5))
-      "analyst_table" -> Air.Service.AnalystTable.delete(id, socket.assigns.user)
+      "view" -> Air.Service.View.delete(id, user, revalidation_timeout: :timer.seconds(5))
+      "analyst_table" -> Air.Service.AnalystTable.delete(id, user)
+    end
+
+    # We start the broadcast in a task, as the caller will not receive the broadcast being the sender.
+    # This is a hack to avoid having to implement a second API function for broadcasting changes.
+    Task.start(fn ->
+      broadcast_analyst_selectables_change(user, socket.assigns.data_source.name)
+    end)
+
+    {:noreply, socket}
+  end
+
+  intercept(["selectables_change"])
+
+  def handle_out("selectables_change", %{user_id: user_id, data_source_name: data_source_name}, socket) do
+    user = socket.assigns.user
+    data_source = socket.assigns.data_source
+
+    if user_id == user.id and data_source_name == data_source.name do
+      push(socket, "selectables_change", %{
+        selectables: AirWeb.ViewHelpers.selectables(user, data_source)
+      })
     end
 
     {:noreply, socket}

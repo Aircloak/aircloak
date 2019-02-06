@@ -40,10 +40,6 @@ export class SelectableView extends React.Component {
   constructor(props: Props) {
     super(props);
 
-    this.state = {
-      pendingDelete: false
-    };
-
     this.handleToggleClick = this.handleToggleClick.bind(this);
     this.isAnalystCreatedSelectable = this.isAnalystCreatedSelectable.bind(this);
     this.hasRenderableContent = this.hasRenderableContent.bind(this);
@@ -81,7 +77,6 @@ export class SelectableView extends React.Component {
 
   triggerDelete(event) {
     if (confirm(`Do you want to permanently delete ${this.props.selectable.id}?`)) {
-      this.setState({pendingDelete: true});
       this.props.channel.push("delete_selectable", {
         internal_id: this.props.selectable.internal_id,
         kind: this.props.selectable.kind,
@@ -120,7 +115,7 @@ export class SelectableView extends React.Component {
   }
 
   pending() {
-    return (! this.props.selectable.broken) && (this.props.selectable.columns === []) || this.state.pendingDelete;
+    return (! this.props.selectable.broken) && (this.props.selectable.columns === []);
   }
 
   renderIcon() {
