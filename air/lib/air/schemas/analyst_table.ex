@@ -2,6 +2,7 @@ defmodule Air.Schemas.AnalystTable do
   @moduledoc "Schema for analyst tables"
   use Air.Schemas.Base
   require Logger
+  require EctoEnum
 
   @type t :: %__MODULE__{
           name: String.t(),
@@ -9,10 +10,13 @@ defmodule Air.Schemas.AnalystTable do
           result_info: __MODULE__.ResultInfo.t() | nil
         }
 
+  EctoEnum.defenum(CreationStatus, :creation_status, [:pending, :succeeded, :failed])
+
   schema "analyst_tables" do
     field(:name, :string)
     field(:sql, :string)
     field(:broken, :boolean)
+    field(:creation_status, CreationStatus, default: :pending)
 
     embeds_one :result_info, ResultInfo,
       on_replace: :update,
