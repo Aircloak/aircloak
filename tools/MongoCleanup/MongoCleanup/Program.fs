@@ -88,9 +88,7 @@ let realToBoolean (value : BsonValue) : BsonValue =
     BsonBoolean(value.AsDouble = 1.0).AsBsonValue
 
 let textToBoolean (value : BsonValue) : BsonValue =
-    match System.Boolean.TryParse value.AsString with
-    | true, result -> BsonBoolean(result).AsBsonValue
-    | _ -> BsonNull.Value.AsBsonValue
+    safely (fun () -> value.AsString |> System.Boolean.Parse |> BsonBoolean)
 
 let convertToBytes (value : BsonValue) : byte [] =
     if value.IsBsonBinaryData
