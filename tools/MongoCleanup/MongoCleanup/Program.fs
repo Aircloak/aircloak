@@ -90,6 +90,9 @@ let realToBoolean (value : BsonValue) : BsonValue =
 let textToBoolean (value : BsonValue) : BsonValue =
     safely (fun () -> value.AsString |> System.Boolean.Parse |> BsonBoolean)
 
+let base64 (value : BsonValue) : BsonValue =
+    safely (fun () -> value.AsString |> System.Convert.FromBase64String |> BsonBinaryData)
+
 let convertToBytes (value : BsonValue) : byte [] =
     if value.IsBsonBinaryData
     then value.AsByteArray
@@ -127,7 +130,7 @@ let applyDecoder (document : BsonDocument) (decoder : Decoder) : unit =
             | "real_to_integer" -> update document column realToInteger
             | "real_to_boolean" -> update document column realToBoolean
             | "text_to_boolean" -> update document column textToBoolean
-            // | "base64"
+            | "base64" -> update document column base64
             // | "substring"
             | _ -> ()
 
