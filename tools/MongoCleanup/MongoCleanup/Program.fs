@@ -77,9 +77,7 @@ let textToInteger (value : BsonValue) : BsonValue =
     safely (fun () -> value.AsString |> System.Int64.Parse |> BsonInt64)
 
 let textToReal (value : BsonValue) : BsonValue =
-    match System.Double.TryParse value.AsString with
-    | true, num -> BsonDouble(num).AsBsonValue
-    | _ -> BsonNull.Value.AsBsonValue
+    safely (fun () -> value.AsString |> System.Double.Parse |> BsonDouble)
 
 let textToDate (value : BsonValue) : BsonValue =
     match System.DateTime.TryParse value.AsString with
