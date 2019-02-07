@@ -357,6 +357,11 @@ defmodule Cloak.Sql.Query do
     data_source[:max_rare_negative_conditions] || default_limit
   end
 
+  @doc "Returns the partial-aggregation limit for buckets."
+  @spec lcf_buckets_aggregation_limit(Query.t()) :: non_neg_integer()
+  def lcf_buckets_aggregation_limit(%Cloak.Sql.Query{data_source: data_source}),
+    do: data_source[:lcf_buckets_aggregation_limit] || Application.get_env(:cloak, :lcf_buckets_aggregation_limit, 3)
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
