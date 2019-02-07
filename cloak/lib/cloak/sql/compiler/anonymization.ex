@@ -102,7 +102,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
         column_titles: Enum.map(inner_columns, &Expression.title(&1)),
         group_by: Enum.map(groups, &Expression.unalias/1),
         order_by: order_by |> Enum.map(&Expression.unalias/1) |> Enum.map(&{&1, :asc, :nulls_first}),
-        having: nil,
+        having: statistics_buckets_filter(query, count_duid),
         limit: nil,
         offset: 0,
         sample_rate: nil,
@@ -208,5 +208,14 @@ defmodule Cloak.Sql.Compiler.Anonymization do
     |> Enum.take(Enum.count(uid_grouping_query.group_by))
     |> Enum.reject(& &1.user_id?)
     |> Enum.map(&column_from_synthetic_table(uid_grouping_table, Expression.title(&1)))
+  end
+
+  defp statistics_buckets_filter(query, count_duid) do
+    if Query.lcf_buckets_aggregation_limit(query) == 0 do
+      # This is an optimization in case we dont care about censored buckets at all.
+      {:comparison, count_duid, :>, Expression.constant(:integer, 1)}
+    else
+      nil
+    end
   end
 end
