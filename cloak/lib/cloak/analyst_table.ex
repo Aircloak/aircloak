@@ -109,12 +109,39 @@ defmodule Cloak.AnalystTable do
       update_table_definition(meta, &%{&1 | status: :create_error})
     end
 
+    update_air(job_id, meta, reason)
+
     {:noreply, maybe_start_job(state)}
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp update_air(:serialized, _meta, _reason), do: :ok
+
+  defp update_air({:store, _}, meta, reason) do
+    status =
+      case reason do
+        :normal -> :store_success
+        _ -> :store_error
+      end
+
+    air_update = %{
+      analyst_id: meta[:analyst],
+      analyst_table_name: meta[:name],
+      data_source_name: meta[:data_source_name],
+      status: status
+    }
+
+    Cloak.AirSocket.send_analyst_table_state_update(air_update)
+  end
+
+  defp update_air({job_class, _}, _meta, reason) do
+    Logger.warn(
+      "Unhandled analyst table job termination. " ++ "Job type: #{job_class}. Terminated with reason: #{reason}"
+    )
+  end
 
   defp stop_current_store(table),
     do: if(Parent.GenServer.child?(store_job_id(table)), do: Parent.GenServer.shutdown_child(store_job_id(table)))

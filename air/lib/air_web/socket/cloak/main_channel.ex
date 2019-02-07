@@ -261,6 +261,11 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
     {:noreply, assign(socket, :pending_calls, pending_calls)}
   end
 
+  defp handle_cloak_message("analyst_table_state_update", payload, socket) do
+    Logger.debug("Got an update on the progress of an analyst table: #{inspect(payload)}")
+    {:noreply, socket}
+  end
+
   defp handle_cloak_message(event, _payload, socket) do
     cloak_id = socket.assigns.cloak_id
     Logger.warn("unknown event #{event} from '#{cloak_id}'")
