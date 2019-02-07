@@ -5,33 +5,30 @@ open MongoDB.Bson
 open Program
 
 [<TestClass>]
-type TestTextToInteger() =
+type TestDecoders() =
 
     [<TestMethod>]
-    member this.TestWithValidInput() =
+    member this.TestWithInvalidInput() =
+        for decoder in [ textToInteger; textToReal; textToDate ] do
+            Assert.AreEqual(BsonNull.Value, BsonDouble(2.23).AsBsonValue |> decoder)
+
+    [<TestMethod>]
+    member this.TestWithInvalidFormat() =
+        for decoder in [ textToInteger; textToReal; textToDate ] do
+            Assert.AreEqual(BsonNull.Value, BsonString("bob") |> decoder)
+
+    [<TestMethod>]
+    member this.TestTextToInteger() =
         let result = BsonString("123").AsBsonValue |> textToInteger
-        Assert.AreEqual(result.AsInt64, 123L)
+        Assert.AreEqual(123L, result.AsInt64)
 
     [<TestMethod>]
-    member this.TestWithInvalidInput() =
-        Assert.AreEqual(BsonDouble(2.23).AsBsonValue |> textToInteger, BsonNull.Value)
-
-    [<TestMethod>]
-    member this.TestWithInvalidFormat() =
-        Assert.AreEqual(BsonString("bob") |> textToInteger, BsonNull.Value)
-
-[<TestClass>]
-type TestTextToReal() =
-
-    [<TestMethod>]
-    member this.TestWithValidInput() =
+    member this.TestTextToReal() =
         let result = BsonString("123.23").AsBsonValue |> textToReal
-        Assert.AreEqual(result.AsDouble, 123.23)
+        Assert.AreEqual(123.23, result.AsDouble)
 
     [<TestMethod>]
-    member this.TestWithInvalidInput() =
-        Assert.AreEqual(BsonDouble(2.23).AsBsonValue |> textToReal, BsonNull.Value)
+    member this.TestTextToDate() =
+        let result = BsonString("2018-01-01").AsBsonValue |> textToDate
+        Assert.AreEqual(System.DateTime.Parse("2018-01-01T00:00:00").ToUniversalTime(), result.ToUniversalTime())
 
-    [<TestMethod>]
-    member this.TestWithInvalidFormat() =
-        Assert.AreEqual(BsonString("bob") |> textToReal, BsonNull.Value)
