@@ -69,6 +69,23 @@ defmodule Air.Service.AnalystTableTest do
     end
   end
 
+  describe ".get_by_name/2" do
+    test "returns analyst table by name for analyst", context do
+      table = create_analyst_table(context[:ds1], context[:u1], "name")
+      {:ok, returned_table} = AnalystTable.get_by_name(context[:u1], table.name)
+      assert table.id == returned_table.id
+    end
+
+    test "returns not found when none exists for the analyst", context do
+      assert {:error, :not_found} = AnalystTable.get_by_name(context[:u1], "name")
+    end
+
+    test "returns not found when exists but belonging to other analyst", context do
+      table = create_analyst_table(context[:ds1], context[:u1], "name")
+      assert {:error, :not_found} = AnalystTable.get_by_name(context[:u2], table.name)
+    end
+  end
+
   defp create_analyst_table(data_source, user, name),
     do:
       %Air.Schemas.AnalystTable{}

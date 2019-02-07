@@ -85,6 +85,15 @@ defmodule Air.Service.AnalystTable do
   def all(user, data_source),
     do: AnalystTable |> by_user_id(user.id) |> by_data_source_id(data_source.id) |> Repo.all()
 
+  @doc "Returns an analyst table by name belonging to a given user"
+  @spec get_by_name(User.t(), String.t()) :: {:ok, AnalystTable.t()} | {:error, :not_found}
+  def get_by_name(user, name) do
+    case AnalystTable |> by_user_id(user.id) |> Repo.get_by(name: name) do
+      nil -> {:error, :not_found}
+      table -> {:ok, table}
+    end
+  end
+
   @doc "Returns the changeset representing an empty table."
   @spec new_changeset() :: Changeset.t()
   def new_changeset(), do: Ecto.Changeset.cast(%AnalystTable{}, %{}, [])
