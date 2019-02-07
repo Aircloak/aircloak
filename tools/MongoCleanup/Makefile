@@ -8,6 +8,7 @@ generate-data: elixir-deps
 	mix run data_generator.exs
 	mongoimport -d mongo_cleanup_big -c users --file=/tmp/users.json
 	mongoimport -d mongo_cleanup_big -c purchases --file=/tmp/purchases.json
+	mongoimport -d mongo_cleanup_big -c items --file=/tmp/items.json
 
 elixir-deps:
 	mix deps.get
