@@ -9,12 +9,12 @@ type TestDecoders() =
 
     [<TestMethod>]
     member this.TestWithInvalidInput() =
-        for decoder in [ textToInteger; textToReal; textToDate; realToInteger; textToBoolean ] do
+        for decoder in [ textToInteger; textToReal; textToDate; realToInteger; textToBoolean; realToBoolean ] do
             Assert.AreEqual(BsonNull.Value, BsonNull.Value |> decoder)
 
     [<TestMethod>]
     member this.TestWithInvalidFormat() =
-        for decoder in [ textToInteger; textToReal; textToDate; realToInteger; textToBoolean ] do
+        for decoder in [ textToInteger; textToReal; textToDate; realToInteger; textToBoolean; realToBoolean ] do
             Assert.AreEqual(BsonNull.Value, BsonString("bob") |> decoder)
 
     [<TestMethod>]
@@ -42,3 +42,7 @@ type TestDecoders() =
         Assert.AreEqual(BsonBoolean.True, BsonString("TRUE").AsBsonValue |> textToBoolean)
         Assert.AreEqual(BsonBoolean.False, BsonString("false").AsBsonValue |> textToBoolean)
 
+    [<TestMethod>]
+    member this.TestRealToBoolean() =
+        Assert.AreEqual(BsonBoolean.True, BsonDouble(1.0) |> realToBoolean)
+        Assert.AreEqual(BsonBoolean.False, BsonDouble(0.0) |> realToBoolean)

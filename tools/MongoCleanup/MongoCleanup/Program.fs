@@ -85,7 +85,7 @@ let realToInteger (value : BsonValue) : BsonValue =
     safely (fun () -> BsonInt64(int64 value.AsDouble))
 
 let realToBoolean (value : BsonValue) : BsonValue =
-    BsonBoolean(value.AsDouble = 1.0).AsBsonValue
+    safely (fun () -> BsonBoolean(value.AsDouble <> 0.0))
 
 let textToBoolean (value : BsonValue) : BsonValue =
     safely (fun () -> value.AsString |> System.Boolean.Parse |> BsonBoolean)
