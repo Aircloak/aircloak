@@ -1,5 +1,5 @@
 defmodule Compliance.AnalystTableTest do
-  use ComplianceCase, async: true
+  use ComplianceCase, async: false
   alias Cloak.AnalystTable
   import Cloak.Test.QueryHelpers
   import Aircloak.AssertionHelper
