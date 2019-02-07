@@ -31,6 +31,7 @@ defmodule Cloak.AnalystTable do
              parameters,
              views
            ) do
+      with {:error, reason} <- DataSource.check_analyst_tables_support(data_source), do: raise(reason)
       {db_name, store_info} = data_source.driver.prepare_analyst_table({analyst, table_name}, query)
 
       table = %{
