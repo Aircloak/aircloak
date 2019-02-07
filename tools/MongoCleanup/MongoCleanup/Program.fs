@@ -82,7 +82,7 @@ let textToDate (value : BsonValue) : BsonValue =
     safely (fun () -> System.DateTime.Parse(value.AsString) |> BsonDateTime)
 
 let realToInteger (value : BsonValue) : BsonValue =
-    BsonInt64(int64 value.AsDouble).AsBsonValue
+    safely (fun () -> BsonInt64(int64 value.AsDouble))
 
 let realToBoolean (value : BsonValue) : BsonValue =
     BsonBoolean(value.AsDouble = 1.0).AsBsonValue
