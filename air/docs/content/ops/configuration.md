@@ -429,13 +429,13 @@ The database tables that should be made available for querying are defined in th
 
 Each `table_name_x` key specifies the name the table will be available under when querying the data source through Aircloak.
 
-The `content_type` is an optional field which determines the sensitivity nature of the data in the table. It can have one of
-the following values: `personal` (default) or `non-personal`. Tables with content marked as `personal` are tables containing
-data for people or entities whose anonymity should be preserved. If any such table is included in a query, the query will be
-restricted, it will go through the anonymisation pipeline and produce anonymized results. If this field is set to
-`non-personal`, the table will be classified as not containing data requiring anonymisation. Queries over such tables are
-not subject to the anonymisation restrictions, filters and aggregations, and *no attempts will be made to anonymise the data
-the table contains!*
+The `content_type` is an optional field which determines whether the data in the table is sensitive or not. It can have one
+of the following values: `personal` (default) and `non-personal`. Tables with data about individuals or entities whose
+anonymity should be preserved must be marked with the content type `personal`. If any such tables is included in a query, the
+query will underlie the anonymization restrictions applied by Aircloak Insights and produce anonymized results. If the
+content type field is set to `non-personal`, the table will be classified as not containing data requiring anonymisation.
+Queries over such tables are not subject to the anonymization restrictions. *No attempts will be made to anonymize the data
+they contain!*
 
 The database table can be declared by either using `db_name` or as an SQL view using `query`.
 These options are mutually exclusive.
@@ -468,17 +468,19 @@ Constant columns are also dropped from the table.
 
 ##### Keys
 
-Keys are specially tagged columns that uniquely identify an entity in the database. The `user_id` key has a special meaning:
-it identifies an individual or sensitive entity, and it is the only key type that is required to be present in restricted
-and anonymizing queries. All other key types are used to safely associate additional data with a `user_id` column and are
-only checked when joining tables in restricted and anonymizing queries: when joining any two tables, at least one
-key-matching filter has to be present in the `ON` or `WHERE` clause of the query. A key-matching filter is a condition of the
-form `table1.column1 = table2.column2`, where `column1` and `column2` have the same key type.
+Entities in a dataset, whether they be persons, transactions, or products, are usually identifiable by a single column
+value. This could be a user, patient or customer id in the case of a person, a transaction id for a transaction or a product
+id for a product. We call these types of identifiers _keys_. When you configure your tables you need to mark these columns
+as keys and declare what type of entity they describe.
+
+When querying tables containing personal data it is a requirement that at least one of the tables queried contains a key of
+type `user_id`. Other tables that are part of the query need to be joined with a table containing a `user_id` key via the
+pre-configured key-relationships.
 
 The following restrictions are currently in place when configuring keys:
 
   - A column can have one key tag at the most.
-  - A `personal` table can have one `user_id` key at the most.
+  - A `personal` table can have at most one `user_id` key.
   - A `non-personal` table can't have any `user_id` keys.
 
 An example configuration file for a database containing information about customers, accounts, transactions and bought
