@@ -55,6 +55,20 @@ defmodule Air.Service.AnalystTableTest do
     end
   end
 
+  describe ".update_status" do
+    test "error on invalid status", context do
+      assert {:error, :invalid_status} == AnalystTable.update_status(context[:ds1], :invalid_state)
+    end
+
+    test "changing state is persisted", context do
+      table = create_analyst_table(context[:ds1], context[:u1], "name")
+      refute table.creation_status == :succeeded
+      assert :ok == AnalystTable.update_status(table, :succeeded)
+      reloaded_table = Repo.get_by!(Air.Schemas.AnalystTable, id: table.id)
+      assert reloaded_table.creation_status == :succeeded
+    end
+  end
+
   defp create_analyst_table(data_source, user, name),
     do:
       %Air.Schemas.AnalystTable{}

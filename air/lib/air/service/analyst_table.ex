@@ -41,6 +41,23 @@ defmodule Air.Service.AnalystTable do
     end
   end
 
+  @doc """
+  Updates the creation status for an analyst table in the air.
+  Does not contact or alter any state in the cloak.
+  """
+  @spec update_status(AnalystTable.t(), AnalystTable.CreationStatus.t()) :: :ok | {:error, :invalid_status}
+  def update_status(analyst_table, status) do
+    if status in [:pending, :succeeded, :failed] do
+      analyst_table
+      |> Ecto.Changeset.cast(%{creation_status: status}, [:creation_status])
+      |> Repo.update!()
+
+      :ok
+    else
+      {:error, :invalid_status}
+    end
+  end
+
   @doc "Deletes the analyst table."
   @spec delete(pos_integer, User.t()) :: :ok | {:error, :not_allowed}
   def delete(table_id, user) do
