@@ -609,8 +609,17 @@ defmodule Cloak.DataSource.Table do
     key_columns = Keyword.keys(keys)
 
     case key_columns -- Enum.uniq(key_columns) do
-      [] -> :ok
-      [column | _] -> raise ExecutionError, message: "Key `#{column}` in table `#{name}` has multiple types set."
+      [] ->
+        :ok
+
+      [column | _] ->
+        key_types =
+          keys
+          |> Enum.filter(fn {name, _type} -> name == column end)
+          |> Enum.map(fn {_name, type} -> "`#{type}`" end)
+          |> Aircloak.OxfordComma.join()
+
+        raise ExecutionError, message: "Column `#{column}` in table `#{name}` has multiple key types set: #{key_types}"
     end
 
     {name, %{table | keys: Enum.into(keys, %{})}}
