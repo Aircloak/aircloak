@@ -1,7 +1,16 @@
-.PHONY: run publish publish-osx publish-linux
+.PHONY: run publish publish-osx publish-linux reset elixir-deps
 
 run: reset-db
 	dotnet run --project MongoCleanup -- --cloak-config teambank_mongo_34.json
+
+generate-data: elixir-deps
+	mongo mongo_cleanup_big --eval "printjson(db.dropDatabase())"
+	mix run data_generator.exs
+	mongoimport -d mongo_cleanup_big -c users --file=/tmp/users.json
+	mongoimport -d mongo_cleanup_big -c purchases --file=/tmp/purchases.json
+
+elixir-deps:
+	mix deps.get
 
 reset-db:
 	mongo teambank_konto_service --eval "printjson(db.dropDatabase())"
