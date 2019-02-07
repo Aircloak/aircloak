@@ -29,6 +29,9 @@ type Projection =
 type Decoder =
     { method : string
       key : string option
+      from : int32 option
+      [<JsonField("for")>]
+      length : int32 option
       columns : string list }
 
 type CloakTable =
@@ -93,6 +96,9 @@ let textToBoolean (value : BsonValue) : BsonValue =
 let base64 (value : BsonValue) : BsonValue =
     safely (fun () -> value.AsString |> System.Convert.FromBase64String |> BsonBinaryData)
 
+let substring (from : int32) (length : int32) (value : BsonValue) : BsonValue =
+    safely (fun () -> value.AsString.Substring(from, length) |> BsonString)
+
 let convertToBytes (value : BsonValue) : byte [] =
     if value.IsBsonBinaryData
     then value.AsByteArray
@@ -118,6 +124,11 @@ let decodeAES (key : string option) (value : BsonValue) : BsonValue =
         with
         | _ -> BsonNull.Value.AsBsonValue
 
+let substringDecoder (decoder : Decoder) =
+    match decoder.from, decoder.length with
+    | Some(from), Some(length) -> substring from length
+    | _ -> failwith "The substring decoder requires specifying from and for"
+
 let applyDecoder (document : BsonDocument) (decoder : Decoder) : unit =
     let applyDecoder' document decoder =
         for column in decoder.columns do
@@ -131,7 +142,7 @@ let applyDecoder (document : BsonDocument) (decoder : Decoder) : unit =
             | "real_to_boolean" -> update document column realToBoolean
             | "text_to_boolean" -> update document column textToBoolean
             | "base64" -> update document column base64
-            // | "substring"
+            | "substring" -> update document column (substringDecoder decoder)
             | _ -> ()
 
     try

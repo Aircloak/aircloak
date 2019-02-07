@@ -9,12 +9,12 @@ type TestDecoders() =
 
     [<TestMethod>]
     member this.TestWithInvalidInput() =
-        for decoder in [ textToInteger; textToReal; textToDate; realToInteger; textToBoolean; realToBoolean; base64] do
+        for decoder in [ textToInteger; textToReal; textToDate; realToInteger; textToBoolean; realToBoolean; base64; substring 1 2 ] do
             Assert.AreEqual(BsonNull.Value, BsonNull.Value |> decoder)
 
     [<TestMethod>]
     member this.TestWithInvalidFormat() =
-        for decoder in [ textToInteger; textToReal; textToDate; realToInteger; textToBoolean; realToBoolean; base64] do
+        for decoder in [ textToInteger; textToReal; textToDate; realToInteger; textToBoolean; realToBoolean; base64 ] do
             Assert.AreEqual(BsonNull.Value, BsonString("bob") |> decoder)
 
     [<TestMethod>]
@@ -56,3 +56,7 @@ type TestDecoders() =
     member this.TestBase64() =
         let expected = "Hello world" |> System.Text.Encoding.UTF8.GetBytes |> BsonBinaryData
         Assert.AreEqual(expected, BsonString("SGVsbG8gd29ybGQ=").AsBsonValue |> base64)
+
+    [<TestMethod>]
+    member this.TestSubstring() =
+        Assert.AreEqual(BsonString("thing"), BsonString("a thing with more stuff").AsBsonValue |> substring 2 5)
