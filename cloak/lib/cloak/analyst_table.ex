@@ -123,8 +123,8 @@ defmodule Cloak.AnalystTable do
   defp update_air({:store, _}, meta, reason) do
     status =
       case reason do
-        :normal -> :store_success
-        _ -> :store_error
+        :normal -> :succeeded
+        _ -> :failed
       end
 
     air_update = %{

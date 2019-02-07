@@ -8,6 +8,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   require Aircloak.DeployConfig
 
   alias Air.CentralClient.Socket
+  alias Air.Service.{User, AnalystTable}
 
   @type views :: %{String.t() => String.t()}
   @type parameters :: nil | [map]
@@ -262,7 +263,19 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   end
 
   defp handle_cloak_message("analyst_table_state_update", payload, socket) do
-    Logger.debug("Got an update on the progress of an analyst table: #{inspect(payload)}")
+    Logger.debug(
+      "Got an update on the progress of an analyst table '#{payload[:analyst_table_name]}'. " ++
+        "New status: #{payload[:status]}"
+    )
+
+    user = User.load(payload[:analyst_id])
+
+    user
+    |> AnalystTable.get_by_name(payload[:analyst_table_name])
+    |> AnalystTable.update_status(payload[:status])
+
+    AirWeb.Socket.Frontend.UserChannel.broadcast_analyst_selectables_change(user, payload[:data_source_name])
+
     {:noreply, socket}
   end
 
