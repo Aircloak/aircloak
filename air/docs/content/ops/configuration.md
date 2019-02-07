@@ -412,13 +412,16 @@ It defaults to a safe value of 1 and should under most circumstances not be alte
 Setting it to 0 rejects all rare negative conditions.
 Increasing the value above the default should only be done if it has been deemed safe.
 
+### Tables
+
 The database tables that should be made available for querying are defined in the `tables` section of the cloak config. The value of the `tables` key is a JSON object that looks as follows:
 
 ```
 "tables": {
   "table_name_1": {
     "db_name" | "query": string,
-    "user_id": string
+    "content_type": "personal" | "non-personal",
+    "keys": [{"key_type_1": "column_name_1"}, ...]
   },
   "table_name_2": ...
 }
@@ -426,10 +429,13 @@ The database tables that should be made available for querying are defined in th
 
 Each `table_name_x` key specifies the name the table will be available under when querying the data source through Aircloak.
 
-The `user_id` field is the name of the column that uniquely identifies users - the people or entities whose anonymity
-should be preserved. If this field is set to `null` the table will be classified as not containing data requiring
-anonymisation. Queries over such tables are not subject to the anonymisation restrictions, filters and aggregations,
-and *no attempts will be made to anonymise the data the table contains!*
+The `content_type` is an optional field which determines the sensitivity nature of the data in the table. It can have one of
+the following values: `personal` (default) or `non-personal`. Tables with content marked as `personal` are tables containing
+data for people or entities whose anonymity should be preserved. If any such table is included in a query, the query will be
+restricted, it will go through the anonymisation pipeline and produce anonymized results. If this field is set to
+`non-personal`, the table will be classified as not containing data requiring anonymisation. Queries over such tables are
+not subject to the anonymisation restrictions, filters and aggregations, and *no attempts will be made to anonymise the data
+the table contains!*
 
 The database table can be declared by either using `db_name` or as an SQL view using `query`.
 These options are mutually exclusive.
@@ -460,7 +466,68 @@ or projected tables from the configuration file).
 If the virtual table contains columns with duplicated names, only the first one is kept and the rest are dropped.
 Constant columns are also dropped from the table.
 
-#### Referencing database tables
+##### Keys
+
+Keys are specially tagged columns that uniquely identify an entity in the database. The `user_id` key has a special meaning:
+it identifies an individual or sensitive entity, and it is the only key type that is required to be present in restricted
+and anonymizing queries. All other key types are used to safely associate additional data with a `user_id` column and are
+only checked when joining tables in restricted and anonymizing queries: when joining any two tables, at least one
+key-matching filter has to be present in the `ON` or `WHERE` clause of the query. A key-matching filter is a condition of the
+form `table1.column1 = table2.column2`, where `column1` and `column2` have the same key type.
+
+The following restrictions are currently in place when configuring keys:
+
+  - A column can have one key tag at the most.
+  - A `personal` table can have one `user_id` key at the most.
+  - A `non-personal` table can't have any `user_id` keys.
+
+An example configuration file for a database containing information about customers, accounts, transactions and bought
+products might look like this:
+
+```
+"tables": {
+  "customers": {
+    "keys": [
+      {"user_id": "id"}
+    ]
+  },
+  "accounts": {
+    "keys": [
+      {"user_id": "customer_id"},
+      {"account_id": "id"}
+    ]
+  },
+  "transactions": {
+    "keys": [
+      {"account_id": "account_id"},
+      {"product_id": "product_id"}
+    ]
+  },
+  "products": {
+    "type": "non-personal",
+    "keys": [
+      {"product_id": "id"}
+    ]
+  }
+}
+```
+
+while a valid query that accesses all tables might look like this:
+
+```SQL
+SELECT
+  customer.job,
+  AVG(transaction.price)
+FROM
+  customer
+  INNER JOIN accounts ON customer.id = accounts.customer_id
+  INNER JOIN transactions ON accounts.id = transactions.account_id
+  INNER JOIN products ON transactions.product_id = products.id
+WHERE products.type = 'car'
+GROUP BY 1
+```
+
+##### Referencing database tables
 
 Database tables are referenced when providing the `db_name` property. They can also be referenced in the query of virtual tables. The rules explained here are the same for both cases.
 
@@ -514,7 +581,7 @@ create table "UserData"(uid integer, ...)
 
 In this case, you need to provide `"UserData"` as the `db_name` property.
 
-#### Table sample rate (only for MongoDb)
+##### Table sample rate (only for MongoDb)
 
 For MongoDb databases, every collection is initially scanned to determine the collection schema. This can take a long time for larger collections, which might lead to increased cloak startup times. You can instruct the cloak to analyze only a fraction of the data in the MongoDb collection by providing the `sample_rate` option:
 
@@ -530,7 +597,7 @@ For MongoDb databases, every collection is initially scanned to determine the co
 
 Where `sample_rate` is an integer between 1 and 100, representing the percentage of data which is going to be sampled.
 
-#### Manually classifying isolating columns
+##### Manually classifying isolating columns
 
 Insights Cloak can automatically detect whether a column isolates users or not.  For large database tables this check
 can be slow and resource-intensive. An administrator may choose to manually configure whether a given column isolates
@@ -577,7 +644,7 @@ to privacy loss. It is safe to classify columns as not isolating only when sure 
 for multiple users. Please contact [support@aircloak.com](mailto:support@aircloak.com) if you need help classifying your
 data.
 
-#### Column value shadow database
+##### Column value shadow database
 
 Insights Cloak automatically maintains a cache of column values that occur frequently.
 This allows certain anonymization practises to be relaxed when doing so does not cause harm.

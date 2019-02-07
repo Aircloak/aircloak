@@ -23,9 +23,9 @@ general shape of the query looks like:
 SELECT [DISTINCT | ALL]
   field_expression [, ...]
   FROM from_expression [, ...]
-  [ WHERE where_expression [AND ...] ]
+  [ WHERE filter_expression [AND ...] ]
   [ GROUP BY column_expression | position [, ...] ]
-  [ HAVING having_expression [AND ...] ]
+  [ HAVING filter_expression [AND ...] ]
   [ ORDER BY column_name  | position [ASC | DESC] [NULLS FIRST | LAST] [, ...] [ LIMIT amount ] [ OFFSET amount ] ]
   [ SAMPLE_USERS <0..100>% ]
 
@@ -53,13 +53,13 @@ table :=
 
 join :=
   table CROSS JOIN table |
-  table { [INNER] | { LEFT | RIGHT } [OUTER] } JOIN table ON where_expression
+  table { [INNER] | { LEFT | RIGHT } [OUTER] } JOIN table ON filter_expression
 
 aggregation_function :=
   COUNT | SUM | AVG | MIN | MAX | STDDEV | VARIANCE | MEDIAN |
   COUNT_NOISE | SUM_NOISE | AVG_NOISE | STDDEV_NOISE | VARIANCE_NOISE
 
-where_expression :=
+filter_expression :=
   column_expression equality_operator (value | column_expression) |
   column_expression inequality_operator (numerical_value | datetime_value) |
   column_expression BETWEEN value AND value |
@@ -68,10 +68,6 @@ where_expression :=
   column_expression [NOT] LIKE | ILIKE string_pattern [ESCAPE escape_string] |
   column_expression [NOT] boolean_column_expression
   column_expression
-
-having_expression :=
-    column_expression comparison_operator (value | column_expression) |
-    column_expression
 
 comparison_operator :=
     equality_operator | inequality_operator
@@ -113,24 +109,24 @@ inequality_operator :=
   default handling for the underlying datasource will be used. For postgres that means that `NULL` values will be
   treated as larger than all other values. For SAP HANA, MySQL, SQL Server, and MongoDB they will be treated as smaller
   than all other values. The top-level query always defaults to treating `NULL` values as larger than other values.
-- Using a `column_expression` in place of a `where_expression` or a `having_expression` will implicitly compare the
-  value of that `column_expression` to `TRUE`. In other words: `WHERE active` is equivalent to `WHERE active = TRUE`.
+- Using a `column_expression` in place of a `filter_expression` will implicitly compare the value of that
+  `column_expression` to `TRUE`. In other words: `WHERE active` is equivalent to `WHERE active = TRUE`.
 
 
 ## Query and subquery types
 
-Aircloak Insights supports both queries over sensitive data and queries over non-sensitive data. In this context sensitive
+Aircloak Insights supports both queries over `personal` data and queries over `non-personal` data. In this context `personal`
 data is data pertaining to individual entities, as opposed to an anonymised aggregate across multiple such entities.
 
-Queries that process sensitive data are subject to various [restrictions](sql/restrictions.md), and are called restricted
+Queries that process `personal` data are subject to various [restrictions](sql/restrictions.md), and are called restricted
 queries. Restricted queries can be arbitrarily nested. The top-most restricted query anonymises the data by producing
 anonymised aggregates and filtering values that would allow an individual entity to be identified. Such a top-most query
 is called an anonymising query.
 
 An anonymising query could itself be a subquery to another query that further processes the anonymised query results or
-combines it with that of a user-less table. Such a query is called a standard query. Standard queries have the usual SQL
+combines it with that of a `non-personal` table. Such a query is called a standard query. Standard queries have the usual SQL
 validations applied to them, but do not underly the anonymisation related restrictions of the restricted queries.
-Standard queries can only refer to user-less tables or to other standard or anonymising subqueries.
+Standard queries can only refer to `non-personal` tables or to other standard or anonymising subqueries.
 
 The following is an example:
 
