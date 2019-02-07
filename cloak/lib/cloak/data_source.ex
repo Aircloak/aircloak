@@ -58,7 +58,8 @@ defmodule Cloak.DataSource do
           statistics_anonymization: boolean | nil,
           # we need to store the initial tables and errors in case we need to re-scan the data source tables later
           initial_tables: %{atom => Table.t()},
-          initial_errors: [String.t()]
+          initial_errors: [String.t()],
+          analyst_tables_enabled: boolean
         }
 
   @type num_rows :: non_neg_integer
@@ -325,7 +326,8 @@ defmodule Cloak.DataSource do
         {name, Map.put_new(table, :keys, keys)}
       end
 
-    %{data_source | tables: tables}
+    data_source = %{data_source | tables: tables}
+    Map.put(data_source, :analyst_tables_enabled, Map.get(data_source, :analyst_tables_enabled, false))
   end
 
   @doc false

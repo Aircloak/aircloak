@@ -8,5 +8,6 @@
     "database": "cloaktest1"
   },
   "tables": {
-  }
+  },
+  "analyst_tables_enabled": true
 }
