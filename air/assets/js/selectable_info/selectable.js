@@ -15,6 +15,7 @@ export type Selectable = {
   columns: Column[],
   delete_html: string,
   broken: boolean,
+  creation_status: string,
 };
 
 type Props = {
@@ -113,7 +114,7 @@ export class SelectableView extends React.Component {
   }
 
   pending() {
-    return (! this.props.selectable.broken) && (this.props.selectable.columns === []);
+    return this.props.selectable.creation_status === "pending";
   }
 
   renderIcon() {

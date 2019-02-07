@@ -448,6 +448,7 @@ defmodule Air.Service.DataSource do
         id: &1.name,
         kind: :view,
         broken: &1.broken,
+        creation_status: &1.creation_status,
         columns: Map.fetch!(&1.result_info, "columns") |> Aircloak.atomize_keys(),
         internal_id: &1.id
       }
@@ -461,8 +462,8 @@ defmodule Air.Service.DataSource do
         analyst_created: true,
         id: &1.name,
         kind: :analyst_table,
-        # we don't yet track breakage for analyst tables
-        broken: false,
+        broken: &1.broken,
+        creation_status: &1.creation_status,
         columns: &1.result_info.columns,
         internal_id: &1.id
       }

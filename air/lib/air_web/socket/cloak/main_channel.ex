@@ -8,7 +8,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   require Aircloak.DeployConfig
 
   alias Air.CentralClient.Socket
-  alias Air.Service.{User, AnalystTable}
+  alias Air.Service.{User, AnalystTable, DataSource}
 
   @type views :: %{String.t() => String.t()}
   @type parameters :: nil | [map]
@@ -263,18 +263,19 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   end
 
   defp handle_cloak_message("analyst_table_state_update", payload, socket) do
-    Logger.debug(
-      "Got an update on the progress of an analyst table '#{payload[:analyst_table_name]}'. " ++
-        "New status: #{payload[:status]}"
-    )
+    Logger.debug("Analyst table #{payload[:analyst_table_name]} has new storage status: #{payload[:status]}")
 
     user = User.load(payload[:analyst_id])
 
-    user
-    |> AnalystTable.get_by_name(payload[:analyst_table_name])
-    |> AnalystTable.update_status(payload[:status])
+    case AnalystTable.get_by_name(user, payload[:analyst_table_name]) do
+      {:ok, analyst_table} ->
+        AnalystTable.update_status(analyst_table, payload[:status])
+        {:ok, data_source} = DataSource.fetch_as_user({:name, payload[:data_source_name]}, user)
+        AirWeb.Socket.Frontend.UserChannel.broadcast_analyst_selectables_change(user, data_source)
 
-    AirWeb.Socket.Frontend.UserChannel.broadcast_analyst_selectables_change(user, payload[:data_source_name])
+      {:error, reason} ->
+        Logger.warn("Did not update analyst table status for reason: #{reason}")
+    end
 
     {:noreply, socket}
   end
