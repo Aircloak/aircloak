@@ -12,6 +12,7 @@ defmodule Air.Schemas.AnalystTable do
   schema "analyst_tables" do
     field(:name, :string)
     field(:sql, :string)
+    field(:broken, :boolean)
 
     embeds_one :result_info, ResultInfo,
       on_replace: :update,
