@@ -431,7 +431,7 @@ Each `table_name_x` key specifies the name the table will be available under whe
 
 The `content_type` is an optional field which determines whether the data in the table is sensitive or not. It can have one
 of the following values: `personal` (default) and `non-personal`. Tables with data about individuals or entities whose
-anonymity should be preserved must be marked with the content type `personal`. If any such tables is included in a query, the
+anonymity should be preserved must be marked with the content type `personal`. If any such table is included in a query, the
 query will underlie the anonymization restrictions applied by Aircloak Insights and produce anonymized results. If the
 content type field is set to `non-personal`, the table will be classified as not containing data requiring anonymisation.
 Queries over such tables are not subject to the anonymization restrictions. *No attempts will be made to anonymize the data
