@@ -87,6 +87,11 @@ defmodule Cloak.DataSource.Table do
   @spec map_tables(Map.t()) :: Map.t()
   def map_tables(data_source) do
     %{data_source | tables: data_source.tables |> Enum.map(&map_table/1) |> Enum.into(%{})}
+  rescue
+    error in ExecutionError ->
+      reason = Exception.message(error)
+      # credo:disable-for-next-line Credo.Check.Warning.RaiseInsideRescue
+      raise ExecutionError, message: "Error in configured tables for data source `#{data_source.name}`: #{reason}"
   end
 
   # -------------------------------------------------------------------
@@ -569,8 +574,8 @@ defmodule Cloak.DataSource.Table do
   defp map_table({name, table}) do
     {name, table}
     |> map_isolators()
-    |> map_content_type()
     |> map_keys()
+    |> map_content_type()
   end
 
   def map_isolators({name, %{isolating_columns: _} = table}),
@@ -578,10 +583,20 @@ defmodule Cloak.DataSource.Table do
 
   def map_isolators({name, table}), do: {name, table}
 
-  defp map_content_type({name, %{user_id: _} = table}), do: {name, Map.delete(table, :content_type)}
+  defp map_content_type({name, %{user_id: _} = table}) do
+    if table[:content_type] != nil do
+      raise ExecutionError, message: "The `user_id` and `content_type` fields are both set for table `#{name}`."
+    end
+
+    {name, table}
+  end
 
   defp map_content_type({name, table}) do
     if table[:content_type] == "non-personal" do
+      if table.keys |> Map.values() |> Enum.any?(&(&1 == :user_id)) do
+        raise ExecutionError, message: "Table `#{name}` with content type `non-personal` has a `user_id` key set."
+      end
+
       {name, Map.put(table, :content_type, :public)}
     else
       true = table[:content_type] in [nil, "personal"]
@@ -590,8 +605,15 @@ defmodule Cloak.DataSource.Table do
   end
 
   defp map_keys({name, %{keys: keys} = table}) do
-    keys = keys |> Enum.map(&map_key(&1, name)) |> Enum.into(%{})
-    {name, %{table | keys: keys}}
+    keys = Enum.map(keys, &map_key(&1, name))
+    key_columns = Keyword.keys(keys)
+
+    case key_columns -- Enum.uniq(key_columns) do
+      [] -> :ok
+      [column | _] -> raise ExecutionError, message: "Key `#{column}` in table `#{name}` has multiple types set."
+    end
+
+    {name, %{table | keys: Enum.into(keys, %{})}}
   end
 
   defp map_keys({name, table}), do: {name, table}

@@ -321,7 +321,7 @@ defmodule Cloak.DataSource do
             do: [table.projection.foreign_key],
             else: []
 
-        keys = Enum.map(primary_keys ++ foreign_keys, &%{projection_key: &1})
+        keys = Enum.map(primary_keys ++ foreign_keys, &%{projection_key: &1}) |> Enum.uniq()
         {name, Map.put_new(table, :keys, keys)}
       end
 
