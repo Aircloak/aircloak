@@ -17,8 +17,7 @@ defmodule Cloak.AnalystTable.Compiler do
           Query.view_map()
         ) :: {:ok, Query.t()} | {:error, String.t()}
   def compile(table_name, statement, analyst, data_source, parameters, views) do
-    with :ok <- supports_analyst_tables?(data_source),
-         :ok <- verify_table_name(table_name, data_source),
+    with :ok <- verify_table_name(table_name, data_source),
          {:ok, query} <- compile_statement(statement, analyst, data_source, parameters, views),
          :ok <- verify_query_type(query),
          :ok <- verify_offloading(query),
@@ -29,12 +28,6 @@ defmodule Cloak.AnalystTable.Compiler do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp supports_analyst_tables?(data_source) do
-    if data_source.driver.supports_analyst_tables?(),
-      do: :ok,
-      else: {:error, "This data source doesn't support analyst tables."}
-  end
 
   defp compile_statement(statement, analyst, data_source, parameters, views) do
     with {:ok, parsed_query} <- Cloak.Sql.Parser.parse(statement),

@@ -31,7 +31,7 @@ defmodule Cloak.AnalystTable do
              parameters,
              views
            ) do
-      unless data_source.analyst_tables_enabled, do: raise("analyst tables are not enabled on this data source")
+      with {:error, reason} <- DataSource.check_analyst_tables_support(data_source), do: raise(reason)
       {db_name, store_info} = data_source.driver.prepare_analyst_table({analyst, table_name}, query)
 
       table = %{

@@ -203,6 +203,27 @@ defmodule Cloak.DataSource do
     :ok
   end
 
+  @doc "Returns true if analyst tables are supported and enabled on the given data source."
+  @spec analyst_tables_supported?(t) :: boolean
+  def analyst_tables_supported?(data_source) do
+    check_analyst_tables_support(data_source) == :ok
+  end
+
+  @doc "Verifies if analyst tables are supported and enabled on the given data source."
+  @spec check_analyst_tables_support(t) :: :ok | {:error, String.t()}
+  def check_analyst_tables_support(data_source) do
+    cond do
+      not data_source.driver.supports_analyst_tables?() ->
+        {:error, "analyst tables are not supported on this data source."}
+
+      not data_source.analyst_tables_enabled ->
+        {:error, "analyst tables are not enabled on this data source"}
+
+      true ->
+        :ok
+    end
+  end
+
   # -------------------------------------------------------------------
   # Callbacks
   # -------------------------------------------------------------------
