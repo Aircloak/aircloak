@@ -30,6 +30,20 @@ defmodule Cloak.Sql.FixAlign.Test do
         assert even_power_of_10?(size) || even_power_of_10?(size / 2) || even_power_of_10?(size / 5)
       end
     end
+
+    property "small change in input results in either no change or a big change in output for #{interval_type}" do
+      check all {left, right} <- interval(unquote(interval_type)),
+                delta_left <- float(min: -0.01, max: 0.01),
+                delta_right <- float(min: -0.01, max: 0.01) do
+        {output1_left, output1_right} = FixAlign.align_interval({left, right})
+        perturbed = [left * (1 + delta_left), right * (1 + delta_right)] |> Enum.sort() |> List.to_tuple()
+        {output2_left, output2_right} = FixAlign.align_interval(perturbed)
+
+        assert {output1_left, output1_right} == {output2_left, output2_right} or
+                 abs(output1_left - output2_left) > 0.3 * output1_left or
+                 abs(output1_right - output2_right) > 0.3 * output1_right
+      end
+    end
   end
 
   for interval_type <- [:int, :datetime, :date, :time] do
