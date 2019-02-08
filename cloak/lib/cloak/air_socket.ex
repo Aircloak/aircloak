@@ -283,7 +283,14 @@ defmodule Cloak.AirSocket do
   defp handle_air_call("create_or_update_analyst_table", data, from, state) do
     with {:ok, data_source} <- fetch_data_source(data.data_source),
          {:ok, registration_info, described_columns} <-
-           Cloak.AnalystTable.create_or_update(data.analyst_id, data.table_name, data.statement, data_source),
+           Cloak.AnalystTable.create_or_update(
+             data.analyst_id,
+             data.table_name,
+             data.statement,
+             data_source,
+             data.parameters,
+             data.views
+           ),
          do: respond_to_air(from, :ok, %{registration_info: registration_info, columns: described_columns}),
          else: ({:error, reason} -> respond_to_air(from, :error, reason))
 

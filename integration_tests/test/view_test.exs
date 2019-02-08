@@ -54,6 +54,13 @@ defmodule IntegrationTest.ViewTest do
     assert [%{"occurrences" => 100, "row" => ["john"]}] = result.buckets
   end
 
+  test "view name can't be the same as a name of an existing table", context do
+    name = unique_view_name()
+    {:ok, _} = Air.Service.AnalystTable.create(context.user, Manager.data_source(), name, "select * from users")
+    assert {:error, changeset} = create_view(context.user, name, "select * from users")
+    assert changeset.errors[:name] == {"has already been taken", []}
+  end
+
   defp unique_view_name(), do: "view_#{:erlang.unique_integer([:positive])}"
 
   defp create_view(user, name, sql), do: Air.Service.View.create(user, Manager.data_source(), name, sql)

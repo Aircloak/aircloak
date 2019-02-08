@@ -13,10 +13,24 @@ defmodule Cloak.AnalystTable do
   # -------------------------------------------------------------------
 
   @doc "Creates or updates the analyst table in the database."
-  @spec create_or_update(Query.analyst_id(), String.t(), String.t(), DataSource.t()) ::
-          {:ok, registration_info :: String.t(), Query.described_columns()} | {:error, String.t()}
-  def create_or_update(analyst, table_name, statement, data_source) do
-    with {:ok, query} <- Cloak.AnalystTable.Compiler.compile(table_name, statement, data_source) do
+  @spec create_or_update(
+          Query.analyst_id(),
+          String.t(),
+          String.t(),
+          DataSource.t(),
+          [Query.parameter()] | nil,
+          Query.view_map()
+        ) :: {:ok, registration_info :: String.t(), Query.described_columns()} | {:error, String.t()}
+  def create_or_update(analyst, table_name, statement, data_source, parameters \\ nil, views \\ %{}) do
+    with {:ok, query} <-
+           Cloak.AnalystTable.Compiler.compile(
+             table_name,
+             statement,
+             analyst,
+             data_source,
+             parameters,
+             views
+           ) do
       {db_name, store_info} = data_source.driver.prepare_analyst_table({analyst, table_name}, query)
 
       table = %{
@@ -30,7 +44,7 @@ defmodule Cloak.AnalystTable do
         columns: columns(query)
       }
 
-      start_table_store(table)
+      GenServer.call(__MODULE__, {:store_table, table})
       {:ok, registration_info(table), Query.describe_selected(query)}
     end
   end
@@ -75,8 +89,9 @@ defmodule Cloak.AnalystTable do
   def handle_call({:store_table, table}, _from, state) do
     stop_current_store(table)
     store_table_definition(table, data_source_table(table, status: :creating))
+    store_fun = Map.get(state, :store_fun, &store_table_to_database/2)
 
-    {:reply, :ok, enqueue_job(state, store_job_id(table), table, fn -> store_table(table) end)}
+    {:reply, :ok, enqueue_job(state, store_job_id(table), table, fn -> store_table(table, store_fun) end)}
   end
 
   def handle_call({:register_tables, registration_infos}, _from, state) do
@@ -119,8 +134,6 @@ defmodule Cloak.AnalystTable do
     :ok
   end
 
-  defp start_table_store(table), do: GenServer.call(__MODULE__, {:store_table, table})
-
   defp data_source_table(table, opts) do
     DataSource.Table.new(
       table.name,
@@ -136,9 +149,9 @@ defmodule Cloak.AnalystTable do
     )
   end
 
-  defp store_table(table) do
+  defp store_table(table, store_fun) do
     with {:ok, data_source} <- fetch_data_source(table),
-         :ok <- store_table_to_database(data_source, table) do
+         :ok <- store_fun.(data_source, table) do
       Logger.info("Table `#{table.name}` created successfully")
       update_table_definition(table, &%{&1 | status: :created})
     else
@@ -205,7 +218,7 @@ defmodule Cloak.AnalystTable do
 
   defp update_ets_table(new_tables) do
     new_keys = new_tables |> Enum.map(&key/1) |> MapSet.new()
-    known_keys = :ets.match(__MODULE__, {:"$1", :_}) |> Enum.map(fn [key] -> key end) |> MapSet.new()
+    known_keys = :ets.match(__MODULE__, {:"$1", :_}) |> List.flatten() |> MapSet.new()
     obsolete_keys = MapSet.difference(known_keys, new_keys)
     Enum.each(obsolete_keys, &:ets.delete(__MODULE__, &1))
 
@@ -243,6 +256,22 @@ defmodule Cloak.AnalystTable do
 
   defp serialized_job_running?(),
     do: Parent.GenServer.children() |> Stream.map(fn {_id, _pid, type} -> type end) |> Enum.any?(&(&1 == :serialized))
+
+  # -------------------------------------------------------------------
+  # Helpers for testing
+  # -------------------------------------------------------------------
+
+  @doc false
+  def with_custom_store_fun(store_fun, fun) do
+    full_store_fun = fn data_source, table ->
+      store_fun.(fn -> store_table_to_database(data_source, table) end)
+    end
+
+    :sys.replace_state(__MODULE__, &Map.put(&1, :store_fun, full_store_fun))
+    fun.()
+  after
+    :sys.replace_state(__MODULE__, &Map.delete(&1, :store_fun))
+  end
 
   # -------------------------------------------------------------------
   # Supervision tree
