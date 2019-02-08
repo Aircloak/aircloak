@@ -1,11 +1,12 @@
 defmodule Air.Service.AnalystTable do
   @moduledoc "Service module for working with analyst tables."
 
-  alias Air.Service.DataSource
+  alias Air.Service.{DataSource, User}
   alias Air.Schemas.AnalystTable
   alias Air.Repo
   alias AirWeb.Socket.Cloak.MainChannel
   import Ecto.Query
+  use Parent.GenServer
 
   # -------------------------------------------------------------------
   # API functions
@@ -43,20 +44,20 @@ defmodule Air.Service.AnalystTable do
 
   @doc """
   Updates the creation status for an analyst table in the air.
-  Does not contact or alter any state in the cloak.
-  """
-  @spec update_status(AnalystTable.t(), AnalystTable.CreationStatus.t()) :: :ok | {:error, :invalid_status}
-  def update_status(analyst_table, status) do
-    if status in [:pending, :succeeded, :failed] do
-      analyst_table
-      |> Ecto.Changeset.cast(%{creation_status: status}, [:creation_status])
-      |> Repo.update!()
 
-      :ok
-    else
-      {:error, :invalid_status}
-    end
-  end
+  Returns immediately with an error if the status is invalid, and otherwise returns :ok.
+  The state update process happens asynchronously in the background to unblock the caller.
+  No feedback will be given with respect to whether the operation succeeded or not
+  beyond whether the desired state is an allowed one.
+  """
+  @spec update_status(non_neg_integer, String.t(), String.t(), AnalystTable.CreationStatus.t()) ::
+          :ok | {:error, :invalid_status}
+  def update_status(_user_id, _data_source_name, _table_name, status)
+      when status not in [:pending, :succeeded, :failed],
+      do: {:error, :invalid_status}
+
+  def update_status(user_id, data_source_name, table_name, status),
+    do: GenServer.cast(__MODULE__, {:set_state, user_id, data_source_name, table_name, status})
 
   @doc "Deletes the analyst table."
   @spec delete(pos_integer, User.t()) :: :ok | {:error, :not_allowed}
@@ -184,4 +185,50 @@ defmodule Air.Service.AnalystTable do
   defp by_user_id(scope, user_id), do: where(scope, [v], v.user_id == ^user_id)
 
   defp by_data_source_id(scope, data_source_id), do: where(scope, [v], v.data_source_id == ^data_source_id)
+
+  # -------------------------------------------------------------------
+  # AnalystTable Parent.GenServer callback functions
+  # -------------------------------------------------------------------
+
+  @impl GenServer
+  def init(_arg), do: {:ok, nil}
+
+  @impl GenServer
+  def handle_cast(params = {:set_state, user_id, data_source_name, table_name, desired_state}, state) do
+    Parent.GenServer.start_child(%{
+      id: params,
+      start: fn -> do_update_state(user_id, data_source_name, table_name, desired_state) end
+    })
+
+    {:noreply, state}
+  end
+
+  @impl GenServer
+  def handle_info({:EXIT, _pid, :normal}, state), do: {:noreply, state}
+
+  @impl Parent.GenServer
+  def handle_child_terminated(_, _, _pid, _reason, state), do: {:noreply, state}
+
+  # -------------------------------------------------------------------
+  # AnalystTable Parent.GenServer internal functions
+  # -------------------------------------------------------------------
+
+  defp do_update_state(user_id, data_source_name, table_name, desired_status) do
+    with {:ok, user} <- User.load(user_id),
+         {:ok, data_source} <- DataSource.fetch_as_user({:name, data_source_name}, user),
+         {:ok, analyst_table} <- get_by_name(user, table_name) do
+      analyst_table
+      |> Ecto.Changeset.cast(%{creation_status: desired_status}, [:creation_status])
+      |> Repo.update!()
+
+      AirWeb.Socket.Frontend.UserChannel.broadcast_analyst_selectables_change(user, data_source)
+    end
+  end
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def start_link(arg), do: Parent.GenServer.start_link(__MODULE__, arg, name: __MODULE__)
 end

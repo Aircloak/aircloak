@@ -43,13 +43,17 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
   This function is used when analyst generated selectables have changed.
   """
   @spec broadcast_analyst_selectables_change(Air.Schemas.User.t(), Air.Schemas.DataSource.t()) :: :ok
-  def broadcast_analyst_selectables_change(user, data_source) do
-    AirWeb.Endpoint.broadcast_from!(
-      self(),
-      "selectables:#{data_source.name}:#{user.id}",
-      "selectables_change",
-      selectable_payload(user, data_source)
-    )
+  if Mix.env() == :test do
+    def broadcast_analyst_selectables_change(_user, _data_source), do: :ignored
+  else
+    def broadcast_analyst_selectables_change(user, data_source) do
+      AirWeb.Endpoint.broadcast_from!(
+        self(),
+        "selectables:#{data_source.name}:#{user.id}",
+        "selectables_change",
+        selectable_payload(user, data_source)
+      )
+    end
   end
 
   # -------------------------------------------------------------------

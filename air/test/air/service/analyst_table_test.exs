@@ -2,6 +2,8 @@ defmodule Air.Service.AnalystTableTest do
   # because of shared mode
   use Air.SchemaCase, async: false
 
+  import Aircloak.AssertionHelper
+
   alias Air.{Service.AnalystTable, TestRepoHelper}
 
   setup do
@@ -57,15 +59,15 @@ defmodule Air.Service.AnalystTableTest do
 
   describe ".update_status" do
     test "error on invalid status", context do
-      assert {:error, :invalid_status} == AnalystTable.update_status(context[:ds1], :invalid_state)
+      assert {:error, :invalid_status} ==
+               AnalystTable.update_status(context.u1.id, context.ds1.name, "table_name", :invalid_state)
     end
 
     test "changing state is persisted", context do
       table = create_analyst_table(context[:ds1], context[:u1], "name")
       refute table.creation_status == :succeeded
-      assert :ok == AnalystTable.update_status(table, :succeeded)
-      reloaded_table = Repo.get_by!(Air.Schemas.AnalystTable, id: table.id)
-      assert reloaded_table.creation_status == :succeeded
+      assert :ok == AnalystTable.update_status(context.u1.id, context.ds1.name, table.name, :succeeded)
+      assert soon(Repo.get_by!(Air.Schemas.AnalystTable, id: table.id).creation_status == :succeeded)
     end
   end
 

@@ -65,8 +65,12 @@ defmodule Cloak.AirSocket do
 
   @doc "Sends update on the state of an analyst table to the air."
   @spec send_analyst_table_state_update(GenServer.server(), Map.t()) :: :ok | {:error, any}
-  def send_analyst_table_state_update(socket \\ __MODULE__, payload),
-    do: cast_air(socket, "main", "analyst_table_state_update", payload)
+  if Mix.env() == :test do
+    def send_analyst_table_state_update(_socket, _payload), do: :ignored
+  else
+    def send_analyst_table_state_update(socket \\ __MODULE__, payload),
+      do: cast_air(socket, "main", "analyst_table_state_update", payload)
+  end
 
   # -------------------------------------------------------------------
   # GenSocketClient callbacks
