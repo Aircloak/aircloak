@@ -9,8 +9,8 @@ defmodule Cloak.Sql.FixAlign.Test do
     property "aligned #{interval_type} interval contains both ends of input" do
       check all {x, y} <- interval(unquote(interval_type)) do
         {left, right} = FixAlign.align_interval({x, y})
-        assert left <= x
-        assert y <= right
+        assert weak_lt_eq(left, x)
+        assert weak_lt_eq(y, right)
       end
     end
 
@@ -290,4 +290,6 @@ defmodule Cloak.Sql.FixAlign.Test do
   defp width({x, y}), do: y - x
 
   defp lt_eq(%Time{} = x, %Time{} = y), do: Cloak.Time.to_integer(x) <= Cloak.Time.to_integer(y)
+
+  defp weak_lt_eq(x, y), do: x <= y or abs(x - y) < 0.0000005 * (x + y)
 end
