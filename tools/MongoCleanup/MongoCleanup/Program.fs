@@ -159,10 +159,18 @@ let readCollection (db : IMongoDatabase) (name : string) : System.Collections.Ge
 
 let writeCollection (db : IMongoDatabase) (name : string) (documents : seq<BsonDocument>) : unit =
     let collection = db.GetCollection<BsonDocument>(name)
-    for document in documents do
-        let field = StringFieldDefinition<BsonDocument, BsonValue>("_id")
-        let filter = Builders<BsonDocument>.Filter.Eq(field, document.GetValue("_id"))
-        collection.ReplaceOne(filter, document) |> ignore
+
+    let updates =
+        documents
+        |> Seq.map (fun doc ->
+            let field = StringFieldDefinition<BsonDocument, BsonValue>("_id")
+            let filter = Builders<BsonDocument>.Filter.Eq(field, doc.GetValue("_id"))
+
+            ReplaceOneModel<BsonDocument>(filter, doc)
+        )
+        |> Seq.cast
+
+    collection.BulkWrite(updates) |> ignore
 
 let decode (documents : seq<BsonDocument>) (decoders : Decoder list) : unit =
     for document in documents do
@@ -180,6 +188,7 @@ let mongoConnString (cloakConfig : CloakConfig) : string =
         | (None, Some(pass)) -> sprintf ":%s@" pass
     sprintf "mongodb://%s%s:%i" userpass options.hostname port
 
+let acUserId = "_ac_user_id"
 
 let project' (data : Map<string, ^T> when ^T :> seq<BsonDocument>) (config : Map<string, CloakTable>) (table : string) : Map<string, CloakTable> =
     let tableConfig = config.Item(table)
@@ -196,10 +205,10 @@ let project' (data : Map<string, ^T> when ^T :> seq<BsonDocument>) (config : Map
     for document in data.Item(table) do
         if document.Contains(foreignKey) then
             match Map.tryFind (document.GetValue(foreignKey).ToString()) userIds with
-            | Some userId -> document.Add(userIdKey, userId) |> ignore
+            | Some userId -> document.Add(acUserId, userId) |> ignore
             | None -> ()
 
-    Map.add table { tableConfig with projection = None; userId = Some(userIdKey) } config
+    Map.add table { tableConfig with projection = None; userId = Some(acUserId) } config
 
 let rec project (config : Map<string, CloakTable>) (data : Map<string, ^T> when ^T :> seq<BsonDocument>) : unit =
     let canProject =
@@ -208,14 +217,11 @@ let rec project (config : Map<string, CloakTable>) (data : Map<string, ^T> when 
         |> Seq.filter (fun kv -> config.Item(kv.Value.projection.Value.table).userId.IsSome)
         |> Seq.map (fun kv -> kv.Key)
 
-
     match Seq.toList canProject with
     | [] -> ()
     | canProject ->
         let config = List.fold (project' data) config canProject
         project config data
-
-    ()
 
 let run (options : ParseResults<CLIArguments>) : unit =
     use stream = new StreamReader(options.GetResult Cloak_Config)
