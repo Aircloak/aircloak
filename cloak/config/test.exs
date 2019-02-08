@@ -60,7 +60,6 @@ config :cloak, :data_source,
   connect_timeout: :timer.seconds(15),
   connection_keep_time: :timer.minutes(1)
 
-config :excheck, :number_iterations, 200
 config :cloak, :sanitize_otp_errors, false
 
 config :cloak, :sap_hana,
