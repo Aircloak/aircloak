@@ -15,7 +15,7 @@ defmodule Cloak.DataSource.Isolators.Cache do
   @doc "Returns true if the given column in the given table is isolating, false otherwise."
   @spec isolates_users?(atom | pid, Cloak.DataSource.t(), String.t(), String.t()) :: boolean
   def isolates_users?(cache_ref \\ __MODULE__, data_source, table_name, column_name),
-    do: Cache.value(cache_ref, data_source, table_name, column_name)
+    do: Cache.value(cache_ref, data_source, table_name, column_name) != false
 
   @doc "Performs a cache lookup."
   @spec lookup(Cloak.DataSource.t(), String.t(), String.t()) ::
