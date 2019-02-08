@@ -5,8 +5,18 @@ defmodule Cloak.AnalystTable do
   require Logger
   alias Cloak.DataSource
   alias Cloak.Sql.Query
+  alias __MODULE__.{Compiler, Jobs}
 
-  @max_concurrent_stores 5
+  @type table :: %{
+          analyst: Query.analyst_id(),
+          name: String.t(),
+          statement: String.t(),
+          data_source_name: String.t(),
+          db_name: String.t(),
+          id_column: Cloak.Sql.Expression.t(),
+          store_info: String.t(),
+          columns: [DataSource.Table.column()]
+        }
 
   # -------------------------------------------------------------------
   # API functions
@@ -23,7 +33,7 @@ defmodule Cloak.AnalystTable do
         ) :: {:ok, registration_info :: String.t(), Query.described_columns()} | {:error, String.t()}
   def create_or_update(analyst, table_name, statement, data_source, parameters \\ nil, views \\ %{}) do
     with {:ok, query} <-
-           Cloak.AnalystTable.Compiler.compile(
+           Compiler.compile(
              table_name,
              statement,
              analyst,
@@ -80,47 +90,53 @@ defmodule Cloak.AnalystTable do
   @impl GenServer
   def init(nil) do
     :ets.new(__MODULE__, [:named_table, :public, :set, read_concurrency: true, write_concurrency: true])
-    {:ok, %{jobs: :queue.new()}}
+    {:ok, %{jobs: Jobs.new()}}
   end
 
   @impl GenServer
   def handle_call({:sync_serialized, fun}, from, state),
-    do: {:noreply, enqueue_job(state, :serialized, fn -> GenServer.reply(from, fun.()) end)}
+    do: {:noreply, enqueue_job(state, {:serialized, fn -> GenServer.reply(from, fun.()) end})}
 
   def handle_call({:store_table, table}, _from, state) do
-    stop_current_store(table)
+    state = stop_job(state, create_table_job_id(table))
     store_table_definition(table, data_source_table(table, status: :creating))
-    store_fun = Map.get(state, :store_fun, &store_table_to_database/2)
-
-    {:reply, :ok, enqueue_job(state, store_job_id(table), table, fn -> store_table(table, store_fun) end)}
+    {:reply, :ok, enqueue_job(state, {:create_table, table})}
   end
 
   def handle_call({:register_tables, registration_infos}, _from, state) do
     tables = Enum.map(registration_infos, &decode_registration_info/1)
-    stop_obsolete_stores(tables)
+    state = stop_obsolete_stores(state, tables)
     update_ets_table(tables)
 
-    {:reply, :ok, enqueue_job(state, :serialized, &drop_unused_analyst_tables/0)}
+    {:reply, :ok, enqueue_job(state, {:serialized, &drop_unused_analyst_tables/0})}
   end
 
   @impl Parent.GenServer
-  def handle_child_terminated(job_id, meta, _pid, reason, state) do
-    if reason != :normal and match?({:store, _analyst, _table_name, _data_source_name}, job_id) do
-      Logger.error("Error creating table: #{inspect(meta)}: #{inspect(reason)}")
-      update_table_definition(meta, &%{&1 | status: :create_error})
+  def handle_child_terminated(_job_id, job, _pid, reason, state) do
+    with true <- reason != :normal, {:create_table, table} <- job do
+      Logger.error("Error creating table: #{inspect(table)}: #{inspect(reason)}")
+      update_table_definition(table, &%{&1 | status: :create_error})
     end
 
-    {:noreply, maybe_start_job(state)}
+    {:noreply, state.jobs |> update_in(&Jobs.job_finished(&1, job)) |> start_next_jobs()}
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp stop_current_store(table),
-    do: if(Parent.GenServer.child?(store_job_id(table)), do: Parent.GenServer.shutdown_child(store_job_id(table)))
+  defp stop_job(state, job_id) do
+    case Parent.GenServer.child_meta(job_id) do
+      {:ok, job} ->
+        Parent.GenServer.shutdown_child(job_id)
+        state.jobs |> update_in(&Jobs.job_finished(&1, job)) |> start_next_jobs()
 
-  defp store_job_id(table), do: {:store, Map.take(table, [:analyst, :name, :data_source_name])}
+      :error ->
+        state
+    end
+  end
+
+  defp create_table_job_id(table), do: {:create_table, Map.take(table, [:analyst, :name, :data_source_name])}
 
   defp key(table), do: {table.analyst, table.data_source_name, table.name}
 
@@ -205,16 +221,15 @@ defmodule Cloak.AnalystTable do
     )
   end
 
-  defp stop_obsolete_stores(new_tables) do
+  defp stop_obsolete_stores(state, new_tables) do
     storing_tables =
       Parent.GenServer.children()
-      |> Enum.filter(&match?({{:store, _data}, _pid, _meta}, &1))
-      |> Enum.map(fn {_id, _pid, table} -> table end)
+      |> Enum.filter(&match?({_job_id, _pid, {:create_table, _table}}, &1))
+      |> Enum.map(fn {_id, _pid, {:create_table, table}} -> table end)
       |> MapSet.new()
 
     obsolete_storing_tables = MapSet.difference(storing_tables, MapSet.new(new_tables))
-
-    Enum.each(obsolete_storing_tables, &Parent.GenServer.shutdown_child(store_job_id(&1)))
+    Enum.reduce(obsolete_storing_tables, state, &stop_job(&2, create_table_job_id(&1)))
   end
 
   defp update_ets_table(new_tables) do
@@ -234,29 +249,36 @@ defmodule Cloak.AnalystTable do
     )
   end
 
-  defp enqueue_job(state, id, meta \\ nil, fun),
-    do: maybe_start_job(update_in(state.jobs, &:queue.in({id, meta, fun}, &1)))
+  defp enqueue_job(state, job),
+    do: start_next_jobs(update_in(state.jobs, &Jobs.enqueue_job(&1, job)))
 
-  defp maybe_start_job(state) do
-    with false <- serialized_job_running?(),
-         true <- Parent.GenServer.num_children() < @max_concurrent_stores,
-         {{:value, {job_id, job_meta, job_fun}}, queue} <- :queue.out(state.jobs),
-         false <- job_id == :serialized and Parent.GenServer.num_children() > 0 do
+  defp start_next_jobs(state) do
+    {next_jobs, jobs} = Jobs.next_jobs(state.jobs)
+    Enum.each(next_jobs, &start_next_job(state, &1))
+    %{state | jobs: jobs}
+  end
+
+  defp start_next_job(state, job) do
+    job_fun = job_fun(job, state)
+
+    {:ok, _} =
       Parent.GenServer.start_child(%{
-        id: job_id,
-        meta: job_meta,
+        id: job_id(job),
+        meta: job,
         start: {Task, :start_link, [job_fun]},
         shutdown: :brutal_kill
       })
-
-      %{state | jobs: queue}
-    else
-      _ -> state
-    end
   end
 
-  defp serialized_job_running?(),
-    do: Parent.GenServer.children() |> Stream.map(fn {_id, _pid, type} -> type end) |> Enum.any?(&(&1 == :serialized))
+  defp job_id({:serialized, _fun}), do: :serialized
+  defp job_id({:create_table, table}), do: create_table_job_id(table)
+
+  defp job_fun({:serialized, fun}, _state), do: fun
+
+  defp job_fun({:create_table, table}, state) do
+    store_fun = Map.get(state, :store_fun, &store_table_to_database/2)
+    fn -> store_table(table, store_fun) end
+  end
 
   # -------------------------------------------------------------------
   # Helpers for testing
