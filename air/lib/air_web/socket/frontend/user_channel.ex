@@ -70,8 +70,16 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
 
     if user_id_matches_user(user_id, socket) do
       case Air.Service.DataSource.fetch_as_user({:name, data_source_name}, socket.assigns.user) do
-        {:ok, data_source} -> {:ok, assign(socket, :data_source, data_source)}
-        {:error, :unauthorized} -> {:error, %{reason: "Not authorized to subscribe to this data source"}}
+        {:ok, data_source} ->
+          # We have to send the selectables upon joining to account for a potential race
+          # condition whereby an analyst table has completed creation in the period between
+          # the page being rendered on the server and the web socket connection having been
+          # established.
+          initial_selectables = selectable_payload(socket.assigns.user, data_source)
+          {:ok, initial_selectables, assign(socket, :data_source, data_source)}
+
+        {:error, :unauthorized} ->
+          {:error, %{reason: "Not authorized to subscribe to this data source"}}
       end
     else
       {:error, %{reason: "Not authorized to subscribe to this data source"}}

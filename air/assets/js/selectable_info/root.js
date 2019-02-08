@@ -46,6 +46,7 @@ export default class SelectableInfo extends React.Component {
     this.channel = this.props.frontendSocket.joinSelectablesChannel(
       this.props.dataSourceName, this.props.userId, {
       handleEvent: (event) => this.updateSelectables(event),
+      joined: (event) => this.updateSelectables(event),
     });
   }
 
