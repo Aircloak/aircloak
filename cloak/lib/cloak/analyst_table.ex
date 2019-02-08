@@ -136,14 +136,18 @@ defmodule Cloak.AnalystTable do
         _ -> :failed
       end
 
-    air_update = %{
+    perform_update(%{
       analyst_id: job_meta[:analyst],
       analyst_table_name: job_meta[:name],
       data_source_name: job_meta[:data_source_name],
       status: status
-    }
+    })
+  end
 
-    Cloak.AirSocket.send_analyst_table_state_update(air_update)
+  if Mix.env() == :test do
+    defp perform_update(_update), do: :ignored
+  else
+    defp perform_update(update), do: Cloak.AirSocket.send_analyst_table_state_update(update)
   end
 
   defp stop_job(state, job_id) do
