@@ -412,13 +412,16 @@ It defaults to a safe value of 1 and should under most circumstances not be alte
 Setting it to 0 rejects all rare negative conditions.
 Increasing the value above the default should only be done if it has been deemed safe.
 
+### Tables
+
 The database tables that should be made available for querying are defined in the `tables` section of the cloak config. The value of the `tables` key is a JSON object that looks as follows:
 
 ```
 "tables": {
   "table_name_1": {
     "db_name" | "query": string,
-    "user_id": string
+    "content_type": "personal" | "non-personal",
+    "keys": [{"key_type_1": "column_name_1"}, ...]
   },
   "table_name_2": ...
 }
@@ -426,10 +429,13 @@ The database tables that should be made available for querying are defined in th
 
 Each `table_name_x` key specifies the name the table will be available under when querying the data source through Aircloak.
 
-The `user_id` field is the name of the column that uniquely identifies users - the people or entities whose anonymity
-should be preserved. If this field is set to `null` the table will be classified as not containing data requiring
-anonymisation. Queries over such tables are not subject to the anonymisation restrictions, filters and aggregations,
-and *no attempts will be made to anonymise the data the table contains!*
+The `content_type` is an optional field which determines whether the data in the table is sensitive or not. It can have one
+of the following values: `personal` (default) and `non-personal`. Tables with data about individuals or entities whose
+anonymity should be preserved must be marked with the content type `personal`. If any such table is included in a query, the
+query will underlie the anonymization restrictions applied by Aircloak Insights and produce anonymized results. If the
+content type field is set to `non-personal`, the table will be classified as not containing data requiring anonymisation.
+Queries over such tables are not subject to the anonymization restrictions. *No attempts will be made to anonymize the data
+they contain!*
 
 The database table can be declared by either using `db_name` or as an SQL view using `query`.
 These options are mutually exclusive.
@@ -460,7 +466,70 @@ or projected tables from the configuration file).
 If the virtual table contains columns with duplicated names, only the first one is kept and the rest are dropped.
 Constant columns are also dropped from the table.
 
-#### Referencing database tables
+##### Keys
+
+Entities in a dataset, whether they be persons, transactions, or products, are usually identifiable by a single column
+value. This could be a user, patient or customer id in the case of a person, a transaction id for a transaction or a product
+id for a product. We call these types of identifiers _keys_. When you configure your tables you need to mark these columns
+as keys and declare what type of entity they describe.
+
+When querying tables containing personal data it is a requirement that at least one of the tables queried contains a key of
+type `user_id`. Other tables that are part of the query need to be joined with a table containing a `user_id` key via the
+pre-configured key-relationships.
+
+The following restrictions are currently in place when configuring keys:
+
+  - A column can have one key tag at the most.
+  - A `personal` table can have at most one `user_id` key.
+  - A `non-personal` table can't have any `user_id` keys.
+
+An example configuration file for a database containing information about customers, accounts, transactions and bought
+products might look like this:
+
+```
+"tables": {
+  "customers": {
+    "keys": [
+      {"user_id": "id"}
+    ]
+  },
+  "accounts": {
+    "keys": [
+      {"user_id": "customer_id"},
+      {"account_id": "id"}
+    ]
+  },
+  "transactions": {
+    "keys": [
+      {"account_id": "account_id"},
+      {"product_id": "product_id"}
+    ]
+  },
+  "products": {
+    "type": "non-personal",
+    "keys": [
+      {"product_id": "id"}
+    ]
+  }
+}
+```
+
+while a valid query that accesses all tables might look like this:
+
+```SQL
+SELECT
+  customer.job,
+  AVG(transaction.price)
+FROM
+  customer
+  INNER JOIN accounts ON customer.id = accounts.customer_id
+  INNER JOIN transactions ON accounts.id = transactions.account_id
+  INNER JOIN products ON transactions.product_id = products.id
+WHERE products.type = 'car'
+GROUP BY 1
+```
+
+##### Referencing database tables
 
 Database tables are referenced when providing the `db_name` property. They can also be referenced in the query of virtual tables. The rules explained here are the same for both cases.
 
@@ -514,86 +583,7 @@ create table "UserData"(uid integer, ...)
 
 In this case, you need to provide `"UserData"` as the `db_name` property.
 
-
-#### Projected tables
-
-In some cases a table does not have a `user_id` column but is related to another table that does.
-Let us assume we have two tables: `accounts` and `transactions`. The tables contain the following columns:
-
-```
-accounts:
-- id: integer
-- customer_id: some value
-- name: string
-```
-
-```
-transactions:
-- id: integer
-- account_id: integer
-- amount: integer
-- description: text
-```
-
-The `accounts` contains a `customer_id` column which is the canonical id used throughout the system to identify a user,
-whereas the `transactions` table does not. The `transactions` table does however have a foreign key relationship with the
-`accounts` table on the column `account_id` which matches the primary key `id` in the `accounts` table.
-To get a `customer_id` column in the `transactions` table, Insights Cloak would need to be configured to derive it from the `accounts`
-table as follows:
-
-```
-"tables": {
-  "accounts": {
-    "db_name": "accounts",
-    "user_id": "customer_id"
-  },
-  "transactions": {
-    "db_name": "transactions",
-    "projection": {
-      "table": "accounts",
-      "foreign_key": "account_id",
-      "primary_key": "id"
-    }
-  },
-  ...
-}
-```
-
-The extra column added through projection takes the name of the user id column in the related table.
-In the example above this would be `customer_id`. If the name clashes with an already existing column
-you can rename it using the `user_id_alias` option.
-As an example let's assume you have two tables: `users` and `purchases`. The `users` table has a column `uuid` that
-should be used as the user identifier, as well as an `id` column used to refer to a specific user in the context of the
-database. The `purchases` table has a `users_fk_id` column referring to the `id` column of the `users` table, as well as
-a `uuid` column uniquely identifying a purchase. Unless otherwise specified, the column added by Aircloak would be called
-`uuid` after the user id column in the `users` table. This would clash with the `uuid` column already existing in the
-`purchases` table. You get around this using the `user_id_alias` option.
-
-```
-"tables": {
-  "users": {
-    "db_name": "users",
-    "user_id": "uuid"
-  },
-  "purchases": {
-    "db_name": "purchases",
-    "projection": {
-      "table": "users",
-      "foreign_key": "users_fk_id",
-      "primary_key": "id",
-      "user_id_alias": "user_id"
-    }
-  },
-  ...
-}
-```
-
-Given the above configuration a column named `user_id` would be added to the `purchases` table, rather than a column
-called `uuid`.
-
-Projected tables are translated internally into virtual tables. Projected tables can not reference any virtual tables.
-
-#### Table sample rate (only for MongoDb)
+##### Table sample rate (only for MongoDb)
 
 For MongoDb databases, every collection is initially scanned to determine the collection schema. This can take a long time for larger collections, which might lead to increased cloak startup times. You can instruct the cloak to analyze only a fraction of the data in the MongoDb collection by providing the `sample_rate` option:
 
@@ -609,67 +599,7 @@ For MongoDb databases, every collection is initially scanned to determine the co
 
 Where `sample_rate` is an integer between 1 and 100, representing the percentage of data which is going to be sampled.
 
-#### Data decoding
-
-Some tables might contain data encoded in a way that it is difficult or impossible to work with directly by
-analysts. The cloak has support for decoding the data before a query is executed.
-The decoders are set in the table section. Each one will be applied, sequentially, in the specified order.
-
-To configure a decoder, you need to provide the `decoders` section under the table configuration:
-
-```
-"tables": {
-  "some_table": {
-    "decoders": [
-      decoder_1,
-      decoder_2,
-      ...
-    ],
-    ...
-  },
-  ...
-}
-```
-
-Each decoder is a json in the shape of:
-
-```
-{"method": string, "columns": ["some_column_name", ...], additional_parameters}
-```
-
-The `method` parameter can have one of the following values: `aes_cbc_128`, `base64`, `text_to_integer`, `text_to_real`, `text_to_datetime`, `text_to_date`, `text_to_time`, `substring`, `to_text`.
-
-The `columns` parameter holds a list of columns which must be decoded with the given method.
-
-Finally, depending on the decoding method, you might need to provide additional parameters.
-
-The `aes_cbc_128` decoder can specify the `key` parameter which holds the decryption key:
-
-```
-{"method": "aes_cbc_128", "columns": ["some_column_name", ...], "key": "some_decryption_key"}
-```
-
-If the key is not specified locally, in the decoder definition, the global `aes_key` value will be used instead,
-which needs to be specified in the main cloak configuration file.
-
-The `substring` decoder needs to specify the `from` and `for` parameters:
-
-```
-{"method": "substring", "columns": ["some_column_name", ...], "from": 2, "for": 2}
-```
-
-For remaining possible decoders, no additional parameters are needed:
-
-```
-{"method": "base64", "columns": ["some_column_name", ...]},
-{"method": "text_to_integer", "columns": ["another_column_name", ...]},
-...
-```
-
-The data decoding feature is not compatible with virtual tables. In that case, decode the columns manually by invoking
-the correct functions in the `SELECT` clause of the query for the virtual table definition.
-
-#### Manually classifying isolating columns
+##### Manually classifying isolating columns
 
 Insights Cloak can automatically detect whether a column isolates users or not.  For large database tables this check
 can be slow and resource-intensive. An administrator may choose to manually configure whether a given column isolates
@@ -716,7 +646,7 @@ to privacy loss. It is safe to classify columns as not isolating only when sure 
 for multiple users. Please contact [support@aircloak.com](mailto:support@aircloak.com) if you need help classifying your
 data.
 
-#### Column value shadow database
+##### Column value shadow database
 
 Insights Cloak automatically maintains a cache of column values that occur frequently.
 This allows certain anonymization practises to be relaxed when doing so does not cause harm.

@@ -16,7 +16,7 @@ When analysing data across multiple tables, it is required that the data that is
 This can either be achieved by adding a `WHERE`-clause, or in the case of `INNER JOIN`'s and `OUTER JOIN`'s through
 a corresponding restriction in the `ON`-clause.
 
-For example, assuming tables `t1` and `t2` both have a user-id columns called `uid`, you would write joins as follows:
+For example, assuming tables `t1` and `t2` both have a `user_id` columns called `uid`, you would write joins as follows:
 
 - `SELECT c1, c2 FROM t1, t2 WHERE t1.uid = t2.uid`
 - `SELECT c1, c2 FROM t1 CROSS JOIN t2 WHERE t1.uid = t2.uid`
@@ -30,7 +30,7 @@ Note:
 
 ## Subquery restrictions
 
-A subquery expression with an aggregate must always select the user-id column as well. For example, assuming there exists a table `t1` with a user-id column called `uid`:
+A subquery expression with an aggregate must always select a `user_id` column as well. For example, assuming there exists a table `t1` with a `user_id` column called `uid`:
 
 - __Valid__: `SELECT name FROM (SELECT name FROM t1) sq`
 - __Valid__: `SELECT name FROM (SELECT uid, count(*) FROM t1 GROUP BY uid) sq`
@@ -436,12 +436,12 @@ You can check the status of a table by using the `SHOW COLUMNS` statement:
 ```sql
 SHOW COLUMNS FROM users
 
-| name       | type    | isolates_users |
-|------------|---------|----------------|
-| uid        | integer | true           |
-| first_name | text    | false          |
-| last_name  | text    | true           |
-| email      | text    | pending        |
+| name       | type    | isolator? |
+|------------|---------|-----------|
+| uid        | integer | true      |
+| first_name | text    | false     |
+| last_name  | text    | true      |
+| email      | text    | pending   |
 ```
 
 In this case the columns `uid` and `last_name` are isolating, while the column `first_name` is not. The status of the
