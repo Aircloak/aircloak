@@ -86,11 +86,7 @@ defmodule AirWeb.Socket.Frontend.UserChannel do
       "analyst_table" -> Air.Service.AnalystTable.delete(id, user)
     end
 
-    # We start the broadcast in a task, as the caller will not receive the broadcast being the sender.
-    # This is a hack to avoid having to implement a second API function for broadcasting changes.
-    Task.start(fn ->
-      broadcast_analyst_selectables_change(user, socket.assigns.data_source.name)
-    end)
+    broadcast(socket, "selectables_change", %{user_id: user.id, data_source_name: socket.assigns.data_source.name})
 
     {:noreply, socket}
   end
