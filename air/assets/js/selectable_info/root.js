@@ -15,6 +15,7 @@ type Props = {
   selectablesEditUrlTemplate: string,
   newTableURL: string,
   newViewURL: string,
+  userId: number,
   dataSourceName: string,
   frontendSocket: FrontendSocket,
   supportsCreateTable: boolean,
@@ -42,7 +43,8 @@ export default class SelectableInfo extends React.Component {
     this.onFilterChange = this.onFilterChange.bind(this);
     this.updateSelectables = this.updateSelectables.bind(this);
 
-    this.channel = this.props.frontendSocket.joinSelectablesChannel(this.props.dataSourceName, {
+    this.channel = this.props.frontendSocket.joinSelectablesChannel(
+      this.props.dataSourceName, this.props.userId, {
       handleEvent: (event) => this.updateSelectables(event),
     });
   }

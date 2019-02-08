@@ -158,5 +158,5 @@ defmodule AirWeb.SelectableController do
     do: AnalystTable.delete(id, conn.assigns.current_user)
 
   defp broadcast_changes(conn),
-    do: UserChannel.broadcast_analyst_selectables_change(conn.assigns.current_user, conn.assigns.data_source.name)
+    do: UserChannel.broadcast_analyst_selectables_change(conn.assigns.current_user, conn.assigns.data_source)
 end

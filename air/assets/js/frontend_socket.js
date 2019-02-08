@@ -35,8 +35,9 @@ export class FrontendSocket {
     return this.joinChannel(callbacks, "cloak_stats", ["updated_cloak_infos"]);
   }
 
-  joinSelectablesChannel(dataSourceName: string, callbacks: Callbacks) {
-    return this.joinChannel(callbacks, `selectables:${dataSourceName}`, ["selectables_change"]);
+  joinSelectablesChannel(dataSourceName: string, userId: number, callbacks: Callbacks) {
+    return this.joinChannel(callbacks, `selectables:${dataSourceName}:${userId}`,
+      ["selectables_change"]);
   }
 
   joinChannel(callbacks: Callbacks, channelName: string, eventNames: string[]) {
