@@ -79,12 +79,6 @@ defmodule Cloak.AnalystTable.CompilerTest do
       assert error == "Emulated query can't be materialized."
     end
 
-    test "analyst table can't be created if the driver doesn't support it" do
-      mongo_data_source = Map.put(data_source(), :driver, Cloak.DataSource.MongoDB)
-      assert {:error, error} = compile("table_name", "select * from mv1", mongo_data_source)
-      assert error == "This data source doesn't support analyst tables."
-    end
-
     test "analyst table can't be created if the table with the same name already exists" do
       assert {:error, error} = compile("mv1", "select user_id from mv1")
       assert error == "The table with the given name already exists."

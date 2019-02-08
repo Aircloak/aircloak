@@ -51,5 +51,6 @@
       "db_name": "integers",
       "user_id": "user_id"
     }
-  }
+  },
+  "analyst_tables_enabled": true
 }

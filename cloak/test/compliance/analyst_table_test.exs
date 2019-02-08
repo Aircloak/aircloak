@@ -1,5 +1,5 @@
 defmodule Compliance.AnalystTableTest do
-  use ComplianceCase, async: true
+  use ComplianceCase, async: false
   alias Cloak.AnalystTable
   import Cloak.Test.QueryHelpers
   import Aircloak.AssertionHelper
@@ -342,6 +342,32 @@ defmodule Compliance.AnalystTableTest do
                        repeat_wait_time: 10
                      )
             end
+          )
+        end
+      end
+
+      test "table can't be created if the functionality isn't enabled" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)),
+             true <- String.starts_with?(data_source.name, "postgresql") do
+          data_source = %{data_source | analyst_tables_enabled: false}
+
+          assert_raise(
+            RuntimeError,
+            "analyst tables are not enabled on this data source",
+            fn -> create_or_update(1, "table1", "select *from users", data_source) end
+          )
+        end
+      end
+
+      test "table can't be created if the driver doesn't support analyst tables" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)),
+             true <- String.starts_with?(data_source.name, "postgresql") do
+          data_source = %{data_source | driver: Cloak.DataSource.MongoDB}
+
+          assert_raise(
+            RuntimeError,
+            "analyst tables are not supported on this data source.",
+            fn -> create_or_update(1, "table1", "select *from users", data_source) end
           )
         end
       end

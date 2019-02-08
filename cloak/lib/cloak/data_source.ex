@@ -58,7 +58,8 @@ defmodule Cloak.DataSource do
           statistics_anonymization: boolean | nil,
           # we need to store the initial tables and errors in case we need to re-scan the data source tables later
           initial_tables: %{atom => Table.t()},
-          initial_errors: [String.t()]
+          initial_errors: [String.t()],
+          analyst_tables_enabled: boolean
         }
 
   @type num_rows :: non_neg_integer
@@ -202,6 +203,27 @@ defmodule Cloak.DataSource do
     :ok
   end
 
+  @doc "Returns true if analyst tables are supported and enabled on the given data source."
+  @spec analyst_tables_supported?(t) :: boolean
+  def analyst_tables_supported?(data_source) do
+    check_analyst_tables_support(data_source) == :ok
+  end
+
+  @doc "Verifies if analyst tables are supported and enabled on the given data source."
+  @spec check_analyst_tables_support(t) :: :ok | {:error, String.t()}
+  def check_analyst_tables_support(data_source) do
+    cond do
+      not data_source.driver.supports_analyst_tables?() ->
+        {:error, "analyst tables are not supported on this data source."}
+
+      not data_source.analyst_tables_enabled ->
+        {:error, "analyst tables are not enabled on this data source"}
+
+      true ->
+        :ok
+    end
+  end
+
   # -------------------------------------------------------------------
   # Callbacks
   # -------------------------------------------------------------------
@@ -325,7 +347,8 @@ defmodule Cloak.DataSource do
         {name, Map.put_new(table, :keys, keys)}
       end
 
-    %{data_source | tables: tables}
+    data_source = %{data_source | tables: tables}
+    Map.put(data_source, :analyst_tables_enabled, Map.get(data_source, :analyst_tables_enabled, false))
   end
 
   @doc false

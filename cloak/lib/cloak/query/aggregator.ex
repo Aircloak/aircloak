@@ -103,7 +103,7 @@ defmodule Cloak.Query.Aggregator do
   defp process_low_count_users(rows, query) do
     Logger.debug("Processing low count users ...")
     bucket_size = query |> Rows.group_expressions() |> length()
-    lcf_aggregation_limit = query.data_source |> lcf_buckets_aggregation_limit() |> min(bucket_size)
+    lcf_aggregation_limit = query |> Query.lcf_buckets_aggregation_limit() |> min(bucket_size)
     aggregator_sub_module = aggregation_sub_module(query)
 
     # We first partition the buckets into low-count and high-count buckets.
@@ -278,7 +278,4 @@ defmodule Cloak.Query.Aggregator do
       &%{&1 | row: Enum.map(selected_columns_indices, fn index -> Enum.at(&1.row, index) end)}
     )
   end
-
-  defp lcf_buckets_aggregation_limit(data_source),
-    do: data_source.lcf_buckets_aggregation_limit || Application.get_env(:cloak, :lcf_buckets_aggregation_limit, 3)
 end
