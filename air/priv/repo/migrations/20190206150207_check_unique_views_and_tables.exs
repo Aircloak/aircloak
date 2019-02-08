@@ -29,7 +29,7 @@ defmodule Air.Repo.Migrations.CheckUniqueViewsAndTables do
     # analyst tables
     execute("""
       insert into user_selectables(user_id, data_source_id, name, sql, result_info, broken, type)
-        select user_id, data_source_id, name, sql, result_info, false, 'analyst_table' from analyst_tables
+        select user_id, data_source_id, name, sql, result_info, null, 'analyst_table' from analyst_tables
     """)
 
     execute("drop table analyst_tables")
