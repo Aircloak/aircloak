@@ -4,9 +4,6 @@ defmodule Cloak.AnalystTable.JobsTest do
   import StreamData
   alias Cloak.AnalystTable.Jobs
 
-  # For some reasons, ex_check crashes if we have properties with no tests, so I'm including this dummy test
-  test "dummy", do: :ok
-
   property "jobs are processed in the proper order" do
     check all operations <- list_of(operation()),
               processed_jobs = process_all_jobs(operations) do
