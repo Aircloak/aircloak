@@ -17,7 +17,7 @@ defmodule Cloak.AnalystTable.JobsTest do
   property "a serialized job is always running isolated" do
     check all operations <- list_of(operation()) do
       operations
-      |> all_engine_states()
+      |> all_states()
       |> Enum.each(&if Jobs.running_serialized?(&1.jobs), do: assert(length(&1.jobs.running) == 1))
     end
   end
@@ -25,7 +25,7 @@ defmodule Cloak.AnalystTable.JobsTest do
   property "no more than five jobs are running at the same time" do
     check all operations <- list_of(operation()) do
       operations
-      |> all_engine_states()
+      |> all_states()
       |> Enum.each(&assert(length(&1.jobs.running) <= 5))
     end
   end
@@ -58,33 +58,33 @@ defmodule Cloak.AnalystTable.JobsTest do
   defp input_jobs(operations),
     do: operations |> Stream.filter(&match?({:store_job, _job}, &1)) |> Enum.map(fn {:store_job, job} -> job end)
 
-  defp all_engine_states(operations) do
-    Stream.concat([new_engine()], Stream.scan(operations, new_engine(), &apply_operation/2))
+  defp all_states(operations) do
+    Stream.concat([initial_state()], Stream.scan(operations, initial_state(), &apply_operation/2))
   end
 
   defp process_all_jobs(operations) do
-    engine = operations |> all_engine_states() |> Enum.at(-1) |> drain()
-    List.flatten(engine.processed_jobs)
+    state = operations |> all_states() |> Enum.at(-1) |> drain()
+    List.flatten(state.processed_jobs)
   end
 
-  defp new_engine(), do: %{jobs: Jobs.new(), running_jobs: [], processed_jobs: []}
+  defp initial_state(), do: %{jobs: Jobs.new(), running_jobs: [], processed_jobs: []}
 
-  defp apply_operation({:store_job, job}, engine), do: update_in(engine.jobs, &Jobs.enqueue_job(&1, job))
+  defp apply_operation({:store_job, job}, state), do: update_in(state.jobs, &Jobs.enqueue_job(&1, job))
 
-  defp apply_operation(:next_jobs, engine) do
-    {taken_jobs, jobs} = Jobs.next_jobs(engine.jobs)
-    %{engine | jobs: jobs, running_jobs: engine.running_jobs ++ taken_jobs}
+  defp apply_operation(:next_jobs, state) do
+    {taken_jobs, jobs} = Jobs.next_jobs(state.jobs)
+    %{state | jobs: jobs, running_jobs: state.running_jobs ++ taken_jobs}
   end
 
-  defp apply_operation(:job_finished, engine) do
-    jobs = Enum.reduce(engine.running_jobs, engine.jobs, &Jobs.job_finished(&2, &1))
-    %{engine | jobs: jobs, running_jobs: [], processed_jobs: [engine.processed_jobs, engine.running_jobs]}
+  defp apply_operation(:job_finished, state) do
+    jobs = Enum.reduce(state.running_jobs, state.jobs, &Jobs.job_finished(&2, &1))
+    %{state | jobs: jobs, running_jobs: [], processed_jobs: [state.processed_jobs, state.running_jobs]}
   end
 
-  defp drain(engine) do
-    case apply_operation(:next_jobs, engine) do
-      %{running_jobs: []} = engine -> engine
-      engine -> drain(apply_operation(:job_finished, engine))
+  defp drain(state) do
+    case apply_operation(:next_jobs, state) do
+      %{running_jobs: []} = state -> state
+      state -> drain(apply_operation(:job_finished, state))
     end
   end
 
