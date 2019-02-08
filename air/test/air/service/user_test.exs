@@ -7,6 +7,30 @@ defmodule Air.Service.UserTest do
   alias Air.TestRepoHelper
   alias Air.Service.User
 
+  describe ".load" do
+    test "returns user if found" do
+      user = TestRepoHelper.create_user!()
+      {:ok, loaded} = User.load(user.id)
+      assert loaded.id == user.id
+    end
+
+    test "returns nil if user is not found" do
+      assert {:error, :not_found} == User.load(0)
+    end
+  end
+
+  describe ".load!" do
+    test "returns user if found" do
+      user = TestRepoHelper.create_user!()
+      loaded = User.load!(user.id)
+      assert loaded.id == user.id
+    end
+
+    test "raises if not found" do
+      assert_raise RuntimeError, fn -> User.load!(0) end
+    end
+  end
+
   describe "user operations" do
     test "required fields" do
       assert errors_on(&User.create/1, %{}) == [
@@ -134,7 +158,7 @@ defmodule Air.Service.UserTest do
       group2 = TestRepoHelper.create_group!()
       user = TestRepoHelper.create_user!(%{groups: [group1.id]})
       User.update!(user, %{groups: [group2.id]})
-      user = User.load(user.id)
+      user = User.load!(user.id)
       assert [group2.id] == Enum.map(user.groups, & &1.id)
     end
 
@@ -395,7 +419,7 @@ defmodule Air.Service.UserTest do
       group = TestRepoHelper.create_group!(%{data_sources: [data_source.id]})
       user = TestRepoHelper.create_user!(%{groups: [group.id]})
       User.delete_group!(group)
-      refute nil == User.load(user.id)
+      assert {:ok, _} = User.load(user.id)
       refute nil == Air.Repo.get(Air.Schemas.DataSource, data_source.id)
     end
 
@@ -442,7 +466,7 @@ defmodule Air.Service.UserTest do
     test "persists changes to db" do
       user = TestRepoHelper.create_user!()
       User.toggle_debug_mode(user)
-      loaded_user = User.load(user.id)
+      loaded_user = User.load!(user.id)
       refute loaded_user.debug_mode_enabled == user.debug_mode_enabled
     end
   end
@@ -456,7 +480,7 @@ defmodule Air.Service.UserTest do
       user_initial = TestRepoHelper.create_user!()
       pseudonym1 = User.pseudonym(user_initial)
 
-      user_loaded = User.load(user_initial.id)
+      user_loaded = User.load!(user_initial.id)
       pseudonym2 = User.pseudonym(user_loaded)
 
       assert pseudonym1 == pseudonym2
@@ -482,7 +506,7 @@ defmodule Air.Service.UserTest do
       user = TestRepoHelper.create_user!()
       login1 = TestRepoHelper.create_login_for_user!(user)
       login2 = TestRepoHelper.create_login_for_user!(user)
-      user = User.load(user.id)
+      user = User.load!(user.id)
 
       expected_logins = Enum.sort([login1.login, login2.login, User.main_login(user)])
       actual_logins = user |> User.logins() |> Enum.sort()

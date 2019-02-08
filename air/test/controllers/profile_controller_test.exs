@@ -23,7 +23,7 @@ defmodule Air.ProfileController.Test do
       )
 
     assert redirected_to(conn) == "/profile/edit"
-    assert Service.User.load(user.id) |> Service.User.main_login() == changed_login
+    assert Service.User.load!(user.id) |> Service.User.main_login() == changed_login
   end
 
   test "cannot update own groups", %{user: user} do
@@ -54,7 +54,7 @@ defmodule Air.ProfileController.Test do
       }
     )
 
-    assert hd(Service.User.load(user.id).logins).hashed_password == old_password_hash
+    assert hd(Service.User.load!(user.id).logins).hashed_password == old_password_hash
   end
 
   test "can change password with the old password", %{user: user} do
@@ -70,7 +70,7 @@ defmodule Air.ProfileController.Test do
       }
     )
 
-    refute hd(Service.User.load(user.id).logins).hashed_password == old_password_hash
+    refute hd(Service.User.load!(user.id).logins).hashed_password == old_password_hash
   end
 
   describe ".delete_sessions" do

@@ -103,7 +103,7 @@ defmodule AirWeb.Admin.UserController.Test do
 
     assert "/admin/users" == login(admin) |> put("/admin/users/#{user.id}/disable") |> redirected_to()
 
-    refute User.load(user.id).enabled
+    refute User.load!(user.id).enabled
   end
 
   test "enabling a user" do
@@ -115,7 +115,7 @@ defmodule AirWeb.Admin.UserController.Test do
 
     assert "/admin/users" == login(admin) |> put("/admin/users/#{user.id}/enable") |> redirected_to()
 
-    assert User.load(user.id).enabled
+    assert User.load!(user.id).enabled
   end
 
   test "success is reported via audit log" do
