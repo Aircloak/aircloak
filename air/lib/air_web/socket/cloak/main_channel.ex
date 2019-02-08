@@ -263,14 +263,14 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   end
 
   defp handle_cloak_message("analyst_table_state_update", payload, socket) do
-    Logger.debug(fn -> "Analyst table #{payload[:analyst_table_name]} has new storage status: #{payload[:status]}" end)
+    Logger.debug(fn -> "Analyst table #{payload.analyst_table_name} has new storage status: #{payload.status}" end)
 
-    user = User.load(payload[:analyst_id])
+    user = User.load(payload.analyst_id)
 
-    case AnalystTable.get_by_name(user, payload[:analyst_table_name]) do
+    case AnalystTable.get_by_name(user, payload.analyst_table_name) do
       {:ok, analyst_table} ->
-        AnalystTable.update_status(analyst_table, payload[:status])
-        {:ok, data_source} = DataSource.fetch_as_user({:name, payload[:data_source_name]}, user)
+        AnalystTable.update_status(analyst_table, payload.status)
+        {:ok, data_source} = DataSource.fetch_as_user({:name, payload.data_source_name}, user)
         AirWeb.Socket.Frontend.UserChannel.broadcast_analyst_selectables_change(user, data_source)
 
       {:error, reason} ->
