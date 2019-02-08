@@ -16,7 +16,7 @@ defmodule Cloak.DataSource.Isolators.Query do
 
     cond do
       table.user_id == nil -> true
-      table.keys[column] -> true
+      table.keys[column] == :user_id -> true
       true -> isolating_ratio(data_source, table_name, column, table.user_id) > threshold()
     end
   end

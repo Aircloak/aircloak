@@ -18,7 +18,7 @@ defmodule Cloak.DataSource.Shadows.Query do
 
     cond do
       table.user_id == nil -> []
-      table.keys[column] != nil -> []
+      table.keys[column] == :user_id -> []
       true -> maybe_build_shadow(data_source, table_name, column, table.user_id)
     end
   end
