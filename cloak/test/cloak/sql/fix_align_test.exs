@@ -35,7 +35,8 @@ defmodule Cloak.Sql.FixAlign.Test do
   for interval_type <- [:int, :datetime, :date, :time] do
     property "align_interval is idempotent on #{interval_type} intervals" do
       check all interval <- interval(unquote(interval_type)) do
-        interval |> FixAlign.align_interval() == interval |> FixAlign.align_interval() |> FixAlign.align_interval()
+        assert interval |> FixAlign.align_interval() ==
+                 interval |> FixAlign.align_interval() |> FixAlign.align_interval()
       end
     end
   end
