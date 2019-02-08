@@ -12,7 +12,7 @@ defmodule Air.Schemas.View do
     field(:name, :string)
     field(:sql, :string)
     field(:result_info, :map)
-    field(:broken, :boolean)
+    field(:broken, :boolean, default: false)
     field(:creation_status, CreationStatus, default: :succeeded)
 
     belongs_to(:user, Air.Schemas.User)
