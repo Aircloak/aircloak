@@ -12,7 +12,7 @@ import type {Selectable} from "./selectable";
 
 type Props = {
   selectables: Selectable[],
-  selectablesEditUrlTemplate: string,
+  selectablesEditUrl: string,
   newTableURL: string,
   newViewURL: string,
   userId: number,
@@ -96,7 +96,7 @@ export default class SelectableInfo extends React.Component {
                 key={i}
                 filter={this.state.filter}
                 selectable={selectable}
-                selectablesEditUrlTemplate={this.props.selectablesEditUrlTemplate}
+                selectablesEditUrl={this.props.selectablesEditUrl}
                 channel={this.channel}
                 expanded={this.expanded(selectable)}
                 onClick={this.toggleExpand(selectable)}

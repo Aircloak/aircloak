@@ -1,7 +1,6 @@
 // @flow
 
 import React from "react";
-import _ from "lodash";
 import Channel from "phoenix";
 
 import {ColumnsView} from "./columns";
@@ -20,7 +19,7 @@ export type Selectable = {
 
 type Props = {
   selectable: Selectable,
-  selectablesEditUrlTemplate: string,
+  selectablesEditUrl: string,
   onClick: () => void,
   expanded: boolean,
   filter: Filter,
@@ -70,10 +69,8 @@ export class SelectableView extends React.Component {
   }
 
   editLinkUrl() {
-    return _.chain(this.props.selectablesEditUrlTemplate).
-      replace("KIND", this.props.selectable.kind).
-      replace("INTERNAL_ID", this.props.selectable.internal_id).
-      value();
+    const selectable = this.props.selectable;
+    return `${this.props.selectablesEditUrl}?kind=${selectable.kind}&id=${selectable.internal_id}`;
   }
 
   triggerDelete(event: {preventDefault: () => void}) {
