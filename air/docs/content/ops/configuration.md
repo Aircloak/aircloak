@@ -385,6 +385,7 @@ The configuration takes the following form:
   "concurrency": integer,
   "lcf_buckets_aggregation_limit": integer,
   "max_rare_negative_conditions": integer,
+  "analyst_tables_enabled": boolean,
   "tables": tables
 }
 ```
@@ -411,6 +412,8 @@ The `max_rare_negative_conditions` affects how many negative conditions containi
 It defaults to a safe value of 1 and should under most circumstances not be altered.
 Setting it to 0 rejects all rare negative conditions.
 Increasing the value above the default should only be done if it has been deemed safe.
+
+The `analyst_tables_enabled` can be set to true to enable creation of analyst tables. By default, this parameter is set to false. See the [Analyst tables](#analyst-tables) section for more details.
 
 ### Tables
 
@@ -678,6 +681,37 @@ parameter and give it the value false:
   }
 }
 ```
+
+#### Analyst tables
+
+Analyst tables make it possible for analysts to create additional tables in the database via the Aircloak user interface. The main purpose of these tables is to allow analysts to prepare a static snapshot of a potentially long running intermediate query. For example, consider the following query:
+
+```
+SELECT col_a, col_b
+FROM (
+  # possibly slow subquery
+  SELECT ...
+) subquery
+```
+
+If the subquery is taking a long time to complete, running different kinds of queries with variations in the top-level outer query can become very cumbersome. This is where analyst tables can help. They allow analysts to create a snapshot of the data returned by the inner query, and allow querying that snapshot instead.
+
+Analyst tables are created in the air user interface. A table is described via a regular Aircloak `SELECT` query which defines the table structure and its content.
+
+The query must be anonymizing, which means that it must select at least one user id column. Queries which lead to emulation (i.e. which can't be completely offloaded to the database) can't be used to create analyst tables.
+
+When an analyst table is submitted for creation via the user interface, the cloak will create the corresponding table in the database and populate it. The table population is running asynchronously, and depending on the query, it might take a while. The table cannot be used for querying while it is being populated.
+
+Once the table is populated, it can be used as any other table in Aircloak queries. The table can also be used from other analyst tables and views.
+
+It's worth noting that each analyst tables is private, meaning that it can only be used by the analyst who created it.
+
+Analyst tables should conceptually be treated as snapshots. A table won't update if data changes in the source tables. To update the content of the table, an analyst must open it for editing in the air user interface, and then press the "Update" button to trigger the table recreation. The table cannot be used for querying until the recreation has completed.
+
+Since analyst tables can potentially cause additional load on the database server, both in terms of processing and disk-usage, they are by default disabled. To enable this feature, set the "analyst_tables_enabled" property in the data source configuration to `true`.
+
+Currently, analyst tables are only supported on PostgreSQL and Oracle data sources.
+
 
 #### Tips and tricks
 
