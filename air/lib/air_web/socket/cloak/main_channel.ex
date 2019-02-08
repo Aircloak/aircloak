@@ -263,7 +263,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   end
 
   defp handle_cloak_message("analyst_table_state_update", payload, socket) do
-    Logger.debug("Analyst table #{payload[:analyst_table_name]} has new storage status: #{payload[:status]}")
+    Logger.debug(fn _ -> "Analyst table #{payload[:analyst_table_name]} has new storage status: #{payload[:status]}" end)
 
     user = User.load(payload[:analyst_id])
 
