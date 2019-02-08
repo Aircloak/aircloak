@@ -11,5 +11,4 @@ ExUnit.start(
   timeout: :timer.minutes(5)
 )
 
-ExCheck.start()
 System.at_exit(fn _ -> Compliance.Runtime.finalize() end)

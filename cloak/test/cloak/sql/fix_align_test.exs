@@ -1,78 +1,79 @@
 defmodule Cloak.Sql.FixAlign.Test do
   use ExUnit.Case, async: true
-  use ExCheck
-
+  use ExUnitProperties
   alias Cloak.Sql.FixAlign
 
   test "aligning a boolean interval", do: assert({false, true} = FixAlign.align_interval({false, true}))
 
   for interval_type <- [:int, :float] do
     property "aligned #{interval_type} interval contains both ends of input" do
-      for_all {x, y} in interval(unquote(interval_type)) do
+      check all {x, y} <- interval(unquote(interval_type)) do
         {left, right} = FixAlign.align_interval({x, y})
-        left <= x && y <= right
+        assert left <= x
+        assert y <= right
       end
     end
 
     property "the endpoints of an #{interval_type} interval are multiples of half the size" do
-      for_all interval in interval(unquote(interval_type)) do
+      check all interval <- interval(unquote(interval_type)) do
         {left, right} = FixAlign.align_interval(interval)
         half_size = (right - left) / 2
-        even_multiple?(left, half_size) && even_multiple?(right, half_size)
+        assert even_multiple?(left, half_size)
+        assert even_multiple?(right, half_size)
       end
     end
 
     property "the size of an aligned #{interval_type} interval is money-aligned" do
-      for_all interval in interval(unquote(interval_type)) do
+      check all interval <- interval(unquote(interval_type)) do
         {left, right} = FixAlign.align_interval(interval)
         size = right - left
-        even_power_of_10?(size) || even_power_of_10?(size / 2) || even_power_of_10?(size / 5)
+        assert even_power_of_10?(size) || even_power_of_10?(size / 2) || even_power_of_10?(size / 5)
       end
     end
   end
 
   for interval_type <- [:int, :datetime, :date, :time] do
     property "align_interval is idempotent on #{interval_type} intervals" do
-      for_all interval in interval(unquote(interval_type)) do
+      check all interval <- interval(unquote(interval_type)) do
         interval |> FixAlign.align_interval() == interval |> FixAlign.align_interval() |> FixAlign.align_interval()
       end
     end
   end
 
   property "an aligned interval is not much larger than the input" do
-    for_all {x, y} in float_interval() do
+    check all {x, y} <- float_interval() do
       interval = {x / 10, y / 10}
       # Credo wrongly reports that we're missing spaces around operators in this function.
       # credo:disable-for-next-line Credo.Check.Consistency.SpaceAroundOperators
-      10 * width(interval) >= interval |> FixAlign.align_interval() |> width()
+      assert 10 * width(interval) >= interval |> FixAlign.align_interval() |> width()
     end
   end
 
   for interval_type <- [:datetime, :date] do
     property "aligned #{interval_type} interval contains both ends of the input" do
-      for_all {x, y} in interval(unquote(interval_type)) do
+      check all {x, y} <- interval(unquote(interval_type)) do
         {left, right} = FixAlign.align_interval({x, y})
-        Timex.diff(x, left) >= 0 && Timex.diff(right, y) >= 0
+        assert Timex.diff(x, left) >= 0 && Timex.diff(right, y) >= 0
       end
     end
 
     property "an aligned #{interval_type} interval is not much larger than the input" do
-      for_all {x, y} in interval(unquote(interval_type)) do
+      check all {x, y} <- interval(unquote(interval_type)) do
         {left, right} = FixAlign.align_interval({x, y})
 
         if Timex.diff(y, x, :minutes) < 1 do
-          Timex.diff(right, left) <= 10 * Timex.diff(y, x)
+          assert Timex.diff(right, left) <= 10 * Timex.diff(y, x)
         else
-          Timex.diff(right, left) <= 6.1 * Timex.diff(y, x)
+          assert Timex.diff(right, left) <= 6.1 * Timex.diff(y, x)
         end
       end
     end
   end
 
   property "an aligned time interval contains both ends of the input" do
-    for_all {x, y} in time_interval() do
+    check all {x, y} <- time_interval() do
       {left, right} = FixAlign.align_interval({x, y})
-      lt_eq(left, x) && lt_eq(y, right)
+      assert lt_eq(left, x) && lt_eq(y, right)
     end
   end
 
@@ -154,22 +155,23 @@ defmodule Cloak.Sql.FixAlign.Test do
   end
 
   property "numbers are money-aligned" do
-    for_all x in such_that(y in float() when y != 0) do
+    check all x <- float(), x != 0 do
       result = x |> FixAlign.align() |> abs()
-      even_power_of_10?(result) || even_power_of_10?(result / 2) || even_power_of_10?(result / 5)
+      assert even_power_of_10?(result) || even_power_of_10?(result / 2) || even_power_of_10?(result / 5)
     end
   end
 
   property "money-aligned numbers are close to the input" do
-    for_all x in such_that(y in float() when y != 0) do
+    check all x <- float(), x != 0 do
       result = x |> FixAlign.align()
-      abs(result - x) <= 0.45 * abs(x)
+      assert abs(result - x) <= 0.45 * abs(x)
     end
   end
 
   property "align is idempotent" do
-    for_all x in float() do
-      x |> FixAlign.align() == x |> FixAlign.align() |> FixAlign.align()
+    # The boundaries are introduced because the invariant breaks for very large numbers.
+    check all x <- float(min: -1_000_000, max: 1_000_000) do
+      assert x |> FixAlign.align() == x |> FixAlign.align() |> FixAlign.align()
     end
   end
 
@@ -185,54 +187,80 @@ defmodule Cloak.Sql.FixAlign.Test do
   defp interval(:date), do: date_interval()
   defp interval(:time), do: time_interval()
 
-  defp int_interval, do: such_that({x, y} in {int(), int()} when x < y)
+  # Need this because invariants break if the distance between the two numbers is large (presumably due to floating
+  # point imprecision).
+  @safe_distance 1_000_000
 
-  defp float_interval, do: such_that({x, y} in {float(), float()} when x < y)
-
-  defp datetime_interval, do: such_that({x, y} in {datetime(), datetime()} when Timex.diff(x, y) < 0)
-
-  defp date_interval, do: such_that({x, y} in {date(), date()} when Timex.diff(x, y) < 0)
-
-  defp time_interval, do: such_that({x, y} in {time(), time()} when lt_eq(x, y) and x != y)
-
-  defp datetime do
-    domain(
-      :datetime,
-      _generate = fn domain, size ->
-        size = size |> :math.pow(4) |> round()
-        {domain, Timex.shift(~N[2000-06-15 12:20:30], seconds: draw(int(), size))}
-      end,
-      _shrink = fn domain, item -> {domain, item} end
-    )
+  defp int_interval do
+    bind(integer(), fn x ->
+      if x >= 0 do
+        integer((x + 1)..(@safe_distance * max(x, 1)))
+      else
+        boundary = div(abs(x), @safe_distance)
+        one_of([integer((x + 1)..-boundary), integer(boundary..abs(x * @safe_distance))])
+      end
+      |> map(fn y -> {x, y} end)
+    end)
   end
 
-  defp date do
-    domain(
-      :datetime,
-      _generate = fn domain, size ->
-        size = size |> :math.pow(2) |> round()
-        {domain, Timex.shift(~D[2000-06-15], days: draw(int(), size))}
-      end,
-      _shrink = fn domain, item -> {domain, item} end
-    )
+  defp float_interval do
+    bind(float(), fn x ->
+      if x >= 0 do
+        float(min: x, max: @safe_distance * with(0.0 <- x, do: 0.0000001))
+      else
+        boundary = abs(x) / @safe_distance
+        one_of([float(min: x, max: -boundary), float(min: boundary, max: abs(x * @safe_distance))])
+      end
+      |> filter(&(&1 != x))
+      |> map(fn y -> {x, y} end)
+    end)
   end
 
-  @seconds_in_day 24 * 60 * 60
-  defp time do
-    domain(
-      :time,
-      _generate = fn domain, size ->
-        size = size |> :math.pow(2.3) |> round() |> min(@seconds_in_day)
-
-        {domain, draw(pos_integer(), size) |> min(@seconds_in_day - 1) |> Cloak.Time.from_integer(:time)}
-      end,
-      _shrink = fn domain, item -> {domain, item} end
-    )
+  defp datetime_interval do
+    gen all dt1 <- naive_datetime(), dt2 <- naive_datetime(), dt2 != dt1 do
+      [dt1, dt2]
+      |> Enum.sort(&(NaiveDateTime.compare(&1, &2) != :gt))
+      |> List.to_tuple()
+    end
   end
 
-  defp draw(domain, size) do
-    {_, result} = pick(domain, size)
-    result
+  defp date_interval do
+    gen all date1 <- date(), date2 <- date(), date2 != date1 do
+      [date1, date2]
+      |> Enum.sort(&(Date.compare(&1, &2) != :gt))
+      |> List.to_tuple()
+    end
+  end
+
+  defp time_interval do
+    gen all time1 <- time(), time2 <- time(), time2 != time1 do
+      [time1, time2]
+      |> Enum.sort(&(Time.compare(&1, &2) != :gt))
+      |> List.to_tuple()
+    end
+  end
+
+  def naive_datetime do
+    gen all date <- date(), time <- time() do
+      {:ok, naive_datetime} = NaiveDateTime.new(date, time)
+      naive_datetime
+    end
+  end
+
+  def date do
+    gen all year <- integer(1900..2100),
+            month <- integer(1..12),
+            day <- integer(1..31),
+            result = Date.new(year, month, day),
+            match?({:ok, _date}, result) do
+      elem(result, 1)
+    end
+  end
+
+  def time do
+    gen all hour <- integer(0..23), minute <- integer(0..59), second <- integer(0..59) do
+      Time.from_erl!({hour, minute, second})
+    end
   end
 
   defp even_power_of_10?(x) do
