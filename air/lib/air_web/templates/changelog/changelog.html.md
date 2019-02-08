@@ -14,6 +14,7 @@
 - Support noise aggregators in non-anonymising queries.
 - Support for current date/time functions.
 - Support for signing out all sessions of a user from the settings page or from the admin panel
+- Support for analyst tables. See the [Analyst tables](docs/ops/configuration.html#analyst-tables) section for details.
 
 ### Enhancements
 
