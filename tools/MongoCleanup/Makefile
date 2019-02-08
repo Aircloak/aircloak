@@ -3,6 +3,9 @@
 run: reset-db
 	dotnet run --project MongoCleanup -- --cloak-config teambank_mongo_34.json
 
+run-perf: generate-data
+	time dotnet run --project MongoCleanup -- --cloak-config mongo_cleanup_big.json
+
 generate-data: elixir-deps
 	mongo mongo_cleanup_big --eval "printjson(db.dropDatabase())"
 	mix run data_generator.exs

@@ -21,7 +21,7 @@ defmodule DataGenerator do
   end
 
   def generate_purchases(user) do
-    for _ <- 0..:rand.uniform(20) do
+    for _ <- 1..:rand.uniform(20) do
       %{
         id: "id-#{:erlang.unique_integer([:positive])}",
         user_id: user.id,
@@ -31,7 +31,7 @@ defmodule DataGenerator do
   end
 
   def generate_items(purchase) do
-    for _ <- 0..:rand.uniform(20) do
+    for _ <- 1..:rand.uniform(20) do
       %{
         purchase_id: purchase.id,
         itemname: "widget-#{:rand.uniform(1000)}",
