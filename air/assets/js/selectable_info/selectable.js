@@ -31,10 +31,10 @@ const ERROR_REASON_MESSAGE =
   "This might be caused by a change in the underlying data source, a dependent analyst table, or a view.";
 
 const VIEW_INVALID_MESSAGE =
-  "This view is no longer valid. " + ERROR_REASON_MESSAGE;
+  `This view is no longer valid. ${ERROR_REASON_MESSAGE}`;
 
 const TABLE_INVALID_MESSAGE =
-  "This table creation failed or the table is no longer valid. " + ERROR_REASON_MESSAGE;
+  `This table creation failed or the table is no longer valid. ${ERROR_REASON_MESSAGE}`;
 
 export class SelectableView extends React.Component {
   handleToggleClick: () => void;
