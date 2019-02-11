@@ -62,7 +62,7 @@ defmodule Air.PsqlServer.ConnectionRegistry do
         :ok
 
       [{_pid, {user_id, query_id}}] ->
-        user = User.load(user_id)
+        user = User.load!(user_id)
 
         case Query.get_as_user(user, query_id) do
           {:ok, query} ->

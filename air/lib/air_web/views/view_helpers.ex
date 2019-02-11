@@ -27,53 +27,12 @@ defmodule AirWeb.ViewHelpers do
   def admin?(%Plug.Conn{} = conn), do: admin?(conn.assigns.current_user)
 
   @doc "Returns an embeddable json representing selectable tables, views, and analyst created tables."
-  @spec selectables(Plug.Conn.t(), Schemas.DataSource.t(), non_neg_integer | nil) :: [Map.t()]
-  def selectables(conn, data_source, selectable_to_exclude \\ nil) do
-    selectable_to_exclude =
-      case selectable_to_exclude do
-        nil -> :do_not_exclude_any
-        id -> id
-      end
-
-    Service.DataSource.selectables(conn.assigns[:current_user], data_source)
-    |> Enum.reject(&(&1.internal_id == selectable_to_exclude))
-    |> Enum.map(fn table ->
-      if table.analyst_created do
-        additional_data = %{
-          edit_link:
-            AirWeb.Router.Helpers.data_source_selectable_path(
-              conn,
-              :edit,
-              data_source.name,
-              table.kind,
-              table.internal_id
-            ),
-          delete_html:
-            Phoenix.HTML.safe_to_string(
-              link(
-                "delete",
-                to:
-                  AirWeb.Router.Helpers.data_source_selectable_path(
-                    conn,
-                    :delete,
-                    data_source.name,
-                    table.kind,
-                    table.internal_id
-                  ),
-                method: :delete,
-                "data-confirm": "Delete #{table.id}?",
-                class: "btn btn-danger btn-xs"
-              )
-            )
-        }
-
-        Map.merge(table, additional_data)
-      else
-        Map.merge(table, %{kind: :table})
-      end
-    end)
-    |> Enum.sort_by(& &1.id)
-  end
+  @spec selectables(Schemas.User.t(), Schemas.DataSource.t()) :: [Map.t()]
+  def selectables(user, data_source),
+    do:
+      Service.DataSource.selectables(user, data_source)
+      |> Enum.map(&Map.merge(%{kind: :table}, &1))
+      |> Enum.sort_by(& &1.id)
 
   @doc "Encodes the given term to json which can be safely embedded in .eex templates."
   @spec to_json(any) :: {:safe, iodata}

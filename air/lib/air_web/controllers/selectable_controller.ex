@@ -4,6 +4,7 @@ defmodule AirWeb.SelectableController do
   use Air.Web, :controller
 
   alias Air.Service.{View, AnalystTable}
+  alias AirWeb.Socket.Frontend.UserChannel
 
   plug(:load_data_source)
   plug(:put_layout, "raw.html")
@@ -41,6 +42,7 @@ defmodule AirWeb.SelectableController do
   def create(conn, %{"kind" => kind} = params) do
     case create_selectable(conn, kind, get_name_and_sql(params, kind)) do
       {:ok, _selectable} ->
+        broadcast_changes(conn)
         redirect(conn, to: data_source_path(conn, :show, conn.assigns.data_source.name))
 
       {:error, changeset} ->
@@ -51,6 +53,8 @@ defmodule AirWeb.SelectableController do
   def update(conn, %{"id" => id, "kind" => kind} = params) do
     case update_selectable(conn, kind, id, get_name_and_sql(params, kind)) do
       {:ok, _selectable} ->
+        broadcast_changes(conn)
+
         conn
         |> maybe_broken_message()
         |> redirect(to: data_source_path(conn, :show, conn.assigns.data_source.name))
@@ -68,6 +72,7 @@ defmodule AirWeb.SelectableController do
 
   def delete(conn, %{"id" => id, "kind" => kind}) do
     :ok = delete_selectable(conn, kind, id)
+    broadcast_changes(conn)
 
     path =
       case get_req_header(conn, "referer") do
@@ -151,4 +156,7 @@ defmodule AirWeb.SelectableController do
 
   defp delete_selectable(conn, "analyst_table", id),
     do: AnalystTable.delete(id, conn.assigns.current_user)
+
+  defp broadcast_changes(conn),
+    do: UserChannel.broadcast_analyst_selectables_change(conn.assigns.current_user, conn.assigns.data_source)
 end

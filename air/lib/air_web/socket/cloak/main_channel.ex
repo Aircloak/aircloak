@@ -8,6 +8,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   require Aircloak.DeployConfig
 
   alias Air.CentralClient.Socket
+  alias Air.Service.AnalystTable
 
   @type views :: %{String.t() => String.t()}
   @type parameters :: nil | [map]
@@ -202,7 +203,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
     push(
       socket,
       "register_analyst_tables",
-      %{registration_infos: Enum.map(Air.Service.AnalystTable.all(), & &1.result_info.registration_info)}
+      %{registration_infos: Enum.map(AnalystTable.all(), & &1.result_info.registration_info)}
     )
 
     {:noreply, socket}
@@ -259,6 +260,19 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
 
     pending_calls = Map.delete(socket.assigns.pending_calls, request_id)
     {:noreply, assign(socket, :pending_calls, pending_calls)}
+  end
+
+  defp handle_cloak_message("analyst_table_state_update", payload, socket) do
+    Logger.debug(fn -> "Analyst table #{payload.analyst_table_name} has new storage status: #{payload.status}" end)
+
+    AnalystTable.update_status(
+      payload.analyst_id,
+      payload.data_source_name,
+      payload.analyst_table_name,
+      payload.status
+    )
+
+    {:noreply, socket}
   end
 
   defp handle_cloak_message(event, _payload, socket) do

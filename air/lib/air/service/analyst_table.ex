@@ -1,11 +1,13 @@
 defmodule Air.Service.AnalystTable do
   @moduledoc "Service module for working with analyst tables."
 
-  alias Air.Service.DataSource
+  alias Air.Service.{DataSource, User}
   alias Air.Schemas.AnalystTable
   alias Air.Repo
   alias AirWeb.Socket.Cloak.MainChannel
   import Ecto.Query
+
+  @creation_status_supervisor __MODULE__.CreationStatusSupervisor
 
   # -------------------------------------------------------------------
   # API functions
@@ -41,6 +43,36 @@ defmodule Air.Service.AnalystTable do
     end
   end
 
+  @doc """
+  Updates the creation status for an analyst table in the air.
+
+  Returns immediately with an error if the status is invalid, and otherwise returns :ok.
+  The state update process happens asynchronously in the background to unblock the caller.
+  No feedback will be given with respect to whether the operation succeeded or not
+  beyond whether the desired state is an allowed one.
+  """
+  @spec update_status(non_neg_integer, String.t(), String.t(), AnalystTable.CreationStatus.t()) ::
+          :ok | {:error, :invalid_status}
+  def update_status(_user_id, _data_source_name, _table_name, status)
+      when status not in [:pending, :succeeded, :failed],
+      do: {:error, :invalid_status}
+
+  def update_status(user_id, data_source_name, table_name, status) do
+    Task.Supervisor.start_child(@creation_status_supervisor, fn ->
+      with {:ok, user} <- User.load(user_id),
+           {:ok, data_source} <- DataSource.fetch_as_user({:name, data_source_name}, user),
+           {:ok, analyst_table} <- get_by_name(user, data_source, table_name) do
+        analyst_table
+        |> Ecto.Changeset.cast(%{creation_status: status}, [:creation_status])
+        |> Repo.update!()
+
+        AirWeb.Socket.Frontend.UserChannel.broadcast_analyst_selectables_change(user, data_source)
+      end
+    end)
+
+    :ok
+  end
+
   @doc "Deletes the analyst table."
   @spec delete(pos_integer, User.t()) :: :ok | {:error, :not_allowed}
   def delete(table_id, user) do
@@ -67,6 +99,15 @@ defmodule Air.Service.AnalystTable do
   @spec all(User.t(), DataSource.t()) :: [AnalystTable.t()]
   def all(user, data_source),
     do: AnalystTable |> by_user_id(user.id) |> by_data_source_id(data_source.id) |> Repo.all()
+
+  @doc "Returns an analyst table by name belonging to a given user"
+  @spec get_by_name(User.t(), DataSource.t(), String.t()) :: {:ok, AnalystTable.t()} | {:error, :not_found}
+  def get_by_name(user, data_source, name) do
+    case AnalystTable |> by_user_id(user.id) |> by_data_source_id(data_source.id) |> Repo.get_by(name: name) do
+      nil -> {:error, :not_found}
+      table -> {:ok, table}
+    end
+  end
 
   @doc "Returns the changeset representing an empty table."
   @spec new_changeset() :: Changeset.t()
@@ -158,4 +199,19 @@ defmodule Air.Service.AnalystTable do
   defp by_user_id(scope, user_id), do: where(scope, [v], v.user_id == ^user_id)
 
   defp by_data_source_id(scope, data_source_id), do: where(scope, [v], v.data_source_id == ^data_source_id)
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def child_spec(_args),
+    do:
+      Aircloak.ChildSpec.supervisor(
+        [
+          {Task.Supervisor, name: @creation_status_supervisor}
+        ],
+        strategy: :one_for_one,
+        name: __MODULE__
+      )
 end

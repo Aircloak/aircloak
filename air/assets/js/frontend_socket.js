@@ -35,6 +35,11 @@ export class FrontendSocket {
     return this.joinChannel(callbacks, "cloak_stats", ["updated_cloak_infos"]);
   }
 
+  joinSelectablesChannel(dataSourceName: string, userId: number, callbacks: Callbacks) {
+    return this.joinChannel(callbacks, `selectables:${dataSourceName}:${userId}`,
+      ["selectables_change"]);
+  }
+
   joinChannel(callbacks: Callbacks, channelName: string, eventNames: string[]) {
     const channel = this.socket.channel(channelName, {});
     const noop = () => {};

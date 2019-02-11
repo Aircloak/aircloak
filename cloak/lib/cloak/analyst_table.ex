@@ -18,6 +18,8 @@ defmodule Cloak.AnalystTable do
           columns: [DataSource.Table.column()]
         }
 
+  @type creation_state :: :succeeded | :failed
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -112,11 +114,13 @@ defmodule Cloak.AnalystTable do
   end
 
   @impl Parent.GenServer
-  def handle_child_terminated(_job_id, job, _pid, reason, state) do
+  def handle_child_terminated(job_id, job, _pid, reason, state) do
     with true <- reason != :normal, {:create_table, table} <- job do
       Logger.error("Error creating table: #{inspect(table)}: #{inspect(reason)}")
       update_table_definition(table, &%{&1 | status: :create_error})
     end
+
+    update_air(job_id, reason)
 
     {:noreply, state.jobs |> update_in(&Jobs.job_finished(&1, job)) |> start_next_jobs()}
   end
@@ -124,6 +128,18 @@ defmodule Cloak.AnalystTable do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp update_air(:serialized, _reason), do: :ok
+
+  defp update_air({:create_table, job_meta}, reason) do
+    status =
+      case reason do
+        :normal -> :succeeded
+        _ -> :failed
+      end
+
+    Cloak.AirSocket.send_analyst_table_state_update(job_meta.analyst, job_meta.name, job_meta.data_source_name, status)
+  end
 
   defp stop_job(state, job_id) do
     case Parent.GenServer.child_meta(job_id) do

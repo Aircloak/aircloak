@@ -161,8 +161,8 @@ defmodule AirWeb.Admin.UserController do
 
   defp load_user(conn, _) do
     case User.load(conn.params["id"] || conn.params["user_id"]) do
-      nil -> not_found(conn)
-      user -> assign(conn, :user, user)
+      {:ok, user} -> assign(conn, :user, user)
+      {:error, :not_found} -> not_found(conn)
     end
   end
 

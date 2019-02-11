@@ -1,6 +1,7 @@
 // @flow
 
 import React from "react";
+import Channel from "phoenix";
 
 import {ColumnsView} from "./columns";
 import {Filter} from "./filter";
@@ -9,18 +10,21 @@ import {activateTooltips} from "../tooltips";
 
 export type Selectable = {
   id: string,
+  internal_id: number,
   kind: string,
   columns: Column[],
-  edit_link: string,
   delete_html: string,
   broken: boolean,
+  creation_status: string,
 };
 
 type Props = {
   selectable: Selectable,
+  selectablesEditUrl: string,
   onClick: () => void,
   expanded: boolean,
   filter: Filter,
+  channel: Channel
 };
 
 const VIEW_INVALID_MESSAGE =
@@ -32,6 +36,7 @@ export class SelectableView extends React.Component {
   renderSelectableActionMenu: () => void;
   renderSelectableView: () => void;
   hasRenderableContent: () => boolean;
+  triggerDelete: (event: {preventDefault: () => void}) => void;
 
   constructor(props: Props) {
     super(props);
@@ -41,6 +46,7 @@ export class SelectableView extends React.Component {
     this.hasRenderableContent = this.hasRenderableContent.bind(this);
     this.renderSelectableActionMenu = this.renderSelectableActionMenu.bind(this);
     this.renderSelectableView = this.renderSelectableView.bind(this);
+    this.triggerDelete = this.triggerDelete.bind(this);
   }
 
   handleToggleClick(event: {target: Element, preventDefault: () => void}) {
@@ -63,6 +69,21 @@ export class SelectableView extends React.Component {
     return this.props.filter.anyColumnMatches(this.props.selectable.columns);
   }
 
+  editLinkUrl() {
+    const selectable = this.props.selectable;
+    return `${this.props.selectablesEditUrl}?kind=${selectable.kind}&id=${selectable.internal_id}`;
+  }
+
+  triggerDelete(event: {preventDefault: () => void}) {
+    if (confirm(`Do you want to permanently delete ${this.props.selectable.id}?`)) { // eslint-disable-line no-alert
+      this.props.channel.push("delete_selectable", {
+        internal_id: this.props.selectable.internal_id,
+        kind: this.props.selectable.kind,
+      });
+    }
+    event.preventDefault();
+  }
+
   renderSelectableActionMenu() {
     if (this.pending()) {
       return null;
@@ -70,12 +91,9 @@ export class SelectableView extends React.Component {
       return (
         <span className="pull-right">
           &nbsp;
-          <a className="btn btn-xs btn-default" href={this.props.selectable.edit_link}>Edit</a>
+          <a className="btn btn-xs btn-default" href={this.editLinkUrl()}>Edit</a>
           &nbsp;
-          <span
-            dangerouslySetInnerHTML={{__html: this.props.selectable.delete_html}}
-            onClick={(event) => event.preventDefault()}
-          />
+          <a className="btn btn-xs btn-danger" onClick={this.triggerDelete}>Delete</a>
         </span>
       );
     }
@@ -96,7 +114,7 @@ export class SelectableView extends React.Component {
   }
 
   pending() {
-    return (! this.props.selectable.broken) && (this.props.selectable.columns === []);
+    return this.props.selectable.creation_status === "pending";
   }
 
   renderIcon() {

@@ -2,6 +2,8 @@ defmodule Air.Service.AnalystTableTest do
   # because of shared mode
   use Air.SchemaCase, async: false
 
+  import Aircloak.AssertionHelper
+
   alias Air.{Service.AnalystTable, TestRepoHelper}
 
   setup do
@@ -52,6 +54,42 @@ defmodule Air.Service.AnalystTableTest do
       assert [] =
                AnalystTable.all(context[:u1], context[:ds1])
                |> Enum.map(& &1.name)
+    end
+  end
+
+  describe ".update_status" do
+    test "error on invalid status", context do
+      assert {:error, :invalid_status} ==
+               AnalystTable.update_status(context.u1.id, context.ds1.name, "table_name", :invalid_state)
+    end
+
+    test "changing state is persisted", context do
+      table = create_analyst_table(context[:ds1], context[:u1], "name")
+      refute table.creation_status == :succeeded
+      assert :ok == AnalystTable.update_status(context.u1.id, context.ds1.name, table.name, :succeeded)
+      assert soon(Repo.get_by!(Air.Schemas.AnalystTable, id: table.id).creation_status == :succeeded)
+    end
+  end
+
+  describe ".get_by_name/2" do
+    test "returns analyst table by name for analyst", context do
+      table = create_analyst_table(context[:ds1], context[:u1], "name")
+      {:ok, returned_table} = AnalystTable.get_by_name(context[:u1], context[:ds1], table.name)
+      assert table.id == returned_table.id
+    end
+
+    test "returns not found when none exists for the analyst", context do
+      assert {:error, :not_found} = AnalystTable.get_by_name(context[:u1], context[:ds1], "name")
+    end
+
+    test "returns not found when exists but belonging to other analyst", context do
+      table = create_analyst_table(context[:ds1], context[:u1], "name")
+      assert {:error, :not_found} = AnalystTable.get_by_name(context[:u2], context[:ds1], table.name)
+    end
+
+    test "each data source is it's own namespace", context do
+      table = create_analyst_table(context[:ds1], context[:u1], "name")
+      assert {:error, :not_found} == AnalystTable.get_by_name(context[:u1], context[:ds2], table.name)
     end
   end
 

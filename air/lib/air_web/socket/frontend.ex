@@ -20,6 +20,7 @@ defmodule AirWeb.Socket.Frontend do
   channel("user_queries:*", AirWeb.Socket.Frontend.UserChannel)
   channel("query:*", AirWeb.Socket.Frontend.UserChannel)
   channel("state_changes:*", AirWeb.Socket.Frontend.UserChannel)
+  channel("selectables:*", AirWeb.Socket.Frontend.UserChannel)
   channel("cloak_stats", AirWeb.Socket.Frontend.CloakStatsChannel)
   channel("data_source:*", AirWeb.Socket.Frontend.DataSourceChannel)
 

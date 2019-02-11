@@ -69,7 +69,7 @@ defmodule Air.Service.User do
   def reset_password(token, params) do
     in_transaction(fn ->
       with {:ok, user_id} <- RevokableToken.verify_and_revoke(token, :password_reset) do
-        user = load(user_id)
+        user = load!(user_id)
 
         RevokableToken.revoke_all(user, :session)
 
@@ -91,8 +91,22 @@ defmodule Air.Service.User do
   def all_native(), do: Repo.all(from(user in User, where: [source: ^:native], preload: [:logins, :groups]))
 
   @doc "Loads the user with the given id."
-  @spec load(pos_integer | binary) :: User.t() | nil
-  def load(user_id), do: Repo.one(from(user in User, where: user.id == ^user_id, preload: [:logins, :groups]))
+  @spec load(pos_integer | binary) :: {:ok, User.t()} | {:error, :not_found}
+  def load(user_id) do
+    case Repo.one(from(user in User, where: user.id == ^user_id, preload: [:logins, :groups])) do
+      nil -> {:error, :not_found}
+      user -> {:ok, user}
+    end
+  end
+
+  @doc "Same as load/1 but raises if no user is found."
+  @spec load!(pos_integer | binary) :: User.t()
+  def load!(user_id) do
+    case load(user_id) do
+      {:ok, user} -> user
+      {:error, :not_found} -> raise "not found"
+    end
+  end
 
   @doc "Loads the user with the given id if they are enabled."
   @spec load_enabled(pos_integer | binary) :: {:ok, User.t()} | {:error, :not_found}
@@ -470,7 +484,7 @@ defmodule Air.Service.User do
 
   def pseudonym(user) do
     if is_nil(user.pseudonym) do
-      reloaded_user = Air.Service.User.load(user.id)
+      reloaded_user = Air.Service.User.load!(user.id)
 
       if is_nil(reloaded_user.pseudonym) do
         pseudonym = random_string()

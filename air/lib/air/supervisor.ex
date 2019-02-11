@@ -12,6 +12,7 @@ defmodule Air.Supervisor do
         Air.Service.Settings,
         Air.Service.Cloak,
         Air.Service.DataSource,
+        Air.Service.AnalystTable,
         Air.Service.View,
         Air.Service.Query,
         Air.Service.License,

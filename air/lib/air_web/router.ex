@@ -91,6 +91,7 @@ defmodule AirWeb.Router do
     resources("/app_logins", AppLoginController)
 
     resources "/data_sources", DataSourceController do
+      get("/selectables/edit", SelectableController, :edit)
       resources("/selectables/:kind", SelectableController)
     end
 
