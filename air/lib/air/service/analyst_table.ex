@@ -61,7 +61,7 @@ defmodule Air.Service.AnalystTable do
     Task.Supervisor.start_child(@creation_status_supervisor, fn ->
       with {:ok, user} <- User.load(user_id),
            {:ok, data_source} <- DataSource.fetch_as_user({:name, data_source_name}, user),
-           {:ok, analyst_table} <- get_by_name(user, table_name) do
+           {:ok, analyst_table} <- get_by_name(user, data_source, table_name) do
         analyst_table
         |> Ecto.Changeset.cast(%{creation_status: status}, [:creation_status])
         |> Repo.update!()
@@ -101,9 +101,9 @@ defmodule Air.Service.AnalystTable do
     do: AnalystTable |> by_user_id(user.id) |> by_data_source_id(data_source.id) |> Repo.all()
 
   @doc "Returns an analyst table by name belonging to a given user"
-  @spec get_by_name(User.t(), String.t()) :: {:ok, AnalystTable.t()} | {:error, :not_found}
-  def get_by_name(user, name) do
-    case AnalystTable |> by_user_id(user.id) |> Repo.get_by(name: name) do
+  @spec get_by_name(User.t(), DataSource.t(), String.t()) :: {:ok, AnalystTable.t()} | {:error, :not_found}
+  def get_by_name(user, data_source, name) do
+    case AnalystTable |> by_user_id(user.id) |> by_data_source_id(data_source.id) |> Repo.get_by(name: name) do
       nil -> {:error, :not_found}
       table -> {:ok, table}
     end
