@@ -64,12 +64,27 @@ defmodule Cloak.AirSocket do
     do: cast_air(socket, "main", "memory_reading", memory_reading |> Enum.into(%{}))
 
   @doc "Sends update on the state of an analyst table to the air."
-  @spec send_analyst_table_state_update(GenServer.server(), Map.t()) :: :ok | {:error, any}
+  @spec send_analyst_table_state_update(
+          GenServer.server(),
+          non_neg_integer,
+          String.t(),
+          String.t(),
+          Cloak.AnalystTable.creation_state()
+        ) :: :ok | {:error, any}
   if Mix.env() == :test do
-    def send_analyst_table_state_update(_socket \\ __MODULE__, _payload), do: :ignored
+    def send_analyst_table_state_update(_socket \\ __MODULE__, _analyst_id, _table_name, _data_source_name, _status),
+      do: :ignored
   else
-    def send_analyst_table_state_update(socket \\ __MODULE__, payload),
-      do: cast_air(socket, "main", "analyst_table_state_update", payload)
+    def send_analyst_table_state_update(socket \\ __MODULE__, analyst_id, table_name, data_source_name, status) do
+      payload = %{
+        analyst_id: analyst_id,
+        analyst_table_name: table_name,
+        data_source_name: data_source_name,
+        status: status
+      }
+
+      cast_air(socket, "main", "analyst_table_state_update", payload)
+    end
   end
 
   # -------------------------------------------------------------------

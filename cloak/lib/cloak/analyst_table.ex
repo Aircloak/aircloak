@@ -18,6 +18,8 @@ defmodule Cloak.AnalystTable do
           columns: [DataSource.Table.column()]
         }
 
+  @type creation_state :: :succeeded | :failed
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -136,12 +138,7 @@ defmodule Cloak.AnalystTable do
         _ -> :failed
       end
 
-    Cloak.AirSocket.send_analyst_table_state_update(%{
-      analyst_id: job_meta.analyst,
-      analyst_table_name: job_meta.name,
-      data_source_name: job_meta.data_source_name,
-      status: status
-    })
+    Cloak.AirSocket.send_analyst_table_state_update(job_meta.analyst, job_meta.name, job_meta.data_source_name, status)
   end
 
   defp stop_job(state, job_id) do
