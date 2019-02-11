@@ -1,0 +1,32 @@
+{
+	"folders": [
+		{
+			"path": "air"
+		},
+		{
+			"path": "cloak"
+		},
+		{
+			"path": "common"
+		},
+		{
+			"path": "central"
+		},
+		{
+			"path": "ci"
+		},
+		{
+			"path": "bom"
+		},
+		{
+			"path": "integration_tests"
+		},
+		{
+			"path": "system_test"
+		},
+		{
+			"path": "tools"
+		}
+	],
+	"settings": {}
+}
