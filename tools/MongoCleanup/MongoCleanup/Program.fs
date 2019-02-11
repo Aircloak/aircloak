@@ -172,9 +172,15 @@ let writeCollection (db : IMongoDatabase) (name : string) (documents : seq<BsonD
 
     collection.BulkWrite(updates) |> ignore
 
-let decode (documents : seq<BsonDocument>) (decoders : Decoder list) : unit =
-    for document in documents do
-        applyDecoders decoders document
+let decode (documents : seq<BsonDocument>) (decoders : Decoder list) : Async<unit> =
+    async {
+        let! _ =
+            documents
+            |> Seq.map (fun doc -> async { applyDecoders decoders doc })
+            |> Async.Parallel
+
+        ()
+    }
 
 let mongoConnString (cloakConfig : CloakConfig) : string =
     let options = cloakConfig.parameters
@@ -233,15 +239,23 @@ let run (options : ParseResults<CLIArguments>) : unit =
 
     let data = config.tables |> Map.map (fun k _ -> readCollection db k)
 
-    for KeyValue(k, v) in config.tables |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders) do
-        decode (data.Item k) v.decoders.Value
+    async {
+        let! _ =
+            config.tables
+            |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders)
+            |> Seq.map (fun kv -> decode (data.Item kv.Key) kv.Value.decoders.Value)
+            |> Async.Parallel
 
-    project config.tables data
+        project config.tables data
 
-    for KeyValue(k, v) in config.tables |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders || Option.isSome kv.Value.projection) do
-        writeCollection db k (data.Item k)
+        let! _ =
+            config.tables
+            |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders || Option.isSome kv.Value.projection)
+            |> Seq.map (fun kv -> async { writeCollection db kv.Key (data.Item kv.Key) })
+            |> Async.Parallel
 
-    ()
+        ()
+    } |> Async.RunSynchronously
 
 [<EntryPoint>]
 let main argv =
