@@ -9,8 +9,8 @@ defmodule Cloak.Sql.FixAlign.Test do
     property "aligned #{interval_type} interval contains both ends of input" do
       check all {x, y} <- interval(unquote(interval_type)) do
         {left, right} = FixAlign.align_interval({x, y})
-        assert left <= x
-        assert y <= right
+        assert weak_lt_eq(left, x)
+        assert weak_lt_eq(y, right)
       end
     end
 
@@ -30,12 +30,27 @@ defmodule Cloak.Sql.FixAlign.Test do
         assert even_power_of_10?(size) || even_power_of_10?(size / 2) || even_power_of_10?(size / 5)
       end
     end
+
+    property "small change in input results in either no change or a big change in output for #{interval_type}" do
+      check all {left, right} <- interval(unquote(interval_type)),
+                delta_left <- float(min: -0.01, max: 0.01),
+                delta_right <- float(min: -0.01, max: 0.01) do
+        {output1_left, output1_right} = FixAlign.align_interval({left, right})
+        perturbed = [left * (1 + delta_left), right * (1 + delta_right)] |> Enum.sort() |> List.to_tuple()
+        {output2_left, output2_right} = FixAlign.align_interval(perturbed)
+
+        assert {output1_left, output1_right} == {output2_left, output2_right} or
+                 abs(output1_left - output2_left) > 0.3 * output1_left or
+                 abs(output1_right - output2_right) > 0.3 * output1_right
+      end
+    end
   end
 
   for interval_type <- [:int, :datetime, :date, :time] do
     property "align_interval is idempotent on #{interval_type} intervals" do
       check all interval <- interval(unquote(interval_type)) do
-        interval |> FixAlign.align_interval() == interval |> FixAlign.align_interval() |> FixAlign.align_interval()
+        assert interval |> FixAlign.align_interval() ==
+                 interval |> FixAlign.align_interval() |> FixAlign.align_interval()
       end
     end
   end
@@ -43,8 +58,6 @@ defmodule Cloak.Sql.FixAlign.Test do
   property "an aligned interval is not much larger than the input" do
     check all {x, y} <- float_interval() do
       interval = {x / 10, y / 10}
-      # Credo wrongly reports that we're missing spaces around operators in this function.
-      # credo:disable-for-next-line Credo.Check.Consistency.SpaceAroundOperators
       assert 10 * width(interval) >= interval |> FixAlign.align_interval() |> width()
     end
   end
@@ -277,4 +290,6 @@ defmodule Cloak.Sql.FixAlign.Test do
   defp width({x, y}), do: y - x
 
   defp lt_eq(%Time{} = x, %Time{} = y), do: Cloak.Time.to_integer(x) <= Cloak.Time.to_integer(y)
+
+  defp weak_lt_eq(x, y), do: x <= y or abs(x - y) < 0.0000005 * (x + y)
 end
