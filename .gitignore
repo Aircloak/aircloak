@@ -6,6 +6,3 @@ publish_logs.txt
 # To not include the Finder artefacts produced by macos
 .DS_Store
 .Rproj.user
-
-**/.vscode
-**/.elixir_ls
