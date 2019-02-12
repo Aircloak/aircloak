@@ -1,4 +1,4 @@
-.PHONY: run publish publish-osx publish-linux reset elixir-deps
+.PHONY: run publish publish-osx publish-linux reset elixir-deps mongo-server
 
 run: reset-db
 	dotnet run --project MongoCleanup -- --cloak-config teambank_mongo_34.json
@@ -27,3 +27,6 @@ publish-osx:
 
 publish-linux:
 	dotnet publish -c Release -r linux-x64 --self-contained true MongoCleanup
+
+mongo-server:
+	docker run  -p 27017:27017 --name mongo-cleanup-server -d mongo:3.6
