@@ -64,6 +64,11 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
       assert Enum.any?(result.db_columns, &match?(%Expression{user_id?: true}, &1))
     end
 
+    test "column < column coditions" do
+      result = compile!("SELECT COUNT(*) FROM table WHERE numeric < numeric")
+      assert [generic_layer()] = result.noise_layers
+    end
+
     test "noise layers for clear condition don't depend on equality order" do
       result1 = compile!("SELECT COUNT(*) FROM table WHERE numeric = 3")
       result2 = compile!("SELECT COUNT(*) FROM table WHERE 3 = numeric")

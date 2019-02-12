@@ -410,9 +410,9 @@ Additionally, depending on the type of clause, some extra data is added:
 * `=` clauses, `SELECT`, and `GROUP BY` - no extra data
 * `<>` clauses - a `:<>` symbol and the RHS constant; the data from the filtered
   column is not included
-* `<>` clauses of the form `column <> constant` - an additional noise layer
+* `<>` clauses of the form `column <> text_constant` - an additional noise layer
   with a `:<>` symbol, a `:lower` symbol, and the constant converted to
-  lowercase
+  lowercase. Note that `lower` and `upper` are allowed in the LHS of these clauses.
 * `[NOT] [I]LIKE` clauses - symbols indicating the type of clause (like `:ilike`)
   plus pattern-dependent data, see [Like pattern seeds](#like-pattern-seeds)
 * range clauses - the range endpoints or the symbol `:implicit` for implicit
@@ -421,6 +421,8 @@ Additionally, depending on the type of clause, some extra data is added:
   so noise layers are never directly computed for them
 * `IN` clauses - a static layer is created for the whole clause with no extra seed,
   with an additional UID layer per constant in the RHS
+* `col1 <>/</<=/>/>= col2` - no noise layer is generated. Note that only unmodified
+  columns are allowed in these expressions.
 
 As a final step if the hash of the seed for many noise layers comes out the same,
 then the duplicates are discarded. This is done so that adding the same clause
