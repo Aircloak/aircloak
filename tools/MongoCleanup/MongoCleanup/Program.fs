@@ -66,11 +66,11 @@ let update (document : BsonDocument) (key : string) (f : BsonUpdate) : unit =
     let keys = key.Split [| '.' |] |> Array.toList
     update' document keys f
 
-let bsonNull = BsonNull.Value.AsBsonValue
+let bsonNull : BsonValue = upcast BsonNull.Value
 
 let safely<'T when 'T :> BsonValue> (f : unit -> 'T) : BsonValue =
     try
-        (f()).AsBsonValue
+        upcast f()
     with
     | :? InvalidCastException -> bsonNull
     | :? FormatException -> bsonNull
@@ -120,9 +120,9 @@ let decodeAES (key : string option) (value : BsonValue) : BsonValue =
             use reader = new StreamReader(cryptoStream)
 
             let plaintext = reader.ReadToEnd()
-            BsonString(plaintext).AsBsonValue
+            upcast BsonString(plaintext)
         with
-        | _ -> BsonNull.Value.AsBsonValue
+        | _ -> bsonNull
 
 let substringDecoder (decoder : Decoder) =
     match decoder.from, decoder.length with
