@@ -1,5 +1,13 @@
 <h2>Analysis</h2>
 
+<p>
+For information on how to read this table consult the <%=
+  link "Analysis status",
+    to: "/docs/ops/administration.html#analysis-status",
+    target: :_blank
+%> section of the user guide.
+</p>
+
 <div>
   <ul class="nav nav-tabs" role="tablist">
     <li class="active">
