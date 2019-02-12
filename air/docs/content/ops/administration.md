@@ -1,4 +1,4 @@
-# Passwords and sessions
+# Administration
 
 ## Forgotten password
 
@@ -43,3 +43,5 @@ To remedy this problem it's possible to sign out all existing sessions for the g
 by navigating to `Settings` and clicking `Sign out other sessions`. Alternatively, an Insights Air administrator can
 sign out all sessions for any user by navigating to `Admin -> Users -> Edit` and clicking `Sign out all sessions`. Also
 note, that when using the reset password funcionality all sessions are signed out automatically.
+
+## Analysis status
