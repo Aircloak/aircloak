@@ -27,8 +27,14 @@ type Props = {
   channel: Channel
 };
 
+const ERROR_REASON_MESSAGE =
+  "This might be caused by a change in the underlying data source, a dependent analyst table, or a view.";
+
 const VIEW_INVALID_MESSAGE =
-  "This view is no longer valid. The underlying data source or another view might have changed to cause this.";
+  `This view is no longer valid. ${ERROR_REASON_MESSAGE}`;
+
+const TABLE_INVALID_MESSAGE =
+  `This table creation failed or the table is no longer valid. ${ERROR_REASON_MESSAGE}`;
 
 export class SelectableView extends React.Component {
   handleToggleClick: () => void;
@@ -37,6 +43,7 @@ export class SelectableView extends React.Component {
   renderSelectableView: () => void;
   hasRenderableContent: () => boolean;
   triggerDelete: (event: {preventDefault: () => void}) => void;
+  brokenErrorMessage: () => string;
 
   constructor(props: Props) {
     super(props);
@@ -47,6 +54,7 @@ export class SelectableView extends React.Component {
     this.renderSelectableActionMenu = this.renderSelectableActionMenu.bind(this);
     this.renderSelectableView = this.renderSelectableView.bind(this);
     this.triggerDelete = this.triggerDelete.bind(this);
+    this.brokenErrorMessage = this.brokenErrorMessage.bind(this);
   }
 
   handleToggleClick(event: {target: Element, preventDefault: () => void}) {
@@ -99,10 +107,19 @@ export class SelectableView extends React.Component {
     }
   }
 
+  brokenErrorMessage() {
+    if (this.props.selectable.kind === "view") {
+      return VIEW_INVALID_MESSAGE;
+    } else {
+      return TABLE_INVALID_MESSAGE;
+    }
+  }
+
   broken() {
-    if (this.props.selectable.broken) {
+    const selectable = this.props.selectable;
+    if (selectable.broken || selectable.creation_status === "failed") {
       return {
-        title: VIEW_INVALID_MESSAGE,
+        title: this.brokenErrorMessage(),
         "data-toggle": "tooltip",
         className: "list-group-item-heading alert-danger",
       };
