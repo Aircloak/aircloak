@@ -421,6 +421,8 @@ Additionally, depending on the type of clause, some extra data is added:
   so noise layers are never directly computed for them
 * `IN` clauses - a static layer is created for the whole clause with no extra seed,
   with an additional UID layer per constant in the RHS
+* `col1 <>/</<=/>/>= col2` - no noise layer is generated. Note that only unmodified
+  columns are allowed in these expressions.
 
 As a final step if the hash of the seed for many noise layers comes out the same,
 then the duplicates are discarded. This is done so that adding the same clause
