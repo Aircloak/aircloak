@@ -84,9 +84,6 @@ defmodule AirWeb.Router do
 
     delete("/logout", SessionController, :delete)
 
-    get("/help_guides", HelpGuideController, :index)
-    get("/help_guide/:article", HelpGuideController, :article)
-
     resources("/api_tokens", ApiTokenController)
     resources("/app_logins", AppLoginController)
 
