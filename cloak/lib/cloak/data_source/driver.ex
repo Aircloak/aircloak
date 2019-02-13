@@ -57,7 +57,7 @@ defmodule Cloak.DataSource.Driver do
   @callback supports_analyst_tables?() :: boolean
 
   @doc "Prepare analyst table for storing."
-  @callback prepare_analyst_table(any, Query.t()) :: {db_name :: String.t(), store_info :: String.t()}
+  @callback prepare_analyst_table(String.t(), Query.t()) :: String.t()
 
   @doc "Creates or updates the analyst table from the given data obtained via `prepare_analyst_table/2`."
   @callback create_or_update_analyst_table(connection, db_name :: String.t(), store_info :: String.t()) ::
@@ -77,7 +77,7 @@ defmodule Cloak.DataSource.Driver do
       def supports_analyst_tables?(), do: false
 
       @impl unquote(__MODULE__)
-      def prepare_analyst_table(_id, _query), do: raise(RuntimeError, "not implemented")
+      def prepare_analyst_table(_table_name, _query), do: raise(RuntimeError, "not implemented")
 
       @impl unquote(__MODULE__)
       def create_or_update_analyst_table(_connection, _id, _query), do: raise(RuntimeError, "not implemented")

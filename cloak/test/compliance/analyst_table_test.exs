@@ -27,18 +27,6 @@ defmodule Compliance.AnalystTableTest do
         end
       end
 
-      test "different query leads to a different db_name" do
-        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, _} = create_or_update(1, "table3", "select user_id, height from users where age < 70", data_source)
-          name1 = AnalystTable.table_definition(1, "table3", data_source).db_name
-
-          {:ok, _, _} = create_or_update(1, "table3", "select user_id, height from users where age > 70", data_source)
-          name2 = AnalystTable.table_definition(1, "table3", data_source).db_name
-
-          assert name1 != name2
-        end
-      end
-
       test "different id leads to a different db_name" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           {:ok, _, _} = create_or_update(1, "table4", "select user_id, height from users where age < 70", data_source)

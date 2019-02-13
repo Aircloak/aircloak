@@ -44,7 +44,13 @@ defmodule Cloak.AnalystTable do
              views
            ) do
       with {:error, reason} <- DataSource.check_analyst_tables_support(data_source), do: raise(reason)
-      {db_name, store_info} = data_source.driver.prepare_analyst_table({analyst, table_name}, query)
+
+      hash = :crypto.hash(:sha256, :erlang.term_to_binary({data_source.name, analyst, table_name}))
+      encoded_hash = Base.encode64(hash, padding: false)
+      # make sure the name is not longer than 30 characters to avoid possible issues with some databases, such as Oracle
+      db_name = String.slice("__ac_#{encoded_hash}", 0, 30)
+
+      store_info = data_source.driver.prepare_analyst_table(db_name, query)
 
       table = %{
         analyst: analyst,

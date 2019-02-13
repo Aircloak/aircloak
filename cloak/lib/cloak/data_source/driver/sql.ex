@@ -45,10 +45,7 @@ defmodule Cloak.DataSource.Driver.SQL do
       defdelegate supports_function?(expression, data_source), to: SqlBuilder.Support
 
       @impl Driver
-      def prepare_analyst_table(table_id, query) do
-        {sql, db_name} = SqlBuilder.create_table_from_query(table_id, query)
-        {db_name, sql}
-      end
+      def prepare_analyst_table(db_name, query), do: SqlBuilder.create_table_from_query(db_name, query)
 
       @impl Driver
       def create_or_update_analyst_table(connection, db_name, sql) do
