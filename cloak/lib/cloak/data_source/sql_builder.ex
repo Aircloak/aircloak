@@ -156,57 +156,27 @@ defmodule Cloak.DataSource.SqlBuilder do
     )
   end
 
-  defp column_sql(
-         %Expression{function?: true, function: fun_name, type: type, function_args: args},
-         query
-       )
+  defp column_sql(%Expression{function?: true, function: fun_name, type: type, function_args: args}, query)
        when fun_name in ["+", "-"] and type in [:time, :date, :datetime],
-       do:
-         sql_dialect_module(query).time_arithmetic_expression(
-           fun_name,
-           Enum.map(args, &to_fragment(&1, query))
-         )
+       do: sql_dialect_module(query).time_arithmetic_expression(fun_name, Enum.map(args, &to_fragment(&1, query)))
 
-  defp column_sql(
-         %Expression{
-           function?: true,
-           function: "-",
-           type: :interval,
-           function_args: args
-         },
-         query
-       ),
-       do: sql_dialect_module(query).date_subtraction_expression(Enum.map(args, &to_fragment(&1, query)))
+  defp column_sql(%Expression{function?: true, function: "/", type: :interval, function_args: args}, query),
+    do: sql_dialect_module(query).interval_division(Enum.map(args, &to_fragment(&1, query)))
 
-  defp column_sql(
-         %Expression{function: {:cast, to_type}, function_args: [arg]},
-         query
-       ),
-       do: arg |> to_fragment(query) |> sql_dialect_module(query).cast_sql(arg.type, to_type)
+  defp column_sql(%Expression{function?: true, function: "-", type: :interval, function_args: args}, query),
+    do: sql_dialect_module(query).date_subtraction_expression(Enum.map(args, &to_fragment(&1, query)))
 
-  defp column_sql(expression = %Expression{function: "date_trunc", type: :date}, query) do
-    column_sql(
-      Expression.function({:cast, :date}, [%{expression | type: :datetime}], :date),
-      query
-    )
-  end
+  defp column_sql(%Expression{function: {:cast, to_type}, function_args: [arg]}, query),
+    do: arg |> to_fragment(query) |> sql_dialect_module(query).cast_sql(arg.type, to_type)
 
-  defp column_sql(
-         %Expression{function?: true, function: fun_name, function_args: args},
-         query
-       ),
-       do:
-         Support.function_sql(
-           fun_name,
-           Enum.map(args, &to_fragment(&1, query)),
-           sql_dialect_module(query)
-         )
+  defp column_sql(expression = %Expression{function: "date_trunc", type: :date}, query),
+    do: column_sql(Expression.function({:cast, :date}, [%{expression | type: :datetime}], :date), query)
 
-  defp column_sql(
-         %Expression{constant?: true, type: :like_pattern, value: value},
-         _query
-       ),
-       do: like_pattern_to_fragment(value)
+  defp column_sql(%Expression{function?: true, function: fun_name, function_args: args}, query),
+    do: Support.function_sql(fun_name, Enum.map(args, &to_fragment(&1, query)), sql_dialect_module(query))
+
+  defp column_sql(%Expression{constant?: true, type: :like_pattern, value: value}, _query),
+    do: like_pattern_to_fragment(value)
 
   defp column_sql(%Expression{constant?: true, value: value}, query),
     do: constant_to_fragment(value, query)

@@ -39,6 +39,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @doc "Returns the dialect-specific SQL for subtracting two date/time/datetimes."
   @callback date_subtraction_expression(iodata) :: iodata
 
+  @doc "Returns the dialect-specific SQL for dividing an interval."
+  @callback interval_division(iodata) :: iodata
+
   @doc "Returns the dialect-specific ORDER BY clause SQL for the given column, order and nulls directive."
   @callback order_by(iodata, :asc | :desc, :nulls_first | :nulls_last | :nulls_natural) :: iodata
 
@@ -93,6 +96,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
 
       @impl unquote(__MODULE__)
       def date_subtraction_expression([arg1, arg2]), do: ["(", arg1, " - ", arg2, ")"]
+
+      @impl unquote(__MODULE__)
+      def interval_division(args), do: function_sql("/", args)
 
       @impl unquote(__MODULE__)
       def literal(value), do: literal_default(value)

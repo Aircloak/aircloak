@@ -74,6 +74,9 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   def select_table_names(prefix),
     do: "SELECT table_name FROM information_schema.tables WHERE table_name LIKE '#{prefix}%'"
 
+  @impl Dialect
+  def interval_division([arg1, arg2]), do: ["(", arg1, " / ", arg2, ")"]
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
