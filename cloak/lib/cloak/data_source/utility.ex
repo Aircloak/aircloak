@@ -11,22 +11,8 @@ defmodule Cloak.DataSource.Utility do
   # API
   # -------------------------------------------------------------------
 
-  @doc "This function will return a list of data source definitions, as referenced by a data source"
-  @spec load_individual_data_source_configs(String.t() | [DataSource.t()]) :: [DataSource.t()]
-  # This is the legacy path where data sources where configured as a list of data source definitions inline
-  def load_individual_data_source_configs(data_sources) when is_list(data_sources) do
-    Logger.error(
-      "Declaring data sources in `config.json` is deprecated. " <>
-        "Please consult the `Insights Cloak` subsection of the `Configuring the system` section in the User Guide. " <>
-        "If you do not update your configuration your system will stop working from the next version onwards."
-    )
-
-    data_sources
-    |> Stream.with_index()
-    |> Stream.map(fn {data_source, index} -> validate_data_source("##{index + 1}", data_source) end)
-    |> Enum.reject(&is_nil/1)
-  end
-
+  @doc "This function will return a list of data source definitions loaded from all .json files in the given directory."
+  @spec load_individual_data_source_configs(String.t()) :: [DataSource.t()]
   def load_individual_data_source_configs(config_path) when is_binary(config_path) do
     case Aircloak.File.ls(config_path) do
       {:ok, data_source_config_files} ->

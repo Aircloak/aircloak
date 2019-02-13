@@ -267,11 +267,11 @@ defmodule Cloak.DataSource do
 
   defp replace_data_source(data_sources, data_source), do: Enum.uniq_by([data_source] ++ data_sources, & &1.name)
 
-  defp load_data_source_configs(),
-    do:
-      Aircloak.DeployConfig.fetch!("data_sources")
-      |> Cloak.DataSource.Utility.load_individual_data_source_configs()
-      |> initialize_data_source_configs()
+  defp load_data_source_configs() do
+    Aircloak.DeployConfig.fetch!("data_sources")
+    |> Cloak.DataSource.Utility.load_individual_data_source_configs()
+    |> initialize_data_source_configs()
+  end
 
   defp initialize_data_source_configs(data_source_configs) do
     data_sources = config_to_datasources(data_source_configs)
