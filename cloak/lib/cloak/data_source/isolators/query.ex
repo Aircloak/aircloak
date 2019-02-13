@@ -18,7 +18,7 @@ defmodule Cloak.DataSource.Isolators.Query do
 
     cond do
       table.user_id_join_chain == nil -> nil
-      table.keys[column] == :user_id -> true
+      column == table.user_id -> true
       has_non_isolating_join_chain?(data_source, table) -> false
       true -> isolating_ratio(data_source, table_name, column) > threshold()
     end
