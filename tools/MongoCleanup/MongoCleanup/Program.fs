@@ -260,8 +260,8 @@ let run (options : ParseResults<CLIArguments>) : unit =
 [<EntryPoint>]
 let main argv =
     try
-        let options =
-            optionParser.ParseCommandLine(inputs = argv, raiseOnUsage = true)
-        run options
-    with e -> printfn "%s" e.Message
+        optionParser.ParseCommandLine(inputs = argv, raiseOnUsage = true) |> run
+    with
+    | :? Argu.ArguParseException as e -> printfn "%s" e.Message
+    | e -> printfn "Unexpected error:\n%A" e
     0 // return an integer exit code
