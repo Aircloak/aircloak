@@ -55,7 +55,7 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @callback select_table_names(prefix :: String.t()) :: String.t()
 
   @doc "Returns the statement for creating the analyst meta table."
-  @callback analyst_meta_table_create_statement() :: String.t()
+  @callback analyst_meta_table_create_statement(String.t()) :: String.t()
 
   alias Cloak.Query.ExecutionError
 
@@ -125,7 +125,7 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
         do: raise(RuntimeError, "Analyst tables are not supported on this data source.")
 
       @impl unquote(__MODULE__)
-      def analyst_meta_table_create_statement(),
+      def analyst_meta_table_create_statement(_quoted_table_name),
         do: raise(RuntimeError, "Analyst tables are not supported on this data source.")
 
       defoverridable unquote(__MODULE__)

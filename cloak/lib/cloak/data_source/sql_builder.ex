@@ -72,13 +72,9 @@ defmodule Cloak.DataSource.SqlBuilder do
     end
   end
 
-  @doc "Returns the SQL statement for creating the table populated with the given query."
-  @spec create_table_from_query(String.t(), Query.t()) :: String.t()
-  def create_table_from_query(table_name, query) do
-    quoted_table_name = quote_table_name(table_name, query.data_source.driver.sql_dialect_module.quote_char())
-    select_statement = build(query)
-    "CREATE TABLE #{quoted_table_name} AS #{select_statement}"
-  end
+  @doc "Escapes the given string."
+  @spec escape_string(String.t()) :: String.t()
+  def escape_string(string), do: String.replace(string, "'", "''")
 
   @doc "Builds the necessary JOIN chain to associate a `user_id` column with the table."
   @spec build_table_chain_with_user_id(%{atom => Table.t()}, atom) :: {String.t(), String.t()}
@@ -347,8 +343,6 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp constant_to_fragment(value, query),
     do: sql_dialect_module(query).literal(value)
-
-  defp escape_string(string), do: String.replace(string, "'", "''")
 
   defp like_pattern_to_fragment({pattern, escape = "\\"}) do
     [?', pattern, ?', "ESCAPE", ?', escape, ?']

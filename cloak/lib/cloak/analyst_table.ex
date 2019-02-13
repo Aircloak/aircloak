@@ -207,7 +207,13 @@ defmodule Cloak.AnalystTable do
   defp store_table_to_database(data_source, table) do
     DataSource.Connection.execute!(
       data_source,
-      &data_source.driver.create_or_update_analyst_table(&1, table.db_name, table.store_info)
+      &data_source.driver.create_or_update_analyst_table(
+        &1,
+        table.db_name,
+        table.store_info,
+        "air_id",
+        data_source.name
+      )
     )
   end
 

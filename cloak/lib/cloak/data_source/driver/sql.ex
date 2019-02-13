@@ -1,16 +1,18 @@
 defmodule Cloak.DataSource.Driver.SQL do
   @moduledoc "Helper module for implementing SQL drivers."
 
+  require Logger
+  alias Cloak.DataSource.Driver
   alias Cloak.DataSource.SqlBuilder
 
   @doc "Executes the given SQL statement."
-  @callback execute(Cloak.DataSource.Driver.connection(), String.t()) :: {:ok, any} | {:error, String.t()}
+  @callback execute(Driver.connection(), String.t()) :: {:ok, any} | {:error, String.t()}
 
   @doc "Executes the given select statement and returns an enumerable of rows, where each row should be a list."
-  @callback select(Cloak.DataSource.Driver.connection(), String.t()) :: {:ok, Enumerable.t()} | {:error, String.t()}
+  @callback select(Driver.connection(), String.t()) :: {:ok, Enumerable.t()} | {:error, String.t()}
 
   @doc "Returns the list of analyst tables."
-  @callback analyst_tables(Cloak.DataSource.Driver.connection()) :: [String.t()]
+  @callback analyst_tables(Driver.connection()) :: [String.t()]
 
   defmacro __using__(_opts) do
     module = __CALLER__.module |> Module.split() |> List.last()
@@ -18,6 +20,7 @@ defmodule Cloak.DataSource.Driver.SQL do
 
     quote do
       alias Cloak.DataSource.{Driver, SqlBuilder}
+      alias Driver.SQL
       use Driver
       require Logger
 
@@ -29,7 +32,8 @@ defmodule Cloak.DataSource.Driver.SQL do
         # using apply here to trick the dialyzer which will report errors for data sources which don't implement
         # select_table_names function in the dialect
         |> select!(apply(__MODULE__, :sql_dialect_module, []).select_table_names("__ac_"))
-        |> Enum.map(fn [table_name] -> table_name end)
+        |> Stream.map(fn [table_name] -> table_name end)
+        |> Enum.reject(&(&1 == SQL.unquoted_analyst_table_name()))
       end
 
       @impl Driver
@@ -45,28 +49,11 @@ defmodule Cloak.DataSource.Driver.SQL do
       defdelegate supports_function?(expression, data_source), to: SqlBuilder.Support
 
       @impl Driver
-      def prepare_analyst_table(db_name, query), do: SqlBuilder.create_table_from_query(db_name, query)
+      def prepare_analyst_table(db_name, query), do: SQL.create_table_from_query(db_name, query)
 
       @impl Driver
-      def create_or_update_analyst_table(connection, db_name, sql) do
-        table_exists? = Enum.any?(analyst_tables(connection), &(&1 == db_name))
-
-        drop_table = fn ->
-          if table_exists? do
-            Logger.info("dropping database table `#{db_name}` because it will be recreated")
-            execute(connection, "DROP TABLE #{SqlBuilder.quote_table_name(db_name)}")
-          else
-            {:ok, nil}
-          end
-        end
-
-        create_table = fn ->
-          Logger.info("creating database table `#{db_name}`")
-          execute(connection, sql)
-        end
-
-        with {:ok, _} <- drop_table.(), {:ok, _} <- create_table.(), do: :ok
-      end
+      def create_or_update_analyst_table(connection, db_name, sql, air_id, data_source_name),
+        do: SQL.create_or_update_analyst_table(__MODULE__, connection, db_name, sql, air_id, data_source_name)
 
       @impl Driver
       def drop_unused_analyst_tables(connection, known_db_names) do
@@ -89,12 +76,13 @@ defmodule Cloak.DataSource.Driver.SQL do
       def initialize_analyst_meta_table(connection) do
         # using apply here to trick the dialyzer which will report errors for data sources which don't implement
         # sql_dialect_module function in the dialect
-        sql = apply(__MODULE__, :sql_dialect_module, []).select_table_names("__ac_analyst_tables")
+        sql = apply(__MODULE__, :sql_dialect_module, []).select_table_names(SQL.unquoted_analyst_table_name())
 
         if Enum.empty?(select!(connection, sql)) do
+          quoted_table_name = SQL.quoted_analyst_table_name(unquote(dialect))
           # using apply here to trick the dialyzer which will report errors for data sources which don't implement
           # analyst_meta_table_create_statement function in the dialect
-          sql = apply(unquote(dialect), :analyst_meta_table_create_statement, [])
+          sql = apply(unquote(dialect), :analyst_meta_table_create_statement, [quoted_table_name])
           with {:ok, _} <- execute(connection, sql), do: :ok
         else
           # the table already exists, so we won't do anything else
@@ -122,4 +110,85 @@ defmodule Cloak.DataSource.Driver.SQL do
       defoverridable unquote(__MODULE__)
     end
   end
+
+  # -------------------------------------------------------------------
+  # API functions
+  # -------------------------------------------------------------------
+
+  @doc "Returns the unquoted analyst table name."
+  @spec unquoted_analyst_table_name() :: String.t()
+  def unquoted_analyst_table_name(), do: "__ac_analyst_tables"
+
+  @doc "Returns the quoted analyst table name."
+  @spec quoted_analyst_table_name(module) :: String.t()
+  def quoted_analyst_table_name(dialect), do: quote_identifier(dialect, unquoted_analyst_table_name())
+
+  @doc "Returns the SQL statement for creating the table populated with the given query."
+  @spec create_table_from_query(String.t(), Query.t()) :: String.t()
+  def create_table_from_query(table_name, query) do
+    quoted_table_name =
+      SqlBuilder.quote_table_name(table_name, query.data_source.driver.sql_dialect_module.quote_char())
+
+    select_statement = SqlBuilder.build(query)
+    "CREATE TABLE #{quoted_table_name} AS #{select_statement}"
+  end
+
+  @doc "Creates or updates the given analyst table."
+  @spec create_or_update_analyst_table(module, Driver.connection(), String.t(), String.t(), String.t(), String.t()) ::
+          :ok | {:error, String.t()}
+  def create_or_update_analyst_table(driver, connection, db_name, sql, air_id, data_source_name) do
+    with {:ok, _} <- drop_table(driver, connection, db_name, air_id, data_source_name),
+         {:ok, _} <- create_table(driver, connection, db_name, sql, air_id, data_source_name),
+         do: :ok
+  end
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp drop_table(driver, connection, db_name, air_id, data_source_name) do
+    if Enum.any?(driver.analyst_tables(connection), &(&1 == db_name)) do
+      Logger.info("dropping database table `#{db_name}` because it will be recreated")
+
+      with {:ok, _} <- delete_meta(driver, connection, air_id, data_source_name, db_name),
+           do: driver.execute(connection, "DROP TABLE #{quote_identifier(driver.sql_dialect_module(), db_name)}")
+    else
+      {:ok, nil}
+    end
+  end
+
+  defp delete_meta(driver, connection, air_id, data_source_name, db_name) do
+    filter =
+      [{"air", air_id}, {"data_source", data_source_name}, {"name", db_name}]
+      |> Stream.map(fn {column, value} ->
+        "#{quote_identifier(driver.sql_dialect_module(), column)} = '#{SqlBuilder.escape_string(value)}'"
+      end)
+      |> Enum.join(" AND ")
+
+    driver.execute(connection, "DELETE FROM #{quoted_analyst_table_name(driver.sql_dialect_module())} WHERE #{filter}")
+  end
+
+  defp create_table(driver, connection, db_name, sql, air_id, data_source_name) do
+    Logger.info("creating database table `#{db_name}`")
+
+    with {:ok, _} <- insert_meta(driver, connection, air_id, data_source_name, db_name),
+         do: driver.execute(connection, sql)
+  end
+
+  defp insert_meta(driver, connection, air_id, data_source_name, db_name) do
+    {columns, values} =
+      [{"air", air_id}, {"data_source", data_source_name}, {"name", db_name}]
+      |> Stream.map(fn {column, value} ->
+        {quote_identifier(driver.sql_dialect_module(), column), "'#{SqlBuilder.escape_string(value)}'"}
+      end)
+      |> Enum.unzip()
+
+    columns = Enum.join(columns, ", ")
+    values = Enum.join(values, ", ")
+
+    statement = "INSERT INTO #{quoted_analyst_table_name(driver.sql_dialect_module())} (#{columns}) VALUES (#{values})"
+    driver.execute(connection, statement)
+  end
+
+  defp quote_identifier(dialect, identifier), do: SqlBuilder.quote_table_name(identifier, dialect.quote_char())
 end

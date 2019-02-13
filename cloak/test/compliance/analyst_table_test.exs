@@ -372,6 +372,7 @@ defmodule Compliance.AnalystTableTest do
   defp clear_analyst_tables(data_source) do
     AnalystTable.sync_serialized(fn ->
       data_source |> stored_tables() |> Enum.each(&drop_table!(data_source, &1))
+      truncate_table!(data_source, "__ac_analyst_tables")
       :ets.match_delete(AnalystTable, {{:_, data_source.name, :_}, :_})
     end)
   end
@@ -395,6 +396,12 @@ defmodule Compliance.AnalystTableTest do
     quote_char = data_source.driver.sql_dialect_module.quote_char()
     quoted_table_name = Cloak.DataSource.SqlBuilder.quote_table_name(table_name, quote_char)
     execute!(data_source, "drop table #{quoted_table_name}")
+  end
+
+  defp truncate_table!(data_source, table_name) do
+    quote_char = data_source.driver.sql_dialect_module.quote_char()
+    quoted_table_name = Cloak.DataSource.SqlBuilder.quote_table_name(table_name, quote_char)
+    execute!(data_source, "truncate table #{quoted_table_name}")
   end
 
   defp execute!(data_source, statement) do
