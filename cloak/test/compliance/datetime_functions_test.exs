@@ -19,6 +19,7 @@ Enum.each(
     "<col> - interval 'P1M'",
     "<col> - (<col> - interval 'P1D')",
     "<col> + 2 * interval 'P1Y'",
+    "(<col> - (<col> - interval 'P1Y')) / 2",
     "interval 'P1DT1H'"
   ],
   fn function ->
