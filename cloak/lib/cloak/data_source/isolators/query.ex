@@ -3,7 +3,7 @@ defmodule Cloak.DataSource.Isolators.Query do
 
   alias Cloak.Sql.{Parser, Compiler}
   alias Cloak.DataSource
-  alias Cloak.DataSource.SqlBuilder
+  alias Cloak.DataSource.{SqlBuilder, Isolators}
   alias Cloak.Query.DbEmulator
 
   # -------------------------------------------------------------------
@@ -19,6 +19,7 @@ defmodule Cloak.DataSource.Isolators.Query do
     cond do
       table.user_id_join_chain == nil -> nil
       table.keys[column] == :user_id -> true
+      has_non_isolating_join_chain?(data_source, table) -> false
       true -> isolating_ratio(data_source, table_name, column) > threshold()
     end
   end
@@ -60,4 +61,17 @@ defmodule Cloak.DataSource.Isolators.Query do
   end
 
   defp threshold(), do: Application.fetch_env!(:cloak, :anonymizer) |> Keyword.fetch!(:isolating_column_threshold)
+
+  defp has_non_isolating_join_chain?(data_source, table) do
+    case table.user_id_join_chain do
+      [{_key, link_table_name, link_key} | _] ->
+        case Isolators.cache_lookup(data_source, data_source.tables[link_table_name].name, link_key) do
+          {:ok, false} -> true
+          _ -> false
+        end
+
+      _ ->
+        false
+    end
+  end
 end
