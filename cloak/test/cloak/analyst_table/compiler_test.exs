@@ -102,7 +102,7 @@ defmodule Cloak.AnalystTable.CompilerTest do
   defp data_source(), do: hd(Cloak.DataSource.all())
 
   defp db_select(query) do
-    {create_statement, _table_name} = Cloak.DataSource.SqlBuilder.create_table_statement(1, query)
+    {create_statement, _table_name} = Cloak.DataSource.SqlBuilder.create_table_from_query(1, query)
     String.replace(create_statement, ~r/^CREATE TABLE "[^\s]*" AS /, "")
   end
 end

@@ -46,7 +46,7 @@ defmodule Cloak.DataSource.Driver.SQL do
 
       @impl Driver
       def prepare_analyst_table(table_id, query) do
-        {sql, db_name} = SqlBuilder.create_table_statement(table_id, query)
+        {sql, db_name} = SqlBuilder.create_table_from_query(table_id, query)
         {db_name, sql}
       end
 

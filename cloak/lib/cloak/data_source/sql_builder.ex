@@ -73,8 +73,8 @@ defmodule Cloak.DataSource.SqlBuilder do
   end
 
   @doc "Returns the SQL statement for creating the table populated with the given query."
-  @spec create_table_statement(any, Query.t()) :: {statement :: String.t(), table_name :: String.t()}
-  def create_table_statement(table_id, query) do
+  @spec create_table_from_query(any, Query.t()) :: {statement :: String.t(), table_name :: String.t()}
+  def create_table_from_query(table_id, query) do
     select_statement = build(query)
 
     hash = :crypto.hash(:sha256, :erlang.term_to_binary([table_id, select_statement]))
