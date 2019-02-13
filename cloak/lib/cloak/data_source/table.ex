@@ -9,6 +9,7 @@ defmodule Cloak.DataSource.Table do
 
   @type data_type :: :text | :integer | :real | :boolean | :datetime | :time | :date | :interval | :unknown
   @type column :: %{name: String.t(), type: data_type, visible?: boolean}
+  @type join_link :: {String.t(), atom, String.t()}
 
   @type t :: %{
           # table name as seen by the user
@@ -25,6 +26,7 @@ defmodule Cloak.DataSource.Table do
           :isolating_columns => Map.t(),
           :maintain_shadow_db => boolean,
           :status => :created | :creating | :create_error,
+          :user_id_join_chain => [join_link] | nil,
           optional(any) => any
         }
 
@@ -62,7 +64,8 @@ defmodule Cloak.DataSource.Table do
           auto_isolating_column_classification: true,
           isolating_columns: %{},
           maintain_shadow_db: true,
-          status: :created
+          status: :created,
+          user_id_join_chain: if(user_id_column_name == nil, do: nil, else: [])
         },
         Map.new(opts)
       )
@@ -82,6 +85,7 @@ defmodule Cloak.DataSource.Table do
       |> translate_projections_and_decoders()
       |> scan_virtual_tables(connection)
       |> resolve_tables_keys()
+      |> resolve_user_id_join_chains()
 
   @doc "Maps configured tables into the proper table structure."
   @spec map_tables(Map.t()) :: Map.t()
@@ -636,5 +640,63 @@ defmodule Cloak.DataSource.Table do
     [type] = Map.keys(key)
     [column] = Map.values(key)
     {column, type}
+  end
+
+  defp resolve_user_id_join_chains(data_source) do
+    tables =
+      data_source.tables
+      |> Enum.map(fn {name, table} ->
+        user_id_join_chain = resolve_user_id_join_chain(data_source, name)
+
+        if table.content_type == :private and user_id_join_chain == nil do
+          raise ExecutionError,
+            message:
+              "Table `#{name}` can not be queried: content type is set to `personal`, " <>
+                "but table has no possible join path to a key of type `user_id`."
+        else
+          {name, %{table | user_id_join_chain: user_id_join_chain}}
+        end
+      end)
+      |> Enum.into(%{})
+
+    %{data_source | tables: tables}
+  end
+
+  defp resolve_join_link({_table1_name, table1}, {table2_name, table2}) do
+    table1.keys
+    |> Enum.map(fn {column1, type1} ->
+      Enum.find_value(table2.keys, fn {column2, type2} ->
+        if type1 == type2,
+          do: {column1, table2_name, column2},
+          else: nil
+      end)
+    end)
+    |> Enum.reject(&(&1 == nil))
+    |> Enum.at(0)
+  end
+
+  defp resolve_user_id_join_chain(data_source, table_name, visited_tables \\ []) do
+    table = data_source.tables[table_name]
+    visited_tables = [table_name | visited_tables]
+
+    if table.user_id == nil do
+      data_source.tables
+      |> Enum.reject(fn {name, _} -> name in visited_tables end)
+      |> Enum.map(&resolve_join_link({table_name, table}, &1))
+      |> Enum.reject(&(&1 == nil))
+      |> Enum.map(fn {_, link_name, _} = link ->
+        data_source
+        |> resolve_user_id_join_chain(link_name, visited_tables)
+        |> case do
+          nil -> nil
+          chain -> [link | chain]
+        end
+      end)
+      |> Enum.reject(&(&1 == nil))
+      |> Enum.sort_by(&length/1)
+      |> Enum.at(0)
+    else
+      []
+    end
   end
 end

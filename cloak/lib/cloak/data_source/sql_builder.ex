@@ -4,6 +4,7 @@ defmodule Cloak.DataSource.SqlBuilder do
   use Combine
   alias Cloak.Sql.{Query, Expression}
   alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL}
+  alias Cloak.DataSource.Table
 
   # -------------------------------------------------------------------
   # API
@@ -85,6 +86,16 @@ defmodule Cloak.DataSource.SqlBuilder do
     create_statement = "CREATE TABLE #{quoted_table_name} AS #{select_statement}"
 
     {create_statement, table_name}
+  end
+
+  @doc "Builds the necessary JOIN chain to associate a `user_id` column with the table."
+  @spec build_table_chain_with_user_id(%{atom => Table.t()}, atom) :: {String.t(), String.t()}
+  def build_table_chain_with_user_id(tables, table_name) do
+    {user_id_table_name, join_chain_list} =
+      parse_user_id_join_chain(tables, table_name, tables[table_name].user_id_join_chain, quote_name(table_name))
+
+    user_id_table = tables[user_id_table_name]
+    {"#{quote_name(user_id_table_name)}.#{quote_name(user_id_table.user_id)}", to_string(join_chain_list)}
   end
 
   # -------------------------------------------------------------------
@@ -387,7 +398,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   defp order_by_fragments(_query), do: []
 
-  defp quote_name(name, quote_char), do: <<quote_char::utf8, name::binary, quote_char::utf8>>
+  defp quote_name(name, quote_char \\ ?"), do: <<quote_char::utf8, to_string(name)::binary, quote_char::utf8>>
 
   defp range_fragments(%Query{subquery?: true, order_by: [], limit: nil, offset: 0}), do: []
 
@@ -395,4 +406,26 @@ defmodule Cloak.DataSource.SqlBuilder do
     do: sql_dialect_module(query).limit_sql(limit, offset)
 
   defp range_fragments(_query), do: []
+
+  defp parse_user_id_join_chain(_tables, current_table_name, [], join_chain_list),
+    do: {current_table_name, join_chain_list}
+
+  defp parse_user_id_join_chain(tables, current_table_name, [link | chain], acc) do
+    {current_key, link_table_name, link_key} = link
+
+    link_fragment = [
+      " INNER JOIN ",
+      quote_name(link_table_name),
+      " ON ",
+      quote_name(current_table_name),
+      ".",
+      quote_name(current_key),
+      " = ",
+      quote_name(link_table_name),
+      ".",
+      quote_name(link_key)
+    ]
+
+    parse_user_id_join_chain(tables, link_table_name, chain, [acc | link_fragment])
+  end
 end

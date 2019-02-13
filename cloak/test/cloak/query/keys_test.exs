@@ -182,4 +182,14 @@ defmodule Cloak.Query.KeysTest do
       %{rows: [%{row: [1]}]}
     )
   end
+
+  test "user_id join chains" do
+    for ds <- Cloak.DataSource.all() do
+      assert ds.tables[:keys_accounts].user_id_join_chain == []
+      assert ds.tables[:keys_transactions].user_id_join_chain == [{"account_id", :keys_accounts, "id"}]
+
+      assert ds.tables[:keys_products].user_id_join_chain ==
+               [{"id", :keys_transactions, "product_id"}, {"account_id", :keys_accounts, "id"}]
+    end
+  end
 end

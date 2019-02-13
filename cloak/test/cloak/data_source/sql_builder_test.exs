@@ -75,6 +75,39 @@ defmodule Cloak.DataSource.SqlBuilderTest do
     }
   end
 
+  test "build userid join string" do
+    tables = %{
+      uid_table: %{
+        name: "uid_table",
+        user_id: "uid",
+        db_name: "uid_table",
+        columns: [
+          Table.column("uid", :integer),
+          Table.column("string", :text),
+          Table.column("key2", :integer)
+        ],
+        keys: %{"key" => :key},
+        user_id_join_chain: []
+      },
+      no_uid_table: %{
+        name: "no_uid_table",
+        user_id: nil,
+        db_name: "no_uid_table",
+        columns: [
+          Table.column("key1", :integer)
+        ],
+        keys: %{"key" => :key},
+        user_id_join_chain: [{"key1", :uid_table, "key2"}]
+      }
+    }
+
+    assert SqlBuilder.build_table_chain_with_user_id(tables, :uid_table) == {~s("uid_table"."uid"), ~s("uid_table")}
+
+    assert SqlBuilder.build_table_chain_with_user_id(tables, :no_uid_table) ==
+             {~s("uid_table"."uid"),
+              ~s("no_uid_table" INNER JOIN "uid_table" ON "no_uid_table"."key1" = "uid_table"."key2")}
+  end
+
   # -------------------------------------------------------------------
   # Generators for table names
   # -------------------------------------------------------------------
