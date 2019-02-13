@@ -110,6 +110,18 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def select_table_names(prefix),
     do: "SELECT table_name FROM user_tables WHERE table_name LIKE '#{prefix}%'"
 
+  @impl Dialect
+  def analyst_meta_table_create_statement() do
+    """
+    CREATE TABLE "__ac_analyst_tables" (
+      "air" VARCHAR2(255) NOT NULL,
+      "data_source" VARCHAR2(255) NOT NULL,
+      "name" VARCHAR2(30) NOT NULL,
+      PRIMARY KEY ("air", "data_source", "name")
+    )
+    """
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

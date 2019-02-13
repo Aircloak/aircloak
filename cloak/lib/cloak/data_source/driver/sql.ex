@@ -88,6 +88,23 @@ defmodule Cloak.DataSource.Driver.SQL do
         |> Enum.reject(&is_nil/1)
       end
 
+      @impl Driver
+      def initialize_analyst_meta_table(connection) do
+        # using apply here to trick the dialyzer which will report errors for data sources which don't implement
+        # sql_dialect_module function in the dialect
+        sql = apply(__MODULE__, :sql_dialect_module, []).select_table_names("__ac_analyst_tables")
+
+        if Enum.empty?(select!(connection, sql)) do
+          # using apply here to trick the dialyzer which will report errors for data sources which don't implement
+          # analyst_meta_table_create_statement function in the dialect
+          sql = apply(unquote(dialect), :analyst_meta_table_create_statement, [])
+          with {:ok, _} <- execute(connection, sql), do: :ok
+        else
+          # the table already exists, so we won't do anything else
+          :ok
+        end
+      end
+
       @doc false
       def execute!(connection, sql) do
         case execute(connection, sql) do

@@ -66,6 +66,9 @@ defmodule Cloak.DataSource.Driver do
   @doc "Given the list of known analyst tables, drops all existing but unused analyst tables."
   @callback drop_unused_analyst_tables(connection, known_db_names :: [String.t()]) :: removed :: [String.t()]
 
+  @doc "Creates the analyst meta table in the database."
+  @callback initialize_analyst_meta_table(connection) :: :ok | {:error, String.t()}
+
   defmacro __using__(_opts) do
     quote do
       @behaviour unquote(__MODULE__)
@@ -81,6 +84,9 @@ defmodule Cloak.DataSource.Driver do
 
       @impl unquote(__MODULE__)
       def drop_unused_analyst_tables(_connection, _known_db_names), do: raise(RuntimeError, "not implemented")
+
+      @impl unquote(__MODULE__)
+      def initialize_analyst_meta_table(_connectcion), do: raise(RuntimeError, "not implemented")
 
       defoverridable unquote(__MODULE__)
     end
