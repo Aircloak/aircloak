@@ -1,4 +1,4 @@
-# Passwords and sessions
+# Administration
 
 ## Forgotten password
 
@@ -43,3 +43,22 @@ To remedy this problem it's possible to sign out all existing sessions for the g
 by navigating to `Settings` and clicking `Sign out other sessions`. Alternatively, an Insights Air administrator can
 sign out all sessions for any user by navigating to `Admin -> Users -> Edit` and clicking `Sign out all sessions`. Also
 note, that when using the reset password funcionality all sessions are signed out automatically.
+
+## Analysis status
+
+A section in the admin panel available under `Admin -> Analysis` provides an overview of the status of analysis queries
+performed by Insights Cloak instances connected to the given Insights Air. See [the section on column
+analysis](/sql/restrictions.md#column-analysis) for more on why this analysis is done. You can group the data by table,
+host or data source by clicking on the tabs on top. For each group the following values will be listed:
+
+- Columns - total number of database columns in the given group
+- Analysis successful - number of columns for which all aspects of the analysis have completed successfully
+- Analysis pending - number of columns that still require at least one aspect of the analysis to complete
+- Analysis failed - number of columns for which one of the aspects of analysis failed unexpectedly (for example because
+  of a database timeout)
+- (Isolators/Rare values) computed - number of columns for which this aspect of the analysis completed successfully
+- (Isolators/Rare values) failed - number of columns for which this aspect of the analysis failed
+
+Note that columns for which an aspect of analysis failed will be treated as not yet analyzed in that respect. This will
+put some additional restrictions on their usage in queries, as described in [the section on column
+analysis](/sql/restrictions.md#column-analysis).

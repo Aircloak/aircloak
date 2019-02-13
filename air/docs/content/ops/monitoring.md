@@ -73,4 +73,4 @@ The endpoint presents data as the following JSON structure:
 </pre>
 
 Please note that the memory statistics given for the cloaks are the minimum values seen within the
-given time period. Furthermore all the measurements are in bytes.
+given time period. Furthermore, all the measurements are in bytes.

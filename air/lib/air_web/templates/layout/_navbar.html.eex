@@ -55,6 +55,5 @@
         </ul>
       </div>
     </div>
-    <%= help_links(@conn) %>
   </nav>
 </header>
