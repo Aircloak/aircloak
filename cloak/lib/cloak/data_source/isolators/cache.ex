@@ -34,11 +34,15 @@ defmodule Cloak.DataSource.Isolators.Cache do
 
   defp known_columns(data_sources), do: Enum.flat_map(data_sources, &data_source_columns/1)
 
-  defp data_source_columns(data_source), do: Enum.flat_map(data_source.tables, &table_columns(data_source, &1))
+  defp data_source_columns(data_source) do
+    data_source.tables
+    |> Enum.map(fn {_table_id, table} -> table end)
+    |> Enum.filter(&(&1.auto_isolating_column_classification == false))
+    |> Enum.sort_by(&length(List.wrap(&1.user_id_join_chain)))
+    |> Enum.flat_map(&table_columns(data_source, &1))
+  end
 
-  defp table_columns(_data_source, {_table_id, %{auto_isolating_column_classification: false}}), do: []
-
-  defp table_columns(data_source, {_table_id, table}) do
+  defp table_columns(data_source, table) do
     table.columns
     |> Enum.reject(&Map.has_key?(table.isolating_columns, &1.name))
     |> Enum.map(&{data_source.name, table.name, &1.name})

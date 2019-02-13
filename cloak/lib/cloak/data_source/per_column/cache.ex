@@ -41,14 +41,14 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   def init(opts) do
     if opts.auto_refresh?, do: Cloak.DataSource.subscribe_to_changes()
     :timer.send_interval(:timer.hours(1), :refresh)
-    known_columns = MapSet.new(opts.columns_provider.(Cloak.DataSource.all()))
+    known_columns = opts.columns_provider.(Cloak.DataSource.all())
 
     queue = Queue.new(known_columns, PersistentKeyValue.cached_columns(opts.cache_owner))
 
     state = %{
       default: opts.default,
       cache_owner: opts.cache_owner,
-      known_columns: known_columns,
+      known_columns: MapSet.new(known_columns),
       queue: queue,
       waiting: %{},
       opts: opts
@@ -81,9 +81,9 @@ defmodule Cloak.DataSource.PerColumn.Cache do
   end
 
   def handle_info({:data_sources_changed, new_data_sources}, state) do
-    known_columns = MapSet.new(state.opts.columns_provider.(new_data_sources))
+    known_columns = state.opts.columns_provider.(new_data_sources)
     PersistentKeyValue.remove_unknown_columns(state.cache_owner, known_columns)
-    state = %{state | known_columns: known_columns}
+    state = %{state | known_columns: MapSet.new(known_columns)}
     state = update_in(state.queue, &Queue.update_known_columns(&1, known_columns))
     state = respond_error_on_missing_columns(state)
     {:noreply, maybe_start_next_computation(state)}

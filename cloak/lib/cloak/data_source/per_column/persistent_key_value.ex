@@ -30,7 +30,7 @@ defmodule Cloak.DataSource.PerColumn.PersistentKeyValue do
   end
 
   @doc "Deletes unkown columns from the cache table."
-  @spec remove_unknown_columns(GenServer.server(), MapSet.t(Queue.column())) :: :ok
+  @spec remove_unknown_columns(GenServer.server(), Enumerable.t()) :: :ok
   def remove_unknown_columns(server, known_columns) do
     cached_columns(server) |> Map.drop(known_columns) |> Enum.each(&:ets.delete(server, &1))
     signal_change(server)
