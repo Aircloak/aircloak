@@ -11,7 +11,7 @@ defmodule Cloak.DataSource.Shadows.Query.Test do
         decoders: [%{method: "base64", columns: ["encoded_value"]}]
       )
 
-    :ok = Cloak.Test.DB.create_table("shadows_userless", "value INTEGER", user_id: nil)
+    :ok = Cloak.Test.DB.create_table("shadows_userless", "value INTEGER", user_id: nil, content_type: :public)
   end
 
   setup do

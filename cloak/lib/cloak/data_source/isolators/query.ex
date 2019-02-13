@@ -3,6 +3,7 @@ defmodule Cloak.DataSource.Isolators.Query do
 
   alias Cloak.Sql.{Parser, Compiler}
   alias Cloak.DataSource
+  alias Cloak.DataSource.SqlBuilder
   alias Cloak.Query.DbEmulator
 
   # -------------------------------------------------------------------
@@ -12,12 +13,13 @@ defmodule Cloak.DataSource.Isolators.Query do
   @doc "Returns true if the given column in the given table is isolating, false otherwise."
   @spec isolates_users?(DataSource.t(), String.t(), String.t()) :: boolean
   def isolates_users?(data_source, table_name, column) do
-    table = data_source.tables[String.to_existing_atom(table_name)]
+    table_name = String.to_existing_atom(table_name)
+    table = data_source.tables[table_name]
 
     cond do
-      table.user_id == nil -> true
+      table.user_id_join_chain == nil -> nil
       table.keys[column] == :user_id -> true
-      true -> isolating_ratio(data_source, table_name, column, table.user_id) > threshold()
+      true -> isolating_ratio(data_source, table_name, column) > threshold()
     end
   end
 
@@ -25,12 +27,14 @@ defmodule Cloak.DataSource.Isolators.Query do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp isolating_ratio(data_source, table_name, column, uid_column) do
+  defp isolating_ratio(data_source, table_name, column) do
+    {user_id, table_chain} = SqlBuilder.build_table_chain_with_user_id(data_source.tables, table_name)
+
     """
       SELECT isolating, COUNT(*) FROM (
-        SELECT BOOL_OP('=', MAX("#{uid_column}"), MIN("#{uid_column}")) AS isolating
-        FROM "#{table_name}"
-        GROUP BY "#{column}"
+        SELECT BOOL_OP('=', MAX(#{user_id}), MIN(#{user_id})) AS isolating
+        FROM #{table_chain}
+        GROUP BY "#{table_name}"."#{column}"
       ) x
       WHERE isolating IS NOT NULL
       GROUP BY 1
