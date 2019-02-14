@@ -98,13 +98,28 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
   end
 
   defp drop_table(driver, connection, key, db_name) do
-    if Enum.any?(driver.analyst_tables(connection), &(&1 == db_name)) do
-      Logger.info("dropping database table `#{db_name}` because it will be recreated")
+    # dropping previous table will make sure that if db_name algorithm is changed, we don't keep the old tables
+    drop_previous_table(driver, connection, key)
 
-      with {:ok, _} <- delete_meta(driver, connection, key),
-           do: driver.execute(connection, "DROP TABLE #{quote_identifier(driver, db_name)}")
-    else
-      {:ok, nil}
+    # we're also dropping the table with the pending name, to clear a possibly non-registered table (created with the
+    # previous version of the cloak)
+    driver.execute(connection, "DROP TABLE #{quote_identifier(driver, db_name)}")
+
+    delete_meta(driver, connection, key)
+  end
+
+  defp drop_previous_table(driver, connection, key) do
+    driver.select!(
+      connection,
+      """
+      SELECT #{quote_identifier(driver, "name")} FROM #{quoted_analyst_table_name(driver)}
+      WHERE #{quote_identifier(driver, "key")} = '#{SqlBuilder.escape_string(key)}'
+      """
+    )
+    |> Enum.to_list()
+    |> case do
+      [[name]] -> driver.execute(connection, "DROP TABLE #{quote_identifier(driver, name)}")
+      [] -> nil
     end
   end
 
