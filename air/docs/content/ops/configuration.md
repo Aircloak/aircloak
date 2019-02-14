@@ -712,6 +712,12 @@ Since analyst tables can potentially cause additional load on the database serve
 
 Currently, analyst tables are only supported on PostgreSQL and Oracle data sources.
 
+If the air name or the datasource name is changed, duplicate copies of the analyst tables might appear in the cloak database. This can happen because the analyst table name depends on the air name and the datasource name. In such situations, the database administrators are responsible for finding the obsolete analyst tables and deleting them manually.
+
+The administrator can use the table `__ac_analyst_tables_X` (where `X` is an integer) to list analyst tables. This table contains the list of all currently known analyst tables. The table consists of two columns. The column `key` contains a JSON which describes the properties of the table (the air name, the datasource name, unique ID of the owner analyst, and the table name as seen in the air). The column `name` represents the table name used in the cloak database.
+
+If the administrator is certain that some analyst tables are no longer needed, for example if an air instance or some datasource have been renamed or decommissioned, they can drop these tables, and delete the corresponding entries from the `__ac_analyst_tables_X` table.
+
 
 #### Tips and tricks
 
