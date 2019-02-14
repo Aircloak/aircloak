@@ -11,13 +11,14 @@ database.
 
 ## Starting mongo
 
-If you have mongo installed natively you may do something like:
+You are going to need to install mongo on your machine to access the commandline tool `mongoimport`. Then, you can start
+the server with something like:
 
 ```
 mongod --dbpath /tmp
 ```
 
-Otherwise you can use the provided make task to start a mongo server in a docker container:
+You can also use the provided task to start mongo 3.6 (the version at which this tool is targeted) in docker:
 
 ```
 make mongo-server
@@ -51,7 +52,7 @@ There is also a data generator included to perform rough performance measurement
 SIZE=100 make run-perf
 ```
 
-The `SIZE` variable controls the number of users to generate. Note that each user has ~10 purchases, each with around
+The `SIZE` variable controls the number of users to generate. Note that each user has ~10 purchases, each with
 ~10 items, so the final number of records will be about 100 times larger than what you specify here.
 
 ## Running tests
