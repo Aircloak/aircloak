@@ -196,10 +196,15 @@ let mongoConnString (cloakConfig : CloakConfig) : string =
 
 let acUserId = "_ac_user_id"
 
-let project' (data : Map<string, seq<BsonDocument>>) (config : Map<string, CloakTable>) (table : string) : Map<string, CloakTable> =
+let guessUserId (data : seq<BsonDocument>) (proposed : string) : string =
+    if Seq.forall (fun (x : BsonDocument) -> not (x.Contains proposed)) data
+        then proposed else acUserId
+
+let projectOne (data : Map<string, seq<BsonDocument>>) (config : Map<string, CloakTable>) (table : string) : Map<string, CloakTable> =
     let tableConfig = config.Item(table)
     let { table = target; foreignKey = foreignKey; primaryKey = primaryKey } = tableConfig.projection.Value
     let userIdKey = config.Item(target).userId.Value
+    let newUserIdKey = guessUserId (data.Item table) userIdKey
 
     let userIds =
         data.Item target
@@ -211,10 +216,10 @@ let project' (data : Map<string, seq<BsonDocument>>) (config : Map<string, Cloak
     for document in data.Item(table) do
         if document.Contains(foreignKey) then
             match Map.tryFind (document.GetValue(foreignKey).ToString()) userIds with
-            | Some userId -> document.Add(acUserId, userId) |> ignore
+            | Some userId -> document.Add(newUserIdKey, userId) |> ignore
             | None -> ()
 
-    Map.add table { tableConfig with projection = None; userId = Some(acUserId) } config
+    Map.add table { tableConfig with projection = None; userId = Some(newUserIdKey) } config
 
 let rec project (config : Map<string, CloakTable>) (data : Map<string, seq<BsonDocument>>) : unit =
     let canProject =
@@ -226,7 +231,7 @@ let rec project (config : Map<string, CloakTable>) (data : Map<string, seq<BsonD
     match Seq.toList canProject with
     | [] -> ()
     | canProject ->
-        let config = List.fold (project' data) config canProject
+        let config = List.fold (projectOne data) config canProject
         project config data
 
 let run (options : ParseResults<CLIArguments>) : unit =
