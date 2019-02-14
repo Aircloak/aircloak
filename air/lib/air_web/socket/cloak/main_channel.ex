@@ -99,6 +99,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
         views
       ) do
     payload = %{
+      air_name: Air.name(),
       analyst_id: analyst_id,
       table_name: table_name,
       statement: statement,
@@ -120,8 +121,8 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   @doc "Removes the given analyst table on the cloak."
   @spec drop_analyst_table(pid, String.t()) :: :ok | {:error, String.t()}
   def drop_analyst_table(channel_pid, registration_info) do
-    with {:ok, _} <- call(channel_pid, "drop_analyst_table", %{registration_info: registration_info}, @short_timeout),
-         do: :ok
+    payload = %{air_name: Air.name(), registration_info: registration_info}
+    with {:ok, _} <- call(channel_pid, "drop_analyst_table", payload, @short_timeout), do: :ok
   end
 
   # -------------------------------------------------------------------
@@ -210,7 +211,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
     push(
       socket,
       "register_analyst_tables",
-      %{registration_infos: Enum.map(AnalystTable.all(), & &1.result_info.registration_info)}
+      %{air_name: Air.name(), registration_infos: Enum.map(AnalystTable.all(), & &1.result_info.registration_info)}
     )
 
     {:noreply, socket}

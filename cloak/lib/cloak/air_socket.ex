@@ -169,7 +169,7 @@ defmodule Cloak.AirSocket do
   end
 
   def handle_message("main", "register_analyst_tables", data, _transport, state) do
-    Cloak.AnalystTable.register_tables(data.registration_infos)
+    Cloak.AnalystTable.register_tables(data.air_name, data.registration_infos)
     {:ok, state}
   end
 
@@ -308,6 +308,7 @@ defmodule Cloak.AirSocket do
     with {:ok, data_source} <- fetch_data_source(data.data_source),
          {:ok, registration_info, described_columns} <-
            Cloak.AnalystTable.create_or_update(
+             data.air_name,
              data.analyst_id,
              data.table_name,
              data.statement,
@@ -322,7 +323,7 @@ defmodule Cloak.AirSocket do
   end
 
   defp handle_air_call("drop_analyst_table", data, from, state) do
-    with :ok <- Cloak.AnalystTable.drop_table(data.registration_info),
+    with :ok <- Cloak.AnalystTable.drop_table(data.air_name, data.registration_info),
          do: respond_to_air(from, :ok),
          else: ({:error, reason} -> respond_to_air(from, :error, reason))
 

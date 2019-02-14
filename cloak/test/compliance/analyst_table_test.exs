@@ -111,7 +111,7 @@ defmodule Compliance.AnalystTableTest do
 
           db_name1 = AnalystTable.table_definition(1, "table13", data_source).db_name
           db_name2 = AnalystTable.table_definition(2, "table14", data_source).db_name
-          :ok = AnalystTable.register_tables([info1, info2])
+          :ok = AnalystTable.register_tables("air_name", [info1, info2])
 
           assert soon(Enum.sort(stored_tables(data_source)) == Enum.sort([db_name1, db_name2]), 5000)
         end
@@ -170,7 +170,7 @@ defmodule Compliance.AnalystTableTest do
 
           :ets.delete_all_objects(AnalystTable)
 
-          assert AnalystTable.register_tables([table_info1, table_info2]) == :ok
+          assert AnalystTable.register_tables("air_name", [table_info1, table_info2]) == :ok
           assert soon(table_created?(1, "table20", data_source), :timer.seconds(5), repeat_wait_time: 10)
           assert soon(table_created?(1, "table21", data_source), :timer.seconds(5), repeat_wait_time: 10)
 
@@ -197,7 +197,8 @@ defmodule Compliance.AnalystTableTest do
           AnalystTable.with_custom_store_fun(
             fn _ -> Process.sleep(:timer.seconds(1)) end,
             fn ->
-              {:ok, _, _} = AnalystTable.create_or_update(1, "table26", "select user_id from users", data_source)
+              {:ok, _, _} =
+                AnalystTable.create_or_update("air_name", 1, "table26", "select user_id from users", data_source)
 
               assert_query(
                 "select * from table26",
@@ -216,7 +217,8 @@ defmodule Compliance.AnalystTableTest do
             fn ->
               log =
                 ExUnit.CaptureLog.capture_log(fn ->
-                  {:ok, _, _} = AnalystTable.create_or_update(1, "table27", "select user_id from users", data_source)
+                  {:ok, _, _} =
+                    AnalystTable.create_or_update("air_name", 1, "table27", "select user_id from users", data_source)
 
                   assert soon(
                            table_created?(1, "table27", data_source, :create_error),
@@ -248,7 +250,9 @@ defmodule Compliance.AnalystTableTest do
               real_store.()
             end,
             fn ->
-              {:ok, _, _} = AnalystTable.create_or_update(1, "table28", "select user_id from users", data_source)
+              {:ok, _, _} =
+                AnalystTable.create_or_update("air_name", 1, "table28", "select user_id from users", data_source)
+
               assert_receive {:create_process, pid}
               mref = Process.monitor(pid)
 
@@ -275,9 +279,9 @@ defmodule Compliance.AnalystTableTest do
             end,
             fn ->
               {:ok, table_info, _} =
-                AnalystTable.create_or_update(1, "table29", "select user_id from users", data_source)
+                AnalystTable.create_or_update("air_name", 1, "table29", "select user_id from users", data_source)
 
-              assert AnalystTable.register_tables([table_info]) == :ok
+              assert AnalystTable.register_tables("air_name", [table_info]) == :ok
               assert soon(table_created?(1, "table29", data_source), :timer.seconds(5), repeat_wait_time: 10)
 
               assert_query(
@@ -301,12 +305,13 @@ defmodule Compliance.AnalystTableTest do
               real_store.()
             end,
             fn ->
-              {:ok, _, _} = AnalystTable.create_or_update(1, "table30", "select user_id from users", data_source)
+              {:ok, _, _} =
+                AnalystTable.create_or_update("air_name", 1, "table30", "select user_id from users", data_source)
 
               assert_receive {:create_process, pid}
               mref = Process.monitor(pid)
 
-              assert AnalystTable.register_tables([]) == :ok
+              assert AnalystTable.register_tables("air_name", []) == :ok
               assert_receive {:DOWN, ^mref, :process, ^pid, :killed}, :timer.seconds(1)
 
               assert soon(
@@ -357,7 +362,7 @@ defmodule Compliance.AnalystTableTest do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           assert {:ok, registration_info, _} = create_or_update(1, "table32", "select * from users", data_source)
           db_name = AnalystTable.table_definition(1, "table32", data_source).db_name
-          assert AnalystTable.drop_table(registration_info) == :ok
+          assert AnalystTable.drop_table("air_name", registration_info) == :ok
           refute Enum.member?(registered_tables(data_source), db_name)
           refute Enum.member?(stored_tables(data_source), db_name)
           assert AnalystTable.table_definition(1, "table32", data_source) == nil
@@ -395,8 +400,9 @@ defmodule Compliance.AnalystTableTest do
     end)
   end
 
-  defp create_or_update(analyst_id, name, statement, data_source) do
-    with {:ok, registration_info, columns} <- AnalystTable.create_or_update(analyst_id, name, statement, data_source) do
+  defp create_or_update(air_name \\ "air_name", analyst_id, name, statement, data_source) do
+    with {:ok, registration_info, columns} <-
+           AnalystTable.create_or_update(air_name, analyst_id, name, statement, data_source) do
       assert soon(table_created?(analyst_id, name, data_source), :timer.seconds(5), repeat_wait_time: 10)
       {:ok, registration_info, columns}
     end

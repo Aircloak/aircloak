@@ -26,6 +26,7 @@ defmodule Cloak.AnalystTable do
 
   @doc "Creates or updates the analyst table in the database."
   @spec create_or_update(
+          String.t(),
           Query.analyst_id(),
           String.t(),
           String.t(),
@@ -33,7 +34,7 @@ defmodule Cloak.AnalystTable do
           [Query.parameter()] | nil,
           Query.view_map()
         ) :: {:ok, registration_info :: String.t(), Query.described_columns()} | {:error, String.t()}
-  def create_or_update(analyst, table_name, statement, data_source, parameters \\ nil, views \\ %{}) do
+  def create_or_update(air_name, analyst, table_name, statement, data_source, parameters \\ nil, views \\ %{}) do
     with {:ok, query} <-
            Compiler.compile(
              table_name,
@@ -45,7 +46,7 @@ defmodule Cloak.AnalystTable do
            ) do
       with {:error, reason} <- DataSource.check_analyst_tables_support(data_source), do: raise(reason)
 
-      hash = :crypto.hash(:sha256, :erlang.term_to_binary({data_source.name, analyst, table_name}))
+      hash = :crypto.hash(:sha256, :erlang.term_to_binary({air_name, data_source.name, analyst, table_name}))
       encoded_hash = Base.encode64(hash, padding: false)
       # make sure the name is not longer than 30 characters to avoid possible issues with some databases, such as Oracle
       db_name = String.slice("__ac_#{encoded_hash}", 0, 30)
@@ -53,6 +54,7 @@ defmodule Cloak.AnalystTable do
       store_info = data_source.driver.prepare_analyst_table(db_name, query)
 
       table = %{
+        air_name: air_name,
         analyst: analyst,
         name: table_name,
         statement: statement,
@@ -69,9 +71,9 @@ defmodule Cloak.AnalystTable do
   end
 
   @doc "Drops the table from the database."
-  @spec drop_table(String.t()) :: :ok | {:error, String.t()}
-  def drop_table(registration_info) do
-    table = decode_registration_info(registration_info)
+  @spec drop_table(String.t(), String.t()) :: :ok | {:error, String.t()}
+  def drop_table(air_name, registration_info) do
+    table = decode_registration_info(air_name, registration_info)
 
     with {:ok, data_source} <- Cloak.DataSource.fetch(table.data_source_name) do
       if data_source.status == :online do
@@ -91,8 +93,9 @@ defmodule Cloak.AnalystTable do
   end
 
   @doc "Registers the analyst tables from the given registration infos, creating them in the database if needed."
-  @spec register_tables([String.t()]) :: :ok
-  def register_tables(registration_infos), do: GenServer.call(__MODULE__, {:register_tables, registration_infos})
+  @spec register_tables(String.t(), [String.t()]) :: :ok
+  def register_tables(air_name, registration_infos),
+    do: GenServer.call(__MODULE__, {:register_tables, air_name, registration_infos})
 
   @doc "Returns the analyst table definition."
   @spec table_definition(Query.analyst_id(), String.t(), DataSource.t()) :: DataSource.Table.t() | nil
@@ -133,8 +136,8 @@ defmodule Cloak.AnalystTable do
     {:reply, :ok, enqueue_job(state, {:create_table, table})}
   end
 
-  def handle_call({:register_tables, registration_infos}, _from, state) do
-    tables = Enum.map(registration_infos, &decode_registration_info/1)
+  def handle_call({:register_tables, air_name, registration_infos}, _from, state) do
+    tables = Enum.map(registration_infos, &decode_registration_info(air_name, &1))
     state = stop_obsolete_stores(state, tables)
     update_ets_table(tables)
 
@@ -239,7 +242,7 @@ defmodule Cloak.AnalystTable do
         &1,
         table.db_name,
         table.store_info,
-        "air_id",
+        table.air_name,
         data_source.name
       )
     )
@@ -247,7 +250,7 @@ defmodule Cloak.AnalystTable do
 
   defp registration_info(table), do: Jason.encode!(table)
 
-  defp decode_registration_info(registration_info) do
+  defp decode_registration_info(air_name, registration_info) do
     registration_info
     |> Jason.decode!()
     |> Map.take(~w(analyst name statement data_source_name db_name id_column store_info columns))
@@ -256,6 +259,7 @@ defmodule Cloak.AnalystTable do
       [:columns],
       fn columns -> Enum.map(columns, &update_in(&1.type, fn type -> String.to_existing_atom(type) end)) end
     )
+    |> Map.put(:air_name, air_name)
   end
 
   defp stop_obsolete_stores(state, new_tables) do
