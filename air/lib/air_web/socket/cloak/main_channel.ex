@@ -117,6 +117,13 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
     :ok
   end
 
+  @doc "Removes the given analyst table on the cloak."
+  @spec drop_analyst_table(pid, String.t()) :: :ok | {:error, String.t()}
+  def drop_analyst_table(channel_pid, registration_info) do
+    with {:ok, _} <- call(channel_pid, "drop_analyst_table", %{registration_info: registration_info}, @short_timeout),
+         do: :ok
+  end
+
   # -------------------------------------------------------------------
   # Phoenix.Channel callback functions
   # -------------------------------------------------------------------

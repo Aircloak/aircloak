@@ -140,7 +140,7 @@ defmodule IntegrationTest.AnalystTableTest do
     db_name = table.result_info.registration_info |> Jason.decode!() |> Map.fetch!("db_name")
 
     assert :ok = Air.Service.AnalystTable.delete(table.id, context.user)
-    assert soon(table_not_in_db?(db_name), :timer.seconds(5), repeat_wait_time: 10)
+    assert table_not_in_db?(db_name)
     assert is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id))
   end
 

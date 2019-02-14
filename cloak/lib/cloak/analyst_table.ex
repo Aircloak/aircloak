@@ -68,6 +68,28 @@ defmodule Cloak.AnalystTable do
     end
   end
 
+  @doc "Drops the table from the database."
+  @spec drop_table(String.t()) :: :ok | {:error, String.t()}
+  def drop_table(registration_info) do
+    table = decode_registration_info(registration_info)
+
+    with {:ok, data_source} <- Cloak.DataSource.fetch(table.data_source_name) do
+      if data_source.status == :online do
+        driver = data_source.driver
+
+        DataSource.Connection.execute!(
+          data_source,
+          fn connection ->
+            GenServer.call(__MODULE__, {:unregister_table, table})
+            driver.drop_analyst_table(connection, table.db_name)
+          end
+        )
+      else
+        {:error, "data source is not connected"}
+      end
+    end
+  end
+
   @doc "Registers the analyst tables from the given registration infos, creating them in the database if needed."
   @spec register_tables([String.t()]) :: :ok
   def register_tables(registration_infos), do: GenServer.call(__MODULE__, {:register_tables, registration_infos})
@@ -116,7 +138,13 @@ defmodule Cloak.AnalystTable do
     state = stop_obsolete_stores(state, tables)
     update_ets_table(tables)
 
-    {:reply, :ok, enqueue_job(state, {:serialized, &drop_unused_analyst_tables/0})}
+    {:reply, :ok, state}
+  end
+
+  def handle_call({:unregister_table, table}, _from, state) do
+    state = stop_job(state, create_table_job_id(table))
+    :ets.delete(__MODULE__, key(table))
+    {:reply, :ok, state}
   end
 
   @impl Parent.GenServer
@@ -217,25 +245,6 @@ defmodule Cloak.AnalystTable do
     )
   end
 
-  defp drop_unused_analyst_tables() do
-    # We're taking a list of all known registered db_names in all the data sources, since one name can be valid
-    # in one data source, but unknown in another which uses the same database. Taking all the names ensures that
-    # such tables are not removed.
-    db_names = Enum.map(:ets.match(__MODULE__, {{:_, :_, :_}, :"$1"}), fn [table] -> table.db_name end)
-
-    Cloak.DataSource.all()
-    |> Stream.filter(& &1.driver.supports_analyst_tables?)
-    |> Stream.filter(&(&1.status == :online))
-    |> Stream.flat_map(fn data_source ->
-      data_source
-      |> Cloak.DataSource.Connection.execute!(&data_source.driver.drop_unused_analyst_tables(&1, db_names))
-      |> Enum.map(&{data_source, &1})
-    end)
-    |> Enum.each(fn {data_source, db_name} ->
-      Logger.info("removed unused analyst table `#{db_name}` from `#{data_source.name}`")
-    end)
-  end
-
   defp registration_info(table), do: Jason.encode!(table)
 
   defp decode_registration_info(registration_info) do
@@ -329,19 +338,5 @@ defmodule Cloak.AnalystTable do
   # -------------------------------------------------------------------
 
   @doc false
-  def child_spec(_arg), do: Aircloak.ChildSpec.supervisor([gen_server(), periodic_cleaner()], strategy: :one_for_one)
-
-  defp gen_server(), do: %{id: :gen_server, start: {__MODULE__, :start_link, []}}
-
-  defp periodic_cleaner() do
-    {Periodic,
-     id: :periodic_cleaner,
-     run: fn -> sync_serialized(&drop_unused_analyst_tables/0, :infinity) end,
-     every: :timer.hours(1),
-     timeout: :timer.minutes(59),
-     overlap?: false}
-  end
-
-  @doc false
-  def start_link(), do: Parent.GenServer.start_link(__MODULE__, nil, name: __MODULE__)
+  def start_link(_), do: Parent.GenServer.start_link(__MODULE__, nil, name: __MODULE__)
 end

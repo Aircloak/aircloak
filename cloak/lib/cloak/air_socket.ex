@@ -321,6 +321,14 @@ defmodule Cloak.AirSocket do
     {:ok, state}
   end
 
+  defp handle_air_call("drop_analyst_table", data, from, state) do
+    with :ok <- Cloak.AnalystTable.drop_table(data.registration_info),
+         do: respond_to_air(from, :ok),
+         else: ({:error, reason} -> respond_to_air(from, :error, reason))
+
+    {:ok, state}
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

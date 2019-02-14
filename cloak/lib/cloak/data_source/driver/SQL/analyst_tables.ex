@@ -24,8 +24,7 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
         do: AnalystTables.create_or_update_analyst_table(__MODULE__, connection, db_name, sql, air_id, data_source_name)
 
       @impl Driver
-      def drop_unused_analyst_tables(connection, known_db_names),
-        do: AnalystTables.drop_unused_analyst_tables(__MODULE__, connection, known_db_names)
+      def drop_analyst_table(connection, db_name), do: AnalystTables.drop_analyst_table(__MODULE__, connection, db_name)
 
       @impl AnalystTables
       def analyst_tables(connection), do: AnalystTables.analyst_tables(__MODULE__, connection)
@@ -71,19 +70,23 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
          do: :ok
   end
 
-  @doc false
-  def drop_unused_analyst_tables(driver, connection, known_db_names) do
-    connection
-    |> driver.analyst_tables()
-    |> MapSet.new()
-    |> MapSet.difference(MapSet.new(known_db_names))
-    |> Stream.map(fn db_name ->
-      case driver.execute(connection, "DROP TABLE #{quote_identifier(driver, db_name)}") do
-        {:ok, _result} -> db_name
-        {:error, error} -> Logger.error("Error removing table: `#{db_name}`: #{error}")
-      end
-    end)
-    |> Enum.reject(&is_nil/1)
+  def drop_analyst_table(driver, connection, db_name) do
+    Logger.info("dropping analyst table #{db_name}")
+
+    with {:ok, _} <-
+           driver.execute(
+             connection,
+             """
+             DELETE FROM #{quoted_analyst_table_name(driver)}
+             WHERE #{quote_identifier(driver, "name")} = '#{SqlBuilder.escape_string(db_name)}'
+             """
+           ) do
+      driver.execute(connection, "DROP TABLE #{quote_identifier(driver, db_name)}")
+
+      # Note that we don't return an error if a table has not been dropped successfully. At this point, the
+      # table has already been removed from the meta table, so we'll consider the operation to be successful.
+      :ok
+    end
   end
 
   @doc false

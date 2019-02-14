@@ -68,8 +68,8 @@ defmodule Cloak.DataSource.Driver do
               data_source_name :: String.t()
             ) :: :ok | {:error, String.t()}
 
-  @doc "Given the list of known analyst tables, drops all existing but unused analyst tables."
-  @callback drop_unused_analyst_tables(connection, known_db_names :: [String.t()]) :: removed :: [String.t()]
+  @doc "Removes the given analyst table from the database."
+  @callback drop_analyst_table(connection, String.t()) :: :ok | {:error, String.t()}
 
   @doc "Creates the analyst meta table in the database."
   @callback initialize_analyst_meta_table(connection) :: :ok | {:error, String.t()}
@@ -89,7 +89,7 @@ defmodule Cloak.DataSource.Driver do
         do: raise(RuntimeError, "not implemented")
 
       @impl unquote(__MODULE__)
-      def drop_unused_analyst_tables(_connection, _known_db_names), do: raise(RuntimeError, "not implemented")
+      def drop_analyst_table(_connection, _db_name), do: raise(RuntimeError, "not implemented")
 
       @impl unquote(__MODULE__)
       def initialize_analyst_meta_table(_connectcion), do: raise(RuntimeError, "not implemented")

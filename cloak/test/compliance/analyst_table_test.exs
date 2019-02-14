@@ -179,21 +179,6 @@ defmodule Compliance.AnalystTableTest do
         end
       end
 
-      test "obsolete tables are deleted after registration" do
-        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, table_info, _} = create_or_update(1, "table22", "select user_id from users", data_source)
-          {:ok, _, _} = create_or_update(1, "table23", "select user_id from users", data_source)
-
-          db_name = AnalystTable.table_definition(1, "table22", data_source).db_name
-
-          :ets.delete_all_objects(AnalystTable)
-
-          assert AnalystTable.register_tables([table_info]) == :ok
-          assert AnalystTable.table_definition(1, "table23", data_source) == nil
-          assert soon(stored_tables(data_source) == [db_name], 5000)
-        end
-      end
-
       test "table can reference another table" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           {:ok, _, _} = create_or_update(1, "table24", "select user_id, height from users", data_source)
@@ -359,8 +344,41 @@ defmodule Compliance.AnalystTableTest do
           )
         end
       end
+
+      test "table is registered in the meta table" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          assert {:ok, _, _} = create_or_update(1, "table31", "select * from users", data_source)
+          db_name = AnalystTable.table_definition(1, "table31", data_source).db_name
+          assert Enum.member?(registered_tables(data_source), db_name)
+        end
+      end
+
+      test "dropping a table" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          assert {:ok, registration_info, _} = create_or_update(1, "table32", "select * from users", data_source)
+          db_name = AnalystTable.table_definition(1, "table32", data_source).db_name
+          assert AnalystTable.drop_table(registration_info) == :ok
+          refute Enum.member?(registered_tables(data_source), db_name)
+          refute Enum.member?(stored_tables(data_source), db_name)
+          assert AnalystTable.table_definition(1, "table32", data_source) == nil
+        end
+      end
     end
   end
+
+  defp registered_tables(data_source) do
+    Cloak.DataSource.Connection.execute!(
+      data_source,
+      &data_source.driver.select!(
+        &1,
+        "SELECT #{quote_identifier("name", data_source)} FROM #{quote_identifier("__ac_analyst_tables", data_source)}"
+      )
+    )
+    |> Enum.map(fn [name] -> name end)
+  end
+
+  defp quote_identifier(identifier, data_source),
+    do: Cloak.DataSource.SqlBuilder.quote_table_name(identifier, data_source.driver.sql_dialect_module.quote_char())
 
   defp prepare_data_source(data_source_name) do
     with {:ok, data_source} <- Cloak.DataSource.fetch(data_source_name) do
