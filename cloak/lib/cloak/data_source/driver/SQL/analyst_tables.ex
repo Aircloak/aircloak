@@ -20,8 +20,8 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
       def prepare_analyst_table(db_name, query), do: AnalystTables.create_table_from_query(db_name, query)
 
       @impl Driver
-      def create_or_update_analyst_table(connection, db_name, sql, air_id, data_source_name),
-        do: AnalystTables.create_or_update_analyst_table(__MODULE__, connection, db_name, sql, air_id, data_source_name)
+      def create_or_update_analyst_table(connection, key, db_name, sql),
+        do: AnalystTables.create_or_update_analyst_table(__MODULE__, connection, key, db_name, sql)
 
       @impl Driver
       def drop_analyst_table(connection, db_name), do: AnalystTables.drop_analyst_table(__MODULE__, connection, db_name)
@@ -38,7 +38,7 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
   # Internal functions
   # -------------------------------------------------------------------
 
-  @analyst_meta_table_name "__ac_analyst_tables"
+  @analyst_meta_table_name "__ac_analyst_tables_1"
 
   @doc false
   def initialize_analyst_meta_table(driver, connection) do
@@ -64,9 +64,9 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
   end
 
   @doc false
-  def create_or_update_analyst_table(driver, connection, db_name, sql, air_id, data_source_name) do
-    with {:ok, _} <- drop_table(driver, connection, db_name, air_id, data_source_name),
-         {:ok, _} <- create_table(driver, connection, db_name, sql, air_id, data_source_name),
+  def create_or_update_analyst_table(driver, connection, key, db_name, sql) do
+    with {:ok, _} <- drop_table(driver, connection, key, db_name),
+         {:ok, _} <- create_table(driver, connection, key, db_name, sql),
          do: :ok
   end
 
@@ -97,46 +97,37 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
     |> Enum.reject(&(&1 == @analyst_meta_table_name))
   end
 
-  defp drop_table(driver, connection, db_name, air_id, data_source_name) do
+  defp drop_table(driver, connection, key, db_name) do
     if Enum.any?(driver.analyst_tables(connection), &(&1 == db_name)) do
       Logger.info("dropping database table `#{db_name}` because it will be recreated")
 
-      with {:ok, _} <- delete_meta(driver, connection, air_id, data_source_name, db_name),
+      with {:ok, _} <- delete_meta(driver, connection, key),
            do: driver.execute(connection, "DROP TABLE #{quote_identifier(driver, db_name)}")
     else
       {:ok, nil}
     end
   end
 
-  defp delete_meta(driver, connection, air_id, data_source_name, db_name) do
-    filter =
-      [{"air", air_id}, {"data_source", data_source_name}, {"name", db_name}]
-      |> Stream.map(fn {column, value} ->
-        "#{quote_identifier(driver, column)} = '#{SqlBuilder.escape_string(value)}'"
-      end)
-      |> Enum.join(" AND ")
-
-    driver.execute(connection, "DELETE FROM #{quoted_analyst_table_name(driver)} WHERE #{filter}")
+  defp delete_meta(driver, connection, key) do
+    driver.execute(
+      connection,
+      """
+      DELETE FROM #{quoted_analyst_table_name(driver)}
+      WHERE #{quote_identifier(driver, "key")} = '#{SqlBuilder.escape_string(key)}'
+      """
+    )
   end
 
-  defp create_table(driver, connection, db_name, sql, air_id, data_source_name) do
+  defp create_table(driver, connection, key, db_name, sql) do
     Logger.info("creating database table `#{db_name}`")
 
-    with {:ok, _} <- insert_meta(driver, connection, air_id, data_source_name, db_name),
+    with {:ok, _} <- insert_meta(driver, connection, key, db_name),
          do: driver.execute(connection, sql)
   end
 
-  defp insert_meta(driver, connection, air_id, data_source_name, db_name) do
-    {columns, values} =
-      [{"air", air_id}, {"data_source", data_source_name}, {"name", db_name}]
-      |> Stream.map(fn {column, value} ->
-        {quote_identifier(driver, column), "'#{SqlBuilder.escape_string(value)}'"}
-      end)
-      |> Enum.unzip()
-
-    columns = Enum.join(columns, ", ")
-    values = Enum.join(values, ", ")
-
+  defp insert_meta(driver, connection, key, db_name) do
+    columns = ~w(key name) |> Stream.map(&quote_identifier(driver, &1)) |> Enum.join(", ")
+    values = [key, db_name] |> Stream.map(&"'#{SqlBuilder.escape_string(&1)}'") |> Enum.join(", ")
     driver.execute(connection, "INSERT INTO #{quoted_analyst_table_name(driver)} (#{columns}) VALUES (#{values})")
   end
 

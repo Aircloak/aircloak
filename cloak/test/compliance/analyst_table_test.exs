@@ -376,7 +376,7 @@ defmodule Compliance.AnalystTableTest do
       data_source,
       &data_source.driver.select!(
         &1,
-        "SELECT #{quote_identifier("name", data_source)} FROM #{quote_identifier("__ac_analyst_tables", data_source)}"
+        "SELECT #{quote_identifier("name", data_source)} FROM #{quote_identifier("__ac_analyst_tables_1", data_source)}"
       )
     )
     |> Enum.map(fn [name] -> name end)
@@ -395,7 +395,7 @@ defmodule Compliance.AnalystTableTest do
   defp clear_analyst_tables(data_source) do
     AnalystTable.sync_serialized(fn ->
       data_source |> stored_tables() |> Enum.each(&drop_table!(data_source, &1))
-      truncate_table!(data_source, "__ac_analyst_tables")
+      truncate_table!(data_source, "__ac_analyst_tables_1")
       :ets.match_delete(AnalystTable, {{:_, data_source.name, :_}, :_})
     end)
   end

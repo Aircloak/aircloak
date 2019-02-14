@@ -62,10 +62,9 @@ defmodule Cloak.DataSource.Driver do
   @doc "Creates or updates the analyst table from the given data obtained via `prepare_analyst_table/2`."
   @callback create_or_update_analyst_table(
               connection,
+              key :: String.t(),
               db_name :: String.t(),
-              store_info :: String.t(),
-              air_id :: String.t(),
-              data_source_name :: String.t()
+              store_info :: String.t()
             ) :: :ok | {:error, String.t()}
 
   @doc "Removes the given analyst table from the database."
@@ -85,7 +84,7 @@ defmodule Cloak.DataSource.Driver do
       def prepare_analyst_table(_table_name, _query), do: raise(RuntimeError, "not implemented")
 
       @impl unquote(__MODULE__)
-      def create_or_update_analyst_table(_connection, _db_name, _store_info, _air_id, _data_source_name),
+      def create_or_update_analyst_table(_connection, _key, _db_name, _store_info),
         do: raise(RuntimeError, "not implemented")
 
       @impl unquote(__MODULE__)

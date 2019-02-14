@@ -81,10 +81,10 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   def analyst_meta_table_create_statement(quoted_table_name) do
     """
     CREATE TABLE #{quoted_table_name} (
-      "air" TEXT NOT NULL,
-      "data_source" TEXT NOT NULL,
-      "name" TEXT NOT NULL,
-      PRIMARY KEY ("air", "data_source", "name")
+      "key" TEXT,
+      "name" TEXT,
+      PRIMARY KEY ("key", "name"),
+      UNIQUE("name")
     )
     """
   end
