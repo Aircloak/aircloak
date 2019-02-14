@@ -154,8 +154,8 @@ let applyDecoders (decoders : Decoder list) (document : BsonDocument) : unit =
     for decoder in decoders do
         applyDecoder document decoder
 
-let readCollection (db : IMongoDatabase) (name : string) : System.Collections.Generic.List<BsonDocument> =
-    db.GetCollection<BsonDocument>(name).Find(fun _ -> true).ToList()
+let readCollection (db : IMongoDatabase) (name : string) : seq<BsonDocument> =
+    upcast db.GetCollection<BsonDocument>(name).Find(fun _ -> true).ToList()
 
 let writeCollection (db : IMongoDatabase) (name : string) (documents : seq<BsonDocument>) : unit =
     let collection = db.GetCollection<BsonDocument>(name)
@@ -196,7 +196,7 @@ let mongoConnString (cloakConfig : CloakConfig) : string =
 
 let acUserId = "_ac_user_id"
 
-let project' (data : Map<string, ^T> when ^T :> seq<BsonDocument>) (config : Map<string, CloakTable>) (table : string) : Map<string, CloakTable> =
+let project' (data : Map<string, seq<BsonDocument>>) (config : Map<string, CloakTable>) (table : string) : Map<string, CloakTable> =
     let tableConfig = config.Item(table)
     let { table = target; foreignKey = foreignKey; primaryKey = primaryKey } = tableConfig.projection.Value
     let userIdKey = config.Item(target).userId.Value
@@ -216,7 +216,7 @@ let project' (data : Map<string, ^T> when ^T :> seq<BsonDocument>) (config : Map
 
     Map.add table { tableConfig with projection = None; userId = Some(acUserId) } config
 
-let rec project (config : Map<string, CloakTable>) (data : Map<string, ^T> when ^T :> seq<BsonDocument>) : unit =
+let rec project (config : Map<string, CloakTable>) (data : Map<string, seq<BsonDocument>>) : unit =
     let canProject =
         config
         |> Seq.filter (fun kv -> kv.Value.projection.IsSome)
