@@ -1,0 +1,29 @@
+{
+  "driver": "mongodb",
+  "name": "mongo_cleanup_big",
+  "parameters": {
+    "hostname": "localhost",
+    "database": "mongo_cleanup_big"
+  },
+  "tables": {
+    "users": {
+      "user_id": "id"
+    },
+
+    "purchases": {
+      "projection": {
+        "table": "users",
+        "foreign_key": "user_id",
+        "primary_key": "id"
+      }
+    },
+
+    "items": {
+      "projection": {
+        "table": "purchases",
+        "foreign_key": "purchase_id",
+        "primary_key": "id"
+      }
+    }
+  }
+}
