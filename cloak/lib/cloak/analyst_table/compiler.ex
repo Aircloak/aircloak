@@ -50,22 +50,11 @@ defmodule Cloak.AnalystTable.Compiler do
   end
 
   defp verify_selected_columns(query) do
-    duplicates =
-      query.column_titles
-      |> Stream.transform(
-        {MapSet.new(), MapSet.new()},
-        fn title, {duplicates, uniques} ->
-          cond do
-            MapSet.member?(duplicates, title) -> {[], {duplicates, uniques}}
-            MapSet.member?(uniques, title) -> {[title], {MapSet.put(duplicates, title), MapSet.delete(uniques, title)}}
-            true -> {[], {duplicates, MapSet.put(uniques, title)}}
-          end
-        end
-      )
-      |> Enum.to_list()
-
-    if Enum.empty?(duplicates),
-      do: :ok,
-      else: {:error, "Duplicate column names: #{duplicates |> Stream.map(&"`#{&1}`") |> Enum.join(", ")}"}
+    (query.column_titles -- Enum.uniq(query.column_titles))
+    |> Enum.uniq()
+    |> case do
+      [] -> :ok
+      duplicates -> {:error, "Duplicate column names: #{duplicates |> Stream.map(&"`#{&1}`") |> Enum.join(", ")}"}
+    end
   end
 end
