@@ -155,8 +155,6 @@ let applyDecoders (decoders : Decoder list) (document : BsonDocument) : unit =
     for decoder in decoders do
         applyDecoder document decoder
 
-    ProgressBar.tick 1
-
 let readCollection (db : IMongoDatabase) (name : string) : seq<BsonDocument> =
     upcast db.GetCollection<BsonDocument>(name).Find(fun _ -> true).ToList()
 
@@ -175,15 +173,22 @@ let writeCollection (db : IMongoDatabase) (name : string) (documents : seq<BsonD
 
     collection.BulkWrite(updates) |> ignore
 
-let decode (documents : seq<BsonDocument>) (decoders : Decoder list) : Async<unit> =
-    async {
-        let! _ =
-            documents
-            |> Seq.map (fun doc -> async { applyDecoders decoders doc })
-            |> Async.Parallel
+let batchesOf n =
+   Seq.mapi (fun i v -> i / n, v) >>
+   Seq.groupBy fst >>
+   Seq.map snd >>
+   Seq.map (Seq.map snd)
 
-        ()
-    }
+let decode (documents : seq<BsonDocument>) (decoders : Decoder list) : Async<unit> =
+    documents
+    |> batchesOf 1000
+    |> Seq.map (fun batch -> async {
+        for doc in batch do
+            applyDecoders decoders doc
+        ProgressBar.tick <| Seq.length batch
+    })
+    |> Async.Parallel
+    |> Async.Ignore
 
 let mongoConnString (cloakConfig : CloakConfig) : string =
     let options = cloakConfig.parameters
@@ -222,7 +227,7 @@ let projectOne (data : Map<string, seq<BsonDocument>>) (config : Map<string, Clo
             | Some userId -> document.Add(newUserIdKey, userId) |> ignore
             | None -> ()
 
-    ProgressBar.tick 1
+    data.Item(table) |> Seq.length |> ProgressBar.tick
 
     Map.add table { tableConfig with projection = None; userId = Some(newUserIdKey) } config
 
@@ -238,12 +243,6 @@ let rec project (config : Map<string, CloakTable>) (data : Map<string, seq<BsonD
     | canProject ->
         let config = List.fold (projectOne data) config canProject
         project config data
-
-let batchesOf n =
-   Seq.mapi (fun i v -> i / n, v) >>
-   Seq.groupBy fst >>
-   Seq.map snd >>
-   Seq.map (Seq.map snd)
 
 let run (options : ParseResults<CLIArguments>) : unit =
     use stream = new StreamReader(options.GetResult Cloak_Config)

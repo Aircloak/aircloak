@@ -12,6 +12,7 @@ type ProgressMessage =
 let progressAgent : MailboxProcessor<ProgressMessage> = MailboxProcessor.Start(fun inbox ->
     let draw total progress text =
         if not Console.IsOutputRedirected && total > 0 then
+            let progress = min progress total
             let percentage = progress * 100 / total
             let pertwenty = progress * 20 / total
             let bar = sprintf "[%s%s]" (String.replicate pertwenty "#") (String.replicate (20 - pertwenty) " ")
@@ -20,6 +21,7 @@ let progressAgent : MailboxProcessor<ProgressMessage> = MailboxProcessor.Start(f
             printf "%s %s %i/%i (%i%%)" bar text progress total percentage
 
     let rec messageLoop total progress text = async {
+        try
             let! message = inbox.Receive()
 
             match message with
@@ -27,7 +29,8 @@ let progressAgent : MailboxProcessor<ProgressMessage> = MailboxProcessor.Start(f
                 draw total total text
                 printfn ""
                 return! messageLoop newTotal 0 newText
-            | Tick(newProgress) -> return! messageLoop total (progress + newProgress) text
+            | Tick(newProgress) ->
+                return! messageLoop total (progress + newProgress) text
             | Draw ->
                 draw total progress text
                 return! messageLoop total progress text
@@ -35,7 +38,9 @@ let progressAgent : MailboxProcessor<ProgressMessage> = MailboxProcessor.Start(f
                 draw total total text
                 printfn ""
                 return! messageLoop total total text
-        }
+        with
+        | e -> printfn "%A" e
+    }
 
     messageLoop 0 0 ""
 )
