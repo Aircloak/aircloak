@@ -20,11 +20,23 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
       def prepare_analyst_table(db_name, query), do: AnalystTables.create_table_from_query(db_name, query)
 
       @impl Driver
-      def create_or_update_analyst_table(connection, key, db_name, sql, statement),
-        do: AnalystTables.create_or_update_analyst_table(__MODULE__, connection, key, db_name, sql, statement)
+      def create_or_update_analyst_table(connection, key, db_name, sql, statement, fingerprint) do
+        AnalystTables.create_or_update_analyst_table(
+          __MODULE__,
+          connection,
+          key,
+          db_name,
+          sql,
+          statement,
+          fingerprint
+        )
+      end
 
       @impl Driver
       def drop_analyst_table(connection, db_name), do: AnalystTables.drop_analyst_table(__MODULE__, connection, db_name)
+
+      @impl Driver
+      def registered_analyst_tables(connection), do: AnalystTables.registered_analyst_tables(__MODULE__, connection)
 
       @impl AnalystTables
       def analyst_tables(connection), do: AnalystTables.analyst_tables(__MODULE__, connection)
@@ -64,9 +76,9 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
   end
 
   @doc false
-  def create_or_update_analyst_table(driver, connection, key, db_name, sql, statement) do
+  def create_or_update_analyst_table(driver, connection, key, db_name, sql, statement, fingerprint) do
     with {:ok, _} <- drop_table(driver, connection, key, db_name),
-         {:ok, _} <- create_table(driver, connection, key, db_name, sql, statement),
+         {:ok, _} <- create_table(driver, connection, key, db_name, sql, statement, fingerprint),
          do: :ok
   end
 
@@ -95,6 +107,17 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
     |> driver.select!(driver.sql_dialect_module().select_table_names("__ac_"))
     |> Stream.map(fn [table_name] -> table_name end)
     |> Enum.reject(&(&1 == @analyst_meta_table_name))
+  end
+
+  @doc false
+  def registered_analyst_tables(driver, connection) do
+    columns = ~w(key statement fingerprint name) |> Stream.map(&quote_identifier(driver, &1)) |> Enum.join(", ")
+
+    connection
+    |> driver.select!("SELECT #{columns} FROM #{quoted_analyst_table_name(driver)}")
+    |> Enum.map(fn [key, statement, fingerprint, name] ->
+      %{key: key, statement: Base.decode64!(statement), fingerprint: Base.decode64!(fingerprint), db_name: name}
+    end)
   end
 
   defp drop_table(driver, connection, key, db_name) do
@@ -133,20 +156,20 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
     )
   end
 
-  defp create_table(driver, connection, key, db_name, sql, statement) do
+  defp create_table(driver, connection, key, db_name, sql, statement, fingerprint) do
     Logger.info("creating database table `#{db_name}`")
 
-    with {:ok, _} <- insert_meta(driver, connection, key, db_name, sql, statement),
+    with {:ok, _} <- insert_meta(driver, connection, key, db_name, statement, fingerprint),
          do: driver.execute(connection, sql)
   end
 
-  defp insert_meta(driver, connection, key, db_name, sql, statement) do
+  defp insert_meta(driver, connection, key, db_name, statement, fingerprint) do
     columns = ~w(key name statement fingerprint) |> Stream.map(&quote_identifier(driver, &1)) |> Enum.join(", ")
 
     # Note: we're encoding the statement with base64 to avoid possible encoding issues on the underlying database.
     # Base64 should ensure that we can get the exact same statement that was originally submitted to create the table.
     values =
-      [key, db_name, Base.encode64(statement), Base.encode64(:crypto.hash(:sha256, sql))]
+      [key, db_name, Base.encode64(statement), Base.encode64(fingerprint)]
       |> Stream.map(&"'#{SqlBuilder.escape_string(&1)}'")
       |> Enum.join(", ")
 

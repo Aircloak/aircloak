@@ -11,14 +11,15 @@ defmodule Cloak.AnalystTable do
           analyst: Query.analyst_id(),
           name: String.t(),
           statement: String.t(),
+          air_name: String.t(),
           data_source_name: String.t(),
           db_name: String.t(),
           id_column: Expression.t(),
           store_info: String.t(),
-          columns: [DataSource.Table.column()]
+          columns: [DataSource.Table.column()],
+          fingerprint: binary(),
+          status: :creating | :created | :create_error
         }
-
-  @type creation_state :: :succeeded | :failed
 
   # -------------------------------------------------------------------
   # API functions
@@ -67,7 +68,9 @@ defmodule Cloak.AnalystTable do
         db_name: db_name,
         id_column: query_table.user_id,
         store_info: store_info,
-        columns: query_table.columns
+        columns: query_table.columns,
+        fingerprint: :crypto.hash(:sha256, store_info),
+        status: :creating
       }
 
       GenServer.call(__MODULE__, {:store_table, table})
@@ -103,15 +106,15 @@ defmodule Cloak.AnalystTable do
     do: GenServer.call(__MODULE__, {:register_tables, air_name, registration_infos})
 
   @doc "Returns the analyst table definition."
-  @spec table_definition(Query.analyst_id(), String.t(), DataSource.t()) :: DataSource.Table.t() | nil
-  def table_definition(analyst, table_name, data_source),
+  @spec find(Query.analyst_id(), String.t(), DataSource.t()) :: table | nil
+  def find(analyst, table_name, data_source),
     do: Enum.find(analyst_tables(analyst, data_source), &(&1.name == table_name))
 
   @doc "Returns analyst tables for the given analyst in the given data source."
   @spec analyst_tables(Query.analyst_id(), DataSource.t()) :: [DataSource.Table.t()]
   def analyst_tables(analyst, data_source) do
     Enum.map(
-      :ets.match(__MODULE__, {{analyst, data_source.name, :_}, :"$1"}),
+      :ets.match(__MODULE__, {{:_, analyst, data_source.name, :_}, :"$1"}),
       fn [table] -> table end
     )
   end
@@ -137,7 +140,7 @@ defmodule Cloak.AnalystTable do
 
   def handle_call({:store_table, table}, _from, state) do
     state = stop_job(state, create_table_job_id(table))
-    store_table_definition(table, data_source_table(table, status: :creating))
+    store_table_definition(table)
     {:reply, :ok, enqueue_job(state, {:create_table, table})}
   end
 
@@ -196,25 +199,17 @@ defmodule Cloak.AnalystTable do
 
   defp create_table_job_id(table), do: {:create_table, Map.take(table, [:analyst, :name, :data_source_name])}
 
-  defp key(table), do: {table.analyst, table.data_source_name, table.name}
+  defp key(table), do: {table.air_name, table.analyst, table.data_source_name, table.name}
 
-  defp store_table_definition(table, table_definition) do
-    :ets.insert(__MODULE__, {key(table), table_definition})
+  defp store_table_definition(table) do
+    :ets.insert(__MODULE__, {key(table), table})
     :ok
   end
 
   defp update_table_definition(table, updater_fun) do
     [{_key, table_definition}] = :ets.lookup(__MODULE__, key(table))
-    store_table_definition(table, updater_fun.(table_definition))
+    store_table_definition(updater_fun.(table_definition))
     :ok
-  end
-
-  defp data_source_table(table, opts) do
-    DataSource.Table.new(
-      table.name,
-      table.id_column,
-      Map.merge(%{db_name: table.db_name, columns: table.columns}, Map.new(opts))
-    )
   end
 
   defp store_table(table, store_fun) do
@@ -241,12 +236,13 @@ defmodule Cloak.AnalystTable do
         Jason.encode!(Map.take(table, [:air_name, :data_source_name, :analyst, :name])),
         table.db_name,
         table.store_info,
-        table.statement
+        table.statement,
+        table.fingerprint
       )
     )
   end
 
-  defp registration_info(table), do: Jason.encode!(table)
+  defp registration_info(table), do: Jason.encode!(%{table | fingerprint: nil})
 
   defp decode_registration_info(air_name, registration_info) do
     registration_info
@@ -284,7 +280,7 @@ defmodule Cloak.AnalystTable do
 
     Enum.each(
       missing_tables,
-      fn table -> store_table_definition(table, data_source_table(table, status: :created)) end
+      fn table -> store_table_definition(table) end
     )
   end
 

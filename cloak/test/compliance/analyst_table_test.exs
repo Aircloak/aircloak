@@ -20,20 +20,20 @@ defmodule Compliance.AnalystTableTest do
       test "same query and id produce the same db_name" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           {:ok, _, _} = create_or_update(1, "table2", "select user_id, height from users where age < 70", data_source)
-          name = AnalystTable.table_definition(1, "table2", data_source).db_name
+          name = AnalystTable.find(1, "table2", data_source).db_name
 
           {:ok, _, _} = create_or_update(1, "table2", "select user_id, height from users where age < 70", data_source)
-          assert %{db_name: ^name} = AnalystTable.table_definition(1, "table2", data_source)
+          assert %{db_name: ^name} = AnalystTable.find(1, "table2", data_source)
         end
       end
 
       test "different id leads to a different db_name" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           {:ok, _, _} = create_or_update(1, "table4", "select user_id, height from users where age < 70", data_source)
-          name1 = AnalystTable.table_definition(1, "table4", data_source).db_name
+          name1 = AnalystTable.find(1, "table4", data_source).db_name
 
           {:ok, _, _} = create_or_update(2, "table4", "select user_id, height from users where age < 70", data_source)
-          name2 = AnalystTable.table_definition(2, "table4", data_source).db_name
+          name2 = AnalystTable.find(2, "table4", data_source).db_name
 
           assert name1 != name2
         end
@@ -51,7 +51,8 @@ defmodule Compliance.AnalystTableTest do
 
       test "analyst table can be queried" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _, _} = create_or_update(1, "table6", "select user_id, height from users where age < 70", data_source)
+          {:ok, _, _} =
+            create_or_update(1, "table6", "select user_id, height from users where age between 0 and 70", data_source)
 
           assert_query(
             "select * from table6",
@@ -65,11 +66,11 @@ defmodule Compliance.AnalystTableTest do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           {:ok, _, _} = create_or_update(1, "table7", "select user_id, sqrt(age), height as h from users", data_source)
 
-          table_definition = AnalystTable.table_definition(1, "table7", data_source)
+          table_definition = AnalystTable.find(1, "table7", data_source)
 
           assert table_definition.name == "table7"
           assert String.starts_with?(table_definition.db_name, "__ac_")
-          assert table_definition.user_id == "user_id"
+          assert table_definition.id_column == "user_id"
 
           assert table_definition.columns == [
                    %{name: "user_id", type: :integer, visible?: true},
@@ -83,11 +84,11 @@ defmodule Compliance.AnalystTableTest do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           {:ok, _, _} = create_or_update(1, "table8", "select * from users", data_source)
 
-          table_definition = AnalystTable.table_definition(1, "table8", data_source)
+          table_definition = AnalystTable.find(1, "table8", data_source)
 
           assert table_definition.name == "table8"
           assert String.starts_with?(table_definition.db_name, "__ac_")
-          assert table_definition.user_id == "user_id"
+          assert table_definition.id_column == "user_id"
           assert table_definition.columns == Cloak.DataSource.table(data_source, :users).columns
         end
       end
@@ -109,8 +110,8 @@ defmodule Compliance.AnalystTableTest do
           {:ok, info1, _} = create_or_update(1, "table13", "select user_id as c from users", data_source)
           {:ok, info2, _} = create_or_update(2, "table14", "select user_id from users", data_source)
 
-          db_name1 = AnalystTable.table_definition(1, "table13", data_source).db_name
-          db_name2 = AnalystTable.table_definition(2, "table14", data_source).db_name
+          db_name1 = AnalystTable.find(1, "table13", data_source).db_name
+          db_name2 = AnalystTable.find(2, "table14", data_source).db_name
           :ok = AnalystTable.register_tables("air_name", [info1, info2])
 
           assert soon(Enum.sort(stored_tables(data_source)) == Enum.sort([db_name1, db_name2]), 5000)
@@ -315,7 +316,7 @@ defmodule Compliance.AnalystTableTest do
               assert_receive {:DOWN, ^mref, :process, ^pid, :killed}, :timer.seconds(1)
 
               assert soon(
-                       is_nil(AnalystTable.table_definition(1, "table30", data_source)),
+                       is_nil(AnalystTable.find(1, "table30", data_source)),
                        :timer.seconds(5),
                        repeat_wait_time: 10
                      )
@@ -353,7 +354,7 @@ defmodule Compliance.AnalystTableTest do
       test "table is registered in the meta table" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           assert {:ok, _, _} = create_or_update(1, "table31", "select * from users", data_source)
-          db_name = AnalystTable.table_definition(1, "table31", data_source).db_name
+          db_name = AnalystTable.find(1, "table31", data_source).db_name
           assert Enum.member?(registered_tables(data_source), db_name)
         end
       end
@@ -361,11 +362,11 @@ defmodule Compliance.AnalystTableTest do
       test "dropping a table" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           assert {:ok, registration_info, _} = create_or_update(1, "table32", "select * from users", data_source)
-          db_name = AnalystTable.table_definition(1, "table32", data_source).db_name
+          db_name = AnalystTable.find(1, "table32", data_source).db_name
           assert AnalystTable.drop_table("air_name", registration_info) == :ok
           refute Enum.member?(registered_tables(data_source), db_name)
           refute Enum.member?(stored_tables(data_source), db_name)
-          assert AnalystTable.table_definition(1, "table32", data_source) == nil
+          assert AnalystTable.find(1, "table32", data_source) == nil
         end
       end
     end
@@ -396,7 +397,7 @@ defmodule Compliance.AnalystTableTest do
     AnalystTable.sync_serialized(fn ->
       data_source |> stored_tables() |> Enum.each(&drop_table!(data_source, &1))
       truncate_table!(data_source, "__ac_analyst_tables_1")
-      :ets.match_delete(AnalystTable, {{:_, data_source.name, :_}, :_})
+      :ets.match_delete(AnalystTable, {{:_, :_, data_source.name, :_}, :_})
     end)
   end
 
@@ -409,7 +410,7 @@ defmodule Compliance.AnalystTableTest do
   end
 
   defp table_created?(analyst_id, name, data_source, expected_status \\ :created) do
-    with table_definition <- AnalystTable.table_definition(analyst_id, name, data_source),
+    with table_definition <- AnalystTable.find(analyst_id, name, data_source),
          false <- is_nil(table_definition),
          ^expected_status <- table_definition.status,
          do: true,

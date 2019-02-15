@@ -94,6 +94,14 @@ defmodule Cloak.Sql.Query.Lenses do
     |> Lens.at(1)
   end
 
+  @doc "Lens focusing on a query's immediate subqueries which represent analyst tables."
+  deflens analyst_tables_subqueries() do
+    Lens.key(:from)
+    |> join_elements()
+    |> Lens.filter(&match?({:subquery, _}, &1))
+    |> Lens.filter(fn {:subquery, subquery} -> subquery.ast.analyst_table != nil end)
+  end
+
   @doc "Lens focusing on all inequality condition-clauses in a query."
   deflens order_condition_columns() do
     Lens.match(fn

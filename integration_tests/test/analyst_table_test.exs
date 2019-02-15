@@ -185,9 +185,9 @@ defmodule IntegrationTest.AnalystTableTest do
   defp table_created?(analyst_id, name, data_source) do
     {:ok, cloak_data_source} = Cloak.DataSource.fetch(data_source.name)
 
-    with table_definition <- Cloak.AnalystTable.table_definition(analyst_id, name, cloak_data_source),
-         false <- is_nil(table_definition),
-         true <- table_definition.status != :creating,
+    with table <- Cloak.AnalystTable.find(analyst_id, name, cloak_data_source),
+         false <- is_nil(table),
+         true <- table.status != :creating,
          do: true,
          else: (_ -> false)
   end
