@@ -23,7 +23,10 @@
         "table": "purchases",
         "foreign_key": "purchase_id",
         "primary_key": "id"
-      }
+      },
+      "decoders": [
+        {"method": "text_to_real", "columns": ["price"]}
+      ]
     }
   }
 }
