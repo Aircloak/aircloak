@@ -111,13 +111,6 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
     call(channel_pid, "create_or_update_analyst_table", payload, @short_timeout)
   end
 
-  @doc "Asynchronously sends all known analyst tables to the cloak."
-  @spec send_analyst_tables_to_cloak(pid) :: :ok
-  def send_analyst_tables_to_cloak(channel_pid) do
-    send(channel_pid, :send_analyst_tables)
-    :ok
-  end
-
   @doc "Removes the given analyst table on the cloak."
   @spec drop_analyst_table(pid, String.t()) :: :ok | {:error, String.t()}
   def drop_analyst_table(channel_pid, registration_info) do
@@ -144,8 +137,6 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
       cloak
       |> Air.Service.Cloak.register(cloak_info.data_sources)
       |> revalidate_views()
-
-      Aircloak.in_env(test: :ok, else: send_analyst_tables_to_cloak(self()))
 
       {:ok, %{}, socket}
     else
@@ -204,16 +195,6 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
 
   defp handle_erlang_message({:EXIT, _, :normal}, socket) do
     # probably the linked reporter terminated successfully
-    {:noreply, socket}
-  end
-
-  defp handle_erlang_message(:send_analyst_tables, socket) do
-    push(
-      socket,
-      "register_analyst_tables",
-      %{air_name: Air.name(), registration_infos: Enum.map(AnalystTable.all(), & &1.result_info.registration_info)}
-    )
-
     {:noreply, socket}
   end
 

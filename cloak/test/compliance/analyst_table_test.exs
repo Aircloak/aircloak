@@ -103,21 +103,6 @@ defmodule Compliance.AnalystTableTest do
         end
       end
 
-      test "obsolete analyst tables are dropped when tables are registered" do
-        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _info, _} = create_or_update(1, "table13", "select user_id as a from users", data_source)
-          {:ok, _info, _} = create_or_update(1, "table13", "select user_id as b from users", data_source)
-          {:ok, info1, _} = create_or_update(1, "table13", "select user_id as c from users", data_source)
-          {:ok, info2, _} = create_or_update(2, "table14", "select user_id from users", data_source)
-
-          db_name1 = AnalystTable.find(1, "table13", data_source).db_name
-          db_name2 = AnalystTable.find(2, "table14", data_source).db_name
-          :ok = AnalystTable.register_tables("air_name", [info1, info2])
-
-          assert soon(Enum.sort(stored_tables(data_source)) == Enum.sort([db_name1, db_name2]), 5000)
-        end
-      end
-
       test "columns information" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           {:ok, _, columns} = create_or_update(1, "table17", "select user_id, height from users", data_source)
@@ -161,22 +146,6 @@ defmodule Compliance.AnalystTableTest do
           after
             execute!(data_source, "delete from users where user_id = -1")
           end
-        end
-      end
-
-      test "tables can be queried after registration" do
-        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, table_info1, _} = create_or_update(1, "table20", "select user_id from users", data_source)
-          {:ok, table_info2, _} = create_or_update(1, "table21", "select user_id from users", data_source)
-
-          :ets.delete_all_objects(AnalystTable)
-
-          assert AnalystTable.register_tables("air_name", [table_info1, table_info2]) == :ok
-          assert soon(table_created?(1, "table20", data_source), :timer.seconds(5), repeat_wait_time: 10)
-          assert soon(table_created?(1, "table21", data_source), :timer.seconds(5), repeat_wait_time: 10)
-
-          assert_query("select * from table20", [analyst_id: 1, data_sources: [data_source]], %{columns: ["user_id"]})
-          assert_query("select * from table21", [analyst_id: 1, data_sources: [data_source]], %{columns: ["user_id"]})
         end
       end
 
@@ -266,60 +235,6 @@ defmodule Compliance.AnalystTableTest do
                 [analyst_id: 1, data_sources: [data_source]],
                 %{columns: ["user_id"]}
               )
-            end
-          )
-        end
-      end
-
-      test "registration while the table is being stored" do
-        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          AnalystTable.with_custom_store_fun(
-            fn real_store ->
-              Process.sleep(:timer.seconds(1))
-              real_store.()
-            end,
-            fn ->
-              {:ok, table_info, _} =
-                AnalystTable.create_or_update("air_name", 1, "table29", "select user_id from users", data_source)
-
-              assert AnalystTable.register_tables("air_name", [table_info]) == :ok
-              assert soon(table_created?(1, "table29", data_source), :timer.seconds(5), repeat_wait_time: 10)
-
-              assert_query(
-                "select * from table29",
-                [analyst_id: 1, data_sources: [data_source]],
-                %{columns: ["user_id"]}
-              )
-            end
-          )
-        end
-      end
-
-      test "storing of an obsolete table is stopped during registration" do
-        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          me = self()
-
-          AnalystTable.with_custom_store_fun(
-            fn real_store ->
-              send(me, {:create_process, self()})
-              Process.sleep(:timer.seconds(1))
-              real_store.()
-            end,
-            fn ->
-              {:ok, _, _} =
-                AnalystTable.create_or_update("air_name", 1, "table30", "select user_id from users", data_source)
-
-              assert_receive {:create_process, pid}
-              mref = Process.monitor(pid)
-
-              assert AnalystTable.register_tables("air_name", []) == :ok
-              assert_receive {:DOWN, ^mref, :process, ^pid, :killed}, :timer.seconds(1)
-
-              assert soon(
-                       is_nil(AnalystTable.find(1, "table30", data_source)),
-                       :timer.seconds(5),
-                       repeat_wait_time: 10
-                     )
             end
           )
         end

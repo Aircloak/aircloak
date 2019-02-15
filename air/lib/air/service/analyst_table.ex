@@ -23,7 +23,7 @@ defmodule Air.Service.AnalystTable do
     |> Ecto.Changeset.cast(changes, ~w(name sql user_id data_source_id)a)
     |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
     |> Map.put(:action, :insert)
-    |> store_table(user, data_source)
+    |> transactional_store(user, data_source)
   end
 
   @doc "Updates the existing analyst table, and stores it in cloak and in air."
@@ -37,7 +37,7 @@ defmodule Air.Service.AnalystTable do
       |> Ecto.Changeset.cast(%{name: name, sql: sql}, ~w(name sql)a)
       |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
       |> Map.put(:action, :update)
-      |> store_table(table.user, table.data_source)
+      |> transactional_store(table.user, table.data_source)
     else
       {:error, :not_allowed}
     end
@@ -87,10 +87,6 @@ defmodule Air.Service.AnalystTable do
              ) do
         Repo.delete!(table)
 
-        Air.Service.Cloak.channel_pids(table.data_source.name)
-        |> Stream.map(fn {pid, _cloak_info} -> pid end)
-        |> Enum.each(&MainChannel.send_analyst_tables_to_cloak/1)
-
         :ok
       end
     else
@@ -127,19 +123,6 @@ defmodule Air.Service.AnalystTable do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp store_table(changeset, user, data_source) do
-    with {:ok, _} = success <- transactional_store(changeset, user, data_source) do
-      # transactional_store stored the view on a single cloak. At this point, we're notifying all connected cloaks
-      # about the change. This ensures that all the cloaks have the table stored, including those which have connected
-      # during the transactional store.
-      Air.Service.Cloak.channel_pids(data_source.name)
-      |> Stream.map(fn {pid, _cloak_info} -> pid end)
-      |> Enum.each(&MainChannel.send_analyst_tables_to_cloak/1)
-
-      success
-    end
-  end
 
   defp transactional_store(changeset, user, data_source) do
     Repo.transaction(fn ->

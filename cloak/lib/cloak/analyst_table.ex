@@ -100,11 +100,6 @@ defmodule Cloak.AnalystTable do
     end
   end
 
-  @doc "Registers the analyst tables from the given registration infos, creating them in the database if needed."
-  @spec register_tables(String.t(), [String.t()]) :: :ok
-  def register_tables(air_name, registration_infos),
-    do: GenServer.call(__MODULE__, {:register_tables, air_name, registration_infos})
-
   @doc "Returns the analyst table definition."
   @spec find(Query.analyst_id(), String.t(), DataSource.t()) :: table | nil
   def find(analyst, table_name, data_source),
@@ -142,14 +137,6 @@ defmodule Cloak.AnalystTable do
     state = stop_job(state, create_table_job_id(table))
     store_table_definition(table)
     {:reply, :ok, enqueue_job(state, {:create_table, table})}
-  end
-
-  def handle_call({:register_tables, air_name, registration_infos}, _from, state) do
-    tables = Enum.map(registration_infos, &decode_registration_info(air_name, &1))
-    state = stop_obsolete_stores(state, tables)
-    update_ets_table(tables)
-
-    {:reply, :ok, state}
   end
 
   def handle_call({:unregister_table, table}, _from, state) do
@@ -254,34 +241,6 @@ defmodule Cloak.AnalystTable do
       fn columns -> Enum.map(columns, &update_in(&1.type, fn type -> String.to_existing_atom(type) end)) end
     )
     |> Map.put(:air_name, air_name)
-  end
-
-  defp stop_obsolete_stores(state, new_tables) do
-    storing_tables =
-      Parent.GenServer.children()
-      |> Enum.filter(&match?({_job_id, _pid, {:create_table, _table}}, &1))
-      |> Enum.map(fn {_id, _pid, {:create_table, table}} -> table end)
-      |> MapSet.new()
-
-    obsolete_storing_tables = MapSet.difference(storing_tables, MapSet.new(new_tables))
-    Enum.reduce(obsolete_storing_tables, state, &stop_job(&2, create_table_job_id(&1)))
-  end
-
-  defp update_ets_table(new_tables) do
-    new_keys = new_tables |> Enum.map(&key/1) |> MapSet.new()
-    known_keys = :ets.match(__MODULE__, {:"$1", :_}) |> List.flatten() |> MapSet.new()
-    obsolete_keys = MapSet.difference(known_keys, new_keys)
-    Enum.each(obsolete_keys, &:ets.delete(__MODULE__, &1))
-
-    missing_tables =
-      new_tables
-      |> Enum.filter(&(not MapSet.member?(known_keys, key(&1))))
-      |> Enum.filter(&match?({:ok, _}, Cloak.DataSource.fetch(&1.data_source_name)))
-
-    Enum.each(
-      missing_tables,
-      fn table -> store_table_definition(table) end
-    )
   end
 
   defp enqueue_job(state, job),
