@@ -4,6 +4,7 @@ open MongoDB.Driver
 open MongoDB.Bson
 open System.IO
 open FSharp.Json
+open MongoCleanup
 open System.Security.Cryptography
 
 type CLIArguments =
@@ -154,6 +155,8 @@ let applyDecoders (decoders : Decoder list) (document : BsonDocument) : unit =
     for decoder in decoders do
         applyDecoder document decoder
 
+    ProgressBar.tick()
+
 let readCollection (db : IMongoDatabase) (name : string) : seq<BsonDocument> =
     upcast db.GetCollection<BsonDocument>(name).Find(fun _ -> true).ToList()
 
@@ -219,6 +222,8 @@ let projectOne (data : Map<string, seq<BsonDocument>>) (config : Map<string, Clo
             | Some userId -> document.Add(newUserIdKey, userId) |> ignore
             | None -> ()
 
+    ProgressBar.tick()
+
     Map.add table { tableConfig with projection = None; userId = Some(newUserIdKey) } config
 
 let rec project (config : Map<string, CloakTable>) (data : Map<string, seq<BsonDocument>>) : unit =
@@ -244,12 +249,21 @@ let run (options : ParseResults<CLIArguments>) : unit =
 
     let data = config.tables |> Map.map (fun k _ -> readCollection db k)
 
+    use bar = ProgressBar.start 100
+
     async {
+        let toDecode = config.tables |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders)
+        let itemsToDecode = toDecode |> Seq.map (fun kv -> data.Item(kv.Key) |> Seq.length) |> Seq.sum
+        ProgressBar.reset itemsToDecode "Applying decoders"
+
         let! _ =
-            config.tables
-            |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders)
+            toDecode
             |> Seq.map (fun kv -> decode (data.Item kv.Key) kv.Value.decoders.Value)
             |> Async.Parallel
+
+        let toProject = config.tables |> Seq.filter (fun kv -> Option.isSome kv.Value.projection)
+        let itemsToProject = toProject |> Seq.map (fun kv -> data.Item(kv.Key) |> Seq.length) |> Seq.sum
+        ProgressBar.reset itemsToProject "Applying projections"
 
         project config.tables data
 
@@ -265,8 +279,10 @@ let run (options : ParseResults<CLIArguments>) : unit =
 [<EntryPoint>]
 let main argv =
     try
-        optionParser.ParseCommandLine(inputs = argv, raiseOnUsage = true) |> run
+       optionParser.ParseCommandLine(inputs = argv, raiseOnUsage = true) |> run
     with
     | :? Argu.ArguParseException as e -> printfn "%s" e.Message
     | e -> printfn "Unexpected error:\n%A" e
+
+    printfn ""
     0 // return an integer exit code
