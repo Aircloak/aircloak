@@ -20,8 +20,8 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
       def prepare_analyst_table(db_name, query), do: AnalystTables.create_table_from_query(db_name, query)
 
       @impl Driver
-      def create_or_update_analyst_table(connection, key, db_name, sql),
-        do: AnalystTables.create_or_update_analyst_table(__MODULE__, connection, key, db_name, sql)
+      def create_or_update_analyst_table(connection, key, db_name, sql, statement),
+        do: AnalystTables.create_or_update_analyst_table(__MODULE__, connection, key, db_name, sql, statement)
 
       @impl Driver
       def drop_analyst_table(connection, db_name), do: AnalystTables.drop_analyst_table(__MODULE__, connection, db_name)
@@ -64,9 +64,9 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
   end
 
   @doc false
-  def create_or_update_analyst_table(driver, connection, key, db_name, sql) do
+  def create_or_update_analyst_table(driver, connection, key, db_name, sql, statement) do
     with {:ok, _} <- drop_table(driver, connection, key, db_name),
-         {:ok, _} <- create_table(driver, connection, key, db_name, sql),
+         {:ok, _} <- create_table(driver, connection, key, db_name, sql, statement),
          do: :ok
   end
 
@@ -133,16 +133,23 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
     )
   end
 
-  defp create_table(driver, connection, key, db_name, sql) do
+  defp create_table(driver, connection, key, db_name, sql, statement) do
     Logger.info("creating database table `#{db_name}`")
 
-    with {:ok, _} <- insert_meta(driver, connection, key, db_name),
+    with {:ok, _} <- insert_meta(driver, connection, key, db_name, sql, statement),
          do: driver.execute(connection, sql)
   end
 
-  defp insert_meta(driver, connection, key, db_name) do
-    columns = ~w(key name) |> Stream.map(&quote_identifier(driver, &1)) |> Enum.join(", ")
-    values = [key, db_name] |> Stream.map(&"'#{SqlBuilder.escape_string(&1)}'") |> Enum.join(", ")
+  defp insert_meta(driver, connection, key, db_name, sql, statement) do
+    columns = ~w(key name statement fingerprint) |> Stream.map(&quote_identifier(driver, &1)) |> Enum.join(", ")
+
+    # Note: we're encoding the statement with base64 to avoid possible encoding issues on the underlying database.
+    # Base64 should ensure that we can get the exact same statement that was originally submitted to create the table.
+    values =
+      [key, db_name, Base.encode64(statement), Base.encode64(:crypto.hash(:sha256, sql))]
+      |> Stream.map(&"'#{SqlBuilder.escape_string(&1)}'")
+      |> Enum.join(", ")
+
     driver.execute(connection, "INSERT INTO #{quoted_analyst_table_name(driver)} (#{columns}) VALUES (#{values})")
   end
 

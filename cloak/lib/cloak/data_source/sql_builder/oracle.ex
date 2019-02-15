@@ -116,6 +116,8 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
     CREATE TABLE #{quoted_table_name} (
       "key" VARCHAR(2000) NOT NULL,
       "name" VARCHAR2(30) NOT NULL,
+      "statement" CLOB NOT NULL,
+      "fingerprint" VARCHAR2(50) NOT NULL,
       PRIMARY KEY ("key", "name"),
       CONSTRAINT ac_unique_name UNIQUE ("name")
     )

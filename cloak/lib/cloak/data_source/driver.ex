@@ -64,7 +64,8 @@ defmodule Cloak.DataSource.Driver do
               connection,
               key :: String.t(),
               db_name :: String.t(),
-              store_info :: String.t()
+              store_info :: String.t(),
+              statement :: String.t()
             ) :: :ok | {:error, String.t()}
 
   @doc "Removes the given analyst table from the database."
@@ -84,7 +85,7 @@ defmodule Cloak.DataSource.Driver do
       def prepare_analyst_table(_table_name, _query), do: raise(RuntimeError, "not implemented")
 
       @impl unquote(__MODULE__)
-      def create_or_update_analyst_table(_connection, _key, _db_name, _store_info),
+      def create_or_update_analyst_table(_connection, _key, _db_name, _store_info, _statement),
         do: raise(RuntimeError, "not implemented")
 
       @impl unquote(__MODULE__)

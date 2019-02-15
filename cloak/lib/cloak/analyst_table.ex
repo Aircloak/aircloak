@@ -240,7 +240,8 @@ defmodule Cloak.AnalystTable do
         &1,
         Jason.encode!(Map.take(table, [:air_name, :data_source_name, :analyst_id, :name])),
         table.db_name,
-        table.store_info
+        table.store_info,
+        table.statement
       )
     )
   end
