@@ -155,7 +155,7 @@ let applyDecoders (decoders : Decoder list) (document : BsonDocument) : unit =
     for decoder in decoders do
         applyDecoder document decoder
 
-    ProgressBar.tick()
+    ProgressBar.tick 1
 
 let readCollection (db : IMongoDatabase) (name : string) : seq<BsonDocument> =
     upcast db.GetCollection<BsonDocument>(name).Find(fun _ -> true).ToList()
@@ -222,7 +222,7 @@ let projectOne (data : Map<string, seq<BsonDocument>>) (config : Map<string, Clo
             | Some userId -> document.Add(newUserIdKey, userId) |> ignore
             | None -> ()
 
-    ProgressBar.tick()
+    ProgressBar.tick 1
 
     Map.add table { tableConfig with projection = None; userId = Some(newUserIdKey) } config
 
@@ -239,6 +239,12 @@ let rec project (config : Map<string, CloakTable>) (data : Map<string, seq<BsonD
         let config = List.fold (projectOne data) config canProject
         project config data
 
+let batchesOf n =
+   Seq.mapi (fun i v -> i / n, v) >>
+   Seq.groupBy fst >>
+   Seq.map snd >>
+   Seq.map (Seq.map snd)
+
 let run (options : ParseResults<CLIArguments>) : unit =
     use stream = new StreamReader(options.GetResult Cloak_Config)
     let jsonConfig = JsonConfig.create (jsonFieldNaming = Json.snakeCase)
@@ -247,6 +253,7 @@ let run (options : ParseResults<CLIArguments>) : unit =
     let conn = config |> mongoConnString |> MongoClient
     let db = conn.GetDatabase config.parameters.database
 
+    printfn "Reading data..."
     let data = config.tables |> Map.map (fun k _ -> readCollection db k)
 
     use bar = ProgressBar.start 100
@@ -267,10 +274,19 @@ let run (options : ParseResults<CLIArguments>) : unit =
 
         project config.tables data
 
-        let! _ =
+        let toWrite =
             config.tables
             |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders || Option.isSome kv.Value.projection)
-            |> Seq.map (fun kv -> async { writeCollection db kv.Key (data.Item kv.Key) })
+        let itemsToWrite = toProject |> Seq.map (fun kv -> data.Item(kv.Key) |> Seq.length) |> Seq.sum
+        ProgressBar.reset itemsToWrite "Writing data"
+
+        let! _ =
+            toWrite
+            |> Seq.map (fun kv -> async {
+                for batch in data.Item kv.Key |> batchesOf 1000 do
+                    writeCollection db kv.Key batch
+                    ProgressBar.tick <| Seq.length batch
+            })
             |> Async.Parallel
 
         ()
@@ -284,5 +300,5 @@ let main argv =
     | :? Argu.ArguParseException as e -> printfn "%s" e.Message
     | e -> printfn "Unexpected error:\n%A" e
 
-    printfn ""
+    printfn "Success"
     0 // return an integer exit code
