@@ -206,7 +206,8 @@ defmodule Cloak.Sql.Compiler.Optimizer do
         %Expression{expression | alias: "__ac_agg_#{index}", synthetic?: true}
       end)
 
-    inner_columns = [user_id | base_columns] ++ aggregated_columns
+    grouped_columns = [user_id | base_columns]
+    inner_columns = grouped_columns ++ aggregated_columns
 
     inner_query = %Query{
       query
@@ -215,7 +216,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
         aggregators: aggregated_columns,
         columns: inner_columns,
         column_titles: Enum.map(inner_columns, &Expression.title/1),
-        group_by: Enum.map([user_id | base_columns], &Expression.unalias/1),
+        group_by: Enum.map(grouped_columns, &Expression.unalias/1),
         order_by: [],
         having: nil,
         limit: nil,
@@ -240,10 +241,10 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     |> update_in(
       [
         Lenses.query_expressions()
-        |> Lens.filter(&Expression.member?(base_columns, &1))
+        |> Lens.filter(&Expression.member?(grouped_columns, &1))
         |> Lens.reject(&(&1.table == inner_table))
       ],
-      &update_base_column(&1, inner_table, base_columns)
+      &update_base_column(&1, inner_table, grouped_columns)
     )
   end
 
