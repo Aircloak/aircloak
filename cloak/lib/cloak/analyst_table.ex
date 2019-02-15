@@ -238,7 +238,7 @@ defmodule Cloak.AnalystTable do
       data_source,
       &data_source.driver.create_or_update_analyst_table(
         &1,
-        Jason.encode!(Map.take(table, [:air_name, :data_source_name, :analyst_id, :name])),
+        Jason.encode!(Map.take(table, [:air_name, :data_source_name, :analyst, :name])),
         table.db_name,
         table.store_info,
         table.statement
