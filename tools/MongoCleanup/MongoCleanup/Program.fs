@@ -289,7 +289,7 @@ let run (options : ParseResults<CLIArguments>) : unit =
             })
             |> Async.Parallel
 
-        ()
+        ProgressBar.finish()
     } |> Async.RunSynchronously
 
 [<EntryPoint>]
