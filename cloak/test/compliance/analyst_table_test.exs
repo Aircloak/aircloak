@@ -52,12 +52,17 @@ defmodule Compliance.AnalystTableTest do
       test "analyst table can be queried" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           {:ok, _, _} =
-            create_or_update(1, "table6", "select user_id, height from users where age between 0 and 70", data_source)
+            create_or_update(
+              1,
+              "table6",
+              "select user_id as uid, height from users where age between 0 and 70",
+              data_source
+            )
 
           assert_query(
             "select * from table6",
             [analyst_id: 1, data_sources: [data_source]],
-            %{columns: ["user_id", "height"]}
+            %{columns: ["uid", "height"]}
           )
         end
       end

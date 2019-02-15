@@ -283,6 +283,12 @@ defmodule Cloak.Query.BasicTest do
     })
   end
 
+  test "order by count distinct uids" do
+    :ok = insert_rows(_user_ids = 1..10, "heights", ["name"], ["john"])
+
+    assert_query("select count(distinct user_id) from heights order by 1", %{rows: [%{row: [10]}]})
+  end
+
   test "should return LCF property when sufficient rows are filtered" do
     :ok = insert_rows(_user_ids = 0..19, "heights", ["height"], [180])
     :ok = insert_rows(_user_ids = 0..3, "heights", ["height"], [160])
