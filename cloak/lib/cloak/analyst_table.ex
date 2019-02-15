@@ -4,7 +4,7 @@ defmodule Cloak.AnalystTable do
   use Parent.GenServer
   require Logger
   alias Cloak.DataSource
-  alias Cloak.Sql.Query
+  alias Cloak.Sql.{Query, Expression}
   alias __MODULE__.{Compiler, Jobs}
 
   @type table :: %{
@@ -13,7 +13,7 @@ defmodule Cloak.AnalystTable do
           statement: String.t(),
           data_source_name: String.t(),
           db_name: String.t(),
-          id_column: Cloak.Sql.Expression.t(),
+          id_column: Expression.t(),
           store_info: String.t(),
           columns: [DataSource.Table.column()]
         }
@@ -53,6 +53,11 @@ defmodule Cloak.AnalystTable do
 
       store_info = data_source.driver.prepare_analyst_table(db_name, query)
 
+      query_table =
+        Enum.zip(query.column_titles, query.columns)
+        |> Enum.map(fn {title, column} -> %Expression{column | alias: title} end)
+        |> Cloak.Sql.Compiler.Helpers.create_table_from_columns(table_name)
+
       table = %{
         air_name: air_name,
         analyst: analyst,
@@ -60,9 +65,9 @@ defmodule Cloak.AnalystTable do
         statement: statement,
         data_source_name: data_source.name,
         db_name: db_name,
-        id_column: Cloak.Sql.Compiler.Helpers.id_column(query).name,
+        id_column: query_table.user_id,
         store_info: store_info,
-        columns: columns(query)
+        columns: query_table.columns
       }
 
       GenServer.call(__MODULE__, {:store_table, table})
@@ -209,13 +214,6 @@ defmodule Cloak.AnalystTable do
       table.name,
       table.id_column,
       Map.merge(%{db_name: table.db_name, columns: table.columns}, Map.new(opts))
-    )
-  end
-
-  defp columns(query) do
-    Enum.map(
-      Enum.zip(query.column_titles, query.columns),
-      fn {column_title, column} -> DataSource.Table.column(column_title, column.type) end
     )
   end
 

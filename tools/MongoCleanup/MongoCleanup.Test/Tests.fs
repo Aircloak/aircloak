@@ -1,0 +1,62 @@
+namespace MongoCleanup.Test
+
+open Microsoft.VisualStudio.TestTools.UnitTesting
+open MongoDB.Bson
+open Program
+
+[<TestClass>]
+type TestDecoders() =
+
+    [<TestMethod>]
+    member this.TestWithInvalidInput() =
+        for decoder in [ textToInteger; textToReal; textToDate; realToInteger; textToBoolean; realToBoolean; base64; substring 1 2 ] do
+            Assert.AreEqual(BsonNull.Value, BsonNull.Value |> decoder)
+
+    [<TestMethod>]
+    member this.TestWithInvalidFormat() =
+        for decoder in [ textToInteger; textToReal; textToDate; realToInteger; textToBoolean; realToBoolean; base64 ] do
+            Assert.AreEqual(BsonNull.Value, BsonString("bob") |> decoder)
+
+    [<TestMethod>]
+    member this.TestTextToInteger() =
+        let result = BsonString("123").AsBsonValue |> textToInteger
+        Assert.AreEqual(123L, result.AsInt64)
+
+    [<TestMethod>]
+    member this.TestTextToReal() =
+        let result = BsonString("123.23").AsBsonValue |> textToReal
+        Assert.AreEqual(123.23, result.AsDouble)
+
+    [<TestMethod>]
+    member this.TestTextToDate() =
+        let result = BsonString("2018-01-01").AsBsonValue |> textToDate
+        Assert.AreEqual(System.DateTime.Parse("2018-01-01T00:00:00").ToUniversalTime(), result.ToUniversalTime())
+
+    [<TestMethod>]
+    member this.TestTextToDateOnDatetimes() =
+        let result = BsonString("2018-01-01 12:23:44").AsBsonValue |> textToDate
+        Assert.AreEqual(System.DateTime.Parse("2018-01-01T12:23:44").ToUniversalTime(), result.ToUniversalTime())
+
+    [<TestMethod>]
+    member this.TestRealToInteger() =
+        let result = BsonDouble(2.23).AsBsonValue |> realToInteger
+        Assert.AreEqual(2L, result.AsInt64)
+
+    [<TestMethod>]
+    member this.TestTextToBoolean() =
+        Assert.AreEqual(BsonBoolean.True, BsonString("TRUE").AsBsonValue |> textToBoolean)
+        Assert.AreEqual(BsonBoolean.False, BsonString("false").AsBsonValue |> textToBoolean)
+
+    [<TestMethod>]
+    member this.TestRealToBoolean() =
+        Assert.AreEqual(BsonBoolean.True, BsonDouble(1.0) |> realToBoolean)
+        Assert.AreEqual(BsonBoolean.False, BsonDouble(0.0) |> realToBoolean)
+
+    [<TestMethod>]
+    member this.TestBase64() =
+        let expected = "Hello world" |> System.Text.Encoding.UTF8.GetBytes |> BsonBinaryData
+        Assert.AreEqual(expected, BsonString("SGVsbG8gd29ybGQ=").AsBsonValue |> base64)
+
+    [<TestMethod>]
+    member this.TestSubstring() =
+        Assert.AreEqual(BsonString("thing"), BsonString("a thing with more stuff").AsBsonValue |> substring 2 5)
