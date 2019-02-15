@@ -5,6 +5,15 @@ defmodule IntegrationTest.AnalystTableTest do
   import Aircloak.AssertionHelper
 
   setup_all do
+    Air.Repo.delete_all(Air.Schemas.AnalystTable)
+
+    {:ok, cloak_data_source} = Cloak.DataSource.fetch(Manager.data_source().name)
+
+    Cloak.DataSource.Connection.execute!(
+      cloak_data_source,
+      &cloak_data_source.driver.execute!(&1, "truncate table __ac_analyst_tables_1")
+    )
+
     {:ok, user: Manager.create_air_user()}
   end
 
@@ -118,6 +127,13 @@ defmodule IntegrationTest.AnalystTableTest do
 
   test "after the cloak reconnects, it will receive analyst tables from the air", context do
     Air.Repo.delete_all(Air.Schemas.AnalystTable)
+    {:ok, cloak_data_source} = Cloak.DataSource.fetch(Manager.data_source().name)
+
+    Cloak.DataSource.Connection.execute!(
+      cloak_data_source,
+      &cloak_data_source.driver.execute!(&1, "truncate table __ac_analyst_tables_1")
+    )
+
     table_name = unique_name()
     {:ok, _} = create_table(context.user, table_name, "select user_id from users")
     Manager.restart_cloak()

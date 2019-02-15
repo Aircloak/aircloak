@@ -232,7 +232,11 @@ defmodule Cloak.DataSource do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(_), do: {:ok, load_data_source_configs(), :hibernate}
+  def init(_) do
+    data_sources = load_data_source_configs()
+    Cloak.AnalystTable.refresh()
+    {:ok, data_sources, :hibernate}
+  end
 
   @impl GenServer
   def handle_call(:all, _from, data_sources) do
@@ -265,6 +269,8 @@ defmodule Cloak.DataSource do
       __MODULE__.ChangeListenersRegistry
       |> Registry.lookup(:subscriber)
       |> Enum.each(fn {subscriber_pid, _} -> send(subscriber_pid, {:data_sources_changed, new_data_sources}) end)
+
+      Cloak.AnalystTable.refresh()
     end
   end
 

@@ -77,7 +77,13 @@ defmodule Cloak.DataSource.Driver do
 
   @doc "Returns analyst tables registered in the meta table."
   @callback registered_analyst_tables(connection) :: [
-              %{key: String.t(), statement: String.t(), fingerprint: binary(), db_name: String.t()}
+              %{
+                key: String.t(),
+                statement: String.t(),
+                fingerprint: binary(),
+                db_name: String.t(),
+                status: :created | :creating
+              }
             ]
 
   defmacro __using__(_opts) do

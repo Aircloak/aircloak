@@ -109,6 +109,7 @@ defmodule Cloak.AirSocket do
     Logger.info("connected")
     send(self(), {:join, "main"})
     initial_interval = config(:min_reconnect_interval)
+    Cloak.AnalystTable.refresh()
     {:ok, %{state | reconnect_interval: initial_interval}}
   end
 

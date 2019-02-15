@@ -70,13 +70,6 @@ defmodule Compliance.AnalystTableTest do
 
           assert table_definition.name == "table7"
           assert String.starts_with?(table_definition.db_name, "__ac_")
-          assert table_definition.id_column == "user_id"
-
-          assert table_definition.columns == [
-                   %{name: "user_id", type: :integer, visible?: true},
-                   %{name: "sqrt", type: :real, visible?: true},
-                   %{name: "h", type: :real, visible?: true}
-                 ]
         end
       end
 
@@ -88,8 +81,6 @@ defmodule Compliance.AnalystTableTest do
 
           assert table_definition.name == "table8"
           assert String.starts_with?(table_definition.db_name, "__ac_")
-          assert table_definition.id_column == "user_id"
-          assert table_definition.columns == Cloak.DataSource.table(data_source, :users).columns
         end
       end
 

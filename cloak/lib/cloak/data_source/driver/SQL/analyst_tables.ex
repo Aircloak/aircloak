@@ -111,12 +111,20 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
 
   @doc false
   def registered_analyst_tables(driver, connection) do
+    existing_db_names = MapSet.new(analyst_tables(driver, connection))
+
     columns = ~w(key statement fingerprint name) |> Stream.map(&quote_identifier(driver, &1)) |> Enum.join(", ")
 
     connection
     |> driver.select!("SELECT #{columns} FROM #{quoted_analyst_table_name(driver)}")
     |> Enum.map(fn [key, statement, fingerprint, name] ->
-      %{key: key, statement: Base.decode64!(statement), fingerprint: Base.decode64!(fingerprint), db_name: name}
+      %{
+        key: key,
+        statement: Base.decode64!(statement),
+        fingerprint: Base.decode64!(fingerprint),
+        db_name: name,
+        status: if(MapSet.member?(existing_db_names, name), do: :created, else: :creating)
+      }
     end)
   end
 
