@@ -83,7 +83,7 @@ defmodule Air.Service.AnalystTable do
              DataSource.with_available_cloak(
                table.data_source,
                table.user,
-               &MainChannel.drop_analyst_table(&1.channel_pid, table.result_info.registration_info)
+               &MainChannel.drop_analyst_table(&1.channel_pid, table.user.id, table.name, table.data_source.name)
              ) do
         Repo.delete!(table)
 

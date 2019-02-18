@@ -69,24 +69,26 @@ defmodule Cloak.AnalystTable do
   end
 
   @doc "Drops the table from the database."
-  @spec drop_table(String.t(), String.t()) :: :ok | {:error, String.t()}
-  def drop_table(air_name, registration_info) do
-    table = decode_registration_info(air_name, registration_info)
+  @spec drop_table(String.t(), String.t(), DataSource.t()) :: :ok | {:error, String.t()}
+  def drop_table(analyst, table_name, data_source) do
+    if data_source.status == :online do
+      case find(analyst, table_name, data_source) do
+        nil ->
+          {:error, "table not found"}
 
-    with {:ok, data_source} <- Cloak.DataSource.fetch(table.data_source_name) do
-      if data_source.status == :online do
-        driver = data_source.driver
+        table ->
+          driver = data_source.driver
 
-        DataSource.Connection.execute!(
-          data_source,
-          fn connection ->
-            GenServer.call(__MODULE__, {:unregister_table, table})
-            driver.drop_analyst_table(connection, table.db_name)
-          end
-        )
-      else
-        {:error, "data source is not connected"}
+          DataSource.Connection.execute!(
+            data_source,
+            fn connection ->
+              GenServer.call(__MODULE__, {:unregister_table, table})
+              driver.drop_analyst_table(connection, table.db_name)
+            end
+          )
       end
+    else
+      {:error, "data source is not connected"}
     end
   end
 
@@ -222,14 +224,6 @@ defmodule Cloak.AnalystTable do
   end
 
   defp registration_info(table), do: Jason.encode!(%{table | fingerprint: nil})
-
-  defp decode_registration_info(air_name, registration_info) do
-    registration_info
-    |> Jason.decode!()
-    |> Map.take(~w(analyst name statement data_source_name db_name store_info))
-    |> Aircloak.atomize_keys()
-    |> Map.put(:air_name, air_name)
-  end
 
   defp enqueue_job(state, job),
     do: start_next_jobs(update_in(state.jobs, &Jobs.enqueue_job(&1, job)))

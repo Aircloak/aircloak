@@ -272,9 +272,9 @@ defmodule Compliance.AnalystTableTest do
 
       test "dropping a table" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          assert {:ok, registration_info, _} = create_or_update(1, "table32", "select * from users", data_source)
+          assert {:ok, _registration_info, _} = create_or_update(1, "table32", "select * from users", data_source)
           db_name = AnalystTable.find(1, "table32", data_source).db_name
-          assert AnalystTable.drop_table("air_name", registration_info) == :ok
+          assert AnalystTable.drop_table(1, "table32", data_source) == :ok
           refute Enum.member?(registered_tables(data_source), db_name)
           refute Enum.member?(stored_tables(data_source), db_name)
           assert AnalystTable.find(1, "table32", data_source) == nil

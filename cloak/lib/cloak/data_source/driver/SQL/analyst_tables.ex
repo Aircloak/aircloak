@@ -73,6 +73,7 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
          do: :ok
   end
 
+  @doc false
   def drop_analyst_table(driver, connection, db_name) do
     Logger.info("dropping analyst table #{db_name}")
 
@@ -81,7 +82,7 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
              connection,
              """
              DELETE FROM #{quoted_analyst_table_name(driver)}
-             WHERE #{quote_identifier(driver, "name")} = '#{SqlBuilder.escape_string(db_name)}'
+             WHERE #{quote_identifier(driver, "db_name")} = '#{SqlBuilder.escape_string(db_name)}'
              """
            ) do
       driver.execute(connection, "DROP TABLE #{quote_identifier(driver, db_name)}")
