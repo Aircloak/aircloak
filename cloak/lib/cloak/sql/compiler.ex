@@ -33,6 +33,22 @@ defmodule Cloak.Sql.Compiler do
         ) :: Query.t()
   def compile!(parsed_query, analyst_id, data_source, parameters, views) do
     parsed_query
+    |> core_compile!(analyst_id, data_source, parameters, views)
+    |> Compiler.Optimizer.optimize_per_user_aggregation()
+    |> Compiler.Anonymization.compile()
+    |> Compiler.NoiseLayers.compile()
+  end
+
+  @doc "Performs the core compilation steps of the parsed query."
+  @spec core_compile!(
+          Parser.parsed_query(),
+          Query.analyst_id(),
+          DataSource.t(),
+          [Query.parameter()] | nil,
+          Query.view_map()
+        ) :: Query.t()
+  def core_compile!(parsed_query, analyst_id, data_source, parameters, views) do
+    parsed_query
     |> Compiler.Specification.compile(analyst_id, data_source, parameters, views)
     |> Compiler.Anonymization.set_query_type()
     |> Compiler.Normalization.prevalidation_normalizations()
@@ -44,9 +60,6 @@ defmodule Cloak.Sql.Compiler do
     |> Compiler.Normalization.postvalidation_normalizations()
     |> Compiler.Optimizer.optimize()
     |> Compiler.Execution.prepare()
-    |> Compiler.Optimizer.optimize_per_user_aggregation()
-    |> Compiler.Anonymization.compile()
-    |> Compiler.NoiseLayers.compile()
   end
 
   @doc "Prepares the parsed SQL query for standard (non-anonymized) execution."

@@ -18,26 +18,31 @@ defmodule Compliance.AnalystTableTest do
       test "table can be created" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
           assert {:ok, _} =
-                   create_or_update(1, "table1", "select user_id, height from users where age < 70", data_source)
+                   create_or_update(
+                     1,
+                     "table1",
+                     "select user_id, height from users where age between 0 and 100",
+                     data_source
+                   )
         end
       end
 
       test "same query and id produce the same db_name" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _} = create_or_update(1, "table2", "select user_id, height from users where age < 70", data_source)
+          {:ok, _} = create_or_update(1, "table2", "select user_id, height from users", data_source)
           name = AnalystTable.find(1, "table2", data_source).db_name
 
-          {:ok, _} = create_or_update(1, "table2", "select user_id, height from users where age < 70", data_source)
+          {:ok, _} = create_or_update(1, "table2", "select user_id, height from users", data_source)
           assert %{db_name: ^name} = AnalystTable.find(1, "table2", data_source)
         end
       end
 
       test "different id leads to a different db_name" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _} = create_or_update(1, "table4", "select user_id, height from users where age < 70", data_source)
+          {:ok, _} = create_or_update(1, "table4", "select user_id, height from users", data_source)
           name1 = AnalystTable.find(1, "table4", data_source).db_name
 
-          {:ok, _} = create_or_update(2, "table4", "select user_id, height from users where age < 70", data_source)
+          {:ok, _} = create_or_update(2, "table4", "select user_id, height from users", data_source)
           name2 = AnalystTable.find(2, "table4", data_source).db_name
 
           assert name1 != name2
@@ -46,8 +51,10 @@ defmodule Compliance.AnalystTableTest do
 
       test "stored table contains desired rows" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _} = create_or_update(1, "table5", "select user_id, height from users where age < 70", data_source)
-          expected = select_direct!(1, data_source, "select user_id, height from users where age < 70")
+          {:ok, _} =
+            create_or_update(1, "table5", "select user_id, height from users where age between 0 and 100", data_source)
+
+          expected = select_direct!(1, data_source, "select user_id, height from users where age between 0 and 100")
           materialized = select_direct!(1, data_source, "select user_id, height from table5")
 
           assert materialized == expected
@@ -60,7 +67,7 @@ defmodule Compliance.AnalystTableTest do
             create_or_update(
               1,
               "table6",
-              "select user_id as uid, height from users where age between 0 and 70",
+              "select user_id as uid, height from users where age between 0 and 100",
               data_source
             )
 
@@ -96,9 +103,9 @@ defmodule Compliance.AnalystTableTest do
 
       test "analyst_tables returns all tables of the given analyst" do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _} = create_or_update(1, "table9", "select user_id, height from users where age < 70", data_source)
-          {:ok, _} = create_or_update(1, "table10", "select user_id, height from users where age < 70", data_source)
-          {:ok, _} = create_or_update(2, "table11", "select user_id, height from users where age < 70", data_source)
+          {:ok, _} = create_or_update(1, "table9", "select user_id, height from users", data_source)
+          {:ok, _} = create_or_update(1, "table10", "select user_id, height from users", data_source)
+          {:ok, _} = create_or_update(2, "table11", "select user_id, height from users", data_source)
 
           assert Enum.sort(Enum.map(AnalystTable.analyst_tables(1, data_source), & &1.name)) == ~w(table10 table9)
         end
