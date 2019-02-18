@@ -114,11 +114,7 @@
         </h1>
       </div>
 
-      <%= if number_of_tables(@data_source) == 0 do %>
-        <p class="panel-body">
-          No tables are made available by this data source.
-        </p>
-      <% else %>
+      <%= if any_tables?(@data_source) do %>
         <table class="table">
           <thead>
             <tr>
@@ -147,6 +143,10 @@
             <% end %>
           </tbody>
         </table>
+      <% else %>
+        <p class="panel-body">
+          No tables are made available by this data source.
+        </p>
       <% end %>
     </div>
   </div>

@@ -10,6 +10,8 @@ defmodule AirWeb.Admin.DataSourceView do
 
   def number_of_analyst_tables(data_source), do: length(AnalystTable.all_for_data_source(data_source))
 
+  def any_tables?(data_source), do: number_of_tables(data_source) > 0
+
   def available?(data_source), do: Air.Service.DataSource.available?(data_source.name)
 
   defp checkbox_mapper(form, field, input_opts, group, label_opts, _opts) do
