@@ -280,6 +280,26 @@ defmodule Compliance.AnalystTableTest do
           assert AnalystTable.find(1, "table32", data_source) == nil
         end
       end
+
+      test "properly storing long queries" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          comments =
+            "-- #{"foobar" |> List.duplicate(10) |> to_string()}"
+            |> List.duplicate(100)
+            |> Enum.join("\n")
+
+          statement = """
+            #{comments}
+            SELECT
+              user_id,
+              height
+            FROM users
+          """
+
+          assert {:ok, _, _} = create_or_update(1, "table33", statement, data_source)
+          assert AnalystTable.find(1, "table33", data_source).statement == statement
+        end
+      end
     end
   end
 

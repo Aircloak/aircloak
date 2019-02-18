@@ -169,7 +169,7 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
   defp insert_meta(driver, connection, table) do
     record = db_record(table)
     columns = record |> Map.keys() |> Stream.map(&quote_identifier(driver, &1)) |> Enum.join(", ")
-    values = record |> Map.values() |> Stream.map(&literal/1) |> Enum.join(", ")
+    values = record |> Map.values() |> Stream.map(&literal(driver, &1)) |> Enum.join(", ")
     driver.execute(connection, "INSERT INTO #{quoted_analyst_table_name(driver)} (#{columns}) VALUES (#{values})")
   end
 
@@ -177,12 +177,13 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
     table
     |> db_record()
     |> Map.take(~w(air data_source analyst name))
-    |> Stream.map(fn {column_name, value} -> "#{quote_identifier(driver, column_name)} = #{literal(value)}" end)
+    |> Stream.map(fn {column_name, value} -> "#{quote_identifier(driver, column_name)} = #{literal(driver, value)}" end)
     |> Enum.join(" AND ")
   end
 
-  defp literal(string) when is_binary(string), do: "'#{SqlBuilder.escape_string(string)}'"
-  defp literal(integer) when is_integer(integer), do: to_string(integer)
+  defp literal(_driver, string) when is_binary(string), do: "'#{SqlBuilder.escape_string(string)}'"
+  defp literal(_driver, integer) when is_integer(integer), do: to_string(integer)
+  defp literal(driver, {:long_text, string}), do: driver.sql_dialect_module().long_string(string)
 
   defp db_record(table) do
     %{
@@ -193,7 +194,7 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
       "db_name" => table.db_name,
       # Note: we're encoding the statement with base64 to avoid possible encoding issues on the underlying database.
       # Base64 should ensure that we can get the exact same statement that was originally submitted to create the table.
-      "statement" => Base.encode64(table.statement),
+      "statement" => {:long_text, Base.encode64(table.statement)},
       # fingerprint is base64 encoded because it's a binary
       "fingerprint" => Base.encode64(table.fingerprint)
     }

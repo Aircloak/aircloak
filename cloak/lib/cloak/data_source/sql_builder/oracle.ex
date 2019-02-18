@@ -127,6 +127,20 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
     """
   end
 
+  @impl Dialect
+  def long_string(string) do
+    # Oracle doesn't support CLOB constants longer than 400 characters, so we're splitting the string into smaller
+    # parts and concatenating with `||`.
+    parts =
+      string
+      |> to_charlist()
+      |> Stream.chunk_every(4000)
+      |> Stream.map(&"to_clob('#{to_string(&1)}')")
+      |> Enum.join(" || ")
+
+    "(#{parts})"
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

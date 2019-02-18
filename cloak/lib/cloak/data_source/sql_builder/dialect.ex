@@ -57,6 +57,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
   @doc "Returns the statement for creating the analyst meta table."
   @callback analyst_meta_table_create_statement(String.t()) :: String.t()
 
+  @doc "Returns the expression for representing a large string constant."
+  @callback long_string(String.t()) :: String.t()
+
   alias Cloak.Query.ExecutionError
 
   defmacro __using__(_opts) do
@@ -127,6 +130,9 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       @impl unquote(__MODULE__)
       def analyst_meta_table_create_statement(_quoted_table_name),
         do: raise(RuntimeError, "Analyst tables are not supported on this data source.")
+
+      @impl unquote(__MODULE__)
+      def long_string(string), do: "'#{string}'"
 
       defoverridable unquote(__MODULE__)
     end
