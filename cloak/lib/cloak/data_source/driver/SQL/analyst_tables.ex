@@ -120,7 +120,7 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
         db_name: db_name,
         statement: Base.decode64!(statement),
         fingerprint: Base.decode64!(fingerprint),
-        status: if(MapSet.member?(existing_db_names, name), do: :created, else: :creating)
+        status: if(MapSet.member?(existing_db_names, db_name), do: :created, else: :creating)
       }
     end)
   end
