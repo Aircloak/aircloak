@@ -33,7 +33,8 @@ defmodule AirWeb.Admin.DataSourceController do
       "index.html",
       data_sources: data_sources,
       users_count: DataSource.users_count(),
-      data_source_problem_severity: highest_severity_class_map(data_sources)
+      data_source_problem_severity: highest_severity_class_map(data_sources),
+      full_width: true
     )
   end
 
