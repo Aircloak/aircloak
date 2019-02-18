@@ -102,7 +102,8 @@ defmodule Air.Service.AnalystTable do
 
   @doc "Returns all known analyst tables for a data source"
   @spec all_for_data_source(DataSource.t()) :: [AnalystTable.t()]
-  def all_for_data_source(data_source), do: AnalystTable |> by_data_source_id(data_source.id) |> Repo.all()
+  def all_for_data_source(data_source),
+    do: AnalystTable |> by_data_source_id(data_source.id) |> Repo.all() |> Repo.preload(:user)
 
   @doc "Returns an analyst table by name belonging to a given user"
   @spec get_by_name(User.t(), DataSource.t(), String.t()) :: {:ok, AnalystTable.t()} | {:error, :not_found}
