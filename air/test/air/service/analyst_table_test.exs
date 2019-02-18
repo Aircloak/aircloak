@@ -57,6 +57,19 @@ defmodule Air.Service.AnalystTableTest do
     end
   end
 
+  describe ".all_for_data_source/1" do
+    test "returns all tables for a data source", context do
+      table = create_analyst_table(context[:ds1], context[:u1], "name")
+      assert [loaded_table] = AnalystTable.all_for_data_source(context[:ds1])
+      assert table.id == loaded_table.id
+    end
+
+    test "returns no tables for other data source", context do
+      create_analyst_table(context[:ds1], context[:u1], "name")
+      assert [] == AnalystTable.all_for_data_source(context[:ds2])
+    end
+  end
+
   describe ".update_status" do
     test "error on invalid status", context do
       assert {:error, :invalid_status} ==

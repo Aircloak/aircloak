@@ -13,7 +13,7 @@
 <%= render AirWeb.Admin.WarningsView, "_warnings.html", conn: @conn, problems: @problems %>
 
 <div class="row">
-  <div class="col-md-7">
+  <div class="col-md-6">
     <div class="panel panel-default">
       <div class="panel-heading">
         <h1 class="panel-title">
@@ -46,7 +46,7 @@
     </div>
   </div>
 
-  <div class="col-md-5">
+  <div class="col-md-6">
     <div class="panel panel-default">
       <div class="panel-heading">
         <h1 class="panel-title">
@@ -77,21 +77,44 @@
       <% end %>
     </div>
   </div>
-</div>
 
-<div class="row">
-  <div class="col-md-7">
+  <div class="col-md-6">
     <div class="panel panel-default">
       <div class="panel-heading">
         <h1 class="panel-title">
-          Tables
+          Cloaks hosting data source
         </h1>
       </div>
-      <%= if number_of_tables(@data_source) == 0 do %>
+      <%= if number_of_cloaks_serving(@data_source) == 0 do %>
         <p class="panel-body">
-          No tables are made available by this data source.
+          No online cloak is serving this data source.
         </p>
       <% else %>
+        <table class="table">
+          <tbody>
+            <%= for cloak_info <- cloak_infos_for_data_source(@data_source) do %>
+              <tr>
+                <td><%= cloak_info.name %></td>
+                <td>Available since <%= Timex.from_now(cloak_info.online_since) %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-12">
+    <div class="panel panel-default">
+      <div class="panel-heading">
+        <h1 class="panel-title">
+          System tables
+        </h1>
+      </div>
+
+      <%= if Enum.count(@tables) > 0 do %>
         <table class="table">
           <thead>
             <tr>
@@ -120,33 +143,47 @@
             <% end %>
           </tbody>
         </table>
-      <% end %>
-    </div>
-  </div>
-
-  <div class="col-md-5">
-    <div class="panel panel-default">
-      <div class="panel-heading">
-        <h1 class="panel-title">
-          Cloaks hosting data source
-        </h1>
-      </div>
-      <%= if number_of_cloaks_serving(@data_source) == 0 do %>
-        <p class="panel-body">
-          No online cloak is serving this data source.
-        </p>
       <% else %>
-        <table class="table">
-          <tbody>
-            <%= for cloak_info <- cloak_infos_for_data_source(@data_source) do %>
-              <tr>
-                <td><%= cloak_info.name %></td>
-                <td>Available since <%= Timex.from_now(cloak_info.online_since) %></td>
-              </tr>
-            <% end %>
-          </tbody>
-        </table>
+        <p class="panel-body">
+          No tables are made available by this data source.
+        </p>
       <% end %>
     </div>
   </div>
 </div>
+
+<%= if Enum.count(@analyst_tables) > 0 do %>
+  <div class="row">
+    <div class="col-md-12">
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <h1 class="panel-title">
+            Analyst tables
+          </h1>
+        </div>
+
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Analyst name</th>
+              <th>Creation status</th>
+              <th>Broken?</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <%= for analyst_table <- @analyst_tables do %>
+              <tr>
+                <td><%= analyst_table.name %></td>
+                <td><%= analyst_table.user.name %></td>
+                <td><%= analyst_table.creation_status %></td>
+                <td><%= analyst_table.broken %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+<% end %>

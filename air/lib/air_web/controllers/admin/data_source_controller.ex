@@ -5,7 +5,7 @@ defmodule AirWeb.Admin.DataSourceController do
 
   use Air.Web, :admin_controller
 
-  alias Air.Service.{DataSource, User, Warnings}
+  alias Air.Service.{DataSource, User, Warnings, AnalystTable}
 
   plug(:load_data_source when action in [:show, :edit, :update, :delete])
 
@@ -33,7 +33,8 @@ defmodule AirWeb.Admin.DataSourceController do
       "index.html",
       data_sources: data_sources,
       users_count: DataSource.users_count(),
-      data_source_problem_severity: highest_severity_class_map(data_sources)
+      data_source_problem_severity: highest_severity_class_map(data_sources),
+      full_width: true
     )
   end
 
@@ -75,6 +76,7 @@ defmodule AirWeb.Admin.DataSourceController do
       "show.html",
       data_source: data_source,
       tables: Air.Schemas.DataSource.tables(data_source),
+      analyst_tables: AnalystTable.all_for_data_source(data_source),
       conn: conn,
       users: User.data_source_users(data_source),
       problems: Warnings.problems_for_resource(data_source)

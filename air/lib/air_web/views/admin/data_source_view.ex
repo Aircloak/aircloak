@@ -3,10 +3,12 @@ defmodule AirWeb.Admin.DataSourceView do
   use Air.Web, :view
 
   alias Air.Repo
-  alias Air.Service.DataSource.Column
+  alias Air.Service.{DataSource.Column, AnalystTable}
 
   defdelegate availability_label(data_source), to: AirWeb.DataSourceView
   defdelegate number_of_tables(data_source), to: AirWeb.DataSourceView
+
+  def number_of_analyst_tables(data_source), do: length(AnalystTable.all_for_data_source(data_source))
 
   def available?(data_source), do: Air.Service.DataSource.available?(data_source.name)
 
