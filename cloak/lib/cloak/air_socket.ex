@@ -118,12 +118,14 @@ defmodule Cloak.AirSocket do
     unused(reason, in: [:dev])
     in_env(dev: :ok, else: Logger.error("disconnected: #{inspect(reason)}"))
     Process.send_after(self(), :connect, interval)
+    Cloak.Air.unregister_air()
     {:ok, %{state | reconnect_interval: next_interval(interval)}}
   end
 
   @impl GenSocketClient
-  def handle_joined(topic, _payload, _transport, state) do
+  def handle_joined(topic, payload, _transport, state) do
     Logger.info("joined the topic #{topic}")
+    if topic == "main", do: Cloak.Air.register_air(payload.air_name)
     initial_interval = config(:min_reconnect_interval)
     {:ok, %{state | rejoin_interval: initial_interval}}
   end
@@ -304,7 +306,6 @@ defmodule Cloak.AirSocket do
     with {:ok, data_source} <- fetch_data_source(data.data_source),
          {:ok, described_columns} <-
            Cloak.AnalystTable.create_or_update(
-             data.air_name,
              data.analyst_id,
              data.table_name,
              data.statement,

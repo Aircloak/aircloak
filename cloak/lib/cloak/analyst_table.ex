@@ -24,7 +24,6 @@ defmodule Cloak.AnalystTable do
 
   @doc "Creates or updates the analyst table in the database."
   @spec create_or_update(
-          String.t(),
           Query.analyst_id(),
           String.t(),
           String.t(),
@@ -32,8 +31,9 @@ defmodule Cloak.AnalystTable do
           [Query.parameter()] | nil,
           Query.view_map()
         ) :: {:ok, Query.described_columns()} | {:error, String.t()}
-  def create_or_update(air_name, analyst, table_name, statement, data_source, parameters \\ nil, views \\ %{}) do
-    with {:ok, query} <-
+  def create_or_update(analyst, table_name, statement, data_source, parameters \\ nil, views \\ %{}) do
+    with {:ok, air_name} <- Cloak.Air.name(),
+         {:ok, query} <-
            Compiler.compile(
              table_name,
              statement,

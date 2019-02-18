@@ -8,6 +8,11 @@ defmodule Compliance.AnalystTableTest do
   @moduletag :analyst_tables
   @tested_data_sources ~w(oracle postgresql9.4 postgresql)
 
+  setup_all do
+    Cloak.Air.register_air("some_air_instance")
+    on_exit(&Cloak.Air.unregister_air/0)
+  end
+
   for data_source_name <- @tested_data_sources do
     describe "#{data_source_name}" do
       test "table can be created" do
@@ -163,8 +168,7 @@ defmodule Compliance.AnalystTableTest do
           AnalystTable.with_custom_store_fun(
             fn _ -> Process.sleep(:timer.seconds(1)) end,
             fn ->
-              {:ok, _} =
-                AnalystTable.create_or_update("air_name", 1, "table26", "select user_id from users", data_source)
+              {:ok, _} = AnalystTable.create_or_update(1, "table26", "select user_id from users", data_source)
 
               assert_query(
                 "select * from table26",
@@ -183,8 +187,7 @@ defmodule Compliance.AnalystTableTest do
             fn ->
               log =
                 ExUnit.CaptureLog.capture_log(fn ->
-                  {:ok, _} =
-                    AnalystTable.create_or_update("air_name", 1, "table27", "select user_id from users", data_source)
+                  {:ok, _} = AnalystTable.create_or_update(1, "table27", "select user_id from users", data_source)
 
                   assert soon(
                            table_created?(1, "table27", data_source, :create_error),
@@ -216,8 +219,7 @@ defmodule Compliance.AnalystTableTest do
               real_store.()
             end,
             fn ->
-              {:ok, _} =
-                AnalystTable.create_or_update("air_name", 1, "table28", "select user_id from users", data_source)
+              {:ok, _} = AnalystTable.create_or_update(1, "table28", "select user_id from users", data_source)
 
               assert_receive {:create_process, pid}
               mref = Process.monitor(pid)
@@ -333,8 +335,8 @@ defmodule Compliance.AnalystTableTest do
     end)
   end
 
-  defp create_or_update(air_name \\ "air_name", analyst_id, name, statement, data_source) do
-    with {:ok, columns} <- AnalystTable.create_or_update(air_name, analyst_id, name, statement, data_source) do
+  defp create_or_update(analyst_id, name, statement, data_source) do
+    with {:ok, columns} <- AnalystTable.create_or_update(analyst_id, name, statement, data_source) do
       assert soon(table_created?(analyst_id, name, data_source), :timer.seconds(5), repeat_wait_time: 10)
       {:ok, columns}
     end
