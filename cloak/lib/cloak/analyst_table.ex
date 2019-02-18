@@ -100,10 +100,16 @@ defmodule Cloak.AnalystTable do
   @doc "Returns analyst tables for the given analyst in the given data source."
   @spec analyst_tables(Query.analyst_id(), DataSource.t()) :: [DataSource.Table.t()]
   def analyst_tables(analyst, data_source) do
-    Enum.map(
-      :ets.match(__MODULE__, {{:_, analyst, data_source.name, :_}, :"$1"}),
-      fn [table] -> table end
-    )
+    case Cloak.Air.name() do
+      {:error, _} ->
+        []
+
+      {:ok, air_name} ->
+        Enum.map(
+          :ets.match(__MODULE__, {{air_name, analyst, data_source.name, :_}, :"$1"}),
+          fn [table] -> table end
+        )
+    end
   end
 
   @doc "Synchronously invoked the function as serialized, blocking all other store operations."
@@ -255,19 +261,25 @@ defmodule Cloak.AnalystTable do
   end
 
   defp refresh_analyst_tables() do
-    # we'll clear all known tables, and refresh from the database state
-    :ets.delete_all_objects(__MODULE__)
+    with {:ok, air_name} <- Cloak.Air.name() do
+      # we'll clear all known tables, and refresh from the database state
+      :ets.delete_all_objects(__MODULE__)
 
-    Cloak.DataSource.all()
-    |> Stream.filter(&(&1.status == :online && DataSource.analyst_tables_supported?(&1)))
-    |> Task.async_stream(&refresh_data_source/1, ordered: false, timeout: :timer.seconds(30), on_timeout: :kill_task)
-    |> Stream.run()
+      Cloak.DataSource.all()
+      |> Stream.filter(&(&1.status == :online && DataSource.analyst_tables_supported?(&1)))
+      |> Task.async_stream(&refresh_data_source(air_name, &1),
+        ordered: false,
+        timeout: :timer.seconds(30),
+        on_timeout: :kill_task
+      )
+      |> Stream.run()
+    end
   end
 
-  defp refresh_data_source(data_source) do
+  defp refresh_data_source(air_name, data_source) do
     data_source
     |> DataSource.Connection.execute!(&data_source.driver.registered_analyst_tables/1)
-    |> Stream.filter(&(&1.data_source_name == data_source.name))
+    |> Stream.filter(&(&1.data_source_name == data_source.name and &1.air_name == air_name))
     |> Enum.each(&store_table_definition/1)
   end
 

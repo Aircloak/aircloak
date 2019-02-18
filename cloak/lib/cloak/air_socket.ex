@@ -109,7 +109,6 @@ defmodule Cloak.AirSocket do
     Logger.info("connected")
     send(self(), {:join, "main"})
     initial_interval = config(:min_reconnect_interval)
-    Cloak.AnalystTable.refresh()
     {:ok, %{state | reconnect_interval: initial_interval}}
   end
 
@@ -125,7 +124,12 @@ defmodule Cloak.AirSocket do
   @impl GenSocketClient
   def handle_joined(topic, payload, _transport, state) do
     Logger.info("joined the topic #{topic}")
-    if topic == "main", do: Cloak.Air.register_air(payload.air_name)
+
+    if topic == "main" do
+      Cloak.Air.register_air(payload.air_name)
+      Cloak.AnalystTable.refresh()
+    end
+
     initial_interval = config(:min_reconnect_interval)
     {:ok, %{state | rejoin_interval: initial_interval}}
   end
