@@ -20,17 +20,8 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
       def prepare_analyst_table(db_name, query), do: AnalystTables.create_table_from_query(db_name, query)
 
       @impl Driver
-      def create_or_update_analyst_table(connection, key, db_name, sql, statement, fingerprint) do
-        AnalystTables.create_or_update_analyst_table(
-          __MODULE__,
-          connection,
-          key,
-          db_name,
-          sql,
-          statement,
-          fingerprint
-        )
-      end
+      def create_or_update_analyst_table(connection, table, sql),
+        do: AnalystTables.create_or_update_analyst_table(__MODULE__, connection, table, sql)
 
       @impl Driver
       def drop_analyst_table(connection, db_name), do: AnalystTables.drop_analyst_table(__MODULE__, connection, db_name)
@@ -76,9 +67,9 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
   end
 
   @doc false
-  def create_or_update_analyst_table(driver, connection, key, db_name, sql, statement, fingerprint) do
-    with {:ok, _} <- drop_table(driver, connection, key, db_name),
-         {:ok, _} <- create_table(driver, connection, key, db_name, sql, statement, fingerprint),
+  def create_or_update_analyst_table(driver, connection, table, sql) do
+    with {:ok, _} <- drop_table(driver, connection, table),
+         {:ok, _} <- create_table(driver, connection, table, sql),
          do: :ok
   end
 
@@ -113,38 +104,47 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
   def registered_analyst_tables(driver, connection) do
     existing_db_names = MapSet.new(analyst_tables(driver, connection))
 
-    columns = ~w(key statement fingerprint name) |> Stream.map(&quote_identifier(driver, &1)) |> Enum.join(", ")
+    columns =
+      ~w(air data_source analyst name db_name statement fingerprint)
+      |> Stream.map(&quote_identifier(driver, &1))
+      |> Enum.join(", ")
 
     connection
     |> driver.select!("SELECT #{columns} FROM #{quoted_analyst_table_name(driver)}")
-    |> Enum.map(fn [key, statement, fingerprint, name] ->
+    |> Enum.map(fn [air, data_source, analyst, name, db_name, statement, fingerprint] ->
       %{
-        key: key,
+        air_name: air,
+        data_source_name: data_source,
+        analyst: to_integer(analyst),
+        name: name,
+        db_name: db_name,
         statement: Base.decode64!(statement),
         fingerprint: Base.decode64!(fingerprint),
-        db_name: name,
         status: if(MapSet.member?(existing_db_names, name), do: :created, else: :creating)
       }
     end)
   end
 
-  defp drop_table(driver, connection, key, db_name) do
+  defp to_integer(integer) when is_integer(integer), do: integer
+  defp to_integer(string) when is_binary(string), do: String.to_integer(string)
+
+  defp drop_table(driver, connection, table) do
     # dropping previous table will make sure that if db_name algorithm is changed, we don't keep the old tables
-    drop_previous_table(driver, connection, key)
+    drop_previous_table(driver, connection, table)
 
     # we're also dropping the table with the pending name, to clear a possibly non-registered table (created with the
     # previous version of the cloak)
-    driver.execute(connection, "DROP TABLE #{quote_identifier(driver, db_name)}")
+    driver.execute(connection, "DROP TABLE #{quote_identifier(driver, table.db_name)}")
 
-    delete_meta(driver, connection, key)
+    delete_meta(driver, connection, table)
   end
 
-  defp drop_previous_table(driver, connection, key) do
+  defp drop_previous_table(driver, connection, table) do
     driver.select!(
       connection,
       """
-      SELECT #{quote_identifier(driver, "name")} FROM #{quoted_analyst_table_name(driver)}
-      WHERE #{quote_identifier(driver, "key")} = '#{SqlBuilder.escape_string(key)}'
+      SELECT #{quote_identifier(driver, "db_name")} FROM #{quoted_analyst_table_name(driver)}
+      WHERE #{where_filter(driver, table)}
       """
     )
     |> Enum.to_list()
@@ -154,34 +154,49 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
     end
   end
 
-  defp delete_meta(driver, connection, key) do
+  defp delete_meta(driver, connection, table) do
     driver.execute(
       connection,
-      """
-      DELETE FROM #{quoted_analyst_table_name(driver)}
-      WHERE #{quote_identifier(driver, "key")} = '#{SqlBuilder.escape_string(key)}'
-      """
+      "DELETE FROM #{quoted_analyst_table_name(driver)} WHERE #{where_filter(driver, table)}"
     )
   end
 
-  defp create_table(driver, connection, key, db_name, sql, statement, fingerprint) do
-    Logger.info("creating database table `#{db_name}`")
-
-    with {:ok, _} <- insert_meta(driver, connection, key, db_name, statement, fingerprint),
-         do: driver.execute(connection, sql)
+  defp create_table(driver, connection, table, sql) do
+    Logger.info("creating database table `#{table.db_name}`")
+    with {:ok, _} <- insert_meta(driver, connection, table), do: driver.execute(connection, sql)
   end
 
-  defp insert_meta(driver, connection, key, db_name, statement, fingerprint) do
-    columns = ~w(key name statement fingerprint) |> Stream.map(&quote_identifier(driver, &1)) |> Enum.join(", ")
-
-    # Note: we're encoding the statement with base64 to avoid possible encoding issues on the underlying database.
-    # Base64 should ensure that we can get the exact same statement that was originally submitted to create the table.
-    values =
-      [key, db_name, Base.encode64(statement), Base.encode64(fingerprint)]
-      |> Stream.map(&"'#{SqlBuilder.escape_string(&1)}'")
-      |> Enum.join(", ")
-
+  defp insert_meta(driver, connection, table) do
+    record = db_record(table)
+    columns = record |> Map.keys() |> Stream.map(&quote_identifier(driver, &1)) |> Enum.join(", ")
+    values = record |> Map.values() |> Stream.map(&literal/1) |> Enum.join(", ")
     driver.execute(connection, "INSERT INTO #{quoted_analyst_table_name(driver)} (#{columns}) VALUES (#{values})")
+  end
+
+  defp where_filter(driver, table) do
+    table
+    |> db_record()
+    |> Map.take(~w(air data_source analyst name))
+    |> Stream.map(fn {column_name, value} -> "#{quote_identifier(driver, column_name)} = #{literal(value)}" end)
+    |> Enum.join(" AND ")
+  end
+
+  defp literal(string) when is_binary(string), do: "'#{SqlBuilder.escape_string(string)}'"
+  defp literal(integer) when is_integer(integer), do: to_string(integer)
+
+  defp db_record(table) do
+    %{
+      "air" => table.air_name,
+      "data_source" => table.data_source_name,
+      "analyst" => table.analyst,
+      "name" => table.name,
+      "db_name" => table.db_name,
+      # Note: we're encoding the statement with base64 to avoid possible encoding issues on the underlying database.
+      # Base64 should ensure that we can get the exact same statement that was originally submitted to create the table.
+      "statement" => Base.encode64(table.statement),
+      # fingerprint is base64 encoded because it's a binary
+      "fingerprint" => Base.encode64(table.fingerprint)
+    }
   end
 
   defp quoted_analyst_table_name(driver), do: quote_identifier(driver, @analyst_meta_table_name)

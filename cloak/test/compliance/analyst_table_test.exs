@@ -288,7 +288,8 @@ defmodule Compliance.AnalystTableTest do
       data_source,
       &data_source.driver.select!(
         &1,
-        "SELECT #{quote_identifier("name", data_source)} FROM #{quote_identifier("__ac_analyst_tables_1", data_source)}"
+        "SELECT #{quote_identifier("db_name", data_source)} FROM
+        #{quote_identifier("__ac_analyst_tables_1", data_source)}"
       )
     )
     |> Enum.map(fn [name] -> name end)

@@ -114,12 +114,15 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def analyst_meta_table_create_statement(quoted_table_name) do
     """
     CREATE TABLE #{quoted_table_name} (
-      "key" VARCHAR(2000) NOT NULL,
-      "name" VARCHAR2(30) NOT NULL,
+      "air" VARCHAR(255) NOT NULL,
+      "data_source" VARCHAR(255) NOT NULL,
+      "analyst" INTEGER NOT NULL,
+      "name" VARCHAR2(255) NOT NULL,
+      "db_name" VARCHAR2(30) NOT NULL,
       "statement" CLOB NOT NULL,
       "fingerprint" VARCHAR2(50) NOT NULL,
-      PRIMARY KEY ("key", "name"),
-      CONSTRAINT ac_unique_name UNIQUE ("name")
+      PRIMARY KEY ("air", "data_source", "analyst", "name"),
+      CONSTRAINT ac_unique_name UNIQUE ("db_name")
     )
     """
   end

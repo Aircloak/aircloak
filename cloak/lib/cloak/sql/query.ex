@@ -63,8 +63,8 @@ defmodule Cloak.Sql.Query do
           table_aliases: %{String.t() => DataSource.Table.t()},
           type: type,
           available_tables: [DataSource.Table.t()],
-          analyst_tables: %{String.t() => Cloak.AnalystTable.table()},
-          analyst_table: nil | Cloak.AnalystTable.table()
+          analyst_tables: %{String.t() => Cloak.AnalystTable.t()},
+          analyst_table: nil | Cloak.AnalystTable.t()
         }
 
   @type analyst_id :: pos_integer | nil

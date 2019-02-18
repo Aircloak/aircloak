@@ -7,7 +7,7 @@ defmodule Cloak.AnalystTable do
   alias Cloak.Sql.Query
   alias __MODULE__.{Compiler, Jobs}
 
-  @type table :: %{
+  @type t :: %{
           analyst: Query.analyst_id(),
           name: String.t(),
           statement: String.t(),
@@ -91,7 +91,7 @@ defmodule Cloak.AnalystTable do
   end
 
   @doc "Returns the analyst table definition."
-  @spec find(Query.analyst_id(), String.t(), DataSource.t()) :: table | nil
+  @spec find(Query.analyst_id(), String.t(), DataSource.t()) :: t | nil
   def find(analyst, table_name, data_source),
     do: Enum.find(analyst_tables(analyst, data_source), &(&1.name == table_name))
 
@@ -217,14 +217,7 @@ defmodule Cloak.AnalystTable do
   defp store_table_to_database(data_source, table) do
     DataSource.Connection.execute!(
       data_source,
-      &data_source.driver.create_or_update_analyst_table(
-        &1,
-        Jason.encode!(Map.take(table, [:air_name, :data_source_name, :analyst, :name])),
-        table.db_name,
-        table.store_info,
-        table.statement,
-        table.fingerprint
-      )
+      &data_source.driver.create_or_update_analyst_table(&1, table, table.store_info)
     )
   end
 
@@ -280,23 +273,8 @@ defmodule Cloak.AnalystTable do
   end
 
   defp refresh_data_source(data_source) do
-    Stream.map(
-      DataSource.Connection.execute!(data_source, &data_source.driver.registered_analyst_tables/1),
-      fn data ->
-        key = data.key |> Jason.decode!() |> Aircloak.atomize_keys()
-
-        %{
-          air_name: key.air_name,
-          analyst: key.analyst,
-          name: key.name,
-          statement: data.statement,
-          data_source_name: key.data_source_name,
-          db_name: data.db_name,
-          fingerprint: data.fingerprint,
-          status: data.status
-        }
-      end
-    )
+    data_source
+    |> DataSource.Connection.execute!(&data_source.driver.registered_analyst_tables/1)
     |> Stream.filter(&(&1.data_source_name == data_source.name))
     |> Enum.each(&store_table_definition/1)
   end

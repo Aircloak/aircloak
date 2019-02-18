@@ -60,14 +60,7 @@ defmodule Cloak.DataSource.Driver do
   @callback prepare_analyst_table(String.t(), Query.t()) :: String.t()
 
   @doc "Creates or updates the analyst table from the given data obtained via `prepare_analyst_table/2`."
-  @callback create_or_update_analyst_table(
-              connection,
-              key :: String.t(),
-              db_name :: String.t(),
-              store_info :: String.t(),
-              statement :: String.t(),
-              fingerprint :: binary()
-            ) :: :ok | {:error, String.t()}
+  @callback create_or_update_analyst_table(connection, Cloak.AnalystTable.t(), String.t()) :: :ok | {:error, String.t()}
 
   @doc "Removes the given analyst table from the database."
   @callback drop_analyst_table(connection, String.t()) :: :ok | {:error, String.t()}
@@ -76,15 +69,7 @@ defmodule Cloak.DataSource.Driver do
   @callback initialize_analyst_meta_table(connection) :: :ok | {:error, String.t()}
 
   @doc "Returns analyst tables registered in the meta table."
-  @callback registered_analyst_tables(connection) :: [
-              %{
-                key: String.t(),
-                statement: String.t(),
-                fingerprint: binary(),
-                db_name: String.t(),
-                status: :created | :creating
-              }
-            ]
+  @callback registered_analyst_tables(connection) :: [Cloak.AnalystTable.t()]
 
   defmacro __using__(_opts) do
     quote do
@@ -97,7 +82,7 @@ defmodule Cloak.DataSource.Driver do
       def prepare_analyst_table(_table_name, _query), do: raise(RuntimeError, "not implemented")
 
       @impl unquote(__MODULE__)
-      def create_or_update_analyst_table(_connection, _key, _db_name, _store_info, _statement, _fingerprint),
+      def create_or_update_analyst_table(_connection, _table, _store_info),
         do: raise(RuntimeError, "not implemented")
 
       @impl unquote(__MODULE__)
