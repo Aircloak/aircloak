@@ -4,6 +4,7 @@ open MongoDB.Driver
 open MongoDB.Bson
 open System.IO
 open FSharp.Json
+open MongoCleanup
 open System.Security.Cryptography
 
 type CLIArguments =
@@ -172,15 +173,22 @@ let writeCollection (db : IMongoDatabase) (name : string) (documents : seq<BsonD
 
     collection.BulkWrite(updates) |> ignore
 
-let decode (documents : seq<BsonDocument>) (decoders : Decoder list) : Async<unit> =
-    async {
-        let! _ =
-            documents
-            |> Seq.map (fun doc -> async { applyDecoders decoders doc })
-            |> Async.Parallel
+let batchesOf n =
+   Seq.mapi (fun i v -> i / n, v) >>
+   Seq.groupBy fst >>
+   Seq.map snd >>
+   Seq.map (Seq.map snd)
 
-        ()
-    }
+let decode (documents : seq<BsonDocument>) (decoders : Decoder list) : Async<unit> =
+    documents
+    |> batchesOf 1000
+    |> Seq.map (fun batch -> async {
+        for doc in batch do
+            applyDecoders decoders doc
+        ProgressBar.tick <| Seq.length batch
+    })
+    |> Async.Parallel
+    |> Async.Ignore
 
 let mongoConnString (cloakConfig : CloakConfig) : string =
     let options = cloakConfig.parameters
@@ -219,6 +227,8 @@ let projectOne (data : Map<string, seq<BsonDocument>>) (config : Map<string, Clo
             | Some userId -> document.Add(newUserIdKey, userId) |> ignore
             | None -> ()
 
+    data.Item(table) |> Seq.length |> ProgressBar.tick
+
     Map.add table { tableConfig with projection = None; userId = Some(newUserIdKey) } config
 
 let rec project (config : Map<string, CloakTable>) (data : Map<string, seq<BsonDocument>>) : unit =
@@ -242,31 +252,52 @@ let run (options : ParseResults<CLIArguments>) : unit =
     let conn = config |> mongoConnString |> MongoClient
     let db = conn.GetDatabase config.parameters.database
 
+    printfn "Reading data..."
     let data = config.tables |> Map.map (fun k _ -> readCollection db k)
 
+    use bar = ProgressBar.start 100
+
     async {
+        let toDecode = config.tables |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders)
+        let itemsToDecode = toDecode |> Seq.map (fun kv -> data.Item(kv.Key) |> Seq.length) |> Seq.sum
+        ProgressBar.reset itemsToDecode "Applying decoders"
+
         let! _ =
-            config.tables
-            |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders)
+            toDecode
             |> Seq.map (fun kv -> decode (data.Item kv.Key) kv.Value.decoders.Value)
             |> Async.Parallel
 
+        let toProject = config.tables |> Seq.filter (fun kv -> Option.isSome kv.Value.projection)
+        let itemsToProject = toProject |> Seq.map (fun kv -> data.Item(kv.Key) |> Seq.length) |> Seq.sum
+        ProgressBar.reset itemsToProject "Applying projections"
+
         project config.tables data
 
-        let! _ =
+        let toWrite =
             config.tables
             |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders || Option.isSome kv.Value.projection)
-            |> Seq.map (fun kv -> async { writeCollection db kv.Key (data.Item kv.Key) })
+        let itemsToWrite = toProject |> Seq.map (fun kv -> data.Item(kv.Key) |> Seq.length) |> Seq.sum
+        ProgressBar.reset itemsToWrite "Writing data"
+
+        let! _ =
+            toWrite
+            |> Seq.map (fun kv -> async {
+                for batch in data.Item kv.Key |> batchesOf 1000 do
+                    writeCollection db kv.Key batch
+                    ProgressBar.tick <| Seq.length batch
+            })
             |> Async.Parallel
 
-        ()
+        ProgressBar.finish()
     } |> Async.RunSynchronously
 
 [<EntryPoint>]
 let main argv =
     try
-        optionParser.ParseCommandLine(inputs = argv, raiseOnUsage = true) |> run
+       optionParser.ParseCommandLine(inputs = argv, raiseOnUsage = true) |> run
     with
     | :? Argu.ArguParseException as e -> printfn "%s" e.Message
     | e -> printfn "Unexpected error:\n%A" e
+
+    printfn "Success"
     0 // return an integer exit code
