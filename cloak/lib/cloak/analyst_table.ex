@@ -31,7 +31,7 @@ defmodule Cloak.AnalystTable do
           DataSource.t(),
           [Query.parameter()] | nil,
           Query.view_map()
-        ) :: {:ok, registration_info :: String.t(), Query.described_columns()} | {:error, String.t()}
+        ) :: {:ok, Query.described_columns()} | {:error, String.t()}
   def create_or_update(air_name, analyst, table_name, statement, data_source, parameters \\ nil, views \\ %{}) do
     with {:ok, query} <-
            Compiler.compile(
@@ -64,7 +64,7 @@ defmodule Cloak.AnalystTable do
       }
 
       GenServer.call(__MODULE__, {:store_table, table})
-      {:ok, registration_info(table), Query.describe_selected(query)}
+      {:ok, Query.describe_selected(query)}
     end
   end
 
@@ -222,8 +222,6 @@ defmodule Cloak.AnalystTable do
       &data_source.driver.create_or_update_analyst_table(&1, table, table.store_info)
     )
   end
-
-  defp registration_info(table), do: Jason.encode!(%{table | fingerprint: nil})
 
   defp enqueue_job(state, job),
     do: start_next_jobs(update_in(state.jobs, &Jobs.enqueue_job(&1, job)))

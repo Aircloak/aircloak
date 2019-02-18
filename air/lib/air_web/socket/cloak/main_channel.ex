@@ -88,7 +88,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
 
   @doc "Recreates the analyst table on cloaks."
   @spec create_or_update_analyst_table(pid, pos_integer, String.t(), String.t(), String.t(), parameters, views) ::
-          {:ok, %{registration_info: String.t(), columns: described_columns}} | {:error, String.t()}
+          {:ok, %{columns: described_columns}} | {:error, String.t()}
   def create_or_update_analyst_table(
         channel_pid,
         analyst_id,

@@ -108,7 +108,6 @@ defmodule IntegrationTest.AnalystTableTest do
     assert updated_table.id == table.id
     assert updated_table.name == new_name
     assert updated_table.sql == "select user_id from users"
-    refute table.result_info.registration_info == updated_table.result_info.registration_info
     assert [%{name: "user_id", type: "text", user_id: true}] = updated_table.result_info.columns
 
     assert {:ok, result} = run_query(context.user, "select * from #{new_name}")
@@ -153,7 +152,8 @@ defmodule IntegrationTest.AnalystTableTest do
     name = unique_name()
 
     {:ok, table} = create_table(context.user, name, "select user_id, name from users")
-    db_name = table.result_info.registration_info |> Jason.decode!() |> Map.fetch!("db_name")
+    {:ok, cloak_data_source} = Cloak.DataSource.fetch(Manager.data_source().name)
+    db_name = Cloak.AnalystTable.find(context.user.id, name, cloak_data_source).db_name
 
     assert :ok = Air.Service.AnalystTable.delete(table.id, context.user)
     assert table_not_in_db?(db_name)
