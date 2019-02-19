@@ -294,10 +294,10 @@ let run (options : ParseResults<CLIArguments>) : unit =
 [<EntryPoint>]
 let main argv =
     try
-       optionParser.ParseCommandLine(inputs = argv, raiseOnUsage = true) |> run
+        optionParser.ParseCommandLine(inputs = argv, raiseOnUsage = true) |> run
+        printfn "Success"
     with
     | :? Argu.ArguParseException as e -> printfn "%s" e.Message
     | e -> printfn "Unexpected error:\n%A" e
 
-    printfn "Success"
     0 // return an integer exit code
