@@ -16,7 +16,7 @@ The general shape of `config.json` is therefore:
 
 ```
 {
-  "air_name": string,
+  "name": string,
   "database": {
     ...
   },
@@ -32,7 +32,7 @@ The general shape of `config.json` is therefore:
 }
 ```
 
-The `air_name` property is used to uniquely identify the air instance in the system. If you're running multiple instances, make sure to give each instance a unique name.
+The `name` property is used to uniquely identify the air instance in the system. If you're running multiple instances, make sure to give each instance a unique name.
 
 ### Database configuration
 
