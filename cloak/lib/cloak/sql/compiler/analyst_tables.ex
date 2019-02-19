@@ -1,5 +1,5 @@
 defmodule Cloak.Sql.Compiler.AnalystTables do
-  @moduledoc "Compliaction of analyst tables."
+  @moduledoc "Compilation of analyst tables."
 
   alias Cloak.Sql.{Expression, Query}
   alias Cloak.Sql.Query.Lenses
