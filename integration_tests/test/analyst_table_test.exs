@@ -124,7 +124,7 @@ defmodule IntegrationTest.AnalystTableTest do
     assert {:error, :not_allowed} = update_table(table.id, other_user, new_name, "select user_id from users")
   end
 
-  test "updating analyst table SQL sets the creation status to pending", context do
+  test "updating analyst table sets the creation status to pending", context do
     name = unique_name()
     data_source = Manager.data_source()
     {:ok, table} = create_table(context.user, name, "select user_id, name from users")
@@ -132,33 +132,14 @@ defmodule IntegrationTest.AnalystTableTest do
     :ok = Air.Service.AnalystTable.update_status(context.user.id, data_source.name, name, :succeeded)
 
     assert soon(
-             (fn ->
-                {:ok, reloaded_table} = Air.Service.AnalystTable.get_by_name(context.user, data_source, name)
-                reloaded_table.creation_status == :succeeded
-              end).()
+             match?(
+               {:ok, %{creation_status: :succeeded}},
+               Air.Service.AnalystTable.get_by_name(context.user, data_source, name)
+             )
            )
 
     assert {:ok, updated_table} = update_table(table.id, context.user, name, "select user_id from users group by 1")
     assert updated_table.creation_status == :pending
-  end
-
-  test "updating analyst table without altering SQL leaves creation status as it was", context do
-    name = unique_name()
-    updated_name = unique_name()
-    data_source = Manager.data_source()
-    {:ok, table} = create_table(context.user, name, "select user_id, name from users")
-
-    :ok = Air.Service.AnalystTable.update_status(context.user.id, data_source.name, name, :succeeded)
-
-    assert soon(
-             (fn ->
-                {:ok, reloaded_table} = Air.Service.AnalystTable.get_by_name(context.user, data_source, name)
-                reloaded_table.creation_status == :succeeded
-              end).()
-           )
-
-    assert {:ok, updated_table} = update_table(table.id, context.user, updated_name, table.sql)
-    assert updated_table.creation_status == :succeeded
   end
 
   test "after the cloak reconnects, it will receive analyst tables from the air", context do
