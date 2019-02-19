@@ -14,7 +14,7 @@ defmodule Air.Schemas.View do
     field(:broken, :boolean, default: false)
     field(:creation_status, CreationStatus, default: :succeeded)
 
-    embeds_many(:columns, Air.Schemas.SelectableColumn)
+    embeds_many(:columns, Air.Schemas.SelectableColumn, on_replace: :delete)
 
     belongs_to(:user, Air.Schemas.User)
     belongs_to(:data_source, Air.Schemas.User)
