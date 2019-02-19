@@ -2,7 +2,7 @@
 
 ### __Breaking changes__
 
-- The air configuration must contain the mandatory `air_name` property. See [Insights Air configuration]()docs/ops/configuration.html#insights-air-configuration) for details.
+- The air configuration must contain the mandatory `air_name` property. See [Insights Air configuration](docs/ops/configuration.html#insights-air-configuration) for details.
 - When quoting `db_name` in drill data sources, the double quote (") character must be used instead of backtick (\`).
 
 ### Bugfixes
