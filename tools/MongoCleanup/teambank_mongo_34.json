@@ -26,6 +26,9 @@
             {"method": "aes_cbc_128", "key": "1234567890ABCDEF", "columns": ["benutzerName1"]},
             {"method": "text_to_integer", "columns": ["blz"]},
             {"method": "text_to_datetime", "columns": ["syncStatus.timeStamp"]}
+          ],
+          "delete_if": [
+            {"field": "blz", "values": ["47110815"]}
           ]
         },
         "konto": {
