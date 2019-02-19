@@ -35,11 +35,16 @@ type Decoder =
       length : int32 option
       columns : string list }
 
+type DeleteIf =
+    { field : string
+      values : string list }
+
 type CloakTable =
     { userId : string option
       decoders : Decoder list option
       projection : Projection option
-      query : string option }
+      query : string option
+      deleteIf : DeleteIf list option }
 
 type CloakConfig =
     { parameters : ConnectionProperties
@@ -158,17 +163,29 @@ let applyDecoders (decoders : Decoder list) (document : BsonDocument) : unit =
 let readCollection (db : IMongoDatabase) (name : string) : seq<BsonDocument> =
     upcast db.GetCollection<BsonDocument>(name).Find(fun _ -> true).ToList()
 
-let writeCollection (db : IMongoDatabase) (name : string) (documents : seq<BsonDocument>) : unit =
+let shouldDelete (config : CloakTable) (doc : BsonDocument) : bool =
+    match config.deleteIf with
+    | None -> false
+    | Some(deleteIf) ->
+        deleteIf |> Seq.exists (fun deleteIf ->
+            doc.Contains(deleteIf.field) &&
+                Seq.exists ((=) (doc.GetValue(deleteIf.field).ToString())) deleteIf.values
+        )
+
+let docToWriteModel (config : CloakTable) (doc : BsonDocument) : WriteModel<BsonDocument> =
+    let field = StringFieldDefinition<BsonDocument, BsonValue>("_id")
+    let filter = Builders<BsonDocument>.Filter.Eq(field, doc.GetValue("_id"))
+
+    if shouldDelete config doc
+    then upcast DeleteOneModel<BsonDocument>(filter)
+    else upcast ReplaceOneModel<BsonDocument>(filter, doc)
+
+let writeCollection (db : IMongoDatabase) (name : string) (config : CloakTable) (documents : seq<BsonDocument>) : unit =
     let collection = db.GetCollection<BsonDocument>(name)
 
     let updates =
         documents
-        |> Seq.map (fun doc ->
-            let field = StringFieldDefinition<BsonDocument, BsonValue>("_id")
-            let filter = Builders<BsonDocument>.Filter.Eq(field, doc.GetValue("_id"))
-
-            ReplaceOneModel<BsonDocument>(filter, doc)
-        )
+        |> Seq.map (docToWriteModel config)
         |> Seq.cast
 
     collection.BulkWrite(updates) |> ignore
@@ -283,7 +300,7 @@ let run (options : ParseResults<CLIArguments>) : unit =
             toWrite
             |> Seq.map (fun kv -> async {
                 for batch in data.Item kv.Key |> batchesOf 1000 do
-                    writeCollection db kv.Key batch
+                    writeCollection db kv.Key (config.tables.Item kv.Key) batch
                     ProgressBar.tick <| Seq.length batch
             })
             |> Async.Parallel
