@@ -9,8 +9,10 @@ defmodule Compliance.AnalystTableTest do
   @tested_data_sources ~w(oracle postgresql9.4 postgresql)
 
   setup_all do
-    Cloak.Air.register_air("some_air_instance")
+    air_name = "some_air_instance"
+    Cloak.Air.register_air(air_name)
     on_exit(&Cloak.Air.unregister_air/0)
+    {:ok, %{air_name: air_name}}
   end
 
   for data_source_name <- @tested_data_sources do
@@ -307,6 +309,16 @@ defmodule Compliance.AnalystTableTest do
 
           assert {:ok, _} = create_or_update(1, "table33", statement, data_source)
           assert AnalystTable.find(1, "table33", data_source).statement == statement
+        end
+      end
+
+      test "registered_analyst_tables", context do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          {:ok, _} = create_or_update(1, "table1", "select * from users", data_source)
+          {:ok, _} = create_or_update(1, "table2", "select * from users", data_source)
+
+          registered_tables = Enum.map(AnalystTable.registered_analyst_tables(context.air_name, data_source), & &1.name)
+          assert Enum.sort(registered_tables) == ["table1", "table2"]
         end
       end
     end

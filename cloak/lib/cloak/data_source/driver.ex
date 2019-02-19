@@ -69,7 +69,7 @@ defmodule Cloak.DataSource.Driver do
   @callback initialize_analyst_meta_table(connection) :: :ok | {:error, String.t()}
 
   @doc "Returns analyst tables registered in the meta table."
-  @callback registered_analyst_tables(connection) :: [Cloak.AnalystTable.t()]
+  @callback registered_analyst_tables(connection, String.t(), String.t()) :: [Cloak.AnalystTable.t()]
 
   defmacro __using__(_opts) do
     quote do
@@ -92,7 +92,8 @@ defmodule Cloak.DataSource.Driver do
       def initialize_analyst_meta_table(_connection), do: raise(RuntimeError, "not implemented")
 
       @impl unquote(__MODULE__)
-      def registered_analyst_tables(_connection), do: raise(RuntimeError, "not implemented")
+      def registered_analyst_tables(_connection, _air_name, _data_source_name),
+        do: raise(RuntimeError, "not implemented")
 
       defoverridable unquote(__MODULE__)
     end

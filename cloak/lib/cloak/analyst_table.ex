@@ -77,11 +77,9 @@ defmodule Cloak.AnalystTable do
           {:error, "table not found"}
 
         table ->
-          driver = data_source.driver
-
-          DataSource.Connection.execute!(
+          db_execute!(
             data_source,
-            fn connection ->
+            fn %{connection: connection, driver: driver} ->
               Logger.info("Dropping analyst table #{log_table_info(table)}")
               GenServer.call(__MODULE__, {:unregister_table, table})
               driver.drop_analyst_table(connection, table.db_name)
@@ -212,11 +210,7 @@ defmodule Cloak.AnalystTable do
 
   defp store_table_to_database(data_source, table) do
     Logger.info("Creating analyst table #{log_table_info(table)}")
-
-    DataSource.Connection.execute!(
-      data_source,
-      &data_source.driver.create_or_update_analyst_table(&1, table, table.store_info)
-    )
+    db_execute!(data_source, & &1.driver.create_or_update_analyst_table(&1.connection, table, table.store_info))
   end
 
   defp enqueue_job(state, job),
@@ -266,11 +260,16 @@ defmodule Cloak.AnalystTable do
     end
   end
 
-  defp refresh_data_source(air_name, data_source) do
-    data_source
-    |> DataSource.Connection.execute!(&data_source.driver.registered_analyst_tables/1)
-    |> Stream.filter(&(&1.data_source_name == data_source.name and &1.air_name == air_name))
-    |> Enum.each(&store_table_definition/1)
+  defp refresh_data_source(air_name, data_source),
+    do: air_name |> registered_analyst_tables(data_source) |> Enum.each(&store_table_definition/1)
+
+  @doc false
+  def registered_analyst_tables(air_name, data_source),
+    do: db_execute!(data_source, & &1.driver.registered_analyst_tables(&1.connection, air_name, &1.data_source_name))
+
+  defp db_execute!(data_source, fun) do
+    arg = %{data_source_name: data_source.name, driver: data_source.driver}
+    DataSource.Connection.execute!(data_source, &fun.(Map.put(arg, :connection, &1)))
   end
 
   defp log_table_info(table), do: table |> Map.take(~w/air_name data_source_name analyst name db_name/a) |> inspect()

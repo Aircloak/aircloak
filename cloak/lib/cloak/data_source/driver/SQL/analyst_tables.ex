@@ -26,7 +26,8 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
       def drop_analyst_table(connection, db_name), do: AnalystTables.drop_analyst_table(__MODULE__, connection, db_name)
 
       @impl Driver
-      def registered_analyst_tables(connection), do: AnalystTables.registered_analyst_tables(__MODULE__, connection)
+      def registered_analyst_tables(connection, air_name, data_source_name),
+        do: AnalystTables.registered_analyst_tables(__MODULE__, connection, air_name, data_source_name)
 
       @impl AnalystTables
       def analyst_tables(connection), do: AnalystTables.analyst_tables(__MODULE__, connection)
@@ -99,7 +100,7 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
   end
 
   @doc false
-  def registered_analyst_tables(driver, connection) do
+  def registered_analyst_tables(driver, connection, air_name, data_source_name) do
     existing_db_names = MapSet.new(analyst_tables(driver, connection))
 
     columns =
@@ -107,8 +108,10 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
       |> Stream.map(&quote_identifier(driver, &1))
       |> Enum.join(", ")
 
+    filter = where_filter(driver, %{"air" => air_name, "data_source" => data_source_name})
+
     connection
-    |> driver.select!("SELECT #{columns} FROM #{quoted_analyst_table_name(driver)}")
+    |> driver.select!("SELECT #{columns} FROM #{quoted_analyst_table_name(driver)} WHERE #{filter}")
     |> Enum.map(fn [air, data_source, analyst, name, db_name, statement, fingerprint] ->
       %{
         air_name: air,
@@ -142,7 +145,7 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
       connection,
       """
       SELECT #{quote_identifier(driver, "db_name")} FROM #{quoted_analyst_table_name(driver)}
-      WHERE #{where_filter(driver, table)}
+      WHERE #{table_filter(driver, table)}
       """
     )
     |> Enum.to_list()
@@ -155,7 +158,7 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
   defp delete_meta(driver, connection, table) do
     driver.execute(
       connection,
-      "DELETE FROM #{quoted_analyst_table_name(driver)} WHERE #{where_filter(driver, table)}"
+      "DELETE FROM #{quoted_analyst_table_name(driver)} WHERE #{table_filter(driver, table)}"
     )
   end
 
@@ -169,10 +172,11 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
     driver.execute(connection, "INSERT INTO #{quoted_analyst_table_name(driver)} (#{columns}) VALUES (#{values})")
   end
 
-  defp where_filter(driver, table) do
-    table
-    |> db_record()
-    |> Map.take(~w(air data_source analyst name))
+  defp table_filter(driver, table),
+    do: where_filter(driver, table |> db_record() |> Map.take(~w(air data_source analyst name)))
+
+  defp where_filter(driver, map) do
+    map
     |> Stream.map(fn {column_name, value} -> "#{quote_identifier(driver, column_name)} = #{literal(driver, value)}" end)
     |> Enum.join(" AND ")
   end
