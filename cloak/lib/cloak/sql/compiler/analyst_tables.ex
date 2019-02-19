@@ -9,7 +9,7 @@ defmodule Cloak.Sql.Compiler.AnalystTables do
   # API functions
   # -------------------------------------------------------------------
 
-  @doc "Replaces subqueries which refer to analyst tables with references to tables on the disk."
+  @doc "Replaces subqueries which represent analyst tables with names of the tables in the database."
   @spec compile(Query.t()) :: Query.t()
   def compile(query) do
     Helpers.apply_top_down(
