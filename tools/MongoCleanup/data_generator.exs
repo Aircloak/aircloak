@@ -36,7 +36,8 @@ defmodule DataGenerator do
         purchase_id: purchase.id,
         itemname: "widget-#{:rand.uniform(1000)}",
         quantity: :rand.uniform(100) + 1,
-        price: "#{:rand.uniform()}"
+        price: "#{:rand.uniform()}",
+        fake: :rand.uniform() < 0.05
       }
     end
   end
