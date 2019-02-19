@@ -14,7 +14,7 @@ defmodule Cloak.Sql.Compiler.AnalystTables do
   def compile(query) do
     Helpers.apply_top_down(
       query,
-      fn query -> if uses_analyst_tables?(query), do: replace_analyst_tables(query), else: query end
+      fn query -> if uses_analyst_tables?(query), do: replace_analyst_tables_subqueries(query), else: query end
     )
   end
 
@@ -28,16 +28,19 @@ defmodule Cloak.Sql.Compiler.AnalystTables do
     |> Enum.any?(&(not is_nil(&1.analyst_table)))
   end
 
-  defp replace_analyst_tables(query) do
-    tables =
+  defp replace_analyst_tables_subqueries(query) do
+    analyst_tables =
       query
       |> get_in([Lenses.analyst_tables_subqueries()])
       |> Enum.map(&analyst_table_definition/1)
 
-    query = %Query{query | available_tables: query.available_tables ++ tables}
+    selected_tables =
+      query.selected_tables
+      # remove subqueries representing analyst tables
+      |> Enum.reject(fn table -> Enum.any?(analyst_tables, &(&1.name == table.name)) end)
+      |> Enum.concat(analyst_tables)
 
-    selected_tables = Enum.reject(query.selected_tables, fn table -> Enum.any?(tables, &(&1.name == table.name)) end)
-    query = %Query{query | selected_tables: selected_tables ++ tables}
+    query = %Query{query | available_tables: query.available_tables ++ analyst_tables, selected_tables: selected_tables}
 
     Lens.map(
       Lenses.analyst_tables_subqueries(),
