@@ -24,6 +24,9 @@
         "foreign_key": "purchase_id",
         "primary_key": "id"
       },
+      "delete_if": [
+        {"field": "fake", "values": ["true"]}
+      ],
       "decoders": [
         {"method": "text_to_real", "columns": ["price"]}
       ]

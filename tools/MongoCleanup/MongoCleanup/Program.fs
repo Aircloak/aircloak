@@ -65,8 +65,10 @@ let rec update' (document : BsonDocument) (keys : string list) (f : BsonUpdate) 
             document.Add(key, result) |> ignore
     | key :: rest ->
         if document.Contains(key) then
-            let nested = document.GetValue(key).AsBsonDocument
-            update' nested rest f
+            match document.GetValue(key).BsonType with
+            | BsonType.Document -> update' (document.GetValue(key).AsBsonDocument) rest f
+            | BsonType.Array -> for item in document.GetValue(key).AsBsonArray do update' item.AsBsonDocument rest f
+            | _ -> ()
 
 let update (document : BsonDocument) (key : string) (f : BsonUpdate) : unit =
     let keys = key.Split [| '.' |] |> Array.toList
