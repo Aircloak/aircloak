@@ -314,11 +314,11 @@ defmodule Compliance.AnalystTableTest do
 
       test "registered_analyst_tables", context do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
-          {:ok, _} = create_or_update(1, "table1", "select * from users", data_source)
-          {:ok, _} = create_or_update(1, "table2", "select * from users", data_source)
+          {:ok, _} = create_or_update(1, "table34", "select * from users", data_source)
+          {:ok, _} = create_or_update(1, "table35", "select * from users", data_source)
 
           registered_tables = Enum.map(AnalystTable.registered_analyst_tables(context.air_name, data_source), & &1.name)
-          assert Enum.sort(registered_tables) == ["table1", "table2"]
+          assert Enum.sort(registered_tables) == ["table34", "table35"]
         end
       end
     end
