@@ -560,17 +560,17 @@ Computes the average of the given expression.
 ```sql
 SELECT avg(age) FROM people
 
-        avg
--------------------
- 29.44782928323982
+          avg
+  -------------------
+   29.44782928323982
 
 SELECT lastname, avg(age) FROM people GROUP BY 1
 
- lastname |        avg
-----------+--------------------
- ABBOTT   | 28.930111858960856
- ACEVEDO  | 29.933255031072672
- ...      | ...
+   lastname |        avg
+  ----------+--------------------
+   ABBOTT   | 28.930111858960856
+   ACEVEDO  | 29.933255031072672
+   ...      | ...
 ```
 
 ### count
@@ -580,17 +580,17 @@ Computes the number of rows for which the given expression is non-NULL. Use `*` 
 ```sql
 SELECT count(age) FROM people
 
- count
--------
- 10000
+   count
+  -------
+   10000
 
 SELECT lastname, count(age) FROM people GROUP BY 1
 
- lastname | count
-----------+-------
- ABBOTT   |    10
- ACEVEDO  |    12
- ...      |   ...
+   lastname | count
+  ----------+-------
+   ABBOTT   |    10
+   ACEVEDO  |    12
+   ...      |   ...
 
 ```
 
@@ -600,9 +600,124 @@ noise](#aggregation-functions)).
 
 ### max
 
+Finds the maximum value of the given expression.
+
+```sql
+SELECT max(age) FROM people
+
+   max
+  -----
+    43
+
+SELECT lastname, max(age) FROM people GROUP BY 1
+
+   lastname | max
+  ----------+-----
+   ABBOTT   |  30
+   ACEVEDO  |  32
+   ...      | ...
+```
+
+Note that the computed max value is anonymized - it requires a number of users to share this value, so in some cases
+the true value will be larger. Furthermore, because of this, the `max` function doesn't work on textual values:
+
+```sql
+SELECT max(lastname) FROM people
+
+  ERROR:  Aggregator `max` is not allowed over arguments of type `text` in anonymizing contexts.
+  For more information see the "Text operations" subsection of the "Restrictions" section in the user guides.
+```
+
+However, you still can use `max` to postprocess textual results of an anonymizing subquery:
+
+```sql
+SELECT max(lastname) FROM (SELECT lastname FROM people GROUP BY 1) x
+
+    max
+  --------
+   ZUNIGA
+```
+
 ### median
 
+Finds the median value of the given expression.
+
+```sql
+SELECT median(age) FROM people
+
+   median
+  --------
+       29
+
+SELECT lastname, median(age) FROM people GROUP BY 1
+
+   lastname | median
+  ----------+--------
+   ABBOTT   |     29
+   ACEVEDO  |     31
+   ...      |    ...
+```
+
+Note that the computed median value is anonymized - it requires a number of users to share this value, so in some cases
+the true value will be smaller or larger. Furthermore, because of this, the `median` function doesn't work on textual
+values:
+
+```sql
+SELECT median(lastname) FROM people
+
+  ERROR:  Aggregator `median` is not allowed over arguments of type `text` in anonymizing contexts.
+  For more information see the "Text operations" subsection of the "Restrictions" section in the user guides.
+```
+
+However, you still can use `median` to postprocess textual results of an anonymizing subquery:
+
+```sql
+SELECT median(lastname) FROM (SELECT lastname FROM people GROUP BY 1) x
+
+   median
+  --------
+   KIRK
+```
+
 ### min
+
+Finds the minimum value of the given expression.
+
+```sql
+SELECT min(age) FROM people
+
+   min
+  -----
+    16
+
+SELECT lastname, min(age) FROM people GROUP BY 1
+
+   lastname | min
+  ----------+-----
+   ABBOTT   |  26
+   ACEVEDO  |  28
+   ...      | ...
+```
+
+Note that the computed min value is anonymized - it requires a number of users to share this value, so in some cases
+the true value will be smaller. Furthermore, because of this, the `min` function doesn't work on textual values:
+
+```sql
+SELECT min(lastname) FROM people
+
+  ERROR:  Aggregator `min` is not allowed over arguments of type `text` in anonymizing contexts.
+  For more information see the "Text operations" subsection of the "Restrictions" section in the user guides.
+```
+
+However, you still can use `min` to postprocess textual results of an anonymizing subquery:
+
+```sql
+SELECT min(lastname) FROM (SELECT lastname FROM people GROUP BY 1) x
+
+    min
+  --------
+   ABBOTT
+```
 
 ### stddev
 
