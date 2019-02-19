@@ -22,10 +22,8 @@ defmodule IntegrationTest.ViewTest do
   test "successful saving of the new view", context do
     assert {:ok, view} = create_view(context.user, unique_view_name(), "select user_id, name from users")
 
-    assert view.result_info.columns == [
-             %{name: "user_id", type: "text", user_id: true},
-             %{name: "name", type: "text", user_id: false}
-           ]
+    assert [%{name: "user_id", type: "text", user_id: true}, %{name: "name", type: "text", user_id: false}] =
+             view.columns
   end
 
   test "cannot insert two views with the same name", context do

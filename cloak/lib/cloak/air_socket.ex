@@ -317,7 +317,7 @@ defmodule Cloak.AirSocket do
              data.parameters,
              data.views
            ),
-         do: respond_to_air(from, :ok, %{columns: described_columns}),
+         do: respond_to_air(from, :ok, described_columns),
          else: ({:error, reason} -> respond_to_air(from, :error, reason))
 
     {:ok, state}

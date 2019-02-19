@@ -418,10 +418,9 @@ defmodule Air.Service.DataSourceTest do
           user_id: context[:user].id,
           data_source_id: context[:data_source].id,
           name: view_name,
-          sql: "sql for #{view_name}",
-          result_info: %{"columns" => ["foo", "bar"]}
+          sql: "sql for #{view_name}"
         },
-        ~w(name sql user_id data_source_id result_info)a
+        ~w(name sql user_id data_source_id)a
       )
       |> Repo.insert!()
 

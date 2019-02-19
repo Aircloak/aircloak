@@ -72,7 +72,8 @@ defmodule Air.Service.ViewTest do
 
       TestSocketHelper.respond_to_validate_views!(socket, &revalidation_success/1)
 
-      assert {:ok, %{result_info: %{columns: ["some", "columns"]}}} = Task.await(task)
+      assert {:ok, %{columns: columns}} = Task.await(task)
+      assert [%{name: "foo", type: "integer", user_id: true}, %{name: "bar", type: "text", user_id: false}] = columns
     end
 
     test "failure", context do
@@ -125,11 +126,8 @@ defmodule Air.Service.ViewTest do
       view_id = context.v1.id
       assert {:ok, %{id: ^view_id}} = Task.await(task)
 
-      assert %{
-               name: "some view",
-               sql: "some sql",
-               result_info: %{"columns" => ["some", "columns"]}
-             } = Repo.get(Air.Schemas.View, context.v1.id)
+      assert %{name: "some view", sql: "some sql", columns: columns} = Repo.get(Air.Schemas.View, context.v1.id)
+      assert [%{name: "foo", type: "integer", user_id: true}, %{name: "bar", type: "text", user_id: false}] = columns
 
       assert_receive {:revalidated_views, _}
     end
@@ -245,10 +243,9 @@ defmodule Air.Service.ViewTest do
           user_id: user.id,
           data_source_id: data_source.id,
           name: name,
-          sql: "sql for #{name}",
-          result_info: %{}
+          sql: "sql for #{name}"
         },
-        ~w(name sql user_id data_source_id result_info)a
+        ~w(name sql user_id data_source_id)a
       )
       |> Repo.insert!()
 
@@ -262,5 +259,8 @@ defmodule Air.Service.ViewTest do
     socket
   end
 
-  defp revalidation_success(names), do: Enum.map(names, &%{name: &1, columns: ["some", "columns"], valid: true})
+  defp revalidation_success(names) do
+    columns = [%{name: "foo", type: "integer", user_id: true}, %{name: "bar", type: "text", user_id: false}]
+    Enum.map(names, &%{name: &1, columns: columns, valid: true})
+  end
 end

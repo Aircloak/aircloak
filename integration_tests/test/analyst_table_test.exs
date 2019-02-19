@@ -25,7 +25,7 @@ defmodule IntegrationTest.AnalystTableTest do
     assert {:ok, table} = create_table(context.user, name, "select user_id, name from users")
     assert table.name == name
     assert table.sql == "select user_id, name from users"
-    assert [column1, column2] = Enum.sort_by(table.result_info.columns, & &1.name)
+    assert [column1, column2] = Enum.sort_by(table.columns, & &1.name)
     assert %{name: "name", type: "text", user_id: false} = column1
     assert %{name: "user_id", type: "text", user_id: true} = column2
     refute is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id))
@@ -108,7 +108,7 @@ defmodule IntegrationTest.AnalystTableTest do
     assert updated_table.id == table.id
     assert updated_table.name == new_name
     assert updated_table.sql == "select user_id from users"
-    assert [%{name: "user_id", type: "text", user_id: true}] = updated_table.result_info.columns
+    assert [%{name: "user_id", type: "text", user_id: true}] = updated_table.columns
 
     assert {:ok, result} = run_query(context.user, "select * from #{new_name}")
     assert result.columns == ~w(user_id)

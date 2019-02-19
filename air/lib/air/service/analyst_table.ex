@@ -137,13 +137,12 @@ defmodule Air.Service.AnalystTable do
       # there's no guarantee that the table will be successfully stored in the cloak, so we're running this inside
       # a transaction.
       with {:ok, table} <- apply(Repo, changeset.action, [changeset]),
-           {:ok, result_info} <- create_or_update_on_cloak(table, user, data_source),
+           {:ok, columns} <- create_or_update_on_cloak(table, user, data_source),
            # at this point we can update the table with the registration info obtaine from cloak
-           result_info_changeset = Ecto.Changeset.change(table.result_info || %AnalystTable.ResultInfo{}, result_info),
            table_changeset =
              table
              |> Ecto.Changeset.change()
-             |> Ecto.Changeset.put_embed(:result_info, result_info_changeset),
+             |> Ecto.Changeset.put_embed(:columns, columns),
            {:ok, table} <- Repo.update(table_changeset) do
         table
       else
