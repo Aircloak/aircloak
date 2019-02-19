@@ -546,3 +546,68 @@ When converting from booleans `TRUE` is converted to `1` and `FALSE` is converte
 ### Casting from datetime
 
 Casting from datetime to date or time will select the date/time part of the datetime.
+
+## Aggregation functions
+
+Note that unlike in regular database systems the results of aggregation functions will usually not be reported
+precisely. Instead, a small amount of noise will be added or subtracted from the real value to preserve anonymity. See
+[the section about *_noise functions](#noise) for more on how to get a measure of how much noise is added.
+
+### avg
+
+Computes the average of the given expression.
+
+```sql
+SELECT avg(age) FROM people
+
+        avg
+-------------------
+ 29.44782928323982
+
+SELECT lastname, avg(age) FROM people GROUP BY 1
+
+ lastname |        avg
+----------+--------------------
+ ABBOTT   | 28.930111858960856
+ ACEVEDO  | 29.933255031072672
+ ...      | ...
+```
+
+### count
+
+Computes the number of rows for which the given expression is non-NULL. Use `*` as an argument to count all rows.
+
+```sql
+SELECT count(age) FROM people
+
+ count
+-------
+ 10000
+
+SELECT lastname, count(age) FROM people GROUP BY 1
+
+ lastname | count
+----------+-------
+ ABBOTT   |    10
+ ACEVEDO  |    12
+ ...      |   ...
+
+```
+
+Note that in order to preserve anonymity Insights Cloak will never report "groups" of just one user. Because of this,
+when you see a count of 2, it might mean there is 1, 2, or even more users in the given group (see [Note about
+noise](#aggregation-functions)).
+
+### max
+
+### median
+
+### min
+
+### stddev
+
+### sum
+
+### variance
+
+### *_noise
