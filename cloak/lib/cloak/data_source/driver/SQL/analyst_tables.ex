@@ -1,7 +1,6 @@
 defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
   @moduledoc "Common implementation of analyst tables functionality for SQL based drivers."
 
-  require Logger
   alias Cloak.DataSource.{Driver, SqlBuilder}
   alias __MODULE__
 
@@ -75,8 +74,6 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
 
   @doc false
   def drop_analyst_table(driver, connection, db_name) do
-    Logger.info("dropping analyst table #{db_name}")
-
     with {:ok, _} <-
            driver.execute(
              connection,
@@ -162,10 +159,8 @@ defmodule Cloak.DataSource.Driver.SQL.AnalystTables do
     )
   end
 
-  defp create_table(driver, connection, table, sql) do
-    Logger.info("creating database table `#{table.db_name}`")
-    with {:ok, _} <- insert_meta(driver, connection, table), do: driver.execute(connection, sql)
-  end
+  defp create_table(driver, connection, table, sql),
+    do: with({:ok, _} <- insert_meta(driver, connection, table), do: driver.execute(connection, sql))
 
   defp insert_meta(driver, connection, table) do
     record = db_record(table)

@@ -203,7 +203,7 @@ defmodule Compliance.AnalystTableTest do
                          )
                 end)
 
-              assert log =~ ~r/Error creating table.*some error/
+              assert log =~ ~r/Error creating analyst table.*some error/
 
               assert_query(
                 "select * from table27",

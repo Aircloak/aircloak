@@ -82,6 +82,7 @@ defmodule Cloak.AnalystTable do
           DataSource.Connection.execute!(
             data_source,
             fn connection ->
+              Logger.info("Dropping analyst table #{log_table_info(table)}")
               GenServer.call(__MODULE__, {:unregister_table, table})
               driver.drop_analyst_table(connection, table.db_name)
             end
@@ -158,10 +159,10 @@ defmodule Cloak.AnalystTable do
     with {:create_table, table} <- job do
       table =
         if reason == :normal do
-          Logger.info("Table `#{table.name}` created successfully")
+          Logger.info("Created analyst table #{log_table_info(table)}")
           %{table | status: :created}
         else
-          Logger.error("Error creating table: #{inspect(table)}: #{inspect(reason)}")
+          Logger.error("Error creating analyst table: #{log_table_info(table)}: #{inspect(reason)}")
           %{table | status: :create_error}
         end
 
@@ -223,6 +224,8 @@ defmodule Cloak.AnalystTable do
   end
 
   defp store_table_to_database(data_source, table) do
+    Logger.info("Creating analyst table #{log_table_info(table)}")
+
     DataSource.Connection.execute!(
       data_source,
       &data_source.driver.create_or_update_analyst_table(&1, table, table.store_info)
@@ -282,6 +285,8 @@ defmodule Cloak.AnalystTable do
     |> Stream.filter(&(&1.data_source_name == data_source.name and &1.air_name == air_name))
     |> Enum.each(&store_table_definition/1)
   end
+
+  defp log_table_info(table), do: table |> Map.take(~w/air_name data_source_name analyst name db_name/a) |> inspect()
 
   # -------------------------------------------------------------------
   # Helpers for testing
