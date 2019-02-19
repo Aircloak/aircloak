@@ -7,7 +7,7 @@ defmodule Air.Schemas.AnalystTable do
   @type t :: %__MODULE__{
           name: String.t(),
           sql: String.t(),
-          result_info: __MODULE__.ResultInfo.t() | nil
+          columns: [Air.Schemas.SelectableColumn.t()]
         }
 
   EctoEnum.defenum(CreationStatus, :creation_status, [:pending, :succeeded, :failed])
@@ -18,20 +18,7 @@ defmodule Air.Schemas.AnalystTable do
     field(:broken, :boolean, default: false)
     field(:creation_status, CreationStatus, default: :pending)
 
-    embeds_one :result_info, ResultInfo,
-      on_replace: :update,
-      primary_key: {:registration_info, :string, autogenerate: false} do
-      @type t :: %__MODULE__{registration_info: String.t(), columns: [__MODULE__.Column.t()]}
-
-      embeds_many :columns, Column, on_replace: :delete, primary_key: false do
-        @type t :: %__MODULE__{name: String.t(), type: String.t(), user_id: boolean}
-        @derive {Jason.Encoder, only: [:name, :type, :user_id]}
-
-        field(:name, :string)
-        field(:type, :string)
-        field(:user_id, :boolean)
-      end
-    end
+    embeds_many(:columns, Air.Schemas.SelectableColumn, on_replace: :delete)
 
     belongs_to(:user, Air.Schemas.User)
     belongs_to(:data_source, Air.Schemas.DataSource)

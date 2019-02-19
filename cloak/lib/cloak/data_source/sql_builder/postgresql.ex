@@ -77,6 +77,23 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   @impl Dialect
   def interval_division([arg1, arg2]), do: ["(", arg1, " / ", arg2, ")"]
 
+  @impl Dialect
+  def analyst_meta_table_create_statement(quoted_table_name) do
+    """
+    CREATE TABLE #{quoted_table_name} (
+      "air" TEXT NOT NULL,
+      "data_source" TEXT NOT NULL,
+      "analyst" INTEGER NOT NULL,
+      "name" TEXT NOT NULL,
+      "db_name" TEXT NOT NULL,
+      "statement" TEXT NOT NULL,
+      "fingerprint" TEXT NOT NULL,
+      PRIMARY KEY ("air", "data_source", "analyst", "name"),
+      UNIQUE("db_name")
+    )
+    """
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

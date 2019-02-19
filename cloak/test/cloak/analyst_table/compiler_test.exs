@@ -94,6 +94,19 @@ defmodule Cloak.AnalystTable.CompilerTest do
       assert {:error, error} = compile("table_name", "select * from mv1 inner join mv2 on mv1.user_id = mv2.user_id")
       assert error == "Duplicate column names: `user_id`, `x`, `y`"
     end
+
+    test "ranges are aligned" do
+      {:ok, query} = compile("table_name", "select user_id, x from mv1 where x between 1 and 99")
+
+      assert db_select(query) ==
+               ~s/SELECT "mv1"."user_id" AS "user_id","mv1"."x" AS "x" / <>
+                 ~s/FROM "cloak_test"."mv1" AS "mv1" WHERE ("mv1"."x" >= 0.0) AND ("mv1"."x" < 100.0)/
+    end
+
+    test "unbounded ranges are not allowed" do
+      assert {:error, error} = compile("table_name", "select user_id, x from mv1 where x > 10")
+      assert error == "Column `x` from table `mv1` must be limited to a finite, nonempty range."
+    end
   end
 
   defp compile(table_name, statement, data_source \\ data_source()),
@@ -102,7 +115,7 @@ defmodule Cloak.AnalystTable.CompilerTest do
   defp data_source(), do: hd(Cloak.DataSource.all())
 
   defp db_select(query) do
-    {create_statement, _table_name} = Cloak.DataSource.SqlBuilder.create_table_statement(1, query)
+    create_statement = Cloak.DataSource.Driver.SQL.AnalystTables.create_table_from_query("some_table", query)
     String.replace(create_statement, ~r/^CREATE TABLE "[^\s]*" AS /, "")
   end
 end

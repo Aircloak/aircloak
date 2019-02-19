@@ -23,7 +23,7 @@ defmodule Air.Service.AnalystTable do
     |> Ecto.Changeset.cast(changes, ~w(name sql user_id data_source_id)a)
     |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
     |> Map.put(:action, :insert)
-    |> store_table(user, data_source)
+    |> transactional_store(user, data_source)
   end
 
   @doc "Updates the existing analyst table, and stores it in cloak and in air."
@@ -37,7 +37,7 @@ defmodule Air.Service.AnalystTable do
       |> Ecto.Changeset.cast(%{name: name, sql: sql}, ~w(name sql)a)
       |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
       |> Map.put(:action, :update)
-      |> store_table(table.user, table.data_source)
+      |> transactional_store(table.user, table.data_source)
     else
       {:error, :not_allowed}
     end
@@ -76,16 +76,19 @@ defmodule Air.Service.AnalystTable do
   @doc "Deletes the analyst table."
   @spec delete(pos_integer, User.t()) :: :ok | {:error, :not_allowed}
   def delete(table_id, user) do
-    table = AnalystTable |> Repo.get!(table_id) |> Repo.preload([:user, :data_source])
+    table = Repo.get!(AnalystTable, table_id) |> Repo.preload([:user, :data_source])
 
     if table.user_id == user.id do
-      Repo.delete!(table)
+      with :ok <-
+             DataSource.with_available_cloak(
+               table.data_source,
+               table.user,
+               &MainChannel.drop_analyst_table(&1.channel_pid, table.user.id, table.name, table.data_source.name)
+             ) do
+        Repo.delete!(table)
 
-      Air.Service.Cloak.channel_pids(table.data_source.name)
-      |> Stream.map(fn {pid, _cloak_info} -> pid end)
-      |> Enum.each(&MainChannel.send_analyst_tables_to_cloak/1)
-
-      :ok
+        :ok
+      end
     else
       {:error, :not_allowed}
     end
@@ -126,19 +129,6 @@ defmodule Air.Service.AnalystTable do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp store_table(changeset, user, data_source) do
-    with {:ok, _} = success <- transactional_store(changeset, user, data_source) do
-      # transactional_store stored the view on a single cloak. At this point, we're notifying all connected cloaks
-      # about the change. This ensures that all the cloaks have the table stored, including those which have connected
-      # during the transactional store.
-      Air.Service.Cloak.channel_pids(data_source.name)
-      |> Stream.map(fn {pid, _cloak_info} -> pid end)
-      |> Enum.each(&MainChannel.send_analyst_tables_to_cloak/1)
-
-      success
-    end
-  end
-
   defp transactional_store(changeset, user, data_source) do
     Repo.transaction(fn ->
       changeset =
@@ -152,13 +142,12 @@ defmodule Air.Service.AnalystTable do
       # there's no guarantee that the table will be successfully stored in the cloak, so we're running this inside
       # a transaction.
       with {:ok, table} <- apply(Repo, changeset.action, [changeset]),
-           {:ok, result_info} <- create_or_update_on_cloak(table, user, data_source),
+           {:ok, columns} <- create_or_update_on_cloak(table, user, data_source),
            # at this point we can update the table with the registration info obtaine from cloak
-           result_info_changeset = Ecto.Changeset.change(table.result_info || %AnalystTable.ResultInfo{}, result_info),
            table_changeset =
              table
              |> Ecto.Changeset.change()
-             |> Ecto.Changeset.put_embed(:result_info, result_info_changeset),
+             |> Ecto.Changeset.put_embed(:columns, columns),
            {:ok, table} <- Repo.update(table_changeset) do
         table
       else

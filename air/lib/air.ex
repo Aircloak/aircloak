@@ -38,6 +38,8 @@ defmodule Air do
     "#{vm_short_name}@#{hostname}"
   end
 
+  def name(), do: Aircloak.DeployConfig.fetch!("name")
+
   # -------------------------------------------------------------------
   # Application behaviour functions
   # -------------------------------------------------------------------

@@ -4,21 +4,19 @@ defmodule Cloak.AnalystTable do
   use Parent.GenServer
   require Logger
   alias Cloak.DataSource
-  alias Cloak.Sql.{Query, Expression}
+  alias Cloak.Sql.Query
   alias __MODULE__.{Compiler, Jobs}
 
-  @type table :: %{
+  @type t :: %{
           analyst: Query.analyst_id(),
           name: String.t(),
           statement: String.t(),
+          air_name: String.t(),
           data_source_name: String.t(),
           db_name: String.t(),
-          id_column: Expression.t(),
-          store_info: String.t(),
-          columns: [DataSource.Table.column()]
+          fingerprint: binary(),
+          status: :creating | :created | :create_error
         }
-
-  @type creation_state :: :succeeded | :failed
 
   # -------------------------------------------------------------------
   # API functions
@@ -32,9 +30,10 @@ defmodule Cloak.AnalystTable do
           DataSource.t(),
           [Query.parameter()] | nil,
           Query.view_map()
-        ) :: {:ok, registration_info :: String.t(), Query.described_columns()} | {:error, String.t()}
+        ) :: {:ok, Query.described_columns()} | {:error, String.t()}
   def create_or_update(analyst, table_name, statement, data_source, parameters \\ nil, views \\ %{}) do
-    with {:ok, query} <-
+    with {:ok, air_name} <- Cloak.Air.name(),
+         {:ok, query} <-
            Compiler.compile(
              table_name,
              statement,
@@ -44,51 +43,82 @@ defmodule Cloak.AnalystTable do
              views
            ) do
       with {:error, reason} <- DataSource.check_analyst_tables_support(data_source), do: raise(reason)
-      {db_name, store_info} = data_source.driver.prepare_analyst_table({analyst, table_name}, query)
 
-      query_table =
-        Enum.zip(query.column_titles, query.columns)
-        |> Enum.map(fn {title, column} -> %Expression{column | alias: title} end)
-        |> Cloak.Sql.Compiler.Helpers.create_table_from_columns(table_name)
+      hash = :crypto.hash(:sha256, :erlang.term_to_binary({air_name, data_source.name, analyst, table_name}))
+      encoded_hash = Base.encode64(hash, padding: false)
+      # make sure the name is not longer than 30 characters to avoid possible issues with some databases, such as Oracle
+      db_name = String.slice("__ac_#{encoded_hash}", 0, 30)
+
+      store_info = data_source.driver.prepare_analyst_table(db_name, query)
 
       table = %{
+        air_name: air_name,
         analyst: analyst,
         name: table_name,
         statement: statement,
         data_source_name: data_source.name,
         db_name: db_name,
-        id_column: query_table.user_id,
         store_info: store_info,
-        columns: query_table.columns
+        fingerprint: :crypto.hash(:sha256, store_info),
+        status: :creating
       }
 
       GenServer.call(__MODULE__, {:store_table, table})
-      {:ok, registration_info(table), Query.describe_selected(query)}
+      {:ok, Query.describe_selected(query)}
     end
   end
 
-  @doc "Registers the analyst tables from the given registration infos, creating them in the database if needed."
-  @spec register_tables([String.t()]) :: :ok
-  def register_tables(registration_infos), do: GenServer.call(__MODULE__, {:register_tables, registration_infos})
+  @doc "Drops the table from the database."
+  @spec drop_table(String.t(), String.t(), DataSource.t()) :: :ok | {:error, String.t()}
+  def drop_table(analyst, table_name, data_source) do
+    if data_source.status == :online do
+      case find(analyst, table_name, data_source) do
+        nil ->
+          {:error, "table not found"}
+
+        table ->
+          db_execute!(
+            data_source,
+            fn %{connection: connection, driver: driver} ->
+              Logger.info("Dropping analyst table #{log_table_info(table)}")
+              GenServer.call(__MODULE__, {:unregister_table, table})
+              driver.drop_analyst_table(connection, table.db_name)
+            end
+          )
+      end
+    else
+      {:error, "data source is not connected"}
+    end
+  end
 
   @doc "Returns the analyst table definition."
-  @spec table_definition(Query.analyst_id(), String.t(), DataSource.t()) :: DataSource.Table.t() | nil
-  def table_definition(analyst, table_name, data_source),
+  @spec find(Query.analyst_id(), String.t(), DataSource.t()) :: t | nil
+  def find(analyst, table_name, data_source),
     do: Enum.find(analyst_tables(analyst, data_source), &(&1.name == table_name))
 
   @doc "Returns analyst tables for the given analyst in the given data source."
   @spec analyst_tables(Query.analyst_id(), DataSource.t()) :: [DataSource.Table.t()]
   def analyst_tables(analyst, data_source) do
-    Enum.map(
-      :ets.match(__MODULE__, {{analyst, data_source.name, :_}, :"$1"}),
-      fn [table] -> table end
-    )
+    case Cloak.Air.name() do
+      {:error, _} ->
+        []
+
+      {:ok, air_name} ->
+        Enum.map(
+          :ets.match(__MODULE__, {{air_name, analyst, data_source.name, :_}, :"$1"}),
+          fn [table] -> table end
+        )
+    end
   end
 
   @doc "Synchronously invoked the function as serialized, blocking all other store operations."
   @spec sync_serialized((() -> res), non_neg_integer | :infinity) :: res when res: var
   def sync_serialized(fun, timeout \\ :timer.seconds(5)),
     do: GenServer.call(__MODULE__, {:sync_serialized, fun}, timeout)
+
+  @doc "Notifies the server process that data sources have been changed."
+  @spec refresh() :: :ok
+  def refresh(), do: GenServer.cast(__MODULE__, :refresh)
 
   # -------------------------------------------------------------------
   # GenServer and Parent.GenServer callbacks
@@ -106,26 +136,37 @@ defmodule Cloak.AnalystTable do
 
   def handle_call({:store_table, table}, _from, state) do
     state = stop_job(state, create_table_job_id(table))
-    store_table_definition(table, data_source_table(table, status: :creating))
+    store_table_definition(table)
     {:reply, :ok, enqueue_job(state, {:create_table, table})}
   end
 
-  def handle_call({:register_tables, registration_infos}, _from, state) do
-    tables = Enum.map(registration_infos, &decode_registration_info/1)
-    state = stop_obsolete_stores(state, tables)
-    update_ets_table(tables)
+  def handle_call({:unregister_table, table}, _from, state) do
+    state = stop_job(state, create_table_job_id(table))
+    :ets.delete(__MODULE__, key(table))
+    {:reply, :ok, state}
+  end
 
-    {:reply, :ok, enqueue_job(state, {:serialized, &drop_unused_analyst_tables/0})}
+  @impl GenServer
+  def handle_cast(:refresh, state) do
+    refresh_analyst_tables()
+    {:noreply, state}
   end
 
   @impl Parent.GenServer
-  def handle_child_terminated(job_id, job, _pid, reason, state) do
-    with true <- reason != :normal, {:create_table, table} <- job do
-      Logger.error("Error creating table: #{inspect(table)}: #{inspect(reason)}")
-      update_table_definition(table, &%{&1 | status: :create_error})
-    end
+  def handle_child_terminated(_job_id, job, _pid, reason, state) do
+    with {:create_table, table} <- job do
+      table =
+        if reason == :normal do
+          Logger.info("Created analyst table #{log_table_info(table)}")
+          %{table | status: :created}
+        else
+          Logger.error("Error creating analyst table: #{log_table_info(table)}: #{inspect(reason)}")
+          %{table | status: :create_error}
+        end
 
-    update_air(job_id, reason)
+      store_table_definition(table)
+      Cloak.AirSocket.send_analyst_table_state_update(table.analyst, table.name, table.data_source_name, table.status)
+    end
 
     {:noreply, state.jobs |> update_in(&Jobs.job_finished(&1, job)) |> start_next_jobs()}
   end
@@ -133,18 +174,6 @@ defmodule Cloak.AnalystTable do
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp update_air(:serialized, _reason), do: :ok
-
-  defp update_air({:create_table, job_meta}, reason) do
-    status =
-      case reason do
-        :normal -> :succeeded
-        _ -> :failed
-      end
-
-    Cloak.AirSocket.send_analyst_table_state_update(job_meta.analyst, job_meta.name, job_meta.data_source_name, status)
-  end
 
   defp stop_job(state, job_id) do
     case Parent.GenServer.child_meta(job_id) do
@@ -159,36 +188,19 @@ defmodule Cloak.AnalystTable do
 
   defp create_table_job_id(table), do: {:create_table, Map.take(table, [:analyst, :name, :data_source_name])}
 
-  defp key(table), do: {table.analyst, table.data_source_name, table.name}
+  defp key(table), do: {table.air_name, table.analyst, table.data_source_name, table.name}
 
-  defp store_table_definition(table, table_definition) do
-    :ets.insert(__MODULE__, {key(table), table_definition})
+  defp store_table_definition(table) do
+    :ets.insert(__MODULE__, {key(table), table})
     :ok
-  end
-
-  defp update_table_definition(table, updater_fun) do
-    [{_key, table_definition}] = :ets.lookup(__MODULE__, key(table))
-    store_table_definition(table, updater_fun.(table_definition))
-    :ok
-  end
-
-  defp data_source_table(table, opts) do
-    DataSource.Table.new(
-      table.name,
-      table.id_column,
-      Map.merge(%{db_name: table.db_name, columns: table.columns}, Map.new(opts))
-    )
   end
 
   defp store_table(table, store_fun) do
     with {:ok, data_source} <- fetch_data_source(table),
          :ok <- store_fun.(data_source, table) do
-      Logger.info("Table `#{table.name}` created successfully")
-      update_table_definition(table, &%{&1 | status: :created})
+      :ok
     else
-      {:error, reason} ->
-        Logger.error("Error creating table: #{inspect(table)}: #{reason}")
-        update_table_definition(table, &%{&1 | status: :create_error})
+      {:error, reason} -> exit(reason)
     end
   end
 
@@ -197,70 +209,8 @@ defmodule Cloak.AnalystTable do
   end
 
   defp store_table_to_database(data_source, table) do
-    DataSource.Connection.execute!(
-      data_source,
-      &data_source.driver.create_or_update_analyst_table(&1, table.db_name, table.store_info)
-    )
-  end
-
-  defp drop_unused_analyst_tables() do
-    # We're taking a list of all known registered db_names in all the data sources, since one name can be valid
-    # in one data source, but unknown in another which uses the same database. Taking all the names ensures that
-    # such tables are not removed.
-    db_names = Enum.map(:ets.match(__MODULE__, {{:_, :_, :_}, :"$1"}), fn [table] -> table.db_name end)
-
-    Cloak.DataSource.all()
-    |> Stream.filter(& &1.driver.supports_analyst_tables?)
-    |> Stream.filter(&(&1.status == :online))
-    |> Stream.flat_map(fn data_source ->
-      data_source
-      |> Cloak.DataSource.Connection.execute!(&data_source.driver.drop_unused_analyst_tables(&1, db_names))
-      |> Enum.map(&{data_source, &1})
-    end)
-    |> Enum.each(fn {data_source, db_name} ->
-      Logger.info("removed unused analyst table `#{db_name}` from `#{data_source.name}`")
-    end)
-  end
-
-  defp registration_info(table), do: Jason.encode!(table)
-
-  defp decode_registration_info(registration_info) do
-    registration_info
-    |> Jason.decode!()
-    |> Map.take(~w(analyst name statement data_source_name db_name id_column store_info columns))
-    |> Aircloak.atomize_keys()
-    |> update_in(
-      [:columns],
-      fn columns -> Enum.map(columns, &update_in(&1.type, fn type -> String.to_existing_atom(type) end)) end
-    )
-  end
-
-  defp stop_obsolete_stores(state, new_tables) do
-    storing_tables =
-      Parent.GenServer.children()
-      |> Enum.filter(&match?({_job_id, _pid, {:create_table, _table}}, &1))
-      |> Enum.map(fn {_id, _pid, {:create_table, table}} -> table end)
-      |> MapSet.new()
-
-    obsolete_storing_tables = MapSet.difference(storing_tables, MapSet.new(new_tables))
-    Enum.reduce(obsolete_storing_tables, state, &stop_job(&2, create_table_job_id(&1)))
-  end
-
-  defp update_ets_table(new_tables) do
-    new_keys = new_tables |> Enum.map(&key/1) |> MapSet.new()
-    known_keys = :ets.match(__MODULE__, {:"$1", :_}) |> List.flatten() |> MapSet.new()
-    obsolete_keys = MapSet.difference(known_keys, new_keys)
-    Enum.each(obsolete_keys, &:ets.delete(__MODULE__, &1))
-
-    missing_tables =
-      new_tables
-      |> Enum.filter(&(not MapSet.member?(known_keys, key(&1))))
-      |> Enum.filter(&match?({:ok, _}, Cloak.DataSource.fetch(&1.data_source_name)))
-
-    Enum.each(
-      missing_tables,
-      fn table -> store_table_definition(table, data_source_table(table, status: :created)) end
-    )
+    Logger.info("Creating analyst table #{log_table_info(table)}")
+    db_execute!(data_source, & &1.driver.create_or_update_analyst_table(&1.connection, table, table.store_info))
   end
 
   defp enqueue_job(state, job),
@@ -294,6 +244,36 @@ defmodule Cloak.AnalystTable do
     fn -> store_table(table, store_fun) end
   end
 
+  defp refresh_analyst_tables() do
+    with {:ok, air_name} <- Cloak.Air.name() do
+      # we'll clear all known tables, and refresh from the database state
+      :ets.delete_all_objects(__MODULE__)
+
+      Cloak.DataSource.all()
+      |> Stream.filter(&(&1.status == :online && DataSource.analyst_tables_supported?(&1)))
+      |> Task.async_stream(&refresh_data_source(air_name, &1),
+        ordered: false,
+        timeout: :timer.seconds(30),
+        on_timeout: :kill_task
+      )
+      |> Stream.run()
+    end
+  end
+
+  defp refresh_data_source(air_name, data_source),
+    do: air_name |> registered_analyst_tables(data_source) |> Enum.each(&store_table_definition/1)
+
+  @doc false
+  def registered_analyst_tables(air_name, data_source),
+    do: db_execute!(data_source, & &1.driver.registered_analyst_tables(&1.connection, air_name, &1.data_source_name))
+
+  defp db_execute!(data_source, fun) do
+    arg = %{data_source_name: data_source.name, driver: data_source.driver}
+    DataSource.Connection.execute!(data_source, &fun.(Map.put(arg, :connection, &1)))
+  end
+
+  defp log_table_info(table), do: table |> Map.take(~w/air_name data_source_name analyst name db_name/a) |> inspect()
+
   # -------------------------------------------------------------------
   # Helpers for testing
   # -------------------------------------------------------------------
@@ -315,19 +295,5 @@ defmodule Cloak.AnalystTable do
   # -------------------------------------------------------------------
 
   @doc false
-  def child_spec(_arg), do: Aircloak.ChildSpec.supervisor([gen_server(), periodic_cleaner()], strategy: :one_for_one)
-
-  defp gen_server(), do: %{id: :gen_server, start: {__MODULE__, :start_link, []}}
-
-  defp periodic_cleaner() do
-    {Periodic,
-     id: :periodic_cleaner,
-     run: fn -> sync_serialized(&drop_unused_analyst_tables/0, :infinity) end,
-     every: :timer.hours(1),
-     timeout: :timer.minutes(59),
-     overlap?: false}
-  end
-
-  @doc false
-  def start_link(), do: Parent.GenServer.start_link(__MODULE__, nil, name: __MODULE__)
+  def start_link(_), do: Parent.GenServer.start_link(__MODULE__, nil, name: __MODULE__)
 end

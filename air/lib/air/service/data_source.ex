@@ -449,7 +449,7 @@ defmodule Air.Service.DataSource do
         kind: :view,
         broken: &1.broken,
         creation_status: &1.creation_status,
-        columns: Map.fetch!(&1.result_info, "columns") |> Aircloak.atomize_keys(),
+        columns: &1.columns,
         internal_id: &1.id
       }
     )
@@ -464,7 +464,7 @@ defmodule Air.Service.DataSource do
         kind: :analyst_table,
         broken: &1.broken,
         creation_status: &1.creation_status,
-        columns: &1.result_info.columns,
+        columns: &1.columns,
         internal_id: &1.id
       }
     )

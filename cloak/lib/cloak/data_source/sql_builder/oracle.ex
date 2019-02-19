@@ -110,6 +110,37 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def select_table_names(prefix),
     do: "SELECT table_name FROM user_tables WHERE table_name LIKE '#{prefix}%'"
 
+  @impl Dialect
+  def analyst_meta_table_create_statement(quoted_table_name) do
+    """
+    CREATE TABLE #{quoted_table_name} (
+      "air" VARCHAR(255) NOT NULL,
+      "data_source" VARCHAR(255) NOT NULL,
+      "analyst" INTEGER NOT NULL,
+      "name" VARCHAR2(255) NOT NULL,
+      "db_name" VARCHAR2(30) NOT NULL,
+      "statement" CLOB NOT NULL,
+      "fingerprint" VARCHAR2(50) NOT NULL,
+      PRIMARY KEY ("air", "data_source", "analyst", "name"),
+      CONSTRAINT ac_unique_name UNIQUE ("db_name")
+    )
+    """
+  end
+
+  @impl Dialect
+  def long_string(string) do
+    # Oracle doesn't support CLOB constants longer than 400 characters, so we're splitting the string into smaller
+    # parts and concatenating with `||`.
+    parts =
+      string
+      |> to_charlist()
+      |> Stream.chunk_every(4000)
+      |> Stream.map(&"to_clob('#{to_string(&1)}')")
+      |> Enum.join(" || ")
+
+    "(#{parts})"
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------

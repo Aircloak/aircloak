@@ -20,12 +20,12 @@ defmodule Cloak.Sql.Compiler.Specification do
           Query.view_map()
         ) :: Query.t()
   def compile(parsed_query, analyst_id, data_source, parameters, views) do
-    available_tables = DataSource.tables(data_source) ++ Cloak.AnalystTable.analyst_tables(analyst_id, data_source)
-
     %Query{
       analyst_id: analyst_id,
       data_source: data_source,
-      available_tables: available_tables,
+      available_tables: DataSource.tables(data_source),
+      analyst_tables:
+        Cloak.AnalystTable.analyst_tables(analyst_id, data_source) |> Stream.map(&{&1.name, &1}) |> Map.new(),
       parameters: parameters,
       views: views
     }
@@ -73,7 +73,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp compile_from(query),
     do:
       query
-      |> compile_views()
+      |> resolve_views_and_analyst_tables()
       |> normalize_from()
       |> compile_subqueries()
       |> compile_selected_tables()
@@ -141,30 +141,41 @@ defmodule Cloak.Sql.Compiler.Specification do
   # Views
   # -------------------------------------------------------------------
 
-  defp compile_views(query) do
-    compiled = do_compile_views(query.from, query)
+  defp resolve_views_and_analyst_tables(query) do
+    compiled = do_resolve_views_and_analyst_tables(query.from, query)
     %Query{query | from: compiled}
   end
 
-  defp do_compile_views({:join, join}, query) do
-    {:join, %{join | lhs: do_compile_views(join.lhs, query), rhs: do_compile_views(join.rhs, query)}}
+  defp do_resolve_views_and_analyst_tables({:join, join}, query) do
+    {:join,
+     %{
+       join
+       | lhs: do_resolve_views_and_analyst_tables(join.lhs, query),
+         rhs: do_resolve_views_and_analyst_tables(join.rhs, query)
+     }}
   end
 
-  defp do_compile_views({_, name} = table_or_view, query) when is_binary(name) do
+  defp do_resolve_views_and_analyst_tables({_, name} = table_or_view, query) when is_binary(name) do
     case Map.fetch(query.views, name) do
-      {:ok, view_sql} -> view_to_subquery(name, view_sql, query)
-      :error -> table_or_view
+      {:ok, view_sql} ->
+        view_to_subquery(name, view_sql, query)
+
+      :error ->
+        case Map.fetch(query.analyst_tables, name) do
+          {:ok, analyst_table} -> analyst_table_to_subquery(analyst_table)
+          :error -> table_or_view
+        end
     end
   end
 
-  defp do_compile_views({table_or_view, :as, alias}, query) do
-    case do_compile_views(table_or_view, query) do
+  defp do_resolve_views_and_analyst_tables({table_or_view, :as, alias}, query) do
+    case do_resolve_views_and_analyst_tables(table_or_view, query) do
       {:subquery, subquery} -> {:subquery, %{subquery | alias: alias}}
       other -> {other, :as, alias}
     end
   end
 
-  defp do_compile_views({:subquery, subquery}, _query), do: {:subquery, subquery}
+  defp do_resolve_views_and_analyst_tables({:subquery, subquery}, _query), do: {:subquery, subquery}
 
   defp view_to_subquery(view_name, view_sql, query) do
     if Enum.any?(query.data_source.tables, fn {_id, table} ->
@@ -180,6 +191,16 @@ defmodule Cloak.Sql.Compiler.Specification do
 
       {:error, error} ->
         raise CompilationError, message: "Error in the view `#{view_name}`: #{error}"
+    end
+  end
+
+  defp analyst_table_to_subquery(analyst_table) do
+    case Cloak.Sql.Parser.parse(analyst_table.statement) do
+      {:ok, parsed_table} ->
+        {:subquery, %{ast: Map.put(parsed_table, :analyst_table, analyst_table), alias: analyst_table.name}}
+
+      {:error, error} ->
+        raise CompilationError, message: "Error in the analyst table `#{analyst_table.name}`: #{error}"
     end
   end
 
@@ -206,8 +227,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   # Selected tables
   # -------------------------------------------------------------------
 
-  defp compile_selected_tables(query),
-    do: verify_selected_tables(%Query{query | selected_tables: selected_tables(query.from, query)})
+  defp compile_selected_tables(query), do: %Query{query | selected_tables: selected_tables(query.from, query)}
 
   defp selected_tables({:join, join}, query), do: selected_tables(join.lhs, query) ++ selected_tables(join.rhs, query)
 
@@ -233,16 +253,6 @@ defmodule Cloak.Sql.Compiler.Specification do
     true = table != nil
     table
   end
-
-  defp verify_selected_tables(query) do
-    case Enum.find(query.selected_tables, &(&1.status != :created)) do
-      nil -> query
-      table -> raise(CompilationError, message: table_error(table))
-    end
-  end
-
-  defp table_error(%{status: :creating} = table), do: "The table `#{table.name}` is still being created."
-  defp table_error(%{status: :create_error} = table), do: "An error happened while creating the table `#{table.name}`."
 
   # -------------------------------------------------------------------
   # Parameter types

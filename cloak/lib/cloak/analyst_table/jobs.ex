@@ -10,7 +10,7 @@ defmodule Cloak.AnalystTable.Jobs do
   @max_concurrent_stores 5
 
   @opaque t :: %{queue: :queue.queue(job), running: [job]}
-  @type job :: {:create_table, Cloak.AnalystTable.table()} | {:serialized, (() -> any)}
+  @type job :: {:create_table, Cloak.AnalystTable.t()} | {:serialized, (() -> any)}
 
   # -------------------------------------------------------------------
   # API functions

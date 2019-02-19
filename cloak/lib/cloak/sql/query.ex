@@ -62,7 +62,9 @@ defmodule Cloak.Sql.Query do
           view?: boolean,
           table_aliases: %{String.t() => DataSource.Table.t()},
           type: type,
-          available_tables: [DataSource.Table.t()]
+          available_tables: [DataSource.Table.t()],
+          analyst_tables: %{String.t() => Cloak.AnalystTable.t()},
+          analyst_table: nil | Cloak.AnalystTable.t()
         }
 
   @type analyst_id :: pos_integer | nil
@@ -129,7 +131,9 @@ defmodule Cloak.Sql.Query do
             view?: false,
             table_aliases: %{},
             type: :restricted,
-            available_tables: []
+            available_tables: [],
+            analyst_tables: %{},
+            analyst_table: nil
 
   # -------------------------------------------------------------------
   # API functions

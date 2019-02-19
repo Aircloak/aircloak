@@ -1,7 +1,7 @@
 defmodule Cloak.AnalystTable.Compiler do
   @moduledoc "Compilation of analyst table query."
 
-  alias Cloak.Sql.Query
+  alias Cloak.Sql.{Compiler, Query}
 
   # -------------------------------------------------------------------
   # API functions
@@ -30,9 +30,33 @@ defmodule Cloak.AnalystTable.Compiler do
   # -------------------------------------------------------------------
 
   defp compile_statement(statement, analyst, data_source, parameters, views) do
-    with {:ok, parsed_query} <- Cloak.Sql.Parser.parse(statement),
-         {:ok, query} <- Cloak.Sql.Compiler.compile_direct(parsed_query, analyst, data_source, parameters, views),
+    with :ok <- naive_compilation(statement, analyst, data_source, parameters, views),
+         {:ok, query} <- compile_analyst_table(statement, analyst, data_source, parameters, views),
          do: {:ok, query |> Query.set_emulation_flag() |> Cloak.Sql.Compiler.Anonymization.set_query_type()}
+  end
+
+  defp naive_compilation(statement, analyst, data_source, parameters, views) do
+    # For exact error reporting, we're compiling the query directly. This will help us properly report parser error
+    # location, as well as verify the query semantics, such as uid selection.
+    with {:ok, parsed_query} <- Cloak.Sql.Parser.parse(statement),
+         {:ok, query} <- Compiler.compile_direct(parsed_query, analyst, data_source, parameters, views),
+         query = query |> Query.set_emulation_flag() |> Cloak.Sql.Compiler.Anonymization.set_query_type(),
+         :ok <- verify_query_type(query),
+         :ok <- verify_offloading(query),
+         :ok <- verify_selected_columns(query),
+         do: :ok
+  end
+
+  defp compile_analyst_table(statement, analyst, data_source, parameters, views) do
+    # This is the real compilation of the analyst table query. Here, we're compiling the anonymized query
+    # `select * from #{analyst_query}` to enforce aircloak restrictions, such as range alignments.
+    with {:ok, parsed_query} <- Cloak.Sql.Parser.parse("select * from (#{statement}) sq") do
+      query = Compiler.core_compile!(parsed_query, analyst, data_source, parameters, views)
+      {:subquery, %{ast: subquery}} = query.from
+      {:ok, Query.resolve_db_columns(subquery)}
+    end
+  rescue
+    e in Cloak.Sql.CompilationError -> {:error, Cloak.Sql.CompilationError.message(e)}
   end
 
   defp verify_table_name(table_name, data_source) do

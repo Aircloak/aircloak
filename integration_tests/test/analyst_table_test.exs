@@ -5,6 +5,15 @@ defmodule IntegrationTest.AnalystTableTest do
   import Aircloak.AssertionHelper
 
   setup_all do
+    Air.Repo.delete_all(Air.Schemas.AnalystTable)
+
+    {:ok, cloak_data_source} = Cloak.DataSource.fetch(Manager.data_source().name)
+
+    Cloak.DataSource.Connection.execute!(
+      cloak_data_source,
+      &cloak_data_source.driver.execute!(&1, "truncate table __ac_analyst_tables_1")
+    )
+
     {:ok, user: Manager.create_air_user()}
   end
 
@@ -16,7 +25,7 @@ defmodule IntegrationTest.AnalystTableTest do
     assert {:ok, table} = create_table(context.user, name, "select user_id, name from users")
     assert table.name == name
     assert table.sql == "select user_id, name from users"
-    assert [column1, column2] = Enum.sort_by(table.result_info.columns, & &1.name)
+    assert [column1, column2] = Enum.sort_by(table.columns, & &1.name)
     assert %{name: "name", type: "text", user_id: false} = column1
     assert %{name: "user_id", type: "text", user_id: true} = column2
     refute is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id))
@@ -99,8 +108,7 @@ defmodule IntegrationTest.AnalystTableTest do
     assert updated_table.id == table.id
     assert updated_table.name == new_name
     assert updated_table.sql == "select user_id from users"
-    refute table.result_info.registration_info == updated_table.result_info.registration_info
-    assert [%{name: "user_id", type: "text", user_id: true}] = updated_table.result_info.columns
+    assert [%{name: "user_id", type: "text", user_id: true}] = updated_table.columns
 
     assert {:ok, result} = run_query(context.user, "select * from #{new_name}")
     assert result.columns == ~w(user_id)
@@ -118,6 +126,13 @@ defmodule IntegrationTest.AnalystTableTest do
 
   test "after the cloak reconnects, it will receive analyst tables from the air", context do
     Air.Repo.delete_all(Air.Schemas.AnalystTable)
+    {:ok, cloak_data_source} = Cloak.DataSource.fetch(Manager.data_source().name)
+
+    Cloak.DataSource.Connection.execute!(
+      cloak_data_source,
+      &cloak_data_source.driver.execute!(&1, "truncate table __ac_analyst_tables_1")
+    )
+
     table_name = unique_name()
     {:ok, _} = create_table(context.user, table_name, "select user_id from users")
     Manager.restart_cloak()
@@ -137,10 +152,11 @@ defmodule IntegrationTest.AnalystTableTest do
     name = unique_name()
 
     {:ok, table} = create_table(context.user, name, "select user_id, name from users")
-    db_name = table.result_info.registration_info |> Jason.decode!() |> Map.fetch!("db_name")
+    {:ok, cloak_data_source} = Cloak.DataSource.fetch(Manager.data_source().name)
+    db_name = Cloak.AnalystTable.find(context.user.id, name, cloak_data_source).db_name
 
     assert :ok = Air.Service.AnalystTable.delete(table.id, context.user)
-    assert soon(table_not_in_db?(db_name), :timer.seconds(5), repeat_wait_time: 10)
+    assert table_not_in_db?(db_name)
     assert is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id))
   end
 
@@ -185,9 +201,9 @@ defmodule IntegrationTest.AnalystTableTest do
   defp table_created?(analyst_id, name, data_source) do
     {:ok, cloak_data_source} = Cloak.DataSource.fetch(data_source.name)
 
-    with table_definition <- Cloak.AnalystTable.table_definition(analyst_id, name, cloak_data_source),
-         false <- is_nil(table_definition),
-         true <- table_definition.status != :creating,
+    with table <- Cloak.AnalystTable.find(analyst_id, name, cloak_data_source),
+         false <- is_nil(table),
+         true <- table.status != :creating,
          do: true,
          else: (_ -> false)
   end

@@ -5,6 +5,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   """
 
   use Cloak.DataSource.Driver.SQL
+  use Cloak.DataSource.Driver.SQL.AnalystTables
   require Logger
   alias Cloak.DataSource.Table
   alias Cloak.Query.ExecutionError

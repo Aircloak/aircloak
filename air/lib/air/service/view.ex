@@ -224,7 +224,7 @@ defmodule Air.Service.View do
 
       case validate_view(user, final_view) do
         {:ok, columns} ->
-          {:ok, Ecto.Changeset.put_change(changeset, :result_info, %{columns: columns})}
+          {:ok, Ecto.Changeset.put_change(changeset, :columns, columns)}
 
         {:error, :name, name_error} ->
           # Name error returned by the cloak -> we'll convert into a changeset

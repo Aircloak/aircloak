@@ -16,6 +16,7 @@ The general shape of `config.json` is therefore:
 
 ```
 {
+  "air_name": string,
   "database": {
     ...
   },
@@ -30,6 +31,8 @@ The general shape of `config.json` is therefore:
   }
 }
 ```
+
+The `air_name` property is used to uniquely identify the air instance in the system. If you're running multiple instances, make sure to give each instance a unique name.
 
 ### Database configuration
 
@@ -711,6 +714,18 @@ Analyst tables should conceptually be treated as snapshots. A table won't update
 Since analyst tables can potentially cause additional load on the database server, both in terms of processing and disk-usage, they are by default disabled. To enable this feature, set the "analyst_tables_enabled" property in the data source configuration to `true`.
 
 Currently, analyst tables are only supported on PostgreSQL and Oracle data sources.
+
+If the air name or the datasource name is changed, duplicate copies of analyst tables might appear in the cloak database. This happens because the analyst table name depends on the air name and the datasource name. The database administrator can safely manually delete the obsolete analyst tables should such an event happen.
+
+The administrator can use the table `__ac_analyst_tables_X` (where `X` is an integer) to list analyst tables. This table contains the list of all currently known analyst tables. The administrator can use the following columns to determine which tables are no longer needed:
+
+  - `air` - name of the air instance
+  - `data_source` - name of the data source where the table is created
+  - `analyst` - the numerical id of the table owner
+  - `name` - the table name, as seen in the air by its owner
+  - `db_name` - the name of the table in the database
+
+If the administrator is certain that some analyst tables are no longer needed, for example if an air instance or some datasource have been renamed or decommissioned, they can drop these tables, and delete the corresponding entries from the `__ac_analyst_tables_X` table.
 
 
 #### Tips and tricks

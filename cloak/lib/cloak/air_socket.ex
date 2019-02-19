@@ -69,7 +69,7 @@ defmodule Cloak.AirSocket do
           non_neg_integer,
           String.t(),
           String.t(),
-          Cloak.AnalystTable.creation_state()
+          :created | :create_error
         ) :: :ok | {:error, any}
   if Mix.env() == :test do
     def send_analyst_table_state_update(_socket \\ __MODULE__, _analyst_id, _table_name, _data_source_name, _status),
@@ -117,12 +117,19 @@ defmodule Cloak.AirSocket do
     unused(reason, in: [:dev])
     in_env(dev: :ok, else: Logger.error("disconnected: #{inspect(reason)}"))
     Process.send_after(self(), :connect, interval)
+    Cloak.Air.unregister_air()
     {:ok, %{state | reconnect_interval: next_interval(interval)}}
   end
 
   @impl GenSocketClient
-  def handle_joined(topic, _payload, _transport, state) do
+  def handle_joined(topic, payload, _transport, state) do
     Logger.info("joined the topic #{topic}")
+
+    if topic == "main" do
+      Cloak.Air.register_air(payload.air_name)
+      Cloak.AnalystTable.refresh()
+    end
+
     initial_interval = config(:min_reconnect_interval)
     {:ok, %{state | rejoin_interval: initial_interval}}
   end
@@ -166,11 +173,6 @@ defmodule Cloak.AirSocket do
     end
 
     {:ok, update_in(state.pending_calls, &Map.delete(&1, request_id))}
-  end
-
-  def handle_message("main", "register_analyst_tables", data, _transport, state) do
-    Cloak.AnalystTable.register_tables(data.registration_infos)
-    {:ok, state}
   end
 
   def handle_message(topic, event, payload, _transport, state) do
@@ -306,7 +308,7 @@ defmodule Cloak.AirSocket do
 
   defp handle_air_call("create_or_update_analyst_table", data, from, state) do
     with {:ok, data_source} <- fetch_data_source(data.data_source),
-         {:ok, registration_info, described_columns} <-
+         {:ok, described_columns} <-
            Cloak.AnalystTable.create_or_update(
              data.analyst_id,
              data.table_name,
@@ -315,7 +317,16 @@ defmodule Cloak.AirSocket do
              data.parameters,
              data.views
            ),
-         do: respond_to_air(from, :ok, %{registration_info: registration_info, columns: described_columns}),
+         do: respond_to_air(from, :ok, described_columns),
+         else: ({:error, reason} -> respond_to_air(from, :error, reason))
+
+    {:ok, state}
+  end
+
+  defp handle_air_call("drop_analyst_table", data, from, state) do
+    with {:ok, data_source} <- fetch_data_source(data.data_source),
+         :ok <- Cloak.AnalystTable.drop_table(data.analyst_id, data.table_name, data_source),
+         do: respond_to_air(from, :ok),
          else: ({:error, reason} -> respond_to_air(from, :error, reason))
 
     {:ok, state}

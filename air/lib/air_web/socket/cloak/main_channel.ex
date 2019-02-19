@@ -88,7 +88,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
 
   @doc "Recreates the analyst table on cloaks."
   @spec create_or_update_analyst_table(pid, pos_integer, String.t(), String.t(), String.t(), parameters, views) ::
-          {:ok, %{registration_info: String.t(), columns: described_columns}} | {:error, String.t()}
+          {:ok, described_columns} | {:error, String.t()}
   def create_or_update_analyst_table(
         channel_pid,
         analyst_id,
@@ -110,11 +110,11 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
     call(channel_pid, "create_or_update_analyst_table", payload, @short_timeout)
   end
 
-  @doc "Asynchronously sends all known analyst tables to the cloak."
-  @spec send_analyst_tables_to_cloak(pid) :: :ok
-  def send_analyst_tables_to_cloak(channel_pid) do
-    send(channel_pid, :send_analyst_tables)
-    :ok
+  @doc "Removes the given analyst table on the cloak."
+  @spec drop_analyst_table(pid, pos_integer, String.t(), String.t()) :: :ok | {:error, String.t()}
+  def drop_analyst_table(channel_pid, analyst_id, table_name, data_source_name) do
+    payload = %{analyst_id: analyst_id, table_name: table_name, data_source: data_source_name}
+    with {:ok, _} <- call(channel_pid, "drop_analyst_table", payload, @short_timeout), do: :ok
   end
 
   # -------------------------------------------------------------------
@@ -137,9 +137,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
       |> Air.Service.Cloak.register(cloak_info.data_sources)
       |> revalidate_views()
 
-      Aircloak.in_env(test: :ok, else: send_analyst_tables_to_cloak(self()))
-
-      {:ok, %{}, socket}
+      {:ok, %{air_name: Air.name()}, socket}
     else
       _ -> {:error, :cloak_secret_invalid}
     end
@@ -196,16 +194,6 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
 
   defp handle_erlang_message({:EXIT, _, :normal}, socket) do
     # probably the linked reporter terminated successfully
-    {:noreply, socket}
-  end
-
-  defp handle_erlang_message(:send_analyst_tables, socket) do
-    push(
-      socket,
-      "register_analyst_tables",
-      %{registration_infos: Enum.map(AnalystTable.all(), & &1.result_info.registration_info)}
-    )
-
     {:noreply, socket}
   end
 
@@ -269,7 +257,10 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
       payload.analyst_id,
       payload.data_source_name,
       payload.analyst_table_name,
-      payload.status
+      case payload.status do
+        :created -> :succeeded
+        :create_error -> :failed
+      end
     )
 
     {:noreply, socket}

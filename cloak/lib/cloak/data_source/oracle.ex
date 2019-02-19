@@ -5,6 +5,7 @@ defmodule Cloak.DataSource.Oracle do
   """
 
   use Cloak.DataSource.Driver.RodbcSql
+  use Cloak.DataSource.Driver.SQL.AnalystTables
   require Logger
   alias Cloak.DataSource.{RODBC, Table}
   alias Cloak.Sql.{Expression, Query, Compiler.Helpers, Function}
