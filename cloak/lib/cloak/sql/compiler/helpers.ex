@@ -22,16 +22,14 @@ defmodule Cloak.Sql.Compiler.Helpers do
         nil
 
       id_columns ->
-        id_column =
-          if any_outer_join?(query.from),
-            do: %Expression{
-              Expression.function("coalesce", id_columns, hd(id_columns).type)
-              | alias: "__ac_coalesce__",
-                user_id?: true
-            },
-            else: hd(id_columns)
-
-        %Expression{id_column | row_index: 0}
+        if any_outer_join?(query.from) and length(id_columns) > 1,
+          do: %Expression{
+            Expression.function("coalesce", id_columns, hd(id_columns).type)
+            | alias: "__ac_user_id__",
+              user_id?: true,
+              row_index: 0
+          },
+          else: %Expression{hd(id_columns) | row_index: 0}
     end
   end
 
