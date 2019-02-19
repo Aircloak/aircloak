@@ -321,6 +321,23 @@ defmodule Compliance.AnalystTableTest do
           assert Enum.sort(registered_tables) == ["table34", "table35"]
         end
       end
+
+      test "reporting anonymization error in a combination of user query and the analyst table SQL" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          {:ok, _} = create_or_update(1, "table36", "select user_id as uid, height + 1 as h1 from users", data_source)
+
+          assert_query(
+            """
+            select count(*) from table36 where
+            round(h1) = 10
+            """,
+            [analyst_id: 1, data_sources: [data_source]],
+            %{error: error}
+          )
+
+          assert error =~ ~r/Implicit ranges.*at line 2, column 1/s
+        end
+      end
     end
   end
 
