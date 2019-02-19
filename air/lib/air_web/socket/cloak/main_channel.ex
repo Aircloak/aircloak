@@ -257,7 +257,10 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
       payload.analyst_id,
       payload.data_source_name,
       payload.analyst_table_name,
-      payload.status
+      case payload.status do
+        :created -> :succeeded
+        :create_error -> :failed
+      end
     )
 
     {:noreply, socket}

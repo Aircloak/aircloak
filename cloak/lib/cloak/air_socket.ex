@@ -69,7 +69,7 @@ defmodule Cloak.AirSocket do
           non_neg_integer,
           String.t(),
           String.t(),
-          Cloak.AnalystTable.creation_state()
+          :created | :create_error
         ) :: :ok | {:error, any}
   if Mix.env() == :test do
     def send_analyst_table_state_update(_socket \\ __MODULE__, _analyst_id, _table_name, _data_source_name, _status),
