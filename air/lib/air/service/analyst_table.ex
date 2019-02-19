@@ -32,9 +32,19 @@ defmodule Air.Service.AnalystTable do
   def update(table_id, user, name, sql) do
     table = AnalystTable |> Repo.get!(table_id) |> Repo.preload([:user, :data_source])
 
+    new_creation_status =
+      if table.sql == sql do
+        table.creation_status
+      else
+        :pending
+      end
+
     if table.user_id == user.id do
       table
-      |> Ecto.Changeset.cast(%{name: name, sql: sql}, ~w(name sql)a)
+      |> Ecto.Changeset.cast(
+        %{name: name, sql: sql, creation_status: new_creation_status},
+        ~w(name sql creation_status)a
+      )
       |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
       |> Map.put(:action, :update)
       |> transactional_store(table.user, table.data_source)
