@@ -182,7 +182,7 @@ defmodule Compliance.AnalystTableTest do
               assert_query(
                 "select * from table26",
                 [analyst_id: 1, data_sources: [data_source]],
-                %{error: "The table `table26` is still being created."}
+                %{error: "Error in analyst table table26: the table is still being created"}
               )
             end
           )
@@ -210,7 +210,7 @@ defmodule Compliance.AnalystTableTest do
               assert_query(
                 "select * from table27",
                 [analyst_id: 1, data_sources: [data_source]],
-                %{error: "An error happened while creating the table `table27`."}
+                %{error: "Error in analyst table table27: the table wasn't successfully created"}
               )
             end
           )

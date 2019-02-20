@@ -11,22 +11,11 @@ defmodule Cloak.Sql.Compiler.AnalystTables do
 
   @doc "Replaces subqueries which represent analyst tables with names of the tables in the database."
   @spec compile(Query.t()) :: Query.t()
-  def compile(query) do
-    Helpers.apply_top_down(
-      query,
-      fn query -> if uses_analyst_tables?(query), do: replace_analyst_tables_subqueries(query), else: query end
-    )
-  end
+  def compile(query), do: Helpers.apply_top_down(query, &replace_analyst_tables_subqueries/1)
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp uses_analyst_tables?(query) do
-    query
-    |> get_in([Lenses.subqueries()])
-    |> Enum.any?(&(not is_nil(&1.analyst_table)))
-  end
 
   defp replace_analyst_tables_subqueries(query) do
     required_analyst_tables = required_analyst_tables(query)
@@ -52,33 +41,38 @@ defmodule Cloak.Sql.Compiler.AnalystTables do
   end
 
   defp analyst_table_definition(query, table, alias) do
+    with :ok <- check_table_status(query, table),
+         {:ok, table_query} <- compile_analyst_table(query, table),
+         do: table_definition(table, table_query, alias),
+         else: ({:error, reason} -> report_error(table, reason))
+  end
+
+  defp check_table_status(query, table) do
     case Cloak.AnalystTable.find(query.analyst_id, table.name, query.data_source).status do
-      :creating ->
-        raise Cloak.Sql.CompilationError, message: "The table `#{table.name}` is still being created."
-
-      :create_error ->
-        raise Cloak.Sql.CompilationError, message: "An error happened while creating the table `#{table.name}`."
-
-      :created ->
-        :ok
-    end
-
-    case Cloak.AnalystTable.Compiler.compile(
-           table.name,
-           table.statement,
-           table.analyst,
-           query.data_source,
-           query.parameters,
-           query.views
-         ) do
-      {:ok, table_query} ->
-        Enum.zip(table_query.column_titles, table_query.columns)
-        |> Enum.map(fn {title, column} -> %Expression{column | alias: title} end)
-        |> Cloak.Sql.Compiler.Helpers.create_table_from_columns(alias)
-        |> Map.put(:db_name, table.db_name)
-
-      {:error, reason} ->
-        raise Cloak.Sql.CompilationError, message: "Error in analyst table #{table.name}: #{reason}"
+      :creating -> {:error, "the table is still being created"}
+      :create_error -> {:error, "the table wasn't successfully created"}
+      :created -> :ok
     end
   end
+
+  defp compile_analyst_table(query, table) do
+    Cloak.AnalystTable.Compiler.compile(
+      table.name,
+      table.statement,
+      table.analyst,
+      query.data_source,
+      query.parameters,
+      query.views
+    )
+  end
+
+  defp table_definition(table, table_query, alias) do
+    Enum.zip(table_query.column_titles, table_query.columns)
+    |> Enum.map(fn {title, column} -> %Expression{column | alias: title} end)
+    |> Cloak.Sql.Compiler.Helpers.create_table_from_columns(alias)
+    |> Map.put(:db_name, table.db_name)
+  end
+
+  defp report_error(table, reason),
+    do: raise(Cloak.Sql.CompilationError, message: "Error in analyst table #{table.name}: #{reason}")
 end
