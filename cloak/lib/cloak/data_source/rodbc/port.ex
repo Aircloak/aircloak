@@ -8,7 +8,7 @@ defmodule Cloak.DataSource.RODBC.Port do
   @command_fetch_rows 2
   @command_set_flag 3
   @command_get_columns 4
-  # @command_stop 5
+  @command_stop 5
 
   @flag_wstr_as_utf16 0
 
@@ -72,17 +72,54 @@ defmodule Cloak.DataSource.RODBC.Port do
   # -------------------------------------------------------------------
 
   @impl GenServer
-  def init(nil), do: {:ok, open()}
+  def init(nil) do
+    # We trap exits because we want to shutdown forcefully, in case the port is not responding in a timely manner.
+    Process.flag(:trap_exit, true)
+    {:ok, %{port: open(), client: nil, buffer: nil}}
+  end
 
   @impl GenServer
-  def handle_call({command, data}, _from, port), do: {:reply, port_control(port, command, data), port}
+  def handle_call({command, data}, from, %{port: port, client: nil, buffer: nil} = state) do
+    true = send_command(port, command, data)
+    # Command sent, now we wait for the port reply.
+    {:noreply, %{state | client: from, buffer: <<>>}}
+  end
 
   @impl GenServer
-  def handle_info({port, :eof}, port), do: raise("RODBC port terminated unexpectedly.")
+  def handle_info({port, :eof}, %{port: port}), do: raise("RODBC port terminated unexpectedly.")
+  def handle_info({:EXIT, _process, _reason}, state), do: {:stop, :normal, state}
 
-  def handle_info(other, port) do
-    Logger.warn("Unknown message #{inspect(other)}")
-    {:noreply, port}
+  def handle_info({port, {:data, data}}, %{port: port, buffer: buffer} = state) when is_binary(buffer) do
+    state =
+      case buffer <> data do
+        <<size::unsigned-little-32, data::binary-size(size)>> ->
+          # The response is complete, we finish the previous call by sending it to the waiting client.
+          GenServer.reply(state.client, data)
+          %{state | client: nil, buffer: nil}
+
+        buffer ->
+          # The response is incomplete, we need to wait for more data.
+          %{state | buffer: buffer}
+      end
+
+    {:noreply, state}
+  end
+
+  @impl GenServer
+  def terminate({%RuntimeError{}, _stack_trace}, _state), do: :ok
+
+  @shutdown_timeout :timer.seconds(2)
+  def terminate(_reason, %{port: port}) do
+    {:os_pid, os_pid} = :erlang.port_info(port, :os_pid)
+    send_command(port, @command_stop, 0)
+
+    receive do
+      {^port, :eof} -> :ok
+    after
+      @shutdown_timeout -> "kill #{os_pid}" |> to_charlist() |> :os.cmd()
+    end
+
+    :erlang.port_close(port)
   end
 
   # -------------------------------------------------------------------
@@ -163,29 +200,8 @@ defmodule Cloak.DataSource.RODBC.Port do
     decode_values(data, [str | acc])
   end
 
-  defp port_control(port, command, data) do
-    true = send_command(port, command, data)
-    read_input(port)
-  end
-
-  defp read_input(_port, buffer \\ <<>>)
-  defp read_input(_port, <<size::unsigned-little-32, data::binary-size(size)>>), do: data
-
-  defp read_input(port, buffer) do
-    receive do
-      {^port, {:data, data}} ->
-        read_input(port, buffer <> data)
-
-      {^port, :eof} ->
-        raise "RODBC port terminated unexpectedly."
-    end
-  end
-
   defp send_command(port, command, data) when is_binary(data) do
-    :erlang.port_command(
-      port,
-      <<command::unsigned-little-32, byte_size(data)::unsigned-little-32, data::binary>>
-    )
+    :erlang.port_command(port, <<command::unsigned-little-32, byte_size(data)::unsigned-little-32, data::binary>>)
   end
 
   defp send_command(port, command, data) when is_integer(data) do
