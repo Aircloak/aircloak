@@ -182,7 +182,7 @@ defmodule Compliance.AnalystTableTest do
               assert_query(
                 "select * from table26",
                 [analyst_id: 1, data_sources: [data_source]],
-                %{error: "The table `table26` is still being created."}
+                %{error: "Error in analyst table table26: the table is still being created"}
               )
             end
           )
@@ -210,7 +210,7 @@ defmodule Compliance.AnalystTableTest do
               assert_query(
                 "select * from table27",
                 [analyst_id: 1, data_sources: [data_source]],
-                %{error: "An error happened while creating the table `table27`."}
+                %{error: "Error in analyst table table27: the table wasn't successfully created"}
               )
             end
           )
@@ -336,6 +336,20 @@ defmodule Compliance.AnalystTableTest do
           )
 
           assert error =~ ~r/Implicit ranges.*at line 2, column 1/s
+        end
+      end
+
+      test "querying an analyst table under an alias" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          {:ok, _} = create_or_update(1, "table37", "select user_id, height from users", data_source)
+
+          assert_query(
+            "select x.user_id, y.height from table37 x
+            inner join table37 y on x.user_id = y.user_id
+            where x.height between 0 and 200 and y.height between 0 and 200",
+            [analyst_id: 1, data_sources: [data_source]],
+            %{columns: ["user_id", "height"]}
+          )
         end
       end
     end

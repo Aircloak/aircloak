@@ -11,72 +11,68 @@ defmodule Cloak.Sql.Compiler.AnalystTables do
 
   @doc "Replaces subqueries which represent analyst tables with names of the tables in the database."
   @spec compile(Query.t()) :: Query.t()
-  def compile(query) do
-    Helpers.apply_top_down(
-      query,
-      fn query -> if uses_analyst_tables?(query), do: replace_analyst_tables_subqueries(query), else: query end
-    )
-  end
+  def compile(query), do: Helpers.apply_top_down(query, &replace_analyst_tables_subqueries/1)
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp uses_analyst_tables?(query) do
-    query
-    |> get_in([Lenses.subqueries()])
-    |> Enum.any?(&(not is_nil(&1.analyst_table)))
+  defp replace_analyst_tables_subqueries(query) do
+    required_analyst_tables = required_analyst_tables(query)
+
+    # replace each analyst table subquery with the string reference to the table by the subquery alias
+    query = Lens.map(Lenses.analyst_tables_subqueries(), query, fn {:subquery, %{alias: alias}} -> alias end)
+
+    # replace each selected_table corresponding to an analyst table subquery with proper analyst table definition
+    selected_tables = Enum.map(query.selected_tables, &Map.get(required_analyst_tables, &1.name, &1))
+
+    # include required analyst tables in the list of available tables
+    available_tables = query.available_tables ++ Map.values(required_analyst_tables)
+
+    %Query{query | available_tables: available_tables, selected_tables: selected_tables}
   end
 
-  defp replace_analyst_tables_subqueries(query) do
-    analyst_tables =
-      query
-      |> get_in([Lenses.analyst_tables_subqueries()])
-      |> Enum.map(&analyst_table_definition/1)
+  defp required_analyst_tables(query) do
+    query
+    |> get_in([Lenses.analyst_tables_subqueries()])
+    |> Stream.map(fn {:subquery, %{ast: %{analyst_table: table}, alias: alias}} -> {alias, table} end)
+    |> Stream.map(fn {alias, table} -> {alias, analyst_table_definition(query, table, alias)} end)
+    |> Map.new()
+  end
 
-    selected_tables =
-      query.selected_tables
-      # remove subqueries representing analyst tables
-      |> Enum.reject(fn table -> Enum.any?(analyst_tables, &(&1.name == table.name)) end)
-      |> Enum.concat(analyst_tables)
+  defp analyst_table_definition(query, table, alias) do
+    with :ok <- check_table_status(query, table),
+         {:ok, table_query} <- compile_analyst_table(query, table),
+         do: table_definition(table, table_query, alias),
+         else: ({:error, reason} -> report_error(table, reason))
+  end
 
-    query = %Query{query | available_tables: query.available_tables ++ analyst_tables, selected_tables: selected_tables}
+  defp check_table_status(query, table) do
+    case Cloak.AnalystTable.find(query.analyst_id, table.name, query.data_source).status do
+      :creating -> {:error, "the table is still being created"}
+      :create_error -> {:error, "the table wasn't successfully created"}
+      :created -> :ok
+    end
+  end
 
-    Lens.map(
-      Lenses.analyst_tables_subqueries(),
-      query,
-      fn {:subquery, %{ast: %{analyst_table: table}}} -> table.name end
+  defp compile_analyst_table(query, table) do
+    Cloak.AnalystTable.Compiler.compile(
+      table.name,
+      table.statement,
+      table.analyst,
+      query.data_source,
+      query.parameters,
+      query.views
     )
   end
 
-  defp analyst_table_definition({:subquery, %{ast: %{analyst_table: table} = query}}) do
-    case Cloak.AnalystTable.find(query.analyst_id, table.name, query.data_source).status do
-      :creating ->
-        raise Cloak.Sql.CompilationError, message: "The table `#{table.name}` is still being created."
-
-      :create_error ->
-        raise Cloak.Sql.CompilationError, message: "An error happened while creating the table `#{table.name}`."
-
-      :created ->
-        :ok
-    end
-
-    case Cloak.AnalystTable.Compiler.compile(
-           table.name,
-           table.statement,
-           table.analyst,
-           query.data_source,
-           query.parameters,
-           query.views
-         ) do
-      {:ok, table_query} ->
-        Enum.zip(table_query.column_titles, table_query.columns)
-        |> Enum.map(fn {title, column} -> %Expression{column | alias: title} end)
-        |> Cloak.Sql.Compiler.Helpers.create_table_from_columns(table.name)
-        |> Map.put(:db_name, table.db_name)
-
-      {:error, reason} ->
-        raise Cloak.Sql.CompilationError, message: "Error in analyst table #{table.name}: #{reason}"
-    end
+  defp table_definition(table, table_query, alias) do
+    Enum.zip(table_query.column_titles, table_query.columns)
+    |> Enum.map(fn {title, column} -> %Expression{column | alias: title} end)
+    |> Cloak.Sql.Compiler.Helpers.create_table_from_columns(alias)
+    |> Map.put(:db_name, table.db_name)
   end
+
+  defp report_error(table, reason),
+    do: raise(Cloak.Sql.CompilationError, message: "Error in analyst table #{table.name}: #{reason}")
 end
