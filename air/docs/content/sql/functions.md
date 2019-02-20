@@ -724,18 +724,39 @@ SELECT min(lastname) FROM (SELECT lastname FROM people GROUP BY 1) x
 
 ### stddev
 
+Computes the sample standard deviation of the given numerical expression.
+
+```sql
+SELECT stddev(age) FROM people
+
+        stddev
+  -------------------
+   4.032164086149982
+
+SELECT lastname, stddev(age) FROM people GROUP BY 1
+
+   lastname |       stddev
+  ----------+--------------------
+   ABBOTT   | 7.2835052504058195
+   ACEVEDO  |  1.587458159104735
+   ...      |                ...
+```
+
+Note that the computed standard deviation is anonymized by introducing a certain amount of noise. See [Note about
+noise](#aggregation-functions) for more.
+
 ### sum
 
 Computes the sum of the given numerical expression.
 
 ```sql
-SELECT sum(points) FROM games;
+SELECT sum(points) FROM games
 
      sum
   ---------
    6390144
 
-SELECT date, sum(points) FROM games GROUP BY 1;
+SELECT date, sum(points) FROM games GROUP BY 1
 
       date    | sum
   ------------+------
@@ -748,5 +769,26 @@ Note that the computed sum is anonymized by introducing a certain amount of nois
 noise](#aggregation-functions) for more.
 
 ### variance
+
+Computes the sample variance of the given numerical expression.
+
+```sql
+SELECT variance(age) FROM people
+
+       variance
+  -------------------
+   16.25834721763772
+
+SELECT lastname, variance(age) FROM people GROUP BY 1
+
+   lastname |      variance
+  ----------+--------------------
+   ABBOTT   |  53.04944873268914
+   ACEVEDO  | 2.5200234069081944
+   ...      |                ...
+```
+
+Note that the computed variance is anonymized by introducing a certain amount of noise. See [Note about
+noise](#aggregation-functions) for more.
 
 ### *_noise
