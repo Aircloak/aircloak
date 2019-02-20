@@ -549,9 +549,9 @@ Casting from datetime to date or time will select the date/time part of the date
 
 ## Aggregation functions
 
-Note that unlike in regular database systems the results of aggregation functions will usually not be reported
-precisely. Instead, a small amount of noise will be added or subtracted from the real value to preserve anonymity. See
-[the section about *_noise functions](#noise) for more on how to get a measure of how much noise is added.
+Unlike in regular database systems, the results of aggregation functions will usually not be reported precisely.
+Instead, a small amount of noise will be added or subtracted from the real value to preserve anonymity. See [the section
+about *_noise functions](#noise) for more on how to get a measure of how much noise is added.
 
 ### avg
 
@@ -572,6 +572,9 @@ SELECT lastname, avg(age) FROM people GROUP BY 1
    ACEVEDO  | 29.933255031072672
    ...      | ...
 ```
+
+Note that the computed average is anonymized by introducing a certain amount of noise. See [Note about
+noise](#aggregation-functions) for more.
 
 ### count
 
@@ -722,6 +725,27 @@ SELECT min(lastname) FROM (SELECT lastname FROM people GROUP BY 1) x
 ### stddev
 
 ### sum
+
+Computes the sum of the given numerical expression.
+
+```sql
+SELECT sum(points) FROM games;
+
+     sum
+  ---------
+   6390144
+
+SELECT date, sum(points) FROM games GROUP BY 1;
+
+      date    | sum
+  ------------+------
+   2013-01-01 | 5510
+   2013-01-02 | 6761
+   ...        |  ...
+```
+
+Note that the computed sum is anonymized by introducing a certain amount of noise. See [Note about
+noise](#aggregation-functions) for more.
 
 ### variance
 
