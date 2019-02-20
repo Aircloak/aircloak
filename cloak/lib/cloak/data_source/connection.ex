@@ -95,6 +95,7 @@ defmodule Cloak.DataSource.Connection do
       driver: driver,
       connection: nil,
       query_runner: nil,
+      query_mref: nil,
       streamer: nil,
       user_mref: nil,
       connection_params: connection_params,
@@ -112,7 +113,8 @@ defmodule Cloak.DataSource.Connection do
       {:ok, state} ->
         Logger.metadata(query_id: query_id)
         {:ok, streamer} = Streamer.start_link(state.connection, query_runner, query_id, query, reporter)
-        {:reply, {:ok, streamer}, %{state | query_runner: query_runner, streamer: streamer}}
+        query_mref = Process.monitor(query_runner)
+        {:reply, {:ok, streamer}, %{state | query_runner: query_runner, streamer: streamer, query_mref: query_mref}}
 
       {:error, reason} ->
         {:stop, :shutdown, {:error, reason}, state}
@@ -150,11 +152,7 @@ defmodule Cloak.DataSource.Connection do
     end
   end
 
-  def handle_cast(:stop_using, state) do
-    true = is_reference(state.user_mref)
-    Process.demonitor(state.user_mref, [:flush])
-    checkin(state)
-  end
+  def handle_cast(:stop_using, state), do: checkin(state)
 
   def handle_cast({:set_checkout_id, checkout_id}, state) do
     assert_not_used!(state)
@@ -175,10 +173,11 @@ defmodule Cloak.DataSource.Connection do
     end
   end
 
-  def handle_info({:EXIT, connection, reason}, %{connection: connection} = state), do: {:stop, reason, state}
+  def handle_info({:EXIT, connection, _reason}, %{connection: connection} = state),
+    do: {:stop, :normal, %{state | connection: nil}}
 
-  def handle_info({:DOWN, user_mref, _, _, _}, %{user_mref: user_mref} = state),
-    do: checkin(state)
+  def handle_info({:DOWN, user_mref, _, _, _}, %{user_mref: user_mref} = state), do: checkin(state)
+  def handle_info({:DOWN, query_mref, _, _, _}, %{query_mref: query_mref} = state), do: {:stop, :normal, state}
 
   def handle_info(:timeout, state) do
     Pool.remove_connection(state.pool_pid, state.checkout_id)
@@ -249,13 +248,17 @@ defmodule Cloak.DataSource.Connection do
   defp assert_not_used!(state) do
     true = is_nil(state.streamer)
     true = is_nil(state.user_mref)
+    true = is_nil(state.query_mref)
+    true = is_nil(state.query_runner)
   end
 
   defp checkin(state) do
     Logger.debug("Returning the connection to the pool")
     Logger.metadata(query_id: nil)
     Pool.checkin(state.pool_pid)
-    new_state = %{state | streamer: nil, query_runner: nil, user_mref: nil}
+    if is_reference(state.query_mref), do: Process.demonitor(state.query_mref, [:flush])
+    if is_reference(state.user_mref), do: Process.demonitor(state.user_mref, [:flush])
+    new_state = %{state | streamer: nil, query_runner: nil, query_mref: nil, user_mref: nil}
     {:noreply, new_state, Driver.connection_keep_time()}
   end
 
