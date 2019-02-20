@@ -60,31 +60,27 @@ defmodule Cloak.DataSource.ConnectionPoolTest do
     end)
   end
 
-  test "conn is returned to the pool if the client process terminates" do
+  test "conn is not returned to the pool if the client process terminates" do
     test_pid = self()
 
-    {_pid, mref} =
-      spawn_monitor(fn ->
+    pid =
+      spawn(fn ->
         conn = Pool.checkout(data_source())
         Pool.checkin(Pool.pool_server(data_source()), conn)
-        send(test_pid, {:conn, conn})
 
         Cloak.Sql.Parser.parse!("select * from test_pool")
         |> Cloak.Sql.Compiler.compile!(nil, data_source(), [], %{})
         |> Cloak.Sql.Query.resolve_db_columns()
         |> Cloak.DataSource.Streamer.rows()
 
-        client = self()
-        spawn(fn -> Process.exit(client, :exit) end)
+        send(test_pid, {:conn, conn})
         Process.sleep(:infinity)
       end)
 
-    assert_receive {:DOWN, ^mref, _, _, _}
     assert_receive {:conn, conn}
-
-    # sleep awhile to let the checkin finish first
-    Process.sleep(100)
-    assert Pool.checkout(data_source()) == conn
+    mref = Process.monitor(conn)
+    Process.exit(pid, :kill)
+    assert_receive {:DOWN, ^mref, _, _, _}
   end
 
   defp restart_pool() do
