@@ -63,8 +63,8 @@ defmodule Cloak.DataSource.ConnectionPoolTest do
   test "conn is not returned to the pool if the client process terminates" do
     test_pid = self()
 
-    {pid, _mref} =
-      spawn_monitor(fn ->
+    pid =
+      spawn(fn ->
         conn = Pool.checkout(data_source())
         Pool.checkin(Pool.pool_server(data_source()), conn)
 
