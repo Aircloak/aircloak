@@ -792,3 +792,37 @@ Note that the computed variance is anonymized by introducing a certain amount of
 noise](#aggregation-functions) for more.
 
 ### *_noise
+
+You can get a sense of how much noise is being added to an `avg`, `count`, `stddev`, `sum`, or `variance` expression by
+using an analogous `*_noise` expression. The value returned is the standard deviation of the noise added. This means
+that if you get a `count(*)` of 100 and `count_noise(*)` of 10, then the true count will be between 90 and 110 with
+probability around 68%, between 80 and 120 with probability around 95%, etc.
+
+```sql
+SELECT count(*), count_noise(*), avg(age), avg_noise(age) FROM people
+
+   count | count_noise |        avg        | avg_noise
+  -------+-------------+-------------------+-----------
+   10000 |         1.0 | 29.44782928323982 |    0.0029
+
+SELECT lastname, count(*), count_noise(*), avg(age), avg_noise(age) FROM players GROUP BY 1
+
+   lastname | count |    count_noise     |        avg         | avg_noise
+  ----------+-------+--------------------+--------------------+-----------
+   ABBOTT   |    10 | 1.4000000000000001 | 28.930111858960856 |       4.2
+   ACEVEDO  |    12 | 1.4000000000000001 | 29.933255031072672 |       3.5
+   ...      |   ... |                ... |                ... |       ...
+```
+
+Note that the noise added depends on the expression inside the aggregation function used, so you have to provide the
+exact same expression in the `*_noise` function to get an accurate value:
+
+```sql
+SELECT avg(age), avg_noise(age),
+  avg(age * age) AS square, avg_noise(age * age) AS square_noise
+FROM people
+
+          avg        | avg_noise |      square       | square_noise
+  -------------------+-----------+-------------------+--------------
+   29.44782928323982 |    0.0029 | 883.4329967124744 |         0.09
+```
