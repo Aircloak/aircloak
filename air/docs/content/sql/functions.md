@@ -549,6 +549,8 @@ Casting from datetime to date or time will select the date/time part of the date
 
 ## Aggregation functions
 
+### Note about noise
+
 Unlike in regular database systems, the results of aggregation functions will usually not be reported precisely.
 Instead, a small amount of noise will be added or subtracted from the real value to preserve anonymity. See [the section
 about *_noise functions](#noise) for more on how to get a measure of how much noise is added.
@@ -574,7 +576,7 @@ SELECT lastname, avg(age) FROM people GROUP BY 1
 ```
 
 Note that the computed average is anonymized by introducing a certain amount of noise. See [Note about
-noise](#aggregation-functions) for more.
+noise](#note-about-noise) for more.
 
 ### count
 
@@ -599,7 +601,7 @@ SELECT lastname, count(age) FROM people GROUP BY 1
 
 Note that in order to preserve anonymity Insights Cloak will never report "groups" of just one user. Because of this,
 when you see a count of 2, it might mean there is 1, 2, or even more users in the given group (see [Note about
-noise](#aggregation-functions)).
+noise](#note-about-noise)).
 
 ### max
 
@@ -631,7 +633,7 @@ SELECT max(lastname) FROM people
   For more information see the "Text operations" subsection of the "Restrictions" section in the user guides.
 ```
 
-However, you still can use `max` to postprocess textual results of an anonymizing subquery:
+However, you can still use `max` to postprocess textual results of an anonymizing subquery:
 
 ```sql
 SELECT max(lastname) FROM (SELECT lastname FROM people GROUP BY 1) x
@@ -672,7 +674,7 @@ SELECT median(lastname) FROM people
   For more information see the "Text operations" subsection of the "Restrictions" section in the user guides.
 ```
 
-However, you still can use `median` to postprocess textual results of an anonymizing subquery:
+However, you can still use `median` to postprocess textual results of an anonymizing subquery:
 
 ```sql
 SELECT median(lastname) FROM (SELECT lastname FROM people GROUP BY 1) x
@@ -712,7 +714,7 @@ SELECT min(lastname) FROM people
   For more information see the "Text operations" subsection of the "Restrictions" section in the user guides.
 ```
 
-However, you still can use `min` to postprocess textual results of an anonymizing subquery:
+However, you can still use `min` to postprocess textual results of an anonymizing subquery:
 
 ```sql
 SELECT min(lastname) FROM (SELECT lastname FROM people GROUP BY 1) x
@@ -743,7 +745,7 @@ SELECT lastname, stddev(age) FROM people GROUP BY 1
 ```
 
 Note that the computed standard deviation is anonymized by introducing a certain amount of noise. See [Note about
-noise](#aggregation-functions) for more.
+noise](#note-about-noise) for more.
 
 ### sum
 
@@ -766,7 +768,7 @@ SELECT date, sum(points) FROM games GROUP BY 1
 ```
 
 Note that the computed sum is anonymized by introducing a certain amount of noise. See [Note about
-noise](#aggregation-functions) for more.
+noise](#note-about-noise) for more.
 
 ### variance
 
@@ -789,7 +791,7 @@ SELECT lastname, variance(age) FROM people GROUP BY 1
 ```
 
 Note that the computed variance is anonymized by introducing a certain amount of noise. See [Note about
-noise](#aggregation-functions) for more.
+noise](#note-about-noise) for more.
 
 ### *_noise
 
