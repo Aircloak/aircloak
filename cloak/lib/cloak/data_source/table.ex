@@ -643,10 +643,12 @@ defmodule Cloak.DataSource.Table do
   end
 
   defp resolve_user_id_join_chains(data_source) do
+    max_chain_length = Enum.count(data_source.tables)
+
     tables =
       data_source.tables
       |> Enum.map(fn {name, table} ->
-        user_id_join_chain = resolve_user_id_join_chain(data_source, name)
+        user_id_join_chain = resolve_user_id_join_chain(data_source, name, max_chain_length)
 
         if table.content_type == :private and user_id_join_chain == nil do
           raise ExecutionError,
@@ -664,39 +666,44 @@ defmodule Cloak.DataSource.Table do
 
   defp resolve_join_link({_table1_name, table1}, {table2_name, table2}) do
     table1.keys
-    |> Enum.map(fn {column1, type1} ->
+    |> Stream.map(fn {column1, type1} ->
       Enum.find_value(table2.keys, fn {column2, type2} ->
         if type1 == type2,
           do: {column1, table2_name, column2},
           else: nil
       end)
     end)
-    |> Enum.reject(&(&1 == nil))
+    |> Stream.reject(&(&1 == nil))
     |> Enum.at(0)
   end
 
-  defp resolve_user_id_join_chain(data_source, table_name, visited_tables \\ []) do
+  defp resolve_user_id_join_chain(data_source, table_name, max_length, visited_tables \\ []) do
     table = data_source.tables[table_name]
-    visited_tables = [table_name | visited_tables]
 
-    if table.user_id == nil do
-      data_source.tables
-      |> Enum.reject(fn {name, _} -> name in visited_tables end)
-      |> Enum.map(&resolve_join_link({table_name, table}, &1))
-      |> Enum.reject(&(&1 == nil))
-      |> Enum.map(fn {_, link_name, _} = link ->
-        data_source
-        |> resolve_user_id_join_chain(link_name, visited_tables)
-        |> case do
-          nil -> nil
-          chain -> [link | chain]
-        end
-      end)
-      |> Enum.reject(&(&1 == nil))
-      |> Enum.sort_by(&length/1)
-      |> Enum.at(0)
-    else
-      []
+    cond do
+      max_length == 0 ->
+        nil
+
+      table.user_id != nil ->
+        []
+
+      true ->
+        visited_tables = [table_name | visited_tables]
+
+        data_source.tables
+        |> Stream.reject(fn {name, _} -> name in visited_tables end)
+        |> Stream.map(&resolve_join_link({table_name, table}, &1))
+        |> Stream.reject(&(&1 == nil))
+        |> Enum.reduce(nil, fn {_, link_name, _} = link, current_chain ->
+          max_length = if current_chain == nil, do: max_length, else: length(current_chain)
+
+          data_source
+          |> resolve_user_id_join_chain(link_name, max_length - 1, visited_tables)
+          |> case do
+            nil -> current_chain
+            smaller_chain -> [link | smaller_chain]
+          end
+        end)
     end
   end
 end
