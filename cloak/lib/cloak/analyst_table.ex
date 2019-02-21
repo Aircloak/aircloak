@@ -97,7 +97,7 @@ defmodule Cloak.AnalystTable do
     do: Enum.find(analyst_tables(analyst, data_source), &(&1.name == table_name))
 
   @doc "Returns analyst tables for the given analyst in the given data source."
-  @spec analyst_tables(Query.analyst_id(), DataSource.t()) :: [DataSource.Table.t()]
+  @spec analyst_tables(Query.analyst_id(), DataSource.t()) :: [t]
   def analyst_tables(analyst, data_source) do
     case Cloak.Air.name() do
       {:error, _} ->
