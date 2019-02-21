@@ -180,7 +180,6 @@ defmodule Cloak.Sql.Query do
         %{
           name: column.name,
           type: to_string(column.type),
-          user_id: table.user_id == column.name,
           key_type: with(key_type when not is_nil(key_type) <- table.keys[column.name], do: to_string(key_type))
         }
       end
