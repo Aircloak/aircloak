@@ -2,7 +2,7 @@ defmodule Air.Schemas.SelectableColumn do
   @moduledoc "Schema for columns field used in `Air.Schemas.AnalystTable` and `Air.Schemas.View`."
   use Air.Schemas.Base
 
-  @type t :: %__MODULE__{name: String.t(), type: String.t(), user_id: boolean}
+  @type t :: %__MODULE__{name: String.t(), type: String.t(), user_id: boolean, key_type: String.t() | nil}
   @derive {Jason.Encoder, only: [:name, :type, :user_id]}
   @primary_key false
 
@@ -10,5 +10,6 @@ defmodule Air.Schemas.SelectableColumn do
     field(:name, :string)
     field(:type, :string)
     field(:user_id, :boolean)
+    field(:key_type, :string)
   end
 end

@@ -172,15 +172,28 @@ defmodule Cloak.Sql.Query do
   @doc "Describes the selected coumns of the given query."
   @spec describe_selected(t) :: described_columns
   def describe_selected(query) do
-    query.column_titles
-    |> Stream.zip(query.columns)
-    |> Enum.map(fn {name, column} ->
-      %{
-        name: name,
-        type: Atom.to_string(Function.type(column)),
-        user_id: match?(%Expression{user_id?: true}, column)
-      }
-    end)
+    table = to_table(query, "some_table")
+
+    Enum.map(
+      table.columns,
+      fn column ->
+        %{
+          name: column.name,
+          type: to_string(column.type),
+          user_id: table.user_id == column.name,
+          key_type: with(key_type when not is_nil(key_type) <- table.keys[column.name], do: to_string(key_type))
+        }
+      end
+    )
+  end
+
+  @doc "Creates a table definition which corersponds to the given select query."
+  @spec to_table(t, String.t(), String.t() | nil) :: Cloak.DataSource.Table.t()
+  def to_table(%__MODULE__{command: :select} = query, name, db_name \\ nil) do
+    Enum.zip(query.column_titles, query.columns)
+    |> Enum.map(fn {title, column} -> %Expression{column | alias: title} end)
+    |> Compiler.Helpers.create_table_from_columns(name)
+    |> Map.put(:db_name, db_name || name)
   end
 
   @doc "Adds one or more info messages to the query."
