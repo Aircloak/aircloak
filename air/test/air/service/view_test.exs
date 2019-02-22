@@ -73,7 +73,9 @@ defmodule Air.Service.ViewTest do
       TestSocketHelper.respond_to_validate_views!(socket, &revalidation_success/1)
 
       assert {:ok, %{columns: columns}} = Task.await(task)
-      assert [%{name: "foo", type: "integer", user_id: true}, %{name: "bar", type: "text", user_id: false}] = columns
+
+      assert [%{name: "foo", type: "integer", key_type: "user_id"}, %{name: "bar", type: "text", key_type: nil}] =
+               columns
     end
 
     test "failure", context do
@@ -127,7 +129,9 @@ defmodule Air.Service.ViewTest do
       assert {:ok, %{id: ^view_id}} = Task.await(task)
 
       assert %{name: "some view", sql: "some sql", columns: columns} = Repo.get(Air.Schemas.View, context.v1.id)
-      assert [%{name: "foo", type: "integer", user_id: true}, %{name: "bar", type: "text", user_id: false}] = columns
+
+      assert [%{name: "foo", type: "integer", key_type: "user_id"}, %{name: "bar", type: "text", key_type: nil}] =
+               columns
 
       assert_receive {:revalidated_views, _}
     end
@@ -260,7 +264,7 @@ defmodule Air.Service.ViewTest do
   end
 
   defp revalidation_success(names) do
-    columns = [%{name: "foo", type: "integer", user_id: true}, %{name: "bar", type: "text", user_id: false}]
+    columns = [%{name: "foo", type: "integer", key_type: "user_id"}, %{name: "bar", type: "text", key_type: nil}]
     Enum.map(names, &%{name: &1, columns: columns, valid: true})
   end
 end

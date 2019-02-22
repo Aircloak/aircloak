@@ -22,7 +22,7 @@ defmodule IntegrationTest.ViewTest do
   test "successful saving of the new view", context do
     assert {:ok, view} = create_view(context.user, unique_view_name(), "select user_id, name from users")
 
-    assert [%{name: "user_id", type: "text", user_id: true}, %{name: "name", type: "text", user_id: false}] =
+    assert [%{name: "user_id", type: "text", key_type: "user_id"}, %{name: "name", type: "text", key_type: nil}] =
              view.columns
   end
 

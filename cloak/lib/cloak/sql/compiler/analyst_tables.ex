@@ -1,9 +1,8 @@
 defmodule Cloak.Sql.Compiler.AnalystTables do
   @moduledoc "Compilation of analyst tables."
 
-  alias Cloak.Sql.{Expression, Query}
+  alias Cloak.Sql.Query
   alias Cloak.Sql.Query.Lenses
-  alias Cloak.Sql.Compiler.Helpers
 
   # -------------------------------------------------------------------
   # API functions
@@ -11,7 +10,7 @@ defmodule Cloak.Sql.Compiler.AnalystTables do
 
   @doc "Replaces subqueries which represent analyst tables with names of the tables in the database."
   @spec compile(Query.t()) :: Query.t()
-  def compile(query), do: Helpers.apply_top_down(query, &replace_analyst_tables_subqueries/1)
+  def compile(query), do: Cloak.Sql.Compiler.Helpers.apply_top_down(query, &replace_analyst_tables_subqueries/1)
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -43,7 +42,7 @@ defmodule Cloak.Sql.Compiler.AnalystTables do
   defp analyst_table_definition(query, table, alias) do
     with :ok <- check_table_status(query, table),
          {:ok, table_query} <- compile_analyst_table(query, table),
-         do: table_definition(table, table_query, alias),
+         do: Query.to_table(table_query, alias, table.db_name),
          else: ({:error, reason} -> report_error(table, reason))
   end
 
@@ -64,13 +63,6 @@ defmodule Cloak.Sql.Compiler.AnalystTables do
       query.parameters,
       query.views
     )
-  end
-
-  defp table_definition(table, table_query, alias) do
-    Enum.zip(table_query.column_titles, table_query.columns)
-    |> Enum.map(fn {title, column} -> %Expression{column | alias: title} end)
-    |> Cloak.Sql.Compiler.Helpers.create_table_from_columns(alias)
-    |> Map.put(:db_name, table.db_name)
   end
 
   defp report_error(table, reason),
