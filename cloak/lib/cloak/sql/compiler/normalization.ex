@@ -201,7 +201,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
           Expression.function(
             "floor",
             [
-              Expression.function("/", [arg1, arg2], :real)
+              Expression.function("*", [arg1, inverse_constant(arg2)], :real)
             ],
             :integer
           )
@@ -232,6 +232,9 @@ defmodule Cloak.Sql.Compiler.Normalization do
         ],
         :real
       )
+
+  defp inverse_constant(%Expression{constant?: true, value: value}) when is_number(value),
+    do: Expression.constant(:real, 1.0 / value)
 
   # -------------------------------------------------------------------
   # Normalizing anonymized aggregators calls
