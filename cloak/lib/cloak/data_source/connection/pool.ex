@@ -116,10 +116,15 @@ defmodule Cloak.DataSource.Connection.Pool do
   end
 
   defp available_connection(checkout_id) do
-    with {_id, conn, _meta} <- Enum.find(Parent.GenServer.children(), fn {_id, _conn, meta} -> meta.available? end) do
-      Connection.set_checkout_id(conn, checkout_id)
-      conn
-    end
+    conn =
+      Parent.GenServer.children()
+      |> Stream.filter(&match?({{:connection, _ref}, _conn, _meta}, &1))
+      |> Stream.filter(fn {{:connection, _ref}, _conn, meta} -> meta.available? end)
+      |> Stream.map(fn {{:connection, _ref}, conn, _meta} -> conn end)
+      |> Enum.at(0)
+
+    if conn != nil, do: Connection.set_checkout_id(conn, checkout_id)
+    conn
   end
 
   defp stop_connection(connection) do
