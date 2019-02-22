@@ -352,6 +352,15 @@ defmodule Compliance.AnalystTableTest do
           )
         end
       end
+
+      test "table is included in show tables" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          {:ok, _} = create_or_update(1, "table38", "select * from users", data_source)
+
+          assert_query("show tables", [analyst_id: 1, data_sources: [data_source]], %{rows: rows})
+          assert Enum.any?(rows, &(&1.row == ["table38", "personal"]))
+        end
+      end
     end
   end
 

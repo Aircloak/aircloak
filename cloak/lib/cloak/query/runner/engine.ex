@@ -70,9 +70,9 @@ defmodule Cloak.Query.Runner.Engine do
 
   defp run_statement(%Sql.Query{command: :show, show: :tables} = query, _state_updater) do
     tables =
-      query.data_source.tables
-      |> Enum.to_list()
-      |> Enum.map(fn {name, table} -> [to_string(name), display_content_type(table.content_type)] end)
+      Cloak.DataSource.tables(query.data_source)
+      |> Stream.concat(Cloak.AnalystTable.cloak_tables(query.analyst_id, query.data_source, query.views))
+      |> Enum.map(&[to_string(&1.name), display_content_type(&1.content_type)])
 
     views = query.views |> Map.keys() |> Enum.map(&[to_string(&1), "view"])
 
