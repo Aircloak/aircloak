@@ -179,7 +179,7 @@ defmodule Cloak.Query.Anonymizer do
   def stddev(anonymizer, rows) do
     case variance(anonymizer, rows) do
       {nil, nil} -> {nil, nil}
-      {avg_variance, noise_sigma_variance} -> {:math.sqrt(abs(avg_variance)), :math.sqrt(noise_sigma_variance)}
+      {avg_variance, noise_sigma_variance} -> {:math.sqrt(avg_variance), :math.sqrt(noise_sigma_variance)}
     end
   end
 
@@ -201,7 +201,10 @@ defmodule Cloak.Query.Anonymizer do
         {:avg, sum_sqrs + mean * (count * mean - 2 * sum), count}
       end)
 
-    avg(anonymizer, variances)
+    case avg(anonymizer, variances) do
+      {nil, nil} -> {nil, nil}
+      {variance, noise} -> {Kernel.max(variance, 0.0), noise}
+    end
   end
 
   @doc "Computes the median value of all values in rows, where each row is an enumerable of numbers."
