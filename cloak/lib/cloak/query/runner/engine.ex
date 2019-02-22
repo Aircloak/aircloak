@@ -97,7 +97,7 @@ defmodule Cloak.Query.Runner.Engine do
   defp isolator_status(_data_source, %{type: :subquery}, _column), do: nil
   defp isolator_status(_data_source, %{type: :analyst}, _column), do: nil
 
-  defp isolator_status(data_source, %{type: type} = table, column) when type in [:table, :virtual] do
+  defp isolator_status(data_source, %{type: type} = table, column) when type in [:regular, :virtual] do
     case Cloak.DataSource.Isolators.cache_lookup(data_source, table.name, column) do
       {:ok, result} -> to_string(result)
       {:error, status} -> to_string(status)
