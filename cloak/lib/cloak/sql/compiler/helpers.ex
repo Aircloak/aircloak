@@ -125,8 +125,8 @@ defmodule Cloak.Sql.Compiler.Helpers do
   def aggregator_sources(query), do: query.columns ++ having_columns(query) ++ Query.order_by_expressions(query)
 
   @doc "Creates a synthetic table from a list of selected columns."
-  @spec create_table_from_columns([Expression.t()], String.t()) :: Table.t()
-  def create_table_from_columns(selected_columns, table_name) do
+  @spec create_table_from_columns([Expression.t()], String.t(), [Table.option()]) :: Table.t()
+  def create_table_from_columns(selected_columns, table_name, opts \\ []) do
     table_columns =
       Enum.map(selected_columns, &Table.column(Expression.title(&1), Function.type(&1), visible?: not &1.synthetic?))
 
@@ -139,7 +139,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
       |> Enum.map(&{Expression.title(&1), Expression.key_type(&1)})
       |> Enum.into(%{})
 
-    Table.new(table_name, user_id_name, columns: table_columns, keys: keys)
+    Table.new(table_name, user_id_name, Keyword.merge(opts, columns: table_columns, keys: keys))
   end
 
   # -------------------------------------------------------------------

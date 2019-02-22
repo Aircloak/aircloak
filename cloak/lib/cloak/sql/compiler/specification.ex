@@ -235,7 +235,7 @@ defmodule Cloak.Sql.Compiler.Specification do
     [
       Enum.zip(subquery.ast.column_titles, subquery.ast.columns)
       |> Enum.map(fn {title, column} -> %Expression{column | alias: title} end)
-      |> Helpers.create_table_from_columns(subquery.alias)
+      |> Helpers.create_table_from_columns(subquery.alias, type: :subquery)
     ]
   end
 

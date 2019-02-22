@@ -126,7 +126,7 @@ defmodule Cloak.AnalystTable do
   def to_cloak_table(table, views, opts \\ []) do
     with {:ok, data_source} <- fetch_data_source(table),
          {:ok, query} <- Compiler.compile(table.name, table.statement, table.analyst, data_source, nil, views),
-         do: {:ok, Query.to_table(query, Keyword.get(opts, :name, table.name), table.db_name)}
+         do: {:ok, Query.to_table(query, Keyword.get(opts, :name, table.name), type: :analyst, db_name: table.db_name)}
   end
 
   @doc "Synchronously invoked the function as serialized, blocking all other store operations."
