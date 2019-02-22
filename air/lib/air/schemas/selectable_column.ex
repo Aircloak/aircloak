@@ -3,13 +3,12 @@ defmodule Air.Schemas.SelectableColumn do
   use Air.Schemas.Base
 
   @type t :: %__MODULE__{name: String.t(), type: String.t(), key_type: String.t() | nil}
-  @derive {Jason.Encoder, only: [:name, :type, :user_id]}
+  @derive {Jason.Encoder, only: [:name, :type, :key_type]}
   @primary_key false
 
   embedded_schema do
     field(:name, :string)
     field(:type, :string)
-    field(:user_id, :boolean)
     field(:key_type, :string)
   end
 end
