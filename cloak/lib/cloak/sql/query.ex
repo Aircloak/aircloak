@@ -64,7 +64,8 @@ defmodule Cloak.Sql.Query do
           type: type,
           available_tables: [DataSource.Table.t()],
           analyst_tables: %{String.t() => Cloak.AnalystTable.t()},
-          analyst_table: nil | Cloak.AnalystTable.t()
+          analyst_table: nil | Cloak.AnalystTable.t(),
+          required_analyst_tables: MapSet.t()
         }
 
   @type analyst_id :: pos_integer | nil
@@ -133,7 +134,8 @@ defmodule Cloak.Sql.Query do
             type: :restricted,
             available_tables: [],
             analyst_tables: %{},
-            analyst_table: nil
+            analyst_table: nil,
+            required_analyst_tables: MapSet.new()
 
   # -------------------------------------------------------------------
   # API functions

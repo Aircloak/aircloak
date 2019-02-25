@@ -65,6 +65,7 @@ defmodule Cloak.Sql.Compiler.Specification do
       |> compile_references()
       |> perform_implicit_casts()
       |> ensure_uid_selected()
+      |> Helpers.apply_bottom_up(&collect_required_analyst_tables/1)
 
   # -------------------------------------------------------------------
   # From
@@ -138,7 +139,7 @@ defmodule Cloak.Sql.Compiler.Specification do
   defp insensitive_equal?(s1, s2), do: String.downcase(s1) == String.downcase(s2)
 
   # -------------------------------------------------------------------
-  # Views
+  # Views and analyst tables
   # -------------------------------------------------------------------
 
   defp resolve_views_and_analyst_tables(query) do
@@ -202,6 +203,25 @@ defmodule Cloak.Sql.Compiler.Specification do
       {:error, error} ->
         raise CompilationError, message: "Error in the analyst table `#{analyst_table.name}`: #{error}"
     end
+  end
+
+  defp collect_required_analyst_tables(query) do
+    from_subqueries =
+      Lenses.direct_subqueries()
+      |> Lens.key(:ast)
+      |> Lens.to_list(query)
+      |> Enum.map(& &1.required_analyst_tables)
+
+    in_this_query =
+      Lenses.direct_subqueries()
+      |> Lens.key(:ast)
+      |> Lens.filter(&(not is_nil(&1.analyst_table)))
+      |> Lens.key(:analyst_table)
+      |> Lens.key(:name)
+      |> Lens.to_list(query)
+      |> MapSet.new()
+
+    %{query | required_analyst_tables: Enum.reduce(from_subqueries, in_this_query, &MapSet.union/2)}
   end
 
   # -------------------------------------------------------------------
