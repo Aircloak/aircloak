@@ -599,9 +599,9 @@ SELECT lastname, count(age) FROM people GROUP BY 1
 
 ```
 
-Note that in order to preserve anonymity Insights Cloak will never report "groups" of just one user. Because of this,
-when you see a count of 2, it might mean there is 1, 2, or even more users in the given group (see [Note about
-noise](#note-about-noise)).
+Note that in order to preserve anonymity Insights Cloak will never report "groups" of just one user and there will be
+noise added to the result. Because of this, when you see a count of 2, it should be treated as a placeholder value for
+"a small number, not lower than 2". See [Note about noise](#note-about-noise) for more.
 
 ### max
 
