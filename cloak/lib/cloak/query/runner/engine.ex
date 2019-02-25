@@ -70,9 +70,9 @@ defmodule Cloak.Query.Runner.Engine do
 
   defp run_statement(%Sql.Query{command: :show, show: :tables} = query, _state_updater) do
     tables =
-      query.data_source.tables
-      |> Enum.to_list()
-      |> Enum.map(fn {name, table} -> [to_string(name), display_content_type(table.content_type)] end)
+      Cloak.DataSource.tables(query.data_source)
+      |> Stream.concat(Cloak.AnalystTable.cloak_tables(query.analyst_id, query.data_source, query.views))
+      |> Enum.map(&[to_string(&1.name), display_content_type(&1.content_type)])
 
     views = query.views |> Map.keys() |> Enum.map(&[to_string(&1), "view"])
 
@@ -94,9 +94,10 @@ defmodule Cloak.Query.Runner.Engine do
   defp run_statement(%Sql.Query{command: :select} = query, state_updater),
     do: Query.DbEmulator.select(query, state_updater)
 
-  defp isolator_status(_data_source, _view = %{db_name: nil, query: nil}, _column), do: nil
+  defp isolator_status(_data_source, %{type: :subquery}, _column), do: nil
+  defp isolator_status(_data_source, %{type: :analyst}, _column), do: nil
 
-  defp isolator_status(data_source, table, column) do
+  defp isolator_status(data_source, %{type: type} = table, column) when type in [:regular, :virtual] do
     case Cloak.DataSource.Isolators.cache_lookup(data_source, table.name, column) do
       {:ok, result} -> to_string(result)
       {:error, status} -> to_string(status)

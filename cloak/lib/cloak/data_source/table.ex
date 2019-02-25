@@ -27,10 +27,13 @@ defmodule Cloak.DataSource.Table do
           :maintain_shadow_db => boolean,
           :status => :created | :creating | :create_error,
           :user_id_join_chain => [join_link] | nil,
+          :type => type,
           optional(any) => any
         }
 
   @type projection :: %{table: String.t(), primary_key: String.t(), foreign_key: String.t()}
+
+  @type type :: :regular | :virtual | :analyst | :subquery | nil
 
   @type option ::
           {:db_name, String.t()}
@@ -40,6 +43,7 @@ defmodule Cloak.DataSource.Table do
           | {:keys, Map.t()}
           | {:query, Query.t()}
           | {:content_type, :private | :public}
+          | {:type, type}
           | {atom, any}
 
   # -------------------------------------------------------------------
@@ -65,7 +69,8 @@ defmodule Cloak.DataSource.Table do
           isolating_columns: %{},
           maintain_shadow_db: true,
           status: :created,
-          user_id_join_chain: if(user_id_column_name == nil, do: nil, else: [])
+          user_id_join_chain: if(user_id_column_name == nil, do: nil, else: []),
+          type: nil
         },
         Map.new(opts)
       )
@@ -231,11 +236,12 @@ defmodule Cloak.DataSource.Table do
     %{data_source | errors: existing_errors ++ errors, tables: Enum.into(tables, %{})}
   end
 
-  defp load_tables(_data_source, _connection, {_, %{query: query}} = table) when query != nil, do: [table]
+  defp load_tables(_data_source, _connection, {table_id, %{query: query} = table}) when query != nil,
+    do: [{table_id, Map.put(table, :type, :virtual)}]
 
   defp load_tables(data_source, connection, {table_id, table}) do
     table_id = to_string(table_id)
-    table = new(table_id, Map.get(table, :user_id), [db_name: table_id] ++ Map.to_list(table))
+    table = new(table_id, Map.get(table, :user_id), [type: :regular, db_name: table_id] ++ Map.to_list(table))
 
     data_source.driver.load_tables(connection, table)
     |> Enum.map(&parse_columns(data_source, &1))

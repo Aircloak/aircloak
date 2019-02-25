@@ -187,12 +187,11 @@ defmodule Cloak.Sql.Query do
   end
 
   @doc "Creates a table definition which corresponds to the given select query."
-  @spec to_table(t, String.t(), String.t() | nil) :: Cloak.DataSource.Table.t()
-  def to_table(%__MODULE__{command: :select} = query, name, db_name \\ nil) do
+  @spec to_table(t, String.t(), [DataSource.Table.option()]) :: DataSource.Table.t()
+  def to_table(%__MODULE__{command: :select} = query, name, opts \\ []) do
     Enum.zip(query.column_titles, query.columns)
     |> Enum.map(fn {title, column} -> %Expression{column | alias: title} end)
-    |> Compiler.Helpers.create_table_from_columns(name)
-    |> Map.put(:db_name, db_name || name)
+    |> Compiler.Helpers.create_table_from_columns(name, opts)
   end
 
   @doc "Adds one or more info messages to the query."

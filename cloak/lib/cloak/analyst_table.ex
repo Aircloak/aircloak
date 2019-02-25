@@ -97,7 +97,7 @@ defmodule Cloak.AnalystTable do
     do: Enum.find(analyst_tables(analyst, data_source), &(&1.name == table_name))
 
   @doc "Returns analyst tables for the given analyst in the given data source."
-  @spec analyst_tables(Query.analyst_id(), DataSource.t()) :: [DataSource.Table.t()]
+  @spec analyst_tables(Query.analyst_id(), DataSource.t()) :: [t]
   def analyst_tables(analyst, data_source) do
     case Cloak.Air.name() do
       {:error, _} ->
@@ -109,6 +109,24 @@ defmodule Cloak.AnalystTable do
           fn [table] -> table end
         )
     end
+  end
+
+  @doc "Returns the cloak table structs which describe analyst tables for the given analyst in the given data source."
+  @spec cloak_tables(Query.analyst_id(), DataSource.t(), Query.view_map()) :: [DataSource.Table.t()]
+  def cloak_tables(analyst, data_source, views) do
+    analyst
+    |> analyst_tables(data_source)
+    |> Stream.map(&to_cloak_table(&1, views))
+    |> Stream.filter(&match?({:ok, _}, &1))
+    |> Enum.map(fn {:ok, table} -> table end)
+  end
+
+  @doc "Returns the cloak table structure which describes the given table."
+  @spec to_cloak_table(t, Query.view_map(), name: String.t()) :: {:ok, DataSource.Table.t()} | {:error, String.t()}
+  def to_cloak_table(table, views, opts \\ []) do
+    with {:ok, data_source} <- fetch_data_source(table),
+         {:ok, query} <- Compiler.compile(table.name, table.statement, table.analyst, data_source, nil, views),
+         do: {:ok, Query.to_table(query, Keyword.get(opts, :name, table.name), type: :analyst, db_name: table.db_name)}
   end
 
   @doc "Synchronously invoked the function as serialized, blocking all other store operations."

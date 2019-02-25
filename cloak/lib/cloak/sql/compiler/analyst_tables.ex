@@ -41,8 +41,8 @@ defmodule Cloak.Sql.Compiler.AnalystTables do
 
   defp analyst_table_definition(query, table, alias) do
     with :ok <- check_table_status(query, table),
-         {:ok, table_query} <- compile_analyst_table(query, table),
-         do: Query.to_table(table_query, alias, table.db_name),
+         {:ok, table_def} <- Cloak.AnalystTable.to_cloak_table(table, query.views, name: alias),
+         do: table_def,
          else: ({:error, reason} -> report_error(table, reason))
   end
 
@@ -52,17 +52,6 @@ defmodule Cloak.Sql.Compiler.AnalystTables do
       :create_error -> {:error, "the table wasn't successfully created"}
       :created -> :ok
     end
-  end
-
-  defp compile_analyst_table(query, table) do
-    Cloak.AnalystTable.Compiler.compile(
-      table.name,
-      table.statement,
-      table.analyst,
-      query.data_source,
-      query.parameters,
-      query.views
-    )
   end
 
   defp report_error(table, reason),

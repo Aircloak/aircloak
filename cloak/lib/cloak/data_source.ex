@@ -85,7 +85,7 @@ defmodule Cloak.DataSource do
   @doc "Replaces the data source definitions maintained by the DataSource server"
   @spec replace_all_data_source_configs([t]) :: :ok
   def replace_all_data_source_configs(data_sources),
-    do: GenServer.cast(__MODULE__, {:replace_data_sources, data_sources})
+    do: GenServer.call(__MODULE__, {:replace_data_sources, data_sources})
 
   @doc """
   Synchronously loads and initializes a data source given the path to the data source definition. If the data source
@@ -134,15 +134,14 @@ defmodule Cloak.DataSource do
 
   @doc "Returns the list of defined data sources."
   @spec all() :: [t]
-  def all(), do: GenServer.call(__MODULE__, :all, :infinity)
+  def all(), do: __MODULE__ |> :ets.tab2list() |> Enum.map(fn {_name, data_source} -> data_source end)
 
   @doc "Returns the datasource with the given id, or `:error` if it's not found."
   @spec fetch(String.t()) :: {:ok, t} | :error
   def fetch(data_source_name) do
-    GenServer.call(__MODULE__, {:get, data_source_name}, :infinity)
-    |> case do
-      nil -> :error
-      data_source -> {:ok, data_source}
+    case :ets.lookup(__MODULE__, data_source_name) do
+      [] -> :error
+      [{^data_source_name, data_source}] -> {:ok, data_source}
     end
   end
 
@@ -233,36 +232,41 @@ defmodule Cloak.DataSource do
 
   @impl GenServer
   def init(_) do
-    data_sources = load_data_source_configs()
+    :ets.new(__MODULE__, [:named_table, :protected])
+    store_data_sources(load_data_source_configs())
     Cloak.AnalystTable.refresh()
-    {:ok, data_sources, :hibernate}
+    {:ok, nil, :hibernate}
   end
 
   @impl GenServer
-  def handle_call(:all, _from, data_sources) do
-    {:reply, data_sources, data_sources}
-  end
-
-  def handle_call({:get, name}, _from, data_sources) do
-    data_source = Enum.find(data_sources, &(&1.name === name))
-    {:reply, data_source, data_sources}
-  end
-
-  @impl GenServer
-  def handle_cast({:update_data_source, data_source}, old_data_sources) do
+  def handle_cast({:update_data_source, data_source}, nil) do
+    old_data_sources = all()
     updated_data_sources = replace_data_source(old_data_sources, data_source)
+    store_data_sources(updated_data_sources)
     publish_data_sources_change(updated_data_sources, old_data_sources)
-    {:noreply, updated_data_sources, :hibernate}
+    {:noreply, nil, :hibernate}
   end
 
-  def handle_cast({:replace_data_sources, new_data_sources}, old_data_sources) do
+  @impl GenServer
+  def handle_call({:replace_data_sources, new_data_sources}, _from, nil) do
+    old_data_sources = all()
+    store_data_sources(new_data_sources)
     publish_data_sources_change(new_data_sources, old_data_sources)
-    {:noreply, new_data_sources, :hibernate}
+    {:reply, :ok, nil, :hibernate}
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
+
+  defp store_data_sources(data_sources) do
+    Enum.each(data_sources, &:ets.insert(__MODULE__, {&1.name, &1}))
+
+    stored_data_sources = :ets.match(__MODULE__, {:"$1", :_}) |> Stream.map(fn [name] -> name end) |> MapSet.new()
+    used_data_sources = data_sources |> Stream.map(& &1.name) |> MapSet.new()
+    unused_data_sources = MapSet.difference(stored_data_sources, used_data_sources)
+    Enum.each(unused_data_sources, &:ets.delete(__MODULE__, &1))
+  end
 
   defp publish_data_sources_change(new_data_sources, old_data_sources) do
     if new_data_sources != old_data_sources do
