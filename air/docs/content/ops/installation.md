@@ -114,17 +114,45 @@ Mounting of the persisted folder is optional. If you don't mount this folder, th
 
 ### External ODBC drivers
 
-For legal reasons, the Insights Cloak image does not include the necessary ODBC drivers for the SAP HANA database. If you want to use this database, you will have to provide the drivers yourself. Your SAP site administrator should be able to assist you.
+For legal reasons, the Insights Cloak image does not include the necessary ODBC drivers for the SAP HANA or the Apache Drill
+databases. If you want to use these databases, you will have to provide the drivers yourself.
 
 The ODBC drivers need to be mounted into the docker container as follows:
 
 ```bash
 docker run \
   ...
-
   -v host_odbc_drivers_folder:/odbc_drivers \
-
   ...
 ```
 
-Here, the folder `host_odbc_drivers_folder` is the folder on the host machine where ODBC drivers are stored. Inside this folder you need to create the folder named `saphana`, and store the driver file into that folder. The driver file should be named `libodbcHDB.so`.
+Here, the folder `host_odbc_drivers_folder` is the folder on the host machine where ODBC drivers are stored. Inside this folder you
+need to create separate folders for each of the ODBC drivers provided. For each folder found in the ODBC drivers folders, the
+following algorithm is executed:
+
+ - If a `setup.sh` script file is present inside the folder, it is executed.
+ - Otherwise, the folder contents are copied to the Insights Cloak private folder inside the image, so that they are found
+ at runtime.
+
+#### Apache Drill
+
+MapR provides ODBC drivers for Apache Drill at the location http://package.mapr.com/tools/MapR-ODBC/MapR_Drill/. The Linux drivers
+are provided as a `rpm` archive, while the Insights Cloak image expects them in the `deb` format, since it is based on the Debian
+distribution. The archive can be converted from `rpm` to `deb` using the `alien` package. Afterwards, the following `setup.sh`
+script can be used to install it inside the Insights Cloak image during startup:
+
+```BASH
+#!/bin/bash -e
+
+if [ ! -d "/opt/mapr/drill" ]; then
+  dpkg -i odbc_drill_driver.deb
+fi
+
+export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libodbcinst.so.2
+```
+
+#### SAP HANA
+
+ Inside the host ODBC drivers folder you need to create the folder named `saphana`, and store the driver file into that folder.
+ The driver file should be named `libodbcHDB.so`. Your SAP site administrator should be able to assist you with obtaining the
+ correct drivers for you server.
