@@ -623,7 +623,7 @@ SELECT lastname, max(age) FROM people GROUP BY 1
    ...      | ...
 ```
 
-Note that the computed max value is anonymized - it requires a number of users to share this value, so in some cases
+Note that the computed max value is anonymized - it requires a number of users to share this value, so in many cases
 the true value will be larger. Furthermore, Insights Cloak's anonymizing `max` function doesn't work on textual values:
 
 ```sql
@@ -663,7 +663,7 @@ SELECT lastname, median(age) FROM people GROUP BY 1
    ...      |    ...
 ```
 
-Note that the computed median value is anonymized - it requires a number of users to share this value, so in some cases
+Note that the computed median value is anonymized - it requires a number of users to share this value, so in many cases
 the true value will be smaller or larger. Furthermore, Insights Cloak's anonymizing `median` function doesn't work on
 textual values:
 
@@ -704,7 +704,7 @@ SELECT lastname, min(age) FROM people GROUP BY 1
    ...      | ...
 ```
 
-Note that the computed min value is anonymized - it requires a number of users to share this value, so in some cases
+Note that the computed min value is anonymized - it requires a number of users to share this value, so in many cases
 the true value will be smaller. Furthermore, Insights Cloak's anonymizing `min` function doesn't work on textual values:
 
 ```sql
