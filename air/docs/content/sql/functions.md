@@ -796,9 +796,8 @@ noise](#note-about-noise) for more.
 ### *_noise
 
 You can get a sense of how much noise is being added to an `avg`, `count`, `stddev`, `sum`, or `variance` expression by
-using an analogous `*_noise` expression. The value returned is the standard deviation of the noise added. This means
-that if you get a `count(*)` of 100 and `count_noise(*)` of 10, then the true count will be between 90 and 110 with
-probability around 68%, between 80 and 120 with probability around 95%, etc.
+using an analogous `*_noise` expression. The value returned is the standard deviation of the noise added according to
+what's described in the [section about noise](/sql/query-results.md#zero-mean-noise).
 
 ```sql
 SELECT count(*), count_noise(*), avg(age), avg_noise(age) FROM people
