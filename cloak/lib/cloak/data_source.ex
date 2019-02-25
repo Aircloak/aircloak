@@ -259,7 +259,14 @@ defmodule Cloak.DataSource do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp store_data_sources(data_sources), do: Enum.each(data_sources, &:ets.insert(__MODULE__, {&1.name, &1}))
+  defp store_data_sources(data_sources) do
+    Enum.each(data_sources, &:ets.insert(__MODULE__, {&1.name, &1}))
+
+    stored_data_sources = :ets.match(__MODULE__, {:"$1", :_}) |> Stream.map(fn [name] -> name end) |> MapSet.new()
+    used_data_sources = data_sources |> Stream.map(& &1.name) |> MapSet.new()
+    unused_data_sources = MapSet.difference(stored_data_sources, used_data_sources)
+    Enum.each(unused_data_sources, &:ets.delete(__MODULE__, &1))
+  end
 
   defp publish_data_sources_change(new_data_sources, old_data_sources) do
     if new_data_sources != old_data_sources do
