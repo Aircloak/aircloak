@@ -381,7 +381,7 @@ defmodule Compliance.AnalystTableTest do
           {:ok, _} = create_or_update(1, "table42", "select * from table41", data_source)
 
           assert {:error, error} = create_or_update(1, "table40", "select * from table42", data_source)
-          assert error == "circular dependencies between analyst tables are not supported"
+          assert error =~ ~r/.*table40.*dependency cycle/
         end
       end
     end
