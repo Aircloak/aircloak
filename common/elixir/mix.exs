@@ -45,7 +45,7 @@ defmodule Aircloak.ElixirCommon.Mixfile do
       # decoding of user provided configuration and data sources.
       {:jason, "~> 1.1"},
       {:poison, "~> 3.1.0"},
-      {:lens, "~> 0.6.0"},
+      {:lens, "~> 0.9.0"},
       {:ex_doc, "~> 0.19", runtime: false},
       {:meck, github: "eproxus/meck", tag: "0.8.12", override: true, runtime: false},
       {:credo, "~> 0.8.10", runtime: false},

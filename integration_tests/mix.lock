@@ -52,7 +52,7 @@
   "jobs": {:hex, :jobs, "0.7.2", "c47f0b110a5a01704c5c3b05f40717538f1116b84b77484b9ced55bf889e31e6", [:rebar3], [{:parse_trans, "3.3.0", [hex: :parse_trans, repo: "hexpm", optional: false]}], "hexpm"},
   "jose": {:hex, :jose, "1.8.4", "7946d1e5c03a76ac9ef42a6e6a20001d35987afd68c2107bcd8f01a84e75aa73", [:mix, :rebar3], [{:base64url, "~> 0.0.1", [hex: :base64url, repo: "hexpm", optional: false]}], "hexpm"},
   "jsx": {:hex, :jsx, "2.8.0", "749bec6d205c694ae1786d62cea6cc45a390437e24835fd16d12d74f07097727", [:mix, :rebar], [], "hexpm"},
-  "lens": {:hex, :lens, "0.6.0", "9b0f30ddaedabf1126b2f1b71e8334260451bd539271c0eb6da5ef8a5b39b1cd", [:mix], [], "hexpm"},
+  "lens": {:hex, :lens, "0.9.0", "b166d4b00eb0c55a78ef76e65a4dc7ad558bdb290d774ca77059070098bfaefd", [:mix], [], "hexpm"},
   "lhttpc": {:git, "https://github.com/esl/lhttpc.git", "6530ef818bf904bf4ef615f384d2fc7bae44a6dc", []},
   "makeup": {:hex, :makeup, "0.5.1", "966c5c2296da272d42f1de178c1d135e432662eca795d6dc12e5e8787514edf7", [:mix], [{:nimble_parsec, "~> 0.2.2", [hex: :nimble_parsec, repo: "hexpm", optional: false]}], "hexpm"},
   "makeup_elixir": {:hex, :makeup_elixir, "0.8.0", "1204a2f5b4f181775a0e456154830524cf2207cf4f9112215c05e0b76e4eca8b", [:mix], [{:makeup, "~> 0.5.0", [hex: :makeup, repo: "hexpm", optional: false]}, {:nimble_parsec, "~> 0.2.2", [hex: :nimble_parsec, repo: "hexpm", optional: false]}], "hexpm"},
