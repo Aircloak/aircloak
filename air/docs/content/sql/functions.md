@@ -546,3 +546,284 @@ When converting from booleans `TRUE` is converted to `1` and `FALSE` is converte
 ### Casting from datetime
 
 Casting from datetime to date or time will select the date/time part of the datetime.
+
+## Aggregation functions
+
+### Note about noise
+
+Unlike in regular database systems, the results of aggregation functions will usually not be reported precisely.
+Instead, a small amount of noise will be added or subtracted from the real value to preserve anonymity. See [the section
+about *_noise functions](#noise) for more on how to get a measure of how much noise is added.
+
+### avg
+
+Computes the average of the given expression.
+
+```sql
+SELECT avg(age) FROM people
+
+          avg
+  -------------------
+   29.44782928323982
+
+SELECT lastname, avg(age) FROM people GROUP BY 1
+
+   lastname |        avg
+  ----------+--------------------
+   ABBOTT   | 28.930111858960856
+   ACEVEDO  | 29.933255031072672
+   ...      | ...
+```
+
+Note that the computed average is anonymized by introducing a certain amount of noise. See [Note about
+noise](#note-about-noise) for more.
+
+### count
+
+Computes the number of rows for which the given expression is non-NULL. Use `*` as an argument to count all rows.
+
+```sql
+SELECT count(age) FROM people
+
+   count
+  -------
+   10000
+
+SELECT lastname, count(age) FROM people GROUP BY 1
+
+   lastname | count
+  ----------+-------
+   ABBOTT   |    10
+   ACEVEDO  |    12
+   ...      |   ...
+
+```
+
+Note that in order to preserve anonymity Insights Cloak will never report "groups" of just one user and there will be
+noise added to the result. Because of this, when you see a count of 2, it should be treated as a placeholder value for
+"a small number, not lower than 2". See [Note about noise](#note-about-noise) for more.
+
+### max
+
+Finds the maximum value of the given expression.
+
+```sql
+SELECT max(age) FROM people
+
+   max
+  -----
+    43
+
+SELECT lastname, max(age) FROM people GROUP BY 1
+
+   lastname | max
+  ----------+-----
+   ABBOTT   |  30
+   ACEVEDO  |  32
+   ...      | ...
+```
+
+Note that the computed max value is anonymized - it requires a number of users to share this value, so in many cases
+the true value will be larger. Furthermore, Insights Cloak's anonymizing `max` function doesn't work on textual values:
+
+```sql
+SELECT max(lastname) FROM people
+
+  ERROR:  Aggregator `max` is not allowed over arguments of type `text` in anonymizing contexts.
+  For more information see the "Text operations" subsection of the "Restrictions" section in the user guides.
+```
+
+However, you can still use `max` to postprocess textual results of an anonymizing subquery:
+
+```sql
+SELECT max(lastname) FROM (SELECT lastname FROM people GROUP BY 1) x
+
+    max
+  --------
+   ZUNIGA
+```
+
+### median
+
+Finds the median value of the given expression.
+
+```sql
+SELECT median(age) FROM people
+
+   median
+  --------
+       29
+
+SELECT lastname, median(age) FROM people GROUP BY 1
+
+   lastname | median
+  ----------+--------
+   ABBOTT   |     29
+   ACEVEDO  |     31
+   ...      |    ...
+```
+
+Note that the computed median value is anonymized - it requires a number of users to share this value, so in many cases
+the true value will be smaller or larger. Furthermore, Insights Cloak's anonymizing `median` function doesn't work on
+textual values:
+
+```sql
+SELECT median(lastname) FROM people
+
+  ERROR:  Aggregator `median` is not allowed over arguments of type `text` in anonymizing contexts.
+  For more information see the "Text operations" subsection of the "Restrictions" section in the user guides.
+```
+
+However, you can still use `median` to postprocess textual results of an anonymizing subquery:
+
+```sql
+SELECT median(lastname) FROM (SELECT lastname FROM people GROUP BY 1) x
+
+   median
+  --------
+   KIRK
+```
+
+### min
+
+Finds the minimum value of the given expression.
+
+```sql
+SELECT min(age) FROM people
+
+   min
+  -----
+    16
+
+SELECT lastname, min(age) FROM people GROUP BY 1
+
+   lastname | min
+  ----------+-----
+   ABBOTT   |  26
+   ACEVEDO  |  28
+   ...      | ...
+```
+
+Note that the computed min value is anonymized - it requires a number of users to share this value, so in many cases
+the true value will be smaller. Furthermore, Insights Cloak's anonymizing `min` function doesn't work on textual values:
+
+```sql
+SELECT min(lastname) FROM people
+
+  ERROR:  Aggregator `min` is not allowed over arguments of type `text` in anonymizing contexts.
+  For more information see the "Text operations" subsection of the "Restrictions" section in the user guides.
+```
+
+However, you can still use `min` to postprocess textual results of an anonymizing subquery:
+
+```sql
+SELECT min(lastname) FROM (SELECT lastname FROM people GROUP BY 1) x
+
+    min
+  --------
+   ABBOTT
+```
+
+### stddev
+
+Computes the sample standard deviation of the given numerical expression.
+
+```sql
+SELECT stddev(age) FROM people
+
+        stddev
+  -------------------
+   4.032164086149982
+
+SELECT lastname, stddev(age) FROM people GROUP BY 1
+
+   lastname |       stddev
+  ----------+--------------------
+   ABBOTT   | 7.2835052504058195
+   ACEVEDO  |  1.587458159104735
+   ...      |                ...
+```
+
+Note that the computed standard deviation is anonymized by introducing a certain amount of noise. See [Note about
+noise](#note-about-noise) for more.
+
+### sum
+
+Computes the sum of the given numerical expression.
+
+```sql
+SELECT sum(points) FROM games
+
+     sum
+  ---------
+   6390144
+
+SELECT date, sum(points) FROM games GROUP BY 1
+
+      date    | sum
+  ------------+------
+   2013-01-01 | 5510
+   2013-01-02 | 6761
+   ...        |  ...
+```
+
+Note that the computed sum is anonymized by introducing a certain amount of noise. See [Note about
+noise](#note-about-noise) for more.
+
+### variance
+
+Computes the sample variance of the given numerical expression.
+
+```sql
+SELECT variance(age) FROM people
+
+       variance
+  -------------------
+   16.25834721763772
+
+SELECT lastname, variance(age) FROM people GROUP BY 1
+
+   lastname |      variance
+  ----------+--------------------
+   ABBOTT   |  53.04944873268914
+   ACEVEDO  | 2.5200234069081944
+   ...      |                ...
+```
+
+Note that the computed variance is anonymized by introducing a certain amount of noise. See [Note about
+noise](#note-about-noise) for more.
+
+### *_noise
+
+You can get a sense of how much noise is being added to an `avg`, `count`, `stddev`, `sum`, or `variance` expression by
+using an analogous `*_noise` expression. The value returned is the standard deviation of the noise added according to
+what's described in the [section about noise](/sql/query-results.md#zero-mean-noise).
+
+```sql
+SELECT count(*), count_noise(*), avg(age), avg_noise(age) FROM people
+
+   count | count_noise |        avg        | avg_noise
+  -------+-------------+-------------------+-----------
+   10000 |         1.0 | 29.44782928323982 |    0.0029
+
+SELECT lastname, count(*), count_noise(*), avg(age), avg_noise(age) FROM players GROUP BY 1
+
+   lastname | count |    count_noise     |        avg         | avg_noise
+  ----------+-------+--------------------+--------------------+-----------
+   ABBOTT   |    10 | 1.4000000000000001 | 28.930111858960856 |       4.2
+   ACEVEDO  |    12 | 1.4000000000000001 | 29.933255031072672 |       3.5
+   ...      |   ... |                ... |                ... |       ...
+```
+
+Note that the noise added depends on the expression inside the aggregation function used, so you have to provide the
+exact same expression in the `*_noise` function to get an accurate value:
+
+```sql
+SELECT avg(age), avg_noise(age),
+  avg(age * age) AS square, avg_noise(age * age) AS square_noise
+FROM people
+
+          avg        | avg_noise |      square       | square_noise
+  -------------------+-----------+-------------------+--------------
+   29.44782928323982 |    0.0029 | 883.4329967124744 |         0.09
+```
