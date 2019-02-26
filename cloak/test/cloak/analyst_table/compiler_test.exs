@@ -109,6 +109,37 @@ defmodule Cloak.AnalystTable.CompilerTest do
     end
   end
 
+  describe "potential noise layer components" do
+    @tag :pending
+    test "from select list" do
+      {:ok, query} = compile("table_name", "select user_id, x * x AS x from mv1")
+
+      assert db_select(query) ==
+               ~s/SELECT "mv1"."user_id" AS "user_id",("mv1"."x"*"mv1"."x") AS "x","mv1"."x" AS "__ac_nlc__x"/ <>
+                 ~s/ FROM "cloak_test"."mv1" AS "mv1"/
+    end
+
+    @tag :pending
+    test "with a condition" do
+      {:ok, query} = compile("table_name", "select user_id from mv1 WHERE x <> 10")
+
+      assert db_select(query) ==
+               ~s/SELECT "mv1"."user_id" AS "user_id","mv1"."x" AS "__ac_nlc__x"/ <>
+                 ~s/ FROM "cloak_test"."mv1" AS "mv1" WHERE "mv1"."x" <> 10/
+    end
+
+    @tag :pending
+    test "with aggregation" do
+      {:ok, query} = compile("table_name", "select user_id, x * x AS x FROM mv1 GROUP BY 1, 2")
+
+      assert db_select(query) ==
+               ~s/SELECT "mv1"."user_id" AS "user_id",("mv1"."x"*"mv1"."x") AS "x",/ <>
+                 ~s/MIN("mv1"."x") AS "__ac_nlc__min_x,"/ <>
+                 ~s/MAX("mv1"."x") AS "__ac_nlc__max_x",COUNT(*) AS "__ac_nlc__count/ <>
+                 ~s/ FROM "cloak_test"."mv1" AS "mv1" GROUP BY "mv1"."user_id", ("mv1"."x"*"mv1"."x")/
+    end
+  end
+
   defp compile(table_name, statement, data_source \\ data_source()),
     do: Compiler.compile(table_name, statement, 1, data_source, nil, %{})
 
