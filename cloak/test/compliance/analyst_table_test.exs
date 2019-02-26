@@ -373,6 +373,17 @@ defmodule Compliance.AnalystTableTest do
                    MapSet.new(~w/active age birthday column_with_a_very_long_name height id name nullable user_id/s)
         end
       end
+
+      test "circular references are not allowed" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          {:ok, _} = create_or_update(1, "table40", "select * from users", data_source)
+          {:ok, _} = create_or_update(1, "table41", "select * from table40", data_source)
+          {:ok, _} = create_or_update(1, "table42", "select * from table41", data_source)
+
+          assert {:error, error} = create_or_update(1, "table40", "select * from table42", data_source)
+          assert error =~ ~r/.*table40.*dependency cycle/
+        end
+      end
     end
   end
 

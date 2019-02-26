@@ -19,10 +19,19 @@ defmodule Cloak.AnalystTable.Compiler do
   def compile(table_name, statement, analyst, data_source, parameters, views) do
     with :ok <- verify_table_name(table_name, data_source),
          {:ok, query} <- compile_statement(statement, analyst, data_source, parameters, views),
+         :ok <- verify_cycle(query, table_name),
          :ok <- verify_query_type(query),
          :ok <- verify_offloading(query),
          :ok <- verify_selected_columns(query),
          do: {:ok, query}
+  end
+
+  defp verify_cycle(query, table_name),
+    do: if(MapSet.member?(query.required_analyst_tables, table_name), do: {:error, cycle_error(table_name)}, else: :ok)
+
+  defp cycle_error(table_name) do
+    "The table can't be created from the given query because some of the views or analyst tables used in the query " <>
+      "depend on the table `#{table_name}`, which would create a dependency cycle."
   end
 
   # -------------------------------------------------------------------
