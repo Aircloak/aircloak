@@ -28,7 +28,7 @@ defmodule Cloak.DataSource.FileSystemMonitor do
     |> reject_unwanted_events()
     |> group_by_data_source_config()
     |> consolidate_and_classify_events()
-    |> handle_events()
+    |> Cloak.DataSource.SerializingUpdater.handle_events()
 
     {:noreply, []}
   end
@@ -65,21 +65,10 @@ defmodule Cloak.DataSource.FileSystemMonitor do
     do: Enum.filter(file_events, fn {path, _events} -> String.ends_with?(path, ".json") end)
 
   defp classify_events(events) do
-    if removal_event?(events) do
-      :removal
-    else
-      :update
-    end
+    if removal_event?(events), do: :removal, else: :update
   end
 
   defp removal_event?(events), do: Enum.any?([:removed, :deleted, :renamed], &(&1 in events))
-
-  defp handle_events(events),
-    do:
-      Enum.each(events, fn
-        {path, :update} -> Cloak.DataSource.SerializingUpdater.process_update(path)
-        {path, :removal} -> Cloak.DataSource.SerializingUpdater.process_removal(path)
-      end)
 
   # -------------------------------------------------------------------
   # Supervison tree callback

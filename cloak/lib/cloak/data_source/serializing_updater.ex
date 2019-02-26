@@ -15,12 +15,14 @@ defmodule Cloak.DataSource.SerializingUpdater do
   # -------------------------------------------------------------------
 
   @doc "Processes a change event to a data source definition file"
-  @spec process_update(String.t()) :: :ok
-  def process_update(path), do: GenServer.cast(__MODULE__, {:process_update, path})
-
-  @doc "Processes a removal event to a data source definition file"
-  @spec process_removal(String.t()) :: :ok
-  def process_removal(path), do: GenServer.cast(__MODULE__, {:process_removal, path})
+  @spec handle_events([{String.t(), :update | :removal}]) :: :ok
+  def handle_events(events) do
+    if Enum.any?(events, &match?({_path, :removal}, &1)) do
+      GenServer.cast(__MODULE__, :reinitialize)
+    else
+      Enum.each(events, fn {path, :update} -> GenServer.cast(__MODULE__, {:process_update, path}) end)
+    end
+  end
 
   # -------------------------------------------------------------------
   # GenServer callbacks
@@ -41,7 +43,7 @@ defmodule Cloak.DataSource.SerializingUpdater do
     {:noreply, state, :hibernate}
   end
 
-  def handle_cast({:process_removal, _file_path}, state) do
+  def handle_cast(:reinitialize, state) do
     Logger.debug(fn -> "Data source removal detected. Reloading all data source configurations." end)
     DataSource.reinitialize_all_data_sources()
     {:noreply, state, :hibernate}
