@@ -1,12 +1,16 @@
 defmodule Compliance.AnalystTableTest do
   use ComplianceCase, async: false
   alias Cloak.AnalystTable
+  alias Cloak.Test.AnalystTableHelpers
   import Cloak.Test.QueryHelpers
   import Aircloak.AssertionHelper
 
   @moduletag :compliance
   @moduletag :analyst_tables
   @tested_data_sources ~w(oracle postgresql9.4 postgresql)
+
+  defdelegate create_or_update(analyst_id, table_name, query, data_source), to: AnalystTableHelpers
+  defdelegate table_created?(analyst_id, table_name, query, data_source), to: AnalystTableHelpers
 
   setup_all do
     air_name = "some_air_instance"
@@ -287,7 +291,7 @@ defmodule Compliance.AnalystTableTest do
           db_name = AnalystTable.find(1, "table32", data_source).db_name
           assert AnalystTable.drop_table(1, "table32", data_source) == :ok
           refute Enum.member?(registered_tables(data_source), db_name)
-          refute Enum.member?(stored_tables(data_source), db_name)
+          refute Enum.member?(AnalystTableHelpers.stored_tables(data_source), db_name)
           assert AnalystTable.find(1, "table32", data_source) == nil
         end
       end
@@ -440,44 +444,9 @@ defmodule Compliance.AnalystTableTest do
 
   defp prepare_data_source(data_source_name) do
     with {:ok, data_source} <- Cloak.DataSource.fetch(data_source_name) do
-      clear_analyst_tables(data_source)
+      AnalystTableHelpers.clear_analyst_tables(data_source)
       {:ok, data_source}
     end
-  end
-
-  defp clear_analyst_tables(data_source) do
-    AnalystTable.sync_serialized(fn ->
-      data_source |> stored_tables() |> Enum.each(&drop_table!(data_source, &1))
-      truncate_table!(data_source, "__ac_analyst_tables_1")
-      :ets.match_delete(AnalystTable, {{:_, :_, data_source.name, :_}, :_})
-    end)
-  end
-
-  defp create_or_update(analyst_id, name, statement, data_source) do
-    with {:ok, columns} <- AnalystTable.create_or_update(analyst_id, name, statement, data_source) do
-      assert soon(table_created?(analyst_id, name, data_source), :timer.seconds(5), repeat_wait_time: 10)
-      {:ok, columns}
-    end
-  end
-
-  defp table_created?(analyst_id, name, data_source, expected_status \\ :created) do
-    with table_definition <- AnalystTable.find(analyst_id, name, data_source),
-         false <- is_nil(table_definition),
-         ^expected_status <- table_definition.status,
-         do: true,
-         else: (_ -> false)
-  end
-
-  defp drop_table!(data_source, table_name) do
-    quote_char = data_source.driver.sql_dialect_module.quote_char()
-    quoted_table_name = Cloak.DataSource.SqlBuilder.quote_table_name(table_name, quote_char)
-    execute!(data_source, "drop table #{quoted_table_name}")
-  end
-
-  defp truncate_table!(data_source, table_name) do
-    quote_char = data_source.driver.sql_dialect_module.quote_char()
-    quoted_table_name = Cloak.DataSource.SqlBuilder.quote_table_name(table_name, quote_char)
-    execute!(data_source, "truncate table #{quoted_table_name}")
   end
 
   defp execute!(data_source, statement) do
@@ -498,7 +467,4 @@ defmodule Compliance.AnalystTableTest do
     |> Cloak.Sql.Compiler.compile_direct!(analyst_id, data_source)
     |> Cloak.Query.DbEmulator.select()
   end
-
-  defp stored_tables(data_source),
-    do: Cloak.DataSource.Connection.execute!(data_source, &data_source.driver.analyst_tables/1)
 end
