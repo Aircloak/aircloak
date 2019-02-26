@@ -31,19 +31,13 @@ defmodule Cloak.Sql.Query.Lenses do
   end
 
   @doc "Lens focusing on all terminal elements in a list of conditions."
-  deflens conditions_terminals() do
-    conditions() |> operands() |> terminal_elements()
-  end
+  deflens conditions_terminals(), do: conditions() |> operands() |> terminal_elements()
 
   @doc "Lens focusing on all column elements in the query (subqueries are not included)."
-  deflens query_expressions() do
-    terminals() |> expressions()
-  end
+  deflens query_expressions(), do: terminals() |> expressions()
 
   @doc "Lens focusing on leaf (non-functions) expressions in a list of expressions."
-  deflens leaf_expressions() do
-    all_expressions() |> do_leaf_expressions()
-  end
+  deflens leaf_expressions(), do: all_expressions() |> do_leaf_expressions()
 
   @doc "Lens focusing on all expressions in a list of expressions."
   deflens all_expressions() do
@@ -67,24 +61,16 @@ defmodule Cloak.Sql.Query.Lenses do
   end
 
   @doc "Lens focusing on invocations of the bucket function"
-  deflens buckets() do
-    terminals() |> Lens.filter(&Function.bucket?/1)
-  end
+  deflens buckets(), do: terminals() |> Lens.filter(&Function.bucket?/1)
 
   @doc "Lens focusing on all noise layers of subqueries of the query."
-  deflens subquery_noise_layers() do
-    direct_subqueries() |> Lens.key(:ast) |> Lens.key(:noise_layers) |> Lens.all()
-  end
+  deflens subquery_noise_layers(), do: direct_subqueries() |> Lens.key(:ast) |> Lens.key(:noise_layers) |> Lens.all()
 
   @doc "Lens focusing on all queries (subqueries and top-level) of a query."
-  deflens all_queries() do
-    Lens.both(subqueries(), Lens.root())
-  end
+  deflens all_queries(), do: Lens.both(subqueries(), Lens.root())
 
   @doc "Lens focusing on all subqueries (ignoring the top-level) of a query."
-  deflens subqueries() do
-    Lens.recur(direct_subqueries() |> Lens.key(:ast))
-  end
+  deflens subqueries(), do: Lens.recur(direct_subqueries() |> Lens.key(:ast))
 
   @doc "Lens focusing on a query's immediate subqueries"
   deflens direct_subqueries() do
@@ -221,14 +207,10 @@ defmodule Cloak.Sql.Query.Lenses do
   end
 
   @doc "Lens focusing on all conditions in joins."
-  deflens join_conditions() do
-    joins() |> Lens.key(:conditions)
-  end
+  deflens join_conditions(), do: joins() |> Lens.key(:conditions)
 
   @doc "Lens focusing selected leaf tables in the parser AST."
-  deflens ast_tables() do
-    Lens.key(:from) |> ast_tables_recursive()
-  end
+  deflens ast_tables(), do: Lens.key(:from) |> ast_tables_recursive()
 
   @doc "Returns a list of lenses focusing on all subqueries of the given query."
   @spec subquery_lenses(Query.t()) :: [Lens.t()]
@@ -309,9 +291,7 @@ defmodule Cloak.Sql.Query.Lenses do
     end)
   end
 
-  deflensp expressions() do
-    Lens.filter(Lens.root(), &match?(%Expression{}, &1))
-  end
+  deflensp expressions(), do: Lens.filter(Lens.root(), &match?(%Expression{}, &1))
 
   defp do_leaf_expressions(lens), do: lens |> Lens.filter(&match?(%Expression{function?: false}, &1))
 
