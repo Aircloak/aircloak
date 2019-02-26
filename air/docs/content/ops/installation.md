@@ -114,7 +114,7 @@ Mounting of the persisted folder is optional. If you don't mount this folder, th
 
 ### External ODBC drivers
 
-Aircloak is not permitted to bundle the ODBC drivers for the SAP HANA or the Apache Drill databases. If you want to use these
+Aircloak is not permitted to bundle the ODBC drivers for the SAP HANA and the Apache Drill databases. If you want to use these
 databases, you will have to provide the drivers yourself.
 
 The ODBC drivers need to be mounted into the docker container as follows:
