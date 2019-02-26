@@ -62,7 +62,7 @@ defmodule Cloak.DataSource.PerColumn.Cache do
     case column_status(column, state) do
       {:ok, result} -> {:reply, {:ok, result}, state}
       {:error, :pending} -> {:noreply, add_waiting_request(state, column, from)}
-      {:error, other} -> {:reply, {:error, other}, state}
+      error -> {:reply, error, state}
     end
   end
 
