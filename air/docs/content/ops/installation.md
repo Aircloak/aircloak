@@ -114,8 +114,8 @@ Mounting of the persisted folder is optional. If you don't mount this folder, th
 
 ### External ODBC drivers
 
-For legal reasons, the Insights Cloak image does not include the necessary ODBC drivers for the SAP HANA or the Apache Drill
-databases. If you want to use these databases, you will have to provide the drivers yourself.
+Aircloak is not permitted to bundle the ODBC drivers for the SAP HANA or the Apache Drill databases. If you want to use these
+databases, you will have to provide the drivers yourself.
 
 The ODBC drivers need to be mounted into the docker container as follows:
 
@@ -153,6 +153,5 @@ export LD_PRELOAD=/usr/lib/x86_64-linux-gnu/libodbcinst.so.2
 
 #### SAP HANA
 
- Inside the host ODBC drivers folder you need to create the folder named `saphana`, and store the driver file into that folder.
- The driver file should be named `libodbcHDB.so`. Your SAP site administrator should be able to assist you with obtaining the
- correct drivers for you server.
+ Store the driver file in a sub folder of the ODBC drivers folder named `saphana`. The driver file should be named `libodbcHDB.so`.
+ Your SAP site administrator should be able to assist you with obtaining the correct drivers for you server.
