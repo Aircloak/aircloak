@@ -82,12 +82,19 @@ defmodule Air.Service.AnalystTable do
     table = Repo.get!(AnalystTable, table_id) |> Repo.preload([:user, :data_source])
 
     if table.user_id == user.id do
-      with :ok <-
+      with {:ok, validated_views} <-
              DataSource.with_available_cloak(
                table.data_source,
                table.user,
-               &MainChannel.drop_analyst_table(&1.channel_pid, table.user.id, table.name, table.data_source.name)
+               &MainChannel.drop_analyst_table(
+                 &1.channel_pid,
+                 table.user.id,
+                 table.name,
+                 table.data_source.name,
+                 Air.Service.View.user_views_map(user, table.data_source.id)
+               )
              ) do
+        Air.Service.View.store_view_validation_results(user, table.data_source.id, validated_views)
         Repo.delete!(table)
         sync_cloaks(table)
 
@@ -146,8 +153,9 @@ defmodule Air.Service.AnalystTable do
       # there's no guarantee that the table will be successfully stored in the cloak, so we're running this inside
       # a transaction.
       with {:ok, table} <- apply(Repo, changeset.action, [changeset]),
-           {:ok, columns} <- create_or_update_on_cloak(table, user, data_source),
-           # at this point we can update the table with the registration info obtaine from cloak
+           {:ok, {columns, validated_views}} <- create_or_update_on_cloak(table, user, data_source),
+           :ok <- Air.Service.View.store_view_validation_results(user, data_source.id, validated_views),
+           # at this point we can update the table with the registration info obtained from cloak
            table_changeset =
              table
              |> Ecto.Changeset.change()
@@ -206,8 +214,6 @@ defmodule Air.Service.AnalystTable do
       Air.Service.Cloak.channel_pids(table.data_source.name),
       fn {pid, _cloak_info} -> MainChannel.refresh_analyst_tables(pid) end
     )
-
-    Air.Service.View.revalidate_views(table.user, table.data_source_id)
   end
 
   # -------------------------------------------------------------------

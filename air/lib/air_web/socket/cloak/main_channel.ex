@@ -12,7 +12,9 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
 
   @type views :: %{String.t() => String.t()}
   @type parameters :: nil | [map]
-  @type described_columns :: [%{name: String.t(), type: String.t(), user_id: boolean}]
+  @type described_columns :: [%{name: String.t(), type: String.t(), key_type: String.t()}]
+  @type validated_views :: %{String.t() => validation_result}
+  @type validation_result :: {:ok, described_columns} | {:error, atom, String.t()}
 
   @short_timeout :timer.seconds(20)
 
@@ -60,17 +62,11 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   end
 
   @doc "Validates the view on the cloak."
-  @spec validate_views(pid, String.t(), String.t(), views) :: map
+  @spec validate_views(pid, String.t(), String.t(), views) :: validated_views
   def validate_views(channel_pid, analyst_id, data_source_name, views) do
     payload = %{analyst_id: analyst_id, data_source: data_source_name, views: views}
     {:ok, results} = call(channel_pid, "validate_views", payload, @short_timeout)
-
-    for result <- results, into: %{} do
-      case result do
-        %{name: name, valid: true, columns: columns} -> {name, {:ok, columns}}
-        %{name: name, valid: false, field: field, error: error} -> {name, {:error, field, error}}
-      end
-    end
+    adapt_validated_views(results)
   end
 
   @doc "Stops a query on the given cloak."
@@ -88,7 +84,7 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
 
   @doc "Recreates the analyst table on cloaks."
   @spec create_or_update_analyst_table(pid, pos_integer, String.t(), String.t(), String.t(), parameters, views) ::
-          {:ok, described_columns} | {:error, String.t()}
+          {:ok, {described_columns, validated_views}} | {:error, String.t()}
   def create_or_update_analyst_table(
         channel_pid,
         analyst_id,
@@ -107,14 +103,20 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
       views: views
     }
 
-    call(channel_pid, "create_or_update_analyst_table", payload, @short_timeout)
+    with {:ok, {columns, validated_views}} <-
+           call(channel_pid, "create_or_update_analyst_table", payload, @short_timeout) do
+      {:ok, {columns, adapt_validated_views(validated_views)}}
+    end
   end
 
   @doc "Removes the given analyst table on the cloak."
-  @spec drop_analyst_table(pid, pos_integer, String.t(), String.t()) :: :ok | {:error, String.t()}
-  def drop_analyst_table(channel_pid, analyst_id, table_name, data_source_name) do
-    payload = %{analyst_id: analyst_id, table_name: table_name, data_source: data_source_name}
-    with {:ok, _} <- call(channel_pid, "drop_analyst_table", payload, @short_timeout), do: :ok
+  @spec drop_analyst_table(pid, pos_integer, String.t(), String.t(), views) ::
+          {:ok, validated_views} | {:error, String.t()}
+  def drop_analyst_table(channel_pid, analyst_id, table_name, data_source_name, views) do
+    payload = %{analyst_id: analyst_id, table_name: table_name, data_source: data_source_name, views: views}
+
+    with {:ok, validated_views} <- call(channel_pid, "drop_analyst_table", payload, @short_timeout),
+         do: {:ok, adapt_validated_views(validated_views)}
   end
 
   @doc "Asks the cloak to refresh its analyst tables."
@@ -375,5 +377,14 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
   defp normalize_parameter(param) do
     param = Aircloak.atomize_keys(param)
     with %{type: string} when is_binary(string) <- param, do: update_in(param.type, &String.to_existing_atom/1)
+  end
+
+  defp adapt_validated_views(validated_views) do
+    for view <- validated_views, into: %{} do
+      case view do
+        %{name: name, valid: true, columns: columns} -> {name, {:ok, columns}}
+        %{name: name, valid: false, field: field, error: error} -> {name, {:error, field, error}}
+      end
+    end
   end
 end

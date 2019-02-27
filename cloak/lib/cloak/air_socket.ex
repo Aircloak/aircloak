@@ -319,9 +319,12 @@ defmodule Cloak.AirSocket do
              data_source,
              data.parameters,
              data.views
-           ),
-         do: respond_to_air(from, :ok, described_columns),
-         else: ({:error, reason} -> respond_to_air(from, :error, reason))
+           ) do
+      view_validation_result = validate_views(data.analyst_id, data_source, data.views)
+      respond_to_air(from, :ok, {described_columns, view_validation_result})
+    else
+      {:error, reason} -> respond_to_air(from, :error, reason)
+    end
 
     {:ok, state}
   end
@@ -329,7 +332,7 @@ defmodule Cloak.AirSocket do
   defp handle_air_call("drop_analyst_table", data, from, state) do
     with {:ok, data_source} <- fetch_data_source(data.data_source),
          :ok <- Cloak.AnalystTable.drop_table(data.analyst_id, data.table_name, data_source),
-         do: respond_to_air(from, :ok),
+         do: respond_to_air(from, :ok, validate_views(data.analyst_id, data_source, data.views)),
          else: ({:error, reason} -> respond_to_air(from, :error, reason))
 
     {:ok, state}
