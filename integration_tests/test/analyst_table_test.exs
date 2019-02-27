@@ -88,7 +88,7 @@ defmodule IntegrationTest.AnalystTableTest do
     refute cloak_changeset.valid?
     assert immediate_action == :update
     assert immediate_action == cloak_action
-    assert immediate_changes == Map.drop(cloak_changes, [:name])
+    assert Map.drop(immediate_changes, [:name, :creation_status]) == Map.drop(cloak_changes, [:name, :creation_status])
   end
 
   test "duplicate name error is reported", context do
