@@ -200,6 +200,37 @@ defmodule IntegrationTest.AnalystTableTest do
     assert changeset.errors[:name] == {"has already been taken", []}
   end
 
+  test "views are revalidated after analyst table is deleted", context do
+    table_name = unique_name()
+    {:ok, table} = create_table(context.user, table_name, "select * from users")
+
+    view_name = unique_name()
+    {:ok, view} = Air.Service.View.create(context.user, Manager.data_source(), view_name, "select * from #{table_name}")
+
+    :ok = Air.Service.AnalystTable.delete(table.id, context.user)
+
+    assert soon(Air.Repo.get!(Air.Schemas.View, view.id).broken)
+  end
+
+  test "views are revalidated after analyst table is updated", context do
+    table_name = unique_name()
+    {:ok, table} = create_table(context.user, table_name, "select * from users")
+
+    view_name = unique_name()
+
+    {:ok, view} =
+      Air.Service.View.create(
+        context.user,
+        Manager.data_source(),
+        view_name,
+        "select user_id, name from #{table_name}"
+      )
+
+    {:ok, _table} = update_table(table.id, context.user, table_name, "select user_id from users")
+
+    assert soon(Air.Repo.get!(Air.Schemas.View, view.id).broken)
+  end
+
   defp unique_name(), do: "table_#{:erlang.unique_integer([:positive])}"
 
   defp create_table(user, name, sql) do

@@ -142,6 +142,13 @@ defmodule Air.Service.View do
       |> DataSource.users()
       |> Enum.each(&revalidate_views(&1, data_source.id))
 
+  @doc "Asynchronously revalidates all views of the given user in the given data source."
+  @spec revalidate_views(User.t(), integer) :: :ok
+  def revalidate_views(user, data_source_id) do
+    Task.Supervisor.start_child(@cloak_validations_sup, fn -> sync_revalidate_views!(user, data_source_id) end)
+    :ok
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -168,12 +175,6 @@ defmodule Air.Service.View do
       unsubscribe_from(:revalidated_views)
     end
   end
-
-  defp revalidate_views(user, data_source_id),
-    do:
-      Task.Supervisor.start_child(@cloak_validations_sup, fn ->
-        sync_revalidate_views!(user, data_source_id)
-      end)
 
   defp sync_revalidate_views!(user, data_source_id) do
     Logger.info("revalidating views for user #{user.id}, data source #{data_source_id}")

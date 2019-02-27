@@ -89,6 +89,7 @@ defmodule Air.Service.AnalystTable do
                &MainChannel.drop_analyst_table(&1.channel_pid, table.user.id, table.name, table.data_source.name)
              ) do
         Repo.delete!(table)
+        revalidate_views(table)
 
         :ok
       end
@@ -152,6 +153,7 @@ defmodule Air.Service.AnalystTable do
              |> Ecto.Changeset.change()
              |> Ecto.Changeset.put_embed(:columns, columns),
            {:ok, table} <- Repo.update(table_changeset) do
+        revalidate_views(table)
         table
       else
         {:error, error_changeset} ->
@@ -196,6 +198,8 @@ defmodule Air.Service.AnalystTable do
   defp by_user_id(scope, user_id), do: where(scope, [v], v.user_id == ^user_id)
 
   defp by_data_source_id(scope, data_source_id), do: where(scope, [v], v.data_source_id == ^data_source_id)
+
+  defp revalidate_views(table), do: Air.Service.View.revalidate_views(table.user, table.data_source_id)
 
   # -------------------------------------------------------------------
   # Supervision tree
