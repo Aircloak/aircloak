@@ -100,12 +100,18 @@ defmodule Cloak.DataSource do
     |> Aircloak.Json.permissive_decode()
     |> case do
       {:ok, data_source_definition} ->
-        [data_source] = initialize_data_source_configs([data_source_definition])
-        replace_data_source_config(data_source)
-        :ok
+        case Cloak.DataSource.Utility.validate_data_source(Path.basename(file_path), data_source_definition) do
+          nil ->
+            :error
+
+          data_source_definition ->
+            [data_source] = initialize_data_source_configs([data_source_definition])
+            replace_data_source_config(data_source)
+            :ok
+        end
 
       {:error, reason} ->
-        Logger.warn("Failed to initialize data source from path: #{file_path}: #{reason}")
+        Logger.error("Failed to initialize data source from path: #{file_path}: #{reason}")
         :error
     end
   end

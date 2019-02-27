@@ -81,11 +81,9 @@ defmodule Cloak.DataSource.Utility do
 
   def driver_to_name(_other), do: {:error, :unknown}
 
-  # -------------------------------------------------------------------
-  # Internal functions
-  # -------------------------------------------------------------------
-
-  defp validate_data_source(data_source_name, data_source) do
+  @doc "Validates the data source schema for the loaded data source configuration."
+  @spec validate_data_source(String.t(), Map.t()) :: DataSource.t() | nil
+  def validate_data_source(data_source_name, data_source) do
     error_message = "invalid datasource configuration for datasource #{data_source_name}"
 
     case Aircloak.validate_decoded_json(:cloak, "datasource_schema.json", data_source, error_message) do
