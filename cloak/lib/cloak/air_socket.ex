@@ -152,6 +152,9 @@ defmodule Cloak.AirSocket do
     handle_air_call(request.event, request.payload, {transport, request.request_id}, state)
   end
 
+  def handle_message("main", "air_cast", request, transport, state),
+    do: handle_air_cast(request.event, request.payload, transport, state)
+
   def handle_message("main", "air_response", payload, _transport, state) do
     request_id = payload.request_id
 
@@ -329,6 +332,15 @@ defmodule Cloak.AirSocket do
          do: respond_to_air(from, :ok),
          else: ({:error, reason} -> respond_to_air(from, :error, reason))
 
+    {:ok, state}
+  end
+
+  # -------------------------------------------------------------------
+  # Handling air async casts
+  # -------------------------------------------------------------------
+
+  defp handle_air_cast("refresh_analyst_tables", _payload, _transport, state) do
+    Cloak.AnalystTable.refresh()
     {:ok, state}
   end
 

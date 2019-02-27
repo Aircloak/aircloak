@@ -89,7 +89,7 @@ defmodule Air.Service.AnalystTable do
                &MainChannel.drop_analyst_table(&1.channel_pid, table.user.id, table.name, table.data_source.name)
              ) do
         Repo.delete!(table)
-        revalidate_views(table)
+        sync_cloaks(table)
 
         :ok
       end
@@ -153,7 +153,7 @@ defmodule Air.Service.AnalystTable do
              |> Ecto.Changeset.change()
              |> Ecto.Changeset.put_embed(:columns, columns),
            {:ok, table} <- Repo.update(table_changeset) do
-        revalidate_views(table)
+        sync_cloaks(table)
         table
       else
         {:error, error_changeset} ->
@@ -199,7 +199,16 @@ defmodule Air.Service.AnalystTable do
 
   defp by_data_source_id(scope, data_source_id), do: where(scope, [v], v.data_source_id == ^data_source_id)
 
-  defp revalidate_views(table), do: Air.Service.View.revalidate_views(table.user, table.data_source_id)
+  defp sync_cloaks(table) do
+    table = Repo.preload(table, [:data_source])
+
+    Enum.each(
+      Air.Service.Cloak.channel_pids(table.data_source.name),
+      fn {pid, _cloak_info} -> MainChannel.refresh_analyst_tables(pid) end
+    )
+
+    Air.Service.View.revalidate_views(table.user, table.data_source_id)
+  end
 
   # -------------------------------------------------------------------
   # Supervision tree

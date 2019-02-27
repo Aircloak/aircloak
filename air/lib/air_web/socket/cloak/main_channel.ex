@@ -117,6 +117,10 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
     with {:ok, _} <- call(channel_pid, "drop_analyst_table", payload, @short_timeout), do: :ok
   end
 
+  @doc "Asks the cloak to refresh its analyst tables."
+  @spec refresh_analyst_tables(pid) :: :ok
+  def refresh_analyst_tables(channel_pid), do: cast(channel_pid, "refresh_analyst_tables")
+
   # -------------------------------------------------------------------
   # Phoenix.Channel callback functions
   # -------------------------------------------------------------------
@@ -182,6 +186,11 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
        :pending_calls,
        Map.put(socket.assigns.pending_calls, request_id, %{from: from, timeout_ref: timeout_ref})
      )}
+  end
+
+  defp handle_erlang_message({{__MODULE__, :cast}, event, payload}, socket) do
+    push(socket, "air_cast", %{event: event, payload: payload})
+    {:noreply, socket}
   end
 
   defp handle_erlang_message({:call_timeout, request_id}, socket) do
@@ -332,6 +341,8 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
         {:error, :timeout}
     end
   end
+
+  defp cast(pid, event, payload \\ nil), do: send(pid, {{__MODULE__, :cast}, event, payload})
 
   defp create_cloak(cloak_info, socket),
     do: %{
