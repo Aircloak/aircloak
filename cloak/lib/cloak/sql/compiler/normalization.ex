@@ -113,7 +113,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
         [
           Query.Lenses.filter_clauses()
           |> Query.Lenses.conditions()
-          |> Lens.satisfy(&(Condition.verb(&1) == :comparison))
+          |> Lens.filter(&(Condition.verb(&1) == :comparison))
         ],
         &do_normalize_comparison/1
       )
