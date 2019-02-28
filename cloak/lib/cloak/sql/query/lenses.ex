@@ -5,6 +5,8 @@ defmodule Cloak.Sql.Query.Lenses do
 
   use Lens.Macros
 
+  @type query_filter :: [analyst_tables?: boolean]
+
   # -------------------------------------------------------------------
   # Lenses into Query
   # -------------------------------------------------------------------
@@ -64,16 +66,20 @@ defmodule Cloak.Sql.Query.Lenses do
   deflens buckets(), do: terminals() |> Lens.filter(&Function.bucket?/1)
 
   @doc "Lens focusing on all noise layers of subqueries of the query."
+  @spec subquery_noise_layers(query_filter) :: Lens.t()
   def subquery_noise_layers(opts \\ []),
     do: direct_subqueries(opts) |> Lens.key(:ast) |> Lens.key(:noise_layers) |> Lens.all()
 
   @doc "Lens focusing on all queries (subqueries and top-level) of a query."
+  @spec all_queries(query_filter) :: Lens.t()
   def all_queries(opts \\ []), do: Lens.both(subqueries(opts), Lens.root())
 
   @doc "Lens focusing on all subqueries (ignoring the top-level) of a query."
+  @spec subqueries(query_filter) :: Lens.t()
   def subqueries(opts \\ []), do: Lens.recur(direct_subqueries(opts) |> Lens.key(:ast))
 
   @doc "Lens focusing on a query's immediate subqueries"
+  @spec direct_subqueries(query_filter) :: Lens.t()
   def direct_subqueries(opts \\ []) do
     Lens.key(:from)
     |> join_elements()

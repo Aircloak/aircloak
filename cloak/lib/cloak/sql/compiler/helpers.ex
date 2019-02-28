@@ -5,7 +5,6 @@ defmodule Cloak.Sql.Compiler.Helpers do
   alias Cloak.DataSource.Table
 
   @type partial_query :: %Query{}
-  @type query_filter :: [analyst_tables?: boolean]
 
   # -------------------------------------------------------------------
   # API functions
@@ -90,13 +89,13 @@ defmodule Cloak.Sql.Compiler.Helpers do
   @doc """
   Updates the query and all its subqueries with the given function. Starts from the most nested subqueries going up.
   """
-  @spec apply_bottom_up(q, (q -> q), query_filter) :: q when q: Query.t() | Parser.parsed_query()
+  @spec apply_bottom_up(q, (q -> q), Query.Lenses.query_filter()) :: q when q: Query.t() | Parser.parsed_query()
   def apply_bottom_up(query, function, opts \\ []), do: update_in(query, [Query.Lenses.all_queries(opts)], function)
 
   @doc """
   Updates the query and all its subqueries with the given function. Starts from the top-level query going down.
   """
-  @spec apply_top_down(q, (q -> q), query_filter) :: q when q: Query.t() | Parser.parsed_query()
+  @spec apply_top_down(q, (q -> q), Query.Lenses.query_filter()) :: q when q: Query.t() | Parser.parsed_query()
   def apply_top_down(query, function, opts \\ []),
     do:
       query
