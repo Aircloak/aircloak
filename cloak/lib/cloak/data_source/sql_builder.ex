@@ -209,7 +209,7 @@ defmodule Cloak.DataSource.SqlBuilder do
         )
 
       analyst_table ->
-        with :ok <- Cloak.AnalystTable.validate_query_usage(analyst_table),
+        with :ok <- Cloak.AnalystTable.validate_query_usage(analyst_table, query.views),
              {:ok, table} <- Cloak.AnalystTable.to_cloak_table(analyst_table, query.views, name: subquery.alias),
              do: table_to_from(table, query),
              else: ({:error, reason} -> raise Cloak.Query.ExecutionError, message: reason)

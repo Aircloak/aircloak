@@ -46,10 +46,9 @@ defmodule Cloak.AnalystTable do
 
       hash = :crypto.hash(:sha256, :erlang.term_to_binary({air_name, data_source.name, analyst, table_name}))
       encoded_hash = Base.encode64(hash, padding: false)
+
       # make sure the name is not longer than 30 characters to avoid possible issues with some databases, such as Oracle
       db_name = String.slice("__ac_#{encoded_hash}", 0, 30)
-
-      store_info = data_source.driver.prepare_analyst_table(db_name, query)
 
       table = %{
         air_name: air_name,
@@ -58,8 +57,8 @@ defmodule Cloak.AnalystTable do
         statement: statement,
         data_source_name: data_source.name,
         db_name: db_name,
-        store_info: store_info,
-        fingerprint: :crypto.hash(:sha256, store_info),
+        store_info: store_info(db_name, data_source, query),
+        fingerprint: fingerprint(db_name, data_source, query),
         status: :creating
       }
 
@@ -139,12 +138,12 @@ defmodule Cloak.AnalystTable do
   def refresh(), do: GenServer.cast(__MODULE__, :refresh)
 
   @doc "Verify if the table can be used in a query."
-  @spec validate_query_usage(t) :: :ok | {:error, String.t()}
-  def validate_query_usage(table) do
+  @spec validate_query_usage(t, Query.view_map()) :: :ok | {:error, String.t()}
+  def validate_query_usage(table, views) do
     case table.status do
       :creating -> {:error, "analyst table `#{table.name}` is still being created"}
       :create_error -> {:error, "analyst table `#{table.name}` wasn't successfully created"}
-      :created -> :ok
+      :created -> verify_fingerprint(table, views)
     end
   end
 
@@ -301,6 +300,21 @@ defmodule Cloak.AnalystTable do
   end
 
   defp log_table_info(table), do: table |> Map.take(~w/air_name data_source_name analyst name db_name/a) |> inspect()
+
+  defp fingerprint(db_name, data_source, query), do: :crypto.hash(:sha256, store_info(db_name, data_source, query))
+
+  defp store_info(db_name, data_source, query), do: data_source.driver.prepare_analyst_table(db_name, query)
+
+  defp verify_fingerprint(table, views) do
+    with {:ok, data_source} <- fetch_data_source(table),
+         {:ok, query} <- Compiler.compile(table.name, table.statement, table.analyst, data_source, nil, views) do
+      if fingerprint(table.db_name, data_source, query) == table.fingerprint,
+        do: :ok,
+        else: {:error, "table `#{table.name}` needs to be updated before it can be queried"}
+    else
+      {:error, _} = error -> error
+    end
+  end
 
   # -------------------------------------------------------------------
   # Helpers for testing
