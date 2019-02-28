@@ -33,7 +33,7 @@ defmodule Cloak.Sql.Compiler.Anonymization do
 
   @doc "Re-writes the anonymized subqueries to support the needs of the anonymized aggregator."
   @spec compile(Query.t()) :: Query.t()
-  def compile(query), do: Helpers.apply_bottom_up(query, &compile_anonymization/1)
+  def compile(query), do: Helpers.apply_bottom_up(query, &compile_anonymization/1, analyst_tables?: false)
 
   # -------------------------------------------------------------------
   # Internal functions
