@@ -46,8 +46,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
       query
       |> Helpers.apply_bottom_up(&normalize_trivial_like/1)
       |> Helpers.apply_bottom_up(&normalize_bucket/1)
-      |> Helpers.apply_bottom_up(&normalize_anonymizing_stddev/1)
-      |> Helpers.apply_bottom_up(&normalize_anonymizing_avg/1)
+      |> Helpers.apply_bottom_up(&normalize_anonymizing_aggregators/1)
       |> Helpers.apply_bottom_up(&strip_source_location/1)
 
   # -------------------------------------------------------------------
@@ -240,47 +239,27 @@ defmodule Cloak.Sql.Compiler.Normalization do
   # Normalizing anonymized aggregators calls
   # -------------------------------------------------------------------
 
-  defp map_anonymizing_aggregators(%Query{type: :anonymized} = query, functions, mapper) do
+  defp normalize_anonymizing_aggregators(%Query{type: :anonymized} = query) do
     Query.Lenses.query_expressions()
-    |> Lens.filter(&(&1.function in functions))
-    |> Lens.reject(&match?(%Expression{function_args: [{:distinct, _}]}, &1))
-    |> Lens.map(query, mapper)
+    |> Lens.filter(&(&1.function in ["stddev", "stddev_noise", "avg", "avg_noise"]))
+    |> Lens.map(query, &normalize_anonymizing_aggregator/1)
   end
 
-  defp map_anonymizing_aggregators(query, _, _), do: query
+  defp normalize_anonymizing_aggregators(query), do: query
 
-  defp normalize_anonymizing_stddev(query),
-    do: map_anonymizing_aggregators(query, ["stddev", "variance"], &expand_anonymizing_aggregator/1)
-
-  defp normalize_anonymizing_avg(query), do: map_anonymizing_aggregators(query, ["avg", "avg_noise"], &expand_avg/1)
-
-  defp square_expression(expression), do: Expression.function("^", [expression, Expression.constant(:real, 2.0)], :real)
-
-  defp sum_of_squares({:distinct, expression}),
-    do: Expression.function("sum", [{:distinct, square_expression(expression)}], :real, true)
-
-  defp sum_of_squares(expression), do: Expression.function("sum", [square_expression(expression)], :real, true)
-
-  defp expand_anonymizing_aggregator(%Expression{function: "variance", function_args: [arg]}) do
-    # `var(v) = sum(v^2)/count - avg(v)^2`
-    squares_sum = sum_of_squares(arg)
-    count = Expression.function("count", [arg], :integer, true)
-    avg = Expression.function("avg", [arg], :real, true)
-    avg_squared = square_expression(avg)
-    squares_avg = Expression.function("/", [squares_sum, count], :real)
-    Expression.function("-", [squares_avg, avg_squared], :real)
-  end
-
-  defp expand_anonymizing_aggregator(%Expression{function: "stddev"} = stddev_expression) do
+  defp normalize_anonymizing_aggregator(%Expression{function: "stddev"} = stddev_expression) do
     # `sd(v) = sqrt(variance(v))`
-    Expression.function(
-      "sqrt",
-      [expand_anonymizing_aggregator(%Expression{stddev_expression | function: "variance"})],
-      :real
-    )
+    Expression.function("sqrt", [%Expression{stddev_expression | function: "variance"}], :real)
   end
 
-  defp expand_avg(%Expression{function: "avg", function_args: [arg]}),
+  defp normalize_anonymizing_aggregator(%Expression{function: "stddev_noise"} = stddev_expression) do
+    # `sd_noise(v) = sqrt(variance_noise(v))`
+    Expression.function("sqrt", [%Expression{stddev_expression | function: "variance_noise"}], :real)
+  end
+
+  defp normalize_anonymizing_aggregator(%Expression{function_args: [{:distinct, _arg}]} = expression), do: expression
+
+  defp normalize_anonymizing_aggregator(%Expression{function: "avg", function_args: [arg]}),
     do:
       Expression.function(
         "/",
@@ -291,7 +270,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
         :real
       )
 
-  defp expand_avg(%Expression{function: "avg_noise", function_args: [arg]}),
+  defp normalize_anonymizing_aggregator(%Expression{function: "avg_noise", function_args: [arg]}),
     do:
       Expression.function(
         "/",
