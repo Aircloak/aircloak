@@ -204,7 +204,6 @@ defmodule Cloak.Query.NoiseLayerTest do
       on_exit(fn -> Cloak.Air.unregister_air() end)
     end
 
-    @tag :pending
     test "condition in query" do
       :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [10])
       :ok = insert_rows(_user_ids = 11..20, "noise_layers", ["number"], [11])
@@ -215,7 +214,6 @@ defmodule Cloak.Query.NoiseLayerTest do
       assert_analyst_table_consistent(query, subquery)
     end
 
-    @tag :pending
     test "condition in analyst table" do
       :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [10])
       :ok = insert_rows(_user_ids = 11..20, "noise_layers", ["number"], [11])
@@ -226,7 +224,6 @@ defmodule Cloak.Query.NoiseLayerTest do
       assert_analyst_table_consistent(query, subquery)
     end
 
-    @tag :pending
     test "aggregated subquery" do
       :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [10])
       :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [-10])
