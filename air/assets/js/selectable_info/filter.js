@@ -58,7 +58,8 @@ export class FilterView extends React.Component {
     this.setState({filterText});
 
     try {
-      const regex = new RegExp(filterText);
+      const caseInsensitive = "i";
+      const regex = new RegExp(filterText, caseInsensitive);
       this.props.onFilterChange(new Filter(regex));
     } catch (SyntaxError) {
       // If the regular expression doesn't compile, it's
