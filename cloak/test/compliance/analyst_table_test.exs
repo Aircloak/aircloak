@@ -424,6 +424,13 @@ defmodule Compliance.AnalystTableTest do
           )
         end
       end
+
+      test "noise layer columns are not reported" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          {:ok, [%{name: "user_id"}, %{name: "height"}]} =
+            create_or_update(1, "table45", "select user_id, height from users where name LIKE '%Bob%'", data_source)
+        end
+      end
     end
   end
 

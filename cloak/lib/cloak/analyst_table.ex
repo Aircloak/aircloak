@@ -5,6 +5,7 @@ defmodule Cloak.AnalystTable do
   require Logger
   alias Cloak.DataSource
   alias Cloak.Sql.Query
+  alias Cloak.Sql.Compiler.NoiseLayers
   alias __MODULE__.{Compiler, Jobs}
 
   @type t :: %{
@@ -63,7 +64,7 @@ defmodule Cloak.AnalystTable do
       }
 
       GenServer.call(__MODULE__, {:store_table, table})
-      {:ok, Query.describe_selected(query)}
+      {:ok, query |> Query.describe_selected() |> Enum.reject(&String.starts_with?(&1.name, NoiseLayers.prefix()))}
     end
   end
 

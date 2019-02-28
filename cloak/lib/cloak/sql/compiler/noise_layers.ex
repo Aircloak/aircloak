@@ -6,8 +6,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   use Lens.Macros
 
-  @noise_layer_alias_fix_part "__ac_nlc__"
-
   # -------------------------------------------------------------------
   # API
   # -------------------------------------------------------------------
@@ -42,6 +40,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       non_uid_expressions()
       |> Lens.to_list(noise_layers)
       |> Enum.uniq_by(&Expression.unalias/1)
+
+  @doc "Returns the alias prefix used for noise layer expressions."
+  @spec prefix() :: String.t()
+  def prefix(), do: "__ac_nlc__"
 
   # -------------------------------------------------------------------
   # Cleanup
@@ -231,7 +233,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       {_, nil} ->
         index = Enum.find_index(all_expressions, expression_matcher)
         true = index != nil
-        %Expression{expression | alias: "#{@noise_layer_alias_fix_part}#{index}"}
+        %Expression{expression | alias: "#{prefix()}#{index}"}
 
       {_, _} ->
         existing_expression
