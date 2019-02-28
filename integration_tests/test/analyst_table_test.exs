@@ -88,7 +88,7 @@ defmodule IntegrationTest.AnalystTableTest do
     refute cloak_changeset.valid?
     assert immediate_action == :update
     assert immediate_action == cloak_action
-    assert immediate_changes == Map.drop(cloak_changes, [:name])
+    assert Map.drop(immediate_changes, [:name, :creation_status]) == Map.drop(cloak_changes, [:name, :creation_status])
   end
 
   test "duplicate name error is reported", context do
@@ -198,6 +198,37 @@ defmodule IntegrationTest.AnalystTableTest do
 
     assert {:error, changeset} = create_table(context.user, name, "select * from some_view")
     assert changeset.errors[:name] == {"has already been taken", []}
+  end
+
+  test "views are revalidated after analyst table is deleted", context do
+    table_name = unique_name()
+    {:ok, table} = create_table(context.user, table_name, "select * from users")
+
+    view_name = unique_name()
+    {:ok, view} = Air.Service.View.create(context.user, Manager.data_source(), view_name, "select * from #{table_name}")
+
+    :ok = Air.Service.AnalystTable.delete(table.id, context.user)
+
+    assert soon(Air.Repo.get!(Air.Schemas.View, view.id).broken)
+  end
+
+  test "views are revalidated after analyst table is updated", context do
+    table_name = unique_name()
+    {:ok, table} = create_table(context.user, table_name, "select * from users")
+
+    view_name = unique_name()
+
+    {:ok, view} =
+      Air.Service.View.create(
+        context.user,
+        Manager.data_source(),
+        view_name,
+        "select user_id, name from #{table_name}"
+      )
+
+    {:ok, _table} = update_table(table.id, context.user, table_name, "select user_id from users")
+
+    assert soon(Air.Repo.get!(Air.Schemas.View, view.id).broken)
   end
 
   defp unique_name(), do: "table_#{:erlang.unique_integer([:positive])}"
