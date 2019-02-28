@@ -210,7 +210,7 @@ defmodule Compliance.AnalystTableTest do
               assert_query(
                 "select * from table27",
                 [analyst_id: 1, data_sources: [data_source]],
-                %{error: "analyst table `table27` wasn't successfully created"}
+                %{error: "creation of analyst table `table27` failed"}
               )
             end
           )

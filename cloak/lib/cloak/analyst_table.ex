@@ -142,7 +142,7 @@ defmodule Cloak.AnalystTable do
   def validate_query_usage(table, views) do
     case table.status do
       :creating -> {:error, "analyst table `#{table.name}` is still being created"}
-      :create_error -> {:error, "analyst table `#{table.name}` wasn't successfully created"}
+      :create_error -> {:error, "creation of analyst table `#{table.name}` failed"}
       :created -> verify_fingerprint(table, views)
     end
   end
