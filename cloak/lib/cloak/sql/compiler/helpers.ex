@@ -89,19 +89,19 @@ defmodule Cloak.Sql.Compiler.Helpers do
   @doc """
   Updates the query and all its subqueries with the given function. Starts from the most nested subqueries going up.
   """
-  @spec apply_bottom_up(q, (q -> q)) :: q when q: Query.t() | Parser.parsed_query()
-  def apply_bottom_up(query, function), do: update_in(query, [Query.Lenses.all_queries()], function)
+  @spec apply_bottom_up(q, (q -> q), Query.Lenses.query_filter()) :: q when q: Query.t() | Parser.parsed_query()
+  def apply_bottom_up(query, function, opts \\ []), do: update_in(query, [Query.Lenses.all_queries(opts)], function)
 
   @doc """
   Updates the query and all its subqueries with the given function. Starts from the top-level query going down.
   """
-  @spec apply_top_down(q, (q -> q)) :: q when q: Query.t() | Parser.parsed_query()
-  def apply_top_down(query, function),
+  @spec apply_top_down(q, (q -> q), Query.Lenses.query_filter()) :: q when q: Query.t() | Parser.parsed_query()
+  def apply_top_down(query, function, opts \\ []),
     do:
       query
       |> function.()
       |> update_in(
-        [Query.Lenses.direct_subqueries() |> Lens.key(:ast)],
+        [Query.Lenses.direct_subqueries(opts) |> Lens.key(:ast)],
         &apply_top_down(&1, function)
       )
 

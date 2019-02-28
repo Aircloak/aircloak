@@ -182,7 +182,7 @@ defmodule Compliance.AnalystTableTest do
               assert_query(
                 "select * from table26",
                 [analyst_id: 1, data_sources: [data_source]],
-                %{error: "Error in analyst table table26: the table is still being created"}
+                %{error: "analyst table `table26` is still being created"}
               )
             end
           )
@@ -210,7 +210,7 @@ defmodule Compliance.AnalystTableTest do
               assert_query(
                 "select * from table27",
                 [analyst_id: 1, data_sources: [data_source]],
-                %{error: "Error in analyst table table27: the table wasn't successfully created"}
+                %{error: "creation of analyst table `table27` failed"}
               )
             end
           )
@@ -382,6 +382,42 @@ defmodule Compliance.AnalystTableTest do
 
           assert {:error, error} = create_or_update(1, "table40", "select * from table42", data_source)
           assert error =~ ~r/.*table40.*dependency cycle/
+        end
+      end
+
+      test "when a query references an analyst table, the data is selected directly from the db table" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)),
+             true <- String.starts_with?(data_source.name, "postgresql") do
+          {:ok, _} = create_or_update(1, "table43", "select user_id, height from users", data_source)
+          db_name = AnalystTable.find(1, "table43", data_source).db_name
+
+          execute!(data_source, ~s/truncate table "#{db_name}"/)
+
+          assert_query(
+            "select count(*) from table43",
+            [analyst_id: 1, data_sources: [data_source]],
+            %{columns: ["count"], rows: [%{occurrences: 1, row: [0]}]}
+          )
+        end
+      end
+
+      test "if a fingerprint has changed, the table can't be queried" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)),
+             true <- String.starts_with?(data_source.name, "postgresql") do
+          {:ok, _} = create_or_update(1, "table44", "select user_id, height from users", data_source)
+          db_name = AnalystTable.find(1, "table44", data_source).db_name
+
+          # set a different fingerprint and reprime analyst table state
+          execute!(data_source, "update __ac_analyst_tables_1 set fingerprint='' where db_name = '#{db_name}'")
+          AnalystTable.refresh()
+          # dummy state fetching to ensure that refresh has finished
+          :sys.get_state(AnalystTable)
+
+          assert_query(
+            "select count(*) from table44",
+            [analyst_id: 1, data_sources: [data_source]],
+            %{error: "table `table44` needs to be updated before it can be queried"}
+          )
         end
       end
     end

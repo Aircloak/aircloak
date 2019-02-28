@@ -20,7 +20,7 @@ defmodule Cloak.Sql.Compiler.Execution do
 
   def align(query) do
     {info, query} =
-      Query.Lenses.all_queries()
+      Query.Lenses.all_queries(analyst_tables?: false)
       |> Lens.get_and_map(query, fn subquery ->
         subquery = align_subquery(subquery)
         {subquery.info, subquery}
@@ -36,10 +36,10 @@ defmodule Cloak.Sql.Compiler.Execution do
   def prepare(%Query{command: :select} = query),
     do:
       query
-      |> Helpers.apply_bottom_up(&censor_selected_uids/1)
-      |> Helpers.apply_bottom_up(&reject_null_user_ids/1)
-      |> Helpers.apply_bottom_up(&compute_aggregators/1)
-      |> Helpers.apply_bottom_up(&expand_virtual_tables/1)
+      |> Helpers.apply_bottom_up(&censor_selected_uids/1, analyst_tables?: false)
+      |> Helpers.apply_bottom_up(&reject_null_user_ids/1, analyst_tables?: false)
+      |> Helpers.apply_bottom_up(&compute_aggregators/1, analyst_tables?: false)
+      |> Helpers.apply_bottom_up(&expand_virtual_tables/1, analyst_tables?: false)
 
   # -------------------------------------------------------------------
   # UID handling

@@ -18,14 +18,15 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   @spec optimize(Query.t()) :: Query.t()
   def optimize(%Query{command: :show} = query), do: query
 
-  def optimize(%Query{command: :select} = query), do: Helpers.apply_top_down(query, &optimize_query/1)
+  def optimize(%Query{command: :select} = query),
+    do: Helpers.apply_top_down(query, &optimize_query/1, analyst_tables?: false)
 
   @doc "Rewrites anonymizing queries in order to offload per-user grouping and aggregation to the backend."
   @spec optimize_per_user_aggregation(Query.t()) :: Query.t()
   def optimize_per_user_aggregation(%Query{command: :show} = query), do: query
 
   def optimize_per_user_aggregation(%Query{command: :select} = query),
-    do: Helpers.apply_bottom_up(query, &offload_per_user_aggregation/1)
+    do: Helpers.apply_bottom_up(query, &offload_per_user_aggregation/1, analyst_tables?: false)
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -133,7 +134,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
   deflensp subqueries() do
     Lens.match(fn
       {:join, _} -> Lens.at(1) |> Lens.keys([:lhs, :rhs]) |> subqueries()
-      {:subquery, %{ast: _}} -> Lens.at(1)
+      {:subquery, %{ast: _}} -> Lens.at(1) |> Lens.filter(&is_nil(&1.ast.analyst_table))
       _other -> Lens.empty()
     end)
   end

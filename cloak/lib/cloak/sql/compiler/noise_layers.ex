@@ -21,17 +21,17 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     top_level_uid = Helpers.id_column(query)
 
     query
-    |> Helpers.apply_bottom_up(&calculate_base_noise_layers(&1, top_level_uid))
-    |> Helpers.apply_top_down(&push_down_noise_layers/1)
-    |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
-    |> Helpers.apply_top_down(&normalize_datasource_case/1)
+    |> Helpers.apply_bottom_up(&calculate_base_noise_layers(&1, top_level_uid), analyst_tables?: false)
+    |> Helpers.apply_top_down(&push_down_noise_layers/1, analyst_tables?: false)
+    |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1, analyst_tables?: false)
+    |> Helpers.apply_top_down(&normalize_datasource_case/1, analyst_tables?: false)
     |> remove_meaningless_negative_noise_layers()
     |> add_generic_uid_layer_if_needed(top_level_uid)
     |> replace_uid(top_level_uid)
   end
 
   def compile(query = %{command: :select, type: :standard}),
-    do: Lens.map(Query.Lenses.direct_subqueries() |> Lens.key(:ast), query, &compile/1)
+    do: Lens.map(Query.Lenses.direct_subqueries(analyst_tables?: false) |> Lens.key(:ast), query, &compile/1)
 
   def compile(query), do: query
 

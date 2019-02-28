@@ -44,10 +44,10 @@ defmodule Cloak.Sql.Compiler.Normalization do
   def postvalidation_normalizations(query),
     do:
       query
-      |> Helpers.apply_bottom_up(&normalize_trivial_like/1)
-      |> Helpers.apply_bottom_up(&normalize_bucket/1)
-      |> Helpers.apply_bottom_up(&normalize_anonymizing_aggregators/1)
-      |> Helpers.apply_bottom_up(&strip_source_location/1)
+      |> Helpers.apply_bottom_up(&normalize_trivial_like/1, analyst_tables?: false)
+      |> Helpers.apply_bottom_up(&normalize_bucket/1, analyst_tables?: false)
+      |> Helpers.apply_bottom_up(&normalize_anonymizing_aggregators/1, analyst_tables?: false)
+      |> Helpers.apply_bottom_up(&strip_source_location/1, analyst_tables?: false)
 
   # -------------------------------------------------------------------
   # Removing source location
