@@ -33,15 +33,9 @@ defmodule Cloak.Query.AnonimyzerTest do
       assert {nil, nil} = Anonymizer.new([MapSet.new()]) |> Anonymizer.avg(rows)
     end
 
-    test "stddev" do
-      # per-user row format = {:stddev, sum of values, sum of squared values, count of values}
-      rows = [{:stddev, 1, 1, 1}, {:stddev, 2, 4, 1}]
-      assert {nil, nil} = Anonymizer.new([MapSet.new()]) |> Anonymizer.stddev(rows)
-    end
-
     test "variance" do
-      # per-user row format = {:stddev, sum of values, sum of squared values, count of values}
-      rows = [{:stddev, 1, 1, 1}, {:stddev, 2, 4, 1}]
+      # per-user row format = {:variance, sum of values, sum of squared values, count of values}
+      rows = [{:variance, 1, 1, 1}, {:variance, 2, 4, 1}]
       assert {nil, nil} = Anonymizer.new([MapSet.new()]) |> Anonymizer.variance(rows)
     end
   end
@@ -88,35 +82,18 @@ defmodule Cloak.Query.AnonimyzerTest do
     assert {0.3, 0.0} = Anonymizer.new([MapSet.new()]) |> Anonymizer.avg(rows)
   end
 
-  test "stddev" do
-    # per-user row format = {:stddev, sum of values, sum of squared values, count of values}
-    rows = [
-      {:stddev, 1, 1, 1},
-      {:stddev, 2, 4, 1},
-      {:stddev, -1, 1, 1},
-      {:stddev, 0, 0, 1},
-      {:stddev, 1, 1, 1},
-      {:stddev, 2, 2, 2},
-      {:stddev, -4, 4, 4},
-      {:stddev, -2, 4, 1},
-      {:stddev, 4, 6, 3}
-    ]
-
-    assert {0.8988882021697692, 0.0} = Anonymizer.new([MapSet.new()]) |> Anonymizer.stddev(rows)
-  end
-
   test "variance" do
-    # per-user row format = {:stddev, sum of values, sum of squared values, count of values}
+    # per-user row format = {:variance, sum of values, sum of squared values, count of values}
     rows = [
-      {:stddev, 1, 1, 1},
-      {:stddev, 2, 4, 1},
-      {:stddev, -1, 1, 1},
-      {:stddev, 0, 0, 1},
-      {:stddev, 1, 1, 1},
-      {:stddev, 2, 2, 2},
-      {:stddev, -4, 4, 4},
-      {:stddev, -2, 4, 1},
-      {:stddev, 4, 6, 3}
+      {:variance, 1, 1, 1},
+      {:variance, 2, 4, 1},
+      {:variance, -1, 1, 1},
+      {:variance, 0, 0, 1},
+      {:variance, 1, 1, 1},
+      {:variance, 2, 2, 2},
+      {:variance, -4, 4, 4},
+      {:variance, -2, 4, 1},
+      {:variance, 4, 6, 3}
     ]
 
     assert {0.8079999999999998, 0.0} = Anonymizer.new([MapSet.new()]) |> Anonymizer.variance(rows)

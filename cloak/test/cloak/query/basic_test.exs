@@ -663,7 +663,7 @@ defmodule Cloak.Query.BasicTest do
         rows: [%{row: [stddev], occurrences: 1}]
       })
 
-      assert_in_delta(stddev, 172, 1)
+      assert_in_delta(stddev, 171, 1)
     end
 
     test "variance" do
@@ -673,7 +673,7 @@ defmodule Cloak.Query.BasicTest do
       })
 
       # comparing stddev (sqrt(variance)) to match the stddev test above
-      assert_in_delta(:math.sqrt(variance), 172, 1)
+      assert_in_delta(:math.sqrt(variance), 171, 1)
     end
 
     test "median" do
