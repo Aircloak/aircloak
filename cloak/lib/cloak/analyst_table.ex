@@ -138,6 +138,16 @@ defmodule Cloak.AnalystTable do
   @spec refresh() :: :ok
   def refresh(), do: GenServer.cast(__MODULE__, :refresh)
 
+  @doc "Verify if the table can be used in a query."
+  @spec validate_query_usage(t) :: :ok | {:error, String.t()}
+  def validate_query_usage(table) do
+    case table.status do
+      :creating -> {:error, "analyst table `#{table.name}` is still being created"}
+      :create_error -> {:error, "analyst table `#{table.name}` wasn't successfully created"}
+      :created -> :ok
+    end
+  end
+
   # -------------------------------------------------------------------
   # GenServer and Parent.GenServer callbacks
   # -------------------------------------------------------------------
