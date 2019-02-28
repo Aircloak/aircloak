@@ -64,20 +64,24 @@ defmodule Cloak.Sql.Query.Lenses do
   deflens buckets(), do: terminals() |> Lens.filter(&Function.bucket?/1)
 
   @doc "Lens focusing on all noise layers of subqueries of the query."
-  deflens subquery_noise_layers(), do: direct_subqueries() |> Lens.key(:ast) |> Lens.key(:noise_layers) |> Lens.all()
+  def subquery_noise_layers(opts \\ []),
+    do: direct_subqueries(opts) |> Lens.key(:ast) |> Lens.key(:noise_layers) |> Lens.all()
 
   @doc "Lens focusing on all queries (subqueries and top-level) of a query."
-  deflens all_queries(), do: Lens.both(subqueries(), Lens.root())
+  def all_queries(opts \\ []), do: Lens.both(subqueries(opts), Lens.root())
 
   @doc "Lens focusing on all subqueries (ignoring the top-level) of a query."
-  deflens subqueries(), do: Lens.recur(direct_subqueries() |> Lens.key(:ast))
+  def subqueries(opts \\ []), do: Lens.recur(direct_subqueries(opts) |> Lens.key(:ast))
 
   @doc "Lens focusing on a query's immediate subqueries"
-  deflens direct_subqueries() do
+  def direct_subqueries(opts \\ []) do
     Lens.key(:from)
     |> join_elements()
     |> Lens.filter(&match?({:subquery, _}, &1))
     |> Lens.at(1)
+    |> Lens.filter(fn subquery ->
+      Keyword.get(opts, :analyst_tables?, true) or is_nil(subquery.ast.analyst_table)
+    end)
   end
 
   @doc "Lens focusing on a query's immediate subqueries which represent analyst tables."
