@@ -142,6 +142,24 @@ defmodule Air.Service.View do
       |> DataSource.users()
       |> Enum.each(&revalidate_views(&1, data_source.id))
 
+  @doc "Stores the validation results of user views and notifies subscribers."
+  @spec store_view_validation_results(User.t(), integer, AirWeb.Socket.Cloak.MainChannel.validated_views()) :: :ok
+  def store_view_validation_results(user, data_source_id, results) do
+    for {name, result} <- results,
+        {:ok, valid} <- [view_status(result)] do
+      View
+      |> by_data_source_id(data_source_id)
+      |> by_user_id(user.id)
+      |> Repo.get_by!(name: name)
+      |> apply_view_changeset(%{broken: not valid})
+      |> Repo.update()
+    end
+
+    notify_subscribers(:revalidated_views, %{user_id: user.id, data_source_id: data_source_id})
+
+    :ok
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -170,30 +188,13 @@ defmodule Air.Service.View do
   end
 
   defp revalidate_views(user, data_source_id),
-    do:
-      Task.Supervisor.start_child(@cloak_validations_sup, fn ->
-        sync_revalidate_views!(user, data_source_id)
-      end)
+    do: Task.Supervisor.start_child(@cloak_validations_sup, fn -> sync_revalidate_views!(user, data_source_id) end)
 
   defp sync_revalidate_views!(user, data_source_id) do
     Logger.info("revalidating views for user #{user.id}, data source #{data_source_id}")
 
     {:ok, results} = validate_views(data_source_id, user, user_views_map(user, data_source_id))
-
-    for {name, result} <- results do
-      view =
-        View
-        |> by_data_source_id(data_source_id)
-        |> by_user_id(user.id)
-        |> Repo.get_by!(name: name)
-
-      case view_status(result) do
-        {:ok, valid} -> view |> apply_view_changeset(%{broken: not valid}) |> Repo.update()
-        :error -> :do_nothing
-      end
-    end
-
-    notify_subscribers(:revalidated_views, %{user_id: user.id, data_source_id: data_source_id})
+    store_view_validation_results(user, data_source_id, results)
   end
 
   defp validate_views(data_source_id, user, views) do

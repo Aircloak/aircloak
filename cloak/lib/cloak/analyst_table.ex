@@ -273,9 +273,6 @@ defmodule Cloak.AnalystTable do
 
   defp refresh_analyst_tables() do
     with {:ok, air_name} <- Cloak.Air.name() do
-      # we'll clear all known tables, and refresh from the database state
-      :ets.delete_all_objects(__MODULE__)
-
       Cloak.DataSource.all()
       |> Stream.filter(&(&1.status == :online && DataSource.analyst_tables_supported?(&1)))
       |> Task.async_stream(&refresh_data_source(air_name, &1),
@@ -287,8 +284,22 @@ defmodule Cloak.AnalystTable do
     end
   end
 
-  defp refresh_data_source(air_name, data_source),
-    do: air_name |> registered_analyst_tables(data_source) |> Enum.each(&store_table_definition/1)
+  defp refresh_data_source(air_name, data_source) do
+    tables = registered_analyst_tables(air_name, data_source)
+    Enum.each(tables, &store_table_definition/1)
+
+    # Now that we refreshed the tables from the database, we can remove ETS keys for the tables which are not registered
+    # in the database. These keys will correspond to the tables which were deleted on another cloak.
+    valid_keys = tables |> Stream.map(&key/1) |> MapSet.new()
+
+    Enum.each(
+      :ets.match(__MODULE__, {:"$1", :_}),
+      fn [{ets_air_name, _analyst_id, data_source_name, _table_name} = key] ->
+        if ets_air_name == air_name and data_source_name == data_source.name and not MapSet.member?(valid_keys, key),
+          do: :ets.delete(__MODULE__, key)
+      end
+    )
+  end
 
   @doc false
   def registered_analyst_tables(air_name, data_source),

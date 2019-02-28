@@ -152,6 +152,9 @@ defmodule Cloak.AirSocket do
     handle_air_call(request.event, request.payload, {transport, request.request_id}, state)
   end
 
+  def handle_message("main", "air_cast", request, transport, state),
+    do: handle_air_cast(request.event, request.payload, transport, state)
+
   def handle_message("main", "air_response", payload, _transport, state) do
     request_id = payload.request_id
 
@@ -316,9 +319,12 @@ defmodule Cloak.AirSocket do
              data_source,
              data.parameters,
              data.views
-           ),
-         do: respond_to_air(from, :ok, described_columns),
-         else: ({:error, reason} -> respond_to_air(from, :error, reason))
+           ) do
+      view_validation_result = validate_views(data.analyst_id, data_source, data.views)
+      respond_to_air(from, :ok, {described_columns, view_validation_result})
+    else
+      {:error, reason} -> respond_to_air(from, :error, reason)
+    end
 
     {:ok, state}
   end
@@ -326,9 +332,18 @@ defmodule Cloak.AirSocket do
   defp handle_air_call("drop_analyst_table", data, from, state) do
     with {:ok, data_source} <- fetch_data_source(data.data_source),
          :ok <- Cloak.AnalystTable.drop_table(data.analyst_id, data.table_name, data_source),
-         do: respond_to_air(from, :ok),
+         do: respond_to_air(from, :ok, validate_views(data.analyst_id, data_source, data.views)),
          else: ({:error, reason} -> respond_to_air(from, :error, reason))
 
+    {:ok, state}
+  end
+
+  # -------------------------------------------------------------------
+  # Handling air async casts
+  # -------------------------------------------------------------------
+
+  defp handle_air_cast("refresh_analyst_tables", _payload, _transport, state) do
+    Cloak.AnalystTable.refresh()
     {:ok, state}
   end
 

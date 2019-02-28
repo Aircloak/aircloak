@@ -100,7 +100,7 @@ defmodule Cloak.Sql.Query do
           anonymization_type: String.t()
         }
 
-  @type described_columns :: [%{name: String.t(), type: String.t(), user_id: boolean}]
+  @type described_columns :: [%{name: String.t(), type: String.t(), key_type: String.t()}]
 
   defstruct columns: [],
             where: nil,
