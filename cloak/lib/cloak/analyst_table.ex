@@ -181,20 +181,18 @@ defmodule Cloak.AnalystTable do
   end
 
   @impl Parent.GenServer
-  def handle_child_terminated(_job_id, job, _pid, reason, state) do
-    with {:create_table, table} <- job do
-      table =
-        if reason == :normal do
-          Logger.info("Created analyst table #{log_table_info(table)}")
-          %{table | status: :created}
-        else
-          Logger.error("Error creating analyst table: #{log_table_info(table)}: #{inspect(reason)}")
-          %{table | status: :create_error}
-        end
+  def handle_child_terminated(_job_id, {:create_table, table} = job, _pid, reason, state) do
+    table =
+      if reason == :normal do
+        Logger.info("Created analyst table #{log_table_info(table)}")
+        %{table | status: :created}
+      else
+        Logger.error("Error creating analyst table: #{log_table_info(table)}: #{inspect(reason)}")
+        %{table | status: :create_error}
+      end
 
-      store_table_definition(table)
-      Cloak.AirSocket.send_analyst_table_state_update(table.analyst, table.name, table.data_source_name, table.status)
-    end
+    store_table_definition(table)
+    Cloak.AirSocket.send_analyst_table_state_update(table.analyst, table.name, table.data_source_name, table.status)
 
     {:noreply, state.jobs |> update_in(&Jobs.job_finished(&1, job)) |> start_next_jobs()}
   end
@@ -250,26 +248,16 @@ defmodule Cloak.AnalystTable do
     %{state | jobs: jobs}
   end
 
-  defp start_next_job(state, job) do
-    job_fun = job_fun(job, state)
+  defp start_next_job(state, {:create_table, table}) do
+    store_fun = Map.get(state, :store_fun, &store_table_to_database/2)
 
     {:ok, _} =
       Parent.GenServer.start_child(%{
-        id: job_id(job),
-        meta: job,
-        start: {Task, :start_link, [job_fun]},
+        id: create_table_job_id(table),
+        meta: {:create_table, table},
+        start: {Task, :start_link, [fn -> store_table(table, store_fun) end]},
         shutdown: :brutal_kill
       })
-  end
-
-  defp job_id({:serialized, _fun}), do: :serialized
-  defp job_id({:create_table, table}), do: create_table_job_id(table)
-
-  defp job_fun({:serialized, fun}, _state), do: fun
-
-  defp job_fun({:create_table, table}, state) do
-    store_fun = Map.get(state, :store_fun, &store_table_to_database/2)
-    fn -> store_table(table, store_fun) end
   end
 
   defp refresh_analyst_tables() do
