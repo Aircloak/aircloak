@@ -1,16 +1,10 @@
 defmodule Cloak.AnalystTable.Jobs do
-  @moduledoc """
-  Manages the queue of pending jobs.
-
-  This module distinguishes between create table jobs and serialized jobs. It allows multiple create table jobs to run
-  concurrently, while the serialized job is exclusive - while it is runniing, no other job of any kind is allowed to
-  run.
-  """
+  @moduledoc "Manages the queue of pending create table jobs."
 
   @max_concurrent_stores 5
 
   @opaque t :: %{queue: :queue.queue(job), running: [job]}
-  @type job :: {:create_table, Cloak.AnalystTable.t()} | {:serialized, (() -> any)}
+  @type job :: {:create_table, Cloak.AnalystTable.t()}
 
   # -------------------------------------------------------------------
   # API functions
@@ -22,11 +16,9 @@ defmodule Cloak.AnalystTable.Jobs do
 
   @doc "Puts the job into the queue."
   @spec enqueue_job(t, job) :: t
-  def enqueue_job(jobs, job) do
-    if match?({:create_table, _table}, job) do
-      false = Enum.member?(jobs.running, job)
-      false = Enum.member?(:queue.to_list(jobs.queue), job)
-    end
+  def enqueue_job(jobs, {:create_table, _} = job) do
+    false = Enum.member?(jobs.running, job)
+    false = Enum.member?(:queue.to_list(jobs.queue), job)
 
     update_in(jobs.queue, &:queue.in(job, &1))
   end
@@ -48,8 +40,6 @@ defmodule Cloak.AnalystTable.Jobs do
     %{jobs | running: remaining}
   end
 
-  def job_finished(%{running: [{:serialized, fun}]} = jobs, {:serialized, fun}), do: %{jobs | running: []}
-
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -62,25 +52,8 @@ defmodule Cloak.AnalystTable.Jobs do
   end
 
   defp mark_job_as_running(jobs, job) do
-    if can_run?(jobs, job) do
-      {:ok, update_in(jobs.running, &[job | &1])}
-    else
-      :error
-    end
+    if length(jobs.running) < @max_concurrent_stores,
+      do: {:ok, update_in(jobs.running, &[job | &1])},
+      else: :error
   end
-
-  defp can_run?(jobs, job) do
-    cond do
-      jobs.running == [] -> true
-      serialized_job?(job) -> false
-      running_serialized?(jobs) -> false
-      length(jobs.running) == @max_concurrent_stores -> false
-      true -> true
-    end
-  end
-
-  @doc false
-  def running_serialized?(jobs), do: Enum.any?(jobs.running, &serialized_job?(&1))
-
-  defp serialized_job?(job), do: match?({:serialized, _}, job)
 end
