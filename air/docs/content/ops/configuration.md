@@ -463,7 +463,9 @@ An example configuration for a virtual table would look like this:
     FROM t1 INNER JOIN t2 ON t1.pk = t2.fk
     WHERE t2.age > 18
   ",
-  "user_id": "uid"
+  "keys": [
+    {"user_id": "id"}
+  ]
 }
 ```
 
@@ -806,7 +808,9 @@ the following configuration file will do the trick:
 ```
 "t": {
   "query": "SELECT uid, x, z FROM t",
-  "user_id": "uid"
+  "keys": [
+    {"user_id": "id"}
+  ]
 }
 ```
 
@@ -818,7 +822,9 @@ columns. For example:
 ```
 "t": {
   "query": "SELECT 0 AS y, t.* FROM t",
-  "user_id": "uid"
+  "keys": [
+    {"user_id": "id"}
+  ]
 }
 ```
 
