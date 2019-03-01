@@ -446,11 +446,9 @@ defmodule Compliance.AnalystTableTest do
   end
 
   defp clear_analyst_tables(data_source) do
-    AnalystTable.sync_serialized(fn ->
-      data_source |> stored_tables() |> Enum.each(&drop_table!(data_source, &1))
-      truncate_table!(data_source, "__ac_analyst_tables_1")
-      :ets.match_delete(AnalystTable, {{:_, :_, data_source.name, :_}, :_})
-    end)
+    AnalystTable.reset_data_source(data_source.name)
+    data_source |> stored_tables() |> Enum.each(&drop_table!(data_source, &1))
+    truncate_table!(data_source, "__ac_analyst_tables_1")
   end
 
   defp create_or_update(analyst_id, name, statement, data_source) do

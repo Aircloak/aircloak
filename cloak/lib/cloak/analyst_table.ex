@@ -128,11 +128,6 @@ defmodule Cloak.AnalystTable do
          do: {:ok, Query.to_table(query, Keyword.get(opts, :name, table.name), type: :analyst, db_name: table.db_name)}
   end
 
-  @doc "Synchronously invoked the function as serialized, blocking all other store operations."
-  @spec sync_serialized((() -> res), non_neg_integer | :infinity) :: res when res: var
-  def sync_serialized(fun, timeout \\ :timer.seconds(5)),
-    do: GenServer.call(__MODULE__, {:sync_serialized, fun}, timeout)
-
   @doc "Notifies the server process that data sources have been changed."
   @spec refresh() :: :ok
   def refresh(), do: GenServer.cast(__MODULE__, :refresh)
@@ -158,8 +153,14 @@ defmodule Cloak.AnalystTable do
   end
 
   @impl GenServer
-  def handle_call({:sync_serialized, fun}, from, state),
-    do: {:noreply, enqueue_job(state, {:serialized, fn -> GenServer.reply(from, fun.()) end})}
+  def handle_call({:reset_data_source, data_source_name}, _from, state) do
+    for {{:create_table, %{data_source_name: ^data_source_name}} = job_id, _pid, _meta} <- Parent.GenServer.children(),
+        do: Parent.GenServer.shutdown_child(job_id)
+
+    :ets.match_delete(__MODULE__, {{:_, :_, data_source_name, :_}, :_})
+
+    {:reply, :ok, state}
+  end
 
   def handle_call({:store_table, table}, _from, state) do
     state = stop_job(state, create_table_job_id(table))
@@ -330,6 +331,9 @@ defmodule Cloak.AnalystTable do
   # -------------------------------------------------------------------
   # Helpers for testing
   # -------------------------------------------------------------------
+
+  @doc false
+  def reset_data_source(data_source_name), do: GenServer.call(__MODULE__, {:reset_data_source, data_source_name})
 
   @doc false
   def with_custom_store_fun(store_fun, fun) do
