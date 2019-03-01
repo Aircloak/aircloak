@@ -95,7 +95,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Enum.map(fn column ->
         build_noise_layer(column, extras, [_min = column, _max = column | rest])
       end)
-      |> drop_redundant_noise_layers_columns(query.columns)
+      |> drop_redundant_noise_layers_columns(query)
 
     update_in(query, [Lens.key(:noise_layers)], &(&1 ++ layers))
   end
@@ -116,7 +116,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         do: float_noise_layers(query.noise_layers ++ floated_noise_layers(query), query),
         else: query.noise_layers ++ floated_noise_layers(query)
 
-    %{query | noise_layers: drop_redundant_noise_layers_columns(noise_layers, query.columns)}
+    %{query | noise_layers: drop_redundant_noise_layers_columns(noise_layers, query)}
   end
 
   defp float_noise_layers(layers, query), do: Enum.map(layers, &float_noise_layer(&1, query))
@@ -201,10 +201,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         like_noise_layers(query, top_level_uid) ++
         range_noise_layers(query, top_level_uid) ++ not_equals_noise_layers(query, top_level_uid)
 
-    %Query{query | noise_layers: drop_redundant_noise_layers_columns(noise_layers, query.columns)}
+    %Query{query | noise_layers: drop_redundant_noise_layers_columns(noise_layers, query)}
   end
 
-  defp drop_redundant_noise_layers_columns(noise_layers, selected_columns) do
+  defp drop_redundant_noise_layers_columns(noise_layers, query) do
     all_expressions =
       noise_layers
       |> Enum.flat_map(& &1.expressions)
@@ -218,11 +218,21 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.reject(& &1.constant?)
     |> Lens.map(
       noise_layers,
-      &set_noise_layer_expression_alias(&1, all_expressions, selected_columns)
+      &set_noise_layer_expression_alias(&1, all_expressions, query)
     )
   end
 
-  defp set_noise_layer_expression_alias(expression, all_expressions, selected_columns) do
+  defp set_noise_layer_expression_alias(expression, all_expressions, query = %{analyst_table: analyst_table})
+       when not is_nil(analyst_table) do
+    if Enum.any?(analyst_table.columns, &(&1.name == expression.name)) do
+      expression
+    else
+      set_noise_layer_expression_alias(expression, all_expressions, %{query | analyst_table: nil})
+    end
+  end
+
+  defp set_noise_layer_expression_alias(expression, all_expressions, query) do
+    selected_columns = query.columns
     expression_matcher = &Expression.equals?(&1, expression)
     existing_expression = Enum.find(selected_columns, expression_matcher)
 

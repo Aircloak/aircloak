@@ -16,6 +16,7 @@ defmodule Cloak.AnalystTable do
           data_source_name: String.t(),
           db_name: String.t(),
           fingerprint: binary(),
+          columns: Query.described_columns(),
           status: :creating | :created | :create_error
         }
 
@@ -50,6 +51,7 @@ defmodule Cloak.AnalystTable do
 
       # make sure the name is not longer than 30 characters to avoid possible issues with some databases, such as Oracle
       db_name = String.slice("__ac_#{encoded_hash}", 0, 30)
+      columns = query |> Query.describe_selected() |> Enum.reject(&String.starts_with?(&1.name, NoiseLayers.prefix()))
 
       table = %{
         air_name: air_name,
@@ -60,11 +62,12 @@ defmodule Cloak.AnalystTable do
         db_name: db_name,
         store_info: store_info(db_name, data_source, query),
         fingerprint: fingerprint(db_name, data_source, query),
+        columns: columns,
         status: :creating
       }
 
       GenServer.call(__MODULE__, {:store_table, table})
-      {:ok, query |> Query.describe_selected() |> Enum.reject(&String.starts_with?(&1.name, NoiseLayers.prefix()))}
+      {:ok, columns}
     end
   end
 
