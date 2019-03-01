@@ -321,6 +321,7 @@ defmodule Cloak.DataSource do
     |> Map.put_new(:lcf_buckets_aggregation_limit, nil)
     |> Validations.Name.ensure_permitted()
     |> potentially_create_temp_name()
+    |> warn_on_obsolete_fields()
     |> Table.map_tables()
     |> map_driver()
   end
@@ -460,6 +461,38 @@ defmodule Cloak.DataSource do
   end
 
   defp unclassified_table_columns_to_column_list({table_name, columns}), do: Enum.map(columns, &"- #{table_name}.#{&1}")
+
+  defp obsolete_fields_warning({name, table}) do
+    [:user_id, :projections, :decoders, :ignore_unsupported_types]
+    |> Enum.filter(&Map.has_key?(table, &1))
+    |> case do
+      [] ->
+        []
+
+      [obsolete_field] ->
+        [
+          "Table `#{name}` uses the obsolete configuration field `#{obsolete_field}`. " <>
+            "This field has been marked deprecated and won't be available in the next version."
+        ]
+
+      obsolete_fields ->
+        obsolete_fields_list = obsolete_fields |> Enum.map(&"`#{&1}`") |> Enum.join(", ")
+
+        [
+          "Table `#{name}` uses the following obsolete configuration fields: #{obsolete_fields_list}. " <>
+            "These fields have been marked deprecated and won't be available in the next version."
+        ]
+    end
+  end
+
+  defp warn_on_obsolete_fields(data_source) do
+    data_source.tables
+    |> Enum.flat_map(&obsolete_fields_warning/1)
+    |> Enum.reduce(data_source, fn warning, data_source ->
+      Logger.warn("Data source `#{data_source.name}`: #{warning}")
+      add_error_message(data_source, warning)
+    end)
+  end
 
   # -------------------------------------------------------------------
   # Supervison tree callback
