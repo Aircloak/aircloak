@@ -11,14 +11,6 @@ defmodule Cloak.AnalystTable.JobsTest do
     end
   end
 
-  property "a serialized job is always running isolated" do
-    check all operations <- list_of(operation()) do
-      operations
-      |> all_states()
-      |> Enum.each(&if Jobs.running_serialized?(&1.jobs), do: assert(length(&1.jobs.running) == 1))
-    end
-  end
-
   property "no more than five jobs are running at the same time" do
     check all operations <- list_of(operation()) do
       operations
@@ -26,31 +18,6 @@ defmodule Cloak.AnalystTable.JobsTest do
       |> Enum.each(&assert(length(&1.jobs.running) <= 5))
     end
   end
-
-  property "as much of concurrent jobs as possible are taken" do
-    check all input_jobs <- list_of(job()) do
-      input_jobs
-      |> Enum.reduce(Jobs.new(), &Jobs.enqueue_job(&2, &1))
-      |> Stream.iterate(fn jobs ->
-        case Jobs.next_jobs(jobs) do
-          {[], jobs} ->
-            assert queue_empty?(jobs)
-            nil
-
-          {running_jobs, jobs} ->
-            if length(running_jobs) < 5,
-              do: assert(queue_empty?(jobs) or Jobs.running_serialized?(jobs) or next_job_serialized?(jobs)),
-              else: assert(Enum.all?(running_jobs, &match?({:create_table, _}, &1)))
-
-            Enum.reduce(running_jobs, jobs, &Jobs.job_finished(&2, &1))
-        end
-      end)
-      |> Enum.find(&is_nil(&1))
-    end
-  end
-
-  defp queue_empty?(jobs), do: :queue.to_list(jobs.queue) == []
-  defp next_job_serialized?(jobs), do: match?({:serialized, _}, hd(:queue.to_list(jobs.queue)))
 
   defp input_jobs(operations),
     do: operations |> Stream.filter(&match?({:store_job, _job}, &1)) |> Enum.map(fn {:store_job, job} -> job end)
@@ -87,20 +54,11 @@ defmodule Cloak.AnalystTable.JobsTest do
 
   defp operation() do
     frequency([
-      {3, {:store_job, job()}},
+      {3, {:store_job, create_table_job()}},
       {2, :next_jobs},
       {1, :job_finished}
     ])
   end
-
-  defp job() do
-    frequency([
-      {9, create_table_job()},
-      {1, serialized_job()}
-    ])
-  end
-
-  defp serialized_job(), do: map(atom(:alphanumeric), fn result -> {:serialized, fn -> result end} end)
 
   defp create_table_job(), do: {:create_table, table()}
 

@@ -128,11 +128,6 @@ defmodule Cloak.AnalystTable do
          do: {:ok, Query.to_table(query, Keyword.get(opts, :name, table.name), type: :analyst, db_name: table.db_name)}
   end
 
-  @doc "Synchronously invoked the function as serialized, blocking all other store operations."
-  @spec sync_serialized((() -> res), non_neg_integer | :infinity) :: res when res: var
-  def sync_serialized(fun, timeout \\ :timer.seconds(5)),
-    do: GenServer.call(__MODULE__, {:sync_serialized, fun}, timeout)
-
   @doc "Notifies the server process that data sources have been changed."
   @spec refresh() :: :ok
   def refresh(), do: GenServer.cast(__MODULE__, :refresh)
@@ -158,8 +153,14 @@ defmodule Cloak.AnalystTable do
   end
 
   @impl GenServer
-  def handle_call({:sync_serialized, fun}, from, state),
-    do: {:noreply, enqueue_job(state, {:serialized, fn -> GenServer.reply(from, fun.()) end})}
+  def handle_call({:reset_data_source, data_source_name}, _from, state) do
+    for {{:create_table, %{data_source_name: ^data_source_name}} = job_id, _pid, _meta} <- Parent.GenServer.children(),
+        do: Parent.GenServer.shutdown_child(job_id)
+
+    :ets.match_delete(__MODULE__, {{:_, :_, data_source_name, :_}, :_})
+
+    {:reply, :ok, state}
+  end
 
   def handle_call({:store_table, table}, _from, state) do
     state = stop_job(state, create_table_job_id(table))
@@ -180,20 +181,18 @@ defmodule Cloak.AnalystTable do
   end
 
   @impl Parent.GenServer
-  def handle_child_terminated(_job_id, job, _pid, reason, state) do
-    with {:create_table, table} <- job do
-      table =
-        if reason == :normal do
-          Logger.info("Created analyst table #{log_table_info(table)}")
-          %{table | status: :created}
-        else
-          Logger.error("Error creating analyst table: #{log_table_info(table)}: #{inspect(reason)}")
-          %{table | status: :create_error}
-        end
+  def handle_child_terminated(_job_id, {:create_table, table} = job, _pid, reason, state) do
+    table =
+      if reason == :normal do
+        Logger.info("Created analyst table #{log_table_info(table)}")
+        %{table | status: :created}
+      else
+        Logger.error("Error creating analyst table: #{log_table_info(table)}: #{inspect(reason)}")
+        %{table | status: :create_error}
+      end
 
-      store_table_definition(table)
-      Cloak.AirSocket.send_analyst_table_state_update(table.analyst, table.name, table.data_source_name, table.status)
-    end
+    store_table_definition(table)
+    Cloak.AirSocket.send_analyst_table_state_update(table.analyst, table.name, table.data_source_name, table.status)
 
     {:noreply, state.jobs |> update_in(&Jobs.job_finished(&1, job)) |> start_next_jobs()}
   end
@@ -249,26 +248,16 @@ defmodule Cloak.AnalystTable do
     %{state | jobs: jobs}
   end
 
-  defp start_next_job(state, job) do
-    job_fun = job_fun(job, state)
+  defp start_next_job(state, {:create_table, table}) do
+    store_fun = Map.get(state, :store_fun, &store_table_to_database/2)
 
     {:ok, _} =
       Parent.GenServer.start_child(%{
-        id: job_id(job),
-        meta: job,
-        start: {Task, :start_link, [job_fun]},
+        id: create_table_job_id(table),
+        meta: {:create_table, table},
+        start: {Task, :start_link, [fn -> store_table(table, store_fun) end]},
         shutdown: :brutal_kill
       })
-  end
-
-  defp job_id({:serialized, _fun}), do: :serialized
-  defp job_id({:create_table, table}), do: create_table_job_id(table)
-
-  defp job_fun({:serialized, fun}, _state), do: fun
-
-  defp job_fun({:create_table, table}, state) do
-    store_fun = Map.get(state, :store_fun, &store_table_to_database/2)
-    fn -> store_table(table, store_fun) end
   end
 
   defp refresh_analyst_tables() do
@@ -330,6 +319,9 @@ defmodule Cloak.AnalystTable do
   # -------------------------------------------------------------------
   # Helpers for testing
   # -------------------------------------------------------------------
+
+  @doc false
+  def reset_data_source(data_source_name), do: GenServer.call(__MODULE__, {:reset_data_source, data_source_name})
 
   @doc false
   def with_custom_store_fun(store_fun, fun) do
