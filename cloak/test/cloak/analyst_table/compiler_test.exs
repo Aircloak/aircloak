@@ -22,8 +22,8 @@ defmodule Cloak.AnalystTable.CompilerTest do
       {:ok, query} = compile("table_name", "select user_id, hash(y) from mv1")
 
       assert db_select(query) ==
-               ~s/SELECT "mv1"."user_id" AS "user_id",SUBSTR(MD5("mv1"."y"::text), 5, 8) AS "hash" / <>
-                 ~s/FROM "cloak_test"."mv1" AS "mv1"/
+               ~s/SELECT "mv1"."user_id" AS "user_id",SUBSTR(MD5("mv1"."y"::text), 5, 8) AS "hash",/ <>
+                 ~s/"mv1"."y" AS "__ac_nlc__0" FROM "cloak_test"."mv1" AS "mv1"/
     end
 
     test "subquery support" do
@@ -106,6 +106,34 @@ defmodule Cloak.AnalystTable.CompilerTest do
     test "unbounded ranges are not allowed" do
       assert {:error, error} = compile("table_name", "select user_id, x from mv1 where x > 10")
       assert error == "Column `x` from table `mv1` must be limited to a finite, nonempty range."
+    end
+  end
+
+  describe "potential noise layer components" do
+    test "from select list" do
+      {:ok, query} = compile("table_name", "select user_id, x * x AS x from mv1")
+
+      assert db_select(query) ==
+               ~s/SELECT "mv1"."user_id" AS "user_id",("mv1"."x"*"mv1"."x") AS "x","mv1"."x" AS "__ac_nlc__0"/ <>
+                 ~s/ FROM "cloak_test"."mv1" AS "mv1"/
+    end
+
+    test "with a condition" do
+      {:ok, query} = compile("table_name", "select user_id from mv1 WHERE x * x = 10")
+
+      assert db_select(query) ==
+               ~s/SELECT "mv1"."user_id" AS "user_id","mv1"."x" AS "__ac_nlc__0"/ <>
+                 ~s/ FROM "cloak_test"."mv1" AS "mv1" WHERE ("mv1"."x"*"mv1"."x") = 10/
+    end
+
+    test "with aggregation" do
+      {:ok, query} = compile("table_name", "select user_id, x * x AS x FROM mv1 GROUP BY 1, 2")
+
+      assert db_select(query) ==
+               ~s/SELECT "mv1"."user_id" AS "user_id",("mv1"."x"*"mv1"."x") AS "x",/ <>
+                 ~s/MIN("mv1"."x") AS "__ac_nlc__0",/ <>
+                 ~s/MAX("mv1"."x") AS "__ac_nlc__1",COUNT(*) AS "__ac_nlc__2"/ <>
+                 ~s/ FROM "cloak_test"."mv1" AS "mv1" GROUP BY "mv1"."user_id", ("mv1"."x"*"mv1"."x")/
     end
   end
 

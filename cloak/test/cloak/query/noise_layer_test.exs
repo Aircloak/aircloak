@@ -193,4 +193,89 @@ defmodule Cloak.Query.NoiseLayerTest do
     assert_query(query1, %{rows: [%{row: [count]}]})
     assert_query(query2, %{rows: [%{row: [^count]}]})
   end
+
+  describe "same noise for analyst table and regular subquery" do
+    setup do
+      for data_source <- Cloak.DataSource.all() do
+        Cloak.Test.AnalystTableHelpers.clear_analyst_tables(data_source)
+      end
+
+      Cloak.Air.register_air("some air")
+      on_exit(fn -> Cloak.Air.unregister_air() end)
+    end
+
+    test "condition in query" do
+      :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [10])
+      :ok = insert_rows(_user_ids = 11..20, "noise_layers", ["number"], [11])
+
+      query = "SELECT count(*) FROM $subquery WHERE column = 100"
+      subquery = "SELECT user_id, number * number AS column FROM noise_layers"
+
+      assert_analyst_table_consistent(query, subquery)
+    end
+
+    test "condition in analyst table" do
+      :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [10])
+      :ok = insert_rows(_user_ids = 11..20, "noise_layers", ["number"], [11])
+
+      query = "SELECT count(*) FROM $subquery"
+      subquery = "SELECT user_id, number * number AS column FROM noise_layers WHERE number = 100"
+
+      assert_analyst_table_consistent(query, subquery)
+    end
+
+    test "aggregated subquery" do
+      :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [10])
+      :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [-10])
+      :ok = insert_rows(_user_ids = 11..20, "noise_layers", ["number"], [11])
+
+      query = "SELECT count(*) FROM $subquery WHERE column = 100"
+      subquery = "SELECT user_id, number * number AS column FROM noise_layers GROUP BY 1, 2"
+
+      assert_analyst_table_consistent(query, subquery)
+    end
+
+    test "nested analyst tables" do
+      :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number", "other"], [10, 1])
+      :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number", "other"], [-10, 2])
+      :ok = insert_rows(_user_ids = 11..20, "noise_layers", ["number", "other"], [11, 1])
+
+      for data_source <- Cloak.DataSource.all() do
+        {:ok, _} =
+          Cloak.Test.AnalystTableHelpers.create_or_update(
+            1,
+            "bar",
+            "SELECT user_id, number FROM noise_layers WHERE sqrt(other) = 1",
+            data_source
+          )
+      end
+
+      query = "SELECT count(*) FROM $subquery WHERE column = 100"
+      subquery = "SELECT user_id, number * number AS column FROM bar GROUP BY 1, 2"
+
+      assert_analyst_table_consistent(query, subquery)
+    end
+
+    test "noise layer requires selected column" do
+      :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [10])
+      :ok = insert_rows(_user_ids = 11..20, "noise_layers", ["number"], [11])
+
+      query = "SELECT count(*) FROM $subquery"
+      subquery = "SELECT * FROM noise_layers WHERE number * number = 100"
+
+      assert_analyst_table_consistent(query, subquery)
+    end
+
+    def assert_analyst_table_consistent(query, subquery) do
+      regular_query = query |> String.replace("$subquery", "(#{subquery}) AS foo")
+      analyst_query = query |> String.replace("$subquery", "foo")
+
+      for data_source <- Cloak.DataSource.all() do
+        {:ok, _} = Cloak.Test.AnalystTableHelpers.create_or_update(1, "foo", subquery, data_source)
+
+        assert_query(regular_query, [analyst_id: 1, data_source: data_source], %{rows: result_regular})
+        assert_query(analyst_query, [analyst_id: 1, data_source: data_source], %{rows: ^result_regular})
+      end
+    end
+  end
 end

@@ -5,6 +5,7 @@ defmodule Cloak.AnalystTable do
   require Logger
   alias Cloak.DataSource
   alias Cloak.Sql.Query
+  alias Cloak.Sql.Compiler.NoiseLayers
   alias __MODULE__.{Compiler, Jobs}
 
   @type t :: %{
@@ -63,7 +64,8 @@ defmodule Cloak.AnalystTable do
       }
 
       GenServer.call(__MODULE__, {:store_table, table})
-      {:ok, Query.describe_selected(query)}
+
+      {:ok, query |> Query.describe_selected() |> Enum.reject(&String.starts_with?(&1.name, NoiseLayers.prefix()))}
     end
   end
 
@@ -301,7 +303,18 @@ defmodule Cloak.AnalystTable do
 
   defp log_table_info(table), do: table |> Map.take(~w/air_name data_source_name analyst name db_name/a) |> inspect()
 
-  defp fingerprint(db_name, data_source, query), do: :crypto.hash(:sha256, store_info(db_name, data_source, query))
+  defp fingerprint(db_name, data_source, query),
+    do: :crypto.hash(:sha256, fingerprint_data(db_name, data_source, query) |> :erlang.term_to_binary())
+
+  defp fingerprint_data(db_name, data_source, query),
+    do: {store_info(db_name, data_source, query), fingerprint_noise_layers(query)}
+
+  defp fingerprint_noise_layers(query) do
+    {
+      query.noise_layers,
+      query |> get_in([Query.Lenses.direct_subqueries() |> Lens.key(:ast)]) |> Enum.map(&fingerprint_noise_layers/1)
+    }
+  end
 
   defp store_info(db_name, data_source, query), do: data_source.driver.prepare_analyst_table(db_name, query)
 

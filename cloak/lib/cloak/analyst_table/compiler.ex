@@ -60,7 +60,10 @@ defmodule Cloak.AnalystTable.Compiler do
     # This is the real compilation of the analyst table query. Here, we're compiling the anonymized query
     # `select * from #{analyst_query}` to enforce aircloak restrictions, such as range alignments.
     with {:ok, parsed_query} <- Cloak.Sql.Parser.parse("select * from (#{statement}) sq") do
-      query = Compiler.core_compile!(parsed_query, analyst, data_source, parameters, views)
+      query =
+        Compiler.core_compile!(parsed_query, analyst, data_source, parameters, views)
+        |> Compiler.NoiseLayers.compile()
+
       {:subquery, %{ast: subquery}} = query.from
       {:ok, Query.resolve_db_columns(subquery)}
     end
