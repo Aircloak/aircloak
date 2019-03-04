@@ -224,6 +224,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp set_noise_layer_expression_alias(expression, all_expressions, query = %{analyst_table: analyst_table})
        when not is_nil(analyst_table) do
+    {:ok, analyst_table} = Cloak.AnalystTable.to_cloak_table(analyst_table, query.views)
+
     if Enum.any?(analyst_table.columns, &(&1.name == expression.name)) do
       expression
     else
