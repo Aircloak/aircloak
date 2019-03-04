@@ -34,7 +34,8 @@ const VIEW_INVALID_MESSAGE =
   `This view is no longer valid. ${ERROR_REASON_MESSAGE}`;
 
 const TABLE_INVALID_MESSAGE =
-  `This table creation failed or the table is no longer valid. ${ERROR_REASON_MESSAGE}`;
+  `This table creation failed or the table is no longer valid. ${ERROR_REASON_MESSAGE}. ` +
+    `More information may be available in Insights Cloak logs - contact your administrator for access.`;
 
 export class SelectableView extends React.Component {
   handleToggleClick: () => void;
