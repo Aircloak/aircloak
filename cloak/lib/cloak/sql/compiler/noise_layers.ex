@@ -19,6 +19,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     top_level_uid = Helpers.id_column(query)
 
     query
+    |> compile_analyst_table_columns()
     |> Helpers.apply_bottom_up(&calculate_base_noise_layers(&1, top_level_uid))
     |> Helpers.apply_top_down(&push_down_noise_layers/1)
     |> Helpers.apply_bottom_up(&calculate_floated_noise_layers/1)
@@ -26,6 +27,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> remove_meaningless_negative_noise_layers()
     |> add_generic_uid_layer_if_needed(top_level_uid)
     |> replace_uid(top_level_uid)
+    |> strip_analyst_table_columns()
   end
 
   def compile(query = %{command: :select, type: :standard}),
@@ -44,6 +46,22 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   @doc "Returns the alias prefix used for noise layer expressions."
   @spec prefix() :: String.t()
   def prefix(), do: "__ac_nlc__"
+
+  # -------------------------------------------------------------------
+  # Analyst tables
+  # -------------------------------------------------------------------
+
+  defp compile_analyst_table_columns(query) do
+    # Recomputing these for every condition becomes far too slow in the presence of nested analyst tables
+
+    update_in(query, [Query.Lenses.all_queries() |> Lens.filter(& &1.analyst_table)], fn query ->
+      {:ok, %{columns: columns}} = Cloak.AnalystTable.to_cloak_table(query.analyst_table, query.views)
+      %{query | analyst_table: {query.analyst_table, columns}}
+    end)
+  end
+
+  defp strip_analyst_table_columns(query),
+    do: update_in(query, [Query.Lenses.all_queries() |> Lens.key(:analyst_table) |> Lens.filter(& &1)], &elem(&1, 0))
 
   # -------------------------------------------------------------------
   # Cleanup
@@ -222,11 +240,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     )
   end
 
-  defp set_noise_layer_expression_alias(expression, all_expressions, query = %{analyst_table: analyst_table})
-       when not is_nil(analyst_table) do
-    {:ok, analyst_table} = Cloak.AnalystTable.to_cloak_table(analyst_table, query.views)
-
-    if Enum.any?(analyst_table.columns, &(&1.name == expression.name)) do
+  defp set_noise_layer_expression_alias(expression, all_expressions, query = %{analyst_table: {_, columns}}) do
+    if Enum.any?(columns, &(&1.name == expression.name)) do
       expression
     else
       set_noise_layer_expression_alias(expression, all_expressions, %{query | analyst_table: nil})
