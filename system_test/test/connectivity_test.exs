@@ -12,7 +12,7 @@ defmodule SystemTest.Connectivity do
     assert data_source_names == ~w(postgresql9_4 postgresql9_4_encoded sap_hana sqlserver)
 
     Enum.each(data_sources, fn data_source ->
-      assert Map.fetch!(data_source, "errors") == []
+      assert Map.fetch!(data_source, "errors") |> Enum.reject(&String.contains?(&1, " deprecated ")) == []
 
       tables = Map.fetch!(data_source, "tables")
       assert tables != []
