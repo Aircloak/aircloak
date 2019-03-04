@@ -121,6 +121,7 @@ export class SelectableView extends React.Component {
       return {
         title: this.brokenErrorMessage(),
         "data-toggle": "tooltip",
+        "data-container": "body",
         className: "list-group-item-heading alert-danger",
       };
     } else {
