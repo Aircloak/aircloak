@@ -41,12 +41,13 @@ defmodule Cloak.Query.Aggregator.Statistics do
     aggregation_statistics_columns = Enum.map(per_user_aggregators, &extract_args(&1.function_args))
     statistics_columns = [bucket_statistics_columns | aggregation_statistics_columns]
 
-    fn {accumulated_statistics, default_noise_layers}, row ->
-      noise_accumulator = NoiseLayer.accumulate(processed_noise_layers, default_noise_layers, row)
+    fn {accumulated_statistics, default_noise_layers}, row_or_bucket ->
+      fields = Rows.fields(row_or_bucket)
+      noise_accumulator = NoiseLayer.accumulate(processed_noise_layers, default_noise_layers, fields)
 
       [[count_duid, min_uid, max_uid] | aggregation_statistics] =
         Enum.map(statistics_columns, fn columns_group ->
-          Enum.map(columns_group, &Expression.value(&1, row))
+          Enum.map(columns_group, &Expression.value(&1, fields))
         end)
 
       statistics = [[count_duid, MapSet.new([min_uid, max_uid])] | aggregation_statistics]

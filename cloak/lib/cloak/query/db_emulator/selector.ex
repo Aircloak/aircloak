@@ -20,7 +20,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
     |> Rows.filter(query |> Query.emulated_where() |> Condition.to_function())
     |> select_columns(columns, query)
     |> Sorter.order_rows(columns, query.order_by)
-    |> Stream.map(&Enum.take(&1, length(query.columns)))
+    |> Stream.map(&take_fields(&1, length(query.columns)))
     |> offset_rows(query)
     |> limit_rows(query)
   end
@@ -52,9 +52,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
       |> Enum.sort_by(& &1.row_index)
       |> Enum.map(&update_row_index(&1, from))
 
-    Stream.map(stream, fn row ->
-      Enum.map(columns, &Expression.value(&1, row))
-    end)
+    Stream.map(stream, &select_fields(&1, columns))
   end
 
   defp update_row_index(column = %Expression{function?: true, function_args: function_args}, source),
@@ -72,9 +70,21 @@ defmodule Cloak.Query.DbEmulator.Selector do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp select_columns(stream, columns, %Query{implicit_count?: true}) do
-    Stream.map(stream, fn row -> Enum.map(columns, &Expression.value(&1, row)) end)
-  end
+  defp select_fields(row, columns) when is_list(row), do: Enum.map(columns, &Expression.value(&1, row))
+  defp select_fields(bucket, columns) when is_map(bucket), do: %{bucket | row: select_fields(bucket.row, columns)}
+
+  defp take_fields(row, count) when is_list(row), do: Enum.take(row, count)
+  defp take_fields(bucket, count) when is_map(bucket), do: %{bucket | row: take_fields(bucket.row, count)}
+
+  defp bucket_data(row) when is_list(row), do: {row, nil}
+  defp bucket_data(bucket) when is_map(bucket), do: {bucket.row, bucket.unreliable}
+
+  defp merge_unreliable_flags(nil, flag), do: flag
+  defp merge_unreliable_flags(flag, nil), do: flag
+  defp merge_unreliable_flags(flag1, flag2) when is_boolean(flag1) and is_boolean(flag2), do: flag1 or flag2
+
+  defp select_columns(stream, columns, %Query{implicit_count?: true}),
+    do: Stream.map(stream, &select_fields(&1, columns))
 
   defp select_columns(stream, columns, query) do
     defaults = Enum.map(query.aggregators, &aggregator_to_default/1)
@@ -83,18 +93,26 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
     results =
       stream
-      |> Rows.group(query, defaults, fn aggregated_values, row ->
-        aggregated_values
-        |> Enum.zip(accumulators)
-        |> Enum.map(fn {value, accumulator} -> accumulator.(row, value) end)
+      |> Rows.group(query, [nil | defaults], fn [aggregated_unreliability | aggregated_values], row_or_bucket ->
+        {row, unreliable} = bucket_data(row_or_bucket)
+        aggregated_unreliability = merge_unreliable_flags(aggregated_unreliability, unreliable)
+
+        aggregated_values =
+          aggregated_values
+          |> Enum.zip(accumulators)
+          |> Enum.map(fn {value, accumulator} -> accumulator.(row, value) end)
+
+        [aggregated_unreliability | aggregated_values]
       end)
-      |> Stream.map(fn {group_values, aggregated_values} ->
+      |> Stream.map(fn {group_values, [aggregated_unreliability | aggregated_values]} ->
         aggregated_values =
           aggregated_values
           |> Enum.zip(finalizers)
           |> Enum.map(fn {value, finalizer} -> finalizer.(value) end)
 
-        group_values ++ aggregated_values
+        if aggregated_unreliability == nil,
+          do: group_values ++ aggregated_values,
+          else: %{row: group_values ++ aggregated_values, unreliable: aggregated_unreliability, occurrences: 1}
       end)
       |> Rows.extract_groups(columns, query)
 
@@ -400,9 +418,22 @@ defmodule Cloak.Query.DbEmulator.Selector do
   defp joined_row_size({:subquery, subquery}), do: Enum.count(subquery.ast.columns)
   defp joined_row_size({:join, join}), do: joined_row_size(join.lhs) + joined_row_size(join.rhs)
 
-  defp add_prefix_to_rows(stream, row), do: Stream.map(stream, &(row ++ &1))
+  defp join_rows_or_buckets(row1, row2) when is_list(row1) and is_list(row2), do: row1 ++ row2
 
-  defp add_suffix_to_rows(stream, row), do: Stream.map(stream, &(&1 ++ row))
+  defp join_rows_or_buckets(row1, bucket2) when is_list(row1) and is_map(bucket2),
+    do: %{bucket2 | row: row1 ++ bucket2.row}
+
+  defp join_rows_or_buckets(bucket1, row2) when is_map(bucket1) and is_list(row2),
+    do: %{bucket1 | row: bucket1.row ++ row2}
+
+  defp join_rows_or_buckets(bucket1, bucket2) when is_map(bucket1) and is_map(bucket2) do
+    unreliable = merge_unreliable_flags(bucket1.unreliable, bucket2.unreliable)
+    %{row: bucket1.row ++ bucket2.row, unreliable: unreliable, occurrences: 1}
+  end
+
+  defp add_prefix_to_rows(stream, row), do: Stream.map(stream, &join_rows_or_buckets(row, &1))
+
+  defp add_suffix_to_rows(stream, row), do: Stream.map(stream, &join_rows_or_buckets(&1, row))
 
   defp cross_join(lhs, rhs), do: Stream.flat_map(lhs, &add_prefix_to_rows(rhs, &1))
 
@@ -420,12 +451,12 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
   defp left_join(lhs, rhs, join) do
     rhs_null_row = List.duplicate(nil, joined_row_size(join.rhs))
-    outer_join(lhs, rhs, join, &add_prefix_to_rows/2, &[&1 ++ rhs_null_row], & &1)
+    outer_join(lhs, rhs, join, &add_prefix_to_rows/2, &[join_rows_or_buckets(&1, rhs_null_row)], & &1)
   end
 
   defp right_join(lhs, rhs, join) do
     lhs_null_row = List.duplicate(nil, joined_row_size(join.lhs))
-    outer_join(rhs, lhs, join, &add_suffix_to_rows/2, &[lhs_null_row ++ &1], & &1)
+    outer_join(rhs, lhs, join, &add_suffix_to_rows/2, &[join_rows_or_buckets(lhs_null_row, &1)], & &1)
   end
 
   defp outer_join(lhs, rhs, join, rows_combiner, unmatched_handler, matched_handler) do
@@ -457,10 +488,10 @@ defmodule Cloak.Query.DbEmulator.Selector do
         lhs_match_index = index_in_from(lhs, join.lhs)
         rhs_match_index = index_in_from(rhs, join.rhs)
 
-        rhs_rows_map = Enum.group_by(rhs_rows, &Enum.at(&1, rhs_match_index))
+        rhs_rows_map = Enum.group_by(rhs_rows, &(&1 |> Rows.fields() |> Enum.at(rhs_match_index)))
 
         fn lhs_row ->
-          lhs_match_value = Enum.at(lhs_row, lhs_match_index)
+          lhs_match_value = lhs_row |> Rows.fields() |> Enum.at(lhs_match_index)
           Map.get(rhs_rows_map, lhs_match_value, [])
         end
     end

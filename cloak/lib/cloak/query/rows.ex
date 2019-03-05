@@ -3,7 +3,7 @@ defmodule Cloak.Query.Rows do
   alias Cloak.Sql.{Expression, Query, Condition}
 
   @type groups :: %{Cloak.DataSource.row() => group_data}
-  @type group_updater :: (group_data, Cloak.DataSource.row() -> group_data)
+  @type group_updater :: (group_data, Cloak.DataSource.row() | Cloak.Query.Result.bucket() -> group_data)
   @type group_data :: any
 
   # -------------------------------------------------------------------
@@ -13,7 +13,7 @@ defmodule Cloak.Query.Rows do
   @doc "Returns a stream of rows or buckets passing all the given filters."
   @spec filter(Enumerable.t(), (any -> boolean) | nil) :: Enumerable.t()
   def filter(rows_or_buckets, nil), do: rows_or_buckets
-  def filter(rows_or_buckets, filter), do: Stream.filter(rows_or_buckets, filter_row_or_bucket(filter))
+  def filter(rows_or_buckets, filter), do: Stream.filter(rows_or_buckets, &(&1 |> fields() |> filter.()))
 
   @doc """
     Filters groups and extracts desired columns according to query specification.
@@ -41,10 +41,11 @@ defmodule Cloak.Query.Rows do
   def group(rows, query, default_group_data, group_updater) do
     group_expressions = group_expressions(query)
 
-    Enum.reduce(rows, %{}, fn row, groups ->
-      group_values = Enum.map(group_expressions, &Expression.value(&1, row))
+    Enum.reduce(rows, %{}, fn row_or_bucket, groups ->
+      fields = fields(row_or_bucket)
+      group_values = Enum.map(group_expressions, &Expression.value(&1, fields))
       group_data = Map.get(groups, group_values, default_group_data)
-      Map.put(groups, group_values, group_updater.(group_data, row))
+      Map.put(groups, group_values, group_updater.(group_data, row_or_bucket))
     end)
   end
 
@@ -65,16 +66,14 @@ defmodule Cloak.Query.Rows do
     #   -> all rows fall in the same group
     do: []
 
+  @doc "Returns the fields from a row or bucket element."
+  @spec fields(Cloak.DataSource.row() | Cloak.Query.Result.bucket()) :: Cloak.DataSource.row()
+  def fields(row) when is_list(row), do: row
+  def fields(bucket) when is_map(bucket), do: bucket.row
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
-
-  defp filter_row_or_bucket(filter) do
-    fn
-      row when is_list(row) -> filter.(row)
-      bucket when is_map(bucket) -> filter.(bucket.row)
-    end
-  end
 
   defp update_row_index(column, selected_columns) do
     case Enum.find_index(selected_columns, &Expression.equals?(&1, column)) do

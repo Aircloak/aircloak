@@ -58,8 +58,11 @@ defmodule Cloak.Query.DbEmulator do
        when not is_binary(from) do
     Query.debug_log(subquery, "Emulating query ...")
 
-    rows = subquery.from |> select_rows(state_updater) |> Selector.pick_db_columns(subquery)
-    rows |> group_rows(subquery) |> process_rows(subquery, state_updater)
+    subquery.from
+    |> select_rows(state_updater)
+    |> Selector.pick_db_columns(subquery)
+    |> group_rows(subquery)
+    |> process_rows(subquery, state_updater)
   end
 
   defp select_rows({:subquery, %{ast: query}}, state_updater) do
@@ -146,12 +149,16 @@ defmodule Cloak.Query.DbEmulator do
   defp concurrency(query), do: query.data_source.concurrency || Application.get_env(:cloak, :concurrency, 0)
 
   defp convert_buckets(buckets, %Query{subquery?: true}),
-    do: Stream.flat_map(buckets, &List.duplicate(&1.row, &1.occurrences))
+    do: Stream.flat_map(buckets, &List.duplicate(%{&1 | occurrences: 1}, &1.occurrences))
 
   defp convert_buckets(buckets, %Query{subquery?: false}), do: buckets
 
-  defp convert_rows(stream, %Query{subquery?: false}),
-    do: Enum.map(stream, &%{row: &1, occurrences: 1, unreliable: nil})
+  defp convert_rows(stream, %Query{subquery?: false}) do
+    Enum.map(stream, fn
+      row when is_list(row) -> %{row: row, occurrences: 1, unreliable: nil}
+      bucket when is_map(bucket) -> bucket
+    end)
+  end
 
   defp convert_rows(stream, %Query{subquery?: true}), do: Enum.to_list(stream)
 
