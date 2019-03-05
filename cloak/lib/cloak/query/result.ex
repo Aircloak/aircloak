@@ -13,7 +13,7 @@ defmodule Cloak.Query.Result do
           features: map
         }
 
-  @type bucket :: %{row: [Cloak.DataSource.field()], occurrences: pos_integer}
+  @type bucket :: %{row: Cloak.DataSource.row(), occurrences: pos_integer}
 
   defstruct buckets: [], columns: [], types: [], features: %{}
 

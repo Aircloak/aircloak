@@ -231,7 +231,7 @@ defmodule Cloak.Query.Aggregator do
     bucket_columns = Query.bucket_columns(query)
 
     buckets
-    |> Cloak.Query.Sorter.order_rows(bucket_columns, query.order_by, & &1.row)
+    |> Cloak.Query.Sorter.order_rows(bucket_columns, query.order_by)
     |> offset(query.offset)
     |> limit(query.limit)
     |> drop_non_selected_columns(bucket_columns, query.columns)

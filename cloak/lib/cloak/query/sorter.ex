@@ -13,13 +13,12 @@ defmodule Cloak.Query.Sorter do
   @spec order_rows(
           Enumerable.t(),
           [Expression.t()],
-          [{Expression.t(), :asc | :desc}],
-          (any -> [Cloak.DataSource.field()])
+          [{Expression.t(), :asc | :desc}]
         ) :: Enumerable.t()
-  def order_rows(rows, columns, query, mapper \\ & &1)
-  def order_rows(rows, _columns, [], _mapper), do: rows
+  def order_rows(rows, columns, order_by)
+  def order_rows(rows, _columns, []), do: rows
 
-  def order_rows(rows, columns, order_by, mapper) do
+  def order_rows(rows, columns, order_by) do
     order_by_indices =
       Enum.map(order_by, fn {expression, direction, nulls} ->
         index = Enum.find_index(columns, &(&1 == expression))
@@ -27,14 +26,17 @@ defmodule Cloak.Query.Sorter do
         {index, direction, nulls}
       end)
 
-    Enum.sort(rows, &compare_rows(mapper.(&1), mapper.(&2), order_by_indices))
+    Enum.sort(rows, &compare_rows(&1, &2, order_by_indices))
   end
 
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp compare_rows(row1, row2, []) do
+  defp compare_rows(bucket1, bucket2, order_by_indices) when is_map(bucket1) and is_map(bucket2),
+    do: compare_rows(bucket1.row, bucket2.row, order_by_indices)
+
+  defp compare_rows(row1, row2, []) when is_list(row1) and is_list(row2) do
     cond do
       Enum.member?(row1, :*) -> false
       Enum.member?(row2, :*) -> true
@@ -42,7 +44,7 @@ defmodule Cloak.Query.Sorter do
     end
   end
 
-  defp compare_rows(row1, row2, [{index, direction, nulls} | remaining_order]) do
+  defp compare_rows(row1, row2, [{index, direction, nulls} | remaining_order]) when is_list(row1) and is_list(row2) do
     field1 = Enum.at(row1, index)
     field2 = Enum.at(row2, index)
 

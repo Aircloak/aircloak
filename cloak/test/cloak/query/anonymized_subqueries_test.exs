@@ -5,7 +5,7 @@ defmodule Cloak.Query.AnonymizedSubqueriesTest do
 
   setup_all do
     :ok = Cloak.Test.DB.create_table("anon_sq", "i INTEGER, i2 INTEGER")
-    for i <- 1..10, do: :ok = insert_rows(_user_ids = 1..10, "anon_sq", ["i"], [i])
+    for i <- 1..10, do: :ok = insert_rows(_user_ids = 1..15, "anon_sq", ["i"], [i])
     for i <- 1..5, do: :ok = insert_rows(_user_ids = i..i, "anon_sq", ["i2"], [i])
 
     for data_source <- Cloak.DataSource.all() do
@@ -29,7 +29,7 @@ defmodule Cloak.Query.AnonymizedSubqueriesTest do
 
   test "sums with where" do
     assert_query("select sum(i), sum(c) from (select i, count(*) as c from anon_sq group by i) as t where i <= 5", %{
-      rows: [%{row: [15, 50]}]
+      rows: [%{row: [15, 75]}]
     })
   end
 
@@ -76,5 +76,49 @@ defmodule Cloak.Query.AnonymizedSubqueriesTest do
     assert_query("select count(*) from (select distinct i from anon_sq) as t", %{
       rows: [%{row: [11]}]
     })
+  end
+
+  test "propagate unreliability flag through simple select" do
+    assert_query(
+      """
+        select m + 1 from (
+          select median(i) as m from anon_sq group by i % 1 order by m
+        ) as t order by 1 desc limit 2
+      """,
+      %{
+        rows: [
+          %{row: [nil], unreliable: true},
+          %{row: [7], unreliable: false}
+        ]
+      }
+    )
+  end
+
+  test "propagate unreliability flag through aggregation" do
+    assert_query(
+      "select sum(m) from (select median(i) as m from anon_sq group by i % 1) as t",
+      %{rows: [%{row: [6], unreliable: true}]}
+    )
+  end
+
+  test "propagate unreliability flag through joins" do
+    assert_query(
+      """
+        select * from (
+          select median(i) as m1 from anon_sq group by i % 1
+        ) as t1 cross join (
+          select median(i) as m2 from anon_sq group by i2 % 1
+        ) as t2
+        order by 1, 2
+      """,
+      %{
+        rows: [
+          %{row: [6, 5], unreliable: false},
+          %{row: [6, nil], unreliable: true},
+          %{row: [nil, 5], unreliable: true},
+          %{row: [nil, nil], unreliable: true}
+        ]
+      }
+    )
   end
 end
