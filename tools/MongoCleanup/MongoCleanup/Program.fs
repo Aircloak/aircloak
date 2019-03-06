@@ -219,7 +219,7 @@ let mongoConnString (cloakConfig : CloakConfig) : string =
         | (Some(user), None) -> sprintf "%s@" user
         | (Some(user), Some(pass)) -> sprintf "%s:%s@" user pass
         | (None, Some(pass)) -> sprintf ":%s@" pass
-    sprintf "mongodb://%s%s:%i" userpass options.hostname port
+    sprintf "mongodb://%s%s:%i/%s" userpass options.hostname port options.database
 
 let acUserId = "_ac_user_id"
 
@@ -266,8 +266,9 @@ let rec project (config : Map<string, CloakTable>) (data : Map<string, seq<BsonD
 let run (options : ParseResults<CLIArguments>) : unit =
     use stream = new StreamReader(options.GetResult Cloak_Config)
     let jsonConfig = JsonConfig.create (jsonFieldNaming = Json.snakeCase)
-    let config =
-        stream.ReadToEnd() |> Json.deserializeEx<CloakConfig> jsonConfig
+    let config = stream.ReadToEnd() |> Json.deserializeEx<CloakConfig> jsonConfig
+
+    printfn "Connecting..."
     let conn = config |> mongoConnString |> MongoClient
     let db = conn.GetDatabase config.parameters.database
 
