@@ -294,7 +294,7 @@ defmodule Cloak.Compliance.QueryGenerator do
 
       :error ->
         frequency(context.complexity, [
-          {1, column(type, context)},
+          {if(context.aggregate?, do: 0, else: 1), column(type, context)},
           {1, constant(type, context)}
         ])
     end
