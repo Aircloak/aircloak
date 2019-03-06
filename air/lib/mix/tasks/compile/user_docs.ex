@@ -112,7 +112,7 @@ defmodule Mix.Tasks.Compile.UserDocs do
   defp update_book_config(current_version) do
     book_config = File.read!(@book_config_path) |> Jason.decode!()
 
-    if String.contains?(book_config["title"], current_version) do
+    if String.ends_with?(book_config["title"], current_version) do
       # All good
     else
       updated_book_config =
@@ -136,7 +136,7 @@ defmodule Mix.Tasks.Compile.UserDocs do
       original_summary
       |> String.split("\n")
       |> Enum.map(fn line ->
-        if String.contains?(line, "## Aircloak Insights - version") and not String.contains?(line, current_version) do
+        if String.contains?(line, "## Aircloak Insights - version") and not String.ends_with?(line, current_version) do
           "## Aircloak Insights - version #{current_version}"
         else
           line
