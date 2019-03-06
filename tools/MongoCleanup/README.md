@@ -7,6 +7,27 @@ modifies all documents that require decoding or projection. It applies the speci
 field to all documents that require projection. Finally, it **destructively** updates the documents in the source
 database.
 
+# Configuration
+
+The tool can read data source configuration files for cloak 19.1.0. Additionally it supports a `delete_if` option to
+remove records with matching field values. For example:
+
+```json
+{
+  "tables": {
+    "items": {
+      "user_id": "user_id",
+      "delete_if": [
+        {"field": "fake", "values": ["true"]}
+      ]
+    }
+  }
+}
+```
+
+will delete all `items` that have `true` in their `fake` field. The `fake` field will be stringified prior to this
+comparison.
+
 # Development
 
 ## Starting mongo
