@@ -220,7 +220,7 @@ defmodule Central.Service.Customer do
 
   defp air_handler(air_version) do
     # Using apply to trick dialyzer which thinks that Version.parse always returns :error
-    case apply(Version, :parse, [air_version]) do
+    case Version.parse(air_version) do
       :error ->
         {:error, :invalid_version}
 
