@@ -26,6 +26,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
 
   alias Cloak.Compliance.QueryGenerator
   import Cloak.Test.QueryHelpers
+  alias Cloak.Test.AnalystTableHelpers
 
   use Mix.Task
 
@@ -98,6 +99,10 @@ defmodule Mix.Tasks.Fuzzer.Run do
     initialize()
     data_sources = [%{tables: tables} | _] = ComplianceCase.data_sources()
 
+    for data_source <- data_sources do
+      AnalystTableHelpers.clear_analyst_tables(data_source)
+    end
+
     seed
     |> QueryGenerator.ast_from_seed(Map.values(tables))
     |> run_query(seed, data_sources, !options[:no_minimization])
@@ -169,14 +174,28 @@ defmodule Mix.Tasks.Fuzzer.Run do
   defp first_line(string), do: string |> String.split("\n") |> hd()
 
   defp do_run_query(ast, data_sources) do
+    {ast, analyst_tables} = QueryGenerator.extract_analyst_tables(ast)
     query = QueryGenerator.ast_to_sql(ast)
 
-    case assert_query_consistency(query, data_sources: data_sources) do
-      %{error: error} -> %{query: query, result: :error, error: error}
-      %{rows: _} -> %{query: query, result: :ok}
+    try do
+      create_analyst_tables!(analyst_tables, data_sources)
+
+      case assert_query_consistency(query, data_sources: data_sources) do
+        %{error: error} -> %{query: query, result: :error, error: error}
+        %{rows: _} -> %{query: query, result: :ok}
+      end
+    rescue
+      e -> %{query: query, result: :error, error: e.message}
     end
-  rescue
-    e -> %{query: QueryGenerator.ast_to_sql(ast), result: :error, error: e.message}
+  end
+
+  defp create_analyst_tables!(analyst_tables, data_sources) do
+    for {name, ast} <- analyst_tables, data_source <- data_sources do
+      case AnalystTableHelpers.create_or_update(1, name, QueryGenerator.ast_to_sql(ast), data_source) do
+        {:ok, _} -> :ok
+        {:error, message} -> raise message
+      end
+    end
   end
 
   defp generate_queries(tables, number_of_queries) do
@@ -189,6 +208,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
     Application.ensure_all_started(:cloak)
     Cloak.SapHanaHelpers.delete_test_schemas()
     Cloak.Test.DB.start_link()
+    Cloak.Air.register_air("test_air")
   end
 
   defp with_file(name, function) do

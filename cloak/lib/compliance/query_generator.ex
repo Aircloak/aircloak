@@ -92,8 +92,8 @@ defmodule Cloak.Compliance.QueryGenerator do
   def extract_analyst_tables(ast) do
     {analyst_tables, ast} =
       Lens.both(Lens.recur(Lens.at(2) |> Lens.all()), Lens.root())
-      |> Lens.filter(&match?({:query, {:analyst_table, _}, _}, &1))
-      |> Lens.get_and_map(ast, fn subquery = {:query, {:analyst_table, name}, _} ->
+      |> Lens.filter(&match?({:subquery, _, [{:query, {:analyst_table, _}, _}]}, &1))
+      |> Lens.get_and_map(ast, fn {:subquery, _, [subquery = {:query, {:analyst_table, name}, _}]} ->
         {{name, subquery}, {:table, name, []}}
       end)
 
