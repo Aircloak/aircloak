@@ -14,7 +14,7 @@ defmodule Cloak.Compliance.QueryGenerator do
 
     @type from :: {:aliased_table, Map.t()} | {:table, Map.t()} | {:join, t, t} | {:subquery, t}
 
-    @type kind :: :regular | {:analyst_table, String.t()}
+    @type kind :: :regular | {:analyst_table, String.t()} | :analyst_table_subquery
 
     @type t :: %__MODULE__{from: from, complexity: integer, select_user_id?: boolean, aggregate?: boolean, kind: kind}
 
@@ -118,13 +118,21 @@ defmodule Cloak.Compliance.QueryGenerator do
   end
 
   defp set_kind(scaffold) do
-    update_in(scaffold, [sub_scaffolds()], fn scaffold ->
+    scaffold
+    |> update_in([sub_scaffolds()], fn scaffold ->
       frequency(scaffold.complexity, [
         {2, %{scaffold | kind: :regular}},
         {1, %{scaffold | kind: {:analyst_table, name(scaffold)}}}
       ])
     end)
+    |> update_in([sub_scaffolds() |> Lens.filter(&analyst_table?/1) |> sub_scaffolds() |> Lens.key(:kind)], fn
+      :regular -> :analyst_table_subquery
+      other -> other
+    end)
   end
+
+  defp analyst_table?(%{kind: {:analyst_table, _}}), do: true
+  defp analyst_table?(_), do: false
 
   defp set_select_user_id(scaffold) do
     scaffold
@@ -394,8 +402,12 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp function_allowed?(function, context) do
     allowed_in_negative_condition?(function, context) and allowed_in_range?(function, context) and
-      allowed_in_in?(function, context) and allowed_in_function?(function, context)
+      allowed_in_in?(function, context) and allowed_in_function?(function, context) and
+      allowed_in_analyst_table?(function, context)
   end
+
+  defp allowed_in_analyst_table?(_function, %{analyst_table?: false}), do: true
+  defp allowed_in_analyst_table?({name, _, _}, %{analyst_table?: true}), do: not (name in ~w(median variance stddev))
 
   defp allowed_in_function?(_function, %{function?: false}), do: true
 
@@ -720,7 +732,8 @@ defmodule Cloak.Compliance.QueryGenerator do
       cast?: false,
       having?: false,
       in?: false,
-      function?: false
+      function?: false,
+      analyst_table?: match?({:analyst_table, _}, scaffold.kind) or scaffold.kind == :analyst_table_subquery
     }
   end
 end
