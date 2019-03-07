@@ -83,6 +83,23 @@ defmodule Cloak.Compliance.QueryGenerator do
   @spec minimize(ast, (ast -> boolean)) :: ast
   def minimize(ast, fun), do: __MODULE__.Minimization.minimize(ast, fun)
 
+  @doc """
+  Splits a generated AST into the main query and analyst tables.
+
+  The analyst tables are returned in the inside-out order, so they can easily be created in the order returned.
+  """
+  @spec extract_analyst_tables(ast) :: {ast, [{String.t(), ast}]}
+  def extract_analyst_tables(ast) do
+    {analyst_tables, ast} =
+      Lens.both(Lens.recur(Lens.at(2) |> Lens.all()), Lens.root())
+      |> Lens.filter(&match?({:query, {:analyst_table, _}, _}, &1))
+      |> Lens.get_and_map(ast, fn subquery = {:query, {:analyst_table, name}, _} ->
+        {{name, subquery}, {:table, name, []}}
+      end)
+
+    {ast, analyst_tables}
+  end
+
   # -------------------------------------------------------------------
   # Scaffold generation
   # -------------------------------------------------------------------
@@ -181,7 +198,7 @@ defmodule Cloak.Compliance.QueryGenerator do
     limit = limit(scaffold, order_by)
 
     {
-      {:query, nil,
+      {:query, scaffold.kind,
        [
          select,
          from,
