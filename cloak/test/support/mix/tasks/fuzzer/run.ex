@@ -180,7 +180,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
     try do
       create_analyst_tables!(analyst_tables, data_sources)
 
-      case assert_query_consistency(query, data_sources: data_sources) do
+      case assert_query_consistency(query, analyst_id: 1, data_sources: data_sources) do
         %{error: error} -> %{query: query, result: :error, error: error}
         %{rows: _} -> %{query: query, result: :ok}
       end
