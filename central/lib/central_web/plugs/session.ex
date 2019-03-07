@@ -50,7 +50,8 @@ defmodule CentralWeb.Plug.Session do
     def call(conn, opts) do
       with nil <- Guardian.Plug.current_token(conn, opts),
            {:ok, token} <- find_token_from_cookies(conn),
-           active_session? <- Guardian.Plug.session_active?(conn),
+           # using apply to trick the dialyzer which thinks that `session_active?` always return false
+           active_session? <- apply(Guardian.Plug, :session_active?, [conn]),
            exchange_to <- Central.Guardian.default_token_type(),
            {:ok, _old, {new_token, new_claims}} <- Central.Guardian.exchange(token, "refresh", exchange_to) do
         conn
