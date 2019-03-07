@@ -1,4 +1,4 @@
-## Version 19.2.0 Development version
+## Version 19.2.0
 
 ### __Breaking changes__
 
