@@ -129,15 +129,45 @@ defmodule Mix.Tasks.Fuzzer.Run do
   defp print_result(device \\ :stdio, result)
 
   defp print_result(device, result = %{result: :error, query: query, seed: seed, error: error}) do
-    IO.puts(device, ["Query:\n\n", query, minimized_query(result), "\n\nSeed: ", inspect(seed), "\n\n", error, "\n\n"])
+    IO.puts(device, [
+      "\n\n -- QUERY\n\n",
+      query(query),
+      minimized_query(result),
+      "\n\n -- Seed: ",
+      inspect(seed),
+      "\n\n",
+      error
+    ])
   end
 
   defp print_result(device, %{result: result, query: query, seed: seed}) do
-    IO.puts(device, [query, "\n\n", "Seed: ", inspect(seed), "\n\n", inspect(result), "\n\n"])
+    IO.puts(device, [
+      "\n\n -- QUERY\n\n",
+      query(query),
+      "\n\n",
+      " -- Seed: ",
+      inspect(seed),
+      "\n\n",
+      inspect(result)
+    ])
   end
 
-  defp minimized_query(%{minimized: minimized}), do: ["\n\nMinimized query:\n\n", minimized]
+  defp minimized_query(%{minimized: ast}), do: ["\n\n -- MINIMIZED QUERY\n\n", query(ast)]
   defp minimized_query(_), do: ""
+
+  defp query(ast) do
+    case QueryGenerator.extract_analyst_tables(ast) do
+      {ast, []} ->
+        QueryGenerator.ast_to_sql(ast)
+
+      {ast, analyst_tables} ->
+        [
+          QueryGenerator.ast_to_sql(ast),
+          "\n\n -- Analyst tables:\n\n",
+          analyst_tables |> Enum.map(fn {name, ast} -> [" -- ", name, "\n", QueryGenerator.ast_to_sql(ast), "\n"] end)
+        ]
+    end
+  end
 
   defp print_stats(results, options) do
     stats_path = Map.get(options, :stats_out, "/tmp/stats.txt")
@@ -163,29 +193,27 @@ defmodule Mix.Tasks.Fuzzer.Run do
   end
 
   defp minimize(ast, result, data_sources) do
-    ast
-    |> QueryGenerator.minimize(fn ast ->
+    QueryGenerator.minimize(ast, fn ast ->
       other_result = do_run_query(ast, data_sources)
       other_result.result == result.result and first_line(other_result.error) == first_line(result.error)
     end)
-    |> QueryGenerator.ast_to_sql()
   end
 
   defp first_line(string), do: string |> String.split("\n") |> hd()
 
-  defp do_run_query(ast, data_sources) do
-    {ast, analyst_tables} = QueryGenerator.extract_analyst_tables(ast)
+  defp do_run_query(input_ast, data_sources) do
+    {ast, analyst_tables} = QueryGenerator.extract_analyst_tables(input_ast)
     query = QueryGenerator.ast_to_sql(ast)
 
     try do
       create_analyst_tables!(analyst_tables, data_sources)
 
       case assert_query_consistency(query, analyst_id: 1, data_sources: data_sources) do
-        %{error: error} -> %{query: query, result: :error, error: error}
-        %{rows: _} -> %{query: query, result: :ok}
+        %{error: error} -> %{query: input_ast, result: :error, error: error}
+        %{rows: _} -> %{query: input_ast, result: :ok}
       end
     rescue
-      e -> %{query: query, result: :error, error: e.message}
+      e -> %{query: input_ast, result: :error, error: e.message}
     end
   end
 
