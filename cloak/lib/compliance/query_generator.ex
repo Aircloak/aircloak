@@ -14,9 +14,11 @@ defmodule Cloak.Compliance.QueryGenerator do
 
     @type from :: {:aliased_table, Map.t()} | {:table, Map.t()} | {:join, t, t} | {:subquery, t}
 
-    @type t :: %__MODULE__{from: from, complexity: integer, select_user_id?: boolean, aggregate?: boolean}
+    @type kind :: :regular | {:analyst_table, String.t()}
 
-    defstruct [:from, :complexity, :select_user_id?, :aggregate?]
+    @type t :: %__MODULE__{from: from, complexity: integer, select_user_id?: boolean, aggregate?: boolean, kind: kind}
+
+    defstruct [:from, :complexity, :select_user_id?, :aggregate?, kind: :regular]
   end
 
   @max_unrestricted_functions 5
@@ -63,6 +65,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   def generate_ast(tables, complexity) do
     tables
     |> generate_scaffold(complexity)
+    |> set_kind()
     |> set_select_user_id()
     |> resolve_table_name_clashes()
     |> generate_query_from_scaffold()
@@ -97,10 +100,22 @@ defmodule Cloak.Compliance.QueryGenerator do
     |> put_in([Lens.key(:aggregate?)], boolean())
   end
 
+  defp set_kind(scaffold) do
+    update_in(scaffold, [sub_scaffolds()], fn scaffold ->
+      frequency(scaffold.complexity, [
+        {2, %{scaffold | kind: :regular}},
+        {1, %{scaffold | kind: {:analyst_table, name(scaffold)}}}
+      ])
+    end)
+  end
+
   defp set_select_user_id(scaffold) do
     scaffold
     |> update_in([all_scaffolds()], fn
       scaffold = %{from: {:table, _}} ->
+        %{scaffold | select_user_id?: true}
+
+      scaffold = %{kind: :analyst_table} ->
         %{scaffold | select_user_id?: true}
 
       scaffold = %{from: {:subquery, _}} ->
