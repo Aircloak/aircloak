@@ -105,6 +105,34 @@ defmodule Air.Service.AnalystTable do
     end
   end
 
+  @doc "Deletes all analyst tables of the given user."
+  @spec delete_all(Air.Schemas.User.t()) :: :ok
+  def delete_all(user) do
+    user = Repo.preload(user, analyst_tables: :data_source)
+
+    data_sources =
+      Enum.map(
+        Enum.group_by(user.analyst_tables, & &1.data_source, & &1.name),
+        fn {data_source, table_names} ->
+          DataSource.with_available_cloak(
+            data_source,
+            user,
+            &MainChannel.drop_analyst_tables(&1.channel_pid, user.id, data_source.name, table_names)
+          )
+
+          data_source
+        end
+      )
+
+    Repo.delete_all(from(table in AnalystTable, where: table.user_id == ^user.id))
+
+    data_sources
+    |> Stream.flat_map(&Air.Service.Cloak.channel_pids/1)
+    |> Enum.each(fn {pid, _cloak_info} -> MainChannel.refresh_analyst_tables(pid) end)
+
+    :ok
+  end
+
   @doc "Returns all known analyst tables."
   @spec all() :: [AnalystTable.t()]
   def all(), do: Repo.all(AnalystTable)

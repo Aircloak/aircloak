@@ -347,6 +347,11 @@ defmodule Cloak.AirSocket do
     {:ok, state}
   end
 
+  defp handle_air_cast("drop_analyst_tables", data, _transport, state) do
+    Cloak.AnalystTable.drop_tables(data.analyst_id, data.data_source, data.table_names)
+    {:ok, state}
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
