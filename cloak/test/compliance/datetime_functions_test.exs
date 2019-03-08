@@ -55,6 +55,10 @@ Enum.each(
           |> disable_subquery_interval(unquote(function))
           |> disable_unsupported_on_dates(unquote(function), {unquote(column), unquote(table), unquote(uid)})
           |> disable_for(Cloak.DataSource.Drill, unquote(function) =~ ~r/quarter|interval/)
+          |> disable_for(
+            Cloak.DataSource.SQLServer,
+            unquote(table) == "users_public" and unquote(function) == "interval 'P1DT1H'"
+          )
           |> assert_consistent_and_not_failing("""
             SELECT #{on_column(unquote(function), unquote(column))}
             FROM #{unquote(table)}
