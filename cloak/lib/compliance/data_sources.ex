@@ -203,7 +203,9 @@ defmodule Compliance.DataSources do
     flattened_data = Data.flatten(data)
     collections = Data.to_collections(data)
 
-    Enum.each(definitions, fn {name, _} ->
+    definitions
+    |> Enum.filter(fn {_, definition} -> definition[:db_name] == nil end)
+    |> Enum.each(fn {name, _} ->
       state.handler.insert_rows("#{name}#{table_postfix}", flattened_data[name], state.conn)
       state.handler.insert_documents("#{name}#{table_postfix}", collections[name], state.conn)
     end)
