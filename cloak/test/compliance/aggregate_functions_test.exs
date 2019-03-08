@@ -29,7 +29,6 @@ Enum.each(
   fn {aggregate, allowed_in_subquery} ->
     defmodule Module.concat([Compliance.AggregateFunctions, String.to_atom(aggregate), Test]) do
       use ComplianceCase, async: true
-      alias Cloak.DataSource.MongoDB
 
       @moduletag :"#{aggregate}"
       @integer_columns for {column, _table, _user_id} <- integer_columns(), do: column
@@ -60,9 +59,11 @@ Enum.each(
 
           context
           |> disable_for(
-            MongoDB,
+            Cloak.DataSource.MongoDB,
             function in ~w(min max median) and unquote(column) in @integer_columns
           )
+          # `*_noise` functions on userless tables are replaced with `GROUP BY constant`, which SQL Server doesn't like.
+          |> disable_for(Cloak.DataSource.SQLServer, function =~ ~r/_noise/ and unquote(table) == "users_public")
           |> assert_consistent_and_not_failing("""
             SELECT #{on_column(unquote(aggregate), unquote(column))}
             FROM #{unquote(table)}

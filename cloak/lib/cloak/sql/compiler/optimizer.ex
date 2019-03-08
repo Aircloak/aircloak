@@ -65,7 +65,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
       end)
       |> Enum.unzip()
 
-    if subquery.group_by == [] and columns == [] and Helpers.aggregated_column?(hd(subquery.columns)) do
+    if subquery.group_by == [] and columns == [] and Enum.any?(subquery.columns, &Helpers.aggregated_column?/1) do
       %Query{subquery | columns: [hd(subquery.columns)], column_titles: [hd(subquery.column_titles)]}
     else
       %Query{subquery | columns: columns, column_titles: column_titles}

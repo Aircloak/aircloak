@@ -43,7 +43,7 @@ defmodule Cloak.Sql.Query do
           implicit_count?: boolean,
           group_by: [Function.t()],
           where: filter_clause,
-          order_by: [{Expression.t(), :asc | :desc, :nulls_first | :nulls_last}],
+          order_by: [{Expression.t(), :asc | :desc, :nulls_first | :nulls_last | :nulls_natural}],
           show: :tables | :columns | nil,
           selected_tables: [DataSource.Table.t()],
           db_columns: [Expression.t()],

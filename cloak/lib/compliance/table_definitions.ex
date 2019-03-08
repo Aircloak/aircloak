@@ -176,6 +176,21 @@ defmodule Compliance.TableDefinitions do
           },
           "changes.date": %{type: :datetime, decoders: [:text_to_datetime]}
         }
+      },
+      users_public: %{
+        content_type: :public,
+        db_name: "users",
+        columns: %{
+          id: %{type: :integer},
+          user_id: %{type: :integer},
+          age: %{type: :integer, decoders: [:text_to_integer]},
+          height: %{type: :real, decoders: [:text_to_real]},
+          active: %{type: :boolean, decoders: [:text_to_boolean]},
+          name: %{type: :text, decoders: [:base64, aes_cbc_128: [key: Data.encryption_key()]]},
+          nullable: %{type: :real, decoders: [:text_to_real]},
+          birthday: %{type: :date},
+          column_with_a_very_long_name: %{type: :text}
+        }
       }
     }
   end

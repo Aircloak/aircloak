@@ -53,7 +53,7 @@ defmodule Compliance.QueryFeatures.Test do
         SELECT COUNT(*) FROM (
           SELECT #{unquote(uid)}, 'a constant'
           FROM #{unquote(table)}
-          ORDER BY 2
+          ORDER BY 2 ASC NULLS FIRST
           LIMIT 10
           OFFSET 10
         ) x
@@ -67,7 +67,7 @@ defmodule Compliance.QueryFeatures.Test do
         SELECT COUNT(*) FROM (
           SELECT #{unquote(uid)}, 'a constant'
           FROM #{unquote(table)}
-          ORDER BY 2
+          ORDER BY 2 DESC NULLS FIRST
           LIMIT 10
         ) x
       """)
@@ -76,7 +76,7 @@ defmodule Compliance.QueryFeatures.Test do
 
   Enum.each(nullable_columns(), fn {column, table, uid} ->
     for direction <- ["ASC", "DESC", ""],
-        nulls <- ["NULLS FIRST", "NULLS LAST", ""] do
+        nulls <- ["NULLS FIRST", "NULLS LAST"] do
       @tag compliance: "order by #{direction} #{nulls} on #{column} in #{table}"
       test "order by #{direction} #{nulls} on #{column} in #{table}", context do
         context
