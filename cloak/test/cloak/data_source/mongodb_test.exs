@@ -41,6 +41,7 @@ defmodule Cloak.DataSource.MongoDBTest do
     Mongo.insert_one!(conn, @userless_table, %{val: 1})
     Mongo.insert_one!(conn, @userless_table, %{val: 2})
     Mongo.insert_one!(conn, @userless_table, %{val: 3})
+    Mongo.insert_one!(conn, @userless_table, %{val: nil})
 
     tables =
       [
@@ -239,6 +240,21 @@ defmodule Cloak.DataSource.MongoDBTest do
         SELECT name FROM (SELECT _id, name FROM #{@user_table} ORDER BY 2 ASC NULLS LAST LIMIT 10) t
       """,
       %{rows: [%{occurrences: 10, row: [:*]}]}
+    )
+
+    assert_query(
+      context,
+      """
+        SELECT val FROM #{@userless_table} ORDER BY 1 DESC NULLS FIRST
+      """,
+      %{
+        rows: [
+          %{occurrences: 1, row: [nil]},
+          %{occurrences: 1, row: [3]},
+          %{occurrences: 1, row: [2]},
+          %{occurrences: 1, row: [1]}
+        ]
+      }
     )
   end
 
@@ -572,7 +588,7 @@ defmodule Cloak.DataSource.MongoDBTest do
   end
 
   test "simple standard query", context do
-    assert_query(context, "SELECT COUNT(*) FROM #{@userless_table}", %{rows: [%{occurrences: 1, row: [3]}]})
+    assert_query(context, "SELECT COUNT(*) FROM #{@userless_table}", %{rows: [%{occurrences: 1, row: [4]}]})
   end
 
   test "simple standard query with filter", context do
@@ -590,7 +606,7 @@ defmodule Cloak.DataSource.MongoDBTest do
         ) AS t GROUP BY 1 ORDER BY 1
       """,
       %{
-        rows: [%{occurrences: 1, row: [false]}, %{occurrences: 1, row: [true]}]
+        rows: [%{occurrences: 1, row: [nil]}, %{occurrences: 1, row: [false]}, %{occurrences: 1, row: [true]}]
       }
     )
   end
@@ -602,14 +618,19 @@ defmodule Cloak.DataSource.MongoDBTest do
         SELECT val FROM #{@userless_table} GROUP BY val ORDER BY val + 1
       """,
       %{
-        rows: [%{occurrences: 1, row: [1]}, %{occurrences: 1, row: [2]}, %{occurrences: 1, row: [3]}]
+        rows: [
+          %{occurrences: 1, row: [nil]},
+          %{occurrences: 1, row: [1]},
+          %{occurrences: 1, row: [2]},
+          %{occurrences: 1, row: [3]}
+        ]
       }
     )
   end
 
   test "standard query with distinct", context do
     assert_query(context, "SELECT DISTINCT CAST(val - 1 AS boolean) AS x FROM #{@userless_table}", %{
-      rows: [%{occurrences: 1, row: [true]}, %{occurrences: 1, row: [false]}]
+      rows: [%{occurrences: 1, row: [nil]}, %{occurrences: 1, row: [true]}, %{occurrences: 1, row: [false]}]
     })
   end
 end
