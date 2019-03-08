@@ -139,10 +139,8 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   # MySQL requires that at least one column is selected; SQL Server requires that the column has a name;
   defp columns_sql([], query) do
-    sql_dialect_module(query).alias_sql(
-      "NULL",
-      quote_name("__ac_dummy", sql_dialect_module(query).quote_char())
-    )
+    dialect = sql_dialect_module(query)
+    dialect.alias_sql("0", quote_name("__ac_dummy", dialect.quote_char()))
   end
 
   defp columns_sql(columns, query) do
