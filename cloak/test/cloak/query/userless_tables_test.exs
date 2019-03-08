@@ -119,4 +119,10 @@ defmodule Cloak.Query.UserlessTableTest do
       end
     end
   end
+
+  test "[optimizer bug] subquery with unused column" do
+    assert_query("select count(*) from (select i from userless) t", %{
+      rows: [%{row: [4]}]
+    })
+  end
 end
