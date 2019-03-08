@@ -60,6 +60,7 @@ defmodule Air do
   end
 
   @doc false
+  @impl Application
   def config_change(changed, _new, removed) do
     AirWeb.Endpoint.config_change(changed, removed)
     :ok
