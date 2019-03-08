@@ -69,27 +69,18 @@ defmodule Cloak.AnalystTable do
     end
   end
 
-  @doc "Drops the table from the database."
-  @spec drop_table(String.t(), String.t(), DataSource.t()) :: :ok | {:error, String.t()}
-  def drop_table(analyst, table_name, data_source) do
-    if data_source.status == :online do
-      case find(analyst, table_name, data_source) do
-        nil ->
-          {:error, "table not found"}
-
-        table ->
-          db_execute!(
-            data_source,
-            fn %{connection: connection, driver: driver} ->
-              Logger.info("Dropping analyst table #{log_table_info(table)}")
-              GenServer.call(__MODULE__, {:unregister_table, table})
-              driver.drop_analyst_table(connection, table.db_name)
-            end
-          )
-      end
-    else
-      {:error, "data source is not connected"}
+  @doc "Drops the given tables from the database."
+  @spec drop_tables(Query.analyst_id(), String.t(), [String.t()]) :: :ok
+  def drop_tables(analyst, data_source_name, table_names) do
+    with {:ok, air_name} <- Cloak.Air.name() do
+      __MODULE__
+      |> :ets.match({{air_name, analyst, data_source_name, :_}, :"$1"})
+      |> Stream.map(fn [table] -> table end)
+      |> Stream.filter(&Enum.member?(table_names, &1.name))
+      |> Enum.each(&drop_table/1)
     end
+
+    :ok
   end
 
   @doc "Returns the analyst table definition."
@@ -326,6 +317,19 @@ defmodule Cloak.AnalystTable do
         else: {:error, "table `#{table.name}` needs to be updated before it can be queried"}
     else
       {:error, _} = error -> error
+    end
+  end
+
+  defp drop_table(table) do
+    with {:ok, data_source} <- fetch_data_source(table), :online <- data_source.status do
+      db_execute!(
+        data_source,
+        fn %{connection: connection, driver: driver} ->
+          Logger.info("Dropping analyst table #{log_table_info(table)}")
+          GenServer.call(__MODULE__, {:unregister_table, table})
+          driver.drop_analyst_table(connection, table.db_name)
+        end
+      )
     end
   end
 

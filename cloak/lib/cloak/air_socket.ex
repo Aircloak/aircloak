@@ -331,7 +331,7 @@ defmodule Cloak.AirSocket do
 
   defp handle_air_call("drop_analyst_table", data, from, state) do
     with {:ok, data_source} <- fetch_data_source(data.data_source),
-         :ok <- Cloak.AnalystTable.drop_table(data.analyst_id, data.table_name, data_source),
+         :ok <- Cloak.AnalystTable.drop_tables(data.analyst_id, data_source.name, [data.table_name]),
          do: respond_to_air(from, :ok, validate_views(data.analyst_id, data_source, data.views)),
          else: ({:error, reason} -> respond_to_air(from, :error, reason))
 
