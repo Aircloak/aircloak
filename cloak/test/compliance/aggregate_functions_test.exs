@@ -62,6 +62,7 @@ Enum.each(
             Cloak.DataSource.MongoDB,
             function in ~w(min max median) and unquote(column) in @integer_columns
           )
+          # `*_noise` functions on userless tables are replaced with `GROUP BY constant`, which SQL Server doesn't like.
           |> disable_for(Cloak.DataSource.SQLServer, function =~ ~r/_noise/ and unquote(table) == "users_public")
           |> assert_consistent_and_not_failing("""
             SELECT #{on_column(unquote(aggregate), unquote(column))}
