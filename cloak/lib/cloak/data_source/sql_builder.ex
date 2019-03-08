@@ -137,7 +137,8 @@ defmodule Cloak.DataSource.SqlBuilder do
     end
   end
 
-  defp columns_sql([], _query), do: "NULL"
+  # MySQL requires that at least one column is selected; SQL Server requires that the column has a name;
+  defp columns_sql([], _query), do: "NULL AS __ac_dummy"
 
   defp columns_sql(columns, query) do
     columns
