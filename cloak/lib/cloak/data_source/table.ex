@@ -445,8 +445,6 @@ defmodule Cloak.DataSource.Table do
 
   defp translate_projection_and_decoders({id, %{projection: projection, decoders: decoders} = table}, tables)
        when is_map(projection) or (is_list(decoders) and length(decoders) > 0) do
-    {user_id, alias, source} = translate_projection({id, table}, tables)
-
     columns =
       decoders
       |> translate_decoders(id)
@@ -454,7 +452,12 @@ defmodule Cloak.DataSource.Table do
         "#{expression} AS \"#{name}\",\n #{acc}"
       end)
 
-    query = "SELECT #{user_id} AS #{alias},\n #{columns} FROM #{source}"
+    query =
+      case translate_projection({id, table}, tables) do
+        {nil, nil, source} -> "SELECT #{columns} FROM #{source}"
+        {user_id, alias, source} -> "SELECT #{user_id} AS #{alias},\n #{columns} FROM #{source}"
+      end
+
     {id, table |> Map.drop([:projection, :decoders]) |> Map.put(:query, query)}
   end
 
@@ -512,6 +515,9 @@ defmodule Cloak.DataSource.Table do
   defp decoder_type(method), do: raise(ExecutionError, message: "Invalid decoding method specified: `#{method}`")
 
   defp quote_db_name(name), do: ~s/"#{String.replace(name, ~s/"/, ~s/""/)}"/
+
+  defp translate_projection({id, %{projection: nil, user_id: nil, db_name: db_name}}, _tables),
+    do: {nil, nil, ~s/#{quote_db_name(db_name)} AS "#{id}"/}
 
   defp translate_projection({id, %{projection: nil, user_id: user_id, db_name: db_name}}, _tables),
     do: {~s/"#{id}"."#{user_id}"/, ~s/"#{user_id}"/, ~s/#{quote_db_name(db_name)} AS "#{id}"/}

@@ -91,7 +91,8 @@ defmodule ComplianceCase do
   def float_columns(),
     do: [
       # {column name, table name, uid column in table}
-      {"height", "users", "user_id"}
+      {"height", "users", "user_id"},
+      {"height", "users_public", "user_id"}
     ]
 
   @doc false
@@ -99,6 +100,7 @@ defmodule ComplianceCase do
     do: [
       # {column name, table name, uid column in table}
       {"age", "users", "user_id"},
+      {"age", "users_public", "user_id"},
       {"id", "notes", "uid"},
       {"user_fk", "addresses", "uid"},
       {"home.postal_code", "addresses", "uid"},
@@ -124,7 +126,8 @@ defmodule ComplianceCase do
   def date_columns(),
     do: [
       # {column name, table name, uid column in table}
-      {"birthday", "users", "user_id"}
+      {"birthday", "users", "user_id"},
+      {"birthday", "users_public", "user_id"}
     ]
 
   @doc false
@@ -132,7 +135,9 @@ defmodule ComplianceCase do
     do: [
       # {column name, table name, uid column in table}
       {"name", "users", "user_id"},
+      {"name", "users_public", "user_id"},
       {"column_with_a_very_long_name", "users", "user_id"},
+      {"column_with_a_very_long_name", "users_public", "user_id"},
       {"home.city", "addresses", "uid"},
       {"work.city", "addresses", "uid"},
       {"title", "notes", "uid"},
@@ -145,7 +150,8 @@ defmodule ComplianceCase do
   def nullable_columns(),
     do: [
       # {column name, table name, uid column in table}
-      {"nullable", "users", "user_id"}
+      {"nullable", "users", "user_id"},
+      {"nullable", "users_public", "user_id"}
     ]
 
   @doc false

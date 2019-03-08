@@ -137,6 +137,8 @@ defmodule Cloak.DataSource.SqlBuilder do
     end
   end
 
+  defp columns_sql([], _query), do: "NULL"
+
   defp columns_sql(columns, query) do
     columns
     |> Enum.map(&column_sql(&1, query))
