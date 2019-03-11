@@ -258,14 +258,14 @@ defmodule Air.Service.User do
 
   def delete_async(user = %User{source: :ldap, enabled: false}, start_callback, success_callback, failure_callback) do
     start_callback.()
-    commit_if_active_last_admin_async(fn -> Repo.delete(user) end, success_callback, failure_callback)
+    commit_if_active_last_admin_async(fn -> do_delete(user) end, success_callback, failure_callback)
   end
 
   def delete_async(user, start_callback, success_callback, failure_callback) do
     case disable(user) do
       {:ok, user} ->
         start_callback.()
-        commit_if_active_last_admin_async(fn -> Repo.delete(user) end, success_callback, failure_callback)
+        commit_if_active_last_admin_async(fn -> do_delete(user) end, success_callback, failure_callback)
 
       error ->
         error
@@ -282,7 +282,7 @@ defmodule Air.Service.User do
   @doc "Deletes the given user."
   @spec delete(User.t()) :: {:ok, User.t()} | {:error, :forbidden_no_active_admin | :invalid_ldap_delete}
   def delete(%User{source: :ldap, enabled: true}), do: {:error, :invalid_ldap_delete}
-  def delete(user), do: commit_if_active_last_admin(fn -> Repo.delete(user) end)
+  def delete(user), do: commit_if_active_last_admin(fn -> do_delete(user) end)
 
   @doc "Disables a user account"
   @spec disable(User.t(), change_options) :: {:ok, User.t()} | {:error, :forbidden_no_active_admin}
@@ -790,6 +790,13 @@ defmodule Air.Service.User do
     do: {:error, update_in(changeset, [Access.key(:errors)], fn errors -> errors ++ login_errors end)}
 
   defp merge_login_errors(other), do: other
+
+  defp do_delete(user) do
+    Repo.transaction(fn ->
+      Air.Service.AnalystTable.delete_all(user)
+      Repo.delete(user)
+    end)
+  end
 
   # -------------------------------------------------------------------
   # GenServer callbacks

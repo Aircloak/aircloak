@@ -231,6 +231,26 @@ defmodule IntegrationTest.AnalystTableTest do
     assert soon(Air.Repo.get!(Air.Schemas.View, view.id).broken)
   end
 
+  test "analyst tables are deleted if the user is deleted" do
+    user = Manager.create_air_user()
+    {:ok, cloak_data_source} = Cloak.DataSource.fetch(Manager.data_source().name)
+
+    tables =
+      Stream.repeatedly(fn ->
+        name = unique_name()
+        {:ok, table} = create_table(user, name, "select * from users")
+        %{id: table.id, db_name: Cloak.AnalystTable.find(user.id, name, cloak_data_source).db_name}
+      end)
+      |> Enum.take(5)
+
+    Air.Service.User.delete!(user)
+
+    Enum.each(tables, fn table ->
+      assert table_not_in_db?(table.db_name)
+      assert is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id))
+    end)
+  end
+
   defp unique_name(), do: "table_#{:erlang.unique_integer([:positive])}"
 
   defp create_table(user, name, sql) do
