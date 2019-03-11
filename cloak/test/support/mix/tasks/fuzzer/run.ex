@@ -213,7 +213,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
         %{rows: _} -> %{query: input_ast, result: :ok}
       end
     rescue
-      e -> %{query: input_ast, result: :error, error: e.message}
+      e -> %{query: input_ast, result: :error, error: Map.get(e, :message, inspect(e))}
     end
   end
 
