@@ -39,14 +39,14 @@ defmodule IntegrationTest.Manager do
 
   def login(user), do: Air.Service.User.main_login(user)
 
-  def create_air_user() do
-    admin_group = Repo.one!(from(group in Group, where: group.name == @admin_group_name))
+  def create_air_user(group \\ nil) do
+    group = group || Repo.one!(from(group in Group, where: group.name == @admin_group_name))
 
     user =
       Air.Service.User.create!(%{
         login: "user_#{:erlang.unique_integer([:positive])}@aircloak.com",
         name: "user_#{:erlang.unique_integer([:positive])}",
-        groups: [admin_group.id]
+        groups: [group.id]
       })
 
     token = Air.Service.User.reset_password_token(user)

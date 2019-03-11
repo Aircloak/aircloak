@@ -108,29 +108,28 @@ defmodule Air.Service.AnalystTable do
   @doc "Deletes all analyst tables of the given user."
   @spec delete_all(Air.Schemas.User.t()) :: :ok
   def delete_all(user) do
-    user = Repo.preload(user, analyst_tables: :data_source)
+    Repo.preload(user, groups: :data_sources).groups
+    |> Stream.flat_map(& &1.data_sources)
+    |> Stream.uniq()
+    |> Enum.each(&delete_all(user, &1))
+  end
 
-    data_sources =
-      Enum.map(
-        Enum.group_by(user.analyst_tables, & &1.data_source, & &1.name),
-        fn {data_source, table_names} ->
-          DataSource.with_available_cloak(
-            data_source,
-            user,
-            &MainChannel.drop_analyst_tables(&1.channel_pid, user.id, data_source.name, table_names)
-          )
-
-          data_source
-        end
+  @doc "Deletes all analyst tables of the given user in the given data source."
+  @spec delete_all(Air.Schemas.User.t(), Air.Schemas.DataSource.t()) :: :ok
+  def delete_all(user, data_source) do
+    {_count, deleted_tables} =
+      Repo.delete_all(
+        from(
+          table in AnalystTable,
+          where: table.user_id == ^user.id and table.data_source_id == ^data_source.id
+        ),
+        returning: [:name]
       )
 
-    Repo.delete_all(from(table in AnalystTable, where: table.user_id == ^user.id))
-
-    data_sources
-    |> Stream.flat_map(&Air.Service.Cloak.channel_pids/1)
-    |> Enum.each(fn {pid, _cloak_info} -> MainChannel.refresh_analyst_tables(pid) end)
-
-    :ok
+    with [{channel_pid, _} | other_cloaks] <- Enum.shuffle(Air.Service.Cloak.channel_pids(data_source.name)) do
+      MainChannel.drop_analyst_tables(channel_pid, user.id, data_source.name, Enum.map(deleted_tables, & &1.name))
+      Enum.each(other_cloaks, fn {pid, _cloak_info} -> MainChannel.refresh_analyst_tables(pid) end)
+    end
   end
 
   @doc "Returns all known analyst tables."
