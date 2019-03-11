@@ -114,7 +114,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
   defp normalize_result({{:ok, result}, _}), do: result
 
   defp normalize_result({{:exit, :timeout}, {query, seed}}),
-    do: %{query: QueryGenerator.ast_to_sql(query), seed: seed, result: :timeout}
+    do: %{query: query, seed: seed, result: :timeout}
 
   defp print_single_result(all_file, crashes_file, result) do
     print_result(all_file, result)
