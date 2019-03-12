@@ -186,7 +186,7 @@ defmodule AircloakCI.Build.PullRequest do
     |> Enum.map(fn {name, _} -> name end)
     |> case do
       [] -> :ok
-      pending_jobs -> {:pending, "awaiting #{Enum.join(pending_jobs, ", ")}"}
+      pending_jobs -> {:pending, "awaiting #{Enum.join(Enum.sort(pending_jobs), ", ")}"}
     end
   end
 
