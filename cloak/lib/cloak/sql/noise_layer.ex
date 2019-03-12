@@ -58,9 +58,9 @@ defmodule Cloak.Sql.NoiseLayer do
 
   @doc "Computes a cryptographic sum of the previously accumulated values, starting from the given salt."
   @spec sum(MapSet.t(), String.t()) :: integer()
-  def sum(map_set, salt),
+  def sum(hash_set, salt),
     # since the list is not sorted, using `xor` (which is commutative) will get us consistent results
-    do: Enum.reduce(map_set, compute_hash(salt), &bxor/2)
+    do: Enum.reduce(hash_set, compute_hash(salt), &bxor/2)
 
   # -------------------------------------------------------------------
   # Internal functions
