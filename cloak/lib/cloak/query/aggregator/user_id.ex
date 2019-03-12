@@ -136,8 +136,7 @@ defmodule Cloak.Query.Aggregator.UserId do
 
   # This function merges the per-user accumulated values of two different buckets.
   # Used during the creation of the low-count filtered bucket.
-  # disable dialyzer warning because of `MapSet.union/2` call
-  @dialyzer {:nowarn_function, merge_accumulators: 1}
+
   # no values present for second bucket
   defp merge_accumulators({value, nil}), do: value
   # no values present for first bucket
@@ -151,9 +150,10 @@ defmodule Cloak.Query.Aggregator.UserId do
     # median accumulators
     do: value1 ++ value2
 
-  defp merge_accumulators({%MapSet{} = value1, %MapSet{} = value2}),
+  defp merge_accumulators({%{__struct__: MapSet} = value1, %{__struct__: MapSet} = value2}),
     # distinct accumulators
-    do: MapSet.union(value1, value2)
+    # using MapSet.new for each value to satisfy dialyzer
+    do: MapSet.union(MapSet.new(value1), MapSet.new(value2))
 
   defp merge_accumulators({{:avg, value1a, value1b}, {:avg, value2a, value2b}}),
     do: {:avg, value1a + value2a, value1b + value2b}

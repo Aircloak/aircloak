@@ -31,7 +31,7 @@ defmodule IntegrationTests.Mixfile do
       {:central, path: "../central", runtime: false},
       # resolving clashed dependencies
       {:mariaex, "~> 0.8", override: true},
-      {:ecto, "~> 2.2.0", override: true},
+      {:ecto, "~> 2.2.11", override: true},
       {:postgrex, "~> 0.13.0", override: true},
       {:httpoison, "~> 0.12.0", override: true},
       {:hackney, ">= 1.8.6", override: true},
