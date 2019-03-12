@@ -64,7 +64,7 @@ defmodule Central.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:ecto, "~> 2.2.0"},
+      {:ecto, "~> 2.2.11"},
       {:phoenix, "~> 1.4.0"},
       {:phoenix_pubsub, "~> 1.1"},
       {:postgrex, ">= 0.0.0"},

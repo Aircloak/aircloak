@@ -66,7 +66,7 @@ defmodule Air.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:ecto, "~> 2.2.0", override: true},
+      {:ecto, "~> 2.2.11", override: true},
       {:earmark, "~> 1.2", override: true},
       {:postgrex, "~> 0.13.0", override: true},
       {:phoenix, "~> 1.4.1", override: true},
