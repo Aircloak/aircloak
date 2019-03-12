@@ -38,7 +38,7 @@ defmodule Cloak.Mixfile do
       {:mariaex, "~> 0.8"},
       {:phoenix_gen_socket_client, "~> 2.0"},
       {:websocket_client, "~> 1.2.4"},
-      {:combine, "~> 0.9.6"},
+      {:combine, "~> 0.10"},
       {:timex, "~> 3.1"},
       {:mongodb, "~> 0.3.0"},
       {:backoff, "~> 1.1.3"},

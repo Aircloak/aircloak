@@ -113,13 +113,6 @@ defmodule Cloak.Sql.Parser.Parsers do
     %ParserState{state | results: [Map.get(state, :offset, 0) + state.column | state.results]}
   end
 
-  @doc "Manually increments the current line cursor as it is not done so automatically."
-  @spec increment_line(Combine.previous_parser()) :: Combine.parser()
-  defparser increment_line(%ParserState{status: :ok} = state) do
-    %ParserState{state | line: state.line + 1, column: 0}
-    |> Map.put(:offset, Map.get(state, :offset, 0) + state.column)
-  end
-
   @doc """
   Initializes the parser state for token parsing.
 

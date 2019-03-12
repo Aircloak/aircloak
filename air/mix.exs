@@ -87,11 +87,11 @@ defmodule Air.Mixfile do
       {:scrivener_ecto, "~> 1.0"},
       {:scrivener_html, "~> 1.1"},
       {:decimal, "~> 1.4"},
-      {:remote_ip, "~> 0.1.0"},
+      {:remote_ip, "~> 0.1.4"},
       {:ecto_enum, "~> 1.0.0"},
       {:jiffy, "~> 0.14.1"},
       {:parent, "~> 0.4.0"},
-      {:combine, "~> 0.9.6"},
+      {:combine, "~> 0.10.0"},
       {:epgsql, "~> 4.1"},
       {:jobs, "~> 0.7"},
       {:bom, path: "../bom", runtime: false, only: :dev}
