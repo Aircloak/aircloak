@@ -37,8 +37,8 @@ defmodule Cloak.MemoryReader.ProcMemInfo do
   @doc "Parses the results of a call to /proc/meminfo"
   @spec parse(String.t()) :: t
   def parse(info) do
-    total_memory = run_regex(~r/MemTotal:\s+(\d+) kB/, info)
-    available_memory = run_regex(~r/MemAvailable:\s+(\d+) kB/, info)
+    total_memory = first_match([~r/MemTotal:\s+(\d+) kB/], info)
+    available_memory = first_match([~r/MemAvailable:\s+(\d+) kB/, ~r/MemFree:\s+(\d+) kB/], info)
     %__MODULE__{total_memory: total_memory, available_memory: available_memory}
   end
 
@@ -46,9 +46,12 @@ defmodule Cloak.MemoryReader.ProcMemInfo do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp run_regex(regex, string),
-    do:
-      Regex.run(regex, string, capture: :all_but_first)
-      |> Enum.map(&String.to_integer/1)
-      |> hd()
+  defp first_match(regexes, string) do
+    regexes
+    |> Enum.map(&Regex.run(&1, string, capture: :all_but_first))
+    |> Enum.reject(&(&1 == nil))
+    |> hd()
+    |> hd()
+    |> String.to_integer()
+  end
 end
