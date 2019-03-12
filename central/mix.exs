@@ -75,7 +75,6 @@ defmodule Central.Mixfile do
       {:plug_cowboy, "~> 1.0"},
       {:comeonin, "~> 2.5"},
       {:guardian, "~> 1.2.1"},
-      {:timex, "~> 3.1"},
       {:aircloak_common, path: "../common/elixir"},
       {:inflex, "~> 1.5.0"},
       {:httpoison, "~> 0.12.0"},
@@ -113,7 +112,7 @@ defmodule Central.Mixfile do
   defp extra_applications(:dev), do: common_extra_applications() ++ dialyzer_required_deps()
   defp extra_applications(:prod), do: common_extra_applications()
 
-  defp common_extra_applications(), do: [:logger, :inets, :crontab]
+  defp common_extra_applications(), do: [:logger, :inets, :crontab, :timex]
 
   # These are indirect dependencies (deps of deps) which are not automatically included in the generated PLT.
   # By adding them explicitly to the applications list, we make sure that they are included in the PLT.

@@ -79,7 +79,6 @@ defmodule Air.Mixfile do
       {:gettext, "~> 0.9"},
       {:plug_cowboy, "~> 1.0"},
       {:comeonin, "~> 2.5"},
-      {:timex, ">= 3.1.10 and < 4.0.0"},
       {:aircloak_common, path: "../common/elixir"},
       {:inflex, "~> 1.5.0"},
       {:csv, "~> 1.4.2"},
@@ -120,7 +119,7 @@ defmodule Air.Mixfile do
   defp extra_applications(:dev), do: extra_common_applications() ++ dialyzer_required_deps()
   defp extra_applications(:prod), do: extra_common_applications()
 
-  defp extra_common_applications(), do: [:logger, :inets, :eldap, :jason]
+  defp extra_common_applications(), do: [:logger, :inets, :eldap, :jason, :timex]
 
   # These are indirect dependencies (deps of deps) which are not automatically included in the generated PLT.
   # By adding them explicitly to the applications list, we make sure that they are included in the PLT.
