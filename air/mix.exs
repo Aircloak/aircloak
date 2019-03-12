@@ -69,7 +69,7 @@ defmodule Air.Mixfile do
       {:ecto, "~> 2.2.0", override: true},
       {:earmark, "~> 1.2", override: true},
       {:postgrex, "~> 0.13.0", override: true},
-      {:phoenix, "~> 1.4.0", override: true},
+      {:phoenix, "~> 1.4.1", override: true},
       {:phoenix_pubsub, "~> 1.1"},
       {:phoenix_ecto, "~> 3.0"},
       {:phoenix_html, "~> 2.10.0"},

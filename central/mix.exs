@@ -74,7 +74,7 @@ defmodule Central.Mixfile do
       {:gettext, "~> 0.9"},
       {:plug_cowboy, "~> 1.0"},
       {:comeonin, "~> 2.5"},
-      {:guardian, "~> 1.0.1"},
+      {:guardian, "~> 1.2.1"},
       {:timex, "~> 3.1"},
       {:aircloak_common, path: "../common/elixir"},
       {:inflex, "~> 1.5.0"},
