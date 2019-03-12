@@ -119,6 +119,16 @@ defmodule AirWeb.Socket.Cloak.MainChannel do
          do: {:ok, adapt_validated_views(validated_views)}
   end
 
+  @doc "Asynchronously removes all the given analyst tables on the cloak."
+  @spec drop_analyst_tables(pid, pos_integer, String.t(), [String.t()]) :: :ok
+  def drop_analyst_tables(channel_pid, analyst_id, data_source_name, table_names) do
+    cast(channel_pid, "drop_analyst_tables", %{
+      analyst_id: analyst_id,
+      data_source: data_source_name,
+      table_names: table_names
+    })
+  end
+
   @doc "Asks the cloak to refresh its analyst tables."
   @spec refresh_analyst_tables(pid) :: :ok
   def refresh_analyst_tables(channel_pid), do: cast(channel_pid, "refresh_analyst_tables")
