@@ -26,6 +26,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
 
   alias Cloak.Compliance.QueryGenerator
   import Cloak.Test.QueryHelpers
+  alias Cloak.Test.AnalystTableHelpers
 
   use Mix.Task
 
@@ -98,6 +99,10 @@ defmodule Mix.Tasks.Fuzzer.Run do
     initialize()
     data_sources = [%{tables: tables} | _] = ComplianceCase.data_sources()
 
+    for data_source <- data_sources do
+      AnalystTableHelpers.clear_analyst_tables(data_source)
+    end
+
     seed
     |> QueryGenerator.ast_from_seed(Map.values(tables))
     |> run_query(seed, data_sources, !options[:no_minimization])
@@ -109,7 +114,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
   defp normalize_result({{:ok, result}, _}), do: result
 
   defp normalize_result({{:exit, :timeout}, {query, seed}}),
-    do: %{query: QueryGenerator.ast_to_sql(query), seed: seed, result: :timeout}
+    do: %{query: query, seed: seed, result: :timeout}
 
   defp print_single_result(all_file, crashes_file, result) do
     print_result(all_file, result)
@@ -124,15 +129,45 @@ defmodule Mix.Tasks.Fuzzer.Run do
   defp print_result(device \\ :stdio, result)
 
   defp print_result(device, result = %{result: :error, query: query, seed: seed, error: error}) do
-    IO.puts(device, ["Query:\n\n", query, minimized_query(result), "\n\nSeed: ", inspect(seed), "\n\n", error, "\n\n"])
+    IO.puts(device, [
+      "\n\n -- QUERY\n\n",
+      query(query),
+      minimized_query(result),
+      "\n\n -- Seed: ",
+      inspect(seed),
+      "\n\n",
+      error
+    ])
   end
 
   defp print_result(device, %{result: result, query: query, seed: seed}) do
-    IO.puts(device, [query, "\n\n", "Seed: ", inspect(seed), "\n\n", inspect(result), "\n\n"])
+    IO.puts(device, [
+      "\n\n -- QUERY\n\n",
+      query(query),
+      "\n\n",
+      " -- Seed: ",
+      inspect(seed),
+      "\n\n",
+      inspect(result)
+    ])
   end
 
-  defp minimized_query(%{minimized: minimized}), do: ["\n\nMinimized query:\n\n", minimized]
+  defp minimized_query(%{minimized: ast}), do: ["\n\n -- MINIMIZED QUERY\n\n", query(ast)]
   defp minimized_query(_), do: ""
+
+  defp query(ast) do
+    case QueryGenerator.extract_analyst_tables(ast) do
+      {ast, []} ->
+        QueryGenerator.ast_to_sql(ast)
+
+      {ast, analyst_tables} ->
+        [
+          QueryGenerator.ast_to_sql(ast),
+          "\n\n -- Analyst tables:\n\n",
+          analyst_tables |> Enum.map(fn {name, ast} -> [" -- ", name, "\n", QueryGenerator.ast_to_sql(ast), "\n"] end)
+        ]
+    end
+  end
 
   defp print_stats(results, options) do
     stats_path = Map.get(options, :stats_out, "/tmp/stats.txt")
@@ -158,25 +193,37 @@ defmodule Mix.Tasks.Fuzzer.Run do
   end
 
   defp minimize(ast, result, data_sources) do
-    ast
-    |> QueryGenerator.minimize(fn ast ->
+    QueryGenerator.minimize(ast, fn ast ->
       other_result = do_run_query(ast, data_sources)
       other_result.result == result.result and first_line(other_result.error) == first_line(result.error)
     end)
-    |> QueryGenerator.ast_to_sql()
   end
 
   defp first_line(string), do: string |> String.split("\n") |> hd()
 
-  defp do_run_query(ast, data_sources) do
+  defp do_run_query(input_ast, data_sources) do
+    {ast, analyst_tables} = QueryGenerator.extract_analyst_tables(input_ast)
     query = QueryGenerator.ast_to_sql(ast)
 
-    case assert_query_consistency(query, data_sources: data_sources) do
-      %{error: error} -> %{query: query, result: :error, error: error}
-      %{rows: _} -> %{query: query, result: :ok}
+    try do
+      create_analyst_tables!(analyst_tables, data_sources)
+
+      case assert_query_consistency(query, analyst_id: 1, data_sources: data_sources) do
+        %{error: error} -> %{query: input_ast, result: :error, error: error}
+        %{rows: _} -> %{query: input_ast, result: :ok}
+      end
+    rescue
+      e -> %{query: input_ast, result: :error, error: Map.get(e, :message, inspect(e))}
     end
-  rescue
-    e -> %{query: QueryGenerator.ast_to_sql(ast), result: :error, error: e.message}
+  end
+
+  defp create_analyst_tables!(analyst_tables, data_sources) do
+    for {name, ast} <- analyst_tables, data_source <- data_sources do
+      case AnalystTableHelpers.create_or_update(1, name, QueryGenerator.ast_to_sql(ast), data_source) do
+        {:ok, _} -> :ok
+        {:error, message} -> raise message
+      end
+    end
   end
 
   defp generate_queries(tables, number_of_queries) do
@@ -189,6 +236,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
     Application.ensure_all_started(:cloak)
     Cloak.SapHanaHelpers.delete_test_schemas()
     Cloak.Test.DB.start_link()
+    Cloak.Air.register_air("test_air")
   end
 
   defp with_file(name, function) do
