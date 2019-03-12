@@ -134,7 +134,12 @@ defmodule Compliance.DataSource.PostgreSQL do
     end
 
     Postgrex.query!(conn, "DROP DATABASE IF EXISTS #{params.database}", [])
-    Postgrex.query!(conn, "CREATE DATABASE #{params.database} ENCODING 'UTF8'", [])
+
+    Postgrex.query!(
+      conn,
+      "CREATE DATABASE #{params.database} ENCODING 'UTF8' LC_CTYPE = 'en_US.UTF-8' TEMPLATE template0",
+      []
+    )
 
     Postgrex.query!(conn, "GRANT ALL PRIVILEGES ON DATABASE #{params.database} TO #{params.username}", [])
 
