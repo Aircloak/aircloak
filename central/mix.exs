@@ -67,7 +67,7 @@ defmodule Central.Mixfile do
       {:ecto, "~> 2.2.11"},
       {:phoenix, "~> 1.4.0"},
       {:phoenix_pubsub, "~> 1.1"},
-      {:postgrex, ">= 0.0.0"},
+      {:postgrex, github: "sasa1977/postgrex", tag: "0.13.5", override: true},
       {:phoenix_ecto, "~> 3.0"},
       {:phoenix_html, "~> 2.10.0"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
@@ -79,7 +79,7 @@ defmodule Central.Mixfile do
       {:inflex, "~> 1.5.0"},
       {:httpoison, "~> 0.12.0"},
       {:quantum, "~> 2.2.7"},
-      {:mongodb, "~> 0.3.0"},
+      {:mongodb, github: "sasa1977/mongodb", tag: "0.3.0"},
       {:poolboy, ">= 0.0.0"},
       {:phoenix_gen_socket_client, "~> 2.0", only: :test},
       {:websocket_client, "~> 1.2.4", only: :test}

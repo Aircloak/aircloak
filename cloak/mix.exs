@@ -34,12 +34,12 @@ defmodule Cloak.Mixfile do
   defp deps do
     [
       {:aircloak_common, path: "../common/elixir"},
-      {:postgrex, "~> 0.13"},
+      {:postgrex, github: "sasa1977/postgrex", tag: "0.13.5"},
       {:mariaex, "~> 0.8"},
       {:phoenix_gen_socket_client, "~> 2.0"},
       {:websocket_client, "~> 1.2.4"},
       {:combine, "~> 0.10"},
-      {:mongodb, "~> 0.3.0"},
+      {:mongodb, github: "sasa1977/mongodb", tag: "0.3.0"},
       {:backoff, "~> 1.1.3"},
       {:jiffy, "~> 0.14.1"},
       {:file_system, "~> 0.2.6"},
