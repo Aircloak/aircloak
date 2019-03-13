@@ -34,7 +34,7 @@ defmodule Cloak.Mixfile do
   defp deps do
     [
       {:aircloak_common, path: "../common/elixir"},
-      {:postgrex, "~> 0.13"},
+      {:postgrex, github: "sasa1977/postgrex", tag: "0.13.5"},
       {:mariaex, "~> 0.8"},
       {:phoenix_gen_socket_client, "~> 2.0"},
       {:websocket_client, "~> 1.2.4"},

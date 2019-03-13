@@ -67,7 +67,7 @@ defmodule Central.Mixfile do
       {:ecto, "~> 2.2.11"},
       {:phoenix, "~> 1.4.0"},
       {:phoenix_pubsub, "~> 1.1"},
-      {:postgrex, ">= 0.0.0"},
+      {:postgrex, github: "sasa1977/postgrex", tag: "0.13.5", override: true},
       {:phoenix_ecto, "~> 3.0"},
       {:phoenix_html, "~> 2.10.0"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
