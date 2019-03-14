@@ -440,7 +440,7 @@ defmodule Compliance.AnalystTableTest do
           assert_query(
             "select bar.foo from (select table46.uid, median(1) as foo from table46 group by 1) as bar",
             [analyst_id: 1, data_sources: [data_source]],
-            %{columns: ["foo"], rows: [%{occurrences: 200, row: [1]}]}
+            %{columns: ["foo"], rows: [%{row: [1]}]}
           )
         end
       end
