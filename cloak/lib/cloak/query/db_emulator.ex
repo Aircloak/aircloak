@@ -20,6 +20,7 @@ defmodule Cloak.Query.DbEmulator do
   @spec compile(Query.t()) :: Query.t()
   def compile(query) do
     query
+    |> Cloak.Query.AnalystTables.resolve()
     |> Query.set_emulation_flag()
     |> Query.resolve_db_columns()
     |> Compiler.Helpers.apply_top_down(&compile_emulated_subqueries/1)
