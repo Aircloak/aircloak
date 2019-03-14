@@ -8,9 +8,10 @@ defmodule Compliance.GroupByTest do
       |> disable_for(Cloak.DataSource.SQLServer, unquote(column) == "name")
       |> disable_for(Cloak.DataSource.MySQL, unquote(column) == "name")
       |> disable_for(Cloak.DataSource.MongoDB, unquote(column) == "birthday")
+      |> disable_for(:all, unquote(table) == "users_public" and unquote(column) == "name")
       |> assert_consistent_and_not_failing("""
         SELECT #{unquote(column)}, COUNT(DISTINCT #{unquote(uid)})
-        FROM #{unquote(table)} GROUP BY 1 ORDER BY 1
+        FROM #{unquote(table)} GROUP BY 1 ORDER BY 1 ASC NULLS FIRST
       """)
     end
   end)

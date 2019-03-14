@@ -15,6 +15,6 @@ if ! named_container_running central_mongo ; then
   printf "Starting mongodb for central "
   docker run -d --name central_mongo \
     -p 27017:27017 \
-    -v /docker_volumes/central_mongo_db:/data/db \
+    -v $DOCKER_DATA/docker_volumes/central_mongo_db:/data/db \
     mongo:3.6.4 > /dev/null
 fi

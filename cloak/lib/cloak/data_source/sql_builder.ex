@@ -137,6 +137,12 @@ defmodule Cloak.DataSource.SqlBuilder do
     end
   end
 
+  # MySQL requires that at least one column is selected; SQL Server requires that the column has a name;
+  defp columns_sql([], query) do
+    dialect = sql_dialect_module(query)
+    dialect.alias_sql("0", quote_name("__ac_dummy", dialect.quote_char()))
+  end
+
   defp columns_sql(columns, query) do
     columns
     |> Enum.map(&column_sql(&1, query))
@@ -201,19 +207,10 @@ defmodule Cloak.DataSource.SqlBuilder do
   end
 
   defp from_clause({:subquery, subquery}, query) do
-    case subquery.ast.analyst_table do
-      nil ->
-        sql_dialect_module(query).alias_sql(
-          ["(", build_fragments(subquery.ast), ")"],
-          quote_name(subquery.alias, sql_dialect_module(query).quote_char)
-        )
-
-      analyst_table ->
-        with :ok <- Cloak.AnalystTable.validate_query_usage(analyst_table, query.views),
-             {:ok, table} <- Cloak.AnalystTable.to_cloak_table(analyst_table, query.views, name: subquery.alias),
-             do: table_to_from(table, query),
-             else: ({:error, reason} -> raise Cloak.Query.ExecutionError, message: reason)
-    end
+    sql_dialect_module(query).alias_sql(
+      ["(", build_fragments(subquery.ast), ")"],
+      quote_name(subquery.alias, sql_dialect_module(query).quote_char)
+    )
   end
 
   defp from_clause(table_name, query) when is_binary(table_name) do

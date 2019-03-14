@@ -14,14 +14,18 @@
     "certfile": "ssl_cert.pem",
     "keyfile": "ssl_key.pem"
   },
-
   "database": {
     "host": "localhost",
     "port": 20002,
     "user": "air",
     "name": "air_dev"
   },
-
+  "shadow_database": {
+    "host": "localhost",
+    "port": 20002,
+    "user": "air",
+    "name": "air_dev"
+  },
   "ldap": {
     "host": "localhost",
     "port": 1389,

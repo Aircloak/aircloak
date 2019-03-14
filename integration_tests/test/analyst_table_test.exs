@@ -231,6 +231,60 @@ defmodule IntegrationTest.AnalystTableTest do
     assert soon(Air.Repo.get!(Air.Schemas.View, view.id).broken)
   end
 
+  test "analyst tables are deleted if the user is deleted" do
+    user = Manager.create_air_user()
+    {:ok, cloak_data_source} = Cloak.DataSource.fetch(Manager.data_source().name)
+
+    tables =
+      Stream.repeatedly(fn ->
+        name = unique_name()
+        {:ok, table} = create_table(user, name, "select * from users")
+        %{id: table.id, db_name: Cloak.AnalystTable.find(user.id, name, cloak_data_source).db_name}
+      end)
+      |> Enum.take(5)
+
+    Air.Service.User.delete!(user)
+
+    Enum.each(tables, fn table ->
+      assert soon(table_not_in_db?(table.db_name), :timer.seconds(5), repeat_wait_time: 10)
+      assert soon(is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id)), :timer.seconds(5), repeat_wait_time: 10)
+    end)
+  end
+
+  test "analyst tables are deleted if permissions are revoked" do
+    # create new group and add user to it
+    group = Air.Service.User.create_group!(%{name: "new_group", admin: false})
+    user = Manager.create_air_user(group)
+
+    # load current data source groups (should be just admin)
+    data_source = Air.Repo.preload(Manager.data_source(), :groups)
+    prev_groups = Enum.map(data_source.groups, & &1.id)
+
+    # allow users from the new group to access data source
+    new_groups = [group.id | prev_groups]
+    data_source = Air.Service.DataSource.update!(data_source, %{groups: new_groups})
+
+    # create new analyst tables
+    {:ok, cloak_data_source} = Cloak.DataSource.fetch(data_source.name)
+
+    tables =
+      Stream.repeatedly(fn ->
+        name = unique_name()
+        {:ok, table} = create_table(user, name, "select * from users")
+        %{id: table.id, db_name: Cloak.AnalystTable.find(user.id, name, cloak_data_source).db_name}
+      end)
+      |> Enum.take(5)
+
+    # revoke access permission to the new group
+    Air.Service.DataSource.update!(data_source, %{groups: prev_groups})
+
+    # verify that created tables are deleted
+    Enum.each(tables, fn table ->
+      assert soon(table_not_in_db?(table.db_name), :timer.seconds(5), repeat_wait_time: 10)
+      assert soon(is_nil(Air.Repo.get(Air.Schemas.AnalystTable, table.id)), :timer.seconds(5), repeat_wait_time: 10)
+    end)
+  end
+
   defp unique_name(), do: "table_#{:erlang.unique_integer([:positive])}"
 
   defp create_table(user, name, sql) do

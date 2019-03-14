@@ -213,11 +213,16 @@ defmodule Air.Service.DataSource do
 
   @doc "Updates a data source."
   @spec update(DataSource.t(), map) :: {:ok, DataSource.t()} | {:error, Ecto.Changeset.t()}
-  def update(data_source, params),
-    do:
-      data_source
-      |> data_source_changeset(params)
-      |> Repo.update()
+  def update(data_source, params) do
+    old_users = Repo.preload(data_source, groups: :users).groups |> Stream.flat_map(& &1.users) |> MapSet.new()
+
+    with {:ok, data_source} <- data_source |> data_source_changeset(params) |> Repo.update() do
+      new_users = Repo.preload(data_source, groups: :users).groups |> Stream.flat_map(& &1.users) |> MapSet.new()
+      revoked_users = MapSet.difference(old_users, new_users)
+      Enum.each(revoked_users, &Air.Service.AnalystTable.delete_all(&1, data_source))
+      {:ok, data_source}
+    end
+  end
 
   @doc """
   Deletes the given data source in the background. The success or failure callback will be called depending on the

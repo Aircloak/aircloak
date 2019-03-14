@@ -268,9 +268,9 @@ defmodule Cloak.DataSource.MongoDB do
 
   defp supports_joins?(_query), do: true
 
-  defp supports_order_by?(%{subquery?: false}), do: true
+  defp supports_order_by?(%{type: :anonymized}), do: true
 
-  defp supports_order_by?(%{subquery?: true, order_by: order_by}),
+  defp supports_order_by?(%{order_by: order_by}),
     do:
       Enum.all?(order_by, fn
         {_, _, :nulls_natural} -> true

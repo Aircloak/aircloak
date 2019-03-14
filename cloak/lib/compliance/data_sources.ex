@@ -203,7 +203,9 @@ defmodule Compliance.DataSources do
     flattened_data = Data.flatten(data)
     collections = Data.to_collections(data)
 
-    Enum.each(definitions, fn {name, _} ->
+    definitions
+    |> Enum.filter(fn {_, definition} -> definition[:db_name] == nil end)
+    |> Enum.each(fn {name, _} ->
       state.handler.insert_rows("#{name}#{table_postfix}", flattened_data[name], state.conn)
       state.handler.insert_documents("#{name}#{table_postfix}", collections[name], state.conn)
     end)
@@ -232,10 +234,16 @@ defmodule Compliance.DataSources do
   defp create_table_structure(definitions, table_postfix, data_source_scaffold) do
     definitions
     |> Enum.map(fn {name, definition} ->
+      db_name = Map.get(definition, :db_name, name)
+
       data_source_definition_template =
-        %{decoders: Map.get(definition, :decoders, []), query: nil, content_type: :private}
+        %{
+          decoders: Map.get(definition, :decoders, []),
+          query: nil,
+          content_type: Map.get(definition, :content_type, :private)
+        }
         |> add_uid_construct(name)
-        |> Map.put(:db_name, handler_for_data_source(data_source_scaffold).db_table_name("#{name}#{table_postfix}"))
+        |> Map.put(:db_name, handler_for_data_source(data_source_scaffold).db_table_name("#{db_name}#{table_postfix}"))
 
       {name, data_source_definition_template}
     end)
@@ -252,6 +260,9 @@ defmodule Compliance.DataSources do
       {table_name, expanded_table_def}
     end)
   end
+
+  defp add_uid_construct(%{content_type: :public} = data_source_definition_template, _name),
+    do: data_source_definition_template
 
   defp add_uid_construct(data_source_definition_template, name) do
     case Map.get(TableDefinitions.uid_definitions(), name) do

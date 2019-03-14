@@ -327,7 +327,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
       {_, [], id_column} ->
         # We can't completely remove the `ORDER BY` clause here, because `LIMIT` and/or `OFFSET` might require it.
-        %{query | order_by: [{id_column, :asc, :nulls_last}]}
+        %{query | order_by: [{id_column, :asc, :nulls_natural}]}
 
       {_, order_list, _} ->
         %{query | order_by: order_list}
