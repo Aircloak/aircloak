@@ -431,6 +431,19 @@ defmodule Compliance.AnalystTableTest do
             create_or_update(1, "table45", "select user_id, height from users where name LIKE '%Bob%'", data_source)
         end
       end
+
+      test "analyst table is resolved before emulator" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)),
+             true <- String.starts_with?(data_source.name, "postgresql") do
+          {:ok, _} = create_or_update(1, "table46", "select notes_changes.uid from notes_changes", data_source)
+
+          assert_query(
+            "select bar.foo from (select table46.uid, median(1) as foo from table46 group by 1) as bar",
+            [analyst_id: 1, data_sources: [data_source]],
+            %{columns: ["foo"], rows: [%{occurrences: 200, row: [1]}]}
+          )
+        end
+      end
     end
   end
 
@@ -472,6 +485,7 @@ defmodule Compliance.AnalystTableTest do
     statement
     |> Cloak.Sql.Parser.parse!()
     |> Cloak.Sql.Compiler.compile_direct!(analyst_id, data_source)
+    |> Cloak.Query.DbEmulator.compile()
     |> Cloak.Query.DbEmulator.select()
   end
 end
