@@ -266,6 +266,24 @@ defmodule Cloak.Query.NoiseLayerTest do
       assert_analyst_table_consistent(query, subquery)
     end
 
+    test "[Issue #3652] noise layer on min" do
+      :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number", "other"], [10, 10])
+
+      query = "SELECT 1 FROM $subquery"
+
+      subquery = """
+        SELECT a.user_id, min(b.number)
+        FROM (
+            SELECT user_id FROM noise_layers WHERE other = 10
+          ) AS a
+          JOIN noise_layers AS b
+          ON a.user_id = b.user_id
+        GROUP BY 1
+      """
+
+      assert_analyst_table_consistent(query, subquery)
+    end
+
     def assert_analyst_table_consistent(query, subquery) do
       regular_query = query |> String.replace("$subquery", "(#{subquery}) AS foo")
       analyst_query = query |> String.replace("$subquery", "foo")

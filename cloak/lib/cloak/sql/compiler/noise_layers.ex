@@ -55,8 +55,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     # Recomputing these for every condition becomes far too slow in the presence of nested analyst tables
 
     update_in(query, [Query.Lenses.all_queries() |> Lens.filter(& &1.analyst_table)], fn query ->
-      {:ok, %{columns: columns}} = Cloak.AnalystTable.to_cloak_table(query.analyst_table, query.views)
-      %{query | analyst_table: {query.analyst_table, columns}}
+      {:ok, cloak_table, columns} = Cloak.AnalystTable.to_cloak_table_with_columns(query.analyst_table, query.views)
+      %{query | analyst_table: {query.analyst_table, cloak_table, columns}}
     end)
   end
 
@@ -113,7 +113,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Enum.map(fn column ->
         build_noise_layer(column, extras, [_min = column, _max = column | rest])
       end)
-      |> drop_redundant_noise_layers_columns(query)
+      |> finalize(query)
 
     update_in(query, [Lens.key(:noise_layers)], &(&1 ++ layers))
   end
@@ -134,7 +134,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         do: float_noise_layers(query.noise_layers ++ floated_noise_layers(query), query),
         else: query.noise_layers ++ floated_noise_layers(query)
 
-    %{query | noise_layers: drop_redundant_noise_layers_columns(noise_layers, query)}
+    %{query | noise_layers: finalize(noise_layers, query)}
   end
 
   defp float_noise_layers(layers, query), do: Enum.map(layers, &float_noise_layer(&1, query))
@@ -219,7 +219,27 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         like_noise_layers(query, top_level_uid) ++
         range_noise_layers(query, top_level_uid) ++ not_equals_noise_layers(query, top_level_uid)
 
-    %Query{query | noise_layers: drop_redundant_noise_layers_columns(noise_layers, query)}
+    %Query{query | noise_layers: finalize(noise_layers, query)}
+  end
+
+  defp finalize(noise_layers, query) do
+    noise_layers
+    |> adjust_for_analyst_tables(query)
+    |> drop_redundant_noise_layers_columns(query)
+  end
+
+  defp adjust_for_analyst_tables(noise_layers, %{analyst_table: {_, table, columns}}),
+    do: update_in(noise_layers, [all_expressions()], &do_adjust_for_analyst_tables(&1, table, columns))
+
+  defp adjust_for_analyst_tables(noise_layers, _query), do: noise_layers
+
+  defp do_adjust_for_analyst_tables(expression, table, columns) do
+    columns
+    |> Enum.find_index(&Expression.equals?(&1, expression))
+    |> case do
+      nil -> expression
+      found -> Expression.column(table.columns |> Enum.at(found), table)
+    end
   end
 
   defp drop_redundant_noise_layers_columns(noise_layers, query) do
@@ -230,18 +250,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Enum.map(&Expression.unalias/1)
       |> Enum.uniq()
 
-    Lens.all()
-    |> Lens.key(:expressions)
-    |> Lens.all()
-    |> Lens.reject(& &1.constant?)
-    |> Lens.map(
-      noise_layers,
-      &set_noise_layer_expression_alias(&1, all_expressions, query)
-    )
+    update_in(noise_layers, [all_expressions()], &set_noise_layer_expression_alias(&1, all_expressions, query))
   end
 
-  defp set_noise_layer_expression_alias(expression, all_expressions, query = %{analyst_table: {_, columns}}) do
-    if Enum.any?(columns, &(&1.name == expression.name)) do
+  defp set_noise_layer_expression_alias(expression, all_expressions, query = %{analyst_table: {_, table, _}})
+       when not is_nil(table) do
+    if Enum.any?(table.columns, &(&1.name == expression.name)) do
       expression
     else
       set_noise_layer_expression_alias(expression, all_expressions, %{query | analyst_table: nil})
