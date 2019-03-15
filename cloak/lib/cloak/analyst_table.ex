@@ -122,7 +122,7 @@ defmodule Cloak.AnalystTable do
 
   @doc "Returns the cloak table structure and the list of expressions the columns represent for the given table."
   @spec to_cloak_table_with_columns(t, Query.view_map(), name: String.t()) ::
-          {:ok, DataSource.Table.t()} | {:error, String.t()}
+          {:ok, DataSource.Table.t(), [Cloak.Sql.Expression.t()]} | {:error, String.t()}
   def to_cloak_table_with_columns(table, views, opts \\ []) do
     with {:ok, data_source} <- fetch_data_source(table),
          {:ok, query} <- Compiler.compile(table.name, table.statement, table.analyst, data_source, nil, views) do
