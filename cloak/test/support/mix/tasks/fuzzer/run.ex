@@ -61,11 +61,10 @@ defmodule Mix.Tasks.Fuzzer.Run do
   defp do_run(options = %{queries: number_of_queries}) do
     initialize()
 
-    data_sources = [%{tables: tables} | _] = ComplianceCase.data_sources()
     concurrency = Map.get(options, :concurrency, System.schedulers_online())
     timeout = Map.get(options, :timeout, :timer.seconds(30))
 
-    queries = generate_queries(Map.values(tables), number_of_queries)
+    queries = generate_queries(get_tables(), number_of_queries)
 
     all_path = Map.get(options, :all_out, "/tmp/all.txt")
     crashes_path = Map.get(options, :crashes_out, "/tmp/crashes.txt")
@@ -77,7 +76,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
             queries,
             fn {query, seed} ->
               IO.write(".")
-              run_query(query, seed, data_sources, !options[:no_minimization])
+              run_query(query, seed, ComplianceCase.data_sources(), !options[:no_minimization])
             end,
             max_concurrency: concurrency,
             timeout: timeout,
@@ -97,14 +96,14 @@ defmodule Mix.Tasks.Fuzzer.Run do
 
   defp do_run(options = %{seed: seed}) do
     initialize()
-    data_sources = [%{tables: tables} | _] = ComplianceCase.data_sources()
+    data_sources = ComplianceCase.data_sources()
 
     for data_source <- data_sources do
       AnalystTableHelpers.clear_analyst_tables(data_source)
     end
 
     seed
-    |> QueryGenerator.ast_from_seed(Map.values(tables))
+    |> QueryGenerator.ast_from_seed(get_tables())
     |> run_query(seed, data_sources, !options[:no_minimization])
     |> print_result()
   end
@@ -208,13 +207,26 @@ defmodule Mix.Tasks.Fuzzer.Run do
     try do
       create_analyst_tables!(analyst_tables, data_sources)
 
-      case assert_query_consistency(query, analyst_id: 1, data_sources: data_sources) do
-        %{error: error} -> %{query: input_ast, result: :error, error: error}
-        %{rows: _} -> %{query: input_ast, result: :ok}
+      case {assert_query_consistency(query, analyst_id: 1, data_sources: data_sources), analyst_tables} do
+        {%{error: error}, _} ->
+          %{result: :error, error: error}
+
+        {%{rows: _}, []} ->
+          %{result: :ok}
+
+        {%{rows: rows}, _} ->
+          no_analyst = input_ast |> QueryGenerator.remove_analyst_tables() |> QueryGenerator.ast_to_sql()
+
+          case assert_query_consistency(no_analyst, data_sources: data_sources) do
+            %{error: error} -> %{result: :error, error: "Query failed without analyst tables\n#{error}"}
+            %{rows: ^rows} -> %{result: :ok}
+            _ -> %{result: :error, error: "Inconsistent results with analyst tables"}
+          end
       end
     rescue
-      e -> %{query: input_ast, result: :error, error: Map.get(e, :message, inspect(e))}
+      e -> %{result: :error, error: Map.get(e, :message, inspect(e))}
     end
+    |> Map.put(:query, input_ast)
   end
 
   defp create_analyst_tables!(analyst_tables, data_sources) do
@@ -247,5 +259,10 @@ defmodule Mix.Tasks.Fuzzer.Run do
   defp print_usage!() do
     IO.puts(@usage)
     Mix.raise("Invalid usage")
+  end
+
+  defp get_tables() do
+    [%{tables: tables} | _] = ComplianceCase.data_sources()
+    tables |> Map.values() |> Enum.filter(& &1.user_id)
   end
 end
