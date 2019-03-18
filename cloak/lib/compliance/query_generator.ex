@@ -91,7 +91,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   @spec extract_analyst_tables(ast) :: {ast, [{String.t(), ast}]}
   def extract_analyst_tables(ast) do
     {analyst_tables, ast} =
-      Lens.both(Lens.recur(Lens.at(2) |> Lens.all()), Lens.root())
+      nodes()
       |> Lens.filter(&match?({:subquery, _, [{:query, {:analyst_table, _}, _}]}, &1))
       |> Lens.get_and_map(ast, fn {:subquery, _, [subquery = {:query, {:analyst_table, name}, _}]} ->
         {{name, subquery}, {:table, name, []}}
@@ -597,11 +597,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   end
 
   defp aggregate_expression?(expression),
-    do: expression |> get_in([all_expressions()]) |> Enum.any?(&aggregate_function?/1)
-
-  deflensp all_expressions() do
-    Lens.both(Lens.index(2) |> Lens.all() |> Lens.recur(), Lens.root())
-  end
+    do: expression |> get_in([nodes()]) |> Enum.any?(&aggregate_function?/1)
 
   defp aggregate_function?({:function, name, _}), do: Function.aggregator?(name)
   defp aggregate_function?(_), do: false
@@ -714,7 +710,9 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp empty(), do: {:empty, nil, []}
 
-  defp nodes(), do: Lens.both(Lens.root(), Lens.index(2) |> Lens.all() |> Lens.recur())
+  deflensp nodes() do
+    Lens.both(Lens.root(), Lens.index(2) |> Lens.all() |> Lens.recur())
+  end
 
   defp simplify(context), do: update_in(context, [:complexity], &div(&1, 2))
 
