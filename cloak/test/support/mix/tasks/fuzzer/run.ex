@@ -61,11 +61,10 @@ defmodule Mix.Tasks.Fuzzer.Run do
   defp do_run(options = %{queries: number_of_queries}) do
     initialize()
 
-    data_sources = [%{tables: tables} | _] = ComplianceCase.data_sources()
     concurrency = Map.get(options, :concurrency, System.schedulers_online())
     timeout = Map.get(options, :timeout, :timer.seconds(30))
 
-    queries = generate_queries(Map.values(tables), number_of_queries)
+    queries = generate_queries(get_tables(), number_of_queries)
 
     all_path = Map.get(options, :all_out, "/tmp/all.txt")
     crashes_path = Map.get(options, :crashes_out, "/tmp/crashes.txt")
@@ -77,7 +76,7 @@ defmodule Mix.Tasks.Fuzzer.Run do
             queries,
             fn {query, seed} ->
               IO.write(".")
-              run_query(query, seed, data_sources, !options[:no_minimization])
+              run_query(query, seed, ComplianceCase.data_sources(), !options[:no_minimization])
             end,
             max_concurrency: concurrency,
             timeout: timeout,
@@ -97,14 +96,14 @@ defmodule Mix.Tasks.Fuzzer.Run do
 
   defp do_run(options = %{seed: seed}) do
     initialize()
-    data_sources = [%{tables: tables} | _] = ComplianceCase.data_sources()
+    data_sources = ComplianceCase.data_sources()
 
     for data_source <- data_sources do
       AnalystTableHelpers.clear_analyst_tables(data_source)
     end
 
     seed
-    |> QueryGenerator.ast_from_seed(Map.values(tables))
+    |> QueryGenerator.ast_from_seed(get_tables())
     |> run_query(seed, data_sources, !options[:no_minimization])
     |> print_result()
   end
@@ -247,5 +246,10 @@ defmodule Mix.Tasks.Fuzzer.Run do
   defp print_usage!() do
     IO.puts(@usage)
     Mix.raise("Invalid usage")
+  end
+
+  defp get_tables() do
+    [%{tables: tables} | _] = ComplianceCase.data_sources()
+    tables |> Map.values() |> Enum.filter(& &1.user_id)
   end
 end
