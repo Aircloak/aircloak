@@ -207,9 +207,26 @@ defmodule Mix.Tasks.Fuzzer.Run do
     try do
       create_analyst_tables!(analyst_tables, data_sources)
 
-      case assert_query_consistency(query, analyst_id: 1, data_sources: data_sources) do
-        %{error: error} -> %{query: input_ast, result: :error, error: error}
-        %{rows: _} -> %{query: input_ast, result: :ok}
+      case {assert_query_consistency(query, analyst_id: 1, data_sources: data_sources), analyst_tables} do
+        {%{error: error}, _} ->
+          %{query: input_ast, result: :error, error: error}
+
+        {%{rows: _}, []} ->
+          %{query: input_ast, result: :ok}
+
+        {%{rows: rows}, _} ->
+          no_analyst = input_ast |> QueryGenerator.remove_analyst_tables() |> QueryGenerator.ast_to_sql()
+
+          case assert_query_consistency(no_analyst, data_sources: data_sources) do
+            %{error: error} ->
+              %{query: input_ast, result: :error, error: "Query failed without analyst tables\n#{error}"}
+
+            %{rows: ^rows} ->
+              %{query: input_ast, result: :ok}
+
+            _ ->
+              %{query: input_ast, result: :error, error: "Inconsistent results with analyst tables"}
+          end
       end
     rescue
       e -> %{query: input_ast, result: :error, error: Map.get(e, :message, inspect(e))}
