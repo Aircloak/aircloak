@@ -116,9 +116,19 @@ defmodule Cloak.AnalystTable do
   @doc "Returns the cloak table structure which describes the given table."
   @spec to_cloak_table(t, Query.view_map(), name: String.t()) :: {:ok, DataSource.Table.t()} | {:error, String.t()}
   def to_cloak_table(table, views, opts \\ []) do
+    with {:ok, cloak_table, _columns} <- to_cloak_table_with_columns(table, views, opts),
+         do: {:ok, cloak_table}
+  end
+
+  @doc "Returns the cloak table structure and the list of expressions the columns represent for the given table."
+  @spec to_cloak_table_with_columns(t, Query.view_map(), name: String.t()) ::
+          {:ok, DataSource.Table.t(), [Cloak.Sql.Expression.t()]} | {:error, String.t()}
+  def to_cloak_table_with_columns(table, views, opts \\ []) do
     with {:ok, data_source} <- fetch_data_source(table),
-         {:ok, query} <- Compiler.compile(table.name, table.statement, table.analyst, data_source, nil, views),
-         do: {:ok, Query.to_table(query, Keyword.get(opts, :name, table.name), type: :analyst, db_name: table.db_name)}
+         {:ok, query} <- Compiler.compile(table.name, table.statement, table.analyst, data_source, nil, views) do
+      table = Query.to_table(query, Keyword.get(opts, :name, table.name), type: :analyst, db_name: table.db_name)
+      {:ok, table, query.columns}
+    end
   end
 
   @doc "Notifies the server process that data sources have been changed."
