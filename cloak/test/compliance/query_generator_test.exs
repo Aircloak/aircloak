@@ -22,6 +22,18 @@ defmodule Cloak.Compliance.QueryGenerator.Test do
     end
   end
 
+  property "remove_analyst_tables creates valid queries with no analyst_tables" do
+    check all complexity <- integer(0..100) do
+      assert {query, []} =
+               tables()
+               |> QueryGenerator.generate_ast(complexity)
+               |> QueryGenerator.remove_analyst_tables()
+               |> QueryGenerator.extract_analyst_tables()
+
+      assert QueryGenerator.ast_to_sql(query)
+    end
+  end
+
   defp tables() do
     [
       %{

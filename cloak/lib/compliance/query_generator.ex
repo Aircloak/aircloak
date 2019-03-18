@@ -100,6 +100,15 @@ defmodule Cloak.Compliance.QueryGenerator do
     {ast, analyst_tables}
   end
 
+  @doc "Converts the AST to an equivalent AST with no analyst tables."
+  @spec remove_analyst_tables(ast) :: ast
+  def remove_analyst_tables(ast) do
+    update_in(ast, [nodes()], fn
+      {:query, {:analyst_table, _}, children} -> {:query, :regular, children}
+      other -> other
+    end)
+  end
+
   # -------------------------------------------------------------------
   # Scaffold generation
   # -------------------------------------------------------------------
