@@ -126,6 +126,15 @@ defmodule IntegrationTest.Manager do
     # create group
     admin_group = Air.Service.User.create_group!(%{name: @admin_group_name, admin: true})
 
+    {:ok, _aircloak_admin} =
+      Air.Service.User.create_onboarding_admin_user(%{
+        "master_password" => "super_secret_master_password",
+        "name" => "aircloak_admin",
+        "login" => "admin@aircloak.com",
+        "password" => "password1234",
+        "password_confirmation" => "password1234"
+      })
+
     # connect data source to group
     from(data_source in DataSource, where: data_source.name == @data_source_name)
     |> Repo.one!()
