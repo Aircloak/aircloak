@@ -357,30 +357,30 @@ defmodule Cloak.Sql.Compiler.Normalization do
     if Helpers.aggregates?(query) do
       %Query{query | distinct?: false}
     else
-      %Query{query | distinct?: false, group_by: columns}
+      %Query{query | distinct?: false, group_by: columns, grouping_sets: [Enum.to_list(0..(length(columns) - 1))]}
     end
   end
 
   defp rewrite_distinct(%Query{distinct?: true, columns: [_ | _] = columns, group_by: [_ | _] = group_by} = query) do
     cond do
-      # - SELECT DISTINCT a, b FROM table GROUP a, b
-      # - SELECT DISTINCT a FROM table GROUP a, b
+      # - SELECT DISTINCT a, b FROM table GROUP BY a, b
+      # - SELECT DISTINCT a FROM table GROUP BY a, b
       all_non_aggregates_grouped_by?(query) and not Helpers.aggregates?(query) ->
         functional_group_bys = Enum.filter(group_by, &Expression.member?(columns, &1))
         %Query{query | distinct?: false, group_by: functional_group_bys}
 
-      # - SELECT DISTINCT a, count(*) FROM table GROUP a
+      # - SELECT DISTINCT a, count(*) FROM table GROUP BY a
       # - SELECT DISTINCT count(*) FROM table
       all_non_aggregates_grouped_by?(query) and Helpers.aggregates?(query) and not any_unselected_group_bys?(query) ->
         %Query{query | distinct?: false}
 
       # Currently not handled because it requires a complex subquery rewrite:
-      # - SELECT DISTINCT a, count(*) FROM table GROUP a, b
+      # - SELECT DISTINCT a, count(*) FROM table GROUP BY a, b
       Helpers.aggregates?(query) and any_unselected_group_bys?(query) ->
         reject_unselected_group_by(query)
 
       # These can't be transformed correctly because the query is illegal
-      # - SELECT DISTINCT a, b FROM table GROUP a
+      # - SELECT DISTINCT a, b FROM table GROUP BY a
       true ->
         query
     end
