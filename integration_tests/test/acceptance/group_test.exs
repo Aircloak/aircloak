@@ -1,8 +1,5 @@
 defmodule IntegrationTest.Acceptance.GroupTest do
-  use ExUnit.Case, async: true
-  use Wallaby.DSL
-  import IntegrationTest.AcceptanceHelper
-  alias IntegrationTest.Manager
+  use IntegrationTest.AcceptanceCase, async: true
 
   test "allows adding a group" do
     name = new_group_name()

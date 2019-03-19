@@ -1,8 +1,5 @@
 defmodule IntegrationTest.Acceptance.LoginTest do
-  use ExUnit.Case, async: true
-  use Wallaby.DSL
-  import IntegrationTest.AcceptanceHelper
-  alias IntegrationTest.Manager
+  use IntegrationTest.AcceptanceCase, async: true
 
   test "unauthenticated user is redirected to login" do
     session = visit(new_session(), "/")
