@@ -305,8 +305,8 @@ defmodule Cloak.Sql.Compiler.Normalization do
 
   defp normalize_non_anonymizing_noise(query), do: query
 
-  defp group_global_aggregators(%Query{group_by: []} = query),
-    do: %Query{query | group_by: [Expression.constant(:real, 0.0)]}
+  defp group_global_aggregators(%Query{group_by: [], grouping_sets: []} = query),
+    do: %Query{query | group_by: [], grouping_sets: [[]]}
 
   defp group_global_aggregators(query), do: query
 
@@ -357,7 +357,7 @@ defmodule Cloak.Sql.Compiler.Normalization do
     if Helpers.aggregates?(query) do
       %Query{query | distinct?: false}
     else
-      %Query{query | distinct?: false, group_by: columns, grouping_sets: [Enum.to_list(0..(length(columns) - 1))]}
+      %Query{query | distinct?: false, group_by: columns, grouping_sets: Helpers.default_grouping_sets(columns)}
     end
   end
 
@@ -367,7 +367,13 @@ defmodule Cloak.Sql.Compiler.Normalization do
       # - SELECT DISTINCT a FROM table GROUP BY a, b
       all_non_aggregates_grouped_by?(query) and not Helpers.aggregates?(query) ->
         functional_group_bys = Enum.filter(group_by, &Expression.member?(columns, &1))
-        %Query{query | distinct?: false, group_by: functional_group_bys}
+
+        %Query{
+          query
+          | distinct?: false,
+            group_by: functional_group_bys,
+            grouping_sets: Helpers.default_grouping_sets(functional_group_bys)
+        }
 
       # - SELECT DISTINCT a, count(*) FROM table GROUP BY a
       # - SELECT DISTINCT count(*) FROM table

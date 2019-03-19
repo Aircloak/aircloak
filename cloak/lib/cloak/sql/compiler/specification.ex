@@ -60,6 +60,7 @@ defmodule Cloak.Sql.Compiler.Specification do
       |> compile_parameter_types()
       |> expand_star_select()
       |> compile_titles()
+      |> compile_grouping_sets()
       |> compile_aliases()
       |> compile_columns()
       |> compile_references()
@@ -413,6 +414,19 @@ defmodule Cloak.Sql.Compiler.Specification do
       end)
 
     %Query{query | column_titles: column_titles}
+  end
+
+  defp compile_grouping_sets(%Query{group_by: []} = query) do
+    group_by = query.grouping_sets |> List.flatten() |> Enum.uniq()
+
+    grouping_sets =
+      Enum.map(query.grouping_sets, fn grouping_set ->
+        Enum.map(grouping_set, fn column ->
+          Enum.find_index(group_by, &(&1 == column))
+        end)
+      end)
+
+    %Query{query | group_by: group_by, grouping_sets: grouping_sets}
   end
 
   defp compile_aliases(%Query{columns: [_ | _] = columns} = query) do
