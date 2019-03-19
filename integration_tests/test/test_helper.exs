@@ -1,2 +1,2 @@
 File.rm_rf("browser_test/screenshots")
-ExUnit.start()
+ExUnit.start(exclude: [:acceptance])

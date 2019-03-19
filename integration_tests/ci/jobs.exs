@@ -11,6 +11,6 @@
           ~s/MIX_ENV=test mix do run --no-start -e Air.Repo.configure, ecto.create -r Air.Repo, ecto.migrate -r Air.Repo/,
           ~s/MIX_ENV=test mix do run --no-start -e Central.Repo.configure, ecto.create -r Central.Repo, ecto.migrate -r Central.Repo/
         ]},
-       "mix test"
+       "mix test --include acceptance"
      ]}
 }
