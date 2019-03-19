@@ -1,6 +1,7 @@
 defmodule BrowserTest do
   use ExUnit.Case, async: false
   use Wallaby.DSL
+  import IntegrationTest.AcceptanceHelper
   alias IntegrationTest.Manager
 
   describe "login" do
@@ -82,37 +83,5 @@ defmodule BrowserTest do
       assert_has(session, Query.xpath(".//td[text()='#{user.name}']"))
       assert_has(session, Query.xpath(".//td[text()='#{group.name}']"))
     end
-  end
-
-  defp new_group_name(), do: "group_#{:erlang.unique_integer([:positive, :monotonic])}"
-
-  defp add_group(session, name) do
-    session
-    |> visit("/admin/groups")
-    |> click(Query.css("a", text: "Add a group"))
-    |> fill_in(Query.css("#group_name"), with: name)
-    |> click(Query.css("button[type='submit']"))
-  end
-
-  defp login_as_admin(session), do: login(session, "admin@aircloak.com", "password1234")
-
-  defp login(session, login, password) do
-    session
-    |> visit("/auth")
-    |> fill_in(Query.css("[name='login']"), with: login)
-    |> fill_in(Query.css("[name='password']"), with: password)
-    |> click(Query.css("[name='remember']"))
-    |> click(Query.css("form button"))
-  end
-
-  defp new_session() do
-    {:ok, session} = Wallaby.start_session()
-    resize_window(session, 1920, 1080)
-  end
-
-  defp accept_confirm!(session, fun) do
-    message = accept_confirm(session, fun)
-    assert message != nil
-    session
   end
 end
