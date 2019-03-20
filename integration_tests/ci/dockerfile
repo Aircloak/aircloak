@@ -5,7 +5,14 @@ RUN \
   echo "deb http://apt.postgresql.org/pub/repos/apt/ jessie-pgdg main" >> /etc/apt/sources.list.d/pgdg.list && \
   wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
   apt-get update && \
-  apt-get install -y unixodbc odbc-postgresql inotify-tools calibre postgresql-9.6
+  apt-get install -y unixodbc odbc-postgresql inotify-tools calibre postgresql-9.6 && \
+  PHANTOM_JS="phantomjs-2.1.1-linux-x86_64" && \
+  cd ~ && \
+  wget https://bitbucket.org/ariya/phantomjs/downloads/$PHANTOM_JS.tar.bz2 && \
+  tar xvjf $PHANTOM_JS.tar.bz2 && \
+  rm $PHANTOM_JS.tar.bz2 && \
+  mv $PHANTOM_JS /usr/local/share && \
+  ln -sf /usr/local/share/$PHANTOM_JS/bin/phantomjs /usr/local/bin
 
 COPY air/docker/pg_hba.conf /etc/postgresql/9.6/main/
 COPY cloak/priv/odbc/odbc.ini /tmp
