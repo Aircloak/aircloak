@@ -102,17 +102,14 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
       |> Lens.key(:ast)
       |> Lens.reject(&(&1.type == :standard))
 
-  defp push_noise_layer(query, %NoiseLayer{
-         base: {_table, column, extras},
-         expressions: [min, max | rest]
-       }) do
+  defp push_noise_layer(query, %NoiseLayer{base: {_table, column, extras}, expressions: [min, max | rest]}) do
     {:ok, expression} = find_column(column, query)
 
     layers =
       raw_columns(expression)
       |> Enum.map(fn column ->
-        min = if(Expression.constant?(min), do: min, else: column)
-        max = if(Expression.constant?(max), do: max, else: column)
+        min = if(Expression.column?(expression) and Expression.constant?(min), do: min, else: column)
+        max = if(Expression.column?(expression) and Expression.constant?(max), do: max, else: column)
         build_noise_layer(column, extras, [min, max | rest])
       end)
       |> finalize(query)
