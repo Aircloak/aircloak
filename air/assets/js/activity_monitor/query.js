@@ -64,7 +64,7 @@ export class QueryView extends React.Component {
 }
 
 QueryView.contextTypes = {
-  authentication: React.PropTypes.object.isRequired,
+  authentication: PropTypes.object.isRequired,
 };
 
 QueryView.propTypes = {

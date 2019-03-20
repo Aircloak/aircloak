@@ -46,7 +46,7 @@ function prepare_for_test {
 
 mount $(ci_tmp_folder)/integration_tests/.cargo /root/.cargo
 mount_to_aircloak VERSION RELEASE_EXPIRY_DATE common/elixir air cloak central
-mount_to_component .gitignore config lib test mix.exs mix.lock .formatter.exs
+mount_to_component .gitignore config lib test mix.exs mix.lock .formatter.exs build_assets.sh
 mount_cached_component deps _build .bash_history
 TARGET_COMPONENT=cloak mount_cached_component priv/native
 

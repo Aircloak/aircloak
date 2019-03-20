@@ -37,7 +37,8 @@ defmodule IntegrationTests.Mixfile do
       {:hackney, ">= 1.8.6", override: true},
       {:parse_trans, "3.2.0", override: true},
       # Needed when running air in dev
-      {:phoenix_live_reload, "~> 1.2"}
+      {:phoenix_live_reload, "~> 1.2"},
+      {:wallaby, "~> 0.22"}
     ]
   end
 
