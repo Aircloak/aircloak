@@ -26,7 +26,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
       |> Helpers.apply_bottom_up(&remove_redundant_casts/1)
       |> Helpers.apply_bottom_up(&remove_redundant_rounds/1)
       |> Helpers.apply_bottom_up(&normalize_non_anonymizing_noise/1)
-      |> Helpers.apply_bottom_up(&remove_constant_group_by/1)
       |> Helpers.apply_bottom_up(&normalize_constants/1)
       |> Helpers.apply_bottom_up(&normalize_comparisons/1)
       |> Helpers.apply_bottom_up(&normalize_order_by/1)
@@ -84,22 +83,6 @@ defmodule Cloak.Sql.Compiler.Normalization do
         other ->
           other
       end)
-
-  # -------------------------------------------------------------------
-  # Removing GROUP BY constant
-  # -------------------------------------------------------------------
-
-  defp remove_constant_group_by(query) do
-    if Enum.all?(query.columns, &Expression.constant?/1) do
-      put_in(
-        query,
-        [Lens.key(:group_by) |> Lens.all() |> Lens.filter(&Expression.constant?/1)],
-        Expression.constant(:integer, 1)
-      )
-    else
-      update_in(query, [Lens.key(:group_by)], fn group_by -> Enum.reject(group_by, &Expression.constant?/1) end)
-    end
-  end
 
   # -------------------------------------------------------------------
   # Normalizing comparisons

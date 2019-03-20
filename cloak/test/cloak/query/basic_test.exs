@@ -1845,36 +1845,4 @@ defmodule Cloak.Query.BasicTest do
 
     assert_query("select median(height) from heights", %{rows: [%{row: [nil], occurrences: 1}]})
   end
-
-  test "[Issue #3386] grouping by constant referenced by number" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [100])
-
-    assert_query(
-      """
-        SELECT COUNT(*)
-        FROM (
-          SELECT user_id, 0
-          FROM heights
-          GROUP BY 1, 2
-        ) foo
-      """,
-      %{rows: [%{row: [10]}]}
-    )
-  end
-
-  test "[Issue #3386] grouping by constant referenced by number with constant select list" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [100])
-
-    assert_query(
-      """
-        SELECT COUNT(*)
-        FROM (
-          SELECT 10, 20
-          FROM heights
-          GROUP BY 1, 2
-        ) foo
-      """,
-      %{rows: [%{row: [1]}]}
-    )
-  end
 end
