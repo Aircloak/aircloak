@@ -247,17 +247,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     columns
     |> Enum.find_index(&Expression.equals?(&1, expression))
     |> case do
-      nil ->
-        case expression do
-          %{function: function, function_args: [%{user_id?: true}]} when function in ["min", "max"] ->
-            table.columns |> Enum.find(&(&1.name == table.user_id)) |> Expression.column(table)
-
-          other ->
-            other
-        end
-
-      found ->
-        Expression.column(table.columns |> Enum.at(found), table)
+      nil -> expression
+      found -> Expression.column(table.columns |> Enum.at(found), table)
     end
   end
 
