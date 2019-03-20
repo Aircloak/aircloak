@@ -1,5 +1,10 @@
 %{
-  compile: {:sequence, ["mix deps.get", "MIX_ENV=test mix compile"]},
+  compile:
+    {:sequence,
+     [
+       "mix deps.get",
+       {:parallel, ["MIX_ENV=test mix compile", "./build_assets.sh"]}
+     ]},
   test:
     {:sequence,
      [
