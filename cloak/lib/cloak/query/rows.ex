@@ -1,6 +1,6 @@
 defmodule Cloak.Query.Rows do
   @moduledoc "Functions for row processing, such as filtering and grouping."
-  alias Cloak.Sql.{Expression, Query, Condition}
+  alias Cloak.Sql.{Expression, Query, Condition, Compiler}
 
   @type groups :: %{Cloak.DataSource.row() => group_data}
   @type group_updater :: (group_data, Cloak.DataSource.row() | Cloak.Query.Result.bucket() -> group_data)
@@ -39,13 +39,23 @@ defmodule Cloak.Query.Rows do
   @doc "Groups input rows according to the query specification."
   @spec group(Enumerable.t(), Query.t(), group_data, group_updater) :: groups
   def group(rows, query, default_group_data, group_updater) do
-    group_expressions = group_expressions(query)
+    {grouping_sets, group_expressions} = grouping_sets(query)
 
     Enum.reduce(rows, %{}, fn row_or_bucket, groups ->
       fields = fields(row_or_bucket)
       group_values = Enum.map(group_expressions, &Expression.value(&1, fields))
-      group_data = Map.get(groups, group_values, default_group_data)
-      Map.put(groups, group_values, group_updater.(group_data, row_or_bucket))
+
+      Enum.reduce(grouping_sets, groups, fn grouping_set, groups ->
+        group =
+          group_values
+          |> Enum.with_index(0)
+          |> Enum.map(fn {value, index} ->
+            if index in grouping_set, do: value, else: nil
+          end)
+
+        group_data = Map.get(groups, group, default_group_data)
+        Map.put(groups, group, group_updater.(group_data, row_or_bucket))
+      end)
     end)
   end
 
@@ -53,7 +63,7 @@ defmodule Cloak.Query.Rows do
   @spec group_expressions(Query.t()) :: [Expression.t()]
   def group_expressions(%Query{group_by: [_ | _] = group_by}),
     # There are group by clauses -> we're grouping on these clauses
-    do: Expression.unique(group_by)
+    do: group_by
 
   def group_expressions(%Query{group_by: [], implicit_count?: true} = query) do
     # Group by is not provided, and no selected expression is an aggregation function ->
@@ -97,4 +107,20 @@ defmodule Cloak.Query.Rows do
 
   defp select_values(bucket, expressions) when is_map(bucket),
     do: %{bucket | row: select_values(bucket.row, expressions)}
+
+  defp grouping_sets(%Query{grouping_sets: [_ | _]} = query),
+    # There are group by clauses -> we're grouping on these clauses
+    do: {query.grouping_sets, query.group_by}
+
+  defp grouping_sets(%Query{grouping_sets: [], implicit_count?: true} = query) do
+    # Group by is not provided, and no selected expression is an aggregation function ->
+    #   we're grouping on all selected columns + non selected order by expressions.
+    groups = Expression.unique(query.columns ++ non_selected_order_by_expressions(query))
+    {Compiler.Helpers.default_grouping_sets(groups), groups}
+  end
+
+  defp grouping_sets(%Query{grouping_sets: [], implicit_count?: false}),
+    # Group by is not provided, and all expressions are aggregate functions
+    #   -> all rows fall in the same group
+    do: {[[]], []}
 end
