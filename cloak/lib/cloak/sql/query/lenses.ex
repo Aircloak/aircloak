@@ -301,7 +301,13 @@ defmodule Cloak.Sql.Query.Lenses do
     end)
   end
 
-  deflensp expressions(), do: Lens.filter(Lens.root(), &match?(%Expression{}, &1))
+  deflensp expressions() do
+    Lens.filter(Lens.root(), fn
+      {type, _, _, _} when type in [:identifier, :constant, :function] -> true
+      %Expression{} -> true
+      _ -> false
+    end)
+  end
 
   defp do_leaf_expressions(lens), do: lens |> Lens.filter(&match?(%Expression{function?: false}, &1))
 

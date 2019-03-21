@@ -417,12 +417,12 @@ defmodule Cloak.Sql.Compiler.Specification do
   end
 
   defp compile_grouping_sets(%Query{group_by: []} = query) do
-    group_by = query.grouping_sets |> List.flatten() |> Enum.uniq()
+    group_by = query.grouping_sets |> List.flatten() |> Expression.unique()
 
     grouping_sets =
       Enum.map(query.grouping_sets, fn grouping_set ->
         Enum.map(grouping_set, fn column ->
-          Enum.find_index(group_by, &(&1 == column))
+          Enum.find_index(group_by, &Expression.equals?(&1, column))
         end)
       end)
 
