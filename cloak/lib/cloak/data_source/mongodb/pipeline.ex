@@ -382,7 +382,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
       |> Enum.flat_map(&extract_aggregator/1)
       |> Enum.uniq()
 
-    if aggregators ++ groups == [] do
+    if aggregators == [] and query.grouping_sets == [] do
       if simple_order_by?(query) do
         # if $sort and $limit steps are first, collection indexes might be used to speed up the pipeline
         order_and_range(query) ++ Projector.project_columns(columns)
