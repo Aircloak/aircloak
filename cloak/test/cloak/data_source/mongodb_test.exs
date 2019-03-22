@@ -649,7 +649,8 @@ defmodule Cloak.DataSource.MongoDBTest do
           %{occurrences: 1, row: [1, 1]},
           %{occurrences: 1, row: [2, 1]},
           %{occurrences: 1, row: [3, 1]},
-          %{occurrences: 1, row: [nil, 5]}
+          %{occurrences: 1, row: [nil, 1]},
+          %{occurrences: 1, row: [nil, 4]}
         ]
       }
     )

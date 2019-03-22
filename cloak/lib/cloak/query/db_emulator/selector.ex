@@ -104,7 +104,7 @@ defmodule Cloak.Query.DbEmulator.Selector do
 
         [aggregated_unreliability | aggregated_values]
       end)
-      |> Stream.map(fn {group_values, [aggregated_unreliability | aggregated_values]} ->
+      |> Stream.map(fn {[_group_index | group_values], [aggregated_unreliability | aggregated_values]} ->
         aggregated_values =
           aggregated_values
           |> Enum.zip(finalizers)

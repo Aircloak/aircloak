@@ -45,7 +45,9 @@ defmodule Cloak.Query.Rows do
       fields = fields(row_or_bucket)
       group_values = Enum.map(group_expressions, &Expression.value(&1, fields))
 
-      Enum.reduce(grouping_sets, groups, fn grouping_set, groups ->
+      grouping_sets
+      |> Enum.with_index()
+      |> Enum.reduce(groups, fn {grouping_set, group_index}, groups ->
         group =
           group_values
           |> Enum.with_index(0)
@@ -53,8 +55,8 @@ defmodule Cloak.Query.Rows do
             if index in grouping_set, do: value, else: nil
           end)
 
-        group_data = Map.get(groups, group, default_group_data)
-        Map.put(groups, group, group_updater.(group_data, row_or_bucket))
+        group_data = Map.get(groups, [group_index | group], default_group_data)
+        Map.put(groups, [group_index | group], group_updater.(group_data, row_or_bucket))
       end)
     end)
   end
