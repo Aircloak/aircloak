@@ -372,7 +372,7 @@ defmodule Cloak.DataSource.SqlBuilder do
       |> Enum.intersperse(", ")
     end)
     |> case do
-      [[]] -> [" GROUP BY ()"]
+      [[]] -> if sql_dialect_module(query) == MySQL, do: [" GROUP BY NULL"], else: [" GROUP BY ()"]
       [grouping_set] -> [" GROUP BY ", grouping_set]
       grouping_sets -> [" GROUP BY GROUPING SETS ((", Enum.intersperse(grouping_sets, "), ("), "))"]
     end
