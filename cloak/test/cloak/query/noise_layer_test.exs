@@ -284,6 +284,24 @@ defmodule Cloak.Query.NoiseLayerTest do
       assert_analyst_table_consistent(query, subquery)
     end
 
+    test "[Issue #3668] noise layer with grouping" do
+      :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [10])
+
+      query = "SELECT user_id FROM $subquery WHERE user_id <> 'thing'"
+      subquery = "SELECT user_id FROM noise_layers GROUP BY 1"
+
+      assert_analyst_table_consistent(query, subquery)
+    end
+
+    test "[Bug] two user ids selected in analyst table" do
+      :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [10])
+
+      query = "SELECT bar FROM $subquery"
+      subquery = "SELECT user_id, user_id AS bar FROM noise_layers GROUP BY 1"
+
+      assert_analyst_table_consistent(query, subquery)
+    end
+
     def assert_analyst_table_consistent(query, subquery) do
       regular_query = query |> String.replace("$subquery", "(#{subquery}) AS foo")
       analyst_query = query |> String.replace("$subquery", "foo")

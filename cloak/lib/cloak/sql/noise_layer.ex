@@ -11,6 +11,19 @@ defmodule Cloak.Sql.NoiseLayer do
 
   defstruct [:base, :expressions]
 
+  defimpl Inspect do
+    import Inspect.Algebra
+
+    def inspect(noise_layer, opts) do
+      data = %{
+        base: noise_layer.base,
+        expressions: Enum.map(noise_layer.expressions, &Expression.display/1)
+      }
+
+      concat(["#NoiseLayer<", to_doc(data, opts), ">"])
+    end
+  end
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
