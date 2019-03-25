@@ -27,7 +27,7 @@ defmodule Compliance.GroupByTest do
       |> assert_consistent_and_not_failing("""
         SELECT COUNT(*), COUNT(uid), COUNT(column) FROM (
           SELECT #{unquote(uid)} AS uid, #{unquote(column)} AS column
-          FROM #{unquote(table)} GROUP BY GROUPING SETS ((), 1, (1, 2))
+          FROM #{unquote(table)} GROUP BY GROUPING SETS ((), 1, (1, 2)) ORDER BY 1, 2
         ) t
       """)
     end
@@ -41,7 +41,7 @@ defmodule Compliance.GroupByTest do
       |> disable_for(Cloak.DataSource.MongoDB, unquote(column) == "birthday")
       |> assert_consistent_and_not_failing("""
         SELECT #{unquote(column)}, COUNT(*), COUNT(#{unquote(uid)}) FROM 
-        #{unquote(table)} GROUP BY GROUPING SETS ((), 1)
+        #{unquote(table)} GROUP BY GROUPING SETS ((), 1) ORDER BY 1
       """)
     end
   end)
