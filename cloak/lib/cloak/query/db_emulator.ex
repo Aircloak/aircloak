@@ -130,7 +130,6 @@ defmodule Cloak.Query.DbEmulator do
   defp process_rows(rows, %Query{type: :anonymized} = query, state_updater) do
     rows
     |> state_updater.(:processing)
-    |> Stream.map(fn {[_group_index | property], data} -> {property, data} end)
     |> Aggregator.aggregate(query)
     |> state_updater.(:post_processing)
     |> convert_buckets(query)

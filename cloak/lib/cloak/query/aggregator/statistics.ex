@@ -128,7 +128,7 @@ defmodule Cloak.Query.Aggregator.Statistics do
     [count, sum, min, max, stddev]
   end
 
-  defp aggregate_group({property, anonymizer, statistics}, aggregators) do
+  defp aggregate_group({[_group_index | property], anonymizer, statistics}, aggregators) do
     [bucket_statistics | aggregation_statistics] = statistics
     [count_duid | _] = bucket_statistics
 

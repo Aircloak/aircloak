@@ -132,11 +132,11 @@ defmodule Cloak.Query.Aggregator do
          aggregator_sub_module
        )
        when lcf_aggregation_limit < bucket_size do
-    # censor values from lcf partial aggregation limit until max label count
+    # censor property values from lcf partial aggregation limit until max label count
     low_count_rows =
-      Enum.map(low_count_rows, fn {values, anonymizer, users_rows} ->
-        values = Enum.reduce(lcf_aggregation_limit..bucket_size, values, &List.replace_at(&2, &1, :*))
-        {values, anonymizer, users_rows}
+      Enum.map(low_count_rows, fn {[group_index | property], anonymizer, users_rows} ->
+        property = Enum.reduce(lcf_aggregation_limit..bucket_size, property, &List.replace_at(&2, &1, :*))
+        {[group_index | property], anonymizer, users_rows}
       end)
 
     Enum.reduce(
@@ -149,8 +149,8 @@ defmodule Cloak.Query.Aggregator do
   defp group_low_count_rows(column_index, {low_count_rows, high_count_rows}, aggregator_sub_module) do
     {low_count_grouped_rows, high_count_grouped_rows} =
       low_count_rows
-      |> Enum.group_by(fn {values, _anonymizer, _users_rows} ->
-        List.replace_at(values, column_index, :*)
+      |> Enum.group_by(fn {[group_index | property], _anonymizer, _users_rows} ->
+        [group_index | List.replace_at(property, column_index, :*)]
       end)
       |> Enum.map(&collapse_grouped_rows(&1, aggregator_sub_module))
       |> Enum.split_with(&low_users_count?(&1, aggregator_sub_module))
@@ -158,19 +158,19 @@ defmodule Cloak.Query.Aggregator do
     {low_count_grouped_rows, high_count_grouped_rows ++ high_count_rows}
   end
 
-  defp collapse_grouped_rows({values, grouped_rows}, aggregator_sub_module) do
+  defp collapse_grouped_rows({group, grouped_rows}, aggregator_sub_module) do
     user_rows =
       grouped_rows
-      |> Enum.map(fn {_values, _anonymizer, aggregation_data} -> aggregation_data end)
+      |> Enum.map(fn {_group, _anonymizer, aggregation_data} -> aggregation_data end)
       |> collapse_aggregation_data(&aggregator_sub_module.merge_aggregation_data/2)
 
     anonymizer =
       grouped_rows
-      |> Enum.map(fn {_values, anonymizer, _users_rows} -> anonymizer.noise_layers end)
+      |> Enum.map(fn {_group, anonymizer, _users_rows} -> anonymizer.noise_layers end)
       |> Enum.reduce(&NoiseLayer.merge_accumulators/2)
       |> Anonymizer.new()
 
-    {values, anonymizer, user_rows}
+    {group, anonymizer, user_rows}
   end
 
   defp collapse_aggregation_data([data], _data_merger), do: data
