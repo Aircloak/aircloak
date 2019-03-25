@@ -7,7 +7,7 @@ defmodule Compliance.AnalystTableTest do
 
   @moduletag :compliance
   @moduletag :analyst_tables
-  @tested_data_sources ~w(oracle postgresql9.4 postgresql)
+  @tested_data_sources ~w(oracle postgresql9.6 postgresql)
 
   defdelegate create_or_update(analyst_id, table_name, query, data_source), to: AnalystTableHelpers
   defdelegate table_created?(analyst_id, table_name, query, data_source), to: AnalystTableHelpers
