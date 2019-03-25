@@ -444,6 +444,21 @@ defmodule Compliance.AnalystTableTest do
           )
         end
       end
+
+      test "aliasing analyst table" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)),
+             true <- String.starts_with?(data_source.name, "postgresql") do
+          {:ok, _} = create_or_update(1, "table47", "select addresses.uid from addresses", data_source)
+
+          assert {:ok, _} =
+                   create_or_update(
+                     1,
+                     "table48",
+                     "select foo.uid, count(foo.uid) from table47 as foo group by 1",
+                     data_source
+                   )
+        end
+      end
     end
   end
 
