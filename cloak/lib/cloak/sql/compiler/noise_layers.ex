@@ -192,8 +192,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
 
   defp grouped_by?(query = %{analyst_table: table}, expression) when not is_nil(table) do
     query.group_by
-    |> Enum.map(&put_in(&1, [Lens.key(:table)], nil))
-    |> Enum.any?(&Expression.equals?(&1, expression))
+    |> Enum.map(&put_in(&1, [Lens.key(:table)], :unknown))
+    |> Enum.any?(&Expression.equals?(&1, %{expression | table: :unknown}))
   end
 
   defp grouped_by?(query, expression), do: Helpers.grouped_by?(query, expression)
