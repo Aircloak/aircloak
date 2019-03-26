@@ -137,6 +137,11 @@ defmodule Cloak.AnalystTable.CompilerTest do
     end
   end
 
+  test "selecting a secondary uid from a subquery" do
+    assert {:ok, query} = compile("table_name", "select uid2 from (select user_id, user_id as uid2 from mv1) sq")
+    assert query.type == :restricted
+  end
+
   defp compile(table_name, statement, data_source \\ data_source()),
     do: Compiler.compile(table_name, statement, 1, data_source, nil, %{})
 
