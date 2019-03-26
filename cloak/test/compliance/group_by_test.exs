@@ -41,7 +41,7 @@ defmodule Compliance.GroupByTest do
       |> disable_for(Cloak.DataSource.MongoDB, unquote(column) == "birthday")
       |> assert_consistent_and_not_failing("""
         SELECT #{unquote(column)}, COUNT(*), COUNT(#{unquote(uid)}) FROM 
-        #{unquote(table)} GROUP BY GROUPING SETS ((), 1) ORDER BY 1
+        #{unquote(table)} GROUP BY GROUPING SETS ((), 1) ORDER BY 1 ASC NULLS FIRST, 2, 3
       """)
     end
   end)
