@@ -16,7 +16,7 @@ defmodule Compliance.GroupByTest do
 
   @tag compliance: "empty group by"
   test "empty group by", context do
-    assert_consistent_and_not_failing(context, "SELECT NULL FROM users_public GROUP BY ()")
+    assert_consistent_and_not_failing(context, "SELECT 0 FROM users_public GROUP BY ()")
   end
 
   Enum.each(all_columns(), fn {column, table, uid} ->
