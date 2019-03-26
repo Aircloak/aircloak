@@ -93,7 +93,8 @@ defmodule BOM.Gather.Elixir do
           {"websocket_client", "c2a6cf11233cad54a7f7e6c89bca172f2b494f9d", :mit},
           {"tds", "91c3e9213c6e8c9b4a812555d16f55ed3b464bec", :apache2},
           {"mongodb", "c932f95985945bbbdf0197acd73f69b1c4cbd2f2", :apache2},
-          {"postgrex", "2dbee73c0e04ae5ad87c1891b6c595c8ca1f0a45", :apache2}
+          {"postgrex", "2dbee73c0e04ae5ad87c1891b6c595c8ca1f0a45", :apache2},
+          {"mariaex", "3fcc6b496fe953c83cc0c928aeb926b8a80a094e", :apache2}
         ] do
     defp non_hex_license(unquote(package_name), unquote(version)), do: unquote(license)
   end
