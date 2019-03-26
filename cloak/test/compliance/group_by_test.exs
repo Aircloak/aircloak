@@ -25,8 +25,8 @@ defmodule Compliance.GroupByTest do
       context
       |> disable_unicode(unquote(table), unquote(column))
       |> assert_consistent_and_not_failing("""
-        SELECT COUNT(*), COUNT(uid), COUNT(column) FROM (
-          SELECT #{unquote(uid)} AS uid, #{unquote(column)} AS column
+        SELECT COUNT(*), COUNT(uid), COUNT(column), MEDIAN(c) FROM (
+          SELECT #{unquote(uid)} AS uid, #{unquote(column)} AS column, COUNT(*) AS c
           FROM #{unquote(table)} GROUP BY GROUPING SETS ((), 1, (1, 2)) ORDER BY 1, 2
         ) t
       """)
