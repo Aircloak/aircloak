@@ -34,10 +34,6 @@ defmodule Cloak.DataSource.Drill do
     end
   end
 
-  # -------------------------------------------------------------------
-  # DataSource.Driver callbacks
-  # -------------------------------------------------------------------
-
   @impl Driver
   def connect(parameters), do: RODBC.connect(parameters, &conn_params/1)
 
@@ -49,6 +45,14 @@ defmodule Cloak.DataSource.Drill do
   end
 
   @impl Driver
-  def supports_query?(query),
-    do: query |> get_in([Cloak.Sql.Query.Lenses.joins()]) |> Enum.any?(&(&1.type == :cross_join)) |> :erlang.not()
+  def supports_query?(query), do: not has_cross_joins?(query) and not has_grouping_sets?(query)
+
+  # -------------------------------------------------------------------
+  # Internal functions
+  # -------------------------------------------------------------------
+
+  defp has_cross_joins?(query),
+    do: query |> get_in([Cloak.Sql.Query.Lenses.joins()]) |> Enum.any?(&(&1.type == :cross_join))
+
+  defp has_grouping_sets?(query), do: length(query.grouping_sets) > 1 and query.type != :anonymized
 end
