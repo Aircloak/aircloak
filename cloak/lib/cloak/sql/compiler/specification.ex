@@ -183,19 +183,14 @@ defmodule Cloak.Sql.Compiler.Specification do
   end
 
   defp view_to_subquery(view_name, view_sql, alias, query) do
-    if Enum.any?(query.data_source.tables, fn {_id, table} ->
-         insensitive_equal?(table.name, view_name)
-       end) do
+    if Enum.any?(query.data_source.tables, fn {_id, table} -> insensitive_equal?(table.name, view_name) end) do
       raise CompilationError,
         message: "There is both a table, and a view named `#{view_name}`. Rename the view to resolve the conflict."
     end
 
     case Cloak.Sql.Parser.parse(view_sql) do
-      {:ok, parsed_view} ->
-        {:subquery, %{ast: Map.put(parsed_view, :view?, true), alias: alias}}
-
-      {:error, error} ->
-        raise CompilationError, message: "Error in the view `#{view_name}`: #{error}"
+      {:ok, parsed_view} -> {:subquery, %{ast: Map.put(parsed_view, :view?, true), alias: alias}}
+      {:error, error} -> raise CompilationError, message: "Error in the view `#{view_name}`: #{error}"
     end
   end
 
