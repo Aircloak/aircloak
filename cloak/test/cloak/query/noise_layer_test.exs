@@ -12,10 +12,12 @@ defmodule Cloak.Query.NoiseLayerTest do
 
   setup_all do
     :ok = Cloak.Test.DB.create_table("noise_layers", "number REAL, other REAL, string TEXT")
+    :ok = Cloak.Test.DB.create_table("noise_layers_join", "number REAL")
   end
 
   setup do
     Cloak.Test.DB.clear_table("noise_layers")
+    Cloak.Test.DB.clear_table("noise_layers_join")
 
     anonymizer_config = Application.get_env(:cloak, :anonymizer)
 
@@ -298,6 +300,22 @@ defmodule Cloak.Query.NoiseLayerTest do
 
       query = "SELECT bar FROM $subquery"
       subquery = "SELECT user_id, user_id AS bar FROM noise_layers GROUP BY 1"
+
+      assert_analyst_table_consistent(query, subquery)
+    end
+
+    test "[Issue #3676] noise layers for user_id conditions" do
+      :ok = insert_rows(_user_ids = 1..10, "noise_layers", ["number"], [10])
+      :ok = insert_rows(_user_ids = 1..10, "noise_layers_join", ["number"], [10])
+
+      query = "SELECT bar3.another_uid FROM (SELECT user_id, user_id AS another_uid FROM $subquery) AS bar3"
+
+      subquery = """
+        SELECT bar1.user_id
+        FROM (SELECT noise_layers.user_id FROM noise_layers) AS bar1
+        JOIN (SELECT noise_layers_join.user_id FROM noise_layers_join) AS bar2
+        ON bar1.user_id = bar2.user_id
+      """
 
       assert_analyst_table_consistent(query, subquery)
     end

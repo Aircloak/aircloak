@@ -245,7 +245,7 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Enum.find_index(&Expression.equals?(&1, expression))
     |> case do
       nil -> expression
-      found -> Expression.column(table.columns |> Enum.at(found), table)
+      found -> %{Expression.column(table.columns |> Enum.at(found), table) | user_id?: expression.user_id?}
     end
   end
 
