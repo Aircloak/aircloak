@@ -638,6 +638,23 @@ defmodule Cloak.DataSource.MongoDBTest do
     )
   end
 
+  test "standard query that doesn't reference any columns", context do
+    assert_query(
+      context,
+      """
+        SELECT 0 + 1 AS x, 'a', TRUE FROM #{@userless_table}
+      """,
+      %{
+        rows: [
+          %{occurrences: 1, row: [1, "a", true]},
+          %{occurrences: 1, row: [1, "a", true]},
+          %{occurrences: 1, row: [1, "a", true]},
+          %{occurrences: 1, row: [1, "a", true]}
+        ]
+      }
+    )
+  end
+
   test "standard query with grouping sets", context do
     assert_query(
       context,

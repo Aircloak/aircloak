@@ -73,19 +73,26 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
   end
 
   defp finish_pipeline(%Query{selected_tables: [table]} = query, top_level?) do
-    case used_array_size_columns(query) do
-      [] -> []
-      _ -> Projector.project_array_sizes(table)
-    end ++ (table.columns |> Enum.map(& &1.name) |> parse_conditions(query.where)) ++ parse_query(query, top_level?)
+    if(used_array_size_columns(query) == [],
+      do: [],
+      else: Projector.project_array_sizes(table)
+    ) ++
+      (table.columns |> Enum.map(& &1.name) |> parse_conditions(query.where)) ++
+      parse_query(query, top_level?)
   end
 
-  defp project_output(columns, _top_level? = true),
-    do: [%{"$project": %{row: Enum.map(columns, &"$#{Expression.title(&1)}"), _id: false}}]
+  defp project_top_columns(columns, _top_level? = true),
+    do: [%{"$project": %{row: Enum.map(columns, &project_top_column/1), _id: false}}]
 
-  defp project_output(_columns, _top_level? = false), do: []
+  defp project_top_columns(_columns, _top_level? = false), do: []
+
+  defp project_top_column(%Expression{constant?: true} = constant), do: %{"$literal": map_constant(constant)}
+  defp project_top_column(column), do: "$#{Expression.title(column)}"
 
   defp parse_query(%Query{subquery?: false} = query, _top_level? = true),
-    do: Projector.project_columns(query.db_columns) ++ project_output(query.db_columns, true)
+    do:
+      (query.db_columns |> Enum.reject(&Expression.constant?/1) |> Projector.project_columns()) ++
+        project_top_columns(query.db_columns, true)
 
   defp parse_query(%Query{subquery?: true} = query, top_level?),
     do:
@@ -388,7 +395,7 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
         order_and_range(query) ++ Projector.project_columns(columns)
       else
         Projector.project_columns(columns) ++ order_and_range(query)
-      end ++ project_output(columns, top_level?)
+      end ++ project_top_columns(columns, top_level?)
     else
       column_tops = Enum.map(columns, &extract_column_top(&1, aggregators, groups))
       properties = project_properties(groups)
@@ -397,7 +404,8 @@ defmodule Cloak.DataSource.MongoDB.Pipeline do
 
       [%{"$group": group}] ++
         parse_conditions(Map.keys(group), having) ++
-        Projector.project_columns(column_tops) ++ order_and_range(query) ++ project_output(column_tops, top_level?)
+        Projector.project_columns(column_tops) ++
+        order_and_range(query) ++ project_top_columns(column_tops, top_level?)
     end
   end
 
