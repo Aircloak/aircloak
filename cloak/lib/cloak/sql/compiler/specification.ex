@@ -156,49 +156,49 @@ defmodule Cloak.Sql.Compiler.Specification do
      }}
   end
 
-  defp do_resolve_views_and_analyst_tables({_, name} = table_or_view, query) when is_binary(name) do
-    case Map.fetch(query.views, name) do
-      {:ok, view_sql} ->
-        view_to_subquery(name, view_sql, query)
-
-      :error ->
-        case Map.fetch(query.analyst_tables, name) do
-          {:ok, analyst_table} -> analyst_table_to_subquery(analyst_table)
-          :error -> table_or_view
-        end
-    end
-  end
-
-  defp do_resolve_views_and_analyst_tables({table_or_view, :as, alias}, query) do
-    case do_resolve_views_and_analyst_tables(table_or_view, query) do
-      {:subquery, subquery} -> {:subquery, %{subquery | alias: alias}}
-      other -> {other, :as, alias}
+  defp do_resolve_views_and_analyst_tables({reference, :as, alias} = aliased_reference, query) do
+    case resolve_leaf_reference(reference, alias, query) do
+      {:subquery, _} = subquery -> subquery
+      ^reference -> aliased_reference
     end
   end
 
   defp do_resolve_views_and_analyst_tables({:subquery, subquery}, _query), do: {:subquery, subquery}
 
-  defp view_to_subquery(view_name, view_sql, query) do
-    if Enum.any?(query.data_source.tables, fn {_id, table} ->
-         insensitive_equal?(table.name, view_name)
-       end) do
+  defp do_resolve_views_and_analyst_tables(reference, query), do: resolve_leaf_reference(reference, query)
+
+  defp resolve_leaf_reference({_, name} = reference, alias \\ nil, query) when is_binary(name) do
+    alias = alias || name
+
+    case Map.fetch(query.views, name) do
+      {:ok, view_sql} ->
+        view_to_subquery(name, view_sql, alias, query)
+
+      :error ->
+        case Map.fetch(query.analyst_tables, name) do
+          {:ok, analyst_table} -> analyst_table_to_subquery(analyst_table, alias)
+          :error -> reference
+        end
+    end
+  end
+
+  defp view_to_subquery(view_name, view_sql, alias, query) do
+    if Enum.any?(query.data_source.tables, fn {_id, table} -> insensitive_equal?(table.name, view_name) end) do
       raise CompilationError,
         message: "There is both a table, and a view named `#{view_name}`. Rename the view to resolve the conflict."
     end
 
     case Cloak.Sql.Parser.parse(view_sql) do
-      {:ok, parsed_view} ->
-        {:subquery, %{ast: Map.put(parsed_view, :view?, true), alias: view_name}}
-
-      {:error, error} ->
-        raise CompilationError, message: "Error in the view `#{view_name}`: #{error}"
+      {:ok, parsed_view} -> {:subquery, %{ast: Map.put(parsed_view, :view?, true), alias: alias}}
+      {:error, error} -> raise CompilationError, message: "Error in the view `#{view_name}`: #{error}"
     end
   end
 
-  defp analyst_table_to_subquery(analyst_table) do
+  defp analyst_table_to_subquery(analyst_table, alias) do
     case Cloak.Sql.Parser.parse(analyst_table.statement) do
       {:ok, parsed_table} ->
-        {:subquery, %{ast: Map.put(parsed_table, :analyst_table, analyst_table), alias: analyst_table.name}}
+        aliased_table = %{analyst_table | name: alias}
+        {:subquery, %{ast: Map.put(parsed_table, :analyst_table, aliased_table), alias: aliased_table.name}}
 
       {:error, error} ->
         raise CompilationError, message: "Error in the analyst table `#{analyst_table.name}`: #{error}"

@@ -48,13 +48,14 @@ defmodule Cloak.Sql.Expression do
 
   @doc "Returns an expression representing a reference to the given column in the given table."
   @spec column(DataSource.column(), DataSource.table()) :: t
-  def column(column, table),
-    do: %__MODULE__{
+  def column(column, table) do
+    %__MODULE__{
       table: table,
       name: column.name,
       type: column.type,
-      user_id?: table.user_id == column.name
+      user_id?: table.keys[column.name] == :user_id
     }
+  end
 
   @doc """
   Returns true if the given expression represents a column reference, false otherwise. Note, that the reference might be
