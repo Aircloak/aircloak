@@ -53,7 +53,7 @@ defmodule Cloak.Sql.Expression do
       table: table,
       name: column.name,
       type: column.type,
-      user_id?: table.user_id == column.name || table[:keys][column.name] == :user_id
+      user_id?: table.keys[column.name] == :user_id
     }
   end
 

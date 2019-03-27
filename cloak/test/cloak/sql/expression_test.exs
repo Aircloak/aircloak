@@ -402,14 +402,14 @@ defmodule Cloak.Sql.Expression.Test do
     end
 
     test "col * 3.4" do
-      column = Expression.column(%{name: "col", type: :integer}, %{name: "table", user_id: "uid"})
+      column = Expression.column(%{name: "col", type: :integer}, %{name: "table", keys: %{}})
       constant = Expression.constant(:real, 3.4)
 
       assert Expression.function("*", [column, constant], :real) |> Expression.display() == "col * 3.4"
     end
 
     test "sum(distinct abs(col))" do
-      column = Expression.column(%{name: "col", type: :integer}, %{name: "table", user_id: "uid"})
+      column = Expression.column(%{name: "col", type: :integer}, %{name: "table", keys: %{}})
 
       assert Expression.function("sum", [{:distinct, Expression.function("abs", [column], :integer)}], :integer)
              |> Expression.display() == "sum(distinct abs(col))"

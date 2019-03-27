@@ -309,7 +309,8 @@ defmodule Cloak.Query.VirtualTableTest do
           join cloak_test.projected_transactions_real as t on n.transaction_id = t.id
           join cloak_test.projected_accounts as a on t.account_id = a.id
         """,
-        user_id: "uid"
+        user_id: "uid",
+        add_user_id: false
       )
     end
 

@@ -52,28 +52,30 @@ defmodule Cloak.DataSource.Table do
 
   @doc "Creates the new table instance."
   @spec new(String.t(), String.t() | nil, [option] | Map.t()) :: t
-  def new(name, user_id_column_name, opts \\ []),
-    do:
-      Map.merge(
-        %{
-          name: name,
-          user_id: user_id_column_name,
-          db_name: nil,
-          columns: [],
-          decoders: [],
-          projection: nil,
-          keys: %{},
-          content_type: if(user_id_column_name == nil, do: :public, else: :private),
-          query: nil,
-          auto_isolating_column_classification: true,
-          isolating_columns: %{},
-          maintain_shadow_db: true,
-          status: :created,
-          user_id_join_chain: if(user_id_column_name == nil, do: nil, else: []),
-          type: nil
-        },
-        Map.new(opts)
-      )
+  def new(name, user_id_column_name, opts \\ []) do
+    table =
+      %{
+        name: name,
+        user_id: user_id_column_name,
+        db_name: nil,
+        columns: [],
+        decoders: [],
+        projection: nil,
+        keys: %{},
+        content_type: if(user_id_column_name == nil, do: :public, else: :private),
+        query: nil,
+        auto_isolating_column_classification: true,
+        isolating_columns: %{},
+        maintain_shadow_db: true,
+        status: :created,
+        user_id_join_chain: if(user_id_column_name == nil, do: nil, else: []),
+        type: nil
+      }
+      |> Map.merge(Map.new(opts))
+
+    keys = if(user_id_column_name == nil, do: table.keys, else: Map.put(table.keys, user_id_column_name, :user_id))
+    %{table | keys: keys}
+  end
 
   @doc "Creates the column entry in the table specification."
   @spec column(String.t(), data_type, visible?: boolean) :: column
