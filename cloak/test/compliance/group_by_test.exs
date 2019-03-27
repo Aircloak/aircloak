@@ -34,11 +34,32 @@ defmodule Compliance.GroupByTest do
   end)
 
   Enum.each(all_columns(), fn {column, table, uid} ->
-    @tag compliance: "#{column} #{table} query grouping sets"
-    test "grouping sets for #{column} in query on #{table}", context do
+    @tag compliance: "#{column} #{table} uid-query grouping sets"
+    test "grouping sets for #{column} in uid-based query on #{table}", context do
       context
       |> disable_unicode(unquote(table), unquote(column))
       |> disable_for(Cloak.DataSource.MongoDB, unquote(column) == "birthday")
+      |> disable_for(
+        Cloak.DataSource.Oracle,
+        unquote(table) == "users_public" and unquote(column) == "column_with_a_very_long_name"
+      )
+      |> assert_consistent_and_not_failing("""
+        SELECT #{unquote(column)}, COUNT(*), COUNT(DISTINCT #{unquote(uid)}), MEDIAN(0) FROM 
+        #{unquote(table)} GROUP BY GROUPING SETS ((), 1) ORDER BY 1 ASC NULLS FIRST, 2, 3
+      """)
+    end
+  end)
+
+  Enum.each(all_columns(), fn {column, table, uid} ->
+    @tag compliance: "#{column} #{table} stats-query grouping sets"
+    test "grouping sets for #{column} in stats-based query on #{table}", context do
+      context
+      |> disable_unicode(unquote(table), unquote(column))
+      |> disable_for(Cloak.DataSource.MongoDB, unquote(column) == "birthday")
+      # MySQL, SQL Server and SAP HANA order NULLs differently by default
+      |> disable_for(Cloak.DataSource.MySQL, unquote(column) == "nullable")
+      |> disable_for(Cloak.DataSource.SQLServer, unquote(column) == "nullable")
+      |> disable_for(Cloak.DataSource.SAPHana, unquote(column) == "nullable")
       |> disable_for(
         Cloak.DataSource.Oracle,
         unquote(table) == "users_public" and unquote(column) == "column_with_a_very_long_name"
