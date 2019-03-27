@@ -410,13 +410,7 @@ defmodule Compliance.AnalystTableTest do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)),
              true <- String.starts_with?(data_source.name, "postgresql") do
           {:ok, _} = create_or_update(1, "table44", "select user_id, height from users", data_source)
-          db_name = AnalystTable.find(1, "table44", data_source).db_name
-
-          # set a different fingerprint and reprime analyst table state
-          execute!(data_source, "update __ac_analyst_tables_1 set fingerprint='' where db_name = '#{db_name}'")
-          AnalystTable.refresh()
-          # dummy state fetching to ensure that refresh has finished
-          :sys.get_state(AnalystTable)
+          make_table_stale(data_source, "table44")
 
           assert_query(
             "select count(*) from table44",
@@ -484,13 +478,7 @@ defmodule Compliance.AnalystTableTest do
         with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)),
              true <- String.starts_with?(data_source.name, "postgresql") do
           {:ok, _} = create_or_update(1, "table51", "select user_id, height from users", data_source)
-          db_name = AnalystTable.find(1, "table51", data_source).db_name
-
-          # set a different fingerprint and reprime analyst table state
-          execute!(data_source, "update __ac_analyst_tables_1 set fingerprint='' where db_name = '#{db_name}'")
-          AnalystTable.refresh()
-          # dummy state fetching to ensure that refresh has finished
-          :sys.get_state(AnalystTable)
+          make_table_stale(data_source, "table51")
 
           assert_query(
             "select count(*) from table51 as another_name",
@@ -500,6 +488,18 @@ defmodule Compliance.AnalystTableTest do
         end
       end
     end
+  end
+
+  defp make_table_stale(data_source, table_name) do
+    # set a different fingerprint and reprime analyst table state
+    db_name = AnalystTable.find(1, table_name, data_source).db_name
+    execute!(data_source, "update __ac_analyst_tables_1 set fingerprint='' where db_name = '#{db_name}'")
+    AnalystTable.refresh()
+
+    # dummy state fetching to ensure that refresh has finished
+    :sys.get_state(AnalystTable)
+
+    :ok
   end
 
   defp registered_tables(data_source) do
