@@ -36,7 +36,7 @@ defmodule Cloak.Data do
   ordering given by `<=` for other values.
   """
   @spec lt_eq(t, t) :: boolean
-  def lt_eq(x = %NaiveDateTime{}, y = %NaiveDateTime{}), do: Timex.diff(x, y) <= 0
+  def lt_eq(x = %NaiveDateTime{}, y = %NaiveDateTime{}), do: Timex.diff(x, y, :seconds) <= 0
   def lt_eq(x = %Date{}, y = %Date{}), do: Timex.diff(x, y) <= 0
   def lt_eq(x = %Time{}, y = %Time{}), do: Cloak.Time.to_integer(x) <= Cloak.Time.to_integer(y)
   def lt_eq(nil, _), do: false
