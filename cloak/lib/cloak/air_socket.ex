@@ -315,6 +315,7 @@ defmodule Cloak.AirSocket do
            Cloak.AnalystTable.create_or_update(
              data.analyst_id,
              data.table_name,
+             data.old_table_name,
              data.statement,
              data_source,
              data.parameters,

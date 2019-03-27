@@ -23,7 +23,7 @@ defmodule Air.Service.AnalystTable do
     |> Ecto.Changeset.cast(changes, ~w(name sql user_id data_source_id)a)
     |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
     |> Map.put(:action, :insert)
-    |> transactional_store(user, data_source)
+    |> transactional_store(nil, user, data_source)
   end
 
   @doc "Updates the existing analyst table, and stores it in cloak and in air."
@@ -40,7 +40,7 @@ defmodule Air.Service.AnalystTable do
       )
       |> Ecto.Changeset.validate_required(~w(name sql user_id data_source_id)a)
       |> Map.put(:action, :update)
-      |> transactional_store(table.user, table.data_source)
+      |> transactional_store(table.name, table.user, table.data_source)
     else
       {:error, :not_allowed}
     end
@@ -167,7 +167,7 @@ defmodule Air.Service.AnalystTable do
   # Internal functions
   # -------------------------------------------------------------------
 
-  defp transactional_store(changeset, user, data_source) do
+  defp transactional_store(changeset, old_table_name, user, data_source) do
     Repo.transaction(fn ->
       changeset =
         Ecto.Changeset.unique_constraint(
@@ -180,7 +180,7 @@ defmodule Air.Service.AnalystTable do
       # there's no guarantee that the table will be successfully stored in the cloak, so we're running this inside
       # a transaction.
       with {:ok, table} <- apply(Repo, changeset.action, [changeset]),
-           {:ok, {columns, validated_views}} <- create_or_update_on_cloak(table, user, data_source),
+           {:ok, {columns, validated_views}} <- create_or_update_on_cloak(table, old_table_name, user, data_source),
            :ok <- Air.Service.View.store_view_validation_results(user, data_source.id, validated_views),
            # at this point we can update the table with the registration info obtained from cloak
            table_changeset =
@@ -200,7 +200,7 @@ defmodule Air.Service.AnalystTable do
     end)
   end
 
-  defp create_or_update_on_cloak(table, user, data_source) do
+  defp create_or_update_on_cloak(table, old_table_name, user, data_source) do
     with {:error, reason} <-
            DataSource.with_available_cloak(
              data_source,
@@ -209,6 +209,7 @@ defmodule Air.Service.AnalystTable do
                &1.channel_pid,
                user.id,
                table.name,
+               old_table_name,
                table.sql,
                data_source.name,
                nil,
