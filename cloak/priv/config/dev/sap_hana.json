@@ -12,6 +12,10 @@
     "integers": {
       "db_name": "integers",
       "keys": [{"user_id": "user_id"}]
+    },
+    "integerspub": {
+      "db_name": "integers",
+      "content_type": "non-personal"
     }
   }
 }
