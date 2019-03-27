@@ -8,7 +8,7 @@
   },
   "tables": {
     "data_quality": {
-      "user_id": null
+      "content_type": "non-personal"
     }
   }
 }

@@ -9,15 +9,15 @@
   "tables": {
     "test": {
       "db_name": "user_data",
-      "user_id": "user_id"
+      "keys": [{"user_id": "user_id"}]
     },
     "purchases": {
       "db_name": "purchases",
-      "user_id": "uid"
+      "keys": [{"user_id": "uid"}]
     },
     "demographics": {
       "db_name": "demographics",
-      "user_id": "uid"
+      "keys": [{"user_id": "uid"}]
     },
     "demographics_as_query": {
       "query": "
@@ -28,9 +28,7 @@
     },
     "customers": {
       "db_name": "customers",
-      "keys": [
-        {"user_id": "id"}
-      ]
+      "keys": [{"user_id": "id"}]
     },
     "accounts": {
       "db_name": "accounts",
@@ -49,7 +47,7 @@
     },
     "integers": {
       "db_name": "integers",
-      "user_id": "user_id"
+      "keys": [{"user_id": "user_id"}]
     }
   },
   "analyst_tables_enabled": true

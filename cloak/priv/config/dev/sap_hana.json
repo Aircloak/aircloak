@@ -11,7 +11,7 @@
   "tables": {
     "integers": {
       "db_name": "integers",
-      "user_id": "user_id"
+      "keys": [{"user_id": "user_id"}]
     }
   }
 }
