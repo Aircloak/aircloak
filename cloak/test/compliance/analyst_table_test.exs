@@ -181,7 +181,7 @@ defmodule Compliance.AnalystTableTest do
           AnalystTable.with_custom_store_fun(
             fn _ -> Process.sleep(:timer.seconds(1)) end,
             fn ->
-              {:ok, _} = AnalystTable.create_or_update(1, "table26", "select user_id from users", data_source)
+              {:ok, _} = AnalystTable.create_or_update(1, "table26", "select user_id from users", data_source, nil, %{})
 
               assert_query(
                 "select * from table26",
@@ -200,7 +200,8 @@ defmodule Compliance.AnalystTableTest do
             fn ->
               log =
                 ExUnit.CaptureLog.capture_log(fn ->
-                  {:ok, _} = AnalystTable.create_or_update(1, "table27", "select user_id from users", data_source)
+                  {:ok, _} =
+                    AnalystTable.create_or_update(1, "table27", "select user_id from users", data_source, nil, %{})
 
                   assert soon(
                            table_created?(1, "table27", data_source, :create_error),
@@ -232,7 +233,7 @@ defmodule Compliance.AnalystTableTest do
               real_store.()
             end,
             fn ->
-              {:ok, _} = AnalystTable.create_or_update(1, "table28", "select user_id from users", data_source)
+              {:ok, _} = AnalystTable.create_or_update(1, "table28", "select user_id from users", data_source, nil, %{})
 
               assert_receive {:create_process, pid}
               mref = Process.monitor(pid)

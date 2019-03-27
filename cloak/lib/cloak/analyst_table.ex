@@ -32,7 +32,7 @@ defmodule Cloak.AnalystTable do
           [Query.parameter()] | nil,
           Query.view_map()
         ) :: {:ok, Query.described_columns()} | {:error, String.t()}
-  def create_or_update(analyst, table_name, statement, data_source, parameters \\ nil, views \\ %{}) do
+  def create_or_update(analyst, table_name, statement, data_source, parameters, views) do
     with {:ok, air_name} <- Cloak.Air.name(),
          {:ok, query} <-
            Compiler.compile(
