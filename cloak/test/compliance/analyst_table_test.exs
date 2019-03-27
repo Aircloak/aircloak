@@ -479,6 +479,26 @@ defmodule Compliance.AnalystTableTest do
           )
         end
       end
+
+      test "reporting a correct analyst table name" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)),
+             true <- String.starts_with?(data_source.name, "postgresql") do
+          {:ok, _} = create_or_update(1, "table51", "select user_id, height from users", data_source)
+          db_name = AnalystTable.find(1, "table51", data_source).db_name
+
+          # set a different fingerprint and reprime analyst table state
+          execute!(data_source, "update __ac_analyst_tables_1 set fingerprint='' where db_name = '#{db_name}'")
+          AnalystTable.refresh()
+          # dummy state fetching to ensure that refresh has finished
+          :sys.get_state(AnalystTable)
+
+          assert_query(
+            "select count(*) from table51 as another_name",
+            [analyst_id: 1, data_sources: [data_source]],
+            %{error: "table `table51` needs to be updated before it can be queried"}
+          )
+        end
+      end
     end
   end
 
