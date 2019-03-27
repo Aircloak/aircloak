@@ -184,21 +184,17 @@ defmodule Cloak.Sql.FixAlign do
 
   defp units_since_epoch(datetime, :seconds), do: Timex.diff(datetime, @epoch, :seconds)
 
-  defp datetime_ceil(datetime, :months),
-    do:
-      if(
-        Timex.diff(datetime, Timex.beginning_of_month(datetime), :microseconds) == 0,
-        do: datetime,
-        else: Timex.beginning_of_month(datetime) |> shift(months: 1)
-      )
+  defp datetime_ceil(datetime, :months) do
+    if Timex.diff(datetime, Timex.beginning_of_month(datetime), :microseconds) == 0,
+      do: datetime,
+      else: Timex.beginning_of_month(datetime) |> shift(months: 1)
+  end
 
-  defp datetime_ceil(datetime, :days),
-    do:
-      if(
-        Timex.diff(datetime, Timex.beginning_of_day(datetime), :microseconds) == 0,
-        do: datetime,
-        else: Timex.beginning_of_day(datetime) |> shift(days: 1)
-      )
+  defp datetime_ceil(datetime, :days) do
+    if Timex.diff(datetime, Timex.beginning_of_day(datetime), :microseconds) == 0,
+      do: datetime,
+      else: Timex.beginning_of_day(datetime) |> shift(days: 1)
+  end
 
   defp datetime_ceil(datetime = %Date{}, :hours), do: datetime
   defp datetime_ceil(datetime = %{minute: 0, second: 0}, :hours), do: datetime
