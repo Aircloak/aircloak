@@ -4,13 +4,11 @@ defmodule Compliance.AnalystTableTest do
   alias Cloak.Test.AnalystTableHelpers
   import Cloak.Test.QueryHelpers
   import Aircloak.AssertionHelper
+  import AnalystTableHelpers, only: [create_or_update: 4, create_or_update: 5, table_created?: 4]
 
   @moduletag :compliance
   @moduletag :analyst_tables
   @tested_data_sources ~w(oracle postgresql9.4 postgresql)
-
-  defdelegate create_or_update(analyst_id, table_name, query, data_source), to: AnalystTableHelpers
-  defdelegate table_created?(analyst_id, table_name, query, data_source), to: AnalystTableHelpers
 
   setup_all do
     air_name = "some_air_instance"
@@ -181,7 +179,8 @@ defmodule Compliance.AnalystTableTest do
           AnalystTable.with_custom_store_fun(
             fn _ -> Process.sleep(:timer.seconds(1)) end,
             fn ->
-              {:ok, _} = AnalystTable.create_or_update(1, "table26", "select user_id from users", data_source)
+              {:ok, _} =
+                AnalystTable.create_or_update(1, "table26", nil, "select user_id from users", data_source, nil, %{})
 
               assert_query(
                 "select * from table26",
@@ -200,7 +199,8 @@ defmodule Compliance.AnalystTableTest do
             fn ->
               log =
                 ExUnit.CaptureLog.capture_log(fn ->
-                  {:ok, _} = AnalystTable.create_or_update(1, "table27", "select user_id from users", data_source)
+                  {:ok, _} =
+                    AnalystTable.create_or_update(1, "table27", nil, "select user_id from users", data_source, nil, %{})
 
                   assert soon(
                            table_created?(1, "table27", data_source, :create_error),
@@ -232,7 +232,8 @@ defmodule Compliance.AnalystTableTest do
               real_store.()
             end,
             fn ->
-              {:ok, _} = AnalystTable.create_or_update(1, "table28", "select user_id from users", data_source)
+              {:ok, _} =
+                AnalystTable.create_or_update(1, "table28", nil, "select user_id from users", data_source, nil, %{})
 
               assert_receive {:create_process, pid}
               mref = Process.monitor(pid)
@@ -457,6 +458,25 @@ defmodule Compliance.AnalystTableTest do
                      "select foo.uid, count(foo.uid) from table47 as foo group by 1",
                      data_source
                    )
+        end
+      end
+
+      test "previous table is dropped on table rename" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)),
+             true <- String.starts_with?(data_source.name, "postgresql") do
+          {:ok, _} = create_or_update(1, "table49", "select * from users", data_source)
+
+          db_name = AnalystTable.find(1, "table49", data_source).db_name
+          assert {:ok, _} = create_or_update(1, "table50", "table49", "select * from users", data_source)
+
+          refute Enum.member?(registered_tables(data_source), db_name)
+          refute Enum.member?(AnalystTableHelpers.stored_tables(data_source), db_name)
+
+          assert_query(
+            "select * from table49",
+            [analyst_id: 1, data_sources: [data_source]],
+            %{error: "Table `table49` doesn't exist."}
+          )
         end
       end
     end

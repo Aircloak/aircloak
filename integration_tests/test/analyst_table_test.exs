@@ -115,6 +115,18 @@ defmodule IntegrationTest.AnalystTableTest do
     assert result.buckets == [%{"occurrences" => 100, "row" => ["*"], "unreliable" => false}]
   end
 
+  test "previous table is dropped if table is renamed on update", context do
+    original_name = unique_name()
+    new_name = unique_name()
+
+    {:ok, table} = create_table(context.user, original_name, "select user_id, name from users")
+    {:ok, cloak_data_source} = Cloak.DataSource.fetch(Manager.data_source().name)
+    original_db_name = Cloak.AnalystTable.find(context.user.id, original_name, cloak_data_source).db_name
+
+    assert {:ok, _} = update_table(table.id, context.user, new_name, "select user_id from users")
+    assert table_not_in_db?(original_db_name)
+  end
+
   test "failed update when other user", context do
     name = unique_name()
     new_name = unique_name()

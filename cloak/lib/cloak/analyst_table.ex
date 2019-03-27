@@ -27,12 +27,15 @@ defmodule Cloak.AnalystTable do
   @spec create_or_update(
           Query.analyst_id(),
           String.t(),
+          String.t() | nil,
           String.t(),
           DataSource.t(),
           [Query.parameter()] | nil,
           Query.view_map()
         ) :: {:ok, Query.described_columns()} | {:error, String.t()}
-  def create_or_update(analyst, table_name, statement, data_source, parameters \\ nil, views \\ %{}) do
+  def create_or_update(analyst, table_name, old_table_name, statement, data_source, parameters, views) do
+    if old_table_name not in [nil, table_name], do: drop_tables(analyst, data_source.name, [old_table_name])
+
     with {:ok, air_name} <- Cloak.Air.name(),
          {:ok, query} <-
            Compiler.compile(
