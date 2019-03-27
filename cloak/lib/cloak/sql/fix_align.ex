@@ -140,8 +140,6 @@ defmodule Cloak.Sql.FixAlign do
     |> datetime_from_units(unit)
   end
 
-  # because of the timex bug (https://github.com/bitwalker/timex/pull/239)
-  @dialyzer {:no_match, largest_changed_unit: 1}
   defp largest_changed_unit({x, y}) do
     Enum.find(@time_units, fn component ->
       case Timex.diff(y, x, :duration) do
@@ -187,13 +185,13 @@ defmodule Cloak.Sql.FixAlign do
   defp datetime_ceil(datetime, :months) do
     if Timex.diff(datetime, Timex.beginning_of_month(datetime), :microseconds) == 0,
       do: datetime,
-      else: Timex.beginning_of_month(datetime) |> shift(months: 1)
+      else: Timex.beginning_of_month(datetime) |> Timex.shift(months: 1)
   end
 
   defp datetime_ceil(datetime, :days) do
     if Timex.diff(datetime, Timex.beginning_of_day(datetime), :microseconds) == 0,
       do: datetime,
-      else: Timex.beginning_of_day(datetime) |> shift(days: 1)
+      else: Timex.beginning_of_day(datetime) |> Timex.shift(days: 1)
   end
 
   defp datetime_ceil(datetime = %Date{}, :hours), do: datetime
@@ -204,9 +202,6 @@ defmodule Cloak.Sql.FixAlign do
   defp datetime_ceil(datetime = %{second: 0}, :minutes), do: datetime
   defp datetime_ceil(datetime, :minutes), do: %{datetime | minute: datetime.minute + 1, second: 0}
   defp datetime_ceil(datetime, :seconds), do: datetime
-
-  # Workaround for https://github.com/bitwalker/timex/pull/235
-  defp shift(datetime, spec), do: Timex.Protocol.shift(datetime, spec)
 
   defp datetime_from_units({x, y}, unit), do: {datetime_from_units(x, unit), datetime_from_units(y, unit)}
 
@@ -247,12 +242,8 @@ defmodule Cloak.Sql.FixAlign do
   defp lower_unit(:seconds), do: :seconds
   defp lower_unit(unit), do: Enum.at(@time_units, Enum.find_index(@time_units, &(&1 == unit)) + 1)
 
-  # because of the timex bug (https://github.com/bitwalker/timex/pull/239)
-  @dialyzer {:no_unused, duration_component: 2}
   defp duration_component(:years, duration), do: Timex.Duration.to_days(duration) / @days_in_year
-
   defp duration_component(:months, duration), do: Timex.Duration.to_days(duration) / @days_in_month
-
   defp duration_component(:days, duration), do: Timex.Duration.to_days(duration)
   defp duration_component(:hours, duration), do: Timex.Duration.to_hours(duration)
   defp duration_component(:minutes, duration), do: Timex.Duration.to_minutes(duration)
