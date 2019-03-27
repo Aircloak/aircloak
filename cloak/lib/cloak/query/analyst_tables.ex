@@ -40,8 +40,16 @@ defmodule Cloak.Query.AnalystTables do
   end
 
   defp analyst_table_definition(query, analyst_table, alias) do
-    with :ok <- Cloak.AnalystTable.validate_query_usage(analyst_table, query.views),
-         {:ok, table} <- Cloak.AnalystTable.to_cloak_table(analyst_table, query.views, name: alias),
+    real_table_name =
+      analyst_table.analyst
+      |> Cloak.AnalystTable.analyst_tables(query.data_source)
+      |> Enum.find(&(&1.db_name == analyst_table.db_name))
+      |> Map.fetch!(:name)
+
+    unaliased_table = %{analyst_table | name: real_table_name}
+
+    with :ok <- Cloak.AnalystTable.validate_query_usage(unaliased_table, query.views),
+         {:ok, table} <- Cloak.AnalystTable.to_cloak_table(unaliased_table, query.views, name: alias),
          do: table,
          else: ({:error, reason} -> raise Cloak.Query.ExecutionError, message: reason)
   end
