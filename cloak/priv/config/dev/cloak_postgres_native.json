@@ -24,7 +24,7 @@
         SELECT *
         FROM demographics
       ",
-      "user_id": "uid"
+      "keys": [{"user_id": "uid"}]
     },
     "customers": {
       "db_name": "customers",
