@@ -53,6 +53,7 @@ defmodule Cloak.AnalystTable.Compiler do
          :ok <- verify_query_type(query),
          :ok <- verify_offloading(query),
          :ok <- verify_selected_columns(query),
+         :ok <- verify_pseudoconstants(parsed_query, analyst, data_source, parameters, views),
          do: :ok
   end
 
@@ -103,5 +104,35 @@ defmodule Cloak.AnalystTable.Compiler do
       [] -> :ok
       duplicates -> {:error, "Duplicate column names: #{duplicates |> Stream.map(&"`#{&1}`") |> Enum.join(", ")}"}
     end
+  end
+
+  defp verify_pseudoconstants(parsed_query, analyst, data_source, parameters, views) do
+    parsed_query
+    |> Cloak.Sql.Compiler.Specification.compile(analyst, data_source, parameters, views)
+    |> Cloak.Sql.Compiler.Helpers.apply_top_down(&verify_pseudoconstant/1, analyst_tables?: false)
+
+    :ok
+  rescue
+    e in Cloak.Sql.CompilationError -> {:error, Cloak.Sql.CompilationError.message(e)}
+  end
+
+  defp verify_pseudoconstant(query) do
+    Cloak.Sql.Query.Lenses.terminals()
+    |> Lens.filter(&pseudoconstant?/1)
+    |> Lens.to_list(query)
+    |> case do
+      [] ->
+        query
+
+      [expression | _] ->
+        raise Cloak.Sql.CompilationError,
+          source_location: expression.source_location,
+          message: "Function #{expression.function} is not allowed when creating a table"
+    end
+  end
+
+  defp pseudoconstant?(expression) do
+    expression.function? and expression.function_args == [] and
+      expression.function in ~w/current_time current_date current_datetime/
   end
 end
