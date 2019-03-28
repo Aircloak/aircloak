@@ -256,7 +256,7 @@ defmodule Cloak.Sql.FixAlign.Test do
   end
 
   defp datetime_shift do
-    {one_of([:years, :months, :days, :minutes, :hours, :seconds]), integer(1..120)}
+    {one_of([:seconds, :hours, :minutes, :days, :months, :years]), integer(1..120)}
   end
 
   def naive_datetime do
