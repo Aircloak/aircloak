@@ -131,8 +131,6 @@ defmodule Cloak.AnalystTable.Compiler do
     end
   end
 
-  defp pseudoconstant?(expression) do
-    expression.function? and expression.function_args == [] and
-      expression.function in ~w/current_time current_date current_datetime/
-  end
+  defp pseudoconstant?(expression),
+    do: expression.function? and Cloak.Sql.Function.has_attribute?(expression, :pseudoconstant)
 end
