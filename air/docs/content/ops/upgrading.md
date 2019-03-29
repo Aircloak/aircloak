@@ -1,3 +1,147 @@
+# Version 19.2.0
+
+## Insights Cloak
+
+### Tables configuration
+
+__The old style of configuring tables will stop working in version 19.3.__
+
+The table fields `user_id`, `projection` and `decoders` have been marked as deprecated. A warning will be issued for
+each usage of these fields in a datasource configuration file. Configured tables should use the new `keys` field and/or
+the `query` field. Refer to the [Insights Cloak configuration](/ops/configuration.html#insights-cloak-configuration)
+for more details.
+
+#### Replacing the `user_id` field
+
+Setting the user id for a table is now done by setting a table key with the type `"user_id"`. 
+
+Old style table configuration:
+```json
+"tables": {
+  "accounts": {
+    "user_id": "client_id",
+    ...
+  }
+}
+```
+New style table configuration:
+```json
+"tables": {
+  "accounts": {
+    "keys": [{"user_id": "client_id"}],
+    ...
+  }
+}
+```
+
+In order to directly expose a table that doesn't contain personal data, the `content_type` field has to be set to
+`non-personal`.
+
+Old style table configuration:
+```json
+"tables": {
+  "products": {
+    "user_id": null,
+    ...
+  }
+}
+```
+New style table configuration:
+```json
+"tables": {
+  "products": {
+    "content_type": "non-personal",
+    ...
+  }
+}
+```
+
+#### Replacing the `projection` field
+
+Tables that do not contain a user id column will need to have configured keys through which they can be joined to other
+tables that contain the required user id field. This mechanism allows for more explicit handling of database table by
+the analyst.
+
+Old style table configuration:
+```json
+"tables": {
+  "accounts": {
+    "user_id": "customer_id"
+  },
+  "transactions": {
+    "projection": {
+      "table": "accounts",
+      "foreign_key": "account_id",
+      "primary_key": "id"
+    }
+  }
+}
+```
+New style table configuration:
+```json
+"tables": {
+  "accounts": {
+    "keys": [
+      {"user_id": "customer_id"},
+      {"account": "id"}
+    ]
+  },
+  "transactions": {
+    "keys": [
+      {"account": "account_id"}
+    ]
+  }
+}
+```
+
+#### Replacing the `decoders` field
+
+Data can be pre-processed by creating a virtual table, which configures a table from a query, similar to an SQL view.
+
+Old style table configuration:
+```json
+"tables": {
+  "transactions": {
+    "decoders": [
+      {"method": "text_to_datetime", "columns": ["beginDT", "endDT"]},
+      {"method": "text_to_real", "columns": ["price"]}
+    ]
+    ...
+  }
+}
+```
+New style table configuration:
+```json
+"tables": {
+  "transactions": {
+    "query": "SELECT CAST(beginDT AS datetime), CAST(endDT AS datetime), CAST(price AS real), * FROM transactions",
+    ...
+  }
+}
+```
+
+#### Changes to the `db_name` field for Apache Drill data sources
+
+ When quoting the database table name for Apache Drill data sources, double quotes (") characters have to be used 
+ instead of back-ticks (\`).
+
+ ```json
+"tables": {
+  "products": {
+    "db_name": "\"data/products.json\"",
+    ...
+  }
+}
+```
+
+## Insights Air
+
+### Configuration
+
+There is a new and required `name` parameter in the configuration file, used to uniquely identify the Insights Air
+instance in the system. This property will need to be added to existing configuration files in order for them to
+load properly.
+
 # Version 18.5.0
 
 ## Insights Air
