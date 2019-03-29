@@ -487,6 +487,23 @@ defmodule Compliance.AnalystTableTest do
           )
         end
       end
+
+      for pseudoconstant <- ~w/current_time current_date current_datetime/ do
+        test "usage of #{pseudoconstant} is forbidden" do
+          with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)),
+               true <- String.starts_with?(data_source.name, "postgresql") do
+            assert {:error, error} =
+                     create_or_update(
+                       1,
+                       "table52",
+                       "select user_id, #{unquote(pseudoconstant)}() from users",
+                       data_source
+                     )
+
+            assert error == "Function #{unquote(pseudoconstant)} is not allowed when creating a table"
+          end
+        end
+      end
     end
   end
 

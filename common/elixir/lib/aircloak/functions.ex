@@ -215,13 +215,16 @@ defmodule Aircloak.Functions do
                  attributes: [:internal]
                },
                ~w(current_datetime) => %{
-                 type_specs: %{[] => :datetime}
+                 type_specs: %{[] => :datetime},
+                 attributes: [:pseudoconstant]
                },
                ~w(current_date) => %{
-                 type_specs: %{[] => :date}
+                 type_specs: %{[] => :date},
+                 attributes: [:pseudoconstant]
                },
                ~w(current_time) => %{
-                 type_specs: %{[] => :time}
+                 type_specs: %{[] => :time},
+                 attributes: [:pseudoconstant]
                }
              }
              |> Enum.flat_map(fn {functions, traits} -> Enum.map(functions, &{&1, traits}) end)
