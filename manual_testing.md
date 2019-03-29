@@ -14,16 +14,21 @@
 - [ ] Click on `Show chart`, select `itemname` as `X` and `count` as `Y`, make sure the chart displays
 - Go to `Cog icon -> API tokens`
 - [ ] Create an API token, note it down
-- [ ] Issue this curl, supplying your own API token in place of `$token`
+- [ ] Issue this curl, setting `$token` to your own API token
   ```bash
+  token=your_own_token
+
   curl -X POST -H "content-type: application/json" -H "auth-token: $token" \
     -d '{"query": {"statement": "SELECT COUNT(*) FROM purchases", "data_source_name": "cloak_postgres_native"}}' \
     localhost:8080/api/queries
   ```
-  - [ ] You will get a query id in response. Issue this command, supplying the id instead of `$query_id`:
+  - [ ] You will get a query id in response. Issue this command, setting `$query_id` to the id you got:
     ```bash
+    query_id=your_own_id
+
     curl -X GET -H "content-type: application/json" -H "auth-token: $token" \
-      localhost:8080/api/queries/$query_id
+      localhost:8080/api/queries/$query_id \
+      python -m json.tool
     ```
 - Go to `Cog icon -> App logins`
 - [ ] Create a new login
