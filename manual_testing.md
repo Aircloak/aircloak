@@ -10,7 +10,7 @@
   FROM purchases
   GROUP BY 1
   ```
-  - [ ] Ensure syntax is highlighted in the editor and in 
+  - [ ] Ensure syntax is highlighted in the editor and in result boxes
 - [ ] Click on `Show chart`, select `itemname` as `X` and `count` as `Y`, make sure the chart displays
 - Go to `Cog icon -> API tokens`
 - [ ] Create an API token, note it down
