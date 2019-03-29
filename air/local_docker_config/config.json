@@ -15,5 +15,10 @@
     "user": "air",
     "password": "",
     "name": "air_dev"
+  },
+
+  "psql_server": {
+    "require_ssl": false,
+    "max_connections": 10
   }
 }

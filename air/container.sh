@@ -19,6 +19,7 @@ DOCKER_START_ARGS="
   -v $(pwd)/local_docker_config:/runtime_config
   -p 8080:8080
   -p 8443:8443
+  -p 7432:8432
   --link air_db_dev:air_db
 "
 
