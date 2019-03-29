@@ -1,3 +1,147 @@
+# Version 19.2.0
+
+## Insights Cloak
+
+### Tables configuration
+
+__The old style of configuring tables will stop working in version 19.3.__
+
+The table fields `user_id`, `projection` and `decoders` have been marked as deprecated. A warning will be issued for
+each usage of these fields in a datasource configuration file. Configured tables should use the new `keys` field and/or
+the `query` field. Refer to the [Insights Cloak configuration](/ops/configuration.html#insights-cloak-configuration)
+for more details.
+
+#### Replacing the `user_id` field
+
+Setting the user id for a table is now done by setting a table key with the type `"user_id"`. 
+
+Old style table configuration:
+```json
+"tables": {
+  "accounts": {
+    "user_id": "client_id",
+    ...
+  }
+}
+```
+New style table configuration:
+```json
+"tables": {
+  "accounts": {
+    "keys": [{"user_id": "client_id"}],
+    ...
+  }
+}
+```
+
+In order to directly expose a table that doesn't contain personal data, the `content_type` field has to be set to
+`non-personal`.
+
+Old style table configuration:
+```json
+"tables": {
+  "products": {
+    "user_id": null,
+    ...
+  }
+}
+```
+New style table configuration:
+```json
+"tables": {
+  "products": {
+    "content_type": "non-personal",
+    ...
+  }
+}
+```
+
+#### Replacing the `projection` field
+
+Tables that do not contain a user id column will need to have configured keys through which they can be joined to other
+tables that contain the required user id field. This mechanism allows for more explicit handling of database table by
+the analyst.
+
+Old style table configuration:
+```json
+"tables": {
+  "accounts": {
+    "user_id": "customer_id"
+  },
+  "transactions": {
+    "projection": {
+      "table": "accounts",
+      "foreign_key": "account_id",
+      "primary_key": "id"
+    }
+  }
+}
+```
+New style table configuration:
+```json
+"tables": {
+  "accounts": {
+    "keys": [
+      {"user_id": "customer_id"},
+      {"account": "id"}
+    ]
+  },
+  "transactions": {
+    "keys": [
+      {"account": "account_id"}
+    ]
+  }
+}
+```
+
+#### Replacing the `decoders` field
+
+Data can be pre-processed by creating a virtual table, which configures a table from a query, similar to an SQL view.
+
+Old style table configuration:
+```json
+"tables": {
+  "transactions": {
+    "decoders": [
+      {"method": "text_to_datetime", "columns": ["beginDT", "endDT"]},
+      {"method": "text_to_real", "columns": ["price"]}
+    ]
+    ...
+  }
+}
+```
+New style table configuration:
+```json
+"tables": {
+  "transactions": {
+    "query": "SELECT CAST(beginDT AS datetime), CAST(endDT AS datetime), CAST(price AS real), * FROM transactions",
+    ...
+  }
+}
+```
+
+#### Changes to the `db_name` field for Apache Drill data sources
+
+ When quoting the database table name for Apache Drill data sources, double quotes (") characters have to be used 
+ instead of back-ticks (\`).
+
+ ```json
+"tables": {
+  "products": {
+    "db_name": "\"data/products.json\"",
+    ...
+  }
+}
+```
+
+## Insights Air
+
+### Configuration
+
+There is a new and required `name` parameter in the configuration file, used to uniquely identify the Insights Air
+instance in the system. This property will need to be added to existing configuration files in order for them to
+load properly.
+
 # Version 18.5.0
 
 ## Insights Air
@@ -60,136 +204,3 @@ __The Cloak container needs both read and write permissions to this folder.__
 If the static analysis puts undue stress on your data source, or does not complete within a reasonable time, please
 consider manually classifyng your columns. More information on how this is done can be found
 [here](configuration.md#insights-cloak-configuration) under the heading _Manually classifying isolating columns_.
-
-# Version 17.5.0
-
-## Insights Cloak
-
-### Datasources configuration
-
-__The old style of configuring datasources will stop working in version 18.3.__
-
-Datasources can now be configured in individiual files to make sharing of datasource configurations easier
-between multiple Insights Cloak instances.
-
-In previous versions the `data_sources` section of the Insights Cloak configuration contained an array of datasource
-definitions. These individual definitions should now be stored in separate files in a subdirectory of the
-directory where the Insights Cloak `config.json` file is stored.
-
-The `data_sources` parameter in the configuration file should now hold the path to the folder containing the individual
-configuration files.
-
-Below follows an example of an Insights Cloak config that served two datasources: `data_source1`, and `data_source2`.
-This example Insights Cloak has the following configuration stored in a folder called `cloak-configuration`:
-
-__config.json__:
-
-```json
-{
-  "air_site": "wss://air.example.com:8443",
-  "salt": "strong salt",
-  "data_sources": [
-    {
-      "name": "data_source1",
-      ...
-    },
-    {
-      "name": "data_source2",
-      ...
-    }
-  ]
-}
-```
-
-To migrate to the new format, create a subdirectory under `cloak-configuration` called `enabled-datasources`.
-In it you create the following two datasource definitions:
-
-
-__data_source1.json__:
-
-```
-{
-  "name": "data_source1",
-  ...
-}
-```
-
-__data_source2.json__:
-```
-{
-  "name": "data_source2",
-  ...
-}
-```
-
-and alter your Insights Cloak `config.json` file to read:
-
-```json
-{
-  "air_site": "wss://localhost:8443",
-  "salt": "Salt for local dev cloak",
-  "data_sources": "enabled-datasources"
-}
-```
-
-
-# Version 17.4.0
-
-## Insights Air
-
-### HTTPS configuration
-
-Previously, HTTPS was configured by simply placing the files named `ssl_cert.pem` and `ssl_key.pem` into the same folder as the `config.json` file. Starting with this version, the file names must be explicitly provided in the `config.json` file under the `site` key:
-
-```
-# config.json
-
-{
-  "site": {
-    "certfile": "ssl_cert.pem",
-    "keyfile": "ssl_key.pem",
-    ...
-  },
-  ...
-}
-```
-
-These keys are optional, and if they are not provided, the system will only serve HTTP traffic.
-
-For more details about site configuration, see [here](configuration.md#web-site-configuration).
-
-### SSL configuration for Insights Air PostgreSQL interface
-
-Similarly to the site settings, the PostgreSQL server certificate and key file names must be explicitly provided. These files can be configured under the `psql_server` key:
-
-```
-# config.json
-
-{
-  "psql_server": {
-    "certfile": "ssl_cert.pem",
-    "keyfile": "ssl_key.pem",
-    ...
-  },
-  ...
-}
-```
-
-For more details about Insights Air PostgreSQL interface, see [here](configuration.md#insights-air-postgresql-interface-configuration).
-
-### TCP configuration for Insights Air PostgreSQL interface
-
-Starting with this version, it is possible to accept PostgreSQL connections over plain TCP (previously only SSL connections were supported). In order to allow TCP connections, you must explicitly set the value of `require_ssl` under the `psql_server` key to `false`:
-
-```
-# config.json
-{
-  "psql_server": {
-    "require_ssl": false,
-    ...
-  },
-  ...
-}
-```
-
-For more details about Insights Air PostgreSQL interface, see [here](configuration.md#insights-air-postgresql-interface-configuration).
