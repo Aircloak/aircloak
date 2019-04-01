@@ -1,7 +1,7 @@
 // @flow
 
 import React from "react";
-import Codemirror from "react-codemirror";
+import {UnControlled as Codemirror} from "react-codemirror2";
 import $ from "jquery";
 
 import completions from "./code_editor/completion";

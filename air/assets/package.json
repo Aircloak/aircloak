@@ -24,7 +24,7 @@
     "react": "^15.6.2",
     "react-bootstrap": "^0.32.4",
     "react-chartjs-2": "~2.7.4",
-    "react-codemirror": "^1.0.0",
+    "react-codemirror2": "^5.1.0",
     "react-dom": "^15.6.2",
     "react-sparklines": "^1.7.0",
     "uglify-js-brunch": "~1.7.0",
