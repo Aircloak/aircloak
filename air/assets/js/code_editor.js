@@ -4,7 +4,7 @@ import React from "react";
 import {UnControlled as Codemirror} from "react-codemirror2";
 import $ from "jquery";
 import _ from "lodash";
-import CodeMirror from "codemirror";
+import Editor from "codemirror";
 
 import completions from "./code_editor/completion";
 
@@ -47,25 +47,25 @@ export class CodeEditor extends React.Component {
   showErrorLocation: () => void;
   clearErrorLocation: () => void;
   errorMarker: null;
-  editor: CodeMirror;
+  editor: Editor;
 
   run() {
     this.props.onRun();
   }
 
-  showHint(editor) {
+  showHint(editor: Editor) {
     editor.showHint({hint: this.completionList});
   }
 
-  onChange(editor) {
+  onChange(editor: Editor) {
     this.props.onChange(editor.getValue());
   }
 
-  editorDidMount(editor) {
+  editorDidMount(editor: Editor) {
     this.editor = editor;
   }
 
-  completionList(cm: Codemirror) {
+  completionList(cm: Editor) {
     return completions(
       cm.getLine(cm.getCursor().line),
       cm.getCursor().ch,
@@ -116,7 +116,7 @@ export class CodeEditor extends React.Component {
         "Ctrl-Enter": this.run,
         "Cmd-Enter": this.run,
         "Ctrl-Space": this.showHint,
-        "Cmd-Space": this.showHint
+        "Cmd-Space": this.showHint,
       },
     });
 
