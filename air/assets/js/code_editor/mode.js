@@ -16,8 +16,9 @@ const createModeDefinition = () => {
     return obj;
   };
 
-  const basicSqlKeywords = "and as asc between by count desc distinct from group " +
-    "having in is join like not on or order select where limit ";
+  const basicSqlKeywords = "align all and as asc between both bucket by cast columns cross desc distinct escape" +
+    " extract for from full group having ilike in inner is join leading left like limit not nulls offset on or order" +
+    " outer right sample_user select show substring tables trailing trim where";
 
   const aircloakFunctionsList = _.chain(aircloakFunctionCompletions).
     keys().
