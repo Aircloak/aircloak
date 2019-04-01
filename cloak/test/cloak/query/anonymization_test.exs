@@ -127,6 +127,7 @@ defmodule Cloak.Query.AnonymizationTest do
     end
 
     test "uid grouping sets" do
+      # using `median` forces uid-based anonymization
       assert_query(
         """
           select
@@ -151,6 +152,7 @@ defmodule Cloak.Query.AnonymizationTest do
     end
 
     test "uid cube" do
+      # using `median` forces uid-based anonymization
       assert_query(
         """
           select
