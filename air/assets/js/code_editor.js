@@ -4,6 +4,7 @@ import React from "react";
 import {UnControlled as Codemirror} from "react-codemirror2";
 import $ from "jquery";
 import _ from "lodash";
+import CodeMirror from "codemirror";
 
 import completions from "./code_editor/completion";
 
@@ -27,6 +28,8 @@ export class CodeEditor extends React.Component {
     this.run = this.run.bind(this);
     this.showHint = this.showHint.bind(this);
     this.onChange = this.onChange.bind(this);
+    this.editorDidMount = this.editorDidMount.bind(this);
+    this.editor = null;
     window.insertWordInEditor = this.insertWordInEditor.bind(this);
     window.showErrorLocation = this.showErrorLocation.bind(this);
     window.clearErrorLocation = this.clearErrorLocation.bind(this);
@@ -38,11 +41,13 @@ export class CodeEditor extends React.Component {
   completionList: () => void;
   showHint: () => void;
   onChange: () => void;
+  editorDidMount: () => void;
   run: () => void;
   insertWordInEditor: () => void;
   showErrorLocation: () => void;
   clearErrorLocation: () => void;
   errorMarker: null;
+  editor: CodeMirror;
 
   run() {
     this.props.onRun();
@@ -54,6 +59,10 @@ export class CodeEditor extends React.Component {
 
   onChange(editor) {
     this.props.onChange(editor.getValue());
+  }
+
+  editorDidMount(editor) {
+    this.editor = editor;
   }
 
   completionList(cm: Codemirror) {
@@ -68,10 +77,9 @@ export class CodeEditor extends React.Component {
   }
 
   insertWordInEditor(word: String) {
-    const editor = this.reactCodeMirrorComponent.getCodeMirror();
-    const doc = editor.getDoc();
+    const doc = this.editor.getDoc();
     doc.replaceSelection(word);
-    editor.focus();
+    this.editor.focus();
   }
 
   clearErrorLocation() {
@@ -83,8 +91,7 @@ export class CodeEditor extends React.Component {
 
   showErrorLocation(line: number, ch: number) {
     this.clearErrorLocation();
-    const editor = this.reactCodeMirrorComponent.getCodeMirror();
-    const doc = editor.getDoc();
+    const doc = this.editor.getDoc();
     this.errorMarker = doc.markText({line, ch}, {line, ch: ch + 1}, {className: "error-location"});
   }
 
@@ -116,6 +123,7 @@ export class CodeEditor extends React.Component {
     return (
       <Codemirror
         value={this.props.statement}
+        editorDidMount={this.editorDidMount}
         onChange={this.onChange}
         options={options}
       />
