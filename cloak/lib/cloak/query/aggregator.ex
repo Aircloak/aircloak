@@ -199,7 +199,7 @@ defmodule Cloak.Query.Aggregator do
           %Expression{} -> nil
         end)
 
-      [%{row: aggregated_values, occurrences: 1, unreliable: true}]
+      [%{row: [_group_index = 0 | aggregated_values], occurrences: 1, unreliable: true}]
     else
       make_non_empty_buckets(rows, query)
     end
@@ -217,7 +217,7 @@ defmodule Cloak.Query.Aggregator do
   defp make_non_empty_buckets(rows, %Query{implicit_count?: true} = query) do
     Logger.debug("Making implicit buckets ...")
 
-    count_index = query |> Rows.group_expressions() |> length()
+    count_index = (query |> Rows.group_expressions() |> length()) + 1
 
     Enum.map(rows, fn {users_count, row} ->
       %{row: row, occurrences: Enum.at(row, count_index), unreliable: unreliable_bucket?(users_count)}

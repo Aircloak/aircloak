@@ -170,7 +170,7 @@ defmodule Cloak.Query.Aggregator.UserId do
 
   defp per_user_aggregator_and_column(aggregator), do: {per_user_aggregator(aggregator), aggregated_column(aggregator)}
 
-  defp aggregate_group({[_group_index | property], anonymizer, users_rows}, indexed_aggregators) do
+  defp aggregate_group({property, anonymizer, users_rows}, indexed_aggregators) do
     users_count = Anonymizer.noisy_count(anonymizer, Enum.count(users_rows))
 
     aggregation_results =

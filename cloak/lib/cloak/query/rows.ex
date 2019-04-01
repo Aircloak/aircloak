@@ -22,7 +22,7 @@ defmodule Cloak.Query.Rows do
   """
   @spec extract_groups(Enumerable.t(), [Expression.t()], Query.t()) :: Enumerable.t()
   def extract_groups(rows, columns_to_select, query) do
-    selected_columns = group_expressions(query) ++ query.aggregators
+    selected_columns = [:group_index | group_expressions(query) ++ query.aggregators]
     columns_to_select = Enum.map(columns_to_select, &update_row_index(&1, selected_columns))
 
     filters =
@@ -33,6 +33,8 @@ defmodule Cloak.Query.Rows do
 
     rows
     |> filter(filters)
+    # sort by group index
+    |> Enum.sort_by(&(&1 |> fields() |> Enum.at(0)))
     |> Enum.map(&select_values(&1, columns_to_select))
   end
 
