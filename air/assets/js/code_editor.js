@@ -26,6 +26,7 @@ export class CodeEditor extends React.Component {
     this.completionList = this.completionList.bind(this);
     this.run = this.run.bind(this);
     this.showHint = this.showHint.bind(this);
+    this.onChange = this.onChange.bind(this);
     window.insertWordInEditor = this.insertWordInEditor.bind(this);
     window.showErrorLocation = this.showErrorLocation.bind(this);
     window.clearErrorLocation = this.clearErrorLocation.bind(this);
@@ -35,6 +36,9 @@ export class CodeEditor extends React.Component {
   reactCodeMirrorComponent: Codemirror;
   codeMirrorClass: () => Codemirror;
   completionList: () => void;
+  showHint: () => void;
+  onChange: () => void;
+  run: () => void;
   insertWordInEditor: () => void;
   showErrorLocation: () => void;
   clearErrorLocation: () => void;
@@ -46,6 +50,10 @@ export class CodeEditor extends React.Component {
 
   showHint(editor) {
     editor.showHint({hint: this.completionList});
+  }
+
+  onChange(editor) {
+    this.props.onChange(editor.getValue());
   }
 
   completionList(cm: Codemirror) {
@@ -108,7 +116,7 @@ export class CodeEditor extends React.Component {
     return (
       <Codemirror
         value={this.props.statement}
-        onChange={this.props.onChange}
+        onChange={this.onChange}
         options={options}
       />
     );
