@@ -1,8 +1,6 @@
 FROM aircloak/elixir:$ELIXIR_VERSION
 MAINTAINER Aircloak
 
-MPI_INIT
-
 # Installs the node version specified in the .tool-versions in addition to
 # yarn as a replacement for npm. The brunch node package needed for building
 # our app requires python to be installed to build cleanly, hence the python
