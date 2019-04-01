@@ -1,8 +1,6 @@
 FROM aircloak/elixir:$ELIXIR_VERSION
 MAINTAINER Aircloak
 
-MPI_INIT
-
 RUN \
   . /tmp/build_config/proxies.sh && \
   echo 'rust $RUST_VERSION' >> ~/.tool-versions && \
