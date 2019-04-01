@@ -3,6 +3,7 @@
 import React from "react";
 import {UnControlled as Codemirror} from "react-codemirror2";
 import $ from "jquery";
+import _ from "lodash";
 
 import completions from "./code_editor/completion";
 
@@ -22,15 +23,15 @@ type Props = {
 export class CodeEditor extends React.Component {
   constructor(props: Props) {
     super(props);
-    this.setupComponent = this.setupComponent.bind(this);
     this.completionList = this.completionList.bind(this);
+    this.run = this.run.bind(this);
+    this.showHint = this.showHint.bind(this);
     window.insertWordInEditor = this.insertWordInEditor.bind(this);
     window.showErrorLocation = this.showErrorLocation.bind(this);
     window.clearErrorLocation = this.clearErrorLocation.bind(this);
   }
 
   props: Props;
-  setupComponent: () => void;
   reactCodeMirrorComponent: Codemirror;
   codeMirrorClass: () => Codemirror;
   completionList: () => void;
@@ -39,29 +40,19 @@ export class CodeEditor extends React.Component {
   clearErrorLocation: () => void;
   errorMarker: null;
 
-  setupComponent(codeMirrorComponent: {getCodeMirrorInstance: () => Codemirror}) {
-    // This appears to happen when the component disappears
-    if (codeMirrorComponent === null) return;
+  run() {
+    this.props.onRun();
+  }
 
-    const codeMirrorClass = codeMirrorComponent.getCodeMirrorInstance();
-    codeMirrorClass.commands.run = (_cm) => {
-      this.props.onRun();
-    };
-    codeMirrorClass.commands.autoComplete = (cm) => {
-      cm.showHint({hint: this.completionList});
-    };
-
-    this.reactCodeMirrorComponent = codeMirrorComponent;
-    this.codeMirrorClass = codeMirrorClass;
+  showHint(editor) {
+    editor.showHint({hint: this.completionList});
   }
 
   completionList(cm: Codemirror) {
     return completions(
       cm.getLine(cm.getCursor().line),
       cm.getCursor().ch,
-      /* eslint-disable new-cap */
-      (pos) => this.codeMirrorClass.Pos(cm.getCursor().line, pos),
-      /* eslint-enable new-cap */
+      (pos) => _.merge({}, cm.getCursor(), {ch: pos}),
       this.props.tableNames,
       this.props.columnNames,
       this.props.statement,
@@ -107,16 +98,15 @@ export class CodeEditor extends React.Component {
     $.extend(options, {
       autofocus: true,
       extraKeys: {
-        "Ctrl-Enter": "run",
-        "Cmd-Enter": "run",
-        "Ctrl-Space": "autoComplete",
-        "Cmd-Space": "autoComplete",
+        "Ctrl-Enter": this.run,
+        "Cmd-Enter": this.run,
+        "Ctrl-Space": this.showHint,
+        "Cmd-Space": this.showHint
       },
     });
 
     return (
       <Codemirror
-        ref={this.setupComponent}
         value={this.props.statement}
         onChange={this.props.onChange}
         options={options}
