@@ -125,4 +125,57 @@ defmodule Cloak.Query.UserlessTableTest do
       rows: [%{row: [4]}]
     })
   end
+
+  describe "extended group by clauses" do
+    test "empty group by" do
+      assert_query("select count(*) from userless group by ()", %{
+        rows: [%{row: [4]}]
+      })
+    end
+
+    test "simple grouping sets" do
+      assert_query("select i, count(*) from userless group by grouping sets ((i), ()) order by 1", %{
+        rows: [%{row: [1, 1]}, %{row: [2, 2]}, %{row: [3, 1]}, %{row: [nil, 4]}]
+      })
+    end
+
+    test "complex grouping sets" do
+      assert_query(
+        "select i, name, count(*) from userless group by grouping sets ((i, name), i, name) order by 1, 2",
+        %{
+          rows: [
+            %{row: [1, "car", 1]},
+            %{row: [1, nil, 1]},
+            %{row: [2, "drinks", 1]},
+            %{row: [2, "food", 1]},
+            %{row: [2, nil, 2]},
+            %{row: [3, "fun", 1]},
+            %{row: [3, nil, 1]},
+            %{row: [nil, "car", 1]},
+            %{row: [nil, "drinks", 1]},
+            %{row: [nil, "food", 1]},
+            %{row: [nil, "fun", 1]}
+          ]
+        }
+      )
+    end
+
+    test "rollup" do
+      assert_query(
+        "select i, name, count(*) from userless group by rollup (i, name) order by 1, 2",
+        %{
+          rows: [
+            %{row: [1, "car", 1]},
+            %{row: [1, nil, 1]},
+            %{row: [2, "drinks", 1]},
+            %{row: [2, "food", 1]},
+            %{row: [2, nil, 2]},
+            %{row: [3, "fun", 1]},
+            %{row: [3, nil, 1]},
+            %{row: [nil, nil, 4]}
+          ]
+        }
+      )
+    end
+  end
 end

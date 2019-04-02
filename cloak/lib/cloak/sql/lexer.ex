@@ -73,7 +73,11 @@ defmodule Cloak.Sql.Lexer do
               "HAVING",
               "LIMIT",
               "OFFSET",
-              "SAMPLE_USERS"
+              "SAMPLE_USERS",
+              "GROUPING",
+              "SETS",
+              "CUBE",
+              "ROLLUP"
             ]
             # Longer keywords have to be checked first to avoid false matches.
             |> Enum.sort_by(&String.length/1, &>=/2)
