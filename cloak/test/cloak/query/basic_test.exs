@@ -15,7 +15,7 @@ defmodule Cloak.Query.BasicTest do
 
     :ok = Cloak.Test.DB.create_table("children", "age INTEGER, name TEXT")
     :ok = Cloak.Test.DB.create_table("weird things", "\"thing as thing\" INTEGER", db_name: "weird-things")
-    :ok = Cloak.Test.DB.create_table("dates", "date timestamp")
+    :ok = Cloak.Test.DB.create_table("dates", "date timestamp, date2 timestamp")
 
     :ok
   end
@@ -1876,5 +1876,12 @@ defmodule Cloak.Query.BasicTest do
       """,
       %{rows: [%{row: [1]}]}
     )
+  end
+
+  test "[Issue #3714] subtracting a later date from an earlier one" do
+    :ok = insert_rows(_user_ids = 1..10, "dates", ["date", "date2"], [~N[2017-02-02 12:22:33], ~N[2017-02-02 12:55:55]])
+
+    assert_query("SELECT date2 - date, COUNT(*) FROM dates GROUP BY 1", %{rows: rows})
+    assert_query("SELECT date - date2, COUNT(*) FROM dates GROUP BY 1", %{rows: ^rows})
   end
 end

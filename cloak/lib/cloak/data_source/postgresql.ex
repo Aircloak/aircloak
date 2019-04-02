@@ -176,7 +176,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp time_field_mapper(value), do: value
 
   defp interval_field_mapper(%Postgrex.Interval{months: m, days: d, secs: s}),
-    do: Timex.Duration.parse!("P#{m}M#{d}DT#{s}S")
+    do: Timex.Duration.parse!("P#{abs(m)}M#{abs(d)}DT#{abs(s)}S")
 
   defp interval_field_mapper(value), do: value
 
