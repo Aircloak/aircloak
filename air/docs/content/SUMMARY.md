@@ -83,7 +83,6 @@
   - [Running without Docker containers](/ops/configuration.md#running-without-docker-containers)
   - [File permissions](/ops/configuration.md#file-permissions)
 - [Upgrading](ops/upgrading.md)
-  - [18.4.0 Default Privacy Policy](ops/upgrade/1804_privacy_policy.md)
 - [Monitoring](ops/monitoring.md)
 - [Administration](ops/administration.md)
   - [User sessions](ops/administration.md#user-sessions)

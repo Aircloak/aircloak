@@ -1,8 +1,6 @@
 FROM aircloak/erlang:$ERLANG_VERSION
 MAINTAINER Aircloak
 
-MPI_INIT
-
 RUN apt-get install -y locales unzip
 
 RUN \

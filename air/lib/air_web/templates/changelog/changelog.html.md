@@ -1,5 +1,7 @@
 ## Version 19.2.0
 
+[Upgrade guide](docs/ops/upgrading.html)
+
 ### __Breaking changes__
 
 - The air configuration must contain the mandatory `name` property in the Insights Air configuration.

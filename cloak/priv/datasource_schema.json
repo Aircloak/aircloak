@@ -43,7 +43,8 @@
       "oneOf": [
         {"required": ["user_id"]},
         {"required": ["projection"]},
-        {"required": ["keys"]}
+        {"required": ["keys"]},
+        {"required": ["content_type"]}
       ]
     },
     "parameters": {

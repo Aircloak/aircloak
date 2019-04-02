@@ -804,6 +804,19 @@ defmodule Cloak.Sql.Compiler.Test do
     assert error == "Column `column` from table `table` must be limited to a finite, nonempty range."
   end
 
+  test "rejects datetime ranges smaller than 1 second" do
+    assert {:error, error} =
+             compile(
+               """
+                 select * from table
+                 where column between '2017-01-02 12:22:33.010000' and '2017-01-02 12:22:33.020000'
+               """,
+               data_source()
+             )
+
+    assert error == "Column `column` from table `table` must be limited to a finite, nonempty range."
+  end
+
   test "accepts inequalities on numeric columns that are ranges" do
     assert {:ok, _} = compile("select * from table where numeric > 5 and numeric < 8", data_source())
   end
