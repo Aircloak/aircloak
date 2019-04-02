@@ -3,7 +3,7 @@ defmodule Cloak.DataSource.SqlBuilder do
 
   use Combine
   alias Cloak.Sql.{Query, Expression}
-  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL}
+  alias Cloak.DataSource.SqlBuilder.{Support, SQLServer, MySQL, SAPHana}
   alias Cloak.DataSource.Table
 
   # -------------------------------------------------------------------
@@ -364,11 +364,19 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp join([el], _joiner), do: [el]
   defp join([first | rest], joiner), do: [first, joiner, join(rest, joiner)]
 
-  defp group_by_fragments(%Query{subquery?: true, group_by: [_ | _] = group_by} = query),
-    do: [
-      " GROUP BY ",
-      group_by |> Enum.map(&column_sql(&1, query)) |> Enum.intersperse(", ")
-    ]
+  defp group_by_fragments(%Query{subquery?: true, grouping_sets: [_ | _]} = query) do
+    query.grouping_sets
+    |> Enum.map(fn grouping_set ->
+      grouping_set
+      |> Enum.map(&(query.group_by |> Enum.at(&1) |> column_sql(query)))
+      |> Enum.intersperse(", ")
+    end)
+    |> case do
+      [[]] -> if sql_dialect_module(query) in [MySQL, SAPHana], do: [" GROUP BY NULL"], else: [" GROUP BY ()"]
+      [grouping_set] -> [" GROUP BY ", grouping_set]
+      grouping_sets -> [" GROUP BY GROUPING SETS ((", Enum.intersperse(grouping_sets, "), ("), "))"]
+    end
+  end
 
   defp group_by_fragments(_query), do: []
 

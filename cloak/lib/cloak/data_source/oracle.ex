@@ -34,7 +34,7 @@ defmodule Cloak.DataSource.Oracle do
   end
 
   @impl Driver
-  def supports_query?(query), do: not query.subquery? or query.offset == 0
+  def supports_query?(query), do: query.type == :anonymized or query.offset == 0
 
   @impl Driver
   def supports_analyst_tables?(), do: true

@@ -7,17 +7,17 @@ defmodule Cloak.DataSource.Oracle.Test do
 
   test "queries without limit and offset are supported" do
     query = compile!("SELECT * FROM table ORDER BY uid", data_source())
-    assert Oracle.supports_query?(%Query{query | subquery?: true})
+    assert Oracle.supports_query?(%Query{query | type: :standard})
   end
 
   test "limit is supported" do
     query = compile!("SELECT * FROM table ORDER BY uid LIMIT 10", data_source())
-    assert Oracle.supports_query?(%Query{query | subquery?: true})
+    assert Oracle.supports_query?(%Query{query | type: :standard})
   end
 
   test "offset is not supported" do
     query = compile!("SELECT * FROM table ORDER BY uid OFFSET 10", data_source())
-    refute Oracle.supports_query?(%Query{query | subquery?: true})
+    refute Oracle.supports_query?(%Query{query | type: :standard})
   end
 
   describe "interval_mapper/1" do

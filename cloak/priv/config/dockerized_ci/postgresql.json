@@ -1,12 +1,11 @@
 {
   "driver": "postgresql",
-  "name": "postgresql9.4",
+  "name": "postgresql9.6",
   "parameters": {
-    "hostname": "postgres9.4",
+    "hostname": "postgres9.6",
     "username": "postgres",
     "database": "cloak_compliance"
   },
-  "tables": {
-  },
+  "tables": {},
   "analyst_tables_enabled": true
 }

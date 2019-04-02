@@ -601,7 +601,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp group_by_elements({:select, _, items}) do
     items
     |> Enum.with_index(1)
-    |> Enum.reject(fn {expression, _} -> aggregate_expression?(expression) end)
+    |> Enum.reject(fn {expression, _} -> aggregate_expression?(expression) or not column_expression?(expression) end)
     |> Enum.map(fn {_, index} -> {:integer, index, []} end)
   end
 
@@ -610,6 +610,12 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp aggregate_function?({:function, name, _}), do: Function.aggregator?(name)
   defp aggregate_function?(_), do: false
+
+  defp column_expression?(expression),
+    do: expression |> get_in([nodes()]) |> Enum.any?(&column?/1)
+
+  defp column?({:column, _}), do: true
+  defp column?(_), do: false
 
   defp having(%{aggregate?: false}, _tables), do: empty()
 
