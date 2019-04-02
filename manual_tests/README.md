@@ -21,7 +21,7 @@ This directory describes expected testing steps and takes the guesswork out of t
 
 - [Test preparations](test_preparations.md)
 - [Interface tests](interface_tests.md)
-
+- [Tableau tests](tableau_tests.md)
 
 ## Usage
 
