@@ -1,6 +1,7 @@
 # Manual tests
 
 - [What it is](#what-it-is)
+  - [Tests](#tests)
 - [Usage](#usage)
 - [Maintenance](#maintenance)
 
@@ -15,6 +16,10 @@ ensure that "things look good" and work as expected. Some things just can't be a
 The person doing the "things look good" assesment should not have to come up with a set of
 "looks good" criteria each and every time tests are run.
 This directory describes expected testing steps and takes the guesswork out of the process.
+
+### Tests
+
+- [Interface tests](interface_tests.md)
 
 ## Usage
 
