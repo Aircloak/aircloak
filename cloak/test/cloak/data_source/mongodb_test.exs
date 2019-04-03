@@ -592,8 +592,8 @@ defmodule Cloak.DataSource.MongoDBTest do
   end
 
   test "simple standard query with filter", context do
-    assert_query(context, "SELECT COUNT(*) FROM #{@userless_table} WHERE val = 0", %{
-      rows: [%{occurrences: 1, row: [0]}]
+    assert_query(context, "SELECT val FROM #{@userless_table} WHERE val = 0", %{
+      rows: []
     })
   end
 
