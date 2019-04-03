@@ -12,10 +12,10 @@ defmodule IntegrationTest.AcceptanceHelper do
     |> click(Query.css("button[type='submit']"))
   end
 
-  def login_as_admin(session), do: login(session, "admin@aircloak.com", "password1234")
+  def login_as_admin(), do: login("admin@aircloak.com", "password1234")
 
-  def login(session, login, password) do
-    session
+  def login(login, password) do
+    new_session()
     |> visit("/auth")
     |> fill_in(Query.css("[name='login']"), with: login)
     |> fill_in(Query.css("[name='password']"), with: password)
@@ -32,5 +32,29 @@ defmodule IntegrationTest.AcceptanceHelper do
     message = accept_confirm(session, fun)
     assert message != nil
     session
+  end
+
+  def create_user() do
+    name = :crypto.strong_rand_bytes(10) |> Base.encode64(padding: false)
+    login = :crypto.strong_rand_bytes(10) |> Base.encode64(padding: false)
+    password = :crypto.strong_rand_bytes(10) |> Base.encode64(padding: false)
+
+    password_reset_url =
+      login_as_admin()
+      |> visit("/admin/users")
+      |> click(Query.xpath("//a[text()='Add a user']"))
+      |> fill_in(Query.xpath("//input[@id='user_login']"), with: login)
+      |> fill_in(Query.xpath("//input[@id='user_name']"), with: name)
+      |> click(Query.xpath("//button[text()='Save']"))
+      |> click(Query.xpath("//a[text()='Reset password']"))
+      |> text(Query.xpath("//*[@id='reset-link']"))
+
+    new_session()
+    |> visit(password_reset_url)
+    |> fill_in(Query.xpath("//input[@id='user_password']"), with: password)
+    |> fill_in(Query.xpath("//input[@id='user_password_confirmation']"), with: password)
+    |> click(Query.xpath("//button[text()='Save']"))
+
+    %{name: name, login: login, password: password}
   end
 end

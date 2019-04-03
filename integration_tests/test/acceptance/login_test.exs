@@ -8,20 +8,19 @@ defmodule IntegrationTest.Acceptance.LoginTest do
   end
 
   test "shows a message for incorrect login info" do
-    session = login(new_session(), "no.such@person.org", "1234")
+    session = login("no.such@person.org", "1234")
     assert current_path(session) == "/auth"
     assert_has(session, Query.css(".alert", text: "Invalid login or password."))
   end
 
   test "allows login for correct login info" do
-    session = login_as_admin(new_session())
+    session = login_as_admin()
     assert current_path(session) == "/data_sources"
     assert_has(session, Query.css("a", text: "Sign out"))
   end
 
   test "remembers the user" do
-    new_session()
-    |> login_as_admin()
+    login_as_admin()
     |> set_cookie("_air_key", "")
     |> visit("/")
     |> assert_has(Query.css("a", text: "Sign out"))
