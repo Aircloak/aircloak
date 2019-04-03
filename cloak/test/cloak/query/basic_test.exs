@@ -1931,6 +1931,12 @@ defmodule Cloak.Query.BasicTest do
     assert_query("select height from heights order by user_id", %{rows: [%{row: [180], occurrences: 20}]})
   end
 
+  test "having on user id" do
+    :ok = insert_rows(_user_ids = 1..20, "heights", ["height"], [180])
+
+    assert_query("select user_id from heights group by 1 having user_id <> ''", %{rows: [%{row: [:*], occurrences: 1}]})
+  end
+
   test "median with nulls" do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [nil])
 
