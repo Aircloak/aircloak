@@ -132,5 +132,5 @@ defmodule Cloak.AnalystTable.Compiler do
   end
 
   defp pseudoconstant?(expression),
-    do: expression.function? and Cloak.Sql.Function.has_attribute?(expression, :pseudoconstant)
+    do: Expression.function?(expression) and Cloak.Sql.Function.has_attribute?(expression, :pseudoconstant)
 end

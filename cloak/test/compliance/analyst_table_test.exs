@@ -504,6 +504,13 @@ defmodule Compliance.AnalystTableTest do
           end
         end
       end
+
+      test "[Issue 3730] pseudoconstant verification works with *" do
+        with {:ok, data_source} <- prepare_data_source(unquote(data_source_name)) do
+          assert {:ok, _} =
+                   create_or_update(1, "table53", "select user_id, count(*) from users group by 1", data_source)
+        end
+      end
     end
   end
 
