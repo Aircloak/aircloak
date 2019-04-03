@@ -3,6 +3,11 @@ MAINTAINER Aircloak
 
 MPI_INIT
 
+# Support for rebuilding of all images. Change this date if you want to
+# force the rebuild of all images. Usually you want to do this if you
+# want to upgrade Debian packages on all images.
+RUN echo 20180626 > /dev/null
+
 # Setting alternative repositories because Jessie has been removed from mirrors
 # See https://www.jesusamieiro.com/failed-to-fetch-http-ftp-debian-org-debian-dists-jessie-updates-main-404-not-found/
 RUN printf '\\\n\
@@ -20,6 +25,7 @@ echo "Acquire::Check-Valid-Until false;" | tee -a /etc/apt/apt.conf.d/10-nocheck
 # locale setup for properly working Erlang nodes
 RUN \
   apt-get update && \
+  apt-get upgrade -y && \
   apt-get install -y locales wget curl git nano telnet && \
   . /tmp/build_config/proxies.sh && \
   locale-gen en_US.UTF-8 en_us && \
