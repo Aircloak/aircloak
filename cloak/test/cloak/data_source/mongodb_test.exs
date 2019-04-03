@@ -597,6 +597,18 @@ defmodule Cloak.DataSource.MongoDBTest do
     })
   end
 
+  test "divide by 0", context do
+    assert_query(context, "SELECT 1/(val-val) AS v FROM #{@userless_table}", %{
+      rows: [%{row: [nil]}, %{row: [nil]}, %{row: [nil]}, %{row: [nil]}]
+    })
+  end
+
+  test "mod by 0", context do
+    assert_query(context, "SELECT 1 % round(val-val) AS v FROM #{@userless_table}", %{
+      rows: [%{row: [nil]}, %{row: [nil]}, %{row: [nil]}, %{row: [nil]}]
+    })
+  end
+
   test "standard query with grouping and order by (1)", context do
     assert_query(
       context,
