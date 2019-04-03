@@ -103,6 +103,11 @@ defmodule Cloak.Sql.Expression do
 
   def constant?(_), do: false
 
+  @doc "Returns true if the expression is a function call, false otherwise."
+  @spec function?(Cloak.Sql.Parser.column() | t) :: boolean
+  def function?(%__MODULE__{function?: true}), do: true
+  def function?(_), do: false
+
   @doc "Sets the source location of the given expression to the given location."
   @spec set_location(t, Cloak.Sql.Parser.location()) :: t
   def set_location(expression, location), do: %{expression | source_location: location}

@@ -260,49 +260,22 @@ function config_yarn_proxy {
 
 function mpi_init {
   # This function generates the RUN command which sets up some production specific
-  # initialization, such as http proxies, and package mirrors.
-  # In addition, we export UID of the current host user to the image. While
-  # building the image, we'll create the new user with the same id.
-  # Note that this is needed only when we're using a "build" container to
-  # produce some artifacts in the mounted volume. In such cases, the container
-  # needs to have write permissions on a mounted volume, which may not happen
-  # if the docker user id is different from the id of the user running the
-  # docker on the host system.
-
-  # Support for rebuilding of all images. Change this date if you want to
-  # force the rebuild of all images. Usually you want to do this if you
-  # want to upgrade Debian packages on all images.
-  upgrade_date="20180626"
-  echo "RUN echo '$upgrade_date' > /dev/null"
+  # initialization, such as http proxies.
 
   # Start the RUN command
   echo "RUN mkdir -p /tmp/build_config && \\"
 
   if [ "$CONTAINER_ENV" = "prod" ]; then
-    # set repos & proxies
+    # MPI -> set proxies
     cat <<-EOF
-      echo "deb http://ftp.de.debian.org/debian jessie main" > /etc/apt/sources.list && \\
-      echo "deb http://ftp.de.debian.org/debian jessie-updates main" >> /etc/apt/sources.list && \\
-      echo "deb http://ftp.de.debian.org/debian-security jessie/updates main" >> /etc/apt/sources.list && \\
       echo 'export https_proxy=http://acmirror.mpi-sws.org:3128' > /tmp/build_config/proxies.sh && \\
       echo 'export http_proxy=http://acmirror.mpi-sws.org:3128' >> /tmp/build_config/proxies.sh && \\
-      echo 'export no_proxy=localhost,127.0.0.1,acmirror.mpi-sws.org' >> /tmp/build_config/proxies.sh && \\
+      echo 'export no_proxy=localhost,127.0.0.1,acmirror.mpi-sws.org' >> /tmp/build_config/proxies.sh
 EOF
   else
     # local development -> generate dummy proxies.sh
-    echo "touch /tmp/build_config/proxies.sh && \\"
+    echo "touch /tmp/build_config/proxies.sh"
   fi
-
-  # Upgrade existing packages
-  echo "apt-get update && apt-get upgrade -y && \\ "
-
-  # Support for setting custom prompt through CONTAINER_NAME env. This allows us
-  # to inject the container name into the ssh session. Without this, the name of the
-  # real host machine will be used, since containers run in the shared networking mode.
-  cat <<-EOF
-    echo 'PS1="\${debian_chroot:+(\$debian_chroot)}\\\\u@\${CONTAINER_NAME:-\\\\h}:\\\\w# "' \\
-      >> /etc/profile.d/custom_prompt.sh
-EOF
 }
 
 function find_images {
