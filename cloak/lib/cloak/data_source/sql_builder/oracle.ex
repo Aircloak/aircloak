@@ -16,7 +16,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def supported_functions(), do: ~w(
       count sum min max avg stddev variance count_distinct sum_distinct min_distinct max_distinct avg_distinct
       year quarter month day hour minute second weekday date_trunc
-      sqrt floor ceil abs round trunc div mod ^ % * / + -
+      sqrt floor ceil abs round trunc ^ % * / + -
       length lower upper btrim ltrim rtrim left right substring concat
       hex cast coalesce hash bool_op
     )

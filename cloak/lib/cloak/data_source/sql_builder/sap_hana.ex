@@ -14,7 +14,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   def supported_functions(), do: ~w(
       count sum min max avg stddev variance count_distinct sum_distinct min_distinct max_distinct avg_distinct
       year quarter month day hour minute second weekday
-      sqrt floor ceil abs round trunc mod div ^ % * / + -
+      sqrt floor ceil abs round trunc mod ^ % * / + -
       length lower upper btrim/1 ltrim rtrim left right substring concat
       cast coalesce bool_op hash
     )
@@ -34,7 +34,6 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
 
   def function_sql("/", [arg1, arg2]), do: ["(TO_DECIMAL(", arg1, ") / ", "TO_DECIMAL(", arg2, "))"]
 
-  def function_sql("div", [arg1, arg2]), do: ["TO_INTEGER(", arg1, "/", arg2, ")"]
   def function_sql("round", [arg]), do: ["ROUND(", arg, ", 0, ROUND_HALF_UP)"]
   def function_sql("round", [arg1, arg2]), do: ["ROUND(", arg1, ", ", arg2, ", ROUND_HALF_UP)"]
   def function_sql("trunc", [arg]), do: ["ROUND(", arg, ", 0, ROUND_DOWN)"]
