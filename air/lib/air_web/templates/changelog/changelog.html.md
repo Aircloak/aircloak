@@ -1,3 +1,9 @@
+## Version 19.3.0
+
+### __Breaking changes__
+
+- `GROUP BY` clause is no longer allowed to contain constants.
+
 ## Version 19.2.0
 
 [Upgrade guide](docs/ops/upgrading.html)

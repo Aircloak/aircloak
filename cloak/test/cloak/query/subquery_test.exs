@@ -270,4 +270,11 @@ defmodule Cloak.Query.SubqueryTest do
       %{columns: ["count"], rows: [%{row: [100], occurrences: 1}]}
     )
   end
+
+  test "grouping sets" do
+    assert_query(
+      "select count(*) from (select user_id, height, name from heights_sq group by grouping sets ((1, 2), (1, 3))) t",
+      %{columns: ["count"], rows: [%{row: [200], occurrences: 1}]}
+    )
+  end
 end

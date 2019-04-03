@@ -68,7 +68,7 @@ defmodule Cloak.Sql.Compiler.Helpers do
 
   @doc "Returns true if the query GROUPS BY columns"
   @spec group_by?(partial_query) :: boolean
-  def group_by?(%Query{command: :select, group_by: [_ | _]}), do: true
+  def group_by?(%Query{command: :select, grouping_sets: [_ | _]}), do: true
   def group_by?(_), do: false
 
   @doc "Returns true if any of the query's bucket columns is aggregated."
@@ -77,6 +77,11 @@ defmodule Cloak.Sql.Compiler.Helpers do
 
   def aggregates?(%Query{command: :select} = query),
     do: query |> Query.bucket_columns() |> Enum.any?(&aggregated_column?/1)
+
+  @doc "Creates the default grouping sets from a set of columns."
+  @spec default_grouping_sets([Expression.t()]) :: [[non_neg_integer()]]
+  def default_grouping_sets([]), do: []
+  def default_grouping_sets(columns), do: [Enum.to_list(0..(length(columns) - 1))]
 
   @doc "Returns all join conditions of the query."
   @spec all_join_conditions(partial_query) :: [Query.where_clause()]

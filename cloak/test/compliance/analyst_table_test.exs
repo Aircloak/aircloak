@@ -8,7 +8,7 @@ defmodule Compliance.AnalystTableTest do
 
   @moduletag :compliance
   @moduletag :analyst_tables
-  @tested_data_sources ~w(oracle postgresql9.4 postgresql)
+  @tested_data_sources ~w(oracle postgresql9.6 postgresql)
 
   setup_all do
     air_name = "some_air_instance"

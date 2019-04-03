@@ -1704,6 +1704,97 @@ defmodule Cloak.Query.BasicTest do
     )
   end
 
+  test "stats-based partial aggregation of low-count buckets with grouping sets" do
+    :ok = insert_rows(_user_ids = 1..5, "heights", ["height", "name", "male"], [180, "Ana", false])
+    :ok = insert_rows(_user_ids = 5..8, "heights", ["height", "name", "male"], [190, "Ana", nil])
+    :ok = insert_rows(_user_ids = 9..10, "heights", ["height", "name", "male"], [170, "Tim", false])
+    :ok = insert_rows(_user_ids = 10..13, "heights", ["height", "name", "male"], [150, "Ana", true])
+    :ok = insert_rows(_user_ids = 11..14, "heights", ["height", "name", "male"], [180, "Ana", false])
+    :ok = insert_rows(_user_ids = 15..17, "heights", ["height", "name", "male"], [150, "Tim", true])
+    :ok = insert_rows(_user_ids = 20..21, "heights", ["height", "name", "male"], [180, "Tim", true])
+    :ok = insert_rows(_user_ids = 16..19, "heights", ["height", "name", "male"], [170, "Ana", false])
+    :ok = insert_rows(_user_ids = 8..10, "heights", ["height", "name", "male"], [150, "Tim", false])
+    :ok = insert_rows(_user_ids = 11..15, "heights", ["height", "name", "male"], [190, "Ana", false])
+
+    assert_query(
+      "select male, name, height / 10, count(*) from heights group by cube (1, 2, 3) order by 1, 2, 3",
+      %{
+        rows: [
+          %{row: [false, "Ana", 18.0, 9]},
+          %{row: [false, "Ana", 19.0, 5]},
+          %{row: [false, "Ana", nil, 19]},
+          %{row: [false, nil, 18.0, 9]},
+          %{row: [false, nil, 19.0, 5]},
+          %{row: [false, nil, nil, 25]},
+          %{row: [true, "Tim", nil, 5]},
+          %{row: [true, "Tim", :*, 5]},
+          %{row: [true, nil, 15.0, 7]},
+          %{row: [true, nil, nil, 9]},
+          %{row: [nil, "Ana", 18.0, 9]},
+          %{row: [nil, "Ana", 19.0, 9]},
+          %{row: [nil, "Ana", nil, 27]},
+          %{row: [nil, "Ana", :*, 8]},
+          %{row: [nil, "Tim", nil, 11]},
+          %{row: [nil, "Tim", :*, 11]},
+          %{row: [nil, nil, 15.0, 12]},
+          %{row: [nil, nil, 18.0, 11]},
+          %{row: [nil, nil, 19.0, 9]},
+          %{row: [nil, nil, nil, 40]},
+          %{row: [:*, :*, :*, 17]},
+          %{row: [:*, :*, :*, 16]},
+          %{row: [:*, :*, :*, 20]}
+        ]
+      }
+    )
+  end
+
+  test "uid-based partial aggregation of low-count buckets with grouping sets" do
+    :ok = insert_rows(_user_ids = 1..5, "heights", ["height", "name", "male"], [180, "Ana", false])
+    :ok = insert_rows(_user_ids = 5..8, "heights", ["height", "name", "male"], [190, "Ana", nil])
+    :ok = insert_rows(_user_ids = 9..10, "heights", ["height", "name", "male"], [170, "Tim", false])
+    :ok = insert_rows(_user_ids = 10..13, "heights", ["height", "name", "male"], [150, "Ana", true])
+    :ok = insert_rows(_user_ids = 11..14, "heights", ["height", "name", "male"], [180, "Ana", false])
+    :ok = insert_rows(_user_ids = 15..17, "heights", ["height", "name", "male"], [150, "Tim", true])
+    :ok = insert_rows(_user_ids = 20..21, "heights", ["height", "name", "male"], [180, "Tim", true])
+    :ok = insert_rows(_user_ids = 16..19, "heights", ["height", "name", "male"], [170, "Ana", false])
+    :ok = insert_rows(_user_ids = 8..10, "heights", ["height", "name", "male"], [150, "Tim", false])
+    :ok = insert_rows(_user_ids = 11..15, "heights", ["height", "name", "male"], [190, "Ana", false])
+
+    assert_query(
+      "select male, name, height / 10, count(*), median(height) from heights group by cube (1, 2, 3) order by 1, 2, 3",
+      %{
+        rows: [
+          %{row: [false, "Ana", 18.0, 9, _]},
+          %{row: [false, "Ana", 19.0, 5, _]},
+          %{row: [false, "Ana", nil, 14, _]},
+          %{row: [false, nil, 17.0, 6, _]},
+          %{row: [false, nil, 18.0, 9, _]},
+          %{row: [false, nil, 19.0, 5, _]},
+          %{row: [false, nil, nil, 20, _]},
+          %{row: [false, :*, :*, 7, _]},
+          %{row: [true, "Tim", nil, 5, _]},
+          %{row: [true, "Tim", :*, 5, _]},
+          %{row: [true, nil, 15.0, 7, _]},
+          %{row: [true, nil, nil, 9, _]},
+          %{row: [nil, "Ana", 18.0, 9, _]},
+          %{row: [nil, "Ana", 19.0, 9, _]},
+          %{row: [nil, "Ana", nil, 20, _]},
+          %{row: [nil, "Ana", :*, 8, _]},
+          %{row: [nil, "Tim", 15.0, 6, _]},
+          %{row: [nil, "Tim", nil, 8, _]},
+          %{row: [nil, nil, 15.0, 9, _]},
+          %{row: [nil, nil, 17.0, 6, _]},
+          %{row: [nil, nil, 18.0, 11, _]},
+          %{row: [nil, nil, 19.0, 9, _]},
+          %{row: [nil, nil, nil, 32, _]},
+          %{row: [:*, :*, :*, 8, _]},
+          %{row: [:*, :*, :*, 9, _]},
+          %{row: [:*, :*, :*, 8, _]}
+        ]
+      }
+    )
+  end
+
   test "distinct in subquery with group by" do
     :ok = insert_rows(_user_ids = 1..20, "heights", ["height", "male"], [160, true])
     :ok = insert_rows(_user_ids = 11..30, "heights", ["height", "male"], [170, false])
@@ -1844,38 +1935,6 @@ defmodule Cloak.Query.BasicTest do
     :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [nil])
 
     assert_query("select median(height) from heights", %{rows: [%{row: [nil], occurrences: 1}]})
-  end
-
-  test "[Issue #3386] grouping by constant referenced by number" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [100])
-
-    assert_query(
-      """
-        SELECT COUNT(*)
-        FROM (
-          SELECT user_id, 0
-          FROM heights
-          GROUP BY 1, 2
-        ) foo
-      """,
-      %{rows: [%{row: [10]}]}
-    )
-  end
-
-  test "[Issue #3386] grouping by constant referenced by number with constant select list" do
-    :ok = insert_rows(_user_ids = 1..10, "heights", ["height"], [100])
-
-    assert_query(
-      """
-        SELECT COUNT(*)
-        FROM (
-          SELECT 10, 20
-          FROM heights
-          GROUP BY 1, 2
-        ) foo
-      """,
-      %{rows: [%{row: [1]}]}
-    )
   end
 
   test "[Issue #3714] subtracting a later date from an earlier one" do

@@ -9,8 +9,8 @@ test = fn
           {:sequence,
            [
              "mongod --fork --logpath /var/log/mongodb.log",
-             "CLOAK_DATA_SOURCES=postgresql9.4 mix cloak.create_db dockerized_ci",
-             "CLOAK_DATA_SOURCES=postgresql9.4 mix test --include exclude_in_dev"
+             "CLOAK_DATA_SOURCES=postgresql9.6 mix cloak.create_db dockerized_ci",
+             "CLOAK_DATA_SOURCES=postgresql9.6 mix test --include exclude_in_dev"
            ]}
         ]}
      ]}

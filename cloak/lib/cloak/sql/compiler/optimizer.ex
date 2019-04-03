@@ -139,10 +139,10 @@ defmodule Cloak.Sql.Compiler.Optimizer do
     end)
   end
 
-  defp add_conditions_to_query(conditions, %Query{group_by: []} = query),
+  defp add_conditions_to_query(conditions, %Query{grouping_sets: []} = query),
     do: %Query{query | where: Condition.combine(:and, query.where, conditions)}
 
-  defp add_conditions_to_query(conditions, %Query{group_by: [_ | _]} = query),
+  defp add_conditions_to_query(conditions, %Query{grouping_sets: [_ | _]} = query),
     do: %Query{query | having: Condition.combine(:and, query.having, conditions)}
 
   defp condition_from_table?(condition, table_name) do
@@ -218,6 +218,7 @@ defmodule Cloak.Sql.Compiler.Optimizer do
         columns: inner_columns,
         column_titles: Enum.map(inner_columns, &Expression.title/1),
         group_by: Enum.map(grouped_columns, &Expression.unalias/1),
+        grouping_sets: Helpers.default_grouping_sets(grouped_columns),
         order_by: [],
         having: nil,
         limit: nil,

@@ -19,6 +19,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     Helpers.each_subquery(query, &verify_duplicate_tables/1)
     Helpers.each_subquery(query, &verify_aggregated_columns/1)
     Helpers.each_subquery(query, &verify_aggregators/1)
+    Helpers.each_subquery(query, &verify_group_by_constants/1)
     Helpers.each_subquery(query, &verify_group_by_functions/1)
     Helpers.each_subquery(query, &verify_standard_joins/1)
     Helpers.each_subquery(query, &verify_where/1)
@@ -186,6 +187,20 @@ defmodule Cloak.Sql.Compiler.Validation do
         raise CompilationError,
           source_location: location,
           message: "Expression `#{Expression.display(column)}` recursively calls multiple aggregators."
+    end
+  end
+
+  defp verify_group_by_constants(query) do
+    query.group_by
+    |> Enum.filter(&Expression.constant?/1)
+    |> case do
+      [] ->
+        :ok
+
+      [expression | _] ->
+        raise CompilationError,
+          source_location: expression.source_location,
+          message: "Constant expression `#{Expression.display(expression)}` can not be used in the `GROUP BY` clause."
     end
   end
 
