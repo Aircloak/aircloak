@@ -281,9 +281,6 @@ function mpi_init {
   if [ "$CONTAINER_ENV" = "prod" ]; then
     # set repos & proxies
     cat <<-EOF
-      echo "deb http://ftp.de.debian.org/debian jessie main" > /etc/apt/sources.list && \\
-      echo "deb http://ftp.de.debian.org/debian jessie-updates main" >> /etc/apt/sources.list && \\
-      echo "deb http://ftp.de.debian.org/debian-security jessie/updates main" >> /etc/apt/sources.list && \\
       echo 'export https_proxy=http://acmirror.mpi-sws.org:3128' > /tmp/build_config/proxies.sh && \\
       echo 'export http_proxy=http://acmirror.mpi-sws.org:3128' >> /tmp/build_config/proxies.sh && \\
       echo 'export no_proxy=localhost,127.0.0.1,acmirror.mpi-sws.org' >> /tmp/build_config/proxies.sh && \\
