@@ -228,7 +228,7 @@ If you want to test some specific databases, you can set the `CLOAK_DATA_SOURCES
 only PostgreSQL and MongoDB 3.4, you can run the following command:
 
 ```
-CLOAK_DATA_SOURCES="postgresql9.4 mongodb3.4" make ci.compliance
+CLOAK_DATA_SOURCES="postgresql9.6 mongodb3.4" make ci.compliance
 ```
 
 The `CLOAK_DATA_SOURCES` env var is a whitespace separated list of data source names which you want to use in the test
@@ -246,7 +246,7 @@ CI container can also be used to unit test other databases, such as SAP HANA, or
 need to explicitly set the data sources to PostgreSQL, when starting the CI container.
 
 ```
-CLOAK_DATA_SOURCES="postgresql9.4" make ci.compliance
+CLOAK_DATA_SOURCES="postgresql9.6" make ci.compliance
 ```
 
 In the container, you now need to manually start local MongoDb instance:
