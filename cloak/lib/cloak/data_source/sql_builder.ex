@@ -344,6 +344,8 @@ defmodule Cloak.DataSource.SqlBuilder do
   defp to_fragment(%Expression{} = column, query),
     do: column_sql(column, query)
 
+  defp constant_to_fragment(:*, query), do: sql_dialect_module(query).literal("*")
+
   defp constant_to_fragment(value, query) when is_binary(value),
     do: sql_dialect_module(query).literal(escape_string(value))
 
