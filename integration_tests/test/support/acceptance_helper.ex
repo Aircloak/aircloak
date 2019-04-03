@@ -57,4 +57,11 @@ defmodule IntegrationTest.AcceptanceHelper do
 
     %{name: name, login: login, password: password}
   end
+
+  def query_data_source(session, name, query) do
+    session
+    |> click(Query.xpath("//nav//a[text()='Data sources']"))
+    |> click(Query.xpath("//a[text()='#{name}']"))
+    |> execute_script("window.codeMirror.editor.setValue('#{query}')")
+  end
 end
