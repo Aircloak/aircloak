@@ -65,8 +65,7 @@ defmodule Compliance.DataSource.Drill do
   end
 
   defp create_view!(table_name, [item | _data], conn) do
-    run_query!("DROP VIEW IF EXISTS #{table_name}", conn)
-    run_query!("CREATE VIEW #{table_name} AS SELECT #{view_select_list(item)} FROM #{table_name}_raw", conn)
+    run_query!("CREATE OR REPLACE VIEW #{table_name} AS SELECT #{view_select_list(item)} FROM #{table_name}_raw", conn)
   end
 
   defp view_select_list(item) do
