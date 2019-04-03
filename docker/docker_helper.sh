@@ -293,9 +293,6 @@ EOF
     echo "touch /tmp/build_config/proxies.sh && \\"
   fi
 
-  # Upgrade existing packages
-  echo "apt-get update && apt-get upgrade -y && \\ "
-
   # Support for setting custom prompt through CONTAINER_NAME env. This allows us
   # to inject the container name into the ssh session. Without this, the name of the
   # real host machine will be used, since containers run in the shared networking mode.
