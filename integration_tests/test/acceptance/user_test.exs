@@ -39,7 +39,6 @@ defmodule IntegrationTest.Acceptance.UserTest do
     |> click(user_button(user.name, "Disable"))
     |> assert_has(disabled_user(user.name))
     |> click(user_button(user.name, "Enable"))
-    |> visit("/admin/users")
     |> refute_has(disabled_user(user.name))
   end
 
@@ -49,5 +48,5 @@ defmodule IntegrationTest.Acceptance.UserTest do
   defp user_button(user_name, caption), do: xpath("//tr[td[text()='#{user_name}']]//a[text()='#{caption}']")
 
   defp disabled_user(user_name),
-    do: xpath("//div[h3[text()='Disabled user accounts']]/table//td[text()='#{user_name}']")
+    do: xpath("//h3[text()='Disabled user accounts']/following-sibling::table[1]//td[text()='#{user_name}']")
 end
