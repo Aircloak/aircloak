@@ -10,7 +10,20 @@ For example tables created in the UX are useful for later tests.
 - [ ] Reset your air system (see [Deploying a clean system](#deploying-a-clean-system) for details)
 - [ ] Deploy the previous release of `air` and `cloak`
 - [ ] Create analyst views and an analyst table described in [Useful analyst tables and views](#useful-analyst-tables-and-views)
-- [ ] Issue a couple of queries using plain tables, the views, and the analyst table
+- [ ] Issue the following queries. They should all return non-empty results:
+  - ```sql
+    SELECT count(*) FROM num_games_view
+    ```
+  - ```sql
+    SELECT age, avg(length(firstname)), stddev(length(firstname))
+    FROM players
+    GROUP BY age
+    ORDER BY age ASC
+    ```
+  - ```sql
+    SELECT gender, level, age
+    FROM players
+    ```
 - Sign out
 - Deploy the latest release of both `air` and `cloak`
 - [ ] Log in
