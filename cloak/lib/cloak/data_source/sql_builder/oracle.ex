@@ -74,6 +74,8 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   def function_sql("hash", [arg]), do: ["TO_CHAR(ORA_HASH(", arg, "), '#{@fmt_no_extra_whitespace}0000000X')"]
 
+  def function_sql("sqrt", [arg]), do: ["CASE WHEN ", arg, " < 0 THEN NULL ELSE SQRT(", arg, ") END"]
+
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 
   @impl Dialect

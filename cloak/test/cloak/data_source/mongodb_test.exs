@@ -609,6 +609,12 @@ defmodule Cloak.DataSource.MongoDBTest do
     })
   end
 
+  test "sqrt with negative input", context do
+    assert_query(context, "SELECT sqrt(-val) AS v FROM #{@userless_table}", %{
+      rows: [%{row: [nil]}, %{row: [nil]}, %{row: [nil]}, %{row: [nil]}]
+    })
+  end
+
   test "standard query with grouping and order by (1)", context do
     assert_query(
       context,

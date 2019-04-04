@@ -56,6 +56,9 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   def function_sql("avg", [arg]), do: ["AVG(TO_DECIMAL(", arg, "))"]
   def function_sql("stddev", [arg]), do: ["STDDEV_SAMP(", arg, ")"]
   def function_sql("variance", [arg]), do: ["VAR_SAMP(", arg, ")"]
+
+  def function_sql("sqrt", [arg]), do: ["CASE WHEN ", arg, " < 0 THEN NULL ELSE SQRT(", arg, ") END"]
+
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 
   @impl Dialect

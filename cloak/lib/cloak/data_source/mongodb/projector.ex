@@ -176,7 +176,6 @@ defmodule Cloak.DataSource.MongoDB.Projector do
         "+" => "$add",
         "-" => "$subtract",
         "^" => "$pow",
-        "sqrt" => "$sqrt",
         "floor" => "$floor",
         "ceil" => "$ceil",
         "trunc" => "$trunc",
@@ -217,6 +216,15 @@ defmodule Cloak.DataSource.MongoDB.Projector do
         %{"$eq": [divisor, 0]},
         nil,
         %{"$mod": [dividend, divisor]}
+      ]
+    }
+
+  defp parse_function("sqrt", value),
+    do: %{
+      "$cond": [
+        %{"$lt": [value, 0]},
+        nil,
+        %{"$sqrt": value}
       ]
     }
 
