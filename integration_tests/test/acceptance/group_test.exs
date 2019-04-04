@@ -6,7 +6,7 @@ defmodule IntegrationTest.Acceptance.GroupTest do
 
     login_as_admin()
     |> add_group(name)
-    |> assert_has(Query.css("td", text: name))
+    |> assert_has(css("td", text: name))
   end
 
   test "allows removing a group" do
@@ -14,8 +14,8 @@ defmodule IntegrationTest.Acceptance.GroupTest do
 
     login_as_admin()
     |> add_group(name)
-    |> accept_confirm!(&click(&1, Query.xpath("//tr[td[text()='#{name}']]//a[text()='Delete']")))
-    |> refute_has(Query.css("td", text: name))
+    |> accept_confirm!(&click(&1, xpath("//tr[td[text()='#{name}']]//a[text()='Delete']")))
+    |> refute_has(css("td", text: name))
   end
 
   test "forbids access to data source by default" do
@@ -25,10 +25,10 @@ defmodule IntegrationTest.Acceptance.GroupTest do
     session =
       login_as_admin()
       |> visit("/admin/data_sources")
-      |> click(Query.xpath("//tr[.//*[text()='#{Manager.data_source_name()}']]//a[text()='Show']"))
+      |> click(xpath("//tr[.//*[text()='#{Manager.data_source_name()}']]//a[text()='Show']"))
 
-    refute_has(session, Query.xpath(".//td[text()='#{user.name}']"))
-    refute_has(session, Query.xpath(".//td[text()='#{group.name}']"))
+    refute_has(session, xpath(".//td[text()='#{user.name}']"))
+    refute_has(session, xpath(".//td[text()='#{group.name}']"))
   end
 
   test "allowing access to a data source through a group" do
@@ -38,13 +38,13 @@ defmodule IntegrationTest.Acceptance.GroupTest do
     session =
       login_as_admin()
       |> visit("/admin/groups")
-      |> click(Query.xpath("//tr[td[text()='#{group.name}']]//a[text()='Edit']"))
-      |> click(Query.xpath("//tr[.//*[text()='#{Manager.data_source_name()}']]//input[@type='checkbox']"))
-      |> click(Query.xpath("//button[text()='Save group']"))
+      |> click(xpath("//tr[td[text()='#{group.name}']]//a[text()='Edit']"))
+      |> click(xpath("//tr[.//*[text()='#{Manager.data_source_name()}']]//input[@type='checkbox']"))
+      |> click(xpath("//button[text()='Save group']"))
       |> visit("/admin/data_sources")
-      |> click(Query.xpath("//tr[.//*[text()='#{Manager.data_source_name()}']]//a[text()='Show']"))
+      |> click(xpath("//tr[.//*[text()='#{Manager.data_source_name()}']]//a[text()='Show']"))
 
-    assert_has(session, Query.xpath(".//td[text()='#{user.name}']"))
-    assert_has(session, Query.xpath(".//td[text()='#{group.name}']"))
+    assert_has(session, xpath(".//td[text()='#{user.name}']"))
+    assert_has(session, xpath(".//td[text()='#{group.name}']"))
   end
 end

@@ -1,5 +1,6 @@
 defmodule IntegrationTest.AcceptanceHelper do
   use Wallaby.DSL
+  import Wallaby.Query, only: [css: 1, css: 2, xpath: 1]
   import ExUnit.Assertions
 
   def new_group_name(), do: "group_#{:erlang.unique_integer([:positive, :monotonic])}"
@@ -7,9 +8,9 @@ defmodule IntegrationTest.AcceptanceHelper do
   def add_group(session, name) do
     session
     |> visit("/admin/groups")
-    |> click(Query.css("a", text: "Add a group"))
-    |> fill_in(Query.css("#group_name"), with: name)
-    |> click(Query.css("button[type='submit']"))
+    |> click(css("a", text: "Add a group"))
+    |> fill_in(css("#group_name"), with: name)
+    |> click(css("button[type='submit']"))
   end
 
   def login_as_admin(), do: login("admin@aircloak.com", "password1234")
@@ -17,10 +18,10 @@ defmodule IntegrationTest.AcceptanceHelper do
   def login(login, password) do
     new_session()
     |> visit("/auth")
-    |> fill_in(Query.css("[name='login']"), with: login)
-    |> fill_in(Query.css("[name='password']"), with: password)
-    |> click(Query.css("[name='remember']"))
-    |> click(Query.css("form button"))
+    |> fill_in(css("[name='login']"), with: login)
+    |> fill_in(css("[name='password']"), with: password)
+    |> click(css("[name='remember']"))
+    |> click(css("form button"))
   end
 
   def new_session() do
@@ -41,14 +42,14 @@ defmodule IntegrationTest.AcceptanceHelper do
 
     password_reset_url =
       create_user(login, name)
-      |> click(Query.xpath("//a[text()='Reset password']"))
-      |> text(Query.xpath("//*[@id='reset-link']"))
+      |> click(xpath("//a[text()='Reset password']"))
+      |> text(xpath("//*[@id='reset-link']"))
 
     new_session()
     |> visit(password_reset_url)
-    |> fill_in(Query.xpath("//input[@id='user_password']"), with: password)
-    |> fill_in(Query.xpath("//input[@id='user_password_confirmation']"), with: password)
-    |> click(Query.xpath("//button[text()='Save']"))
+    |> fill_in(xpath("//input[@id='user_password']"), with: password)
+    |> fill_in(xpath("//input[@id='user_password_confirmation']"), with: password)
+    |> click(xpath("//button[text()='Save']"))
 
     %{name: name, login: login, password: password}
   end
@@ -56,16 +57,16 @@ defmodule IntegrationTest.AcceptanceHelper do
   def create_user(login, name) do
     login_as_admin()
     |> visit("/admin/users")
-    |> click(Query.xpath("//a[text()='Add a user']"))
-    |> fill_in(Query.xpath("//input[@id='user_login']"), with: login)
-    |> fill_in(Query.xpath("//input[@id='user_name']"), with: name)
-    |> click(Query.xpath("//button[text()='Save']"))
+    |> click(xpath("//a[text()='Add a user']"))
+    |> fill_in(xpath("//input[@id='user_login']"), with: login)
+    |> fill_in(xpath("//input[@id='user_name']"), with: name)
+    |> click(xpath("//button[text()='Save']"))
   end
 
   def query_data_source(session, name, query) do
     session
-    |> click(Query.xpath("//nav//a[text()='Data sources']"))
-    |> click(Query.xpath("//a[text()='#{name}']"))
+    |> click(xpath("//nav//a[text()='Data sources']"))
+    |> click(xpath("//a[text()='#{name}']"))
     |> execute_script("window.codeMirror.editor.setValue('#{query}')")
   end
 

@@ -7,11 +7,11 @@ defmodule IntegrationTest.Acceptance.ProfileTest do
 
     login(user.login, user.password)
     |> visit("/profile/edit")
-    |> fill_in(Query.xpath("//input[@id='user_old_password']"), with: user.password)
-    |> fill_in(Query.xpath("//input[@id='user_password']"), with: new_password)
-    |> fill_in(Query.xpath("//input[@id='user_password_confirmation']"), with: new_password)
-    |> click(Query.xpath("//form[@action='/profile/change_password']//button[text()='Save']"))
+    |> fill_in(xpath("//input[@id='user_old_password']"), with: user.password)
+    |> fill_in(xpath("//input[@id='user_password']"), with: new_password)
+    |> fill_in(xpath("//input[@id='user_password_confirmation']"), with: new_password)
+    |> click(xpath("//form[@action='/profile/change_password']//button[text()='Save']"))
 
-    assert_has(login(user.login, new_password), Query.xpath("//a[text()='Sign out']"))
+    assert_has(login(user.login, new_password), xpath("//a[text()='Sign out']"))
   end
 end

@@ -6,15 +6,15 @@ defmodule IntegrationTest.Acceptance.UserTest do
     name = random_string()
 
     create_user(login, name)
-    |> assert_has(Query.xpath("//*[text()='User created']"))
+    |> assert_has(xpath("//*[text()='User created']"))
     |> visit("/admin/users")
-    |> assert_has(Query.xpath("//*[text()='#{name}']"))
-    |> assert_has(Query.xpath("//*[text()='#{login}']"))
+    |> assert_has(xpath("//*[text()='#{name}']"))
+    |> assert_has(xpath("//*[text()='#{login}']"))
   end
 
   test "errors adding a user" do
     create_user("", "")
-    |> assert_has(Query.xpath("//*[text()='Oops, something went wrong! Please check the errors below.']"))
+    |> assert_has(xpath("//*[text()='Oops, something went wrong! Please check the errors below.']"))
     |> assert_has(empty_error("user_login"))
     |> assert_has(empty_error("user_name"))
   end
@@ -25,10 +25,10 @@ defmodule IntegrationTest.Acceptance.UserTest do
     login_as_admin()
     |> visit("/admin/users")
     |> accept_confirm!(&click(&1, user_button(user.name, "Permanently delete")))
-    |> assert_has(Query.xpath("//*[contains(text(), 'The user has been disabled')]"))
+    |> assert_has(xpath("//*[contains(text(), 'The user has been disabled')]"))
     |> visit("/admin/users")
-    |> refute_has(Query.xpath("//*[text()='#{user.name}']"))
-    |> refute_has(Query.xpath("//*[text()='#{user.login}']"))
+    |> refute_has(xpath("//*[text()='#{user.name}']"))
+    |> refute_has(xpath("//*[text()='#{user.login}']"))
   end
 
   test "disabling and enabling a user" do
@@ -44,10 +44,10 @@ defmodule IntegrationTest.Acceptance.UserTest do
   end
 
   defp empty_error(input_id),
-    do: Query.xpath(~s{//*[@class='form-group' and descendant::input[@id='#{input_id}']]//*[text()="can't be blank"]})
+    do: xpath(~s{//*[@class='form-group' and descendant::input[@id='#{input_id}']]//*[text()="can't be blank"]})
 
-  defp user_button(user_name, caption), do: Query.xpath("//tr[td[text()='#{user_name}']]//a[text()='#{caption}']")
+  defp user_button(user_name, caption), do: xpath("//tr[td[text()='#{user_name}']]//a[text()='#{caption}']")
 
   defp disabled_user(user_name),
-    do: Query.xpath("//div[h3[text()='Disabled user accounts']]/table//td[text()='#{user_name}']")
+    do: xpath("//div[h3[text()='Disabled user accounts']]/table//td[text()='#{user_name}']")
 end
