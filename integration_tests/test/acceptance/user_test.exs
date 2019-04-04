@@ -7,7 +7,7 @@ defmodule IntegrationTest.Acceptance.UserTest do
 
     create_user(login, name)
     |> assert_has(xpath("//*[text()='User created']"))
-    |> visit("/admin/users")
+    |> visit_admin_page("Users")
     |> assert_has(xpath("//*[text()='#{name}']"))
     |> assert_has(xpath("//*[text()='#{login}']"))
   end
@@ -23,10 +23,10 @@ defmodule IntegrationTest.Acceptance.UserTest do
     user = create_user()
 
     login_as_admin()
-    |> visit("/admin/users")
+    |> visit_admin_page("Users")
     |> accept_confirm!(&click(&1, user_button(user.name, "Permanently delete")))
     |> assert_has(xpath("//*[contains(text(), 'The user has been disabled')]"))
-    |> visit("/admin/users")
+    |> visit_admin_page("Users")
     |> refute_has(xpath("//*[text()='#{user.name}']"))
     |> refute_has(xpath("//*[text()='#{user.login}']"))
   end
@@ -35,7 +35,7 @@ defmodule IntegrationTest.Acceptance.UserTest do
     user = create_user()
 
     login_as_admin()
-    |> visit("/admin/users")
+    |> visit_admin_page("Users")
     |> click(user_button(user.name, "Disable"))
     |> assert_has(disabled_user(user.name))
     |> click(user_button(user.name, "Enable"))

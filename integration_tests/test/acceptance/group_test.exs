@@ -24,7 +24,7 @@ defmodule IntegrationTest.Acceptance.GroupTest do
 
     session =
       login_as_admin()
-      |> visit("/admin/data_sources")
+      |> visit_admin_page("Data sources")
       |> click(xpath("//tr[.//*[text()='#{Manager.data_source_name()}']]//a[text()='Show']"))
 
     refute_has(session, xpath(".//td[text()='#{user.name}']"))
@@ -37,11 +37,11 @@ defmodule IntegrationTest.Acceptance.GroupTest do
 
     session =
       login_as_admin()
-      |> visit("/admin/groups")
+      |> visit_admin_page("Groups")
       |> click(xpath("//tr[td[text()='#{group.name}']]//a[text()='Edit']"))
       |> click(xpath("//tr[.//*[text()='#{Manager.data_source_name()}']]//input[@type='checkbox']"))
       |> click(xpath("//button[text()='Save group']"))
-      |> visit("/admin/data_sources")
+      |> visit_admin_page("Data sources")
       |> click(xpath("//tr[.//*[text()='#{Manager.data_source_name()}']]//a[text()='Show']"))
 
     assert_has(session, xpath(".//td[text()='#{user.name}']"))
