@@ -3,13 +3,11 @@ defmodule IntegrationTest.Acceptance.LoginTest do
 
   test "unauthenticated user is redirected to login" do
     session = visit(new_session(), "/")
-    assert current_path(session) == "/auth"
     assert_has(session, css(".alert", text: "You must be authenticated to view this page"))
   end
 
   test "shows a message for incorrect login info" do
     session = login("no.such@person.org", "1234")
-    assert current_path(session) == "/auth"
     assert_has(session, css(".alert", text: "Invalid login or password."))
   end
 
