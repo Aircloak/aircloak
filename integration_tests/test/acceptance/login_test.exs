@@ -13,7 +13,7 @@ defmodule IntegrationTest.Acceptance.LoginTest do
 
   test "allows login for correct login info" do
     session = login_as_admin()
-    assert_has(session, css("a", text: "Sign out"))
+    assert_has(session, xpath("//a[text()='Sign out']"))
   end
 
   test "remembers the user" do
@@ -21,7 +21,14 @@ defmodule IntegrationTest.Acceptance.LoginTest do
     |> visit("/")
     |> set_cookie("auth_remember_me", auth_remember_me_cookie())
     |> visit("/")
-    |> assert_has(css("a", text: "Sign out"))
+    |> assert_has(xpath("//*[text()='Sign out']"))
+  end
+
+  test "logout" do
+    login_as_admin()
+    |> click(xpath("//a[text()='Sign out']"))
+    |> assert_has(xpath("//*[text()='Logged out successfully']"))
+    |> refute_has(xpath("//*[text()='Sign out']"))
   end
 
   defp auth_remember_me_cookie(), do: login_as_admin(remember_me?: true) |> cookie_value("auth_remember_me")
