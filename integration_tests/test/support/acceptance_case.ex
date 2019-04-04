@@ -4,6 +4,7 @@ defmodule IntegrationTest.AcceptanceCase do
   using do
     quote do
       use Wallaby.DSL
+      import Wallaby.Query, only: [css: 1, css: 2, xpath: 1]
       import IntegrationTest.AcceptanceHelper
       alias IntegrationTest.Manager
 

@@ -113,7 +113,11 @@ defmodule IntegrationTest.OdbcTest do
     test(
       "show tables",
       context,
-      do: assert(:odbc.sql_query(context.conn, 'show tables') == {:selected, ['name', 'type'], [{'users', 'personal'}]})
+      do:
+        assert(
+          :odbc.sql_query(context.conn, 'show tables') ==
+            {:selected, ['name', 'type'], [{'integers', 'personal'}, {'users', 'personal'}]}
+        )
     )
 
     test(
