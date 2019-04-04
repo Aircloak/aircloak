@@ -16,7 +16,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def supported_functions(), do: ~w(
       count sum min max avg stddev variance count_distinct sum_distinct min_distinct max_distinct avg_distinct
       year quarter month day hour minute second weekday date_trunc
-      sqrt floor ceil abs round trunc div mod ^ % * / + -
+      sqrt floor ceil abs round trunc ^ % * / + -
       length lower upper btrim ltrim rtrim left right substring concat
       hex cast coalesce hash bool_op
     )
@@ -38,7 +38,10 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   def function_sql("quarter", args), do: ["TRUNC((", function_sql("month", args), " - 1) / 3) + 1"]
 
-  for binary_operator <- ~w(+ - * /) do
+  def function_sql("/", [arg1, arg2]), do: ["(", arg1, " / NULLIF(", arg2, ", 0))"]
+  def function_sql("%", [arg1, arg2]), do: ["MOD(", arg1, ", NULLIF(", arg2, ", 0))"]
+
+  for binary_operator <- ~w(+ - *) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
 
@@ -55,7 +58,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   def function_sql("variance", [arg]), do: ["VAR_SAMP(", arg, ")"]
 
-  for {from, to} <- %{"^" => "POWER", "%" => "MOD", "substring" => @unicode_substring} do
+  for {from, to} <- %{"^" => "POWER", "substring" => @unicode_substring} do
     def function_sql(unquote(from), args), do: function_sql(unquote(to), args)
   end
 

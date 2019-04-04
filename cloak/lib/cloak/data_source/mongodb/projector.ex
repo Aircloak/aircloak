@@ -173,11 +173,9 @@ defmodule Cloak.DataSource.MongoDB.Projector do
 
   for {name, translation} <- %{
         "*" => "$multiply",
-        "/" => "$divide",
         "+" => "$add",
         "-" => "$subtract",
         "^" => "$pow",
-        "%" => "$mod",
         "sqrt" => "$sqrt",
         "floor" => "$floor",
         "ceil" => "$ceil",
@@ -203,6 +201,24 @@ defmodule Cloak.DataSource.MongoDB.Projector do
         "size" => "$size"
       },
       do: defp(parse_function(unquote(name), args), do: %{unquote(translation) => args})
+
+  defp parse_function("/", [dividend, divisor]),
+    do: %{
+      "$cond": [
+        %{"$eq": [divisor, 0]},
+        nil,
+        %{"$divide": [dividend, divisor]}
+      ]
+    }
+
+  defp parse_function("%", [dividend, divisor]),
+    do: %{
+      "$cond": [
+        %{"$eq": [divisor, 0]},
+        nil,
+        %{"$mod": [dividend, divisor]}
+      ]
+    }
 
   defp parse_function("variance", [value]), do: %{"$pow": [%{"$stdDevSamp" => [value]}, 2]}
 

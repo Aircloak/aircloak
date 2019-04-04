@@ -13,7 +13,7 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
       count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct stddev_distinct
       variance variance_distinct
       year quarter month day hour minute second weekday date_trunc
-      sqrt floor ceil abs round trunc div mod ^ * / + - %
+      sqrt floor ceil abs round trunc mod ^ * / + - %
       length lower upper btrim ltrim rtrim left right substring concat
       hex cast coalesce hash bool_op
     )
@@ -32,9 +32,10 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
 
   def function_sql("bool_op", [[?', op, ?'], arg1, arg2]), do: ["(", arg1, " ", op, " ", arg2, ")"]
 
-  def function_sql("/", [arg1, arg2]), do: ["(", arg1, " :: double precision / ", arg2, ")"]
+  def function_sql("/", [arg1, arg2]), do: ["(", arg1, " :: double precision / NULLIF(", arg2, ", 0))"]
+  def function_sql("%", [arg1, arg2]), do: ["(", arg1, " % NULLIF(", arg2, ", 0))"]
 
-  for binary_operator <- ~w(+ - * ^ %) do
+  for binary_operator <- ~w(+ - * ^) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
 

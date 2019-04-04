@@ -14,7 +14,7 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
       count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct stddev_distinct
       variance variance_distinct
       year month day hour minute second date_trunc
-      sqrt floor ceil abs round trunc div mod * / + - ^ %
+      sqrt floor ceil abs round trunc * / + - ^ %
       length lower upper btrim ltrim rtrim left right substring concat
       cast coalesce hash bool_op
     )
@@ -40,9 +40,9 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
 
   def function_sql("bool_op", [[?', op, ?'], arg1, arg2]), do: ["(", arg1, " ", op, " ", arg2, ")"]
 
-  def function_sql("/", [arg1, arg2]), do: ["(CAST(", arg1, " AS double) / ", arg2, ")"]
+  def function_sql("/", [arg1, arg2]), do: ["(CAST(", arg1, " AS double) / NULLIF(", arg2, ", 0))"]
   def function_sql("^", [arg1, arg2]), do: ["POW(", arg1, ", ", arg2, ")"]
-  def function_sql("%", [arg1, arg2]), do: ["MOD(", arg1, ", ", arg2, ")"]
+  def function_sql("%", [arg1, arg2]), do: ["MOD(", arg1, ", NULLIF(", arg2, ", 0))"]
 
   for binary_operator <- ~w(+ - *) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
