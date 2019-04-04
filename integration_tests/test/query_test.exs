@@ -12,7 +12,11 @@ defmodule IntegrationTest.QueryTest do
     assert result.columns == ["name", "type"]
     assert result.features.db_column_types == []
     assert result.features.selected_types == ["text", "text"]
-    assert result.buckets == [%{"occurrences" => 1, "row" => ["users", "personal"]}]
+
+    assert result.buckets == [
+             %{"occurrences" => 1, "row" => ["integers", "personal"]},
+             %{"occurrences" => 1, "row" => ["users", "personal"]}
+           ]
   end
 
   test "show columns", context do

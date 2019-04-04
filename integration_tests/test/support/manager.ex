@@ -88,6 +88,7 @@ defmodule IntegrationTest.Manager do
 
     Application.start(:cloak)
     :ok = create_users_table(skip_db_create: true)
+    :ok = create_integers(skip_db_create: true)
     ensure_cloak_connected()
   end
 
@@ -106,10 +107,23 @@ defmodule IntegrationTest.Manager do
     Cloak.Test.DB.start_link()
     :ok = create_users_table()
     :ok = insert_rows(1..100, "users", ["name", "height"], ["john", 180])
+
+    :ok = create_integers()
+
+    :ok =
+      Cloak.Test.DB.insert_data(
+        "integers",
+        ~w/user_id value/,
+        Enum.map(1..1_000, &["user_1", &1])
+      )
   end
 
   defp create_users_table(opts \\ []) do
     Cloak.Test.DB.create_table("users", "name TEXT, height INTEGER", opts)
+  end
+
+  defp create_integers(opts \\ []) do
+    Cloak.Test.DB.create_table("integers", "value INTEGER", opts)
   end
 
   defp setup_air_database() do
