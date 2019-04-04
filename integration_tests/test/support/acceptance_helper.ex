@@ -35,17 +35,12 @@ defmodule IntegrationTest.AcceptanceHelper do
   end
 
   def create_user() do
-    name = :crypto.strong_rand_bytes(10) |> Base.encode64(padding: false)
-    login = :crypto.strong_rand_bytes(10) |> Base.encode64(padding: false)
-    password = :crypto.strong_rand_bytes(10) |> Base.encode64(padding: false)
+    login = random_string()
+    name = random_string()
+    password = random_string()
 
     password_reset_url =
-      login_as_admin()
-      |> visit("/admin/users")
-      |> click(Query.xpath("//a[text()='Add a user']"))
-      |> fill_in(Query.xpath("//input[@id='user_login']"), with: login)
-      |> fill_in(Query.xpath("//input[@id='user_name']"), with: name)
-      |> click(Query.xpath("//button[text()='Save']"))
+      create_user(login, name)
       |> click(Query.xpath("//a[text()='Reset password']"))
       |> text(Query.xpath("//*[@id='reset-link']"))
 
@@ -58,10 +53,21 @@ defmodule IntegrationTest.AcceptanceHelper do
     %{name: name, login: login, password: password}
   end
 
+  def create_user(login, name) do
+    login_as_admin()
+    |> visit("/admin/users")
+    |> click(Query.xpath("//a[text()='Add a user']"))
+    |> fill_in(Query.xpath("//input[@id='user_login']"), with: login)
+    |> fill_in(Query.xpath("//input[@id='user_name']"), with: name)
+    |> click(Query.xpath("//button[text()='Save']"))
+  end
+
   def query_data_source(session, name, query) do
     session
     |> click(Query.xpath("//nav//a[text()='Data sources']"))
     |> click(Query.xpath("//a[text()='#{name}']"))
     |> execute_script("window.codeMirror.editor.setValue('#{query}')")
   end
+
+  def random_string(), do: :crypto.strong_rand_bytes(10) |> Base.encode64(padding: false)
 end
