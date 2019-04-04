@@ -15,6 +15,15 @@ For example tables created in the UX are useful for later tests.
     SELECT count(*) FROM num_games_view
     ```
   - ```sql
+    SELECT * FROM anonymizing_view
+    ```
+  - ```sql
+    SELECT numGames, count(*)
+    FROM num_games_table
+    GROUP BY 1
+    ORDER BY numGames ASC
+    ```
+  - ```sql
     SELECT age, avg(length(firstname)), stddev(length(firstname))
     FROM players
     GROUP BY age
