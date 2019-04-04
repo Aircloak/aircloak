@@ -13,14 +13,16 @@ defmodule IntegrationTest.AcceptanceHelper do
     |> click(css("button[type='submit']"))
   end
 
-  def login_as_admin(), do: login("admin@aircloak.com", "password1234")
+  def login_as_admin(opts \\ []), do: login("admin@aircloak.com", "password1234", opts)
 
-  def login(login, password) do
-    new_session()
-    |> visit("/auth")
-    |> fill_in(css("[name='login']"), with: login)
-    |> fill_in(css("[name='password']"), with: password)
-    |> click(css("[name='remember']"))
+  def login(login, password, opts \\ []) do
+    session =
+      new_session()
+      |> visit("/auth")
+      |> fill_in(css("[name='login']"), with: login)
+      |> fill_in(css("[name='password']"), with: password)
+
+    if(opts[:remember_me?], do: click(session, css("[name='remember']")), else: session)
     |> click(css("form button"))
   end
 
@@ -71,4 +73,11 @@ defmodule IntegrationTest.AcceptanceHelper do
   end
 
   def random_string(), do: :crypto.strong_rand_bytes(10) |> Base.encode64(padding: false)
+
+  def cookie_value(session, name) do
+    session
+    |> cookies()
+    |> Enum.find(&(&1["name"] == name))
+    |> Access.get("value")
+  end
 end

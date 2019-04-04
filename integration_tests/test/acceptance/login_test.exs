@@ -17,9 +17,12 @@ defmodule IntegrationTest.Acceptance.LoginTest do
   end
 
   test "remembers the user" do
-    login_as_admin()
-    |> set_cookie("_air_key", "")
+    new_session()
+    |> visit("/")
+    |> set_cookie("auth_remember_me", auth_remember_me_cookie())
     |> visit("/")
     |> assert_has(css("a", text: "Sign out"))
   end
+
+  defp auth_remember_me_cookie(), do: login_as_admin(remember_me?: true) |> cookie_value("auth_remember_me")
 end
