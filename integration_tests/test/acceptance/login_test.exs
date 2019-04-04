@@ -15,7 +15,6 @@ defmodule IntegrationTest.Acceptance.LoginTest do
 
   test "allows login for correct login info" do
     session = login_as_admin()
-    assert current_path(session) == "/data_sources"
     assert_has(session, Query.css("a", text: "Sign out"))
   end
 
