@@ -38,7 +38,7 @@ Enum.each(
           context
           |> disable_subquery_interval(unquote(function))
           |> disable_unsupported_on_dates(unquote(function), {unquote(column), unquote(table), unquote(uid)})
-          |> disable_for(Cloak.DataSource.Drill, unquote(function) =~ ~r/quarter|'P..'/)
+          |> disable_for(Cloak.DataSource.Drill, unquote(function) =~ ~r/quarter/)
           |> assert_consistent_and_not_failing("""
             SELECT
               output
@@ -58,7 +58,7 @@ Enum.each(
           context
           |> disable_subquery_interval(unquote(function))
           |> disable_unsupported_on_dates(unquote(function), {unquote(column), unquote(table), unquote(uid)})
-          |> disable_for(Cloak.DataSource.Drill, unquote(function) =~ ~r/quarter|'P..'/)
+          |> disable_for(Cloak.DataSource.Drill, unquote(function) =~ ~r/quarter/)
           # SQL Server doesn't like `ORDER BY constant` clauses.
           |> disable_for(
             Cloak.DataSource.SQLServer,
@@ -80,6 +80,7 @@ Enum.each(
           |> disable_for(Cloak.DataSource.SQLServer, true)
           |> disable_for(Cloak.DataSource.SAPHana, true)
           |> disable_for(Cloak.DataSource.MongoDB, true)
+          |> disable_for(Cloak.DataSource.Drill, function =~ ~r/P1Y/ or function =~ ~r/P1M/)
           |> disable_for(Cloak.DataSource.Oracle, function =~ ~r/P1Y/ or function =~ ~r/P1M/)
         else
           context
