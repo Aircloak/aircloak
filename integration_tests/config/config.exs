@@ -19,10 +19,7 @@ config :phoenix, :template_engines, md: Air.Phoenix.MarkdownEngine
 
 config :aircloak_common, :env, Mix.env()
 
-config :wallaby,
-  base_url: "http://localhost:8081",
-  screenshot_on_failure: true,
-  screenshot_dir: "browser_test/screenshots"
+config :hound, driver: "chrome_driver", browser: "chrome_headless"
 
 import_config "air.exs"
 import_config "cloak.exs"
