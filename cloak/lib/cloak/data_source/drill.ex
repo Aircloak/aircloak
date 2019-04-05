@@ -47,6 +47,11 @@ defmodule Cloak.DataSource.Drill do
   @impl Driver
   def supports_query?(query), do: not has_cross_joins?(query) and not has_grouping_sets?(query)
 
+  @impl Driver
+  def select(connection, query, result_processor) do
+    RODBC.select(connection, query, custom_mappers(), result_processor)
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -55,4 +60,20 @@ defmodule Cloak.DataSource.Drill do
     do: query |> get_in([Cloak.Sql.Query.Lenses.joins()]) |> Enum.any?(&(&1.type == :cross_join))
 
   defp has_grouping_sets?(query), do: length(query.grouping_sets) > 1 and query.type != :anonymized
+
+  defp custom_mappers() do
+    %{
+      :interval => &interval_mapper/1
+    }
+  end
+
+  defp interval_mapper(nil), do: nil
+
+  defp interval_mapper(interval) do
+    [days, time] = String.split(interval, " ")
+    days = days |> String.to_integer() |> Timex.Duration.from_days()
+    {:ok, time} = Time.from_iso8601(time)
+    time = Timex.Duration.from_time(time)
+    Timex.Duration.add(days, time)
+  end
 end
