@@ -30,7 +30,9 @@ Enum.each(
 
       @moduletag :"#{function}"
 
-      Enum.each(datetime_columns() ++ date_columns(), fn {column, table, uid} ->
+      columns = if function =~ ~r/<col>/, do: datetime_columns() ++ date_columns(), else: [hd(datetime_columns())]
+
+      Enum.each(columns, fn {column, table, uid} ->
         @tag compliance: "#{function} #{column} #{table} subquery"
         test "#{function} on input #{column} in a sub-query on #{table}", context do
           context
