@@ -70,10 +70,12 @@ defmodule Cloak.DataSource.Drill do
   defp interval_mapper(nil), do: nil
 
   defp interval_mapper(interval) do
-    [days, time] = String.split(interval, " ")
-    days = days |> String.to_integer() |> Timex.Duration.from_days()
-    {:ok, time} = Time.from_iso8601(time)
-    time = Timex.Duration.from_time(time)
-    Timex.Duration.add(days, time)
+    with [days, time] <- String.split(interval, " "),
+         {days, ""} <- Integer.parse(days),
+         {:ok, time} <- Time.from_iso8601(time) do
+      Timex.Duration.add(Timex.Duration.from_days(days), Timex.Duration.from_time(time))
+    else
+      _ -> nil
+    end
   end
 end

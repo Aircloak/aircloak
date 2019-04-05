@@ -20,7 +20,9 @@ Enum.each(
     "<col> - (<col> - interval 'P1D')",
     "<col> + 2 * interval 'P1Y'",
     "(<col> - (<col> - interval 'P1Y')) / 2",
-    "interval 'P1DT1H'"
+    "interval 'P1DT1H'",
+    "interval 'PT1H'",
+    "interval 'P1D'"
   ],
   fn function ->
     defmodule Module.concat([Compliance.DateTimeFunctions, String.to_atom(function), Test]) do
