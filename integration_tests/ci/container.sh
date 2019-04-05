@@ -35,12 +35,24 @@ function start_mongo_container {
   docker network connect --alias mongointtest $owner_container_name $mongo_container_name
 }
 
+function start_chrome_container {
+  local owner_container_name=$1
+  local chrome_version=$2
+
+  local chrome_container_name="${owner_container_name}_chrome${chrome_version}"
+
+  docker run \
+    --detach --name "$chrome_container_name" --net=container:$owner_container_name --shm-size=2g \
+    selenium/standalone-chrome:$chrome_version > /dev/null
+}
+
 
 function prepare_for_test {
   start_postgres_container $1 "9.4"
   start_postgres_container $1 "9.5"
   start_postgres_container $1 "9.6"
   start_mongo_container $1 "3.6.4"
+  start_chrome_container $1 "3.141.59"
   docker exec $1 su postgres -c \
     "/usr/lib/postgresql/9.6/bin/pg_ctl -D /etc/postgresql/9.6/main -l /var/log/postgresql/postgresql.log start"
 }

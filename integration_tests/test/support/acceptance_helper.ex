@@ -3,7 +3,8 @@ defmodule IntegrationTest.AcceptanceHelper do
   use Hound.Helpers
 
   def visit(path) do
-    navigate_to("http://localhost:8081#{path}")
+    air_address = if System.get_env("CI") == "true", do: "localhost", else: to_string(System.get_env("AIR_IP"))
+    navigate_to("http://#{air_address}:8081#{path}")
   end
 
   def in_another_session(fun) do

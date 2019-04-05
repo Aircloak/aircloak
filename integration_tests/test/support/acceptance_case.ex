@@ -7,6 +7,13 @@ defmodule IntegrationTest.AcceptanceCase do
       import IntegrationTest.AcceptanceHelper
       alias IntegrationTest.Manager
 
+      setup_all do
+        if System.get_env("CI") in [nil, ""] and System.get_env("AIR_IP") in [nil, ""],
+          do: raise("Set AIR_IP OS environment variable to the local network IP of your machine.")
+
+        :ok
+      end
+
       setup do
         Hound.start_session()
         parent = self()
