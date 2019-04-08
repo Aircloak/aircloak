@@ -268,7 +268,7 @@ defmodule Cloak.Query.Anonymizer do
   end
 
   @doc "Returns the actual noise amount from a dynamic anonymizer and a static noise SD."
-  @spec noise_amount(float, t) :: float
+  @spec noise_amount(number, t) :: float
   def noise_amount(sigma, anonymizer), do: sigma |> scale_sigma_by_noise_layers(anonymizer) |> round_noise_sigma()
 
   # -------------------------------------------------------------------
