@@ -19,7 +19,7 @@ defmodule IntegrationTest.AcceptanceCase do
         parent = self()
         on_exit(fn -> Hound.end_session(parent) end)
 
-        set_window_size(current_window_handle(), 1920, 1080)
+        set_window_size(current_window_handle(), 1024, 768)
 
         :ok
       end
