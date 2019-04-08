@@ -73,7 +73,14 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   def literal(value), do: Dialect.literal_default(value)
 
   @impl Dialect
-  def cast_sql(value, :real, :integer), do: ["CAST(", function_sql("round", [value]), " AS bigint)"]
+  def cast_sql(value, :real, :integer),
+    do: [
+      "CASE WHEN ABS(",
+      value,
+      ") > #{@integer_range} THEN NULL ELSE CAST(",
+      function_sql("round", [value]),
+      " AS BIGINT) END"
+    ]
 
   def cast_sql(value, from, :boolean) when from in [:real, :integer],
     do: ["CASE WHEN ", value, " != 0 THEN TRUE WHEN ", value, " = 0 THEN FALSE ELSE NULL END"]

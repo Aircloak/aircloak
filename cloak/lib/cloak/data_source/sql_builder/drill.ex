@@ -61,6 +61,9 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
   def limit_sql(limit, offset), do: [" LIMIT ", to_string(limit), " OFFSET ", to_string(offset)]
 
   @impl Dialect
+  def cast_sql(value, :real, :integer),
+    do: ["CASE WHEN ABS(", value, ") > #{@integer_range} THEN NULL ELSE CAST(", value, " AS BIGINT) END"]
+
   def cast_sql(value, :boolean, :integer),
     do: ["CASE WHEN ", value, " IS NULL THEN NULL WHEN ", value, " THEN 1 ELSE 0 END"]
 

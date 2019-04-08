@@ -79,6 +79,9 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 
   @impl Dialect
+  def cast_sql(value, :real, :integer),
+    do: ["CASE WHEN ABS(", value, ") > #{@integer_range} THEN NULL ELSE CAST(", value, " AS INTEGER) END"]
+
   def cast_sql(value, :integer, :boolean),
     do: ["(CASE WHEN ", value, " IS NULL THEN NULL WHEN ", value, " = 0 THEN 0 ELSE 1 END)"]
 
