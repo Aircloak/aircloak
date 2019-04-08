@@ -38,7 +38,7 @@ defmodule IntegrationTests.Mixfile do
       {:parse_trans, "3.2.0", override: true},
       # Needed when running air in dev
       {:phoenix_live_reload, "~> 1.2"},
-      {:wallaby, "~> 0.22"}
+      {:hound, "~> 1.1"}
     ]
   end
 

@@ -6,12 +6,15 @@ defmodule IntegrationTest.Acceptance.ProfileTest do
     new_password = :crypto.strong_rand_bytes(10) |> Base.encode64(padding: false)
 
     login(user.login, user.password)
-    |> visit_profile_page()
-    |> fill_in(xpath("//input[@id='user_old_password']"), with: user.password)
-    |> fill_in(xpath("//input[@id='user_password']"), with: new_password)
-    |> fill_in(xpath("//input[@id='user_password_confirmation']"), with: new_password)
-    |> click(xpath("//form[@action='/profile/change_password']//button[text()='Save']"))
+    visit_profile_page()
+    fill_field({:xpath, "//input[@id='user_old_password']"}, user.password)
+    fill_field({:xpath, "//input[@id='user_password']"}, new_password)
+    fill_field({:xpath, "//input[@id='user_password_confirmation']"}, new_password)
+    click({:xpath, "//form[@action='/profile/change_password']//button[text()='Save']"})
 
-    assert_has(login(user.login, new_password), xpath("//a[text()='Sign out']"))
+    in_another_session(fn ->
+      login(user.login, new_password)
+      assert_has(:xpath, "//a[text()='Sign out']")
+    end)
   end
 end

@@ -2,36 +2,40 @@ defmodule IntegrationTest.Acceptance.LoginTest do
   use IntegrationTest.AcceptanceCase, async: true
 
   test "unauthenticated user is redirected to login" do
-    session = visit(new_session(), "/")
-    assert current_path(session) == "/auth"
-    assert_has(session, css(".alert", text: "You must be authenticated to view this page"))
+    visit("/")
+    assert current_path() == "/auth"
+    assert_has(:xpath, "//*[text()='You must be authenticated to view this page']")
   end
 
   test "shows a message for incorrect login info" do
-    session = login("no.such@person.org", "1234")
-    assert current_path(session) == "/auth"
-    assert_has(session, css(".alert", text: "Invalid login or password."))
+    login("no.such@person.org", "1234")
+    assert current_path() == "/auth"
+    assert_has(:xpath, "//*[text()='Invalid login or password.']")
   end
 
   test "allows login for correct login info" do
-    session = login_as_admin()
-    assert_has(session, xpath("//a[text()='Sign out']"))
+    login_as_admin()
+    assert_has(:xpath, "//a[text()='Sign out']")
   end
 
   test "remembers the user" do
-    new_session()
-    |> visit("/")
-    |> set_cookie("auth_remember_me", auth_remember_me_cookie())
-    |> visit("/")
-    |> assert_has(xpath("//*[text()='Sign out']"))
+    visit("/")
+    set_cookie(%{name: "auth_remember_me", value: auth_remember_me_cookie()})
+    visit("/")
+    assert_has(:xpath, "//*[text()='Sign out']")
   end
 
   test "logout" do
     login_as_admin()
-    |> click(xpath("//a[text()='Sign out']"))
-    |> assert_has(xpath("//*[text()='Logged out successfully']"))
-    |> refute_has(xpath("//*[text()='Sign out']"))
+    click({:xpath, "//a[text()='Sign out']"})
+    assert_has(:xpath, "//*[text()='Logged out successfully']")
+    refute_has(:xpath, "//*[text()='Sign out']")
   end
 
-  defp auth_remember_me_cookie(), do: login_as_admin(remember_me?: true) |> cookie_value("auth_remember_me")
+  defp auth_remember_me_cookie() do
+    in_another_session(fn ->
+      login_as_admin(remember_me?: true)
+      cookie_value("auth_remember_me")
+    end)
+  end
 end
