@@ -67,6 +67,15 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
       " = 0.0 THEN FALSE ELSE TRUE END"
     ]
 
+  def cast_sql(value, :text, :boolean),
+    do: [
+      "CASE WHEN TRIM(LOWER(",
+      value,
+      ")) IN ('1', 't', 'true', 'yes', 'y') THEN TRUE WHEN TRIM(LOWER(",
+      value,
+      ")) IN ('0', 'f', 'false', 'no', 'n') THEN FALSE ELSE NULL END"
+    ]
+
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect

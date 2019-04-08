@@ -255,9 +255,9 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   defp parse_function("cast", [value, :text, :boolean]),
     do: %{
       "$cond": [
-        %{"$eq": [value, nil]},
-        nil,
-        %{"$cond": [%{"$in": [%{"$toLower": value}, ["true", "yes", "1"]]}, true, false]}
+        %{"$in": [%{"$toLower": value}, ["true", "yes", "1", "t", "y"]]},
+        true,
+        %{"$cond": [%{"$in": [%{"$toLower": value}, ["false", "no", "0", "f", "n"]]}, false, nil]}
       ]
     }
 

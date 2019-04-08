@@ -73,13 +73,11 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
 
   def cast_sql(value, :text, :boolean),
     do: [
-      "CASE WHEN ",
+      "CASE WHEN TRIM(LOWER(",
       value,
-      " IS NULL THEN NULL WHEN ",
+      ")) IN ('1', 't', 'true', 'yes', 'y') THEN TRUE WHEN TRIM(LOWER(",
       value,
-      " = '0' THEN FALSE WHEN LOWER(",
-      value,
-      ") = 'false' THEN FALSE ELSE TRUE END"
+      ")) IN ('0', 'f', 'false', 'no', 'n') THEN FALSE ELSE NULL END"
     ]
 
   def cast_sql(value, :boolean, :text),

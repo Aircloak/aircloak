@@ -85,6 +85,15 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def cast_sql(value, :real, :boolean),
     do: ["(CASE WHEN ", value, " IS NULL THEN NULL WHEN ", value, " = 0.0 THEN 0 ELSE 1 END)"]
 
+  def cast_sql(value, :text, :boolean),
+    do: [
+      "CASE WHEN TRIM(LOWER(",
+      value,
+      ")) IN ('1', 't', 'true', 'yes', 'y') THEN 1 WHEN TRIM(LOWER(",
+      value,
+      ")) IN ('0', 'f', 'false', 'no', 'n') THEN 0 ELSE NULL END"
+    ]
+
   def cast_sql(value, number, :text) when number in [:integer, :real], do: ["TO_CHAR(", value, ?)]
 
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
