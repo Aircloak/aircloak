@@ -179,7 +179,7 @@ defmodule Cloak.Query.Aggregator.UserId do
           users_count
 
         {_values_index, %Expression{function: "count_noise", function_args: [{:distinct, %Expression{user_id?: true}}]}} ->
-          1
+          Anonymizer.noise_amount(1, anonymizer)
 
         {values_index, aggregator} ->
           users_rows
