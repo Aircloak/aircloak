@@ -5,22 +5,33 @@ defmodule IntegrationTest.AcceptanceHelper do
 
   def new_group_name(), do: "group_#{:erlang.unique_integer([:positive, :monotonic])}"
 
+  def visit_admin_page(session),
+    do: session |> click(css("#navbar_dropdown")) |> click(xpath("//header/nav//a[text()='Admin']"))
+
+  def visit_admin_page(session, tab_caption),
+    do: session |> visit_admin_page() |> click(xpath("//main//ul/li/a[text()='#{tab_caption}']"))
+
+  def visit_profile_page(session),
+    do: session |> click(css("#navbar_dropdown")) |> click(xpath("//header/nav//a[text()='Settings']"))
+
   def add_group(session, name) do
     session
-    |> visit("/admin/groups")
+    |> visit_admin_page("Groups")
     |> click(css("a", text: "Add a group"))
     |> fill_in(css("#group_name"), with: name)
     |> click(css("button[type='submit']"))
   end
 
-  def login_as_admin(), do: login("admin@aircloak.com", "password1234")
+  def login_as_admin(opts \\ []), do: login("admin@aircloak.com", "password1234", opts)
 
-  def login(login, password) do
-    new_session()
-    |> visit("/auth")
-    |> fill_in(css("[name='login']"), with: login)
-    |> fill_in(css("[name='password']"), with: password)
-    |> click(css("[name='remember']"))
+  def login(login, password, opts \\ []) do
+    session =
+      new_session()
+      |> visit("/")
+      |> fill_in(css("[name='login']"), with: login)
+      |> fill_in(css("[name='password']"), with: password)
+
+    if(opts[:remember_me?], do: click(session, css("[name='remember']")), else: session)
     |> click(css("form button"))
   end
 
@@ -56,7 +67,7 @@ defmodule IntegrationTest.AcceptanceHelper do
 
   def create_user(login, name) do
     login_as_admin()
-    |> visit("/admin/users")
+    |> visit_admin_page("Users")
     |> click(xpath("//a[text()='Add a user']"))
     |> fill_in(xpath("//input[@id='user_login']"), with: login)
     |> fill_in(xpath("//input[@id='user_name']"), with: name)
@@ -71,4 +82,11 @@ defmodule IntegrationTest.AcceptanceHelper do
   end
 
   def random_string(), do: :crypto.strong_rand_bytes(10) |> Base.encode64(padding: false)
+
+  def cookie_value(session, name) do
+    session
+    |> cookies()
+    |> Enum.find(&(&1["name"] == name))
+    |> Access.get("value")
+  end
 end
