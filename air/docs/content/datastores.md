@@ -167,6 +167,7 @@ The following constructs are not natively supported on this data source and will
 
 - `hex`
 - `median`
+- `date_trunc` - only if the first argument is `'quarter'`
 
 #### Oracle
 
