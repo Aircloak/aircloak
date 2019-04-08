@@ -6,6 +6,7 @@ defmodule Cloak.DataSource.Drill do
 
   use Cloak.DataSource.Driver.RodbcSql
   alias Cloak.DataSource.{RODBC, SqlBuilder}
+  alias Cloak.Sql.{Expression, Query}
 
   # -------------------------------------------------------------------
   # DataSource.Driver callbacks
@@ -45,7 +46,8 @@ defmodule Cloak.DataSource.Drill do
   end
 
   @impl Driver
-  def supports_query?(query), do: not has_cross_joins?(query) and not has_grouping_sets?(query)
+  def supports_query?(query),
+    do: not has_cross_joins?(query) and not has_grouping_sets?(query) and not has_trunc_quarter?(query)
 
   @impl Driver
   def select(connection, query, result_processor) do
@@ -57,9 +59,15 @@ defmodule Cloak.DataSource.Drill do
   # -------------------------------------------------------------------
 
   defp has_cross_joins?(query),
-    do: query |> get_in([Cloak.Sql.Query.Lenses.joins()]) |> Enum.any?(&(&1.type == :cross_join))
+    do: query |> get_in([Query.Lenses.joins()]) |> Enum.any?(&(&1.type == :cross_join))
 
   defp has_grouping_sets?(query), do: length(query.grouping_sets) > 1 and query.type != :anonymized
+
+  defp has_trunc_quarter?(query) do
+    query
+    |> get_in([Query.Lenses.all_queries() |> Query.Lenses.query_expressions()])
+    |> Enum.any?(&match?(%Expression{function: "date_trunc", function_args: [%Expression{value: "quarter"} | _]}, &1))
+  end
 
   defp custom_mappers() do
     %{
