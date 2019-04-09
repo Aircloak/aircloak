@@ -14,7 +14,7 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
       count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct stddev_distinct
       variance variance_distinct
       year month day hour minute second date_trunc
-      sqrt floor ceil abs round trunc div mod * / + - ^ %
+      sqrt floor ceil abs round trunc * / + - ^ %
       length lower upper btrim ltrim rtrim left right substring concat
       cast coalesce hash bool_op
     )
@@ -40,13 +40,15 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
 
   def function_sql("bool_op", [[?', op, ?'], arg1, arg2]), do: ["(", arg1, " ", op, " ", arg2, ")"]
 
-  def function_sql("/", [arg1, arg2]), do: ["(CAST(", arg1, " AS double) / ", arg2, ")"]
+  def function_sql("/", [arg1, arg2]), do: ["(CAST(", arg1, " AS double) / NULLIF(", arg2, ", 0))"]
   def function_sql("^", [arg1, arg2]), do: ["POW(", arg1, ", ", arg2, ")"]
-  def function_sql("%", [arg1, arg2]), do: ["MOD(", arg1, ", ", arg2, ")"]
+  def function_sql("%", [arg1, arg2]), do: ["MOD(", arg1, ", NULLIF(", arg2, ", 0))"]
 
   for binary_operator <- ~w(+ - *) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
+
+  def function_sql("sqrt", [arg]), do: ["CASE WHEN ", arg, " < 0 THEN NULL ELSE SQRT(", arg, ") END"]
 
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 
@@ -59,6 +61,9 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
   def limit_sql(limit, offset), do: [" LIMIT ", to_string(limit), " OFFSET ", to_string(offset)]
 
   @impl Dialect
+  def cast_sql(value, :real, :integer),
+    do: ["CASE WHEN ABS(", value, ") > #{@integer_range} THEN NULL ELSE CAST(", value, " AS BIGINT) END"]
+
   def cast_sql(value, :boolean, :integer),
     do: ["CASE WHEN ", value, " IS NULL THEN NULL WHEN ", value, " THEN 1 ELSE 0 END"]
 
@@ -75,6 +80,15 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
       " IS NULL THEN NULL WHEN ",
       value,
       " = 0.0 THEN FALSE ELSE TRUE END"
+    ]
+
+  def cast_sql(value, :text, :boolean),
+    do: [
+      "CASE WHEN TRIM(LOWER(",
+      value,
+      ")) IN ('1', 't', 'true', 'yes', 'y') THEN TRUE WHEN TRIM(LOWER(",
+      value,
+      ")) IN ('0', 'f', 'false', 'no', 'n') THEN FALSE ELSE NULL END"
     ]
 
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]

@@ -592,8 +592,26 @@ defmodule Cloak.DataSource.MongoDBTest do
   end
 
   test "simple standard query with filter", context do
-    assert_query(context, "SELECT COUNT(*) FROM #{@userless_table} WHERE val = 0", %{
-      rows: [%{occurrences: 1, row: [0]}]
+    assert_query(context, "SELECT val FROM #{@userless_table} WHERE val = 0", %{
+      rows: []
+    })
+  end
+
+  test "divide by 0", context do
+    assert_query(context, "SELECT 1/(val-val) AS v FROM #{@userless_table}", %{
+      rows: [%{row: [nil]}, %{row: [nil]}, %{row: [nil]}, %{row: [nil]}]
+    })
+  end
+
+  test "mod by 0", context do
+    assert_query(context, "SELECT 1 % round(val-val) AS v FROM #{@userless_table}", %{
+      rows: [%{row: [nil]}, %{row: [nil]}, %{row: [nil]}, %{row: [nil]}]
+    })
+  end
+
+  test "sqrt with negative input", context do
+    assert_query(context, "SELECT sqrt(-val) AS v FROM #{@userless_table}", %{
+      rows: [%{row: [nil]}, %{row: [nil]}, %{row: [nil]}, %{row: [nil]}]
     })
   end
 

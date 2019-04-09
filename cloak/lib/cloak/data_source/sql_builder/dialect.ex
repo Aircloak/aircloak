@@ -66,6 +66,8 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
     quote do
       @behaviour unquote(__MODULE__)
 
+      @integer_range 9_223_372_036_854_775_807
+
       @impl unquote(__MODULE__)
       def select_hints(), do: ""
 

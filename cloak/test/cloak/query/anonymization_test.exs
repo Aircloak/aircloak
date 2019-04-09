@@ -118,6 +118,22 @@ defmodule Cloak.Query.AnonymizationTest do
     })
   end
 
+  test "reported noise scales with number of conditions" do
+    :ok = insert_rows(_user_ids = 0..10, "anonymizations", ["number"], [0])
+
+    assert_query(
+      "select count_noise(*), count_noise(distinct user_id) from anonymizations",
+      %{rows: [%{row: [1.0, 1.0]}]}
+    )
+
+    assert_query(
+      "select count_noise(*), count_noise(distinct user_id) from anonymizations where number between 1 and 100",
+      %{rows: [%{row: [c1, c2]}]}
+    )
+
+    assert c1 > 1.0 and c2 > 1.0
+  end
+
   describe "extended grouping" do
     setup do
       :ok = insert_rows(_user_ids = 0..10, "anonymizations", ["number", "string"], [1, "aa"])

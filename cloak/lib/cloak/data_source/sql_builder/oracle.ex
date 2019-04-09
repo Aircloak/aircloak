@@ -16,7 +16,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def supported_functions(), do: ~w(
       count sum min max avg stddev variance count_distinct sum_distinct min_distinct max_distinct avg_distinct
       year quarter month day hour minute second weekday date_trunc
-      sqrt floor ceil abs round trunc div mod ^ % * / + -
+      sqrt floor ceil abs round trunc ^ % * / + -
       length lower upper btrim ltrim rtrim left right substring concat
       hex cast coalesce hash bool_op
     )
@@ -38,7 +38,10 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   def function_sql("quarter", args), do: ["TRUNC((", function_sql("month", args), " - 1) / 3) + 1"]
 
-  for binary_operator <- ~w(+ - * /) do
+  def function_sql("/", [arg1, arg2]), do: ["(", arg1, " / NULLIF(", arg2, ", 0))"]
+  def function_sql("%", [arg1, arg2]), do: ["MOD(", arg1, ", NULLIF(", arg2, ", 0))"]
+
+  for binary_operator <- ~w(+ - *) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
 
@@ -55,7 +58,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   def function_sql("variance", [arg]), do: ["VAR_SAMP(", arg, ")"]
 
-  for {from, to} <- %{"^" => "POWER", "%" => "MOD", "substring" => @unicode_substring} do
+  for {from, to} <- %{"^" => "POWER", "substring" => @unicode_substring} do
     def function_sql(unquote(from), args), do: function_sql(unquote(to), args)
   end
 
@@ -71,14 +74,28 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   def function_sql("hash", [arg]), do: ["TO_CHAR(ORA_HASH(", arg, "), '#{@fmt_no_extra_whitespace}0000000X')"]
 
+  def function_sql("sqrt", [arg]), do: ["CASE WHEN ", arg, " < 0 THEN NULL ELSE SQRT(", arg, ") END"]
+
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 
   @impl Dialect
+  def cast_sql(value, :real, :integer),
+    do: ["CASE WHEN ABS(", value, ") > #{@integer_range} THEN NULL ELSE CAST(", value, " AS INTEGER) END"]
+
   def cast_sql(value, :integer, :boolean),
     do: ["(CASE WHEN ", value, " IS NULL THEN NULL WHEN ", value, " = 0 THEN 0 ELSE 1 END)"]
 
   def cast_sql(value, :real, :boolean),
     do: ["(CASE WHEN ", value, " IS NULL THEN NULL WHEN ", value, " = 0.0 THEN 0 ELSE 1 END)"]
+
+  def cast_sql(value, :text, :boolean),
+    do: [
+      "CASE WHEN TRIM(LOWER(",
+      value,
+      ")) IN ('1', 't', 'true', 'yes', 'y') THEN 1 WHEN TRIM(LOWER(",
+      value,
+      ")) IN ('0', 'f', 'false', 'no', 'n') THEN 0 ELSE NULL END"
+    ]
 
   def cast_sql(value, number, :text) when number in [:integer, :real], do: ["TO_CHAR(", value, ?)]
 

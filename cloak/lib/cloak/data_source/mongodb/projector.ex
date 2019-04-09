@@ -173,12 +173,9 @@ defmodule Cloak.DataSource.MongoDB.Projector do
 
   for {name, translation} <- %{
         "*" => "$multiply",
-        "/" => "$divide",
         "+" => "$add",
         "-" => "$subtract",
         "^" => "$pow",
-        "%" => "$mod",
-        "sqrt" => "$sqrt",
         "floor" => "$floor",
         "ceil" => "$ceil",
         "trunc" => "$trunc",
@@ -203,6 +200,33 @@ defmodule Cloak.DataSource.MongoDB.Projector do
         "size" => "$size"
       },
       do: defp(parse_function(unquote(name), args), do: %{unquote(translation) => args})
+
+  defp parse_function("/", [dividend, divisor]),
+    do: %{
+      "$cond": [
+        %{"$eq": [divisor, 0]},
+        nil,
+        %{"$divide": [dividend, divisor]}
+      ]
+    }
+
+  defp parse_function("%", [dividend, divisor]),
+    do: %{
+      "$cond": [
+        %{"$eq": [divisor, 0]},
+        nil,
+        %{"$mod": [dividend, divisor]}
+      ]
+    }
+
+  defp parse_function("sqrt", value),
+    do: %{
+      "$cond": [
+        %{"$lt": [value, 0]},
+        nil,
+        %{"$sqrt": value}
+      ]
+    }
 
   defp parse_function("variance", [value]), do: %{"$pow": [%{"$stdDevSamp" => [value]}, 2]}
 
@@ -231,9 +255,9 @@ defmodule Cloak.DataSource.MongoDB.Projector do
   defp parse_function("cast", [value, :text, :boolean]),
     do: %{
       "$cond": [
-        %{"$eq": [value, nil]},
-        nil,
-        %{"$cond": [%{"$in": [%{"$toLower": value}, ["true", "yes", "1"]]}, true, false]}
+        %{"$in": [%{"$toLower": value}, ["true", "yes", "1", "t", "y"]]},
+        true,
+        %{"$cond": [%{"$in": [%{"$toLower": value}, ["false", "no", "0", "f", "n"]]}, false, nil]}
       ]
     }
 

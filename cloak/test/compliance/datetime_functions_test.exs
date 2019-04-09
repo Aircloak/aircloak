@@ -41,7 +41,7 @@ Enum.each(
           |> disable_for(Cloak.DataSource.Drill, unquote(function) =~ ~r/quarter/)
           |> assert_consistent_and_not_failing("""
             SELECT
-              output
+              output, MEDIAN(0)
             FROM (
               SELECT
                 #{unquote(uid)},
@@ -49,7 +49,8 @@ Enum.each(
               FROM #{unquote(table)}
               ORDER BY 1, 2
             ) table_alias
-            ORDER BY output
+            GROUP BY 1
+            ORDER BY 1
           """)
         end
 

@@ -14,7 +14,7 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   def supported_functions(), do: ~w(
       count sum min max avg stddev variance count_distinct sum_distinct min_distinct max_distinct avg_distinct
       year quarter month day hour minute second weekday
-      sqrt floor ceil abs round trunc mod div ^ % * / + -
+      sqrt floor ceil abs round trunc mod ^ % * / + -
       length lower upper btrim/1 ltrim rtrim left right substring concat
       cast coalesce bool_op hash
     )
@@ -25,16 +25,14 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   end
 
   def function_sql("quarter", [arg]), do: ["CAST(SUBSTRING(QUARTER(", arg, "), 7, 1) AS integer)"]
-  def function_sql("%", args), do: function_sql("mod", args)
+  def function_sql("%", [arg1, arg2]), do: ["MOD(", arg1, ", NULLIF(", arg2, ", 0))"]
   def function_sql("^", args), do: function_sql("power", args)
+  def function_sql("/", [arg1, arg2]), do: ["(TO_DECIMAL(", arg1, ") / NULLIF(TO_DECIMAL(", arg2, "), 0))"]
 
   for binary_operator <- ~w(+ - *) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
 
-  def function_sql("/", [arg1, arg2]), do: ["(TO_DECIMAL(", arg1, ") / ", "TO_DECIMAL(", arg2, "))"]
-
-  def function_sql("div", [arg1, arg2]), do: ["TO_INTEGER(", arg1, "/", arg2, ")"]
   def function_sql("round", [arg]), do: ["ROUND(", arg, ", 0, ROUND_HALF_UP)"]
   def function_sql("round", [arg1, arg2]), do: ["ROUND(", arg1, ", ", arg2, ", ROUND_HALF_UP)"]
   def function_sql("trunc", [arg]), do: ["ROUND(", arg, ", 0, ROUND_DOWN)"]
@@ -58,6 +56,9 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   def function_sql("avg", [arg]), do: ["AVG(TO_DECIMAL(", arg, "))"]
   def function_sql("stddev", [arg]), do: ["STDDEV_SAMP(", arg, ")"]
   def function_sql("variance", [arg]), do: ["VAR_SAMP(", arg, ")"]
+
+  def function_sql("sqrt", [arg]), do: ["CASE WHEN ", arg, " < 0 THEN NULL ELSE SQRT(", arg, ") END"]
+
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 
   @impl Dialect
@@ -73,10 +74,26 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   def literal(value), do: Dialect.literal_default(value)
 
   @impl Dialect
-  def cast_sql(value, :real, :integer), do: ["CAST(", function_sql("round", [value]), " AS bigint)"]
+  def cast_sql(value, :real, :integer),
+    do: [
+      "CASE WHEN ABS(",
+      value,
+      ") > #{@integer_range} THEN NULL ELSE CAST(",
+      function_sql("round", [value]),
+      " AS BIGINT) END"
+    ]
 
   def cast_sql(value, from, :boolean) when from in [:real, :integer],
     do: ["CASE WHEN ", value, " != 0 THEN TRUE WHEN ", value, " = 0 THEN FALSE ELSE NULL END"]
+
+  def cast_sql(value, :text, :boolean),
+    do: [
+      "CASE WHEN TRIM(LOWER(",
+      value,
+      ")) IN ('1', 't', 'true', 'yes', 'y') THEN TRUE WHEN TRIM(LOWER(",
+      value,
+      ")) IN ('0', 'f', 'false', 'no', 'n') THEN FALSE ELSE NULL END"
+    ]
 
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 

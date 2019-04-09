@@ -257,15 +257,19 @@ defmodule Cloak.Query.Anonymizer do
     noisy_sum = sum + noise * sum_sigma - flatten
     noisy_min = edge_below + noise * edge_sigma(edge_below, avg, count) * @top_scale
     noisy_max = edge_above + noise * edge_sigma(edge_above, avg, count) * @top_scale
-    noisy_sum_sigma = sum_sigma |> scale_sigma_by_noise_layers(anonymizer) |> round_noise_sigma()
+    noise_amount = noise_amount(sum_sigma, anonymizer)
 
     cond do
       not sufficiently_large?(anonymizer, count) -> {nil, nil, nil, nil}
-      min >= 0 -> {Kernel.max(noisy_sum, 0.0), Kernel.max(noisy_min, 0.0), Kernel.max(noisy_max, 0.0), noisy_sum_sigma}
-      max <= 0 -> {Kernel.min(noisy_sum, 0.0), Kernel.min(noisy_min, 0.0), Kernel.min(noisy_max, 0.0), noisy_sum_sigma}
-      true -> {noisy_sum, noisy_min, noisy_max, noisy_sum_sigma}
+      min >= 0 -> {Kernel.max(noisy_sum, 0.0), Kernel.max(noisy_min, 0.0), Kernel.max(noisy_max, 0.0), noise_amount}
+      max <= 0 -> {Kernel.min(noisy_sum, 0.0), Kernel.min(noisy_min, 0.0), Kernel.min(noisy_max, 0.0), noise_amount}
+      true -> {noisy_sum, noisy_min, noisy_max, noise_amount}
     end
   end
+
+  @doc "Returns the actual noise amount from a dynamic anonymizer and a static noise SD."
+  @spec noise_amount(number, t) :: float
+  def noise_amount(sigma, anonymizer), do: sigma |> scale_sigma_by_noise_layers(anonymizer) |> round_noise_sigma()
 
   # -------------------------------------------------------------------
   # Internal functions
@@ -323,7 +327,7 @@ defmodule Cloak.Query.Anonymizer do
       {sum, noise_sigma_scale} ->
         noise_sigma = noise_sigma * noise_sigma_scale
         noisy_sum = Kernel.max(sum + noise * noise_sigma_scale, 0.0)
-        {{noisy_sum, noise_sigma |> scale_sigma_by_noise_layers(anonymizer) |> round_noise_sigma()}, anonymizer}
+        {{noisy_sum, noise_amount(noise_sigma, anonymizer)}, anonymizer}
     end
   end
 

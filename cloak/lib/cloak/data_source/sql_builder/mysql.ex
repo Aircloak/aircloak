@@ -14,7 +14,7 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   def supported_functions(), do: ~w(
       count sum min max avg stddev variance count_distinct sum_distinct min_distinct max_distinct avg_distinct
       year quarter month day hour minute second weekday
-      sqrt floor ceil abs round trunc div mod ^ * / + - %
+      sqrt floor ceil abs round trunc ^ * / + - %
       length lower upper btrim/1 ltrim/1 rtrim/1 left right substring concat
       hex cast coalesce hash bool_op
     )
@@ -29,7 +29,6 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   def function_sql("trunc", [arg]), do: ["TRUNCATE(", arg, ", 0)"]
   def function_sql("btrim", [arg]), do: ["TRIM(", arg, ")"]
   def function_sql("length", [arg]), do: ["CHAR_LENGTH(", arg, ")"]
-  def function_sql("div", [arg1, arg2]), do: [arg1, " DIV ", arg2]
   def function_sql("hex", [arg]), do: ["LOWER(HEX(", arg, "))"]
   def function_sql("stddev", [arg]), do: ["STDDEV_SAMP(", arg, ")"]
   def function_sql("variance", [arg]), do: ["VAR_SAMP(", arg, ")"]
@@ -39,8 +38,10 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   def function_sql("bool_op", [["N'", op, ?'], arg1, arg2]), do: ["(", arg1, " ", op, " ", arg2, ")"]
 
   def function_sql("^", [arg1, arg2]), do: ["POW(", arg1, ", ", arg2, ")"]
+  def function_sql("/", [arg1, arg2]), do: ["(", arg1, " / NULLIF(", arg2, ", 0))"]
+  def function_sql("%", [arg1, arg2]), do: ["(", arg1, " % NULLIF(", arg2, ", 0))"]
 
-  for binary_operator <- ~w(+ - * / %) do
+  for binary_operator <- ~w(+ - *) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
 
@@ -58,6 +59,9 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   def limit_sql(limit, offset), do: [" LIMIT ", to_string(offset), ", ", to_string(limit)]
 
   @impl Dialect
+  def cast_sql(value, :real, :integer),
+    do: ["CASE WHEN ABS(", value, ") > #{@integer_range} THEN NULL ELSE CAST(", value, " AS SIGNED) END"]
+
   def cast_sql(value, :integer, :boolean),
     do: ["CASE WHEN ", value, " IS NULL THEN NULL WHEN ", value, " = 0 THEN FALSE ELSE TRUE END"]
 
@@ -72,13 +76,11 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
 
   def cast_sql(value, :text, :boolean),
     do: [
-      "CASE WHEN ",
+      "CASE WHEN TRIM(LOWER(",
       value,
-      " IS NULL THEN NULL WHEN ",
+      ")) IN ('1', 't', 'true', 'yes', 'y') THEN TRUE WHEN TRIM(LOWER(",
       value,
-      " = '0' THEN FALSE WHEN LOWER(",
-      value,
-      ") = 'false' THEN FALSE ELSE TRUE END"
+      ")) IN ('0', 'f', 'false', 'no', 'n') THEN FALSE ELSE NULL END"
     ]
 
   def cast_sql(value, :boolean, :text),

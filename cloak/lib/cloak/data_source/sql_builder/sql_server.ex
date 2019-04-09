@@ -13,7 +13,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
       count sum min max avg stddev count_distinct sum_distinct min_distinct max_distinct avg_distinct stddev_distinct
       variance variance_distinct
       year quarter month day hour minute second weekday
-      sqrt floor ceil abs round trunc div mod ^ * / + - %
+      sqrt floor ceil abs round trunc mod ^ * / + - %
       length lower upper ltrim rtrim left right substring concat
       hex cast coalesce hash bool_op
     )
@@ -29,7 +29,6 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   def function_sql("trunc", [arg]), do: ["ROUND(", arg, ", 0, 1)"]
   def function_sql("trunc", [arg1, arg2]), do: ["ROUND(", arg1, ",", arg2, ", 1)"]
   def function_sql("round", [arg]), do: ["ROUND(", arg, ", 0)"]
-  def function_sql("div", [arg1, arg2]), do: ["(", arg1, " / ", arg2, ")"]
 
   def function_sql("hex", [arg]), do: ["LOWER(CONVERT(nvarchar, CAST(", arg, " AS varbinary), 2))"]
 
@@ -48,11 +47,14 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   def function_sql("substring", [arg1, arg2]), do: ["SUBSTRING(", arg1, ", ", arg2, ", LEN(", arg1, "))"]
 
   def function_sql("^", [arg1, arg2]), do: ["POWER(", cast_sql(arg1, :numeric, :real), ", ", arg2, ")"]
-  def function_sql("/", [arg1, arg2]), do: ["(", cast_sql(arg1, :numeric, :real), " / ", arg2, ")"]
+  def function_sql("/", [arg1, arg2]), do: ["(", cast_sql(arg1, :numeric, :real), " / NULLIF(", arg2, ", 0))"]
+  def function_sql("%", [arg1, arg2]), do: ["(", arg1, " % NULLIF(", arg2, ", 0))"]
 
-  for binary_operator <- ~w(+ - * %) do
+  for binary_operator <- ~w(+ - *) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
+
+  def function_sql("sqrt", [arg]), do: ["CASE WHEN ", arg, " < 0 THEN NULL ELSE SQRT(", arg, ") END"]
 
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 
@@ -79,9 +81,18 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
 
   @impl Dialect
   def cast_sql(["DISTINCT " | value], from, to), do: ["DISTINCT " | cast_sql(value, from, to)]
-  def cast_sql(value, :real, :integer), do: ["CAST(", function_sql("round", [value]), " AS bigint)"]
-  def cast_sql(value, :unknown, :text), do: ["CAST(", value, " AS varbinary)"]
-  def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
+
+  def cast_sql(value, :real, :integer),
+    do: [
+      "CASE WHEN ABS(",
+      value,
+      ") > #{@integer_range} THEN NULL ELSE CAST(",
+      function_sql("round", [value]),
+      " AS BIGINT) END"
+    ]
+
+  def cast_sql(value, :unknown, :text), do: ["TRY_CAST(", value, " AS varbinary)"]
+  def cast_sql(value, _, type), do: ["TRY_CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect
   def time_arithmetic_expression("+", [date, interval]), do: ["DATEADD(s, ", interval, ", ", date, ")"]
