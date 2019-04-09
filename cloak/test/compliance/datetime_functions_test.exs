@@ -38,7 +38,7 @@ Enum.each(
           context
           |> disable_subquery_interval(unquote(function))
           |> disable_unsupported_on_dates(unquote(function), {unquote(column), unquote(table), unquote(uid)})
-          |> disable_for(Cloak.DataSource.Drill, unquote(function) =~ ~r/quarter/)
+          |> disable_for(Cloak.DataSource.Drill, unquote(function) =~ ~r/quarter|interval/)
           |> assert_consistent_and_not_failing("""
             SELECT
               output
