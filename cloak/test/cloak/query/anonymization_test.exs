@@ -133,4 +133,111 @@ defmodule Cloak.Query.AnonymizationTest do
 
     assert c1 > 1.0 and c2 > 1.0
   end
+
+  describe "extended grouping" do
+    setup do
+      :ok = insert_rows(_user_ids = 0..10, "anonymizations", ["number", "string"], [1, "aa"])
+      :ok = insert_rows(_user_ids = 5..15, "anonymizations", ["number", "string"], [2, "ab"])
+      :ok = insert_rows(_user_ids = 5..15, "anonymizations", ["number", "string"], [3, "ba"])
+      :ok = insert_rows(_user_ids = 15..25, "anonymizations", ["number", "string"], [4, "bb"])
+    end
+
+    test "uid grouping sets" do
+      # using `median` forces uid-based anonymization
+      assert_query(
+        """
+          select
+            left(string, 1), right(string, 1), count(distinct user_id), median(number)
+          from anonymizations
+          group by grouping sets ((1, 2), 1, 2, ())
+        """,
+        %{
+          rows: [
+            %{row: ["a", "a", 11, _]},
+            %{row: ["a", "b", 11, _]},
+            %{row: ["b", "a", 11, _]},
+            %{row: ["b", "b", 11, _]},
+            %{row: ["a", nil, 16, _]},
+            %{row: ["b", nil, 21, _]},
+            %{row: [nil, "a", 16, _]},
+            %{row: [nil, "b", 21, _]},
+            %{row: [nil, nil, 26, _]}
+          ]
+        }
+      )
+    end
+
+    test "uid cube" do
+      # using `median` forces uid-based anonymization
+      assert_query(
+        """
+          select
+            left(string, 1), right(string, 1), count(distinct user_id), median(number)
+          from anonymizations
+          group by cube (1, 2)
+        """,
+        %{
+          rows: [
+            %{row: ["a", "a", 11, _]},
+            %{row: ["a", "b", 11, _]},
+            %{row: ["b", "a", 11, _]},
+            %{row: ["b", "b", 11, _]},
+            %{row: ["a", nil, 16, _]},
+            %{row: ["b", nil, 21, _]},
+            %{row: [nil, "a", 16, _]},
+            %{row: [nil, "b", 21, _]},
+            %{row: [nil, nil, 26, _]}
+          ]
+        }
+      )
+    end
+
+    test "no-uid grouping sets" do
+      assert_query(
+        """
+          select
+            left(string, 1), right(string, 1), count(distinct user_id)
+          from anonymizations
+          group by grouping sets ((1, 2), 1, 2, ())
+        """,
+        %{
+          rows: [
+            %{row: ["a", "a", 11]},
+            %{row: ["a", "b", 11]},
+            %{row: ["b", "a", 11]},
+            %{row: ["b", "b", 11]},
+            %{row: ["a", nil, 13]},
+            %{row: ["b", nil, 13]},
+            %{row: [nil, "a", 13]},
+            %{row: [nil, "b", 13]},
+            %{row: [nil, nil, 17]}
+          ]
+        }
+      )
+    end
+
+    test "no-uid cube" do
+      assert_query(
+        """
+          select
+            left(string, 1), right(string, 1), count(distinct user_id)
+          from anonymizations
+          group by cube (1, 2)
+        """,
+        %{
+          rows: [
+            %{row: ["a", "a", 11]},
+            %{row: ["a", "b", 11]},
+            %{row: ["b", "a", 11]},
+            %{row: ["b", "b", 11]},
+            %{row: ["a", nil, 13]},
+            %{row: ["b", nil, 13]},
+            %{row: [nil, "a", 13]},
+            %{row: [nil, "b", 13]},
+            %{row: [nil, nil, 17]}
+          ]
+        }
+      )
+    end
+  end
 end

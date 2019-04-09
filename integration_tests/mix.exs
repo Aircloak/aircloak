@@ -31,13 +31,14 @@ defmodule IntegrationTests.Mixfile do
       {:central, path: "../central", runtime: false},
       # resolving clashed dependencies
       {:mariaex, "~> 0.8", override: true},
-      {:ecto, "~> 2.2.0", override: true},
-      {:postgrex, "~> 0.13.0", override: true},
+      {:ecto, "~> 2.2.11", override: true},
+      {:postgrex, github: "sasa1977/postgrex", tag: "0.13.5", override: true},
       {:httpoison, "~> 0.12.0", override: true},
       {:hackney, ">= 1.8.6", override: true},
       {:parse_trans, "3.2.0", override: true},
       # Needed when running air in dev
-      {:phoenix_live_reload, "~> 1.2"}
+      {:phoenix_live_reload, "~> 1.2"},
+      {:hound, "~> 1.1"}
     ]
   end
 

@@ -14,9 +14,11 @@ defmodule Cloak.Compliance.QueryGenerator do
 
     @type from :: {:aliased_table, Map.t()} | {:table, Map.t()} | {:join, t, t} | {:subquery, t}
 
-    @type t :: %__MODULE__{from: from, complexity: integer, select_user_id?: boolean, aggregate?: boolean}
+    @type kind :: :regular | {:analyst_table, String.t()} | :analyst_table_subquery
 
-    defstruct [:from, :complexity, :select_user_id?, :aggregate?]
+    @type t :: %__MODULE__{from: from, complexity: integer, select_user_id?: boolean, aggregate?: boolean, kind: kind}
+
+    defstruct [:from, :complexity, :select_user_id?, :aggregate?, kind: :regular]
   end
 
   @max_unrestricted_functions 5
@@ -63,6 +65,7 @@ defmodule Cloak.Compliance.QueryGenerator do
   def generate_ast(tables, complexity) do
     tables
     |> generate_scaffold(complexity)
+    |> set_kind()
     |> set_select_user_id()
     |> resolve_table_name_clashes()
     |> generate_query_from_scaffold()
@@ -79,6 +82,32 @@ defmodule Cloak.Compliance.QueryGenerator do
   """
   @spec minimize(ast, (ast -> boolean)) :: ast
   def minimize(ast, fun), do: __MODULE__.Minimization.minimize(ast, fun)
+
+  @doc """
+  Splits a generated AST into the main query and analyst tables.
+
+  The analyst tables are returned in the inside-out order, so they can easily be created in the order returned.
+  """
+  @spec extract_analyst_tables(ast) :: {ast, [{String.t(), ast}]}
+  def extract_analyst_tables(ast) do
+    {analyst_tables, ast} =
+      nodes()
+      |> Lens.filter(&match?({:subquery, _, [{:query, {:analyst_table, _}, _}]}, &1))
+      |> Lens.get_and_map(ast, fn {:subquery, _, [subquery = {:query, {:analyst_table, name}, _}]} ->
+        {{name, subquery}, {:table, name, []}}
+      end)
+
+    {ast, analyst_tables}
+  end
+
+  @doc "Converts the AST to an equivalent AST with no analyst tables."
+  @spec remove_analyst_tables(ast) :: ast
+  def remove_analyst_tables(ast) do
+    update_in(ast, [nodes()], fn
+      {:query, {:analyst_table, _}, children} -> {:query, :regular, children}
+      other -> other
+    end)
+  end
 
   # -------------------------------------------------------------------
   # Scaffold generation
@@ -97,10 +126,30 @@ defmodule Cloak.Compliance.QueryGenerator do
     |> put_in([Lens.key(:aggregate?)], boolean())
   end
 
+  defp set_kind(scaffold) do
+    scaffold
+    |> update_in([sub_scaffolds()], fn scaffold ->
+      frequency(scaffold.complexity, [
+        {2, %{scaffold | kind: :regular}},
+        {1, %{scaffold | kind: {:analyst_table, name(scaffold)}}}
+      ])
+    end)
+    |> update_in([sub_scaffolds() |> Lens.filter(&analyst_table?/1) |> sub_scaffolds() |> Lens.key(:kind)], fn
+      :regular -> :analyst_table_subquery
+      other -> other
+    end)
+  end
+
+  defp analyst_table?(%{kind: {:analyst_table, _}}), do: true
+  defp analyst_table?(_), do: false
+
   defp set_select_user_id(scaffold) do
     scaffold
     |> update_in([all_scaffolds()], fn
       scaffold = %{from: {:table, _}} ->
+        %{scaffold | select_user_id?: true}
+
+      scaffold = %{kind: :analyst_table} ->
         %{scaffold | select_user_id?: true}
 
       scaffold = %{from: {:subquery, _}} ->
@@ -166,7 +215,7 @@ defmodule Cloak.Compliance.QueryGenerator do
     limit = limit(scaffold, order_by)
 
     {
-      {:query, nil,
+      {:query, scaffold.kind,
        [
          select,
          from,
@@ -294,7 +343,7 @@ defmodule Cloak.Compliance.QueryGenerator do
 
       :error ->
         frequency(context.complexity, [
-          {1, column(type, context)},
+          {if(context.aggregate?, do: 0, else: 1), column(type, context)},
           {1, constant(type, context)}
         ])
     end
@@ -362,8 +411,12 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp function_allowed?(function, context) do
     allowed_in_negative_condition?(function, context) and allowed_in_range?(function, context) and
-      allowed_in_in?(function, context) and allowed_in_function?(function, context)
+      allowed_in_in?(function, context) and allowed_in_function?(function, context) and
+      allowed_in_analyst_table?(function, context)
   end
+
+  defp allowed_in_analyst_table?(_function, %{analyst_table?: false}), do: true
+  defp allowed_in_analyst_table?({name, _, _}, %{analyst_table?: true}), do: not (name in ~w(median variance stddev))
 
   defp allowed_in_function?(_function, %{function?: false}), do: true
 
@@ -548,19 +601,21 @@ defmodule Cloak.Compliance.QueryGenerator do
   defp group_by_elements({:select, _, items}) do
     items
     |> Enum.with_index(1)
-    |> Enum.reject(fn {expression, _} -> aggregate_expression?(expression) end)
+    |> Enum.reject(fn {expression, _} -> aggregate_expression?(expression) or not column_expression?(expression) end)
     |> Enum.map(fn {_, index} -> {:integer, index, []} end)
   end
 
   defp aggregate_expression?(expression),
-    do: expression |> get_in([all_expressions()]) |> Enum.any?(&aggregate_function?/1)
-
-  deflensp all_expressions() do
-    Lens.both(Lens.index(2) |> Lens.all() |> Lens.recur(), Lens.root())
-  end
+    do: expression |> get_in([nodes()]) |> Enum.any?(&aggregate_function?/1)
 
   defp aggregate_function?({:function, name, _}), do: Function.aggregator?(name)
   defp aggregate_function?(_), do: false
+
+  defp column_expression?(expression),
+    do: expression |> get_in([nodes()]) |> Enum.any?(&column?/1)
+
+  defp column?({:column, _}), do: true
+  defp column?(_), do: false
 
   defp having(%{aggregate?: false}, _tables), do: empty()
 
@@ -670,7 +725,9 @@ defmodule Cloak.Compliance.QueryGenerator do
 
   defp empty(), do: {:empty, nil, []}
 
-  defp nodes(), do: Lens.both(Lens.root(), Lens.index(2) |> Lens.all() |> Lens.recur())
+  deflensp nodes() do
+    Lens.both(Lens.root(), Lens.index(2) |> Lens.all() |> Lens.recur())
+  end
 
   defp simplify(context), do: update_in(context, [:complexity], &div(&1, 2))
 
@@ -688,7 +745,8 @@ defmodule Cloak.Compliance.QueryGenerator do
       cast?: false,
       having?: false,
       in?: false,
-      function?: false
+      function?: false,
+      analyst_table?: match?({:analyst_table, _}, scaffold.kind) or scaffold.kind == :analyst_table_subquery
     }
   end
 end

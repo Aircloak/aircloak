@@ -646,6 +646,51 @@ defmodule Cloak.DataSource.MongoDBTest do
     )
   end
 
+  test "standard query with empty group", context do
+    assert_query(
+      context,
+      """
+        SELECT SUM(val) FROM #{@userless_table} GROUP BY ()
+      """,
+      %{rows: [%{occurrences: 1, row: [6]}]}
+    )
+  end
+
+  test "standard query that doesn't reference any columns", context do
+    assert_query(
+      context,
+      """
+        SELECT 0 + 1 AS x, 'a', TRUE FROM #{@userless_table}
+      """,
+      %{
+        rows: [
+          %{occurrences: 1, row: [1, "a", true]},
+          %{occurrences: 1, row: [1, "a", true]},
+          %{occurrences: 1, row: [1, "a", true]},
+          %{occurrences: 1, row: [1, "a", true]}
+        ]
+      }
+    )
+  end
+
+  test "standard query with grouping sets", context do
+    assert_query(
+      context,
+      """
+        SELECT val, COUNT(*) FROM #{@userless_table} GROUP BY GROUPING SETS (val, ()) ORDER BY val
+      """,
+      %{
+        rows: [
+          %{occurrences: 1, row: [1, 1]},
+          %{occurrences: 1, row: [2, 1]},
+          %{occurrences: 1, row: [3, 1]},
+          %{occurrences: 1, row: [nil, 1]},
+          %{occurrences: 1, row: [nil, 4]}
+        ]
+      }
+    )
+  end
+
   test "standard query with distinct", context do
     assert_query(context, "SELECT DISTINCT CAST(val - 1 AS boolean) AS x FROM #{@userless_table}", %{
       rows: [%{occurrences: 1, row: [nil]}, %{occurrences: 1, row: [true]}, %{occurrences: 1, row: [false]}]

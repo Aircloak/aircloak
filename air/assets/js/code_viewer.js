@@ -1,9 +1,9 @@
 // @flow
 
 import React from "react";
-import Codemirror from "react-codemirror";
+import {UnControlled as Codemirror} from "react-codemirror2";
 
-require("codemirror/mode/sql/sql");
+require("./code_editor/mode");
 
 export const CodeViewer = (props: {statement: string}) => {
   const options = {
@@ -12,7 +12,7 @@ export const CodeViewer = (props: {statement: string}) => {
     lineNumbers: true,
     lineWrapping: true,
     readOnly: true,
-    mode: "text/x-pgsql",
+    mode: "text/x-aircloak-sql",
     showCursorWhenSelecting: true,
     smartIndent: true,
     viewportMargin: Infinity,

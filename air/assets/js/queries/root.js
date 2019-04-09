@@ -60,7 +60,7 @@ export default class QueriesView extends React.PureComponent {
     super(props);
 
     this.state = {
-      statement: this.props.lastQuery ? this.props.lastQuery.statement : "",
+      statement: this.initialStatement(),
       sessionResults: this.props.pendingQueries,
       connected: true,
       dataSourceStatus: this.props.dataSourceStatus,
@@ -77,6 +77,7 @@ export default class QueriesView extends React.PureComponent {
     this.tableNames = this.tableNames.bind(this);
     this.runEnabled = this.runEnabled.bind(this);
     this.updateConnected = this.updateConnected.bind(this);
+    this.initialStatement = this.initialStatement.bind(this);
 
     this.bindKeysWithoutEditorFocus();
     this.props.frontendSocket.joinDataSourceChannel(this.props.dataSourceName, {
@@ -86,6 +87,10 @@ export default class QueriesView extends React.PureComponent {
       handleEvent: (event) => this.resultReceived(event),
     });
     this.connectedInterval = setInterval(this.updateConnected, 1000 /* 1 second */);
+  }
+
+  initialStatement() {
+    return this.props.lastQuery ? this.props.lastQuery.statement : "";
   }
 
   state: {
@@ -107,6 +112,7 @@ export default class QueriesView extends React.PureComponent {
   columnNames: () => void;
   tableNames: () => void;
   updateConnected: () => void;
+  initialStatement: () => string;
 
   runEnabled: () => boolean;
 
@@ -342,12 +348,12 @@ export default class QueriesView extends React.PureComponent {
       return (<CodeEditor
         onRun={this.runQuery}
         onChange={this.setStatement}
-        statement={this.state.statement}
+        statement={this.initialStatement()}
         tableNames={this.tableNames()}
         columnNames={this.columnNames()}
       />);
     } else {
-      return <CodeViewer statement={this.state.statement} />;
+      return <CodeViewer statement={this.initialStatement()} />;
     }
   }
 

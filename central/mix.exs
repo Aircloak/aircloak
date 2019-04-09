@@ -64,23 +64,22 @@ defmodule Central.Mixfile do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
-      {:ecto, "~> 2.2.0"},
+      {:ecto, "~> 2.2.11"},
       {:phoenix, "~> 1.4.0"},
       {:phoenix_pubsub, "~> 1.1"},
-      {:postgrex, ">= 0.0.0"},
+      {:postgrex, github: "sasa1977/postgrex", tag: "0.13.5", override: true},
       {:phoenix_ecto, "~> 3.0"},
       {:phoenix_html, "~> 2.10.0"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:gettext, "~> 0.9"},
       {:plug_cowboy, "~> 1.0"},
       {:comeonin, "~> 2.5"},
-      {:guardian, "~> 1.0.1"},
-      {:timex, "~> 3.1"},
+      {:guardian, "~> 1.2.1"},
       {:aircloak_common, path: "../common/elixir"},
       {:inflex, "~> 1.5.0"},
       {:httpoison, "~> 0.12.0"},
       {:quantum, "~> 2.2.7"},
-      {:mongodb, "~> 0.3.0"},
+      {:mongodb, github: "sasa1977/mongodb", tag: "0.3.0"},
       {:poolboy, ">= 0.0.0"},
       {:phoenix_gen_socket_client, "~> 2.0", only: :test},
       {:websocket_client, "~> 1.2.4", only: :test}
@@ -113,7 +112,7 @@ defmodule Central.Mixfile do
   defp extra_applications(:dev), do: common_extra_applications() ++ dialyzer_required_deps()
   defp extra_applications(:prod), do: common_extra_applications()
 
-  defp common_extra_applications(), do: [:logger, :inets, :crontab]
+  defp common_extra_applications(), do: [:logger, :inets, :crontab, :timex]
 
   # These are indirect dependencies (deps of deps) which are not automatically included in the generated PLT.
   # By adding them explicitly to the applications list, we make sure that they are included in the PLT.

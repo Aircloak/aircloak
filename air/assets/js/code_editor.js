@@ -1,8 +1,10 @@
 // @flow
 
 import React from "react";
-import Codemirror from "react-codemirror";
+import {UnControlled as Codemirror} from "react-codemirror2";
 import $ from "jquery";
+import _ from "lodash";
+import Editor from "codemirror";
 
 import completions from "./code_editor/completion";
 
@@ -22,46 +24,52 @@ type Props = {
 export class CodeEditor extends React.Component {
   constructor(props: Props) {
     super(props);
-    this.setupComponent = this.setupComponent.bind(this);
     this.completionList = this.completionList.bind(this);
+    this.run = this.run.bind(this);
+    this.showHint = this.showHint.bind(this);
+    this.onChange = this.onChange.bind(this);
+    this.editorDidMount = this.editorDidMount.bind(this);
+    this.editor = null;
     window.insertWordInEditor = this.insertWordInEditor.bind(this);
     window.showErrorLocation = this.showErrorLocation.bind(this);
     window.clearErrorLocation = this.clearErrorLocation.bind(this);
   }
 
   props: Props;
-  setupComponent: () => void;
   reactCodeMirrorComponent: Codemirror;
   codeMirrorClass: () => Codemirror;
   completionList: () => void;
+  showHint: () => void;
+  onChange: () => void;
+  editorDidMount: () => void;
+  run: () => void;
   insertWordInEditor: () => void;
   showErrorLocation: () => void;
   clearErrorLocation: () => void;
   errorMarker: null;
+  editor: Editor;
 
-  setupComponent(codeMirrorComponent: {getCodeMirrorInstance: () => Codemirror}) {
-    // This appears to happen when the component disappears
-    if (codeMirrorComponent === null) return;
-
-    const codeMirrorClass = codeMirrorComponent.getCodeMirrorInstance();
-    codeMirrorClass.commands.run = (_cm) => {
-      this.props.onRun();
-    };
-    codeMirrorClass.commands.autoComplete = (cm) => {
-      cm.showHint({hint: this.completionList});
-    };
-
-    this.reactCodeMirrorComponent = codeMirrorComponent;
-    this.codeMirrorClass = codeMirrorClass;
+  run() {
+    this.props.onRun();
   }
 
-  completionList(cm: Codemirror) {
+  showHint(editor: Editor) {
+    editor.showHint({hint: this.completionList});
+  }
+
+  onChange(editor: Editor) {
+    this.props.onChange(editor.getValue());
+  }
+
+  editorDidMount(editor: Editor) {
+    this.editor = editor;
+  }
+
+  completionList(cm: Editor) {
     return completions(
       cm.getLine(cm.getCursor().line),
       cm.getCursor().ch,
-      /* eslint-disable new-cap */
-      (pos) => this.codeMirrorClass.Pos(cm.getCursor().line, pos),
-      /* eslint-enable new-cap */
+      (pos) => _.merge({}, cm.getCursor(), {ch: pos}),
       this.props.tableNames,
       this.props.columnNames,
       this.props.statement,
@@ -69,10 +77,9 @@ export class CodeEditor extends React.Component {
   }
 
   insertWordInEditor(word: String) {
-    const editor = this.reactCodeMirrorComponent.getCodeMirror();
-    const doc = editor.getDoc();
+    const doc = this.editor.getDoc();
     doc.replaceSelection(word);
-    editor.focus();
+    this.editor.focus();
   }
 
   clearErrorLocation() {
@@ -84,8 +91,7 @@ export class CodeEditor extends React.Component {
 
   showErrorLocation(line: number, ch: number) {
     this.clearErrorLocation();
-    const editor = this.reactCodeMirrorComponent.getCodeMirror();
-    const doc = editor.getDoc();
+    const doc = this.editor.getDoc();
     this.errorMarker = doc.markText({line, ch}, {line, ch: ch + 1}, {className: "error-location"});
   }
 
@@ -107,18 +113,19 @@ export class CodeEditor extends React.Component {
     $.extend(options, {
       autofocus: true,
       extraKeys: {
-        "Ctrl-Enter": "run",
-        "Cmd-Enter": "run",
-        "Ctrl-Space": "autoComplete",
-        "Cmd-Space": "autoComplete",
+        "Ctrl-Enter": this.run,
+        "Cmd-Enter": this.run,
+        "Ctrl-Space": this.showHint,
+        "Cmd-Space": this.showHint,
       },
     });
 
     return (
       <Codemirror
-        ref={this.setupComponent}
+        ref={(codeMirror) => { window.codeMirror = codeMirror; }}
         value={this.props.statement}
-        onChange={this.props.onChange}
+        editorDidMount={this.editorDidMount}
+        onChange={this.onChange}
         options={options}
       />
     );
