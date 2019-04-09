@@ -111,10 +111,9 @@ defmodule IntegrationTest.AcceptanceHelper do
     end)
   end
 
-  def query_data_source(name, query) do
+  def visit_data_source(name) do
     click({:xpath, "//nav//a[text()='Data sources']"})
     click({:xpath, "//a[text()='#{name}']"})
-    execute_script("window.codeMirror.editor.setValue('#{query}')")
   end
 
   def random_string(), do: :crypto.strong_rand_bytes(10) |> Base.encode64(padding: false)
