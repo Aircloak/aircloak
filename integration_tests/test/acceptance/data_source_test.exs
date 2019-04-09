@@ -1,4 +1,4 @@
-defmodule IntegrationTest.Acceptance.QueryTest do
+defmodule IntegrationTest.Acceptance.DataSourceTest do
   use IntegrationTest.AcceptanceCase, async: true
 
   test "running a query" do
