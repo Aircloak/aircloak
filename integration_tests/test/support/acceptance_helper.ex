@@ -41,7 +41,7 @@ defmodule IntegrationTest.AcceptanceHelper do
     fun = if is_nil(parent), do: &search_element/3, else: &search_within_element(parent, &1, &2, &3)
 
     case fun.(strategy, selector, Keyword.get(opts, :retries, 10)) do
-      {:ok, _} -> true
+      {:ok, element} -> element_displayed?(element)
       {:error, _} -> false
     end
   end
