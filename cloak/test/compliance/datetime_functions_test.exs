@@ -38,10 +38,10 @@ Enum.each(
           context
           |> disable_subquery_interval(unquote(function))
           |> disable_unsupported_on_dates(unquote(function), {unquote(column), unquote(table), unquote(uid)})
-          |> disable_for(Cloak.DataSource.Drill, unquote(function) =~ ~r/quarter|interval/)
+          |> disable_for(Cloak.DataSource.Drill, unquote(function) =~ ~r/quarter/)
           |> assert_consistent_and_not_failing("""
             SELECT
-              output
+              output, MEDIAN(0)
             FROM (
               SELECT
                 #{unquote(uid)},
@@ -49,7 +49,8 @@ Enum.each(
               FROM #{unquote(table)}
               ORDER BY 1, 2
             ) table_alias
-            ORDER BY output
+            GROUP BY 1
+            ORDER BY 1
           """)
         end
 
