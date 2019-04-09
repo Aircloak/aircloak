@@ -80,10 +80,57 @@ defmodule IntegrationTest.Acceptance.DataSourceTest do
     assert_has(:xpath, "//*[text()='yet_another_query']")
   end
 
+  test "sharing the query result publicly" do
+    login_as_admin()
+    visit_data_source(IntegrationTest.Manager.data_source_name())
+    link = run_query_and_share_result("show tables", "Public link")
+
+    in_another_session(fn ->
+      navigate_to(link)
+      assert_has(:xpath, "//td[text()='aircloak_admin']")
+      assert_has(:xpath, ".//td[text()='integers']")
+      assert_has(:xpath, ".//td[text()='users']")
+      refute_has(:xpath, "//a[text()='Share']")
+    end)
+  end
+
+  test "sharing the query result privately" do
+    login_as_admin()
+    visit_data_source(IntegrationTest.Manager.data_source_name())
+    link = run_query_and_share_result("show tables", "Private link")
+
+    # user with proper permission can visit the link
+    navigate_to(link)
+    assert_has(:xpath, "//td[text()='aircloak_admin']")
+    assert_has(:xpath, ".//td[text()='integers']")
+    assert_has(:xpath, ".//td[text()='users']")
+
+    # user must be logged in
+    in_another_session(fn ->
+      navigate_to(link)
+      assert_has(:xpath, "//*[text()='You must be authenticated to view this page']")
+    end)
+
+    # user must have proper permissions
+    in_another_session(fn ->
+      user = create_user()
+      login(user.login, user.password)
+      navigate_to(link)
+      assert_has(:xpath, "//*[text()='The page could not be found']")
+    end)
+  end
+
   defp start_query(text) do
     set_query_text(text)
     click({:xpath, "//button[text()='Run']"})
   end
 
   defp set_query_text(text), do: execute_script("window.codeMirror.editor.setValue('#{text}')")
+
+  defp run_query_and_share_result(query, share_caption) do
+    start_query(query)
+    assert_has(:css, ".panel-success")
+    click({:xpath, "//a[text()='Share']"})
+    attribute_value({:xpath, "//*[@class='modal-body']//label[text()='#{share_caption}']//../input"}, "value")
+  end
 end
