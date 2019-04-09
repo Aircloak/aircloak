@@ -3,7 +3,7 @@
   "name": "drill",
   "encoded": false,
   "parameters": {
-    "hostname": "drill1.13",
+    "hostname": "drill1.15",
     "database": "dfs.cloak_compliance",
     "workspace": "cloak_compliance",
     "data_dir": "ci/data",

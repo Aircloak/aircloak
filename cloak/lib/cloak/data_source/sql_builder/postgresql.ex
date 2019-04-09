@@ -53,6 +53,9 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   @impl Dialect
   def cast_sql(value, :boolean, :integer), do: cast_sql(value, :boolean, :int32)
 
+  def cast_sql(value, :real, :integer),
+    do: ["CASE WHEN ABS(", value, ") > #{@integer_range} THEN NULL ELSE CAST(", value, " AS BIGINT) END"]
+
   def cast_sql(value, :boolean, :real), do: value |> cast_sql(:boolean, :integer) |> cast_sql(:integer, :real)
 
   def cast_sql(value, :integer, :boolean),
@@ -65,6 +68,15 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
       " IS NULL THEN NULL WHEN ",
       value,
       " = 0.0 THEN FALSE ELSE TRUE END"
+    ]
+
+  def cast_sql(value, :text, :boolean),
+    do: [
+      "CASE WHEN TRIM(LOWER(",
+      value,
+      ")) IN ('1', 't', 'true', 'yes', 'y') THEN TRUE WHEN TRIM(LOWER(",
+      value,
+      ")) IN ('0', 'f', 'false', 'no', 'n') THEN FALSE ELSE NULL END"
     ]
 
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]

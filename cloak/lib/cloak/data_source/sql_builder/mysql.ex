@@ -59,6 +59,9 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
   def limit_sql(limit, offset), do: [" LIMIT ", to_string(offset), ", ", to_string(limit)]
 
   @impl Dialect
+  def cast_sql(value, :real, :integer),
+    do: ["CASE WHEN ABS(", value, ") > #{@integer_range} THEN NULL ELSE CAST(", value, " AS SIGNED) END"]
+
   def cast_sql(value, :integer, :boolean),
     do: ["CASE WHEN ", value, " IS NULL THEN NULL WHEN ", value, " = 0 THEN FALSE ELSE TRUE END"]
 
@@ -73,13 +76,11 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
 
   def cast_sql(value, :text, :boolean),
     do: [
-      "CASE WHEN ",
+      "CASE WHEN TRIM(LOWER(",
       value,
-      " IS NULL THEN NULL WHEN ",
+      ")) IN ('1', 't', 'true', 'yes', 'y') THEN TRUE WHEN TRIM(LOWER(",
       value,
-      " = '0' THEN FALSE WHEN LOWER(",
-      value,
-      ") = 'false' THEN FALSE ELSE TRUE END"
+      ")) IN ('0', 'f', 'false', 'no', 'n') THEN FALSE ELSE NULL END"
     ]
 
   def cast_sql(value, :boolean, :text),
