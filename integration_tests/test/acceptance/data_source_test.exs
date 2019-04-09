@@ -1,6 +1,33 @@
 defmodule IntegrationTest.Acceptance.DataSourceTest do
   use IntegrationTest.AcceptanceCase, async: true
 
+  test "tables panel contains a list of tables" do
+    login_as_admin()
+    visit_data_source(IntegrationTest.Manager.data_source_name())
+    tables_panel = find_element(:xpath, ".//div[./div/strong[text()='Tables and views']]")
+    assert_has(tables_panel, :xpath, ".//*[text()='integers']")
+    assert_has(tables_panel, :xpath, ".//*[text()='users']")
+  end
+
+  test "table contains the list of columns" do
+    login_as_admin()
+    visit_data_source(IntegrationTest.Manager.data_source_name())
+    user_table_entry = find_element(:xpath, ".//div[./div/strong[text()='Tables and views']]//*[text()='users']/..")
+    click(user_table_entry)
+    assert_has(user_table_entry, :xpath, ".//td[text()='name']")
+    assert_has(user_table_entry, :xpath, ".//td[text()='height']")
+  end
+
+  test "filtering the list of columns" do
+    login_as_admin()
+    visit_data_source(IntegrationTest.Manager.data_source_name())
+    user_table_entry = find_element(:xpath, ".//div[./div/strong[text()='Tables and views']]//*[text()='users']/..")
+    click(user_table_entry)
+    fill_field({:xpath, "//input[@placeholder='Filter columns']"}, "heig")
+    refute_has(user_table_entry, :xpath, ".//td[text()='name']")
+    assert_has(user_table_entry, :xpath, ".//td[text()='height']")
+  end
+
   test "running a query" do
     login_as_admin()
     visit_data_source(IntegrationTest.Manager.data_source_name())

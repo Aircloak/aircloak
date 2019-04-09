@@ -19,26 +19,28 @@ defmodule IntegrationTest.AcceptanceHelper do
     end
   end
 
-  defmacro assert_has(strategy, selector) do
-    quote bind_quoted: [strategy: strategy, selector: selector] do
-      unless eventually_exists?(strategy, selector) do
+  defmacro assert_has(parent \\ nil, strategy, selector) do
+    quote bind_quoted: [parent: parent, strategy: strategy, selector: selector] do
+      unless eventually_exists?(parent, strategy, selector) do
         take_screenshot("./browser_test/screenshots/error_#{:erlang.unique_integer([:monotonic, :positive])}.png")
         flunk("Element #{inspect({strategy, selector})} is not present")
       end
     end
   end
 
-  defmacro refute_has(strategy, selector) do
-    quote bind_quoted: [strategy: strategy, selector: selector] do
-      if eventually_exists?(strategy, selector, retries: 1) do
+  defmacro refute_has(parent \\ nil, strategy, selector) do
+    quote bind_quoted: [parent: parent, strategy: strategy, selector: selector] do
+      if eventually_exists?(parent, strategy, selector, retries: 1) do
         take_screenshot("./browser_test/screenshots/error_#{:erlang.unique_integer([:monotonic, :positive])}.png")
         flunk("Element #{inspect({strategy, selector})} is present")
       end
     end
   end
 
-  def eventually_exists?(strategy, selector, opts \\ []) do
-    case search_element(strategy, selector, Keyword.get(opts, :retries, 10)) do
+  def eventually_exists?(parent \\ nil, strategy, selector, opts \\ []) do
+    fun = if is_nil(parent), do: &search_element/3, else: &search_within_element(parent, &1, &2, &3)
+
+    case fun.(strategy, selector, Keyword.get(opts, :retries, 10)) do
       {:ok, _} -> true
       {:error, _} -> false
     end
