@@ -1,0 +1,9 @@
+use Mix.Config
+
+# configuration for the local chromedriver (i.e. without a docker image)
+config :hound,
+  driver: "chrome_driver",
+  port: 9515,
+  # you can also use browser: "chrome" for visual debugging
+  browser: "chrome_headless",
+  path_prefix: nil
