@@ -16,7 +16,8 @@
 <%= if @ldap_enabled do %>
   <h2>
     LDAP Users
-    <%= link("Sync now", to: "#", class: "btn btn-primary btn-sm pull-right") %>
+    <%= link("Sync now", to: admin_user_path(@conn, :sync_ldap), method: :post,
+          class: "btn btn-primary btn-sm pull-right") %>
   </h2>
 
   <%= if length(@disabled_ldap_users) > 0 do %>

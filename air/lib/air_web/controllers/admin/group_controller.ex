@@ -88,6 +88,14 @@ defmodule AirWeb.Admin.GroupController do
     end)
   end
 
+  def sync_ldap(conn, _params) do
+    case LDAP.sync() do
+      :ok -> put_flash(conn, :info, "LDAP sync finished")
+      {:error, error} -> put_flash(conn, :error, "LDAP sync failed, reason: #{inspect(error)}.")
+    end
+    |> redirect(to: admin_group_path(conn, :index))
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
