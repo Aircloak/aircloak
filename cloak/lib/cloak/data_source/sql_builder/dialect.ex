@@ -67,6 +67,7 @@ defmodule Cloak.DataSource.SqlBuilder.Dialect do
       @behaviour unquote(__MODULE__)
 
       @integer_range 9_223_372_036_854_775_807
+      @is_integer_regex "^\\s*-?\\d{1,18}\\s*$"
 
       @impl unquote(__MODULE__)
       def select_hints(), do: ""
