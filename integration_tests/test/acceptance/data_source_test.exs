@@ -100,10 +100,14 @@ defmodule IntegrationTest.Acceptance.DataSourceTest do
     link = run_query_and_share_result("show tables", "Private link")
 
     # user with proper permission can visit the link
-    navigate_to(link)
-    assert_has(:xpath, "//td[text()='aircloak_admin']")
-    assert_has(:xpath, ".//td[text()='integers']")
-    assert_has(:xpath, ".//td[text()='users']")
+    in_another_session(fn ->
+      another_admin = IntegrationTest.Manager.create_admin_user()
+      login(hd(another_admin.logins).login, IntegrationTest.Manager.user_password())
+      navigate_to(link)
+      assert_has(:xpath, "//td[text()='aircloak_admin']")
+      assert_has(:xpath, ".//td[text()='integers']")
+      assert_has(:xpath, ".//td[text()='users']")
+    end)
 
     # user must be logged in
     in_another_session(fn ->
