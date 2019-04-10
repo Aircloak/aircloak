@@ -5,10 +5,21 @@
 
 <%= render("_list.html", conn: @conn, groups: @groups) %>
 
-<%= if length(@ldap_groups) > 0 do %>
-  <h2>LDAP Groups</h2>
-  <div class="alert alert-info">
-    These groups and their membership are managed in LDAP. You can only assign them to data sources here.
-  </div>
-  <%= render("_list.html", conn: @conn, groups: @ldap_groups) %>
+<%= if @ldap_enabled? do %>
+  <h2>
+    LDAP Groups
+
+    <%= link("Sync now", to: "#", class: "btn btn-primary btn-sm pull-right") %>
+  </h2>
+
+  <%= if length(@ldap_groups) > 0 do %>
+    <div class="alert alert-info">
+      These groups and their membership are managed in LDAP. You can only assign them to data sources here.
+    </div>
+    <%= render("_list.html", conn: @conn, groups: @ldap_groups) %>
+  <% else %>
+    <div class="alert alert-info">
+      No LDAP groups synced.
+    </div>
+  <% end %>
 <% end %>

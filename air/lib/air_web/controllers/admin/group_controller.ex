@@ -2,7 +2,7 @@ defmodule AirWeb.Admin.GroupController do
   @moduledoc false
   use Air.Web, :admin_controller
 
-  alias Air.Service.{DataSource, User}
+  alias Air.Service.{DataSource, User, LDAP}
 
   plug(:load_group when action in [:edit, :update, :delete])
 
@@ -22,7 +22,7 @@ defmodule AirWeb.Admin.GroupController do
 
   def index(conn, _params) do
     {groups, ldap_groups} = User.all_groups() |> Enum.sort_by(& &1.name) |> Enum.split_with(&(&1.source == :native))
-    render(conn, "index.html", groups: groups, ldap_groups: ldap_groups)
+    render(conn, "index.html", groups: groups, ldap_enabled?: LDAP.enabled?(), ldap_groups: ldap_groups)
   end
 
   def new(conn, _params),

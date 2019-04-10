@@ -2,7 +2,7 @@ defmodule AirWeb.Admin.UserController do
   @moduledoc false
   use Air.Web, :admin_controller
 
-  alias Air.Service.User
+  alias Air.Service.{User, LDAP}
 
   plug(:load_user when action in [:edit, :update, :delete, :disable, :enable, :reset_password, :delete_sessions])
 
@@ -34,6 +34,7 @@ defmodule AirWeb.Admin.UserController do
       "index.html",
       enabled_users: enabled_users,
       disabled_users: disabled_users,
+      ldap_enabled: LDAP.enabled?(),
       enabled_ldap_users: enabled_ldap_users,
       disabled_ldap_users: disabled_ldap_users,
       data_sources_count: User.data_sources_count()
