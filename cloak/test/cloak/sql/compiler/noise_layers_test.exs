@@ -518,8 +518,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
         assert [
                  static_layer({"table", "name", nil}),
                  uid_layer({"table", "name", nil}),
-                 static_layer({"table", "name", {:not, _, _, :override}}),
-                 uid_layer({"table", "name", {:not, _, _, :override}})
+                 static_layer({"table", "name", {:<>, :override}}),
+                 uid_layer({"table", "name", {:<>, :override}})
                ] = result.noise_layers
       end
     end
@@ -577,172 +577,62 @@ defmodule Cloak.Sql.Compiler.NoiseLayers.Test do
 
   describe "noise layers for LIKE" do
     test "a noise layers in LIKE" do
-      result = compile!("SELECT MEDIAN(uid) FROM table WHERE name || name2 LIKE 'b%_o_%b'")
-      len = String.length("b%_o_%b") - String.length("%%")
+      result1 = compile!("SELECT MEDIAN(uid) FROM table WHERE name || name2 LIKE 'b%_o_%b'")
+      result2 = compile!("SELECT MEDIAN(uid) FROM table WHERE name || name2 = 'abc'")
 
-      assert [
-               %{base: {"table", "name", nil}, expressions: [%Expression{name: "name"}, _, _]},
-               %{
-                 base: {"table", "name", {:like, {:%, ^len, 1}}},
-                 expressions: [%{name: "name"}, _, _, %{name: "uid"}]
-               },
-               %{
-                 base: {"table", "name", {:like, {:_, ^len, 1}}},
-                 expressions: [%{name: "name"}, _, _, %{name: "uid"}]
-               },
-               %{
-                 base: {"table", "name", {:like, {:%, ^len, 3}}},
-                 expressions: [%{name: "name"}, _, _, %{name: "uid"}]
-               },
-               %{
-                 base: {"table", "name", {:like, {:_, ^len, 3}}},
-                 expressions: [%{name: "name"}, _, _, %{name: "uid"}]
-               },
-               %{base: {"table", "name2", nil}, expressions: [%Expression{name: "name2"}, _, _]},
-               %{
-                 base: {"table", "name2", {:like, {:%, ^len, 1}}},
-                 expressions: [%{name: "name2"}, _, _, %{name: "uid"}]
-               },
-               %{
-                 base: {"table", "name2", {:like, {:_, ^len, 1}}},
-                 expressions: [%{name: "name2"}, _, _, %{name: "uid"}]
-               },
-               %{
-                 base: {"table", "name2", {:like, {:%, ^len, 3}}},
-                 expressions: [%{name: "name2"}, _, _, %{name: "uid"}]
-               },
-               %{
-                 base: {"table", "name2", {:like, {:_, ^len, 3}}},
-                 expressions: [%{name: "name2"}, _, _, %{name: "uid"}]
-               }
-             ] = result.noise_layers
+      assert result1.noise_layers == result2.noise_layers
     end
 
     test "noise layers in ILIKE" do
-      result = compile!("SELECT MEDIAN(uid) FROM table WHERE name || name2 ILIKE 'b%_o_%b'")
-      len = String.length("b%_o_%b") - String.length("%%")
+      result1 = compile!("SELECT MEDIAN(uid) FROM table WHERE name || name2 ILIKE 'b%_o_%b'")
+      result2 = compile!("SELECT MEDIAN(uid) FROM table WHERE name || name2 = 'abc'")
 
-      assert [
-               %{base: {"table", "name", nil}, expressions: [%Expression{name: "name"}, _, _]},
-               %{
-                 base: {"table", "name", {:ilike, {:%, ^len, 1}}},
-                 expressions: [%{name: "name"}, _, _, %{name: "uid"}]
-               },
-               %{
-                 base: {"table", "name", {:ilike, {:_, ^len, 1}}},
-                 expressions: [%{name: "name"}, _, _, %{name: "uid"}]
-               },
-               %{
-                 base: {"table", "name", {:ilike, {:%, ^len, 3}}},
-                 expressions: [%{name: "name"}, _, _, %{name: "uid"}]
-               },
-               %{
-                 base: {"table", "name", {:ilike, {:_, ^len, 3}}},
-                 expressions: [%{name: "name"}, _, _, %{name: "uid"}]
-               },
-               %{base: {"table", "name2", nil}, expressions: [%Expression{name: "name2"}, _, _]},
-               %{
-                 base: {"table", "name2", {:ilike, {:%, ^len, 1}}},
-                 expressions: [%{name: "name2"}, _, _, %{name: "uid"}]
-               },
-               %{
-                 base: {"table", "name2", {:ilike, {:_, ^len, 1}}},
-                 expressions: [%{name: "name2"}, _, _, %{name: "uid"}]
-               },
-               %{
-                 base: {"table", "name2", {:ilike, {:%, ^len, 3}}},
-                 expressions: [%{name: "name2"}, _, _, %{name: "uid"}]
-               },
-               %{
-                 base: {"table", "name2", {:ilike, {:_, ^len, 3}}},
-                 expressions: [%{name: "name2"}, _, _, %{name: "uid"}]
-               }
-             ] = result.noise_layers
+      assert result1.noise_layers == result2.noise_layers
     end
 
     test "noise layers when LIKE has no wildcards" do
-      [
-        %{base: base1, expressions: [%{value: "bob"}, _, _]},
-        %{base: base2, expressions: [%{value: "bob"}, _, _, %{name: "uid"}]}
-      ] = compile!("SELECT MEDIAN(uid) FROM table WHERE name LIKE 'bob'").noise_layers
+      result1 = compile!("SELECT MEDIAN(uid) FROM table WHERE name LIKE 'bob'")
+      result2 = compile!("SELECT MEDIAN(uid) FROM table WHERE name = 'bob'")
 
-      assert [
-               %{base: ^base1, expressions: [%{value: "bob"}, _, _]},
-               %{base: ^base2, expressions: [%{value: "bob"}, _, _, %{name: "uid"}]}
-             ] = compile!("SELECT MEDIAN(uid) FROM table WHERE name = 'bob'").noise_layers
+      assert result1.noise_layers == result2.noise_layers
     end
 
     for column <- ~w(string uid) do
       test "noise layers when ILIKE has no wildcards (col: #{column})" do
-        [
-          %{base: base1, expressions: [%{name: unquote(column)}, _, _]},
-          %{base: base2, expressions: [%{name: unquote(column)}, _, _, %{name: "uid"}]}
-        ] =
-          compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE #{unquote(column)} ILIKE 'bob'").noise_layers
+        result1 = compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE #{unquote(column)} ILIKE 'bob'")
+        result2 = compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE lower(#{unquote(column)}) = 'bob'")
 
-        assert [
-                 %{base: ^base1, expressions: [%{value: "bob"}, _, _]},
-                 %{base: ^base2, expressions: [%{value: "bob"}, _, _, %{name: "uid"}]}
-               ] =
-                 compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE #{unquote(column)} = 'bob'").noise_layers
+        assert result1.noise_layers == result2.noise_layers
       end
 
       test "noise layers for NOT LIKE (col: #{column})" do
-        result = compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE #{unquote(column)} NOT LIKE '_bob%'")
+        result1 = compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE #{unquote(column)} NOT LIKE '_bob%'")
+        result2 = compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE trim(#{unquote(column)}) = 'bob'")
 
-        len = String.length("_bob%") - String.length("%")
-
-        assert [
-                 %{
-                   base: {"string_uid_table", column, {:not, :like, "_bob"}},
-                   expressions: [%Expression{name: column}, _, _]
-                 },
-                 %{
-                   base: {"string_uid_table", column, {:not, :like, {:_, ^len, 0}}},
-                   expressions: [%{name: column}, _, _, %{name: "uid"}]
-                 },
-                 %{
-                   base: {"string_uid_table", column, {:not, :like, {:%, ^len, 4}}},
-                   expressions: [%{name: column}, _, _, %{name: "uid"}]
-                 }
-               ] = result.noise_layers
+        assert result1.noise_layers ==
+                 update_in(result2.noise_layers, [Lens.all() |> Lens.key(:base) |> Lens.index(2)], fn nil -> :<> end)
       end
 
       test "noise layers for NOT ILIKE (col: #{column})" do
-        result = compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE #{unquote(column)} NOT ILIKE '_bob%'")
+        result1 = compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE #{unquote(column)} NOT ILIKE '_bo%'")
+        result2 = compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE trim(#{unquote(column)}) = 'bob'")
 
-        len = String.length("_bob%") - String.length("%")
-
-        assert [
-                 %{
-                   base: {"string_uid_table", column, {:not, :ilike, "_bob"}},
-                   expressions: [%Expression{name: column}, _, _]
-                 },
-                 %{
-                   base: {"string_uid_table", column, {:not, :ilike, {:_, ^len, 0}}},
-                   expressions: [%{name: column}, _, _, %{name: "uid"}]
-                 },
-                 %{
-                   base: {"string_uid_table", column, {:not, :ilike, {:%, ^len, 4}}},
-                   expressions: [%{name: column}, _, _, %{name: "uid"}]
-                 }
-               ] = result.noise_layers
+        assert result1.noise_layers ==
+                 update_in(result2.noise_layers, [Lens.all() |> Lens.key(:base) |> Lens.index(2)], fn nil -> :<> end)
       end
 
       test "noise layers when NOT LIKE has no wildcards (col: #{column})" do
         result1 = compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE #{unquote(column)} NOT LIKE 'bob'")
-
         result2 = compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE #{unquote(column)} <> 'bob'")
 
-        assert Enum.map(result1.noise_layers, & &1.base) == Enum.map(result2.noise_layers, & &1.base)
+        assert result1.noise_layers == result2.noise_layers
       end
 
       test "noise layers when NOT ILIKE has no wildcards (col: #{column})" do
         result1 = compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE #{unquote(column)} NOT ILIKE 'bOb'")
-
         result2 = compile!("SELECT MEDIAN(length(uid)) FROM string_uid_table WHERE lower(#{unquote(column)}) <> 'bob'")
 
-        assert Enum.map(result1.noise_layers, & &1.base) == Enum.map(result2.noise_layers, & &1.base)
+        assert result1.noise_layers == result2.noise_layers
       end
     end
   end
