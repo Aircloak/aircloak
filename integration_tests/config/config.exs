@@ -28,3 +28,7 @@ config :hound,
 import_config "air.exs"
 import_config "cloak.exs"
 import_config "central.exs"
+
+if File.exists?("config/#{Mix.env()}.local.exs") do
+  import_config "#{Mix.env()}.local.exs"
+end

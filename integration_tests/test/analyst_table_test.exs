@@ -14,7 +14,7 @@ defmodule IntegrationTest.AnalystTableTest do
       &cloak_data_source.driver.execute!(&1, "truncate table __ac_analyst_tables_1")
     )
 
-    {:ok, user: Manager.create_air_user()}
+    {:ok, user: Manager.create_admin_user()}
   end
 
   test "supports flag is passed to air and stored in database",
@@ -130,7 +130,7 @@ defmodule IntegrationTest.AnalystTableTest do
   test "failed update when other user", context do
     name = unique_name()
     new_name = unique_name()
-    other_user = Manager.create_air_user()
+    other_user = Manager.create_admin_user()
 
     {:ok, table} = create_table(context.user, name, "select user_id, name from users")
     assert {:error, :not_allowed} = update_table(table.id, other_user, new_name, "select user_id from users")
@@ -244,7 +244,7 @@ defmodule IntegrationTest.AnalystTableTest do
   end
 
   test "analyst tables are deleted if the user is deleted" do
-    user = Manager.create_air_user()
+    user = Manager.create_admin_user()
     {:ok, cloak_data_source} = Cloak.DataSource.fetch(Manager.data_source().name)
 
     tables =

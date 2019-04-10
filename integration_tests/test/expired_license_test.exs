@@ -6,7 +6,7 @@ defmodule IntegrationTest.ExpiredLicenseTest do
   test "querying when license is invalid fails" do
     Manager.load_expired_license()
     on_exit(fn -> Manager.load_valid_license() end)
-    {:ok, conn} = connect(Manager.create_air_user())
+    {:ok, conn} = connect(Manager.create_admin_user())
 
     assert {:error, %{postgres: %{message: message}}} = Postgrex.query(conn, "select * from users", [])
 

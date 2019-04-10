@@ -4,7 +4,7 @@ defmodule IntegrationTest.OdbcTest do
   alias IntegrationTest.Manager
 
   setup do
-    {:ok, user: Manager.create_air_user()}
+    {:ok, user: Manager.create_admin_user()}
   end
 
   test "invalid connect params", context do
