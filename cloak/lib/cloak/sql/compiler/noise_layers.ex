@@ -1,7 +1,7 @@
 defmodule Cloak.Sql.Compiler.NoiseLayers do
   @moduledoc "Contains functions related to compilation of noise layers."
 
-  alias Cloak.Sql.{Expression, Query, NoiseLayer, Condition, LikePattern, Range}
+  alias Cloak.Sql.{Expression, Query, NoiseLayer, Condition, Range}
   alias Cloak.Sql.Compiler.Helpers
 
   use Lens.Macros
@@ -223,8 +223,8 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         clear_noise_layers(query, top_level_uid) ++
         unclear_noise_layers(query, top_level_uid) ++
         in_noise_layers(query, top_level_uid) ++
-        like_noise_layers(query, top_level_uid) ++
-        range_noise_layers(query, top_level_uid) ++ not_equals_noise_layers(query, top_level_uid)
+        range_noise_layers(query, top_level_uid) ++
+        not_equals_noise_layers(query, top_level_uid) ++ not_like_noise_layers(query, top_level_uid)
 
     %Query{query | noise_layers: finalize(noise_layers, query)}
   end
@@ -314,12 +314,12 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
         ]
       end)
 
-  defp unclear_noise_layers(query, top_level_uid),
-    do:
-      query
-      |> unclear_conditions()
-      |> raw_columns(query)
-      |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
+  defp unclear_noise_layers(query, top_level_uid) do
+    query
+    |> unclear_conditions()
+    |> raw_columns(query)
+    |> Enum.flat_map(&[static_noise_layer(&1, &1), uid_noise_layer(&1, &1, top_level_uid)])
+  end
 
   defp in_noise_layers(query, top_level_uid),
     do:
@@ -395,75 +395,24 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     do: Expression.constant(:text, String.downcase(value))
 
   # -------------------------------------------------------------------
-  # LIKE noise layers
+  # NOT LIKE noise layers
   # -------------------------------------------------------------------
 
-  defp like_noise_layers(query, top_level_uid),
-    do:
-      query
-      |> conditions_satisfying(&(Condition.like?(&1) or Condition.not_like?(&1)))
-      |> Lens.to_list(query)
-      |> Enum.flat_map(&do_like_noise_layers(&1, top_level_uid))
-
-  defp do_like_noise_layers({kind, column, %{constant?: true, value: pattern}}, top_level_uid),
-    do:
+  defp not_like_noise_layers(query, top_level_uid) do
+    query
+    |> conditions_satisfying(&Condition.not_like?/1)
+    |> Lens.to_list(query)
+    |> Enum.flat_map(fn {:not, {_kind, column, _pattern}} ->
       column
       |> raw_columns()
-      |> Enum.flat_map(fn column ->
-        [
-          static_noise_layer(column, column)
-          | pattern
-            |> like_layer_keys()
-            |> Enum.map(&uid_noise_layer(column, column, top_level_uid, {kind, &1}))
+      |> Enum.flat_map(
+        &[
+          static_noise_layer(&1, &1, :<>),
+          uid_noise_layer(&1, &1, top_level_uid, :<>)
         ]
-      end)
-
-  defp do_like_noise_layers(
-         {:not, {kind, column, %{constant?: true, value: pattern}}},
-         top_level_uid
-       ),
-       do:
-         column
-         |> raw_columns()
-         |> Enum.flat_map(fn column ->
-           case like_layer_keys(pattern) do
-             [] ->
-               [
-                 static_noise_layer(column, column, {:not, kind, without_percents(pattern)}),
-                 uid_noise_layer(
-                   column,
-                   column,
-                   top_level_uid,
-                   {:not, kind, without_percents(pattern)}
-                 )
-               ]
-
-             keys ->
-               [
-                 static_noise_layer(column, column, {:not, kind, without_percents(pattern)})
-                 | Enum.map(
-                     keys,
-                     &uid_noise_layer(column, column, top_level_uid, {:not, kind, &1})
-                   )
-               ]
-           end
-         end)
-
-  defp without_percents(like_pattern),
-    do: like_pattern |> LikePattern.graphemes() |> Enum.reject(&(&1 == :%)) |> Enum.join()
-
-  # See "LIKE pattern seeds" in docs/anonymization for details
-  defp like_layer_keys(like_pattern) do
-    len = like_pattern |> without_percents() |> String.length()
-    like_layer_keys(LikePattern.graphemes(like_pattern), 0, len)
+      )
+    end)
   end
-
-  defp like_layer_keys([], _, _), do: []
-  defp like_layer_keys([:% | rest], n, len), do: [{:%, len, n} | like_layer_keys(rest, n, len)]
-
-  defp like_layer_keys([:_ | rest], n, len), do: [{:_, len, n} | like_layer_keys(rest, n + 1, len)]
-
-  defp like_layer_keys([_ | rest], n, len), do: like_layer_keys(rest, n + 1, len)
 
   # -------------------------------------------------------------------
   # UID handling
@@ -492,25 +441,10 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
   defp do_override_meaningless(layer = %{base: {table, column, :<>}}),
     do: %{layer | base: {table, column, {:<>, :override}}}
 
-  defp do_override_meaningless(layer = %{base: {table, column, {:not, kind, pattern}}}),
-    do: %{layer | base: {table, column, {:not, kind, pattern, :override}}}
-
   defp meaningless?(noise_layer, all_layers), do: Enum.any?(all_layers, &positive_equivalent?(noise_layer, &1))
 
   defp positive_equivalent?(negative_layer, potential_equivalent)
-
   defp positive_equivalent?(%{base: {table, column, :<>}}, %{base: {table, column, nil}}), do: true
-
-  defp positive_equivalent?(%{base: {table, column, {:not, :like, _}}}, %{
-         base: {table, column, nil}
-       }),
-       do: true
-
-  defp positive_equivalent?(%{base: {table, column, {:not, :ilike, _}}}, %{
-         base: {table, column, nil}
-       }),
-       do: true
-
   defp positive_equivalent?(_, _), do: false
 
   # -------------------------------------------------------------------
@@ -583,7 +517,6 @@ defmodule Cloak.Sql.Compiler.NoiseLayers do
     |> Lens.reject(&Condition.not_equals?/1)
     |> Lens.reject(&Condition.not_like?/1)
     |> Lens.reject(&Condition.in?/1)
-    |> Lens.reject(&Condition.like?/1)
     |> Lens.reject(&fk_pk_condition?/1)
     |> Lens.reject(&uid_null_conditions?/1)
     |> Lens.both(non_uid_group_by_clauses())
