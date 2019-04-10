@@ -4,7 +4,7 @@ defmodule IntegrationTest.QueryTest do
   alias IntegrationTest.Manager
 
   setup do
-    {:ok, user: Manager.create_air_user()}
+    {:ok, user: Manager.create_admin_user()}
   end
 
   test "show tables", context do

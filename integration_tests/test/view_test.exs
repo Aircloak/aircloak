@@ -4,7 +4,7 @@ defmodule IntegrationTest.ViewTest do
   alias IntegrationTest.Manager
 
   setup_all do
-    {:ok, user: Manager.create_air_user()}
+    {:ok, user: Manager.create_admin_user()}
   end
 
   test "name error", context do

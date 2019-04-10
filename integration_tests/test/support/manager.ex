@@ -39,9 +39,11 @@ defmodule IntegrationTest.Manager do
 
   def login(user), do: Air.Service.User.main_login(user)
 
-  def create_air_user(group \\ nil) do
-    group = group || Repo.one!(from(group in Group, where: group.name == @admin_group_name))
+  def admin_group(), do: Repo.one!(from(group in Group, where: group.name == @admin_group_name))
 
+  def create_admin_user(), do: create_air_user(admin_group())
+
+  def create_air_user(group) do
     user =
       Air.Service.User.create!(%{
         login: "user_#{:erlang.unique_integer([:positive])}@aircloak.com",
