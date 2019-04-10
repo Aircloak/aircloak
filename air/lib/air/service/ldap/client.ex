@@ -1,9 +1,9 @@
-defmodule Air.Service.LDAP do
-  @moduledoc "This module provides entry-point functions for interacting with LDAP."
+defmodule Air.Service.LDAP.Client do
+  @moduledoc "This module provides functions for interacting with an LDAP server."
 
   require Aircloak.DeployConfig
 
-  alias __MODULE__.{User, Group, FilterParser}
+  alias Air.Service.LDAP.{User, Group, FilterParser}
 
   @timeout :timer.seconds(5)
 

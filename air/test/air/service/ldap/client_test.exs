@@ -4,8 +4,7 @@ defmodule Air.Service.LDAP.Test do
   use ExUnit.Case, async: true
   require Aircloak.DeployConfig
 
-  alias Air.Service.LDAP
-  alias Air.Service.LDAP.{User, Group}
+  alias Air.Service.LDAP.{Client, User, Group}
 
   @regular_port 389
   @ssl_port 636
@@ -15,24 +14,25 @@ defmodule Air.Service.LDAP.Test do
 
   describe "connecting" do
     test "without LDAP configured" do
-      assert {:error, :ldap_not_configured} = LDAP.simple_bind(_no_config = :error, "user", "pass")
+      assert {:error, :ldap_not_configured} = Client.simple_bind(_no_config = :error, "user", "pass")
     end
 
     test "with wrong host/port" do
-      assert {:error, :connect_failed} = LDAP.simple_bind({:ok, Map.put(ldap(), "port", @invalid_port)}, "user", "pass")
+      assert {:error, :connect_failed} =
+               Client.simple_bind({:ok, Map.put(ldap(), "port", @invalid_port)}, "user", "pass")
     end
 
     test "with invalid config" do
-      assert {:error, :invalid_config} = LDAP.simple_bind({:ok, %{"some" => "stuff"}}, "user", "pass")
+      assert {:error, :invalid_config} = Client.simple_bind({:ok, %{"some" => "stuff"}}, "user", "pass")
     end
 
     test "without SSL" do
-      assert {:error, :invalid_credentials} = LDAP.simple_bind({:ok, ldap()}, "user", "pass")
+      assert {:error, :invalid_credentials} = Client.simple_bind({:ok, ldap()}, "user", "pass")
     end
 
     test "with regular SSL" do
       assert {:error, :invalid_credentials} =
-               LDAP.simple_bind(
+               Client.simple_bind(
                  {:ok,
                   Map.merge(ldap(), %{
                     "encryption" => "ssl",
@@ -47,27 +47,27 @@ defmodule Air.Service.LDAP.Test do
 
     test "with StartTLS" do
       assert {:error, :invalid_credentials} =
-               LDAP.simple_bind({:ok, Map.put(ldap(), "encryption", "start_tls")}, "user", "pass")
+               Client.simple_bind({:ok, Map.put(ldap(), "encryption", "start_tls")}, "user", "pass")
     end
   end
 
   describe ".simple_bind" do
     test "with correct credentials" do
-      assert :ok = LDAP.simple_bind({:ok, ldap()}, @admin, @admin_pass)
+      assert :ok = Client.simple_bind({:ok, ldap()}, @admin, @admin_pass)
     end
 
     test "with incorrect credentials" do
-      assert {:error, :invalid_credentials} = LDAP.simple_bind({:ok, ldap()}, "user", "pass")
+      assert {:error, :invalid_credentials} = Client.simple_bind({:ok, ldap()}, "user", "pass")
     end
 
     test "with anonymous access" do
-      assert :ok = LDAP.simple_bind({:ok, ldap()}, "", "")
+      assert :ok = Client.simple_bind({:ok, ldap()}, "", "")
     end
   end
 
   describe ".users" do
     test "finds all objects with valid login by default" do
-      {:ok, entries} = LDAP.users({:ok, ldap()})
+      {:ok, entries} = Client.users({:ok, ldap()})
 
       assert [
                %User{login: "alice", dn: "cn=alice,ou=users,dc=example,dc=org", name: "alice"},
@@ -77,7 +77,7 @@ defmodule Air.Service.LDAP.Test do
 
     test "extracts the name and login fields as configured" do
       {:ok, entries} =
-        LDAP.users({:ok, Map.merge(ldap(), %{"user_name" => "description", "user_login" => "description"})})
+        Client.users({:ok, Map.merge(ldap(), %{"user_name" => "description", "user_login" => "description"})})
 
       assert [
                %User{
@@ -90,11 +90,11 @@ defmodule Air.Service.LDAP.Test do
 
     test "extracts users by filter" do
       assert {:ok, [%User{login: "alice"}]} =
-               LDAP.users({:ok, Map.merge(ldap(), %{"user_filter" => "(description=An Alice)"})})
+               Client.users({:ok, Map.merge(ldap(), %{"user_filter" => "(description=An Alice)"})})
     end
 
     test "with an invalid filter" do
-      assert {:error, :user_filter_invalid} = LDAP.users({:ok, Map.merge(ldap(), %{"user_filter" => "invalid"})})
+      assert {:error, :user_filter_invalid} = Client.users({:ok, Map.merge(ldap(), %{"user_filter" => "invalid"})})
     end
 
     test "extracts group list stored as user attributes" do
@@ -102,13 +102,13 @@ defmodule Air.Service.LDAP.Test do
               [
                 %User{login: "alice", group_dns: ["An Alice"]},
                 %User{login: "bob", group_dns: []}
-              ]} = LDAP.users({:ok, Map.merge(ldap(), %{"user_group" => "description"})})
+              ]} = Client.users({:ok, Map.merge(ldap(), %{"user_group" => "description"})})
     end
   end
 
   describe ".groups" do
     test "finds all object by default" do
-      {:ok, entries} = LDAP.groups({:ok, ldap()})
+      {:ok, entries} = Client.groups({:ok, ldap()})
 
       assert [
                %Group{
@@ -126,23 +126,23 @@ defmodule Air.Service.LDAP.Test do
     end
 
     test "extracts the configured name" do
-      {:ok, entries} = LDAP.groups({:ok, Map.put(ldap(), "group_name", "cn")})
+      {:ok, entries} = Client.groups({:ok, Map.put(ldap(), "group_name", "cn")})
       assert [%Group{name: "group1"}, %Group{name: "group2"}] = Enum.sort(entries)
     end
 
     test "extracts the configured member ids" do
-      {:ok, entries} = LDAP.groups({:ok, Map.merge(ldap(), %{"group_member" => "description", "group_name" => "cn"})})
+      {:ok, entries} = Client.groups({:ok, Map.merge(ldap(), %{"group_member" => "description", "group_name" => "cn"})})
 
       assert [%Group{member_ids: ["A big group"]}, %Group{member_ids: ["A small group"]}] = Enum.sort(entries)
     end
 
     test "extracts groups by filter" do
       assert {:ok, [%Group{name: "cn=group1,ou=groups,dc=example,dc=org"}]} =
-               LDAP.groups({:ok, Map.merge(ldap(), %{"group_filter" => "(description=A big group)"})})
+               Client.groups({:ok, Map.merge(ldap(), %{"group_filter" => "(description=A big group)"})})
     end
 
     test "with an invalid filter" do
-      assert {:error, :group_filter_invalid} = LDAP.groups({:ok, Map.merge(ldap(), %{"group_filter" => "invalid"})})
+      assert {:error, :group_filter_invalid} = Client.groups({:ok, Map.merge(ldap(), %{"group_filter" => "invalid"})})
     end
   end
 

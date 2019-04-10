@@ -17,8 +17,8 @@ defmodule Air.Service.LDAP.PeriodicSync do
 
     with :ok <- check_config(),
          :ok <- check_license(),
-         {:ok, users} <- LDAP.users(),
-         {:ok, groups} <- LDAP.groups() do
+         {:ok, users} <- LDAP.Client.users(),
+         {:ok, groups} <- LDAP.Client.groups() do
       groups = LDAP.Normalization.normalize_groups(users, groups)
       LDAP.Sync.sync(users, groups)
 
