@@ -94,6 +94,9 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
       ")) IN ('0', 'f', 'false', 'no', 'n') THEN FALSE ELSE NULL END"
     ]
 
+  def cast_sql(value, :text, :integer),
+    do: ["CASE WHEN ", value, " LIKE_REGEXPR '#{@is_integer_regex}' THEN CAST(", value, " AS BIGINT) ELSE NULL END"]
+
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect
