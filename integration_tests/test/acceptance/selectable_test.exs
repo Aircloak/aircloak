@@ -99,8 +99,7 @@ defmodule IntegrationTest.Acceptance.ViewTest do
     with {:ok, new_name} <- Keyword.fetch(changes, :name), do: fill_field(name_input(type), new_name)
 
     with {:ok, new_query} <- Keyword.fetch(changes, :query) do
-      click({:css, "#viewEditor"})
-      Enum.each(1..100, fn _ -> send_keys(:backspace) end)
+      clear_code_mirror({:css, "#viewEditor"})
       send_text(new_query)
     end
 
