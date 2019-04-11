@@ -4,6 +4,8 @@ defmodule Air.Service.LDAP do
   require Aircloak.DeployConfig
   require Logger
 
+  use GenServer
+
   # -------------------------------------------------------------------
   # API functions
   # -------------------------------------------------------------------
@@ -14,7 +16,23 @@ defmodule Air.Service.LDAP do
 
   @doc "Performs an immediate LDAP sync."
   @spec sync() :: :ok | {:error, :license_error | __MODULE__.Client.ldap_error()}
-  def sync() do
+  def sync(), do: GenServer.call(__MODULE__, :sync)
+
+  # -------------------------------------------------------------------
+  # GenServer implementation
+  # -------------------------------------------------------------------
+
+  @impl GenServer
+  def init(_), do: {:ok, nil}
+
+  @impl GenServer
+  def handle_call(:sync, _from, state), do: {:reply, do_sync(), state}
+
+  # -------------------------------------------------------------------
+  # Helpers
+  # -------------------------------------------------------------------
+
+  defp do_sync() do
     Logger.info("Syncing with LDAP.")
 
     with :ok <- check_config(),
@@ -38,10 +56,6 @@ defmodule Air.Service.LDAP do
     end
   end
 
-  # -------------------------------------------------------------------
-  # Helpers
-  # -------------------------------------------------------------------
-
   defp check_config() do
     case Aircloak.DeployConfig.fetch("ldap") do
       {:ok, _} -> :ok
@@ -56,4 +70,11 @@ defmodule Air.Service.LDAP do
       {:error, :license_error}
     end
   end
+
+  # -------------------------------------------------------------------
+  # Supervision tree
+  # -------------------------------------------------------------------
+
+  @doc false
+  def start_link(_), do: GenServer.start_link(__MODULE__, nil, name: __MODULE__)
 end
