@@ -21,6 +21,7 @@ defmodule Air.Supervisor do
         Air.Service.Export,
         Air.Service.Cleanup,
         Air.Service.RevokableToken,
+        Air.Service.LDAP,
         in_env(test: nil, else: Air.Service.LDAP.PeriodicSync),
         Air.TimestampUpdater,
         Air.PsqlServer,
