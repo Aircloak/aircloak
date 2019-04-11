@@ -28,12 +28,21 @@ defmodule IntegrationTest.AcceptanceHelper do
     end
   end
 
-  defmacro refute_has(parent \\ nil, strategy, selector) do
-    quote bind_quoted: [parent: parent, strategy: strategy, selector: selector] do
-      if eventually_exists?(parent, strategy, selector, retries: 1) do
-        take_screenshot("./browser_test/screenshots/error_#{:erlang.unique_integer([:monotonic, :positive])}.png")
-        flunk("Element #{inspect({strategy, selector})} is present")
+  defmacro refute_has(parent \\ nil, strategy, selector, opts \\ []) do
+    quote bind_quoted: [parent: parent, strategy: strategy, selector: selector, opts: opts] do
+      fun = fn fun, attempts ->
+        if eventually_exists?(parent, strategy, selector, retries: 1) do
+          if attempts <= 1 do
+            take_screenshot("./browser_test/screenshots/error_#{:erlang.unique_integer([:monotonic, :positive])}.png")
+            flunk("Element #{inspect({strategy, selector})} is present")
+          end
+
+          Process.sleep(Keyword.get(opts, :retry_delay, 100))
+          fun.(fun, attempts - 1)
+        end
       end
+
+      fun.(fun, Keyword.get(opts, :attempts, 1))
     end
   end
 

@@ -52,8 +52,7 @@ defmodule IntegrationTest.Acceptance.ViewTest do
         create_new_selectable(unquote(selectable_type), view_name, "select * from users")
         click({:xpath, "#{selectable_row_xpath(view_name)}/..//a[text()='Delete']"})
         accept_dialog()
-        Process.sleep(500)
-        refute_has(:xpath, selectable_row_xpath(view_name))
+        refute_has(nil, :xpath, selectable_row_xpath(view_name), attempts: 10)
       end
     end
   end
