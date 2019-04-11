@@ -50,6 +50,7 @@ defmodule IntegrationTest.Acceptance.ViewTest do
         login_as_admin()
         view_name = unique_name(:view)
         create_new_selectable(unquote(selectable_type), view_name, "select * from users")
+        assert_has(:xpath, selectable_row_xpath(view_name))
         click({:xpath, "#{selectable_row_xpath(view_name)}/..//a[text()='Delete']"})
         accept_dialog()
         refute_has(nil, :xpath, selectable_row_xpath(view_name), attempts: 10)
