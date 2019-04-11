@@ -140,7 +140,22 @@ defmodule IntegrationTest.AcceptanceHelper do
     click({:xpath, "//button[text()='Run']"})
   end
 
-  def set_query_text(text), do: execute_script("window.codeMirror.editor.setValue('#{text}')")
+  def set_query_text(text) do
+    clear_code_mirror({:css, "#sql-editor"})
+    send_text(text)
+  end
+
+  def clear_code_mirror(top_element) do
+    click(top_element)
+    with_keys(control_key(), do: send_text("a"))
+    send_keys([:backspace])
+  end
+
+  defp control_key() do
+    if :os.type() == {:unix, :darwin} and System.get_env("AIR_IP") in ~w/localhost 127.0.0.1/,
+      do: :command,
+      else: :control
+  end
 
   def hover(element), do: move_to(element, 1, 1)
 end
