@@ -15,8 +15,12 @@ defmodule Air.Service.LDAP do
   def enabled?(), do: check_config() == :ok
 
   @doc "Performs an immediate LDAP sync."
-  @spec sync() :: :ok | {:error, :license_error | __MODULE__.Client.ldap_error()}
-  def sync(), do: GenServer.call(__MODULE__, :sync)
+  @spec sync() :: :ok | {:error, :timeout | :license_error | __MODULE__.Client.ldap_error()}
+  def sync(timeout \\ 5000) do
+    GenServer.call(__MODULE__, :sync, timeout)
+  catch
+    :exit, {:timeout, _} -> {:error, :timeout}
+  end
 
   # -------------------------------------------------------------------
   # GenServer implementation

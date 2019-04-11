@@ -158,7 +158,8 @@ defmodule AirWeb.Admin.UserController do
 
   def sync_ldap(conn, _params) do
     case LDAP.sync() do
-      :ok -> put_flash(conn, :info, "LDAP sync finished")
+      :ok -> put_flash(conn, :info, "LDAP sync finished.")
+      {:error, :timeout} -> put_flash(conn, :info, "LDAP sync is being performed in the background.")
       {:error, error} -> put_flash(conn, :error, "LDAP sync failed, reason: #{inspect(error)}.")
     end
     |> redirect(to: admin_user_path(conn, :index))

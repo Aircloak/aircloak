@@ -13,7 +13,7 @@ defmodule Air.Service.LDAP.PeriodicSync do
   @doc "Perform a full LDAP sync by fetching a list of users and groups and applying those to Air."
   @spec run() :: :ok
   def run() do
-    case LDAP.sync() do
+    case LDAP.sync(:timer.minutes(10)) do
       :ok ->
         :ok
 
