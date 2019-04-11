@@ -4,6 +4,10 @@
 
 - `GROUP BY` clause is no longer allowed to contain constants.
 
+### Enhancements
+
+- The LDAP section has a `Sync now` button in `Admin -> Users` and `Admin -> Groups`
+
 ## Version 19.2.0
 
 [Upgrade guide](docs/ops/upgrading.html)
