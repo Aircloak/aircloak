@@ -125,4 +125,13 @@ defmodule IntegrationTest.AcceptanceHelper do
     |> Enum.find(&(&1["name"] == name))
     |> Access.get("value")
   end
+
+  def start_query(text) do
+    set_query_text(text)
+    click({:xpath, "//button[text()='Run']"})
+  end
+
+  def set_query_text(text), do: execute_script("window.codeMirror.editor.setValue('#{text}')")
+
+  def hover(element), do: move_to(element, 1, 1)
 end
