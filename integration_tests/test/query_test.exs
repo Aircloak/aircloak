@@ -2,6 +2,7 @@ defmodule IntegrationTest.QueryTest do
   use ExUnit.Case, async: true
 
   alias IntegrationTest.Manager
+  import IntegrationTest.Helpers
 
   setup do
     {:ok, user: Manager.create_admin_user()}
@@ -89,12 +90,4 @@ defmodule IntegrationTest.QueryTest do
       Application.fetch_env!(:air, AirWeb.Endpoint)
       |> Keyword.fetch!(:http)
       |> Keyword.fetch!(:port)
-
-  defp run_query(user, query, params \\ []) do
-    data_source_id_spec = {:id, Manager.data_source().id}
-
-    {:ok, query} = Air.Service.Query.create(data_source_id_spec, :autogenerate, user, :http, query, params, [])
-
-    Air.Service.DataSource.await_query(query)
-  end
 end
