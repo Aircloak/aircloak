@@ -82,6 +82,9 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   def cast_sql(value, :text, :integer),
     do: ["CASE WHEN ", value, " ~ '#{@is_integer_regex}' THEN CAST(", value, " AS BIGINT) ELSE NULL END"]
 
+  def cast_sql(value, :text, :real),
+    do: ["CASE WHEN ", value, " ~ '#{@is_real_regex}' THEN CAST(", value, " AS DOUBLE PRECISION) ELSE NULL END"]
+
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect

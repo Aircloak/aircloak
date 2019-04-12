@@ -97,6 +97,9 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
   def cast_sql(value, :text, :integer),
     do: ["CASE WHEN ", value, " LIKE_REGEXPR '#{@is_integer_regex}' THEN CAST(", value, " AS BIGINT) ELSE NULL END"]
 
+  def cast_sql(value, :text, :real),
+    do: ["CASE WHEN ", value, " LIKE_REGEXPR '#{@is_real_regex}' THEN CAST(", value, " AS DOUBLE) ELSE NULL END"]
+
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
 
   @impl Dialect
@@ -113,5 +116,6 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
 
   defp sql_type(:text), do: "nvarchar"
   defp sql_type(:datetime), do: "timestamp"
+  defp sql_type(:real), do: "double"
   defp sql_type(type) when is_atom(type), do: Atom.to_string(type)
 end

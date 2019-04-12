@@ -100,6 +100,15 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def cast_sql(value, :text, :integer),
     do: ["CASE WHEN REGEXP_LIKE(", value, ", '#{@is_integer_regex}') THEN CAST(", value, " AS INTEGER) ELSE NULL END"]
 
+  def cast_sql(value, :text, :real),
+    do: [
+      "CASE WHEN REGEXP_LIKE(",
+      value,
+      ", '#{@is_real_regex}') THEN CAST(",
+      value,
+      " AS BINARY_DOUBLE) ELSE NULL END"
+    ]
+
   def cast_sql(value, number, :text) when number in [:integer, :real], do: ["TO_CHAR(", value, ?)]
 
   def cast_sql(value, _, type), do: ["CAST(", value, " AS ", sql_type(type), ")"]
