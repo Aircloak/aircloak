@@ -1,5 +1,6 @@
 defmodule IntegrationTest.Manager do
   import Ecto.Query, only: [from: 2]
+  import IntegrationTest.Helpers
 
   alias Air.Repo
   alias Air.Schemas.{AnalystTable, DataSource, ExportForAircloak, Group, Query, ResultChunk, User, View}
@@ -44,13 +45,8 @@ defmodule IntegrationTest.Manager do
   def create_admin_user(), do: create_air_user(admin_group())
 
   def create_air_user(group) do
-    user =
-      Air.Service.User.create!(%{
-        login: "user_#{:erlang.unique_integer([:positive])}@aircloak.com",
-        name: "user_#{:erlang.unique_integer([:positive])}",
-        groups: [group.id]
-      })
-
+    user_name = unique_name(:user)
+    user = Air.Service.User.create!(%{login: "#{user_name}@aircloak.com", name: user_name, groups: [group.id]})
     token = Air.Service.User.reset_password_token(user)
 
     {:ok, user} =

@@ -124,13 +124,6 @@ defmodule IntegrationTest.Acceptance.DataSourceTest do
     end)
   end
 
-  defp start_query(text) do
-    set_query_text(text)
-    click({:xpath, "//button[text()='Run']"})
-  end
-
-  defp set_query_text(text), do: execute_script("window.codeMirror.editor.setValue('#{text}')")
-
   defp run_query_and_share_result(query, share_caption) do
     start_query(query)
     assert_has(:css, ".panel-success")

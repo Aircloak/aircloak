@@ -28,12 +28,21 @@ defmodule IntegrationTest.AcceptanceHelper do
     end
   end
 
-  defmacro refute_has(parent \\ nil, strategy, selector) do
-    quote bind_quoted: [parent: parent, strategy: strategy, selector: selector] do
-      if eventually_exists?(parent, strategy, selector, retries: 1) do
-        take_screenshot("./browser_test/screenshots/error_#{:erlang.unique_integer([:monotonic, :positive])}.png")
-        flunk("Element #{inspect({strategy, selector})} is present")
+  defmacro refute_has(parent \\ nil, strategy, selector, opts \\ []) do
+    quote bind_quoted: [parent: parent, strategy: strategy, selector: selector, opts: opts] do
+      fun = fn fun, attempts ->
+        if eventually_exists?(parent, strategy, selector, retries: 1) do
+          if attempts <= 1 do
+            take_screenshot("./browser_test/screenshots/error_#{:erlang.unique_integer([:monotonic, :positive])}.png")
+            flunk("Element #{inspect({strategy, selector})} is present")
+          end
+
+          Process.sleep(Keyword.get(opts, :retry_delay, 100))
+          fun.(fun, attempts - 1)
+        end
       end
+
+      fun.(fun, Keyword.get(opts, :attempts, 1))
     end
   end
 
@@ -125,4 +134,28 @@ defmodule IntegrationTest.AcceptanceHelper do
     |> Enum.find(&(&1["name"] == name))
     |> Access.get("value")
   end
+
+  def start_query(text) do
+    set_query_text(text)
+    click({:xpath, "//button[text()='Run']"})
+  end
+
+  def set_query_text(text) do
+    clear_code_mirror({:css, "#sql-editor"})
+    send_text(text)
+  end
+
+  def clear_code_mirror(top_element) do
+    click(top_element)
+    with_keys(control_key(), do: send_text("a"))
+    send_keys([:backspace])
+  end
+
+  defp control_key() do
+    if :os.type() == {:unix, :darwin} and System.get_env("AIR_IP") in ~w/localhost 127.0.0.1/,
+      do: :command,
+      else: :control
+  end
+
+  def hover(element), do: move_to(element, 1, 1)
 end

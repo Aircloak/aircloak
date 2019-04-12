@@ -122,7 +122,6 @@ export class CodeEditor extends React.Component {
 
     return (
       <Codemirror
-        ref={(codeMirror) => { window.codeMirror = codeMirror; }}
         value={this.props.statement}
         editorDidMount={this.editorDidMount}
         onChange={this.onChange}
