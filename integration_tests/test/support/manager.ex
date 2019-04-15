@@ -90,6 +90,23 @@ defmodule IntegrationTest.Manager do
     ensure_cloak_connected()
   end
 
+  def reset_air() do
+    ExUnit.CaptureIO.capture_io(:stderr, fn ->
+      Ecto.Migrator.run(
+        Air.Repo,
+        Application.app_dir(:air, "priv/repo/migrations"),
+        :down,
+        all: true
+      )
+
+      Application.stop(:air)
+
+      :jobs.delete_queue(Air.PsqlServer.ShadowDb.Manager)
+      Application.start(:air)
+      await_data_source()
+    end)
+  end
+
   # -------------------------------------------------------------------
   # Internal functions
   # -------------------------------------------------------------------
@@ -124,7 +141,7 @@ defmodule IntegrationTest.Manager do
     Cloak.Test.DB.create_table("integers", "value INTEGER", opts)
   end
 
-  defp setup_air_database() do
+  def setup_air_database() do
     # delete previous entries
     Repo.delete_all(View)
     Repo.delete_all("data_sources_groups")
