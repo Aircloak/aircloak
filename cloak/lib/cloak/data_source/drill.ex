@@ -65,7 +65,7 @@ defmodule Cloak.DataSource.Drill do
 
   defp has_trunc_quarter?(query) do
     query
-    |> get_in([Query.Lenses.all_queries() |> Query.Lenses.db_needed_functions()])
+    |> get_in([Query.Lenses.db_needed_functions()])
     |> Enum.any?(&match?(%Expression{function: "date_trunc", function_args: [%Expression{value: "quarter"} | _]}, &1))
   end
 
