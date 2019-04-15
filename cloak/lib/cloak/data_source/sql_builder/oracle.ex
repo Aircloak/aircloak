@@ -45,6 +45,10 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
 
+  def function_sql("^", [arg1, arg2]), do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE POWER(", arg1, ", ", arg2, ") END"]
+
+  def function_sql("sqrt", [arg]), do: ["CASE WHEN ", arg, " < 0 THEN NULL ELSE SQRT(", arg, ") END"]
+
   def function_sql("left", [string, number]), do: [@unicode_substring, "(", string, ", 0, ", number, ")"]
 
   def function_sql("right", [string, number]) do
@@ -58,9 +62,7 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
 
   def function_sql("variance", [arg]), do: ["VAR_SAMP(", arg, ")"]
 
-  for {from, to} <- %{"^" => "POWER", "substring" => @unicode_substring} do
-    def function_sql(unquote(from), args), do: function_sql(unquote(to), args)
-  end
+  def function_sql("substring", args), do: function_sql(@unicode_substring, args)
 
   def function_sql("date_trunc", [[?', "second", ?'], arg2]), do: ["CAST(", arg2, " AS TIMESTAMP(0))"]
   def function_sql("date_trunc", [[?', "minute", ?'], arg2]), do: function_sql("TRUNC", [arg2, "'mi'"])
@@ -73,8 +75,6 @@ defmodule Cloak.DataSource.SqlBuilder.Oracle do
   def function_sql("btrim", [arg1, arg2]), do: ["TRIM(", arg1, " FROM ", arg2, ")"]
 
   def function_sql("hash", [arg]), do: ["TO_CHAR(ORA_HASH(", arg, "), '#{@fmt_no_extra_whitespace}0000000X')"]
-
-  def function_sql("sqrt", [arg]), do: ["CASE WHEN ", arg, " < 0 THEN NULL ELSE SQRT(", arg, ") END"]
 
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 
