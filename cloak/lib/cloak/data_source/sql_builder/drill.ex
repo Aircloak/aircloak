@@ -44,6 +44,17 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
   def function_sql("^", [arg1, arg2]), do: ["POW(", arg1, ", ", arg2, ")"]
   def function_sql("%", [arg1, arg2]), do: ["MOD(", arg1, ", ", arg2, ")"]
 
+  def function_sql("date_trunc", [[?', "quarter", ?'], arg]) do
+    [
+      ?(,
+      function_sql("date_trunc", ["'year'", arg]),
+      " + ",
+      "CAST('P' || ((",
+      function_sql("month", [arg]),
+      " - 1) / 3 * 3) || 'M' AS INTERVAL YEAR TO MONTH))"
+    ]
+  end
+
   for binary_operator <- ~w(+ - *) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
