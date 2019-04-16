@@ -27,6 +27,7 @@ defmodule Cloak.Sql.Compiler.Validation do
     Helpers.each_subquery(query, &verify_offset/1)
     Helpers.each_subquery(query, &verify_in/1)
     Helpers.each_subquery(query, &verify_division_by_zero/1)
+    Helpers.each_subquery(query, &verify_constants/1)
     query
   end
 
@@ -203,6 +204,27 @@ defmodule Cloak.Sql.Compiler.Validation do
           source_location: aggregate.source_location,
           message:
             "Aggregate function `#{Function.readable_name(aggregate.function)}` can not be used in the `GROUP BY` clause."
+    end
+  end
+
+  defp verify_constants(query) do
+    Lenses.query_expressions()
+    |> Lens.filter(& &1.constant?)
+    |> Lens.filter(&(&1.type in [:integer, :real]))
+    |> Lens.reject(&(&1.value == nil))
+    |> Lens.to_list(query)
+    |> Enum.map(&verify_numeric_constant/1)
+  end
+
+  # maximum number of digits a 64-bit integer can contain
+  @numeric_constant_max_scale 18
+  defp verify_numeric_constant(%Expression{value: value, source_location: source_location}) do
+    if abs(value) > :math.pow(10, @numeric_constant_max_scale) do
+      raise CompilationError,
+        source_location: source_location,
+        message:
+          "Constant expression is out of valid range: numeric values have to be inside the interval " <>
+            "[-10^#{@numeric_constant_max_scale}, 10^#{@numeric_constant_max_scale}]."
     end
   end
 
