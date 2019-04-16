@@ -26,7 +26,7 @@ function prepare_for_compliance {
 
   drill_container_name="${container_name}_drill1.15"
   docker run \
-    --detach --name $drill_container_name -t \
+    --detach --name $drill_container_name -it \
     -v $(pwd)/cloak/ci/data:/tmp/data \
     harisekhon/apache-drill:1.15
 

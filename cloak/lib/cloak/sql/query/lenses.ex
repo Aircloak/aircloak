@@ -50,8 +50,8 @@ defmodule Cloak.Sql.Query.Lenses do
   @doc "Lens focusing on function expressions in the query that are sent to the database (subqueries are not included)."
   deflens db_needed_functions() do
     Lens.match(fn
-      %Query{subquery?: true} -> query_expressions()
-      %Query{subquery?: false} -> db_filter_clauses() |> conditions_terminals() |> expressions()
+      %Query{type: :anonymized} -> db_filter_clauses() |> conditions_terminals() |> expressions()
+      _ -> query_expressions()
     end)
     |> Lens.filter(& &1.function?)
   end
