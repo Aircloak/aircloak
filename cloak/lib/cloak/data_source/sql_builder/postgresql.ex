@@ -35,9 +35,11 @@ defmodule Cloak.DataSource.SqlBuilder.PostgreSQL do
   def function_sql("/", [arg1, arg2]), do: ["(", arg1, " :: double precision / NULLIF(", arg2, ", 0))"]
   def function_sql("%", [arg1, arg2]), do: ["(", arg1, " % NULLIF(", arg2, ", 0))"]
 
-  for binary_operator <- ~w(+ - * ^) do
+  for binary_operator <- ~w(+ - *) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
+
+  def function_sql("^", [arg1, arg2]), do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE POWER(", arg1, ", ", arg2, ") END"]
 
   def function_sql("sqrt", [arg]), do: ["CASE WHEN ", arg, " < 0 THEN NULL ELSE SQRT(", arg, ") END"]
 

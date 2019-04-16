@@ -37,13 +37,14 @@ defmodule Cloak.DataSource.SqlBuilder.MySQL do
 
   def function_sql("bool_op", [["N'", op, ?'], arg1, arg2]), do: ["(", arg1, " ", op, " ", arg2, ")"]
 
-  def function_sql("^", [arg1, arg2]), do: ["POW(", arg1, ", ", arg2, ")"]
   def function_sql("/", [arg1, arg2]), do: ["(", arg1, " / NULLIF(", arg2, ", 0))"]
   def function_sql("%", [arg1, arg2]), do: ["(", arg1, " % NULLIF(", arg2, ", 0))"]
 
   for binary_operator <- ~w(+ - *) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
+
+  def function_sql("^", [arg1, arg2]), do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE POW(", arg1, ", ", arg2, ") END"]
 
   def function_sql(name, args), do: [String.upcase(name), "(", Enum.intersperse(args, ", "), ")"]
 

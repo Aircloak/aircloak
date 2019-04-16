@@ -615,6 +615,12 @@ defmodule Cloak.DataSource.MongoDBTest do
     })
   end
 
+  test "pow with negative input", context do
+    assert_query(context, "SELECT pow(-val, -0.2) AS v FROM #{@userless_table}", %{
+      rows: [%{row: [nil]}, %{row: [nil]}, %{row: [nil]}, %{row: [nil]}]
+    })
+  end
+
   test "standard query with grouping and order by (1)", context do
     assert_query(
       context,

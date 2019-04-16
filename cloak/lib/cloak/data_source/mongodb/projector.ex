@@ -175,7 +175,6 @@ defmodule Cloak.DataSource.MongoDB.Projector do
         "*" => "$multiply",
         "+" => "$add",
         "-" => "$subtract",
-        "^" => "$pow",
         "floor" => "$floor",
         "ceil" => "$ceil",
         "trunc" => "$trunc",
@@ -225,6 +224,15 @@ defmodule Cloak.DataSource.MongoDB.Projector do
         %{"$lt": [value, 0]},
         nil,
         %{"$sqrt": value}
+      ]
+    }
+
+  defp parse_function("^", [base, exponent]),
+    do: %{
+      "$cond": [
+        %{"$lt": [base, 0]},
+        nil,
+        %{"$pow": [base, exponent]}
       ]
     }
 
