@@ -211,13 +211,14 @@ defmodule Cloak.Sql.Compiler.Validation do
     Lenses.query_expressions()
     |> Lens.filter(& &1.constant?)
     |> Lens.filter(&(&1.type in [:integer, :real]))
+    |> Lens.reject(&(&1.value == nil))
     |> Lens.to_list(query)
     |> Enum.map(&verify_numeric_constant/1)
   end
 
   # maximum number of digits a 64-bit integer can contain
   @numeric_constant_max_scale 18
-  defp verify_numeric_constant(%Expression{value: value, source_location: source_location}) when is_number(value) do
+  defp verify_numeric_constant(%Expression{value: value, source_location: source_location}) do
     if abs(value) > :math.pow(10, @numeric_constant_max_scale) do
       raise CompilationError,
         source_location: source_location,
