@@ -6,6 +6,7 @@ open MongoDB.Driver
 open System
 open System.IO
 open System.Security.Cryptography
+open System.Collections.Generic
 
 type CLIArguments =
     | [<Mandatory>] Cloak_Config of path : string
@@ -136,7 +137,7 @@ let decodeAES (key : string option) (value : BsonValue) : BsonValue =
         with _ -> bsonNull
 
 let substringDecoder (decoder : Decoder) =
-    match decoder.from, decoder.length with
+    match (decoder.from, decoder.length) with
     | Some(from), Some(length) -> substring from length
     | _ -> failwith "The substring decoder requires specifying from and for"
 
@@ -250,17 +251,20 @@ let projectOne (data : Map<string, seq<BsonDocument>>) (config : Map<string, Clo
     Map.add table { tableConfig with projection = None
                                      userId = Some(newUserIdKey) } config
 
-let rec project (config : Map<string, CloakTable>) (data : Map<string, seq<BsonDocument>>) : unit =
-    let canProject =
-        config
-        |> Seq.filter (fun kv -> kv.Value.projection.IsSome)
-        |> Seq.filter (fun kv -> config.Item(kv.Value.projection.Value.table).userId.IsSome)
-        |> Seq.map (fun kv -> kv.Key)
-    match Seq.toList canProject with
-    | [] -> ()
-    | canProject ->
-        let config = List.fold (projectOne data) config canProject
-        project config data
+let rec projectionChain (config: Map<string, CloakTable>) (table: CloakTable): string list =
+    match table.projection with
+    | None -> []
+    | Some(projection) -> projection.table :: projectionChain config (config.Item projection.table)
+
+let dependsOn (config: Map<string, CloakTable>) (table1: KeyValuePair<string, CloakTable>) (table2: KeyValuePair<string, CloakTable>): int =
+    if Seq.contains table2.Key (projectionChain config table1.Value) then 1
+    elif Seq.contains table1.Key (projectionChain config table2.Value) then -1
+    else 0
+
+let project (config : Map<string, CloakTable>) (data : Map<string, seq<BsonDocument>>) : unit =
+    let mutable modifiedConfig = config
+    for table in config |> Seq.filter (fun kv -> kv.Value.projection.IsSome) |> Seq.sortWith (dependsOn config) do
+        modifiedConfig <- projectOne data modifiedConfig table.Key
 
 let run (options : ParseResults<CLIArguments>) : unit =
     use stream = new StreamReader(options.GetResult Cloak_Config)
