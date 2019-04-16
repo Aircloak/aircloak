@@ -68,8 +68,6 @@ defmodule Compliance do
     |> Enum.into(%{})
   end
 
-  defp content_type(%{user_id: _}), do: nil
-  defp content_type(%{keys: _}), do: nil
-  defp content_type(%{projection: _}), do: nil
   defp content_type(%{content_type: :public}), do: "non-personal"
+  defp content_type(_), do: nil
 end
