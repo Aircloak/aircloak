@@ -1327,6 +1327,13 @@ defmodule Cloak.Sql.Compiler.Test do
              compile_standard("select count(*) from table where numeric in (3, 's')", data_source())
   end
 
+  test "rejects constant values out of range" do
+    {:error, error} = compile("select count(numeric - 10^19) from table", data_source())
+
+    assert error =~
+             "Constant expression is out of valid range: numeric values have to be inside the interval [-10^18, 10^18]."
+  end
+
   defp compile_standard(query_string, data_source) do
     {:ok, parsed_query} = Parser.parse(query_string)
 
