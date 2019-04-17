@@ -236,21 +236,26 @@ let dependsOn (config : Map<string, CloakTable>) (table1 : KeyValuePair<string, 
     elif Seq.contains table1.Key (projectionChain config table2.Value) then -1
     else 0
 
-let projectWithUserIds (batch : seq<BsonDocument>) (projection : Projection option) (userIds : UserIds) : unit =
-    match projection with
+let rec userId (config : CloakConfig) (table : string) : string =
+    match config.tables.Item(table).projection with
+    | Some projection -> userId config projection.table
+    | None -> Option.defaultValue "_ac_user_id" (config.tables.Item(table).userId)
+
+let projectWithUserIds (batch : seq<BsonDocument>) (table : string) (config : CloakConfig) (userIds : UserIds) : unit =
+    let userIdField = userId config table
+    match config.tables.Item(table).projection with
     | None -> ()
     | Some projection ->
         for document in batch do
             if document.Contains(projection.foreignKey) then
                 match Map.tryFind (projection, document.GetValue(projection.foreignKey).ToString()) userIds with
                 | Some userId ->
-                    document.Remove(projection.primaryKey)
-                    document.Add(projection.primaryKey, userId) |> ignore
+                    document.Remove(userIdField)
+                    document.Add(userIdField, userId) |> ignore
                 | None -> ()
 
-let saveUserIds (userIds : UserIds) (batch : seq<BsonDocument>) (table : string) (tableConfig : CloakTable)
-    (config : CloakConfig) : UserIds =
-    let userId = Option.defaultValue "" tableConfig.userId
+let saveUserIds (userIds : UserIds) (batch : seq<BsonDocument>) (table : string) (config : CloakConfig) : UserIds =
+    let userId = userId config table
 
     let toPreserve =
         config.tables
@@ -267,12 +272,13 @@ let saveUserIds (userIds : UserIds) (batch : seq<BsonDocument>) (table : string)
     let saveUserIds' = fun userIds document -> Seq.fold (saveUserIds'' document) userIds toPreserve
     Seq.fold saveUserIds' userIds batch
 
-let processOne (db : IMongoDatabase) (config : CloakConfig) (table : string) (tableConfig : CloakTable)
-    (userIds : UserIds) (batch : seq<BsonDocument>) : UserIds =
+let processOne (db : IMongoDatabase) (config : CloakConfig) (table : string) (userIds : UserIds)
+    (batch : seq<BsonDocument>) : UserIds =
+    let tableConfig = config.tables.Item(table)
     decode batch tableConfig.decoders
-    projectWithUserIds batch tableConfig.projection userIds
+    projectWithUserIds batch table config userIds
     writeCollection db table tableConfig batch
-    saveUserIds userIds batch table tableConfig config
+    saveUserIds userIds batch table config
 
 let run (options : ParseResults<CLIArguments>) : unit =
     use stream = new StreamReader(options.GetResult Cloak_Config)
@@ -296,7 +302,7 @@ let run (options : ParseResults<CLIArguments>) : unit =
         printfn "Processing %s" kv.Key
         userIds <- readCollection db kv.Key
                    |> batchesOf 1000
-                   |> Seq.fold (processOne db config kv.Key kv.Value) userIds
+                   |> Seq.fold (processOne db config kv.Key) userIds
 
 [<EntryPoint>]
 let main argv =
