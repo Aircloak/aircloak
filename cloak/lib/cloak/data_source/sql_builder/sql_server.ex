@@ -68,7 +68,7 @@ defmodule Cloak.DataSource.SqlBuilder.SQLServer do
   def limit_sql(limit, offset), do: [" OFFSET ", to_string(offset), " ROWS FETCH NEXT ", to_string(limit), " ROWS ONLY"]
 
   @impl Dialect
-  def literal(%NaiveDateTime{} = value), do: [?', to_string(value), ?']
+  def literal(%NaiveDateTime{} = value), do: [?', value |> NaiveDateTime.truncate(:millisecond) |> to_string(), ?']
   def literal(%Date{} = value), do: [?', to_string(value), ?']
   def literal(%Time{} = value), do: [?', to_string(value), ?']
   def literal(false), do: "0"
