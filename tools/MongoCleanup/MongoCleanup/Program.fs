@@ -4,9 +4,9 @@ open MongoCleanup
 open MongoDB.Bson
 open MongoDB.Driver
 open System
+open System.Collections.Generic
 open System.IO
 open System.Security.Cryptography
-open System.Collections.Generic
 
 type CLIArguments =
     | [<Mandatory>] Cloak_Config of path : string
@@ -51,6 +51,8 @@ type CloakConfig =
       tables : Map<string, CloakTable> }
 
 type BsonUpdate = BsonValue -> BsonValue
+
+type UserIds = Map<Projection * string, BsonValue>
 
 let optionParser = ArgumentParser.Create<CLIArguments>(programName = "MongoCleanup")
 
@@ -193,22 +195,17 @@ let writeCollection (db : IMongoDatabase) (name : string) (config : CloakTable) 
     collection.BulkWrite(updates) |> ignore
 
 let batchesOf n =
-    Seq.mapi (fun i v -> i / n, v)
+    Seq.mapi (fun i v -> (i / n, v))
     >> Seq.groupBy fst
     >> Seq.map snd
     >> Seq.map (Seq.map snd)
 
-let decode (documents : seq<BsonDocument>) (decoders : Decoder list) : Async<unit> =
-    documents
-    |> batchesOf 1000
-    |> Seq.map (fun batch ->
-           async {
-               for doc in batch do
-                   applyDecoders decoders doc
-               ProgressBar.tick <| Seq.length batch
-           })
-    |> Async.Parallel
-    |> Async.Ignore
+let decode (documents : seq<BsonDocument>) (decoders : Decoder list option) : unit =
+    match decoders with
+    | None -> ()
+    | Some decoders ->
+        for document in documents do
+            applyDecoders decoders document
 
 let mongoConnString (cloakConfig : CloakConfig) : string =
     let options = cloakConfig.parameters
@@ -228,43 +225,54 @@ let guessUserId (data : seq<BsonDocument>) (proposed : string) : string =
     if Seq.forall (fun (x : BsonDocument) -> not (x.Contains proposed)) data then proposed
     else acUserId
 
-let projectOne (data : Map<string, seq<BsonDocument>>) (config : Map<string, CloakTable>) (table : string) : Map<string, CloakTable> =
-    let tableConfig = config.Item(table)
-    let { table = target; foreignKey = foreignKey; primaryKey = primaryKey } = tableConfig.projection.Value
-    let userIdKey = config.Item(target).userId.Value
-    let newUserIdKey = guessUserId (data.Item table) userIdKey
-
-    let userIds =
-        data.Item target
-        |> Seq.filter (fun doc -> doc.Contains(userIdKey))
-        |> Seq.filter (fun doc -> doc.Contains(primaryKey))
-        |> Seq.map (fun doc -> (doc.GetValue(primaryKey).ToString(), doc.GetValue(userIdKey)))
-        |> Map.ofSeq
-    for document in data.Item(table) do
-        if document.Contains(foreignKey) then
-            match Map.tryFind (document.GetValue(foreignKey).ToString()) userIds with
-            | Some userId -> document.Add(newUserIdKey, userId) |> ignore
-            | None -> ()
-    data.Item(table)
-    |> Seq.length
-    |> ProgressBar.tick
-    Map.add table { tableConfig with projection = None
-                                     userId = Some(newUserIdKey) } config
-
-let rec projectionChain (config: Map<string, CloakTable>) (table: CloakTable): string list =
+let rec projectionChain (config : Map<string, CloakTable>) (table : CloakTable) : string list =
     match table.projection with
     | None -> []
     | Some(projection) -> projection.table :: projectionChain config (config.Item projection.table)
 
-let dependsOn (config: Map<string, CloakTable>) (table1: KeyValuePair<string, CloakTable>) (table2: KeyValuePair<string, CloakTable>): int =
+let dependsOn (config : Map<string, CloakTable>) (table1 : KeyValuePair<string, CloakTable>)
+    (table2 : KeyValuePair<string, CloakTable>) : int =
     if Seq.contains table2.Key (projectionChain config table1.Value) then 1
     elif Seq.contains table1.Key (projectionChain config table2.Value) then -1
     else 0
 
-let project (config : Map<string, CloakTable>) (data : Map<string, seq<BsonDocument>>) : unit =
-    let mutable modifiedConfig = config
-    for table in config |> Seq.filter (fun kv -> kv.Value.projection.IsSome) |> Seq.sortWith (dependsOn config) do
-        modifiedConfig <- projectOne data modifiedConfig table.Key
+let projectWithUserIds (batch : seq<BsonDocument>) (projection : Projection option) (userIds : UserIds) : unit =
+    match projection with
+    | None -> ()
+    | Some projection ->
+        for document in batch do
+            if document.Contains(projection.foreignKey) then
+                match Map.tryFind (projection, document.GetValue(projection.foreignKey).ToString()) userIds with
+                | Some userId ->
+                    document.Remove(projection.primaryKey)
+                    document.Add(projection.primaryKey, userId) |> ignore
+                | None -> ()
+
+let saveUserIds (userIds : UserIds) (batch : seq<BsonDocument>) (table : string) (tableConfig : CloakTable)
+    (config : CloakConfig) : UserIds =
+    let userId = Option.defaultValue "" tableConfig.userId
+
+    let toPreserve =
+        config.tables
+        |> Seq.choose (fun table -> table.Value.projection)
+        |> Seq.filter (fun projection -> projection.table = table)
+
+    let saveUserIds'' =
+        fun (document : BsonDocument) userIds projection ->
+            if document.Contains(projection.primaryKey) && document.Contains(userId) then
+                Map.add (projection, document.GetValue(projection.primaryKey).ToString()) (document.GetValue(userId))
+                    userIds
+            else userIds
+
+    let saveUserIds' = fun userIds document -> Seq.fold (saveUserIds'' document) userIds toPreserve
+    Seq.fold saveUserIds' userIds batch
+
+let processOne (db : IMongoDatabase) (config : CloakConfig) (table : string) (tableConfig : CloakTable)
+    (userIds : UserIds) (batch : seq<BsonDocument>) : UserIds =
+    decode batch tableConfig.decoders
+    projectWithUserIds batch tableConfig.projection userIds
+    writeCollection db table tableConfig batch
+    saveUserIds userIds batch table tableConfig config
 
 let run (options : ParseResults<CLIArguments>) : unit =
     use stream = new StreamReader(options.GetResult Cloak_Config)
@@ -278,46 +286,17 @@ let run (options : ParseResults<CLIArguments>) : unit =
 
     let db = conn.GetDatabase config.parameters.database
     printfn "Reading data..."
-    let data = config.tables |> Map.map (fun k _ -> readCollection db k)
-    use bar = ProgressBar.start 100
-    async {
-        let toDecode = config.tables |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders)
+    let toProcess =
+        config.tables
+        |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders || Option.isSome kv.Value.projection)
+        |> Seq.sortWith (dependsOn config.tables)
 
-        let itemsToDecode =
-            toDecode
-            |> Seq.map (fun kv -> data.Item(kv.Key) |> Seq.length)
-            |> Seq.sum
-        ProgressBar.reset itemsToDecode "Applying decoders"
-        let! _ = toDecode
-                 |> Seq.map (fun kv -> decode (data.Item kv.Key) kv.Value.decoders.Value)
-                 |> Async.Parallel
-        let toProject = config.tables |> Seq.filter (fun kv -> Option.isSome kv.Value.projection)
-
-        let itemsToProject =
-            toProject
-            |> Seq.map (fun kv -> data.Item(kv.Key) |> Seq.length)
-            |> Seq.sum
-        ProgressBar.reset itemsToProject "Applying projections"
-        project config.tables data
-        let toWrite =
-            config.tables |> Seq.filter (fun kv -> Option.isSome kv.Value.decoders || Option.isSome kv.Value.projection)
-
-        let itemsToWrite =
-            toProject
-            |> Seq.map (fun kv -> data.Item(kv.Key) |> Seq.length)
-            |> Seq.sum
-        ProgressBar.reset itemsToWrite "Writing data"
-        let! _ = toWrite
-                 |> Seq.map (fun kv ->
-                        async {
-                            for batch in data.Item kv.Key |> batchesOf 1000 do
-                                writeCollection db kv.Key (config.tables.Item kv.Key) batch
-                                ProgressBar.tick <| Seq.length batch
-                        })
-                 |> Async.Parallel
-        ProgressBar.finish()
-    }
-    |> Async.RunSynchronously
+    let mutable userIds = Map.empty
+    for kv in toProcess do
+        printfn "Processing %s" kv.Key
+        userIds <- readCollection db kv.Key
+                   |> batchesOf 1000
+                   |> Seq.fold (processOne db config kv.Key kv.Value) userIds
 
 [<EntryPoint>]
 let main argv =
