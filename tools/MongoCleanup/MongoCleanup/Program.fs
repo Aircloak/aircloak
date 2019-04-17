@@ -172,6 +172,10 @@ let readCollection (db : IMongoDatabase) (name : string) : seq<BsonDocument> =
             yield doc
     }
 
+let countCollection (db : IMongoDatabase) (name : string) : int =
+    let filter = Builders<BsonDocument>.Filter.Empty
+    db.GetCollection<BsonDocument>(name).CountDocuments(filter) |> int
+
 let shouldDelete (config : CloakTable) (doc : BsonDocument) : bool =
     match config.deleteIf with
     | None -> false
@@ -295,10 +299,14 @@ let run (options : ParseResults<CLIArguments>) : unit =
         |> Seq.sortWith (dependsOn config.tables)
 
     let mutable userIds = Map.empty
+    use bar = ProgressBar.start 100
     for kv in toProcess do
-        printfn "Processing %s" kv.Key
+        ProgressBar.reset (countCollection db kv.Key) (sprintf "Processing %s" kv.Key)
         userIds <- readCollection db kv.Key
-                   |> Seq.chunkBySize 100
+                   |> Seq.chunkBySize 1000
+                   |> Seq.map (fun chunk ->
+                          ProgressBar.tick 1000
+                          chunk)
                    |> Seq.fold (processOne db config kv.Key) userIds
 
 [<EntryPoint>]
