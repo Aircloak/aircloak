@@ -167,7 +167,10 @@ let applyDecoders (decoders : Decoder list) (document : BsonDocument) : unit =
         applyDecoder document decoder
 
 let readCollection (db : IMongoDatabase) (name : string) : seq<BsonDocument> =
-    upcast db.GetCollection<BsonDocument>(name).Find(fun _ -> true).ToList()
+    seq {
+        for doc in (db.GetCollection<BsonDocument>(name).Find(fun _ -> true).ToCursor().ToEnumerable()) do
+            yield doc
+    }
 
 let shouldDelete (config : CloakTable) (doc : BsonDocument) : bool =
     match config.deleteIf with
@@ -193,12 +196,6 @@ let writeCollection (db : IMongoDatabase) (name : string) (config : CloakTable) 
         |> Seq.map (docToWriteModel config)
         |> Seq.cast
     collection.BulkWrite(updates) |> ignore
-
-let batchesOf n =
-    Seq.mapi (fun i v -> (i / n, v))
-    >> Seq.groupBy fst
-    >> Seq.map snd
-    >> Seq.map (Seq.map snd)
 
 let decode (documents : seq<BsonDocument>) (decoders : Decoder list option) : unit =
     match decoders with
@@ -301,7 +298,7 @@ let run (options : ParseResults<CLIArguments>) : unit =
     for kv in toProcess do
         printfn "Processing %s" kv.Key
         userIds <- readCollection db kv.Key
-                   |> batchesOf 1000
+                   |> Seq.chunkBySize 100
                    |> Seq.fold (processOne db config kv.Key) userIds
 
 [<EntryPoint>]
