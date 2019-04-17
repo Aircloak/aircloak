@@ -284,3 +284,7 @@ Apache Drill doesn't support `CROSS JOIN` natively, so any `CROSS JOIN` will be 
 ### Oracle
 
 - `OFFSET` clause is currently not supported.
+
+### PostgreSQL
+
+-  Data source user must have the `USAGE` privilege.
