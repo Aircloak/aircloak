@@ -37,9 +37,6 @@ defmodule Cloak.DataSource.Driver do
   @doc "Closes the connection to the data store."
   @callback disconnect(connection) :: :ok
 
-  @doc "Prepares the data source for table parsing and query execution. Called once per data source."
-  @callback initialize_data_source!(connection) :: :ok
-
   @doc "Loads one or more table definitions from the data store."
   @callback load_tables(connection, Table.t()) :: [Table.t()]
 
@@ -77,9 +74,6 @@ defmodule Cloak.DataSource.Driver do
   defmacro __using__(_opts) do
     quote do
       @behaviour unquote(__MODULE__)
-
-      @impl unquote(__MODULE__)
-      def initialize_data_source!(_connection), do: :ok
 
       @impl unquote(__MODULE__)
       def supports_analyst_tables?(), do: false

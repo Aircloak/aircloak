@@ -189,8 +189,6 @@ defmodule Cloak.DataSource do
         fn connection ->
           data_source = Map.put(data_source, :driver_info, driver.driver_info(connection))
 
-          driver.initialize_data_source!(connection)
-
           with :ok <- check_analyst_tables_support(data_source),
                {:error, reason} <- driver.initialize_analyst_meta_table(connection),
                do: raise(ExecutionError, message: "Error initializing analyst meta table: #{reason}")

@@ -18,12 +18,10 @@ defmodule Cloak.DataSource.PostgreSQL do
   def connect(parameters) do
     with {:ok, connection} <- do_connect(parameters) do
       execute!(connection, "SET standard_conforming_strings = ON")
+      register_udfs!(connection)
       {:ok, connection}
     end
   end
-
-  @impl Driver
-  def initialize_data_source!(connection), do: :global.trans({__MODULE__, self()}, fn -> register_udfs!(connection) end)
 
   @impl Driver
   def load_tables(connection, table) do
@@ -160,7 +158,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   defp register_udfs!(connection) do
     for {header, body} <- @udfs do
       function = """
-      CREATE OR REPLACE FUNCTION #{header} AS $$
+      CREATE OR REPLACE FUNCTION pg_temp.#{header} AS $$
       BEGIN
         RETURN #{body};
       EXCEPTION WHEN OTHERS THEN
