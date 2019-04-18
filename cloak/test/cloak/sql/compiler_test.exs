@@ -1327,11 +1327,24 @@ defmodule Cloak.Sql.Compiler.Test do
              compile_standard("select count(*) from table where numeric in (3, 's')", data_source())
   end
 
-  test "rejects constant values out of range" do
+  test "rejects numeric constant values out of range" do
     {:error, error} = compile("select count(numeric - 10^19) from table", data_source())
 
     assert error =~
              "Constant expression is out of valid range: numeric values have to be inside the interval [-10^18, 10^18]."
+  end
+
+  test "rejects date constant values out of range" do
+    {:error, error} = compile("select count(date '1901-01-01' - interval 'P10Y') from table", data_source())
+
+    assert error =~
+             "Constant expression is out of valid range: date values have to be inside the interval [`1900-01-01`, `2099-12-31`]."
+  end
+
+  test "rejects interval constant values out of range" do
+    {:error, error} = compile("select count(- 99 * interval 'P10Y') from table", data_source())
+
+    assert error =~ "Constant expression is out of valid range: interval values have to be less than `100` years."
   end
 
   defp compile_standard(query_string, data_source) do

@@ -210,23 +210,47 @@ defmodule Cloak.Sql.Compiler.Validation do
   defp verify_constants(query) do
     Lenses.query_expressions()
     |> Lens.filter(& &1.constant?)
-    |> Lens.filter(&(&1.type in [:integer, :real]))
     |> Lens.reject(&(&1.value == nil))
     |> Lens.to_list(query)
-    |> Enum.map(&verify_numeric_constant/1)
+    |> Enum.map(&verify_constant/1)
   end
 
   # maximum number of digits a 64-bit integer can contain
   @numeric_constant_max_scale 18
-  defp verify_numeric_constant(%Expression{value: value, source_location: source_location}) do
+  defp verify_constant(%Expression{value: value, type: type} = expression) when type in [:integer, :real] do
     if abs(value) > :math.pow(10, @numeric_constant_max_scale) do
       raise CompilationError,
-        source_location: source_location,
+        source_location: expression.source_location,
         message:
           "Constant expression is out of valid range: numeric values have to be inside the interval " <>
             "[-10^#{@numeric_constant_max_scale}, 10^#{@numeric_constant_max_scale}]."
     end
   end
+
+  @date_constant_min_year 1900
+  @date_constant_max_year 2099
+  defp verify_constant(%Expression{value: value, type: type} = expression) when type in [:date, :datetime] do
+    if value.year < @date_constant_min_year or value.year > @date_constant_max_year do
+      raise CompilationError,
+        source_location: expression.source_location,
+        message:
+          "Constant expression is out of valid range: date values have to be inside the interval " <>
+            "[`#{@date_constant_min_year}-01-01`, `#{@date_constant_max_year}-12-31`]."
+    end
+  end
+
+  @interval_constant_max_year 100
+  defp verify_constant(%Expression{value: value, type: :interval} = expression) do
+    if abs(Timex.Duration.to_days(value)) > @interval_constant_max_year * 365.25 do
+      raise CompilationError,
+        source_location: expression.source_location,
+        message:
+          "Constant expression is out of valid range: interval values have to be less than " <>
+            "`#{@interval_constant_max_year}` years."
+    end
+  end
+
+  defp verify_constant(_expression), do: :ok
 
   # -------------------------------------------------------------------
   # Joins
