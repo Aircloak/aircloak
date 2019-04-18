@@ -12,8 +12,22 @@ defmodule Cloak.Sql.Compiler.StaticAnalysis do
   end
 
   def safe?(method, function, input_bounds, {from, _to}) do
-    {minimum, _} = method.minimize(function, input_bounds)
+    {minimum, _} = minimize(method, function, input_bounds)
     minimum >= from
+  catch
+    :crash -> false
+  end
+
+  defp minimize(method, function, input_bounds) do
+    function = fn inputs ->
+      try do
+        function.(inputs)
+      rescue
+        _ -> throw(:crash)
+      end
+    end
+
+    method.minimize(function, input_bounds)
   end
 
   defp do_to_function(%Expression{function: "*", function_args: [a, b]}, _leaves),
