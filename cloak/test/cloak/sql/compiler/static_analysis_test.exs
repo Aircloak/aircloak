@@ -1,4 +1,5 @@
 defmodule Cloak.Sql.Compiler.StaticAnalysis.Test do
+  alias Test.StaticAnalysisReport
   alias Cloak.Sql.Compiler.StaticAnalysis
   alias Cloak.Sql.{Compiler, Parser, Expression}
 
@@ -26,16 +27,20 @@ defmodule Cloak.Sql.Compiler.StaticAnalysis.Test do
   Enum.each(@problems, fn problem = {equation, input_bounds, output_bounds, result} ->
     test "analyzing #{inspect(problem)}" do
       compiled = compile!("SELECT COUNT(*) FROM table WHERE #{unquote(equation)} = 0")
-      bound_builder = bound_builder(unquote(Macro.escape(input_bounds)))
+      input_bounds = unquote(Macro.escape(input_bounds))
+      bound_builder = bound_builder(input_bounds)
       {function, input_bounds} = StaticAnalysis.to_function(condition_expression(compiled), bound_builder)
 
       for method <- methods() do
-        IO.inspect({
+        StaticAnalysisReport.report(
           unquote(equation),
-          unquote(result),
+          unquote(Macro.escape(input_bounds)),
+          unquote(output_bounds),
+          unquote(result) == :ok,
+          inspect(method),
           StaticAnalysis.safe?(method, function, input_bounds, unquote(output_bounds)),
           passes_validation?(compiled)
-        })
+        )
       end
     end
   end)

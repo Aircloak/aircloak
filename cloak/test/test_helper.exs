@@ -2,6 +2,7 @@
 File.rm(Cloak.DataSource.Isolators.PersistentKeyValue.cache_file())
 
 Compliance.Runtime.start_link()
+Test.StaticAnalysisReport.start_link()
 Cloak.SapHanaHelpers.delete_test_schemas()
 Cloak.Test.DB.start_link()
 
@@ -11,4 +12,7 @@ ExUnit.start(
   timeout: :timer.minutes(5)
 )
 
-System.at_exit(fn _ -> Compliance.Runtime.finalize() end)
+System.at_exit(fn _ ->
+  Compliance.Runtime.finalize()
+  Test.StaticAnalysisReport.finalize()
+end)
