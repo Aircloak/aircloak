@@ -1,27 +1,79 @@
 defmodule Cloak.Sql.Compiler.StaticAnalysis.Test do
   alias Cloak.Sql.Compiler.StaticAnalysis
+  alias Cloak.Sql.{Compiler, Parser, Expression}
 
   use ExUnit.Case
 
-  test "run" do
-    for method <- methods() do
-      assert StaticAnalysis.within_range?(optimization_problem(), method, {-100_000, 100_000})
-      refute StaticAnalysis.within_range?(optimization_problem(), method, {0, 10000})
-    end
-  end
+  @problems [
+    # equation, argument bounds, output bounds, result
+    {"1 / (x1 - 1)", %{"x1" => {-100, 100}}, {-200, 200}, :divide_by_zero},
+    {"1 / (x1 - 1)", %{"x1" => {100, 200}}, {-200, 200}, :ok},
+    {"1 / x1", %{"x1" => {-100, 100}}, {-200, 200}, :divide_by_zero},
+    {"1 / x1", %{"x1" => {100, 200}}, {-200, 200}, :ok}
+  ]
 
-  def methods() do
+  Enum.each(@problems, fn problem = {equation, input_bounds, output_bounds, result} ->
+    test "analyzing #{inspect(problem)}" do
+      compiled = compile!("SELECT COUNT(*) FROM table WHERE #{unquote(equation)} = 0")
+      bound_builder = bound_builder(unquote(Macro.escape(input_bounds)))
+      {function, input_bounds} = StaticAnalysis.to_function(compiled.where, bound_builder)
+
+      for method <- methods() do
+        IO.inspect({
+          unquote(equation),
+          unquote(result),
+          StaticAnalysis.safe?(method, function, input_bounds, unquote(output_bounds)),
+          passes_validation?(compiled)
+        })
+      end
+    end
+  end)
+
+  defp methods() do
     [StaticAnalysis.SimulatedAnnealing]
   end
 
-  def optimization_problem() do
+  defp bound_builder(bounds) do
+    fn %Expression{name: name} ->
+      bounds[name]
+    end
+  end
+
+  defp passes_validation?(query) do
+    query
+    |> put_in([Lens.key(:type)], :anonymized)
+    |> Compiler.Validation.verify_standard_restrictions()
+    |> Compiler.Validation.verify_anonymization_restrictions()
+    |> Compiler.TypeChecker.validate_allowed_usage_of_math_and_functions()
+
+    true
+  rescue
+    Cloak.Sql.CompilationError -> false
+  end
+
+  defp compile!(query) do
+    parsed = Parser.parse!(query)
+    Compiler.compile_direct!(parsed, 1, data_source())
+  end
+
+  defp data_source() do
+    alias Cloak.DataSource.Table
+
     %{
-      function: fn [x, y, z] -> x + y + z end,
-      input_ranges: [
-        {10, 1000},
-        {0, 200},
-        {-100, -10}
-      ]
+      name: "static_analysis_data_source",
+      driver: Cloak.DataSource.PostgreSQL,
+      tables: %{
+        table:
+          Table.new(
+            "table",
+            "uid",
+            db_name: "table",
+            columns: [
+              Table.column("uid", :integer)
+              | 1..10 |> Enum.map(&Table.column("x#{&1}", :integer))
+            ]
+          )
+      }
     }
   end
 end

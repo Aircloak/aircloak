@@ -1,5 +1,5 @@
 defmodule Cloak.Sql.Compiler.StaticAnalysis.SimulatedAnnealing do
-  def minimize(optimization_problem) do
+  def minimize(function, input_bounds) do
     annealing_schedule = fn temp ->
       if temp <= 0.000000001 do
         nil
@@ -8,7 +8,7 @@ defmodule Cloak.Sql.Compiler.StaticAnalysis.SimulatedAnnealing do
       end
     end
 
-    anneal(optimization_problem.function, annealing_schedule, optimization_problem.input_ranges)
+    anneal(function, annealing_schedule, input_bounds)
   end
 
   def anneal(function, annealing_schedule, input_bounds) do
