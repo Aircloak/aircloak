@@ -18,6 +18,7 @@ defmodule Cloak.DataSource.PostgreSQL do
   def connect(parameters) do
     with {:ok, connection} <- do_connect(parameters) do
       execute!(connection, "SET standard_conforming_strings = ON")
+      register_udfs!(connection)
       {:ok, connection}
     end
   end
@@ -144,6 +145,30 @@ defmodule Cloak.DataSource.PostgreSQL do
       |> Logger.error()
 
       :ignore
+  end
+
+  @udfs [
+    {"ac_text_to_integer(value TEXT) RETURNS BIGINT", "CAST(value AS BIGINT)"},
+    {"ac_text_to_real(value TEXT) RETURNS DOUBLE PRECISION", "CAST(value AS DOUBLE PRECISION)"},
+    {"ac_text_to_date(value TEXT) RETURNS DATE", "CAST(value AS DATE)"},
+    {"ac_text_to_time(value TEXT) RETURNS TIME", "CAST(value AS TIME)"},
+    {"ac_text_to_datetime(value TEXT) RETURNS TIMESTAMP", "CAST(value AS TIMESTAMP)"}
+  ]
+
+  defp register_udfs!(connection) do
+    for {header, body} <- @udfs do
+      function = """
+      CREATE OR REPLACE FUNCTION pg_temp.#{header} AS $$
+      BEGIN
+        RETURN #{body};
+      EXCEPTION WHEN OTHERS THEN
+        RETURN NULL;
+      END;
+      $$ LANGUAGE PLPGSQL IMMUTABLE;
+      """
+
+      execute!(connection, function)
+    end
   end
 
   # -------------------------------------------------------------------
