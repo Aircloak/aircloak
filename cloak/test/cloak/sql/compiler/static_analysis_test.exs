@@ -12,11 +12,22 @@ defmodule Cloak.Sql.Compiler.StaticAnalysis.Test do
     {"1 / x1", %{"x1" => {100, 200}}, {-200, 200}, :ok}
   ]
 
+  describe ".to_function" do
+    test "converting a simple function" do
+      compiled = compile!("SELECT COUNT(*) FROM table WHERE x1 * x2 = 0")
+
+      {function, _input_bounds} =
+        StaticAnalysis.to_function(condition_expression(compiled), bound_builder(%{"x1" => nil, "x2" => nil}))
+
+      assert function.([13, 17]) == 13 * 17
+    end
+  end
+
   Enum.each(@problems, fn problem = {equation, input_bounds, output_bounds, result} ->
     test "analyzing #{inspect(problem)}" do
       compiled = compile!("SELECT COUNT(*) FROM table WHERE #{unquote(equation)} = 0")
       bound_builder = bound_builder(unquote(Macro.escape(input_bounds)))
-      {function, input_bounds} = StaticAnalysis.to_function(compiled.where, bound_builder)
+      {function, input_bounds} = StaticAnalysis.to_function(condition_expression(compiled), bound_builder)
 
       for method <- methods() do
         IO.inspect({
@@ -49,6 +60,11 @@ defmodule Cloak.Sql.Compiler.StaticAnalysis.Test do
     true
   rescue
     Cloak.Sql.CompilationError -> false
+  end
+
+  defp condition_expression(query) do
+    {:comparison, expression, :=, _} = query.where
+    expression
   end
 
   defp compile!(query) do
