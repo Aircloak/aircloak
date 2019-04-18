@@ -408,7 +408,7 @@ defmodule Cloak.Sql.Expression do
 
   defp do_apply("extract_words", [nil]), do: [nil]
   defp do_apply("extract_words", [string]), do: String.split(string)
-  defp do_apply("^", [x, y]), do: :math.pow(x, y)
+  defp do_apply("^", [x, y]) when x >= 0, do: :math.pow(x, y)
   defp do_apply("*", [x = %Duration{}, y]), do: Duration.scale(x, y)
   defp do_apply("*", [x, y = %Duration{}]), do: do_apply("*", [y, x])
   defp do_apply("*", [x, y]), do: x * y

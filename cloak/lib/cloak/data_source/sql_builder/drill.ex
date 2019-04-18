@@ -41,7 +41,6 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
   def function_sql("bool_op", [[?', op, ?'], arg1, arg2]), do: ["(", arg1, " ", op, " ", arg2, ")"]
 
   def function_sql("/", [arg1, arg2]), do: ["(CAST(", arg1, " AS double) / NULLIF(", arg2, ", 0))"]
-  def function_sql("^", [arg1, arg2]), do: ["POW(", arg1, ", ", arg2, ")"]
   def function_sql("%", [arg1, arg2]), do: ["MOD(", arg1, ", NULLIF(", arg2, ", 0))"]
 
   def function_sql("date_trunc", [[?', "quarter", ?'], arg]) do
@@ -58,6 +57,8 @@ defmodule Cloak.DataSource.SqlBuilder.Drill do
   for binary_operator <- ~w(+ - *) do
     def function_sql(unquote(binary_operator), [arg1, arg2]), do: ["(", arg1, unquote(binary_operator), arg2, ")"]
   end
+
+  def function_sql("^", [arg1, arg2]), do: ["CASE WHEN ", arg1, " < 0 THEN NULL ELSE POW(", arg1, ", ", arg2, ") END"]
 
   def function_sql("sqrt", [arg]), do: ["CASE WHEN ", arg, " < 0 THEN NULL ELSE SQRT(", arg, ") END"]
 
