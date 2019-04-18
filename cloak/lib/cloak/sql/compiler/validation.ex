@@ -227,8 +227,8 @@ defmodule Cloak.Sql.Compiler.Validation do
     end
   end
 
-  @date_constant_min_year 1900
-  @date_constant_max_year 2099
+  @date_constant_min_year 1800
+  @date_constant_max_year 2999
   defp verify_constant(%Expression{value: %{} = value, type: type} = expression) when type in [:date, :datetime] do
     if value.year < @date_constant_min_year or value.year > @date_constant_max_year do
       raise CompilationError,
