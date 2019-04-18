@@ -62,6 +62,17 @@ defmodule IntegrationTest.AcceptanceHelper do
       {:ok, element} -> element_displayed?(element)
       {:error, _} -> false
     end
+  rescue
+    e in RuntimeError ->
+      # Due to dynamic and asynchronous UI flow, it's sometimes possible that an element disappears while this function
+      # is running. In such case, we'll get a "stale element reference" exception, which we're converting into a plain
+      # `false` return value, to indicate that the desired element doesn't exist.
+      if String.contains?(
+           Exception.message(e),
+           "stale element reference: element is not attached to the page document"
+         ),
+         do: false,
+         else: reraise(e, __STACKTRACE__)
   end
 
   def new_group_name(), do: "group_#{:erlang.unique_integer([:positive, :monotonic])}"
