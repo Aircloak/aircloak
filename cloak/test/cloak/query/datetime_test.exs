@@ -250,7 +250,7 @@ defmodule Cloak.Query.DatetimeTest do
     end
   end
 
-  describe "curren date/time functions" do
+  describe "current date/time functions" do
     test "current_date" do
       today = Date.utc_today() |> to_string()
 
