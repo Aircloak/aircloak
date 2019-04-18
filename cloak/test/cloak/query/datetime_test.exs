@@ -155,6 +155,35 @@ defmodule Cloak.Query.DatetimeTest do
     })
   end
 
+  test "using interval literals" do
+    :ok = insert_rows(_user_ids = 1..10, "datetimes", [], [])
+
+    assert_query("select interval 'P1Y' from datetimes", %{
+      rows: [%{row: ["P1Y"]}]
+    })
+  end
+
+  test "subtracting interval from datetime" do
+    :ok = insert_rows(_user_ids = 1..10, "datetimes", ["datetime"], [~N[2015-01-02 03:04:05.000000]])
+
+    assert_query("select datetime - interval 'P1Y' from datetimes", %{rows: [%{row: [date_time_string]}]})
+    assert date_time_string == NaiveDateTime.to_iso8601(~N[2014-01-02 03:04:05.000000])
+  end
+
+  test "subtracting dates" do
+    :ok = insert_rows(_user_ids = 1..10, "datetimes", ["date_only"], [~D[2015-01-02]])
+
+    assert_query("select date_only - date '2014-01-02' from datetimes", %{rows: [%{row: [365]}]})
+  end
+
+  test "using interval math" do
+    :ok = insert_rows(_user_ids = 1..10, "datetimes", [], [])
+
+    assert_query("select 10 * interval 'P1Y' from datetimes", %{
+      rows: [%{row: ["P10Y"]}]
+    })
+  end
+
   test "casting date to datetime" do
     :ok = insert_rows(_user_ids = 1..10, "datetimes", ["date_only"], [~D[0001-02-03]])
 
