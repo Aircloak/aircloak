@@ -19,19 +19,28 @@ defmodule IntegrationTest.AcceptanceHelper do
     end
   end
 
-  defmacro assert_has(parent \\ nil, strategy, selector) do
-    quote bind_quoted: [parent: parent, strategy: strategy, selector: selector] do
-      unless eventually_exists?(parent, strategy, selector) do
-        take_screenshot("./browser_test/screenshots/error_#{:erlang.unique_integer([:monotonic, :positive])}.png")
-        flunk("Element #{inspect({strategy, selector})} is not present")
+  defmacro assert_has(parent \\ nil, strategy, selector, opts \\ []) do
+    quote bind_quoted: [parent: parent, strategy: strategy, selector: selector, opts: opts] do
+      fun = fn fun, attempts ->
+        unless exists_visible?(parent, strategy, selector) do
+          if attempts <= 1 do
+            take_screenshot("./browser_test/screenshots/error_#{:erlang.unique_integer([:monotonic, :positive])}.png")
+            flunk("Element #{inspect({strategy, selector})} is not present")
+          end
+
+          Process.sleep(Keyword.get(opts, :retry_delay, 100))
+          fun.(fun, attempts - 1)
+        end
       end
+
+      fun.(fun, Keyword.get(opts, :attempts, 50))
     end
   end
 
   defmacro refute_has(parent \\ nil, strategy, selector, opts \\ []) do
     quote bind_quoted: [parent: parent, strategy: strategy, selector: selector, opts: opts] do
       fun = fn fun, attempts ->
-        if eventually_exists?(parent, strategy, selector, retries: 1) do
+        if exists_visible?(parent, strategy, selector) do
           if attempts <= 1 do
             take_screenshot("./browser_test/screenshots/error_#{:erlang.unique_integer([:monotonic, :positive])}.png")
             flunk("Element #{inspect({strategy, selector})} is present")
@@ -46,10 +55,10 @@ defmodule IntegrationTest.AcceptanceHelper do
     end
   end
 
-  def eventually_exists?(parent \\ nil, strategy, selector, opts \\ []) do
+  def exists_visible?(parent \\ nil, strategy, selector) do
     fun = if is_nil(parent), do: &search_element/3, else: &search_within_element(parent, &1, &2, &3)
 
-    case fun.(strategy, selector, Keyword.get(opts, :retries, 10)) do
+    case fun.(strategy, selector, 1) do
       {:ok, element} -> element_displayed?(element)
       {:error, _} -> false
     end
