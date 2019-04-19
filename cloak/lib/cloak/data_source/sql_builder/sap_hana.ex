@@ -112,5 +112,6 @@ defmodule Cloak.DataSource.SqlBuilder.SAPHana do
 
   defp sql_type(:text), do: "nvarchar"
   defp sql_type(:datetime), do: "timestamp"
+  defp sql_type(:integer), do: "bigint"
   defp sql_type(type) when is_atom(type), do: Atom.to_string(type)
 end
