@@ -137,10 +137,10 @@ defmodule Cloak.DataSource.MySQL do
   defp integer_field_mapper(value) when is_integer(value), do: value
   defp integer_field_mapper(value) when is_float(value), do: round(value)
 
-  defp real_field_mapper(nil), do: nil
   defp real_field_mapper(%Decimal{} = value), do: Decimal.to_float(value)
   defp real_field_mapper(value) when is_float(value), do: value
   defp real_field_mapper(value) when is_integer(value), do: value * 1.0
+  defp real_field_mapper(_), do: nil
 
   defp boolean_field_mapper(nil), do: nil
   defp boolean_field_mapper(value) when value in [<<0>>, 0, false], do: false
