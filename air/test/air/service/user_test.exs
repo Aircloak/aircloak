@@ -170,11 +170,8 @@ defmodule Air.Service.UserTest do
     end
 
     test "error in case of conflicting login with different case" do
-      user = TestRepoHelper.create_user!()
-      refute _is_all_uppercase = User.main_login(user) =~ ~r(^[^a-z]*$)
-
-      assert errors_on(&User.create(&1), %{name: "Bob", login: String.upcase(User.main_login(user))})[:login] ==
-               "has already been taken"
+      TestRepoHelper.create_user!(%{login: "alice"})
+      assert errors_on(&User.create(&1), %{name: "Bob", login: "Alice"})[:login] == "has already been taken"
     end
   end
 
