@@ -36,15 +36,41 @@ defmodule CentralWeb.LicenseView do
     }
   end
 
-  defp name_features(mapping, license),
-    do:
-      mapping
+  defp includes_all?(license, features) do
+    features
+    |> Enum.map(fn {_name, key} -> key end)
+    |> Enum.all?(&Enum.member?(license.features, &1))
+  end
+
+  defp name_features(license) do
+    available_features = Map.merge(features(), datasource_features())
+
+    feature_to_name = fn features ->
+      features
       |> Enum.filter(fn {name, key} -> Enum.member?(license.features, key) end)
       |> Enum.map(fn {name, _} -> name end)
+    end
 
-  defp datasource_features(license), do: name_features(datasource_features(), license)
+    if includes_all?(license, available_features) do
+      ["All licensensable features"]
+    else
+      core_features =
+        if includes_all?(license, features()) do
+          ["All core features"]
+        else
+          feature_to_name.(features())
+        end
 
-  defp core_features(license), do: name_features(features(), license)
+      data_sources =
+        if includes_all?(license, datasource_features()) do
+          ["All data sources"]
+        else
+          feature_to_name.(datasource_features())
+        end
 
-  defp licensed_features(license), do: Aircloak.OxfordComma.join(core_features(license) ++ datasource_features(license))
+      core_features ++ data_sources
+    end
+  end
+
+  defp licensed_features(license), do: license |> name_features() |> Aircloak.OxfordComma.join()
 end
