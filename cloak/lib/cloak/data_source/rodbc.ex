@@ -172,7 +172,6 @@ defmodule Cloak.DataSource.RODBC do
   defp error_to_nil({:ok, result}), do: result
   defp error_to_nil({:error, _reason}), do: nil
 
-  defp real_field_mapper(nil), do: nil
   defp real_field_mapper("." <> rest), do: real_field_mapper("0." <> rest)
   defp real_field_mapper("-." <> rest), do: real_field_mapper("-0." <> rest)
 
@@ -187,6 +186,7 @@ defmodule Cloak.DataSource.RODBC do
 
   defp real_field_mapper(value) when is_float(value), do: value
   defp real_field_mapper(value) when is_integer(value), do: value * 1.0
+  defp real_field_mapper(_), do: nil
 
   defp integer_field_mapper(nil), do: nil
 
