@@ -53,7 +53,7 @@ defmodule Test.StaticAnalysisReport do
                      }, runs} ->
       IO.puts("\n#{expression} on #{inspect(input_bounds)} restricted to #{inspect(output_bounds)}\n")
       IO.puts("Safe?: #{actual_safe?}")
-      IO.puts("Rejected by restritions?: #{!restriction_safe?}")
+      IO.puts("Rejected by restrictions?: #{!restriction_safe?}")
       IO.puts("Rejected by static analysis methods: #{count(runs, &(!&1.method_safe?))}")
     end)
   end

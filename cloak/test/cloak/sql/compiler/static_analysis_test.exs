@@ -5,12 +5,18 @@ defmodule Cloak.Sql.Compiler.StaticAnalysis.Test do
 
   use ExUnit.Case
 
+  @positive_infinity 1.0e305
+
   @problems [
     # equation, argument bounds, output bounds, result
     {"1 / (x1 - 1)", %{"x1" => {-100, 100}}, {-200, 200}, :divide_by_zero},
     {"1 / (x1 - 1)", %{"x1" => {100, 200}}, {-200, 200}, :ok},
     {"1 / x1", %{"x1" => {-100, 100}}, {-200, 200}, :divide_by_zero},
-    {"1 / x1", %{"x1" => {100, 200}}, {-200, 200}, :ok}
+    {"1 / x1", %{"x1" => {100, 200}}, {-200, 200}, :ok},
+    {"abs(100 * (x2 * x2 - 0.01 * x1 * x1 + 1) + 0.01 * (x1 + 10) * (x1 + 10))", %{"x1" => {-15, -5}, "x2" => {-3, 3}},
+     {0, @positive_infinity}, :ok},
+    {"abs(100 * (x2 * x2 - 0.01 * x1 * x1 + 1) + 0.01 * (x1 + 10) * (x1 + 10))", %{"x1" => {-15, -5}, "x2" => {-3, 3}},
+     {1, @positive_infinity}, :overflow}
   ]
 
   describe ".to_function" do
@@ -37,7 +43,7 @@ defmodule Cloak.Sql.Compiler.StaticAnalysis.Test do
           unquote(Macro.escape(input_bounds)),
           unquote(output_bounds),
           unquote(result) == :ok,
-          inspect(method),
+          method,
           StaticAnalysis.safe?(method, function, input_bounds, unquote(output_bounds)),
           passes_validation?(compiled)
         )

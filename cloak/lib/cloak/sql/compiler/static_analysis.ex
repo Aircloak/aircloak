@@ -42,6 +42,9 @@ defmodule Cloak.Sql.Compiler.StaticAnalysis do
   defp do_to_function(%Expression{function: "+", function_args: [a, b]}, _leaves),
     do: fn inputs -> a.(inputs) + b.(inputs) end
 
+  defp do_to_function(%Expression{function: "abs", function_args: [a]}, _leaves),
+    do: fn inputs -> abs(a.(inputs)) end
+
   defp do_to_function(%Expression{constant?: true, value: value}, _leaves), do: fn _inputs -> value end
 
   defp do_to_function(leaf, leaves) do
